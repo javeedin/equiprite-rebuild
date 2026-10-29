@@ -1,0 +1,14 @@
+{
+  "id": "schedule",
+  "description": "Equipment schedule (FDD 7.10): the fleet's bookings and planned maintenance on one timeline, with the map, conflicts first. Read only, as in Old EquipRite.",
+  "defaultPage": "schedule",
+  "pages": {
+    "schedule": {
+      "path": "pages/schedule-page"
+    }
+  },
+  "chains": {},
+  "services": {},
+  "types": {},
+  "variables": {}
+}

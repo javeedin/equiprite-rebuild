@@ -558,3 +558,186 @@
 .er-trf-grid .er-grid-row {
   grid-template-columns: 110px minmax(180px, 1.4fr) minmax(160px, 1.2fr) minmax(160px, 1.2fr) minmax(150px, 1fr) 120px minmax(100px, .8fr);
 }
+
+/* ── Equipment schedule ── */
+/* flows/schedule (FDD 7.10, wireframe Schedule). Bars follow the wireframe and FDD S32: hard reserve dark blue, soft
+   reserve light blue, maintenance hatched, conflicts outlined red. Bryntum and Mapbox overrides are scoped to .er-sch;
+   the Gantt tooltip (.er-sch-tip) is drawn outside the page, so it carries its own prefix. */
+
+.er-sch-band-actions { align-items: center; }
+.er-sch-month { display: inline-flex; align-items: center; gap: 8px; }
+.er-sch-month-btn {
+  width: 38px; height: 38px; border-radius: 6px; border: 1px solid #fff; background: transparent; color: #fff;
+  font: inherit; font-size: 20px; line-height: 1; cursor: pointer;
+}
+.er-sch-month-btn:hover { background: rgba(255, 255, 255, .12); }
+.er-sch-month-btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.er-sch-month-label { min-width: 136px; text-align: center; font-size: 17px; }
+
+.er-sch-filters { justify-content: space-between; }
+.er-sch-caret { font-size: 11px; color: var(--er-muted); }
+.er-sch-options { display: flex; flex-direction: column; gap: 10px; }
+.er-sch-options-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.er-sch-options-head .er-btn { height: 32px; padding: 0 12px; font-size: 13px; }
+.er-sch-spacer { flex: 1; }
+.er-sch-option-chips { max-height: 196px; overflow-y: auto; }
+.er-sch-note {
+  margin: 0; padding: 8px 12px; border-radius: 8px; background: #fffbeb; border: 1px solid #fde68a; color: #78350f; font-size: 14px;
+}
+
+/* Conflicts first */
+.er-sch-conflicts { border-color: #fecaca; border-left: 4px solid #b91c1c; }
+.er-sch-conflicts-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 14px 16px 10px; }
+.er-sch-conflicts-head p { margin: 4px 0 0; max-width: 860px; }
+.er-sch-flag {
+  display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; margin-right: 6px; border-radius: 50%;
+  background: #b91c1c; color: #fff; font-size: 13px; font-weight: 700; vertical-align: 2px;
+}
+.er-sch-flag--sm { width: 16px; height: 16px; margin: 0 0 0 6px; font-size: 11px; vertical-align: 1px; }
+.er-sch-conflict-list { list-style: none; margin: 0; padding: 0 16px 14px; display: flex; flex-direction: column; gap: 8px; max-height: 380px; overflow-y: auto; }
+.er-sch-conflict {
+  display: grid; grid-template-columns: minmax(170px, 1fr) minmax(0, 2.6fr) auto; gap: 12px; align-items: center;
+  padding: 10px 12px; border: 1px solid var(--er-line); border-radius: 8px; background: #fff;
+}
+.er-sch-conflict-unit { display: flex; flex-direction: column; min-width: 0; }
+.er-sch-conflict-what { margin-top: 2px; font-size: 13px; font-weight: 700; color: #b91c1c; }
+.er-sch-conflict-items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.er-sch-booking { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.er-sch-booking-text { display: flex; flex-direction: column; min-width: 0; flex: 1 1 220px; }
+.er-sch-booking-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.er-sch-booking-actions .er-btn, .er-sch-show { height: 32px; padding: 0 10px; font-size: 13px; }
+@media (max-width: 900px) { .er-sch-conflict { grid-template-columns: minmax(0, 1fr); } }
+
+/* Timeline and map side by side (the wireframe), stacked when narrow */
+.er-sch-main { display: flex; flex-wrap: wrap; gap: 16px; align-items: stretch; }
+.er-sch-timeline { flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+.er-sch-side { flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+.er-sch-card-head {
+  display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 12px; padding: 12px 14px;
+  border-bottom: 1px solid var(--er-line);
+}
+.er-sch-card-head .er-seg-btn { height: 32px; padding: 0 12px; font-size: 13px; }
+.er-sch-gantt-wrap { position: relative; height: clamp(460px, calc(100vh - 320px), 820px); }
+.er-sch-gantt { position: absolute; inset: 0; }
+.er-sch-hidden { display: none !important; }
+.er-sch-placeholder {
+  position: absolute; inset: 0; z-index: 2; display: flex; align-items: center; justify-content: center;
+  background: rgba(248, 250, 252, .9); color: var(--er-muted); font-size: 15px;
+}
+.er-sch-empty { margin: 0; padding: 40px 16px; text-align: center; }
+.er-sch-map-wrap { position: relative; flex: 1 1 auto; min-height: 420px; }
+/* The id beats Mapbox's .mapboxgl-map { position: relative }, which would collapse the map to no height. */
+.er-sch #erScheduleMap { position: absolute; inset: 0; }
+.er-sch-list-wrap { padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; max-height: clamp(460px, calc(100vh - 320px), 820px); overflow-y: auto; }
+.er-sch-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.er-sch-list-item {
+  width: 100%; display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px; border: 1px solid var(--er-line); border-radius: 6px;
+  background: #fff; font: inherit; font-size: 14px; color: var(--er-ink); text-align: left; cursor: pointer;
+}
+.er-sch-list-item:hover { border-color: var(--er-band); }
+.er-sch-list-item:focus-visible { outline: 2px solid var(--er-band); outline-offset: 2px; }
+.er-sch-unit-text { display: flex; flex-direction: column; min-width: 0; }
+.er-sch-next { font-size: 13px; }
+.er-sch-more { align-self: flex-start; }
+
+.er-sch-dot {
+  flex: 0 0 auto; width: 10px; height: 10px; margin-top: 5px; border-radius: 50%; background: #16a34a;
+  box-shadow: 0 0 0 2px #fff, 0 0 0 3px rgba(15, 23, 42, .14);
+}
+.er-sch-dot--deployed, .er-sch-dot--reserved { background: #1565c0; }
+.er-sch-dot--maintenance { background: #ea580c; }
+
+/* Legend */
+.er-sch-legend { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; font-size: 13px; color: #334155; }
+.er-sch-legend li { display: inline-flex; align-items: center; gap: 6px; }
+.er-sch-legend-note { color: var(--er-muted); }
+.er-sch-swatch { display: inline-block; flex: 0 0 auto; width: 22px; height: 10px; border-radius: 2px; background: #1565c0; }
+.er-sch-swatch--hard { background: #1565c0; }
+.er-sch-swatch--soft { background: #90caf9; }
+.er-sch-swatch--mobilization { background: #2e7d32; }
+.er-sch-swatch--maintenance { background: repeating-linear-gradient(45deg, #f59e0b 0 4px, #fde68a 4px 8px); }
+.er-sch-swatch--other { background: #ccfbf1; box-shadow: inset 0 0 0 1px #0f766e; }
+.er-sch-swatch--cancelled { background: #cbd5e1; }
+.er-sch-swatch--conflict { background: transparent; box-shadow: inset 0 0 0 2px #b91c1c; }
+.er-sch-swatch--today { width: 0; height: 14px; border-radius: 0; background: none; border-left: 2px dashed #dc2626; }
+
+/* Map legend and pins */
+.er-sch-map-legend {
+  list-style: none; margin: 0; padding: 10px 14px; display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: #334155;
+  border-top: 1px solid var(--er-line);
+}
+.er-sch-map-legend li { display: inline-flex; align-items: center; gap: 6px; }
+.er-sch-pin-key { width: 10px; height: 10px; border-radius: 50%; background: #16a34a; }
+.er-sch-pin-key--deployed { background: #1565c0; }
+.er-sch-pin-key--maintenance { background: #ea580c; }
+.er-sch-pin-key--site { border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: #64748b; }
+.er-sch-pin {
+  width: 14px; height: 14px; border-radius: 50%; background: #16a34a; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .4); cursor: pointer;
+}
+.er-sch-pin--deployed, .er-sch-pin--reserved { background: #1565c0; }
+.er-sch-pin--maintenance { background: #ea580c; }
+.er-sch-site-pin { cursor: pointer; }
+.er-sch .mapboxgl-popup-content { border-radius: 8px; padding: 10px 12px; box-shadow: 0 4px 18px rgba(15, 23, 42, .16); }
+.er-sch-pop, .er-sch-tip { font-size: 13px; color: #111827; min-width: 220px; max-width: 340px; }
+.er-sch-pop-title, .er-sch-tip-title { font-size: 14px; font-weight: 700; }
+.er-sch-pop-sub, .er-sch-tip-sub { color: #64748b; margin-bottom: 6px; }
+.er-sch-pop dl, .er-sch-tip dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; margin: 0; }
+.er-sch-pop dt, .er-sch-tip dt { color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; padding-top: 2px; }
+.er-sch-pop dd, .er-sch-tip dd { margin: 0; }
+.er-sch-tip-sub strong { color: #b91c1c; }
+.b-tooltip.er-sch-tooltip {
+  --panel-background-color: #fff; border: 1px solid #e5e7eb; border-radius: 8px; box-shadow: 0 6px 20px rgba(15, 23, 42, .16);
+}
+.b-tooltip.er-sch-tooltip .b-tooltip-content { color: #111827; padding: 10px 12px; }
+
+/* Gantt (Bryntum) inside the Redwood card. The page loads Bryntum's stylesheet after this file, so every override
+   here is one class more specific than the Bryntum rule it replaces (.er-sch .er-sch-gantt ...). Bar fills go through
+   Bryntum's own --event-background-image / background-color so its "style none" rules keep them. */
+.er-sch .er-sch-gantt .b-grid-header { font-size: 12px; font-weight: 600; color: var(--er-muted); }
+.er-sch .er-sch-gantt .b-grid-row.b-selected { background: #e0ecf2; }
+.er-sch .er-sch-gantt .b-group-row { background: #f1f5f9; }
+.er-sch .er-sch-gantt .b-group-row .b-grid-cell { font-size: 12px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: .05em; }
+.er-sch-group-count { margin-left: 6px; font-weight: 600; color: #64748b; text-transform: none; letter-spacing: 0; }
+.er-sch-unit-cell { display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; }
+.er-sch-unit-cell .er-sch-dot { margin-top: 0; }
+.er-sch-unit-cell .er-sch-unit-text strong { font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.er-sch-unit-cell .er-sch-unit-text span { font-size: 12px; color: var(--er-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.er-sch-unit-flag {
+  flex: 0 0 auto; margin-left: auto; width: 18px; height: 18px; border-radius: 50%; background: #b91c1c; color: #fff;
+  font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center;
+}
+.er-sch .er-sch-gantt .b-sch-event.er-sch-bar {
+  --event-background-image: none;
+  border: 0; border-radius: 4px; padding: 0 6px; font-size: 12px; font-weight: 600; box-shadow: none;
+  background-color: #1565c0; background-image: var(--event-background-image); color: #fff;
+}
+.er-sch .er-sch-gantt .b-sch-event.er-sch-bar--hard { background-color: #1565c0; color: #fff; }
+.er-sch .er-sch-gantt .b-sch-event.er-sch-bar--soft { background-color: #90caf9; color: #0b3a66; }
+.er-sch .er-sch-gantt .b-sch-event.er-sch-bar--mobilization { background-color: #2e7d32; color: #fff; }
+.er-sch .er-sch-gantt .b-sch-event.er-sch-bar--maintenance {
+  --event-background-image: repeating-linear-gradient(45deg, #f59e0b 0 5px, #fde68a 5px 10px);
+  background-color: #fde68a; color: #422006;
+}
+.er-sch .er-sch-gantt .b-sch-event.er-sch-bar--other { background-color: #ccfbf1; color: #134e4a; box-shadow: inset 0 0 0 1px #0f766e; }
+.er-sch .er-sch-gantt .b-sch-event.er-sch-bar--cancelled { background-color: #cbd5e1; color: #1f2937; }
+.er-sch .er-sch-gantt .b-sch-event.er-sch-bar--conflict { box-shadow: inset 0 0 0 2px #b91c1c, 0 0 0 1px #b91c1c; }
+.er-sch .er-sch-gantt .b-sch-event.er-sch-bar--dim { opacity: .3; }
+.er-sch .er-sch-gantt .b-sch-event-wrap.b-sch-event-selected .b-sch-event.er-sch-bar,
+.er-sch .er-sch-gantt .b-sch-event.er-sch-bar.b-sch-event-selected { outline: 2px solid #111827; outline-offset: 1px; }
+.er-sch-bar-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.er-sch .er-sch-gantt .b-sch-timeranges-canvas.b-timeranges-body-canvas .b-sch-line.b-sch-current-time { border-left: 2px dashed #dc2626; background: transparent; }
+.er-sch .er-sch-gantt .b-sch-timeranges-canvas.b-timeranges-header-canvas .b-sch-line.b-sch-current-time { background: #dc2626; color: #fff; font-weight: 700; }
+
+/* The list the timeline falls back to */
+.er-sch-fallback { padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+.er-sch-fl { border-top: 1px solid var(--er-line); font-size: 14px; }
+.er-sch-fl-row {
+  display: grid; grid-template-columns: minmax(200px, 1fr) minmax(0, 2fr); gap: 12px; padding: 10px 6px; border-bottom: 1px solid var(--er-line);
+}
+.er-sch-fl-head { font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--er-muted); font-weight: 600; background: var(--er-bg); }
+.er-sch-fl-row--conflict { background: #fef2f2; }
+.er-sch-unit { display: flex; gap: 10px; align-items: flex-start; min-width: 0; }
+.er-sch-fl-bookings { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.er-sch-fl-booking { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.er-sch-fl-booking--conflict strong { color: #b91c1c; }
+@media (max-width: 640px) { .er-sch-fl-row { grid-template-columns: minmax(0, 1fr); } }

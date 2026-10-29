@@ -1,0 +1,123 @@
+{
+  "title": "Equipment schedule",
+  "description": "Equipment schedule (FDD 7.10; wireframe Schedule; replaces Old EquipRite main/equipment-schedule). Data: loadScheduleChain, the old initSchedulerChain's calls unchanged. Read only, as the old page: bookings change on the request line (Old EquipRite line-detail), which every booking and conflict links to. Bryntum and Mapbox load lazily; when either cannot load the page lists the same data.",
+  "variables": {
+    "isLoading": { "type": "boolean", "defaultValue": true },
+    "loadError": { "type": "string", "defaultValue": "" },
+    "notes": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Sources that failed but did not stop the page (bookings, sites, locations, work orders)."
+    },
+    "model": {
+      "type": "any",
+      "defaultValue": null,
+      "description": "prepare(buildResourcesAndEvents(...)): resources, events, conflicts, window, today."
+    },
+    "filters": {
+      "type": "any",
+      "defaultValue": { "text": "", "classes": [], "projects": [], "yards": [], "conflictsOnly": false }
+    },
+    "openFilter": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "class, project or yard while its choices are open."
+    },
+    "visibleIds": { "type": "any[]", "defaultValue": [] },
+    "summary": { "type": "any", "defaultValue": {} },
+    "conflictRows": { "type": "any[]", "defaultValue": [] },
+    "conflictsOpen": { "type": "boolean", "defaultValue": true },
+    "listRows": { "type": "any[]", "defaultValue": [] },
+    "listLimit": { "type": "number", "defaultValue": 60 },
+    "classOptions": { "type": "any[]", "defaultValue": [] },
+    "projectOptions": { "type": "any[]", "defaultValue": [] },
+    "yardOptions": { "type": "any[]", "defaultValue": [] },
+    "scale": { "type": "string", "defaultValue": "week", "description": "day, week or month." },
+    "viewMonth": { "type": "string", "defaultValue": "", "description": "YYYY-MM at the left of the timeline." },
+    "panel": { "type": "string", "defaultValue": "map", "description": "map or list beside the timeline." },
+    "mapStyle": { "type": "string", "defaultValue": "streets" },
+    "ganttState": { "type": "string", "defaultValue": "loading", "description": "loading, ready, failed or empty." },
+    "mapState": { "type": "string", "defaultValue": "loading", "description": "loading, ready, failed or empty." }
+  },
+  "events": {
+    "scheduleMonthInView": {
+      "description": "Raised by the page module when the user scrolls the timeline to another month.",
+      "payloadType": { "month": "string" }
+    }
+  },
+  "metadata": {},
+  "eventListeners": {
+    "vbBeforeEnter": {
+      "chains": [{ "chain": "enforcePageAccessChain" }]
+    },
+    "vbEnter": {
+      "chains": [{ "chain": "loadScheduleChain" }]
+    },
+    "vbExit": {
+      "chains": [{ "chain": "leaveChain" }]
+    },
+    "scheduleMonthInView": {
+      "chains": [{ "chain": "monthInViewChain", "parameters": { "month": "{{ $event.month }}" } }]
+    },
+    "onSearch": {
+      "chains": [{ "chain": "setFilterChain", "parameters": { "kind": "text", "value": "{{ $event.target.value }}" } }]
+    },
+    "onFilterOpen": {
+      "chains": [{ "chain": "setFilterChain", "parameters": { "kind": "open", "value": "{{ $event.currentTarget.dataset.filter }}" } }]
+    },
+    "onFilterPick": {
+      "chains": [{
+        "chain": "setFilterChain",
+        "parameters": { "kind": "{{ $event.currentTarget.dataset.kind }}", "value": "{{ $event.currentTarget.dataset.value }}" }
+      }]
+    },
+    "onFilterClear": {
+      "chains": [{ "chain": "setFilterChain", "parameters": { "kind": "clear", "value": "{{ $event.currentTarget.dataset.kind }}" } }]
+    },
+    "onConflictsOnly": {
+      "chains": [{ "chain": "setFilterChain", "parameters": { "kind": "conflicts" } }]
+    },
+    "onScale": {
+      "chains": [{ "chain": "setViewChain", "parameters": { "scale": "{{ $event.currentTarget.dataset.scale }}" } }]
+    },
+    "onMonth": {
+      "chains": [{ "chain": "setViewChain", "parameters": { "month": "{{ $event.currentTarget.dataset.month }}" } }]
+    },
+    "onPanel": {
+      "chains": [{ "chain": "setViewChain", "parameters": { "panel": "{{ $event.currentTarget.dataset.panel }}" } }]
+    },
+    "onMapStyle": {
+      "chains": [{ "chain": "setViewChain", "parameters": { "mapStyle": "{{ $event.currentTarget.dataset.style }}" } }]
+    },
+    "onMore": {
+      "chains": [{ "chain": "setViewChain", "parameters": { "more": true } }]
+    },
+    "onToggleConflicts": {
+      "chains": [{ "chain": "setViewChain", "parameters": { "conflictsOpen": "toggle" } }]
+    },
+    "onFocusEvent": {
+      "chains": [{ "chain": "focusChain", "parameters": { "eventId": "{{ $event.currentTarget.dataset.event }}" } }]
+    },
+    "onFocusUnit": {
+      "chains": [{ "chain": "focusChain", "parameters": { "unitId": "{{ $event.currentTarget.dataset.unit }}" } }]
+    },
+    "onOpenRequest": {
+      "chains": [{
+        "chain": "openRequestChain",
+        "parameters": { "requestId": "{{ $event.currentTarget.dataset.request }}", "requestNumber": "{{ $event.currentTarget.dataset.number }}" }
+      }]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    },
+    "css": [
+      "/resources/css/schedulerpro.classic.css",
+      "/resources/css/bryntum-shim.css",
+      "/resources/css/mapbox-gl.css"
+    ]
+  }
+}

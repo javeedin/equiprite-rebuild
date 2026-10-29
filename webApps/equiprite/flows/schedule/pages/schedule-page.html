@@ -1,0 +1,313 @@
+<!-- Equipment schedule (wireframe: Schedule; FDD 7.10). Data: loadScheduleChain (the old initSchedulerChain's calls).
+     Read only, as the old page: bookings change on their request line in Old EquipRite (line-detail). -->
+<div class="er-band">
+  <div class="er-band-inner">
+    <div>
+      <div class="er-band-kicker">Fulfil · FDD 7.10</div>
+      <h1>Equipment schedule</h1>
+      <div class="er-band-sub">
+        <oj-bind-text value="[[ $functions.summaryText($variables.summary, $variables.isLoading) ]]"></oj-bind-text>
+      </div>
+    </div>
+    <div class="er-actions er-sch-band-actions">
+      <div class="er-sch-month" role="group" aria-label="Month in view">
+        <button type="button" class="er-sch-month-btn" data-month="prev" aria-label="Previous month" on-click="[[ $listeners.onMonth ]]">‹</button>
+        <strong class="er-sch-month-label" aria-live="polite"><oj-bind-text value="[[ $functions.monthLabel($variables.viewMonth) ]]"></oj-bind-text></strong>
+        <button type="button" class="er-sch-month-btn" data-month="next" aria-label="Next month" on-click="[[ $listeners.onMonth ]]">›</button>
+      </div>
+      <button type="button" class="er-btn er-btn--ghost" data-month="today" on-click="[[ $listeners.onMonth ]]">Today</button>
+      <oj-bind-if test="[[ $application.functions.oldAppLink($application.variables.oldAppUrl, 'schedule') ]]">
+        <a class="er-btn er-btn--ghost" :href="[[ $application.functions.oldAppLink($application.variables.oldAppUrl, 'schedule') ]]">Old version</a>
+      </oj-bind-if>
+    </div>
+  </div>
+  <div class="er-strip" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+</div>
+
+<div class="er-page er-sch">
+  <oj-bind-if test="[[ !!$variables.loadError ]]">
+    <div class="er-error" role="alert"><oj-bind-text value="[[ $variables.loadError ]]"></oj-bind-text></div>
+  </oj-bind-if>
+  <oj-bind-for-each data="[[ $variables.notes ]]">
+    <template data-oj-as="note">
+      <div class="er-sch-note" role="status"><oj-bind-text value="[[ note.data ]]"></oj-bind-text></div>
+    </template>
+  </oj-bind-for-each>
+
+  <!-- Filters: search, class / project / yard, conflicts only, scale. -->
+  <div class="er-filters er-sch-filters">
+    <label class="er-search">
+      <span class="oj-ux-ico-search" aria-hidden="true"></span>
+      <span class="er-sr">Search the schedule</span>
+      <input type="search" placeholder="Equipment, serial, project, request or requestor" on-input="[[ $listeners.onSearch ]]">
+    </label>
+    <div class="er-chip-row" role="group" aria-label="Filters">
+      <button type="button" data-filter="class" on-click="[[ $listeners.onFilterOpen ]]"
+        :class="[[ 'er-chip' + ($variables.filters.classes.length ? ' er-chip--on' : '') ]]"
+        :aria-expanded="[[ $variables.openFilter === 'class' ? 'true' : 'false' ]]">
+        <oj-bind-text value="[[ $functions.filterChipText('Class', $variables.filters.classes, $variables.classOptions) ]]"></oj-bind-text>
+        <span class="er-sch-caret" aria-hidden="true">▾</span>
+      </button>
+      <button type="button" data-filter="project" on-click="[[ $listeners.onFilterOpen ]]"
+        :class="[[ 'er-chip' + ($variables.filters.projects.length ? ' er-chip--on' : '') ]]"
+        :aria-expanded="[[ $variables.openFilter === 'project' ? 'true' : 'false' ]]">
+        <oj-bind-text value="[[ $functions.filterChipText('Project', $variables.filters.projects, $variables.projectOptions) ]]"></oj-bind-text>
+        <span class="er-sch-caret" aria-hidden="true">▾</span>
+      </button>
+      <button type="button" data-filter="yard" on-click="[[ $listeners.onFilterOpen ]]"
+        :class="[[ 'er-chip' + ($variables.filters.yards.length ? ' er-chip--on' : '') ]]"
+        :aria-expanded="[[ $variables.openFilter === 'yard' ? 'true' : 'false' ]]">
+        <oj-bind-text value="[[ $functions.filterChipText('Yard', $variables.filters.yards, $variables.yardOptions) ]]"></oj-bind-text>
+        <span class="er-sch-caret" aria-hidden="true">▾</span>
+      </button>
+      <button type="button" on-click="[[ $listeners.onConflictsOnly ]]"
+        :class="[[ 'er-chip er-sch-conflict-chip' + ($variables.filters.conflictsOnly ? ' er-chip--on' : '') ]]"
+        :aria-pressed="[[ $variables.filters.conflictsOnly ? 'true' : 'false' ]]">
+        Conflicts only
+        <span class="er-chip-count"><oj-bind-text value="[[ '' + ($variables.model ? $variables.model.conflicts.length : 0) ]]"></oj-bind-text></span>
+      </button>
+    </div>
+    <div class="er-seg er-sch-scale" role="group" aria-label="Scale">
+      <button type="button" data-scale="day" on-click="[[ $listeners.onScale ]]"
+        :class="[[ 'er-seg-btn' + ($variables.scale === 'day' ? ' er-seg-btn--on' : '') ]]" :aria-pressed="[[ $variables.scale === 'day' ? 'true' : 'false' ]]">Day</button>
+      <button type="button" data-scale="week" on-click="[[ $listeners.onScale ]]"
+        :class="[[ 'er-seg-btn' + ($variables.scale === 'week' ? ' er-seg-btn--on' : '') ]]" :aria-pressed="[[ $variables.scale === 'week' ? 'true' : 'false' ]]">Week</button>
+      <button type="button" data-scale="month" on-click="[[ $listeners.onScale ]]"
+        :class="[[ 'er-seg-btn' + ($variables.scale === 'month' ? ' er-seg-btn--on' : '') ]]" :aria-pressed="[[ $variables.scale === 'month' ? 'true' : 'false' ]]">Month</button>
+    </div>
+  </div>
+
+  <!-- A filter's choices, with how many units each covers. -->
+  <oj-bind-if test="[[ !!$variables.openFilter ]]">
+    <div class="er-card er-card-pad er-sch-options">
+      <div class="er-sch-options-head">
+        <strong><oj-bind-text value="[[ $variables.openFilter === 'class' ? 'Class' : ($variables.openFilter === 'project' ? 'Project (units booked on it)' : 'Yard (where the unit is now)') ]]"></oj-bind-text></strong>
+        <span class="er-note">Pick any number; units matching any of them are shown.</span>
+        <span class="er-sch-spacer"></span>
+        <button type="button" class="er-btn er-btn--plain" :data-kind="[[ $variables.openFilter ]]" on-click="[[ $listeners.onFilterClear ]]">Clear</button>
+        <button type="button" class="er-btn er-btn--plain" :data-filter="[[ $variables.openFilter ]]" on-click="[[ $listeners.onFilterOpen ]]">Done</button>
+      </div>
+      <div class="er-chip-row er-sch-option-chips">
+        <oj-bind-for-each data="[[ $variables.openFilter === 'class' ? $variables.classOptions : ($variables.openFilter === 'project' ? $variables.projectOptions : $variables.yardOptions) ]]">
+          <template data-oj-as="opt">
+            <button type="button" :data-kind="[[ $variables.openFilter ]]" :data-value="[[ opt.data.value ]]" on-click="[[ $listeners.onFilterPick ]]"
+              :class="[[ 'er-chip' + (opt.data.on ? ' er-chip--on' : '') ]]" :aria-pressed="[[ opt.data.on ? 'true' : 'false' ]]">
+              <oj-bind-text value="[[ opt.data.label ]]"></oj-bind-text>
+              <span class="er-chip-count"><oj-bind-text value="[[ '' + opt.data.count ]]"></oj-bind-text></span>
+            </button>
+          </template>
+        </oj-bind-for-each>
+      </div>
+    </div>
+  </oj-bind-if>
+
+  <!-- Conflicts first (FDD S32): what clashes, and where to fix it. -->
+  <oj-bind-if test="[[ $variables.conflictRows.length > 0 ]]">
+    <section class="er-card er-sch-conflicts" aria-labelledby="erSchConflictsTitle">
+      <div class="er-sch-conflicts-head">
+        <div>
+          <h2 class="er-section-title" id="erSchConflictsTitle">
+            <span class="er-sch-flag" aria-hidden="true">!</span>
+            <oj-bind-text value="[[ $variables.conflictRows.length + ($variables.conflictRows.length === 1 ? ' conflict needs a decision' : ' conflicts need a decision') ]]"></oj-bind-text>
+          </h2>
+          <p class="er-note">Both bars hold the same unit on the same days. Reassign one request to another unit or change its dates on the request line (in Old EquipRite); the schedule itself is read only, as it is today.</p>
+        </div>
+        <button type="button" class="er-btn er-btn--plain" on-click="[[ $listeners.onToggleConflicts ]]"
+          :aria-expanded="[[ $variables.conflictsOpen ? 'true' : 'false' ]]">
+          <oj-bind-text value="[[ $variables.conflictsOpen ? 'Hide' : 'Show' ]]"></oj-bind-text>
+        </button>
+      </div>
+      <oj-bind-if test="[[ $variables.conflictsOpen ]]">
+        <ul class="er-sch-conflict-list">
+          <oj-bind-for-each data="[[ $variables.conflictRows ]]">
+            <template data-oj-as="c">
+              <li class="er-sch-conflict">
+                <div class="er-sch-conflict-unit">
+                  <strong><oj-bind-text value="[[ c.data.unit ]]"></oj-bind-text></strong>
+                  <span class="er-note"><oj-bind-text value="[[ c.data.sub ]]"></oj-bind-text></span>
+                  <span class="er-sch-conflict-what"><oj-bind-text value="[[ c.data.title + ' · ' + c.data.when ]]"></oj-bind-text></span>
+                </div>
+                <ul class="er-sch-conflict-items">
+                  <oj-bind-for-each data="[[ c.data.items ]]">
+                    <template data-oj-as="it">
+                      <li class="er-sch-booking">
+                        <span :class="[[ it.data.swatch ]]" aria-hidden="true"></span>
+                        <span class="er-sch-booking-text">
+                          <strong><oj-bind-text value="[[ it.data.label ]]"></oj-bind-text></strong>
+                          <span class="er-note"><oj-bind-text value="[[ it.data.kindLabel + ' · ' + it.data.dates ]]"></oj-bind-text></span>
+                        </span>
+                        <span class="er-sch-booking-actions">
+                          <oj-bind-if test="[[ it.data.canOpen ]]">
+                            <button type="button" class="er-btn er-btn--plain" :data-request="[[ '' + it.data.requestId ]]" :data-number="[[ it.data.requestNumber ]]"
+                              on-click="[[ $listeners.onOpenRequest ]]">Open request</button>
+                          </oj-bind-if>
+                          <oj-bind-if test="[[ !!it.data.oldLink ]]">
+                            <a class="er-btn er-btn--plain" :href="[[ it.data.oldLink ]]" title="The request line in Old EquipRite, where the unit and dates are changed">Reassign or change dates</a>
+                          </oj-bind-if>
+                        </span>
+                      </li>
+                    </template>
+                  </oj-bind-for-each>
+                </ul>
+                <button type="button" class="er-btn er-btn--dark er-sch-show" :data-event="[[ '' + c.data.items[0].eventId ]]"
+                  on-click="[[ $listeners.onFocusEvent ]]">Show on schedule</button>
+              </li>
+            </template>
+          </oj-bind-for-each>
+        </ul>
+      </oj-bind-if>
+    </section>
+  </oj-bind-if>
+
+  <div class="er-sch-main">
+    <!-- Timeline: the Bryntum Gantt, or the same bookings as a list when it cannot load. -->
+    <section class="er-card er-sch-timeline" aria-label="Timeline">
+      <div class="er-sch-card-head">
+        <h2 class="er-section-title">Timeline</h2>
+        <span class="er-note">One row per unit, grouped by class, conflicts first. Hover a bar for its details.</span>
+      </div>
+      <div :class="[[ 'er-sch-gantt-wrap' + ($variables.ganttState === 'failed' || $variables.ganttState === 'empty' ? ' er-sch-hidden' : '') ]]">
+        <div id="erScheduleGantt" class="er-sch-gantt"></div>
+        <oj-bind-if test="[[ $variables.ganttState === 'loading' ]]">
+          <div class="er-sch-placeholder" role="status">
+            <oj-bind-text value="[[ $variables.isLoading ? 'Loading the schedule…' : 'Drawing the timeline…' ]]"></oj-bind-text>
+          </div>
+        </oj-bind-if>
+      </div>
+      <oj-bind-if test="[[ $variables.ganttState === 'empty' && !$variables.isLoading ]]">
+        <p class="er-sch-empty er-muted">No units to schedule.</p>
+      </oj-bind-if>
+      <oj-bind-if test="[[ $variables.ganttState === 'failed' ]]">
+        <div class="er-sch-fallback">
+          <p class="er-sch-note" role="status">The timeline could not start in this browser, so the same bookings are listed below, conflicts first. Nothing is missing: this is the data the timeline would draw.</p>
+          <div class="er-sch-fl" role="table" aria-label="Bookings by unit">
+            <div class="er-sch-fl-row er-sch-fl-head" role="row">
+              <span role="columnheader">Unit</span>
+              <span role="columnheader">Current and upcoming bookings</span>
+            </div>
+            <oj-bind-for-each data="[[ $variables.listRows ]]">
+              <template data-oj-as="u">
+                <div :class="[[ 'er-sch-fl-row' + (u.data.conflicts ? ' er-sch-fl-row--conflict' : '') ]]" role="row">
+                  <span class="er-sch-unit" role="cell">
+                    <span :class="[[ u.data.dot ]]" :title="[[ u.data.statusLabel ]]"></span>
+                    <span class="er-sch-unit-text">
+                      <strong><oj-bind-text value="[[ u.data.name ]]"></oj-bind-text></strong>
+                      <span class="er-note"><oj-bind-text value="[[ u.data.sub ]]"></oj-bind-text></span>
+                      <span class="er-note"><oj-bind-text value="[[ u.data.where ]]"></oj-bind-text></span>
+                    </span>
+                  </span>
+                  <span role="cell">
+                    <oj-bind-if test="[[ u.data.bookings.length === 0 ]]">
+                      <span class="er-muted">Nothing booked ahead</span>
+                    </oj-bind-if>
+                    <ul class="er-sch-fl-bookings">
+                      <oj-bind-for-each data="[[ u.data.bookings ]]">
+                        <template data-oj-as="b">
+                          <li :class="[[ 'er-sch-fl-booking' + (b.data.conflict ? ' er-sch-fl-booking--conflict' : '') ]]">
+                            <span :class="[[ b.data.swatch ]]" aria-hidden="true"></span>
+                            <strong><oj-bind-text value="[[ b.data.label ]]"></oj-bind-text></strong>
+                            <span class="er-note"><oj-bind-text value="[[ b.data.kindLabel + ' · ' + b.data.dates + (b.data.conflict ? ' · conflict' : '') ]]"></oj-bind-text></span>
+                          </li>
+                        </template>
+                      </oj-bind-for-each>
+                    </ul>
+                    <oj-bind-if test="[[ u.data.earlier > 0 ]]">
+                      <span class="er-note"><oj-bind-text value="[[ 'and ' + u.data.earlier + ' earlier' ]]"></oj-bind-text></span>
+                    </oj-bind-if>
+                  </span>
+                </div>
+              </template>
+            </oj-bind-for-each>
+          </div>
+          <oj-bind-if test="[[ $variables.visibleIds.length > $variables.listRows.length ]]">
+            <button type="button" class="er-btn er-btn--plain er-sch-more" on-click="[[ $listeners.onMore ]]">
+              <oj-bind-text value="[[ 'Show all ' + $variables.visibleIds.length + ' units' ]]"></oj-bind-text>
+            </button>
+          </oj-bind-if>
+        </div>
+      </oj-bind-if>
+    </section>
+
+    <!-- Beside it: where the units are (map) or the same units as a list. -->
+    <section class="er-card er-sch-side" aria-label="Map and list">
+      <div class="er-sch-card-head">
+        <div class="er-seg" role="group" aria-label="Show">
+          <button type="button" data-panel="map" on-click="[[ $listeners.onPanel ]]" :disabled="[[ $variables.mapState === 'failed' ]]"
+            :class="[[ 'er-seg-btn' + ($variables.panel === 'map' && $variables.mapState !== 'failed' ? ' er-seg-btn--on' : '') ]]"
+            :aria-pressed="[[ $variables.panel === 'map' && $variables.mapState !== 'failed' ? 'true' : 'false' ]]">Map</button>
+          <button type="button" data-panel="list" on-click="[[ $listeners.onPanel ]]"
+            :class="[[ 'er-seg-btn' + ($variables.panel === 'list' || $variables.mapState === 'failed' ? ' er-seg-btn--on' : '') ]]"
+            :aria-pressed="[[ $variables.panel === 'list' || $variables.mapState === 'failed' ? 'true' : 'false' ]]">List</button>
+        </div>
+        <oj-bind-if test="[[ $variables.panel === 'map' && $variables.mapState === 'ready' ]]">
+          <div class="er-seg er-sch-styles" role="group" aria-label="Map style">
+            <button type="button" data-style="streets" on-click="[[ $listeners.onMapStyle ]]" :class="[[ 'er-seg-btn' + ($variables.mapStyle === 'streets' ? ' er-seg-btn--on' : '') ]]">Streets</button>
+            <button type="button" data-style="dark" on-click="[[ $listeners.onMapStyle ]]" :class="[[ 'er-seg-btn' + ($variables.mapStyle === 'dark' ? ' er-seg-btn--on' : '') ]]">Dark</button>
+            <button type="button" data-style="satellite" on-click="[[ $listeners.onMapStyle ]]" :class="[[ 'er-seg-btn' + ($variables.mapStyle === 'satellite' ? ' er-seg-btn--on' : '') ]]">Satellite</button>
+          </div>
+        </oj-bind-if>
+      </div>
+
+      <div :class="[[ 'er-sch-map-wrap' + ($variables.panel === 'map' && $variables.mapState !== 'failed' && $variables.mapState !== 'empty' ? '' : ' er-sch-hidden') ]]">
+        <div id="erScheduleMap" class="er-sch-map" role="region" aria-label="Map of units and booking sites"></div>
+        <oj-bind-if test="[[ $variables.mapState === 'loading' ]]">
+          <div class="er-sch-placeholder" role="status">Loading the map…</div>
+        </oj-bind-if>
+      </div>
+      <oj-bind-if test="[[ $variables.panel === 'map' && $variables.mapState === 'ready' ]]">
+        <ul class="er-sch-map-legend" aria-label="Map legend">
+          <oj-bind-for-each data="[[ $functions.mapLegend() ]]">
+            <template data-oj-as="m">
+              <li><span :class="[[ 'er-sch-pin-key er-sch-pin-key--' + m.data.key ]]" aria-hidden="true"></span><oj-bind-text value="[[ m.data.label ]]"></oj-bind-text></li>
+            </template>
+          </oj-bind-for-each>
+        </ul>
+      </oj-bind-if>
+
+      <oj-bind-if test="[[ $variables.panel === 'list' || $variables.mapState === 'failed' ]]">
+        <div class="er-sch-list-wrap">
+          <oj-bind-if test="[[ $variables.mapState === 'failed' ]]">
+            <p class="er-sch-note" role="status">The map could not load here, so the units are listed with where they are.</p>
+          </oj-bind-if>
+          <ul class="er-sch-list" aria-label="Units">
+            <oj-bind-for-each data="[[ $variables.listRows ]]">
+              <template data-oj-as="u">
+                <li>
+                  <button type="button" class="er-sch-list-item" :data-unit="[[ '' + u.data.id ]]" on-click="[[ $listeners.onFocusUnit ]]">
+                    <span :class="[[ u.data.dot ]]" :title="[[ u.data.statusLabel ]]"></span>
+                    <span class="er-sch-unit-text">
+                      <strong>
+                        <oj-bind-text value="[[ u.data.name ]]"></oj-bind-text>
+                        <oj-bind-if test="[[ u.data.conflicts > 0 ]]">
+                          <span class="er-sch-flag er-sch-flag--sm" :title="[[ u.data.conflicts + ' conflict(s)' ]]">!</span>
+                        </oj-bind-if>
+                      </strong>
+                      <span class="er-note"><oj-bind-text value="[[ u.data.sub ]]"></oj-bind-text></span>
+                      <span class="er-note"><oj-bind-text value="[[ u.data.statusLabel + ' · ' + u.data.where ]]"></oj-bind-text></span>
+                      <span class="er-sch-next"><oj-bind-text value="[[ 'Next: ' + u.data.next ]]"></oj-bind-text></span>
+                    </span>
+                  </button>
+                </li>
+              </template>
+            </oj-bind-for-each>
+          </ul>
+          <oj-bind-if test="[[ $variables.visibleIds.length > $variables.listRows.length ]]">
+            <button type="button" class="er-btn er-btn--plain er-sch-more" on-click="[[ $listeners.onMore ]]">
+              <oj-bind-text value="[[ 'Show all ' + $variables.visibleIds.length + ' units' ]]"></oj-bind-text>
+            </button>
+          </oj-bind-if>
+        </div>
+      </oj-bind-if>
+    </section>
+  </div>
+
+  <!-- Legend: what each bar means. -->
+  <ul class="er-sch-legend" aria-label="Legend">
+    <oj-bind-for-each data="[[ $functions.legend() ]]">
+      <template data-oj-as="l">
+        <li :title="[[ l.data.hint ]]"><span :class="[[ l.data.cls ]]" aria-hidden="true"></span><oj-bind-text value="[[ l.data.label ]]"></oj-bind-text></li>
+      </template>
+    </oj-bind-for-each>
+    <li class="er-sch-legend-note">Read only, as in Old EquipRite: a booking's unit and dates change on its request line.</li>
+  </ul>
+</div>
