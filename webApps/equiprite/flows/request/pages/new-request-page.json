@@ -1,0 +1,338 @@
+{
+  "title": "New request",
+  "description": "New equipment request in three steps: equipment (with dates), project, review and submit (FDD 7.5; replaces project-create-request, request-catalog and request-cart for project requests). Posts what the old cart's INTERNAL submit posts, through the same requestHeaderBody / requestLineBody builders. ?draftId= reopens a saved project draft.",
+  "variables": {
+    "draftId": {
+      "type": "number",
+      "input": "fromUrl",
+      "description": "A DRAFT request to reopen (EQR_EQUIPMENT_REQUEST id). Empty for a new request."
+    },
+    "startStep": {
+      "type": "number",
+      "input": "fromUrl",
+      "description": "Step to open a reopened draft on: 1 to edit it, 3 to go straight to Review and submit."
+    },
+    "step": {
+      "type": "number",
+      "defaultValue": 1
+    },
+    "form": {
+      "type": "any",
+      "defaultValue": {},
+      "description": "The request in the old flow's request shape (requestModel); set by newRequestInitChain."
+    },
+    "cart": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Cart lines built by catalogCart.itemFromRow; a line can carry its own startDate, endDate and notes."
+    },
+    "resume": {
+      "type": "any",
+      "defaultValue": null,
+      "description": "The reopened draft {id, requestNumber, attribute1, shipToSiteId}; Submit and Save draft update it in place."
+    },
+    "agreementId": {
+      "type": "number",
+      "defaultValue": null
+    },
+    "agreementLineMap": {
+      "type": "object",
+      "defaultValue": {}
+    },
+    "catalogRows": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "catalogText": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "catalogClass": {
+      "type": "string",
+      "defaultValue": "all"
+    },
+    "catalogAvail": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "catalogLimit": {
+      "type": "number",
+      "defaultValue": 48
+    },
+    "catalogLoading": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "catalogError": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "projectQuery": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "projectResults": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "projectSearching": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "customerQuery": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "customerResults": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "customerSearching": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "taskOptions": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "taskQuery": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "tasksLoading": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "contractOptions": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "contractsLoading": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "siteOptions": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "sitesLoading": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "sitesLoaded": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "requestFor": {
+      "type": "string",
+      "defaultValue": "project",
+      "description": "project, or customer (customer requests still open in Old EquipRite)."
+    },
+    "canCustomer": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "Roles that may raise either kind (canChooseCustomerType) see the Project / Customer choice."
+    },
+    "hideRates": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "A quote is coming for project requests (isQuotingAllowed): no prices are shown or posted."
+    },
+    "showHours": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "TIMESHEETS_ENABLED: planned hours per day are asked for, as on the old page."
+    },
+    "missing": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "priceNote": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "isLoading": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "loadError": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "externalDraft": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "isSubmitting": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "submitMode": {
+      "type": "string",
+      "defaultValue": ""
+    }
+  },
+  "metadata": {},
+  "eventListeners": {
+    "vbBeforeEnter": {
+      "chains": [{ "chain": "enforcePageAccessChain" }]
+    },
+    "vbEnter": {
+      "chains": [{ "chain": "newRequestInitChain" }]
+    },
+    "onField": {
+      "chains": [
+        {
+          "chain": "setFieldChain",
+          "parameters": {
+            "field": "{{ $event.target.dataset.field }}",
+            "value": "{{ $event.target.value }}"
+          }
+        }
+      ]
+    },
+    "onFieldButton": {
+      "chains": [
+        {
+          "chain": "setFieldChain",
+          "parameters": {
+            "field": "{{ $event.currentTarget.dataset.field }}",
+            "value": "{{ $event.currentTarget.dataset.value }}"
+          }
+        }
+      ]
+    },
+    "onRequestFor": {
+      "chains": [
+        {
+          "chain": "setFieldChain",
+          "parameters": { "field": "requestFor", "value": "{{ $event.currentTarget.dataset.value }}" }
+        }
+      ]
+    },
+    "onCatalogSearch": {
+      "chains": [
+        {
+          "chain": "filterCatalogChain",
+          "parameters": { "text": "{{ $event.target.value }}" }
+        }
+      ]
+    },
+    "onClassChip": {
+      "chains": [
+        {
+          "chain": "filterCatalogChain",
+          "parameters": { "cls": "{{ $event.currentTarget.dataset.cls }}" }
+        }
+      ]
+    },
+    "onAvailToggle": {
+      "chains": [
+        {
+          "chain": "filterCatalogChain",
+          "parameters": { "avail": "{{ $event.target.checked }}" }
+        }
+      ]
+    },
+    "onShowMore": {
+      "chains": [
+        {
+          "chain": "filterCatalogChain",
+          "parameters": { "more": true }
+        }
+      ]
+    },
+    "onCart": {
+      "chains": [
+        {
+          "chain": "cartChain",
+          "parameters": {
+            "action": "{{ $event.currentTarget.dataset.action }}",
+            "id": "{{ $event.currentTarget.dataset.id }}"
+          }
+        }
+      ]
+    },
+    "onLineQty": {
+      "chains": [
+        {
+          "chain": "cartChain",
+          "parameters": {
+            "action": "set",
+            "id": "{{ $event.target.dataset.id }}",
+            "value": "{{ $event.target.value }}"
+          }
+        }
+      ]
+    },
+    "onLineField": {
+      "chains": [
+        {
+          "chain": "cartChain",
+          "parameters": {
+            "action": "line",
+            "id": "{{ $event.target.dataset.id }}",
+            "field": "{{ $event.target.dataset.field }}",
+            "value": "{{ $event.target.value }}"
+          }
+        }
+      ]
+    },
+    "onSearch": {
+      "chains": [
+        {
+          "chain": "searchChain",
+          "parameters": {
+            "kind": "{{ $event.target.dataset.kind }}",
+            "text": "{{ $event.target.value }}"
+          }
+        }
+      ]
+    },
+    "onPick": {
+      "chains": [
+        {
+          "chain": "pickChain",
+          "parameters": {
+            "kind": "{{ $event.currentTarget.dataset.kind }}",
+            "index": "{{ $event.currentTarget.dataset.index }}"
+          }
+        }
+      ]
+    },
+    "onStep": {
+      "chains": [
+        {
+          "chain": "goStepChain",
+          "parameters": { "step": "{{ $event.currentTarget.dataset.step }}" }
+        }
+      ]
+    },
+    "onSubmit": {
+      "chains": [
+        {
+          "chain": "submitChain",
+          "parameters": { "mode": "submit" }
+        }
+      ]
+    },
+    "onSaveDraft": {
+      "chains": [
+        {
+          "chain": "submitChain",
+          "parameters": { "mode": "draft" }
+        }
+      ]
+    },
+    "onCancel": {
+      "chains": [{ "chain": "backToListChain" }]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}

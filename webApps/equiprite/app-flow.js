@@ -230,7 +230,8 @@ define([
       key: 'request', label: 'Request',
       items: [
         { id: 'new-request', label: 'New request', icon: 'oj-ux-ico-plus',
-          pageCodes: ['EQR_PROJ_CREATE_REQUEST', 'EQR_CUST_CREATE_REQ'], status: 'old',
+          pageCodes: ['EQR_PROJ_CREATE_REQUEST', 'EQR_CUST_CREATE_REQ'], status: 'new',
+          route: { flow: 'request', page: 'new-request' },
           old: { flow: 'customer-portal', page: 'project-create-request' }, fdd: '7.5' },
         { id: 'my-requests', label: 'My requests', icon: 'oj-ux-ico-file-text',
           pageCodes: ['EQR_EQUIPMENT_REQUESTS', 'EQR_CUST_MY_REQUESTS'], status: 'new',
@@ -328,7 +329,8 @@ define([
   const PAGE_ID_TO_NAV_ID = {
     'home': 'home',
     'my-requests': 'my-requests',
-    'request-detail': 'my-requests'
+    'request-detail': 'my-requests',
+    'new-request': 'new-request'
   };
 
   // Where a user who can open no page is sent. Deliberately ungated.

@@ -9,8 +9,9 @@ define([
   // then). The work lives in resources/js/draftResume.js; this chain only
   // routes the buttons.
   //
-  //   edit, submit → open this request in Old EquipRite, whose Edit / Submit
-  //                 reopen the draft in its cart (New EquipRite has no cart yet).
+  //   edit, submit → a project draft reopens in New request (edit on step 1,
+  //                 submit on Review); a customer draft opens in Old EquipRite,
+  //                 whose Edit / Submit reopen it in its cart.
   //   askDelete / cancelDelete → open / close the confirmation dialog.
   //   delete      → DELETE the draft (lines and ship-to-site go with it).
   class draftActionChain extends ActionChain {
@@ -44,10 +45,17 @@ define([
           return;
         }
 
-        // Edit and Submit reopen the draft in the cart. New EquipRite's cart is not built yet, so they open this
-        // request in Old EquipRite, where its Edit / Submit buttons work as before.
-        const link = $page.functions.oldDetailLink($application.variables.oldAppUrl, $page.variables.requestId, requestId,
-          !!($page.variables.formData || {}).isCustomer);
+        // Edit and Submit reopen the draft. New request takes project drafts (it loads and re-prices them itself);
+        // customer requests are not raised in New EquipRite yet, so those open in Old EquipRite as before.
+        const isCustomer = !!($page.variables.formData || {}).isCustomer;
+        if (!isCustomer) {
+          await Actions.navigateToPage(context, {
+            page: 'new-request',
+            params: { draftId: requestId, startStep: action === 'submit' ? 3 : 1 },
+          });
+          return;
+        }
+        const link = $page.functions.oldDetailLink($application.variables.oldAppUrl, $page.variables.requestId, requestId, true);
         if (link) {
           window.location.assign(link);
         }
