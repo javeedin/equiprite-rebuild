@@ -36,9 +36,22 @@ a build). The password is stored only encrypted with your Windows account (Elect
 
 | Backend | Auth in VBCS | Locally |
 |---|---|---|
-| `eqpt` (ORDS :8087), `commonService` (:8082) | anonymous | forwarded, no credentials |
+| `eqpt` (:8087, the EquipRite REST service), `commonService` (:8082) | anonymous | forwarded, no credentials |
 | `fusion`, `bipService`, `callPWPBIP` | stored credential `vb_e32dea99…` | the Fusion login from the sign-in window |
 | `ics` (OIC) | stored credential `vb_cf7d9fde…` | not available (forwarded without a login, answers 401) |
+
+## Web services
+
+**View → Web services…** (or `http://localhost:18888/__services/`) lists every endpoint of every service
+connection, read from `services/*/openapi3.json` each time it opens: method, path, operation ID, description,
+the backend URL, the credentials it goes out with, and the pages and chains that call it by endpoint ID
+(`eqp-v1/getX`). Search by path, operation ID or summary; filter by service, method, or whether the app calls it.
+
+Each GET has a **Test** panel: fill its path and query parameters (VB's default values are pre-filled), press
+**Send GET**, and see the status, time and formatted response. The request goes through the same forwarding as the
+app's own calls, so `eqpt` gets no login and the Fusion endpoints get the Fusion login from the sign-in window.
+Only GET can be tested, so a test never changes data. This page belongs to the desktop client, not the VB app,
+and is never deployed to VBCS.
 
 ## Run it
 
@@ -78,7 +91,7 @@ $env:EQP_USER="john.dunbar"; $env:EQP_ROLES="RT_EQP_MANAGER"; npm run serve
   the other window, or set `EQP_PORT`).
 - **Still "You don't have access".** View → Backend calls… shows the `ROLES_RP` and `rbac/page-access` calls and
   their status: 401 from `bipService` is the Fusion login; a FAILED `eqpt` line means this PC cannot reach the
-  ORDS server.
+  EquipRite REST service.
 - **The window stays on the spinner.** The app is fetching JET / `oj-sp` from `static.oracle.com`; a blocked
   CDN or no internet will stall it. `View → Toggle Developer Tools` shows the failing requests.
 - **A different backend for one run.** `EQP_BACKEND_<NAME>=<url>` (e.g. `EQP_BACKEND_EQPT=http://host:8087`)

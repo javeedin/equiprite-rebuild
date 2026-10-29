@@ -111,6 +111,30 @@ ID.save(file, v.saved, v.password, null, null);
 T.check('without encryption nothing is saved for the password', !('fusionPassword' in ID.load(file)));
 fs.rmSync(tmp, { recursive: true, force: true });
 
+// ── web services catalog (View → Web services…) ──────────────────────
+
+T.section('web services — every endpoint, its parameters and its callers');
+const CAT = require(path.join(ROOT, 'desktop', 'lib', 'catalog.js'));
+const ws = CAT.buildCatalog(ROOT);
+const opIds = (svc) => Object.keys(H.readJson(path.join(H.SERVICES, svc, 'openapi3.json')).paths)
+  .reduce((n, p) => n + Object.keys(H.readJson(path.join(H.SERVICES, svc, 'openapi3.json')).paths[p])
+    .filter((m) => ['get', 'post', 'put', 'patch', 'delete'].includes(m)).length, 0);
+T.eq('one row per operation in services/', ws.rows.length, ws.services.reduce((n, s) => n + opIds(s.name), 0));
+const pageAccess = ws.rows.find((r) => r.o === 'getRbacPageAccess');
+T.check('query parameter read (oracleRole, required)',
+  !!pageAccess && pageAccess.params.some((p) => p.name === 'oracleRole' && p.in === 'query' && p.required));
+T.check('callers found (chains/loadPageAccessChain.js)', !!pageAccess && pageAccess.f.includes('chains/loadPageAccessChain.js'));
+const currentQuote = ws.rows.find((r) => r.o === 'getCurrentQuote');
+T.check('path parameter from the path template', !!currentQuote && currentQuote.params.some((p) => p.name === 'requestId' && p.in === 'path'));
+const lov = ws.rows.find((r) => r.s === 'ProjectLOV' && /projectsLOV$/.test(r.p));
+T.eq('VB default value pre-filled (x-vb defaultValue)', lov && (lov.params.find((p) => p.name === 'limit') || {}).example, '10000');
+T.eq('eqp-v1 is anonymous', ws.services.find((s) => s.name === 'eqp-v1').auth, 'anon');
+T.eq('ProjectLOV uses the Fusion credential', ws.services.find((s) => s.name === 'ProjectLOV').auth, 'fusion');
+T.eq('ics has its own credential', ws.services.find((s) => s.name === 'ics').auth, 'other');
+T.eq('double-encoded dash repaired', CAT.fixMojibake('a â€” b'), 'a — b');
+T.eq('ordinary accents left alone', CAT.fixMojibake('Ångström café'), 'Ångström café');
+T.check('no garbled text left in the catalog', !ws.rows.some((r) => /â€/.test(r.d + r.t)));
+
 // ── the server, for real ─────────────────────────────────────────────
 
 function get(port, p, opts) {
@@ -152,7 +176,7 @@ function get(port, p, opts) {
 
   let identity = { username: 'john.dunbar', roles: ['RT_EQP_MANAGER'], fusion: { user: 'tech.user', password: 'pw' } };
   const srv = await DS.createDevServer({
-    buildDir: build, port: 0, getIdentity: () => identity,
+    buildDir: build, repoRoot: ROOT, port: 0, getIdentity: () => identity,
     backendOverrides: { eqpt: fake, bipservice: fake, fusion: fake, ics: fake },
   });
   const P = srv.port;
@@ -185,6 +209,14 @@ function get(port, p, opts) {
     await get(P, '/__backend/bipService/xmlpserver/services/ExternalReportWSSService', { method: 'POST', body: rolesBody });
     T.check('roles from Fusion: ROLES_RP goes to Fusion with the login',
       !!seen[3] && /ROLES_RP/.test(seen[3].body) && seen[3].auth.startsWith('Basic '));
+
+    const page = await get(P, '/__services/');
+    T.check('web services page served', page.status === 200 && /web-services\.js/.test(page.body));
+    T.eq('its script served', (await get(P, '/__services/web-services.js')).status, 200);
+    const wsData = await get(P, '/__services/data.json');
+    const wsJson = JSON.parse(wsData.body);
+    T.check('catalog data served with the signed-in user', wsJson.rows.length > 0 && wsJson.identity.username === 'john.dunbar');
+    T.check('…and never the password', wsJson.identity.hasFusionLogin === true && wsData.body.indexOf('"pw"') < 0);
 
     backend.close();
     const down = await get(P, '/__backend/eqpt/x');

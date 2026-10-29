@@ -17,6 +17,8 @@
  *                                    the VBCS credential reference removed, so VB calls it directly (same origin)
  *   /__backend/<name>/…              forwarded to the backend's real URL; backends that use the Fusion credential
  *                                    get the local Fusion login as basic auth
+ *   /__services/                     the web services page (desktop/web-services.html): every endpoint of every
+ *                                    service connection, with a GET tester that calls through /__backend
  *
  * Roles come from the ROLES_RP BI Publisher report (loadFusionRolesChain). With identity.roles set, that one report
  * is answered here with those roles, in the shape Fusion returns, so a persona can be used without a Fusion login.
@@ -28,6 +30,9 @@ const fs = require('fs');
 const http = require('http');
 const https = require('https');
 const path = require('path');
+const { buildCatalog } = require('./catalog');
+
+const DESKTOP_DIR = path.join(__dirname, '..');
 
 const TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -152,7 +157,7 @@ function isRolesReport(body) {
   return s.indexOf('runReport') >= 0 && s.indexOf(ROLES_REPORT) >= 0;
 }
 
-/** EQP_BACKEND_<NAME>=url points one backend somewhere else (e.g. another ORDS), for this run only. */
+/** EQP_BACKEND_<NAME>=url points one backend somewhere else (e.g. another eqpt server), for this run only. */
 function backendOverridesFromEnv(env) {
   const out = {};
   Object.keys(env || {}).forEach((k) => {
@@ -207,6 +212,7 @@ function time() {
  * Starts the server. Resolves { server, port, url, close() }.
  * @param {object}   o
  * @param {string}   o.buildDir          the project's build/ folder (holds processed/)
+ * @param {string}   [o.repoRoot]        the project folder (services/, webApps/); defaults to buildDir's parent
  * @param {number}   o.port              0 picks a free one
  * @param {Function} o.getIdentity       () => { username, fullName?, email?, roles?: string[], fusion?: { user, password } }
  * @param {object}   [o.backendOverrides] { backendName(lower-case): url }
@@ -216,6 +222,7 @@ function createDevServer(o) {
   const processed = path.join(o.buildDir, 'processed');
   const webRoot = path.join(processed, 'webApps', 'vbredwoodapp');
   const catalogFile = path.join(processed, 'services', 'catalog.json');
+  const repoRoot = o.repoRoot || path.dirname(o.buildDir);
   const overrides = o.backendOverrides || {};
   const log = (line) => (o.onLog ? o.onLog(`${time()} ${line}`) : undefined);
   let backends = {};
@@ -320,6 +327,25 @@ function createDevServer(o) {
     const u = new URL(req.url, 'http://local');
     const pathname = u.pathname;
     Promise.resolve().then(() => {
+      if (pathname === '/__services') {
+        res.writeHead(302, { Location: '/__services/' });
+        return res.end();
+      }
+      if (pathname === '/__services/' || pathname === '/__services/web-services.js') {
+        const name = pathname.endsWith('.js') ? 'web-services.js' : 'web-services.html';
+        return send(res, 200, TYPES[path.extname(name)], fs.readFileSync(path.join(DESKTOP_DIR, name)));
+      }
+      if (pathname === '/__services/data.json') {
+        const data = buildCatalog(repoRoot);
+        const id = o.getIdentity() || {};
+        data.identity = {
+          username: id.username || '',
+          roles: id.roles || null,
+          hasFusionLogin: !!(id.fusion && id.fusion.password),
+          fusionUser: (id.fusion && id.fusion.user) || '',
+        };
+        return send(res, 200, 'application/json', JSON.stringify(data));
+      }
       if (pathname === '/_currentuser') {
         return send(res, 200, 'application/json', JSON.stringify(currentUser(o.getIdentity())));
       }

@@ -32,6 +32,7 @@ process.env.EQP_DESKTOP_VERSION = app.getVersion();
 let win = null;
 let signinWin = null;
 let logWin = null;
+let servicesWin = null;
 let devServer = null;
 let quitting = false;
 let identity = null; // what the local server signs in as
@@ -229,6 +230,32 @@ function showLog() {
 }
 
 /* ---------------------------------------------------------------------------
+ * Web services (View → Web services…): every endpoint, with a GET tester (lib/catalog.js, web-services.html)
+ * ------------------------------------------------------------------------- */
+
+function showWebServices() {
+  if (!devServer) {
+    return;
+  }
+  if (!servicesWin || servicesWin.isDestroyed()) {
+    servicesWin = new BrowserWindow({ width: 1240, height: 860, title: 'EquipRite Web Services', autoHideMenuBar: true,
+      backgroundColor: '#f3f5f6', webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false } });
+    servicesWin.setMenu(null);
+    servicesWin.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+    servicesWin.webContents.on('will-navigate', (event, url) => {
+      if (!url.startsWith(`${APP_ORIGIN}/__services/`)) {
+        event.preventDefault();
+      }
+    });
+    servicesWin.on('closed', () => {
+      servicesWin = null;
+    });
+  }
+  servicesWin.loadURL(`${APP_URL}__services/`).catch(() => {});
+  servicesWin.focus();
+}
+
+/* ---------------------------------------------------------------------------
  * Window
  * ------------------------------------------------------------------------- */
 
@@ -308,6 +335,7 @@ function appMenu() {
       submenu: [
         { label: 'Reload app', accelerator: 'CmdOrCtrl+R', click: () => { if (win) win.loadURL(identity ? APP_URL : signedOutUrl()); } },
         { role: 'forceReload' },
+        { label: 'Web services…', accelerator: 'CmdOrCtrl+Shift+W', click: () => showWebServices() },
         { label: 'Backend calls…', accelerator: 'CmdOrCtrl+Shift+L', click: () => showLog() },
         { type: 'separator' },
         { role: 'resetZoom' },
