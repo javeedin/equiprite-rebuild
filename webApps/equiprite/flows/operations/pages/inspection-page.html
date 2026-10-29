@@ -1,0 +1,488 @@
+<!-- Inspection (wireframe: Inspection and ship-out). Queue on the left, one question at a time on the right, then
+     review and complete. Built for a tablet in the yard: big answer buttons, a tapped good answer moves on, a defect
+     is logged on the question that failed and gets its own photo from the camera.
+     Chains: inspection-page-chains; rules (points, matrix, score, result, bodies): inspection-page.js. -->
+<div class="er-band">
+  <div class="er-band-inner">
+    <div>
+      <div class="er-band-kicker">Fulfil · FDD 7.12</div>
+      <h1>Inspection</h1>
+      <div class="er-band-sub">
+        <oj-bind-text value="[[ $variables.isLoading ? 'Loading the equipment waiting for inspection…'
+          : ($functions.modeCount($variables.lines, $variables.matrix, $variables.mode, $variables.scope)
+             + ($variables.mode === 'in' ? ' arriving' : ' leaving') + ' · class checklists, defects with photos, pass, conditional or fail') ]]"></oj-bind-text>
+      </div>
+    </div>
+    <div class="er-actions">
+      <div class="er-seg er-insp-modes" role="group" aria-label="Check-out or check-in">
+        <button type="button" data-mode="out" on-click="[[ $listeners.onMode ]]"
+          :class="[[ 'er-seg-btn' + ($variables.mode === 'out' ? ' er-seg-btn--on' : '') ]]"
+          :aria-pressed="[[ $variables.mode === 'out' ? 'true' : 'false' ]]">
+          Check-out <span class="er-chip-count"><oj-bind-text value="[[ $functions.modeCount($variables.lines, $variables.matrix, 'out', $variables.scope) ]]"></oj-bind-text></span>
+        </button>
+        <button type="button" data-mode="in" on-click="[[ $listeners.onMode ]]"
+          :class="[[ 'er-seg-btn' + ($variables.mode === 'in' ? ' er-seg-btn--on' : '') ]]"
+          :aria-pressed="[[ $variables.mode === 'in' ? 'true' : 'false' ]]">
+          Check-in <span class="er-chip-count"><oj-bind-text value="[[ $functions.modeCount($variables.lines, $variables.matrix, 'in', $variables.scope) ]]"></oj-bind-text></span>
+        </button>
+      </div>
+      <oj-bind-if test="[[ $application.functions.oldAppLink($application.variables.oldAppUrl, 'inspection') ]]">
+        <a class="er-btn er-btn--ghost" :href="[[ $application.functions.oldAppLink($application.variables.oldAppUrl, 'inspection') ]]">Old version</a>
+      </oj-bind-if>
+    </div>
+  </div>
+  <div class="er-strip" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+</div>
+
+<div class="er-page">
+  <oj-bind-if test="[[ !!$variables.loadError ]]">
+    <div class="er-error" role="alert"><oj-bind-text value="[[ $variables.loadError ]]"></oj-bind-text></div>
+  </oj-bind-if>
+  <oj-bind-if test="[[ !!$variables.matrixNote || !!$variables.truncatedNote ]]">
+    <div class="er-insp-note" role="status">
+      <oj-bind-text value="[[ $functions.joinText($variables.matrixNote, $variables.truncatedNote) ]]"></oj-bind-text>
+    </div>
+  </oj-bind-if>
+
+  <div :class="[[ 'er-insp' + ($variables.current ? ' er-insp--open' : '') ]]">
+    <!-- ── Queue ──────────────────────────────────────────────────────────────────────────────────── -->
+    <aside class="er-card er-insp-queue" aria-labelledby="queueTitle">
+      <div class="er-insp-queue-head">
+        <h2 class="er-section-title" id="queueTitle">
+          Waiting <span class="er-chip-count"><oj-bind-text value="[[ $functions.queue($variables.lines, $variables.matrix, $variables.mode, $variables.point, $variables.scope).length ]]"></oj-bind-text></span>
+        </h2>
+        <button type="button" class="er-icon-btn" on-click="[[ $listeners.onRefresh ]]" aria-label="Refresh the queue" title="Refresh">
+          <span class="oj-ux-ico-refresh" aria-hidden="true"></span>
+        </button>
+      </div>
+      <div class="er-chip-row er-insp-points" role="group" aria-label="Inspection point">
+        <oj-bind-for-each data="[[ $functions.pointChips($variables.lines, $variables.matrix, $variables.mode, $variables.scope) ]]">
+          <template data-oj-as="chip">
+            <button type="button" :data-point="[[ chip.data.key ]]" on-click="[[ $listeners.onPoint ]]"
+              :class="[[ 'er-chip' + ($variables.point === chip.data.key ? ' er-chip--on' : '') ]]"
+              :aria-pressed="[[ $variables.point === chip.data.key ? 'true' : 'false' ]]">
+              <oj-bind-text value="[[ chip.data.label ]]"></oj-bind-text>
+              <span class="er-chip-count"><oj-bind-text value="[[ chip.data.count ]]"></oj-bind-text></span>
+            </button>
+          </template>
+        </oj-bind-for-each>
+      </div>
+      <div class="er-seg er-insp-scope" role="group" aria-label="Which lines">
+        <button type="button" data-scope="required" on-click="[[ $listeners.onScope ]]"
+          :class="[[ 'er-seg-btn' + ($variables.scope === 'required' ? ' er-seg-btn--on' : '') ]]"
+          :aria-pressed="[[ $variables.scope === 'required' ? 'true' : 'false' ]]" title="Units the inspection matrix asks to inspect">Required</button>
+        <button type="button" data-scope="all" on-click="[[ $listeners.onScope ]]"
+          :class="[[ 'er-seg-btn' + ($variables.scope === 'all' ? ' er-seg-btn--on' : '') ]]"
+          :aria-pressed="[[ $variables.scope === 'all' ? 'true' : 'false' ]]" title="Every unit waiting at the point, asked for or not">All waiting</button>
+      </div>
+
+      <oj-bind-if test="[[ $variables.isLoading ]]">
+        <p class="er-insp-empty er-muted">Loading…</p>
+      </oj-bind-if>
+      <ul class="er-insp-list" aria-label="Units waiting">
+        <oj-bind-for-each data="[[ $functions.queue($variables.lines, $variables.matrix, $variables.mode, $variables.point, $variables.scope) ]]">
+          <template data-oj-as="q">
+            <li>
+              <button type="button" :data-line="[[ '' + q.data.lineId ]]" on-click="[[ $listeners.onOpenLine ]]"
+                :class="[[ 'er-insp-unit' + ($variables.current && '' + $variables.current.lineId === '' + q.data.lineId ? ' er-insp-unit--on' : '') ]]"
+                :aria-current="[[ $variables.current && '' + $variables.current.lineId === '' + q.data.lineId ? 'true' : 'false' ]]">
+                <span class="er-insp-unit-name"><oj-bind-text value="[[ $functions.unitText(q.data) ]]"></oj-bind-text></span>
+                <span class="er-note">
+                  <oj-bind-text value="[[ (q.data.requestNumber || '') + ' · ' + q.data.pointLabel + (q.data.projectName ? ' · ' + q.data.projectName : '') ]]"></oj-bind-text>
+                </span>
+                <span class="er-insp-unit-tags">
+                  <oj-bind-if test="[[ q.data.required ]]"><span class="er-status er-insp-tag--req">Required</span></oj-bind-if>
+                  <oj-bind-if test="[[ !q.data.required ]]"><span class="er-status">Optional</span></oj-bind-if>
+                  <oj-bind-if test="[[ q.data.lineStatus === 'INSPECTION_FAILED' ]]"><span class="er-status er-insp-tag--fail">Failed before</span></oj-bind-if>
+                </span>
+              </button>
+            </li>
+          </template>
+        </oj-bind-for-each>
+      </ul>
+      <oj-bind-if test="[[ !$variables.isLoading && !$functions.queue($variables.lines, $variables.matrix, $variables.mode, $variables.point, $variables.scope).length ]]">
+        <p class="er-insp-empty er-muted">
+          <oj-bind-text value="[[ $variables.scope === 'required'
+            ? 'Nothing here needs an inspection right now. “All waiting” lists the rest.'
+            : 'Nothing is waiting at this point.' ]]"></oj-bind-text>
+        </p>
+      </oj-bind-if>
+    </aside>
+
+    <!-- ── Work area ──────────────────────────────────────────────────────────────────────────────── -->
+    <div class="er-insp-main">
+      <!-- Just completed -->
+      <oj-bind-if test="[[ !$variables.current && !!$variables.done ]]">
+        <section :class="[[ 'er-card er-card-pad er-insp-done er-insp-done--' + $variables.done.code ]]" role="status" aria-live="polite">
+          <div class="er-insp-done-head">
+            <span :class="[[ 'er-insp-verdict er-insp-verdict--' + $variables.done.code ]]"><oj-bind-text value="[[ $variables.done.text ]]"></oj-bind-text></span>
+            <h2 class="er-section-title"><oj-bind-text value="[[ $variables.done.unit + ' inspected' ]]"></oj-bind-text></h2>
+          </div>
+          <p class="er-muted">
+            <oj-bind-text value="[[ $variables.done.pointLabel + ' · inspection ' + $variables.done.inspectionId
+              + ($variables.done.lineStatus ? ' · line set to ' + $application.functions.formatLineStatus($variables.done.lineStatus) : '') ]]"></oj-bind-text>
+          </p>
+          <oj-bind-if test="[[ !!$variables.done.statusError ]]">
+            <div class="er-error" role="alert">
+              <oj-bind-text value="[[ 'The inspection is saved, but the line status did not change: ' + $variables.done.statusError ]]"></oj-bind-text>
+              <button type="button" class="er-btn er-btn--plain er-insp-inline-btn" :disabled="[[ $variables.isSaving ]]" on-click="[[ $listeners.onRetryStatus ]]">Try the line status again</button>
+            </div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.done.code === 'FAIL' ]]">
+            <div class="er-insp-next-steps">
+              <strong>What happens next</strong>
+              <ul>
+                <li>Maintenance work order: raise it in Oracle Maintenance. This screen records the failed inspection and its defects; creating the work order from here is not connected yet.</li>
+                <li>
+                  Substitute the unit or cancel the line on the request:
+                  <oj-bind-if test="[[ $functions.oldLineLink($application.variables.oldAppUrl, $variables.done.line) ]]">
+                    <a :href="[[ $functions.oldLineLink($application.variables.oldAppUrl, $variables.done.line) ]]">Line detail in Old EquipRite</a>.
+                  </oj-bind-if>
+                  <oj-bind-if test="[[ !$functions.oldLineLink($application.variables.oldAppUrl, $variables.done.line) ]]">Line detail in Old EquipRite.</oj-bind-if>
+                </li>
+              </ul>
+            </div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.done.point !== 'SHIP_OUT_YARD' ]]">
+            <p class="er-note">The receipt or return itself is still done on the request (Request detail) or in
+              <button type="button" class="er-insp-link" data-nav="receipt" on-click="[[ $listeners.onOpenNav ]]">Receipt &amp; returns</button>.</p>
+          </oj-bind-if>
+          <div class="er-actions">
+            <oj-bind-if test="[[ !!$variables.done.nextLineId ]]">
+              <button type="button" class="er-btn er-btn--dark er-insp-big" :data-line="[[ $variables.done.nextLineId ]]" on-click="[[ $listeners.onOpenLine ]]">
+                <oj-bind-text value="[[ 'Inspect next: ' + $variables.done.nextUnit ]]"></oj-bind-text>
+              </button>
+            </oj-bind-if>
+            <oj-bind-if test="[[ !$variables.done.nextLineId ]]">
+              <span class="er-muted">That was the last one in this queue.</span>
+            </oj-bind-if>
+          </div>
+        </section>
+      </oj-bind-if>
+
+      <!-- Nothing open -->
+      <oj-bind-if test="[[ !$variables.current && !$variables.done ]]">
+        <section class="er-card er-card-pad er-later er-insp-intro">
+          <h2>Pick a unit from the queue</h2>
+          <p class="er-muted">Each unit is checked against its class checklist, one question at a time. A failed question
+            becomes a defect with its own photo. The result follows from the answers and defects:</p>
+          <ul class="er-insp-rules">
+            <li><span class="er-insp-verdict er-insp-verdict--PASS">Pass</span> nothing failed: cleared to ship.</li>
+            <li><span class="er-insp-verdict er-insp-verdict--CONDITIONAL">Conditional</span> an optional check failed, a low rating, or a minor or cosmetic defect: ships once you acknowledge it.</li>
+            <li><span class="er-insp-verdict er-insp-verdict--FAIL">Fail</span> a required check failed, or a critical or major defect: the line is marked Inspection failed.</li>
+          </ul>
+          <p class="er-note">Check-out covers ship-out from the yard and from a site; check-in covers receipt at a site
+            and back at the yard. Which classes are inspected where is the inspection matrix in Configuration.</p>
+        </section>
+      </oj-bind-if>
+
+      <!-- Inspecting -->
+      <oj-bind-if test="[[ !!$variables.current ]]">
+        <section class="er-card er-card-pad er-insp-facts" aria-label="Unit">
+          <dl class="er-facts">
+            <div><dt>Equipment</dt><dd><oj-bind-text value="[[ $functions.unitText($variables.current) ]]"></oj-bind-text></dd></div>
+            <div><dt>Class</dt><dd><oj-bind-text value="[[ $variables.current.className || '—' ]]"></oj-bind-text></dd></div>
+            <div><dt>Request</dt><dd><oj-bind-text value="[[ ($variables.current.requestNumber || '—') + ($variables.current.projectName ? ' · ' + $variables.current.projectName : '') ]]"></oj-bind-text></dd></div>
+            <div><dt>Inspection</dt><dd><oj-bind-text value="[[ $variables.current.pointLabel + ($variables.current.required ? '' : ' (optional)') ]]"></oj-bind-text></dd></div>
+            <div><dt>Inspector</dt><dd><oj-bind-text value="[[ ($application.user && $application.user.fullName && $application.user.fullName !== 'anonymous' ? $application.user.fullName + ' · ' : '') + $functions.day($functions.today()) ]]"></oj-bind-text></dd></div>
+          </dl>
+          <button type="button" class="er-btn er-btn--plain er-insp-close" on-click="[[ $listeners.onCloseLine ]]">Back to the queue</button>
+        </section>
+
+        <oj-bind-if test="[[ !!$functions.doneHere($variables.history, $variables.current.point) ]]">
+          <div class="er-insp-note" role="status">
+            <oj-bind-text value="[[ 'Already inspected here on ' + $functions.day($functions.doneHere($variables.history, $variables.current.point).date)
+              + ': ' + $functions.doneHere($variables.history, $variables.current.point).result + '. Completing this records a new inspection.' ]]"></oj-bind-text>
+          </div>
+        </oj-bind-if>
+        <oj-bind-if test="[[ $variables.saved && $variables.saved.resumed ]]">
+          <div class="er-insp-note" role="status">An earlier inspection of this unit was not finished. Its answers are filled in; completing it finishes that inspection.</div>
+        </oj-bind-if>
+
+        <oj-bind-if test="[[ $variables.checklistLoading ]]">
+          <div class="er-card er-card-pad er-muted">Loading the checklist…</div>
+        </oj-bind-if>
+        <oj-bind-if test="[[ !!$variables.checklistError ]]">
+          <div class="er-error" role="alert"><oj-bind-text value="[[ $variables.checklistError ]]"></oj-bind-text></div>
+        </oj-bind-if>
+
+        <oj-bind-if test="[[ !$variables.checklistLoading && !$variables.checklistError ]]">
+          <!-- Progress: a pip per question, then Review -->
+          <nav class="er-insp-pips" aria-label="Questions">
+            <oj-bind-for-each data="[[ $functions.pips($variables.checklist, $variables.answers, $variables.step) ]]">
+              <template data-oj-as="pip">
+                <button type="button" :data-step="[[ '' + pip.data.index ]]" on-click="[[ $listeners.onStep ]]" :title="[[ pip.data.title ]]"
+                  :class="[[ 'er-insp-pip er-insp-pip--' + pip.data.state + (pip.data.current ? ' er-insp-pip--current' : '') ]]"
+                  :aria-current="[[ pip.data.current ? 'step' : 'false' ]]"
+                  :aria-label="[[ 'Question ' + pip.data.label + ': ' + pip.data.title ]]"><oj-bind-text value="[[ pip.data.label ]]"></oj-bind-text></button>
+              </template>
+            </oj-bind-for-each>
+            <button type="button" data-step="review" on-click="[[ $listeners.onStep ]]"
+              :class="[[ 'er-insp-pip er-insp-pip--review' + ($functions.isReview($variables.checklist, $variables.step) ? ' er-insp-pip--current' : '') ]]"
+              :aria-current="[[ $functions.isReview($variables.checklist, $variables.step) ? 'step' : 'false' ]]">Review</button>
+            <span class="er-note er-insp-scoreline">
+              <oj-bind-text value="[[ $functions.score($variables.checklist, $variables.answers).answered + ' of ' + $variables.checklist.length + ' answered'
+                + ($functions.score($variables.checklist, $variables.answers).percent !== null ? ' · score ' + $functions.score($variables.checklist, $variables.answers).percent + '%' : '') ]]"></oj-bind-text>
+            </span>
+          </nav>
+
+          <!-- One question -->
+          <oj-bind-if test="[[ !$functions.isReview($variables.checklist, $variables.step) ]]">
+            <section class="er-card er-insp-q" aria-live="polite">
+              <div class="er-insp-q-count">
+                <oj-bind-text value="[[ 'Question ' + ($variables.step + 1) + ' of ' + $variables.checklist.length
+                  + ($functions.currentItem($variables.checklist, $variables.step).required ? ' · required' : ' · optional') ]]"></oj-bind-text>
+              </div>
+              <h2 class="er-insp-q-text"><oj-bind-text value="[[ $functions.currentItem($variables.checklist, $variables.step).text ]]"></oj-bind-text></h2>
+              <oj-bind-if test="[[ !!$functions.currentItem($variables.checklist, $variables.step).hint ]]">
+                <p class="er-muted"><oj-bind-text value="[[ $functions.currentItem($variables.checklist, $variables.step).hint ]]"></oj-bind-text></p>
+              </oj-bind-if>
+
+              <div class="er-insp-answers" role="group" aria-label="Answer">
+                <oj-bind-for-each data="[[ $functions.choices($functions.currentItem($variables.checklist, $variables.step),
+                                             $variables.answers[$functions.currentItem($variables.checklist, $variables.step).id]) ]]">
+                  <template data-oj-as="c">
+                    <button type="button" :data-item="[[ $functions.currentItem($variables.checklist, $variables.step).id ]]" :data-value="[[ c.data.value ]]"
+                      on-click="[[ $listeners.onAnswer ]]" :aria-pressed="[[ c.data.on ? 'true' : 'false' ]]"
+                      :class="[[ 'er-insp-ans er-insp-ans--' + c.data.tone + (c.data.on ? ' er-insp-ans--on' : '') ]]"><oj-bind-text value="[[ c.data.label ]]"></oj-bind-text></button>
+                  </template>
+                </oj-bind-for-each>
+              </div>
+
+              <oj-bind-if test="[[ $functions.currentItem($variables.checklist, $variables.step).type === 'NUMERIC' ]]">
+                <div class="er-insp-typed">
+                  <label class="er-field">
+                    <span class="er-label">
+                      <oj-bind-text value="[[ 'Reading' + ($functions.currentItem($variables.checklist, $variables.step).unit ? ' (' + $functions.currentItem($variables.checklist, $variables.step).unit + ')' : '') ]]"></oj-bind-text>
+                    </span>
+                    <input type="number" inputmode="decimal" step="any" class="er-input er-insp-num"
+                      :data-item="[[ $functions.currentItem($variables.checklist, $variables.step).id ]]"
+                      :value="[[ $functions.answerValue($variables.answers, $functions.currentItem($variables.checklist, $variables.step)) ]]"
+                      on-change="[[ $listeners.onAnswerTyped ]]">
+                  </label>
+                  <span class="er-note"><oj-bind-text value="[[ $functions.rangeText($functions.currentItem($variables.checklist, $variables.step)) ]]"></oj-bind-text></span>
+                </div>
+              </oj-bind-if>
+              <oj-bind-if test="[[ $functions.currentItem($variables.checklist, $variables.step).type === 'TEXT' ]]">
+                <label class="er-field er-insp-typed">
+                  <span class="er-label">Answer</span>
+                  <textarea class="er-input" rows="3" :data-item="[[ $functions.currentItem($variables.checklist, $variables.step).id ]]"
+                    :value="[[ $functions.answerValue($variables.answers, $functions.currentItem($variables.checklist, $variables.step)) ]]"
+                    on-change="[[ $listeners.onAnswerTyped ]]"></textarea>
+                </label>
+              </oj-bind-if>
+
+              <oj-bind-if test="[[ $functions.needsNote($functions.currentItem($variables.checklist, $variables.step), $variables.answers) ]]">
+                <div class="er-insp-fault">
+                  <span :class="[[ 'er-insp-state er-insp-state--' + $functions.answerState($functions.currentItem($variables.checklist, $variables.step),
+                                     $variables.answers[$functions.currentItem($variables.checklist, $variables.step).id]) ]]">
+                    <oj-bind-text value="[[ $functions.stateText($functions.answerState($functions.currentItem($variables.checklist, $variables.step),
+                                     $variables.answers[$functions.currentItem($variables.checklist, $variables.step).id])) ]]"></oj-bind-text>
+                  </span>
+                  <label class="er-field er-insp-grow">
+                    <span class="er-label">Note</span>
+                    <input type="text" class="er-input" placeholder="What is wrong"
+                      :data-item="[[ $functions.currentItem($variables.checklist, $variables.step).id ]]"
+                      :value="[[ $functions.answerNote($variables.answers, $functions.currentItem($variables.checklist, $variables.step)) ]]"
+                      on-change="[[ $listeners.onAnswerNote ]]">
+                  </label>
+                  <button type="button" class="er-btn er-btn--plain er-insp-big" :data-item="[[ $functions.currentItem($variables.checklist, $variables.step).id ]]"
+                    on-click="[[ $listeners.onAddDefect ]]">
+                    <span class="oj-ux-ico-camera" aria-hidden="true"></span> Log a defect with a photo
+                  </button>
+                </div>
+              </oj-bind-if>
+
+              <div class="er-insp-nav">
+                <button type="button" class="er-btn er-btn--plain er-insp-big" data-step="prev" on-click="[[ $listeners.onStep ]]"
+                  :disabled="[[ $variables.step === 0 ]]">Back</button>
+                <button type="button" class="er-btn er-btn--dark er-insp-big" data-step="next" on-click="[[ $listeners.onStep ]]">
+                  <oj-bind-text value="[[ $variables.step + 1 >= $variables.checklist.length ? 'Review' : 'Next' ]]"></oj-bind-text>
+                </button>
+              </div>
+            </section>
+          </oj-bind-if>
+
+          <!-- Review -->
+          <oj-bind-if test="[[ $functions.isReview($variables.checklist, $variables.step) ]]">
+            <section class="er-card er-card-pad er-insp-review" aria-labelledby="resultTitle">
+              <div class="er-insp-result">
+                <span id="resultTitle" :class="[[ 'er-insp-verdict er-insp-verdict--big er-insp-verdict--'
+                    + ($functions.result($variables.checklist, $variables.answers, $variables.defects).finished
+                       ? $functions.result($variables.checklist, $variables.answers, $variables.defects).code : 'OPEN') ]]">
+                  <oj-bind-text value="[[ $functions.resultText($functions.result($variables.checklist, $variables.answers, $variables.defects).code,
+                                           $variables.current.point, $functions.result($variables.checklist, $variables.answers, $variables.defects).finished) ]]"></oj-bind-text>
+                </span>
+                <span class="er-muted">
+                  <oj-bind-text value="[[ $functions.score($variables.checklist, $variables.answers).ok + ' passed · '
+                    + $functions.score($variables.checklist, $variables.answers).fault + ' failed · '
+                    + $variables.defects.length + ($variables.defects.length === 1 ? ' defect' : ' defects')
+                    + ($functions.score($variables.checklist, $variables.answers).percent !== null ? ' · score ' + $functions.score($variables.checklist, $variables.answers).percent + '%' : '') ]]"></oj-bind-text>
+                </span>
+              </div>
+              <oj-bind-if test="[[ $functions.result($variables.checklist, $variables.answers, $variables.defects).reasons.length ]]">
+                <ul class="er-insp-reasons">
+                  <oj-bind-for-each data="[[ $functions.result($variables.checklist, $variables.answers, $variables.defects).reasons ]]">
+                    <template data-oj-as="r">
+                      <li :class="[[ 'er-insp-reason er-insp-reason--' + r.data.level ]]"><oj-bind-text value="[[ r.data.text ]]"></oj-bind-text></li>
+                    </template>
+                  </oj-bind-for-each>
+                </ul>
+              </oj-bind-if>
+              <oj-bind-if test="[[ !$variables.checklist.length ]]">
+                <p class="er-note">No checklist is set up for this class at this point, so the result comes from the defects alone.</p>
+              </oj-bind-if>
+              <div class="er-insp-answered" role="list" aria-label="Answers">
+                <oj-bind-for-each data="[[ $variables.checklist ]]">
+                  <template data-oj-as="it">
+                    <button type="button" role="listitem" class="er-insp-answered-row" :data-step="[[ '' + it.index ]]" on-click="[[ $listeners.onStep ]]">
+                      <span><oj-bind-text value="[[ it.data.text ]]"></oj-bind-text></span>
+                      <span :class="[[ 'er-insp-state er-insp-state--' + $functions.answerState(it.data, $variables.answers[it.data.id]) ]]">
+                        <oj-bind-text value="[[ $functions.answerText(it.data, $variables.answers[it.data.id]) || (it.data.required ? 'Not answered' : 'Skipped') ]]"></oj-bind-text>
+                      </span>
+                    </button>
+                  </template>
+                </oj-bind-for-each>
+              </div>
+            </section>
+          </oj-bind-if>
+
+          <!-- Defects: those of the question on screen, or all of them on review -->
+          <oj-bind-if test="[[ $functions.defectsShown($variables.defects, $variables.checklist, $variables.step).length
+                               || $functions.isReview($variables.checklist, $variables.step) ]]">
+            <section class="er-card er-card-pad er-insp-defects" aria-labelledby="defectsTitle">
+              <div class="er-table-head">
+                <h2 class="er-section-title" id="defectsTitle">
+                  <oj-bind-text value="[[ $functions.isReview($variables.checklist, $variables.step) ? 'Defects' : 'Defect for this question' ]]"></oj-bind-text>
+                </h2>
+                <oj-bind-if test="[[ $functions.isReview($variables.checklist, $variables.step) ]]">
+                  <button type="button" class="er-btn er-btn--plain" data-item="" on-click="[[ $listeners.onAddDefect ]]">
+                    <span class="oj-ux-ico-plus" aria-hidden="true"></span> Add a defect
+                  </button>
+                </oj-bind-if>
+              </div>
+              <oj-bind-if test="[[ !!$variables.photoError ]]">
+                <div class="er-error" role="alert"><oj-bind-text value="[[ $variables.photoError ]]"></oj-bind-text></div>
+              </oj-bind-if>
+              <oj-bind-if test="[[ !$functions.defectsShown($variables.defects, $variables.checklist, $variables.step).length ]]">
+                <p class="er-muted">No defects. Add one for damage the checklist does not ask about.</p>
+              </oj-bind-if>
+              <oj-bind-for-each data="[[ $functions.defectsShown($variables.defects, $variables.checklist, $variables.step) ]]">
+                <template data-oj-as="d">
+                  <div :class="[[ 'er-insp-defect' + (d.data.saved ? ' er-insp-defect--saved' : '') ]]">
+                    <div class="er-insp-photo">
+                      <oj-bind-if test="[[ d.data.photo && d.data.photo.url ]]">
+                        <img :src="[[ d.data.photo.url ]]" :alt="[[ 'Photo of ' + (d.data.description || 'the defect') ]]">
+                      </oj-bind-if>
+                      <oj-bind-if test="[[ d.data.photo && !d.data.photo.url ]]">
+                        <span class="er-note"><oj-bind-text value="[[ d.data.photo.name ]]"></oj-bind-text></span>
+                      </oj-bind-if>
+                      <oj-bind-if test="[[ !d.data.saved ]]">
+                        <label :class="[[ 'er-insp-shot' + (d.data.photo ? ' er-insp-shot--again' : '') ]]">
+                          <span class="oj-ux-ico-camera" aria-hidden="true"></span>
+                          <oj-bind-text value="[[ d.data.photo ? 'Retake' : 'Take photo' ]]"></oj-bind-text>
+                          <input type="file" accept="image/*" capture="environment" class="er-insp-file" :data-key="[[ d.data.key ]]"
+                            on-change="[[ $listeners.onDefectPhoto ]]">
+                        </label>
+                      </oj-bind-if>
+                      <oj-bind-if test="[[ d.data.saved ]]">
+                        <span class="er-note">Saved earlier</span>
+                      </oj-bind-if>
+                    </div>
+                    <div class="er-insp-defect-fields">
+                      <label class="er-field">
+                        <span class="er-label">Description <span class="er-req">*</span></span>
+                        <input type="text" class="er-input" data-field="description" :data-key="[[ d.data.key ]]" :value="[[ d.data.description ]]"
+                          :readonly="[[ d.data.saved ]]" on-change="[[ $listeners.onDefectField ]]">
+                      </label>
+                      <div class="er-field">
+                        <span class="er-label">Severity <span class="er-req">*</span></span>
+                        <div class="er-seg er-insp-seg" role="group" aria-label="Severity">
+                          <button type="button" data-field="severity" data-value="CRITICAL" :data-key="[[ d.data.key ]]" :disabled="[[ d.data.saved ]]"
+                            on-click="[[ $listeners.onDefectChoice ]]" :aria-pressed="[[ d.data.severity === 'CRITICAL' ? 'true' : 'false' ]]"
+                            :class="[[ 'er-seg-btn er-insp-sev--stop' + (d.data.severity === 'CRITICAL' ? ' er-seg-btn--on' : '') ]]">Critical</button>
+                          <button type="button" data-field="severity" data-value="MAJOR" :data-key="[[ d.data.key ]]" :disabled="[[ d.data.saved ]]"
+                            on-click="[[ $listeners.onDefectChoice ]]" :aria-pressed="[[ d.data.severity === 'MAJOR' ? 'true' : 'false' ]]"
+                            :class="[[ 'er-seg-btn er-insp-sev--stop' + (d.data.severity === 'MAJOR' ? ' er-seg-btn--on' : '') ]]">Major</button>
+                          <button type="button" data-field="severity" data-value="MINOR" :data-key="[[ d.data.key ]]" :disabled="[[ d.data.saved ]]"
+                            on-click="[[ $listeners.onDefectChoice ]]" :aria-pressed="[[ d.data.severity === 'MINOR' ? 'true' : 'false' ]]"
+                            :class="[[ 'er-seg-btn' + (d.data.severity === 'MINOR' ? ' er-seg-btn--on' : '') ]]">Minor</button>
+                          <button type="button" data-field="severity" data-value="COSMETIC" :data-key="[[ d.data.key ]]" :disabled="[[ d.data.saved ]]"
+                            on-click="[[ $listeners.onDefectChoice ]]" :aria-pressed="[[ d.data.severity === 'COSMETIC' ? 'true' : 'false' ]]"
+                            :class="[[ 'er-seg-btn' + (d.data.severity === 'COSMETIC' ? ' er-seg-btn--on' : '') ]]">Cosmetic</button>
+                        </div>
+                      </div>
+                      <div class="er-insp-defect-row">
+                        <div class="er-field">
+                          <span class="er-label">Action</span>
+                          <div class="er-seg er-insp-seg" role="group" aria-label="Action">
+                            <button type="button" data-field="action" data-value="REPAIR" :data-key="[[ d.data.key ]]" :disabled="[[ d.data.saved ]]"
+                              on-click="[[ $listeners.onDefectChoice ]]" :aria-pressed="[[ d.data.action === 'REPAIR' ? 'true' : 'false' ]]"
+                              :class="[[ 'er-seg-btn' + (d.data.action === 'REPAIR' ? ' er-seg-btn--on' : '') ]]">Repair</button>
+                            <button type="button" data-field="action" data-value="REPLACE" :data-key="[[ d.data.key ]]" :disabled="[[ d.data.saved ]]"
+                              on-click="[[ $listeners.onDefectChoice ]]" :aria-pressed="[[ d.data.action === 'REPLACE' ? 'true' : 'false' ]]"
+                              :class="[[ 'er-seg-btn' + (d.data.action === 'REPLACE' ? ' er-seg-btn--on' : '') ]]">Replace</button>
+                            <button type="button" data-field="action" data-value="MONITOR" :data-key="[[ d.data.key ]]" :disabled="[[ d.data.saved ]]"
+                              on-click="[[ $listeners.onDefectChoice ]]" :aria-pressed="[[ d.data.action === 'MONITOR' ? 'true' : 'false' ]]"
+                              :class="[[ 'er-seg-btn' + (d.data.action === 'MONITOR' ? ' er-seg-btn--on' : '') ]]">Monitor</button>
+                          </div>
+                        </div>
+                        <label class="er-field er-insp-cost">
+                          <span class="er-label">Est. repair cost</span>
+                          <input type="text" inputmode="decimal" class="er-input" data-field="cost" :data-key="[[ d.data.key ]]" :value="[[ d.data.cost ]]"
+                            placeholder="$" :readonly="[[ d.data.saved ]]" on-change="[[ $listeners.onDefectField ]]">
+                        </label>
+                        <oj-bind-if test="[[ !d.data.saved ]]">
+                          <button type="button" class="er-btn er-btn--plain er-insp-remove" :data-key="[[ d.data.key ]]" on-click="[[ $listeners.onRemoveDefect ]]">Remove</button>
+                        </oj-bind-if>
+                      </div>
+                    </div>
+                  </div>
+                </template>
+              </oj-bind-for-each>
+            </section>
+          </oj-bind-if>
+
+          <!-- Complete -->
+          <oj-bind-if test="[[ $functions.isReview($variables.checklist, $variables.step) ]]">
+            <section class="er-card er-card-pad er-insp-finish" aria-label="Complete the inspection">
+              <label class="er-field">
+                <span class="er-label">Notes</span>
+                <textarea class="er-input" rows="2" placeholder="Anything the next person should know" :value="[[ $variables.notes ]]"
+                  on-change="[[ $listeners.onNotes ]]"></textarea>
+              </label>
+              <oj-bind-if test="[[ $functions.result($variables.checklist, $variables.answers, $variables.defects).code === 'CONDITIONAL'
+                                   && $functions.result($variables.checklist, $variables.answers, $variables.defects).finished ]]">
+                <label class="er-insp-ack">
+                  <input type="checkbox" :checked="[[ $variables.ack ]]" on-change="[[ $listeners.onAck ]]">
+                  <span><oj-bind-text value="[[ $variables.current.point === 'SHIP_OUT_YARD' || $variables.current.point === 'SHIP_OUT_SITE'
+                    ? 'I accept these remarks and clear the unit to ship.' : 'I accept the unit with these remarks.' ]]"></oj-bind-text></span>
+                </label>
+              </oj-bind-if>
+              <oj-bind-if test="[[ $functions.result($variables.checklist, $variables.answers, $variables.defects).code === 'FAIL' ]]">
+                <p class="er-insp-fail-note">
+                  <oj-bind-text value="[[ ($variables.current.point === 'SHIP_OUT_YARD' ? 'The line will be marked Inspection failed and cannot ship. ' : '')
+                    + 'The maintenance work order is raised in Oracle Maintenance: this screen records the inspection and its defects but does not create work orders yet.' ]]"></oj-bind-text>
+                </p>
+              </oj-bind-if>
+              <oj-bind-if test="[[ $variables.blocked.length ]]">
+                <div class="er-error" role="alert">Still needed: <oj-bind-text value="[[ $variables.blocked.join('; ') ]]"></oj-bind-text></div>
+              </oj-bind-if>
+              <oj-bind-if test="[[ !!$variables.saveError ]]">
+                <div class="er-error" role="alert"><oj-bind-text value="[[ $variables.saveError ]]"></oj-bind-text></div>
+              </oj-bind-if>
+              <div class="er-insp-nav">
+                <button type="button" class="er-btn er-btn--plain er-insp-big" data-step="prev" on-click="[[ $listeners.onStep ]]"
+                  :disabled="[[ !$variables.checklist.length ]]">Back</button>
+                <button type="button" class="er-btn er-btn--dark er-insp-big er-insp-complete" :disabled="[[ $variables.isSaving ]]"
+                  on-click="[[ $listeners.onComplete ]]">
+                  <oj-bind-text value="[[ $variables.isSaving ? 'Saving…' : 'Complete inspection' ]]"></oj-bind-text>
+                </button>
+              </div>
+            </section>
+          </oj-bind-if>
+        </oj-bind-if>
+      </oj-bind-if>
+    </div>
+  </div>
+</div>

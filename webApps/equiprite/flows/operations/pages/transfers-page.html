@@ -1,0 +1,309 @@
+<!-- Inter-project transfer (wireframe: Inter-project transfer). From and To side by side, what moves between them
+     with every check that stops it, then the transfer and its history on both requests.
+     Chains: transfers-page-chains; rules (matching, checks, bodies): transfers-page.js. -->
+<div class="er-band">
+  <div class="er-band-inner">
+    <div>
+      <div class="er-band-kicker">Fulfil · FDD 7.16A</div>
+      <h1>Inter-project transfer</h1>
+      <div class="er-band-sub">Move deployed equipment straight to another project, without going back to the yard</div>
+    </div>
+    <div class="er-actions">
+      <oj-bind-if test="[[ $application.functions.oldAppLink($application.variables.oldAppUrl, 'transfer') ]]">
+        <a class="er-btn er-btn--ghost" :href="[[ $application.functions.oldAppLink($application.variables.oldAppUrl, 'transfer') ]]">Old version</a>
+      </oj-bind-if>
+    </div>
+  </div>
+  <div class="er-strip" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+</div>
+
+<div class="er-page">
+  <oj-bind-if test="[[ $functions.switchedOff($application.variables.featureFlags, $application.variables.flagsLoaded) ]]">
+    <div class="er-insp-note" role="status">Inter-project transfer is switched off in Configuration (ENABLE_INTER_PROJECT_TRANSFER). Transfers can be looked at, not made.</div>
+  </oj-bind-if>
+  <oj-bind-if test="[[ !!$variables.loadError ]]">
+    <div class="er-error" role="alert"><oj-bind-text value="[[ $variables.loadError ]]"></oj-bind-text></div>
+  </oj-bind-if>
+
+  <div class="er-trf">
+    <!-- ── From ──────────────────────────────────────────────────────────────────────────────────── -->
+    <section class="er-card er-card-pad er-trf-side" aria-labelledby="fromTitle">
+      <h2 class="er-section-title" id="fromTitle">From <span class="er-trf-sub">deployed</span></h2>
+      <oj-bind-if test="[[ !$variables.sourceId ]]">
+        <label class="er-search er-trf-search">
+          <span class="oj-ux-ico-search" aria-hidden="true"></span>
+          <span class="er-sr">Find the request the equipment is on</span>
+          <input type="search" data-field="sourceQuery" placeholder="Request, project, site or equipment" :value="[[ $variables.sourceQuery ]]"
+            on-input="[[ $listeners.onSearch ]]">
+        </label>
+        <oj-bind-if test="[[ $variables.isLoading ]]"><p class="er-muted">Loading the requests with equipment on site…</p></oj-bind-if>
+        <div class="er-results" role="list" aria-label="Requests with deployed equipment">
+          <oj-bind-for-each data="[[ $functions.sources($variables.sourceRows, $variables.sourceQuery) ]]">
+            <template data-oj-as="r">
+              <button type="button" role="listitem" class="er-result er-trf-req" data-side="source" :data-id="[[ '' + r.data.id ]]" on-click="[[ $listeners.onPick ]]">
+                <strong><oj-bind-text value="[[ $functions.requestText(r.data) ]]"></oj-bind-text></strong>
+                <span class="er-note"><oj-bind-text value="[[ $functions.equipmentText(r.data) + (r.data.location ? ' · ' + r.data.location : '') ]]"></oj-bind-text></span>
+              </button>
+            </template>
+          </oj-bind-for-each>
+        </div>
+        <oj-bind-if test="[[ !$variables.isLoading && !$functions.sources($variables.sourceRows, $variables.sourceQuery).length ]]">
+          <p class="er-muted">No request with deployed equipment matches.</p>
+        </oj-bind-if>
+      </oj-bind-if>
+
+      <oj-bind-if test="[[ !!$variables.sourceId ]]">
+        <div class="er-picked">
+          <span>
+            <strong><oj-bind-text value="[[ $functions.requestText($functions.findRequest($variables.sourceRows, $variables.sourceId)) || ('Request ' + $variables.sourceId) ]]"></oj-bind-text></strong>
+            <span class="er-note"><oj-bind-text value="[[ $functions.requestLocation($variables.sourceRows, $variables.sourceId) ]]"></oj-bind-text></span>
+          </span>
+          <button type="button" class="er-btn er-btn--plain" data-side="source" on-click="[[ $listeners.onChangeRequest ]]">Change</button>
+        </div>
+        <oj-bind-if test="[[ $variables.sourceLoading ]]"><p class="er-muted">Loading the equipment on site…</p></oj-bind-if>
+        <oj-bind-if test="[[ !!$variables.sourceError ]]"><div class="er-error" role="alert"><oj-bind-text value="[[ $variables.sourceError ]]"></oj-bind-text></div></oj-bind-if>
+        <oj-bind-if test="[[ !$variables.sourceLoading ]]">
+          <div class="er-trf-units" role="group" aria-label="Units on site">
+            <oj-bind-for-each data="[[ $functions.deployed($variables.sourceLines) ]]">
+              <template data-oj-as="u">
+                <label :class="[[ 'er-trf-unit' + ($functions.isSelected($variables.selected, u.data.lineId) ? ' er-trf-unit--on' : '')
+                                  + ($functions.pendingFor($variables.sourceHistory, u.data.lineId) ? ' er-trf-unit--pending' : '') ]]">
+                  <input type="checkbox" :data-line="[[ '' + u.data.lineId ]]" on-change="[[ $listeners.onToggleUnit ]]"
+                    :checked="[[ $functions.isSelected($variables.selected, u.data.lineId) ]]"
+                    :disabled="[[ !!$functions.pendingFor($variables.sourceHistory, u.data.lineId) ]]">
+                  <span class="er-trf-unit-text">
+                    <strong><oj-bind-text value="[[ $functions.unitText(u.data) ]]"></oj-bind-text></strong>
+                    <span class="er-note">
+                      <oj-bind-text value="[[ $functions.unitSite($variables.invOrgs, $variables.sites, u.data.lineId)
+                        + ' · ' + $functions.windowText($functions.windowOf(u.data)) ]]"></oj-bind-text>
+                    </span>
+                    <oj-bind-if test="[[ !!$functions.pendingFor($variables.sourceHistory, u.data.lineId) ]]">
+                      <span class="er-status er-insp-tag--req">Transfer pending</span>
+                    </oj-bind-if>
+                    <oj-bind-if test="[[ $functions.hasSubmittedTimesheet($variables.timesheets, u.data.lineId) ]]">
+                      <span class="er-status er-insp-tag--fail">Submitted timesheet</span>
+                    </oj-bind-if>
+                  </span>
+                </label>
+              </template>
+            </oj-bind-for-each>
+            <oj-bind-if test="[[ !$functions.deployed($variables.sourceLines).length && !$variables.sourceError ]]">
+              <p class="er-muted">Nothing on this request is deployed now.</p>
+            </oj-bind-if>
+          </div>
+          <div class="er-trf-history">
+            <h3 class="er-trf-h3"><oj-bind-text value="[[ $functions.historyTitle($variables.sourceRows, $variables.sourceId) ]]"></oj-bind-text></h3>
+            <oj-bind-for-each data="[[ $functions.historyRows($variables.sourceHistory, 5) ]]">
+              <template data-oj-as="h">
+                <div class="er-trf-hist-row">
+                  <span><oj-bind-text value="[[ h.data.date + ' · ' + h.data.equipment ]]"></oj-bind-text></span>
+                  <span class="er-note"><oj-bind-text value="[[ h.data.from + ' → ' + h.data.to ]]"></oj-bind-text></span>
+                  <span :class="[[ $application.functions.statusPillClass(h.data.status) ]]"><oj-bind-text value="[[ $functions.statusText(h.data.status) ]]"></oj-bind-text></span>
+                </div>
+              </template>
+            </oj-bind-for-each>
+            <oj-bind-if test="[[ !$functions.historyRows($variables.sourceHistory, 5).length ]]"><p class="er-note">None yet.</p></oj-bind-if>
+          </div>
+        </oj-bind-if>
+      </oj-bind-if>
+    </section>
+
+    <div class="er-trf-arrow" aria-hidden="true"><span class="oj-ux-ico-arrow-right"></span></div>
+
+    <!-- ── To ────────────────────────────────────────────────────────────────────────────────────── -->
+    <section class="er-card er-card-pad er-trf-side" aria-labelledby="toTitle">
+      <h2 class="er-section-title" id="toTitle">To <span class="er-trf-sub">approved, waiting for equipment</span></h2>
+      <oj-bind-if test="[[ !$variables.sourceId ]]">
+        <p class="er-muted">Choose where the equipment is first; the requests it can go to are then listed here.</p>
+      </oj-bind-if>
+      <oj-bind-if test="[[ !!$variables.sourceId && !$variables.destId ]]">
+        <label class="er-search er-trf-search">
+          <span class="oj-ux-ico-search" aria-hidden="true"></span>
+          <span class="er-sr">Find the request it moves to</span>
+          <input type="search" data-field="destQuery" placeholder="Request, project or site" :value="[[ $variables.destQuery ]]"
+            on-input="[[ $listeners.onSearch ]]">
+        </label>
+        <p class="er-note">Only requests with a waiting line for the same equipment are listed.</p>
+        <div class="er-results" role="list" aria-label="Requests it can go to">
+          <oj-bind-for-each data="[[ $functions.destinations($variables.destRows, $variables.sourceId, $variables.sourceLines, $variables.selected, $variables.destQuery) ]]">
+            <template data-oj-as="r">
+              <button type="button" role="listitem" class="er-result er-trf-req" data-side="dest" :data-id="[[ '' + r.data.id ]]" on-click="[[ $listeners.onPick ]]">
+                <strong><oj-bind-text value="[[ $functions.requestText(r.data) ]]"></oj-bind-text></strong>
+                <span class="er-note"><oj-bind-text value="[[ $functions.equipmentText(r.data) + ' · ' + $functions.windowText(r.data) ]]"></oj-bind-text></span>
+              </button>
+            </template>
+          </oj-bind-for-each>
+        </div>
+        <oj-bind-if test="[[ !$variables.sourceLoading && !$functions.destinations($variables.destRows, $variables.sourceId, $variables.sourceLines, $variables.selected, $variables.destQuery).length ]]">
+          <p class="er-muted">No approved request is waiting for this equipment.</p>
+        </oj-bind-if>
+      </oj-bind-if>
+
+      <oj-bind-if test="[[ !!$variables.destId ]]">
+        <div class="er-picked">
+          <span>
+            <strong><oj-bind-text value="[[ $functions.requestText($functions.findRequest($variables.destRows, $variables.destId)) || ('Request ' + $variables.destId) ]]"></oj-bind-text></strong>
+            <span class="er-note"><oj-bind-text value="[[ $functions.requestLocation($variables.destRows, $variables.destId) ]]"></oj-bind-text></span>
+          </span>
+          <button type="button" class="er-btn er-btn--plain" data-side="dest" on-click="[[ $listeners.onChangeRequest ]]">Change</button>
+        </div>
+        <oj-bind-if test="[[ $variables.destLoading ]]"><p class="er-muted">Loading its lines…</p></oj-bind-if>
+        <oj-bind-if test="[[ !!$variables.destError ]]"><div class="er-error" role="alert"><oj-bind-text value="[[ $variables.destError ]]"></oj-bind-text></div></oj-bind-if>
+        <oj-bind-if test="[[ !$variables.destLoading ]]">
+          <ul class="er-trf-waiting" aria-label="Lines waiting for equipment">
+            <oj-bind-for-each data="[[ $functions.waiting($variables.destLines) ]]">
+              <template data-oj-as="w">
+                <li class="er-trf-wait">
+                  <strong><oj-bind-text value="[[ (w.data.equipmentName || 'Equipment') + (w.data.quantity > 1 ? ' × ' + w.data.quantity : '') ]]"></oj-bind-text></strong>
+                  <span class="er-note"><oj-bind-text value="[[ $functions.windowText($functions.windowOf(w.data)) ]]"></oj-bind-text></span>
+                  <span :class="[[ $application.functions.statusPillClass(w.data.lineStatus) ]]"><oj-bind-text value="[[ $application.functions.formatLineStatus(w.data.lineStatus) ]]"></oj-bind-text></span>
+                </li>
+              </template>
+            </oj-bind-for-each>
+          </ul>
+        </oj-bind-if>
+        <div class="er-trf-fields">
+          <label class="er-field">
+            <span class="er-label">Transfer date <span class="er-req">*</span></span>
+            <input type="date" class="er-input" data-field="date" :value="[[ $variables.date ]]" on-change="[[ $listeners.onField ]]">
+          </label>
+          <label class="er-field">
+            <span class="er-label">Sub-inventory</span>
+            <input type="text" class="er-input" data-field="subinventory" placeholder="e.g. TEXAS" :value="[[ $variables.subinventory ]]" on-change="[[ $listeners.onField ]]">
+          </label>
+          <label class="er-field">
+            <span class="er-label">Locator</span>
+            <input type="text" class="er-input" data-field="locator" placeholder="e.g. the project number" :value="[[ $variables.locator ]]" on-change="[[ $listeners.onField ]]">
+          </label>
+        </div>
+        <div class="er-trf-history">
+          <h3 class="er-trf-h3"><oj-bind-text value="[[ $functions.historyTitle($variables.destRows, $variables.destId) ]]"></oj-bind-text></h3>
+          <oj-bind-for-each data="[[ $functions.historyRows($variables.destHistory, 5) ]]">
+            <template data-oj-as="h">
+              <div class="er-trf-hist-row">
+                <span><oj-bind-text value="[[ h.data.date + ' · ' + h.data.equipment ]]"></oj-bind-text></span>
+                <span class="er-note"><oj-bind-text value="[[ h.data.from + ' → ' + h.data.to ]]"></oj-bind-text></span>
+                <span :class="[[ $application.functions.statusPillClass(h.data.status) ]]"><oj-bind-text value="[[ $functions.statusText(h.data.status) ]]"></oj-bind-text></span>
+              </div>
+            </template>
+          </oj-bind-for-each>
+          <oj-bind-if test="[[ !$functions.historyRows($variables.destHistory, 5).length ]]"><p class="er-note">None yet.</p></oj-bind-if>
+        </div>
+      </oj-bind-if>
+    </section>
+  </div>
+
+  <!-- ── What moves ────────────────────────────────────────────────────────────────────────────────── -->
+  <section class="er-card er-card-pad er-trf-move" aria-labelledby="moveTitle">
+    <div class="er-table-head">
+      <h2 class="er-section-title" id="moveTitle">What moves</h2>
+      <oj-bind-if test="[[ $functions.pairsOf($variables.sourceLines, $variables.selected, $variables.destLines).length > 0 ]]">
+        <span class="er-note">
+          <oj-bind-text value="[[ $functions.routeText($variables.invOrgs, $variables.sites, $variables.sourceLines, $variables.selected, $variables.destRows, $variables.destId) ]]"></oj-bind-text>
+        </span>
+      </oj-bind-if>
+    </div>
+    <ul class="er-trf-pairs" aria-label="Units and the lines they fill">
+      <oj-bind-for-each data="[[ $functions.pairsOf($variables.sourceLines, $variables.selected, $variables.destLines) ]]">
+        <template data-oj-as="p">
+          <li class="er-trf-pair">
+            <span class="er-trf-pair-from">
+              <strong><oj-bind-text value="[[ $functions.unitText(p.data.source) ]]"></oj-bind-text></strong>
+              <span class="er-note"><oj-bind-text value="[[ $functions.requestNumber($variables.sourceRows, $variables.sourceId) + ' · ' + $functions.windowText($functions.windowOf(p.data.source)) ]]"></oj-bind-text></span>
+            </span>
+            <span class="oj-ux-ico-arrow-right er-trf-pair-arrow" aria-hidden="true"></span>
+            <span class="er-trf-pair-to">
+              <strong><oj-bind-text value="[[ $functions.requestNumber($variables.destRows, $variables.destId) + ' · ' + (p.data.dest.equipmentName || '') ]]"></oj-bind-text></strong>
+              <span class="er-note"><oj-bind-text value="[[ $functions.windowText($functions.windowOf(p.data.dest)) ]]"></oj-bind-text></span>
+            </span>
+          </li>
+        </template>
+      </oj-bind-for-each>
+    </ul>
+    <oj-bind-if test="[[ !$functions.pairsOf($variables.sourceLines, $variables.selected, $variables.destLines).length ]]">
+      <p class="er-muted">Tick the units on the left and choose where they go; each one is matched to a waiting line here.</p>
+    </oj-bind-if>
+
+    <oj-bind-if test="[[ !!$variables.sourceId && !$variables.done && $functions.problemsOf($application.variables.featureFlags, $application.variables.flagsLoaded,
+        $variables.sourceRows, $variables.sourceId, $variables.destRows, $variables.destId, $variables.sourceLines, $variables.destLines,
+        $variables.selected, $variables.date, $variables.timesheets, $variables.sourceHistory, $variables.sites).length > 0 ]]">
+      <ul class="er-trf-problems" aria-label="Before it can move">
+        <oj-bind-for-each data="[[ $functions.problemsOf($application.variables.featureFlags, $application.variables.flagsLoaded,
+            $variables.sourceRows, $variables.sourceId, $variables.destRows, $variables.destId, $variables.sourceLines, $variables.destLines,
+            $variables.selected, $variables.date, $variables.timesheets, $variables.sourceHistory, $variables.sites) ]]">
+          <template data-oj-as="pr">
+            <li><oj-bind-text value="[[ pr.data ]]"></oj-bind-text></li>
+          </template>
+        </oj-bind-for-each>
+      </ul>
+    </oj-bind-if>
+    <oj-bind-if test="[[ !!$variables.sourceId && $functions.warningsOf($variables.sourceRows, $variables.sourceId, $variables.sourceLines, $variables.selected,
+        $variables.timesheets, $variables.sites).length > 0 ]]">
+      <ul class="er-trf-warnings" aria-label="Worth knowing">
+        <oj-bind-for-each data="[[ $functions.warningsOf($variables.sourceRows, $variables.sourceId, $variables.sourceLines, $variables.selected,
+            $variables.timesheets, $variables.sites) ]]">
+          <template data-oj-as="wr">
+            <li><oj-bind-text value="[[ wr.data ]]"></oj-bind-text></li>
+          </template>
+        </oj-bind-for-each>
+      </ul>
+    </oj-bind-if>
+
+    <oj-bind-if test="[[ !!$variables.saveError ]]">
+      <div class="er-error" role="alert"><oj-bind-text value="[[ $variables.saveError ]]"></oj-bind-text></div>
+    </oj-bind-if>
+    <oj-bind-if test="[[ !!$variables.done ]]">
+      <div class="er-trf-done" role="status">
+        <strong><oj-bind-text value="[[ $functions.doneText($variables.done) ]]"></oj-bind-text></strong>
+        <span>It is pending the inter-org transfer in Fusion, which is not connected to this screen yet; the lines on both requests change when that is done.</span>
+        <oj-bind-if test="[[ !!$variables.done.historyError ]]"><span class="er-trf-done-warn"><oj-bind-text value="[[ $variables.done.historyError ]]"></oj-bind-text></span></oj-bind-if>
+      </div>
+    </oj-bind-if>
+
+    <div class="er-trf-actions">
+      <label class="er-field er-trf-comments">
+        <span class="er-label">Comments</span>
+        <input type="text" class="er-input" data-field="comments" placeholder="Why it is moving" :value="[[ $variables.comments ]]" on-change="[[ $listeners.onField ]]">
+      </label>
+      <div class="er-actions">
+        <button type="button" class="er-btn er-btn--plain er-trf-big" on-click="[[ $listeners.onCancel ]]">Cancel</button>
+        <button type="button" class="er-btn er-btn--dark er-trf-big er-trf-go" on-click="[[ $listeners.onTransfer ]]"
+          :disabled="[[ $variables.isSaving || $functions.problemsOf($application.variables.featureFlags, $application.variables.flagsLoaded,
+            $variables.sourceRows, $variables.sourceId, $variables.destRows, $variables.destId, $variables.sourceLines, $variables.destLines,
+            $variables.selected, $variables.date, $variables.timesheets, $variables.sourceHistory, $variables.sites).length > 0 ]]">
+          <oj-bind-text value="[[ $variables.isSaving ? 'Transferring…'
+            : $functions.moveText($functions.pairsOf($variables.sourceLines, $variables.selected, $variables.destLines).length) ]]"></oj-bind-text>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Recent transfers ──────────────────────────────────────────────────────────────────────────── -->
+  <section class="er-card" aria-labelledby="recentTitle">
+    <div class="er-card-pad"><h2 class="er-section-title" id="recentTitle">Recent transfers</h2></div>
+    <div class="er-table-wrap">
+      <div class="er-grid er-trf-grid" role="table" aria-labelledby="recentTitle">
+        <div class="er-grid-row er-grid-head" role="row">
+          <span role="columnheader">Date</span><span role="columnheader">Equipment</span><span role="columnheader">From</span>
+          <span role="columnheader">To</span><span role="columnheader">Transfer order</span><span role="columnheader">Status</span><span role="columnheader">By</span>
+        </div>
+        <oj-bind-for-each data="[[ $functions.historyRows($variables.recent, 20) ]]">
+          <template data-oj-as="h">
+            <div class="er-grid-row" role="row">
+              <span role="cell"><oj-bind-text value="[[ h.data.date ]]"></oj-bind-text></span>
+              <span role="cell"><oj-bind-text value="[[ h.data.equipment ]]"></oj-bind-text></span>
+              <span role="cell"><oj-bind-text value="[[ h.data.from ]]"></oj-bind-text></span>
+              <span role="cell"><oj-bind-text value="[[ h.data.to ]]"></oj-bind-text></span>
+              <span role="cell"><oj-bind-text value="[[ h.data.ref ]]"></oj-bind-text></span>
+              <span role="cell"><span :class="[[ $application.functions.statusPillClass(h.data.status) ]]"><oj-bind-text value="[[ $functions.statusText(h.data.status) ]]"></oj-bind-text></span></span>
+              <span role="cell"><oj-bind-text value="[[ h.data.by ]]"></oj-bind-text></span>
+            </div>
+          </template>
+        </oj-bind-for-each>
+        <oj-bind-if test="[[ !$functions.historyRows($variables.recent, 20).length ]]">
+          <div class="er-card-pad er-muted">No transfers recorded yet.</div>
+        </oj-bind-if>
+      </div>
+    </div>
+  </section>
+</div>

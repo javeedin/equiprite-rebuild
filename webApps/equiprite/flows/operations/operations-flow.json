@@ -1,0 +1,17 @@
+{
+  "id": "operations",
+  "description": "Fulfil operations that Old EquipRite never had as screens: Inspection (FDD 7.12: class checklists, defects with photos, pass / conditional / fail) and Inter-project transfer (FDD 7.16A: move deployed equipment to another project's request, with transfer history).",
+  "defaultPage": "inspection",
+  "pages": {
+    "inspection": {
+      "path": "pages/inspection-page"
+    },
+    "transfers": {
+      "path": "pages/transfers-page"
+    }
+  },
+  "chains": {},
+  "services": {},
+  "types": {},
+  "variables": {}
+}

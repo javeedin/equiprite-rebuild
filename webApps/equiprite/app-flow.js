@@ -250,11 +250,11 @@ define([
         { id: 'picking', label: 'Initiate picking', icon: 'oj-ux-ico-cart', pageCodes: ['EQR_INITIATE_PICKING'],
           status: 'old', old: { flow: 'equipment-foundation', page: 'initiate-picking' }, fdd: '7.16' },
         { id: 'inspection', label: 'Inspection', icon: 'oj-ux-ico-check-square', pageCodes: ['EQR_WORKBENCH'],
-          status: 'planned', fdd: '7.12' },
+          status: 'new', route: { flow: 'operations', page: 'inspection' }, fdd: '7.12' },
         { id: 'receipt', label: 'Receipt & returns', icon: 'oj-ux-ico-undo', pageCodes: ['EQR_EQUIPMENT_RETURNS'],
           status: 'old', old: { flow: 'equipment-foundation', page: 'equipment-returns' }, fdd: '5.3, 5.5' },
         { id: 'transfer', label: 'Transfers', icon: 'oj-ux-ico-inventory-transfer', pageCodes: ['EQR_WORKBENCH'],
-          status: 'planned', fdd: '7.16A' }
+          status: 'new', route: { flow: 'operations', page: 'transfers' }, fdd: '7.16A' }
       ]
     },
     {
