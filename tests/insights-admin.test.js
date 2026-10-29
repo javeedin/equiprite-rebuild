@@ -376,9 +376,9 @@ function analyticsChain(name, Actions) {
     const saved = app.visibleNavGroups(pa.savedMap(ROWS), true, FLAGS, true, {});
     const pending = app.visibleNavGroups(pa.effectiveMap(ROWS, dirty), true, FLAGS, true, {});
     const d = pa.menuDiff(saved, pending);
-    T.eq('hiding Workbench removes the items it gates', d.removed.join(','), 'Workbench,Inspection,Transfers');
+    T.eq('hiding Workbench removes the items it gates', d.removed.join(','), 'Request workbench,Inspection,Transfers');
     T.eq('…and adds none', d.added.length, 0);
-    T.eq('the consequence sentence', pa.consequence('Equipment manager', saved, pending), 'Equipment manager loses Workbench, Inspection, Transfers in the menu.');
+    T.eq('the consequence sentence', pa.consequence('Equipment manager', saved, pending), 'Equipment manager loses Request workbench, Inspection, Transfers in the menu.');
     T.check('no menu change is said too', pa.consequence('X', saved, saved).includes('stays the same'));
     const equipment = pa.menuItems(saved).find((i) => i.id === 'equipment');
     T.check('Equipment is read only for this role', pa.itemReadOnly(equipment, pa.savedMap(ROWS)));

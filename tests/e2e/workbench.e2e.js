@@ -131,7 +131,7 @@ const counts = (env) => env.page.$$eval('.er-wb-tab', (tabs) => tabs.map((t) => 
     await page.waitForSelector('.er-wb-row[data-request]', { timeout: 30000 });
     T.eq('tab counts: To approve, To pick, Outbound, Deployed, Inbound, Procurement',
       await counts(env), 'To approve 3 | To pick 1 | Outbound 2 | Deployed 2 | Inbound 1 | Procurement 1');
-    T.check('the menu shows Workbench as the open item', (await env.text('.er-nav-item--active')).includes('Workbench'));
+    T.check('the menu shows Request workbench as the open item', (await page.$eval('.er-nav-item--active', (e) => e.dataset.navId).catch(() => '')) === 'workbench');
     T.check('every stage call of the old app was made',
       ['stage=OUTBOUND', 'stage=INITIATE', 'stage=DEPLOYED', 'stage=INBOUND'].every((s) => env.calls.some((c) => c.includes('/views/workbench-requests') && c.includes(s)))
       && env.calls.some((c) => c.includes('/views/pending-approval-lines') && c.includes('lineStatus=UNDER_PROCUREMENT')));
@@ -183,7 +183,7 @@ const counts = (env) => env.page.$$eval('.er-wb-tab', (tabs) => tabs.map((t) => 
     await page.waitForTimeout(500);
     T.check('opens on the request with its verdict', (await env.text('.er-band h1')).includes('Approve REQ-509')
       && (await env.text('.er-aa-verdict')).includes('Ready to approve'));
-    T.check('the menu keeps Workbench open', (await env.text('.er-nav-item--active')).includes('Workbench'));
+    T.check('the menu keeps Request workbench open', (await page.$eval('.er-nav-item--active', (e) => e.dataset.navId).catch(() => '')) === 'workbench');
     T.eq('Approve says what it will do', (await env.text('#aaApprove')), 'Approve the line');
     T.check('allocation waits for approval', (await env.text('.er-aa-row[data-line="9091"]')).includes('Opens once the request is approved'));
     env.writes.length = 0;

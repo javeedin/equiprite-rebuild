@@ -186,12 +186,12 @@ function handle(req, res) {
     await page.waitForTimeout(800);
     T.check('the matrix asked for role 2', env.calls.some((c) => c.includes('/rbac/page-access-matrix?appRoleId=2')));
     T.eq('rows of other roles are filtered out', await page.$$eval('.er-pa-row', (r) => r.length), 6);
-    T.check('the preview shows Workbench before the change', (await env.text('.er-pa-menu')).includes('Workbench'));
+    T.check('the preview shows Request workbench before the change', (await env.text('.er-pa-menu')).includes('Request workbench'));
     T.check('a read-only page is tagged in the preview', /read only/i.test(await env.text('.er-pa-menu')));
     await page.click('button[data-page-code="EQR_WORKBENCH"][data-level="HIDDEN"]');
     await page.waitForTimeout(400);
-    T.check('the consequence is said before saving', (await env.text('.er-pa-unsaved')).includes('loses Workbench'));
-    T.check('the preview drops Workbench', !(await env.text('.er-pa-menu')).includes('Workbench'));
+    T.check('the consequence is said before saving', (await env.text('.er-pa-unsaved')).includes('loses Request workbench'));
+    T.check('the preview drops Request workbench', !(await env.text('.er-pa-menu')).includes('Request workbench'));
     T.check('the row is marked unsaved with its old level', (await env.text('.er-pa-row--dirty')).includes('was Full'));
     shots.push(await env.shot('page-access-change.png'));
     env.writes.length = 0;
