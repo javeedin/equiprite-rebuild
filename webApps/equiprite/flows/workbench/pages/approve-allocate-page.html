@@ -1,0 +1,360 @@
+<!-- Approve & allocate (wireframe: Approve and allocate). Data: initChain; approve / reject: confirmRequestChain and
+     rejectRequestChain (Request detail's, unchanged); units: openUnitsChain, stageChain, saveAllocationChain. -->
+<div class="er-band">
+  <div class="er-band-inner">
+    <div>
+      <div class="er-band-kicker">
+        <button type="button" class="er-link-inverse" on-click="[[ $listeners.onBack ]]">Workbench</button>
+        · Fulfil · FDD 7.8, 7.10
+      </div>
+      <h1>
+        <oj-bind-text value="[[ ($variables.formData.status === 'SUBMITTED' ? 'Approve ' : 'Allocate ')
+          + ($variables.formData.requestNumber || $variables.requestId || '') ]]"></oj-bind-text>
+        <oj-bind-if test="[[ !!$variables.formData.source ]]">
+          <span :class="[[ ($variables.formData.isCustomer ? 'er-status er-status--source-external' : 'er-status er-status--source-internal') + ' er-band-pill' ]]">
+            <oj-bind-text value="[[ $variables.formData.isCustomer ? 'Customer' : 'Project' ]]"></oj-bind-text>
+          </span>
+        </oj-bind-if>
+        <oj-bind-if test="[[ !!$variables.formData.status ]]">
+          <span :class="[[ $application.functions.statusPillClass($variables.formData.status) + ' er-band-pill' ]]">
+            <oj-bind-text value="[[ $application.functions.formatLineStatus($variables.formData.status) ]]"></oj-bind-text>
+          </span>
+        </oj-bind-if>
+      </h1>
+      <div class="er-band-sub">
+        <oj-bind-text value="[[ $variables.formData.isCustomer
+          ? ($variables.formData.customer || $variables.formData.projectCustomer || '')
+          : ($variables.formData.project || '') + ($variables.formData.task ? ' · ' + $variables.formData.task : '') ]]"></oj-bind-text>
+      </div>
+    </div>
+    <div class="er-actions">
+      <oj-bind-if test="[[ $functions.oldDetailLink($application.variables.oldAppUrl, $variables.formData.requestNumber, $variables.requestNumericId) ]]">
+        <a class="er-btn er-btn--ghost" title="The same request in today's app"
+          :href="[[ $functions.oldDetailLink($application.variables.oldAppUrl, $variables.formData.requestNumber, $variables.requestNumericId) ]]">Old version</a>
+      </oj-bind-if>
+      <oj-bind-if test="[[ $variables.formData.status === 'SUBMITTED' && !$variables.isReadOnly && !$variables.isLoading ]]">
+        <button type="button" class="er-btn er-btn--ghost" id="aaReject"
+          :disabled="[[ $functions.decisionPlan('reject', $variables.lines, $variables.selectionState.count, $variables.selectionTick).count === 0 ]]"
+          on-click="[[ $listeners.onAskReject ]]">
+          <oj-bind-text value="[[ $functions.decisionPlan('reject', $variables.lines, $variables.selectionState.count, $variables.selectionTick).label ]]"></oj-bind-text>
+        </button>
+        <button type="button" class="er-btn er-btn--primary" id="aaApprove"
+          :disabled="[[ $functions.decisionPlan('approve', $variables.lines, $variables.selectionState.count, $variables.selectionTick).count === 0 ]]"
+          on-click="[[ $listeners.onApprove ]]">
+          <oj-bind-text value="[[ $functions.decisionPlan('approve', $variables.lines, $variables.selectionState.count, $variables.selectionTick).label ]]"></oj-bind-text>
+        </button>
+      </oj-bind-if>
+      <oj-bind-if test="[[ !$variables.isLoading && $functions.steps($variables.formData.status, $variables.quotingAllowed, $variables.lines)[2].state === 'current'
+        && $application.functions.navIdVisible($application.variables.pageAccessMap, $application.variables.pageAccessLoaded, 'picking') ]]">
+        <button type="button" class="er-btn er-btn--primary" on-click="[[ $listeners.onOpenPicking ]]">Initiate picking</button>
+      </oj-bind-if>
+    </div>
+  </div>
+  <div class="er-strip" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+</div>
+
+<div class="er-page">
+  <oj-bind-if test="[[ !!$variables.fetchError ]]">
+    <div class="er-error" role="alert"><oj-bind-text value="[[ $variables.fetchError ]]"></oj-bind-text></div>
+  </oj-bind-if>
+  <oj-bind-if test="[[ $variables.isLoading ]]">
+    <div class="er-card er-card-pad er-muted">Loading the request…</div>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ !$variables.isLoading && !$variables.fetchError ]]">
+    <ol class="er-aa-steps" aria-label="Where this request is">
+      <oj-bind-for-each data="[[ $functions.steps($variables.formData.status, $variables.quotingAllowed, $variables.lines) ]]">
+        <template data-oj-as="step">
+          <li :class="[[ 'er-aa-step er-aa-step--' + step.data.state ]]"
+            :aria-current="[[ step.data.state === 'current' ? 'step' : 'false' ]]">
+            <span class="er-aa-step-num"><oj-bind-text value="[[ step.data.state === 'done' ? '✓' : (step.index + 1) ]]"></oj-bind-text></span>
+            <oj-bind-text value="[[ step.data.label ]]"></oj-bind-text>
+          </li>
+        </template>
+      </oj-bind-for-each>
+    </ol>
+
+    <section class="er-card er-card-pad">
+      <dl class="er-facts">
+        <div>
+          <dt><oj-bind-text value="[[ $variables.formData.isCustomer ? 'Customer' : 'Project / task' ]]"></oj-bind-text></dt>
+          <dd><oj-bind-text value="[[ $variables.formData.isCustomer
+            ? ($variables.formData.customer || $variables.formData.projectCustomer || '—')
+            : (($variables.formData.project || '—') + ($variables.formData.task ? ' · ' + $variables.formData.task : '')) ]]"></oj-bind-text></dd>
+        </div>
+        <div><dt>Dates</dt><dd><oj-bind-text value="[[ $functions.dateRange($variables.formData.startDate, $variables.formData.endDate) ]]"></oj-bind-text></dd></div>
+        <div><dt>Deliver to</dt><dd><oj-bind-text value="[[ $variables.formData.location || '—' ]]"></oj-bind-text></dd></div>
+        <div><dt>Requested by</dt><dd><oj-bind-text value="[[ $variables.formData.requestor || '—' ]]"></oj-bind-text></dd></div>
+        <div><dt>Lines</dt><dd><oj-bind-text value="[[ ($variables.lines || []).length ]]"></oj-bind-text></dd></div>
+        <div><dt>Estimated total</dt><dd><oj-bind-text value="[[ $functions.money($functions.totalCost($variables.lines)) ]]"></oj-bind-text></dd></div>
+      </dl>
+    </section>
+
+    <div :class="[[ 'er-aa-verdict er-aa-verdict--' + $functions.verdict($variables.formData, $variables.lines, $variables.quotingAllowed).tone ]]" role="status">
+      <oj-bind-text value="[[ $functions.verdict($variables.formData, $variables.lines, $variables.quotingAllowed).text ]]"></oj-bind-text>
+      <oj-bind-if test="[[ $functions.isQuoteOwed($variables.formData.status, $variables.quotingAllowed)
+        && !!$functions.oldQuoteLink($application.variables.oldAppUrl, $variables.formData.requestNumber, $variables.requestNumericId) ]]">
+        <a :href="[[ $functions.oldQuoteLink($application.variables.oldAppUrl, $variables.formData.requestNumber, $variables.requestNumericId) ]]">Generate the quote</a>
+      </oj-bind-if>
+      <oj-bind-if test="[[ ['SUBMITTED', 'IN_PROCESS', 'QUOTE_GENERATED', 'QUOTE_ACCEPTED'].indexOf($variables.formData.status) === -1 ]]">
+        <button type="button" class="er-btn er-btn--plain" on-click="[[ $listeners.onOpenRequestDetail ]]">Request detail</button>
+      </oj-bind-if>
+    </div>
+
+    <section class="er-card" aria-labelledby="aaLinesTitle">
+      <div class="er-card-pad er-table-head">
+        <h2 class="er-section-title" id="aaLinesTitle">Equipment</h2>
+        <span class="er-note">
+          <oj-bind-text value="[[ $variables.formData.status === 'SUBMITTED'
+            ? ($variables.selectionState.count
+                ? $variables.selectionState.count + ' ticked: Approve and Reject act on those lines only'
+                : 'Approve and Reject act on every line; tick lines to decide only those')
+            : 'Allocate opens the units of a line with their bookings; nothing is written until you save' ]]"></oj-bind-text>
+        </span>
+      </div>
+      <div class="er-table-wrap">
+        <div :class="[[ 'er-aa-grid' + ($variables.formData.status === 'SUBMITTED' && !$variables.isReadOnly ? ' er-aa-grid--check' : '') ]]"
+          role="table" aria-labelledby="aaLinesTitle">
+          <div class="er-aa-row er-aa-head" role="row">
+            <oj-bind-if test="[[ $variables.formData.status === 'SUBMITTED' && !$variables.isReadOnly ]]">
+              <span role="columnheader" class="er-col-check">
+                <input type="checkbox" data-index="all" aria-label="Select all lines" on-change="[[ $listeners.onToggleLine ]]"
+                  :checked="[[ $variables.selectionTick >= 0 && $variables.selectionState.allSelected ]]">
+              </span>
+            </oj-bind-if>
+            <span role="columnheader">#</span>
+            <span role="columnheader">Equipment</span>
+            <span role="columnheader" class="er-num">Qty</span>
+            <span role="columnheader">Allocated</span>
+            <span role="columnheader">Availability</span>
+            <span role="columnheader">Status</span>
+            <span role="columnheader">Bill rate</span>
+            <span role="columnheader" class="er-num">Est. price</span>
+            <span role="columnheader">Units</span>
+          </div>
+          <oj-bind-for-each data="[[ $variables.lines ]]">
+            <template data-oj-as="line">
+              <div role="row" :data-line="[[ line.data.line_id ]]"
+                :class="[[ 'er-aa-row' + ($variables.selectionTick >= 0 && $functions.isRowSelected(line.index) ? ' er-row--on' : '')
+                  + ($variables.openLineId === ('' + line.data.line_id) ? ' er-aa-row--open' : '') ]]">
+                <oj-bind-if test="[[ $variables.formData.status === 'SUBMITTED' && !$variables.isReadOnly ]]">
+                  <span role="cell" class="er-col-check">
+                    <input type="checkbox" :data-index="[[ line.index ]]" on-change="[[ $listeners.onToggleLine ]]"
+                      :aria-label="[[ 'Select ' + line.data.equipment_name ]]"
+                      :checked="[[ $variables.selectionTick >= 0 && $functions.isRowSelected(line.index) ]]">
+                  </span>
+                </oj-bind-if>
+                <span role="cell" class="er-muted er-aa-no"><oj-bind-text value="[[ line.data.line_no ]]"></oj-bind-text></span>
+                <span role="cell">
+                  <span class="er-cell-main"><oj-bind-text value="[[ line.data.equipment_name ]]"></oj-bind-text></span>
+                  <span class="er-note">
+                    <oj-bind-text value="[[ line.data.class ]]"></oj-bind-text>
+                    <span :class="[[ 'er-aa-track er-aa-track--' + ($functions.tracking(line.data) === 'Free stock' ? 'free' : 'unit') ]]">
+                      <oj-bind-text value="[[ $functions.tracking(line.data) ]]"></oj-bind-text>
+                    </span>
+                  </span>
+                  <oj-bind-if test="[[ !!$functions.lineNotes(line.data) ]]">
+                    <span :class="[[ 'er-note er-aa-linenote' + (line.data.to_failure_code ? ' er-aa-linenote--bad' : '') ]]">
+                      <oj-bind-text value="[[ $functions.lineNotes(line.data) ]]"></oj-bind-text>
+                    </span>
+                  </oj-bind-if>
+                </span>
+                <span role="cell" class="er-num" data-label="Qty"><oj-bind-text value="[[ line.data.qty ]]"></oj-bind-text></span>
+                <span role="cell" data-label="Allocated">
+                  <oj-bind-if test="[[ $functions.isPickable(line.data) ]]">
+                    <span :class="[[ 'er-aa-alloc er-wb-alloc--' + $functions.allocTone(line.data) ]]">
+                      <oj-bind-text value="[[ line.data.allocated_serial ]]"></oj-bind-text>
+                    </span>
+                  </oj-bind-if>
+                  <oj-bind-if test="[[ !$functions.isPickable(line.data) ]]">
+                    <span class="er-muted">n/a</span>
+                  </oj-bind-if>
+                </span>
+                <span role="cell" data-label="Availability">
+                  <span :class="[[ 'er-aa-av er-aa-av--' + $functions.availTone(line.data.availability) ]]">
+                    <oj-bind-text value="[[ $functions.availLabel(line.data.availability) ]]"></oj-bind-text>
+                  </span>
+                </span>
+                <span role="cell" data-label="Status">
+                  <oj-bind-if test="[[ !!line.data.line_status ]]">
+                    <span :class="[[ $application.functions.statusPillClass(line.data.line_status) ]]">
+                      <oj-bind-text value="[[ $application.functions.formatLineStatus(line.data.line_status) ]]"></oj-bind-text>
+                    </span>
+                  </oj-bind-if>
+                </span>
+                <span role="cell" data-label="Bill rate"><oj-bind-text value="[[ line.data.bill_rate || '—' ]]"></oj-bind-text></span>
+                <span role="cell" class="er-num" data-label="Est. price"><oj-bind-text value="[[ $functions.money(line.data.est_cost) ]]"></oj-bind-text></span>
+                <span role="cell" class="er-aa-units-cell">
+                  <oj-bind-if test="[[ ['allocate', 'view'].indexOf($functions.lineAction(line.data, $variables.formData, $variables.quotingAllowed, $variables.isReadOnly).kind) !== -1 ]]">
+                    <button type="button" :data-line="[[ line.data.line_id ]]" on-click="[[ $listeners.onOpenUnits ]]"
+                      :aria-expanded="[[ $variables.openLineId === ('' + line.data.line_id) ? 'true' : 'false' ]]"
+                      :class="[[ 'er-btn er-aa-mini ' + ($variables.openLineId === ('' + line.data.line_id) ? 'er-btn--plain'
+                        : ($functions.lineAction(line.data, $variables.formData, $variables.quotingAllowed, $variables.isReadOnly).kind === 'allocate'
+                           && line.data.alloc_status !== 'ALLOCATED' ? 'er-btn--dark' : 'er-btn--plain')) ]]">
+                      <oj-bind-text value="[[ $variables.openLineId === ('' + line.data.line_id) ? 'Close'
+                        : $functions.lineAction(line.data, $variables.formData, $variables.quotingAllowed, $variables.isReadOnly).label ]]"></oj-bind-text>
+                    </button>
+                  </oj-bind-if>
+                  <oj-bind-if test="[[ !!$functions.lineAction(line.data, $variables.formData, $variables.quotingAllowed, $variables.isReadOnly).reason ]]">
+                    <span class="er-note"><oj-bind-text value="[[ $functions.lineAction(line.data, $variables.formData, $variables.quotingAllowed, $variables.isReadOnly).reason ]]"></oj-bind-text></span>
+                  </oj-bind-if>
+                </span>
+              </div>
+
+              <oj-bind-if test="[[ $variables.openLineId === ('' + line.data.line_id) ]]">
+                <div class="er-aa-panel" role="region" :aria-label="[[ 'Units for line ' + line.data.line_no ]]">
+                  <div class="er-aa-panel-head">
+                    <div>
+                      <h3 class="er-aa-panel-title">
+                        <oj-bind-text value="[[ 'Line ' + line.data.line_no + ' units: ' + ($variables.units.title || '') ]]"></oj-bind-text>
+                      </h3>
+                      <span class="er-note">
+                        <oj-bind-text value="[[ $variables.units.loading ? 'Loading units and bookings…'
+                          : ($variables.units.dates ? 'Requested ' + $variables.units.dates + ' · ' : '') + $functions.allocationSummary($variables.stagingTick).text ]]"></oj-bind-text>
+                      </span>
+                    </div>
+                    <div class="er-actions">
+                      <oj-bind-if test="[[ !$variables.units.loading && !$variables.units.error && !$functions.allocationSummary($variables.stagingTick).locked
+                        && $functions.allocationSummary($variables.stagingTick).remaining > 0 && $functions.allocationSummary($variables.stagingTick).free > 0 ]]">
+                        <button type="button" class="er-btn er-btn--plain" data-action="fill" data-id="" on-click="[[ $listeners.onStage ]]"
+                          title="Stages free units in list order up to the line quantity; nothing is written until you save">Auto-fill</button>
+                      </oj-bind-if>
+                      <oj-bind-if test="[[ !$variables.units.loading && !$variables.units.error && !$functions.allocationSummary($variables.stagingTick).locked ]]">
+                        <button type="button" class="er-btn er-btn--dark" id="aaSaveUnits"
+                          :disabled="[[ !$functions.allocationSummary($variables.stagingTick).canSave || $variables.isSaving ]]"
+                          on-click="[[ $listeners.onSaveUnits ]]">
+                          <oj-bind-text value="[[ $variables.isSaving ? 'Saving…'
+                            : ($functions.allocationSummary($variables.stagingTick).pending
+                               ? 'Save ' + $functions.allocationSummary($variables.stagingTick).pending
+                                 + ($functions.allocationSummary($variables.stagingTick).pending === 1 ? ' change' : ' changes')
+                               : 'Save allocation') ]]"></oj-bind-text>
+                        </button>
+                      </oj-bind-if>
+                    </div>
+                  </div>
+                  <oj-bind-if test="[[ !$variables.units.loading && !$variables.units.error ]]">
+                    <span class="er-wb-track er-aa-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100"
+                      :aria-valuenow="[[ $functions.allocationSummary($variables.stagingTick).pct ]]" aria-label="Allocated with what is staged">
+                      <span class="er-wb-fill er-wb-alloc--complete" :style.width="[[ $functions.allocationSummary($variables.stagingTick).pct + '%' ]]"></span>
+                    </span>
+                  </oj-bind-if>
+                  <oj-bind-if test="[[ !!$variables.units.readOnlyWhy ]]">
+                    <div class="er-aa-lock"><oj-bind-text value="[[ $variables.units.readOnlyWhy ]]"></oj-bind-text></div>
+                  </oj-bind-if>
+                  <oj-bind-if test="[[ !!$variables.units.error ]]">
+                    <div class="er-aa-lock"><oj-bind-text value="[[ $variables.units.error ]]"></oj-bind-text></div>
+                  </oj-bind-if>
+
+                  <oj-bind-if test="[[ !$variables.units.loading && !$variables.units.error ]]">
+                    <div class="er-aa-units" role="table" aria-label="Units">
+                      <div class="er-aa-unit er-aa-unit-head" role="row">
+                        <span role="columnheader"><oj-bind-text value="[[ $variables.units.mode === 'serial' ? 'Serial · yard' : ($variables.units.mode === 'lot' ? 'Lot · yard' : 'Stock item · yard') ]]"></oj-bind-text></span>
+                        <span role="columnheader">State</span>
+                        <span role="columnheader" class="er-aa-axis">
+                          <oj-bind-if test="[[ $variables.units.mode === 'serial' && !!$functions.scheduleWindow() ]]">
+                            <oj-bind-for-each data="[[ $functions.scheduleWindow() ? $functions.scheduleWindow().ticks : [] ]]">
+                              <template data-oj-as="tk">
+                                <span class="er-aa-tick" :style.left="[[ tk.data.left + '%' ]]"><oj-bind-text value="[[ tk.data.label ]]"></oj-bind-text></span>
+                              </template>
+                            </oj-bind-for-each>
+                          </oj-bind-if>
+                          <oj-bind-if test="[[ $variables.units.mode !== 'serial' ]]">Quantity</oj-bind-if>
+                        </span>
+                        <span role="columnheader"></span>
+                      </div>
+                      <oj-bind-for-each data="[[ $functions.unitRows($variables.stagingTick) ]]">
+                        <template data-oj-as="u">
+                          <div role="row" :class="[[ 'er-aa-unit er-aa-unit--' + u.data.state ]]" :data-unit="[[ u.data.name ]]">
+                            <span role="cell">
+                              <span class="er-cell-main"><oj-bind-text value="[[ u.data.name ]]"></oj-bind-text></span>
+                              <span class="er-note"><oj-bind-text value="[[ u.data.yard || '—' ]]"></oj-bind-text></span>
+                            </span>
+                            <span role="cell">
+                              <span :class="[[ 'er-aa-state er-aa-state--' + u.data.state ]]"><oj-bind-text value="[[ u.data.label ]]"></oj-bind-text></span>
+                              <oj-bind-if test="[[ u.data.conflict ]]">
+                                <span class="er-aa-state er-aa-state--conflict">Clash</span>
+                              </oj-bind-if>
+                            </span>
+                            <span role="cell">
+                              <oj-bind-if test="[[ !u.data.qtyMode ]]">
+                                <span class="er-aa-tl" aria-hidden="true">
+                                  <oj-bind-if test="[[ !!$functions.windowBand() ]]">
+                                    <span class="er-aa-window" :style.left="[[ $functions.windowBand().left + '%' ]]" :style.width="[[ $functions.windowBand().width + '%' ]]"></span>
+                                  </oj-bind-if>
+                                  <oj-bind-for-each data="[[ u.data.bars ]]">
+                                    <template data-oj-as="b">
+                                      <span :class="[[ 'er-aa-bar er-aa-bar--' + b.data.kind ]]" :title="[[ b.data.label ]]"
+                                        :style.left="[[ b.data.left + '%' ]]" :style.width="[[ b.data.width + '%' ]]"></span>
+                                    </template>
+                                  </oj-bind-for-each>
+                                </span>
+                                <span class="er-sr"><oj-bind-text value="[[ $functions.barText(u.data.bars) ]]"></oj-bind-text></span>
+                              </oj-bind-if>
+                              <oj-bind-if test="[[ u.data.qtyMode && (u.data.state === 'available' || u.data.state === 'staged-assign') && !$functions.allocationSummary($variables.stagingTick).locked ]]">
+                                <label class="er-aa-qtyfield">
+                                  <span class="er-sr"><oj-bind-text value="[[ 'Quantity from ' + u.data.name ]]"></oj-bind-text></span>
+                                  <input type="number" class="er-input er-aa-qty" min="1" step="1" :max="[[ u.data.qtyMax ]]"
+                                    :data-id="[[ u.data.id ]]" :value="[[ u.data.qty ]]" on-change="[[ $listeners.onLotQty ]]">
+                                </label>
+                              </oj-bind-if>
+                            </span>
+                            <span role="cell" class="er-aa-unit-act">
+                              <oj-bind-if test="[[ u.data.canAssign ]]">
+                                <button type="button" class="er-btn er-btn--plain er-aa-mini" data-action="assign" :data-id="[[ u.data.id ]]"
+                                  on-click="[[ $listeners.onStage ]]">Assign</button>
+                              </oj-bind-if>
+                              <oj-bind-if test="[[ u.data.canRelease ]]">
+                                <button type="button" class="er-btn er-btn--plain er-aa-mini" data-action="release" :data-id="[[ u.data.id ]]"
+                                  on-click="[[ $listeners.onStage ]]">Release</button>
+                              </oj-bind-if>
+                              <oj-bind-if test="[[ u.data.canCancel ]]">
+                                <button type="button" class="er-btn er-btn--plain er-aa-mini" data-action="cancel" :data-id="[[ u.data.id ]]"
+                                  on-click="[[ $listeners.onStage ]]">Undo</button>
+                              </oj-bind-if>
+                            </span>
+                          </div>
+                        </template>
+                      </oj-bind-for-each>
+                    </div>
+                    <oj-bind-if test="[[ $variables.units.mode === 'serial' ]]">
+                      <div class="er-aa-legend" aria-hidden="true">
+                        <span><i class="er-aa-key er-aa-key--window"></i>Requested dates</span>
+                        <span><i class="er-aa-key er-aa-key--own"></i>This request</span>
+                        <span><i class="er-aa-key er-aa-key--staged"></i>Assign on save</span>
+                        <span><i class="er-aa-key er-aa-key--booked"></i>Booked elsewhere</span>
+                        <span><i class="er-aa-key er-aa-key--conflict"></i>Clashes with these dates</span>
+                      </div>
+                    </oj-bind-if>
+                  </oj-bind-if>
+                </div>
+              </oj-bind-if>
+            </template>
+          </oj-bind-for-each>
+        </div>
+      </div>
+      <div class="er-card-pad er-note">
+        Adjusting a line's dates, the maintenance asset check before assigning a serial, and the maintenance bars on the schedule
+        are still in
+        <oj-bind-if test="[[ $functions.oldDetailLink($application.variables.oldAppUrl, $variables.formData.requestNumber, $variables.requestNumericId) ]]">
+          <a :href="[[ $functions.oldDetailLink($application.variables.oldAppUrl, $variables.formData.requestNumber, $variables.requestNumericId) ]]">Old EquipRite</a>.
+        </oj-bind-if>
+        <oj-bind-if test="[[ !$functions.oldDetailLink($application.variables.oldAppUrl, $variables.formData.requestNumber, $variables.requestNumericId) ]]">
+          Old EquipRite.
+        </oj-bind-if>
+      </div>
+    </section>
+  </oj-bind-if>
+</div>
+
+<oj-dialog id="rejectLinesDialog" dialog-title="Reject these lines?" initial-visibility="hide" cancel-behavior="icon"
+  modality="modal" style="width: 460px;">
+  <div slot="body">
+    <oj-bind-text value="[[ $functions.decisionPlan('reject', $variables.lines, $variables.selectionState.count, $variables.selectionTick).count
+      + ($functions.decisionPlan('reject', $variables.lines, $variables.selectionState.count, $variables.selectionTick).count === 1 ? ' line' : ' lines')
+      + ' of ' + ($variables.formData.requestNumber || 'this request') + ' will be rejected. When no line is left live, the request is rejected too. This cannot be undone.' ]]"></oj-bind-text>
+  </div>
+  <div slot="footer" class="er-actions">
+    <button type="button" class="er-btn er-btn--plain" on-click="[[ $listeners.onCancelReject ]]">Cancel</button>
+    <button type="button" class="er-btn er-btn--danger" id="aaConfirmReject" on-click="[[ $listeners.onConfirmReject ]]">Reject</button>
+  </div>
+</oj-dialog>

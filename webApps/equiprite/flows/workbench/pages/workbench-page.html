@@ -1,0 +1,270 @@
+<!-- Workbench (wireframe: Workbench). Data: loadWorkbenchChain; tabs, filters, next actions: workbench-page.js;
+     bulk approve / reject: bulkDecideChain. -->
+<div class="er-band">
+  <div class="er-band-inner">
+    <div>
+      <div class="er-band-kicker">Fulfil · FDD 7.11</div>
+      <h1>Workbench</h1>
+      <div class="er-band-sub">
+        <oj-bind-text value="[[ $variables.isLoading ? 'Loading every stage…' : 'Every project and customer request, by stage' ]]"></oj-bind-text>
+      </div>
+    </div>
+    <div class="er-actions">
+      <oj-bind-if test="[[ $application.functions.oldAppLink($application.variables.oldAppUrl, 'workbench') ]]">
+        <a class="er-btn er-btn--ghost" :href="[[ $application.functions.oldAppLink($application.variables.oldAppUrl, 'workbench') ]]">Old version</a>
+      </oj-bind-if>
+      <button type="button" class="er-btn er-btn--primary" :disabled="[[ $variables.isLoading || $variables.bulkBusy ]]"
+        on-click="[[ $listeners.onRefresh ]]">
+        <span class="oj-ux-ico-refresh" aria-hidden="true"></span>Refresh
+      </button>
+    </div>
+  </div>
+  <div class="er-strip" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+</div>
+
+<div class="er-page">
+  <oj-bind-if test="[[ !!$variables.fetchError ]]">
+    <div class="er-error" role="alert"><oj-bind-text value="[[ $variables.fetchError ]]"></oj-bind-text></div>
+  </oj-bind-if>
+  <oj-bind-if test="[[ !!$variables.loadNote ]]">
+    <div class="er-wb-note" role="status"><oj-bind-text value="[[ $variables.loadNote ]]"></oj-bind-text></div>
+  </oj-bind-if>
+
+  <div class="er-wb-tabs" role="tablist" aria-label="Stages">
+    <oj-bind-for-each data="[[ $variables.tabList ]]">
+      <template data-oj-as="t">
+        <button type="button" role="tab" :data-tab="[[ t.data.key ]]" on-click="[[ $listeners.onTabClick ]]"
+          :id="[[ 'wbTab-' + t.data.key ]]"
+          :aria-selected="[[ $variables.tab === t.data.key ? 'true' : 'false' ]]"
+          :class="[[ 'er-wb-tab' + ($variables.tab === t.data.key ? ' er-wb-tab--on' : '') ]]">
+          <span><oj-bind-text value="[[ t.data.label ]]"></oj-bind-text></span>
+          <span :class="[[ 'er-wb-tab-count' + (t.data.hot ? ' er-wb-tab-count--hot' : '') ]]">
+            <oj-bind-text value="[[ t.data.count ]]"></oj-bind-text>
+          </span>
+        </button>
+      </template>
+    </oj-bind-for-each>
+  </div>
+
+  <div class="er-wb-stage" role="status">
+    <oj-bind-for-each data="[[ $variables.tabList ]]">
+      <template data-oj-as="t">
+        <oj-bind-if test="[[ $variables.tab === t.data.key ]]">
+          <span class="er-wb-stage-hint"><oj-bind-text value="[[ t.data.hint ]]"></oj-bind-text></span>
+        </oj-bind-if>
+      </template>
+    </oj-bind-for-each>
+    <oj-bind-if test="[[ !$variables.isLoading && !!$variables.stageNote ]]">
+      <span class="er-wb-stage-note"><oj-bind-text value="[[ $variables.stageNote ]]"></oj-bind-text></span>
+    </oj-bind-if>
+  </div>
+
+  <div class="er-filters">
+    <oj-bind-if test="[[ $variables.showSource ]]">
+      <div class="er-seg" role="group" aria-label="Source">
+        <button type="button" data-source="ALL" on-click="[[ $listeners.onSourceClick ]]"
+          :class="[[ 'er-seg-btn' + ($variables.source === '' ? ' er-seg-btn--on' : '') ]]"
+          :aria-pressed="[[ $variables.source === '' ? 'true' : 'false' ]]">All</button>
+        <button type="button" data-source="INTERNAL" on-click="[[ $listeners.onSourceClick ]]"
+          :class="[[ 'er-seg-btn' + ($variables.source === 'INTERNAL' ? ' er-seg-btn--on' : '') ]]"
+          :aria-pressed="[[ $variables.source === 'INTERNAL' ? 'true' : 'false' ]]">Project</button>
+        <button type="button" data-source="EXTERNAL" on-click="[[ $listeners.onSourceClick ]]"
+          :class="[[ 'er-seg-btn' + ($variables.source === 'EXTERNAL' ? ' er-seg-btn--on' : '') ]]"
+          :aria-pressed="[[ $variables.source === 'EXTERNAL' ? 'true' : 'false' ]]">Customer</button>
+      </div>
+    </oj-bind-if>
+    <label class="er-search">
+      <span class="oj-ux-ico-search" aria-hidden="true"></span>
+      <span class="er-sr">Search requests</span>
+      <input type="search" placeholder="Request, project, task, customer, requester or equipment" on-input="[[ $listeners.onSearchInput ]]">
+    </label>
+  </div>
+
+  <oj-bind-if test="[[ !!$variables.bulkResult ]]">
+    <section class="er-card er-card-pad er-wb-result" role="status" aria-live="polite">
+      <div class="er-table-head">
+        <strong><oj-bind-text value="[[ $variables.bulkResult ? $variables.bulkResult.title : '' ]]"></oj-bind-text></strong>
+        <button type="button" class="er-btn er-btn--plain" on-click="[[ $listeners.onDismissResult ]]">Dismiss</button>
+      </div>
+      <ul class="er-wb-result-list">
+        <oj-bind-for-each data="[[ $variables.bulkResult ? $variables.bulkResult.done : [] ]]">
+          <template data-oj-as="r">
+            <li class="er-wb-result--ok"><strong><oj-bind-text value="[[ r.data.number ]]"></oj-bind-text></strong>
+              <oj-bind-text value="[[ ' ' + r.data.message ]]"></oj-bind-text></li>
+          </template>
+        </oj-bind-for-each>
+        <oj-bind-for-each data="[[ $variables.bulkResult ? $variables.bulkResult.failed : [] ]]">
+          <template data-oj-as="r">
+            <li class="er-wb-result--fail"><strong><oj-bind-text value="[[ r.data.number ]]"></oj-bind-text></strong>
+              <oj-bind-text value="[[ ' failed: ' + r.data.message ]]"></oj-bind-text></li>
+          </template>
+        </oj-bind-for-each>
+        <oj-bind-for-each data="[[ $variables.bulkResult ? $variables.bulkResult.skipped : [] ]]">
+          <template data-oj-as="r">
+            <li class="er-wb-result--skip"><strong><oj-bind-text value="[[ r.data.number ]]"></oj-bind-text></strong>
+              <oj-bind-text value="[[ ' skipped: ' + r.data.message ]]"></oj-bind-text></li>
+          </template>
+        </oj-bind-for-each>
+      </ul>
+    </section>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ $variables.tab === 'approve' && !$variables.isReadOnly && ($variables.selection.count > 0 || $variables.bulkBusy) ]]">
+    <div class="er-wb-selbar" role="region" aria-label="Selected requests">
+      <span class="er-wb-selbar-text">
+        <oj-bind-text value="[[ $variables.bulkBusy ? $variables.bulkProgress : $variables.selection.text ]]"></oj-bind-text>
+      </span>
+      <div class="er-actions">
+        <button type="button" class="er-btn er-btn--plain" :disabled="[[ $variables.bulkBusy ]]"
+          on-click="[[ $listeners.onClearSelection ]]">Clear</button>
+        <button type="button" class="er-btn er-btn--plain" id="wbBulkReject" :disabled="[[ $variables.bulkBusy ]]"
+          on-click="[[ $listeners.onAskReject ]]">
+          <oj-bind-text value="[[ 'Reject ' + $variables.selection.count ]]"></oj-bind-text>
+        </button>
+        <button type="button" class="er-btn er-btn--dark" id="wbBulkApprove" :disabled="[[ $variables.bulkBusy ]]"
+          on-click="[[ $listeners.onApproveSelected ]]">
+          <oj-bind-text value="[[ 'Approve ' + $variables.selection.count ]]"></oj-bind-text>
+        </button>
+      </div>
+    </div>
+  </oj-bind-if>
+
+  <section class="er-card" aria-labelledby="wbTableTitle">
+    <div class="er-card-pad er-table-head">
+      <h2 class="er-section-title" id="wbTableTitle">
+        <oj-bind-text value="[[ ($variables.visibleRows || []).length + (($variables.visibleRows || []).length === 1 ? ' request' : ' requests') ]]"></oj-bind-text>
+      </h2>
+      <span class="er-note">
+        <oj-bind-text value="[[ $variables.tab === 'approve'
+          ? ($variables.isReadOnly ? 'Read only: approving needs full Workbench access.' : 'Tick requests to approve or reject them together, or open one to decide line by line.')
+          : (['pick', 'outbound'].indexOf($variables.tab) !== -1 ? 'Soonest start first.' : 'Newest first.') ]]"></oj-bind-text>
+      </span>
+    </div>
+    <div class="er-table-wrap">
+      <div :class="[[ 'er-wb-grid' + ($variables.tab === 'approve' ? ' er-wb-grid--check' : '') ]]" role="table" aria-labelledby="wbTableTitle">
+        <div class="er-wb-row er-wb-head" role="row">
+          <oj-bind-if test="[[ $variables.tab === 'approve' ]]">
+            <span role="columnheader" class="er-col-check">
+              <input type="checkbox" data-id="all" aria-label="Select every request shown" on-change="[[ $listeners.onToggleRow ]]"
+                :disabled="[[ $variables.isReadOnly || $variables.bulkBusy || !($variables.visibleRows || []).length ]]"
+                :checked="[[ $functions.allSelected($variables.visibleRows, $variables.selectedIds) ]]">
+            </span>
+          </oj-bind-if>
+          <span role="columnheader">Request</span>
+          <span role="columnheader">Project / customer</span>
+          <span role="columnheader">Dates</span>
+          <span role="columnheader" class="er-num">Lines</span>
+          <span role="columnheader">Allocation</span>
+          <span role="columnheader" class="er-num">Est. cost</span>
+          <span role="columnheader">Next action</span>
+        </div>
+        <oj-bind-for-each data="[[ $variables.visibleRows ]]">
+          <template data-oj-as="row">
+            <div role="row" :class="[[ 'er-wb-row' + ($variables.tab === 'approve' && $functions.isSelected($variables.selectedIds, row.data.request_id) ? ' er-row--on' : '') ]]"
+              :data-request="[[ row.data.request_number ]]">
+              <oj-bind-if test="[[ $variables.tab === 'approve' ]]">
+                <span role="cell" class="er-col-check">
+                  <input type="checkbox" :data-id="[[ row.data.request_id ]]" on-change="[[ $listeners.onToggleRow ]]"
+                    :aria-label="[[ 'Select ' + row.data.request_number ]]"
+                    :disabled="[[ $variables.isReadOnly || $variables.bulkBusy ]]"
+                    :checked="[[ $functions.isSelected($variables.selectedIds, row.data.request_id) ]]">
+                </span>
+              </oj-bind-if>
+              <span role="cell">
+                <button type="button" class="er-wb-reqlink" :data-id="[[ row.data.request_id ]]" on-click="[[ $listeners.onOpenDetail ]]"
+                  :disabled="[[ row.data.request_id == null ]]"
+                  :title="[[ $functions.detailTarget(row.data) === 'approve-allocate' ? 'Open in Approve & allocate' : 'Open the request' ]]">
+                  <oj-bind-text value="[[ row.data.request_number ]]"></oj-bind-text>
+                </button>
+                <span class="er-wb-pills">
+                  <oj-bind-if test="[[ !!row.data.origin ]]">
+                    <span :class="[[ row.data.origin === 'EXTERNAL' ? 'er-status er-status--source-external' : 'er-status er-status--source-internal' ]]">
+                      <oj-bind-text value="[[ row.data.origin === 'EXTERNAL' ? 'Customer' : 'Project' ]]"></oj-bind-text>
+                    </span>
+                  </oj-bind-if>
+                  <oj-bind-if test="[[ !!row.data.status ]]">
+                    <span :class="[[ $application.functions.statusPillClass(row.data.status) ]]">
+                      <oj-bind-text value="[[ $application.functions.formatLineStatus(row.data.status) ]]"></oj-bind-text>
+                    </span>
+                  </oj-bind-if>
+                </span>
+              </span>
+              <span role="cell">
+                <span class="er-cell-main">
+                  <oj-bind-text value="[[ row.data.origin === 'EXTERNAL' ? (row.data.customer || row.data.project || '—') : (row.data.project || '—') ]]"></oj-bind-text>
+                </span>
+                <span class="er-note er-wb-sub">
+                  <oj-bind-text value="[[ (row.data.origin === 'EXTERNAL' ? (row.data.project ? 'Project ' + row.data.project + ' · ' : '') : (row.data.task ? row.data.task + ' · ' : ''))
+                    + (row.data.requestor || '') ]]"></oj-bind-text>
+                </span>
+                <oj-bind-if test="[[ !!row.data.equipment ]]">
+                  <span class="er-note er-wb-sub"><oj-bind-text value="[[ row.data.equipment ]]"></oj-bind-text></span>
+                </oj-bind-if>
+              </span>
+              <span role="cell" data-label="Dates">
+                <span><oj-bind-text value="[[ $functions.dateRange(row.data.start_date, row.data.end_date) ]]"></oj-bind-text></span>
+                <oj-bind-if test="[[ ($variables.tab === 'approve' || $variables.tab === 'pick') && !!$functions.startHint(row.data.start_date, $variables.today) ]]">
+                  <span :class="[[ 'er-note er-wb-sub' + ($functions.isLate(row.data.start_date, $variables.today) ? ' er-wb-late' : '') ]]">
+                    <oj-bind-text value="[[ $functions.startHint(row.data.start_date, $variables.today) ]]"></oj-bind-text>
+                  </span>
+                </oj-bind-if>
+              </span>
+              <span role="cell" class="er-num" data-label="Lines"><oj-bind-text value="[[ row.data.lines ]]"></oj-bind-text></span>
+              <span role="cell" data-label="Allocation">
+                <span :class="[[ 'er-wb-alloc-pct er-wb-alloc--' + $functions.allocTone(row.data.allocation_pct) ]]">
+                  <oj-bind-text value="[[ row.data.allocation_pct + '%' ]]"></oj-bind-text>
+                </span>
+                <span class="er-note"><oj-bind-text value="[[ ' ' + row.data.allocated_lines + ' of ' + row.data.lines ]]"></oj-bind-text></span>
+                <span class="er-wb-track" role="progressbar" aria-valuemin="0" aria-valuemax="100"
+                  :aria-valuenow="[[ row.data.allocation_pct ]]" :aria-label="[[ 'Allocation ' + row.data.allocation_pct + ' percent' ]]">
+                  <span :class="[[ 'er-wb-fill er-wb-alloc--' + $functions.allocTone(row.data.allocation_pct) ]]"
+                    :style.width="[[ row.data.allocation_pct + '%' ]]"></span>
+                </span>
+              </span>
+              <span role="cell" class="er-num" data-label="Est. cost"><oj-bind-text value="[[ $functions.money(row.data.total_est_cost) ]]"></oj-bind-text></span>
+              <span role="cell" class="er-wb-next">
+                <oj-bind-if test="[[ $functions.nextAction(row.data, $variables.tab).target !== 'none' ]]">
+                  <button type="button" :data-id="[[ row.data.request_id ]]" on-click="[[ $listeners.onNextAction ]]"
+                    :class="[[ 'er-btn er-wb-act er-btn--' + $functions.nextAction(row.data, $variables.tab).tone ]]">
+                    <oj-bind-text value="[[ $functions.nextAction(row.data, $variables.tab).label ]]"></oj-bind-text>
+                  </button>
+                </oj-bind-if>
+                <oj-bind-if test="[[ !!$functions.blocker(row.data, $variables.tab) ]]">
+                  <span class="er-wb-block"><oj-bind-text value="[[ $functions.blocker(row.data, $variables.tab) ]]"></oj-bind-text></span>
+                </oj-bind-if>
+                <oj-bind-if test="[[ $variables.tab === 'approve' && row.data.quote_owed && !!$functions.oldQuoteLink($application.variables.oldAppUrl, row.data) ]]">
+                  <a class="er-wb-sublink" :href="[[ $functions.oldQuoteLink($application.variables.oldAppUrl, row.data) ]]">Quote in Old EquipRite</a>
+                </oj-bind-if>
+              </span>
+            </div>
+          </template>
+        </oj-bind-for-each>
+        <oj-bind-if test="[[ !($variables.visibleRows || []).length ]]">
+          <div class="er-wb-empty er-muted" role="row">
+            <span role="cell">
+              <oj-bind-text value="[[ $functions.emptyText($variables.tab, $variables.isLoading,
+                ((($variables.buckets || {})[$variables.tab] || []).length > 0)) ]]"></oj-bind-text>
+            </span>
+          </div>
+        </oj-bind-if>
+      </div>
+    </div>
+  </section>
+  <p class="er-note">
+    Outbound covers approved, picking, inspection and shipped requests; Inbound covers returns in progress. Submitted and in-process
+    requests open in Approve &amp; allocate, the rest in Request detail. Generating a quote is still in Old EquipRite.
+  </p>
+</div>
+
+<oj-dialog id="bulkRejectDialog" dialog-title="Reject the selected requests?" initial-visibility="hide" cancel-behavior="icon"
+  modality="modal" style="width: 460px;">
+  <div slot="body">
+    <oj-bind-text value="[[ 'Every open line on ' + $variables.selection.count + ($variables.selection.count === 1 ? ' request' : ' requests')
+      + ' will be rejected, and a request with no live line left is rejected too. This cannot be undone.' ]]"></oj-bind-text>
+  </div>
+  <div slot="footer" class="er-actions">
+    <button type="button" class="er-btn er-btn--plain" on-click="[[ $listeners.onCancelReject ]]">Cancel</button>
+    <button type="button" class="er-btn er-btn--danger" id="wbConfirmReject" :disabled="[[ $variables.bulkBusy ]]"
+      on-click="[[ $listeners.onConfirmReject ]]">Reject</button>
+  </div>
+</oj-dialog>

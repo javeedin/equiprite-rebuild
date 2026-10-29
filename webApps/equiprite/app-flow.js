@@ -244,7 +244,8 @@ define([
       key: 'fulfil', label: 'Fulfil',
       items: [
         { id: 'workbench', label: 'Workbench', icon: 'oj-ux-ico-build', pageCodes: ['EQR_WORKBENCH'],
-          status: 'old', old: { flow: 'equipment-foundation', page: 'equipment-workbench' }, fdd: '7.11, 7.8' },
+          status: 'new', route: { flow: 'workbench', page: 'workbench' }, pages: ['approve-allocate'],
+          old: { flow: 'equipment-foundation', page: 'equipment-workbench' }, fdd: '7.11, 7.8' },
         { id: 'schedule', label: 'Equipment schedule', icon: 'oj-ux-ico-calendar', pageCodes: ['EQR_EQUIPMENT_SCHEDULE'],
           status: 'old', old: { flow: 'main', page: 'equipment-schedule' }, fdd: '7.10' },
         { id: 'picking', label: 'Initiate picking', icon: 'oj-ux-ico-cart', pageCodes: ['EQR_INITIATE_PICKING'],
