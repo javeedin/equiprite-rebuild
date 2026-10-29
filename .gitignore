@@ -1,0 +1,8 @@
+# Local build output: npm install, npm run build / serve / desktop
+node_modules/
+build/
+package-lock.json
+
+# Desktop installer output (not wired yet; see desktop/README.md)
+desktop/dist/
+desktop/app/

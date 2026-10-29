@@ -1,46 +1,54 @@
 # EquipRite desktop client
 
 A thin Electron shell that runs the EquipRite Visual Builder (Redwood) app on your laptop, in its own
-window, with live backend data — the same way the Re-ERP maintenance app runs with `npm run desktop:fresh`.
+window — the same way the Re-ERP maintenance app runs with `npm run desktop:fresh`.
+
+> **Status (2026-10-29): the window opens and the app renders, but it has no data and no user yet.** It lands
+> on "You don't have access to EquipRite". See [What works locally](#what-works-locally-what-doesnt).
 
 ## How it works
 
 On start, the shell launches Oracle's own local server, **`grunt vb-serve`**, as a child process and loads
-`http://localhost:18888/` in the window. `vb-serve` does two jobs:
+`http://localhost:18888/` in the window. `vb-serve` **serves the built app** (`build/processed/webApps/vbredwoodapp`),
+with the Redwood `oj-sp` components, JET and the VB runtime loaded from Oracle's public CDN (`static.oracle.com`).
 
-1. **Serves the built app** (`build/processed/webApps/vbredwoodapp`), with the Redwood `oj-sp` components,
-   JET and the VB runtime loaded from Oracle's public CDN (`static.oracle.com`).
-2. **Proxies the REST calls server-side.** Every backend in `services/catalog.json` is `"forceProxy": always`,
-   so the page makes only same-origin calls to `localhost` and `vb-serve` forwards them — exactly as Visual
-   Builder does when the app is deployed. No CORS setting, no dev proxy, and the page keeps full web security.
+That is all it does. Oracle's `vb-serve` task is `express.static` plus a canned `/_currentuser`: it does **not**
+proxy REST calls, so the `"forceProxy": always` backends in `services/catalog.json` have nothing to forward them.
+The only dependency is Electron, a prebuilt binary — nothing native is compiled and no shell is started (eScan-safe).
 
-Because of that, the shell needs **no HTTP bridge** (unlike the Re-ERP maintenance desktop client). The only
-dependency is Electron, a prebuilt binary — nothing native is compiled and no shell is started (eScan-safe).
+Electron is a devDependency of the **root** `package.json`, not of `desktop/`. Oracle's build copies every
+project folder except `node_modules`, `build`, `webApps` and `services` into `build/processed`, and it fails on a
+`node_modules` inside `desktop/` (EISDIR on `.bin/electron`). The root `node_modules` is never copied. Electron 45
+runs no install script; it downloads its binary the first time it starts.
 
 ## What works locally, what doesn't
 
-| Backend | Auth | Local |
-|---|---|---|
-| `eqpt` — ORDS at `132.145.153.37:8087` (the system of record) | anonymous | ✅ full |
-| `commonService` — shared lookups at `:8082` | anonymous | ✅ full |
-| `fusion` / `callPWPBIP` / `bipService` — Fusion REST + BI Publisher | VBCS stored credential | ⚠️ unavailable |
-| `ics` — OIC / Integration Applications | VBCS stored credential | ⚠️ unavailable |
+Checked by running `npm run desktop:fresh` and recording the page's calls:
 
-The core app (equipment, requests, allocation, timesheets, costing — all on `eqpt`) runs on **live data**.
-Project LOVs and PDF output, which need the VBCS credential store, degrade until the app is deployed to VBCS.
+| What | Local today | Why |
+|---|---|---|
+| Window, Redwood shell, menus | ✅ | built app + CDN |
+| Every REST backend, `eqpt` included | ❌ | the app asks for `services/catalog.json` next to the web app; the build writes it to `build/processed/services/`, so VB configures no endpoint ("Unable to configure endpoint …") |
+| Signed-in user and roles | ❌ | `/_currentuser` has no username, so `loadFusionRolesChain` fails closed and every page resolves to HIDDEN (No Access page) |
+| `fusion` / `bipService` / `callPWPBIP` / `ics` | ❌ | basic auth with credentials only the VBCS credential store holds |
+
+Getting live data locally needs a real local server in place of `vb-serve`: one that serves the catalog, forwards the
+`forceProxy` backends (`eqpt` and `commonService` are anonymous), and supplies a local user and roles.
 
 ## Run it
 
 From the **project root** (the folder with `package.json`), the first time:
 
 ```bash
-npm install            # Oracle build tooling (grunt-vb-build) from static.oracle.com
-npm run desktop:install # Electron, into desktop/
-npm run desktop:fresh  # build the app, then open the desktop window
+npm install            # Oracle build tooling (grunt-vb-build) and Electron
+npm run desktop:fresh  # build the app, then open the desktop window (first start downloads Electron's binary)
 ```
 
 After that, `npm run desktop:fresh` is all you need (it rebuilds, then launches). `npm run desktop` skips the
 rebuild and reuses the last build.
+
+Upgrading from the old `npm run desktop:install`? Delete `desktop/node_modules` (`rmdir /s /q desktop\node_modules`
+on Windows); `npm run build` stops and says so until you do.
 
 Prefer the browser? `npm run serve` builds and opens the same app at `http://localhost:8888/`.
 
