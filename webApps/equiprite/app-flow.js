@@ -297,7 +297,8 @@ define([
       key: 'settings', label: 'Settings',
       items: [
         { id: 'configuration', label: 'Configuration', icon: 'oj-ux-ico-settings', pageCodes: ['EQR_CONFIGURATIONS'],
-          status: 'old', old: { flow: 'setup', page: 'configurations' }, fdd: '7.17' },
+          status: 'new', route: { flow: 'settings', page: 'configuration' },
+          old: { flow: 'setup', page: 'configurations' }, fdd: '7.17' },
         { id: 'page-access', label: 'Page access', icon: 'oj-ux-ico-contact-permission', pageCodes: ['EQR_RBAC_ADMIN'],
           status: 'new', route: { flow: 'admin', page: 'page-access' },
           old: { flow: 'setup', page: 'rbac-admin' }, fdd: '10.3' },
