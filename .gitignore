@@ -1,5 +1,5 @@
 # Local build output: npm install, npm run build / serve / desktop
-node_modules/
+node_modules
 build/
 package-lock.json
 
