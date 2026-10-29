@@ -9,9 +9,10 @@ define([
   // then). The work lives in resources/js/draftResume.js; this chain only
   // routes the buttons.
   //
-  //   edit, submit → a project draft reopens in New request (edit on step 1,
-  //                 submit on Review); a customer draft opens in Old EquipRite,
-  //                 whose Edit / Submit reopen it in its cart.
+  //   edit, submit → a project draft reopens in New request, a customer draft
+  //                 in the customer portal's New request (edit on step 1,
+  //                 submit on Review); Old EquipRite only for someone who
+  //                 cannot open the customer portal.
   //   askDelete / cancelDelete → open / close the confirmation dialog.
   //   delete      → DELETE the draft (lines and ship-to-site go with it).
   class draftActionChain extends ActionChain {
@@ -45,14 +46,18 @@ define([
           return;
         }
 
-        // Edit and Submit reopen the draft. New request takes project drafts (it loads and re-prices them itself);
-        // customer requests are not raised in New EquipRite yet, so those open in Old EquipRite as before.
+        // Edit and Submit reopen the draft: a project draft in New request, a customer draft in the customer
+        // portal's New request (both load and re-price it themselves). Someone who cannot open the customer portal
+        // gets the customer draft in Old EquipRite, as before.
         const isCustomer = !!($page.variables.formData || {}).isCustomer;
+        const params = { draftId: requestId, startStep: action === 'submit' ? 3 : 1 };
         if (!isCustomer) {
-          await Actions.navigateToPage(context, {
-            page: 'new-request',
-            params: { draftId: requestId, startStep: action === 'submit' ? 3 : 1 },
-          });
+          await Actions.navigateToPage(context, { page: 'new-request', params });
+          return;
+        }
+        const vars = $application.variables;
+        if ($application.functions.navIdVisible(vars.pageAccessMap, vars.pageAccessLoaded, 'customer-portal')) {
+          await Actions.navigateToFlow(context, { flow: 'customer', page: 'customer-new-request', params, target: 'parent' });
           return;
         }
         const link = $page.functions.oldDetailLink($application.variables.oldAppUrl, $page.variables.requestId, requestId, true);
