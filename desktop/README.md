@@ -44,6 +44,11 @@ npm install            # Oracle build tooling (grunt-vb-build) and Electron
 npm run desktop:fresh  # build the app, then open the desktop window (first start downloads Electron's binary)
 ```
 
+Electron's binary (~120 MB) is fetched by `tools/get-electron.js` before the window starts. If antivirus or a
+proxy cuts the download, it resumes from where it stopped instead of starting over, and it checks the zip's
+SHA-256 before Electron's own installer unpacks it. Running it again after a failure carries on from the
+`.part` file.
+
 After that, `npm run desktop:fresh` is all you need (it rebuilds, then launches). `npm run desktop` skips the
 rebuild and reuses the last build.
 
@@ -54,6 +59,9 @@ Prefer the browser? `npm run serve` builds and opens the same app at `http://loc
 
 ## Troubleshooting
 
+- **"TypeError: terminated" / "Electron failed to install correctly".** That is Electron's own one-shot
+  download being cut; `npm run desktop` now fetches through `tools/get-electron.js`, which resumes. If even that
+  gives up, download the zip it names in your browser and save it as the "to" path it prints.
 - **The window shows "Could not start the local server".** Run `npm install` in the project root and check
   `npm run build` succeeds on its own. The window shows the last lines of the `vb-serve` log.
 - **The window stays on the spinner.** The app is fetching JET / `oj-sp` from `static.oracle.com`; a blocked

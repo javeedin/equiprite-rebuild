@@ -35,6 +35,7 @@ anyone in, so today the app renders but has no data and lands on the No Access p
 | `webApps/vbredwoodapp/` | the app: `app-flow.*`, `flows/`, `pages/`, `fragments/`, `resources/` |
 | `services/` | backend service definitions and `catalog.json` (backend base URLs + proxy settings) |
 | `tools/check-tools.js` | build preflight (the installed `grunt-vb-build` must match the app's `source.version`; no `node_modules` inside a copied folder) |
+| `tools/get-electron.js` | fetches Electron's binary with resume and checksum before `desktop` / `desktop:fresh` start it |
 | `desktop/` | the Electron desktop shell (not part of the VB app) |
 | `tests/` | dependency-free `node` test suites (`npm test`) |
 

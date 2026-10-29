@@ -17,7 +17,7 @@
     "test": "node tests/run-all.js",
     "build": "node tools/check-tools.js && grunt vb-process-local",
     "serve": "npm run build && grunt vb-serve:webApps/vbredwoodapp --port=8888 --open",
-    "desktop": "electron desktop",
-    "desktop:fresh": "npm run build && electron desktop"
+    "desktop": "node tools/get-electron.js && electron desktop",
+    "desktop:fresh": "npm run build && node tools/get-electron.js && electron desktop"
   }
 }

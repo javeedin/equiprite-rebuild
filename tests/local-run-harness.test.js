@@ -56,7 +56,10 @@ const desktopPkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'desktop', 'packag
 T.check('root devDependencies carry electron', !!rootPkg.devDependencies.electron);
 T.check('desktop/package.json installs nothing',
   !desktopPkg.dependencies && !desktopPkg.devDependencies);
-T.check('desktop:fresh builds, then runs the shell', /^npm run build && electron desktop$/.test(rootPkg.scripts['desktop:fresh']));
+T.check('desktop:fresh builds, fetches Electron, then runs the shell',
+  /^npm run build && node tools\/get-electron\.js && electron desktop$/.test(rootPkg.scripts['desktop:fresh']));
+T.check('desktop fetches Electron before running it',
+  /^node tools\/get-electron\.js && electron desktop$/.test(rootPkg.scripts.desktop));
 T.check('no script installs into desktop/', !Object.values(rootPkg.scripts).some((s) => /--prefix desktop/.test(s)));
 
 // ── desktop window: what stays in the window ─────────────────────────
@@ -71,4 +74,36 @@ T.eq('plain http to Oracle leaves', navAllowed('http://static.oracle.com/', APP)
 T.eq('look-alike host leaves', navAllowed('https://static.oracle.com.evil.example/', APP), false);
 T.eq('garbage leaves', navAllowed('not a url', APP), false);
 
-T.report();
+// ── get-electron: resumable download into @electron/get's cache ──────
+
+T.section('get-electron — artifact, URL and cache root');
+const GE = require(path.join(ROOT, 'tools', 'get-electron.js'));
+const ZIP = GE.artifactName('45.1.0', 'win32', 'x64');
+T.eq('Windows zip name', ZIP, 'electron-v45.1.0-win32-x64.zip');
+T.eq('GitHub by default', GE.remoteUrl('45.1.0', ZIP, {}),
+  'https://github.com/electron/electron/releases/download/v45.1.0/electron-v45.1.0-win32-x64.zip');
+T.eq('ELECTRON_MIRROR honoured', GE.remoteUrl('45.1.0', ZIP, { ELECTRON_MIRROR: 'https://m.example/e/' }),
+  'https://m.example/e/v45.1.0/electron-v45.1.0-win32-x64.zip');
+T.eq('Windows cache under LOCALAPPDATA',
+  GE.cacheRoot({ LOCALAPPDATA: 'C:\\Users\\u\\AppData\\Local' }, 'win32', 'C:\\Users\\u'),
+  path.join('C:\\Users\\u\\AppData\\Local', 'electron', 'Cache'));
+T.eq('electron_config_cache wins', GE.cacheRoot({ electron_config_cache: '/c' }, 'linux', '/h'), '/c');
+T.eq('Windows executable', GE.exeFor('win32'), 'electron.exe');
+T.check('every platform zip has a pinned checksum',
+  ['win32-x64', 'win32-arm64', 'darwin-arm64', 'darwin-x64', 'linux-x64'].every((p) =>
+    !!require(path.join(ROOT, 'node_modules', 'electron', 'checksums.json'))[`electron-v${require(path.join(ROOT, 'node_modules', 'electron', 'package.json')).version}-${p}.zip`]));
+
+// The zip only helps if it lands exactly where @electron/get looks, so compare with its own Cache.
+(async () => {
+  T.section('get-electron — cache path matches @electron/get');
+  try {
+    const url = GE.remoteUrl('45.1.0', ZIP, {});
+    // Not in the package's "exports", so load the file itself.
+    const cacheJs = path.join(ROOT, 'node_modules', '@electron', 'get', 'dist', 'Cache.js');
+    const { Cache } = await import(require('url').pathToFileURL(cacheJs).href);
+    T.eq('same cache file as @electron/get', GE.cachePath('/root', url, ZIP), new Cache('/root').getCachePath(url, ZIP));
+  } catch (e) {
+    T.check('@electron/get Cache loads (npm install first)', false, String(e && e.message));
+  }
+  T.report();
+})();
