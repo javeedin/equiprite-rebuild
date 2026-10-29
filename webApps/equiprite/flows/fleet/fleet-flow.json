@@ -1,0 +1,14 @@
+{
+  "id": "fleet",
+  "description": "The fleet unit by unit (FDD 6.1 EQR_EQUIPMENT_MASTER units, 7.10 schedule): the Equipment workbench.",
+  "defaultPage": "equipment-workbench",
+  "pages": {
+    "equipment-workbench": {
+      "path": "pages/equipment-workbench-page"
+    }
+  },
+  "chains": {},
+  "services": {},
+  "types": {},
+  "variables": {}
+}

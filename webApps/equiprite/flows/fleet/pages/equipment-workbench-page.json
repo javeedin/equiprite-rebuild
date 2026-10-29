@@ -1,0 +1,210 @@
+{
+  "title": "Equipment workbench",
+  "description": "The fleet unit by unit: a board of lanes (in the yard, going out this week, out, due back this week, overdue, maintenance) and a list, each unit with where it is, which request it is on, when it is back and its next booking. Reads views/yard-stock, views/deployed-units and views/workbench-lines (resources/js/equipmentBoard.js joins them). Reads only.",
+  "variables": {
+    "units": {
+      "type": "any[]",
+      "defaultValue": [],
+      "onValueChanged": {
+        "chains": [
+          {
+            "chain": "applyChain"
+          }
+        ]
+      }
+    },
+    "filtered": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "board": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "summary": {
+      "type": "any",
+      "defaultValue": {}
+    },
+    "classOptions": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "yardOptions": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "text": {
+      "type": "string",
+      "defaultValue": "",
+      "onValueChanged": {
+        "chains": [
+          {
+            "chain": "applyChain"
+          }
+        ]
+      }
+    },
+    "cls": {
+      "type": "string",
+      "defaultValue": "",
+      "onValueChanged": {
+        "chains": [
+          {
+            "chain": "applyChain"
+          }
+        ]
+      }
+    },
+    "yard": {
+      "type": "string",
+      "defaultValue": "",
+      "onValueChanged": {
+        "chains": [
+          {
+            "chain": "applyChain"
+          }
+        ]
+      }
+    },
+    "lane": {
+      "type": "string",
+      "defaultValue": "all",
+      "onValueChanged": {
+        "chains": [
+          {
+            "chain": "applyChain"
+          }
+        ]
+      }
+    },
+    "tightOnly": {
+      "type": "boolean",
+      "defaultValue": false,
+      "onValueChanged": {
+        "chains": [
+          {
+            "chain": "applyChain"
+          }
+        ]
+      }
+    },
+    "view": {
+      "type": "string",
+      "defaultValue": "board",
+      "description": "board or list."
+    },
+    "selected": {
+      "type": "any",
+      "defaultValue": null,
+      "description": "The unit whose panel is open."
+    },
+    "isLoading": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "fetchError": {
+      "type": "string",
+      "defaultValue": ""
+    }
+  },
+  "metadata": {},
+  "eventListeners": {
+    "vbBeforeEnter": {
+      "chains": [
+        {
+          "chain": "enforcePageAccessChain"
+        }
+      ]
+    },
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "loadFleetChain"
+        }
+      ]
+    },
+    "onSearch": {
+      "chains": [
+        {
+          "chain": "setFilterChain",
+          "parameters": {
+            "field": "text",
+            "value": "{{ $event.target.value }}"
+          }
+        }
+      ]
+    },
+    "onFilter": {
+      "chains": [
+        {
+          "chain": "setFilterChain",
+          "parameters": {
+            "field": "{{ $event.currentTarget.dataset.field }}",
+            "value": "{{ $event.currentTarget.dataset.value }}"
+          }
+        }
+      ]
+    },
+    "onUnit": {
+      "chains": [
+        {
+          "chain": "selectUnitChain",
+          "parameters": {
+            "key": "{{ $event.currentTarget.dataset.key }}"
+          }
+        }
+      ]
+    },
+    "onClosePanel": {
+      "chains": [
+        {
+          "chain": "selectUnitChain",
+          "parameters": {
+            "key": ""
+          }
+        }
+      ]
+    },
+    "onOpenRequest": {
+      "chains": [
+        {
+          "chain": "openRequestChain",
+          "parameters": {
+            "id": "{{ $event.currentTarget.dataset.id }}",
+            "number": "{{ $event.currentTarget.dataset.number }}"
+          }
+        }
+      ]
+    },
+    "onNav": {
+      "chains": [
+        {
+          "chain": "openNavChain",
+          "parameters": {
+            "navId": "{{ $event.currentTarget.dataset.navId }}"
+          }
+        }
+      ]
+    },
+    "onRefresh": {
+      "chains": [
+        {
+          "chain": "loadFleetChain"
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-if": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-text": {
+        "path": "ojs/ojknockout"
+      }
+    }
+  }
+}

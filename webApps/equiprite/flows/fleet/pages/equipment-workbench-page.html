@@ -1,0 +1,254 @@
+<!-- Equipment workbench: the fleet unit by unit. Board (lanes) and List; a unit's panel opens beside them.
+     Data: loadFleetChain; rules: resources/js/equipmentBoard.js. -->
+<div class="er-band">
+  <div class="er-band-inner">
+    <div>
+      <div class="er-band-kicker">Fulfil · FDD 7.2, 7.10</div>
+      <h1>Equipment workbench</h1>
+      <div class="er-band-sub">
+        <oj-bind-text value="[[ $variables.isLoading ? 'Loading the fleet…'
+          : $variables.summary.total + ' units · ' + $variables.summary.outNow + ' out (' + $functions.pct($variables.summary.utilizationPct) + ')'
+            + ' · ' + $variables.summary.overdue + ' overdue · ' + $variables.summary.tight + ' tight turnarounds' ]]"></oj-bind-text>
+      </div>
+    </div>
+    <div class="er-actions">
+      <oj-bind-if test="[[ $application.functions.oldAppLink($application.variables.oldAppUrl, 'equipment') ]]">
+        <a class="er-btn er-btn--ghost" :href="[[ $application.functions.oldAppLink($application.variables.oldAppUrl, 'equipment') ]]">Old version</a>
+      </oj-bind-if>
+      <button type="button" class="er-btn er-btn--ghost" on-click="[[ $listeners.onRefresh ]]">Refresh</button>
+      <button type="button" class="er-btn er-btn--primary" data-nav-id="schedule" on-click="[[ $listeners.onNav ]]">Schedule</button>
+    </div>
+  </div>
+  <div class="er-strip" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+</div>
+
+<div class="er-page">
+  <oj-bind-if test="[[ !!$variables.fetchError ]]">
+    <div class="er-error" role="alert"><oj-bind-text value="[[ $variables.fetchError ]]"></oj-bind-text></div>
+  </oj-bind-if>
+
+  <!-- Lane tiles: click to show one lane; the turnaround tile narrows to tight turnarounds -->
+  <section class="er-ew-tiles" aria-label="Units by lane">
+    <oj-bind-for-each data="[[ $variables.board ]]">
+      <template data-oj-as="t">
+        <button type="button" :class="[[ 'er-ew-tile er-ew-tile--' + t.data.key + ($variables.lane === t.data.key ? ' er-ew-tile--on' : '') ]]"
+          data-field="lane" :data-value="[[ t.data.key ]]" on-click="[[ $listeners.onFilter ]]"
+          :aria-pressed="[[ $variables.lane === t.data.key ? 'true' : 'false' ]]">
+          <span class="er-ew-tile-count"><oj-bind-text value="[[ t.data.count ]]"></oj-bind-text></span>
+          <span class="er-ew-tile-label"><oj-bind-text value="[[ t.data.label ]]"></oj-bind-text></span>
+        </button>
+      </template>
+    </oj-bind-for-each>
+    <button type="button" :class="[[ 'er-ew-tile er-ew-tile--tight' + ($variables.tightOnly ? ' er-ew-tile--on' : '') ]]"
+      data-field="tight" on-click="[[ $listeners.onFilter ]]" :aria-pressed="[[ $variables.tightOnly ? 'true' : 'false' ]]"
+      title="Back and out again within 2 days">
+      <span class="er-ew-tile-count"><oj-bind-text value="[[ $variables.summary.tight || 0 ]]"></oj-bind-text></span>
+      <span class="er-ew-tile-label">Tight turnaround</span>
+    </button>
+  </section>
+
+  <div class="er-filters">
+    <div class="er-seg" role="group" aria-label="Show as">
+      <button type="button" data-field="view" data-value="board" on-click="[[ $listeners.onFilter ]]"
+        :class="[[ 'er-seg-btn' + ($variables.view === 'board' ? ' er-seg-btn--on' : '') ]]" :aria-pressed="[[ $variables.view === 'board' ? 'true' : 'false' ]]">Board</button>
+      <button type="button" data-field="view" data-value="list" on-click="[[ $listeners.onFilter ]]"
+        :class="[[ 'er-seg-btn' + ($variables.view === 'list' ? ' er-seg-btn--on' : '') ]]" :aria-pressed="[[ $variables.view === 'list' ? 'true' : 'false' ]]">List</button>
+    </div>
+    <label class="er-search">
+      <span class="oj-ux-ico-search" aria-hidden="true"></span>
+      <span class="er-sr">Search units</span>
+      <input type="search" placeholder="Unit, serial, asset, equipment, class, project, customer or request" on-input="[[ $listeners.onSearch ]]">
+    </label>
+    <oj-bind-if test="[[ $variables.lane !== 'all' || $variables.cls || $variables.yard || $variables.tightOnly ]]">
+      <span class="er-note"><oj-bind-text value="[[ $variables.filtered.length + ' of ' + $variables.units.length + ' units' ]]"></oj-bind-text></span>
+    </oj-bind-if>
+  </div>
+
+  <oj-bind-if test="[[ $variables.classOptions.length > 1 ]]">
+    <div class="er-chip-row" role="group" aria-label="Class">
+      <oj-bind-for-each data="[[ $variables.classOptions ]]">
+        <template data-oj-as="c">
+          <button type="button" data-field="cls" :data-value="[[ c.data.key ]]" on-click="[[ $listeners.onFilter ]]"
+            :class="[[ 'er-chip' + ($variables.cls === c.data.key ? ' er-chip--on' : '') ]]" :aria-pressed="[[ $variables.cls === c.data.key ? 'true' : 'false' ]]">
+            <oj-bind-text value="[[ c.data.label ]]"></oj-bind-text><span class="er-chip-count"><oj-bind-text value="[[ c.data.count ]]"></oj-bind-text></span>
+          </button>
+        </template>
+      </oj-bind-for-each>
+    </div>
+  </oj-bind-if>
+  <oj-bind-if test="[[ $variables.yardOptions.length > 1 ]]">
+    <div class="er-chip-row" role="group" aria-label="Yard">
+      <span class="er-viewas-label">Yard</span>
+      <oj-bind-for-each data="[[ $variables.yardOptions ]]">
+        <template data-oj-as="y">
+          <button type="button" data-field="yard" :data-value="[[ y.data.key ]]" on-click="[[ $listeners.onFilter ]]"
+            :class="[[ 'er-chip' + ($variables.yard === y.data.key ? ' er-chip--on' : '') ]]" :aria-pressed="[[ $variables.yard === y.data.key ? 'true' : 'false' ]]">
+            <oj-bind-text value="[[ y.data.label ]]"></oj-bind-text><span class="er-chip-count"><oj-bind-text value="[[ y.data.count ]]"></oj-bind-text></span>
+          </button>
+        </template>
+      </oj-bind-for-each>
+    </div>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ $variables.isLoading ]]">
+    <div class="er-card er-card-pad er-muted">Loading every unit, what is out and what is booked…</div>
+  </oj-bind-if>
+
+  <div :class="[[ 'er-ew-body' + ($variables.selected ? ' er-ew-body--panel' : '') ]]">
+    <div class="er-ew-main">
+      <!-- ── Board ─────────────────────────────────────────────────────────────────────────────── -->
+      <oj-bind-if test="[[ !$variables.isLoading && $variables.view === 'board' ]]">
+        <div class="er-ew-board" role="list" aria-label="Lanes">
+          <oj-bind-for-each data="[[ $variables.board ]]">
+            <template data-oj-as="ln">
+              <oj-bind-if test="[[ $variables.lane === 'all' || $variables.lane === ln.data.key ]]">
+                <section :class="[[ 'er-ew-lane er-ew-lane--' + ln.data.key ]]" role="listitem" :aria-label="[[ ln.data.label ]]" :data-lane="[[ ln.data.key ]]">
+                  <header class="er-ew-lane-head">
+                    <span class="er-ew-lane-title"><oj-bind-text value="[[ ln.data.label ]]"></oj-bind-text></span>
+                    <span class="er-ew-lane-count"><oj-bind-text value="[[ ln.data.count ]]"></oj-bind-text></span>
+                  </header>
+                  <p class="er-note er-ew-lane-hint"><oj-bind-text value="[[ ln.data.hint ]]"></oj-bind-text></p>
+                  <oj-bind-if test="[[ !ln.data.units.length ]]"><p class="er-note er-ew-empty">None</p></oj-bind-if>
+                  <oj-bind-for-each data="[[ ln.data.units ]]">
+                    <template data-oj-as="u">
+                      <button type="button" :class="[[ 'er-ew-card' + (u.data.tight ? ' er-ew-card--tight' : '') + ($variables.selected && $variables.selected.key === u.data.key ? ' er-ew-card--on' : '') ]]"
+                        :data-key="[[ u.data.key ]]" on-click="[[ $listeners.onUnit ]]">
+                        <span class="er-ew-card-top">
+                          <span class="er-ew-unit"><oj-bind-text value="[[ u.data.unit ]]"></oj-bind-text></span>
+                          <oj-bind-if test="[[ !!u.data.type ]]"><span class="er-ew-type"><oj-bind-text value="[[ $functions.typeLabel(u.data.type) ]]"></oj-bind-text></span></oj-bind-if>
+                        </span>
+                        <span class="er-ew-name"><oj-bind-text value="[[ u.data.name ]]"></oj-bind-text></span>
+                        <span class="er-note"><oj-bind-text value="[[ u.data.cls ]]"></oj-bind-text></span>
+                        <span class="er-ew-place"><span class="oj-ux-ico-location" aria-hidden="true"></span>
+                          <oj-bind-text value="[[ $functions.place(u.data) || '—' ]]"></oj-bind-text></span>
+                        <span :class="[[ 'er-ew-when er-ew-when--' + u.data.lane ]]"><oj-bind-text value="[[ u.data.when ]]"></oj-bind-text></span>
+                        <oj-bind-if test="[[ !!u.data.next && u.data.lane !== 'yard' && u.data.lane !== 'going' ]]">
+                          <span class="er-note"><oj-bind-text value="[[ $functions.nextText(u.data) ]]"></oj-bind-text></span>
+                        </oj-bind-if>
+                        <oj-bind-if test="[[ u.data.tight ]]">
+                          <span class="er-ew-flag"><oj-bind-text value="[[ $functions.turnaroundText(u.data) ]]"></oj-bind-text></span>
+                        </oj-bind-if>
+                      </button>
+                    </template>
+                  </oj-bind-for-each>
+                  <oj-bind-if test="[[ ln.data.more ]]">
+                    <button type="button" class="er-btn er-btn--plain er-ew-more" data-field="view" data-value="list" on-click="[[ $listeners.onFilter ]]">
+                      <oj-bind-text value="[[ '+' + ln.data.more + ' more in the list' ]]"></oj-bind-text></button>
+                  </oj-bind-if>
+                </section>
+              </oj-bind-if>
+            </template>
+          </oj-bind-for-each>
+        </div>
+      </oj-bind-if>
+
+      <!-- ── List ──────────────────────────────────────────────────────────────────────────────── -->
+      <oj-bind-if test="[[ !$variables.isLoading && $variables.view === 'list' ]]">
+        <oj-bind-if test="[[ !$variables.filtered.length ]]">
+          <div class="er-card er-card-pad er-muted">No units match. Clear the search or pick another lane, class or yard.</div>
+        </oj-bind-if>
+        <oj-bind-if test="[[ $variables.filtered.length ]]">
+          <section class="er-card">
+            <div class="er-table-wrap">
+              <div class="er-grid er-grid--ew" role="table" aria-label="Units">
+                <div class="er-grid-row er-grid-head" role="row">
+                  <span role="columnheader">Unit</span><span role="columnheader">Equipment</span><span role="columnheader">Lane</span>
+                  <span role="columnheader">Where</span><span role="columnheader">Request</span><span role="columnheader">When</span>
+                  <span role="columnheader">Next booking</span>
+                </div>
+                <oj-bind-for-each data="[[ $variables.filtered.slice(0, 300) ]]">
+                  <template data-oj-as="u">
+                    <div role="row" :class="[[ 'er-grid-row' + ($variables.selected && $variables.selected.key === u.data.key ? ' er-row--on' : '') ]]">
+                      <span role="cell"><button type="button" class="er-link" :data-key="[[ u.data.key ]]" on-click="[[ $listeners.onUnit ]]">
+                        <oj-bind-text value="[[ u.data.unit ]]"></oj-bind-text></button>
+                        <span class="er-note"><oj-bind-text value="[[ $functions.typeLabel(u.data.type) + (u.data.asset ? ' · ' + u.data.asset : '') ]]"></oj-bind-text></span></span>
+                      <span role="cell"><span class="er-cell-main"><oj-bind-text value="[[ u.data.name ]]"></oj-bind-text></span>
+                        <span class="er-note"><oj-bind-text value="[[ u.data.cls ]]"></oj-bind-text></span></span>
+                      <span role="cell"><span :class="[[ 'er-ew-pill er-ew-pill--' + u.data.lane ]]"><oj-bind-text value="[[ $functions.laneLabel(u.data.lane) ]]"></oj-bind-text></span></span>
+                      <span role="cell"><oj-bind-text value="[[ $functions.place(u.data) || '—' ]]"></oj-bind-text></span>
+                      <span role="cell">
+                        <oj-bind-if test="[[ !!u.data.requestNumber ]]">
+                          <button type="button" class="er-link" :data-id="[[ u.data.requestId ]]" :data-number="[[ u.data.requestNumber ]]"
+                            on-click="[[ $listeners.onOpenRequest ]]"><oj-bind-text value="[[ u.data.requestNumber ]]"></oj-bind-text></button>
+                        </oj-bind-if>
+                        <oj-bind-if test="[[ !u.data.requestNumber ]]"><span class="er-note">—</span></oj-bind-if>
+                      </span>
+                      <span role="cell"><span :class="[[ 'er-ew-when er-ew-when--' + u.data.lane ]]"><oj-bind-text value="[[ u.data.when ]]"></oj-bind-text></span></span>
+                      <span role="cell"><oj-bind-text value="[[ $functions.nextText(u.data).replace('Next: ', '') || '—' ]]"></oj-bind-text>
+                        <oj-bind-if test="[[ u.data.tight ]]"><span class="er-ew-flag"><oj-bind-text value="[[ $functions.turnaroundText(u.data) ]]"></oj-bind-text></span></oj-bind-if></span>
+                    </div>
+                  </template>
+                </oj-bind-for-each>
+              </div>
+            </div>
+            <oj-bind-if test="[[ $variables.filtered.length > 300 ]]">
+              <p class="er-card-pad er-note"><oj-bind-text value="[[ 'The first 300 of ' + $variables.filtered.length + '. Narrow with search, lane, class or yard.' ]]"></oj-bind-text></p>
+            </oj-bind-if>
+          </section>
+        </oj-bind-if>
+      </oj-bind-if>
+    </div>
+
+    <!-- ── Unit panel ──────────────────────────────────────────────────────────────────────────── -->
+    <oj-bind-if test="[[ !!$variables.selected ]]">
+      <aside class="er-card er-ew-panel" aria-labelledby="ewPanelTitle">
+        <div class="er-card-pad">
+          <div class="er-table-head">
+            <div>
+              <h2 class="er-section-title" id="ewPanelTitle"><oj-bind-text value="[[ $variables.selected.unit ]]"></oj-bind-text></h2>
+              <span class="er-note"><oj-bind-text value="[[ $variables.selected.name ]]"></oj-bind-text></span>
+            </div>
+            <button type="button" class="er-icon-btn" aria-label="Close" title="Close" on-click="[[ $listeners.onClosePanel ]]">
+              <span class="oj-ux-ico-close" aria-hidden="true"></span></button>
+          </div>
+          <span :class="[[ 'er-ew-pill er-ew-pill--' + $variables.selected.lane ]]"><oj-bind-text value="[[ $functions.laneLabel($variables.selected.lane) ]]"></oj-bind-text></span>
+          <span :class="[[ 'er-ew-when er-ew-when--' + $variables.selected.lane ]]"><oj-bind-text value="[[ $variables.selected.when ]]"></oj-bind-text></span>
+          <oj-bind-if test="[[ $variables.selected.tight ]]">
+            <p class="er-ew-warn"><oj-bind-text value="[[ $functions.turnaroundText($variables.selected) + ': ' + $variables.selected.next.requestNumber
+              + ' needs it on ' + $functions.range($variables.selected.next.start, '') + '. Inspect and turn it round as soon as it is back.' ]]"></oj-bind-text></p>
+          </oj-bind-if>
+          <dl class="er-facts er-ew-facts">
+            <div><dt>Class</dt><dd><oj-bind-text value="[[ $variables.selected.cls || '—' ]]"></oj-bind-text></dd></div>
+            <div><dt>Unit type</dt><dd><oj-bind-text value="[[ $functions.typeLabel($variables.selected.type) || '—' ]]"></oj-bind-text></dd></div>
+            <div><dt>Asset</dt><dd><oj-bind-text value="[[ $variables.selected.asset || '—' ]]"></oj-bind-text></dd></div>
+            <div><dt>Yard</dt><dd><oj-bind-text value="[[ $variables.selected.yard || '—' ]]"></oj-bind-text></dd></div>
+            <div><dt>Unit status</dt><dd><oj-bind-text value="[[ $variables.selected.status || '—' ]]"></oj-bind-text></dd></div>
+            <oj-bind-if test="[[ $variables.selected.qty !== null ]]"><div><dt>On hand</dt><dd><oj-bind-text value="[[ $variables.selected.qty ]]"></oj-bind-text></dd></div></oj-bind-if>
+          </dl>
+          <oj-bind-if test="[[ !!$variables.selected.requestNumber ]]">
+            <h3 class="er-ad-sub">Now</h3>
+            <p class="er-ew-now">
+              <button type="button" class="er-link" :data-id="[[ $variables.selected.requestId ]]" :data-number="[[ $variables.selected.requestNumber ]]"
+                on-click="[[ $listeners.onOpenRequest ]]"><oj-bind-text value="[[ $variables.selected.requestNumber ]]"></oj-bind-text></button>
+              <span><oj-bind-text value="[[ $variables.selected.party ]]"></oj-bind-text></span>
+              <span class="er-note"><oj-bind-text value="[[ $functions.range($variables.selected.start, $variables.selected.end) ]]"></oj-bind-text></span>
+            </p>
+          </oj-bind-if>
+          <h3 class="er-ad-sub">Bookings</h3>
+          <oj-bind-if test="[[ !$variables.selected.bookings.length ]]"><p class="er-note">No allocated booking.</p></oj-bind-if>
+          <ul class="er-ad-mini">
+            <oj-bind-for-each data="[[ $variables.selected.bookings ]]">
+              <template data-oj-as="b">
+                <li>
+                  <span><strong><oj-bind-text value="[[ b.data.requestNumber ]]"></oj-bind-text></strong>
+                    <span class="er-note"><oj-bind-text value="[[ ' ' + (b.data.project || b.data.location || '') ]]"></oj-bind-text></span></span>
+                  <span class="er-note"><oj-bind-text value="[[ $functions.range(b.data.start, b.data.end) ]]"></oj-bind-text></span>
+                </li>
+              </template>
+            </oj-bind-for-each>
+          </ul>
+          <div class="er-ew-actions">
+            <oj-bind-if test="[[ $variables.selected.lane === 'due' || $variables.selected.lane === 'overdue' ]]">
+              <button type="button" class="er-btn er-btn--dark" data-nav-id="receipt" on-click="[[ $listeners.onNav ]]">Receipt &amp; returns</button>
+            </oj-bind-if>
+            <oj-bind-if test="[[ $variables.selected.lane === 'going' ]]">
+              <button type="button" class="er-btn er-btn--dark" data-nav-id="picking" on-click="[[ $listeners.onNav ]]">Initiate picking</button>
+            </oj-bind-if>
+            <button type="button" class="er-btn er-btn--plain" data-nav-id="schedule" on-click="[[ $listeners.onNav ]]">On the schedule</button>
+            <button type="button" class="er-btn er-btn--plain" data-nav-id="inspection" on-click="[[ $listeners.onNav ]]">Inspection</button>
+          </div>
+        </div>
+      </aside>
+    </oj-bind-if>
+  </div>
+</div>

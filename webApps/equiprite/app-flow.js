@@ -243,9 +243,11 @@ define([
     {
       key: 'fulfil', label: 'Fulfil',
       items: [
-        { id: 'workbench', label: 'Workbench', icon: 'oj-ux-ico-build', pageCodes: ['EQR_WORKBENCH'],
+        { id: 'workbench', label: 'Request workbench', icon: 'oj-ux-ico-build', pageCodes: ['EQR_WORKBENCH'],
           status: 'new', route: { flow: 'workbench', page: 'workbench' }, pages: ['approve-allocate'],
           old: { flow: 'equipment-foundation', page: 'equipment-workbench' }, fdd: '7.11, 7.8' },
+        { id: 'equipment-workbench', label: 'Equipment workbench', icon: 'oj-ux-ico-truck', pageCodes: ['EQR_WORKBENCH', 'EQR_EQUIPMENT_MASTER'],
+          status: 'new', route: { flow: 'fleet', page: 'equipment-workbench' }, fdd: '7.2, 7.10' },
         { id: 'schedule', label: 'Equipment schedule', icon: 'oj-ux-ico-calendar', pageCodes: ['EQR_EQUIPMENT_SCHEDULE'],
           status: 'new', route: { flow: 'schedule', page: 'schedule' },
           old: { flow: 'main', page: 'equipment-schedule' }, fdd: '7.10' },
