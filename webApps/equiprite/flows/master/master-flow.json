@@ -1,0 +1,32 @@
+{
+  "id": "master",
+  "description": "Master data (FDD 7.2, 7.3, 7.3A): Equipment (list and map, import review, detail with change class), Rate schedules (the six periods in one grid, margin check, simulator) and Rental agreements (list, lines, create and edit). Replaces equipment-master, equipment-units, rate-schedule, create-rate-schedule, rental-agreements, rental-agreement-lines and rental-agreement-create.",
+  "defaultPage": "equipment",
+  "pages": {
+    "equipment": {
+      "path": "pages/equipment-page"
+    },
+    "equipment-detail": {
+      "path": "pages/equipment-detail-page"
+    },
+    "equipment-import": {
+      "path": "pages/equipment-import-page"
+    },
+    "rates": {
+      "path": "pages/rates-page"
+    },
+    "agreements": {
+      "path": "pages/agreements-page"
+    },
+    "agreement-lines": {
+      "path": "pages/agreement-lines-page"
+    },
+    "agreement-edit": {
+      "path": "pages/agreement-edit-page"
+    }
+  },
+  "chains": {},
+  "services": {},
+  "types": {},
+  "variables": {}
+}

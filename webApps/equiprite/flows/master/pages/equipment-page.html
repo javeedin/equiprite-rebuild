@@ -1,0 +1,259 @@
+<!-- Equipment (wireframe: Equipment master). Data: equipmentInitChain, loadEquipmentChain; chips: setFilterChain +
+     applyFilterChain; Sync from Fusion: SyncFromFusionChain (the old page's chain). -->
+<div class="er-band">
+  <div class="er-band-inner">
+    <div>
+      <div class="er-band-kicker">Master data · FDD 7.2</div>
+      <h1>Equipment</h1>
+      <div class="er-band-sub">
+        <oj-bind-text value="[[ $functions.countText($variables.shownRows.length, $variables.loadedCount, $variables.total, $variables.isLoading) ]]"></oj-bind-text>
+        <oj-bind-if test="[[ !!$variables.lastRuns.fetch ]]">
+          <span> · last Fetch from Fusion <oj-bind-text value="[[ $functions.when($variables.lastRuns.fetch) ]]"></oj-bind-text></span>
+        </oj-bind-if>
+        <oj-bind-if test="[[ !!$variables.lastRuns.sync ]]">
+          <span> · last Sync <oj-bind-text value="[[ $functions.when($variables.lastRuns.sync) ]]"></oj-bind-text></span>
+        </oj-bind-if>
+      </div>
+    </div>
+    <div class="er-actions">
+      <oj-bind-if test="[[ $application.functions.oldAppLink($application.variables.oldAppUrl, 'equipment') ]]">
+        <a class="er-btn er-btn--ghost" title="Today's Equipment Master, for comparison"
+          :href="[[ $application.functions.oldAppLink($application.variables.oldAppUrl, 'equipment') ]]">Old version</a>
+      </oj-bind-if>
+      <oj-bind-if test="[[ $variables.canWrite ]]">
+        <button type="button" class="er-btn er-btn--ghost" id="syncBtn" :disabled="[[ $variables.isSyncing ]]"
+          on-click="[[ $listeners.onSync ]]">
+          <span class="oj-ux-ico-refresh" aria-hidden="true"></span>
+          <oj-bind-text value="[[ $functions.syncLabel($variables.isSyncing, $variables.syncStep) ]]"></oj-bind-text>
+        </button>
+        <button type="button" class="er-btn er-btn--primary" id="importBtn" on-click="[[ $listeners.onImport ]]">
+          Import from Fusion
+          <oj-bind-if test="[[ $variables.stagingWaiting > 0 ]]">
+            <span class="er-chip-count"><oj-bind-text value="[[ $variables.stagingWaiting.toLocaleString() + ' to review' ]]"></oj-bind-text></span>
+          </oj-bind-if>
+        </button>
+      </oj-bind-if>
+    </div>
+  </div>
+  <div class="er-strip" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+</div>
+
+<div class="er-page">
+  <oj-bind-if test="[[ !!$variables.ask ]]">
+    <section class="er-card er-card-pad er-ask" role="alertdialog" aria-labelledby="askTitle">
+      <h2 class="er-section-title" id="askTitle"><oj-bind-text value="[[ $variables.ask.title ]]"></oj-bind-text></h2>
+      <p class="er-ask-text"><oj-bind-text value="[[ $variables.ask.message ]]"></oj-bind-text></p>
+      <div class="er-actions">
+        <button type="button" class="er-btn er-btn--plain" data-answer="cancel" on-click="[[ $listeners.onAnswer ]]">Cancel</button>
+        <button type="button" class="er-btn er-btn--dark" data-answer="ok" on-click="[[ $listeners.onAnswer ]]">
+          <oj-bind-text value="[[ $variables.ask.ok ]]"></oj-bind-text>
+        </button>
+      </div>
+    </section>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ $variables.isSyncing ]]">
+    <div class="er-card er-card-pad er-progress" role="status">
+      <span class="er-spin" aria-hidden="true"></span>
+      <span>
+        <strong><oj-bind-text value="[[ $functions.syncLabel(true, $variables.syncStep) ]]"></oj-bind-text></strong>
+        <span class="er-note"> <oj-bind-text value="[[ $variables.importMessage || 'Items first, then stock, then units.' ]]"></oj-bind-text></span>
+      </span>
+    </div>
+  </oj-bind-if>
+  <oj-bind-if test="[[ !$variables.isSyncing && !!$variables.syncResult ]]">
+    <div :class="[[ 'er-card er-card-pad er-result-note er-result-note--' + $variables.syncResult.type ]]" role="status">
+      <strong><oj-bind-text value="[[ $variables.syncResult.title ]]"></oj-bind-text></strong>
+      <span><oj-bind-text value="[[ $variables.syncResult.message ]]"></oj-bind-text></span>
+    </div>
+  </oj-bind-if>
+
+  <div class="er-filters">
+    <label class="er-search">
+      <span class="oj-ux-ico-search" aria-hidden="true"></span>
+      <span class="er-sr">Search equipment</span>
+      <input type="search" id="eqSearch" placeholder="Number, name, serial, type, manufacturer or location"
+        :value="[[ $variables.searchText ]]" on-input="[[ $listeners.onSearchInput ]]">
+    </label>
+    <button type="button" data-kind="panel" data-value="" on-click="[[ $listeners.onChip ]]"
+      :class="[[ 'er-chip' + ($variables.filtersOpen ? ' er-chip--on' : '') ]]" :aria-expanded="[[ $variables.filtersOpen ? 'true' : 'false' ]]">
+      <span class="oj-ux-ico-filter" aria-hidden="true"></span> Class and group
+      <oj-bind-if test="[[ !!($variables.classId || $variables.assetGroupId) ]]">
+        <span class="er-chip-count"><oj-bind-text value="[[ (($variables.classId ? 1 : 0) + ($variables.subclassId ? 1 : 0) + ($variables.assetGroupId ? 1 : 0)) + ' on' ]]"></oj-bind-text></span>
+      </oj-bind-if>
+    </button>
+    <div class="er-seg" role="group" aria-label="View">
+      <button type="button" data-kind="view" data-value="grid" on-click="[[ $listeners.onChip ]]"
+        :class="[[ 'er-seg-btn' + ($variables.view === 'grid' ? ' er-seg-btn--on' : '') ]]"
+        :aria-pressed="[[ $variables.view === 'grid' ? 'true' : 'false' ]]">Grid</button>
+      <button type="button" data-kind="view" data-value="map" on-click="[[ $listeners.onChip ]]"
+        :class="[[ 'er-seg-btn' + ($variables.view === 'map' ? ' er-seg-btn--on' : '') ]]"
+        :aria-pressed="[[ $variables.view === 'map' ? 'true' : 'false' ]]">Map</button>
+    </div>
+    <button type="button" class="er-icon-btn" title="Read the list again" aria-label="Refresh" on-click="[[ $listeners.onRefresh ]]">
+      <span class="oj-ux-ico-refresh" aria-hidden="true"></span>
+    </button>
+  </div>
+
+  <oj-bind-if test="[[ $variables.filtersOpen ]]">
+    <section class="er-card er-card-pad er-filterbox" aria-label="Class and asset group">
+      <div class="er-filterbox-row">
+        <span class="er-label">Class</span>
+        <div class="er-chip-row">
+          <oj-bind-for-each data="[[ $variables.classOptions ]]">
+            <template data-oj-as="c">
+              <button type="button" data-kind="class" :data-value="[[ c.data.value ]]" on-click="[[ $listeners.onChip ]]"
+                :class="[[ 'er-chip' + ($variables.classId === ('' + c.data.value) ? ' er-chip--on' : '') ]]">
+                <oj-bind-text value="[[ c.data.label ]]"></oj-bind-text>
+              </button>
+            </template>
+          </oj-bind-for-each>
+        </div>
+      </div>
+      <oj-bind-if test="[[ !!$variables.classId && $functions.subclassChoices($variables.subclassOptions, $variables.classId).length > 0 ]]">
+        <div class="er-filterbox-row">
+          <span class="er-label">Subclass</span>
+          <div class="er-chip-row">
+            <oj-bind-for-each data="[[ $functions.subclassChoices($variables.subclassOptions, $variables.classId) ]]">
+              <template data-oj-as="s">
+                <button type="button" data-kind="subclass" :data-value="[[ s.data.value ]]" on-click="[[ $listeners.onChip ]]"
+                  :class="[[ 'er-chip' + ($variables.subclassId === ('' + s.data.value) ? ' er-chip--on' : '') ]]">
+                  <oj-bind-text value="[[ s.data.label ]]"></oj-bind-text>
+                </button>
+              </template>
+            </oj-bind-for-each>
+          </div>
+        </div>
+      </oj-bind-if>
+      <oj-bind-if test="[[ $variables.assetGroupOptions.length > 0 ]]">
+        <div class="er-filterbox-row">
+          <span class="er-label">Asset group <span class="er-note">(items with an active asset in the group)</span></span>
+          <div class="er-chip-row">
+            <oj-bind-for-each data="[[ $variables.assetGroupOptions ]]">
+              <template data-oj-as="g">
+                <button type="button" data-kind="group" :data-value="[[ g.data.value ]]" on-click="[[ $listeners.onChip ]]"
+                  :class="[[ 'er-chip' + ($variables.assetGroupId === ('' + g.data.value) ? ' er-chip--on' : '') ]]">
+                  <oj-bind-text value="[[ g.data.label ]]"></oj-bind-text>
+                </button>
+              </template>
+            </oj-bind-for-each>
+          </div>
+        </div>
+      </oj-bind-if>
+    </section>
+  </oj-bind-if>
+
+  <div class="er-chip-row" role="group" aria-label="Status">
+    <oj-bind-for-each data="[[ $variables.statusChips ]]">
+      <template data-oj-as="chip">
+        <button type="button" data-kind="status" :data-value="[[ chip.data.key ]]" on-click="[[ $listeners.onChip ]]"
+          :class="[[ 'er-chip' + ($variables.statusFilter === chip.data.key ? ' er-chip--on' : '') ]]"
+          :aria-pressed="[[ $variables.statusFilter === chip.data.key ? 'true' : 'false' ]]">
+          <oj-bind-text value="[[ chip.data.label ]]"></oj-bind-text>
+          <span class="er-chip-count"><oj-bind-text value="[[ chip.data.count ]]"></oj-bind-text></span>
+        </button>
+      </template>
+    </oj-bind-for-each>
+    <span class="er-chip-sep" aria-hidden="true"></span>
+    <oj-bind-for-each data="[[ $variables.trackingChips ]]">
+      <template data-oj-as="chip">
+        <button type="button" data-kind="tracking" :data-value="[[ chip.data.key ]]" on-click="[[ $listeners.onChip ]]"
+          :class="[[ 'er-chip' + ($variables.trackingFilter === chip.data.key ? ' er-chip--on' : '') ]]"
+          :aria-pressed="[[ $variables.trackingFilter === chip.data.key ? 'true' : 'false' ]]">
+          <oj-bind-text value="[[ chip.data.label ]]"></oj-bind-text>
+          <span class="er-chip-count"><oj-bind-text value="[[ chip.data.count ]]"></oj-bind-text></span>
+        </button>
+      </template>
+    </oj-bind-for-each>
+    <oj-bind-for-each data="[[ $variables.sourceChips ]]">
+      <template data-oj-as="chip">
+        <button type="button" data-kind="source" :data-value="[[ chip.data.key ]]" on-click="[[ $listeners.onChip ]]"
+          :class="[[ 'er-chip' + ($variables.sourceFilter === chip.data.key ? ' er-chip--on' : '') ]]"
+          :aria-pressed="[[ $variables.sourceFilter === chip.data.key ? 'true' : 'false' ]]">
+          <oj-bind-text value="[[ 'From ' + chip.data.label ]]"></oj-bind-text>
+          <span class="er-chip-count"><oj-bind-text value="[[ chip.data.count ]]"></oj-bind-text></span>
+        </button>
+      </template>
+    </oj-bind-for-each>
+    <oj-bind-if test="[[ !!($variables.searchText || $variables.classId || $variables.assetGroupId || $variables.statusFilter !== 'all'
+                            || $variables.trackingFilter || $variables.sourceFilter || $variables.mapLocation) ]]">
+      <button type="button" class="er-chip er-chip--clear" data-kind="clear" data-value="" on-click="[[ $listeners.onChip ]]">Clear filters</button>
+    </oj-bind-if>
+  </div>
+
+  <oj-bind-if test="[[ !!$variables.fetchError ]]">
+    <div class="er-error" role="alert"><oj-bind-text value="[[ $variables.fetchError ]]"></oj-bind-text></div>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ $variables.view === 'map' ]]">
+    <section class="er-card er-card-pad" aria-labelledby="mapTitle">
+      <div class="er-table-head">
+        <h2 class="er-section-title" id="mapTitle">Where the equipment is</h2>
+        <span class="er-note">
+          <oj-bind-text value="[[ $variables.map.placed + ' placed by their current location'
+            + ($variables.map.unplaced ? ' · ' + $variables.map.unplaced + ' with no location on record' : '')
+            + ' · pick a location to list its items' ]]"></oj-bind-text>
+        </span>
+      </div>
+      <oj-bind-if test="[[ $variables.map.points.length === 0 ]]">
+        <p class="er-muted">None of these items has a location with coordinates (EQR_LOCATION latitude and longitude).</p>
+      </oj-bind-if>
+      <oj-bind-if test="[[ $variables.map.points.length > 0 ]]">
+        <div class="er-map" role="group" aria-label="Locations">
+          <oj-bind-for-each data="[[ $variables.map.points ]]">
+            <template data-oj-as="p">
+              <button type="button" data-kind="location" :data-value="[[ p.data.id ]]" on-click="[[ $listeners.onChip ]]"
+                :class="[[ 'er-map-dot' + ($variables.mapLocation === p.data.id ? ' er-map-dot--on' : '') ]]"
+                :style="[[ $functions.dotStyle(p.data) ]]"
+                :title="[[ p.data.label ]]" :aria-label="[[ p.data.label + (p.data.count === 1 ? ' item' : ' items') ]]">
+                <span class="er-map-count"><oj-bind-text value="[[ p.data.count ]]"></oj-bind-text></span>
+                <span class="er-map-name"><oj-bind-text value="[[ p.data.name ]]"></oj-bind-text></span>
+              </button>
+            </template>
+          </oj-bind-for-each>
+        </div>
+      </oj-bind-if>
+    </section>
+  </oj-bind-if>
+
+  <section class="er-card">
+    <oj-table id="equipmentTable" data="[[ $variables.rowsADP ]]" columns="[[ $functions.columns() ]]"
+      class="oj-table-stretch" style="width: 100%; min-height: 420px;"
+      scroll-policy="loadMoreOnScroll" scroll-policy-options.fetch-size="50"
+      selection-mode='{"row": "single"}' on-first-selected-row-changed="[[ $listeners.onRowAction ]]"
+      aria-label="Equipment">
+      <template slot="nameTpl" data-oj-as="cell">
+        <div>
+          <span class="er-eq-num"><oj-bind-text value="[[ cell.row.equipmentNumber || ('#' + cell.row.id) ]]"></oj-bind-text></span>
+          <div class="er-cell-main"><oj-bind-text value="[[ cell.row.equipmentName || '—' ]]"></oj-bind-text></div>
+        </div>
+      </template>
+      <template slot="classTpl" data-oj-as="cell">
+        <oj-bind-text value="[[ $functions.classText(cell.row, $variables.classesById, $variables.subclassesById) || '—' ]]"></oj-bind-text>
+      </template>
+      <template slot="trackTpl" data-oj-as="cell">
+        <oj-bind-text value="[[ $functions.trackingLabel(cell.row) ]]"></oj-bind-text>
+      </template>
+      <template slot="stockTpl" data-oj-as="cell">
+        <oj-bind-text value="[[ $functions.stockLabel(cell.row.serialUnitCount, cell.row.onHandQty) || '—' ]]"></oj-bind-text>
+      </template>
+      <template slot="statusTpl" data-oj-as="cell">
+        <span :class="[[ $functions.statusClass(cell.data) ]]"><oj-bind-text value="[[ $functions.statusLabel(cell.data) ]]"></oj-bind-text></span>
+      </template>
+      <template slot="sourceTpl" data-oj-as="cell">
+        <oj-bind-text value="[[ $functions.recordSourceLabel(cell.data) ]]"></oj-bind-text>
+      </template>
+      <template slot="noData">
+        <div style="text-align: center; padding: 48px 0;" class="er-muted">
+          <oj-bind-if test="[[ $variables.isLoading ]]">Loading equipment…</oj-bind-if>
+          <oj-bind-if test="[[ !$variables.isLoading && !$variables.fetchError ]]">No equipment matches. Try another search or clear the filters.</oj-bind-if>
+        </div>
+      </template>
+    </oj-table>
+  </section>
+
+  <p class="er-note">
+    New equipment comes in through Import from Fusion: today's Create page in Old EquipRite does not save.
+    Selective sync of single items is not offered: Fusion syncs run for every item at once.
+  </p>
+</div>

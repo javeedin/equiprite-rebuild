@@ -1,0 +1,249 @@
+<!-- Equipment detail (wireframe: Equipment detail). Data: detailInitChain (the old equipment-units page's calls);
+     Change class: openChangeClassChain, classPickChain, saveClassChangeChain (the old dialog's chains). -->
+<div class="er-band">
+  <div class="er-band-inner">
+    <div>
+      <div class="er-band-kicker">
+        <button type="button" class="er-link-inverse" on-click="[[ $listeners.onBack ]]">Equipment</button>
+        · Master data · FDD 7.2.5
+      </div>
+      <h1>
+        <oj-bind-text value="[[ $variables.masterRecord.equipmentName || ($variables.isLoading ? 'Loading…' : 'Equipment') ]]"></oj-bind-text>
+        <oj-bind-if test="[[ !!$variables.masterRecord.equipmentNumber ]]">
+          <span class="er-band-num"> · <oj-bind-text value="[[ $variables.masterRecord.equipmentNumber ]]"></oj-bind-text></span>
+        </oj-bind-if>
+      </h1>
+      <oj-bind-if test="[[ !$variables.isLoading && !$variables.loadError ]]">
+        <div class="er-band-sub er-lights">
+          <span :class="[[ $functions.woLight($variables.workOrders, $variables.woLoaded).cls ]]">
+            <oj-bind-text value="[[ $variables.woLoading ? 'Checking work orders…' : $functions.woLight($variables.workOrders, $variables.woLoaded).text ]]"></oj-bind-text>
+          </span>
+          <span :class="[[ $functions.certLight($variables.attRows).cls ]]"><oj-bind-text value="[[ $functions.certLight($variables.attRows).text ]]"></oj-bind-text></span>
+          <span><oj-bind-text value="[[ $functions.classText($variables.masterRecord) ]]"></oj-bind-text></span>
+          <span><oj-bind-text value="[[ $functions.controlLabel($variables.controlType) ]]"></oj-bind-text></span>
+        </div>
+      </oj-bind-if>
+    </div>
+    <div class="er-actions">
+      <oj-bind-if test="[[ $functions.oldUnitsLink($application.variables.oldAppUrl, $variables.equipmentId, $variables.controlType) ]]">
+        <a class="er-btn er-btn--ghost" title="The same equipment in today's app"
+          :href="[[ $functions.oldUnitsLink($application.variables.oldAppUrl, $variables.equipmentId, $variables.controlType) ]]">Old version</a>
+      </oj-bind-if>
+      <oj-bind-if test="[[ $variables.canWrite && !!$variables.masterRecord.id ]]">
+        <button type="button" class="er-btn er-btn--primary" id="changeClassBtn" on-click="[[ $listeners.onChangeClass ]]">Change class</button>
+      </oj-bind-if>
+    </div>
+  </div>
+  <div class="er-strip" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+</div>
+
+<div class="er-page">
+  <oj-bind-if test="[[ !!$variables.loadError ]]">
+    <div class="er-error" role="alert">
+      <oj-bind-text value="[[ $variables.loadError ]]"></oj-bind-text>
+      <button type="button" class="er-btn er-btn--plain" on-click="[[ $listeners.onBack ]]">Back to equipment</button>
+    </div>
+  </oj-bind-if>
+  <oj-bind-if test="[[ $variables.isLoading ]]">
+    <div class="er-card er-card-pad er-muted">Loading the equipment…</div>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ $variables.classPanelOpen ]]">
+    <section class="er-card er-card-pad er-classpanel" aria-labelledby="ccTitle">
+      <div class="er-table-head">
+        <h2 class="er-section-title" id="ccTitle">Change class</h2>
+        <button type="button" class="er-btn er-btn--plain" data-kind="close" data-value="" on-click="[[ $listeners.onClassPick ]]">Close</button>
+      </div>
+      <p class="er-note">Items already in the equipment master are re-classified by hand: the Class Mapping rules only run on fetched items.</p>
+      <oj-bind-if test="[[ $variables.classChangeLoading ]]"><p class="er-muted">Loading the classes…</p></oj-bind-if>
+      <div class="er-label">Class</div>
+      <div class="er-chip-row">
+        <oj-bind-for-each data="[[ $variables.classOptions ]]">
+          <template data-oj-as="c">
+            <button type="button" data-kind="class" :data-value="[[ c.data.value ]]" on-click="[[ $listeners.onClassPick ]]"
+              :class="[[ 'er-chip' + ($variables.classDraft.classId === c.data.value ? ' er-chip--on' : '') ]]"
+              :aria-pressed="[[ $variables.classDraft.classId === c.data.value ? 'true' : 'false' ]]">
+              <oj-bind-text value="[[ c.data.label ]]"></oj-bind-text>
+            </button>
+          </template>
+        </oj-bind-for-each>
+      </div>
+      <oj-bind-if test="[[ $variables.subclassOptions.length > 0 ]]">
+        <div class="er-label">Subclass <span class="er-req">*</span> <span class="er-note">(this class has subclasses: choose one)</span></div>
+        <div class="er-chip-row">
+          <oj-bind-for-each data="[[ $variables.subclassOptions ]]">
+            <template data-oj-as="s">
+              <button type="button" data-kind="subclass" :data-value="[[ s.data.value ]]" on-click="[[ $listeners.onClassPick ]]"
+                :class="[[ 'er-chip' + ($variables.classDraft.subclassId === s.data.value ? ' er-chip--on' : '') ]]"
+                :aria-pressed="[[ $variables.classDraft.subclassId === s.data.value ? 'true' : 'false' ]]">
+                <oj-bind-text value="[[ s.data.label ]]"></oj-bind-text>
+              </button>
+            </template>
+          </oj-bind-for-each>
+        </div>
+      </oj-bind-if>
+      <oj-bind-if test="[[ !!$functions.classChangeText($variables.classDraft, $variables.masterRecord, $variables.classOptions, $variables.subclassOptions) ]]">
+        <p class="er-consequence"><oj-bind-text value="[[ $functions.classChangeText($variables.classDraft, $variables.masterRecord, $variables.classOptions, $variables.subclassOptions) ]]"></oj-bind-text></p>
+      </oj-bind-if>
+      <oj-bind-if test="[[ !!$variables.classChangeError ]]">
+        <div class="er-error" role="alert"><oj-bind-text value="[[ $variables.classChangeError ]]"></oj-bind-text></div>
+      </oj-bind-if>
+      <div class="er-actions">
+        <button type="button" class="er-btn er-btn--dark" id="saveClassBtn" on-click="[[ $listeners.onSaveClass ]]"
+          :disabled="[[ $variables.classChangeSaving || $variables.classChangeLoading
+                        || !$functions.canSaveClass($variables.classDraft, $variables.masterRecord, $variables.subclassOptions).ok ]]">
+          <oj-bind-text value="[[ $variables.classChangeSaving ? 'Saving…' : 'Save class' ]]"></oj-bind-text>
+        </button>
+        <span class="er-note"><oj-bind-text value="[[ $functions.canSaveClass($variables.classDraft, $variables.masterRecord, $variables.subclassOptions).message ]]"></oj-bind-text></span>
+      </div>
+    </section>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ !$variables.isLoading && !$variables.loadError ]]">
+    <div class="er-detail-grid">
+      <section class="er-card er-card-pad" aria-labelledby="genTitle">
+        <h2 class="er-section-title" id="genTitle">General</h2>
+        <dl class="er-facts er-facts--tight">
+          <div><dt>Class · subclass</dt><dd><oj-bind-text value="[[ $functions.classText($variables.masterRecord) ]]"></oj-bind-text></dd></div>
+          <div><dt>Type</dt><dd><oj-bind-text value="[[ $variables.masterRecord.equipmentType || '—' ]]"></oj-bind-text></dd></div>
+          <div><dt>Manufacturer · model</dt><dd><oj-bind-text value="[[ $functions.makerModel($variables.masterRecord) || '—' ]]"></oj-bind-text></dd></div>
+          <div><dt>Model year</dt><dd><oj-bind-text value="[[ $variables.masterRecord.mfgYear || '—' ]]"></oj-bind-text></dd></div>
+          <div><dt>Status</dt><dd><oj-bind-text value="[[ $variables.masterRecord.catalogStatus || '—' ]]"></oj-bind-text></dd></div>
+          <div><dt>Capacity</dt><dd><oj-bind-text value="[[ ($variables.masterRecord.capacity || '—') + ($variables.masterRecord.capacityUom ? ' ' + $variables.masterRecord.capacityUom : '') ]]"></oj-bind-text></dd></div>
+          <div><dt>Weight</dt><dd><oj-bind-text value="[[ $variables.masterRecord.weight != null ? $variables.masterRecord.weight + ($variables.masterRecord.weightUom ? ' ' + $variables.masterRecord.weightUom : '') : '—' ]]"></oj-bind-text></dd></div>
+          <div><dt>Maintenance asset</dt><dd><oj-bind-text value="[[ $variables.masterRecord.maintenanceAssetNumber || '—' ]]"></oj-bind-text></dd></div>
+          <div><dt>Tracked in</dt><dd><oj-bind-text value="[[ $functions.trackedIn($variables.masterRecord) ]]"></oj-bind-text></dd></div>
+          <div><dt>Surplus</dt><dd><oj-bind-text value="[[ $functions.yesNo($variables.masterRecord.surplusFlag) || '—' ]]"></oj-bind-text></dd></div>
+          <div><dt>Updated</dt><dd><oj-bind-text value="[[ $functions.formatDate($variables.masterRecord.lastUpdatedDate) || '—' ]]"></oj-bind-text></dd></div>
+        </dl>
+        <oj-bind-if test="[[ !!$variables.masterRecord.equipmentDescription ]]">
+          <p class="er-desc"><oj-bind-text value="[[ $variables.masterRecord.equipmentDescription ]]"></oj-bind-text></p>
+        </oj-bind-if>
+      </section>
+
+      <section class="er-card er-card-pad" aria-labelledby="docTitle">
+        <div class="er-table-head">
+          <h2 class="er-section-title" id="docTitle">Certificates and documents</h2>
+          <span class="er-note"><oj-bind-text value="[[ $variables.attRows.length + ($variables.attRows.length === 1 ? ' document' : ' documents') ]]"></oj-bind-text></span>
+        </div>
+        <oj-bind-if test="[[ $variables.attLoading ]]"><p class="er-muted">Loading documents…</p></oj-bind-if>
+        <oj-bind-if test="[[ !!$variables.attLoadError ]]"><div class="er-error"><oj-bind-text value="[[ $variables.attLoadError ]]"></oj-bind-text></div></oj-bind-if>
+        <oj-bind-if test="[[ !$variables.attLoading && $variables.attRows.length === 0 && !$variables.attLoadError ]]">
+          <p class="er-muted">No documents on this equipment.</p>
+        </oj-bind-if>
+        <ul class="er-doclist">
+          <oj-bind-for-each data="[[ $variables.attRows ]]">
+            <template data-oj-as="d">
+              <li>
+                <span class="er-doc-main">
+                  <span class="er-cell-main"><oj-bind-text value="[[ d.data.name ]]"></oj-bind-text></span>
+                  <span class="er-note"><oj-bind-text value="[[ d.data.categoryLabel + (d.data.validTo ? ' · valid to ' + $functions.formatDate(d.data.validTo) : '') + ' · ' + d.data.fileType ]]"></oj-bind-text></span>
+                </span>
+                <oj-bind-if test="[[ !!d.data.statusLabel ]]">
+                  <span :class="[[ $functions.attStatusClass(d.data.status) ]]"><oj-bind-text value="[[ d.data.statusLabel ]]"></oj-bind-text></span>
+                </oj-bind-if>
+                <button type="button" class="er-btn er-btn--plain" :data-id="[[ d.data.id ]]" on-click="[[ $listeners.onOpenDoc ]]">Open</button>
+              </li>
+            </template>
+          </oj-bind-for-each>
+        </ul>
+        <p class="er-note">Uploading and removing documents, and the equipment photo, are still in Old EquipRite.</p>
+      </section>
+
+      <section class="er-card er-card-pad" aria-labelledby="woTitle">
+        <div class="er-table-head">
+          <h2 class="er-section-title" id="woTitle">Maintenance</h2>
+          <button type="button" class="er-btn er-btn--plain" :disabled="[[ $variables.woLoading ]]" on-click="[[ $listeners.onLoadWorkOrders ]]">
+            <oj-bind-text value="[[ $variables.woLoading ? 'Checking Fusion…' : ($variables.woLoaded ? 'Check again' : 'Check Fusion work orders') ]]"></oj-bind-text>
+          </button>
+        </div>
+        <p class="er-note">
+          <oj-bind-text value="[[ $functions.assetNumbers($variables.masterRecord, $variables.unitsArray).length + ' maintenance asset(s) on this equipment and its units' ]]"></oj-bind-text>
+        </p>
+        <oj-bind-if test="[[ $variables.woLoaded && $variables.workOrders.length === 0 ]]"><p class="er-muted">Fusion has no work orders for these assets.</p></oj-bind-if>
+        <ul class="er-doclist">
+          <oj-bind-for-each data="[[ $variables.workOrders ]]">
+            <template data-oj-as="w">
+              <li>
+                <span class="er-doc-main">
+                  <span class="er-cell-main"><oj-bind-text value="[[ w.data.number + (w.data.type ? ' · ' + w.data.type : '') ]]"></oj-bind-text></span>
+                  <span class="er-note"><oj-bind-text value="[[ w.data.asset + (w.data.start ? ' · ' + $functions.formatDate(w.data.start) + (w.data.end ? ' – ' + $functions.formatDate(w.data.end) : '') : '') + (w.data.description ? ' · ' + w.data.description : '') ]]"></oj-bind-text></span>
+                </span>
+                <span :class="[[ w.data.open ? 'er-unit-badge er-unit-badge--progress' : 'er-unit-badge er-unit-badge--neutral' ]]"><oj-bind-text value="[[ w.data.status || '—' ]]"></oj-bind-text></span>
+              </li>
+            </template>
+          </oj-bind-for-each>
+        </ul>
+      </section>
+
+      <section class="er-card er-card-pad" aria-labelledby="expTitle">
+        <h2 class="er-section-title" id="expTitle">Expenditure types</h2>
+        <p><oj-bind-text value="[[ $functions.expTypeText($variables.ExpTypeResolvedLevel, $variables.ExpTypeInherited, $variables.ExpTypeRows.length) ]]"></oj-bind-text></p>
+        <ul class="er-taglist">
+          <oj-bind-for-each data="[[ $variables.ExpTypeRows ]]">
+            <template data-oj-as="e">
+              <li class="er-tag"><oj-bind-text value="[[ e.data.expenditureType + (e.data.isDefault === 'Y' ? ' (default)' : '') ]]"></oj-bind-text></li>
+            </template>
+          </oj-bind-for-each>
+        </ul>
+        <p class="er-note">Adding, removing and choosing the default type are still in Old EquipRite.</p>
+      </section>
+    </div>
+
+    <section class="er-card" aria-labelledby="unitsTitle">
+      <div class="er-card-pad er-table-head">
+        <div>
+          <h2 class="er-section-title" id="unitsTitle">
+            <oj-bind-text value="[[ $variables.controlType === 'LOT' ? 'Lots' : ($variables.controlType === 'INVENTORY' ? 'Stock by organization' : 'Serial units') ]]"></oj-bind-text>
+            <span class="er-chip-count"><oj-bind-text value="[[ $variables.unitsArray.length ]]"></oj-bind-text></span>
+          </h2>
+          <div class="er-chip-row er-unit-summary">
+            <oj-bind-for-each data="[[ $functions.unitSummary($variables.unitsArray) ]]">
+              <template data-oj-as="u">
+                <span :class="[[ u.data.cls ]]"><oj-bind-text value="[[ u.data.label + ' ' + u.data.count ]]"></oj-bind-text></span>
+              </template>
+            </oj-bind-for-each>
+          </div>
+        </div>
+        <label class="er-search er-search--small">
+          <span class="oj-ux-ico-search" aria-hidden="true"></span>
+          <span class="er-sr">Search units</span>
+          <input type="search" placeholder="Number, status, location or asset" on-input="[[ $listeners.onUnitFilter ]]">
+        </label>
+      </div>
+      <div class="er-table-wrap">
+        <div class="er-units" role="table" aria-labelledby="unitsTitle">
+          <div class="er-units-row er-grid-head" role="row">
+            <span role="columnheader">Unit</span><span role="columnheader">Status</span><span role="columnheader">Where</span>
+            <span role="columnheader">Qty</span><span role="columnheader">Maintenance asset</span><span role="columnheader">Dates</span>
+          </div>
+          <oj-bind-for-each data="[[ $functions.filterUnits($variables.unitsArray, $variables.unitFilter) ]]">
+            <template data-oj-as="u">
+              <div class="er-units-row" role="row">
+                <span role="cell">
+                  <oj-bind-if test="[[ $variables.controlType === 'SERIAL' && !!$functions.oldUnitLink($application.variables.oldAppUrl, $variables.equipmentId, u.data.id, $variables.controlType) ]]">
+                    <a class="er-cell-main" title="This unit in Old EquipRite (project, task, its documents)"
+                      :href="[[ $functions.oldUnitLink($application.variables.oldAppUrl, $variables.equipmentId, u.data.id, $variables.controlType) ]]">
+                      <oj-bind-text value="[[ $functions.unitId(u.data, $variables.controlType) || '—' ]]"></oj-bind-text></a>
+                  </oj-bind-if>
+                  <oj-bind-if test="[[ !($variables.controlType === 'SERIAL' && !!$functions.oldUnitLink($application.variables.oldAppUrl, $variables.equipmentId, u.data.id, $variables.controlType)) ]]">
+                    <span class="er-cell-main"><oj-bind-text value="[[ $functions.unitId(u.data, $variables.controlType) || '—' ]]"></oj-bind-text></span>
+                  </oj-bind-if>
+                  <oj-bind-if test="[[ !!u.data.unitTagNumber ]]"><span class="er-note"><oj-bind-text value="[[ u.data.unitTagNumber ]]"></oj-bind-text></span></oj-bind-if>
+                </span>
+                <span role="cell"><span :class="[[ $functions.badgeClass($functions.unitStatus(u.data)) ]]"><oj-bind-text value="[[ $functions.badgeLabel($functions.unitStatus(u.data)) || '—' ]]"></oj-bind-text></span></span>
+                <span role="cell"><oj-bind-text value="[[ $functions.unitWhere(u.data) || '—' ]]"></oj-bind-text></span>
+                <span role="cell" class="er-num"><oj-bind-text value="[[ $functions.unitQty(u.data, $variables.controlType) ]]"></oj-bind-text></span>
+                <span role="cell"><oj-bind-text value="[[ u.data.maintenanceAssetNumber || '—' ]]"></oj-bind-text></span>
+                <span role="cell" class="er-note"><oj-bind-text value="[[ $functions.unitDates(u.data, $variables.controlType) ]]"></oj-bind-text></span>
+              </div>
+            </template>
+          </oj-bind-for-each>
+          <oj-bind-if test="[[ $variables.unitsArray.length === 0 ]]">
+            <div class="er-card-pad er-muted">No units on record for this equipment yet. Sync from Fusion brings in serials, lots and on-hand.</div>
+          </oj-bind-if>
+        </div>
+      </div>
+    </section>
+  </oj-bind-if>
+</div>

@@ -1,0 +1,80 @@
+{
+  "title": "Agreement",
+  "description": "New or edit rental agreement: header and lines on one page (FDD 7.3A.1–7.3A.3; replaces rental-agreement-create). Save is the old page's saveAgreementChain: PUT or POST the header, then delete, patch and create lines.",
+  "variables": {
+    "agreementId": { "type": "string", "input": "fromUrl", "persisted": "none", "description": "EQR_AGREEMENT_HEADER_ID to edit; empty for a new agreement." },
+    "isLoading": { "type": "boolean", "defaultValue": true },
+    "loadError": { "type": "string", "defaultValue": "" },
+    "saving": { "type": "boolean", "defaultValue": false },
+    "dirty": { "type": "boolean", "defaultValue": false },
+    "missing": { "type": "any[]", "defaultValue": [] },
+    "formData": {
+      "type": "any",
+      "defaultValue": {
+        "agreementName": "", "agreementType": "", "notes": "", "customerRefId": null, "customerId": null, "customerName": "",
+        "startDate": "", "endDate": "", "currencyCode": "USD"
+      },
+      "description": "The old page's formData, without the fields it never saved."
+    },
+    "loadedHeader": { "type": "any", "defaultValue": null },
+    "typeOptions": { "type": "any[]", "defaultValue": [] },
+    "customerQuery": { "type": "string", "defaultValue": "" },
+    "customerResults": { "type": "any[]", "defaultValue": [] },
+    "equipmentLines": { "type": "any[]", "defaultValue": [] },
+    "deletedLineIds": { "type": "any[]", "defaultValue": [] },
+    "addLineOpen": { "type": "boolean", "defaultValue": false },
+    "lineError": { "type": "string", "defaultValue": "" },
+    "currentLine": {
+      "type": "any",
+      "defaultValue": { "classId": null, "className": "", "subclassId": null, "subclassName": "", "equipmentMasterId": null, "equipmentName": "", "description": "", "unitPrice": null, "priceUom": "DAY" }
+    },
+    "equipmentClassesArray": { "type": "any[]", "defaultValue": [] },
+    "equipmentSubclassesArray": { "type": "any[]", "defaultValue": [] },
+    "equipmentNamesArray": { "type": "any[]", "defaultValue": [] }
+  },
+  "metadata": {},
+  "eventListeners": {
+    "vbBeforeEnter": { "chains": [{ "chain": "agreementsFlagGuardChain" }, { "chain": "enforcePageAccessChain" }] },
+    "vbEnter": { "chains": [{ "chain": "agreementEditInitChain" }] },
+    "vbBeforeExit": { "chains": [{ "chain": "BeforeExitChain" }] },
+    "onField": {
+      "chains": [{
+        "chain": "fieldChain",
+        "parameters": { "action": "{{ $event.target.dataset.action }}", "field": "{{ $event.target.dataset.field }}", "value": "{{ $event.target.value }}", "index": "{{ $event.target.dataset.index }}" }
+      }]
+    },
+    "onFieldButton": {
+      "chains": [{
+        "chain": "fieldChain",
+        "parameters": { "action": "{{ $event.currentTarget.dataset.action }}", "field": "{{ $event.currentTarget.dataset.field }}", "value": "{{ $event.currentTarget.dataset.value }}", "index": "{{ $event.currentTarget.dataset.index }}" }
+      }]
+    },
+    "onNotes": {
+      "chains": [{
+        "chain": "fieldChain",
+        "parameters": { "action": "field", "field": "notes", "value": "{{ $event.detail.value }}", "from": "{{ $event.detail.updatedFrom }}" }
+      }]
+    },
+    "onLine": {
+      "chains": [{
+        "chain": "lineDraftChain",
+        "parameters": { "action": "{{ $event.currentTarget.dataset.action }}", "value": "{{ $event.currentTarget.dataset.value }}", "key": "{{ $event.currentTarget.dataset.key }}" }
+      }]
+    },
+    "onLineInput": {
+      "chains": [{
+        "chain": "lineDraftChain",
+        "parameters": { "action": "{{ $event.target.dataset.action }}", "value": "{{ $event.target.value }}" }
+      }]
+    },
+    "onSave": { "chains": [{ "chain": "saveAgreementChain" }] }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" },
+      "oj-text-area": { "path": "ojs/ojinputtext" }
+    }
+  }
+}

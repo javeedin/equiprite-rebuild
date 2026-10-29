@@ -1,0 +1,114 @@
+{
+  "title": "Rate schedules",
+  "description": "Rate schedules and their six rate periods in one grid, with a margin check and a cost simulator (FDD 7.3; replaces rate-schedule and create-rate-schedule). Data: GET /rate-schedules, /rate-schedules/{id}, /rate-period-lines; Save writes the header and every line as the old editor did (saveScheduleChain).",
+  "variables": {
+    "scheduleId": { "type": "number", "input": "fromUrl", "persisted": "none", "description": "A schedule to open first." },
+    "canWrite": { "type": "boolean", "defaultValue": false, "description": "FULL access to EQR_RATE_SCHEDULE." },
+    "isLoading": { "type": "boolean", "defaultValue": true },
+    "listError": { "type": "string", "defaultValue": "" },
+    "schedules": { "type": "any[]", "defaultValue": [], "description": "The old RateScheduleInitChain's rows." },
+    "listText": { "type": "string", "defaultValue": "" },
+    "listChip": { "type": "string", "defaultValue": "all" },
+    "selectedId": { "type": "string", "defaultValue": "", "description": "Schedule id, or 'new'." },
+    "detailLoading": { "type": "boolean", "defaultValue": false },
+    "detailError": { "type": "string", "defaultValue": "" },
+    "formData": { "type": "any", "defaultValue": {}, "description": "The old editor's formData." },
+    "lines": { "type": "any[]", "defaultValue": [], "description": "The old editor's equipmentLines." },
+    "dirty": { "type": "boolean", "defaultValue": false },
+    "saving": { "type": "boolean", "defaultValue": false },
+    "lineError": { "type": "string", "defaultValue": "" },
+    "focusKey": { "type": "string", "defaultValue": "" },
+    "headerOpen": { "type": "boolean", "defaultValue": false },
+    "yardOptions": { "type": "any[]", "defaultValue": [] },
+    "customerQuery": { "type": "string", "defaultValue": "" },
+    "customerResults": { "type": "any[]", "defaultValue": [] },
+    "projectQuery": { "type": "string", "defaultValue": "" },
+    "projectResults": { "type": "any[]", "defaultValue": [] },
+    "taskOptions": { "type": "any[]", "defaultValue": [] },
+    "taskQuery": { "type": "string", "defaultValue": "" },
+    "addRowOpen": { "type": "boolean", "defaultValue": false },
+    "addRow": { "type": "any", "defaultValue": {} },
+    "addClasses": { "type": "any[]", "defaultValue": [] },
+    "addSubclasses": { "type": "any[]", "defaultValue": [] },
+    "addEquipment": { "type": "any[]", "defaultValue": [] },
+    "sim": { "type": "any", "defaultValue": { "hours": 80, "daysWorked": 10, "daysOnRent": 14, "qty": 1 } },
+    "ask": { "type": "any", "defaultValue": null }
+  },
+  "metadata": {},
+  "eventListeners": {
+    "vbBeforeEnter": { "chains": [{ "chain": "enforcePageAccessChain" }] },
+    "vbEnter": { "chains": [{ "chain": "ratesInitChain" }] },
+    "vbBeforeExit": { "chains": [{ "chain": "BeforeExitChain" }] },
+    "onListSearch": { "chains": [{ "chain": "listChain", "parameters": { "action": "search", "value": "{{ $event.target.value }}" } }] },
+    "onListChip": { "chains": [{ "chain": "listChain", "parameters": { "action": "chip", "value": "{{ $event.currentTarget.dataset.value }}" } }] },
+    "onSimInput": { "chains": [{ "chain": "listChain", "parameters": { "action": "{{ $event.target.dataset.field }}", "value": "{{ $event.target.value }}" } }] },
+    "onSelect": { "chains": [{ "chain": "selectScheduleChain", "parameters": { "id": "{{ $event.currentTarget.dataset.id }}" } }] },
+    "onNew": { "chains": [{ "chain": "selectScheduleChain", "parameters": { "id": "new" } }] },
+    "onHeader": {
+      "chains": [{
+        "chain": "headerChain",
+        "parameters": {
+          "action": "{{ $event.currentTarget.dataset.action }}",
+          "field": "{{ $event.currentTarget.dataset.field }}",
+          "value": "{{ $event.currentTarget.dataset.value }}",
+          "index": "{{ $event.currentTarget.dataset.index }}"
+        }
+      }]
+    },
+    "onHeaderInput": {
+      "chains": [{
+        "chain": "headerChain",
+        "parameters": {
+          "action": "{{ $event.target.dataset.action }}",
+          "field": "{{ $event.target.dataset.field }}",
+          "value": "{{ $event.target.type === 'checkbox' ? $event.target.checked : $event.target.value }}"
+        }
+      }]
+    },
+    "onLineEdit": {
+      "chains": [{
+        "chain": "lineEditChain",
+        "parameters": { "key": "{{ $event.target.dataset.key }}", "field": "{{ $event.target.dataset.field }}", "value": "{{ $event.target.value }}" }
+      }]
+    },
+    "onLineButton": {
+      "chains": [{
+        "chain": "lineEditChain",
+        "parameters": { "key": "{{ $event.currentTarget.dataset.key }}", "field": "{{ $event.currentTarget.dataset.field }}", "value": "{{ $event.currentTarget.dataset.value }}" }
+      }]
+    },
+    "onAddLine": {
+      "chains": [{
+        "chain": "addLineChain",
+        "parameters": { "groupKey": "{{ $event.currentTarget.dataset.group }}", "period": "{{ $event.currentTarget.dataset.period }}" }
+      }]
+    },
+    "onRemoveLine": {
+      "chains": [{ "chain": "removeLineChain", "parameters": { "key": "{{ $event.currentTarget.dataset.key }}" } }]
+    },
+    "onAddRow": {
+      "chains": [{
+        "chain": "addRowChain",
+        "parameters": { "action": "{{ $event.currentTarget.dataset.action }}", "value": "{{ $event.currentTarget.dataset.value }}" }
+      }]
+    },
+    "onAddRowInput": {
+      "chains": [{
+        "chain": "addRowChain",
+        "parameters": { "action": "{{ $event.target.dataset.action }}", "value": "{{ $event.target.value }}" }
+      }]
+    },
+    "onSave": { "chains": [{ "chain": "saveScheduleChain" }] },
+    "onDelete": { "chains": [{ "chain": "deleteScheduleChain", "parameters": {} }] },
+    "onAnswer": {
+      "chains": [{ "chain": "answerChain", "parameters": { "answer": "{{ $event.currentTarget.dataset.answer }}" } }]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}

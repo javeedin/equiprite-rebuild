@@ -1,0 +1,53 @@
+{
+  "title": "Agreement lines",
+  "description": "One rental agreement and its lines (FDD 7.3A.3–7.3A.6; replaces rental-agreement-lines). Data: agreementLinesInitChain (the old page's calls). Approve / Reject are the old page's chains; Create request hands the ticked lines to New request as the old Create Request did.",
+  "variables": {
+    "agreementNumber": { "type": "string", "input": "fromUrl", "persisted": "none" },
+    "canWrite": { "type": "boolean", "defaultValue": false },
+    "isLoading": { "type": "boolean", "defaultValue": true },
+    "loadError": { "type": "string", "defaultValue": "" },
+    "busy": { "type": "boolean", "defaultValue": false },
+    "pageTitle": { "type": "string", "defaultValue": "" },
+    "pageSubtitle": { "type": "string", "defaultValue": "" },
+    "agreementName": { "type": "string", "defaultValue": "" },
+    "agreementHeaderId": { "type": "number", "defaultValue": null },
+    "agreementStatus": { "type": "string", "defaultValue": "" },
+    "customerName": { "type": "string", "defaultValue": "" },
+    "customerRefId": { "type": "number", "defaultValue": null },
+    "fusionCustomerId": { "type": "number", "defaultValue": null },
+    "effectiveFrom": { "type": "string", "defaultValue": "" },
+    "effectiveTo": { "type": "string", "defaultValue": "" },
+    "agreementNotes": { "type": "string", "defaultValue": "" },
+    "formData": { "type": "any", "defaultValue": {} },
+    "totalEstCost": { "type": "number", "defaultValue": 0 },
+    "linesArray": { "type": "any[]", "defaultValue": [] },
+    "filteredLines": { "type": "any[]", "defaultValue": [] },
+    "agreementLineIdByCompositeKey": { "type": "any", "defaultValue": {} },
+    "selected": { "type": "any", "defaultValue": {} },
+    "searchText": { "type": "string", "defaultValue": "" },
+    "showLimit": { "type": "number", "defaultValue": 200 },
+    "ask": { "type": "any", "defaultValue": null }
+  },
+  "metadata": {},
+  "eventListeners": {
+    "vbBeforeEnter": { "chains": [{ "chain": "agreementsFlagGuardChain" }, { "chain": "enforcePageAccessChain" }] },
+    "vbEnter": { "chains": [{ "chain": "agreementLinesInitChain" }, { "chain": "linesAccessChain" }] },
+    "onSearchInput": { "chains": [{ "chain": "linesUiChain", "parameters": { "action": "search", "value": "{{ $event.target.value }}" } }] },
+    "onTick": {
+      "chains": [{ "chain": "linesUiChain", "parameters": { "action": "tick", "value": "{{ $event.target.dataset.key }}", "checked": "{{ $event.target.checked }}" } }]
+    },
+    "onUi": {
+      "chains": [{ "chain": "linesUiChain", "parameters": { "action": "{{ $event.currentTarget.dataset.action }}", "value": "{{ $event.currentTarget.dataset.value }}" } }]
+    },
+    "onApprove": { "chains": [{ "chain": "approveAgreementChain" }] },
+    "onReject": { "chains": [{ "chain": "rejectAgreementChain", "parameters": {} }] },
+    "onCreateRequest": { "chains": [{ "chain": "createRequestChain" }] }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}

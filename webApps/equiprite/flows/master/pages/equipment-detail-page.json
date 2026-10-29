@@ -1,0 +1,63 @@
+{
+  "title": "Equipment detail",
+  "description": "One equipment definition (FDD 7.2.5; replaces equipment-units): facts, units by control type, documents and certificates with their validity, expenditure types, open Fusion work orders, and Change class (PATCH /equipment-master/{id}, read back). Data: detailInitChain (the old units page's calls).",
+  "variables": {
+    "equipmentId": { "type": "string", "input": "fromUrl", "persisted": "none" },
+    "controlType": { "type": "string", "input": "fromUrl", "persisted": "none", "description": "SERIAL, LOT or INVENTORY; taken from the master record when not given." },
+    "canWrite": { "type": "boolean", "defaultValue": false },
+    "isLoading": { "type": "boolean", "defaultValue": true },
+    "loadError": { "type": "string", "defaultValue": "" },
+    "masterRecord": { "type": "any", "defaultValue": {} },
+    "unitsArray": { "type": "any[]", "defaultValue": [] },
+    "unitFilter": { "type": "string", "defaultValue": "" },
+    "attLevel": { "type": "string", "defaultValue": "HEADER", "description": "Read by resources/js/equipmentAttachments.target: the master's own documents." },
+    "attRows": { "type": "any[]", "defaultValue": [] },
+    "attInheritedRows": { "type": "any[]", "defaultValue": [] },
+    "attCategoryOptions": { "type": "any[]", "defaultValue": [] },
+    "attCategoryFilterOptions": { "type": "any[]", "defaultValue": [] },
+    "attLoading": { "type": "boolean", "defaultValue": false },
+    "attLoadError": { "type": "string", "defaultValue": "" },
+    "ExpTypeRows": { "type": "any[]", "defaultValue": [] },
+    "ExpTypeResolvedLevel": { "type": "string", "defaultValue": "NONE" },
+    "ExpTypeInherited": { "type": "string", "defaultValue": "" },
+    "workOrders": { "type": "any[]", "defaultValue": [] },
+    "woLoading": { "type": "boolean", "defaultValue": false },
+    "woLoaded": { "type": "boolean", "defaultValue": false },
+    "classPanelOpen": { "type": "boolean", "defaultValue": false },
+    "classDraft": { "type": "any", "defaultValue": { "classId": null, "subclassId": null } },
+    "classOptions": { "type": "any[]", "defaultValue": [] },
+    "allSubclassOptions": { "type": "any[]", "defaultValue": [] },
+    "subclassOptions": { "type": "any[]", "defaultValue": [] },
+    "classChangeLoading": { "type": "boolean", "defaultValue": false },
+    "classChangeSaving": { "type": "boolean", "defaultValue": false },
+    "classChangeError": { "type": "string", "defaultValue": "" }
+  },
+  "metadata": {},
+  "eventListeners": {
+    "vbBeforeEnter": { "chains": [{ "chain": "enforcePageAccessChain" }] },
+    "vbEnter": { "chains": [{ "chain": "detailInitChain" }] },
+    "onBack": { "chains": [{ "chain": "backChain" }] },
+    "onChangeClass": { "chains": [{ "chain": "openChangeClassChain" }] },
+    "onClassPick": {
+      "chains": [{
+        "chain": "classPickChain",
+        "parameters": { "kind": "{{ $event.currentTarget.dataset.kind }}", "value": "{{ $event.currentTarget.dataset.value }}" }
+      }]
+    },
+    "onSaveClass": { "chains": [{ "chain": "saveClassChangeChain" }] },
+    "onOpenDoc": {
+      "chains": [{ "chain": "openAttachmentChain", "parameters": { "id": "{{ $event.currentTarget.dataset.id }}" } }]
+    },
+    "onLoadWorkOrders": { "chains": [{ "chain": "loadWorkOrdersChain" }] },
+    "onUnitFilter": {
+      "chains": [{ "chain": "unitFilterChain", "parameters": { "text": "{{ $event.target.value }}" } }]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}

@@ -1,0 +1,85 @@
+<!-- Rental agreements (wireframe: Agreements). Data: agreementsInitChain (the old list's call); chips: setFilterChain.
+     A row opens the agreement's lines (agreement-lines). -->
+<div class="er-band">
+  <div class="er-band-inner">
+    <div>
+      <div class="er-band-kicker">Master data · FDD 7.3A</div>
+      <h1>Rental agreements</h1>
+      <div class="er-band-sub">
+        <oj-bind-text value="[[ $variables.isLoading ? 'Loading…'
+          : $variables.allRows.length + ($variables.allRows.length === 1 ? ' agreement' : ' agreements')
+            + ' · lines are a shortcut for adding to a request; they do not limit what can be requested' ]]"></oj-bind-text>
+      </div>
+    </div>
+    <div class="er-actions">
+      <oj-bind-if test="[[ $application.functions.oldAppLink($application.variables.oldAppUrl, 'agreements') ]]">
+        <a class="er-btn er-btn--ghost" title="Today's Rental Agreements, for comparison"
+          :href="[[ $application.functions.oldAppLink($application.variables.oldAppUrl, 'agreements') ]]">Old version</a>
+      </oj-bind-if>
+      <oj-bind-if test="[[ $variables.canWrite ]]">
+        <button type="button" class="er-btn er-btn--primary" id="newAgreementBtn" on-click="[[ $listeners.onNew ]]">New agreement</button>
+      </oj-bind-if>
+    </div>
+  </div>
+  <div class="er-strip" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+</div>
+
+<div class="er-page">
+  <div class="er-filters">
+    <label class="er-search">
+      <span class="oj-ux-ico-search" aria-hidden="true"></span>
+      <span class="er-sr">Search agreements</span>
+      <input type="search" placeholder="Number, name, customer or type" on-input="[[ $listeners.onSearchInput ]]">
+    </label>
+  </div>
+  <div class="er-chip-row" role="group" aria-label="Status">
+    <oj-bind-for-each data="[[ $functions.chips($variables.allRows) ]]">
+      <template data-oj-as="chip">
+        <button type="button" :data-value="[[ chip.data.key ]]" on-click="[[ $listeners.onChip ]]"
+          :class="[[ 'er-chip' + ($variables.chip === chip.data.key ? ' er-chip--on' : '') ]]"
+          :aria-pressed="[[ $variables.chip === chip.data.key ? 'true' : 'false' ]]">
+          <oj-bind-text value="[[ chip.data.label ]]"></oj-bind-text>
+          <span class="er-chip-count"><oj-bind-text value="[[ chip.data.count ]]"></oj-bind-text></span>
+        </button>
+      </template>
+    </oj-bind-for-each>
+  </div>
+
+  <oj-bind-if test="[[ !!$variables.fetchError ]]">
+    <div class="er-error" role="alert"><oj-bind-text value="[[ $variables.fetchError ]]"></oj-bind-text></div>
+  </oj-bind-if>
+
+  <section class="er-card">
+    <oj-table id="agreementsTable" data="[[ $variables.rowsADP ]]" columns="[[ $functions.columns() ]]"
+      class="oj-table-stretch" style="width: 100%; min-height: 360px;"
+      selection-mode='{"row": "single"}' on-first-selected-row-changed="[[ $listeners.onRowAction ]]"
+      aria-label="Rental agreements">
+      <template slot="numTpl" data-oj-as="cell">
+        <div>
+          <span class="er-eq-num"><oj-bind-text value="[[ cell.data ]]"></oj-bind-text></span>
+          <div class="er-cell-main"><oj-bind-text value="[[ cell.row.agreementName || '—' ]]"></oj-bind-text></div>
+        </div>
+      </template>
+      <template slot="validTpl" data-oj-as="cell">
+        <div>
+          <oj-bind-text value="[[ $functions.window(cell.row) ]]"></oj-bind-text>
+          <oj-bind-if test="[[ !!$functions.expiryText(cell.row) ]]">
+            <div class="er-warn-text"><oj-bind-text value="[[ $functions.expiryText(cell.row) ]]"></oj-bind-text></div>
+          </oj-bind-if>
+        </div>
+      </template>
+      <template slot="statusTpl" data-oj-as="cell">
+        <span :class="[[ $functions.statusClass(cell.data) ]]"><oj-bind-text value="[[ $functions.statusLabel(cell.data) ]]"></oj-bind-text></span>
+      </template>
+      <template slot="linesTpl" data-oj-as="cell">
+        <span class="er-num"><oj-bind-text value="[[ cell.data ]]"></oj-bind-text></span>
+      </template>
+      <template slot="noData">
+        <div style="text-align: center; padding: 48px 0;" class="er-muted">
+          <oj-bind-if test="[[ $variables.isLoading ]]">Loading agreements…</oj-bind-if>
+          <oj-bind-if test="[[ !$variables.isLoading && !$variables.fetchError ]]">No agreement matches.</oj-bind-if>
+        </div>
+      </template>
+    </oj-table>
+  </section>
+</div>

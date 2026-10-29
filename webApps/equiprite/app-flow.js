@@ -283,11 +283,15 @@ define([
       key: 'master', label: 'Master data',
       items: [
         { id: 'equipment', label: 'Equipment', icon: 'oj-ux-ico-bag', pageCodes: ['EQR_EQUIPMENT_MASTER'],
-          status: 'old', old: { flow: 'equipment-foundation', page: 'equipment-master' }, fdd: '7.2' },
+          status: 'new', route: { flow: 'master', page: 'equipment' }, pages: ['equipment-detail', 'equipment-import'],
+          old: { flow: 'equipment-foundation', page: 'equipment-master' }, fdd: '7.2' },
         { id: 'rates', label: 'Rate schedules', icon: 'oj-ux-ico-tables-basic', pageCodes: ['EQR_RATE_SCHEDULE'],
-          hiddenByRateSource: true, status: 'old', old: { flow: 'main', page: 'rate-schedule' }, fdd: '7.3' },
+          hiddenByRateSource: true, status: 'new', route: { flow: 'master', page: 'rates' },
+          old: { flow: 'main', page: 'rate-schedule' }, fdd: '7.3' },
         { id: 'agreements', label: 'Rental agreements', icon: 'oj-ux-ico-documents', pageCodes: ['EQR_RENTAL_AGREEMENTS'],
-          flags: ['AGREEMENTS_ENABLED'], status: 'old', old: { flow: 'equipment-foundation', page: 'rental-agreements' }, fdd: '7.3A' }
+          flags: ['AGREEMENTS_ENABLED'], status: 'new', route: { flow: 'master', page: 'agreements' },
+          pages: ['agreement-lines', 'agreement-edit'],
+          old: { flow: 'equipment-foundation', page: 'rental-agreements' }, fdd: '7.3A' }
       ]
     },
     {

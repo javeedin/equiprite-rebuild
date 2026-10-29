@@ -1,0 +1,104 @@
+{
+  "title": "Equipment",
+  "description": "Equipment definitions as a grid or a map (FDD 7.2; replaces equipment-master). Data: GET /equipment-master with the old Smart Search's server filters, every page read. Sync from Fusion is the old page's chain; Import from Fusion opens its review page; a row opens Equipment detail.",
+  "variables": {
+    "canWrite": { "type": "boolean", "defaultValue": false, "description": "FULL access to EQR_EQUIPMENT_MASTER: Import and Sync from Fusion." },
+    "allRows": {
+      "type": "any[]",
+      "defaultValue": [],
+      "onValueChanged": { "chains": [{ "chain": "applyFilterChain" }] }
+    },
+    "shownRows": { "type": "any[]", "defaultValue": [] },
+    "loadedCount": { "type": "number", "defaultValue": 0, "description": "Rows read so far, for the band while later pages arrive." },
+    "rowsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": { "itemType": "any", "keyAttributes": "id", "data": "{{ $page.variables.shownRows }}" }
+    },
+    "total": { "type": "number", "defaultValue": 0 },
+    "isLoading": { "type": "boolean", "defaultValue": true },
+    "fetchError": { "type": "string", "defaultValue": "" },
+    "searchText": { "type": "string", "defaultValue": "" },
+    "classId": { "type": "string", "defaultValue": "" },
+    "subclassId": { "type": "string", "defaultValue": "" },
+    "assetGroupId": { "type": "string", "defaultValue": "" },
+    "statusFilter": {
+      "type": "string",
+      "defaultValue": "all",
+      "onValueChanged": { "chains": [{ "chain": "applyFilterChain" }] }
+    },
+    "trackingFilter": {
+      "type": "string",
+      "defaultValue": "",
+      "onValueChanged": { "chains": [{ "chain": "applyFilterChain" }] }
+    },
+    "sourceFilter": {
+      "type": "string",
+      "defaultValue": "",
+      "onValueChanged": { "chains": [{ "chain": "applyFilterChain" }] }
+    },
+    "mapLocation": {
+      "type": "string",
+      "defaultValue": "",
+      "onValueChanged": { "chains": [{ "chain": "applyFilterChain" }] }
+    },
+    "view": { "type": "string", "defaultValue": "grid" },
+    "filtersOpen": { "type": "boolean", "defaultValue": false },
+    "statusChips": { "type": "any[]", "defaultValue": [] },
+    "trackingChips": { "type": "any[]", "defaultValue": [] },
+    "sourceChips": { "type": "any[]", "defaultValue": [] },
+    "classOptions": { "type": "any[]", "defaultValue": [] },
+    "subclassOptions": { "type": "any[]", "defaultValue": [] },
+    "assetGroupOptions": { "type": "any[]", "defaultValue": [] },
+    "classesById": { "type": "any", "defaultValue": {} },
+    "subclassesById": { "type": "any", "defaultValue": {} },
+    "locations": {
+      "type": "any[]",
+      "defaultValue": [],
+      "onValueChanged": { "chains": [{ "chain": "applyFilterChain" }] }
+    },
+    "map": { "type": "any", "defaultValue": { "points": [], "unplaced": 0, "placed": 0 } },
+    "lastRuns": { "type": "any", "defaultValue": {} },
+    "stagingWaiting": { "type": "number", "defaultValue": 0 },
+    "isSyncing": { "type": "boolean", "defaultValue": false },
+    "syncStep": { "type": "string", "defaultValue": "" },
+    "syncResult": { "type": "any", "defaultValue": null },
+    "isImporting": { "type": "boolean", "defaultValue": false, "description": "Never set here (Fetch runs on the import page); read by the copied isBusy." },
+    "isImportingUnits": { "type": "boolean", "defaultValue": false, "description": "Set by the copied ImportUnitsFromFusionChain during a Sync's stock step." },
+    "stagingSaving": { "type": "boolean", "defaultValue": false },
+    "stagingClearing": { "type": "boolean", "defaultValue": false },
+    "importMessage": { "type": "string", "defaultValue": "", "description": "Progress line written by ImportUnitsFromFusionChain." },
+    "ask": { "type": "any", "defaultValue": null, "description": "The question card: { kind, title, message, ok }." }
+  },
+  "metadata": {},
+  "eventListeners": {
+    "vbBeforeEnter": { "chains": [{ "chain": "enforcePageAccessChain" }] },
+    "vbEnter": { "chains": [{ "chain": "equipmentInitChain" }] },
+    "vbBeforeExit": { "chains": [{ "chain": "BeforeExitChain" }] },
+    "onSearchInput": {
+      "chains": [{ "chain": "setFilterChain", "parameters": { "kind": "search", "value": "{{ $event.target.value }}" } }]
+    },
+    "onChip": {
+      "chains": [{
+        "chain": "setFilterChain",
+        "parameters": { "kind": "{{ $event.currentTarget.dataset.kind }}", "value": "{{ $event.currentTarget.dataset.value }}" }
+      }]
+    },
+    "onRowAction": {
+      "chains": [{ "chain": "openEquipmentChain", "parameters": { "row": "{{ $event.detail.value?.data }}" } }]
+    },
+    "onImport": { "chains": [{ "chain": "openImportChain" }] },
+    "onSync": { "chains": [{ "chain": "SyncFromFusionChain", "parameters": {} }] },
+    "onAnswer": {
+      "chains": [{ "chain": "answerChain", "parameters": { "answer": "{{ $event.currentTarget.dataset.answer }}" } }]
+    },
+    "onRefresh": { "chains": [{ "chain": "loadEquipmentChain" }] }
+  },
+  "imports": {
+    "components": {
+      "oj-table": { "path": "ojs/ojtable" },
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}

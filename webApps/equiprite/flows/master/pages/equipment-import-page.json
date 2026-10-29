@@ -1,0 +1,96 @@
+{
+  "title": "Import from Fusion",
+  "description": "Fetch item definitions and stock from Fusion, review them, give them a class, import the ticked ones (FDD 7.2.6; the old Equipment Master page's Import From Fusion dialog as its own page). The variables are the old dialog's, so its chains run on them: ImportFromFusionChain, LoadStagingChain, SaveStagingClassesChain, ClearStagingChain, StagingPageChangeChain and the rest.",
+  "variables": {
+    "importDialogOpen": { "type": "boolean", "defaultValue": true, "description": "Always true: the old chains choose a transient (not persistent) notice while the dialog is on screen, and this page is the dialog." },
+    "isImporting": { "type": "boolean", "defaultValue": false },
+    "isImportingUnits": { "type": "boolean", "defaultValue": false },
+    "isSyncing": { "type": "boolean", "defaultValue": false, "description": "Never set here; read by the copied isBusy." },
+    "importPhase": { "type": "string", "defaultValue": "RUNNING" },
+    "importMessage": { "type": "string", "defaultValue": "" },
+    "importWarning": { "type": "string", "defaultValue": "" },
+    "itemClassOptionsArray": { "type": "any[]", "defaultValue": [] },
+    "itemClassQuery": { "type": "string", "defaultValue": "" },
+    "selectedItemClass": { "type": "any", "defaultValue": null, "description": "Fusion ItemClassCode: narrows the Fetch (extractFilter) and the review." },
+    "itemTypeOptionsArray": { "type": "any[]", "defaultValue": [] },
+    "selectedItemType": { "type": "any", "defaultValue": null },
+    "selectedImportStatus": { "type": "any", "defaultValue": null },
+    "lovsLoading": { "type": "boolean", "defaultValue": false },
+    "stagingArray": { "type": "any[]", "defaultValue": [] },
+    "stagingLoading": { "type": "boolean", "defaultValue": false },
+    "stagingSummary": { "type": "string", "defaultValue": "" },
+    "unmatchedGroups": { "type": "any[]", "defaultValue": [] },
+    "unmatchedTotalGroups": { "type": "number", "defaultValue": 0 },
+    "unmatchedLoading": { "type": "boolean", "defaultValue": false },
+    "unmatchedShowAll": { "type": "boolean", "defaultValue": false },
+    "unmatchedOpen": { "type": "boolean", "defaultValue": false },
+    "stagingChangedRows": { "type": "any", "defaultValue": {} },
+    "stagingSearch": { "type": "string", "defaultValue": "" },
+    "stagingAppliedFilters": { "type": "any", "defaultValue": null },
+    "stagingSelectedRows": { "type": "any", "defaultValue": {} },
+    "stagingSaving": { "type": "boolean", "defaultValue": false },
+    "stagingPage": { "type": "number", "defaultValue": 0 },
+    "stagingPageSize": { "type": "number", "defaultValue": 100 },
+    "stagingTotalElements": { "type": "number", "defaultValue": 0 },
+    "stagingSaveMessage": { "type": "string", "defaultValue": "" },
+    "stagingClearing": { "type": "boolean", "defaultValue": false },
+    "classOptionsArray": { "type": "any[]", "defaultValue": [] },
+    "subclassOptionsArray": { "type": "any[]", "defaultValue": [] },
+    "classesById": { "type": "any", "defaultValue": {} },
+    "subclassesById": { "type": "any", "defaultValue": {} },
+    "editKey": { "type": "string", "defaultValue": "", "description": "fusionInventoryItemId of the row whose class editor is open." },
+    "bulk": { "type": "any", "defaultValue": { "classId": null, "subclassId": null } },
+    "ask": { "type": "any", "defaultValue": null }
+  },
+  "metadata": {},
+  "eventListeners": {
+    "vbBeforeEnter": { "chains": [{ "chain": "enforcePageAccessChain" }] },
+    "vbEnter": { "chains": [{ "chain": "importInitChain" }] },
+    "vbBeforeExit": { "chains": [{ "chain": "BeforeExitChain" }] },
+    "onFetch": { "chains": [{ "chain": "ImportFromFusionChain" }] },
+    "onImport": { "chains": [{ "chain": "SaveStagingClassesChain" }] },
+    "onClear": { "chains": [{ "chain": "ClearStagingChain", "parameters": {} }] },
+    "onAnswer": {
+      "chains": [{ "chain": "answerChain", "parameters": { "answer": "{{ $event.currentTarget.dataset.answer }}" } }]
+    },
+    "onFilter": {
+      "chains": [{
+        "chain": "setStagingFilterChain",
+        "parameters": { "kind": "{{ $event.currentTarget.dataset.kind }}", "value": "{{ $event.currentTarget.dataset.value }}" }
+      }]
+    },
+    "onFilterInput": {
+      "chains": [{
+        "chain": "setStagingFilterChain",
+        "parameters": { "kind": "{{ $event.target.dataset.kind }}", "value": "{{ $event.target.value }}" }
+      }]
+    },
+    "onTick": {
+      "chains": [{
+        "chain": "tickChain",
+        "parameters": { "index": "{{ $event.target.dataset.index }}", "checked": "{{ $event.target.checked }}" }
+      }]
+    },
+    "onEdit": {
+      "chains": [{
+        "chain": "classEditChain",
+        "parameters": {
+          "action": "{{ $event.currentTarget.dataset.action }}",
+          "index": "{{ $event.currentTarget.dataset.index }}",
+          "value": "{{ $event.currentTarget.dataset.value }}"
+        }
+      }]
+    },
+    "onPrevPage": { "chains": [{ "chain": "StagingPageChangeChain", "parameters": { "direction": "PREV" } }] },
+    "onNextPage": { "chains": [{ "chain": "StagingPageChangeChain", "parameters": { "direction": "NEXT" } }] },
+    "onRefresh": { "chains": [{ "chain": "RefreshStagingChain" }] },
+    "onBack": { "chains": [{ "chain": "backChain" }] }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}

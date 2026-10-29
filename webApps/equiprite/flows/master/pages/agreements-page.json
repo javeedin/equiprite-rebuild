@@ -1,0 +1,34 @@
+{
+  "title": "Rental agreements",
+  "description": "Rental agreements (FDD 7.3A; replaces rental-agreements). Data: views/rental-agreements as the old list read it. A row opens its lines page; New agreement opens the editor.",
+  "variables": {
+    "canWrite": { "type": "boolean", "defaultValue": false },
+    "allRows": { "type": "any[]", "defaultValue": [] },
+    "shownRows": { "type": "any[]", "defaultValue": [] },
+    "rowsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": { "itemType": "any", "keyAttributes": "agreementNumber", "data": "{{ $page.variables.shownRows }}" }
+    },
+    "searchText": { "type": "string", "defaultValue": "" },
+    "chip": { "type": "string", "defaultValue": "all" },
+    "isLoading": { "type": "boolean", "defaultValue": true },
+    "fetchError": { "type": "string", "defaultValue": "" }
+  },
+  "metadata": {},
+  "eventListeners": {
+    "vbBeforeEnter": { "chains": [{ "chain": "agreementsFlagGuardChain" }, { "chain": "enforcePageAccessChain" }] },
+    "vbEnter": { "chains": [{ "chain": "agreementsInitChain" }] },
+    "onSearchInput": { "chains": [{ "chain": "setFilterChain", "parameters": { "kind": "search", "value": "{{ $event.target.value }}" } }] },
+    "onChip": { "chains": [{ "chain": "setFilterChain", "parameters": { "kind": "chip", "value": "{{ $event.currentTarget.dataset.value }}" } }] },
+    "onRowAction": { "chains": [{ "chain": "openAgreementChain", "parameters": { "row": "{{ $event.detail.value?.data }}" } }] },
+    "onNew": { "chains": [{ "chain": "newAgreementChain" }] }
+  },
+  "imports": {
+    "components": {
+      "oj-table": { "path": "ojs/ojtable" },
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}

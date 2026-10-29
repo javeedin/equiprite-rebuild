@@ -1,0 +1,160 @@
+<!-- Agreement lines (wireframe: Agreements). Data: agreementLinesInitChain (the old lines page's calls); Approve /
+     Reject: the old chains; Create request: createRequestChain (the old Add to cart + Create Request). -->
+<div class="er-band">
+  <div class="er-band-inner">
+    <div>
+      <div class="er-band-kicker">
+        <button type="button" class="er-link-inverse" data-action="back" data-value="" on-click="[[ $listeners.onUi ]]">Rental agreements</button>
+        · Master data · FDD 7.3A
+      </div>
+      <h1>
+        <oj-bind-text value="[[ $variables.agreementName || $variables.agreementNumber || 'Agreement' ]]"></oj-bind-text>
+        <oj-bind-if test="[[ !!$variables.agreementStatus ]]">
+          <span :class="[[ $functions.statusClass($variables.agreementStatus) + ' er-band-pill' ]]"><oj-bind-text value="[[ $functions.statusLabel($variables.agreementStatus) ]]"></oj-bind-text></span>
+        </oj-bind-if>
+      </h1>
+      <div class="er-band-sub">
+        <oj-bind-text value="[[ $variables.agreementNumber + ($variables.customerName ? ' · ' + $variables.customerName : '')
+          + ($variables.effectiveFrom ? ' · ' + $functions.day($variables.effectiveFrom) + ' – ' + $functions.day($variables.effectiveTo) : '') ]]"></oj-bind-text>
+      </div>
+    </div>
+    <div class="er-actions">
+      <oj-bind-if test="[[ $application.functions.oldAppLink($application.variables.oldAppUrl, 'agreements') ]]">
+        <a class="er-btn er-btn--ghost" title="Rental agreements in today's app"
+          :href="[[ $application.functions.oldAppLink($application.variables.oldAppUrl, 'agreements') ]]">Old version</a>
+      </oj-bind-if>
+      <oj-bind-if test="[[ $variables.canWrite && $functions.canDecide($variables.agreementStatus) && $variables.agreementHeaderId != null ]]">
+        <button type="button" class="er-btn er-btn--ghost" data-action="edit" data-value="" on-click="[[ $listeners.onUi ]]">Edit</button>
+        <button type="button" class="er-btn er-btn--ghost" id="rejectBtn" on-click="[[ $listeners.onReject ]]">Reject</button>
+        <button type="button" class="er-btn er-btn--primary" id="approveBtn" :disabled="[[ $variables.linesArray.length === 0 ]]"
+          :title="[[ $variables.linesArray.length === 0 ? 'An agreement needs at least one line before it is approved' : 'Make the agreement active' ]]"
+          on-click="[[ $listeners.onApprove ]]">Approve</button>
+      </oj-bind-if>
+      <oj-bind-if test="[[ $functions.canRequest($variables.agreementStatus) ]]">
+        <button type="button" class="er-btn er-btn--primary" id="createRequestBtn" on-click="[[ $listeners.onCreateRequest ]]"
+          :disabled="[[ $functions.selectedCount($variables.selected) === 0 || $variables.busy ]]">
+          <oj-bind-text value="[[ $functions.selectedCount($variables.selected) > 0
+            ? 'Create request from ' + $functions.selectedCount($variables.selected) + ($functions.selectedCount($variables.selected) === 1 ? ' line' : ' lines')
+            : 'Create request' ]]"></oj-bind-text>
+        </button>
+      </oj-bind-if>
+    </div>
+  </div>
+  <div class="er-strip" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+</div>
+
+<div class="er-page">
+  <oj-bind-if test="[[ !!$variables.ask ]]">
+    <section class="er-card er-card-pad er-ask" role="alertdialog" aria-labelledby="askTitle">
+      <h2 class="er-section-title" id="askTitle"><oj-bind-text value="[[ $variables.ask.title ]]"></oj-bind-text></h2>
+      <p class="er-ask-text"><oj-bind-text value="[[ $variables.ask.message ]]"></oj-bind-text></p>
+      <div class="er-actions">
+        <button type="button" class="er-btn er-btn--plain" data-action="answer" data-value="cancel" on-click="[[ $listeners.onUi ]]">Cancel</button>
+        <button type="button" class="er-btn er-btn--danger" data-action="answer" data-value="ok" on-click="[[ $listeners.onUi ]]">
+          <oj-bind-text value="[[ $variables.ask.ok ]]"></oj-bind-text>
+        </button>
+      </div>
+    </section>
+  </oj-bind-if>
+  <oj-bind-if test="[[ !!$variables.loadError ]]">
+    <div class="er-error" role="alert"><oj-bind-text value="[[ $variables.loadError ]]"></oj-bind-text></div>
+  </oj-bind-if>
+  <oj-bind-if test="[[ $variables.isLoading ]]">
+    <div class="er-card er-card-pad er-muted">Loading the agreement…</div>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ !$variables.isLoading && !$variables.loadError ]]">
+    <section class="er-card er-card-pad">
+      <dl class="er-facts">
+        <div><dt>Customer</dt><dd><oj-bind-text value="[[ $variables.customerName || $variables.formData.project_customer || '—' ]]"></oj-bind-text></dd></div>
+        <div><dt>Valid</dt><dd><oj-bind-text value="[[ ($variables.formData.start_date || '—') + ' – ' + ($variables.formData.end_date || '—') ]]"></oj-bind-text></dd></div>
+        <div><dt>Lines</dt><dd><oj-bind-text value="[[ $variables.linesArray.length ]]"></oj-bind-text></dd></div>
+        <div><dt>Estimated value</dt><dd><oj-bind-text value="[[ $functions.money($variables.totalEstCost) ]]"></oj-bind-text></dd></div>
+        <oj-bind-if test="[[ $variables.formData.task && $variables.formData.task !== '—' ]]">
+          <div><dt>Task</dt><dd><oj-bind-text value="[[ $variables.formData.task ]]"></oj-bind-text></dd></div>
+        </oj-bind-if>
+      </dl>
+      <oj-bind-if test="[[ !!$variables.agreementNotes ]]">
+        <p class="er-desc"><strong>Terms and notes.</strong> <oj-bind-text value="[[ $variables.agreementNotes ]]"></oj-bind-text></p>
+      </oj-bind-if>
+    </section>
+
+    <section class="er-card" aria-labelledby="linesTitle">
+      <div class="er-card-pad er-table-head">
+        <h2 class="er-section-title" id="linesTitle">
+          Agreement lines <span class="er-chip-count"><oj-bind-text value="[[ $variables.linesArray.length.toLocaleString() ]]"></oj-bind-text></span>
+        </h2>
+        <label class="er-search er-search--small">
+          <span class="oj-ux-ico-search" aria-hidden="true"></span>
+          <span class="er-sr">Search lines</span>
+          <input type="search" placeholder="Equipment, class, subclass or description" on-input="[[ $listeners.onSearchInput ]]">
+        </label>
+      </div>
+      <oj-bind-if test="[[ $functions.canRequest($variables.agreementStatus) ]]">
+        <div class="er-card-pad er-consequence-bar" role="status">
+          <span><oj-bind-text value="[[ $functions.requestPreview($variables.selected, $variables.linesArray, $variables.agreementLineIdByCompositeKey) ]]"></oj-bind-text></span>
+          <oj-bind-if test="[[ $functions.selectedCount($variables.selected) > 0 ]]">
+            <button type="button" class="er-btn er-btn--plain" data-action="clear" data-value="" on-click="[[ $listeners.onUi ]]">Untick all</button>
+          </oj-bind-if>
+        </div>
+      </oj-bind-if>
+      <oj-bind-if test="[[ !$functions.canRequest($variables.agreementStatus) ]]">
+        <p class="er-card-pad er-note">Only an active agreement's lines can be put on a request.</p>
+      </oj-bind-if>
+      <div class="er-table-wrap">
+        <div class="er-alines" role="table" aria-labelledby="linesTitle">
+          <div class="er-alines-row er-grid-head" role="row">
+            <span role="columnheader" class="er-col-check">
+              <oj-bind-if test="[[ $functions.canRequest($variables.agreementStatus) ]]">
+                <input type="checkbox" data-key="all" aria-label="Tick every line shown" on-change="[[ $listeners.onTick ]]"
+                  :checked="[[ $functions.allShownSelected($variables.selected, $variables.linesArray, $variables.searchText, $variables.agreementLineIdByCompositeKey) ]]">
+              </oj-bind-if>
+            </span>
+            <span role="columnheader">#</span><span role="columnheader">Equipment</span><span role="columnheader">Class · subclass</span>
+            <span role="columnheader">Qty</span><span role="columnheader">Rate</span><span role="columnheader">Available</span>
+            <span role="columnheader">Est. cost</span><span role="columnheader">Status</span>
+          </div>
+          <oj-bind-for-each data="[[ $functions.visibleLines($variables.linesArray, $variables.searchText, $variables.showLimit) ]]">
+            <template data-oj-as="l">
+              <div role="row" :class="[[ 'er-alines-row' + ($functions.isSelected($variables.selected, l.data.compositeKey) ? ' er-row--on' : '') ]]">
+                <span role="cell" class="er-col-check">
+                  <oj-bind-if test="[[ $functions.canRequest($variables.agreementStatus) ]]">
+                    <input type="checkbox" :data-key="[[ l.data.compositeKey ]]" on-change="[[ $listeners.onTick ]]"
+                      :aria-label="[[ 'Tick line ' + l.data.line_no ]]"
+                      :disabled="[[ !$variables.agreementLineIdByCompositeKey[l.data.compositeKey] ]]"
+                      :checked="[[ $functions.isSelected($variables.selected, l.data.compositeKey) ]]">
+                  </oj-bind-if>
+                </span>
+                <span role="cell" class="er-num"><oj-bind-text value="[[ l.data.line_no ]]"></oj-bind-text></span>
+                <span role="cell">
+                  <span class="er-cell-main"><oj-bind-text value="[[ l.data.equipment_name ]]"></oj-bind-text></span>
+                  <oj-bind-if test="[[ !!l.data.description && l.data.description !== l.data.equipment_name ]]">
+                    <span class="er-note"><oj-bind-text value="[[ l.data.description ]]"></oj-bind-text></span>
+                  </oj-bind-if>
+                </span>
+                <span role="cell"><oj-bind-text value="[[ l.data.class_name + (l.data.subClassName && l.data.subClassName !== '—' ? ' · ' + l.data.subClassName : '') ]]"></oj-bind-text></span>
+                <span role="cell" class="er-num"><oj-bind-text value="[[ l.data.qty ]]"></oj-bind-text></span>
+                <span role="cell"><oj-bind-text value="[[ $functions.rateText(l.data) ]]"></oj-bind-text></span>
+                <span role="cell" class="er-num"><oj-bind-text value="[[ l.data.availability ]]"></oj-bind-text></span>
+                <span role="cell" class="er-num"><oj-bind-text value="[[ $functions.money(l.data.est_cost) ]]"></oj-bind-text></span>
+                <span role="cell"><oj-bind-text value="[[ l.data.status ]]"></oj-bind-text></span>
+              </div>
+            </template>
+          </oj-bind-for-each>
+          <oj-bind-if test="[[ $variables.linesArray.length === 0 ]]">
+            <div class="er-card-pad er-muted">This agreement has no lines yet.<oj-bind-if test="[[ $variables.canWrite && $functions.canEdit($variables.agreementStatus) ]]"> Edit it to add some.</oj-bind-if></div>
+          </oj-bind-if>
+        </div>
+      </div>
+      <oj-bind-if test="[[ $functions.filterLines($variables.linesArray, $variables.searchText).length > $variables.showLimit ]]">
+        <div class="er-card-pad">
+          <button type="button" class="er-btn er-btn--plain" data-action="more" data-value="" on-click="[[ $listeners.onUi ]]">
+            <oj-bind-text value="[[ 'Show more (' + ($functions.filterLines($variables.linesArray, $variables.searchText).length - $variables.showLimit) + ' not shown)' ]]"></oj-bind-text>
+          </button>
+        </div>
+      </oj-bind-if>
+      <p class="er-card-pad er-note">A rate on a line wins over the rate schedules; lines without a rate use the schedule order.
+        Importing lines from Excel is not in either app yet.</p>
+    </section>
+  </oj-bind-if>
+</div>
