@@ -1,0 +1,250 @@
+{
+  "title": "Inspection",
+  "description": "Inspection and ship-out (FDD 7.12, 7.17.3, S16; not a screen in Old EquipRite). Queue: lines waiting at an inspection point (workbench-requests OUTBOUND and INBOUND, then views/request-detail-lines per request), asked for by the inspection matrix (conf-inspection-details). Checklist: inspection-checklists?classId, one question at a time. Complete: POST inspections (IN_PROGRESS), POST/PATCH inspection-responses, POST inspection-defects with one photo each (commonService document on EQR_INSPECTION_DEFECT), PATCH inspections COMPLETED with PASS / CONDITIONAL / FAIL; at the yard ship-out the line moves to EQP_INSPECTION_COMPLETE or INSPECTION_FAILED (PATCH lines/batch). No maintenance work-order call exists in services/, so a failed unit's work order is raised in Oracle Maintenance.",
+  "variables": {
+    "lineId": {
+      "type": "number",
+      "input": "fromUrl",
+      "persisted": "none",
+      "description": "Optional: open this request line straight away (a link from another screen)."
+    },
+    "mode": {
+      "type": "string",
+      "defaultValue": "out",
+      "description": "out = check-out (ship-out from yard or site), in = check-in (receive at site or yard)."
+    },
+    "point": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "One inspection point within the mode, or empty for all of them."
+    },
+    "scope": {
+      "type": "string",
+      "defaultValue": "required",
+      "description": "required = lines the inspection matrix asks for; all = every line waiting at the point."
+    },
+    "lines": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Every request line waiting at one of the four points (request-detail-lines rows)."
+    },
+    "matrix": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "conf-inspection-details rows: class / subclass / equipment x inspection point."
+    },
+    "matrixNote": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "truncatedNote": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "isLoading": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "loadError": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "current": {
+      "type": "any",
+      "defaultValue": null,
+      "description": "The line being inspected (a queue entry: the line plus point, pointLabel, required)."
+    },
+    "openToken": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "checklist": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "The questions (inspection-page.js checklistItem shape)."
+    },
+    "checklistLoading": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "checklistError": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "history": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "answers": {
+      "type": "any",
+      "defaultValue": {},
+      "description": "Question id -> { value, note }."
+    },
+    "defects": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "{ key, itemId, checklistId, description, severity, action, cost, photo: { name, size, url }, saved }. The photo File itself is held by the page module."
+    },
+    "step": {
+      "type": "number",
+      "defaultValue": 0,
+      "description": "Question index; checklist.length is the review step."
+    },
+    "notes": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "ack": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "saved": {
+      "type": "any",
+      "defaultValue": {},
+      "description": "What the save has already written, so a retry continues instead of duplicating: { inspectionId, responses: {itemId: {id, value, note}}, defects: {key: id}, photos: {key: docId}, completed }."
+    },
+    "photoError": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "isSaving": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "saveError": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "blocked": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "done": {
+      "type": "any",
+      "defaultValue": null,
+      "description": "The inspection just completed: { unit, code, text, point, lineStatus, statusError, line }."
+    }
+  },
+  "metadata": {},
+  "eventListeners": {
+    "vbBeforeEnter": {
+      "chains": [{ "chain": "enforcePageAccessChain" }]
+    },
+    "vbEnter": {
+      "chains": [{ "chain": "inspectionInitChain" }]
+    },
+    "onMode": {
+      "chains": [{ "chain": "setQueueChain", "parameters": { "mode": "{{ $event.currentTarget.dataset.mode }}" } }]
+    },
+    "onPoint": {
+      "chains": [{ "chain": "setQueueChain", "parameters": { "point": "{{ $event.currentTarget.dataset.point }}" } }]
+    },
+    "onScope": {
+      "chains": [{ "chain": "setQueueChain", "parameters": { "scope": "{{ $event.currentTarget.dataset.scope }}" } }]
+    },
+    "onRefresh": {
+      "chains": [{ "chain": "loadQueueChain" }]
+    },
+    "onOpenLine": {
+      "chains": [{ "chain": "openLineChain", "parameters": { "lineId": "{{ $event.currentTarget.dataset.line }}" } }]
+    },
+    "onCloseLine": {
+      "chains": [{ "chain": "openLineChain", "parameters": { "lineId": "" } }]
+    },
+    "onAnswer": {
+      "chains": [
+        {
+          "chain": "answerChain",
+          "parameters": { "id": "{{ $event.currentTarget.dataset.item }}", "value": "{{ $event.currentTarget.dataset.value }}" }
+        }
+      ]
+    },
+    "onAnswerTyped": {
+      "chains": [
+        {
+          "chain": "answerChain",
+          "parameters": { "id": "{{ $event.target.dataset.item }}", "value": "{{ $event.target.value }}", "typed": true }
+        }
+      ]
+    },
+    "onAnswerNote": {
+      "chains": [
+        {
+          "chain": "answerChain",
+          "parameters": { "id": "{{ $event.target.dataset.item }}", "note": "{{ $event.target.value }}" }
+        }
+      ]
+    },
+    "onStep": {
+      "chains": [{ "chain": "stepChain", "parameters": { "to": "{{ $event.currentTarget.dataset.step }}" } }]
+    },
+    "onAddDefect": {
+      "chains": [{ "chain": "defectChain", "parameters": { "action": "add", "item": "{{ $event.currentTarget.dataset.item }}" } }]
+    },
+    "onRemoveDefect": {
+      "chains": [{ "chain": "defectChain", "parameters": { "action": "remove", "key": "{{ $event.currentTarget.dataset.key }}" } }]
+    },
+    "onDefectField": {
+      "chains": [
+        {
+          "chain": "defectChain",
+          "parameters": {
+            "action": "set",
+            "key": "{{ $event.target.dataset.key }}",
+            "field": "{{ $event.target.dataset.field }}",
+            "value": "{{ $event.target.value }}"
+          }
+        }
+      ]
+    },
+    "onDefectChoice": {
+      "chains": [
+        {
+          "chain": "defectChain",
+          "parameters": {
+            "action": "set",
+            "key": "{{ $event.currentTarget.dataset.key }}",
+            "field": "{{ $event.currentTarget.dataset.field }}",
+            "value": "{{ $event.currentTarget.dataset.value }}"
+          }
+        }
+      ]
+    },
+    "onDefectPhoto": {
+      "chains": [
+        {
+          "chain": "photoChain",
+          "parameters": {
+            "key": "{{ $event.target.dataset.key }}",
+            "file": "[[ $event.target.files && $event.target.files.length ? $event.target.files[0] : null ]]"
+          }
+        }
+      ]
+    },
+    "onRemovePhoto": {
+      "chains": [{ "chain": "photoChain", "parameters": { "key": "{{ $event.currentTarget.dataset.key }}", "clear": true } }]
+    },
+    "onNotes": {
+      "chains": [{ "chain": "setFieldChain", "parameters": { "field": "notes", "value": "{{ $event.target.value }}" } }]
+    },
+    "onAck": {
+      "chains": [{ "chain": "setFieldChain", "parameters": { "field": "ack", "value": "{{ $event.target.checked }}" } }]
+    },
+    "onComplete": {
+      "chains": [{ "chain": "completeInspectionChain" }]
+    },
+    "onRetryStatus": {
+      "chains": [{ "chain": "retryStatusChain" }]
+    },
+    "onOpenNav": {
+      "chains": [{ "chain": "openNavChain", "parameters": { "navId": "{{ $event.currentTarget.dataset.nav }}" } }]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}

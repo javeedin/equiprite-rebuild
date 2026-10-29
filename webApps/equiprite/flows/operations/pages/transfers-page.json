@@ -1,0 +1,197 @@
+{
+  "title": "Inter-project transfer",
+  "description": "Inter-project transfer (FDD 7.16A, S28; not a screen in Old EquipRite). From: a request with deployed units (workbench-requests stage DEPLOYED, then views/request-detail-lines); its site from the outbound transfer order (transfer-orders + transfer-order-lines, as the old picking drawer reads them). To: an approved request on the way out with a waiting line for the same equipment (stage OUTBOUND). Checks: same equipment, the date inside both periods, no submitted timesheet (views/timesheet-details), one to one. Transfer: planConfirm (destination site and blocks), reserveConfirm (duplicate guard, leg OUTBOUND), POST transfer-orders (INTER_PROJECT, PENDING), POST transfer-order-lines, POST transfer-history; a failure after the reserve releases it. The Fusion inter-org transfer (INT-18) has no call in services/, so the move is recorded PENDING here and the line statuses are not changed.",
+  "variables": {
+    "sourceRequestId": {
+      "type": "number",
+      "input": "fromUrl",
+      "persisted": "none",
+      "description": "Optional: start from this request (e.g. a link from Workbench › Deployed)."
+    },
+    "sourceRows": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "workbench-requests?stage=DEPLOYED rows (one per line)."
+    },
+    "destRows": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "workbench-requests?stage=OUTBOUND rows (one per line)."
+    },
+    "invOrgs": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "recent": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Recent transfer-history rows, all requests."
+    },
+    "sourceId": {
+      "type": "any",
+      "defaultValue": null
+    },
+    "destId": {
+      "type": "any",
+      "defaultValue": null
+    },
+    "sourceQuery": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "destQuery": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "sourceLines": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "destLines": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "selected": {
+      "type": "any",
+      "defaultValue": {},
+      "description": "Source line id -> true for the ticked units."
+    },
+    "sites": {
+      "type": "any",
+      "defaultValue": {},
+      "description": "Source line id -> the org it was shipped to (its outbound transfer order's destination)."
+    },
+    "timesheets": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "views/timesheet-details rows of the source request (TIMESHEETS_ENABLED only)."
+    },
+    "sourceHistory": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "destHistory": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "date": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "subinventory": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "locator": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "comments": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "isLoading": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "loadError": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "sourceLoading": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "destLoading": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "sourceError": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "destError": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "sourceToken": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "destToken": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "isSaving": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "saveError": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "attempt": {
+      "type": "number",
+      "defaultValue": 0,
+      "description": "Failed attempts that had reserved, so a retry is a new intent for reserveConfirm rather than a replay."
+    },
+    "done": {
+      "type": "any",
+      "defaultValue": null,
+      "description": "The transfer just recorded: { count, orderNumber, from, to, historyError, replayed }."
+    }
+  },
+  "metadata": {},
+  "eventListeners": {
+    "vbBeforeEnter": {
+      "chains": [{ "chain": "enforcePageAccessChain" }]
+    },
+    "vbEnter": {
+      "chains": [{ "chain": "transfersInitChain" }]
+    },
+    "onSearch": {
+      "chains": [
+        { "chain": "setFieldChain", "parameters": { "field": "{{ $event.target.dataset.field }}", "value": "{{ $event.target.value }}" } }
+      ]
+    },
+    "onField": {
+      "chains": [
+        { "chain": "setFieldChain", "parameters": { "field": "{{ $event.target.dataset.field }}", "value": "{{ $event.target.value }}" } }
+      ]
+    },
+    "onPick": {
+      "chains": [
+        {
+          "chain": "pickRequestChain",
+          "parameters": { "side": "{{ $event.currentTarget.dataset.side }}", "id": "{{ $event.currentTarget.dataset.id }}" }
+        }
+      ]
+    },
+    "onChangeRequest": {
+      "chains": [
+        { "chain": "pickRequestChain", "parameters": { "side": "{{ $event.currentTarget.dataset.side }}", "id": "" } }
+      ]
+    },
+    "onToggleUnit": {
+      "chains": [
+        {
+          "chain": "toggleUnitChain",
+          "parameters": { "lineId": "{{ $event.target.dataset.line }}", "checked": "{{ $event.target.checked }}" }
+        }
+      ]
+    },
+    "onTransfer": {
+      "chains": [{ "chain": "createTransferChain" }]
+    },
+    "onCancel": {
+      "chains": [{ "chain": "pickRequestChain", "parameters": { "side": "source", "id": "" } }]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}
