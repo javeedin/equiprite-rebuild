@@ -249,11 +249,13 @@ define([
         { id: 'schedule', label: 'Equipment schedule', icon: 'oj-ux-ico-calendar', pageCodes: ['EQR_EQUIPMENT_SCHEDULE'],
           status: 'old', old: { flow: 'main', page: 'equipment-schedule' }, fdd: '7.10' },
         { id: 'picking', label: 'Initiate picking', icon: 'oj-ux-ico-cart', pageCodes: ['EQR_INITIATE_PICKING'],
-          status: 'old', old: { flow: 'equipment-foundation', page: 'initiate-picking' }, fdd: '7.16' },
+          status: 'new', route: { flow: 'logistics', page: 'picking' },
+          old: { flow: 'equipment-foundation', page: 'initiate-picking' }, fdd: '7.16' },
         { id: 'inspection', label: 'Inspection', icon: 'oj-ux-ico-check-square', pageCodes: ['EQR_WORKBENCH'],
           status: 'planned', fdd: '7.12' },
         { id: 'receipt', label: 'Receipt & returns', icon: 'oj-ux-ico-undo', pageCodes: ['EQR_EQUIPMENT_RETURNS'],
-          status: 'old', old: { flow: 'equipment-foundation', page: 'equipment-returns' }, fdd: '5.3, 5.5' },
+          status: 'new', route: { flow: 'logistics', page: 'receipt' },
+          old: { flow: 'equipment-foundation', page: 'equipment-returns' }, fdd: '5.3, 5.5' },
         { id: 'transfer', label: 'Transfers', icon: 'oj-ux-ico-inventory-transfer', pageCodes: ['EQR_WORKBENCH'],
           status: 'planned', fdd: '7.16A' }
       ]

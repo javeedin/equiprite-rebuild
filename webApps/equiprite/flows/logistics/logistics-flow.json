@@ -1,0 +1,17 @@
+{
+  "id": "logistics",
+  "description": "Fulfil: moving equipment (FDD 7.16, 5.3-5.5). Initiate picking (release transfer orders for picking, pick and ship) and Receipt & returns (receive returned lines at the yard, Direct Return with the barcode / QR scanner).",
+  "defaultPage": "picking",
+  "pages": {
+    "picking": {
+      "path": "pages/picking-page"
+    },
+    "receipt": {
+      "path": "pages/receipt-page"
+    }
+  },
+  "chains": {},
+  "services": {},
+  "types": {},
+  "variables": {}
+}

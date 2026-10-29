@@ -1,0 +1,195 @@
+{
+  "title": "Initiate picking",
+  "description": "Initiate picking (FDD 7.16; replaces equipment-foundation/initiate-picking). The queue (views/workbench-requests?stage=INITIATE) and, below it, the open request's picking workspace instead of a modal. Release for picking, Pick and ship, Refresh and the pick slip run the old page's chains, copied unchanged (openPickingDrawerChain, ReleaseTransferOrderChain, ShipConfirmStuckLinesChain, RefreshPickingDrawerChain, PrintPickSlipChain). Variable names are the old page's so those chains run as they are.",
+  "variables": {
+    "PickingQueueAllArray": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Queue rows from InitPickingQueueChain (one per request)."
+    },
+    "queueText": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "queueChip": {
+      "type": "string",
+      "defaultValue": "all"
+    },
+    "isLoading": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "fetchError": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "isDrawerOpen": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "A request is open in the workspace (name kept from the old dialog)."
+    },
+    "selectedRequest": {
+      "type": "any",
+      "defaultValue": { "lines": [], "pickingExceptions": [] },
+      "description": "The open request: its queue row plus lines and pickingExceptions, built by openPickingDrawerChain."
+    },
+    "isLoadingDrawer": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "selectedRequestTOs": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "The open request's transfer orders as { value, label, orderNumber, orderStatus, released }."
+    },
+    "selectedTOId": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "The single ticked transfer order, or '' (none or several ticked). Scopes Pick and ship and the pick slip header, as on the old page."
+    },
+    "selectionTick": {
+      "type": "number",
+      "defaultValue": 0,
+      "description": "Bumped on every tick change; the ticks live in the page module."
+    },
+    "isReleasingTO": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "isRefreshingDrawer": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "isShipConfirming": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "pickInitiatedWarning": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "releaseMessage": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "Result of the last Release for picking, shown above the lines."
+    },
+    "releaseMessageType": {
+      "type": "string",
+      "defaultValue": "confirmation"
+    },
+    "isPrintingPickSlip": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "pickSlipUrl": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "Object URL of the pick slip PDF; revoked by closePickingDrawerChain."
+    },
+    "pickSlipFileName": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "pickSlipDocNumber": {
+      "type": "string",
+      "defaultValue": ""
+    }
+  },
+  "metadata": {},
+  "eventListeners": {
+    "vbBeforeEnter": {
+      "chains": [{ "chain": "enforcePageAccessChain" }]
+    },
+    "vbEnter": {
+      "chains": [{ "chain": "InitPickingQueueChain" }]
+    },
+    "onRefreshQueue": {
+      "chains": [{ "chain": "InitPickingQueueChain" }]
+    },
+    "onSearchInput": {
+      "chains": [
+        {
+          "chain": "setQueueFilterChain",
+          "parameters": { "text": "{{ $event.target.value }}" }
+        }
+      ]
+    },
+    "onChip": {
+      "chains": [
+        {
+          "chain": "setQueueFilterChain",
+          "parameters": { "chip": "{{ $event.currentTarget.dataset.chip }}" }
+        }
+      ]
+    },
+    "onOpenRequest": {
+      "chains": [
+        {
+          "chain": "openRequestChain",
+          "parameters": { "id": "{{ $event.currentTarget.dataset.id }}" }
+        }
+      ]
+    },
+    "onNextRequest": {
+      "chains": [
+        {
+          "chain": "openRequestChain",
+          "parameters": { "next": true }
+        }
+      ]
+    },
+    "onCloseRequest": {
+      "chains": [{ "chain": "closePickingDrawerChain" }]
+    },
+    "onToggleLine": {
+      "chains": [
+        {
+          "chain": "toggleLineChain",
+          "parameters": {
+            "lineId": "{{ $event.target.dataset.lineId }}",
+            "checked": "{{ $event.target.checked }}"
+          }
+        }
+      ]
+    },
+    "onReleaseTO": {
+      "chains": [{ "chain": "ReleaseTransferOrderChain" }]
+    },
+    "onShipConfirmStuck": {
+      "chains": [{ "chain": "ShipConfirmStuckLinesChain" }]
+    },
+    "onRefreshDrawer": {
+      "chains": [{ "chain": "RefreshPickingDrawerChain" }]
+    },
+    "onOpenPickSlipPreview": {
+      "chains": [{ "chain": "OpenPickSlipPreviewChain" }]
+    },
+    "onClosePickSlipPreview": {
+      "chains": [{ "chain": "ClosePickSlipPreviewChain" }]
+    },
+    "onPrintPickSlip": {
+      "chains": [
+        {
+          "chain": "pickSlipActionChain",
+          "parameters": { "action": "print" }
+        }
+      ]
+    },
+    "onDownloadPickSlip": {
+      "chains": [
+        {
+          "chain": "pickSlipActionChain",
+          "parameters": { "action": "download" }
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-dialog": { "path": "ojs/ojdialog" },
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}

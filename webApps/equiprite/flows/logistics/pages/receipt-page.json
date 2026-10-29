@@ -1,0 +1,264 @@
+{
+  "title": "Receipt & returns",
+  "description": "Receipt & returns (FDD 5.3-5.5; replaces equipment-foundation/equipment-returns). The returns queue (views/workbench-requests?stage=RETURN) and, below it, the open request's lines with Receive at yard (the old Accept, AcceptReturnLinesChain). Direct Return with the barcode / QR / serial-plate scanner is the old dialog with its chains copied unchanged. Variable names are the old page's so those chains run as they are.",
+  "variables": {
+    "PickingQueueAllArray": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Returns queue rows from InitPickingQueueChain (copied unchanged; one row per request)."
+    },
+    "PickingQueueFilteredArray": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Written by the copied InitPickingQueueChain; the queue on screen is filtered in receipt-page.js."
+    },
+    "classesArray": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Distinct equipment classes in the queue, for the class chips."
+    },
+    "tabCountAll": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "queueText": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "queueClass": {
+      "type": "string",
+      "defaultValue": "all"
+    },
+    "isLoading": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "fetchError": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "isDrawerOpen": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "selectedRequest": {
+      "type": "any",
+      "defaultValue": { "lines": [], "pickingExceptions": [] },
+      "description": "The open request: its queue row plus lines, built by openPickingDrawerChain."
+    },
+    "isLoadingDrawer": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "selectedRequestTOs": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "selectedTOId": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "lineSelectionState": {
+      "type": "object",
+      "defaultValue": { "count": 0 }
+    },
+    "lineSelectionTick": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "actualReturnDate": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "Actual return date for Receive at yard; blank = today (AcceptReturnLinesChain)."
+    },
+    "isAccepting": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "directReturnOpen": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "directReturnQuery": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "directReturnRows": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Deployed units from views/deployed-units, shaped by resources/js/directReturn."
+    },
+    "directReturnSelected": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Row keys the operator ticked. Never pre-filled: a serial can be on several rentals."
+    },
+    "directReturnSearching": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "directReturnMeta": {
+      "type": "object",
+      "defaultValue": { "recordCount": 0, "page": 0, "hasMore": false, "searched": false }
+    },
+    "scanSupported": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "scanOpen": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "scanStatus": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "scanReadingText": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "scanTorchAvailable": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "scanTorchOn": {
+      "type": "boolean",
+      "defaultValue": false
+    }
+  },
+  "metadata": {},
+  "eventListeners": {
+    "vbBeforeEnter": {
+      "chains": [{ "chain": "enforcePageAccessChain" }]
+    },
+    "vbEnter": {
+      "chains": [{ "chain": "InitPickingQueueChain" }]
+    },
+    "vbExit": {
+      "chains": [{ "chain": "CloseScannerChain" }]
+    },
+    "onRefreshQueue": {
+      "chains": [{ "chain": "InitPickingQueueChain" }]
+    },
+    "onSearchInput": {
+      "chains": [
+        {
+          "chain": "setQueueFilterChain",
+          "parameters": { "text": "{{ $event.target.value }}" }
+        }
+      ]
+    },
+    "onClassChip": {
+      "chains": [
+        {
+          "chain": "setQueueFilterChain",
+          "parameters": { "cls": "{{ $event.currentTarget.dataset.cls }}" }
+        }
+      ]
+    },
+    "onOpenRequest": {
+      "chains": [
+        {
+          "chain": "openRequestChain",
+          "parameters": { "id": "{{ $event.currentTarget.dataset.id }}" }
+        }
+      ]
+    },
+    "onNextRequest": {
+      "chains": [
+        {
+          "chain": "openRequestChain",
+          "parameters": { "next": true }
+        }
+      ]
+    },
+    "onCloseRequest": {
+      "chains": [{ "chain": "closePickingDrawerChain" }]
+    },
+    "onToggleLine": {
+      "chains": [
+        {
+          "chain": "toggleLineChain",
+          "parameters": {
+            "lineId": "{{ $event.target.dataset.lineId }}",
+            "checked": "{{ $event.target.checked }}"
+          }
+        }
+      ]
+    },
+    "onReturnDate": {
+      "chains": [
+        {
+          "chain": "setReturnDateChain",
+          "parameters": { "value": "{{ $event.target.value }}" }
+        }
+      ]
+    },
+    "onReceive": {
+      "chains": [{ "chain": "receiveChain" }]
+    },
+    "onMyRequests": {
+      "chains": [
+        {
+          "chain": "openNavChain",
+          "parameters": { "navId": "my-requests" }
+        }
+      ]
+    },
+    "onScan": {
+      "chains": [{ "chain": "scanChain" }]
+    },
+    "onOpenDirectReturn": {
+      "chains": [{ "chain": "OpenDirectReturnChain" }]
+    },
+    "onCloseDirectReturn": {
+      "chains": [{ "chain": "CloseDirectReturnChain" }]
+    },
+    "onDirectDialogClosed": {
+      "chains": [{ "chain": "CloseScannerChain" }]
+    },
+    "onDirectReturnSearch": {
+      "chains": [{ "chain": "searchDirectChain" }]
+    },
+    "onDirectQueryKey": {
+      "chains": [
+        {
+          "chain": "searchDirectChain",
+          "parameters": { "value": "{{ $event.target.value }}", "key": "{{ $event.key }}" }
+        }
+      ]
+    },
+    "onToggleDirectRow": {
+      "chains": [
+        {
+          "chain": "toggleDirectRowChain",
+          "parameters": { "rowKey": "{{ $event.target.dataset.rowKey }}" }
+        }
+      ]
+    },
+    "onDirectReturnSubmit": {
+      "chains": [{ "chain": "SubmitDirectReturnChain" }]
+    },
+    "onOpenScanner": {
+      "chains": [{ "chain": "OpenScannerChain" }]
+    },
+    "onCloseScanner": {
+      "chains": [{ "chain": "CloseScannerChain" }]
+    },
+    "onToggleTorch": {
+      "chains": [{ "chain": "ToggleTorchChain" }]
+    },
+    "onReadSerialText": {
+      "chains": [{ "chain": "ReadSerialTextChain" }]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-dialog": { "path": "ojs/ojdialog" },
+      "oj-input-text": { "path": "ojs/ojinputtext" },
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}
