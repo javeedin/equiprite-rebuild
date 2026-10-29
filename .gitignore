@@ -6,3 +6,6 @@ package-lock.json
 # Desktop installer output (not wired yet; see desktop/README.md)
 desktop/dist/
 desktop/app/
+
+# Temporary working copies made by Claude Code helper agents
+.claude/worktrees/
