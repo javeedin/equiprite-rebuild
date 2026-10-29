@@ -2,13 +2,28 @@ define([
   'vb/action/actionChain',
   'vb/action/actions',
   'resources/js/dashboardRoleConfig',
-], (ActionChain, Actions, dashConfig) => {
+  'resources/js/adminDashboard',
+  'resources/js/integrationHealth',
+  'resources/js/analyticsData',
+], (ActionChain, Actions, dashConfig, adminDashboard, IntegrationHealth, analyticsData) => {
   'use strict';
 
   // New EquipRite Home: the old dashboard's data logic (main-equiprite-page's dashboardInitChain), copied so the
   // persona rules, endpoints and KPI counts stay exactly as they are proven in Old EquipRite. Changed here: no
-  // redirect to a separate project or customer dashboard (Home is one page), and a customer-only user gets a link
-  // to the customer portal in the old app instead of a redirect.
+  // redirect to a separate project or customer dashboard (Home is one page); a customer-only user is sent to the
+  // customer portal. New here:
+  //   - "View as": an Administrator previews any persona's Home, others switch between their own personas
+  //     (dashboardPersonas). The choice is kept for the tab. Sign-out and redirect rules still follow the user's
+  //     REAL persona, never the previewed one.
+  //   - The Administrator has a Home of its own (loadAdmin, resources/js/adminDashboard.js) instead of the
+  //     Requestor's: FDD 7.1.3 KPI bar, what needs attention, pipeline, fleet, integrations, settings.
+  const VIEW_KEY = 'eqr.home.viewAs';
+  function savedView() {
+    try { return sessionStorage.getItem(VIEW_KEY) || ''; } catch (e) { return ''; }
+  }
+  function saveView(code) {
+    try { sessionStorage.setItem(VIEW_KEY, code); } catch (e) { /* private mode */ }
+  }
 
   const S = dashConfig.STATUSES;
 
@@ -455,9 +470,10 @@ define([
   }
 
   class homeInitChain extends ActionChain {
-    async run(context) {
+    async run(context, params) {
       const { $page, $application } = context;
       const fns = $application.functions;
+      const requested = params && params.role ? String(params.role) : '';
 
       $page.variables.isLoading = true;
 
@@ -478,10 +494,22 @@ define([
         await waitForRoles($application);
         await waitForSessionRoles($application);
 
-        const role = fns.resolveDashboardRole(
+        // myRole is who the user IS; role is the Home being shown (the same unless "View as" picked another).
+        const myRole = fns.resolveDashboardRole(
           $application.variables.fusionRoles,
           $application.variables.sessionRoles
         );
+        const choices = fns.dashboardPersonas($application.variables.fusionRoles, $application.variables.sessionRoles);
+        const allowed = (c) => choices.some((x) => x.code === c);
+        let role = myRole;
+        if (requested && allowed(requested)) {
+          role = requested;
+          saveView(role);
+        } else if (!requested && allowed(savedView())) {
+          role = savedView();
+        }
+        $page.variables.myRole = myRole;
+        $page.variables.roleChoices = choices;
         const cfg  = dashConfig.forRole(role);
 
         // ── TESTING: no-persona path ──────────────────────────────────────
@@ -501,7 +529,7 @@ define([
         // map arrives after page entry on a cold load. So the guard admits them
         // and this chain is where it surfaces. Redirect rather than render an
         // error telling a customer user to go get an internal role.
-        if (role === 'EXTERNAL_REQUESTOR'
+        if (myRole === 'EXTERNAL_REQUESTOR'
             || (!cfg && fns.navVisible($application.variables.pageAccessMap,
                                        $application.variables.pageAccessLoaded,
                                        'EQR_CUST_DASHBOARD')
@@ -558,7 +586,7 @@ define([
         // ENABLED neither appears, and any timer a previous entry scheduled is
         // cancelled here — so the flag being true is sufficient to guarantee no
         // sign-out, whatever happened on an earlier load.
-        if (shouldSignOut($application, fns, role)) {
+        if (shouldSignOut($application, fns, myRole)) {
           await Actions.fireNotificationEvent(context, {
             summary: 'Timesheets are not enabled',
             message: 'There is nothing available for your role while timesheets'
@@ -566,13 +594,18 @@ define([
             displayMode: 'transient',
             type: 'warning'
           });
-          scheduleSignOut($application, fns, role);
+          scheduleSignOut($application, fns, myRole);
           // Fall through and still render the dashboard: the user gets the full
           // minute to read the message rather than staring at a blank page.
         } else {
           cancelSignOut();
         }
 
+        if (role === 'EQUIP_ADMIN') {
+          await this.loadAdmin(context);
+          return;
+        }
+        $page.variables.adminModel    = null;
         $page.variables.dashRole      = role;
         $page.variables.dashTitle     = cfg.title;
         $page.variables.dashSubtitle  = cfg.subtitle;
@@ -681,6 +714,97 @@ define([
       } finally {
         $page.variables.isLoading = false;
       }
+    }
+
+    /**
+     * The Administrator's Home: everything below in parallel, each call on its own (a failed one leaves its panel
+     * empty, never the page), then adminDashboard.build(). Integration rows are read exactly as the Integration
+     * health page reads them and graded by the same integrationHealth.model().
+     */
+    async loadAdmin(context) {
+      const { $page, $application } = context;
+      const fns = $application.functions;
+      const vars = $application.variables;
+      const on = (k) => !!fns.isFeatureEnabled(vars.featureFlags, vars.flagsLoaded, k);
+      const safe = (endpoint, uriParams) => Actions.callRest(context, uriParams ? { endpoint, uriParams } : { endpoint })
+        .catch((err) => { console.error('[homeInitChain] admin call failed:', endpoint, err); return null; });
+      const none = Promise.resolve(null);
+      const finance = dashConfig.ROLE_CONFIG.FINANCE_USER.table;
+      const postCostsOn = on('PROJECTS_MODULE_ENABLED') && !on('PPM_RATES_ENABLED');
+
+      $page.variables.dashRole = 'EQUIP_ADMIN';
+      $page.variables.dashTitle = 'Administration';
+      $page.variables.dashSubtitle = 'What needs an administrator across the whole operation, and how the system is running.';
+      $page.variables.kpiCards = [];
+      $page.variables.kpis = {};
+      $page.variables.tableColumns = [];
+      $page.variables.tableTitle = '';
+      $page.variables.tableViewAllNav = '';
+      $page.variables.dashRequestsArray = [];
+
+      const names = ['requests', 'fleet', 'timesheets', 'postCost', 'events', 'errors', 'dlq', 'jobs', 'syncExceptions',
+        'lock', 'certifications', 'portalUsers', 'audit', 'appRoles'];
+      const res = await Promise.all([
+        safe('eqp-v1/getEquipriteV1ViewsMyRequests', { size: 2000, filter: fns.myRequestsOriginFilter(vars.fusionRoles, vars.sessionRoles) }),
+        safe('eqp-v1/getEquipriteV1ViewsYardStock', { groupBy: 'unitStatus' }),
+        on('TIMESHEETS_ENABLED') ? safe('eqp-v1/getEquipriteV1ViewsTimesheetApprovals', { page: 0, size: 500 }) : none,
+        postCostsOn ? safe(finance.endpoint, finance.uriParams) : none,
+        safe('eqp-v1/getIntegrationEvents'),
+        safe('eqp-v1/getErrorLogs'),
+        safe('eqp-v1/getDeadLetterQueue'),
+        safe('eqp-v1/getJobRunLogs', { orderBy: 'startedAt:desc', size: 200 }),
+        safe('eqp-v1/getFusionSyncExceptions', { status: 'OPEN' }),
+        safe('eqp-v1/getFusionSyncLock'),
+        safe('eqp-v1/getEquipmentCertifications'),
+        on('CUSTOMERS_MODULE_ENABLED') ? safe('eqp-v1/getCustomerPortalUsers') : none,
+        safe('eqp-v1/getAuditTrail'),
+        safe('eqp-v1/getRbacAppRoles'),
+      ]);
+      const r = {};
+      names.forEach((n, i) => { r[n] = res[i]; });
+      const ok = (x) => !!(x && x.ok);
+      const failed = names.filter((n, i) => res[i] && !res[i].ok);
+
+      const health = new IntegrationHealth();
+      const healthModel = health.model({
+        events: ok(r.events) ? health.rowsOf(r.events.body) : [],
+        errors: ok(r.errors) ? health.rowsOf(r.errors.body) : [],
+        dlq: ok(r.dlq) ? health.rowsOf(r.dlq.body) : [],
+        jobs: ok(r.jobs) ? health.rowsOf(r.jobs.body) : [],
+        syncExceptions: ok(r.syncExceptions) ? health.rowsOf(r.syncExceptions.body) : [],
+        lock: ok(r.lock) ? (r.lock.body || null) : null,
+      }, Date.now());
+
+      let financeCounts = null;
+      if (ok(r.postCost)) {
+        const mapper = MAPPERS[finance.shape];
+        // The Finance Home's own counter, given the raw payload too (it counts weeks off it), so both agree.
+        financeCounts = COUNTERS.FINANCE_USER(groupPostCostByRequest(rows(r.postCost)).map((x) => mapper(x, fns)), { __self: r.postCost });
+      }
+      const modules = {};
+      adminDashboard.MODULES.forEach((m) => { modules[m.key] = on(m.key); });
+
+      $page.variables.adminModel = adminDashboard.build({
+        requests: rows(r.requests),
+        fleetGroups: rows(r.fleet),
+        unitStatusLabel: analyticsData.unitStatusLabel,
+        timesheetsSubmitted: rows(r.timesheets).filter((x) => {
+          const st = String(x.timesheetStatus || x.status || '').toUpperCase();
+          return !st || st === 'SUBMITTED';
+        }).length,
+        finance: financeCounts,
+        health: healthModel,
+        dlqOpen: (healthModel.kpis && healthModel.kpis.dlq) || 0,
+        syncExceptions: ok(r.syncExceptions) ? health.rowsOf(r.syncExceptions.body).length : 0,
+        certifications: rows(r.certifications),
+        portalUsers: rows(r.portalUsers),
+        audit: rows(r.audit),
+        appRoles: rows(r.appRoles),
+        modules,
+      }, Date.now());
+      $page.variables.fetchError = !ok(r.requests)
+        ? 'Requests could not be loaded, so the request figures below are empty.'
+        : (failed.length ? 'Some panels could not be loaded (' + failed.join(', ') + ').' : '');
     }
   }
 

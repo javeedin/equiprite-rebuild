@@ -477,7 +477,9 @@ function analyticsChain(name, Actions) {
   }
 
   // ── Integration health ─────────────────────────────────────────────
-  const Health = loadAmd(path.join(ADMIN, 'integration-health-page.js'));
+  // The page module is the shared resources/js/integrationHealth.js (also used by the Administrator's Home).
+  const Health = loadAmd(path.join(ADMIN, 'integration-health-page.js'),
+    { 'resources/js/integrationHealth': loadAmd(path.join(JS, 'integrationHealth.js')) });
   const ih = new Health();
   const NOW = Date.parse('2026-10-29T12:00:00Z');
   const at = (min) => new Date(NOW - min * 60000).toISOString();

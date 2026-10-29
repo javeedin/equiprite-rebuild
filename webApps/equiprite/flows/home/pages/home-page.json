@@ -65,6 +65,21 @@
         "keyAttributes": "requestNumber",
         "data": "{{ $page.variables.dashRequestsArray }}"
       }
+    },
+    "myRole": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "The user's own persona (resolveDashboardRole); sign-out and redirect rules follow this, not the previewed one."
+    },
+    "roleChoices": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Personas \"View as\" offers (dashboardPersonas): every persona for an Administrator, the user's own otherwise; empty hides the switcher."
+    },
+    "adminModel": {
+      "type": "any",
+      "defaultValue": null,
+      "description": "The Administrator's Home (resources/js/adminDashboard.js build()); null on every other persona."
     }
   },
   "metadata": {},
@@ -119,6 +134,37 @@
           "chain": "openRowChain",
           "parameters": {
             "row": "{{ $event.detail.value?.data }}"
+          }
+        }
+      ]
+    },
+    "onViewRole": {
+      "chains": [
+        {
+          "chain": "homeInitChain",
+          "parameters": {
+            "role": "{{ $event.currentTarget.dataset.role }}"
+          }
+        }
+      ]
+    },
+    "onAdminNav": {
+      "chains": [
+        {
+          "chain": "openNavChain",
+          "parameters": {
+            "navId": "{{ $event.currentTarget.dataset.navId }}"
+          }
+        }
+      ]
+    },
+    "onAdminRequest": {
+      "chains": [
+        {
+          "chain": "openRequestChain",
+          "parameters": {
+            "id": "{{ $event.currentTarget.dataset.id }}",
+            "number": "{{ $event.currentTarget.dataset.number }}"
           }
         }
       ]

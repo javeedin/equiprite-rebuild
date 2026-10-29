@@ -1213,6 +1213,32 @@ define([
      *   pass it, or the chip can name a different persona than the dashboard
      * @returns {string} human-readable role name, or '' when unresolved
      */
+    /**
+     * The Home personas this user may switch between (Home's "View as"), in the
+     * order the switcher shows them. An Administrator may preview every
+     * persona; anyone else only the personas of their own session roles, so a
+     * switch never shows a layout the user has no role for. External
+     * requestors use the customer portal, not Home, so they are never listed.
+     * The data on each layout is still the user's own: the backend scopes it.
+     *
+     * @param {string[]} fusionRoles
+     * @param {Array}    sessionRoles - priority-ordered session roles
+     * @returns {{code: string, label: string}[]} empty when there is nothing to switch
+     */
+    dashboardPersonas(fusionRoles, sessionRoles) {
+      const own = resolveDashboardRoleFrom(fusionRoles, sessionRoles);
+      const ALL = ['EQUIP_ADMIN', 'EQUIP_MGR', 'REQUESTOR', 'INSPECTION', 'TIMEKEEPER', 'TIME_APPROVER', 'FINANCE_USER'];
+      const codes = own === 'EQUIP_ADMIN'
+        ? ALL
+        : ALL.filter((c) => normalizeRoleCodes(sessionRoles).indexOf(c) !== -1 || c === own);
+      return codes.length > 1 ? codes.map((c) => ({ code: c, label: DASH_ROLE_LABELS[c] || c })) : [];
+    }
+
+    /** A persona code's name ('EQUIP_MGR' -> 'Equipment Manager'). */
+    personaLabel(code) {
+      return DASH_ROLE_LABELS[code] || code || '';
+    }
+
     dashboardRoleLabel(fusionRoles, sessionRoles) {
       // resolveDashboardRoleFrom(), not this.resolveDashboardRole(): a template
       // binding can invoke this detached from the module instance, and `this`

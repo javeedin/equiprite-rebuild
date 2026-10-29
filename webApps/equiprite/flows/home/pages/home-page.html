@@ -25,6 +25,248 @@
 </div>
 
 <div class="er-page">
+  <oj-bind-if test="[[ $variables.roleChoices.length ]]">
+    <div class="er-viewas">
+      <div class="er-chip-row" role="group" aria-label="View Home as">
+        <span class="er-viewas-label">View as</span>
+        <oj-bind-for-each data="[[ $variables.roleChoices ]]">
+          <template data-oj-as="rc">
+            <button type="button" :data-role="[[ rc.data.code ]]" on-click="[[ $listeners.onViewRole ]]"
+              :class="[[ 'er-chip' + ($variables.dashRole === rc.data.code ? ' er-chip--on' : '') ]]"
+              :aria-pressed="[[ $variables.dashRole === rc.data.code ? 'true' : 'false' ]]">
+              <oj-bind-text value="[[ rc.data.label ]]"></oj-bind-text>
+              <oj-bind-if test="[[ rc.data.code === $variables.myRole ]]"><span class="er-chip-count">you</span></oj-bind-if>
+            </button>
+          </template>
+        </oj-bind-for-each>
+      </div>
+      <oj-bind-if test="[[ $variables.dashRole && $variables.myRole && $variables.dashRole !== $variables.myRole ]]">
+        <p class="er-note er-viewas-note">
+          Previewing the <oj-bind-text value="[[ $application.functions.personaLabel($variables.dashRole) ]]"></oj-bind-text> Home.
+          The layout is theirs; the data is what your own access returns.
+        </p>
+      </oj-bind-if>
+    </div>
+  </oj-bind-if>
+
+  <!-- ── Administrator (FDD 7.1.2 / 7.1.3; resources/js/adminDashboard.js) ───────────────────────────── -->
+  <oj-bind-if test="[[ $variables.dashRole === 'EQUIP_ADMIN' && !!$variables.adminModel ]]">
+    <section class="er-kpis" aria-label="Key figures">
+      <oj-bind-for-each data="[[ $variables.adminModel.kpis ]]">
+        <template data-oj-as="k">
+          <button type="button" :class="[[ 'er-kpi er-kpi--' + k.data.accent ]]" :data-nav-id="[[ k.data.nav ]]"
+            :data-kpi="[[ k.data.key ]]" on-click="[[ $listeners.onAdminNav ]]">
+            <span class="er-kpi-label"><oj-bind-text value="[[ k.data.label ]]"></oj-bind-text></span>
+            <span class="er-kpi-value"><oj-bind-text value="[[ k.data.value ]]"></oj-bind-text></span>
+            <span class="er-kpi-hint"><oj-bind-text value="[[ k.data.hint ]]"></oj-bind-text></span>
+          </button>
+        </template>
+      </oj-bind-for-each>
+    </section>
+
+    <div class="er-ad-grid">
+      <section class="er-card er-card-pad er-ad-attention" aria-labelledby="adAttTitle">
+        <div class="er-table-head">
+          <h2 class="er-section-title" id="adAttTitle">Needs attention</h2>
+          <span class="er-note"><oj-bind-text value="[[ $variables.adminModel.attention.length ? $variables.adminModel.attention.length + ' items, most urgent first' : '' ]]"></oj-bind-text></span>
+        </div>
+        <oj-bind-if test="[[ !$variables.adminModel.attention.length ]]">
+          <p class="er-ad-clear">Nothing needs you right now: no overdue returns, approvals, failed integrations or expiring certificates.</p>
+        </oj-bind-if>
+        <ul class="er-att-list">
+          <oj-bind-for-each data="[[ $variables.adminModel.attention ]]">
+            <template data-oj-as="a">
+              <li :class="[[ 'er-att er-att--' + a.data.severity ]]" :data-key="[[ a.data.key ]]">
+                <span class="er-att-count"><oj-bind-text value="[[ a.data.count ]]"></oj-bind-text></span>
+                <span class="er-att-text">
+                  <span class="er-att-title"><oj-bind-text value="[[ a.data.title ]]"></oj-bind-text></span>
+                  <span class="er-note"><oj-bind-text value="[[ a.data.detail ]]"></oj-bind-text></span>
+                </span>
+                <oj-bind-if test="[[ !!a.data.nav ]]">
+                  <button type="button" class="er-btn er-btn--plain" :data-nav-id="[[ a.data.nav ]]" on-click="[[ $listeners.onAdminNav ]]">
+                    <oj-bind-text value="[[ a.data.action ]]"></oj-bind-text>
+                  </button>
+                </oj-bind-if>
+              </li>
+            </template>
+          </oj-bind-for-each>
+        </ul>
+      </section>
+
+      <section class="er-card er-card-pad" aria-labelledby="adPipeTitle">
+        <div class="er-table-head">
+          <h2 class="er-section-title" id="adPipeTitle">Request pipeline</h2>
+          <button type="button" class="er-btn er-btn--plain" data-nav-id="my-requests" on-click="[[ $listeners.onAdminNav ]]">All requests</button>
+        </div>
+        <ul class="er-bars">
+          <oj-bind-for-each data="[[ $variables.adminModel.pipeline ]]">
+            <template data-oj-as="st">
+              <li :class="[[ 'er-bar-row er-stage--' + st.data.key ]]">
+                <span class="er-bar-label"><oj-bind-text value="[[ st.data.label ]]"></oj-bind-text></span>
+                <span class="er-bar-track"><span class="er-bar-fill" :style="[[ 'width:' + st.data.pct + '%' ]]"></span></span>
+                <span class="er-bar-value er-num"><oj-bind-text value="[[ st.data.count ]]"></oj-bind-text></span>
+              </li>
+            </template>
+          </oj-bind-for-each>
+        </ul>
+        <div class="er-split" aria-label="Project and customer requests">
+          <span class="er-split-bar"><span class="er-split-project" :style="[[ 'width:' + $variables.adminModel.source.projectPct + '%' ]]"></span></span>
+          <span class="er-note">
+            <oj-bind-text value="[[ $variables.adminModel.source.project + ' project · ' + $variables.adminModel.source.customer + ' customer · '
+              + $variables.adminModel.totalRequests + ' in all' ]]"></oj-bind-text>
+          </span>
+        </div>
+      </section>
+
+      <section class="er-card er-card-pad" aria-labelledby="adFleetTitle">
+        <div class="er-table-head">
+          <h2 class="er-section-title" id="adFleetTitle">Fleet</h2>
+          <button type="button" class="er-btn er-btn--plain" data-nav-id="analytics" on-click="[[ $listeners.onAdminNav ]]">Analytics</button>
+        </div>
+        <oj-bind-if test="[[ !$variables.adminModel.fleet.total ]]">
+          <p class="er-note">No stock figures came back from the yard stock view.</p>
+        </oj-bind-if>
+        <oj-bind-if test="[[ !!$variables.adminModel.fleet.total ]]">
+          <p class="er-ad-big">
+            <strong class="er-num"><oj-bind-text value="[[ $variables.adminModel.fleet.utilizationPct + '%' ]]"></oj-bind-text></strong>
+            <span class="er-note"><oj-bind-text value="[[ 'of ' + $variables.adminModel.fleet.total + ' units out on rent' ]]"></oj-bind-text></span>
+          </p>
+          <ul class="er-bars">
+            <oj-bind-for-each data="[[ $variables.adminModel.fleet.byStatus ]]">
+              <template data-oj-as="u">
+                <li :class="[[ 'er-bar-row er-unit--' + u.data.key ]]">
+                  <span class="er-bar-label"><oj-bind-text value="[[ u.data.label ]]"></oj-bind-text></span>
+                  <span class="er-bar-track"><span class="er-bar-fill" :style="[[ 'width:' + u.data.pct + '%' ]]"></span></span>
+                  <span class="er-bar-value er-num"><oj-bind-text value="[[ u.data.count ]]"></oj-bind-text></span>
+                </li>
+              </template>
+            </oj-bind-for-each>
+          </ul>
+        </oj-bind-if>
+        <oj-bind-if test="[[ $variables.adminModel.overdue.length ]]">
+          <h3 class="er-ad-sub">Longest overdue</h3>
+          <ul class="er-ad-mini">
+            <oj-bind-for-each data="[[ $variables.adminModel.overdue ]]">
+              <template data-oj-as="o">
+                <li>
+                  <button type="button" class="er-link" :data-id="[[ o.data.id ]]" :data-number="[[ o.data.requestNumber ]]"
+                    on-click="[[ $listeners.onAdminRequest ]]"><oj-bind-text value="[[ o.data.requestNumber ]]"></oj-bind-text></button>
+                  <span class="er-note"><oj-bind-text value="[[ o.data.who ]]"></oj-bind-text></span>
+                  <span class="er-status er-status--REJECTED"><oj-bind-text value="[[ o.data.days + (o.data.days === 1 ? ' day' : ' days') ]]"></oj-bind-text></span>
+                </li>
+              </template>
+            </oj-bind-for-each>
+          </ul>
+        </oj-bind-if>
+      </section>
+
+      <section class="er-card er-card-pad" aria-labelledby="adIntTitle">
+        <div class="er-table-head">
+          <h2 class="er-section-title" id="adIntTitle">Integrations</h2>
+          <button type="button" class="er-btn er-btn--plain" data-nav-id="integration-health" on-click="[[ $listeners.onAdminNav ]]">Integration health</button>
+        </div>
+        <div class="er-chip-row er-ad-counts">
+          <span class="er-hp er-hp--healthy"><oj-bind-text value="[[ $variables.adminModel.integrations.counts.healthy + ' healthy' ]]"></oj-bind-text></span>
+          <span class="er-hp er-hp--degraded"><oj-bind-text value="[[ $variables.adminModel.integrations.counts.attention + ' attention' ]]"></oj-bind-text></span>
+          <span class="er-hp er-hp--down"><oj-bind-text value="[[ $variables.adminModel.integrations.counts.down + ' down' ]]"></oj-bind-text></span>
+        </div>
+        <oj-bind-if test="[[ !$variables.adminModel.integrations.cards.length ]]">
+          <p class="er-note">No integration activity logged yet.</p>
+        </oj-bind-if>
+        <ul class="er-ad-mini">
+          <oj-bind-for-each data="[[ $variables.adminModel.integrations.cards ]]">
+            <template data-oj-as="c">
+              <li>
+                <span class="er-ad-int-name"><oj-bind-text value="[[ c.data.name ]]"></oj-bind-text></span>
+                <span :class="[[ 'er-hp er-hp--' + c.data.health.key ]]" :title="[[ c.data.health.reason ]]">
+                  <oj-bind-text value="[[ c.data.health.label ]]"></oj-bind-text>
+                </span>
+              </li>
+            </template>
+          </oj-bind-for-each>
+        </ul>
+        <dl class="er-facts er-ad-facts">
+          <div><dt>Last sync</dt><dd><oj-bind-text value="[[ $variables.adminModel.integrations.lastSync ]]"></oj-bind-text>
+            <span class="er-note"><oj-bind-text value="[[ $variables.adminModel.integrations.lastSyncHint ]]"></oj-bind-text></span></dd></div>
+          <div><dt>Dead letter queue</dt><dd><oj-bind-text value="[[ $variables.adminModel.integrations.dlqOpen ]]"></oj-bind-text>
+            <span class="er-note">target under 5</span></dd></div>
+        </dl>
+      </section>
+
+      <section class="er-card er-card-pad" aria-labelledby="adSetTitle">
+        <div class="er-table-head">
+          <h2 class="er-section-title" id="adSetTitle">Modules &amp; access</h2>
+          <button type="button" class="er-btn er-btn--plain" data-nav-id="configuration" on-click="[[ $listeners.onAdminNav ]]">Configuration</button>
+        </div>
+        <ul class="er-ad-modules">
+          <oj-bind-for-each data="[[ $variables.adminModel.modules ]]">
+            <template data-oj-as="m">
+              <li :class="[[ 'er-mod' + (m.data.on ? ' er-mod--on' : '') ]]">
+                <span class="er-mod-dot" aria-hidden="true"></span>
+                <oj-bind-text value="[[ m.data.label ]]"></oj-bind-text>
+                <span class="er-sr"><oj-bind-text value="[[ m.data.on ? 'on' : 'off' ]]"></oj-bind-text></span>
+                <span class="er-mod-state" aria-hidden="true"><oj-bind-text value="[[ m.data.on ? 'On' : 'Off' ]]"></oj-bind-text></span>
+              </li>
+            </template>
+          </oj-bind-for-each>
+        </ul>
+        <dl class="er-facts er-ad-facts">
+          <div><dt>App roles</dt><dd><oj-bind-text value="[[ $variables.adminModel.access.roles ]]"></oj-bind-text>
+            <button type="button" class="er-link" data-nav-id="page-access" on-click="[[ $listeners.onAdminNav ]]">Page access</button></dd></div>
+          <div><dt>Locked portal accounts</dt><dd><oj-bind-text value="[[ $variables.adminModel.access.lockedUsers ]]"></oj-bind-text></dd></div>
+        </dl>
+        <p class="er-note">Users and their Fusion roles are managed in Oracle Fusion Security (FDD 7.1.2).</p>
+        <oj-bind-if test="[[ $variables.adminModel.changes.length ]]">
+          <h3 class="er-ad-sub">Recent changes</h3>
+          <ul class="er-ad-mini">
+            <oj-bind-for-each data="[[ $variables.adminModel.changes ]]">
+              <template data-oj-as="ch">
+                <li class="er-ad-change">
+                  <span><oj-bind-text value="[[ ch.data.what ]]"></oj-bind-text></span>
+                  <span class="er-note"><oj-bind-text value="[[ ch.data.who + ' · ' + ch.data.when ]]"></oj-bind-text></span>
+                </li>
+              </template>
+            </oj-bind-for-each>
+          </ul>
+        </oj-bind-if>
+      </section>
+    </div>
+
+    <section class="er-card" aria-labelledby="adRecentTitle">
+      <div class="er-card-pad er-table-head">
+        <h2 class="er-section-title" id="adRecentTitle">Latest requests</h2>
+        <button type="button" class="er-btn er-btn--plain" data-nav-id="workbench" on-click="[[ $listeners.onAdminNav ]]">Workbench</button>
+      </div>
+      <div class="er-table-wrap">
+        <div class="er-grid er-grid--recent" role="table" aria-labelledby="adRecentTitle">
+          <div class="er-grid-row er-grid-head" role="row">
+            <span role="columnheader">Request</span><span role="columnheader">Source</span><span role="columnheader">Project or customer</span>
+            <span role="columnheader">Requestor</span><span role="columnheader">Dates</span><span role="columnheader">Status</span>
+          </div>
+          <oj-bind-for-each data="[[ $variables.adminModel.recent ]]">
+            <template data-oj-as="q">
+              <div class="er-grid-row" role="row">
+                <span role="cell"><button type="button" class="er-link" :data-id="[[ q.data.id ]]" :data-number="[[ q.data.requestNumber ]]"
+                  on-click="[[ $listeners.onAdminRequest ]]"><oj-bind-text value="[[ q.data.requestNumber ]]"></oj-bind-text></button></span>
+                <span role="cell"><span :class="[[ q.data.source === 'Customer' ? 'er-status er-status--source-external' : 'er-status er-status--source-internal' ]]">
+                  <oj-bind-text value="[[ q.data.source ]]"></oj-bind-text></span></span>
+                <span role="cell"><oj-bind-text value="[[ q.data.who ]]"></oj-bind-text></span>
+                <span role="cell"><oj-bind-text value="[[ q.data.requestor ]]"></oj-bind-text></span>
+                <span role="cell" class="er-note"><oj-bind-text value="[[ (q.data.start || '') + ' – ' + (q.data.end || '') ]]"></oj-bind-text></span>
+                <span role="cell"><oj-bind-if test="[[ !!q.data.status ]]">
+                  <span :class="[[ $application.functions.statusPillClass(q.data.status) ]]">
+                    <oj-bind-text value="[[ $application.functions.formatLineStatus(q.data.status) ]]"></oj-bind-text></span></oj-bind-if></span>
+              </div>
+            </template>
+          </oj-bind-for-each>
+        </div>
+      </div>
+    </section>
+  </oj-bind-if>
+  <oj-bind-if test="[[ $variables.dashRole === 'EQUIP_ADMIN' && !$variables.adminModel && $variables.isLoading ]]">
+    <div class="er-card er-card-pad er-muted">Gathering everything an administrator needs…</div>
+  </oj-bind-if>
+
   <oj-bind-if test="[[ $variables.customerOnly ]]">
     <div class="er-card er-card-pad er-later">
       <h2>The customer portal opens in Old EquipRite</h2>
