@@ -858,7 +858,12 @@
   "imports": {
     "css": [
       "https://static.oracle.com/cdn/fnd/gallery/2507.0.3/images/iconfont/ojuxIconFont.min.css",
-      "resources/css/equiprite.css"
+      "resources/css/equiprite.css",
+    "resources/css/fulfil.css",
+    "resources/css/usage.css",
+    "resources/css/master.css",
+    "resources/css/insights.css",
+    "resources/css/customers.css"
     ]
   }
 }

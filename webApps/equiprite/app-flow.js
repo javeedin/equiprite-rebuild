@@ -196,8 +196,6 @@ define([
   // that isn't already theirs. See resolveDashboardRole for why this fails soft.
   const DEFAULT_DASH_ROLE = 'REQUESTOR';
 
-  // Inverse map: $application.currentPage.id → nav-list <li id>.
-  // Keep aligned with pages/shell-page-chains/navigateChain.js.
   // ── NEW EQUIPRITE MENU ─────────────────────────────────────────────────────
   // One menu grouped by lifecycle phase (FDD section 5), replacing the old
   // app's persona-named drawer. The same COMMONRITE RBAC page codes gate it, so
@@ -213,11 +211,14 @@ define([
   //             'old'     not built here yet: opens the "later" page, which
   //                       links to `old`, the same screen in Old EquipRite
   //             'planned' in the FDD but in neither app yet
-  //   old       { flow, page } of the old app's screen (status 'old')
+  //   route     { flow, page } of the New EquipRite page (status 'new')
+  //   pages     other page ids that belong to this item (detail pages), for the
+  //             menu highlight and the page-entry guard
+  //   old       { flow, page } of the old app's screen; kept after the rebuild
+  //             for the "Old version" link
   //   fdd       FDD section, shown on the later page
   //
-  // When a screen is built: set status 'new', give it a route, and add its
-  // page id to PAGE_ID_TO_NAV_ID.
+  // When a screen is built: set status 'new', give it a route (and `pages`).
   const NAV_GROUPS = [
     {
       key: 'home', label: '',
@@ -235,7 +236,7 @@ define([
           old: { flow: 'customer-portal', page: 'project-create-request' }, fdd: '7.5' },
         { id: 'my-requests', label: 'My requests', icon: 'oj-ux-ico-file-text',
           pageCodes: ['EQR_EQUIPMENT_REQUESTS', 'EQR_CUST_MY_REQUESTS'], status: 'new',
-          route: { flow: 'request', page: 'my-requests' },
+          route: { flow: 'request', page: 'my-requests' }, pages: ['request-detail'],
           old: { flow: 'main', page: 'equipment-requests' }, fdd: '7.6' }
       ]
     },
@@ -323,15 +324,18 @@ define([
     });
   });
 
-  // Page id -> nav id, for the menu highlight and the page-entry guard. Pages
-  // reached from the menu only; the later page highlights the item it stands for
-  // (see getNavIdForPage).
-  const PAGE_ID_TO_NAV_ID = {
-    'home': 'home',
-    'my-requests': 'my-requests',
-    'request-detail': 'my-requests',
-    'new-request': 'new-request'
-  };
+  // Page id -> nav id, for the menu highlight and the page-entry guard (the
+  // page takes the item's first page code). Built from the menu: an item's
+  // route page, plus the item's `pages`, the other pages that belong to it
+  // (a detail page opened from its list). Page ids are unique across flows.
+  // The later page highlights the item it stands for (see getNavIdForPage).
+  const PAGE_ID_TO_NAV_ID = {};
+  NAV_GROUPS.forEach(function (g) {
+    g.items.forEach(function (it) {
+      if (it.route && it.route.page) { PAGE_ID_TO_NAV_ID[it.route.page] = it.id; }
+      (it.pages || []).forEach(function (p) { PAGE_ID_TO_NAV_ID[p] = it.id; });
+    });
+  });
 
   // Where a user who can open no page is sent. Deliberately ungated.
   const NO_ACCESS_PAGE_ID = 'no-access';
