@@ -1,0 +1,14 @@
+{
+  "id": "settings",
+  "description": "Settings (FDD 7.17): Configuration, one page with a section index and a search, replacing the old setup flow's configurations page. Page access and Integration health live in the admin flow.",
+  "defaultPage": "configuration",
+  "pages": {
+    "configuration": {
+      "path": "pages/configuration-page"
+    }
+  },
+  "chains": {},
+  "services": {},
+  "types": {},
+  "variables": {}
+}

@@ -1,0 +1,328 @@
+{
+  "title": "Configuration",
+  "description": "Configuration (FDD 7.17; replaces Old EquipRite setup/configurations). One page with a section index and a search: modules and features, costing and timesheets, notifications, business unit settings, business units and yards, equipment classes, expenditure types, agreement types, attachment categories, change history. The variables keep the old page's names and the chains are the old page's chains (configuration-page-chains); the inventory of what came from where is resources/js/configurationInventory.js.",
+  "variables": {
+    "query": { "type": "string", "defaultValue": "", "description": "The settings search." },
+    "activeSection": { "type": "string", "defaultValue": "" },
+    "readOnly": { "type": "boolean", "defaultValue": false, "description": "EQR_CONFIGURATIONS is READ_ONLY for this role: every control is shown disabled." },
+    "confirm": { "type": "any", "defaultValue": null, "description": "The confirm card standing in for an old confirmation dialog: { kind, section, title, message, okLabel, danger, busy }." },
+    "pick": { "type": "any", "defaultValue": { "esBu": "", "orgBu": "", "yard": "", "scope": "", "expType": "", "classLov": "", "subclassLov": "" }, "description": "Search text of each picker." },
+
+    "ConfigSettingsMap": { "type": "any", "defaultValue": {}, "description": "Old page: the conf-global-settings map (buildSettingsMap) with the edits made on this page." },
+    "StoredSettingsMap": { "type": "any", "defaultValue": {}, "description": "The same map as loaded: what the database holds." },
+    "changedRows": { "type": "any", "defaultValue": {} },
+    "hasChanges": { "type": "boolean", "defaultValue": false },
+    "isSaving": { "type": "boolean", "defaultValue": false },
+    "isLoading": { "type": "boolean", "defaultValue": false },
+    "saveError": { "type": "string", "defaultValue": "" },
+    "buSettingsDirty": { "type": "boolean", "defaultValue": false },
+    "PpmTxnSourceSel": { "type": "string", "defaultValue": "External Miscellaneous" },
+    "PpmDocumentSel": { "type": "string", "defaultValue": "Miscellaneous" },
+    "PpmDocEntrySel": { "type": "string", "defaultValue": "Miscellaneous" },
+    "PpmExpenditureOrgSel": { "type": "string", "defaultValue": "" },
+    "EnableQuotesSel": { "type": "string", "defaultValue": "CUSTOMER" },
+    "WeekEndDaySel": { "type": "string", "defaultValue": "" },
+
+    "CostingLovArray": {
+      "type": "any[]",
+      "defaultValue": [
+        { "label": "EquipRite Rates", "value": "EQUIPRITE_RATES" },
+        { "label": "PPM Rates", "value": "PPM_RATES" }
+      ]
+    },
+    "YesNoLovArray": { "type": "any[]", "defaultValue": [{ "value": "Y", "label": "Yes" }, { "value": "N", "label": "No" }] },
+    "TrackingTypeLovArray": {
+      "type": "any[]",
+      "defaultValue": [
+        { "value": "INVENTORY", "label": "Inventory" },
+        { "value": "MAINTENANCE", "label": "Maintenance" },
+        { "value": "FIXED_ASSET", "label": "Fixed Assets" },
+        { "value": "CUSTOM", "label": "Custom" }
+      ]
+    },
+    "OrgRoleLovArray": {
+      "type": "any[]",
+      "description": "Yard types: must stay in lockstep with CHK_BOM_ORG_ROLE on EQR_BU_ORG_MAPPING (old page, unchanged).",
+      "defaultValue": [
+        { "label": "Equipment Yard", "value": "EQUIPMENT_YARD" },
+        { "label": "Destination Yard", "value": "DESTINATION_YARD" },
+        { "label": "Virtual Project Org", "value": "VIRTUAL_PROJECT" },
+        { "label": "Virtual Customer Org", "value": "VIRTUAL_CUSTOMER" }
+      ]
+    },
+    "ClassMapTruthLovArray": {
+      "type": "any[]",
+      "defaultValue": [{ "value": "FIXED_ASSET", "label": "Fixed Assets" }, { "value": "MAINTENANCE", "label": "Maintenance" }]
+    },
+    "AttCatAppliesToLovArray": {
+      "type": "any[]",
+      "defaultValue": [
+        { "value": "HEADER", "label": "Equipment" },
+        { "value": "LINE", "label": "Serial units" },
+        { "value": "BOTH", "label": "Equipment and serial units" }
+      ]
+    },
+    "ExpTypeScopeKindLovArray": {
+      "type": "any[]",
+      "defaultValue": [{ "value": "MASTER", "label": "Equipment" }, { "value": "SUBCLASS", "label": "Subclass" }, { "value": "CLASS", "label": "Class" }]
+    },
+    "ExpTypeScopeFilterLovArray": {
+      "type": "any[]",
+      "defaultValue": [{ "value": "", "label": "All scopes" }, { "value": "MASTER", "label": "Equipment" }, { "value": "SUBCLASS", "label": "Subclass" }, { "value": "CLASS", "label": "Class" }]
+    },
+
+    "EsSettingsByBuArray": { "type": "any[]", "defaultValue": [] },
+    "FusionBuList": { "type": "any[]", "defaultValue": [], "description": "Fusion business units (finBusinessUnitsLOV) for Add business unit settings." },
+    "isFusionBuLoading": { "type": "boolean", "defaultValue": false },
+    "isEsDrawerOpen": { "type": "boolean", "defaultValue": false },
+    "isEsSaving": { "type": "boolean", "defaultValue": false },
+    "esIsEditMode": { "type": "boolean", "defaultValue": false },
+    "EsDraft": {
+      "type": "any",
+      "defaultValue": { "buId": null, "buName": "", "buAttrs": null, "RATE_SOURCE": "", "PPM_TRANS_SOURCE": "", "PPM_BATCH_PREFIX": "", "PASS_PROCUREMENT_COST": false, "ADHOC_TIMESHEET_ENABLED": false, "MARGIN_PERCENTAGE": null }
+    },
+    "EsBuSelectedName": { "type": "string", "defaultValue": "" },
+
+    "BuOrgMappingsArray": { "type": "any[]", "defaultValue": [] },
+    "BuOrgFilterBUId": { "type": "any", "defaultValue": null },
+    "BuOrgFilterLovArray": { "type": "any[]", "defaultValue": [] },
+    "BuOrgSelectedBUId": { "type": "any", "defaultValue": null },
+    "BuOrgSelectedBUName": { "type": "string", "defaultValue": "" },
+    "BuOrgYardArray": { "type": "any[]", "defaultValue": [], "description": "Inventory orgs of the BU picked in Add mapping (the old BuOrgYardSDP query)." },
+    "isBuOrgYardLoading": { "type": "boolean", "defaultValue": false },
+    "BuOrgSubinvArray": { "type": "any[]", "defaultValue": [] },
+    "isBuOrgSubinvLoading": { "type": "boolean", "defaultValue": false },
+    "isBuOrgDrawerOpen": { "type": "boolean", "defaultValue": false },
+    "isBuOrgEditOpen": { "type": "boolean", "defaultValue": false },
+    "isBuOrgSaving": { "type": "boolean", "defaultValue": false },
+    "currentMapping": {
+      "type": "any",
+      "defaultValue": { "buId": null, "buName": "", "orgId": null, "orgName": "", "orgCode": "", "location": "", "status": "", "yardType": null, "isTransactable": "Y", "subinventoryCode": null }
+    },
+    "BuOrgEditTarget": {
+      "type": "any",
+      "defaultValue": { "id": null, "buName": "", "orgId": null, "orgName": "", "orgCode": "", "yardType": null, "isTransactable": "Y", "subinventoryCode": null }
+    },
+    "DeleteBuOrgTarget": { "type": "any", "defaultValue": { "rowKey": null, "id": null, "orgName": "", "buName": "" } },
+
+    "EquipmentClassesArray": { "type": "any[]", "defaultValue": [] },
+    "EquipmentSubclassesArray": { "type": "any[]", "defaultValue": [] },
+    "AllSubclassesArray": { "type": "any[]", "defaultValue": [] },
+    "EquipmentClassConfigLovArray": { "type": "any[]", "defaultValue": [] },
+    "EquipmentSubclassConfigLovArray": { "type": "any[]", "defaultValue": [] },
+    "EquipmentClassSelectedId": { "type": "any", "defaultValue": null },
+    "EquipmentClassSelectedName": { "type": "string", "defaultValue": "" },
+    "EquipmentSubclassSelectedId": { "type": "any", "defaultValue": null },
+    "equipClassesLoading": { "type": "boolean", "defaultValue": false },
+    "equipSubclassesLoading": { "type": "boolean", "defaultValue": false },
+    "subLimit": { "type": "number", "defaultValue": 100 },
+    "isSubclassEditOpen": { "type": "boolean", "defaultValue": false },
+    "EditClassSubclass": {
+      "type": "any",
+      "defaultValue": { "id": null, "classId": null, "subclassName": "", "trackingType": "INVENTORY", "consumableFlag": "N", "autoConsumeFlag": "N", "timesheetEntryEnabled": "N", "procurementMarkupPct": null, "bufferPeriodDays": 0 }
+    },
+    "DeleteSubclassTarget": { "type": "any", "defaultValue": { "id": null, "classId": null, "subclassName": "" } },
+    "DeleteClassTarget": { "type": "any", "defaultValue": { "id": null, "className": "" } },
+    "isAddClassDrawerOpen": { "type": "boolean", "defaultValue": false },
+    "isAddingClassSubclass": { "type": "boolean", "defaultValue": false },
+    "newClassSubclass": {
+      "type": "any",
+      "defaultValue": { "className": "", "subclassName": "", "trackingType": "INVENTORY", "classLovId": null, "subclassLovId": null, "consumableFlag": "N", "autoConsumeFlag": "N" }
+    },
+    "ClassLovArray": { "type": "any[]", "defaultValue": [] },
+    "isClassLovLoading": { "type": "boolean", "defaultValue": false },
+    "classLovLoaded": { "type": "boolean", "defaultValue": false },
+    "SubclassLovArray": { "type": "any[]", "defaultValue": [] },
+    "isSubclassLovLoading": { "type": "boolean", "defaultValue": false },
+    "subclassLovLoaded": { "type": "boolean", "defaultValue": false },
+    "ClassMapTruthSel": { "type": "string", "defaultValue": "" },
+    "isClassMapTruthSaving": { "type": "boolean", "defaultValue": false },
+    "ClassMapPrecedenceSel": { "type": "string", "defaultValue": "" },
+    "isClassMapPrecedenceSaving": { "type": "boolean", "defaultValue": false },
+    "ClassMapTypesArray": { "type": "any[]", "defaultValue": [] },
+    "UnmapTarget": { "type": "any", "defaultValue": { "level": null, "classId": null, "subclassId": null, "className": "", "subclassName": "", "mappedSubclassCount": 0 } },
+    "isUnmapping": { "type": "boolean", "defaultValue": false },
+    "ColumnMapDraft": { "type": "any", "defaultValue": { "sourceType": "INVENTORY", "classGroup": null, "classColumn": null, "subclassGroup": null, "subclassColumn": null } },
+    "isColumnMapSaving": { "type": "boolean", "defaultValue": false },
+    "ClassMapPairsArray": { "type": "any[]", "defaultValue": [] },
+    "ClassMapPairsSource": { "type": "string", "defaultValue": "" },
+    "isClassMapPairsLoading": { "type": "boolean", "defaultValue": false },
+    "isClassMapCreating": { "type": "boolean", "defaultValue": false },
+    "isClassMapBulkOpen": { "type": "boolean", "defaultValue": false },
+
+    "ExpTypeMapAllArray": { "type": "any[]", "defaultValue": [] },
+    "ExpTypeMapFilterScope": { "type": "string", "defaultValue": "" },
+    "ExpTypeMapSearch": { "type": "string", "defaultValue": "" },
+    "expLimit": { "type": "number", "defaultValue": 100 },
+    "NewExpTypeMap": { "type": "any", "defaultValue": { "scopeType": "MASTER", "scopeId": null, "expenditureType": "" } },
+    "DeleteExpTypeMapTarget": { "type": "any", "defaultValue": { "id": null, "scopeName": "", "expenditureType": "", "isDefault": "N" } },
+    "ExpTypeMasterOptions": { "type": "any[]", "defaultValue": [] },
+    "ExpTypeSubclassOptions": { "type": "any[]", "defaultValue": [] },
+    "ExpTypeClassOptions": { "type": "any[]", "defaultValue": [] },
+    "ExpTypeScopeOptions": { "type": "any[]", "defaultValue": [] },
+    "FusionExpTypeOptions": { "type": "any[]", "defaultValue": [] },
+
+    "AgreementTypeAllArray": { "type": "any[]", "defaultValue": [] },
+    "NewAgreementType": { "type": "any", "defaultValue": { "typeLabel": "", "typePrefix": "" } },
+    "EditAgreementType": { "type": "any", "defaultValue": { "id": null, "typeLabel": "", "typePrefix": "" } },
+    "isAgrEditOpen": { "type": "boolean", "defaultValue": false },
+    "DeleteAgreementTypeTarget": { "type": "any", "defaultValue": { "id": null, "typeLabel": "" } },
+
+    "AttCatAllArray": { "type": "any[]", "defaultValue": [] },
+    "NewAttCat": { "type": "any", "defaultValue": { "categoryLabel": "", "appliesTo": "BOTH", "validityRequired": "N", "defaultValidityMonths": null } },
+    "EditAttCat": { "type": "any", "defaultValue": { "id": null, "categoryCode": "", "categoryLabel": "", "appliesTo": "BOTH", "validityRequired": "N", "defaultValidityMonths": null, "objectVersionNumber": null } },
+    "isAttEditOpen": { "type": "boolean", "defaultValue": false },
+    "DeleteAttCatTarget": { "type": "any", "defaultValue": { "id": null, "categoryLabel": "" } },
+
+    "AuditTrailAllArray": { "type": "any[]", "defaultValue": [] }
+  },
+  "metadata": {},
+  "eventListeners": {
+    "vbBeforeEnter": { "chains": [{ "chain": "enforcePageAccessChain" }] },
+    "vbEnter": {
+      "chains": [
+        { "chain": "pageEnterChain" },
+        { "chain": "loadConfigSettingsChain" },
+        { "chain": "loadAgreementTypesChain" },
+        { "chain": "loadAttachmentCategoriesChain" },
+        { "chain": "loadEquipmentClassesChain" },
+        { "chain": "loadClassMapTypesChain" },
+        { "chain": "loadBuOrgMappingsChain" },
+        { "chain": "loadEsSettingsChain" },
+        { "chain": "loadExpTypeMapsChain" },
+        { "chain": "loadExpTypeOptionsChain" }
+      ]
+    },
+
+    "onSearch": { "chains": [{ "chain": "searchChain", "parameters": { "text": "{{ $event.target.value }}" } }] },
+    "onJump": { "chains": [{ "chain": "jumpChain", "parameters": { "key": "{{ $event.currentTarget.dataset.key }}" } }] },
+    "onOpenNav": { "chains": [{ "chain": "openNavChain", "parameters": { "navId": "{{ $event.currentTarget.dataset.nav }}" } }] },
+
+    "onFlag": {
+      "chains": [{ "chain": "updateSettingChain", "parameters": {
+        "settingKey": "{{ $event.currentTarget.dataset.key }}",
+        "value": "{{ $event.currentTarget.dataset.on !== 'true' }}"
+      } }]
+    },
+    "onChoice": {
+      "chains": [{ "chain": "updateSettingChain", "parameters": {
+        "settingKey": "{{ $event.currentTarget.dataset.key }}",
+        "value": "{{ $event.currentTarget.dataset.value }}"
+      } }]
+    },
+    "onText": {
+      "chains": [{ "chain": "updateSettingChain", "parameters": {
+        "settingKey": "{{ $event.target.dataset.key }}",
+        "value": "{{ $event.target.value }}"
+      } }]
+    },
+    "onSave": { "chains": [{ "chain": "saveChangesChain" }] },
+    "onDiscard": { "chains": [{ "chain": "resetChangesChain" }] },
+    "onAskResetWeek": { "chains": [{ "chain": "confirmChain", "parameters": { "action": "ask", "kind": "resetWeek" } }] },
+    "onConfirmOk": { "chains": [{ "chain": "confirmChain", "parameters": { "action": "ok" } }] },
+    "onConfirmCancel": { "chains": [{ "chain": "confirmChain", "parameters": { "action": "cancel" } }] },
+    "onRefreshAudit": { "chains": [{ "chain": "loadAuditTrailChain" }] },
+
+    "onDraft": {
+      "chains": [{ "chain": "setDraftChain", "parameters": {
+        "form": "{{ $event.target.dataset.form }}",
+        "field": "{{ $event.target.dataset.field }}",
+        "value": "{{ $event.target.value }}"
+      } }]
+    },
+    "onDraftBtn": {
+      "chains": [{ "chain": "setDraftChain", "parameters": {
+        "form": "{{ $event.currentTarget.dataset.form }}",
+        "field": "{{ $event.currentTarget.dataset.field }}",
+        "value": "{{ $event.currentTarget.dataset.value }}"
+      } }]
+    },
+    "onCloseEditor": { "chains": [{ "chain": "closeEditorChain", "parameters": { "name": "{{ $event.currentTarget.dataset.name }}" } }] },
+    "onShowMore": { "chains": [{ "chain": "showMoreChain", "parameters": { "list": "{{ $event.currentTarget.dataset.list }}" } }] },
+
+    "onEsAdd": { "chains": [{ "chain": "openEsDrawerChain" }] },
+    "onEsEdit": { "chains": [{ "chain": "openEsEditChain", "parameters": { "buId": "{{ $event.currentTarget.dataset.bu }}" } }] },
+    "onEsPickBu": { "chains": [{ "chain": "captureEsBuChain", "parameters": { "buId": "{{ $event.currentTarget.dataset.value }}" } }] },
+    "onEsClose": { "chains": [{ "chain": "closeEsDrawerChain" }] },
+    "onEsSave": { "chains": [{ "chain": "saveEsDrawerChain" }] },
+
+    "onOrgAdd": { "chains": [{ "chain": "openBuOrgDrawerChain" }] },
+    "onOrgClose": { "chains": [{ "chain": "closeBuOrgDrawerChain" }] },
+    "onOrgPickBu": {
+      "chains": [{ "chain": "CaptureBuChain", "parameters": {
+        "buId": "{{ $event.currentTarget.dataset.value }}",
+        "buName": "{{ $event.currentTarget.dataset.name }}"
+      } }]
+    },
+    "onOrgPickYard": { "chains": [{ "chain": "captureBuOrgYardChain", "parameters": { "orgId": "{{ $event.currentTarget.dataset.value }}" } }] },
+    "onOrgAddSave": { "chains": [{ "chain": "addBuOrgMappingChain" }] },
+    "onOrgFilter": { "chains": [{ "chain": "applyBuFilterChain", "parameters": { "businessUnitId": "{{ $event.currentTarget.dataset.value }}" } }] },
+    "onOrgFilterClear": { "chains": [{ "chain": "clearBuFilterChain" }] },
+    "onOrgToggle": {
+      "chains": [{ "chain": "toggleBuOrgActiveChain", "parameters": {
+        "rowKey": "{{ $event.currentTarget.dataset.key }}",
+        "value": "{{ $event.currentTarget.dataset.on !== 'true' }}"
+      } }]
+    },
+    "onOrgEdit": { "chains": [{ "chain": "openBuOrgEditChain", "parameters": { "rowKey": "{{ $event.currentTarget.dataset.key }}" } }] },
+    "onOrgEditSave": { "chains": [{ "chain": "saveBuOrgEditChain" }] },
+    "onOrgDelete": { "chains": [{ "chain": "openDeleteBuOrgChain", "parameters": { "rowKey": "{{ $event.currentTarget.dataset.key }}" } }] },
+
+    "onTruth": { "chains": [{ "chain": "saveClassMapTruthChain", "parameters": { "value": "{{ $event.currentTarget.dataset.value }}" } }] },
+    "onPrecedence": { "chains": [{ "chain": "saveClassMapPrecedenceChain", "parameters": { "value": "{{ $event.currentTarget.dataset.value }}" } }] },
+    "onColumnSave": { "chains": [{ "chain": "saveColumnMappingChain" }] },
+    "onColumnRemove": { "chains": [{ "chain": "removeColumnMappingChain", "parameters": { "source": "{{ $event.currentTarget.dataset.source }}" } }] },
+    "onClassFilter": { "chains": [{ "chain": "applyClassFilterChain", "parameters": { "classId": "{{ $event.currentTarget.dataset.value }}" } }] },
+    "onClassFilterClear": { "chains": [{ "chain": "clearClassFilterChain" }] },
+    "onSubEdit": { "chains": [{ "chain": "openEditClassSubclassChain", "parameters": { "id": "{{ $event.currentTarget.dataset.id }}" } }] },
+    "onSubEditSave": { "chains": [{ "chain": "saveEditClassSubclassChain" }] },
+    "onSubDelete": { "chains": [{ "chain": "openDeleteSubclassChain", "parameters": { "id": "{{ $event.currentTarget.dataset.id }}" } }] },
+    "onClassDelete": { "chains": [{ "chain": "openDeleteClassChain" }] },
+    "onUnmap": {
+      "chains": [{ "chain": "openUnmapChain", "parameters": {
+        "level": "{{ $event.currentTarget.dataset.level }}",
+        "classId": "{{ $event.currentTarget.dataset.classId }}",
+        "subclassId": "{{ $event.currentTarget.dataset.subclassId }}"
+      } }]
+    },
+    "onAddClass": { "chains": [{ "chain": "openAddClassDrawerChain" }] },
+    "onAddClassClose": { "chains": [{ "chain": "closeAddClassDrawerChain" }] },
+    "onAddClassCreate": { "chains": [{ "chain": "createClassSubclassChain" }] },
+    "onBulkOpen": { "chains": [{ "chain": "openClassMapBulkChain" }] },
+    "onBulkSource": { "chains": [{ "chain": "previewClassMapPairsChain", "parameters": { "source": "{{ $event.currentTarget.dataset.value }}" } }] },
+    "onBulkCreate": { "chains": [{ "chain": "createClassMapPairsChain" }] },
+
+    "onExpAdd": { "chains": [{ "chain": "addExpTypeMapChain" }] },
+    "onExpDefault": { "chains": [{ "chain": "setExpTypeMapDefaultChain", "parameters": { "id": "{{ $event.currentTarget.dataset.id }}" } }] },
+    "onExpDelete": { "chains": [{ "chain": "openDeleteExpTypeMapChain", "parameters": { "id": "{{ $event.currentTarget.dataset.id }}" } }] },
+
+    "onAgrAdd": { "chains": [{ "chain": "addAgreementTypeChain" }] },
+    "onAgrToggle": {
+      "chains": [{ "chain": "toggleAgreementTypeChain", "parameters": {
+        "id": "{{ $event.currentTarget.dataset.id }}",
+        "value": "{{ $event.currentTarget.dataset.on !== 'true' }}"
+      } }]
+    },
+    "onAgrEdit": { "chains": [{ "chain": "openEditAgreementTypeChain", "parameters": { "id": "{{ $event.currentTarget.dataset.id }}" } }] },
+    "onAgrSave": { "chains": [{ "chain": "updateAgreementTypeChain" }] },
+    "onAgrDelete": { "chains": [{ "chain": "openDeleteAgreementTypeChain", "parameters": { "id": "{{ $event.currentTarget.dataset.id }}" } }] },
+
+    "onAttAdd": { "chains": [{ "chain": "addAttachmentCategoryChain" }] },
+    "onAttToggle": {
+      "chains": [{ "chain": "toggleAttachmentCategoryChain", "parameters": {
+        "id": "{{ $event.currentTarget.dataset.id }}",
+        "value": "{{ $event.currentTarget.dataset.on !== 'true' }}"
+      } }]
+    },
+    "onAttEdit": { "chains": [{ "chain": "openEditAttachmentCategoryChain", "parameters": { "id": "{{ $event.currentTarget.dataset.id }}" } }] },
+    "onAttSave": { "chains": [{ "chain": "updateAttachmentCategoryChain" }] },
+    "onAttDelete": { "chains": [{ "chain": "openDeleteAttachmentCategoryChain", "parameters": { "id": "{{ $event.currentTarget.dataset.id }}" } }] }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}

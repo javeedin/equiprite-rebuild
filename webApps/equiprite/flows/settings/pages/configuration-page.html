@@ -1,0 +1,1368 @@
+<!-- Configuration (wireframe: Settings). One page, a section index and a search. Setting rows come from
+     resources/js/configurationInventory.js (configuration-page.js rows); writes are the old page's chains. -->
+<div class="er-band">
+  <div class="er-band-inner">
+    <div>
+      <div class="er-band-kicker">Settings · FDD 7.17</div>
+      <h1>Configuration</h1>
+      <div class="er-band-sub">
+        <oj-bind-text value="[[ $variables.isLoading ? 'Loading settings…'
+          : 'Ten sections, one search. Switches are saved together with Save changes; lists save as you change them.' ]]"></oj-bind-text>
+      </div>
+    </div>
+    <div class="er-actions">
+      <oj-bind-if test="[[ $application.functions.oldAppLink($application.variables.oldAppUrl, 'configuration') ]]">
+        <a class="er-btn er-btn--ghost" :href="[[ $application.functions.oldAppLink($application.variables.oldAppUrl, 'configuration') ]]">Old version</a>
+      </oj-bind-if>
+    </div>
+  </div>
+  <div class="er-strip" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+</div>
+
+<div class="er-page er-cf">
+  <div class="er-cf-top">
+    <label class="er-search er-cf-search">
+      <span class="oj-ux-ico-search" aria-hidden="true"></span>
+      <span class="er-sr">Search settings</span>
+      <input type="search" id="cfgSearch" placeholder="Search settings: rates, week, quotes, yard, class, prefix…"
+        :value="[[ $variables.query ]]" on-input="[[ $listeners.onSearch ]]">
+    </label>
+    <span class="er-note er-cf-search-note" aria-live="polite"><oj-bind-text value="[[ $functions.searchSummary($variables.query) ]]"></oj-bind-text></span>
+  </div>
+
+  <oj-bind-if test="[[ $variables.readOnly ]]">
+    <div class="er-cf-readonly" role="note">You can see every setting. Changing them needs full access to Configuration.</div>
+  </oj-bind-if>
+
+  <div class="er-cf-layout">
+    <nav class="er-cf-index" aria-label="Sections">
+      <oj-bind-for-each data="[[ $functions.indexEntries($variables.query) ]]">
+        <template data-oj-as="s">
+          <button type="button" :data-key="[[ s.data.key ]]" on-click="[[ $listeners.onJump ]]" :disabled="[[ !s.data.visible ]]"
+            :class="[[ 'er-cf-index-btn' + ($variables.activeSection === s.data.key ? ' er-cf-index-btn--on' : '')
+                       + (s.data.visible ? '' : ' er-cf-index-btn--dim') ]]">
+            <span><oj-bind-text value="[[ s.data.title ]]"></oj-bind-text></span>
+            <span class="er-chip-count"><oj-bind-text value="[[ s.data.count ]]"></oj-bind-text></span>
+          </button>
+        </template>
+      </oj-bind-for-each>
+    </nav>
+
+    <div class="er-cf-main">
+      <!-- Unsaved switches: what will be written, and what the menu does once it is. -->
+      <oj-bind-if test="[[ $variables.hasChanges ]]">
+        <div class="er-cf-bar" role="region" aria-label="Unsaved changes">
+          <div class="er-cf-bar-text">
+            <strong><oj-bind-text value="[[ $functions.unsavedText($variables.changedRows) ]]"></oj-bind-text></strong>
+            <ul class="er-cf-changes">
+              <oj-bind-for-each data="[[ $functions.changeList($variables.changedRows, $variables.StoredSettingsMap) ]]">
+                <template data-oj-as="c">
+                  <li><span class="er-cf-change-label"><oj-bind-text value="[[ c.data.label ]]"></oj-bind-text></span>
+                    <oj-bind-text value="[[ c.data.from + ' → ' + c.data.to ]]"></oj-bind-text></li>
+                </template>
+              </oj-bind-for-each>
+            </ul>
+            <oj-bind-for-each data="[[ $functions.menuImpact(
+                $application.functions.visibleNavGroups($application.variables.pageAccessMap, $application.variables.pageAccessLoaded,
+                  $application.variables.featureFlags, $application.variables.flagsLoaded, $application.variables.buRateSources),
+                $application.functions.visibleNavGroups($application.variables.pageAccessMap, $application.variables.pageAccessLoaded,
+                  $functions.flagsAfter($application.variables.featureFlags, $variables.changedRows), $application.variables.flagsLoaded,
+                  $application.variables.buRateSources)) ]]">
+              <template data-oj-as="line">
+                <div class="er-cf-impact"><oj-bind-text value="[[ line.data ]]"></oj-bind-text></div>
+              </template>
+            </oj-bind-for-each>
+          </div>
+          <div class="er-cf-bar-actions">
+            <button type="button" class="er-btn er-btn--plain" :disabled="[[ $variables.isSaving ]]" on-click="[[ $listeners.onDiscard ]]">Discard</button>
+            <button type="button" class="er-btn er-btn--dark" id="cfgSave" :disabled="[[ $variables.isSaving ]]" on-click="[[ $listeners.onSave ]]">
+              <oj-bind-text value="[[ $variables.isSaving ? 'Saving…' : 'Save changes' ]]"></oj-bind-text>
+            </button>
+          </div>
+        </div>
+      </oj-bind-if>
+      <oj-bind-if test="[[ !!$variables.saveError ]]">
+        <div class="er-error" role="alert"><oj-bind-text value="[[ $variables.saveError ]]"></oj-bind-text></div>
+      </oj-bind-if>
+
+      <!-- ── Settings sections: Modules & features, Costing & timesheets, Notifications ── -->
+      <oj-bind-for-each data="[[ ['modules', 'costing', 'notifications'] ]]">
+        <template data-oj-as="sec">
+          <oj-bind-if test="[[ $functions.sectionVisible(sec.data, $variables.query) ]]">
+            <section class="er-card er-cf-section" :id="[[ 'cfg-' + sec.data ]]" :aria-label="[[ $functions.sectionTitle(sec.data) ]]">
+              <header class="er-cf-head">
+                <div>
+                  <h2 class="er-section-title"><oj-bind-text value="[[ $functions.sectionTitle(sec.data) ]]"></oj-bind-text></h2>
+                  <p class="er-note er-cf-summary"><oj-bind-text value="[[ $functions.sectionSummary(sec.data) ]]"></oj-bind-text></p>
+                </div>
+                <span class="er-cf-fdd"><oj-bind-text value="[[ 'FDD ' + $functions.sectionFdd(sec.data) ]]"></oj-bind-text></span>
+              </header>
+              <oj-bind-if test="[[ $variables.confirm && $variables.confirm.section === sec.data ]]">
+                <div class="er-cf-confirm" role="alertdialog" aria-label="Confirm">
+                  <strong><oj-bind-text value="[[ $variables.confirm.title ]]"></oj-bind-text></strong>
+                  <p><oj-bind-text value="[[ $variables.confirm.message ]]"></oj-bind-text></p>
+                  <div class="er-actions">
+                    <button type="button" class="er-btn er-btn--plain" on-click="[[ $listeners.onConfirmCancel ]]">Cancel</button>
+                    <button type="button" :class="[[ $variables.confirm.danger ? 'er-btn er-btn--danger' : 'er-btn er-btn--dark' ]]"
+                      :disabled="[[ !!$variables.confirm.busy ]]" on-click="[[ $listeners.onConfirmOk ]]">
+                      <oj-bind-text value="[[ $variables.confirm.okLabel ]]"></oj-bind-text>
+                    </button>
+                  </div>
+                </div>
+              </oj-bind-if>
+              <div class="er-cf-rows">
+                <oj-bind-for-each data="[[ $functions.rows(sec.data, $variables.ConfigSettingsMap, $variables.StoredSettingsMap,
+                                             $variables.changedRows, $variables.query, $variables.readOnly) ]]">
+                  <template data-oj-as="r">
+                    <div :class="[[ $functions.rowClass(r.data) ]]" :id="[[ 'cfg-row-' + r.data.key ]]" :data-setting="[[ r.data.key ]]">
+                      <div class="er-cf-text">
+                        <div class="er-cf-label">
+                          <strong><oj-bind-text value="[[ r.data.label ]]"></oj-bind-text></strong>
+                          <oj-bind-if test="[[ r.data.changed ]]">
+                            <span class="er-cf-changed">Changed</span>
+                            <span class="er-note"><oj-bind-text value="[[ 'was ' + r.data.was ]]"></oj-bind-text></span>
+                          </oj-bind-if>
+                        </div>
+                        <span class="er-cf-help"><oj-bind-text value="[[ r.data.help ]]"></oj-bind-text></span>
+                        <oj-bind-if test="[[ r.data.needs.length > 0 || !!r.data.keepOn ]]">
+                          <div class="er-cf-deps">
+                            <span class="er-cf-deps-label">Needs</span>
+                            <oj-bind-for-each data="[[ r.data.needs ]]">
+                              <template data-oj-as="n">
+                                <span :class="[[ 'er-cf-dep ' + (n.data.ok ? 'er-cf-dep--ok' : 'er-cf-dep--no') ]]">
+                                  <span aria-hidden="true"><oj-bind-text value="[[ n.data.ok ? '✓' : '✗' ]]"></oj-bind-text></span>
+                                  <oj-bind-text value="[[ n.data.label ]]"></oj-bind-text>
+                                  <span class="er-sr"><oj-bind-text value="[[ n.data.ok ? '(on)' : '(off)' ]]"></oj-bind-text></span>
+                                </span>
+                              </template>
+                            </oj-bind-for-each>
+                            <oj-bind-if test="[[ !!r.data.keepOn ]]">
+                              <span class="er-cf-dep"><oj-bind-text value="[[ 'Off only while ' + r.data.keepOn + ' is on' ]]"></oj-bind-text></span>
+                            </oj-bind-if>
+                          </div>
+                        </oj-bind-if>
+                        <div class="er-cf-affects"><span class="er-cf-deps-label">Affects</span>
+                          <oj-bind-text value="[[ r.data.affects ]]"></oj-bind-text></div>
+                        <oj-bind-if test="[[ !!r.data.note ]]">
+                          <div class="er-cf-note"><oj-bind-text value="[[ r.data.note ]]"></oj-bind-text></div>
+                        </oj-bind-if>
+                      </div>
+                      <div class="er-cf-control">
+                        <oj-bind-if test="[[ r.data.kind === 'flag' ]]">
+                          <button type="button" role="switch" :aria-checked="[[ r.data.on ? 'true' : 'false' ]]" :aria-label="[[ r.data.label ]]"
+                            :class="[[ 'er-cf-switch' + (r.data.on ? ' er-cf-switch--on' : '') ]]"
+                            :data-key="[[ r.data.key ]]" :data-on="[[ r.data.on ? 'true' : 'false' ]]" :disabled="[[ r.data.disabled ]]"
+                            on-click="[[ $listeners.onFlag ]]"><span class="er-cf-knob" aria-hidden="true"></span></button>
+                        </oj-bind-if>
+                        <oj-bind-if test="[[ r.data.kind === 'choice' ]]">
+                          <div class="er-seg" role="radiogroup" :aria-label="[[ r.data.label ]]">
+                            <oj-bind-for-each data="[[ $functions.rowOptions(r.data) ]]">
+                              <template data-oj-as="o">
+                                <button type="button" role="radio" :aria-checked="[[ o.data.on ? 'true' : 'false' ]]"
+                                  :class="[[ 'er-seg-btn' + (o.data.on ? ' er-seg-btn--on' : '') ]]"
+                                  :data-key="[[ o.data.key ]]" :data-value="[[ o.data.value ]]" :disabled="[[ o.data.disabled ]]"
+                                  on-click="[[ $listeners.onChoice ]]"><oj-bind-text value="[[ o.data.label ]]"></oj-bind-text></button>
+                              </template>
+                            </oj-bind-for-each>
+                          </div>
+                          <oj-bind-if test="[[ r.data.canReset ]]">
+                            <button type="button" class="er-btn er-btn--plain er-cf-reset" on-click="[[ $listeners.onAskResetWeek ]]">Reset</button>
+                          </oj-bind-if>
+                        </oj-bind-if>
+                        <oj-bind-if test="[[ r.data.kind === 'text' ]]">
+                          <input type="text" class="er-input er-cf-text-input" :aria-label="[[ r.data.label ]]" :data-key="[[ r.data.key ]]"
+                            :value="[[ r.data.value ]]" :disabled="[[ r.data.disabled ]]" on-input="[[ $listeners.onText ]]">
+                        </oj-bind-if>
+                      </div>
+                    </div>
+                  </template>
+                </oj-bind-for-each>
+              </div>
+            </section>
+          </oj-bind-if>
+        </template>
+      </oj-bind-for-each>
+
+      <!-- ── Business unit settings (conf-equipment-settings, one row per BU) ── -->
+      <oj-bind-if test="[[ $functions.sectionVisible('bu-settings', $variables.query) ]]">
+        <section class="er-card er-cf-section" id="cfg-bu-settings" aria-label="Business unit settings">
+          <header class="er-cf-head">
+            <div>
+              <h2 class="er-section-title">Business unit settings</h2>
+              <p class="er-note er-cf-summary"><oj-bind-text value="[[ $functions.sectionSummary('bu-settings') ]]"></oj-bind-text></p>
+            </div>
+            <div class="er-actions">
+              <span class="er-cf-fdd">FDD 7.17.1</span>
+              <oj-bind-if test="[[ !$variables.readOnly ]]">
+                <button type="button" class="er-btn er-btn--dark" id="cfgEsAdd" on-click="[[ $listeners.onEsAdd ]]">Add business unit</button>
+              </oj-bind-if>
+            </div>
+          </header>
+          <oj-bind-if test="[[ $functions.getSettingBool($variables.ConfigSettingsMap, 'PPM_RATES_ENABLED') ]]">
+            <div class="er-cf-note er-cf-pad">Fusion PPM rates is on (Costing &amp; timesheets), so every business unit uses PPM rates. Each unit's own rate source applies again when it is turned off.</div>
+          </oj-bind-if>
+
+          <oj-bind-if test="[[ $variables.isEsDrawerOpen ]]">
+            <div class="er-cf-editor" role="group" aria-label="Business unit settings form">
+              <h3><oj-bind-text value="[[ $variables.esIsEditMode ? 'Edit ' + ($variables.EsBuSelectedName || 'business unit') : 'Add business unit settings' ]]"></oj-bind-text></h3>
+              <div class="er-form">
+                <div class="er-field">
+                  <span class="er-label">Business unit <span class="er-req">*</span></span>
+                  <oj-bind-if test="[[ $variables.esIsEditMode || $variables.EsDraft.buId != null ]]">
+                    <div class="er-picked"><span><strong><oj-bind-text value="[[ $variables.EsBuSelectedName || $variables.EsDraft.buName || ('' + $variables.EsDraft.buId) ]]"></oj-bind-text></strong></span></div>
+                  </oj-bind-if>
+                  <oj-bind-if test="[[ !$variables.esIsEditMode ]]">
+                    <input type="search" class="er-input" data-form="pick" data-field="esBu" placeholder="Find a Fusion business unit"
+                      aria-label="Find a Fusion business unit" :value="[[ $variables.pick.esBu ]]" on-input="[[ $listeners.onDraft ]]">
+                    <div class="er-results">
+                      <oj-bind-for-each data="[[ $functions.buPickOptions($variables.FusionBuList, $variables.pick.esBu, $variables.EsSettingsByBuArray) ]]">
+                        <template data-oj-as="b">
+                          <button type="button" :class="[[ 'er-result' + ($variables.EsDraft.buId != null && ('' + $variables.EsDraft.buId) === ('' + b.data.value) ? ' er-result--on' : '') ]]"
+                            :data-value="[[ b.data.value ]]" on-click="[[ $listeners.onEsPickBu ]]">
+                            <strong><oj-bind-text value="[[ b.data.label ]]"></oj-bind-text></strong>
+                            <span class="er-note"><oj-bind-text value="[[ b.data.code ]]"></oj-bind-text></span>
+                          </button>
+                        </template>
+                      </oj-bind-for-each>
+                    </div>
+                    <span class="er-note"><oj-bind-text value="[[ $variables.isFusionBuLoading ? 'Loading business units from Fusion…'
+                      : 'Business units that already have settings are edited from their row.' ]]"></oj-bind-text></span>
+                  </oj-bind-if>
+                </div>
+                <div class="er-field">
+                  <span class="er-label">Rate source <span class="er-req">*</span></span>
+                  <div class="er-seg" role="radiogroup" aria-label="Rate source">
+                    <oj-bind-for-each data="[[ $functions.rateSourceOptions($variables.EsDraft.RATE_SOURCE) ]]">
+                      <template data-oj-as="o">
+                        <button type="button" role="radio" :aria-checked="[[ o.data.on ? 'true' : 'false' ]]"
+                          :class="[[ 'er-seg-btn' + (o.data.on ? ' er-seg-btn--on' : '') ]]" data-form="EsDraft" data-field="RATE_SOURCE"
+                          :data-value="[[ o.data.value ]]" on-click="[[ $listeners.onDraftBtn ]]"><oj-bind-text value="[[ o.data.label ]]"></oj-bind-text></button>
+                      </template>
+                    </oj-bind-for-each>
+                  </div>
+                  <span class="er-note"><oj-bind-text value="[[ $functions.getSettingBool($variables.ConfigSettingsMap, 'PPM_RATES_ENABLED')
+                    ? 'Fusion PPM Rates is ON globally, so every business unit uses PPM Rates. This choice applies when it is turned off.'
+                    : 'PPM Rates: Fusion prices this business unit. EquipRite Rates: priced from EquipRite rate schedules.' ]]"></oj-bind-text></span>
+                </div>
+                <div class="er-form-row">
+                  <label class="er-field"><span class="er-label">Project transaction source</span>
+                    <input type="text" class="er-input" data-form="EsDraft" data-field="PPM_TRANS_SOURCE" placeholder="e.g. EQUIPRITE"
+                      :value="[[ $variables.EsDraft.PPM_TRANS_SOURCE || '' ]]" on-input="[[ $listeners.onDraft ]]"></label>
+                  <label class="er-field"><span class="er-label">Expenditure batch prefix</span>
+                    <input type="text" class="er-input" data-form="EsDraft" data-field="PPM_BATCH_PREFIX" placeholder="e.g. EQRP-HOU"
+                      :value="[[ $variables.EsDraft.PPM_BATCH_PREFIX || '' ]]" on-input="[[ $listeners.onDraft ]]"></label>
+                  <label class="er-field"><span class="er-label">Procurement markup (%)</span>
+                    <input type="number" min="0" max="100" step="1" class="er-input" data-form="EsDraft" data-field="MARGIN_PERCENTAGE"
+                      :value="[[ $variables.EsDraft.MARGIN_PERCENTAGE == null ? '' : $variables.EsDraft.MARGIN_PERCENTAGE ]]" on-input="[[ $listeners.onDraft ]]">
+                    <span class="er-note">Applied to the PO price when Pass procurement cost is on. 0 passes the PO cost through. Rentals are unaffected.</span></label>
+                </div>
+                <div class="er-form-row">
+                  <div class="er-field"><span class="er-label">Pass procurement cost (use PO price)</span>
+                    <div class="er-seg" role="radiogroup" aria-label="Pass procurement cost">
+                      <oj-bind-for-each data="[[ $functions.boolOptions($variables.EsDraft.PASS_PROCUREMENT_COST) ]]">
+                        <template data-oj-as="o">
+                          <button type="button" role="radio" :aria-checked="[[ o.data.on ? 'true' : 'false' ]]"
+                            :class="[[ 'er-seg-btn' + (o.data.on ? ' er-seg-btn--on' : '') ]]" data-form="EsDraft" data-field="PASS_PROCUREMENT_COST"
+                            :data-value="[[ o.data.value ]]" on-click="[[ $listeners.onDraftBtn ]]"><oj-bind-text value="[[ o.data.label ]]"></oj-bind-text></button>
+                        </template>
+                      </oj-bind-for-each>
+                    </div></div>
+                  <div class="er-field"><span class="er-label">Adhoc timesheets</span>
+                    <div class="er-seg" role="radiogroup" aria-label="Adhoc timesheets">
+                      <oj-bind-for-each data="[[ $functions.boolOptions($variables.EsDraft.ADHOC_TIMESHEET_ENABLED) ]]">
+                        <template data-oj-as="o">
+                          <button type="button" role="radio" :aria-checked="[[ o.data.on ? 'true' : 'false' ]]"
+                            :class="[[ 'er-seg-btn' + (o.data.on ? ' er-seg-btn--on' : '') ]]" data-form="EsDraft" data-field="ADHOC_TIMESHEET_ENABLED"
+                            :data-value="[[ o.data.value ]]" on-click="[[ $listeners.onDraftBtn ]]"><oj-bind-text value="[[ o.data.label ]]"></oj-bind-text></button>
+                        </template>
+                      </oj-bind-for-each>
+                    </div></div>
+                </div>
+              </div>
+              <div class="er-actions er-cf-editor-actions">
+                <button type="button" class="er-btn er-btn--plain" on-click="[[ $listeners.onEsClose ]]">Cancel</button>
+                <button type="button" class="er-btn er-btn--dark" id="cfgEsSave" :disabled="[[ $variables.isEsSaving ]]" on-click="[[ $listeners.onEsSave ]]">
+                  <oj-bind-text value="[[ $variables.isEsSaving ? 'Saving…' : 'Save' ]]"></oj-bind-text></button>
+              </div>
+            </div>
+          </oj-bind-if>
+
+          <div class="er-table-wrap">
+            <div class="er-cf-grid er-cf-grid--bu" role="table" aria-label="Business unit settings">
+              <div class="er-cf-grid-row er-grid-head" role="row">
+                <span role="columnheader">Business unit</span><span role="columnheader">Rate source</span>
+                <span role="columnheader">Pass proc. cost</span><span role="columnheader">Markup</span>
+                <span role="columnheader">Project txn source</span><span role="columnheader">Batch prefix</span>
+                <span role="columnheader">Adhoc timesheet</span><span role="columnheader"><span class="er-sr">Actions</span></span>
+              </div>
+              <oj-bind-for-each data="[[ $variables.EsSettingsByBuArray ]]">
+                <template data-oj-as="b">
+                  <div class="er-cf-grid-row" role="row" :data-bu="[[ b.data.buId ]]">
+                    <span role="cell" class="er-cell-main"><oj-bind-text value="[[ b.data.buName ]]"></oj-bind-text></span>
+                    <span role="cell"><oj-bind-text value="[[ $functions.esRateText(b.data, $variables.ConfigSettingsMap) ]]"></oj-bind-text></span>
+                    <span role="cell"><oj-bind-text value="[[ $functions.esYesNo(b.data.PASS_PROCUREMENT_COST) ]]"></oj-bind-text></span>
+                    <span role="cell"><oj-bind-text value="[[ $functions.markupText(b.data.MARGIN_PERCENTAGE) ]]"></oj-bind-text></span>
+                    <span role="cell"><oj-bind-text value="[[ b.data.PPM_TRANS_SOURCE || '—' ]]"></oj-bind-text></span>
+                    <span role="cell"><oj-bind-text value="[[ b.data.PPM_BATCH_PREFIX || '—' ]]"></oj-bind-text></span>
+                    <span role="cell"><oj-bind-text value="[[ $functions.esYesNo(b.data.ADHOC_TIMESHEET_ENABLED) ]]"></oj-bind-text></span>
+                    <span role="cell">
+                      <oj-bind-if test="[[ !$variables.readOnly ]]">
+                        <button type="button" class="er-btn er-btn--plain er-cf-small" :data-bu="[[ b.data.buId ]]" on-click="[[ $listeners.onEsEdit ]]">Edit</button>
+                      </oj-bind-if>
+                    </span>
+                  </div>
+                </template>
+              </oj-bind-for-each>
+              <oj-bind-if test="[[ $variables.EsSettingsByBuArray.length === 0 ]]">
+                <div class="er-cf-empty">No business unit has settings yet. Add one to choose its rate source.</div>
+              </oj-bind-if>
+            </div>
+          </div>
+        </section>
+      </oj-bind-if>
+
+      <!-- ── Business units & yards (bu-org-mappings) ── -->
+      <oj-bind-if test="[[ $functions.sectionVisible('yards', $variables.query) ]]">
+        <section class="er-card er-cf-section" id="cfg-yards" aria-label="Business units and yards">
+          <header class="er-cf-head">
+            <div>
+              <h2 class="er-section-title">Business units &amp; yards</h2>
+              <p class="er-note er-cf-summary"><oj-bind-text value="[[ $functions.sectionSummary('yards') ]]"></oj-bind-text></p>
+            </div>
+            <div class="er-actions">
+              <span class="er-cf-fdd">FDD 7.17.2</span>
+              <oj-bind-if test="[[ !$variables.readOnly ]]">
+                <button type="button" class="er-btn er-btn--dark" id="cfgOrgAdd" on-click="[[ $listeners.onOrgAdd ]]">Add mapping</button>
+              </oj-bind-if>
+            </div>
+          </header>
+
+          <oj-bind-if test="[[ $variables.confirm && $variables.confirm.section === 'yards' ]]">
+            <div class="er-cf-confirm" role="alertdialog" aria-label="Confirm">
+              <strong><oj-bind-text value="[[ $variables.confirm.title ]]"></oj-bind-text></strong>
+              <p><oj-bind-text value="[[ $variables.confirm.message ]]"></oj-bind-text></p>
+              <div class="er-actions">
+                <button type="button" class="er-btn er-btn--plain" on-click="[[ $listeners.onConfirmCancel ]]">Cancel</button>
+                <button type="button" :class="[[ $variables.confirm.danger ? 'er-btn er-btn--danger' : 'er-btn er-btn--dark' ]]"
+                  :disabled="[[ !!$variables.confirm.busy ]]" on-click="[[ $listeners.onConfirmOk ]]"><oj-bind-text value="[[ $variables.confirm.okLabel ]]"></oj-bind-text></button>
+              </div>
+            </div>
+          </oj-bind-if>
+
+          <oj-bind-if test="[[ $variables.isBuOrgDrawerOpen ]]">
+            <div class="er-cf-editor" role="group" aria-label="Add mapping">
+              <h3>Add a yard to a business unit</h3>
+              <div class="er-form">
+                <div class="er-field">
+                  <span class="er-label">Business unit <span class="er-req">*</span></span>
+                  <div class="er-chip-row" role="group" aria-label="Business unit">
+                    <oj-bind-for-each data="[[ $functions.configuredBuOptions($variables.EsSettingsByBuArray) ]]">
+                      <template data-oj-as="b">
+                        <button type="button" :class="[[ 'er-chip' + (('' + $variables.currentMapping.buId) === ('' + b.data.value) ? ' er-chip--on' : '') ]]"
+                          :aria-pressed="[[ ('' + $variables.currentMapping.buId) === ('' + b.data.value) ? 'true' : 'false' ]]"
+                          :data-value="[[ b.data.value ]]" :data-name="[[ b.data.stored ]]" on-click="[[ $listeners.onOrgPickBu ]]">
+                          <oj-bind-text value="[[ b.data.label ]]"></oj-bind-text></button>
+                      </template>
+                    </oj-bind-for-each>
+                  </div>
+                  <span class="er-note">Only business units set up under Business unit settings are offered.</span>
+                </div>
+                <div class="er-field">
+                  <span class="er-label">Yard <span class="er-req">*</span></span>
+                  <oj-bind-if test="[[ $variables.currentMapping.orgId != null ]]">
+                    <div class="er-picked"><span><strong><oj-bind-text value="[[ $variables.currentMapping.orgName ]]"></oj-bind-text></strong>
+                      <span class="er-note"><oj-bind-text value="[[ ($variables.currentMapping.orgCode || '') + ($variables.currentMapping.location ? ' · ' + $variables.currentMapping.location : '') ]]"></oj-bind-text></span></span></div>
+                  </oj-bind-if>
+                  <input type="search" class="er-input" data-form="pick" data-field="yard" placeholder="Find a yard (inventory org)"
+                    aria-label="Find a yard" :disabled="[[ $variables.BuOrgSelectedBUId == null ]]" :value="[[ $variables.pick.yard ]]" on-input="[[ $listeners.onDraft ]]">
+                  <div class="er-results">
+                    <oj-bind-for-each data="[[ $functions.yardPickOptions($variables.BuOrgYardArray, $variables.pick.yard, $variables.BuOrgMappingsArray) ]]">
+                      <template data-oj-as="y">
+                        <button type="button" :class="[[ 'er-result' + (('' + $variables.currentMapping.orgId) === ('' + y.data.value) ? ' er-result--on' : '') ]]"
+                          :data-value="[[ y.data.value ]]" on-click="[[ $listeners.onOrgPickYard ]]"><strong><oj-bind-text value="[[ y.data.label ]]"></oj-bind-text></strong>
+                          <oj-bind-if test="[[ !!y.data.note ]]"><span class="er-note"><oj-bind-text value="[[ y.data.note ]]"></oj-bind-text></span></oj-bind-if></button>
+                      </template>
+                    </oj-bind-for-each>
+                  </div>
+                  <span class="er-note"><oj-bind-text value="[[ $variables.BuOrgSelectedBUId == null ? 'Pick the business unit first.'
+                    : ($variables.isBuOrgYardLoading ? 'Loading the yards of this business unit…'
+                    : ($variables.BuOrgYardArray.length === 0 ? 'Fusion has no inventory org for this business unit.' : '')) ]]"></oj-bind-text></span>
+                </div>
+                <div class="er-field">
+                  <span class="er-label">Yard type <span class="er-req">*</span></span>
+                  <div class="er-seg" role="radiogroup" aria-label="Yard type">
+                    <oj-bind-for-each data="[[ $functions.roleOptions($variables.OrgRoleLovArray, $variables.currentMapping.yardType) ]]">
+                      <template data-oj-as="o">
+                        <button type="button" role="radio" :aria-checked="[[ o.data.on ? 'true' : 'false' ]]" :disabled="[[ $variables.currentMapping.orgId == null ]]"
+                          :class="[[ 'er-seg-btn' + (o.data.on ? ' er-seg-btn--on' : '') ]]" data-form="currentMapping" data-field="yardType"
+                          :data-value="[[ o.data.value ]]" on-click="[[ $listeners.onDraftBtn ]]"><oj-bind-text value="[[ o.data.label ]]"></oj-bind-text></button>
+                      </template>
+                    </oj-bind-for-each>
+                  </div>
+                </div>
+                <oj-bind-if test="[[ $functions.buOrgNeedsSubinventory($variables.currentMapping.yardType) ]]">
+                  <div class="er-field">
+                    <span class="er-label">Subinventory</span>
+                    <div class="er-chip-row" role="group" aria-label="Subinventory">
+                      <oj-bind-for-each data="[[ $functions.subinvOptions($variables.BuOrgSubinvArray, $variables.currentMapping.subinventoryCode) ]]">
+                        <template data-oj-as="o">
+                          <button type="button" :class="[[ 'er-chip' + (o.data.on ? ' er-chip--on' : '') ]]" :aria-pressed="[[ o.data.on ? 'true' : 'false' ]]"
+                            data-form="currentMapping" data-field="subinventoryCode" :data-value="[[ o.data.value ]]" on-click="[[ $listeners.onDraftBtn ]]">
+                            <oj-bind-text value="[[ o.data.label ]]"></oj-bind-text></button>
+                        </template>
+                      </oj-bind-for-each>
+                    </div>
+                    <span class="er-note"><oj-bind-text value="[[ $variables.isBuOrgSubinvLoading ? 'Loading subinventories…'
+                      : 'Optional. A transfer order delivers into it (Stores when none).' ]]"></oj-bind-text></span>
+                  </div>
+                </oj-bind-if>
+                <div class="er-field">
+                  <span class="er-label">Transactable</span>
+                  <div class="er-seg" role="radiogroup" aria-label="Transactable">
+                    <oj-bind-for-each data="[[ $functions.ynOptions($variables.currentMapping.isTransactable) ]]">
+                      <template data-oj-as="o">
+                        <button type="button" role="radio" :aria-checked="[[ o.data.on ? 'true' : 'false' ]]" :disabled="[[ $variables.currentMapping.orgId == null ]]"
+                          :class="[[ 'er-seg-btn' + (o.data.on ? ' er-seg-btn--on' : '') ]]" data-form="currentMapping" data-field="isTransactable"
+                          :data-value="[[ o.data.value ]]" on-click="[[ $listeners.onDraftBtn ]]"><oj-bind-text value="[[ o.data.label ]]"></oj-bind-text></button>
+                      </template>
+                    </oj-bind-for-each>
+                  </div>
+                </div>
+              </div>
+              <p class="er-note">Adding saves at once: every active yard of the business unit is sent again with this one, and the yard's address is looked up in Fusion and placed on the map.</p>
+              <div class="er-actions er-cf-editor-actions">
+                <button type="button" class="er-btn er-btn--plain" on-click="[[ $listeners.onOrgClose ]]">Cancel</button>
+                <button type="button" class="er-btn er-btn--dark" id="cfgOrgSave" on-click="[[ $listeners.onOrgAddSave ]]">Add mapping</button>
+              </div>
+            </div>
+          </oj-bind-if>
+
+          <oj-bind-if test="[[ $variables.isBuOrgEditOpen ]]">
+            <div class="er-cf-editor" role="group" aria-label="Edit mapping">
+              <h3><oj-bind-text value="[[ 'Edit ' + $variables.BuOrgEditTarget.orgName + ($variables.BuOrgEditTarget.orgCode ? ' (' + $variables.BuOrgEditTarget.orgCode + ')' : '') + ' · ' + $variables.BuOrgEditTarget.buName ]]"></oj-bind-text></h3>
+              <div class="er-form">
+                <div class="er-field">
+                  <span class="er-label">Yard type <span class="er-req">*</span></span>
+                  <div class="er-seg" role="radiogroup" aria-label="Yard type">
+                    <oj-bind-for-each data="[[ $functions.roleOptions($variables.OrgRoleLovArray, $variables.BuOrgEditTarget.yardType) ]]">
+                      <template data-oj-as="o">
+                        <button type="button" role="radio" :aria-checked="[[ o.data.on ? 'true' : 'false' ]]"
+                          :class="[[ 'er-seg-btn' + (o.data.on ? ' er-seg-btn--on' : '') ]]" data-form="BuOrgEditTarget" data-field="yardType"
+                          :data-value="[[ o.data.value ]]" on-click="[[ $listeners.onDraftBtn ]]"><oj-bind-text value="[[ o.data.label ]]"></oj-bind-text></button>
+                      </template>
+                    </oj-bind-for-each>
+                  </div>
+                </div>
+                <oj-bind-if test="[[ $functions.buOrgNeedsSubinventory($variables.BuOrgEditTarget.yardType) ]]">
+                  <div class="er-field">
+                    <span class="er-label">Subinventory</span>
+                    <div class="er-chip-row" role="group" aria-label="Subinventory">
+                      <oj-bind-for-each data="[[ $functions.subinvOptions($variables.BuOrgSubinvArray, $variables.BuOrgEditTarget.subinventoryCode) ]]">
+                        <template data-oj-as="o">
+                          <button type="button" :class="[[ 'er-chip' + (o.data.on ? ' er-chip--on' : '') ]]" :aria-pressed="[[ o.data.on ? 'true' : 'false' ]]"
+                            data-form="BuOrgEditTarget" data-field="subinventoryCode" :data-value="[[ o.data.value ]]" on-click="[[ $listeners.onDraftBtn ]]">
+                            <oj-bind-text value="[[ o.data.label ]]"></oj-bind-text></button>
+                        </template>
+                      </oj-bind-for-each>
+                    </div>
+                    <span class="er-note"><oj-bind-text value="[[ $variables.isBuOrgSubinvLoading ? 'Loading subinventories…' : 'Optional; cleared when the yard type does not use one.' ]]"></oj-bind-text></span>
+                  </div>
+                </oj-bind-if>
+                <div class="er-field">
+                  <span class="er-label">Transactable</span>
+                  <div class="er-seg" role="radiogroup" aria-label="Transactable">
+                    <oj-bind-for-each data="[[ $functions.ynOptions($variables.BuOrgEditTarget.isTransactable) ]]">
+                      <template data-oj-as="o">
+                        <button type="button" role="radio" :aria-checked="[[ o.data.on ? 'true' : 'false' ]]"
+                          :class="[[ 'er-seg-btn' + (o.data.on ? ' er-seg-btn--on' : '') ]]" data-form="BuOrgEditTarget" data-field="isTransactable"
+                          :data-value="[[ o.data.value ]]" on-click="[[ $listeners.onDraftBtn ]]"><oj-bind-text value="[[ o.data.label ]]"></oj-bind-text></button>
+                      </template>
+                    </oj-bind-for-each>
+                  </div>
+                </div>
+              </div>
+              <div class="er-actions er-cf-editor-actions">
+                <button type="button" class="er-btn er-btn--plain" data-name="isBuOrgEditOpen" on-click="[[ $listeners.onCloseEditor ]]">Cancel</button>
+                <button type="button" class="er-btn er-btn--dark" :disabled="[[ $variables.isBuOrgSaving ]]" on-click="[[ $listeners.onOrgEditSave ]]">Save</button>
+              </div>
+            </div>
+          </oj-bind-if>
+
+          <div class="er-cf-pad">
+            <div class="er-chip-row" role="group" aria-label="Filter by business unit">
+              <button type="button" :class="[[ 'er-chip' + ($variables.BuOrgFilterBUId == null ? ' er-chip--on' : '') ]]"
+                :aria-pressed="[[ $variables.BuOrgFilterBUId == null ? 'true' : 'false' ]]" on-click="[[ $listeners.onOrgFilterClear ]]">
+                All business units <span class="er-chip-count"><oj-bind-text value="[[ $variables.BuOrgMappingsArray.length ]]"></oj-bind-text></span></button>
+              <oj-bind-for-each data="[[ $variables.BuOrgFilterLovArray ]]">
+                <template data-oj-as="f">
+                  <button type="button" :class="[[ 'er-chip' + (('' + $variables.BuOrgFilterBUId) === ('' + f.data.value) ? ' er-chip--on' : '') ]]"
+                    :aria-pressed="[[ ('' + $variables.BuOrgFilterBUId) === ('' + f.data.value) ? 'true' : 'false' ]]"
+                    :data-value="[[ f.data.value ]]" on-click="[[ $listeners.onOrgFilter ]]"><oj-bind-text value="[[ f.data.label ]]"></oj-bind-text></button>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </div>
+          <div class="er-table-wrap">
+            <div class="er-cf-grid er-cf-grid--yards" role="table" aria-label="Yards by business unit">
+              <div class="er-cf-grid-row er-grid-head" role="row">
+                <span role="columnheader">Business unit</span><span role="columnheader">Yard · code · location</span>
+                <span role="columnheader">Yard type</span><span role="columnheader">Subinventory</span>
+                <span role="columnheader">Transactable</span><span role="columnheader">Active</span><span role="columnheader"><span class="er-sr">Actions</span></span>
+              </div>
+              <oj-bind-for-each data="[[ $functions.filterBuOrgMappings($variables.BuOrgMappingsArray, $variables.BuOrgFilterBUId) ]]">
+                <template data-oj-as="m">
+                  <div :class="[[ 'er-cf-grid-row' + (m.data.isActiveFlag === 'N' ? ' er-cf-grid-row--off' : '') ]]" role="row" :data-row="[[ m.data.rowKey ]]">
+                    <span role="cell"><oj-bind-text value="[[ m.data.buName ]]"></oj-bind-text></span>
+                    <span role="cell"><span class="er-cell-main"><oj-bind-text value="[[ m.data.orgName ]]"></oj-bind-text></span>
+                      <span class="er-note er-cf-block"><oj-bind-text value="[[ (m.data.orgCode || '') + (m.data.location ? ' · ' + m.data.location : '') ]]"></oj-bind-text></span></span>
+                    <span role="cell"><oj-bind-text value="[[ m.data.yardTypeLabel || m.data.yardType ]]"></oj-bind-text></span>
+                    <span role="cell"><oj-bind-text value="[[ m.data.subinventoryCode || '—' ]]"></oj-bind-text></span>
+                    <span role="cell"><oj-bind-text value="[[ m.data.isTransactable === 'N' ? 'No' : 'Yes' ]]"></oj-bind-text></span>
+                    <span role="cell">
+                      <button type="button" role="switch" :aria-checked="[[ m.data.isActiveFlag !== 'N' ? 'true' : 'false' ]]"
+                        :aria-label="[[ 'Active: ' + m.data.orgName ]]" :class="[[ 'er-cf-switch' + (m.data.isActiveFlag !== 'N' ? ' er-cf-switch--on' : '') ]]"
+                        :data-key="[[ m.data.rowKey ]]" :data-on="[[ m.data.isActiveFlag !== 'N' ? 'true' : 'false' ]]"
+                        :disabled="[[ $variables.readOnly || $variables.isBuOrgSaving ]]" on-click="[[ $listeners.onOrgToggle ]]"><span class="er-cf-knob" aria-hidden="true"></span></button>
+                    </span>
+                    <span role="cell" class="er-cf-cell-actions">
+                      <oj-bind-if test="[[ !$variables.readOnly ]]">
+                        <button type="button" class="er-btn er-btn--plain er-cf-small" :data-key="[[ m.data.rowKey ]]" on-click="[[ $listeners.onOrgEdit ]]">Edit</button>
+                        <button type="button" class="er-btn er-btn--plain er-cf-small" :data-key="[[ m.data.rowKey ]]" on-click="[[ $listeners.onOrgDelete ]]">Delete</button>
+                      </oj-bind-if>
+                    </span>
+                  </div>
+                </template>
+              </oj-bind-for-each>
+              <oj-bind-if test="[[ $variables.BuOrgMappingsArray.length === 0 ]]">
+                <div class="er-cf-empty">No yard is mapped yet. Transfer orders need at least one equipment yard per business unit.</div>
+              </oj-bind-if>
+            </div>
+          </div>
+        </section>
+      </oj-bind-if>
+
+      <!-- ── Equipment classes: classification, column mappings, classes & subclasses ── -->
+      <oj-bind-if test="[[ $functions.sectionVisible('classes', $variables.query) ]]">
+        <section class="er-card er-cf-section" id="cfg-classes" aria-label="Equipment classes">
+          <header class="er-cf-head">
+            <div>
+              <h2 class="er-section-title">Equipment classes</h2>
+              <p class="er-note er-cf-summary"><oj-bind-text value="[[ $functions.sectionSummary('classes') ]]"></oj-bind-text></p>
+            </div>
+            <span class="er-cf-fdd">FDD 7.17.4</span>
+          </header>
+
+          <div class="er-cf-sub">
+            <h3>Classification <span class="er-note">saved as you choose</span></h3>
+            <div class="er-cf-row er-cf-row--d0" data-setting="CLASS_MAPPING_SOURCE_OF_TRUTH">
+              <div class="er-cf-text">
+                <div class="er-cf-label"><strong>Asset classification source</strong></div>
+                <span class="er-cf-help"><oj-bind-text value="[[ $functions.settingDef('CLASS_MAPPING_SOURCE_OF_TRUTH').help ]]"></oj-bind-text></span>
+                <div class="er-cf-affects"><span class="er-cf-deps-label">Affects</span>
+                  <oj-bind-text value="[[ $functions.settingDef('CLASS_MAPPING_SOURCE_OF_TRUTH').affects ]]"></oj-bind-text></div>
+                <oj-bind-if test="[[ !$variables.ClassMapTruthSel ]]"><div class="er-cf-note">Not configured: all three sources are offered.</div></oj-bind-if>
+              </div>
+              <div class="er-cf-control">
+                <div class="er-seg" role="radiogroup" aria-label="Asset classification source">
+                  <oj-bind-for-each data="[[ $functions.choiceOptions($variables.ClassMapTruthLovArray, $variables.ClassMapTruthSel) ]]">
+                    <template data-oj-as="o">
+                      <button type="button" role="radio" :aria-checked="[[ o.data.on ? 'true' : 'false' ]]" :disabled="[[ $variables.readOnly || $variables.isClassMapTruthSaving ]]"
+                        :class="[[ 'er-seg-btn' + (o.data.on ? ' er-seg-btn--on' : '') ]]" :data-value="[[ o.data.value ]]"
+                        on-click="[[ $listeners.onTruth ]]"><oj-bind-text value="[[ o.data.label ]]"></oj-bind-text></button>
+                    </template>
+                  </oj-bind-for-each>
+                </div>
+              </div>
+            </div>
+            <div class="er-cf-row er-cf-row--d1" data-setting="CLASS_MAPPING_PRECEDENCE">
+              <div class="er-cf-text">
+                <div class="er-cf-label"><strong>Source precedence</strong></div>
+                <span class="er-cf-help"><oj-bind-text value="[[ $functions.settingDef('CLASS_MAPPING_PRECEDENCE').help ]]"></oj-bind-text></span>
+                <div class="er-cf-deps"><span class="er-cf-deps-label">Needs</span>
+                  <span :class="[[ 'er-cf-dep ' + ($variables.ClassMapTruthSel ? 'er-cf-dep--ok' : 'er-cf-dep--no') ]]">
+                    <span aria-hidden="true"><oj-bind-text value="[[ $variables.ClassMapTruthSel ? '✓' : '✗' ]]"></oj-bind-text></span> Asset classification source</span></div>
+                <div class="er-cf-affects"><span class="er-cf-deps-label">Affects</span>
+                  <oj-bind-text value="[[ $functions.settingDef('CLASS_MAPPING_PRECEDENCE').affects ]]"></oj-bind-text></div>
+                <oj-bind-if test="[[ !!$variables.ClassMapTruthSel && !$variables.ClassMapPrecedenceSel ]]">
+                  <div class="er-cf-note"><oj-bind-text value="[[ 'Not saved: the import uses ' + $functions.classMapPrecedenceLabel($variables.ClassMapTruthSel + ',INVENTORY') + '.' ]]"></oj-bind-text></div>
+                </oj-bind-if>
+              </div>
+              <div class="er-cf-control">
+                <div class="er-seg" role="radiogroup" aria-label="Source precedence">
+                  <oj-bind-for-each data="[[ $functions.choiceOptions($functions.classMapPrecedenceOptions($variables.ClassMapTruthSel), $variables.ClassMapPrecedenceSel) ]]">
+                    <template data-oj-as="o">
+                      <button type="button" role="radio" :aria-checked="[[ o.data.on ? 'true' : 'false' ]]" :disabled="[[ $variables.readOnly || $variables.isClassMapPrecedenceSaving ]]"
+                        :class="[[ 'er-seg-btn' + (o.data.on ? ' er-seg-btn--on' : '') ]]" :data-value="[[ o.data.value ]]"
+                        on-click="[[ $listeners.onPrecedence ]]"><oj-bind-text value="[[ o.data.label ]]"></oj-bind-text></button>
+                    </template>
+                  </oj-bind-for-each>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="er-cf-sub">
+            <h3>Class and subclass columns <span class="er-note">which Fusion column holds the class, per source</span></h3>
+            <oj-bind-if test="[[ !$variables.readOnly ]]">
+              <div class="er-form er-cf-colmap">
+                <div class="er-field"><span class="er-label">Classification source</span>
+                  <div class="er-seg" role="radiogroup" aria-label="Classification source">
+                    <oj-bind-for-each data="[[ $functions.choiceOptions($functions.classMapSourceOptions($variables.ClassMapTruthSel), $variables.ColumnMapDraft.sourceType) ]]">
+                      <template data-oj-as="o">
+                        <button type="button" role="radio" :aria-checked="[[ o.data.on ? 'true' : 'false' ]]"
+                          :class="[[ 'er-seg-btn' + (o.data.on ? ' er-seg-btn--on' : '') ]]" data-form="ColumnMapDraft" data-field="sourceType"
+                          :data-value="[[ o.data.value ]]" on-click="[[ $listeners.onDraftBtn ]]"><oj-bind-text value="[[ o.data.label ]]"></oj-bind-text></button>
+                      </template>
+                    </oj-bind-for-each>
+                  </div></div>
+                <div class="er-form-row">
+                  <div class="er-field"><span class="er-label">Class field group <span class="er-req">*</span></span>
+                    <div class="er-chip-row" role="group" aria-label="Class field group">
+                      <oj-bind-for-each data="[[ $functions.choiceOptions($functions.fieldGroupOptions($variables.ColumnMapDraft.sourceType, $variables.ClassMapTypesArray), $variables.ColumnMapDraft.classGroup) ]]">
+                        <template data-oj-as="o">
+                          <button type="button" :class="[[ 'er-chip' + (o.data.on ? ' er-chip--on' : '') ]]" :aria-pressed="[[ o.data.on ? 'true' : 'false' ]]"
+                            data-form="ColumnMapDraft" data-field="classGroup" :data-value="[[ o.data.value ]]" on-click="[[ $listeners.onDraftBtn ]]"><oj-bind-text value="[[ o.data.label ]]"></oj-bind-text></button>
+                        </template>
+                      </oj-bind-for-each>
+                    </div>
+                    <span class="er-label">Class column <span class="er-req">*</span></span>
+                    <div class="er-chip-row" role="group" aria-label="Class column">
+                      <oj-bind-for-each data="[[ $functions.choiceOptions($functions.columnOptions($variables.ColumnMapDraft.sourceType, $variables.ColumnMapDraft.classGroup, $variables.ClassMapTypesArray), $variables.ColumnMapDraft.classColumn) ]]">
+                        <template data-oj-as="o">
+                          <button type="button" :class="[[ 'er-chip' + (o.data.on ? ' er-chip--on' : '') ]]" :aria-pressed="[[ o.data.on ? 'true' : 'false' ]]"
+                            data-form="ColumnMapDraft" data-field="classColumn" :data-value="[[ o.data.value ]]" on-click="[[ $listeners.onDraftBtn ]]"><oj-bind-text value="[[ o.data.label ]]"></oj-bind-text></button>
+                        </template>
+                      </oj-bind-for-each>
+                      <oj-bind-if test="[[ !$variables.ColumnMapDraft.classGroup ]]"><span class="er-note">Pick a field group first.</span></oj-bind-if>
+                    </div>
+                  </div>
+                  <div class="er-field"><span class="er-label">Subclass field group</span>
+                    <div class="er-chip-row" role="group" aria-label="Subclass field group">
+                      <oj-bind-for-each data="[[ $functions.choiceOptions($functions.withNone($functions.fieldGroupOptions($variables.ColumnMapDraft.sourceType, $variables.ClassMapTypesArray), 'No subclass'), $variables.ColumnMapDraft.subclassGroup || '') ]]">
+                        <template data-oj-as="o">
+                          <button type="button" :class="[[ 'er-chip' + (o.data.on ? ' er-chip--on' : '') ]]" :aria-pressed="[[ o.data.on ? 'true' : 'false' ]]"
+                            data-form="ColumnMapDraft" data-field="subclassGroup" :data-value="[[ o.data.value ]]" on-click="[[ $listeners.onDraftBtn ]]"><oj-bind-text value="[[ o.data.label ]]"></oj-bind-text></button>
+                        </template>
+                      </oj-bind-for-each>
+                    </div>
+                    <oj-bind-if test="[[ !!$variables.ColumnMapDraft.subclassGroup ]]">
+                      <span class="er-label">Subclass column</span>
+                      <div class="er-chip-row" role="group" aria-label="Subclass column">
+                        <oj-bind-for-each data="[[ $functions.choiceOptions($functions.columnOptions($variables.ColumnMapDraft.sourceType, $variables.ColumnMapDraft.subclassGroup, $variables.ClassMapTypesArray), $variables.ColumnMapDraft.subclassColumn) ]]">
+                          <template data-oj-as="o">
+                            <button type="button" :class="[[ 'er-chip' + (o.data.on ? ' er-chip--on' : '') ]]" :aria-pressed="[[ o.data.on ? 'true' : 'false' ]]"
+                              data-form="ColumnMapDraft" data-field="subclassColumn" :data-value="[[ o.data.value ]]" on-click="[[ $listeners.onDraftBtn ]]"><oj-bind-text value="[[ o.data.label ]]"></oj-bind-text></button>
+                          </template>
+                        </oj-bind-for-each>
+                      </div>
+                    </oj-bind-if>
+                  </div>
+                </div>
+                <div class="er-actions">
+                  <button type="button" class="er-btn er-btn--dark" :disabled="[[ !$variables.ColumnMapDraft.classColumn || $variables.isColumnMapSaving ]]"
+                    on-click="[[ $listeners.onColumnSave ]]"><oj-bind-text value="[[ $variables.isColumnMapSaving ? 'Saving…' : 'Save mapping' ]]"></oj-bind-text></button>
+                  <span class="er-note">One mapping per source; saving again replaces it. Add class and Create from Fusion list these columns' values; the item import assigns items by them.</span>
+                </div>
+              </div>
+            </oj-bind-if>
+            <div class="er-table-wrap">
+              <div class="er-cf-grid er-cf-grid--colmap" role="table" aria-label="Saved column mappings">
+                <div class="er-cf-grid-row er-grid-head" role="row">
+                  <span role="columnheader">Source</span><span role="columnheader">Class column</span><span role="columnheader">Subclass column</span>
+                  <span role="columnheader"><span class="er-sr">Actions</span></span>
+                </div>
+                <oj-bind-for-each data="[[ $functions.columnMappingRows($variables.ConfigSettingsMap) ]]">
+                  <template data-oj-as="c">
+                    <div class="er-cf-grid-row" role="row">
+                      <span role="cell"><span class="er-cell-main"><oj-bind-text value="[[ $functions.fusionSourceLabel(c.data.source) ]]"></oj-bind-text></span>
+                        <oj-bind-if test="[[ !$functions.isAllowedSource(c.data.source, $variables.ClassMapTruthSel) ]]"><span class="er-cf-warn">Inactive source</span></oj-bind-if></span>
+                      <span role="cell"><oj-bind-text value="[[ c.data.classColumnName ]]"></oj-bind-text>
+                        <span class="er-note er-cf-block"><oj-bind-text value="[[ $functions.fieldGroupLabel(c.data.source, c.data.classGroup, $variables.ClassMapTypesArray) ]]"></oj-bind-text></span></span>
+                      <span role="cell"><oj-bind-text value="[[ c.data.subclassColumnName || '—' ]]"></oj-bind-text>
+                        <span class="er-note er-cf-block"><oj-bind-text value="[[ c.data.subclassGroup ? $functions.fieldGroupLabel(c.data.source, c.data.subclassGroup, $variables.ClassMapTypesArray) : '' ]]"></oj-bind-text></span></span>
+                      <span role="cell">
+                        <oj-bind-if test="[[ !$variables.readOnly ]]">
+                          <button type="button" class="er-btn er-btn--plain er-cf-small" :data-source="[[ c.data.source ]]" on-click="[[ $listeners.onColumnRemove ]]">Remove</button>
+                        </oj-bind-if>
+                      </span>
+                    </div>
+                  </template>
+                </oj-bind-for-each>
+                <oj-bind-if test="[[ $functions.columnMappingRows($variables.ConfigSettingsMap).length === 0 ]]">
+                  <div class="er-cf-empty">No column mapping saved yet.</div>
+                </oj-bind-if>
+              </div>
+            </div>
+          </div>
+
+          <div class="er-cf-sub">
+            <div class="er-table-head">
+              <h3>Classes and subclasses</h3>
+              <oj-bind-if test="[[ !$variables.readOnly ]]">
+                <div class="er-actions">
+                  <button type="button" class="er-btn er-btn--plain" :disabled="[[ $variables.EquipmentClassSelectedId == null ]]" on-click="[[ $listeners.onClassDelete ]]">Delete class</button>
+                  <button type="button" class="er-btn er-btn--plain" on-click="[[ $listeners.onBulkOpen ]]">Create from Fusion</button>
+                  <button type="button" class="er-btn er-btn--dark" on-click="[[ $listeners.onAddClass ]]">Add class</button>
+                </div>
+              </oj-bind-if>
+            </div>
+            <p class="er-note">Consumable: used up, not returned. Auto-consume: accepting delivery issues the material transaction at once. Classes come from Fusion or are typed by hand (Custom).</p>
+
+            <oj-bind-if test="[[ $variables.confirm && $variables.confirm.section === 'classes' ]]">
+              <div class="er-cf-confirm" role="alertdialog" aria-label="Confirm">
+                <strong><oj-bind-text value="[[ $variables.confirm.title ]]"></oj-bind-text></strong>
+                <p><oj-bind-text value="[[ $variables.confirm.message ]]"></oj-bind-text></p>
+                <div class="er-actions">
+                  <button type="button" class="er-btn er-btn--plain" on-click="[[ $listeners.onConfirmCancel ]]">Cancel</button>
+                  <button type="button" :class="[[ $variables.confirm.danger ? 'er-btn er-btn--danger' : 'er-btn er-btn--dark' ]]"
+                    :disabled="[[ !!$variables.confirm.busy ]]" on-click="[[ $listeners.onConfirmOk ]]"><oj-bind-text value="[[ $variables.confirm.okLabel ]]"></oj-bind-text></button>
+                </div>
+              </div>
+            </oj-bind-if>
+
+            <oj-bind-if test="[[ $variables.isClassMapBulkOpen ]]">
+              <div class="er-cf-editor" role="group" aria-label="Create classes from Fusion">
+                <h3>Create classes from Fusion</h3>
+                <oj-bind-if test="[[ $functions.bulkSourceOptions($variables.ConfigSettingsMap, $variables.ClassMapTruthSel).length === 0 ]]">
+                  <p class="er-note">No column mapping is saved yet. Map the class and subclass columns above first.</p>
+                </oj-bind-if>
+                <oj-bind-if test="[[ $functions.bulkSourceOptions($variables.ConfigSettingsMap, $variables.ClassMapTruthSel).length > 0 ]]">
+                  <div class="er-seg" role="radiogroup" aria-label="Classification source">
+                    <oj-bind-for-each data="[[ $functions.choiceOptions($functions.bulkSourceOptions($variables.ConfigSettingsMap, $variables.ClassMapTruthSel), $variables.ClassMapPairsSource) ]]">
+                      <template data-oj-as="o">
+                        <button type="button" role="radio" :aria-checked="[[ o.data.on ? 'true' : 'false' ]]"
+                          :class="[[ 'er-seg-btn' + (o.data.on ? ' er-seg-btn--on' : '') ]]" :data-value="[[ o.data.value ]]"
+                          on-click="[[ $listeners.onBulkSource ]]"><oj-bind-text value="[[ o.data.label ]]"></oj-bind-text></button>
+                      </template>
+                    </oj-bind-for-each>
+                  </div>
+                  <p class="er-note"><oj-bind-text value="[[ $functions.pairsSummary($variables.ClassMapPairsArray, $variables.isClassMapPairsLoading) ]]"></oj-bind-text></p>
+                  <div class="er-table-wrap">
+                    <div class="er-cf-grid er-cf-grid--pairs" role="table" aria-label="Class and subclass values in Fusion">
+                      <div class="er-cf-grid-row er-grid-head" role="row">
+                        <span role="columnheader">Class</span><span role="columnheader">Subclass</span><span role="columnheader">Items</span><span role="columnheader">Status</span>
+                      </div>
+                      <oj-bind-for-each data="[[ $variables.ClassMapPairsArray ]]">
+                        <template data-oj-as="p">
+                          <div class="er-cf-grid-row" role="row">
+                            <span role="cell"><oj-bind-text value="[[ p.data.className ]]"></oj-bind-text><span class="er-note er-cf-block"><oj-bind-text value="[[ p.data.classRef ]]"></oj-bind-text></span></span>
+                            <span role="cell"><oj-bind-text value="[[ p.data.subclassName || '—' ]]"></oj-bind-text><span class="er-note er-cf-block"><oj-bind-text value="[[ p.data.subclassRef ]]"></oj-bind-text></span></span>
+                            <span role="cell" class="er-num"><oj-bind-text value="[[ p.data.itemCount ]]"></oj-bind-text></span>
+                            <span role="cell"><oj-bind-text value="[[ $functions.pairStatusLabel(p.data) ]]"></oj-bind-text>
+                              <oj-bind-if test="[[ !!p.data.message ]]"><span class="er-note er-cf-block"><oj-bind-text value="[[ p.data.message ]]"></oj-bind-text></span></oj-bind-if></span>
+                          </div>
+                        </template>
+                      </oj-bind-for-each>
+                    </div>
+                  </div>
+                </oj-bind-if>
+                <div class="er-actions er-cf-editor-actions">
+                  <button type="button" class="er-btn er-btn--plain" data-name="isClassMapBulkOpen" on-click="[[ $listeners.onCloseEditor ]]">Close</button>
+                  <button type="button" class="er-btn er-btn--dark"
+                    :disabled="[[ $variables.isClassMapCreating || $variables.isClassMapPairsLoading || !$functions.anyActionable($variables.ClassMapPairsArray) ]]"
+                    on-click="[[ $listeners.onBulkCreate ]]"><oj-bind-text value="[[ $variables.isClassMapCreating ? 'Creating…' : 'Create new classes' ]]"></oj-bind-text></button>
+                </div>
+              </div>
+            </oj-bind-if>
+
+            <oj-bind-if test="[[ $variables.isAddClassDrawerOpen ]]">
+              <div class="er-cf-editor" role="group" aria-label="Add class">
+                <h3>Add a class and its first subclass</h3>
+                <div class="er-form">
+                  <div class="er-field"><span class="er-label">Type</span>
+                    <div class="er-seg" role="radiogroup" aria-label="Type">
+                      <oj-bind-for-each data="[[ $functions.choiceOptions($functions.addClassTypeOptions($variables.ClassMapTruthSel), $variables.newClassSubclass.trackingType) ]]">
+                        <template data-oj-as="o">
+                          <button type="button" role="radio" :aria-checked="[[ o.data.on ? 'true' : 'false' ]]"
+                            :class="[[ 'er-seg-btn' + (o.data.on ? ' er-seg-btn--on' : '') ]]" data-form="newClassSubclass" data-field="trackingType"
+                            :data-value="[[ o.data.value ]]" on-click="[[ $listeners.onDraftBtn ]]"><oj-bind-text value="[[ o.data.label ]]"></oj-bind-text></button>
+                        </template>
+                      </oj-bind-for-each>
+                    </div>
+                    <span class="er-note">Which column mapping the class and subclass are read from. Custom: typed by hand; the item import never matches items to it.</span></div>
+                  <oj-bind-if test="[[ $variables.newClassSubclass.trackingType === 'CUSTOM' ]]">
+                    <div class="er-form-row">
+                      <label class="er-field"><span class="er-label">Class name <span class="er-req">*</span></span>
+                        <input type="text" class="er-input" data-form="newClassSubclass" data-field="className" placeholder="e.g. Compaction Equipment"
+                          :value="[[ $variables.newClassSubclass.className || '' ]]" on-input="[[ $listeners.onDraft ]]"></label>
+                      <label class="er-field"><span class="er-label">Subclass name (optional)</span>
+                        <input type="text" class="er-input" data-form="newClassSubclass" data-field="subclassName" placeholder="e.g. Plate Compactors"
+                          :value="[[ $variables.newClassSubclass.subclassName || '' ]]" on-input="[[ $listeners.onDraft ]]"></label>
+                    </div>
+                  </oj-bind-if>
+                  <oj-bind-if test="[[ $variables.newClassSubclass.trackingType !== 'CUSTOM' ]]">
+                    <div class="er-form-row">
+                      <div class="er-field"><span class="er-label">Class <span class="er-req">*</span></span>
+                        <oj-bind-if test="[[ $variables.newClassSubclass.classLovId != null && $variables.newClassSubclass.classLovId !== '' ]]">
+                          <div class="er-picked"><span><strong><oj-bind-text value="[[ $variables.newClassSubclass.className ]]"></oj-bind-text></strong></span></div>
+                        </oj-bind-if>
+                        <input type="search" class="er-input" data-form="pick" data-field="classLov" placeholder="Find a class value" aria-label="Find a class value"
+                          :value="[[ $variables.pick.classLov ]]" on-input="[[ $listeners.onDraft ]]">
+                        <div class="er-results">
+                          <oj-bind-for-each data="[[ $functions.pickList($variables.ClassLovArray, $variables.pick.classLov, 20) ]]">
+                            <template data-oj-as="o">
+                              <button type="button" :class="[[ 'er-result' + (('' + $variables.newClassSubclass.classLovId) === ('' + o.data.value) ? ' er-result--on' : '') ]]"
+                                data-form="newClassSubclass" data-field="classLovId" :data-value="[[ o.data.value ]]" on-click="[[ $listeners.onDraftBtn ]]">
+                                <strong><oj-bind-text value="[[ o.data.label ]]"></oj-bind-text></strong><span class="er-note"><oj-bind-text value="[[ o.data.code || '' ]]"></oj-bind-text></span></button>
+                            </template>
+                          </oj-bind-for-each>
+                        </div>
+                        <span class="er-note"><oj-bind-text value="[[ $functions.classLovHint($variables.ConfigSettingsMap, $variables.newClassSubclass, $variables.isClassLovLoading, $variables.classLovLoaded, $variables.ClassLovArray)
+                          || $functions.pickCount($variables.ClassLovArray, $variables.pick.classLov, 20) ]]"></oj-bind-text></span>
+                      </div>
+                      <div class="er-field"><span class="er-label">Subclass (optional)</span>
+                        <oj-bind-if test="[[ $variables.newClassSubclass.subclassLovId != null && $variables.newClassSubclass.subclassLovId !== '' ]]">
+                          <div class="er-picked"><span><strong><oj-bind-text value="[[ $functions.pickedLabel($variables.SubclassLovArray, $variables.newClassSubclass.subclassLovId) ]]"></oj-bind-text></strong></span></div>
+                        </oj-bind-if>
+                        <input type="search" class="er-input" data-form="pick" data-field="subclassLov" placeholder="Find a subclass value" aria-label="Find a subclass value"
+                          :disabled="[[ !$variables.newClassSubclass.classLovId || !($functions.columnMappingFor($variables.ConfigSettingsMap, $variables.newClassSubclass.trackingType) || {}).subclassColumn ]]"
+                          :value="[[ $variables.pick.subclassLov ]]" on-input="[[ $listeners.onDraft ]]">
+                        <div class="er-results">
+                          <oj-bind-for-each data="[[ $functions.pickList($variables.SubclassLovArray, $variables.pick.subclassLov, 20) ]]">
+                            <template data-oj-as="o">
+                              <button type="button" :class="[[ 'er-result' + (('' + $variables.newClassSubclass.subclassLovId) === ('' + o.data.value) ? ' er-result--on' : '') ]]"
+                                data-form="newClassSubclass" data-field="subclassLovId" :data-value="[[ o.data.value ]]" on-click="[[ $listeners.onDraftBtn ]]">
+                                <strong><oj-bind-text value="[[ o.data.label ]]"></oj-bind-text></strong><span class="er-note"><oj-bind-text value="[[ o.data.code || '' ]]"></oj-bind-text></span></button>
+                            </template>
+                          </oj-bind-for-each>
+                        </div>
+                        <span class="er-note"><oj-bind-text value="[[ $functions.subclassLovHint($variables.ConfigSettingsMap, $variables.newClassSubclass, $variables.isSubclassLovLoading, $variables.subclassLovLoaded, $variables.SubclassLovArray) ]]"></oj-bind-text></span>
+                      </div>
+                    </div>
+                  </oj-bind-if>
+                  <div class="er-form-row">
+                    <div class="er-field"><span class="er-label">Consumable</span>
+                      <div class="er-seg" role="radiogroup" aria-label="Consumable">
+                        <oj-bind-for-each data="[[ $functions.ynOptions($variables.newClassSubclass.consumableFlag) ]]">
+                          <template data-oj-as="o">
+                            <button type="button" role="radio" :aria-checked="[[ o.data.on ? 'true' : 'false' ]]" :class="[[ 'er-seg-btn' + (o.data.on ? ' er-seg-btn--on' : '') ]]"
+                              data-form="newClassSubclass" data-field="consumableFlag" :data-value="[[ o.data.value ]]" on-click="[[ $listeners.onDraftBtn ]]"><oj-bind-text value="[[ o.data.label ]]"></oj-bind-text></button>
+                          </template>
+                        </oj-bind-for-each>
+                      </div></div>
+                    <div class="er-field"><span class="er-label">Auto-consume</span>
+                      <div class="er-seg" role="radiogroup" aria-label="Auto-consume">
+                        <oj-bind-for-each data="[[ $functions.ynOptions($variables.newClassSubclass.autoConsumeFlag) ]]">
+                          <template data-oj-as="o">
+                            <button type="button" role="radio" :aria-checked="[[ o.data.on ? 'true' : 'false' ]]" :class="[[ 'er-seg-btn' + (o.data.on ? ' er-seg-btn--on' : '') ]]"
+                              data-form="newClassSubclass" data-field="autoConsumeFlag" :data-value="[[ o.data.value ]]" on-click="[[ $listeners.onDraftBtn ]]"><oj-bind-text value="[[ o.data.label ]]"></oj-bind-text></button>
+                          </template>
+                        </oj-bind-for-each>
+                      </div></div>
+                  </div>
+                  <span class="er-note">The two flags are stored on the subclass, so they apply only when a subclass is given.</span>
+                </div>
+                <div class="er-actions er-cf-editor-actions">
+                  <button type="button" class="er-btn er-btn--plain" on-click="[[ $listeners.onAddClassClose ]]">Cancel</button>
+                  <button type="button" class="er-btn er-btn--dark" :disabled="[[ $variables.isAddingClassSubclass ]]" on-click="[[ $listeners.onAddClassCreate ]]">Create</button>
+                </div>
+              </div>
+            </oj-bind-if>
+
+            <oj-bind-if test="[[ $variables.isSubclassEditOpen ]]">
+              <div class="er-cf-editor" role="group" aria-label="Edit subclass">
+                <h3><oj-bind-text value="[[ 'Edit subclass ' + $variables.EditClassSubclass.subclassName ]]"></oj-bind-text></h3>
+                <div class="er-form">
+                  <div class="er-field"><span class="er-label">Type</span>
+                    <div class="er-seg" role="radiogroup" aria-label="Type">
+                      <oj-bind-for-each data="[[ $functions.choiceOptions($variables.TrackingTypeLovArray, $variables.EditClassSubclass.trackingType) ]]">
+                        <template data-oj-as="o">
+                          <button type="button" role="radio" :aria-checked="[[ o.data.on ? 'true' : 'false' ]]" :class="[[ 'er-seg-btn' + (o.data.on ? ' er-seg-btn--on' : '') ]]"
+                            data-form="EditClassSubclass" data-field="trackingType" :data-value="[[ o.data.value ]]" on-click="[[ $listeners.onDraftBtn ]]"><oj-bind-text value="[[ o.data.label ]]"></oj-bind-text></button>
+                        </template>
+                      </oj-bind-for-each>
+                    </div>
+                    <span class="er-note">The default tracking intent for new equipment under this subclass. Equipment already there is not re-tagged.</span></div>
+                  <div class="er-form-row">
+                    <oj-bind-for-each data="[[ $functions.subclassFlagFields($variables.EditClassSubclass) ]]">
+                      <template data-oj-as="f">
+                        <div class="er-field"><span class="er-label"><oj-bind-text value="[[ f.data.label ]]"></oj-bind-text></span>
+                          <div class="er-seg" role="radiogroup" :aria-label="[[ f.data.label ]]">
+                            <oj-bind-for-each data="[[ f.data.options ]]">
+                              <template data-oj-as="o">
+                                <button type="button" role="radio" :aria-checked="[[ o.data.on ? 'true' : 'false' ]]" :class="[[ 'er-seg-btn' + (o.data.on ? ' er-seg-btn--on' : '') ]]"
+                                  data-form="EditClassSubclass" :data-field="[[ o.data.field ]]" :data-value="[[ o.data.value ]]" on-click="[[ $listeners.onDraftBtn ]]"><oj-bind-text value="[[ o.data.label ]]"></oj-bind-text></button>
+                              </template>
+                            </oj-bind-for-each>
+                          </div>
+                          <span class="er-note"><oj-bind-text value="[[ f.data.help ]]"></oj-bind-text></span></div>
+                      </template>
+                    </oj-bind-for-each>
+                    <label class="er-field er-cf-narrow"><span class="er-label">Buffer period (days)</span>
+                      <input type="number" min="0" step="1" class="er-input" data-form="EditClassSubclass" data-field="bufferPeriodDays"
+                        :value="[[ $variables.EditClassSubclass.bufferPeriodDays ]]" on-input="[[ $listeners.onDraft ]]">
+                      <span class="er-note">Days after return kept for QC and maintenance.</span></label>
+                  </div>
+                </div>
+                <div class="er-actions er-cf-editor-actions">
+                  <button type="button" class="er-btn er-btn--plain" data-name="isSubclassEditOpen" on-click="[[ $listeners.onCloseEditor ]]">Cancel</button>
+                  <button type="button" class="er-btn er-btn--dark" on-click="[[ $listeners.onSubEditSave ]]">Save</button>
+                </div>
+              </div>
+            </oj-bind-if>
+
+            <div class="er-chip-row" role="group" aria-label="Filter by class">
+              <oj-bind-for-each data="[[ $functions.classChips($variables.EquipmentClassesArray, $variables.AllSubclassesArray, $variables.EquipmentClassSelectedId) ]]">
+                <template data-oj-as="c">
+                  <button type="button" :class="[[ 'er-chip' + (c.data.on ? ' er-chip--on' : '') ]]" :aria-pressed="[[ c.data.on ? 'true' : 'false' ]]"
+                    :data-value="[[ c.data.value ]]" on-click="[[ c.data.value === '' ? $listeners.onClassFilterClear : $listeners.onClassFilter ]]">
+                    <oj-bind-text value="[[ c.data.label ]]"></oj-bind-text> <span class="er-chip-count"><oj-bind-text value="[[ c.data.count ]]"></oj-bind-text></span></button>
+                </template>
+              </oj-bind-for-each>
+            </div>
+            <oj-bind-if test="[[ $variables.EquipmentClassSelectedId != null && $variables.EquipmentSubclassConfigLovArray.length > 1 ]]">
+              <div class="er-chip-row er-cf-subchips" role="group" aria-label="Filter by subclass">
+                <oj-bind-for-each data="[[ $functions.subclassChips($variables.EquipmentSubclassConfigLovArray, $variables.EquipmentSubclassSelectedId) ]]">
+                  <template data-oj-as="c">
+                    <button type="button" :class="[[ 'er-chip' + (c.data.on ? ' er-chip--on' : '') ]]" :aria-pressed="[[ c.data.on ? 'true' : 'false' ]]"
+                      data-form="page" data-field="EquipmentSubclassSelectedId" :data-value="[[ c.data.value ]]" on-click="[[ $listeners.onDraftBtn ]]"><oj-bind-text value="[[ c.data.label ]]"></oj-bind-text></button>
+                  </template>
+                </oj-bind-for-each>
+              </div>
+            </oj-bind-if>
+          </div>
+          <div class="er-table-wrap">
+            <div class="er-cf-grid er-cf-grid--classes" role="table" aria-label="Subclasses">
+              <div class="er-cf-grid-row er-grid-head" role="row">
+                <span role="columnheader">Subclass · class</span><span role="columnheader">Type</span>
+                <span role="columnheader">Fusion source</span><span role="columnheader">Consumable</span><span role="columnheader">Auto-consume</span>
+                <span role="columnheader"><span class="er-sr">Actions</span></span>
+              </div>
+              <oj-bind-for-each data="[[ $functions.firstRows($functions.filterSubclasses($variables.AllSubclassesArray, $variables.EquipmentClassSelectedId, $variables.EquipmentSubclassSelectedId), $variables.subLimit) ]]">
+                <template data-oj-as="s">
+                  <div class="er-cf-grid-row" role="row" :data-subclass="[[ s.data.id ]]">
+                    <span role="cell"><span class="er-cell-main"><oj-bind-text value="[[ s.data.subclassName ]]"></oj-bind-text></span>
+                      <span class="er-note er-cf-block"><oj-bind-text value="[[ s.data.className ]]"></oj-bind-text></span></span>
+                    <span role="cell"><oj-bind-text value="[[ $functions.trackingTypeLabel(s.data.trackingType) ]]"></oj-bind-text></span>
+                    <span role="cell"><oj-bind-text value="[[ $functions.fusionSourceText(s.data, $variables.EquipmentClassesArray, $variables.ClassMapTypesArray).classText ]]"></oj-bind-text>
+                      <span class="er-note er-cf-block"><oj-bind-text value="[[ $functions.fusionSourceText(s.data, $variables.EquipmentClassesArray, $variables.ClassMapTypesArray).subclassText ]]"></oj-bind-text></span></span>
+                    <span role="cell"><oj-bind-text value="[[ $functions.yesNo(s.data.consumableFlag) ]]"></oj-bind-text></span>
+                    <span role="cell"><oj-bind-text value="[[ $functions.yesNo(s.data.autoConsumeFlag) ]]"></oj-bind-text></span>
+                    <span role="cell" class="er-cf-cell-actions">
+                      <oj-bind-if test="[[ !$variables.readOnly ]]">
+                        <button type="button" class="er-btn er-btn--plain er-cf-small" :data-id="[[ s.data.id ]]" on-click="[[ $listeners.onSubEdit ]]">Edit</button>
+                        <button type="button" class="er-btn er-btn--plain er-cf-small" :data-id="[[ s.data.id ]]" on-click="[[ $listeners.onSubDelete ]]">Delete</button>
+                        <oj-bind-if test="[[ !!s.data.fusionSubclassRef ]]">
+                          <button type="button" class="er-btn er-btn--plain er-cf-small" data-level="SUBCLASS" :data-class-id="[[ s.data.classId ]]" :data-subclass-id="[[ s.data.id ]]"
+                            on-click="[[ $listeners.onUnmap ]]">Unmap subclass</button>
+                        </oj-bind-if>
+                        <oj-bind-if test="[[ $functions.fusionSourceText(s.data, $variables.EquipmentClassesArray, $variables.ClassMapTypesArray).classMapped ]]">
+                          <button type="button" class="er-btn er-btn--plain er-cf-small" data-level="CLASS" :data-class-id="[[ s.data.classId ]]" data-subclass-id=""
+                            on-click="[[ $listeners.onUnmap ]]">Unmap class</button>
+                        </oj-bind-if>
+                      </oj-bind-if>
+                    </span>
+                  </div>
+                </template>
+              </oj-bind-for-each>
+              <oj-bind-if test="[[ $variables.AllSubclassesArray.length === 0 ]]">
+                <div class="er-cf-empty"><oj-bind-text value="[[ $variables.equipClassesLoading || $variables.equipSubclassesLoading ? 'Loading classes…' : 'No subclasses yet. Add a class or create classes from Fusion.' ]]"></oj-bind-text></div>
+              </oj-bind-if>
+            </div>
+          </div>
+          <oj-bind-if test="[[ $functions.hasMore($functions.filterSubclasses($variables.AllSubclassesArray, $variables.EquipmentClassSelectedId, $variables.EquipmentSubclassSelectedId), $variables.subLimit) ]]">
+            <div class="er-cf-pad"><button type="button" class="er-btn er-btn--plain" data-list="sub" on-click="[[ $listeners.onShowMore ]]">Show more subclasses</button></div>
+          </oj-bind-if>
+        </section>
+      </oj-bind-if>
+
+      <!-- ── Expenditure types (exp-type-maps) ── -->
+      <oj-bind-if test="[[ $functions.sectionVisible('exp-types', $variables.query) ]]">
+        <section class="er-card er-cf-section" id="cfg-exp-types" aria-label="Expenditure types">
+          <header class="er-cf-head">
+            <div>
+              <h2 class="er-section-title">Expenditure types</h2>
+              <p class="er-note er-cf-summary">Which Fusion expenditure types each piece of equipment bills under. A timesheet offers every type the project may be charged under; these mappings narrow that to the two or three that belong to the equipment. Unmapped equipment still shows the full list.</p>
+            </div>
+            <span class="er-cf-fdd">FDD 7.17.4</span>
+          </header>
+          <oj-bind-if test="[[ !$variables.readOnly ]]">
+            <div class="er-cf-editor er-cf-editor--add" role="group" aria-label="Add an expenditure type mapping">
+              <div class="er-form">
+                <div class="er-field"><span class="er-label">Applies to</span>
+                  <div class="er-seg" role="radiogroup" aria-label="Applies to">
+                    <oj-bind-for-each data="[[ $functions.choiceOptions($variables.ExpTypeScopeKindLovArray, $variables.NewExpTypeMap.scopeType) ]]">
+                      <template data-oj-as="o">
+                        <button type="button" role="radio" :aria-checked="[[ o.data.on ? 'true' : 'false' ]]" :class="[[ 'er-seg-btn' + (o.data.on ? ' er-seg-btn--on' : '') ]]"
+                          data-form="NewExpTypeMap" data-field="scopeType" :data-value="[[ o.data.value ]]" on-click="[[ $listeners.onDraftBtn ]]"><oj-bind-text value="[[ o.data.label ]]"></oj-bind-text></button>
+                      </template>
+                    </oj-bind-for-each>
+                  </div></div>
+                <div class="er-form-row">
+                  <div class="er-field"><span class="er-label"><oj-bind-text value="[[ $functions.expScopeLabel($variables.NewExpTypeMap.scopeType) ]]"></oj-bind-text> <span class="er-req">*</span></span>
+                    <oj-bind-if test="[[ $variables.NewExpTypeMap.scopeId != null ]]">
+                      <div class="er-picked"><span><strong><oj-bind-text value="[[ $functions.pickedLabel($variables.ExpTypeScopeOptions, $variables.NewExpTypeMap.scopeId) ]]"></oj-bind-text></strong></span></div>
+                    </oj-bind-if>
+                    <input type="search" class="er-input" data-form="pick" data-field="scope" placeholder="Find equipment, a subclass or a class" aria-label="Find what to map"
+                      :value="[[ $variables.pick.scope ]]" on-input="[[ $listeners.onDraft ]]">
+                    <div class="er-results">
+                      <oj-bind-for-each data="[[ $functions.pickList($variables.ExpTypeScopeOptions, $variables.pick.scope, 12) ]]">
+                        <template data-oj-as="o">
+                          <button type="button" :class="[[ 'er-result' + (('' + $variables.NewExpTypeMap.scopeId) === ('' + o.data.value) ? ' er-result--on' : '') ]]"
+                            data-form="NewExpTypeMap" data-field="scopeId" :data-value="[[ o.data.value ]]" on-click="[[ $listeners.onDraftBtn ]]"><oj-bind-text value="[[ o.data.label ]]"></oj-bind-text></button>
+                        </template>
+                      </oj-bind-for-each>
+                    </div>
+                    <span class="er-note"><oj-bind-text value="[[ $functions.pickCount($variables.ExpTypeScopeOptions, $variables.pick.scope, 12) ]]"></oj-bind-text></span>
+                  </div>
+                  <div class="er-field"><span class="er-label">Expenditure type <span class="er-req">*</span></span>
+                    <oj-bind-if test="[[ !!$variables.NewExpTypeMap.expenditureType ]]">
+                      <div class="er-picked"><span><strong><oj-bind-text value="[[ $functions.pickedLabel($variables.FusionExpTypeOptions, $variables.NewExpTypeMap.expenditureType) ]]"></oj-bind-text></strong></span></div>
+                    </oj-bind-if>
+                    <input type="search" class="er-input" data-form="pick" data-field="expType" placeholder="e.g. Operational Day Rate" aria-label="Find an expenditure type"
+                      :value="[[ $variables.pick.expType ]]" on-input="[[ $listeners.onDraft ]]">
+                    <div class="er-results">
+                      <oj-bind-for-each data="[[ $functions.pickList($variables.FusionExpTypeOptions, $variables.pick.expType, 12) ]]">
+                        <template data-oj-as="o">
+                          <button type="button" :class="[[ 'er-result' + ($variables.NewExpTypeMap.expenditureType === o.data.value ? ' er-result--on' : '') ]]"
+                            data-form="NewExpTypeMap" data-field="expenditureType" :data-value="[[ o.data.value ]]" on-click="[[ $listeners.onDraftBtn ]]"><oj-bind-text value="[[ o.data.label ]]"></oj-bind-text></button>
+                        </template>
+                      </oj-bind-for-each>
+                    </div>
+                    <span class="er-note">The unit in brackets is the type's own: it decides whether a timesheet box means a day or an hour. The first type added to a scope becomes its default.</span>
+                  </div>
+                </div>
+              </div>
+              <div class="er-actions er-cf-editor-actions">
+                <button type="button" class="er-btn er-btn--dark" on-click="[[ $listeners.onExpAdd ]]">Add mapping</button>
+              </div>
+            </div>
+          </oj-bind-if>
+
+          <oj-bind-if test="[[ $variables.confirm && $variables.confirm.section === 'exp-types' ]]">
+            <div class="er-cf-confirm" role="alertdialog" aria-label="Confirm">
+              <strong><oj-bind-text value="[[ $variables.confirm.title ]]"></oj-bind-text></strong>
+              <p><oj-bind-text value="[[ $variables.confirm.message ]]"></oj-bind-text></p>
+              <div class="er-actions">
+                <button type="button" class="er-btn er-btn--plain" on-click="[[ $listeners.onConfirmCancel ]]">Cancel</button>
+                <button type="button" :class="[[ $variables.confirm.danger ? 'er-btn er-btn--danger' : 'er-btn er-btn--dark' ]]"
+                  :disabled="[[ !!$variables.confirm.busy ]]" on-click="[[ $listeners.onConfirmOk ]]"><oj-bind-text value="[[ $variables.confirm.okLabel ]]"></oj-bind-text></button>
+              </div>
+            </div>
+          </oj-bind-if>
+
+          <div class="er-filters er-cf-pad">
+            <div class="er-chip-row" role="group" aria-label="Scope">
+              <oj-bind-for-each data="[[ $functions.choiceOptions($variables.ExpTypeScopeFilterLovArray, $variables.ExpTypeMapFilterScope) ]]">
+                <template data-oj-as="o">
+                  <button type="button" :class="[[ 'er-chip' + (o.data.on ? ' er-chip--on' : '') ]]" :aria-pressed="[[ o.data.on ? 'true' : 'false' ]]"
+                    data-form="page" data-field="ExpTypeMapFilterScope" :data-value="[[ o.data.value ]]" on-click="[[ $listeners.onDraftBtn ]]"><oj-bind-text value="[[ o.data.label ]]"></oj-bind-text></button>
+                </template>
+              </oj-bind-for-each>
+            </div>
+            <label class="er-search er-cf-search-sm">
+              <span class="oj-ux-ico-search" aria-hidden="true"></span>
+              <span class="er-sr">Search mappings</span>
+              <input type="search" data-form="page" data-field="ExpTypeMapSearch" placeholder="Equipment or expenditure type, then Enter"
+                :value="[[ $variables.ExpTypeMapSearch ]]" on-change="[[ $listeners.onDraft ]]">
+            </label>
+            <span class="er-note"><oj-bind-text value="[[ $variables.ExpTypeMapAllArray.length + ($variables.ExpTypeMapAllArray.length === 1 ? ' mapping' : ' mappings') ]]"></oj-bind-text></span>
+          </div>
+          <div class="er-table-wrap">
+            <div class="er-cf-grid er-cf-grid--exp" role="table" aria-label="Expenditure type mappings">
+              <div class="er-cf-grid-row er-grid-head" role="row">
+                <span role="columnheader">Applies to</span><span role="columnheader">Equipment / group</span><span role="columnheader">Expenditure type</span>
+                <span role="columnheader">Default</span><span role="columnheader"><span class="er-sr">Actions</span></span>
+              </div>
+              <oj-bind-for-each data="[[ $functions.firstRows($variables.ExpTypeMapAllArray, $variables.expLimit) ]]">
+                <template data-oj-as="e">
+                  <div class="er-cf-grid-row" role="row">
+                    <span role="cell"><oj-bind-text value="[[ $functions.expScopeLabel(e.data.scopeType) ]]"></oj-bind-text></span>
+                    <span role="cell" class="er-cell-main"><oj-bind-text value="[[ e.data.scopeName ]]"></oj-bind-text></span>
+                    <span role="cell"><oj-bind-text value="[[ e.data.expenditureType ]]"></oj-bind-text></span>
+                    <span role="cell"><oj-bind-text value="[[ e.data.isDefault === 'Y' ? 'Default' : '' ]]"></oj-bind-text></span>
+                    <span role="cell" class="er-cf-cell-actions">
+                      <oj-bind-if test="[[ !$variables.readOnly ]]">
+                        <button type="button" class="er-btn er-btn--plain er-cf-small" :disabled="[[ e.data.isDefault === 'Y' ]]" :data-id="[[ e.data.eqrExpTypeMapId ]]"
+                          on-click="[[ $listeners.onExpDefault ]]">Make default</button>
+                        <button type="button" class="er-btn er-btn--plain er-cf-small" :data-id="[[ e.data.eqrExpTypeMapId ]]" on-click="[[ $listeners.onExpDelete ]]">Delete</button>
+                      </oj-bind-if>
+                    </span>
+                  </div>
+                </template>
+              </oj-bind-for-each>
+              <oj-bind-if test="[[ $variables.ExpTypeMapAllArray.length === 0 ]]">
+                <div class="er-cf-empty">No mappings match. Equipment without one shows every expenditure type on its timesheet.</div>
+              </oj-bind-if>
+            </div>
+          </div>
+          <oj-bind-if test="[[ $functions.hasMore($variables.ExpTypeMapAllArray, $variables.expLimit) ]]">
+            <div class="er-cf-pad"><button type="button" class="er-btn er-btn--plain" data-list="exp" on-click="[[ $listeners.onShowMore ]]">Show more mappings</button></div>
+          </oj-bind-if>
+        </section>
+      </oj-bind-if>
+
+      <!-- ── Agreement types (conf-agreement-types); managed while Rental agreements is on ── -->
+      <oj-bind-if test="[[ $functions.sectionVisible('agreement-types', $variables.query) ]]">
+        <section class="er-card er-cf-section" id="cfg-agreement-types" aria-label="Agreement types">
+          <header class="er-cf-head">
+            <div>
+              <h2 class="er-section-title">Agreement types</h2>
+              <p class="er-note er-cf-summary">The types offered when a rental agreement is created. Inactive types are hidden from the picker but kept for existing agreements.</p>
+            </div>
+            <span class="er-cf-fdd">FDD 7.3A</span>
+          </header>
+          <oj-bind-if test="[[ !$functions.getSettingBool($variables.ConfigSettingsMap, 'AGREEMENTS_ENABLED') ]]">
+            <div class="er-cf-pad er-cf-needs-off">
+              <span class="er-cf-dep er-cf-dep--no"><span aria-hidden="true">✗</span> Rental agreements</span>
+              Agreement types are managed while Rental agreements is on.
+              <button type="button" class="er-btn er-btn--plain er-cf-small" data-key="modules" on-click="[[ $listeners.onJump ]]">Go to Modules &amp; features</button>
+            </div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $functions.getSettingBool($variables.ConfigSettingsMap, 'AGREEMENTS_ENABLED') ]]">
+            <oj-bind-if test="[[ !$variables.readOnly ]]">
+              <div class="er-cf-editor er-cf-editor--add" role="group" aria-label="Add an agreement type">
+                <div class="er-form-row">
+                  <label class="er-field"><span class="er-label">Type name <span class="er-req">*</span></span>
+                    <input type="text" class="er-input" data-form="NewAgreementType" data-field="typeLabel" placeholder="e.g. Demo Agreement"
+                      :value="[[ $variables.NewAgreementType.typeLabel ]]" on-input="[[ $listeners.onDraft ]]"></label>
+                  <label class="er-field er-cf-narrow"><span class="er-label">Prefix <span class="er-req">*</span></span>
+                    <input type="text" class="er-input" maxlength="10" data-form="NewAgreementType" data-field="typePrefix" placeholder="e.g. DEMO"
+                      :value="[[ $variables.NewAgreementType.typePrefix ]]" on-input="[[ $listeners.onDraft ]]">
+                    <span class="er-note">2–10 letters or digits. Numbers read PREFIX-####.</span></label>
+                </div>
+                <div class="er-actions er-cf-editor-actions"><button type="button" class="er-btn er-btn--dark" on-click="[[ $listeners.onAgrAdd ]]">Add type</button></div>
+              </div>
+            </oj-bind-if>
+            <oj-bind-if test="[[ $variables.confirm && $variables.confirm.section === 'agreement-types' ]]">
+              <div class="er-cf-confirm" role="alertdialog" aria-label="Confirm">
+                <strong><oj-bind-text value="[[ $variables.confirm.title ]]"></oj-bind-text></strong>
+                <p><oj-bind-text value="[[ $variables.confirm.message ]]"></oj-bind-text></p>
+                <div class="er-actions">
+                  <button type="button" class="er-btn er-btn--plain" on-click="[[ $listeners.onConfirmCancel ]]">Cancel</button>
+                  <button type="button" :class="[[ $variables.confirm.danger ? 'er-btn er-btn--danger' : 'er-btn er-btn--dark' ]]"
+                    :disabled="[[ !!$variables.confirm.busy ]]" on-click="[[ $listeners.onConfirmOk ]]"><oj-bind-text value="[[ $variables.confirm.okLabel ]]"></oj-bind-text></button>
+                </div>
+              </div>
+            </oj-bind-if>
+            <oj-bind-if test="[[ $variables.isAgrEditOpen ]]">
+              <div class="er-cf-editor" role="group" aria-label="Edit agreement type">
+                <h3>Edit agreement type</h3>
+                <div class="er-form-row">
+                  <label class="er-field"><span class="er-label">Name <span class="er-req">*</span></span>
+                    <input type="text" class="er-input" data-form="EditAgreementType" data-field="typeLabel"
+                      :value="[[ $variables.EditAgreementType.typeLabel ]]" on-input="[[ $listeners.onDraft ]]"></label>
+                  <label class="er-field er-cf-narrow"><span class="er-label">Prefix <span class="er-req">*</span></span>
+                    <input type="text" class="er-input" maxlength="10" data-form="EditAgreementType" data-field="typePrefix"
+                      :value="[[ $variables.EditAgreementType.typePrefix ]]" on-input="[[ $listeners.onDraft ]]"></label>
+                </div>
+                <div class="er-actions er-cf-editor-actions">
+                  <button type="button" class="er-btn er-btn--plain" data-name="isAgrEditOpen" on-click="[[ $listeners.onCloseEditor ]]">Cancel</button>
+                  <button type="button" class="er-btn er-btn--dark" on-click="[[ $listeners.onAgrSave ]]">Save</button>
+                </div>
+              </div>
+            </oj-bind-if>
+            <div class="er-table-wrap">
+              <div class="er-cf-grid er-cf-grid--agr" role="table" aria-label="Agreement types">
+                <div class="er-cf-grid-row er-grid-head" role="row">
+                  <span role="columnheader">Name</span><span role="columnheader">Prefix</span><span role="columnheader">Active</span><span role="columnheader"><span class="er-sr">Actions</span></span>
+                </div>
+                <oj-bind-for-each data="[[ $variables.AgreementTypeAllArray ]]">
+                  <template data-oj-as="t">
+                    <div class="er-cf-grid-row" role="row">
+                      <span role="cell" class="er-cell-main"><oj-bind-text value="[[ t.data.typeLabel ]]"></oj-bind-text></span>
+                      <span role="cell"><oj-bind-text value="[[ t.data.typePrefix || '—' ]]"></oj-bind-text></span>
+                      <span role="cell"><button type="button" role="switch" :aria-checked="[[ t.data.isActive === 'Y' ? 'true' : 'false' ]]" :aria-label="[[ 'Active: ' + t.data.typeLabel ]]"
+                        :class="[[ 'er-cf-switch' + (t.data.isActive === 'Y' ? ' er-cf-switch--on' : '') ]]" :data-id="[[ t.data.id ]]" :data-on="[[ t.data.isActive === 'Y' ? 'true' : 'false' ]]"
+                        :disabled="[[ $variables.readOnly ]]" on-click="[[ $listeners.onAgrToggle ]]"><span class="er-cf-knob" aria-hidden="true"></span></button></span>
+                      <span role="cell" class="er-cf-cell-actions">
+                        <oj-bind-if test="[[ !$variables.readOnly ]]">
+                          <button type="button" class="er-btn er-btn--plain er-cf-small" :data-id="[[ t.data.id ]]" on-click="[[ $listeners.onAgrEdit ]]">Edit</button>
+                          <button type="button" class="er-btn er-btn--plain er-cf-small" :data-id="[[ t.data.id ]]" on-click="[[ $listeners.onAgrDelete ]]">Delete</button>
+                        </oj-bind-if>
+                      </span>
+                    </div>
+                  </template>
+                </oj-bind-for-each>
+                <oj-bind-if test="[[ $variables.AgreementTypeAllArray.length === 0 ]]"><div class="er-cf-empty">No agreement types yet.</div></oj-bind-if>
+              </div>
+            </div>
+          </oj-bind-if>
+        </section>
+      </oj-bind-if>
+
+      <!-- ── Attachment categories (conf-attachment-categories) ── -->
+      <oj-bind-if test="[[ $functions.sectionVisible('attachments', $variables.query) ]]">
+        <section class="er-card er-cf-section" id="cfg-attachments" aria-label="Attachment categories">
+          <header class="er-cf-head">
+            <div>
+              <h2 class="er-section-title">Attachment categories</h2>
+              <p class="er-note er-cf-summary">The kinds of document that can be attached to equipment: where each is used, and whether it has a validity period (certificates do, a data card does not). Inactive categories are hidden from new uploads but kept on existing documents.</p>
+            </div>
+            <span class="er-cf-fdd">FDD 7.2</span>
+          </header>
+          <oj-bind-if test="[[ !$variables.readOnly ]]">
+            <div class="er-cf-editor er-cf-editor--add" role="group" aria-label="Add an attachment category">
+              <div class="er-form">
+                <div class="er-form-row">
+                  <label class="er-field"><span class="er-label">Category name <span class="er-req">*</span></span>
+                    <input type="text" class="er-input" data-form="NewAttCat" data-field="categoryLabel" placeholder="e.g. Load Test Certificate"
+                      :value="[[ $variables.NewAttCat.categoryLabel ]]" on-input="[[ $listeners.onDraft ]]"></label>
+                  <oj-bind-if test="[[ $variables.NewAttCat.validityRequired === 'Y' ]]">
+                    <label class="er-field er-cf-narrow"><span class="er-label">Usually valid for (months)</span>
+                      <input type="number" min="1" step="1" class="er-input" data-form="NewAttCat" data-field="defaultValidityMonths" placeholder="Optional"
+                        :value="[[ $variables.NewAttCat.defaultValidityMonths == null ? '' : $variables.NewAttCat.defaultValidityMonths ]]" on-input="[[ $listeners.onDraft ]]"></label>
+                  </oj-bind-if>
+                </div>
+                <div class="er-form-row">
+                  <div class="er-field"><span class="er-label">Can be attached to</span>
+                    <div class="er-seg" role="radiogroup" aria-label="Can be attached to">
+                      <oj-bind-for-each data="[[ $functions.choiceOptions($variables.AttCatAppliesToLovArray, $variables.NewAttCat.appliesTo) ]]">
+                        <template data-oj-as="o">
+                          <button type="button" role="radio" :aria-checked="[[ o.data.on ? 'true' : 'false' ]]" :class="[[ 'er-seg-btn' + (o.data.on ? ' er-seg-btn--on' : '') ]]"
+                            data-form="NewAttCat" data-field="appliesTo" :data-value="[[ o.data.value ]]" on-click="[[ $listeners.onDraftBtn ]]"><oj-bind-text value="[[ o.data.label ]]"></oj-bind-text></button>
+                        </template>
+                      </oj-bind-for-each>
+                    </div></div>
+                  <div class="er-field"><span class="er-label">Has an expiry date</span>
+                    <div class="er-seg" role="radiogroup" aria-label="Has an expiry date">
+                      <oj-bind-for-each data="[[ $functions.ynOptions($variables.NewAttCat.validityRequired) ]]">
+                        <template data-oj-as="o">
+                          <button type="button" role="radio" :aria-checked="[[ o.data.on ? 'true' : 'false' ]]" :class="[[ 'er-seg-btn' + (o.data.on ? ' er-seg-btn--on' : '') ]]"
+                            data-form="NewAttCat" data-field="validityRequired" :data-value="[[ o.data.value ]]" on-click="[[ $listeners.onDraftBtn ]]"><oj-bind-text value="[[ o.data.label ]]"></oj-bind-text></button>
+                        </template>
+                      </oj-bind-for-each>
+                    </div></div>
+                </div>
+              </div>
+              <div class="er-actions er-cf-editor-actions"><button type="button" class="er-btn er-btn--dark" on-click="[[ $listeners.onAttAdd ]]">Add category</button></div>
+            </div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.confirm && $variables.confirm.section === 'attachments' ]]">
+            <div class="er-cf-confirm" role="alertdialog" aria-label="Confirm">
+              <strong><oj-bind-text value="[[ $variables.confirm.title ]]"></oj-bind-text></strong>
+              <p><oj-bind-text value="[[ $variables.confirm.message ]]"></oj-bind-text></p>
+              <div class="er-actions">
+                <button type="button" class="er-btn er-btn--plain" on-click="[[ $listeners.onConfirmCancel ]]">Cancel</button>
+                <button type="button" :class="[[ $variables.confirm.danger ? 'er-btn er-btn--danger' : 'er-btn er-btn--dark' ]]"
+                  :disabled="[[ !!$variables.confirm.busy ]]" on-click="[[ $listeners.onConfirmOk ]]"><oj-bind-text value="[[ $variables.confirm.okLabel ]]"></oj-bind-text></button>
+              </div>
+            </div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.isAttEditOpen ]]">
+            <div class="er-cf-editor" role="group" aria-label="Edit attachment category">
+              <h3>Edit attachment category</h3>
+              <div class="er-form">
+                <div class="er-form-row">
+                  <label class="er-field"><span class="er-label">Name <span class="er-req">*</span></span>
+                    <input type="text" class="er-input" data-form="EditAttCat" data-field="categoryLabel"
+                      :value="[[ $variables.EditAttCat.categoryLabel ]]" on-input="[[ $listeners.onDraft ]]"></label>
+                  <oj-bind-if test="[[ $variables.EditAttCat.validityRequired === 'Y' ]]">
+                    <label class="er-field er-cf-narrow"><span class="er-label">Usually valid for (months)</span>
+                      <input type="number" min="1" step="1" class="er-input" data-form="EditAttCat" data-field="defaultValidityMonths" placeholder="Optional"
+                        :value="[[ $variables.EditAttCat.defaultValidityMonths == null ? '' : $variables.EditAttCat.defaultValidityMonths ]]" on-input="[[ $listeners.onDraft ]]"></label>
+                  </oj-bind-if>
+                </div>
+                <div class="er-form-row">
+                  <div class="er-field"><span class="er-label">Can be attached to</span>
+                    <div class="er-seg" role="radiogroup" aria-label="Can be attached to">
+                      <oj-bind-for-each data="[[ $functions.choiceOptions($variables.AttCatAppliesToLovArray, $variables.EditAttCat.appliesTo) ]]">
+                        <template data-oj-as="o">
+                          <button type="button" role="radio" :aria-checked="[[ o.data.on ? 'true' : 'false' ]]" :class="[[ 'er-seg-btn' + (o.data.on ? ' er-seg-btn--on' : '') ]]"
+                            data-form="EditAttCat" data-field="appliesTo" :data-value="[[ o.data.value ]]" on-click="[[ $listeners.onDraftBtn ]]"><oj-bind-text value="[[ o.data.label ]]"></oj-bind-text></button>
+                        </template>
+                      </oj-bind-for-each>
+                    </div>
+                    <span class="er-note">Equipment: the document belongs to the equipment as a whole. Serial units: to one physical unit. Documents already filed are not affected.</span></div>
+                  <div class="er-field"><span class="er-label">Has an expiry date</span>
+                    <div class="er-seg" role="radiogroup" aria-label="Has an expiry date">
+                      <oj-bind-for-each data="[[ $functions.ynOptions($variables.EditAttCat.validityRequired) ]]">
+                        <template data-oj-as="o">
+                          <button type="button" role="radio" :aria-checked="[[ o.data.on ? 'true' : 'false' ]]" :class="[[ 'er-seg-btn' + (o.data.on ? ' er-seg-btn--on' : '') ]]"
+                            data-form="EditAttCat" data-field="validityRequired" :data-value="[[ o.data.value ]]" on-click="[[ $listeners.onDraftBtn ]]"><oj-bind-text value="[[ o.data.label ]]"></oj-bind-text></button>
+                        </template>
+                      </oj-bind-for-each>
+                    </div>
+                    <span class="er-note">Yes: people enter the dates the document is valid from and to.</span></div>
+                </div>
+              </div>
+              <div class="er-actions er-cf-editor-actions">
+                <button type="button" class="er-btn er-btn--plain" data-name="isAttEditOpen" on-click="[[ $listeners.onCloseEditor ]]">Cancel</button>
+                <button type="button" class="er-btn er-btn--dark" on-click="[[ $listeners.onAttSave ]]">Save</button>
+              </div>
+            </div>
+          </oj-bind-if>
+          <div class="er-table-wrap">
+            <div class="er-cf-grid er-cf-grid--att" role="table" aria-label="Attachment categories">
+              <div class="er-cf-grid-row er-grid-head" role="row">
+                <span role="columnheader">Name</span><span role="columnheader">Attached to</span><span role="columnheader">Expiry date</span>
+                <span role="columnheader">Active</span><span role="columnheader"><span class="er-sr">Actions</span></span>
+              </div>
+              <oj-bind-for-each data="[[ $variables.AttCatAllArray ]]">
+                <template data-oj-as="a">
+                  <div class="er-cf-grid-row" role="row">
+                    <span role="cell" class="er-cell-main"><oj-bind-text value="[[ a.data.categoryLabel ]]"></oj-bind-text></span>
+                    <span role="cell"><oj-bind-text value="[[ $functions.appliesToLabel(a.data.appliesTo) ]]"></oj-bind-text></span>
+                    <span role="cell"><oj-bind-text value="[[ $functions.expiryText(a.data) ]]"></oj-bind-text></span>
+                    <span role="cell"><button type="button" role="switch" :aria-checked="[[ a.data.isActive === 'Y' ? 'true' : 'false' ]]" :aria-label="[[ 'Active: ' + a.data.categoryLabel ]]"
+                      :class="[[ 'er-cf-switch' + (a.data.isActive === 'Y' ? ' er-cf-switch--on' : '') ]]" :data-id="[[ a.data.id ]]" :data-on="[[ a.data.isActive === 'Y' ? 'true' : 'false' ]]"
+                      :disabled="[[ $variables.readOnly ]]" on-click="[[ $listeners.onAttToggle ]]"><span class="er-cf-knob" aria-hidden="true"></span></button></span>
+                    <span role="cell" class="er-cf-cell-actions">
+                      <oj-bind-if test="[[ !$variables.readOnly ]]">
+                        <button type="button" class="er-btn er-btn--plain er-cf-small" :data-id="[[ a.data.id ]]" on-click="[[ $listeners.onAttEdit ]]">Edit</button>
+                        <button type="button" class="er-btn er-btn--plain er-cf-small" :data-id="[[ a.data.id ]]" on-click="[[ $listeners.onAttDelete ]]">Delete</button>
+                      </oj-bind-if>
+                    </span>
+                  </div>
+                </template>
+              </oj-bind-for-each>
+              <oj-bind-if test="[[ $variables.AttCatAllArray.length === 0 ]]"><div class="er-cf-empty">No attachment categories yet.</div></oj-bind-if>
+            </div>
+          </div>
+        </section>
+      </oj-bind-if>
+
+      <!-- ── Change history (audit-trail) ── -->
+      <oj-bind-if test="[[ $functions.sectionVisible('history', $variables.query) ]]">
+        <section class="er-card er-cf-section" id="cfg-history" aria-label="Change history">
+          <header class="er-cf-head">
+            <div>
+              <h2 class="er-section-title">Change history</h2>
+              <p class="er-note er-cf-summary"><oj-bind-text value="[[ $functions.auditCount($variables.AuditTrailAllArray) + ' · who changed which configuration value, and what it was before.' ]]"></oj-bind-text></p>
+            </div>
+            <button type="button" class="er-btn er-btn--plain" on-click="[[ $listeners.onRefreshAudit ]]">Refresh</button>
+          </header>
+          <div class="er-table-wrap">
+            <div class="er-cf-grid er-cf-grid--hist" role="table" aria-label="Change history">
+              <div class="er-cf-grid-row er-grid-head" role="row">
+                <span role="columnheader">When</span><span role="columnheader">Who</span><span role="columnheader">Section</span>
+                <span role="columnheader">Field</span><span role="columnheader">Old value</span><span role="columnheader">New value</span>
+              </div>
+              <oj-bind-for-each data="[[ $variables.AuditTrailAllArray ]]">
+                <template data-oj-as="h">
+                  <div class="er-cf-grid-row" role="row">
+                    <span role="cell"><oj-bind-text value="[[ h.data.timestamp ]]"></oj-bind-text></span>
+                    <span role="cell"><oj-bind-text value="[[ h.data.modifiedBy ]]"></oj-bind-text></span>
+                    <span role="cell"><span class="er-status"><oj-bind-text value="[[ h.data.section ]]"></oj-bind-text></span></span>
+                    <span role="cell" class="er-cell-main"><oj-bind-text value="[[ h.data.field ]]"></oj-bind-text></span>
+                    <span role="cell"><span class="er-cf-old"><oj-bind-text value="[[ h.data.oldValue ]]"></oj-bind-text></span></span>
+                    <span role="cell"><span class="er-cf-new"><oj-bind-text value="[[ h.data.newValue ]]"></oj-bind-text></span></span>
+                  </div>
+                </template>
+              </oj-bind-for-each>
+              <oj-bind-if test="[[ $variables.AuditTrailAllArray.length === 0 ]]"><div class="er-cf-empty">No changes recorded.</div></oj-bind-if>
+            </div>
+          </div>
+        </section>
+      </oj-bind-if>
+
+      <!-- What the wireframe shows that has no backend setting yet. -->
+      <oj-bind-if test="[[ !$variables.query ]]">
+        <section class="er-card er-card-pad er-cf-notyet" aria-label="Not in EquipRite yet">
+          <h2 class="er-section-title">Not in EquipRite yet</h2>
+          <ul>
+            <oj-bind-for-each data="[[ $functions.notYet() ]]">
+              <template data-oj-as="n">
+                <li><strong><oj-bind-text value="[[ n.data.title ]]"></oj-bind-text></strong>
+                  <oj-bind-text value="[[ ' · ' + n.data.why ]]"></oj-bind-text>
+                  <oj-bind-if test="[[ !!n.data.navId && $application.functions.navIdVisible($application.variables.pageAccessMap, $application.variables.pageAccessLoaded, n.data.navId) ]]">
+                    <button type="button" class="er-btn er-btn--plain er-cf-small" :data-nav="[[ n.data.navId ]]" on-click="[[ $listeners.onOpenNav ]]">Open</button>
+                  </oj-bind-if></li>
+              </template>
+            </oj-bind-for-each>
+          </ul>
+        </section>
+      </oj-bind-if>
+    </div>
+  </div>
+</div>
