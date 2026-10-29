@@ -1,0 +1,106 @@
+<!-- My requests (wireframe: My requests). Data: loadRequestsChain; filtering: applyFilterChain + my-requests-page.js. -->
+<div class="er-band">
+  <div class="er-band-inner">
+    <div>
+      <div class="er-band-kicker">Request · FDD 7.6</div>
+      <h1>My requests</h1>
+      <div class="er-band-sub">
+        <oj-bind-text value="[[ $variables.isLoading ? 'Loading…'
+          : ($variables.allRows.length + ($variables.allRows.length === 1 ? ' request' : ' requests')
+             + ($variables.isManager ? ' · project and customer' : '')) ]]"></oj-bind-text>
+      </div>
+    </div>
+    <div class="er-actions">
+      <oj-bind-if test="[[ $application.functions.oldAppLink($application.variables.oldAppUrl, 'my-requests') ]]">
+        <a class="er-btn er-btn--ghost" :href="[[ $application.functions.oldAppLink($application.variables.oldAppUrl, 'my-requests') ]]">Old list</a>
+      </oj-bind-if>
+      <oj-bind-if test="[[ $application.functions.navIdVisible($application.variables.pageAccessMap,
+                             $application.variables.pageAccessLoaded, 'new-request') ]]">
+        <button type="button" class="er-btn er-btn--primary" on-click="[[ $listeners.onNewRequest ]]">New request</button>
+      </oj-bind-if>
+    </div>
+  </div>
+  <div class="er-strip" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+</div>
+
+<div class="er-page">
+  <div class="er-filters">
+    <label class="er-search">
+      <span class="oj-ux-ico-search" aria-hidden="true"></span>
+      <span class="er-sr">Search requests</span>
+      <input type="search" placeholder="Request, project, task, customer or requestor" on-input="[[ $listeners.onSearchInput ]]">
+    </label>
+    <oj-bind-if test="[[ $variables.isManager ]]">
+      <div class="er-chip-row" role="group" aria-label="Source">
+        <button type="button" data-source="INTERNAL" on-click="[[ $listeners.onSourceClick ]]"
+          :class="[[ 'er-chip' + ($variables.source === 'INTERNAL' ? ' er-chip--on' : '') ]]"
+          :aria-pressed="[[ $variables.source === 'INTERNAL' ? 'true' : 'false' ]]">Project</button>
+        <button type="button" data-source="EXTERNAL" on-click="[[ $listeners.onSourceClick ]]"
+          :class="[[ 'er-chip' + ($variables.source === 'EXTERNAL' ? ' er-chip--on' : '') ]]"
+          :aria-pressed="[[ $variables.source === 'EXTERNAL' ? 'true' : 'false' ]]">Customer</button>
+      </div>
+    </oj-bind-if>
+  </div>
+
+  <div class="er-chip-row" role="group" aria-label="Status">
+    <oj-bind-for-each data="[[ $variables.groupChips ]]">
+      <template data-oj-as="chip">
+        <button type="button" :data-group="[[ chip.data.key ]]" on-click="[[ $listeners.onGroupClick ]]"
+          :class="[[ 'er-chip' + ($variables.group === chip.data.key ? ' er-chip--on' : '') ]]"
+          :aria-pressed="[[ $variables.group === chip.data.key ? 'true' : 'false' ]]">
+          <oj-bind-text value="[[ chip.data.label ]]"></oj-bind-text>
+          <span class="er-chip-count"><oj-bind-text value="[[ chip.data.count ]]"></oj-bind-text></span>
+        </button>
+      </template>
+    </oj-bind-for-each>
+  </div>
+
+  <oj-bind-if test="[[ !!$variables.fetchError ]]">
+    <div class="er-error" role="alert"><oj-bind-text value="[[ $variables.fetchError ]]"></oj-bind-text></div>
+  </oj-bind-if>
+
+  <section class="er-card">
+    <oj-table id="myRequestsTable" data="[[ $variables.rowsADP ]]" columns="[[ $functions.columns($variables.isManager) ]]"
+      class="oj-table-stretch" style="width: 100%; min-height: 360px;"
+      scroll-policy="loadMoreOnScroll" scroll-policy-options.fetch-size="40"
+      selection-mode='{"row": "single"}' on-first-selected-row-changed="[[ $listeners.onRowAction ]]"
+      aria-label="My requests">
+      <template slot="sourceTpl" data-oj-as="cell">
+        <span :class="[[ $application.functions.sourceLabel(cell.data) === 'EXTERNAL'
+                         ? 'er-status er-status--source-external' : 'er-status er-status--source-internal' ]]">
+          <oj-bind-text value="[[ $application.functions.sourceLabel(cell.data) === 'EXTERNAL' ? 'Customer' : 'Project' ]]"></oj-bind-text>
+        </span>
+      </template>
+      <template slot="numberTpl" data-oj-as="cell">
+        <span style="font-weight: 700; color: var(--er-accent);"><oj-bind-text value="[[ cell.data ]]"></oj-bind-text></span>
+      </template>
+      <template slot="projectTpl" data-oj-as="cell">
+        <div>
+          <div style="font-weight: 600;"><oj-bind-text value="[[ cell.data || '—' ]]"></oj-bind-text></div>
+          <oj-bind-if test="[[ !!cell.row.taskName ]]">
+            <div class="er-note"><oj-bind-text value="[[ cell.row.taskName ]]"></oj-bind-text></div>
+          </oj-bind-if>
+        </div>
+      </template>
+      <template slot="customerTpl" data-oj-as="cell">
+        <oj-bind-text value="[[ cell.row.customerName || cell.row.projectInternalCustomer || '—' ]]"></oj-bind-text>
+      </template>
+      <template slot="statusTpl" data-oj-as="cell">
+        <oj-bind-if test="[[ !!cell.data ]]">
+          <span :class="[[ $application.functions.statusPillClass(cell.data) ]]">
+            <oj-bind-text value="[[ $application.functions.formatLineStatus(cell.data) ]]"></oj-bind-text>
+          </span>
+        </oj-bind-if>
+      </template>
+      <template slot="datesTpl" data-oj-as="cell">
+        <oj-bind-text value="[[ $functions.dateRange(cell.row.startDate, cell.row.endDate) ]]"></oj-bind-text>
+      </template>
+      <template slot="noData">
+        <div style="text-align: center; padding: 48px 0;" class="er-muted">
+          <oj-bind-if test="[[ $variables.isLoading ]]">Loading your requests…</oj-bind-if>
+          <oj-bind-if test="[[ !$variables.isLoading && !$variables.fetchError ]]">No requests match. Try another status or clear the search.</oj-bind-if>
+        </div>
+      </template>
+    </oj-table>
+  </section>
+</div>

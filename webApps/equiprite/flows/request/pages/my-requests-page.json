@@ -1,0 +1,118 @@
+{
+  "title": "My requests",
+  "description": "Project and customer requests in one list (FDD 7.6; replaces equipment-requests and customer-my-requests). Data: views/my-requests with the old list's role-scoped origin filter. Rows open Request detail.",
+  "variables": {
+    "allRows": {
+      "type": "any[]",
+      "defaultValue": [],
+      "onValueChanged": {
+        "chains": [{ "chain": "applyFilterChain" }]
+      }
+    },
+    "filteredRows": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "rowsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "eqrEquipmentRequestId",
+        "data": "{{ $page.variables.filteredRows }}"
+      }
+    },
+    "groupChips": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "searchText": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "group": {
+      "type": "string",
+      "defaultValue": "all",
+      "onValueChanged": {
+        "chains": [{ "chain": "applyFilterChain" }]
+      }
+    },
+    "source": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "INTERNAL or EXTERNAL; managers only. Empty = both.",
+      "onValueChanged": {
+        "chains": [{ "chain": "applyFilterChain" }]
+      }
+    },
+    "isManager": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "Sees both origins (canChooseCustomerType): shows the Source and Customer columns and the source chips."
+    },
+    "isLoading": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "fetchError": {
+      "type": "string",
+      "defaultValue": ""
+    }
+  },
+  "metadata": {},
+  "eventListeners": {
+    "vbBeforeEnter": {
+      "chains": [{ "chain": "enforcePageAccessChain" }]
+    },
+    "vbEnter": {
+      "chains": [{ "chain": "loadRequestsChain" }]
+    },
+    "onSearchInput": {
+      "chains": [
+        {
+          "chain": "applyFilterChain",
+          "parameters": { "text": "{{ $event.target.value }}" }
+        }
+      ]
+    },
+    "onGroupClick": {
+      "chains": [
+        {
+          "chain": "setGroupChain",
+          "parameters": { "group": "{{ $event.currentTarget.dataset.group }}" }
+        }
+      ]
+    },
+    "onSourceClick": {
+      "chains": [
+        {
+          "chain": "setGroupChain",
+          "parameters": { "source": "{{ $event.currentTarget.dataset.source }}" }
+        }
+      ]
+    },
+    "onRowAction": {
+      "chains": [
+        {
+          "chain": "openRequestChain",
+          "parameters": { "row": "{{ $event.detail.value?.data }}" }
+        }
+      ]
+    },
+    "onNewRequest": {
+      "chains": [
+        {
+          "chain": "openNavChain",
+          "parameters": { "navId": "new-request" }
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-table": { "path": "ojs/ojtable" },
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}

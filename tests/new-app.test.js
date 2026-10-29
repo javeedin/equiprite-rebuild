@@ -125,4 +125,80 @@ items.filter((i) => i.status !== 'new').forEach((i) => {
   T.check(`${i.id}: the later page says what changes`, later.planned(i.id).length > 0);
 });
 
+T.section('My requests: status groups, filters, columns');
+const MyReq = loadAmd(path.join(NEW, 'flows', 'request', 'pages', 'my-requests-page.js'));
+const myReq = new MyReq();
+const ROWS = [
+  { requestNumber: 'R1', status: 'DRAFT', requestOrigin: 'Internal', projectName: 'Pipeline North' },
+  { requestNumber: 'R2', status: 'SUBMITTED', requestOrigin: 'External', customerName: 'Lone Star Paving' },
+  { requestNumber: 'R3', status: 'DEPLOYED', requestOrigin: 'Internal', projectName: 'Plant B' },
+  { requestNumber: 'R4', status: 'CLOSED', requestOrigin: 'CUSTOMER', customerName: 'Acme' },
+  { requestNumber: 'R5', status: 'SOME_NEW_STATUS', requestOrigin: 'Internal' },
+];
+const chips = myReq.groups(ROWS);
+T.eq('All counts every row', chips[0].count, 5);
+T.eq('group counts add up to All (no status falls through)', chips.slice(1).reduce((n, c) => n + c.count, 0), 5);
+T.eq('Needs action = draft, rejected, quote generated', myReq.filterRows(ROWS, '', 'action', '').map((r) => r.requestNumber).join(), 'R1');
+T.eq('an unknown status counts as Waiting', myReq.filterRows(ROWS, '', 'waiting', '').map((r) => r.requestNumber).join(), 'R2,R5');
+T.eq('source Customer includes the legacy CUSTOMER origin', myReq.filterRows(ROWS, '', 'all', 'EXTERNAL').map((r) => r.requestNumber).join(), 'R2,R4');
+T.eq('search matches customer names, any case', myReq.filterRows(ROWS, 'lone STAR', 'all', '').map((r) => r.requestNumber).join(), 'R2');
+T.check('managers get Source and Customer columns, others do not',
+  myReq.columns(true).some((c) => c.headerText === 'Customer') && !myReq.columns(false).some((c) => c.headerText === 'Customer' || c.headerText === 'Source'));
+T.eq('date range reads like a person wrote it', myReq.dateRange('2026-11-02', '2026-12-15'), '2 Nov – 15 Dec 2026');
+
+T.section('Request detail: selection, tracker, links');
+const Detail = loadAmd(path.join(NEW, 'flows', 'request', 'pages', 'request-detail-page.js'));
+const detail = new Detail();
+const LINES = [
+  { lineId: '1', equipmentName: 'Excavator', lineStatus: 'DEPLOYED', isReturnable: true },
+  { lineId: '2', equipmentName: 'Dump truck', lineStatus: 'SHIP_TO_SITE', isReturnable: false },
+  { lineId: '3', equipmentName: 'Roller', lineStatus: 'PICK_RELEASED', isReturnable: false },
+];
+detail.initGridData(LINES);
+T.eq('nothing ticked: no action allowed', JSON.stringify(detail.getSelectionStateRaw()), JSON.stringify({ count: 0, sharedStatus: '', isMixed: false, allSelected: false, allDeployed: false, allReturnable: false, allShipToSite: false }));
+detail.setRowSelected(1, true);
+T.check('a shipped-to-site line allows accept / reject delivery only', detail.getSelectionStateRaw().allShipToSite && !detail.getSelectionStateRaw().allReturnable);
+detail.setRowSelected(0, true);
+T.check('mixed statuses allow neither', detail.getSelectionStateRaw().isMixed && !detail.getSelectionStateRaw().allShipToSite);
+detail.setRowSelected(1, false);
+T.check('a deployed line can be returned', detail.getSelectionStateRaw().allReturnable);
+detail.setAllSelected(true);
+T.check('select all', detail.isAllSelected() && detail.getSelectedLines().length === 3);
+T.eq('a new request list clears the selection', detail.initGridData(LINES).length + detail.getSelectedLines().length, 3);
+const stateAt = (status, lines) => detail.steps(status, lines).map((s) => s.state[0]).join('');
+T.eq('tracker: header IN_PROCESS with a line on site shows On site', stateAt('IN_PROCESS', LINES), 'dddddctt');
+T.eq('tracker: a draft', stateAt('DRAFT', []), 'cttttttt');
+T.eq('tracker: rejected stops at the review step', detail.steps('REJECTED', []).map((s) => s.state === 'stopped' ? s.label : '').join(''), 'Rejected');
+T.eq('line actions only once the request is in operations', ['DRAFT', 'SUBMITTED', 'IN_PROCESS', 'DEPLOYED', 'CLOSED'].map((s) => detail.headerIsConfirmed(s) ? 1 : 0).join(''), '00110');
+T.eq('old project request link', detail.oldDetailLink('http://x/', 'REQ-1', 1, false), 'http://x/vp/shell/main/equipment-request-detail?requestId=REQ-1&requestNumericId=1');
+T.eq('old customer request link', detail.oldDetailLink('http://x/', 'REQ-2', 2, true), 'http://x/vp/shell/customer-portal/customer-request-detail?requestId=REQ-2&requestNumericId=2');
+[['main', 'equipment-request-detail'], ['customer-portal', 'customer-request-detail'], ['main', 'project-quote'], ['customer-portal', 'customer-quote']]
+  .forEach(([f, p]) => T.check(`old page ${f}/${p} exists`, pageExists(OLD, f, p)));
+const usedFns = new Set();
+const chainsDir = path.join(NEW, 'flows', 'request', 'pages', 'request-detail-page-chains');
+fs.readdirSync(chainsDir).forEach((f) => {
+  (fs.readFileSync(path.join(chainsDir, f), 'utf8').match(/\$page\.functions\.([a-zA-Z]+)/g) || []).forEach((m) => usedFns.add(m.split('.').pop()));
+});
+T.check('every page function the copied chains call exists in the new page module',
+  [...usedFns].every((fn) => typeof detail[fn] === 'function'), [...usedFns].filter((fn) => typeof detail[fn] !== 'function').join(', '));
+
+T.section('every page: the chains it names exist');
+function walk(dir) {
+  return fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(path.join(dir, e.name)) : [path.join(dir, e.name)]));
+}
+walk(NEW).filter((f) => /-page\.json$/.test(f)).forEach((f) => {
+  const named = new Set();
+  const visit = (o) => {
+    if (Array.isArray(o)) { o.forEach(visit); return; }
+    if (o && typeof o === 'object') {
+      if (typeof o.chain === 'string') { named.add(o.chain); }
+      Object.values(o).forEach(visit);
+    }
+  };
+  visit(JSON.parse(fs.readFileSync(f, 'utf8')));
+  const dir = f.replace(/\.json$/, '-chains');
+  const missing = [...named].filter((c) => !fs.existsSync(path.join(dir, `${c}.js`)));
+  T.check(`${path.relative(NEW, f)}: ${named.size} chain(s) found`, !missing.length, missing.join(', '));
+});
+
 T.report();

@@ -1,0 +1,17 @@
+{
+  "id": "request",
+  "description": "Request phase (FDD 7.5, 7.6): My requests (project and customer requests in one list) and Request detail. New request joins when the cart is rebuilt.",
+  "defaultPage": "my-requests",
+  "pages": {
+    "my-requests": {
+      "path": "pages/my-requests-page"
+    },
+    "request-detail": {
+      "path": "pages/request-detail-page"
+    }
+  },
+  "chains": {},
+  "services": {},
+  "types": {},
+  "variables": {}
+}

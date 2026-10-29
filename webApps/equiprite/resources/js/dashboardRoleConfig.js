@@ -54,7 +54,7 @@ define([], () => {
     { headerText: 'Request #',      field: 'requestNumber', template: 'dashReqNumTpl', sortable: 'enabled', style: 'width:150px;' },
     { headerText: 'Project / Task', field: 'project',       template: 'dashProjectTpl', sortable: 'enabled' },
     { headerText: 'Requestor',      field: 'requestor',                                 sortable: 'enabled', style: 'width:150px;' },
-    { headerText: 'Status',         field: 'status',        template: 'dashStatusTpl',  sortable: 'enabled', style: 'width:175px;' },
+    { headerText: 'Status',         field: 'status',        template: 'dashStatusTpl',  sortable: 'enabled', style: 'width:215px;', minWidth: 210 },
     { headerText: 'Start Date',     field: 'startDate',                                 sortable: 'enabled', style: 'width:115px;' },
     { headerText: 'End Date',       field: 'endDate',                                   sortable: 'enabled', style: 'width:115px;' }
   ];
@@ -74,7 +74,7 @@ define([], () => {
     // Plain percentage — no progress bar. The bar competed with the status pill
     // for attention and read poorly at this column width.
     { headerText: 'Allocated',  field: 'allocationPct', template: 'dashAllocTpl',    sortable: 'enabled', style: 'width:110px;' },
-    { headerText: 'Status',     field: 'status',        template: 'dashStatusTpl',   sortable: 'enabled', style: 'width:175px;' },
+    { headerText: 'Status',     field: 'status',        template: 'dashStatusTpl',   sortable: 'enabled', style: 'width:215px;', minWidth: 210 },
     { headerText: 'Needed By',  field: 'startDate',                                  sortable: 'enabled', style: 'width:115px;' }
   ];
 

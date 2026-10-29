@@ -233,7 +233,8 @@ define([
           pageCodes: ['EQR_PROJ_CREATE_REQUEST', 'EQR_CUST_CREATE_REQ'], status: 'old',
           old: { flow: 'customer-portal', page: 'project-create-request' }, fdd: '7.5' },
         { id: 'my-requests', label: 'My requests', icon: 'oj-ux-ico-file-text',
-          pageCodes: ['EQR_EQUIPMENT_REQUESTS', 'EQR_CUST_MY_REQUESTS'], status: 'old',
+          pageCodes: ['EQR_EQUIPMENT_REQUESTS', 'EQR_CUST_MY_REQUESTS'], status: 'new',
+          route: { flow: 'request', page: 'my-requests' },
           old: { flow: 'main', page: 'equipment-requests' }, fdd: '7.6' }
       ]
     },
@@ -325,7 +326,9 @@ define([
   // reached from the menu only; the later page highlights the item it stands for
   // (see getNavIdForPage).
   const PAGE_ID_TO_NAV_ID = {
-    'home': 'home'
+    'home': 'home',
+    'my-requests': 'my-requests',
+    'request-detail': 'my-requests'
   };
 
   // Where a user who can open no page is sent. Deliberately ungated.

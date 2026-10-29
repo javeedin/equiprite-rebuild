@@ -1,0 +1,99 @@
+{
+  "title": "Request",
+  "description": "One request page for project and customer requests (FDD 5.6, 7.6; replaces equipment-request-detail, customer-request-detail and request-detail). Data: initChain (views/request-detail-lines, as the old page, plus the request header). Line actions are the old page's chains, copied unchanged, acting on the ticked lines.",
+  "variables": {
+    "requestId": {
+      "type": "string",
+      "input": "fromUrl",
+      "persisted": "none",
+      "description": "Request number, e.g. EQR-00042."
+    },
+    "requestNumericId": {
+      "type": "number",
+      "input": "fromUrl",
+      "persisted": "none"
+    },
+    "formData": {
+      "type": "object",
+      "defaultValue": {}
+    },
+    "dataGridProvider": {
+      "type": "any",
+      "defaultValue": [],
+      "description": "The mapped lines (name kept from the old page so its chains run unchanged)."
+    },
+    "selectionState": {
+      "type": "object",
+      "defaultValue": { "count": 0, "sharedStatus": "", "isMixed": false, "wasMixed": false, "allSelected": false, "allDeployed": false, "allReturnable": false, "allShipToSite": false }
+    },
+    "selectionTick": {
+      "type": "number",
+      "defaultValue": 0,
+      "description": "Bumped on every selection change so the tick boxes re-read the selection kept in the page module."
+    },
+    "requestLinesArray": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Written by the copied initChain (the old page's material-issue line picker); unused here."
+    },
+    "isDraftBusy": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "isLoading": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "fetchError": {
+      "type": "string",
+      "defaultValue": ""
+    }
+  },
+  "metadata": {},
+  "eventListeners": {
+    "vbBeforeEnter": {
+      "chains": [{ "chain": "enforcePageAccessChain" }]
+    },
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "initChain",
+          "parameters": {
+            "requestId": "{{ $page.variables.requestId }}",
+            "requestNumericId": "{{ $page.variables.requestNumericId }}"
+          }
+        }
+      ]
+    },
+    "onToggleLine": {
+      "chains": [
+        {
+          "chain": "toggleLineChain",
+          "parameters": {
+            "index": "{{ $event.target.dataset.index }}",
+            "checked": "{{ $event.target.checked }}"
+          }
+        }
+      ]
+    },
+    "onApprove": { "chains": [{ "chain": "confirmRequestChain" }] },
+    "onReject": { "chains": [{ "chain": "rejectRequestChain" }] },
+    "onAcceptDelivery": { "chains": [{ "chain": "acceptDeliveryChain" }] },
+    "onRejectDelivery": { "chains": [{ "chain": "rejectDeliveryChain" }] },
+    "onInitiateReturn": { "chains": [{ "chain": "initiateReturnChain" }] },
+    "onEditDraft": { "chains": [{ "chain": "draftActionChain", "parameters": { "action": "edit" } }] },
+    "onSubmitDraft": { "chains": [{ "chain": "draftActionChain", "parameters": { "action": "submit" } }] },
+    "onAskDeleteDraft": { "chains": [{ "chain": "draftActionChain", "parameters": { "action": "askDelete" } }] },
+    "onCancelDeleteDraft": { "chains": [{ "chain": "draftActionChain", "parameters": { "action": "cancelDelete" } }] },
+    "onDeleteDraft": { "chains": [{ "chain": "draftActionChain", "parameters": { "action": "delete" } }] },
+    "onBack": { "chains": [{ "chain": "backToListChain" }] }
+  },
+  "imports": {
+    "components": {
+      "oj-dialog": { "path": "ojs/ojdialog" },
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}
