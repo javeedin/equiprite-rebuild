@@ -1,0 +1,157 @@
+{
+  "description": "New EquipRite shell: header (home, jump-to box, link to Old EquipRite, user) and a side menu grouped by lifecycle phase. The menu is derived from NAV_GROUPS in app-flow.js, filtered by feature flags and RBAC page access; the routed flow renders in the content area.",
+  "routerFlow": "home",
+  "variables": {
+    "isDrawerOpen": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "Side menu shown over the content on narrow windows (under 1024px). On wide windows the menu is always shown."
+    },
+    "jumpText": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "messageToast": {
+      "type": "string"
+    },
+    "messageToastSeverity": {
+      "type": "string",
+      "defaultValue": "info"
+    },
+    "messagesArray": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "messagesBannerADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "MessagesBannerType",
+        "keyAttributes": "id"
+      }
+    },
+    "messageId": {
+      "type": "number",
+      "defaultValue": 0
+    }
+  },
+  "metadata": {},
+  "types": {
+    "MessagesBannerType": {
+      "id": "string",
+      "messageType": "string",
+      "primaryText": "string",
+      "primaryActionLabel": "string",
+      "secondaryText": "any",
+      "secondaryActionLabel": "string"
+    }
+  },
+  "eventListeners": {
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "recheckPageAccessChain"
+        }
+      ]
+    },
+    "application:spShowToast": {
+      "chains": [
+        {
+          "parameters": {
+            "event": "{{ $event }}"
+          },
+          "chain": "showMessageToast"
+        }
+      ]
+    },
+    "messagesBannerSpClose": {
+      "chains": [
+        {
+          "parameters": {
+            "event": "{{ $event }}"
+          },
+          "chain": "closeMessageBanner"
+        }
+      ]
+    },
+    "onNavClick": {
+      "chains": [
+        {
+          "parameters": {
+            "navId": "{{ $event.currentTarget.dataset.navId }}"
+          },
+          "chain": "navigateChain"
+        }
+      ]
+    },
+    "goToDashboard": {
+      "chains": [
+        {
+          "chain": "goToDashboardChain"
+        }
+      ]
+    },
+    "onJumpKey": {
+      "chains": [
+        {
+          "parameters": {
+            "text": "{{ $event.key === 'Enter' ? $event.target.value : '' }}"
+          },
+          "chain": "jumpToChain"
+        }
+      ]
+    },
+    "toggleDrawer": {
+      "chains": [
+        {
+          "chain": "toggleDrawerChain"
+        }
+      ]
+    },
+    "vbNotification": {
+      "chains": [
+        {
+          "parameters": {
+            "event": "{{ $event }}"
+          },
+          "chain": "showNotificationMessage"
+        }
+      ]
+    },
+    "onAppMessageClose": {
+      "chains": [
+        {
+          "parameters": {
+            "event": "{{ $event }}"
+          },
+          "chain": "closeAppMessageChain"
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-messages": {
+        "path": "ojs/ojmessages"
+      },
+      "oj-sp-messages-banner": {
+        "path": "oj-sp/messages-banner/loader"
+      },
+      "oj-sp-messages-toast": {
+        "path": "oj-sp/messages-toast/loader"
+      },
+      "oj-bind-for-each": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-if": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-text": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-button": {
+        "path": "ojs/ojbutton"
+      }
+    }
+  },
+  "translations": {}
+}

@@ -1,0 +1,97 @@
+<!-- New EquipRite shell. Layout and colours: resources/css/equiprite.css. The menu comes from
+     $application.functions.visibleNavGroups (NAV_GROUPS in app-flow.js), filtered by feature flags and RBAC,
+     exactly as the old app's drawer was; only the grouping (by lifecycle phase) and the placement differ. -->
+<div :class="[[ $variables.isDrawerOpen ? 'er-app er-drawer-open' : 'er-app' ]]">
+
+  <header class="er-header">
+    <button type="button" class="er-icon-btn er-menu-btn" on-click="[[ $listeners.toggleDrawer ]]"
+      aria-label="Show or hide the menu">
+      <span class="oj-ux-ico-menu" aria-hidden="true"></span>
+    </button>
+    <button type="button" class="er-brand" on-click="[[ $listeners.goToDashboard ]]" aria-label="EquipRite home">
+      <span class="er-logo" aria-hidden="true">ER</span>
+      <span class="er-brand-name">EquipRite</span>
+      <span class="er-pill er-pill--new">New</span>
+    </button>
+
+    <label class="er-jump">
+      <span class="oj-ux-ico-search" aria-hidden="true"></span>
+      <span class="er-sr">Jump to a screen</span>
+      <input type="search" placeholder="Jump to a screen, e.g. workbench" on-keyup="[[ $listeners.onJumpKey ]]">
+    </label>
+
+    <div class="er-header-end">
+      <oj-bind-if test="[[ $application.variables.oldAppUrl ]]">
+        <a class="er-old-link" :href="[[ $application.variables.oldAppUrl ]]"
+          title="Today's app, unchanged. Same data as this one.">Open Old EquipRite</a>
+      </oj-bind-if>
+      <span class="er-user">
+        <span class="er-avatar" aria-hidden="true">
+          <oj-bind-text value="[[ $application.functions.userInitials($application.user) ]]"></oj-bind-text>
+        </span>
+        <span class="er-user-text">
+          <span class="er-user-name">
+            <oj-bind-text value="[[ $application.functions.userDisplayName($application.user) ]]"></oj-bind-text>
+          </span>
+          <span class="er-user-role">
+            <oj-bind-text value="[[ $application.functions.dashboardRoleLabel($application.variables.fusionRoles,
+                                     $application.variables.sessionRoles) ]]"></oj-bind-text>
+          </span>
+        </span>
+      </span>
+    </div>
+  </header>
+
+  <div class="er-body">
+    <nav class="er-nav" aria-label="Main menu">
+      <oj-bind-for-each data="[[ $application.functions.visibleNavGroups(
+                                   $application.variables.pageAccessMap,
+                                   $application.variables.pageAccessLoaded,
+                                   $application.variables.featureFlags,
+                                   $application.variables.flagsLoaded,
+                                   $application.variables.buRateSources) ]]">
+        <!-- data-oj-as names the loop variables: the inner loop would otherwise shadow $current. -->
+        <template data-oj-as="grp">
+          <div class="er-nav-group">
+            <oj-bind-if test="[[ grp.data.label ]]">
+              <span class="er-nav-label"><oj-bind-text value="[[ grp.data.label ]]"></oj-bind-text></span>
+            </oj-bind-if>
+            <oj-bind-for-each data="[[ grp.data.items ]]">
+              <template data-oj-as="item">
+                <button type="button" on-click="[[ $listeners.onNavClick ]]" :data-nav-id="[[ item.data.id ]]"
+                  :class="[[ $application.functions.getNavIdForPage($application.currentPage,
+                               $application.variables.laterNavId) === item.data.id
+                             ? 'er-nav-item er-nav-item--active' : 'er-nav-item' ]]"
+                  :aria-current="[[ $application.functions.getNavIdForPage($application.currentPage,
+                               $application.variables.laterNavId) === item.data.id ? 'page' : 'false' ]]">
+                  <span :class="[[ item.data.icon + ' er-nav-icon' ]]" aria-hidden="true"></span>
+                  <span class="er-nav-text"><oj-bind-text value="[[ item.data.label ]]"></oj-bind-text></span>
+                  <oj-bind-if test="[[ item.data.status === 'old' ]]">
+                    <span class="er-nav-tag" title="Not rebuilt yet: opens the screen in Old EquipRite">Old</span>
+                  </oj-bind-if>
+                  <oj-bind-if test="[[ item.data.status === 'planned' ]]">
+                    <span class="er-nav-tag er-nav-tag--planned" title="In the FDD, not built in either app yet">Planned</span>
+                  </oj-bind-if>
+                </button>
+              </template>
+            </oj-bind-for-each>
+          </div>
+        </template>
+      </oj-bind-for-each>
+      <oj-bind-if test="[[ !$application.variables.pageAccessLoaded ]]">
+        <span class="er-nav-loading">Loading your menu…</span>
+      </oj-bind-if>
+    </nav>
+    <button type="button" class="er-scrim" on-click="[[ $listeners.toggleDrawer ]]" aria-label="Close the menu"></button>
+
+    <main class="er-content">
+      <oj-sp-messages-banner data="[[ $variables.messagesBannerADP ]]"
+        on-sp-close="[[ $listeners.messagesBannerSpClose ]]"></oj-sp-messages-banner>
+      <oj-messages id="appMessages" messages="[[ $variables.messagesArray ]]" display="notification"
+        position.at.horizontal="center" position.at.vertical="top"
+        position.my.horizontal="center" position.my.vertical="top" position.of="window"
+        on-oj-close="[[ $listeners.onAppMessageClose ]]"></oj-messages>
+      <oj-vb-content id="vbRouterContent" config="[[ vbRouterFlow ]]"></oj-vb-content>
+    </main>
+  </div>
+</div>

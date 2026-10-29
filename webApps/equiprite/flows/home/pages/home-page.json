@@ -1,0 +1,143 @@
+{
+  "title": "Home",
+  "description": "New EquipRite Home: the signed-in persona's KPI tiles and work list (homeInitChain, the old dashboard's proven data logic), in the new layout. KPI tiles and View all open menu items; a row opens its detail in Old EquipRite until request detail is rebuilt.",
+  "variables": {
+    "dashRole": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "Resolved persona (SESSION_ROLE code), set by homeInitChain from resolveDashboardRole()."
+    },
+    "dashTitle": {
+      "type": "string",
+      "defaultValue": "Home"
+    },
+    "dashSubtitle": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "tableTitle": {
+      "type": "string",
+      "defaultValue": "Recent requests"
+    },
+    "tableViewAllNav": {
+      "type": "string",
+      "defaultValue": "my-requests",
+      "description": "Menu item id the list's View all opens."
+    },
+    "tableRowNav": {
+      "type": "string",
+      "defaultValue": "myRequests",
+      "description": "Which detail a row opens (openRowChain / oldRequestLink)."
+    },
+    "tableColumns": {
+      "type": "any",
+      "defaultValue": []
+    },
+    "kpiCards": {
+      "type": "any",
+      "defaultValue": []
+    },
+    "kpis": {
+      "type": "any",
+      "defaultValue": {}
+    },
+    "isLoading": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "fetchError": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "customerOnly": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "True for a customer-only user: New EquipRite has no customer portal yet, so Home links to it in Old EquipRite."
+    },
+    "dashRequestsArray": {
+      "type": "any",
+      "defaultValue": []
+    },
+    "recentRequestsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "requestNumber",
+        "data": "{{ $page.variables.dashRequestsArray }}"
+      }
+    }
+  },
+  "metadata": {},
+  "eventListeners": {
+    "vbBeforeEnter": {
+      "chains": [
+        {
+          "chain": "enforcePageAccessChain"
+        }
+      ]
+    },
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "homeInitChain"
+        }
+      ]
+    },
+    "onKpiClick": {
+      "chains": [
+        {
+          "chain": "openNavChain",
+          "parameters": {
+            "navId": "{{ $event.currentTarget.dataset.navId }}"
+          }
+        }
+      ]
+    },
+    "onViewAll": {
+      "chains": [
+        {
+          "chain": "openNavChain",
+          "parameters": {
+            "navId": "{{ $page.variables.tableViewAllNav }}"
+          }
+        }
+      ]
+    },
+    "onNewRequest": {
+      "chains": [
+        {
+          "chain": "openNavChain",
+          "parameters": {
+            "navId": "new-request"
+          }
+        }
+      ]
+    },
+    "onRowAction": {
+      "chains": [
+        {
+          "chain": "openRowChain",
+          "parameters": {
+            "row": "{{ $event.detail.value?.data }}"
+          }
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-table": {
+        "path": "ojs/ojtable"
+      },
+      "oj-bind-for-each": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-if": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-text": {
+        "path": "ojs/ojknockout"
+      }
+    }
+  }
+}

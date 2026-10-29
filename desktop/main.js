@@ -12,20 +12,30 @@
  * saved in userData (lib/identity.js), never in the project. Roles are read from the ROLES_RP report in Fusion,
  * or picked by hand for this PC.
  *
+ * Two apps: Old EquipRite (webApps/vbredwoodapp, today's app, unchanged) and New EquipRite (webApps/equiprite, the
+ * redesign). The sign-in window asks which to open; File > Open Old / New EquipRite switches without signing out.
+ * Each gets its own local server, at the site root as VB expects; both forward to the same backends with the same
+ * sign-in, so they show the same data.
+ *
  * Nothing native is compiled and no shell is started (eScan-safe): the only dependency is Electron, a prebuilt
  * binary.
  */
 const path = require('path');
 const { app, BrowserWindow, Menu, shell, ipcMain, safeStorage, dialog } = require('electron');
-const { createDevServer, backendOverridesFromEnv, KNOWN_ROLES } = require('./lib/devserver');
+const { createDevServer, isBuilt, backendOverridesFromEnv, KNOWN_ROLES } = require('./lib/devserver');
 const identityStore = require('./lib/identity');
 const { navAllowed } = require('./lib/hosts');
 
 const APP_NAME = 'EquipRite';
 const PORT = Number(process.env.EQP_PORT) || 18888;
 const REPO_ROOT = path.resolve(__dirname, '..');
-const APP_URL = `http://localhost:${PORT}/`;
-const APP_ORIGIN = `http://localhost:${PORT}`;
+const BUILD_DIR = path.join(REPO_ROOT, 'build');
+const VERSIONS = {
+  old: { webApp: 'vbredwoodapp', label: 'Old EquipRite', port: PORT },
+  new: { webApp: 'equiprite', label: 'New EquipRite', port: PORT + 1 },
+};
+const originOf = (v) => `http://localhost:${VERSIONS[v].port}`;
+const urlOf = (v) => `${originOf(v)}/`;
 
 process.env.EQP_DESKTOP_VERSION = app.getVersion();
 
@@ -33,11 +43,25 @@ let win = null;
 let signinWin = null;
 let logWin = null;
 let servicesWin = null;
-let devServer = null;
+const servers = {}; // version -> running local server, for each app that is built
+let version = 'old'; // which app the window shows
 let quitting = false;
 let identity = null; // what the local server signs in as
 let passwordThisRun = null; // when safeStorage cannot encrypt, the password lives here only
 const serverLog = [];
+
+/** The app the window should show: the chosen one, or the old app when the new one is not built. */
+const appUrl = () => urlOf(servers[version] ? version : 'old');
+const inApp = (url) => Object.keys(VERSIONS).some((v) => url.startsWith(urlOf(v)));
+// Either app may link to the other (New EquipRite opens screens it does not have yet in the old app).
+const allowedNav = (url) => Object.keys(VERSIONS).some((v) => navAllowed(url, originOf(v)));
+
+function showTitle() {
+  if (win && !win.isDestroyed()) {
+    const v = servers[version] ? version : 'old';
+    win.setTitle(`${VERSIONS[v].label}${v === 'new' ? ' (preview)' : ''} · ${app.getVersion()}`);
+  }
+}
 
 function pushLog(line) {
   serverLog.push(String(line));
@@ -188,7 +212,7 @@ function openSignIn() {
     parent: win || undefined,
     modal: !!win,
     width: 560,
-    height: 820,
+    height: 960,
     resizable: false,
     minimizable: false,
     title: `Sign in to ${APP_NAME}`,
@@ -222,6 +246,8 @@ ipcMain.handle('signin:initial', (event) => {
   }
   const saved = identityStore.load(identityFile()) || {};
   return {
+    version: servers.new ? identityStore.versionOf(saved.version) : 'old',
+    newAvailable: !!servers.new,
     username: saved.username || '',
     fusionUser: saved.fusionUser || '',
     hasPassword: !!saved.fusionPassword || !!passwordThisRun,
@@ -240,6 +266,9 @@ ipcMain.handle('signin:submit', (event, form) => {
   if (checked.error) {
     return { error: checked.error };
   }
+  if (checked.saved.version === 'new' && !servers.new) {
+    return { error: 'New EquipRite is not built yet. Run "npm run desktop:fresh" to build both apps.' };
+  }
   const encrypt = canEncrypt() ? (s) => safeStorage.encryptString(s) : null;
   if (checked.password && !encrypt) {
     passwordThisRun = checked.password;
@@ -248,16 +277,36 @@ ipcMain.handle('signin:submit', (event, form) => {
   }
   const saved = identityStore.save(identityFile(), checked.saved, checked.password, encrypt, previous);
   identity = identityStore.toServerIdentity(saved, passwordThisRun, encrypt ? (b) => safeStorage.decryptString(b) : null);
+  version = saved.version;
   warned.clear();
-  pushLog(`${new Date().toTimeString().slice(0, 8)} signed in as ${saved.username}; roles ${identity.roles ? identity.roles.join(', ') : 'from Fusion (ROLES_RP)'}`);
+  pushLog(`${new Date().toTimeString().slice(0, 8)} signed in as ${saved.username}; roles ${identity.roles ? identity.roles.join(', ') : 'from Fusion (ROLES_RP)'}; opening ${VERSIONS[version].label}`);
   if (signinWin) {
     signinWin.close();
   }
   if (win && !win.isDestroyed()) {
-    win.loadURL(APP_URL).catch(() => {});
+    showTitle();
+    win.loadURL(appUrl()).catch(() => {});
   }
   return { ok: true };
 });
+
+/** File → Open Old / New EquipRite: switch apps and stay signed in. The choice is remembered. */
+function openVersion(v) {
+  if (!servers[v]) {
+    dialog.showMessageBox(win, {
+      type: 'info', title: APP_NAME, message: `${VERSIONS[v].label} is not built yet`,
+      detail: 'Run "npm run desktop:fresh" to build both apps, then start EquipRite again.', noLink: true,
+    }).catch(() => {});
+    return;
+  }
+  version = v;
+  identityStore.saveVersion(identityFile(), v);
+  pushLog(`${new Date().toTimeString().slice(0, 8)} opening ${VERSIONS[v].label}`);
+  showTitle();
+  if (win && !win.isDestroyed()) {
+    win.loadURL(identity ? appUrl() : signedOutUrl()).catch(() => {});
+  }
+}
 
 ipcMain.handle('signin:cancel', (event) => {
   if (fromSignin(event) && signinWin) {
@@ -294,7 +343,9 @@ function showLog() {
  * ------------------------------------------------------------------------- */
 
 function showWebServices() {
-  if (!devServer) {
+  // Both apps share services/, so either server's page lists the same catalog.
+  const v = servers.old ? 'old' : (servers.new ? 'new' : null);
+  if (!v) {
     return;
   }
   if (!servicesWin || servicesWin.isDestroyed()) {
@@ -303,7 +354,7 @@ function showWebServices() {
     servicesWin.setMenu(null);
     servicesWin.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
     servicesWin.webContents.on('will-navigate', (event, url) => {
-      if (!url.startsWith(`${APP_ORIGIN}/__services/`)) {
+      if (!url.startsWith(`${urlOf(v)}__services/`)) {
         event.preventDefault();
       }
     });
@@ -311,7 +362,7 @@ function showWebServices() {
       servicesWin = null;
     });
   }
-  servicesWin.loadURL(`${APP_URL}__services/`).catch(() => {});
+  servicesWin.loadURL(`${urlOf(v)}__services/`).catch(() => {});
   servicesWin.focus();
 }
 
@@ -338,6 +389,9 @@ function createWindow() {
   });
 
   win.once('ready-to-show', () => win.show());
+  // Keep "Old EquipRite" / "New EquipRite" in the title instead of the page's own title, so demos and
+  // screenshots always show which app is open.
+  win.on('page-title-updated', (event) => event.preventDefault());
   // A page that never paints must not leave the app invisible.
   setTimeout(() => {
     if (win && !win.isDestroyed() && !win.isVisible()) {
@@ -347,7 +401,7 @@ function createWindow() {
 
   // Links to other sites open in the default browser; the app itself and Oracle hosts stay in the window.
   win.webContents.setWindowOpenHandler(({ url }) => {
-    if (navAllowed(url, APP_ORIGIN)) {
+    if (allowedNav(url)) {
       return { action: 'allow' };
     }
     if (/^https?:\/\//i.test(url)) {
@@ -356,7 +410,7 @@ function createWindow() {
     return { action: 'deny' };
   });
   win.webContents.on('will-navigate', (event, url) => {
-    if (navAllowed(url, APP_ORIGIN)) {
+    if (allowedNav(url)) {
       return;
     }
     event.preventDefault();
@@ -366,7 +420,7 @@ function createWindow() {
   });
   win.webContents.on('did-fail-load', (_event, code, description, failedUrl, isMainFrame) => {
     // code -3 is an aborted load (e.g. the splash being replaced); ignore it.
-    if (isMainFrame && code !== -3 && failedUrl.startsWith(APP_ORIGIN)) {
+    if (isMainFrame && code !== -3 && inApp(failedUrl)) {
       win.loadURL(problemUrl('The app did not load', `${description} (${code})`));
     }
   });
@@ -384,6 +438,9 @@ function appMenu() {
     {
       label: 'File',
       submenu: [
+        { label: 'Open Old EquipRite', accelerator: 'CmdOrCtrl+Shift+1', click: () => openVersion('old') },
+        { label: 'Open New EquipRite', accelerator: 'CmdOrCtrl+Shift+2', click: () => openVersion('new') },
+        { type: 'separator' },
         { label: 'Sign in as…', accelerator: 'CmdOrCtrl+Shift+S', click: () => openSignIn() },
         { label: 'Sign out', click: () => signOut() },
         { type: 'separator' },
@@ -394,7 +451,7 @@ function appMenu() {
     {
       label: 'View',
       submenu: [
-        { label: 'Reload app', accelerator: 'CmdOrCtrl+R', click: () => { if (win) win.loadURL(identity ? APP_URL : signedOutUrl()); } },
+        { label: 'Reload app', accelerator: 'CmdOrCtrl+R', click: () => { if (win) win.loadURL(identity ? appUrl() : signedOutUrl()); } },
         { role: 'forceReload' },
         { label: 'Web services…', accelerator: 'CmdOrCtrl+Shift+W', click: () => showWebServices() },
         { label: 'Backend calls…', accelerator: 'CmdOrCtrl+Shift+L', click: () => showLog() },
@@ -430,14 +487,21 @@ if (!app.requestSingleInstanceLock()) {
     Menu.setApplicationMenu(appMenu());
     createWindow();
     try {
-      devServer = await createDevServer({
-        buildDir: path.join(REPO_ROOT, 'build'),
-        port: PORT,
-        getIdentity: () => identity,
-        backendOverrides: backendOverridesFromEnv(process.env),
-        onLog: pushLog,
-        onProblem: backendProblem,
-      });
+      // The old app must be there (it is today's app); the new one is served when it has been built.
+      for (const v of Object.keys(VERSIONS)) {
+        if (v === 'old' || isBuilt(BUILD_DIR, VERSIONS[v].webApp)) {
+          servers[v] = await createDevServer({
+            buildDir: BUILD_DIR,
+            webApp: VERSIONS[v].webApp,
+            port: VERSIONS[v].port,
+            getIdentity: () => identity,
+            getVersions: () => ({ old: urlOf('old'), new: servers.new ? urlOf('new') : '' }),
+            backendOverrides: backendOverridesFromEnv(process.env),
+            onLog: pushLog,
+            onProblem: backendProblem,
+          });
+        }
+      }
     } catch (e) {
       if (win && !win.isDestroyed()) {
         win.loadURL(problemUrl('Could not start the local server', String((e && e.message) || e)));
@@ -445,9 +509,11 @@ if (!app.requestSingleInstanceLock()) {
       return;
     }
     identity = loadSavedIdentity();
+    version = identityStore.versionOf((identityStore.load(identityFile()) || {}).version);
+    showTitle();
     if (identity) {
-      pushLog(`${new Date().toTimeString().slice(0, 8)} signed in as ${identity.username}; roles ${identity.roles ? identity.roles.join(', ') : 'from Fusion (ROLES_RP)'}`);
-      win.loadURL(APP_URL).catch(() => {});
+      pushLog(`${new Date().toTimeString().slice(0, 8)} signed in as ${identity.username}; roles ${identity.roles ? identity.roles.join(', ') : 'from Fusion (ROLES_RP)'}; opening ${VERSIONS[servers[version] ? version : 'old'].label}`);
+      win.loadURL(appUrl()).catch(() => {});
     } else {
       openSignIn();
     }
@@ -456,14 +522,13 @@ if (!app.requestSingleInstanceLock()) {
   app.on('activate', () => {
     if (!win) {
       createWindow();
-      win.loadURL(identity ? APP_URL : signedOutUrl()).catch(() => {});
+      showTitle();
+      win.loadURL(identity ? appUrl() : signedOutUrl()).catch(() => {});
     }
   });
   app.on('before-quit', () => {
     quitting = true;
-    if (devServer) {
-      devServer.close();
-    }
+    Object.values(servers).forEach((s) => s.close());
   });
   app.on('window-all-closed', () => {
     if (process.platform !== 'darwin' || quitting) {

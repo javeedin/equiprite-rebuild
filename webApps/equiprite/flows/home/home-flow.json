@@ -1,0 +1,20 @@
+{
+  "id": "home",
+  "description": "New EquipRite's first flow: Home, the later page that stands in for screens not rebuilt yet, and No Access. Screens get their own flows (request, fulfil, usage, master, insights, settings) as they are built.",
+  "defaultPage": "home",
+  "pages": {
+    "home": {
+      "path": "pages/home-page"
+    },
+    "later": {
+      "path": "pages/later-page"
+    },
+    "no-access": {
+      "path": "pages/no-access-page"
+    }
+  },
+  "chains": {},
+  "services": {},
+  "types": {},
+  "variables": {}
+}

@@ -12,9 +12,14 @@
  */
 const fs = require('fs');
 
+/** Which app the window opens: 'old' (webApps/vbredwoodapp, unchanged) or 'new' (webApps/equiprite, the redesign). */
+const VERSIONS = ['old', 'new'];
+const versionOf = (v) => (VERSIONS.includes(v) ? v : 'old');
+
 /**
  * Checks the sign-in form. Returns { error } or { saved, password } where saved is what goes to disk (no password).
- * form: { username, rolesFrom: 'fusion'|'pick', roles: string[], otherRoles, fusionUser, fusionPassword }
+ * form: { version: 'old'|'new', username, rolesFrom: 'fusion'|'pick', roles: string[], otherRoles, fusionUser,
+ *         fusionPassword }
  */
 function validate(form, previous) {
   const f = form || {};
@@ -36,7 +41,7 @@ function validate(form, previous) {
     return { error: 'Enter the Fusion password: roles are read from the ROLES_RP report in Fusion.' };
   }
   return {
-    saved: { username, rolesFrom, roles: rolesFrom === 'pick' ? roles : [], fusionUser },
+    saved: { username, rolesFrom, roles: rolesFrom === 'pick' ? roles : [], fusionUser, version: versionOf(f.version) },
     password: password || null,
     keepsPassword,
   };
@@ -94,4 +99,12 @@ function remove(file) {
   fs.rmSync(file, { force: true });
 }
 
-module.exports = { validate, load, save, remove, toServerIdentity, usable };
+/** Remembers which app to open (File → Open Old / New EquipRite) without touching the rest of the sign-in. */
+function saveVersion(file, version) {
+  const saved = load(file);
+  if (saved) {
+    fs.writeFileSync(file, JSON.stringify(Object.assign({}, saved, { version: versionOf(version) }), null, 2), 'utf8');
+  }
+}
+
+module.exports = { validate, load, save, remove, saveVersion, versionOf, toServerIdentity, usable };

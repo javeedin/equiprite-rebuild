@@ -1,0 +1,53 @@
+{
+  "title": "Coming to New EquipRite",
+  "description": "Stands in for every menu item not rebuilt yet (status 'old' or 'planned' in NAV_GROUPS): says what the redesign brings to that screen and opens the same screen in Old EquipRite. Records which item it stands for in $application.variables.laterNavId so the menu highlights it.",
+  "variables": {
+    "navId": {
+      "type": "string",
+      "input": "fromUrl",
+      "persisted": "none",
+      "defaultValue": "",
+      "description": "Menu item id (NAV_GROUPS in app-flow.js), from the URL so a reload or bookmark keeps it.",
+      "onValueChanged": {
+        "chains": [
+          {
+            "chain": "laterEnterChain"
+          }
+        ]
+      }
+    }
+  },
+  "metadata": {},
+  "eventListeners": {
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "laterEnterChain"
+        },
+        {
+          "chain": "laterGuardChain"
+        }
+      ]
+    },
+    "onBackHome": {
+      "chains": [
+        {
+          "chain": "backHomeChain"
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-if": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-text": {
+        "path": "ojs/ojknockout"
+      }
+    }
+  }
+}

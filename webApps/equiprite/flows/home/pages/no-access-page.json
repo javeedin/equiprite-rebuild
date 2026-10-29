@@ -1,0 +1,8 @@
+{
+  "title": "No Access",
+  "description": "Shown to a signed-in user who can open no page: no Fusion role, a role not mapped in RBAC_ROLE_MAP, or a failed role lookup. getRoleHomeTarget sends them here. Deliberately UNGATED (no enforcePageAccessChain) - it is the one page such a user must still be able to render.",
+  "variables": {},
+  "metadata": {},
+  "eventListeners": {},
+  "imports": {}
+}

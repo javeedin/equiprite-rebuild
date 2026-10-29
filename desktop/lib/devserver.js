@@ -219,6 +219,11 @@ function time() {
  * @param {object}   o
  * @param {string}   o.buildDir          the project's build/ folder (holds processed/)
  * @param {string}   [o.repoRoot]        the project folder (services/, webApps/); defaults to buildDir's parent
+ * @param {string}   [o.webApp]          the web app under webApps/ to serve: 'vbredwoodapp' (Old EquipRite, the
+ *                                       default) or 'equiprite' (New EquipRite). One server per web app, each at the
+ *                                       site root as VB expects.
+ * @param {Function} [o.getVersions]     () => { old: url, new: url }, served at /__versions so New EquipRite can
+ *                                       link to a screen in the old app (under VBCS it derives the address instead)
  * @param {number}   o.port              0 picks a free one
  * @param {Function} o.getIdentity       () => { username, fullName?, email?, roles?: string[], fusion?: { user, password } }
  * @param {object}   [o.backendOverrides] { backendName(lower-case): url }
@@ -228,7 +233,7 @@ function time() {
  */
 function createDevServer(o) {
   const processed = path.join(o.buildDir, 'processed');
-  const webRoot = path.join(processed, 'webApps', 'vbredwoodapp');
+  const webRoot = path.join(processed, 'webApps', o.webApp || 'vbredwoodapp');
   const catalogFile = path.join(processed, 'services', 'catalog.json');
   const repoRoot = o.repoRoot || path.dirname(o.buildDir);
   const overrides = o.backendOverrides || {};
@@ -370,6 +375,9 @@ function createDevServer(o) {
       if (pathname === '/_currentuser') {
         return send(res, 200, 'application/json', JSON.stringify(currentUser(o.getIdentity())));
       }
+      if (pathname === '/__versions') {
+        return send(res, 200, 'application/json', JSON.stringify((o.getVersions && o.getVersions()) || {}));
+      }
       const b = /^\/__backend\/([^/]+)(\/.*)?$/.exec(pathname);
       if (b) {
         return proxy(req, res, decodeURIComponent(b[1]), b[2] || '', u.search);
@@ -406,6 +414,11 @@ function createDevServer(o) {
   });
 }
 
+/** True when `npm run build` has produced this web app (build/processed/webApps/<webApp>/index.html). */
+function isBuilt(buildDir, webApp) {
+  return fs.existsSync(path.join(buildDir, 'processed', 'webApps', webApp, 'index.html'));
+}
+
 /** Identity for `npm run serve`: EQP_USER, then EQP_ROLES (comma-separated) or EQP_FUSION_PASSWORD (+ EQP_FUSION_USER). */
 function identityFromEnv(env) {
   const roles = String(env.EQP_ROLES || '').split(',').map((r) => r.trim().toUpperCase()).filter(Boolean);
@@ -419,6 +432,7 @@ function identityFromEnv(env) {
 
 module.exports = {
   createDevServer,
+  isBuilt,
   rewriteCatalog,
   fusionCredential,
   fillAppFlow,
@@ -435,14 +449,18 @@ module.exports = {
 if (require.main === module) {
   const identity = identityFromEnv(process.env);
   const port = Number(process.env.EQP_PORT) || 8888;
+  // EQP_WEBAPP=equiprite serves New EquipRite; the default is the old app. Its links to the old app stay disabled
+  // here (no /__versions), since only one app runs.
+  const webApp = process.env.EQP_WEBAPP || 'vbredwoodapp';
   createDevServer({
     buildDir: path.resolve(__dirname, '..', '..', 'build'),
+    webApp,
     port,
     getIdentity: () => identity,
     backendOverrides: backendOverridesFromEnv(process.env),
     onLog: (line) => console.log(line),
   }).then(({ url }) => {
-    console.log(`\nEquipRite is running at ${url}  (Ctrl+C stops it)`);
+    console.log(`\n${webApp === 'equiprite' ? 'New EquipRite' : 'EquipRite'} is running at ${url}  (Ctrl+C stops it)`);
     if (!identity.username) {
       console.log('Signed in as nobody, so the app shows "No Access". Set EQP_USER and EQP_ROLES (or EQP_FUSION_PASSWORD), e.g.');
       console.log('  PowerShell:  $env:EQP_USER="john.dunbar"; $env:EQP_ROLES="RT_EQP_MANAGER"; npm run serve');

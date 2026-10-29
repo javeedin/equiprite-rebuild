@@ -5,6 +5,20 @@
   const $ = (id) => document.getElementById(id);
   const init = (await window.signin.initial()) || {};
 
+  const versionPicked = () => document.querySelector('input[name=version]:checked').value;
+  const LABELS = { old: 'Old EquipRite', new: 'New EquipRite' };
+  document.querySelector(`input[name=version][value=${init.version === 'new' ? 'new' : 'old'}]`).checked = true;
+  if (!init.newAvailable) {
+    $('newChoice').classList.add('off');
+    $('newChoice').querySelector('input').disabled = true;
+    $('newNote').textContent = 'Not built yet: run npm run desktop:fresh';
+  }
+  const syncVersion = () => {
+    $('go').textContent = `Sign in and open ${LABELS[versionPicked()]}`;
+  };
+  document.querySelectorAll('input[name=version]').forEach((r) => r.addEventListener('change', syncVersion));
+  syncVersion();
+
   $('username').value = init.username || '';
   $('fusionUser').value = init.fusionUser && init.fusionUser !== init.username ? init.fusionUser : '';
   if (init.hasPassword) {
@@ -28,7 +42,7 @@
 
   const sync = () => {
     const pick = document.querySelector('input[name=rolesFrom]:checked').value === 'pick';
-    $('pick').classList.toggle('disabled', !pick);
+    $('pick').hidden = !pick; // the role list only matters when picking; hiding it keeps the window short
   };
   document.querySelectorAll('input[name=rolesFrom]').forEach((r) => r.addEventListener('change', sync));
   sync();
@@ -41,6 +55,7 @@
     $('go').disabled = true;
     try {
       const result = await window.signin.submit({
+        version: versionPicked(),
         username: $('username').value,
         fusionUser: $('fusionUser').value,
         fusionPassword: $('fusionPassword').value,

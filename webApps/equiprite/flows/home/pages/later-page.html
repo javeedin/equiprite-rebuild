@@ -1,0 +1,50 @@
+<!-- Stands in for a menu item not rebuilt yet. Content per item: NAV_GROUPS (app-flow.js) and PLANNED (later-page.js). -->
+<div class="er-band">
+  <div class="er-band-inner">
+    <div>
+      <div class="er-band-kicker">
+        <oj-bind-text value="[[ ($application.functions.navItem($variables.navId) || {}).group || 'EquipRite' ]]"></oj-bind-text>
+        · FDD
+        <oj-bind-text value="[[ ($application.functions.navItem($variables.navId) || {}).fdd || '' ]]"></oj-bind-text>
+      </div>
+      <h1><oj-bind-text value="[[ ($application.functions.navItem($variables.navId) || {}).label || 'Not found' ]]"></oj-bind-text></h1>
+      <div class="er-band-sub">
+        <oj-bind-text value="[[ ($application.functions.navItem($variables.navId) || {}).status === 'planned'
+                                ? 'Planned: in the FDD, not built in either app yet.'
+                                : 'Not rebuilt yet. The screen works today in Old EquipRite, with the same data.' ]]"></oj-bind-text>
+      </div>
+    </div>
+    <div class="er-actions">
+      <oj-bind-if test="[[ $application.functions.oldAppLink($application.variables.oldAppUrl, $variables.navId) ]]">
+        <a class="er-btn er-btn--primary" :href="[[ $application.functions.oldAppLink($application.variables.oldAppUrl, $variables.navId) ]]">
+          Open in Old EquipRite</a>
+      </oj-bind-if>
+    </div>
+  </div>
+  <div class="er-strip" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+</div>
+
+<div class="er-page">
+  <section class="er-card er-card-pad er-later">
+    <h2>What changes here in New EquipRite</h2>
+    <oj-bind-if test="[[ $functions.planned($variables.navId).length ]]">
+      <ul>
+        <oj-bind-for-each data="[[ $functions.planned($variables.navId) ]]">
+          <template data-oj-as="point"><li><oj-bind-text value="[[ point.data ]]"></oj-bind-text></li></template>
+        </oj-bind-for-each>
+      </ul>
+    </oj-bind-if>
+    <p class="er-note">From the approved wireframes. See docs/redesign in the project for the full screen.</p>
+    <div class="er-later-actions">
+      <oj-bind-if test="[[ $application.functions.oldAppLink($application.variables.oldAppUrl, $variables.navId) ]]">
+        <a class="er-btn er-btn--dark" :href="[[ $application.functions.oldAppLink($application.variables.oldAppUrl, $variables.navId) ]]">
+          Open in Old EquipRite</a>
+      </oj-bind-if>
+      <oj-bind-if test="[[ ($application.functions.navItem($variables.navId) || {}).status === 'old'
+                           && !$application.variables.oldAppUrl ]]">
+        <span class="er-note">Old EquipRite's address is not known here, so it cannot be opened from this page.</span>
+      </oj-bind-if>
+      <button type="button" class="er-btn er-btn--plain" on-click="[[ $listeners.onBackHome ]]">Back to Home</button>
+    </div>
+  </section>
+</div>

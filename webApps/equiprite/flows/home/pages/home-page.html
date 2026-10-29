@@ -1,0 +1,116 @@
+<!-- New EquipRite Home (wireframes: Home: Equipment Manager / Home: Project Manager). Data: homeInitChain. -->
+<div class="er-band">
+  <div class="er-band-inner">
+    <div>
+      <div class="er-band-kicker">
+        Home ·
+        <oj-bind-text value="[[ $application.functions.dashboardRoleLabel($application.variables.fusionRoles,
+                                 $application.variables.sessionRoles) || 'EquipRite' ]]"></oj-bind-text>
+      </div>
+      <h1><oj-bind-text value="[[ $functions.greeting($application.user) ]]"></oj-bind-text></h1>
+      <div class="er-band-sub"><oj-bind-text value="[[ $variables.dashSubtitle ]]"></oj-bind-text></div>
+    </div>
+    <div class="er-actions">
+      <oj-bind-if test="[[ $application.variables.oldAppUrl ]]">
+        <a class="er-btn er-btn--ghost" :href="[[ $application.variables.oldAppUrl ]]"
+          title="Today's dashboard in Old EquipRite, for comparison">Old dashboard</a>
+      </oj-bind-if>
+      <oj-bind-if test="[[ $application.functions.navIdVisible($application.variables.pageAccessMap,
+                             $application.variables.pageAccessLoaded, 'new-request') ]]">
+        <button type="button" class="er-btn er-btn--primary" on-click="[[ $listeners.onNewRequest ]]">New request</button>
+      </oj-bind-if>
+    </div>
+  </div>
+  <div class="er-strip" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+</div>
+
+<div class="er-page">
+  <oj-bind-if test="[[ $variables.customerOnly ]]">
+    <div class="er-card er-card-pad er-later">
+      <h2>The customer portal opens in Old EquipRite</h2>
+      <p class="er-muted">New EquipRite does not have the customer portal yet. Your requests and billing are in the
+        old app, with the same data.</p>
+      <div class="er-later-actions">
+        <a class="er-btn er-btn--dark"
+          :href="[[ $application.functions.oldAppLink($application.variables.oldAppUrl, 'customer-portal') ]]"
+          :aria-disabled="[[ $application.functions.oldAppLink($application.variables.oldAppUrl, 'customer-portal') ? 'false' : 'true' ]]">
+          Open the customer portal</a>
+      </div>
+    </div>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ !!$variables.fetchError ]]">
+    <div class="er-error" role="alert"><oj-bind-text value="[[ $variables.fetchError ]]"></oj-bind-text></div>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ $variables.kpiCards.length ]]">
+    <section class="er-kpis" aria-label="Key figures">
+      <oj-bind-for-each data="[[ $variables.kpiCards ]]">
+        <template data-oj-as="card">
+          <button type="button" :class="[[ 'er-kpi er-kpi--' + (card.data.accent || 'info') ]]"
+            :data-nav-id="[[ card.data.nav ]]" on-click="[[ $listeners.onKpiClick ]]">
+            <span class="er-kpi-label"><oj-bind-text value="[[ card.data.label ]]"></oj-bind-text></span>
+            <span class="er-kpi-value">
+              <oj-bind-text value="[[ $variables.isLoading ? '…' : $functions.kpiValue($variables.kpis, card.data) ]]"></oj-bind-text>
+            </span>
+            <span class="er-kpi-hint"><oj-bind-text value="[[ card.data.hint ]]"></oj-bind-text></span>
+          </button>
+        </template>
+      </oj-bind-for-each>
+    </section>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ $variables.tableColumns.length ]]">
+    <section class="er-card" aria-labelledby="homeListTitle">
+      <div class="er-card-pad er-table-head">
+        <h2 class="er-section-title" id="homeListTitle"><oj-bind-text value="[[ $variables.tableTitle ]]"></oj-bind-text></h2>
+        <button type="button" class="er-btn er-btn--plain" on-click="[[ $listeners.onViewAll ]]">View all</button>
+      </div>
+      <oj-table id="homeTable" data="[[ $variables.recentRequestsADP ]]" columns="[[ $variables.tableColumns ]]"
+        class="oj-table-stretch" style="width: 100%; min-height: 320px;"
+        scroll-policy="loadMoreOnScroll" scroll-policy-options.fetch-size="25"
+        selection-mode='{"row": "single"}' on-first-selected-row-changed="[[ $listeners.onRowAction ]]"
+        :aria-label="[[ $variables.tableTitle ]]">
+        <template slot="dashReqNumTpl" data-oj-as="cell">
+          <span style="font-weight: 700; color: var(--er-accent);"><oj-bind-text value="[[ cell.data ]]"></oj-bind-text></span>
+        </template>
+        <template slot="dashProjectTpl" data-oj-as="cell">
+          <div>
+            <div style="font-weight: 600;"><oj-bind-text value="[[ cell.data ]]"></oj-bind-text></div>
+            <oj-bind-if test="[[ !!cell.row.task ]]">
+              <div class="er-note"><oj-bind-text value="[[ cell.row.task ]]"></oj-bind-text></div>
+            </oj-bind-if>
+          </div>
+        </template>
+        <template slot="dashStatusTpl" data-oj-as="cell">
+          <oj-bind-if test="[[ !!cell.data ]]">
+            <span :class="[[ $application.functions.statusPillClass(cell.data) ]]">
+              <oj-bind-text value="[[ $application.functions.formatLineStatus(cell.data) ]]"></oj-bind-text>
+            </span>
+          </oj-bind-if>
+        </template>
+        <template slot="dashAllocTpl" data-oj-as="cell">
+          <oj-bind-text value="[[ (cell.data == null ? 0 : cell.data) + '%' ]]"></oj-bind-text>
+        </template>
+        <template slot="dashSourceTpl" data-oj-as="cell">
+          <oj-bind-if test="[[ !!cell.data ]]">
+            <span :class="[[ $application.functions.sourceLabel(cell.data) === 'EXTERNAL'
+                             ? 'er-status er-status--source-external' : 'er-status er-status--source-internal' ]]">
+              <oj-bind-text value="[[ $application.functions.sourceLabel(cell.data) || cell.data ]]"></oj-bind-text>
+            </span>
+          </oj-bind-if>
+        </template>
+        <template slot="dashMoneyTpl" data-oj-as="cell">
+          <oj-bind-text value="[[ $functions.money(cell.data) ]]"></oj-bind-text>
+        </template>
+        <template slot="noData">
+          <div style="text-align: center; padding: 40px 0;" class="er-muted">
+            <oj-bind-if test="[[ $variables.isLoading ]]">Loading…</oj-bind-if>
+            <oj-bind-if test="[[ !$variables.isLoading && !$variables.fetchError ]]">Nothing here yet.</oj-bind-if>
+          </div>
+        </template>
+      </oj-table>
+      <div class="er-card-pad er-note">Opening a row shows it in Old EquipRite until request detail is rebuilt.</div>
+    </section>
+  </oj-bind-if>
+</div>

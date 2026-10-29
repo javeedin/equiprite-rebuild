@@ -109,6 +109,12 @@ T.eq('decrypts for the server', back.fusion && back.fusion.password, 's3cret!');
 T.eq('roles from Fusion -> no local roles', back.roles, null);
 ID.save(file, v.saved, v.password, null, null);
 T.check('without encryption nothing is saved for the password', !('fusionPassword' in ID.load(file)));
+T.eq('the app to open defaults to Old EquipRite', v.saved.version, 'old');
+T.eq('New EquipRite is remembered', ID.validate({ username: 'u', rolesFrom: 'pick', roles: ['X'], version: 'new' }).saved.version, 'new');
+T.eq('an unknown version falls back to old', ID.versionOf('beta'), 'old');
+ID.saveVersion(file, 'new');
+T.check('File → Open New EquipRite keeps the rest of the sign-in',
+  ID.load(file).version === 'new' && ID.load(file).username === 'john.dunbar');
 fs.rmSync(tmp, { recursive: true, force: true });
 
 // ── web services catalog (View → Web services…) ──────────────────────
@@ -239,6 +245,25 @@ function get(port, p, opts) {
     const down = await get(P, '/__backend/eqpt/x');
     T.check('backend down -> 502 that names the backend', down.status === 502 && /eqpt/.test(down.body));
     T.check('…and reported as unreachable', problems.some((p) => p.kind === 'unreachable' && p.backend === 'eqpt'));
+
+    // Old and New EquipRite: one server per web app, each at the site root.
+    T.check('isBuilt: the old app is built here', DS.isBuilt(build, 'vbredwoodapp'));
+    T.check('isBuilt: the new app is not', !DS.isBuilt(build, 'equiprite'));
+    const newWeb = path.join(build, 'processed', 'webApps', 'equiprite');
+    fs.mkdirSync(newWeb, { recursive: true });
+    fs.writeFileSync(path.join(newWeb, 'index.html'), '<html>new</html>');
+    const srvNew = await DS.createDevServer({
+      buildDir: build, repoRoot: ROOT, port: 0, webApp: 'equiprite', getIdentity: () => identity,
+      getVersions: () => ({ old: `http://localhost:${P}/`, new: 'http://localhost:1/' }),
+    });
+    try {
+      T.eq('the new app is served at its own root', (await get(srvNew.port, '/')).body, '<html>new</html>');
+      T.eq('…with the old app\'s address at /__versions', JSON.parse((await get(srvNew.port, '/__versions')).body).old, `http://localhost:${P}/`);
+      T.eq('…and the same signed-in user', JSON.parse((await get(srvNew.port, '/_currentuser')).body).userName, 'john.dunbar');
+    } finally {
+      await srvNew.close();
+    }
+    T.eq('/__versions is empty when not configured', (await get(P, '/__versions')).body, '{}');
   } catch (e) {
     T.check('server run', false, e.stack);
   } finally {
