@@ -1,0 +1,120 @@
+{
+  "title": "Direct cost & inventory use",
+  "description": "Inventory consumption and direct cost against an active request (FDD 7.9.1A, 7.9.2A, S25). Old EquipRite has only a mock (equipment-record-cost); the consumption write is the old request detail's Material Issue (submitTransactionChain): POST inventory-consumptions, then the line's consumed quantity. Direct cost is read-only (the API publishes no request fields for /direct-cost-txns). ?request= opens a request by number.",
+  "variables": {
+    "request": {
+      "type": "string",
+      "input": "fromUrl"
+    },
+    "requests": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "requestText": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "isLoading": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "loadError": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "current": {
+      "type": "any",
+      "defaultValue": null
+    },
+    "lines": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "detailLoading": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "tab": {
+      "type": "string",
+      "defaultValue": "inventory"
+    },
+    "issue": {
+      "type": "any",
+      "defaultValue": {},
+      "description": "{ lineId, itemNumber, quantity, uom, subinventory }"
+    },
+    "units": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "unitsLoading": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "consumptions": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "directCosts": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "costRows": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "isSubmitting": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "formError": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "note": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "readOnly": {
+      "type": "boolean",
+      "defaultValue": false
+    }
+  },
+  "metadata": {},
+  "eventListeners": {
+    "vbBeforeEnter": {
+      "chains": [{ "chain": "enforcePageAccessChain" }]
+    },
+    "vbEnter": {
+      "chains": [{ "chain": "projectCostsInitChain" }]
+    },
+    "onRequestSearch": {
+      "chains": [{ "chain": "issueChain", "parameters": { "action": "requestText", "value": "{{ $event.target.value }}" } }]
+    },
+    "onPickRequest": {
+      "chains": [{ "chain": "pickRequestChain", "parameters": { "id": "{{ $event.currentTarget.dataset.id }}" } }]
+    },
+    "onTab": {
+      "chains": [{ "chain": "issueChain", "parameters": { "action": "tab", "value": "{{ $event.currentTarget.dataset.tab }}" } }]
+    },
+    "onPickLine": {
+      "chains": [{ "chain": "issueChain", "parameters": { "action": "line", "value": "{{ $event.currentTarget.dataset.line }}" } }]
+    },
+    "onPickUnit": {
+      "chains": [{ "chain": "issueChain", "parameters": { "action": "unit", "value": "{{ $event.currentTarget.dataset.unit }}" } }]
+    },
+    "onIssueField": {
+      "chains": [{ "chain": "issueChain", "parameters": { "action": "field", "field": "{{ $event.target.dataset.field }}", "value": "{{ $event.target.value }}" } }]
+    },
+    "onSubmitIssue": {
+      "chains": [{ "chain": "submitConsumptionChain" }]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}

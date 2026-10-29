@@ -265,13 +265,16 @@ define([
       key: 'usage', label: 'Usage & cost', flags: ['PROJECTS_MODULE_ENABLED'],
       items: [
         { id: 'time-entry', label: 'Time entry', icon: 'oj-ux-ico-clock', pageCodes: ['EQR_TIMESHEETS'],
-          flags: ['TIMESHEETS_ENABLED'], status: 'old', old: { flow: 'equipment-foundation', page: 'equipment-timesheets' }, fdd: '7.13' },
+          flags: ['TIMESHEETS_ENABLED'], status: 'new', route: { flow: 'usage', page: 'time-entry' },
+          old: { flow: 'equipment-foundation', page: 'equipment-timesheets' }, fdd: '7.13' },
         { id: 'timesheet-approval', label: 'Timesheet approval', icon: 'oj-ux-ico-check-circle-s', pageCodes: ['EQR_TIMESHEET_APPROVALS'],
-          flags: ['TIMESHEETS_ENABLED'], status: 'old', old: { flow: 'equipment-foundation', page: 'timesheet-approvals' }, fdd: '7.14' },
+          flags: ['TIMESHEETS_ENABLED'], status: 'new', route: { flow: 'usage', page: 'timesheet-approval' },
+          old: { flow: 'equipment-foundation', page: 'timesheet-approvals' }, fdd: '7.14' },
         { id: 'post-costs', label: 'Post costs', icon: 'oj-ux-ico-chart-bar-v-alt', pageCodes: ['EQR_POST_COST'],
-          hiddenWhenFlags: ['PPM_RATES_ENABLED'], status: 'old', old: { flow: 'equipment-foundation', page: 'post-cost-test' }, fdd: '7.14A' },
+          hiddenWhenFlags: ['PPM_RATES_ENABLED'], status: 'new', route: { flow: 'usage', page: 'post-costs' },
+          old: { flow: 'equipment-foundation', page: 'post-cost-test' }, fdd: '7.14A' },
         { id: 'project-costs', label: 'Direct cost & inventory', icon: 'oj-ux-ico-currency-dollar', pageCodes: ['EQR_EQUIPMENT_MASTER'],
-          status: 'planned', fdd: '7.9.1A, 7.9.2A' }
+          status: 'new', route: { flow: 'usage', page: 'project-costs' }, fdd: '7.9.1A, 7.9.2A' }
       ]
     },
     {

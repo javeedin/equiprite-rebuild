@@ -1,0 +1,199 @@
+<!-- Direct cost & inventory use (wireframe: Project costs). Requests: projectCostsInitChain; a request: pickRequestChain;
+     material issue: submitConsumptionChain (the old request detail's Material Issue). Direct cost is read-only. -->
+<div class="er-band">
+  <div class="er-band-inner">
+    <div>
+      <div class="er-band-kicker">Usage &amp; cost · FDD 7.9.1A, 7.9.2A</div>
+      <h1>Direct cost &amp; inventory use</h1>
+      <div class="er-band-sub">
+        <oj-bind-if test="[[ !$variables.current ]]"><span>Fuel, consumables and ad-hoc cost against an approved or deployed request</span></oj-bind-if>
+        <oj-bind-if test="[[ !!$variables.current ]]">
+          <span><strong><oj-bind-text value="[[ $variables.current.requestNumber ]]"></oj-bind-text></strong>
+            <oj-bind-text value="[[ ' · ' + ($variables.current.projectName || '—') + ($variables.current.taskName ? ' / ' + $variables.current.taskName : '') ]]"></oj-bind-text></span>
+        </oj-bind-if>
+      </div>
+    </div>
+  </div>
+  <div class="er-strip" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+</div>
+
+<div class="er-page">
+  <oj-bind-if test="[[ !!$variables.loadError ]]">
+    <div class="er-error" role="alert"><oj-bind-text value="[[ $variables.loadError ]]"></oj-bind-text></div>
+  </oj-bind-if>
+
+  <section class="er-card er-card-pad er-dc-pick" aria-labelledby="dcPickTitle">
+    <div class="er-table-head">
+      <h2 class="er-section-title" id="dcPickTitle">Request</h2>
+      <label class="er-search er-dc-search">
+        <span class="oj-ux-ico-search" aria-hidden="true"></span>
+        <span class="er-sr">Find a request</span>
+        <input type="search" placeholder="Request, project or task" on-input="[[ $listeners.onRequestSearch ]]">
+      </label>
+    </div>
+    <div class="er-chip-row er-dc-reqs" role="group" aria-label="Active requests">
+      <oj-bind-for-each data="[[ $functions.filterRequests($variables.requests, $variables.requestText) ]]">
+        <template data-oj-as="r">
+          <button type="button" :data-id="[[ '' + r.data.id ]]" on-click="[[ $listeners.onPickRequest ]]"
+            :class="[[ 'er-chip er-te-qchip' + ($variables.current && $variables.current.id === r.data.id ? ' er-chip--on' : '') ]]"
+            :aria-pressed="[[ $variables.current && $variables.current.id === r.data.id ? 'true' : 'false' ]]">
+            <strong><oj-bind-text value="[[ r.data.requestNumber ]]"></oj-bind-text></strong>
+            <span class="er-te-qproj"><oj-bind-text value="[[ r.data.projectName ]]"></oj-bind-text></span>
+            <span class="er-chip-count"><oj-bind-text value="[[ $functions.statusText(r.data.status) ]]"></oj-bind-text></span>
+          </button>
+        </template>
+      </oj-bind-for-each>
+      <oj-bind-if test="[[ $functions.filterRequests($variables.requests, $variables.requestText).length === 0 ]]">
+        <span class="er-muted"><oj-bind-text value="[[ $variables.isLoading ? 'Loading requests…' : 'No approved or active request matches.' ]]"></oj-bind-text></span>
+      </oj-bind-if>
+    </div>
+  </section>
+
+  <oj-bind-if test="[[ !!$variables.current ]]">
+    <section class="er-card" aria-label="Record against the request">
+      <div class="er-dc-tabs" role="tablist" aria-label="Transaction type">
+        <button type="button" role="tab" data-tab="inventory" on-click="[[ $listeners.onTab ]]"
+          :class="[[ 'er-dc-tab' + ($variables.tab === 'inventory' ? ' er-dc-tab--on' : '') ]]" :aria-selected="[[ $variables.tab === 'inventory' ? 'true' : 'false' ]]">Inventory consumption</button>
+        <button type="button" role="tab" data-tab="direct" on-click="[[ $listeners.onTab ]]"
+          :class="[[ 'er-dc-tab' + ($variables.tab === 'direct' ? ' er-dc-tab--on' : '') ]]" :aria-selected="[[ $variables.tab === 'direct' ? 'true' : 'false' ]]">Direct cost</button>
+      </div>
+
+      <oj-bind-if test="[[ $variables.tab === 'inventory' ]]">
+        <div class="er-card-pad er-dc-form" role="tabpanel" aria-label="Inventory consumption">
+          <p class="er-note">Parts and consumables used on the request, recorded against one request line. Fusion costs a consumable on the material issue; Post costs then shows it as posted.</p>
+          <div class="er-field">
+            <span class="er-label">Request line <span class="er-req">*</span></span>
+            <div class="er-results er-dc-lines">
+              <oj-bind-for-each data="[[ $variables.lines ]]">
+                <template data-oj-as="l">
+                  <button type="button" :data-line="[[ '' + l.data.lineId ]]" on-click="[[ $listeners.onPickLine ]]"
+                    :class="[[ 'er-result' + ($variables.issue.lineId === l.data.lineId ? ' er-result--on' : '') ]]"
+                    :aria-pressed="[[ $variables.issue.lineId === l.data.lineId ? 'true' : 'false' ]]">
+                    <strong><oj-bind-text value="[[ l.data.equipmentName ]]"></oj-bind-text></strong>
+                    <span class="er-note"><oj-bind-text value="[[ 'Qty ' + (l.data.quantity == null ? '—' : l.data.quantity) + ' · ' + $functions.statusText(l.data.lineStatus)
+                      + ' · consumed ' + $functions.consumedTotal($variables.consumptions, l.data.lineId) ]]"></oj-bind-text></span>
+                  </button>
+                </template>
+              </oj-bind-for-each>
+            </div>
+            <oj-bind-if test="[[ $variables.lines.length === 0 ]]">
+              <span class="er-muted"><oj-bind-text value="[[ $variables.detailLoading ? 'Loading lines…' : 'This request has no line to record against.' ]]"></oj-bind-text></span>
+            </oj-bind-if>
+          </div>
+          <oj-bind-if test="[[ !!$variables.issue.lineId ]]">
+            <div class="er-field">
+              <span class="er-label">Item, lot or serial <span class="er-req">*</span></span>
+              <oj-bind-if test="[[ $variables.units.length > 1 ]]">
+                <div class="er-chip-row">
+                  <oj-bind-for-each data="[[ $variables.units ]]">
+                    <template data-oj-as="u">
+                      <button type="button" :data-unit="[[ u.data.value ]]" on-click="[[ $listeners.onPickUnit ]]"
+                        :class="[[ 'er-chip' + ($variables.issue.itemNumber === u.data.value ? ' er-chip--on' : '') ]]"><oj-bind-text value="[[ u.data.label ]]"></oj-bind-text></button>
+                    </template>
+                  </oj-bind-for-each>
+                </div>
+              </oj-bind-if>
+              <input class="er-input" type="text" data-field="itemNumber" :value="[[ $variables.issue.itemNumber ]]" on-change="[[ $listeners.onIssueField ]]"
+                :placeholder="[[ $variables.unitsLoading ? 'Looking up the units…' : 'Item number' ]]" aria-label="Item, lot or serial number">
+            </div>
+            <div class="er-form-row">
+              <label class="er-field"><span class="er-label">Quantity consumed <span class="er-req">*</span></span>
+                <input class="er-input" type="number" min="0" step="any" data-field="quantity" :value="[[ $variables.issue.quantity == null ? '' : $variables.issue.quantity ]]"
+                  on-change="[[ $listeners.onIssueField ]]"></label>
+              <label class="er-field"><span class="er-label">Unit of measure</span>
+                <input class="er-input" type="text" data-field="uom" :value="[[ $variables.issue.uom ]]" on-change="[[ $listeners.onIssueField ]]"></label>
+              <label class="er-field"><span class="er-label">Subinventory</span>
+                <input class="er-input" type="text" data-field="subinventory" :value="[[ $variables.issue.subinventory ]]" on-change="[[ $listeners.onIssueField ]]"
+                  placeholder="Kept in the notes"></label>
+            </div>
+            <oj-bind-if test="[[ !!$variables.formError ]]"><div class="er-error" role="alert"><oj-bind-text value="[[ $variables.formError ]]"></oj-bind-text></div></oj-bind-if>
+            <oj-bind-if test="[[ !!$variables.note && !$variables.formError ]]"><div class="er-u-ok" role="status"><oj-bind-text value="[[ $variables.note ]]"></oj-bind-text></div></oj-bind-if>
+            <div class="er-dc-submit">
+              <span class="er-note"><oj-bind-text value="[[ $variables.issue.quantity > 0 && $variables.issue.itemNumber
+                ? 'Records ' + $variables.issue.quantity + ' ' + ($variables.issue.uom || 'EA') + ' of ' + $variables.issue.itemNumber + ' as used on ' + $variables.current.requestNumber + ', today.'
+                : 'Pick the item and enter the quantity used.' ]]"></oj-bind-text></span>
+              <button type="button" class="er-btn er-btn--dark" on-click="[[ $listeners.onSubmitIssue ]]" :disabled="[[ $variables.isSubmitting || $variables.readOnly ]]">
+                <oj-bind-text value="[[ $variables.isSubmitting ? 'Recording…' : 'Record material issue' ]]"></oj-bind-text></button>
+            </div>
+          </oj-bind-if>
+
+          <h3 class="er-dc-h3">Recorded on this request</h3>
+          <div class="er-u-scroll">
+            <div class="er-dc-grid" role="table" aria-label="Inventory consumption">
+              <div class="er-dc-row er-dc-head" role="row"><span role="columnheader">Date</span><span role="columnheader">Item</span>
+                <span role="columnheader" class="er-num">Quantity</span><span role="columnheader">Type</span><span role="columnheader">Notes</span></div>
+              <oj-bind-for-each data="[[ $variables.consumptions ]]">
+                <template data-oj-as="c">
+                  <div class="er-dc-row" role="row">
+                    <span role="cell"><oj-bind-text value="[[ $functions.day(c.data.transactionDate) ]]"></oj-bind-text></span>
+                    <span role="cell"><oj-bind-text value="[[ c.data.itemNumber ]]"></oj-bind-text></span>
+                    <span role="cell" class="er-num"><oj-bind-text value="[[ c.data.quantityConsumed + ' ' + (c.data.uomCode || '') ]]"></oj-bind-text></span>
+                    <span role="cell"><oj-bind-text value="[[ $functions.statusText(c.data.consumptionType) ]]"></oj-bind-text></span>
+                    <span role="cell" class="er-pc-ell"><oj-bind-text value="[[ c.data.notes || '' ]]"></oj-bind-text></span>
+                  </div>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </div>
+          <oj-bind-if test="[[ $variables.consumptions.length === 0 ]]"><p class="er-muted">Nothing consumed on this request yet.</p></oj-bind-if>
+        </div>
+      </oj-bind-if>
+
+      <oj-bind-if test="[[ $variables.tab === 'direct' ]]">
+        <div class="er-card-pad er-dc-form" role="tabpanel" aria-label="Direct cost">
+          <div class="er-later">
+            <h2>Recording a direct cost is not available yet</h2>
+            <p>A direct cost (raw or defined cost, posted to Oracle Projects as an expenditure item) is stored through the
+              <code>direct-cost-txns</code> service, but that service does not publish its fields, so New EquipRite will not
+              guess what to send for money that reaches Fusion. Old EquipRite has only a mock of this form.</p>
+            <p class="er-note">Until it is published, record fuel and other ad-hoc charges on the equipment in Post costs (Add misc charge).</p>
+          </div>
+          <h3 class="er-dc-h3">Direct costs on this request</h3>
+          <div class="er-u-scroll">
+            <div class="er-dc-grid" role="table" aria-label="Direct costs">
+              <div class="er-dc-row er-dc-head" role="row"><span role="columnheader">Date</span><span role="columnheader">What</span>
+                <span role="columnheader" class="er-num">Amount</span><span role="columnheader">Status</span><span role="columnheader"></span></div>
+              <oj-bind-for-each data="[[ $variables.directCosts ]]">
+                <template data-oj-as="d">
+                  <div class="er-dc-row" role="row">
+                    <span role="cell"><oj-bind-text value="[[ $functions.directSummary(d.data).date ]]"></oj-bind-text></span>
+                    <span role="cell" class="er-pc-ell"><oj-bind-text value="[[ $functions.directSummary(d.data).what ]]"></oj-bind-text></span>
+                    <span role="cell" class="er-num"><oj-bind-text value="[[ $functions.money($functions.directSummary(d.data).amount) ]]"></oj-bind-text></span>
+                    <span role="cell"><oj-bind-text value="[[ $functions.statusText($functions.directSummary(d.data).status) ]]"></oj-bind-text></span>
+                    <span role="cell"></span>
+                  </div>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </div>
+          <oj-bind-if test="[[ $variables.directCosts.length === 0 ]]"><p class="er-muted">No direct cost on this request.</p></oj-bind-if>
+        </div>
+      </oj-bind-if>
+    </section>
+
+    <section class="er-card er-card-pad" aria-labelledby="dcHistTitle">
+      <div class="er-table-head">
+        <h2 class="er-section-title" id="dcHistTitle"><oj-bind-text value="[[ 'Cost history for ' + $variables.current.requestNumber ]]"></oj-bind-text></h2>
+        <strong><oj-bind-text value="[[ $functions.money($functions.costTotal($variables.costRows)) ]]"></oj-bind-text></strong>
+      </div>
+      <div class="er-u-scroll">
+        <div class="er-dc-grid" role="table" aria-label="Cost history">
+          <div class="er-dc-row er-dc-head" role="row"><span role="columnheader">Date</span><span role="columnheader">Equipment</span>
+            <span role="columnheader" class="er-num">Quantity</span><span role="columnheader" class="er-num">Cost</span><span role="columnheader">Status</span></div>
+          <oj-bind-for-each data="[[ $variables.costRows ]]">
+            <template data-oj-as="c">
+              <div class="er-dc-row" role="row">
+                <span role="cell"><oj-bind-text value="[[ $functions.day(c.data.postedDate || c.data.costDate) ]]"></oj-bind-text></span>
+                <span role="cell" class="er-pc-ell"><oj-bind-text value="[[ (c.data.equipmentName || '') + (c.data.equipmentNumber ? ' · ' + c.data.equipmentNumber : '') ]]"></oj-bind-text></span>
+                <span role="cell" class="er-num"><oj-bind-text value="[[ c.data.quantity == null ? '' : c.data.quantity ]]"></oj-bind-text></span>
+                <span role="cell" class="er-num"><oj-bind-text value="[[ $functions.money(c.data.totalCost != null ? c.data.totalCost : c.data.cost) ]]"></oj-bind-text></span>
+                <span role="cell"><oj-bind-text value="[[ $functions.statusText(c.data.postedStatus) ]]"></oj-bind-text></span>
+              </div>
+            </template>
+          </oj-bind-for-each>
+        </div>
+      </div>
+      <oj-bind-if test="[[ $variables.costRows.length === 0 ]]"><p class="er-muted">No cost recorded on this request yet.</p></oj-bind-if>
+    </section>
+  </oj-bind-if>
+</div>

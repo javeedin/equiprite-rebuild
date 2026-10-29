@@ -1,0 +1,481 @@
+<!-- Post costs (wireframe: Post costs). List: listChain; preview: loadPreviewChain (the old drill-down's reads);
+     posting: postSelectedChain, only from the review panel, which lists exactly what will be written and sent. -->
+<div class="er-band">
+  <div class="er-band-inner">
+    <div>
+      <div class="er-band-kicker">Usage &amp; cost · FDD 7.14A</div>
+      <h1>Post costs</h1>
+      <div class="er-band-sub">
+        <oj-bind-if test="[[ !$variables.current ]]">
+          <span>Calculated equipment cost to Oracle Projects, week by week</span>
+        </oj-bind-if>
+        <oj-bind-if test="[[ !!$variables.current ]]">
+          <span><strong><oj-bind-text value="[[ $variables.current.requestNumber ]]"></oj-bind-text></strong>
+            <oj-bind-text value="[[ ' · ' + ($variables.current.projectName || '') + ($variables.current.taskName && $variables.current.taskName !== '—' ? ' / ' + $variables.current.taskName : '')
+              + ($variables.facts.startDate ? ' · ' + $variables.facts.startDate + ' – ' + $variables.facts.endDate : '') ]]"></oj-bind-text></span>
+        </oj-bind-if>
+      </div>
+    </div>
+    <div class="er-actions">
+      <oj-bind-if test="[[ $application.functions.oldAppLink($application.variables.oldAppUrl, 'post-costs') ]]">
+        <a class="er-btn er-btn--ghost" :href="[[ $application.functions.oldAppLink($application.variables.oldAppUrl, 'post-costs') ]]">Old version</a>
+      </oj-bind-if>
+      <oj-bind-if test="[[ !!$variables.current ]]">
+        <button type="button" class="er-btn er-btn--primary" data-panel="review" on-click="[[ $listeners.onPanel ]]"
+          :disabled="[[ $variables.isPosting || $variables.readOnly || $functions.selection($variables.rowsAll).items === 0 ]]">
+          <oj-bind-text value="[[ $functions.selection($variables.rowsAll).items === 0 ? 'Tick weeks to post'
+            : 'Review & post · ' + $functions.selectionText($variables.rowsAll) ]]"></oj-bind-text>
+        </button>
+      </oj-bind-if>
+    </div>
+  </div>
+  <div class="er-strip" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+</div>
+
+<div class="er-page">
+  <oj-bind-if test="[[ !!$variables.listError ]]">
+    <div class="er-error" role="alert"><oj-bind-text value="[[ $variables.listError ]]"></oj-bind-text></div>
+  </oj-bind-if>
+
+  <section class="er-card er-pc-list" aria-labelledby="pcListTitle">
+    <div class="er-table-head er-card-pad">
+      <h2 class="er-section-title" id="pcListTitle">Requests with cost</h2>
+      <label class="er-search er-pc-search">
+        <span class="oj-ux-ico-search" aria-hidden="true"></span>
+        <span class="er-sr">Find a request</span>
+        <input type="search" placeholder="Request, project, task or agreement" on-input="[[ $listeners.onListSearch ]]">
+      </label>
+    </div>
+    <div class="er-u-scroll">
+      <div class="er-pc-lgrid" role="table" aria-label="Requests">
+        <div class="er-pc-lrow er-pc-lhead" role="row">
+          <span role="columnheader">Request</span><span role="columnheader">Project / task</span><span role="columnheader">Period</span>
+          <span role="columnheader" class="er-num">Timesheets</span><span role="columnheader" class="er-num">Hours</span>
+          <span role="columnheader" class="er-num">Cost to date</span>
+        </div>
+        <div class="er-pc-lbody">
+          <oj-bind-for-each data="[[ $functions.filterList($variables.list, $variables.listText) ]]">
+            <template data-oj-as="r">
+              <button type="button" role="row" :data-request="[[ r.data.requestNumber ]]" on-click="[[ $listeners.onOpenRequest ]]"
+                :class="[[ 'er-pc-lrow er-pc-lbtn' + ($variables.current && $variables.current.requestNumber === r.data.requestNumber ? ' er-pc-lrow--on' : '') ]]"
+                :aria-current="[[ $variables.current && $variables.current.requestNumber === r.data.requestNumber ? 'true' : 'false' ]]">
+                <span role="cell"><strong><oj-bind-text value="[[ r.data.requestNumber ]]"></oj-bind-text></strong></span>
+                <span role="cell" class="er-pc-ell"><oj-bind-text value="[[ r.data.projectName + (r.data.taskName && r.data.taskName !== '—' ? ' / ' + r.data.taskName : '') ]]"></oj-bind-text></span>
+                <span role="cell"><oj-bind-text value="[[ $functions.period(r.data) ]]"></oj-bind-text></span>
+                <span role="cell" class="er-num"><oj-bind-text value="[[ r.data.timesheets ]]"></oj-bind-text></span>
+                <span role="cell" class="er-num"><oj-bind-text value="[[ r.data.totalHours ]]"></oj-bind-text></span>
+                <span role="cell" class="er-num"><strong><oj-bind-text value="[[ $functions.money(r.data.totalBillCost) ]]"></oj-bind-text></strong></span>
+              </button>
+            </template>
+          </oj-bind-for-each>
+          <oj-bind-if test="[[ $functions.filterList($variables.list, $variables.listText).length === 0 ]]">
+            <div class="er-te-empty er-muted">
+              <oj-bind-if test="[[ $variables.listLoading ]]">Loading requests…</oj-bind-if>
+              <oj-bind-if test="[[ !$variables.listLoading ]]">No request has cost to post.</oj-bind-if>
+            </div>
+          </oj-bind-if>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <oj-bind-if test="[[ !$variables.current && !$variables.listLoading && $variables.list.length > 0 ]]">
+    <div class="er-u-notice">Open a request to preview its cost week by week, then tick what to post. Nothing reaches Fusion until you review it.</div>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ !!$variables.current ]]">
+    <section class="er-card er-pc-preview" aria-labelledby="pcPreviewTitle">
+      <div class="er-pc-phead">
+        <h2 class="er-section-title" id="pcPreviewTitle">
+          <oj-bind-text value="[[ 'Preview: ' + $variables.current.requestNumber ]]"></oj-bind-text>
+          <oj-bind-if test="[[ $variables.facts.isEarlyReturn ]]"><span class="er-u-tag er-u-tag--warn">Re-tiered</span></oj-bind-if>
+        </h2>
+        <div class="er-actions">
+          <button type="button" class="er-btn er-btn--plain" data-action="selectAllPast" on-click="[[ $listeners.onTreeClick ]]"
+            :disabled="[[ $variables.isPosting || $variables.readOnly || $variables.previewLoading ]]">Select all past weeks</button>
+          <button type="button" class="er-btn er-btn--dark" data-panel="review" on-click="[[ $listeners.onPanel ]]"
+            :disabled="[[ $variables.isPosting || $variables.readOnly || $functions.selection($variables.rowsAll).items === 0 ]]">
+            <oj-bind-text value="[[ $functions.selection($variables.rowsAll).items === 0 ? 'Review' : 'Review ' + $functions.selectionText($variables.rowsAll) ]]"></oj-bind-text>
+          </button>
+        </div>
+      </div>
+      <dl class="er-facts er-pc-facts">
+        <div><dt>Total cost to date</dt><dd><oj-bind-text value="[[ $functions.money($variables.facts.totalCost) ]]"></oj-bind-text></dd></div>
+        <div><dt>Already posted</dt><dd><oj-bind-text value="[[ $functions.money($variables.facts.postedCost) ]]"></oj-bind-text></dd></div>
+        <div><dt>Ready to post (incurred)</dt><dd><oj-bind-text value="[[ $functions.money($variables.facts.incurredToDate) ]]"></oj-bind-text></dd></div>
+        <div><dt>Last posted</dt><dd><oj-bind-text value="[[ $variables.facts.lastPostedLabel || '—' ]]"></oj-bind-text></dd></div>
+        <oj-bind-if test="[[ !!$variables.facts.netAdjustment ]]">
+          <div><dt>Net adjustment from re-tier</dt>
+            <dd :class="[[ $variables.facts.netAdjustment < 0 ? 'er-pc-credit' : 'er-pc-debit' ]]">
+              <oj-bind-text value="[[ $functions.money($variables.facts.netAdjustment) + ($variables.facts.netAdjustment < 0 ? ' credit' : ' debit') ]]"></oj-bind-text></dd></div>
+        </oj-bind-if>
+      </dl>
+
+      <oj-bind-if test="[[ !!$variables.previewError ]]">
+        <div class="er-error er-pc-msg" role="alert"><oj-bind-text value="[[ $variables.previewError ]]"></oj-bind-text></div>
+      </oj-bind-if>
+      <oj-bind-if test="[[ !!$variables.postError ]]">
+        <div class="er-error er-pc-msg" role="alert"><oj-bind-text value="[[ $variables.postError ]]"></oj-bind-text></div>
+      </oj-bind-if>
+      <oj-bind-if test="[[ !!$variables.postSuccess ]]">
+        <div class="er-u-ok er-pc-msg" role="status"><oj-bind-text value="[[ $variables.postSuccess ]]"></oj-bind-text></div>
+      </oj-bind-if>
+      <oj-bind-if test="[[ !!$variables.reverseAsk ]]">
+        <div class="er-u-confirm er-pc-msg" role="alertdialog" aria-labelledby="pcRevTitle">
+          <span id="pcRevTitle">
+            <strong><oj-bind-text value="[[ 'Reverse ' + $functions.reversePreview($variables.rowsAll, $variables.reverseAsk).weeks + ' posted week(s) of '
+              + $functions.reversePreview($variables.rowsAll, $variables.reverseAsk).equipment + '?' ]]"></oj-bind-text></strong>
+            <oj-bind-text value="[[ ' ' + $functions.reversePreview($variables.rowsAll, $variables.reverseAsk).labels.join(', ') + '. Credits '
+              + $functions.money($functions.reversePreview($variables.rowsAll, $variables.reverseAsk).credit) + ' and drafts '
+              + $functions.money($functions.reversePreview($variables.rowsAll, $variables.reverseAsk).redraft)
+              + ' at the new tier. Nothing goes to Fusion until you post the drafts.' ]]"></oj-bind-text>
+          </span>
+          <span class="er-actions">
+            <button type="button" class="er-btn er-btn--plain" on-click="[[ $listeners.onReverseCancel ]]">Cancel</button>
+            <button type="button" class="er-btn er-btn--danger" on-click="[[ $listeners.onReverseGo ]]" :disabled="[[ $variables.isPosting ]]">Reverse and re-draft</button>
+          </span>
+        </div>
+      </oj-bind-if>
+
+      <div :class="[[ 'er-pc-body' + ($variables.panel ? ' er-pc-body--panel' : '') ]]">
+        <div class="er-u-scroll er-pc-treewrap">
+          <div class="er-pc-tree" role="treegrid" aria-label="Cost by equipment and week">
+            <div class="er-pc-row er-pc-head" role="row">
+              <span role="columnheader">Equipment / week</span><span role="columnheader">Rate</span><span role="columnheader">Tier</span>
+              <span role="columnheader" class="er-num">Days</span><span role="columnheader">Project / task</span>
+              <span role="columnheader">Expenditure type</span><span role="columnheader">Status</span><span role="columnheader" class="er-num">Cost</span>
+            </div>
+            <oj-bind-for-each data="[[ $functions.visibleRows($variables.rowsAll) ]]">
+              <template data-oj-as="row">
+                <div role="row" :class="[[ 'er-pc-row er-pc-row--' + row.data.kind + (row.data.selected ? ' er-row--on' : '') + (row.data.reversed ? ' er-pc-row--struck' : '') ]]">
+                  <span role="gridcell" class="er-pc-label">
+                    <oj-bind-if test="[[ row.data.kind === 'group' ]]">
+                      <span class="er-pc-gline">
+                        <button type="button" class="er-pc-chev" data-action="toggleGroup" :data-key="[[ row.data.groupKey ]]" on-click="[[ $listeners.onTreeClick ]]"
+                          :aria-expanded="[[ row.data.expanded ? 'true' : 'false' ]]">
+                          <span :class="[[ row.data.expanded ? 'oj-ux-ico-chevron-down' : 'oj-ux-ico-chevron-right' ]]" aria-hidden="true"></span>
+                          <strong><oj-bind-text value="[[ row.data.label ]]"></oj-bind-text></strong>
+                          <span class="er-note"><oj-bind-text value="[[ row.data.notStarted ? '(not started)' : '(' + row.data.weekCount + ' weeks)' ]]"></oj-bind-text></span>
+                        </button>
+                      </span>
+                      <span class="er-pc-gtools">
+                        <oj-bind-if test="[[ row.data.hasPostable && !$variables.readOnly ]]">
+                          <label class="er-check er-pc-small"><input type="checkbox" data-action="group" :data-key="[[ row.data.groupKey ]]"
+                            :checked="[[ row.data.allSelected ]]" on-change="[[ $listeners.onTreeCheck ]]">
+                            <oj-bind-text value="[[ row.data.allSelected ? 'All weeks selected' : 'Select all weeks' ]]"></oj-bind-text></label>
+                        </oj-bind-if>
+                        <oj-bind-if test="[[ !$variables.readOnly ]]">
+                          <button type="button" class="er-u-link er-pc-small" data-panel="misc" :data-key="[[ row.data.groupKey ]]" on-click="[[ $listeners.onPanel ]]">Add misc charge</button>
+                        </oj-bind-if>
+                        <oj-bind-if test="[[ row.data.tierChanged && !$variables.readOnly ]]">
+                          <button type="button" class="er-u-link er-pc-small er-pc-danger" :data-key="[[ row.data.groupKey ]]" on-click="[[ $listeners.onReverse ]]"
+                            title="Reverse the posted weeks whose tier changed and re-draft them at the new rate">Re-tier (reverse)</button>
+                        </oj-bind-if>
+                        <oj-bind-if test="[[ row.data.hasReversal ]]"><span class="er-u-tag er-u-tag--warn">Line reversed</span></oj-bind-if>
+                        <oj-bind-if test="[[ row.data.splitWeekCount > 0 ]]">
+                          <span class="er-u-tag" :title="[[ $functions.splitTitle(row.data) ]]"><oj-bind-text value="[[ $functions.splitWeeksLabel(row.data) ]]"></oj-bind-text></span>
+                        </oj-bind-if>
+                      </span>
+                    </oj-bind-if>
+
+                    <oj-bind-if test="[[ row.data.kind === 'week' ]]">
+                      <span class="er-pc-wline">
+                        <oj-bind-if test="[[ row.data.postable && !row.data.posted && !row.data.reversed && !$variables.readOnly ]]">
+                          <input type="checkbox" class="er-pc-box" data-action="week" :data-key="[[ row.data.rowKey ]]" :checked="[[ row.data.selected ]]"
+                            :aria-label="[[ 'Post ' + row.data.equipmentName + ' ' + row.data.label ]]" on-change="[[ $listeners.onTreeCheck ]]">
+                        </oj-bind-if>
+                        <oj-bind-if test="[[ !(row.data.postable && !row.data.posted && !row.data.reversed && !$variables.readOnly) ]]">
+                          <span class="er-pc-box"></span>
+                        </oj-bind-if>
+                        <span :title="[[ row.data.labelTitle || '' ]]"><oj-bind-text value="[[ row.data.label ]]"></oj-bind-text></span>
+                        <oj-bind-if test="[[ row.data.canBlackout ]]">
+                          <button type="button" class="er-u-link er-pc-small" data-action="toggleDays" :data-key="[[ row.data.rowKey ]]" on-click="[[ $listeners.onTreeClick ]]"
+                            :aria-expanded="[[ row.data.weekExpanded ? 'true' : 'false' ]]" title="Mark days the equipment was down, so they are not billed">Exclude days</button>
+                          <oj-bind-if test="[[ row.data.blackoutDays > 0 ]]"><span class="er-u-tag er-u-tag--warn"><oj-bind-text value="[[ '−' + row.data.blackoutDays + 'd excluded' ]]"></oj-bind-text></span></oj-bind-if>
+                        </oj-bind-if>
+                        <oj-bind-if test="[[ row.data.splitLocked && row.data.splitCount > 0 ]]">
+                          <span class="er-u-tag er-u-tag--muted" :title="[[ row.data.splitLockReason || '' ]]"><oj-bind-text value="[[ $functions.splitLabel(row.data) ]]"></oj-bind-text></span>
+                        </oj-bind-if>
+                        <oj-bind-if test="[[ row.data.splitLocked && !row.data.splitCount && row.data.splitLockedByPr ]]">
+                          <span class="er-u-tag er-u-tag--muted" :title="[[ row.data.splitLockReason || '' ]]">PO project</span>
+                        </oj-bind-if>
+                        <oj-bind-if test="[[ !row.data.splitLocked && !$variables.readOnly ]]">
+                          <button type="button" class="er-u-link er-pc-small" data-panel="split" :data-key="[[ row.data.rowKey ]]" on-click="[[ $listeners.onPanel ]]"
+                            :title="[[ $functions.splitTitle(row.data) || 'Divide this week across more than one project' ]]">
+                            <oj-bind-text value="[[ row.data.splitCount ? $functions.splitLabel(row.data) : 'Split across projects' ]]"></oj-bind-text></button>
+                        </oj-bind-if>
+                      </span>
+                    </oj-bind-if>
+
+                    <oj-bind-if test="[[ row.data.kind === 'split' ]]">
+                      <span class="er-pc-sline"><span aria-hidden="true">↳</span>
+                        <oj-bind-text value="[[ row.data.label + ' · ' + row.data.splitPct + '%' ]]"></oj-bind-text></span>
+                    </oj-bind-if>
+
+                    <oj-bind-if test="[[ row.data.kind === 'miscGroup' ]]">
+                      <button type="button" class="er-pc-chev er-pc-indent" data-action="toggleMiscGroup" :data-key="[[ row.data.rowKey ]]" on-click="[[ $listeners.onTreeClick ]]"
+                        :aria-expanded="[[ row.data.miscExpanded ? 'true' : 'false' ]]">
+                        <span :class="[[ row.data.miscExpanded ? 'oj-ux-ico-chevron-down' : 'oj-ux-ico-chevron-right' ]]" aria-hidden="true"></span>
+                        <oj-bind-text value="[[ 'Misc charges (' + row.data.miscCount + ')' ]]"></oj-bind-text>
+                      </button>
+                    </oj-bind-if>
+
+                    <oj-bind-if test="[[ row.data.kind === 'misc' ]]">
+                      <span class="er-pc-wline er-pc-indent">
+                        <oj-bind-if test="[[ row.data.status !== 'POSTED' && !$variables.readOnly ]]">
+                          <input type="checkbox" class="er-pc-box" data-action="misc" :data-key="[[ row.data.rowKey ]]" :checked="[[ row.data.selected ]]"
+                            :aria-label="[[ 'Post charge ' + row.data.label ]]" on-change="[[ $listeners.onTreeCheck ]]">
+                        </oj-bind-if>
+                        <oj-bind-if test="[[ row.data.status === 'POSTED' || $variables.readOnly ]]"><span class="er-pc-box"></span></oj-bind-if>
+                        <span class="er-u-tag er-u-tag--muted">Misc</span>
+                        <span class="er-pc-ell"><oj-bind-text value="[[ row.data.label ]]"></oj-bind-text></span>
+                        <span class="er-note"><oj-bind-text value="[[ row.data.expItemDate ]]"></oj-bind-text></span>
+                        <oj-bind-if test="[[ row.data.status !== 'POSTED' && !$variables.readOnly ]]">
+                          <button type="button" class="er-u-link er-pc-small er-pc-danger" :data-key="[[ row.data.rowKey ]]" on-click="[[ $listeners.onDeleteMisc ]]">Remove</button>
+                        </oj-bind-if>
+                      </span>
+                    </oj-bind-if>
+
+                    <oj-bind-if test="[[ row.data.kind === 'day' ]]">
+                      <span class="er-pc-dline">
+                        <oj-bind-if test="[[ !row.data.locked && !$variables.readOnly ]]">
+                          <label class="er-check er-pc-small"><input type="checkbox" :data-key="[[ row.data.rowKey ]]" :checked="[[ row.data.blackout ]]"
+                            on-change="[[ $listeners.onBlackout ]]"><oj-bind-text value="[[ row.data.blackout ? 'Excluded' : 'Exclude' ]]"></oj-bind-text></label>
+                        </oj-bind-if>
+                        <oj-bind-if test="[[ row.data.locked || $variables.readOnly ]]"><span class="er-note">Posted</span></oj-bind-if>
+                        <span :class="[[ row.data.blackout ? 'er-pc-out' : '' ]]"><oj-bind-text value="[[ row.data.label ]]"></oj-bind-text></span>
+                        <oj-bind-if test="[[ row.data.inert ]]"><span class="er-note">recorded, not billed</span></oj-bind-if>
+                      </span>
+                    </oj-bind-if>
+                  </span>
+                  <span role="gridcell" class="er-pc-ell"><oj-bind-text value="[[ row.data.kind === 'day' || row.data.kind === 'split' || row.data.kind === 'miscGroup' ? '' : (row.data.rateText || '—') ]]"></oj-bind-text></span>
+                  <span role="gridcell"><oj-bind-text value="[[ row.data.kind === 'group' || row.data.kind === 'week' ? $functions.tierText(row.data) : '' ]]"></oj-bind-text></span>
+                  <span role="gridcell" class="er-num"><oj-bind-text value="[[ row.data.kind === 'day' ? '' : $functions.daysText(row.data) ]]"></oj-bind-text></span>
+                  <span role="gridcell" class="er-pc-ell">
+                    <oj-bind-for-each data="[[ $functions.projectCells(row.data, $functions.hdrOf($variables.current)) ]]">
+                      <template data-oj-as="pc">
+                        <span :class="[[ 'er-pc-proj' + (pc.data.inherited ? ' er-pc-proj--own' : '') ]]" :title="[[ pc.data.project + (pc.data.task ? ' / ' + pc.data.task : '') ]]">
+                          <oj-bind-text value="[[ (pc.data.projectName || pc.data.project) + (pc.data.taskName || pc.data.task ? ' / ' + (pc.data.taskName || pc.data.task) : '')
+                            + (pc.data.pct != null ? ' · ' + pc.data.pct + '%' : '') ]]"></oj-bind-text></span>
+                      </template>
+                    </oj-bind-for-each>
+                  </span>
+                  <span role="gridcell" class="er-pc-ell">
+                    <oj-bind-if test="[[ row.data.kind === 'group' && !row.data.expenditureTypeLocked && !$variables.readOnly ]]">
+                      <button type="button" :class="[[ 'er-u-link' + (row.data.expenditureType ? '' : ' er-pc-unset') ]]" data-panel="exptype" :data-key="[[ row.data.groupKey ]]"
+                        on-click="[[ $listeners.onPanel ]]"><oj-bind-text value="[[ $functions.expTypeLabel(row.data) ]]"></oj-bind-text></button>
+                    </oj-bind-if>
+                    <oj-bind-if test="[[ row.data.kind === 'group' && (row.data.expenditureTypeLocked || $variables.readOnly) ]]">
+                      <span class="er-note" title="The purchase order's own expenditure type applies"><oj-bind-text value="[[ row.data.expenditureTypeLocked ? 'From the PO' : $functions.expTypeLabel(row.data) ]]"></oj-bind-text></span>
+                    </oj-bind-if>
+                    <oj-bind-if test="[[ row.data.kind === 'misc' ]]"><oj-bind-text value="[[ row.data.expenditureType ]]"></oj-bind-text></oj-bind-if>
+                  </span>
+                  <span role="gridcell">
+                    <oj-bind-if test="[[ row.data.kind === 'week' || row.data.kind === 'misc' ]]">
+                      <span :class="[[ $functions.tagClass(row.data) ]]"><oj-bind-text value="[[ $functions.tagText(row.data) ]]"></oj-bind-text></span>
+                    </oj-bind-if>
+                  </span>
+                  <span role="gridcell" class="er-num er-pc-cost">
+                    <oj-bind-text value="[[ row.data.kind === 'day' ? (row.data.dayCost ? $functions.money(row.data.dayCost) : (row.data.blackout ? 'excluded' : '')) : $functions.money(row.data.cost) ]]"></oj-bind-text>
+                  </span>
+                </div>
+              </template>
+            </oj-bind-for-each>
+            <oj-bind-if test="[[ $variables.rowsAll.length === 0 ]]">
+              <div class="er-te-empty er-muted">
+                <oj-bind-if test="[[ $variables.previewLoading ]]">Loading the cost…</oj-bind-if>
+                <oj-bind-if test="[[ !$variables.previewLoading ]]">No cost on this request yet.</oj-bind-if>
+              </div>
+            </oj-bind-if>
+          </div>
+        </div>
+
+        <oj-bind-if test="[[ $variables.panel === 'review' ]]">
+          <aside class="er-pc-panel er-pc-review" aria-labelledby="pcReviewTitle">
+            <h3 id="pcReviewTitle">What will be posted</h3>
+            <p class="er-note">Step 1 records these lines in EquipRite's posting ledger. Step 2 sends
+              <strong><oj-bind-text value="[[ $variables.current.requestNumber ]]"></oj-bind-text></strong>
+              to Fusion PPM, which takes every recorded line not yet sent, as project expenditure items.</p>
+            <ul class="er-pc-plan">
+              <oj-bind-for-each data="[[ $functions.postingPlan($variables.rowsAll, $functions.hdrOf($variables.current), $variables.current.rateScheduleId) ]]">
+                <template data-oj-as="p">
+                  <li>
+                    <span class="er-pc-plan-main">
+                      <strong><oj-bind-text value="[[ p.data.what ]]"></oj-bind-text></strong>
+                      <span class="er-note"><oj-bind-text value="[[ p.data.quantity + ' · ' + p.data.expType ]]"></oj-bind-text></span>
+                      <span class="er-note"><oj-bind-text value="[[ 'To ' + p.data.destination ]]"></oj-bind-text></span>
+                      <oj-bind-if test="[[ !!p.data.note ]]"><span class="er-pc-plan-note"><oj-bind-text value="[[ p.data.note ]]"></oj-bind-text></span></oj-bind-if>
+                    </span>
+                    <strong class="er-num"><oj-bind-text value="[[ $functions.money(p.data.amount) ]]"></oj-bind-text></strong>
+                  </li>
+                </template>
+              </oj-bind-for-each>
+            </ul>
+            <div class="er-rail-total"><span>Total to post</span>
+              <strong><oj-bind-text value="[[ $functions.money($functions.planTotal($functions.postingPlan($variables.rowsAll, $functions.hdrOf($variables.current), $variables.current.rateScheduleId))) ]]"></oj-bind-text></strong></div>
+            <p class="er-note">Posted weeks cannot be undone here. A week whose tier changes later is corrected with Re-tier; anything else with Oracle Projects adjustments.</p>
+            <div class="er-pc-panel-actions">
+              <button type="button" class="er-btn er-btn--plain" on-click="[[ $listeners.onClosePanel ]]" :disabled="[[ $variables.isPosting ]]">Back</button>
+              <button type="button" class="er-btn er-btn--dark" on-click="[[ $listeners.onPost ]]" :disabled="[[ $variables.isPosting || $variables.readOnly ]]">
+                <oj-bind-text value="[[ $variables.isPosting ? 'Posting…' : 'Post to Fusion PPM · ' + $functions.money($functions.selection($variables.rowsAll).cost) ]]"></oj-bind-text>
+              </button>
+            </div>
+          </aside>
+        </oj-bind-if>
+
+        <oj-bind-if test="[[ $variables.panel === 'misc' ]]">
+          <aside class="er-pc-panel" aria-labelledby="pcMiscTitle">
+            <h3 id="pcMiscTitle">Add a misc charge</h3>
+            <p class="er-note"><oj-bind-text value="[[ 'To ' + $variables.misc.line.equipmentName + '. It is saved as a draft and posted with the weeks you tick.' ]]"></oj-bind-text></p>
+            <oj-bind-if test="[[ !!$variables.misc.error ]]"><div class="er-error" role="alert"><oj-bind-text value="[[ $variables.misc.error ]]"></oj-bind-text></div></oj-bind-if>
+            <div class="er-form">
+              <label class="er-field"><span class="er-label">Expenditure type <span class="er-req">*</span></span>
+                <input class="er-input" list="erPcExpTypes" data-field="expenditureType" :value="[[ $variables.misc.draft.expenditureType ]]" on-change="[[ $listeners.onMiscField ]]"></label>
+              <label class="er-field"><span class="er-label">Expenditure organization</span>
+                <input class="er-input" readonly="" :value="[[ $variables.misc.draft.expenditureOrg ]]"></label>
+              <div class="er-form-row">
+                <label class="er-field"><span class="er-label">Expenditure item date <span class="er-req">*</span></span>
+                  <input class="er-input" type="date" data-field="expItemDate" :value="[[ $variables.misc.draft.expItemDate ]]" on-change="[[ $listeners.onMiscField ]]"></label>
+                <label class="er-field"><span class="er-label">Quantity <span class="er-req">*</span></span>
+                  <input class="er-input" type="number" min="0" step="1" data-field="quantity" :value="[[ $variables.misc.draft.quantity ]]" on-change="[[ $listeners.onMiscField ]]"></label>
+              </div>
+              <div class="er-form-row">
+                <label class="er-field"><span class="er-label">Amount (USD) <span class="er-req">*</span></span>
+                  <input class="er-input" type="number" min="0" step="0.01" data-field="rawCost" :value="[[ $variables.misc.draft.rawCost == null ? '' : $variables.misc.draft.rawCost ]]" on-change="[[ $listeners.onMiscField ]]"></label>
+                <label class="er-field"><span class="er-label">Currency</span>
+                  <input class="er-input" readonly="" :value="[[ $variables.misc.draft.currency ]]"></label>
+              </div>
+              <label class="er-field"><span class="er-label">Comments (sent to PPM)</span>
+                <textarea class="er-input" rows="2" data-field="comments" :value="[[ $variables.misc.draft.comments ]]" on-change="[[ $listeners.onMiscField ]]"></textarea></label>
+            </div>
+            <div class="er-pc-panel-actions">
+              <button type="button" class="er-btn er-btn--plain" on-click="[[ $listeners.onClosePanel ]]">Cancel</button>
+              <button type="button" class="er-btn er-btn--dark" on-click="[[ $listeners.onSaveMisc ]]" :disabled="[[ $variables.isSavingMisc ]]">
+                <oj-bind-text value="[[ $variables.isSavingMisc ? 'Saving…' : 'Add charge' ]]"></oj-bind-text></button>
+            </div>
+          </aside>
+        </oj-bind-if>
+
+        <oj-bind-if test="[[ $variables.panel === 'exptype' ]]">
+          <aside class="er-pc-panel" aria-labelledby="pcExpTitle">
+            <h3 id="pcExpTitle">Expenditure type</h3>
+            <p class="er-note"><oj-bind-text value="[[ $variables.exp.line.equipmentName + ': applies to every week not yet posted. Left unset, it posts to PPM as Equipment.' ]]"></oj-bind-text></p>
+            <oj-bind-if test="[[ $variables.exp.line.hasPosted ]]">
+              <div class="er-u-warn">Some weeks are already posted; they keep the type they were sent with.</div>
+            </oj-bind-if>
+            <oj-bind-if test="[[ !!$variables.exp.error ]]"><div class="er-error" role="alert"><oj-bind-text value="[[ $variables.exp.error ]]"></oj-bind-text></div></oj-bind-if>
+            <label class="er-search er-pc-expsearch">
+              <span class="oj-ux-ico-search" aria-hidden="true"></span>
+              <span class="er-sr">Find an expenditure type</span>
+              <input type="search" placeholder="Find a type" on-input="[[ $listeners.onExpQuery ]]">
+            </label>
+            <div class="er-results">
+              <oj-bind-for-each data="[[ $functions.expMatches($variables.expTypeList, $variables.exp.query, 40) ]]">
+                <template data-oj-as="t">
+                  <button type="button" :data-value="[[ t.data.value ]]" on-click="[[ $listeners.onExpPick ]]"
+                    :class="[[ 'er-result' + ($variables.exp.choice === t.data.value ? ' er-result--on' : '') ]]">
+                    <oj-bind-text value="[[ t.data.label + (t.data.uom ? ' · ' + t.data.uom : '') ]]"></oj-bind-text></button>
+                </template>
+              </oj-bind-for-each>
+            </div>
+            <div class="er-pc-panel-actions">
+              <button type="button" class="er-btn er-btn--plain" on-click="[[ $listeners.onClosePanel ]]">Cancel</button>
+              <button type="button" class="er-btn er-btn--dark" on-click="[[ $listeners.onSaveExp ]]" :disabled="[[ $variables.isSavingExp || !$variables.exp.choice ]]">
+                <oj-bind-text value="[[ $variables.isSavingExp ? 'Saving…' : 'Use ' + ($variables.exp.choice || 'this type') ]]"></oj-bind-text></button>
+            </div>
+          </aside>
+        </oj-bind-if>
+
+        <oj-bind-if test="[[ $variables.panel === 'split' ]]">
+          <aside class="er-pc-panel" aria-labelledby="pcSplitTitle">
+            <h3 id="pcSplitTitle">Split across projects</h3>
+            <p class="er-note"><oj-bind-text value="[[ $variables.split.line.equipmentName + ', ' + $variables.split.line.weekLabel + ': '
+              + $functions.money($variables.split.line.weekCost) + '. Percentages only: the amounts are worked out when the week posts. Other weeks are not affected.' ]]"></oj-bind-text></p>
+            <oj-bind-if test="[[ $variables.split.line.locked ]]">
+              <div class="er-u-warn"><oj-bind-text value="[[ $variables.split.line.lockReason || 'This week cannot be split.' ]]"></oj-bind-text></div>
+            </oj-bind-if>
+            <ul class="er-pc-slices">
+              <oj-bind-for-each data="[[ $variables.split.slices ]]">
+                <template data-oj-as="s">
+                  <li>
+                    <span class="er-pc-plan-main">
+                      <strong><oj-bind-text value="[[ s.data.projectName || s.data.projectNumber ]]"></oj-bind-text></strong>
+                      <span class="er-note"><oj-bind-text value="[[ s.data.projectNumber + ' / ' + (s.data.taskNumber || '—') + (s.data.taskName ? ' ' + s.data.taskName : '') ]]"></oj-bind-text></span>
+                    </span>
+                    <input class="er-u-input er-pc-pct" type="number" min="0" max="100" step="0.01" :data-index="[[ '' + s.index ]]" :value="[[ s.data.pct == null ? '' : s.data.pct ]]"
+                      :disabled="[[ $variables.split.line.locked ]]" aria-label="Percentage" on-change="[[ $listeners.onSplitSlicePct ]]"><span>%</span>
+                    <oj-bind-if test="[[ !$variables.split.line.locked ]]">
+                      <button type="button" class="er-u-link er-pc-danger" :data-index="[[ '' + s.index ]]" on-click="[[ $listeners.onSplitRemove ]]">Remove</button>
+                    </oj-bind-if>
+                  </li>
+                </template>
+              </oj-bind-for-each>
+            </ul>
+            <oj-bind-if test="[[ !$variables.split.line.locked ]]">
+              <div class="er-pc-splitsum">
+                <span><oj-bind-text value="[[ 'Total ' + ($functions.splitPctTotal($variables.split.slices) / 100) + '%' ]]"></oj-bind-text></span>
+                <button type="button" class="er-u-link" on-click="[[ $listeners.onSplitEvenly ]]" :disabled="[[ $variables.split.slices.length < 2 ]]">Split evenly</button>
+              </div>
+              <oj-bind-if test="[[ !!($variables.split.error || $functions.splitFormError($variables.split.slices, 2, 5)) ]]">
+                <div class="er-error" role="alert"><oj-bind-text value="[[ $variables.split.error || $functions.splitFormError($variables.split.slices, 2, 5) ]]"></oj-bind-text></div>
+              </oj-bind-if>
+              <fieldset class="er-pc-add">
+                <legend>Add a project</legend>
+                <oj-bind-if test="[[ !$variables.split.pick.projectId ]]">
+                  <label class="er-search"><span class="oj-ux-ico-search" aria-hidden="true"></span><span class="er-sr">Find a project</span>
+                    <input type="search" placeholder="Project name (2 letters or more)" on-input="[[ $listeners.onSplitSearch ]]"></label>
+                  <div class="er-results">
+                    <oj-bind-for-each data="[[ $variables.split.results ]]">
+                      <template data-oj-as="p">
+                        <button type="button" class="er-result" :data-index="[[ '' + p.index ]]" on-click="[[ $listeners.onSplitProject ]]">
+                          <strong><oj-bind-text value="[[ p.data.ProjectName ]]"></oj-bind-text></strong>
+                          <span class="er-note"><oj-bind-text value="[[ p.data.ProjectNumber ]]"></oj-bind-text></span></button>
+                      </template>
+                    </oj-bind-for-each>
+                  </div>
+                </oj-bind-if>
+                <oj-bind-if test="[[ !!$variables.split.pick.projectId ]]">
+                  <div class="er-picked"><span><strong><oj-bind-text value="[[ $variables.split.pick.projectName ]]"></oj-bind-text></strong>
+                    <span class="er-note"><oj-bind-text value="[[ $variables.split.pick.projectNumber + ($variables.split.pick.taskNumber ? ' / task ' + $variables.split.pick.taskNumber : ' · pick a task') ]]"></oj-bind-text></span></span></div>
+                  <oj-bind-if test="[[ !$variables.split.pick.taskId ]]">
+                    <input class="er-u-input" type="search" placeholder="Filter tasks" on-input="[[ $listeners.onSplitTaskQuery ]]" aria-label="Filter tasks">
+                    <div class="er-results">
+                      <oj-bind-for-each data="[[ $functions.taskMatches($variables.split.tasks, $variables.split.taskQuery) ]]">
+                        <template data-oj-as="t">
+                          <button type="button" class="er-result" :data-index="[[ '' + t.index ]]" on-click="[[ $listeners.onSplitTask ]]">
+                            <oj-bind-text value="[[ (t.data.TaskNumber || '') + ' ' + (t.data.TaskName || '') ]]"></oj-bind-text></button>
+                        </template>
+                      </oj-bind-for-each>
+                    </div>
+                  </oj-bind-if>
+                  <oj-bind-if test="[[ !!$variables.split.taskError ]]"><div class="er-error"><oj-bind-text value="[[ $variables.split.taskError ]]"></oj-bind-text></div></oj-bind-if>
+                  <div class="er-pc-addrow">
+                    <input class="er-u-input er-pc-pct" type="number" min="0" max="100" step="0.01" placeholder="%" aria-label="Percentage for this project"
+                      on-change="[[ $listeners.onSplitPickPct ]]">
+                    <button type="button" class="er-btn er-btn--plain" on-click="[[ $listeners.onSplitAdd ]]">Add to split</button>
+                  </div>
+                </oj-bind-if>
+              </fieldset>
+            </oj-bind-if>
+            <div class="er-pc-panel-actions">
+              <oj-bind-if test="[[ $variables.split.line.splitCount > 0 && !$variables.split.line.locked ]]">
+                <button type="button" class="er-btn er-btn--plain er-pc-danger" on-click="[[ $listeners.onSplitClear ]]" :disabled="[[ $variables.isSavingSplit ]]">Remove split</button>
+              </oj-bind-if>
+              <button type="button" class="er-btn er-btn--plain" on-click="[[ $listeners.onClosePanel ]]">Close</button>
+              <oj-bind-if test="[[ !$variables.split.line.locked ]]">
+                <button type="button" class="er-btn er-btn--dark" on-click="[[ $listeners.onSplitSave ]]"
+                  :disabled="[[ $variables.isSavingSplit || !!$functions.splitFormError($variables.split.slices, 2, 5) ]]">Apply split</button>
+              </oj-bind-if>
+            </div>
+          </aside>
+        </oj-bind-if>
+      </div>
+    </section>
+  </oj-bind-if>
+
+  <datalist id="erPcExpTypes">
+    <oj-bind-for-each data="[[ $variables.expTypeList ]]">
+      <template data-oj-as="t"><option :value="[[ t.data.value ]]"></option></template>
+    </oj-bind-for-each>
+  </datalist>
+</div>

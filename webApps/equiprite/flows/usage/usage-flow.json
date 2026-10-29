@@ -1,0 +1,23 @@
+{
+  "id": "usage",
+  "description": "Usage and cost (FDD 7.13, 7.14, 7.14A, 7.9.1A/7.9.2A): Time entry (weekly grid), Timesheet approval (variance, week over week, adjust with an audit trail), Post costs (preview, re-tier, split, misc charges, blackout days, post to Fusion PPM) and Direct cost & inventory use.",
+  "defaultPage": "time-entry",
+  "pages": {
+    "time-entry": {
+      "path": "pages/time-entry-page"
+    },
+    "timesheet-approval": {
+      "path": "pages/timesheet-approval-page"
+    },
+    "post-costs": {
+      "path": "pages/post-costs-page"
+    },
+    "project-costs": {
+      "path": "pages/project-costs-page"
+    }
+  },
+  "chains": {},
+  "services": {},
+  "types": {},
+  "variables": {}
+}

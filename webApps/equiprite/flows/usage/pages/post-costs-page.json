@@ -1,0 +1,210 @@
+{
+  "title": "Post costs",
+  "description": "Post calculated equipment cost to Fusion PPM (FDD 7.14A, S24; replaces post-cost-test, post-cost-test-detail, post-cost and post-cost-detail). The list is views/post-cost (+ misc charges); the preview of a request is the old drill-down's views/post-cost-details with its companions (re-tier, blackout days, misc charges, project splits, PR lines). Post sends what the old postSelectedChain sends: the ledger (posted-weeks, posted-weeks/split), misc-transactions/post, then the OIC post-cost flow. ?request= opens a request.",
+  "variables": {
+    "request": {
+      "type": "string",
+      "input": "fromUrl"
+    },
+    "list": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "listText": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "listLoading": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "listError": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "current": {
+      "type": "any",
+      "defaultValue": null,
+      "description": "The request open in the preview: its list row (requestNumber, eqrEquipmentRequestId, project, task, ppm* ids, rateScheduleId, dates)."
+    },
+    "rowsAll": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "facts": {
+      "type": "any",
+      "defaultValue": {},
+      "description": "totalCost, postedCost, incurredToDate, netAdjustment, lastPostedLabel, headerStatus, isEarlyReturn, startDate, endDate."
+    },
+    "previewLoading": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "previewError": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "expTypeList": {
+      "type": "any[]",
+      "defaultValue": [
+        { "value": "Equipment", "label": "Equipment", "id": null },
+        { "value": "Purchased Equipment", "label": "Purchased Equipment", "id": null },
+        { "value": "Supplies", "label": "Supplies", "id": null },
+        { "value": "Miscellaneous", "label": "Miscellaneous", "id": null }
+      ]
+    },
+    "panel": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "The open side panel: misc, exptype, split or review."
+    },
+    "misc": {
+      "type": "any",
+      "defaultValue": {},
+      "description": "{ line: { groupKey, equipmentName, requestLineId }, draft: { expenditureType, expenditureOrg, expItemDate, quantity, rawCost, currency, comments }, error }"
+    },
+    "isSavingMisc": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "exp": {
+      "type": "any",
+      "defaultValue": {},
+      "description": "{ line: { groupKey, equipmentName, current, hasPosted }, choice, query, error }"
+    },
+    "isSavingExp": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "split": {
+      "type": "any",
+      "defaultValue": {},
+      "description": "{ line, slices, error, query, results, searching, pick, tasks, taskQuery, tree, taskError }"
+    },
+    "isSavingSplit": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "isPosting": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "postError": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "postSuccess": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "readOnly": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "reverseAsk": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "The equipment whose re-tier reversal is waiting for confirmation."
+    }
+  },
+  "metadata": {},
+  "eventListeners": {
+    "vbBeforeEnter": {
+      "chains": [{ "chain": "enforcePageAccessChain" }]
+    },
+    "vbEnter": {
+      "chains": [{ "chain": "postCostsInitChain" }]
+    },
+    "onListSearch": {
+      "chains": [{ "chain": "treeChain", "parameters": { "action": "listText", "key": "{{ $event.target.value }}" } }]
+    },
+    "onOpenRequest": {
+      "chains": [{ "chain": "openRequestChain", "parameters": { "requestNumber": "{{ $event.currentTarget.dataset.request }}" } }]
+    },
+    "onTreeClick": {
+      "chains": [{ "chain": "treeChain", "parameters": { "action": "{{ $event.currentTarget.dataset.action }}", "key": "{{ $event.currentTarget.dataset.key }}" } }]
+    },
+    "onTreeCheck": {
+      "chains": [{ "chain": "treeChain", "parameters": { "action": "{{ $event.target.dataset.action }}", "key": "{{ $event.target.dataset.key }}", "checked": "{{ $event.target.checked }}" } }]
+    },
+    "onPanel": {
+      "chains": [{ "chain": "panelChain", "parameters": { "panel": "{{ $event.currentTarget.dataset.panel }}", "key": "{{ $event.currentTarget.dataset.key }}" } }]
+    },
+    "onClosePanel": {
+      "chains": [{ "chain": "panelChain", "parameters": { "panel": "" } }]
+    },
+    "onMiscField": {
+      "chains": [{ "chain": "miscChain", "parameters": { "action": "field", "field": "{{ $event.target.dataset.field }}", "value": "{{ $event.target.value }}" } }]
+    },
+    "onSaveMisc": {
+      "chains": [{ "chain": "miscChain", "parameters": { "action": "save" } }]
+    },
+    "onDeleteMisc": {
+      "chains": [{ "chain": "miscChain", "parameters": { "action": "delete", "key": "{{ $event.currentTarget.dataset.key }}" } }]
+    },
+    "onExpQuery": {
+      "chains": [{ "chain": "expTypeChain", "parameters": { "action": "query", "value": "{{ $event.target.value }}" } }]
+    },
+    "onExpPick": {
+      "chains": [{ "chain": "expTypeChain", "parameters": { "action": "pick", "value": "{{ $event.currentTarget.dataset.value }}" } }]
+    },
+    "onSaveExp": {
+      "chains": [{ "chain": "expTypeChain", "parameters": { "action": "save" } }]
+    },
+    "onSplitSearch": {
+      "chains": [{ "chain": "splitChain", "parameters": { "action": "search", "value": "{{ $event.target.value }}" } }]
+    },
+    "onSplitProject": {
+      "chains": [{ "chain": "splitChain", "parameters": { "action": "project", "index": "{{ $event.currentTarget.dataset.index }}" } }]
+    },
+    "onSplitTaskQuery": {
+      "chains": [{ "chain": "splitChain", "parameters": { "action": "taskQuery", "value": "{{ $event.target.value }}" } }]
+    },
+    "onSplitTask": {
+      "chains": [{ "chain": "splitChain", "parameters": { "action": "task", "index": "{{ $event.currentTarget.dataset.index }}" } }]
+    },
+    "onSplitPickPct": {
+      "chains": [{ "chain": "splitChain", "parameters": { "action": "pickPct", "value": "{{ $event.target.value }}" } }]
+    },
+    "onSplitAdd": {
+      "chains": [{ "chain": "splitChain", "parameters": { "action": "add" } }]
+    },
+    "onSplitRemove": {
+      "chains": [{ "chain": "splitChain", "parameters": { "action": "remove", "index": "{{ $event.currentTarget.dataset.index }}" } }]
+    },
+    "onSplitSlicePct": {
+      "chains": [{ "chain": "splitChain", "parameters": { "action": "slicePct", "index": "{{ $event.target.dataset.index }}", "value": "{{ $event.target.value }}" } }]
+    },
+    "onSplitEvenly": {
+      "chains": [{ "chain": "splitChain", "parameters": { "action": "evenly" } }]
+    },
+    "onSplitSave": {
+      "chains": [{ "chain": "saveSplitChain" }]
+    },
+    "onSplitClear": {
+      "chains": [{ "chain": "clearSplitChain" }]
+    },
+    "onBlackout": {
+      "chains": [{ "chain": "blackoutChain", "parameters": { "key": "{{ $event.target.dataset.key }}" } }]
+    },
+    "onReverse": {
+      "chains": [{ "chain": "reverseLineChain", "parameters": { "groupKey": "{{ $event.currentTarget.dataset.key }}" } }]
+    },
+    "onReverseGo": {
+      "chains": [{ "chain": "reverseLineChain", "parameters": { "confirm": "go" } }]
+    },
+    "onReverseCancel": {
+      "chains": [{ "chain": "reverseLineChain", "parameters": { "confirm": "cancel" } }]
+    },
+    "onPost": {
+      "chains": [{ "chain": "postSelectedChain" }]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}

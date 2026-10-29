@@ -1,0 +1,152 @@
+{
+  "title": "Timesheet approval",
+  "description": "Approve, reject or adjust submitted timesheets, a week at a time across requests (FDD 7.14, DP-06; replaces timesheet-approvals and timesheet-approval-detail). Reads views/timesheet-approval-details; Approve and Reject send what the old approveTimesheetChain / rejectTimesheetChain send, request by request; Adjust writes the hours and an audit-trail entry and leaves the line SUBMITTED. ?week= opens a week.",
+  "variables": {
+    "week": {
+      "type": "string",
+      "input": "fromUrl"
+    },
+    "rowsAll": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "weekKey": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "weekDays": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "statusKey": {
+      "type": "string",
+      "defaultValue": "SUBMITTED"
+    },
+    "searchText": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "compare": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "picked": {
+      "type": "any",
+      "defaultValue": {}
+    },
+    "adjust": {
+      "type": "any",
+      "defaultValue": null,
+      "description": "The line being adjusted: { key, days: [7 strings], reason }."
+    },
+    "auditByEntry": {
+      "type": "any",
+      "defaultValue": {}
+    },
+    "costByRequest": {
+      "type": "any",
+      "defaultValue": {},
+      "description": "Cost so far per request (views/project-cost-detail), for the cost-impact cards."
+    },
+    "confirm": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "approve or reject while the confirmation is open."
+    },
+    "ppmOn": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "readOnly": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "isLoading": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "isWorking": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "loadError": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "actionError": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "actionNote": {
+      "type": "string",
+      "defaultValue": ""
+    }
+  },
+  "metadata": {},
+  "eventListeners": {
+    "vbBeforeEnter": {
+      "chains": [{ "chain": "enforcePageAccessChain" }]
+    },
+    "vbEnter": {
+      "chains": [{ "chain": "approvalInitChain" }]
+    },
+    "onWeek": {
+      "chains": [{ "chain": "filterChain", "parameters": { "action": "week", "value": "{{ $event.currentTarget.dataset.week }}" } }]
+    },
+    "onStatus": {
+      "chains": [{ "chain": "filterChain", "parameters": { "action": "status", "value": "{{ $event.currentTarget.dataset.status }}" } }]
+    },
+    "onSearch": {
+      "chains": [{ "chain": "filterChain", "parameters": { "action": "text", "value": "{{ $event.target.value }}" } }]
+    },
+    "onCompare": {
+      "chains": [{ "chain": "filterChain", "parameters": { "action": "compare", "value": "{{ $event.target.checked }}" } }]
+    },
+    "onPick": {
+      "chains": [{ "chain": "filterChain", "parameters": { "action": "pick", "key": "{{ $event.target.dataset.key }}", "value": "{{ $event.target.checked }}" } }]
+    },
+    "onPickAll": {
+      "chains": [{ "chain": "filterChain", "parameters": { "action": "pickAll", "value": "{{ $event.target.checked }}" } }]
+    },
+    "onAskApprove": {
+      "chains": [{ "chain": "approveChain", "parameters": { "step": "ask" } }]
+    },
+    "onAskReject": {
+      "chains": [{ "chain": "rejectChain", "parameters": { "step": "ask" } }]
+    },
+    "onCancelConfirm": {
+      "chains": [{ "chain": "approveChain", "parameters": { "step": "cancel" } }]
+    },
+    "onApprove": {
+      "chains": [{ "chain": "approveChain", "parameters": { "step": "go" } }]
+    },
+    "onReject": {
+      "chains": [{ "chain": "rejectChain", "parameters": { "step": "go" } }]
+    },
+    "onAdjustStart": {
+      "chains": [{ "chain": "adjustChain", "parameters": { "action": "start", "key": "{{ $event.currentTarget.dataset.key }}" } }]
+    },
+    "onAdjustDay": {
+      "chains": [{ "chain": "adjustChain", "parameters": { "action": "day", "day": "{{ $event.target.dataset.d }}", "value": "{{ $event.target.value }}" } }]
+    },
+    "onAdjustReason": {
+      "chains": [{ "chain": "adjustChain", "parameters": { "action": "reason", "value": "{{ $event.target.value }}" } }]
+    },
+    "onAdjustCancel": {
+      "chains": [{ "chain": "adjustChain", "parameters": { "action": "cancel" } }]
+    },
+    "onAdjustSave": {
+      "chains": [{ "chain": "adjustChain", "parameters": { "action": "save" } }]
+    },
+    "onOpenTimeEntry": {
+      "chains": [{ "chain": "openNavChain", "parameters": { "navId": "time-entry" } }]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}

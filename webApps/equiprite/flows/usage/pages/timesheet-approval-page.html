@@ -1,0 +1,245 @@
+<!-- Timesheet approval (wireframe: Timesheet approval). Data: loadApprovalsChain; Approve / Reject: the old detail
+     page's chains, request by request; Adjust: adjustChain (hours + audit-trail entry, line stays SUBMITTED). -->
+<div class="er-band">
+  <div class="er-band-inner">
+    <div>
+      <div class="er-band-kicker">Usage &amp; cost · FDD 7.14</div>
+      <h1>Timesheet approval</h1>
+      <div class="er-band-sub">
+        <oj-bind-text value="[[ $variables.isLoading ? 'Loading…' : ($variables.weekKey ? 'Week ' + $functions.weekLabel($variables.weekKey) + ' · '
+          + $functions.statusChips($variables.rowsAll, $variables.weekKey)[0].count + ' lines to approve' : 'No timesheets yet') ]]"></oj-bind-text>
+      </div>
+    </div>
+    <div class="er-actions">
+      <oj-bind-if test="[[ $application.functions.oldAppLink($application.variables.oldAppUrl, 'timesheet-approval') ]]">
+        <a class="er-btn er-btn--ghost" :href="[[ $application.functions.oldAppLink($application.variables.oldAppUrl, 'timesheet-approval') ]]">Old version</a>
+      </oj-bind-if>
+      <button type="button" class="er-btn er-btn--ghost" on-click="[[ $listeners.onAskReject ]]"
+        :disabled="[[ $variables.isWorking || $variables.readOnly || $functions.selection($variables.rowsAll, $variables.picked).lines === 0 ]]">
+        <oj-bind-text value="[[ 'Reject ' + $functions.selection($variables.rowsAll, $variables.picked).lines ]]"></oj-bind-text>
+      </button>
+      <button type="button" class="er-btn er-btn--primary" on-click="[[ $listeners.onAskApprove ]]"
+        :disabled="[[ $variables.isWorking || $variables.readOnly || $functions.selection($variables.rowsAll, $variables.picked).lines === 0 ]]">
+        <oj-bind-text value="[[ 'Approve ' + $functions.selection($variables.rowsAll, $variables.picked).lines + ' · '
+          + $functions.money($functions.selection($variables.rowsAll, $variables.picked).cost) ]]"></oj-bind-text>
+      </button>
+    </div>
+  </div>
+  <div class="er-strip" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+</div>
+
+<div class="er-page">
+  <oj-bind-if test="[[ !!$variables.loadError ]]">
+    <div class="er-error" role="alert"><oj-bind-text value="[[ $variables.loadError ]]"></oj-bind-text></div>
+  </oj-bind-if>
+
+  <section class="er-u-kpis" aria-label="Cost impact">
+    <div class="er-u-kpi">
+      <span class="er-note">Selected for approval</span>
+      <strong><oj-bind-text value="[[ $functions.money($functions.selection($variables.rowsAll, $variables.picked).cost) ]]"></oj-bind-text></strong>
+      <span class="er-note"><oj-bind-text value="[[ $functions.selection($variables.rowsAll, $variables.picked).lines + ' lines · '
+        + $functions.selection($variables.rowsAll, $variables.picked).hours + ' h' ]]"></oj-bind-text></span>
+    </div>
+    <div class="er-u-kpi">
+      <span class="er-note">Cost to date on these requests</span>
+      <strong><oj-bind-text value="[[ $functions.money($functions.costToDate($variables.costByRequest, $functions.selection($variables.rowsAll, $variables.picked).requests)) ]]"></oj-bind-text></strong>
+      <span class="er-note"><oj-bind-text value="[[ $functions.selection($variables.rowsAll, $variables.picked).requests.join(', ') || 'Tick lines to see their requests' ]]"></oj-bind-text></span>
+    </div>
+    <div class="er-u-kpi er-u-kpi--warn">
+      <span class="er-note">After approval</span>
+      <strong><oj-bind-text value="[[ $functions.money($functions.costToDate($variables.costByRequest, $functions.selection($variables.rowsAll, $variables.picked).requests)
+        + $functions.selection($variables.rowsAll, $variables.picked).cost) ]]"></oj-bind-text></strong>
+      <span class="er-note">Cost to date plus the selection</span>
+    </div>
+    <div class="er-u-kpi er-u-kpi--muted">
+      <span class="er-note">Budget</span>
+      <strong>Held in Fusion PPM</strong>
+      <span class="er-note">EquipRite has no project budget to compare with.</span>
+    </div>
+  </section>
+
+  <div class="er-filters">
+    <label class="er-search">
+      <span class="oj-ux-ico-search" aria-hidden="true"></span>
+      <span class="er-sr">Search lines</span>
+      <input type="search" placeholder="Request, equipment, project or submitter" on-input="[[ $listeners.onSearch ]]">
+    </label>
+    <label class="er-check"><input type="checkbox" on-change="[[ $listeners.onCompare ]]" :checked="[[ $variables.compare ]]">Compare with last week</label>
+  </div>
+
+  <div class="er-chip-row" role="group" aria-label="Week">
+    <oj-bind-for-each data="[[ $functions.weekChips($variables.rowsAll) ]]">
+      <template data-oj-as="w">
+        <button type="button" :data-week="[[ w.data.week ]]" on-click="[[ $listeners.onWeek ]]"
+          :class="[[ 'er-chip' + ($variables.weekKey === w.data.week ? ' er-chip--on' : '') ]]"
+          :aria-pressed="[[ $variables.weekKey === w.data.week ? 'true' : 'false' ]]">
+          <oj-bind-text value="[[ w.data.label ]]"></oj-bind-text>
+          <oj-bind-if test="[[ w.data.waiting > 0 ]]"><span class="er-chip-count"><oj-bind-text value="[[ w.data.waiting ]]"></oj-bind-text></span></oj-bind-if>
+        </button>
+      </template>
+    </oj-bind-for-each>
+  </div>
+  <div class="er-chip-row" role="group" aria-label="Status">
+    <oj-bind-for-each data="[[ $functions.statusChips($variables.rowsAll, $variables.weekKey) ]]">
+      <template data-oj-as="c">
+        <button type="button" :data-status="[[ c.data.key ]]" on-click="[[ $listeners.onStatus ]]"
+          :class="[[ 'er-chip' + ($variables.statusKey === c.data.key ? ' er-chip--on' : '') ]]"
+          :aria-pressed="[[ $variables.statusKey === c.data.key ? 'true' : 'false' ]]">
+          <oj-bind-text value="[[ c.data.label ]]"></oj-bind-text>
+          <span class="er-chip-count"><oj-bind-text value="[[ c.data.count ]]"></oj-bind-text></span>
+        </button>
+      </template>
+    </oj-bind-for-each>
+  </div>
+
+  <oj-bind-if test="[[ $variables.confirm === 'approve' ]]">
+    <div class="er-u-confirm" role="alertdialog" aria-labelledby="taApproveTitle">
+      <span id="taApproveTitle">
+        <strong><oj-bind-text value="[[ 'Approve ' + $functions.selection($variables.rowsAll, $variables.picked).lines + ' lines, '
+          + $functions.selection($variables.rowsAll, $variables.picked).hours + ' h, ' + $functions.money($functions.selection($variables.rowsAll, $variables.picked).cost) + '?' ]]"></oj-bind-text></strong>
+        <oj-bind-text value="[[ ' Requests: ' + $functions.selection($variables.rowsAll, $variables.picked).requests.join(', ') + '.' ]]"></oj-bind-text>
+        <oj-bind-if test="[[ $variables.ppmOn ]]"><span> Approving sends these hours to Fusion PPM now; a request whose send fails goes back to Submitted.</span></oj-bind-if>
+        <oj-bind-if test="[[ !$variables.ppmOn ]]"><span> Cost is calculated by the rate engine and posted later from Post costs.</span></oj-bind-if>
+      </span>
+      <span class="er-actions">
+        <button type="button" class="er-btn er-btn--plain" on-click="[[ $listeners.onCancelConfirm ]]">Cancel</button>
+        <button type="button" class="er-btn er-btn--dark" on-click="[[ $listeners.onApprove ]]" :disabled="[[ $variables.isWorking ]]">Approve</button>
+      </span>
+    </div>
+  </oj-bind-if>
+  <oj-bind-if test="[[ $variables.confirm === 'reject' ]]">
+    <div class="er-u-confirm" role="alertdialog" aria-labelledby="taRejectTitle">
+      <span id="taRejectTitle">
+        <strong><oj-bind-text value="[[ 'Reject ' + $functions.selection($variables.rowsAll, $variables.picked).lines + ' lines?' ]]"></oj-bind-text></strong>
+        They go back to the timekeeper to correct and submit again.
+      </span>
+      <span class="er-actions">
+        <button type="button" class="er-btn er-btn--plain" on-click="[[ $listeners.onCancelConfirm ]]">Cancel</button>
+        <button type="button" class="er-btn er-btn--danger" on-click="[[ $listeners.onReject ]]" :disabled="[[ $variables.isWorking ]]">Reject</button>
+      </span>
+    </div>
+  </oj-bind-if>
+  <oj-bind-if test="[[ !!$variables.actionError ]]">
+    <div class="er-error" role="alert"><oj-bind-text value="[[ $variables.actionError ]]"></oj-bind-text></div>
+  </oj-bind-if>
+  <oj-bind-if test="[[ !!$variables.actionNote && !$variables.actionError ]]">
+    <div class="er-u-ok" role="status"><oj-bind-text value="[[ $variables.actionNote ]]"></oj-bind-text></div>
+  </oj-bind-if>
+
+  <section class="er-card er-ta-card" aria-label="Lines">
+    <div class="er-u-scroll">
+      <div class="er-ta-grid" role="grid" aria-label="Submitted hours">
+        <div class="er-ta-row er-ta-head" role="row">
+          <span role="columnheader" class="er-te-c-pick">
+            <input type="checkbox" aria-label="Tick every line that can be approved" on-change="[[ $listeners.onPickAll ]]"
+              :disabled="[[ $variables.readOnly ]]">
+          </span>
+          <span role="columnheader">Request · equipment</span>
+          <span role="columnheader">Type</span>
+          <span role="columnheader">Rate</span>
+          <oj-bind-for-each data="[[ $variables.weekDays ]]">
+            <template data-oj-as="day">
+              <span role="columnheader" class="er-te-c-day"><oj-bind-text value="[[ day.data.dow ]]"></oj-bind-text>
+                <small><oj-bind-text value="[[ day.data.num ]]"></oj-bind-text></small></span>
+            </template>
+          </oj-bind-for-each>
+          <span role="columnheader" class="er-num">Hours</span>
+          <span role="columnheader" class="er-num">Cost</span>
+          <span role="columnheader"></span>
+        </div>
+
+        <oj-bind-for-each data="[[ $functions.visible($variables.rowsAll, $variables.weekKey, $variables.statusKey, $variables.searchText) ]]">
+          <template data-oj-as="row">
+            <div class="er-ta-block">
+              <div role="row" :class="[[ 'er-ta-row' + ($functions.isPicked($variables.picked, row.data.key) ? ' er-row--on' : '') ]]">
+                <span role="gridcell" class="er-te-c-pick">
+                  <oj-bind-if test="[[ $functions.canAct(row.data, $variables.readOnly) ]]">
+                    <input type="checkbox" :data-key="[[ row.data.key ]]" :checked="[[ $functions.isPicked($variables.picked, row.data.key) ]]"
+                      :aria-label="[[ 'Select ' + row.data.requestNumber + ' ' + row.data.equipmentName ]]" on-change="[[ $listeners.onPick ]]">
+                  </oj-bind-if>
+                </span>
+                <span role="gridcell" class="er-te-c-eq">
+                  <span class="er-cell-main"><oj-bind-text value="[[ row.data.requestNumber + ' · ' + row.data.equipmentName ]]"></oj-bind-text></span>
+                  <span class="er-note"><oj-bind-text value="[[ (row.data.projectName || '—') + (row.data.taskName ? ' / ' + row.data.taskName : '')
+                    + (row.data.submittedBy ? ' · by ' + row.data.submittedBy : '') ]]"></oj-bind-text></span>
+                  <span class="er-te-tags">
+                    <span :class="[[ $functions.statusClass(row.data.status) ]]"><oj-bind-text value="[[ $functions.statusText(row.data.status) ]]"></oj-bind-text></span>
+                    <oj-bind-if test="[[ $functions.adjusted($variables.auditByEntry, row.data) ]]">
+                      <span class="er-u-tag" :title="[[ $functions.auditTitle($variables.auditByEntry, row.data) ]]">Adjusted</span>
+                    </oj-bind-if>
+                    <oj-bind-if test="[[ $variables.compare ]]">
+                      <span class="er-u-tag er-u-tag--muted"><oj-bind-text value="[[ $functions.wowText($variables.rowsAll, row.data) ]]"></oj-bind-text></span>
+                    </oj-bind-if>
+                  </span>
+                </span>
+                <span role="gridcell"><oj-bind-text value="[[ row.data.hoursType ? row.data.hoursType.charAt(0) + row.data.hoursType.slice(1).toLowerCase() : '—' ]]"></oj-bind-text></span>
+                <span role="gridcell" class="er-num"><oj-bind-text value="[[ $functions.rateText(row.data) || '—' ]]"></oj-bind-text></span>
+                <oj-bind-for-each data="[[ $variables.weekDays ]]">
+                  <template data-oj-as="day">
+                    <span role="gridcell" :class="[[ 'er-te-c-day er-ta-day er-ta-day--' + ($functions.isAdjusting($variables.adjust, row.data) ? 'edit' : $functions.dayLevel(row.data.days[day.data.i])) ]]">
+                      <oj-bind-if test="[[ $functions.isAdjusting($variables.adjust, row.data) ]]">
+                        <input class="er-te-hours" type="text" inputmode="decimal" autocomplete="off" :data-d="[[ '' + day.data.i ]]"
+                          :value="[[ $functions.adjustRaw($variables.adjust, row.data, day.data.i) ]]"
+                          :disabled="[[ !$functions.dayOpen(row.data, day.data) ]]"
+                          :aria-label="[[ 'Adjusted hours, ' + day.data.label ]]" on-change="[[ $listeners.onAdjustDay ]]">
+                      </oj-bind-if>
+                      <oj-bind-if test="[[ !$functions.isAdjusting($variables.adjust, row.data) ]]">
+                        <span class="er-ta-cell">
+                          <oj-bind-if test="[[ !!$functions.originalDay($variables.auditByEntry, row.data, day.data.i) ]]">
+                            <s class="er-ta-was" :title="[[ 'Submitted ' + $functions.originalDay($variables.auditByEntry, row.data, day.data.i) + ' h' ]]">
+                              <oj-bind-text value="[[ $functions.originalDay($variables.auditByEntry, row.data, day.data.i) ]]"></oj-bind-text></s>
+                          </oj-bind-if>
+                          <strong><oj-bind-text value="[[ row.data.days[day.data.i] ]]"></oj-bind-text></strong>
+                          <oj-bind-if test="[[ $variables.compare && !!$functions.prevDay($variables.rowsAll, row.data, day.data.i) ]]">
+                            <small class="er-ta-prev" title="Last week"><oj-bind-text value="[[ $functions.prevDay($variables.rowsAll, row.data, day.data.i) ]]"></oj-bind-text></small>
+                          </oj-bind-if>
+                        </span>
+                      </oj-bind-if>
+                    </span>
+                  </template>
+                </oj-bind-for-each>
+                <span role="gridcell" class="er-num er-te-total"><oj-bind-text value="[[ row.data.totalHours ]]"></oj-bind-text></span>
+                <span role="gridcell" class="er-num"><oj-bind-text value="[[ $functions.money(row.data.totalBill) ]]"></oj-bind-text></span>
+                <span role="gridcell">
+                  <oj-bind-if test="[[ $functions.canAct(row.data, $variables.readOnly) && !$functions.isAdjusting($variables.adjust, row.data) ]]">
+                    <button type="button" class="er-u-link" :data-key="[[ row.data.key ]]" on-click="[[ $listeners.onAdjustStart ]]"
+                      :disabled="[[ $variables.isWorking ]]">Adjust</button>
+                  </oj-bind-if>
+                </span>
+              </div>
+              <oj-bind-if test="[[ $functions.isAdjusting($variables.adjust, row.data) ]]">
+                <div class="er-ta-adjust">
+                  <label class="er-field er-ta-reason">
+                    <span class="er-label">Why are the hours changed? <span class="er-req">*</span></span>
+                    <input class="er-u-input" type="text" placeholder="e.g. 18 h on Wednesday was a typo for 10"
+                      :value="[[ $variables.adjust.reason ]]" on-input="[[ $listeners.onAdjustReason ]]">
+                  </label>
+                  <span class="er-note">The submitted hours are kept in the audit trail and the line stays submitted; nobody has to resubmit.</span>
+                  <span class="er-actions">
+                    <button type="button" class="er-btn er-btn--plain" on-click="[[ $listeners.onAdjustCancel ]]">Cancel</button>
+                    <button type="button" class="er-btn er-btn--dark" on-click="[[ $listeners.onAdjustSave ]]" :disabled="[[ $variables.isWorking ]]">Save adjustment</button>
+                  </span>
+                </div>
+              </oj-bind-if>
+            </div>
+          </template>
+        </oj-bind-for-each>
+      </div>
+    </div>
+    <oj-bind-if test="[[ $functions.visible($variables.rowsAll, $variables.weekKey, $variables.statusKey, $variables.searchText).length === 0 ]]">
+      <div class="er-te-empty er-muted">
+        <oj-bind-if test="[[ $variables.isLoading ]]">Loading timesheets…</oj-bind-if>
+        <oj-bind-if test="[[ !$variables.isLoading ]]">Nothing here for this week and status.</oj-bind-if>
+      </div>
+    </oj-bind-if>
+  </section>
+
+  <div class="er-te-legend er-note">
+    <span class="er-ta-key er-ta-day--long">Over 10 h in a day</span>
+    <span class="er-ta-key er-ta-day--high">Over 16 h: check the entry</span>
+    <span>Cost is the amount billed for the line's hours. Approving calculates cost with the rate engine.</span>
+    <oj-bind-if test="[[ $application.functions.navIdVisible($application.variables.pageAccessMap, $application.variables.pageAccessLoaded, 'time-entry') ]]">
+      <button type="button" class="er-u-link" on-click="[[ $listeners.onOpenTimeEntry ]]">Go to Time entry</button>
+    </oj-bind-if>
+  </div>
+</div>
