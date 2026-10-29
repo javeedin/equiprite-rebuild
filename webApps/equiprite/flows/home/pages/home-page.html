@@ -51,7 +51,7 @@
 
   <!-- ── Administrator (FDD 7.1.2 / 7.1.3; resources/js/adminDashboard.js) ───────────────────────────── -->
   <oj-bind-if test="[[ $variables.dashRole === 'EQUIP_ADMIN' && !!$variables.adminModel ]]">
-    <section class="er-kpis" aria-label="Key figures">
+    <section class="er-kpis er-kpis--six" aria-label="Key figures">
       <oj-bind-for-each data="[[ $variables.adminModel.kpis ]]">
         <template data-oj-as="k">
           <button type="button" :class="[[ 'er-kpi er-kpi--' + k.data.accent ]]" :data-nav-id="[[ k.data.nav ]]"
@@ -252,7 +252,7 @@
                   <oj-bind-text value="[[ q.data.source ]]"></oj-bind-text></span></span>
                 <span role="cell"><oj-bind-text value="[[ q.data.who ]]"></oj-bind-text></span>
                 <span role="cell"><oj-bind-text value="[[ q.data.requestor ]]"></oj-bind-text></span>
-                <span role="cell" class="er-note"><oj-bind-text value="[[ (q.data.start || '') + ' – ' + (q.data.end || '') ]]"></oj-bind-text></span>
+                <span role="cell" class="er-note"><oj-bind-text value="[[ q.data.dates ]]"></oj-bind-text></span>
                 <span role="cell"><oj-bind-if test="[[ !!q.data.status ]]">
                   <span :class="[[ $application.functions.statusPillClass(q.data.status) ]]">
                     <oj-bind-text value="[[ $application.functions.formatLineStatus(q.data.status) ]]"></oj-bind-text></span></oj-bind-if></span>

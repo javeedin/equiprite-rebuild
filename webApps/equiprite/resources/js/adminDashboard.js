@@ -68,6 +68,15 @@ define([], function () {
   }
   function plural(n, one, many) { return n + ' ' + (n === 1 ? one : (many || one + 's')); }
   function isCustomer(r) { return /^(EXTERNAL|CUSTOMER)$/i.test(String((r && r.requestOrigin) || '').trim()); }
+  var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  /** "2 Nov – 15 Dec 2026" (the year once when both share it). */
+  function dateText(start, end) {
+    var p = function (v) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(v || '')); return m ? { y: m[1], m: Number(m[2]) - 1, d: Number(m[3]) } : null; };
+    var a = p(start), b = p(end);
+    var f = function (x, y) { return x.d + ' ' + MON[x.m] + (y ? ' ' + x.y : ''); };
+    if (a && b) return a.y === b.y ? f(a, false) + ' – ' + f(b, true) : f(a, true) + ' – ' + f(b, true);
+    return a ? f(a, true) : (b ? f(b, true) : '');
+  }
   function money(n) {
     var v = Math.round(Number(n) || 0);
     return '$' + v.toLocaleString('en-US');
@@ -280,7 +289,8 @@ define([], function () {
       return {
         id: r.eqrEquipmentRequestId, requestNumber: r.requestNumber || '—', source: isCustomer(r) ? 'Customer' : 'Project',
         who: isCustomer(r) ? (r.customerName || '—') : (r.projectName || '—'), requestor: r.requestorName || r.contactName || '—',
-        status: statusOf(r), start: d10(r.startDate || r.requestedStartDate), end: d10(r.endDate || r.requestedEndDate)
+        status: statusOf(r), start: d10(r.startDate || r.requestedStartDate), end: d10(r.endDate || r.requestedEndDate),
+        dates: dateText(r.startDate || r.requestedStartDate, r.endDate || r.requestedEndDate)
       };
     });
     return {
@@ -320,6 +330,7 @@ define([], function () {
     changes: changes,
     attention: attention,
     build: build,
+    dateText: dateText,
     money: money
   };
 });

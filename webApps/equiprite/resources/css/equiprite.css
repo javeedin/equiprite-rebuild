@@ -360,6 +360,7 @@ textarea.er-input { height: auto; padding: 8px 10px; resize: vertical; }
 .er-link { border: 0; background: transparent; padding: 0; font: inherit; font-weight: 600; color: var(--er-accent); cursor: pointer; text-decoration: underline; }
 .er-link:focus-visible { outline: 2px solid var(--er-band); outline-offset: 2px; }
 
+.er-kpis--six { grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr)); }
 .er-ad-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(380px, 100%), 1fr)); gap: 16px; align-items: start; }
 .er-ad-attention { grid-column: 1 / -1; }
 .er-ad-clear { margin: 8px 0 0; padding: 12px 14px; border-radius: 8px; background: #ecfdf5; color: #065f46; font-weight: 600; }

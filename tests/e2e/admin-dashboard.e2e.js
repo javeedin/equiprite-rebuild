@@ -60,6 +60,7 @@ function handle(req, res) {
     T.check('title', (await env.text('.er-band')).includes('Administration') || (await env.text('.er-band-sub')).length > 0);
     const kpis = await page.$$eval('.er-kpi', (ks) => ks.map((k) => k.dataset.kpi + '=' + k.querySelector('.er-kpi-value').innerText.trim()));
     T.eq('FDD 7.1.3 KPI bar', kpis.slice(0, 5).join(' '), 'active=8 deployed=118 approvals=2 overdue=2 utilization=62%');
+    T.check('the six tiles share one row', await page.$$eval('.er-kpi', (ks) => new Set(ks.map((k) => Math.round(k.getBoundingClientRect().top))).size === 1));
     const att = await page.$$eval('.er-att', (as) => as.map((a) => a.dataset.key));
     T.eq('attention, most severe first', att.join(','), 'integration-down,overdue,approvals-urgent,certificates,at-risk,dlq,timesheets,post-costs,locked-users,drafts');
     T.check('the down integration explains itself in plain words, with the fix', /refused EquipRite's sign-in.*Update the stored Fusion credential/.test(await env.text('.er-att--critical')));
