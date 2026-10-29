@@ -24,9 +24,10 @@ Upgrading from the old `npm run desktop:install`? Delete `desktop/node_modules` 
 every project folder and fails on it, and `npm run build` stops and says so.
 
 `npm run serve` and `npm run desktop:fresh` both build the app first (`grunt vb-process-local`) and then start
-Oracle's local server, **`grunt vb-serve`**, which serves the built app. It does not proxy REST calls or sign
-anyone in, so today the app renders but has no data and lands on the No Access page. See
-[`desktop/README.md`](desktop/README.md) for what works locally and why.
+a small local server (`desktop/lib/devserver.js`) that does what the VBCS server does for the app: it supplies the
+signed-in user, serves the services catalog and forwards the backend calls, adding a Fusion login where VBCS adds
+its stored credential. The desktop window asks who you are on first start. See
+[`desktop/README.md`](desktop/README.md) for how it works and what each backend gets.
 
 ## Layout
 

@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'">
+  <title>Sign in to EquipRite</title>
+  <style>
+    :root { color-scheme: light dark; --bg: #f5f4f2; --card: #fff; --ink: #161513; --muted: #6f6c67; --line: #d9d6d0;
+      --accent: #c74634; --accent-ink: #fff; --field: #fff; --err: #b3261e; }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg: #1b1a18; --card: #262522; --ink: #ebe9e5; --muted: #a8a49d; --line: #3d3b37; --field: #1f1e1c; --err: #ff8a80; }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink);
+      font: 14px/1.45 "Oracle Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    form { padding: 24px 28px 20px; }
+    h1 { font-size: 19px; font-weight: 650; margin: 0 0 4px; }
+    .sub { color: var(--muted); margin: 0 0 18px; }
+    fieldset { border: 1px solid var(--line); border-radius: 10px; background: var(--card); margin: 0 0 14px; padding: 12px 14px 14px; }
+    legend { font-weight: 600; padding: 0 6px; }
+    label.f { display: block; margin: 8px 0 3px; color: var(--muted); font-size: 12.5px; }
+    input[type=text], input[type=password] { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 7px;
+      background: var(--field); color: var(--ink); font: inherit; }
+    input:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: transparent; }
+    .help { color: var(--muted); font-size: 12px; margin: 6px 0 0; }
+    .row { display: flex; gap: 10px; }
+    .row > div { flex: 1; }
+    .choice { display: flex; gap: 8px; align-items: flex-start; margin: 6px 0; cursor: pointer; }
+    .choice input { margin-top: 3px; }
+    .roles { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 12px; margin: 6px 0 0 24px; font-size: 13px; }
+    .roles label { display: flex; gap: 6px; align-items: center; cursor: pointer; }
+    .pick-only { margin-left: 24px; }
+    .disabled { opacity: .45; pointer-events: none; }
+    .err { color: var(--err); min-height: 20px; margin: 4px 0 8px; }
+    .actions { display: flex; justify-content: flex-end; gap: 10px; }
+    button { font: inherit; padding: 8px 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--ink); cursor: pointer; }
+    button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+    code { font-size: 12px; }
+  </style>
+</head>
+<body>
+  <form id="f" autocomplete="off">
+    <h1>Sign in to EquipRite</h1>
+    <p class="sub">For running the app on this PC. Saved on this PC only, never in the project.</p>
+
+    <fieldset>
+      <legend>Who</legend>
+      <label class="f" for="username">Fusion username to sign in as</label>
+      <input type="text" id="username" placeholder="e.g. john.dunbar" spellcheck="false">
+    </fieldset>
+
+    <fieldset>
+      <legend>Fusion login</legend>
+      <div class="row">
+        <div><label class="f" for="fusionUser">Username</label>
+          <input type="text" id="fusionUser" placeholder="same as above" spellcheck="false"></div>
+        <div><label class="f" for="fusionPassword">Password</label>
+          <input type="password" id="fusionPassword"></div>
+      </div>
+      <p class="help">Used where VBCS uses its stored credential: the <code>ROLES_RP</code> roles report, project lists and
+        PDFs. The password is encrypted with your Windows account.</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>Roles</legend>
+      <label class="choice"><input type="radio" name="rolesFrom" value="fusion" checked>
+        <span>Read from Fusion (<code>ROLES_RP</code>), exactly as in VBCS. Needs the Fusion login.</span></label>
+      <label class="choice"><input type="radio" name="rolesFrom" value="pick">
+        <span>Pick roles for this PC (try any persona; no Fusion login needed)</span></label>
+      <div id="pick">
+        <div class="roles" id="roles"></div>
+        <div class="pick-only"><label class="f" for="otherRoles">Other role codes (comma-separated)</label>
+          <input type="text" id="otherRoles" spellcheck="false" placeholder="e.g. OII_RT_EQP_MANAGER_JR"></div>
+      </div>
+    </fieldset>
+
+    <div class="err" id="err" role="alert"></div>
+    <div class="actions">
+      <button type="button" id="cancel">Cancel</button>
+      <button type="submit" class="primary" id="go">Sign in</button>
+    </div>
+  </form>
+  <script src="signin.js"></script>
+</body>
+</html>

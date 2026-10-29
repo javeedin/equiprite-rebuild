@@ -1,39 +1,44 @@
 # EquipRite desktop client
 
 A thin Electron shell that runs the EquipRite Visual Builder (Redwood) app on your laptop, in its own
-window — the same way the Re-ERP maintenance app runs with `npm run desktop:fresh`.
-
-> **Status (2026-10-29): the window opens and the app renders, but it has no data and no user yet.** It lands
-> on "You don't have access to EquipRite". See [What works locally](#what-works-locally-what-doesnt).
+window, against the live backends — the same way the Re-ERP maintenance app runs with `npm run desktop:fresh`.
 
 ## How it works
 
-On start, the shell launches Oracle's own local server, **`grunt vb-serve`**, as a child process and loads
-`http://localhost:18888/` in the window. `vb-serve` **serves the built app** (`build/processed/webApps/vbredwoodapp`),
-with the Redwood `oj-sp` components, JET and the VB runtime loaded from Oracle's public CDN (`static.oracle.com`).
+The shell runs a small local server in its own process (`lib/devserver.js`) and loads `http://localhost:18888/`.
+The server serves the built app (`build/processed/webApps/vbredwoodapp`; JET, `oj-sp` and the VB runtime come from
+Oracle's CDN) and does the server-side jobs the VBCS server does when the app is deployed:
 
-That is all it does. Oracle's `vb-serve` task is `express.static` plus a canned `/_currentuser`: it does **not**
-proxy REST calls, so the `"forceProxy": always` backends in `services/catalog.json` have nothing to forward them.
-The only dependency is Electron, a prebuilt binary — nothing native is compiled and no shell is started (eScan-safe).
+| VBCS does | Locally |
+|---|---|
+| fills `%{env.userProfileUrl}%` in `app-flow.json` and answers it with the signed-in user | `/_currentuser` answers with the user from the sign-in window |
+| serves the application's `services/catalog.json` next to the web app | served from `build/processed/services/`, each backend pointed at `/__backend/<name>` on the local server, with `forceProxy` and the VBCS credential reference removed (in memory only; the file in `services/` is untouched) |
+| proxies the backends, adding the stored credential | `/__backend/<name>/…` forwards to the real URL; backends that use the Fusion credential (`fusion`, `bipService`, `callPWPBIP`) get the Fusion login from the sign-in window |
 
-Electron is a devDependency of the **root** `package.json`, not of `desktop/`. Oracle's build copies every
-project folder except `node_modules`, `build`, `webApps` and `services` into `build/processed`, and it fails on a
-`node_modules` inside `desktop/` (EISDIR on `.bin/electron`). The root `node_modules` is never copied. Electron 45
-runs no install script; it downloads its binary the first time it starts.
+Oracle's own `grunt vb-serve` does none of this (it is `express.static` plus a canned `/_currentuser`), which is
+why the app used to land on "You don't have access to EquipRite" with no data.
 
-## What works locally, what doesn't
+Nothing in `webApps/` or `services/` changes for this, so what you build here deploys to VBCS as-is.
 
-Checked by running `npm run desktop:fresh` and recording the page's calls:
+## Signing in
 
-| What | Local today | Why |
+On first start a sign-in window asks for:
+
+- **Fusion username to sign in as** — what `$application.user` carries; `ROLES_RP` is run for it (`P_LOGIN`).
+- **Fusion login** — stands in for the VBCS stored credential (`vb_e32dea99…`) on BIP and Fusion REST calls: the
+  roles report, project lists, PDFs. Use an account that can run `/Custom/EquipRite/ROLES_RP.xdo`.
+- **Roles** — read from Fusion (`ROLES_RP`), exactly as in VBCS, or picked by hand to try a persona without a
+  Fusion login (the local server then answers `ROLES_RP` itself with those roles).
+
+It is saved in `%APPDATA%\EquipRite\local-identity.json` (outside the project: never committed, never copied into
+a build). The password is stored only encrypted with your Windows account (Electron `safeStorage`). Change it with
+**File → Sign in as…**. **View → Backend calls…** lists every call the server forwarded, with its status.
+
+| Backend | Auth in VBCS | Locally |
 |---|---|---|
-| Window, Redwood shell, menus | ✅ | built app + CDN |
-| Every REST backend, `eqpt` included | ❌ | the app asks for `services/catalog.json` next to the web app; the build writes it to `build/processed/services/`, so VB configures no endpoint ("Unable to configure endpoint …") |
-| Signed-in user and roles | ❌ | `/_currentuser` has no username, so `loadFusionRolesChain` fails closed and every page resolves to HIDDEN (No Access page) |
-| `fusion` / `bipService` / `callPWPBIP` / `ics` | ❌ | basic auth with credentials only the VBCS credential store holds |
-
-Getting live data locally needs a real local server in place of `vb-serve`: one that serves the catalog, forwards the
-`forceProxy` backends (`eqpt` and `commonService` are anonymous), and supplies a local user and roles.
+| `eqpt` (ORDS :8087), `commonService` (:8082) | anonymous | forwarded, no credentials |
+| `fusion`, `bipService`, `callPWPBIP` | stored credential `vb_e32dea99…` | the Fusion login from the sign-in window |
+| `ics` (OIC) | stored credential `vb_cf7d9fde…` | not available (forwarded without a login, answers 401) |
 
 ## Run it
 
@@ -55,21 +60,31 @@ rebuild and reuses the last build.
 Upgrading from the old `npm run desktop:install`? Delete `desktop/node_modules` (`rmdir /s /q desktop\node_modules`
 on Windows); `npm run build` stops and says so until you do.
 
-Prefer the browser? `npm run serve` builds and opens the same app at `http://localhost:8888/`.
+Prefer the browser? `npm run serve` builds and serves the same app at `http://localhost:8888/`. It has no sign-in
+window, so say who you are in the environment first (PowerShell):
+
+```bash
+$env:EQP_USER="john.dunbar"; $env:EQP_ROLES="RT_EQP_MANAGER"; npm run serve
+```
+
+`EQP_FUSION_USER` / `EQP_FUSION_PASSWORD` give it a Fusion login instead of (or as well as) `EQP_ROLES`.
 
 ## Troubleshooting
 
 - **"TypeError: terminated" / "Electron failed to install correctly".** That is Electron's own one-shot
   download being cut; `npm run desktop` now fetches through `tools/get-electron.js`, which resumes. If even that
   gives up, download the zip it names in your browser and save it as the "to" path it prints.
-- **The window shows "Could not start the local server".** Run `npm install` in the project root and check
-  `npm run build` succeeds on its own. The window shows the last lines of the `vb-serve` log.
+- **"Could not start the local server".** No build (run `npm run desktop:fresh`), or port 18888 is taken (close
+  the other window, or set `EQP_PORT`).
+- **Still "You don't have access".** View → Backend calls… shows the `ROLES_RP` and `rbac/page-access` calls and
+  their status: 401 from `bipService` is the Fusion login; a FAILED `eqpt` line means this PC cannot reach the
+  ORDS server.
 - **The window stays on the spinner.** The app is fetching JET / `oj-sp` from `static.oracle.com`; a blocked
   CDN or no internet will stall it. `View → Toggle Developer Tools` shows the failing requests.
-- **A different port.** Set `EQP_PORT` (e.g. `EQP_PORT=18890 npm run desktop`).
+- **A different backend for one run.** `EQP_BACKEND_<NAME>=<url>` (e.g. `EQP_BACKEND_EQPT=http://host:8087`)
+  points that backend elsewhere.
 
 ## Packaging an installer
 
-Not wired yet. This shell runs the app through `grunt vb-serve`, which suits local development
-(`desktop:fresh`). A standalone installer would bundle the built app and an embedded static+proxy server
-instead of spawning grunt; that can be added later with `electron-builder`, mirroring the maintenance app.
+Not wired yet. The local server already runs inside the Electron process, so an installer only needs to bundle
+the built app with the shell; that can be added later with `electron-builder`, mirroring the maintenance app.
