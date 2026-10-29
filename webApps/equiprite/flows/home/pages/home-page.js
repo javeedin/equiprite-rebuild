@@ -20,7 +20,38 @@ define([], () => {
     }),
   };
 
+  // New EquipRite screen a Home row opens (shape -> menu item and the URL parameters that page reads). Rows open
+  // their new screen once that menu item is built; until then (or when it is switched off) they open Old EquipRite.
+  const NEW_ROW_ITEMS = {
+    workbenchPicking: () => ({ navId: 'picking', params: {} }),
+    timesheets: (row) => ({ navId: 'time-entry', params: { request: row.requestNumber, week: row.weekStartDate } }),
+    timesheetApprovals: (row) => ({ navId: 'timesheet-approval', params: { week: row.weekStartDate } }),
+    postCost: (row) => ({ navId: 'post-costs', params: { request: row.requestNumber } }),
+  };
+
   class PageModule {
+    /**
+     * The New EquipRite screen a Home row opens: { navId, params } with empty values left out, or null when the row
+     * opens Request detail (request rows) or has no new screen.
+     * @param {Object} row   mapped Home row (homeInitChain MAPPERS)
+     * @param {string} shape $page.variables.tableRowNav
+     */
+    newRowTarget(row, shape) {
+      const make = NEW_ROW_ITEMS[shape];
+      if (!make || !row) {
+        return null;
+      }
+      const t = make(row);
+      const params = {};
+      Object.keys(t.params).forEach((k) => {
+        const v = t.params[k];
+        if (v !== undefined && v !== null && v !== '' && v !== '—') {
+          params[k] = String(v);
+        }
+      });
+      return { navId: t.navId, params };
+    }
+
     /**
      * Address of a Home row's detail in Old EquipRite, or '' when it has none (no old app address yet, or a row
      * without a request number).

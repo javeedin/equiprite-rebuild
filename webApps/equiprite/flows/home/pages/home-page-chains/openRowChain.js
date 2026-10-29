@@ -4,8 +4,9 @@ define([
 ], (ActionChain, Actions) => {
   'use strict';
 
-  // A row on Home. Requests open New EquipRite's Request detail. Rows whose screens are not rebuilt yet
-  // (timesheet weeks, post cost, picking) open them in Old EquipRite (oldRequestLink in home-page.js).
+  // A row on Home. Requests open New EquipRite's Request detail; timesheet weeks, post cost and picking rows open
+  // their New EquipRite screen (newRowTarget in home-page.js) when its menu item is built and visible to the role,
+  // else the same screen in Old EquipRite (oldRequestLink).
   const REQUEST_SHAPES = ['myRequests', 'workbench'];
 
   class openRowChain extends ActionChain {
@@ -21,6 +22,16 @@ define([
           page: 'request-detail',
           target: 'parent',
           params: { requestId: String(row.requestNumber || ''), requestNumericId: Number(row.eqrEquipmentRequestId) },
+        });
+        return;
+      }
+      const target = $functions.newRowTarget(row, shape);
+      const route = target ? $application.functions.getNavRoute(target.navId) : null;
+      const vars = $application.variables;
+      if (route && route.page !== 'later'
+          && $application.functions.navIdVisible(vars.pageAccessMap, vars.pageAccessLoaded, target.navId)) {
+        await Actions.navigateToFlow(context, {
+          flow: route.flow, page: route.page, target: 'parent', params: Object.assign({}, route.params, target.params),
         });
         return;
       }

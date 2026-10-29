@@ -114,6 +114,19 @@ const home = new Home();
 T.eq('a Home row opens the request in the old app', home.oldRequestLink('http://x/', { requestNumber: 'REQ-10482', eqrEquipmentRequestId: 10482 }, 'workbench'),
   'http://x/vp/shell/main/equipment-request-detail?requestId=REQ-10482&requestNumericId=10482&sourcePage=Equipment%20Requests');
 T.eq('…and nothing for a row without a request number', home.oldRequestLink('http://x/', { requestNumber: '—' }, 'myRequests'), '');
+const ROW = { requestNumber: 'REQ-7', weekStartDate: '2026-11-02' };
+['workbenchPicking', 'timesheets', 'timesheetApprovals', 'postCost'].forEach((shape) => {
+  const t = home.newRowTarget(ROW, shape);
+  const route = t && app.getNavRoute(t.navId);
+  const pageJson = route && path.join(NEW, 'flows', route.flow, 'pages', `${route.page}-page.json`);
+  const inputs = pageJson && fs.existsSync(pageJson)
+    ? Object.entries(JSON.parse(fs.readFileSync(pageJson, 'utf8')).variables || {}).filter(([, v]) => v.input === 'fromUrl').map(([k]) => k) : [];
+  T.check(`Home ${shape} rows open a built screen that reads what they pass`,
+    !!route && route.page !== 'later' && Object.keys(t.params).every((k) => inputs.includes(k)), JSON.stringify({ t, route, inputs }));
+});
+T.eq('a timesheet row carries its request and week', JSON.stringify(home.newRowTarget(ROW, 'timesheets')),
+  '{"navId":"time-entry","params":{"request":"REQ-7","week":"2026-11-02"}}');
+T.eq('a dash is not passed on', JSON.stringify(home.newRowTarget({ requestNumber: '—' }, 'postCost').params), '{}');
 const rowPages = fs.readFileSync(path.join(NEW, 'flows', 'home', 'pages', 'home-page.js'), 'utf8').match(/path: '([a-z-]+\/[a-z-]+)'/g) || [];
 rowPages.forEach((m) => {
   const [flow, page] = m.slice(7, -1).split('/');
