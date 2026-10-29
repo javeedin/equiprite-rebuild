@@ -1,0 +1,160 @@
+{
+  "title": "Analytics",
+  "description": "Report library by role (FDD 7.15; replaces equipment-analytics and lists equipment-reports). The four live reports load through resources/js/analyticsData.js, copied unchanged from Old EquipRite, so every fetch, KPI and chart number is the old page's. The variables in the second block are the ones analyticsData.loadActiveTab reads and writes, under the old names.",
+  "variables": {
+    "report": {
+      "type": "string",
+      "defaultValue": "",
+      "input": "fromUrl",
+      "description": "Optional: one of the four live report ids to open on."
+    },
+    "canAnalytics": { "type": "boolean", "defaultValue": false },
+    "isBusy": { "type": "boolean", "defaultValue": true },
+    "loadError": { "type": "string", "defaultValue": "" },
+    "loadedTab": { "type": "string", "defaultValue": "" },
+    "tableRows": { "type": "any[]", "defaultValue": [] },
+    "searchText": { "type": "string", "defaultValue": "" },
+    "picks": { "type": "any", "defaultValue": {} },
+    "chipOptions": { "type": "any", "defaultValue": {} },
+
+    "useMockData": { "type": "boolean", "defaultValue": false },
+    "isLoading": { "type": "boolean", "defaultValue": true },
+    "analyticsActiveTab": { "type": "string", "defaultValue": "equipment-master" },
+    "analyticsFilterCriterion": { "type": "any", "defaultValue": null },
+    "analyticsFilterVersion": { "type": "number", "defaultValue": 0 },
+    "analyticsLastQuerySignature": { "type": "string", "defaultValue": "" },
+    "analyticsSuggestionFilters": { "type": "any[]", "defaultValue": [] },
+    "analyticsKpis": { "type": "any", "defaultValue": { "totalUnits": 0, "outOnRent": 0, "available": 0, "utilizationPct": 0, "outOnRentPct": 0, "availablePct": 0 } },
+    "analyticsClassOptionsArray": { "type": "any[]", "defaultValue": [] },
+    "analyticsStatusOptionsArray": { "type": "any[]", "defaultValue": [] },
+    "analyticsTypeOptionsArray": { "type": "any[]", "defaultValue": [] },
+    "analyticsYardOptionsArray": { "type": "any[]", "defaultValue": [] },
+    "analyticsProjectOptionsArray": { "type": "any[]", "defaultValue": [] },
+    "analyticsEquipmentOptionsArray": { "type": "any[]", "defaultValue": [] },
+    "unitStatusOptionsArray": { "type": "any[]", "defaultValue": [] },
+    "selectedYard": { "type": "any", "defaultValue": null },
+    "selectedUnitStatus": { "type": "any", "defaultValue": null },
+    "selectedLineStatus": { "type": "any", "defaultValue": null },
+    "selectedUnitType": { "type": "any", "defaultValue": null },
+    "stockRows": { "type": "any[]", "defaultValue": [] },
+    "pendingRows": { "type": "any[]", "defaultValue": [] },
+    "onhandRows": { "type": "any[]", "defaultValue": [] },
+    "utilExportRows": { "type": "any[]", "defaultValue": [] },
+    "chartDonutSeries": { "type": "any[]", "defaultValue": [] },
+    "chartDonutGroups": { "type": "any[]", "defaultValue": [] },
+    "chartDonutTitle": { "type": "string", "defaultValue": "" },
+    "chartBarSeries": { "type": "any[]", "defaultValue": [] },
+    "chartBarGroups": { "type": "any[]", "defaultValue": [] },
+    "chartBarTitle": { "type": "string", "defaultValue": "" },
+    "stockYardStatusSeries": { "type": "any[]", "defaultValue": [] },
+    "stockYardStatusGroups": { "type": "any[]", "defaultValue": [] },
+    "pendingRequestorSeries": { "type": "any[]", "defaultValue": [] },
+    "pendingRequestorGroups": { "type": "any[]", "defaultValue": [] },
+    "pendingRequestorSubtitle": { "type": "string", "defaultValue": "By pending line count" },
+    "pendingRequestorTotal": { "type": "number", "defaultValue": 0 },
+    "utilDailySeries": { "type": "any[]", "defaultValue": [] },
+    "utilDailyGroups": { "type": "any[]", "defaultValue": [] },
+    "monthData": { "type": "any[]", "defaultValue": [] },
+    "dynamicCols": { "type": "any[]", "defaultValue": [] },
+    "collapsedMonths": { "type": "any[]", "defaultValue": [] },
+    "utilDatePreset": { "type": "string", "defaultValue": "last-30" },
+    "utilCustomFrom": { "type": "string", "defaultValue": "" },
+    "utilCustomTo": { "type": "string", "defaultValue": "" },
+    "utilFromDate": { "type": "string", "defaultValue": "" },
+    "utilToDate": { "type": "string", "defaultValue": "" }
+  },
+  "metadata": {},
+  "eventListeners": {
+    "vbBeforeEnter": {
+      "chains": [{ "chain": "enforcePageAccessChain" }]
+    },
+    "vbEnter": {
+      "chains": [{ "chain": "analyticsInitChain" }]
+    },
+    "onReportClick": {
+      "chains": [
+        {
+          "chain": "selectReportChain",
+          "parameters": {
+            "tab": "{{ $event.currentTarget.dataset.report }}",
+            "scroll": "{{ $event.currentTarget.dataset.scroll === 'yes' }}"
+          }
+        }
+      ]
+    },
+    "onSearchInput": {
+      "chains": [
+        {
+          "chain": "filterChain",
+          "parameters": { "text": "{{ $event.target.value }}" }
+        }
+      ]
+    },
+    "onChipClick": {
+      "chains": [
+        {
+          "chain": "filterChain",
+          "parameters": {
+            "field": "{{ $event.currentTarget.dataset.field }}",
+            "value": "{{ $event.currentTarget.dataset.value }}"
+          }
+        }
+      ]
+    },
+    "onClearFilters": {
+      "chains": [
+        {
+          "chain": "filterChain",
+          "parameters": { "clear": true }
+        }
+      ]
+    },
+    "onPresetClick": {
+      "chains": [
+        {
+          "chain": "periodChain",
+          "parameters": { "preset": "{{ $event.currentTarget.dataset.preset }}" }
+        }
+      ]
+    },
+    "onCustomDate": {
+      "chains": [
+        {
+          "chain": "periodChain",
+          "parameters": {
+            "from": "{{ $event.target.dataset.edge === 'from' ? $event.target.value : undefined }}",
+            "to": "{{ $event.target.dataset.edge === 'to' ? $event.target.value : undefined }}"
+          }
+        }
+      ]
+    },
+    "onMonthToggle": {
+      "chains": [
+        {
+          "chain": "toggleMonthChain",
+          "parameters": { "month": "{{ $event.currentTarget.dataset.month }}" }
+        }
+      ]
+    },
+    "onExport": {
+      "chains": [{ "chain": "exportChain" }]
+    },
+    "onOpenNav": {
+      "chains": [
+        {
+          "chain": "openNavChain",
+          "parameters": { "navId": "{{ $event.currentTarget.dataset.navId }}" }
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-chart": { "path": "ojs/ojchart" },
+      "oj-table": { "path": "ojs/ojtable" },
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "id": "insights",
+  "description": "Insights (FDD 7.15): Analytics, one report library by role. The live reports are the old Equipment Analytics page's four (same views, same aggregation in resources/js/analyticsData.js); the old Equipment Reports page's six open in Old EquipRite.",
+  "defaultPage": "analytics",
+  "pages": {
+    "analytics": {
+      "path": "pages/analytics-page"
+    }
+  },
+  "chains": {},
+  "services": {},
+  "types": {},
+  "variables": {}
+}

@@ -1,0 +1,340 @@
+<!-- Analytics (wireframe: Analytics). One report library by role; the live reports are the old Equipment Analytics
+     page's four, loaded by analyticsInitChain / loadReportChain through resources/js/analyticsData.js (unchanged). -->
+<div class="er-band">
+  <div class="er-band-inner">
+    <div>
+      <div class="er-band-kicker">Insights · FDD 7.15</div>
+      <h1>Analytics</h1>
+      <div class="er-band-sub">
+        <oj-bind-text value="[[ $functions.libraryCount($variables.canAnalytics,
+            $application.functions.navVisible($application.variables.pageAccessMap, $application.variables.pageAccessLoaded, 'EQR_REPORTS'),
+            $application.functions.navIdVisible($application.variables.pageAccessMap, $application.variables.pageAccessLoaded, 'integration-health'))
+          + ' reports for your role · fleet, approvals, stock and utilization' ]]"></oj-bind-text>
+      </div>
+    </div>
+    <div class="er-actions">
+      <oj-bind-if test="[[ $application.functions.oldAppLink($application.variables.oldAppUrl, 'analytics') ]]">
+        <a class="er-btn er-btn--ghost" :href="[[ $application.functions.oldAppLink($application.variables.oldAppUrl, 'analytics') ]]">Old version</a>
+      </oj-bind-if>
+      <oj-bind-if test="[[ $variables.canAnalytics ]]">
+        <button type="button" class="er-btn er-btn--primary" on-click="[[ $listeners.onExport ]]"
+          :disabled="[[ $variables.isBusy ]]"
+          :title="[[ 'Download ' + $functions.report($variables.analyticsActiveTab).label + ' as a CSV file' ]]">
+          <span class="oj-ux-ico-download" aria-hidden="true"></span>Export CSV</button>
+      </oj-bind-if>
+    </div>
+  </div>
+  <div class="er-strip" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+</div>
+
+<div class="er-page">
+
+  <!-- ── The one number: fleet utilization (analyticsData.kpisFromGroups, the old KPI tiles) ── -->
+  <oj-bind-if test="[[ $variables.canAnalytics ]]">
+    <section class="er-card er-an-hero" aria-label="Fleet at a glance">
+      <div class="er-an-hero-main">
+        <span class="er-an-hero-value">
+          <oj-bind-text value="[[ $variables.isLoading && !$variables.loadedTab ? '…' : $variables.analyticsKpis.utilizationPct + '%' ]]"></oj-bind-text>
+        </span>
+        <span class="er-an-hero-label">of the fleet is out on rent</span>
+        <span class="er-note">Out on rent ÷ total units, every yard, from yard stock.</span>
+      </div>
+      <dl class="er-an-hero-facts">
+        <div>
+          <dt>Total units</dt>
+          <dd class="er-num"><oj-bind-text value="[[ $variables.analyticsKpis.totalUnits ]]"></oj-bind-text></dd>
+        </div>
+        <div>
+          <dt>Out on rent</dt>
+          <dd class="er-num"><oj-bind-text value="[[ $variables.analyticsKpis.outOnRent ]]"></oj-bind-text>
+            <span class="er-an-hero-pct"><oj-bind-text value="[[ $variables.analyticsKpis.outOnRentPct + '%' ]]"></oj-bind-text></span></dd>
+        </div>
+        <div>
+          <dt>Available</dt>
+          <dd class="er-num"><oj-bind-text value="[[ $variables.analyticsKpis.available ]]"></oj-bind-text>
+            <span class="er-an-hero-pct"><oj-bind-text value="[[ $variables.analyticsKpis.availablePct + '%' ]]"></oj-bind-text></span></dd>
+        </div>
+      </dl>
+    </section>
+  </oj-bind-if>
+
+  <!-- ── Report library: what this role may open ── -->
+  <section class="er-an-lib" aria-labelledby="erLibTitle">
+    <div class="er-table-head">
+      <h2 class="er-section-title" id="erLibTitle">Report library</h2>
+      <span class="er-note er-an-legend">
+        <span class="er-an-tag er-an-tag--live">Live</span> opens here
+        <span class="er-an-tag er-an-tag--old">Old</span> opens in Old EquipRite, same data
+      </span>
+    </div>
+    <div class="er-an-lib-grid">
+      <oj-bind-for-each data="[[ $functions.library($variables.canAnalytics,
+          $application.functions.navVisible($application.variables.pageAccessMap, $application.variables.pageAccessLoaded, 'EQR_REPORTS'),
+          $application.functions.navIdVisible($application.variables.pageAccessMap, $application.variables.pageAccessLoaded, 'integration-health')) ]]">
+        <template data-oj-as="grp">
+          <div class="er-card er-card-pad er-an-lib-group">
+            <h3 class="er-an-lib-title"><oj-bind-text value="[[ grp.data.label ]]"></oj-bind-text></h3>
+            <ul class="er-an-lib-list">
+              <oj-bind-for-each data="[[ grp.data.items ]]">
+                <template data-oj-as="rep">
+                  <li>
+                    <oj-bind-if test="[[ rep.data.kind === 'live' ]]">
+                      <button type="button" data-scroll="yes" :data-report="[[ rep.data.id ]]" on-click="[[ $listeners.onReportClick ]]"
+                        :class="[[ 'er-an-lib-item' + ($variables.analyticsActiveTab === rep.data.id ? ' er-an-lib-item--on' : '') ]]"
+                        :aria-pressed="[[ $variables.analyticsActiveTab === rep.data.id ? 'true' : 'false' ]]">
+                        <span class="er-an-lib-name"><oj-bind-text value="[[ rep.data.label ]]"></oj-bind-text>
+                          <span class="er-an-tag er-an-tag--live">Live</span></span>
+                        <span class="er-note"><oj-bind-text value="[[ (rep.data.rpt ? rep.data.rpt + ' · ' : '') + rep.data.desc ]]"></oj-bind-text></span>
+                      </button>
+                    </oj-bind-if>
+                    <oj-bind-if test="[[ rep.data.kind === 'old' ]]">
+                      <a class="er-an-lib-item" :href="[[ $functions.oldReportsLink($application.variables.oldAppUrl) || null ]]"
+                        :aria-disabled="[[ $functions.oldReportsLink($application.variables.oldAppUrl) ? 'false' : 'true' ]]"
+                        :title="[[ 'Opens Equipment Reports in Old EquipRite; pick ' + rep.data.label + ' there' ]]">
+                        <span class="er-an-lib-name"><oj-bind-text value="[[ rep.data.label ]]"></oj-bind-text>
+                          <span class="er-an-tag er-an-tag--old">Old</span></span>
+                        <span class="er-note"><oj-bind-text value="[[ (rep.data.rpt ? rep.data.rpt + ' · ' : '') + rep.data.desc ]]"></oj-bind-text></span>
+                      </a>
+                    </oj-bind-if>
+                    <oj-bind-if test="[[ rep.data.kind === 'nav' ]]">
+                      <button type="button" class="er-an-lib-item" :data-nav-id="[[ rep.data.id ]]" on-click="[[ $listeners.onOpenNav ]]">
+                        <span class="er-an-lib-name"><oj-bind-text value="[[ rep.data.label ]]"></oj-bind-text>
+                          <span class="er-an-tag er-an-tag--live">Live</span></span>
+                        <span class="er-note"><oj-bind-text value="[[ rep.data.rpt + ' · ' + rep.data.desc ]]"></oj-bind-text></span>
+                      </button>
+                    </oj-bind-if>
+                  </li>
+                </template>
+              </oj-bind-for-each>
+            </ul>
+          </div>
+        </template>
+      </oj-bind-for-each>
+    </div>
+    <oj-bind-if test="[[ $variables.canAnalytics ]]">
+      <p class="er-note er-an-notyet">
+        <strong>Not available yet:</strong>
+        <oj-bind-for-each data="[[ $functions.notYet() ]]">
+          <template data-oj-as="ny"><span class="er-an-notyet-item"><oj-bind-text value="[[ ny.data.label + ' (' + ny.data.rpt + ')' ]]"></oj-bind-text></span></template>
+        </oj-bind-for-each>.
+        No EquipRite report holds billed revenue or downtime yet, so these need a new backend view before they can be drawn.
+      </p>
+    </oj-bind-if>
+    <oj-bind-if test="[[ $application.variables.pageAccessLoaded && !$variables.canAnalytics
+                         && !$application.functions.navVisible($application.variables.pageAccessMap, $application.variables.pageAccessLoaded, 'EQR_REPORTS') ]]">
+      <div class="er-card er-card-pad er-later">
+        <h2>No reports for your role</h2>
+        <p class="er-muted">Your role does not include Analytics or Equipment Reports. An administrator can grant them in Settings › Page access.</p>
+      </div>
+    </oj-bind-if>
+  </section>
+
+  <!-- ── The active live report ── -->
+  <oj-bind-if test="[[ $variables.canAnalytics ]]">
+    <section class="er-card er-an-report" id="erReport" aria-labelledby="erReportTitle">
+      <div class="er-card-pad er-an-report-head">
+        <div class="er-an-report-name">
+          <h2 class="er-section-title" id="erReportTitle"><oj-bind-text value="[[ $functions.report($variables.analyticsActiveTab).label ]]"></oj-bind-text></h2>
+          <span class="er-note"><oj-bind-text value="[[ $functions.report($variables.analyticsActiveTab).rpt + ' · '
+                                              + $functions.report($variables.analyticsActiveTab).desc ]]"></oj-bind-text></span>
+        </div>
+        <div class="er-seg" role="group" aria-label="Live reports">
+          <oj-bind-for-each data="[[ $functions.liveReports() ]]">
+            <template data-oj-as="tabItem">
+              <button type="button" :data-report="[[ tabItem.data.id ]]" on-click="[[ $listeners.onReportClick ]]"
+                :class="[[ 'er-seg-btn' + ($variables.analyticsActiveTab === tabItem.data.id ? ' er-seg-btn--on' : '') ]]"
+                :aria-pressed="[[ $variables.analyticsActiveTab === tabItem.data.id ? 'true' : 'false' ]]">
+                <oj-bind-text value="[[ tabItem.data.label ]]"></oj-bind-text>
+              </button>
+            </template>
+          </oj-bind-for-each>
+        </div>
+      </div>
+
+      <!-- Filters: only what the report's endpoint takes. Utilization takes a period instead. -->
+      <div class="er-card-pad er-an-filters">
+        <oj-bind-if test="[[ $variables.analyticsActiveTab === 'equip-utilization' ]]">
+          <div class="er-an-period">
+            <div class="er-seg" role="group" aria-label="Period">
+              <oj-bind-for-each data="[[ $functions.periodOptions() ]]">
+                <template data-oj-as="per">
+                  <button type="button" :data-preset="[[ per.data.value ]]" on-click="[[ $listeners.onPresetClick ]]"
+                    :class="[[ 'er-seg-btn' + ($variables.utilDatePreset === per.data.value ? ' er-seg-btn--on' : '') ]]"
+                    :aria-pressed="[[ $variables.utilDatePreset === per.data.value ? 'true' : 'false' ]]">
+                    <oj-bind-text value="[[ per.data.label ]]"></oj-bind-text>
+                  </button>
+                </template>
+              </oj-bind-for-each>
+            </div>
+            <oj-bind-if test="[[ $variables.utilDatePreset === 'custom' ]]">
+              <label class="er-field er-an-date"><span class="er-label">From</span>
+                <input type="date" data-edge="from" :value="[[ $variables.utilCustomFrom ]]" on-change="[[ $listeners.onCustomDate ]]"></label>
+              <label class="er-field er-an-date"><span class="er-label">To</span>
+                <input type="date" data-edge="to" :value="[[ $variables.utilCustomTo ]]" on-change="[[ $listeners.onCustomDate ]]"></label>
+            </oj-bind-if>
+            <span class="er-note"><oj-bind-text value="[[ $functions.periodText($variables.utilFromDate, $variables.utilToDate) ]]"></oj-bind-text></span>
+          </div>
+        </oj-bind-if>
+        <oj-bind-if test="[[ $variables.analyticsActiveTab !== 'equip-utilization' ]]">
+          <div class="er-filters">
+            <label class="er-search">
+              <span class="oj-ux-ico-search" aria-hidden="true"></span>
+              <span class="er-sr">Search this report</span>
+              <input type="search" :value="[[ $variables.searchText ]]" placeholder="Equipment, project, yard, serial…"
+                on-input="[[ $listeners.onSearchInput ]]">
+            </label>
+            <oj-bind-if test="[[ !!$variables.analyticsFilterCriterion ]]">
+              <button type="button" class="er-btn er-btn--plain" on-click="[[ $listeners.onClearFilters ]]">Clear filters</button>
+            </oj-bind-if>
+          </div>
+          <oj-bind-for-each data="[[ $functions.filtersFor($variables.analyticsActiveTab) ]]">
+            <template data-oj-as="flt">
+              <oj-bind-if test="[[ ($variables.chipOptions[flt.data.field] || []).length ]]">
+                <div class="er-an-chipgroup" role="group" :aria-label="[[ flt.data.label ]]">
+                  <span class="er-an-chipgroup-label"><oj-bind-text value="[[ flt.data.label ]]"></oj-bind-text></span>
+                  <oj-bind-for-each data="[[ $variables.chipOptions[flt.data.field] || [] ]]">
+                    <template data-oj-as="opt">
+                      <button type="button" :data-field="[[ flt.data.field ]]" :data-value="[[ '' + opt.data.value ]]" on-click="[[ $listeners.onChipClick ]]"
+                        :class="[[ 'er-chip' + ($functions.isPicked($variables.picks, flt.data.field, opt.data.value) ? ' er-chip--on' : '') ]]"
+                        :aria-pressed="[[ $functions.isPicked($variables.picks, flt.data.field, opt.data.value) ? 'true' : 'false' ]]">
+                        <oj-bind-text value="[[ $functions.chipLabel($variables.analyticsActiveTab, flt.data.field, opt.data) ]]"></oj-bind-text>
+                      </button>
+                    </template>
+                  </oj-bind-for-each>
+                </div>
+              </oj-bind-if>
+            </template>
+          </oj-bind-for-each>
+        </oj-bind-if>
+      </div>
+
+      <oj-bind-if test="[[ !!$variables.loadError ]]">
+        <div class="er-card-pad"><div class="er-error" role="alert"><oj-bind-text value="[[ $variables.loadError ]]"></oj-bind-text></div></div>
+      </oj-bind-if>
+
+      <oj-bind-if test="[[ $variables.isBusy ]]">
+        <div class="er-card-pad er-an-loading" role="status">Loading <oj-bind-text value="[[ $functions.report($variables.analyticsActiveTab).label.toLowerCase() ]]"></oj-bind-text>…</div>
+      </oj-bind-if>
+
+      <oj-bind-if test="[[ !$variables.isBusy ]]">
+        <!-- Insight first: the one number for this report, from the same figures as the charts below. -->
+        <div class="er-card-pad er-an-insight" aria-live="polite">
+          <span class="er-an-insight-value"><oj-bind-text value="[[ $functions.insight($variables.analyticsActiveTab, $variables.analyticsKpis, $variables).value ]]"></oj-bind-text></span>
+          <span class="er-an-insight-text">
+            <strong><oj-bind-text value="[[ $functions.insight($variables.analyticsActiveTab, $variables.analyticsKpis, $variables).label ]]"></oj-bind-text></strong>
+            <span><oj-bind-text value="[[ $functions.insight($variables.analyticsActiveTab, $variables.analyticsKpis, $variables).sentence ]]"></oj-bind-text></span>
+          </span>
+        </div>
+
+        <div class="er-an-charts">
+          <oj-bind-for-each data="[[ $functions.charts($variables.analyticsActiveTab) ]]">
+            <template data-oj-as="chart">
+              <figure :class="[[ 'er-an-chart' + (chart.data.wide ? ' er-an-chart--wide' : '') ]]">
+                <figcaption>
+                  <span class="er-an-chart-title"><oj-bind-text value="[[ chart.data.title ]]"></oj-bind-text></span>
+                  <span class="er-note"><oj-bind-text value="[[ chart.data.subVar ? $variables[chart.data.subVar] : chart.data.sub ]]"></oj-bind-text></span>
+                </figcaption>
+                <oj-bind-if test="[[ $functions.hasData($variables[chart.data.series]) ]]">
+                  <oj-chart type="bar" :orientation="[[ chart.data.orientation ]]" animation-on-display="auto"
+                    :style="[[ { width: '100%', height: chart.data.height + 'px' } ]]"
+                    series="[[ $variables[chart.data.series] ]]"
+                    groups="[[ $functions.chartGroups($variables[chart.data.groups], chart.data.labels) ]]"
+                    y-axis.min="0" y-axis.min-step="1" :legend.rendered="[[ chart.data.legend ]]" legend.position="bottom"
+                    :aria-label="[[ $functions.chartSummary(chart.data.title, $variables[chart.data.series],
+                                     $functions.chartGroups($variables[chart.data.groups], chart.data.labels)) ]]">
+                  </oj-chart>
+                  <details class="er-an-numbers">
+                    <summary>Show the numbers</summary>
+                    <div class="er-an-numtable" role="table" :aria-label="[[ chart.data.title ]]">
+                      <div class="er-an-numrow er-an-numhead" role="row">
+                        <span role="columnheader"> </span>
+                        <oj-bind-for-each data="[[ $functions.seriesNames($variables[chart.data.series]) ]]">
+                          <template data-oj-as="sname"><span role="columnheader" class="er-num"><oj-bind-text value="[[ sname.data ]]"></oj-bind-text></span></template>
+                        </oj-bind-for-each>
+                      </div>
+                      <oj-bind-for-each data="[[ $functions.chartTable($variables[chart.data.series],
+                                                   $functions.chartGroups($variables[chart.data.groups], chart.data.labels)) ]]">
+                        <template data-oj-as="nrow">
+                          <div class="er-an-numrow" role="row">
+                            <span role="rowheader"><oj-bind-text value="[[ nrow.data.label ]]"></oj-bind-text></span>
+                            <oj-bind-for-each data="[[ nrow.data.values ]]">
+                              <template data-oj-as="nval"><span role="cell" class="er-num"><oj-bind-text value="[[ nval.data ]]"></oj-bind-text></span></template>
+                            </oj-bind-for-each>
+                          </div>
+                        </template>
+                      </oj-bind-for-each>
+                    </div>
+                  </details>
+                </oj-bind-if>
+                <oj-bind-if test="[[ !$functions.hasData($variables[chart.data.series]) ]]">
+                  <div class="er-an-nochart er-muted">Nothing to chart for these filters.</div>
+                </oj-bind-if>
+              </figure>
+            </template>
+          </oj-bind-for-each>
+        </div>
+
+        <!-- Rows: oj-table for the three list reports, a month / day pivot for Utilization. -->
+        <oj-bind-if test="[[ $variables.analyticsActiveTab !== 'equip-utilization' ]]">
+          <div class="er-card-pad er-table-head er-an-rowshead">
+            <h3 class="er-an-chart-title">Rows</h3>
+            <span class="er-note"><oj-bind-text value="[[ $functions.rowNote($variables.tableRows.length) ]]"></oj-bind-text></span>
+          </div>
+          <oj-table id="analyticsTable" data="[[ $functions.rowsDP($variables.tableRows) ]]" columns="[[ $functions.columns($variables.analyticsActiveTab) ]]"
+            class="oj-table-stretch er-an-table" :style="[[ $functions.tableStyle($variables.tableRows.length) ]]"
+            scroll-policy="loadMoreOnScroll" scroll-policy-options.fetch-size="50"
+            :aria-label="[[ $functions.report($variables.analyticsActiveTab).label + ' rows' ]]">
+            <template slot="noData">
+              <div style="text-align: center; padding: 40px 0;" class="er-muted">No rows match. Clear the search or pick another chip.</div>
+            </template>
+          </oj-table>
+        </oj-bind-if>
+
+        <oj-bind-if test="[[ $variables.analyticsActiveTab === 'equip-utilization' ]]">
+          <div class="er-card-pad er-table-head er-an-rowshead">
+            <h3 class="er-an-chart-title">Per yard and day</h3>
+            <span class="er-note">Fleet = units in the yard, Deployed = units out on rent, Util. = deployed ÷ fleet. A month row shows its busiest day.</span>
+          </div>
+          <oj-bind-if test="[[ !$variables.monthData.length ]]">
+            <div class="er-card-pad er-muted">No utilization recorded for this period.</div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.monthData.length ]]">
+            <div class="er-an-util-wrap" role="region" aria-label="Utilization per yard and day" tabindex="0">
+              <div class="er-an-util" role="table" aria-label="Utilization per yard and day">
+                <div class="er-an-util-row er-an-util-head" role="row" :style="[[ $functions.utilGridStyle($variables.dynamicCols) ]]">
+                  <span role="columnheader">Month / day</span>
+                  <oj-bind-for-each data="[[ $functions.utilHeads($variables.dynamicCols) ]]">
+                    <template data-oj-as="uh">
+                      <span role="columnheader" class="er-num"><span class="er-an-util-yard"><oj-bind-text value="[[ uh.data.yard ]]"></oj-bind-text></span>
+                        <oj-bind-text value="[[ uh.data.metric ]]"></oj-bind-text></span>
+                    </template>
+                  </oj-bind-for-each>
+                </div>
+                <oj-bind-for-each data="[[ $functions.utilRows($variables.monthData, $variables.dynamicCols, $variables.collapsedMonths) ]]">
+                  <template data-oj-as="ur">
+                    <div role="row" :class="[[ 'er-an-util-row' + (ur.data.isMonth ? ' er-an-util-month' : '') ]]"
+                      :style="[[ $functions.utilGridStyle($variables.dynamicCols) ]]">
+                      <span role="rowheader">
+                        <oj-bind-if test="[[ ur.data.isMonth ]]">
+                          <button type="button" class="er-an-month" :data-month="[[ ur.data.monthKey ]]" on-click="[[ $listeners.onMonthToggle ]]"
+                            :aria-expanded="[[ ur.data.open ? 'true' : 'false' ]]">
+                            <span :class="[[ ur.data.open ? 'oj-ux-ico-chevron-down' : 'oj-ux-ico-chevron-right' ]]" aria-hidden="true"></span>
+                            <oj-bind-text value="[[ ur.data.label ]]"></oj-bind-text>
+                          </button>
+                        </oj-bind-if>
+                        <oj-bind-if test="[[ !ur.data.isMonth ]]"><oj-bind-text value="[[ ur.data.label ]]"></oj-bind-text></oj-bind-if>
+                      </span>
+                      <oj-bind-for-each data="[[ ur.data.cells ]]">
+                        <template data-oj-as="uc"><span role="cell" class="er-num"><oj-bind-text value="[[ uc.data ]]"></oj-bind-text></span></template>
+                      </oj-bind-for-each>
+                    </div>
+                  </template>
+                </oj-bind-for-each>
+              </div>
+            </div>
+          </oj-bind-if>
+        </oj-bind-if>
+      </oj-bind-if>
+    </section>
+  </oj-bind-if>
+</div>

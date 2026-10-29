@@ -1,0 +1,241 @@
+<!-- Integration health (wireframe: Integration health; FDD 9.4). Data: loadHealthChain; Run now / Reprocess:
+     runActionChain; every card, queue row and figure: the page module's model(). -->
+<div class="er-band">
+  <div class="er-band-inner">
+    <div>
+      <div class="er-band-kicker">Settings · FDD 9.4</div>
+      <h1>Integration health</h1>
+      <div class="er-band-sub">
+        <oj-bind-text value="[[ $variables.isLoading && !$variables.checkedAt ? 'Checking…'
+          : ($variables.model.counts.healthy || 0) + ' healthy · ' + ($variables.model.counts.attention || 0) + ' need attention · '
+            + ($variables.model.counts.down || 0) + ' down · checked ' + $variables.checkedAt ]]"></oj-bind-text>
+      </div>
+    </div>
+    <div class="er-actions">
+      <button type="button" class="er-btn er-btn--primary" on-click="[[ $listeners.onCheckAgain ]]" :disabled="[[ $variables.isLoading ]]">
+        <span class="oj-ux-ico-refresh" aria-hidden="true"></span>
+        <oj-bind-text value="[[ $variables.isLoading ? 'Checking…' : 'Check again' ]]"></oj-bind-text>
+      </button>
+    </div>
+  </div>
+  <div class="er-strip" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+</div>
+
+<div class="er-page">
+  <oj-bind-if test="[[ !!$variables.loadNote ]]">
+    <div class="er-error" role="alert"><oj-bind-text value="[[ $variables.loadNote ]]"></oj-bind-text></div>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ !!$variables.model.lockText ]]">
+    <div class="er-ih-note" role="status"><span class="oj-ux-ico-clock" aria-hidden="true"></span>
+      <oj-bind-text value="[[ $variables.model.lockText ]]"></oj-bind-text></div>
+  </oj-bind-if>
+
+  <!-- Consequence before the click: Run now / Apply asks first and says what it does. -->
+  <oj-bind-if test="[[ !!$variables.confirm ]]">
+    <div class="er-ih-confirm" role="alert">
+      <span><oj-bind-text value="[[ $variables.confirm ? $variables.confirm.text : '' ]]"></oj-bind-text></span>
+      <span class="er-actions">
+        <button type="button" class="er-btn er-btn--plain" on-click="[[ $listeners.onCancelConfirm ]]">Cancel</button>
+        <button type="button" class="er-btn er-btn--dark" data-confirmed="yes"
+          :data-action="[[ $variables.confirm ? $variables.confirm.type : '' ]]" :data-sync="[[ $variables.confirm ? $variables.confirm.syncCode : '' ]]"
+          on-click="[[ $listeners.onAction ]]">
+          <oj-bind-text value="[[ $variables.confirm && $variables.confirm.type === 'refresh' ? 'Apply staged stock' : 'Run now' ]]"></oj-bind-text>
+        </button>
+      </span>
+    </div>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ !!$variables.lastResult ]]">
+    <div :class="[[ 'er-ih-result er-ih-result--' + ($variables.lastResult ? $variables.lastResult.type : '') ]]" role="status">
+      <span><strong><oj-bind-text value="[[ $variables.lastResult ? $variables.lastResult.summary + '.' : '' ]]"></oj-bind-text></strong>
+        <oj-bind-text value="[[ $variables.lastResult ? ' ' + $variables.lastResult.message : '' ]]"></oj-bind-text></span>
+      <button type="button" class="er-icon-btn" on-click="[[ $listeners.onDismissResult ]]" aria-label="Dismiss"><span class="oj-ux-ico-close" aria-hidden="true"></span></button>
+    </div>
+  </oj-bind-if>
+
+  <!-- The one thing that matters: what is down, why, and the fix. -->
+  <oj-bind-if test="[[ !!$variables.model.banner ]]">
+    <div class="er-ih-down" role="alert">
+      <span class="er-ih-down-text">
+        <strong><oj-bind-text value="[[ $variables.model.banner ? $variables.model.banner.name + ' is down: ' + $variables.model.banner.reason.toLowerCase() + '.' : '' ]]"></oj-bind-text></strong>
+        <oj-bind-text value="[[ $variables.model.banner ? ' ' + $variables.model.banner.what : '' ]]"></oj-bind-text>
+        <span class="er-ih-fix"><oj-bind-text value="[[ $variables.model.banner && $variables.model.banner.fix ? 'Fix: ' + $variables.model.banner.fix : '' ]]"></oj-bind-text></span>
+      </span>
+      <span class="er-actions">
+        <button type="button" class="er-btn er-btn--plain" :data-integ="[[ $variables.model.banner ? $variables.model.banner.key : '' ]]"
+          on-click="[[ $listeners.onQueueChip ]]">Show its exceptions</button>
+        <oj-bind-if test="[[ $variables.model.banner && $variables.model.banner.action
+                             && $application.functions.pageAccess($application.variables.pageAccessMap, $application.variables.pageAccessLoaded, 'EQR_CONFIGURATIONS') === 'FULL' ]]">
+          <button type="button" class="er-btn er-btn--dark" :data-action="[[ $variables.model.banner.action.type ]]"
+            :data-sync="[[ $variables.model.banner.action.syncCode ]]" on-click="[[ $listeners.onAction ]]"
+            :disabled="[[ !!$variables.busyKey ]]"><oj-bind-text value="[[ $variables.model.banner.action.label ]]"></oj-bind-text></button>
+        </oj-bind-if>
+      </span>
+    </div>
+  </oj-bind-if>
+
+  <section class="er-kpis" aria-label="Key figures">
+    <div :class="[[ 'er-kpi er-ih-kpi ' + ($variables.model.kpis.rateLow ? 'er-kpi--warning' : 'er-kpi--success') ]]">
+      <span class="er-kpi-label">Success rate, 24 h</span>
+      <span class="er-kpi-value"><oj-bind-text value="[[ $variables.model.kpis.rate || '–' ]]"></oj-bind-text></span>
+      <span class="er-kpi-hint"><oj-bind-text value="[[ $variables.model.kpis.rateHint || '' ]]"></oj-bind-text></span>
+    </div>
+    <div :class="[[ 'er-kpi er-ih-kpi ' + ($variables.model.kpis.waiting ? 'er-kpi--danger' : 'er-kpi--success') ]]">
+      <span class="er-kpi-label">Exceptions waiting</span>
+      <span class="er-kpi-value"><oj-bind-text value="[[ '' + ($variables.model.kpis.waiting || 0) ]]"></oj-bind-text></span>
+      <span class="er-kpi-hint"><oj-bind-text value="[[ $variables.model.kpis.waitingHint || '' ]]"></oj-bind-text></span>
+    </div>
+    <div :class="[[ 'er-kpi er-ih-kpi ' + ($variables.model.kpis.dlq >= 5 ? 'er-kpi--warning' : 'er-kpi--info') ]]">
+      <span class="er-kpi-label">Dead letter queue</span>
+      <span class="er-kpi-value"><oj-bind-text value="[[ '' + ($variables.model.kpis.dlq || 0) ]]"></oj-bind-text></span>
+      <span class="er-kpi-hint"><oj-bind-text value="[[ $variables.model.kpis.dlqHint || '' ]]"></oj-bind-text></span>
+    </div>
+    <div class="er-kpi er-ih-kpi er-kpi--info">
+      <span class="er-kpi-label">Last Fusion sync</span>
+      <span class="er-kpi-value"><oj-bind-text value="[[ $variables.model.kpis.lastSync || '–' ]]"></oj-bind-text></span>
+      <span class="er-kpi-hint"><oj-bind-text value="[[ $variables.model.kpis.lastSyncHint || '' ]]"></oj-bind-text></span>
+    </div>
+  </section>
+
+  <!-- ── A card per integration ── -->
+  <section class="er-ih-section" aria-labelledby="erIntTitle">
+    <div class="er-table-head">
+      <h2 class="er-section-title" id="erIntTitle">Integrations</h2>
+      <oj-bind-if test="[[ $application.functions.pageAccess($application.variables.pageAccessMap, $application.variables.pageAccessLoaded, 'EQR_CONFIGURATIONS') === 'READ_ONLY' ]]">
+        <span class="er-note">Read only: your role can see health but not run syncs.</span>
+      </oj-bind-if>
+    </div>
+    <div class="er-ih-cards">
+      <oj-bind-for-each data="[[ $variables.model.cards ]]">
+        <template data-oj-as="card">
+          <div :class="[[ 'er-card er-ih-card er-ih-card--' + card.data.health.key ]]" :data-card="[[ card.data.key ]]">
+            <div class="er-ih-card-head">
+              <strong class="er-ih-card-name"><oj-bind-text value="[[ card.data.name ]]"></oj-bind-text></strong>
+              <span :class="[[ 'er-ih-pill er-ih-pill--' + card.data.health.key ]]"><oj-bind-text value="[[ card.data.health.label ]]"></oj-bind-text></span>
+            </div>
+            <span class="er-note"><oj-bind-text value="[[ card.data.detail ]]"></oj-bind-text></span>
+            <oj-bind-if test="[[ card.data.health.key !== 'healthy' && card.data.health.key !== 'idle' ]]">
+              <span class="er-ih-reason"><oj-bind-text value="[[ card.data.health.reason ]]"></oj-bind-text></span>
+            </oj-bind-if>
+            <oj-bind-if test="[[ !!card.data.effect ]]">
+              <details class="er-ih-effect"><summary>What it does</summary><span class="er-note"><oj-bind-text value="[[ card.data.effect ]]"></oj-bind-text></span></details>
+            </oj-bind-if>
+            <oj-bind-if test="[[ !!card.data.action
+                                 && $application.functions.pageAccess($application.variables.pageAccessMap, $application.variables.pageAccessLoaded, 'EQR_CONFIGURATIONS') === 'FULL' ]]">
+              <button type="button" class="er-btn er-btn--plain er-ih-card-action" :data-action="[[ card.data.action ? card.data.action.type : '' ]]"
+                :data-sync="[[ card.data.action ? card.data.action.syncCode : '' ]]" on-click="[[ $listeners.onAction ]]"
+                :disabled="[[ !!$variables.busyKey || card.data.health.key === 'running' ]]">
+                <oj-bind-text value="[[ $variables.busyKey === card.data.key ? 'Starting…' : (card.data.action ? card.data.action.label : '') ]]"></oj-bind-text>
+              </button>
+            </oj-bind-if>
+          </div>
+        </template>
+      </oj-bind-for-each>
+    </div>
+    <oj-bind-if test="[[ ($variables.model.silent || []).length && !$variables.isLoading ]]">
+      <details class="er-note er-ih-silent">
+        <summary><oj-bind-text value="[[ ($variables.model.silent || []).length + ' integrations logged no calls, so their health is not known' ]]"></oj-bind-text></summary>
+        <oj-bind-text value="[[ ($variables.model.silent || []).join(' · ') ]]"></oj-bind-text>
+      </details>
+    </oj-bind-if>
+  </section>
+
+  <!-- ── Exception queue ── -->
+  <section class="er-card er-ih-queue" aria-labelledby="erQueueTitle">
+    <div class="er-card-pad er-table-head">
+      <h2 class="er-section-title" id="erQueueTitle">Exception queue</h2>
+      <span class="er-note">Oldest first. Reprocess is offered where EquipRite has a call for it: running a Fusion sync again and applying staged stock again.</span>
+    </div>
+    <div class="er-card-pad er-chip-row er-ih-chips" role="group" aria-label="Integration">
+      <oj-bind-for-each data="[[ $functions.queueChips($variables.model.queue) ]]">
+        <template data-oj-as="qc">
+          <button type="button" :data-integ="[[ qc.data.key ]]" on-click="[[ $listeners.onQueueChip ]]"
+            :class="[[ 'er-chip' + ($variables.queueFilter === qc.data.key ? ' er-chip--on' : '') ]]"
+            :aria-pressed="[[ $variables.queueFilter === qc.data.key ? 'true' : 'false' ]]">
+            <oj-bind-text value="[[ qc.data.label ]]"></oj-bind-text>
+            <span class="er-chip-count"><oj-bind-text value="[[ qc.data.count ]]"></oj-bind-text></span>
+          </button>
+        </template>
+      </oj-bind-for-each>
+    </div>
+    <div class="er-table-wrap">
+      <div class="er-ih-grid" role="table" aria-label="Exception queue">
+        <div class="er-ih-qrow er-grid-head" role="row">
+          <span role="columnheader">When</span>
+          <span role="columnheader">Integration</span>
+          <span role="columnheader">Record</span>
+          <span role="columnheader">What went wrong</span>
+          <span role="columnheader" class="er-num">Tries</span>
+          <span role="columnheader">Reprocess</span>
+        </div>
+        <oj-bind-for-each data="[[ $functions.filterQueue($variables.model.queue, $variables.queueFilter) ]]">
+          <template data-oj-as="q">
+            <div class="er-ih-qrow" role="row" :data-entry="[[ q.data.key ]]">
+              <span role="cell"><span class="er-cell-main"><oj-bind-text value="[[ q.data.when || '—' ]]"></oj-bind-text></span>
+                <span :class="[[ q.data.old ? 'er-ih-age er-ih-age--old' : 'er-ih-age' ]]"><oj-bind-text value="[[ q.data.age ]]"></oj-bind-text></span></span>
+              <span role="cell"><span class="er-cell-main"><oj-bind-text value="[[ q.data.integName ]]"></oj-bind-text></span>
+                <span class="er-note"><oj-bind-text value="[[ q.data.kind ]]"></oj-bind-text></span></span>
+              <span role="cell"><oj-bind-text value="[[ q.data.record || '—' ]]"></oj-bind-text></span>
+              <span role="cell" class="er-ih-what"><span><oj-bind-text value="[[ q.data.what ]]"></oj-bind-text></span>
+                <span class="er-ih-fix"><oj-bind-text value="[[ 'Fix: ' + q.data.fix ]]"></oj-bind-text></span></span>
+              <span role="cell" class="er-num"><oj-bind-text value="[[ q.data.tries || '—' ]]"></oj-bind-text></span>
+              <span role="cell">
+                <oj-bind-if test="[[ !!q.data.action
+                                     && $application.functions.pageAccess($application.variables.pageAccessMap, $application.variables.pageAccessLoaded, 'EQR_CONFIGURATIONS') === 'FULL' ]]">
+                  <button type="button" class="er-btn er-btn--dark" :data-action="[[ q.data.action ? q.data.action.type : '' ]]"
+                    :data-sync="[[ q.data.action ? q.data.action.syncCode : '' ]]" on-click="[[ $listeners.onAction ]]"
+                    :disabled="[[ !!$variables.busyKey ]]"><oj-bind-text value="[[ q.data.action ? q.data.action.label : '' ]]"></oj-bind-text></button>
+                </oj-bind-if>
+                <oj-bind-if test="[[ !q.data.action ]]">
+                  <span class="er-note" title="services/eqp-v1 has no reprocess call for this kind of failure: it is retried by the backend or fixed at the source">Fix at the source</span>
+                </oj-bind-if>
+              </span>
+            </div>
+          </template>
+        </oj-bind-for-each>
+        <oj-bind-if test="[[ !$functions.filterQueue($variables.model.queue, $variables.queueFilter).length ]]">
+          <div class="er-card-pad er-muted">
+            <oj-bind-text value="[[ $variables.isLoading ? 'Checking…' : 'Nothing waiting. Every failure logged has been dealt with.' ]]"></oj-bind-text>
+          </div>
+        </oj-bind-if>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Scheduled and on-demand job runs (EQR_JOB_RUN_LOG) ── -->
+  <section class="er-card er-ih-jobs" aria-labelledby="erJobsTitle">
+    <div class="er-card-pad er-table-head">
+      <h2 class="er-section-title" id="erJobsTitle">Job runs</h2>
+      <span class="er-note">The newest 25 from the job log. A complete Sync from Fusion (items, then stock, then units) runs from the Equipment page.
+        <button type="button" class="er-ih-link" data-nav-id="equipment" on-click="[[ $listeners.onOpenNav ]]">Open Equipment</button></span>
+    </div>
+    <div class="er-table-wrap">
+      <div class="er-ih-grid" role="table" aria-label="Job runs">
+        <div class="er-ih-jrow er-grid-head" role="row">
+          <span role="columnheader">Job</span>
+          <span role="columnheader">Result</span>
+          <span role="columnheader">Started</span>
+          <span role="columnheader">Took</span>
+          <span role="columnheader">Notes</span>
+        </div>
+        <oj-bind-for-each data="[[ $variables.model.jobs ]]">
+          <template data-oj-as="j">
+            <div class="er-ih-jrow" role="row">
+              <span role="cell"><span class="er-cell-main"><oj-bind-text value="[[ j.data.name ]]"></oj-bind-text></span>
+                <span class="er-note"><oj-bind-text value="[[ j.data.code ]]"></oj-bind-text></span></span>
+              <span role="cell"><span :class="[[ 'er-ih-pill er-ih-pill--' + (j.data.cls === 'fail' ? 'down' : (j.data.cls === 'ok' ? 'healthy' : (j.data.cls === 'run' ? 'running' : 'idle'))) ]]">
+                <oj-bind-text value="[[ j.data.statusText ]]"></oj-bind-text></span></span>
+              <span role="cell"><oj-bind-text value="[[ j.data.started || '—' ]]"></oj-bind-text></span>
+              <span role="cell"><oj-bind-text value="[[ j.data.took || '—' ]]"></oj-bind-text></span>
+              <span role="cell" class="er-ih-notes"><oj-bind-text value="[[ j.data.notes || '' ]]"></oj-bind-text></span>
+            </div>
+          </template>
+        </oj-bind-for-each>
+        <oj-bind-if test="[[ !($variables.model.jobs || []).length ]]">
+          <div class="er-card-pad er-muted"><oj-bind-text value="[[ $variables.isLoading ? 'Checking…' : 'No job runs in the log.' ]]"></oj-bind-text></div>
+        </oj-bind-if>
+      </div>
+    </div>
+  </section>
+</div>

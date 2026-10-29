@@ -1,0 +1,204 @@
+<!-- Page access (wireframe: Settings › Roles & page access; FDD 10.3). The old rbac-admin matrix and save
+     (pageAccessInitChain, loadMatrixChain, setLevelChain, saveMatrixChain), plus a read-only preview of the role's
+     menu from the app's own visibleNavGroups / getRoleHomeTarget. -->
+<div class="er-band">
+  <div class="er-band-inner">
+    <div>
+      <div class="er-band-kicker">Settings · FDD 10.3</div>
+      <h1>Page access</h1>
+      <div class="er-band-sub">Which pages each role can open, in Old and New EquipRite.</div>
+    </div>
+    <div class="er-actions">
+      <oj-bind-if test="[[ $application.functions.oldAppLink($application.variables.oldAppUrl, 'page-access') ]]">
+        <a class="er-btn er-btn--ghost" :href="[[ $application.functions.oldAppLink($application.variables.oldAppUrl, 'page-access') ]]">Old version</a>
+      </oj-bind-if>
+      <oj-bind-if test="[[ $functions.dirtyCount($variables.dirtyMap) > 0 ]]">
+        <button type="button" class="er-btn er-btn--ghost" on-click="[[ $listeners.onDiscard ]]" :disabled="[[ $variables.isSaving ]]">Discard</button>
+      </oj-bind-if>
+      <button type="button" class="er-btn er-btn--primary" on-click="[[ $listeners.onSave ]]"
+        :disabled="[[ $functions.dirtyCount($variables.dirtyMap) === 0 || $variables.isSaving ]]">
+        <oj-bind-text value="[[ $variables.isSaving ? 'Saving…' : $functions.saveLabel($variables.dirtyMap) ]]"></oj-bind-text>
+      </button>
+    </div>
+  </div>
+  <div class="er-strip" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+</div>
+
+<div class="er-page">
+  <oj-bind-if test="[[ !!$variables.loadError ]]">
+    <div class="er-error" role="alert"><oj-bind-text value="[[ $variables.loadError ]]"></oj-bind-text></div>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ $variables.rolesArray.length ]]">
+    <div class="er-pa-roles">
+      <span class="er-label" id="erRoleLabel">Role</span>
+      <div class="er-chip-row" role="group" aria-labelledby="erRoleLabel">
+        <oj-bind-for-each data="[[ $variables.rolesArray ]]">
+          <template data-oj-as="role">
+            <button type="button" :data-role-id="[[ '' + role.data.appRoleId ]]" on-click="[[ $listeners.onRoleClick ]]"
+              :disabled="[[ $variables.isSaving ]]"
+              :class="[[ 'er-chip' + (('' + $variables.selectedRoleId) === ('' + role.data.appRoleId) ? ' er-chip--on' : '') ]]"
+              :aria-pressed="[[ ('' + $variables.selectedRoleId) === ('' + role.data.appRoleId) ? 'true' : 'false' ]]"
+              :title="[[ role.data.roleCode || '' ]]">
+              <oj-bind-text value="[[ role.data.roleName || role.data.roleCode ]]"></oj-bind-text>
+            </button>
+          </template>
+        </oj-bind-for-each>
+      </div>
+    </div>
+  </oj-bind-if>
+
+  <!-- Consequence before the click: what Save changes in this role's menu. -->
+  <oj-bind-if test="[[ $functions.dirtyCount($variables.dirtyMap) > 0 ]]">
+    <div class="er-pa-unsaved" role="status">
+      <span class="er-pa-unsaved-text">
+        <strong><oj-bind-text value="[[ $functions.dirtyCount($variables.dirtyMap) + ' unsaved change' + ($functions.dirtyCount($variables.dirtyMap) === 1 ? '' : 's')
+                                        + ' for ' + $functions.roleName($variables.rolesArray, $variables.selectedRoleId) + '.' ]]"></oj-bind-text></strong>
+        <oj-bind-text value="[[ $functions.consequence($functions.roleName($variables.rolesArray, $variables.selectedRoleId),
+            $application.functions.visibleNavGroups($functions.savedMap($variables.matrixArray), true,
+              $application.variables.featureFlags, $application.variables.flagsLoaded, $application.variables.buRateSources),
+            $application.functions.visibleNavGroups($functions.effectiveMap($variables.matrixArray, $variables.dirtyMap), true,
+              $application.variables.featureFlags, $application.variables.flagsLoaded, $application.variables.buRateSources)) ]]"></oj-bind-text>
+        Picking another role discards them.
+      </span>
+      <span class="er-actions">
+        <button type="button" class="er-btn er-btn--plain" on-click="[[ $listeners.onDiscard ]]" :disabled="[[ $variables.isSaving ]]">Discard</button>
+        <button type="button" class="er-btn er-btn--dark" on-click="[[ $listeners.onSave ]]" :disabled="[[ $variables.isSaving ]]">
+          <oj-bind-text value="[[ $variables.isSaving ? 'Saving…' : $functions.saveLabel($variables.dirtyMap) ]]"></oj-bind-text>
+        </button>
+      </span>
+    </div>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ !!$variables.saveError ]]">
+    <div class="er-error" role="alert"><oj-bind-text value="[[ $variables.saveError ]]"></oj-bind-text></div>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ $variables.isLoading && !$variables.loadError ]]">
+    <div class="er-card er-card-pad er-muted" role="status">Loading page access…</div>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ !$variables.isLoading && !$variables.loadError && $variables.matrixArray.length ]]">
+    <div class="er-pa-layout">
+      <!-- ── The matrix ── -->
+      <section class="er-card er-pa-matrix" aria-labelledby="erMatrixTitle">
+        <div class="er-card-pad er-pa-matrix-head">
+          <div>
+            <h2 class="er-section-title" id="erMatrixTitle">
+              <oj-bind-text value="[[ 'Pages for ' + $functions.roleName($variables.rolesArray, $variables.selectedRoleId) ]]"></oj-bind-text>
+            </h2>
+            <span class="er-note"><oj-bind-text value="[[ $functions.levelCounts($variables.matrixArray, $variables.dirtyMap) ]]"></oj-bind-text></span>
+          </div>
+          <label class="er-search er-pa-search">
+            <span class="oj-ux-ico-search" aria-hidden="true"></span>
+            <span class="er-sr">Find a page</span>
+            <input type="search" placeholder="Find a page" :value="[[ $variables.searchText ]]" on-input="[[ $listeners.onSearchInput ]]">
+          </label>
+        </div>
+        <div class="er-pa-legend er-note">
+          <oj-bind-for-each data="[[ $functions.levels() ]]">
+            <template data-oj-as="lv"><span><strong><oj-bind-text value="[[ lv.data.label ]]"></oj-bind-text></strong>
+              <oj-bind-text value="[[ ' ' + lv.data.hint ]]"></oj-bind-text></span></template>
+          </oj-bind-for-each>
+        </div>
+        <div class="er-pa-rows" role="list">
+          <oj-bind-for-each data="[[ $functions.visibleRows($variables.matrixArray, $variables.searchText) ]]">
+            <template data-oj-as="row">
+              <div role="listitem">
+                <oj-bind-if test="[[ row.data.first ]]">
+                  <div class="er-pa-module"><oj-bind-text value="[[ $functions.moduleLabel(row.data.moduleCode) ]]"></oj-bind-text></div>
+                </oj-bind-if>
+                <div :class="[[ 'er-pa-row' + ($functions.isRowDirty($variables.dirtyMap, row.data.pageCode) ? ' er-pa-row--dirty' : '') ]]"
+                  :data-row="[[ row.data.pageCode ]]">
+                  <div class="er-pa-page">
+                    <span class="er-pa-page-label">
+                      <oj-bind-text value="[[ row.data.pageLabel ]]"></oj-bind-text>
+                      <oj-bind-if test="[[ $functions.isRowDirty($variables.dirtyMap, row.data.pageCode) ]]">
+                        <span class="er-pa-badge er-pa-badge--dirty"><oj-bind-text value="[[ 'Unsaved · was ' + $functions.levelLabel(row.data.accessLevel) ]]"></oj-bind-text></span>
+                      </oj-bind-if>
+                      <oj-bind-if test="[[ $functions.isRowLocked(row.data) ]]">
+                        <span class="er-pa-badge">Locked</span>
+                      </oj-bind-if>
+                    </span>
+                    <span class="er-pa-page-code"><oj-bind-text value="[[ row.data.pageCode ]]"></oj-bind-text></span>
+                    <span class="er-note"><oj-bind-text value="[[ $functions.usedByText($application.functions.visibleNavGroups($functions.singleMap(row.data.pageCode), true,
+                        $application.variables.featureFlags, $application.variables.flagsLoaded, $application.variables.buRateSources)) ]]"></oj-bind-text></span>
+                  </div>
+                  <div class="er-seg er-pa-seg" role="group" :aria-label="[[ 'Access to ' + row.data.pageLabel ]]">
+                    <oj-bind-for-each data="[[ $functions.levels() ]]">
+                      <template data-oj-as="lvl">
+                        <button type="button" :data-page-code="[[ row.data.pageCode ]]" :data-level="[[ lvl.data.value ]]"
+                          on-click="[[ $listeners.onLevelClick ]]"
+                          :disabled="[[ $variables.isSaving || $functions.isRowLocked(row.data) ]]"
+                          :title="[[ lvl.data.hint ]]"
+                          :class="[[ 'er-seg-btn er-pa-lvl er-pa-lvl--' + lvl.data.value
+                                     + ($functions.effectiveLevel($variables.dirtyMap, row.data.pageCode, row.data.accessLevel) === lvl.data.value ? ' er-seg-btn--on' : '') ]]"
+                          :aria-pressed="[[ $functions.effectiveLevel($variables.dirtyMap, row.data.pageCode, row.data.accessLevel) === lvl.data.value ? 'true' : 'false' ]]">
+                          <oj-bind-text value="[[ lvl.data.label ]]"></oj-bind-text>
+                        </button>
+                      </template>
+                    </oj-bind-for-each>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </oj-bind-for-each>
+          <oj-bind-if test="[[ !$functions.visibleRows($variables.matrixArray, $variables.searchText).length ]]">
+            <div class="er-card-pad er-muted">No page matches. Clear the search.</div>
+          </oj-bind-if>
+        </div>
+      </section>
+
+      <!-- ── Preview the app as this role (read only) ── -->
+      <aside class="er-card er-card-pad er-pa-preview" aria-labelledby="erPreviewTitle">
+        <h2 class="er-section-title" id="erPreviewTitle">
+          <oj-bind-text value="[[ 'Preview as ' + $functions.roleName($variables.rolesArray, $variables.selectedRoleId) ]]"></oj-bind-text>
+        </h2>
+        <div class="er-seg" role="group" aria-label="Preview">
+          <button type="button" data-mode="pending" on-click="[[ $listeners.onPreviewMode ]]"
+            :class="[[ 'er-seg-btn' + ($variables.previewMode !== 'saved' ? ' er-seg-btn--on' : '') ]]"
+            :aria-pressed="[[ $variables.previewMode !== 'saved' ? 'true' : 'false' ]]">With your changes</button>
+          <button type="button" data-mode="saved" on-click="[[ $listeners.onPreviewMode ]]"
+            :class="[[ 'er-seg-btn' + ($variables.previewMode === 'saved' ? ' er-seg-btn--on' : '') ]]"
+            :aria-pressed="[[ $variables.previewMode === 'saved' ? 'true' : 'false' ]]">As saved</button>
+        </div>
+        <p class="er-pa-landing">
+          Signs in to
+          <strong><oj-bind-text value="[[ $functions.landingLabel($application.functions.getRoleHomeTarget($application.variables.featureFlags,
+              $application.variables.flagsLoaded, $functions.previewMap($variables.matrixArray, $variables.dirtyMap, $variables.previewMode), true),
+              $application.functions) ]]"></oj-bind-text></strong>
+        </p>
+        <nav class="er-pa-menu" aria-label="Menu this role sees">
+          <oj-bind-for-each data="[[ $application.functions.visibleNavGroups($functions.previewMap($variables.matrixArray, $variables.dirtyMap, $variables.previewMode),
+              true, $application.variables.featureFlags, $application.variables.flagsLoaded, $application.variables.buRateSources) ]]">
+            <template data-oj-as="pg">
+              <div class="er-pa-menu-group">
+                <oj-bind-if test="[[ pg.data.label ]]">
+                  <span class="er-nav-label"><oj-bind-text value="[[ pg.data.label ]]"></oj-bind-text></span>
+                </oj-bind-if>
+                <ul>
+                  <oj-bind-for-each data="[[ pg.data.items ]]">
+                    <template data-oj-as="pi">
+                      <li class="er-pa-menu-item">
+                        <span :class="[[ pi.data.icon + ' er-nav-icon' ]]" aria-hidden="true"></span>
+                        <span class="er-nav-text"><oj-bind-text value="[[ pi.data.label ]]"></oj-bind-text></span>
+                        <oj-bind-if test="[[ $functions.itemReadOnly(pi.data, $functions.previewMap($variables.matrixArray, $variables.dirtyMap, $variables.previewMode)) ]]">
+                          <span class="er-nav-tag">Read only</span>
+                        </oj-bind-if>
+                      </li>
+                    </template>
+                  </oj-bind-for-each>
+                </ul>
+              </div>
+            </template>
+          </oj-bind-for-each>
+          <oj-bind-if test="[[ !$application.functions.visibleNavGroups($functions.previewMap($variables.matrixArray, $variables.dirtyMap, $variables.previewMode),
+              true, $application.variables.featureFlags, $application.variables.flagsLoaded, $application.variables.buRateSources).length ]]">
+            <span class="er-nav-loading">No menu: this role can open nothing.</span>
+          </oj-bind-if>
+        </nav>
+        <p class="er-note">Today's feature flags apply. The preview changes nothing; Old EquipRite's menu follows the same codes.</p>
+      </aside>
+    </div>
+  </oj-bind-if>
+</div>

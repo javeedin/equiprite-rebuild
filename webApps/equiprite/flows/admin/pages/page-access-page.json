@@ -1,0 +1,89 @@
+{
+  "title": "Page access",
+  "description": "Page x role access matrix (FDD 10.3; replaces setup/rbac-admin). Same reads (GET /rbac/app-roles, GET /rbac/page-access-matrix) and the same single save (PUT /rbac/page-access, dirty rows only, scoped to the selected role). The preview of the role's menu is computed with the app's visibleNavGroups and getRoleHomeTarget; nothing is written to preview.",
+  "variables": {
+    "rolesArray": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Active RBAC_APP_ROLES rows for EQUIP_RITE, from getRbacAppRoles."
+    },
+    "selectedRoleId": {
+      "type": "any",
+      "defaultValue": null,
+      "description": "APP_ROLE_ID being edited. Every save is scoped to it."
+    },
+    "matrixArray": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Rows for the selected role as last loaded (the clean baseline). Never mutated by edits."
+    },
+    "dirtyMap": {
+      "type": "any",
+      "defaultValue": {},
+      "description": "Pending edits { pageCode: level } not yet saved."
+    },
+    "searchText": { "type": "string", "defaultValue": "" },
+    "previewMode": { "type": "string", "defaultValue": "pending" },
+    "isLoading": { "type": "boolean", "defaultValue": true },
+    "isSaving": { "type": "boolean", "defaultValue": false },
+    "loadError": { "type": "string", "defaultValue": "" },
+    "saveError": { "type": "string", "defaultValue": "" }
+  },
+  "metadata": {},
+  "eventListeners": {
+    "vbBeforeEnter": {
+      "chains": [{ "chain": "enforcePageAccessChain" }]
+    },
+    "vbEnter": {
+      "chains": [{ "chain": "pageAccessInitChain" }]
+    },
+    "onRoleClick": {
+      "chains": [
+        {
+          "chain": "loadMatrixChain",
+          "parameters": { "appRoleId": "{{ $event.currentTarget.dataset.roleId }}" }
+        }
+      ]
+    },
+    "onLevelClick": {
+      "chains": [
+        {
+          "chain": "setLevelChain",
+          "parameters": {
+            "pageCode": "{{ $event.currentTarget.dataset.pageCode }}",
+            "accessLevel": "{{ $event.currentTarget.dataset.level }}"
+          }
+        }
+      ]
+    },
+    "onSave": {
+      "chains": [{ "chain": "saveMatrixChain" }]
+    },
+    "onDiscard": {
+      "chains": [{ "chain": "cancelEditsChain" }]
+    },
+    "onSearchInput": {
+      "chains": [
+        {
+          "chain": "setViewChain",
+          "parameters": { "search": "{{ $event.target.value }}" }
+        }
+      ]
+    },
+    "onPreviewMode": {
+      "chains": [
+        {
+          "chain": "setViewChain",
+          "parameters": { "previewMode": "{{ $event.currentTarget.dataset.mode }}" }
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}

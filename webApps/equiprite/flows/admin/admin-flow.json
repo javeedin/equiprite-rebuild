@@ -1,0 +1,17 @@
+{
+  "id": "admin",
+  "description": "Settings (FDD 10.3, 9.4): Page access (the old rbac-admin page: same matrix, same save, plus a read-only preview of the menu a role gets) and Integration health (new: job runs, error logs, integration events and Fusion sync exceptions from eqp-v1).",
+  "defaultPage": "page-access",
+  "pages": {
+    "page-access": {
+      "path": "pages/page-access-page"
+    },
+    "integration-health": {
+      "path": "pages/integration-health-page"
+    }
+  },
+  "chains": {},
+  "services": {},
+  "types": {},
+  "variables": {}
+}

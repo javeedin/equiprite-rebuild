@@ -1,0 +1,78 @@
+{
+  "title": "Integration health",
+  "description": "Integration health (FDD 9.4; no old screen). Reads integration events, error logs, the dead letter queue, job runs, Fusion sync exceptions and the sync lock from eqp-v1 (loadHealthChain); Run now / Reprocess call POST /int-configs/{syncCode}/run or POST /fusion-sync/refresh-units (runActionChain). Everything shown is computed by the page module's model().",
+  "variables": {
+    "raw": { "type": "any", "defaultValue": {} },
+    "model": { "type": "any", "defaultValue": { "cards": [], "silent": [], "queue": [], "counts": {}, "kpis": {}, "banner": null, "jobs": [], "lockText": "" } },
+    "isLoading": { "type": "boolean", "defaultValue": true },
+    "loadNote": { "type": "string", "defaultValue": "" },
+    "checkedAt": { "type": "string", "defaultValue": "" },
+    "queueFilter": { "type": "string", "defaultValue": "" },
+    "confirm": { "type": "any", "defaultValue": null },
+    "busyKey": { "type": "string", "defaultValue": "" },
+    "lastResult": { "type": "any", "defaultValue": null }
+  },
+  "metadata": {},
+  "eventListeners": {
+    "vbBeforeEnter": {
+      "chains": [{ "chain": "enforcePageAccessChain" }]
+    },
+    "vbEnter": {
+      "chains": [{ "chain": "loadHealthChain" }]
+    },
+    "onCheckAgain": {
+      "chains": [{ "chain": "loadHealthChain" }]
+    },
+    "onAction": {
+      "chains": [
+        {
+          "chain": "runActionChain",
+          "parameters": {
+            "type": "{{ $event.currentTarget.dataset.action }}",
+            "syncCode": "{{ $event.currentTarget.dataset.sync }}",
+            "confirmed": "{{ $event.currentTarget.dataset.confirmed === 'yes' }}"
+          }
+        }
+      ]
+    },
+    "onCancelConfirm": {
+      "chains": [
+        {
+          "chain": "setViewChain",
+          "parameters": { "cancelConfirm": true }
+        }
+      ]
+    },
+    "onDismissResult": {
+      "chains": [
+        {
+          "chain": "setViewChain",
+          "parameters": { "dismissResult": true }
+        }
+      ]
+    },
+    "onQueueChip": {
+      "chains": [
+        {
+          "chain": "setViewChain",
+          "parameters": { "integ": "{{ $event.currentTarget.dataset.integ }}" }
+        }
+      ]
+    },
+    "onOpenNav": {
+      "chains": [
+        {
+          "chain": "openNavChain",
+          "parameters": { "navId": "{{ $event.currentTarget.dataset.navId }}" }
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}
