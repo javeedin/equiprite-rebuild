@@ -13,7 +13,9 @@
  * or picked by hand for this PC.
  *
  * Two apps: Old EquipRite (webApps/vbredwoodapp, today's app, unchanged) and New EquipRite (webApps/equiprite, the
- * redesign). The sign-in window asks which to open; File > Open Old / New EquipRite switches without signing out.
+ * redesign). The sign-in window asks which to open; File > Open New EquipRite / Switch this window to Old EquipRite
+ * switch without signing out. A link to Old EquipRite clicked in New EquipRite opens Old in a window of its own, so
+ * the New window stays put and the two can be shown side by side.
  * Each gets its own local server, at the site root as VB expects; both forward to the same backends with the same
  * sign-in, so they show the same data.
  *
@@ -24,7 +26,7 @@ const path = require('path');
 const { app, BrowserWindow, Menu, shell, ipcMain, safeStorage, dialog } = require('electron');
 const { createDevServer, isBuilt, backendOverridesFromEnv, KNOWN_ROLES } = require('./lib/devserver');
 const identityStore = require('./lib/identity');
-const { navAllowed } = require('./lib/hosts');
+const { navAllowed, opensInOldWindow } = require('./lib/hosts');
 
 const APP_NAME = 'EquipRite';
 const PORT = Number(process.env.EQP_PORT) || 18888;
@@ -43,6 +45,7 @@ let win = null;
 let signinWin = null;
 let logWin = null;
 let servicesWin = null;
+let oldWin = null; // Old EquipRite beside New, opened from New's "Old" links
 const servers = {}; // version -> running local server, for each app that is built
 let version = 'old'; // which app the window shows
 let quitting = false;
@@ -55,6 +58,9 @@ const appUrl = () => urlOf(servers[version] ? version : 'old');
 const inApp = (url) => Object.keys(VERSIONS).some((v) => url.startsWith(urlOf(v)));
 // Either app may link to the other (New EquipRite opens screens it does not have yet in the old app).
 const allowedNav = (url) => Object.keys(VERSIONS).some((v) => navAllowed(url, originOf(v)));
+
+/** The origin the main window shows. */
+const shownOrigin = () => originOf(servers[version] ? version : 'old');
 
 function showTitle() {
   if (win && !win.isDestroyed()) {
@@ -192,6 +198,9 @@ function backendProblem(p) {
 
 /** File → Sign out: forgets the saved sign-in and the Fusion password, then asks again. */
 function signOut() {
+  if (oldWin && !oldWin.isDestroyed()) {
+    oldWin.close();
+  }
   identityStore.remove(identityFile());
   identity = null;
   passwordThisRun = null;
@@ -308,6 +317,80 @@ function openVersion(v) {
   }
 }
 
+/**
+ * Old EquipRite in a window of its own, at `url` (its home by default), so the window showing New EquipRite stays
+ * where it was. One such window: a second link reuses it and brings it to the front. When the main window already
+ * shows Old EquipRite, the link simply opens there.
+ */
+function openOldWindow(url) {
+  const target = url || urlOf('old');
+  if (!servers.old) {
+    openVersion('old'); // explains that it is not built
+    return;
+  }
+  if (!identity) {
+    openSignIn();
+    return;
+  }
+  if (shownOrigin() === originOf('old')) {
+    if (win && !win.isDestroyed()) {
+      win.loadURL(target).catch(() => {});
+      win.focus();
+    }
+    return;
+  }
+  if (oldWin && !oldWin.isDestroyed()) {
+    oldWin.loadURL(target).catch(() => {});
+    if (oldWin.isMinimized()) {
+      oldWin.restore();
+    }
+    oldWin.focus();
+    return;
+  }
+  const [x, y] = win && !win.isDestroyed() ? win.getPosition() : [undefined, undefined];
+  oldWin = new BrowserWindow({
+    width: 1440,
+    height: 900,
+    minWidth: 1024,
+    minHeight: 640,
+    x: x != null ? x + 48 : undefined,
+    y: y != null ? y + 48 : undefined,
+    title: `${VERSIONS.old.label} · ${app.getVersion()}`,
+    backgroundColor: '#f5f4f2',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      sandbox: true,
+      nodeIntegration: false,
+      spellcheck: true,
+    },
+  });
+  oldWin.on('page-title-updated', (event) => event.preventDefault());
+  oldWin.webContents.setWindowOpenHandler(({ url: next }) => {
+    if (allowedNav(next)) {
+      return { action: 'allow' };
+    }
+    if (/^https?:\/\//i.test(next)) {
+      shell.openExternal(next);
+    }
+    return { action: 'deny' };
+  });
+  oldWin.webContents.on('will-navigate', (event, next) => {
+    if (allowedNav(next)) {
+      return;
+    }
+    event.preventDefault();
+    if (/^https?:\/\//i.test(next)) {
+      shell.openExternal(next);
+    }
+  });
+  oldWin.on('closed', () => {
+    oldWin = null;
+  });
+  pushLog(`${new Date().toTimeString().slice(0, 8)} opening ${VERSIONS.old.label} in its own window`);
+  oldWin.loadURL(target).catch(() => {});
+}
+
 ipcMain.handle('signin:cancel', (event) => {
   if (fromSignin(event) && signinWin) {
     signinWin.close();
@@ -399,8 +482,13 @@ function createWindow() {
     }
   }, 6000);
 
-  // Links to other sites open in the default browser; the app itself and Oracle hosts stay in the window.
+  // Links to other sites open in the default browser; the app itself and Oracle hosts stay in the window. A link
+  // from New EquipRite to Old EquipRite opens the Old window instead, so this one stays on New.
   win.webContents.setWindowOpenHandler(({ url }) => {
+    if (opensInOldWindow(url, shownOrigin(), originOf('old'))) {
+      openOldWindow(url);
+      return { action: 'deny' };
+    }
     if (allowedNav(url)) {
       return { action: 'allow' };
     }
@@ -410,6 +498,11 @@ function createWindow() {
     return { action: 'deny' };
   });
   win.webContents.on('will-navigate', (event, url) => {
+    if (opensInOldWindow(url, shownOrigin(), originOf('old'))) {
+      event.preventDefault();
+      openOldWindow(url);
+      return;
+    }
     if (allowedNav(url)) {
       return;
     }
@@ -438,8 +531,9 @@ function appMenu() {
     {
       label: 'File',
       submenu: [
-        { label: 'Open Old EquipRite', accelerator: 'CmdOrCtrl+Shift+1', click: () => openVersion('old') },
+        { label: 'Open Old EquipRite in its own window', accelerator: 'CmdOrCtrl+Shift+1', click: () => openOldWindow() },
         { label: 'Open New EquipRite', accelerator: 'CmdOrCtrl+Shift+2', click: () => openVersion('new') },
+        { label: 'Switch this window to Old EquipRite', click: () => openVersion('old') },
         { type: 'separator' },
         { label: 'Sign in as…', accelerator: 'CmdOrCtrl+Shift+S', click: () => openSignIn() },
         { label: 'Sign out', click: () => signOut() },

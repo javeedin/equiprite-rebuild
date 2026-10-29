@@ -21,7 +21,7 @@ const H    = require('./_harness');
 const T = H.makeAsserter();
 const ROOT = path.join(__dirname, '..');
 const { checkTools, strayNodeModules, strayMessage } = require(path.join(ROOT, 'tools', 'check-tools.js'));
-const { navAllowed } = require(path.join(ROOT, 'desktop', 'lib', 'hosts.js'));
+const { navAllowed, opensInOldWindow } = require(path.join(ROOT, 'desktop', 'lib', 'hosts.js'));
 
 // ── preflight: build tool version ────────────────────────────────────
 
@@ -76,6 +76,12 @@ T.eq('Fusion pod stays', navAllowed('https://abc-test.fa.us2.oraclecloud.com/fsc
 T.eq('plain http to Oracle leaves', navAllowed('http://static.oracle.com/', APP), false);
 T.eq('look-alike host leaves', navAllowed('https://static.oracle.com.evil.example/', APP), false);
 T.eq('garbage leaves', navAllowed('not a url', APP), false);
+const OLDO = 'http://localhost:18888';
+const NEWO = 'http://localhost:18889';
+T.eq('an Old link clicked in New opens the Old window', opensInOldWindow(OLDO + '/vp/shell/main/equipment-schedule', NEWO, OLDO), true);
+T.eq('an Old link clicked in Old stays in that window', opensInOldWindow(OLDO + '/vp/shell/main/equipment-schedule', OLDO, OLDO), false);
+T.eq('a New link clicked in New stays', opensInOldWindow(NEWO + '/vp/shell/request/my-requests', NEWO, OLDO), false);
+T.eq('garbage does not open a window', opensInOldWindow('not a url', NEWO, OLDO), false);
 
 // ── get-electron: resumable download into @electron/get's cache ──────
 

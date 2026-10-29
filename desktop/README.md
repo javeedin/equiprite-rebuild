@@ -27,9 +27,13 @@ On first start a sign-in window asks for:
 - **Open** — **Old EquipRite** (today's app, unchanged) or **New EquipRite** (the redesign, a preview while it is
   being built). Each runs on its own local server, Old on port 18888 and New on 18889, at the site root as VB
   expects; both use the same backends and the same sign-in, so they show the same data. The window title says
-  which one is open. **File → Open Old EquipRite** (Ctrl+Shift+1) and **File → Open New EquipRite** (Ctrl+Shift+2)
-  switch without signing out, and the choice is remembered. New EquipRite is offered once `npm run build` has
-  built it (`desktop:fresh` builds both).
+  which one is open. New EquipRite is offered once `npm run build` has built it (`desktop:fresh` builds both).
+
+  Any **Old** link in New EquipRite (Open Old EquipRite, Old version, Old view, a menu item marked OLD) opens Old
+  EquipRite in **a window of its own**, on that same screen, and the New window stays where it was, so the two can
+  sit side by side. A second Old link reuses that window. **File → Open Old EquipRite in its own window**
+  (Ctrl+Shift+1) does the same from the menu; **File → Open New EquipRite** (Ctrl+Shift+2) and **File → Switch this
+  window to Old EquipRite** change the main window, without signing out, and the choice is remembered.
 
 - **Fusion username to sign in as** — what `$application.user` carries; `ROLES_RP` is run for it (`P_LOGIN`).
 - **Fusion login** — stands in for the VBCS stored credential (`vb_e32dea99…`) on BIP and Fusion REST calls: the

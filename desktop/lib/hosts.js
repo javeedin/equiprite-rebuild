@@ -41,4 +41,23 @@ function navAllowed(url, appOrigin) {
   return ORACLE_HOSTS.some((re) => re.test(host));
 }
 
-module.exports = { navAllowed, ORACLE_HOSTS };
+/**
+ * Old EquipRite opens in a window of its own when a link in New EquipRite points at it, so the New window stays
+ * where it was (side-by-side demos). True when `url` is on the old app's origin and the window it was clicked in
+ * shows a different origin.
+ *
+ * @param {string} url         where the link goes
+ * @param {string} shownOrigin the origin the clicked window shows, e.g. "http://localhost:18889"
+ * @param {string} oldOrigin   Old EquipRite's origin, e.g. "http://localhost:18888"
+ */
+function opensInOldWindow(url, shownOrigin, oldOrigin) {
+  let u;
+  try {
+    u = new URL(url);
+  } catch {
+    return false;
+  }
+  return u.origin === oldOrigin && shownOrigin !== oldOrigin;
+}
+
+module.exports = { navAllowed, opensInOldWindow, ORACLE_HOSTS };
