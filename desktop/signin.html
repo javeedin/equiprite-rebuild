@@ -57,8 +57,10 @@
         <div><label class="f" for="fusionPassword">Password</label>
           <input type="password" id="fusionPassword"></div>
       </div>
-      <p class="help">Used where VBCS uses its stored credential: the <code>ROLES_RP</code> roles report, project lists and
-        PDFs. The password is encrypted with your Windows account.</p>
+      <p class="help">Used where VBCS uses its stored credential: the BI Publisher reports and Fusion REST behind
+        customer, project, task and contract lists, PDFs and <code>ROLES_RP</code>. Without it those lists stay empty.
+        Use an account that can run the <code>/Custom/EquipRite</code> reports. The password is encrypted with your
+        Windows account.</p>
     </fieldset>
 
     <fieldset>
@@ -66,7 +68,7 @@
       <label class="choice"><input type="radio" name="rolesFrom" value="fusion" checked>
         <span>Read from Fusion (<code>ROLES_RP</code>), exactly as in VBCS. Needs the Fusion login.</span></label>
       <label class="choice"><input type="radio" name="rolesFrom" value="pick">
-        <span>Pick roles for this PC (try any persona; no Fusion login needed)</span></label>
+        <span>Pick roles for this PC (try any persona; roles need no Fusion login, Fusion lists still do)</span></label>
       <div id="pick">
         <div class="roles" id="roles"></div>
         <div class="pick-only"><label class="f" for="otherRoles">Other role codes (comma-separated)</label>

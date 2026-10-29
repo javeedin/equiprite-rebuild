@@ -175,9 +175,13 @@ function get(port, p, opts) {
   fs.writeFileSync(path.join(build, 'processed', 'services', 'catalog.json'), JSON.stringify(realCatalog));
 
   let identity = { username: 'john.dunbar', roles: ['RT_EQP_MANAGER'], fusion: { user: 'tech.user', password: 'pw' } };
+  const problems = [];
+  const logs = [];
   const srv = await DS.createDevServer({
     buildDir: build, repoRoot: ROOT, port: 0, getIdentity: () => identity,
     backendOverrides: { eqpt: fake, bipservice: fake, fusion: fake, ics: fake },
+    onProblem: (p) => problems.push(p),
+    onLog: (l) => logs.push(l),
   });
   const P = srv.port;
   try {
@@ -210,17 +214,31 @@ function get(port, p, opts) {
     T.check('roles from Fusion: ROLES_RP goes to Fusion with the login',
       !!seen[3] && /ROLES_RP/.test(seen[3].body) && seen[3].auth.startsWith('Basic '));
 
+    T.section('server — refused Fusion calls are reported, not left as silently empty lists');
+    T.check('a refused Fusion login is reported', problems.some((p) => p.kind === 'refused' && p.backend === 'fusion'));
+    T.check('OIC 401 is expected locally and not reported', !problems.some((p) => p.backend === 'ics'));
+    identity = { username: 'john.dunbar', roles: ['RT_EQP_MANAGER'], fusion: null };
+    problems.length = 0;
+    const customers = bipLov.buildSoapBody('/Custom/EquipRite/EQP_CUSTOMERS_LOV_RP.xdo', [{ name: 'P_SEARCH', value: '' }, { name: 'P_SEARCH_BY', value: 'ALL' }]);
+    await get(P, '/__backend/bipService/xmlpserver/services/ExternalReportWSSService', { method: 'POST', body: customers });
+    T.check('customers report without a Fusion login -> "no-login", naming the report',
+      problems.length === 1 && problems[0].kind === 'no-login' && problems[0].report === 'EQP_CUSTOMERS_LOV_RP');
+    T.check('the backend-calls log names the report and the fix',
+      logs.some((l) => /bipService EQP_CUSTOMERS_LOV_RP -> 401 .*no Fusion login: File > Sign in as/.test(l)));
+    T.eq('report name read from the request', DS.reportName(customers), 'EQP_CUSTOMERS_LOV_RP');
+
     const page = await get(P, '/__services/');
     T.check('web services page served', page.status === 200 && /web-services\.js/.test(page.body));
     T.eq('its script served', (await get(P, '/__services/web-services.js')).status, 200);
     const wsData = await get(P, '/__services/data.json');
     const wsJson = JSON.parse(wsData.body);
     T.check('catalog data served with the signed-in user', wsJson.rows.length > 0 && wsJson.identity.username === 'john.dunbar');
-    T.check('…and never the password', wsJson.identity.hasFusionLogin === true && wsData.body.indexOf('"pw"') < 0);
+    T.check('…and never the password', wsJson.identity.hasFusionLogin === false && wsData.body.indexOf('"pw"') < 0);
 
     backend.close();
     const down = await get(P, '/__backend/eqpt/x');
     T.check('backend down -> 502 that names the backend', down.status === 502 && /eqpt/.test(down.body));
+    T.check('…and reported as unreachable', problems.some((p) => p.kind === 'unreachable' && p.backend === 'eqpt'));
   } catch (e) {
     T.check('server run', false, e.stack);
   } finally {

@@ -16,7 +16,7 @@
  * binary.
  */
 const path = require('path');
-const { app, BrowserWindow, Menu, shell, ipcMain, safeStorage } = require('electron');
+const { app, BrowserWindow, Menu, shell, ipcMain, safeStorage, dialog } = require('electron');
 const { createDevServer, backendOverridesFromEnv, KNOWN_ROLES } = require('./lib/devserver');
 const identityStore = require('./lib/identity');
 const { navAllowed } = require('./lib/hosts');
@@ -121,6 +121,51 @@ function loadSavedIdentity() {
   return saved && identityStore.usable(id, saved) ? id : null;
 }
 
+/*
+ * Backend problems the app itself keeps quiet about: a refused Fusion call just leaves a list empty (the chains
+ * read "no reportBytes" as "no rows"). Say so once per cause and run, with the way out.
+ */
+const warned = new Set();
+
+function backendProblem(p) {
+  const key = p.kind === 'unreachable' ? `unreachable:${p.backend}` : `fusion:${p.kind}`;
+  if (warned.has(key) || !win || win.isDestroyed() || (signinWin && !signinWin.isDestroyed())) {
+    return;
+  }
+  warned.add(key);
+  const what = p.report ? `The ${p.report} report` : `A ${p.backend} call`;
+  const text = {
+    'no-login': ['Fusion lists are empty: no Fusion login',
+      `${what} came back ${p.status} because you are signed in without a Fusion login. Customers, projects, tasks, `
+      + 'contracts and PDFs come from Fusion (BI Publisher reports and Fusion REST), which VBCS calls with its stored '
+      + 'credential. Sign in again and enter a Fusion username and password that can run the /Custom/EquipRite reports.'],
+    refused: ['Fusion refused the login',
+      `${what} came back ${p.status} with the Fusion login you entered. Check the username and password, and that the `
+      + 'account may run the /Custom/EquipRite BI Publisher reports.'],
+    unreachable: [`Cannot reach ${p.backend}`,
+      `This PC could not connect to ${p.host} (${p.error}). Lists and data from ${p.backend} stay empty until it can; `
+      + 'check the network or VPN. View → Backend calls… lists each failed call.'],
+  }[p.kind];
+  if (!text) {
+    return;
+  }
+  const signIn = p.kind !== 'unreachable';
+  dialog.showMessageBox(win, {
+    type: 'warning',
+    title: APP_NAME,
+    message: text[0],
+    detail: text[1],
+    buttons: signIn ? ['Sign in…', 'Later'] : ['OK'],
+    defaultId: 0,
+    cancelId: signIn ? 1 : 0,
+    noLink: true,
+  }).then(({ response }) => {
+    if (signIn && response === 0) {
+      openSignIn();
+    }
+  }).catch(() => {});
+}
+
 function openSignIn() {
   if (signinWin && !signinWin.isDestroyed()) {
     signinWin.focus();
@@ -189,6 +234,7 @@ ipcMain.handle('signin:submit', (event, form) => {
   }
   const saved = identityStore.save(identityFile(), checked.saved, checked.password, encrypt, previous);
   identity = identityStore.toServerIdentity(saved, passwordThisRun, encrypt ? (b) => safeStorage.decryptString(b) : null);
+  warned.clear();
   pushLog(`${new Date().toTimeString().slice(0, 8)} signed in as ${saved.username}; roles ${identity.roles ? identity.roles.join(', ') : 'from Fusion (ROLES_RP)'}`);
   if (signinWin) {
     signinWin.close();
@@ -375,6 +421,7 @@ if (!app.requestSingleInstanceLock()) {
         getIdentity: () => identity,
         backendOverrides: backendOverridesFromEnv(process.env),
         onLog: pushLog,
+        onProblem: backendProblem,
       });
     } catch (e) {
       if (win && !win.isDestroyed()) {

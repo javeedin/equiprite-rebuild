@@ -152,6 +152,12 @@ function rolesReportResponse(username, roles) {
     + '</ns2:runReportReturn></ns2:runReportResponse></env:Body></env:Envelope>';
 }
 
+/** "EQP_CUSTOMERS_LOV_RP" from a runReport request, so the backend-calls log names the report, not the SOAP URL. */
+function reportName(body) {
+  const m = /<pub:reportAbsolutePath>([^<]+)<\/pub:reportAbsolutePath>/.exec(String(body || '').slice(0, 20000));
+  return m ? path.posix.basename(m[1].trim(), '.xdo') : '';
+}
+
 function isRolesReport(body) {
   const s = String(body || '');
   return s.indexOf('runReport') >= 0 && s.indexOf(ROLES_REPORT) >= 0;
@@ -217,6 +223,8 @@ function time() {
  * @param {Function} o.getIdentity       () => { username, fullName?, email?, roles?: string[], fusion?: { user, password } }
  * @param {object}   [o.backendOverrides] { backendName(lower-case): url }
  * @param {Function} [o.onLog]            (line) => void, one line per backend call and per problem
+ * @param {Function} [o.onProblem]        ({ kind: 'no-login'|'refused'|'unreachable', backend, report, host }) => void,
+ *                                        when a Fusion call is refused (401/403) or a backend cannot be reached
  */
 function createDevServer(o) {
   const processed = path.join(o.buildDir, 'processed');
@@ -244,7 +252,10 @@ function createDevServer(o) {
     const identity = o.getIdentity() || {};
     const body = await readBody(req);
     const started = Date.now();
-    const label = `${req.method} ${name} ${rest}${search}`.slice(0, 220);
+    const report = backend.basic ? reportName(body) : '';
+    const label = `${req.method} ${name} ${report || `${rest}${search}`}`.slice(0, 220);
+    const usesFusionLogin = backend.basic && backend.credentials === fusionCredential(backends);
+    const problem = (p) => (o.onProblem ? o.onProblem(Object.assign({ backend: name, report }, p)) : undefined);
 
     if (identity.roles && identity.roles.length && isRolesReport(body)) {
       log(`${label} -> roles answered locally: ${identity.roles.join(', ')}`);
@@ -263,7 +274,7 @@ function createDevServer(o) {
     headers.host = target.host;
     headers['content-length'] = String(body.length);
     const fusion = identity.fusion;
-    if (backend.basic && fusion && fusion.user && fusion.password && backend.credentials === fusionCredential(backends)) {
+    if (usesFusionLogin && fusion && fusion.user && fusion.password) {
       headers.authorization = `Basic ${Buffer.from(`${fusion.user}:${fusion.password}`).toString('base64')}`;
     }
 
@@ -276,10 +287,19 @@ function createDevServer(o) {
         res.writeHead(pres.statusCode || 502, out);
         pres.pipe(res);
         pres.on('end', () => {
-          const note = pres.statusCode === 401 && backend.basic && !headers.authorization
-            ? ' (needs a Fusion login: File > Sign in as…)'
-            : '';
+          const refused = usesFusionLogin && (pres.statusCode === 401 || pres.statusCode === 403);
+          let note = '';
+          if (refused && !headers.authorization) {
+            note = ' (no Fusion login: File > Sign in as…)';
+          } else if (refused) {
+            note = pres.statusCode === 401 ? ' (Fusion refused the login)' : ' (the Fusion login may not run this)';
+          } else if (pres.statusCode === 401 && backend.basic) {
+            note = ' (its VBCS credential is not available locally)';
+          }
           log(`${label} -> ${pres.statusCode} (${Date.now() - started} ms)${note}`);
+          if (refused) {
+            problem({ kind: headers.authorization ? 'refused' : 'no-login', status: pres.statusCode });
+          }
           resolve();
         });
         pres.on('error', resolve);
@@ -287,6 +307,7 @@ function createDevServer(o) {
       preq.on('timeout', () => preq.destroy(new Error(`no answer in ${BACKEND_TIMEOUT_MS / 1000}s`)));
       preq.on('error', (e) => {
         log(`${label} -> FAILED: ${e.message} (${target.origin})`);
+        problem({ kind: 'unreachable', host: target.origin, error: e.message });
         if (!res.headersSent) {
           send(res, 502, 'application/json', JSON.stringify({ error: `EquipRite local server could not reach ${name} at ${target.origin}: ${e.message}` }));
         } else {
@@ -404,6 +425,7 @@ module.exports = {
   currentUser,
   rolesReportResponse,
   isRolesReport,
+  reportName,
   backendOverridesFromEnv,
   identityFromEnv,
   safeFile,
