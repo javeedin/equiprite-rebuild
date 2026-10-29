@@ -41,7 +41,7 @@ function handle(req, res) {
     projectRefId: 300000123, projectNumber: 'PRJ-2026-001', projectName: 'Pipeline North', projectBuName: 'EPC_US_BU', projectBuId: 300000001,
     taskId: 3, taskNumber: '2.1', taskName: 'Trenching', requestorName: 'John Dunbar', requestorUsername: 'john.dunbar',
     projectInternalCustomerId: 100000555, projectInternalCustomer: 'Acme Utilities', deliveryLocationType: 'DELIVERY_LOCATION',
-    attribute1: '1200 Pipeline Rd, Odessa TX 79761', shipToSiteId: 55, requestedStartDate: '2026-12-01T00:00:00Z', requestedEndDate: '2026-12-14T00:00:00Z' });
+    attribute1: '1200 Pipeline Rd, Odessa TX 79761', attribute2: 'Gate code 4417', shipToSiteId: 55, requestedStartDate: '2026-12-01T00:00:00Z', requestedEndDate: '2026-12-14T00:00:00Z' });
   if (/\/equipment-requests\/888\/lines$/.test(p)) return res.json({ data: [{ id: 1, eqrEquipmentMasterId: 41, quantity: 1 }, { id: 2, eqrEquipmentMasterId: 99, quantity: 1 }] });
   if (/\/equipment-requests\/777$/.test(p) && req.method === 'GET') return res.json({ id: 777, requestNumber: 'EQR-000777', status: 'SUBMITTED', requestType: 'INTERNAL' });
   return undefined;
@@ -82,6 +82,9 @@ function handle(req, res) {
     await page.click('button[data-field="locationType"][data-value="PROJECT_SITE"]');
     await page.click('button[data-field="siteAddress"]');
 
+    await page.fill('[data-field="notes"] textarea', 'Call the site lead before delivery');
+    await page.press('[data-field="notes"] textarea', 'Tab');
+
     T.section('step 3: review re-prices for the project, submit');
     await page.click('.er-rail-actions button[data-step="3"]');
     await page.waitForSelector('.er-lines .er-line');
@@ -96,6 +99,7 @@ function handle(req, res) {
     T.eq('calls: header, site, site link, lines, status',
       env.writes.map((w) => w.method + ' ' + w.path.replace('/equiprite/v1', '')).join(' > '),
       'POST /equipment-requests > POST /ship-to-sites > PATCH /equipment-requests/777 > POST /equipment-requests/777/lines/batch > PATCH /equipment-requests/777');
+    T.eq('typed notes go on the request', env.writes[0].body.attribute2, 'Call the site lead before delivery');
     T.check('lines are SUBMITTED at the project rate', env.writes[3].body.lines.every((l) => l.lineStatus === 'SUBMITTED') && env.writes[3].body.lines[0].billRate === 1260);
     T.check('opens the new request', page.url().includes('requestNumericId=777'));
     await env.shot('new-request-submitted.png');
@@ -106,12 +110,19 @@ function handle(req, res) {
     await page.waitForSelector('.er-lines .er-line', { timeout: 30000 });
     await page.waitForTimeout(800);
     T.check('the draft number is the title', (await env.text('.er-band h1')).includes('Draft EQR-000888'));
+    T.check('no agreement strip without an agreement', !(await page.$('.er-nr-agreement')));
     T.check('a line no longer in the catalog is reported', (await env.text('.er-rail')).includes('no longer in the catalog'));
+    await page.click('.er-stepbtn[data-step="2"]');
+    await page.waitForTimeout(300);
+    T.eq('the draft\'s notes show in the notes box', await page.$eval('[data-field="notes"] textarea, textarea[data-field="notes"]', (t) => t.value), 'Gate code 4417');
+    await page.click('.er-stepbtn[data-step="3"]');
+    await page.waitForTimeout(800);
     await page.click('.er-rail-actions button:has-text("Save draft")');
     await page.waitForURL(/request-detail/, { timeout: 20000 });
     await page.waitForTimeout(500);
     T.eq('draft: header PATCH, lines replaced', env.writes.map((w) => w.method + ' ' + w.path.replace('/equiprite/v1', '')).join(' > '),
       'PATCH /equipment-requests/888 > PUT /equipment-requests/888/lines/batch');
+    T.eq('the notes are kept on save', env.writes[0].body.attribute2, 'Gate code 4417');
     T.eq('no browser errors', env.errors.filter((e) => !e.startsWith('warning')).join('\n'), '');
   } catch (e) {
     T.check('run finished', false, e.message);

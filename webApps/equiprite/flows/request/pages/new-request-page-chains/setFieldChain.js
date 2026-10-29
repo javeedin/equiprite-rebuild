@@ -13,9 +13,10 @@ define([
   const NUMERIC = { hours: true };
 
   class setFieldChain extends ActionChain {
-    async run(context, { field, value }) {
+    async run(context, { field, value, from }) {
       const { $page } = context;
-      if (!field) {
+      // from: an oj-text-area's updatedFrom. Only what the user typed counts, not the page setting the value.
+      if (!field || (from && from !== 'internal')) {
         return;
       }
       if (field === 'requestFor') {

@@ -16,9 +16,8 @@ define([
   //     fromAgreementId / Number / Customer / CustomerRefId / FusionCustomerId / EffectiveFrom / EffectiveTo /
   //     Notes, agreementLineIdByEquipmentId, agreementRateByEquipmentId) and the tab flag eqr.agreement.active.
   //
-  // Then New request opens (request/new-request, the New EquipRite page that replaces project-create-request).
-  // NB New request does not read this hand-over yet: until it does, it opens with an empty cart. The change it
-  // needs is described in the report of this screen (port HydrateDraftChain's agreement branch).
+  // Then New request opens (request/new-request, the New EquipRite page that replaces project-create-request),
+  // whose newRequestInitChain reads the hand-over once (the old HydrateDraftChain's agreement branch).
   class createRequestChain extends ActionChain {
     async run(context) {
       const { $page, $application } = context;

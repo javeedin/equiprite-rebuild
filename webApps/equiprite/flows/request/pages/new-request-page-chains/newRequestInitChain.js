@@ -3,8 +3,9 @@ define([
   'vb/action/actions',
   'resources/js/currentUser',
   'resources/js/draftResume',
+  'resources/js/draftStorage',
   'resources/js/requestHeaderBody',
-], (ActionChain, Actions, cu, draftResume, hdr) => {
+], (ActionChain, Actions, cu, draftResume, draftStorage, hdr) => {
   'use strict';
 
   // Opens New request. The requestor is the signed-in user, as the old SeedRequestorChain sets it (requestorName
@@ -14,8 +15,12 @@ define([
   // With ?draftId= it reopens a saved DRAFT instead: draftResume loads the header and lines and prices them from
   // today's catalog, and requestHeaderBody.toFlowState turns the header back into the form. Submit and Save draft
   // then update that request in place (resume), so it keeps its number, as the old Edit Draft does.
+  //
+  // Without a draft it takes the hand-over from Rental agreements ("Create request from N lines"), as the old
+  // HydrateDraftChain's agreement branch does: see fromAgreement below.
   const TRIES = 60;
   const GAP_MS = 50;
+  const AGREEMENT_FLAG = 'eqr.agreement.active';
 
   class newRequestInitChain extends ActionChain {
     async run(context) {
@@ -36,9 +41,41 @@ define([
       const draftId = Number($page.variables.draftId) || 0;
       if (draftId > 0) {
         await this.resume(context, draftId, name, actor);
+      } else {
+        this.fromAgreement(context);
       }
       $page.variables.isLoading = false;
       await Actions.callChain(context, { chain: 'loadCatalogChain' });
+    }
+
+    // The agreement hand-over, read once. Only with AGREEMENTS_ENABLED on, the tab flag set by the agreement page
+    // and a stored fromAgreementId (the old branch (a) gate). The cart comes at the agreement's rates, then
+    // loadCatalogChain prices it again with agreementId; the agreement and its line ids go on the request. Only the
+    // customer is prefilled (fusionCustomerId, the Fusion CustomerId the customer picker holds): dates and notes
+    // belong to this request, so the agreement's effective window is not copied. Then the flag and the stored keys
+    // are cleared, as the old fresh entry (c) does, so the next New request starts empty.
+    fromAgreement(context) {
+      const { $page, $application } = context;
+      const vars = $application.variables;
+      let flagged = false;
+      try { flagged = sessionStorage.getItem(AGREEMENT_FLAG) === '1'; } catch (e) { /* private mode */ }
+      const on = !!$application.functions.isFeatureEnabled(vars.featureFlags, vars.flagsLoaded, 'AGREEMENTS_ENABLED');
+      const id = flagged && on && draftStorage.hasStoredDraft('fromAgreementId') ? Number(draftStorage.load('fromAgreementId')) : 0;
+      if (id > 0) {
+        const cart = (draftStorage.load('CartItemsArray') || []).filter((it) => it && it.id != null)
+          .map((it) => Object.assign({}, it, { id: Number(it.id), equipmentId: Number(it.id), quantity: Number(it.quantity) || 1 }));
+        $page.variables.cart = cart;
+        $page.variables.agreementId = id;
+        $page.variables.agreementLineMap = draftStorage.load('agreementLineIdByEquipmentId') || {};
+        const customer = draftStorage.load('fromAgreementCustomer') || '';
+        const fusionCustomerId = draftStorage.load('fromAgreementFusionCustomerId');
+        if (fusionCustomerId != null && fusionCustomerId !== '') {
+          $page.variables.form = Object.assign({}, $page.variables.form, { customerId: Number(fusionCustomerId), customerName: customer });
+        }
+        $page.variables.fromAgreement = { id, number: draftStorage.load('fromAgreementNumber') || '', customer, lines: cart.length };
+      }
+      try { sessionStorage.removeItem(AGREEMENT_FLAG); } catch (e) { /* private mode */ }
+      draftStorage.clear();
     }
 
     async resume(context, draftId, name, actor) {

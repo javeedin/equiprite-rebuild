@@ -39,6 +39,11 @@
       "type": "object",
       "defaultValue": {}
     },
+    "fromAgreement": {
+      "type": "any",
+      "defaultValue": null,
+      "description": "The agreement this request was started from (Rental agreements, Create request): {id, number, customer, lines}."
+    },
     "catalogRows": {
       "type": "any[]",
       "defaultValue": []
@@ -191,6 +196,18 @@
         }
       ]
     },
+    "onNotes": {
+      "chains": [
+        {
+          "chain": "setFieldChain",
+          "parameters": {
+            "field": "notes",
+            "value": "{{ $event.detail.value }}",
+            "from": "{{ $event.detail.updatedFrom }}"
+          }
+        }
+      ]
+    },
     "onFieldButton": {
       "chains": [
         {
@@ -332,7 +349,8 @@
     "components": {
       "oj-bind-for-each": { "path": "ojs/ojknockout" },
       "oj-bind-if": { "path": "ojs/ojknockout" },
-      "oj-bind-text": { "path": "ojs/ojknockout" }
+      "oj-bind-text": { "path": "ojs/ojknockout" },
+      "oj-text-area": { "path": "ojs/ojinputtext" }
     }
   }
 }

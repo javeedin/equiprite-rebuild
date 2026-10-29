@@ -258,14 +258,24 @@ const w = (env) => env.writes.map((x) => x.method + ' ' + x.path.replace(V1, '')
     await page.waitForTimeout(800);
     T.check('class-only line resolved to equipment of its class', env.calls.slice(before).some((c) => c.includes('/equipment-master?') && c.includes('equipmentClassId=4')));
     T.eq('nothing written by the hand-over', env.writes.length, 0);
-    const handed = await page.evaluate(() => [
-      sessionStorage.getItem('eqr.agreement.active'),
-      JSON.parse(localStorage.getItem('eqr.draft.CartItemsArray') || '[]').map((i) => i.id + ':' + i.billingRate).join(','),
-      localStorage.getItem('eqr.draft.fromAgreementId'),
-      localStorage.getItem('eqr.draft.agreementLineIdByEquipmentId'),
-    ].join(' | '));
-    T.eq('handed over as the old app did: tab flag, cart at the agreement rates, agreement id, line ids', handed,
-      '1 | 101:1050,104:720 | 31 | {"101":11,"104":12}');
+    T.section('New request takes the hand-over');
+    await page.waitForSelector('.er-nr-agreement', { timeout: 20000 });
+    T.check('it says where the request came from', /From agreement RNT-0002 · Lone Star Paving · 2 lines in the cart/.test(await env.text('.er-nr-agreement')), await env.text('.er-nr-agreement'));
+    T.eq('the cart holds the handed-over equipment', (await page.$$eval('.er-rail-lines li', (l) => l.map((x) => x.innerText.replace(/\s+/g, ' ').trim()))).map((t) => t.replace(/ (\$.*|—)$/, '')).join(' | '),
+      '1 × CAT 320 Excavator | 1 × Vibratory roller CB2');
+    T.check('the catalog is priced with the agreement', env.calls.some((c) => c.includes('/views/equipment-catalog') && c.includes('agreementId=31')));
+    T.eq('read once: the tab flag and the stored keys are cleared', await page.evaluate(() => String(sessionStorage.getItem('eqr.agreement.active')) + ' | '
+      + Object.keys(localStorage).filter((k) => k.indexOf('eqr.draft.') === 0).length), 'null | 0');
+    await page.fill('input[data-field="startDate"]', '2026-11-02');
+    await page.dispatchEvent('input[data-field="startDate"]', 'change');
+    await page.fill('input[data-field="endDate"]', '2026-11-27');
+    await page.dispatchEvent('input[data-field="endDate"]', 'change');
+    await page.waitForTimeout(600);
+    await page.click('.er-stepbtn[data-step="3"]');
+    await page.waitForTimeout(400);
+    T.check('the agreement customer is prefilled (no longer missing)', (await env.text('.er-nr-main > .er-error')).includes('Project, Task, Delivery location')
+      && (await env.text('.er-nr-main')).includes('Lone Star Paving'));
+    shots.push(await env.shot('master-agreement-to-request.png'));
 
     clean('Rental agreements');
 

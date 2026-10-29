@@ -39,6 +39,17 @@
     </div>
   </oj-bind-if>
 
+  <oj-bind-if test="[[ !$variables.isLoading && !$variables.externalDraft && !!$variables.fromAgreement ]]">
+    <div class="er-nr-agreement" role="status">
+      <span class="oj-ux-ico-documents" aria-hidden="true"></span>
+      <span>
+        <strong><oj-bind-text value="[[ 'From agreement ' + ($variables.fromAgreement.number || $variables.fromAgreement.id) ]]"></oj-bind-text></strong>
+        <oj-bind-text value="[[ ($variables.fromAgreement.customer ? ' · ' + $variables.fromAgreement.customer : '') + ' · ' + $variables.fromAgreement.lines
+          + ($variables.fromAgreement.lines === 1 ? ' line' : ' lines') + ' in the cart at the agreement rates. Pick the dates and project for this rental.' ]]"></oj-bind-text>
+      </span>
+    </div>
+  </oj-bind-if>
+
   <oj-bind-if test="[[ !$variables.isLoading && !$variables.externalDraft ]]">
     <div class="er-nr-top">
       <ol class="er-steps" aria-label="Steps">
@@ -371,10 +382,12 @@
                   </label>
                 </oj-bind-if>
               </div>
-              <label class="er-field">
-                <span class="er-label">Notes for the Equipment Manager</span>
-                <textarea class="er-input" rows="3" data-field="notes" :value="[[ $variables.form.notes || '' ]]" on-change="[[ $listeners.onField ]]"></textarea>
-              </label>
+              <div class="er-field">
+                <span class="er-label" id="notesLabel">Notes for the Equipment Manager</span>
+                <!-- oj-text-area: a native textarea ignores a bound value, so a reopened draft's notes would not show. -->
+                <oj-text-area class="oj-form-control-full-width" data-field="notes" rows="3" labelled-by="notesLabel" label-edge="none"
+                  value="[[ $variables.form.notes || '' ]]" on-value-changed="[[ $listeners.onNotes ]]"></oj-text-area>
+              </div>
             </section>
           </oj-bind-if>
 
