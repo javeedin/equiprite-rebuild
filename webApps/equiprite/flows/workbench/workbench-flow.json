@@ -1,0 +1,17 @@
+{
+  "id": "workbench",
+  "description": "Fulfil (FDD 7.11, 7.8, 7.10): the Equipment Manager's Workbench (project and customer requests by stage, bulk approve / reject) and Approve & allocate (approve or reject lines, allocate serials, lots or quantities to each line).",
+  "defaultPage": "workbench",
+  "pages": {
+    "workbench": {
+      "path": "pages/workbench-page"
+    },
+    "approve-allocate": {
+      "path": "pages/approve-allocate-page"
+    }
+  },
+  "chains": {},
+  "services": {},
+  "types": {},
+  "variables": {}
+}

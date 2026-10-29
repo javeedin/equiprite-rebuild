@@ -1,0 +1,159 @@
+{
+  "title": "Approve & allocate",
+  "description": "Approve or reject a request's lines and allocate serials, lots or quantities to each line (FDD 7.8, 7.10; replaces the old Workbench's request-detail and line-detail pages for these jobs). Opened from a Workbench row. Data: initChain (the old Workbench detail's workbench-requests header and requestDetailLines.fetchAndBuild lines). Approve / reject: Request detail's chains, copied unchanged. Allocation: saveAllocationChain, carried over from the old line-detail saveLineChain.",
+  "variables": {
+    "requestId": {
+      "type": "string",
+      "input": "fromUrl",
+      "persisted": "none",
+      "description": "Request number, e.g. EQR-00042 (Request detail's convention)."
+    },
+    "requestNumericId": {
+      "type": "number",
+      "input": "fromUrl",
+      "persisted": "none"
+    },
+    "formData": {
+      "type": "any",
+      "defaultValue": {}
+    },
+    "lines": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "The mapped lines (requestDetailLines.mapRow, plus lineId / lineStatus / equipmentName for the copied approve and reject chains)."
+    },
+    "selectionState": {
+      "type": "object",
+      "defaultValue": { "count": 0, "sharedStatus": "", "isMixed": false, "wasMixed": false, "allSelected": false, "allDeployed": false, "allReturnable": false, "allShipToSite": false }
+    },
+    "selectionTick": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "quotingAllowed": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "isReadOnly": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "EQR_WORKBENCH is READ_ONLY for this role: no approve, reject or allocation."
+    },
+    "openLineId": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "The line whose units are open."
+    },
+    "allocLine": {
+      "type": "any",
+      "defaultValue": null,
+      "description": "The open line in the old line-detail page's lineData shape (what saveAllocationChain reads)."
+    },
+    "units": {
+      "type": "any",
+      "defaultValue": { "loading": false, "error": "", "mode": "", "confirmed": false, "readOnly": false, "title": "" }
+    },
+    "stagingTick": {
+      "type": "number",
+      "defaultValue": 0,
+      "description": "Bumped on every staging change so the picker re-reads the staging kept in the page module."
+    },
+    "isSaving": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "isLoading": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "fetchError": {
+      "type": "string",
+      "defaultValue": ""
+    }
+  },
+  "metadata": {},
+  "eventListeners": {
+    "vbBeforeEnter": {
+      "chains": [{ "chain": "enforcePageAccessChain" }]
+    },
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "initChain",
+          "parameters": {
+            "requestId": "{{ $page.variables.requestId }}",
+            "requestNumericId": "{{ $page.variables.requestNumericId }}"
+          }
+        }
+      ]
+    },
+    "onToggleLine": {
+      "chains": [
+        {
+          "chain": "toggleLineChain",
+          "parameters": {
+            "index": "{{ $event.target.dataset.index }}",
+            "checked": "{{ $event.target.checked }}"
+          }
+        }
+      ]
+    },
+    "onApprove": { "chains": [{ "chain": "confirmRequestChain" }] },
+    "onAskReject": { "chains": [{ "chain": "rejectDialogChain", "parameters": { "action": "open" } }] },
+    "onCancelReject": { "chains": [{ "chain": "rejectDialogChain", "parameters": { "action": "close" } }] },
+    "onConfirmReject": { "chains": [{ "chain": "rejectDialogChain", "parameters": { "action": "confirm" } }] },
+    "onOpenUnits": {
+      "chains": [
+        {
+          "chain": "openUnitsChain",
+          "parameters": { "lineId": "{{ $event.currentTarget.dataset.line }}" }
+        }
+      ]
+    },
+    "onCloseUnits": {
+      "chains": [{ "chain": "openUnitsChain", "parameters": { "close": true } }]
+    },
+    "onStage": {
+      "chains": [
+        {
+          "chain": "stageChain",
+          "parameters": {
+            "action": "{{ $event.currentTarget.dataset.action }}",
+            "id": "{{ $event.currentTarget.dataset.id }}"
+          }
+        }
+      ]
+    },
+    "onLotQty": {
+      "chains": [
+        {
+          "chain": "stageChain",
+          "parameters": {
+            "action": "qty",
+            "id": "{{ $event.target.dataset.id }}",
+            "qty": "{{ $event.target.value }}"
+          }
+        }
+      ]
+    },
+    "onSaveUnits": { "chains": [{ "chain": "saveAllocationChain" }] },
+    "onBack": { "chains": [{ "chain": "goChain", "parameters": { "to": "workbench" } }] },
+    "onOpenRequestDetail": { "chains": [{ "chain": "goChain", "parameters": { "to": "request-detail" } }] },
+    "onOpenPicking": {
+      "chains": [
+        {
+          "chain": "openNavChain",
+          "parameters": { "navId": "picking" }
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-dialog": { "path": "ojs/ojdialog" },
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}

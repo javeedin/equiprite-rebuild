@@ -1,0 +1,186 @@
+{
+  "title": "Workbench",
+  "description": "The Equipment Manager's work queue (FDD 7.11; replaces equipment-workbench). Project and customer requests by stage: To approve, To pick, Outbound, Deployed, Inbound, Procurement, with bulk approve / reject on To approve. Data: loadWorkbenchChain (the old Workbench's views/workbench-requests stage calls, the old Initiate picking queue and old Analytics' UNDER_PROCUREMENT lines). Rows open Approve & allocate (submitted and in-process requests) or Request detail.",
+  "variables": {
+    "buckets": {
+      "type": "any",
+      "defaultValue": {},
+      "description": "{ approve, pick, outbound, deployed, inbound, procurement }: the mapped rows of each tab."
+    },
+    "tabList": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "tab": {
+      "type": "string",
+      "defaultValue": "approve"
+    },
+    "tabChosen": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "Set once the user picks a tab; until then a load lands on the first tab with work in it."
+    },
+    "visibleRows": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "stageNote": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "searchText": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "source": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "INTERNAL or EXTERNAL; empty = both."
+    },
+    "showSource": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "The source chips show only when the customers module is on (FDD S10)."
+    },
+    "selectedIds": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "selection": {
+      "type": "any",
+      "defaultValue": { "count": 0, "ids": [], "text": "" }
+    },
+    "today": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "isReadOnly": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "EQR_WORKBENCH is READ_ONLY for this role: no approve / reject."
+    },
+    "bulkBusy": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "bulkProgress": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "bulkResult": {
+      "type": "any",
+      "defaultValue": null
+    },
+    "isLoading": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "fetchError": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "loadNote": {
+      "type": "string",
+      "defaultValue": ""
+    }
+  },
+  "metadata": {},
+  "eventListeners": {
+    "vbBeforeEnter": {
+      "chains": [{ "chain": "enforcePageAccessChain" }]
+    },
+    "vbEnter": {
+      "chains": [{ "chain": "loadWorkbenchChain" }]
+    },
+    "onRefresh": {
+      "chains": [{ "chain": "loadWorkbenchChain" }]
+    },
+    "onTabClick": {
+      "chains": [
+        {
+          "chain": "setViewChain",
+          "parameters": { "tab": "{{ $event.currentTarget.dataset.tab }}" }
+        }
+      ]
+    },
+    "onSourceClick": {
+      "chains": [
+        {
+          "chain": "setViewChain",
+          "parameters": { "source": "{{ $event.currentTarget.dataset.source }}" }
+        }
+      ]
+    },
+    "onSearchInput": {
+      "chains": [
+        {
+          "chain": "setViewChain",
+          "parameters": { "text": "{{ $event.target.value }}" }
+        }
+      ]
+    },
+    "onDismissResult": {
+      "chains": [
+        {
+          "chain": "setViewChain",
+          "parameters": { "dismiss": true }
+        }
+      ]
+    },
+    "onToggleRow": {
+      "chains": [
+        {
+          "chain": "toggleRowChain",
+          "parameters": {
+            "id": "{{ $event.target.dataset.id }}",
+            "checked": "{{ $event.target.checked }}"
+          }
+        }
+      ]
+    },
+    "onClearSelection": {
+      "chains": [
+        {
+          "chain": "toggleRowChain",
+          "parameters": { "id": "none" }
+        }
+      ]
+    },
+    "onOpenDetail": {
+      "chains": [
+        {
+          "chain": "openRowChain",
+          "parameters": { "id": "{{ $event.currentTarget.dataset.id }}", "how": "detail" }
+        }
+      ]
+    },
+    "onNextAction": {
+      "chains": [
+        {
+          "chain": "openRowChain",
+          "parameters": { "id": "{{ $event.currentTarget.dataset.id }}", "how": "action" }
+        }
+      ]
+    },
+    "onApproveSelected": {
+      "chains": [{ "chain": "bulkDecideChain", "parameters": { "action": "approve" } }]
+    },
+    "onAskReject": {
+      "chains": [{ "chain": "bulkDecideChain", "parameters": { "action": "askReject" } }]
+    },
+    "onCancelReject": {
+      "chains": [{ "chain": "bulkDecideChain", "parameters": { "action": "cancelReject" } }]
+    },
+    "onConfirmReject": {
+      "chains": [{ "chain": "bulkDecideChain", "parameters": { "action": "reject" } }]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-dialog": { "path": "ojs/ojdialog" },
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}
