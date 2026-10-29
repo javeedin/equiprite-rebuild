@@ -32,7 +32,9 @@ On first start a sign-in window asks for:
 
 It is saved in `%APPDATA%\EquipRite\local-identity.json` (outside the project: never committed, never copied into
 a build). The password is stored only encrypted with your Windows account (Electron `safeStorage`). Change it with
-**File → Sign in as…**. **View → Backend calls…** lists every call the server forwarded, with its status.
+**File → Sign in as…** (the app reloads as the new login); **File → Sign out** forgets it, password included.
+**View → Backend calls…** lists every call the server forwarded, with its status. When Fusion refuses a call
+(no or wrong Fusion login) or a backend cannot be reached, the window says so once, naming the report.
 
 | Backend | Auth in VBCS | Locally |
 |---|---|---|

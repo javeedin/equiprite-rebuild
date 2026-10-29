@@ -89,4 +89,9 @@ function usable(identity, saved) {
   return !!identity && (saved.rolesFrom === 'pick' || !!identity.fusion);
 }
 
-module.exports = { validate, load, save, toServerIdentity, usable };
+/** Forgets the saved sign-in (File → Sign out). */
+function remove(file) {
+  fs.rmSync(file, { force: true });
+}
+
+module.exports = { validate, load, save, remove, toServerIdentity, usable };

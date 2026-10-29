@@ -166,6 +166,19 @@ function backendProblem(p) {
   }).catch(() => {});
 }
 
+/** File → Sign out: forgets the saved sign-in and the Fusion password, then asks again. */
+function signOut() {
+  identityStore.remove(identityFile());
+  identity = null;
+  passwordThisRun = null;
+  warned.clear();
+  pushLog(`${new Date().toTimeString().slice(0, 8)} signed out`);
+  if (win && !win.isDestroyed()) {
+    win.loadURL(signedOutUrl());
+  }
+  openSignIn();
+}
+
 function openSignIn() {
   if (signinWin && !signinWin.isDestroyed()) {
     signinWin.focus();
@@ -193,7 +206,8 @@ function openSignIn() {
   signinWin.once('ready-to-show', () => signinWin.show());
   signinWin.on('closed', () => {
     signinWin = null;
-    if (!identity && win && !win.isDestroyed()) {
+    // Not while quitting: loading a page into the closing main window kept the process alive after quit.
+    if (!quitting && !identity && win && !win.isDestroyed()) {
       win.loadURL(signedOutUrl());
     }
   });
@@ -371,6 +385,7 @@ function appMenu() {
       label: 'File',
       submenu: [
         { label: 'Sign in as…', accelerator: 'CmdOrCtrl+Shift+S', click: () => openSignIn() },
+        { label: 'Sign out', click: () => signOut() },
         { type: 'separator' },
         isMac ? { role: 'close' } : { label: 'Quit', accelerator: 'Ctrl+Q', click: () => { quitting = true; app.quit(); } },
       ],
