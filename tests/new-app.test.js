@@ -87,6 +87,10 @@ T.eq('no Home grant: the first item the role can open',
 T.eq('nothing at all: No Access', app.getRoleHomeTarget(FLAGS, true, {}, true).page, 'no-access');
 T.eq('the later page highlights the item it stands for', app.getNavIdForPage({ id: 'later' }, 'schedule'), 'schedule');
 T.eq('Home is gated by EQR_DASHBOARD', app.getPageCodeForPage({ id: 'home' }), 'EQR_DASHBOARD');
+T.eq('a page opens for ANY of its item\'s codes (reports-only role, Analytics)',
+  app.canEnterPage({ EQR_REPORTS: 'READ_ONLY' }, true, app.getPageCodeForPage({ id: 'analytics' })), true);
+T.eq('... and not for a role with none of them', app.canEnterPage({ EQR_WORKBENCH: 'FULL' }, true, app.getPageCodeForPage({ id: 'analytics' })), false);
+T.eq('the best level of the codes wins', app.pageAccess({ EQR_ANALYTICS: 'READ_ONLY', EQR_REPORTS: 'FULL' }, true, 'EQR_ANALYTICS|EQR_REPORTS'), 'FULL');
 
 T.section('links into Old EquipRite');
 T.eq('VB path route under the old app (vp/shell/<flow>/<page>)', app.oldAppLink('http://localhost:18888/', 'schedule'),

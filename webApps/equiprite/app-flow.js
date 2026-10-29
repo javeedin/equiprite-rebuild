@@ -522,14 +522,20 @@ define([
      *
      * @param {Object}  map    - $application.variables.pageAccessMap
      * @param {boolean} loaded - $application.variables.pageAccessLoaded
-     * @param {string}  pageCode - RBAC_PAGES.PAGE_CODE
+     * @param {string}  pageCode - RBAC_PAGES.PAGE_CODE, or several joined by
+     *                   '|' (a menu item with several codes, from
+     *                   getPageCodeForPage): the best level among them
      * @returns {string} 'FULL' | 'READ_ONLY' | 'HIDDEN'
      */
     pageAccess(map, loaded, pageCode) {
       if (!loaded || !map || !pageCode) {
         return 'HIDDEN';
       }
-      return map[pageCode] || 'HIDDEN';
+      const levels = String(pageCode).split('|').map((c) => map[c] || 'HIDDEN');
+      if (levels.indexOf('FULL') !== -1) {
+        return 'FULL';
+      }
+      return levels.indexOf('READ_ONLY') !== -1 ? 'READ_ONLY' : 'HIDDEN';
     }
 
     /**
@@ -738,17 +744,19 @@ define([
      * time. Without this every guard differs by one string, so 23 files have to
      * be reviewed and maintained separately rather than diffed as one.
      *
-     * currentPage.id -> nav id -> the item's first page code. Home is a menu
-     * item here (unlike the old app's dashboard), so it is gated like the rest.
-     * An item with several codes is checked with navIdVisible instead.
+     * currentPage.id -> nav id -> the item's page codes, joined by '|' when
+     * there are several, so the page opens for ANY of them, exactly as the menu
+     * shows the item for any of them (pageAccess / canEnterPage read the joined
+     * form). Home is a menu item here (unlike the old app's dashboard), so it is
+     * gated like the rest.
      *
      * @param {Object} currentPage - $application.currentPage
-     * @returns {string} RBAC_PAGES.PAGE_CODE, or '' when the page is not gated
+     * @returns {string} RBAC_PAGES.PAGE_CODE(s), or '' when the page is not gated
      */
     getPageCodeForPage(currentPage) {
       const navId = this.getNavIdForPage(currentPage);
       const it = navId ? NAV_ITEMS[navId] : null;
-      return (it && it.pageCodes && it.pageCodes[0]) || '';
+      return (it && it.pageCodes && it.pageCodes.join('|')) || '';
     }
 
     /**
