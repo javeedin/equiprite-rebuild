@@ -15,7 +15,7 @@
   },
   "scripts": {
     "test": "node tests/run-all.js",
-    "build": "node tools/check-tools.js && grunt vb-process-local",
+    "build": "node tools/check-tools.js && grunt vb-clean vb-process-local",
     "serve": "npm run build && grunt vb-serve:webApps/vbredwoodapp --port=8888 --open",
     "desktop": "node tools/get-electron.js && electron desktop",
     "desktop:fresh": "npm run build && node tools/get-electron.js && electron desktop"

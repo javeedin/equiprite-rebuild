@@ -58,6 +58,9 @@ T.check('desktop/package.json installs nothing',
   !desktopPkg.dependencies && !desktopPkg.devDependencies);
 T.check('desktop:fresh builds, fetches Electron, then runs the shell',
   /^npm run build && node tools\/get-electron\.js && electron desktop$/.test(rootPkg.scripts['desktop:fresh']));
+// vb-process-local refuses to run over an existing build/processed, so every second build failed.
+T.check('build cleans the last build first (vb-clean keeps build/cache)',
+  /grunt vb-clean vb-process-local$/.test(rootPkg.scripts.build));
 T.check('desktop fetches Electron before running it',
   /^node tools\/get-electron\.js && electron desktop$/.test(rootPkg.scripts.desktop));
 T.check('no script installs into desktop/', !Object.values(rootPkg.scripts).some((s) => /--prefix desktop/.test(s)));
