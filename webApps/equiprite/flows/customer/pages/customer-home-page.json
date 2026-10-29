@@ -1,0 +1,70 @@
+{
+  "title": "Customer portal",
+  "description": "Customer home (FDD 7.18; wireframe Portal home; replaces customer-dashboard). What needs the customer next (quotes to accept, deliveries to confirm, drafts to send, overdue invoices), the figures, the latest requests with a tracker and what is on site. Data: homeInitChain, the old dashboard's reads.",
+  "variables": {
+    "kpis": {
+      "type": "any",
+      "defaultValue": {}
+    },
+    "todo": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "recent": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "onSite": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "customerName": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "quotingAllowed": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "isQuotingAllowed(..., 'CUSTOMER'): a quote can be accepted online."
+    },
+    "isLoading": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "fetchError": {
+      "type": "string",
+      "defaultValue": ""
+    }
+  },
+  "metadata": {},
+  "eventListeners": {
+    "vbBeforeEnter": {
+      "chains": [{ "chain": "enforcePageAccessChain" }]
+    },
+    "vbEnter": {
+      "chains": [
+        { "chain": "customersModuleGuardChain" },
+        { "chain": "homeInitChain" }
+      ]
+    },
+    "onGo": {
+      "chains": [
+        {
+          "chain": "goChain",
+          "parameters": {
+            "page": "{{ $event.currentTarget.dataset.page }}",
+            "id": "{{ $event.currentTarget.dataset.id }}",
+            "number": "{{ $event.currentTarget.dataset.number }}"
+          }
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}

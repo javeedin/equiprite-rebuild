@@ -1,0 +1,177 @@
+<!-- One customer request, tracked like a parcel. Data: initChain; line actions: the old customer page's chains. -->
+<div class="er-band">
+  <div class="er-band-inner">
+    <div>
+      <div class="er-band-kicker">
+        <button type="button" class="er-link-inverse" on-click="[[ $listeners.onBack ]]">My requests</button>
+        · Your request
+      </div>
+      <h1>
+        <oj-bind-text value="[[ $variables.formData.requestNumber || $variables.requestId || 'Request' ]]"></oj-bind-text>
+        <oj-bind-if test="[[ !!$variables.formData.status ]]">
+          <span :class="[[ $functions.statusClass($variables.formData.status) + ' er-band-pill' ]]">
+            <oj-bind-text value="[[ $functions.statusText($variables.formData.status) ]]"></oj-bind-text>
+          </span>
+        </oj-bind-if>
+      </h1>
+      <div class="er-band-sub">
+        <oj-bind-text value="[[ ($variables.formData.customerName || '') + ($variables.formData.customerContact ? ' · ' + $variables.formData.customerContact : '') ]]"></oj-bind-text>
+      </div>
+    </div>
+    <div class="er-actions">
+      <oj-bind-if test="[[ $functions.oldLink($application.variables.oldAppUrl, $variables.requestId, $variables.requestNumericId) ]]">
+        <a class="er-btn er-btn--ghost" title="The same request in today's app"
+          :href="[[ $functions.oldLink($application.variables.oldAppUrl, $variables.requestId, $variables.requestNumericId) ]]">Old version</a>
+      </oj-bind-if>
+      <oj-bind-if test="[[ !!$variables.formData.contractNumber ]]">
+        <button type="button" class="er-btn er-btn--ghost" data-page="customer-contract" on-click="[[ $listeners.onGo ]]">Rental contract</button>
+      </oj-bind-if>
+      <oj-bind-if test="[[ $functions.hasQuote($variables.formData.status, $variables.quotingAllowed) ]]">
+        <button type="button" class="er-btn er-btn--primary" data-page="customer-quote" on-click="[[ $listeners.onGo ]]">View quote</button>
+      </oj-bind-if>
+    </div>
+  </div>
+  <div class="er-strip" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+</div>
+
+<div class="er-page">
+  <oj-bind-if test="[[ !!$variables.fetchError ]]">
+    <div class="er-error" role="alert"><oj-bind-text value="[[ $variables.fetchError ]]"></oj-bind-text></div>
+  </oj-bind-if>
+  <oj-bind-if test="[[ $variables.isLoading ]]">
+    <div class="er-card er-card-pad er-muted">Finding your request…</div>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ !$variables.isLoading && !$variables.fetchError ]]">
+    <!-- The next thing the customer must do. -->
+    <section :class="[[ 'er-cu-next er-cu-next--' + $functions.next($variables.formData, $variables.dataGridProvider, $variables.quotingAllowed, $variables.selectionTick).tone ]]"
+      aria-labelledby="nextTitle">
+      <div class="er-cu-next-text">
+        <span class="er-cu-next-kicker">Next step</span>
+        <h2 id="nextTitle"><oj-bind-text value="[[ $functions.next($variables.formData, $variables.dataGridProvider, $variables.quotingAllowed, $variables.selectionTick).title ]]"></oj-bind-text></h2>
+        <p><oj-bind-text value="[[ $functions.next($variables.formData, $variables.dataGridProvider, $variables.quotingAllowed, $variables.selectionTick).text ]]"></oj-bind-text></p>
+      </div>
+      <div class="er-actions er-cu-next-actions">
+        <oj-bind-if test="[[ $functions.next($variables.formData, $variables.dataGridProvider, $variables.quotingAllowed, $variables.selectionTick).action === 'draft' ]]">
+          <button type="button" class="er-btn er-btn--dark" :disabled="[[ $variables.isDraftBusy ]]" on-click="[[ $listeners.onSubmitDraft ]]">Review and send</button>
+          <button type="button" class="er-btn er-btn--plain" :disabled="[[ $variables.isDraftBusy ]]" on-click="[[ $listeners.onEditDraft ]]">Edit draft</button>
+          <button type="button" class="er-btn er-btn--plain" :disabled="[[ $variables.isDraftBusy ]]" on-click="[[ $listeners.onAskDeleteDraft ]]">Delete draft</button>
+        </oj-bind-if>
+        <oj-bind-if test="[[ $functions.next($variables.formData, $variables.dataGridProvider, $variables.quotingAllowed, $variables.selectionTick).action === 'quote' ]]">
+          <button type="button" class="er-btn er-btn--dark" data-page="customer-quote" on-click="[[ $listeners.onGo ]]">View and accept the quote</button>
+        </oj-bind-if>
+        <oj-bind-if test="[[ $functions.next($variables.formData, $variables.dataGridProvider, $variables.quotingAllowed, $variables.selectionTick).action === 'delivery' ]]">
+          <button type="button" class="er-btn er-btn--dark" id="acceptArrivedBtn"
+            :disabled="[[ $variables.selectionState.count > 0 && !$variables.selectionState.allShipToSite ]]"
+            on-click="[[ $listeners.onAcceptDelivery ]]">
+            <oj-bind-text value="[[ $variables.selectionState.count > 0
+              ? 'Accept the ' + $variables.selectionState.count + ' ticked'
+              : 'Accept all ' + $functions.countIn($variables.dataGridProvider, 'SHIP_TO_SITE') + ' arrived' ]]"></oj-bind-text>
+          </button>
+          <button type="button" class="er-btn er-btn--plain" data-status="SHIP_TO_SITE" on-click="[[ $listeners.onSelect ]]">Something wrong? Choose items</button>
+        </oj-bind-if>
+        <oj-bind-if test="[[ $functions.next($variables.formData, $variables.dataGridProvider, $variables.quotingAllowed, $variables.selectionTick).action === 'return' ]]">
+          <button type="button" class="er-btn er-btn--dark" data-status="DEPLOYED" on-click="[[ $listeners.onSelect ]]">Choose what to return</button>
+        </oj-bind-if>
+      </div>
+    </section>
+
+    <section class="er-card er-card-pad" aria-label="Where it is">
+      <ol class="er-cu-track" aria-label="Where this request is">
+        <oj-bind-for-each data="[[ $functions.steps($variables.formData.status, $variables.dataGridProvider, $variables.formData, $variables.selectionTick) ]]">
+          <template data-oj-as="step">
+            <li :class="[[ 'er-cu-stop er-cu-stop--' + step.data.state ]]"
+              :aria-current="[[ step.data.state === 'current' || step.data.state === 'stopped' ? 'step' : 'false' ]]">
+              <span class="er-cu-stop-bar" aria-hidden="true"></span>
+              <span class="er-cu-stop-label"><oj-bind-text value="[[ step.data.label ]]"></oj-bind-text></span>
+              <span class="er-cu-stop-when"><oj-bind-text value="[[ step.data.when ]]"></oj-bind-text></span>
+            </li>
+          </template>
+        </oj-bind-for-each>
+      </ol>
+      <dl class="er-facts er-cu-facts">
+        <div><dt>Dates</dt><dd><oj-bind-text value="[[ $functions.dateRange($variables.formData.startDate, $variables.formData.endDate) || '—' ]]"></oj-bind-text></dd></div>
+        <div><dt>Deliver to</dt><dd><oj-bind-text value="[[ $variables.formData.location || '—' ]]"></oj-bind-text></dd></div>
+        <div><dt>Contract</dt><dd><oj-bind-text value="[[ $variables.formData.contractNumber || 'Not yet' ]]"></oj-bind-text></dd></div>
+        <div><dt>Equipment</dt><dd><oj-bind-text value="[[ ($variables.dataGridProvider || []).length + (($variables.dataGridProvider || []).length === 1 ? ' line' : ' lines') ]]"></oj-bind-text></dd></div>
+      </dl>
+    </section>
+
+    <section class="er-card" aria-labelledby="linesTitle">
+      <div class="er-card-pad er-table-head">
+        <h2 class="er-section-title" id="linesTitle">Your equipment</h2>
+        <oj-bind-if test="[[ $functions.headerIsConfirmed($variables.formData.status) ]]">
+          <div class="er-actions">
+            <span class="er-note er-cu-selnote">
+              <oj-bind-text value="[[ $variables.selectionState.count
+                ? $variables.selectionState.count + ' ticked'
+                : 'Tick items to accept, refuse or return them' ]]"></oj-bind-text>
+            </span>
+            <button type="button" class="er-btn er-btn--plain" :disabled="[[ !$variables.selectionState.allShipToSite ]]"
+              on-click="[[ $listeners.onRejectDelivery ]]">Refuse delivery</button>
+            <button type="button" class="er-btn er-btn--plain" :disabled="[[ !$variables.selectionState.allShipToSite ]]"
+              on-click="[[ $listeners.onAcceptDelivery ]]">Accept delivery</button>
+            <button type="button" class="er-btn er-btn--dark" :disabled="[[ !$variables.selectionState.allReturnable ]]"
+              on-click="[[ $listeners.onInitiateReturn ]]">Start return</button>
+          </div>
+        </oj-bind-if>
+      </div>
+      <!-- A div grid, not a <table>: the browser moves custom elements such as oj-bind-for-each out of <tbody>. -->
+      <div class="er-table-wrap">
+        <div class="er-cu-lines" role="table" aria-labelledby="linesTitle">
+          <div class="er-cu-lrow er-grid-head" role="row">
+            <span role="columnheader" class="er-col-check">
+              <oj-bind-if test="[[ $functions.headerIsConfirmed($variables.formData.status) ]]">
+                <input type="checkbox" data-index="all" aria-label="Tick every item" on-change="[[ $listeners.onToggleLine ]]"
+                  :checked="[[ $variables.selectionTick >= 0 && $variables.selectionState.allSelected ]]">
+              </oj-bind-if>
+            </span>
+            <span role="columnheader">Equipment</span><span role="columnheader">Qty</span><span role="columnheader">Dates</span>
+            <span role="columnheader" class="er-num">Rate</span><span role="columnheader">Where it is</span>
+          </div>
+          <oj-bind-for-each data="[[ $variables.dataGridProvider ]]">
+            <template data-oj-as="line">
+              <div role="row" :class="[[ 'er-cu-lrow' + ($variables.selectionTick >= 0 && $functions.isRowSelected(line.index) ? ' er-row--on' : '') ]]">
+                <span role="cell" class="er-col-check">
+                  <oj-bind-if test="[[ $functions.headerIsConfirmed($variables.formData.status) ]]">
+                    <input type="checkbox" :data-index="[[ line.index ]]" on-change="[[ $listeners.onToggleLine ]]"
+                      :aria-label="[[ 'Tick ' + line.data.equipmentName ]]"
+                      :checked="[[ $variables.selectionTick >= 0 && $functions.isRowSelected(line.index) ]]">
+                  </oj-bind-if>
+                </span>
+                <span role="cell">
+                  <span class="er-cell-main"><oj-bind-text value="[[ line.data.equipmentName ]]"></oj-bind-text></span>
+                  <span class="er-note"><oj-bind-text value="[[ line.data.equipmentClass ]]"></oj-bind-text></span>
+                </span>
+                <span role="cell"><oj-bind-text value="[[ line.data.quantity ]]"></oj-bind-text></span>
+                <span role="cell"><oj-bind-text value="[[ $functions.dateRange(line.data.startDate, line.data.endDate) ]]"></oj-bind-text></span>
+                <span role="cell" class="er-num"><oj-bind-text value="[[ $functions.rateText(line.data) ]]"></oj-bind-text></span>
+                <span role="cell">
+                  <oj-bind-if test="[[ !!line.data.lineStatus ]]">
+                    <span :class="[[ $functions.statusClass(line.data.lineStatus) ]]"><oj-bind-text value="[[ $functions.statusText(line.data.lineStatus) ]]"></oj-bind-text></span>
+                  </oj-bind-if>
+                </span>
+              </div>
+            </template>
+          </oj-bind-for-each>
+        </div>
+      </div>
+      <div class="er-card-pad er-note">
+        Accepting a delivery puts the equipment on site; refusing it turns that item down. A return tells us to collect
+        the item; it is closed when it is back with us.
+      </div>
+    </section>
+  </oj-bind-if>
+</div>
+
+<oj-dialog id="deleteDraftDialog" dialog-title="Delete this draft?" initial-visibility="hide" cancel-behavior="icon"
+  modality="modal" style="width: 420px;">
+  <div slot="body">
+    <oj-bind-text value="[[ 'Delete draft ' + ($variables.formData.requestNumber || '') + ' and all of its equipment? This cannot be undone.' ]]"></oj-bind-text>
+  </div>
+  <div slot="footer" class="er-actions">
+    <button type="button" class="er-btn er-btn--plain" on-click="[[ $listeners.onCancelDeleteDraft ]]">Keep it</button>
+    <button type="button" class="er-btn er-btn--danger" :disabled="[[ $variables.isDraftBusy ]]"
+      on-click="[[ $listeners.onDeleteDraft ]]">Delete</button>
+  </div>
+</oj-dialog>

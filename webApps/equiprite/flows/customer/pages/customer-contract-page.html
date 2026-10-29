@@ -1,0 +1,105 @@
+<!-- The rental contract of a customer request. Data: contractInitChain; terms: resources/js/rentalTerms.js. -->
+<div class="er-band">
+  <div class="er-band-inner">
+    <div>
+      <div class="er-band-kicker">
+        <button type="button" class="er-link-inverse" on-click="[[ $listeners.onBack ]]"><oj-bind-text value="[[ $variables.requestId || 'Request' ]]"></oj-bind-text></button>
+        · Rental contract
+      </div>
+      <h1><oj-bind-text value="[[ $functions.contractState($variables.formData.contractNumber, $variables.quotingAllowed).title ]]"></oj-bind-text></h1>
+      <div class="er-band-sub">
+        <oj-bind-text value="[[ ($variables.formData.customerName || '') + ($variables.formData.startDate ? ' · ' + $functions.dateRange($variables.formData.startDate, $variables.formData.endDate) : '') ]]"></oj-bind-text>
+      </div>
+    </div>
+    <div class="er-actions">
+      <oj-bind-if test="[[ $functions.oldLink($application.variables.oldAppUrl) ]]">
+        <a class="er-btn er-btn--ghost" title="Today's contract page (sample data), for comparison" :href="[[ $functions.oldLink($application.variables.oldAppUrl) ]]">Old version</a>
+      </oj-bind-if>
+      <button type="button" class="er-btn er-btn--primary" on-click="[[ $listeners.onBack ]]">Track the request</button>
+    </div>
+  </div>
+  <div class="er-strip" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+</div>
+
+<div class="er-page">
+  <oj-bind-if test="[[ !!$variables.fetchError ]]">
+    <div class="er-error" role="alert"><oj-bind-text value="[[ $variables.fetchError ]]"></oj-bind-text></div>
+  </oj-bind-if>
+  <oj-bind-if test="[[ $variables.isLoading ]]">
+    <div class="er-card er-card-pad er-muted">Loading the contract…</div>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ !$variables.isLoading && !$variables.fetchError ]]">
+    <section :class="[[ 'er-cu-next ' + ($variables.formData.contractNumber ? 'er-cu-next--done' : 'er-cu-next--wait') ]]" aria-labelledby="stateTitle">
+      <div class="er-cu-next-text">
+        <span class="er-cu-next-kicker"><oj-bind-text value="[[ $variables.formData.requestNumber ]]"></oj-bind-text></span>
+        <h2 id="stateTitle"><oj-bind-text value="[[ $functions.contractState($variables.formData.contractNumber, $variables.quotingAllowed).title ]]"></oj-bind-text></h2>
+        <p><oj-bind-text value="[[ $functions.contractState($variables.formData.contractNumber, $variables.quotingAllowed).text ]]"></oj-bind-text></p>
+      </div>
+    </section>
+
+    <section class="er-card er-card-pad" aria-label="Parties and dates">
+      <dl class="er-facts">
+        <div><dt>Customer</dt><dd><oj-bind-text value="[[ $variables.formData.customerName || '—' ]]"></oj-bind-text></dd></div>
+        <div><dt>Contact</dt><dd><oj-bind-text value="[[ $variables.formData.customerContact || '—' ]]"></oj-bind-text></dd></div>
+        <div><dt>Rental period</dt><dd><oj-bind-text value="[[ $functions.dateRange($variables.formData.startDate, $variables.formData.endDate) || '—' ]]"></oj-bind-text></dd></div>
+        <div><dt>Deliver to</dt><dd><oj-bind-text value="[[ $variables.formData.location || '—' ]]"></oj-bind-text></dd></div>
+        <div><dt>Request status</dt><dd><span :class="[[ $functions.statusClass($variables.formData.status) ]]"><oj-bind-text value="[[ $functions.statusText($variables.formData.status) ]]"></oj-bind-text></span></dd></div>
+        <div><dt>Estimated value</dt><dd class="er-num er-cu-left">
+          <oj-bind-text value="[[ $functions.value($variables.lines).priced ? $functions.money($functions.value($variables.lines).total) : 'On the quote' ]]"></oj-bind-text>
+        </dd></div>
+      </dl>
+    </section>
+
+    <section class="er-card" aria-labelledby="eqTitle">
+      <div class="er-card-pad"><h2 class="er-section-title" id="eqTitle">Equipment in this contract</h2></div>
+      <ul class="er-cu-qlines">
+        <oj-bind-for-each data="[[ $variables.lines ]]">
+          <template data-oj-as="line">
+            <li class="er-cu-qline">
+              <div>
+                <span class="er-cell-main"><oj-bind-text value="[[ line.data.quantity + ' × ' + line.data.equipmentName ]]"></oj-bind-text></span>
+                <span class="er-note"><oj-bind-text value="[[ (line.data.equipmentClass ? line.data.equipmentClass + ' · ' : '') + $functions.dateRange(line.data.startDate, line.data.endDate) ]]"></oj-bind-text></span>
+              </div>
+              <div class="er-cu-qline-price">
+                <span class="er-note"><oj-bind-text value="[[ $functions.rateText(line.data) ]]"></oj-bind-text></span>
+                <strong class="er-num"><oj-bind-text value="[[ line.data.estimatedCost == null ? '' : $functions.money(line.data.estimatedCost) ]]"></oj-bind-text></strong>
+              </div>
+            </li>
+          </template>
+        </oj-bind-for-each>
+      </ul>
+    </section>
+
+    <section class="er-card" aria-labelledby="termsTitle">
+      <div class="er-card-pad er-table-head">
+        <h2 class="er-section-title" id="termsTitle">Rental terms and conditions</h2>
+        <button type="button" class="er-btn er-btn--plain" on-click="[[ $listeners.onToggleTerms ]]"
+          :aria-expanded="[[ $variables.showTerms ? 'true' : 'false' ]]">
+          <oj-bind-text value="[[ $variables.showTerms ? 'Hide the terms' : 'Read the terms' ]]"></oj-bind-text>
+        </button>
+      </div>
+      <p class="er-card-pad er-note er-cu-flush">The terms accepted when the request was submitted.</p>
+      <oj-bind-if test="[[ $variables.showTerms ]]">
+        <div class="er-cu-terms er-cu-terms--open">
+          <oj-bind-for-each data="[[ $functions.termsIntro() ]]">
+            <template data-oj-as="p"><p><oj-bind-text value="[[ p.data ]]"></oj-bind-text></p></template>
+          </oj-bind-for-each>
+          <oj-bind-for-each data="[[ $functions.termsSections() ]]">
+            <template data-oj-as="sec">
+              <h3><oj-bind-text value="[[ sec.data.title ]]"></oj-bind-text></h3>
+              <oj-bind-for-each data="[[ sec.data.paras ]]">
+                <template data-oj-as="para">
+                  <p :class="[[ para.data.bullet ? 'er-cu-terms-bullet' : '' ]]">
+                    <oj-bind-if test="[[ !!para.data.lead ]]"><strong><oj-bind-text value="[[ para.data.lead + ' ' ]]"></oj-bind-text></strong></oj-bind-if>
+                    <oj-bind-text value="[[ para.data.text ]]"></oj-bind-text>
+                  </p>
+                </template>
+              </oj-bind-for-each>
+            </template>
+          </oj-bind-for-each>
+        </div>
+      </oj-bind-if>
+    </section>
+  </oj-bind-if>
+</div>

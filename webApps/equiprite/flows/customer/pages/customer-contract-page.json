@@ -1,0 +1,74 @@
+{
+  "title": "Rental contract",
+  "description": "The rental contract of a customer request (FDD 7.18; replaces customer-rental-contract, which shows fixed sample data in Old EquipRite): the Fusion contract number, who it is for, the equipment and value, and the rental terms the customer accepted. Read only. Data: contractInitChain.",
+  "variables": {
+    "requestId": {
+      "type": "string",
+      "input": "fromUrl",
+      "persisted": "none"
+    },
+    "requestNumericId": {
+      "type": "number",
+      "input": "fromUrl",
+      "persisted": "none"
+    },
+    "formData": {
+      "type": "any",
+      "defaultValue": {}
+    },
+    "lines": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "quotingAllowed": {
+      "type": "boolean",
+      "defaultValue": "[[ $application.functions.isQuotingAllowed($application.variables.globalSettings, $application.variables.flagsLoaded, 'CUSTOMER') ]]"
+    },
+    "showTerms": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "isLoading": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "fetchError": {
+      "type": "string",
+      "defaultValue": ""
+    }
+  },
+  "metadata": {},
+  "eventListeners": {
+    "vbBeforeEnter": {
+      "chains": [{ "chain": "enforcePageAccessChain" }]
+    },
+    "vbEnter": {
+      "chains": [
+        { "chain": "customersModuleGuardChain" },
+        { "chain": "contractInitChain" }
+      ]
+    },
+    "onToggleTerms": {
+      "chains": [{ "chain": "toggleTermsChain" }]
+    },
+    "onBack": {
+      "chains": [
+        {
+          "chain": "goChain",
+          "parameters": {
+            "page": "customer-request",
+            "id": "{{ $page.variables.requestNumericId }}",
+            "number": "{{ $page.variables.requestId }}"
+          }
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}

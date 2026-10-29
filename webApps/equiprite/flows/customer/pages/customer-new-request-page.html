@@ -1,0 +1,424 @@
+<!-- New request, customer variant. Steps: 1 equipment with dates, 2 your details, 3 review, terms and submit. The cart
+     rail stays on every step. Copied from flows/request/pages/new-request-page.html; chains: customer-new-request-page-chains. -->
+<div class="er-band">
+  <div class="er-band-inner">
+    <div>
+      <div class="er-band-kicker">
+        <button type="button" class="er-link-inverse" on-click="[[ $listeners.onCancel ]]">My requests</button>
+        · Customers · FDD 7.18.4
+      </div>
+      <h1><oj-bind-text value="[[ $variables.resume ? 'Draft ' + ($variables.resume.requestNumber || '') : 'Request equipment' ]]"></oj-bind-text></h1>
+      <div class="er-band-sub">
+        <oj-bind-text value="[[ ($variables.form.customerName ? $variables.form.customerName + ' · ' : '')
+          + $functions.windowText($variables.form.startDate, $variables.form.endDate) ]]"></oj-bind-text>
+      </div>
+    </div>
+    <div class="er-actions">
+      <oj-bind-if test="[[ $functions.oldLink($application.variables.oldAppUrl) ]]">
+        <a class="er-btn er-btn--ghost" title="Today's customer create page, for comparison"
+          :href="[[ $functions.oldLink($application.variables.oldAppUrl) ]]">Old version</a>
+      </oj-bind-if>
+      <button type="button" class="er-btn er-btn--primary" on-click="[[ $listeners.onCancel ]]">Cancel</button>
+    </div>
+  </div>
+  <div class="er-strip" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+</div>
+
+<div class="er-page">
+  <oj-bind-if test="[[ $variables.isCreatingContract ]]">
+    <div class="er-cu-overlay" role="status" aria-live="polite">
+      <div class="er-cu-overlay-box">
+        <div class="er-cu-spinner" aria-hidden="true"></div>
+        <strong>Creating your contract…</strong>
+        <p class="er-note">Your request is saved; its rental contract is being created. Please keep this page open.</p>
+      </div>
+    </div>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ $variables.isLoading ]]">
+    <div class="er-card er-card-pad er-muted">Opening the request…</div>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ !!$variables.loadError ]]">
+    <div class="er-error" role="alert"><oj-bind-text value="[[ $variables.loadError ]]"></oj-bind-text></div>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ !$variables.isLoading && !$variables.canCreate ]]">
+    <div class="er-card er-card-pad er-later">
+      <h2>Your sign-in cannot raise requests</h2>
+      <p class="er-muted">Raising a request needs the customer create-request page (EQR_CUST_CREATE_REQ). Ask your
+        equipment manager, or raise it with them by phone.</p>
+    </div>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ !$variables.isLoading && $variables.canCreate && !$variables.wrongDraft ]]">
+    <div class="er-nr-top">
+      <ol class="er-steps" aria-label="Steps">
+        <oj-bind-for-each data="[[ $functions.steps($variables.step) ]]">
+          <template data-oj-as="s">
+            <li>
+              <button type="button" :class="[[ 'er-stepbtn er-stepbtn--' + s.data.state ]]" :data-step="[[ s.data.n ]]"
+                on-click="[[ $listeners.onStep ]]" :aria-current="[[ s.data.state === 'current' ? 'step' : 'false' ]]">
+                <span class="er-stepnum" aria-hidden="true"><oj-bind-text value="[[ s.data.state === 'done' ? '✓' : s.data.n ]]"></oj-bind-text></span>
+                <oj-bind-text value="[[ s.data.label ]]"></oj-bind-text>
+              </button>
+            </li>
+          </template>
+        </oj-bind-for-each>
+      </ol>
+    </div>
+
+    <div class="er-nr">
+      <div class="er-nr-main">
+        <oj-bind-if test="[[ $variables.missing.length ]]">
+          <div class="er-error" role="alert">
+            Still needed: <oj-bind-text value="[[ $variables.missing.join(', ') ]]"></oj-bind-text>
+          </div>
+        </oj-bind-if>
+
+        <!-- ── Step 1: Equipment ─────────────────────────────────────────── -->
+        <oj-bind-if test="[[ $variables.step === 1 ]]">
+          <section class="er-card er-card-pad er-nr-dates" aria-label="Dates">
+            <label class="er-field">
+              <span class="er-label">Needed from <span class="er-req">*</span></span>
+              <input type="date" data-field="startDate" :value="[[ $variables.form.startDate || '' ]]" on-change="[[ $listeners.onField ]]">
+            </label>
+            <label class="er-field">
+              <span class="er-label">Until <span class="er-req">*</span></span>
+              <input type="date" data-field="endDate" :min="[[ $variables.form.startDate || '' ]]"
+                :value="[[ $variables.form.endDate || '' ]]" on-change="[[ $listeners.onField ]]">
+            </label>
+            <p class="er-note er-nr-dates-note">
+              <oj-bind-text value="[[ $variables.form.startDate && $variables.form.endDate
+                ? 'Availability and the estimate on each card are for ' + $functions.windowText($variables.form.startDate, $variables.form.endDate) + '.'
+                : 'Pick your dates first: each card then shows whether it is free and what it costs for them.' ]]"></oj-bind-text>
+            </p>
+          </section>
+
+          <div class="er-filters">
+            <label class="er-search">
+              <span class="oj-ux-ico-search" aria-hidden="true"></span>
+              <span class="er-sr">Search the catalog</span>
+              <input type="search" placeholder="Search equipment by name or class" on-input="[[ $listeners.onCatalogSearch ]]">
+            </label>
+            <label class="er-check">
+              <input type="checkbox" on-change="[[ $listeners.onAvailToggle ]]" :checked="[[ $variables.catalogAvail === 'free' ]]">
+              Free on these dates only
+            </label>
+          </div>
+
+          <div class="er-chip-row" role="group" aria-label="Equipment class">
+            <oj-bind-for-each data="[[ $functions.classChips($variables.catalogRows) ]]">
+              <template data-oj-as="chip">
+                <button type="button" :data-cls="[[ chip.data.key ]]" on-click="[[ $listeners.onClassChip ]]"
+                  :class="[[ 'er-chip' + ($variables.catalogClass === chip.data.key ? ' er-chip--on' : '') ]]"
+                  :aria-pressed="[[ $variables.catalogClass === chip.data.key ? 'true' : 'false' ]]">
+                  <oj-bind-text value="[[ chip.data.label ]]"></oj-bind-text>
+                  <span class="er-chip-count"><oj-bind-text value="[[ chip.data.count ]]"></oj-bind-text></span>
+                </button>
+              </template>
+            </oj-bind-for-each>
+          </div>
+
+          <oj-bind-if test="[[ !!$variables.catalogError ]]">
+            <div class="er-error" role="alert"><oj-bind-text value="[[ $variables.catalogError ]]"></oj-bind-text></div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.catalogLoading && !$variables.catalogRows.length ]]">
+            <div class="er-card er-card-pad er-muted">Loading the catalog…</div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ !$variables.catalogLoading && !$variables.catalogError
+                               && !$functions.filterCatalog($variables.catalogRows, $variables.catalogText, $variables.catalogClass, $variables.catalogAvail).length ]]">
+            <div class="er-card er-card-pad er-muted">Nothing matches. Clear the search or pick another class.</div>
+          </oj-bind-if>
+
+          <div :class="[[ 'er-eq-grid' + ($variables.catalogLoading ? ' er-eq-grid--busy' : '') ]]" aria-label="Catalog">
+            <oj-bind-for-each data="[[ $functions.filterCatalog($variables.catalogRows, $variables.catalogText,
+                                        $variables.catalogClass, $variables.catalogAvail).slice(0, $variables.catalogLimit) ]]">
+              <template data-oj-as="row">
+                <article class="er-eq-card">
+                  <div class="er-eq-pic">
+                    <oj-bind-if test="[[ !!row.data.equipmentImage ]]">
+                      <img :src="[[ $functions.imageSrc(row.data.equipmentImage, $application.path) ]]" alt="" loading="lazy">
+                    </oj-bind-if>
+                    <oj-bind-if test="[[ !row.data.equipmentImage ]]">
+                      <span aria-hidden="true"><oj-bind-text value="[[ $functions.initials(row.data.className || row.data.equipmentName) ]]"></oj-bind-text></span>
+                    </oj-bind-if>
+                    <span :class="[[ 'er-avail er-avail--' + $functions.availability(row.data).key ]]">
+                      <oj-bind-text value="[[ $functions.availability(row.data).label ]]"></oj-bind-text>
+                    </span>
+                  </div>
+                  <div class="er-eq-body">
+                    <div class="er-note"><oj-bind-text value="[[ row.data.className || 'Equipment' ]]"></oj-bind-text></div>
+                    <h3 class="er-eq-name"><oj-bind-text value="[[ row.data.equipmentName ]]"></oj-bind-text></h3>
+                    <div class="er-eq-rate"><oj-bind-text value="[[ $functions.rateText(row.data, $variables.hideRates) ]]"></oj-bind-text></div>
+                    <div class="er-note"><oj-bind-text value="[[ $functions.cardEstimate(row.data, $variables.form.startDate, $variables.form.endDate, $variables.hideRates) ]]"></oj-bind-text></div>
+                  </div>
+                  <div class="er-eq-foot">
+                    <oj-bind-if test="[[ $functions.qtyIn($variables.cart, row.data.eqrEquipmentMasterId) > 0 ]]">
+                      <div class="er-stepper" role="group" :aria-label="[[ 'Quantity of ' + row.data.equipmentName ]]">
+                        <button type="button" data-action="dec" :data-id="[[ row.data.eqrEquipmentMasterId ]]" on-click="[[ $listeners.onCart ]]" aria-label="One less">−</button>
+                        <span><oj-bind-text value="[[ $functions.qtyIn($variables.cart, row.data.eqrEquipmentMasterId) + ' in cart' ]]"></oj-bind-text></span>
+                        <button type="button" data-action="inc" :data-id="[[ row.data.eqrEquipmentMasterId ]]" on-click="[[ $listeners.onCart ]]" aria-label="One more">+</button>
+                      </div>
+                    </oj-bind-if>
+                    <oj-bind-if test="[[ $functions.qtyIn($variables.cart, row.data.eqrEquipmentMasterId) === 0 ]]">
+                      <button type="button" class="er-btn er-btn--dark er-eq-add" data-action="add" :data-id="[[ row.data.eqrEquipmentMasterId ]]"
+                        :disabled="[[ $functions.availability(row.data).key === 'none' ]]" on-click="[[ $listeners.onCart ]]">
+                        <oj-bind-text value="[[ $functions.availability(row.data).key === 'none' ? 'Not free on these dates' : 'Add to cart' ]]"></oj-bind-text>
+                      </button>
+                    </oj-bind-if>
+                  </div>
+                </article>
+              </template>
+            </oj-bind-for-each>
+          </div>
+          <oj-bind-if test="[[ $functions.filterCatalog($variables.catalogRows, $variables.catalogText, $variables.catalogClass,
+                                 $variables.catalogAvail).length > $variables.catalogLimit ]]">
+            <div><button type="button" class="er-btn er-btn--plain" on-click="[[ $listeners.onShowMore ]]">Show more</button></div>
+          </oj-bind-if>
+        </oj-bind-if>
+
+        <!-- ── Step 2: Your details ──────────────────────────────────────── -->
+        <oj-bind-if test="[[ $variables.step === 2 ]]">
+          <oj-bind-if test="[[ $functions.actsForCustomers($application.variables.pageAccessMap, $application.variables.pageAccessLoaded) ]]">
+            <div class="er-cu-behalf" role="note">
+              <span class="oj-ux-ico-contact-group" aria-hidden="true"></span>
+              <div><strong>You are raising this for a customer.</strong> Pick the customer and their contact. Your sign-in is
+                recorded on the request.</div>
+            </div>
+          </oj-bind-if>
+
+          <section class="er-card er-card-pad er-form" aria-labelledby="custTitle">
+            <h2 class="er-section-title" id="custTitle">Who it is for</h2>
+            <div class="er-field">
+              <span class="er-label">Customer <span class="er-req">*</span></span>
+              <oj-bind-if test="[[ $variables.form.customerRefId != null ]]">
+                <div class="er-picked">
+                  <span><strong><oj-bind-text value="[[ $variables.form.customerName ]]"></oj-bind-text></strong></span>
+                  <button type="button" class="er-btn er-btn--plain" data-field="customerRefId" data-value="" on-click="[[ $listeners.onFieldButton ]]">Change</button>
+                </div>
+              </oj-bind-if>
+              <oj-bind-if test="[[ $variables.form.customerRefId == null ]]">
+                <input type="search" class="er-input" data-field="customerQuery" placeholder="Type the customer's name"
+                  on-input="[[ $listeners.onField ]]" aria-label="Find the customer">
+                <div class="er-results" role="listbox" aria-label="Customers">
+                  <oj-bind-for-each data="[[ $functions.partyMatches($variables.customers, $variables.customerQuery) ]]">
+                    <template data-oj-as="c">
+                      <button type="button" role="option" class="er-result" data-field="customerRefId" :data-value="[[ c.data.id ]]"
+                        on-click="[[ $listeners.onFieldButton ]]">
+                        <strong><oj-bind-text value="[[ c.data.customerName ]]"></oj-bind-text></strong>
+                      </button>
+                    </template>
+                  </oj-bind-for-each>
+                </div>
+                <span class="er-note"><oj-bind-text value="[[ !$variables.customers.length ? 'No customers are set up for your sign-in.'
+                  : $functions.partyMatches($variables.customers, $variables.customerQuery).length + ' of ' + $variables.customers.length ]]"></oj-bind-text></span>
+              </oj-bind-if>
+            </div>
+
+            <div class="er-field">
+              <span class="er-label">Contact <span class="er-req">*</span> <span class="er-note">(who we call about this request)</span></span>
+              <oj-bind-if test="[[ $variables.form.requestorId != null ]]">
+                <div class="er-picked">
+                  <span><strong><oj-bind-text value="[[ $variables.form.requestorName ]]"></oj-bind-text></strong></span>
+                  <button type="button" class="er-btn er-btn--plain" data-field="requestorId" data-value="" on-click="[[ $listeners.onFieldButton ]]">Change</button>
+                </div>
+              </oj-bind-if>
+              <oj-bind-if test="[[ $variables.form.requestorId == null ]]">
+                <input type="search" class="er-input" data-field="contactQuery" placeholder="Type a name or email"
+                  on-input="[[ $listeners.onField ]]" aria-label="Find the contact">
+                <div class="er-results" role="listbox" aria-label="Contacts">
+                  <oj-bind-for-each data="[[ $functions.partyMatches($variables.contacts, $variables.contactQuery) ]]">
+                    <template data-oj-as="u">
+                      <button type="button" role="option" class="er-result" data-field="requestorId" :data-value="[[ u.data.id ]]"
+                        on-click="[[ $listeners.onFieldButton ]]">
+                        <strong><oj-bind-text value="[[ u.data.contactName ]]"></oj-bind-text></strong>
+                        <span class="er-note"><oj-bind-text value="[[ u.data.email || u.data.username ]]"></oj-bind-text></span>
+                      </button>
+                    </template>
+                  </oj-bind-for-each>
+                </div>
+              </oj-bind-if>
+            </div>
+          </section>
+
+          <section class="er-card er-card-pad er-form" aria-labelledby="delTitle">
+            <h2 class="er-section-title" id="delTitle">Delivery</h2>
+            <label class="er-field">
+              <span class="er-label">Delivery address <span class="er-req">*</span></span>
+              <input type="text" class="er-input" data-field="location" placeholder="Street, city, country"
+                :value="[[ $variables.form.location || '' ]]" on-change="[[ $listeners.onField ]]">
+            </label>
+            <span class="er-note">We price from the yard nearest this address. Picking the point on a map is still in Old EquipRite.</span>
+            <label class="er-field">
+              <span class="er-label">Notes or special instructions</span>
+              <textarea class="er-input" rows="3" data-field="notes" :value="[[ $variables.form.notes || '' ]]" on-change="[[ $listeners.onField ]]"></textarea>
+            </label>
+          </section>
+        </oj-bind-if>
+
+        <!-- ── Step 3: Review, terms and submit ──────────────────────────── -->
+        <oj-bind-if test="[[ $variables.step === 3 ]]">
+          <section class="er-card er-card-pad">
+            <div class="er-table-head">
+              <h2 class="er-section-title">Who it is for</h2>
+              <button type="button" class="er-btn er-btn--plain" data-step="2" on-click="[[ $listeners.onStep ]]">Edit</button>
+            </div>
+            <dl class="er-facts" style="margin-top: 12px;">
+              <div><dt>Customer</dt><dd><oj-bind-text value="[[ $variables.form.customerName || '—' ]]"></oj-bind-text></dd></div>
+              <div><dt>Contact</dt><dd><oj-bind-text value="[[ $variables.form.requestorName || '—' ]]"></oj-bind-text></dd></div>
+              <div><dt>Deliver to</dt><dd><oj-bind-text value="[[ $variables.form.location || '—' ]]"></oj-bind-text></dd></div>
+              <div><dt>Dates</dt><dd><oj-bind-text value="[[ $functions.windowText($variables.form.startDate, $variables.form.endDate) ]]"></oj-bind-text></dd></div>
+            </dl>
+          </section>
+
+          <section class="er-card" aria-labelledby="linesTitle">
+            <div class="er-card-pad er-table-head">
+              <h2 class="er-section-title" id="linesTitle">Equipment</h2>
+              <button type="button" class="er-btn er-btn--plain" data-step="1" on-click="[[ $listeners.onStep ]]">Add more equipment</button>
+            </div>
+            <ul class="er-lines" aria-labelledby="linesTitle">
+              <oj-bind-for-each data="[[ $variables.cart ]]">
+                <template data-oj-as="item">
+                  <li class="er-line">
+                    <div class="er-line-head">
+                      <div class="er-line-name">
+                        <span class="er-cell-main"><oj-bind-text value="[[ item.data.name ]]"></oj-bind-text></span>
+                        <span class="er-note"><oj-bind-text value="[[ item.data.class ]]"></oj-bind-text></span>
+                      </div>
+                      <div class="er-line-price">
+                        <span class="er-note"><oj-bind-text value="[[ $functions.rateText(item.data, $variables.hideRates) ]]"></oj-bind-text></span>
+                        <strong class="er-num"><oj-bind-text value="[[ $variables.hideRates ? '' : $functions.money($functions.lineCost(item.data, $variables.form.startDate, $variables.form.endDate, false)) ]]"></oj-bind-text></strong>
+                      </div>
+                      <button type="button" class="er-icon-btn" data-action="remove" :data-id="[[ item.data.id ]]" on-click="[[ $listeners.onCart ]]"
+                        :aria-label="[[ 'Remove ' + item.data.name ]]" title="Remove"><span class="oj-ux-ico-trash" aria-hidden="true"></span></button>
+                    </div>
+                    <div class="er-line-fields">
+                      <label class="er-field er-field--qty">
+                        <span class="er-label">Qty</span>
+                        <input type="number" class="er-input" min="1" step="1" :data-id="[[ item.data.id ]]"
+                          :value="[[ item.data.quantity ]]" on-change="[[ $listeners.onLineQty ]]">
+                      </label>
+                      <label class="er-field er-field--date">
+                        <span class="er-label">From</span>
+                        <input type="date" class="er-input" data-field="startDate" :data-id="[[ item.data.id ]]"
+                          :value="[[ item.data.startDate || $variables.form.startDate ]]" on-change="[[ $listeners.onLineField ]]">
+                      </label>
+                      <label class="er-field er-field--date">
+                        <span class="er-label">Until</span>
+                        <input type="date" class="er-input" data-field="endDate" :data-id="[[ item.data.id ]]"
+                          :min="[[ item.data.startDate || $variables.form.startDate ]]"
+                          :value="[[ item.data.endDate || $variables.form.endDate ]]" on-change="[[ $listeners.onLineField ]]">
+                      </label>
+                      <label class="er-field er-field--grow">
+                        <span class="er-label">Notes</span>
+                        <input type="text" class="er-input" data-field="notes" :data-id="[[ item.data.id ]]" placeholder="Optional, e.g. with operator"
+                          :value="[[ item.data.notes || '' ]]" on-change="[[ $listeners.onLineField ]]">
+                      </label>
+                    </div>
+                  </li>
+                </template>
+              </oj-bind-for-each>
+            </ul>
+          </section>
+
+          <!-- The terms-and-conditions gate of the old cart: Submit needs this box ticked. -->
+          <section class="er-card er-cu-termscard" aria-labelledby="termsTitle">
+            <div class="er-card-pad er-table-head">
+              <h2 class="er-section-title" id="termsTitle">Rental terms and conditions</h2>
+              <button type="button" class="er-btn er-btn--plain" on-click="[[ $listeners.onToggleTerms ]]"
+                :aria-expanded="[[ $variables.showTerms ? 'true' : 'false' ]]">
+                <oj-bind-text value="[[ $variables.showTerms ? 'Show less' : 'Read all ' + $functions.termsSections().length + ' sections' ]]"></oj-bind-text>
+              </button>
+            </div>
+            <div :class="[[ 'er-cu-terms' + ($variables.showTerms ? ' er-cu-terms--open' : '') ]]" tabindex="0" aria-label="Rental terms">
+              <oj-bind-for-each data="[[ $functions.termsIntro() ]]">
+                <template data-oj-as="p"><p><oj-bind-text value="[[ p.data ]]"></oj-bind-text></p></template>
+              </oj-bind-for-each>
+              <oj-bind-for-each data="[[ $functions.termsSections() ]]">
+                <template data-oj-as="sec">
+                  <h3><oj-bind-text value="[[ sec.data.title ]]"></oj-bind-text></h3>
+                  <oj-bind-for-each data="[[ sec.data.paras ]]">
+                    <template data-oj-as="para">
+                      <p :class="[[ para.data.bullet ? 'er-cu-terms-bullet' : '' ]]">
+                        <oj-bind-if test="[[ !!para.data.lead ]]"><strong><oj-bind-text value="[[ para.data.lead + ' ' ]]"></oj-bind-text></strong></oj-bind-if>
+                        <oj-bind-text value="[[ para.data.text ]]"></oj-bind-text>
+                      </p>
+                    </template>
+                  </oj-bind-for-each>
+                </template>
+              </oj-bind-for-each>
+            </div>
+            <label class="er-card-pad er-check er-cu-agree">
+              <input type="checkbox" id="termsAcceptChk" data-field="termsAccepted" on-change="[[ $listeners.onField ]]"
+                :checked="[[ $variables.termsAccepted ]]">
+              <oj-bind-text value="[[ $functions.agreeLabel() ]]"></oj-bind-text>
+            </label>
+          </section>
+        </oj-bind-if>
+      </div>
+
+      <!-- ── Cart rail (every step) ──────────────────────────────────────── -->
+      <aside class="er-card er-rail" aria-labelledby="cartTitle">
+        <div class="er-card-pad">
+          <h2 class="er-section-title" id="cartTitle">
+            <oj-bind-text value="[[ 'Cart · ' + $variables.cart.length + ($variables.cart.length === 1 ? ' item' : ' items') ]]"></oj-bind-text>
+          </h2>
+          <oj-bind-if test="[[ !$variables.cart.length ]]">
+            <p class="er-note">Add equipment from the catalog. The estimate follows your dates and your account's rates.</p>
+          </oj-bind-if>
+          <ul class="er-rail-lines">
+            <oj-bind-for-each data="[[ $variables.cart ]]">
+              <template data-oj-as="item">
+                <li>
+                  <span><oj-bind-text value="[[ item.data.quantity + ' × ' + item.data.name ]]"></oj-bind-text></span>
+                  <span class="er-num"><oj-bind-text value="[[ $variables.hideRates ? '' : $functions.money($functions.lineCost(item.data, $variables.form.startDate, $variables.form.endDate, false)) ]]"></oj-bind-text></span>
+                </li>
+              </template>
+            </oj-bind-for-each>
+          </ul>
+          <oj-bind-if test="[[ $variables.cart.length && !$variables.hideRates ]]">
+            <div class="er-rail-total">
+              <span>
+                Estimated total
+                <span class="er-note"><oj-bind-text value="[[ $functions.cartSummary($variables.cart, $variables.form.startDate, $variables.form.endDate, false).priced < $variables.cart.length
+                  ? '(' + $functions.cartSummary($variables.cart, $variables.form.startDate, $variables.form.endDate, false).priced + ' of ' + $variables.cart.length + ' priced)' : '' ]]"></oj-bind-text></span>
+              </span>
+              <strong class="er-num"><oj-bind-text value="[[ $functions.money($functions.cartSummary($variables.cart, $variables.form.startDate, $variables.form.endDate, false).total) ]]"></oj-bind-text></strong>
+            </div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.hideRates && $variables.cart.length ]]">
+            <p class="er-note">Prices come on your quote. You accept the quote before anything is confirmed.</p>
+          </oj-bind-if>
+          <oj-bind-if test="[[ !!$variables.priceNote ]]">
+            <p class="er-rail-note" role="status"><oj-bind-text value="[[ $variables.priceNote ]]"></oj-bind-text></p>
+          </oj-bind-if>
+
+          <div class="er-rail-actions">
+            <oj-bind-if test="[[ $variables.step < 3 ]]">
+              <button type="button" class="er-btn er-btn--dark" :data-step="[[ $variables.step + 1 ]]" on-click="[[ $listeners.onStep ]]">
+                <oj-bind-text value="[[ $variables.step === 1 ? 'Continue to your details' : 'Review' ]]"></oj-bind-text>
+              </button>
+            </oj-bind-if>
+            <oj-bind-if test="[[ $variables.step === 3 ]]">
+              <button type="button" class="er-btn er-btn--dark" :disabled="[[ $variables.isSubmitting || !$variables.termsAccepted ]]"
+                on-click="[[ $listeners.onSubmit ]]">
+                <oj-bind-text value="[[ $variables.isSubmitting && $variables.submitMode === 'submit' ? 'Submitting…' : 'Submit request' ]]"></oj-bind-text>
+              </button>
+              <p class="er-note er-cu-railnote">
+                <oj-bind-text value="[[ !$variables.termsAccepted ? 'Accept the rental terms to submit.'
+                  : ($variables.hideRates ? 'Submitting sends it to your equipment manager for a quote.'
+                     : 'Submitting sends it to your equipment manager and creates your rental contract.') ]]"></oj-bind-text>
+              </p>
+            </oj-bind-if>
+            <oj-bind-if test="[[ $variables.step > 1 ]]">
+              <button type="button" class="er-btn er-btn--plain" :disabled="[[ $variables.isSubmitting ]]" on-click="[[ $listeners.onSaveDraft ]]">
+                <oj-bind-text value="[[ $variables.isSubmitting && $variables.submitMode === 'draft' ? 'Saving…' : 'Save draft' ]]"></oj-bind-text>
+              </button>
+            </oj-bind-if>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </oj-bind-if>
+</div>

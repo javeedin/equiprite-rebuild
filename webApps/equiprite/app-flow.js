@@ -310,7 +310,10 @@ define([
       key: 'external', label: 'Customers', flags: ['CUSTOMERS_MODULE_ENABLED'],
       items: [
         { id: 'customer-portal', label: 'Customer portal', icon: 'oj-ux-ico-customer-request', pageCodes: ['EQR_CUST_DASHBOARD'],
-          status: 'old', old: { flow: 'customer-portal', page: 'customer-dashboard' }, fdd: '7.18' }
+          status: 'new', route: { flow: 'customer', page: 'customer-home' },
+          pages: ['customer-requests', 'customer-request', 'customer-quote', 'customer-contract', 'customer-billing',
+            'customer-invoice', 'customer-new-request'],
+          old: { flow: 'customer-portal', page: 'customer-dashboard' }, fdd: '7.18' }
       ]
     }
   ];

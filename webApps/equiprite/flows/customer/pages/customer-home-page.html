@@ -1,0 +1,169 @@
+<!-- Customer portal home (wireframe: Portal home). Data: homeInitChain; words and trackers: resources/js/customerPortal.js. -->
+<div class="er-band">
+  <div class="er-band-inner">
+    <div>
+      <div class="er-band-kicker">Customers · FDD 7.18</div>
+      <h1><oj-bind-text value="[[ $functions.greeting($application.user) ]]"></oj-bind-text></h1>
+      <div class="er-band-sub">
+        <oj-bind-text value="[[ ($variables.customerName ? $variables.customerName + ' · ' : '')
+          + $functions.summary($variables.kpis, $variables.todo.length, $variables.isLoading) ]]"></oj-bind-text>
+      </div>
+    </div>
+    <div class="er-actions">
+      <oj-bind-if test="[[ $application.functions.oldAppLink($application.variables.oldAppUrl, 'customer-portal') ]]">
+        <a class="er-btn er-btn--ghost" title="Today's customer dashboard, for comparison"
+          :href="[[ $application.functions.oldAppLink($application.variables.oldAppUrl, 'customer-portal') ]]">Old version</a>
+      </oj-bind-if>
+      <button type="button" class="er-btn er-btn--ghost" data-page="customer-requests" on-click="[[ $listeners.onGo ]]">My requests</button>
+      <oj-bind-if test="[[ $application.functions.navVisible($application.variables.pageAccessMap,
+                             $application.variables.pageAccessLoaded, 'EQR_CUST_CREATE_REQ') ]]">
+        <button type="button" class="er-btn er-btn--primary" data-page="customer-new-request" on-click="[[ $listeners.onGo ]]">New request</button>
+      </oj-bind-if>
+    </div>
+  </div>
+  <div class="er-strip" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+</div>
+
+<div class="er-page">
+  <oj-bind-if test="[[ $functions.actsForCustomers($application.variables.pageAccessMap, $application.variables.pageAccessLoaded) ]]">
+    <div class="er-cu-behalf" role="note">
+      <span class="oj-ux-ico-contact-group" aria-hidden="true"></span>
+      <div>
+        <strong>You are using the portal for customers.</strong>
+        You are signed in as staff, so you see the customer requests your sign-in can see, and a request you raise
+        here is for the customer you pick. Your name is recorded on everything you change.
+      </div>
+    </div>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ !!$variables.fetchError ]]">
+    <div class="er-error" role="alert"><oj-bind-text value="[[ $variables.fetchError ]]"></oj-bind-text></div>
+  </oj-bind-if>
+
+  <!-- What needs the customer, first. -->
+  <section class="er-card er-cu-next-list" aria-labelledby="todoTitle">
+    <div class="er-card-pad er-table-head">
+      <h2 class="er-section-title" id="todoTitle">Next for you</h2>
+      <oj-bind-if test="[[ $variables.todo.length ]]">
+        <span class="er-note"><oj-bind-text value="[[ $variables.todo.length + ($variables.todo.length === 1 ? ' thing' : ' things') + ' to do' ]]"></oj-bind-text></span>
+      </oj-bind-if>
+    </div>
+    <oj-bind-if test="[[ $variables.isLoading ]]">
+      <p class="er-card-pad er-muted er-cu-flush">Checking your requests…</p>
+    </oj-bind-if>
+    <oj-bind-if test="[[ !$variables.isLoading && !$variables.todo.length ]]">
+      <div class="er-card-pad er-cu-allclear">
+        <span class="oj-ux-ico-check-circle-s" aria-hidden="true"></span>
+        <div>
+          <strong>Nothing needs you right now.</strong>
+          <div class="er-note">We will show quotes to accept, deliveries to confirm and invoices to pay here.</div>
+        </div>
+      </div>
+    </oj-bind-if>
+    <ul class="er-cu-todo">
+      <oj-bind-for-each data="[[ $variables.todo ]]">
+        <template data-oj-as="t">
+          <li :class="[[ 'er-cu-todo-item er-cu-todo-item--' + t.data.kind ]]">
+            <span :class="[[ 'er-cu-todo-icon ' + (t.data.kind === 'quote' ? 'oj-ux-ico-document-check'
+                              : t.data.kind === 'delivery' ? 'oj-ux-ico-truck'
+                              : t.data.kind === 'invoice' ? 'oj-ux-ico-invoice' : 'oj-ux-ico-edit') ]]" aria-hidden="true"></span>
+            <div class="er-cu-todo-text">
+              <strong><oj-bind-text value="[[ t.data.title ]]"></oj-bind-text></strong>
+              <span class="er-note"><oj-bind-text value="[[ t.data.sub ]]"></oj-bind-text></span>
+            </div>
+            <button type="button" class="er-btn er-btn--dark"
+              :data-page="[[ t.data.kind === 'invoice' ? 'customer-billing'
+                           : (t.data.kind === 'quote' && $variables.quotingAllowed ? 'customer-quote' : 'customer-request') ]]"
+              :data-id="[[ t.data.requestId == null ? '' : t.data.requestId ]]" :data-number="[[ t.data.requestNumber ]]"
+              on-click="[[ $listeners.onGo ]]"><oj-bind-text value="[[ t.data.cta ]]"></oj-bind-text></button>
+          </li>
+        </template>
+      </oj-bind-for-each>
+    </ul>
+  </section>
+
+  <section class="er-kpis" aria-label="Your figures">
+    <button type="button" class="er-kpi er-kpi--info" data-page="customer-requests" on-click="[[ $listeners.onGo ]]">
+      <span class="er-kpi-label">Active requests</span>
+      <span class="er-kpi-value"><oj-bind-text value="[[ $variables.isLoading ? '…' : ($variables.kpis.active || 0) ]]"></oj-bind-text></span>
+      <span class="er-kpi-hint"><oj-bind-text value="[[ ($variables.kpis.total || 0) + ' in total' ]]"></oj-bind-text></span>
+    </button>
+    <button type="button" class="er-kpi er-kpi--success" data-page="customer-requests" on-click="[[ $listeners.onGo ]]">
+      <span class="er-kpi-label">Equipment on site</span>
+      <span class="er-kpi-value"><oj-bind-text value="[[ $variables.isLoading ? '…' : ($variables.kpis.onSite || 0) ]]"></oj-bind-text></span>
+      <span class="er-kpi-hint">items working for you now</span>
+    </button>
+    <oj-bind-if test="[[ $application.functions.isFeatureFlagOff($application.variables.featureFlags,
+                           $application.variables.flagsLoaded, 'EXTERNAL_PROJECT_ASSIGN_ENABLED') ]]">
+      <button type="button" :class="[[ 'er-kpi ' + ($variables.kpis.overdue ? 'er-kpi--danger' : 'er-kpi--warning') ]]"
+        data-page="customer-billing" on-click="[[ $listeners.onGo ]]">
+        <span class="er-kpi-label">Invoices to pay</span>
+        <span class="er-kpi-value"><oj-bind-text value="[[ $variables.isLoading ? '…' : $functions.money($variables.kpis.toPay || 0) ]]"></oj-bind-text></span>
+        <span class="er-kpi-hint"><oj-bind-text value="[[ ($variables.kpis.openInvoices || 0) + ' open · ' + ($variables.kpis.overdue || 0) + ' overdue' ]]"></oj-bind-text></span>
+      </button>
+    </oj-bind-if>
+  </section>
+
+  <div class="er-cu-cols">
+    <section class="er-card" aria-labelledby="recentTitle">
+      <div class="er-card-pad er-table-head">
+        <h2 class="er-section-title" id="recentTitle">Your latest requests</h2>
+        <button type="button" class="er-btn er-btn--plain" data-page="customer-requests" on-click="[[ $listeners.onGo ]]">See all</button>
+      </div>
+      <oj-bind-if test="[[ !$variables.isLoading && !$variables.recent.length ]]">
+        <p class="er-card-pad er-muted er-cu-flush">No requests yet. Your first request will show here, with where it is.</p>
+      </oj-bind-if>
+      <ul class="er-cu-rows" aria-labelledby="recentTitle">
+        <oj-bind-for-each data="[[ $variables.recent ]]">
+          <template data-oj-as="row">
+            <li class="er-cu-row">
+              <div class="er-cu-row-main">
+                <button type="button" class="er-cu-link" data-page="customer-request" :data-id="[[ row.data.id ]]"
+                  :data-number="[[ row.data.requestNumber ]]" on-click="[[ $listeners.onGo ]]">
+                  <oj-bind-text value="[[ row.data.requestNumber ]]"></oj-bind-text>
+                </button>
+                <span class="er-note"><oj-bind-text value="[[ $functions.dateRange(row.data.startDate, row.data.endDate)
+                  + (row.data.lines ? ' · ' + row.data.lines + (row.data.lines === 1 ? ' line' : ' lines') : '') ]]"></oj-bind-text></span>
+              </div>
+              <ol class="er-cu-track er-cu-track--mini" :aria-label="[[ 'Where ' + row.data.requestNumber + ' is' ]]">
+                <oj-bind-for-each data="[[ $functions.steps(row.data.status, row.data) ]]">
+                  <template data-oj-as="step">
+                    <li :class="[[ 'er-cu-stop er-cu-stop--' + step.data.state ]]" :title="[[ step.data.label ]]">
+                      <span class="er-cu-stop-bar" aria-hidden="true"></span>
+                      <span class="er-sr"><oj-bind-text value="[[ step.data.label + ': ' + step.data.state ]]"></oj-bind-text></span>
+                    </li>
+                  </template>
+                </oj-bind-for-each>
+              </ol>
+              <span :class="[[ $functions.statusClass(row.data.status) ]]"><oj-bind-text value="[[ $functions.statusText(row.data.status) ]]"></oj-bind-text></span>
+            </li>
+          </template>
+        </oj-bind-for-each>
+      </ul>
+    </section>
+
+    <section class="er-card" aria-labelledby="onSiteTitle">
+      <div class="er-card-pad">
+        <h2 class="er-section-title" id="onSiteTitle">On your sites now</h2>
+      </div>
+      <oj-bind-if test="[[ !$variables.isLoading && !$variables.onSite.length ]]">
+        <p class="er-card-pad er-muted er-cu-flush">Nothing on site at the moment.</p>
+      </oj-bind-if>
+      <ul class="er-cu-rows">
+        <oj-bind-for-each data="[[ $variables.onSite ]]">
+          <template data-oj-as="s">
+            <li class="er-cu-row er-cu-row--site">
+              <div class="er-cu-row-main">
+                <strong><oj-bind-text value="[[ s.data.count + (s.data.count === 1 ? ' item' : ' items') + ' on ' + s.data.requestNumber ]]"></oj-bind-text></strong>
+                <span class="er-note"><oj-bind-text value="[[ s.data.endDate ? 'Due back ' + $functions.day(s.data.endDate) : '' ]]"></oj-bind-text></span>
+              </div>
+              <button type="button" class="er-btn er-btn--plain" data-page="customer-request" :data-id="[[ s.data.id ]]"
+                :data-number="[[ s.data.requestNumber ]]" on-click="[[ $listeners.onGo ]]">Track</button>
+            </li>
+          </template>
+        </oj-bind-for-each>
+      </ul>
+      <div class="er-card-pad er-note">You see equipment names and classes, never serial numbers.</div>
+    </section>
+  </div>
+</div>

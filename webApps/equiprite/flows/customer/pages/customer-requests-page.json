@@ -1,0 +1,89 @@
+{
+  "title": "My requests",
+  "description": "The customer's requests (FDD 7.18.4; wireframe Portal requests; replaces customer-my-requests). Chips by what needs the customer, search, a tracker per row; a row opens its tracking page, a ready quote opens the quote. Data: loadRequestsChain (views/customer-my-requests, as the old list).",
+  "variables": {
+    "allRows": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "group": {
+      "type": "string",
+      "defaultValue": "open"
+    },
+    "searchText": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "limit": {
+      "type": "number",
+      "defaultValue": 40
+    },
+    "quotingAllowed": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "isLoading": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "fetchError": {
+      "type": "string",
+      "defaultValue": ""
+    }
+  },
+  "metadata": {},
+  "eventListeners": {
+    "vbBeforeEnter": {
+      "chains": [{ "chain": "enforcePageAccessChain" }]
+    },
+    "vbEnter": {
+      "chains": [
+        { "chain": "customersModuleGuardChain" },
+        { "chain": "loadRequestsChain" }
+      ]
+    },
+    "onChip": {
+      "chains": [
+        {
+          "chain": "filterChain",
+          "parameters": { "group": "{{ $event.currentTarget.dataset.group }}" }
+        }
+      ]
+    },
+    "onSearch": {
+      "chains": [
+        {
+          "chain": "filterChain",
+          "parameters": { "text": "{{ $event.target.value }}" }
+        }
+      ]
+    },
+    "onMore": {
+      "chains": [
+        {
+          "chain": "filterChain",
+          "parameters": { "more": true }
+        }
+      ]
+    },
+    "onGo": {
+      "chains": [
+        {
+          "chain": "goChain",
+          "parameters": {
+            "page": "{{ $event.currentTarget.dataset.page }}",
+            "id": "{{ $event.currentTarget.dataset.id }}",
+            "number": "{{ $event.currentTarget.dataset.number }}"
+          }
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}

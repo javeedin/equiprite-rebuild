@@ -1,0 +1,82 @@
+{
+  "title": "Invoices",
+  "description": "The invoices of one billed customer request (FDD 7.18.6; replaces customer-billing-detail): total invoiced, paid, still to pay, last invoice and adjustments, then each piece of equipment with its invoices. Data: invoiceInitChain (the old BillingDetailInitChain's reads and rules).",
+  "variables": {
+    "requestId": {
+      "type": "string",
+      "input": "fromUrl",
+      "persisted": "none"
+    },
+    "requestNumericId": {
+      "type": "number",
+      "input": "fromUrl",
+      "persisted": "none"
+    },
+    "formData": {
+      "type": "any",
+      "defaultValue": {}
+    },
+    "lines": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "totals": {
+      "type": "any",
+      "defaultValue": {}
+    },
+    "isLoading": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "fetchError": {
+      "type": "string",
+      "defaultValue": ""
+    }
+  },
+  "metadata": {},
+  "eventListeners": {
+    "vbBeforeEnter": {
+      "chains": [{ "chain": "enforcePageAccessChain" }]
+    },
+    "vbEnter": {
+      "chains": [
+        { "chain": "customersModuleGuardChain" },
+        { "chain": "billingGuardChain" },
+        {
+          "chain": "invoiceInitChain",
+          "parameters": {
+            "requestId": "{{ $page.variables.requestId }}",
+            "requestNumericId": "{{ $page.variables.requestNumericId }}"
+          }
+        }
+      ]
+    },
+    "onToggle": {
+      "chains": [
+        {
+          "chain": "toggleGroupChain",
+          "parameters": { "index": "{{ $event.currentTarget.dataset.index }}" }
+        }
+      ]
+    },
+    "onGo": {
+      "chains": [
+        {
+          "chain": "goChain",
+          "parameters": {
+            "page": "{{ $event.currentTarget.dataset.page }}",
+            "id": "{{ $page.variables.requestNumericId }}",
+            "number": "{{ $page.variables.requestId }}"
+          }
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}

@@ -1,0 +1,99 @@
+<!-- The invoices of one billed request. Data: invoiceInitChain; open / close a line: toggleGroupChain. -->
+<div class="er-band">
+  <div class="er-band-inner">
+    <div>
+      <div class="er-band-kicker">
+        <button type="button" class="er-link-inverse" data-page="customer-billing" on-click="[[ $listeners.onGo ]]">Billing</button>
+        · Invoices
+      </div>
+      <h1><oj-bind-text value="[[ $variables.formData.requestNumber || $variables.requestId || 'Request' ]]"></oj-bind-text></h1>
+      <div class="er-band-sub">
+        <oj-bind-text value="[[ ($variables.formData.contractNumber ? 'Contract ' + $variables.formData.contractNumber + ' · ' : '')
+          + ($functions.dateRange($variables.formData.startDate, $variables.formData.endDate) || '') ]]"></oj-bind-text>
+      </div>
+    </div>
+    <div class="er-actions">
+      <oj-bind-if test="[[ $functions.oldLink($application.variables.oldAppUrl, $variables.requestId, $variables.requestNumericId) ]]">
+        <a class="er-btn er-btn--ghost" title="The same invoices in today's app"
+          :href="[[ $functions.oldLink($application.variables.oldAppUrl, $variables.requestId, $variables.requestNumericId) ]]">Old version</a>
+      </oj-bind-if>
+      <button type="button" class="er-btn er-btn--primary" data-page="customer-request" on-click="[[ $listeners.onGo ]]">Track the request</button>
+    </div>
+  </div>
+  <div class="er-strip" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+</div>
+
+<div class="er-page">
+  <oj-bind-if test="[[ !!$variables.fetchError ]]">
+    <div class="er-error" role="alert"><oj-bind-text value="[[ $variables.fetchError ]]"></oj-bind-text></div>
+  </oj-bind-if>
+
+  <section class="er-kpis" aria-label="This request's figures">
+    <div class="er-kpi er-cu-kpi er-kpi--warning">
+      <span class="er-kpi-label">Still to pay</span>
+      <span class="er-kpi-value"><oj-bind-text value="[[ $variables.isLoading ? '…' : $functions.money($variables.totals.outstandingAmount || 0) ]]"></oj-bind-text></span>
+      <span class="er-kpi-hint"><oj-bind-text value="[[ ($variables.totals.overdueCount || 0) + ' overdue' ]]"></oj-bind-text></span>
+    </div>
+    <div class="er-kpi er-cu-kpi er-kpi--success">
+      <span class="er-kpi-label">Paid</span>
+      <span class="er-kpi-value"><oj-bind-text value="[[ $variables.isLoading ? '…' : $functions.money($variables.totals.paidAmount || 0) ]]"></oj-bind-text></span>
+      <span class="er-kpi-hint"><oj-bind-text value="[[ 'of ' + $functions.money($variables.totals.totalInvoiced || 0) + ' invoiced' ]]"></oj-bind-text></span>
+    </div>
+    <div class="er-kpi er-cu-kpi er-kpi--info">
+      <span class="er-kpi-label">Last invoice</span>
+      <span class="er-kpi-value er-cu-kpi-date"><oj-bind-text value="[[ $variables.isLoading ? '…' : ($variables.totals.lastInvoiceLabel || '—') ]]"></oj-bind-text></span>
+      <span class="er-kpi-hint"><oj-bind-text value="[[ $variables.totals.hasAdjustments ? 'Net adjustments ' + $functions.money($variables.totals.netAdjustment) : 'No adjustments' ]]"></oj-bind-text></span>
+    </div>
+  </section>
+
+  <oj-bind-if test="[[ $variables.isLoading ]]">
+    <div class="er-card er-card-pad er-muted">Loading the invoices…</div>
+  </oj-bind-if>
+  <oj-bind-if test="[[ !$variables.isLoading && !$variables.fetchError && !$variables.lines.length ]]">
+    <div class="er-card er-card-pad er-muted">This request has no equipment lines.</div>
+  </oj-bind-if>
+
+  <oj-bind-for-each data="[[ $variables.lines ]]">
+    <template data-oj-as="ln">
+      <section class="er-card er-cu-acc">
+        <button type="button" class="er-cu-acc-head" :data-index="[[ ln.index ]]" on-click="[[ $listeners.onToggle ]]"
+          :aria-expanded="[[ ln.data.expanded ? 'true' : 'false' ]]">
+          <span :class="[[ 'er-cu-chev ' + (ln.data.expanded ? 'oj-ux-ico-chevron-down' : 'oj-ux-ico-chevron-right') ]]" aria-hidden="true"></span>
+          <span class="er-cu-acc-title">
+            <strong><oj-bind-text value="[[ ln.data.equipmentName || '—' ]]"></oj-bind-text></strong>
+            <span class="er-note"><oj-bind-text value="[[ $functions.lineSub(ln.data) ]]"></oj-bind-text></span>
+          </span>
+          <span :class="[[ $functions.statusClass(ln.data.lineStatus) ]]"><oj-bind-text value="[[ $functions.statusText(ln.data.lineStatus) ]]"></oj-bind-text></span>
+          <span class="er-cu-acc-sum er-num">
+            <strong><oj-bind-text value="[[ $functions.money(ln.data.totalValue) ]]"></oj-bind-text></strong>
+            <span class="er-note"><oj-bind-text value="[[ ln.data.invoiceCount + (ln.data.invoiceCount === 1 ? ' invoice' : ' invoices') ]]"></oj-bind-text></span>
+          </span>
+        </button>
+        <oj-bind-if test="[[ ln.data.expanded ]]">
+          <div class="er-cu-table er-cu-table--lineinv" role="table" :aria-label="[[ 'Invoices for ' + ln.data.equipmentName ]]">
+            <div class="er-cu-trow er-cu-thead" role="row">
+              <span role="columnheader">Invoice</span><span role="columnheader">Period</span><span role="columnheader">Due</span>
+              <span role="columnheader" class="er-num">Amount</span><span role="columnheader">Status</span>
+            </div>
+            <oj-bind-if test="[[ !ln.data.invoices.length ]]">
+              <div class="er-card-pad er-muted" role="row"><span role="cell">Not invoiced yet.</span></div>
+            </oj-bind-if>
+            <oj-bind-for-each data="[[ ln.data.invoices ]]">
+              <template data-oj-as="inv">
+                <div :class="[[ 'er-cu-trow' + (inv.data.when === 'current' ? ' er-cu-trow--now' : '') ]]" role="row">
+                  <span role="cell" class="er-cu-cell-main"><oj-bind-text value="[[ inv.data.invoiceNumber || 'Not numbered yet' ]]"></oj-bind-text>
+                    <span class="er-note"><oj-bind-text value="[[ $functions.adjustmentNote(inv.data) ]]"></oj-bind-text></span></span>
+                  <span role="cell"><oj-bind-text value="[[ inv.data.periodLabel ]]"></oj-bind-text></span>
+                  <span role="cell"><oj-bind-text value="[[ inv.data.dueDate ]]"></oj-bind-text></span>
+                  <span role="cell" class="er-num"><oj-bind-text value="[[ $functions.money(inv.data.amount) ]]"></oj-bind-text></span>
+                  <span role="cell"><span :class="[[ $functions.invoiceClass(inv.data.status) ]]"><oj-bind-text value="[[ $functions.invoiceText(inv.data.status) ]]"></oj-bind-text></span></span>
+                </div>
+              </template>
+            </oj-bind-for-each>
+          </div>
+        </oj-bind-if>
+      </section>
+    </template>
+  </oj-bind-for-each>
+  <p class="er-note">Each period is billed once the equipment is on site. Cancelled invoices do not count toward the totals.</p>
+</div>

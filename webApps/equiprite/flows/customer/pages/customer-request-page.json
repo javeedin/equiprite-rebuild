@@ -1,0 +1,124 @@
+{
+  "title": "Request",
+  "description": "One customer request tracked like a parcel (FDD 7.18.4A; wireframe Portal requests; replaces customer-request-detail). The next thing the customer must do at the top (send a draft, accept the quote, accept or refuse a delivery, start a return). Data: initChain (the old page's reads and its DEPLOYED reconcile); line actions are the old customer chains.",
+  "variables": {
+    "requestId": {
+      "type": "string",
+      "input": "fromUrl",
+      "persisted": "none",
+      "description": "Request number, e.g. EQR-000042."
+    },
+    "requestNumericId": {
+      "type": "number",
+      "input": "fromUrl",
+      "persisted": "none"
+    },
+    "formData": {
+      "type": "object",
+      "defaultValue": {}
+    },
+    "dataGridProvider": {
+      "type": "any",
+      "defaultValue": [],
+      "description": "The mapped lines (name kept from the old page so its chains run unchanged)."
+    },
+    "selectionState": {
+      "type": "object",
+      "defaultValue": { "count": 0, "sharedStatus": "", "isMixed": false, "wasMixed": false, "allSelected": false, "allDeployed": false, "allReturnable": false, "allShipToSite": false }
+    },
+    "selectionTick": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "quotingAllowed": {
+      "type": "boolean",
+      "defaultValue": "[[ $application.functions.isQuotingAllowed($application.variables.globalSettings, $application.variables.flagsLoaded, 'CUSTOMER') ]]",
+      "description": "As the old page: the quote can be viewed only where ENABLE_QUOTES covers customer requests."
+    },
+    "isDraftBusy": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "isLoading": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "fetchError": {
+      "type": "string",
+      "defaultValue": ""
+    }
+  },
+  "metadata": {},
+  "eventListeners": {
+    "vbBeforeEnter": {
+      "chains": [{ "chain": "enforcePageAccessChain" }]
+    },
+    "vbEnter": {
+      "chains": [
+        { "chain": "customersModuleGuardChain" },
+        {
+          "chain": "initChain",
+          "parameters": {
+            "requestId": "{{ $page.variables.requestId }}",
+            "requestNumericId": "{{ $page.variables.requestNumericId }}"
+          }
+        }
+      ]
+    },
+    "onToggleLine": {
+      "chains": [
+        {
+          "chain": "toggleLineChain",
+          "parameters": {
+            "index": "{{ $event.target.dataset.index }}",
+            "checked": "{{ $event.target.checked }}"
+          }
+        }
+      ]
+    },
+    "onSelect": {
+      "chains": [
+        {
+          "chain": "selectChain",
+          "parameters": { "status": "{{ $event.currentTarget.dataset.status }}" }
+        }
+      ]
+    },
+    "onAcceptDelivery": { "chains": [{ "chain": "acceptDeliveryChain" }] },
+    "onRejectDelivery": { "chains": [{ "chain": "rejectDeliveryChain" }] },
+    "onInitiateReturn": { "chains": [{ "chain": "initiateReturnChain" }] },
+    "onEditDraft": { "chains": [{ "chain": "draftActionChain", "parameters": { "action": "edit" } }] },
+    "onSubmitDraft": { "chains": [{ "chain": "draftActionChain", "parameters": { "action": "submit" } }] },
+    "onAskDeleteDraft": { "chains": [{ "chain": "draftActionChain", "parameters": { "action": "askDelete" } }] },
+    "onCancelDeleteDraft": { "chains": [{ "chain": "draftActionChain", "parameters": { "action": "cancelDelete" } }] },
+    "onDeleteDraft": { "chains": [{ "chain": "draftActionChain", "parameters": { "action": "delete" } }] },
+    "onGo": {
+      "chains": [
+        {
+          "chain": "goChain",
+          "parameters": {
+            "page": "{{ $event.currentTarget.dataset.page }}",
+            "id": "{{ $page.variables.requestNumericId }}",
+            "number": "{{ $page.variables.formData.requestNumber || $page.variables.requestId }}"
+          }
+        }
+      ]
+    },
+    "onBack": {
+      "chains": [
+        {
+          "chain": "goChain",
+          "parameters": { "page": "customer-requests" }
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-dialog": { "path": "ojs/ojdialog" },
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "id": "customer",
+  "description": "Customers (FDD 7.18): the customer portal. Home with what needs the customer next, My requests with parcel-style tracking, the quote to accept, the rental contract, billing and invoices, and raising a request. Replaces Old EquipRite's customer-portal pages (customer-dashboard, customer-my-requests, customer-request-detail, customer-quote, customer-rental-contract, customer-my-billing, customer-billing-detail, customer-create-req with request-catalog and request-cart) with the same endpoints and request bodies.",
+  "defaultPage": "customer-home",
+  "pages": {
+    "customer-home": {
+      "path": "pages/customer-home-page"
+    },
+    "customer-requests": {
+      "path": "pages/customer-requests-page"
+    },
+    "customer-request": {
+      "path": "pages/customer-request-page"
+    },
+    "customer-quote": {
+      "path": "pages/customer-quote-page"
+    },
+    "customer-contract": {
+      "path": "pages/customer-contract-page"
+    },
+    "customer-billing": {
+      "path": "pages/customer-billing-page"
+    },
+    "customer-invoice": {
+      "path": "pages/customer-invoice-page"
+    },
+    "customer-new-request": {
+      "path": "pages/customer-new-request-page"
+    }
+  },
+  "chains": {},
+  "services": {},
+  "types": {},
+  "variables": {}
+}

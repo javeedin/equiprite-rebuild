@@ -1,0 +1,283 @@
+{
+  "title": "New request",
+  "description": "A customer equipment request in three steps (FDD 7.18.4; replaces customer-create-req, request-catalog and request-cart for customers): equipment with dates and availability, your details (customer, contact, delivery), review with the rental terms to accept, then submit. A copy of New request (flows/request) changed only where EXTERNAL needs it; posts what the old cart's EXTERNAL submit posts (IN_PROCESS, customer columns, the Fusion contract when customer quoting is off). ?draftId= reopens a saved customer draft.",
+  "variables": {
+    "draftId": {
+      "type": "number",
+      "input": "fromUrl",
+      "description": "A customer DRAFT request to reopen (EQR_EQUIPMENT_REQUEST id). Empty for a new request."
+    },
+    "startStep": {
+      "type": "number",
+      "input": "fromUrl",
+      "description": "Step to open a reopened draft on: 1 to edit it, 3 to go straight to Review and submit."
+    },
+    "step": {
+      "type": "number",
+      "defaultValue": 1
+    },
+    "form": {
+      "type": "any",
+      "defaultValue": {},
+      "description": "The customer form (customer-create-req's formData fields); set by initChain."
+    },
+    "cart": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "resume": {
+      "type": "any",
+      "defaultValue": null
+    },
+    "agreementId": {
+      "type": "number",
+      "defaultValue": null
+    },
+    "agreementLineMap": {
+      "type": "object",
+      "defaultValue": {}
+    },
+    "customers": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "getCustomerRefs, as { id, customerName }."
+    },
+    "contacts": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "getCustomerPortalUsers, as { id, contactName, username, email }."
+    },
+    "customerQuery": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "contactQuery": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "catalogRows": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "catalogText": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "catalogClass": {
+      "type": "string",
+      "defaultValue": "all"
+    },
+    "catalogAvail": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "catalogLimit": {
+      "type": "number",
+      "defaultValue": 48
+    },
+    "catalogLoading": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "catalogError": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "hideRates": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "A quote is coming for customer requests (isQuotingAllowed EXTERNAL): no prices are shown or posted."
+    },
+    "termsAccepted": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "The rental terms checkbox on Review. Submit refuses without it and uses it up (the old cart's T&C gate)."
+    },
+    "showTerms": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "canCreate": {
+      "type": "boolean",
+      "defaultValue": true,
+      "description": "EQR_CUST_CREATE_REQ, the old create page's code, is FULL or READ_ONLY."
+    },
+    "missing": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "priceNote": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "isLoading": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "loadError": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "wrongDraft": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "isSubmitting": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "isCreatingContract": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "submitMode": {
+      "type": "string",
+      "defaultValue": ""
+    }
+  },
+  "metadata": {},
+  "eventListeners": {
+    "vbBeforeEnter": {
+      "chains": [{ "chain": "enforcePageAccessChain" }]
+    },
+    "vbEnter": {
+      "chains": [
+        { "chain": "customersModuleGuardChain" },
+        { "chain": "initChain" }
+      ]
+    },
+    "onField": {
+      "chains": [
+        {
+          "chain": "setFieldChain",
+          "parameters": {
+            "field": "{{ $event.target.dataset.field }}",
+            "value": "{{ $event.target.value }}",
+            "checked": "{{ $event.target.checked }}"
+          }
+        }
+      ]
+    },
+    "onFieldButton": {
+      "chains": [
+        {
+          "chain": "setFieldChain",
+          "parameters": {
+            "field": "{{ $event.currentTarget.dataset.field }}",
+            "value": "{{ $event.currentTarget.dataset.value }}"
+          }
+        }
+      ]
+    },
+    "onCatalogSearch": {
+      "chains": [
+        {
+          "chain": "filterCatalogChain",
+          "parameters": { "text": "{{ $event.target.value }}" }
+        }
+      ]
+    },
+    "onClassChip": {
+      "chains": [
+        {
+          "chain": "filterCatalogChain",
+          "parameters": { "cls": "{{ $event.currentTarget.dataset.cls }}" }
+        }
+      ]
+    },
+    "onAvailToggle": {
+      "chains": [
+        {
+          "chain": "filterCatalogChain",
+          "parameters": { "avail": "{{ $event.target.checked }}" }
+        }
+      ]
+    },
+    "onShowMore": {
+      "chains": [
+        {
+          "chain": "filterCatalogChain",
+          "parameters": { "more": true }
+        }
+      ]
+    },
+    "onCart": {
+      "chains": [
+        {
+          "chain": "cartChain",
+          "parameters": {
+            "action": "{{ $event.currentTarget.dataset.action }}",
+            "id": "{{ $event.currentTarget.dataset.id }}"
+          }
+        }
+      ]
+    },
+    "onLineQty": {
+      "chains": [
+        {
+          "chain": "cartChain",
+          "parameters": {
+            "action": "set",
+            "id": "{{ $event.target.dataset.id }}",
+            "value": "{{ $event.target.value }}"
+          }
+        }
+      ]
+    },
+    "onLineField": {
+      "chains": [
+        {
+          "chain": "cartChain",
+          "parameters": {
+            "action": "line",
+            "id": "{{ $event.target.dataset.id }}",
+            "field": "{{ $event.target.dataset.field }}",
+            "value": "{{ $event.target.value }}"
+          }
+        }
+      ]
+    },
+    "onStep": {
+      "chains": [
+        {
+          "chain": "goStepChain",
+          "parameters": { "step": "{{ $event.currentTarget.dataset.step }}" }
+        }
+      ]
+    },
+    "onToggleTerms": {
+      "chains": [{ "chain": "toggleTermsChain" }]
+    },
+    "onSubmit": {
+      "chains": [
+        {
+          "chain": "submitChain",
+          "parameters": { "mode": "submit" }
+        }
+      ]
+    },
+    "onSaveDraft": {
+      "chains": [
+        {
+          "chain": "submitChain",
+          "parameters": { "mode": "draft" }
+        }
+      ]
+    },
+    "onCancel": {
+      "chains": [
+        {
+          "chain": "goChain",
+          "parameters": { "page": "customer-requests" }
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}

@@ -1,0 +1,113 @@
+<!-- The customer's requests (wireframe: Portal requests). Data: loadRequestsChain; chips and search: filterChain. -->
+<div class="er-band">
+  <div class="er-band-inner">
+    <div>
+      <div class="er-band-kicker">
+        <button type="button" class="er-link-inverse" data-page="customer-home" on-click="[[ $listeners.onGo ]]">Customer portal</button>
+        · FDD 7.18.4
+      </div>
+      <h1>My requests</h1>
+      <div class="er-band-sub">
+        <oj-bind-text value="[[ $variables.isLoading ? 'Loading…'
+          : $variables.allRows.length + ($variables.allRows.length === 1 ? ' request' : ' requests')
+            + ' · ' + $functions.chips($variables.allRows)[0].count + ($functions.chips($variables.allRows)[0].count === 1 ? ' needs you' : ' need you') ]]"></oj-bind-text>
+      </div>
+    </div>
+    <div class="er-actions">
+      <oj-bind-if test="[[ $functions.oldLink($application.variables.oldAppUrl) ]]">
+        <a class="er-btn er-btn--ghost" title="Today's list, for comparison" :href="[[ $functions.oldLink($application.variables.oldAppUrl) ]]">Old version</a>
+      </oj-bind-if>
+      <oj-bind-if test="[[ $application.functions.navVisible($application.variables.pageAccessMap,
+                             $application.variables.pageAccessLoaded, 'EQR_CUST_CREATE_REQ') ]]">
+        <button type="button" class="er-btn er-btn--primary" data-page="customer-new-request" on-click="[[ $listeners.onGo ]]">New request</button>
+      </oj-bind-if>
+    </div>
+  </div>
+  <div class="er-strip" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+</div>
+
+<div class="er-page">
+  <div class="er-filters">
+    <div class="er-chip-row" role="group" aria-label="Show">
+      <oj-bind-for-each data="[[ $functions.chips($variables.allRows) ]]">
+        <template data-oj-as="chip">
+          <button type="button" :data-group="[[ chip.data.key ]]" on-click="[[ $listeners.onChip ]]"
+            :class="[[ 'er-chip' + ($variables.group === chip.data.key ? ' er-chip--on' : '') ]]"
+            :aria-pressed="[[ $variables.group === chip.data.key ? 'true' : 'false' ]]">
+            <oj-bind-text value="[[ chip.data.label ]]"></oj-bind-text>
+            <span class="er-chip-count"><oj-bind-text value="[[ chip.data.count ]]"></oj-bind-text></span>
+          </button>
+        </template>
+      </oj-bind-for-each>
+    </div>
+    <label class="er-search">
+      <span class="oj-ux-ico-search" aria-hidden="true"></span>
+      <span class="er-sr">Search your requests</span>
+      <input type="search" placeholder="Request number, customer, contact or contract" on-input="[[ $listeners.onSearch ]]">
+    </label>
+  </div>
+
+  <oj-bind-if test="[[ !!$variables.fetchError ]]">
+    <div class="er-error" role="alert"><oj-bind-text value="[[ $variables.fetchError ]]"></oj-bind-text></div>
+  </oj-bind-if>
+
+  <section class="er-card" aria-label="Requests">
+    <div class="er-cu-table" role="table" aria-label="Your requests">
+      <div class="er-cu-trow er-cu-thead" role="row">
+        <span role="columnheader">Request</span><span role="columnheader">Dates</span>
+        <span role="columnheader">Where it is</span><span role="columnheader">Contract</span><span role="columnheader"><span class="er-sr">Actions</span></span>
+      </div>
+      <oj-bind-if test="[[ $variables.isLoading ]]">
+        <div class="er-card-pad er-muted" role="row"><span role="cell">Loading your requests…</span></div>
+      </oj-bind-if>
+      <oj-bind-if test="[[ !$variables.isLoading && !$functions.filterRows($variables.allRows, $variables.group, $variables.searchText).length ]]">
+        <div class="er-card-pad er-muted" role="row"><span role="cell"><oj-bind-text value="[[ $functions.emptyText($variables.group, $variables.searchText) ]]"></oj-bind-text></span></div>
+      </oj-bind-if>
+      <oj-bind-for-each data="[[ $functions.filterRows($variables.allRows, $variables.group, $variables.searchText).slice(0, $variables.limit) ]]">
+        <template data-oj-as="row">
+          <div class="er-cu-trow" role="row">
+            <span role="cell" class="er-cu-cell-main">
+              <button type="button" class="er-cu-link" data-page="customer-request" :data-id="[[ row.data.id ]]"
+                :data-number="[[ row.data.requestNumber ]]" on-click="[[ $listeners.onGo ]]">
+                <oj-bind-text value="[[ row.data.requestNumber ]]"></oj-bind-text>
+              </button>
+              <span class="er-note"><oj-bind-text value="[[ $functions.who(row.data) ]]"></oj-bind-text></span>
+            </span>
+            <span role="cell">
+              <oj-bind-text value="[[ $functions.dateRange(row.data.startDate, row.data.endDate) || '—' ]]"></oj-bind-text>
+              <span class="er-note er-cu-block"><oj-bind-text value="[[ row.data.lines + (row.data.lines === 1 ? ' line' : ' lines') ]]"></oj-bind-text></span>
+            </span>
+            <span role="cell" class="er-cu-where">
+              <span :class="[[ $functions.statusClass(row.data.status) ]]"><oj-bind-text value="[[ $functions.statusText(row.data.status) ]]"></oj-bind-text></span>
+              <ol class="er-cu-track er-cu-track--mini" aria-hidden="true">
+                <oj-bind-for-each data="[[ $functions.steps(row.data.status, row.data) ]]">
+                  <template data-oj-as="step">
+                    <li :class="[[ 'er-cu-stop er-cu-stop--' + step.data.state ]]" :title="[[ step.data.label ]]"><span class="er-cu-stop-bar"></span></li>
+                  </template>
+                </oj-bind-for-each>
+              </ol>
+            </span>
+            <span role="cell"><oj-bind-text value="[[ row.data.contractNumber || '—' ]]"></oj-bind-text></span>
+            <span role="cell" class="er-cu-cell-actions">
+              <oj-bind-if test="[[ row.data.status === 'QUOTE_GENERATED' && $variables.quotingAllowed ]]">
+                <button type="button" class="er-btn er-btn--dark" data-page="customer-quote" :data-id="[[ row.data.id ]]"
+                  :data-number="[[ row.data.requestNumber ]]" on-click="[[ $listeners.onGo ]]">Accept quote</button>
+              </oj-bind-if>
+              <oj-bind-if test="[[ row.data.status !== 'QUOTE_GENERATED' && $functions.hasQuote(row.data.status, $variables.quotingAllowed) ]]">
+                <button type="button" class="er-btn er-btn--plain" data-page="customer-quote" :data-id="[[ row.data.id ]]"
+                  :data-number="[[ row.data.requestNumber ]]" on-click="[[ $listeners.onGo ]]">Quote</button>
+              </oj-bind-if>
+              <button type="button" class="er-btn er-btn--plain" data-page="customer-request" :data-id="[[ row.data.id ]]"
+                :data-number="[[ row.data.requestNumber ]]" on-click="[[ $listeners.onGo ]]"
+                :aria-label="[[ 'Track ' + row.data.requestNumber ]]">Track</button>
+            </span>
+          </div>
+        </template>
+      </oj-bind-for-each>
+    </div>
+    <oj-bind-if test="[[ $functions.filterRows($variables.allRows, $variables.group, $variables.searchText).length > $variables.limit ]]">
+      <div class="er-card-pad"><button type="button" class="er-btn er-btn--plain" on-click="[[ $listeners.onMore ]]">Show more</button></div>
+    </oj-bind-if>
+  </section>
+  <p class="er-note">You only ever see your own requests. Equipment shows by name and class, never by serial number.</p>
+</div>

@@ -1,0 +1,114 @@
+{
+  "title": "Quote",
+  "description": "The quote for a customer request (FDD 7.18; replaces customer-quote): the PDF the manager sent, the lines and total, and Accept, which creates the Fusion rental contract and confirms the request (acceptQuoteChain, the old AcceptQuoteChain). Declining has no backend action in either app; the page says so.",
+  "variables": {
+    "requestId": {
+      "type": "string",
+      "input": "fromUrl",
+      "persisted": "none"
+    },
+    "requestNumericId": {
+      "type": "number",
+      "input": "fromUrl",
+      "persisted": "none"
+    },
+    "quoteData": {
+      "type": "any",
+      "defaultValue": {
+        "requestNumber": "",
+        "customerName": "",
+        "customerContact": "",
+        "startDate": "",
+        "endDate": "",
+        "location": "",
+        "status": "",
+        "contractNumber": "",
+        "grandTotal": 0,
+        "lines": []
+      }
+    },
+    "isLoading": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "isAccepting": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "hasQuoteDoc": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "quotePdfUrl": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "quoteFileName": {
+      "type": "string",
+      "defaultValue": "quote.pdf"
+    },
+    "acceptAllowed": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "isQuotingAllowed(..., 'CUSTOMER'), resolved in quoteInitChain. Gates Accept only; reading the quote stays open."
+    },
+    "fetchError": {
+      "type": "string",
+      "defaultValue": ""
+    }
+  },
+  "metadata": {},
+  "eventListeners": {
+    "vbBeforeEnter": {
+      "chains": [{ "chain": "enforcePageAccessChain" }]
+    },
+    "vbEnter": {
+      "chains": [
+        { "chain": "customersModuleGuardChain" },
+        { "chain": "quoteInitChain" }
+      ]
+    },
+    "onAcceptQuote": {
+      "chains": [{ "chain": "acceptQuoteChain" }]
+    },
+    "onBack": {
+      "chains": [
+        {
+          "chain": "goChain",
+          "parameters": {
+            "page": "customer-request",
+            "id": "{{ $page.variables.requestNumericId }}",
+            "number": "{{ $page.variables.requestId }}"
+          }
+        }
+      ]
+    },
+    "onList": {
+      "chains": [
+        {
+          "chain": "goChain",
+          "parameters": { "page": "customer-requests" }
+        }
+      ]
+    },
+    "onGo": {
+      "chains": [
+        {
+          "chain": "goChain",
+          "parameters": {
+            "page": "{{ $event.currentTarget.dataset.page }}",
+            "id": "{{ $page.variables.requestNumericId }}",
+            "number": "{{ $page.variables.requestId }}"
+          }
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}

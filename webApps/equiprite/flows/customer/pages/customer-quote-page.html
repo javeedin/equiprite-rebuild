@@ -1,0 +1,134 @@
+<!-- The quote for a customer request. Data: quoteInitChain; Accept: acceptQuoteChain (creates the Fusion contract). -->
+<div class="er-band">
+  <div class="er-band-inner">
+    <div>
+      <div class="er-band-kicker">
+        <button type="button" class="er-link-inverse" on-click="[[ $listeners.onList ]]">My requests</button>
+        ·
+        <button type="button" class="er-link-inverse" on-click="[[ $listeners.onBack ]]"><oj-bind-text value="[[ $variables.requestId || 'Request' ]]"></oj-bind-text></button>
+      </div>
+      <h1>Your quote</h1>
+      <div class="er-band-sub">
+        <oj-bind-text value="[[ ($variables.quoteData.customerName ? $variables.quoteData.customerName + ' · ' : '')
+          + ($functions.dateRange($variables.quoteData.startDate, $variables.quoteData.endDate) || '') ]]"></oj-bind-text>
+      </div>
+    </div>
+    <div class="er-actions">
+      <oj-bind-if test="[[ $functions.oldLink($application.variables.oldAppUrl, $variables.requestId, $variables.requestNumericId) ]]">
+        <a class="er-btn er-btn--ghost" title="The same quote in today's app"
+          :href="[[ $functions.oldLink($application.variables.oldAppUrl, $variables.requestId, $variables.requestNumericId) ]]">Old version</a>
+      </oj-bind-if>
+      <oj-bind-if test="[[ $variables.hasQuoteDoc ]]">
+        <a class="er-btn er-btn--primary" target="_blank" rel="noopener" :href="[[ $variables.quotePdfUrl ]]"
+          :download="[[ $variables.quoteFileName ]]">Download PDF</a>
+      </oj-bind-if>
+    </div>
+  </div>
+  <div class="er-strip" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+</div>
+
+<div class="er-page">
+  <oj-bind-if test="[[ $variables.isAccepting ]]">
+    <div class="er-cu-overlay" role="status" aria-live="polite">
+      <div class="er-cu-overlay-box">
+        <div class="er-cu-spinner" aria-hidden="true"></div>
+        <strong>Creating your contract…</strong>
+        <p class="er-note">Accepting the quote and creating your rental contract. This can take a few moments; please keep this page open.</p>
+      </div>
+    </div>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ !!$variables.fetchError ]]">
+    <div class="er-error" role="alert"><oj-bind-text value="[[ $variables.fetchError ]]"></oj-bind-text></div>
+  </oj-bind-if>
+  <oj-bind-if test="[[ $variables.isLoading ]]">
+    <div class="er-card er-card-pad er-muted">Loading your quote…</div>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ !$variables.isLoading && !$variables.hasQuoteDoc ]]">
+    <section class="er-cu-next er-cu-next--wait" aria-labelledby="noQuoteTitle">
+      <div class="er-cu-next-text">
+        <span class="er-cu-next-kicker">Quote</span>
+        <h2 id="noQuoteTitle">Your quote is not ready yet</h2>
+        <p>No quote document is available for this request yet. When your equipment manager sends it, it shows here to accept.</p>
+      </div>
+      <div class="er-actions er-cu-next-actions">
+        <button type="button" class="er-btn er-btn--plain" on-click="[[ $listeners.onBack ]]">Back to the request</button>
+      </div>
+    </section>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ !$variables.isLoading && $variables.hasQuoteDoc ]]">
+    <!-- The decision, with what it does, before the click. -->
+    <oj-bind-if test="[[ !!$variables.quoteData.contractNumber ]]">
+      <section class="er-cu-next er-cu-next--done" aria-labelledby="decisionTitle">
+        <div class="er-cu-next-text">
+          <span class="er-cu-next-kicker">Accepted</span>
+          <h2 id="decisionTitle">You accepted this quote</h2>
+          <p><oj-bind-text value="[[ 'Rental contract ' + $variables.quoteData.contractNumber + ' was created. Track the request to see your equipment prepared and shipped.' ]]"></oj-bind-text></p>
+        </div>
+        <div class="er-actions er-cu-next-actions">
+          <button type="button" class="er-btn er-btn--dark" on-click="[[ $listeners.onBack ]]">Track the request</button>
+          <button type="button" class="er-btn er-btn--plain" data-page="customer-contract" on-click="[[ $listeners.onGo ]]">Rental contract</button>
+        </div>
+      </section>
+    </oj-bind-if>
+    <oj-bind-if test="[[ !$variables.quoteData.contractNumber ]]">
+      <section :class="[[ 'er-cu-next ' + ($variables.acceptAllowed ? 'er-cu-next--action' : 'er-cu-next--wait') ]]" aria-labelledby="decisionTitle2">
+        <div class="er-cu-next-text">
+          <span class="er-cu-next-kicker">Next step</span>
+          <h2 id="decisionTitle2">
+            <oj-bind-text value="[[ $variables.acceptAllowed ? 'Accept the quote to confirm your rental' : 'Accepting quotes online is switched off' ]]"></oj-bind-text>
+          </h2>
+          <p>
+            <oj-bind-text value="[[ $variables.acceptAllowed
+              ? 'Total ' + $functions.money($variables.quoteData.grandTotal) + ' for ' + $variables.quoteData.lines.length
+                + ($variables.quoteData.lines.length === 1 ? ' line' : ' lines') + '. Accepting creates your rental contract and confirms the equipment; it cannot be undone here.'
+              : 'Your equipment manager will confirm the quote with you.' ]]"></oj-bind-text>
+          </p>
+          <p class="er-note er-cu-decline">
+            Not what you need? Declining a quote is not available online: contact your equipment manager to change or
+            cancel it.
+          </p>
+        </div>
+        <div class="er-actions er-cu-next-actions">
+          <button type="button" class="er-btn er-btn--dark" id="acceptQuoteBtn"
+            :disabled="[[ !$functions.canAccept($variables.quoteData, $variables.isAccepting, $variables.acceptAllowed) ]]"
+            on-click="[[ $listeners.onAcceptQuote ]]">
+            <oj-bind-text value="[[ $functions.acceptLabel($variables.quoteData, $variables.isAccepting, $variables.acceptAllowed) ]]"></oj-bind-text>
+          </button>
+        </div>
+      </section>
+    </oj-bind-if>
+
+    <div class="er-cu-quote">
+      <section class="er-card" aria-labelledby="quoteLinesTitle">
+        <div class="er-card-pad er-table-head">
+          <h2 class="er-section-title" id="quoteLinesTitle">What the quote covers</h2>
+          <strong class="er-num er-cu-total"><oj-bind-text value="[[ $functions.money($variables.quoteData.grandTotal) ]]"></oj-bind-text></strong>
+        </div>
+        <ul class="er-cu-qlines">
+          <oj-bind-for-each data="[[ $variables.quoteData.lines ]]">
+            <template data-oj-as="line">
+              <li class="er-cu-qline">
+                <div>
+                  <span class="er-cell-main"><oj-bind-text value="[[ line.data.quantity + ' × ' + line.data.equipmentName ]]"></oj-bind-text></span>
+                  <span class="er-note"><oj-bind-text value="[[ (line.data.equipmentClass ? line.data.equipmentClass + ' · ' : '')
+                    + $functions.dateRange(line.data.startDate, line.data.endDate) ]]"></oj-bind-text></span>
+                </div>
+                <div class="er-cu-qline-price">
+                  <span class="er-note"><oj-bind-text value="[[ $functions.rateText(line.data) ]]"></oj-bind-text></span>
+                  <strong class="er-num"><oj-bind-text value="[[ $functions.money(line.data.lineTotal) ]]"></oj-bind-text></strong>
+                </div>
+              </li>
+            </template>
+          </oj-bind-for-each>
+        </ul>
+        <div class="er-card-pad er-note">The PDF is the quote your equipment manager sent; the figures here add up its lines.</div>
+      </section>
+      <section class="er-card er-cu-pdf" aria-label="Quote document">
+        <iframe :src="[[ $variables.quotePdfUrl ]]" title="Equipment rental quote"></iframe>
+      </section>
+    </div>
+  </oj-bind-if>
+</div>

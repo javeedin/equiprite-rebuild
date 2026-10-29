@@ -1,0 +1,65 @@
+{
+  "title": "Billing",
+  "description": "The customer's billing (FDD 7.18.6; replaces customer-my-billing): balance due and overdue, billed requests (requests with a contract) with invoiced, paid and outstanding, and every invoice. Withdrawn while EXTERNAL_PROJECT_ASSIGN_ENABLED is on, as in the old app. Data: billingInitChain.",
+  "variables": {
+    "billed": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "invoices": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "summary": {
+      "type": "any",
+      "defaultValue": {}
+    },
+    "invoiceLimit": {
+      "type": "number",
+      "defaultValue": 25
+    },
+    "isLoading": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "fetchError": {
+      "type": "string",
+      "defaultValue": ""
+    }
+  },
+  "metadata": {},
+  "eventListeners": {
+    "vbBeforeEnter": {
+      "chains": [{ "chain": "enforcePageAccessChain" }]
+    },
+    "vbEnter": {
+      "chains": [
+        { "chain": "customersModuleGuardChain" },
+        { "chain": "billingGuardChain" },
+        { "chain": "billingInitChain" }
+      ]
+    },
+    "onGo": {
+      "chains": [
+        {
+          "chain": "goChain",
+          "parameters": {
+            "page": "{{ $event.currentTarget.dataset.page }}",
+            "id": "{{ $event.currentTarget.dataset.id }}",
+            "number": "{{ $event.currentTarget.dataset.number }}"
+          }
+        }
+      ]
+    },
+    "onMoreInvoices": {
+      "chains": [{ "chain": "moreChain" }]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}
