@@ -168,8 +168,32 @@ T.eq('Needs action = draft, rejected, quote generated', myReq.filterRows(ROWS, '
 T.eq('an unknown status counts as Waiting', myReq.filterRows(ROWS, '', 'waiting', '').map((r) => r.requestNumber).join(), 'R2,R5');
 T.eq('source Customer includes the legacy CUSTOMER origin', myReq.filterRows(ROWS, '', 'all', 'EXTERNAL').map((r) => r.requestNumber).join(), 'R2,R4');
 T.eq('search matches customer names, any case', myReq.filterRows(ROWS, 'lone STAR', 'all', '').map((r) => r.requestNumber).join(), 'R2');
-T.check('managers get Source and Customer columns, others do not',
-  myReq.columns(true).some((c) => c.headerText === 'Customer') && !myReq.columns(false).some((c) => c.headerText === 'Customer' || c.headerText === 'Source'));
+// Equipment on the requests: bulk lines (views/my-request-lines) and per-request lines (views/request-detail-lines)
+const BULK = [
+  { requestNumber: 'R3', lineNumber: 2, equipmentName: 'Dump truck 30t', className: 'Trucks', qty: 2, requestStatus: 'DEPLOYED', deploymentLocation: 'Pier A', utilPct: 78.4 },
+  { requestNumber: 'R3', lineNumber: 1, equipmentName: 'EQ-00001 CAT 390F Excavator', className: 'Excavators', qty: 1, requestStatus: 'DEPLOYED', allocationStatus: 'ALLOCATED' },
+  { requestNumber: 'R2', lineNumber: 1, equipmentName: 'Roller 10t', qty: 1, requestStatus: 'SUBMITTED' },
+  { requestNumber: 'R9', lineNumber: 1, equipmentName: 'Not in my list', qty: 1 },
+];
+const byReq = myReq.indexLines(BULK);
+T.eq('lines grouped by request, in line order', byReq.R3.map((l) => l.lineNumber).join(), '1,2');
+T.eq('one shape from the bulk view', JSON.stringify([byReq.R3[1].name, byReq.R3[1].cls, byReq.R3[1].qty, byReq.R3[1].location, byReq.R3[1].util]),
+  '["Dump truck 30t","Trucks",2,"Pier A",78]');
+const detailLine = myReq.lineOf({ lineId: 7, equipmentName: 'Light tower', equipmentClass: 'Lighting', quantity: 3, lineStatus: 'ship_to_site', allocatedSerialNumber: 'LT-9' }, 'R1');
+T.eq('...and from Request detail\'s view', JSON.stringify([detailLine.requestNumber, detailLine.cls, detailLine.qty, detailLine.status, detailLine.serial]),
+  '["R1","Lighting",3,"SHIP_TO_SITE","LT-9"]');
+T.eq('search finds a request by the equipment on it', myReq.filterRows(ROWS, 'excavator', 'all', '', byReq).map((r) => r.requestNumber).join(), 'R3');
+const flat = myReq.flattenLines(ROWS, byReq);
+T.eq('Equipment view: every line of a listed request, joined to it', flat.map((l) => l.requestNumber + ':' + l.name.split(' ')[0]).join(), 'R2:Roller,R3:EQ-00001,R3:Dump');
+T.eq('a line takes its request\'s project and source', flat[1].project + '|' + flat[0].origin, 'Plant B|EXTERNAL');
+T.eq('equipment chips count lines by their own status', myReq.lineGroups(flat).filter((g) => g.count).map((g) => g.key + ':' + g.count).join(), 'all:3,waiting:1,onsite:2');
+T.eq('equipment search by class', myReq.filterLines(flat, 'trucks', 'all', '').length, 1);
+T.eq('card chips: first n and how many more', JSON.stringify((({ shown, more, units }) => [shown.length, more, units])(myReq.chips(byReq.R3, 1))), '[1,1,3]');
+const NOW = Date.UTC(2026, 9, 29);
+T.eq('rental window: running', JSON.stringify(myReq.windowProgress('2026-10-20', '2026-10-29', NOW)), '{"pct":100,"label":"Day 10 of 10","state":"running"}');
+T.eq('rental window: upcoming', myReq.windowProgress('2026-11-03', '2026-11-20', NOW).label, 'Starts in 5 days');
+T.eq('rental window: ended', myReq.windowProgress('2026-10-01', '2026-10-28', NOW).label, 'Ended yesterday');
+T.eq('returning equipment counts as on the way', myReq.filterRows([{ status: 'SHIPPED_TO_YARD' }], '', 'moving', '').length, 1);
 T.eq('date range reads like a person wrote it', myReq.dateRange('2026-11-02', '2026-12-15'), '2 Nov – 15 Dec 2026');
 
 T.section('Request detail: selection, tracker, links');

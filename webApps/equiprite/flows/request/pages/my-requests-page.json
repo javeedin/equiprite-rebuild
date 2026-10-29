@@ -1,25 +1,71 @@
 {
   "title": "My requests",
-  "description": "Project and customer requests in one list (FDD 7.6; replaces equipment-requests and customer-my-requests). Data: views/my-requests with the old list's role-scoped origin filter. Rows open Request detail.",
+  "description": "Project and customer requests in one list (FDD 7.6; replaces equipment-requests and customer-my-requests), two ways: Requests (a card per request with its equipment on it) and Equipment (a row per piece of equipment across requests). Data: views/my-requests with the old list's role-scoped origin filter, and views/my-request-lines for the equipment; a request the bulk view misses loads its own lines (views/request-detail-lines) when opened.",
   "variables": {
     "allRows": {
       "type": "any[]",
       "defaultValue": [],
       "onValueChanged": {
-        "chains": [{ "chain": "applyFilterChain" }]
+        "chains": [
+          {
+            "chain": "applyFilterChain"
+          }
+        ]
       }
     },
     "filteredRows": {
       "type": "any[]",
       "defaultValue": []
     },
-    "rowsADP": {
-      "type": "vb/ArrayDataProvider2",
-      "defaultValue": {
-        "itemType": "any",
-        "keyAttributes": "eqrEquipmentRequestId",
-        "data": "{{ $page.variables.filteredRows }}"
+    "linesByRequest": {
+      "type": "any",
+      "defaultValue": {},
+      "description": "Equipment lines by request number (my-requests-page.js lineOf shape).",
+      "onValueChanged": {
+        "chains": [
+          {
+            "chain": "applyFilterChain"
+          }
+        ]
       }
+    },
+    "linesLoaded": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "The bulk equipment call answered."
+    },
+    "allLines": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "filteredLines": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "expanded": {
+      "type": "any",
+      "defaultValue": {},
+      "description": "Request numbers whose full equipment list is open."
+    },
+    "loadingLines": {
+      "type": "any",
+      "defaultValue": {}
+    },
+    "view": {
+      "type": "string",
+      "defaultValue": "requests",
+      "description": "requests or equipment.",
+      "onValueChanged": {
+        "chains": [
+          {
+            "chain": "applyFilterChain"
+          }
+        ]
+      }
+    },
+    "limit": {
+      "type": "number",
+      "defaultValue": 40
     },
     "groupChips": {
       "type": "any[]",
@@ -33,7 +79,11 @@
       "type": "string",
       "defaultValue": "all",
       "onValueChanged": {
-        "chains": [{ "chain": "applyFilterChain" }]
+        "chains": [
+          {
+            "chain": "applyFilterChain"
+          }
+        ]
       }
     },
     "source": {
@@ -41,13 +91,17 @@
       "defaultValue": "",
       "description": "INTERNAL or EXTERNAL; managers only. Empty = both.",
       "onValueChanged": {
-        "chains": [{ "chain": "applyFilterChain" }]
+        "chains": [
+          {
+            "chain": "applyFilterChain"
+          }
+        ]
       }
     },
     "isManager": {
       "type": "boolean",
       "defaultValue": false,
-      "description": "Sees both origins (canChooseCustomerType): shows the Source and Customer columns and the source chips."
+      "description": "Sees both origins (canChooseCustomerType): shows the source chips and badges."
     },
     "isLoading": {
       "type": "boolean",
@@ -61,16 +115,26 @@
   "metadata": {},
   "eventListeners": {
     "vbBeforeEnter": {
-      "chains": [{ "chain": "enforcePageAccessChain" }]
+      "chains": [
+        {
+          "chain": "enforcePageAccessChain"
+        }
+      ]
     },
     "vbEnter": {
-      "chains": [{ "chain": "loadRequestsChain" }]
+      "chains": [
+        {
+          "chain": "loadRequestsChain"
+        }
+      ]
     },
     "onSearchInput": {
       "chains": [
         {
           "chain": "applyFilterChain",
-          "parameters": { "text": "{{ $event.target.value }}" }
+          "parameters": {
+            "text": "{{ $event.target.value }}"
+          }
         }
       ]
     },
@@ -78,7 +142,9 @@
       "chains": [
         {
           "chain": "setGroupChain",
-          "parameters": { "group": "{{ $event.currentTarget.dataset.group }}" }
+          "parameters": {
+            "group": "{{ $event.currentTarget.dataset.group }}"
+          }
         }
       ]
     },
@@ -86,15 +152,48 @@
       "chains": [
         {
           "chain": "setGroupChain",
-          "parameters": { "source": "{{ $event.currentTarget.dataset.source }}" }
+          "parameters": {
+            "source": "{{ $event.currentTarget.dataset.source }}"
+          }
         }
       ]
     },
-    "onRowAction": {
+    "onViewClick": {
+      "chains": [
+        {
+          "chain": "setViewChain",
+          "parameters": {
+            "view": "{{ $event.currentTarget.dataset.view }}"
+          }
+        }
+      ]
+    },
+    "onToggle": {
+      "chains": [
+        {
+          "chain": "toggleRequestChain",
+          "parameters": {
+            "number": "{{ $event.currentTarget.dataset.number }}",
+            "id": "{{ $event.currentTarget.dataset.id }}"
+          }
+        }
+      ]
+    },
+    "onOpen": {
       "chains": [
         {
           "chain": "openRequestChain",
-          "parameters": { "row": "{{ $event.detail.value?.data }}" }
+          "parameters": {
+            "id": "{{ $event.currentTarget.dataset.id }}",
+            "number": "{{ $event.currentTarget.dataset.number }}"
+          }
+        }
+      ]
+    },
+    "onMore": {
+      "chains": [
+        {
+          "chain": "showMoreChain"
         }
       ]
     },
@@ -102,17 +201,24 @@
       "chains": [
         {
           "chain": "openNavChain",
-          "parameters": { "navId": "new-request" }
+          "parameters": {
+            "navId": "new-request"
+          }
         }
       ]
     }
   },
   "imports": {
     "components": {
-      "oj-table": { "path": "ojs/ojtable" },
-      "oj-bind-for-each": { "path": "ojs/ojknockout" },
-      "oj-bind-if": { "path": "ojs/ojknockout" },
-      "oj-bind-text": { "path": "ojs/ojknockout" }
+      "oj-bind-for-each": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-if": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-text": {
+        "path": "ojs/ojknockout"
+      }
     }
   }
 }

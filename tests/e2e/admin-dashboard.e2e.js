@@ -67,6 +67,8 @@ function handle(req, res) {
     const pipe = await page.$$eval('.er-stage--draft .er-bar-value, .er-stage--submitted .er-bar-value, .er-stage--onsite .er-bar-value', (vs) => vs.map((v) => v.innerText.trim()).join(','));
     T.eq('draft, submitted, on site', pipe, '1,2,2');
     T.check('fleet utilisation', (await env.text('.er-ad-big')).includes('62%'));
+    const rented = await page.$eval('.er-unit--RENTED .er-bar-track', (t) => Math.round((t.firstElementChild.getBoundingClientRect().width / t.getBoundingClientRect().width) * 100));
+    T.check('bars are drawn to scale (rented 62%)', rented >= 58 && rented <= 66, String(rented));
     T.check('modules show on/off', (await page.$$eval('.er-mod--on', (m) => m.length)) >= 2);
     T.check('recent change listed', (await env.text('.er-ad-grid')).includes('TIMESHEETS_ENABLED switched on'));
     T.eq('latest requests table: the newest 8', await page.$$eval('.er-grid--recent .er-grid-row:not(.er-grid-head)', (r) => r.length), 8);

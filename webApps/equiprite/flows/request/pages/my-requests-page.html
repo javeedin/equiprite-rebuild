@@ -1,4 +1,5 @@
-<!-- My requests (wireframe: My requests). Data: loadRequestsChain; filtering: applyFilterChain + my-requests-page.js. -->
+<!-- My requests: Requests (a card per request, its equipment on the card) and Equipment (a row per piece of equipment).
+     Data: loadRequestsChain; filtering: applyFilterChain + my-requests-page.js. -->
 <div class="er-band">
   <div class="er-band-inner">
     <div>
@@ -7,6 +8,7 @@
       <div class="er-band-sub">
         <oj-bind-text value="[[ $variables.isLoading ? 'Loading…'
           : ($variables.allRows.length + ($variables.allRows.length === 1 ? ' request' : ' requests')
+             + ($variables.allLines.length ? ' · ' + $functions.pieces($functions.units($variables.allLines)) + ' of equipment' : '')
              + ($variables.isManager ? ' · project and customer' : '')) ]]"></oj-bind-text>
       </div>
     </div>
@@ -25,10 +27,19 @@
 
 <div class="er-page">
   <div class="er-filters">
+    <div class="er-seg" role="group" aria-label="Show">
+      <button type="button" data-view="requests" on-click="[[ $listeners.onViewClick ]]"
+        :class="[[ 'er-seg-btn' + ($variables.view === 'requests' ? ' er-seg-btn--on' : '') ]]"
+        :aria-pressed="[[ $variables.view === 'requests' ? 'true' : 'false' ]]">Requests</button>
+      <button type="button" data-view="equipment" on-click="[[ $listeners.onViewClick ]]"
+        :class="[[ 'er-seg-btn' + ($variables.view === 'equipment' ? ' er-seg-btn--on' : '') ]]"
+        :aria-pressed="[[ $variables.view === 'equipment' ? 'true' : 'false' ]]">Equipment</button>
+    </div>
     <label class="er-search">
       <span class="oj-ux-ico-search" aria-hidden="true"></span>
-      <span class="er-sr">Search requests</span>
-      <input type="search" placeholder="Request, project, task, customer or requestor" on-input="[[ $listeners.onSearchInput ]]">
+      <span class="er-sr">Search</span>
+      <input type="search" on-input="[[ $listeners.onSearchInput ]]"
+        :placeholder="[[ $variables.view === 'equipment' ? 'Equipment, serial, request, project or location' : 'Request, project, customer, requestor or equipment' ]]">
     </label>
     <oj-bind-if test="[[ $variables.isManager ]]">
       <div class="er-chip-row" role="group" aria-label="Source">
@@ -58,49 +69,183 @@
   <oj-bind-if test="[[ !!$variables.fetchError ]]">
     <div class="er-error" role="alert"><oj-bind-text value="[[ $variables.fetchError ]]"></oj-bind-text></div>
   </oj-bind-if>
+  <oj-bind-if test="[[ $variables.isLoading ]]">
+    <div class="er-card er-card-pad er-muted">Loading your requests and their equipment…</div>
+  </oj-bind-if>
 
-  <section class="er-card">
-    <oj-table id="myRequestsTable" data="[[ $variables.rowsADP ]]" columns="[[ $functions.columns($variables.isManager) ]]"
-      class="oj-table-stretch" style="width: 100%; min-height: 360px;"
-      scroll-policy="loadMoreOnScroll" scroll-policy-options.fetch-size="40"
-      selection-mode='{"row": "single"}' on-first-selected-row-changed="[[ $listeners.onRowAction ]]"
-      aria-label="My requests">
-      <template slot="sourceTpl" data-oj-as="cell">
-        <span :class="[[ $application.functions.sourceLabel(cell.data) === 'EXTERNAL'
-                         ? 'er-status er-status--source-external' : 'er-status er-status--source-internal' ]]">
-          <oj-bind-text value="[[ $application.functions.sourceLabel(cell.data) === 'EXTERNAL' ? 'Customer' : 'Project' ]]"></oj-bind-text>
-        </span>
-      </template>
-      <template slot="numberTpl" data-oj-as="cell">
-        <span style="font-weight: 700; color: var(--er-accent);"><oj-bind-text value="[[ cell.data ]]"></oj-bind-text></span>
-      </template>
-      <template slot="projectTpl" data-oj-as="cell">
-        <div>
-          <div style="font-weight: 600;"><oj-bind-text value="[[ cell.data || '—' ]]"></oj-bind-text></div>
-          <oj-bind-if test="[[ !!cell.row.taskName ]]">
-            <div class="er-note"><oj-bind-text value="[[ cell.row.taskName ]]"></oj-bind-text></div>
-          </oj-bind-if>
+  <!-- ── Requests: a card per request, its equipment on the card ───────────────────────────────────── -->
+  <oj-bind-if test="[[ !$variables.isLoading && $variables.view === 'requests' ]]">
+    <oj-bind-if test="[[ !$variables.filteredRows.length && !$variables.fetchError ]]">
+      <div class="er-card er-card-pad er-muted">No requests match. Try another status or clear the search.</div>
+    </oj-bind-if>
+    <ul class="er-mr-list" aria-label="Requests">
+      <oj-bind-for-each data="[[ $variables.filteredRows.slice(0, $variables.limit) ]]">
+        <template data-oj-as="r">
+          <li :class="[[ 'er-mr-card er-mr-card--' + $functions.lineState(r.data.status || r.data.requestStatus) ]]"
+            :data-number="[[ r.data.requestNumber ]]">
+            <div class="er-mr-head">
+              <div class="er-mr-id">
+                <button type="button" class="er-mr-number" :data-id="[[ r.data.eqrEquipmentRequestId ]]" :data-number="[[ r.data.requestNumber ]]"
+                  on-click="[[ $listeners.onOpen ]]"><oj-bind-text value="[[ r.data.requestNumber ]]"></oj-bind-text></button>
+                <oj-bind-if test="[[ $variables.isManager ]]">
+                  <span :class="[[ $application.functions.sourceLabel(r.data.requestOrigin) === 'EXTERNAL'
+                                   ? 'er-status er-status--source-external' : 'er-status er-status--source-internal' ]]">
+                    <oj-bind-text value="[[ $application.functions.sourceLabel(r.data.requestOrigin) === 'EXTERNAL' ? 'Customer' : 'Project' ]]"></oj-bind-text>
+                  </span>
+                </oj-bind-if>
+                <oj-bind-if test="[[ !!(r.data.status || r.data.requestStatus) ]]">
+                  <span :class="[[ $application.functions.statusPillClass(r.data.status || r.data.requestStatus) ]]">
+                    <oj-bind-text value="[[ $application.functions.formatLineStatus(r.data.status || r.data.requestStatus) ]]"></oj-bind-text>
+                  </span>
+                </oj-bind-if>
+              </div>
+              <div class="er-mr-when">
+                <span class="er-mr-dates"><oj-bind-text value="[[ $functions.dateRange(r.data.startDate, r.data.endDate) ]]"></oj-bind-text></span>
+                <span :class="[[ 'er-mr-progress er-mr-progress--' + $functions.windowProgress(r.data.startDate, r.data.endDate).state ]]" aria-hidden="true">
+                  <span :style="[[ { width: $functions.windowProgress(r.data.startDate, r.data.endDate).pct + '%' } ]]"></span>
+                </span>
+                <span class="er-note"><oj-bind-text value="[[ $functions.windowProgress(r.data.startDate, r.data.endDate).label ]]"></oj-bind-text></span>
+              </div>
+            </div>
+
+            <div class="er-mr-who">
+              <span class="er-mr-project">
+                <oj-bind-text value="[[ r.data.projectName || r.data.customerName || r.data.projectInternalCustomer || '—' ]]"></oj-bind-text>
+              </span>
+              <oj-bind-if test="[[ !!r.data.taskName ]]">
+                <span class="er-note"><oj-bind-text value="[[ r.data.taskName ]]"></oj-bind-text></span>
+              </oj-bind-if>
+              <oj-bind-if test="[[ !!r.data.projectName && !!(r.data.customerName || r.data.projectInternalCustomer) ]]">
+                <span class="er-note"><oj-bind-text value="[[ 'for ' + (r.data.customerName || r.data.projectInternalCustomer) ]]"></oj-bind-text></span>
+              </oj-bind-if>
+              <span class="er-note er-mr-requestor"><oj-bind-text value="[[ 'Requested by ' + (r.data.requestorName || r.data.contactName || '—') ]]"></oj-bind-text></span>
+            </div>
+
+            <div class="er-mr-equip">
+              <div class="er-mr-chips" aria-label="Equipment on this request">
+                <oj-bind-if test="[[ ($variables.linesByRequest[r.data.requestNumber] || []).length ]]">
+                  <oj-bind-for-each data="[[ $functions.chips($variables.linesByRequest[r.data.requestNumber], 4).shown ]]">
+                    <template data-oj-as="l">
+                      <span :class="[[ 'er-eqchip er-eqchip--' + $functions.lineState(l.data.status || r.data.status || r.data.requestStatus) ]]"
+                        :title="[[ l.data.name + (l.data.status ? ' · ' + $application.functions.formatLineStatus(l.data.status) : '') ]]">
+                        <span class="er-eqchip-dot" aria-hidden="true"></span>
+                        <span class="er-eqchip-name"><oj-bind-text value="[[ l.data.name ]]"></oj-bind-text></span>
+                        <span class="er-eqchip-qty"><oj-bind-text value="[[ '×' + l.data.qty ]]"></oj-bind-text></span>
+                      </span>
+                    </template>
+                  </oj-bind-for-each>
+                  <oj-bind-if test="[[ $functions.chips($variables.linesByRequest[r.data.requestNumber], 4).more ]]">
+                    <span class="er-eqchip er-eqchip--more"><oj-bind-text value="[[ '+' + $functions.chips($variables.linesByRequest[r.data.requestNumber], 4).more + ' more' ]]"></oj-bind-text></span>
+                  </oj-bind-if>
+                </oj-bind-if>
+                <oj-bind-if test="[[ !($variables.linesByRequest[r.data.requestNumber] || []).length ]]">
+                  <span class="er-note"><oj-bind-text value="[[ r.data.lines ? r.data.lines + (r.data.lines == 1 ? ' line' : ' lines') + ': show equipment to see them' : 'Show equipment to see what is on it' ]]"></oj-bind-text></span>
+                </oj-bind-if>
+              </div>
+              <div class="er-actions">
+                <button type="button" class="er-btn er-btn--plain" :data-number="[[ r.data.requestNumber ]]" :data-id="[[ r.data.eqrEquipmentRequestId ]]"
+                  on-click="[[ $listeners.onToggle ]]" :aria-expanded="[[ $variables.expanded[r.data.requestNumber] ? 'true' : 'false' ]]">
+                  <oj-bind-text value="[[ $variables.expanded[r.data.requestNumber] ? 'Hide equipment' : 'Show equipment' ]]"></oj-bind-text>
+                  <span :class="[[ $variables.expanded[r.data.requestNumber] ? 'oj-ux-ico-chevron-up' : 'oj-ux-ico-chevron-down' ]]" aria-hidden="true"></span>
+                </button>
+                <button type="button" class="er-btn er-btn--dark" :data-id="[[ r.data.eqrEquipmentRequestId ]]" :data-number="[[ r.data.requestNumber ]]"
+                  on-click="[[ $listeners.onOpen ]]">Open</button>
+              </div>
+            </div>
+
+            <oj-bind-if test="[[ !!$variables.expanded[r.data.requestNumber] ]]">
+              <div class="er-mr-lines">
+                <oj-bind-if test="[[ !!$variables.loadingLines[r.data.requestNumber] ]]">
+                  <p class="er-note">Loading the equipment…</p>
+                </oj-bind-if>
+                <oj-bind-if test="[[ !$variables.loadingLines[r.data.requestNumber] && !($variables.linesByRequest[r.data.requestNumber] || []).length ]]">
+                  <p class="er-note">No equipment lines on this request.</p>
+                </oj-bind-if>
+                <oj-bind-if test="[[ ($variables.linesByRequest[r.data.requestNumber] || []).length ]]">
+                  <div class="er-table-wrap">
+                    <div class="er-grid er-grid--mrlines" role="table" :aria-label="[[ 'Equipment on ' + r.data.requestNumber ]]">
+                      <div class="er-grid-row er-grid-head" role="row">
+                        <span role="columnheader">Equipment</span><span role="columnheader">Qty</span><span role="columnheader">Serial</span>
+                        <span role="columnheader">Dates</span><span role="columnheader">Location</span><span role="columnheader">Status</span>
+                      </div>
+                      <oj-bind-for-each data="[[ $variables.linesByRequest[r.data.requestNumber] ]]">
+                        <template data-oj-as="ln">
+                          <div class="er-grid-row" role="row">
+                            <span role="cell"><span class="er-cell-main"><oj-bind-text value="[[ ln.data.name ]]"></oj-bind-text></span>
+                              <span class="er-note"><oj-bind-text value="[[ ln.data.cls ]]"></oj-bind-text></span></span>
+                            <span role="cell" class="er-num"><oj-bind-text value="[[ ln.data.qty ]]"></oj-bind-text></span>
+                            <span role="cell"><oj-bind-text value="[[ ln.data.serial || (ln.data.allocation ? $application.functions.formatLineStatus(ln.data.allocation) : '—') ]]"></oj-bind-text></span>
+                            <span role="cell"><oj-bind-text value="[[ $functions.dateRange(ln.data.start || r.data.startDate, ln.data.end || r.data.endDate) ]]"></oj-bind-text></span>
+                            <span role="cell"><oj-bind-text value="[[ ln.data.location || '—' ]]"></oj-bind-text></span>
+                            <span role="cell"><span :class="[[ $application.functions.statusPillClass(ln.data.status || r.data.status || r.data.requestStatus) ]]">
+                              <oj-bind-text value="[[ $application.functions.formatLineStatus(ln.data.status || r.data.status || r.data.requestStatus) ]]"></oj-bind-text></span></span>
+                          </div>
+                        </template>
+                      </oj-bind-for-each>
+                    </div>
+                  </div>
+                </oj-bind-if>
+              </div>
+            </oj-bind-if>
+          </li>
+        </template>
+      </oj-bind-for-each>
+    </ul>
+    <oj-bind-if test="[[ $variables.filteredRows.length > $variables.limit ]]">
+      <div><button type="button" class="er-btn er-btn--plain" on-click="[[ $listeners.onMore ]]">
+        <oj-bind-text value="[[ 'Show more (' + ($variables.filteredRows.length - $variables.limit) + ' left)' ]]"></oj-bind-text></button></div>
+    </oj-bind-if>
+  </oj-bind-if>
+
+  <!-- ── Equipment: a row per piece of equipment across every request ─────────────────────────────── -->
+  <oj-bind-if test="[[ !$variables.isLoading && $variables.view === 'equipment' ]]">
+    <oj-bind-if test="[[ !$variables.linesLoaded ]]">
+      <div class="er-card er-card-pad er-muted">The equipment list could not be loaded in one go. Open a request (Show equipment) to see what is on it.</div>
+    </oj-bind-if>
+    <oj-bind-if test="[[ $variables.linesLoaded && !$variables.filteredLines.length ]]">
+      <div class="er-card er-card-pad er-muted">No equipment matches. Try another status or clear the search.</div>
+    </oj-bind-if>
+    <oj-bind-if test="[[ $variables.filteredLines.length ]]">
+      <section class="er-card">
+        <div class="er-table-wrap">
+          <div class="er-grid er-grid--equip" role="table" aria-label="Equipment on my requests">
+            <div class="er-grid-row er-grid-head" role="row">
+              <span role="columnheader">Equipment</span><span role="columnheader">Qty</span><span role="columnheader">Request</span>
+              <span role="columnheader">Project or customer</span><span role="columnheader">Where</span><span role="columnheader">Dates</span>
+              <span role="columnheader">Status</span><span role="columnheader">Use</span>
+            </div>
+            <oj-bind-for-each data="[[ $variables.filteredLines.slice(0, $variables.limit) ]]">
+              <template data-oj-as="e">
+                <div class="er-grid-row" role="row">
+                  <span role="cell"><span class="er-cell-main"><oj-bind-text value="[[ e.data.name ]]"></oj-bind-text></span>
+                    <span class="er-note"><oj-bind-text value="[[ e.data.cls + (e.data.serial ? ' · ' + e.data.serial : '') ]]"></oj-bind-text></span></span>
+                  <span role="cell" class="er-num"><oj-bind-text value="[[ e.data.qty ]]"></oj-bind-text></span>
+                  <span role="cell"><button type="button" class="er-link" :data-id="[[ e.data.requestId ]]" :data-number="[[ e.data.requestNumber ]]"
+                    on-click="[[ $listeners.onOpen ]]"><oj-bind-text value="[[ e.data.requestNumber ]]"></oj-bind-text></button></span>
+                  <span role="cell"><span class="er-cell-main"><oj-bind-text value="[[ e.data.project || e.data.customer || '—' ]]"></oj-bind-text></span>
+                    <span class="er-note"><oj-bind-text value="[[ e.data.task || (e.data.project ? e.data.customer : '') ]]"></oj-bind-text></span></span>
+                  <span role="cell"><oj-bind-text value="[[ e.data.location || '—' ]]"></oj-bind-text></span>
+                  <span role="cell"><span class="er-cell-main"><oj-bind-text value="[[ $functions.dateRange(e.data.start, e.data.end) ]]"></oj-bind-text></span>
+                    <span class="er-note"><oj-bind-text value="[[ $functions.windowProgress(e.data.start, e.data.end).label ]]"></oj-bind-text></span></span>
+                  <span role="cell"><span :class="[[ $application.functions.statusPillClass(e.data.status) ]]">
+                    <oj-bind-text value="[[ $application.functions.formatLineStatus(e.data.status) ]]"></oj-bind-text></span></span>
+                  <span role="cell">
+                    <oj-bind-if test="[[ e.data.util !== null ]]">
+                      <span class="er-util" :title="[[ e.data.util + '% used' ]]"><span :style="[[ { width: e.data.util + '%' } ]]"></span></span>
+                      <span class="er-note"><oj-bind-text value="[[ e.data.util + '%' ]]"></oj-bind-text></span>
+                    </oj-bind-if>
+                    <oj-bind-if test="[[ e.data.util === null ]]"><span class="er-note">—</span></oj-bind-if>
+                  </span>
+                </div>
+              </template>
+            </oj-bind-for-each>
+          </div>
         </div>
-      </template>
-      <template slot="customerTpl" data-oj-as="cell">
-        <oj-bind-text value="[[ cell.row.customerName || cell.row.projectInternalCustomer || '—' ]]"></oj-bind-text>
-      </template>
-      <template slot="statusTpl" data-oj-as="cell">
-        <oj-bind-if test="[[ !!cell.data ]]">
-          <span :class="[[ $application.functions.statusPillClass(cell.data) ]]">
-            <oj-bind-text value="[[ $application.functions.formatLineStatus(cell.data) ]]"></oj-bind-text>
-          </span>
-        </oj-bind-if>
-      </template>
-      <template slot="datesTpl" data-oj-as="cell">
-        <oj-bind-text value="[[ $functions.dateRange(cell.row.startDate, cell.row.endDate) ]]"></oj-bind-text>
-      </template>
-      <template slot="noData">
-        <div style="text-align: center; padding: 48px 0;" class="er-muted">
-          <oj-bind-if test="[[ $variables.isLoading ]]">Loading your requests…</oj-bind-if>
-          <oj-bind-if test="[[ !$variables.isLoading && !$variables.fetchError ]]">No requests match. Try another status or clear the search.</oj-bind-if>
-        </div>
-      </template>
-    </oj-table>
-  </section>
+      </section>
+      <oj-bind-if test="[[ $variables.filteredLines.length > $variables.limit ]]">
+        <div><button type="button" class="er-btn er-btn--plain" on-click="[[ $listeners.onMore ]]">
+          <oj-bind-text value="[[ 'Show more (' + ($variables.filteredLines.length - $variables.limit) + ' left)' ]]"></oj-bind-text></button></div>
+      </oj-bind-if>
+    </oj-bind-if>
+  </oj-bind-if>
 </div>

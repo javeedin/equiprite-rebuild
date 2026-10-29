@@ -424,3 +424,59 @@ textarea.er-input { height: auto; padding: 8px 10px; resize: vertical; }
 .er-mod--on .er-mod-dot { background: #16a34a; }
 .er-grid--recent { min-width: 760px; }
 .er-grid--recent .er-grid-row { grid-template-columns: minmax(110px, 1fr) 100px minmax(160px, 1.6fr) minmax(130px, 1.2fr) minmax(170px, 1.2fr) minmax(130px, 1fr); align-items: center; }
+
+/* ── My requests: request cards with their equipment, and the Equipment view ─────────────────────── */
+
+.er-mr-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.er-mr-card {
+  background: var(--er-card); border: 1px solid var(--er-line); border-left: 4px solid #94a3b8; border-radius: 8px;
+  padding: 12px 16px; display: flex; flex-direction: column; gap: 8px;
+}
+.er-mr-card--action { border-left-color: #dc2626; }
+.er-mr-card--waiting { border-left-color: #d97706; }
+.er-mr-card--moving { border-left-color: #0ea5e9; }
+.er-mr-card--onsite { border-left-color: #16a34a; }
+.er-mr-card--done { border-left-color: #94a3b8; }
+.er-mr-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px; }
+.er-mr-id { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+.er-mr-number {
+  border: 0; background: transparent; padding: 0; font: inherit; font-size: 17px; font-weight: 700; color: var(--er-accent);
+  cursor: pointer; text-align: left; word-break: break-all;
+}
+.er-mr-number:hover { text-decoration: underline; }
+.er-mr-number:focus-visible { outline: 2px solid var(--er-band); outline-offset: 2px; }
+.er-mr-when { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.er-mr-dates { font-weight: 600; white-space: nowrap; }
+.er-mr-progress { position: relative; width: 120px; height: 8px; border-radius: 4px; background: #f1f5f9; overflow: hidden; }
+.er-mr-progress > span { display: block; height: 100%; border-radius: 4px; background: #16a34a; }
+.er-mr-progress--ended > span { background: #94a3b8; }
+.er-mr-progress--none { visibility: hidden; }
+.er-mr-who { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+.er-mr-project { font-weight: 700; font-size: 15px; }
+.er-mr-requestor { margin-left: auto; }
+.er-mr-equip { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 12px; padding-top: 8px; border-top: 1px dashed var(--er-line); }
+.er-mr-chips { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; flex: 1 1 360px; }
+.er-eqchip {
+  display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 4px 10px; border-radius: 999px;
+  background: var(--er-bg); border: 1px solid var(--er-line); font-size: 13px;
+}
+.er-eqchip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 260px; font-weight: 600; }
+.er-eqchip-qty { color: var(--er-muted); font-variant-numeric: tabular-nums; }
+.er-eqchip-dot { width: 8px; height: 8px; border-radius: 50%; background: #94a3b8; flex: none; }
+.er-eqchip--action .er-eqchip-dot { background: #dc2626; }
+.er-eqchip--waiting .er-eqchip-dot { background: #d97706; }
+.er-eqchip--moving .er-eqchip-dot { background: #0ea5e9; }
+.er-eqchip--onsite .er-eqchip-dot { background: #16a34a; }
+.er-eqchip--more { background: transparent; border-style: dashed; color: var(--er-muted); }
+.er-mr-lines { border-top: 1px solid var(--er-line); padding-top: 8px; }
+.er-mr-lines .er-table-wrap { border-top: 0; }
+.er-grid--mrlines { min-width: 760px; }
+.er-grid--mrlines .er-grid-row { grid-template-columns: minmax(220px, 2fr) 56px minmax(110px, 1fr) minmax(150px, 1fr) minmax(140px, 1.2fr) minmax(150px, 1fr); align-items: center; }
+.er-grid--equip { min-width: 1040px; }
+.er-grid--equip .er-grid-row {
+  grid-template-columns: minmax(190px, 2fr) 44px minmax(125px, 1fr) minmax(160px, 1.5fr) minmax(110px, 1.1fr) minmax(135px, 1fr) minmax(135px, 1fr) 96px;
+  gap: 0 10px; align-items: center;
+}
+.er-util { display: inline-block; width: 60px; height: 8px; border-radius: 4px; background: #f1f5f9; overflow: hidden; vertical-align: middle; margin-right: 6px; }
+.er-util > span { display: block; height: 100%; background: #2b8cbe; }
+@media (max-width: 640px) { .er-mr-requestor { margin-left: 0; } .er-mr-progress { width: 80px; } }

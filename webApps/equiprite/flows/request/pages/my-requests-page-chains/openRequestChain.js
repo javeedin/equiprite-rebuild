@@ -4,14 +4,15 @@ define([
 ], (ActionChain, Actions) => {
   'use strict';
 
+  // A request's number (on a card or an equipment row): New EquipRite's Request detail.
   class openRequestChain extends ActionChain {
-    async run(context, { row }) {
-      if (!row || row.eqrEquipmentRequestId == null) {
+    async run(context, { id, number }) {
+      if (id === undefined || id === null || id === '') {
         return;
       }
       await Actions.navigateToPage(context, {
         page: 'request-detail',
-        params: { requestId: String(row.requestNumber || ''), requestNumericId: Number(row.eqrEquipmentRequestId) },
+        params: { requestId: String(number || ''), requestNumericId: Number(id) },
       });
     }
   }

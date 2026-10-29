@@ -7,6 +7,7 @@ define([
   class setGroupChain extends ActionChain {
     async run(context, { group, source }) {
       const { $page } = context;
+      $page.variables.limit = 40;
       if (group) {
         $page.variables.group = group;
       }

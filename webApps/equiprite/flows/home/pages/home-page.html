@@ -103,14 +103,14 @@
             <template data-oj-as="st">
               <li :class="[[ 'er-bar-row er-stage--' + st.data.key ]]">
                 <span class="er-bar-label"><oj-bind-text value="[[ st.data.label ]]"></oj-bind-text></span>
-                <span class="er-bar-track"><span class="er-bar-fill" :style="[[ 'width:' + st.data.pct + '%' ]]"></span></span>
+                <span class="er-bar-track"><span class="er-bar-fill" :style="[[ { width: st.data.pct + '%' } ]]"></span></span>
                 <span class="er-bar-value er-num"><oj-bind-text value="[[ st.data.count ]]"></oj-bind-text></span>
               </li>
             </template>
           </oj-bind-for-each>
         </ul>
         <div class="er-split" aria-label="Project and customer requests">
-          <span class="er-split-bar"><span class="er-split-project" :style="[[ 'width:' + $variables.adminModel.source.projectPct + '%' ]]"></span></span>
+          <span class="er-split-bar"><span class="er-split-project" :style="[[ { width: $variables.adminModel.source.projectPct + '%' } ]]"></span></span>
           <span class="er-note">
             <oj-bind-text value="[[ $variables.adminModel.source.project + ' project · ' + $variables.adminModel.source.customer + ' customer · '
               + $variables.adminModel.totalRequests + ' in all' ]]"></oj-bind-text>
@@ -136,7 +136,7 @@
               <template data-oj-as="u">
                 <li :class="[[ 'er-bar-row er-unit--' + u.data.key ]]">
                   <span class="er-bar-label"><oj-bind-text value="[[ u.data.label ]]"></oj-bind-text></span>
-                  <span class="er-bar-track"><span class="er-bar-fill" :style="[[ 'width:' + u.data.pct + '%' ]]"></span></span>
+                  <span class="er-bar-track"><span class="er-bar-fill" :style="[[ { width: u.data.pct + '%' } ]]"></span></span>
                   <span class="er-bar-value er-num"><oj-bind-text value="[[ u.data.count ]]"></oj-bind-text></span>
                 </li>
               </template>
