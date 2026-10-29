@@ -1,0 +1,16 @@
+{
+  "name": "equiprite-desktop",
+  "productName": "EquipRite",
+  "version": "0.1.0",
+  "description": "Desktop client for the EquipRite Visual Builder (Redwood) app",
+  "author": "javeedin",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^45.0.0"
+  }
+}

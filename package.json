@@ -13,6 +13,11 @@
     "upgrade": "micro"
   },
   "scripts": {
-    "test": "node tests/run-all.js"
+    "test": "node tests/run-all.js",
+    "build": "node tools/check-tools.js && grunt vb-process-local",
+    "serve": "npm run build && grunt vb-serve:webApps/vbredwoodapp --port=8888 --open",
+    "desktop:install": "npm --prefix desktop install",
+    "desktop": "npm --prefix desktop start",
+    "desktop:fresh": "npm run build && npm --prefix desktop start"
   }
 }
