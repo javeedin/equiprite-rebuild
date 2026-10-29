@@ -1,0 +1,18 @@
+[
+    { "id": 1, "lookupType": "LINE_STATUS", "lookupCode": "DRAFT", "meaning": "Draft", "description": "Request line created, not yet submitted", "enabledFlag": "Y", "applicationCode": "EQUIP_RITE", "language": "en", "tag": null },
+    { "id": 2, "lookupType": "LINE_STATUS", "lookupCode": "SUBMITTED", "meaning": "Submitted", "description": "Submitted for processing", "enabledFlag": "Y", "applicationCode": "EQUIP_RITE", "language": "en", "tag": null },
+    { "id": 3, "lookupType": "LINE_STATUS", "lookupCode": "IN_PROCESS", "meaning": "In Process", "description": "Being worked", "enabledFlag": "Y", "applicationCode": "EQUIP_RITE", "language": "en", "tag": null },
+    { "id": 4, "lookupType": "LINE_STATUS", "lookupCode": "QUOTE_GENERATED", "meaning": "Quote Generated", "description": "Quote produced, awaiting acceptance", "enabledFlag": "Y", "applicationCode": "EQUIP_RITE", "language": "en", "tag": null },
+    { "id": 5, "lookupType": "LINE_STATUS", "lookupCode": "QUOTE_ACCEPTED", "meaning": "Quote Accepted", "description": "Customer accepted the quote", "enabledFlag": "Y", "applicationCode": "EQUIP_RITE", "language": "en", "tag": null },
+    { "id": 6, "lookupType": "LINE_STATUS", "lookupCode": "ALLOCATED", "meaning": "Allocated", "description": "Specific units reserved", "enabledFlag": "Y", "applicationCode": "EQUIP_RITE", "language": "en", "tag": null },
+    { "id": 7, "lookupType": "LINE_STATUS", "lookupCode": "SCHEDULED_FOR_PICKING", "meaning": "Scheduled For Picking", "description": "Confirmed and queued for picking", "enabledFlag": "Y", "applicationCode": "EQUIP_RITE", "language": "en", "tag": null },
+    { "id": 8, "lookupType": "LINE_STATUS", "lookupCode": "PICK_INITIATED", "meaning": "Pick Initiated", "description": "Released to the warehouse", "enabledFlag": "Y", "applicationCode": "EQUIP_RITE", "language": "en", "tag": null },
+    { "id": 9, "lookupType": "LINE_STATUS", "lookupCode": "SHIP_TO_SITE", "meaning": "Shipped To Site", "description": "In transit to the job site", "enabledFlag": "Y", "applicationCode": "EQUIP_RITE", "language": "en", "tag": null },
+    { "id": 10, "lookupType": "LINE_STATUS", "lookupCode": "DEPLOYED", "meaning": "Deployed", "description": "On site and in use", "enabledFlag": "Y", "applicationCode": "EQUIP_RITE", "language": "en", "tag": null },
+    { "id": 11, "lookupType": "LINE_STATUS", "lookupCode": "UNDER_PROCUREMENT", "meaning": "Under Procurement", "description": "Being sourced externally", "enabledFlag": "Y", "applicationCode": "EQUIP_RITE", "language": "en", "tag": null },
+    { "id": 12, "lookupType": "LINE_STATUS", "lookupCode": "RETURN_INITIATED", "meaning": "Return Initiated", "description": "Return requested", "enabledFlag": "Y", "applicationCode": "EQUIP_RITE", "language": "en", "tag": null },
+    { "id": 13, "lookupType": "LINE_STATUS", "lookupCode": "RETURN_IN_PROCESS", "meaning": "Return In Process", "description": "Return underway", "enabledFlag": "Y", "applicationCode": "EQUIP_RITE", "language": "en", "tag": null },
+    { "id": 14, "lookupType": "LINE_STATUS", "lookupCode": "SHIPPED_TO_YARD", "meaning": "Shipped To Yard", "description": "In transit back to the yard", "enabledFlag": "Y", "applicationCode": "EQUIP_RITE", "language": "en", "tag": null },
+    { "id": 15, "lookupType": "LINE_STATUS", "lookupCode": "CLOSED", "meaning": "Closed", "description": "Terminal, completed", "enabledFlag": "Y", "applicationCode": "EQUIP_RITE", "language": "en", "tag": null },
+    { "id": 16, "lookupType": "LINE_STATUS", "lookupCode": "REJECTED", "meaning": "Rejected", "description": "Terminal, refused", "enabledFlag": "Y", "applicationCode": "EQUIP_RITE", "language": "en", "tag": null }
+]

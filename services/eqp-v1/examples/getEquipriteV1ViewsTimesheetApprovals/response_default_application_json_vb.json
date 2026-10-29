@@ -1,0 +1,21 @@
+{
+    "data": [
+        {
+            "eqrTimeEntryId": 1000000021,
+            "requestTypeLabel": "REGULAR",
+            "requestNumber": "REQ-2025-P381-001",
+            "projectName": "Portsmouth Naval Shipyard P-381 Dry Dock - Superblock 1",
+            "weekStartDate": "2026-05-04",
+            "weekEndDate": "2026-05-10",
+            "equipCount": 2,
+            "totalHours": 8,
+            "billAmount": null,
+            "status": "SUBMITTED"
+        }
+    ],
+    "recordCount": 1,
+    "page": 0,
+    "pageSize": 20,
+    "totalPages": 1,
+    "hasMore": false
+}

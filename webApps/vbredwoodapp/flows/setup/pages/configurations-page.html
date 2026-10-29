@@ -1,0 +1,2579 @@
+<style>
+  /* Attachment Categories add panel: plain label above each field. */
+  .attcat-label { font-size: 0.8125rem; font-weight: 600; color: #334155; margin: 0 0 6px 0; }
+    .page-content-max-width {
+        max-width: 95% !important;
+        margin: 0 !important;
+        padding: 24px;
+    }
+
+    #oj_gop_configurations {
+        --oj-sp-general-overview-page-max-width: 95% !important;
+        max-width: 95% !important;
+        overflow-x: hidden !important;
+    }
+
+    /* Keep every tab confined to the screen. The Equipment Settings tab's wide
+       table was stretching the whole layout because .main-content-area (a flex
+       item) sized to its content's intrinsic width. flex-basis:0 + width:0 makes
+       it grow ONLY to fill the available row space, never to its content — so the
+       table compresses/scrolls inside instead of pushing the tab past the screen.
+       (Verified live: without this the panel renders ~60px past the viewport.) */
+    .main-content-area {
+        flex: 1 1 0% !important;
+        min-width: 0 !important;
+        width: 0 !important;
+    }
+
+    .config-table {
+        height: 350px;
+        --oj-table-bg-color: var(--oj-core-bg-neutral-20);
+        --oj-table-data-cell-bg-color: var(--oj-core-bg-neutral-20);
+        --oj-table-row-background-color: var(--oj-core-bg-neutral-20);
+    }
+
+    .list-header-label {
+        font-size: 14px;
+        text-transform: uppercase;
+        color: var(--oj-core-text-color-secondary);
+        font-weight: bold;
+        letter-spacing: 0.5px;
+    }
+
+
+
+    .main-layout-container {
+        max-width: 100%;
+        margin: 0;
+        height: calc(100vh - 160px);
+        overflow: hidden;
+        flex-wrap: nowrap !important;
+    }
+
+    .config-panel {
+        border-radius: 8px;
+        background-color: #ffffff;
+        flex: 1 1 auto;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        padding: 0;
+    }
+
+    /* Custom Toggle Card Styles */
+    .settings-group {
+        border: 1px solid var(--border-color, #d1d5db);
+        border-radius: 8px;
+        background-color: #ffffff;
+        margin-bottom: 24px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    .settings-group-header {
+        padding: 16px;
+        border-bottom: 1px solid var(--border-color, #d1d5db);
+        display: flex;
+        align-items: center;
+    }
+
+    .settings-group-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 16px;
+        color: white;
+    }
+
+    .icon-blue {
+        background-color: #0f172a;
+    }
+
+    .icon-orange {
+        background-color: #f59e0b;
+    }
+
+    .settings-group-title {
+        font-weight: 600;
+        font-size: 16px;
+        color: var(--text-main, #111827);
+    }
+
+    .settings-group-subtitle {
+        font-size: 12px;
+        color: var(--text-secondary, #6b7280);
+        margin-top: 2px;
+    }
+
+    .settings-content {
+        padding: 16px;
+        background-color: #f8fafc;
+    }
+
+    .toggle-card {
+        background-color: #ffffff;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        padding: 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+
+    .toggle-card:last-child {
+        margin-bottom: 0;
+    }
+
+    .toggle-card-label {
+        font-weight: 600;
+        font-size: 13px;
+        color: #0f172a;
+    }
+
+    .badge-active {
+        background-color: #d1fae5;
+        color: #059669;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 10px;
+        font-weight: bold;
+        margin-left: 8px;
+        vertical-align: middle;
+    }
+
+    .toggle-card-desc {
+        font-size: 12px;
+        color: #64748b;
+        margin-top: 4px;
+    }
+
+    .icon-purple {
+        background-color: #8b5cf6;
+    }
+
+    .icon-teal {
+        background-color: #10b981;
+    }
+
+    .info-banner {
+        background-color: #faf5ff;
+        border: 1px solid #e9d5ff;
+        border-radius: 8px;
+        padding: 12px 16px;
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        margin-top: 12px;
+    }
+
+    .info-banner-icon {
+        color: #7c3aed;
+        font-size: 16px;
+        margin-top: 2px;
+    }
+
+    .info-banner-text {
+        color: #6b21a8;
+        font-size: 13px;
+        line-height: 1.4;
+    }
+
+    .form-group-label {
+        font-size: 11px;
+        font-weight: bold;
+        color: #475569;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+    }
+
+    .form-group-desc {
+        font-size: 12px;
+        color: #94a3b8;
+        margin-bottom: 8px;
+    }
+
+    .badge-blue {
+        background-color: #e0e7ff;
+        color: #3730a3;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+    }
+
+    .badge-red {
+        background-color: #fee2e2;
+        color: #b91c1c;
+        padding: 4px 10px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 600;
+    }
+
+    .badge-green {
+        background-color: #dcfce7;
+        color: #15803d;
+        padding: 4px 10px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 600;
+    }
+
+    .audit-table {
+        width: 100%;
+        border: 1px solid var(--border-color, #e2e8f0);
+        border-radius: 8px;
+        --oj-table-bg-color: #ffffff;
+        --oj-table-header-bg-color: #ffffff;
+        --oj-table-header-text-color: #64748b;
+        --oj-table-header-font-weight: bold;
+        --oj-table-row-bg-color: #ffffff;
+        --oj-table-border-color: #f1f5f9;
+        height: auto;
+        min-height: 200px;
+    }
+
+    /* BU Settings table: keep multi-word column headers on a single line. */
+    .es-bu-table th .oj-table-column-header-text,
+    .es-bu-table .oj-table-column-header-cell {
+        white-space: nowrap;
+    }
+
+    .icon-green {
+        background-color: #16a34a;
+    }
+
+    .badge-optional {
+        background-color: #f1f5f9;
+        color: #475569;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 10px;
+        font-weight: bold;
+        margin-left: 8px;
+        vertical-align: middle;
+    }
+
+    .env-block {
+        background-color: #f8fafc;
+        border-radius: 8px;
+        padding: 16px;
+        height: 100%;
+        box-sizing: border-box;
+    }
+
+    .env-block-label {
+        font-size: 10px;
+        font-weight: 700;
+        color: #94a3b8;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+    }
+
+    .env-block-value {
+        font-size: 14px;
+        font-weight: 600;
+        color: #0f172a;
+    }
+</style>
+
+<oj-sp-general-overview-page id="oj_gop_configurations" display-mode="mixed" display-options.responsive-padding="on"
+    page-title="Application Configurations"
+    primary-action='[[ {"label": $page.variables.isSaving ? "Saving..." : "Save Changes", "icon": "oj-ux-ico-save", "display": ["equipmentClassesTab","buOrgMappingTab","agreementTypesTab","attachmentCategoriesTab"].indexOf($page.variables.selectedTab) === -1 ? "on" : "off", "disabled": !$page.variables.hasChanges} ]]'
+    secondary-actions='[[ [{"id": "cancel", "label": "Cancel", "display": ["equipmentClassesTab","buOrgMappingTab","agreementTypesTab","attachmentCategoriesTab"].indexOf($page.variables.selectedTab) === -1 ? "on" : "off", "disabled": !$page.variables.hasChanges}] ]]'
+    on-sp-primary-action="[[$listeners.onSave]]"
+    on-sp-secondary-action="[[$listeners.onCancel]]">
+
+    <div slot="main" class="oj-flex oj-sm-gap-6x main-layout-container">
+
+        <!-- Main Content Area -->
+        <div class="main-content-area oj-sm-width-full oj-md-margin-6x-top oj-md-margin-6x-horizontal"
+            style="flex: 1 1 auto; min-width: 0; height: calc(100% - 24px); display: flex; flex-direction: column;">
+
+
+
+            <!-- Configuration Tabs -->
+            <div class="oj-panel oj-flex-item oj-sm-flex-initial"
+                style="border-radius: 8px; background-color: #ffffff; flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; overflow: hidden; padding: 0; border: 1px solid var(--border-color);">
+
+                <oj-tab-bar selection="{{ $variables.selectedTab }}" edge="top"
+                    style="flex: 0 0 auto; border-bottom: 1px solid var(--border-color); padding: 0 1rem;">
+                    <ul>
+                        <li id="featureFlagsTab">
+                            <a href="#">
+                                <span class="oj-tabbar-item-label">Feature Flags</span>
+                            </a>
+                        </li>
+                        <li id="equipmentManagerTab">
+                            <a href="#">
+                                <span class="oj-tabbar-item-label">BU Settings</span>
+                            </a>
+                        </li>
+                        <li id="buOrgMappingTab">
+                            <a href="#">
+                                <span class="oj-tabbar-item-label">BU &amp; Org Mapping</span>
+                            </a>
+                        </li>
+                        <li id="equipmentClassesTab">
+                            <a href="#">
+                                <span class="oj-tabbar-item-label">Equipment Classes</span>
+                            </a>
+                        </li>
+                        <li id="expTypeMapTab">
+                            <a href="#">
+                                <span class="oj-tabbar-item-label">Expenditure Types</span>
+                            </a>
+                        </li>
+                        <!-- Hidden while Rental Agreements is off — reads the SAME
+                             AGREEMENTS_ENABLED entry the Feature Flags toggle binds to,
+                             so it disappears/returns the moment that switch flips.
+                             :style rather than oj-bind-if: oj-tab-bar's static <ul> is
+                             not re-scanned when a child is added or removed. -->
+                        <li id="agreementTypesTab"
+                            :style.display="[[ $page.functions.getSettingBool($page.variables.ConfigSettingsMap, 'AGREEMENTS_ENABLED') ? '' : 'none' ]]">
+                            <a href="#">
+                                <span class="oj-tabbar-item-label">Agreement Types</span>
+                            </a>
+                        </li>
+                        <li id="attachmentCategoriesTab">
+                            <a href="#">
+                                <span class="oj-tabbar-item-label">Attachment Categories</span>
+                            </a>
+                        </li>
+                        <li id="auditTrailTab">
+                            <a href="#">
+                                <span class="oj-tabbar-item-label">Audit Trail</span>
+                            </a>
+                        </li>
+                    </ul>
+                </oj-tab-bar>
+
+                <div id="scrollable-content" class="oj-sm-padding-6x-horizontal oj-sm-padding-4x-top"
+                    style="flex: 1 1 auto; overflow-y: auto; overflow-x: hidden; min-width: 0; max-width: 100%; padding-bottom: 100px;">
+                    <oj-switcher value="[[ $variables.selectedTab ]]" style="display: block; min-width: 0; max-width: 100%;">
+
+                        <!-- Feature Flags Section -->
+                        <div slot="featureFlagsTab">
+                            <div id="section-featureFlagsTab"
+                                class="oj-flex oj-sm-flex-direction-column oj-sm-gap-4x oj-sm-margin-6x-bottom">
+
+                                <div class="settings-group">
+                                    <div class="settings-group-header">
+                                        <div class="settings-group-icon icon-blue">
+                                            <span class="oj-ux-ico-cube" style="font-size: 20px;"></span>
+                                        </div>
+                                        <div>
+                                            <div class="settings-group-title">Module Licensing Flags</div>
+                                            <div class="settings-group-subtitle">Controls sidebar visibility,
+                                                ModuleGuard gating, and available workflows.</div>
+                                        </div>
+                                    </div>
+                                    <div class="settings-content">
+                                        <div class="toggle-card">
+                                            <div>
+                                                <div class="toggle-card-label">EQUIPMENT FOR INTERNAL CUSTOMERS</div>
+                                                <div class="toggle-card-desc">Module B — Equipment for Internal Customers (PPM).
+                                                    Enables picking, timesheets, receipt, and project request workflows.
+                                                </div>
+                                            </div>
+                                            <oj-switch
+                                                value="[[ $page.functions.getSettingBool($page.variables.ConfigSettingsMap, 'PROJECTS_MODULE_ENABLED') ]]"
+                                                data-setting-key="PROJECTS_MODULE_ENABLED"
+                                                data-setting-category="FEATURE_FLAG"
+                                                data-setting-description="Module B - Equipment for Projects" label-edge="none"
+                                                on-value-changed="[[$listeners.onToggleChanged]]"></oj-switch>
+                                        </div>
+                                        <div class="toggle-card">
+                                            <div>
+                                                <div class="toggle-card-label">EQUIPMENT FOR EXTERNAL CUSTOMERS</div>
+                                                <div class="toggle-card-desc">Module C — Equipment for External Customers
+                                                    (AR/Rental). Enables rental agreements and customer billing
+                                                    workflows.</div>
+                                            </div>
+                                            <oj-switch
+                                                value="[[ $page.functions.getSettingBool($page.variables.ConfigSettingsMap, 'CUSTOMERS_MODULE_ENABLED') ]]"
+                                                data-setting-key="CUSTOMERS_MODULE_ENABLED"
+                                                data-setting-category="FEATURE_FLAG"
+                                                data-setting-description="Module C - Equipment for Customers" label-edge="none"
+                                                on-value-changed="[[$listeners.onToggleChanged]]"></oj-switch>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Application Flags — cross-cutting feature toggles that are not module
+                                     licences. AGREEMENTS_ENABLED lives here (an app-level feature toggle,
+                                     not a module licence). -->
+                                <div class="settings-group">
+                                    <div class="settings-group-header">
+                                        <div class="settings-group-icon icon-purple">
+                                            <span class="oj-ux-ico-settings" style="font-size: 20px;"></span>
+                                        </div>
+                                        <div>
+                                            <div class="settings-group-title">Application Flags</div>
+                                            <div class="settings-group-subtitle">Cross-cutting feature toggles and
+                                                application-wide defaults.</div>
+                                        </div>
+                                    </div>
+                                    <div class="settings-content">
+                                        <div class="toggle-card">
+                                            <div>
+                                                <div class="toggle-card-label">RENTAL AGREEMENTS</div>
+                                                <div class="toggle-card-desc">Rental Agreement sub-feature within Module
+                                                    C. Requires Equipment for External Customers to be active.</div>
+                                            </div>
+                                            <oj-switch
+                                                value="[[ $page.functions.getSettingBool($page.variables.ConfigSettingsMap, 'AGREEMENTS_ENABLED') ]]"
+                                                data-setting-key="AGREEMENTS_ENABLED"
+                                                data-setting-category="FEATURE_FLAG"
+                                                data-setting-description="Rental Agreement sub-feature" label-edge="none"
+                                                on-value-changed="[[$listeners.onToggleChanged]]"></oj-switch>
+                                        </div>
+
+                                        <!-- Timesheets master switch — the application-wide costing-intent flag
+                                             (two-level control, requirements §0 Level 1). ON: utilization/timesheet
+                                             costing is available (gated per subclass). OFF: the app bills on the
+                                             complete request period only (start→end × rate); hours are ignored
+                                             app-wide. Liberty runs with this OFF. -->
+                                        <div class="toggle-card">
+                                            <div>
+                                                <div class="toggle-card-label">TIMESHEETS</div>
+                                                <div class="toggle-card-desc">Master costing switch. ON: hours/utilization
+                                                    costing is available (per-subclass). OFF: bill on the complete
+                                                    request period only — hours are not used anywhere.</div>
+                                            </div>
+                                            <oj-switch
+                                                value="[[ $page.functions.getSettingBool($page.variables.ConfigSettingsMap, 'TIMESHEETS_ENABLED') ]]"
+                                                data-setting-key="TIMESHEETS_ENABLED"
+                                                data-setting-category="FEATURE_FLAG"
+                                                data-setting-description="Master timesheet/costing switch (ON=utilization available, OFF=complete-period only)" label-edge="none"
+                                                on-value-changed="[[$listeners.onToggleChanged]]"></oj-switch>
+                                        </div>
+
+                                        <!-- PPM rates — the rate-source switch (requirements R3a). GLOBAL and
+                                             exclusive: rates come from EquipRite OR from Fusion PPM, never both,
+                                             and never per business unit.
+
+                                             ON: EquipRite stops pricing rentals. The timesheet's expenditure type
+                                             (and its UNIT) decide what Fusion bills, Post Cost is withdrawn
+                                             entirely (R14), and EquipRite is expected to send quantity and
+                                             identity with no amount (R15).
+
+                                             ⚠️ POSTING IS NOT BUILT YET. With this ON today, EquipRite shows
+                                             Fusion's types and units and stops offering its own costing screen —
+                                             but nothing is sent to Fusion, so hours do not reach PPM. Leave it
+                                             OFF outside a demo until the posting path exists.
+
+                                             HIERARCHY with the per-BU EQR_CONF_EQUIPMENT_SETTING.RATE_SOURCE
+                                             (BU Settings tab): ON here makes every BU PPM; OFF lets each BU's
+                                             own Rate Source decide. This switch never rewrites the BU rows.
+                                             Resolved only by usesPpmRates() / isRateManagementHidden() in
+                                             app-flow.js. Rate Management is hidden when no BU is left on
+                                             EquipRite rates; Post Cost still follows this global flag alone.
+                                             Nothing below the UI reads either setting yet. -->
+                                        <div class="toggle-card" style="flex-direction: column; align-items: stretch;">
+                                            <div class="oj-flex oj-sm-align-items-center oj-sm-justify-content-space-between">
+                                            <div>
+                                                <div class="toggle-card-label">FUSION PPM RATES</div>
+                                                <div class="toggle-card-desc">ON: Fusion prices rentals from its own
+                                                    PPM rate schedules and the Post Cost screen is withdrawn. OFF:
+                                                    EquipRite prices them from its rate schedules, as today.
+                                                    Requires Timesheets to be ON — an approved timesheet is what
+                                                    sends hours to Fusion, so without it nothing would post.
+                                                    Posting to Fusion is not built yet — turning this on stops
+                                                    EquipRite costing without yet replacing it.</div>
+                                            </div>
+                                            <oj-switch
+                                                value="[[ $page.functions.getSettingBool($page.variables.ConfigSettingsMap, 'PPM_RATES_ENABLED') ]]"
+                                                data-setting-key="PPM_RATES_ENABLED"
+                                                data-setting-category="FEATURE_FLAG"
+                                                data-setting-description="Rate source is Fusion PPM instead of EquipRite (R3a). ON also withdraws Post Cost (R14)." label-edge="none"
+                                                on-value-changed="[[$listeners.onToggleChanged]]"></oj-switch>
+                                            </div>
+
+                                            <!-- PPM POSTING IDENTITY — the three labels Fusion tags every
+                                                 incoming cost with: which system sent it (source), what kind of
+                                                 transaction it was (document), and the specific flavour (document
+                                                 entry). They replace three literals that were typed into the OIC
+                                                 field map, so the Fusion-side names can change without reopening
+                                                 the integration.
+
+                                                 Inside this card, not beside it: they only mean anything in PPM
+                                                 mode, so they belong to this toggle the way WEEK END DAY belongs
+                                                 to the week toggle below. Hidden rather than disabled when the
+                                                 toggle is off — three dead text boxes is a lot of noise for a
+                                                 mode most environments never turn on.
+
+                                                 🔴 THE DOCUMENT ENTRY IS THE ONE THAT MATTERS. It carries the
+                                                 expenditure type class AND Fusion's "Import raw cost amounts"
+                                                 checkbox — the switch between "the sender tells me the money" and
+                                                 "I work it out from my own rate schedules". PPM needs the latter,
+                                                 and that is a Fusion SETUP change: these fields choose WHICH
+                                                 source we post to, never how it behaves.
+
+                                                 Defaulted to the values that post successfully today (201
+                                                 verified, two rows through Import Costs) so the PPM branch is
+                                                 wired end to end before anyone touches Fusion setup.
+
+                                                 ⚠️ GLOBAL, never per BU. 1.0 made these per-BU in
+                                                 TR_EQP_MISC_SETTINGS: seven BUs configured, five holding test junk
+                                                 (Usage_1, PTS666666666, EXP001), two with a blank source — and
+                                                 4,444 of its 4,519 postings went out under 'PPM Equipment Source',
+                                                 a value in none of them. Do not rebuild that shape.
+
+                                                 ⚠️ Free text, because Fusion exposes no REST resource for PPM
+                                                 transaction sources (~25 names tried, all 404) — there is nothing
+                                                 to build a dropdown from. 1.0 wrapped a custom OIC integration
+                                                 around it (EQUIPMENT_RITE/TXN_SOURCES_LOV) returning the triple as
+                                                 one row; if that is ported here these become one picker. -->
+                                            <oj-bind-if test="[[ $page.functions.getSettingBool($page.variables.ConfigSettingsMap, 'PPM_RATES_ENABLED') ]]">
+                                                <div class="oj-flex oj-sm-flex-wrap-wrap oj-sm-gap-4x oj-sm-margin-3x-top">
+                                                    <oj-input-text label-hint="PPM TRANSACTION SOURCE" label-edge="inside"
+                                                        class="oj-sm-flex-1" style="min-width: 240px;"
+                                                        help.instruction="Which system Fusion records as the sender."
+                                                        value="{{ $variables.PpmTxnSourceSel }}"
+                                                        data-setting-key="PPM_TXN_SOURCE"
+                                                        data-setting-category="PPM_POSTING"
+                                                        data-setting-description="Fusion transaction source for PPM-mode equipment cost. Replaces the hardcoded literal in the OIC field map."
+                                                        on-value-changed="[[$listeners.onToggleChanged]]"></oj-input-text>
+
+                                                    <oj-input-text label-hint="PPM DOCUMENT" label-edge="inside"
+                                                        class="oj-sm-flex-1" style="min-width: 240px;"
+                                                        help.instruction="What kind of transaction it is."
+                                                        value="{{ $variables.PpmDocumentSel }}"
+                                                        data-setting-key="PPM_DOCUMENT"
+                                                        data-setting-category="PPM_POSTING"
+                                                        data-setting-description="Fusion document for PPM-mode equipment cost."
+                                                        on-value-changed="[[$listeners.onToggleChanged]]"></oj-input-text>
+
+                                                    <oj-input-text label-hint="PPM DOCUMENT ENTRY" label-edge="inside"
+                                                        class="oj-sm-flex-1" style="min-width: 240px;"
+                                                        help.instruction="Decides the expenditure type class, and whether Fusion calculates the cost itself."
+                                                        value="{{ $variables.PpmDocEntrySel }}"
+                                                        data-setting-key="PPM_DOC_ENTRY"
+                                                        data-setting-category="PPM_POSTING"
+                                                        data-setting-description="Fusion document entry for PPM-mode equipment cost. Carries the expenditure type class and the Import raw cost amounts flag."
+                                                        on-value-changed="[[$listeners.onToggleChanged]]"></oj-input-text>
+                                                </div>
+
+                                                <!-- EXPENDITURE ORG + NON-LABOR RESOURCE. Read by branch C of
+                                                     EQP_P_FUSION_POST_QUEUE (see MD/Fusion Rates/BACKEND_PROMPT_ppm_nlr_and_org.md);
+                                                     both are inert until that view change is deployed.
+
+                                                     Org: replaces the view's literal 'Applications and Services', which
+                                                     Oceaneering's Fusion refuses. Blank keeps the literal (dev20).
+                                                     ⚠️ ONE value for every row, so it is right for one business line at
+                                                     a time: SSR = SSR Portfolio 4 Project Management, IMDS = IMDS Global
+                                                     Ops Management, OPG = OPG Global Project Management. Deriving it from
+                                                     the expenditure type's category is the follow-up.
+
+                                                     Resource: Oceaneering's document entries are Usages class, which
+                                                     requires a non-labor resource on every row, and their resource IS the
+                                                     expenditure type string. That is their convention, not a Fusion rule
+                                                     -- on dev20 the two differ -- so it is a switch, OFF by default. -->
+                                                <div class="oj-flex oj-sm-flex-wrap-wrap oj-sm-gap-4x oj-sm-margin-3x-top oj-sm-align-items-center">
+                                                    <oj-input-text label-hint="PPM EXPENDITURE ORGANIZATION" label-edge="inside"
+                                                        class="oj-sm-flex-1" style="min-width: 240px;"
+                                                        help.instruction="Fusion expenditure organization for every PPM cost, e.g. SSR Portfolio 4 Project Management. Blank sends 'Applications and Services'."
+                                                        value="{{ $variables.PpmExpenditureOrgSel }}"
+                                                        data-setting-key="PPM_EXPENDITURE_ORG"
+                                                        data-setting-category="PPM_POSTING"
+                                                        data-setting-description="Fusion expenditure organization for PPM-mode equipment cost. Blank keeps the view's old literal, Applications and Services."
+                                                        on-value-changed="[[$listeners.onToggleChanged]]"></oj-input-text>
+
+                                                    <div class="oj-flex oj-sm-align-items-center oj-sm-gap-2x oj-sm-flex-1" style="min-width: 240px;">
+                                                        <div>
+                                                            <div class="toggle-card-label">SEND NON-LABOR RESOURCE = EXPENDITURE TYPE</div>
+                                                            <div class="toggle-card-desc">ON for Oceaneering: their resource is named
+                                                                exactly like the expenditure type, and their Usages entries require one.
+                                                                The resource's organization is the expenditure organization above.</div>
+                                                        </div>
+                                                        <oj-switch
+                                                            value="[[ $page.functions.getSettingBool($page.variables.ConfigSettingsMap, 'PPM_NLR_FROM_EXP_TYPE') ]]"
+                                                            data-setting-key="PPM_NLR_FROM_EXP_TYPE"
+                                                            data-setting-category="PPM_POSTING"
+                                                            data-setting-description="Send NonlaborResource = expenditure type and NonlaborResourceOrganization = the PPM expenditure organization. Oceaneering convention, not a Fusion rule."
+                                                            label-edge="none"
+                                                            on-value-changed="[[$listeners.onToggleChanged]]"></oj-switch>
+                                                    </div>
+                                                </div>
+                                            </oj-bind-if>
+                                        </div>
+
+                                        <!-- External Project Assign — governs the Assign Project affordance on the
+                                             manager's request-detail page for CUSTOMER-sourced requests. A customer
+                                             request arrives with no project (EQR_EQUIPMENT_REQUEST.PROJECT_REF_ID /
+                                             TASK_ID are NULL on those rows), so this lets the manager attribute it to
+                                             an internal project + task for costing. Assigning does NOT change the
+                                             request's source — it stays customer-sourced and customer-billed; the
+                                             project is cost attribution only.
+
+                                             OFF (default): the button is hidden and customer requests confirm without
+                                             a project, i.e. exactly the behaviour before this feature existed.
+                                             ON: the button appears for customer requests, and project + task become
+                                             REQUIRED before Confirm Request unlocks. The project stays editable only
+                                             until the first line is allocated, after which it is locked.
+
+                                             Consumers read it through $application.functions.isFeatureEnabled() —
+                                             the generic FEATURE_FLAG accessor — so no bespoke resolver exists to
+                                             drift. Fails CLOSED while settings load. -->
+                                        <div class="toggle-card">
+                                            <div>
+                                                <div class="toggle-card-label">PROJECT ENABLED FOR EXTERNAL CUSTOMERS</div>
+                                                <div class="toggle-card-desc">External Project Assign. Let the equipment
+                                                    manager attribute a customer-raised request to an internal project
+                                                    and task for costing. ON: the Assign Project action appears on the
+                                                    request detail page, and project + task are required before the
+                                                    request can be confirmed (editable only until the first line is
+                                                    allocated). OFF: no project is captured on customer requests.</div>
+                                            </div>
+                                            <oj-switch
+                                                value="[[ $page.functions.getSettingBool($page.variables.ConfigSettingsMap, 'EXTERNAL_PROJECT_ASSIGN_ENABLED') ]]"
+                                                data-setting-key="EXTERNAL_PROJECT_ASSIGN_ENABLED"
+                                                data-setting-category="FEATURE_FLAG"
+                                                data-setting-description="Assign an internal project/task to customer-sourced requests for costing (ON=Assign Project shown and project+task required before confirm)" label-edge="none"
+                                                on-value-changed="[[$listeners.onToggleChanged]]"></oj-switch>
+                                        </div>
+
+                                        <!-- Enable Quotes — post-Liberty change #3. Quoting is hardcoded
+                                             customer-only today (request-detail-page.js derives
+                                             quoteVisible from source === 'CUSTOMER'), so there is no way to
+                                             turn it off for customers or on for internal project requests.
+                                             This picker is the intended global control:
+                                               NONE     → no Generate/View Quote anywhere
+                                               PROJECTS → internal project requests only
+                                               CUSTOMER → external customer requests only (today's behaviour)
+                                               BOTH     → both flows
+                                             PERSISTED as ENABLE_QUOTES (SETTING_CATEGORY = SYSTEM) in
+                                             EQR_CONF_GLOBAL_SETTINGS — the key/value table takes a new key
+                                             as a row, so this needed no schema change. Value is two-way
+                                             bound to EnableQuotesSel (oj-select-single needs a writable
+                                             target); the var is seeded from the settings map in
+                                             loadConfigSettingsChain and staged for save via
+                                             data-setting-key, exactly like WEEK_END_DAY below.
+                                             Read app-wide through
+                                             $application.functions.isQuotingAllowed(), which owns the
+                                             4-value matrix — consumers must never re-implement it. -->
+                                        <div class="toggle-card" style="flex-direction: column; align-items: stretch;">
+                                            <div class="oj-flex oj-sm-align-items-center oj-sm-justify-content-space-between">
+                                                <div>
+                                                    <div class="toggle-card-label">QUOTES</div>
+                                                    <div class="toggle-card-desc">Which request flows can raise a
+                                                        quote. Internal project requests always carry a project;
+                                                        external customer requests may or may not.</div>
+                                                </div>
+                                            </div>
+                                            <div class="oj-flex oj-sm-gap-4x oj-sm-margin-3x-top">
+                                                <oj-select-single label-hint="ENABLE QUOTES FOR" label-edge="inside"
+                                                    placeholder="— Select —" style="min-width: 220px; max-width: 320px;"
+                                                    data="[[ $variables.EnableQuotesLovDP ]]"
+                                                    value="{{ $variables.EnableQuotesSel }}"
+                                                    on-value-changed="[[$listeners.onToggleChanged]]"
+                                                    data-setting-key="ENABLE_QUOTES"
+                                                    data-setting-category="SYSTEM"
+                                                    data-setting-description="Which request flows can raise a quote (NONE / PROJECTS / CUSTOMER / BOTH)"
+                                                    help.instruction="Gates the Generate Quote and quote-accept paths. Existing quotes stay viewable if this later excludes a flow."></oj-select-single>
+                                            </div>
+                                        </div>
+
+                                        <!-- Week Config — WEEK_CONFIG_ENABLED toggle; when ON, the admin picks the
+                                             week-ENDING day (WEEK_END_DAY, all 7 days). The 7-day week's start is
+                                             derived (end − 6); there is no separate start-day setting (spec D1). The
+                                             select is disabled until the toggle is ON (no default — admin must pick),
+                                             and locks again once WEEK_END_DAY has a saved value — this is a one-time
+                                             config, not editable after the initial pick. Cancel (before Save) still
+                                             reverts an unsaved pick and re-enables it. Timesheet honoring is a later
+                                             wiring phase. -->
+                                        <div class="toggle-card" style="flex-direction: column; align-items: stretch;">
+                                            <div class="oj-flex oj-sm-align-items-center oj-sm-justify-content-space-between">
+                                                <div>
+                                                    <div class="toggle-card-label">FIXED WEEK-ENDING DAY</div>
+                                                    <div class="toggle-card-desc">Enable a fixed week-ending day for
+                                                        timesheet periods. When ON, pick the week-ending day below; the
+                                                        7-day week starts 6 days before it.</div>
+                                                </div>
+                                                <oj-switch
+                                                    value="[[ $page.functions.getSettingBool($page.variables.ConfigSettingsMap, 'WEEK_CONFIG_ENABLED') ]]"
+                                                    data-setting-key="WEEK_CONFIG_ENABLED"
+                                                    data-setting-category="FEATURE_FLAG"
+                                                    data-setting-description="Enable fixed week-ending day for timesheets" label-edge="none"
+                                                    on-value-changed="[[$listeners.onToggleChanged]]"></oj-switch>
+                                            </div>
+                                            <div class="oj-flex oj-sm-gap-4x oj-sm-margin-3x-top">
+                                                <oj-select-single label-hint="WEEK END DAY" label-edge="inside"
+                                                    placeholder="— Select Day —" style="max-width: 220px;"
+                                                    data="[[ $variables.daysOfWeekDP ]]"
+                                                    value="{{ $variables.WeekEndDaySel }}"
+                                                    disabled="[[ !$page.functions.getSettingBool($page.variables.ConfigSettingsMap, 'WEEK_CONFIG_ENABLED') || $page.functions.getSettingValue($page.variables.ConfigSettingsMap, 'WEEK_END_DAY', '') !== '' ]]"
+                                                    on-value-changed="[[$listeners.onToggleChanged]]"
+                                                    data-setting-key="WEEK_END_DAY"
+                                                    data-setting-category="SYSTEM"
+                                                    data-setting-description="Week-ending day for timesheet periods"></oj-select-single>
+                                                <!-- Admin escape hatch: WEEK_END_DAY locks once saved (one-time
+                                                     setting, see the disabled expression above). Enabled only once
+                                                     it's actually locked, so business can still change it later via
+                                                     an explicit confirm rather than editing the DB directly. -->
+                                                <oj-button display="icons" chroming="borderless"
+                                                    title="Reset — unlock to change the week-ending day"
+                                                    disabled="[[ $page.functions.getSettingValue($page.variables.ConfigSettingsMap, 'WEEK_END_DAY', '') === '' ]]"
+                                                    on-oj-action="[[ function() { var d = document.getElementById('weekEndDayResetDialog'); if (d) d.open(); } ]]">
+                                                    <span slot="startIcon" class="oj-ux-ico-refresh"></span>
+                                                    <span>Reset</span>
+                                                </oj-button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Notification Preferences -->
+                                <div class="settings-group">
+                                    <div class="settings-group-header">
+                                        <div class="settings-group-icon icon-orange">
+                                            <span class="oj-ux-ico-bell" style="font-size: 20px;"></span>
+                                        </div>
+                                        <div>
+                                            <div class="settings-group-title">Notification Preferences</div>
+                                            <div class="settings-group-subtitle">OIC-triggered email events active in
+                                                PROD-SIM mode.</div>
+                                        </div>
+                                    </div>
+                                    <div class="settings-content">
+                                        <div class="toggle-card oj-sm-margin-4x-bottom">
+                                            <div>
+                                                <div class="toggle-card-label">EMAIL NOTIFICATIONS</div>
+                                                <div class="toggle-card-desc">Master switch for all OIC email
+                                                    notifications. When OFF, every individual event below is suppressed.
+                                                </div>
+                                            </div>
+                                            <oj-switch
+                                                value="[[ $page.functions.getSettingBool($page.variables.ConfigSettingsMap, 'EMAIL_NOTIFICATIONS_ENABLED') ]]"
+                                                data-setting-key="EMAIL_NOTIFICATIONS_ENABLED"
+                                                data-setting-category="NOTIFICATION"
+                                                data-setting-description="Master OIC email switch" label-edge="none"
+                                                on-value-changed="[[$listeners.onToggleChanged]]"></oj-switch>
+                                        </div>
+                                        <div class="oj-flex oj-sm-flex-wrap-nowrap oj-sm-gap-4x">
+                                            <div class="oj-flex-item toggle-card" style="margin-bottom: 0;">
+                                                <div class="toggle-card-label" style="font-size: 12px;">
+                                                    NOTIFY ON APPROVAL</div>
+                                                <oj-switch
+                                                    value="[[ $page.functions.getSettingBool($page.variables.ConfigSettingsMap, 'NOTIFY_ON_APPROVAL') ]]"
+                                                    data-setting-key="NOTIFY_ON_APPROVAL"
+                                                    data-setting-category="NOTIFICATION"
+                                                    data-setting-description="Email on approval" label-edge="none"
+                                                    on-value-changed="[[$listeners.onToggleChanged]]"></oj-switch>
+                                            </div>
+                                            <div class="oj-flex-item toggle-card" style="margin-bottom: 0;">
+                                                <div class="toggle-card-label" style="font-size: 12px;">
+                                                    NOTIFY ON REJECTION</div>
+                                                <oj-switch
+                                                    value="[[ $page.functions.getSettingBool($page.variables.ConfigSettingsMap, 'NOTIFY_ON_REJECTION') ]]"
+                                                    data-setting-key="NOTIFY_ON_REJECTION"
+                                                    data-setting-category="NOTIFICATION"
+                                                    data-setting-description="Email on rejection" label-edge="none"
+                                                    on-value-changed="[[$listeners.onToggleChanged]]"></oj-switch>
+                                            </div>
+                                            <div class="oj-flex-item toggle-card" style="margin-bottom: 0;">
+                                                <div class="toggle-card-label" style="font-size: 12px;">
+                                                    NOTIFY ON ALLOCATION</div>
+                                                <oj-switch
+                                                    value="[[ $page.functions.getSettingBool($page.variables.ConfigSettingsMap, 'NOTIFY_ON_ALLOCATION') ]]"
+                                                    data-setting-key="NOTIFY_ON_ALLOCATION"
+                                                    data-setting-category="NOTIFICATION"
+                                                    data-setting-description="Email on allocation" label-edge="none"
+                                                    on-value-changed="[[$listeners.onToggleChanged]]"></oj-switch>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+
+                        <!-- Equipment Manager Section — BU Settings only (the former
+                             Controls & Limits sub-tab was removed, so this tab no longer
+                             needs a sub-tab bar / oj-switcher; the BU Settings content is
+                             rendered directly). -->
+                        <div slot="equipmentManagerTab" style="display: block; min-width: 0; max-width: 100%; overflow-x: hidden;">
+                            <div id="section-equipmentManagerTab"
+                                class="oj-flex oj-sm-flex-direction-column oj-sm-gap-4x oj-sm-margin-6x-bottom"
+                                style="min-width: 0; max-width: 100%;">
+
+                                        <div class="settings-group" style="min-width: 0; max-width: 100%;">
+                                            <div
+                                                class="settings-group-header oj-flex oj-sm-align-items-center oj-sm-justify-content-space-between">
+                                                <div class="oj-flex oj-sm-align-items-center oj-sm-gap-4x">
+                                                    <div class="settings-group-icon icon-blue">
+                                                        <span class="oj-ux-ico-building"
+                                                            style="font-size: 20px;"></span>
+                                                    </div>
+                                                    <div>
+                                                        <div class="settings-group-title">BU Settings</div>
+                                                        <div class="settings-group-subtitle">Configure
+                                                            business-unit-level equipment billing, inventory
+                                                            organisations, timesheet, and document rules. One row per
+                                                            business unit.</div>
+                                                    </div>
+                                                </div>
+                                                <oj-button chroming="callToAction"
+                                                    style="--oj-button-cta-bg-color: #0f172a; flex: 0 0 auto;"
+                                                    on-oj-action="[[ $listeners.onEsAddClicked ]]">
+                                                    <span slot="startIcon" class="oj-ux-ico-plus"></span>
+                                                    <span>Add BU Settings</span>
+                                                </oj-button>
+                                            </div>
+                                            <div class="settings-content" style="background-color: #ffffff;">
+
+                                                <!-- One-row-per-BU table. LOV codes render as labels; the two flags
+                                             render Yes/No. Matches the confined-table pattern used by the other
+                                             tabs (Equipment Classes / BU & Org): oj-flex-item + min-width:0
+                                             wrapper and NO min-width on the table, so columns compress to fit
+                                             the screen (weight sets proportion) instead of forcing a fixed
+                                             width that overflowed the tab. -->
+                                                <div class="oj-flex-item" style="flex: 1 1 auto; min-width: 0;">
+                                                    <oj-table class="audit-table es-bu-table"
+                                                        data="[[ $variables.EsSettingsByBuADP ]]" columns='[
+                                                    {"headerText": "BUSINESS UNIT", "field": "buName", "weight": 2},
+                                                    {"headerText": "RATE SOURCE", "field": "RATE_SOURCE", "template": "esRateSourceTemplate", "weight": 2},
+                                                    {"headerText": "PASS PROC COST", "field": "PASS_PROCUREMENT_COST", "template": "esPassProcCostTemplate", "weight": 1.5},
+                                                    {"headerText": "PROC MARKUP", "field": "MARGIN_PERCENTAGE", "template": "esMarkupTemplate", "weight": 1.2},
+                                                    {"headerText": "PROJECT TXN SOURCE", "field": "PPM_TRANS_SOURCE", "weight": 2},
+                                                    {"headerText": "BATCH PREFIX", "field": "PPM_BATCH_PREFIX", "weight": 2},
+                                                    {"headerText": "TIMESHEET", "field": "ADHOC_TIMESHEET_ENABLED", "template": "esTimesheetTemplate", "weight": 1.5},
+                                                    {"headerText": "ACTIONS", "field": "action", "template": "esRowActionTemplate", "weight": 0.7, "sortable": "disable"}
+                                                ]' layout="fixed"
+                                                        style="--oj-table-header-bg-color: #0f172a; --oj-table-header-text-color: #ffffff;">
+                                                        <!-- Global Fusion PPM Rates ON overrides every BU (see
+                                                             usesPpmRates in app-flow.js), so show what applies. The
+                                                             BU's own choice is kept and applies again when it is off. -->
+                                                        <template slot="esRateSourceTemplate">
+                                                            <oj-bind-text
+                                                                value="[[ $page.functions.getSettingBool($page.variables.ConfigSettingsMap, 'PPM_RATES_ENABLED')
+                                                                    ? 'PPM Rates (global)'
+                                                                    : $page.functions.esLovLabel($current.row.RATE_SOURCE, $page.variables.CostingLovArray) ]]"></oj-bind-text>
+                                                        </template>
+                                                        <template slot="esPassProcCostTemplate">
+                                                            <oj-bind-text
+                                                                value="[[ $page.functions.esYesNo($current.row.PASS_PROCUREMENT_COST) ]]"></oj-bind-text>
+                                                        </template>
+                                                        <!-- Dash for unset, "0%" for a deliberate zero: the two mean
+                                                             different things to a reader even though the views NVL them
+                                                             to the same arithmetic. -->
+                                                        <template slot="esMarkupTemplate">
+                                                            <oj-bind-text
+                                                                value="[[ $current.row.MARGIN_PERCENTAGE != null ? $current.row.MARGIN_PERCENTAGE + '%' : '—' ]]"></oj-bind-text>
+                                                        </template>
+                                                        <template slot="esTimesheetTemplate">
+                                                            <oj-bind-text
+                                                                value="[[ $page.functions.esYesNo($current.row.ADHOC_TIMESHEET_ENABLED) ]]"></oj-bind-text>
+                                                        </template>
+                                                        <template slot="esRowActionTemplate">
+                                                            <oj-button display="icons" chroming="borderless"
+                                                                title="Edit"
+                                                                on-oj-action="[[ () => $listeners.onEsEditClicked({ detail: { buId: $current.row.buId } }) ]]">
+                                                                <span slot="startIcon" class="oj-ux-ico-edit"></span>
+                                                                <span>Edit</span>
+                                                            </oj-button>
+                                                        </template>
+                                                    </oj-table>
+                                                </div>
+
+                                            </div>
+                                        </div>
+
+                            </div>
+                        </div>
+
+                        <!-- Equipment Classes Section -->
+                        <!-- Standalone class/subclass configuration screen
+                         (MD/EquipRite_Equipment_Class_Config_Context.md). Admin picks a class from
+                         the dropdown; the grid lists that class's subclasses with the Consumable
+                         (existing) and Auto-Consume (V312) flags.
+                         LIVE DATA: classes come from EQR_EQUIPMENT_CLASS (eqp-v1/getEquipmentClasses);
+                         subclasses from EQR_EQUIPMENT_SUBCLASS (eqp-v1/getAllSubclasses, loaded flat via
+                         loadAllSubclassesChain and filtered client-side by the class/subclass LOVs).
+                         Subclasses are NOT defined here — they originate in Fusion; this screen
+                         only sets the behaviour flags on them.
+                         SCOPE: reads/writes only the consumableFlag and autoConsumeFlag —
+                         it never renders or edits the inspection_* columns (context §8; those belong
+                         to the Inspection page). -->
+                        <div slot="equipmentClassesTab">
+                            <!-- Two sub-tabs: Class Mapping (pull Fusion classes in) comes first
+                                 because a class has to exist before its subclass flags can be set. -->
+                            <oj-tab-bar selection="{{ $variables.selectedClassSubTab }}" edge="top"
+                                class="oj-sm-margin-4x-bottom" style="border-bottom: 1px solid var(--border-color);">
+                                <ul>
+                                    <li id="classMappingSubTab">
+                                        <a href="#"><span class="oj-tabbar-item-label">Class Mapping</span></a>
+                                    </li>
+                                    <li id="classSubclassSubTab">
+                                        <a href="#"><span class="oj-tabbar-item-label">Classes &amp; Subclasses</span></a>
+                                    </li>
+                                </ul>
+                            </oj-tab-bar>
+
+                            <oj-switcher value="[[ $variables.selectedClassSubTab ]]" style="display: block; min-width: 0; max-width: 100%;">
+
+                            <!-- Class Mapping: map WHICH Fusion column holds the equipment class and
+                                 subclass per classification source; classes are created from the
+                                 distinct values, and the item import assigns items by the same columns. -->
+                            <div slot="classMappingSubTab">
+                            <div id="section-classMappingSubTab"
+                                class="oj-flex oj-sm-flex-direction-column oj-sm-gap-4x oj-sm-margin-6x-bottom">
+                                <div class="settings-group">
+                                    <div class="settings-group-header oj-flex oj-sm-align-items-center oj-sm-justify-content-space-between">
+                                        <div class="settings-group-title">Classification Settings</div>
+                                    </div>
+                                    <div class="settings-content" style="background-color: #ffffff;">
+                                        <!-- ASSET CLASSIFICATION SOURCE: CLASS_MAPPING_SOURCE_OF_TRUTH -- which ONE
+                                             of Fixed Assets / Maintenance is offered beside Inventory.
+                                             SOURCE PRECEDENCE: CLASS_MAPPING_PRECEDENCE, the ordered source list
+                                             the item import reads. Both saved on change. -->
+                                        <div style="max-width: 820px;">
+                                            <oj-form-layout max-columns="2" label-edge="top" direction="row" column-gap="16px">
+                                                <oj-select-single label-hint="ASSET CLASSIFICATION SOURCE"
+                                                    data="[[ $variables.ClassMapTruthLovDP ]]"
+                                                    value="{{ $variables.ClassMapTruthSel }}"
+                                                    disabled="[[ $variables.isClassMapTruthSaving ]]"
+                                                    placeholder="Not configured"
+                                                    on-value-changed="[[ $listeners.onClassMapTruthChanged ]]"
+                                                    help.instruction="Inventory is always available. Select whether asset classifications come from Fixed Assets or Maintenance. Applies to all users."></oj-select-single>
+                                                <oj-select-single label-hint="SOURCE PRECEDENCE"
+                                                    data="[[ $variables.ClassMapPrecedenceLovDP ]]"
+                                                    value="{{ $variables.ClassMapPrecedenceSel }}"
+                                                    disabled="[[ !$variables.ClassMapTruthSel || $variables.isClassMapPrecedenceSaving ]]"
+                                                    placeholder="[[ $variables.ClassMapTruthSel ? 'Default: ' + $page.functions.classMapPrecedenceLabel($variables.ClassMapTruthSel + ',INVENTORY') : 'Not configured' ]]"
+                                                    on-value-changed="[[ $listeners.onClassMapPrecedenceChanged ]]"
+                                                    help.instruction="The item import classifies each item from the first source in this order that has data for it. Applies to all users."></oj-select-single>
+                                            </oj-form-layout>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="settings-group">
+                                    <div class="settings-group-header oj-flex oj-sm-align-items-center oj-sm-justify-content-space-between">
+                                        <div class="settings-group-title">Class &amp; Subclass Columns</div>
+                                    </div>
+                                    <div class="settings-content" style="background-color: #ffffff;">
+                                        <!-- WHICH Fusion column holds the equipment class / subclass, per
+                                             classification source. Field groups and columns come from
+                                             EQP_CATEGORY_LOV_RP TYPES (loadClassMapTypesChain). One mapping per
+                                             source, saved as CLASS_MAPPING_COLUMNS_<SOURCE> (saveColumnMappingChain).
+                                             Classes are then created from the distinct values (Classes & Subclasses
+                                             tab, Create from Fusion); the item import assigns items by the same columns. -->
+                                        <div class="oj-flex oj-sm-flex-direction-column oj-sm-gap-4x">
+                                            <!-- The 3-column form (class pickers on row 1, subclass pickers under them)
+                                                 with Save Mapping beside it, bottom-aligned to the subclass row. -->
+                                            <div style="display: flex; align-items: flex-end; gap: 16px;">
+                                            <div style="flex: 0 1 1200px; min-width: 0;">
+                                            <oj-form-layout max-columns="3" label-edge="top" direction="row" column-gap="16px">
+                                                <oj-select-single label-hint="CLASSIFICATION SOURCE"
+                                                    data="[[ $variables.ClassMapSourceLovDP ]]"
+                                                    value="{{ $variables.ColumnMapDraft.sourceType }}"
+                                                    on-value-changed="[[ $listeners.onColumnMapSourceChanged ]]"></oj-select-single>
+                                                <oj-select-single label-hint="CLASS FIELD GROUP" required="true"
+                                                    data="[[ $variables.ColumnMapClassGroupDP ]]"
+                                                    value="{{ $variables.ColumnMapDraft.classGroup }}"
+                                                    placeholder="Select a field group"
+                                                    on-value-changed="[[ $listeners.onColumnMapClassGroupChanged ]]"></oj-select-single>
+                                                <oj-select-single label-hint="CLASS COLUMN" required="true"
+                                                    data="[[ $variables.ColumnMapClassColumnDP ]]"
+                                                    value="{{ $variables.ColumnMapDraft.classColumn }}"
+                                                    disabled="[[ !$variables.ColumnMapDraft.classGroup ]]"
+                                                    placeholder="[[ $variables.ColumnMapDraft.classGroup ? 'Select a column' : 'Select a field group first' ]]"></oj-select-single>
+                                                <!-- spacer keeps the subclass pickers under the class pickers -->
+                                                <div></div>
+                                                <oj-select-single label-hint="SUBCLASS FIELD GROUP"
+                                                    data="[[ $variables.ColumnMapSubGroupDP ]]"
+                                                    value="{{ $variables.ColumnMapDraft.subclassGroup }}"
+                                                    placeholder="Select a field group"
+                                                    on-value-changed="[[ $listeners.onColumnMapSubGroupChanged ]]"></oj-select-single>
+                                                <oj-select-single label-hint="SUBCLASS COLUMN"
+                                                    data="[[ $variables.ColumnMapSubColumnDP ]]"
+                                                    value="{{ $variables.ColumnMapDraft.subclassColumn }}"
+                                                    disabled="[[ !$variables.ColumnMapDraft.subclassGroup ]]"
+                                                    placeholder="[[ $variables.ColumnMapDraft.subclassGroup ? 'Select a column' : 'Select a field group first' ]]"></oj-select-single>
+                                            </oj-form-layout>
+                                            </div>
+                                            <div style="flex: none; padding-bottom: var(--oj-form-layout-margin-bottom, 16px);">
+                                                <oj-button chroming="callToAction" style="--oj-button-cta-bg-color: #0f172a;"
+                                                    disabled="[[ !$variables.ColumnMapDraft.classColumn || $variables.isColumnMapSaving ]]"
+                                                    on-oj-action="[[ $listeners.onColumnMapSaveClicked ]]">
+                                                    <span slot="startIcon" class="oj-ux-ico-save"></span>
+                                                    <span><oj-bind-text value="[[ $variables.isColumnMapSaving ? 'Saving...' : 'Save Mapping' ]]"></oj-bind-text></span>
+                                                </oj-button>
+                                            </div>
+                                            </div>
+
+                                            <oj-table class="audit-table"
+                                                data="[[ $variables.ColumnMappingsADP ]]" columns='[
+                                                {"headerText": "CLASSIFICATION SOURCE", "field": "source", "template": "colMapSourceTemplate", "weight": 2},
+                                                {"headerText": "CLASS COLUMN", "field": "classColumnName", "template": "colMapClassTemplate", "weight": 3},
+                                                {"headerText": "SUBCLASS COLUMN", "field": "subclassColumnName", "template": "colMapSubTemplate", "weight": 3},
+                                                {"headerText": "", "field": "action", "template": "colMapActionTemplate", "sortable": "disable", "weight": 2}
+                                            ]' layout="fixed"
+                                                style="--oj-table-header-bg-color: #0f172a; --oj-table-header-text-color: #ffffff;">
+                                                <template slot="noData">
+                                                    <div class="oj-sm-padding-6x oj-text-color-secondary">No column mappings saved yet.</div>
+                                                </template>
+                                                <template slot="colMapSourceTemplate">
+                                                    <div><oj-bind-text value="[[ $page.functions.fusionSourceLabel($current.row.source) ]]"></oj-bind-text></div>
+                                                    <oj-bind-if test="[[ !$page.functions.isAllowedSource($current.row.source, $variables.ClassMapTruthSel) ]]">
+                                                        <div class="oj-typography-body-xs" style="color: #b45309;">Inactive source</div>
+                                                    </oj-bind-if>
+                                                </template>
+                                                <template slot="colMapClassTemplate">
+                                                    <div><oj-bind-text value="[[ $current.row.classColumnName ]]"></oj-bind-text></div>
+                                                    <div class="oj-typography-body-xs oj-text-color-secondary">
+                                                        <oj-bind-text value="[[ $page.functions.fieldGroupLabel($current.row.source, $current.row.classGroup, $variables.ClassMapTypesArray) ]]"></oj-bind-text>
+                                                    </div>
+                                                </template>
+                                                <template slot="colMapSubTemplate">
+                                                    <div><oj-bind-text value="[[ $current.row.subclassColumnName || '—' ]]"></oj-bind-text></div>
+                                                    <div class="oj-typography-body-xs oj-text-color-secondary">
+                                                        <oj-bind-text value="[[ $current.row.subclassGroup ? $page.functions.fieldGroupLabel($current.row.source, $current.row.subclassGroup, $variables.ClassMapTypesArray) : '' ]]"></oj-bind-text>
+                                                    </div>
+                                                </template>
+                                                <template slot="colMapActionTemplate">
+                                                    <oj-button display="icons" chroming="borderless" title="Remove column mapping"
+                                                        on-oj-action="[[ () => $listeners.onColumnMapRemoveClicked({ detail: { source: $current.row.source } }) ]]">
+                                                        <span slot="startIcon" class="oj-ux-ico-trash"></span>
+                                                        <span>Remove</span>
+                                                    </oj-button>
+                                                </template>
+                                            </oj-table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            </div>
+
+                            <!-- Classes & Subclasses: the original Equipment Classes screen. -->
+                            <div slot="classSubclassSubTab">
+                            <div id="section-equipmentClassesTab"
+                                class="oj-flex oj-sm-flex-direction-column oj-sm-gap-4x oj-sm-margin-6x-bottom">
+
+                                <div class="settings-group">
+                                    <div
+                                        class="settings-group-header oj-flex oj-sm-align-items-center oj-sm-justify-content-space-between">
+                                        <div class="oj-flex oj-sm-align-items-center oj-sm-gap-4x">
+                                            <div class="settings-group-icon icon-teal">
+                                                <span class="oj-ux-ico-layers" style="font-size: 20px;"></span>
+                                            </div>
+                                            <div>
+                                                <div class="settings-group-title">Equipment Classes &amp; Subclasses
+                                                </div>
+                                                <div class="settings-group-subtitle">Set the behaviour flags on each
+                                                    subclass: Consumable (used up / not returned) and Auto-Consume (on
+                                                    delivery acceptance, issue the material transaction straight away
+                                                    instead of waiting for a manual one). Classes and subclasses
+                                                    originate in Fusion.</div>
+                                            </div>
+                                        </div>
+                                        <div class="oj-flex oj-sm-align-items-center oj-sm-gap-3x">
+                                        <!-- Delete the currently-selected class (soft-delete). Enabled only when a
+                                             class is selected. Backend rejects (409) if active subclasses remain.
+                                             Sits next to the Add Class button in the header row. -->
+                                        <oj-button chroming="outlined"
+                                                   style="margin-right: 12px;"
+                                                   disabled="[[ !$variables.EquipmentClassSelectedId ]]"
+                                                   on-oj-action="[[ $listeners.onDeleteClassClicked ]]">
+                                            <span slot="startIcon" class="oj-ux-ico-trash"></span>
+                                            <span>Delete Class</span>
+                                        </oj-button>
+                                        <!-- Bulk create from the saved column mappings (classFusionDialog). -->
+                                        <oj-button chroming="outlined"
+                                            style="margin-right: 12px;"
+                                            on-oj-action="[[ $listeners.onClassMapBulkOpen ]]">
+                                            <span slot="startIcon" class="oj-ux-ico-download"></span>
+                                            <span>Create from Fusion</span>
+                                        </oj-button>
+                                        <oj-button chroming="callToAction" style="--oj-button-cta-bg-color: #0f172a;"
+                                            on-oj-action="[[ $listeners.onAddClassDrawerOpen ]]">
+                                            <span slot="startIcon" class="oj-ux-ico-plus"></span>
+                                            <span>Add Class</span>
+                                        </oj-button>
+                                    </div>
+                                </div>
+                                <div class="settings-content" style="background-color: #ffffff;">
+
+                                        <div class="oj-flex oj-sm-flex-direction-column oj-sm-gap-4x">
+
+                                            <!-- Class selector (LOV). EQR_EQUIPMENT_CLASS rows. Selecting a class
+                                             filters the already-loaded subclass grid via applyClassFilterChain. -->
+                                            <div class="oj-flex oj-sm-flex-wrap-nowrap oj-sm-gap-4x"
+                                                style="max-width: 760px;">
+                                                <oj-form-layout max-columns="2" label-edge="top" direction="row"
+                                                    column-gap="16px" style="flex: 1 1 auto; min-width: 0;">
+                                                    <oj-select-single label-hint="EQUIPMENT CLASS"
+                                                        placeholder="— Select Class —"
+                                                        data="[[ $variables.EquipmentClassConfigLovDP ]]"
+                                                        value="{{ $variables.EquipmentClassSelectedId }}"
+                                                        on-value-changed="[[ $listeners.onEquipClassLovSelected ]]"></oj-select-single>
+                                                    <oj-select-single label-hint="EQUIPMENT SUBCLASS"
+                                                        placeholder="— All Subclasses —"
+                                                        data="[[ $variables.EquipmentSubclassConfigLovDP ]]"
+                                                        value="{{ $variables.EquipmentSubclassSelectedId }}"
+                                                        disabled="[[ !$variables.EquipmentClassSelectedId ]]"></oj-select-single>
+                                                </oj-form-layout>
+                                                <!-- Top margin offsets the form-layout's label row so the button lines up with the input boxes (label-edge=top). -->
+                                                <oj-button chroming="callToAction"
+                                                    style="flex: 0 0 auto; margin-top: 22px; --oj-button-cta-bg-color: #0f172a;"
+                                                    disabled="[[ !$variables.EquipmentClassSelectedId && !$variables.EquipmentSubclassSelectedId ]]"
+                                                    on-oj-action="[[ $listeners.onClassFilterClearClicked ]]">
+                                                    <span slot="startIcon" class="oj-ux-ico-erase"></span>
+                                                    <span>Clear</span>
+                                                </oj-button>
+                                            </div>
+
+                                            <!-- Subclass grid for the selected class. -->
+                                            <div class="oj-flex-item" style="flex: 1 1 auto; min-width: 0;">
+
+                                                <oj-table class="audit-table"
+                                                    data="[[ $variables.EquipmentSubclassADP ]]" columns='[
+                                                    {"headerText": "CLASS", "field": "className", "weight": 2},
+                                                    {"headerText": "SUBCLASS NAME", "field": "subclassName", "weight": 2},
+                                                    {"headerText": "TYPE", "field": "trackingType", "template": "trackingTypeTemplate", "weight": 2},
+                                                    {"headerText": "FUSION SOURCE", "field": "fusionSubclassRef", "template": "fusionSourceTemplate", "weight": 3},
+                                                    {"headerText": "CONSUMABLE", "field": "consumableFlag", "template": "consumableTemplate", "weight": 1.5},
+                                                    {"headerText": "AUTO-CONSUME", "field": "autoConsumeFlag", "template": "autoConsumeTemplate", "weight": 1.5},
+                                                    {"headerText": "", "field": "action", "template": "classEditTemplate", "sortable": "disable", "weight": 2}
+                                                ]' layout="fixed" scroll-policy="loadMoreOnScroll"
+                                                    scroll-policy-options.fetch-size="50"
+                                                    style="height: 480px; --oj-table-header-bg-color: #0f172a; --oj-table-header-text-color: #ffffff;">
+                                                    <!-- Read-only display: Consumable / Auto-Consume show as Yes / No;
+                                                     Buffer Period shows the plain number. All three are edited via the
+                                                     pencil (edit) action, which opens the Edit Subclass dialog. -->
+                                                <!-- TYPE — the subclass's default tracking intent for NEW items
+                                                     (Inventory / Maintenance / Fixed Assets / Custom). DESCRIPTIVE,
+                                                     NOT ENFORCING: the three tracking axes on EQR_EQUIPMENT_MASTER are
+                                                     independent and combinable, so a subclass can hold items that
+                                                     disagree with this value and that is not an error. -->
+                                                <template slot="trackingTypeTemplate">
+                                                    <oj-bind-text value="[[ $page.functions.trackingTypeLabel($current.row.trackingType) ]]"></oj-bind-text>
+                                                </template>
+                                                <template slot="consumableTemplate">
+                                                    <oj-bind-text value="[[ $current.row.consumableFlag === 'Y' ? 'Yes' : 'No' ]]"></oj-bind-text>
+                                                </template>
+                                                <template slot="autoConsumeTemplate">
+                                                    <oj-bind-text value="[[ $current.row.autoConsumeFlag === 'Y' ? 'Yes' : 'No' ]]"></oj-bind-text>
+                                                </template>
+                                                <!-- TIMESHEET ENTRY + BUFFER PERIOD columns HIDDEN from this table (2026-09-30,
+                                                     user request). Only the column defs were removed; this template and the
+                                                     Edit Subclass dialog fields are untouched, so restoring is two lines.
+                                                     TIMESHEET ENTRY — the per-subclass control from the two-level model
+                                                     (requirements §0 Level 2): Yes = serials of this subclass appear on the
+                                                     timesheet for utilization capture; No = complete-period/direct only.
+                                                     Column (V201), DTO property and mapper all exist and PATCH persists
+                                                     it — the round trip is real. Every row reads "No" because nobody has
+                                                     turned it on, not because it cannot be saved. -->
+                                                <template slot="timesheetEntryTemplate">
+                                                    <oj-bind-text value="[[ $current.row.timesheetEntryEnabled === 'Y' ? 'Yes' : 'No' ]]"></oj-bind-text>
+                                                </template>
+                                                <!-- PROCUREMENT MARKUP column + template REMOVED (dormant, 2026-09-03).
+                                                     Per-subclass markup is still the intended destination — it is the
+                                                     right grain, since markup is a property of what you are procuring,
+                                                     not of who is procuring it. But the half was never built: there is
+                                                     no markup column on EQR_EQUIPMENT_SUBCLASS, so this column showed
+                                                     "—" on every row forever while the engine priced markup from the BU.
+                                                     A column that can only ever read "—" is noise, so it is gone until
+                                                     the storage exists. The DIALOG field is likewise gone and the
+                                                     procurementMarkupPct plumbing is kept — see openEditClassSubclassChain
+                                                     and saveEditClassSubclassChain. Authoring now lives on BU Settings. -->
+                                                <!-- FUSION SOURCE: where the class / subclass came from -- the
+                                                     source, mapped column and value ("Inventory · EFF Attribute 1
+                                                     = HPU"), or Custom when typed by hand. -->
+                                                <template slot="fusionSourceTemplate">
+                                                    <div><oj-bind-text value="[[ $page.functions.fusionSourceText($current.row, $variables.EquipmentClassesArray, $variables.ClassMapTypesArray).classText ]]"></oj-bind-text></div>
+                                                    <div class="oj-typography-body-xs oj-text-color-secondary">
+                                                        <oj-bind-text value="[[ $page.functions.fusionSourceText($current.row, $variables.EquipmentClassesArray, $variables.ClassMapTypesArray).subclassText ]]"></oj-bind-text>
+                                                    </div>
+                                                </template>
+                                                <!-- Remove mapping clears only the Fusion link and keeps the class /
+                                                     subclass (openUnmapChain -> classUnmapDialog -> unmapChain).
+                                                     Subclass: this subclass only. Class: the class and every
+                                                     subclass under it. -->
+                                                <template slot="classEditTemplate">
+                                                    <oj-bind-if test="[[ !!$current.row.fusionSubclassRef ]]">
+                                                        <oj-button display="icons" chroming="borderless" title="Remove subclass mapping"
+                                                            on-oj-action="[[ () => $listeners.onClassMapUnmapClicked({ detail: { level: 'SUBCLASS', classId: $current.row.classId, subclassId: $current.row.id } }) ]]">
+                                                            <span slot="startIcon" class="oj-ux-ico-erase"></span>
+                                                            <span>Remove subclass mapping</span>
+                                                        </oj-button>
+                                                    </oj-bind-if>
+                                                    <oj-bind-if test="[[ $page.functions.fusionSourceText($current.row, $variables.EquipmentClassesArray, $variables.ClassMapTypesArray).classMapped ]]">
+                                                        <oj-button display="icons" chroming="borderless" title="Remove class mapping"
+                                                            on-oj-action="[[ () => $listeners.onClassMapUnmapClicked({ detail: { level: 'CLASS', classId: $current.row.classId, subclassId: null } }) ]]">
+                                                            <span slot="startIcon" class="oj-ux-ico-close-circle"></span>
+                                                            <span>Remove class mapping</span>
+                                                        </oj-button>
+                                                    </oj-bind-if>
+                                                    <oj-button display="icons" chroming="borderless" title="Edit"
+                                                        on-oj-action="[[ () => $listeners.onEditClassSubclassClicked({ detail: { id: $current.row.id } }) ]]">
+                                                        <span slot="startIcon" class="oj-ux-ico-edit"></span>
+                                                        <span>Edit</span>
+                                                    </oj-button>
+                                                    <oj-button display="icons" chroming="borderless" title="Delete"
+                                                        on-oj-action="[[ () => $listeners.onDeleteSubclassClicked({ detail: { id: $current.row.id } }) ]]">
+                                                        <span slot="startIcon" class="oj-ux-ico-trash"></span>
+                                                        <span>Delete</span>
+                                                    </oj-button>
+                                                </template>
+                                            </oj-table>
+
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                            </oj-switcher>
+                        </div>
+
+                        <!-- BU & Org Mapping Section -->
+                        <!-- Primary configuration screen (MD/BU_TO_ORG_MAP.md §5). Admin selects an
+                         equipment Business Unit, the system lists its inventory orgs, and the admin
+                         tags each org's role: Equipment Yard / Virtual Project / Virtual Customer.
+                         LIVE FUSION: BU dropdown = finBusinessUnitsLOV SDP; table = inventoryOrganizations
+                         SDP whose q-param depends on the selected BU (project -> task LOV pattern). -->
+                        <div slot="buOrgMappingTab">
+                            <div id="section-buOrgMappingTab"
+                                class="oj-flex oj-sm-flex-direction-column oj-sm-gap-4x oj-sm-margin-6x-bottom">
+
+                                <div class="settings-group">
+                                    <!-- Add button lives in the header row (right side, next to the title) so
+                                     the table sits directly under the header. It opens the right-side drawer
+                                     (oj-drawer-popup, see #buOrgMappingDrawer below); the BU search + Yard
+                                     pickers live inside the drawer and the table here is READ-ONLY, showing
+                                     only the mappings the user has explicitly added. -->
+                                    <div
+                                        class="settings-group-header oj-flex oj-sm-align-items-center oj-sm-justify-content-space-between">
+                                        <div class="oj-flex oj-sm-align-items-center oj-sm-gap-4x">
+                                            <div class="settings-group-icon icon-blue">
+                                                <span class="oj-ux-ico-building" style="font-size: 20px;"></span>
+                                            </div>
+                                            <div>
+                                                <div class="settings-group-title">Business Unit &amp; Inventory Org
+                                                    Mapping</div>
+                                                <div class="settings-group-subtitle">Tag each inventory org under a
+                                                    business unit by role so the Transfer Order engine and cost posting
+                                                    know the source yard and the virtual destinations.</div>
+                                            </div>
+                                        </div>
+                                        <oj-button chroming="callToAction"
+                                            style="--oj-button-cta-bg-color: #0f172a; flex: 0 0 auto;"
+                                            on-oj-action="[[ $listeners.onBuOrgAddClicked ]]">
+                                            <span slot="startIcon" class="oj-ux-ico-plus"></span>Add
+                                        </oj-button>
+                                    </div>
+                                    <div class="settings-content" style="background-color: #ffffff;">
+
+                                        <!-- Toolbar: BU filter LOV (options = BUs present in the table) + Clear,
+                                         laid out like the Equipment Class tab's class filter + Clear. The
+                                         select sits inside an oj-form-layout (as the class tab does) so it
+                                         gets a proper width; the button is offset to align with the input. -->
+                                        <div class="oj-flex oj-sm-flex-wrap-nowrap oj-sm-gap-4x oj-sm-margin-4x-bottom"
+                                            style="max-width: 760px;">
+                                            <oj-form-layout max-columns="1" label-edge="top"
+                                                style="flex: 1 1 auto; min-width: 0;">
+                                                <oj-select-single label-hint="FILTER BY BUSINESS UNIT"
+                                                    placeholder="— All Business Units —"
+                                                    data="[[ $variables.BuOrgFilterLovDP ]]"
+                                                    value="{{ $variables.BuOrgFilterBUId }}"
+                                                    on-value-changed="[[ $listeners.onBuOrgFilterChanged ]]"></oj-select-single>
+                                            </oj-form-layout>
+                                            <!-- Top margin offsets the label row so the button lines up with the input box (label-edge=top). -->
+                                            <oj-button chroming="callToAction"
+                                                style="flex: 0 0 auto; margin-top: 22px; --oj-button-cta-bg-color: #0f172a;"
+                                                disabled="[[ $variables.BuOrgFilterBUId == null ]]"
+                                                on-oj-action="[[ $listeners.onBuOrgFilterClearClicked ]]">
+                                                <span slot="startIcon" class="oj-ux-ico-erase"></span>
+                                                <span>Clear</span>
+                                            </oj-button>
+                                        </div>
+
+                                        <oj-table class="audit-table" data="[[ $variables.BuOrgMappingADP ]]" columns='[
+                                            {"headerText": "BUSINESS UNIT", "field": "buName", "weight": 2},
+                                            {"headerText": "YARD", "field": "orgName", "weight": 2},
+                                            {"headerText": "ORG CODE", "field": "orgCode"},
+                                            {"headerText": "YARD TYPE", "field": "yardType", "template": "yardTypeTemplate", "weight": 2, "sortable": "disable"},
+                                            {"headerText": "LOCATION", "field": "location", "weight": 2},
+                                            {"headerText": "SUBINVENTORY", "field": "subinventoryCode", "template": "buOrgSubinvTemplate"},
+                                            {"headerText": "TRANSACTABLE", "field": "isTransactable", "template": "buOrgTransactableTemplate", "sortable": "disable"},
+                                            {"headerText": "ACTIVE", "field": "isActiveFlag", "template": "buOrgActiveTemplate", "sortable": "disable"},
+                                            {"headerText": "ACTIONS", "field": "action", "template": "buOrgRowActionTemplate", "sortable": "disable"}
+                                        ]' layout="fixed"
+                                            style="--oj-table-header-bg-color: #0f172a; --oj-table-header-text-color: #ffffff;">
+                                            <template slot="yardTypeTemplate">
+                                                <oj-bind-text
+                                                    value="[[ $current.row.yardTypeLabel || $current.row.yardType ]]"></oj-bind-text>
+                                            </template>
+                                            <!-- SUBINVENTORY — optional; '—' when none. Set via Add or the row's Edit dialog. -->
+                                            <template slot="buOrgSubinvTemplate">
+                                                <oj-bind-text
+                                                    value="[[ $current.row.subinventoryCode || '—' ]]"></oj-bind-text>
+                                            </template>
+                                            <!-- TRANSACTABLE — read-only Yes/No; changed via the row's Edit dialog. -->
+                                            <template slot="buOrgTransactableTemplate">
+                                                <oj-bind-text
+                                                    value="[[ $current.row.isTransactable === 'N' ? 'No' : 'Yes' ]]"></oj-bind-text>
+                                            </template>
+                                            <!-- ACTIVE toggle — enable/disable this mapping. One-way bound to the
+                                                 stored flag; on change, toggleBuOrgActiveChain PATCHes isActiveFlag
+                                                 by id (guarded so the post-reload re-render doesn't re-fire). -->
+                                            <template slot="buOrgActiveTemplate">
+                                                <oj-switch value="[[ $current.row.isActiveFlag !== 'N' ]]" label-edge="none"
+                                                    on-value-changed="[[ (e) => $listeners.onBuOrgActiveToggled({ detail: { rowKey: $current.row.rowKey, value: e.detail.value } }) ]]"></oj-switch>
+                                            </template>
+                                            <!-- ACTIONS — a kebab (⋮) button opens the shared row menu
+                                                 (Edit / Delete) anchored to this row. data-row-key carries which
+                                                 row; openBuOrgRowMenuChain stashes it + opens #buOrgRowMenu. -->
+                                            <template slot="buOrgRowActionTemplate">
+                                                <oj-button display="icons" chroming="borderless" title="Actions"
+                                                    on-oj-action="[[ $listeners.onBuOrgRowMenuClicked ]]"
+                                                    :data-row-key="[[ $current.row.rowKey ]]">
+                                                    <span slot="startIcon" class="oj-ux-ico-menu-overflow"></span>
+                                                    <span>Actions</span>
+                                                </oj-button>
+                                            </template>
+                                        </oj-table>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Agreement Types Section -->
+                        <!-- Expenditure Type Mapping -->
+                        <div slot="expTypeMapTab">
+                            <div id="section-expTypeMapTab"
+                                class="oj-flex oj-sm-flex-direction-column oj-sm-gap-4x oj-sm-margin-6x-bottom">
+                                <div class="settings-group">
+                                    <div class="settings-group-header">
+                                        <div class="settings-group-icon icon-blue">
+                                            <span class="oj-ux-ico-link" style="font-size: 20px;"></span>
+                                        </div>
+                                        <div>
+                                            <div class="settings-group-title">Expenditure Types</div>
+                                            <div class="settings-group-subtitle">Which Fusion expenditure types each
+                                                piece of equipment bills under. A timesheet offers every type the
+                                                project may be charged under &mdash; hundreds of them &mdash; and
+                                                these mappings narrow that to the two or three that belong to the
+                                                equipment on the row. Unmapped equipment still shows the full list,
+                                                so nothing breaks while this is incomplete.</div>
+                                        </div>
+                                    </div>
+                                    <div class="settings-content" style="background-color: #ffffff; padding: 24px;">
+
+                                        <!-- Add panel. Scope first, then the type: Equipment is the everyday grain
+                                             (one row per model), Subclass and Class are there so a whole family that
+                                             bills the same way can be done in one row instead of thirty. Most
+                                             specific wins on the timesheet, and never a union - an Equipment-level
+                                             mapping REPLACES its subclass's rather than adding to it. -->
+                                        <div
+                                            style="border: 1px solid #dbe4f0; border-radius: 8px; padding: 16px 20px; margin-bottom: 20px; background-color: #f0f6fc;">
+                                            <div class="oj-flex oj-sm-align-items-center"
+                                                style="gap: 12px; flex-wrap: wrap;">
+                                                <oj-select-single label-hint="Applies to" label-edge="inside"
+                                                    value="{{ $variables.NewExpTypeMap.scopeType }}"
+                                                    style="width: 170px; flex: 0 0 auto;"
+                                                    on-value-changed="[[ (e) => { if (e.detail.updatedFrom === 'internal') { $listeners.onExpTypeScopeTypeChanged({ detail: { value: e.detail.value } }); } } ]]"
+                                                    data="[[ $variables.ExpTypeScopeKindLovDP ]]"></oj-select-single>
+
+                                                <oj-select-single label-hint="Equipment / subclass / class"
+                                                    label-edge="inside" value="{{ $variables.NewExpTypeMap.scopeId }}"
+                                                    style="width: 360px; flex: 0 0 auto;"
+                                                    data="[[ $variables.ExpTypeScopeLovDP ]]"></oj-select-single>
+
+                                                <!-- Keyed on the NAME, not the Fusion id: the id is null on most of
+                                                     these, and EQR_REQUEST_LINE.EXPENDITURE_TYPE stores a name. If the
+                                                     Fusion list cannot be reached this falls back to the four values
+                                                     proven accepted by unprocessedProjectCosts, so the screen is never
+                                                     unusable. -->
+                                                <oj-select-single label-hint="Expenditure type" label-edge="inside"
+                                                    value="{{ $variables.NewExpTypeMap.expenditureType }}"
+                                                    placeholder="e.g. UT Unit - Operational Day Rate"
+                                                    style="width: 380px; flex: 0 0 auto;"
+                                                    data="[[ $variables.FusionExpTypeLovDP ]]"></oj-select-single>
+
+                                                <oj-button chroming="callToAction"
+                                                    style="--oj-button-cta-bg-color: #0f172a;"
+                                                    on-oj-action="[[ $listeners.onExpTypeMapAddClicked ]]">
+                                                    <span slot="startIcon" class="oj-ux-ico-plus"></span>Add Mapping
+                                                </oj-button>
+                                            </div>
+                                            <div style="font-size: 12px; color: #64748b; margin-top: 10px;">
+                                                The unit in brackets is the expenditure type's own &mdash; it decides
+                                                whether a timesheet box means a day or an hour. The first type added
+                                                to a scope becomes its default.
+                                            </div>
+                                        </div>
+
+                                        <!-- Filters. Server-side: this table is the one thing here that grows. -->
+                                        <div class="oj-flex oj-sm-align-items-center oj-sm-margin-2x-bottom"
+                                            style="gap: 12px; flex-wrap: wrap;">
+                                            <oj-select-single label-hint="Scope" label-edge="inside"
+                                                value="{{ $variables.ExpTypeMapFilterScope }}"
+                                                style="width: 190px; flex: 0 0 auto;"
+                                                on-value-changed="[[ (e) => { if (e.detail.updatedFrom === 'internal') { $listeners.onExpTypeMapFilterChanged(); } } ]]"
+                                                data="[[ $variables.ExpTypeScopeFilterLovDP ]]"></oj-select-single>
+                                            <oj-input-search aria-label="Search mappings"
+                                                value="{{ $variables.ExpTypeMapSearch }}"
+                                                placeholder="equipment or expenditure type"
+                                                style="width: 320px; flex: 0 0 auto;"
+                                                on-oj-value-action="[[ $listeners.onExpTypeMapFilterChanged ]]"></oj-input-search>
+                                            <div style="font-size: 13px; color: #475569; font-weight: 600;">
+                                                <oj-bind-text
+                                                    value="[[ ($variables.ExpTypeMapAllArray ? $variables.ExpTypeMapAllArray.length : 0) + ' mapping(s)' ]]"></oj-bind-text>
+                                            </div>
+                                        </div>
+
+                                        <oj-table class="audit-table" data="[[ $variables.ExpTypeMapADP ]]" columns='[
+                                            {"headerText": "APPLIES TO", "field": "scopeType", "template": "expScopeKindTemplate"},
+                                            {"headerText": "EQUIPMENT / GROUP", "field": "scopeName", "weight": 2},
+                                            {"headerText": "EXPENDITURE TYPE", "field": "expenditureType", "weight": 2},
+                                            {"headerText": "DEFAULT", "field": "isDefault", "template": "expDefaultTemplate"},
+                                            {"headerText": "", "field": "action", "template": "expMapActionTemplate", "sortable": "disable"}
+                                        ]' layout="fixed"
+                                            style="--oj-table-header-bg-color: #0f172a; --oj-table-header-text-color: #ffffff;">
+                                            <template slot="expScopeKindTemplate">
+                                                <span class="oj-typography-body-sm">
+                                                    <oj-bind-text
+                                                        value="[[ $current.row.scopeType === 'MASTER' ? 'Equipment' : ($current.row.scopeType === 'SUBCLASS' ? 'Subclass' : 'Class') ]]"></oj-bind-text>
+                                                </span>
+                                            </template>
+                                            <template slot="expDefaultTemplate">
+                                                <span class="oj-typography-body-sm">
+                                                    <oj-bind-if test="[[ $current.row.isDefault === 'Y' ]]">
+                                                        <span class="oj-ux-ico-check-circle-s" style="color: #15803d;"></span>
+                                                    </oj-bind-if>
+                                                </span>
+                                            </template>
+                                            <template slot="expMapActionTemplate">
+                                                <!-- Only ever SETS a default: the backend clears the scope's others
+                                                     in the same transaction, so there is no unset. -->
+                                                <oj-button display="icons" chroming="borderless" title="Make default"
+                                                    disabled="[[ $current.row.isDefault === 'Y' ]]"
+                                                    on-oj-action="[[ () => $listeners.onExpTypeMapDefaultClicked({ detail: { id: $current.row.eqrExpTypeMapId } }) ]]">
+                                                    <span slot="startIcon" class="oj-ux-ico-star"></span>
+                                                    <span>Make default</span>
+                                                </oj-button>
+                                                <oj-button display="icons" chroming="borderless" title="Delete"
+                                                    on-oj-action="[[ () => $listeners.onExpTypeMapDeleteClicked({ detail: { id: $current.row.eqrExpTypeMapId } }) ]]">
+                                                    <span slot="startIcon" class="oj-ux-ico-trash"></span>
+                                                    <span>Delete</span>
+                                                </oj-button>
+                                            </template>
+                                        </oj-table>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div slot="agreementTypesTab">
+                            <div id="section-agreementTypesTab"
+                                class="oj-flex oj-sm-flex-direction-column oj-sm-gap-4x oj-sm-margin-6x-bottom">
+                                <div class="settings-group">
+                                    <div class="settings-group-header">
+                                        <div class="settings-group-icon icon-blue">
+                                            <span class="oj-ux-ico-file-text" style="font-size: 20px;"></span>
+                                        </div>
+                                        <div>
+                                            <div class="settings-group-title">Agreement Types</div>
+                                            <div class="settings-group-subtitle">Define the agreement types available
+                                                when creating a rental agreement. Inactive types are hidden from the
+                                                picker but kept for existing agreements.</div>
+                                        </div>
+                                    </div>
+                                    <div class="settings-content" style="background-color: #ffffff; padding: 24px;">
+
+                                        <!-- Compact add panel (tinted box): Type Name + Prefix + Add Type on one row.
+                                         label-edge=inside keeps the fields a single height so they align
+                                         vertically with the button. New types append to the bottom.
+                                         Prefix auto-uppercases & strips non-alphanumerics as the user types
+                                         (mirrors the edit dialog); full validation lives in addAgreementTypeChain. -->
+                                        <div
+                                            style="border: 1px solid #dbe4f0; border-radius: 8px; padding: 16px 20px; margin-bottom: 20px; background-color: #f0f6fc;">
+                                            <div class="oj-flex oj-sm-align-items-center"
+                                                style="gap: 12px; flex-wrap: wrap;">
+                                                <oj-input-text label-hint="Add Type Name" label-edge="inside"
+                                                    value="{{ $variables.NewAgreementType.typeLabel }}"
+                                                    placeholder="e.g. Demo Agreement"
+                                                    style="width: 320px; flex: 0 0 auto;"></oj-input-text>
+                                                <oj-input-text label-hint="Prefix" label-edge="inside"
+                                                    value="{{ $variables.NewAgreementType.typePrefix }}"
+                                                    placeholder="e.g. DEMO" maxlength="10"
+                                                    style="width: 160px; flex: 0 0 auto;"
+                                                    on-raw-value-changed="[[ (e) => { var v = (e.detail.value || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); if (v !== $variables.NewAgreementType.typePrefix) { $variables.NewAgreementType.typePrefix = v; } } ]]"></oj-input-text>
+                                                <oj-button chroming="callToAction"
+                                                    style="--oj-button-cta-bg-color: #0f172a;"
+                                                    on-oj-action="[[ $listeners.onAgreementTypeAddClicked ]]">
+                                                    <span slot="startIcon" class="oj-ux-ico-plus"></span>Add Type
+                                                </oj-button>
+                                            </div>
+                                        </div>
+
+                                        <div style="font-size: 13px; color: #475569; font-weight: 600;"
+                                            class="oj-sm-margin-2x-bottom">
+                                            <oj-bind-text
+                                                value="[[ 'Existing types (' + ($variables.AgreementTypeAllArray ? $variables.AgreementTypeAllArray.length : 0) + ')' ]]"></oj-bind-text>
+                                        </div>
+
+                                        <!-- Columns: Name | Prefix | Active | [edit][delete].
+                                         Prefix (e.g. RNT) auto-generates agreement numbers
+                                         as PREFIX-#### later. typePrefix persists once the
+                                         backend TYPE_PREFIX column lands (see edit dialog). -->
+                                        <oj-table class="audit-table" data="[[ $variables.AgreementTypeADP ]]" columns='[
+                                            {"headerText": "NAME", "field": "typeLabel", "weight": 2},
+                                            {"headerText": "PREFIX", "field": "typePrefix"},
+                                            {"headerText": "ACTIVE", "field": "isActive", "template": "activeTemplate"},
+                                            {"headerText": "", "field": "action", "template": "agrTypeActionTemplate", "sortable": "disable"}
+                                        ]' layout="fixed"
+                                            style="--oj-table-header-bg-color: #0f172a; --oj-table-header-text-color: #ffffff;">
+                                            <template slot="activeTemplate">
+                                                <oj-switch value="[[ $current.row.isActive === 'Y' ]]" label-edge="none"
+                                                    on-value-changed="[[ (e) => { if (e.detail.updatedFrom === 'internal') { $listeners.onAgreementTypeToggle({ detail: { id: $current.row.id, value: e.detail.value } }); } } ]]"></oj-switch>
+                                            </template>
+                                            <template slot="agrTypeActionTemplate">
+                                                <oj-button display="icons" chroming="borderless" title="Edit"
+                                                    on-oj-action="[[ () => $listeners.onAgreementTypeEditClicked({ detail: { id: $current.row.id } }) ]]">
+                                                    <span slot="startIcon" class="oj-ux-ico-edit"></span>
+                                                    <span>Edit</span>
+                                                </oj-button>
+                                                <oj-button display="icons" chroming="borderless" title="Delete"
+                                                    on-oj-action="[[ () => $listeners.onAgreementTypeDeleteClicked({ detail: { id: $current.row.id } }) ]]">
+                                                    <span slot="startIcon" class="oj-ux-ico-trash"></span>
+                                                    <span>Delete</span>
+                                                </oj-button>
+                                            </template>
+                                        </oj-table>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Audit Trail Section -->
+
+                        <!-- Attachment Categories (EQR_CONF_ATTACHMENT_CATEGORY). Decide what
+                             the equipment Attachments dialogs offer:
+                               Used on   HEADER = the equipment master (all control types),
+                                         LINE = a serial unit, BOTH.
+                               Valid dates  Y shows Valid from / to on the upload form and
+                                         makes them required; N hides them.
+                             Same add-panel + table + edit-dialog shape as Agreement Types.
+                             Changing a category never alters documents already filed under it. -->
+                        <div slot="attachmentCategoriesTab">
+                            <div id="section-attachmentCategoriesTab"
+                                class="oj-flex oj-sm-flex-direction-column oj-sm-gap-4x oj-sm-margin-6x-bottom">
+                                <div class="settings-group">
+                                    <div class="settings-group-header">
+                                        <div class="settings-group-icon icon-blue">
+                                            <span class="oj-ux-ico-documents" style="font-size: 20px;"></span>
+                                        </div>
+                                        <div>
+                                            <div class="settings-group-title">Attachment Categories</div>
+                                            <div class="settings-group-subtitle">The kinds of document that can be attached to
+                                                equipment. Choose where each is used - on the equipment itself, on each serial
+                                                unit, or both - and whether it has a validity period (certifications do, a data
+                                                card does not). Inactive categories are hidden from new uploads but kept on
+                                                existing documents.</div>
+                                        </div>
+                                    </div>
+                                    <div class="settings-content" style="background-color: #ffffff; padding: 24px;">
+
+                                        <div
+                                            style="border: 1px solid #dbe4f0; border-radius: 8px; padding: 16px 20px; margin-bottom: 20px; background-color: #f0f6fc;">
+                                            <!-- Each field has a plain text label ABOVE it and label-edge="none" on
+                                                 the component. Not label-edge="inside" (the small inside label was cut off:
+                                                 "Has an ...", "U..."), and NOT label-edge="top" - outside an oj-form-layout,
+                                                 a component set to label-edge="top" does not render in this app at all
+                                                 (2026-10-01: all four fields vanished). -->
+                                            <div class="oj-flex"
+                                                style="gap: 16px; flex-wrap: wrap; align-items: flex-end;">
+                                                <div style="width: 280px; flex: 0 0 auto;">
+                                                    <div class="attcat-label">Category Name</div>
+                                                    <oj-input-text label-edge="none" aria-label="Category Name"
+                                                        value="{{ $variables.NewAttCat.categoryLabel }}"
+                                                        placeholder="e.g. Load Test Certificate"
+                                                        class="oj-form-control-full-width"></oj-input-text>
+                                                </div>
+                                                <div style="width: 280px; flex: 0 0 auto;">
+                                                    <div class="attcat-label">Can Be Attached To</div>
+                                                    <oj-select-single label-edge="none" aria-label="Can Be Attached To"
+                                                        value="{{ $variables.NewAttCat.appliesTo }}"
+                                                        data="[[ $variables.AttCatAppliesToLovDP ]]"
+                                                        class="oj-form-control-full-width"></oj-select-single>
+                                                </div>
+                                                <div style="width: 180px; flex: 0 0 auto;">
+                                                    <div class="attcat-label">Has an Expiry Date</div>
+                                                    <oj-select-single label-edge="none" aria-label="Has an Expiry Date"
+                                                        value="{{ $variables.NewAttCat.validityRequired }}"
+                                                        data="[[ $variables.YesNoLovDP ]]"
+                                                        class="oj-form-control-full-width"></oj-select-single>
+                                                </div>
+                                                <oj-bind-if test="[[ $variables.NewAttCat.validityRequired === 'Y' ]]">
+                                                    <div style="width: 220px; flex: 0 0 auto;">
+                                                        <div class="attcat-label">Usually Valid For (Months)</div>
+                                                        <oj-input-number label-edge="none" aria-label="Usually Valid For (Months)"
+                                                            value="{{ $variables.NewAttCat.defaultValidityMonths }}"
+                                                            min="1" step="1" placeholder="Optional"
+                                                            class="oj-form-control-full-width"></oj-input-number>
+                                                    </div>
+                                                </oj-bind-if>
+                                                <oj-button chroming="callToAction"
+                                                    style="--oj-button-cta-bg-color: #0f172a;"
+                                                    on-oj-action="[[ $listeners.onAttCatAddClicked ]]">
+                                                    <span slot="startIcon" class="oj-ux-ico-plus"></span>Add Category
+                                                </oj-button>
+                                            </div>
+                                        </div>
+
+                                        <div style="font-size: 13px; color: #475569; font-weight: 600;"
+                                            class="oj-sm-margin-2x-bottom">
+                                            <oj-bind-text
+                                                value="[[ 'Existing categories (' + ($variables.AttCatAllArray ? $variables.AttCatAllArray.length : 0) + ')' ]]"></oj-bind-text>
+                                        </div>
+
+                                        <oj-table class="audit-table" data="[[ $variables.AttCatADP ]]" columns='[
+                                            {"headerText": "NAME", "field": "categoryLabel", "weight": 2},
+                                            {"headerText": "ATTACHED TO", "field": "appliesTo", "template": "attCatUsedOnTemplate"},
+                                            {"headerText": "EXPIRY DATE", "field": "validityRequired", "template": "attCatDatesTemplate"},
+                                            {"headerText": "ACTIVE", "field": "isActive", "template": "attCatActiveTemplate"},
+                                            {"headerText": "", "field": "action", "template": "attCatActionTemplate", "sortable": "disable"}
+                                        ]' layout="fixed"
+                                            style="--oj-table-header-bg-color: #0f172a; --oj-table-header-text-color: #ffffff;">
+                                            <template slot="attCatUsedOnTemplate">
+                                                <oj-bind-text value="[[ $current.row.appliesTo === 'HEADER' ? 'Equipment' : ($current.row.appliesTo === 'LINE' ? 'Serial units' : 'Equipment and serial units') ]]"></oj-bind-text>
+                                            </template>
+                                            <template slot="attCatDatesTemplate">
+                                                <oj-bind-text value="[[ $current.row.validityRequired === 'Y' ? ('Yes' + ($current.row.defaultValidityMonths ? ' (usually ' + $current.row.defaultValidityMonths + ' months)' : '')) : 'No' ]]"></oj-bind-text>
+                                            </template>
+                                            <template slot="attCatActiveTemplate">
+                                                <oj-switch value="[[ $current.row.isActive === 'Y' ]]" label-edge="none"
+                                                    on-value-changed="[[ (e) => { if (e.detail.updatedFrom === 'internal') { $listeners.onAttCatToggle({ detail: { id: $current.row.id, value: e.detail.value } }); } } ]]"></oj-switch>
+                                            </template>
+                                            <template slot="attCatActionTemplate">
+                                                <oj-button display="icons" chroming="borderless" title="Edit"
+                                                    on-oj-action="[[ () => $listeners.onAttCatEditClicked({ detail: { id: $current.row.id } }) ]]">
+                                                    <span slot="startIcon" class="oj-ux-ico-edit"></span>
+                                                    <span>Edit</span>
+                                                </oj-button>
+                                                <oj-button display="icons" chroming="borderless" title="Delete"
+                                                    on-oj-action="[[ () => $listeners.onAttCatDeleteClicked({ detail: { id: $current.row.id } }) ]]">
+                                                    <span slot="startIcon" class="oj-ux-ico-trash"></span>
+                                                    <span>Delete</span>
+                                                </oj-button>
+                                            </template>
+                                        </oj-table>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div slot="auditTrailTab">
+                            <div id="section-auditTrailTab"
+                                class="oj-flex oj-sm-flex-direction-column oj-sm-gap-4x oj-sm-margin-6x-bottom">
+
+                                <div
+                                    class="oj-flex oj-sm-align-items-center oj-sm-justify-content-space-between oj-sm-margin-2x-bottom oj-sm-padding-2x-horizontal">
+                                    <div class="oj-flex oj-sm-flex-direction-column">
+                                        <span class="oj-typography-heading-sm oj-typography-bold"
+                                            style="color: #0f172a;">Configuration Audit Trail</span>
+                                        <span class="oj-typography-body-sm"
+                                            style="color: #64748b; margin-top: 2px;">EQR_ERROR_LOG · oldValue / newValue
+                                            / lastModifiedBy</span>
+                                    </div>
+                                    <div>
+                                        <span style="font-size: 12px; color: #64748b; font-family: monospace;">3
+                                            record(s)</span>
+                                    </div>
+                                </div>
+
+                                <oj-table id="auditTable" class="audit-table" data="[[ $variables.AuditTrailADP ]]"
+                                    columns='[
+                                    {"headerText": "TIMESTAMP", "field": "timestamp"},
+                                    {"headerText": "MODIFIED BY", "field": "modifiedBy", "weight": 1},
+                                    {"headerText": "SECTION", "field": "section", "template": "sectionTemplate"},
+                                    {"headerText": "FIELD / PARAMETER", "field": "field", "weight": 2},
+                                    {"headerText": "OLD VALUE", "field": "oldValue", "template": "oldValueTemplate", "headerClassName": "oj-sm-justify-content-center", "className": "oj-sm-justify-content-center"},
+                                    {"headerText": "NEW VALUE", "field": "newValue", "template": "newValueTemplate", "headerClassName": "oj-sm-justify-content-center", "className": "oj-sm-justify-content-center"}
+                                ]' layout="fixed">
+                                    <template slot="sectionTemplate">
+                                        <span class="badge-blue"><oj-bind-text
+                                                value="[[$current.data]]"></oj-bind-text></span>
+                                    </template>
+                                    <template slot="oldValueTemplate">
+                                        <span class="badge-red"><oj-bind-text
+                                                value="[[$current.data]]"></oj-bind-text></span>
+                                    </template>
+                                    <template slot="newValueTemplate">
+                                        <span class="badge-green"><oj-bind-text
+                                                value="[[$current.data]]"></oj-bind-text></span>
+                                    </template>
+                                </oj-table>
+
+                            </div>
+                        </div>
+
+                    </oj-switcher>
+                </div>
+            </div>
+        </div>
+    </div>
+</oj-sp-general-overview-page>
+
+<!-- Edit Agreement Type dialog — kept at the TOP LEVEL (sibling of the page
+     root), NOT inside the tab/scroll container. An oj-dialog nested inside an
+     overflow:auto / transformed container renders its modal scrim but the
+     dialog box itself fails to position (page dims, nothing pops). Pre-filled
+     with the selected row's Name + Prefix. Prefix: uppercase alphanumeric, no
+     spaces, 2-10 chars, unique (validated in updateAgreementTypeChain).
+     DEFERRED (server-side, live iteration): a Prefix already used on a real
+     agreement transaction cannot be renamed. -->
+<oj-dialog id="agreementTypeEditDialog" dialog-title="Edit Agreement Type" initial-visibility="hide"
+    cancel-behavior="icon" modality="modal" style="width: 460px; max-width: 96vw;">
+    <div slot="body">
+        <oj-form-layout max-columns="1" label-edge="top" style="width: 100%;">
+            <oj-input-text label-hint="Name" value="{{ $variables.EditAgreementType.typeLabel }}"
+                placeholder="e.g. Rental" class="oj-form-control-full-width"></oj-input-text>
+            <oj-input-text label-hint="Prefix" value="{{ $variables.EditAgreementType.typePrefix }}"
+                placeholder="e.g. RNT (2-10 chars, A-Z 0-9)" maxlength="10" class="oj-form-control-full-width"
+                on-raw-value-changed="[[ (e) => { var v = (e.detail.value || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); if (v !== $variables.EditAgreementType.typePrefix) { $variables.EditAgreementType.typePrefix = v; } } ]]"></oj-input-text>
+        </oj-form-layout>
+    </div>
+    <div slot="footer">
+        <oj-button chroming="outlined"
+            on-oj-action="[[ function() { var d = document.getElementById('agreementTypeEditDialog'); if (d) d.close(); } ]]">
+            Cancel
+        </oj-button>
+        <oj-button chroming="callToAction" style="--oj-button-cta-bg-color: #0f172a;"
+            on-oj-action="[[ $listeners.onAgreementTypeEditSave ]]">
+            <span slot="startIcon" class="oj-ux-ico-save"></span>
+            <span>Save</span>
+        </oj-button>
+    </div>
+</oj-dialog>
+
+<!-- Edit Attachment Category - TOP LEVEL for the same positioning reason as
+     the agreement-type dialog above. The internal category code is NOT shown:
+     the people using this screen are functional, and the code is permanent
+     anyway (derived from the name when the category is created). Delete is on the table row (trash icon) with its own
+     confirm dialog below, the same as Agreement Types. -->
+<oj-dialog id="attachmentCategoryEditDialog" dialog-title="Edit Attachment Category" initial-visibility="hide"
+    cancel-behavior="icon" modality="modal" style="width: 480px; max-width: 96vw;">
+    <div slot="body">
+        <oj-form-layout max-columns="1" label-edge="top" style="width: 100%;">
+            <oj-input-text label-hint="Name" value="{{ $variables.EditAttCat.categoryLabel }}"
+                class="oj-form-control-full-width"></oj-input-text>
+            <oj-select-single label-hint="Can Be Attached To" value="{{ $variables.EditAttCat.appliesTo }}"
+                data="[[ $variables.AttCatAppliesToLovDP ]]" class="oj-form-control-full-width"
+                help.instruction="Equipment: the document belongs to the equipment as a whole, like a data card or manual. Serial units: it belongs to one physical unit, like that unit's certificate. Documents already filed are not affected."></oj-select-single>
+            <oj-select-single label-hint="Has an Expiry Date" value="{{ $variables.EditAttCat.validityRequired }}"
+                data="[[ $variables.YesNoLovDP ]]" class="oj-form-control-full-width"
+                help.instruction="Yes: people must enter the dates the document is valid from and to, like a certificate. No: no dates are asked for, like a data card."></oj-select-single>
+            <oj-bind-if test="[[ $variables.EditAttCat.validityRequired === 'Y' ]]">
+                <oj-input-number label-hint="Usually Valid For (Months)"
+                    value="{{ $variables.EditAttCat.defaultValidityMonths }}" min="1" step="1"
+                    placeholder="Optional"
+                    class="oj-form-control-full-width"></oj-input-number>
+            </oj-bind-if>
+        </oj-form-layout>
+    </div>
+    <div slot="footer">
+        <oj-button chroming="outlined"
+            on-oj-action="[[ function() { var d = document.getElementById('attachmentCategoryEditDialog'); if (d) d.close(); } ]]">
+            Cancel
+        </oj-button>
+        <oj-button chroming="callToAction" style="--oj-button-cta-bg-color: #0f172a;"
+            on-oj-action="[[ $listeners.onAttCatEditSave ]]">
+            <span slot="startIcon" class="oj-ux-ico-save"></span>
+            <span>Save</span>
+        </oj-button>
+    </div>
+</oj-dialog>
+
+<!-- Confirm: delete an ATTACHMENT CATEGORY. The backend refuses while any
+     document is filed under it (those documents keep their category); the
+     chain then says to switch it off with Active instead. -->
+<oj-dialog id="attachmentCategoryDeleteDialog" dialog-title="Delete Attachment Category"
+    initial-visibility="hide" cancel-behavior="icon" modality="modal"
+    style="width: 420px; max-width: 96vw;">
+    <div slot="body">
+        <p>
+            Delete the category
+            "<oj-bind-text value="[[ $variables.DeleteAttCatTarget.categoryLabel ]]"></oj-bind-text>"?
+        </p>
+        <p class="oj-typography-body-sm oj-text-color-secondary">
+            A category that already has documents filed under it can not be deleted.
+            Switch it off with Active instead, so it is no longer offered for new attachments.
+        </p>
+    </div>
+    <div slot="footer">
+        <oj-button chroming="outlined"
+            on-oj-action="[[ function() { var d = document.getElementById('attachmentCategoryDeleteDialog'); if (d) d.close(); } ]]">
+            Cancel
+        </oj-button>
+        <oj-button chroming="callToAction" style="--oj-button-cta-bg-color: #b91c1c;"
+            on-oj-action="[[ $listeners.onAttCatDeleteConfirmed ]]">
+            <span slot="startIcon" class="oj-ux-ico-trash"></span>
+            <span>Delete</span>
+        </oj-button>
+    </div>
+</oj-dialog>
+
+<!-- Edit Subclass dialog — kept at TOP LEVEL (sibling of page root) for the same
+     positioning reason as the agreement-type dialog above. Edits the per-subclass
+     Consumable / Auto-Consume flags and the Buffer Period, persisted via PATCH
+     patchSubclass (backend V149 columns); the grid row reconciles from the response. -->
+<oj-dialog id="classSubclassEditDialog" dialog-title="Edit Subclass Behaviour"
+    initial-visibility="hide" cancel-behavior="icon" modality="modal"
+    style="width: 460px; max-width: 96vw;">
+    <div slot="body">
+        <oj-form-layout max-columns="1" label-edge="top" style="width: 100%;">
+            <oj-input-text label-hint="Subclass" value="[[ $variables.EditClassSubclass.subclassName ]]" readonly="true"
+                class="oj-form-control-full-width"></oj-input-text>
+            <!-- TYPE — default tracking intent for new items in this subclass.
+                 DESCRIPTIVE, NOT ENFORCING: changing it does not re-tag equipment that
+                 already exists under this subclass. -->
+            <oj-select-single label-hint="Type" value="{{ $variables.EditClassSubclass.trackingType }}"
+                data="[[ $variables.TrackingTypeLovDP ]]" class="oj-form-control-full-width"
+                help.instruction="The default tracking intent for new equipment added under this subclass. It does not restrict or re-tag equipment that already exists."></oj-select-single>
+            <oj-select-single label-hint="Consumable" value="{{ $variables.EditClassSubclass.consumableFlag }}"
+                data="[[ $variables.YesNoLovDP ]]" class="oj-form-control-full-width"></oj-select-single>
+            <oj-select-single label-hint="Auto-Consume" value="{{ $variables.EditClassSubclass.autoConsumeFlag }}"
+                data="[[ $variables.YesNoLovDP ]]" class="oj-form-control-full-width"
+                help.instruction="Yes = accepting delivery issues the material transaction immediately and the line goes straight to Consumed. No = the line stops at Delivered for a manual material issue. Only affects consumables."></oj-select-single>
+            <!-- Timesheet Entry — per-subclass control (requirements §0 Level 2). Yes only for
+                 serial-controlled, high-value equipment whose usage is tracked. Persists via
+                 PATCH (column V201, DTO + mapper present) — the round trip is real. -->
+            <oj-select-single label-hint="Timesheet Entry" value="{{ $variables.EditClassSubclass.timesheetEntryEnabled }}"
+                data="[[ $variables.YesNoLovDP ]]" class="oj-form-control-full-width"
+                help.instruction="Yes = serials of this subclass appear on the timesheet for hours capture. No = complete-period or direct entry only."></oj-select-single>
+            <!-- Procurement Markup (%) field REMOVED (dormant, 2026-09-03).
+                 It edited a value the save chain deliberately dropped, so a user could
+                 type 10, press Save, get a success toast, and have changed nothing —
+                 the same "control that looks like it works" trap as the expenditure-type
+                 cell on Post Cost. Authoring moved (back) to BU Settings, which is where
+                 the only markup column in the schema lives and where both post-cost
+                 views read it from. Subclass remains the intended eventual grain; the
+                 procurementMarkupPct variable and its openEditClassSubclassChain mapping
+                 are intentionally left in place so reviving this is a UI change plus a
+                 backend column, not a rebuild. -->
+            <oj-input-number label-hint="Buffer Period (Days)"
+                value="{{ $variables.EditClassSubclass.bufferPeriodDays }}" min="0" step="1"
+                class="oj-form-control-full-width"></oj-input-number>
+        </oj-form-layout>
+    </div>
+    <div slot="footer">
+        <oj-button chroming="outlined"
+            on-oj-action="[[ function() { var d = document.getElementById('classSubclassEditDialog'); if (d) d.close(); } ]]">
+            Cancel
+        </oj-button>
+        <oj-button chroming="callToAction" style="--oj-button-cta-bg-color: #0f172a;"
+            on-oj-action="[[ $listeners.onEditClassSubclassSave ]]">
+            <span slot="startIcon" class="oj-ux-ico-save"></span>
+            <span>Save</span>
+        </oj-button>
+    </div>
+</oj-dialog>
+
+<!-- Confirm: soft-delete a SUBCLASS. Top-level sibling for the same positioning
+     reason as the edit dialog above. Delete runs from deleteSubclassChain on confirm. -->
+<!-- Confirm: remove one equipment -> expenditure type mapping. TOP LEVEL for the
+     same positioning reason as the dialogs above. This is a HARD delete: the table
+     has no soft-delete column, because a soft-deleted row would keep occupying the
+     unique key and block re-adding the same type to the same equipment. -->
+<oj-dialog id="expTypeMapDeleteDialog" dialog-title="Remove Mapping"
+    initial-visibility="hide" cancel-behavior="icon" modality="modal"
+    style="width: 460px; max-width: 96vw;">
+    <div slot="body">
+        <p>
+            Stop offering
+            "<oj-bind-text value="[[ $variables.DeleteExpTypeMapTarget.expenditureType ]]"></oj-bind-text>"
+            for
+            "<oj-bind-text value="[[ $variables.DeleteExpTypeMapTarget.scopeName ]]"></oj-bind-text>"?
+        </p>
+        <p style="font-size: 13px; color: #64748b;">
+            Timesheets already saved keep the type they recorded. If this was the last
+            mapping for that equipment, its picker goes back to showing every type the
+            project may be charged under.
+        </p>
+    </div>
+    <div slot="footer">
+        <oj-button chroming="outlined"
+            on-oj-action="[[ function() { var d = document.getElementById('expTypeMapDeleteDialog'); if (d) d.close(); } ]]">
+            Cancel
+        </oj-button>
+        <oj-button chroming="callToAction" style="--oj-button-cta-bg-color: #b91c1c;"
+            on-oj-action="[[ $listeners.onDeleteExpTypeMapConfirmed ]]">
+            <span slot="startIcon" class="oj-ux-ico-trash"></span>
+            <span>Remove</span>
+        </oj-button>
+    </div>
+</oj-dialog>
+
+<oj-dialog id="subclassDeleteDialog" dialog-title="Delete Subclass"
+    initial-visibility="hide" cancel-behavior="icon" modality="modal"
+    style="width: 420px; max-width: 96vw;">
+    <div slot="body">
+        <p>
+            Delete subclass
+            "<oj-bind-text value="[[ $variables.DeleteSubclassTarget.subclassName ]]"></oj-bind-text>"?
+            This deactivates it — it is hidden from the list but kept for history.
+        </p>
+    </div>
+    <div slot="footer">
+        <oj-button chroming="outlined"
+            on-oj-action="[[ function() { var d = document.getElementById('subclassDeleteDialog'); if (d) d.close(); } ]]">
+            Cancel
+        </oj-button>
+        <oj-button chroming="callToAction" style="--oj-button-cta-bg-color: #b91c1c;"
+            on-oj-action="[[ $listeners.onDeleteSubclassConfirmed ]]">
+            <span slot="startIcon" class="oj-ux-ico-trash"></span>
+            <span>Delete</span>
+        </oj-button>
+    </div>
+</oj-dialog>
+
+<!-- Confirm: soft-delete a CLASS. Backend rejects (409) if active subclasses remain;
+     deleteClassChain surfaces that message. Delete runs on confirm. -->
+<oj-dialog id="classDeleteDialog" dialog-title="Delete Class"
+    initial-visibility="hide" cancel-behavior="icon" modality="modal"
+    style="width: 420px; max-width: 96vw;">
+    <div slot="body">
+        <p>
+            Delete class
+            "<oj-bind-text value="[[ $variables.DeleteClassTarget.className ]]"></oj-bind-text>"?
+            This deactivates it (kept for history). A class with active subclasses
+            cannot be deleted — remove its subclasses first.
+        </p>
+    </div>
+    <div slot="footer">
+        <oj-button chroming="outlined"
+            on-oj-action="[[ function() { var d = document.getElementById('classDeleteDialog'); if (d) d.close(); } ]]">
+            Cancel
+        </oj-button>
+        <oj-button chroming="callToAction" style="--oj-button-cta-bg-color: #b91c1c;"
+            on-oj-action="[[ $listeners.onDeleteClassConfirmed ]]">
+            <span slot="startIcon" class="oj-ux-ico-trash"></span>
+            <span>Delete</span>
+        </oj-button>
+    </div>
+</oj-dialog>
+
+<!-- Confirm: Class Mapping Unmap. Removes the Fusion link only -- the EquipRite
+     class/subclass stays (under Classes & Subclasses). unmapChain runs on confirm. -->
+<oj-dialog id="classUnmapDialog" dialog-title="Remove Mapping"
+    initial-visibility="hide" cancel-behavior="icon" modality="modal"
+    style="width: 460px; max-width: 96vw;">
+    <div slot="body">
+        <oj-bind-if test="[[ $variables.UnmapTarget.level === 'SUBCLASS' ]]">
+            <p>
+                Remove the Oracle Fusion mapping from subclass
+                "<oj-bind-text value="[[ $variables.UnmapTarget.subclassName ]]"></oj-bind-text>"
+                in class "<oj-bind-text value="[[ $variables.UnmapTarget.className ]]"></oj-bind-text>"?
+                The subclass is retained; only its source classification is cleared.
+            </p>
+        </oj-bind-if>
+        <oj-bind-if test="[[ $variables.UnmapTarget.level === 'CLASS' ]]">
+            <p>
+                Remove the Oracle Fusion mapping from class
+                "<oj-bind-text value="[[ $variables.UnmapTarget.className ]]"></oj-bind-text>"?
+                <oj-bind-if test="[[ $variables.UnmapTarget.mappedSubclassCount > 0 ]]">
+                    The mappings of its
+                    <oj-bind-text value="[[ $variables.UnmapTarget.mappedSubclassCount ]]"></oj-bind-text>
+                    mapped subclasses are also removed.
+                </oj-bind-if>
+                The class and its subclasses are retained; they show as Custom until mapped again.
+            </p>
+        </oj-bind-if>
+    </div>
+    <div slot="footer">
+        <oj-button chroming="outlined"
+            on-oj-action="[[ function() { var d = document.getElementById('classUnmapDialog'); if (d) d.close(); } ]]">
+            Cancel
+        </oj-button>
+        <oj-button chroming="callToAction" style="--oj-button-cta-bg-color: #0f172a;"
+            disabled="[[ $variables.isUnmapping ]]"
+            on-oj-action="[[ $listeners.onUnmapConfirmed ]]">
+            <span slot="startIcon" class="oj-ux-ico-close-circle"></span>
+            <span>Remove Mapping</span>
+        </oj-button>
+    </div>
+</oj-dialog>
+
+<!-- Create from Fusion: for one source's saved column mapping, every distinct
+     (class value, subclass value) pair Fusion carries on the same item / asset
+     (previewClassMapPairsChain), marked New / New subclass / Exists. Create New
+     Classes creates or links every actionable row in one call
+     (bulkCreateClassesFromFusion via createClassMapPairsChain). -->
+<oj-dialog id="classFusionDialog" dialog-title="Create Classes from Fusion"
+    initial-visibility="hide" cancel-behavior="icon" modality="modal"
+    style="width: 860px; max-width: 96vw;">
+    <div slot="body">
+        <oj-bind-if test="[[ !$page.functions.bulkSourceOptions($variables.ConfigSettingsMap, $variables.ClassMapTruthSel).length ]]">
+            <p class="oj-text-color-secondary">
+                No column mapping is saved yet. Map the class and subclass columns on the Class Mapping tab first.
+            </p>
+        </oj-bind-if>
+        <oj-bind-if test="[[ $page.functions.bulkSourceOptions($variables.ConfigSettingsMap, $variables.ClassMapTruthSel).length > 0 ]]">
+            <div style="max-width: 320px;">
+                <oj-select-single label-hint="CLASSIFICATION SOURCE" label-edge="top"
+                    data="[[ $variables.ClassMapBulkSourceLovDP ]]"
+                    value="[[ $variables.ClassMapPairsSource ]]"
+                    on-value-changed="[[ $listeners.onClassMapBulkSourceChanged ]]"></oj-select-single>
+            </div>
+            <div class="oj-typography-body-sm oj-text-color-secondary oj-sm-margin-2x-vertical">
+                <oj-bind-text value="[[ $variables.isClassMapPairsLoading ? 'Loading from Fusion...' : ($variables.ClassMapPairsArray.length + ' pairs · ' + $variables.ClassMapPairsArray.filter(p => $page.functions.pairActionable(p)).length + ' to create or link') ]]"></oj-bind-text>
+            </div>
+            <oj-table class="audit-table"
+                data="[[ $variables.ClassMapPairsADP ]]" columns='[
+                {"headerText": "CLASS", "field": "className", "template": "pairClassTemplate", "weight": 3},
+                {"headerText": "SUBCLASS", "field": "subclassName", "template": "pairSubTemplate", "weight": 3},
+                {"headerText": "ITEMS", "field": "itemCount", "weight": 1},
+                {"headerText": "STATUS", "field": "status", "template": "pairStatusTemplate", "weight": 2}
+            ]' layout="fixed" scroll-policy="loadMoreOnScroll" scroll-policy-options.fetch-size="50"
+                style="width: 100%; height: 380px; --oj-table-header-bg-color: #0f172a; --oj-table-header-text-color: #ffffff;">
+                <template slot="noData">
+                    <div class="oj-sm-padding-6x oj-text-color-secondary">
+                        <oj-bind-text value="[[ $variables.isClassMapPairsLoading ? 'Loading from Fusion...' : 'No values found in Fusion for this mapping.' ]]"></oj-bind-text>
+                    </div>
+                </template>
+                <template slot="pairClassTemplate">
+                    <div><oj-bind-text value="[[ $current.row.className ]]"></oj-bind-text></div>
+                    <div class="oj-typography-body-xs oj-text-color-secondary"><oj-bind-text value="[[ $current.row.classRef ]]"></oj-bind-text></div>
+                </template>
+                <template slot="pairSubTemplate">
+                    <div><oj-bind-text value="[[ $current.row.subclassName || '—' ]]"></oj-bind-text></div>
+                    <div class="oj-typography-body-xs oj-text-color-secondary"><oj-bind-text value="[[ $current.row.subclassRef ]]"></oj-bind-text></div>
+                </template>
+                <template slot="pairStatusTemplate">
+                    <div><oj-bind-text value="[[ $page.functions.pairStatusLabel($current.row) ]]"></oj-bind-text></div>
+                    <oj-bind-if test="[[ !!$current.row.message ]]">
+                        <div class="oj-typography-body-xs oj-text-color-secondary"><oj-bind-text value="[[ $current.row.message ]]"></oj-bind-text></div>
+                    </oj-bind-if>
+                </template>
+            </oj-table>
+        </oj-bind-if>
+    </div>
+    <div slot="footer">
+        <oj-button chroming="outlined"
+            on-oj-action="[[ function() { var d = document.getElementById('classFusionDialog'); if (d) d.close(); } ]]">
+            Close
+        </oj-button>
+        <oj-button chroming="callToAction" style="--oj-button-cta-bg-color: #0f172a;"
+            disabled="[[ $variables.isClassMapCreating || $variables.isClassMapPairsLoading || !$variables.ClassMapPairsArray.some(p => $page.functions.pairActionable(p)) ]]"
+            on-oj-action="[[ $listeners.onClassMapCreateClicked ]]">
+            <span slot="startIcon" class="oj-ux-ico-plus"></span>
+            <span><oj-bind-text value="[[ $variables.isClassMapCreating ? 'Creating...' : 'Create New Classes' ]]"></oj-bind-text></span>
+        </oj-button>
+    </div>
+</oj-dialog>
+
+<!-- Confirm: reset the WEEK_END_DAY one-time setting. Admin escape hatch for
+     when business decides the originally-picked day needs to change — clears
+     the stored value so the select re-enables. Runs from resetWeekEndDayChain. -->
+<oj-dialog id="weekEndDayResetDialog" dialog-title="Reset Week End Day"
+    initial-visibility="hide" cancel-behavior="icon" modality="modal"
+    style="width: 420px; max-width: 96vw;">
+    <div slot="body">
+        <p>
+            Reset the week-ending day? This clears the current value so it can be
+            changed again — the week-ending day will be unset until a new one is
+            picked and saved.
+        </p>
+    </div>
+    <div slot="footer">
+        <oj-button chroming="outlined"
+            on-oj-action="[[ function() { var d = document.getElementById('weekEndDayResetDialog'); if (d) d.close(); } ]]">
+            Cancel
+        </oj-button>
+        <oj-button chroming="callToAction" style="--oj-button-cta-bg-color: #b91c1c;"
+            on-oj-action="[[ $listeners.onWeekEndDayResetConfirmed ]]">
+            <span slot="startIcon" class="oj-ux-ico-refresh"></span>
+            <span>Reset</span>
+        </oj-button>
+    </div>
+</oj-dialog>
+
+<!-- Confirm: hard-delete a BU & Org MAPPING row (per-row DELETE by id). To just
+     turn a mapping off, use the ACTIVE toggle instead. Runs deleteBuOrgMappingRowChain. -->
+<oj-dialog id="buOrgDeleteDialog" dialog-title="Delete Mapping"
+    initial-visibility="hide" cancel-behavior="icon" modality="modal"
+    style="width: 420px; max-width: 96vw;">
+    <div slot="body">
+        <p>
+            Permanently delete the mapping for
+            "<oj-bind-text value="[[ $variables.DeleteBuOrgTarget.orgName ]]"></oj-bind-text>"<oj-bind-if test="[[ !!$variables.DeleteBuOrgTarget.buName ]]"> from <oj-bind-text value="[[ $variables.DeleteBuOrgTarget.buName ]]"></oj-bind-text></oj-bind-if>?
+            To disable it instead of removing it, use the Active toggle.
+        </p>
+    </div>
+    <div slot="footer">
+        <oj-button chroming="outlined"
+            on-oj-action="[[ function() { var d = document.getElementById('buOrgDeleteDialog'); if (d) d.close(); } ]]">
+            Cancel
+        </oj-button>
+        <oj-button chroming="callToAction" style="--oj-button-cta-bg-color: #b91c1c;"
+            on-oj-action="[[ $listeners.onDeleteBuOrgConfirmed ]]">
+            <span slot="startIcon" class="oj-ux-ico-trash"></span>
+            <span>Delete</span>
+        </oj-button>
+    </div>
+</oj-dialog>
+
+<!-- Shared row-actions menu for the BU & Org table. Each row's kebab button opens
+     this anchored to itself (openBuOrgRowMenuChain); selection → buOrgMenuActionChain. -->
+<oj-menu id="buOrgRowMenu" open-options.initial-focus="firstItem"
+    on-oj-menu-action="[[ $listeners.onBuOrgMenuAction ]]">
+    <oj-option value="edit">
+        <span slot="startIcon" class="oj-ux-ico-edit"></span>
+        Edit
+    </oj-option>
+    <oj-option value="delete">
+        <span slot="startIcon" class="oj-ux-ico-trash"></span>
+        Delete
+    </oj-option>
+</oj-menu>
+
+<!-- Edit a BU & Org MAPPING's Yard Type (orgRole) and Transactable — BU + yard
+     are the mapping's identity and shown read-only. Save runs saveBuOrgEditChain (PATCH by id). -->
+<oj-dialog id="buOrgEditDialog" dialog-title="Edit Mapping"
+    initial-visibility="hide" cancel-behavior="icon" modality="modal"
+    style="width: 460px; max-width: 96vw;">
+    <div slot="body">
+        <div class="oj-flex oj-sm-flex-direction-column oj-sm-gap-3x">
+            <div>
+                <div class="form-group-label">BUSINESS UNIT</div>
+                <div style="font-size: 14px; color: #111827;">
+                    <oj-bind-text value="[[ $variables.BuOrgEditTarget.buName ]]"></oj-bind-text>
+                </div>
+            </div>
+            <div>
+                <div class="form-group-label">YARD</div>
+                <div style="font-size: 14px; color: #111827;">
+                    <oj-bind-text value="[[ $variables.BuOrgEditTarget.orgName ]]"></oj-bind-text><oj-bind-if test="[[ !!$variables.BuOrgEditTarget.orgCode ]]"> (<oj-bind-text value="[[ $variables.BuOrgEditTarget.orgCode ]]"></oj-bind-text>)</oj-bind-if>
+                </div>
+            </div>
+            <oj-select-single label-hint="YARD TYPE" value="{{ $variables.BuOrgEditTarget.yardType }}"
+                data="[[ $variables.OrgRoleLovDP ]]" placeholder="— Select Yard Type —"
+                class="oj-form-control-full-width"></oj-select-single>
+            <!-- SUBINVENTORY — optional, one per org. Only for Equipment Yards and the
+                 virtual orgs: a Transfer Order delivers into them and sends this as
+                 DestinationSubinventoryCode ('Stores' when blank). Options come from
+                 Fusion for this org (loadBuOrgSubinventoriesChain). -->
+            <oj-bind-if test="[[ $page.functions.buOrgNeedsSubinventory($variables.BuOrgEditTarget.yardType) ]]">
+                <oj-select-single label-hint="SUBINVENTORY" value="{{ $variables.BuOrgEditTarget.subinventoryCode }}"
+                    data="[[ $variables.BuOrgSubinvDP ]]" item-text="label"
+                    placeholder="[[ $variables.isBuOrgSubinvLoading ? 'Loading…' : '— Optional —' ]]"
+                    class="oj-form-control-full-width">
+                </oj-select-single>
+            </oj-bind-if>
+            <oj-select-single label-hint="TRANSACTABLE" value="{{ $variables.BuOrgEditTarget.isTransactable }}"
+                data="[[ $variables.YesNoLovDP ]]" class="oj-form-control-full-width"></oj-select-single>
+        </div>
+    </div>
+    <div slot="footer">
+        <oj-button chroming="outlined"
+            on-oj-action="[[ function() { var d = document.getElementById('buOrgEditDialog'); if (d) d.close(); } ]]">
+            Cancel
+        </oj-button>
+        <oj-button chroming="callToAction" style="--oj-button-cta-bg-color: #0f172a;"
+            disabled="[[ $variables.isBuOrgSaving ]]" on-oj-action="[[ $listeners.onBuOrgEditSaveConfirmed ]]">
+            <span slot="startIcon" class="oj-ux-ico-save"></span>
+            <span>Save</span>
+        </oj-button>
+    </div>
+</oj-dialog>
+
+<!-- Confirm: delete an AGREEMENT TYPE definition (hard-delete of the type row;
+     existing agreements that stored the code keep it). Delete runs from
+     deleteAgreementTypeChain on confirm. -->
+<oj-dialog id="agreementTypeDeleteDialog" dialog-title="Delete Agreement Type"
+    initial-visibility="hide" cancel-behavior="icon" modality="modal"
+    style="width: 420px; max-width: 96vw;">
+    <div slot="body">
+        <p>
+            Delete agreement type
+            "<oj-bind-text value="[[ $variables.DeleteAgreementTypeTarget.typeLabel ]]"></oj-bind-text>"?
+            Existing agreements already using it are unaffected.
+        </p>
+    </div>
+    <div slot="footer">
+        <oj-button chroming="outlined"
+            on-oj-action="[[ function() { var d = document.getElementById('agreementTypeDeleteDialog'); if (d) d.close(); } ]]">
+            Cancel
+        </oj-button>
+        <oj-button chroming="callToAction" style="--oj-button-cta-bg-color: #b91c1c;"
+            on-oj-action="[[ $listeners.onDeleteAgreementTypeConfirmed ]]">
+            <span slot="startIcon" class="oj-ux-ico-trash"></span>
+            <span>Delete</span>
+        </oj-button>
+    </div>
+</oj-dialog>
+
+<!-- BU & Org Mapping ADD drawer — right-side slide-out, mirrors the create-rate-schedule
+     "Add Schedule Line" pattern. Kept at TOP LEVEL (sibling of page root) for the same
+     reason as the dialog above: an oj-drawer-popup nested in an overflow:auto container
+     fails to position. Cascading pickers: Business Unit (searchable Fusion LOV) -> Yard
+     (inventory orgs under the chosen BU) -> Yard Type (the 3 role options). LE is
+     intentionally omitted (no Fusion LE LOV exists yet). "Add" appends a read-only row
+     to the table; frontend-only for now (no orgRole persistence on the backend). -->
+<oj-drawer-popup edge="end" opened="{{ $variables.isBuOrgDrawerOpen }}"
+    on-opened-changed="[[ function(event) { if (event.detail.value === false) { $listeners.onBuOrgDrawerClose(); } } ]]"
+    auto-dismiss="none">
+    <div style="height: 100vh; display: flex; flex-direction: column; width: 450px; background-color: #f8fafc;">
+        <!-- Header -->
+        <div
+            style="flex: 0 0 auto; padding: 24px; background-color: #ffffff; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: flex-start;">
+            <div class="oj-flex oj-sm-flex-direction-column">
+                <span class="oj-typography-heading-sm oj-typography-bold" style="color: #111827;">Add BU &amp; Org
+                    Mapping</span>
+                <span class="oj-typography-body-sm oj-text-color-secondary">Select a business unit, its yard, and the
+                    yard type</span>
+            </div>
+            <oj-button display="icons" chroming="borderless" on-oj-action="[[ $listeners.onBuOrgDrawerClose ]]">
+                <span slot="startIcon" class="oj-ux-ico-close"></span>
+                <span>Close</span>
+            </oj-button>
+        </div>
+
+        <!-- Body -->
+        <div style="flex: 1 1 auto; overflow-y: auto; padding: 24px;">
+
+            <!-- BUSINESS UNIT — only the BUs already CONFIGURED in the BU Settings tab
+                 (BuOrgConfiguredBuSDP → conf-equipment-settings), not the full Fusion
+                 list: you assign inventory orgs to a BU you've set up in BU Settings.
+                 Typing searches server-side via the endpoint's ?q= (transform). value
+                 is the BU id; value-item carries the row so CaptureBuChain gets the
+                 name too, then loads the Yard dropdown for that BU. -->
+            <div class="oj-sm-margin-4x-bottom">
+                <div class="form-group-label">BUSINESS UNIT</div>
+                <oj-select-single aria-label="Business Unit" placeholder="— Search Business Unit —"
+                    data="[[ $variables.BuOrgConfiguredBuSDP ]]" value="{{ $variables.BuOrgSelectedBUId }}"
+                    item-text="businessUnitName" class="oj-form-control-full-width"
+                    on-value-item-changed="[[ $listeners.onBuOrgBuSelected ]]">
+                    <template slot="itemTemplate">
+                        <div style="display:flex; flex-direction:column; line-height:1.25; padding:2px 0;">
+                            <span style="font-weight:600; color:#161513;">
+                                <oj-bind-text value="[[ $current.data.businessUnitName ]]"></oj-bind-text>
+                            </span>
+                            <span style="font-size:11px; color:#6b7280;">
+                                <oj-bind-text value="[[ $current.data.businessUnitId ]]"></oj-bind-text>
+                            </span>
+                        </div>
+                    </template>
+                </oj-select-single>
+            </div>
+
+            <oj-form-layout max-columns="1" label-edge="top" direction="column">
+
+                <!-- YARD — inventory orgs under the selected BU (BuOrgYardSDP, q depends on
+                     BuOrgSelectedBUId). Disabled until a BU is chosen. Selecting captures the
+                     full org row (code/id/location/status) into currentMapping. -->
+                <oj-select-single label-hint="YARD" value="{{ $variables.currentMapping.orgId }}"
+                    data="[[ $variables.BuOrgYardSDP ]]"
+                    item-text="[[ (ctx) => ctx && ctx.data ? (ctx.data.OrganizationName + (ctx.data.OrganizationCode ? ' (' + ctx.data.OrganizationCode + ')' : '')) : '' ]]"
+                    placeholder="— Select Yard —" class="oj-form-control-full-width"
+                    disabled="[[ !$variables.BuOrgSelectedBUId ]]"
+                    on-oj-value-action="[[ $listeners.onBuOrgYardSelected ]]">
+                </oj-select-single>
+
+                <!-- YARD TYPE — the 3 role options (formerly the inline ROLE picker). -->
+                <oj-select-single label-hint="YARD TYPE" value="{{ $variables.currentMapping.yardType }}"
+                    data="[[ $variables.OrgRoleLovDP ]]" placeholder="— Select Yard Type —"
+                    disabled="[[ !$variables.currentMapping.orgId ]]">
+                </oj-select-single>
+                <!-- SUBINVENTORY — optional, one per org. Only for Equipment Yards and the
+                     virtual orgs: a Transfer Order delivers into them and sends this as
+                     DestinationSubinventoryCode ('Stores' when blank). Options come from
+                     Fusion for this org (loadBuOrgSubinventoriesChain). -->
+                <oj-bind-if test="[[ $page.functions.buOrgNeedsSubinventory($variables.currentMapping.yardType) ]]">
+                    <oj-select-single label-hint="SUBINVENTORY" value="{{ $variables.currentMapping.subinventoryCode }}"
+                        data="[[ $variables.BuOrgSubinvDP ]]" item-text="label"
+                        placeholder="[[ $variables.isBuOrgSubinvLoading ? 'Loading…' : '— Optional —' ]]"
+                        class="oj-form-control-full-width"
+                        disabled="[[ !$variables.currentMapping.orgId ]]">
+                    </oj-select-single>
+                </oj-bind-if>
+
+                <!-- TRANSACTABLE — Yes/No, defaults to Yes (EQR_BU_ORG_MAPPING.IS_TRANSACTABLE). -->
+                <oj-select-single label-hint="TRANSACTABLE" value="{{ $variables.currentMapping.isTransactable }}"
+                    data="[[ $variables.YesNoLovDP ]]"
+                    disabled="[[ !$variables.currentMapping.orgId ]]">
+                </oj-select-single>
+
+            </oj-form-layout>
+        </div>
+
+        <!-- Footer -->
+        <div
+            style="flex: 0 0 auto; padding: 16px 24px; background-color: #ffffff; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 12px;">
+            <oj-button chroming="outlined" on-oj-action="[[ $listeners.onBuOrgDrawerClose ]]">Cancel</oj-button>
+            <oj-button chroming="callToAction" style="--oj-button-cta-bg-color: #0f172a;"
+                on-oj-action="[[ $listeners.onBuOrgMappingAdd ]]">
+                <span slot="startIcon" class="oj-ux-ico-plus"></span>
+                <span>Add Mapping</span>
+            </oj-button>
+        </div>
+    </div>
+</oj-drawer-popup>
+
+<!-- ADD CLASS + SUBCLASS drawer — right-side slide-out (mirrors the BU & Org drawer
+     pattern; kept at top level so the oj-drawer-popup positions correctly). Creates a
+     new equipment class together with its first subclass (a class needs a subclass).
+     The Consumable / Auto-Consume flags persist on the subclass create call
+     (createClassSubclassChain); they only apply when a subclass name is given, since
+     the flags live on the subclass row, not the class. -->
+<oj-drawer-popup edge="end" opened="{{ $variables.isAddClassDrawerOpen }}"
+    on-opened-changed="[[ function(event) { if (event.detail.value === false) { $listeners.onAddClassDrawerClose(); } } ]]"
+    auto-dismiss="none">
+    <div style="height: 100vh; display: flex; flex-direction: column; width: 450px; background-color: #f8fafc;">
+        <!-- Header -->
+        <div
+            style="flex: 0 0 auto; padding: 24px; background-color: #ffffff; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: flex-start;">
+            <div class="oj-flex oj-sm-flex-direction-column">
+                <span class="oj-typography-heading-sm oj-typography-bold" style="color: #111827;">Add Class &amp;
+                    Subclass</span>
+                <span class="oj-typography-body-sm oj-text-color-secondary">Create a new equipment class and its first
+                    subclass</span>
+            </div>
+            <oj-button display="icons" chroming="borderless" on-oj-action="[[ $listeners.onAddClassDrawerClose ]]">
+                <span slot="startIcon" class="oj-ux-ico-close"></span>
+                <span>Close</span>
+            </oj-button>
+        </div>
+
+        <!-- Body -->
+        <div style="flex: 1 1 auto; overflow-y: auto; padding: 24px;">
+            <oj-form-layout max-columns="1" label-edge="top" direction="column">
+
+                <!-- TYPE: Inventory plus the Asset Classification Source (all three
+                     while that is not configured). It picks WHICH column mapping
+                     (Class Mapping sub-tab) Class and Subclass are read from, so it
+                     comes first and changing it resets both pickers. -->
+                <oj-select-single label-hint="TYPE" value="{{ $variables.newClassSubclass.trackingType }}"
+                    data="[[ $variables.AddClassTypeLovDP ]]" class="oj-form-control-full-width"
+                    on-value-changed="[[ $listeners.onTrackingTypeChanged ]]"></oj-select-single>
+
+                <!-- CUSTOM: class / subclass typed by hand -- no Fusion column behind
+                     them, so no mapping is needed (and the import never matches items
+                     to them; they are assigned by hand). -->
+                <oj-bind-if test="[[ $variables.newClassSubclass.trackingType === 'CUSTOM' ]]">
+                    <oj-input-text label-hint="CLASS NAME" required="true"
+                        value="{{ $variables.newClassSubclass.className }}"
+                        placeholder="e.g. Compaction Equipment"
+                        class="oj-form-control-full-width"></oj-input-text>
+                    <oj-input-text label-hint="SUBCLASS NAME (OPTIONAL)"
+                        value="{{ $variables.newClassSubclass.subclassName }}"
+                        placeholder="e.g. Plate Compactors"
+                        class="oj-form-control-full-width"></oj-input-text>
+                </oj-bind-if>
+
+                <!-- CLASS / SUBCLASS: the values of the Fusion columns mapped for the
+                     TYPE on the Class Mapping sub-tab (loadClassLovChain /
+                     loadSubclassLovChain). The placeholders distinguish no mapping /
+                     loading / nothing found. -->
+                <oj-bind-if test="[[ $variables.newClassSubclass.trackingType !== 'CUSTOM' ]]">
+                    <oj-select-single label-hint="CLASS" required="true"
+                        value="{{ $variables.newClassSubclass.classLovId }}"
+                        data="[[ $variables.ClassLovDP ]]"
+                        loading="[[ $variables.isClassLovLoading ? 'loading' : 'loaded' ]]"
+                        placeholder="[[ !$page.functions.columnMappingFor($variables.ConfigSettingsMap, $variables.newClassSubclass.trackingType) ? 'No class column mapped for this type' : ($variables.isClassLovLoading ? 'Loading...' : ($variables.classLovLoaded &amp;&amp; $variables.ClassLovArray.length === 0 ? 'No values found' : 'Select a class')) ]]"
+                        on-value-changed="[[ $listeners.onClassLovSelected ]]"
+                        class="oj-form-control-full-width">
+                        <template slot="itemTemplate">
+                            <oj-list-item-layout>
+                                <oj-bind-text value="[[ $current.data.label ]]"></oj-bind-text>
+                                <span slot="secondary" class="oj-text-color-secondary">
+                                    <oj-bind-text value="[[ $current.data.code ]]"></oj-bind-text>
+                                </span>
+                            </oj-list-item-layout>
+                        </template>
+                    </oj-select-single>
+
+                    <oj-select-single label-hint="SUBCLASS (OPTIONAL)"
+                        value="{{ $variables.newClassSubclass.subclassLovId }}"
+                        data="[[ $variables.SubclassLovDP ]]"
+                        disabled="[[ !$variables.newClassSubclass.classLovId || !($page.functions.columnMappingFor($variables.ConfigSettingsMap, $variables.newClassSubclass.trackingType) || {}).subclassColumn ]]"
+                        loading="[[ $variables.isSubclassLovLoading ? 'loading' : 'loaded' ]]"
+                        placeholder="[[ !($page.functions.columnMappingFor($variables.ConfigSettingsMap, $variables.newClassSubclass.trackingType) || {}).subclassColumn ? 'No subclass column mapped for this type' : (!$variables.newClassSubclass.classLovId ? 'Select a class first' : ($variables.isSubclassLovLoading ? 'Loading...' : ($variables.subclassLovLoaded &amp;&amp; $variables.SubclassLovArray.length === 0 ? 'No values found' : 'Select a subclass'))) ]]"
+                        class="oj-form-control-full-width">
+                        <template slot="itemTemplate">
+                            <oj-list-item-layout>
+                                <oj-bind-text value="[[ $current.data.label ]]"></oj-bind-text>
+                                <span slot="secondary" class="oj-text-color-secondary">
+                                    <oj-bind-text value="[[ $current.data.code ]]"></oj-bind-text>
+                                </span>
+                            </oj-list-item-layout>
+                        </template>
+                    </oj-select-single>
+                </oj-bind-if>
+
+                <oj-select-single label-hint="CONSUMABLE" value="{{ $variables.newClassSubclass.consumableFlag }}"
+                    data="[[ $variables.YesNoLovDP ]]" class="oj-form-control-full-width"></oj-select-single>
+
+                <oj-select-single label-hint="AUTO-CONSUME" value="{{ $variables.newClassSubclass.autoConsumeFlag }}"
+                    data="[[ $variables.YesNoLovDP ]]" class="oj-form-control-full-width"></oj-select-single>
+
+            </oj-form-layout>
+
+        </div>
+
+        <!-- Footer -->
+        <div
+            style="flex: 0 0 auto; padding: 16px 24px; background-color: #ffffff; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 12px;">
+            <oj-button chroming="outlined" on-oj-action="[[ $listeners.onAddClassDrawerClose ]]">Cancel</oj-button>
+            <oj-button chroming="callToAction" style="--oj-button-cta-bg-color: #0f172a;"
+                disabled="[[ $variables.isAddingClassSubclass ]]"
+                on-oj-action="[[ $listeners.onAddClassSubclassSubmit ]]">
+                <span slot="startIcon" class="oj-ux-ico-plus"></span>
+                <span>Create</span>
+            </oj-button>
+        </div>
+    </div>
+</oj-drawer-popup>
+
+<!-- BU SETTINGS drawer — right-side slide-out (mirrors the BU & Org drawer
+     pattern; kept at top level so the oj-drawer-popup positions correctly). Holds
+     the per-BU settings form that used to be inline on the BU Settings sub-tab.
+     CREATE: a dropdown of all Fusion BUs (EsBuLovSDP) selects which BU these
+     settings apply to.
+     EDIT (esIsEditMode): the BU is fixed (read-only) and the fields are pre-filled.
+     Save (saveEsDrawerChain) persists per-key PATCH/POST. -->
+<oj-drawer-popup edge="end" opened="{{ $variables.isEsDrawerOpen }}"
+    on-opened-changed="[[ function(event) { if (event.detail.value === false) { $listeners.onEsDrawerClose(); } } ]]"
+    auto-dismiss="none">
+    <div style="height: 100vh; display: flex; flex-direction: column; width: 450px; background-color: #f8fafc;">
+        <!-- Header -->
+        <div
+            style="flex: 0 0 auto; padding: 24px; background-color: #ffffff; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: flex-start;">
+            <div class="oj-flex oj-sm-flex-direction-column">
+                <span class="oj-typography-heading-sm oj-typography-bold" style="color: #111827;">
+                    <oj-bind-text
+                        value="[[ $variables.esIsEditMode ? 'Edit BU Settings' : 'Add BU Settings' ]]"></oj-bind-text>
+                </span>
+                <span class="oj-typography-body-sm oj-text-color-secondary">Configure billing, inventory orgs,
+                    timesheet, and document rules for a business unit</span>
+            </div>
+            <oj-button display="icons" chroming="borderless" on-oj-action="[[ $listeners.onEsDrawerClose ]]">
+                <span slot="startIcon" class="oj-ux-ico-close"></span>
+                <span>Close</span>
+            </oj-button>
+        </div>
+
+        <!-- Body -->
+        <div style="flex: 1 1 auto; overflow-y: auto; padding: 24px;">
+
+            <!-- BUSINESS UNIT (create mode) — every Fusion BU (EsBuLovSDP →
+                 finBusinessUnitsLOV), not only those with an active EQR_BU_ORG_MAPPING
+                 row, so settings can be configured for a BU with no yard mapping yet.
+                 Its own SDP, not the BU & Org tab's BuOrgBuSDP, whose q is bound to
+                 buSearchQ — BuTypeaheadChain rewrites that as the user types, which
+                 would let another tab's search box filter this list. item-text is
+                 needed because SDP rows key off BusinessUnitName, not 'label'.
+                 In edit mode the BU is fixed, so the picker is replaced by a
+                 read-only display of the selected BU name. -->
+            <div class="oj-sm-margin-4x-bottom">
+                <div class="form-group-label">BUSINESS UNIT</div>
+                <oj-bind-if test="[[ !$variables.esIsEditMode ]]">
+                    <oj-select-single aria-label="Business Unit" placeholder="— Select Business Unit —"
+                        data="[[ $variables.EsBuLovSDP ]]" value="{{ $variables.EsDraft.buId }}"
+                        item-text="BusinessUnitName"
+                        class="oj-form-control-full-width"
+                        on-value-changed="[[ $listeners.onEsBuSelected ]]">
+                        <!-- Dropdown rows only: name over its id. The collapsed field keeps
+                             showing item-text (the name alone). Mirrors the yard select on
+                             equipment-analytics-page. -->
+                        <template slot="itemTemplate">
+                            <div style="display:flex; flex-direction:column; line-height:1.25; padding:2px 0;">
+                                <span style="font-weight:600; color:#161513;">
+                                    <oj-bind-text value="[[ $current.data.BusinessUnitName ]]"></oj-bind-text>
+                                </span>
+                                <span style="font-size:11px; color:#6b7280;">
+                                    <oj-bind-text value="[[ $current.data.BusinessUnitId ]]"></oj-bind-text>
+                                </span>
+                            </div>
+                        </template>
+                    </oj-select-single>
+                </oj-bind-if>
+                <oj-bind-if test="[[ $variables.esIsEditMode ]]">
+                    <oj-input-text aria-label="Business Unit" value="[[ $variables.EsBuSelectedName ]]" readonly="true"
+                        class="oj-form-control-full-width"></oj-input-text>
+                </oj-bind-if>
+            </div>
+
+            <oj-form-layout max-columns="1" label-edge="top" direction="column">
+
+                <oj-select-single label-hint="RATE SOURCE" placeholder="— Select —" required="true"
+                    data="[[ $variables.CostingLovDP ]]" value="{{ $variables.EsDraft.RATE_SOURCE }}"
+                    help.instruction="[[ $page.functions.getSettingBool($page.variables.ConfigSettingsMap, 'PPM_RATES_ENABLED')
+                        ? 'Fusion PPM Rates is ON globally, so every business unit uses PPM Rates. This choice applies when it is turned off.'
+                        : 'PPM Rates: Fusion prices this business unit. EquipRite Rates: priced from EquipRite rate schedules.' ]]"
+                    class="oj-form-control-full-width"></oj-select-single>
+
+                <oj-input-text label-hint="PROJECT TRANSACTION SOURCE" placeholder="— e.g. EQUIPRITE —"
+                    value="{{ $variables.EsDraft.PPM_TRANS_SOURCE }}"
+                    class="oj-form-control-full-width"></oj-input-text>
+
+                <oj-input-text label-hint="EXPENDITURE BATCH PREFIX" placeholder="e.g. EQRP-HOU"
+                    value="{{ $variables.EsDraft.PPM_BATCH_PREFIX }}"
+                    class="oj-form-control-full-width"></oj-input-text>
+
+                <!-- Procurement Markup (%) — RESTORED here 2026-09-03.
+                     Rides on Pass Procurement Cost = Yes: charge-out = PO price x
+                     (1 + this/100). 0 or unset = pass the PO cost through untouched.
+                     Does NOT affect rental rates, which come from the rate schedule.
+
+                     It briefly lived on the equipment subclass instead (post-Liberty
+                     change #3, "BU will not make sense"). That move was never
+                     completed — the subclass has no markup column and its dialog field
+                     saves nothing — while both post-cost views kept pricing markup from
+                     this BU column, the only markup column in the schema. So the engine
+                     was reading a value nobody could author. Authoring is back here;
+                     the subclass field is kept dormant for when that half is built. -->
+                <oj-input-number label-hint="Procurement Markup (%)"
+                    value="{{ $variables.EsDraft.MARGIN_PERCENTAGE }}" min="0" max="100" step="1"
+                    class="oj-form-control-full-width"
+                    help.instruction="Applied to the PO price when Pass Procurement Cost is on. 0 = pass the PO cost through with no markup. Rentals are unaffected."></oj-input-number>
+
+            </oj-form-layout>
+
+            <!-- Pass Procurement Cost (V2 §3): Yes → charge-out base = PO price
+                 (+ the subclass Procurement Markup % if set); No → use the EquipRite
+                 rate schedule. The markup itself is authored on the subclass now. -->
+            <div
+                style="display: flex; align-items: center; justify-content: space-between; border: 1px solid #e2e8f0; border-radius: 4px; padding: 8px 12px; min-height: 36px; margin-top: 12px; background-color: #ffffff;">
+                <span style="font-size: 13px; color: #475569;">Pass Procurement Cost (use PO price)</span>
+                <oj-switch value="{{ $variables.EsDraft.PASS_PROCUREMENT_COST }}" label-edge="none"></oj-switch>
+            </div>
+            <div
+                style="display: flex; align-items: center; justify-content: space-between; border: 1px solid #e2e8f0; border-radius: 4px; padding: 8px 12px; min-height: 36px; margin-top: 8px; background-color: #ffffff;">
+                <span style="font-size: 13px; color: #475569;">Enable Adhoc Timesheet?</span>
+                <oj-switch value="{{ $variables.EsDraft.ADHOC_TIMESHEET_ENABLED }}" label-edge="none"></oj-switch>
+            </div>
+            <!-- "Ship Document Enabled" removed from the drawer and the grid. As with the
+                 BU markup, the stored column is left alone on purpose: IS_SHIP_DOCUMENT is
+                 out of esColumnMap so the save body never carries it and the partial PATCH
+                 cannot blank a value some backend consumer may still read. -->
+        </div>
+
+        <!-- Footer -->
+        <div
+            style="flex: 0 0 auto; padding: 16px 24px; background-color: #ffffff; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 12px;">
+            <oj-button chroming="outlined" on-oj-action="[[ $listeners.onEsDrawerClose ]]">Cancel</oj-button>
+            <oj-button chroming="callToAction" style="--oj-button-cta-bg-color: #0f172a;"
+                disabled="[[ $variables.isEsSaving ]]" on-oj-action="[[ $listeners.onEsSave ]]">
+                <span slot="startIcon" class="oj-ux-ico-save"></span>
+                <span>Save</span>
+            </oj-button>
+        </div>
+    </div>
+</oj-drawer-popup>

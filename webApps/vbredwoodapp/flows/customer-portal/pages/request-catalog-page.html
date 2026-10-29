@@ -1,0 +1,891 @@
+<oj-sp-general-overview-page id="equipmentCatalogGeneralOverview" page-title="[[ $variables.pageTitle ]]"
+  display-mode="mixed" display-options.responsive-padding="off" display-options.in-flow-back="true"
+  on-sp-in-flow-back="[[$listeners.onSpInFlowBack]]"
+  primary-action='[[ {"label": "View Cart" + (($flow.variables.CartItemsArray && $flow.variables.CartItemsArray.length > 0) ? " (" + $flow.variables.CartItemsArray.length + ")" : ""), "display": "on", "startIcon": {"iconClass": "oj-ux-ico-cart"}} ]]'
+  secondary-actions='[[ [{"id": "templates", "label": "Templates", "display": "on", "chroming": "callToAction"}] ]]'
+  on-sp-primary-action="[[$listeners.onSpPrimaryAction]]" on-sp-secondary-action="[[$listeners.onTemplatesClicked]]"
+  class="oj-sm-width-full">
+
+  <!-- ═══ SEARCH SLOT ═══ -->
+  <div slot="search">
+    <!-- Filtering exactly like equipment-master: the DPV reads filterCriterion
+         via its constructor binding and applies it automatically. No change
+         listener needed. The smart-search OWNS filterCriterion (read-only
+         write-back), so the template filter is kept OFF filterCriterion — it
+         rides the SDP's templateId uriParameter (activeTemplateId) and shows as
+         the custom removable chip below. -->
+    <oj-bind-if test="[[ $variables.catalogSmartSearchVisible ]]">
+      <oj-sp-smart-search id="catalogSearch"
+        search-config="[[ $variables.searchConfiguration.provider ]]"
+        search-context="[[ $variables.searchContext ]]"
+        filter-criterion="{{ $variables.filterCriterion }}"
+        on-filter-criterion-changed="[[ $listeners.onCatalogFilterCriterionChanged ]]"
+        suggestion-filters='["AssetGroupFilter", "ClassFilter", "SubclassFilter", "StatusFilter"]'
+        ask-hint="Search equipment...">
+      </oj-sp-smart-search>
+    </oj-bind-if>
+
+    <!-- Applied-filter chips (Redwood style). Agreement chip removes only the
+         catalog SCOPE (agreementFilterActive) — the agreement CONTEXT/rates stay,
+         see CatalogClearAgreementFilterChain. Template chip clears the template
+         filter. Both sit in one row beneath the search bar. -->
+    <oj-bind-if test="[[ ($flow.variables.fromAgreementId && $variables.agreementFilterActive) || $variables.activeTemplateId != null ]]">
+      <div class="eq-chip-row">
+
+        <!-- Agreement scope chip -->
+        <oj-bind-if test="[[ $flow.variables.fromAgreementId && $variables.agreementFilterActive ]]">
+          <div class="eq-filter-chip eq-filter-chip-agreement" role="button" tabindex="0"
+            on-click="[[$listeners.onClearAgreementFilter]]"
+            :title="[[ 'Agreement: ' + ($flow.variables.fromAgreementNumber || '') + ' — click to browse the full catalog' ]]">
+            <span class="oj-ux-ico-contract eq-filter-chip-lead"></span>
+            <span class="eq-filter-chip-key">Agreement</span>
+            <span class="eq-filter-chip-val"><oj-bind-text value="[[ $flow.variables.fromAgreementNumber ]]"></oj-bind-text></span>
+            <span class="oj-ux-ico-close eq-filter-chip-x" aria-label="Remove agreement filter"></span>
+          </div>
+        </oj-bind-if>
+
+        <!-- Template filter chip -->
+        <oj-bind-if test="[[ $variables.activeTemplateId != null ]]">
+          <div class="eq-filter-chip" role="button" tabindex="0"
+            on-click="[[$listeners.onClearTemplateFilter]]"
+            :title="[[ 'Template: ' + $variables.activeTemplateName + ' — click to clear' ]]">
+            <span class="eq-filter-chip-key">Template</span>
+            <span class="eq-filter-chip-val"><oj-bind-text value="[[ $variables.activeTemplateName ]]"></oj-bind-text></span>
+            <span class="oj-ux-ico-close eq-filter-chip-x" aria-label="Clear template filter"></span>
+          </div>
+        </oj-bind-if>
+
+      </div>
+    </oj-bind-if>
+  </div>
+
+  <!-- ═══ MAIN SLOT ═══ -->
+  <div slot="main" class="oj-flex oj-sm-flex-direction-column oj-sm-width-full">
+
+
+    <!-- ═══ TEMPLATES MODAL ═══ -->
+    <oj-dialog id="equipTemplatesDialog" dialog-title="Equipment Templates"
+      initial-visibility="hide" cancel-behavior="icon" modality="modal"
+      style="width:560px; max-width:96vw;">
+
+      <div slot="body" style="padding:0;">
+
+        <!-- Search -->
+        <div style="padding:16px 20px 12px 20px; border-bottom:1px solid var(--oj-core-divider-color,#e0e0e0);">
+          <div class="eq-tmpl-search-wrap">
+            <span class="oj-ux-ico-search eq-tmpl-search-icon"></span>
+            <input id="tmplSearchInput" type="text" class="eq-tmpl-search-input" placeholder="Search templates..."
+              on-input="[[$listeners.onTemplateSearch]]" />
+          </div>
+        </div>
+
+        <!-- Loading spinner — shown while template headers are fetched on first open. -->
+        <oj-bind-if test="[[ $variables.isTemplatesLoading ]]">
+          <div style="padding:40px; display:flex; flex-direction:column; align-items:center; gap:12px;">
+            <oj-progress-circle size="md"></oj-progress-circle>
+            <span class="oj-typography-body-sm" style="color:var(--oj-core-text-color-secondary);">Loading templates…</span>
+          </div>
+        </oj-bind-if>
+
+        <!-- Template list -->
+        <oj-bind-if test="[[ !$variables.isTemplatesLoading ]]">
+        <div style="padding:8px 12px 4px 12px; max-height:400px; overflow-y:auto;">
+          <oj-list-view id="allTemplatesList" data="[[ $variables.filteredTemplatesADP ]]"
+            selection-mode="none" drill-mode="none" scroll-policy="loadAll"
+            style="border:none;">
+            <template slot="itemTemplate" data-oj-as="tItem">
+              <li class="eq-tmpl-li">
+                <div class="eq-tmpl-row">
+                  <!-- Clicking the text area applies the template (adds its
+                       lines to the cart) — unchanged behaviour. -->
+                  <div class="eq-tmpl-text" on-click="[[$listeners.onTemplateRowClicked]]">
+                    <div class="oj-typography-body-md eq-tmpl-name">
+                      <oj-bind-text value="[[ tItem.data.templateName ]]"></oj-bind-text>
+                    </div>
+                    <div class="oj-typography-body-sm eq-tmpl-desc">
+                      <oj-bind-text value="[[ tItem.data.description ]]"></oj-bind-text>
+                    </div>
+                  </div>
+                  <!-- Eye button → open the read-only preview of this kit's
+                       lines. Its own listener; not nested in the text-area
+                       click, so it never triggers apply-to-cart. -->
+                  <oj-button class="eq-tmpl-eye" display="icons" chroming="borderless"
+                    on-oj-action="[[$listeners.onTemplatePreviewClicked]]"
+                    title="Preview lines">
+                    <span class="oj-ux-ico-view"></span></oj-button>
+                </div>
+              </li>
+            </template>
+            <template slot="noData">
+              <div style="padding:20px; text-align:center; color:var(--oj-core-text-color-secondary);">No templates found.</div>
+            </template>
+          </oj-list-view>
+        </div>
+        </oj-bind-if>
+
+        <div style="padding:8px 20px 12px 20px; font-size:11px; color:var(--oj-core-text-color-secondary); font-style:italic; border-top:1px solid var(--oj-core-divider-color,#e0e0e0); margin-top:4px;">
+          Select a template to filter the catalog to its equipment, then review and add items to your cart.
+        </div>
+      </div>
+    </oj-dialog>
+
+    <!-- ═══ TEMPLATE PREVIEW MODAL ═══ -->
+    <!-- Read-only preview of a kit's lines. Same width as the templates dialog.
+         Each line has a selection checkbox; the footer can add the checked
+         lines straight to the cart, or show the whole template in the catalog
+         (server-side filtered via a templateId smart-search chip). -->
+    <oj-dialog id="templatePreviewDialog" dialog-title="Template Preview"
+      initial-visibility="hide" cancel-behavior="icon" modality="modal"
+      style="width:560px; max-width:96vw;">
+
+      <div slot="body" style="padding:0;">
+
+        <!-- Header: name + description -->
+        <div style="padding:16px 20px 12px 20px; border-bottom:1px solid var(--oj-core-divider-color,#e0e0e0);">
+          <div class="oj-typography-heading-sm" style="font-weight:700;">
+            <oj-bind-text value="[[ $variables.previewTemplateName ]]"></oj-bind-text>
+          </div>
+          <oj-bind-if test="[[ $variables.previewTemplateDescription ]]">
+            <div class="oj-typography-body-sm" style="color:var(--oj-core-text-color-secondary); margin-top:4px;">
+              <oj-bind-text value="[[ $variables.previewTemplateDescription ]]"></oj-bind-text>
+            </div>
+          </oj-bind-if>
+        </div>
+
+        <!-- Loading -->
+        <oj-bind-if test="[[ $variables.isPreviewLoading ]]">
+          <div style="padding:32px; text-align:center;">
+            <oj-progress-circle size="md"></oj-progress-circle>
+          </div>
+        </oj-bind-if>
+
+        <!-- Lines -->
+        <oj-bind-if test="[[ !$variables.isPreviewLoading ]]">
+          <div style="padding:6px 12px 4px 12px;">
+            <!-- Select-all header -->
+            <div class="eq-prev-head">
+              <oj-button display="all" chroming="borderless"
+                on-oj-action="[[$listeners.onPreviewSelectAll]]">
+                Select / clear all
+              </oj-button>
+              <span class="eq-prev-count">
+                <oj-bind-text value="[[ ($variables.previewSelectedKeys || []).length + ' selected' ]]"></oj-bind-text>
+              </span>
+            </div>
+
+            <div style="max-height:360px; overflow-y:auto;">
+              <oj-list-view id="previewLinesList" data="[[ $variables.previewLinesADP ]]"
+                selection-mode="none" drill-mode="none" scroll-policy="loadAll"
+                style="border:none;">
+                <template slot="itemTemplate" data-oj-as="pItem">
+                  <li class="eq-prev-li">
+                    <div class="eq-prev-row" :data-available="[[ pItem.data.available ]]">
+                      <input type="checkbox" class="eq-prev-checkbox"
+                        :data-equipment-id="[[ pItem.data.equipmentMasterId ]]"
+                        :disabled="[[ !pItem.data.available ]]"
+                        :checked="[[ $variables.previewSelectionTick >= 0 && $page.functions.isPreviewLineSelected(pItem.data.equipmentMasterId, $variables.previewSelectedKeys, $variables.previewSelectionTick) ]]"
+                        on-mousedown="[[ function(e){ e.preventDefault(); } ]]"
+                        on-change="[[$listeners.onPreviewLineToggled]]" />
+                      <div class="eq-prev-text">
+                        <div class="oj-typography-body-md eq-prev-name">
+                          <oj-bind-text value="[[ pItem.data.name ]]"></oj-bind-text>
+                        </div>
+                        <div class="oj-typography-body-sm eq-prev-class">
+                          <oj-bind-text value="[[ pItem.data.className ]]"></oj-bind-text>
+                          <oj-bind-if test="[[ !pItem.data.available ]]">
+                            <span class="eq-prev-unavail"> · no longer available</span>
+                          </oj-bind-if>
+                        </div>
+                      </div>
+                      <div class="eq-prev-qty">
+                        <span class="eq-prev-qty-label">Qty</span>
+                        <oj-bind-text value="[[ pItem.data.quantity ]]"></oj-bind-text>
+                      </div>
+                    </div>
+                  </li>
+                </template>
+                <template slot="noData">
+                  <div style="padding:20px; text-align:center; color:var(--oj-core-text-color-secondary);">This template has no lines.</div>
+                </template>
+              </oj-list-view>
+            </div>
+          </div>
+        </oj-bind-if>
+      </div>
+
+      <!-- Footer actions -->
+      <div slot="footer">
+        <oj-button on-oj-action="[[$listeners.onPreviewShowInCatalog]]" chroming="outlined">
+          Show in catalog
+        </oj-button>
+        <oj-button on-oj-action="[[$listeners.onPreviewAddSelected]]" chroming="callToAction">
+          Add selected to cart
+        </oj-button>
+      </div>
+    </oj-dialog>
+
+    <style>
+      /* Bounded scroll region — gives loadMoreOnScroll a FINITE viewport to fill,
+         so it fetches ~1 page on load and loads more only on real scroll (was
+         eagerly fetching all 4 pages because an unbounded list-view never
+         "fills"). Mirrors equipment-master's table (min-height:600px). */
+      #equipmentListView {
+        width: 100% !important;
+        height: 75vh;
+        overflow-y: auto;
+      }
+      #equipmentCatalogGeneralOverview { --oj-sp-general-overview-page-max-width: 100% !important; }
+
+      .eq-catalog-card {
+        height: calc(100% - var(--oj-core-spacing-4x, 16px));
+        margin: var(--oj-core-spacing-2x, 8px);
+      }
+
+      .eq-card-li { display: flex; flex-direction: column; position: relative; }
+
+      /* Checkbox overlay in top-left of card */
+      .eq-card-checkbox-wrap {
+        position: absolute;
+        top: 16px;
+        left: 16px;
+        z-index: 10;
+        pointer-events: all;
+      }
+
+      /* Status badge overlay in top-right of card */
+      .eq-card-status-wrap {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        z-index: 10;
+        pointer-events: none;
+        display: inline-block;
+        width: auto;
+      }
+      .eq-card-checkbox {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+        accent-color: var(--oj-core-color-brand, #1a7bbf);
+      }
+
+      .eq-card-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        background: var(--oj-core-bg-neutral-10, #f5f5f5);
+        border: 1px solid var(--oj-core-divider-color, #e0e0e0);
+        border-top: none;
+        border-radius: 0 0 6px 6px;
+        padding: 8px 12px;
+        margin: 0 8px 8px 8px;
+      }
+
+      .eq-card-footer .eq-qty-input {
+        flex: 0 1 auto;
+        min-width: 0;
+        max-width: 130px;
+      }
+      .eq-card-footer .eq-qty-input::part(input-container),
+      .eq-card-footer .eq-qty-input .oj-text-field-container {
+        border-radius: 6px;
+        background: #ffffff;
+      }
+      .eq-card-footer .eq-cart-btn { flex: 0 0 auto; }
+
+      .eq-catalog-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px;
+        padding: 8px 0 4px 0;
+      }
+
+      /* Pagination bar */
+      .eq-pagination {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 20px 0 12px 0;
+      }
+      .eq-pagination-label {
+        font-size: 13px;
+        color: var(--oj-core-text-color-secondary);
+        white-space: nowrap;
+      }
+
+      /* Status badge on card */
+      .eq-status-badge {
+        display: inline-block;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 3px 9px;
+        border-radius: 12px;
+        white-space: nowrap;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+      }
+      .eq-status-available {
+        background: #e6f4ea;
+        color: #1e7e34;
+        border: 1px solid #a8d5b0;
+      }
+      .eq-status-on-rent {
+        background: #fce8e8;
+        color: #c0392b;
+        border: 1px solid #f5a9a9;
+      }
+      .eq-status-partial,
+      .eq-status-partial-available {
+        background: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffc107;
+      }
+      .eq-status-no-units,
+      .eq-status-not-available {
+        background: #f0f0f0;
+        color: #666;
+        border: 1px solid #ccc;
+      }
+      .eq-status-in-maintenance {
+        background: #fce8e8;
+        color: #c0392b;
+        border: 1px solid #f5a9a9;
+      }
+      .eq-status-unknown {
+        background: #f0f0f0;
+        color: #666;
+        border: 1px solid #ccc;
+      }
+
+      /* Templates modal */
+      .eq-tmpl-search-wrap {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border: 1px solid var(--oj-core-divider-color, #e0e0e0);
+        border-radius: 6px;
+        background: var(--oj-core-bg-neutral-10, #f5f5f5);
+      }
+      .eq-tmpl-search-icon { font-size: 1rem; color: var(--oj-core-text-color-secondary); flex-shrink: 0; }
+      .eq-tmpl-search-input {
+        flex: 1; border: none; background: transparent;
+        outline: none; font-size: 14px;
+        color: var(--oj-core-text-color-primary);
+      }
+      .eq-tmpl-search-input::placeholder { color: var(--oj-core-text-color-secondary); }
+      .eq-tmpl-li { list-style: none; padding: 0; margin: 0; }
+      .eq-tmpl-row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 14px 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        border-bottom: 1px solid var(--oj-core-divider-color, #f0f0f0);
+        transition: background 0.12s;
+      }
+      .eq-tmpl-row:hover { background: var(--oj-core-bg-neutral-10, #f5f5f5); }
+      .eq-tmpl-li:last-child .eq-tmpl-row { border-bottom: none; }
+      .eq-tmpl-text { flex: 1; min-width: 0; }
+      .eq-tmpl-name { font-weight: 600; font-size: 14px; }
+      .eq-tmpl-desc { color: var(--oj-core-text-color-secondary); margin-top: 3px; font-size: 12px; }
+      .eq-tmpl-badge {
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--oj-core-color-brand, #1a7bbf);
+        background: #e8f2fb;
+        padding: 3px 8px;
+        border-radius: 12px;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      /* Eye/preview button on a template row — only the text area carries the
+         apply-to-cart click, so this button is a safe sibling. */
+      .eq-tmpl-eye { flex: 0 0 auto; }
+      .eq-tmpl-text { cursor: pointer; }
+
+      /* ─── Template preview dialog ──────────────────────────────────── */
+      .eq-prev-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 4px 8px 8px 8px;
+        border-bottom: 1px solid var(--oj-core-divider-color, #f0f0f0);
+      }
+      .eq-prev-count { font-size: 12px; color: var(--oj-core-text-color-secondary); }
+      .eq-prev-li { list-style: none; padding: 0; margin: 0; }
+      .eq-prev-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 8px;
+        border-bottom: 1px solid var(--oj-core-divider-color, #f0f0f0);
+      }
+      .eq-prev-row[data-available="false"] { opacity: 0.55; }
+      .eq-prev-li:last-child .eq-prev-row { border-bottom: none; }
+      .eq-prev-checkbox {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+        flex-shrink: 0;
+        accent-color: var(--oj-core-color-brand, #1a7bbf);
+      }
+      .eq-prev-text { flex: 1; min-width: 0; }
+      .eq-prev-name { font-weight: 600; font-size: 14px; }
+      .eq-prev-class { color: var(--oj-core-text-color-secondary); font-size: 12px; margin-top: 2px; }
+      .eq-prev-unavail { color: var(--oj-core-color-danger-130, #b3261e); font-style: italic; }
+      .eq-prev-qty {
+        flex: 0 0 auto;
+        font-size: 13px;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .eq-prev-qty-label { color: var(--oj-core-text-color-secondary); font-weight: 400; margin-right: 4px; }
+
+      /* ─── Active template filter chip — Redwood applied-filter style ── */
+      .eq-chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 10px;
+      }
+      /* Transparent dark pill with a faint border + white text, matching the
+         native Class / Subclass / Status chips on the dark catalog header. */
+      .eq-filter-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: 28px;
+        padding: 0 8px 0 12px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.35);
+        border-radius: 14px;
+        font-size: 13px;
+        line-height: 1;
+        cursor: pointer;
+        max-width: 320px;
+        transition: background 0.12s, border-color 0.12s;
+      }
+      .eq-filter-chip:hover {
+        background: rgba(255, 255, 255, 0.16);
+        border-color: rgba(255, 255, 255, 0.6);
+      }
+      .eq-filter-chip:focus-visible {
+        outline: 2px solid rgba(255, 255, 255, 0.8);
+        outline-offset: 1px;
+      }
+      .eq-filter-chip-key {
+        color: rgba(255, 255, 255, 0.7);
+        font-weight: 400;
+      }
+      .eq-filter-chip-key::after { content: ":"; }
+      .eq-filter-chip-val {
+        color: #ffffff;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .eq-filter-chip-x {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.75);
+        flex: 0 0 auto;
+        transition: background 0.12s, color 0.12s;
+      }
+      .eq-filter-chip:hover .eq-filter-chip-x {
+        color: #ffffff;
+        background: rgba(255, 255, 255, 0.2);
+      }
+      /* Leading icon (agreement chip) */
+      .eq-filter-chip-lead {
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.85);
+        flex: 0 0 auto;
+      }
+      /* Agreement chip — subtle accent so it reads as the scope, distinct from
+         the (data) template chip but same chip family. */
+      .eq-filter-chip-agreement {
+        background: rgba(255, 255, 255, 0.14);
+        border-color: rgba(255, 255, 255, 0.5);
+      }
+
+      /* ─── Category sidebar ─────────────────────────────────────────── */
+      .eq-catalog-body {
+        display: flex;
+        flex-direction: row;
+        gap: 18px;
+        width: 100%;
+        align-items: flex-start;
+      }
+      .eq-sidebar {
+        flex: 0 0 240px;
+        max-width: 240px;
+        background: #ffffff;
+        border: 1px solid var(--oj-core-divider-color, #e0e0e0);
+        border-radius: 8px;
+        padding: 10px 0;
+        max-height: calc(100vh - 220px);
+        overflow-y: auto;
+        position: sticky;
+        top: 16px;
+        transition: flex-basis 0.15s ease, max-width 0.15s ease;
+      }
+      .eq-sidebar.eq-sidebar-collapsed {
+        flex: 0 0 44px;
+        max-width: 44px;
+        overflow: hidden;
+      }
+      .eq-sidebar-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--oj-core-text-color-secondary);
+        padding: 4px 10px 8px 16px;
+        border-bottom: 1px solid var(--oj-core-divider-color, #f0f0f0);
+        margin-bottom: 4px;
+      }
+      .eq-sidebar-collapsed .eq-sidebar-header {
+        padding: 4px 6px 8px 6px;
+        justify-content: center;
+        border-bottom-color: transparent;
+      }
+      .eq-sidebar-header-label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .eq-sidebar-collapse-btn {
+        flex: 0 0 auto;
+        width: 22px;
+        height: 22px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        background: transparent;
+        border-radius: 4px;
+        cursor: pointer;
+        color: var(--oj-core-text-color-secondary);
+        padding: 0;
+      }
+      .eq-sidebar-collapse-btn:hover {
+        background: #f0f0f0;
+        color: var(--oj-core-color-brand, #1a7bbf);
+      }
+      .eq-sidebar-collapse-icon {
+        display: inline-block;
+        font-size: 11px;
+        transition: transform 0.15s ease;
+      }
+      .eq-sidebar-collapse-icon-collapsed { transform: rotate(180deg); }
+      .eq-sidebar-grid { flex: 1 1 auto; min-width: 0; }
+      .eq-side-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 14px;
+        font-size: 13px;
+        color: var(--oj-core-text-color-primary);
+        cursor: pointer;
+        border-left: 3px solid transparent;
+        transition: background 0.12s;
+        user-select: none;
+      }
+      .eq-side-item:hover { background: #f5f7fa; }
+      .eq-side-item.eq-side-item-active {
+        background: #e8f2fb;
+        border-left-color: var(--oj-core-color-brand, #1a7bbf);
+        font-weight: 600;
+        color: var(--oj-core-color-brand, #1a7bbf);
+      }
+      .eq-side-class { font-weight: 500; }
+      .eq-side-sub {
+        padding-left: 38px;
+        font-size: 12.5px;
+        color: var(--oj-core-text-color-secondary);
+      }
+      .eq-side-sub.eq-side-item-active {
+        color: var(--oj-core-color-brand, #1a7bbf);
+      }
+      .eq-side-caret {
+        display: inline-block;
+        width: 14px;
+        font-size: 10px;
+        color: var(--oj-core-text-color-secondary);
+        transition: transform 0.12s;
+        flex-shrink: 0;
+      }
+      .eq-side-caret.eq-side-caret-open { transform: rotate(90deg); }
+      .eq-side-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .eq-side-count {
+        font-size: 11px;
+        color: var(--oj-core-text-color-secondary);
+        background: #f0f0f0;
+        padding: 1px 7px;
+        border-radius: 10px;
+        flex-shrink: 0;
+      }
+      .eq-side-item-active .eq-side-count {
+        background: #d4e6f7;
+        color: var(--oj-core-color-brand, #1a7bbf);
+      }
+      .eq-side-empty {
+        padding: 14px;
+        font-size: 12px;
+        color: var(--oj-core-text-color-secondary);
+        font-style: italic;
+      }
+
+      @media (max-width: 900px) {
+        .eq-catalog-body { flex-direction: column; }
+        .eq-sidebar {
+          flex: 1 1 auto;
+          max-width: 100%;
+          max-height: 280px;
+          position: static;
+        }
+        .eq-sidebar.eq-sidebar-collapsed {
+          flex: 0 0 auto;
+          max-width: 100%;
+          max-height: 44px;
+        }
+      }
+    </style>
+
+    <!-- ═══ BODY: SIDEBAR + GRID ═══ -->
+    <div class="eq-catalog-body">
+
+      <!-- ─── Sidebar: class / subclass tree ─── -->
+      <aside :class="[[ 'eq-sidebar' + ($page.variables.sidebarCollapsed ? ' eq-sidebar-collapsed' : '') ]]" aria-label="Equipment categories">
+        <div class="eq-sidebar-header">
+          <oj-bind-if test="[[ !$page.variables.sidebarCollapsed ]]">
+            <span class="eq-sidebar-header-label">Categories</span>
+          </oj-bind-if>
+          <button type="button"
+                  class="eq-sidebar-collapse-btn"
+                  :aria-label="[[ $page.variables.sidebarCollapsed ? 'Expand categories' : 'Collapse categories' ]]"
+                  :title="[[ $page.variables.sidebarCollapsed ? 'Expand categories' : 'Collapse categories' ]]"
+                  on-click="[[$listeners.onSidebarCollapseToggle]]">
+            <span :class="[[ 'eq-sidebar-collapse-icon' + ($page.variables.sidebarCollapsed ? ' eq-sidebar-collapse-icon-collapsed' : '') ]]">◀</span>
+          </button>
+        </div>
+
+        <oj-bind-if test="[[ !$page.variables.sidebarCollapsed ]]">
+          <div>
+            <!-- All Equipment row — always shown. Clears class/subclass to show the
+                 full (in-scope) set. The agreement is no longer a sidebar category;
+                 it now appears as a removable chip in the search slot. -->
+            <div :class="[[ 'eq-side-item eq-side-class' + (!$page.variables.selectedSidebarClass ? ' eq-side-item-active' : '') ]]"
+                 on-click="[[$listeners.onSidebarAllClicked]]">
+              <span class="eq-side-caret"></span>
+              <span class="eq-side-label">All Equipment</span>
+            </div>
+
+            <oj-bind-if test="[[ ($page.variables.categoryTree || []).length === 0 ]]">
+              <div class="eq-side-empty">No categories</div>
+            </oj-bind-if>
+
+            <oj-bind-for-each data="[[ $page.variables.categoryTree ]]">
+              <template>
+                <div>
+                  <div :class="[[ 'eq-side-item eq-side-class' +
+                      ($page.variables.selectedSidebarClass === $current.data.className && !$page.variables.selectedSidebarSubclass
+                        ? ' eq-side-item-active' : '') ]]"
+                       on-click="[[$listeners.onSidebarClassClicked]]">
+                    <span :class="[[ 'eq-side-caret' +
+                        (($page.variables.expandedClasses || []).indexOf($current.data.className) >= 0 ? ' eq-side-caret-open' : '') ]]">
+                      <oj-bind-text value="[[ ($current.data.subClasses || []).length > 0 ? '▶' : '' ]]"></oj-bind-text>
+                    </span>
+                    <span class="eq-side-label"><oj-bind-text value="[[ $current.data.className ]]"></oj-bind-text></span>
+                  </div>
+
+                  <oj-bind-if test="[[ ($page.variables.expandedClasses || []).indexOf($current.data.className) >= 0 ]]">
+                    <oj-bind-for-each data="[[ $current.data.subClasses ]]">
+                      <template>
+                        <div :class="[[ 'eq-side-item eq-side-sub' +
+                            ($page.variables.selectedSidebarSubclass === $current.data.subClassName
+                              ? ' eq-side-item-active' : '') ]]"
+                             on-click="[[$listeners.onSidebarSubClicked]]">
+                          <span class="eq-side-label"><oj-bind-text value="[[ $current.data.subClassName ]]"></oj-bind-text></span>
+                        </div>
+                      </template>
+                    </oj-bind-for-each>
+                  </oj-bind-if>
+                </div>
+              </template>
+            </oj-bind-for-each>
+          </div>
+        </oj-bind-if>
+      </aside>
+
+      <!-- ─── Right side: toolbar + grid + pagination ─── -->
+      <div class="eq-sidebar-grid">
+
+    <!-- Toolbar: Select All + Add to Cart -->
+    <div class="eq-catalog-toolbar">
+      <oj-button chroming="outlined" on-oj-action="[[$listeners.onSelectAllClicked]]">
+        <span slot="startIcon" class="oj-ux-ico-check-s"></span>
+        <span>
+          <oj-bind-text value="[[
+            (($variables.selectedEquipmentKeys || []).length > 0) ? 'Deselect All' : 'Select All'
+          ]]"></oj-bind-text>
+        </span>
+      </oj-button>
+      <oj-button chroming="callToAction" on-oj-action="[[$listeners.onAddCheckedToCartClicked]]">
+        <span slot="startIcon" class="oj-ux-ico-cart"></span>
+        Add to Cart
+      </oj-button>
+    </div>
+
+    <!-- The active-template filter renders as the custom removable chip in the
+         search slot (bound to activeTemplateId → SDP templateId uriParameter).
+         oj-sp-smart-search's filter-criterion is read-only write-back, so it
+         can't host a programmatically-set chip — hence the custom chip. -->
+
+    <oj-sp-collection-container style="width:100%;display:block;">
+      <!-- SDP+DPV: the list-view drives pagination (load-more-on-scroll) and the
+           DPV applies filterCriterion server-side. Rows are RAW catalog endpoint
+           rows (eqrEquipmentMasterId, className, rate, availabilityStatus…);
+           per-card derived values come from $page.functions.
+           Gated on the request dates being present: the catalog endpoint REQUIRES
+           startDate/endDate, and on refresh the SDP would otherwise construct and
+           fetch with null dates before CatalogInitChain hydrates $flow.variables.request.
+           Rendering the list-view only when dates exist means the SDP never fires
+           a null-date request. -->
+      <!-- ONE list-view, ONE server-side data source. The catalog endpoint now
+           accepts agreementId (and templateId) directly, so the agreement scope +
+           repricing is applied server-side via equipmentSDP.uriParameters
+           ($flow.variables.fromAgreementId). The sidebar class/subclass filters
+           COMPOSE with the agreement scope (the server ANDs filterCriterion with
+           agreementId), and the per-row negotiated rate / onAgreement flag come
+           straight off the endpoint. No more in-memory agreement dataset or
+           viewMode data-source swap. -->
+      <oj-list-view id="equipmentListView"
+        data="[[ $variables.equipmentDPV.instance ]]" style="width:100%;"
+        selection-mode="none" display="card" drill-mode="none"
+        scroll-policy="loadMoreOnScroll" scroll-policy-options.fetch-size="24">
+        <template slot="itemTemplate" data-oj-as="item">
+          <li class="oj-sm-12 oj-md-6 oj-lg-4 oj-xl-3 oj-sm-margin-0 eq-card-li">
+
+            <!-- Checkbox overlay: top-left of each card -->
+            <div class="eq-card-checkbox-wrap" on-click="[[ function(e){ e.stopPropagation(); } ]]">
+              <input type="checkbox" class="eq-card-checkbox"
+                :data-equipment-id="[[ item.data.eqrEquipmentMasterId ]]"
+                :checked="[[ $page.functions.isEquipmentSelected(item.data.eqrEquipmentMasterId, $variables.selectedById) ]]"
+                on-mousedown="[[ function(e){ e.preventDefault(); } ]]"
+                on-change="[[$listeners.onCardCheckboxChanged]]" />
+            </div>
+
+            <!-- Status badge overlay: top-right of each card.
+                 Hidden in browse-only mode (no dates → availabilityStatus is null). -->
+            <oj-bind-if test="[[ item.data.availabilityStatus != null ]]">
+            <div class="eq-card-status-wrap">
+              <div :class="[[ 'eq-status-badge eq-status-' + item.data.availabilityStatus.replace(/ /g, '-').toLowerCase() ]]">
+                <oj-bind-text value="[[ item.data.availabilityStatus + (item.data.availableQty != null ? ' | ' + item.data.availableQty : '') ]]"></oj-bind-text>
+              </div>
+            </div>
+            </oj-bind-if>
+
+            <oj-sp-card class="eq-catalog-card"
+              overline-text="[[ item.data.className || item.data.category ]]"
+              primary-text="[[ item.data.equipmentName ]]"
+              secondary-text-line2="[[ 'Manufacturer: ' + (item.data.manufacturer || '') ]]"
+              secondary-text-line3=""
+              tertiary-text="[[ $page.variables.ppmRateText
+                ? $page.functions.priceFieldLabel(item.data) + ': ' + $page.variables.ppmRateText
+                : $page.variables.hideRatesForQuote
+                ? 'Rate on request'
+                : ($page.functions.priceFieldLabel(item.data) + ': ' + $page.functions.formatCatalogRate(item.data, false)) ]]"
+              image="[[ $page.functions.imageObj(item.data.equipmentImage, $application.path, item.data.eqrEquipmentMasterId) ]]"
+              image-size="xl"
+              on-sp-card-action="[[$listeners.onSpCardAction]]">
+            </oj-sp-card>
+
+            <!-- Custom footer: stepper left, cart button right.
+                 Qty default comes from the persisted cart (rows aren't mutated). -->
+            <div class="eq-card-footer" on-click="[[ function(e){ e.stopPropagation(); } ]]">
+              <oj-c-input-number value="[[ $page.functions.stagedQtyFor(item.data.eqrEquipmentMasterId, $variables.pendingQtyById) ]]"
+                on-value-changed="[[$listeners.onQtyChanged]]"
+                :data-equipment-id="[[ item.data.eqrEquipmentMasterId ]]"
+                aria-label="Quantity"
+                label-edge="none"
+                stepper-variant="quantitative" min="0" step="1" max="100" virtual-keyboard="number"
+                display-options.messages="none" user-assistance-density="compact"
+                class="eq-qty-input"></oj-c-input-number>
+              <oj-button chroming="callToAction" display="icons"
+                on-oj-action="[[$listeners.addToCartClicked]]"
+                disabled="[[ !($page.functions.stagedQtyFor(item.data.eqrEquipmentMasterId, $variables.pendingQtyById) > 0
+                          || $page.functions.isEquipmentSelected(item.data.eqrEquipmentMasterId, $variables.selectedById)) ]]"
+                class="eq-cart-btn">
+                <span slot="startIcon" class="oj-ux-ico-cart"></span>
+                Add to Cart
+              </oj-button>
+            </div>
+
+          </li>
+        </template>
+        <template slot="noData">
+          <div class="oj-sm-padding-4x">No equipment found matching the criteria.</div>
+        </template>
+      </oj-list-view>
+    </oj-sp-collection-container>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Confirmation dialog: shown when the user unchecks (or deselects-all)
+       items that are currently in the cart. Body message is dynamic to
+       support both single-item and multi-item cases. -->
+  <oj-dialog id="removeFromCartDialog" dialog-title="Remove from cart?"
+             initial-visibility="hide" cancel-behavior="icon" modality="modal" style="max-width:480px;">
+    <div slot="body">
+      <p style="margin:0;">
+        <oj-bind-text value="[[ $variables.pendingUncheckDialogMessage ]]"></oj-bind-text>
+      </p>
+      <p style="margin-top:8px; color:var(--oj-core-text-color-secondary); font-size:0.875rem;">
+        Choose <strong>No</strong> to keep them in the cart (the selection will stay as it is).
+      </p>
+    </div>
+    <div slot="footer">
+      <oj-button id="removeFromCartCancelBtn" chroming="outlined"
+                 on-oj-action="[[ $listeners.onRemoveFromCartCancel ]]">No, keep in cart</oj-button>
+      <oj-button id="removeFromCartConfirmBtn" chroming="callToAction"
+                 on-oj-action="[[ $listeners.onRemoveFromCartConfirm ]]">Yes, remove from cart</oj-button>
+    </div>
+  </oj-dialog>
+
+  <oj-dialog id="unsavedSelectionsDialog" dialog-title="Unsaved Selections"
+             initial-visibility="hide" cancel-behavior="icon" modality="modal">
+    <div slot="body">
+      <div style="padding:8px 0;">
+        <oj-bind-text value="[[
+          'You have ' + ($variables.unsavedSelectionsCount || 0) +
+          ' selected item' + (($variables.unsavedSelectionsCount === 1) ? '' : 's') +
+          ' that ' + (($variables.unsavedSelectionsCount === 1) ? 'is' : 'are') +
+          ' not in your cart. Going back will clear ' +
+          (($variables.unsavedSelectionsCount === 1) ? 'this selection' : 'these selections') + '. Continue?'
+        ]]"></oj-bind-text>
+      </div>
+    </div>
+    <div slot="footer">
+      <oj-button id="stayInCatalogBtn" chroming="outlined"
+                 on-oj-action="[[ $listeners.onStayInCatalog ]]">Stay</oj-button>
+      <oj-button id="discardAndGoBackBtn" chroming="callToAction"
+                 on-oj-action="[[ $listeners.onDiscardAndGoBack ]]">Discard &amp; Go Back</oj-button>
+    </div>
+  </oj-dialog>
+
+</oj-sp-general-overview-page>

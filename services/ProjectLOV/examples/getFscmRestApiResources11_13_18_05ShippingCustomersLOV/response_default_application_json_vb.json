@@ -1,0 +1,11 @@
+{
+    "items": [
+        { "CustomerId": 100000000395792, "CustomerNumber": "10010", "Customer": "Conifer International", "PartyType": "ORGANIZATION" },
+        { "CustomerId": 100000000395780, "CustomerNumber": "10000", "Customer": "Owens & Minor", "PartyType": "ORGANIZATION" },
+        { "CustomerId": 100000000395795, "CustomerNumber": "26360", "Customer": "ABC Application Software", "PartyType": "ORGANIZATION" }
+    ],
+    "count": 3,
+    "hasMore": false,
+    "limit": 500,
+    "offset": 0
+}

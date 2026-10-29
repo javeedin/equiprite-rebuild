@@ -1,0 +1,336 @@
+<!--
+  Customer My Requests — Smart Search Page
+  Template: oj-sp-smart-search-page + oj-table (mirrors equipment-master pattern)
+  Row selection navigates to customer-request-detail
+-->
+<style>
+  /* Premium table styling — mirrors equipment-master */
+  #customerRequestsTable .oj-table-column-header-cell {
+    background-color: var(--oj-core-neutral-color-2, #f1f1f1);
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--oj-core-text-color-secondary, #565656);
+    padding: 10px 12px;
+  }
+  #customerRequestsTable .oj-table-column-header-text {
+    white-space: nowrap;
+  }
+  #customerRequestsTable .oj-table-body-row:hover {
+    background-color: var(--oj-core-neutral-color-1, #fafafa);
+    cursor: pointer;
+  }
+  #customerRequestsTable .oj-table-body-row:nth-child(even) {
+    background-color: var(--oj-core-neutral-color-0, #ffffff);
+  }
+  #customerRequestsTable .oj-table-data-cell {
+    padding: 10px 12px;
+    font-size: 0.8125rem;
+    vertical-align: middle;
+  }
+
+  /* Request # link */
+  .req-number-link {
+    color: var(--oj-core-brand-color-primary, #005cb1);
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  /* ── Lines count badge ── */
+  .req-lines-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: var(--oj-core-neutral-color-3, #e8e8e8);
+    color: var(--oj-core-text-color-secondary, #565656);
+    border-radius: 50%;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+
+  /* Status badge colours are defined globally in resources/css/app.css
+     (canonical status palette). Do not redefine them here — doing so is
+     what caused the same status to render differently per page. */
+
+  /* Drawer field labels */
+  .req-field-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--oj-core-text-color-secondary, #565656);
+    margin-bottom: 2px;
+  }
+  .req-field-value {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--oj-core-text-color-primary, #161616);
+  }
+</style>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!--  SMART SEARCH PAGE SHELL                                -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<oj-sp-smart-search-page
+  page-title="My Requests"
+  page-subtitle="Track all your submitted equipment requests"
+  primary-action.display="on"
+  primary-action.label="Browse Catalog"
+  on-sp-primary-action="[[$listeners.spPrimaryAction]]"
+  display-mode="mixed">
+
+  <!-- ── SEARCH SLOT ── -->
+  <oj-sp-smart-search
+    slot="search"
+    filter-criterion="{{ $variables.filterCriterion }}"
+    on-filter-criterion-changed="[[$listeners.filterCriterionChanged]]"
+    search-context="[[ $variables.searchContext ]]"
+    search-config="[[ $variables.searchConfiguration.provider ]]"
+    suggestion-filters='["StatusFilter"]'
+    placeholder="Search by request #, project, or task...">
+  </oj-sp-smart-search>
+
+  <!-- ── COLLECTION CONTAINER ── -->
+  <oj-sp-collection-container>
+
+    <oj-table
+      id="customerRequestsTable"
+      data="[[ $variables.RequestADP ]]"
+      class="oj-table-stretch oj-sm-width-full"
+      scroll-policy="loadMoreOnScroll"
+      scroll-policy-options.fetch-size="25"
+      columns="[[ $variables.requestColumns ]]"
+      selection-mode='{"row": "single"}'
+      on-first-selected-row-changed="[[ $listeners.onNavigateToDetail ]]"
+      style="width:100%; min-height:500px;"
+      aria-label="My Equipment Requests">
+
+      <!-- REQUEST NUMBER — plain text; whole-row click navigates to detail -->
+      <template slot="reqNumberTpl" data-oj-as="cell">
+        <span class="req-number-link">
+          <oj-bind-text value="[[ cell.data ]]"></oj-bind-text>
+        </span>
+      </template>
+
+      <!-- CUSTOMER NAME -->
+      <template slot="customerNameTpl" data-oj-as="cell">
+        <span style="font-weight:600; color:var(--oj-core-text-color-primary,#161616);">
+          <oj-bind-text value="[[ cell.data ]]"></oj-bind-text>
+        </span>
+      </template>
+
+      <!-- CUSTOMER CONTACT -->
+      <template slot="customerContactTpl" data-oj-as="cell">
+        <span style="color:var(--oj-core-text-color-secondary,#565656);">
+          <oj-bind-text value="[[ cell.data ]]"></oj-bind-text>
+        </span>
+      </template>
+
+      <!-- STATUS — canonical pill: colour + label both come from the shared
+           status module, so this cell matches every other page. -->
+      <template slot="statusTpl" data-oj-as="cell">
+        <oj-bind-if test="[[ !!cell.data ]]">
+          <span :class="[[ $application.functions.statusPillClass(cell.data) ]]">
+            <oj-bind-text value="[[ $application.functions.formatLineStatus(cell.data) ]]"></oj-bind-text>
+          </span>
+        </oj-bind-if>
+      </template>
+
+      <!-- LINES — count badge (lines is a number from the API) -->
+      <template slot="linesTpl" data-oj-as="cell">
+        <span class="req-lines-badge">
+          <oj-bind-text value="[[ cell.data || 0 ]]"></oj-bind-text>
+        </span>
+      </template>
+
+      <!-- CONTRACT NUMBER -->
+      <template slot="contractNumTpl" data-oj-as="cell">
+        <oj-bind-if test="[[ cell.data ]]">
+          <span style="font-size:0.8rem; font-weight:600; color:var(--oj-core-brand-color-primary,#005cb1);">
+            <oj-bind-text value="[[ cell.data ]]"></oj-bind-text>
+          </span>
+        </oj-bind-if>
+        <oj-bind-if test="[[ !cell.data ]]">
+          <span style="color:var(--oj-core-text-color-secondary,#b0b0b0); font-size:0.8rem;">—</span>
+        </oj-bind-if>
+      </template>
+
+      <!-- QUOTE — icon shown only when status is past Draft/Submitted.
+           The guard span stops the native click/mousedown from bubbling to the
+           table's row-selection handler, so hitting the quote icon fires ONLY
+           the quote action and does NOT navigate to the detail page. (Stopping
+           the ojAction event alone is too late — the row is already selected by
+           the native click before ojAction fires.) -->
+      <template slot="quoteTpl" data-oj-as="cell">
+        <oj-bind-if test="[[ cell.item.data.status !== 'DRAFT' && cell.item.data.status !== 'SUBMITTED' ]]">
+          <span style="display:inline-flex; align-items:center;"
+            on-click="[[ function(e) { e.stopPropagation(); } ]]"
+            on-mousedown="[[ function(e) { e.stopPropagation(); } ]]">
+            <oj-button chroming="borderless" class="oj-button-sm"
+              on-oj-action="[[ function(e) { $listeners.onQuoteAction({ requestNumber: cell.data, id: cell.item.data.id }); } ]]"
+              display="all">
+              <span slot="startIcon" class="oj-ux-ico-document-check"></span>
+            </oj-button>
+          </span>
+        </oj-bind-if>
+      </template>
+
+      <!-- EMPTY STATE -->
+      <template slot="noData">
+        <div style="text-align:center; padding:48px 0;">
+          <div style="font-size:40px; color:#cbd5e1; margin-bottom:12px;">📋</div>
+          <div style="font-size:15px; font-weight:600; color:#475569; margin-bottom:6px;">No requests match your search.</div>
+          <div style="font-size:13px; color:#94a3b8;">Try adjusting your filters or clearing the search.</div>
+        </div>
+      </template>
+
+    </oj-table>
+
+  </oj-sp-collection-container>
+
+</oj-sp-smart-search-page>
+
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!--  REQUEST DETAIL DRAWER (right edge)                     -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<oj-drawer-popup opened="{{ $variables.isDrawerOpen }}" edge="end">
+  <oj-defer>
+    <oj-sp-general-drawer-template
+      drawer-title="[[ $variables.selectedRequest.requestNumber || 'Request Detail' ]]"
+      drawer-subtitle="[[ $variables.selectedRequest.customerName || '' ]]"
+      drawer-size="lg"
+      close-action='[[ { "label": "Close", "display": "on" } ]]'
+      on-sp-close="[[ $listeners.closeRequestDrawer ]]">
+
+      <div class="oj-flex oj-sm-flex-direction-column" style="padding: 1rem 1.25rem;">
+
+        <!-- Status badge -->
+        <div class="oj-flex oj-sm-align-items-center" style="gap:8px; margin-bottom:16px; flex-wrap:wrap;">
+          <oj-bind-if test="[[ !!$variables.selectedRequest.status ]]">
+            <span :class="[[ $application.functions.statusPillClass($variables.selectedRequest.status) ]]">
+              <oj-bind-text value="[[ $application.functions.formatLineStatus($variables.selectedRequest.status) ]]"></oj-bind-text>
+            </span>
+          </oj-bind-if>
+        </div>
+
+        <!-- Overview fields -->
+        <div class="oj-flex oj-sm-flex-wrap-wrap" style="gap:12px 24px;">
+
+          <div class="oj-flex-item oj-sm-12 oj-md-6">
+            <div class="req-field-label">Request Number</div>
+            <div class="req-field-value" style="color:var(--oj-core-brand-color-primary,#005cb1); font-weight:700;">
+              <oj-bind-text value="[[ $variables.selectedRequest.requestNumber || '—' ]]"></oj-bind-text>
+            </div>
+          </div>
+
+          <div class="oj-flex-item oj-sm-12 oj-md-6">
+            <div class="req-field-label">Customer Name</div>
+            <div class="req-field-value">
+              <oj-bind-text value="[[ $variables.selectedRequest.customerName || '—' ]]"></oj-bind-text>
+            </div>
+          </div>
+
+          <div class="oj-flex-item oj-sm-12 oj-md-6">
+            <div class="req-field-label">Customer Contact</div>
+            <div class="req-field-value">
+              <oj-bind-text value="[[ $variables.selectedRequest.customerContact || '—' ]]"></oj-bind-text>
+            </div>
+          </div>
+
+          <div class="oj-flex-item oj-sm-12 oj-md-6">
+            <div class="req-field-label">Agreement Type</div>
+            <div class="req-field-value">
+              <oj-bind-text value="[[ $variables.selectedRequest.agreementType || '—' ]]"></oj-bind-text>
+            </div>
+          </div>
+
+          <div class="oj-flex-item oj-sm-12 oj-md-6">
+            <div class="req-field-label">Start Date</div>
+            <div class="req-field-value">
+              <oj-bind-text value="[[ $variables.selectedRequest.startDate || '—' ]]"></oj-bind-text>
+            </div>
+          </div>
+
+          <div class="oj-flex-item oj-sm-12 oj-md-6">
+            <div class="req-field-label">End Date</div>
+            <div class="req-field-value">
+              <oj-bind-text value="[[ $variables.selectedRequest.endDate || '—' ]]"></oj-bind-text>
+            </div>
+          </div>
+
+          <div class="oj-flex-item oj-sm-12 oj-md-6">
+            <div class="req-field-label">Lines</div>
+            <div class="req-field-value">
+              <oj-bind-text value="[[ $variables.selectedRequest.lines || 0 ]]"></oj-bind-text>
+            </div>
+          </div>
+
+          <div class="oj-flex-item oj-sm-12 oj-md-6">
+            <div class="req-field-label">Created Date</div>
+            <div class="req-field-value">
+              <oj-bind-text value="[[ $variables.selectedRequest.createdDate || '—' ]]"></oj-bind-text>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Delivery Info -->
+        <oj-bind-if test="[[ $variables.selectedRequest.deliveryLocation ]]">
+          <div style="font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--oj-core-brand-color-primary,#005cb1); margin:16px 0 8px 0; padding-bottom:4px; border-bottom:1px solid var(--oj-core-divider-color,#e0e0e0);">Delivery Info</div>
+          <div class="oj-flex oj-sm-flex-wrap-wrap" style="gap:10px 24px;">
+            <div class="oj-flex-item oj-sm-12 oj-md-6">
+              <div class="req-field-label">Location</div>
+              <div class="req-field-value"><oj-bind-text value="[[ $variables.selectedRequest.deliveryLocation ]]"></oj-bind-text></div>
+            </div>
+            <div class="oj-flex-item oj-sm-12 oj-md-6">
+              <div class="req-field-label">Address</div>
+              <div class="req-field-value"><oj-bind-text value="[[ $variables.selectedRequest.deliveryAddress || '—' ]]"></oj-bind-text></div>
+            </div>
+            <div class="oj-flex-item oj-sm-12 oj-md-6">
+              <div class="req-field-label">Site Contact</div>
+              <div class="req-field-value"><oj-bind-text value="[[ $variables.selectedRequest.siteContact || '—' ]]"></oj-bind-text></div>
+            </div>
+            <div class="oj-flex-item oj-sm-12 oj-md-6">
+              <div class="req-field-label">Site Phone</div>
+              <div class="req-field-value"><oj-bind-text value="[[ $variables.selectedRequest.sitePhone || '—' ]]"></oj-bind-text></div>
+            </div>
+          </div>
+        </oj-bind-if>
+
+        <!-- Equipment Lines -->
+        <oj-bind-if test="[[ $variables.selectedRequest.lineItems && $variables.selectedRequest.lineItems.length > 0 ]]">
+          <div style="font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--oj-core-brand-color-primary,#005cb1); margin:16px 0 8px 0; padding-bottom:4px; border-bottom:1px solid var(--oj-core-divider-color,#e0e0e0);">Equipment Lines</div>
+          <oj-bind-for-each data="[[ $variables.selectedRequest.lineItems || [] ]]">
+            <template data-oj-as="line">
+              <div style="border:1px solid var(--oj-core-divider-color,#e0e0e0); border-radius:6px; padding:10px 14px; margin-bottom:8px; background:#fff;">
+                <div class="oj-flex oj-sm-justify-content-space-between oj-sm-align-items-flex-start">
+                  <div>
+                    <div style="font-weight:600; font-size:0.875rem;"><oj-bind-text value="[[ line.data.equipmentName ]]"></oj-bind-text></div>
+                    <div style="font-size:0.75rem; color:var(--oj-core-text-color-secondary,#565656); margin-top:1px;"><oj-bind-text value="[[ line.data.equipmentClass ]]"></oj-bind-text></div>
+                  </div>
+                  <oj-bind-if test="[[ !!line.data.status ]]">
+                    <span :class="[[ $application.functions.statusTextClass() ]]">
+                      <oj-bind-text value="[[ $application.functions.formatLineStatus(line.data.status) ]]"></oj-bind-text>
+                    </span>
+                  </oj-bind-if>
+                </div>
+                <div style="font-size:0.75rem; color:var(--oj-core-text-color-secondary,#565656); margin-top:6px;">
+                  <span>Qty: <strong><oj-bind-text value="[[ line.data.qty ]]"></oj-bind-text></strong></span>
+                  <span style="margin-left:16px;">Util: <strong><oj-bind-text value="[[ line.data.utilPct + '%' ]]"></oj-bind-text></strong></span>
+                  <oj-bind-if test="[[ line.data.billRate ]]">
+                    <span style="margin-left:16px;">Rate: <strong>$<oj-bind-text value="[[ line.data.billRate ]]"></oj-bind-text>/day</strong></span>
+                  </oj-bind-if>
+                </div>
+              </div>
+            </template>
+          </oj-bind-for-each>
+        </oj-bind-if>
+
+      </div>
+    </oj-sp-general-drawer-template>
+  </oj-defer>
+</oj-drawer-popup>

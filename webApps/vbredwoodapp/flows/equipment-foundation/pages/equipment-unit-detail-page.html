@@ -1,0 +1,1247 @@
+<!--
+  Equipment Unit Detail - one physical stock unit (serial).
+
+  Layout mirrors the Fusion asset page: a fixed summary rail on the left with
+  the identity of the physical unit, and a tabbed pane on the right holding the
+  three records Oracle keeps for that same unit - stock, maintenance asset and
+  fixed asset.
+
+  Which tabs carry content is decided by the master tracking flags, resolved in
+  vbEnterChain. A master that is stock-only shows the Overview tab populated and
+  an explicit "not tracked" state on the other two, rather than empty fields.
+-->
+<style>
+  #oj_gop_unit_detail {
+    --oj-sp-general-overview-page-max-width: 100% !important;
+    width: 100% !important;
+    max-width: min(2400px, calc(100vw - 48px)) !important;
+    margin: 0 auto !important;
+  }
+
+  .eu-card {
+    border-radius: 8px;
+    border: 1px solid var(--oj-core-divider-margin, #e5e7eb);
+    background: var(--oj-core-bg-neutral-0, #ffffff);
+    padding: 24px;
+  }
+  .eu-card + .eu-card { margin-top: 16px; }
+
+  .eu-section-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--oj-core-text-color-secondary, #565656);
+    margin: 0 0 16px 0;
+  }
+
+  /* Two-pane shell: summary rail + tab content. Collapses to one column on
+     narrow viewports so the rail stacks above the tabs instead of squeezing. */
+  .eu-shell {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .eu-rail { flex: 0 0 320px; max-width: 100%; }
+  .eu-pane { flex: 1 1 640px; min-width: 0; }
+
+  .eu-rail-photo {
+    border: 1px solid var(--oj-core-divider-margin, #e5e7eb);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--oj-core-bg-neutral-10, #fafafa);
+    aspect-ratio: 4/3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+  }
+  .eu-rail-serial {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--oj-core-text-color-primary, #161513);
+    word-break: break-all;
+    margin: 0 0 2px 0;
+  }
+  .eu-rail-name {
+    font-size: 0.875rem;
+    color: var(--oj-core-text-color-secondary, #565656);
+    margin: 0 0 12px 0;
+  }
+  .eu-rail-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 7px 0;
+    border-top: 1px solid var(--oj-core-divider-margin, #eef0f2);
+    font-size: 0.8125rem;
+  }
+  .eu-rail-row-label { color: var(--oj-core-text-color-secondary, #565656); }
+  .eu-rail-row-value { font-weight: 600; text-align: right; word-break: break-word; }
+
+  /* Status pills reuse the canonical palette in resources/css/app.css so a
+     unit reads the same here as it does on the units grid. */
+  .eq-unit-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .eq-unit-badge--good     { background: var(--status-deployed-bg);   color: var(--status-deployed-text); }
+  .eq-unit-badge--blocked  { background: var(--status-rejected-bg);   color: var(--status-rejected-text); }
+  .eq-unit-badge--progress { background: var(--status-in-process-bg); color: var(--status-in-process-text); }
+  .eq-unit-badge--neutral  { background: var(--status-draft-bg);      color: var(--status-draft-text); }
+
+  /* Only surfaces when a Fusion call failed outright - without it a rejected
+     query looks identical to an asset that genuinely has no work orders. */
+  .eu-warn-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    background: var(--status-in-process-bg, #fdf0dc);
+    color: var(--status-in-process-text, #8a5a00);
+  }
+
+  .eu-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  .eu-head .eu-section-title { margin: 0; }
+
+  /* Value tiles for the fixed-asset book summary. */
+  .eu-tiles { display: flex; gap: 12px; flex-wrap: wrap; }
+  .eu-tile {
+    flex: 1 1 170px;
+    border: 1px solid var(--oj-core-divider-margin, #e5e7eb);
+    border-radius: 8px;
+    padding: 14px 16px;
+    background: var(--oj-core-bg-neutral-10, #fafbfc);
+  }
+  .eu-tile-label {
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--oj-core-text-color-secondary, #565656);
+    margin-bottom: 4px;
+  }
+  .eu-tile-value {
+    font-size: 1.125rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  #workOrdersTable .oj-table-column-header-cell,
+  #deprnTable .oj-table-column-header-cell {
+    background-color: var(--oj-core-neutral-color-2, #f1f1f1);
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--oj-core-text-color-secondary, #565656);
+    padding: 10px 12px;
+  }
+  #workOrdersTable .oj-table-data-cell,
+  #deprnTable .oj-table-data-cell {
+    padding: 10px 12px;
+    font-size: 0.8125rem;
+  }
+  /* Wide grids scroll inside their own card rather than stretching the page. */
+  .eu-table-wrap { width: 100%; overflow-x: auto; }
+  .eu-table-wrap oj-table { min-width: 100%; }
+
+  /* Key/value grid for cards that render only their populated fields. Mirrors
+     the three-column rhythm of the readonly oj-form-layout above it. */
+  .eu-kv-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px 24px;
+  }
+  .eu-kv-label {
+    font-size: 0.75rem;
+    color: var(--oj-core-text-color-secondary, #565656);
+    margin-bottom: 2px;
+  }
+  .eu-kv-value { font-size: 0.875rem; }
+
+  .eu-num { font-variant-numeric: tabular-nums; text-align: right; display: block; }
+  .eu-wo-num { color: var(--oj-core-brand-color-primary, #005cb1); font-weight: 700; }
+
+  .eu-empty {
+    padding: 48px 24px;
+    text-align: center;
+    color: var(--oj-core-text-color-secondary, #565656);
+  }
+  .eu-empty-icon { font-size: 2rem; opacity: 0.45; display: block; margin-bottom: 12px; }
+
+  /* ── Attachments ─────────────────────────────────────────────────────── */
+  .ua-rail-action { margin: 0 0 12px 0; display: flex; flex-direction: column; gap: 6px; }
+  .ua-rail-chip { align-self: flex-start; }
+
+  /* Every block in the dialog shares one left and right edge, so nothing can
+     sit half-width against a full-width neighbour. */
+  .ua-sub {
+    font-size: 0.8125rem;
+    color: var(--oj-core-text-color-secondary, #565656);
+    margin: 0 0 16px 0;
+  }
+
+  .ua-notice {
+    padding: 10px 14px; border-radius: 0 4px 4px 0; margin-bottom: 16px; font-size: 0.8125rem;
+  }
+  .ua-notice--success { border-left: 3px solid #16a34a; background: #f0fdf4; }
+  .ua-notice--error   { border-left: 3px solid #dc2626; background: #fef2f2; }
+
+  /* ── list toolbar ── */
+  .ua-toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+  .ua-toolbar oj-select-single { width: 200px; }
+  .ua-toolbar-count { font-size: 0.8125rem; color: var(--oj-core-text-color-secondary, #565656); }
+  .ua-toolbar-spacer { flex: 1 1 auto; }
+
+  /* ── list rows ── */
+  .ua-row {
+    display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 14px; align-items: center;
+    border: 1px solid var(--oj-core-divider-color, #e0e0e0); border-radius: 6px;
+    padding: 12px 14px; margin-bottom: 8px; background: var(--oj-core-bg-neutral-0, #fff);
+  }
+  .ua-type {
+    width: 40px; height: 40px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--oj-core-bg-neutral-10, #f6f7f9);
+    border: 1px solid var(--oj-core-divider-color, #e0e0e0);
+    font-size: 0.65rem; font-weight: 700; letter-spacing: 0.03em;
+    color: var(--oj-core-text-color-secondary, #565656);
+  }
+  .ua-name { font-size: 0.875rem; font-weight: 600; margin: 0 0 4px 0; word-break: break-word; }
+  .ua-meta { font-size: 0.75rem; color: var(--oj-core-text-color-secondary, #565656); margin: 0; }
+  .ua-meta-sep { margin: 0 6px; opacity: 0.5; }
+  .ua-side { display: flex; align-items: center; gap: 10px; }
+  .ua-actions { display: flex; gap: 2px; }
+  .ua-confirm { display: flex; align-items: center; gap: 6px; font-size: 0.8125rem; }
+
+  /* ── add form ── */
+  .ua-form { display: grid; grid-template-columns: 1fr 1fr; gap: 20px 24px; }
+  .ua-span-2 { grid-column: 1 / -1; }
+  @media (max-width: 640px) { .ua-form { grid-template-columns: 1fr; } }
+
+  .ua-label { display: block; font-size: 0.875rem; font-weight: 600; margin: 0 0 6px 0; }
+  .ua-optional { font-weight: 400; color: var(--oj-core-text-color-secondary, #565656); }
+
+  oj-file-picker.ua-picker { display: block; width: 100%; }
+  .ua-drop {
+    width: 100%; box-sizing: border-box; cursor: pointer;
+    border: 1.5px dashed var(--oj-core-divider-color, #c9ced6); border-radius: 8px;
+    padding: 22px 16px; text-align: center; background: var(--oj-core-bg-neutral-10, #fafbfc);
+  }
+  .ua-drop:hover { border-color: var(--oj-core-brand-color-primary, #005cb1); }
+  .ua-drop--error { border-color: #dc2626; }
+  .ua-drop-icon { font-size: 1.5rem; display: block; margin-bottom: 6px; opacity: 0.6; }
+  .ua-drop-main { font-size: 0.875rem; font-weight: 600; margin: 0; }
+  .ua-drop-sub { font-size: 0.75rem; color: var(--oj-core-text-color-secondary, #565656); margin: 4px 0 0 0; }
+  .ua-file {
+    display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 12px; align-items: center;
+    border: 1px solid var(--oj-core-divider-color, #e0e0e0); border-radius: 8px; padding: 10px 12px;
+  }
+  .ua-file-name { font-size: 0.875rem; font-weight: 600; margin: 0; word-break: break-all; }
+  .ua-field-error { color: #b91c1c; font-size: 0.75rem; margin: 6px 0 0 0; }
+
+  /* ── detail ── */
+  .ua-detail { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 20px; }
+  @media (max-width: 760px) { .ua-detail { grid-template-columns: 1fr; } }
+  .ua-preview {
+    width: 100%; height: 520px; border: 1px solid var(--oj-core-divider-color, #e0e0e0);
+    border-radius: 6px; background: #f8fafc; display: block;
+  }
+  .ua-preview-img {
+    max-width: 100%; max-height: 520px; display: block; margin: 0 auto; border-radius: 6px;
+  }
+  .ua-preview-none {
+    height: 240px; border: 1px dashed var(--oj-core-divider-color, #c9ced6); border-radius: 6px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+    color: var(--oj-core-text-color-secondary, #565656); font-size: 0.8125rem; text-align: center; padding: 16px;
+  }
+  .ua-facts { margin: 0; }
+  .ua-facts dt {
+    font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--oj-core-text-color-secondary, #565656); margin: 0 0 2px 0;
+  }
+  .ua-facts dd { margin: 0 0 14px 0; font-size: 0.875rem; word-break: break-word; }
+
+  /* The footer slot is already a flex row with its own padding, so this row
+     GROWS into it (flex: 1) rather than claiming width: 100% - that adds the
+     padding on top and overflows into a horizontal scrollbar. min-width: 0
+     lets it shrink and wrap on a narrow screen instead of pushing out. */
+  .ua-foot {
+    display: flex; justify-content: flex-end; align-items: center; gap: 8px; flex-wrap: wrap;
+    flex: 1 1 auto; min-width: 0; box-sizing: border-box;
+  }
+  .ua-foot-left { margin-right: auto; }
+
+  /* The master's documents, shown read-only on a serial page. */
+  .ua-inherited { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--oj-core-divider-color, #e0e0e0); }
+  .ua-inherited-title {
+    font-size: 0.6875rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--oj-core-text-color-secondary, #565656); margin: 0 0 8px 0;
+  }
+  .ua-row--inherited { background: var(--oj-core-bg-neutral-10, #fafbfc); }
+
+</style>
+
+<oj-sp-general-overview-page
+  id="oj_gop_unit_detail"
+  class="oj-sm-width-full"
+  page-title="[[ $variables.pageTitle ]]"
+  page-subtitle="[[ $variables.pageSubtitle ]]"
+  show-go-to-parent="[[true]]"
+  display-options.in-flow-back="true"
+  on-sp-go-to-parent="[[ $listeners.spGoToParent ]]"
+  on-sp-in-flow-back="[[ $listeners.onSpInFlowBack ]]"
+  primary-action='[[ {"label": "Record Cost", "display": $application.functions.pageAccess($application.variables.pageAccessMap, $application.variables.pageAccessLoaded, "EQR_EQUIPMENT_MASTER") === "FULL" ? "on" : "off"} ]]'
+  on-sp-primary-action="[[ $listeners.onRecordCost ]]"
+  display-mode="mixed"
+  display-options.responsive-padding="off"
+  style="--oj-sp-general-overview-page-max-width: 100% !important;">
+
+  <!-- Record Cost (POC) opens equipment-record-cost-page for this unit. Same
+       FULL-access rule as "Create Master Details" on the master list. -->
+
+  <div slot="main" class="oj-sm-width-full" style="max-width:100% !important; padding: 0 24px;">
+
+    <oj-bind-if test="[[ $variables.isLoading ]]">
+      <div class="oj-flex oj-sm-justify-content-center oj-sm-padding-8x">
+        <oj-progress-circle size="md"></oj-progress-circle>
+      </div>
+    </oj-bind-if>
+
+    <oj-bind-if test="[[ !$variables.isLoading ]]">
+      <div class="eu-shell">
+
+        <!-- ══════════════════════════════════════════════════════════ -->
+        <!-- Summary rail - the identity of the physical unit            -->
+        <!-- ══════════════════════════════════════════════════════════ -->
+        <div class="eu-rail">
+          <div class="eu-card">
+            <div class="eu-rail-photo">
+              <img :src="[[ $variables.masterRecord.equipmentImage || 'resources/images/equipment-placeholder.png' ]]"
+                   :alt="[[ $variables.masterRecord.equipmentName ]]"
+                   style="width:100%; height:100%; object-fit:cover; display:block;" />
+            </div>
+
+            <span :class="[[ $page.functions.badgeClass($variables.unit.unitStatus) ]]">
+              <oj-bind-text value="[[ $page.functions.badgeLabel($variables.unit.unitStatus) ]]"></oj-bind-text>
+            </span>
+
+            <p class="eu-rail-serial oj-sm-margin-2x-top">
+              <oj-bind-text value="[[ $variables.unit.serialNumber ]]"></oj-bind-text>
+            </p>
+            <p class="eu-rail-name">
+              <oj-bind-text value="[[ $variables.masterRecord.equipmentName ]]"></oj-bind-text>
+            </p>
+
+            <!-- Attachments for THIS serial (documents in common-service, files
+                 in OCI). The count loads on page entry; an expired document is
+                 flagged here so a lapsed certificate shows without opening the
+                 dialog. Dialog: #attachmentsDialog at the bottom of this file. -->
+            <div class="ua-rail-action">
+              <oj-button chroming="outlined" style="width:100%;"
+                  on-oj-action="[[ $listeners.onOpenAttachments ]]">
+                <span slot="startIcon" class="oj-ux-ico-documents"></span>
+                <oj-bind-text value="[[ $page.functions.attButtonLabel($variables.attRows) ]]"></oj-bind-text>
+              </oj-button>
+              <oj-bind-if test="[[ $page.functions.attExpiredCount($variables.attRows) > 0 ]]">
+                <span class="eu-warn-chip ua-rail-chip">
+                  <oj-bind-text value="[[ $page.functions.attExpiredCount($variables.attRows) + ' expired' ]]"></oj-bind-text>
+                </span>
+              </oj-bind-if>
+            </div>
+
+            <div class="eu-rail-row">
+              <span class="eu-rail-row-label">Equipment Number</span>
+              <span class="eu-rail-row-value"><oj-bind-text value="[[ $variables.unit.unitTagNumber || $variables.masterRecord.equipmentNumber || '—' ]]"></oj-bind-text></span>
+            </div>
+            <div class="eu-rail-row">
+              <span class="eu-rail-row-label">Item</span>
+              <span class="eu-rail-row-value"><oj-bind-text value="[[ $variables.displayItem || '—' ]]"></oj-bind-text></span>
+            </div>
+            <div class="eu-rail-row">
+              <span class="eu-rail-row-label">Class</span>
+              <span class="eu-rail-row-value"><oj-bind-text value="[[ $variables.masterRecord.equipmentClassName || '—' ]]"></oj-bind-text></span>
+            </div>
+            <div class="eu-rail-row">
+              <span class="eu-rail-row-label">Subclass</span>
+              <span class="eu-rail-row-value"><oj-bind-text value="[[ $variables.masterRecord.equipmentSubclassName || '—' ]]"></oj-bind-text></span>
+            </div>
+            <div class="eu-rail-row">
+              <span class="eu-rail-row-label">Quantity</span>
+              <span class="eu-rail-row-value">1</span>
+            </div>
+            <div class="eu-rail-row">
+              <span class="eu-rail-row-label">Lot</span>
+              <span class="eu-rail-row-value">—</span>
+            </div>
+            <div class="eu-rail-row">
+              <span class="eu-rail-row-label">Ownership</span>
+              <span class="eu-rail-row-value"><oj-bind-text value="[[ $variables.unit.ownershipStatus || '—' ]]"></oj-bind-text></span>
+            </div>
+            <div class="eu-rail-row">
+              <span class="eu-rail-row-label">Location</span>
+              <span class="eu-rail-row-value"><oj-bind-text value="[[ $variables.displayLocation || '—' ]]"></oj-bind-text></span>
+            </div>
+            <!-- Where the unit IS right now, as opposed to the Location above
+                 (its EQR_LOCATION yard) and the Inventory Org on the Stock card
+                 (its HOME yard). Set when the unit ships to an internal location.
+                 On the rail rather than inside the Stock & Location card because
+                 that card does not render for non-inventory-tracked units, and
+                 those are exactly the units this feature moves. -->
+            <div class="eu-rail-row">
+              <span class="eu-rail-row-label">Current Location</span>
+              <span class="eu-rail-row-value"><oj-bind-text value="[[ $variables.displayCurrentLocation || '—' ]]"></oj-bind-text></span>
+            </div>
+            <div class="eu-rail-row">
+              <span class="eu-rail-row-label">Subinventory</span>
+              <span class="eu-rail-row-value"><oj-bind-text value="[[ $variables.displaySubinventory || '—' ]]"></oj-bind-text></span>
+            </div>
+
+            <!-- The three tracking flags decide which records exist for this
+                 unit, so they belong on the rail rather than buried in a tab. -->
+            <div class="eu-rail-row">
+              <span class="eu-rail-row-label">Inventory Tracked</span>
+              <span class="eu-rail-row-value"><oj-bind-text value="[[ $page.functions.yesNo($variables.masterRecord.isInventoryTracked) || '—' ]]"></oj-bind-text></span>
+            </div>
+            <div class="eu-rail-row">
+              <span class="eu-rail-row-label">Maintenance Tracked</span>
+              <span class="eu-rail-row-value"><oj-bind-text value="[[ $page.functions.yesNo($variables.masterRecord.isMaintenanceTracked) || '—' ]]"></oj-bind-text></span>
+            </div>
+            <div class="eu-rail-row">
+              <span class="eu-rail-row-label">Fixed Asset Tracked</span>
+              <span class="eu-rail-row-value"><oj-bind-text value="[[ $page.functions.yesNo($variables.masterRecord.isFixedAssetTracked) || '—' ]]"></oj-bind-text></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════════════ -->
+        <!-- Tabbed pane                                                 -->
+        <!-- ══════════════════════════════════════════════════════════ -->
+        <div class="eu-pane">
+          <oj-tab-bar
+            selection="{{ $variables.selectedTab }}"
+            edge="top"
+            data="[[ $variables.tabsDP ]]"
+            class="oj-sm-margin-2x-bottom">
+            <template slot="itemTemplate" data-oj-as="item">
+              <li :id="[[ item.data.id ]]">
+                <a href="#">
+                  <span :class="[[ 'oj-navigationlist-item-icon ' + item.data.icon ]]"></span>
+                  <span class="oj-tabbar-item-label">
+                    <oj-bind-text value="[[ item.data.label ]]"></oj-bind-text>
+                  </span>
+                </a>
+              </li>
+            </template>
+          </oj-tab-bar>
+
+          <!-- ────────────────────────────────────────────────────── -->
+          <!-- TAB 1 - OVERVIEW (stock record). All values are live.   -->
+          <!-- ────────────────────────────────────────────────────── -->
+          <oj-bind-if test="[[ $variables.selectedTab === 'overview' ]]">
+
+            <!-- Decal / Project / Task (2026-10-13) bind to unit.decalNumber,
+                 unit.projectNumber and unit.taskNumber. The serial DTO does
+                 not return them yet. Project and task can be keyed in with
+                 "Edit Project & Task" (#projectTaskDialog below), which keeps
+                 them in this browser for now - resources/js/unitProjectStore.js.
+                 Decal stays blank until the backend adds it. 18 fields in
+                 column direction = 6 per column, so Decal sits under
+                 Equipment Number and Project / Task share the bottom row. -->
+            <div class="eu-card">
+              <div class="eu-head">
+                <p class="eu-section-title">Identification</p>
+                <oj-bind-if test="[[ $application.functions.pageAccess($application.variables.pageAccessMap, $application.variables.pageAccessLoaded, 'EQR_EQUIPMENT_MASTER') === 'FULL' ]]">
+                  <oj-button chroming="outlined" class="oj-button-sm"
+                      on-oj-action="[[ $listeners.onEditProjectTask ]]">
+                    <span slot="startIcon" class="oj-ux-ico-edit"></span>
+                    <span>Edit Project &amp; Task</span>
+                  </oj-button>
+                </oj-bind-if>
+              </div>
+              <oj-form-layout max-columns="3" label-edge="inside" direction="column" readonly="true">
+                <oj-input-text label-hint="Serial Number"      value="[[ $variables.unit.serialNumber ]]"></oj-input-text>
+                <oj-input-text label-hint="Equipment Number"   value="[[ $variables.unit.unitTagNumber ]]"></oj-input-text>
+                <oj-input-text label-hint="Decal Number"       value="[[ $variables.unit.decalNumber ]]"></oj-input-text>
+                <oj-input-text label-hint="Status"             value="[[ $page.functions.badgeLabel($variables.unit.unitStatus) ]]"></oj-input-text>
+                <oj-input-text label-hint="Inventory Item"     value="[[ $variables.unit.attribute5 ]]"></oj-input-text>
+                <oj-input-text label-hint="Manufacturer"       value="[[ $variables.masterRecord.manufacturer ]]"></oj-input-text>
+                <oj-input-text label-hint="Model Number"       value="[[ $variables.masterRecord.modelNumber ]]"></oj-input-text>
+                <oj-input-text label-hint="Model Year"         value="[[ $variables.unit.mfgYear ]]"></oj-input-text>
+                <oj-input-text label-hint="Manufactured Date"  value="[[ $page.functions.formatDate($variables.unit.mfgDate) ]]"></oj-input-text>
+                <oj-input-text label-hint="Batch Number"       value="[[ $variables.unit.mfgBatchNumber ]]"></oj-input-text>
+                <oj-input-text label-hint="Colour"             value="[[ $variables.unit.color ]]"></oj-input-text>
+                <oj-input-text label-hint="Project Number"     value="[[ $variables.unit.projectNumber ]]"></oj-input-text>
+                <oj-input-text label-hint="Engine SN"          value="[[ $variables.unit.engineSn ]]"></oj-input-text>
+                <oj-input-text label-hint="VIN"                value="[[ $variables.unit.vin ]]"></oj-input-text>
+                <oj-input-text label-hint="Licence Plate"      value="[[ $variables.unit.licensePlate ]]"></oj-input-text>
+                <oj-input-text label-hint="New / Used"         value="[[ $variables.unit.newUsed ]]"></oj-input-text>
+                <oj-input-text label-hint="Surplus"            value="[[ $page.functions.yesNo($variables.unit.surplusFlag) ]]"></oj-input-text>
+                <oj-input-text label-hint="Task Number"        value="[[ $variables.unit.taskNumber ]]"></oj-input-text>
+              </oj-form-layout>
+            </div>
+
+            <div class="eu-card">
+              <p class="eu-section-title">Stock &amp; Location</p>
+
+              <!-- A unit whose master is not inventory tracked has no stock
+                   record at all - not a stock record that happens to be empty.
+                   All 60 Y/Y/N serials are in this state: zero of them carry a
+                   subinventory, locator or location. Say so, the same way the
+                   maintenance and fixed-asset tabs do. -->
+              <oj-bind-if test="[[ !$variables.isInventoryTracked ]]">
+                <p class="oj-typography-body-sm oj-text-color-secondary" style="margin:0;">
+                  This equipment is not inventory tracked, so no stock record exists for
+                  <oj-bind-text value="[[ $variables.unit.serialNumber ]]"></oj-bind-text>.
+                  It is held as a maintenance and fixed asset only.
+                </p>
+              </oj-bind-if>
+
+              <oj-bind-if test="[[ $variables.isInventoryTracked ]]">
+              <oj-form-layout max-columns="3" label-edge="inside" direction="column" readonly="true">
+                <oj-input-text label-hint="Location"            value="[[ $variables.locationName ]]"></oj-input-text>
+                <oj-input-text label-hint="Subinventory"        value="[[ $variables.unit.currentSubinventory ]]"></oj-input-text>
+                <oj-input-text label-hint="Locator"             value="[[ $variables.unit.currentLocator ]]"></oj-input-text>
+                <oj-input-text label-hint="Inventory Org"       value="[[ $variables.unit.eqpInvOrgName || $variables.unit.eqpInvOrgId ]]"></oj-input-text>
+                <oj-input-text label-hint="Asset Organization"  value="[[ $variables.unit.attribute9 ]]"></oj-input-text>
+                <oj-input-text label-hint="Asset Group"         value="[[ $variables.unit.attribute10 ]]"></oj-input-text>
+                <oj-input-text label-hint="Expenditure Org"     value="[[ $variables.unit.attributeCategory ]]"></oj-input-text>
+                <oj-input-text label-hint="In Use"              value="[[ $page.functions.yesNo($variables.unit.inUseFlag) ]]"></oj-input-text>
+                <oj-input-text label-hint="Status Reason"       value="[[ $variables.unit.statusReason ]]"></oj-input-text>
+              </oj-form-layout>
+              </oj-bind-if>
+            </div>
+
+            <div class="eu-card">
+              <p class="eu-section-title">Ownership &amp; Purchase</p>
+              <oj-form-layout max-columns="3" label-edge="inside" direction="column" readonly="true">
+                <oj-input-text label-hint="Ownership"          value="[[ $variables.unit.ownershipStatus ]]"></oj-input-text>
+                <oj-input-text label-hint="Purchase Order"     value="[[ $variables.unit.attribute8 ]]"></oj-input-text>
+                <oj-input-text label-hint="Purchase Date"      value="[[ $page.functions.formatDate($variables.unit.purchaseDate) ]]"></oj-input-text>
+                <oj-input-text label-hint="Purchase Price"     value="[[ $page.functions.formatCurrency($variables.unit.purchasePrice, $variables.unit.purchaseCurrency) ]]"></oj-input-text>
+                <oj-input-text label-hint="In-Service Date"    value="[[ $page.functions.formatDate($variables.unit.inServiceDate) ]]"></oj-input-text>
+                <oj-input-text label-hint="Warranty Expiry"    value="[[ $page.functions.formatDate($variables.unit.warrantyExpiryDate) ]]"></oj-input-text>
+                <oj-input-text label-hint="Retired Date"       value="[[ $page.functions.formatDate($variables.unit.retiredDate) ]]"></oj-input-text>
+                <oj-input-text label-hint="FA Asset Number"    value="[[ $variables.unit.attribute4 ]]"></oj-input-text>
+                <oj-input-text label-hint="Maint. Asset Number" value="[[ $variables.unit.maintenanceAssetNumber ]]"></oj-input-text>
+              </oj-form-layout>
+            </div>
+
+            <div class="eu-card">
+              <p class="eu-section-title">Condition, Meters &amp; Telematics</p>
+              <oj-bind-if test="[[ !$variables.hasServiceData ]]">
+                <p class="oj-typography-body-sm oj-text-color-secondary" style="margin:0;">
+                  No condition, meter or telematics readings recorded for this unit.
+                </p>
+              </oj-bind-if>
+              <oj-bind-if test="[[ $variables.hasServiceData ]]">
+                <div class="eu-kv-grid">
+                  <oj-bind-for-each data="[[ $variables.serviceRows ]]">
+                    <template data-oj-as="row">
+                      <div>
+                        <div class="eu-kv-label"><oj-bind-text value="[[ row.data.label ]]"></oj-bind-text></div>
+                        <div class="eu-kv-value"><oj-bind-text value="[[ row.data.value ]]"></oj-bind-text></div>
+                      </div>
+                    </template>
+                  </oj-bind-for-each>
+                </div>
+              </oj-bind-if>
+            </div>
+          </oj-bind-if>
+
+          <!-- ────────────────────────────────────────────────────── -->
+          <!-- TAB 2 - MAINTENANCE ASSET                               -->
+          <!-- ────────────────────────────────────────────────────── -->
+          <oj-bind-if test="[[ $variables.selectedTab === 'maintenance' ]]">
+
+            <oj-bind-if test="[[ !$variables.hasMaintenanceAsset ]]">
+              <div class="eu-card eu-empty">
+                <span class="oj-ux-ico-wrench eu-empty-icon"></span>
+                <p class="oj-typography-body-md">This equipment is not maintenance tracked.</p>
+                <p class="oj-typography-body-sm">
+                  No maintenance asset record exists for
+                  <oj-bind-text value="[[ $variables.unit.serialNumber ]]"></oj-bind-text>.
+                  Set <em>Is Maintenance Asset Track</em> on the equipment master to enable it.
+                </p>
+              </div>
+            </oj-bind-if>
+
+            <oj-bind-if test="[[ $variables.hasMaintenanceAsset ]]">
+              <div class="eu-card">
+                <div class="eu-head">
+                  <p class="eu-section-title">Maintenance Asset</p>
+                </div>
+                <oj-form-layout max-columns="3" label-edge="inside" direction="column" readonly="true">
+                  <oj-input-text label-hint="Asset Number"        value="[[ $variables.maintenanceAsset.AssetNumber ]]"></oj-input-text>
+                  <oj-input-text label-hint="Asset Description"   value="[[ $variables.maintenanceAsset.Description ]]"></oj-input-text>
+                  <oj-input-text label-hint="Parent Asset"        value="[[ $variables.maintenanceAsset.ParentAssetNumber ]]"></oj-input-text>
+                  <oj-input-text label-hint="Item"                value="[[ $variables.maintenanceAsset.ItemNumber ]]"></oj-input-text>
+                  <oj-input-text label-hint="Serial Number"       value="[[ $variables.maintenanceAsset.SerialNumber ]]"></oj-input-text>
+                  <oj-input-text label-hint="Lot"                 value="[[ $variables.maintenanceAsset.LotNumber ]]"></oj-input-text>
+                  <oj-input-text label-hint="Quantity"            value="[[ $variables.maintenanceAsset.Quantity ]]"></oj-input-text>
+                  <oj-input-text label-hint="UOM"                 value="[[ $variables.maintenanceAsset.UnitOfMeasure ]]"></oj-input-text>
+                  <oj-input-text label-hint="Operating Organization" value="[[ $variables.maintenanceAsset.OperatingOrganizationName ]]"></oj-input-text>
+                  <oj-input-text label-hint="Current Location"    value="[[ $variables.maintenanceAsset.CurrentLocationName ]]"></oj-input-text>
+                  <oj-input-text label-hint="Subinventory"        value="[[ $variables.maintenanceAsset.SubinventoryCode ]]"></oj-input-text>
+                  <oj-input-text label-hint="Locator"             value="[[ $variables.maintenanceAsset.LocatorName ]]"></oj-input-text>
+                  <oj-input-text label-hint="Work Center"         value="[[ $variables.maintenanceAsset.WorkCenterName ]]"></oj-input-text>
+                  <oj-input-text label-hint="Installed Date"      value="[[ $page.functions.formatDate($variables.maintenanceAsset.InstalledDate) ]]"></oj-input-text>
+                  <oj-input-text label-hint="In-Service Date"     value="[[ $page.functions.formatDate($variables.maintenanceAsset.InServiceDate) ]]"></oj-input-text>
+                  <oj-input-text label-hint="Asset End Date"      value="[[ $page.functions.formatDate($variables.maintenanceAsset.ActiveEndDate) ]]"></oj-input-text>
+                  <oj-input-text label-hint="Preventive Maintenance Allowed" value="[[ $page.functions.yesNo($variables.maintenanceAsset.MaintainableFlag) ]]"></oj-input-text>
+                  <oj-input-text label-hint="Work Orders Allowed" value="[[ $page.functions.yesNo($variables.maintenanceAsset.NewWoAllowedFlag) ]]"></oj-input-text>
+                  <oj-input-text label-hint="IoT Enabled"         value="[[ $page.functions.yesNo($variables.maintenanceAsset.IotEnabledFlag) ]]"></oj-input-text>
+                  <oj-input-text label-hint="Default WO Type"     value="[[ $variables.maintenanceAsset.DfltWoTypeCode ]]"></oj-input-text>
+                  <oj-input-text label-hint="Default WO Subtype"  value="[[ $variables.maintenanceAsset.DfltWoSubTypeCode ]]"></oj-input-text>
+                </oj-form-layout>
+              </div>
+
+              <div class="eu-card">
+                <div class="eu-head">
+                  <p class="eu-section-title">Work Orders</p>
+                  <oj-bind-if test="[[ $variables.workOrdersUnavailable ]]">
+                    <span class="eu-warn-chip" title="Fusion did not accept a work-order query for this asset. This is not the same as the asset having none - the list below is unknown, not empty.">
+                      Fusion unavailable
+                    </span>
+                  </oj-bind-if>
+                </div>
+
+                <div class="eu-table-wrap">
+                <oj-table
+                  id="workOrdersTable"
+                  data="[[ $variables.workOrdersADP ]]"
+                  class="oj-sm-width-full"
+                  scroll-policy="loadAll"
+                  columns='[
+                    { "headerText": "Work Order",         "field": "WorkOrderNumber",       "template": "woNumTpl",  "sortable": "enabled", "style": "width:170px;" },
+                    { "headerText": "Type",               "field": "WorkOrderType",                                  "sortable": "enabled", "style": "width:110px;" },
+                    { "headerText": "Subtype",            "field": "WorkOrderSubType",                               "sortable": "enabled", "style": "width:110px;" },
+                    { "headerText": "Description",        "field": "Description",                                    "sortable": "enabled", "style": "min-width:220px;" },
+                    { "headerText": "Status",             "field": "StatusCode",            "template": "woStatTpl", "sortable": "enabled", "style": "width:130px;" },
+                    { "headerText": "Planned Start",      "field": "PlannedStartDate",      "template": "dateTpl",   "sortable": "enabled", "style": "width:140px;" },
+                    { "headerText": "Planned Completion", "field": "PlannedCompletionDate", "template": "dateTpl",   "sortable": "enabled", "style": "width:165px;" },
+                    { "headerText": "Actual Start",       "field": "ActualStartDate",       "template": "dateTpl",   "sortable": "enabled", "style": "width:135px;" },
+                    { "headerText": "Actual Completion",  "field": "ActualCompletionDate",  "template": "dateTpl",   "sortable": "enabled", "style": "width:160px;" },
+                    { "headerText": "Item",               "field": "ItemNumber",                                     "sortable": "enabled", "style": "width:120px;" },
+                    { "headerText": "Org",                "field": "OrganizationCode",                               "sortable": "enabled", "style": "width:80px;" }
+                  ]'
+                  style="width:100%;">
+
+                  <template slot="woNumTpl" data-oj-as="cell">
+                    <span class="eu-wo-num"><oj-bind-text value="[[ cell.data ]]"></oj-bind-text></span>
+                  </template>
+
+                  <template slot="woStatTpl" data-oj-as="cell">
+                    <span :class="[[ $page.functions.woBadgeClass(cell.data) ]]">
+                      <oj-bind-text value="[[ cell.data ]]"></oj-bind-text>
+                    </span>
+                  </template>
+
+                  <template slot="dateTpl" data-oj-as="cell">
+                    <oj-bind-text value="[[ $page.functions.formatDate(cell.data) ]]"></oj-bind-text>
+                  </template>
+
+
+                  <template slot="noData">
+                    <div class="oj-flex oj-sm-justify-content-center oj-sm-padding-8x">
+                      <oj-bind-if test="[[ !$variables.workOrdersUnavailable ]]">
+                        <span class="oj-typography-body-md oj-text-color-secondary">
+                          No work orders have been raised against
+                          <oj-bind-text value="[[ $variables.maintenanceAsset.AssetNumber ]]"></oj-bind-text>
+                          in Fusion.
+                        </span>
+                      </oj-bind-if>
+                      <oj-bind-if test="[[ $variables.workOrdersUnavailable ]]">
+                        <span class="oj-typography-body-md oj-text-color-secondary">
+                          Could not read work orders for
+                          <oj-bind-text value="[[ $variables.maintenanceAsset.AssetNumber ]]"></oj-bind-text>
+                          from Fusion. This asset may still have some.
+                        </span>
+                      </oj-bind-if>
+                    </div>
+                  </template>
+                </oj-table>
+                </div>
+              </div>
+            </oj-bind-if>
+          </oj-bind-if>
+
+          <!-- ────────────────────────────────────────────────────── -->
+          <!-- TAB 3 - FIXED ASSET                                     -->
+          <!-- ────────────────────────────────────────────────────── -->
+          <oj-bind-if test="[[ $variables.selectedTab === 'fixedasset' ]]">
+
+            <oj-bind-if test="[[ !$variables.hasFixedAsset ]]">
+              <div class="eu-card eu-empty">
+                <span class="oj-ux-ico-bank eu-empty-icon"></span>
+                <p class="oj-typography-body-md">This equipment is not fixed asset tracked.</p>
+                <p class="oj-typography-body-sm">
+                  No fixed asset record exists for
+                  <oj-bind-text value="[[ $variables.unit.serialNumber ]]"></oj-bind-text>.
+                  Set <em>Is Fixed Asset Track</em> on the equipment master to enable it.
+                </p>
+              </div>
+            </oj-bind-if>
+
+            <oj-bind-if test="[[ $variables.hasFixedAsset ]]">
+              <div class="eu-card">
+                <div class="eu-head">
+                  <p class="eu-section-title">Book Position</p>
+                </div>
+                <div class="eu-tiles">
+                  <div class="eu-tile">
+                    <div class="eu-tile-label">Original Cost</div>
+                    <div class="eu-tile-value"><oj-bind-text value="[[ $page.functions.formatCurrency($variables.fixedAsset.Cost, $variables.fixedAsset.CurrencyCode) ]]"></oj-bind-text></div>
+                  </div>
+                  <div class="eu-tile">
+                    <div class="eu-tile-label">Depreciation Reserve</div>
+                    <div class="eu-tile-value"><oj-bind-text value="[[ $page.functions.formatCurrency($variables.fixedAsset.DeprnReserve, $variables.fixedAsset.CurrencyCode) ]]"></oj-bind-text></div>
+                  </div>
+                  <div class="eu-tile">
+                    <div class="eu-tile-label">Net Book Value</div>
+                    <div class="eu-tile-value"><oj-bind-text value="[[ $page.functions.formatCurrency($variables.fixedAsset.NetBookValue, $variables.fixedAsset.CurrencyCode) ]]"></oj-bind-text></div>
+                  </div>
+                  <div class="eu-tile">
+                    <div class="eu-tile-label">Salvage Value</div>
+                    <div class="eu-tile-value"><oj-bind-text value="[[ $page.functions.formatCurrency($variables.fixedAsset.SalvageValue, $variables.fixedAsset.CurrencyCode) ]]"></oj-bind-text></div>
+                  </div>
+                  <div class="eu-tile">
+                    <div class="eu-tile-label">Method</div>
+                    <div class="eu-tile-value"><oj-bind-text value="[[ $variables.fixedAsset.DepreciationMethod ]]"></oj-bind-text></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="eu-card">
+                <p class="eu-section-title">Fixed Asset Details</p>
+                <oj-form-layout max-columns="3" label-edge="inside" direction="column" readonly="true">
+                  <oj-input-text label-hint="Asset Number"      value="[[ $variables.fixedAsset.AssetNumber ]]"></oj-input-text>
+                  <oj-input-text label-hint="Description"       value="[[ $variables.fixedAsset.Description ]]"></oj-input-text>
+                  <oj-input-text label-hint="Asset Book"        value="[[ $variables.fixedAsset.AssetBook ]]"></oj-input-text>
+                  <oj-input-text label-hint="Asset Category"    value="[[ $variables.fixedAsset.AssetCategory ]]"></oj-input-text>
+                  <oj-input-text label-hint="Tag Number"        value="[[ $variables.fixedAsset.TagNumber ]]"></oj-input-text>
+                  <oj-input-text label-hint="Serial Number"     value="[[ $variables.fixedAsset.SerialNumber ]]"></oj-input-text>
+                  <oj-input-text label-hint="Manufacturer"      value="[[ $variables.fixedAsset.ManufacturerName ]]"></oj-input-text>
+                  <oj-input-text label-hint="Model Number"      value="[[ $variables.fixedAsset.ModelNumber ]]"></oj-input-text>
+                  <oj-input-text label-hint="Model Year"        value="[[ $variables.fixedAsset.ModelYear ]]"></oj-input-text>
+                  <oj-input-text label-hint="Asset Type"        value="[[ $variables.fixedAsset.AssetType ]]"></oj-input-text>
+                  <oj-input-text label-hint="New / Used"        value="[[ $variables.fixedAsset.NewUsed ]]"></oj-input-text>
+                  <oj-input-text label-hint="Owned / Leased"    value="[[ $variables.fixedAsset.OwnedLeased ]]"></oj-input-text>
+                  <oj-input-text label-hint="Purchase Date"     value="[[ $page.functions.formatDate($variables.fixedAsset.PurchaseDate) ]]"></oj-input-text>
+                  <oj-input-text label-hint="Placed In Service" value="[[ $page.functions.formatDate($variables.fixedAsset.DatePlacedInService) ]]"></oj-input-text>
+                  <oj-input-text label-hint="Life (Months)"     value="[[ $variables.fixedAsset.LifeInMonths ]]"></oj-input-text>
+                  <oj-input-text label-hint="Prorate Convention" value="[[ $variables.fixedAsset.ProrateConvention ]]"></oj-input-text>
+                  <oj-input-text label-hint="Salvage Value"     value="[[ $page.functions.formatCurrency($variables.fixedAsset.SalvageValue, $variables.fixedAsset.CurrencyCode) ]]"></oj-input-text>
+                  <oj-input-text label-hint="Recoverable Cost"  value="[[ $page.functions.formatCurrency($variables.fixedAsset.RecoverableCost, $variables.fixedAsset.CurrencyCode) ]]"></oj-input-text>
+                  <oj-input-text label-hint="Asset Location"    value="[[ $variables.fixedAsset.AssetLocation ]]"></oj-input-text>
+                  <oj-input-text label-hint="Asset Organization" value="[[ $variables.fixedAsset.AssetOrganization ]]"></oj-input-text>
+                  <oj-input-text label-hint="Expenditure Org"   value="[[ $variables.fixedAsset.ExpenditureOrg ]]"></oj-input-text>
+                  <oj-input-text label-hint="Fully Depreciated" value="[[ $page.functions.yesNo($variables.fixedAsset.FullyDepreciated) ]]"></oj-input-text>
+                  <oj-input-text label-hint="Date Retired"      value="[[ $page.functions.formatDate($variables.fixedAsset.DateRetired) ]]"></oj-input-text>
+                  <oj-input-text label-hint="Retirement Type"   value="[[ $variables.fixedAsset.RetirementTypeCode ]]"></oj-input-text>
+                </oj-form-layout>
+              </div>
+
+              <div class="eu-card">
+                <div class="eu-head">
+                  <p class="eu-section-title">Depreciation Schedule</p>
+                </div>
+
+                <div class="eu-table-wrap">
+                <oj-table
+                  id="deprnTable"
+                  data="[[ $variables.deprnScheduleADP ]]"
+                  class="oj-sm-width-full"
+                  scroll-policy="loadAll"
+                  columns='[
+                    { "headerText": "Period",          "field": "PeriodName",                            "sortable": "enabled", "style": "width:120px;" },
+                    { "headerText": "Year",            "field": "PeriodNumber",     "template": "numTpl", "sortable": "enabled", "style": "width:90px;" },
+                    { "headerText": "Depreciation",    "field": "DeprnAmount",      "template": "curTpl", "sortable": "enabled" },
+                    { "headerText": "Accumulated",     "field": "DeprnReserve",     "template": "curTpl", "sortable": "enabled" },
+                    { "headerText": "Net Book Value",  "field": "NetBookValue",     "template": "curTpl", "sortable": "enabled" }
+                  ]'
+                  style="width:100%;">
+
+                  <template slot="numTpl" data-oj-as="cell">
+                    <span class="eu-num"><oj-bind-text value="[[ $page.functions.formatNumber(cell.data) ]]"></oj-bind-text></span>
+                  </template>
+
+                  <template slot="curTpl" data-oj-as="cell">
+                    <span class="eu-num"><oj-bind-text value="[[ $page.functions.formatCurrency(cell.data, $variables.fixedAsset.CurrencyCode) ]]"></oj-bind-text></span>
+                  </template>
+
+                  <template slot="noData">
+                    <div class="oj-flex oj-sm-justify-content-center oj-sm-padding-8x">
+                      <span class="oj-typography-body-md oj-text-color-secondary">
+                        No depreciation schedule - this unit has no recorded acquisition cost.
+                      </span>
+                    </div>
+                  </template>
+                </oj-table>
+                </div>
+              </div>
+            </oj-bind-if>
+          </oj-bind-if>
+
+        </div>
+      </div>
+    </oj-bind-if>
+
+  </div>
+</oj-sp-general-overview-page>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- Attachments                                                            -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- SAME dialog on equipment-units-page (HEADER: the equipment master, any
+     control type) and equipment-unit-detail-page (LINE: one serial unit,
+     plus the master's documents read-only). attLevel picks which; the chains
+     are identical files on both pages. Rules: resources/js/equipmentAttachments.js.
+
+     TOP LEVEL, a sibling of the page root - an oj-dialog nested in an
+     overflow/transformed container paints its scrim and never positions the
+     box.
+
+     ONE dialog, THREE modes (attMode), each with its own footer:
+       list    the documents                    footer: Close
+       add     the upload form                  footer: Cancel | Upload
+       detail  one document, preview + facts    footer: Back | Download | Open in new tab
+
+     The CATEGORY drives the form (Configurations > Attachment Categories):
+     only categories allowed at this level are offered, and Valid from / to
+     appear only when the category needs them (attNeedsDates).
+
+     Add and Remove need FULL access to EQR_EQUIPMENT_MASTER; anyone who can
+     open the page can view and download. The list is oj-bind-for-each, not
+     oj-table: an oj-table inside a dialog sizes itself to a sliver. -->
+<oj-dialog id="attachmentsDialog"
+    dialog-title="[[ $variables.attMode === 'add' ? 'Add attachment' : ($variables.attMode === 'detail' ? 'Attachment' : 'Attachments') ]]"
+    initial-visibility="hide" cancel-behavior="icon" modality="modal"
+    style="width: 960px; max-width: 96vw;">
+  <div slot="body">
+
+    <p class="ua-sub">
+      <oj-bind-text value="[[ ($variables.unit.serialNumber || '') + ($variables.masterRecord.equipmentName ? ' · ' + $variables.masterRecord.equipmentName : '') ]]"></oj-bind-text>
+    </p>
+
+    <oj-bind-if test="[[ $variables.attNotice && $variables.attNotice.text ]]">
+      <div :class="[[ 'ua-notice ua-notice--' + ($variables.attNotice.type === 'success' ? 'success' : 'error') ]]">
+        <oj-bind-text value="[[ $variables.attNotice.text ]]"></oj-bind-text>
+      </div>
+    </oj-bind-if>
+
+    <!-- ═════════════════════════════ LIST ═════════════════════════════ -->
+    <oj-bind-if test="[[ $variables.attMode === 'list' ]]">
+      <div>
+        <oj-bind-if test="[[ $variables.attLoading ]]">
+          <div class="oj-flex oj-sm-justify-content-center oj-sm-padding-8x">
+            <oj-progress-circle size="md"></oj-progress-circle>
+          </div>
+        </oj-bind-if>
+
+        <oj-bind-if test="[[ !$variables.attLoading && $variables.attLoadError ]]">
+          <div class="ua-notice ua-notice--error">
+            <oj-bind-text value="[[ $variables.attLoadError ]]"></oj-bind-text>
+          </div>
+        </oj-bind-if>
+
+        <!-- Nothing of its own yet: no filters to show, just the one thing to do. -->
+        <oj-bind-if test="[[ !$variables.attLoading && !$variables.attLoadError && !($variables.attRows || []).length ]]">
+          <div class="eu-empty" style="padding:32px 16px;">
+            <span class="oj-ux-ico-documents eu-empty-icon"></span>
+            <p class="oj-typography-body-md" style="margin:0 0 4px 0;">
+              <oj-bind-text value="[[ $variables.attLevel === 'LINE' ? 'No attachments for this unit yet.' : 'No attachments for this equipment yet.' ]]"></oj-bind-text>
+            </p>
+            <p class="oj-typography-body-sm oj-text-color-secondary" style="margin:0 0 16px 0;">
+              <oj-bind-text value="[[ $variables.attLevel === 'LINE'
+                  ? 'Certifications, inspections and other documents for this serial are kept here.'
+                  : 'Data cards, manuals and other documents for this equipment are kept here.' ]]"></oj-bind-text>
+            </p>
+            <oj-bind-if test="[[ $application.functions.pageAccess($application.variables.pageAccessMap, $application.variables.pageAccessLoaded, 'EQR_EQUIPMENT_MASTER') === 'FULL' ]]">
+              <oj-button chroming="callToAction" on-oj-action="[[ $listeners.onAttAdd ]]">
+                <span slot="startIcon" class="oj-ux-ico-plus"></span>Add attachment
+              </oj-button>
+            </oj-bind-if>
+          </div>
+        </oj-bind-if>
+
+        <oj-bind-if test="[[ !$variables.attLoading && ($variables.attRows || []).length ]]">
+          <div>
+            <div class="ua-toolbar">
+              <oj-select-single label-hint="Category" label-edge="none" aria-label="Filter by category"
+                  data="[[ $variables.attCategoryFilterADP ]]" item-text="label"
+                  value="{{ $variables.attFilterCat }}"></oj-select-single>
+              <oj-select-single label-hint="Status" label-edge="none" aria-label="Filter by status"
+                  data="[[ $variables.attStatusFilterADP ]]" item-text="label"
+                  value="{{ $variables.attFilterStatus }}"></oj-select-single>
+              <span class="ua-toolbar-count">
+                <oj-bind-text value="[[ $page.functions.filterAttachments($variables.attRows, $variables.attFilterCat, $variables.attFilterStatus).length + ' of ' + ($variables.attRows || []).length ]]"></oj-bind-text>
+              </span>
+              <span class="ua-toolbar-spacer"></span>
+              <oj-bind-if test="[[ $application.functions.pageAccess($application.variables.pageAccessMap, $application.variables.pageAccessLoaded, 'EQR_EQUIPMENT_MASTER') === 'FULL' ]]">
+                <oj-button chroming="callToAction" on-oj-action="[[ $listeners.onAttAdd ]]">
+                  <span slot="startIcon" class="oj-ux-ico-plus"></span>Add attachment
+                </oj-button>
+              </oj-bind-if>
+            </div>
+
+            <oj-bind-if test="[[ !$page.functions.filterAttachments($variables.attRows, $variables.attFilterCat, $variables.attFilterStatus).length ]]">
+              <div class="eu-empty" style="padding:32px 16px;">
+                <p class="oj-typography-body-sm" style="margin:0;">No attachments match these filters.</p>
+              </div>
+            </oj-bind-if>
+
+            <oj-bind-for-each data="[[ $page.functions.filterAttachments($variables.attRows, $variables.attFilterCat, $variables.attFilterStatus) ]]">
+              <template data-oj-as="row">
+                <div class="ua-row">
+                  <div class="ua-type"><oj-bind-text value="[[ row.data.fileType ]]"></oj-bind-text></div>
+
+                  <div style="min-width:0;">
+                    <p class="ua-name"><oj-bind-text value="[[ row.data.name ]]"></oj-bind-text></p>
+                    <p class="ua-meta">
+                      <oj-bind-text value="[[ row.data.categoryLabel ]]"></oj-bind-text>
+                      <oj-bind-if test="[[ row.data.validityRequired ]]">
+                        <span class="ua-meta-sep">·</span>
+                        <oj-bind-text value="[[ 'Valid ' + ($page.functions.formatDate(row.data.validFrom) || '?') + ' – ' + ($page.functions.formatDate(row.data.validTo) || '?') ]]"></oj-bind-text>
+                      </oj-bind-if>
+                      <span class="ua-meta-sep">·</span>
+                      <oj-bind-text value="[[ 'Uploaded ' + $page.functions.formatDate(row.data.uploadDate) + (row.data.uploadedBy ? ' by ' + row.data.uploadedBy : '') ]]"></oj-bind-text>
+                    </p>
+                  </div>
+
+                  <div class="ua-side">
+                    <oj-bind-if test="[[ $variables.attConfirmRemoveId !== row.data.id ]]">
+                      <div class="ua-side">
+                        <oj-bind-if test="[[ row.data.statusLabel ]]">
+                          <span :class="[[ $page.functions.attStatusClass(row.data.status) ]]">
+                            <oj-bind-text value="[[ row.data.statusLabel ]]"></oj-bind-text>
+                          </span>
+                        </oj-bind-if>
+                        <div class="ua-actions">
+                          <oj-button chroming="borderless" display="icons" class="oj-button-sm" title="View"
+                              on-oj-action="[[ () => $listeners.onAttView({ detail: { id: row.data.id, action: 'view' } }) ]]">
+                            <span slot="startIcon" class="oj-ux-ico-view"></span>View
+                          </oj-button>
+                          <oj-button chroming="borderless" display="icons" class="oj-button-sm" title="Download"
+                              on-oj-action="[[ () => $listeners.onAttDownload({ detail: { id: row.data.id } }) ]]">
+                            <span slot="startIcon" class="oj-ux-ico-download"></span>Download
+                          </oj-button>
+                          <oj-bind-if test="[[ $application.functions.pageAccess($application.variables.pageAccessMap, $application.variables.pageAccessLoaded, 'EQR_EQUIPMENT_MASTER') === 'FULL' ]]">
+                            <oj-button chroming="borderless" display="icons" class="oj-button-sm" title="Remove"
+                                on-oj-action="[[ function() { $variables.attConfirmRemoveId = row.data.id; } ]]">
+                              <span slot="startIcon" class="oj-ux-ico-trash"></span>Remove
+                            </oj-button>
+                          </oj-bind-if>
+                        </div>
+                      </div>
+                    </oj-bind-if>
+
+                    <!-- Inline confirm rather than a second dialog on top of this one. -->
+                    <oj-bind-if test="[[ $variables.attConfirmRemoveId === row.data.id ]]">
+                      <div class="ua-confirm">
+                        <span>Remove this attachment?</span>
+                        <oj-button chroming="borderless" class="oj-button-sm"
+                            on-oj-action="[[ function() { $variables.attConfirmRemoveId = null; } ]]">Cancel</oj-button>
+                        <oj-button chroming="danger" class="oj-button-sm"
+                            on-oj-action="[[ () => $listeners.onAttRemove({ detail: { id: row.data.id } }) ]]">Remove</oj-button>
+                      </div>
+                    </oj-bind-if>
+                  </div>
+                </div>
+              </template>
+            </oj-bind-for-each>
+          </div>
+        </oj-bind-if>
+
+        <!-- The master's documents, on a serial page: read-only here - they are
+             managed on the equipment page. Always listed in full (not filtered),
+             because they are context, not this unit's records. -->
+        <oj-bind-if test="[[ !$variables.attLoading && ($variables.attInheritedRows || []).length ]]">
+          <div class="ua-inherited">
+            <p class="ua-inherited-title">
+              <oj-bind-text value="[[ 'From the equipment (' + $variables.attInheritedRows.length + ')' ]]"></oj-bind-text>
+            </p>
+            <oj-bind-for-each data="[[ $variables.attInheritedRows ]]">
+              <template data-oj-as="row">
+                <div class="ua-row ua-row--inherited">
+                  <div class="ua-type"><oj-bind-text value="[[ row.data.fileType ]]"></oj-bind-text></div>
+                  <div style="min-width:0;">
+                    <p class="ua-name"><oj-bind-text value="[[ row.data.name ]]"></oj-bind-text></p>
+                    <p class="ua-meta">
+                      <oj-bind-text value="[[ row.data.categoryLabel ]]"></oj-bind-text>
+                      <oj-bind-if test="[[ row.data.validityRequired ]]">
+                        <span class="ua-meta-sep">·</span>
+                        <oj-bind-text value="[[ 'Valid ' + ($page.functions.formatDate(row.data.validFrom) || '?') + ' – ' + ($page.functions.formatDate(row.data.validTo) || '?') ]]"></oj-bind-text>
+                      </oj-bind-if>
+                    </p>
+                  </div>
+                  <div class="ua-side">
+                    <oj-bind-if test="[[ row.data.statusLabel ]]">
+                      <span :class="[[ $page.functions.attStatusClass(row.data.status) ]]">
+                        <oj-bind-text value="[[ row.data.statusLabel ]]"></oj-bind-text>
+                      </span>
+                    </oj-bind-if>
+                    <div class="ua-actions">
+                      <oj-button chroming="borderless" display="icons" class="oj-button-sm" title="View"
+                          on-oj-action="[[ () => $listeners.onAttView({ detail: { id: row.data.id, action: 'view' } }) ]]">
+                        <span slot="startIcon" class="oj-ux-ico-view"></span>View
+                      </oj-button>
+                      <oj-button chroming="borderless" display="icons" class="oj-button-sm" title="Download"
+                          on-oj-action="[[ () => $listeners.onAttDownload({ detail: { id: row.data.id } }) ]]">
+                        <span slot="startIcon" class="oj-ux-ico-download"></span>Download
+                      </oj-button>
+                    </div>
+                  </div>
+                </div>
+              </template>
+            </oj-bind-for-each>
+          </div>
+        </oj-bind-if>
+      </div>
+    </oj-bind-if>
+
+    <!-- ═════════════════════════════ ADD ══════════════════════════════ -->
+    <!-- Category first: it decides which fields follow. Errors appear on the
+         field, and only after Upload. -->
+    <oj-bind-if test="[[ $variables.attMode === 'add' ]]">
+      <div class="ua-form">
+
+        <div class="ua-span-2">
+          <span class="ua-label">File</span>
+          <!-- The trigger slot IS the drop zone: JET accepts both a click and a
+               drop on it. A custom trigger, so it can span the full width and
+               turn into the picked file's card. -->
+          <oj-bind-if test="[[ !($variables.attFileInfo && $variables.attFileInfo.name) ]]">
+            <oj-file-picker class="ua-picker"
+                accept="[[ ['.pdf', '.docx', '.xlsx', '.png', '.jpg', '.jpeg'] ]]"
+                selection-mode="single"
+                disabled="[[ $variables.attSaving ]]"
+                on-oj-select="[[ $listeners.onAttFileSelected ]]">
+              <div slot="trigger" :class="[[ 'ua-drop' + ($variables.attErrors && $variables.attErrors.file ? ' ua-drop--error' : '') ]]">
+                <span class="oj-ux-ico-upload ua-drop-icon"></span>
+                <p class="ua-drop-main">Drop a file here, or click to choose one</p>
+                <p class="ua-drop-sub">PDF, Word, Excel, PNG or JPG · up to 20 MB</p>
+              </div>
+            </oj-file-picker>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.attFileInfo && $variables.attFileInfo.name ]]">
+            <div class="ua-file">
+              <div class="ua-type"><oj-bind-text value="[[ $variables.attFileInfo.type ]]"></oj-bind-text></div>
+              <div style="min-width:0;">
+                <p class="ua-file-name"><oj-bind-text value="[[ $variables.attFileInfo.name ]]"></oj-bind-text></p>
+                <p class="ua-meta"><oj-bind-text value="[[ $variables.attFileInfo.size ]]"></oj-bind-text></p>
+              </div>
+              <oj-button chroming="borderless" display="icons" class="oj-button-sm" title="Remove file"
+                  disabled="[[ $variables.attSaving ]]"
+                  on-oj-action="[[ $listeners.onAttFileCleared ]]">
+                <span slot="startIcon" class="oj-ux-ico-close"></span>Remove file
+              </oj-button>
+            </div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.attErrors && $variables.attErrors.file ]]">
+            <p class="ua-field-error"><oj-bind-text value="[[ $variables.attErrors.file ]]"></oj-bind-text></p>
+          </oj-bind-if>
+        </div>
+
+        <!-- Fields in oj-form-layout: the container these render correctly in
+             VB (directly in a CSS grid they did not render at all). Separate
+             layouts sharing one width, so the dates row can come and go. -->
+        <div class="ua-span-2">
+          <oj-form-layout max-columns="2" direction="row" label-edge="top" class="oj-formlayout-full-width">
+            <oj-select-single label-hint="Category"
+                data="[[ $variables.attCategoryADP ]]" item-text="label"
+                placeholder="Select a category"
+                value="{{ $variables.attForm.category }}"
+                on-value-changed="[[ $listeners.onAttCategoryChanged ]]"
+                messages-custom="[[ $variables.attErrors && $variables.attErrors.category ? [{ severity: 'error', summary: $variables.attErrors.category, detail: '' }] : [] ]]"
+                disabled="[[ $variables.attSaving ]]"></oj-select-single>
+            <oj-input-text label-hint="Name"
+                placeholder="e.g. Annual certification 2026"
+                value="{{ $variables.attForm.name }}"
+                messages-custom="[[ $variables.attErrors && $variables.attErrors.name ? [{ severity: 'error', summary: $variables.attErrors.name, detail: '' }] : [] ]]"
+                disabled="[[ $variables.attSaving ]]"></oj-input-text>
+          </oj-form-layout>
+
+          <oj-bind-if test="[[ $variables.attNeedsDates ]]">
+            <oj-form-layout max-columns="2" direction="row" label-edge="top" class="oj-formlayout-full-width">
+              <oj-input-date label-hint="Valid from"
+                  value="{{ $variables.attForm.validFrom }}"
+                  messages-custom="[[ $variables.attErrors && $variables.attErrors.validFrom ? [{ severity: 'error', summary: $variables.attErrors.validFrom, detail: '' }] : [] ]]"
+                  disabled="[[ $variables.attSaving ]]"></oj-input-date>
+              <oj-input-date label-hint="Valid to"
+                  value="{{ $variables.attForm.validTo }}"
+                  messages-custom="[[ $variables.attErrors && $variables.attErrors.validTo ? [{ severity: 'error', summary: $variables.attErrors.validTo, detail: '' }] : [] ]]"
+                  disabled="[[ $variables.attSaving ]]"></oj-input-date>
+            </oj-form-layout>
+          </oj-bind-if>
+
+          <oj-form-layout max-columns="1" label-edge="top" class="oj-formlayout-full-width">
+            <oj-text-area label-hint="Notes (optional)" rows="3"
+                placeholder="Anything someone opening this later should know"
+                value="{{ $variables.attForm.notes }}"
+                disabled="[[ $variables.attSaving ]]"></oj-text-area>
+          </oj-form-layout>
+        </div>
+      </div>
+    </oj-bind-if>
+
+    <!-- ════════════════════════════ DETAIL ════════════════════════════ -->
+    <!-- Preview on the left, the facts on the right. The URL is a 15-minute
+         link minted on View; OCI serves PDFs inline, so the iframe renders it. -->
+    <oj-bind-if test="[[ $variables.attMode === 'detail' && $variables.attViewer && $variables.attViewer.row ]]">
+      <div class="ua-detail">
+        <div>
+          <oj-bind-if test="[[ $variables.attViewer.loading ]]">
+            <div class="ua-preview-none"><oj-progress-circle size="md"></oj-progress-circle></div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.attViewer.error ]]">
+            <div class="ua-notice ua-notice--error"><oj-bind-text value="[[ $variables.attViewer.error ]]"></oj-bind-text></div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.attViewer.url && $variables.attViewer.row.preview === 'pdf' ]]">
+            <iframe class="ua-preview" :src="[[ $variables.attViewer.url ]]" :title="[[ $variables.attViewer.row.name ]]"></iframe>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.attViewer.url && $variables.attViewer.row.preview === 'image' ]]">
+            <img class="ua-preview-img" :src="[[ $variables.attViewer.url ]]" :alt="[[ $variables.attViewer.row.name ]]" />
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.attViewer.url && $variables.attViewer.row.preview === 'none' ]]">
+            <div class="ua-preview-none">
+              <span class="oj-ux-ico-file-text" style="font-size:1.75rem; opacity:0.5;"></span>
+              <oj-bind-text value="[[ $variables.attViewer.row.fileType + ' files can not be previewed here. Use Download or Open in new tab.' ]]"></oj-bind-text>
+            </div>
+          </oj-bind-if>
+        </div>
+
+        <dl class="ua-facts">
+          <dt>Name</dt>
+          <dd style="font-weight:600;"><oj-bind-text value="[[ $variables.attViewer.row.name ]]"></oj-bind-text></dd>
+          <dt>Category</dt>
+          <dd><oj-bind-text value="[[ $variables.attViewer.row.categoryLabel ]]"></oj-bind-text></dd>
+          <oj-bind-if test="[[ $variables.attViewer.row.validityRequired ]]">
+            <dt>Status</dt>
+            <dd>
+              <span :class="[[ $page.functions.attStatusClass($variables.attViewer.row.status) ]]">
+                <oj-bind-text value="[[ $variables.attViewer.row.statusLabel || 'No dates' ]]"></oj-bind-text>
+              </span>
+            </dd>
+            <dt>Valid</dt>
+            <dd><oj-bind-text value="[[ ($page.functions.formatDate($variables.attViewer.row.validFrom) || '—') + ' – ' + ($page.functions.formatDate($variables.attViewer.row.validTo) || '—') ]]"></oj-bind-text></dd>
+          </oj-bind-if>
+          <dt>File</dt>
+          <dd><oj-bind-text value="[[ ($variables.attViewer.row.fileName || $variables.attViewer.row.fileType) + ($variables.attViewer.row.fileSize ? ' · ' + $variables.attViewer.row.fileSize : '') ]]"></oj-bind-text></dd>
+          <dt>Uploaded</dt>
+          <dd><oj-bind-text value="[[ $page.functions.formatDate($variables.attViewer.row.uploadDate) + ($variables.attViewer.row.uploadedBy ? ' by ' + $variables.attViewer.row.uploadedBy : '') ]]"></oj-bind-text></dd>
+          <oj-bind-if test="[[ $variables.attViewer.row.entityName === 'EQR_EQUIPMENT_MASTER' && $variables.attLevel === 'LINE' ]]">
+            <dt>Belongs to</dt>
+            <dd>The equipment (shared by all its units)</dd>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.attViewer.row.notes ]]">
+            <dt>Notes</dt>
+            <dd style="white-space:pre-wrap;"><oj-bind-text value="[[ $variables.attViewer.row.notes ]]"></oj-bind-text></dd>
+          </oj-bind-if>
+        </dl>
+      </div>
+    </oj-bind-if>
+  </div>
+
+  <!-- One footer, its buttons set by the mode. -->
+  <div slot="footer" class="ua-foot">
+    <oj-bind-if test="[[ $variables.attMode === 'list' ]]">
+      <oj-button chroming="outlined"
+          on-oj-action="[[ function() { var d = document.getElementById('attachmentsDialog'); if (d) d.close(); } ]]">
+        Close
+      </oj-button>
+    </oj-bind-if>
+
+    <oj-bind-if test="[[ $variables.attMode === 'add' ]]">
+      <div class="ua-foot">
+        <oj-bind-if test="[[ $variables.attSaving ]]">
+          <span class="ua-foot-left oj-flex oj-sm-align-items-center" style="gap:8px;">
+            <oj-progress-circle size="sm"></oj-progress-circle>
+            <span class="oj-typography-body-sm">Uploading…</span>
+          </span>
+        </oj-bind-if>
+        <oj-button chroming="outlined" disabled="[[ $variables.attSaving ]]"
+            on-oj-action="[[ $listeners.onAttCancel ]]">Cancel</oj-button>
+        <oj-button chroming="callToAction" disabled="[[ $variables.attSaving ]]"
+            on-oj-action="[[ $listeners.onAttSave ]]">Upload</oj-button>
+      </div>
+    </oj-bind-if>
+
+    <oj-bind-if test="[[ $variables.attMode === 'detail' ]]">
+      <div class="ua-foot">
+        <oj-button chroming="borderless" class="ua-foot-left"
+            on-oj-action="[[ () => $listeners.onAttView({ detail: { id: null, action: 'close' } }) ]]">
+          <span slot="startIcon" class="oj-ux-ico-chevron-left"></span>Back to attachments
+        </oj-button>
+        <oj-button chroming="outlined"
+            on-oj-action="[[ () => $listeners.onAttDownload({ detail: { id: $variables.attViewer.row && $variables.attViewer.row.id } }) ]]">
+          <span slot="startIcon" class="oj-ux-ico-download"></span>Download
+        </oj-button>
+        <oj-button chroming="callToAction" disabled="[[ !$variables.attViewer.url ]]"
+            on-oj-action="[[ () => $listeners.onAttView({ detail: { id: $variables.attViewer.row && $variables.attViewer.row.id, action: 'newtab' } }) ]]">
+          Open in new tab
+        </oj-button>
+      </div>
+    </oj-bind-if>
+  </div>
+</oj-dialog>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- Project & Task                                                         -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- Keys in the project and task this unit is working on. Shown on Overview
+     > Identification and carried to Record Cost, where every cost is charged
+     to them. Saved in this browser for now (resources/js/unitProjectStore.js)
+     because EQR_SERIAL_REF has no project / task columns yet. Both blank
+     clears the assignment. Top level, like #attachmentsDialog. -->
+<oj-dialog id="projectTaskDialog" dialog-title="Project &amp; Task"
+    initial-visibility="hide" cancel-behavior="icon" modality="modal"
+    style="width: 560px; max-width: 96vw;">
+  <div slot="body">
+    <p class="ua-sub">
+      <oj-bind-text value="[[ ($variables.unit.serialNumber || '') + ($variables.masterRecord.equipmentName ? ' · ' + $variables.masterRecord.equipmentName : '') ]]"></oj-bind-text>
+    </p>
+
+    <oj-form-layout max-columns="2" direction="row" label-edge="top" class="oj-formlayout-full-width">
+      <oj-input-text label-hint="Project Number"
+          value="{{ $variables.ptForm.projectNumber }}"></oj-input-text>
+      <oj-input-text label-hint="Task Number"
+          value="{{ $variables.ptForm.taskNumber }}"></oj-input-text>
+    </oj-form-layout>
+
+    <oj-bind-if test="[[ $variables.ptError ]]">
+      <div class="ua-notice ua-notice--error" style="margin:12px 0 0 0;">
+        <oj-bind-text value="[[ $variables.ptError ]]"></oj-bind-text>
+      </div>
+    </oj-bind-if>
+  </div>
+
+  <div slot="footer" class="ua-foot">
+    <oj-button chroming="outlined"
+        on-oj-action="[[ function() { var d = document.getElementById('projectTaskDialog'); if (d) d.close(); } ]]">
+      Cancel
+    </oj-button>
+    <oj-button chroming="callToAction" on-oj-action="[[ $listeners.onSaveProjectTask ]]">
+      Save
+    </oj-button>
+  </div>
+</oj-dialog>

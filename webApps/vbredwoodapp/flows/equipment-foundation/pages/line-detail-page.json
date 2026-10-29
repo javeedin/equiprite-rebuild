@@ -1,0 +1,208 @@
+{
+
+  "metadata": {},
+  "variables": {
+    "requestId": {
+      "type": "string",
+      "input": "fromUrl",
+      "defaultValue": ""
+    },
+    "requestNumber": {
+      "type": "string",
+      "input": "fromUrl",
+      "defaultValue": ""
+    },
+    "lineId": {
+      "type": "string",
+      "input": "fromUrl",
+      "defaultValue": ""
+    },
+    "equipmentMasterId": {
+      "type": "string",
+      "input": "fromUrl",
+      "defaultValue": ""
+    },
+    "pageTitle": {
+      "type": "string",
+      "defaultValue": "Line Detail"
+    },
+    "pageSubtitle": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "lineData": {
+      "type": "object",
+      "defaultValue": {}
+    },
+    "requestData": {
+      "type": "object",
+      "defaultValue": {}
+    },
+    "adjustedStartDate": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "adjustedEndDate": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "isSaving": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "saveEnabled": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "allocationPercent": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "lineHasAllocations": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "childAssetCheck": {
+      "type": "object",
+      "description": "The unit whose Fusion maintenance asset sits in an asset structure (parent, children, grandchildren), shown read-only in childAssetsDialog before it is assigned. rows = the tree flattened top-down (ancestors, the unit, descendants), each {key, role, level, indentStyle, badge, assetNumber, description, itemNumber, serialNumber}. headline/detail/ackText are the dialog copy. Set by CheckChildAssetsChain.",
+      "defaultValue": {
+        "resourceId": null,
+        "serialNumber": "",
+        "descendantCount": 0,
+        "rows": [],
+        "headline": "",
+        "detail": "",
+        "ackText": ""
+      }
+    },
+    "childAssetsAcknowledged": {
+      "type": "boolean",
+      "description": "Acknowledgement checkbox in childAssetsDialog. Session-only — never saved.",
+      "defaultValue": false
+    },
+    "classesArray": {
+      "type": "any[]",
+      "defaultValue": [
+        { "value": "all",      "label": "All Classes"     },
+        { "value": "heavy",    "label": "Heavy Equipment" },
+        { "value": "light",    "label": "Light Equipment" },
+        { "value": "cranes",   "label": "Cranes"          },
+        { "value": "support",  "label": "Support"         }
+      ]
+    },
+    "classesADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.classesArray }}"
+      }
+    },
+    "selectedYard": {
+      "type": "number",
+      "defaultValue": null
+    },
+    "selectedYardItem": {
+      "type": "object",
+      "description": "oj-select-single value-item {key,data,metadata} for the Yard picker. The component keeps this in sync when the user picks a yard, so the SDP-backed LOV can render the selected label without a fetchByKeys (bu-org-mappings can't resolve a single invOrgId key). No programmatic default is set on load.",
+      "defaultValue": null
+    },
+    "yardMappingSDP": {
+      "type": "vb/ServiceDataProvider",
+      "defaultValue": {
+        "endpoint": "eqp-v1/getBuOrgMappings",
+        "keyAttributes": "invOrgId",
+        "itemsPath": "data",
+        "uriParameters": {
+          "isActiveFlag": "Y",
+          "orgRole": "EQUIPMENT_YARD"
+        },
+        "textFilterAttributes": ["invOrgName", "invOrgCode"],
+        "capabilities": { "filter": { "operators": ["$co"] } }
+      }
+    }
+  },
+  "eventListeners": {
+    "vbEnter": {
+      "chains": [
+        { "chain": "vbEnterChain", "parameters": {} }
+      ]
+    },
+    "onSpInFlowBack": {
+      "chains": [{ "chain": "goToParentChain", "parameters": {} }]
+    },
+    "onSaveLine": {
+      "chains": [{ "chain": "saveLineChain", "parameters": {} }]
+    },
+    "onRescopeDates": {
+      "chains": [{
+        "chain": "RescopeDatesChain",
+        "parameters": {
+          "startVal": "{{ $page.variables.adjustedStartDate }}",
+          "endVal":   "{{ $page.variables.adjustedEndDate }}"
+        }
+      }]
+    },
+    "onYardChanged": {
+      "chains": [{
+        "chain": "RescopeYardChain",
+        "parameters": { "yardId": "{{ $event.detail.value }}" }
+      }]
+    },
+    "onStagingChanged": {
+      "chains": [{
+        "chain": "StagingChangedChain",
+        "parameters": {
+          "saveEnabled":       "{{ $event.saveEnabled }}",
+          "allocationPercent": "{{ $event.allocationPercent }}"
+        }
+      }]
+    },
+    "onCheckChildAssets": {
+      "chains": [{
+        "chain": "CheckChildAssetsChain",
+        "parameters": {
+          "resourceId":   "{{ $event.resourceId }}",
+          "serialRefId":  "{{ $event.serialRefId }}",
+          "serialNumber": "{{ $event.serialNumber }}"
+        }
+      }]
+    },
+    "onChildAssetsProceed": {
+      "chains": [{ "chain": "ChildAssetsProceedChain", "parameters": {} }]
+    },
+    "onChildAssetsCancel": {
+      "chains": [{ "chain": "ChildAssetsCancelChain", "parameters": {} }]
+    }
+  },
+  "events": {
+    "onStagingChanged": {
+      "payloadType": {
+        "saveEnabled": "boolean",
+        "allocationPercent": "number"
+      }
+    },
+    "onCheckChildAssets": {
+      "payloadType": {
+        "resourceId": "number",
+        "serialRefId": "number",
+        "serialNumber": "string"
+      }
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-sp-general-overview-page": { "path": "oj-sp/general-overview-page/loader" },
+      "oj-form-layout":              { "path": "ojs/ojformlayout" },
+      "oj-input-text":               { "path": "ojs/ojinputtext" },
+      "oj-input-date":               { "path": "ojs/ojdatetimepicker" },
+      "oj-select-single":            { "path": "ojs/ojselectsingle" },
+      "oj-button":                   { "path": "ojs/ojbutton" },
+      "oj-bind-text":                { "path": "ojs/ojknockout" },
+      "oj-bind-if":                  { "path": "ojs/ojknockout" },
+      "oj-bind-for-each":            { "path": "ojs/ojknockout" },
+      "oj-dialog":                   { "path": "ojs/ojdialog" },
+      "oj-c-progress-circle":        { "path": "oj-c/progress-circle" }
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "description": "Equipment Requests smart search configuration",
+  "filters": {
+    "RequestNumberFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Request #",
+      "options": {
+        "field": "requestNumber",
+        "optionsData": "[[ $search.filters.RequestNumberFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.RequestNumberFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "StatusFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Status",
+      "options": {
+        "field": "status",
+        "optionsData": "[[ $search.filters.StatusFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.StatusFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "ProjectFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Project",
+      "options": {
+        "field": "projectName",
+        "optionsData": "[[ $search.filters.ProjectFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.ProjectFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    }
+  }
+}

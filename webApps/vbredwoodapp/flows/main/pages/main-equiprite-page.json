@@ -1,0 +1,128 @@
+{
+    "title": "Dashboard",
+    "variables": {
+        "dashRole": {
+            "type": "string",
+            "defaultValue": "",
+            "description": "Resolved dashboard persona (SESSION_ROLE code: EQUIP_MGR | REQUESTOR | INSPECTION | TIMEKEEPER | TIME_APPROVER | FINANCE_USER). Set by dashboardInitChain from $application.functions.resolveDashboardRole(). Drives which KPI tiles and which table this page renders."
+        },
+        "dashTitle": {
+            "type": "string",
+            "defaultValue": "Dashboard"
+        },
+        "dashSubtitle": {
+            "type": "string",
+            "defaultValue": "Real-time equipment lifecycle metrics and operational status."
+        },
+        "tableTitle": {
+            "type": "string",
+            "defaultValue": "Recent Requests"
+        },
+        "tableViewAllNav": {
+            "type": "string",
+            "defaultValue": "equipment-requests",
+            "description": "Nav-list id the table's 'View All' button routes to. Persona-specific; resolved through NAV_ID_TO_ROUTE by gotoNavTargetChain."
+        },
+        "tableRowNav": {
+            "type": "string",
+            "defaultValue": "myRequests",
+            "description": "Row-click routing key for navigateDashboardRowChain: dashboardRoleConfig's table.rowNav when set (INSPECTION), else table.shape. Decides WHICH drill-down a dashboard row opens, so each persona lands on the detail page matching its own table instead of everyone getting equipment-request-detail. Defaults to myRequests — the request-detail route — which is correct for the requestor persona the dashboard falls back to."
+        },
+        "tableColumns": {
+            "type": "any",
+            "defaultValue": [],
+            "description": "oj-table column definitions for the active persona, supplied by dashboardRoleConfig. Bound directly to the table's columns attribute so a persona switch re-renders the grid with no per-role markup."
+        },
+        "kpiCards": {
+            "type": "any",
+            "defaultValue": [],
+            "description": "Ordered KPI tile definitions [{key,label,hint,icon,accent,nav,money}] for the active persona. The tile row is rendered with oj-bind-for-each over this, so three-KPI and four-KPI personas need no separate markup."
+        },
+        "kpis": {
+            "type": "any",
+            "defaultValue": {},
+            "description": "Computed KPI values keyed by the `key` field of kpiCards. Populated per-persona by dashboardInitChain's COUNTERS."
+        },
+        "isLoading": {
+            "type": "boolean",
+            "defaultValue": false
+        },
+        "fetchError": {
+            "type": "string",
+            "defaultValue": ""
+        },
+        "dashRequestsArray": {
+            "type": "any",
+            "defaultValue": []
+        },
+        "recentRequestsADP": {
+            "type": "vb/ArrayDataProvider2",
+            "defaultValue": {
+                "itemType": "any",
+                "keyAttributes": "requestNumber",
+                "data": "{{ $page.variables.dashRequestsArray }}"
+            }
+        }
+    },
+    "eventListeners": {
+        "vbBeforeEnter": {
+            "chains": [
+                { "chain": "enforcePageAccessChain" }
+            ]
+        },
+        "vbEnter": {
+            "chains": [
+                {
+                    "chain": "dashboardInitChain"
+                }
+            ]
+        },
+        "onViewAllRecentRequests": {
+            "chains": [
+                {
+                    "chain": "gotoNavTargetChain",
+                    "parameters": {
+                        "navId": "{{ $page.variables.tableViewAllNav }}"
+                    }
+                }
+            ]
+        },
+        "onRowAction": {
+            "chains": [
+                {
+                    "chain": "navigateDashboardRowChain",
+                    "parameters": {
+                        "row": "{{ $event.detail.value?.data }}",
+                        "shape": "{{ $page.variables.tableRowNav }}"
+                    }
+                }
+            ]
+        },
+        "onKpiClick": {
+            "chains": [
+                {
+                    "chain": "gotoNavTargetChain",
+                    "parameters": {
+                        "navId": "{{ $event.currentTarget.dataset.navId }}"
+                    }
+                }
+            ]
+        }
+    },
+    "chains": {},
+    "imports": {
+        "components": {
+            "oj-sp-general-overview-page": {
+                "path": "oj-sp/general-overview-page/loader"
+            },
+            "oj-table": {
+                "path": "ojs/ojtable"
+            },
+            "oj-badge": {
+                "path": "ojs/ojbadge"
+            },
+            "oj-button": {
+                "path": "ojs/ojbutton"
+            }}
+    }
+}

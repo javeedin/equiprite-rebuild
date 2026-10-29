@@ -1,0 +1,313 @@
+<!--
+  Rate Schedule — Smart Search Page (PATH B, hardcoded data)
+  Template: oj-sp-smart-search-page + oj-table + detail drawer
+-->
+<style>
+  /* ── Table styling ── */
+  #rateScheduleTable .oj-table-column-header-cell {
+    background-color: var(--oj-core-neutral-color-2, #f1f1f1);
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--oj-core-text-color-secondary, #565656);
+    padding: 10px 12px;
+  }
+  #rateScheduleTable .oj-table-column-header-text {
+    white-space: nowrap;
+  }
+  #rateScheduleTable .oj-table-body-row:hover {
+    background-color: var(--oj-core-neutral-color-1, #fafafa);
+    cursor: pointer;
+  }
+  #rateScheduleTable .oj-table-data-cell {
+    padding: 10px 12px;
+    font-size: 0.8125rem;
+    vertical-align: middle;
+  }
+
+  /* ── Schedule number link style ── */
+  .req-number-link {
+    color: var(--oj-core-brand-color-primary, #005cb1);
+    font-weight: 700;
+    font-size: 0.8rem;
+  }
+
+  /* ── Project / Task two-line cell ── */
+  .req-project-primary {
+    font-weight: 600;
+    color: var(--oj-core-text-color-primary, #161616);
+  }
+  .req-project-secondary {
+    font-size: 0.75rem;
+    color: var(--oj-core-text-color-secondary, #565656);
+    margin-top: 2px;
+  }
+
+  /* ── Lines count badge ── */
+  .req-lines-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: var(--oj-core-neutral-color-3, #e8e8e8);
+    color: var(--oj-core-text-color-secondary, #565656);
+    border-radius: 50%;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+
+  /* Status badge colours are defined globally in resources/css/app.css
+     (canonical status palette). Do not redefine them here. */
+
+  /* ── Drawer detail field label ── */
+  .req-field-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--oj-core-text-color-secondary, #565656);
+    margin-bottom: 2px;
+  }
+  .req-field-value {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--oj-core-text-color-primary, #161616);
+  }
+
+  /* ── Line item card in drawer ── */
+  .req-line-card {
+    border: 1px solid var(--oj-core-divider-color, #e0e0e0);
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    background: var(--oj-core-neutral-color-0, #ffffff);
+  }
+  .req-line-name {
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: var(--oj-core-text-color-primary, #161616);
+  }
+  .req-line-class {
+    font-size: 0.75rem;
+    color: var(--oj-core-text-color-secondary, #565656);
+    margin-top: 1px;
+  }
+  .req-line-meta {
+    font-size: 0.75rem;
+    color: var(--oj-core-text-color-secondary, #565656);
+    margin-top: 6px;
+  }
+
+  /* ── Rejection reason block ── */
+  .req-rejection-block {
+    background: #fff7f0;
+    border: 1px solid #f5c6a0;
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+  }
+  .req-rejection-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #c45c00;
+    margin-bottom: 4px;
+  }
+  .req-rejection-text {
+    font-size: 0.8125rem;
+    color: #7c3800;
+  }
+
+  /* ── Section divider in drawer ── */
+  .req-section-heading {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--oj-core-brand-color-primary, #005cb1);
+    margin: 16px 0 8px 0;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--oj-core-divider-color, #e0e0e0);
+  }
+</style>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!--  SMART SEARCH PAGE SHELL                                -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<oj-sp-smart-search-page page-title="Rate Management" primary-action.display="on" primary-action.label="New Schedule"
+  on-sp-primary-action="[[$listeners.spPrimaryAction]]" display-mode="mixed">
+
+  <!-- ── SEARCH SLOT ── -->
+  <oj-sp-smart-search
+    slot="search"
+    filter-criterion="{{ $variables.filterCriterion }}"
+    on-filter-criterion-changed="[[$listeners.filterCriterionChanged]]"
+    search-context="[[ $variables.searchContext ]]"
+    search-config="[[ $variables.searchConfiguration.provider ]]"
+    suggestion-filters='["StatusFilter"]'
+    placeholder="Schedule name, description, class, yard...">
+  </oj-sp-smart-search>
+
+  <!-- ── DEFAULT SLOT — collection ── -->
+  <oj-sp-collection-container>
+
+    <oj-table
+      id="rateScheduleTable"
+      data="[[ $variables.RequestADP ]]"
+      class="oj-table-stretch oj-sm-width-full"
+      scroll-policy="loadMoreOnScroll"
+      scroll-policy-options.fetch-size="25"
+      selection-mode='{"row": "single"}'
+      on-first-selected-row-changed="[[$listeners.onRowAction]]"
+      columns='[
+        {"headerText": "SCHEDULE NAME",   "field": "scheduleName",   "template": "scheduleNameTpl", "sortable": "enabled", "style": "width:250px;"},
+
+        {"headerText": "DESCRIPTION",     "field": "description",     "template": "descriptionTpl",  "sortable": "enabled", "style": "width:200px;"},
+        {"headerText": "CUSTOMER",        "field": "customer",                                      "sortable": "enabled", "style": "width:120px;"},
+        {"headerText": "PROJECT",         "field": "project",                                       "sortable": "enabled", "style": "width:120px;"},
+        {"headerText": "TASK",            "field": "task",                                          "sortable": "enabled", "style": "width:120px;"},
+        {"headerText": "YARD",            "field": "yard",           "template": "yardTpl",         "sortable": "enabled", "style": "width:180px;"},
+        {"headerText": "ACTIVE",          "field": "status",         "template": "activeTpl",       "sortable": "enabled", "style": "width:100px;"},
+        {"headerText": "CURR",            "field": "currency",                                      "sortable": "enabled", "style": "width:80px;"},
+        {"headerText": "START DATE",      "field": "startDate",                                     "sortable": "enabled", "style": "width:120px;"},
+        {"headerText": "END DATE",        "field": "endDate",                                       "sortable": "enabled", "style": "width:100px;"}
+      ]'
+      style="width:100%; min-height:550px;"
+      aria-label="Rate Management Table">
+
+      <!-- SCHEDULE NAME — Bold Blue -->
+      <template slot="scheduleNameTpl" data-oj-as="cell">
+        <span class="req-number-link">
+          <oj-bind-text value="[[ cell.data ]]"></oj-bind-text>
+        </span>
+      </template>
+
+
+
+      <!-- YARD — plus a "Not used — PPM" note when every BU the yard belongs
+           to takes Fusion PPM rates (ppmUnused, set in RateScheduleInitChain). -->
+      <template slot="yardTpl" data-oj-as="cell">
+        <oj-bind-text value="[[ cell.data ]]"></oj-bind-text>
+        <oj-bind-if test="[[ cell.row.ppmUnused ]]">
+          <div style="color: var(--oj-core-text-color-secondary, #6b7280); font-size: 0.75rem;"
+               title="This yard's business unit takes its rates from Fusion PPM, so this schedule is not used.">
+            Not used — PPM rates
+          </div>
+        </oj-bind-if>
+      </template>
+
+      <!-- DESCRIPTION — Greyed text -->
+      <template slot="descriptionTpl" data-oj-as="cell">
+        <span style="color: var(--oj-core-text-color-secondary, #6b7280); font-size: 0.75rem;">
+          <oj-bind-text value="[[ cell.data ]]"></oj-bind-text>
+        </span>
+      </template>
+
+      <!-- ACTIVE STATUS — canonical pill (Active/Inactive resolve via the
+           shared status module rather than always rendering green). -->
+      <template slot="activeTpl" data-oj-as="cell">
+        <oj-bind-if test="[[ !!cell.data ]]">
+          <span :class="[[ $application.functions.statusTextClass() ]]">
+            <oj-bind-text value="[[ $application.functions.formatLineStatus(cell.data) ]]"></oj-bind-text>
+          </span>
+        </oj-bind-if>
+      </template>
+
+      <!-- EMPTY STATE -->
+      <template slot="noData">
+        <div style="text-align:center; padding:48px 0;">
+          <div style="font-size:40px; color:#cbd5e1; margin-bottom:12px;">📋</div>
+          <div style="font-size:15px; font-weight:600; color:#475569; margin-bottom:6px;">No rate schedules match your search.</div>
+          <div style="font-size:13px; color:#94a3b8;">Try adjusting your filters or clearing the search.</div>
+        </div>
+      </template>
+
+    </oj-table>
+
+  </oj-sp-collection-container>
+
+</oj-sp-smart-search-page>
+
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!--  SCHEDULE DETAIL DRAWER (right edge)                    -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<oj-drawer-popup opened="{{ $variables.isDrawerOpen }}" edge="end">
+  <oj-defer>
+    <oj-sp-general-drawer-template
+      drawer-title="[[ $variables.selectedRequest.scheduleName || 'Schedule Detail' ]]"
+      drawer-subtitle="[[ ($variables.selectedRequest.yard || '') + ($variables.selectedRequest.equipmentClass ? ' · ' + $variables.selectedRequest.equipmentClass : '') ]]"
+      drawer-size="lg"
+      close-action='[[ { "label": "Close", "display": "on" } ]]'
+      on-sp-close="[[ $listeners.closeRequestDrawer ]]">
+
+      <div class="oj-flex oj-sm-flex-direction-column" style="padding: 1rem 1.25rem;">
+
+        <!-- ── Status Badge ── -->
+        <div class="oj-flex oj-sm-align-items-center" style="gap:8px; margin-bottom:16px; flex-wrap:wrap;">
+          <span :class="[[ $application.functions.statusTextClass() ]]">
+            <oj-bind-text value="[[ $application.functions.formatLineStatus($variables.selectedRequest.status || 'ACTIVE') ]]"></oj-bind-text>
+          </span>
+        </div>
+
+        <!-- ── Overview fields (2-column grid) ── -->
+        <div class="oj-flex oj-sm-flex-wrap-wrap" style="gap:12px 24px;">
+
+          <div class="oj-flex-item oj-sm-12">
+            <div class="req-field-label">Schedule Name</div>
+            <div class="req-field-value" style="color: var(--oj-core-brand-color-primary, #005cb1); font-weight:700;">
+              <oj-bind-text value="[[ $variables.selectedRequest.scheduleName || '—' ]]"></oj-bind-text>
+            </div>
+          </div>
+
+          <div class="oj-flex-item oj-sm-12 oj-md-6">
+            <div class="req-field-label">Equipment Class</div>
+            <div class="req-field-value">
+              <oj-bind-text value="[[ $variables.selectedRequest.equipmentClass || '—' ]]"></oj-bind-text>
+            </div>
+          </div>
+
+          <div class="oj-flex-item oj-sm-12 oj-md-6">
+            <div class="req-field-label">Yard / Location</div>
+            <div class="req-field-value">
+              <oj-bind-text value="[[ $variables.selectedRequest.yard || '—' ]]"></oj-bind-text>
+            </div>
+          </div>
+
+          <div class="oj-flex-item oj-sm-12">
+            <div class="req-field-label">Description</div>
+            <div class="req-field-value">
+              <oj-bind-text value="[[ $variables.selectedRequest.description || '—' ]]"></oj-bind-text>
+            </div>
+          </div>
+
+          <div class="oj-flex-item oj-sm-12 oj-md-6">
+            <div class="req-field-label">Currency</div>
+            <div class="req-field-value">
+              <oj-bind-text value="[[ $variables.selectedRequest.currency || '—' ]]"></oj-bind-text>
+            </div>
+          </div>
+
+          <div class="oj-flex-item oj-sm-12 oj-md-6">
+            <div class="req-field-label">Start Date</div>
+            <div class="req-field-value">
+              <oj-bind-text value="[[ $variables.selectedRequest.startDate || '—' ]]"></oj-bind-text>
+            </div>
+          </div>
+
+          <div class="oj-flex-item oj-sm-12 oj-md-6">
+            <div class="req-field-label">End Date</div>
+            <div class="req-field-value">
+              <oj-bind-text value="[[ $variables.selectedRequest.endDate || '—' ]]"></oj-bind-text>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </oj-sp-general-drawer-template>
+  </oj-defer>
+</oj-drawer-popup>

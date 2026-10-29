@@ -1,0 +1,582 @@
+<style>
+  .demo-data-grid {
+    width: 100%;
+    height: calc(100vh - 280px);
+  }
+  .row-action-btn { margin: 0 1px; }
+
+  /* Badge colours are defined globally in resources/css/app.css
+     (canonical status palette). Do not redefine them here. */
+
+  /* Fill the viewport (up to an ultra-wide cap) so the line grid gets maximum
+     room before it scrolls horizontally, instead of a fixed 1440px column. */
+  #oj_gop_equip_detail {
+    --oj-sp-general-overview-page-max-width: 100% !important;
+    width: 100% !important;
+    max-width: min(2400px, calc(100vw - 48px)) !important;
+    margin: 0 auto !important;
+  }
+
+  /* Banner plain-text info fields */
+  .cr-info-label {
+    font-size: var(--oj-typography-body-xs-font-size, 0.6875rem);
+    font-weight: var(--oj-typography-body-font-weight-bold, 700);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: rgba(255, 255, 255, 0.55);
+  }
+  .cr-info-value {
+    font-size: var(--oj-typography-body-sm-font-size, 0.8125rem);
+    color: rgba(255, 255, 255, 0.92);
+    font-weight: 400;
+  }
+  .cr-info-divider {
+    color: rgba(255, 255, 255, 0.35);
+    font-size: 0.75rem;
+    margin: 0 2px;
+  }
+
+  /* Settings Group Card Styles */
+  .settings-group {
+      border: 1px solid var(--border-color, #d1d5db);
+      border-radius: 8px;
+      background-color: #ffffff;
+      margin-bottom: 24px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  }
+  .settings-group-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--border-color, #d1d5db);
+      display: flex;
+      align-items: center;
+  }
+  .settings-group-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 16px;
+      color: white;
+  }
+  .icon-blue { background-color: #0f172a; }
+  .icon-teal { background-color: #0d9488; }
+  .icon-purple { background-color: #8b5cf6; }
+  
+  .settings-group-title {
+      font-weight: 600;
+      font-size: 16px;
+      color: #111827;
+  }
+  .settings-group-subtitle {
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 2px;
+  }
+  .settings-content {
+      padding: 24px;
+  }
+
+  /* Drawer Layout Styles */
+  .drawer-container {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    width: 600px;
+    background-color: #f8fafc;
+  }
+  .drawer-header {
+    flex: 0 0 auto;
+    padding: 24px;
+    background-color: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  .drawer-body {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 24px;
+  }
+  .drawer-footer {
+    flex: 0 0 auto;
+    padding: 16px 24px;
+    background-color: #ffffff;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+  }
+</style>
+
+<oj-sp-general-overview-page
+  id="oj_gop_equip_detail"
+  class="oj-sm-width-full"
+  page-title="[[ $variables.formData.requestNumber ]]"
+  display-mode="mixed"
+  display-options.in-flow-back="true"
+  display-options.responsive-padding="on"
+  on-sp-in-flow-back="[[ $listeners.onSpInFlowBack ]]">
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- Search Banner: Back + Actions, Inline Info Rows                     -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div slot="search" style="width: 100%;">
+
+    <!-- Row 1: Inline meta — requestor | project | task | location | dates.
+         Same shape as the workbench request-detail-page for visual parity. -->
+    <div style="margin-bottom:4px; display:flex; flex-wrap:wrap; align-items:center; gap:6px;">
+      <span class="cr-info-value"><oj-bind-text value="[[ $variables.formData.requestor ]]"></oj-bind-text></span>
+      <span class="cr-info-divider">|</span>
+      <span class="cr-info-value"><oj-bind-text value="[[ $variables.formData.project ]]"></oj-bind-text></span>
+      <span class="cr-info-divider">|</span>
+      <span class="cr-info-value"><oj-bind-text value="[[ $variables.formData.task ]]"></oj-bind-text></span>
+      <span class="cr-info-divider">|</span>
+      <span class="cr-info-value"><oj-bind-text value="[[ $variables.formData.location ]]"></oj-bind-text></span>
+      <span class="cr-info-divider">|</span>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <span class="cr-info-value"><oj-bind-text value="[[ $page.functions.formatDate($variables.formData.startDate) ]]"></oj-bind-text></span>
+        <span class="cr-info-divider">→</span>
+        <span class="cr-info-value"><oj-bind-text value="[[ $page.functions.formatDate($variables.formData.endDate) ]]"></oj-bind-text></span>
+      </div>
+    </div>
+
+    <!-- Row 2: Action buttons (refresh + per-line actions). Mirrors the
+         workbench page's announcement-row layout.
+         Refresh — full browser reload. URL params preserve requestId so the
+         reload re-runs initChain naturally with the same id.
+         Per-line action buttons visible once header status is IN_PROCESS or
+         beyond. Each enables ONLY when every selected line shares the matching
+         lineStatus (Reject/Accept → SHIP_TO_SITE; Initiate Return → DEPLOYED). -->
+    <div class="oj-flex oj-sm-align-items-center oj-sm-justify-content-space-between"
+         style="justify-content:flex-end; margin-bottom:10px;" slot="announcement">
+      <div class="oj-flex oj-sm-align-items-center" style="gap:8px;">
+        <oj-button id="btnRefreshPage" chroming="borderless"
+                   display="icons" class="oj-button-sm"
+                   title="Refresh"
+                   on-oj-action="[[ function() { window.location.reload(); } ]]">
+          <span slot="startIcon" class="oj-ux-ico-refresh"></span>
+          <span>Refresh</span>
+        </oj-button>
+        <!-- Quote — same icon as the requests-list Quote column, so the approver
+             can reach the quote from inside the request instead of going back to
+             the list. Shown only once a quote exists (QUOTE_GENERATED awaiting
+             acceptance, or QUOTE_ACCEPTED as a read-back); a project request
+             passes through IN_PROCESS unquoted, so a broader test would link to
+             an empty page. -->
+        <oj-bind-if test="[[ $variables.quotingAllowed && ($variables.formData.status === 'QUOTE_GENERATED' || $variables.formData.status === 'QUOTE_ACCEPTED') ]]">
+          <oj-button id="btnViewQuote" chroming="borderless"
+                     display="icons" class="oj-button-sm"
+                     title="View quote"
+                     on-oj-action="[[ $listeners.onOpenProjectQuote ]]">
+            <span slot="startIcon" class="oj-ux-ico-document-check"></span>
+            <span>View quote</span>
+          </oj-button>
+        </oj-bind-if>
+        <!-- DRAFT actions (draftActionChain → resources/js/draftResume.js).
+             Edit reopens the form + cart prefilled and re-priced; Submit goes
+             straight to the cart for a one-click review; both save back onto
+             THIS request. Delete removes it with its lines and ship-to-site. -->
+        <oj-bind-if test="[[ $variables.formData.status === 'DRAFT' ]]">
+          <oj-button id="btnDeleteDraft"
+            chroming="outlined" class="oj-button-sm"
+            :disabled="[[ $variables.isDraftBusy ]]"
+            on-oj-action="[[ $listeners.onAskDeleteDraft ]]" display="label">
+            <span slot="startIcon" class="oj-ux-ico-trash"></span>
+            <span>Delete Draft</span>
+          </oj-button>
+          <oj-button id="btnEditDraft"
+            chroming="outlined" class="oj-button-sm"
+            :disabled="[[ $variables.isDraftBusy ]]"
+            on-oj-action="[[ $listeners.onEditDraft ]]" display="label">
+            <span slot="startIcon" class="oj-ux-ico-edit"></span>
+            <span>Edit Draft</span>
+          </oj-button>
+          <oj-button id="btnSubmitDraft"
+            chroming="callToAction" class="oj-button-sm"
+            :disabled="[[ $variables.isDraftBusy ]]"
+            title="Opens the cart with current prices so you can submit"
+            on-oj-action="[[ $listeners.onSubmitDraft ]]" display="label">
+            <span slot="startIcon" class="oj-ux-ico-check-circle"></span>
+            <span>Submit Draft</span>
+          </oj-button>
+        </oj-bind-if>
+        <oj-bind-if test="[[ $variables.formData.status === 'SUBMITTED' ]]">
+          <oj-button id="btnReject"
+            chroming="outlined" class="oj-button-sm"
+            :disabled="[[ $variables.selectionState.count === 0 ]]"
+            on-oj-action="[[ $listeners.onRejectRequest ]]" display="label">
+            <span slot="startIcon" class="oj-ux-ico-close-circle"></span>
+            <span>Reject</span>
+          </oj-button>
+          <!-- Approve acts on the SELECTED lines, mirroring Reject.
+               confirmRequestChain patches the ticked lines (all lines when
+               nothing is ticked) and only advances the header SUBMITTED →
+               IN_PROCESS once every line on the request is approved or
+               rejected. Approving a subset is therefore a real workflow, so
+               this is gated on "any selection" like Reject — it no longer
+               requires allSelected. -->
+          <oj-button id="btnApprove"
+            chroming="callToAction" class="oj-button-sm"
+            :disabled="[[ $variables.selectionState.count === 0 ]]"
+            :title="[[ $variables.selectionState.count === 0 ? 'Select line(s) to approve' : 'Approve the selected line(s)' ]]"
+            on-oj-action="[[ $listeners.onConfirmRequest ]]" display="label">
+            <span slot="startIcon" class="oj-ux-ico-check-circle"></span>
+            <span>Approve</span>
+          </oj-button>
+        </oj-bind-if>
+        <oj-bind-if test="[[ $functions.headerIsConfirmed($variables.formData.status) ]]">
+          <oj-button id="btnRejectDelivery"
+            chroming="outlined" class="oj-button-sm"
+            :disabled="[[ !$variables.selectionState.allShipToSite ]]"
+            on-oj-action="[[ $listeners.onRejectDelivery ]]" display="label">
+            <span slot="startIcon" class="oj-ux-ico-close-circle"></span>
+            <span>Reject</span>
+          </oj-button>
+          <oj-button id="btnAcceptDelivery"
+            chroming="callToAction" class="oj-button-sm"
+            :disabled="[[ !$variables.selectionState.allShipToSite ]]"
+            on-oj-action="[[ $listeners.onAcceptDelivery ]]" display="label">
+            <span slot="startIcon" class="oj-ux-ico-check-circle"></span>
+            <span>Accept</span>
+          </oj-button>
+          <oj-button id="btnInitiateReturn"
+            chroming="callToAction" class="oj-button-sm"
+            :disabled="[[ !$variables.selectionState.allReturnable ]]"
+            on-oj-action="[[ $listeners.onInitiateReturn ]]" display="label">
+            <span slot="startIcon" class="oj-ux-ico-check-circle"></span>
+            <span>Initiate Return</span>
+          </oj-button>
+        </oj-bind-if>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- MAIN CONTENT: Action Bar Config & DataGrid                          -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div class="oj-flex oj-sm-flex-direction-column oj-sm-width-full" slot="main" style="width: 100% !important; padding: 0 12px;">
+
+    <!-- DataGrid -->
+    <div class="oj-panel oj-bg-neutral-0" style="border-radius: 4px; box-shadow: 0 4px 20px rgba(0,0,0,0.10); overflow: auto; height: calc(100vh - 240px);">
+      <oj-data-grid id="datagrid" class="demo-data-grid" aria-label="Equipment Request Lines Excel Grid"
+        data="[[ $variables.dataGridProvider ]]" selection="{{ $variables.selection }}"
+        cell.editable="[[ $functions.getIsEditable.bind($functions) ]]"
+        header.column.style="[[ $functions.getColumnHeaderStyle.bind($functions) ]]" header.row.style="width:50px;"
+        header.column.filterable="[[ $functions.getHeaderFilterable.bind($functions) ]]"
+        header.column.resizable.width="enable" header.column.resizable.height="enable"
+        header.row.resizable.width="enable" header.row.resizable.height="enable" header.column.hidable="enable"
+        header.row.hidable="enable" scroll-policy="loadMoreOnScroll"
+        data-transfer-options='{"cut": "enable", "copy": "enable", "paste": "enable", "fill": "enable"}'
+        selection-mode.cell="multiple">
+
+        <template slot="columnHeaderTemplate" data-oj-as="header">
+          <oj-bind-if test="[[ header.item.index === 0 ]]">
+            <div style="display:flex; justify-content:center; align-items:center; height:100%;">
+              <input type="checkbox"
+                :checked="[[ $variables.selectionTick >= 0 && $functions.isAllSelected() ]]"
+                on-change="[[ $functions.onHeaderCheckboxChanged.bind($functions, $listeners.onSelectionChanged) ]]"
+                style="width:16px; height:16px; cursor:pointer; accent-color:var(--oj-core-brand-color-primary);" />
+            </div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ header.item.index !== 0 ]]">
+            <oj-bind-text value="[[ header.item.data ]]"></oj-bind-text>
+          </oj-bind-if>
+        </template>
+
+        <template slot="cellTemplate" data-oj-as="cell">
+
+          <oj-bind-if test="[[ $functions.getColumnType(cell.item.columnIndex) === 'select' ]]">
+            <div style="display: flex; justify-content: center; align-items: center; height: 100%;">
+              <input type="checkbox"
+                :checked="[[ $variables.selectionTick >= 0 && $functions.isRowSelected(cell.item.rowIndex) ]]"
+                on-change="[[ $functions.onRowCheckboxChanged.bind($functions, cell.item.rowIndex, $listeners.onSelectionChanged) ]]"
+                style="width:16px; height:16px; cursor:pointer; accent-color:var(--oj-core-brand-color-primary);" />
+            </div>
+          </oj-bind-if>
+
+          <oj-bind-if test="[[ $functions.getColumnType(cell.item.columnIndex) === 'readonly' ]]">
+            <span class="oj-text-color-secondary oj-typography-body-sm"><oj-bind-text value="[[ cell.item.data.data ]]"></oj-bind-text></span>
+          </oj-bind-if>
+
+          <!-- lineStatus as plain text — colour pills are reserved for the
+               request header status. -->
+          <oj-bind-if test="[[ $functions.getColumnType(cell.item.columnIndex) === 'status' ]]">
+            <oj-bind-if test="[[ !!cell.item.data.data ]]">
+              <span :class="[[ $application.functions.statusTextClass() ]]">
+                <oj-bind-text value="[[ $application.functions.formatLineStatus(cell.item.data.data) ]]"></oj-bind-text>
+              </span>
+            </oj-bind-if>
+          </oj-bind-if>
+
+          <oj-bind-if test="[[ $functions.getColumnType(cell.item.columnIndex) === 'text' ]]">
+            <oj-bind-if test="[[ cell.mode === 'navigation' ]]"><span class="oj-typography-body-sm"><oj-bind-text value="[[ cell.item.data.data ]]"></oj-bind-text></span></oj-bind-if>
+            <oj-bind-if test="[[ cell.mode === 'edit' ]]"><oj-input-text value="{{ cell.item.data.data }}" style="width: 100%;"></oj-input-text></oj-bind-if>
+          </oj-bind-if>
+
+          <oj-bind-if test="[[ $functions.getColumnType(cell.item.columnIndex) === 'number' ]]">
+            <oj-bind-if test="[[ cell.mode === 'navigation' ]]"><span class="oj-typography-body-sm"><oj-bind-text value="[[ cell.item.data.data ]]"></oj-bind-text></span></oj-bind-if>
+            <oj-bind-if test="[[ cell.mode === 'edit' ]]"><oj-input-number value="{{ cell.item.data.data }}" style="width: 100%;"></oj-input-number></oj-bind-if>
+          </oj-bind-if>
+
+          <oj-bind-if test="[[ $functions.getColumnType(cell.item.columnIndex) === 'dropdown' ]]">
+            <oj-bind-if test="[[ cell.mode === 'navigation' ]]"><span class="oj-typography-body-sm"><oj-bind-text value="[[ cell.item.data.data ]]"></oj-bind-text></span></oj-bind-if>
+            <oj-bind-if test="[[ cell.mode === 'edit' ]]">
+              <oj-select-single value="{{ cell.item.data.data }}" data="[[ $functions.getClassLOV() ]]" item-text="label" style="width: 100%;"></oj-select-single>
+            </oj-bind-if>
+          </oj-bind-if>
+
+          <oj-bind-if test="[[ $functions.getColumnType(cell.item.columnIndex) === 'actions' ]]">
+            <div style="display: flex; justify-content: center; align-items: center; height: 100%;">
+              <oj-button chroming="borderless" display="icons" class="oj-button-sm"
+                :disabled="[[ !$functions.isLineDeployed(cell.item.rowIndex) ]]"
+                :title="[[ $functions.isLineDeployed(cell.item.rowIndex) ? 'Actions' : 'Available once the line is deployed or delivered' ]]"
+                on-oj-action="[[ () => $listeners.onNavigateToProjectTransactions({ detail: { rowIndex: cell.item.rowIndex } }) ]]">
+                <span slot="startIcon" class="oj-ux-ico-menu-overflow"></span><span>Actions</span>
+              </oj-button>
+            </div>
+          </oj-bind-if>
+
+        </template>
+      </oj-data-grid>
+    </div>
+
+  </div>
+
+</oj-sp-general-overview-page>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- PROJECT TRANSACTIONS DRAWER                                         -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<oj-drawer-popup edge="end" opened="{{ $variables.isTransactionDrawerOpen }}" on-opened-changed="[[ function(event) { if (event.detail.value === false) { $listeners.onCloseTransactionDrawer(); } } ]]" auto-dismiss="none" style="z-index: 2000;">
+  <div class="drawer-container">
+    
+    <!-- Drawer Header -->
+    <div class="drawer-header">
+      <div class="oj-flex oj-sm-flex-direction-column">
+        <span class="oj-typography-heading-sm oj-typography-bold" style="color: #111827;">Project Transactions</span>
+      </div>
+      <oj-button display="icons" chroming="borderless" on-oj-action="[[ $listeners.onCloseTransactionDrawer ]]">
+        <span slot="startIcon" class="oj-ux-ico-close"></span>
+        <span>Close</span>
+      </oj-button>
+    </div>
+
+    <!-- Drawer Tabs -->
+    <div style="background-color: #ffffff; border-bottom: 1px solid #e2e8f0; padding: 0 24px;">
+      <oj-tab-bar selection="{{ $variables.activeTransactionTab }}" edge="top">
+        <ul>
+          <li id="16b"><a href="#"><span class="oj-tabbar-item-label">Material Issue</span></a></li>
+          <li id="16a"><a href="#"><span class="oj-tabbar-item-label">Expense Details</span></a></li>
+        </ul>
+      </oj-tab-bar>
+    </div>
+
+    <!-- Drawer Body -->
+    <div class="drawer-body">
+      
+      <!-- Non-Inventory Expense (16a) -->
+      <oj-bind-if test="[[ $variables.activeTransactionTab === '16a' ]]">
+        <div class="settings-group">
+          <div class="settings-group-header">
+            <div class="settings-group-icon icon-teal">
+              <span class="oj-ux-ico-receipt" style="font-size: 20px;"></span>
+            </div>
+            <div>
+              <div class="settings-group-title">Expense Details</div>
+              <div class="settings-group-subtitle">Configure expenditure type, amount, and GL posting rules.</div>
+            </div>
+          </div>
+          <div class="settings-content">
+            <oj-form-layout max-columns="1" label-edge="top">
+              <oj-select-single label-hint="Expenditure Type" value="{{ $variables.transactionData.expenditure_type }}" data="[[ $variables.expenditureTypeADP ]]" item-text="label" required="true"></oj-select-single>
+              <oj-input-text label-hint="Organization" value="{{ $variables.transactionData.organization }}" required="true"></oj-input-text>
+              <oj-input-number label-hint="Raw Cost Amount" value="{{ $variables.transactionData.raw_cost_amount }}" required="true"></oj-input-number>
+              
+              <div style="display: flex; align-items: center; justify-content: space-between; border: 1px solid #e2e8f0; border-radius: 4px; padding: 4px 12px; min-height: 36px; margin-top: 4px; margin-bottom: 8px;">
+                <span style="font-size: 13px; color: #475569;">Post Immediate Raw Cost to GL</span>
+                <oj-switch value="{{ $variables.transactionData.post_immediate_raw_cost }}" label-edge="none"></oj-switch>
+              </div>
+              
+              <oj-text-area label-hint="Narrative / Comments" value="{{ $variables.transactionData.narrative_comments }}" rows="3" placeholder="Optional description sent to PPM..."></oj-text-area>
+            </oj-form-layout>
+          </div>
+        </div>
+      </oj-bind-if>
+
+      <!-- Inventory Material Issue (16b)
+           Laid out to mirror the Fusion inventoryStagedTransactions payload proven in
+           the old EquipRite (project-inventory-start-page.js postinventory()):
+
+             OrganizationName / ItemNumber / TransactionTypeName "Project Issue" /
+             TransactionQuantity (negative) / TransactionUnitOfMeasure /
+             TransactionDate / SubinventoryCode / UseCurrentCostFlag "Y" /
+             TransactionMode "2" / SourceCode|SourceLineId|SourceHeaderId "2304" /
+             projectCostingDFFs[ _PROJECT_ID_Display, _TASK_ID_Display,
+                                 _EXPENDITURE_ITEM_DATE, _EXPENDITURE_TYPE_ID_Display,
+                                 _ORGANIZATION_ID_Display ]
+
+           COSMETIC ONLY - submitTransactionChain makes no REST call. The job of this
+           screen today is to capture CONSUMED QUANTITY against one request line.
+
+           Layout follows the PR drawer (request-detail-page.html): derived values as a
+           read-only label/value grid, inputs as a plain CSS grid with label-edge=inside
+           + oj-form-control-full-width. Deliberately NOT oj-form-layout - it collapses
+           its controls to the left edge inside a fixed-width drawer (see the PR
+           drawer's own note on exactly that). -->
+      <oj-bind-if test="[[ $variables.activeTransactionTab === '16b' ]]">
+
+        <!-- Derived from the request. Read-only: the manager picks the line, not these. -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px 16px; margin-bottom:16px;
+                    padding:10px 14px; border:1px solid var(--oj-core-divider-color,#e0e0e0); border-radius:6px;">
+          <div>
+            <div style="font-size:0.6875rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--oj-core-text-color-secondary);">Project</div>
+            <div style="font-size:0.875rem; color:#161513;"><oj-bind-text value="[[ $variables.formData.project ]]"></oj-bind-text></div>
+          </div>
+          <div>
+            <div style="font-size:0.6875rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--oj-core-text-color-secondary);">Task</div>
+            <div style="font-size:0.875rem; color:#161513;"><oj-bind-text value="[[ $variables.formData.task ]]"></oj-bind-text></div>
+          </div>
+          <div>
+            <div style="font-size:0.6875rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--oj-core-text-color-secondary);">Transaction Type</div>
+            <div style="font-size:0.875rem; color:#161513;">Project Issue</div>
+          </div>
+          <div>
+            <div style="font-size:0.6875rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--oj-core-text-color-secondary);">Transaction Date</div>
+            <div style="font-size:0.875rem; color:#161513;"><oj-bind-text value="[[ $variables.materialIssueLine.transactionDate ]]"></oj-bind-text></div>
+          </div>
+        </div>
+
+        <!-- The line being consumed. Defaults to the grid selection on drawer open. -->
+        <div style="display:grid; grid-template-columns:1fr; gap:12px 16px; margin-bottom:6px;">
+          <oj-select-single
+            label-hint="Request Line"
+            label-edge="inside"
+            class="oj-form-control-full-width"
+            required="true"
+            value="{{ $variables.transactionData.request_line_id }}"
+            data="[[ $variables.requestLinesADP ]]"
+            item-text="label"
+            on-value-changed="[[ (e) => { if (e.detail.updatedFrom === 'internal') { $listeners.onMaterialIssueLineChanged(); } } ]]">
+          </oj-select-single>
+        </div>
+
+        <!-- Auto-derived facts for the chosen line. Rendered only once a line is chosen. -->
+        <oj-bind-if test="[[ $variables.materialIssueLine.lineId ]]">
+          <div style="display:flex; gap:18px; flex-wrap:wrap; padding:8px 14px; margin-bottom:16px;
+                      background:var(--oj-core-neutral-color-2,#f3f4f6); border-radius:6px;">
+            <div>
+              <span style="font-size:0.6875rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--oj-core-text-color-secondary);">Line Status</span>
+              <span style="font-size:0.875rem; margin-left:6px;"><oj-bind-text value="[[ $variables.materialIssueLine.lineStatus ]]"></oj-bind-text></span>
+            </div>
+            <div>
+              <span style="font-size:0.6875rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--oj-core-text-color-secondary);">Requested Qty</span>
+              <span style="font-size:0.875rem; margin-left:6px;"><oj-bind-text value="[[ $variables.materialIssueLine.requestedQty ]]"></oj-bind-text></span>
+            </div>
+            <div>
+              <span style="font-size:0.6875rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--oj-core-text-color-secondary);">On Hand</span>
+              <span style="font-size:0.875rem; margin-left:6px;"><oj-bind-text value="[[ $variables.materialIssueLine.unitsLoading ? 'loading...' : $variables.materialIssueLine.onhandQty ]]"></oj-bind-text></span>
+            </div>
+            <div>
+              <span style="font-size:0.6875rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--oj-core-text-color-secondary);">Unit Type</span>
+              <span style="font-size:0.875rem; margin-left:6px;"><oj-bind-text value="[[ $variables.materialIssueLine.unitType ]]"></oj-bind-text></span>
+            </div>
+          </div>
+        </oj-bind-if>
+
+        <!-- Issue detail. Item / UOM / Organization are auto-filled from the line's own
+             physical units (views/line-detail-units) and stay editable. Subinventory is
+             the one value EquipRite genuinely does not hold anywhere. -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px 16px; margin-bottom:16px;">
+          <oj-select-single
+            label-hint="[[ $variables.materialIssueLine.unitType === 'SERIAL' ? 'Serial Number' : ($variables.materialIssueLine.unitType === 'LOT' ? 'Lot Number' : 'Oracle Item Number') ]]"
+            label-edge="inside"
+            class="oj-form-control-full-width"
+            required="true"
+            value="{{ $variables.transactionData.oracle_item_number }}"
+            data="[[ $variables.materialIssueUnitsADP ]]"
+            item-text="label">
+          </oj-select-single>
+
+          <oj-input-number
+            label-hint="Quantity Consumed"
+            label-edge="inside"
+            class="oj-form-control-full-width"
+            required="true"
+            min="0"
+            value="{{ $variables.transactionData.quantity_issued }}">
+          </oj-input-number>
+
+          <oj-select-single
+            label-hint="Unit of Measure"
+            label-edge="inside"
+            class="oj-form-control-full-width"
+            required="true"
+            value="{{ $variables.transactionData.unit_of_measure }}"
+            data="[[ $variables.unitOfMeasureADP ]]"
+            item-text="label">
+          </oj-select-single>
+
+          <!-- NOT required: EquipRite stores subinventory nowhere and
+               EQR_INVENTORY_CONSUMPTION has no column for it, so the submit chain can
+               only record it in NOTES. Marking it required showed a red "Required" hint
+               on a field that nothing enforces and nothing can auto-fill. It becomes a
+               real field when the Fusion material issue is wired (SubinventoryCode). -->
+          <oj-input-text
+            label-hint="Subinventory"
+            label-edge="inside"
+            class="oj-form-control-full-width"
+            placeholder="e.g. STORES (optional)"
+            value="{{ $variables.transactionData.subinventory_code }}">
+          </oj-input-text>
+
+          <oj-input-text
+            label-hint="Organization"
+            label-edge="inside"
+            class="oj-form-control-full-width"
+            required="true"
+            value="{{ $variables.transactionData.organization }}">
+          </oj-input-text>
+
+          <oj-select-single
+            label-hint="Expenditure Type"
+            label-edge="inside"
+            class="oj-form-control-full-width"
+            required="true"
+            value="{{ $variables.transactionData.expenditure_type }}"
+            data="[[ $variables.expenditureTypeADP ]]"
+            item-text="label">
+          </oj-select-single>
+        </div>
+
+      </oj-bind-if>
+
+    </div>
+
+    <!-- Drawer Footer -->
+    <div class="drawer-footer">
+      <oj-button chroming="outlined" on-oj-action="[[ $listeners.onCloseTransactionDrawer ]]">Cancel</oj-button>
+      <oj-button chroming="callToAction" style="--oj-button-cta-bg-color: #0f172a;" on-oj-action="[[ $listeners.onSubmitTransaction ]]">
+        <span slot="startIcon" class="oj-ux-ico-check-circle"></span>
+        <span>Submit Transaction</span>
+      </oj-button>
+    </div>
+
+  </div>
+</oj-drawer-popup>
+
+<!-- Delete Draft confirmation (opened by draftActionChain 'askDelete'). -->
+<oj-dialog id="deleteDraftDialog" dialog-title="Delete draft?"
+  initial-visibility="hide" cancel-behavior="icon" modality="modal" style="width:420px;">
+  <div slot="body" style="padding:8px 4px;">
+    <oj-bind-text value="[[ 'Delete draft ' + ($variables.formData.requestNumber || '') + ' and all of its lines? This cannot be undone.' ]]"></oj-bind-text>
+  </div>
+  <div slot="footer">
+    <oj-button chroming="outlined" on-oj-action="[[ $listeners.onCancelDeleteDraft ]]">Cancel</oj-button>
+    <oj-button chroming="danger" :disabled="[[ $variables.isDraftBusy ]]"
+      on-oj-action="[[ $listeners.onDeleteDraft ]]">Delete</oj-button>
+  </div>
+</oj-dialog>

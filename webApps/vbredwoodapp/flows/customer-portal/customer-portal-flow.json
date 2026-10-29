@@ -1,0 +1,145 @@
+{
+  "id": "customer-portal",
+  "description": "Customer Portal flow — dashboard, requests, billing, catalog",
+  "defaultPage": "project-create-request",
+  "pages": {
+    "customer-dashboard": {
+      "path": "pages/customer-dashboard-page"
+    },
+    "customer-my-requests": {
+      "path": "pages/customer-my-requests-page"
+    },
+    "customer-request-detail": {
+      "path": "pages/customer-request-detail-page"
+    },
+    "customer-quote": {
+      "path": "pages/customer-quote-page"
+    },
+    "customer-my-billing": {
+      "path": "pages/customer-my-billing-page"
+    },
+    "customer-billing-detail": {
+      "path": "pages/customer-billing-detail-page"
+    },
+    "request-catalog": {
+      "path": "pages/request-catalog-page"
+    },
+    "request-catalog-detail": {
+      "path": "pages/request-catalog-detail-page",
+      "parameters": {
+        "equipmentId": {
+          "type": "string",
+          "input": "fromUrl"
+        }
+      }
+    },
+    "request-cart": {
+      "path": "pages/request-cart-page"
+    },
+    "customer-create-req": {
+      "path": "pages/customer-create-req-page"
+    },
+    "project-create-request": {
+      "path": "pages/project-create-request-page"
+    },
+    "customer-rental-contract": {
+      "path": "pages/customer-rental-contract-page"
+    }
+  },
+  "variables": {
+    "CartItemsArray": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "ActiveRequestDetail": {
+      "type": "object",
+      "defaultValue": {}
+    },
+    "Project": {
+      "type": "string"
+    },
+    "requestOrigin": {
+      "type": "string",
+      "defaultValue": "customer"
+    },
+    "isReturningToCreate": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "completeForSubmitFields": {
+      "type": "string[]",
+      "defaultValue": [],
+      "description": "Set by the cart's CompleteDetailsChain when a soft reservation is sent back to project-create-request to fill the fields Submit needs. HydrateDraftChain shows them in a notice and clears the list."
+    },
+    "resumeDraft": {
+      "type": "any",
+      "defaultValue": null,
+      "description": "Set when a saved DRAFT request was reopened (Edit Draft / Submit Draft, resources/js/draftResume.js): {id, requestNumber, attribute1, shipToSiteId}. Submit and Save as Draft then UPDATE that request in place (requestHeaderBody.saveHeader + requestLineBody.saveLines -> PUT .../lines/batch) instead of creating a new one. Restored from draftStorage by InitCartChain; cleared on a fresh visit to the create-request form and after a successful save."
+    },
+    "fromAgreementId": {
+      "type": "number",
+      "defaultValue": null
+    },
+    "fromAgreementNumber": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "fromAgreementCustomer": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "fromAgreementEffectiveFrom": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "fromAgreementEffectiveTo": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "agreementLineIdByEquipmentId": {
+      "type": "object",
+      "defaultValue": {}
+    },
+    "agreementClassIds": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "request": {
+      "type": "any",
+      "defaultValue": {
+        "projectId": null,
+        "projectNumber": "",
+        "projectName": "",
+        "projectBuId": null,
+        "projectBuName": "",
+        "taskId": null,
+        "taskNumber": "",
+        "taskName": "",
+        "requestorId": null,
+        "requestorName": "",
+        "startDate": null,
+        "endDate": null,
+        "hours": null,
+        "location": "",
+        "locationLatitude": null,
+        "locationLongitude": null,
+        "siteId": null,
+        "contractId": null,
+        "contractNumber": "",
+        "locationType": null,
+        "customerId": null,
+        "customerName": "",
+        "customerRefId": null,
+        "customerRefName": "",
+        "billingContact": "",
+        "billingEmail": "",
+        "billingPhone": "",
+        "budget": 0,
+        "creditLimit": "$50,000.00",
+        "isSoftReservation": false,
+        "requestType": "",
+        "notes": ""
+      }
+    }
+  }
+}

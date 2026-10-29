@@ -1,0 +1,25 @@
+{
+  "description": "Equipment Schedule smart search configuration",
+  "filters": {
+    "AssetGroupFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Asset Group",
+      "options": {
+        "field": "assetGroup",
+        "optionsData": "[[ $search.filters.AssetGroupFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.AssetGroupFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "ClassFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Class",
+      "options": {
+        "field": "equipment_class",
+        "optionsData": "[[ $search.filters.ClassFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.ClassFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    }
+  }
+}

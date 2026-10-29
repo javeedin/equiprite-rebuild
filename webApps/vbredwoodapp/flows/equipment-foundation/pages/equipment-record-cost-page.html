@@ -1,0 +1,409 @@
+<!--
+  Record Cost - PROOF OF CONCEPT. Opened from the "Record Cost" button on
+  equipment-unit-detail-page; records a cost against that one unit.
+
+  Four tabs, one per way a cost reaches Fusion Project Costing:
+    Raw Cost        unprocessedProjectCosts
+    Material Issue  inventoryStagedTransactions ('Project Issue')
+    Expense Report  expenseReports
+    AP Invoice      invoices
+
+  Nothing is sent anywhere. Record validates the tab, builds the request it
+  WOULD send (not shown on screen), returns a mock 201 and adds a row to
+  "Recorded on this visit". The payload rules, and which shapes are proven vs
+  modelled, are in resources/js/recordCostMock.js.
+
+  Project and task are the UNIT's - set with "Edit Project & Task" on the
+  serial page and shown read-only in the Equipment card here. Charge To
+  (expenditure type / org, item date) is ONE form shared by all four tabs -
+  it is the same coding whichever way the cost arrives.
+-->
+<style>
+  #oj_gop_record_cost {
+    --oj-sp-general-overview-page-max-width: 100% !important;
+    width: 100% !important;
+    max-width: min(2400px, calc(100vw - 48px)) !important;
+    margin: 0 auto !important;
+  }
+
+  .rc-card {
+    border-radius: 8px;
+    border: 1px solid var(--oj-core-divider-margin, #e5e7eb);
+    background: var(--oj-core-bg-neutral-0, #ffffff);
+    padding: 24px;
+  }
+  .rc-card + .rc-card { margin-top: 16px; }
+
+  .rc-section-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--oj-core-text-color-secondary, #565656);
+    margin: 0 0 16px 0;
+  }
+  .rc-head {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; flex-wrap: wrap; margin-bottom: 12px;
+  }
+  .rc-head .rc-section-title { margin: 0; }
+  .rc-blurb {
+    font-size: 0.8125rem;
+    color: var(--oj-core-text-color-secondary, #565656);
+    margin: -8px 0 16px 0;
+  }
+
+  /* The unit being costed. */
+  .rc-kv-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 14px 24px;
+  }
+  .rc-kv-label { font-size: 0.75rem; color: var(--oj-core-text-color-secondary, #565656); margin-bottom: 2px; }
+  .rc-kv-value { font-size: 0.875rem; font-weight: 600; word-break: break-word; }
+
+  .rc-body { margin-top: 16px; }
+
+  .rc-subtitle {
+    font-size: 0.6875rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--oj-core-text-color-secondary, #565656); margin: 20px 0 8px 0;
+  }
+  .rc-total {
+    display: flex; justify-content: space-between; align-items: baseline;
+    border-top: 1px solid var(--oj-core-divider-margin, #e5e7eb);
+    padding-top: 12px; margin-top: 8px; font-size: 0.875rem;
+  }
+  .rc-total-value { font-size: 1.125rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+  .rc-error {
+    padding: 10px 14px; border-radius: 0 4px 4px 0; margin-top: 16px; font-size: 0.8125rem;
+    border-left: 3px solid #dc2626; background: #fef2f2; color: #7f1d1d;
+  }
+  .rc-actions { display: flex; justify-content: flex-end; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+  .rc-actions-left { margin-right: auto; display: flex; align-items: center; gap: 8px; font-size: 0.8125rem; }
+
+  #recordedTable .oj-table-column-header-cell {
+    background-color: var(--oj-core-neutral-color-2, #f1f1f1);
+    font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--oj-core-text-color-secondary, #565656); padding: 10px 12px;
+  }
+  #recordedTable .oj-table-data-cell { padding: 10px 12px; font-size: 0.8125rem; }
+  .rc-mono { font-family: var(--oj-core-font-family-monospace, ui-monospace, Menlo, Consolas, monospace); font-size: 0.75rem; }
+</style>
+
+<oj-sp-general-overview-page
+  id="oj_gop_record_cost"
+  class="oj-sm-width-full"
+  page-title="Record Cost"
+  page-subtitle="[[ $variables.pageSubtitle ]]"
+  show-go-to-parent="[[true]]"
+  display-options.in-flow-back="true"
+  on-sp-go-to-parent="[[ $listeners.spGoToParent ]]"
+  on-sp-in-flow-back="[[ $listeners.onSpInFlowBack ]]"
+  display-mode="mixed"
+  display-options.responsive-padding="off"
+  style="--oj-sp-general-overview-page-max-width: 100% !important;">
+
+  <div slot="main" class="oj-sm-width-full" style="max-width:100% !important; padding: 0 24px 24px 24px;">
+
+    <oj-bind-if test="[[ $variables.isLoading ]]">
+      <div class="oj-flex oj-sm-justify-content-center oj-sm-padding-8x">
+        <oj-progress-circle size="md"></oj-progress-circle>
+      </div>
+    </oj-bind-if>
+
+    <oj-bind-if test="[[ !$variables.isLoading ]]">
+      <div>
+
+        <!-- ══════════════════════════════════════════════════════════ -->
+        <!-- The unit being costed                                       -->
+        <!-- ══════════════════════════════════════════════════════════ -->
+        <div class="rc-card">
+          <p class="rc-section-title">Equipment</p>
+          <div class="rc-kv-grid">
+            <div>
+              <div class="rc-kv-label">Serial Number</div>
+              <div class="rc-kv-value"><oj-bind-text value="[[ $page.functions.orDash($variables.ctx.serialNumber) ]]"></oj-bind-text></div>
+            </div>
+            <div>
+              <div class="rc-kv-label">Equipment Number</div>
+              <div class="rc-kv-value"><oj-bind-text value="[[ $page.functions.orDash($variables.ctx.equipmentNumber) ]]"></oj-bind-text></div>
+            </div>
+            <div>
+              <div class="rc-kv-label">Equipment Name</div>
+              <div class="rc-kv-value"><oj-bind-text value="[[ $page.functions.orDash($variables.ctx.equipmentName) ]]"></oj-bind-text></div>
+            </div>
+            <div>
+              <div class="rc-kv-label">Project Number</div>
+              <div class="rc-kv-value"><oj-bind-text value="[[ $page.functions.orDash($variables.ctx.projectNumber) ]]"></oj-bind-text></div>
+            </div>
+            <div>
+              <div class="rc-kv-label">Task Number</div>
+              <div class="rc-kv-value"><oj-bind-text value="[[ $page.functions.orDash($variables.ctx.taskNumber) ]]"></oj-bind-text></div>
+            </div>
+            <div>
+              <div class="rc-kv-label">Decal Number</div>
+              <div class="rc-kv-value"><oj-bind-text value="[[ $page.functions.orDash($variables.ctx.decalNumber) ]]"></oj-bind-text></div>
+            </div>
+            <div>
+              <div class="rc-kv-label">Inventory Org</div>
+              <div class="rc-kv-value"><oj-bind-text value="[[ $page.functions.orDash($variables.ctx.invOrgName) ]]"></oj-bind-text></div>
+            </div>
+            <div>
+              <div class="rc-kv-label">Maint. Asset Number</div>
+              <div class="rc-kv-value"><oj-bind-text value="[[ $page.functions.orDash($variables.ctx.maintAssetNumber) ]]"></oj-bind-text></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════════════ -->
+        <!-- Cost type tabs                                              -->
+        <!-- ══════════════════════════════════════════════════════════ -->
+        <oj-tab-bar
+          selection="{{ $variables.selectedTab }}"
+          on-selection-changed="[[ $listeners.onTabChanged ]]"
+          edge="top"
+          data="[[ $variables.tabsDP ]]"
+          class="oj-sm-margin-4x-top">
+          <template slot="itemTemplate" data-oj-as="item">
+            <li :id="[[ item.data.id ]]">
+              <a href="#">
+                <span :class="[[ 'oj-navigationlist-item-icon ' + item.data.icon ]]"></span>
+                <span class="oj-tabbar-item-label">
+                  <oj-bind-text value="[[ item.data.label ]]"></oj-bind-text>
+                </span>
+              </a>
+            </li>
+          </template>
+        </oj-tab-bar>
+
+        <div class="rc-body">
+          <div class="rc-card">
+            <p class="rc-section-title"><oj-bind-text value="[[ $page.functions.tabTitle($variables.selectedTab) ]]"></oj-bind-text></p>
+            <p class="rc-blurb"><oj-bind-text value="[[ $page.functions.tabBlurb($variables.selectedTab) ]]"></oj-bind-text></p>
+
+            <!-- ─────────────── RAW COST ─────────────── -->
+            <oj-bind-if test="[[ $variables.selectedTab === 'rawCost' ]]">
+              <div>
+                <oj-form-layout max-columns="3" direction="row" label-edge="top" class="oj-formlayout-full-width">
+                  <oj-input-text label-hint="Business Unit" required="[[true]]" placeholder="e.g. US1 Business Unit"
+                      value="{{ $variables.rawCostForm.businessUnit }}"></oj-input-text>
+                  <oj-input-text label-hint="Transaction Source" required="[[true]]"
+                      value="{{ $variables.rawCostForm.transactionSource }}"></oj-input-text>
+                  <oj-input-text label-hint="Document" required="[[true]]"
+                      value="{{ $variables.rawCostForm.document }}"></oj-input-text>
+                  <oj-input-text label-hint="Document Entry" required="[[true]]"
+                      value="{{ $variables.rawCostForm.documentEntry }}"></oj-input-text>
+                  <oj-input-text label-hint="Expenditure Batch"
+                      value="{{ $variables.rawCostForm.expenditureBatch }}"></oj-input-text>
+                  <oj-select-single label-hint="Billable"
+                      data="[[ $variables.yesNoADP ]]" item-text="label"
+                      value="{{ $variables.rawCostForm.billable }}"></oj-select-single>
+                  <oj-input-number label-hint="Quantity" required="[[true]]" min="0"
+                      value="{{ $variables.rawCostForm.quantity }}"></oj-input-number>
+                  <oj-input-number label-hint="Raw Cost" required="[[true]]" min="0"
+                      value="{{ $variables.rawCostForm.rawCost }}"></oj-input-number>
+                  <oj-select-single label-hint="Currency"
+                      data="[[ $variables.currencyADP ]]" item-text="label"
+                      value="{{ $variables.rawCostForm.currency }}"></oj-select-single>
+                  <oj-input-text label-hint="Non-Labor Resource"
+                      value="{{ $variables.rawCostForm.nonlaborResource }}"></oj-input-text>
+                  <oj-input-text label-hint="Non-Labor Resource Organization"
+                      value="{{ $variables.rawCostForm.nonlaborResourceOrganization }}"></oj-input-text>
+                </oj-form-layout>
+                <oj-form-layout max-columns="1" label-edge="top" class="oj-formlayout-full-width">
+                  <oj-text-area label-hint="Comment" rows="2"
+                      value="{{ $variables.rawCostForm.comment }}"></oj-text-area>
+                </oj-form-layout>
+              </div>
+            </oj-bind-if>
+
+            <!-- ─────────────── MATERIAL ISSUE ─────────────── -->
+            <oj-bind-if test="[[ $variables.selectedTab === 'materialIssue' ]]">
+              <div>
+                <oj-form-layout max-columns="3" direction="row" label-edge="top" class="oj-formlayout-full-width">
+                  <oj-input-text label-hint="Inventory Organization" required="[[true]]"
+                      value="{{ $variables.materialIssueForm.organizationName }}"></oj-input-text>
+                  <oj-select-single label-hint="Transaction Type" required="[[true]]"
+                      data="[[ $variables.issueTypeADP ]]" item-text="label"
+                      value="{{ $variables.materialIssueForm.transactionType }}"></oj-select-single>
+                  <oj-input-date label-hint="Transaction Date" required="[[true]]"
+                      value="{{ $variables.materialIssueForm.transactionDate }}"></oj-input-date>
+                  <oj-input-text label-hint="Item" required="[[true]]" placeholder="Part or consumable issued"
+                      value="{{ $variables.materialIssueForm.itemNumber }}"></oj-input-text>
+                  <oj-input-number label-hint="Quantity" required="[[true]]" min="0"
+                      value="{{ $variables.materialIssueForm.quantity }}"></oj-input-number>
+                  <oj-select-single label-hint="Unit of Measure" required="[[true]]"
+                      data="[[ $variables.uomADP ]]" item-text="label"
+                      value="{{ $variables.materialIssueForm.uom }}"></oj-select-single>
+                  <oj-input-text label-hint="Subinventory" required="[[true]]"
+                      value="{{ $variables.materialIssueForm.subinventory }}"></oj-input-text>
+                  <oj-input-text label-hint="Locator"
+                      value="{{ $variables.materialIssueForm.locator }}"></oj-input-text>
+                  <oj-input-text label-hint="Reason"
+                      value="{{ $variables.materialIssueForm.reason }}"></oj-input-text>
+                  <oj-input-text label-hint="Reference"
+                      value="{{ $variables.materialIssueForm.reference }}"></oj-input-text>
+                </oj-form-layout>
+                <p class="rc-blurb" style="margin:12px 0 0 0;">
+                  No amount is entered: Fusion costs the issue at the item's current cost in that organization.
+                </p>
+              </div>
+            </oj-bind-if>
+
+            <!-- ─────────────── EXPENSE REPORT ─────────────── -->
+            <oj-bind-if test="[[ $variables.selectedTab === 'expenseReport' ]]">
+              <div>
+                <oj-form-layout max-columns="3" direction="row" label-edge="top" class="oj-formlayout-full-width">
+                  <oj-input-text label-hint="Employee Number" required="[[true]]"
+                      value="{{ $variables.expenseReportForm.personNumber }}"></oj-input-text>
+                  <oj-input-text label-hint="Purpose" required="[[true]]"
+                      value="{{ $variables.expenseReportForm.purpose }}"></oj-input-text>
+                  <oj-input-date label-hint="Report Date"
+                      value="{{ $variables.expenseReportForm.reportDate }}"></oj-input-date>
+                  <oj-select-single label-hint="Reimbursement Currency"
+                      data="[[ $variables.currencyADP ]]" item-text="label"
+                      value="{{ $variables.expenseReportForm.currency }}"></oj-select-single>
+                </oj-form-layout>
+
+                <p class="rc-subtitle">Expense item</p>
+                <oj-form-layout max-columns="3" direction="row" label-edge="top" class="oj-formlayout-full-width">
+                  <oj-input-date label-hint="Expense Date" required="[[true]]"
+                      value="{{ $variables.expenseReportForm.expenseDate }}"></oj-input-date>
+                  <oj-select-single label-hint="Expense Type" required="[[true]]"
+                      data="[[ $variables.expenseTypeADP ]]" item-text="label"
+                      value="{{ $variables.expenseReportForm.expenseType }}"></oj-select-single>
+                  <oj-input-text label-hint="Merchant"
+                      value="{{ $variables.expenseReportForm.merchant }}"></oj-input-text>
+                  <oj-input-number label-hint="Receipt Amount" required="[[true]]" min="0"
+                      value="{{ $variables.expenseReportForm.receiptAmount }}"></oj-input-number>
+                  <oj-select-single label-hint="Receipt Currency" required="[[true]]"
+                      data="[[ $variables.currencyADP ]]" item-text="label"
+                      value="{{ $variables.expenseReportForm.receiptCurrency }}"></oj-select-single>
+                  <oj-input-text label-hint="Location"
+                      value="{{ $variables.expenseReportForm.location }}"></oj-input-text>
+                </oj-form-layout>
+                <oj-form-layout max-columns="1" label-edge="top" class="oj-formlayout-full-width">
+                  <oj-text-area label-hint="Description" rows="2"
+                      value="{{ $variables.expenseReportForm.description }}"></oj-text-area>
+                </oj-form-layout>
+              </div>
+            </oj-bind-if>
+
+            <!-- ─────────────── AP INVOICE ─────────────── -->
+            <oj-bind-if test="[[ $variables.selectedTab === 'apInvoice' ]]">
+              <div>
+                <oj-form-layout max-columns="3" direction="row" label-edge="top" class="oj-formlayout-full-width">
+                  <oj-input-text label-hint="Business Unit" required="[[true]]" placeholder="e.g. US1 Business Unit"
+                      value="{{ $variables.apInvoiceForm.businessUnit }}"></oj-input-text>
+                  <oj-input-text label-hint="Supplier" required="[[true]]"
+                      value="{{ $variables.apInvoiceForm.supplier }}"></oj-input-text>
+                  <oj-input-text label-hint="Supplier Site" required="[[true]]"
+                      value="{{ $variables.apInvoiceForm.supplierSite }}"></oj-input-text>
+                  <oj-input-text label-hint="Invoice Number" required="[[true]]"
+                      value="{{ $variables.apInvoiceForm.invoiceNumber }}"></oj-input-text>
+                  <oj-input-date label-hint="Invoice Date" required="[[true]]"
+                      value="{{ $variables.apInvoiceForm.invoiceDate }}"></oj-input-date>
+                  <oj-select-single label-hint="Invoice Type"
+                      data="[[ $variables.invoiceTypeADP ]]" item-text="label"
+                      value="{{ $variables.apInvoiceForm.invoiceType }}"></oj-select-single>
+                  <oj-select-single label-hint="Currency" required="[[true]]"
+                      data="[[ $variables.currencyADP ]]" item-text="label"
+                      value="{{ $variables.apInvoiceForm.currency }}"></oj-select-single>
+                  <oj-select-single label-hint="Payment Terms"
+                      data="[[ $variables.paymentTermsADP ]]" item-text="label"
+                      value="{{ $variables.apInvoiceForm.paymentTerms }}"></oj-select-single>
+                  <oj-input-text label-hint="Description"
+                      value="{{ $variables.apInvoiceForm.description }}"></oj-input-text>
+                </oj-form-layout>
+
+                <p class="rc-subtitle">Invoice line</p>
+                <oj-form-layout max-columns="3" direction="row" label-edge="top" class="oj-formlayout-full-width">
+                  <oj-select-single label-hint="Line Type"
+                      data="[[ $variables.lineTypeADP ]]" item-text="label"
+                      value="{{ $variables.apInvoiceForm.lineType }}"></oj-select-single>
+                  <oj-input-number label-hint="Line Amount" required="[[true]]" min="0"
+                      value="{{ $variables.apInvoiceForm.lineAmount }}"></oj-input-number>
+                  <oj-input-text label-hint="Line Description"
+                      value="{{ $variables.apInvoiceForm.lineDescription }}"></oj-input-text>
+                </oj-form-layout>
+                <div class="rc-total">
+                  <span>Invoice total</span>
+                  <span class="rc-total-value"><oj-bind-text value="[[ $page.functions.invoiceTotal($variables.apInvoiceForm) ]]"></oj-bind-text></span>
+                </div>
+              </div>
+            </oj-bind-if>
+          </div>
+
+          <!-- Charge To - shared by all four tabs. Project and task are not
+               keyed in here: they are the unit's (Equipment card above) and
+               projectForm carries them from ctx into every payload. -->
+          <div class="rc-card">
+            <p class="rc-section-title">Charge To</p>
+            <p class="rc-blurb">Charged to the unit's project and task shown above. Shared by all four cost types.</p>
+            <oj-form-layout max-columns="3" direction="row" label-edge="top" class="oj-formlayout-full-width">
+              <oj-input-date label-hint="Expenditure Item Date" required="[[true]]"
+                  value="{{ $variables.projectForm.expenditureItemDate }}"></oj-input-date>
+              <oj-input-text label-hint="Expenditure Type" required="[[true]]"
+                  value="{{ $variables.projectForm.expenditureType }}"></oj-input-text>
+              <oj-input-text label-hint="Expenditure Organization" required="[[true]]"
+                  value="{{ $variables.projectForm.expenditureOrganization }}"></oj-input-text>
+            </oj-form-layout>
+
+            <oj-bind-if test="[[ $variables.formError ]]">
+              <div class="rc-error"><oj-bind-text value="[[ $variables.formError ]]"></oj-bind-text></div>
+            </oj-bind-if>
+
+            <div class="rc-actions">
+              <oj-bind-if test="[[ $variables.isSubmitting ]]">
+                <span class="rc-actions-left">
+                  <oj-progress-circle size="sm"></oj-progress-circle>
+                  Recording...
+                </span>
+              </oj-bind-if>
+              <oj-button chroming="outlined" disabled="[[ $variables.isSubmitting ]]"
+                  on-oj-action="[[ $listeners.onResetCost ]]">
+                Reset
+              </oj-button>
+              <oj-button chroming="callToAction" disabled="[[ $variables.isSubmitting ]]"
+                  on-oj-action="[[ $listeners.onRecordCost ]]">
+                <oj-bind-text value="[[ 'Record ' + $page.functions.tabTitle($variables.selectedTab) ]]"></oj-bind-text>
+              </oj-button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════════════ -->
+        <!-- Recorded on this visit (session only)                       -->
+        <!-- ══════════════════════════════════════════════════════════ -->
+        <oj-bind-if test="[[ ($variables.recordedCosts || []).length > 0 ]]">
+          <div class="rc-card" style="margin-top:16px;">
+            <div class="rc-head">
+              <p class="rc-section-title">Recorded on this visit</p>
+            </div>
+            <oj-table
+              id="recordedTable"
+              data="[[ $variables.recordedCostsADP ]]"
+              class="oj-sm-width-full"
+              scroll-policy="loadAll"
+              columns='[
+                { "headerText": "ID",             "field": "mockId",      "template": "monoTpl", "style": "width:150px;" },
+                { "headerText": "Type",           "field": "type",                               "style": "width:150px;" },
+                { "headerText": "Reference",      "field": "reference",                          "style": "min-width:220px;" },
+                { "headerText": "Project / Task", "field": "projectTask",                        "style": "width:180px;" },
+                { "headerText": "Amount",         "field": "amount",                             "style": "width:180px;" },
+                { "headerText": "Time",           "field": "recordedAt",                         "style": "width:100px;" }
+              ]'
+              style="width:100%;">
+              <template slot="monoTpl" data-oj-as="cell">
+                <span class="rc-mono"><oj-bind-text value="[[ cell.data ]]"></oj-bind-text></span>
+              </template>
+            </oj-table>
+          </div>
+        </oj-bind-if>
+
+      </div>
+    </oj-bind-if>
+
+  </div>
+</oj-sp-general-overview-page>

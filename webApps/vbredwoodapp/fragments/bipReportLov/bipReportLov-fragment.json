@@ -1,0 +1,146 @@
+{
+  "description": "Generic BIP LOV fragment. Calls a BI Publisher report via bipService (SOAP), parses the XML response, and renders a dropdown. Pass xdoPath, idField, labelField, and optional reportParameters. Returns selectedKey and selectedItem via writeback.",
+  "variables": {
+    "bipEndpoint": {
+      "type": "string",
+      "input": "fromCaller",
+      "defaultValue": "bipService/runBIPReport",
+      "description": "VB service endpoint for the BIP SOAP call. Defaults to the shared generic runner bipService/runBIPReport."
+    },
+    "xdoPath": {
+      "type": "string",
+      "input": "fromCaller",
+      "defaultValue": "",
+      "description": "Absolute path of the BIP .xdo report, e.g. /Custom/PWP/PWP_Redesign/EQP_CONTRACTS_BY_PROJECT_LOV_RP.xdo"
+    },
+    "reportParameters": {
+      "type": "any",
+      "input": "fromCaller",
+      "defaultValue": [],
+      "description": "Optional array of {name, value} objects for BIP report parameters, e.g. [{name:'P_PROJECT_ID', value:'300000308147872'}]. Changing this array triggers an automatic reload."
+    },
+    "rowTag": {
+      "type": "string",
+      "input": "fromCaller",
+      "defaultValue": "G_1",
+      "description": "XML element name for each data row in the report output. Defaults to G_1 (standard BIP row tag)."
+    },
+    "idField": {
+      "type": "string",
+      "input": "fromCaller",
+      "defaultValue": "",
+      "description": "XML element name whose text content becomes the item key, e.g. CONTRACT_ID"
+    },
+    "labelField": {
+      "type": "string",
+      "input": "fromCaller",
+      "defaultValue": "",
+      "description": "XML element name to use as the primary display label, e.g. CONTRACT_NUMBER"
+    },
+    "label2Field": {
+      "type": "string",
+      "input": "fromCaller",
+      "defaultValue": "",
+      "description": "Optional XML element name shown as secondary label below the primary, e.g. STATUS"
+    },
+    "labelText": {
+      "type": "string",
+      "input": "fromCaller",
+      "defaultValue": ""
+    },
+    "placeholderText": {
+      "type": "string",
+      "input": "fromCaller",
+      "defaultValue": "Select..."
+    },
+    "required": {
+      "type": "boolean",
+      "input": "fromCaller",
+      "defaultValue": false
+    },
+    "disabled": {
+      "type": "boolean",
+      "input": "fromCaller",
+      "defaultValue": false
+    },
+    "cascadeTargetVariable": {
+      "type": "string",
+      "input": "fromCaller",
+      "defaultValue": "",
+      "description": "Name of a boolean page variable to toggle (false→true) when this LOV's value changes, causing a dependent LOV to remount. Leave empty if no cascade needed."
+    },
+    "selectedKey": {
+      "type": "any",
+      "input": "fromCaller",
+      "writeback": true,
+      "defaultValue": null,
+      "description": "Two-way: the key of the currently selected item (value of idField)"
+    },
+    "selectedItem": {
+      "type": "any",
+      "input": "fromCaller",
+      "writeback": true,
+      "defaultValue": null,
+      "description": "Writeback: full row object with all XML fields flattened plus id/label/label2 aliases"
+    },
+    "itemsAdp": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "keyAttributes": "id",
+        "itemType": "BipLovItem",
+        "data": []
+      }
+    },
+    "isLoading": {
+      "type": "boolean",
+      "defaultValue": false
+    }
+  },
+  "types": {
+    "BipLovItem": {
+      "id": "string",
+      "label": "string",
+      "label2": "string"
+    }
+  },
+  "events": {
+    "valueChanged": {
+      "payloadType": {
+        "key": "any",
+        "item": "object"
+      }
+    }
+  },
+  "chains": {},
+  "eventListeners": {
+    "vbEnter": {
+      "chains": [{ "chain": "loadBipLovChain" }]
+    },
+    "vbPropertyChanged": {
+      "chains": [{
+        "chain": "onPropertyChangedChain",
+        "parameters": {
+          "propertyName": "{{ $event.detail.name }}"
+        }
+      }]
+    },
+    "onValueChanged": {
+      "chains": [{
+        "chain": "valueChangedChain",
+        "parameters": {
+          "key": "{{ $event.detail.value }}",
+          "itemData": "{{ $event.detail.itemContext && $event.detail.itemContext.data }}"
+        }
+      }]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-select-single": { "path": "ojs/ojselectsingle" },
+      "oj-progress-circle": { "path": "ojs/ojprogresscircle" },
+      "oj-list-item-layout": { "path": "ojs/ojlistitemlayout" },
+      "oj-bind-text": { "path": "ojs/ojbinddom" },
+      "oj-bind-if": { "path": "ojs/ojbinddom" }
+    }
+  }
+}

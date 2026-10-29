@@ -1,0 +1,65 @@
+{
+  "description": "Smart-search filters for the Yard Stock tab ONLY. One config file per tab, because oj-sp-smart-search renders a chip for EVERY filter the loaded config declares \u2014 suggestion-filters does NOT gate that row. Each `field` IS the endpoint's literal query-param name (see reportCriterion.ENDPOINT_PARAMS); a field that is not a real param yields a chip that filters nothing, because the views ignore unknown params silently. This set is deliberately CURATED, not exhaustive \u2014 the endpoint accepts more params than are offered. Complete for this endpoint \u2014 the only param not offered is groupBy, an aggregate mode rather than a filter. The Yard chip shows the yard NAME but sends invOrgId, which is what the param takes; these rows carry both. Chip labels match this grid's column headers so a chip reads as the column it filters: Status <- the Status column (the param is still unitStatus).",
+  "filters": {
+    "AssetGroupFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Asset Group",
+      "options": {
+        "field": "assetGroup",
+        "optionsData": "[[ $search.filters.AssetGroupFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.AssetGroupFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "ClassFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Equipment Class",
+      "options": {
+        "field": "className",
+        "optionsData": "[[ $search.filters.ClassFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.ClassFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "StatusFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Status",
+      "options": {
+        "field": "unitStatus",
+        "optionsData": "[[ $search.filters.StatusFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.StatusFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "TypeFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Unit Type",
+      "options": {
+        "field": "unitType",
+        "optionsData": "[[ $search.filters.TypeFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.TypeFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "YardFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Yard",
+      "options": {
+        "field": "invOrgId",
+        "optionsData": "[[ $search.filters.YardFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.YardFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "ProjectFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Project",
+      "options": {
+        "field": "projectId",
+        "optionsData": "[[ $search.filters.ProjectFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.ProjectFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    }
+  }
+}

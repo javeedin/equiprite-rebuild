@@ -1,0 +1,45 @@
+{
+  "description": "Smart-search filters for the Project Cost Detail tab ONLY. One config file per tab, because oj-sp-smart-search renders a chip for EVERY filter the loaded config declares \u2014 suggestion-filters does NOT gate that row. Each `field` IS the endpoint's literal query-param name (see reportCriterion.ENDPOINT_PARAMS); a field that is not a real param yields a chip that filters nothing, because the views ignore unknown params silently. This set is deliberately CURATED, not exhaustive \u2014 the endpoint accepts more params than are offered. Not offered: customerName, requestNumber, yardLocation (dropped by request \u2014 free-text q still spans all three). Project (projectNumber) and Equipment (equipmentNumber) re-added by request for chip-set parity with the other report tabs.",
+  "filters": {
+    "AssetGroupFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Asset Group",
+      "options": {
+        "field": "assetGroup",
+        "optionsData": "[[ $search.filters.AssetGroupFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.AssetGroupFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "PostedFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Posted Status",
+      "options": {
+        "field": "postedStatus",
+        "optionsData": "[[ $search.filters.PostedFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.PostedFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "ProjectFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Project",
+      "options": {
+        "field": "projectNumber",
+        "optionsData": "[[ $search.filters.ProjectFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.ProjectFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "EquipmentFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Equipment Name",
+      "options": {
+        "field": "equipmentNumber",
+        "optionsData": "[[ $search.filters.EquipmentFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.EquipmentFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    }
+  }
+}

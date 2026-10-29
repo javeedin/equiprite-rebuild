@@ -1,0 +1,1628 @@
+<!--
+  Post Cost Test Detail — redesigned drill-down (sandbox).
+  Layout: expandable equipment rows in a single oj-table.
+    • GROUP row  = one equipment (chevron toggles its week rows) — rate, period, total, status.
+    • WEEK  row  = one week for that equipment — checkbox (past weeks only), week range,
+                   rate type, derived rate period, and per-week cost. A breakdown week shows $0.
+    • DAY   row  = one day inside a week, behind "Exclude days". Its RED checkbox marks a
+                   BLACKOUT day (equipment down) and removes that day from the bill. It is
+                   NOT a post-selection checkbox — the blue ones above it are.
+  Banner shows the cost summary + "Post Selected Weeks".
+  Only PAST weeks are selectable/postable (PC-8). Live post-cost-detail-page is untouched.
+-->
+<style>
+  /* NOTE: intentionally NO #oj_gop full-width override here. The original
+     post-cost-detail page uses the page's DEFAULT max-width, which is what
+     gives the balanced inset gap on both sides. The table still fills its
+     container via table-layout:fixed below. */
+
+  /* Full-width, non-clipping table — the documented recipe (vbs-agent-skills
+     LAYOUT_SYSTEM_DOCUMENTATION §6): the table fills its flex scroll container
+     via table-layout:fixed + width:100% + min-width:0. The main slot is a flex
+     column and the table sits in a flex:1 / overflow-y:auto scroll container. */
+  #pcTestTable {
+    width: 100% !important;
+    min-width: 0 !important;
+    table-layout: fixed !important;
+    flex: 1 1 auto !important;
+  }
+
+  #pcTestTable .oj-table-column-header-cell {
+    background-color: var(--oj-core-neutral-color-2, #f1f1f1);
+    font-weight: 600; font-size: 0.72rem; text-transform: uppercase;
+    letter-spacing: 0.05em; color: var(--oj-core-text-color-secondary, #565656);
+    padding: 9px 12px;
+  }
+  #pcTestTable .oj-table-data-cell { padding: 8px 12px; font-size: 0.8125rem; vertical-align: middle; }
+
+  /* group (equipment) row — no background strip; just the bold name + chevron */
+  .pc-group-row { background: transparent; }
+  .pc-group-name { font-weight: 700; color: #0f172a; font-size: 0.85rem; }
+  .pc-chevron { cursor: pointer; color: #475569; font-size: 13px; margin-right: 8px; }
+  .pc-week-range { color: #334155; }
+  .pc-week-indent { padding-left: 26px; }
+
+  /* ── Blackout day drill-down (equipment → week → day) ─────────────────────
+     Quiet by default: the "Exclude days" toggle is a small secondary affordance,
+     and day rows sit a further step in so the week hierarchy stays readable.
+
+     The whole day level is coloured RED, never brand-blue, and every control on
+     it says "exclude". That separation is deliberate: the blue checkboxes on the
+     group and week rows SELECT FOR POSTING, the red ones on the day rows REMOVE
+     MONEY FROM THE BILL. Two checkboxes in one table that mean opposite things
+     must not look alike. */
+  .pc-day-toggle {
+    margin-left: 12px; cursor: pointer; font-size: 0.7rem; font-weight: 600;
+    color: var(--oj-core-text-color-secondary, #64748b);
+    display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;
+  }
+  .pc-day-toggle:hover { color: #b91c1c; text-decoration: underline; }
+  /* Open drill-down: the toggle takes the day level's colour so the red rows
+     underneath read as belonging to it. */
+  .pc-day-toggle--open { color: #b91c1c; }
+  /* Day rows carry a red rail down the left of the cell so the exclusion block
+     is visibly a different thing from the post-selection rows above it. */
+  .pc-day-indent {
+    padding-left: 50px;
+    border-left: 2px solid #fecaca;
+  }
+  /* Per-row "Exclude / Excluded" caption beside the checkbox. Repeating the verb
+     on every row is intentional — the checkbox alone was being read as "pick the
+     days to post". */
+  .pc-day-check {
+    display: inline-flex; align-items: center; gap: 5px;
+    cursor: pointer; user-select: none;
+  }
+  .pc-day-check-text {
+    font-size: 0.6rem; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 0.04em; color: #94a3b8; white-space: nowrap;
+  }
+  .pc-day-check-text--on { color: #b91c1c; }
+  .pc-day-label { font-size: 0.78rem; color: #475569; }
+  /* An excluded day is struck through rather than hidden — the day still happened,
+     it just is not billed. */
+  .pc-day-label--out { text-decoration: line-through; opacity: 0.6; }
+  .pc-day-note {
+    font-size: 0.66rem; font-weight: 600; color: #92400e;
+    background: #fef3c7; border-radius: 3px; padding: 1px 5px; white-space: nowrap;
+  }
+  /* "−2d" on a week row: how many days this week actually lost. */
+  .pc-day-count {
+    font-size: 0.66rem; font-weight: 700; color: #b91c1c;
+    background: #fee2e2; border-radius: 3px; padding: 1px 5px; white-space: nowrap;
+  }
+  /* EXPENDITURE TYPE cell. Reads as plain text until hovered — the equipment row
+     is the most crowded on the page, so this column must not look like another
+     control competing with "Select all weeks" and "Add charge". The pencil only
+     appears on hover; the whole cell is the click target. */
+  .pc-exptype {
+    display: inline-flex; align-items: center; gap: 6px;
+    cursor: pointer; font-size: 0.78rem; color: #334155;
+    max-width: 100%; min-width: 0;
+  }
+  .pc-exptype:hover { color: var(--oj-core-brand-color-primary, #1e40af); }
+  .pc-exptype-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* Nothing chosen yet. Muted and italic so a screen full of them reads as
+     "nobody has classified these", not as a set of real values. */
+  .pc-exptype--unset .pc-exptype-text { color: #94a3b8; font-style: italic; }
+  .pc-exptype-pen { font-size: 11px; opacity: 0; flex: none; }
+  .pc-exptype:hover .pc-exptype-pen { opacity: 0.7; }
+  /* A misc charge owns its own type and is edited in the charge drawer, not here.
+     Shown, not clickable — so it must not carry the hover affordance. */
+  .pc-exptype--ro {
+    font-size: 0.78rem; color: #64748b;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; max-width: 100%;
+  }
+
+  /* per-equipment "select all weeks" link on the group header row. Quiet
+     secondary action (not a button) so it doesn't crowd the row; sits to the
+     right of the "(N weeks)" count. */
+  .pc-grp-select {
+    margin-left: 14px; cursor: pointer; font-size: 0.72rem; font-weight: 600;
+    color: var(--oj-core-brand-color-primary, #0d6efd);
+    display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
+    user-select: none;
+  }
+  .pc-grp-select:hover { text-decoration: underline; }
+
+  .pc-currency { font-weight: 700; color: #0d9488; }
+  .pc-currency-zero { font-weight: 700; color: #94a3b8; }
+  .pc-hours { font-variant-numeric: tabular-nums; color: #334155; }
+
+  .pc-rate-badge {
+    display: inline-block; padding: 1px 8px; border-radius: 10px;
+    font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em;
+    background: #eef2ff; color: #3730a3; border: 1px solid #c7d2fe;
+  }
+  .pc-rate-badge--exception { background: #fff7ed; color: #9a3412; border-color: #fed7aa; }
+
+  .pc-when { display:inline-block; padding:1px 8px; border-radius:10px; font-size:0.66rem; font-weight:700; text-transform:uppercase; }
+  .pc-when--past   { background:#ecfdf5; color:#065f46; }
+  /* Draft (P1): elapsed but not yet posted — the default cost-line status. */
+  .pc-when--draft  { background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; }
+  .pc-when--future { background:#f1f5f9; color:#94a3b8; }
+  .pc-when--posted { background:#f0fdfa; color:#0f766e; }
+  /* current (in-progress) week: amber — provisional cost, not postable (an
+     early return mid-week changes it). */
+  .pc-when--current { background:#fffbeb; color:#b45309; }
+  /* early-return week: the trimmed week where the equipment came back early. */
+  .pc-when--early { background:#eef2ff; color:#4338ca; border:1px solid #c7d2fe; }
+  /* reversed week: a previously-posted week superseded by an early-return re-tier. */
+  .pc-when--reversed { background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; }
+  .pc-cost-struck { text-decoration: line-through; color:#94a3b8; font-weight:600; }
+
+  /* per-equipment "Reverse" control on the group header row (offered only when a
+     posted week's tier changed on early return). Quiet destructive-ish secondary
+     action; mirrors the .pc-grp-select interaction pattern (checkbox + stopEvent +
+     listener) so the table doesn't swallow the click. */
+  .pc-grp-reverse {
+    margin-left: 12px; cursor: pointer; font-size: 0.72rem; font-weight: 700;
+    color: #b91c1c; display: inline-flex; align-items: center; gap: 5px;
+    white-space: nowrap; user-select: none;
+  }
+  .pc-grp-reverse:hover { text-decoration: underline; }
+  .pc-line-reversed {
+    margin-left: 10px; font-size: 0.66rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.03em; color:#b91c1c; background:#fef2f2; border:1px solid #fecaca;
+    padding: 1px 8px; border-radius: 10px;
+  }
+  .pc-chip-value--adjust-credit { color:#0f766e; }
+  .pc-chip-value--adjust-debit  { color:#b45309; }
+
+  /* summary chips in banner */
+  .pc-chip { display:flex; flex-direction:column; gap:2px; padding:6px 14px; border-radius:8px; background:#ffffff; border:1px solid #e2e8f0; }
+  .pc-chip-label { font-size:0.62rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:#94a3b8; }
+  .pc-chip-value { font-size:0.95rem; font-weight:800; color:#0f172a; }
+  .pc-chip-value--posted   { color:#0f766e; }
+
+  .status-approved { background:#ecfdf5; color:#065f46; border:1px solid #34d399; padding:3px 12px; border-radius:12px; font-size:0.7rem; font-weight:700; }
+  .status-posted   { background:#f0fdfa; color:#0f766e; border:1px solid #2dd4bf; padding:3px 12px; border-radius:12px; font-size:0.7rem; font-weight:700; }
+
+  /* ── Miscellaneous charges ────────────────────────────────────────────────
+     A misc charge is a SIBLING of the week rows under the same equipment, and
+     sorts after them. It is indented to the week level, not the day level: it
+     belongs to the equipment, not to any one week. */
+  .pc-misc-indent { padding-left: 26px; }
+  .pc-misc-label  { color:#334155; }
+  /* Teal marker ties the row to the money column and separates it at a glance
+     from a rental week without adding another badge to an already busy row. */
+  .pc-misc-tag {
+    font-size:0.6rem; font-weight:800; text-transform:uppercase; letter-spacing:0.05em;
+    color:#0f766e; background:#f0fdfa; border:1px solid #99f6e4;
+    padding:1px 6px; border-radius:9px; white-space:nowrap;
+  }
+  .pc-misc-meta { font-size:0.68rem; color:#94a3b8; white-space:nowrap; }
+  .pc-misc-del {
+    margin-left:6px; cursor:pointer; font-size:11px; color:#cbd5e1;
+    display:inline-flex; align-items:center;
+  }
+  .pc-misc-del:hover { color:#b91c1c; }
+
+  /* "Add charge" on the group row. Same quiet-secondary treatment as the Days
+     toggle so the group row keeps ONE visual language for its actions rather
+     than three competing colours. */
+  .pc-grp-misc {
+    margin-left:12px; cursor:pointer; font-size:0.72rem; font-weight:600;
+    color:#0f766e; display:inline-flex; align-items:center; gap:4px;
+    white-space:nowrap; user-select:none;
+  }
+  .pc-grp-misc:hover { text-decoration:underline; }
+  /* Count of charges already on this equipment, shown next to the action. */
+  .pc-grp-misc-count {
+    font-size:0.62rem; font-weight:800; color:#0f766e;
+    background:#f0fdfa; border:1px solid #99f6e4; border-radius:9px; padding:0 5px;
+  }
+
+  /* ── Drawer ───────────────────────────────────────────────────────────────
+     Mirrors the Material Issue / PR drawers: fixed header, scrolling body,
+     pinned footer. Deliberately NOT oj-form-layout for the inputs — it
+     collapses controls to the left edge inside a fixed-width drawer (the PR
+     drawer carries the same note). */
+  .misc-drawer { width: 420px; max-width: 92vw; height: 100%; display:flex; flex-direction:column; background:#fff; }
+  .misc-drawer-header {
+    display:flex; align-items:flex-start; justify-content:space-between; gap:12px;
+    padding:18px 20px 14px; border-bottom:1px solid #e2e8f0;
+  }
+  .misc-drawer-body   { flex:1; overflow-y:auto; padding:18px 20px; }
+  .misc-drawer-footer {
+    display:flex; gap:8px; justify-content:flex-end;
+    padding:14px 20px; border-top:1px solid #e2e8f0; background:#f8fafc;
+  }
+  .misc-section-title {
+    font-size:0.66rem; font-weight:800; text-transform:uppercase; letter-spacing:0.06em;
+    color:#94a3b8; margin:18px 0 8px;
+  }
+  .misc-section-title:first-child { margin-top:0; }
+  .misc-field { margin-bottom:12px; }
+  .misc-switch-row {
+    display:flex; align-items:center; justify-content:space-between;
+    border:1px solid #e2e8f0; border-radius:4px; padding:6px 12px; margin-bottom:12px;
+  }
+  .misc-switch-label { font-size:0.8rem; color:#334155; }
+  .misc-switch-hint  { font-size:0.68rem; color:#94a3b8; margin-top:2px; }
+  .misc-error {
+    background:#fef2f2; border:1px solid #fecaca; color:#b91c1c;
+    font-size:0.75rem; border-radius:4px; padding:8px 10px; margin-bottom:12px;
+  }
+  /* States plainly that nothing is persisted or sent yet, so the drawer cannot
+     be mistaken for a working posting path. */
+  .misc-notice {
+    background:#fffbeb; border:1px solid #fde68a; color:#92400e;
+    font-size:0.72rem; border-radius:4px; padding:8px 10px; margin-bottom:14px;
+  }
+
+  /* ── Project split ────────────────────────────────────────────────────────
+     "Split cost" on the group row. Same quiet-secondary treatment as .pc-grp-misc
+     and the Days toggle, in indigo, so the group row keeps ONE visual language
+     for its actions instead of four competing colours. */
+  .pc-grp-split {
+    margin-left:12px; cursor:pointer; font-size:0.72rem; font-weight:600;
+    color:#4338ca; display:inline-flex; align-items:center; gap:4px;
+    white-space:nowrap; user-select:none;
+  }
+  .pc-grp-split:hover { text-decoration:underline; }
+  /* The rollup once a split exists — mirrors .pc-line-reversed's badge shape so
+     the two group-row rollups read as the same kind of thing, in indigo rather
+     than red because a split is a normal state and a reversal is not. */
+  .pc-split-badge {
+    margin-left:10px; cursor:pointer; font-size:0.66rem; font-weight:700;
+    text-transform:uppercase; letter-spacing:0.03em;
+    color:#4338ca; background:#eef2ff; border:1px solid #c7d2fe;
+    padding:1px 8px; border-radius:10px; user-select:none;
+    display:inline-flex; align-items:center; gap:4px; white-space:nowrap;
+  }
+  .pc-split-badge:hover { border-color:#818cf8; }
+  /* Locked: a PR pass-through base row, or every week already posted. Shown but
+     not clickable, so it must not carry a hover affordance (same reasoning as
+     .pc-exptype--ro). */
+  .pc-split-badge--ro { cursor:default; color:#64748b; background:#f1f5f9; border-color:#e2e8f0; }
+  .pc-split-badge--ro:hover { border-color:#e2e8f0; }
+  /* "PO project" — a PR pass-through week has no split to divide. Quieter than
+     .pc-split-badge--ro (no border, no chip) because it is a statement of fact
+     about where the cost goes, not a value someone authored. */
+  .pc-split-nopo {
+    display:inline-flex; align-items:center; gap:4px; cursor:default;
+    font-size:0.68rem; font-weight:600; color:#94a3b8; letter-spacing:0.01em;
+  }
+
+  /* Committed slices inside the drawer. */
+  .pc-split-row {
+    display:flex; align-items:center; gap:8px;
+    border:1px solid #e2e8f0; border-radius:4px; padding:8px 10px; margin-bottom:8px;
+  }
+  .pc-split-row-main { flex:1; min-width:0; }
+  .pc-split-row-proj { font-size:0.78rem; color:#0f172a; font-weight:600;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pc-split-row-task { font-size:0.68rem; color:#94a3b8;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pc-split-row-pct  { width:74px; flex:none; }
+  .pc-split-pctmark  { flex:none; font-size:0.75rem; font-weight:700; color:#64748b; }
+  /* Kill oj-input-number's stepper buttons.
+     Not cosmetic: JET lays the component out as `.oj-inputnumber-wrapper
+     {display:inline-flex}` with `.oj-inputnumber-input {flex:1}` and each
+     `.oj-inputnumber-button {width: var(--oj-button-sm-height)}` -- roughly 32px
+     apiece. In a ~86px cell the two buttons took ~64px and squeezed the input to
+     ~22px, so a typed percentage was stored correctly (the running total moved)
+     but CLIPPED OUT OF SIGHT in the field. Nobody nudges a percentage one unit at
+     a time with arrows anyway, so the digits get the whole field instead.
+     min/max/step still validate what is typed. */
+  .pc-nospin .oj-inputnumber-button { display: none !important; }
+  .pc-split-rm {
+    flex:none; cursor:pointer; color:#b91c1c; font-size:12px; opacity:0.7;
+    user-select:none;
+  }
+  .pc-split-rm:hover { opacity:1; }
+
+  /* Running total. Deliberately loud when it is not 100: the one thing that
+     makes this form invalid is invisible unless it is stated. */
+  .pc-split-total {
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    font-size:0.75rem; font-weight:700; color:#0f766e;
+    background:#f0fdfa; border:1px solid #99f6e4;
+    border-radius:4px; padding:7px 10px; margin:2px 0 14px;
+  }
+  .pc-split-total--bad { color:#b45309; background:#fffbeb; border-color:#fde68a; }
+  .pc-split-evenly {
+    cursor:pointer; font-size:0.7rem; font-weight:600; color:#4338ca; user-select:none;
+  }
+  .pc-split-evenly:hover { text-decoration:underline; }
+  .pc-split-addbox {
+    border:1px dashed #cbd5e1; border-radius:4px; padding:12px; margin-top:4px;
+  }
+  .pc-split-taskerr { font-size:0.68rem; color:#b91c1c; margin-top:4px; }
+
+  /* ── Project / Task column ────────────────────────────────────────────────
+     Two lines per destination, mirroring how the task picker and the drawer's
+     slice rows already render a project over its task. A split week stacks one
+     block per slice, so the cell grows with the split rather than truncating. */
+  .pc-proj { line-height:1.25; }
+  .pc-proj + .pc-proj { margin-top:4px; padding-top:4px; border-top:1px dotted #e2e8f0; }
+  /* A flex ROW, not a plain block with overflow:hidden.
+     Project names are long ("EPC_ MO_Operations", "NB125 Cutter Vessel") and the
+     percentage chip sits inline after one. With ellipsis on the container the
+     name consumed the width and CLIPPED THE CHIP -- the one thing on the line
+     that must never be cut, since it is what says how much of the week this
+     destination gets. Now the name truncates (min-width:0 is what lets a flex
+     item shrink below its content) and the chip is flex:none, so it always
+     survives. The full name is in the cell's tooltip either way. */
+  .pc-proj-num  { font-size:0.78rem; font-weight:600; color:#0f172a;
+                  display:flex; align-items:center; gap:5px; min-width:0; }
+  .pc-proj-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
+  .pc-proj-task { font-size:0.68rem; color:#94a3b8;
+                  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  /* The request's own project -- inherited, not chosen. Muted so a screen full
+     of them reads as "these all go to the request's project" and the ones that
+     were deliberately re-pointed stand out. */
+  .pc-proj--inherited .pc-proj-num  { font-weight:500; color:#64748b; }
+  .pc-proj--inherited .pc-proj-task { color:#cbd5e1; }
+  /* A summary, not a project name. Italic so it cannot be mistaken for one. */
+  .pc-proj--multiple .pc-proj-name { font-style:italic; }
+  .pc-proj-pct { flex:none; font-size:0.66rem; font-weight:800; color:#4338ca;
+                 background:#eef2ff; border:1px solid #c7d2fe; border-radius:8px; padding:0 5px; }
+  /* A slice row: the week again, once per project. Indented one level past the
+     week and visually quieter, because it is a breakdown of the row above and
+     not a period of its own. */
+  .pc-split-indent { padding-left: 46px; }
+  .pc-split-arrow  { color:#c7d2fe; font-size:0.8rem; flex:none; }
+  .pc-split-week   { font-size:0.74rem; color:#64748b;
+                     overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  /* The share figures. Indigo, matching the percentage chip, so cost and hours
+     on a slice row read as "part of the row above" rather than as new money. */
+  .pc-split-share  { color:#4338ca; }
+
+</style>
+
+<oj-sp-general-overview-page
+  id="oj_gop_pctest"
+  page-title="[[ $variables.projectName || 'Post Cost Detail' ]]"
+  page-subtitle="[[ $variables.requestNumber + ($variables.startDate ? '  ·  ' + $variables.startDate + ' → ' + $variables.endDate : '') + ($variables.isEarlyReturn ? '  ·  Returned early ' + $variables.earlyReturnDate : '') ]]"
+  display-mode="mixed"
+  display-options.responsive-padding="off"
+  display-options.in-flow-back="true"
+  on-sp-in-flow-back="[[ $listeners.onSpInFlowBack ]]">
+
+  <!-- ══ BANNER: cost summary + actions ══ -->
+  <div slot="search" style="width:100%;">
+    <div class="oj-flex oj-sm-align-items-center oj-sm-justify-content-space-between" style="flex-wrap:wrap; gap:12px;">
+
+      <!-- Summary chips (PC-1 / PC-7) -->
+      <div class="oj-flex oj-sm-align-items-center" style="gap:10px; flex-wrap:wrap;">
+        <div class="pc-chip">
+          <span class="pc-chip-label">Total</span>
+          <span class="pc-chip-value">$<oj-bind-text value="[[ Number($variables.totalCost).toLocaleString() ]]"></oj-bind-text></span>
+        </div>
+        <div class="pc-chip">
+          <span class="pc-chip-label">Already posted</span>
+          <span class="pc-chip-value pc-chip-value--posted">$<oj-bind-text value="[[ Number($variables.postedCost).toLocaleString() ]]"></oj-bind-text></span>
+        </div>
+        <div class="pc-chip">
+          <span class="pc-chip-label">Last posted</span>
+          <span class="pc-chip-value" style="font-weight:600; font-size:0.8rem;"><oj-bind-text value="[[ $variables.lastPostedLabel ]]"></oj-bind-text></span>
+        </div>
+        <!-- Net adjustment from a reversal: Σ(re-tiered drafts) − Σ(reversed originals).
+             Negative = credit (green); positive = debit (amber). Shown only when non-zero. -->
+        <oj-bind-if test="[[ Number($variables.netAdjustment) !== 0 ]]">
+          <div class="pc-chip">
+            <span class="pc-chip-label">Net adjustment</span>
+            <span class="pc-chip-value"
+              :class="[[ Number($variables.netAdjustment) < 0 ? 'pc-chip-value--adjust-credit' : 'pc-chip-value--adjust-debit' ]]">
+              <oj-bind-text value="[[ (Number($variables.netAdjustment) < 0 ? '−$' : '+$') + Math.abs(Number($variables.netAdjustment)).toLocaleString() + (Number($variables.netAdjustment) < 0 ? '  (credit)' : '  (debit)') ]]"></oj-bind-text>
+            </span>
+          </div>
+        </oj-bind-if>
+      </div>
+
+      <!-- Actions -->
+      <div class="oj-flex oj-sm-align-items-center" style="gap:8px;">
+        <oj-bind-if test="[[ $variables.headerStatus === 'POSTED' ]]"><span class="status-posted">POSTED</span></oj-bind-if>
+        <oj-bind-if test="[[ $variables.headerStatus === 'APPROVED' ]]"><span class="status-approved">APPROVED</span></oj-bind-if>
+
+        <oj-button id="selectPastBtn" chroming="outlined" on-oj-action="[[ $listeners.onSelectAllPast ]]">
+          <span slot="startIcon" class="oj-ux-ico-check-all"></span>
+          <span>Select all past weeks</span>
+        </oj-button>
+
+        <!-- "Weeks" dropped from the label: the selection can now contain misc
+             charges too. They post by a different route (Fusion
+             unprocessedProjectCosts) than weeks (the OIC flow), so the button
+             covers both without claiming they are one transaction. -->
+        <oj-button id="postSelectedBtn" chroming="callToAction"
+          on-oj-action="[[ $listeners.onPostSelected ]]">
+          <span slot="startIcon" class="oj-ux-ico-upload"></span>
+          <span>Post Selected</span>
+        </oj-button>
+      </div>
+    </div>
+
+    <!-- messages -->
+    <div style="padding-top:6px;">
+      <oj-bind-if test="[[ $variables.postError ]]"><span style="color:#b91c1c; font-size:0.75rem;"><oj-bind-text value="[[ $variables.postError ]]"></oj-bind-text></span></oj-bind-if>
+      <oj-bind-if test="[[ $variables.postSuccess ]]"><span style="color:#047857; font-size:0.75rem; font-weight:600;"><oj-bind-text value="[[ $variables.postSuccess ]]"></oj-bind-text></span></oj-bind-if>
+    </div>
+  </div>
+
+  <!-- ══ MAIN: expandable equipment → week table ══
+       Documented full-width + fixed-header-scrollable-body pattern
+       (vbs-agent-skills LAYOUT_SYSTEM_DOCUMENTATION §6):
+         slot="main" = flex column, height calc(100vh-280px), overflow hidden
+         inner div   = flex:1, overflow-y:auto, min-height:0  (the scroll area)
+         oj-table    = table-layout:fixed + width:100% (fills side-to-side) -->
+  <div class="oj-flex oj-sm-flex-direction-column oj-sm-width-full" slot="main"
+       style="height: calc(100vh - 280px); overflow: hidden; display: flex; flex-direction: column;
+              width:100% !important; max-width:100% !important; padding:0 12px; margin-top:-48px; box-sizing:border-box; overflow-x:hidden;">
+
+    <div class="oj-panel oj-bg-neutral-0"
+         style="border-radius:4px; box-shadow:0 4px 20px rgba(0,0,0,0.10); padding:0;
+                flex:1; min-height:0; display:flex; flex-direction:column; overflow:hidden;">
+      <div style="flex:1; overflow-y:auto; overflow-x:hidden; min-height:0;">
+      <oj-table
+        id="pcTestTable"
+        data="[[ $variables.rowsADP ]]"
+        class="oj-sm-width-full"
+        horizontal-grid-visible="enabled"
+        vertical-grid-visible="disabled"
+        selection-mode='{"row":"none","column":"none"}'
+        columns="[[ $page.functions.postCostDetailColumns($application.functions.isFeatureEnabled($application.variables.featureFlags, $application.variables.flagsLoaded, 'TIMESHEETS_ENABLED')) ]]"
+        style="width:100%;"
+        aria-label="Post Cost — per equipment, week by week">
+
+        <!-- LABEL: group=equipment (clickable chevron toggles expand); week=indented range + checkbox.
+             Interaction follows equipment-returns-page: raw element carries its key in the id,
+             on-click=stopEvent stops the table hijacking it, on-change/on-click fires the chain,
+             and the chain reads the key off event.target.id. -->
+        <template slot="labelTpl" data-oj-as="cell">
+          <oj-bind-if test="[[ cell.row.kind === 'group' ]]">
+            <!-- outer wrapper is NOT clickable; the expand target and the
+                 select-link are SIBLINGS so each gets its own on-click (a link
+                 nested inside the expand target never fires its own handler –
+                 the table only wires the outer div). -->
+            <div class="pc-group-row" style="display:flex; align-items:center; flex-wrap:wrap; gap:4px 0; min-width:0;">
+              <div style="display:flex; align-items:center; cursor:pointer;"
+                   :id="[[ 'grp-' + cell.row.groupKey ]]"
+                   on-click="[[ $listeners.onToggleGroup ]]">
+                <span class="pc-chevron"
+                      :class="[[ cell.row.expanded ? 'oj-ux-ico-chevron-down' : 'oj-ux-ico-chevron-right' ]]"></span>
+                <span class="pc-group-name"><oj-bind-text value="[[ cell.row.label ]]"></oj-bind-text></span>
+                <!-- An equipment whose every week is still in the future carries no
+                     week rows at all, so "(0 weeks)" would read as an error. Name the
+                     state instead — the line is on the request, it just has not begun
+                     billing yet. -->
+                <oj-bind-if test="[[ !cell.row.notStarted ]]">
+                  <span style="margin-left:8px; color:#94a3b8; font-size:0.72rem;">
+                    (<oj-bind-text value="[[ cell.row.weekCount ]]"></oj-bind-text> weeks)
+                  </span>
+                </oj-bind-if>
+                <oj-bind-if test="[[ cell.row.notStarted ]]">
+                  <span style="margin-left:8px; color:#94a3b8; font-size:0.72rem;">(not started)</span>
+                </oj-bind-if>
+              </div>
+              <!-- per-equipment select-all-weeks control (past/unposted weeks
+                   only). Uses this page's proven interaction pattern: a real
+                   checkbox with on-click=stopEvent (stops the table hijacking
+                   it) + on-change=listener (fires the chain, which reads the
+                   groupKey off event.target.id="grpsel-<key>"). A bare span
+                   on-click gets swallowed by the table; a checkbox on-change
+                   does not. Checked when all this equipment's weeks selected. -->
+              <oj-bind-if test="[[ cell.row.hasPostable ]]">
+                <label class="pc-grp-select">
+                  <oj-bind-if test="[[ cell.row.allSelected ]]">
+                    <input type="checkbox" checked=""
+                      :id="[[ 'grpsel-' + cell.row.groupKey ]]"
+                      on-click="[[ $page.functions.stopEvent ]]"
+                      on-change="[[ $listeners.onToggleGroupSelect ]]"
+                      style="width:14px; height:14px; cursor:pointer; accent-color:var(--oj-core-brand-color-primary);" />
+                  </oj-bind-if>
+                  <oj-bind-if test="[[ !cell.row.allSelected ]]">
+                    <input type="checkbox"
+                      :id="[[ 'grpsel-' + cell.row.groupKey ]]"
+                      on-click="[[ $page.functions.stopEvent ]]"
+                      on-change="[[ $listeners.onToggleGroupSelect ]]"
+                      style="width:14px; height:14px; cursor:pointer; accent-color:var(--oj-core-brand-color-primary);" />
+                  </oj-bind-if>
+                  <oj-bind-text value="[[ cell.row.allSelected ? 'All weeks selected' : 'Select all weeks' ]]"></oj-bind-text>
+                </label>
+              </oj-bind-if>
+              <!-- per-equipment "Reverse" control: shown only when a POSTED week of
+                   this line changed tier on early return (cell.row.tierChanged).
+                   Same proven pattern: checkbox + on-click=stopEvent + on-change=listener,
+                   id carries the groupKey; a SIBLING of the chevron/select controls. -->
+              <oj-bind-if test="[[ cell.row.tierChanged ]]">
+                <label class="pc-grp-reverse" title="Reverse the posted weeks whose tier changed and re-draft at the new rate">
+                  <input type="checkbox"
+                    :id="[[ 'rev-' + cell.row.groupKey ]]"
+                    on-click="[[ $page.functions.stopEvent ]]"
+                    on-change="[[ $listeners.onReverseLine ]]"
+                    style="width:14px; height:14px; cursor:pointer; accent-color:#b91c1c;" />
+                  <span class="oj-ux-ico-undo" style="font-size:12px;"></span>
+                  <span>Reverse (tier changed)</span>
+                </label>
+              </oj-bind-if>
+              <!-- "Line Reversed" rollup badge once a reversal exists on this line -->
+              <oj-bind-if test="[[ cell.row.hasReversal ]]">
+                <span class="pc-line-reversed">Line Reversed</span>
+              </oj-bind-if>
+              <!-- Add a miscellaneous charge to THIS equipment. A SIBLING of the
+                   expand target, never nested inside it — a control inside another
+                   on-click element never fires its own handler in this table. Uses
+                   the span+on-click form proven by the Days toggle (a bare span
+                   works when it is a sibling; it is only nesting that kills it). -->
+              <span class="pc-grp-misc"
+                    :id="[[ 'misc-' + cell.row.groupKey ]]"
+                    title="Add a miscellaneous charge to this equipment"
+                    on-click="[[ $listeners.onOpenMiscDrawer ]]">
+                <span class="oj-ux-ico-plus" style="font-size:11px;"></span>
+                <span>Add charge</span>
+                <!-- The count badge that used to live here is gone: the "Misc charges (N)"
+                     sub-group row below now carries both the count and the total. Two copies
+                     of the same number on one screen is one copy too many, and this equipment
+                     row is the most crowded on the page. -->
+              </span>
+              <!-- ── Project split rollup ───────────────────────────────
+                   A split is authored PER WEEK, so the action lives on the week
+                   row and this is a read-only summary. It earns its place because
+                   an equipment collapses: without it, "3 of these weeks post
+                   somewhere else" would be invisible until you expanded it.
+                   Not clickable, so it must not carry a hover affordance -- the
+                   same reasoning as .pc-exptype--ro.
+                   No new COLUMN on purpose: the table is already 8-9 columns wide
+                   and most weeks are never split. -->
+              <oj-bind-if test="[[ cell.row.splitWeekCount ]]">
+                <span class="pc-split-badge pc-split-badge--ro"
+                      :title="[[ $page.functions.splitTitle(cell.row) ]]">
+                  <oj-bind-text value="[[ $page.functions.splitWeeksLabel(cell.row) ]]"></oj-bind-text>
+                </span>
+              </oj-bind-if>
+            </div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ cell.row.kind === 'week' ]]">
+            <div class="pc-week-indent" style="display:flex; align-items:center; gap:10px;">
+              <oj-bind-if test="[[ cell.row.postable && cell.row.selected ]]">
+                <input type="checkbox" checked=""
+                  :id="[[ 'wk-' + cell.row.rowKey ]]"
+                  on-click="[[ $page.functions.stopEvent ]]"
+                  on-change="[[ $listeners.onToggleWeek ]]"
+                  style="width:15px; height:15px; cursor:pointer; accent-color:var(--oj-core-brand-color-primary);" />
+              </oj-bind-if>
+              <oj-bind-if test="[[ cell.row.postable && !cell.row.selected ]]">
+                <input type="checkbox"
+                  :id="[[ 'wk-' + cell.row.rowKey ]]"
+                  on-click="[[ $page.functions.stopEvent ]]"
+                  on-change="[[ $listeners.onToggleWeek ]]"
+                  style="width:15px; height:15px; cursor:pointer; accent-color:var(--oj-core-brand-color-primary);" />
+              </oj-bind-if>
+              <oj-bind-if test="[[ !cell.row.postable ]]">
+                <span style="width:15px; display:inline-block;"></span>
+              </oj-bind-if>
+              <!-- labelTitle is '' on every ordinary row, so no tooltip appears where
+                   there is nothing to explain. It carries text only on a PR margin
+                   row, whose label reads "Margin" rather than "One-time". -->
+              <span class="pc-week-range" :title="[[ cell.row.labelTitle || '' ]]"><oj-bind-text value="[[ cell.row.label ]]"></oj-bind-text></span>
+              <!-- Day drill-down. A SIBLING of the post checkbox, never a parent of it:
+                   a control nested inside another on-click element never fires its own
+                   handler in this table. Only offered on rental weeks — a DIRECT or
+                   consumable line posts once as qty × price and has no days to exclude. -->
+              <oj-bind-if test="[[ cell.row.canBlackout ]]">
+                <!-- Named for what it DOES, not for what it shows. "Days" read as
+                     "days to post"; this control only ever takes days OUT of the
+                     bill (blackout: down for maintenance, breakdown, shutdown). -->
+                <span class="pc-day-toggle"
+                      :class="[[ cell.row.weekExpanded ? 'pc-day-toggle--open' : '' ]]"
+                      :id="[[ 'wkexp-' + cell.row.rowKey ]]"
+                      title="Mark blackout days — days the equipment was down and must not be billed"
+                      on-click="[[ $listeners.onToggleWeekDays ]]">
+                  <span :class="[[ cell.row.weekExpanded ? 'oj-ux-ico-chevron-down' : 'oj-ux-ico-chevron-right' ]]"
+                        style="font-size:11px;"></span>
+                  <span>Exclude days</span>
+                </span>
+                <!-- Effective exclusions only. The view never counts a day it did not
+                     actually subtract, and the count is suppressed entirely on
+                     NOT_APPLICABLE lines so a DIRECT row cannot claim a reduction. -->
+                <oj-bind-if test="[[ Number(cell.row.blackoutDays || 0) > 0 ]]">
+                  <span class="pc-day-count" title="Blackout days — excluded from this week's cost">
+                    −<oj-bind-text value="[[ Number(cell.row.blackoutDays) ]]"></oj-bind-text>d excluded
+                  </span>
+                </oj-bind-if>
+              </oj-bind-if>
+              <!-- ── Project split, PER WEEK ────────────────────────────────
+                   This week's cost, divided across 2+ projects. Another SIBLING
+                   of the post checkbox and the day toggle, never a parent or a
+                   child of either: a control nested inside another on-click
+                   element never fires its own handler in this table.
+                   Its id prefix is "splitwk-", which cannot false-match the
+                   "wk-" checkbox because every guard on this row tests
+                   indexOf(prefix) === 0 -- "splitwk-" has "wk-" at index 6.
+                   Three states, one of which renders: locked -> read-only badge;
+                   split -> the "Split 60 / 40" rollup, click to edit; otherwise
+                   the quiet call to action. -->
+              <oj-bind-if test="[[ cell.row.splitLocked ]]">
+                <oj-bind-if test="[[ cell.row.splitCount ]]">
+                  <span class="pc-split-badge pc-split-badge--ro"
+                        :title="[[ cell.row.splitLockReason || '' ]]">
+                    <oj-bind-text value="[[ $page.functions.splitLabel(cell.row) ]]"></oj-bind-text>
+                  </span>
+                </oj-bind-if>
+                <!-- Locked, nothing to display, and worth saying why: a PR
+                     pass-through week. Both its BASE cost and our MARGIN on it
+                     take their project from the purchase order's distribution,
+                     so there is nothing here for EquipRite to divide. Shown
+                     rather than left blank because the equipment directly above
+                     may be splittable, and a control that silently disappears on
+                     one row and not another reads as a defect. A merely POSTED
+                     week is left blank on purpose -- it has no split to show and
+                     a badge on every posted week is noise. -->
+                <oj-bind-if test="[[ !cell.row.splitCount && cell.row.splitLockedByPr ]]">
+                  <span class="pc-split-nopo" :title="[[ cell.row.splitLockReason || '' ]]">
+                    <span class="oj-ux-ico-information-s" style="font-size:10px;"></span>
+                    <span>PO project</span>
+                  </span>
+                </oj-bind-if>
+              </oj-bind-if>
+              <oj-bind-if test="[[ !cell.row.splitLocked ]]">
+                <oj-bind-if test="[[ cell.row.splitCount ]]">
+                  <span class="pc-split-badge"
+                        :id="[[ 'splitwk-' + cell.row.rowKey ]]"
+                        :title="[[ $page.functions.splitTitle(cell.row) ]]"
+                        on-click="[[ $listeners.onOpenSplitDrawer ]]">
+                    <span class="oj-ux-ico-split" style="font-size:10px;"></span>
+                    <oj-bind-text value="[[ $page.functions.splitLabel(cell.row) ]]"></oj-bind-text>
+                  </span>
+                </oj-bind-if>
+                <oj-bind-if test="[[ !cell.row.splitCount ]]">
+                  <span class="pc-grp-split"
+                        :id="[[ 'splitwk-' + cell.row.rowKey ]]"
+                        title="Divide this week's cost across more than one project"
+                        on-click="[[ $listeners.onOpenSplitDrawer ]]">
+                    <span class="oj-ux-ico-split" style="font-size:11px;"></span>
+                    <span>Split cost</span>
+                  </span>
+                </oj-bind-if>
+              </oj-bind-if>
+            </div>
+          </oj-bind-if>
+          <!-- SPLIT row — one per project slice of a split week, sitting directly
+               under it. Repeats the week's range so it reads as that week again,
+               indented one more level and prefixed, because it is a BREAKDOWN of
+               the row above rather than a period of its own.
+               No checkbox on purpose: the week is still the postable unit and
+               posts as ONE call, with the server apportioning the amount. A
+               checkbox here would imply a slice could be posted on its own. -->
+          <oj-bind-if test="[[ cell.row.kind === 'split' ]]">
+            <div class="pc-split-indent" style="display:flex; align-items:center; gap:8px; min-width:0;">
+              <!-- Just the week again. The percentage lives in the Project / Task
+                   cell, where it describes the destination it applies to;
+                   repeating it here put it on screen twice in one row. -->
+              <span class="pc-split-arrow">↳</span>
+              <span class="pc-split-week"><oj-bind-text value="[[ cell.row.label ]]"></oj-bind-text></span>
+            </div>
+          </oj-bind-if>
+          <!-- MISC row — a charge against the equipment, not against any one week.
+               Indented to week level and sorted after the weeks. Its select
+               checkbox mirrors the week rows exactly (checkbox + stopEvent +
+               on-change), because at post time it is another selectable cost
+               line — just one that goes to Fusion by a different route. -->
+          <oj-bind-if test="[[ cell.row.kind === 'misc' ]]">
+            <div class="pc-misc-indent" style="display:flex; align-items:center; gap:10px; min-width:0;">
+              <oj-bind-if test="[[ cell.row.status !== 'POSTED' && cell.row.selected ]]">
+                <input type="checkbox" checked=""
+                  :id="[[ 'mscsel-' + cell.row.rowKey ]]"
+                  on-click="[[ $page.functions.stopEvent ]]"
+                  on-change="[[ $listeners.onToggleMisc ]]"
+                  style="width:15px; height:15px; cursor:pointer; accent-color:var(--oj-core-brand-color-primary);" />
+              </oj-bind-if>
+              <oj-bind-if test="[[ cell.row.status !== 'POSTED' && !cell.row.selected ]]">
+                <input type="checkbox"
+                  :id="[[ 'mscsel-' + cell.row.rowKey ]]"
+                  on-click="[[ $page.functions.stopEvent ]]"
+                  on-change="[[ $listeners.onToggleMisc ]]"
+                  style="width:15px; height:15px; cursor:pointer; accent-color:var(--oj-core-brand-color-primary);" />
+              </oj-bind-if>
+              <oj-bind-if test="[[ cell.row.status === 'POSTED' ]]">
+                <span class="oj-ux-ico-lock-closed" style="font-size:12px; opacity:0.45;"
+                      title="Posted — a posted charge is corrected by reversal, not by editing"></span>
+              </oj-bind-if>
+
+              <span class="pc-misc-tag">Misc</span>
+              <span class="pc-misc-label" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                <oj-bind-text value="[[ cell.row.label ]]"></oj-bind-text>
+              </span>
+              <oj-bind-if test="[[ cell.row.expItemDate ]]">
+                <span class="pc-misc-meta"><oj-bind-text value="[[ cell.row.expItemDate ]]"></oj-bind-text></span>
+              </oj-bind-if>
+              <!-- Removing a DRAFT is safe; a POSTED charge has no delete affordance
+                   at all (and deleteMiscChain refuses one regardless). -->
+              <oj-bind-if test="[[ cell.row.status !== 'POSTED' ]]">
+                <span class="pc-misc-del"
+                      :id="[[ 'miscdel-' + cell.row.rowKey ]]"
+                      title="Remove this charge"
+                      on-click="[[ $listeners.onDeleteMisc ]]">
+                  <span class="oj-ux-ico-trash"></span>
+                </span>
+              </oj-bind-if>
+            </div>
+          </oj-bind-if>
+
+          <!-- MISC GROUP header — "Misc charges (N)", the expander the charges sit
+               behind. Sits at week level, after the weeks.
+
+               The whole row is the click target and it carries NO other control, so
+               a plain span with on-click is safe here. Nesting is what breaks in
+               this table: a control inside another on-click element never fires its
+               own handler, which is why every checkbox on this page is a SIBLING. -->
+          <oj-bind-if test="[[ cell.row.kind === 'miscGroup' ]]">
+            <div class="pc-misc-indent" style="display:flex; align-items:center; gap:6px; cursor:pointer;"
+                 :id="[[ 'miscgrp-' + cell.row.rowKey ]]"
+                 on-click="[[ $listeners.onToggleMiscGroup ]]">
+              <span class="pc-chevron"
+                    :class="[[ cell.row.miscExpanded ? 'oj-ux-ico-chevron-down' : 'oj-ux-ico-chevron-right' ]]"></span>
+              <span class="pc-misc-label" style="font-weight:600;">
+                <oj-bind-text value="[[ cell.row.label ]]"></oj-bind-text>
+              </span>
+              <span style="color:#94a3b8; font-size:0.72rem;">
+                (<oj-bind-text value="[[ cell.row.miscCount ]]"></oj-bind-text>)
+              </span>
+            </div>
+          </oj-bind-if>
+
+          <!-- DAY row — third level. The blackout checkbox uses the same proven
+               pattern as every other control here: raw checkbox, on-click=stopEvent,
+               on-change=listener, id carrying the row key. -->
+          <oj-bind-if test="[[ cell.row.kind === 'day' ]]">
+            <div class="pc-day-indent" style="display:flex; align-items:center; gap:10px;">
+              <!-- The caption is a SIBLING of the input inside a plain <label> (no
+                   on-click of its own) — the same shape as .pc-grp-select, which is
+                   proven to fire in this table. It says the verb on every row on
+                   purpose: a bare checkbox here was being read as "pick which days
+                   to post", the opposite of what it does. -->
+              <oj-bind-if test="[[ !cell.row.locked && cell.row.blackout ]]">
+                <label class="pc-day-check" title="Blackout — this day is excluded from the bill. Untick to bill it again.">
+                  <input type="checkbox" checked=""
+                    :id="[[ 'bo-' + cell.row.rowKey ]]"
+                    on-click="[[ $page.functions.stopEvent ]]"
+                    on-change="[[ $listeners.onToggleBlackout ]]"
+                    style="width:14px; height:14px; cursor:pointer; accent-color:#b91c1c;" />
+                  <span class="pc-day-check-text pc-day-check-text--on">Excluded</span>
+                </label>
+              </oj-bind-if>
+              <oj-bind-if test="[[ !cell.row.locked && !cell.row.blackout ]]">
+                <label class="pc-day-check" title="Exclude this day — mark it as a blackout day so it is not billed">
+                  <input type="checkbox"
+                    :id="[[ 'bo-' + cell.row.rowKey ]]"
+                    on-click="[[ $page.functions.stopEvent ]]"
+                    on-change="[[ $listeners.onToggleBlackout ]]"
+                    style="width:14px; height:14px; cursor:pointer; accent-color:#b91c1c;" />
+                  <span class="pc-day-check-text">Exclude</span>
+                </label>
+              </oj-bind-if>
+              <oj-bind-if test="[[ cell.row.locked ]]">
+                <span class="oj-ux-ico-lock-closed" style="font-size:12px; opacity:0.45;"
+                      title="This week is posted — reverse it before changing days"></span>
+              </oj-bind-if>
+              <span :class="[[ cell.row.blackout ? 'pc-day-label pc-day-label--out' : 'pc-day-label' ]]">
+                <oj-bind-text value="[[ cell.row.label ]]"></oj-bind-text>
+              </span>
+              <!-- Marked but outside this LINE's rental window. The server classes it
+                   as ignored: recorded, subtracting nothing. Shown rather than hidden
+                   so a user who excluded the wrong day finds out. -->
+              <oj-bind-if test="[[ cell.row.inert ]]">
+                <span class="pc-day-note" title="Recorded, but outside this line's rental window — it reduces nothing">recorded, not billed</span>
+              </oj-bind-if>
+            </div>
+          </oj-bind-if>
+        </template>
+
+        <!-- RATE TYPE (week rows only; a misc charge has no rate, so it is labelled
+             by WHAT IT IS — "Charges" — not by its expenditure type. The expenditure
+             type used to render here as the closest equivalent, but "EQUIPMENT" under
+             a column headed RATE TYPE reads as a rate classification, which it is not.
+             The value is still carried on the row (cell.row.expenditureType) ready for
+             its own Expenditure Type column. -->
+        <template slot="rateTypeTpl" data-oj-as="cell">
+          <!-- Dashed on a slice row: this describes the RENTAL, not the
+               allocation, and is identical across slices -- the week row above
+               states it once. -->
+          <oj-bind-if test="[[ cell.row.kind === 'split' ]]">
+            <span class="oj-text-color-secondary">—</span>
+          </oj-bind-if>
+          <oj-bind-if test="[[ cell.row.kind === 'week' && cell.row.rateType ]]">
+            <span class="pc-rate-badge" :class="[[ cell.row.isException ? 'pc-rate-badge--exception' : '' ]]">
+              <oj-bind-text value="[[ cell.row.rateType ]]"></oj-bind-text>
+            </span>
+          </oj-bind-if>
+          <oj-bind-if test="[[ cell.row.kind === 'misc' ]]">
+            <span class="pc-rate-badge pc-rate-badge--exception">Charges</span>
+          </oj-bind-if>
+        </template>
+
+        <!-- APPLICABLE RATE -->
+        <template slot="rateTextTpl" data-oj-as="cell">
+          <!-- Dashed on a slice row: this describes the RENTAL, not the
+               allocation, and is identical across slices -- the week row above
+               states it once. -->
+          <oj-bind-if test="[[ cell.row.kind === 'split' ]]">
+            <span class="oj-text-color-secondary">—</span>
+          </oj-bind-if>
+          <oj-bind-if test="[[ cell.row.kind !== 'split' ]]">
+            <span class="oj-typography-body-sm"><oj-bind-text value="[[ cell.row.rateText || '' ]]"></oj-bind-text></span>
+          </oj-bind-if>
+        </template>
+
+        <!-- RATE PERIOD (PC-2 threshold display / PC-3 'Not Applicable' for consumables) -->
+        <template slot="periodTpl" data-oj-as="cell">
+          <!-- Dashed on a slice row: this describes the RENTAL, not the
+               allocation, and is identical across slices -- the week row above
+               states it once. -->
+          <oj-bind-if test="[[ cell.row.kind === 'split' ]]">
+            <span class="oj-text-color-secondary">—</span>
+          </oj-bind-if>
+          <oj-bind-if test="[[ cell.row.kind !== 'split' ]]">
+            <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.ratePeriod || '' ]]"></oj-bind-text></span>
+          </oj-bind-if>
+        </template>
+
+        <!-- TOTAL HOURS (read-only; per PC-1 — hours for that equipment/week). 0 in the
+             complete-period world, real hours in the utilization world. Blank for DIRECT. -->
+        <template slot="hoursTpl" data-oj-as="cell">
+          <!-- A slice's SHARE of the week's hours. Only ever visible when
+               TIMESHEETS_ENABLED is on, because the column itself is not built
+               otherwise (see postCostDetailColumns). With the flag off there are
+               no hours to apportion and nothing here to get wrong. -->
+          <oj-bind-if test="[[ cell.row.kind === 'split' ]]">
+            <span class="pc-hours pc-split-share">
+              <oj-bind-text value="[[ Number(cell.row.hours || 0) ]]"></oj-bind-text>
+            </span>
+          </oj-bind-if>
+          <oj-bind-if test="[[ cell.row.kind !== 'split' && (cell.row.rateType !== '' || cell.row.kind === 'group') ]]">
+            <span class="pc-hours"><oj-bind-text value="[[ Number(cell.row.hours || 0) ]]"></oj-bind-text></span>
+          </oj-bind-if>
+          <oj-bind-if test="[[ cell.row.kind === 'week' && cell.row.rateType === '' ]]">
+            <span class="oj-text-color-secondary">—</span>
+          </oj-bind-if>
+        </template>
+
+        <!-- DAYS (P2) — actual billed rental days (cost ÷ per-day-rate), not the
+             7-day week span. Shown for group + week rows; blank for DIRECT/EACH. -->
+        <template slot="daysTpl" data-oj-as="cell">
+          <!-- Dashed on a slice row: this describes the RENTAL, not the
+               allocation, and is identical across slices -- the week row above
+               states it once. -->
+          <oj-bind-if test="[[ cell.row.kind === 'split' ]]">
+            <span class="oj-text-color-secondary">—</span>
+          </oj-bind-if>
+          <!-- `prDays` joins the number branch so a PR row, which has no RATE TYPE
+               badge, can still show the day span its amount was multiplied by --
+               otherwise it reads as a per-day rate beside an extended cost with
+               nothing in between. Keyed on prDays, not on days alone, so an
+               ordinary DIRECT or consumable row keeps its dash. -->
+          <oj-bind-if test="[[ (cell.row.kind === 'group' || cell.row.rateType !== ''
+                                || Number(cell.row.prDays || 0) > 0) && Number(cell.row.days || 0) > 0 ]]">
+            <span class="pc-hours"><oj-bind-text value="[[ Number(cell.row.days || 0) ]]"></oj-bind-text></span>
+          </oj-bind-if>
+          <oj-bind-if test="[[ cell.row.kind === 'week' && !(Number(cell.row.prDays || 0) > 0)
+                               && (cell.row.rateType === '' || !(Number(cell.row.days || 0) > 0)) ]]">
+            <span class="oj-text-color-secondary">—</span>
+          </oj-bind-if>
+          <!-- A misc charge is not measured in rental days. Show a dash rather
+               than a blank so the column reads consistently down the table. -->
+          <oj-bind-if test="[[ cell.row.kind === 'misc' ]]">
+            <span class="oj-text-color-secondary">—</span>
+          </oj-bind-if>
+        </template>
+
+        <!-- EXPENDITURE TYPE (P4) — the PPM classification this equipment's cost
+             posts under. Authored PER EQUIPMENT, so only the group row is
+             editable; its weeks all inherit it and show a dash, exactly as Days
+             and Total Hours dash out where they do not apply.
+
+             This is a read-and-open cell, not an inline editor. The equipment row
+             already carries chevron + name + "(N weeks)" + Select all weeks +
+             Add charge (+ Reverse + Line Reversed when they apply); a dropdown
+             here would be the seventh control on it. The value renders as plain
+             text and the drawer does the editing — which is also the only way a
+             100+ entry project-scoped list is searchable.
+
+             A misc charge already owns its own expenditure type (it is authored
+             on the charge and travels to Fusion from EQR_LINE_MISC_TXN, not from
+             the line), so it SHOWS its value here but is edited in the charge
+             drawer. This is the column the rateTypeTpl comment above anticipated
+             when it left cell.row.expenditureType on the row. -->
+        <!-- PROJECT / TASK: where this row's money actually goes.
+             One line per destination. A split week shows one per slice with its
+             percentage; every other row shows the REQUEST's own project, muted,
+             because that is the default destination rather than a decision
+             anybody made about that row.
+             Fed from the page's own fromUrl variables plus the row's slices, so
+             this column needs no new backend field -- the queue view resolves
+             NVL(pw.project_number, eer.project_number), which is exactly the
+             same rule. -->
+        <template slot="projectTpl" data-oj-as="cell">
+          <oj-bind-for-each data="[[ $page.functions.projectCells(cell.row, {
+                                       projectNumber: $variables.ppmProjectNumber,
+                                       projectName:   $variables.projectName,
+                                       taskNumber:    $variables.ppmTaskNumber,
+                                       taskName:      $variables.taskName }) ]]">
+            <template data-oj-as="dest">
+              <!-- NAMES are shown; the NUMBERS are what actually post to Fusion
+                   (_PROJECT_ID_Display / _TASK_ID_Display), so they are kept in
+                   the tooltip rather than dropped. Falls back to the number when
+                   a name is missing, so a cell is never blank. -->
+              <div class="pc-proj" :class="[[ (dest.data.inherited ? 'pc-proj--inherited ' : '')
+                                              + (dest.data.multiple ? 'pc-proj--multiple' : '') ]]"
+                   :title="[[ dest.data.project + (dest.data.projectName ? '  ·  ' + dest.data.projectName : '')
+                              + (dest.data.task ? '\nTask ' + dest.data.task
+                                 + (dest.data.taskName ? '  ·  ' + dest.data.taskName : '') : '') ]]">
+                <div class="pc-proj-num">
+                  <span class="pc-proj-name">
+                    <oj-bind-text value="[[ dest.data.projectName || dest.data.project ]]"></oj-bind-text>
+                  </span>
+                  <oj-bind-if test="[[ dest.data.pct !== null ]]">
+                    <span class="pc-proj-pct">
+                      <oj-bind-text value="[[ String(dest.data.pct) + '%' ]]"></oj-bind-text>
+                    </span>
+                  </oj-bind-if>
+                </div>
+                <oj-bind-if test="[[ dest.data.taskName || dest.data.task ]]">
+                  <div class="pc-proj-task">
+                    <oj-bind-text value="[[ dest.data.taskName || dest.data.task ]]"></oj-bind-text>
+                  </div>
+                </oj-bind-if>
+              </div>
+            </template>
+          </oj-bind-for-each>
+        </template>
+
+        <template slot="expTypeTpl" data-oj-as="cell">
+          <!-- Dashed on a slice row: this describes the RENTAL, not the
+               allocation, and is identical across slices -- the week row above
+               states it once. -->
+          <oj-bind-if test="[[ cell.row.kind === 'split' ]]">
+            <span class="oj-text-color-secondary">—</span>
+          </oj-bind-if>
+          <oj-bind-if test="[[ cell.row.kind === 'group' && !cell.row.expenditureTypeLocked ]]">
+            <span class="pc-exptype"
+                  :class="[[ (cell.row.expenditureType && !cell.row.expenditureTypeMixed) ? '' : 'pc-exptype--unset' ]]"
+                  :id="[[ 'exptype-' + cell.row.groupKey ]]"
+                  :title="[[ cell.row.expenditureTypeMixed
+                             ? 'This equipment spans two request lines with different expenditure types. Click to set one for both.'
+                             : (cell.row.expenditureType
+                               ? 'Posts to PPM as \'' + cell.row.expenditureType + '\' — click to change'
+                               : 'No expenditure type chosen — this equipment will post as Equipment. Click to choose.') ]]"
+                  on-click="[[ $listeners.onOpenExpTypeDrawer ]]">
+              <span class="pc-exptype-text">
+                <oj-bind-text value="[[ $page.functions.expTypeLabel(cell.row) ]]"></oj-bind-text>
+              </span>
+              <span class="pc-exptype-pen oj-ux-ico-edit"></span>
+            </span>
+          </oj-bind-if>
+          <!-- PR pass-through BASE cost (V313): read-only, same treatment as a misc
+               charge, because the type that classifies this cost is not ours to set.
+               The PO's own projectDFF expenditure type — chosen when the requisition
+               was raised — is what Fusion books it under; EquipRite never posts this
+               row, so writing our line's column would change the label on screen and
+               nothing in Fusion. Only applied when the WHOLE equipment is base rows;
+               a group that also holds a postable line keeps its editable cell. -->
+          <oj-bind-if test="[[ cell.row.kind === 'group' && cell.row.expenditureTypeLocked ]]">
+            <span class="pc-exptype--ro"
+                  :title="[[ 'Set on the purchase order in Fusion — this cost posts through the PO, not through EquipRite' ]]">
+              <oj-bind-text value="[[ cell.row.expenditureType || '—' ]]"></oj-bind-text>
+            </span>
+          </oj-bind-if>
+          <!-- Weeks inherit from their equipment. Dash, not blank, so the column
+               reads consistently down the table (same choice as daysTpl). -->
+          <oj-bind-if test="[[ cell.row.kind === 'week' ]]">
+            <span class="oj-text-color-secondary">—</span>
+          </oj-bind-if>
+          <oj-bind-if test="[[ cell.row.kind === 'misc' ]]">
+            <span class="pc-exptype--ro"
+                  :title="[[ 'Set on the charge itself — edit it in the charge drawer' ]]">
+              <oj-bind-text value="[[ cell.row.expenditureType || '—' ]]"></oj-bind-text>
+            </span>
+          </oj-bind-if>
+        </template>
+
+        <!-- STATUS tag (P1): Draft / In progress / Future / Posted / Reversed
+             Day rows show their own state instead: Excluded / billing normally.
+             Misc charges reuse the SAME chips — a charge that has not been sent
+             is a Draft in exactly the sense a week is. -->
+        <template slot="whenTpl" data-oj-as="cell">
+          <!-- Dashed on a slice row: this describes the RENTAL, not the
+               allocation, and is identical across slices -- the week row above
+               states it once. -->
+          <oj-bind-if test="[[ cell.row.kind === 'split' ]]">
+            <span class="oj-text-color-secondary">—</span>
+          </oj-bind-if>
+          <oj-bind-if test="[[ cell.row.kind === 'week' ]]">
+            <span class="pc-when"
+              :class="[[ cell.row.reversed ? 'pc-when--reversed' : (cell.row.posted ? 'pc-when--posted' : (cell.row.postable ? 'pc-when--draft' : ((cell.row.inProgress || cell.row.pending) ? 'pc-when--current' : 'pc-when--future'))) ]]">
+              <oj-bind-text value="[[ cell.row.whenTag ]]"></oj-bind-text>
+            </span>
+          </oj-bind-if>
+          <oj-bind-if test="[[ cell.row.kind === 'misc' ]]">
+            <span class="pc-when" :class="[[ cell.row.status === 'POSTED' ? 'pc-when--posted' : 'pc-when--draft' ]]">
+              <oj-bind-text value="[[ cell.row.whenTag ]]"></oj-bind-text>
+            </span>
+          </oj-bind-if>
+          <oj-bind-if test="[[ cell.row.kind === 'day' && cell.row.blackout ]]">
+            <span class="pc-when pc-when--reversed" title="Blackout day — excluded from this week's cost">Excluded</span>
+          </oj-bind-if>
+          <!-- No counterpart chip on an unexcluded day. This column means LIFECYCLE
+               on week rows (Draft / Posted / Reversed), and "billed" means invoiced
+               in the customer flow — so a day row claiming "Billed" under a week
+               that still reads "Draft" would be saying something untrue. The
+               EXCLUDE / EXCLUDED caption on the row already carries the state. -->
+        </template>
+
+        <!-- COST — reversed weeks show the (superseded) original amount struck through.
+             Day rows show what that single day contributes; $0 once excluded. -->
+        <template slot="costTpl" data-oj-as="cell">
+          <!-- Nothing has been incurred on a not-yet-started line. "$0" would claim
+               it costs nothing; a dash says there is no figure yet. A misc charge
+               CAN be added to such a line, and that is real money — so the dash
+               yields as soon as there is an amount to show. -->
+          <oj-bind-if test="[[ cell.row.notStarted && !(cell.row.cost > 0) ]]">
+            <span class="pc-currency-zero">—</span>
+          </oj-bind-if>
+          <oj-bind-if test="[[ cell.row.kind !== 'day' && !(cell.row.notStarted && !(cell.row.cost > 0)) ]]">
+            <span :class="[[ cell.row.reversed ? 'pc-cost-struck' : ((cell.row.cost > 0) ? 'pc-currency' : 'pc-currency-zero') ]]">
+              $<oj-bind-text value="[[ Number(cell.row.cost || 0).toLocaleString() ]]"></oj-bind-text>
+            </span>
+          </oj-bind-if>
+          <oj-bind-if test="[[ cell.row.kind === 'day' ]]">
+            <span :class="[[ cell.row.blackout ? 'pc-cost-struck' : ((cell.row.dayCost > 0) ? 'pc-currency' : 'pc-currency-zero') ]]">
+              $<oj-bind-text value="[[ Number(cell.row.dayCost || 0).toLocaleString() ]]"></oj-bind-text>
+            </span>
+          </oj-bind-if>
+        </template>
+
+        <!-- EMPTY -->
+        <template slot="noData">
+          <div style="text-align:center; padding:40px 0; color:#94a3b8;">
+            <div style="font-size:34px; margin-bottom:8px;">🧾</div>
+            <div style="font-size:14px; font-weight:600; color:#475569;">No cost lines for this request.</div>
+          </div>
+        </template>
+      </oj-table>
+      </div><!-- /scroll container -->
+    </div><!-- /panel -->
+  </div><!-- /main slot -->
+
+  <!-- ══ MISCELLANEOUS CHARGE DRAWER ═══════════════════════════════════════════
+       End-edge drawer, matching the Material Issue / PR drawers on
+       equipment-request-detail-page and request-detail-page.
+
+       UI ONLY. Save appends to page state; it does not call a service. The
+       fields are laid out to map 1:1 onto the Fusion unprocessedProjectCosts
+       payload so wiring it later is a mapping job, not a redesign:
+
+         Quantity                    -> Quantity
+         Raw Cost                    -> RawCostInTransactionCurrency
+         Currency                    -> TransactionCurrencyCode
+         Non-Labor Resource          -> NonlaborResource
+         Expenditure Organization    -> NonlaborResourceOrganization
+                                        + _ORGANIZATION_ID_Display
+         Expenditure Type            -> _EXPENDITURE_TYPE_ID_Display
+         Expenditure Item Date       -> _EXPENDITURE_ITEM_DATE
+
+       The old app had TWO ~110-line branches on an `israwCost` flag that called
+       the identical four endpoints, differing only in which variables they read
+       (expenditureType/rawcost/currency vs expenditureTypeName1/quantity/org1).
+       Here there is ONE field set; the switch only shows or hides the two
+       cost fields. -->
+  <!-- NO inline z-index. It used to carry style="z-index: 2000;", which sat ABOVE
+       JET's popup layer: an oj-select-single inside renders its dropdown into that
+       layer, so the list opened BEHIND the drawer and read as "the dropdown does
+       nothing" -- no console error, and no network call to look for because the
+       options are a local array. Every drawer on this app that contains a working
+       select sets no z-index at all (request-detail-page's PR drawer with nine of
+       them, configurations-page's three, create-rate-schedule, rental-agreement-
+       create). If this drawer ever stacks wrongly, fix it with JET's own
+       --oj-core-z-index-* tokens, not an arbitrary value here. -->
+  <oj-drawer-popup
+    edge="end"
+    opened="{{ $variables.isMiscDrawerOpen }}"
+    on-opened-changed="[[ function(event) { if (event.detail.value === false) { $listeners.onCloseMiscDrawer(); } } ]]"
+    auto-dismiss="none">
+
+    <div class="misc-drawer">
+
+      <div class="misc-drawer-header">
+        <div>
+          <div class="oj-typography-heading-sm oj-typography-bold" style="color:#111827;">Miscellaneous Charge</div>
+          <div style="font-size:0.75rem; color:#64748b; margin-top:2px;">
+            <oj-bind-text value="[[ $variables.miscDrawerLine.equipmentName || 'Equipment' ]]"></oj-bind-text>
+          </div>
+        </div>
+        <oj-button display="icons" chroming="borderless" on-oj-action="[[ $listeners.onCloseMiscDrawer ]]">
+          <span slot="startIcon" class="oj-ux-ico-close"></span>
+          <span>Close</span>
+        </oj-button>
+      </div>
+
+      <div class="misc-drawer-body">
+
+        <div class="misc-notice">
+          Saved against this equipment as a Draft. Posting it records the charge in
+          EquipRite — it is not sent to Fusion yet.
+        </div>
+
+        <oj-bind-if test="[[ $variables.miscFormError ]]">
+          <div class="misc-error"><oj-bind-text value="[[ $variables.miscFormError ]]"></oj-bind-text></div>
+        </oj-bind-if>
+
+        <div class="misc-section-title">Classification</div>
+
+        <div class="misc-field">
+          <oj-select-single
+            label-hint="Expenditure Type"
+            label-edge="inside"
+            class="oj-form-control-full-width"
+            item-text="label"
+            required="true"
+            value="{{ $variables.miscDraft.expenditureType }}"
+            data="[[ $page.functions.getExpTypeLOV($variables.expTypeList) ]]"></oj-select-single>
+        </div>
+
+        <!-- No REST LOV exists for expenditure organizations on this pod (404,
+             "controlled availability") — the PR flow works around it the same way,
+             by deriving org from the project. One proven-accepted value. -->
+        <div class="misc-field">
+          <oj-select-single
+            label-hint="Expenditure Organization"
+            label-edge="inside"
+            class="oj-form-control-full-width"
+            item-text="label"
+            required="true"
+            value="{{ $variables.miscDraft.expenditureOrg }}"
+            data="[[ $variables.expOrgOptions ]]"></oj-select-single>
+        </div>
+
+        <div class="misc-section-title">Amount</div>
+
+        <!-- Defaults to the last elapsed week of this line, NOT today. The old
+             app hardcoded today for both this and the accounting date; on a
+             screen where you routinely post past weeks that is wrong. The
+             accounting date stays "today at post time" and is not asked for. -->
+        <div class="misc-field">
+          <oj-input-date
+            label-hint="Expenditure Item Date"
+            label-edge="inside"
+            class="oj-form-control-full-width"
+            required="true"
+            value="{{ $variables.miscDraft.expItemDate }}"></oj-input-date>
+        </div>
+
+        <div class="misc-field">
+          <oj-input-number
+            label-hint="Quantity"
+            label-edge="inside"
+            class="oj-form-control-full-width"
+            min="0"
+            required="true"
+            value="{{ $variables.miscDraft.quantity }}"></oj-input-number>
+        </div>
+
+        <!-- The amount is always entered here and sent as
+             RawCostInTransactionCurrency. There is deliberately NO rate-derived
+             mode: the old app's "Post Raw Cost" switch existed so PPM could
+             compute cost from an expenditure-type rate, which forked the whole
+             submit path for no benefit on this screen — the user already knows
+             the number they want to charge. -->
+        <div class="misc-field">
+          <oj-input-number
+            label-hint="Amount"
+            label-edge="inside"
+            class="oj-form-control-full-width"
+            min="0"
+            step="0.01"
+            required="true"
+            value="{{ $variables.miscDraft.rawCost }}"></oj-input-number>
+        </div>
+        <div class="misc-field">
+          <oj-input-text
+            label-hint="Currency"
+            label-edge="inside"
+            class="oj-form-control-full-width"
+            readonly="true"
+            value="{{ $variables.miscDraft.currency }}"></oj-input-text>
+        </div>
+
+        <div class="misc-section-title">Notes</div>
+
+        <div class="misc-field">
+          <oj-text-area
+            label-hint="Comments"
+            label-edge="inside"
+            class="oj-form-control-full-width"
+            rows="3"
+            placeholder="Optional description sent to PPM..."
+            value="{{ $variables.miscDraft.comments }}"></oj-text-area>
+        </div>
+
+      </div>
+
+      <div class="misc-drawer-footer">
+        <oj-button chroming="outlined" on-oj-action="[[ $listeners.onCloseMiscDrawer ]]">
+          <span>Cancel</span>
+        </oj-button>
+        <!-- Disabled while the POST is in flight: this writes a real row now, so a
+             double-click would book the charge twice. -->
+        <oj-button chroming="callToAction"
+                   :disabled="[[ $variables.isSavingMisc ]]"
+                   on-oj-action="[[ $listeners.onSaveMisc ]]">
+          <span slot="startIcon" class="oj-ux-ico-check"></span>
+          <span><oj-bind-text value="[[ $variables.isSavingMisc ? 'Saving…' : 'Add Charge' ]]"></oj-bind-text></span>
+        </oj-button>
+      </div>
+
+    </div>
+  </oj-drawer-popup>
+
+  <!-- ══ EXPENDITURE TYPE DRAWER ═══════════════════════════════════════════════
+       Per-equipment PPM classification. Deliberately a drawer and not a dropdown
+       in the cell: the equipment row is the busiest on the page, and the project
+       -scoped list can run past a hundred entries, which no in-cell control makes
+       searchable. Reuses the misc drawer's structure and CSS verbatim so the two
+       read as the same kind of thing — this one just asks a single question.
+
+       Both drawers build their list from $variables.expTypeList via
+       $page.functions.getExpTypeLOV(), so whatever list the page resolves for the
+       request's project is the list in both places. -->
+  <oj-drawer-popup
+    edge="end"
+    opened="{{ $variables.isExpTypeDrawerOpen }}"
+    on-opened-changed="[[ function(event) { if (event.detail.value === false) { $listeners.onCloseExpTypeDrawer(); } } ]]"
+    auto-dismiss="none">
+
+    <div class="misc-drawer">
+
+      <div class="misc-drawer-header">
+        <div>
+          <div class="oj-typography-heading-sm oj-typography-bold" style="color:#111827;">Expenditure Type</div>
+          <div style="font-size:0.75rem; color:#64748b; margin-top:2px;">
+            <oj-bind-text value="[[ $variables.expTypeDrawerLine.equipmentName || 'Equipment' ]]"></oj-bind-text>
+          </div>
+        </div>
+        <oj-button display="icons" chroming="borderless" on-oj-action="[[ $listeners.onCloseExpTypeDrawer ]]">
+          <span slot="startIcon" class="oj-ux-ico-close"></span>
+          <span>Close</span>
+        </oj-button>
+      </div>
+
+      <div class="misc-drawer-body">
+
+        <!-- States the fallback rather than nagging. An unset line is not an error:
+             it posts as Equipment, which is what every line posted as before this
+             column existed. -->
+        <div class="misc-notice">
+          Applies to every week of this equipment. Left unset, it posts to PPM as
+          <strong>Equipment</strong> — the value every rental used before.
+        </div>
+
+        <!-- Only when it is actually true. A blanket "posted weeks are frozen"
+             notice on a request with nothing posted is noise that trains people to
+             skip the notice that matters. -->
+        <oj-bind-if test="[[ $variables.expTypeDrawerLine.hasPosted ]]">
+          <div class="misc-notice" style="background:#fffbeb; border-color:#fde68a; color:#92400e;">
+            Some weeks of this equipment are already posted. They keep the expenditure
+            type they were sent to Fusion with; this change applies to weeks not yet posted.
+          </div>
+        </oj-bind-if>
+
+        <oj-bind-if test="[[ $variables.expTypeFormError ]]">
+          <div class="misc-error"><oj-bind-text value="[[ $variables.expTypeFormError ]]"></oj-bind-text></div>
+        </oj-bind-if>
+
+        <div class="misc-section-title">Classification</div>
+
+        <!-- Same control, same shared list as the charge drawer's picker. -->
+        <div class="misc-field">
+          <oj-select-single
+            label-hint="Expenditure Type"
+            label-edge="inside"
+            class="oj-form-control-full-width"
+            item-text="label"
+            required="true"
+            value="{{ $variables.expTypeChoice }}"
+            data="[[ $page.functions.getExpTypeLOV($variables.expTypeList) ]]"></oj-select-single>
+        </div>
+
+        <!-- Expenditure ORGANIZATION is not offered. There is no REST LOV for it on
+             this pod (404, "controlled availability"), and the queue view sends the
+             one proven-accepted value for every ledger row. Showing a one-option
+             picker would imply a choice that does not exist. -->
+
+      </div>
+
+      <div class="misc-drawer-footer">
+        <oj-button chroming="outlined" on-oj-action="[[ $listeners.onCloseExpTypeDrawer ]]">
+          <span>Cancel</span>
+        </oj-button>
+        <oj-button chroming="callToAction"
+                   :disabled="[[ $variables.isSavingExpType ]]"
+                   on-oj-action="[[ $listeners.onSaveExpType ]]">
+          <span slot="startIcon" class="oj-ux-ico-check"></span>
+          <span><oj-bind-text value="[[ $variables.isSavingExpType ? 'Saving…' : 'Apply' ]]"></oj-bind-text></span>
+        </oj-button>
+      </div>
+
+    </div>
+  </oj-drawer-popup>
+
+  <!-- ══ PROJECT SPLIT DRAWER ══════════════════════════════════════════════════
+       Divide ONE equipment's cost across 2+ Fusion projects by percentage.
+       Structure and CSS cloned from the two drawers above so all three read as
+       the same kind of thing.
+
+       ONE field set, reused via "Add", rather than a project+task picker per
+       slice. That is not a layout preference, it is the only shape that works:
+       the typeahead rewrites a SINGLE page variable (splitProjectSearchQ) and
+       resets a SINGLE SDP, so N project fields inside oj-bind-for-each would all
+       read the same predicate — typing in slice 2 would refill slice 1's
+       suggestions. The task side is worse, since each project needs its own
+       fetched-and-classified tree and its own deferred provider. VBCS has no
+       per-item variable scope to give each row its own, and cloning the variable
+       set N times would bake a hard arity cap into the page JSON.
+       Editing a committed slice's project or task is therefore remove + re-add;
+       only its percentage is editable in place.
+
+       NO z-index on the drawer. Both pickers below render into JET's popup
+       layer, and setting z-index here puts the drawer ABOVE that layer, so the
+       dropdowns open BEHIND it — silently, with no error and no network call to
+       debug. The comment on the misc drawer records the same trap. -->
+  <oj-drawer-popup
+    edge="end"
+    opened="{{ $variables.isSplitDrawerOpen }}"
+    on-opened-changed="[[ function(event) { if (event.detail.value === false) { $listeners.onCloseSplitDrawer(); } } ]]"
+    auto-dismiss="none">
+
+    <div class="misc-drawer">
+
+      <div class="misc-drawer-header">
+        <div>
+          <div class="oj-typography-heading-sm oj-typography-bold" style="color:#111827;">Split cost across projects</div>
+          <!-- Equipment AND week. The split is per week, so naming only the
+               equipment would leave the drawer ambiguous on a 20-week rental. -->
+          <div style="font-size:0.75rem; color:#64748b; margin-top:2px;">
+            <oj-bind-text value="[[ $variables.splitDrawerLine.equipmentName || 'Equipment' ]]"></oj-bind-text>
+          </div>
+          <div style="font-size:0.75rem; color:#0f172a; font-weight:700; margin-top:1px;">
+            <oj-bind-text value="[[ $variables.splitDrawerLine.weekLabel || '' ]]"></oj-bind-text>
+            <oj-bind-if test="[[ $variables.splitDrawerLine.weekCost ]]">
+              <span style="font-weight:600; color:#64748b;">
+                ·  $<oj-bind-text value="[[ Math.round($variables.splitDrawerLine.weekCost).toLocaleString() ]]"></oj-bind-text>
+              </span>
+            </oj-bind-if>
+          </div>
+        </div>
+        <oj-button display="icons" chroming="borderless" on-oj-action="[[ $listeners.onCloseSplitDrawer ]]">
+          <span slot="startIcon" class="oj-ux-ico-close"></span>
+          <span>Close</span>
+        </oj-button>
+      </div>
+
+      <div class="misc-drawer-body">
+
+        <!-- Says the two things people get wrong about this screen: it applies
+             forward to unposted weeks, and it does NOT change the total. -->
+        <div class="misc-notice" style="background:#eef2ff; border-color:#c7d2fe; color:#3730a3;">
+          Applies to <strong>this week only</strong>. Every other week of this equipment
+          keeps posting to the request's own project unless you split it too.
+          The percentages divide the cost that is <strong>already calculated</strong> —
+          the total does not change.
+        </div>
+
+        <!-- LOCKED. Either a PR pass-through (its project lives on the Fusion PO)
+             or every week is already posted. Read-only, with the reason. -->
+        <oj-bind-if test="[[ $variables.splitDrawerLine.locked ]]">
+          <div class="misc-notice">
+            <oj-bind-text value="[[ $variables.splitDrawerLine.lockReason ]]"></oj-bind-text>
+          </div>
+          <div class="misc-section-title">Current split</div>
+          <oj-bind-for-each data="[[ $variables.splitSlices || [] ]]">
+            <template data-oj-as="slice">
+              <div class="pc-split-row">
+                <div class="pc-split-row-main">
+                  <div class="pc-split-row-proj">
+                    <oj-bind-text value="[[ (slice.data.projectNumber || '') + (slice.data.projectName ? '  ·  ' + slice.data.projectName : '') ]]"></oj-bind-text>
+                  </div>
+                  <div class="pc-split-row-task">
+                    <oj-bind-text value="[[ slice.data.taskNumber ? ('Task ' + slice.data.taskNumber + (slice.data.taskName ? '  ·  ' + slice.data.taskName : '')) : 'No task' ]]"></oj-bind-text>
+                  </div>
+                </div>
+                <div style="font-size:0.8rem; font-weight:700; color:#0f172a;">
+                  <oj-bind-text value="[[ String(slice.data.pct) + '%' ]]"></oj-bind-text>
+                </div>
+              </div>
+            </template>
+          </oj-bind-for-each>
+        </oj-bind-if>
+
+        <!-- EDITABLE -->
+        <oj-bind-if test="[[ !$variables.splitDrawerLine.locked ]]">
+
+          <!-- No "some weeks are already posted" notice here any more. At WEEK
+               grain a posted week is locked outright and renders the read-only
+               branch above, so this branch can only ever be an unposted week --
+               a warning about posted ones would be noise that trains people to
+               skip the notice that matters. -->
+
+          <oj-bind-if test="[[ $variables.splitFormError ]]">
+            <div class="misc-error"><oj-bind-text value="[[ $variables.splitFormError ]]"></oj-bind-text></div>
+          </oj-bind-if>
+
+          <div class="misc-section-title">Projects</div>
+
+          <!-- Committed slices. Project and task are read-only text here (see the
+               one-field-set note above); the percentage is editable in place.
+               The percentage carries its index in the element id rather than
+               two-way binding to $current.data.pct: binding into an array element
+               inside oj-bind-for-each does not reliably write back in VBCS, and
+               the id-carrying-listener idiom is the one this page has proven
+               repeatedly. -->
+          <oj-bind-for-each data="[[ $variables.splitSlices || [] ]]">
+            <template data-oj-as="slice">
+              <div class="pc-split-row">
+                <div class="pc-split-row-main">
+                  <div class="pc-split-row-proj">
+                    <oj-bind-text value="[[ (slice.data.projectNumber || '') + (slice.data.projectName ? '  ·  ' + slice.data.projectName : '') ]]"></oj-bind-text>
+                  </div>
+                  <div class="pc-split-row-task">
+                    <oj-bind-text value="[[ slice.data.taskNumber ? ('Task ' + slice.data.taskNumber + (slice.data.taskName ? '  ·  ' + slice.data.taskName : '')) : 'No task' ]]"></oj-bind-text>
+                  </div>
+                </div>
+                <!-- An empty spinner with no visible label reads as a mystery
+                     control on a row that otherwise shows only text, so it gets a
+                     "0" placeholder and a % sign beside it. The seed deliberately
+                     starts at NO percentage rather than 100: one slice at 100%
+                     would make the total bar read valid while Apply stayed
+                     disabled on the two-project rule, which is a worse first
+                     impression than an honest "100% short". -->
+                <div class="pc-split-row-pct">
+                  <oj-input-number
+                    :id="[[ 'splitpct-' + slice.index ]]"
+                    aria-label="Percentage"
+                    placeholder="0"
+                    class="oj-form-control-full-width pc-nospin"
+                    min="0" max="100" step="0.01"
+                    value="[[ slice.data.pct ]]"
+                    on-value-changed="[[ $listeners.onSplitPctChanged ]]"></oj-input-number>
+                </div>
+                <span class="pc-split-pctmark">%</span>
+                <span class="pc-split-rm oj-ux-ico-trash"
+                      :id="[[ 'splitrm-' + slice.index ]]"
+                      title="Remove this project from the split"
+                      on-click="[[ $listeners.onRemoveSplitSlice ]]"></span>
+              </div>
+            </template>
+          </oj-bind-for-each>
+
+          <!-- The running total, live. The one thing that makes this form invalid
+               is invisible unless it is stated, so it is stated, and loudly when
+               it is wrong. Computed in basis points -- see splitPctTotal. -->
+          <div :class="[[ $page.functions.splitPctTotal($variables.splitSlices) === 10000 ? 'pc-split-total' : 'pc-split-total pc-split-total--bad' ]]">
+            <span>
+              <oj-bind-text value="[[ 'Total ' + (($page.functions.splitPctTotal($variables.splitSlices) / 100)) + '%' ]]"></oj-bind-text>
+              <oj-bind-if test="[[ $page.functions.splitPctTotal($variables.splitSlices) !== 10000 ]]">
+                <oj-bind-text value="[[ '  —  ' + (Math.abs(10000 - $page.functions.splitPctTotal($variables.splitSlices)) / 100) + '% ' + ($page.functions.splitPctTotal($variables.splitSlices) < 10000 ? 'short' : 'over') ]]"></oj-bind-text>
+              </oj-bind-if>
+            </span>
+            <oj-bind-if test="[[ ($variables.splitSlices || []).length > 1 ]]">
+              <span class="pc-split-evenly"
+                    id="split-evenly"
+                    title="Set every project to an equal share"
+                    on-click="[[ $listeners.onSplitEvenly ]]">Split evenly</span>
+            </oj-bind-if>
+          </div>
+
+          <div class="misc-section-title">Add a project</div>
+
+          <div class="pc-split-addbox">
+
+            <!-- Project. oj-input-search with SERVER-side typeahead: `value` binds
+                 the display TEXT only; ProjectId/Number are captured off the picked
+                 row by splitProjectSelectedChain via ojValueAction. Copied from the
+                 Assign Project drawer, including the eqr-project-lov class. -->
+            <div class="misc-field eqr-project-lov">
+              <oj-input-search aria-label="Project" placeholder="Search projects…"
+                value="{{ $variables.splitPickProjectName }}"
+                suggestions="[[ $variables.splitProjectsSDP ]]"
+                suggestion-item-text="ProjectName" class="oj-form-control-full-width"
+                on-raw-value-changed="[[ $listeners.onSplitProjectTypeahead ]]"
+                on-oj-value-action="[[ $listeners.onSplitProjectSelected ]]">
+                <template slot="suggestionItemTemplate" data-oj-as="suggestion">
+                  <div class="oj-sm-padding-2x oj-sm-background-contrast-subtle oj-sm-border-bottom">
+                    <div class="oj-sm-text-secondary oj-sm-display-block">
+                      <strong><oj-bind-text value="[[ suggestion.data.ProjectName ]]"></oj-bind-text></strong>
+                    </div>
+                    <div class="oj-sm-text-secondary oj-sm-display-block oj-sm-margin-top-2x oj-typography-caption">
+                      <small><oj-bind-text value="[[ suggestion.data.ProjectNumber ]]"></oj-bind-text></small>
+                    </div>
+                  </div>
+                </template>
+              </oj-input-search>
+            </div>
+
+            <!-- Task. Lists only the CHARGEABLE LEAVES: LoadSplitTaskTreeChain
+                 drops the summary nodes before they reach splitTasksDp, because a
+                 summary task cannot take cost in PPM — it is accepted by the LOV
+                 and then rejected at cost import, days later and three systems
+                 from the cause. Handed over PENDING so opening the dropdown
+                 mid-load shows JET's own skeleton and fills in place.
+                 `disabled` here means "no project chosen yet" ONLY — never use it
+                 for loading state, a disabled oj-select-single closes its own
+                 dropdown. -->
+            <div class="misc-field">
+              <oj-select-single aria-label="Task"
+                placeholder="Task"
+                value="{{ $variables.splitPickTaskId }}"
+                data="[[ $variables.splitTasksDp ]]"
+                item-text="TaskName" class="oj-form-control-full-width eqr-project-lov"
+                disabled="[[ !$variables.splitPickProjectId ]]"
+                on-oj-value-action="[[ $listeners.onSplitTaskSelected ]]">
+                <template slot="itemTemplate">
+                  <div style="display:flex; flex-direction:column; line-height:1.3; padding:2px 0;">
+                    <span style="font-weight:600; color:#161513;">
+                      <oj-bind-text value="[[ $current.data.TaskName ]]"></oj-bind-text>
+                    </span>
+                    <span style="font-size:11px; color:#6b7280;">
+                      <oj-bind-text value="[[ $current.data.TaskNumber ]]"></oj-bind-text>
+                    </span>
+                  </div>
+                </template>
+              </oj-select-single>
+              <oj-bind-if test="[[ $variables.splitTaskError ]]">
+                <div class="pc-split-taskerr"><oj-bind-text value="[[ $variables.splitTaskError ]]"></oj-bind-text></div>
+              </oj-bind-if>
+            </div>
+
+            <!-- Percentage. No dollar preview on purpose: the server apportions by
+                 largest remainder, so any figure computed here would be cost math
+                 in the client (which this page's write path forbids) AND would
+                 disagree with the posted amount by a cent on exactly the splits
+                 people scrutinise. -->
+            <div class="misc-field">
+              <oj-input-number
+                label-hint="Percentage"
+                label-edge="inside"
+                class="oj-form-control-full-width pc-nospin"
+                min="0" max="100" step="0.01"
+                value="{{ $variables.splitPickPct }}"></oj-input-number>
+            </div>
+
+            <oj-button chroming="outlined" class="oj-form-control-full-width"
+                       on-oj-action="[[ $listeners.onAddSplitSlice ]]">
+              <span slot="startIcon" class="oj-ux-ico-plus"></span>
+              <span>Add to split</span>
+            </oj-button>
+          </div>
+
+        </oj-bind-if>
+
+      </div>
+
+      <div class="misc-drawer-footer">
+        <oj-button chroming="outlined" on-oj-action="[[ $listeners.onCloseSplitDrawer ]]">
+          <span><oj-bind-text value="[[ $variables.splitDrawerLine.locked ? 'Close' : 'Cancel' ]]"></oj-bind-text></span>
+        </oj-button>
+        <oj-bind-if test="[[ !$variables.splitDrawerLine.locked && ($variables.splitDrawerLine.splitCount || 0) > 0 ]]">
+          <oj-button chroming="outlined"
+                     :disabled="[[ $variables.isSavingSplit ]]"
+                     on-oj-action="[[ $listeners.onClearSplit ]]">
+            <span>Remove split</span>
+          </oj-button>
+        </oj-bind-if>
+        <oj-bind-if test="[[ !$variables.splitDrawerLine.locked ]]">
+          <!-- Disabled by the SAME function the error banner uses, so "Apply is
+               enabled" and "the save is allowed" cannot drift apart. -->
+          <oj-button chroming="callToAction"
+                     :disabled="[[ $variables.isSavingSplit || !!$page.functions.splitFormError($variables.splitSlices, 2, 5) ]]"
+                     on-oj-action="[[ $listeners.onSaveSplit ]]">
+            <span slot="startIcon" class="oj-ux-ico-check"></span>
+            <span><oj-bind-text value="[[ $variables.isSavingSplit ? 'Saving…' : 'Apply' ]]"></oj-bind-text></span>
+          </oj-button>
+        </oj-bind-if>
+      </div>
+
+    </div>
+  </oj-drawer-popup>
+
+</oj-sp-general-overview-page>

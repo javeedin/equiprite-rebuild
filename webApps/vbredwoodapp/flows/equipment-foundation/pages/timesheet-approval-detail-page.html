@@ -1,0 +1,170 @@
+<style>
+  .demo-data-grid {
+    width: 100%;
+    height: calc(100vh - 366px);
+  }
+  .cr-cell-center {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+  }
+</style>
+
+<oj-sp-general-overview-page
+  id="approvalDetailPage"
+  page-title="[[ $variables.projectName || 'Timesheet Approval' ]]"
+  page-subtitle="[[ $variables.requestNumber + ' — Week: ' + ($variables.selectedWeekStart || '—') ]]"
+  display-mode="mixed"
+  display-options.in-flow-back="true"
+  on-sp-in-flow-back="[[ $listeners.onSpInFlowBack ]]">
+
+  <!-- ── BANNER: buttons + status ── -->
+  <div slot="search" style="width:100%;">
+    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+
+      <!-- Hours summary. Cost/Bill intentionally REMOVED (TS-6): the approver's
+           only concern here is whether the entered TIME is accurate; all cost
+           review happens on the post-cost page (the dedicated cost-posting role).
+           billAmount is still computed by the view/engine — just not shown here. -->
+      <span style="font-size:0.8rem; color:#64748b; margin-right:8px;">
+        Hours: <strong><oj-bind-text value="[[ $variables.totalHours ]]"></oj-bind-text></strong>
+      </span>
+
+      <!-- Status badge -->
+      <oj-bind-if test="[[ $variables.headerStatus === 'APPROVED' ]]">
+        <span style="background:#ecfdf5;color:#065f46;border:1px solid #34d399;padding:3px 12px;border-radius:12px;font-size:0.7rem;font-weight:700;">APPROVED</span>
+      </oj-bind-if>
+      <oj-bind-if test="[[ $variables.headerStatus === 'SUBMITTED' ]]">
+        <span style="background:#fffbeb;color:#92400e;border:1px solid #fbbf24;padding:3px 12px;border-radius:12px;font-size:0.7rem;font-weight:700;">SUBMITTED</span>
+      </oj-bind-if>
+      <oj-bind-if test="[[ $variables.headerStatus === 'REJECTED' ]]">
+        <span style="background:#fef2f2;color:#991b1b;border:1px solid #fca5a5;padding:3px 12px;border-radius:12px;font-size:0.7rem;font-weight:700;">REJECTED</span>
+      </oj-bind-if>
+
+      <!-- Error message -->
+      <oj-bind-if test="[[ $variables.approvalError ]]">
+        <span style="color:#b91c1c; font-size:0.75rem;">
+          <oj-bind-text value="[[ $variables.approvalError ]]"></oj-bind-text>
+        </span>
+      </oj-bind-if>
+
+      <!-- Reject button -->
+      <oj-button
+        id="rejectBtn"
+        chroming="outlined"
+        disabled="[[ $variables.isRejecting || $variables.isApproving || $variables.headerStatus === 'APPROVED' || $variables.headerStatus === 'REJECTED' || $variables.selectedRowCount === 0 ]]"
+        on-oj-action="[[ $listeners.onRejectTimesheet ]]">
+        <span slot="startIcon" class="oj-ux-ico-close"></span>
+        <oj-bind-if test="[[ $variables.isRejecting ]]">Rejecting...</oj-bind-if>
+        <oj-bind-if test="[[ !$variables.isRejecting ]]">Reject</oj-bind-if>
+      </oj-button>
+
+      <!-- Approve button -->
+      <oj-button
+        id="approveBtn"
+        chroming="callToAction"
+        disabled="[[ $variables.isApproving || $variables.isRejecting || $variables.headerStatus === 'APPROVED' || $variables.headerStatus === 'REJECTED' || $variables.selectedRowCount === 0 ]]"
+        on-oj-action="[[ $listeners.onApproveTimesheet ]]">
+        <span slot="startIcon" class="oj-ux-ico-check"></span>
+        <oj-bind-if test="[[ $variables.isApproving ]]">Approving...</oj-bind-if>
+        <oj-bind-if test="[[ !$variables.isApproving ]]">Approve</oj-bind-if>
+      </oj-button>
+
+    </div>
+  </div>
+
+  <!-- ── DATA GRID — read-only ── -->
+  <div class="oj-flex oj-sm-flex-direction-column oj-sm-width-full" slot="main"
+       style="width:100% !important; max-width:100% !important; padding:0 12px; margin-top:-48px; box-sizing:border-box; overflow-x:hidden;">
+
+    <div class="oj-panel oj-bg-neutral-0" style="border-radius:4px; box-shadow:0 4px 20px rgba(0,0,0,0.10); overflow:hidden; height:calc(100vh - 280px);">
+      <oj-data-grid
+        id="approvalDataGrid"
+        class="demo-data-grid"
+        aria-label="Timesheet Approval Grid"
+        data="[[ $variables.dataGridProvider ]]"
+        header.column.style="[[ $functions.getColumnHeaderStyle.bind($functions) ]]"
+        header.row.style="width:50px;"
+        header.column.filterable="[[ $functions.getHeaderFilterable.bind($functions) ]]"
+        header.column.resizable.width="enable"
+        header.column.resizable.height="enable"
+        header.row.resizable.width="enable"
+        header.row.resizable.height="enable"
+        header.column.hidable="enable"
+        header.row.hidable="enable"
+        scroll-policy="loadMoreOnScroll"
+        edit-mode="none"
+        selection-mode.cell="none">
+
+        <template slot="columnHeaderTemplate" data-oj-as="header">
+          <!-- Select-all lives in the checkbox column only; every other column
+               keeps its plain label. Header strings carry no newline
+               ("24-Aug-2026 Hours"), so oj-bind-text wraps exactly as the
+               default renderer did.
+               selectedRowCount is only in the :checked expression to make it an
+               observable dependency -- ticking a single row bumps it, which is
+               what re-evaluates the header. -->
+          <oj-bind-if test="[[ header.item.index === 0 ]]">
+            <div class="cr-cell-center">
+              <input type="checkbox"
+                :checked="[[ $variables.selectedRowCount >= 0 && $functions.isAllSelected() ]]"
+                on-change="[[ $functions.toggleAllSelected.bind($functions, $variables) ]]"
+                style="width:16px; height:16px; cursor:pointer; accent-color:var(--oj-core-brand-color-primary);" />
+            </div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ header.item.index !== 0 ]]">
+            <oj-bind-text value="[[ header.item.data ]]"></oj-bind-text>
+          </oj-bind-if>
+        </template>
+
+        <template slot="cellTemplate" data-oj-as="cell">
+
+          <!-- Checkbox (col 0) -->
+          <oj-bind-if test="[[ cell.item.columnIndex === 0 ]]">
+            <div class="cr-cell-center">
+              <input type="checkbox"
+                :checked="[[ $functions.isRowSelected(cell.item.rowIndex) ]]"
+                on-change="[[ $functions.toggleRowSelected.bind($functions, cell.item.rowIndex, $variables) ]]"
+                style="width:16px; height:16px; cursor:pointer; accent-color:var(--oj-core-brand-color-primary);" />
+            </div>
+          </oj-bind-if>
+
+          <!-- Readonly -->
+          <oj-bind-if test="[[ $functions.getColumnType(cell.item.columnIndex) === 'readonly' ]]">
+            <span class="oj-text-color-secondary oj-typography-body-sm"><oj-bind-text value="[[ cell.item.data.data ]]"></oj-bind-text></span>
+          </oj-bind-if>
+
+          <!-- Text -->
+          <oj-bind-if test="[[ $functions.getColumnType(cell.item.columnIndex) === 'text' ]]">
+            <oj-bind-if test="[[ cell.mode === 'navigation' ]]"><span class="oj-typography-body-sm"><oj-bind-text value="[[ cell.item.data.data ]]"></oj-bind-text></span></oj-bind-if>
+            <oj-bind-if test="[[ cell.mode === 'edit' ]]"><oj-input-text value="{{ cell.item.data.data }}" style="width: 100%;"></oj-input-text></oj-bind-if>
+          </oj-bind-if>
+
+          <!-- Number -->
+          <oj-bind-if test="[[ $functions.getColumnType(cell.item.columnIndex) === 'number' ]]">
+            <oj-bind-if test="[[ cell.mode === 'navigation' ]]"><span class="oj-typography-body-sm"><oj-bind-text value="[[ cell.item.data.data ]]"></oj-bind-text></span></oj-bind-if>
+            <oj-bind-if test="[[ cell.mode === 'edit' ]]"><oj-input-number value="{{ cell.item.data.data }}" step="0.5" min="0" max="24" style="width: 100%;"></oj-input-number></oj-bind-if>
+          </oj-bind-if>
+
+          <!-- Dropdowns -->
+          <oj-bind-if test="[[ $functions.getColumnType(cell.item.columnIndex) === 'dropdown' ]]">
+            <oj-bind-if test="[[ cell.mode === 'navigation' ]]">
+              <span class="oj-typography-body-sm">
+                <oj-bind-text value="[[ $functions.getDropdownDisplayValue(cell.item.columnIndex, cell.item.data.data) ]]"></oj-bind-text>
+              </span>
+            </oj-bind-if>
+            <oj-bind-if test="[[ cell.mode === 'edit' ]]">
+              <oj-select-single value="{{ cell.item.data.data }}"
+                data="[[ $functions.getDropdownProviderForCell(cell.item.columnIndex, $variables) ]]"
+                item-text="label" style="width: 100%;"></oj-select-single>
+            </oj-bind-if>
+          </oj-bind-if>
+
+        </template>
+      </oj-data-grid>
+    </div>
+
+  </div>
+
+</oj-sp-general-overview-page>

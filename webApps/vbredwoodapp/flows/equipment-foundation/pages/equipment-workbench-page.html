@@ -1,0 +1,313 @@
+<style>
+  /* ── Table styling — Neutral Grey Header ── */
+  #equipmentWorkbenchTable .oj-table-column-header-cell {
+    background-color: var(--oj-core-neutral-color-2, #f1f1f1);
+    font-weight: 700;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--oj-core-text-color-secondary, #565656);
+    padding: 12px 16px;
+  }
+  #equipmentWorkbenchTable .oj-table-column-header-cell *,
+  #equipmentWorkbenchTable .oj-table-column-header-text,
+  #equipmentWorkbenchTable .oj-table-column-header-abbr {
+    white-space: nowrap !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+  }
+  #equipmentWorkbenchTable .oj-table-body-row:hover {
+    background-color: var(--oj-core-neutral-color-1, #fafafa);
+    cursor: pointer;
+  }
+  #equipmentWorkbenchTable .oj-table-data-cell {
+    padding: 12px 16px;
+    font-size: 0.8125rem;
+    vertical-align: middle;
+  }
+
+  /* ── Badge Styles ── */
+  .wb-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+  /* Origin pills. The vocabulary is INTERNAL | EXTERNAL (formerly
+     PROJECT | CUSTOMER) — the --project / --customer class names are kept as
+     aliases so the legacy spelling still renders in its original colour if an
+     unmigrated row ever appears. */
+  .wb-badge--internal,
+  .wb-badge--project  { background: #e8e0f7; color: #5c35a0; }
+  .wb-badge--external,
+  .wb-badge--customer { background: #fdecd8; color: #c45c00; }
+  /* Fallback for any source value the backend returns that isn't one of the
+     ones we colour explicitly. The cell must still render a readable pill —
+     previously an unrecognised value produced a silently EMPTY cell, which
+     reads as "no source" rather than "a source we haven't styled". */
+  .wb-badge--neutral  { background: #e5e7eb; color: #374151; }
+  
+  /* Status pill styling lives in resources/css/app.css (.status-pill--*),
+     applied via $application.functions.statusPillClass(). Do not add
+     page-local status badge classes here. */
+
+  /* ── Project / Customer Primary/Secondary ── */
+  .wb-cell-primary {
+    font-weight: 600;
+    color: var(--oj-core-text-color-primary, #161616);
+  }
+  .wb-cell-secondary {
+    font-size: 0.75rem;
+    color: var(--oj-core-text-color-secondary, #565656);
+    margin-top: 2px;
+  }
+
+  /* ── Allocation Progress Bar ── */
+  .wb-progress-container {
+    width: 100%;
+    margin-top: 4px;
+  }
+  .wb-progress-track {
+    background: #e5e7eb;
+    height: 6px;
+    border-radius: 3px;
+    width: 100%;
+    overflow: hidden;
+  }
+  .wb-progress-bar {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s ease;
+  }
+  /* Allocation state colours reuse the canonical status palette from
+     resources/css/app.css so the workbench reads the same as every other
+     page: complete = Deployed green, partial = In Process amber,
+     none = Rejected red. */
+  .wb-progress-bar--complete { background: var(--status-deployed-text); }
+  .wb-progress-bar--partial  { background: var(--status-in-process-text); }
+  .wb-progress-bar--none     { background: var(--status-rejected-text); }
+
+  .wb-alloc-label {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-bottom: 4px;
+  }
+  .wb-alloc-pct {
+    font-weight: 700;
+    font-size: 0.8125rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .wb-alloc-pct--complete { color: var(--status-deployed-text); }
+  .wb-alloc-pct--partial  { color: var(--status-in-process-text); }
+  .wb-alloc-pct--none     { color: var(--status-rejected-text); }
+
+  /* Lines count — centred, tabular so columns line up */
+  .wb-lines-count {
+    display: inline-block;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+  }
+</style>
+
+<oj-sp-smart-search-page page-title="Equipment Manager Workbench"
+  page-subtitle="[[ $variables.pageSubtitle ]]" display-mode="mixed">
+
+  <!-- SEARCH SLOT -->
+  <oj-sp-smart-search
+    slot="search"
+    filter-criterion="{{ $variables.filterCriterion }}"
+    on-filter-criterion-changed="[[$listeners.filterCriterionChanged]]"
+    search-context="[[ $variables.searchContext ]]"
+    search-config="[[ $variables.searchConfiguration.provider ]]"
+    suggestion-filters='["StatusFilter", "SourceFilter"]'
+    placeholder="Request #, project, task, requestor...">
+  </oj-sp-smart-search>
+
+  <!-- DEFAULT SLOT — collection container -->
+  <oj-sp-collection-container>
+    <!-- WORKBENCH TAB SELECTOR -->
+    <div class="oj-flex">
+      <oj-tab-bar selection="{{ $variables.workbenchActiveTab }}" on-selection-changed="[[$listeners.onTabChanged]]" edge="top" class="oj-flex-item">
+        <ul>
+          <li id="outbound"><a href="#"><span class="oj-tabbar-item-label">OutBound</span></a></li>
+          <li id="deployed"><a href="#"><span class="oj-tabbar-item-label">Deployed</span></a></li>
+          <li id="inbound"><a href="#"><span class="oj-tabbar-item-label">InBound</span></a></li>
+        </ul>
+      </oj-tab-bar>
+    </div>
+
+    <!-- WORKBENCH TABLE -->
+    <oj-table
+      id="equipmentWorkbenchTable"
+      data="[[ $variables.WorkbenchADP ]]"
+      columns='[
+        { "headerText": "Source",             "field": "source",            "width": "120px",    "template": "sourceTemplate",     "sortable": "enabled" },
+        { "headerText": "Request #",          "field": "request_number",    "width": "175px",    "template": "reqNumberTemplate",  "sortable": "enabled" },
+        { "headerText": "Project",            "field": "project",           "minWidth": "180px", "template": "projectTemplate",    "sortable": "enabled" },
+        { "headerText": "Task",               "field": "task",              "width": "165px",    "template": "taskTemplate",       "sortable": "enabled" },
+        { "headerText": "Internal / External Customer", "field": "customer", "minWidth": "200px", "template": "customerTemplate",   "sortable": "enabled" },
+        { "headerText": "Requestor",          "field": "requestor",         "width": "165px",                                      "sortable": "enabled" },
+        { "headerText": "Location",           "field": "location",          "width": "175px" },
+        { "headerText": "Start Date",         "field": "start_date",        "width": "130px",                                      "sortable": "enabled" },
+        { "headerText": "End Date",           "field": "end_date",          "width": "130px",                                      "sortable": "enabled" },
+        { "headerText": "Status",             "field": "status",            "width": "155px",    "template": "statusTemplate",     "sortable": "enabled" },
+        { "headerText": "Lines",              "field": "lines",             "width": "90px",     "template": "linesTemplate",      "sortable": "enabled", "style": "text-align:center;", "headerStyle": "text-align:center;" },
+        { "headerText": "Allocation",         "field": "allocation_pct",    "width": "190px",    "template": "allocationTemplate", "sortable": "enabled" },
+        { "headerText": "Est. Cost",          "field": "total_est_cost",    "width": "140px",    "template": "costTemplate",       "sortable": "enabled", "style": "text-align:right;",  "headerStyle": "text-align:right;" }
+      ]'
+      selection-mode='{"row":"single"}'
+      on-first-selected-row-changed="[[$listeners.onRowAction]]"
+      scroll-policy="loadMoreOnScroll"
+      class="analytics-table oj-table-stretch oj-sm-width-full"
+      style="width:100%; min-height:600px;"
+      aria-label="Equipment Workbench Table">
+
+      <!-- SOURCE COLUMN TEMPLATE
+           Renders the request origin — INTERNAL | EXTERNAL — as a pill.
+
+           This used to be two oj-bind-ifs hardcoded to 'PROJECT' and 'CUSTOMER'.
+           When the backend switched vocabulary to INTERNAL/EXTERNAL, neither
+           branch matched and the cell rendered EMPTY — the data was arriving
+           fine and being dropped at the last step, with no error to notice.
+
+           Now the value is always displayed. The label goes through
+           $application.functions.sourceLabel() so a legacy 'CUSTOMER'/'PROJECT'
+           row (should one appear) displays in the CURRENT wording rather than
+           showing two different words for the same thing in one table. Any
+           unrecognised value still gets a readable neutral pill, so an unstyled
+           origin is obvious rather than silent. Only a genuinely empty source
+           renders nothing — the one case where a blank cell is honest. -->
+      <template slot="sourceTemplate" data-oj-as="cell">
+        <oj-bind-if test="[[ cell.data ]]">
+          <span :class="[[ 'wb-badge ' + (
+                 $application.functions.sourceLabel(cell.data) === 'INTERNAL' ? 'wb-badge--internal' :
+                 $application.functions.sourceLabel(cell.data) === 'EXTERNAL' ? 'wb-badge--external' :
+                 'wb-badge--neutral') ]]">
+            <oj-bind-text value="[[ $application.functions.sourceLabel(cell.data) || cell.data ]]"></oj-bind-text>
+          </span>
+        </oj-bind-if>
+      </template>
+
+      <!-- REQUEST NUMBER TEMPLATE -->
+      <template slot="reqNumberTemplate" data-oj-as="cell">
+        <span style="color:var(--oj-core-brand-color-primary); font-weight:700;">
+          <oj-bind-text value="[[ cell.data ]]"></oj-bind-text>
+        </span>
+      </template>
+
+      <!-- PROJECT / TASK / CUSTOMER COLUMN TEMPLATES
+           These three used to be ONE merged "Project / Customer" cell that
+           showed whichever of the two the row had. They are now separate
+           columns, so each renders an em-dash when it doesn't apply to the
+           row's origin rather than borrowing the other party's value:
+             INTERNAL → Project + Task filled, Customer usually blank
+             EXTERNAL → Customer filled, Project + Task blank (unless the
+                        request has been assigned an internal project)
+           WorkbenchInitChain decides which side is populated, keyed on ORIGIN
+           rather than on which fields are non-null — the payload mirrors
+           customerName into projectName on external rows, so a value-based
+           test would print the customer's name in the Project column. -->
+      <template slot="projectTemplate" data-oj-as="cell">
+        <div>
+          <div class="wb-cell-primary">
+            <oj-bind-text value="[[ cell.data || '—' ]]"></oj-bind-text>
+          </div>
+          <oj-bind-if test="[[ cell.row.project_sub ]]">
+            <div class="wb-cell-secondary">
+              <oj-bind-text value="[[ cell.row.project_sub ]]"></oj-bind-text>
+            </div>
+          </oj-bind-if>
+        </div>
+      </template>
+
+      <template slot="taskTemplate" data-oj-as="cell">
+        <oj-bind-text value="[[ cell.data || '—' ]]"></oj-bind-text>
+      </template>
+
+      <template slot="customerTemplate" data-oj-as="cell">
+        <oj-bind-text value="[[ cell.data || '—' ]]"></oj-bind-text>
+      </template>
+
+      <!-- STATUS COLUMN TEMPLATE — canonical pill. Colour and label both come
+           from the shared status module, so this cell matches every other page.
+           PROOF SITE for the shared-lookup wiring: this is currently the ONLY
+           formatLineStatus call passing commonLookups, so its labels come from
+           COMMONRITE.RS_LOOKUP_VALUES while every other page still renders the
+           hardcoded map in resources/js/lineStatusLabels.js. Once the wiring is
+           verified, the remaining HTML call sites can be migrated the same way
+           by adding the same second argument. -->
+      <template slot="statusTemplate" data-oj-as="cell">
+        <oj-bind-if test="[[ !!cell.data ]]">
+          <span :class="[[ $application.functions.statusPillClass(cell.data) ]]">
+            <oj-bind-text value="[[ $application.functions.formatLineStatus(cell.data, $application.variables.commonLookups) ]]"></oj-bind-text>
+          </span>
+        </oj-bind-if>
+      </template>
+
+      <!-- LINES COLUMN TEMPLATE — tabular figures so counts align -->
+      <template slot="linesTemplate" data-oj-as="cell">
+        <span class="wb-lines-count">
+          <oj-bind-text value="[[ cell.data == null ? 0 : cell.data ]]"></oj-bind-text>
+        </span>
+      </template>
+
+      <!-- ALLOCATION COLUMN TEMPLATE
+           Percentage + progress bar only. Reads the precomputed
+           `allocation_pct` mapped in WorkbenchInitChain (derived from the
+           analytic totalLines / allocatedLines counts, or from a
+           server-supplied allocationPct when present). The raw
+           "<allocated>/<total> lines" fraction that used to sit beside the
+           percentage was removed; the per-row line count is still available
+           in the dedicated Lines column. -->
+      <template slot="allocationTemplate" data-oj-as="cell">
+        <div class="wb-progress-container">
+          <div class="wb-alloc-label">
+            <span :class="[[ 'wb-alloc-pct ' + $page.functions.allocationToneClass(cell.row.allocation_pct) ]]">
+              <oj-bind-text value="[[ cell.row.allocation_pct + '%' ]]"></oj-bind-text>
+            </span>
+          </div>
+          <div class="wb-progress-track"
+               role="progressbar"
+               :aria-valuenow="[[ cell.row.allocation_pct ]]"
+               aria-valuemin="0"
+               aria-valuemax="100"
+               :aria-label="[[ 'Allocation ' + cell.row.allocation_pct + ' percent' ]]">
+            <div :class="[[ 'wb-progress-bar wb-progress-bar--' + $page.functions.allocationTone(cell.row.allocation_pct) ]]"
+                 :style.width="[[ cell.row.allocation_pct + '%' ]]">
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <!-- TOTAL EST. COST COLUMN TEMPLATE -->
+      <template slot="costTemplate" data-oj-as="cell">
+        <span style="font-weight:700; color:var(--oj-core-text-color-primary);">
+          <oj-bind-text value="[[ $page.functions.formatCurrency(cell.data) ]]"></oj-bind-text>
+        </span>
+      </template>
+
+      <!-- EMPTY STATE — distinguishes "still fetching" from "genuinely none",
+           so an in-flight load no longer reads as an empty workbench. -->
+      <template slot="noData">
+        <div class="table-empty-state">
+          <oj-bind-if test="[[ $variables.isLoading ]]">
+            <div class="table-empty-icon">⏳</div>
+            <div class="table-empty-title">Loading requests…</div>
+            <div class="table-empty-desc">Fetching the latest workbench data.</div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ !$variables.isLoading ]]">
+            <div class="table-empty-icon">📋</div>
+            <div class="table-empty-title">No requests found</div>
+            <div class="table-empty-desc">Try adjusting your search or filters to see more results.</div>
+          </oj-bind-if>
+        </div>
+      </template>
+    </oj-table>
+  </oj-sp-collection-container>
+</oj-sp-smart-search-page>
+

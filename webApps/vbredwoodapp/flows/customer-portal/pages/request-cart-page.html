@@ -1,0 +1,612 @@
+<style>
+  .cart-data-grid {
+    width: 100%;
+    height: calc(100vh - 240px);
+    min-height: 320px;
+  }
+  /* Line-origin badge (Agreement vs Catalog). */
+  .cart-origin-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+    padding: 4px 8px;
+    border-radius: 10px;
+    white-space: nowrap;
+  }
+  .cart-origin-agreement {
+    background: #e8f2fb;
+    color: #1a5e8f;
+    border: 1px solid #b9d9f0;
+  }
+  .cart-origin-catalog {
+    background: #f1f3f5;
+    color: #5b636a;
+    border: 1px solid #dfe3e6;
+  }
+  .cart-header-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    color: rgba(255,255,255,0.6);
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+  .cart-header-value {
+    font-size: 13px;
+    font-weight: 600;
+    color: #ffffff;
+  }
+
+  /* ── Contract-creation overlay (no-quote customer path) ──────────────────
+     Shown while SubmitRequestChain creates the Fusion sell contract on submit.
+     Same treatment as the customer-quote-page accept overlay, since it's the
+     same external call — only the trigger point differs. Without it the page
+     looks frozen for the duration of the Fusion round-trip. */
+  .cart-submit-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.78);
+    backdrop-filter: blur(1px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+  .cart-submit-box {
+    background: #fff;
+    border: 1px solid var(--oj-core-divider-color, #e0e0e0);
+    border-radius: 10px;
+    padding: 28px 40px;
+    box-shadow: 0 6px 28px rgba(0, 0, 0, 0.14);
+    text-align: center;
+    max-width: 340px;
+  }
+  .cart-submit-spinner {
+    width: 42px;
+    height: 42px;
+    margin: 0 auto 16px auto;
+    border: 4px solid var(--oj-core-neutral-color-3, #e0e0e0);
+    border-top-color: var(--oj-core-brand-color-primary, #005cb1);
+    border-radius: 50%;
+    animation: cartSubmitSpin 0.8s linear infinite;
+  }
+  @keyframes cartSubmitSpin { to { transform: rotate(360deg); } }
+  .cart-submit-text {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 4px;
+  }
+  .cart-submit-subtext {
+    font-size: 0.8rem;
+    color: var(--oj-core-text-color-secondary, #565656);
+    line-height: 1.5;
+  }
+</style>
+
+<oj-sp-general-overview-page
+  id="cartPage"
+  page-title="Cart"
+  page-subtitle="[[ ($flow.variables.CartItemsArray ? $flow.variables.CartItemsArray.length : 0) + ' items' ]]"
+  primary-action='[[ {"label": "Submit Request", "disabled": $page.variables.isSubmitting, "display": ($page.variables.isCustomerRequest && $page.variables.isTermsDialogOpen) ? "off" : "on"} ]]'
+  secondary-actions='[[ [
+    {"id": "saveAsDraft",    "label": "Save as Draft",    "display": ($page.variables.isCustomerRequest && $page.variables.isTermsDialogOpen) ? "off" : "on", "chroming": "outlined"},
+    {"id": "saveAsTemplate", "label": "Save as Template", "display": ($page.variables.isCustomerRequest && $page.variables.isTermsDialogOpen) ? "off" : "on", "chroming": "outlined"}
+  ] ]]'
+  on-sp-primary-action="[[ $listeners.submitRequest ]]"
+  on-sp-secondary-action="[[ $listeners.secondaryActionDispatch ]]"
+  display-options.in-flow-back="true"
+  on-sp-in-flow-back="[[ $listeners.onSpInFlowBack ]]"
+  display-mode="mixed">
+
+  <!-- Header details in the dark banner -->
+  <div slot="search" style="width:100%; padding:8px 0 4px 0;">
+    <div class="oj-flex oj-sm-align-items-flex-start" style="gap:40px; flex-wrap:wrap;">
+
+      <!-- Mode-conditional first slot: project-mode shows Project + Task,
+           customer-mode shows just Customer. Driven by
+           $page.variables.isCustomerRequest (InitCartChain), which follows the
+           Request Type PICKER — not the origin page — so an EXTERNAL request
+           raised from the unified project-create-request page shows the
+           customer header here too. -->
+      <oj-bind-if test="[[ $page.variables.isCustomerRequest ]]">
+        <div>
+          <div class="cart-header-label">CUSTOMER</div>
+          <div class="cart-header-value">
+            <oj-bind-text value="[[ $flow.variables.ActiveRequestDetail.customerName || '—' ]]"></oj-bind-text>
+          </div>
+        </div>
+      </oj-bind-if>
+
+      <oj-bind-if test="[[ !$page.variables.isCustomerRequest ]]">
+        <div>
+          <div class="cart-header-label">PROJECT</div>
+          <div class="cart-header-value">
+            <oj-bind-text value="[[ $flow.variables.ActiveRequestDetail.projectName || '—' ]]"></oj-bind-text>
+          </div>
+        </div>
+
+        <div>
+          <div class="cart-header-label">TASK</div>
+          <div class="cart-header-value">
+            <oj-bind-text value="[[ $flow.variables.ActiveRequestDetail.taskName || '—' ]]"></oj-bind-text>
+          </div>
+        </div>
+      </oj-bind-if>
+
+      <div>
+        <div class="cart-header-label">REQUIRED FROM</div>
+        <div class="cart-header-value">
+          <oj-bind-text value="[[ $flow.variables.ActiveRequestDetail.requestedStartDate || '—' ]]"></oj-bind-text>
+        </div>
+      </div>
+
+      <div>
+        <div class="cart-header-label">REQUIRED TO</div>
+        <div class="cart-header-value">
+          <oj-bind-text value="[[ $flow.variables.ActiveRequestDetail.requestedEndDate || '—' ]]"></oj-bind-text>
+        </div>
+      </div>
+
+      <div>
+        <div class="cart-header-label">DEPLOYMENT SITE</div>
+        <div class="cart-header-value">
+          <oj-bind-text value="[[ $flow.variables.ActiveRequestDetail.location || '—' ]]"></oj-bind-text>
+        </div>
+      </div>
+
+      <div>
+        <div class="cart-header-label">REQUESTOR</div>
+        <div class="cart-header-value">
+          <oj-bind-text value="[[ $flow.variables.ActiveRequestDetail.requestorName || '—' ]]"></oj-bind-text>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div slot="main" class="oj-flex oj-sm-flex-direction-column" style="width:100%; padding:0 12px; overflow-x:auto;">
+
+    <!-- Submit in progress — shown as soon as isSubmitting is set (synchronously
+         on click) so the overlay blocks any second click immediately, regardless
+         of whether the primary-action disabled binding has rendered yet.
+         Message switches to the contract-specific copy once that slower phase
+         begins (customer no-quote path only). -->
+    <oj-bind-if test="[[ $variables.isSubmitting ]]">
+      <div class="cart-submit-overlay">
+        <div class="cart-submit-box">
+          <div class="cart-submit-spinner"></div>
+          <oj-bind-if test="[[ !$variables.isCreatingContract ]]">
+            <div class="cart-submit-text">Submitting your request…</div>
+            <div class="cart-submit-subtext">Please wait while your request is being processed.</div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.isCreatingContract ]]">
+            <div class="cart-submit-text">Creating your contract…</div>
+            <div class="cart-submit-subtext">Generating your rental contract. This may take a few moments — please don't close this page.</div>
+          </oj-bind-if>
+        </div>
+      </div>
+    </oj-bind-if>
+
+    <oj-bind-if test="[[ $flow.variables.CartItemsArray && $flow.variables.CartItemsArray.length > 0 ]]">
+      <div class="oj-flex oj-flex-item"
+           style="background:white; border-radius:4px; box-shadow:0 4px 20px rgba(0,0,0,0.10); overflow:hidden; width:100%;">
+
+        <oj-data-grid
+          id="cartDataGrid"
+          class="cart-data-grid oj-flex-item"
+          aria-label="Cart Items"
+          data="[[ $page.variables.dataGridProvider ]]"
+          scroll-policy="loadMoreOnScroll"
+          edit-mode="none"
+          header.column.resizable='{"width":"enable"}'
+          header.row.resizable='{"width":"enable"}'
+          header.column.style="[[ $functions.columnHeaderStyle ]]"
+          header.row.style="width:40px;">
+
+          <template slot="cellTemplate" data-oj-as="cell">
+
+            <!-- ACTIONS (id column used as key) -->
+            <oj-bind-if test="[[ $functions.colKey(cell.item.columnIndex) === 'id' ]]">
+              <div style="display:flex;justify-content:center;align-items:center;height:100%;width:56px;min-width:56px;">
+                <oj-button display="icons" chroming="borderless" title="Row Actions"
+                  on-oj-action="[[ $listeners.onCartRowAction ]]"
+                  :data-item-id="[[ cell.item.data.data ]]">
+                  <span slot="startIcon" class="oj-ux-ico-menu-overflow"></span>
+                  <span>Actions</span>
+                </oj-button>
+              </div>
+            </oj-bind-if>
+
+            <!-- EQUIPMENT NAME — left justified -->
+            <oj-bind-if test="[[ $functions.colKey(cell.item.columnIndex) === 'name' ]]">
+              <div style="text-align:left;font-weight:600;font-size:13px;padding:0 8px;width:100%;">
+                <oj-bind-text value="[[ cell.item.data.data ]]"></oj-bind-text>
+              </div>
+            </oj-bind-if>
+
+            <!-- CLASS — center -->
+            <oj-bind-if test="[[ $functions.colKey(cell.item.columnIndex) === 'class' ]]">
+              <div class="oj-typography-body-sm oj-text-color-secondary" style="text-align:center;width:100%;padding:0 4px;">
+                <oj-bind-text value="[[ cell.item.data.data ]]"></oj-bind-text>
+              </div>
+            </oj-bind-if>
+
+            <!-- QTY — center -->
+            <oj-bind-if test="[[ $functions.colKey(cell.item.columnIndex) === 'quantity' ]]">
+              <div style="text-align:center;font-weight:600;font-size:14px;width:100%;padding:0 4px;">
+                <oj-bind-text value="[[ cell.item.data.data ]]"></oj-bind-text>
+              </div>
+            </oj-bind-if>
+
+            <!-- HOURS — center. PROJECT-ONLY: the column is omitted entirely for
+                 customer/EXTERNAL requests (see initGridData), so this branch
+                 never matches there. Renders an em-dash for a rentable line
+                 with no hours yet, and for consumables (set in initGridData). -->
+            <oj-bind-if test="[[ $functions.colKey(cell.item.columnIndex) === 'hours' ]]">
+              <div class="oj-typography-body-sm" style="text-align:center;width:100%;padding:0 4px;">
+                <oj-bind-text value="[[ cell.item.data.data !== '' && cell.item.data.data != null ? cell.item.data.data : '—' ]]"></oj-bind-text>
+              </div>
+            </oj-bind-if>
+
+            <!-- START DATE — center -->
+            <oj-bind-if test="[[ $functions.colKey(cell.item.columnIndex) === 'startDate' ]]">
+              <div class="oj-typography-body-sm" style="text-align:center;width:100%;padding:0 4px;">
+                <oj-bind-text value="[[ cell.item.data.data || '' ]]"></oj-bind-text>
+              </div>
+            </oj-bind-if>
+
+            <!-- END DATE — center -->
+            <oj-bind-if test="[[ $functions.colKey(cell.item.columnIndex) === 'endDate' ]]">
+              <div class="oj-typography-body-sm" style="text-align:center;width:100%;padding:0 4px;">
+                <oj-bind-text value="[[ cell.item.data.data || '' ]]"></oj-bind-text>
+              </div>
+            </oj-bind-if>
+
+            <!-- RATE (with UOM, e.g. "$675 / DAY") -->
+            <oj-bind-if test="[[ $functions.colKey(cell.item.columnIndex) === 'rateDisplay' ]]">
+              <div class="oj-typography-body-sm" style="text-align:center;width:100%;padding:0 4px;">
+                <oj-bind-text value="[[ cell.item.data.data ]]"></oj-bind-text>
+              </div>
+            </oj-bind-if>
+
+            <!-- SUBTOTAL — center. Value is pre-formatted in
+                 initGridData ("$300" when a date range exists, "—" when it
+                 can't be computed yet), so render it directly. -->
+            <oj-bind-if test="[[ $functions.colKey(cell.item.columnIndex) === 'subtotal' ]]">
+              <div class="oj-typography-body-sm oj-typography-bold" style="text-align:center;color:#2e7d32;width:100%;padding:0 4px;">
+                <oj-bind-text value="[[ cell.item.data.data ]]"></oj-bind-text>
+              </div>
+            </oj-bind-if>
+
+            <!-- ORIGIN — badge showing where the line came from
+                 ('Agreement' = negotiated rate from the agreement, else
+                 'Catalog'). Survives the agreement filter being removed. -->
+            <oj-bind-if test="[[ $functions.colKey(cell.item.columnIndex) === 'source' ]]">
+              <div style="display:flex;justify-content:center;align-items:center;width:100%;padding:0 4px;">
+                <span :class="[[ 'cart-origin-badge ' + (cell.item.data.data === 'Agreement' ? 'cart-origin-agreement' : 'cart-origin-catalog') ]]">
+                  <oj-bind-text value="[[ cell.item.data.data ]]"></oj-bind-text>
+                </span>
+              </div>
+            </oj-bind-if>
+
+          </template>
+        </oj-data-grid>
+      </div>
+    </oj-bind-if>
+
+    <!-- Empty state -->
+    <oj-bind-if test="[[ !$flow.variables.CartItemsArray || $flow.variables.CartItemsArray.length === 0 ]]">
+      <div class="oj-flex oj-sm-flex-direction-column oj-sm-align-items-center oj-sm-justify-content-center"
+           style="padding:64px 0;">
+        <span class="oj-ux-ico-cart oj-sm-margin-4x-bottom" style="font-size:48px;color:#ddd;"></span>
+        <div class="oj-typography-body-md oj-typography-semi-bold">Cart is empty.</div>
+        <div class="oj-typography-body-sm oj-sm-margin-4x-bottom" style="color:#888;">Browse the catalog to add equipment.</div>
+        <oj-button chroming="callToAction" on-oj-action="[[ $listeners.browseCatalog ]]">
+          <span slot="startIcon" class="oj-ux-ico-box"></span>
+          Browse Catalog
+        </oj-button>
+      </div>
+    </oj-bind-if>
+
+  </div>
+
+</oj-sp-general-overview-page>
+
+<!-- Shared row-action menu -->
+<oj-menu id="cartRowMenu"
+  open-options.initial-focus="firstItem"
+  on-oj-menu-action="[[ $listeners.onRowMenuAction ]]">
+  <oj-option value="edit">
+    <span slot="startIcon" class="oj-ux-ico-edit"></span>
+    Edit Line
+  </oj-option>
+  <oj-option value="notes">
+    <span slot="startIcon" class="oj-ux-ico-file-text"></span>
+    Add Notes
+  </oj-option>
+  <oj-option value="delete">
+    <span slot="startIcon" class="oj-ux-ico-trash"></span>
+    Delete
+  </oj-option>
+</oj-menu>
+
+<!-- Edit Line Dialog (Qty + per-line Dates) -->
+<oj-dialog id="editQtyDialog" dialog-title="Edit Line"
+  initial-visibility="hide" cancel-behavior="icon" modality="modal"
+  style="width:420px;">
+  <div slot="body" style="padding:20px; display:flex; flex-direction:column; gap:12px;">
+    <oj-c-input-number
+      value="{{ $page.variables.editingQty }}"
+      label-hint="Quantity" label-edge="inside"
+      min="1" max="999" step="1"
+      stepper-variant="quantitative"
+      style="width:100%;">
+    </oj-c-input-number>
+    <!-- Per-line dates. Blocking rules (both required, end not before start,
+         no NEW start in the past) are checked in CartSaveQtyChain and shown
+         through editingDateErrors; lineDateWarnings lists what the change
+         implies without blocking it. Saving re-derives the request's Required
+         From / To as the span of all lines (CartSaveQtyChain). -->
+    <oj-input-date id="editLineStartDate"
+      value="{{ $page.variables.editingStartDate }}"
+      label-hint="Start Date" label-edge="inside" required="true"
+      messages-custom="[[ $page.variables.editingDateErrors.start ? [{ severity: 'error', summary: $page.variables.editingDateErrors.start, detail: '' }] : [] ]]"
+      style="width:100%;">
+    </oj-input-date>
+    <oj-input-date id="editLineEndDate"
+      value="{{ $page.variables.editingEndDate }}"
+      label-hint="End Date" label-edge="inside" required="true"
+      messages-custom="[[ $page.variables.editingDateErrors.end ? [{ severity: 'error', summary: $page.variables.editingDateErrors.end, detail: '' }] : [] ]]"
+      style="width:100%;">
+    </oj-input-date>
+    <oj-bind-for-each data="[[ $functions.lineDateWarnings($page.variables.editingStartDate, $page.variables.editingEndDate, $page.variables.editingOrigStartDate, $page.variables.editingOrigEndDate, $flow.variables.ActiveRequestDetail.requestedStartDate, $flow.variables.ActiveRequestDetail.requestedEndDate, $page.variables.editingIsConsumable) ]]">
+      <template>
+        <div style="display:flex;gap:8px;align-items:flex-start;font-size:12px;line-height:1.4;color:#7a4d00;background:#fff6e5;border:1px solid #f3d9a4;border-radius:6px;padding:8px 10px;">
+          <span class="oj-ux-ico-warning" style="font-size:14px;flex:none;"></span>
+          <span><oj-bind-text value="[[ $current.data ]]"></oj-bind-text></span>
+        </div>
+      </template>
+    </oj-bind-for-each>
+    <!-- Matches the HOURS grid column exactly — same showHoursColumn flag, so
+         the editor can never appear for a column that isn't there. Hidden for
+         customer/EXTERNAL requests (no hours concept, no column to show it in)
+         AND when TIMESHEETS_ENABLED is off (hours are ignored by billing, so
+         collecting them would be misleading). CartRowMenuChain still seeds
+         editingHours and CartSaveQtyChain still persists it; with the input
+         hidden the seeded value simply round-trips unchanged, so a project
+         draft resumed here keeps its hours. -->
+    <oj-bind-if test="[[ $page.variables.showHoursColumn ]]">
+      <oj-input-number
+        value="{{ $page.variables.editingHours }}"
+        label-hint="Hours" label-edge="inside"
+        min="0" step="1"
+        style="width:100%;">
+      </oj-input-number>
+    </oj-bind-if>
+  </div>
+  <div slot="footer" style="display:flex;gap:8px;justify-content:flex-end;padding:8px 16px 16px;">
+    <oj-button chroming="outlined" on-oj-action="[[ $listeners.onEditQtyCancel ]]">Cancel</oj-button>
+    <oj-button chroming="callToAction" on-oj-action="[[ $listeners.onEditQtySave ]]">Save</oj-button>
+  </div>
+</oj-dialog>
+
+<!-- Line Notes Dialog. Saved to the cart item as notes and posted as
+     LINE_NOTES (VARCHAR2 2000) by requestLineBody; draftResume reads it back. -->
+<oj-dialog id="lineNotesDialog" dialog-title="Line Notes"
+  initial-visibility="hide" cancel-behavior="icon" modality="modal"
+  style="width:480px;">
+  <div slot="body" style="padding:20px; display:flex; flex-direction:column; gap:12px;">
+    <div class="oj-typography-body-sm oj-typography-semi-bold">
+      <oj-bind-text value="[[ $page.variables.editingItemName ]]"></oj-bind-text>
+    </div>
+    <oj-text-area
+      value="{{ $page.variables.editingNotes }}"
+      label-hint="Notes" label-edge="inside"
+      length.max="2000" length.counter="remaining"
+      rows="6" resize-behavior="vertical"
+      placeholder="Instructions for this line, e.g. attachments, delivery or handling needs"
+      style="width:100%;">
+    </oj-text-area>
+  </div>
+  <div slot="footer" style="display:flex;gap:8px;justify-content:flex-end;padding:8px 16px 16px;">
+    <oj-button chroming="outlined" on-oj-action="[[ $listeners.onNotesCancel ]]">Cancel</oj-button>
+    <oj-button chroming="callToAction" on-oj-action="[[ $listeners.onNotesSave ]]">Save</oj-button>
+  </div>
+</oj-dialog>
+
+<!-- Complete Request Details. Opened by SubmitRequestChain instead of
+     submitting when a soft reservation still lacks fields a firm request
+     needs; Complete Details returns to the create form with the cart kept. -->
+<oj-dialog id="completeDetailsDialog" dialog-title="Complete Request Details"
+  initial-visibility="hide" cancel-behavior="icon" modality="modal"
+  style="width:460px;">
+  <div slot="body" style="padding:20px; display:flex; flex-direction:column; gap:12px;">
+    <div class="oj-typography-body-md">
+      This request was started as a soft reservation. Before it can be submitted, add:
+    </div>
+    <ul style="margin:0;padding-left:20px;line-height:1.8;">
+      <oj-bind-for-each data="[[ $page.variables.missingForSubmit ]]">
+        <template>
+          <li class="oj-typography-body-md oj-typography-semi-bold"><oj-bind-text value="[[ $current.data ]]"></oj-bind-text></li>
+        </template>
+      </oj-bind-for-each>
+    </ul>
+    <div class="oj-typography-body-sm" style="color:#6b7280;">
+      Your dates and the equipment in your cart are kept. Once submitted, it goes in as a firm request.
+    </div>
+  </div>
+  <div slot="footer" style="display:flex;gap:8px;justify-content:flex-end;padding:8px 16px 16px;">
+    <oj-button chroming="outlined" on-oj-action="[[ $listeners.onCompleteDetailsCancel ]]">Cancel</oj-button>
+    <oj-button chroming="callToAction" on-oj-action="[[ $listeners.onCompleteDetails ]]">Complete Details</oj-button>
+  </div>
+</oj-dialog>
+
+<!-- Rental Terms & Conditions Dialog (customer mode only) -->
+<oj-dialog id="termsDialog" dialog-title="Rental Terms and Conditions"
+  initial-visibility="hide" cancel-behavior="none" modality="modal"
+  style="width:880px; max-width:96vw;">
+
+  <div slot="body" style="display:flex; flex-direction:column; overflow:hidden; max-height:82vh;">
+
+    <!-- Scrollable T&C text -->
+    <div style="overflow-y:auto; padding:20px 24px; flex:1; font-size:13px; color:#374151; line-height:1.7;">
+
+      <p style="margin:0 0 14px; color:#6b7280; font-style:italic;">Please read the following Terms and Conditions carefully before submitting your equipment rental request. By proceeding, you acknowledge that you have read, understood, and agree to be bound by all provisions set forth herein.</p>
+
+      <p style="margin:0 0 14px;">This Equipment Rental Agreement ("Agreement") is entered into between <strong>Rite Software Solutions</strong> ("Company" or "Rental Provider") and the customer identified in the rental request ("Customer" or "you"). These Terms and Conditions govern all equipment rentals facilitated through the EquipRite platform and constitute a legally binding contract upon acceptance.</p>
+
+      <p style="font-weight:700; font-size:13px; color:#111827; margin:18px 0 6px; text-transform:uppercase; letter-spacing:0.3px;">1. Acceptance of Delivery and Transfer of Risk</p>
+      <p style="margin:0 0 14px;">The Customer shall be deemed to have accepted delivery of the Equipment, and all associated risk of loss, damage, or destruction shall transfer to the Customer, at the moment the Equipment is collected, dispatched, or otherwise made available for the Customer's use. The Customer is solely responsible for conducting a thorough inspection of all Equipment upon receipt. Any defects, damage, or operational deficiencies must be reported to the Rental Provider in writing within twenty-four (24) hours of delivery. Failure to provide timely notification shall constitute the Customer's unconditional acceptance that the Equipment is in satisfactory working condition.</p>
+
+      <p style="font-weight:700; font-size:13px; color:#111827; margin:18px 0 6px; text-transform:uppercase; letter-spacing:0.3px;">2. Transportation, Collection and Return of Equipment</p>
+      <p style="margin:0 0 6px;">Unless otherwise agreed in writing, the Customer shall be responsible for the collection and return of all Equipment during standard business hours (9:00 AM – 5:00 PM, Monday through Friday). Where transportation arrangements are made at the Customer's request, all associated costs — including but not limited to freight charges, applicable taxes, customs duties, brokerage fees, and transit insurance — shall be borne exclusively by the Customer.</p>
+      <p style="margin:0 0 14px;">The Rental Provider accepts no liability for delays, damage, or loss arising during transit once Equipment has been transferred to a designated carrier. Collect shipments will not be accepted under any circumstances.</p>
+
+      <p style="font-weight:700; font-size:13px; color:#111827; margin:18px 0 6px; text-transform:uppercase; letter-spacing:0.3px;">3. Customer Obligations and Responsibilities</p>
+      <p style="margin:0 0 6px;">From the time of delivery until the formal return and acceptance of the Equipment by the Rental Provider, the Customer assumes full and exclusive responsibility for the Equipment, including all risks of loss, theft, accidental damage, and destruction, whether on the Customer's premises, in transit, or at any other location.</p>
+      <p style="margin:0 0 6px;">Equipment shall not be considered returned until each of the following conditions has been fully satisfied:</p>
+      <ul style="margin:6px 0 14px; padding-left:22px; color:#374151;">
+        <li style="margin-bottom:4px;">The Equipment has been physically returned to the Rental Provider's designated premises during business hours;</li>
+        <li style="margin-bottom:4px;">A comprehensive inventory inspection has been completed and documented by authorised personnel; and</li>
+        <li>The agreed rental term, as specified in the Rental Contract, has fully elapsed.</li>
+      </ul>
+
+      <p style="font-weight:700; font-size:13px; color:#111827; margin:18px 0 6px; text-transform:uppercase; letter-spacing:0.3px;">4. Authorised Use and Restrictions</p>
+      <p style="margin:0 0 6px;"><strong>Qualified Personnel Only.</strong> All Equipment must be operated exclusively by suitably qualified and authorised employees or agents of the Customer, strictly in accordance with the intended purpose specified in the Rental Contract and in full compliance with all applicable laws, regulations, and safety standards.</p>
+      <p style="margin:0 0 6px;"><strong>Prohibition on Sub-Leasing.</strong> The Customer is expressly prohibited from sub-leasing, lending, transferring, or otherwise making available any Equipment to any third party without the prior written consent of the Rental Provider.</p>
+      <p style="margin:0 0 6px;"><strong>Preservation of Identification Markings.</strong> The Customer shall not remove, obscure, alter, or deface any serial numbers, asset tags, nameplates, barcodes, or proprietary logos affixed to the Equipment.</p>
+      <p style="margin:0 0 14px;"><strong>Disclaimer of Warranties.</strong> To the fullest extent permitted by applicable law, all Equipment is provided on an "as-is" basis. The Rental Provider makes no representations or warranties, express or implied, including without limitation any implied warranties of merchantability or fitness for a particular purpose, except as explicitly agreed in writing.</p>
+
+      <p style="font-weight:700; font-size:13px; color:#111827; margin:18px 0 6px; text-transform:uppercase; letter-spacing:0.3px;">5. Loss, Damage and Equipment Liability</p>
+      <p style="margin:0 0 6px;"><strong>Reporting Obligations.</strong> The Customer must notify the Rental Provider immediately upon discovering any malfunction, damage, loss, or theft of Equipment. In cases of theft or unexplained disappearance, the Customer must also file a formal report with the relevant law enforcement authorities and provide a copy thereof to the Rental Provider without delay.</p>
+      <p style="margin:0 0 6px;"><strong>Assessment of Damage.</strong> Upon return of damaged Equipment, the Rental Provider shall conduct a professional assessment to determine the nature and extent of damage and the appropriate remedy — whether repair or full replacement. The Rental Provider's determination in this regard shall be final and binding upon the Customer.</p>
+      <p style="margin:0 0 14px;"><strong>Financial Liability.</strong> Where Equipment is determined to require replacement due to loss, theft, or irreparable damage attributable to the Customer, the Customer shall be liable for the full replacement cost at current market retail prices, without deduction for depreciation, less any applicable discounts.</p>
+
+      <p style="font-weight:700; font-size:13px; color:#111827; margin:18px 0 6px; text-transform:uppercase; letter-spacing:0.3px;">6. Rental Charges, Overdue Returns and Late Fees</p>
+      <p style="margin:0 0 6px;">The Customer is obligated to return all Equipment no later than the date and time specified in the Rental Contract. A grace period of up to 12:00 Noon on the following business day is permitted; thereafter, a full additional day's rental charge shall apply for each day or part thereof that the Equipment remains unreturned.</p>
+      <p style="margin:0 0 14px;">Where Equipment is returned in a damaged or non-operational condition, rental charges shall continue to accrue at the standard daily rate applicable to the affected items until such time as the necessary repairs or replacements are completed and the invoice for damages has been settled in full, irrespective of any package or promotional discounts previously applied.</p>
+
+      <p style="font-weight:700; font-size:13px; color:#111827; margin:18px 0 6px; text-transform:uppercase; letter-spacing:0.3px;">7. Payment Terms and Credit Obligations</p>
+      <p style="margin:0 0 6px;">All rental and damage invoices are due and payable upon receipt and must be settled no later than ten (10) calendar days from the invoice date. Amounts outstanding beyond thirty (30) days shall be deemed past due and may attract late payment charges in accordance with applicable legislation.</p>
+      <p style="margin:0 0 14px;">The Customer acknowledges that payment terms are extended based on credit information provided at the time of rental. Any material change in the Customer's financial standing or creditworthiness may result in an immediate demand for payment at the Rental Provider's sole discretion. In the event that the account is referred to a collection agency or legal counsel, the Customer shall be liable for all associated recovery costs, including reasonable legal fees and court costs.</p>
+
+      <p style="font-weight:700; font-size:13px; color:#111827; margin:18px 0 6px; text-transform:uppercase; letter-spacing:0.3px;">8. Cancellation Policy</p>
+      <p style="margin:0 0 14px;">Cancellation of a confirmed rental request may result in cancellation charges commensurate with the Rental Provider's preparatory costs, equipment reservation commitments, and any sub-rental arrangements made on the Customer's behalf. The Customer is encouraged to communicate any changes to their requirements at the earliest opportunity to minimise or avoid such charges.</p>
+
+      <p style="font-weight:700; font-size:13px; color:#111827; margin:18px 0 6px; text-transform:uppercase; letter-spacing:0.3px;">9. Insurance Obligations</p>
+      <p style="margin:0 0 6px;">The Customer shall, at its own cost and expense, procure and maintain comprehensive insurance coverage for all rented Equipment throughout the full duration of the rental period, commencing from the time of delivery and continuing until formal acceptance of return by the Rental Provider. Coverage must be for the full replacement value of the Equipment.</p>
+      <p style="margin:0 0 6px;"><strong>Property Insurance.</strong> The Customer's property insurance policy shall be on an "All Risks" basis, name the Rental Provider as Loss Payee, operate on a worldwide basis, and provide minimum coverage of USD $1,000,000, sufficient to encompass all Equipment at risk regardless of source.</p>
+      <p style="margin:0 0 14px;"><strong>Liability Insurance.</strong> The Customer shall name the Rental Provider as an Additional Insured on its Commercial General Liability policy, with minimum limits of USD $1,000,000 per occurrence and in the annual aggregate. Automobile Liability coverage of no less than USD $1,000,000 combined single limit is also required. All policies shall provide for not less than ten (10) days' written notice to the Rental Provider prior to modification or cancellation.</p>
+
+      <p style="font-weight:700; font-size:13px; color:#111827; margin:18px 0 6px; text-transform:uppercase; letter-spacing:0.3px;">10. Title, Ownership and Right of Inspection</p>
+      <p style="margin:0 0 6px;">Title and ownership of all Equipment shall at all times remain exclusively vested in the Rental Provider. The Customer shall not create, permit, or suffer any lien, encumbrance, charge, or security interest over the Equipment and shall not pledge or assign the Equipment or any interest therein to any third party.</p>
+      <p style="margin:0 0 14px;">The Rental Provider reserves the right, without prior notice, to inspect the Equipment at any time during the rental period. In the event of any breach of this Agreement by the Customer, the Rental Provider shall be entitled to repossess the Equipment forthwith without prejudice to any other rights or remedies available at law.</p>
+
+      <p style="font-weight:700; font-size:13px; color:#111827; margin:18px 0 6px; text-transform:uppercase; letter-spacing:0.3px;">11. Indemnification</p>
+      <p style="margin:0 0 14px;">The Customer agrees to fully indemnify, defend, and hold harmless the Rental Provider and its officers, directors, employees, and agents from and against any and all claims, liabilities, losses, damages, costs, and expenses (including reasonable legal fees) arising out of or in connection with the Customer's possession, use, operation, or return of the Equipment during the rental period, including any claims arising from the negligence of the Customer or its personnel.</p>
+
+      <p style="font-weight:700; font-size:13px; color:#111827; margin:18px 0 6px; text-transform:uppercase; letter-spacing:0.3px;">12. Governing Law and Entire Agreement</p>
+      <p style="margin:0 0 6px;">This Agreement shall be construed and governed in accordance with the laws of the State of Florida, without regard to its conflict of law provisions. Any disputes arising hereunder shall be subject to the exclusive jurisdiction of the courts of Orange County, Florida.</p>
+      <p style="margin:0 0 6px;">This Agreement, together with the associated Rental Contract, constitutes the entire agreement between the parties with respect to the subject matter hereof and supersedes all prior negotiations, representations, warranties, and understandings. No amendment to this Agreement shall be effective unless made in writing and duly executed by authorised representatives of both parties.</p>
+      <p style="margin:0; color:#6b7280; font-style:italic;">Where an individual executes this Agreement on behalf of a corporation or other legal entity, such individual warrants that they possess full authority to bind such entity to the terms herein.</p>
+    </div>
+
+    <!-- Insurance Details -->
+    <div style="border-top:1px solid #e5e7eb; padding:16px 24px 4px;">
+      <div style="font-weight:600; font-size:14px; color:#111827; margin-bottom:12px; display:flex; align-items:center; gap:6px;">
+        <span class="oj-ux-ico-shield" style="font-size:16px; color:#0d9488;"></span>
+        Insurance Details
+      </div>
+      <oj-form-layout columns="4" label-edge="inside" style="width:100%;">
+        <oj-input-text label-hint="Insurance Policy" value="{{ $page.variables.insurancePolicy }}" class="oj-form-control-full-width"></oj-input-text>
+        <oj-input-text label-hint="Issue Agency" value="{{ $page.variables.issueAgency }}" class="oj-form-control-full-width"></oj-input-text>
+        <oj-input-date label-hint="Start Date" value="{{ $page.variables.insuranceStartDate }}" class="oj-form-control-full-width"></oj-input-date>
+        <oj-input-date label-hint="End Date" value="{{ $page.variables.insuranceEndDate }}" class="oj-form-control-full-width"></oj-input-date>
+      </oj-form-layout>
+    </div>
+
+    <!-- Accept checkbox -->
+    <div style="padding:12px 24px 16px; display:flex; align-items:center; gap:10px; border-top:1px solid #e5e7eb; margin-top:12px;">
+      <input type="checkbox" id="termsAcceptChk"
+        :checked="[[ $page.variables.termsAccepted ]]"
+        on-change="[[ function(e) { $page.variables.termsAccepted = e.target.checked; } ]]"
+        style="width:16px; height:16px; cursor:pointer; accent-color:var(--oj-core-brand-color-primary); flex-shrink:0;" />
+      <label for="termsAcceptChk" style="font-size:13px; color:#374151; cursor:pointer; line-height:1.4;">
+        I have read and agree to the above Rental Terms and Conditions
+      </label>
+    </div>
+
+  </div>
+
+  <div slot="footer" style="display:flex; gap:8px; justify-content:flex-end; padding:12px 24px 16px;">
+    <oj-button chroming="outlined" on-oj-action="[[ $listeners.onTermsCancel ]]" class="oj-button-sm">Cancel</oj-button>
+    <oj-button chroming="callToAction"
+      :disabled="[[ !$page.variables.termsAccepted || $page.variables.isSubmitting ]]"
+      on-oj-action="[[ $listeners.submitRequest ]]" class="oj-button-sm">Submit Request</oj-button>
+  </div>
+
+</oj-dialog>
+
+<!-- Save as Template Dialog -->
+<oj-dialog id="saveTemplateDialog" dialog-title="Save as Template"
+  initial-visibility="hide" cancel-behavior="icon" modality="modal"
+  style="width:50vw; min-width:480px; max-width:720px;">
+  <div slot="body" style="padding:20px 24px; max-height:60vh; overflow-y:auto;">
+
+    <oj-input-text
+      label-hint="Template Name"
+      label-edge="inside"
+      value="{{ $page.variables.templateName }}"
+      messages-custom="[[
+        $page.variables.templateNameError
+          ? [{ severity: 'error', summary: $page.variables.templateNameError, detail: '' }]
+          : []
+      ]]"
+      style="width:100%;">
+    </oj-input-text>
+
+    <div style="height:12px;"></div>
+
+    <oj-text-area
+      label-hint="Description (optional)"
+      label-edge="inside"
+      value="{{ $page.variables.templateDescription }}"
+      rows="2"
+      style="width:100%;">
+    </oj-text-area>
+
+    <div style="margin:18px 0 8px 0; font-size:12px; font-weight:600; letter-spacing:0.5px; color:#374151; text-transform:uppercase;">
+      Equipment in this Template
+      <span style="font-weight:400; color:#6b7280; text-transform:none; letter-spacing:0;">
+        — <oj-bind-text value="[[ ($flow.variables.CartItemsArray ? $flow.variables.CartItemsArray.length : 0) + ' line' + (($flow.variables.CartItemsArray && $flow.variables.CartItemsArray.length === 1) ? '' : 's') ]]"></oj-bind-text>
+      </span>
+    </div>
+
+    <div style="border:1px solid #e5e7eb; border-radius:4px; max-height:260px; overflow-y:auto;">
+      <oj-bind-for-each data="[[ $flow.variables.CartItemsArray || [] ]]">
+        <template>
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; border-bottom:1px solid #f1f5f9;">
+            <div style="flex:1; min-width:0;">
+              <div style="font-size:13px; font-weight:600; color:#111827;">
+                <oj-bind-text value="[[ $current.data.name ]]"></oj-bind-text>
+              </div>
+              <div style="font-size:11px; color:#6b7280;">
+                <oj-bind-text value="[[ $current.data.class ]]"></oj-bind-text>
+              </div>
+            </div>
+            <div style="font-size:12px; color:#374151; padding-left:12px;">
+              Qty <oj-bind-text value="[[ $current.data.quantity ]]"></oj-bind-text>
+            </div>
+          </div>
+        </template>
+      </oj-bind-for-each>
+    </div>
+
+  </div>
+  <div slot="footer" style="display:flex; gap:8px; justify-content:flex-end; padding:8px 24px 16px;">
+    <oj-button chroming="outlined" on-oj-action="[[ $listeners.onSaveTemplateCancel ]]">Cancel</oj-button>
+    <oj-button chroming="callToAction" on-oj-action="[[ $listeners.onSaveTemplateConfirm ]]">Save Template</oj-button>
+  </div>
+</oj-dialog>

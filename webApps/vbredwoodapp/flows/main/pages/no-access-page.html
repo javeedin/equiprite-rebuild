@@ -1,0 +1,20 @@
+<!-- No Access. Reached through getRoleHomeTarget when the signed-in user can
+     open no page at all. Static on purpose: there is nothing here to load, and
+     every button it could offer would lead to a page the user cannot open. -->
+<div class="oj-flex oj-sm-justify-content-center oj-sm-padding-8x">
+    <div class="oj-panel oj-bg-neutral-0 oj-sm-padding-8x"
+         style="max-width: 560px; width: 100%; text-align: center; border-radius: 8px; box-shadow: var(--oj-core-box-shadow-sm);">
+        <span class="oj-ux-ico-lock oj-text-color-secondary" style="font-size: 3rem;"></span>
+        <h1 class="oj-typography-heading-sm oj-text-color-primary oj-sm-margin-4x-top">
+            You don't have access to EquipRite
+        </h1>
+        <p class="oj-typography-body-md oj-text-color-secondary oj-sm-margin-4x-top">
+            You are signed in, but none of your roles gives you access to any
+            EquipRite page. Ask your EquipRite administrator to give you a role.
+        </p>
+        <p class="oj-typography-body-sm oj-text-color-secondary oj-sm-margin-6x-top">
+            Roles found:
+            <oj-bind-text value="[[ $functions.rolesFoundText($application.variables.fusionRoles) ]]"></oj-bind-text>
+        </p>
+    </div>
+</div>

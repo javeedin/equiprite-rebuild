@@ -1,0 +1,337 @@
+{
+
+  "metadata": {},
+  "variables": {
+    "quotingAllowed": {
+      "type": "boolean",
+      "description": "Whether the ENABLE_QUOTES global setting permits quoting for project-sourced requests (PROJECTS or BOTH). Gates the View Quote icon in the banner. This page is project-sourced by definition, so the origin is fixed. Expression variable — re-evaluates when app-level settings load; fails CLOSED (icon hidden) until then.",
+      "defaultValue": "[[ $application.functions.isQuotingAllowed($application.variables.globalSettings, $application.variables.flagsLoaded, 'PROJECT') ]]"
+    },
+    "requestId": {
+      "type": "string",
+      "input": "fromUrl",
+      "persisted": "none"
+    },
+    "isDraftBusy": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "True while a draft action (Edit / Submit / Delete Draft, draftActionChain) is loading, re-pricing or deleting; disables the draft buttons."
+    },
+    "requestNumericId": {
+      "type": "number",
+      "input": "fromUrl",
+      "persisted": "none"
+    },
+    "returnTo": {
+      "type": "string",
+      "input": "fromUrl",
+      "persisted": "none",
+      "defaultValue": "equipment-requests"
+    },
+    "sourcePage": {
+      "type": "string",
+      "input": "fromUrl",
+      "persisted": "none",
+      "defaultValue": "Equipment Requests"
+    },
+    "formData": {
+      "type": "object",
+      "defaultValue": {}
+    },
+    "dataGridProvider": {
+      "type": "any"
+    },
+    "selection": {
+      "type": "any",
+      "defaultValue": []
+    },
+    "selectionState": {
+      "type": "object",
+      "defaultValue": {
+        "count": 0,
+        "sharedStatus": "",
+        "isMixed": false,
+        "wasMixed": false,
+        "allSelected": false,
+        "allDeployed": false,
+        "allReturnable": false,
+        "allShipToSite": false
+      }
+    },
+    "selectionTick": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "isDirty": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "undoDisabled": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "addRemoveDisabled": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "updateDisabled": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "filterTextValue": {
+      "type": "string"
+    },
+    "filterHeaderInfo": {
+      "type": "string"
+    },
+    "selectedColumnIndices": {
+      "type": "any"
+    },
+    "selectedRowIndices": {
+      "type": "any"
+    },
+    "columnHideOptionsProvider": {
+      "type": "any"
+    },
+    "rowHideOptionsProvider": {
+      "type": "any"
+    },
+    "isTransactionDrawerOpen": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "activeTransactionTab": {
+      "type": "string",
+      "description": "Drawer tab. 16b = Material Issue (first tab, the default), 16a = Expense Details.",
+      "defaultValue": "16b"
+    },
+    "transactionData": {
+      "type": "object",
+      "defaultValue": {
+        "expenditure_type": "Equipment Usage",
+        "organization": "Texas Operations",
+        "raw_cost_amount": 0,
+        "post_immediate_raw_cost": false,
+        "narrative_comments": null,
+        "oracle_item_number": null,
+        "quantity_issued": 0,
+        "unit_of_measure": "EA",
+        "request_line_id": null,
+        "subinventory_code": null
+      }
+    },
+    "requestLinesArray": {
+      "type": "any[]",
+      "description": "Backing array for requestLinesADP. Chains write THIS, never the provider - matches the pattern used by all other ArrayDataProvider2 variables in this app.",
+      "defaultValue": []
+    },
+    "requestLinesADP": {
+      "type": "vb/ArrayDataProvider2",
+      "description": "Request lines for the Material Issue line picker. Consumption is recorded per LINE (that is what sets consumed quantity), so the issue cannot be request-scoped. data is bound to requestLinesArray, which initChain populates.",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.requestLinesArray }}"
+      }
+    },
+    "materialIssueLine": {
+      "type": "object",
+      "description": "Context for the line the material issue is being recorded against. Prefilled from the grid selection on drawer open, refreshed when the line picker changes. unitNumber/uomCode/invOrgName are auto-derived from views/line-detail-units (the line's own physical units) - the request line itself carries no inventory item reference.",
+      "defaultValue": {
+        "lineId": null,
+        "equipmentName": null,
+        "lineStatus": null,
+        "requestedQty": null,
+        "unitType": null,
+        "onhandQty": null,
+        "unitsLoading": false,
+        "unitCount": 0
+      }
+    },
+    "materialIssueUnitsArray": {
+      "type": "any[]",
+      "description": "Backing array for materialIssueUnitsADP. Chains write THIS, never the provider.",
+      "defaultValue": []
+    },
+    "materialIssueUnitsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "description": "Physical units of the selected line, from views/line-detail-units. NOTE: unitNumber is a UNION of serial / lot / inventory-item numbers depending on unitType - it is only an Oracle item number when unitType = INVENTORY.",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.materialIssueUnitsArray }}"
+      }
+    },
+    "expenditureTypeADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": [
+          { "value": "Equipment Usage", "label": "Equipment Usage" },
+          { "value": "Labor", "label": "Labor" },
+          { "value": "Material", "label": "Material" }
+        ]
+      }
+    },
+    "unitOfMeasureADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": [
+          { "value": "EA", "label": "Each" },
+          { "value": "HR", "label": "Hour" },
+          { "value": "LBS", "label": "Pounds" }
+        ]
+      }
+    }
+  },
+  "eventListeners": {
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "initChain",
+          "parameters": {
+            "requestId": "{{ $page.variables.requestId }}",
+            "requestNumericId": "{{ $page.variables.requestNumericId }}"
+          }
+        }
+      ]
+    },
+    "onNavigateToProjectTransactions": {
+      "chains": [
+        {
+          "chain": "openTransactionDrawerChain",
+          "parameters": {
+            "rowIndex": "[[ $event.detail.rowIndex ]]"
+          }
+        }
+      ]
+    },
+    "onRejectRequest": {
+      "chains": [
+        {
+          "chain": "rejectRequestChain"
+        }
+      ]
+    },
+    "onEditDraft": {
+      "chains": [{ "chain": "draftActionChain", "parameters": { "action": "edit" } }]
+    },
+    "onSubmitDraft": {
+      "chains": [{ "chain": "draftActionChain", "parameters": { "action": "submit" } }]
+    },
+    "onAskDeleteDraft": {
+      "chains": [{ "chain": "draftActionChain", "parameters": { "action": "askDelete" } }]
+    },
+    "onCancelDeleteDraft": {
+      "chains": [{ "chain": "draftActionChain", "parameters": { "action": "cancelDelete" } }]
+    },
+    "onDeleteDraft": {
+      "chains": [{ "chain": "draftActionChain", "parameters": { "action": "delete" } }]
+    },
+    "onConfirmRequest": {
+      "chains": [
+        {
+          "chain": "confirmRequestChain"
+        }
+      ]
+    },
+    "onOpenProjectQuote": {
+      "chains": [
+        {
+          "chain": "openProjectQuoteChain"
+        }
+      ]
+    },
+    "onCloseTransactionDrawer": {
+      "chains": [
+        {
+          "chain": "closeTransactionDrawerChain"
+        }
+      ]
+    },
+    "onSubmitTransaction": {
+      "chains": [
+        {
+          "chain": "submitTransactionChain"
+        }
+      ]
+    },
+    "onMaterialIssueLineChanged": {
+      "chains": [
+        {
+          "chain": "loadMaterialIssueLineChain"
+        }
+      ]
+    },
+    "onSpInFlowBack": {
+      "chains": [
+        {
+          "chain": "goToParentChain"
+        }
+      ]
+    },
+    "onInitiateReturn": {
+      "chains": [
+        {
+          "chain": "initiateReturnChain"
+        }
+      ]
+    },
+    "onAcceptDelivery": {
+      "chains": [
+        {
+          "chain": "acceptDeliveryChain"
+        }
+      ]
+    },
+    "onRejectDelivery": {
+      "chains": [
+        {
+          "chain": "rejectDeliveryChain"
+        }
+      ]
+    },
+    "onSelectionChanged": {
+      "chains": [
+        {
+          "chain": "onSelectionChangedChain"
+        }
+      ]
+    }
+  },
+  "functions": {
+    "formatDate":      { "params": { "value": "any" }, "return": "string" },
+    "getSelectedLines": { "return": "any" },
+    "getAllLines":      { "return": "any" },
+    "getSelectionStateRaw": { "return": "any" },
+    "isLineDeployed":  { "params": { "rowIndex": "number" }, "return": "boolean" },
+    "headerIsConfirmed": { "params": { "status": "string" }, "return": "boolean" }
+  },
+  "imports": {
+    "components": {
+      "oj-sp-general-overview-page": { "path": "oj-sp/general-overview-page/loader" },
+      "oj-form-layout": { "path": "ojs/ojformlayout" },
+      "oj-input-text": { "path": "ojs/ojinputtext" },
+      "oj-input-number": { "path": "ojs/ojinputnumber" },
+      "oj-input-date": { "path": "ojs/ojdatetimepicker" },
+      "oj-select-single": { "path": "ojs/ojselectsingle" },
+      "oj-select-many": { "path": "ojs/ojselectmany" },
+      "oj-text-area": { "path": "ojs/ojinputtext" },
+      "oj-switch": { "path": "ojs/ojswitch" },
+      "oj-data-grid": { "path": "ojs/ojdatagrid" },
+      "oj-menu": { "path": "ojs/ojmenu" },
+      "oj-option": { "path": "ojs/ojoption" },
+      "oj-button": { "path": "ojs/ojbutton" },
+      "oj-dialog": { "path": "ojs/ojdialog" },
+      "oj-menu-button": { "path": "ojs/ojbutton" },
+      "oj-popup": { "path": "ojs/ojpopup" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" },
+      "oj-drawer-popup": { "path": "ojs/ojdrawerpopup" },
+      "oj-tab-bar": { "path": "ojs/ojnavigationlist" }
+    }
+  }
+}

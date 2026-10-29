@@ -1,0 +1,209 @@
+{
+    "data": [
+        {
+            "requestNumber": "REQ-2025-P381-001",
+            "projectName": "Portsmouth Naval Shipyard P-381 Dry Dock - Superblock 1",
+            "taskName": "Earthwork & Excavation",
+            "requestorName": "Ron Bernard",
+            "status": "DRAFT",
+            "startDate": "2025-02-11T00:00:00Z",
+            "endDate": "2025-07-02T00:00:00Z",
+            "lines": 2
+        },
+        {
+            "requestNumber": "REQ-2025-P381-002",
+            "projectName": "Portsmouth Naval Shipyard P-381 Dry Dock - Superblock 2",
+            "taskName": "Foundation Work",
+            "requestorName": "Linda Shaw",
+            "status": "IN_PROCESS",
+            "startDate": "2025-02-21T00:00:00Z",
+            "endDate": "2025-07-27T00:00:00Z",
+            "lines": 4
+        },
+        {
+            "requestNumber": "REQ-2025-P381-003",
+            "projectName": "Portsmouth Naval Shipyard P-381 Dry Dock - Superblock 3",
+            "taskName": "Steel Erection",
+            "requestorName": "Sarah Colby",
+            "status": "APPROVED",
+            "startDate": "2025-03-03T00:00:00Z",
+            "endDate": "2025-08-13T00:00:00Z",
+            "lines": 4
+        },
+        {
+            "requestNumber": "REQ-2025-P381-004",
+            "projectName": "Bath Iron Works DDG-126 Destroyer - Hull Outfitting",
+            "taskName": "Hull Outfitting Phase 1",
+            "requestorName": "Diane Cote",
+            "status": "PICK_INITIATED",
+            "startDate": "2025-03-13T00:00:00Z",
+            "endDate": "2025-06-12T00:00:00Z",
+            "lines": 4
+        },
+        {
+            "requestNumber": "REQ-2025-P381-005",
+            "projectName": "Central Maine Power Transmission Line Upgrade - Phase 1",
+            "taskName": "Transmission Line Survey",
+            "requestorName": "Carol White",
+            "status": "PICK_RELEASED",
+            "startDate": "2025-03-23T00:00:00Z",
+            "endDate": "2025-05-31T00:00:00Z",
+            "lines": 4
+        },
+        {
+            "requestNumber": "REQ-2025-P381-006",
+            "projectName": "Central Maine Power Transmission Line Upgrade - Phase 2",
+            "taskName": "Pole Installation Phase 1",
+            "requestorName": "Nancy Ouellette",
+            "status": "SHIPPED",
+            "startDate": "2025-04-02T00:00:00Z",
+            "endDate": "2025-08-13T00:00:00Z",
+            "lines": 4
+        },
+        {
+            "requestNumber": "REQ-2025-P381-007",
+            "projectName": "Maine DOT I-295 Bridge Replacement - Falmouth",
+            "taskName": "Bridge Deck Removal",
+            "requestorName": "Ron Bernard",
+            "status": "ASSIGNED",
+            "startDate": "2025-04-12T00:00:00Z",
+            "endDate": "2025-08-13T00:00:00Z",
+            "lines": 4
+        },
+        {
+            "requestNumber": "REQ-2025-P381-008",
+            "projectName": "Maine DOT US-1 Coastal Highway Resurfacing",
+            "taskName": "Roadway Milling",
+            "requestorName": "Linda Shaw",
+            "status": "ASSIGNED",
+            "startDate": "2025-04-22T00:00:00Z",
+            "endDate": "2025-09-17T00:00:00Z",
+            "lines": 4
+        },
+        {
+            "requestNumber": "REQ-2025-P381-009",
+            "projectName": "General Dynamics EB Submarine Drydock Support",
+            "taskName": "Route 101 Grading",
+            "requestorName": "Sarah Colby",
+            "status": "ASSIGNED",
+            "startDate": "2025-05-02T00:00:00Z",
+            "endDate": "2025-10-07T00:00:00Z",
+            "lines": 4
+        },
+        {
+            "requestNumber": "REQ-2025-P381-010",
+            "projectName": "Eversource Energy Substation Upgrades - NH",
+            "taskName": "Bennington Earthwork",
+            "requestorName": "Diane Cote",
+            "status": "DEMOBILIZED",
+            "startDate": "2025-05-12T00:00:00Z",
+            "endDate": "2025-08-08T00:00:00Z",
+            "lines": 4
+        },
+        {
+            "requestNumber": "REQ-2025-P381-011",
+            "projectName": "Portsmouth Naval Shipyard P-381 Dry Dock - Superblock 1",
+            "taskName": "Route 128 Demolition",
+            "requestorName": "Carol White",
+            "status": "CLOSED",
+            "startDate": "2025-05-22T00:00:00Z",
+            "endDate": "2025-09-25T00:00:00Z",
+            "lines": 0
+        },
+        {
+            "requestNumber": "REQ-2025-P381-012",
+            "projectName": "Portsmouth Naval Shipyard P-381 Dry Dock - Superblock 2",
+            "taskName": "Pier Extension Dredging",
+            "requestorName": "Nancy Ouellette",
+            "status": "CLOSED",
+            "startDate": "2025-06-01T00:00:00Z",
+            "endDate": "2025-11-25T00:00:00Z",
+            "lines": 0
+        },
+        {
+            "requestNumber": "REQ-2025-P381-013",
+            "projectName": "Portsmouth Naval Shipyard P-381 Dry Dock - Superblock 3",
+            "taskName": "Utility Trenching",
+            "requestorName": "Ron Bernard",
+            "status": "CLOSED",
+            "startDate": "2025-06-11T00:00:00Z",
+            "endDate": "2025-11-20T00:00:00Z",
+            "lines": 0
+        },
+        {
+            "requestNumber": "REQ-2025-P381-014",
+            "projectName": "Bath Iron Works DDG-126 Destroyer - Hull Outfitting",
+            "taskName": "Corridor Clearing",
+            "requestorName": "Linda Shaw",
+            "status": "REJECTED",
+            "startDate": "2025-06-21T00:00:00Z",
+            "endDate": "2025-10-30T00:00:00Z",
+            "lines": 0
+        },
+        {
+            "requestNumber": "REQ-2025-P381-015",
+            "projectName": "Central Maine Power Transmission Line Upgrade - Phase 1",
+            "taskName": "NY DOT Site Prep",
+            "requestorName": "Sarah Colby",
+            "status": "IN_PROCESS",
+            "startDate": "2025-07-01T00:00:00Z",
+            "endDate": "2025-12-22T00:00:00Z",
+            "lines": 0
+        },
+        {
+            "requestNumber": "REQ-2025-P381-016",
+            "projectName": "Central Maine Power Transmission Line Upgrade - Phase 2",
+            "taskName": "NJ Turnpike Grading",
+            "requestorName": "Diane Cote",
+            "status": "APPROVED",
+            "startDate": "2025-07-11T00:00:00Z",
+            "endDate": "2026-01-01T00:00:00Z",
+            "lines": 0
+        },
+        {
+            "requestNumber": "REQ-2025-P381-017",
+            "projectName": "Maine DOT I-295 Bridge Replacement - Falmouth",
+            "taskName": "Dry Dock Dewatering",
+            "requestorName": "Carol White",
+            "status": "ASSIGNED",
+            "startDate": "2025-07-21T00:00:00Z",
+            "endDate": "2025-11-28T00:00:00Z",
+            "lines": 0
+        },
+        {
+            "requestNumber": "REQ-2025-P381-018",
+            "projectName": "Maine DOT US-1 Coastal Highway Resurfacing",
+            "taskName": "Hull Outfitting Phase 2",
+            "requestorName": "Nancy Ouellette",
+            "status": "DEMOBILIZED",
+            "startDate": "2025-07-31T00:00:00Z",
+            "endDate": "2026-01-17T00:00:00Z",
+            "lines": 0
+        },
+        {
+            "requestNumber": "REQ-2025-P381-019",
+            "projectName": "General Dynamics EB Submarine Drydock Support",
+            "taskName": "Pole Installation Phase 2",
+            "requestorName": "Ron Bernard",
+            "status": "CLOSED",
+            "startDate": "2025-08-10T00:00:00Z",
+            "endDate": "2025-11-09T00:00:00Z",
+            "lines": 0
+        },
+        {
+            "requestNumber": "REQ-2025-P381-020",
+            "projectName": "Eversource Energy Substation Upgrades - NH",
+            "taskName": "Bridge New Deck Pour",
+            "requestorName": "Linda Shaw",
+            "status": "ASSIGNED",
+            "startDate": "2025-08-20T00:00:00Z",
+            "endDate": "2026-01-26T00:00:00Z",
+            "lines": 0
+        }
+    ],
+    "recordCount": 20,
+    "page": 0,
+    "pageSize": 20,
+    "totalPages": 1,
+    "hasMore": false
+}

@@ -1,0 +1,251 @@
+<style>
+  /* Banner plain-text info fields (dark banner, white text) */
+  .cb-info-label {
+    font-size: 0.6875rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.07em; color: rgba(255, 255, 255, 0.55);
+  }
+  .cb-info-value { font-size: 0.8125rem; color: rgba(255, 255, 255, 0.92); font-weight: 400; }
+  .cb-info-divider { color: rgba(255, 255, 255, 0.35); font-size: 0.75rem; margin: 0 2px; }
+
+  /* ── Summary chips (matches post-cost-test-detail .pc-chip) ── */
+  .cb-chip-tile { display:flex; flex-direction:column; gap:2px; padding:6px 14px; border-radius:8px; background:#ffffff; border:1px solid #e2e8f0; }
+  .cb-chip-tile-label { font-size:0.62rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:#94a3b8; }
+  .cb-chip-tile-value { font-size:0.95rem; font-weight:800; color:#0f172a; }
+  .cb-chip-tile-value--paid    { color:#0f766e; }
+  .cb-chip-tile-value--out     { color:#b45309; }
+
+  .cb-empty-prompt { text-align: center; padding: 28px 0; color: #94a3b8; font-size: 0.875rem; }
+
+  /* ── Expandable group/child table (mirrors post-cost-test-detail #pcTestTable) ── */
+  #cbTable {
+    width: 100% !important; min-width: 0 !important;
+    table-layout: fixed !important; flex: 1 1 auto !important;
+  }
+  #cbTable .oj-table-column-header-cell {
+    background-color: var(--oj-core-neutral-color-2, #f1f1f1);
+    font-weight: 600; font-size: 0.72rem; text-transform: uppercase;
+    letter-spacing: 0.05em; color: var(--oj-core-text-color-secondary, #565656);
+    padding: 9px 12px;
+  }
+  #cbTable .oj-table-data-cell { padding: 8px 12px; font-size: 0.8125rem; vertical-align: middle; }
+
+  /* group (line) row — bold equipment name + chevron; no background strip */
+  .cb-group-row { background: transparent; }
+  .cb-group-name { font-weight: 700; color: #0f172a; font-size: 0.85rem; }
+  .cb-group-sub  { font-size: 0.72rem; color: #64748b; margin-top: 1px; }
+  .cb-chevron { cursor: pointer; color: #475569; font-size: 13px; margin-right: 8px; }
+  .cb-inv-indent { padding-left: 26px; }
+
+  .cb-line-count {
+    font-size: 0.72rem; font-weight: 700; color: var(--oj-core-brand-color-primary, #005cb1);
+    background: #eaf2fd; border-radius: 14px; padding: 2px 10px; white-space: nowrap;
+  }
+  .cb-inv-num { font-weight: 700; color: var(--oj-core-brand-color-primary, #005cb1); }
+  .cb-inv-amt { font-weight: 700; color: #161616; }
+
+  /* status + when pills (matches post-cost .pc-when badge sizing) */
+  .cb-chip {
+    display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 0.66rem;
+    font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; white-space: nowrap;
+  }
+  /* Colours come from the canonical status palette in resources/css/app.css.
+     Only the sizing is local — these chips sit in a dense invoice grid, so
+     they stay smaller than a full .status-pill while matching its colours. */
+  .cb-chip--paid      { background: var(--status-closed-bg);          color: var(--status-closed-text); }
+  .cb-chip--pending   { background: var(--status-submitted-bg);       color: var(--status-submitted-text); }
+  .cb-chip--overdue   { background: var(--status-rejected-bg);        color: var(--status-rejected-text); }
+  .cb-chip--scheduled { background: var(--status-quote-generated-bg); color: var(--status-quote-generated-text); }
+  .cb-chip--cancelled { background: var(--status-draft-bg);           color: var(--status-draft-text); }
+  /* reversal rows (V238): credit = negating, repost = corrected amount */
+  .cb-chip--credit    { background: var(--status-rejected-bg);        color: var(--status-rejected-text); }
+  .cb-chip--repost    { background: var(--status-quote-accepted-bg, #e8f0fe); color: var(--status-quote-accepted-text, #1a73e8); }
+  /* "re-tiered to WEEKLY" note beside an adjustment invoice number */
+  .cb-adj-note { margin-left: 8px; font-size: 0.68rem; font-weight: 600; color: #b45309; font-style: italic; }
+  .cb-when--past     { color: #64748b; font-size: 0.75rem; }
+  .cb-when--current  { color: #1565c0; font-weight: 700; font-size: 0.75rem; }
+  .cb-when--future   { color: #8a5a00; font-size: 0.75rem; }
+</style>
+
+<oj-sp-general-overview-page
+  id="oj_gop_cust_billing_detail"
+  class="oj-sm-width-full"
+  page-title="[[ $variables.formData.requestNumber ]]"
+  display-mode="mixed"
+  display-options.in-flow-back="true"
+  display-options.responsive-padding="off"
+  on-sp-in-flow-back="[[ $listeners.onSpInFlowBack ]]">
+
+  <!-- ── Search-slot banner: request details on top, then refresh + chips on one line ── -->
+  <div slot="search" style="width: 100%;">
+
+    <!-- Request details (moved above refresh + totals) -->
+    <div style="margin-bottom:4px; display:flex; flex-wrap:wrap; align-items:center; gap:6px;">
+      <span class="cb-info-value"><oj-bind-text value="[[ $variables.formData.customerName || '—' ]]"></oj-bind-text></span>
+      <span class="cb-info-divider">|</span>
+      <span class="cb-info-value"><oj-bind-text value="[[ $variables.formData.customerContact || '—' ]]"></oj-bind-text></span>
+      <span class="cb-info-divider">|</span>
+      <span class="cb-info-value"><oj-bind-text value="[[ $variables.formData.location || '—' ]]"></oj-bind-text></span>
+    </div>
+    <div style="margin-bottom:12px; display:flex; align-items:center; gap:6px;">
+      <span class="cb-info-value"><oj-bind-text value="[[ $page.functions.formatDate($variables.formData.startDate) ]]"></oj-bind-text></span>
+      <span class="cb-info-divider">→</span>
+      <span class="cb-info-value"><oj-bind-text value="[[ $page.functions.formatDate($variables.formData.endDate) ]]"></oj-bind-text></span>
+      <oj-bind-if test="[[ $variables.formData.contractNumber ]]">
+        <span class="cb-info-divider">|</span>
+        <span class="cb-info-label">Contract</span>
+        <span class="cb-info-value"><oj-bind-text value="[[ $variables.formData.contractNumber ]]"></oj-bind-text></span>
+      </oj-bind-if>
+    </div>
+
+    <!-- Refresh + summary chips, all on one line -->
+    <div class="oj-flex oj-sm-align-items-center" style="gap:10px; flex-wrap:wrap;">
+      <oj-button id="btnRefreshPage" display="icons" chroming="borderless" title="Refresh"
+                 on-oj-action="[[ function() { window.location.reload(); } ]]">
+        <span slot="startIcon" class="oj-ux-ico-refresh"></span>
+        <span>Refresh</span>
+      </oj-button>
+      <div class="cb-chip-tile">
+        <span class="cb-chip-tile-label">Total amount</span>
+        <span class="cb-chip-tile-value">$<oj-bind-text value="[[ Number($variables.totalInvoiced).toLocaleString() ]]"></oj-bind-text></span>
+      </div>
+      <div class="cb-chip-tile">
+        <span class="cb-chip-tile-label">Paid</span>
+        <span class="cb-chip-tile-value cb-chip-tile-value--paid">$<oj-bind-text value="[[ Number($variables.paidAmount).toLocaleString() ]]"></oj-bind-text></span>
+      </div>
+      <div class="cb-chip-tile">
+        <span class="cb-chip-tile-label">Outstanding</span>
+        <span class="cb-chip-tile-value cb-chip-tile-value--out">$<oj-bind-text value="[[ Number($variables.outstandingAmount).toLocaleString() ]]"></oj-bind-text></span>
+      </div>
+      <div class="cb-chip-tile">
+        <span class="cb-chip-tile-label">Last invoice</span>
+        <span class="cb-chip-tile-value" style="font-weight:600; font-size:0.8rem;"><oj-bind-text value="[[ $variables.lastInvoiceLabel ]]"></oj-bind-text></span>
+      </div>
+      <!-- Net adjustments — only shown when an early-return re-tier produced credits/reposts (V238) -->
+      <oj-bind-if test="[[ $variables.hasAdjustments ]]">
+        <div class="cb-chip-tile">
+          <span class="cb-chip-tile-label">Net adjustments</span>
+          <span class="cb-chip-tile-value cb-chip-tile-value--out"><oj-bind-text value="[[ ($variables.netAdjustment < 0 ? '−$' : '+$') + Number(Math.abs($variables.netAdjustment)).toLocaleString() ]]"></oj-bind-text></span>
+        </div>
+      </oj-bind-if>
+    </div>
+  </div>
+
+  <!-- ══ MAIN: expandable line → invoice table (mirrors post-cost-test-detail).
+       Full-width fixed-header-scrollable-body pattern: main slot = flex column,
+       inner div = flex:1/overflow-y:auto scroll area, oj-table = table-layout:fixed. -->
+  <div class="oj-flex oj-sm-flex-direction-column oj-sm-width-full" slot="main"
+       style="height: calc(100vh - 240px); overflow: hidden; display: flex; flex-direction: column;
+              width:100% !important; max-width:100% !important; padding:0 12px; margin-top:-48px; box-sizing:border-box; overflow-x:hidden;">
+
+    <div class="oj-panel oj-bg-neutral-0"
+         style="border-radius:4px; box-shadow:0 4px 20px rgba(0,0,0,0.10); padding:0;
+                flex:1; min-height:0; display:flex; flex-direction:column; overflow:hidden;">
+      <div style="flex:1; overflow-y:auto; overflow-x:hidden; min-height:0;">
+      <oj-table
+        id="cbTable"
+        data="[[ $variables.rowsADP ]]"
+        class="oj-sm-width-full"
+        horizontal-grid-visible="enabled"
+        vertical-grid-visible="disabled"
+        selection-mode='{"row":"none","column":"none"}'
+        columns='[
+          { "headerText": "Line / Invoice #", "field": "label",      "template": "labelTpl",   "minWidth": "260", "weight": 3 },
+          { "headerText": "Period",           "field": "period",     "template": "periodTpl",  "minWidth": "180", "weight": 2 },
+          { "headerText": "Amount",           "field": "amountText", "template": "amountTpl",  "minWidth": "110", "weight": 1 },
+          { "headerText": "When",             "field": "when",       "template": "whenTpl",    "minWidth": "90",  "weight": 1 },
+          { "headerText": "Status",           "field": "status",     "template": "statusTpl",  "minWidth": "100", "weight": 1 }
+        ]'
+        style="width:100%;"
+        aria-label="Billing detail — line by line, invoice by invoice">
+
+        <!-- LABEL: group=line (chevron toggles its invoices); invoice=indented invoice #. -->
+        <template slot="labelTpl" data-oj-as="cell">
+          <oj-bind-if test="[[ cell.row.kind === 'group' ]]">
+            <div class="cb-group-row" style="display:flex; align-items:center;">
+              <div style="display:flex; align-items:center; cursor:pointer;"
+                   :id="[[ 'grp-' + cell.row.groupKey ]]"
+                   on-click="[[ $listeners.onToggleGroup ]]">
+                <span class="cb-chevron"
+                      :class="[[ cell.row.expanded ? 'oj-ux-ico-chevron-down' : 'oj-ux-ico-chevron-right' ]]"></span>
+                <div style="display:flex; flex-direction:column;">
+                  <span class="cb-group-name"><oj-bind-text value="[[ cell.row.label ]]"></oj-bind-text></span>
+                  <oj-bind-if test="[[ cell.row.subLabel ]]">
+                    <span class="cb-group-sub"><oj-bind-text value="[[ cell.row.subLabel ]]"></oj-bind-text></span>
+                  </oj-bind-if>
+                </div>
+              </div>
+            </div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ cell.row.kind === 'invoice' ]]">
+            <div class="cb-inv-indent">
+              <span class="cb-inv-num"><oj-bind-text value="[[ cell.row.label ]]"></oj-bind-text></span>
+              <!-- early-return re-tier note: shows the corrected tier on adjustment rows -->
+              <oj-bind-if test="[[ cell.row.isAdjustment && cell.row.periodType ]]">
+                <span class="cb-adj-note">re-tiered to <oj-bind-text value="[[ cell.row.periodType ]]"></oj-bind-text></span>
+              </oj-bind-if>
+            </div>
+          </oj-bind-if>
+        </template>
+
+        <!-- PERIOD — invoice: billing period; group: invoice count -->
+        <template slot="periodTpl" data-oj-as="cell">
+          <oj-bind-if test="[[ cell.row.kind === 'invoice' ]]">
+            <span><oj-bind-text value="[[ cell.row.period ]]"></oj-bind-text></span>
+          </oj-bind-if>
+          <oj-bind-if test="[[ cell.row.kind === 'group' ]]">
+            <span class="cb-line-count"><oj-bind-text value="[[ cell.row.invoiceCount ]]"></oj-bind-text> inv</span>
+          </oj-bind-if>
+        </template>
+
+        <!-- AMOUNT — invoice: invoice amount; group: line total -->
+        <template slot="amountTpl" data-oj-as="cell">
+          <oj-bind-if test="[[ cell.row.kind === 'invoice' ]]">
+            <span class="cb-inv-amt">$<oj-bind-text value="[[ cell.row.amountText ]]"></oj-bind-text></span>
+          </oj-bind-if>
+          <oj-bind-if test="[[ cell.row.kind === 'group' ]]">
+            <span class="cb-inv-amt">$<oj-bind-text value="[[ cell.row.totalValueText ]]"></oj-bind-text></span>
+          </oj-bind-if>
+        </template>
+
+        <!-- WHEN -->
+        <template slot="whenTpl" data-oj-as="cell">
+          <oj-bind-if test="[[ cell.row.kind === 'invoice' ]]">
+            <span>
+              <oj-bind-if test="[[ cell.row.when === 'past' ]]"><span class="cb-when--past">Past</span></oj-bind-if>
+              <oj-bind-if test="[[ cell.row.when === 'current' ]]"><span class="cb-when--current">Current</span></oj-bind-if>
+              <oj-bind-if test="[[ cell.row.when === 'future' ]]"><span class="cb-when--future">Upcoming</span></oj-bind-if>
+            </span>
+          </oj-bind-if>
+        </template>
+
+        <!-- STATUS — invoice: invoice status; group: line status badge -->
+        <template slot="statusTpl" data-oj-as="cell">
+          <oj-bind-if test="[[ cell.row.kind === 'invoice' ]]">
+            <span>
+              <oj-bind-if test="[[ cell.row.status === 'PAID' ]]"><span class="cb-chip cb-chip--paid">Paid</span></oj-bind-if>
+              <oj-bind-if test="[[ cell.row.status === 'OPEN' ]]"><span class="cb-chip cb-chip--pending">Open</span></oj-bind-if>
+              <oj-bind-if test="[[ cell.row.status === 'OVERDUE' ]]"><span class="cb-chip cb-chip--overdue">Overdue</span></oj-bind-if>
+              <oj-bind-if test="[[ cell.row.status === 'SCHEDULED' ]]"><span class="cb-chip cb-chip--scheduled">Scheduled</span></oj-bind-if>
+              <oj-bind-if test="[[ cell.row.status === 'CANCELLED' ]]"><span class="cb-chip cb-chip--cancelled">Cancelled</span></oj-bind-if>
+              <!-- V238 early-return reversal rows -->
+              <oj-bind-if test="[[ cell.row.status === 'CREDIT' ]]"><span class="cb-chip cb-chip--credit">Credit</span></oj-bind-if>
+              <oj-bind-if test="[[ cell.row.status === 'REPOST' ]]"><span class="cb-chip cb-chip--repost">Adjustment</span></oj-bind-if>
+            </span>
+          </oj-bind-if>
+          <oj-bind-if test="[[ cell.row.kind === 'group' && cell.row.lineStatus ]]">
+            <span :class="[[ $application.functions.statusTextClass() ]]"><oj-bind-text value="[[ $application.functions.formatLineStatus(cell.row.lineStatus) ]]"></oj-bind-text></span>
+          </oj-bind-if>
+        </template>
+
+        <!-- EMPTY -->
+        <template slot="noData">
+          <div style="text-align:center; padding:40px 0; color:#94a3b8;">
+            <div style="font-size:34px; margin-bottom:8px;">🧾</div>
+            <div style="font-size:14px; font-weight:600; color:#475569;">No lines on this request.</div>
+          </div>
+        </template>
+      </oj-table>
+      </div><!-- /scroll container -->
+    </div><!-- /panel -->
+  </div><!-- /main slot -->
+</oj-sp-general-overview-page>

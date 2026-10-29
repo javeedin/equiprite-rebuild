@@ -1,0 +1,35 @@
+{
+  "description": "Smart-search filters for the Agreement Expiry tab ONLY. One config file per tab, because oj-sp-smart-search renders a chip for EVERY filter the loaded config declares \u2014 suggestion-filters does NOT gate that row. Each `field` IS the endpoint's literal query-param name (see reportCriterion.ENDPOINT_PARAMS); a field that is not a real param yields a chip that filters nothing, because the views ignore unknown params silently. This set is deliberately CURATED, not exhaustive \u2014 the endpoint accepts more params than are offered. Not offered: customerRefId, lineStatus, allocationStatus (all dropped by request). Note the view reports lineStatuses/allocationStatuses as joined lists while those params take a single status, so re-adding them needs one option per list element.",
+  "filters": {
+    "TypeFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Type",
+      "options": {
+        "field": "agreementType",
+        "optionsData": "[[ $search.filters.TypeFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.TypeFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "StatusFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Status",
+      "options": {
+        "field": "status",
+        "optionsData": "[[ $search.filters.StatusFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.StatusFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "ExpiryFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Expiry Status",
+      "options": {
+        "field": "expiryStatus",
+        "optionsData": "[[ $search.filters.ExpiryFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.ExpiryFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    }
+  }
+}

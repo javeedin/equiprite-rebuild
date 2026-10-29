@@ -1,0 +1,31 @@
+{
+  "data": [
+    {
+      "agreementNumber": "AGR-2025-001",
+      "agreementName": "Alpha Site Equipment Rental 2025",
+      "customerName": "Acme Drilling Corp",
+      "agreementType": "RENTAL",
+      "effectiveFrom": "2026-05-08T14:46:26.229Z",
+      "effectiveTo": "2026-08-08T14:46:26.229Z",
+      "status": "ACTIVE",
+      "currencyCode": "USD",
+      "lines": 8
+    },
+    {
+      "agreementNumber": "AGR-2025-002",
+      "agreementName": "Global Energy Master Lease",
+      "customerName": "Global Energy Partners",
+      "agreementType": "MASTER",
+      "effectiveFrom": "2026-05-01T00:00:00.000Z",
+      "effectiveTo": "2026-12-31T00:00:00.000Z",
+      "status": "PENDING",
+      "currencyCode": "USD",
+      "lines": 5
+    }
+  ],
+  "recordCount": 20,
+  "page": 0,
+  "pageSize": 10,
+  "totalPages": 2,
+  "hasMore": true
+}

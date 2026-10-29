@@ -1,0 +1,203 @@
+<style>
+  .demo-data-grid {
+    width: 100%;
+    height: calc(100vh - 320px);
+    min-height: 360px;
+  }
+
+  /* Fill the viewport (up to an ultra-wide cap) so the line grid gets maximum
+     room before it scrolls horizontally, instead of a fixed 1440px column. */
+  #oj_gop_rental_lines {
+    --oj-sp-general-overview-page-max-width: 100% !important;
+    width: 100% !important;
+    max-width: min(2400px, calc(100vw - 48px)) !important;
+    margin: 0 auto !important;
+  }
+
+  /* Banner plain-text info fields */
+  .cr-info-label {
+    font-size: var(--oj-typography-body-xs-font-size, 0.6875rem);
+    font-weight: var(--oj-typography-body-font-weight-bold, 700);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: rgba(255, 255, 255, 0.55);
+  }
+  .cr-info-value {
+    font-size: var(--oj-typography-body-sm-font-size, 0.8125rem);
+    color: rgba(255, 255, 255, 0.92);
+    font-weight: 400;
+  }
+  .cr-info-divider {
+    color: rgba(255, 255, 255, 0.35);
+    font-size: 0.75rem;
+    margin: 0 2px;
+  }
+
+  /* Cart count badge (inline on Create Request button label) */
+  .ral-cart-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 8px;
+    margin-left: 8px;
+    background: #ffffff;
+    color: var(--oj-core-brand-color-primary, #0066cc);
+    border-radius: 11px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  /* Checkbox cell centering (matches timesheet-detail) */
+  .ral-cell-center {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+  }
+
+  /* Status badge in grid cells */
+  .ral-status-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  /* Colours come from the canonical status palette in resources/css/app.css. */
+  .ral-status--success { background: var(--status-deployed-bg); color: var(--status-deployed-text); }
+  .ral-status--neutral { background: var(--status-draft-bg);    color: var(--status-draft-text); }
+</style>
+
+<oj-sp-general-overview-page
+  id="oj_gop_rental_lines"
+  class="oj-sm-width-full"
+  page-title="[[ $variables.pageTitle ]]"
+  display-mode="mixed"
+  display-options.responsive-padding="on"
+  display-options.in-flow-back="true"
+  on-sp-in-flow-back="[[$listeners.onSpInFlowBack]]">
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- Header Banner: agreement context + conditional action buttons       -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div slot="search" style="width: 100%;">
+    <div style="display:flex; flex-wrap:wrap; align-items:center; gap:6px;">
+      <span class="cr-info-value"><oj-bind-text value="[[ $variables.formData.agreement_name || '—' ]]"></oj-bind-text></span>
+      <span class="cr-info-divider">|</span>
+      <span class="cr-info-value"><oj-bind-text value="[[ $variables.formData.project_customer || '—' ]]"></oj-bind-text></span>
+      <span class="cr-info-divider">|</span>
+      <span class="cr-info-value"><oj-bind-text value="[[ $variables.formData.start_date || '—' ]]"></oj-bind-text></span>
+      <span class="cr-info-divider">→</span>
+      <span class="cr-info-value"><oj-bind-text value="[[ $variables.formData.end_date || '—' ]]"></oj-bind-text></span>
+      <span style="flex:1;"></span>
+
+      <!-- Pre-approval state: Approve / Reject -->
+      <oj-bind-if test="[[ $variables.agreementStatus !== 'ACTIVE' && $variables.agreementStatus !== 'REJECTED' && $variables.agreementStatus !== 'EXPIRED' ]]">
+        <oj-button id="btnReject" chroming="outlined" on-oj-action="[[ $listeners.onRejectRequest ]]">
+          <span slot="startIcon" class="oj-ux-ico-close-circle"></span>
+          <span>Reject</span>
+        </oj-button>
+        <oj-button id="btnApprove" chroming="callToAction" on-oj-action="[[ $listeners.onConfirmRequest ]]">
+          <span slot="startIcon" class="oj-ux-ico-check-circle"></span>
+          <span>Approve</span>
+        </oj-button>
+      </oj-bind-if>
+
+      <!-- Post-approval state: Add to Cart / Create Request (N) -->
+      <oj-bind-if test="[[ $variables.agreementStatus === 'ACTIVE' ]]">
+        <oj-button id="btnAddToCart" chroming="outlined"
+          disabled="[[ !$variables.selectedCount ]]"
+          on-oj-action="[[ $listeners.onAddToCart ]]">
+          <span slot="startIcon" class="oj-ux-ico-add"></span>
+          <span><oj-bind-text value="[[ $variables.selectedCount > 0 ? 'Add to Cart (' + $variables.selectedCount + ')' : 'Add to Cart' ]]"></oj-bind-text></span>
+        </oj-button>
+        <oj-button id="btnCreateRequest" chroming="callToAction"
+          disabled="[[ !$variables.cartCount ]]"
+          on-oj-action="[[ $listeners.onCreateRequestFromAgreement ]]">
+          <span slot="startIcon" class="oj-ux-ico-cart"></span>
+          <span><oj-bind-text value="[[ 'Create Request (' + ($variables.cartCount || 0) + ')' ]]"></oj-bind-text></span>
+        </oj-button>
+      </oj-bind-if>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- MAIN CONTENT: summary, search, data-grid                            -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div class="oj-flex oj-sm-flex-direction-column oj-sm-width-full" slot="main" style="width: 100% !important; padding: 0 12px;">
+
+    <!-- Summary row — Total Agreement Cost removed: it was rate × MIN_COMMIT_DAYS
+         (the legacy quantity), which is meaningless now that agreement lines
+         carry no quantity. Only the line count remains. -->
+    <div style="padding: 12px 16px; background-color: white; border-bottom: 1px solid #e2e8f0; border-radius: 4px 4px 0 0; display:flex; justify-content:flex-end; align-items:center;">
+      <span style="color:#94a3b8; font-size:13px;">
+        <oj-bind-text value="[[ ($variables.filteredLines ? $variables.filteredLines.length : 0) + ' of ' + ($variables.linesArray ? $variables.linesArray.length : 0) + ' line(s)' ]]"></oj-bind-text>
+      </span>
+    </div>
+
+    <!-- Search toolbar -->
+    <div style="display:flex; align-items:center; gap:12px; padding:12px 16px; background:#ffffff; border-bottom:1px solid #e2e8f0;">
+      <oj-input-search style="flex:1 1 auto; max-width:480px;"
+        raw-value="{{ $variables.searchQuery }}"
+        on-raw-value-changed="[[ $listeners.onSearchChanged ]]"
+        placeholder="Search equipment, class, or description...">
+      </oj-input-search>
+    </div>
+
+    <!-- Data grid -->
+    <div class="oj-panel oj-bg-neutral-0" style="border-radius: 0 0 4px 4px; box-shadow: 0 4px 20px rgba(0,0,0,0.10); overflow: hidden;">
+      <oj-bind-if test="[[ $variables.dataGridProvider != null ]]">
+        <oj-data-grid
+          id="agreementLinesGrid"
+          class="demo-data-grid"
+          aria-label="Rental Agreement Lines Grid"
+          data="[[ $variables.dataGridProvider ]]"
+          cell.editable="[[ $functions.getIsEditable.bind($functions) ]]"
+          header.column.style="[[ $functions.getColumnHeaderStyle.bind($functions) ]]"
+          header.row.style="width:50px;"
+          header.column.resizable.width="enable"
+          header.row.resizable.height="enable"
+          edit-mode="none"
+          scroll-policy="loadMoreOnScroll">
+
+          <template slot="cellTemplate" data-oj-as="cell">
+            <!-- Col 0: Checkbox (only when agreement is ACTIVE; greyed otherwise) -->
+            <oj-bind-if test="[[ cell.item.columnIndex === 0 ]]">
+              <div class="ral-cell-center">
+                <input type="checkbox"
+                  :checked="[[ $functions.isRowSelected(cell.item.rowIndex) ]]"
+                  :disabled="[[ $variables.agreementStatus !== 'ACTIVE' ]]"
+                  on-change="[[ $functions.toggleRowSelected.bind($functions, cell.item.rowIndex, $variables) ]]"
+                  style="width:16px; height:16px; cursor:pointer; accent-color:var(--oj-core-brand-color-primary);" />
+              </div>
+            </oj-bind-if>
+
+            <!-- Col 4: Rate — currency prefix ($850) -->
+            <oj-bind-if test="[[ cell.item.columnIndex === 4 ]]">
+              <span class="oj-typography-body-sm">$<oj-bind-text value="[[ cell.item.data.data ]]"></oj-bind-text></span>
+            </oj-bind-if>
+
+            <!-- All other readonly columns (1: Equipment, 2: Class, 3: Subclass, 5: UOM) -->
+            <oj-bind-if test="[[ cell.item.columnIndex !== 0 && cell.item.columnIndex !== 4 ]]">
+              <span class="oj-text-color-secondary oj-typography-body-sm"><oj-bind-text value="[[ cell.item.data.data ]]"></oj-bind-text></span>
+            </oj-bind-if>
+          </template>
+        </oj-data-grid>
+      </oj-bind-if>
+
+      <!-- Empty state -->
+      <oj-bind-if test="[[ !$variables.filteredLines || $variables.filteredLines.length === 0 ]]">
+        <div style="text-align:center; padding:48px 0;">
+          <div style="font-size:40px; color:#cbd5e1; margin-bottom:12px;">🔍</div>
+          <div style="font-size:15px; font-weight:600; color:#475569; margin-bottom:6px;">No lines match your search.</div>
+          <div style="font-size:13px; color:#94a3b8;">Try a different keyword or clear the search.</div>
+        </div>
+      </oj-bind-if>
+    </div>
+
+  </div>
+</oj-sp-general-overview-page>

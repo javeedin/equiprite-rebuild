@@ -1,0 +1,122 @@
+{
+
+  "metadata": {},
+  "variables": {
+    "formData": {
+      "type": "object",
+      "defaultValue": {
+        "organization_name": null,
+        "equipment_type": null,
+        "equipment_class": null,
+        "maintenance_asset": null,
+        "inventory_item": null,
+        "sub_inventory": null,
+        "fa_asset_number": null,
+        "serial_number": null,
+        "equipment_name": null,
+        "equipment_number": null,
+        "description": null,
+        "non_labor_resource": null,
+        "equipment_subclass": null,
+        "equipment_status": "At Equipment Yard",
+        "is_surplus": false,
+        "track_maintenance_asset": false,
+        "track_fixed_asset": false,
+        "track_inventory": false,
+        "status_toggle": true,
+        "purchase_order": null,
+        "purchase_order_line": null,
+        "project": null,
+        "task": null,
+        "person": null,
+        "insured_by": null,
+        "insured_policy": null,
+        "date_in_service": null,
+        "retired_date": null,
+        "maintenance_serial_number": null,
+        "maintenance_asset_number": null,
+        "operating_organization": null,
+        "maintenance_organization": null,
+        "location_type": null,
+        "location_organization": null,
+        "work_center": null,
+        "work_area": null,
+        "asset_group": null,
+        "manufacturer": null,
+        "model_year": 0,
+        "model_number": null,
+        "color": null,
+        "license_state": null,
+        "license_number": null,
+        "fuel_type": null,
+        "license_expiry": null,
+        "weight": null,
+        "warranty_code": null,
+        "default_location": null,
+        "address_line1": null,
+        "address_line2": null,
+        "city": null,
+        "country": null,
+        "zip": null
+      }
+    },
+    "owningOrgADP": { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.functions.getOrgData() }}" } },
+    "typeADP": { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.functions.getTypeData() }}" } },
+    "classADP": { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.functions.getClassData() }}" } },
+    "subclassADP": { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.functions.getSubclassData() }}" } },
+    "statusADP": { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.functions.getStatusData() }}" } },
+    "purchaseOrderADP": { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.functions.getPOData() }}" } },
+    "uomADP": { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.functions.getUOMData() }}" } },
+    "fuelADP": { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.functions.getFuelData() }}" } },
+    "locationADP": { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.functions.getLocationData() }}" } },
+    "businessUnitADP": { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.functions.getBUData() }}" } },
+    "activeTab": {
+      "type": "string",
+      "defaultValue": "master"
+    }
+  },
+  "eventListeners": {
+    "vbBeforeEnter": {
+      "chains": [{ "chain": "requireFullAccessChain" }]
+    },
+    "onSpSave": {
+      "chains": [{ "chain": "saveChain" }]
+    },
+    "onSpCancel": {
+      "chains": [{ "chain": "cancelChain" }]
+    }
+  },
+  "functions": {
+    "getOrgData": { "return": "any" },
+    "getTypeData": { "return": "any" },
+    "getClassData": { "return": "any" },
+    "getSubclassData": { "return": "any" },
+    "getOwnerTypeData": { "return": "any" },
+    "getStatusData": { "return": "any" },
+    "getPOData": { "return": "any" },
+    "getUOMData": { "return": "any" },
+    "getFuelData": { "return": "any" },
+    "getLocationData": { "return": "any" },
+    "getBUData": { "return": "any" },
+    "getExpenditureOrgData": { "return": "any" },
+    "getBillingData": { "return": "any" },
+    "getRentalPOData": { "return": "any" }
+  },
+  "imports": {
+    "components": {
+      "oj-sp-general-overview-page": { "path": "oj-sp/general-overview-page/loader" },
+      "oj-form-layout": { "path": "ojs/ojformlayout" },
+      "oj-tab-bar": { "path": "ojs/ojnavigationlist" },
+      "oj-input-text": { "path": "ojs/ojinputtext" },
+      "oj-input-number": { "path": "ojs/ojinputnumber" },
+      "oj-input-date": { "path": "ojs/ojdatetimepicker" },
+      "oj-select-single": { "path": "ojs/ojselectsingle" },
+      "oj-text-area": { "path": "ojs/ojinputtext" },
+      "oj-switch": { "path": "ojs/ojswitch" },
+      "oj-button": { "path": "ojs/ojbutton" },
+      "oj-sp-messages-banner": { "path": "oj-sp/messages-banner/loader" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}

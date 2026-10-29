@@ -1,0 +1,179 @@
+<!-- Copyright (c) 2025, Oracle and/or its affiliates -->
+<style>
+  .nav-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+</style>
+
+<div id="pageContent" class="oj-web-applayout-page" style="min-height: 100vh;">
+
+  <!-- SLOT 1: Side drawer (hamburger menu panel) -->
+  <oj-drawer-popup edge="end" opened="{{ $variables.isDrawerOpen }}" class="oj-bg-neutral-10">
+    <div class="oj-flex oj-sm-flex-direction-column oj-sm-padding-6x-top oj-sm-padding-4x-start oj-sm-padding-4x-end"
+      style="height: 100vh;">
+
+      <!-- Drawer header row: title + close button -->
+      <div class="oj-flex oj-sm-justify-content-space-between oj-sm-align-items-center oj-sm-margin-6x-bottom">
+        <h3 class="oj-typography-heading-sm oj-typography-bold oj-sm-margin-0">Application Menu</h3>
+        <oj-button chroming="borderless" display="icons" on-oj-action="[[ $listeners.toggleDrawerChain ]]">
+          <span slot="startIcon" class="oj-ux-ico-close"></span>
+          <span>Close</span>
+        </oj-button>
+      </div>
+
+      <!-- Navigation sections — headers are plain divs (outside oj-navigation-list) to avoid JET auto-selecting them -->
+      <div class="nav-scroll" style="overflow-y: auto; flex: 1; scrollbar-width: none; -ms-overflow-style: none;">
+
+        <!-- ── ROLE-FILTERED NAVIGATION ──────────────────────────
+             Rendered from $application.functions.visibleNavGroups(), a DERIVED
+             copy of the static NAV_GROUPS definition in app-flow.js. The base
+             definition is never mutated, so a role change recomputes from the
+             full list rather than compounding on an already-filtered one.
+
+             TWO independent gates, both applied inside visibleNavGroups():
+               1. Feature flag  — is the MODULE on at all (PROJECTS_MODULE_ENABLED,
+                  TIMESHEETS_ENABLED, CUSTOMERS_MODULE_ENABLED). Declared per
+                  group as `flags: [...]` in NAV_GROUPS — these replace the
+                  oj-bind-if wrappers the static markup used.
+               2. RBAC          — may THIS ROLE open the page.
+             Both fail closed. A group appears only when every flag it needs is
+             on AND at least one of its pages resolves visible, so no empty
+             expandable group is ever rendered.
+
+             Group expand/collapse state lives in one map keyed by group key
+             ($variables.navExpanded), replacing the eight is*Expanded booleans. -->
+        <oj-bind-for-each data="[[ $application.functions.visibleNavGroups(
+                                     $application.variables.pageAccessMap,
+                                     $application.variables.pageAccessLoaded,
+                                     $application.variables.featureFlags,
+                                     $application.variables.flagsLoaded,
+                                     $application.variables.buRateSources) ]]">
+          <!-- data-oj-as is required, not stylistic: oj-navigation-list's
+               itemTemplate rebinds $current to the ITEM, which would shadow the
+               for-each's $current (the GROUP). -->
+          <template data-oj-as="grp">
+            <div
+              on-click="[[ $listeners.navGroupToggle ]]"
+              :data-group-key="[[ grp.data.key ]]"
+              style="cursor:pointer; padding:10px 8px 6px; border-top:1px solid #e4e4e4; display:flex; justify-content:space-between; align-items:center;">
+              <span
+                style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#6b6b6b;">
+                <oj-bind-text value="[[ grp.data.label ]]"></oj-bind-text>
+              </span>
+              <span
+                :class="[[ $variables.navExpanded[grp.data.key] ? 'oj-ux-ico-chevron-up' : 'oj-ux-ico-chevron-down' ]]"
+                style="font-size:12px; color:#6b6b6b;"></span>
+            </div>
+            <oj-bind-if test="[[ $variables.navExpanded[grp.data.key] ]]">
+              <oj-navigation-list class="oj-sm-width-full"
+                data="[[ $application.functions.navItemsDP(grp.data.items) ]]"
+                selection="[[ $application.functions.getNavIdForPage($application.currentPage) ]]"
+                on-selection-changed="[[ $listeners.menuSelectionChanged ]]"
+                drill-mode="none" edge="start">
+                <template slot="itemTemplate">
+                  <li :id="[[ $current.data.id ]]">
+                    <a href="#">
+                      <span :class="[[ $current.data.icon + ' oj-navigationlist-item-icon' ]]"></span>
+                      <span class="oj-navigationlist-item-label oj-typography-body-sm oj-typography-semi-bold">
+                        <oj-bind-text value="[[ $current.data.label ]]"></oj-bind-text>
+                      </span>
+                    </a>
+                  </li>
+                </template>
+              </oj-navigation-list>
+            </oj-bind-if>
+          </template>
+        </oj-bind-for-each>
+
+      </div>
+    </div>
+  </oj-drawer-popup>
+
+  <!-- NO HEADER BAR. The black banner (logo, title, avatar, hamburger) was
+       removed so the page starts at the content. The drawer still has to be
+       reachable, so the hamburger survives on its own as a floating control
+       pinned to the top-right of the viewport.
+
+       position:fixed, not sticky or in-flow: the content area below scrolls
+       internally (overflow-y:auto on its own div), so an in-flow button would
+       scroll out of reach and the drawer would become unopenable partway down
+       a long page.
+
+       NO BACKGROUND — transparent, so it blends into the page banner it sits
+       on. It previously carried a black pill, which read as a foreign object
+       stamped onto the teal banner.
+
+       Transparency rather than a matched colour, because that banner is a
+       texture-strip IMAGE (--oj-sp-general-overview-page-texture-strip-image,
+       resources/css/app.css), not a flat token — any hex we picked would drift
+       the moment the strip changed.
+
+       At top:10px the button is always inside the 120px banner
+       (--oj-sp-page-banner-height), which is dark on every page, so
+       oj-color-invert's white glyph is the right pairing. The drop-shadow is
+       insurance for the paler bands in the strip. If a page ever renders
+       without that banner, this is the line to revisit.
+
+       z-index keeps it above page content; the drawer renders into JET's own
+       popup layer and still covers it when open.
+
+       LOST WITH THE HEADER: the logo/title click that called goToDashboard.
+       That matters more than it looks — Dashboard is deliberately NOT a drawer
+       item (see NAV_GROUPS in app-flow.js, whose comment still cites the header
+       logo as its route), so the only ways left are the per-role landing page
+       from main-flow.json's defaultPage and a direct URL. The goToDashboard
+       listener and goToDashboardChain are intentionally KEPT so a replacement
+       affordance can be wired without rebuilding them. -->
+  <div style="position: fixed; top: 10px; right: 12px; z-index: 900; display: flex; align-items: center;">
+    <!-- Home — calls the kept goToDashboard listener, which resolves the
+         module/role-aware landing page via getRoleHomeTarget. -->
+    <oj-button chroming="borderless" display="icons" class="oj-color-invert"
+      on-oj-action="[[ $listeners.goToDashboard ]]"
+      title="Home"
+      style="background: transparent; box-shadow: none;">
+      <span slot="startIcon" class="oj-ux-ico-home"
+        style="color: currentColor; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.35));"></span>
+      <span>Home</span>
+    </oj-button>
+    <oj-button chroming="borderless" display="icons" class="oj-color-invert"
+      on-oj-action="[[ $listeners.toggleDrawerChain ]]"
+      title="Menu"
+      style="background: transparent; box-shadow: none;">
+      <span slot="startIcon" class="oj-ux-ico-menu"
+        style="color: currentColor; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.35));"></span>
+      <span>Menu</span>
+    </oj-button>
+  </div>
+
+  <!-- CONTENT AREA -->
+  <div class="oj-flex">
+    <div class="oj-flex-item oj-web-applayout-content-nopad oj-sm-width-full" style="overflow-y: auto; width: 100%;">
+
+      <div class="oj-flex">
+        <oj-sp-messages-banner data="[[ $variables.messagesBannerADP ]]" class="oj-flex-item oj-sm-12 oj-md-12"
+          on-sp-close="[[$listeners.messagesBannerSpClose]]"></oj-sp-messages-banner>
+      </div>
+
+      <oj-messages
+        id="appMessages"
+        messages="[[ $variables.messagesArray ]]"
+        display="notification"
+        position.at.horizontal="center"
+        position.at.vertical="top"
+        position.my.horizontal="center"
+        position.my.vertical="top"
+        position.of="window"
+        on-oj-close="[[ $listeners.onAppMessageClose ]]">
+      </oj-messages>
+
+      <div class="oj-flex">
+        <!-- Renders flow content -->
+        <oj-vb-content id="vbRouterContent" class="oj-flex-item" config="[[vbRouterFlow]]">
+        </oj-vb-content>
+      </div>
+
+    </div>
+  </div>
+
+</div>

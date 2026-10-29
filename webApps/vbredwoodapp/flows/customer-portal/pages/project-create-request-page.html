@@ -1,0 +1,777 @@
+
+<oj-sp-general-overview-page id="projectCreateRequestPage" page-title="Create Equipment Request"
+  primary-action='[[ {"label": "Next", "display": "on"} ]]' on-sp-primary-action="[[ $listeners.nextToCatalog ]]"
+  display-options.responsive-padding="on" display-mode="mixed">
+  <div class="oj-flex" slot="main">
+    <div class="oj-flex-item" style="flex: 1 1 100%; width: 100%; max-width: 100%; padding: 0; margin: 0; box-sizing: border-box;">
+      <oj-bind-if
+        test="[[ $flow.variables.fromAgreementId && $application.functions.isFeatureEnabled($application.variables.featureFlags, $application.variables.flagsLoaded, 'AGREEMENTS_ENABLED') ]]">
+        <div
+          style="display:flex; align-items:center; gap:14px; padding:14px 18px; margin:0 0 20px 0; background:linear-gradient(135deg, #f8fafc 0%, #f0f7ff 100%); border:1px solid #e2e8f0; border-radius:10px; box-sizing:border-box;">
+          <div
+            style="flex:0 0 auto; width:38px; height:38px; border-radius:8px; background:linear-gradient(135deg, #1565c0, #0d47a1); color:#ffffff; display:flex; align-items:center; justify-content:center;">
+            <span class="oj-ux-ico-file-text" style="font-size:18px;"></span>
+          </div>
+          <div style="flex:1 1 auto; min-width:0;">
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+              <span
+                style="padding:2px 10px; background:#e3f0ff; color:#1565c0; border-radius:12px; font-size:12px; font-weight:700; letter-spacing:0.02em;">
+                <oj-bind-text value="[[ $flow.variables.fromAgreementNumber ]]"></oj-bind-text>
+              </span>
+              <span style="font-size:14px; font-weight:600; color:#0f172a;">
+                <oj-bind-text value="[[ $flow.variables.fromAgreementCustomer || 'Customer' ]]"></oj-bind-text>
+              </span>
+            </div>
+            <div style="font-size:12px; color:#64748b; margin-top:6px;">
+              <oj-bind-text value="[[ (($flow.variables.CartItemsArray && $flow.variables.CartItemsArray.length > 0)
+              ? ($flow.variables.CartItemsArray.length + ' line(s) pre-loaded · ')
+              : 'Catalog limited to this agreement’s equipment · ')
+              + 'Fill in project, task, and timing details below.' ]]"></oj-bind-text>
+            </div>
+          </div>
+          <div style="flex:0 0 auto;">
+            <oj-button display="icons" chroming="borderless" title="Clear agreement and start with a blank request"
+              on-oj-action="[[ function() { var d = document.getElementById('clearAgreementDialog'); if (d) d.open(); } ]]">
+              <span slot="startIcon" class="oj-ux-ico-close"></span>
+              <span>Clear agreement</span>
+            </oj-button>
+          </div>
+        </div>
+      </oj-bind-if>
+    </div>
+    <oj-sp-collection-container id="requestDetailsContainer" display-options.add="off" display-options.delete="off"
+      display-options.selector="off" display-options.export="off" style="width: 100%;"
+      class="oj-flex-item oj-sm-flex-initial">
+      
+      <!-- Request form — one card, three grouped sections (Project Details / Dates /
+           Delivery Details), each a 3-column grid. -->
+      <div class="oj-flex-item oj-sm-12" style="margin: 4px 0 0; padding: 8px 32px 24px;">
+        <div style="font-size: 15px; font-weight: 700; color: #0f172a; margin-bottom: 16px;">Project Details</div>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 24px; align-items: start;">
+          
+          <!-- Customer Type — FIRST field in the form. It selects WHICH party
+               pair renders in the two slots beside it; everything after that is
+               the same sequence for both types:
+
+                 INTERNAL → Customer Type, Internal Customer, Requestor Contact
+                            Project, Task, Contract
+                            Rental Agreement, Soft Reservation
+                 EXTERNAL → Customer Type, External Customer, Customer Contact
+                            Project, Task, Contract
+                            Rental Agreement
+
+               Only the party pair differs (plus Soft Reservation, which is
+               internal-only), so DOM order alone produces both layouts. An
+               earlier version had the two types in DIFFERENT orders and used CSS
+               `order` overrides to re-arrange the grid children without
+               remounting them; with one shared sequence that machinery is
+               unnecessary and has been removed.
+
+               Static two-option LOV whose values ('INTERNAL' | 'EXTERNAL')
+               match CK_EQR_REQ_REQUEST_TYPE exactly, and are what
+               SubmitRequestChain posts as requestType.
+
+               Bound to the PAGE variable requestTypeSel, NOT directly to
+               $flow.variables.request.requestType. Writing a nested property of
+               a $flow OBJECT variable does not re-evaluate the oj-bind-if tests
+               below — the flow variable's own reference never changes, so the
+               dependency never fires and the External fields stayed hidden.
+               RequestTypeChangedChain mirrors this onto
+               $flow.variables.request.requestType, which is what survives the
+               catalog round-trip and gets posted. Exactly the page-scalar +
+               mirror shape the Location Type picker further down already uses. -->
+          <!-- TWO INDEPENDENT GATES decide whether this is a picker or a fact.
+               They are kept separate because they say no for different reasons,
+               and collapsing them into one boolean loses which one fired:
+
+                 ROLE     — canChooseCustomerType(): only a manager (or admin)
+                            may choose. A plain equipment requestor cannot raise
+                            an external request, so it is frozen to Internal.
+                            Fails CLOSED — see app-flow.js for why it
+                            deliberately does not reuse resolveDashboardRole().
+
+                 LICENCE  — forcedCustomerType(): each module flag owns one type
+                            (PROJECTS→INTERNAL, CUSTOMERS→EXTERNAL), so on a
+                            single-module tenant only ONE type legally exists and
+                            there is nothing to choose between. Returns '' only
+                            when both modules are licensed.
+
+               Picker renders only when the user may choose AND the licence
+               leaves a genuine choice.
+
+               LICENCE-forced (single-module tenant): the field is NOT rendered
+               at all — there is only one type, so showing it adds nothing.
+               SeedCustomerTypeChain still sets requestTypeSel, so the value is
+               posted and the type-specific fields below still render.
+
+               ROLE-locked (non-manager on a dual-module tenant): the field is
+               LOCKED to Internal and still shown, since External exists here.
+
+               Locked = a white one-option oj-select-single over lockedTypeADP.
+               Not a disabled select (drops its display value, empty grey box),
+               and no longer a readonly oj-input-text, which renders as a bare
+               label with no box and left a visible hole in the grid.
+
+               The label BINDS to requestTypeSel through customerTypeLabel()
+               rather than hardcoding 'Internal' as it once did — hardcoded, a
+               Customers-only tenant would display "Internal" while posting
+               EXTERNAL. SeedCustomerTypeChain sets requestTypeSel so the value
+               is posted and the type-specific fields below still render. -->
+          <oj-bind-if test="[[ $application.functions.canChooseCustomerType($application.variables.fusionRoles, $application.variables.sessionRoles)
+                               &amp;&amp; !$application.functions.forcedCustomerType($application.variables.featureFlags, $application.variables.flagsLoaded) ]]">
+            <oj-select-single label-hint="Customer Type" value="{{ $page.variables.requestTypeSel }}"
+              data="[[ $variables.requestTypeADP ]]" item-text="label"
+              class="oj-form-control-full-width"
+              placeholder="— Select Customer Type —"
+              on-value-changed="[[ $listeners.requestTypeChanged ]]"></oj-select-single>
+          </oj-bind-if>
+          <oj-bind-if test="[[ !$application.functions.canChooseCustomerType($application.variables.fusionRoles, $application.variables.sessionRoles)
+                               &amp;&amp; !$application.functions.forcedCustomerType($application.variables.featureFlags, $application.variables.flagsLoaded) ]]">
+            <!-- Locked: a white ONE-option LOV (lockedTypeADP holds only the
+                 forced type), so it reads like every other field instead of a
+                 bare label. Wrapped in an inert .eqr-locked-lov so it cannot be
+                 opened at all (no arrow, no click, no keyboard). -->
+            <div class="eqr-locked-lov" inert>
+            <oj-select-single label-hint="Customer Type"
+              value="[[ $page.variables.requestTypeSel ]]"
+              data="[[ $variables.lockedTypeADP ]]" item-text="label"
+              class="oj-form-control-full-width"></oj-select-single>
+            </div>
+          </oj-bind-if>
+
+          <!-- ── Party pair (slots 2 and 3 of row 1) ──────────────────────
+               Both customer types put a customer and a contact here; only the
+               SOURCE differs, so the two variants are mutually-exclusive
+               oj-bind-ifs occupying the same two grid cells:
+
+                 INTERNAL → Internal Customer (Fusion party) + Requestor Contact (EQR_USER)
+                 EXTERNAL → External Customer (EQR_CUSTOMER_REF) + Customer Contact (EQR_CUSTOMER_PORTAL_USER)
+
+               Because the sequence is now IDENTICAL for both types, DOM order
+               alone gives the right layout — the old .pcr-order-first /
+               .pcr-order-party CSS `order` overrides existed only to hoist the
+               party fields above Project/Task on external and have been deleted
+               along with the divergent ordering they implemented.
+
+               EXTERNAL pair lifted verbatim from customer-create-req-page (same
+               endpoints, same row shapes), so an external request raised here
+               lands in exactly the same columns as one raised in the customer
+               flow. The two external pickers are INDEPENDENT — there is no DB
+               relationship between a customer and a portal user — so choosing a
+               customer does not filter the contacts. -->
+          <oj-bind-if test="[[ $page.variables.requestTypeSel === 'EXTERNAL' ]]">
+            <oj-select-single label-hint="Customer"
+              data="[[ $variables.customerRefsADP ]]" item-text="customerName"
+              value="{{ $flow.variables.request.customerRefId }}"
+              on-value-item-changed="[[ $listeners.externalCustomerSelected ]]"
+              class="oj-form-control-full-width"
+              placeholder="— Select Customer —"
+              required="true"></oj-select-single>
+
+            <oj-select-single label-hint="Customer Contact"
+              data="[[ $variables.customerPortalUsersADP ]]" item-text="contactName"
+              value="{{ $flow.variables.request.requestorId }}"
+              on-value-item-changed="[[ $listeners.externalContactSelected ]]"
+              class="oj-form-control-full-width"
+              placeholder="Select a contact..."
+              required="true"></oj-select-single>
+          </oj-bind-if>
+
+          <!-- INTERNAL party pair — the internal customer the project is run FOR
+               (Fusion shippingCustomersLOV search) plus the EQR_USER raising it.
+               Moved up here from further down the form so it sits in the same
+               two slots its external counterpart occupies. -->
+          <oj-bind-if test="[[ $page.variables.requestTypeSel !== 'EXTERNAL' ]]">
+            <div class="oj-sm-margin-bottom-4x oj-form-control-full-width">
+              <!-- oj-select-single, NOT oj-input-search. oj-input-search hard-codes
+                   maxFetchCount = 12 and stops reading the provider's rows after 12
+                   (ojinputsearch.js, remainingFetchCount loop), so however many rows
+                   the report returned, the popup showed 12. Same reason as the Task
+                   field below.
+
+                   Still backed by the report provider (customerSuggestionsProvider →
+                   CustomerTypeaheadChain → EQP_CUSTOMERS_LOV_RP): typing sends the
+                   text as filterCriterion.text and the provider returns the report's
+                   case-insensitive matches; a blank field lists the first rows by name.
+
+                   value / value-item are ONE-WAY from selectedCustomerObj. The provider
+                   only knows rows it has fetched this visit, so a resumed draft could
+                   not resolve its label by key — value-item hands it the row
+                   HydrateDraftChain rebuilt. CaptureFallbackCustomerChain ignores
+                   updatedFrom 'external', so those programmatic writes don't re-run it. -->
+              <oj-select-single aria-label="Customer" placeholder="Customer"
+                value="[[ $page.variables.selectedCustomerObj && $page.variables.selectedCustomerObj.CustomerId != null ? String($page.variables.selectedCustomerObj.CustomerId) : null ]]"
+                value-item="[[ $page.variables.selectedCustomerObj && $page.variables.selectedCustomerObj.CustomerId != null ? { key: String($page.variables.selectedCustomerObj.CustomerId), data: $page.variables.selectedCustomerObj } : null ]]"
+                data="[[ $functions.customerSuggestionsProvider() ]]" item-text="Customer"
+                class="oj-form-control-full-width eqr-project-lov"
+                on-value-item-changed="[[ $listeners.customerSelectedFromSDP ]]">
+                <template slot="itemTemplate">
+                  <div style="display:flex; flex-direction:column; line-height:1.3; padding:2px 0;">
+                    <span style="font-weight:600; color:#161513;">
+                      <oj-bind-text value="[[ $current.data.Customer ]]"></oj-bind-text>
+                    </span>
+                    <span style="font-size:11px; color:#6b7280;">
+                      <oj-bind-text value="[[ $current.data.CustomerNumber ]]"></oj-bind-text>
+                    </span>
+                  </div>
+                </template>
+              </oj-select-single>
+              <oj-bind-if test="[[ $flow.variables.request.isSoftReservation !== true ]]"><div class="eqr-required-caption">Required</div></oj-bind-if>
+            </div>
+
+            <!-- Locked to the signed-in user — SeedRequestorChain fills it from
+                 the JWT / VB identity and matches an EQR_USER row. A white
+                 ONE-option LOV (requestorADP holds only the signed-in user),
+                 keyed by name, inside an inert .eqr-locked-lov so it looks like
+                 a field but cannot be opened. The id is request.requestorId, null
+                 when the user has no EQR_USER row yet. -->
+            <div class="eqr-locked-lov" inert>
+            <oj-select-single label-hint="Requestor Contact"
+              value="[[ $flow.variables.request.requestorName ]]"
+              data="[[ $variables.requestorADP ]]" item-text="label"
+              class="oj-form-control-full-width"></oj-select-single>
+            </div>
+          </oj-bind-if>
+
+          <!-- Project + Task + Contract — hidden on an EXTERNAL request unless
+               EXTERNAL_PROJECT_ASSIGN_ENABLED is on. Contract is inside this
+               gate because its LOV is keyed on the chosen project (see its own
+               comment below); without Project it can never populate.
+
+               An external request is raised with no project: the manager
+               attributes one later from request-detail-page's Assign Project
+               drawer, which hangs off this same flag. Offering the pickers here
+               while that flag is off would let a project be set at creation by a
+               route the flag is supposed to close — the two surfaces have to
+               agree, so both read the one flag.
+
+               isFeatureEnabled() fails CLOSED (false while flagsLoaded is still
+               false), so on a slow config load the fields stay hidden and then
+               appear, rather than being offered and yanked away mid-entry.
+
+               INTERNAL is unaffected: a project request always carries its
+               project from creation, so the test short-circuits on type before
+               the flag is consulted. RequestTypeChangedChain clears any
+               project/task already picked when the fields become hidden. -->
+          <oj-bind-if test="[[ $page.variables.requestTypeSel !== 'EXTERNAL'
+            || $application.functions.isFeatureEnabled($application.variables.featureFlags,
+                 $application.variables.flagsLoaded, 'EXTERNAL_PROJECT_ASSIGN_ENABLED') ]]">
+          <div class="oj-sm-margin-bottom-4x eqr-project-lov oj-form-control-full-width">
+            <!-- Suggestions come from projectSuggestionsProvider() (page module). The field asks it per typed text; it fires projectSearchRequested and ProjectTypeaheadChain answers with the BIP report's rows
+                 (debounced, min 2 chars) from the BIP report EQP_PROJECTS_LOV_RP.
+                 That report matches name OR number with UPPER() on both sides, so
+                 the search is case-insensitive in ONE call — Fusion REST projectsLOV
+                 cannot do that (its LIKE is case-sensitive, extra OR terms ignored).
+
+                 oj-select-single, NOT oj-input-search: oj-input-search hard-codes
+                 maxFetchCount = 12 and stops reading the provider after 12 rows
+                 (ojinputsearch.js, remainingFetchCount loop), so the report's matches
+                 were cut to 12. Same fix as the Customer and Task fields.
+
+                 value / value-item are ONE-WAY, built from request.projectId /
+                 projectName / projectNumber. Those live on the FLOW, so a resumed
+                 draft or a catalog round-trip still shows its label even though the
+                 provider has fetched nothing yet this visit. CaptureProjectNameChain
+                 ignores updatedFrom 'external', so RequestTypeChangedChain clearing
+                 the project doesn't re-run it. -->
+            <oj-select-single aria-label="Project" placeholder="Project"
+              value="[[ $flow.variables.request.projectId != null ? String($flow.variables.request.projectId) : null ]]"
+              value-item="[[ $flow.variables.request.projectId != null ? { key: String($flow.variables.request.projectId), data: { ProjectId: $flow.variables.request.projectId, ProjectName: $flow.variables.request.projectName, ProjectNumber: $flow.variables.request.projectNumber } } : null ]]"
+              data="[[ $functions.projectSuggestionsProvider() ]]"
+              item-text="ProjectName" class="oj-form-control-full-width"
+              on-value-item-changed="[[ $listeners.projectSelected ]]">
+              <template slot="itemTemplate">
+                <div style="display:flex; flex-direction:column; line-height:1.3; padding:2px 0;">
+                  <span style="font-weight:600; color:#161513;">
+                    <oj-bind-text value="[[ $current.data.ProjectName ]]"></oj-bind-text>
+                  </span>
+                  <span style="font-size:11px; color:#6b7280;">
+                    <oj-bind-text value="[[ $current.data.ProjectNumber ]]"></oj-bind-text>
+                  </span>
+                </div>
+              </template>
+            </oj-select-single>
+            <oj-bind-if test="[[ $flow.variables.request.isSoftReservation !== true ]]"><div class="eqr-required-caption">Required</div></oj-bind-if>
+          </div>
+          <!-- Task — oj-select-single, NOT oj-input-search (Project and Customer moved off it too).
+               oj-input-search hard-codes `const maxFetchCount = 12` (ojinputsearch.js) and
+               its popup does not load more on scroll, so it can only ever render the first
+               12 tasks no matter what limit the SDP asks for — the reason this LOV showed a
+               truncated task list. oj-select-single's dropdown is an oj-list-view, which
+               pages in more rows as you scroll, so EVERY task on the project is reachable.
+
+               Still searchable, which is what the input-search was adopted for: the
+               dropdown carries its own filter field, and typing there matches over
+               TaskName and TaskNumber. That match is now LOCAL — tasksDp resolves to
+               an ArrayDataProvider holding the project's leaf tasks, whose
+               textFilterAttributes name the two columns. It was a server-side Fusion
+               q= predicate (via ./services/ProjectLOV/transforms/projectTasks.js) while
+               this field was an SDP; that transform is no longer on this path. Local
+               matching is why the field no longer round-trips per keystroke.
+
+               tasksDp is handed over PENDING by LoadTaskTreeChain, so opening the
+               dropdown mid-load shows JET's own skeleton and fills in place. The field
+               is deliberately NOT disabled while loading: a disabled oj-select-single
+               closes its own dropdown, which is what forced users to open it twice.
+
+               value binds the KEY (TaskId, the provider's keyAttributes); TaskName and
+               TaskNumber are captured off the picked row by TaskSelectedChain. -->
+          <div class="oj-sm-margin-bottom-4x oj-form-control-full-width">
+            <oj-select-single aria-label="Task" placeholder="Task"
+              value="{{ $flow.variables.request.taskId }}" data="[[ $variables.tasksDp ]]"
+              item-text="TaskName" class="oj-form-control-full-width eqr-project-lov"
+              disabled="[[ !$flow.variables.request.projectId ]]"
+              on-oj-value-action="[[ $listeners.taskSelectedFromSearch ]]">
+              <!-- Dropdown rows only: name over its outline number. The collapsed field
+                   keeps showing item-text (the name alone).
+
+                   Lists only the CHARGEABLE LEAVES of the WBS — LoadTaskTreeChain
+                   drops the summary nodes before they reach tasksDp, because a
+                   summary task cannot take cost in PPM. On a 4-level breakdown that
+                   is most of the rows (35 of 50 on the reference project). -->
+              <template slot="itemTemplate">
+                <div style="display:flex; flex-direction:column; line-height:1.3; padding:2px 0;">
+                  <span style="font-weight:600; color:#161513;">
+                    <oj-bind-text value="[[ $current.data.TaskName ]]"></oj-bind-text>
+                  </span>
+                  <span style="font-size:11px; color:#6b7280;">
+                    <oj-bind-text value="[[ $current.data.TaskNumber ]]"></oj-bind-text>
+                  </span>
+                </div>
+              </template>
+            </oj-select-single>
+            <oj-bind-if test="[[ $variables.taskError ]]">
+              <div style="font-size:12px; color:#c74634; padding-top:4px;">
+                <oj-bind-text value="[[ $variables.taskError ]]"></oj-bind-text>
+              </div>
+            </oj-bind-if>
+            <oj-bind-if test="[[ $flow.variables.request.isSoftReservation !== true ]]"><div class="eqr-required-caption">Required</div></oj-bind-if>
+          </div>
+          <!-- Contract LOV — a PLAIN oj-select-single bound directly to the page's own
+               contractsAdp (no oj-vb-fragment). LoadContractsChain (called from
+               CaptureProjectNameChain) mutates contractsAdp.data IN PLACE on every project
+               change, so this component's data-provider reference never changes and it never
+               remounts/flickers — the flicker with the previous fragment-based version came
+               from the fragment itself being torn down and rebuilt, or (even always-mounted)
+               from the fragment replacing its whole itemsAdp object on reload. See
+               project_contracts_bip_lov.md for the full history of what was tried before this.
+
+               INSIDE the Project/Task oj-bind-if above — it shares their gate:
+               shown for INTERNAL always, and for EXTERNAL only when
+               EXTERNAL_PROJECT_ASSIGN_ENABLED is on.
+               The reason is mechanical, not just tidiness: the contract list
+               comes from EQP_CONTRACTS_BY_PROJECT_LOV_RP, keyed on the chosen
+               PROJECT. With Project hidden there is nothing to key it on, so the
+               field could only ever sit disabled at 'Select a project first' —
+               an unfillable control. It is NOT scoped to the external customer;
+               that would need a customer-keyed contract source, which doesn't
+               exist today. -->
+          <oj-select-single label-hint="Contract" value="{{ $page.variables.selectedContractId }}"
+            data="[[ $page.variables.contractsAdp ]]" item-text="label"
+            class="oj-form-control-full-width"
+            disabled="[[ !$flow.variables.request.projectId || $page.variables.isContractsLoading ]]"
+            placeholder="[[ !$flow.variables.request.projectId ? 'Select a project first' : ($page.variables.isContractsLoading ? 'Loading contracts…' : '— Select Contract —') ]]"
+            on-value-item-changed="[[ $listeners.contractSelected ]]">
+            <template slot="itemTemplate" data-oj-as="item">
+              <div class="oj-sm-padding-2x oj-sm-background-contrast-subtle oj-sm-border-bottom">
+                <div class="oj-sm-text-secondary oj-sm-display-block">
+                  <oj-bind-text value="[[ item.data.label ]]"></oj-bind-text>
+                </div>
+                <div class="oj-sm-text-secondary oj-sm-display-block oj-sm-margin-top-2x oj-typography-caption">
+                  <small>
+                    <oj-bind-text value="[[ item.data.label2 ]]"></oj-bind-text>
+                  </small>
+                </div>
+              </div>
+            </template>
+          </oj-select-single>
+          </oj-bind-if><!-- /Project + Task + Contract gate -->
+          <!-- Rental Agreement — SHOWN FOR BOTH CUSTOMER TYPES now (still behind
+               the AGREEMENTS_ENABLED flag, which is the only remaining gate).
+               It was previously internal-only on the reasoning that an agreement
+               is a project-side construct.
+
+               NOTE the list is filtered by customerFilterId, which is a FUSION
+               customer id set from the Internal Customer picker. An external
+               request identifies its party by eqrCustomerRefId (EQR_CUSTOMER_REF)
+               instead and never sets that filter, so on external this shows the
+               full active agreement list rather than one scoped to the chosen
+               external customer. Accepted deliberately for now; narrowing it
+               would need agreements to be resolvable from an EQR customer ref. -->
+          <oj-bind-if
+            test="[[ $application.functions.isFeatureEnabled($application.variables.featureFlags, $application.variables.flagsLoaded, 'AGREEMENTS_ENABLED') ]]">
+            <oj-select-single label-hint="Rental Agreement (optional)" value="{{ $variables.selectedAgreementId }}"
+              data="[[ $variables.agreementsADP ]]" item-text="label" class="oj-form-control-full-width"
+              placeholder="[[ $variables.customerFilterId ? '— No active agreements for this customer —' : '— No agreement (standalone request) —' ]]"
+              readonly="[[ !!$flow.variables.fromAgreementId && $flow.variables.requestOrigin === 'agreement' ]]"
+              on-value-changed="[[ $listeners.agreementSelected ]]"></oj-select-single>
+          </oj-bind-if>
+          <!-- Requestor Contact now lives in the party pair at the top of this
+               grid, paired with Internal Customer — see the INTERNAL party pair
+               block. It is the SIGNED-IN user's EQR_USER → requestorUserId (locked, see SeedRequestorChain),
+               and on an external request the Customer Contact picker takes its
+               place, choosing an EQR_CUSTOMER_PORTAL_USER →
+               eqrCustomerPortalUserId. Both bind the same request.requestorId
+               because they are mutually exclusive on screen and
+               SubmitRequestChain routes that one id to the right column by mode
+               — see CaptureExternalContactChain. -->
+          <!-- Soft Reservation — INTERNAL only. Toggle bound directly to the
+               boolean $flow.variables.request.isSoftReservation (downstream
+               relies on === true). A soft reservation relaxes the required
+               fields for an internal placeholder booking; an external customer
+               request is always a firm one, and RequestTypeChangedChain forces
+               the flag false on switch so a toggle left on before the switch
+               can't silently weaken validation behind a hidden control. -->
+          <oj-bind-if test="[[ $page.variables.requestTypeSel !== 'EXTERNAL' ]]">
+            <div class="oj-sm-margin-bottom-4x">
+              <div style="font-size: 12px; color: #6b7280; margin-bottom: 8px;">Soft Reservation</div>
+              <oj-switch value="{{ $flow.variables.request.isSoftReservation }}" label-edge="none"></oj-switch>
+            </div>
+          </oj-bind-if>
+        </div>
+        <div style="font-size: 15px; font-weight: 700; color: #0f172a; margin: 24px 0 16px;">Dates</div>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 24px; align-items: start;">
+          <oj-input-date label-hint="Start Date" value="{{ $flow.variables.request.startDate }}"
+            date-picker.show-on="userFocus" class="oj-form-control-full-width" required="true"></oj-input-date>
+          <oj-input-date label-hint="End Date" value="{{ $flow.variables.request.endDate }}"
+            date-picker.show-on="userFocus" min="[[ $flow.variables.request.startDate || null ]]"
+            class="oj-form-control-full-width" required="true"></oj-input-date>
+          <!-- Planned Hours — INTERNAL only, and only while TIMESHEETS_ENABLED
+               is on.
+                 EXTERNAL → always hidden. Hours are a project-side timesheet
+                   input (they seed default_hours for timesheet entry); a
+                   customer request has no hours concept anywhere in its path.
+                 INTERNAL → hidden when TIMESHEETS_ENABLED is off. That flag is
+                   the app-wide costing-intent switch: with it off the app bills
+                   on the complete request period (start→end × rate) and hours
+                   are ignored entirely, so asking for a value nothing consumes
+                   is misleading.
+               Same rule gates the cart's HOURS column (showHoursColumn) and the
+               Time Keeper nav section, so the three stay consistent.
+               isFeatureEnabled fails CLOSED — the field stays hidden while
+               settings load rather than appearing and then vanishing. -->
+          <oj-bind-if test="[[ $page.variables.requestTypeSel !== 'EXTERNAL'
+            && $application.functions.isFeatureEnabled($application.variables.featureFlags,
+                 $application.variables.flagsLoaded, 'TIMESHEETS_ENABLED') ]]">
+            <oj-input-number label-hint="Planned Hours" value="{{ $flow.variables.request.hours }}"
+              class="oj-form-control-full-width" min="0" max="24" step="1"></oj-input-number>
+          </oj-bind-if>
+        </div>
+        <div style="font-size: 15px; font-weight: 700; color: #0f172a; margin: 24px 0 16px;">Delivery Details</div>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 24px; align-items: start;">
+          <!-- Location Type — INTERNAL only. It chooses between delivering to a
+               project ship-to site and a free-text/map address, and a project
+               site is meaningless for an external customer request.
+
+               Hiding it alone would strand the Delivery Location field: BOTH of
+               its variants below are gated on locationType, so an unset value
+               renders neither. RequestTypeChangedChain therefore pins
+               locationType to 'DELIVERY_LOCATION' when switching to External —
+               the free-text + map field, which is exactly what
+               customer-create-req-page uses. -->
+          <oj-bind-if test="[[ $page.variables.requestTypeSel !== 'EXTERNAL' ]]">
+          <oj-select-single label-hint="Location Type" value="{{ $page.variables.locationType }}"
+            data="[[ $variables.locationTypeADP ]]" item-text="label" class="oj-form-control-full-width" required="[[ $flow.variables.request.isSoftReservation !== true ]]"
+            on-value-changed="[[ (e) => {
+                var v = e.detail.value;
+                // Mirror onto $flow.variables.request.locationType too — $page.variables
+                // don't survive a catalog round-trip, request does. HydrateDraftChain reads
+                // this back on same-trip return to rehydrate locationType.
+                $flow.variables.request.locationType = v;
+                // Only a USER change resets the location. HydrateDraftChain sets
+                // locationType programmatically on a return from the catalog /
+                // cart; acting on that cleared the saved address and ids and
+                // popped the map drawer open every time.
+                if (e.detail.updatedFrom !== 'internal') { return; }
+                // The two Fusion delivery ids belong to INV_ORG alone. Clear them
+                // on EVERY type change, including the switch INTO 'INV_ORG' —
+                // otherwise picking Chicago, switching to the map, then switching
+                // back would leave Chicago's ids attached to a location the user
+                // has not re-picked, and the asset would be relocated to a yard
+                // nobody chose. Re-selecting a row repopulates them immediately.
+                $flow.variables.request.deliveryInvOrgId   = null;
+                $flow.variables.request.deliveryLocationId = null;
+                if (v === 'PROJECT_SITE') {
+                  $flow.variables.request.location = '';
+                  $page.variables.selectedShipToSiteObj = null;
+                  $page.variables.isLocationDrawerOpen = false;
+                } else if (v === 'DELIVERY_LOCATION') {
+                  $flow.variables.request.location = '';
+                  $page.variables.selectedShipToSiteObj = null;
+                  $page.variables.isLocationDrawerOpen = true;
+                } else if (v === 'INV_ORG') {
+                  // Clear the previous mode's answer AND the picker's own
+                  // state: switching type must not leave the old location
+                  // string behind, and must not leave a stale org selected
+                  // underneath a field the user hasn't touched yet. The map
+                  // drawer stays shut — this mode picks from a list.
+                  $flow.variables.request.location = '';
+                  $page.variables.selectedShipToSiteObj = null;
+                  $page.variables.selectedInvOrgLocationId = null;
+                  $page.variables.selectedInvOrgLocationItem = null;
+                  $page.variables.isLocationDrawerOpen = false;
+                }
+              } ]]"></oj-select-single>
+          </oj-bind-if>
+          <!-- Delivery Location — mode-aware, per Location Type:
+               PROJECT_SITE: a plain oj-select-single bound to page-level shipToSitesAdp (same
+               no-fragment/in-place-mutation pattern as Contract above), scoped to the current
+               project+CONTRACT. LoadShipToSitesChain (called from CaptureContractChain) reloads
+               on contract change. idField/value = SITE_ADDRESS text, so selecting a row
+               writes straight into request.location (see CaptureShipToSiteChain) — the exact
+               string every downstream consumer (geocoder, NavigateToCatalogChain validation,
+               SubmitRequestChain) already expects.
+               DELIVERY_LOCATION: unchanged — the free-text field wired to the map drawer.
+
+               GATED ON CONTRACT ALONE. It used to require a contract AND a
+               customer, because the old sites report was per-customer. The list
+               now spans every customer on the contract, so the customer is no
+               longer part of the gate — see LoadShipToSitesChain. Rows show the
+               customer name under the address: with several customers merged
+               into one list, two sites can otherwise read identically. -->
+          <oj-bind-if test="[[ $page.variables.locationType === 'PROJECT_SITE' ]]">
+            <!-- NOT disabled when there is no contract. A disabled
+                 oj-select-single renders an empty grey box and DROPS its
+                 placeholder, so the "Choose a Contract" hint was invisible —
+                 the user saw a greyed field with no explanation. The field is
+                 therefore left enabled and the guidance is carried entirely by
+                 the placeholder; with no contract the data list is empty, so
+                 opening it offers nothing to pick and the value can't be set.
+                 (readonly is not an option either: an empty readonly field
+                 renders with no box at all in Redwood — see the free-text
+                 Delivery Location variant below.)
+
+                 Three placeholder states, in precedence order:
+                   no contract      → 'Choose a Contract'
+                   loading          → 'Loading ship-to sites…'
+                   loaded, 0 rows   → 'No Location Found'
+                   loaded, N rows   → '— Select Ship-To Site —'
+                 The zero-row case is only distinguishable AFTER the report has
+                 run, which is what shipToSitesLoaded tracks — an empty data
+                 array alone can't tell "none exist" from "not fetched yet". -->
+            <oj-select-single label-hint="Delivery Location" value="{{ $flow.variables.request.location }}"
+              data="[[ $page.variables.shipToSitesAdp ]]" item-text="label" class="oj-form-control-full-width" required="[[ $flow.variables.request.isSoftReservation !== true ]]"
+              disabled="[[ $page.variables.isShipToSitesLoading ]]"
+              placeholder="[[ !$page.variables.selectedContractId ? 'Choose a Contract'
+                : ($page.variables.isShipToSitesLoading ? 'Loading ship-to sites…'
+                : (($page.variables.shipToSitesLoaded && (!$page.variables.shipToSitesAdp.data || $page.variables.shipToSitesAdp.data.length === 0)) ? 'No Location Found'
+                : '— Select Ship-To Site —')) ]]"
+              on-value-item-changed="[[ $listeners.shipToSiteSelected ]]">
+              <!-- Two-line row: ADDRESS on top (primary — it is what gets
+                   selected into request.location), CUSTOMER NAME beneath it in
+                   small muted text. Explicit sizing rather than the generic
+                   oj-sm-text-secondary on both lines, which rendered the two at
+                   the same weight so neither read as the primary value. Mirrors
+                   the Task LOV's name-over-number treatment further up this page.
+                   The collapsed field still shows item-text (the address alone). -->
+              <template slot="itemTemplate" data-oj-as="item">
+                <div style="display:flex; flex-direction:column; line-height:1.3; padding:2px 0;">
+                  <span style="font-weight:600; color:#161513;">
+                    <oj-bind-text value="[[ item.data.label ]]"></oj-bind-text>
+                  </span>
+                  <oj-bind-if test="[[ item.data.label2 ]]">
+                    <span style="font-size:11px; color:#6b7280;">
+                      <oj-bind-text value="[[ item.data.label2 ]]"></oj-bind-text>
+                    </span>
+                  </oj-bind-if>
+                </div>
+              </template>
+            </oj-select-single>
+          </oj-bind-if>
+          <!-- Clicking the Delivery Location field re-opens the map drawer (only
+               when Location Type = Enter Delivery location) — so closing the
+               drawer without picking isn't a dead end. Native click is used
+               because oj-input-text emits no oj-level focus/click event.
+               NOT readonly: an empty readonly field renders with no box in
+               Redwood (looks like it vanished), so we keep it editable — the
+               click-to-reopen means picking on the map is still the path. -->
+          <!-- INV_ORG is excluded here: this branch used to catch EVERY
+               non-PROJECT_SITE type, so without the extra test the free-text
+               field and the inv-org picker below would both render. -->
+          <oj-bind-if test="[[ $page.variables.locationType !== 'PROJECT_SITE'
+                               && $page.variables.locationType !== 'INV_ORG' ]]">
+            <oj-input-text label-hint="Delivery Location" value="{{ $flow.variables.request.location }}"
+              class="oj-form-control-full-width"
+              placeholder="[[ !$page.variables.locationType ? 'Select a location type first' : 'Click to pick on map' ]]"
+              disabled="[[ !$page.variables.locationType ]]" required="[[ $flow.variables.request.isSoftReservation !== true ]]"
+              on-click="[[ () => { if ($page.variables.locationType === 'DELIVERY_LOCATION') $page.variables.isLocationDrawerOpen = true; } ]]"></oj-input-text>
+          </oj-bind-if>
+
+          <!-- INTERNAL LOCATION: Delivery Location becomes a destination-org
+               picker off EQR_BU_ORG_MAPPING (orgRole=DESTINATION_YARD).
+
+               SHOWS THE ADDRESS, not just the org name — a delivery destination
+               is a place, and "Chicago (003)" alone doesn't tell the requestor
+               where the equipment is going. The address is already ON the
+               mapping row: invOrgAddress.js pulls it from BIP
+               EQP_INV_ORG_ADDRESSES.xdo and geocodes it when the admin saves the
+               mapping, so this picker needs no BIP call and no geocoder call of
+               its own.
+
+               WRITES THE COMPOSED ADDRESS into request.location, not the org
+               name and not the id. Every downstream consumer — the geocoder,
+               NavigateToCatalogChain's required-field check, SubmitRequestChain
+               — treats location as an address-like string, so an id would pass
+               validation and then geocode to nothing. formatInvOrgAddress()
+               owns the composition so the value stored and the value displayed
+               can never drift.
+
+               ALSO CAPTURES TWO FUSION IDS. Selection is handled by
+               CaptureInvOrgLocationChain rather than an inline expression,
+               because picking a row now does more than set a label: it stores
+               request.deliveryInvOrgId (the org) and looks up
+               request.deliveryLocationId (its hr_locations LocationId) from
+               Fusion's inventoryOrganizations. Those two ids are what let
+               maintAssetLocation.js relocate the maintenance asset in Fusion when
+               the equipment ships — there is no way back to them from the address
+               string alone. The address write is unchanged and still goes through
+               formatInvOrgAddress; it just lives in the chain now. The lookup is
+               best-effort and never blocks the submit.
+
+               value-item is required for the same reason as the Yard picker on
+               request-detail-page: bu-org-mappings cannot fetchByKeys a single
+               invOrgId, so without the whole item the field renders blank after
+               selection. -->
+          <oj-bind-if test="[[ $page.variables.locationType === 'INV_ORG' ]]">
+            <oj-select-single label-hint="Delivery Location"
+              class="oj-form-control-full-width" required="[[ $flow.variables.request.isSoftReservation !== true ]]"
+              placeholder="Search internal locations"
+              clear-value="conditional"
+              value="{{ $page.variables.selectedInvOrgLocationId }}"
+              value-item="{{ $page.variables.selectedInvOrgLocationItem }}"
+              data="[[ $variables.invOrgLocationSDP ]]"
+              item-text="[[ (ctx) => ctx && ctx.data ? $page.functions.invOrgOptionText(ctx.data) : '' ]]"
+              on-value-item-changed="[[ $listeners.invOrgLocationSelected ]]">
+              <!-- ADDRESS ONLY. The field answers "where does the equipment go",
+                   so the address is the whole answer — the org name and code are
+                   internal identifiers that don't help someone choose a place.
+
+                   Falls back to the org name when a row carries no address, so a
+                   row can never render blank and become unpickable. Every
+                   DESTINATION_YARD row in paasdev has one. -->
+              <template slot="itemTemplate">
+                <div style="line-height:1.35; padding:4px 0;">
+                  <span style="color:#161513; font-size:14px;">
+                    <oj-bind-text value="[[ $page.functions.formatInvOrgAddress($current.data)
+                                            || $current.data.invOrgName ]]"></oj-bind-text>
+                  </span>
+                </div>
+              </template>
+            </oj-select-single>
+          </oj-bind-if>
+          <oj-text-area label-hint="Notes / Special Instructions" value="{{ $flow.variables.request.notes }}"
+            class="oj-form-control-full-width" rows="1"></oj-text-area>
+        </div>
+      </div>
+    </oj-sp-collection-container>
+  </div>
+
+
+
+
+
+</oj-sp-general-overview-page>
+
+<!-- Delivery-location map drawer (right side / edge=end). Auto-opens when
+     Location Type = Enter Delivery location (see the select's on-value-changed).
+     UI only for now: search + map-click drop a pin and fill the "Selected
+     address" readout; writing the chosen address/coords back to
+     $flow.variables.request.location is wired in a follow-up. The map itself is
+     built imperatively by the page module (initLocationMap) when the drawer
+     opens — see LocationDrawerToggleChain on on-opened-changed. -->
+<oj-drawer-popup id="locationDrawer" edge="end"
+  opened="{{ $page.variables.isLocationDrawerOpen }}"
+  on-opened-changed="[[ $listeners.locationDrawerOpenedChanged ]]"
+  style="width: 520px; max-width: 96vw;">
+  <div style="display:flex; flex-direction:column; height:100%; padding:20px 20px 16px; box-sizing:border-box;">
+
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
+      <span style="font-size:16px; font-weight:700; color:#0f172a;">Delivery location</span>
+      <oj-button chroming="borderless" display="icons" title="Close"
+        on-oj-action="[[ () => { $page.variables.isLocationDrawerOpen = false; } ]]">
+        <span slot="startIcon" class="oj-ux-ico-close"></span>
+      </oj-button>
+    </div>
+    <div style="font-size:13px; color:#64748b; margin-bottom:12px;">
+      Search an address or click the map to drop a pin.
+    </div>
+
+    <!-- Address typeahead: type ≥3 chars → the module's MapboxSuggestProvider
+         (a custom DataProvider) geocodes inside fetchFirst, which oj-input-search
+         awaits and paints. Picking a suggestion applies its exact parsed
+         components + coords (no top-result guessing). Map click still fine-tunes. -->
+    <oj-input-search aria-label="Search address" placeholder="Start typing an address…"
+      value="{{ $page.variables.locationSearchText }}"
+      suggestions="[[ $functions.addressSuggestionsProvider() ]]"
+      suggestion-item-text="label"
+      class="oj-form-control-full-width"
+      on-oj-value-action="[[ $listeners.addressSuggestionSelected ]]">
+      <template slot="suggestionItemTemplate" data-oj-as="suggestion">
+        <div class="oj-sm-padding-2x oj-sm-border-bottom" style="line-height:1.35;">
+          <oj-bind-text value="[[ suggestion.data.label ]]"></oj-bind-text>
+        </div>
+      </template>
+    </oj-input-search>
+
+    <div id="pcr-map"
+      style="width:100%; height:340px; margin-top:14px; border-radius:10px; overflow:hidden; border:1px solid #e2e8f0; background:#eef2f7;"></div>
+
+    <div style="margin-top:14px; overflow:auto;">
+      <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#94a3b8; margin-bottom:8px;">Selected address</div>
+      <!-- Oracle-style address components, parsed from the geocode result by the
+           page module (fired as the locationResolved event → LocationResolvedChain
+           writes these vars). Editable so the user can correct Line 2 / any field. -->
+      <oj-form-layout max-columns="2" direction="row" label-edge="inside" class="oj-form-control-full-width">
+        <oj-input-text label-hint="Address Line 1" value="{{ $page.variables.addr1 }}"
+          class="oj-form-control-full-width oj-form-cols-span-all"></oj-input-text>
+        <oj-input-text label-hint="Address Line 2" value="{{ $page.variables.addr2 }}"
+          class="oj-form-control-full-width oj-form-cols-span-all"></oj-input-text>
+        <oj-input-text label-hint="City" value="{{ $page.variables.city }}" class="oj-form-control-full-width"></oj-input-text>
+        <oj-input-text label-hint="County" value="{{ $page.variables.county }}" class="oj-form-control-full-width"></oj-input-text>
+        <oj-input-text label-hint="State / Province" value="{{ $page.variables.addrState }}" class="oj-form-control-full-width"></oj-input-text>
+        <oj-input-text label-hint="Postal Code" value="{{ $page.variables.postalCode }}" class="oj-form-control-full-width"></oj-input-text>
+        <oj-input-text label-hint="Country" value="{{ $page.variables.country }}" class="oj-form-control-full-width oj-form-cols-span-all"></oj-input-text>
+      </oj-form-layout>
+      <div id="pcr-picked-coords" style="font-size:12px; color:#64748b; margin-top:6px;">
+        <oj-bind-if test="[[ $page.variables.pickedLat != null ]]">
+          Lat <oj-bind-text value="[[ $page.variables.pickedLat ]]"></oj-bind-text> ·
+          Lng <oj-bind-text value="[[ $page.variables.pickedLng ]]"></oj-bind-text>
+        </oj-bind-if>
+      </div>
+    </div>
+
+    <div style="margin-top:auto; display:flex; gap:8px; justify-content:flex-end; padding-top:16px;">
+      <oj-button chroming="outlined" on-oj-action="[[ () => { $page.variables.isLocationDrawerOpen = false; } ]]">Cancel</oj-button>
+      <oj-button chroming="callToAction" on-oj-action="[[ $listeners.useLocation ]]">
+        <span slot="startIcon" class="oj-ux-ico-check"></span>
+        <span>Use this location</span>
+      </oj-button>
+    </div>
+
+  </div>
+</oj-drawer-popup>
+
+<!-- Confirmation dialog for the X-button on the agreement banner. -->
+<oj-dialog id="clearAgreementDialog" dialog-title="Clear agreement?"
+  initial-visibility="hide" cancel-behavior="icon" modality="modal"
+  style="width:480px; max-width:96vw;">
+  <div slot="body" style="padding:8px 4px 4px; font-size:14px; color:#475569; line-height:1.5;">
+    <p style="margin:0 0 8px 0;">
+      Start with a blank request? The agreement context and all equipment currently in your cart from this agreement will be removed.
+    </p>
+    <p style="margin:0; color:#64748b; font-size:13px;">
+      You can return to <oj-bind-text value="[[ $flow.variables.fromAgreementNumber || 'the agreement' ]]"></oj-bind-text> later to start over.
+    </p>
+  </div>
+  <div slot="footer" style="display:flex; gap:8px; justify-content:flex-end;">
+    <oj-button chroming="outlined"
+      on-oj-action="[[ function() { var d = document.getElementById('clearAgreementDialog'); if (d) d.close(); } ]]">
+      Cancel
+    </oj-button>
+    <oj-button chroming="callToAction" on-oj-action="[[ $listeners.onClearAgreementContext ]]">
+      <span slot="startIcon" class="oj-ux-ico-trash"></span>
+      <span>Clear agreement</span>
+    </oj-button>
+  </div>
+</oj-dialog>
+

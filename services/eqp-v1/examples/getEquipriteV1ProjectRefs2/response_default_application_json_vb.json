@@ -1,0 +1,209 @@
+{
+    "data": [
+        {
+            "id": 1000000001,
+            "projectNumber": "PR-2024-0101",
+            "projectName": "Portsmouth Naval Shipyard P-381 Dry Dock - Superblock 1",
+            "businessUnitId": 101,
+            "projectStatus": "ACTIVE",
+            "objectVersionNumber": 1,
+            "createdDate": "2026-04-29T03:55:22Z",
+            "lastUpdatedDate": "2026-04-29T03:55:22Z"
+        },
+        {
+            "id": 1000000002,
+            "projectNumber": "PR-2024-0102",
+            "projectName": "Portsmouth Naval Shipyard P-381 Dry Dock - Superblock 2",
+            "businessUnitId": 101,
+            "projectStatus": "ACTIVE",
+            "objectVersionNumber": 1,
+            "createdDate": "2026-04-29T03:55:22Z",
+            "lastUpdatedDate": "2026-04-29T03:55:22Z"
+        },
+        {
+            "id": 1000000003,
+            "projectNumber": "PR-2024-0103",
+            "projectName": "Portsmouth Naval Shipyard P-381 Dry Dock - Superblock 3",
+            "businessUnitId": 101,
+            "projectStatus": "ACTIVE",
+            "objectVersionNumber": 1,
+            "createdDate": "2026-04-29T03:55:22Z",
+            "lastUpdatedDate": "2026-04-29T03:55:22Z"
+        },
+        {
+            "id": 1000000004,
+            "projectNumber": "PR-2024-0104",
+            "projectName": "Bath Iron Works DDG-126 Destroyer - Hull Outfitting",
+            "businessUnitId": 101,
+            "projectStatus": "ACTIVE",
+            "objectVersionNumber": 1,
+            "createdDate": "2026-04-29T03:55:22Z",
+            "lastUpdatedDate": "2026-04-29T03:55:22Z"
+        },
+        {
+            "id": 1000000005,
+            "projectNumber": "PR-2024-0105",
+            "projectName": "Central Maine Power Transmission Line Upgrade - Phase 1",
+            "businessUnitId": 102,
+            "projectStatus": "ACTIVE",
+            "objectVersionNumber": 1,
+            "createdDate": "2026-04-29T03:55:22Z",
+            "lastUpdatedDate": "2026-04-29T03:55:22Z"
+        },
+        {
+            "id": 1000000006,
+            "projectNumber": "PR-2024-0106",
+            "projectName": "Central Maine Power Transmission Line Upgrade - Phase 2",
+            "businessUnitId": 102,
+            "projectStatus": "ACTIVE",
+            "objectVersionNumber": 1,
+            "createdDate": "2026-04-29T03:55:22Z",
+            "lastUpdatedDate": "2026-04-29T03:55:22Z"
+        },
+        {
+            "id": 1000000007,
+            "projectNumber": "PR-2024-0107",
+            "projectName": "Maine DOT I-295 Bridge Replacement - Falmouth",
+            "businessUnitId": 102,
+            "projectStatus": "ACTIVE",
+            "objectVersionNumber": 1,
+            "createdDate": "2026-04-29T03:55:22Z",
+            "lastUpdatedDate": "2026-04-29T03:55:22Z"
+        },
+        {
+            "id": 1000000008,
+            "projectNumber": "PR-2024-0108",
+            "projectName": "Maine DOT US-1 Coastal Highway Resurfacing",
+            "businessUnitId": 102,
+            "projectStatus": "ACTIVE",
+            "objectVersionNumber": 1,
+            "createdDate": "2026-04-29T03:55:22Z",
+            "lastUpdatedDate": "2026-04-29T03:55:22Z"
+        },
+        {
+            "id": 1000000009,
+            "projectNumber": "PR-2023-0091",
+            "projectName": "General Dynamics EB Submarine Drydock Support",
+            "businessUnitId": 101,
+            "projectStatus": "CLOSED",
+            "objectVersionNumber": 1,
+            "createdDate": "2026-04-29T03:55:22Z",
+            "lastUpdatedDate": "2026-04-29T03:55:22Z"
+        },
+        {
+            "id": 1000000010,
+            "projectNumber": "PR-2023-0092",
+            "projectName": "Eversource Energy Substation Upgrades - NH",
+            "businessUnitId": 102,
+            "projectStatus": "CLOSED",
+            "objectVersionNumber": 1,
+            "createdDate": "2026-04-29T03:55:22Z",
+            "lastUpdatedDate": "2026-04-29T03:55:22Z"
+        },
+        {
+            "id": 1000000011,
+            "projectNumber": "PR-2025-0201",
+            "projectName": "New Hampshire DOT Route 101 Expansion",
+            "businessUnitId": 102,
+            "projectStatus": "ACTIVE",
+            "objectVersionNumber": 1,
+            "createdDate": "2026-04-29T03:55:22Z",
+            "lastUpdatedDate": "2026-04-29T03:55:22Z"
+        },
+        {
+            "id": 1000000012,
+            "projectNumber": "PR-2025-0202",
+            "projectName": "Vermont Agency Bennington Bypass Construction",
+            "businessUnitId": 102,
+            "projectStatus": "ACTIVE",
+            "objectVersionNumber": 1,
+            "createdDate": "2026-04-29T03:55:22Z",
+            "lastUpdatedDate": "2026-04-29T03:55:22Z"
+        },
+        {
+            "id": 1000000013,
+            "projectNumber": "PR-2025-0203",
+            "projectName": "Massachusetts DOT Route 128 Interchange Rebuild",
+            "businessUnitId": 102,
+            "projectStatus": "ACTIVE",
+            "objectVersionNumber": 1,
+            "createdDate": "2026-04-29T03:55:22Z",
+            "lastUpdatedDate": "2026-04-29T03:55:22Z"
+        },
+        {
+            "id": 1000000014,
+            "projectNumber": "PR-2025-0204",
+            "projectName": "Connecticut DOT I-84 Viaduct Replacement",
+            "businessUnitId": 102,
+            "projectStatus": "ON_HOLD",
+            "objectVersionNumber": 1,
+            "createdDate": "2026-04-29T03:55:22Z",
+            "lastUpdatedDate": "2026-04-29T03:55:22Z"
+        },
+        {
+            "id": 1000000015,
+            "projectNumber": "PR-2025-0205",
+            "projectName": "Rhode Island DOT Providence Viaduct Study",
+            "businessUnitId": 102,
+            "projectStatus": "ON_HOLD",
+            "objectVersionNumber": 1,
+            "createdDate": "2026-04-29T03:55:22Z",
+            "lastUpdatedDate": "2026-04-29T03:55:22Z"
+        },
+        {
+            "id": 1000000016,
+            "projectNumber": "PR-2025-0206",
+            "projectName": "New York DOT Tappan Zee Approach Repairs",
+            "businessUnitId": 102,
+            "projectStatus": "ACTIVE",
+            "objectVersionNumber": 1,
+            "createdDate": "2026-04-29T03:55:22Z",
+            "lastUpdatedDate": "2026-04-29T03:55:22Z"
+        },
+        {
+            "id": 1000000017,
+            "projectNumber": "PR-2025-0207",
+            "projectName": "New Jersey DOT Turnpike Widening - Section 8E",
+            "businessUnitId": 102,
+            "projectStatus": "ACTIVE",
+            "objectVersionNumber": 1,
+            "createdDate": "2026-04-29T03:55:22Z",
+            "lastUpdatedDate": "2026-04-29T03:55:22Z"
+        },
+        {
+            "id": 1000000018,
+            "projectNumber": "PR-2025-0208",
+            "projectName": "Bangor Hydro Transmission Corridor Clearing",
+            "businessUnitId": 102,
+            "projectStatus": "ACTIVE",
+            "objectVersionNumber": 1,
+            "createdDate": "2026-04-29T03:55:22Z",
+            "lastUpdatedDate": "2026-04-29T03:55:22Z"
+        },
+        {
+            "id": 1000000019,
+            "projectNumber": "PR-2025-0209",
+            "projectName": "Bath Iron Works Pier Extension - Phase 2",
+            "businessUnitId": 101,
+            "projectStatus": "ACTIVE",
+            "objectVersionNumber": 1,
+            "createdDate": "2026-04-29T03:55:22Z",
+            "lastUpdatedDate": "2026-04-29T03:55:22Z"
+        },
+        {
+            "id": 1000000020,
+            "projectNumber": "PR-2025-0210",
+            "projectName": "Portsmouth NSY Utility Infrastructure Upgrade",
+            "businessUnitId": 101,
+            "projectStatus": "ACTIVE",
+            "objectVersionNumber": 1,
+            "createdDate": "2026-04-29T03:55:22Z",
+            "lastUpdatedDate": "2026-04-29T03:55:22Z"
+        }
+    ],
+    "recordCount": 20,
+    "page": 0,
+    "pageSize": 20,
+    "totalPages": 1,
+    "hasMore": false
+}

@@ -1,0 +1,131 @@
+{
+  "title": "Billing Detail",
+  "variables": {
+    "requestId": {
+      "type": "string",
+      "input": "fromUrl",
+      "persisted": "none"
+    },
+    "requestNumericId": {
+      "type": "number",
+      "input": "fromUrl",
+      "persisted": "none"
+    },
+    "formData": {
+      "type": "object",
+      "defaultValue": {}
+    },
+    "lines": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "rowsAll": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "rowsVisible": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "rowsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "rowKey",
+        "data": "{{ $page.variables.rowsVisible }}"
+      }
+    },
+    "totalInvoiced": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "paidAmount": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "outstandingAmount": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "lastInvoiceLabel": {
+      "type": "string",
+      "defaultValue": "—"
+    },
+    "netAdjustment": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "hasAdjustments": {
+      "type": "boolean",
+      "defaultValue": false
+    }
+  },
+  "eventListeners": {
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "customersModuleGuardChain",
+          "parameters": {}
+        },
+        {
+          "chain": "externalProjectAssignGuardChain",
+          "parameters": {}
+        },
+        {
+          "chain": "BillingDetailInitChain",
+          "parameters": {
+            "requestId": "{{ $page.variables.requestId }}",
+            "requestNumericId": "{{ $page.variables.requestNumericId }}"
+          }
+        }
+      ]
+    },
+    "onToggleGroup": {
+      "chains": [
+        {
+          "chain": "toggleGroupChain",
+          "parameters": {
+            "event": "{{ $event }}"
+          }
+        }
+      ]
+    },
+    "onSpInFlowBack": {
+      "chains": [
+        {
+          "chain": "goToParentChain",
+          "parameters": {}
+        }
+      ]
+    }
+  },
+  "functions": {
+    "formatDate": {
+      "params": {
+        "value": "any"
+      },
+      "return": "string"
+    }
+  },
+  "metadata": {},
+  "types": {},
+  "imports": {
+    "components": {
+      "oj-sp-general-overview-page": {
+        "path": "oj-sp/general-overview-page/loader"
+      },
+      "oj-table": {
+        "path": "ojs/ojtable"
+      },
+      "oj-button": {
+        "path": "ojs/ojbutton"
+      },
+      "oj-bind-if": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-text": {
+        "path": "ojs/ojknockout"
+      }
+    }
+  }
+}

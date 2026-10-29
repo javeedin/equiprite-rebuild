@@ -1,0 +1,111 @@
+{
+  "title": "Post Cost Detail",
+  "variables": {
+    "requestNumber": {
+      "type": "string",
+      "input": "fromUrl",
+      "defaultValue": ""
+    },
+    "projectName": {
+      "type": "string",
+      "input": "fromUrl",
+      "defaultValue": ""
+    },
+    "ppmProjectNumber": {
+      "type": "string",
+      "input": "fromUrl",
+      "defaultValue": ""
+    },
+    "ppmTaskNumber": {
+      "type": "string",
+      "input": "fromUrl",
+      "defaultValue": ""
+    },
+    "ppmBusinessUnit": {
+      "type": "string",
+      "input": "fromUrl",
+      "defaultValue": ""
+    },
+    "ppmProjectRefId": {
+      "type": "number",
+      "input": "fromUrl",
+      "defaultValue": 0
+    },
+    "ppmTaskRefId": {
+      "type": "number",
+      "input": "fromUrl",
+      "defaultValue": 0
+    },
+    "internalRequestId": {
+      "type": "number",
+      "input": "fromUrl",
+      "defaultValue": 0
+    },
+    "rateScheduleId": {
+      "type": "number",
+      "input": "fromUrl",
+      "defaultValue": 0
+    },
+    "dataGridProvider": {
+      "type": "any",
+      "defaultValue": null
+    },
+    "totalHours": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "totalCost": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "matchedEntryIds": {
+      "type": "any",
+      "defaultValue": []
+    },
+    "matchedDirectLineIds": {
+      "type": "any",
+      "defaultValue": []
+    },
+    "headerStatus": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "hasPostableCost": {
+      "type": "boolean",
+      "description": "False when nothing on this request can be posted manually - i.e. every row is a consumable awaiting its Fusion material issue (V245 IN_PROGRESS/POSTED). Gates the Post Cost button so the OIC flow is not fired for a request it would find nothing to post on.",
+      "defaultValue": true
+    },
+    "isPosting": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "postError": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "postSuccess": {
+      "type": "boolean",
+      "defaultValue": false
+    }
+  },
+  "eventListeners": {
+    "vbEnter": {
+      "chains": [{ "chain": "vbEnterChain" }]
+    },
+    "onPostToPpm": {
+      "chains": [{ "chain": "postToPpmChain" }]
+    },
+    "onSpInFlowBack": {
+      "chains": [{ "chain": "goToParentChain" }]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-sp-general-overview-page": { "path": "oj-sp/general-overview-page/loader" },
+      "oj-data-grid": { "path": "ojs/ojdatagrid" },
+      "oj-button": { "path": "ojs/ojbutton" },
+      "oj-bind-text": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" }
+    }
+  }
+}

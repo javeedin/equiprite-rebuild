@@ -1,0 +1,487 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "Rite Common Services - Shared Lookups + Documents",
+        "version": "1.0.0",
+        "description": "Read access to COMMONRITE.RS_LOOKUP_VALUES, the reference-data table shared by every Rite product (I9_ADMIN, ONBOARD_RITE, TALENT_TRACKER, EQUIP_RITE). The schema is shared; the data is not. EquipRite reads ONLY rows scoped to APPLICATION_CODE='EQUIP_RITE'. This is a HAND-TRIMMED SUBSET of the live spec at http://132.145.153.37:8082/api-docs (springdoc, served at /api-docs rather than the usual /v3/api-docs): the service also exposes /common/v1/lookups, /common/v1/lookups/types, POST values and PUT values/{id}, none of which this app calls. Params and the response DTO below were verified field-by-field against the live spec on 2026-09-08. The service requires NO authentication. DOCUMENTS (added 2026-09-30): /common/documents/v1 list, multipart upload, access-url and deactivate, used by the equipment-unit Attachments dialog. Verified against the live spec; see the per-operation notes for the two filter traps."
+    },
+    "servers": [
+        {
+            "url": "vb-catalog://backends/commonService",
+            "description": "Rite Common Service"
+        }
+    ],
+    "paths": {
+        "/common/v1/lookups/values": {
+            "get": {
+                "operationId": "getCommonLookupValues",
+                "summary": "Fetch active lookup values for an application",
+                "description": "Returns the active lookup rows for the supplied application. The service filters to ENABLED_FLAG='Y' and to rows whose START_DATE_ACTIVE / END_DATE_ACTIVE bracket the current date, so the client does not repeat that logic. RESPONSE SHAPE: a FLAT JSON array (verified live 2026-09-08), unlike every eqp-v1 endpoint in this app, which returns a {data:[], recordCount} envelope. loadCommonLookupsChain accepts both rather than depending on which one arrives. NOTE: the service's own operationId for this path is 'listValues'; it is renamed here to 'getCommonLookupValues' because VBCS operationIds share one namespace across all seven services in this app and a bare 'listValues' would be ambiguous. The rename is local to this file and does not affect the wire call.",
+                "parameters": [
+                    {
+                        "name": "application_code",
+                        "in": "query",
+                        "required": true,
+                        "description": "Owning application. Always 'EQUIP_RITE' from this app. This is an ISOLATION BOUNDARY, not a filter: the table holds several hundred rows belonging to other Rite products, and omitting this would pull them all into EquipRite's cache. NOTE the snake_case spelling - it must match the common-service contract exactly, because VBCS silently drops uriParams whose names do not match this declaration. The live spec types this as an ARRAY (the param is repeatable, to query several applications at once); declared here as a plain string because EquipRite only ever asks for its own rows.",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "lookupType",
+                        "in": "query",
+                        "required": false,
+                        "description": "Single LOOKUP_TYPE to fetch, e.g. 'LINE_STATUS'. Omit to return every active type for the application in one call - that is the intended mode for the app-start warm-up, so the whole session cache fills in a single round trip.",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "language",
+                        "in": "query",
+                        "required": false,
+                        "description": "LOOKUP_LANGUAGE filter. The service defaults to 'en'; it is sent explicitly anyway so the client never depends on a server-side default.",
+                        "schema": {
+                            "type": "string",
+                            "default": "en"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Matching lookup values (possibly an empty array)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LookupValueList"
+                                }
+                            }
+                        }
+                    }
+                },
+                "x-vb": {
+                    "actionHint": "getMany"
+                }
+            }
+        },
+        "/common/documents/v1": {
+            "get": {
+                "operationId": "listCommonDocuments",
+                "summary": "List documents attached to one entity",
+                "description": "Verified live 2026-09-30. TRAP 1: entityType and entityId are only applied TOGETHER - send either one alone and the service ignores it and returns EVERY document on the platform (all Rite products). Never call this without both. TRAP 2: applicationCode is IGNORED once the entity filter is used (applicationCode=I9_ADMIN still returned a LIEN_RITE doc), so entityType must be globally unique (EquipRite uses the table name, e.g. EQR_SERIAL_REF) and callers should still drop rows whose application_code is not EQUIP_RITE. Paging is Spring Data: page (0-based) + size; the live spec shows them as a single 'pageable' object, declared here as the two flat params the server actually reads. Response is a Spring Page: {content:[...], totalElements, number, size}.",
+                "parameters": [
+                    {
+                        "name": "applicationCode",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "docType",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "entityType",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "entityId",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "size",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Spring page of documents",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CommonDocumentPage"
+                                }
+                            }
+                        }
+                    }
+                },
+                "x-vb": {
+                    "actionHint": "getMany"
+                }
+            },
+            "post": {
+                "operationId": "uploadCommonDocument",
+                "summary": "Upload a document (multipart: metadata JSON part + file part)",
+                "description": "The metadata part MUST carry Content-Type application/json or Spring answers 415 - send it as new Blob([JSON.stringify(meta)], {type:'application/json'}). 409 when the computed storage path already exists, so callers make the path unique. Upload to OCI happens before the DB insert and the two are not one transaction. Spring limits: 25MB file / 25MB request.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "metadata",
+                                    "file"
+                                ],
+                                "properties": {
+                                    "metadata": {
+                                        "$ref": "#/components/schemas/CommonDocumentRequest"
+                                    },
+                                    "file": {
+                                        "type": "string",
+                                        "format": "binary"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CommonDocument"
+                                }
+                            }
+                        }
+                    }
+                },
+                "x-vb": {
+                    "actionHint": "create"
+                }
+            }
+        },
+        "/common/documents/v1/{docId}/access-url": {
+            "parameters": [
+                {
+                    "name": "docId",
+                    "in": "path",
+                    "required": true,
+                    "schema": {
+                        "type": "integer"
+                    }
+                }
+            ],
+            "get": {
+                "operationId": "getCommonDocumentAccessUrl",
+                "summary": "Short-lived (15 min) OCI pre-authenticated read URL for one document",
+                "description": "Never store or cache the url - mint one per click. Verified 2026-09-30: the URL serves the object with its content type and NO Content-Disposition, so a PDF opens inline; CORS allows *.",
+                "responses": {
+                    "200": {
+                        "description": "PAR",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "url": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "x-vb": {
+                    "actionHint": "getOne"
+                }
+            }
+        },
+        "/common/documents/v1/{docId}/deactivate": {
+            "parameters": [
+                {
+                    "name": "docId",
+                    "in": "path",
+                    "required": true,
+                    "schema": {
+                        "type": "integer"
+                    }
+                }
+            ],
+            "patch": {
+                "operationId": "deactivateCommonDocument",
+                "summary": "Soft delete: sets is_active='N'; the file stays in OCI for audit",
+                "responses": {
+                    "200": {
+                        "description": "Updated document",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CommonDocument"
+                                }
+                            }
+                        }
+                    }
+                },
+                "x-vb": {
+                    "actionHint": "update"
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "LookupValueList": {
+                "type": "array",
+                "items": {
+                    "$ref": "#/components/schemas/LookupValue"
+                }
+            },
+            "LookupValue": {
+                "type": "object",
+                "description": "One row of COMMONRITE.RS_LOOKUP_VALUES. The two fields that matter to almost every caller are lookupCode (what EquipRite tables persist) and meaning (what the user sees).",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "format": "int64",
+                        "description": "RS_LOOKUP_VALUES_ID"
+                    },
+                    "lookupType": {
+                        "type": "string",
+                        "description": "Groups related values, e.g. 'LINE_STATUS'."
+                    },
+                    "lookupCode": {
+                        "type": "string",
+                        "description": "The internal key EquipRite stores and compares, e.g. 'SCHEDULED_FOR_PICKING'. Never display this directly."
+                    },
+                    "meaning": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "Human-readable display label. NULLABLE in the table - callers must fall back to lookupCode."
+                    },
+                    "description": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "enabledFlag": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "'Y' / 'N'. The service already filters on this; returned so the client can double-check."
+                    },
+                    "startDateActive": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "Row is inactive before this date. The service already applies the date window."
+                    },
+                    "endDateActive": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "Row is inactive after this date. The service already applies the date window."
+                    },
+                    "applicationCode": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "language": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "tag": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "Optional sub-grouping label within a LOOKUP_TYPE."
+                    },
+                    "setId": {
+                        "type": "integer",
+                        "format": "int64",
+                        "nullable": true
+                    },
+                    "territoryCode": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "viewApplicationId": {
+                        "type": "integer",
+                        "format": "int64",
+                        "nullable": true
+                    },
+                    "attributeCategory": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "Flex-field discriminator, when a lookup type uses attributes for more than one purpose."
+                    },
+                    "attribute1": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "attribute2": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "attribute3": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "attribute4": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "attribute5": {
+                        "type": "string",
+                        "nullable": true
+                    }
+                }
+            },
+            "CommonDocumentRequest": {
+                "type": "object",
+                "required": [
+                    "application_code",
+                    "doc_type",
+                    "doc_name",
+                    "path"
+                ],
+                "properties": {
+                    "application_code": {
+                        "type": "string",
+                        "description": "Always EQUIP_RITE from this app"
+                    },
+                    "doc_type": {
+                        "type": "string",
+                        "description": "DOCUMENT (TEMPLATE needs doc_code + mapper_json)"
+                    },
+                    "doc_name": {
+                        "type": "string"
+                    },
+                    "doc_code": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "path": {
+                        "type": "string",
+                        "description": "Relative path; no leading /, no .., no backslashes. Service prefixes equip-rite/"
+                    },
+                    "mapper_json": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "entity_type": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "entity_id": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "description": {
+                        "type": "string",
+                        "nullable": true
+                    }
+                }
+            },
+            "CommonDocument": {
+                "type": "object",
+                "properties": {
+                    "doc_id": {
+                        "type": "integer"
+                    },
+                    "application_code": {
+                        "type": "string"
+                    },
+                    "doc_type": {
+                        "type": "string"
+                    },
+                    "doc_name": {
+                        "type": "string"
+                    },
+                    "doc_code": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "version_number": {
+                        "type": "integer"
+                    },
+                    "is_active": {
+                        "type": "string"
+                    },
+                    "entity_type": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "entity_id": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "storage_path": {
+                        "type": "string"
+                    },
+                    "storage_uri": {
+                        "type": "string",
+                        "description": "Bucket URI - NOT publicly readable; use access-url"
+                    },
+                    "content_type": {
+                        "type": "string"
+                    },
+                    "original_filename": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "created_by": {
+                        "type": "string",
+                        "description": "Always SYSTEM today - the upload takes no user"
+                    },
+                    "created_date": {
+                        "type": "string"
+                    },
+                    "object_version_number": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "CommonDocumentPage": {
+                "type": "object",
+                "properties": {
+                    "content": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CommonDocument"
+                        }
+                    },
+                    "totalElements": {
+                        "type": "integer"
+                    },
+                    "totalPages": {
+                        "type": "integer"
+                    },
+                    "number": {
+                        "type": "integer"
+                    },
+                    "size": {
+                        "type": "integer"
+                    }
+                }
+            }
+        }
+    }
+}

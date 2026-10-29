@@ -1,0 +1,35 @@
+{
+  "description": "Rental Agreements smart search configuration",
+  "filters": {
+    "StatusFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Status",
+      "options": {
+        "field": "statusCode",
+        "optionsData": "[[ $search.filters.StatusFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.StatusFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "CustomerFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Customer",
+      "options": {
+        "field": "customer",
+        "optionsData": "[[ $search.filters.CustomerFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.CustomerFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "TypeFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Agreement Type",
+      "options": {
+        "field": "agreementType",
+        "optionsData": "[[ $search.filters.TypeFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.TypeFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    }
+  }
+}

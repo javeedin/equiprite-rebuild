@@ -1,0 +1,306 @@
+{
+
+  "variables": {
+    "agreementId": {
+      "type": "string",
+      "input": "fromCaller"
+    },
+    "agreementDetailsExpanded": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "customerInfoExpanded": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "agreementTermsExpanded": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "isAddLineDrawerOpen": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "formData": {
+      "type": "object",
+      "defaultValue": {
+        "agreementName": "",
+        "agreementType": "",
+        "businessUnit": "",
+        "notes": "",
+        "customerRefId": null,
+        "customerId": null,
+        "customerName": "",
+        "customerType": "",
+        "customerAccount": "",
+        "contactName": "",
+        "contactEmail": "",
+        "contactPhone": "",
+        "startDate": "",
+        "endDate": "",
+        "billingFrequency": "",
+        "paymentTerms": "",
+        "currencyCode": "USD",
+        "deploymentLocation": ""
+      }
+    },
+    "agreementTypeSDP": {
+      "type": "vb/ServiceDataProvider",
+      "defaultValue": {
+        "endpoint": "eqp-v1/getConfAgreementTypes",
+        "keyAttributes": "typeCode",
+        "itemsPath": "",
+        "uriParameters": {
+          "activeOnly": true
+        }
+      }
+    },
+    "businessUnitArray": {
+      "type": "any[]",
+      "defaultValue": [
+        { "value": "BU-HOU", "label": "Houston Business Unit" },
+        { "value": "BU-ATL", "label": "Atlantic Operations" },
+        { "value": "BU-PAC", "label": "Pacific Region" },
+        { "value": "BU-MID", "label": "Midwest Operations" }
+      ]
+    },
+    "businessUnitADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.businessUnitArray }}"
+      }
+    },
+    "customerTypeArray": {
+      "type": "any[]",
+      "defaultValue": [
+        { "value": "INTERNAL", "label": "Internal" },
+        { "value": "EXTERNAL", "label": "External" }
+      ]
+    },
+    "customerTypeADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.customerTypeArray }}"
+      }
+    },
+    "customerSDP": {
+      "type": "vb/ServiceDataProvider",
+      "defaultValue": {
+        "endpoint": "ProjectLOV/getFscmRestApiResources11_13_18_05ShippingCustomersLOV",
+        "keyAttributes": "CustomerId",
+        "itemsPath": "items",
+        "textFilterAttributes": [
+          "Customer",
+          "CustomerNumber"
+        ],
+        "capabilities": {
+          "filter": {
+            "operators": ["$co", "$eq", "$ew", "$ge", "$gt", "$le", "$lt", "$ne", "$pr", "$sw"]
+          }
+        }
+      }
+    },
+    "billingFrequencyArray": {
+      "type": "any[]",
+      "defaultValue": [
+        { "value": "Monthly",   "label": "Monthly" },
+        { "value": "Bi-Weekly", "label": "Bi-Weekly" },
+        { "value": "Weekly",    "label": "Weekly" },
+        { "value": "Daily",     "label": "Daily" },
+        { "value": "On-Demand", "label": "On-Demand" }
+      ]
+    },
+    "billingFrequencyADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.billingFrequencyArray }}"
+      }
+    },
+    "paymentTermsArray": {
+      "type": "any[]",
+      "defaultValue": [
+        { "value": "NET30", "label": "Net 30" },
+        { "value": "NET45", "label": "Net 45" },
+        { "value": "NET60", "label": "Net 60" },
+        { "value": "COD",   "label": "Cash on Delivery" }
+      ]
+    },
+    "paymentTermsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.paymentTermsArray }}"
+      }
+    },
+    "currencyArray": {
+      "type": "any[]",
+      "defaultValue": [
+        { "value": "USD", "label": "USD — US Dollar" },
+        { "value": "EUR", "label": "EUR — Euro" },
+        { "value": "GBP", "label": "GBP — British Pound" },
+        { "value": "CAD", "label": "CAD — Canadian Dollar" }
+      ]
+    },
+    "currencyADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.currencyArray }}"
+      }
+    },
+    "equipmentLines": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "currentLine": {
+      "type": "object",
+      "defaultValue": {
+        "classId": null,
+        "className": "",
+        "subclassId": null,
+        "subclassName": "",
+        "equipmentMasterId": null,
+        "equipmentName": "",
+        "description": "",
+        "unitPrice": null,
+        "priceUom": "DAY"
+      }
+    },
+    "loadedHeader": {
+      "type": "object",
+      "defaultValue": null
+    },
+    "deletedLineIds": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "equipmentClassesArray": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "equipmentClassesADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.equipmentClassesArray }}"
+      }
+    },
+    "equipmentSubclassesArray": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "equipmentSubclassesADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.equipmentSubclassesArray }}"
+      }
+    },
+    "equipmentNamesArray": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "equipmentNamesADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.equipmentNamesArray }}"
+      }
+    },
+    "priceUomArray": {
+      "type": "any[]",
+      "defaultValue": [
+        { "value": "HOUR",  "label": "Hour" },
+        { "value": "DAY",   "label": "Day" },
+        { "value": "WEEK",  "label": "Week" },
+        { "value": "MONTH", "label": "Month" }
+      ]
+    },
+    "priceUomADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.priceUomArray }}"
+      }
+    },
+    "dataGridProvider": {
+      "type": "any"
+    },
+    "gridSelection": {
+      "type": "any",
+      "defaultValue": []
+    }
+  },
+  "eventListeners": {
+    "vbBeforeEnter": {
+      "chains": [
+        { "chain": "agreementsFlagGuardChain", "parameters": {} },
+        { "chain": "enforcePageAccessChain" }
+      ]
+    },
+    "vbEnter": {
+      "chains": [
+        { "chain": "vbEnterChain", "parameters": {} }
+      ]
+    },
+    "onSpInFlowBack": {
+      "chains": [{ "chain": "goToParentChain", "parameters": {} }]
+    },
+    "onSave": {
+      "chains": [{ "chain": "saveAgreementChain", "parameters": {} }]
+    },
+    "onCancel": {
+      "chains": [{ "chain": "cancelChain", "parameters": {} }]
+    },
+    "onAddLine": {
+      "chains": [{ "chain": "addAgreementLineChain", "parameters": {} }]
+    },
+    "onOpenAddLineDrawer": {
+      "chains": [{ "chain": "openAddLineDrawerChain", "parameters": {} }]
+    },
+    "onCloseAddLineDrawer": {
+      "chains": [{ "chain": "closeAddLineDrawerChain", "parameters": {} }]
+    },
+    "onClassSelected": {
+      "chains": [{ "chain": "onClassSelectedChain", "parameters": { "detail": "[[ $event.detail ]]" } }]
+    },
+    "onSubclassSelected": {
+      "chains": [{ "chain": "onSubclassSelectedChain", "parameters": { "detail": "[[ $event.detail ]]" } }]
+    },
+    "onDeleteLine": {
+      "chains": [{ "chain": "deleteAgreementLineChain", "parameters": {} }]
+    },
+    "onGridRowSelected": {
+      "chains": [{ "chain": "updateGridSelectionChain", "parameters": {} }]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-sp-general-overview-page": { "path": "oj-sp/general-overview-page/loader" },
+      "oj-collapsible":  { "path": "ojs/ojcollapsible" },
+      "oj-drawer-popup": { "path": "ojs/ojdrawerpopup" },
+      "oj-form-layout":  { "path": "ojs/ojformlayout" },
+      "oj-input-text":   { "path": "ojs/ojinputtext" },
+      "oj-text-area":    { "path": "ojs/ojtextarea" },
+      "oj-input-date":   { "path": "ojs/ojdatetimepicker" },
+      "oj-select-single":{ "path": "ojs/ojselectsingle" },
+      "oj-button":       { "path": "ojs/ojbutton" },
+      "oj-data-grid":    { "path": "ojs/ojdatagrid" },
+      "oj-input-number": { "path": "ojs/ojinputnumber" },
+      "oj-bind-if":      { "path": "ojs/ojknockout" },
+      "oj-bind-text":    { "path": "ojs/ojknockout" }
+    }
+  }
+}

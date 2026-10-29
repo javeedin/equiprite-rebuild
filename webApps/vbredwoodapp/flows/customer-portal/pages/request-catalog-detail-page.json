@@ -1,0 +1,278 @@
+{
+  "title": "Equipment Detail",
+  "metadata": {},
+  "types": {},
+  "variables": {
+    "equipmentId": {
+      "type": "string",
+      "input": "fromUrl",
+      "persisted": "none",
+      "description": "Equipment ID passed from the catalog page URL parameter."
+    },
+    "pageTitle": {
+      "type": "string",
+      "defaultValue": "Equipment Detail"
+    },
+    "pageSubtitle": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "recordData": {
+      "type": "object",
+      "defaultValue": {}
+    },
+    "qty": {
+      "type": "number",
+      "defaultValue": 1
+    },
+    "isLoading": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "contextualInfo": {
+      "type": "any[]",
+      "defaultValue": [
+        {
+          "label": "Class",
+          "value": ""
+        },
+        {
+          "label": "Sub-Class",
+          "value": ""
+        },
+        {
+          "label": "Type",
+          "value": ""
+        },
+        {
+          "label": "Model Year",
+          "value": ""
+        }
+      ]
+    },
+    "badge": {
+      "type": "object",
+      "defaultValue": {
+        "text": "",
+        "status": "neutral"
+      }
+    },
+    "bundleSuggestions": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Bundle suggestion cards: { id, name, manufacturer, image, className, linkType, relationLabel, suggestedQty, row } — row is the suggested item's own catalog row (null when there is no request window)."
+    },
+    "ppmRateText": {
+      "type": "string",
+      "description": "Shown instead of any price when Fusion PPM prices rentals (global PPM_RATES_ENABLED on); '' otherwise. Set on entry from $application.functions.ppmRateText. Takes precedence over hideRatesForQuote.",
+      "defaultValue": ""
+    },
+    "hideRatesForQuote": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "loadedForId": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "Equipment id the init chain last loaded; guards the vbEnter / in-place bundle swap re-entry."
+    },
+    "messagesBannerArray": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "messagesBannerADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "id",
+        "data": "{{ $page.variables.messagesBannerArray }}"
+      }
+    },
+    "bundleQtyById": {
+      "type": "object",
+      "defaultValue": {},
+      "description": "Frequently bundled with: stepper qty per suggested equipment id (starts at suggestedQuantity; 0 = leave out of Add bundle)."
+    }
+  },
+  "chains": {
+    "messagesBannerCloseChain": {
+      "variables": {
+        "messageId": {
+          "type": "string",
+          "input": "fromCaller",
+          "required": true
+        }
+      }
+    }
+  },
+  "functions": {
+    "imageObj": {
+      "params": {
+        "imageUrl": "any",
+        "appPath": "any",
+        "equipmentId": "any"
+      },
+      "return": "object"
+    },
+    "cartQtyFor": {
+      "params": {
+        "equipmentId": "any",
+        "cartItems": "any"
+      },
+      "return": "number"
+    },
+    "bundleRateText": {
+      "params": {
+        "row": "any",
+        "hideRatesForQuote": "any",
+        "ppmRateText": "any"
+      },
+      "return": "string"
+    },
+    "bundleStatusClass": {
+      "params": {
+        "status": "any"
+      },
+      "return": "string"
+    },
+    "bundleQtyFor": {
+      "params": {
+        "suggestion": "any",
+        "qtyById": "any"
+      },
+      "return": "number"
+    },
+    "bundleSummaryText": {
+      "params": {
+        "record": "any",
+        "mainQty": "any",
+        "suggestions": "any",
+        "qtyById": "any"
+      },
+      "return": "string"
+    },
+    "bundleHasAddable": {
+      "params": {
+        "record": "any",
+        "mainQty": "any",
+        "suggestions": "any",
+        "qtyById": "any"
+      },
+      "return": "boolean"
+    }
+  },
+  "eventListeners": {
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "EquipmentDetailInitChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "spGoToParent": {
+      "chains": [
+        {
+          "chain": "goToParentChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onSpInFlowBack": {
+      "chains": [
+        {
+          "chain": "goToParentChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "spPrimaryAction": {
+      "chains": [
+        {
+          "chain": "AddToCartChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "bundleAddClicked": {
+      "chains": [
+        {
+          "chain": "BundleAddToCartChain",
+          "parameters": {
+            "equipmentId": "[[ $current.data.id ]]"
+          }
+        }
+      ]
+    },
+    "bundleCardClicked": {
+      "chains": [
+        {
+          "chain": "BundleCardClickChain",
+          "parameters": {
+            "equipmentId": "[[ $current.data.id ]]"
+          }
+        }
+      ]
+    },
+    "bundleQtyChanged": {
+      "chains": [
+        {
+          "chain": "BundleQtyChangedChain",
+          "parameters": {
+            "equipmentId": "[[ $current.data.id ]]",
+            "value": "[[ $event.detail.value ]]"
+          }
+        }
+      ]
+    },
+    "addBundleClicked": {
+      "chains": [
+        {
+          "chain": "AddBundleToCartChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "messagesBannerSpClose": {
+      "chains": [
+        {
+          "chain": "messagesBannerCloseChain",
+          "parameters": {
+            "messageId": "{{ $event.detail.messageId }}"
+          }
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-sp-general-overview-page": {
+        "path": "oj-sp/general-overview-page/loader"
+      },
+      "oj-sp-messages-banner": {
+        "path": "oj-sp/messages-banner/loader"
+      },
+      "oj-button": {
+        "path": "ojs/ojbutton"
+      },
+      "oj-bind-for-each": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-collapsible": {
+        "path": "ojs/ojcollapsible"
+      },
+      "oj-c-input-number": {
+        "path": "oj-c/input-number"
+      },
+      "oj-progress-circle": {
+        "path": "ojs/ojprogress"
+      },
+      "oj-bind-if": {
+        "path": "ojs/ojbinddom"
+      },
+      "oj-bind-text": {
+        "path": "ojs/ojknockout"
+      }
+    }
+  }
+}

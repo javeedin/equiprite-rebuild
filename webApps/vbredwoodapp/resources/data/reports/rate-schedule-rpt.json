@@ -1,0 +1,35 @@
+{
+  "description": "Smart-search filters for the Rate Schedule tab ONLY. One config file per tab, because oj-sp-smart-search renders a chip for EVERY filter the loaded config declares \u2014 suggestion-filters does NOT gate that row. Each `field` IS the endpoint's literal query-param name (see reportCriterion.ENDPOINT_PARAMS); a field that is not a real param yields a chip that filters nothing, because the views ignore unknown params silently. This set is deliberately CURATED, not exhaustive \u2014 the endpoint accepts more params than are offered. Not offered: scheduleCode (dropped by request); scheduleName (redundant with it); effectiveFrom/effectiveTo (no date filter type). There is deliberately NO Class chip even though the view DECLARES a className param: the server ignores it \u2014 className=ZZZ still returns all 131 rows, while the same param genuinely filters on yard-stock, pending-approval-lines and onhand-qty. Class remains reachable through free-text q (q=Earthmoving returns exactly the 25 Earthmoving rows). Restore the chip once the view honours the param.",
+  "filters": {
+    "RateTypeFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Rate Type",
+      "options": {
+        "field": "rateType",
+        "optionsData": "[[ $search.filters.RateTypeFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.RateTypeFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "PeriodFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Period",
+      "options": {
+        "field": "periodType",
+        "optionsData": "[[ $search.filters.PeriodFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.PeriodFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "ActiveFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Active",
+      "options": {
+        "field": "isActiveFlag",
+        "optionsData": "[[ $search.filters.ActiveFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.ActiveFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    }
+  }
+}

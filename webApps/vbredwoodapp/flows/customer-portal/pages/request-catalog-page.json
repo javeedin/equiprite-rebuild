@@ -1,0 +1,729 @@
+{
+  "metadata": {},
+  "variables": {
+    "pageTitle": {
+      "type": "string",
+      "defaultValue": "Equipment Catalog"
+    },
+    "pageSubtitle": {
+      "type": "string",
+      "defaultValue": "Browse our inventory of high-quality equipment."
+    },
+    "filterCriterion": {
+      "type": "any"
+    },
+    "catalogSmartSearchVisible": {
+      "type": "boolean",
+      "description": "Controls whether oj-sp-smart-search is mounted. Reassigning filterCriterion alone does not force the widget to re-render its own internal chip list (same quirk handled on equipment-analytics-page's TabChangedChain) — clearing chips programmatically (e.g. 'All Equipment' in the sidebar) needs an unmount/remount cycle: set this false, clear filterCriterion, yield a tick, set true.",
+      "defaultValue": true
+    },
+    "ppmRateText": {
+      "type": "string",
+      "description": "Shown instead of any price when Fusion PPM prices rentals (global PPM_RATES_ENABLED on); '' otherwise. Set on entry from $application.functions.ppmRateText. Takes precedence over hideRatesForQuote.",
+      "defaultValue": ""
+    },
+    "hideRatesForQuote": {
+      "type": "boolean",
+      "description": "True when ENABLE_QUOTES covers this request's origin, meaning the customer will receive a quote and the catalog must NOT show a price — cards and the cart render 'Rate on request' with no amount, so the user is not anchored on a number the quote may not match. Resolved in CatalogInitChain via $application.functions.isQuotingAllowed(globalSettings, flagsLoaded, origin), because the page module cannot reach $application. Fails CLOSED to false (rates SHOWN) while settings load — the pre-existing behaviour, so a slow load never blanks every price.",
+      "defaultValue": false
+    },
+    "equipmentSDP": {
+      "type": "vb/ServiceDataProvider",
+      "defaultValue": {
+        "endpoint": "eqp-v1/getEquipriteV1ViewsEquipmentCatalog",
+        "keyAttributes": "eqrEquipmentMasterId",
+        "itemsPath": "data",
+        "uriParameters": {
+          "agreementId": "[[ ($flow.variables.fromAgreementId && $page.variables.agreementFilterActive) ? $flow.variables.fromAgreementId : undefined ]]",
+          "templateId": "[[ $page.variables.activeTemplateId != null ? $page.variables.activeTemplateId : undefined ]]"
+        }
+      }
+    },
+    "equipmentDPV": {
+      "type": "ojs/ojlistdataproviderview",
+      "constructorParams": [
+        "[[ $page.variables.equipmentSDP ]]",
+        {
+          "filterCriterion": "[[ $page.variables.filterCriterion ]]"
+        }
+      ]
+    },
+    "classesById": {
+      "type": "object",
+      "defaultValue": {}
+    },
+    "subclassesById": {
+      "type": "object",
+      "defaultValue": {}
+    },
+    "pendingQtyById": {
+      "type": "object",
+      "defaultValue": {}
+    },
+    "pendingRowById": {
+      "type": "object",
+      "defaultValue": {}
+    },
+    "searchConfiguration": {
+      "type": "oj-sp/smart-search/strategies/JsonSearchConfigProviderFactory",
+      "defaultValue": {
+        "url": "[[ $application.path + 'resources/search-config/equipmentCatalogSearchConfig.json' ]]"
+      }
+    },
+    "searchContext": {
+      "type": "object",
+      "defaultValue": {
+        "$search": {
+          "filters": {
+            "ClassFilter": {
+              "label": "Class",
+              "options": {
+                "optionsData": "[[ $page.variables.ClassOptionsADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "SubclassFilter": {
+              "label": "Subclass",
+              "options": {
+                "optionsData": "[[ $page.variables.SubclassOptionsFilteredADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "StatusFilter": {
+              "label": "Status",
+              "options": {
+                "optionsData": "[[ $page.variables.StatusOptionsADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "AssetGroupFilter": {
+              "label": "Asset Group",
+              "options": {
+                "optionsData": "[[ $page.variables.AssetGroupOptionsADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "categoryTree": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "expandedClasses": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "selectedSidebarClass": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "selectedSidebarSubclass": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "sidebarCollapsed": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "Collapses the category sidebar to a narrow rail so the equipment grid gets more width. Purely a layout toggle, no effect on filtering/selection state."
+    },
+    "StatusOptionsArray": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "StatusOptionsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.StatusOptionsArray }}"
+      }
+    },
+    "ClassOptionsArray": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "ClassOptionsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.ClassOptionsArray }}"
+      }
+    },
+    "SubclassOptionsArray": {
+      "type": "any[]",
+      "description": "The FULL master list of every subclass of every class, built once at init (CatalogInitChain) — never filtered itself. Each row carries its parent classId. Kept as the source SubclassOptionsFilteredArray is derived from.",
+      "defaultValue": []
+    },
+    "SubclassOptionsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "description": "Unfiltered — no longer bound to the Subclass chip (see SubclassOptionsFilteredADP). Retained in case something else needs the full list.",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.SubclassOptionsArray }}"
+      }
+    },
+    "SubclassOptionsFilteredArray": {
+      "type": "any[]",
+      "description": "SubclassOptionsArray scoped to the currently selected Class — recomputed by CatalogFilterCriterionChangedChain whenever the smart-search criterion changes (Class or Subclass chip, from either the chips themselves or the sidebar). Defaults to the full list when no Class is selected. This is what the Subclass CHIP actually binds to.",
+      "defaultValue": []
+    },
+    "SubclassOptionsFilteredADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.SubclassOptionsFilteredArray }}"
+      }
+    },
+    "AssetGroupOptionsArray": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "AssetGroupOptionsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.AssetGroupOptionsArray }}"
+      }
+    },
+    "selectedEquipmentKeys": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "selectedById": {
+      "type": "object",
+      "defaultValue": {},
+      "description": "Per-card selection, keyed by equipment id -> true. The card :checked bindings read THIS, not selectedEquipmentKeys, so a row's binding re-runs only when its own key changes. selectedEquipmentKeys is kept alongside as the ordered list the cart/nav chains consume; both are written together. Writers must assign a NEW object (see buildSelectedById in the page module) -- an in-place mutation is not published by VB."
+    },
+    "pendingUncheckEquipmentIds": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "pendingUncheckDialogMessage": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "unsavedSelectionsCount": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "templatesArray": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "isTemplatesLoading": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "filteredTemplatesArray": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "filteredTemplatesADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "templateId",
+        "data": "{{ $page.variables.filteredTemplatesArray }}"
+      }
+    },
+    "activeTemplateId": {
+      "type": "number"
+    },
+    "activeTemplateName": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "agreementFilterActive": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "previewTemplateName": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "previewTemplateDescription": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "previewTemplateServerId": {
+      "type": "number"
+    },
+    "isPreviewLoading": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "previewLinesArray": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "previewLinesADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "equipmentMasterId",
+        "data": "{{ $page.variables.previewLinesArray }}"
+      }
+    },
+    "previewSelectedKeys": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "previewSelectionTick": {
+      "type": "number",
+      "defaultValue": 0
+    }
+  },
+  "types": {
+    "ojs/ojlistdataproviderview": {
+      "constructorType": "vb/InstanceFactory"
+    }
+  },
+  "functions": {
+    "imageObj": {
+      "params": {
+        "imageUrl": "any",
+        "appPath": "any",
+        "equipmentId": "any"
+      },
+      "return": "object"
+    },
+    "classNameFor": {
+      "params": {
+        "equipmentClassId": "any",
+        "classesById": "any"
+      },
+      "return": "string"
+    },
+    "subclassNameFor": {
+      "params": {
+        "equipmentSubclassId": "any",
+        "subclassesById": "any"
+      },
+      "return": "string"
+    },
+    "stagedQtyFor": {
+      "params": {
+        "equipmentId": "any",
+        "pendingQtyById": "any"
+      },
+      "return": "number"
+    },
+    "formatCatalogRate": {
+      "params": {
+        "row": "any"
+      },
+      "return": "string"
+    },
+    "priceFieldLabel": {
+      "params": {
+        "row": "any"
+      },
+      "return": "string"
+    },
+    "isEquipmentSelected": {
+      "params": {
+        "equipmentId": "any",
+        "selectedById": "any"
+      },
+      "return": "boolean"
+    },
+    "buildSelectedById": {
+      "params": {
+        "ids": "any"
+      },
+      "return": "object"
+    },
+    "isInCart": {
+      "params": {
+        "equipmentId": "any",
+        "cartItems": "any"
+      },
+      "return": "boolean"
+    },
+    "isOnAgreement": {
+      "params": {
+        "equipmentId": "any",
+        "fromAgreementId": "any",
+        "agreementLineIdByEquipmentId": "any"
+      },
+      "return": "boolean"
+    },
+    "isPreviewLineSelected": {
+      "params": {
+        "equipmentMasterId": "any",
+        "previewSelectedKeys": "any",
+        "previewSelectionTick": "any"
+      },
+      "return": "boolean"
+    }
+  },
+  "eventListeners": {
+    "onCatalogFilterCriterionChanged": {
+      "chains": [
+        {
+          "chain": "CatalogFilterCriterionChangedChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "vbBeforeEnter": {
+      "chains": [
+        {
+          "chain": "enforcePageAccessChain"
+        }
+      ]
+    },
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "CatalogInitChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onSpInFlowBack": {
+      "chains": [
+        {
+          "chain": "goToParentChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onSpCardAction": {
+      "chains": [
+        {
+          "chain": "CardActionChain",
+          "parameters": {
+            "event": "[[ $event ]]",
+            "key": "[[ $current.key ]]",
+            "row": "[[ $current.data ]]"
+          }
+        }
+      ]
+    },
+    "onSpCardPrimaryAction": {
+      "chains": [
+        {
+          "chain": "CardActionChain",
+          "parameters": {
+            "event": "[[ $event ]]",
+            "key": "[[ $current.key ]]",
+            "row": "[[ $current.data ]]"
+          }
+        }
+      ]
+    },
+    "onSpCardSecondaryAction": {
+      "chains": [
+        {
+          "chain": "CardActionChain",
+          "parameters": {
+            "event": "[[ $event ]]",
+            "key": "[[ $current.key ]]",
+            "row": "[[ $current.data ]]"
+          }
+        }
+      ]
+    },
+    "onSpPrimaryAction": {
+      "chains": [
+        {
+          "chain": "CatalogProceedToCartChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onSpSecondaryAction": {
+      "chains": [
+        {
+          "chain": "CatalogTemplatesChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onQtyChanged": {
+      "chains": [
+        {
+          "chain": "CatalogQtyChangedChain",
+          "parameters": {
+            "event": "[[ $event ]]",
+            "row": "[[ $current.data ]]"
+          }
+        }
+      ]
+    },
+    "addToCartClicked": {
+      "chains": [
+        {
+          "chain": "CardActionChain",
+          "parameters": {
+            "event": "[[ { detail: { actionId: 'addToCart' } } ]]",
+            "key": "[[ $current.key ]]",
+            "row": "[[ $current.data ]]"
+          }
+        }
+      ]
+    },
+    "onCardCheckboxChanged": {
+      "chains": [
+        {
+          "chain": "CatalogCheckboxChangedChain",
+          "parameters": {
+            "event": "[[ $event ]]",
+            "key": "[[ $current.key ]]",
+            "row": "[[ $current.data ]]"
+          }
+        }
+      ]
+    },
+    "onRemoveFromCartConfirm": {
+      "chains": [
+        {
+          "chain": "RemoveFromCartConfirmChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onRemoveFromCartCancel": {
+      "chains": [
+        {
+          "chain": "RemoveFromCartCancelChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onDiscardAndGoBack": {
+      "chains": [
+        {
+          "chain": "DiscardAndGoBackChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onStayInCatalog": {
+      "chains": [
+        {
+          "chain": "StayInCatalogChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onSelectAllClicked": {
+      "chains": [
+        {
+          "chain": "CatalogSelectAllChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onAddCheckedToCartClicked": {
+      "chains": [
+        {
+          "chain": "CatalogAddCheckedToCartChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onTemplatesClicked": {
+      "chains": [
+        {
+          "chain": "CatalogTemplatesChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onTemplateRowClicked": {
+      "chains": [
+        {
+          "chain": "CatalogFilterByTemplateChain",
+          "parameters": {
+            "templateId": "[[ $current.key ]]"
+          }
+        }
+      ]
+    },
+    "onTemplateSearch": {
+      "chains": [
+        {
+          "chain": "CatalogTemplateSearchChain",
+          "parameters": {
+            "searchValue": "[[ $event.target.value ]]"
+          }
+        }
+      ]
+    },
+    "onTemplatePreviewClicked": {
+      "chains": [
+        {
+          "chain": "CatalogPreviewTemplateChain",
+          "parameters": {
+            "templateId": "[[ $current.key ]]"
+          }
+        }
+      ]
+    },
+    "onPreviewLineToggled": {
+      "chains": [
+        {
+          "chain": "CatalogPreviewToggleChain",
+          "parameters": {
+            "checked": "[[ $event.target.checked ]]",
+            "equipmentMasterId": "[[ $current.key ]]"
+          }
+        }
+      ]
+    },
+    "onPreviewSelectAll": {
+      "chains": [
+        {
+          "chain": "CatalogPreviewSelectAllChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onPreviewAddSelected": {
+      "chains": [
+        {
+          "chain": "CatalogPreviewAddSelectedChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onPreviewShowInCatalog": {
+      "chains": [
+        {
+          "chain": "CatalogPreviewShowInCatalogChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onClearTemplateFilter": {
+      "chains": [
+        {
+          "chain": "CatalogClearTemplateFilterChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onClearAgreementFilter": {
+      "chains": [
+        {
+          "chain": "CatalogClearAgreementFilterChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onSidebarAllClicked": {
+      "chains": [
+        {
+          "chain": "CatalogSidebarSelectChain",
+          "parameters": {
+            "className": "",
+            "subClassName": ""
+          }
+        }
+      ]
+    },
+    "onSidebarClassClicked": {
+      "chains": [
+        {
+          "chain": "CatalogSidebarClassClickChain",
+          "parameters": {
+            "className": "[[ $current.data.className ]]",
+            "classId": "[[ $current.data.classId ]]"
+          }
+        }
+      ]
+    },
+    "onSidebarSubClicked": {
+      "chains": [
+        {
+          "chain": "CatalogSidebarSelectChain",
+          "parameters": {
+            "className": "[[ $current.data.className ]]",
+            "subClassName": "[[ $current.data.subClassName ]]",
+            "classId": "[[ $current.data.classId ]]",
+            "subclassId": "[[ $current.data.subclassId ]]"
+          }
+        }
+      ]
+    },
+    "onSidebarToggleExpand": {
+      "chains": [
+        {
+          "chain": "CatalogSidebarToggleExpandChain",
+          "parameters": {
+            "className": "[[ $current.data.className ]]",
+            "event": "[[ $event ]]"
+          }
+        }
+      ]
+    },
+    "onSidebarCollapseToggle": {
+      "chains": [
+        {
+          "chain": "CatalogSidebarCollapseToggleChain",
+          "parameters": {}
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-sp-general-overview-page": {
+        "path": "oj-sp/general-overview-page/loader"
+      },
+      "oj-sp-smart-search": {
+        "path": "oj-sp/smart-search/loader"
+      },
+      "oj-sp-collection-container": {
+        "path": "oj-sp/collection-container/loader"
+      },
+      "oj-list-view": {
+        "path": "ojs/ojlistview"
+      },
+      "oj-sp-card": {
+        "path": "oj-sp/card/loader"
+      },
+      "oj-c-input-number": {
+        "path": "oj-c/input-number"
+      },
+      "oj-bind-text": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-if": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-for-each": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-button": {
+        "path": "ojs/ojbutton"
+      },
+      "oj-dialog": {
+        "path": "ojs/ojdialog"
+      },
+      "oj-progress-circle": {
+        "path": "ojs/ojprogress"
+      }
+    }
+  }
+}

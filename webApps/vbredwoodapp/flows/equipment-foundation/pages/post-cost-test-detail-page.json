@@ -1,0 +1,714 @@
+{
+  "title": "Post Cost Detail",
+  "variables": {
+    "requestNumber": {
+      "type": "string",
+      "input": "fromUrl",
+      "defaultValue": ""
+    },
+    "projectName": {
+      "type": "string",
+      "input": "fromUrl",
+      "defaultValue": ""
+    },
+    "taskName": {
+      "type": "string",
+      "input": "fromUrl",
+      "defaultValue": "",
+      "description": "The request task NAME, for the Project / Task column. The list view already returns it (EQP_POSTCOST.TASK_NAME); it just was never passed through. Numbers are what POST to Fusion, but names are what a person reads, so the column shows the name and keeps the number in its tooltip."
+    },
+    "ppmProjectNumber": {
+      "type": "string",
+      "input": "fromUrl",
+      "defaultValue": ""
+    },
+    "ppmTaskNumber": {
+      "type": "string",
+      "input": "fromUrl",
+      "defaultValue": ""
+    },
+    "ppmBusinessUnit": {
+      "type": "string",
+      "input": "fromUrl",
+      "defaultValue": ""
+    },
+    "ppmProjectRefId": {
+      "type": "number",
+      "input": "fromUrl",
+      "defaultValue": 0
+    },
+    "ppmTaskRefId": {
+      "type": "number",
+      "input": "fromUrl",
+      "defaultValue": 0
+    },
+    "internalRequestId": {
+      "type": "number",
+      "input": "fromUrl",
+      "defaultValue": 0
+    },
+    "rateScheduleId": {
+      "type": "number",
+      "input": "fromUrl",
+      "defaultValue": 0
+    },
+    "startDate": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "endDate": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "plannedStartDate": {
+      "type": "string",
+      "input": "fromUrl",
+      "defaultValue": ""
+    },
+    "plannedEndDate": {
+      "type": "string",
+      "input": "fromUrl",
+      "defaultValue": ""
+    },
+    "earlyReturnDate": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "isEarlyReturn": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "rowsAll": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "rowsVisible": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "rowsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "rowKey",
+        "data": "{{ $page.variables.rowsVisible }}"
+      }
+    },
+    "selectedWeekKeys": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "totalCost": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "postedCost": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "incurredToDate": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "netAdjustment": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "lastPostedLabel": {
+      "type": "string",
+      "defaultValue": "—"
+    },
+    "headerStatus": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "isPosting": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "postError": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "postSuccess": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "COMMENT_MISC": {
+      "type": "string",
+      "description": "MISCELLANEOUS TRANSACTIONS — PERSISTED. A charge is saved to EQR_LINE_MISC_TXN on Add (createMiscTransaction), read back from EQP_P_MISC_TXN by getMiscTransactions, and removed by deleteMiscTransactionById. Posting is two steps: postMiscTransactions flips STATUS to POSTED in our DB, then postSelectedChain triggers the OIC flow, which drains EQP_P_FUSION_POST_QUEUE and sends one unprocessedProjectCosts line per unsent row. Fusion posting is now LIVE, so unpostMiscTransactions is only valid while a charge has not yet been sent (it refuses any row carrying a ppmBatchName) and must be replaced by a credit+repost pair. Contract and traps: MD/Post Cost/misc-transactions/BACKEND_HANDOFF_misc_transactions.md.",
+      "defaultValue": ""
+    },
+    "isMiscDrawerOpen": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "isSavingMisc": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "Guards the drawer's Add Charge button against a double-submit while the POST is in flight."
+    },
+    "miscDrawerLine": {
+      "type": {
+        "groupKey": "string",
+        "equipmentName": "string",
+        "requestLineId": "number"
+      },
+      "defaultValue": {}
+    },
+    "miscDraft": {
+      "type": {
+        "expenditureType": "string",
+        "expenditureOrg": "string",
+        "expItemDate": "string",
+        "quantity": "number",
+        "rawCost": "number",
+        "currency": "string",
+        "comments": "string"
+      },
+      "defaultValue": {
+        "quantity": 1,
+        "rawCost": null,
+        "currency": "USD",
+        "expenditureOrg": "Applications and Services"
+      }
+    },
+    "miscFormError": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "expTypeList": {
+      "type": "any[]",
+      "description": "Expenditure types for BOTH pickers on this page, as a PLAIN ARRAY. vbEnterChain replaces it per page load with the list Fusion returns for THIS request's project -- the same value-set finder the PR drawer uses (request-detail-page-chains/ActionChain.js). Seeded with the four values PROVEN accepted by unprocessedProjectCosts so a failed or unauthenticated fetch still leaves a usable picker rather than an empty one. Items are {value,label,id} keyed on the NAME, not the numeric Id: EQR_LINE_MISC_TXN.EXPENDITURE_TYPE stores a name and the OIC map sends _EXPENDITURE_TYPE_ID_Display. (The PR flow keys on the Id because a requisition sends _EXPENDITURE_TYPE_ID -- do not copy that half.) A plain array, not a vb/ArrayDataProvider2, because VBCS tracks an ADP by reference: reassigning one breaks the component binding. The HTML builds the provider via $page.functions.getExpTypeLOV(), exactly as the PR drawer does.",
+      "defaultValue": [
+        {
+          "value": "Equipment",
+          "label": "Equipment",
+          "id": null
+        },
+        {
+          "value": "Purchased Equipment",
+          "label": "Purchased Equipment",
+          "id": null
+        },
+        {
+          "value": "Supplies",
+          "label": "Supplies",
+          "id": null
+        },
+        {
+          "value": "Miscellaneous",
+          "label": "Miscellaneous",
+          "id": null
+        }
+      ]
+    },
+    "COMMENT_EXPTYPE": {
+      "type": "string",
+      "description": "PER-EQUIPMENT EXPENDITURE TYPE. The type each equipment's rental cost posts to PPM under. Authored on EQR_REQUEST_LINE.EXPENDITURE_TYPE (one per equipment, applies to all its weeks) and snapshotted into EQR_POSTED_WEEK.EXPENDITURE_TYPE at post time, the same way COST_RATE and PERIOD_TYPE are already frozen — a posted week must keep the type it was posted with. EQP_P_FUSION_POST_QUEUE branch A then reads NVL(pw.expenditure_type, NVL(rl.expenditure_type,'Equipment')) instead of its 'Equipment' literal, so every row posted before this feature stays byte-identical. Backend contract: MD/Post Cost/expenditure-type/BACKEND_HANDOFF_expenditure_type.md. Until that migration lands the drawer saves are refused with a clear message rather than failing silently.",
+      "defaultValue": ""
+    },
+    "isExpTypeDrawerOpen": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "isSavingExpType": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "Guards the drawer's Apply button against a double-submit while the PATCH is in flight."
+    },
+    "expTypeDrawerLine": {
+      "type": {
+        "groupKey": "string",
+        "equipmentName": "string",
+        "requestLineId": "number",
+        "current": "string",
+        "hasPosted": "boolean"
+      },
+      "defaultValue": {}
+    },
+    "expTypeChoice": {
+      "type": "any",
+      "defaultValue": null,
+      "description": "The drawer's currently-selected expenditure type NAME. FLAT and typed 'any' on purpose. It was a sub-property of a structured expTypeDraft variable typed 'string', and the drawer seeds it with NO SELECTION on every open (nothing has a type yet), so the two-way bind was writing null into a string-typed field of a typed object and the pick never rendered. miscDraft gets away with the nested form only because it is always seeded with a real string. 'any' also lets oj-select-single receive a true null for 'nothing selected' rather than an empty string it would try to resolve as a key."
+    },
+    "expTypeFormError": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "expOrgOptions": {
+      "type": "vb/ArrayDataProvider2",
+      "description": "There is NO REST LOV for expenditure organizations on this pod (404, 'controlled availability'), which is why the PR flow derives org from the project's OwningOrganizationId instead. 'Applications and Services' is the value verified accepted by unprocessedProjectCosts.",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": [
+          {
+            "value": "Applications and Services",
+            "label": "Applications and Services"
+          }
+        ]
+      }
+    },
+    "COMMENT_SPLIT": {
+      "type": "string",
+      "description": "PROJECT SPLIT. Divides ONE WEEK's cost across 2+ Fusion projects by percentage, without creating a second request. Authored per (request line x week) in EQR_LINE_PROJECT_SPLIT and snapshotted into EQR_POSTED_WEEK.PROJECT_NUMBER/TASK_NUMBER/SPLIT_PCT when that week posts, so a posted week keeps the projects it was actually sent to Fusion with and re-splitting can never rewrite history. WEEK grain is deliberate: 27 Jul-2 Aug can go 60/40 while 3 Aug-9 Aug goes wholly to the request's own project, which is what happens when equipment moves between jobs mid-rental. The queue view resolves NVL(pw.project_number, eer.project_number), so a week with no split posts to the request header project and every pre-feature row is unaffected. A week carries either ZERO slices or TWO or more, NEVER exactly one: a single slice is whole-week reallocation and the queue view's NVL would silently honour it, moving all of that week's cost. Percentages are validated in BASIS POINTS by $page.functions.splitFormError -- a naive float sum wrongly rejects 8.55% of valid three-way splits. The client sends NO per-slice dollar figures: it sends the one view-sourced week amount plus the percentages and the server apportions by largest remainder, which keeps cost math out of the client (anti-V190) and makes SUM(slices) = week amount a property of the inserting transaction. Contract: MD/Post Cost/project-split/BACKEND_HANDOFF_project_split.md"
+    },
+    "isSplitDrawerOpen": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "isSavingSplit": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "Double-submit guard on Apply. The PUT is a whole-set replace and therefore idempotent, so a double-click cannot double-author -- this only stops the second click from racing the first one to the in-place row update."
+    },
+    "splitDrawerLine": {
+      "type": {
+        "groupKey": "string",
+        "rowKey": "string",
+        "equipmentName": "string",
+        "weekLabel": "string",
+        "weekStartISO": "string",
+        "weekCost": "number",
+        "requestLineId": "number",
+        "locked": "boolean",
+        "lockReason": "string",
+        "splitCount": "number"
+      },
+      "defaultValue": {},
+      "description": "The WEEK the drawer is editing. Week grain, not equipment: a split is authored per (request line x week), so 27 Jul-2 Aug can post 60/40 while 3 Aug-9 Aug posts wholly to the request's own project. One requestLineId, not a list -- a week belongs to exactly ONE request line, so the 'a group spans two lines' hazard that saveExpTypeChain has to handle simply does not arise here. `locked` covers both 'this is a PR pass-through whose project lives on the Fusion PO' and 'this week is already posted, so it keeps what it was sent with'; lockReason says which. weekCost is shown in the header so the percentages have a figure to divide."
+    },
+    "splitFormError": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "splitSlices": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "The slice list being edited: [{ projectRefId, projectNumber, projectName, taskId, taskNumber, taskName, pct }]. A PLAIN ARRAY, not an ArrayDataProvider -- VBCS tracks an ADP by reference, so reassigning one breaks the binding (the same reason expTypeList is a plain array). Chains must REASSIGN this whole array rather than push/splice in place, or the UI will not see the change. Deep-copied from the row on open so a cancelled edit cannot leak into rowsAll."
+    },
+    "splitPickProjectId": {
+      "type": "number",
+      "defaultValue": null
+    },
+    "splitPickProjectName": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "Two-way bound to the oj-input-search `value`, which carries the DISPLAY TEXT only -- the id/number are captured separately by splitProjectSelectedChain from $event.detail.itemContext.data."
+    },
+    "splitPickProjectNumber": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "splitPickTaskId": {
+      "type": "any",
+      "defaultValue": null
+    },
+    "splitPickTaskName": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "splitPickTaskNumber": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "splitPickPct": {
+      "type": "any",
+      "defaultValue": null,
+      "description": "The percentage in the add-a-slice sub-form. Typed 'any', not 'number', for the same reason expTypeChoice is: the field is seeded EMPTY, and a number-typed variable rejects the null that means 'nothing entered yet', which silently breaks the two-way bind."
+    },
+    "splitTaskError": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "Inline message under the task field when a summary task is picked. Separate from splitFormError so a rejected pick does not blank the whole-form banner."
+    },
+    "splitProjectSearchQ": {
+      "type": "string",
+      "defaultValue": "ProjectName LIKE '*'",
+      "description": "Fusion q= predicate backing splitProjectsSDP. Rewritten (debounced) by splitProjectTypeaheadChain as the user types, then the SDP is reset to re-fetch -- the same server-side typeahead the Assign Project drawer uses, so every Project LOV in the app behaves identically. Server-side because the pod holds 7,259 projects, far more than one fetched page could filter locally."
+    },
+    "splitProjectsSDP": {
+      "type": "vb/ServiceDataProvider",
+      "description": "Project LOV for the split drawer -- copied from request-detail-page.json assignProjectsSDP, changing only the q binding. Bound to an oj-input-search via `suggestions`. NOTE this reaches EVERY project on the pod, and Fusion posting hardcodes BusinessUnit to the literal 'US1 Business Unit' with no BU column anywhere in the queue view, so a project outside that BU would post under the wrong one and fail at cost import days later. projectsLOV does not return BusinessUnitId, so the list cannot be pre-filtered -- validate on pick via ProjectLOV ...ProjectsById instead (it returns BusinessUnitId, TransactionControlFlag and OwningOrganizationId in one call).",
+      "defaultValue": {
+        "endpoint": "ProjectLOV/getFscmRestApiResources11_13_18_05ProjectsLOV",
+        "responseType": "ProjectLOV/GetFscmRestApiResources11_13_18_05ProjectsLOV",
+        "keyAttributes": "ProjectId",
+        "itemsPath": "items",
+        "uriParameters": {
+          "q": "[[ $page.variables.splitProjectSearchQ ]]",
+          "fields": "ProjectId,ProjectNumber,ProjectName",
+          "limit": 500
+        },
+        "textFilterAttributes": [
+          "ProjectName",
+          "ProjectNumber"
+        ],
+        "capabilities": {
+          "filter": {
+            "operators": [
+              "$co",
+              "$eq",
+              "$ew",
+              "$ge",
+              "$gt",
+              "$le",
+              "$lt",
+              "$ne",
+              "$pr",
+              "$sw"
+            ]
+          }
+        }
+      }
+    },
+    "splitTasksDp": {
+      "type": "any",
+      "defaultValue": null,
+      "description": "Task LOV provider for the drawer -- the CHARGEABLE LEAVES of the picked project's WBS. Built in JS by resources/js/taskDataProvider.js and assigned by LoadSplitTaskTreeChain, hence 'any'. Cannot be declarative: 'no other row names me as parent' is a property of the whole set that no Fusion q predicate can express, so the rows must be fetched and classified first. Handed over as a DeferredDataProvider wrapping the IN-FLIGHT fetch so the dropdown shows JET's loading skeleton and fills in place -- never disable the field to indicate loading, a disabled oj-select-single closes its own dropdown."
+    },
+    "splitTaskTree": {
+      "type": "object",
+      "defaultValue": {},
+      "description": "WBS classification of the picked project's tasks -- { summaryIds, basis } from resources/js/projectTaskTree.js, rebuilt by LoadSplitTaskTreeChain when the project changes. The Task LOV returns a FLAT list, so this is the only thing that knows '1.1' is a summary node. leafTasks() FILTERS summary rows OUT of the provider (it does not indent or grey them -- nothing in this app renders WBS indentation), and the selection chain re-checks against this tree. Empty until loaded, which reads as 'every task is a leaf' -- it FAILS OPEN by design, so the real backstop against a summary task is Fusion's own import rejection."
+    },
+    "splitTasksCacheKey": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "ProjectId whose tasks splitTasksDp currently holds, so re-opening the same project does not make an already-resolved list skeleton again. Set only after a successful fetch, so it can never claim a project the provider lacks."
+    }
+  },
+  "eventListeners": {
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "projectsModuleGuardChain",
+          "parameters": {}
+        },
+        {
+          "chain": "ppmRatesGuardChain",
+          "parameters": {}
+        },
+        {
+          "chain": "vbEnterChain"
+        }
+      ]
+    },
+    "onToggleGroup": {
+      "chains": [
+        {
+          "chain": "toggleGroupChain",
+          "parameters": {
+            "event": "{{ $event }}"
+          }
+        }
+      ]
+    },
+    "onToggleGroupSelect": {
+      "chains": [
+        {
+          "chain": "toggleGroupSelectChain",
+          "parameters": {
+            "event": "{{ $event }}"
+          }
+        }
+      ]
+    },
+    "onReverseLine": {
+      "chains": [
+        {
+          "chain": "reverseLineChain",
+          "parameters": {
+            "event": "{{ $event }}"
+          }
+        }
+      ]
+    },
+    "onToggleWeek": {
+      "chains": [
+        {
+          "chain": "toggleWeekChain",
+          "parameters": {
+            "event": "{{ $event }}"
+          }
+        }
+      ]
+    },
+    "onSelectAllPast": {
+      "chains": [
+        {
+          "chain": "selectAllPastChain"
+        }
+      ]
+    },
+    "onPostSelected": {
+      "chains": [
+        {
+          "chain": "postSelectedChain"
+        }
+      ]
+    },
+    "onSpInFlowBack": {
+      "chains": [
+        {
+          "chain": "goToParentChain"
+        }
+      ]
+    },
+    "onToggleWeekDays": {
+      "chains": [
+        {
+          "chain": "toggleWeekDaysChain",
+          "parameters": {
+            "event": "{{ $event }}"
+          }
+        }
+      ]
+    },
+    "onToggleBlackout": {
+      "chains": [
+        {
+          "chain": "toggleBlackoutChain",
+          "parameters": {
+            "event": "{{ $event }}"
+          }
+        }
+      ]
+    },
+    "onOpenMiscDrawer": {
+      "chains": [
+        {
+          "chain": "openMiscDrawerChain",
+          "parameters": {
+            "event": "{{ $event }}"
+          }
+        }
+      ]
+    },
+    "onCloseMiscDrawer": {
+      "chains": [
+        {
+          "chain": "closeMiscDrawerChain"
+        }
+      ]
+    },
+    "onSaveMisc": {
+      "chains": [
+        {
+          "chain": "saveMiscChain"
+        }
+      ]
+    },
+    "onDeleteMisc": {
+      "chains": [
+        {
+          "chain": "deleteMiscChain",
+          "parameters": {
+            "event": "{{ $event }}"
+          }
+        }
+      ]
+    },
+    "onToggleMisc": {
+      "chains": [
+        {
+          "chain": "toggleMiscChain",
+          "parameters": {
+            "event": "{{ $event }}"
+          }
+        }
+      ]
+    },
+    "onToggleMiscGroup": {
+      "chains": [
+        {
+          "chain": "toggleMiscGroupChain",
+          "parameters": {
+            "event": "{{ $event }}"
+          }
+        }
+      ]
+    },
+    "onOpenExpTypeDrawer": {
+      "chains": [
+        {
+          "chain": "openExpTypeDrawerChain",
+          "parameters": {
+            "event": "{{ $event }}"
+          }
+        }
+      ]
+    },
+    "onCloseExpTypeDrawer": {
+      "chains": [
+        {
+          "chain": "closeExpTypeDrawerChain"
+        }
+      ]
+    },
+    "onSaveExpType": {
+      "chains": [
+        {
+          "chain": "saveExpTypeChain"
+        }
+      ]
+    },
+    "onOpenSplitDrawer": {
+      "chains": [
+        {
+          "chain": "openSplitDrawerChain",
+          "parameters": {
+            "event": "{{ $event }}"
+          }
+        }
+      ]
+    },
+    "onCloseSplitDrawer": {
+      "chains": [
+        {
+          "chain": "closeSplitDrawerChain",
+          "parameters": {
+            "event": "{{ $event }}"
+          }
+        }
+      ]
+    },
+    "onAddSplitSlice": {
+      "chains": [
+        {
+          "chain": "addSplitSliceChain",
+          "parameters": {
+            "event": "{{ $event }}"
+          }
+        }
+      ]
+    },
+    "onRemoveSplitSlice": {
+      "chains": [
+        {
+          "chain": "removeSplitSliceChain",
+          "parameters": {
+            "event": "{{ $event }}"
+          }
+        }
+      ]
+    },
+    "onSplitPctChanged": {
+      "chains": [
+        {
+          "chain": "splitPctChangedChain",
+          "parameters": {
+            "event": "{{ $event }}"
+          }
+        }
+      ]
+    },
+    "onSplitEvenly": {
+      "chains": [
+        {
+          "chain": "splitEvenlyChain",
+          "parameters": {
+            "event": "{{ $event }}"
+          }
+        }
+      ]
+    },
+    "onClearSplit": {
+      "chains": [
+        {
+          "chain": "clearSplitChain",
+          "parameters": {
+            "event": "{{ $event }}"
+          }
+        }
+      ]
+    },
+    "onSaveSplit": {
+      "chains": [
+        {
+          "chain": "saveSplitChain",
+          "parameters": {
+            "event": "{{ $event }}"
+          }
+        }
+      ]
+    },
+    "onSplitProjectTypeahead": {
+      "chains": [
+        {
+          "chain": "splitProjectTypeaheadChain",
+          "parameters": {
+            "searchValue": "[[ $event.detail.value ]]"
+          }
+        }
+      ]
+    },
+    "onSplitProjectSelected": {
+      "chains": [
+        {
+          "chain": "splitProjectSelectedChain",
+          "parameters": {
+            "data": "[[ $event.detail.itemContext && $event.detail.itemContext.data ]]"
+          }
+        }
+      ]
+    },
+    "onSplitTaskSelected": {
+      "chains": [
+        {
+          "chain": "splitTaskSelectedChain",
+          "parameters": {
+            "data": "[[ $event.detail.itemContext && $event.detail.itemContext.data ]]"
+          }
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-sp-general-overview-page": {
+        "path": "oj-sp/general-overview-page/loader"
+      },
+      "oj-table": {
+        "path": "ojs/ojtable"
+      },
+      "oj-button": {
+        "path": "ojs/ojbutton"
+      },
+      "oj-bind-text": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-if": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-drawer-popup": {
+        "path": "ojs/ojdrawerpopup"
+      },
+      "oj-select-single": {
+        "path": "ojs/ojselectsingle"
+      },
+      "oj-input-text": {
+        "path": "ojs/ojinputtext"
+      },
+      "oj-text-area": {
+        "path": "ojs/ojinputtext"
+      },
+      "oj-input-number": {
+        "path": "ojs/ojinputnumber"
+      },
+      "oj-input-date": {
+        "path": "ojs/ojdatetimepicker"
+      },
+      "oj-form-layout": {
+        "path": "ojs/ojformlayout"
+      },
+      "oj-input-search": {
+        "path": "ojs/ojinputsearch"
+      },
+      "oj-bind-for-each": {
+        "path": "ojs/ojknockout"
+      }
+    }
+  }
+}

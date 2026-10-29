@@ -1,0 +1,29 @@
+<div class="oj-sm-margin-bottom-4x eqr-project-lov">
+  <oj-input-search
+    :aria-label="[[$variables.labelText]]"
+    placeholder="[[$variables.placeholderText]]"
+    value="{{ $variables.searchText }}"
+    suggestions="[[$variables.suggestionsSDP]]"
+    suggestion-item-text="[[$variables.displayField1 || $variables.searchField]]"
+    class="oj-form-control-full-width"
+    on-raw-value-changed="[[$listeners.typeaheadChanged]]"
+    on-oj-value-action="[[$listeners.itemSelected]]">
+    <template slot="suggestionItemTemplate" data-oj-as="suggestion">
+      <div class="oj-sm-padding-2x oj-sm-background-contrast-subtle oj-sm-border-bottom">
+        <div class="oj-sm-text-secondary oj-sm-display-block">
+          <strong>
+            <oj-bind-text value="[[$functions.getFieldValue(suggestion.data, $variables.displayField1 || $variables.searchField)]]"></oj-bind-text>
+          </strong>
+        </div>
+        <oj-bind-if test="[[$variables.displayField2]]">
+          <div class="oj-sm-text-secondary oj-sm-display-block oj-sm-margin-top-2x oj-typography-caption">
+            <small>
+              <oj-bind-text value="[[$functions.getFieldValue(suggestion.data, $variables.displayField2)]]"></oj-bind-text>
+            </small>
+          </div>
+        </oj-bind-if>
+      </div>
+    </template>
+  </oj-input-search>
+  <div class="eqr-required-caption">Required</div>
+</div>

@@ -1,0 +1,122 @@
+<style>
+  .demo-data-grid {
+    width: 100%;
+    height: 400px;
+  }
+  .status-approved {
+    background: #ecfdf5;
+    color: #065f46;
+    border: 1px solid #34d399;
+    padding: 3px 12px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 700;
+  }
+  .status-posted {
+    background: #f0fdfa;
+    color: #0f766e;
+    border: 1px solid #2dd4bf;
+    padding: 3px 12px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 700;
+  }
+  /* amber = waiting on something external (the Fusion material issue) */
+  .status-in-progress {
+    background: #fffbeb;
+    color: #b45309;
+    border: 1px solid #fbbf24;
+    padding: 3px 12px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 700;
+  }
+</style>
+
+<oj-sp-general-overview-page
+  id="postCostDetailPage"
+  page-title="[[ $variables.projectName || 'Post Cost Detail' ]]"
+  page-subtitle="[[ $variables.requestNumber + ' · Total Hours: ' + $variables.totalHours + ' · Total Cost: $' + Number($variables.totalCost).toLocaleString() ]]"
+  display-mode="mixed"
+  display-options.in-flow-back="true"
+  on-sp-in-flow-back="[[ $listeners.onSpInFlowBack ]]">
+
+  <!-- ── BANNER: buttons + status ── -->
+  <div slot="search" style="width:100%;">
+    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+
+      <!-- Status badge -->
+      <oj-bind-if test="[[ $variables.headerStatus === 'APPROVED' ]]">
+        <span class="status-approved">APPROVED</span>
+      </oj-bind-if>
+      <oj-bind-if test="[[ $variables.headerStatus === 'POSTED' ]]">
+        <span class="status-posted">POSTED</span>
+      </oj-bind-if>
+      <!-- A consumable is costed by Fusion on the material issue; this page only
+           mirrors that. Without this the status simply rendered blank. -->
+      <oj-bind-if test="[[ $variables.headerStatus === 'IN_PROGRESS' ]]">
+        <span class="status-in-progress">IN PROGRESS</span>
+      </oj-bind-if>
+
+      <!-- Error banner -->
+      <oj-bind-if test="[[ $variables.postError ]]">
+        <span style="color:#fca5a5; font-size:0.75rem;">
+          <oj-bind-text value="[[ $variables.postError ]]"></oj-bind-text>
+        </span>
+      </oj-bind-if>
+
+      <!-- Success banner -->
+      <oj-bind-if test="[[ $variables.postSuccess ]]">
+        <span style="color:#6ee7b7; font-size:0.75rem; font-weight:600;">Successfully posted cost</span>
+      </oj-bind-if>
+
+      <!-- Post to PPM button -->
+      <oj-button
+        id="postToPpmBtn"
+        chroming="callToAction"
+        disabled="[[ $variables.isPosting || $variables.headerStatus === 'POSTED' || !$variables.hasPostableCost ]]"
+        :title="[[ $variables.hasPostableCost ? '' : 'Every line here is a consumable — Fusion costs those on the material issue, so there is nothing to post manually.' ]]"
+        on-oj-action="[[ $listeners.onPostToPpm ]]">
+        <span slot="startIcon" class="oj-ux-ico-upload"></span>
+        <oj-bind-text value="[[ $variables.isPosting ? 'Posting...' : ($variables.headerStatus === 'POSTED' ? 'Cost Posted' : (!$variables.hasPostableCost ? 'Nothing to Post' : 'Post Cost')) ]]"></oj-bind-text>
+      </oj-button>
+
+    </div>
+  </div>
+
+  <!-- ── DATA GRID — read-only ── -->
+  <div class="oj-flex oj-sm-flex-direction-column oj-sm-width-full" slot="main"
+       style="width:100% !important; max-width:100% !important; padding:0 12px; margin-top:-48px; box-sizing:border-box; overflow-x:hidden;">
+
+    <div class="oj-panel oj-bg-neutral-0" style="border-radius:4px; box-shadow:0 4px 20px rgba(0,0,0,0.10); overflow:hidden; height:calc(100vh - 280px);">
+      <oj-data-grid
+          id="postCostDataGrid"
+          class="demo-data-grid"
+          aria-label="Post Cost Detail Grid"
+          data="[[ $variables.dataGridProvider ]]"
+          cell.editable="[[ $functions.getIsEditable.bind($functions) ]]"
+          header.column.style="[[ $functions.getColumnHeaderStyle.bind($functions) ]]"
+          header.row.style="width:50px;"
+          header.column.filterable="[[ $functions.getHeaderFilterable.bind($functions) ]]"
+          header.column.resizable.width="enable"
+          header.column.resizable.height="enable"
+          header.row.resizable.width="enable"
+          header.row.resizable.height="enable"
+          header.column.hidable="enable"
+          header.row.hidable="enable"
+          scroll-policy="loadMoreOnScroll"
+          edit-mode="none"
+          selection-mode.cell="none">
+
+          <template slot="cellTemplate" data-oj-as="cell">
+            <!-- Readonly -->
+            <oj-bind-if test="[[ $functions.getColumnType(cell.item.columnIndex) === 'readonly' ]]">
+              <span class="oj-text-color-secondary oj-typography-body-sm"><oj-bind-text value="[[ cell.item.data.data ]]"></oj-bind-text></span>
+            </oj-bind-if>
+          </template>
+      </oj-data-grid>
+    </div>
+
+  </div>
+
+</oj-sp-general-overview-page>

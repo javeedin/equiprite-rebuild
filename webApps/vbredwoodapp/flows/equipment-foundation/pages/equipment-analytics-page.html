@@ -1,0 +1,641 @@
+<!-- Equipment Analytics Dashboard — oj-sp-dashboard-landing-page -->
+<style>
+  .analytics-kpi-tile {
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .analytics-kpi-tile:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--oj-core-box-shadow-md);
+  }
+
+  /* Equipment Master — oj-data-grid */
+  .demo-data-grid {
+    width: 100%;
+    height: 500px;
+  }
+
+  /* Utilization grid row styles */
+  .util-month-row  { font-weight: 600; color: #1e293b; }
+  .util-day-row    { color: #475569; padding-left: 16px; }
+  .util-toggle     { display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; }
+  .util-toggle-icon { font-size: 0.65rem; color: #64748b; flex-shrink: 0; }
+
+  /* Utilization period control. 2.25rem matches the default-density outlined
+     oj-button (Export CSV) so the fields and the button share one height — same
+     token approach as the reports page filter bar. */
+  .util-period { display: flex; align-items: center; gap: 8px; --util-field-h: 2.25rem; }
+  .util-period oj-select-single,
+  .util-period oj-input-date {
+    --oj-text-field-height: var(--util-field-h);
+    --oj-c-text-field-height: var(--util-field-h);
+  }
+</style>
+
+<oj-sp-dashboard-landing-page page-title="Equipment Analytics" display-mode="light">
+
+  <!-- ═══════════════════════════════ -->
+  <!--  DEFAULT SLOT — Dashboard Content -->
+  <!-- ═══════════════════════════════ -->
+  <div style="padding: 8px 24px 0 24px;">
+
+    <!-- ── KPI Cards Row — yard-scoped, from views/yard-stock?groupBy=unitStatus ── -->
+    <div class="oj-flex oj-sm-gap-4" style="margin-bottom: 20px;">
+
+      <!-- Card 1: Total Units -->
+      <div class="oj-flex-item oj-sm-12 oj-md-6 oj-lg-3">
+        <div class="oj-panel oj-bg-neutral-0 oj-shadow-sm oj-sm-padding-4x oj-sm-margin-2x-bottom oj-md-margin-2x-end analytics-kpi-tile"
+             style="border-radius: 16px; border-top: 4px solid var(--oj-core-color-info-90); height: 100%;">
+          <div class="oj-flex oj-sm-justify-content-space-between oj-sm-align-items-center oj-sm-margin-2x-bottom">
+            <span class="oj-typography-body-sm oj-text-color-secondary oj-typography-semi-bold">Total Units</span>
+          </div>
+          <div class="oj-flex oj-sm-align-items-baseline oj-sm-gap-2">
+            <h1 class="oj-typography-heading-xl oj-text-color-primary" style="margin: 0;">
+              <oj-bind-text value="[[ $variables.analyticsKpis.totalUnits ]]"></oj-bind-text>
+            </h1>
+          </div>
+          <div class="oj-typography-body-xs oj-text-color-secondary oj-sm-margin-2x-top">
+            Units in this yard
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 2: Out on Rent -->
+      <div class="oj-flex-item oj-sm-12 oj-md-6 oj-lg-3">
+        <div class="oj-panel oj-bg-neutral-0 oj-shadow-sm oj-sm-padding-4x oj-sm-margin-2x-bottom oj-md-margin-2x-end analytics-kpi-tile"
+             style="border-radius: 16px; border-top: 4px solid var(--oj-core-color-warning-90); height: 100%;">
+          <div class="oj-flex oj-sm-justify-content-space-between oj-sm-align-items-center oj-sm-margin-2x-bottom">
+            <span class="oj-typography-body-sm oj-text-color-secondary oj-typography-semi-bold">Out on Rent</span>
+          </div>
+          <div class="oj-flex oj-sm-align-items-baseline oj-sm-gap-2">
+            <h1 class="oj-typography-heading-xl oj-text-color-primary" style="margin: 0;">
+              <oj-bind-text value="[[ $variables.analyticsKpis.outOnRent ]]"></oj-bind-text>
+            </h1>
+          </div>
+          <div class="oj-typography-body-xs oj-text-color-secondary oj-sm-margin-2x-top">
+            <oj-bind-text value='[[ $variables.analyticsKpis.outOnRentPct + "% of fleet" ]]'></oj-bind-text>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 3: Available -->
+      <div class="oj-flex-item oj-sm-12 oj-md-6 oj-lg-3">
+        <div class="oj-panel oj-bg-neutral-0 oj-shadow-sm oj-sm-padding-4x oj-sm-margin-2x-bottom oj-md-margin-2x-end analytics-kpi-tile"
+             style="border-radius: 16px; border-top: 4px solid var(--oj-core-color-success-90); height: 100%;">
+          <div class="oj-flex oj-sm-justify-content-space-between oj-sm-align-items-center oj-sm-margin-2x-bottom">
+            <span class="oj-typography-body-sm oj-text-color-secondary oj-typography-semi-bold">Available</span>
+          </div>
+          <div class="oj-flex oj-sm-align-items-baseline oj-sm-gap-2">
+            <h1 class="oj-typography-heading-xl oj-text-color-primary" style="margin: 0;">
+              <oj-bind-text value="[[ $variables.analyticsKpis.available ]]"></oj-bind-text>
+            </h1>
+          </div>
+          <div class="oj-typography-body-xs oj-text-color-secondary oj-sm-margin-2x-top">
+            <oj-bind-text value='[[ $variables.analyticsKpis.availablePct + "% of fleet" ]]'></oj-bind-text>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 4: Fleet Utilization -->
+      <div class="oj-flex-item oj-sm-12 oj-md-6 oj-lg-3">
+        <div class="oj-panel oj-bg-neutral-0 oj-shadow-sm oj-sm-padding-4x oj-sm-margin-2x-bottom analytics-kpi-tile"
+             style="border-radius: 16px; border-top: 4px solid var(--oj-core-color-danger-90); height: 100%;">
+          <div class="oj-flex oj-sm-justify-content-space-between oj-sm-align-items-center oj-sm-margin-2x-bottom">
+            <span class="oj-typography-body-sm oj-text-color-secondary oj-typography-semi-bold">Fleet Utilization</span>
+          </div>
+          <div class="oj-flex oj-sm-align-items-baseline oj-sm-gap-2">
+            <h1 class="oj-typography-heading-xl oj-text-color-primary" style="margin: 0;">
+              <oj-bind-text value='[[ $variables.analyticsKpis.utilizationPct + "%" ]]'></oj-bind-text>
+            </h1>
+          </div>
+          <div class="oj-typography-body-xs oj-text-color-secondary oj-sm-margin-2x-top">
+            Out on rent ÷ total
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="oj-flex" style="flex-wrap: wrap; gap: 24px;">
+
+
+    <!-- ───────────────────────────────── -->
+    <!-- PANEL 1: Smart Search Bar (mirrors Equipment Master pattern) -->
+    <!-- ─────────────────────────────────────────────────────────── -->
+    <div class="oj-flex-item" style="flex: 1 1 100%; min-width: 0; background: #fff; border: 1px solid var(--oj-core-divider-color, #e5e7eb); border-radius: 12px; box-shadow: var(--oj-core-box-shadow-sm, 0 1px 4px rgba(0,0,0,0.08));">
+      <div style="display:flex; align-items:center; gap:12px; padding:6px 16px;">
+
+        <!-- oj-sp-smart-search — same component & wiring as Equipment Master page.
+             The CHIPS come from search-config, which is swapped per tab
+             (resources/data/analytics/<tab>.json): the widget renders one chip
+             per filter the loaded config declares, so each tab must load only
+             its own. Stock = Class + Unit Status + Unit Type, Pending = Class +
+             Line Status + Unit Type, Onhand = Class, Utilization = none (its
+             only search param is free-text q). suggestion-filters is an ordering
+             hint, NOT a gate — it does not remove chips.
+             filter-criterion is two-way bound; grid providers read it reactively. -->
+        <div style="flex:1;">
+          <oj-bind-if test="[[ $variables.analyticsSmartSearchVisible ]]">
+            <oj-sp-smart-search
+              filter-criterion="{{ $variables.analyticsFilterCriterion }}"
+              on-filter-criterion-changed="[[ $listeners.onAnalyticsSmartSearchChanged ]]"
+              search-context="[[ $variables.analyticsSearchContext ]]"
+              search-config="[[ $variables.analyticsSearchConfiguration.provider ]]"
+              suggestion-filters="[[ $variables.analyticsSuggestionFilters ]]"
+              placeholder="Search by equipment, project, yard…">
+            </oj-sp-smart-search>
+          </oj-bind-if>
+        </div>
+
+        <!-- Equipment Stock date range. UI-only, same reason the Utilization
+             tab's period control below exists as plain date fields instead of
+             a chip: SelectSingleFilter is the only smart-search filter type
+             in this app, so a date range can't be built as a chip. No
+             listener wired yet — this is the field pair only. -->
+        <oj-bind-if test="[[ $variables.analyticsActiveTab === 'equipment-master' ]]">
+          <div class="util-period">
+            <oj-input-date
+              label-hint="Start Date"
+              label-edge="inside"
+              class="oj-form-control-density-compact"
+              style="width:160px;"
+              value="{{ $variables.stockDateFrom }}">
+            </oj-input-date>
+            <oj-input-date
+              label-hint="End Date"
+              label-edge="inside"
+              class="oj-form-control-density-compact"
+              style="width:160px;"
+              value="{{ $variables.stockDateTo }}"
+              min="[[ $variables.stockDateFrom || null ]]">
+            </oj-input-date>
+          </div>
+        </oj-bind-if>
+
+        <!-- Equipment Manager Pending Approval date range. Same UI-only
+             pattern as the Stock tab's date fields above — own variables so
+             the two tabs' ranges are independent. -->
+        <oj-bind-if test="[[ $variables.analyticsActiveTab === 'equipment-pending' ]]">
+          <div class="util-period">
+            <oj-input-date
+              label-hint="Start Date"
+              label-edge="inside"
+              class="oj-form-control-density-compact"
+              style="width:160px;"
+              value="{{ $variables.pendingDateFrom }}">
+            </oj-input-date>
+            <oj-input-date
+              label-hint="End Date"
+              label-edge="inside"
+              class="oj-form-control-density-compact"
+              style="width:160px;"
+              value="{{ $variables.pendingDateTo }}"
+              min="[[ $variables.pendingDateFrom || null ]]">
+            </oj-input-date>
+          </div>
+        </oj-bind-if>
+
+        <!-- Equipment Onhand Quantity date range. Same UI-only pattern as
+             the Stock/Pending tabs' date fields — own variables so each
+             tab's range is independent. -->
+        <oj-bind-if test="[[ $variables.analyticsActiveTab === 'onhand' ]]">
+          <div class="util-period">
+            <oj-input-date
+              label-hint="Start Date"
+              label-edge="inside"
+              class="oj-form-control-density-compact"
+              style="width:160px;"
+              value="{{ $variables.onhandDateFrom }}">
+            </oj-input-date>
+            <oj-input-date
+              label-hint="End Date"
+              label-edge="inside"
+              class="oj-form-control-density-compact"
+              style="width:160px;"
+              value="{{ $variables.onhandDateTo }}"
+              min="[[ $variables.onhandDateFrom || null ]]">
+            </oj-input-date>
+          </div>
+        </oj-bind-if>
+
+        <!-- Utilization period. This tab only: yard-utilization REQUIRES a
+             fromDate/toDate window, and smart search cannot supply it —
+             SelectSingleFilter is the only filter type available in this app, so
+             there is no date chip to build. reportCriterion deliberately refuses
+             to map date params for this endpoint for the same reason.
+             All three controls fire onFilterChanged -> FiltersChangedChain,
+             which recomputes the window and reloads the tab. -->
+        <oj-bind-if test="[[ $variables.analyticsActiveTab === 'equip-utilization' ]]">
+          <div class="util-period">
+            <oj-select-single
+              label-hint="Period"
+              label-edge="inside"
+              class="oj-form-control-density-compact"
+              style="width:170px;"
+              value="{{ $variables.utilDatePreset }}"
+              data="[[ $variables.utilDateOptionsADP ]]"
+              item-text="label"
+              on-value-changed="[[$listeners.onFilterChanged]]">
+            </oj-select-single>
+
+            <oj-bind-if test="[[ $variables.utilDatePreset === 'custom' ]]">
+              <oj-input-date
+                label-hint="From"
+                label-edge="inside"
+                class="oj-form-control-density-compact"
+                style="width:160px;"
+                value="{{ $variables.utilCustomFrom }}"
+                on-value-changed="[[$listeners.onFilterChanged]]">
+              </oj-input-date>
+              <oj-input-date
+                label-hint="To"
+                label-edge="inside"
+                class="oj-form-control-density-compact"
+                style="width:160px;"
+                value="{{ $variables.utilCustomTo }}"
+                on-value-changed="[[$listeners.onFilterChanged]]">
+              </oj-input-date>
+            </oj-bind-if>
+          </div>
+        </oj-bind-if>
+
+        <oj-button chroming="outlined"
+          label="Export CSV"
+          on-oj-action="[[$listeners.buttonAction]]">
+          <span class="oj-ux-ico-download" slot="startIcon"></span>
+        </oj-button>
+
+      </div>
+    </div>
+
+    <!-- ─────────────────────────────── -->
+    <!-- PANEL 2: Tabs + Data / Charts   -->
+    <!-- ─────────────────────────────── -->
+    <div class="oj-flex-item" style="flex: 1 1 100%; min-width: 0; background: #fff; border: 1px solid var(--oj-core-divider-color, #e5e7eb); border-radius: 12px; box-shadow: var(--oj-core-box-shadow-sm, 0 1px 4px rgba(0,0,0,0.08));">
+
+      <!-- Tab Bar -->
+      <div style="padding: 0 4px; border-bottom: 1px solid var(--oj-core-divider-color, #e5e7eb);">
+        <oj-tab-bar
+          edge="top"
+          data="[[ $variables.analyticsTabsADP ]]"
+          selection="{{ $variables.analyticsActiveTab }}"
+          on-selection-changed="[[ $listeners.onTabChanged ]]">
+          <template slot="itemTemplate" data-oj-as="item">
+            <li><a><oj-bind-text value="[[ item.data.label ]]"></oj-bind-text></a></li>
+          </template>
+        </oj-tab-bar>
+      </div>
+
+      <!-- ── Loading state — hides stale tab data while the new tab fetches ── -->
+      <oj-bind-if test="[[ $variables.isLoading ]]">
+        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:500px; gap:16px;">
+          <oj-progress-bar value="-1" style="width:240px;"></oj-progress-bar>
+          <span class="oj-typography-body-sm oj-text-color-secondary">Loading…</span>
+        </div>
+      </oj-bind-if>
+
+      <!-- ── TAB: Equipment Utilization ── -->
+      <oj-bind-if test="[[ $variables.analyticsActiveTab === 'equip-utilization' && !$variables.isLoading ]]">
+        <div style="display: flex; min-height: 560px; overflow: hidden;">
+
+          <!-- Data Grid — 65% -->
+          <div style="flex: 0 0 65%; min-width: 0; overflow: hidden; border-right: 1px solid var(--oj-core-divider-color, #e5e7eb);">
+            <oj-data-grid
+              id="utilizationDataGrid"
+              aria-label="Equipment Utilization Grid"
+              data="[[ $functions.getUtilizationGridProvider($variables.monthData, $variables.dynamicCols, $variables.collapsedMonths, $variables.analyticsFilterVersion) ]]"
+              selection="{{ $variables.utilizationSelection }}"
+              selection-mode.cell="multiple"
+              cell.editable="[[ $functions.getIsEditable.bind($functions) ]]"
+              header.column.style="[[ $functions.getUtilizationColumnHeaderStyle.bind($functions) ]]"
+              header.column.filterable="[[ $functions.getHeaderFilterable.bind($functions) ]]"
+              header.row.style="width:50px;"
+              header.column.resizable.width="enable"
+              header.column.resizable.height="enable"
+              header.row.resizable.width="enable"
+              header.row.resizable.height="enable"
+              header.column.hidable="enable"
+              scroll-policy="loadMoreOnScroll"
+              data-transfer-options='{"cut":"enable","copy":"enable","paste":"enable","fill":"enable"}'
+              style="width:100%; height:600px;">
+
+              <template slot="columnHeaderTemplate" data-oj-as="header">
+                <span style="display: block; width: 100%; text-align: left; white-space: normal; word-break: break-word; overflow: visible;">
+                  <oj-bind-text value="[[ header.item.data ]]"></oj-bind-text>
+                </span>
+              </template>
+
+              <template slot="cellTemplate" data-oj-as="cell">
+                <oj-bind-if test="[[ cell.mode === 'navigation' ]]">
+
+                  <!-- Component column of a month row: expand/collapse toggle -->
+                  <oj-bind-if test="[[ cell.item.columnIndex === 0 && cell.item.data.isMonth ]]">
+                    <span class="util-month-row util-toggle"
+                          on-click="[[ function(e) { $variables.collapsedMonths = $functions.toggleUtilMonth($variables.collapsedMonths, cell.item.data.monthKey); e.stopPropagation(); } ]]">
+                      <span class="util-toggle-icon"><oj-bind-text value="[[ $variables.collapsedMonths.indexOf(cell.item.data.monthKey) >= 0 ? '▶' : '▼' ]]"></oj-bind-text></span>
+                      <oj-bind-text value="[[ cell.item.data.data ]]"></oj-bind-text>
+                    </span>
+                  </oj-bind-if>
+
+                  <!-- All other cells -->
+                  <oj-bind-if test="[[ !(cell.item.columnIndex === 0 && cell.item.data.isMonth) ]]">
+                    <span class="[[ 'oj-typography-body-sm ' + (cell.item.data.isMonth ? 'util-month-row' : 'util-day-row') ]]">
+                      <oj-bind-text value="[[ cell.item.data.data ]]"></oj-bind-text>
+                    </span>
+                  </oj-bind-if>
+
+                </oj-bind-if>
+                <oj-bind-if test="[[ cell.mode === 'edit' ]]">
+                  <oj-input-text value="{{ cell.item.data.data }}" style="width:100%;"></oj-input-text>
+                </oj-bind-if>
+              </template>
+
+            </oj-data-grid>
+          </div>
+
+          <!-- Chart — 35% -->
+          <div style="flex: 0 0 35%; min-width: 0; padding: 10px; overflow: auto;">
+
+            <!-- Units Deployed Per Day -->
+            <div class="oj-typography-body-sm oj-typography-bold oj-text-color-primary" style="margin-bottom: 4px;">
+              Units Deployed Per Day
+            </div>
+            <div class="oj-typography-body-xs oj-text-color-secondary" style="margin-bottom: 8px;">
+              Total units out on rent each day
+            </div>
+            <oj-chart
+              type="bar"
+              style="height:500px; width:100%"
+              animation-on-display="auto"
+              series="[[ $variables.utilDailySeries ]]"
+              groups="[[ $variables.utilDailyGroups ]]"
+              y-axis.min="0">
+            </oj-chart>
+
+          </div>
+
+        </div>
+      </oj-bind-if>
+
+      <!-- ── TAB: Equipment Master ── -->
+      <oj-bind-if test="[[ $variables.analyticsActiveTab === 'equipment-master' && !$variables.isLoading ]]">
+        <div style="display: flex; min-height: 500px; overflow: hidden;">
+
+          <!-- Data Grid — 55% -->
+          <div style="flex: 0 0 55%; min-width: 0; overflow: hidden; border-right: 1px solid var(--oj-core-divider-color, #e5e7eb);">
+            <oj-data-grid
+              id="datagrid"
+              class="demo-data-grid"
+              aria-label="Equipment Master Grid"
+              data="[[ $functions.getEquipMasterGridProvider($variables.stockRows, $variables.analyticsFilterCriterion, $variables.analyticsFilterVersion) ]]"
+              selection="{{ $variables.equipMasterSelection }}"
+              selection-mode.cell="multiple"
+              cell.editable="[[ $functions.getIsEditable.bind($functions) ]]"
+              header.column.style="[[ $functions.getEquipMasterColumnHeaderStyle.bind($functions) ]]"
+              header.column.filterable="[[ $functions.getHeaderFilterable.bind($functions) ]]"
+              header.row.style="width:50px;"
+              header.column.resizable.width="enable"
+              header.column.resizable.height="enable"
+              header.row.resizable.width="enable"
+              header.row.resizable.height="enable"
+              header.column.hidable="enable"
+              header.row.hidable="enable"
+              scroll-policy="loadMoreOnScroll"
+              data-transfer-options='{"cut": "enable", "copy": "enable", "paste": "enable", "fill": "enable"}'
+              style="width:100%; height:600px;">
+
+              <template slot="columnHeaderTemplate" data-oj-as="header">
+                <oj-bind-text value="[[ header.item.data ]]"></oj-bind-text>
+              </template>
+
+              <template slot="cellTemplate" data-oj-as="cell">
+                <oj-bind-if test="[[ cell.mode === 'navigation' ]]">
+                  <span class="oj-text-color-secondary oj-typography-body-sm">
+                    <oj-bind-text value="[[ cell.item.data.data ]]"></oj-bind-text>
+                  </span>
+                </oj-bind-if>
+                <oj-bind-if test="[[ cell.mode === 'edit' ]]">
+                  <oj-input-text value="{{ cell.item.data.data }}" style="width:100%;"></oj-input-text>
+                </oj-bind-if>
+              </template>
+
+            </oj-data-grid>
+          </div>
+
+          <!-- Charts — 45%, 2-row layout: Status Mix full-width, Fleet Availability by Yard full-width -->
+          <div style="flex: 0 0 45%; min-width: 0; padding: 10px; display: flex; flex-direction: column; gap: 16px; overflow: auto;">
+
+            <!-- Chart 1: Fleet Status Mix — overall health snapshot -->
+            <div>
+              <div class="oj-typography-body-sm oj-typography-bold oj-text-color-primary" style="margin-bottom: 4px;">Fleet Status Mix</div>
+              <div class="oj-typography-body-xs oj-text-color-secondary" style="margin-bottom: 6px;">Unit count by availability status across the entire fleet</div>
+              <oj-chart type="bar"
+                style="height:160px; width:100%"
+                animation-on-display="auto"
+                series="[[ $variables.chartDonutSeries ]]"
+                groups="[[ $variables.chartDonutGroups ]]"
+                y-axis.min="0" y-axis.step="1">
+              </oj-chart>
+            </div>
+
+            <!-- Chart 2: Fleet Availability by Yard — grouped bar showing Available / Rented / Other per yard -->
+            <div>
+              <div class="oj-typography-body-sm oj-typography-bold oj-text-color-primary" style="margin-bottom: 4px;">Fleet Availability by Yard</div>
+              <div class="oj-typography-body-xs oj-text-color-secondary" style="margin-bottom: 6px;">Available vs. rented vs. other units per yard — where is idle stock vs. fully deployed?</div>
+              <oj-chart type="bar"
+                style="height:320px; width:100%"
+                animation-on-display="auto"
+                series="[[ $variables.stockYardStatusSeries ]]"
+                groups="[[ $variables.stockYardStatusGroups ]]"
+                y-axis.min="0" y-axis.step="1">
+              </oj-chart>
+            </div>
+
+          </div>
+
+        </div>
+      </oj-bind-if>
+
+      <!-- ── TAB: Equipment Pending Approval Report ── -->
+      <oj-bind-if test="[[ $variables.analyticsActiveTab === 'equipment-pending' && !$variables.isLoading ]]">
+        <div style="display: flex; min-height: 500px; overflow: hidden;">
+
+          <!-- Data Grid — 55% -->
+          <div style="flex: 0 0 55%; min-width: 0; overflow: hidden; border-right: 1px solid var(--oj-core-divider-color, #e5e7eb);">
+            <oj-data-grid
+              id="pendingDataGrid"
+              class="demo-data-grid"
+              aria-label="Equipment Pending Approval Grid"
+              data="[[ $functions.getPendingGridProvider($variables.pendingRows, $variables.analyticsFilterCriterion, $variables.analyticsFilterVersion) ]]"
+              selection="{{ $variables.pendingSelection }}"
+              selection-mode.cell="multiple"
+              cell.editable="[[ $functions.getIsEditable.bind($functions) ]]"
+              header.column.style="[[ $functions.getPendingColumnHeaderStyle.bind($functions) ]]"
+              header.column.filterable="[[ $functions.getHeaderFilterable.bind($functions) ]]"
+              header.row.style="width:50px;"
+              header.column.resizable.width="enable"
+              header.column.resizable.height="enable"
+              header.row.resizable.width="enable"
+              header.row.resizable.height="enable"
+              header.column.hidable="enable"
+              header.row.hidable="enable"
+              scroll-policy="loadMoreOnScroll"
+              data-transfer-options='{"cut": "enable", "copy": "enable", "paste": "enable", "fill": "enable"}'
+              style="width:100%; height:600px;">
+
+              <template slot="columnHeaderTemplate" data-oj-as="header">
+                <oj-bind-text value="[[ header.item.data ]]"></oj-bind-text>
+              </template>
+
+              <template slot="cellTemplate" data-oj-as="cell">
+                <oj-bind-if test="[[ cell.mode === 'navigation' ]]">
+                  <span class="oj-text-color-secondary oj-typography-body-sm">
+                    <oj-bind-text value="[[ cell.item.data.data ]]"></oj-bind-text>
+                  </span>
+                </oj-bind-if>
+                <oj-bind-if test="[[ cell.mode === 'edit' ]]">
+                  <oj-input-text value="{{ cell.item.data.data }}" style="width:100%;"></oj-input-text>
+                </oj-bind-if>
+              </template>
+
+            </oj-data-grid>
+          </div>
+
+          <!-- Charts — 45%, 3-chart layout: Status full-width top, Requestor + Class below -->
+          <div style="flex: 0 0 45%; min-width: 0; padding: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; overflow: auto; align-content: start;">
+
+            <!-- Chart 1: Line Status Mix — full width, compact height (only 4 bars max) -->
+            <div style="grid-column: 1 / -1;">
+              <div class="oj-typography-body-sm oj-typography-bold oj-text-color-primary" style="margin-bottom: 4px;">Line Status Mix</div>
+              <div class="oj-typography-body-xs oj-text-color-secondary" style="margin-bottom: 6px;">Count of lines per approval lifecycle stage</div>
+              <oj-chart type="bar"
+                style="height:160px; width:100%"
+                animation-on-display="auto"
+                series="[[ $variables.chartDonutSeries ]]"
+                groups="[[ $variables.chartDonutGroups ]]"
+                y-axis.min="0" y-axis.step="1">
+              </oj-chart>
+            </div>
+
+            <!-- Chart 2: Lines by Requestor — top 10 cap, subtitle shows total count -->
+            <div>
+              <div class="oj-typography-body-sm oj-typography-bold oj-text-color-primary" style="margin-bottom: 4px;">Lines by Requestor</div>
+              <div class="oj-typography-body-xs oj-text-color-secondary" style="margin-bottom: 6px;">
+                <oj-bind-text value="[[ $variables.pendingRequestorSubtitle ]]"></oj-bind-text>
+              </div>
+              <oj-chart type="bar"
+                orientation="horizontal"
+                style="height:300px; width:100%"
+                animation-on-display="auto"
+                series="[[ $variables.pendingRequestorSeries ]]"
+                groups="[[ $variables.pendingRequestorGroups ]]"
+                x-axis.min="0" x-axis.step="1">
+              </oj-chart>
+            </div>
+
+            <!-- Chart 3: Lines by Equipment Class — what types are being requested? -->
+            <div>
+              <div class="oj-typography-body-sm oj-typography-bold oj-text-color-primary" style="margin-bottom: 4px;">Lines by Equipment Class</div>
+              <div class="oj-typography-body-xs oj-text-color-secondary" style="margin-bottom: 6px;">Pending line count per equipment category</div>
+              <oj-chart type="bar"
+                orientation="horizontal"
+                style="height:300px; width:100%"
+                animation-on-display="auto"
+                series="[[ $variables.chartBarSeries ]]"
+                groups="[[ $variables.chartBarGroups ]]"
+                x-axis.min="0" x-axis.step="1">
+              </oj-chart>
+            </div>
+
+          </div>
+
+        </div>
+      </oj-bind-if>
+
+      <!-- ── TAB: Equipment Onhand Quantity ── -->
+      <oj-bind-if test="[[ $variables.analyticsActiveTab === 'onhand' && !$variables.isLoading ]]">
+        <div style="display: flex; height: 620px; overflow: hidden;">
+
+          <!-- Data Grid — 65% -->
+          <div style="flex: 0 0 65%; min-width: 0; height: 100%; overflow: hidden; border-right: 1px solid var(--oj-core-divider-color, #e5e7eb);">
+            <oj-data-grid
+              id="onhandDataGrid"
+              class="demo-data-grid"
+              aria-label="Equipment Onhand Quantity Grid"
+              data="[[ $functions.getOnhandGridProvider($variables.onhandRows, $variables.analyticsFilterCriterion, $variables.analyticsFilterVersion) ]]"
+              selection="{{ $variables.onhandSelection }}"
+              selection-mode.cell="multiple"
+              cell.editable="[[ $functions.getIsEditable.bind($functions) ]]"
+              header.column.style="[[ $functions.getOnhandColumnHeaderStyle.bind($functions) ]]"
+              header.column.filterable="[[ $functions.getHeaderFilterable.bind($functions) ]]"
+              header.row.style="width:50px;"
+              header.column.resizable.width="enable"
+              header.column.resizable.height="enable"
+              header.row.resizable.width="enable"
+              header.row.resizable.height="enable"
+              header.column.hidable="enable"
+              header.row.hidable="enable"
+              scroll-policy="loadMoreOnScroll"
+              data-transfer-options='{"cut": "enable", "copy": "enable", "paste": "enable", "fill": "enable"}'
+              style="width:100%; height:100%;">
+
+              <template slot="columnHeaderTemplate" data-oj-as="header">
+                <oj-bind-text value="[[ header.item.data ]]"></oj-bind-text>
+              </template>
+
+              <template slot="cellTemplate" data-oj-as="cell">
+                <oj-bind-if test="[[ cell.mode === 'navigation' ]]">
+                  <span class="oj-text-color-secondary oj-typography-body-sm">
+                    <oj-bind-text value="[[ cell.item.data.data ]]"></oj-bind-text>
+                  </span>
+                </oj-bind-if>
+                <oj-bind-if test="[[ cell.mode === 'edit' ]]">
+                  <oj-input-text value="{{ cell.item.data.data }}" style="width:100%;"></oj-input-text>
+                </oj-bind-if>
+              </template>
+
+            </oj-data-grid>
+          </div>
+
+          <!-- Charts — 35% -->
+          <div style="flex: 0 0 35%; min-width: 0; padding: 10px; display: flex; flex-direction: column; gap: 20px; overflow: auto;">
+
+            <!-- Donut: by Equipment Class (item count) -->
+            <div>
+              <div class="oj-typography-body-sm oj-typography-bold oj-text-color-primary" style="margin-bottom: 6px;">
+                <oj-bind-text value="[[ $variables.chartDonutTitle ]]"></oj-bind-text>
+              </div>
+              <oj-chart type="bar"
+                style="height:230px; width:100%"
+                animation-on-display="auto"
+                series="[[ $variables.chartDonutSeries ]]"
+                groups="[[ $variables.chartDonutGroups ]]">
+              </oj-chart>
+            </div>
+
+            <!-- Bar: Onhand Quantity by Class (horizontal) -->
+            <div>
+              <div class="oj-typography-body-sm oj-typography-bold oj-text-color-primary" style="margin-bottom: 6px;">
+                <oj-bind-text value="[[ $variables.chartBarTitle ]]"></oj-bind-text>
+              </div>
+              <oj-chart type="bar"
+                style="height:300px; width:100%"
+                animation-on-display="auto"
+                series="[[ $variables.chartBarSeries ]]"
+                groups="[[ $variables.chartBarGroups ]]"
+                y-axis.min="0"
+                y-axis.step="5">
+              </oj-chart>
+            </div>
+
+          </div>
+
+        </div>
+      </oj-bind-if>
+
+    </div>
+
+    </div>
+  </div>
+
+
+</oj-sp-dashboard-landing-page>

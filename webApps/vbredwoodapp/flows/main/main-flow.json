@@ -1,0 +1,63 @@
+{
+  "id": "main",
+  "description": "Flow main",
+  "defaultPage": "main-equiprite",
+  "pages": {
+    "main-equiprite": {
+      "path": "pages/main-equiprite-page"
+    },
+    "equipment-requests": {
+      "path": "pages/equipment-requests-page"
+    },
+    "equipment-request-detail": {
+      "path": "pages/equipment-request-detail-page",
+      "parameters": {
+        "requestId": {
+          "type": "string",
+          "input": "fromUrl"
+        },
+        "requestNumericId": {
+          "type": "number",
+          "input": "fromUrl"
+        },
+        "returnTo": {
+          "type": "string",
+          "input": "fromUrl"
+        },
+        "sourcePage": {
+          "type": "string",
+          "input": "fromUrl"
+        }
+      }
+    },
+    "project-quote": {
+      "path": "pages/project-quote-page",
+      "parameters": {
+        "requestId": {
+          "type": "string",
+          "input": "fromUrl"
+        },
+        "requestNumericId": {
+          "type": "number",
+          "input": "fromUrl"
+        }
+      }
+    },
+    "equipment-schedule": {
+      "path": "pages/equipment-schedule-page"
+    },
+    "rate-schedule": {
+      "path": "pages/rate-schedule-page"
+    },
+    "create-rate-schedule": {
+      "path": "pages/create-rate-schedule-page"
+    },
+    "no-access": {
+      "path": "pages/no-access-page"
+    }
+  },
+  "chains": {},
+  "services": {},
+  "types": {},
+  "variables": {}
+}

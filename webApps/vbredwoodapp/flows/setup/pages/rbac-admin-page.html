@@ -1,0 +1,398 @@
+<style>
+    /* Matches the Configurations page shell so Setup reads as one screen family. */
+    #oj_gop_rbac_admin {
+        --oj-sp-general-overview-page-max-width: 95% !important;
+        max-width: 95% !important;
+        overflow-x: hidden !important;
+    }
+
+    .rbac-layout-container {
+        max-width: 100%;
+        margin: 0;
+        height: calc(100vh - 160px);
+        overflow: hidden;
+        flex-wrap: nowrap !important;
+    }
+
+    /* Same trick as configurations-page: flex-basis 0 + width 0 so the panel
+       grows only to the available row space, never to its content's intrinsic
+       width — otherwise the wide access column pushes past the viewport. */
+    .rbac-content-area {
+        flex: 1 1 0% !important;
+        min-width: 0 !important;
+        width: 0 !important;
+    }
+
+    .settings-group {
+        border: 1px solid var(--border-color, #d1d5db);
+        border-radius: 8px;
+        background-color: #ffffff;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    .settings-group-header {
+        padding: 16px;
+        border-bottom: 1px solid var(--border-color, #d1d5db);
+        display: flex;
+        align-items: center;
+    }
+
+    .settings-group-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 16px;
+        color: white;
+    }
+
+    .icon-blue {
+        background-color: #0f172a;
+    }
+
+    .settings-group-title {
+        font-weight: 600;
+        font-size: 16px;
+        color: var(--text-main, #111827);
+    }
+
+    .settings-group-subtitle {
+        font-size: 12px;
+        color: var(--text-secondary, #6b7280);
+        margin-top: 2px;
+    }
+
+    .settings-content {
+        padding: 16px;
+        background-color: #f8fafc;
+    }
+
+    /* ── Matrix ──────────────────────────────────────────────────────────
+       Rows rather than an oj-table: each row carries a group header and an
+       inline three-way control, both awkward inside a table cell template.
+       Styled to read like the audit-table used elsewhere — dark header bar,
+       white body, hairline row rules. */
+    .rbac-matrix {
+        border: 1px solid var(--border-color, #e2e8f0);
+        border-radius: 8px;
+        overflow: hidden;
+        background-color: #ffffff;
+    }
+
+    .rbac-matrix-header {
+        display: flex;
+        align-items: center;
+        padding: 12px 16px;
+        background-color: #0f172a;
+        color: #ffffff;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+    }
+
+    .rbac-module-header {
+        padding: 8px 16px;
+        background-color: #f1f5f9;
+        border-top: 1px solid #e2e8f0;
+        border-bottom: 1px solid #e2e8f0;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #475569;
+    }
+
+    .rbac-row {
+        display: flex;
+        align-items: center;
+        padding: 12px 16px;
+        border-bottom: 1px solid #f1f5f9;
+        transition: background-color 0.12s ease;
+    }
+
+    .rbac-row:hover {
+        background-color: #f8fafc;
+    }
+
+    .rbac-row:last-child {
+        border-bottom: none;
+    }
+
+    .rbac-row-dirty {
+        background-color: #fffbeb;
+        box-shadow: inset 3px 0 0 #f59e0b;
+    }
+
+    .rbac-row-dirty:hover {
+        background-color: #fef3c7;
+    }
+
+    .rbac-page-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #0f172a;
+    }
+
+    .rbac-page-code {
+        font-size: 11px;
+        color: #94a3b8;
+        margin-top: 2px;
+        font-family: monospace;
+    }
+
+    .rbac-access-col {
+        width: 340px;
+        flex: 0 0 340px;
+    }
+
+    .rbac-locked-note {
+        font-size: 11px;
+        color: #94a3b8;
+        margin-top: 4px;
+    }
+
+    .badge-dirty {
+        background-color: #fef3c7;
+        color: #b45309;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 10px;
+        font-weight: bold;
+        margin-left: 8px;
+        vertical-align: middle;
+    }
+
+    .badge-locked {
+        background-color: #f1f5f9;
+        color: #475569;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 10px;
+        font-weight: bold;
+        margin-left: 8px;
+        vertical-align: middle;
+    }
+
+    .warn-banner {
+        background-color: #fffbeb;
+        border: 1px solid #fde68a;
+        border-radius: 8px;
+        padding: 12px 16px;
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .warn-banner-icon {
+        color: #d97706;
+        font-size: 16px;
+        margin-top: 2px;
+    }
+
+    .warn-banner-text {
+        color: #92400e;
+        font-size: 13px;
+        line-height: 1.4;
+    }
+
+    .error-banner {
+        background-color: #fee2e2;
+        border: 1px solid #fecaca;
+        border-radius: 8px;
+        padding: 12px 16px;
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .error-banner-icon {
+        color: #b91c1c;
+        font-size: 16px;
+        margin-top: 2px;
+    }
+
+    .error-banner-text {
+        color: #991b1b;
+        font-size: 13px;
+        line-height: 1.4;
+    }
+
+    .rbac-empty-state {
+        padding: 48px 16px;
+        text-align: center;
+        color: #94a3b8;
+        font-size: 13px;
+    }
+</style>
+
+<!-- Page shell matches configurations-page: title + Save/Cancel live in the
+     overview-page action bar rather than a hand-rolled header row, so this
+     screen gets the same chrome as the rest of Setup. -->
+<oj-sp-general-overview-page id="oj_gop_rbac_admin" display-mode="mixed" display-options.responsive-padding="on"
+    page-title="Page Access"
+    primary-action='[[ {"label": $page.variables.isSaving ? "Saving..." : $page.functions.saveLabel($page.variables.dirtyMap), "icon": "oj-ux-ico-save", "display": "on", "disabled": $page.functions.dirtyCount($page.variables.dirtyMap) === 0 || $page.variables.isSaving} ]]'
+    secondary-actions='[[ [{"id": "cancel", "label": "Cancel", "display": "on", "disabled": $page.functions.dirtyCount($page.variables.dirtyMap) === 0 || $page.variables.isSaving}] ]]'
+    on-sp-primary-action="[[ $listeners.saveMatrix ]]"
+    on-sp-secondary-action="[[ $listeners.cancelEdits ]]">
+
+    <div slot="main" class="oj-flex oj-sm-gap-6x rbac-layout-container">
+
+        <div class="rbac-content-area oj-sm-width-full oj-md-margin-6x-top oj-md-margin-6x-horizontal"
+            style="height: calc(100% - 24px); display: flex; flex-direction: column;">
+
+            <div style="flex: 1 1 auto; overflow-y: auto; overflow-x: hidden; min-width: 0; max-width: 100%; padding-bottom: 48px;">
+
+                <div class="settings-group">
+
+                    <div class="settings-group-header">
+                        <div class="settings-group-icon icon-blue">
+                            <span class="oj-ux-ico-lock-closed" style="font-size: 20px;"></span>
+                        </div>
+                        <div>
+                            <div class="settings-group-title">Role Page Access</div>
+                            <div class="settings-group-subtitle">
+                                Controls which pages each role can open, and whether they can edit.
+                                Hidden pages disappear from the navigation menu and cannot be reached by URL.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-content">
+
+                        <!-- ── ROLE PICKER ──────────────────────────────────────
+                             Options come from RBAC_APP_ROLES, not a hard-coded
+                             list, so a newly seeded role appears here with no
+                             frontend change. -->
+                        <div class="oj-flex oj-sm-flex-wrap-nowrap oj-sm-gap-4x oj-sm-margin-4x-bottom"
+                            style="max-width: 760px;">
+                            <oj-form-layout max-columns="1" label-edge="top" style="flex: 1 1 auto; min-width: 0;">
+                                <oj-select-single label-hint="ROLE"
+                                    placeholder="— Select Role —"
+                                    value="[[ $variables.selectedRoleId ]]"
+                                    data="[[ $page.functions.rolesDP($variables.rolesArray) ]]"
+                                    item-text="roleName"
+                                    disabled="[[ $variables.isLoading || $variables.isSaving ]]"
+                                    on-value-changed="[[ $listeners.roleChanged ]]">
+                                </oj-select-single>
+                            </oj-form-layout>
+                        </div>
+
+                        <!-- Unsaved-changes warning — switching role discards the dirtyMap. -->
+                        <oj-bind-if test="[[ $page.functions.dirtyCount($variables.dirtyMap) > 0 ]]">
+                            <div class="warn-banner oj-sm-margin-4x-bottom">
+                                <span class="oj-ux-ico-warning warn-banner-icon"></span>
+                                <span class="warn-banner-text">
+                                    You have unsaved changes. Switching role or cancelling will discard them.
+                                </span>
+                            </div>
+                        </oj-bind-if>
+
+                        <!-- ── ERROR ────────────────────────────────────────── -->
+                        <oj-bind-if test="[[ $variables.loadError ]]">
+                            <div class="error-banner oj-sm-margin-4x-bottom">
+                                <span class="oj-ux-ico-error error-banner-icon"></span>
+                                <span class="error-banner-text">
+                                    <oj-bind-text value="[[ $variables.loadError ]]"></oj-bind-text>
+                                </span>
+                            </div>
+                        </oj-bind-if>
+
+                        <!-- ── LOADING ──────────────────────────────────────── -->
+                        <oj-bind-if test="[[ $variables.isLoading ]]">
+                            <div class="rbac-matrix">
+                                <div class="rbac-empty-state">
+                                    <oj-progress-circle size="md"></oj-progress-circle>
+                                    <div class="oj-sm-margin-3x-top">Loading page access…</div>
+                                </div>
+                            </div>
+                        </oj-bind-if>
+
+                        <!-- ── MATRIX ───────────────────────────────────────── -->
+                        <oj-bind-if test="[[ !$variables.isLoading && !$variables.loadError ]]">
+                            <div class="rbac-matrix">
+
+                                <div class="rbac-matrix-header">
+                                    <div class="oj-flex-item">Page</div>
+                                    <div class="rbac-access-col">Access</div>
+                                </div>
+
+                                <!-- No role picked yet, or the role has no pages. -->
+                                <oj-bind-if test="[[ !$variables.matrixArray || $variables.matrixArray.length === 0 ]]">
+                                    <div class="rbac-empty-state">
+                                        Select a role to view and edit its page access.
+                                    </div>
+                                </oj-bind-if>
+
+                                <oj-bind-for-each data="[[ $variables.matrixArray ]]">
+                                    <template data-oj-as="row">
+
+                                        <!-- module group header -->
+                                        <oj-bind-if
+                                            test="[[ $page.functions.isFirstOfModule($variables.matrixArray, row.index) ]]">
+                                            <div class="rbac-module-header">
+                                                <oj-bind-text
+                                                    value="[[ $page.functions.moduleLabel(row.data.moduleCode) ]]"></oj-bind-text>
+                                            </div>
+                                        </oj-bind-if>
+
+                                        <!-- one page -->
+                                        <div
+                                            :class="[[ $page.functions.rowClass($variables.dirtyMap, row.data.pageCode) ]]">
+
+                                            <div class="oj-flex-item" style="min-width: 0;">
+                                                <div class="rbac-page-label">
+                                                    <oj-bind-text value="[[ row.data.pageLabel ]]"></oj-bind-text>
+                                                    <oj-bind-if
+                                                        test="[[ $page.functions.isRowDirty($variables.dirtyMap, row.data.pageCode) ]]">
+                                                        <span class="badge-dirty">UNSAVED</span>
+                                                    </oj-bind-if>
+                                                    <oj-bind-if test="[[ $page.functions.isRowLocked(row.data) ]]">
+                                                        <span class="badge-locked">LOCKED</span>
+                                                    </oj-bind-if>
+                                                </div>
+                                                <div class="rbac-page-code">
+                                                    <oj-bind-text value="[[ row.data.pageCode ]]"></oj-bind-text>
+                                                </div>
+                                            </div>
+
+                                            <!-- three-way level control -->
+                                            <div class="rbac-access-col">
+                                                <!-- The page code rides on the element as a data attribute; the
+                                                     levelChanged listener reads it back off $event.currentTarget,
+                                                     because a page module cannot write $page.variables and the
+                                                     chain needs to know WHICH page changed. -->
+                                                <oj-radioset
+                                                    :data-page-code="[[ row.data.pageCode ]]"
+                                                    value="[[ $page.functions.effectiveLevel($variables.dirtyMap, row.data.pageCode, row.data.accessLevel) ]]"
+                                                    disabled="[[ $variables.isSaving || $page.functions.isRowLocked(row.data) ]]"
+                                                    direction="row"
+                                                    label-edge="none"
+                                                    on-value-changed="[[ $listeners.levelChanged ]]">
+                                                    <oj-option value="FULL">Full</oj-option>
+                                                    <oj-option value="READ_ONLY">Read only</oj-option>
+                                                    <oj-option value="HIDDEN">Hidden</oj-option>
+                                                </oj-radioset>
+                                                <oj-bind-if test="[[ $page.functions.isRowLocked(row.data) ]]">
+                                                    <div class="rbac-locked-note">
+                                                        Locked — cannot be changed here
+                                                    </div>
+                                                </oj-bind-if>
+                                            </div>
+
+                                        </div>
+                                    </template>
+                                </oj-bind-for-each>
+
+                            </div>
+                        </oj-bind-if>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</oj-sp-general-overview-page>

@@ -1,0 +1,28 @@
+<div class="bip-report-lov-wrapper" style="position:relative;">
+  <oj-select-single
+    id="bipReportLovSelect"
+    label-hint="[[ $variables.labelText ]]"
+    placeholder="[[ $variables.placeholderText ]]"
+    item-text="label"
+    value="{{ $variables.selectedKey }}"
+    data="[[ $variables.itemsAdp ]]"
+    required="[[ $variables.required ]]"
+    disabled="[[ $variables.disabled || $variables.isLoading ]]"
+    style="min-height:44px;width:100%;"
+    class="oj-form-control-full-width"
+    on-value-changed="[[$listeners.onValueChanged]]"
+  >
+    <template slot="itemTemplate" data-oj-as="item">
+      <oj-list-item-layout>
+        <span slot="overline" class="oj-typography-body-md">
+          <oj-bind-text value="[[ item.data.label ]]"></oj-bind-text>
+        </span>
+        <oj-bind-if test="[[ item.data.label2 ]]">
+          <span slot="secondary" class="oj-typography-body-sm" style="color:var(--oj-core-text-color-secondary,#6b7280);">
+            <oj-bind-text value="[[ item.data.label2 ]]"></oj-bind-text>
+          </span>
+        </oj-bind-if>
+      </oj-list-item-layout>
+    </template>
+  </oj-select-single>
+</div>

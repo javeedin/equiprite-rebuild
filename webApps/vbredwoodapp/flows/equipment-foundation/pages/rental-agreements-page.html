@@ -1,0 +1,280 @@
+<!--
+  Rental Agreements — Smart Search Page (PATH B, hardcoded data)
+  Template: oj-sp-smart-search-page + oj-table + detail drawer
+-->
+<style>
+  /* ── Table styling ── */
+  #rentalAgreementsTable .oj-table-column-header-cell {
+    background-color: var(--oj-core-neutral-color-2, #f1f1f1);
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--oj-core-text-color-secondary, #565656);
+    padding: 10px 12px;
+  }
+  #rentalAgreementsTable .oj-table-column-header-text {
+    white-space: nowrap;
+  }
+  #rentalAgreementsTable .oj-table-body-row:hover {
+    background-color: var(--oj-core-neutral-color-1, #fafafa);
+    cursor: pointer;
+  }
+  #rentalAgreementsTable .oj-table-data-cell {
+    padding: 10px 12px;
+    font-size: 0.8125rem;
+    vertical-align: middle;
+  }
+
+  /* ── Agreement number link style ── */
+  .req-number-link {
+    color: var(--oj-core-brand-color-primary, #005cb1);
+    font-weight: 700;
+    font-size: 0.8rem;
+  }
+
+  /* ── Project / Task two-line cell ── */
+  .req-project-primary {
+    font-weight: 600;
+    color: var(--oj-core-text-color-primary, #161616);
+  }
+  .req-project-secondary {
+    font-size: 0.75rem;
+    color: var(--oj-core-text-color-secondary, #565656);
+    margin-top: 2px;
+  }
+
+  /* ── Lines count badge ── */
+  .req-lines-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: var(--oj-core-neutral-color-3, #e8e8e8);
+    color: var(--oj-core-text-color-secondary, #565656);
+    border-radius: 50%;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+
+  /* Status badge colours are defined globally in resources/css/app.css
+     (canonical status palette). Do not redefine them here. */
+
+  /* ── Drawer detail field label ── */
+  .req-field-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--oj-core-text-color-secondary, #565656);
+    margin-bottom: 2px;
+  }
+  .req-field-value {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--oj-core-text-color-primary, #161616);
+  }
+
+  /* ── Line item card in drawer ── */
+  .req-line-card {
+    border: 1px solid var(--oj-core-divider-color, #e0e0e0);
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    background: var(--oj-core-neutral-color-0, #ffffff);
+  }
+  .req-line-name {
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: var(--oj-core-text-color-primary, #161616);
+  }
+  .req-line-class {
+    font-size: 0.75rem;
+    color: var(--oj-core-text-color-secondary, #565656);
+    margin-top: 1px;
+  }
+  .req-line-meta {
+    font-size: 0.75rem;
+    color: var(--oj-core-text-color-secondary, #565656);
+    margin-top: 6px;
+  }
+
+  /* ── Section divider in drawer ── */
+  .req-section-heading {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--oj-core-brand-color-primary, #005cb1);
+    margin: 16px 0 8px 0;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--oj-core-divider-color, #e0e0e0);
+  }
+</style>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!--  SMART SEARCH PAGE SHELL                                -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<oj-sp-smart-search-page page-title="Rental Agreements" primary-action.display="on" primary-action.label="New Agreement"
+  primary-action.disabled="[[ !$application.functions.isFeatureEnabled($application.variables.featureFlags, $application.variables.flagsLoaded, 'AGREEMENTS_ENABLED') ]]"
+  on-sp-primary-action="[[$listeners.spPrimaryAction]]" display-mode="mixed">
+
+  <!-- ── SEARCH SLOT ── -->
+  <oj-sp-smart-search
+    slot="search"
+    filter-criterion="{{ $variables.filterCriterion }}"
+    on-filter-criterion-changed="[[$listeners.filterCriterionChanged]]"
+    search-context="[[ $variables.searchContext ]]"
+    search-config="[[ $variables.searchConfiguration.provider ]]"
+    suggestion-filters='["StatusFilter", "CustomerFilter", "TypeFilter"]'
+    placeholder="Agreement #, customer, type, status...">
+  </oj-sp-smart-search>
+
+  <!-- ── DEFAULT SLOT — collection ── -->
+  <oj-sp-collection-container>
+
+    <oj-table
+      id="rentalAgreementsTable"
+      data="[[ $variables.RequestADP ]]"
+      class="oj-table-stretch oj-sm-width-full"
+      scroll-policy="loadMoreOnScroll"
+      scroll-policy-options.fetch-size="25"
+      selection-mode='{"row": "single"}'
+      columns='[
+        {"headerText": "",                 "field": "headerId",        "template": "editActionTpl", "sortable": "disabled","style": "width:60px;"},
+        {"headerText": "Agreement Number", "field": "agreementNumber",                              "sortable": "enabled", "style": "width:180px;"},
+        {"headerText": "Agreement Name",   "field": "agreementName",                                "sortable": "enabled"},
+        {"headerText": "Customer",         "field": "customer",                                     "sortable": "enabled"},
+        {"headerText": "Agreement Type",   "field": "agreementType",                                "sortable": "enabled", "style": "width:180px;"},
+        {"headerText": "Start Date",       "field": "startDate",                                    "sortable": "enabled", "style": "width:130px;"},
+        {"headerText": "End Date",         "field": "endDate",                                      "sortable": "enabled", "style": "width:130px;"},
+        {"headerText": "Status",           "field": "statusCode",      "template": "statusTpl",     "sortable": "enabled", "style": "width:150px;"},
+        {"headerText": "Lines",            "field": "lineCount",       "template": "linesTpl",      "sortable": "disabled","style": "width:100px;"}
+      ]'
+      on-first-selected-row-changed="[[ $listeners.onRowAction ]]"
+      style="width:100%; min-height:550px;"
+      aria-label="Rental Agreements Table">
+
+      <!-- EDIT ACTION — icon button -->
+      <template slot="editActionTpl" data-oj-as="cell">
+        <span on-click="[[ (event) => { event.stopPropagation(); } ]]">
+          <oj-button display="icons" chroming="borderless"
+            on-oj-action="[[ $listeners.onAgreementClick.bind(null, { originalEvent: { currentTarget: { dataset: { agreementId: String(cell.row.headerId), statusCode: cell.row.statusCode } } } }) ]]">
+            <span slot="startIcon" class="oj-ux-ico-edit"></span>
+            <span>Edit</span>
+          </oj-button>
+        </span>
+      </template>
+
+      <!-- LINES — count badge -->
+      <template slot="linesTpl" data-oj-as="cell">
+        <span class="req-lines-badge">
+          <oj-bind-text value="[[ cell.data || 0 ]]"></oj-bind-text>
+        </span>
+      </template>
+
+      <!-- STATUS — colour-coded badge -->
+      <template slot="statusTpl" data-oj-as="cell">
+        <span>
+          <oj-bind-if test="[[ !!cell.data ]]">
+            <span :class="[[ $application.functions.statusTextClass() ]]">
+              <oj-bind-text value="[[ $application.functions.formatLineStatus(cell.data) ]]"></oj-bind-text>
+            </span>
+          </oj-bind-if>
+        </span>
+      </template>
+
+      <!-- REMOVED LINES TEMPLATE -->
+
+      <!-- EMPTY STATE -->
+      <template slot="noData">
+        <div style="text-align:center; padding:48px 0;">
+          <div style="font-size:40px; color:#cbd5e1; margin-bottom:12px;">📄</div>
+          <div style="font-size:15px; font-weight:600; color:#475569; margin-bottom:6px;">No rental agreements found.</div>
+          <div style="font-size:13px; color:#94a3b8;">Try adjusting your filters or clearing the search.</div>
+        </div>
+      </template>
+
+    </oj-table>
+
+  </oj-sp-collection-container>
+
+</oj-sp-smart-search-page>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!--  AGREEMENT DETAIL DRAWER (right edge)                   -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<oj-drawer-popup opened="{{ $variables.isDrawerOpen }}" edge="end">
+  <oj-defer>
+    <oj-sp-general-drawer-template
+      drawer-title="[[ $variables.selectedRequest.agreementNumber || 'Agreement Detail' ]]"
+      drawer-subtitle="[[ ($variables.selectedRequest.customer || '') + ($variables.selectedRequest.agreementType ? ' · ' + $variables.selectedRequest.agreementType : '') ]]"
+      drawer-size="lg"
+      close-action='[[ { "label": "Close", "display": "on" } ]]'
+      on-sp-close="[[ $listeners.closeRequestDrawer ]]">
+
+      <div class="oj-flex oj-sm-flex-direction-column" style="padding: 1rem 1.25rem;">
+
+        <!-- ── Status badge ── -->
+        <div class="oj-flex oj-sm-align-items-center" style="gap:8px; margin-bottom:16px; flex-wrap:wrap;">
+          <oj-bind-if test="[[ !!$variables.selectedRequest.statusCode ]]">
+            <span :class="[[ $application.functions.statusTextClass() ]]">
+              <oj-bind-text value="[[ $application.functions.formatLineStatus($variables.selectedRequest.statusCode) ]]"></oj-bind-text>
+            </span>
+          </oj-bind-if>
+        </div>
+
+        <!-- ── Overview fields (2-column grid) ── -->
+        <div class="oj-flex oj-sm-flex-wrap-wrap" style="gap:12px 24px;">
+          <div class="oj-flex-item oj-sm-12 oj-md-6">
+            <div class="req-field-label">Agreement Number</div>
+            <div class="req-field-value" style="color: var(--oj-core-brand-color-primary, #005cb1); font-weight:700;">
+              <oj-bind-text value="[[ $variables.selectedRequest.agreementNumber || '—' ]]"></oj-bind-text>
+            </div>
+          </div>
+          <div class="oj-flex-item oj-sm-12 oj-md-6">
+            <div class="req-field-label">Agreement Name</div>
+            <div class="req-field-value">
+              <oj-bind-text value="[[ $variables.selectedRequest.agreementName || '—' ]]"></oj-bind-text>
+            </div>
+          </div>
+          <div class="oj-flex-item oj-sm-12 oj-md-6">
+            <div class="req-field-label">Customer</div>
+            <div class="req-field-value">
+              <oj-bind-text value="[[ $variables.selectedRequest.customer || '—' ]]"></oj-bind-text>
+            </div>
+          </div>
+          <div class="oj-flex-item oj-sm-12 oj-md-6">
+            <div class="req-field-label">Agreement Type</div>
+            <div class="req-field-value">
+              <oj-bind-text value="[[ $variables.selectedRequest.agreementType || '—' ]]"></oj-bind-text>
+            </div>
+          </div>
+          <div class="oj-flex-item oj-sm-12 oj-md-6">
+            <div class="req-field-label">Start Date</div>
+            <div class="req-field-value">
+              <oj-bind-text value="[[ $variables.selectedRequest.startDate || '—' ]]"></oj-bind-text>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Equipment Lines ── -->
+        <div class="req-section-heading">Agreement Lines</div>
+        <oj-bind-for-each data="[[ $variables.selectedRequest.lines || [] ]]">
+          <template data-oj-as="line">
+            <div class="req-line-card">
+              <div class="req-line-name"><oj-bind-text value="[[ line.data.equipmentName ]]"></oj-bind-text></div>
+              <div class="req-line-class"><oj-bind-text value="[[ line.data.equipmentClass ]]"></oj-bind-text></div>
+              <div class="req-line-meta">
+                <span>Qty: <strong><oj-bind-text value="[[ line.data.quantity ]]"></oj-bind-text></strong></span>
+                <span style="margin-left:16px;">Rate: <strong>$<oj-bind-text value="[[ line.data.billRate ]]"></oj-bind-text>/day</strong></span>
+              </div>
+            </div>
+          </template>
+        </oj-bind-for-each>
+
+      </div>
+    </oj-sp-general-drawer-template>
+  </oj-defer>
+</oj-drawer-popup>

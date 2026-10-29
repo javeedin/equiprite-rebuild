@@ -1,0 +1,563 @@
+{
+  "metadata": {},
+  "variables": {
+    "equipmentId": {
+      "type": "string",
+      "input": "fromUrl",
+      "persisted": "none"
+    },
+    "serialRefId": {
+      "type": "string",
+      "input": "fromUrl",
+      "persisted": "none"
+    },
+    "controlType": {
+      "type": "string",
+      "input": "fromUrl",
+      "persisted": "none",
+      "defaultValue": "SERIAL"
+    },
+    "pageSubtitle": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "isLoading": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "ctx": {
+      "type": "object",
+      "description": "The unit the cost is recorded against - resources/js/recordCostMock.js buildContext(). Read-only on this page.",
+      "defaultValue": {}
+    },
+    "selectedTab": {
+      "type": "string",
+      "defaultValue": "rawCost"
+    },
+    "tabsArray": {
+      "type": "any[]",
+      "defaultValue": [
+        {
+          "id": "rawCost",
+          "label": "RAW COST",
+          "icon": "oj-ux-ico-calculator"
+        },
+        {
+          "id": "materialIssue",
+          "label": "MATERIAL ISSUE",
+          "icon": "oj-ux-ico-box"
+        },
+        {
+          "id": "expenseReport",
+          "label": "EXPENSE REPORT",
+          "icon": "oj-ux-ico-wallet"
+        },
+        {
+          "id": "apInvoice",
+          "label": "AP INVOICE",
+          "icon": "oj-ux-ico-invoice"
+        }
+      ]
+    },
+    "tabsDP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "id",
+        "data": "{{ $page.variables.tabsArray }}"
+      }
+    },
+    "projectForm": {
+      "type": "object",
+      "description": "Charge To - the project coding shared by all four tabs. Defaults: recordCostMock.projectDefaults().",
+      "defaultValue": {
+        "projectNumber": "",
+        "taskNumber": "",
+        "expenditureType": "",
+        "expenditureOrganization": "",
+        "expenditureItemDate": null
+      }
+    },
+    "rawCostForm": {
+      "type": "object",
+      "description": "Defaults: recordCostMock.defaults('rawCost'). Posts as Fusion unprocessedProjectCosts.",
+      "defaultValue": {
+        "businessUnit": "",
+        "transactionSource": "",
+        "document": "",
+        "documentEntry": "",
+        "expenditureBatch": "",
+        "quantity": 1,
+        "rawCost": null,
+        "currency": "USD",
+        "nonlaborResource": "",
+        "nonlaborResourceOrganization": "",
+        "billable": "Y",
+        "comment": ""
+      }
+    },
+    "materialIssueForm": {
+      "type": "object",
+      "description": "Defaults: recordCostMock.defaults('materialIssue'). Posts as Fusion inventoryStagedTransactions.",
+      "defaultValue": {
+        "organizationName": "",
+        "transactionType": "Project Issue",
+        "itemNumber": "",
+        "subinventory": "",
+        "locator": "",
+        "quantity": 1,
+        "uom": "Each",
+        "transactionDate": null,
+        "reason": "",
+        "reference": ""
+      }
+    },
+    "expenseReportForm": {
+      "type": "object",
+      "description": "Defaults: recordCostMock.defaults('expenseReport'). Posts as Fusion expenseReports.",
+      "defaultValue": {
+        "personNumber": "",
+        "purpose": "",
+        "reportDate": null,
+        "currency": "USD",
+        "expenseDate": null,
+        "expenseType": "Fuel",
+        "merchant": "",
+        "receiptAmount": null,
+        "receiptCurrency": "USD",
+        "location": "",
+        "description": ""
+      }
+    },
+    "apInvoiceForm": {
+      "type": "object",
+      "description": "Defaults: recordCostMock.defaults('apInvoice'). Posts as Fusion invoices.",
+      "defaultValue": {
+        "businessUnit": "",
+        "supplier": "",
+        "supplierSite": "",
+        "invoiceNumber": "",
+        "invoiceDate": null,
+        "invoiceType": "Standard",
+        "currency": "USD",
+        "paymentTerms": "Net 30",
+        "description": "",
+        "lineType": "Item",
+        "lineAmount": null,
+        "lineDescription": ""
+      }
+    },
+    "formError": {
+      "type": "string",
+      "description": "Missing-field message from the last Record attempt. Cleared on tab change, reset and a successful record.",
+      "defaultValue": ""
+    },
+    "isSubmitting": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "recordedCosts": {
+      "type": "any[]",
+      "description": "Everything 'recorded' on this visit - session only, lost on leaving the page.",
+      "defaultValue": []
+    },
+    "recordedCostsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "id",
+        "data": "{{ $page.variables.recordedCosts }}"
+      }
+    },
+    "currencyOptions": {
+      "type": "any[]",
+      "defaultValue": [
+        {
+          "value": "USD",
+          "label": "USD"
+        },
+        {
+          "value": "CAD",
+          "label": "CAD"
+        },
+        {
+          "value": "GBP",
+          "label": "GBP"
+        },
+        {
+          "value": "EUR",
+          "label": "EUR"
+        },
+        {
+          "value": "NOK",
+          "label": "NOK"
+        },
+        {
+          "value": "AUD",
+          "label": "AUD"
+        },
+        {
+          "value": "BRL",
+          "label": "BRL"
+        },
+        {
+          "value": "SGD",
+          "label": "SGD"
+        }
+      ]
+    },
+    "currencyADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.currencyOptions }}"
+      }
+    },
+    "yesNoOptions": {
+      "type": "any[]",
+      "defaultValue": [
+        {
+          "value": "Y",
+          "label": "Yes"
+        },
+        {
+          "value": "N",
+          "label": "No"
+        }
+      ]
+    },
+    "yesNoADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.yesNoOptions }}"
+      }
+    },
+    "issueTypeOptions": {
+      "type": "any[]",
+      "defaultValue": [
+        {
+          "value": "Project Issue",
+          "label": "Project Issue"
+        },
+        {
+          "value": "Miscellaneous Issue",
+          "label": "Miscellaneous Issue"
+        },
+        {
+          "value": "Account Alias Issue",
+          "label": "Account Alias Issue"
+        }
+      ]
+    },
+    "issueTypeADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.issueTypeOptions }}"
+      }
+    },
+    "uomOptions": {
+      "type": "any[]",
+      "defaultValue": [
+        {
+          "value": "Each",
+          "label": "Each"
+        },
+        {
+          "value": "Box",
+          "label": "Box"
+        },
+        {
+          "value": "Case",
+          "label": "Case"
+        },
+        {
+          "value": "Gallon",
+          "label": "Gallon"
+        },
+        {
+          "value": "Litre",
+          "label": "Litre"
+        },
+        {
+          "value": "Kilogram",
+          "label": "Kilogram"
+        },
+        {
+          "value": "Pound",
+          "label": "Pound"
+        },
+        {
+          "value": "Foot",
+          "label": "Foot"
+        },
+        {
+          "value": "Metre",
+          "label": "Metre"
+        }
+      ]
+    },
+    "uomADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.uomOptions }}"
+      }
+    },
+    "expenseTypeOptions": {
+      "type": "any[]",
+      "defaultValue": [
+        {
+          "value": "Fuel",
+          "label": "Fuel"
+        },
+        {
+          "value": "Parts and Supplies",
+          "label": "Parts and Supplies"
+        },
+        {
+          "value": "Repairs and Maintenance",
+          "label": "Repairs and Maintenance"
+        },
+        {
+          "value": "Equipment Rental",
+          "label": "Equipment Rental"
+        },
+        {
+          "value": "Freight and Delivery",
+          "label": "Freight and Delivery"
+        },
+        {
+          "value": "Tolls and Parking",
+          "label": "Tolls and Parking"
+        },
+        {
+          "value": "Miscellaneous",
+          "label": "Miscellaneous"
+        }
+      ]
+    },
+    "expenseTypeADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.expenseTypeOptions }}"
+      }
+    },
+    "invoiceTypeOptions": {
+      "type": "any[]",
+      "defaultValue": [
+        {
+          "value": "Standard",
+          "label": "Standard"
+        },
+        {
+          "value": "Credit Memo",
+          "label": "Credit Memo"
+        },
+        {
+          "value": "Debit Memo",
+          "label": "Debit Memo"
+        }
+      ]
+    },
+    "invoiceTypeADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.invoiceTypeOptions }}"
+      }
+    },
+    "paymentTermsOptions": {
+      "type": "any[]",
+      "defaultValue": [
+        {
+          "value": "Immediate",
+          "label": "Immediate"
+        },
+        {
+          "value": "Net 15",
+          "label": "Net 15"
+        },
+        {
+          "value": "Net 30",
+          "label": "Net 30"
+        },
+        {
+          "value": "Net 45",
+          "label": "Net 45"
+        },
+        {
+          "value": "Net 60",
+          "label": "Net 60"
+        }
+      ]
+    },
+    "paymentTermsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.paymentTermsOptions }}"
+      }
+    },
+    "lineTypeOptions": {
+      "type": "any[]",
+      "defaultValue": [
+        {
+          "value": "Item",
+          "label": "Item"
+        },
+        {
+          "value": "Freight",
+          "label": "Freight"
+        },
+        {
+          "value": "Miscellaneous",
+          "label": "Miscellaneous"
+        }
+      ]
+    },
+    "lineTypeADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.lineTypeOptions }}"
+      }
+    }
+  },
+  "eventListeners": {
+    "vbBeforeEnter": {
+      "chains": [
+        {
+          "chain": "requireFullAccessChain"
+        }
+      ]
+    },
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "vbEnterChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "spGoToParent": {
+      "chains": [
+        {
+          "chain": "goToParentChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onSpInFlowBack": {
+      "chains": [
+        {
+          "chain": "goToParentChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onRecordCost": {
+      "chains": [
+        {
+          "chain": "submitCostChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onResetCost": {
+      "chains": [
+        {
+          "chain": "resetCostFormChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onTabChanged": {
+      "chains": [
+        {
+          "chain": "clearFormErrorChain",
+          "parameters": {}
+        }
+      ]
+    }
+  },
+  "functions": {
+    "tabTitle": {
+      "params": {
+        "tab": "any"
+      },
+      "return": "string"
+    },
+    "tabBlurb": {
+      "params": {
+        "tab": "any"
+      },
+      "return": "string"
+    },
+    "invoiceTotal": {
+      "params": {
+        "form": "any"
+      },
+      "return": "string"
+    },
+    "orDash": {
+      "params": {
+        "value": "any"
+      },
+      "return": "string"
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-sp-general-overview-page": {
+        "path": "oj-sp/general-overview-page/loader"
+      },
+      "oj-tab-bar": {
+        "path": "ojs/ojtabbar"
+      },
+      "oj-table": {
+        "path": "ojs/ojtable"
+      },
+      "oj-form-layout": {
+        "path": "ojs/ojformlayout"
+      },
+      "oj-input-text": {
+        "path": "ojs/ojinputtext"
+      },
+      "oj-text-area": {
+        "path": "ojs/ojinputtext"
+      },
+      "oj-input-number": {
+        "path": "ojs/ojinputnumber"
+      },
+      "oj-input-date": {
+        "path": "ojs/ojdatetimepicker"
+      },
+      "oj-select-single": {
+        "path": "ojs/ojselectsingle"
+      },
+      "oj-button": {
+        "path": "ojs/ojbutton"
+      },
+      "oj-progress-circle": {
+        "path": "ojs/ojprogress"
+      },
+      "oj-bind-if": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-text": {
+        "path": "ojs/ojknockout"
+      }
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "root": "reloadDummyData",
+  "description": "Reset the schedule back to dummy data",
+  "actions": {
+    "reloadDummyData": {
+      "module": "vb/action/builtin/callModuleFunctionAction",
+      "parameters": {
+        "module": "[[ $functions ]]",
+        "functionName": "initScheduler",
+        "params": []
+      }
+    }
+  }
+}

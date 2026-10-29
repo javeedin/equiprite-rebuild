@@ -1,0 +1,121 @@
+{
+  "title": "Page Access (RBAC)",
+  "description": "Page x role access matrix for EquipRite. Rows = pages grouped by module, columns = FULL / READ_ONLY / HIDDEN for the selected role. One Save for the whole grid, scoped to the selected app role.",
+
+  "variables": {
+    "rolesArray": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Active RBAC_APP_ROLES rows for EQUIP_RITE, from getRbacAppRoles. Read from the table rather than hard-coded so a newly seeded role appears with no frontend change."
+    },
+    "selectedRoleId": {
+      "type": "number",
+      "description": "APP_ROLE_ID currently being edited. Every save is scoped to this and must never touch another role's rows."
+    },
+    "matrixArray": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Rows for the selected role as last loaded from the server (the clean baseline). Never mutated by edits — dirtyMap holds pending changes so Cancel is a no-op and Save can send only what changed."
+    },
+    "matrixADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "data": "{{ $page.variables.matrixArray }}",
+        "itemType": "MatrixRowType",
+        "keyAttributes": "pageCode"
+      }
+    },
+    "dirtyMap": {
+      "type": "object",
+      "defaultValue": {},
+      "description": "Pending edits { pageCode: 'FULL'|'READ_ONLY'|'HIDDEN' } not yet saved. Separate from matrixArray so the grid can show pending state while Cancel still reverts cleanly."
+    },
+    "isLoading": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "isSaving": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "loadError": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "Non-empty when the matrix or role list failed to load. The grid stays hidden rather than showing a misleadingly empty matrix."
+    }
+  },
+
+  "types": {
+    "MatrixRowType": {
+      "pageCode": "string",
+      "pageLabel": "string",
+      "moduleCode": "string",
+      "sortOrder": "number",
+      "appRoleId": "number",
+      "accessLevel": "string",
+      "isLocked": "string"
+    }
+  },
+
+  "chains": {},
+
+  "eventListeners": {
+    "vbBeforeEnter": {
+      "chains": [
+        { "chain": "enforcePageAccessChain" }
+      ]
+    },
+    "vbEnter": {
+      "chains": [
+        { "chain": "initRbacAdminChain" }
+      ]
+    },
+    "roleChanged": {
+      "chains": [
+        {
+          "parameters": { "appRoleId": "{{ $event.detail.value }}" },
+          "chain": "loadMatrixChain"
+        }
+      ]
+    },
+    "levelChanged": {
+      "chains": [
+        {
+          "parameters": {
+            "pageCode": "{{ $event.currentTarget.dataset.pageCode }}",
+            "accessLevel": "{{ $event.detail.value }}"
+          },
+          "chain": "setLevelChain"
+        }
+      ]
+    },
+    "saveMatrix": {
+      "chains": [
+        { "chain": "saveMatrixChain" }
+      ]
+    },
+    "cancelEdits": {
+      "chains": [
+        { "chain": "cancelEditsChain" }
+      ]
+    }
+  },
+
+  "imports": {
+    "components": {
+      "oj-sp-general-overview-page": { "path": "oj-sp/general-overview-page/loader" },
+      "oj-table": { "path": "ojs/ojtable" },
+      "oj-select-single": { "path": "ojs/ojselectsingle" },
+      "oj-form-layout": { "path": "ojs/ojformlayout" },
+      "oj-button": { "path": "ojs/ojbutton" },
+      "oj-radioset": { "path": "ojs/ojradioset" },
+      "oj-option": { "path": "ojs/ojoption" },
+      "oj-progress-circle": { "path": "ojs/ojprogresscircle" },
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  },
+
+  "translations": {}
+}

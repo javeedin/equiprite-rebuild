@@ -1,0 +1,163 @@
+{
+  "description": "",
+  "routerFlow": "main",
+  "variables": {
+    "isDrawerOpen": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "messageToast": {
+      "type": "string"
+    },
+    "messageToastSeverity": {
+      "type": "string",
+      "defaultValue": "info"
+    },
+    "messagesArray": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "messagesBannerADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "MessagesBannerType",
+        "keyAttributes": "id"
+      }
+    },
+    "messageId": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "navExpanded": {
+      "type": "object",
+      "defaultValue": {},
+      "description": "Expand/collapse state for the role-filtered nav groups, keyed by NAV_GROUPS[].key (admin, projectSite, equipMgr, timeKeeper, costing, rental, analytics, customer). Replaces the eight separate is*Expanded booleans the static markup used \u2014 the groups are now rendered from a derived list, so their state has to be addressable by key. Toggled by navGroupToggleChain; absent key = collapsed."
+    }
+  },
+  "metadata": {},
+  "types": {
+    "MessagesBannerType": {
+      "id": "string",
+      "messageType": "string",
+      "primaryText": "string",
+      "primaryActionLabel": "string",
+      "secondaryText": "any",
+      "secondaryActionLabel": "string"
+    }
+  },
+  "eventListeners": {
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "recheckPageAccessChain"
+        }
+      ]
+    },
+    "toggleDrawerChain": {
+      "chains": [
+        {
+          "chain": "toggleDrawerChain"
+        }
+      ]
+    },
+    "application:spShowToast": {
+      "chains": [
+        {
+          "parameters": {
+            "event": "{{ $event }}"
+          },
+          "chain": "showMessageToast"
+        }
+      ]
+    },
+    "messagesBannerSpClose": {
+      "chains": [
+        {
+          "parameters": {
+            "event": "{{ $event }}"
+          },
+          "chain": "closeMessageBanner"
+        }
+      ]
+    },
+    "menuSelectionChanged": {
+      "chains": [
+        {
+          "parameters": {
+            "pageId": "{{ $event.detail.value }}"
+          },
+          "chain": "navigateChain"
+        }
+      ]
+    },
+    "navGroupToggle": {
+      "chains": [
+        {
+          "parameters": {
+            "groupKey": "{{ $event.currentTarget.dataset.groupKey }}"
+          },
+          "chain": "navGroupToggleChain"
+        }
+      ]
+    },
+    "goToDashboard": {
+      "chains": [
+        {
+          "chain": "goToDashboardChain"
+        }
+      ]
+    },
+    "vbNotification": {
+      "chains": [
+        {
+          "parameters": {
+            "event": "{{ $event }}"
+          },
+          "chain": "showNotificationMessage"
+        }
+      ]
+    },
+    "onAppMessageClose": {
+      "chains": [
+        {
+          "parameters": {
+            "event": "{{ $event }}"
+          },
+          "chain": "closeAppMessageChain"
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-messages": {
+        "path": "ojs/ojmessages"
+      },
+      "oj-sp-messages-banner": {
+        "path": "oj-sp/messages-banner/loader"
+      },
+      "oj-sp-messages-toast": {
+        "path": "oj-sp/messages-toast/loader"
+      },
+      "oj-drawer-popup": {
+        "path": "ojs/ojdrawerpopup"
+      },
+      "oj-navigation-list": {
+        "path": "ojs/ojnavigationlist"
+      },
+      "oj-bind-for-each": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-if": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-text": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-button": {
+        "path": "ojs/ojbutton"
+      }
+    }
+  },
+  "translations": {}
+}

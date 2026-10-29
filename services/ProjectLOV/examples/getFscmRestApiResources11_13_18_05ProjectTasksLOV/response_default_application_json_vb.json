@@ -1,0 +1,666 @@
+{
+    "items": [
+        {
+            "ElementType": "FINANCIAL",
+            "ProjectId": 300000058779506,
+            "TaskId": 300000058779519,
+            "TaskName": "Planning and Structure",
+            "TaskNumber": "2.0",
+            "TransactionCompletionDate": null,
+            "TransactionStartDate": null,
+            "ParentTaskId": 300000058779517,
+            "TaskStartDate": "2013-07-29",
+            "TaskFinishDate": "2026-12-31",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058779519",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058779519",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                }
+            ]
+        },
+        {
+            "ElementType": "FINANCIAL",
+            "ProjectId": 300000058779506,
+            "TaskId": 300000058779520,
+            "TaskName": "Redesign",
+            "TaskNumber": "5.0",
+            "TransactionCompletionDate": null,
+            "TransactionStartDate": null,
+            "ParentTaskId": 300000058779517,
+            "TaskStartDate": "2014-02-03",
+            "TaskFinishDate": "2015-02-01",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058779520",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058779520",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                }
+            ]
+        },
+        {
+            "ElementType": "FINANCIAL",
+            "ProjectId": 300000058779506,
+            "TaskId": 300000058779521,
+            "TaskName": "Implement",
+            "TaskNumber": "6.0",
+            "TransactionCompletionDate": null,
+            "TransactionStartDate": null,
+            "ParentTaskId": 300000058779517,
+            "TaskStartDate": "2015-02-02",
+            "TaskFinishDate": "2015-03-29",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058779521",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058779521",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                }
+            ]
+        },
+        {
+            "ElementType": "FINANCIAL",
+            "ProjectId": 300000058779506,
+            "TaskId": 300000058779522,
+            "TaskName": "Develop Prototype Systems",
+            "TaskNumber": "7.0",
+            "TransactionCompletionDate": null,
+            "TransactionStartDate": null,
+            "ParentTaskId": 300000058779517,
+            "TaskStartDate": "2015-03-30",
+            "TaskFinishDate": "2015-05-31",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058779522",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058779522",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                }
+            ]
+        },
+        {
+            "ElementType": "FINANCIAL",
+            "ProjectId": 300000058779506,
+            "TaskId": 300000058779523,
+            "TaskName": "Make Organizational Changes",
+            "TaskNumber": "8.0",
+            "TransactionCompletionDate": null,
+            "TransactionStartDate": null,
+            "ParentTaskId": 300000058779517,
+            "TaskStartDate": "2015-06-01",
+            "TaskFinishDate": "2015-08-02",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058779523",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058779523",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                }
+            ]
+        },
+        {
+            "ElementType": "FINANCIAL",
+            "ProjectId": 300000058779506,
+            "TaskId": 300000058779524,
+            "TaskName": "Define Performance Measures",
+            "TaskNumber": "4.0",
+            "TransactionCompletionDate": null,
+            "TransactionStartDate": null,
+            "ParentTaskId": 300000058779517,
+            "TaskStartDate": "2013-12-02",
+            "TaskFinishDate": "2014-02-02",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058779524",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058779524",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                }
+            ]
+        },
+        {
+            "ElementType": "FINANCIAL",
+            "ProjectId": 300000058779506,
+            "TaskId": 300000058779525,
+            "TaskName": "Document Current State",
+            "TaskNumber": "3.0",
+            "TransactionCompletionDate": null,
+            "TransactionStartDate": null,
+            "ParentTaskId": 300000058779517,
+            "TaskStartDate": "2013-09-30",
+            "TaskFinishDate": "2013-12-01",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058779525",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058779525",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                }
+            ]
+        },
+        {
+            "ElementType": "FINANCIAL",
+            "ProjectId": 300000058779506,
+            "TaskId": 300000058779526,
+            "TaskName": "Project Management",
+            "TaskNumber": "9.0",
+            "TransactionCompletionDate": null,
+            "TransactionStartDate": null,
+            "ParentTaskId": 300000058779517,
+            "TaskStartDate": "2013-06-03",
+            "TaskFinishDate": "2015-08-02",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058779526",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058779526",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                }
+            ]
+        },
+        {
+            "ElementType": "FINANCIAL",
+            "ProjectId": 300000058779506,
+            "TaskId": 300000058779527,
+            "TaskName": "Define Business Strategy",
+            "TaskNumber": "1.0",
+            "TransactionCompletionDate": null,
+            "TransactionStartDate": null,
+            "ParentTaskId": 300000058779517,
+            "TaskStartDate": "2013-06-03",
+            "TaskFinishDate": "2026-12-31",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058779527",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058779527",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                }
+            ]
+        },
+        {
+            "ElementType": "FINANCIAL",
+            "ProjectId": 300000058779506,
+            "TaskId": 300000058779528,
+            "TaskName": "Project Plan",
+            "TaskNumber": "2.1",
+            "TransactionCompletionDate": null,
+            "TransactionStartDate": null,
+            "ParentTaskId": 300000058779519,
+            "TaskStartDate": "2013-07-29",
+            "TaskFinishDate": "2026-12-31",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058779528",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058779528",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                }
+            ]
+        },
+        {
+            "ElementType": "FINANCIAL",
+            "ProjectId": 300000058779506,
+            "TaskId": 300000058779529,
+            "TaskName": "Design Organization Alternatives and Technology Improvments",
+            "TaskNumber": "5.2",
+            "TransactionCompletionDate": null,
+            "TransactionStartDate": null,
+            "ParentTaskId": 300000058779520,
+            "TaskStartDate": "2014-08-03",
+            "TaskFinishDate": "2015-02-01",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058779529",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058779529",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                }
+            ]
+        },
+        {
+            "ElementType": "FINANCIAL",
+            "ProjectId": 300000058779506,
+            "TaskId": 300000058779530,
+            "TaskName": "Redesign Processes",
+            "TaskNumber": "5.1",
+            "TransactionCompletionDate": null,
+            "TransactionStartDate": null,
+            "ParentTaskId": 300000058779520,
+            "TaskStartDate": "2014-02-03",
+            "TaskFinishDate": "2014-08-02",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058779530",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058779530",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                }
+            ]
+        },
+        {
+            "ElementType": "FINANCIAL",
+            "ProjectId": 300000058779506,
+            "TaskId": 300000058779531,
+            "TaskName": "Develop Communication Strategy",
+            "TaskNumber": "2.3",
+            "TransactionCompletionDate": null,
+            "TransactionStartDate": null,
+            "ParentTaskId": 300000058779519,
+            "TaskStartDate": "2013-09-09",
+            "TaskFinishDate": "2013-09-29",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058779531",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058779531",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                }
+            ]
+        },
+        {
+            "ElementType": "FINANCIAL",
+            "ProjectId": 300000058779506,
+            "TaskId": 300000058779532,
+            "TaskName": "Select Team",
+            "TaskNumber": "2.2",
+            "TransactionCompletionDate": null,
+            "TransactionStartDate": null,
+            "ParentTaskId": 300000058779519,
+            "TaskStartDate": "2013-08-19",
+            "TaskFinishDate": "2013-09-08",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058779532",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058779532",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                }
+            ]
+        },
+        {
+            "ElementType": "FINANCIAL",
+            "ProjectId": 300000058801591,
+            "TaskId": 300000058801604,
+            "TaskName": "Planning and Structure",
+            "TaskNumber": "2",
+            "TransactionCompletionDate": null,
+            "TransactionStartDate": null,
+            "ParentTaskId": 300000058801602,
+            "TaskStartDate": "2014-01-27",
+            "TaskFinishDate": "2014-03-30",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058801604",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058801604",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                }
+            ]
+        },
+        {
+            "ElementType": "FINANCIAL",
+            "ProjectId": 300000058801591,
+            "TaskId": 300000058801605,
+            "TaskName": "Project Management",
+            "TaskNumber": "9",
+            "TransactionCompletionDate": null,
+            "TransactionStartDate": null,
+            "ParentTaskId": 300000058801602,
+            "TaskStartDate": "2013-12-02",
+            "TaskFinishDate": "2016-01-31",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058801605",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058801605",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                }
+            ]
+        },
+        {
+            "ElementType": "FINANCIAL",
+            "ProjectId": 300000058801591,
+            "TaskId": 300000058801606,
+            "TaskName": "Pre-Implementation",
+            "TaskNumber": "1",
+            "TransactionCompletionDate": null,
+            "TransactionStartDate": null,
+            "ParentTaskId": 300000058801602,
+            "TaskStartDate": "2013-12-02",
+            "TaskFinishDate": "2014-01-26",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058801606",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058801606",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                }
+            ]
+        },
+        {
+            "ElementType": "FINANCIAL",
+            "ProjectId": 300000058801591,
+            "TaskId": 300000058801607,
+            "TaskName": "Deploy",
+            "TaskNumber": "8",
+            "TransactionCompletionDate": null,
+            "TransactionStartDate": null,
+            "ParentTaskId": 300000058801602,
+            "TaskStartDate": "2015-11-30",
+            "TaskFinishDate": "2016-01-31",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058801607",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058801607",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                }
+            ]
+        },
+        {
+            "ElementType": "FINANCIAL",
+            "ProjectId": 300000058801591,
+            "TaskId": 300000058801608,
+            "TaskName": "Environment Readiness",
+            "TaskNumber": "7",
+            "TransactionCompletionDate": null,
+            "TransactionStartDate": null,
+            "ParentTaskId": 300000058801602,
+            "TaskStartDate": "2015-09-28",
+            "TaskFinishDate": "2015-11-29",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058801608",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058801608",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                }
+            ]
+        },
+        {
+            "ElementType": "FINANCIAL",
+            "ProjectId": 300000058801591,
+            "TaskId": 300000058801609,
+            "TaskName": "System Certification",
+            "TaskNumber": "6",
+            "TransactionCompletionDate": null,
+            "TransactionStartDate": null,
+            "ParentTaskId": 300000058801602,
+            "TaskStartDate": "2015-08-03",
+            "TaskFinishDate": "2015-09-27",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058801609",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058801609",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                }
+            ]
+        },
+        {
+            "ElementType": "FINANCIAL",
+            "ProjectId": 300000058801591,
+            "TaskId": 300000058801610,
+            "TaskName": "Build",
+            "TaskNumber": "5",
+            "TransactionCompletionDate": null,
+            "TransactionStartDate": null,
+            "ParentTaskId": 300000058801602,
+            "TaskStartDate": "2014-08-04",
+            "TaskFinishDate": "2015-08-02",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058801610",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058801610",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                }
+            ]
+        },
+        {
+            "ElementType": "FINANCIAL",
+            "ProjectId": 300000058801591,
+            "TaskId": 300000058801611,
+            "TaskName": "Change Management",
+            "TaskNumber": "3",
+            "TransactionCompletionDate": null,
+            "TransactionStartDate": null,
+            "ParentTaskId": 300000058801602,
+            "TaskStartDate": "2014-03-31",
+            "TaskFinishDate": "2014-06-01",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058801611",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058801611",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                }
+            ]
+        },
+        {
+            "ElementType": "FINANCIAL",
+            "ProjectId": 300000058801591,
+            "TaskId": 300000058801612,
+            "TaskName": "System Definition",
+            "TaskNumber": "4",
+            "TransactionCompletionDate": null,
+            "TransactionStartDate": null,
+            "ParentTaskId": 300000058801602,
+            "TaskStartDate": "2014-06-02",
+            "TaskFinishDate": "2014-08-03",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058801612",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058801612",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                }
+            ]
+        },
+        {
+            "ElementType": "FINANCIAL",
+            "ProjectId": 300000058801591,
+            "TaskId": 300000058801613,
+            "TaskName": "Business Scenarios and Test Case Development",
+            "TaskNumber": "5.1",
+            "TransactionCompletionDate": null,
+            "TransactionStartDate": null,
+            "ParentTaskId": 300000058801610,
+            "TaskStartDate": "2014-08-04",
+            "TaskFinishDate": "2015-01-31",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058801613",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058801613",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                }
+            ]
+        },
+        {
+            "ElementType": "FINANCIAL",
+            "ProjectId": 300000058801591,
+            "TaskId": 300000058801614,
+            "TaskName": "Application Design and Setup",
+            "TaskNumber": "5.2",
+            "TransactionCompletionDate": null,
+            "TransactionStartDate": null,
+            "ParentTaskId": 300000058801610,
+            "TaskStartDate": "2015-02-01",
+            "TaskFinishDate": "2015-08-02",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058801614",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV/300000058801614",
+                    "name": "projectTasksLOV",
+                    "kind": "item"
+                }
+            ]
+        }
+    ],
+    "count": 25,
+    "hasMore": true,
+    "limit": 25,
+    "offset": 0,
+    "links": [
+        {
+            "rel": "self",
+            "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectTasksLOV",
+            "name": "projectTasksLOV",
+            "kind": "collection"
+        }
+    ]
+}

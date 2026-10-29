@@ -1,0 +1,56 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "BIP Service — generic BI Publisher SOAP runner",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "vb-catalog://backends/bipService",
+      "description": "Oracle BIP SOAP"
+    }
+  ],
+  "paths": {
+    "/xmlpserver/services/ExternalReportWSSService": {
+      "post": {
+        "operationId": "runBIPReport",
+        "summary": "Run any BIP report via SOAP and return base64-encoded XML data",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/soap+xml": {
+              "schema": { "type": "string" }
+            }
+          }
+        },
+        "responses": {
+          "default": {
+            "description": "SOAP response — VBCS proxy converts XML to JSON",
+            "content": {
+              "application/soap+xml": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "runReportReturn": {
+                      "type": "object",
+                      "properties": {
+                        "reportBytes": { "type": "string" },
+                        "reportContentType": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-vb": {
+          "actionHint": "create",
+          "headers": {
+            "Content-Type": "application/soap+xml;charset=UTF-8"
+          }
+        }
+      }
+    }
+  }
+}

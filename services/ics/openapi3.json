@@ -1,0 +1,545 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "ICS (OIC) \u2014 Oracle Integration Cloud flows",
+    "version": "1.0.0",
+    "description": "All Oracle Integration Cloud flows called by Eqprt, merged into one service connection because they share a single backend (vb-catalog://backends/ics) and one basic-auth credential. Previously split across three folders \u2014 fusion_sync, post_cost and transfer_orders \u2014 which duplicated the same server block three times for no benefit. Grouped by domain below: Fusion table sync, cost posting to PPM, and transfer-order create/release."
+  },
+  "servers": [
+    {
+      "url": "vb-catalog://backends/ics",
+      "description": "Ics"
+    }
+  ],
+  "paths": {
+    "/ic/api/integration/v2/flows/rest/project/EQUIPRITE_DEV/EQP_CMN_FUSION_TABLE_SYNC_SUB/1.0/fusion-table-sync": {
+      "post": {
+        "operationId": "runFusionTableSync",
+        "summary": "Run one batch of a configured Fusion sync",
+        "description": "SYNCHRONOUS and BATCHED - not fire-and-forget. Each call runs the BIP report named by the config row, hands the XML to EQUIPRITE.EQR_INT_ENGINE_PKG.SYNC_SAAS_DATA (which invokes the row's MERGE_PROCEDURE), and returns how many rows merged plus whether more batches remain. The caller loops on hasMoreData='Y', incrementing batchNum, until it returns 'N'.\n\nOIC flow: GET_SYNC_OBJECT_INFO -> callFusionBIP -> SYNC_SAAS_DATA -> COMPLETE_RUN, with LOG_ERROR on failure.\n\nThe scheduled wrapper EQP_CMN_FUSION_TABLE_SYNC_JOB is deliberately bypassed so the Import button is on demand rather than waiting for the next poll.\n\nNOTE the row must be ENABLED='Y' AND STATUS='ACTIVE' - the engine's row picker skips anything else, and the call would succeed while syncing nothing.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FusionTableSyncRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Batch processed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FusionTableSyncResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Default response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-vb": {
+          "actionHint": "create"
+        }
+      }
+    },
+    "/ic/api/integration/v1/flows/rest/EQP_POST_COST_FLOW/1.0/eqp/post-cost": {
+      "post": {
+        "operationId": "postIcApiIntegrationV1FlowsRestEQP_POST_COST_FLOW1_0EqpPostCost",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostIcApiIntegrationV1FlowsRestEQP_POST_COST_FLOW1_0EqpPost-costRequest"
+              },
+              "examples": {
+                "vb": {
+                  "externalValue": "./examples/postIcApiIntegrationV1FlowsRestEQP_POST_COST_FLOW1_0EqpPostCost/request_application_json_vb.json"
+                }
+              }
+            }
+          }
+        },
+        "responses": {},
+        "x-vb": {
+          "actionHint": "getMany"
+        }
+      }
+    },
+    "/ic/api/integration/v1/flows/rest/EQP_POST_COST_FLOW_TEST/1.0/eqp/post-cost": {
+      "post": {
+        "operationId": "postCostToFusion",
+        "summary": "Drain this request's unsent ledger rows to Fusion PPM. Reads EQP_P_FUSION_POST_QUEUE, posts one unprocessedProjectCosts line per row, and stamps PPM_BATCH_NAME on each so it cannot be sent twice. Body is ONE field: requestNumber. NOTE - this points at the _TEST flow, the only one carrying the rewritten SQL, mapping and per-row stamp; the operation above still targets the LIVE flow, which has the old timesheet-anchored query. Repoint this path to EQP_POST_COST_FLOW once the test flow is promoted.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostCostToFusionRequest"
+              }
+            }
+          }
+        },
+        "responses": {},
+        "x-vb": {
+          "actionHint": "create"
+        }
+      }
+    },
+    "/ic/api/integration/v2/flows/rest/project/EQUIPRITE_DEV/EQP_POST_COST_FLOW_TEST/1.0/eqp/post-cost": {
+      "post": {
+        "operationId": "postCostToFusionProject",
+        "summary": "Same flow as postCostToFusion, at the OIC Gen3 PROJECT url. An integration that lives inside a project is served ONLY at /v2/flows/rest/project/<PROJECT>/..., an unprojected one ONLY at /v1/flows/rest/... Probed 2026-10-11: riteoicdev (dev20) serves the v1 url and 404s this one; Oceaneering oicdev-axjuvjkpckuf-px (dev6) is the reverse. Called through resources/js/postCostToFusion.js, which tries this url and falls back to v1 on 404 - never call either operation directly.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostCostToFusionRequest"
+              }
+            }
+          }
+        },
+        "responses": {},
+        "x-vb": {
+          "actionHint": "create"
+        }
+      }
+    },
+    "/ic/api/integration/v2/flows/rest/project/EQUIPRITE_DEV/INT_SCM_EQR_TO_FUS_TRF_ORD_CRE_A/1.0/equiprite/transferorders/create": {
+      "post": {
+        "operationId": "createSupplyRequest",
+        "summary": "Create Fusion supply request / transfer order via OIC (async)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSupplyRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted \u2014 OIC will process asynchronously and write rows to EQR_TRANSFER_ORDER",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Default response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-vb": {
+          "actionHint": "create"
+        },
+        "description": "OIC integration INT_SCM_EQR_TO_FUSION_TRF_ORDER_CREATE_ASYNC_V3 (identifier INT_SCM_EQR_TO_FUS_TRF_ORD_CRE_A, version 1.0). Replaced INT_SCM_EQR_TO_FUS_TRF_ORD_CSIT, whose _CSIT suffix pinned it to that environment; the project segment is now EQUIPRITE_DEV. Called twice from request-detail-page-chains/ActionChain.js \u2014 confirmRequest fires one call per SOURCE YARD (outbound TO) and processReturn one per return route (inbound TO). ASYNC: responds 202 with no TO number; the transfer order surfaces later when OIC writes it back, which is why the callers do not read a TO id off this response."
+      }
+    },
+    "/ic/api/integration/v2/flows/rest/project/EQUIPRITE_DEV/INT_SCM_EQR_IP_FUS_REL_TO_REA_V1/1.0/releaseTO": {
+      "post": {
+        "operationId": "releaseTO",
+        "summary": "Release a Fusion Transfer Order (initiate pick wave) via OIC",
+        "description": "OIC integration INT_SCM_EQR_IP_FUSION_RELEASE_TO_REALTIME_V1 (identifier INT_SCM_EQR_IP_FUS_REL_TO_REA_V1, version 1.0), operation 'default'. Moved here from RELEASE_TRANSFER_ORDER/1.0, whose Fusion connection was never configured on this instance; same {toNumber, sourceOrg} contract. Called directly by the returns page and request-detail page.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReleaseTOBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "default": {
+            "description": "Default response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-vb": {
+          "actionHint": "create"
+        }
+      }
+    },
+    "/ic/api/integration/v2/flows/rest/project/EQUIPRITE_DEV/INT_SCM_EQR_IP_FUS_REL_TO_REA_V1/1.0/releaseTOBatch": {
+      "post": {
+        "operationId": "releaseTOBatch",
+        "summary": "Release one or more Fusion Transfer Orders (initiate pick waves) via OIC",
+        "description": "OIC integration INT_SCM_EQR_IP_FUSION_RELEASE_TO_REALTIME_V1 (identifier INT_SCM_EQR_IP_FUS_REL_TO_REA_V1, version 1.0), operation 'releaseTOBatch'. Releases every transfer order in transferOrders, one at a time, and reports a per-TO outcome; each entry carries its own sourceOrg, so ONE batch can span several requests and several source yards. RELEASE ONLY: autoPickConfirm/autoShipConfirm are accepted but ignored - pick confirm and ship confirm are a separate integration the caller invokes afterwards. One TO failing does NOT abort the remainder: the caller renders a combined result, so a partial release must be reported rather than thrown. Always returns HTTP 200 when the batch was processed at all - inspect results[].status (RELEASED | ALREADY_RELEASED | FAILED).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReleaseTOBatchBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "default": {
+            "description": "Per-transfer-order release outcomes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReleaseTOBatchResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-vb": {
+          "actionHint": "create"
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "FusionTableSyncRequest": {
+        "type": "object",
+        "required": [
+          "syncCode",
+          "batchNum"
+        ],
+        "properties": {
+          "syncCode": {
+            "type": "string",
+            "description": "EQR_INT_CONFIG.SYNC_CODE identifying which sync to run, e.g. EQUIP_ITEM_DEF_SYNC. Everything else - report path, target table, merge procedure, batch size - is read from that row."
+          },
+          "integrationId": {
+            "type": "integer",
+            "description": "EQR_INT_CONFIG.INTEGRATION_ID. Optional when syncCode is supplied."
+          },
+          "startTime": {
+            "type": "string",
+            "description": "Run start timestamp, carried through the batch loop so every batch of one logical run shares it."
+          },
+          "fullSyncFlag": {
+            "type": "string",
+            "enum": [
+              "Y",
+              "N"
+            ],
+            "description": "Y clears staging on batch 1 and ignores the delta watermark. N honours LAST_RUN_DATE."
+          },
+          "batchNum": {
+            "type": "integer",
+            "description": "1-based. Increment while the response says hasMoreData='Y'."
+          },
+          "extractFilter": {
+            "type": "string",
+            "description": "Optional per-run ITEM_CLASS_CODE list (comma-separated). EQUIP_ITEM_DEF_SYNC only; intersected by the engine with EQR_INT_CONFIG.EXTRACT_FILTER (narrow, never widen). Send the same value on every batch of the run. Omitted = config filter only."
+          }
+        }
+      },
+      "FusionTableSyncResponse": {
+        "type": "object",
+        "properties": {
+          "statusCode": {
+            "type": "string",
+            "description": "Engine status. 'S' success, 'E' error - single character, matching EQR_INT_RUN_LOG.RUN_STATUS_CODE."
+          },
+          "statusMsg": {
+            "type": "string",
+            "description": "Human-readable detail; carries the error text when statusCode is 'E'."
+          },
+          "rowsMerged": {
+            "type": "integer",
+            "description": "Rows merged into the target table by THIS batch, not the run total. Sum across batches for the run figure."
+          },
+          "hasMoreData": {
+            "type": "string",
+            "enum": [
+              "Y",
+              "N"
+            ],
+            "description": "Y means call again with batchNum + 1. N means the extract is exhausted."
+          }
+        }
+      },
+      "PostCostToFusionRequest": {
+        "type": "object",
+        "properties": {
+          "requestNumber": {
+            "type": "string"
+          }
+        }
+      },
+      "PostIcApiIntegrationV1FlowsRestEQP_POST_COST_FLOW1_0EqpPost-costRequest": {
+        "type": "object",
+        "properties": {
+          "internalProjectRefId": {
+            "type": "integer"
+          },
+          "internalTaskId": {
+            "type": "integer"
+          },
+          "projectRefId": {
+            "type": "integer"
+          },
+          "taskRefId": {
+            "type": "integer"
+          },
+          "projectNumber": {
+            "type": "string"
+          },
+          "taskNumber": {
+            "type": "string"
+          },
+          "businessUnit": {
+            "type": "string"
+          },
+          "batchName": {
+            "type": "string"
+          },
+          "rateScheduleId": {
+            "type": "integer"
+          }
+        }
+      },
+      "CreateSupplyRequestBody": {
+        "type": "object",
+        "properties": {
+          "InterfaceSourceCode": {
+            "type": "string"
+          },
+          "InterfaceBatchNumber": {
+            "type": "string"
+          },
+          "SupplyRequestStatus": {
+            "type": "string"
+          },
+          "SupplyRequestDate": {
+            "type": "string"
+          },
+          "SupplyOrderSource": {
+            "type": "string"
+          },
+          "SupplyOrderReferenceNumber": {
+            "type": "string"
+          },
+          "SupplyOrderReferenceId": {
+            "type": "integer",
+            "nullable": true
+          },
+          "ProcessRequestFlag": {
+            "type": "string"
+          },
+          "equipmentRequestId": {
+            "type": "integer"
+          },
+          "OrderType": {
+            "type": "string",
+            "description": "'OUTBOUND' or 'INBOUND'. Optional \u2014 OIC defaults to 'OUTBOUND' when omitted."
+          },
+          "supplyRequestLines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SupplyRequestLine"
+            }
+          }
+        }
+      },
+      "SupplyRequestLine": {
+        "type": "object",
+        "properties": {
+          "InterfaceBatchNumber": {
+            "type": "string"
+          },
+          "InterfaceSourceCode": {
+            "type": "string"
+          },
+          "SupplyOrderSource": {
+            "type": "string"
+          },
+          "SupplyOrderReferenceLineNumber": {
+            "type": "string"
+          },
+          "SupplyOrderReferenceLineId": {
+            "type": "integer"
+          },
+          "SourceOrganizationCode": {
+            "type": "string"
+          },
+          "DestinationOrganizationCode": {
+            "type": "string"
+          },
+          "DestinationSubinventoryCode": {
+            "type": "string"
+          },
+          "ItemNumber": {
+            "type": "string"
+          },
+          "Quantity": {
+            "type": "number"
+          },
+          "UOMCode": {
+            "type": "string"
+          },
+          "BackToBackFlag": {
+            "type": "string"
+          },
+          "NeedByDate": {
+            "type": "string"
+          },
+          "PreparerId": {
+            "type": "integer"
+          },
+          "DeliverToRequesterId": {
+            "type": "integer"
+          },
+          "SupplyType": {
+            "type": "string"
+          },
+          "SupplyOperation": {
+            "type": "string"
+          },
+          "DestinationTypeCode": {
+            "type": "string"
+          },
+          "requestLineId": {
+            "type": "integer"
+          }
+        }
+      },
+      "ReleaseTOBody": {
+        "type": "object",
+        "properties": {
+          "toNumber": {
+            "type": "string"
+          },
+          "sourceOrg": {
+            "type": "string"
+          }
+        }
+      },
+      "ReleaseTOBatchBody": {
+        "type": "object",
+        "required": [
+          "transferOrders"
+        ],
+        "properties": {
+          "transferOrders": {
+            "type": "array",
+            "description": "Transfer orders to release, in the order they should be attempted. Never empty - the caller short-circuits on an empty selection.",
+            "items": {
+              "$ref": "#/components/schemas/ReleaseTOBatchItem"
+            }
+          },
+          "equipmentRequestId": {
+            "type": "integer",
+            "nullable": true,
+            "description": "OPTIONAL, correlation only - OIC does not read it to resolve the TOs. Set when the whole batch belongs to ONE request (the picking drawer). Bulk Initiate spans SEVERAL requests, so it is omitted there and requestId on each item carries the correlation instead."
+          }
+        }
+      },
+      "ReleaseTOBatchItem": {
+        "type": "object",
+        "required": [
+          "toNumber",
+          "sourceOrg"
+        ],
+        "properties": {
+          "toNumber": {
+            "type": "string",
+            "description": "Fusion transfer order number, e.g. 'TO-1001'."
+          },
+          "sourceOrg": {
+            "type": "string",
+            "description": "Inventory org code the TO was CREATED against, resolved per TO by the caller. Differs between TOs on one request - the per-yard fan-out is exactly why a request has several TOs - so this is per item, never a batch-level field."
+          },
+          "autoPickConfirm": {
+            "type": "boolean",
+            "default": false,
+            "description": "When true, OIC pick-confirms this TO immediately after releasing it, instead of leaving it at Pick Initiated for a human to confirm. PER TO, like sourceOrg, so one batch can mix. The picking drawer sends false (its Release step deliberately stops at Pick Initiated); Bulk Initiate sends true. Absent is treated as false - the safe, existing behaviour."
+          },
+          "autoShipConfirm": {
+            "type": "boolean",
+            "default": false,
+            "description": "When true, OIC ship-confirms this TO after pick-confirming it, taking its lines to Shipped to Site in one call. ASSERTS A PHYSICAL EVENT - that the equipment actually left the yard - so it is never defaulted on: the drawer sends false, and Bulk Initiate sends it only when the user ticks 'also mark as shipped'. Requires autoPickConfirm true; true here with autoPickConfirm false is a FAILED entry, not a silent promotion."
+          },
+          "requestId": {
+            "type": "integer",
+            "nullable": true,
+            "description": "EQR request this TO belongs to. Correlation only, for OIC logs when one batch spans several requests (Bulk Initiate). OIC does not read it to resolve the TO - toNumber does that."
+          }
+        },
+        "description": "One transfer order to release. sourceOrg and the two auto-confirm flags are all PER ITEM, never batch-level: one batch can span several requests, several source yards and (in principle) different confirm behaviour."
+      },
+      "ReleaseTOBatchResponse": {
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "array",
+            "description": "One entry per submitted transfer order, in the submitted order.",
+            "items": {
+              "$ref": "#/components/schemas/ReleaseTOBatchResult"
+            }
+          }
+        }
+      },
+      "ReleaseTOBatchResult": {
+        "type": "object",
+        "properties": {
+          "toNumber": {
+            "type": "string",
+            "description": "Echoes the submitted toNumber so the caller can match results to its own rows."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "RELEASED",
+              "PICK_CONFIRMED",
+              "SHIP_CONFIRMED",
+              "ALREADY_RELEASED",
+              "FAILED"
+            ],
+            "description": "How far this TO got. RELEASED - pick wave initiated, left at Pick Initiated (both auto flags false). PICK_CONFIRMED - released and pick-confirmed (autoPickConfirm true). SHIP_CONFIRMED - released, pick-confirmed and ship-confirmed (both true). ALREADY_RELEASED - Fusion reported the (OrderNumber, OrderTypeCode, SourceSystemName) triple no longer resolves to a releasable wave, i.e. it was released earlier; a soft warning, NOT a failure. FAILED - anything else. The first four are all successes to the caller; status says how far it got, so a partial advance is never reported as failure."
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable detail. Empty on RELEASED; carries the Fusion/OIC error text otherwise."
+          },
+          "reachedStage": {
+            "type": "string",
+            "enum": [
+              "RELEASED",
+              "PICK_CONFIRMED",
+              "SHIP_CONFIRMED"
+            ],
+            "description": "On FAILED, how far this TO actually got before failing - so the caller can advance the line statuses that really moved and leave the rest. Omitted when status is not FAILED."
+          }
+        }
+      }
+    }
+  }
+}

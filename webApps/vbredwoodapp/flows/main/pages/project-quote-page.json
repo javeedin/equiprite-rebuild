@@ -1,0 +1,99 @@
+{
+  "description": "Project Quote \u2014 the project approver's read + accept view of the quote the equipment manager generated. Project counterpart of customer-portal/customer-quote-page, with one deliberate difference: accepting does NOT create a Fusion sell contract (a project quote is an internal cost estimate, not a sale), so there is no contractNumber and no contract-creation overlay.",
+  "metadata": {},
+  "variables": {
+    "requestId": {
+      "type": "string",
+      "input": "fromUrl",
+      "persisted": "none",
+      "description": "Human-readable request number (e.g. REQ-1042). Used for the page title and as a fallback match."
+    },
+    "requestNumericId": {
+      "type": "number",
+      "input": "fromUrl",
+      "persisted": "none",
+      "description": "EQR_EQUIPMENT_REQUEST.EQR_EQUIPMENT_REQUEST_ID \u2014 the key for the quote-document endpoint and the accept PATCHes."
+    },
+    "requestStatus": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "Header status, resolved in ProjectQuoteInitChain. Gates Accept: only QUOTE_GENERATED is acceptable; QUOTE_ACCEPTED and beyond render as already-accepted."
+    },
+    "isLoading": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "isAccepting": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "hasQuoteDoc": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "quotePdfUrl": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "Object URL for the PDF blob fetched from GET /equipment-requests/{id}/quote-document. Revoked on exit to avoid leaking the blob."
+    },
+    "quoteFileName": {
+      "type": "string",
+      "defaultValue": "quote.pdf"
+    },
+    "acceptAllowed": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "Whether the ENABLE_QUOTES global setting permits quote ACCEPTANCE for THIS REQUEST. Resolved in ProjectQuoteInitChain against the request's own origin (isExternalSource(requestType) -> 'CUSTOMER' | 'PROJECT'), NOT hardcoded to 'PROJECT' as it once was \u2014 this page is reached from the manager's Equipment Requests list, which serves both origins since filter=ALL, so an external request opened here was being judged by the project rule and had Accept greyed out under ENABLE_QUOTES=CUSTOMER. Gates the Accept button ONLY: viewing/downloading an existing quote stays open regardless (the setting gates creation and acceptance, not reads). Starts false and is only raised after the header fetch succeeds, so a failed or slow load never shows an Accept that would 403."
+    }
+  },
+  "eventListeners": {
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "ProjectQuoteInitChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "vbExit": {
+      "chains": [
+        {
+          "chain": "ProjectQuoteExitChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onBack": {
+      "chains": [
+        {
+          "chain": "ProjectQuoteBackChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onAcceptQuote": {
+      "chains": [
+        {
+          "chain": "ProjectAcceptQuoteChain",
+          "parameters": {}
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-sp-general-overview-page": {
+        "path": "oj-sp/general-overview-page/loader"
+      },
+      "oj-bind-if": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-text": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-button": {
+        "path": "ojs/ojbutton"
+      }
+    }
+  }
+}

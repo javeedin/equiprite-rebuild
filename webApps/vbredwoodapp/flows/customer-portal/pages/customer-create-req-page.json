@@ -1,0 +1,255 @@
+{
+
+  "metadata": {},
+  "variables": {
+    "selectedSection": {
+      "type": "string",
+      "defaultValue": "basics"
+    },
+    "pageSubtitle": {
+      "type": "string",
+      "defaultValue": "Please fill in the details for your equipment request."
+    },
+    "formData": {
+      "type": "object",
+      "defaultValue": {
+        "customerRefId": null,
+        "customerName": "",
+        "requestorId": null,
+        "requestorName": "",
+        "requestedStartDate": null,
+        "requestedEndDate": null,
+        "location": "",
+        "notes": ""
+      }
+    },
+    "customerRefsArray": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "customerRefsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "id",
+        "data": "{{ $page.variables.customerRefsArray }}",
+        "textFilterAttributes": [
+          "customerName"
+        ]
+      }
+    },
+    "customerPortalUsersArray": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "customerPortalUsersADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "id",
+        "data": "{{ $page.variables.customerPortalUsersArray }}",
+        "textFilterAttributes": [
+          "contactName",
+          "username",
+          "email"
+        ]
+      }
+    },
+    "isLocationDrawerOpen": {
+      "type": "boolean",
+      "description": "Controls the right-side Delivery Location map drawer (oj-drawer-popup). Opened by clicking the Delivery Location field.",
+      "defaultValue": false
+    },
+    "locationSearchText": {
+      "type": "string",
+      "description": "Text bound to the drawer's oj-input-search typeahead.",
+      "defaultValue": ""
+    },
+    "addr1": {
+      "type": "string",
+      "description": "Address Line 1 (Oracle HZ_LOCATIONS.ADDRESS1) — street number + name, parsed from the geocode result.",
+      "defaultValue": ""
+    },
+    "addr2": {
+      "type": "string",
+      "description": "Address Line 2 (suite/unit) — Mapbox doesn't provide this; user-editable.",
+      "defaultValue": ""
+    },
+    "city": {
+      "type": "string",
+      "description": "City / town (Mapbox 'place').",
+      "defaultValue": ""
+    },
+    "county": {
+      "type": "string",
+      "description": "County (Mapbox 'district').",
+      "defaultValue": ""
+    },
+    "addrState": {
+      "type": "string",
+      "description": "State / province (Mapbox 'region').",
+      "defaultValue": ""
+    },
+    "postalCode": {
+      "type": "string",
+      "description": "Postal / ZIP code (Mapbox 'postcode').",
+      "defaultValue": ""
+    },
+    "country": {
+      "type": "string",
+      "description": "Country (Mapbox 'country').",
+      "defaultValue": ""
+    },
+    "pickedLat": {
+      "type": "number",
+      "description": "Latitude of the picked point.",
+      "defaultValue": null
+    },
+    "pickedLng": {
+      "type": "number",
+      "description": "Longitude of the picked point.",
+      "defaultValue": null
+    }
+  },
+  "eventListeners": {
+    "vbBeforeEnter": {
+      "chains": [
+        { "chain": "enforcePageAccessChain" }
+      ]
+    },
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "customersModuleGuardChain",
+          "parameters": {}
+        },
+        {
+          "chain": "CreateRequestInitChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "spGoToParent": {
+      "chains": [
+        {
+          "chain": "CreateRequestBackChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "spPrimaryAction": {
+      "chains": [
+        {
+          "chain": "CreateRequestNextChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "customerSelected": {
+      "chains": [
+        {
+          "chain": "CustomerSelectedChain",
+          "parameters": {
+            "data": "[[ ($event.detail.value && $event.detail.value.data) || ($event.detail.itemContext && $event.detail.itemContext.data) ]]"
+          }
+        }
+      ]
+    },
+    "contactSelected": {
+      "chains": [
+        {
+          "chain": "ContactSelectedChain",
+          "parameters": {
+            "data": "[[ ($event.detail.value && $event.detail.value.data) || ($event.detail.itemContext && $event.detail.itemContext.data) ]]"
+          }
+        }
+      ]
+    },
+    "locationDrawerOpenedChanged": {
+      "chains": [
+        {
+          "chain": "LocationDrawerToggleChain",
+          "parameters": {
+            "opened": "[[ $event.detail.value ]]"
+          }
+        }
+      ]
+    },
+    "useLocation": {
+      "chains": [
+        {
+          "chain": "UseLocationChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "locationResolved": {
+      "chains": [
+        {
+          "chain": "LocationResolvedChain",
+          "parameters": {
+            "data": "[[ $event.data ]]"
+          }
+        }
+      ]
+    },
+    "addressSuggestionSelected": {
+      "chains": [
+        {
+          "chain": "AddressSuggestionSelectedChain",
+          "parameters": {
+            "data": "[[ $event.detail.itemContext && $event.detail.itemContext.data ]]"
+          }
+        }
+      ]
+    }
+  },
+  "events": {
+    "locationResolved": {
+      "description": "Fired by the page module after a geocode/reverse-geocode with the parsed Oracle-style address components + coords, so LocationResolvedChain can write them into the page variables (module can't write variables directly).",
+      "payloadType": {
+        "data": "object"
+      }
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-sp-general-overview-page": {
+        "path": "oj-sp/general-overview-page/loader"
+      },
+      "oj-form-layout": {
+        "path": "ojs/ojformlayout"
+      },
+      "oj-input-text": {
+        "path": "ojs/ojinputtext"
+      },
+      "oj-text-area": {
+        "path": "ojs/ojtextarea"
+      },
+      "oj-input-date": {
+        "path": "ojs/ojdatetimepicker"
+      },
+      "oj-select-single": {
+        "path": "ojs/ojselectsingle"
+      },
+      "oj-input-search": {
+        "path": "ojs/ojinputsearch"
+      },
+      "oj-option": {
+        "path": "ojs/ojoption"
+      },
+      "oj-button": {
+        "path": "ojs/ojbutton"
+      },
+      "oj-drawer-popup": {
+        "path": "ojs/ojdrawerpopup"
+      },
+      "oj-bind-if": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-text": {
+        "path": "ojs/ojknockout"
+      }
+    }
+  }
+}

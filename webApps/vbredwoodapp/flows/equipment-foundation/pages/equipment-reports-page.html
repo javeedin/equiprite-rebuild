@@ -1,0 +1,721 @@
+<style>
+  .rpt-panel {
+    background: #fff;
+    border: 1px solid var(--oj-core-divider-color, #e5e7eb);
+    border-radius: 12px;
+    box-shadow: var(--oj-core-box-shadow-sm, 0 1px 4px rgba(0,0,0,0.08));
+    margin-bottom: 20px;
+  }
+  .rpt-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--oj-core-divider-color, #e5e7eb);
+  }
+  .rpt-panel-title {
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: var(--oj-core-text-color-primary, #161616);
+  }
+  .rpt-panel-subtitle {
+    font-size: 0.75rem;
+    color: var(--oj-core-text-color-secondary, #565656);
+    margin-top: 2px;
+  }
+  .rpt-tab-wrap {
+    padding: 0 4px;
+    border-bottom: 1px solid var(--oj-core-divider-color, #e5e7eb);
+  }
+  .rpt-data-grid {
+    width: 100%;
+    height: 540px;
+  }
+  .rpt-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 16px;
+    color: var(--oj-core-text-color-secondary, #565656);
+  }
+  .rpt-empty-icon  { font-size: 42px; margin-bottom: 12px; color: #cbd5e1; }
+  .rpt-empty-title { font-size: 15px; font-weight: 600; color: #475569; }
+  .rpt-empty-sub   { font-size: 13px; color: #94a3b8; margin-top: 4px; }
+  .rpt-filter-bar  { display: flex; gap: 12px; align-items: center; flex: 1; margin-left: 12px; }
+
+
+  /* Rental Requests Report — two-tier filter layout.
+     Nine controls in one flex-wrap bar wrapped into a ragged pile, so the three
+     high-traffic filters stay inline and the rest live in a collapsible drawer
+     on a fixed grid — uniform widths, aligned rows, predictable reflow. */
+  /* flex-end, not center: if any control still renders a pixel or two taller,
+     the fields stay bottom-aligned on a common baseline instead of every
+     neighbour being nudged off-centre by the tallest one. */
+  .rr-filter-primary {
+    display:flex; gap:10px; align-items:flex-end; margin-left:auto; flex-wrap:wrap;
+  }
+  .rr-filter-drawer {
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(210px, 1fr));
+    gap:12px 14px;
+    padding:16px 20px;
+    background:#f8fafc;
+    border-top:1px solid var(--oj-core-divider-color, #e5e7eb);
+    align-items:end;
+  }
+  /* Controls fill their grid cell instead of carrying hand-tuned pixel widths */
+  .rr-filter-drawer > * { width:100%; min-width:0; }
+
+  /* Field height. Every control in the bar is now a component that honours the
+     Redwood text-field height token — the legacy ojselectcombobox, which did
+     not, has been replaced by oj-c-select-multiple. 2.25rem matches the
+     default-density outlined oj-button (Export CSV / More filters) so fields and
+     buttons share one height; rem so it tracks the theme's root font size. */
+  /* Equipment History period control — same field height as Export CSV. */
+  .rpt-period { display:flex; align-items:center; gap:8px; margin-right:8px; --rr-field-h:2.25rem; }
+  .rpt-period oj-select-single,
+  .rpt-period oj-input-date {
+    --oj-text-field-height:var(--rr-field-h);
+    --oj-c-text-field-height:var(--rr-field-h);
+  }
+
+  .rr-filter-primary,
+  .rr-filter-drawer { --rr-field-h:2.25rem; }
+
+  .rr-filter-primary  oj-input-text,
+  .rr-filter-primary  oj-select-single,
+  .rr-filter-primary  oj-input-date,
+  .rr-filter-drawer   oj-input-text,
+  .rr-filter-drawer   oj-select-single,
+  .rr-filter-drawer   oj-input-date,
+  .rr-filter-drawer   oj-c-select-multiple {
+    --oj-text-field-height:var(--rr-field-h);
+    --oj-c-text-field-height:var(--rr-field-h);
+  }
+
+  /* Rate Schedule Report — toggle pill */
+  .rpt-toggle-wrap { display:flex; background:#f1f5f9; border-radius:8px; padding:4px; width:fit-content; margin:16px 20px 0 20px; }
+  .rpt-toggle-opt  { padding:7px 28px; border-radius:6px; cursor:pointer; font-size:0.82rem; font-weight:600; color:#64748b; transition:all 0.15s; user-select:none; }
+  .rpt-toggle-opt.rpt-toggle-active { background:#fff; color:#1e293b; box-shadow:0 1px 4px rgba(0,0,0,0.10); }
+
+  /* Rate Schedule accordion */
+  .rpt-sched-list    { padding:16px 20px 20px; display:flex; flex-direction:column; gap:10px; }
+  .rpt-sched-block   { border:1px solid #e2e8f0; border-radius:10px; overflow:hidden; }
+  .rpt-sched-header  { display:flex; align-items:center; gap:14px; padding:13px 18px; background:#f8fafc; flex-wrap:wrap; }
+  .rpt-sched-id      { font-size:0.72rem; font-weight:700; color:#fff; background:#334155; padding:3px 10px; border-radius:20px; letter-spacing:0.04em; white-space:nowrap; }
+  .rpt-sched-name    { font-weight:700; color:#1e293b; font-size:0.88rem; flex:1; min-width:160px; }
+  .rpt-sched-class   { font-size:0.75rem; font-weight:600; color:#475569; background:#f1f5f9; padding:2px 9px; border-radius:20px; white-space:nowrap; }
+  .rpt-sched-dates   { font-size:0.75rem; color:#64748b; white-space:nowrap; }
+  .rpt-sched-status  { font-size:0.7rem; font-weight:700; color:#065f46; background:#d1fae5; padding:2px 9px; border-radius:20px; white-space:nowrap; }
+  .rpt-sched-chevron { font-size:11px; color:#94a3b8; cursor:pointer; margin-left:auto; }
+
+  .rpt-rate-table       { width:100%; border-collapse:collapse; }
+  .rpt-rate-table th    { background:#f1f5f9; color:#475569; font-size:0.73rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; padding:10px 18px; text-align:left; border-top:1px solid #e2e8f0; }
+  .rpt-rate-table td    { padding:11px 18px; font-size:0.84rem; color:#374151; border-top:1px solid #f1f5f9; }
+  .rpt-rate-table tr:nth-child(even) td { background:#f8fafc; }
+  .rpt-rate-table .rpt-period-badge { font-size:0.72rem; font-weight:700; color:#6d28d9; background:#ede9fe; padding:2px 9px; border-radius:20px; display:inline-block; }
+  .rpt-rate-amount { font-weight:700; color:#0f766e; font-size:0.9rem; }
+
+  /* Rate Exceptions table */
+  .rpt-exc-wrap     { padding:16px 20px 20px; }
+  .rpt-exc-table    { width:100%; border-collapse:collapse; }
+  .rpt-exc-table th { background:#f1f5f9; color:#475569; font-size:0.73rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; padding:10px 16px; text-align:left; }
+  .rpt-exc-table td { padding:11px 16px; font-size:0.84rem; color:#374151; border-top:1px solid #f1f5f9; }
+  .rpt-exc-table tr:hover td { background:#f0f9ff; }
+  /* data-grid-style row hover for the flex exceptions grid */
+  .rpt-exc-dg-row:hover { background:#f0f9ff !important; }
+  .rpt-exc-dg-row:hover > div { border-right-color:#dbeafe !important; }
+
+  /* KPI summary cards */
+  .rpt-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+  .rpt-kpi-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+    padding: 28px 32px 24px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transition: box-shadow 0.15s;
+    min-width: 0;
+  }
+  .rpt-kpi-card:hover {
+    box-shadow: 0 6px 20px rgba(0,0,0,0.11);
+  }
+  .rpt-kpi-accent {
+    width: 40px;
+    height: 4px;
+    border-radius: 2px;
+    margin-bottom: 8px;
+  }
+  .rpt-kpi-label {
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: #64748b;
+  }
+  .rpt-kpi-value {
+    font-size: 2.6rem;
+    font-weight: 800;
+    color: #1e293b;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+  }
+  .rpt-kpi-sub {
+    font-size: 0.78rem;
+    color: #94a3b8;
+    margin-top: 4px;
+  }
+</style>
+
+<oj-sp-dashboard-landing-page page-title="Equipment Reports" display-mode="light">
+
+  <div style="padding: 8px 24px 24px 24px;">
+
+    <!-- KPI Summary Cards -->
+    <div class="rpt-kpi-grid">
+
+      <!-- Card 1: Equipment Records (from Equipment History tab) -->
+      <div class="rpt-kpi-card">
+        <div class="rpt-kpi-accent" style="background: #3b82f6;"></div>
+        <div class="rpt-kpi-label">Equipment Records</div>
+        <div class="rpt-kpi-value"><oj-bind-text value="[[ $variables.kpiEquipRecords ]]"></oj-bind-text></div>
+        <div class="rpt-kpi-sub">Entries in history report</div>
+      </div>
+
+      <!-- Card 2: Total Cost Value (from Project Cost Detail tab) -->
+      <div class="rpt-kpi-card">
+        <div class="rpt-kpi-accent" style="background: #10b981;"></div>
+        <div class="rpt-kpi-label">Total Cost Posted</div>
+        <div class="rpt-kpi-value" style="font-size:2rem;"><oj-bind-text value="[[ $variables.kpiTotalCost ]]"></oj-bind-text></div>
+        <div class="rpt-kpi-sub">Across all project requests</div>
+      </div>
+
+      <!-- Card 4: Rate Exceptions (from Rate Exceptions tab) -->
+      <div class="rpt-kpi-card">
+        <div class="rpt-kpi-accent" style="background: #f59e0b;"></div>
+        <div class="rpt-kpi-label">Rate Exceptions</div>
+        <div class="rpt-kpi-value"><oj-bind-text value="[[ $variables.kpiRateExceptions ]]"></oj-bind-text></div>
+        <div class="rpt-kpi-sub">Equipment requiring attention</div>
+      </div>
+
+    </div>
+
+    <!-- Filter Panel -->
+    <div class="rpt-panel">
+      <div style="display:flex; align-items:center; padding:14px 20px; border-bottom:1px solid var(--oj-core-divider-color,#e5e7eb);">
+
+          <oj-select-single
+            label-hint="Report"
+            label-edge="inside"
+            class="oj-form-control-density-compact"
+            style="width:240px;"
+            placeholder="Select Report"
+            value="{{ $variables.reportsActiveTab }}"
+            data="[[ $variables.reportsTabsADP ]]"
+            item-text="label"
+            on-value-changed="[[$listeners.onReportsTabChanged]]">
+          </oj-select-single>
+
+          <!-- Smart Search — replaces all per-tab filter controls -->
+          <div class="rpt-filter-bar">
+            <div style="flex:1; min-width:0;">
+              <oj-bind-if test="[[ $variables.reportsSmartSearchVisible ]]">
+                <oj-sp-smart-search
+                  filter-criterion="{{ $variables.reportsFilterCriterion }}"
+                  on-filter-criterion-changed="[[ $listeners.onReportsSmartSearchChanged ]]"
+                  search-context="[[ $variables.reportsSearchContext ]]"
+                  search-config="[[ $variables.reportsSearchConfiguration.provider ]]"
+                  suggestion-filters="[[ $variables.reportsSuggestionFilters ]]"
+                  placeholder="Search equipment reports…">
+                </oj-sp-smart-search>
+              </oj-bind-if>
+            </div>
+            <!-- Period. Equipment History only: that view is the one report with
+                 a date window, and smart search cannot supply it —
+                 SelectSingleFilter is the only filter type this app has, so
+                 there is no date chip to build. A preset sends duration; Custom
+                 reveals a From/To pair and sends fromDate/toDate, which this
+                 view lets win over duration. Same shape as the Analytics
+                 Utilization Period control. -->
+            <oj-bind-if test="[[ $variables.reportsActiveTab === 'equip-history' ]]">
+              <div class="rpt-period">
+                <oj-select-single
+                  label-hint="Period"
+                  label-edge="inside"
+                  class="oj-form-control-density-compact"
+                  style="width:170px;"
+                  value="{{ $variables.reportsDatePreset }}"
+                  data="[[ $variables.reportsDateOptionsADP ]]"
+                  item-text="label"
+                  on-value-changed="[[$listeners.onFilterChanged]]">
+                </oj-select-single>
+
+                <oj-bind-if test="[[ $variables.reportsDatePreset === 'custom' ]]">
+                  <oj-input-date
+                    label-hint="From"
+                    label-edge="inside"
+                    class="oj-form-control-density-compact"
+                    style="width:160px;"
+                    value="{{ $variables.reportsCustomFrom }}"
+                    on-value-changed="[[$listeners.onFilterChanged]]">
+                  </oj-input-date>
+                  <oj-input-date
+                    label-hint="To"
+                    label-edge="inside"
+                    class="oj-form-control-density-compact"
+                    style="width:160px;"
+                    value="{{ $variables.reportsCustomTo }}"
+                    on-value-changed="[[$listeners.onFilterChanged]]">
+                  </oj-input-date>
+                </oj-bind-if>
+              </div>
+            </oj-bind-if>
+
+            <oj-button chroming="outlined" on-oj-action="[[$listeners.onExportCsv]]">
+              <span slot="startIcon" class="oj-ux-ico-download"></span>
+              Export CSV
+            </oj-button>
+
+          </div><!-- end smart search bar -->
+      </div>
+
+      <!-- (rental-requests drawer removed — replaced by smart search) -->
+      <oj-bind-if test="[[ false ]]">
+        <div class="rr-filter-drawer">
+          <!-- Both multi-selects use the Core Pack oj-c-select-multiple, which
+               honours label-edge="inside" and the compact density token — the
+               legacy oj-select-many (ojselectcombobox) does not, which is why it
+               rendered shorter than its neighbours no matter what CSS was
+               applied. Core Pack takes data + ADP + item-text, like
+               oj-select-single. -->
+          <oj-c-select-multiple
+            label-hint="Line Status"
+            label-edge="inside"
+            class="oj-form-control-density-compact"
+            placeholder="All"
+            value="{{ $variables.rentalReqFilterLineStatus }}"
+            data="[[ $variables.rentalReqLineStatusOptionsADP ]]"
+            item-text="label"
+            on-value-changed="[[$listeners.onFilterChanged]]">
+          </oj-c-select-multiple>
+          <oj-c-select-multiple
+            label-hint="Request Status"
+            label-edge="inside"
+            class="oj-form-control-density-compact"
+            placeholder="All"
+            value="{{ $variables.rentalReqFilterReqStatus }}"
+            data="[[ $variables.rentalReqReqStatusOptionsADP ]]"
+            item-text="label"
+            on-value-changed="[[$listeners.onFilterChanged]]">
+          </oj-c-select-multiple>
+          <oj-select-single
+            label-hint="Equipment Class"
+            label-edge="inside"
+            class="oj-form-control-density-compact"
+            placeholder="All Classes"
+            clear-value="conditional"
+            value="{{ $variables.rentalReqFilterClass }}"
+            data="[[ $variables.rentalReqClassOptionsADP ]]"
+            item-text="label"
+            on-value-changed="[[$listeners.onFilterChanged]]">
+          </oj-select-single>
+          <oj-select-single
+            label-hint="Procurement"
+            label-edge="inside"
+            class="oj-form-control-density-compact"
+            placeholder="Any"
+            clear-value="conditional"
+            value="{{ $variables.rentalReqFilterProcurement }}"
+            data="[[ $variables.rentalReqProcurementOptionsADP ]]"
+            item-text="label"
+            on-value-changed="[[$listeners.onFilterChanged]]">
+          </oj-select-single>
+          <oj-input-date
+            label-hint="Rental On/After"
+            label-edge="inside"
+            class="oj-form-control-density-compact"
+            value="{{ $variables.rentalReqFilterFrom }}"
+            on-value-changed="[[$listeners.onFilterChanged]]">
+          </oj-input-date>
+          <oj-input-date
+            label-hint="Rental On/Before"
+            label-edge="inside"
+            class="oj-form-control-density-compact"
+            value="{{ $variables.rentalReqFilterTo }}"
+            on-value-changed="[[$listeners.onFilterChanged]]">
+          </oj-input-date>
+        </div>
+      </oj-bind-if>
+    </div>
+
+    <!-- Report Content Panel -->
+    <div class="rpt-panel">
+
+      <!-- Empty state — no report selected -->
+      <oj-bind-if test="[[ !$variables.reportsActiveTab ]]">
+        <div class="rpt-empty-state" style="padding:80px 16px;">
+          <div class="rpt-empty-icon">📊</div>
+          <div class="rpt-empty-title">Select a report to get started</div>
+          <div class="rpt-empty-sub">Choose a report from the dropdown above to view its data</div>
+        </div>
+      </oj-bind-if>
+
+      <!-- Report 1 — Equipment History -->
+      <oj-bind-if test="[[ $variables.reportsActiveTab === 'equip-history' ]]">
+        <div style="overflow:hidden;">
+          <oj-data-grid
+            id="equipHistoryGrid"
+            class="rpt-data-grid"
+            aria-label="Equipment History Grid"
+            data="[[ $functions.getEquipHistoryGridProvider($variables.historyRows, $variables.reportsFilterCriterion, $variables.reportsFilterVersion) ]]"
+            selection="{{ $variables.historySelection }}"
+            selection-mode.cell="multiple"
+            cell.editable="[[ $functions.getIsEditable.bind($functions) ]]"
+            header.column.style="[[ $functions.getEquipHistoryColumnHeaderStyle.bind($functions) ]]"
+            header.column.filterable="[[ $functions.getHeaderFilterable.bind($functions) ]]"
+            header.row.style="width:50px;"
+            header.column.resizable.width="enable"
+            header.column.resizable.height="enable"
+            header.row.resizable.width="enable"
+            header.row.resizable.height="enable"
+            header.column.hidable="enable"
+            header.row.hidable="enable"
+            scroll-policy="loadMoreOnScroll"
+            data-transfer-options='{"cut":"enable","copy":"enable","paste":"enable","fill":"enable"}'
+            style="width:100%; height:540px;">
+
+            <template slot="columnHeaderTemplate" data-oj-as="header">
+              <span style="display:block; white-space:nowrap; overflow:visible;">
+                <oj-bind-text value="[[ header.item.data ]]"></oj-bind-text>
+              </span>
+            </template>
+
+            <template slot="cellTemplate" data-oj-as="cell">
+              <oj-bind-if test="[[ cell.mode === 'navigation' ]]">
+                <span class="oj-text-color-secondary oj-typography-body-sm">
+                  <oj-bind-text value="[[ cell.item.data.data ]]"></oj-bind-text>
+                </span>
+              </oj-bind-if>
+              <oj-bind-if test="[[ cell.mode === 'edit' ]]">
+                <oj-input-text value="{{ cell.item.data.data }}" style="width:100%;"></oj-input-text>
+              </oj-bind-if>
+            </template>
+
+            <template slot="noData">
+              <div class="rpt-empty-state">
+                <div class="rpt-empty-icon">📋</div>
+                <div class="rpt-empty-title">No equipment history records</div>
+                <div class="rpt-empty-sub">Adjust filters to find records</div>
+              </div>
+            </template>
+
+          </oj-data-grid>
+        </div>
+      </oj-bind-if>
+
+      <!-- Rental Requests Report -->
+      <oj-bind-if test="[[ $variables.reportsActiveTab === 'rental-requests' ]]">
+        <div style="overflow:hidden;">
+          <oj-data-grid
+            id="rentalReqGrid"
+            class="rpt-data-grid"
+            aria-label="Rental Requests Grid"
+            data="[[ $functions.getRentalReqGridProvider($variables.rentalReqRows, $variables.reportsFilterCriterion, $variables.reportsFilterVersion) ]]"
+            selection="{{ $variables.rentalReqSelection }}"
+            selection-mode.cell="multiple"
+            cell.editable="[[ $functions.getIsEditable.bind($functions) ]]"
+            header.column.style="[[ $functions.getRentalReqColumnHeaderStyle.bind($functions) ]]"
+            header.column.filterable="[[ $functions.getHeaderFilterable.bind($functions) ]]"
+            header.row.style="width:50px;"
+            header.column.resizable.width="enable"
+            header.column.resizable.height="enable"
+            header.row.resizable.width="enable"
+            header.row.resizable.height="enable"
+            header.column.hidable="enable"
+            header.row.hidable="enable"
+            scroll-policy="loadMoreOnScroll"
+            data-transfer-options='{"cut":"enable","copy":"enable","paste":"enable","fill":"enable"}'
+            style="width:100%; height:540px;">
+
+            <template slot="columnHeaderTemplate" data-oj-as="header">
+              <span style="display:block; white-space:nowrap; overflow:visible;">
+                <oj-bind-text value="[[ header.item.data ]]"></oj-bind-text>
+              </span>
+            </template>
+
+            <template slot="cellTemplate" data-oj-as="cell">
+              <oj-bind-if test="[[ cell.mode === 'navigation' ]]">
+                <span class="oj-text-color-secondary oj-typography-body-sm">
+                  <oj-bind-text value="[[ cell.item.data.data ]]"></oj-bind-text>
+                </span>
+              </oj-bind-if>
+              <oj-bind-if test="[[ cell.mode === 'edit' ]]">
+                <oj-input-text value="{{ cell.item.data.data }}" style="width:100%;"></oj-input-text>
+              </oj-bind-if>
+            </template>
+
+            <template slot="noData">
+              <div class="rpt-empty-state">
+                <div class="rpt-empty-icon">📄</div>
+                <div class="rpt-empty-title">No rental requests found</div>
+                <div class="rpt-empty-sub">No request lines match the selected filters</div>
+              </div>
+            </template>
+
+          </oj-data-grid>
+        </div>
+      </oj-bind-if>
+
+      <!-- TAB 2 — Project Cost Detail -->
+      <oj-bind-if test="[[ $variables.reportsActiveTab === 'proj-cost-detail' ]]">
+        <div style="overflow:hidden;">
+          <oj-data-grid
+            id="projCostGrid"
+            class="rpt-data-grid"
+            aria-label="Project Cost Detail Grid"
+            data="[[ $functions.getProjCostGridProvider($variables.projCostRows, $variables.reportsFilterCriterion, $variables.reportsFilterVersion) ]]"
+            selection="{{ $variables.projCostSelection }}"
+            selection-mode.cell="multiple"
+            cell.editable="[[ $functions.getIsEditable.bind($functions) ]]"
+            header.column.style="[[ $functions.getProjCostColumnHeaderStyle.bind($functions) ]]"
+            header.column.filterable="[[ $functions.getHeaderFilterable.bind($functions) ]]"
+            header.row.style="width:50px;"
+            header.column.resizable.width="enable"
+            header.column.resizable.height="enable"
+            header.row.resizable.width="enable"
+            header.row.resizable.height="enable"
+            header.column.hidable="enable"
+            header.row.hidable="enable"
+            scroll-policy="loadMoreOnScroll"
+            data-transfer-options='{"cut":"enable","copy":"enable","paste":"enable","fill":"enable"}'
+            style="width:100%; height:540px;">
+
+            <template slot="columnHeaderTemplate" data-oj-as="header">
+              <span style="display:block; white-space:nowrap; overflow:visible;">
+                <oj-bind-text value="[[ header.item.data ]]"></oj-bind-text>
+              </span>
+            </template>
+
+            <template slot="cellTemplate" data-oj-as="cell">
+              <oj-bind-if test="[[ cell.mode === 'navigation' ]]">
+                <span class="oj-text-color-secondary oj-typography-body-sm">
+                  <oj-bind-text value="[[ cell.item.data.data ]]"></oj-bind-text>
+                </span>
+              </oj-bind-if>
+              <oj-bind-if test="[[ cell.mode === 'edit' ]]">
+                <oj-input-text value="{{ cell.item.data.data }}" style="width:100%;"></oj-input-text>
+              </oj-bind-if>
+            </template>
+
+            <template slot="noData">
+              <div class="rpt-empty-state">
+                <div class="rpt-empty-icon">💰</div>
+                <div class="rpt-empty-title">No cost records found</div>
+                <div class="rpt-empty-sub">Adjust filters to find cost transactions</div>
+              </div>
+            </template>
+
+          </oj-data-grid>
+        </div>
+      </oj-bind-if>
+
+      <!-- TAB 4 — Rate Schedule Report -->
+      <oj-bind-if test="[[ $variables.reportsActiveTab === 'rate-schedule-rpt' ]]">
+
+        <!-- ── Rate Details: accordion grouped by schedule ──────── -->
+        <div class="rpt-sched-list">
+            <oj-bind-for-each data="[[ $functions.getGroupedRateSchedData($variables.rateSchedRows, $variables.reportsFilterCriterion, $variables.reportsFilterVersion) ]]">
+              <template data-oj-as="group">
+                <div class="rpt-sched-block">
+
+                  <!-- Schedule header — collapsed by default -->
+                  <oj-collapsible expanded="false" disabled="false" style="border:none;">
+                    <h3 slot="header" style="margin:0; padding:0; font-size:inherit; font-weight:inherit; line-height:inherit;">
+                      <div class="rpt-sched-header">
+                        <span class="rpt-sched-id">
+                          <oj-bind-text value="[[ group.data.schedule_id ]]"></oj-bind-text>
+                        </span>
+                        <span class="rpt-sched-name">
+                          <oj-bind-text value="[[ group.data.schedule_name ]]"></oj-bind-text>
+                        </span>
+                        <span class="rpt-sched-dates">
+                          <oj-bind-text value="[[ $functions.formatDate(group.data.effective_from) + (group.data.effective_to ? '  –  ' + $functions.formatDate(group.data.effective_to) : '') ]]"></oj-bind-text>
+                        </span>
+                        <span class="rpt-sched-status">
+                          <oj-bind-text value="[[ group.data.status ]]"></oj-bind-text>
+                        </span>
+                      </div>
+                    </h3>
+
+                    <!-- Rate period lines — flex grid (avoids oj-bind-for-each-inside-tbody parser issue) -->
+                    <div style="border-top:1px solid #e2e8f0; overflow-x:auto;">
+                      <div style="display:flex; min-width:max-content; background:#f1f5f9; border-bottom:2px solid #e2e8f0; font-size:0.72rem; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.05em;">
+                        <div style="width:210px; flex-shrink:0; padding:10px 16px; border-right:1px solid #e2e8f0;">Equipment</div>
+                        <div style="width:160px; flex-shrink:0; padding:10px 16px; border-right:1px solid #e2e8f0;">Class</div>
+                        <div style="width:160px; flex-shrink:0; padding:10px 16px; border-right:1px solid #e2e8f0;">Subclass</div>
+                        <div style="width:120px; flex-shrink:0; padding:10px 16px; border-right:1px solid #e2e8f0;">Rate Period</div>
+                        <div style="width:130px; flex-shrink:0; padding:10px 16px; border-right:1px solid #e2e8f0;">Rate Type</div>
+                        <div style="width:180px; flex-shrink:0; padding:10px 16px; border-right:1px solid #e2e8f0;">Threshold</div>
+                        <div style="width:130px; flex-shrink:0; padding:10px 16px;">Rate</div>
+                      </div>
+                      <oj-bind-for-each data="[[ group.data.lines ]]">
+                        <template data-oj-as="line">
+                          <div style="display:flex; min-width:max-content; align-items:stretch; border-bottom:1px solid #f1f5f9;">
+                            <div style="width:210px; flex-shrink:0; padding:10px 16px; border-right:1px solid #f1f5f9; font-size:0.82rem; color:#1e293b; font-weight:600; display:flex; align-items:center;">
+                              <oj-bind-text value="[[ line.data.equip_name || '—' ]]"></oj-bind-text>
+                            </div>
+                            <div style="width:160px; flex-shrink:0; padding:10px 16px; border-right:1px solid #f1f5f9; font-size:0.82rem; color:#374151; display:flex; align-items:center;">
+                              <oj-bind-text value="[[ line.data.equip_class || '—' ]]"></oj-bind-text>
+                            </div>
+                            <div style="width:160px; flex-shrink:0; padding:10px 16px; border-right:1px solid #f1f5f9; font-size:0.82rem; color:#374151; display:flex; align-items:center;">
+                              <oj-bind-text value="[[ line.data.equip_subclass || '—' ]]"></oj-bind-text>
+                            </div>
+                            <div style="width:120px; flex-shrink:0; padding:10px 16px; border-right:1px solid #f1f5f9; display:flex; align-items:center;">
+                              <span class="rpt-period-badge"><oj-bind-text value="[[ line.data.period ]]"></oj-bind-text></span>
+                            </div>
+                            <div style="width:130px; flex-shrink:0; padding:10px 16px; border-right:1px solid #f1f5f9; font-size:0.84rem; color:#374151; display:flex; align-items:center;">
+                              <oj-bind-text value="[[ line.data.rate_type || '—' ]]"></oj-bind-text>
+                            </div>
+                            <div style="width:180px; flex-shrink:0; padding:10px 16px; border-right:1px solid #f1f5f9; font-size:0.84rem; color:#374151; display:flex; align-items:center;">
+                              <oj-bind-text value="[[ line.data.threshold ]]"></oj-bind-text>
+                            </div>
+                            <div style="width:130px; flex-shrink:0; padding:10px 16px; display:flex; align-items:center;" class="rpt-rate-amount">
+                              <oj-bind-text value="[[ $functions.formatCurrency(line.data.rate) ]]"></oj-bind-text>
+                            </div>
+                          </div>
+                        </template>
+                      </oj-bind-for-each>
+                    </div>
+
+                  </oj-collapsible>
+                </div>
+              </template>
+            </oj-bind-for-each>
+          </div>
+
+      </oj-bind-if>
+
+      <!-- TAB 3 — Rate Exceptions -->
+      <oj-bind-if test="[[ $variables.reportsActiveTab === 'rate-exceptions' ]]">
+        <div style="overflow:hidden;">
+          <oj-data-grid
+            id="rateExcGrid"
+            class="rpt-data-grid"
+            aria-label="Rate Exceptions Grid"
+            data="[[ $functions.getRateExcGridProvider($variables.rateExcRows, $variables.reportsFilterCriterion, $variables.reportsFilterVersion) ]]"
+            selection="{{ $variables.rateExcSelection }}"
+            selection-mode.cell="multiple"
+            cell.editable="[[ $functions.getIsEditable.bind($functions) ]]"
+            header.column.style="[[ $functions.getRateExcColumnHeaderStyle.bind($functions) ]]"
+            header.column.filterable="[[ $functions.getHeaderFilterable.bind($functions) ]]"
+            header.row.style="width:50px;"
+            header.column.resizable.width="enable"
+            header.column.resizable.height="enable"
+            header.row.resizable.width="enable"
+            header.row.resizable.height="enable"
+            header.column.hidable="enable"
+            header.row.hidable="enable"
+            scroll-policy="loadMoreOnScroll"
+            data-transfer-options='{"cut":"enable","copy":"enable","paste":"enable","fill":"enable"}'
+            style="width:100%; height:540px;">
+
+            <template slot="columnHeaderTemplate" data-oj-as="header">
+              <span style="display:block; white-space:nowrap; overflow:visible;">
+                <oj-bind-text value="[[ header.item.data ]]"></oj-bind-text>
+              </span>
+            </template>
+
+            <template slot="cellTemplate" data-oj-as="cell">
+              <oj-bind-if test="[[ cell.mode === 'navigation' ]]">
+                <span class="oj-text-color-secondary oj-typography-body-sm">
+                  <oj-bind-text value="[[ cell.item.data.data ]]"></oj-bind-text>
+                </span>
+              </oj-bind-if>
+              <oj-bind-if test="[[ cell.mode === 'edit' ]]">
+                <oj-input-text value="{{ cell.item.data.data }}" style="width:100%;"></oj-input-text>
+              </oj-bind-if>
+            </template>
+
+            <template slot="noData">
+              <div class="rpt-empty-state">
+                <div class="rpt-empty-icon">✅</div>
+                <div class="rpt-empty-title">No rate exceptions found</div>
+                <div class="rpt-empty-sub">All equipment have valid rates for the selected period</div>
+              </div>
+            </template>
+
+          </oj-data-grid>
+        </div>
+      </oj-bind-if>
+
+      <!-- Agreement Expiry Report -->
+      <oj-bind-if test="[[ $variables.reportsActiveTab === 'agreement-expiry' ]]">
+        <div style="overflow:hidden;">
+          <oj-data-grid
+            id="agreementExpiryGrid"
+            class="rpt-data-grid"
+            aria-label="Agreement Expiry Grid"
+            data="[[ $functions.getAgreementExpiryGridProvider($variables.agreementExpiryRows, $variables.reportsFilterCriterion, $variables.reportsFilterVersion) ]]"
+            selection="{{ $variables.agreementExpirySelection }}"
+            selection-mode.cell="multiple"
+            cell.editable="[[ $functions.getIsEditable.bind($functions) ]]"
+            header.column.style="[[ $functions.getAgreementExpiryColumnHeaderStyle.bind($functions) ]]"
+            header.column.filterable="[[ $functions.getHeaderFilterable.bind($functions) ]]"
+            header.row.style="width:50px;"
+            header.column.resizable.width="enable"
+            header.column.resizable.height="enable"
+            header.row.resizable.width="enable"
+            header.row.resizable.height="enable"
+            header.column.hidable="enable"
+            header.row.hidable="enable"
+            scroll-policy="loadMoreOnScroll"
+            data-transfer-options='{"cut":"enable","copy":"enable","paste":"enable","fill":"enable"}'
+            style="width:100%; height:540px;">
+
+            <template slot="columnHeaderTemplate" data-oj-as="header">
+              <span style="display:block; white-space:nowrap; overflow:visible;">
+                <oj-bind-text value="[[ header.item.data ]]"></oj-bind-text>
+              </span>
+            </template>
+
+            <!-- Expiry Status used to render as a coloured pill here, via a
+                 badgeClass property the cell carried alongside data. That is
+                 gone: every cell on this grid is now plain text, like the other
+                 five report tabs. -->
+            <template slot="cellTemplate" data-oj-as="cell">
+              <oj-bind-if test="[[ cell.mode === 'navigation' ]]">
+                <span class="oj-text-color-secondary oj-typography-body-sm">
+                  <oj-bind-text value="[[ cell.item.data.data ]]"></oj-bind-text>
+                </span>
+              </oj-bind-if>
+              <oj-bind-if test="[[ cell.mode === 'edit' ]]">
+                <oj-input-text value="{{ cell.item.data.data }}" style="width:100%;"></oj-input-text>
+              </oj-bind-if>
+            </template>
+
+            <template slot="noData">
+              <div class="rpt-empty-state">
+                <div class="rpt-empty-icon">📋</div>
+                <div class="rpt-empty-title">No agreements found</div>
+                <div class="rpt-empty-sub">No agreements match the selected filters</div>
+              </div>
+            </template>
+
+          </oj-data-grid>
+        </div>
+      </oj-bind-if>
+
+    </div>
+
+  </div>
+
+</oj-sp-dashboard-landing-page>

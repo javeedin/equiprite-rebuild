@@ -1,0 +1,1668 @@
+<style>
+  .demo-data-grid {
+    width: 100%;
+    /* Fill the wrapper card (which sets calc(100vh - 320px)) rather than
+       computing its own absolute height. Previously the grid was 40px taller
+       than its container — its bottom horizontal scrollbar fell below the
+       visible viewport and couldn't be reached. */
+    height: 100%;
+  }
+
+  /* Badge colours are defined globally in resources/css/app.css
+     (canonical status palette). Do not redefine them here. */
+
+  /* Page width — fill the available viewport so the wide line grid (≈2260px
+     of columns) gets the maximum room before it has to scroll horizontally.
+     Previously capped at a fixed 1440px, which left the page sitting in a
+     narrow centered column on large monitors and forced the grid to scroll
+     even when the screen had room. Now the page tracks the viewport width
+     (minus the app chrome) and only caps on ultra-wide displays so line
+     lengths stay readable. */
+  #oj_gop_request_detail {
+    width: 100% !important;
+    max-width: min(2400px, calc(100vw - 48px)) !important;
+    margin: 0 auto !important;
+  }
+
+  /* Banner fields — white-on-dark overlay */
+  .cr-banner-filter {
+    --oj-text-field-bg-color: rgba(255, 255, 255, 0.08);
+    --oj-text-field-bg-color-readonly: rgba(255, 255, 255, 0.04);
+    --oj-form-control-bg-color: rgba(255, 255, 255, 0.08);
+    --oj-form-control-border-color: rgba(255, 255, 255, 0.35);
+    --oj-form-control-text-color: #ffffff;
+    --oj-label-color: rgba(255, 255, 255, 0.8);
+    background-color: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.35) !important;
+    border-radius: 4px;
+  }
+  .cr-banner-filter, .cr-banner-filter * { color: #ffffff !important; }
+  .cr-banner-filter .oj-label, .cr-banner-filter label { color: rgba(255, 255, 255, 0.8) !important; }
+  .cr-banner-filter .oj-text-field-container, .cr-banner-filter .oj-text-field-input {
+    background-color: transparent !important; border-color: transparent !important;
+  }
+
+  /* Progress bar */
+  .cr-progress-bar {
+    padding: 12px 16px;
+    background-color: var(--oj-core-neutral-color-0, #ffffff);
+    border-bottom: 1px solid var(--oj-core-divider-color, #e2e8f0);
+    border-radius: 4px 4px 0 0;
+  }
+  .cr-progress-label {
+    font-weight: var(--oj-typography-body-font-weight-bold, 600);
+    color: var(--oj-core-text-color-primary, #161616);
+    font-size: var(--oj-typography-body-sm-font-size, 0.875rem);
+  }
+  .cr-progress-value {
+    color: var(--oj-core-text-color-secondary, #565656);
+    font-size: var(--oj-typography-body-sm-font-size, 0.875rem);
+    margin-left: 8px;
+  }
+
+  /* Checkbox cell centering */
+  .cr-cell-center {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+  }
+
+  /* Line # nav link */
+  .cr-line-link.oj-button.oj-button-borderless {
+    color: var(--oj-core-brand-color-primary);
+    font-weight: var(--oj-typography-body-font-weight-bold, 700);
+    text-decoration: underline;
+    min-width: 0;
+    padding: 0;
+  }
+
+  /* ── Dark horizontal scrollbar for the request lines data grid ──
+     JET's default scrollbar is too thin / faint to notice on wide tables.
+     Page-scoped overrides target every inner scroller JET renders so the
+     bar shows up regardless of which subdiv ends up doing the scrolling.
+     -webkit-* covers Chrome/Edge/Safari; scrollbar-color covers Firefox.
+     `!important` because the global rule in app.css and JET's own theme
+     both compete with these. */
+  /* Match the global app.css scrollbar styling exactly so both axes look
+     identical. JET renders the vertical scroller on a different inner div
+     than the horizontal one, so they can pick up different CSS rules. By
+     using the same values as the global ::-webkit-scrollbar rules, it
+     doesn't matter which rule wins per axis — both render the same. */
+  #datagrid,
+  #datagrid * {
+    scrollbar-width: thin !important;
+    scrollbar-color: #475569 #e2e8f0 !important;
+  }
+  #datagrid ::-webkit-scrollbar {
+    height: 12px !important;
+    width:  12px !important;
+  }
+  #datagrid ::-webkit-scrollbar-track {
+    background: #e2e8f0 !important;
+    border-radius: 6px !important;
+  }
+  #datagrid ::-webkit-scrollbar-thumb {
+    background: #475569 !important;
+    border-radius: 6px !important;
+    border: 2px solid #e2e8f0 !important;
+  }
+  #datagrid ::-webkit-scrollbar-thumb:hover {
+    background: #1e293b !important;
+  }
+  #datagrid ::-webkit-scrollbar-corner {
+    background: #e2e8f0 !important;
+  }
+
+  /* Yard select — uses an inside (floating) label so "Yard" stays visible
+     even after a value is selected. The inside label needs vertical room to
+     float above the value, so we don't pin it to the 32px sm-button height
+     here; the compact density keeps it tight. */
+  #yardSelect .oj-text-field-container,
+  #buSelect .oj-text-field-container {
+    min-height: 40px;
+  }
+
+  /* Banner plain-text info fields */
+  .cr-info-label {
+    font-size: var(--oj-typography-body-xs-font-size, 0.6875rem);
+    font-weight: var(--oj-typography-body-font-weight-bold, 700);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: rgba(255, 255, 255, 0.55);
+  }
+  .cr-info-value {
+    font-size: var(--oj-typography-body-sm-font-size, 0.8125rem);
+    color: rgba(255, 255, 255, 0.92);
+    font-weight: 400;
+  }
+  .cr-info-divider {
+    color: rgba(255, 255, 255, 0.35);
+    font-size: 0.75rem;
+    margin: 0 2px;
+  }
+
+  /* ── Transfer-submit overlay — same treatment as request-cart-page's
+     cart-submit-overlay (shown while SubmitRequestChain runs there), so the
+     "creating a request" moment reads identically everywhere in the app.
+     Shown while TransferToSiteChain is in flight, so the drawer never looks
+     frozen for the createEquipmentRequest/createRequestLine round-trip. ── */
+  .transfer-submit-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.78);
+    backdrop-filter: blur(1px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+  .transfer-submit-box {
+    background: #fff;
+    border: 1px solid var(--oj-core-divider-color, #e0e0e0);
+    border-radius: 10px;
+    padding: 28px 40px;
+    box-shadow: 0 6px 28px rgba(0, 0, 0, 0.14);
+    text-align: center;
+    max-width: 340px;
+  }
+  .transfer-submit-spinner {
+    width: 42px;
+    height: 42px;
+    margin: 0 auto 16px auto;
+    border: 4px solid var(--oj-core-neutral-color-3, #e0e0e0);
+    border-top-color: var(--oj-core-brand-color-primary, #005cb1);
+    border-radius: 50%;
+    animation: transferSubmitSpin 0.8s linear infinite;
+  }
+  @keyframes transferSubmitSpin { to { transform: rotate(360deg); } }
+  .transfer-submit-text {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 4px;
+  }
+  .transfer-submit-subtext {
+    font-size: 0.8rem;
+    color: var(--oj-core-text-color-secondary, #565656);
+    line-height: 1.5;
+  }
+</style>
+
+<!-- primary-action's label is BOUND, not literal: it becomes "Retry Transfer
+     Order" when every selected line is one whose Transfer Order failed in
+     Fusion. Same button, same position, honest verb — see updateActionButtons
+     in the page module.
+
+     THIS COMMENT MUST STAY OUTSIDE THE TAG. It previously sat between
+     display-options.responsive-padding and primary-action, INSIDE the opening
+     tag. HTML has no comment syntax inside a tag, so the parser read "<!--",
+     "Label", "is", "bound," … as 37 separate attributes and — critically —
+     never reached on-sp-in-flow-back, on-sp-primary-action or
+     on-sp-secondary-action. That is why the in-flow back chevron did nothing:
+     the listener was never bound. -->
+<oj-sp-general-overview-page
+  id="oj_gop_request_detail"
+  class="oj-sm-width-full"
+  page-title="[[ $variables.pageTitle ]]"
+  page-subtitle="[[ $variables.pageSubtitle ]]"
+  display-mode="mixed"
+  display-options.in-flow-back="true"
+  display-options.responsive-padding="on"
+  primary-action='[[ {"label": $variables.confirmLabel, "icon": $variables.confirmIsRetry ? "oj-ux-ico-refresh" : "oj-ux-ico-check-circle", "display": $variables.confirmEnabled ? "on" : "disabled"} ]]'
+  secondary-actions='[[ [{"id":"reject","label":"Reject","display": $variables.rejectEnabled ? "on" : "disabled"}] ]]'
+  on-sp-primary-action="[[ $listeners.onConfirmRequest ]]"
+  on-sp-secondary-action="[[ $listeners.onSpSecondaryAction ]]"
+  on-sp-in-flow-back="[[ $listeners.onSpInFlowBack ]]">
+
+  <!-- Search Banner -->
+  <div class="oj-flex" slot="search">
+    <div style="margin-bottom:4px; display:flex; flex-wrap:wrap; align-items:center; gap:6px;"
+      class="oj-flex-item oj-sm-flex-initial">
+      <span class="cr-info-value">
+        <oj-bind-text value="[[ $variables.formData.requestor ]]"></oj-bind-text>
+      </span>
+      <span class="cr-info-divider">|</span>
+      <span class="cr-info-value">
+        <oj-bind-text value="[[ $variables.formData.project_customer ]]"></oj-bind-text>
+      </span>
+      <span class="cr-info-divider">|</span>
+      <span class="cr-info-value">
+        <oj-bind-text value="[[ $variables.formData.task ]]"></oj-bind-text>
+      </span>
+      <span class="cr-info-divider">|</span>
+      <span class="cr-info-value">
+        <oj-bind-text value="[[ $variables.formData.location ]]"></oj-bind-text>
+      </span>
+      <span class="cr-info-divider">|</span>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <span class="cr-info-value">
+          <oj-bind-text value="[[ $variables.formData.start_date ]]"></oj-bind-text>
+        </span>
+        <span class="cr-info-divider">→</span>
+        <span class="cr-info-value">
+          <oj-bind-text value="[[ $variables.formData.end_date ]]"></oj-bind-text>
+        </span>
+      </div>
+    </div>
+  </div>
+  <div class="oj-flex" style="justify-content:space-between; margin-bottom:10px;"
+    slot="search">
+
+      <!-- Action buttons (left) -->
+
+      <!-- Yard selector (right) — server-driven LOV (yardMappingSDP →
+           eqp-v1/bu-org-mappings, active mappings across all BUs) with
+           search-as-you-type (?q= over invOrgId/Code/Name). Clearable.
+           selectedYard holds the numeric invOrgId; no default is applied on load
+           (opens "All Yards"). On change, onYardChanged →
+           RescopeYardChain re-fetches request-detail-lines with yardId so
+           availability re-scopes to the chosen yard (clearing it spans all
+           orgs). -->
+    <div class="oj-flex oj-flex-item oj-sm-12 oj-md-6 oj-sm-flex-wrap-nowrap">
+      <oj-button id="oj-button--2026768781-1" chroming="borderless" on-oj-action="[[ $listeners.onRefreshRequest ]]"
+        class="oj-button-sm oj-flex-item oj-sm-12 oj-md-1" display="icons">
+          <span class="oj-ux-ico-refresh" slot="startIcon"></span>
+      </oj-button>
+      <oj-button id="oj-button--2026768781-2" chroming="outlined" on-oj-action="[[ $listeners.onRequestPo ]]"
+        :disabled="[[ !$variables.poButtonEnabled ]]"
+        :title="[[ $variables.poButtonEnabled ? 'Request Purchase Requisition' : 'Select lines that are In Process, Quote Generated or Quote Accepted' ]]"
+        display="label" label="Request Purchase Requisition" class="oj-flex-item oj-sm-12 oj-md-3 oj-button-sm">
+          <!-- Enablement: ≥1 line selected AND every selected line's status is in
+               PR_ELIGIBLE_LINE_STATUSES (IN_PROCESS / QUOTE_GENERATED /
+               QUOTE_ACCEPTED) — see updatePoButtonEnabled in the page module.
+               An already-committed line (ALLOCATED / on a TO) or one already at
+               UNDER_PROCUREMENT is excluded so it can't be double-supplied or
+               double-requisitioned.
+               REVERSIBLE: an earlier version gated on availability instead
+               ('Select one or more NOT AVAILABLE lines to enable'). --></oj-button>
+      <!-- Process Return: creates the inbound (return-leg) Transfer Order for
+           selected DEPLOYED or RETURN_INITIATED lines by re-POSTing createSupplyRequest
+           with source/destination org codes swapped from the outbound leg.
+           Async like Confirm — click Refresh afterward to see the result.
+           returnEnabled is derived in updateActionButtons ($page module),
+           independent of the request header status. -->
+      <oj-button id="oj-button--2026768781-3" chroming="outlined" on-oj-action="[[ $listeners.onProcessReturn ]]"
+        :disabled="[[ !$variables.returnEnabled ]]"
+        :title="[[ $variables.returnEnabled ? 'Process Return' : 'Select one or more Deployed or Return Initiated lines to enable' ]]"
+        display="label" label="Process Return" class="oj-sm-margin-2x-start oj-flex-item oj-sm-12 oj-md-3 oj-button-sm">
+      </oj-button>
+      <!-- Transfer to Another Site: Option 1 (orchestrated two-hop) from the
+           architecture discussion — NOT a true direct project-to-project
+           Transfer Order (this app has no org role for a second project's
+           site). One click runs Process Return on the selected line, then
+           creates a new request at a destination project/task for a new
+           date window, pre-filled with this line's equipment/qty/rate. The
+           new line still needs a human Allocate + Confirm once the return
+           clears — see TransferToSiteChain.js for why that isn't automated.
+           transferEnabled is derived in updateActionButtons ($page module):
+           exactly ONE selected line, status DEPLOYED. -->
+      <oj-button id="oj-button--transfer-to-site" chroming="outlined" on-oj-action="[[ $listeners.onTransferToSite ]]"
+        :disabled="[[ !$variables.transferEnabled ]]"
+        :title="[[ $variables.transferEnabled ? 'Return this unit and start a new request at another project/site' : 'Select exactly one Deployed line to enable' ]]"
+        display="label" label="Transfer to Another Site" class="oj-sm-margin-2x-start oj-flex-item oj-sm-12 oj-md-3 oj-button-sm">
+      </oj-button>
+      <!-- Ship Confirm: inbound-leg mirror of Confirm Request. Releases the
+           inbound Transfer Order (created by Process Return) for selected
+           RETURN_IN_PROCESS lines via OIC, then advances them to
+           SHIPPED_TO_YARD. shipConfirmEnabled is derived in
+           updateActionButtons ($page module), same pattern as confirmEnabled. -->
+      <oj-button id="oj-button--2026768781-4" chroming="outlined" on-oj-action="[[ $listeners.onShipConfirm ]]"
+        :disabled="[[ !$variables.shipConfirmEnabled ]]"
+        :title="[[ $variables.shipConfirmEnabled ? 'Release the inbound Transfer Order for the selected line(s)' : 'Select one or more Return In Process lines to enable' ]]"
+        display="label" label="Return Ship Confirm" class="oj-sm-margin-2x-start oj-button-sm oj-flex-item oj-sm-12 oj-md-3"></oj-button>
+      <!-- Generate Quote / View Quote: quotes are CUSTOMER-only, so the button is
+           HIDDEN entirely for project-sourced requests (quoteVisible) rather than
+           shown disabled. Once the header status says a quote exists
+           (QUOTE_GENERATED / QUOTE_ACCEPTED / DEPLOYED) the label flips to
+           "View Quote" and it stays enabled — same listener, same target page,
+           read instead of create. Both derived in updateActionButtons. -->
+      <oj-bind-if test="[[ $variables.quoteVisible ]]">
+        <oj-button id="oj-button--2026768781-5" chroming="outlined" on-oj-action="[[ $listeners.onGenerateQuote ]]"
+          :disabled="[[ !$variables.quoteEnabled ]]"
+          :title="[[ $variables.quoteEnabled
+            ? ($variables.quoteButtonLabel === 'View Quote' ? 'View the quote for this request' : 'Generate a rental quote for this request')
+            : 'Enabled when all lines are selected and quotable. A line that is Partial or Not Available must be sourced first — raise a Purchase Requisition for it and this unlocks.' ]]"
+          display="label" :label="[[ $variables.quoteButtonLabel ]]" class="oj-sm-margin-2x-start oj-button-sm oj-flex-item oj-sm-12 oj-md-3"></oj-button>
+      </oj-bind-if>
+      <!-- Create Invoice: invoicing is CUSTOMER-only, so the button is HIDDEN
+           entirely for internally-sourced requests (invoiceVisible) rather than
+           shown disabled — same treatment as the quote and Assign Project
+           buttons above. An internal request is costed to its project through
+           Post Cost and is never invoiced, so there is no state in which a
+           manager could make this button work on one; a greyed-out control
+           would just invite them to hunt for the way to enable it.
+           Once visible, invoiceEnabled gates on the selection (≥1 selected
+           DEPLOYED line). Both derived in updateActionButtons. -->
+      <oj-bind-if test="[[ $variables.invoiceVisible ]]">
+        <oj-button id="oj-button--2026768781-6" chroming="outlined" on-oj-action="[[ $listeners.onCreateInvoice ]]"
+          :disabled="[[ !$variables.invoiceEnabled ]]"
+          :title="[[ $variables.invoiceEnabled ? 'Create Invoice' : 'Enabled when a selected line is Deployed' ]]"
+          display="label" label="Create Invoice" class="oj-sm-margin-2x-start oj-button-sm oj-flex-item oj-sm-12 oj-md-3"></oj-button>
+      </oj-bind-if>
+      <!-- Assign / Change Project: CUSTOMER-only. A customer request is raised
+           with no project, so the manager attributes it to one here for cost
+           purposes; project-sourced requests already carry theirs from creation
+           and HIDE this button outright (assignProjectVisible) rather than show
+           it disabled — same treatment as the quote button.
+
+           Shown only while the project is actually changeable: it disappears
+           once the first line is allocated, because allocation is where
+           downstream cost attribution starts depending on the project and
+           re-pointing it afterwards would strand committed work against the old
+           one. Never rendered disabled — assignProjectVisible carries every
+           condition (flag + customer + not-yet-allocated), so there is no state
+           in which this button appears greyed out. All of it is derived in
+           updateActionButtons and re-checked in AssignProjectChain before the
+           PATCH. -->
+      <oj-bind-if test="[[ $variables.assignProjectVisible ]]">
+        <oj-button id="oj-button--2026768781-7" chroming="outlined" on-oj-action="[[ $listeners.onAssignProject ]]"
+          title="Assign the project and task this customer request is costed to"
+          display="label"
+          :label="[[ $functions.hasAssignedProject($page) ? 'Change Project' : 'Assign Project' ]]"
+          class="oj-sm-margin-2x-start oj-button-sm oj-flex-item oj-sm-12 oj-md-3"></oj-button>
+      </oj-bind-if>
+    </div>
+    <div
+      class="oj-flex-item oj-sm-12 oj-flex oj-md-4 oj-sm-justify-content-flex-end oj-sm-align-items-center oj-sm-flex-wrap-nowrap">
+      <oj-select-single id="oj-select-single--2026768781-2"
+        class="cr-banner-filter oj-flex-item oj-md-4 oj-form-control-max-width-sm"
+        label-hint="Yard" label-edge="inside" placeholder="All Yards" clear-value="conditional"
+        style="width:240px; flex:0 0 auto;" value="{{ $variables.selectedYard }}"
+        value-item="{{ $variables.selectedYardItem }}"
+        data="[[ $variables.yardMappingSDP ]]"
+        item-text="invOrgName" on-value-changed="[[ $listeners.onYardChanged ]]">
+        <!-- Two-line row: org name on top (bold), org code small/grey below.
+             Code hidden when it equals the name (many orgs have code===name).
+             Only affects the dropdown list — the collapsed field shows
+             item-text (invOrgName). -->
+        <template slot="itemTemplate">
+          <div style="display:flex; flex-direction:column; line-height:1.25; padding:2px 0;">
+            <span style="font-weight:600; color:#161513;">
+              <oj-bind-text value="[[ $current.data.invOrgName ]]"></oj-bind-text>
+            </span>
+            <oj-bind-if test="[[ $current.data.invOrgCode && $current.data.invOrgCode !== $current.data.invOrgName ]]">
+              <span style="font-size:11px; color:#6b7280;">
+                <oj-bind-text value="[[ $current.data.invOrgCode ]]"></oj-bind-text>
+              </span>
+            </oj-bind-if>
+          </div>
+        </template>
+      </oj-select-single>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="oj-flex oj-sm-flex-direction-column oj-sm-width-full" slot="main" style="width:100% !important; padding:0 12px;">
+
+    <!-- Progress bar -->
+
+    <!-- DataGrid wrapper. overflow:hidden (NOT auto) — the data grid inside
+         already manages its own horizontal + vertical scroll. With auto on
+         this wrapper too, scrolling the grid fast to the right edge made
+         this outer scrollbar appear/disappear, reflowing layout → visible
+         "shake". One scroll authority per axis fixes it. -->
+    <div class="oj-panel oj-bg-neutral-0" style="border-radius:0 0 4px 4px; box-shadow:var(--oj-core-box-shadow-md, 0 4px 20px rgba(0,0,0,0.10)); overflow:hidden; height:calc(100vh - 320px);">
+      <oj-bind-if test="[[ $page.variables.linesArray.length > 0 ]]">
+        <oj-data-grid
+          id="datagrid"
+          class="demo-data-grid"
+          aria-label="Request Lines Grid"
+          data="[[ $page.functions.initGridData($variables.linesArray, $variables.selectionVersion) ]]"
+          cell.editable="[[ $functions.getIsEditable.bind($functions) ]]"
+          header.column.style="[[ $functions.getColumnHeaderStyle.bind($functions) ]]"
+          header.row.style="width:50px;"
+          header.column.resizable.width="enable"
+          header.column.resizable.height="enable"
+          header.row.resizable.width="enable"
+          header.row.resizable.height="enable"
+          header.column.hidable="enable"
+          header.row.hidable="enable"
+          edit-mode="cellEdit"
+          data-transfer-options='{"cut":"enable","copy":"enable","paste":"enable","fill":"enable"}'
+          selection-mode.cell="multiple">
+
+          <template slot="columnHeaderTemplate" data-oj-as="header">
+            <oj-bind-if test="[[ header.item.index === 0 ]]">
+              <div class="cr-cell-center">
+                <!-- selectionVersion is threaded through purely to register a
+                     reactive dependency — see _bumpSelectionVersion in the
+                     page module for why this argument exists. -->
+                <input type="checkbox"
+                  :checked="[[ $functions.isAllSelected($variables.selectionVersion, $page) ]]"
+                  on-change="[[ $functions.toggleAllSelected.bind($functions, $page) ]]"
+                  style="width:16px; height:16px; cursor:pointer; accent-color:var(--oj-core-brand-color-primary);" />
+              </div>
+            </oj-bind-if>
+            <oj-bind-if test="[[ header.item.index !== 0 ]]">
+              <oj-bind-text value="[[ header.item.data ]]"></oj-bind-text>
+            </oj-bind-if>
+          </template>
+
+          <template slot="cellTemplate" data-oj-as="cell">
+
+            <!-- Index 0: Checkbox. selectionVersion is read but unused inside
+                 isRowSelected — see page module for why. -->
+            <oj-bind-if test="[[ cell.item.columnIndex === 0 ]]">
+              <div class="cr-cell-center">
+                <!-- Disabled for a REJECTED/CANCELLED line. Every toolbar action
+                     on this page acts on the SELECTION, so making a terminal line
+                     unselectable is what enforces "no action at all" across all
+                     of them at once. toggleRowSelected carries the matching
+                     programmatic guard so a keyboard/DOM change can't bypass it. -->
+                <input type="checkbox"
+                  :checked="[[ $functions.isRowSelected(cell.item.rowIndex, $variables.selectionVersion) ]]"
+                  :disabled="[[ $functions.isLineTerminal(cell.item.rowIndex, $page) ]]"
+                  :title="[[ $functions.isLineTerminal(cell.item.rowIndex, $page) ? 'This line is closed to further action' : '' ]]"
+                  on-change="[[ $functions.toggleRowSelected.bind($functions, cell.item.rowIndex, $page) ]]"
+                  :style="[[ $functions.isLineTerminal(cell.item.rowIndex, $page)
+                    ? 'width:16px; height:16px; cursor:not-allowed; opacity:0.4;'
+                    : 'width:16px; height:16px; cursor:pointer; accent-color:var(--oj-core-brand-color-primary);' ]]" />
+              </div>
+            </oj-bind-if>
+
+            <!-- Index 1: Hamburger — nav link to line-detail.
+                 Disabled when EITHER:
+                   • the request header is still SUBMITTED — allocation is
+                     blocked until the request moves past SUBMITTED (applies to
+                     every request; rowClickChain + line-detail vbEnter carry
+                     the matching guards), OR
+                   • BOTH tracking flags are N (free-stock consumables / bulk
+                     inventory — no per-unit serial AND no per-lot pick to
+                     make). Serial-controlled OR lot-controlled lines need a
+                     pick step, so the hamburger stays enabled for either. -->
+            <oj-bind-if test="[[ cell.item.columnIndex === 1 ]]">
+              <div class="cr-cell-center">
+                <!-- isLineTerminal is tested FIRST, and its reason wins in the
+                     tooltip: a rejected line is closed outright, which is a
+                     stronger and more informative statement than "allocation is
+                     disabled while the request is Submitted" (both are true for a
+                     line rejected pre-approval, but only the first is permanent).
+                     rowClickChain carries the matching programmatic guard. -->
+                <oj-button chroming="borderless" display="icons" class="oj-button-sm"
+                  on-oj-action="[[ $listeners.onGridRowClick ]]"
+                  :data-row-index="[[ cell.item.rowIndex ]]"
+                  :disabled="[[ $functions.isLineTerminal(cell.item.rowIndex, $page) || $functions.isRowLineDetailBlocked(cell.item.rowIndex, $page) || !$functions.isLinePickable(cell.item.rowIndex, $page) ]]"
+                  :title="[[ $functions.isLineTerminal(cell.item.rowIndex, $page) ? 'This line is closed to further action' : ($functions.isRowLineDetailBlocked(cell.item.rowIndex, $page) ? 'Allocation is disabled while the request is Submitted' : ($functions.isLinePickable(cell.item.rowIndex, $page) ? 'Open line' : 'Free-stock item — no serial, lot, or inventory pick needed')) ]]">
+                  <span slot="startIcon" class="oj-ux-ico-menu-overflow"></span>
+                  <span>Open line</span>
+                </oj-button>
+              </div>
+            </oj-bind-if>
+
+            <!-- Index 2+: readonly -->
+            <oj-bind-if test="[[ cell.item.columnIndex >= 2 && $functions.getColumnType(cell.item.columnIndex) === 'readonly' ]]">
+              <span class="oj-text-color-secondary oj-typography-body-sm">
+                <oj-bind-text value="[[ cell.item.data.data ]]"></oj-bind-text>
+              </span>
+            </oj-bind-if>
+
+            <!-- tolink (indexes 11 and 12, the two Transfer Order columns):
+                 each order number links out to the Fusion Redwood
+                 transfer-order page.
+
+                 Mirrors the prlink cell below in every respect except weight —
+                 the number is NOT bold here. Same native <a href> for the same
+                 reason, same stopPropagation on click AND mousedown so the data
+                 grid does not also treat the click as a cell selection.
+
+                 The Redwood transfer-order route keys off the order NUMBER
+                 rather than an internal header id, which is what makes this
+                 possible at all: EQR_TRANSFER_ORDER stores ORDER_NUMBER and no
+                 Fusion header id, so there is nothing to look up first.
+
+                 Falls back to plain text when the pod origin is not known yet
+                 this session — the number still shows, it just isn't clickable.
+                 A line with no transfer order renders nothing. -->
+            <oj-bind-if test="[[ $functions.getColumnType(cell.item.columnIndex) === 'tolink' ]]">
+              <span class="oj-typography-body-sm">
+                <oj-bind-for-each data="[[ $functions.getToLinks(cell.item.rowIndex, cell.item.columnIndex, $page) ]]">
+                  <template data-oj-as="to">
+                    <oj-bind-if test="[[ to.index > 0 ]]"><span>, </span></oj-bind-if>
+                    <oj-bind-if test="[[ !!to.data.url ]]">
+                      <a :href="[[ to.data.url ]]" target="_blank" rel="noopener"
+                         style="color:var(--oj-core-brand-color-primary); text-decoration:underline;"
+                         :title="[[ 'Open transfer order ' + to.data.number + ' in Fusion' ]]"
+                         on-click="[[ function(e){ e.stopPropagation(); } ]]"
+                         on-mousedown="[[ function(e){ e.stopPropagation(); } ]]">
+                        <oj-bind-text value="[[ to.data.number ]]"></oj-bind-text>
+                      </a>
+                    </oj-bind-if>
+                    <oj-bind-if test="[[ !to.data.url ]]">
+                      <span class="oj-text-color-secondary">
+                        <oj-bind-text value="[[ to.data.number ]]"></oj-bind-text>
+                      </span>
+                    </oj-bind-if>
+                  </template>
+                </oj-bind-for-each>
+              </span>
+            </oj-bind-if>
+
+            <!-- prlink (index 13, "Purchase Req No."): each requisition number
+                 links out to Fusion Self Service Procurement.
+
+                 A NATIVE <a href> rather than a click handler on purpose. An
+                 anchor navigates on the browser's own default action, so it
+                 does not depend on the cell's click event reaching a listener —
+                 which is exactly the trap the VBCS table-cell click pattern
+                 documents. stopPropagation on click AND mousedown keeps the
+                 grid from also treating the click as a cell selection / edit
+                 entry (data grids act on mousedown), while leaving the native
+                 navigation untouched.
+
+                 Falls back to plain text when the link could not be built (no
+                 header id, or no Fusion read has succeeded yet this session so
+                 the pod origin is unknown) — the number still shows, it just
+                 isn't clickable. A line with no requisition renders nothing. -->
+            <oj-bind-if test="[[ $functions.getColumnType(cell.item.columnIndex) === 'prlink' ]]">
+              <span class="oj-typography-body-sm">
+                <oj-bind-for-each data="[[ $functions.getPrLinks(cell.item.rowIndex, $page) ]]">
+                  <template data-oj-as="pr">
+                    <oj-bind-if test="[[ pr.index > 0 ]]"><span>, </span></oj-bind-if>
+                    <oj-bind-if test="[[ !!pr.data.url ]]">
+                      <a :href="[[ pr.data.url ]]" target="_blank" rel="noopener"
+                         style="color:var(--oj-core-brand-color-primary); font-weight:700; text-decoration:underline;"
+                         :title="[[ 'Open requisition ' + pr.data.number + ' in Fusion' ]]"
+                         on-click="[[ function(e){ e.stopPropagation(); } ]]"
+                         on-mousedown="[[ function(e){ e.stopPropagation(); } ]]">
+                        <oj-bind-text value="[[ pr.data.number ]]"></oj-bind-text>
+                      </a>
+                    </oj-bind-if>
+                    <oj-bind-if test="[[ !pr.data.url ]]">
+                      <span class="oj-text-color-secondary">
+                        <oj-bind-text value="[[ pr.data.number ]]"></oj-bind-text>
+                      </span>
+                    </oj-bind-if>
+                  </template>
+                </oj-bind-for-each>
+              </span>
+            </oj-bind-if>
+
+            <!-- status: lineStatus rendered as plain text — colour pills are
+                 reserved for the request header status. -->
+            <oj-bind-if test="[[ $functions.getColumnType(cell.item.columnIndex) === 'status' ]]">
+              <oj-bind-if test="[[ !!cell.item.data.data ]]">
+                <span :class="[[ $application.functions.statusTextClass() ]]">
+                  <oj-bind-text value="[[ $application.functions.formatLineStatus(cell.item.data.data) ]]"></oj-bind-text>
+                </span>
+              </oj-bind-if>
+              <!-- Transfer Order failure badge, UNDER the status.
+                   The status itself stays truthful — the line really is at
+                   ALLOCATED / RETURN_IN_PROCESS. What the status cannot say is
+                   that the Transfer Order behind it failed in Fusion, because
+                   createSupplyRequest answers 202 and Fusion decides ~2 min
+                   later. This badge is that missing half; without it the line
+                   looks healthy and nobody finds out (28 lines were stranded
+                   exactly this way).
+                   Title carries the server's own reason, which already includes
+                   the remedy. Data comes from the normal line load — no extra
+                   fetch for the badge. -->
+              <oj-bind-if test="[[ !!$functions.failureBadge(cell.item.rowIndex, $page) ]]">
+                <div style="margin-top:2px;">
+                  <span :class="[[ $functions.failureBadgeClass(cell.item.rowIndex, $page) ]]"
+                        :title="[[ $functions.failureDetail(cell.item.rowIndex, $page) ]]"
+                        style="cursor:help; font-size:0.75rem;">
+                    <oj-bind-text value="[[ $functions.failureBadge(cell.item.rowIndex, $page) ]]"></oj-bind-text>
+                  </span>
+                </div>
+              </oj-bind-if>
+            </oj-bind-if>
+
+            <!-- text (editable) -->
+            <oj-bind-if test="[[ $functions.getColumnType(cell.item.columnIndex) === 'text' ]]">
+              <oj-bind-if test="[[ cell.mode === 'navigation' ]]">
+                <span class="oj-typography-body-sm"><oj-bind-text value="[[ cell.item.data.data ]]"></oj-bind-text></span>
+              </oj-bind-if>
+              <oj-bind-if test="[[ cell.mode === 'edit' ]]">
+                <oj-input-text value="{{ cell.item.data.data }}" user-assistance-density="compact" style="width:100%;"></oj-input-text>
+              </oj-bind-if>
+            </oj-bind-if>
+
+            <!-- number (editable) -->
+            <oj-bind-if test="[[ $functions.getColumnType(cell.item.columnIndex) === 'number' ]]">
+              <oj-bind-if test="[[ cell.mode === 'navigation' ]]">
+                <span class="oj-typography-body-sm"><oj-bind-text value="[[ cell.item.data.data ]]"></oj-bind-text></span>
+              </oj-bind-if>
+              <oj-bind-if test="[[ cell.mode === 'edit' ]]">
+                <oj-input-number value="{{ cell.item.data.data }}" user-assistance-density="compact" style="width:100%;"></oj-input-number>
+              </oj-bind-if>
+            </oj-bind-if>
+
+            <!-- dropdown (editable) -->
+            <oj-bind-if test="[[ $functions.getColumnType(cell.item.columnIndex) === 'dropdown' ]]">
+              <oj-bind-if test="[[ cell.mode === 'navigation' ]]">
+                <span class="oj-typography-body-sm"><oj-bind-text value="[[ cell.item.data.data ]]"></oj-bind-text></span>
+              </oj-bind-if>
+              <oj-bind-if test="[[ cell.mode === 'edit' ]]">
+                <oj-select-single value="{{ cell.item.data.data }}" data="[[ $functions.getStatusLOV() ]]" item-text="label" user-assistance-density="compact" style="width:100%;"></oj-select-single>
+              </oj-bind-if>
+            </oj-bind-if>
+
+            <!-- edit: per-line pencil → opens the Edit Line dialog (rate/dates).
+                 Disabled on terminal/in-flight lines (isRowEditable). -->
+            <oj-bind-if test="[[ $functions.getColumnType(cell.item.columnIndex) === 'edit' ]]">
+              <div class="cr-cell-center">
+                <oj-button chroming="borderless" display="icons" class="oj-button-sm"
+                  on-oj-action="[[ $listeners.onEditLineOpen ]]"
+                  :data-row-index="[[ cell.item.rowIndex ]]"
+                  :disabled="[[ !$functions.isRowEditable(cell.item.rowIndex) ]]"
+                  :title="[[ $functions.isRowEditable(cell.item.rowIndex) ? 'Edit line rate and dates' : 'Line can no longer be edited' ]]">
+                  <span slot="startIcon" class="oj-ux-ico-edit"></span>
+                  <span>Edit line</span>
+                </oj-button>
+              </div>
+            </oj-bind-if>
+
+          </template>
+        </oj-data-grid>
+      </oj-bind-if>
+    </div>
+
+  </div>
+</oj-sp-general-overview-page>
+
+<!-- ───────────────────────────────────────────────────────────────────────
+     Edit Line dialog — per-line rate / start / end date, same small-dialog
+     pattern as the customer cart page. Opened by the row pencil
+     (OpenEditLineChain seeds editLine* from the row); Save PATCHes the line
+     (SaveEditLineChain) and refreshes the grid.
+     ─────────────────────────────────────────────────────────────────────── -->
+<oj-dialog id="editLineDialog" dialog-title="Edit Line"
+  initial-visibility="hide" cancel-behavior="icon" modality="modal"
+  style="width:420px;">
+  <div slot="body" style="padding:20px; display:flex; flex-direction:column; gap:12px;">
+    <oj-input-number
+      value="{{ $variables.editLineRate }}"
+      label-hint="Rate" label-edge="inside"
+      min="0" step="0.01"
+      style="width:100%;">
+    </oj-input-number>
+    <oj-input-date
+      value="{{ $variables.editLineStartDate }}"
+      label-hint="Start Date" label-edge="inside"
+      style="width:100%;">
+    </oj-input-date>
+    <oj-input-date
+      value="{{ $variables.editLineEndDate }}"
+      label-hint="End Date" label-edge="inside"
+      style="width:100%;">
+    </oj-input-date>
+  </div>
+  <div slot="footer" style="display:flex;gap:8px;justify-content:flex-end;padding:8px 16px 16px;">
+    <oj-button chroming="outlined" on-oj-action="[[ $listeners.onEditLineCancel ]]">Cancel</oj-button>
+    <oj-button chroming="callToAction" on-oj-action="[[ $listeners.onEditLineSave ]]"
+      :disabled="[[ $variables.editLineSaving ]]">Save</oj-button>
+  </div>
+</oj-dialog>
+
+<!-- ───────────────────────────────────────────────────────────────────────
+     Purchase Requisition right-side drawer. Opened by the "Request Purchase
+     Requisition" button (ActionChain requestPo branch sets
+     $variables.isPrDrawerOpen = true after building prLines from the selected
+     NOT AVAILABLE lines).
+
+     Header controls (Line Type / Category / Destination Type / Deliver-to
+     Location) are chosen ONCE and applied to every line.
+     Per-line rows carry Description (typed), Quantity (= rental duration in
+     days) + Unit of Measure (defaults to Day) + Price (prefilled), and
+     (request-specific) Expenditure Type (dropdown) + Expenditure Org (read-only).
+
+     Submit → CreatePurchaseRequisitionChain: one Fusion PR with N lines,
+     direct POST via the VBCS→fusion proxy (no OIC in phase 1).
+     ─────────────────────────────────────────────────────────────────── -->
+<!-- Right-side Purchase Requisition drawer (mirrors the BU & Org Mapping "Add"
+     drawer pattern: oj-drawer-popup edge="end", kept at top level, opened via a
+     boolean variable). Opened by the requestPo branch of ActionChain, which sets
+     $variables.isPrDrawerOpen = true after building prLines. -->
+<oj-drawer-popup id="prDrawer" edge="end" opened="{{ $variables.isPrDrawerOpen }}"
+    on-opened-changed="[[ function(event) { if (event.detail.value === false) { $listeners.onCancelPr(); } } ]]"
+    auto-dismiss="none">
+  <div style="height:100vh; display:flex; flex-direction:column; width:820px; max-width:96vw; background-color:#f8fafc;">
+
+    <!-- Header -->
+    <div style="flex:0 0 auto; padding:20px 24px; background-color:#ffffff; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:flex-start;">
+      <div class="oj-flex oj-sm-flex-direction-column">
+        <span class="oj-typography-heading-sm oj-typography-bold" style="color:#111827;">Request Purchase Requisition</span>
+        <span class="oj-typography-body-sm oj-text-color-secondary">Third-party rental requisition for the selected unavailable line(s)</span>
+      </div>
+      <oj-button display="icons" chroming="borderless" on-oj-action="[[ $listeners.onCancelPr ]]">
+        <span slot="startIcon" class="oj-ux-ico-close"></span>
+        <span>Close</span>
+      </oj-button>
+    </div>
+
+    <!-- Body (scrollable) -->
+    <div style="flex:1 1 auto; overflow-y:auto; padding:20px 24px; box-sizing:border-box;">
+
+    <div style="font-size:0.8125rem; color:var(--oj-core-text-color-secondary); margin-bottom:14px;">
+      Raise a third-party rental requisition for the selected unavailable line(s).
+      The price here is only a placeholder — purchasing sets the real price on the
+      purchase order the requisition becomes. Leave it at 0 unless you want to record an estimate.
+    </div>
+
+    <!-- Request-specific switch (post-demo, Sandeep). What the flag DOES depends
+         on the request source:
+           • PROJECT request — ON sends this request's project + task on the PR so
+             Fusion posts the cost to the project natively; OFF is an independent
+             rental EquipRite costs later in post-cost from the PO price.
+           • CUSTOMER request — there is NO project, so the flag is purely about
+             DEFAULTING: ON pulls the dates + delivery location from the parent
+             equipment request onto the PR; OFF is an independent / long-term
+             rental where the user enters dates, location and terms manually.
+             (Sandeep: keep the flag, but strip the project/cost wording — its
+             real job is "grab the data from the request and default it here.")
+         Wired to prHeader.isRequestSpecific; ActionChain (defaulting) and
+         CreatePurchaseRequisitionChain (the projectDFF, PROJECT requests only)
+         both read this flag. -->
+    <div style="display:flex; align-items:flex-start; gap:12px; padding:12px 14px; margin-bottom:16px;
+                background:var(--oj-core-neutral-color-2,#f3f4f6); border-radius:6px;">
+      <oj-switch
+        value="{{ $variables.prHeader.isRequestSpecific }}"
+        style="flex:0 0 auto; margin-top:2px;">
+      </oj-switch>
+      <div style="line-height:1.35;">
+        <div style="font-size:0.875rem; font-weight:600; color:#161513;">
+          This requisition is specific to this equipment request
+        </div>
+        <!-- CUSTOMER request: the flag only defaults request data — no project. -->
+        <oj-bind-if test="[[ $variables.isCustomerRequest ]]">
+          <div style="font-size:0.75rem; color:var(--oj-core-text-color-secondary);">
+            On — pull the dates and delivery location from this equipment request.
+            Off — an independent / long-term rental; enter dates, location, and terms manually.
+          </div>
+        </oj-bind-if>
+        <!-- PROJECT request: the flag forks the project-cost posting path. -->
+        <oj-bind-if test="[[ !$variables.isCustomerRequest ]]">
+          <div style="font-size:0.75rem; color:var(--oj-core-text-color-secondary);">
+            On — send this request’s project &amp; task; Fusion posts the cost to the project.
+            Off — an independent rental; cost is figured later in post-cost from the PO price.
+          </div>
+        </oj-bind-if>
+      </div>
+    </div>
+
+    <!-- Project / Task the cost will be charged to. Shown only when the
+         requisition is request-specific (the switch is ON) AND the request is a
+         PROJECT request — a customer PR has no project applicability, so it is
+         hidden for customer-sourced requests. Project & Task come from the
+         equipment request (formData), read-only: the manager picks the request,
+         not these values. Expenditure Org is NOT here — it is a per-line choice
+         (see the line rows below), matching a Fusion PR distribution. -->
+    <oj-bind-if test="[[ $variables.prHeader.isRequestSpecific && !$variables.isCustomerRequest ]]">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px 16px; margin-bottom:16px;
+                  padding:10px 14px; border:1px solid var(--oj-core-divider-color,#e0e0e0); border-radius:6px;">
+        <div>
+          <div style="font-size:0.6875rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--oj-core-text-color-secondary);">Project</div>
+          <div style="font-size:0.875rem; color:#161513;">
+            <oj-bind-text value="[[ $variables.formData.project_customer || '—' ]]"></oj-bind-text>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:0.6875rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--oj-core-text-color-secondary);">Task</div>
+          <div style="font-size:0.875rem; color:#161513;">
+            <oj-bind-text value="[[ $variables.formData.task || '—' ]]"></oj-bind-text>
+          </div>
+        </div>
+      </div>
+    </oj-bind-if>
+
+    <!-- Shared header fields (apply to all lines). Plain 2-col CSS grid so the
+         selects always fill their cell (oj-form-layout collapsed them to the
+         left edge inside the fixed-width dialog). -->
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px 16px; margin-bottom:16px;">
+      <oj-select-single
+        label-hint="Line Type"
+        label-edge="inside"
+        class="oj-form-control-full-width"
+        value="{{ $variables.prHeader.lineTypeCode }}"
+        data="[[ $variables.prLineTypesSDP ]]"
+        item-text="[[ (ctx) => ctx && ctx.data ? (ctx.data.LineType || ctx.data.LineTypeCode || '') : '' ]]">
+        <template slot="itemTemplate" data-oj-as="item">
+          <div class="oj-sm-padding-2x oj-sm-border-bottom">
+            <oj-bind-text value="[[ item.data.LineType ]]"></oj-bind-text>
+          </div>
+        </template>
+      </oj-select-single>
+
+      <oj-select-single
+        label-hint="Category"
+        label-edge="inside"
+        class="oj-form-control-full-width"
+        value="{{ $variables.prHeader.categoryName }}"
+        data="[[ $variables.prCategoriesSDP ]]"
+        item-text="[[ (ctx) => ctx && ctx.data ? (ctx.data.CategoryName || '') : '' ]]">
+        <template slot="itemTemplate" data-oj-as="item">
+          <div class="oj-sm-padding-2x oj-sm-border-bottom">
+            <oj-bind-text value="[[ item.data.CategoryName ]]"></oj-bind-text>
+          </div>
+        </template>
+      </oj-select-single>
+
+      <oj-select-single
+        label-hint="Destination Type"
+        label-edge="inside"
+        class="oj-form-control-full-width"
+        value="{{ $variables.prHeader.destinationTypeCode }}"
+        data="[[ $variables.prDestTypesSDP ]]"
+        item-text="[[ (ctx) => ctx && ctx.data ? (ctx.data.Meaning || ctx.data.LookupCode || '') : '' ]]">
+        <template slot="itemTemplate" data-oj-as="item">
+          <div class="oj-sm-padding-2x oj-sm-border-bottom">
+            <oj-bind-text value="[[ item.data.Meaning ]]"></oj-bind-text>
+          </div>
+        </template>
+      </oj-select-single>
+
+      <!-- Unit of Measure is NOT here — it moved down to the line rows, next to
+           Qty, since qty and its unit only mean anything together ("6 Day"). -->
+
+      <!-- Deliver-to Location Type — mirrors Fusion's Delivery panel. Internal =
+           deliver to a registered location (the picker below). One Time = enter a
+           free-text/ad-hoc address (the structured block below). The choice drives
+           submit: Internal -> DeliverToLocationId; One Time -> POST a one-time
+           location and send DeliverToCustomerLocationId. -->
+      <oj-select-single
+        label-hint="Deliver-to Location Type"
+        label-edge="inside"
+        class="oj-form-control-full-width"
+        style="grid-column:1 / -1;"
+        value="{{ $variables.prHeader.deliverToLocationType }}"
+        data="[[ $functions.getDeliverToTypeLOV() ]]"
+        item-text="label">
+      </oj-select-single>
+      <!-- Delivery defaults to a registered internal location (the equipment may
+           ship to a yard, be picked up by the customer from the yard, or be
+           shipped on to the customer). One Time is optional and never forced —
+           applies equally to project and customer requisitions. -->
+      <div style="grid-column:1 / -1; margin-top:-6px; font-size:0.75rem; color:var(--oj-core-text-color-secondary);">
+        Defaults to a registered internal location. Choose Request Site to deliver to the request’s own location (pre-filled below, editable).
+      </div>
+
+      <!-- INTERNAL: registered location picker -->
+      <oj-bind-if test="[[ $variables.prHeader.deliverToLocationType !== 'ONE_TIME' ]]">
+      <oj-select-single
+        label-hint="Deliver-to Location"
+        label-edge="inside"
+        class="oj-form-control-full-width"
+        style="grid-column:1 / -1;"
+        value="{{ $variables.prHeader.deliverToLocationId }}"
+        data="[[ $variables.prLocationsSDP ]]"
+        item-text="organizationName">
+        <template slot="itemTemplate" data-oj-as="item">
+          <div style="display:flex; flex-direction:column; line-height:1.25; padding:2px 0;">
+            <span style="font-weight:600;"><oj-bind-text value="[[ item.data.organizationName ]]"></oj-bind-text></span>
+            <oj-bind-if test="[[ item.data.organizationCode && item.data.organizationCode !== item.data.organizationName ]]">
+              <span style="font-size:11px; color:#6b7280;"><oj-bind-text value="[[ item.data.organizationCode ]]"></oj-bind-text></span>
+            </oj-bind-if>
+          </div>
+        </template>
+      </oj-select-single>
+      </oj-bind-if>
+
+      <!-- ONE TIME: structured ad-hoc delivery address. Submit POSTs it to
+           requisitionOneTimeLocations and delivers the line to this address
+           (DeliverToCustomerLocationId). Fields mirror Fusion's Delivery panel /
+           US addressStyleFormats. -->
+      <oj-bind-if test="[[ $variables.prHeader.deliverToLocationType === 'ONE_TIME' ]]">
+      <div style="grid-column:1 / -1; margin-top:4px; padding:12px 14px; border:1px dashed var(--oj-core-divider-color,#d0d0d0); border-radius:6px;">
+        <div style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--oj-core-text-color-secondary); margin-bottom:8px;">
+          Request Site Delivery Address
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px 12px;">
+          <oj-input-text label-hint="Address Line 1" label-edge="inside" style="grid-column:1 / -1;" required="true"
+            value="{{ $variables.prDeliveryAddress.address1 }}" user-assistance-density="compact"></oj-input-text>
+          <oj-input-text label-hint="Address Line 2" label-edge="inside" style="grid-column:1 / -1;"
+            value="{{ $variables.prDeliveryAddress.address2 }}" user-assistance-density="compact"></oj-input-text>
+          <oj-input-text label-hint="City" label-edge="inside"
+            value="{{ $variables.prDeliveryAddress.city }}" user-assistance-density="compact"></oj-input-text>
+          <oj-input-text label-hint="State" label-edge="inside"
+            value="{{ $variables.prDeliveryAddress.state }}" user-assistance-density="compact"></oj-input-text>
+          <oj-input-text label-hint="Postal Code" label-edge="inside"
+            value="{{ $variables.prDeliveryAddress.postalCode }}" user-assistance-density="compact"></oj-input-text>
+          <oj-input-text label-hint="County" label-edge="inside"
+            value="{{ $variables.prDeliveryAddress.county }}" user-assistance-density="compact"></oj-input-text>
+          <oj-input-text label-hint="Country" label-edge="inside" readonly="true"
+            value="{{ $variables.prDeliveryAddress.countryCode }}" user-assistance-density="compact"></oj-input-text>
+        </div>
+        <!-- Country is fixed to US (the one-time-location POST always sends
+             CountryCode 'US'; addressStyleFormats here is US-only), so it is not
+             shown as a field — prDeliveryAddress.countrycode stays 'US'. -->
+      </div>
+      </oj-bind-if>
+
+      <oj-input-text
+        label-hint="Requisition Description"
+        label-edge="inside"
+        class="oj-form-control-full-width"
+        style="grid-column:1 / -1;"
+        value="{{ $variables.prHeader.description }}"
+        placeholder="e.g. Pass-through rental">
+      </oj-input-text>
+    </div>
+
+    <!-- Per-line rows -->
+    <div style="font-size:0.8125rem; font-weight:700; margin:10px 0 6px; color:#161513;">Lines</div>
+    <div style="border:1px solid var(--oj-core-divider-color,#e0e0e0); border-radius:4px; overflow:hidden;">
+      <oj-bind-for-each data="[[ $variables.prLines ]]">
+        <template>
+          <div style="padding:12px 12px; border-top:1px solid var(--oj-core-divider-color,#f0f0f0);">
+            <!-- Row 1: description / qty / UOM / price.
+                 Qty is pre-filled with the request line's DURATION IN DAYS and the
+                 unit defaults to Day (resolved from the pod's unitsOfMeasure LOV on
+                 drawer open), so a Rate Based Services line reads "6 Day x rate".
+                 Both stay editable per line. -->
+            <div class="oj-flex oj-sm-align-items-end" style="gap:12px;">
+              <div style="flex:2 1 220px;">
+                <oj-input-text
+                  label-hint="Equipment / Description"
+                  label-edge="inside"
+                  value="{{ $current.data.itemDescription }}"
+                  user-assistance-density="compact"
+                  style="width:100%;">
+                </oj-input-text>
+              </div>
+              <div style="flex:0 0 90px;">
+                <oj-input-text label-hint="Qty" label-edge="inside" value="{{ $current.data.quantity }}" user-assistance-density="compact" style="width:100%;"></oj-input-text>
+              </div>
+              <div style="flex:0 0 140px;">
+                <oj-select-single
+                  label-hint="UOM"
+                  label-edge="inside"
+                  value="{{ $current.data.uomCode }}"
+                  data="[[ $variables.prUomsSDP ]]"
+                  item-text="[[ (ctx) => ctx && ctx.data ? (ctx.data.UOM || ctx.data.UOMCode || '') : '' ]]"
+                  user-assistance-density="compact"
+                  style="width:100%;">
+                  <template slot="itemTemplate" data-oj-as="item">
+                    <div class="oj-sm-padding-2x oj-sm-border-bottom">
+                      <oj-bind-text value="[[ item.data.UOM ]]"></oj-bind-text>
+                    </div>
+                  </template>
+                </oj-select-single>
+              </div>
+              <div style="flex:0 0 130px;">
+                <oj-input-text label-hint="Price (est.)" label-edge="inside" value="{{ $current.data.price }}" user-assistance-density="compact" style="width:100%;"></oj-input-text>
+              </div>
+            </div>
+            <!-- Row 2: expenditure type + expenditure organization (request-
+                 specific PROJECT requests only). Both ride the projectDFF per line —
+                 Expenditure Type as _EXPENDITURE_TYPE_ID, Expenditure Org as
+                 _ORGANIZATION_ID. Hidden for customer requests (no project
+                 distribution applies). The org LOV is the project BU's active
+                 expenditure orgs; each line defaults to the project's owning org
+                 (set on drawer open) and the user may change it, matching a Fusion
+                 PR distribution. -->
+            <oj-bind-if test="[[ $variables.prHeader.isRequestSpecific && !$variables.isCustomerRequest ]]">
+              <div class="oj-flex oj-sm-align-items-end" style="gap:12px; margin-top:10px;">
+                <div style="flex:1 1 260px;">
+                  <oj-select-single
+                    label-hint="Expenditure Type"
+                    label-edge="inside"
+                    value="{{ $current.data.expenditureTypeId }}"
+                    data="[[ $functions.getExpTypeLOV($variables.expTypeList) ]]"
+                    item-text="label"
+                    placeholder="Select expenditure type"
+                    user-assistance-density="compact"
+                    style="width:100%;">
+                  </oj-select-single>
+                </div>
+                <div style="flex:1 1 260px;">
+                  <oj-select-single
+                    label-hint="Expenditure Org"
+                    label-edge="inside"
+                    value="{{ $current.data.expenditureOrgId }}"
+                    data="[[ $functions.getExpOrgLOV($variables.expOrgList) ]]"
+                    item-text="label"
+                    placeholder="Select expenditure org"
+                    user-assistance-density="compact"
+                    style="width:100%;">
+                  </oj-select-single>
+                </div>
+              </div>
+            </oj-bind-if>
+          </div>
+        </template>
+      </oj-bind-for-each>
+    </div>
+
+    <oj-bind-if test="[[ $variables.prSubmitting ]]">
+      <oj-progress-bar value="-1" style="width:100%; margin-top:14px;"></oj-progress-bar>
+    </oj-bind-if>
+
+    </div>
+    <!-- /Body -->
+
+    <!-- Footer -->
+    <div style="flex:0 0 auto; padding:16px 24px; background-color:#ffffff; border-top:1px solid #e2e8f0; display:flex; justify-content:flex-end; gap:12px;">
+      <oj-button chroming="outlined" on-oj-action="[[ $listeners.onCancelPr ]]"
+        :disabled="[[ $variables.prSubmitting ]]">
+        Cancel
+      </oj-button>
+      <oj-button chroming="callToAction" on-oj-action="[[ $listeners.onSubmitPr ]]"
+        :disabled="[[ $variables.prSubmitting
+                      || !$functions.deliveryTargetValid($variables.prHeader, $variables.prDeliveryAddress)
+                      || !$functions.prLinesValid($variables.prLines, $variables.prHeader.isRequestSpecific, $variables.isCustomerRequest) ]]">
+        <span slot="startIcon" class="oj-ux-ico-check"></span>
+        <span>Create Requisition</span>
+      </oj-button>
+    </div>
+  </div>
+</oj-drawer-popup>
+
+
+<!-- ─────────────────────────────────────────────────────────────────────────
+     Assign Project drawer — CUSTOMER-only.
+
+     A customer-raised request has no project (EQR_EQUIPMENT_REQUEST's
+     PROJECT_REF_ID / TASK_ID and their denormalized name/number columns are all
+     NULL on those rows), so the manager attributes it to one here for internal
+     cost purposes. Saving does NOT change the request's source: it stays
+     CUSTOMER-sourced and customer-billed — the project is attribution only.
+
+     The two LOVs were mirrored from customer-portal/pages/project-create-request-page
+     (projectsSDP / tasksDp and their component markup). The TASK half still is;
+     the PROJECT half has diverged on purpose — that page now offers a fixed 3-row
+     DEMO ALLOW-LIST filtered client-side, while this drawer still searches every
+     project on the pod, because its whole job is attributing a project that was
+     not available at creation. Keep the task half in step. The component
+     asymmetry below is intentional and must be preserved:
+       • Project = oj-input-search, server-side typeahead via projectSearchQ.
+       • Task    = oj-select-single, NOT an input-search — oj-input-search
+         hard-codes maxFetchCount = 12 and never pages, which silently truncated
+         the task list. select-single's dropdown is an oj-list-view that pages
+         on scroll, so every task on the project is reachable.
+
+     Same top-level oj-drawer-popup edge="end" pattern as prDrawer above,
+     opened by the assignProject branch of ActionChain.
+     ───────────────────────────────────────────────────────────────────────── -->
+<oj-drawer-popup id="assignProjectDrawer" edge="end" opened="{{ $variables.isAssignProjectOpen }}"
+    on-opened-changed="[[ function(event) { if (event.detail.value === false) { $listeners.onAssignProjectCancel(); } } ]]"
+    auto-dismiss="none">
+  <div style="height:100vh; display:flex; flex-direction:column; width:520px; max-width:96vw; background-color:#f8fafc;">
+
+    <!-- Header -->
+    <div style="flex:0 0 auto; padding:20px 24px; background-color:#ffffff; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:flex-start;">
+      <div class="oj-flex oj-sm-flex-direction-column">
+        <span class="oj-typography-heading-sm oj-typography-bold" style="color:#111827;">
+          <oj-bind-text value="[[ $functions.hasAssignedProject($page) ? 'Change Project' : 'Assign Project' ]]"></oj-bind-text>
+        </span>
+        <span class="oj-typography-body-sm oj-text-color-secondary">Project and task this customer request is costed to</span>
+      </div>
+      <oj-button display="icons" chroming="borderless" on-oj-action="[[ $listeners.onAssignProjectCancel ]]">
+        <span slot="startIcon" class="oj-ux-ico-close"></span>
+        <span>Close</span>
+      </oj-button>
+    </div>
+
+    <!-- Body -->
+    <div style="flex:1 1 auto; overflow-y:auto; padding:20px 24px; box-sizing:border-box;">
+
+      <div style="font-size:0.8125rem; color:var(--oj-core-text-color-secondary); margin-bottom:18px;">
+        This request came from a customer and carries no project. Assign the project
+        and task its cost should be attributed to. Both are required before the
+        request can be confirmed, and can only be changed until the first line is
+        allocated.
+      </div>
+
+      <!-- Project — oj-input-search with server-side typeahead. `value` binds the
+           display TEXT; ProjectId/ProjectNumber are captured off the picked row by
+           AssignProjectSelectedChain via ojValueAction. -->
+      <div class="oj-sm-margin-bottom-4x eqr-project-lov oj-form-control-full-width">
+        <oj-input-search aria-label="Project" placeholder="Project"
+          value="{{ $variables.assignProjectName }}" suggestions="[[ $variables.assignProjectsSDP ]]"
+          suggestion-item-text="ProjectName" class="oj-form-control-full-width"
+          on-raw-value-changed="[[ $listeners.onAssignProjectTypeahead ]]"
+          on-oj-value-action="[[ $listeners.onAssignProjectSelected ]]">
+          <template slot="suggestionItemTemplate" data-oj-as="suggestion">
+            <div class="oj-sm-padding-2x oj-sm-background-contrast-subtle oj-sm-border-bottom">
+              <div class="oj-sm-text-secondary oj-sm-display-block">
+                <strong>
+                  <oj-bind-text value="[[ suggestion.data.ProjectName ]]"></oj-bind-text>
+                </strong>
+              </div>
+              <div class="oj-sm-text-secondary oj-sm-display-block oj-sm-margin-top-2x oj-typography-caption">
+                <small>
+                  <oj-bind-text value="[[ suggestion.data.ProjectNumber ]]"></oj-bind-text>
+                </small>
+              </div>
+            </div>
+          </template>
+        </oj-input-search>
+        <div class="eqr-required-caption">Required</div>
+      </div>
+
+      <!-- Task — oj-select-single over assignTasksDp, which LoadTaskTreeChain
+           replaces whenever the staged project changes (a plain provider has no
+           ProjectId binding to cascade off, unlike the SDP it replaced). It is
+           handed over PENDING, so opening the dropdown mid-load shows JET's own
+           skeleton and fills in place. It is deliberately NOT disabled while
+           loading: a disabled oj-select-single closes its own dropdown, which
+           is what forced users to open the list a second time. value binds the
+           KEY (TaskId); TaskName/TaskNumber come from AssignTaskSelectedChain. -->
+      <div class="oj-sm-margin-bottom-4x oj-form-control-full-width">
+        <oj-select-single aria-label="Task"
+          placeholder="[[ $variables.assignProjectId ? 'Task' : 'Select a project first' ]]"
+          value="{{ $variables.assignTaskId }}" data="[[ $variables.assignTasksDp ]]"
+          item-text="TaskName" class="oj-form-control-full-width eqr-project-lov"
+          disabled="[[ !$variables.assignProjectId ]]"
+          on-oj-value-action="[[ $listeners.onAssignTaskSelected ]]">
+          <!-- Lists only the CHARGEABLE LEAVES of the WBS — LoadTaskTreeChain
+               drops the summary nodes before they reach assignTasksDp, because
+               a summary task cannot take cost in PPM. On a 4-level breakdown
+               that is most of the rows (35 of 50 on the reference project). -->
+          <template slot="itemTemplate">
+            <div style="display:flex; flex-direction:column; line-height:1.3; padding:2px 0;">
+              <span style="font-weight:600; color:#161513;">
+                <oj-bind-text value="[[ $current.data.TaskName ]]"></oj-bind-text>
+              </span>
+              <span style="font-size:11px; color:#6b7280;">
+                <oj-bind-text value="[[ $current.data.TaskNumber ]]"></oj-bind-text>
+              </span>
+            </div>
+          </template>
+        </oj-select-single>
+        <oj-bind-if test="[[ $variables.assignTaskError ]]">
+          <div style="font-size:12px; color:#c74634; padding-top:4px;">
+            <oj-bind-text value="[[ $variables.assignTaskError ]]"></oj-bind-text>
+          </div>
+        </oj-bind-if>
+        <div class="eqr-required-caption">Required</div>
+      </div>
+    </div>
+    <!-- /Body -->
+
+    <!-- Footer -->
+    <div style="flex:0 0 auto; padding:16px 24px; background-color:#ffffff; border-top:1px solid #e2e8f0; display:flex; justify-content:flex-end; gap:12px;">
+      <oj-button chroming="outlined" on-oj-action="[[ $listeners.onAssignProjectCancel ]]"
+        :disabled="[[ $variables.assignProjectSaving ]]">
+        Cancel
+      </oj-button>
+      <oj-button chroming="callToAction" on-oj-action="[[ $listeners.onAssignProjectSave ]]"
+        :disabled="[[ $variables.assignProjectSaving
+                      || !$variables.assignProjectId
+                      || !$variables.assignTaskId ]]">
+        <span slot="startIcon" class="oj-ux-ico-check"></span>
+        <span>Save</span>
+      </oj-button>
+    </div>
+  </div>
+</oj-drawer-popup>
+
+<!-- ─────────────────────────────────────────────────────────────────────────
+     TRANSFER TO ANOTHER SITE DRAWER
+     Same top-level oj-drawer-popup edge="end" pattern as assignProjectDrawer
+     above, and the same Project/Task LOV pattern (server-side typeahead +
+     leaves-only task dropdown) — opened by OpenTransferDrawerChain.
+     ───────────────────────────────────────────────────────────────────────── -->
+<oj-drawer-popup id="transferDrawer" edge="end" opened="{{ $variables.isTransferDrawerOpen }}"
+    on-opened-changed="[[ function(event) { if (event.detail.value === false) { $listeners.onTransferCancel(); } } ]]"
+    auto-dismiss="none">
+  <div style="height:100vh; display:flex; flex-direction:column; width:640px; max-width:96vw; background-color:#f8fafc;">
+
+    <!-- Header -->
+    <div style="flex:0 0 auto; padding:20px 24px; background-color:#ffffff; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:flex-start;">
+      <div class="oj-flex oj-sm-flex-direction-column">
+        <span class="oj-typography-heading-sm oj-typography-bold" style="color:#111827;">Transfer to Another Site</span>
+        <span class="oj-typography-body-sm oj-text-color-secondary">
+          <oj-bind-text value="[[ 'Line ' + $variables.transferSourceLineNo + ' · ' + $variables.transferEquipmentName ]]"></oj-bind-text>
+        </span>
+      </div>
+      <oj-button display="icons" chroming="borderless" on-oj-action="[[ $listeners.onTransferCancel ]]">
+        <span slot="startIcon" class="oj-ux-ico-close"></span>
+        <span>Close</span>
+      </oj-button>
+    </div>
+
+    <!-- Body -->
+    <div style="flex:1 1 auto; overflow-y:auto; padding:20px 24px; box-sizing:border-box;">
+
+      <!-- ── Mode toggle — a single oj-switch, UI-only. No chain, no REST
+           call: this only decides which section below is visible. ── -->
+      <div class="oj-flex oj-sm-align-items-center" style="gap:10px; margin-bottom:20px;">
+        <span class="oj-typography-body-sm"
+          :style="[[ 'font-weight:' + (!$variables.transferIsExistingMode ? '700' : '400') + '; color:' + (!$variables.transferIsExistingMode ? '#111827' : '#6b7280') ]]">
+          Create New Request
+        </span>
+        <oj-switch value="{{ $variables.transferIsExistingMode }}" label-edge="none"
+          on-value-changed="[[ () => { $page.variables.transferError = ''; } ]]"></oj-switch>
+        <span class="oj-typography-body-sm"
+          :style="[[ 'font-weight:' + ($variables.transferIsExistingMode ? '700' : '400') + '; color:' + ($variables.transferIsExistingMode ? '#111827' : '#6b7280') ]]">
+          Attach to Existing Request
+        </span>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════════════════
+           MODE: ATTACH TO EXISTING REQUEST
+           Real eqp-v1/getEquipriteV1ViewsMyRequests search (server-side,
+           debounced) + a real getEquipriteV1EquipmentRequests?requestNumber=
+           lookup to resolve the numeric id the line-POST endpoint needs
+           (my-requests rows carry no id — see the SDP's own description).
+           ══════════════════════════════════════════════════════════════ -->
+      <oj-bind-if test="[[ $variables.transferIsExistingMode ]]">
+        <div class="eqr-section-label">Existing Request</div>
+
+        <oj-bind-if test="[[ !$variables.transferSelectedExistingRequest ]]">
+          <div class="oj-sm-margin-bottom-4x eqr-project-lov oj-form-control-full-width">
+            <oj-input-search aria-label="Request Number" placeholder="Search by request number, project, task or requestor…"
+              value="{{ $variables.transferExistingRequestSearch }}"
+              suggestions="[[ $variables.transferExistingRequestsSDP ]]"
+              suggestion-item-text="requestNumber" class="oj-form-control-full-width"
+              on-raw-value-changed="[[ $listeners.onTransferExistingRequestTypeahead ]]"
+              on-oj-value-action="[[ $listeners.onTransferExistingRequestSelected ]]">
+              <template slot="suggestionItemTemplate" data-oj-as="suggestion">
+                <div class="oj-sm-padding-2x oj-sm-background-contrast-subtle oj-sm-border-bottom">
+                  <div class="oj-sm-text-secondary oj-sm-display-block">
+                    <strong><oj-bind-text value="[[ suggestion.data.requestNumber ]]"></oj-bind-text></strong>
+                    <span style="float:right; font-size:11px; color:#6b7280;"><oj-bind-text value="[[ suggestion.data.status ]]"></oj-bind-text></span>
+                  </div>
+                  <div class="oj-sm-text-secondary oj-sm-display-block oj-sm-margin-top-2x oj-typography-caption">
+                    <small><oj-bind-text value="[[ suggestion.data.projectName + ' · ' + suggestion.data.taskName + ' · ' + suggestion.data.requestorName ]]"></oj-bind-text></small>
+                  </div>
+                </div>
+              </template>
+            </oj-input-search>
+            <div class="eqr-required-caption">Required</div>
+          </div>
+          <oj-bind-if test="[[ $variables.transferExistingRequestError ]]">
+            <div style="font-size:12px; color:#c74634; padding-bottom:8px;">
+              <oj-bind-text value="[[ $variables.transferExistingRequestError ]]"></oj-bind-text>
+            </div>
+          </oj-bind-if>
+        </oj-bind-if>
+
+        <!-- Selected-request summary card, once picked + resolved. -->
+        <oj-bind-if test="[[ $variables.transferSelectedExistingRequest ]]">
+          <div style="border:1px solid #dbe3ea; border-radius:8px; padding:14px 16px; background:#f8fafc; display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
+            <div>
+              <div style="font-weight:700; font-size:14px; color:#111827;">
+                <oj-bind-text value="[[ $variables.transferSelectedExistingRequest.requestNumber ]]"></oj-bind-text>
+                <span style="font-weight:400; font-size:11px; color:#6b7280; margin-left:8px;">
+                  <oj-bind-text value="[[ $variables.transferSelectedExistingRequest.status ]]"></oj-bind-text>
+                </span>
+              </div>
+              <div style="font-size:12.5px; color:#374151; margin-top:4px;">
+                <oj-bind-text value="[[ $variables.transferSelectedExistingRequest.projectName ]]"></oj-bind-text>
+                <oj-bind-if test="[[ $variables.transferSelectedExistingRequest.taskName ]]">
+                  <oj-bind-text value="[[ ' · ' + $variables.transferSelectedExistingRequest.taskName ]]"></oj-bind-text>
+                </oj-bind-if>
+              </div>
+              <div style="font-size:12px; color:#6b7280; margin-top:2px;">
+                <oj-bind-text value="[[ 'Requestor: ' + $variables.transferSelectedExistingRequest.requestorName ]]"></oj-bind-text>
+              </div>
+            </div>
+            <oj-button chroming="borderless" display="icons" title="Search a different request"
+              on-oj-action="[[ $listeners.onTransferClearExistingRequest ]]">
+              <span slot="startIcon" class="oj-ux-ico-close"></span>
+            </oj-button>
+          </div>
+        </oj-bind-if>
+
+        <div style="font-size:12.5px; color:var(--oj-core-text-color-secondary); padding:8px 0 0;">
+          The selected equipment line is added to whichever request is picked here — no new
+          request header is created, and that request's own approval flow continues unchanged.
+        </div>
+      </oj-bind-if>
+
+      <!-- ══════════════════════════════════════════════════════════════
+           MODE: CREATE NEW REQUEST — same field set, data sources and
+           section grouping (Project Details / Dates / Delivery Details) as
+           project-create-request-page.html. Every LOV below is the SAME
+           REST/BIP endpoint that page uses (see the transfer* variables and
+           Transfer*Chain.js files this mirrors) — not placeholders.
+           ══════════════════════════════════════════════════════════════ -->
+      <oj-bind-if test="[[ !$variables.transferIsExistingMode ]]">
+
+        <div class="eqr-section-label">Project Details</div>
+        <div class="eqr-grid-2">
+
+          <div class="oj-form-control-full-width">
+            <oj-select-single aria-label="Customer Type" label-hint="Customer Type" label-edge="inside"
+              value="{{ $variables.transferCustomerType }}" data="[[ $variables.transferCustomerTypeADP ]]"
+              item-text="label" class="oj-form-control-full-width"
+              on-value-changed="[[ $listeners.onTransferCustomerTypeChanged ]]"></oj-select-single>
+          </div>
+
+          <oj-bind-if test="[[ $application.functions.isFeatureEnabled($application.variables.featureFlags, $application.variables.flagsLoaded, 'AGREEMENTS_ENABLED') ]]">
+            <div class="oj-form-control-full-width">
+              <oj-select-single aria-label="Rental Agreement" label-hint="Rental Agreement (optional)" label-edge="inside"
+                value="{{ $variables.transferAgreementId }}" data="[[ $variables.transferAgreementsADP ]]"
+                item-text="label" class="oj-form-control-full-width"
+                placeholder="[[ $variables.transferFusionCustomerId ? '— No active agreements for this customer —' : '— No agreement (standalone request) —' ]]"
+                on-value-changed="[[ $listeners.onTransferAgreementSelected ]]"></oj-select-single>
+            </div>
+          </oj-bind-if>
+
+          <!-- Internal Customer — real Fusion typeahead, shown when NOT External. -->
+          <oj-bind-if test="[[ $variables.transferCustomerType !== 'EXTERNAL' ]]">
+            <div class="oj-form-control-full-width eqr-project-lov">
+              <oj-input-search aria-label="Customer" placeholder="Customer"
+                value="[[ ($variables.transferSelectedInternalCustomerObj && ($variables.transferSelectedInternalCustomerObj.Customer || $variables.transferSelectedInternalCustomerObj.PartyName)) || '' ]]"
+                suggestions="[[ $variables.transferInternalCustomerSDP ]]" suggestion-item-text="Customer"
+                class="oj-form-control-full-width"
+                on-raw-value-changed="[[ $listeners.onTransferInternalCustomerTypeahead ]]"
+                on-oj-value-action="[[ $listeners.onTransferInternalCustomerSelected ]]">
+                <template slot="suggestionItemTemplate" data-oj-as="suggestion">
+                  <div class="oj-sm-padding-2x oj-sm-background-contrast-subtle oj-sm-border-bottom">
+                    <div class="oj-sm-text-secondary oj-sm-display-block">
+                      <strong><oj-bind-text value="[[ suggestion.data.Customer ]]"></oj-bind-text></strong>
+                    </div>
+                    <div class="oj-sm-text-secondary oj-sm-display-block oj-sm-margin-top-2x oj-typography-caption">
+                      <small><oj-bind-text value="[[ suggestion.data.CustomerNumber ]]"></oj-bind-text></small>
+                    </div>
+                  </div>
+                </template>
+              </oj-input-search>
+            </div>
+            <div class="oj-form-control-full-width">
+              <oj-select-single aria-label="Requestor Contact" label-hint="Requestor Contact" label-edge="inside"
+                value="{{ $variables.transferRequestorId }}" data="[[ $variables.transferUsersADP ]]"
+                item-text="fullName" class="oj-form-control-full-width" required="true"
+                on-value-item-changed="[[ $listeners.onTransferRequestorSelected ]]"></oj-select-single>
+            </div>
+          </oj-bind-if>
+
+          <!-- External Customer + Contact — real EQR_CUSTOMER_REF /
+               EQR_CUSTOMER_PORTAL_USER lookups, shown when External. -->
+          <oj-bind-if test="[[ $variables.transferCustomerType === 'EXTERNAL' ]]">
+            <div class="oj-form-control-full-width">
+              <oj-select-single aria-label="Customer" label-hint="Customer" label-edge="inside"
+                value="{{ $variables.transferCustomerId }}" data="[[ $variables.transferCustomersADP ]]"
+                item-text="customerName" class="oj-form-control-full-width" required="true"
+                on-value-item-changed="[[ $listeners.onTransferExternalCustomerSelected ]]"></oj-select-single>
+            </div>
+            <div class="oj-form-control-full-width">
+              <oj-select-single aria-label="Customer Contact" label-hint="Customer Contact" label-edge="inside"
+                value="{{ $variables.transferRequestorId }}" data="[[ $variables.transferCustomerPortalUsersADP ]]"
+                item-text="contactName" class="oj-form-control-full-width" required="true"
+                on-value-item-changed="[[ $listeners.onTransferExternalContactSelected ]]"></oj-select-single>
+            </div>
+          </oj-bind-if>
+
+          <!-- Destination Project — SAME fixed demo allow-list as
+               project-create-request-page's Project field (local filter,
+               no Fusion round-trip per keystroke). -->
+          <div class="oj-form-control-full-width eqr-project-lov">
+            <oj-input-search aria-label="Destination Project" placeholder="Destination Project"
+              value="{{ $variables.transferProjectName }}" suggestions="[[ $variables.transferAllowedProjectsDp ]]"
+              suggestion-item-text="ProjectName" class="oj-form-control-full-width"
+              on-oj-value-action="[[ $listeners.onTransferProjectSelected ]]">
+              <template slot="suggestionItemTemplate" data-oj-as="suggestion">
+                <div class="oj-sm-padding-2x oj-sm-background-contrast-subtle oj-sm-border-bottom">
+                  <div class="oj-sm-text-secondary oj-sm-display-block">
+                    <strong><oj-bind-text value="[[ suggestion.data.ProjectName ]]"></oj-bind-text></strong>
+                  </div>
+                  <div class="oj-sm-text-secondary oj-sm-display-block oj-sm-margin-top-2x oj-typography-caption">
+                    <small><oj-bind-text value="[[ suggestion.data.ProjectNumber ]]"></oj-bind-text></small>
+                  </div>
+                </div>
+              </template>
+            </oj-input-search>
+            <div class="eqr-required-caption">Required</div>
+          </div>
+
+          <!-- Destination Task — pre-existing, fully wired. -->
+          <div class="oj-form-control-full-width eqr-project-lov">
+            <oj-select-single aria-label="Destination Task"
+              placeholder="[[ $variables.transferProjectId ? 'Task' : 'Select a project first' ]]"
+              value="{{ $variables.transferTaskId }}" data="[[ $variables.transferTasksDp ]]"
+              item-text="TaskName" class="oj-form-control-full-width"
+              disabled="[[ !$variables.transferProjectId ]]"
+              on-oj-value-action="[[ $listeners.onTransferTaskSelected ]]">
+              <template slot="itemTemplate">
+                <div style="display:flex; flex-direction:column; line-height:1.3; padding:2px 0;">
+                  <span style="font-weight:600; color:#161513;"><oj-bind-text value="[[ $current.data.TaskName ]]"></oj-bind-text></span>
+                  <span style="font-size:11px; color:#6b7280;"><oj-bind-text value="[[ $current.data.TaskNumber ]]"></oj-bind-text></span>
+                </div>
+              </template>
+            </oj-select-single>
+            <oj-bind-if test="[[ $variables.transferTaskError ]]">
+              <div style="font-size:12px; color:#c74634; padding-top:4px;">
+                <oj-bind-text value="[[ $variables.transferTaskError ]]"></oj-bind-text>
+              </div>
+            </oj-bind-if>
+            <div class="eqr-required-caption">Required</div>
+          </div>
+
+          <!-- Contract — real BIP-report lookup, reloaded whenever the
+               destination project changes. -->
+          <div class="oj-form-control-full-width">
+            <oj-select-single aria-label="Contract" label-hint="Contract" label-edge="inside"
+              value="{{ $variables.transferContractId }}" data="[[ $variables.transferContractsADP ]]"
+              item-text="label" class="oj-form-control-full-width"
+              disabled="[[ !$variables.transferProjectId || $variables.transferIsContractsLoading ]]"
+              placeholder="[[ !$variables.transferProjectId ? 'Select a project first' : ($variables.transferIsContractsLoading ? 'Loading contracts…' : '— Select Contract —') ]]"
+              on-value-item-changed="[[ $listeners.onTransferContractSelected ]]">
+              <template slot="itemTemplate" data-oj-as="item">
+                <div class="oj-sm-padding-2x oj-sm-background-contrast-subtle oj-sm-border-bottom">
+                  <div class="oj-sm-text-secondary oj-sm-display-block"><oj-bind-text value="[[ item.data.label ]]"></oj-bind-text></div>
+                  <div class="oj-sm-text-secondary oj-sm-display-block oj-sm-margin-top-2x oj-typography-caption">
+                    <small><oj-bind-text value="[[ item.data.label2 ]]"></oj-bind-text></small>
+                  </div>
+                </div>
+              </template>
+            </oj-select-single>
+          </div>
+
+          <div class="oj-flex oj-sm-align-items-center" style="gap:10px; padding-top:8px;">
+            <oj-switch value="{{ $variables.transferIsSoftReservation }}" label-edge="none"></oj-switch>
+            <span class="oj-typography-body-sm">Soft Reservation</span>
+          </div>
+
+        </div>
+
+        <div class="eqr-section-label">Dates</div>
+        <div class="eqr-grid-2">
+          <!-- Start / End Date — pre-existing, fully wired. -->
+          <oj-input-date value="{{ $variables.transferStartDate }}"
+            label-hint="Start Date" label-edge="inside" class="oj-form-control-full-width" required="true"></oj-input-date>
+          <oj-input-date value="{{ $variables.transferEndDate }}"
+            label-hint="End Date" label-edge="inside" class="oj-form-control-full-width" required="true"></oj-input-date>
+          <oj-input-number value="{{ $variables.transferPlannedHours }}"
+            label-hint="Planned Hours" label-edge="inside" min="0" max="24" step="1"
+            class="oj-form-control-full-width"></oj-input-number>
+        </div>
+
+        <div class="eqr-section-label">Delivery Details</div>
+        <div class="eqr-grid-2">
+          <div class="oj-form-control-full-width">
+            <oj-select-single aria-label="Location Type" label-hint="Location Type" label-edge="inside"
+              value="{{ $variables.transferLocationType }}" data="[[ $variables.transferLocationTypeADP ]]"
+              item-text="label" class="oj-form-control-full-width" required="true"
+              on-value-changed="[[ (e) => {
+                  var v = e.detail.value;
+                  if (v === 'PROJECT_SITE') {
+                    $page.variables.transferLocation = '';
+                    $page.variables.transferSelectedShipToSiteObj = null;
+                    $page.variables.transferIsLocationDrawerOpen = false;
+                  } else if (v === 'DELIVERY_LOCATION') {
+                    $page.variables.transferLocation = '';
+                    $page.variables.transferSelectedShipToSiteObj = null;
+                    $page.variables.transferIsLocationDrawerOpen = true;
+                  } else if (v === 'INV_ORG') {
+                    $page.variables.transferLocation = '';
+                    $page.variables.transferSelectedShipToSiteObj = null;
+                    $page.variables.transferSelectedInvOrgLocationId = null;
+                    $page.variables.transferSelectedInvOrgLocationItem = null;
+                    $page.variables.transferIsLocationDrawerOpen = false;
+                  }
+                } ]]"></oj-select-single>
+          </div>
+
+          <!-- Delivery Location — PROJECT_SITE variant: real ship-to-site
+               BIP lookup, scoped to project+contract. -->
+          <oj-bind-if test="[[ $variables.transferLocationType === 'PROJECT_SITE' ]]">
+            <div class="oj-form-control-full-width">
+              <oj-select-single aria-label="Delivery Location" label-hint="Delivery Location" label-edge="inside"
+                value="{{ $variables.transferLocation }}" data="[[ $variables.transferShipToSitesADP ]]"
+                item-text="label" class="oj-form-control-full-width" required="true"
+                disabled="[[ $variables.transferIsShipToSitesLoading ]]"
+                placeholder="[[ !$variables.transferContractId ? 'Choose a Contract'
+                  : ($variables.transferIsShipToSitesLoading ? 'Loading ship-to sites…'
+                  : (($variables.transferShipToSitesLoaded && (!$variables.transferShipToSitesADP.data || $variables.transferShipToSitesADP.data.length === 0)) ? 'No Location Found'
+                  : '— Select Ship-To Site —')) ]]"
+                on-value-item-changed="[[ $listeners.onTransferShipToSiteSelected ]]">
+                <template slot="itemTemplate" data-oj-as="item">
+                  <div style="display:flex; flex-direction:column; line-height:1.3; padding:2px 0;">
+                    <span style="font-weight:600; color:#161513;"><oj-bind-text value="[[ item.data.label ]]"></oj-bind-text></span>
+                    <oj-bind-if test="[[ item.data.label2 ]]">
+                      <span style="font-size:11px; color:#6b7280;"><oj-bind-text value="[[ item.data.label2 ]]"></oj-bind-text></span>
+                    </oj-bind-if>
+                  </div>
+                </template>
+              </oj-select-single>
+            </div>
+          </oj-bind-if>
+
+          <!-- Delivery Location — DELIVERY_LOCATION variant: opens the map
+               drawer; the field itself just shows the resolved address. -->
+          <oj-bind-if test="[[ $variables.transferLocationType === 'DELIVERY_LOCATION' ]]">
+            <div class="oj-form-control-full-width">
+              <oj-input-text label-hint="Delivery Location" label-edge="inside" value="{{ $variables.transferLocation }}"
+                class="oj-form-control-full-width" placeholder="Click to pick on map" readonly="true" required="true"
+                on-click="[[ () => { $page.variables.transferIsLocationDrawerOpen = true; } ]]"></oj-input-text>
+            </div>
+          </oj-bind-if>
+
+          <!-- Delivery Location — INV_ORG variant: real bu-org-mappings SDP,
+               address comes off the mapping row (no extra geocode call). -->
+          <oj-bind-if test="[[ $variables.transferLocationType === 'INV_ORG' ]]">
+            <div class="oj-form-control-full-width">
+              <oj-select-single label-hint="Delivery Location" label-edge="inside"
+                class="oj-form-control-full-width" required="true" placeholder="Search internal locations"
+                clear-value="conditional"
+                value="{{ $variables.transferSelectedInvOrgLocationId }}"
+                value-item="{{ $variables.transferSelectedInvOrgLocationItem }}"
+                data="[[ $variables.transferInvOrgLocationSDP ]]"
+                item-text="[[ (ctx) => ctx && ctx.data ? $page.functions.invOrgOptionText(ctx.data) : '' ]]"
+                on-value-item-changed="[[ (e) => {
+                    var d = e.detail.value && e.detail.value.data;
+                    $page.variables.transferLocation = d ? $page.functions.formatInvOrgAddress(d) : '';
+                  } ]]">
+                <template slot="itemTemplate">
+                  <div style="line-height:1.35; padding:4px 0;">
+                    <span style="color:#161513; font-size:14px;">
+                      <oj-bind-text value="[[ $page.functions.formatInvOrgAddress($current.data) || $current.data.invOrgName ]]"></oj-bind-text>
+                    </span>
+                  </div>
+                </template>
+              </oj-select-single>
+            </div>
+          </oj-bind-if>
+
+          <div class="oj-form-control-full-width" style="grid-column: 1 / -1;">
+            <oj-text-area value="{{ $variables.transferNotes }}"
+              label-hint="Notes / Special Instructions" label-edge="inside" rows="2"
+              class="oj-form-control-full-width"></oj-text-area>
+          </div>
+        </div>
+
+      </oj-bind-if>
+
+      <oj-bind-if test="[[ $variables.transferError ]]">
+        <div style="font-size:12px; color:#c74634; padding-top:12px;">
+          <oj-bind-text value="[[ $variables.transferError ]]"></oj-bind-text>
+        </div>
+      </oj-bind-if>
+    </div>
+    <!-- /Body -->
+
+    <!-- Footer -->
+    <div style="flex:0 0 auto; padding:16px 24px; background-color:#ffffff; border-top:1px solid #e2e8f0; display:flex; justify-content:flex-end; gap:12px;">
+      <oj-button chroming="outlined" on-oj-action="[[ $listeners.onTransferCancel ]]"
+        :disabled="[[ $variables.transferSaving ]]">
+        Cancel
+      </oj-button>
+      <oj-button chroming="callToAction" on-oj-action="[[ $listeners.onTransferConfirm ]]"
+        :disabled="[[ $variables.transferSaving ]]">
+        <span slot="startIcon" class="oj-ux-ico-check"></span>
+        <oj-bind-text value="[[ $variables.transferSaving ? 'Transferring…' : 'Confirm Transfer' ]]"></oj-bind-text>
+      </oj-button>
+    </div>
+  </div>
+</oj-drawer-popup>
+
+<!-- ─────────────────────────────────────────────────────────────────────────
+     TRANSFER DELIVERY-LOCATION MAP DRAWER (Location Type = "Enter Delivery
+     location"). Verbatim port of project-create-request-page.html's own
+     locationDrawer — same Mapbox search+click-to-pin flow, same address
+     component fields — just re-scoped to transfer* variables and its own
+     map container id (#rdp-transfer-map) so the two pages' map instances
+     never collide. Auto-opens from the Location Type select above.
+     ───────────────────────────────────────────────────────────────────────── -->
+<oj-drawer-popup id="rdp-transferLocationDrawer" edge="end"
+  opened="{{ $variables.transferIsLocationDrawerOpen }}"
+  on-opened-changed="[[ $listeners.onTransferLocationDrawerOpenedChanged ]]"
+  style="width: 520px; max-width: 96vw;">
+  <div style="display:flex; flex-direction:column; height:100%; padding:20px 20px 16px; box-sizing:border-box;">
+
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
+      <span style="font-size:16px; font-weight:700; color:#0f172a;">Delivery location</span>
+      <oj-button chroming="borderless" display="icons" title="Close"
+        on-oj-action="[[ () => { $page.variables.transferIsLocationDrawerOpen = false; } ]]">
+        <span slot="startIcon" class="oj-ux-ico-close"></span>
+      </oj-button>
+    </div>
+    <div style="font-size:13px; color:#64748b; margin-bottom:12px;">
+      Search an address or click the map to drop a pin.
+    </div>
+
+    <oj-input-search aria-label="Search address" placeholder="Start typing an address…"
+      value="{{ $variables.transferLocationSearchText }}"
+      suggestions="[[ $functions.addressSuggestionsProvider() ]]"
+      suggestion-item-text="label"
+      class="oj-form-control-full-width"
+      on-oj-value-action="[[ $listeners.onTransferAddressSuggestionSelected ]]">
+      <template slot="suggestionItemTemplate" data-oj-as="suggestion">
+        <div class="oj-sm-padding-2x oj-sm-border-bottom" style="line-height:1.35;">
+          <oj-bind-text value="[[ suggestion.data.label ]]"></oj-bind-text>
+        </div>
+      </template>
+    </oj-input-search>
+
+    <div id="rdp-transfer-map"
+      style="width:100%; height:340px; margin-top:14px; border-radius:10px; overflow:hidden; border:1px solid #e2e8f0; background:#eef2f7;"></div>
+
+    <div style="margin-top:14px; overflow:auto;">
+      <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#94a3b8; margin-bottom:8px;">Selected address</div>
+      <oj-form-layout max-columns="2" direction="row" label-edge="inside" class="oj-form-control-full-width">
+        <oj-input-text label-hint="Address Line 1" value="{{ $variables.transferAddr1 }}"
+          class="oj-form-control-full-width oj-form-cols-span-all"></oj-input-text>
+        <oj-input-text label-hint="Address Line 2" value="{{ $variables.transferAddr2 }}"
+          class="oj-form-control-full-width oj-form-cols-span-all"></oj-input-text>
+        <oj-input-text label-hint="City" value="{{ $variables.transferCity }}" class="oj-form-control-full-width"></oj-input-text>
+        <oj-input-text label-hint="County" value="{{ $variables.transferCounty }}" class="oj-form-control-full-width"></oj-input-text>
+        <oj-input-text label-hint="State / Province" value="{{ $variables.transferAddrState }}" class="oj-form-control-full-width"></oj-input-text>
+        <oj-input-text label-hint="Postal Code" value="{{ $variables.transferPostalCode }}" class="oj-form-control-full-width"></oj-input-text>
+        <oj-input-text label-hint="Country" value="{{ $variables.transferCountry }}" class="oj-form-control-full-width oj-form-cols-span-all"></oj-input-text>
+      </oj-form-layout>
+      <div style="font-size:12px; color:#64748b; margin-top:6px;">
+        <oj-bind-if test="[[ $variables.transferPickedLat != null ]]">
+          Lat <oj-bind-text value="[[ $variables.transferPickedLat ]]"></oj-bind-text> ·
+          Lng <oj-bind-text value="[[ $variables.transferPickedLng ]]"></oj-bind-text>
+        </oj-bind-if>
+      </div>
+    </div>
+
+    <div style="margin-top:auto; display:flex; gap:8px; justify-content:flex-end; padding-top:16px;">
+      <oj-button chroming="outlined" on-oj-action="[[ () => { $page.variables.transferIsLocationDrawerOpen = false; } ]]">Cancel</oj-button>
+      <oj-button chroming="callToAction" on-oj-action="[[ $listeners.onTransferUseLocation ]]">
+        <span slot="startIcon" class="oj-ux-ico-check"></span>
+        <span>Use this location</span>
+      </oj-button>
+    </div>
+
+  </div>
+</oj-drawer-popup>
+
+<!-- Transfer-submit overlay — placed at the TOP LEVEL of the page (not
+     nested inside transferDrawer) so its position:fixed covers the whole
+     viewport rather than being constrained by the drawer's own slide-in
+     transform. Shown for exactly as long as transferSaving is true. -->
+<oj-bind-if test="[[ $variables.transferSaving ]]">
+  <div class="transfer-submit-overlay">
+    <div class="transfer-submit-box">
+      <div class="transfer-submit-spinner"></div>
+      <div class="transfer-submit-text">Creating your request…</div>
+      <div class="transfer-submit-subtext">Please wait while your request is being processed.</div>
+    </div>
+  </div>
+</oj-bind-if>

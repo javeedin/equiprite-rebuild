@@ -1,0 +1,2249 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Fusion",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "vb-catalog://backends/fusion",
+      "description": "Fusion"
+    }
+  ],
+  "paths": {
+    "/fscmRestApi/resources/11.13.18.05/projectsLOV": {
+      "get": {
+        "operationId": "getFscmRestApiResources11_13_18_05ProjectsLOV",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fields",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            },
+            "x-vb": {
+              "defaultValue": 10000
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "orderBy",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "x-vb": {
+              "defaultValue": "ProjectStartDate:desc"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Response for default",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetFscmRestApiResources11_13_18_05ProjectsLOV"
+                },
+                "examples": {
+                  "vb": {
+                    "summary": "Example stored by VB User",
+                    "externalValue": "./examples/getFscmRestApiResources11_13_18_05ProjectsLOV/response_default_application_json_vb.json"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-vb": {
+          "actionHint": "getMany"
+        }
+      }
+    },
+    "/fscmRestApi/resources/11.13.18.05/projectTasksLOV": {
+      "get": {
+        "operationId": "getFscmRestApiResources11_13_18_05ProjectTasksLOV",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fields",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Response for default",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetFscmRestApiResources11_13_18_05ProjectTasksLOV"
+                },
+                "examples": {
+                  "vb": {
+                    "summary": "Example stored by VB User",
+                    "externalValue": "./examples/getFscmRestApiResources11_13_18_05ProjectTasksLOV/response_default_application_json_vb.json"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-vb": {
+          "actionHint": "getMany"
+        }
+      }
+    },
+    "/fscmRestApi/resources/11.13.18.05/shippingCustomersLOV": {
+      "get": {
+        "operationId": "getFscmRestApiResources11_13_18_05ShippingCustomersLOV",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "x-vb": {
+              "defaultValue": "500"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "x-vb": {
+              "defaultValue": "PartyType=\"ORGANIZATION\""
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Response for default",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetFscmRestApiResources11_13_18_05ShippingCustomersLOV"
+                },
+                "examples": {
+                  "vb": {
+                    "summary": "Example stored by VB User",
+                    "externalValue": "./examples/getFscmRestApiResources11_13_18_05ShippingCustomersLOV/response_default_application_json_vb.json"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-vb": {
+          "actionHint": "getMany"
+        }
+      }
+    },
+    "/fscmRestApi/resources/11.13.18.05/inventoryOrganizationsOpenLOV": {
+      "get": {
+        "operationId": "getFscmRestApiResources11_13_18_05InventoryOrganizationsOpenLOV",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "x-vb": {
+              "defaultValue": "500"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Response for default",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetFscmRestApiResources11_13_18_05InventoryOrganizationsOpenLOV"
+                },
+                "examples": {
+                  "vb": {
+                    "summary": "Example stored by VB User",
+                    "externalValue": "./examples/getFscmRestApiResources11_13_18_05InventoryOrganizationsOpenLOV/response_default_application_json_vb.json"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-vb": {
+          "actionHint": "getMany"
+        }
+      }
+    },
+    "/fscmRestApi/resources/11.13.18.05/finBusinessUnitsLOV": {
+      "get": {
+        "operationId": "getFscmRestApiResources11_13_18_05FinBusinessUnitsLOV",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "x-vb": {
+              "defaultValue": "500"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orderBy",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "x-vb": {
+              "defaultValue": "BusinessUnitName:asc"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Response for default",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetFscmRestApiResources11_13_18_05FinBusinessUnitsLOV"
+                }
+              }
+            }
+          }
+        },
+        "x-vb": {
+          "actionHint": "getMany",
+          "transforms": {
+            "path": "./transforms/finBusinessUnits"
+          }
+        }
+      }
+    },
+    "/fscmRestApi/resources/11.13.18.05/inventoryOrganizations": {
+      "get": {
+        "operationId": "getFscmRestApiResources11_13_18_05InventoryOrganizations",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "x-vb": {
+              "defaultValue": "200"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fields",
+            "in": "query",
+            "description": "Comma-separated attribute list. Used by the delivery-location resolver to ask for OrganizationId,LocationId only, instead of dragging the full inventory-org record back for one number.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "onlyData",
+            "in": "query",
+            "description": "Drop Fusion's per-row links[] envelope.",
+            "schema": {
+              "type": "boolean"
+            },
+            "x-vb": {
+              "defaultValue": true
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Response for default",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetFscmRestApiResources11_13_18_05InventoryOrganizations"
+                }
+              }
+            }
+          }
+        },
+        "x-vb": {
+          "actionHint": "getMany"
+        }
+      }
+    },
+    "/fscmRestApi/resources/11.13.18.05/purchasingLineTypes": {
+      "get": {
+        "operationId": "getFscmRestApiResources11_13_18_05PurchasingLineTypes",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fields",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "x-vb": {
+              "defaultValue": "LineTypeCode,LineType"
+            }
+          },
+          {
+            "name": "onlyData",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "x-vb": {
+              "defaultValue": true
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            },
+            "x-vb": {
+              "defaultValue": 200
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Response for default",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "x-vb": {
+          "actionHint": "getMany"
+        }
+      }
+    },
+    "/fscmRestApi/resources/11.13.18.05/purchasingCategories": {
+      "get": {
+        "operationId": "getFscmRestApiResources11_13_18_05PurchasingCategories",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fields",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "x-vb": {
+              "defaultValue": "CategoryName,CategoryId"
+            }
+          },
+          {
+            "name": "onlyData",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "x-vb": {
+              "defaultValue": true
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            },
+            "x-vb": {
+              "defaultValue": 200
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Response for default",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "x-vb": {
+          "actionHint": "getMany"
+        }
+      }
+    },
+    "/fscmRestApi/resources/11.13.18.05/projects/{ProjectId}": {
+      "get": {
+        "operationId": "getFscmRestApiResources11_13_18_05ProjectsById",
+        "description": "Read one project to get its OwningOrganizationId (a project expenditure org) — sent as projectDFF _ORGANIZATION_ID on the PR line. projectsLOV does not expose this field; the full projects resource does.",
+        "parameters": [
+          {
+            "name": "ProjectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fields",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "x-vb": {
+              "defaultValue": "ProjectId,OwningOrganizationId,OwningOrganizationName,BusinessUnitId,TransactionControlFlag"
+            }
+          },
+          {
+            "name": "onlyData",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "x-vb": {
+              "defaultValue": true
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Response for default",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "x-vb": {
+          "actionHint": "getOne"
+        }
+      }
+    },
+    "/fscmRestApi/resources/11.13.18.05/FlexFndPvsNumberIdCharacterValues": {
+      "get": {
+        "operationId": "getFscmRestApiResources11_13_18_05ExpenditureTypes",
+        "description": "PROJECT-VALID expenditure types for the per-line PR picker — the SAME value set Fusion's own iProcurement 'Manage Requisitions' UI uses to populate the Expenditure Type dropdown on a project distribution. It is the flexfield ValidValuesFinder over Bind_DataSource PJC PJC_EXPENDITURE_TYPES_EXPEND_VVSO, bound to the line's ProjectId (flex_vst_bind3) with date-effectivity binds (flex_vst_bind1/2). This is authoritative: it applies the project's own rules AND excludes types not usable on a requisition distribution, so it returns exactly the list a buyer sees (e.g. 106 for project EPC_ MO_Operations) and OMITS the global-catalog phantoms our old expenditureTypes call showed (01 00 00 General Requirements, RHF_*, etc. that rejected at submit). Returns Id (numeric ExpenditureTypeId, sent as projectDFF _EXPENDITURE_TYPE_ID) + Value (name) + Description. The caller sets the full finder string per call. NOTE: no rv:<guid> segment needed — the standard resource path works and the date binds do not change the result on this pod (used for expiry only).",
+        "parameters": [
+          {
+            "name": "finder",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fields",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "x-vb": {
+              "defaultValue": "Value,Description,Id"
+            }
+          },
+          {
+            "name": "onlyData",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "x-vb": {
+              "defaultValue": true
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            },
+            "x-vb": {
+              "defaultValue": 500
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Response for default",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "x-vb": {
+          "actionHint": "getMany"
+        }
+      }
+    },
+    "/fscmRestApi/resources/11.13.18.05/expenditureTypesLOV": {
+      "get": {
+        "operationId": "getFscmRestApiResources11_13_18_05ExpenditureTypesLOVByCategory",
+        "description": "The tenant's whole expenditure-type catalogue (name, id, unit, category, dates), read once and cached by resources/js/expenditureTypes.js loadCatalogue(). It is the base list of the timesheet / Post Cost picker, the source of each type's unit, the option list of both mapping screens, and the category->type expansion of project transaction controls. Callers MUST pass fields: the default below has no ExpenditureTypeName.",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Paging. Required because this resource is also used to read the UNIT OF MEASURE for every expenditure type (fields overridden per call), and a tenant can hold thousands -- Oceaneering has 2,505. Without paging the unit silently goes missing for everything past the first page, which disables the timesheet unit guard for those types rather than failing visibly.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "fields",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "x-vb": {
+              "defaultValue": "ExpenditureTypeId,ExpenditureCategoryId"
+            }
+          },
+          {
+            "name": "onlyData",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "x-vb": {
+              "defaultValue": true
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            },
+            "x-vb": {
+              "defaultValue": 500
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Response for default",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "x-vb": {
+          "actionHint": "getMany"
+        }
+      }
+    },
+    "/fscmRestApi/resources/11.13.18.05/projectOrganizationsLOV": {
+      "get": {
+        "operationId": "getFscmRestApiResources11_13_18_05ProjectExpenditureOrganizationsLOV",
+        "description": "Valid active project EXPENDITURE organizations for a business unit — the per-line Expenditure Organization picker on the PR drawer (sent as projectDFF _ORGANIZATION_ID). Expenditure orgs are scoped by BU, not per-project (Fusion has no finer REST scoping); the project's OwningOrganizationId is one member of this set and is used as the per-line default. The finder ActiveProjectExpenditureOrganizationsForBusinessUnit already returns only ProjectOrganizationType=EXPENDITURES active rows. Caller sets the finder param per call with the project's BusinessUnitId.",
+        "parameters": [
+          {
+            "name": "finder",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fields",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "x-vb": {
+              "defaultValue": "OrganizationId,OrganizationName,ProjectOrganizationType"
+            }
+          },
+          {
+            "name": "orderBy",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "x-vb": {
+              "defaultValue": "OrganizationName"
+            }
+          },
+          {
+            "name": "onlyData",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "x-vb": {
+              "defaultValue": true
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            },
+            "x-vb": {
+              "defaultValue": 500
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Response for default",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "x-vb": {
+          "actionHint": "getMany"
+        }
+      }
+    },
+    "/fscmRestApi/resources/11.13.18.05/projects/{ProjectId}/child/ProjectTransactionControls": {
+      "get": {
+        "operationId": "getFscmRestApiResources11_13_18_05ProjectTransactionControls",
+        "description": "Project-level PPM transaction controls. These are the ONLY project scoping of expenditure types Fusion exposes via REST (expenditureTypesLOV rejects q=ProjectId/ProjectNumber — verified 400 on the pod). Each row is an inclusion/exclusion rule keyed by ExpenditureTypeId OR ExpenditureCategoryId with a Chargeable Y/N flag. They RESTRICT the chargeable set only when the project's TransactionControlFlag is true; otherwise they are exceptions and the global list applies. Used to narrow the per-line expenditure-type picker.",
+        "parameters": [
+          {
+            "name": "ProjectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fields",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "x-vb": {
+              "defaultValue": "RuleNumber,Chargeable,ExpenditureTypeId,ExpenditureTypeName,ExpenditureCategoryId,ExpenditureCategoryName,StartDateActive,EndDateActive"
+            }
+          },
+          {
+            "name": "onlyData",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "x-vb": {
+              "defaultValue": true
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            },
+            "x-vb": {
+              "defaultValue": 200
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Response for default",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "x-vb": {
+          "actionHint": "getMany"
+        }
+      }
+    },
+    "/fscmRestApi/resources/11.13.18.05/standardLookupsLOV": {
+      "get": {
+        "operationId": "getFscmRestApiResources11_13_18_05StandardLookupsLOV",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "x-vb": {
+              "defaultValue": "LookupType='POR_DESTINATION_TYPE'"
+            }
+          },
+          {
+            "name": "fields",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "x-vb": {
+              "defaultValue": "LookupCode,Meaning"
+            }
+          },
+          {
+            "name": "onlyData",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "x-vb": {
+              "defaultValue": true
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            },
+            "x-vb": {
+              "defaultValue": 50
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Response for default",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "x-vb": {
+          "actionHint": "getMany"
+        }
+      }
+    },
+    "/fscmRestApi/resources/11.13.18.05/unitsOfMeasure": {
+      "get": {
+        "operationId": "getFscmRestApiResources11_13_18_05UnitsOfMeasure",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fields",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "x-vb": {
+              "defaultValue": "UOMCode,UOM,Description"
+            }
+          },
+          {
+            "name": "onlyData",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "x-vb": {
+              "defaultValue": true
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            },
+            "x-vb": {
+              "defaultValue": 500
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Response for default",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "x-vb": {
+          "actionHint": "getMany"
+        }
+      }
+    },
+    "/fscmRestApi/resources/11.13.18.05/purchaseRequisitions": {
+      "get": {
+        "operationId": "getFscmRestApiResources11_13_18_05PurchaseRequisitions",
+        "description": "Read requisitions by query (q=RequisitionHeaderId=... or q=Requisition=...). expand=lines exposes the async PO back-reference (PurchaseOrder / POHeaderId / POLineId) once the buyer converts it. Query-param style matches the other working ProjectLOV ops (the /{id} path form did not resolve through the VBCS Fusion proxy).",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "expand",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "x-vb": {
+              "defaultValue": "lines"
+            }
+          },
+          {
+            "name": "fields",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Response for default",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "x-vb": {
+          "actionHint": "getMany"
+        }
+      },
+      "post": {
+        "operationId": "postFscmRestApiResources11_13_18_05PurchaseRequisitions",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "default": {
+            "description": "Response for default",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "x-vb": {
+          "actionHint": "create",
+          "headers": {
+            "Content-Type": "application/json"
+          }
+        }
+      }
+    },
+    "/fscmRestApi/resources/11.13.18.05/requisitionOneTimeLocations": {
+      "post": {
+        "operationId": "postFscmRestApiResources11_13_18_05RequisitionOneTimeLocations",
+        "description": "Create a structured one-time (ad-hoc) delivery address for a requisition line. Returns LocationId, which is then set on the PR line as DeliverToCustomerLocationId (with DeliverToLocationId null) so the line delivers to this free-text address instead of a registered location. This is the SAME two-part flow Fusion's own iProcurement 'Delivery' panel uses (verified live: 201 here, then the id is accepted inline on the purchaseRequisitions POST line and Fusion auto-sets OneTimeLocationFlag=true). Body: Address1, Address2, City, State, PostalCode, County, CountryCode ('US'). Supersedes the earlier 'one-time address impossible via REST' finding — the missing attribute was DeliverToCustomerLocationId (NOT DeliverToLocationId/DeliverToOneTimeLocationId).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "default": {
+            "description": "Response for default",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "x-vb": {
+          "actionHint": "create",
+          "headers": {
+            "Content-Type": "application/json"
+          }
+        }
+      }
+    },
+    "/fscmRestApi/resources/11.13.18.05/contracts": {
+      "post": {
+        "operationId": "postFscmRestApiResources11_13_18_05Contracts",
+        "description": "Create a new contract header with lines in Oracle Fusion Contracts.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "default": {
+            "description": "Response for default",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "x-vb": {
+          "actionHint": "create",
+          "headers": {
+            "Content-Type": "application/json"
+          }
+        }
+      }
+    },
+    "/fscmRestApi/resources/11.13.18.05/purchaseOrders/{POHeaderId}/child/lines": {
+      "get": {
+        "operationId": "getFscmRestApiResources11_13_18_05PurchaseOrdersLinesByPoHeaderId",
+        "description": "Read PO line price via the child path (never expand=lines — it truncates). Fields: Price, Quantity, Ordered, CurrencyCode, UOMCode.",
+        "parameters": [
+          {
+            "name": "POHeaderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fields",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Response for default",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "x-vb": {
+          "actionHint": "getMany"
+        }
+      }
+    },
+    "/fscmRestApi/resources/11.13.18.05/projects/{ProjectId}/child/Tasks": {
+      "get": {
+        "operationId": "getFscmRestApiResources11_13_18_05ProjectTasks",
+        "description": "Tasks belonging to one project, via the project's own child resource. Preferred over the flat projectTasksLOV: scoping lives in the PATH (ProjectId), so it cannot return cross-project rows, and q is free to carry ONLY the user's typeahead text. Field names (TaskId/TaskName/TaskNumber) match projectTasksLOV, so consumers of the picked row are unchanged. ParentTaskId is in the default projection because the response is otherwise a FLAT list with no way to tell a selectable leaf task from a summary node — see resources/js/projectTaskTree.js, which turns it into the WBS the Task pickers indent and validate against. Adding a field is additive: consumers reading TaskId/TaskName/TaskNumber are unaffected.",
+        "parameters": [
+          {
+            "name": "ProjectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fields",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "x-vb": {
+              "defaultValue": "TaskId,TaskName,TaskNumber,ParentTaskId"
+            }
+          },
+          {
+            "name": "orderBy",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "onlyData",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "x-vb": {
+              "defaultValue": true
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            },
+            "x-vb": {
+              "defaultValue": 500
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "totalResults",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "x-vb": {
+              "defaultValue": true
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Response for default",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "x-vb": {
+          "actionHint": "getMany",
+          "transforms": {
+            "path": "./transforms/projectTasks"
+          }
+        }
+      }
+    },
+    "/fscmRestApi/resources/11.13.18.05/projects/{ProjectId}/child/ProjectCustomers": {
+      "get": {
+        "operationId": "getFscmRestApiResources11_13_18_05ProjectCustomers",
+        "description": "Customers associated with one project, via the project's own child resource. Scoping lives in the PATH (ProjectId), so it cannot return customers from other projects. The customer is exposed as a PARTY: PartyId/PartyNumber/PartyName (plus ProjectId, ProjectPartyId) - there is NO Customer or CustomerId attribute, so a q predicate naming those 400s.",
+        "parameters": [
+          {
+            "name": "ProjectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fields",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "x-vb": {
+              "defaultValue": "PartyId,PartyNumber,PartyName"
+            }
+          },
+          {
+            "name": "onlyData",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "x-vb": {
+              "defaultValue": true
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            },
+            "x-vb": {
+              "defaultValue": 200
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Response for default",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        },
+        "x-vb": {
+          "actionHint": "getMany"
+        }
+      }
+    },
+    "/fscmRestApi/resources/11.13.18.05/installedBaseAssets/{AssetId}/child/relationships": {
+      "get": {
+        "operationId": "getInstalledBaseAssetRelationships",
+        "description": "Structure children of an asset. Used only by the OPT-IN child cascade in resources/js/maintAssetLocation.js (MAINT_ASSET_CASCADE_CHILDREN), which relocates an asset's components along with it.\n\nThe returned AssetId is the CHILD's asset id, not the parent from the path. Fusion's own description of this resource: 'The Relationships resource manages the asset structure relationships. You can add, remove, or get the assets of the structure.'\n\nUSED INSTEAD OF the old app's OIC EQUIPMENT_RITE/EQP_ASSETMAINTENANCE/1.0/getAssets, which is still deployed but is one more dependency for the same answer.",
+        "parameters": [
+          {
+            "name": "AssetId",
+            "in": "path",
+            "required": true,
+            "description": "The PARENT asset's Fusion AssetId.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            },
+            "x-vb": {
+              "defaultValue": 200
+            }
+          },
+          {
+            "name": "onlyData",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "x-vb": {
+              "defaultValue": true
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Response for default",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "RelationshipId": {
+                            "type": "integer",
+                            "nullable": true
+                          },
+                          "AssetId": {
+                            "type": "integer",
+                            "nullable": true,
+                            "description": "The CHILD asset's id. Declared explicitly because VB strips undeclared response fields."
+                          },
+                          "AssetNumber": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "SerialNumber": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "ItemNumber": {
+                            "type": "string",
+                            "nullable": true
+                          }
+                        }
+                      }
+                    },
+                    "count": {
+                      "type": "integer"
+                    },
+                    "hasMore": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-vb": {
+          "actionHint": "getMany"
+        }
+      }
+    },
+    "/fscmRestApi/resources/11.13.18.05/installedBaseAssets/{AssetId}": {
+      "patch": {
+        "operationId": "patchInstalledBaseAsset",
+        "description": "Relocate a maintenance asset. Body: { CurrentLocationContextCode, CurrentLocationId, OperatingOrganizationId }.\n\nRESOURCE CHOICE. The OLD EquipRite app patched /maintenanceAssets/{AssetId} with CurrentLocationContext (no 'Code'). That resource still answers on this pod but its own describe now reads: 'Deprecated. The Maintainable Assets resource manages maintenance assets. This resource was replaced by the Installed Base Assets resource.' Hence installedBaseAssets. The rename matters - on installedBaseAssets, CurrentLocationContext is updatable:false (read-only description) and CurrentLocationContextCode is the writable one. OperatingOrganizationId is mandatory here, optional on the old resource.\n\nORA_INVENTORY IS NOT AN OPTION. Quoting the live pod's describe: 'You can't use location context ORA_INVENTORY as the context when creating or updating the maintenance asset. An inventory transaction can modify ORA_INVENTORY.' SubinventoryCode and LocatorId are correspondingly updatable:false. So inventory placement belongs to the inventory engine and this call only ever writes ORA_INTERNAL_LOCATION - which is why the caller skips inventory-tracked lines entirely rather than patching them.",
+        "parameters": [
+          {
+            "name": "AssetId",
+            "in": "path",
+            "required": true,
+            "description": "Fusion AssetId (the surrogate), NOT AssetNumber. Resolve it first with getInstalledBaseAssets?q=AssetNumber='...'.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "default": {
+            "description": "Response for default",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-vb": {
+          "actionHint": "update"
+        }
+      }
+    },
+    "/fscmRestApi/resources/11.13.18.05/installedBaseAssets": {
+      "get": {
+        "operationId": "getInstalledBaseAssets",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fields",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            },
+            "x-vb": {
+              "defaultValue": 25
+            }
+          },
+          {
+            "name": "onlyData",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "x-vb": {
+              "defaultValue": true
+            }
+          },
+          {
+            "name": "orderBy",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Response for default",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-vb": {
+          "actionHint": "getMany"
+        }
+      }
+    },
+    "/fscmRestApi/resources/11.13.18.05/maintenanceWorkOrders": {
+      "get": {
+        "operationId": "getMaintenanceWorkOrders",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fields",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            },
+            "x-vb": {
+              "defaultValue": 100
+            }
+          },
+          {
+            "name": "onlyData",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "x-vb": {
+              "defaultValue": true
+            }
+          },
+          {
+            "name": "orderBy",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "x-vb": {
+              "defaultValue": "PlannedStartDate:desc"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Response for default",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-vb": {
+          "actionHint": "getMany"
+        }
+      }
+    },
+    "/fscmRestApi/resources/11.13.18.05/maintenanceForecasts": {
+      "get": {
+        "operationId": "getMaintenanceForecasts",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fields",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            },
+            "x-vb": {
+              "defaultValue": 50
+            }
+          },
+          {
+            "name": "onlyData",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "x-vb": {
+              "defaultValue": true
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Response for default",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-vb": {
+          "actionHint": "getMany"
+        }
+      }
+    },
+    "/fscmRestApi/resources/11.13.18.05/rateSchedules": {
+      "get": {
+        "operationId": "getFscmRestApiResources11_13_18_05RateSchedules",
+        "description": "Fusion PPM rate schedule HEADERS. Used to resolve the configured nonlabor COST rate schedule by name, because nothing in the data marks a schedule as cost vs bill -- that lives in the organization costing rule, which REST does not expose. The caller passes q=RateScheduleName='<configured name>' -- the attribute is RateScheduleName, NOT Name (verified live on Dev9; there is no Name attribute). ScheduleTypeName is 'Nonlabor'. ScheduleType is 'Nonlabor' for both the cost and the bill schedule, so it cannot be used to tell them apart. Currency is per SCHEDULE: a tenant holds a matching pair (e.g. AED and USD) over the same lines, so the name must identify one exactly.",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fields",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "x-vb": {
+              "defaultValue": "RateScheduleId,RateScheduleName,ScheduleTypeName,CurrencyCode,ProjectRatesSetName"
+            }
+          },
+          {
+            "name": "onlyData",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "x-vb": {
+              "defaultValue": true
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            },
+            "x-vb": {
+              "defaultValue": 200
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Response for default",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-vb": {
+          "actionHint": "getMany"
+        }
+      }
+    },
+    "/fscmRestApi/resources/11.13.18.05/rateSchedules/{rateScheduleId}/child/Rates": {
+      "parameters": [
+        {
+          "name": "rateScheduleId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "get": {
+        "operationId": "getFscmRestApiResources11_13_18_05RateSchedulesRates",
+        "description": "The LINES of one rate schedule. This is the ONLY place the unit of measure lives: UnitOfMeasureName is per LINE, not per schedule, and the same equipment routinely carries both a Day-based and an Hours-based line (e.g. 'AUV OS-7 - Operational Day Rate' vs '- Operational Hourly Rate'). We read it to tell the timesheet what its day boxes MEAN. We do NOT read Rate to price anything -- under PPM sourcing Fusion computes the cost -- but a blank or zero Rate is worth surfacing, because a line with Rate 0 and RateRequired ticked prices every transaction at nothing. NonLaborResourceName is OPTIONAL on a line and is empty at Oceaneering, whose cost lines resolve on ExpenditureTypeName alone; do not assume it is populated.",
+        "parameters": [
+          {
+            "name": "fields",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "x-vb": {
+              "defaultValue": "ExpenditureTypeName,ExpenditureTypeId,NonLaborResourceName,NonLaborResourceId,UnitOfMeasureName,Rate,MarkupPercent,StartDateActive,EndDateActive"
+            }
+          },
+          {
+            "name": "onlyData",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "x-vb": {
+              "defaultValue": true
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            },
+            "x-vb": {
+              "defaultValue": 500
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Response for default",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-vb": {
+          "actionHint": "getMany"
+        }
+      }
+    },
+    "/fscmRestApi/resources/11.13.18.05/itemClasses": {
+      "get": {
+        "operationId": "getFscmRestApiResources11_13_18_05ItemClasses",
+        "description": "Item classes for the Import From Fusion filter. The dropdown VALUE must be ItemClassCode - that is what EGP_SYSTEM_ITEMS_B.ITEM_CLASS_CODE holds. ItemClass is the display name and diverges from the code when a class is renamed. There is no ItemClassName attribute; requesting it returns HTTP 400.",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "x-vb": {
+              "defaultValue": "EnabledFlag=true;ItemCreationAllowedFlag=true"
+            }
+          },
+          {
+            "name": "fields",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "x-vb": {
+              "defaultValue": "ItemClassId,ItemClass,ItemClassCode"
+            }
+          },
+          {
+            "name": "onlyData",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "x-vb": {
+              "defaultValue": true
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            },
+            "x-vb": {
+              "defaultValue": 500
+            }
+          },
+          {
+            "name": "orderBy",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "x-vb": {
+              "defaultValue": "ItemClass:asc"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Response for default",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "ItemClassId": {
+                            "type": "integer"
+                          },
+                          "ItemClass": {
+                            "type": "string"
+                          },
+                          "ItemClassCode": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "count": {
+                      "type": "integer"
+                    },
+                    "hasMore": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-vb": {
+          "actionHint": "getMany"
+        }
+      }
+    },
+    "/fscmRestApi/resources/11.13.18.05/subinventories": {
+      "get": {
+        "operationId": "getFscmRestApiResources11_13_18_05Subinventories",
+        "description": "Subinventories of one inventory org, for the Subinventory picker on Configurations → BU Org Mapping. Callers filter with q=OrganizationId=<id>. The saved value is SecondaryInventoryName (the subinventory code the Transfer Order sends as DestinationSubinventoryCode).",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "x-vb": {
+              "defaultValue": "500"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fields",
+            "in": "query",
+            "description": "Comma-separated attribute list, e.g. SecondaryInventoryName,Description,OrganizationId,DisableDate.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "onlyData",
+            "in": "query",
+            "description": "Drop Fusion's per-row links[] envelope.",
+            "schema": {
+              "type": "boolean"
+            },
+            "x-vb": {
+              "defaultValue": true
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Response for default",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetFscmRestApiResources11_13_18_05Subinventories"
+                }
+              }
+            }
+          }
+        },
+        "x-vb": {
+          "actionHint": "getMany"
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "GetFscmRestApiResources11_13_18_05ProjectsLOV": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "ProjectId": {
+                  "type": "integer"
+                },
+                "ProjectNumber": {
+                  "type": "string"
+                },
+                "ProjectStartDate": {
+                  "type": "string"
+                },
+                "ProjectFinishDate": {
+                  "type": "string"
+                },
+                "ProjectName": {
+                  "type": "string"
+                },
+                "links": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "rel": {
+                        "type": "string"
+                      },
+                      "href": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "count": {
+            "type": "integer"
+          },
+          "hasMore": {
+            "type": "boolean"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "rel": {
+                  "type": "string"
+                },
+                "href": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "GetFscmRestApiResources11_13_18_05ShippingCustomersLOV": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "CustomerId": {
+                  "type": "integer"
+                },
+                "Customer": {
+                  "type": "string"
+                },
+                "CustomerNumber": {
+                  "type": "string"
+                },
+                "PartyType": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "count": {
+            "type": "integer"
+          },
+          "hasMore": {
+            "type": "boolean"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          }
+        }
+      },
+      "GetFscmRestApiResources11_13_18_05InventoryOrganizationsOpenLOV": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "OrganizationId": {
+                  "type": "integer"
+                },
+                "OrganizationCode": {
+                  "type": "string"
+                },
+                "OrganizationName": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "count": {
+            "type": "integer"
+          },
+          "hasMore": {
+            "type": "boolean"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          }
+        }
+      },
+      "GetFscmRestApiResources11_13_18_05FinBusinessUnitsLOV": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "BusinessUnitId": {
+                  "type": "integer"
+                },
+                "BusinessUnitName": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "count": {
+            "type": "integer"
+          },
+          "hasMore": {
+            "type": "boolean"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          }
+        }
+      },
+      "GetFscmRestApiResources11_13_18_05InventoryOrganizations": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "OrganizationId": {
+                  "type": "integer"
+                },
+                "OrganizationCode": {
+                  "type": "string"
+                },
+                "OrganizationName": {
+                  "type": "string"
+                },
+                "ManagementBusinessUnitId": {
+                  "type": "integer",
+                  "nullable": true
+                },
+                "LocationId": {
+                  "type": "integer",
+                  "nullable": true,
+                  "description": "Fusion hr_locations LocationId this inventory organization references. THE bridge from an inventory org to the location id installedBaseAssets wants as CurrentLocationId (see resources/js/maintAssetLocation.js). Confirmed queryable on the live pod via /inventoryOrganizations/describe. Declaring it is NOT optional: VB strips undeclared response fields, so without this line the value arrives undefined and the asset PATCH would be built with a null location."
+                },
+                "LocationCode": {
+                  "type": "string",
+                  "nullable": true,
+                  "description": "Oracle marks this attribute obsolete - 'This attribute is obsolete. Don't use it.' Kept only because it was already declared. Use LocationId."
+                },
+                "Status": {
+                  "type": "string",
+                  "nullable": true
+                }
+              }
+            }
+          },
+          "count": {
+            "type": "integer"
+          },
+          "hasMore": {
+            "type": "boolean"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          }
+        }
+      },
+      "GetFscmRestApiResources11_13_18_05ProjectTasksLOV": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "ElementType": {
+                  "type": "string"
+                },
+                "ProjectId": {
+                  "type": "integer"
+                },
+                "TaskId": {
+                  "type": "integer"
+                },
+                "TaskName": {
+                  "type": "string"
+                },
+                "TaskNumber": {
+                  "type": "string"
+                },
+                "TransactionCompletionDate": {
+                  "nullable": true
+                },
+                "TransactionStartDate": {
+                  "nullable": true
+                },
+                "ParentTaskId": {
+                  "type": "integer"
+                },
+                "TaskStartDate": {
+                  "type": "string"
+                },
+                "TaskFinishDate": {
+                  "type": "string"
+                },
+                "links": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "rel": {
+                        "type": "string"
+                      },
+                      "href": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "count": {
+            "type": "integer"
+          },
+          "hasMore": {
+            "type": "boolean"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "rel": {
+                  "type": "string"
+                },
+                "href": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "GetFscmRestApiResources11_13_18_05Subinventories": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "SubinventoryId": {
+                  "type": "integer",
+                  "nullable": true
+                },
+                "SecondaryInventoryName": {
+                  "type": "string",
+                  "description": "The subinventory code. Saved to EQR_BU_ORG_MAPPING.SUBINVENTORY_CODE."
+                },
+                "Description": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "OrganizationId": {
+                  "type": "integer"
+                },
+                "OrganizationCode": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "DisableDate": {
+                  "type": "string",
+                  "nullable": true,
+                  "description": "Set when the subinventory is disabled. The picker leaves these out."
+                }
+              }
+            }
+          },
+          "count": {
+            "type": "integer"
+          },
+          "hasMore": {
+            "type": "boolean"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          }
+        }
+      }
+    }
+  }
+}

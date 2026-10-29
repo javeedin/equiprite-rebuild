@@ -1,0 +1,31 @@
+{
+  "data": [
+    {
+      "lineSeq": 1,
+      "agreementNumber": "AGR-2025-001",
+      "startDate": "2026-05-08T14:26:24.212Z",
+      "endDate": "2026-05-08T14:26:24.212Z",
+      "projectOrCustomer": "Site Alpha Project",
+      "taskName": "Drilling Phase 1",
+      "vendor": "Heavy Equipment Co.",
+      "location": "Houston Yard",
+      "totalAgreementCost": 250000,
+      "lineNumber": 3,
+      "description": "Excavator rental — 90 days",
+      "equipmentName": "Excavator XL-3000",
+      "className": "Heavy Machinery",
+      "qty": 2,
+      "billRate": 1500,
+      "priceUom": "DAY",
+      "availability": 90,
+      "status": "ACTIVE",
+      "estCost": 135000,
+      "utilPct": 92.5
+    }
+  ],
+  "recordCount": 20,
+  "page": 0,
+  "pageSize": 10,
+  "totalPages": 2,
+  "hasMore": true
+}

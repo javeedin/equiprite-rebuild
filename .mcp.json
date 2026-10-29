@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "vbcs-docs": {
+      "type": "http",
+      "url": "https://mcp.rite.digital/mcp",
+      "headers": {
+        "x-api-key": "0b111044e9fae606673efabb4cd209a02a41262f33fb010036d655968e247235"
+      }
+    }
+  }
+}

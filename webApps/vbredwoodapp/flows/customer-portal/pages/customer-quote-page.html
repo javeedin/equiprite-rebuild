@@ -1,0 +1,116 @@
+<style>
+  #quotePageOverview { --oj-sp-general-overview-page-max-width: 100% !important; width: 100% !important; max-width: min(2400px, calc(100vw - 48px)) !important; margin: 0 auto !important; }
+
+  /* ── Accept-in-progress overlay (shown while the Fusion contract is created) ── */
+  .quote-accept-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.78);
+    backdrop-filter: blur(1px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+  .quote-accept-box {
+    background: #fff;
+    border: 1px solid var(--oj-core-divider-color, #e0e0e0);
+    border-radius: 10px;
+    padding: 28px 40px;
+    box-shadow: 0 6px 28px rgba(0, 0, 0, 0.14);
+    text-align: center;
+    max-width: 340px;
+  }
+  .quote-accept-spinner {
+    width: 42px;
+    height: 42px;
+    margin: 0 auto 16px auto;
+    border: 4px solid var(--oj-core-neutral-color-3, #e0e0e0);
+    border-top-color: var(--oj-core-brand-color-primary, #005cb1);
+    border-radius: 50%;
+    animation: quoteSpin 0.8s linear infinite;
+  }
+  @keyframes quoteSpin { to { transform: rotate(360deg); } }
+  .quote-accept-text {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 4px;
+  }
+  .quote-accept-subtext {
+    font-size: 0.8rem;
+    color: var(--oj-core-text-color-secondary, #565656);
+    line-height: 1.5;
+  }
+</style>
+
+<oj-sp-general-overview-page
+  id="quotePageOverview"
+  class="oj-sm-width-full"
+  page-title="[[ 'Quote — ' + $variables.requestId ]]"
+  display-mode="mixed"
+  display-options.in-flow-back="true"
+  on-sp-in-flow-back="[[ $listeners.onBack ]]">
+
+  <div slot="main" style="width:100%; padding: 0 16px 32px 16px;">
+
+    <!-- Accept in progress — full-page loader while the contract is created -->
+    <oj-bind-if test="[[ $variables.isAccepting ]]">
+      <div class="quote-accept-overlay">
+        <div class="quote-accept-box">
+          <div class="quote-accept-spinner"></div>
+          <div class="quote-accept-text">Creating your contract…</div>
+          <div class="quote-accept-subtext">Approving the quote and generating your rental contract. This may take a few moments — please don't close this page.</div>
+        </div>
+      </div>
+    </oj-bind-if>
+
+    <!-- Loading state -->
+    <oj-bind-if test="[[ $variables.isLoading ]]">
+      <div style="text-align:center; padding:60px 0; color:var(--oj-core-text-color-secondary,#565656);">
+        Loading quote...
+      </div>
+    </oj-bind-if>
+
+    <oj-bind-if test="[[ !$variables.isLoading ]]">
+
+      <!-- Saved quote document (Option A) — the PDF view and Accept live together here -->
+      <oj-bind-if test="[[ $variables.hasQuoteDoc ]]">
+
+        <!-- Download the actual PDF + Accept the quote (→ In Process) -->
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-bottom:16px;">
+          <oj-button chroming="outlined"
+            on-oj-action="[[ function() { window.open($variables.quotePdfUrl, '_blank'); } ]]" display="all" class="oj-button-sm">
+            <span slot="startIcon" class="oj-ux-ico-download"></span>
+            <span>Download PDF</span>
+          </oj-button>
+          <oj-button chroming="callToAction"
+            on-oj-action="[[ $listeners.onAcceptQuote ]]" display="all" class="oj-button-sm"
+            :disabled="[[ !!$variables.quoteData.contractNumber || $variables.isAccepting || !$variables.acceptAllowed ]]">
+            <span slot="startIcon" class="oj-ux-ico-check-circle-s"></span>
+            <span><oj-bind-text value="[[
+              $variables.quoteData.contractNumber ? 'Accepted (' + $variables.quoteData.contractNumber + ')' :
+              $variables.isAccepting ? 'Creating contract…' :
+              !$variables.acceptAllowed ? 'Quote Acceptance Disabled' : 'Accept Quote'
+            ]]"></oj-bind-text></span>
+          </oj-button>
+        </div>
+
+        <!-- The exact PDF the manager sent -->
+        <iframe :src="[[ $variables.quotePdfUrl ]]" title="Equipment Rental Quote"
+          style="width:100%; height:80vh; border:1px solid var(--oj-core-divider-color,#e0e0e0); border-radius:8px; background:#fff;"></iframe>
+
+      </oj-bind-if>
+
+      <!-- No saved quote document for this request -->
+      <oj-bind-if test="[[ !$variables.hasQuoteDoc ]]">
+        <div style="text-align:center; padding:60px 16px; color:var(--oj-core-text-color-secondary,#565656);">
+          <div style="font-size:40px; color:#cbd5e1; margin-bottom:12px;">📄</div>
+          <div style="font-size:15px; font-weight:600; color:#475569;">No quote document is available for this request yet.</div>
+        </div>
+      </oj-bind-if>
+
+    </oj-bind-if>
+
+  </div>
+</oj-sp-general-overview-page>

@@ -1,0 +1,55 @@
+{
+  "description": "Smart-search filters for the Equipment History tab ONLY. One config file per tab, because oj-sp-smart-search renders a chip for EVERY filter the loaded config declares \u2014 suggestion-filters does NOT gate that row. Each `field` IS the endpoint's literal query-param name (see reportCriterion.ENDPOINT_PARAMS); a field that is not a real param yields a chip that filters nothing, because the views ignore unknown params silently. This set is deliberately CURATED, not exhaustive \u2014 the endpoint accepts more params than are offered. Not offered: Serial Number (free-text q still spans it); duration and fromDate/toDate \u2014 the window stays a page-level Period control (presets plus a Custom range), not a chip, because smart search has no date filter type. Project and Equipment Name WERE dropped for this reason too but were re-added as chips by request, alongside the equivalent addition on Equipment Analytics.",
+  "filters": {
+    "AssetGroupFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Asset Group",
+      "options": {
+        "field": "assetGroup",
+        "optionsData": "[[ $search.filters.AssetGroupFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.AssetGroupFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "StatusFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Allocation Status",
+      "options": {
+        "field": "allocationStatus",
+        "optionsData": "[[ $search.filters.StatusFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.StatusFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "LineStatusFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Line Status",
+      "options": {
+        "field": "lineStatus",
+        "optionsData": "[[ $search.filters.LineStatusFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.LineStatusFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "ProjectFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Project",
+      "options": {
+        "field": "projectId",
+        "optionsData": "[[ $search.filters.ProjectFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.ProjectFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "EquipmentFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Equipment Name",
+      "options": {
+        "field": "equipmentName",
+        "optionsData": "[[ $search.filters.EquipmentFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.EquipmentFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    }
+  }
+}

@@ -1,0 +1,1878 @@
+{
+  "title": "Equipment Timesheet",
+  "variables": {
+    "dataGridProvider": {
+      "type": "any",
+      "defaultValue": null
+    },
+    "weekRangeProvider": {
+      "type": "any",
+      "defaultValue": null
+    },
+    "selectedWeekStart": {
+      "type": "any",
+      "defaultValue": null
+    },
+    "headerStatus": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "equipGridProvider": {
+      "type": "any",
+      "defaultValue": null
+    },
+    "equipIsDirty": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "equipHeaderLinesExist": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "timesheetId": {
+      "type": "string",
+      "input": "fromUrl"
+    },
+    "requestId": {
+      "type": "string",
+      "input": "fromUrl"
+    },
+    "requestSpanLabel": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "projectName": {
+      "type": "string",
+      "input": "fromUrl"
+    },
+    "weekStartDate": {
+      "type": "string",
+      "input": "fromUrl"
+    },
+    "timesheetType": {
+      "type": "string",
+      "input": "fromUrl"
+    },
+    "totalHours": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "billAmount": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "isSubmitting": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "submitError": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "isSaving": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "saveError": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "equipmentSearchText": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "selectedClass": {
+      "type": "string",
+      "defaultValue": null
+    },
+    "selectedUsageType": {
+      "type": "string",
+      "defaultValue": null
+    },
+    "selectedStatus": {
+      "type": "string",
+      "defaultValue": null
+    },
+    "classProvider": {
+      "type": "any",
+      "defaultValue": null
+    },
+    "usageTypeProvider": {
+      "type": "any",
+      "defaultValue": null
+    },
+    "statusProvider": {
+      "type": "any",
+      "defaultValue": null
+    },
+    "selectedRowCount": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "selection": {
+      "type": "any",
+      "defaultValue": []
+    },
+    "expTypeList": {
+      "type": "any[]",
+      "description": "Expenditure types for the grid's Expenditure Type column, as a PLAIN ARRAY (not a vb/ArrayDataProvider2 -- VBCS tracks an ADP by reference, so reassigning one breaks the binding). getExpTypeProvider() in the page module wraps it and falls back to the four values PROVEN accepted by unprocessedProjectCosts when this is empty, so the picker is never blank. Fill it per page load with the list Fusion returns for the request's project, the same call the Post Cost drawer and the PR drawer make: ProjectLOV/getFscmRestApiResources11_13_18_05ExpenditureTypes with finder=ValidValuesFinder;flex_vst_bind3=<ProjectId>. Items are {value,label} keyed on the type NAME, because the OIC map sends _EXPENDITURE_TYPE_ID_Display.",
+      "defaultValue": []
+    },
+    "expTypeMap": {
+      "type": "object",
+      "description": "Which expenditure types were AUTHORED for each equipment master, keyed by master id: { <masterId>: { level: 'MASTER'|'SUBCLASS'|'CLASS'|'NONE', types: [{value, isDefault, displayOrder, useCount}] } }. Narrows the Expenditure Type picker per ROW, from the project's whole list (84 on dev20) to the two or three that belong to that equipment -- which cannot be derived from names (measured: 3 of 569), so it is authored in EQR_EXP_TYPE_MAP and read back. Filled from eqp-v1/resolveExpTypeMaps by the enter and week-refresh chains; see resources/js/expenditureTypes.js loadMapsForMasters(). REASSIGN the whole object rather than adding keys in place -- VBCS tracks it by reference and the pickers will not re-render otherwise (the same reason expTypeList is a plain array). An empty map, a missing master, or level 'NONE' all mean \"not authored\", and the picker then keeps the full list: never blank it, or the user cannot record their week.",
+      "defaultValue": {}
+    },
+    "internalRequestId": {
+      "type": "number",
+      "defaultValue": 0,
+      "description": "Internal eqrEquipmentRequestId, resolved at page enter from the request NUMBER (this page only ever receives the number). Needed because patchRequestLine is PATCH /equipment-requests/{requestId}/lines/{id} and takes BOTH ids - without this the per-line expenditure-type save 404s on every attempt while looking like a working implementation. Resolved via expenditureTypes.resolveRequestIdByNumber, which uses views/workbench-requests and asserts the returned row matches: equipment-requests?requestNumber= declares the parameter and ignores it, returning the oldest of 368 rows."
+    }
+  },
+  "eventListeners": {
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "projectsModuleGuardChain",
+          "parameters": {}
+        },
+        {
+          "chain": "vbEnterChain"
+        }
+      ]
+    },
+    "onFrozenColumnCountChanged": {
+      "chains": [
+        {
+          "chain": "frozenColumnCountChangedChain",
+          "parameters": {
+            "event": "[[ $event ]]"
+          }
+        }
+      ]
+    },
+    "onBeforeEdit": {
+      "chains": [
+        {
+          "chain": "beforeEditChain",
+          "parameters": {
+            "event": "[[ $event ]]"
+          }
+        }
+      ]
+    },
+    "onBeforeEditEnd": {
+      "chains": [
+        {
+          "chain": "beforeEditEndChain",
+          "parameters": {
+            "event": "[[ $event ]]"
+          }
+        }
+      ]
+    },
+    "onAddRow": {
+      "chains": [
+        {
+          "chain": "addRowChain"
+        }
+      ]
+    },
+    "onSearchTextChanged": {
+      "chains": [
+        {
+          "chain": "onSearchTextChangedChain",
+          "parameters": {
+            "event": "[[ $event ]]"
+          }
+        }
+      ]
+    },
+    "onDuplicateRow": {
+      "chains": [
+        {
+          "chain": "duplicateRowChain",
+          "parameters": {
+            "rowIndex": "[[ $event.rowIndex ]]"
+          }
+        }
+      ]
+    },
+    "onDeleteRow": {
+      "chains": [
+        {
+          "chain": "deleteRowChain",
+          "parameters": {
+            "rowIndex": "[[ $event.rowIndex ]]"
+          }
+        }
+      ]
+    },
+    "onSelectionChange": {
+      "chains": [
+        {
+          "chain": "selectionChangeChain"
+        }
+      ]
+    },
+    "onUndoChanges": {
+      "chains": [
+        {
+          "chain": "undoActionChain"
+        }
+      ]
+    },
+    "onUpdateSelection": {
+      "chains": [
+        {
+          "chain": "updateSelectionChain"
+        }
+      ]
+    },
+    "onRemoveSelection": {
+      "chains": [
+        {
+          "chain": "removeSelectionChain"
+        }
+      ]
+    },
+    "onAddSelection": {
+      "chains": [
+        {
+          "chain": "addSelectionChain"
+        }
+      ]
+    },
+    "onCutRequest": {
+      "chains": [
+        {
+          "chain": "cutRequestChain",
+          "parameters": {
+            "event": "[[ $event ]]"
+          }
+        }
+      ]
+    },
+    "onCopyRequest": {
+      "chains": [
+        {
+          "chain": "copyRequestChain",
+          "parameters": {
+            "event": "[[ $event ]]"
+          }
+        }
+      ]
+    },
+    "onPasteRequest": {
+      "chains": [
+        {
+          "chain": "pasteRequestChain",
+          "parameters": {
+            "event": "[[ $event ]]"
+          }
+        }
+      ]
+    },
+    "onFillRequest": {
+      "chains": [
+        {
+          "chain": "fillRequestChain",
+          "parameters": {
+            "event": "[[ $event ]]"
+          }
+        }
+      ]
+    },
+    "onFilterRequest": {
+      "chains": [
+        {
+          "chain": "filterRequestChain",
+          "parameters": {
+            "event": "[[ $event ]]"
+          }
+        }
+      ]
+    },
+    "onFilterPopupClose": {
+      "chains": [
+        {
+          "chain": "filterPopupCloseChain"
+        }
+      ]
+    },
+    "onApplyFilter": {
+      "chains": [
+        {
+          "chain": "applyFilterChain"
+        }
+      ]
+    },
+    "onHiddenColumnsChanged": {
+      "chains": [
+        {
+          "chain": "hiddenColumnsChangedChain",
+          "parameters": {
+            "event": "[[ $event ]]"
+          }
+        }
+      ]
+    },
+    "onHiddenRowsChanged": {
+      "chains": [
+        {
+          "chain": "hiddenRowsChangedChain",
+          "parameters": {
+            "event": "[[ $event ]]"
+          }
+        }
+      ]
+    },
+    "onWeekChange": {
+      "chains": [
+        {
+          "chain": "refreshGridByWeekChain"
+        }
+      ]
+    },
+    "onBannerFilterChange": {
+      "chains": [
+        {
+          "chain": "applyBannerFiltersChain"
+        }
+      ]
+    },
+    "onCreateHeader": {
+      "chains": [
+        {
+          "chain": "addTimeEntryRowChain"
+        }
+      ]
+    },
+    "onEquipBeforeEdit": {
+      "chains": [
+        {
+          "chain": "equipBeforeEditChain",
+          "parameters": {
+            "event": "[[ $event ]]"
+          }
+        }
+      ]
+    },
+    "onEquipBeforeEditEnd": {
+      "chains": [
+        {
+          "chain": "equipBeforeEditEndChain",
+          "parameters": {
+            "event": "[[ $event ]]"
+          }
+        }
+      ]
+    },
+    "onEquipAddRow": {
+      "chains": [
+        {
+          "chain": "equipAddRowChain"
+        }
+      ]
+    },
+    "onEquipDuplicateRow": {
+      "chains": [
+        {
+          "chain": "equipDuplicateRowChain",
+          "parameters": {
+            "rowIndex": "[[ $event.rowIndex ]]"
+          }
+        }
+      ]
+    },
+    "onEquipDeleteRow": {
+      "chains": [
+        {
+          "chain": "equipDeleteRowChain",
+          "parameters": {
+            "rowIndex": "[[ $event.rowIndex ]]"
+          }
+        }
+      ]
+    },
+    "onEquipUndoChanges": {
+      "chains": [
+        {
+          "chain": "equipUndoChain"
+        }
+      ]
+    },
+    "onEquipRevertChanges": {
+      "chains": [
+        {
+          "chain": "equipRevertChain"
+        }
+      ]
+    },
+    "onEquipSaveChanges": {
+      "chains": [
+        {
+          "chain": "equipSaveChangesChain"
+        }
+      ]
+    },
+    "onEquipSelectionChange": {
+      "chains": [
+        {
+          "chain": "equipSelectionChangeChain"
+        }
+      ]
+    },
+    "onEquipUpdateSelection": {
+      "chains": [
+        {
+          "chain": "equipUpdateSelectionChain"
+        }
+      ]
+    },
+    "onEquipRemoveSelection": {
+      "chains": [
+        {
+          "chain": "equipRemoveSelectionChain"
+        }
+      ]
+    },
+    "onEquipAddSelection": {
+      "chains": [
+        {
+          "chain": "equipAddSelectionChain"
+        }
+      ]
+    },
+    "onEquipCutRequest": {
+      "chains": [
+        {
+          "chain": "equipCutRequestChain",
+          "parameters": {
+            "event": "[[ $event ]]"
+          }
+        }
+      ]
+    },
+    "onEquipCopyRequest": {
+      "chains": [
+        {
+          "chain": "equipCopyRequestChain",
+          "parameters": {
+            "event": "[[ $event ]]"
+          }
+        }
+      ]
+    },
+    "onEquipPasteRequest": {
+      "chains": [
+        {
+          "chain": "equipPasteRequestChain",
+          "parameters": {
+            "event": "[[ $event ]]"
+          }
+        }
+      ]
+    },
+    "onEquipFillRequest": {
+      "chains": [
+        {
+          "chain": "equipFillRequestChain",
+          "parameters": {
+            "event": "[[ $event ]]"
+          }
+        }
+      ]
+    },
+    "onEquipFilterRequest": {
+      "chains": [
+        {
+          "chain": "equipFilterRequestChain",
+          "parameters": {
+            "event": "[[ $event ]]"
+          }
+        }
+      ]
+    },
+    "onEquipFilterPopupClose": {
+      "chains": [
+        {
+          "chain": "equipFilterPopupCloseChain"
+        }
+      ]
+    },
+    "onApplyEquipFilter": {
+      "chains": [
+        {
+          "chain": "applyEquipFilterChain"
+        }
+      ]
+    },
+    "onEquipHiddenColumnsChanged": {
+      "chains": [
+        {
+          "chain": "equipHiddenColumnsChangedChain",
+          "parameters": {
+            "event": "[[ $event ]]"
+          }
+        }
+      ]
+    },
+    "onEquipHiddenRowsChanged": {
+      "chains": [
+        {
+          "chain": "equipHiddenRowsChangedChain",
+          "parameters": {
+            "event": "[[ $event ]]"
+          }
+        }
+      ]
+    },
+    "onEquipFrozenColumnCountChanged": {
+      "chains": [
+        {
+          "chain": "equipFrozenColumnCountChangedChain",
+          "parameters": {
+            "event": "[[ $event ]]"
+          }
+        }
+      ]
+    },
+    "onSpInFlowBack": {
+      "chains": [
+        {
+          "chain": "goToParentChain"
+        }
+      ]
+    },
+    "onSubmitTimesheet": {
+      "chains": [
+        {
+          "chain": "submitTimesheetChain"
+        }
+      ]
+    },
+    "onSaveTimesheet": {
+      "chains": [
+        {
+          "chain": "saveTimesheetChain"
+        }
+      ]
+    },
+    "onExportCsv": {
+      "chains": [
+        {
+          "chain": "exportCsvChain"
+        }
+      ]
+    },
+    "onUomChanged": {
+      "chains": [
+        {
+          "chain": "uomNoticeChain",
+          "parameters": {
+            "from": "{{ $event.from }}",
+            "to": "{{ $event.to }}"
+          }
+        }
+      ]
+    }
+  },
+  "chains": {
+    "frozenColumnCountChangedChain": {
+      "variables": {
+        "event": {
+          "type": "any",
+          "input": "fromCaller",
+          "required": true
+        }
+      },
+      "root": "assignFrozenCount",
+      "actions": {
+        "assignFrozenCount": {
+          "module": "vb/action/builtin/assignVariablesAction",
+          "parameters": {
+            "$page.variables.personColumnFrozenCount": {
+              "source": "[[ $chain.variables.event.detail.value ]]"
+            }
+          }
+        }
+      }
+    },
+    "undoActionChain": {
+      "root": "callJS",
+      "actions": {
+        "callJS": {
+          "module": "vb/action/builtin/callModuleFunctionAction",
+          "parameters": {
+            "module": "[[ $functions ]]",
+            "functionName": "undoLastAction",
+            "params": []
+          },
+          "outcomes": {
+            "success": "assignState"
+          }
+        },
+        "assignState": {
+          "module": "vb/action/builtin/assignVariablesAction",
+          "parameters": {
+            "$page.variables.isDirty": {
+              "source": "[[ $chain.results.callJS.isDirty ]]"
+            },
+            "$page.variables.undoDisabled": {
+              "source": "[[ $chain.results.callJS.undoDisabled ]]"
+            }
+          }
+        }
+      }
+    },
+    "selectionChangeChain": {
+      "root": "callJS",
+      "actions": {
+        "callJS": {
+          "module": "vb/action/builtin/callModuleFunctionAction",
+          "parameters": {
+            "module": "[[ $functions ]]",
+            "functionName": "selectionChange",
+            "params": [
+              "[[ $page.variables.selection ]]"
+            ]
+          },
+          "outcomes": {
+            "success": "checkHasSelection"
+          }
+        },
+        "checkHasSelection": {
+          "module": "vb/action/builtin/ifAction",
+          "parameters": {
+            "condition": "[[ $chain.results.callJS.updateDisabled === false ]]"
+          },
+          "outcomes": {
+            "true": "assignState",
+            "false": "assignDisabledOnly"
+          }
+        },
+        "assignState": {
+          "module": "vb/action/builtin/assignVariablesAction",
+          "parameters": {
+            "$page.variables.inputTextValue": {
+              "source": "[[ $chain.results.callJS.inputTextValue ]]"
+            },
+            "$page.variables.currentSelectionValue": {
+              "source": "[[ $chain.results.callJS.inputTextValue ]]"
+            },
+            "$page.variables.updateDisabled": {
+              "source": "[[ $chain.results.callJS.updateDisabled ]]"
+            },
+            "$page.variables.addRemoveDisabled": {
+              "source": "[[ $chain.results.callJS.addRemoveDisabled ]]"
+            }
+          }
+        },
+        "assignDisabledOnly": {
+          "module": "vb/action/builtin/assignVariablesAction",
+          "parameters": {
+            "$page.variables.currentSelectionValue": {
+              "source": ""
+            },
+            "$page.variables.updateDisabled": {
+              "source": "[[ $chain.results.callJS.updateDisabled ]]"
+            },
+            "$page.variables.addRemoveDisabled": {
+              "source": "[[ $chain.results.callJS.addRemoveDisabled ]]"
+            }
+          }
+        }
+      }
+    },
+    "updateSelectionChain": {
+      "root": "callJS",
+      "actions": {
+        "callJS": {
+          "module": "vb/action/builtin/callModuleFunctionAction",
+          "parameters": {
+            "module": "[[ $functions ]]",
+            "functionName": "updateSelection",
+            "params": [
+              "[[ $page.variables.selection ]]",
+              "[[ $page.variables.inputTextValue ]]"
+            ]
+          },
+          "outcomes": {
+            "success": "setDirty"
+          }
+        },
+        "setDirty": {
+          "module": "vb/action/builtin/assignVariablesAction",
+          "parameters": {
+            "$page.variables.isDirty": {
+              "source": true
+            },
+            "$page.variables.undoDisabled": {
+              "source": false
+            }
+          }
+        }
+      }
+    },
+    "removeSelectionChain": {
+      "root": "callJS",
+      "actions": {
+        "callJS": {
+          "module": "vb/action/builtin/callModuleFunctionAction",
+          "parameters": {
+            "module": "[[ $functions ]]",
+            "functionName": "removeSelection",
+            "params": [
+              "[[ $page.variables.selection ]]"
+            ]
+          },
+          "outcomes": {
+            "success": "setDirty"
+          }
+        },
+        "setDirty": {
+          "module": "vb/action/builtin/assignVariablesAction",
+          "parameters": {
+            "$page.variables.isDirty": {
+              "source": true
+            },
+            "$page.variables.undoDisabled": {
+              "source": false
+            }
+          }
+        }
+      }
+    },
+    "addSelectionChain": {
+      "root": "callJS",
+      "actions": {
+        "callJS": {
+          "module": "vb/action/builtin/callModuleFunctionAction",
+          "parameters": {
+            "module": "[[ $functions ]]",
+            "functionName": "addSelection",
+            "params": [
+              "[[ $page.variables.selection ]]"
+            ]
+          },
+          "outcomes": {
+            "success": "setDirty"
+          }
+        },
+        "setDirty": {
+          "module": "vb/action/builtin/assignVariablesAction",
+          "parameters": {
+            "$page.variables.isDirty": {
+              "source": true
+            },
+            "$page.variables.undoDisabled": {
+              "source": false
+            }
+          }
+        }
+      }
+    },
+    "cutRequestChain": {
+      "variables": {
+        "event": {
+          "type": "any",
+          "input": "fromCaller",
+          "required": true
+        }
+      },
+      "root": "callJS",
+      "actions": {
+        "callJS": {
+          "module": "vb/action/builtin/callModuleFunctionAction",
+          "parameters": {
+            "module": "[[ $functions ]]",
+            "functionName": "handleCut",
+            "params": [
+              "[[ $chain.variables.event ]]"
+            ]
+          },
+          "outcomes": {
+            "success": "setDirty"
+          }
+        },
+        "setDirty": {
+          "module": "vb/action/builtin/assignVariablesAction",
+          "parameters": {
+            "$page.variables.isDirty": {
+              "source": true
+            },
+            "$page.variables.undoDisabled": {
+              "source": false
+            }
+          }
+        }
+      }
+    },
+    "copyRequestChain": {
+      "variables": {
+        "event": {
+          "type": "any",
+          "input": "fromCaller",
+          "required": true
+        }
+      },
+      "root": "callJS",
+      "actions": {
+        "callJS": {
+          "module": "vb/action/builtin/callModuleFunctionAction",
+          "parameters": {
+            "module": "[[ $functions ]]",
+            "functionName": "handleCopy",
+            "params": [
+              "[[ $chain.variables.event ]]"
+            ]
+          }
+        }
+      }
+    },
+    "pasteRequestChain": {
+      "variables": {
+        "event": {
+          "type": "any",
+          "input": "fromCaller",
+          "required": true
+        }
+      },
+      "root": "callJS",
+      "actions": {
+        "callJS": {
+          "module": "vb/action/builtin/callModuleFunctionAction",
+          "parameters": {
+            "module": "[[ $functions ]]",
+            "functionName": "handlePaste",
+            "params": [
+              "[[ $chain.variables.event ]]"
+            ]
+          },
+          "outcomes": {
+            "success": "setDirty"
+          }
+        },
+        "setDirty": {
+          "module": "vb/action/builtin/assignVariablesAction",
+          "parameters": {
+            "$page.variables.isDirty": {
+              "source": true
+            },
+            "$page.variables.undoDisabled": {
+              "source": false
+            }
+          }
+        }
+      }
+    },
+    "fillRequestChain": {
+      "variables": {
+        "event": {
+          "type": "any",
+          "input": "fromCaller",
+          "required": true
+        }
+      },
+      "root": "callJS",
+      "actions": {
+        "callJS": {
+          "module": "vb/action/builtin/callModuleFunctionAction",
+          "parameters": {
+            "module": "[[ $functions ]]",
+            "functionName": "handleFill",
+            "params": [
+              "[[ $chain.variables.event ]]"
+            ]
+          },
+          "outcomes": {
+            "success": "setDirty"
+          }
+        },
+        "setDirty": {
+          "module": "vb/action/builtin/assignVariablesAction",
+          "parameters": {
+            "$page.variables.isDirty": {
+              "source": true
+            },
+            "$page.variables.undoDisabled": {
+              "source": false
+            }
+          }
+        }
+      }
+    },
+    "filterRequestChain": {
+      "variables": {
+        "event": {
+          "type": "any",
+          "input": "fromCaller",
+          "required": true
+        }
+      },
+      "root": "callJS",
+      "actions": {
+        "callJS": {
+          "module": "vb/action/builtin/callModuleFunctionAction",
+          "parameters": {
+            "module": "[[ $functions ]]",
+            "functionName": "handleFilterRequest",
+            "params": [
+              "[[ $chain.variables.event ]]"
+            ]
+          },
+          "outcomes": {
+            "success": "assignState"
+          }
+        },
+        "assignState": {
+          "module": "vb/action/builtin/assignVariablesAction",
+          "parameters": {
+            "$page.variables.filterHeaderInfo": {
+              "source": "[[ $chain.results.callJS ]]"
+            }
+          }
+        }
+      }
+    },
+    "filterPopupCloseChain": {
+      "root": "callJS",
+      "actions": {
+        "callJS": {
+          "module": "vb/action/builtin/callModuleFunctionAction",
+          "parameters": {
+            "module": "[[ $functions ]]",
+            "functionName": "closeFilterPopup"
+          }
+        }
+      }
+    },
+    "applyFilterChain": {
+      "root": "callJS",
+      "actions": {
+        "callJS": {
+          "module": "vb/action/builtin/callModuleFunctionAction",
+          "parameters": {
+            "module": "[[ $functions ]]",
+            "functionName": "applyFilter",
+            "params": [
+              "[[ $page.variables.filterTextValue ]]"
+            ]
+          },
+          "outcomes": {
+            "success": "updateRowOptions"
+          }
+        },
+        "updateRowOptions": {
+          "module": "vb/action/builtin/callModuleFunctionAction",
+          "parameters": {
+            "module": "[[ $functions ]]",
+            "functionName": "buildRowHideOptions",
+            "params": []
+          },
+          "outcomes": {
+            "success": "assignRowOptions"
+          }
+        },
+        "assignRowOptions": {
+          "module": "vb/action/builtin/assignVariablesAction",
+          "parameters": {
+            "$page.variables.rowHideOptionsProvider": {
+              "source": "[[ $chain.results.updateRowOptions ]]"
+            }
+          }
+        }
+      }
+    },
+    "beforeEditChain": {
+      "variables": {
+        "event": {
+          "type": "any",
+          "input": "fromCaller",
+          "required": true
+        }
+      },
+      "root": "callJS",
+      "actions": {
+        "callJS": {
+          "module": "vb/action/builtin/callModuleFunctionAction",
+          "parameters": {
+            "module": "[[ $functions ]]",
+            "functionName": "handleEdit",
+            "params": [
+              "[[ $chain.variables.event ]]"
+            ]
+          }
+        }
+      }
+    },
+    "beforeEditEndChain": {
+      "variables": {
+        "event": {
+          "type": "any",
+          "input": "fromCaller",
+          "required": true
+        }
+      },
+      "root": "callJS",
+      "actions": {
+        "callJS": {
+          "module": "vb/action/builtin/callModuleFunctionAction",
+          "parameters": {
+            "module": "[[ $functions ]]",
+            "functionName": "handleEditEnd",
+            "params": [
+              "[[ $chain.variables.event ]]"
+            ]
+          },
+          "outcomes": {
+            "success": "checkDirty"
+          }
+        },
+        "checkDirty": {
+          "module": "vb/action/builtin/ifAction",
+          "parameters": {
+            "condition": "[[ $chain.results.callJS === true ]]"
+          },
+          "outcomes": {
+            "true": "setDirty"
+          }
+        },
+        "setDirty": {
+          "module": "vb/action/builtin/assignVariablesAction",
+          "parameters": {
+            "$page.variables.isDirty": {
+              "source": true
+            },
+            "$page.variables.undoDisabled": {
+              "source": false
+            }
+          }
+        }
+      }
+    },
+    "addRowChain": {
+      "root": "callJS",
+      "actions": {
+        "callJS": {
+          "module": "vb/action/builtin/callModuleFunctionAction",
+          "parameters": {
+            "module": "[[ $functions ]]",
+            "functionName": "addRow",
+            "params": []
+          },
+          "outcomes": {
+            "success": "setDirty"
+          }
+        },
+        "setDirty": {
+          "module": "vb/action/builtin/assignVariablesAction",
+          "parameters": {
+            "$page.variables.isDirty": {
+              "source": true
+            },
+            "$page.variables.undoDisabled": {
+              "source": false
+            }
+          }
+        }
+      }
+    },
+    "hiddenColumnsChangedChain": {
+      "variables": {
+        "event": {
+          "type": "any",
+          "input": "fromCaller",
+          "required": true
+        }
+      },
+      "root": "callJS",
+      "actions": {
+        "callJS": {
+          "module": "vb/action/builtin/callModuleFunctionAction",
+          "parameters": {
+            "module": "[[ $functions ]]",
+            "functionName": "getHiddenIndicesFromEvent",
+            "params": [
+              "[[ $chain.variables.event ]]"
+            ]
+          },
+          "outcomes": {
+            "success": "checkResult"
+          }
+        },
+        "checkResult": {
+          "module": "vb/action/builtin/ifAction",
+          "parameters": {
+            "condition": "[[ $chain.results.callJS !== null ]]"
+          },
+          "outcomes": {
+            "true": "assignIndices"
+          }
+        },
+        "assignIndices": {
+          "module": "vb/action/builtin/assignVariablesAction",
+          "parameters": {
+            "$page.variables.selectedColumnIndices": {
+              "source": "[[ $chain.results.callJS ]]"
+            }
+          }
+        }
+      }
+    },
+    "hiddenRowsChangedChain": {
+      "variables": {
+        "event": {
+          "type": "any",
+          "input": "fromCaller",
+          "required": true
+        }
+      },
+      "root": "callJS",
+      "actions": {
+        "callJS": {
+          "module": "vb/action/builtin/callModuleFunctionAction",
+          "parameters": {
+            "module": "[[ $functions ]]",
+            "functionName": "getHiddenIndicesFromEvent",
+            "params": [
+              "[[ $chain.variables.event ]]"
+            ]
+          },
+          "outcomes": {
+            "success": "checkResult"
+          }
+        },
+        "checkResult": {
+          "module": "vb/action/builtin/ifAction",
+          "parameters": {
+            "condition": "[[ $chain.results.callJS !== null ]]"
+          },
+          "outcomes": {
+            "true": "assignIndices"
+          }
+        },
+        "assignIndices": {
+          "module": "vb/action/builtin/assignVariablesAction",
+          "parameters": {
+            "$page.variables.selectedRowIndices": {
+              "source": "[[ $chain.results.callJS ]]"
+            }
+          }
+        }
+      }
+    },
+    "equipFrozenColumnCountChangedChain": {
+      "variables": {
+        "event": {
+          "type": "any",
+          "input": "fromCaller",
+          "required": true
+        }
+      },
+      "root": "assignCount",
+      "actions": {
+        "assignCount": {
+          "module": "vb/action/builtin/assignVariablesAction",
+          "parameters": {
+            "$page.variables.equipColumnFrozenCount": {
+              "source": "[[ $chain.variables.event.detail.value ]]"
+            }
+          }
+        }
+      }
+    },
+    "equipBeforeEditChain": {
+      "variables": {
+        "event": {
+          "type": "any",
+          "input": "fromCaller",
+          "required": true
+        }
+      },
+      "root": "callJS",
+      "actions": {
+        "callJS": {
+          "module": "vb/action/builtin/callModuleFunctionAction",
+          "parameters": {
+            "module": "[[ $functions ]]",
+            "functionName": "handleEquipEdit",
+            "params": [
+              "[[ $chain.variables.event ]]"
+            ]
+          }
+        }
+      }
+    },
+    "equipBeforeEditEndChain": {
+      "variables": {
+        "event": {
+          "type": "any",
+          "input": "fromCaller",
+          "required": true
+        }
+      },
+      "root": "callJS",
+      "actions": {
+        "callJS": {
+          "module": "vb/action/builtin/callModuleFunctionAction",
+          "parameters": {
+            "module": "[[ $functions ]]",
+            "functionName": "handleEquipEditEnd",
+            "params": [
+              "[[ $chain.variables.event ]]"
+            ]
+          },
+          "outcomes": {
+            "success": "checkDirty"
+          }
+        },
+        "checkDirty": {
+          "module": "vb/action/builtin/ifAction",
+          "parameters": {
+            "condition": "[[ $chain.results.callJS === true ]]"
+          },
+          "outcomes": {
+            "true": "setDirty"
+          }
+        },
+        "setDirty": {
+          "module": "vb/action/builtin/assignVariablesAction",
+          "parameters": {
+            "$page.variables.equipIsDirty": {
+              "source": true
+            },
+            "$page.variables.equipUndoDisabled": {
+              "source": false
+            }
+          }
+        }
+      }
+    },
+    "equipAddRowChain": {
+      "root": "callJS",
+      "actions": {
+        "callJS": {
+          "module": "vb/action/builtin/callModuleFunctionAction",
+          "parameters": {
+            "module": "[[ $functions ]]",
+            "functionName": "addEquipRow",
+            "params": []
+          },
+          "outcomes": {
+            "success": "setDirty"
+          }
+        },
+        "setDirty": {
+          "module": "vb/action/builtin/assignVariablesAction",
+          "parameters": {
+            "$page.variables.equipIsDirty": {
+              "source": true
+            },
+            "$page.variables.equipUndoDisabled": {
+              "source": false
+            }
+          }
+        }
+      }
+    },
+    "equipDuplicateRowChain": {
+      "variables": {
+        "rowIndex": {
+          "type": "number",
+          "input": "fromCaller",
+          "required": true
+        }
+      },
+      "root": "callJS",
+      "actions": {
+        "callJS": {
+          "module": "vb/action/builtin/callModuleFunctionAction",
+          "parameters": {
+            "module": "[[ $functions ]]",
+            "functionName": "duplicateEquipRow",
+            "params": [
+              "[[ $chain.variables.rowIndex ]]"
+            ]
+          },
+          "outcomes": {
+            "success": "setDirty"
+          }
+        },
+        "setDirty": {
+          "module": "vb/action/builtin/assignVariablesAction",
+          "parameters": {
+            "$page.variables.equipIsDirty": {
+              "source": true
+            },
+            "$page.variables.equipUndoDisabled": {
+              "source": false
+            }
+          }
+        }
+      }
+    },
+    "equipDeleteRowChain": {
+      "variables": {
+        "rowIndex": {
+          "type": "number",
+          "input": "fromCaller",
+          "required": true
+        }
+      },
+      "root": "callJS",
+      "actions": {
+        "callJS": {
+          "module": "vb/action/builtin/callModuleFunctionAction",
+          "parameters": {
+            "module": "[[ $functions ]]",
+            "functionName": "deleteEquipRow",
+            "params": [
+              "[[ $chain.variables.rowIndex ]]"
+            ]
+          },
+          "outcomes": {
+            "success": "setDirty"
+          }
+        },
+        "setDirty": {
+          "module": "vb/action/builtin/assignVariablesAction",
+          "parameters": {
+            "$page.variables.equipIsDirty": {
+              "source": true
+            },
+            "$page.variables.equipUndoDisabled": {
+              "source": false
+            }
+          }
+        }
+      }
+    },
+    "equipUndoChain": {
+      "root": "callJS",
+      "actions": {
+        "callJS": {
+          "module": "vb/action/builtin/callModuleFunctionAction",
+          "parameters": {
+            "module": "[[ $functions ]]",
+            "functionName": "undoEquipLastAction",
+            "params": []
+          },
+          "outcomes": {
+            "success": "assignState"
+          }
+        },
+        "assignState": {
+          "module": "vb/action/builtin/assignVariablesAction",
+          "parameters": {
+            "$page.variables.equipIsDirty": {
+              "source": "[[ $chain.results.callJS.isDirty ]]"
+            },
+            "$page.variables.equipUndoDisabled": {
+              "source": "[[ $chain.results.callJS.undoDisabled ]]"
+            }
+          }
+        }
+      }
+    },
+    "equipSelectionChangeChain": {
+      "root": "callJS",
+      "actions": {
+        "callJS": {
+          "module": "vb/action/builtin/callModuleFunctionAction",
+          "parameters": {
+            "module": "[[ $functions ]]",
+            "functionName": "equipSelectionChange",
+            "params": [
+              "[[ $page.variables.equipSelection ]]"
+            ]
+          },
+          "outcomes": {
+            "success": "checkHasSelection"
+          }
+        },
+        "checkHasSelection": {
+          "module": "vb/action/builtin/ifAction",
+          "parameters": {
+            "condition": "[[ $chain.results.callJS.updateDisabled === false ]]"
+          },
+          "outcomes": {
+            "true": "assignState",
+            "false": "assignDisabledOnly"
+          }
+        },
+        "assignState": {
+          "module": "vb/action/builtin/assignVariablesAction",
+          "parameters": {
+            "$page.variables.equipInputTextValue": {
+              "source": "[[ $chain.results.callJS.inputTextValue ]]"
+            },
+            "$page.variables.equipCurrentSelectionValue": {
+              "source": "[[ $chain.results.callJS.inputTextValue ]]"
+            },
+            "$page.variables.equipUpdateDisabled": {
+              "source": "[[ $chain.results.callJS.updateDisabled ]]"
+            },
+            "$page.variables.equipAddRemoveDisabled": {
+              "source": "[[ $chain.results.callJS.addRemoveDisabled ]]"
+            }
+          }
+        },
+        "assignDisabledOnly": {
+          "module": "vb/action/builtin/assignVariablesAction",
+          "parameters": {
+            "$page.variables.equipCurrentSelectionValue": {
+              "source": ""
+            },
+            "$page.variables.equipUpdateDisabled": {
+              "source": "[[ $chain.results.callJS.updateDisabled ]]"
+            },
+            "$page.variables.equipAddRemoveDisabled": {
+              "source": "[[ $chain.results.callJS.addRemoveDisabled ]]"
+            }
+          }
+        }
+      }
+    },
+    "equipUpdateSelectionChain": {
+      "root": "callJS",
+      "actions": {
+        "callJS": {
+          "module": "vb/action/builtin/callModuleFunctionAction",
+          "parameters": {
+            "module": "[[ $functions ]]",
+            "functionName": "equipUpdateSelection",
+            "params": [
+              "[[ $page.variables.equipSelection ]]",
+              "[[ $page.variables.equipInputTextValue ]]"
+            ]
+          },
+          "outcomes": {
+            "success": "setDirty"
+          }
+        },
+        "setDirty": {
+          "module": "vb/action/builtin/assignVariablesAction",
+          "parameters": {
+            "$page.variables.equipIsDirty": {
+              "source": true
+            },
+            "$page.variables.equipUndoDisabled": {
+              "source": false
+            }
+          }
+        }
+      }
+    },
+    "equipRemoveSelectionChain": {
+      "root": "callJS",
+      "actions": {
+        "callJS": {
+          "module": "vb/action/builtin/callModuleFunctionAction",
+          "parameters": {
+            "module": "[[ $functions ]]",
+            "functionName": "equipRemoveSelection",
+            "params": [
+              "[[ $page.variables.equipSelection ]]"
+            ]
+          },
+          "outcomes": {
+            "success": "setDirty"
+          }
+        },
+        "setDirty": {
+          "module": "vb/action/builtin/assignVariablesAction",
+          "parameters": {
+            "$page.variables.equipIsDirty": {
+              "source": true
+            },
+            "$page.variables.equipUndoDisabled": {
+              "source": false
+            }
+          }
+        }
+      }
+    },
+    "equipAddSelectionChain": {
+      "root": "callJS",
+      "actions": {
+        "callJS": {
+          "module": "vb/action/builtin/callModuleFunctionAction",
+          "parameters": {
+            "module": "[[ $functions ]]",
+            "functionName": "equipAddSelection",
+            "params": [
+              "[[ $page.variables.equipSelection ]]"
+            ]
+          },
+          "outcomes": {
+            "success": "setDirty"
+          }
+        },
+        "setDirty": {
+          "module": "vb/action/builtin/assignVariablesAction",
+          "parameters": {
+            "$page.variables.equipIsDirty": {
+              "source": true
+            },
+            "$page.variables.equipUndoDisabled": {
+              "source": false
+            }
+          }
+        }
+      }
+    },
+    "equipCutRequestChain": {
+      "variables": {
+        "event": {
+          "type": "any",
+          "input": "fromCaller",
+          "required": true
+        }
+      },
+      "root": "callJS",
+      "actions": {
+        "callJS": {
+          "module": "vb/action/builtin/callModuleFunctionAction",
+          "parameters": {
+            "module": "[[ $functions ]]",
+            "functionName": "handleEquipCut",
+            "params": [
+              "[[ $chain.variables.event ]]"
+            ]
+          },
+          "outcomes": {
+            "success": "setDirty"
+          }
+        },
+        "setDirty": {
+          "module": "vb/action/builtin/assignVariablesAction",
+          "parameters": {
+            "$page.variables.equipIsDirty": {
+              "source": true
+            },
+            "$page.variables.equipUndoDisabled": {
+              "source": false
+            }
+          }
+        }
+      }
+    },
+    "equipPasteRequestChain": {
+      "variables": {
+        "event": {
+          "type": "any",
+          "input": "fromCaller",
+          "required": true
+        }
+      },
+      "root": "callJS",
+      "actions": {
+        "callJS": {
+          "module": "vb/action/builtin/callModuleFunctionAction",
+          "parameters": {
+            "module": "[[ $functions ]]",
+            "functionName": "handleEquipPaste",
+            "params": [
+              "[[ $chain.variables.event ]]"
+            ]
+          },
+          "outcomes": {
+            "success": "setDirty"
+          }
+        },
+        "setDirty": {
+          "module": "vb/action/builtin/assignVariablesAction",
+          "parameters": {
+            "$page.variables.equipIsDirty": {
+              "source": true
+            },
+            "$page.variables.equipUndoDisabled": {
+              "source": false
+            }
+          }
+        }
+      }
+    },
+    "equipFillRequestChain": {
+      "variables": {
+        "event": {
+          "type": "any",
+          "input": "fromCaller",
+          "required": true
+        }
+      },
+      "root": "callJS",
+      "actions": {
+        "callJS": {
+          "module": "vb/action/builtin/callModuleFunctionAction",
+          "parameters": {
+            "module": "[[ $functions ]]",
+            "functionName": "handleEquipFill",
+            "params": [
+              "[[ $chain.variables.event ]]"
+            ]
+          },
+          "outcomes": {
+            "success": "setDirty"
+          }
+        },
+        "setDirty": {
+          "module": "vb/action/builtin/assignVariablesAction",
+          "parameters": {
+            "$page.variables.equipIsDirty": {
+              "source": true
+            },
+            "$page.variables.equipUndoDisabled": {
+              "source": false
+            }
+          }
+        }
+      }
+    },
+    "equipCopyRequestChain": {
+      "variables": {
+        "event": {
+          "type": "any",
+          "input": "fromCaller",
+          "required": true
+        }
+      },
+      "root": "callJS",
+      "actions": {
+        "callJS": {
+          "module": "vb/action/builtin/callModuleFunctionAction",
+          "parameters": {
+            "module": "[[ $functions ]]",
+            "functionName": "handleEquipCopy",
+            "params": [
+              "[[ $chain.variables.event ]]"
+            ]
+          }
+        }
+      }
+    },
+    "equipFilterRequestChain": {
+      "variables": {
+        "event": {
+          "type": "any",
+          "input": "fromCaller",
+          "required": true
+        }
+      },
+      "root": "callJS",
+      "actions": {
+        "callJS": {
+          "module": "vb/action/builtin/callModuleFunctionAction",
+          "parameters": {
+            "module": "[[ $functions ]]",
+            "functionName": "handleEquipFilterRequest",
+            "params": [
+              "[[ $chain.variables.event ]]"
+            ]
+          },
+          "outcomes": {
+            "success": "assignState"
+          }
+        },
+        "assignState": {
+          "module": "vb/action/builtin/assignVariablesAction",
+          "parameters": {
+            "$page.variables.equipFilterHeaderInfo": {
+              "source": "[[ $chain.results.callJS ]]"
+            }
+          }
+        }
+      }
+    },
+    "equipFilterPopupCloseChain": {
+      "root": "callJS",
+      "actions": {
+        "callJS": {
+          "module": "vb/action/builtin/callModuleFunctionAction",
+          "parameters": {
+            "module": "[[ $functions ]]",
+            "functionName": "closeEquipFilterPopup"
+          }
+        }
+      }
+    },
+    "applyEquipFilterChain": {
+      "root": "callJS",
+      "actions": {
+        "callJS": {
+          "module": "vb/action/builtin/callModuleFunctionAction",
+          "parameters": {
+            "module": "[[ $functions ]]",
+            "functionName": "applyEquipFilter",
+            "params": [
+              "[[ $page.variables.equipFilterTextValue ]]"
+            ]
+          },
+          "outcomes": {
+            "success": "updateRowOptions"
+          }
+        },
+        "updateRowOptions": {
+          "module": "vb/action/builtin/callModuleFunctionAction",
+          "parameters": {
+            "module": "[[ $functions ]]",
+            "functionName": "buildEquipRowHideOptions",
+            "params": []
+          },
+          "outcomes": {
+            "success": "assignRowOptions"
+          }
+        },
+        "assignRowOptions": {
+          "module": "vb/action/builtin/assignVariablesAction",
+          "parameters": {
+            "$page.variables.equipRowHideOptionsProvider": {
+              "source": "[[ $chain.results.updateRowOptions ]]"
+            }
+          }
+        }
+      }
+    },
+    "equipHiddenColumnsChangedChain": {
+      "variables": {
+        "event": {
+          "type": "any",
+          "input": "fromCaller",
+          "required": true
+        }
+      },
+      "root": "callJS",
+      "actions": {
+        "callJS": {
+          "module": "vb/action/builtin/callModuleFunctionAction",
+          "parameters": {
+            "module": "[[ $functions ]]",
+            "functionName": "getHiddenIndicesFromEvent",
+            "params": [
+              "[[ $chain.variables.event ]]"
+            ]
+          },
+          "outcomes": {
+            "success": "checkResult"
+          }
+        },
+        "checkResult": {
+          "module": "vb/action/builtin/ifAction",
+          "parameters": {
+            "condition": "[[ $chain.results.callJS !== null ]]"
+          },
+          "outcomes": {
+            "true": "assignIndices"
+          }
+        },
+        "assignIndices": {
+          "module": "vb/action/builtin/assignVariablesAction",
+          "parameters": {
+            "$page.variables.equipSelectedColumnsIndices": {
+              "source": "[[ $chain.results.callJS ]]"
+            }
+          }
+        }
+      }
+    },
+    "equipHiddenRowsChangedChain": {
+      "variables": {
+        "event": {
+          "type": "any",
+          "input": "fromCaller",
+          "required": true
+        }
+      },
+      "root": "callJS",
+      "actions": {
+        "callJS": {
+          "module": "vb/action/builtin/callModuleFunctionAction",
+          "parameters": {
+            "module": "[[ $functions ]]",
+            "functionName": "getHiddenIndicesFromEvent",
+            "params": [
+              "[[ $chain.variables.event ]]"
+            ]
+          },
+          "outcomes": {
+            "success": "checkResult"
+          }
+        },
+        "checkResult": {
+          "module": "vb/action/builtin/ifAction",
+          "parameters": {
+            "condition": "[[ $chain.results.callJS !== null ]]"
+          },
+          "outcomes": {
+            "true": "assignIndices"
+          }
+        },
+        "assignIndices": {
+          "module": "vb/action/builtin/assignVariablesAction",
+          "parameters": {
+            "$page.variables.equipSelectedRowsIndices": {
+              "source": "[[ $chain.results.callJS ]]"
+            }
+          }
+        }
+      }
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-sp-general-overview-page": {
+        "path": "oj-sp/general-overview-page/loader"
+      },
+      "oj-data-grid": {
+        "path": "ojs/ojdatagrid"
+      },
+      "oj-button": {
+        "path": "ojs/ojbutton"
+      },
+      "oj-input-text": {
+        "path": "ojs/ojinputtext"
+      },
+      "oj-input-number": {
+        "path": "ojs/ojinputnumber"
+      },
+      "oj-option": {
+        "path": "ojs/ojoption"
+      },
+      "oj-select-many": {
+        "path": "ojs/ojselectcombobox"
+      },
+      "oj-select-one": {
+        "path": "ojs/ojselectcombobox"
+      },
+      "oj-select-single": {
+        "path": "ojs/ojselectsingle"
+      },
+      "oj-form-layout": {
+        "path": "ojs/ojformlayout"
+      },
+      "oj-popup": {
+        "path": "ojs/ojpopup"
+      },
+      "oj-menu-button": {
+        "path": "ojs/ojbutton"
+      },
+      "oj-menu": {
+        "path": "ojs/ojmenu"
+      },
+      "oj-dialog": {
+        "path": "ojs/ojdialog"
+      },
+      "oj-table": {
+        "path": "ojs/ojtable"
+      },
+      "oj-tab-bar": {
+        "path": "ojs/ojnavigationlist"
+      },
+      "oj-input-search": {
+        "path": "ojs/ojinputsearch"
+      }
+    }
+  }
+}

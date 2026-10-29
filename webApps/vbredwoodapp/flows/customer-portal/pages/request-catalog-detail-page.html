@@ -1,0 +1,491 @@
+<oj-sp-general-overview-page id="requestCatalogDetailGeneralOverview" page-title="[[ $variables.pageTitle ]]"
+  display-mode="mixed" density="standard" display-options.responsive-padding="off" show-go-to-parent="[[true]]"
+  display-options.in-flow-back="true"
+  primary-action='[[ { "label": ($page.functions.cartQtyFor($variables.equipmentId, $flow.variables.CartItemsArray) > 0) ? "Update Cart" : "Add to Cart", "display": "on" } ]]'
+  primary-action-disabled="[[ $variables.isLoading ]]" contextual-info="[[ $variables.contextualInfo ]]"
+  badge="[[ $variables.badge ]]" on-sp-go-to-parent="[[$listeners.spGoToParent]]"
+  on-sp-in-flow-back="[[ $listeners.onSpInFlowBack ]]" on-sp-primary-action="[[$listeners.spPrimaryAction]]"
+  class="oj-sm-width-full" style="--oj-sp-general-overview-page-max-width: 100% !important;">
+
+  <!-- ═══ MAIN SLOT ═══ -->
+  <div slot="main"
+       class="oj-flex oj-sm-flex-direction-column oj-sm-width-full"
+       style="max-width: 100% !important; padding: 0; gap: 24px; flex-wrap: nowrap;">
+
+    <!-- Bundle strip + badge styles. Inline, like request-catalog-page.html:
+         this app's JET theme ships no gap/justify utility rules. The
+         eq-status-* colours copy the catalog card badges. -->
+    <style>
+      .eq-bundle-strip {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 16px;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        padding: 4px 2px 12px 2px;
+      }
+      .eq-bundle-card {
+        flex: 0 0 250px;
+        display: flex;
+        flex-direction: column;
+        scroll-snap-align: start;
+        border: 1px solid var(--oj-core-divider-color, #e0e0e0);
+        border-radius: 8px;
+        background: var(--oj-core-bg-neutral-0, #ffffff);
+        overflow: hidden;
+      }
+      .eq-bundle-body {
+        flex: 1 1 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: 12px;
+        cursor: pointer;
+      }
+      .eq-bundle-body:hover .eq-bundle-name { text-decoration: underline; }
+      .eq-bundle-body:focus-visible { outline: 2px solid var(--oj-core-color-brand, #1a7bbf); outline-offset: -2px; }
+      .eq-bundle-img-wrap {
+        height: 120px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 4px;
+      }
+      .eq-bundle-img { max-width: 100%; max-height: 120px; object-fit: contain; border-radius: 4px; }
+      .eq-bundle-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+      .eq-bundle-chip {
+        display: inline-block;
+        font-size: 11px;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 10px;
+        white-space: nowrap;
+        background: #eef3f8;
+        color: #2f5d86;
+        border: 1px solid #c9d8e6;
+      }
+      .eq-bundle-chip-consumable { background: #f3eefa; color: #5b3d8a; border-color: #d9cdee; }
+      .eq-bundle-chip-safety     { background: #fff3e0; color: #8a4b00; border-color: #f3d2a2; }
+      .eq-bundle-chip-complement { background: #e9f5ef; color: #1f6b45; border-color: #bfe0cd; }
+      .eq-bundle-name {
+        font-weight: 600;
+        font-size: 14px;
+        line-height: 1.3;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .eq-bundle-sub  { font-size: 12px; color: var(--oj-core-text-color-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .eq-bundle-rate { font-size: 13px; font-weight: 600; margin-top: auto; }
+      .eq-bundle-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between; gap: 8px;
+        min-height: 48px;
+        padding: 8px 12px;
+        background: var(--oj-core-bg-neutral-10, #f5f5f5);
+        border-top: 1px solid var(--oj-core-divider-color, #e0e0e0);
+      }
+      .eq-bundle-incart { font-size: 12px; font-weight: 600; color: #1e7e34; }
+      .eq-bundle-qty { flex: 0 1 auto; min-width: 0; max-width: 120px; }
+      .eq-bundle-add { flex: 0 0 auto; }
+      .eq-bundle-toolbar {
+        display: flex; align-items: center; justify-content: space-between; gap: 16px;
+        max-width: 1340px; margin-bottom: 12px; padding: 10px 14px; border-radius: 8px;
+        background: var(--oj-core-bg-neutral-0, #ffffff);
+        border: 1px solid var(--oj-core-divider-color, #e0e0e0);
+      }
+      .eq-bundle-toolbar-text { font-size: 13px; color: var(--oj-core-text-color-secondary); }
+      .eq-status-badge {
+        display: inline-block;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 2px 7px;
+        border-radius: 10px;
+        white-space: nowrap;
+        text-transform: uppercase;
+      }
+      .eq-status-available { background: #e6f4ea; color: #1e7e34; border: 1px solid #a8d5b0; }
+      .eq-status-partial-duration,
+      .eq-status-partial-quantity { background: #fff3cd; color: #856404; border: 1px solid #ffc107; }
+      .eq-status-not-available,
+      .eq-status-unknown { background: #f0f0f0; color: #666; border: 1px solid #ccc; }
+
+      /* Model detail sections */
+      .eq-detail-desc { margin: 0; font-size: 14px; line-height: 1.5; color: var(--oj-core-text-color-primary); max-width: 72ch; }
+      .eq-detail-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 14px 24px;
+      }
+      .eq-detail-field { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+      .eq-detail-label { font-size: 12px; color: var(--oj-core-text-color-secondary); }
+      .eq-detail-value { font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+      .eq-detail-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+      .eq-detail-chip {
+        font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 12px;
+        background: #fff3e0; color: #8a4b00; border: 1px solid #f3d2a2;
+      }
+      .eq-detail-doc { font-size: 13px; font-weight: 600; }
+      .eq-detail-stock-summary { margin: 0 0 12px 0; font-size: 14px; font-weight: 600; }
+      /* Details + image row: never wrap on desktop, so expanding a wide
+         section (Fleet / lot cards) cannot push the image below the details.
+         Stack only on narrow screens. */
+      .eq-detail-top { flex-wrap: nowrap !important; }
+      @media (max-width: 900px) { .eq-detail-top { flex-wrap: wrap !important; } }
+
+      /* Stock: stat tiles + yard/lot cards */
+      .eq-stock-stats { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
+      .eq-stock-stat {
+        display: flex; flex-direction: column; gap: 2px; min-width: 140px;
+        padding: 12px 16px; border-radius: 8px;
+        background: var(--oj-core-bg-neutral-0, #ffffff);
+        border: 1px solid var(--oj-core-divider-color, #e0e0e0);
+        border-left-width: 4px;
+      }
+      .eq-stock-stat-value { font-size: 24px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+      .eq-stock-stat-label { font-size: 12px; color: var(--oj-core-text-color-secondary); }
+      .eq-stock-tone-success { border-left-color: #2e8b57; }
+      .eq-stock-tone-success .eq-stock-stat-value { color: #1e7e34; }
+      .eq-stock-tone-warning { border-left-color: #d4a017; }
+      .eq-stock-tone-warning .eq-stock-stat-value { color: #8a6100; }
+      .eq-stock-tone-neutral { border-left-color: #9aa5b1; }
+      .eq-stock-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 10px;
+        max-width: 1340px;
+      }
+      .eq-stock-row {
+        display: flex; align-items: center; justify-content: space-between; gap: 12px;
+        padding: 10px 14px; border-radius: 8px;
+        background: var(--oj-core-bg-neutral-0, #ffffff);
+        border: 1px solid var(--oj-core-divider-color, #e0e0e0);
+      }
+      .eq-stock-row-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+      .eq-stock-row-title { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .eq-stock-row-detail { font-size: 12px; color: var(--oj-core-text-color-secondary); }
+      .eq-stock-pill {
+        flex: 0 0 auto; font-size: 11px; font-weight: 700; padding: 3px 10px;
+        border-radius: 12px; white-space: nowrap;
+      }
+      .eq-stock-pill-success { background: #e6f4ea; color: #1e7e34; border: 1px solid #a8d5b0; }
+      .eq-stock-pill-muted   { background: #f0f0f0; color: #666;    border: 1px solid #d6d6d6; }
+    </style>
+
+    <!-- Loading spinner -->
+    <oj-bind-if test="[[ $variables.isLoading ]]">
+      <div class="oj-flex oj-sm-justify-content-center oj-sm-padding-8x">
+        <oj-progress-circle size="md" value="-1"></oj-progress-circle>
+      </div>
+    </oj-bind-if>
+
+    <!-- Error messages banner -->
+    <oj-sp-messages-banner
+      data="[[ $variables.messagesBannerADP ]]"
+      class="oj-flex-item oj-sm-12"
+      on-sp-close="[[$listeners.messagesBannerSpClose]]">
+    </oj-sp-messages-banner>
+
+    <!-- Record content — shown once loaded -->
+    <oj-bind-if test="[[ !$variables.isLoading ]]">
+
+      <!-- ── DETAILS (left) + IMAGE (right) ────────────────────── -->
+      <!-- Inline flex/gap styles throughout, not oj-sm-* utility classes —
+           this app's loaded JET theme ships no gap/justify-content utility
+           rules at all (verified across every stylesheet incl. @media
+           blocks), so those classes silently do nothing here. -->
+      <div class="oj-flex eq-detail-top" style="gap:24px; align-items:flex-start;">
+
+        <!-- LEFT: rate/quantity + equipment details -->
+        <!-- flex-wrap:nowrap overrides .oj-flex's wrap. A WRAPPING column
+             flex container sizes each section's height at its narrow
+             fit-content width first; the Equipment Details grid then measured
+             as 7 stacked rows and kept that height after stretching to one
+             row, leaving a ~250px gap under it.
+             flex-basis 0 (not auto): with auto, the column sized itself to its
+             content, and the expanded Fleet/lot card grid is wider than the
+             space beside the image, so the row wrapped and dropped the image
+             below. With 0 it only takes the space left over. -->
+        <div class="oj-flex oj-sm-flex-direction-column" style="flex:1 1 0; min-width:0; gap:24px; flex-wrap:nowrap;">
+
+          <div class="oj-flex oj-sm-align-items-center" style="gap:24px;">
+            <div class="oj-flex oj-sm-flex-direction-column">
+              <oj-bind-if test="[[ $variables.recordData.catalogAvailable ]]">
+                <span class="oj-typography-body-sm" style="color:var(--oj-core-text-color-secondary);">
+                  <oj-bind-text value="[[ $variables.recordData.isRentable === false ? 'Unit Price' : 'Rate' ]]"></oj-bind-text>
+                </span>
+                <span class="oj-typography-heading-sm" style="font-weight:700;">
+                  <!-- Quoted requests show no price, same rule as the catalog cards. -->
+                  <oj-bind-text value="[[ $variables.ppmRateText
+                    ? $variables.ppmRateText
+                    : $variables.hideRatesForQuote
+                    ? 'Rate on request'
+                    : '$' + ($variables.recordData.billRate || 0) + ' / ' + ($variables.recordData.rateUom || 'DAY') ]]"></oj-bind-text>
+                  <oj-bind-if test="[[ $variables.recordData.onAgreement && !$variables.hideRatesForQuote && !$variables.ppmRateText ]]">
+                    <span class="oj-typography-body-sm" style="color:var(--oj-core-text-color-secondary); font-weight:400;"> (agreement rate)</span>
+                  </oj-bind-if>
+                </span>
+              </oj-bind-if>
+            </div>
+
+            <div class="oj-flex oj-sm-flex-direction-column" style="gap:4px;">
+              <div class="oj-flex oj-sm-align-items-center" style="gap:12px;">
+                <span class="oj-typography-body-md" style="font-weight:600;">Quantity</span>
+                <oj-c-input-number value="{{ $variables.qty }}"
+                  aria-label="Quantity"
+                  label-edge="none"
+                  stepper-variant="quantitative" min="1" step="1" max="100" virtual-keyboard="number"
+                  display-options.messages="none" user-assistance-density="compact"
+                  style="max-width:140px;">
+                </oj-c-input-number>
+              </div>
+              <oj-bind-if test="[[ $page.functions.cartQtyFor($variables.equipmentId, $flow.variables.CartItemsArray) > 0 ]]">
+                <span class="oj-typography-body-sm" style="color:var(--oj-core-text-color-secondary);">
+                  <oj-bind-text value="[[ 'Already in cart (qty ' + $page.functions.cartQtyFor($variables.equipmentId, $flow.variables.CartItemsArray) + ')' ]]"></oj-bind-text>
+                </span>
+              </oj-bind-if>
+            </div>
+          </div>
+
+          <!-- This page is MODEL-level (one EQR_EQUIPMENT_MASTER row), not one
+               physical unit — so it shows the model's master attributes plus
+               a stock summary shaped by how the item is tracked:
+                 SERIAL    → fleet of serialized units, by yard
+                 LOT       → stock by lot (gases, lubricants, chemicals…)
+                 INVENTORY → plain stock item (PPE, fasteners, bulk tools)
+               Every field list is built in EquipmentDetailInitChain with
+               empty values dropped, so a blank field never renders. -->
+          <oj-bind-if test="[[ $variables.recordData.description ]]">
+            <p class="eq-detail-desc">
+              <oj-bind-text value="[[ $variables.recordData.description ]]"></oj-bind-text>
+            </p>
+          </oj-bind-if>
+
+          <oj-collapsible expanded="true">
+            <h3 slot="header" class="oj-typography-heading-xs">Equipment Details</h3>
+            <div>
+              <div class="eq-detail-grid">
+                <oj-bind-for-each data="[[ $variables.recordData.overviewFields || [] ]]">
+                  <template>
+                    <div class="eq-detail-field">
+                      <span class="eq-detail-label"><oj-bind-text value="[[ $current.data.label ]]"></oj-bind-text></span>
+                      <span class="eq-detail-value"><oj-bind-text value="[[ $current.data.value ]]"></oj-bind-text></span>
+                    </div>
+                  </template>
+                </oj-bind-for-each>
+              </div>
+              <oj-bind-if test="[[ ($variables.recordData.requirements || []).length > 0 ]]">
+                <div class="eq-detail-chips">
+                  <oj-bind-for-each data="[[ $variables.recordData.requirements ]]">
+                    <template>
+                      <span class="eq-detail-chip"><oj-bind-text value="[[ $current.data ]]"></oj-bind-text></span>
+                    </template>
+                  </oj-bind-for-each>
+                </div>
+              </oj-bind-if>
+            </div>
+          </oj-collapsible>
+
+          <oj-bind-if test="[[ ($variables.recordData.specFields || []).length > 0 ]]">
+            <oj-collapsible expanded="true">
+              <h3 slot="header" class="oj-typography-heading-xs">Specifications</h3>
+              <div class="eq-detail-grid">
+                <oj-bind-for-each data="[[ $variables.recordData.specFields ]]">
+                  <template>
+                    <div class="eq-detail-field">
+                      <span class="eq-detail-label"><oj-bind-text value="[[ $current.data.label ]]"></oj-bind-text></span>
+                      <span class="eq-detail-value"><oj-bind-text value="[[ $current.data.value ]]"></oj-bind-text></span>
+                    </div>
+                  </template>
+                </oj-bind-for-each>
+              </div>
+            </oj-collapsible>
+          </oj-bind-if>
+
+          <oj-bind-if test="[[ ($variables.recordData.rentalFields || []).length > 0 ]]">
+            <oj-collapsible expanded="true">
+              <h3 slot="header" class="oj-typography-heading-xs">Rental Terms</h3>
+              <div class="eq-detail-grid">
+                <oj-bind-for-each data="[[ $variables.recordData.rentalFields ]]">
+                  <template>
+                    <div class="eq-detail-field">
+                      <span class="eq-detail-label"><oj-bind-text value="[[ $current.data.label ]]"></oj-bind-text></span>
+                      <span class="eq-detail-value"><oj-bind-text value="[[ $current.data.value ]]"></oj-bind-text></span>
+                    </div>
+                  </template>
+                </oj-bind-for-each>
+              </div>
+            </oj-collapsible>
+          </oj-bind-if>
+
+          <!-- Stock: one summary line + an optional breakdown table. The
+               columns/rows shape is the same for all three tracking types. -->
+          <oj-bind-if test="[[ $variables.recordData.stock ]]">
+            <oj-collapsible expanded="true">
+              <h3 slot="header" class="oj-typography-heading-xs">
+                <oj-bind-text value="[[ $variables.recordData.stock.title ]]"></oj-bind-text>
+              </h3>
+              <!-- Headline stats, then one card per yard (SERIAL) or lot (LOT).
+                   Static classes only: a :style-bound grid template here was
+                   not applied by VB and collapsed every cell into one column. -->
+              <div>
+                <oj-bind-if test="[[ $variables.recordData.stock.summary ]]">
+                  <p class="eq-detail-stock-summary">
+                    <oj-bind-text value="[[ $variables.recordData.stock.summary ]]"></oj-bind-text>
+                  </p>
+                </oj-bind-if>
+                <oj-bind-if test="[[ ($variables.recordData.stock.stats || []).length > 0 ]]">
+                  <div class="eq-stock-stats">
+                    <oj-bind-for-each data="[[ $variables.recordData.stock.stats ]]">
+                      <template>
+                        <div :class="[[ 'eq-stock-stat eq-stock-tone-' + $current.data.tone ]]">
+                          <span class="eq-stock-stat-value"><oj-bind-text value="[[ $current.data.value ]]"></oj-bind-text></span>
+                          <span class="eq-stock-stat-label"><oj-bind-text value="[[ $current.data.label ]]"></oj-bind-text></span>
+                        </div>
+                      </template>
+                    </oj-bind-for-each>
+                  </div>
+                </oj-bind-if>
+                <oj-bind-if test="[[ ($variables.recordData.stock.rows || []).length > 0 ]]">
+                  <div class="eq-stock-list">
+                    <oj-bind-for-each data="[[ $variables.recordData.stock.rows ]]">
+                      <template>
+                        <div class="eq-stock-row">
+                          <div class="eq-stock-row-main">
+                            <span class="eq-stock-row-title"><oj-bind-text value="[[ $current.data.title ]]"></oj-bind-text></span>
+                            <span class="eq-stock-row-detail"><oj-bind-text value="[[ $current.data.detail ]]"></oj-bind-text></span>
+                          </div>
+                          <span :class="[[ 'eq-stock-pill eq-stock-pill-' + $current.data.tone ]]">
+                            <oj-bind-text value="[[ $current.data.pill ]]"></oj-bind-text>
+                          </span>
+                        </div>
+                      </template>
+                    </oj-bind-for-each>
+                  </div>
+                </oj-bind-if>
+              </div>
+            </oj-collapsible>
+          </oj-bind-if>
+
+          <oj-bind-if test="[[ ($variables.recordData.documents || []).length > 0 ]]">
+            <oj-collapsible expanded="true">
+              <h3 slot="header" class="oj-typography-heading-xs">Documents</h3>
+              <div class="eq-detail-chips">
+                <oj-bind-for-each data="[[ $variables.recordData.documents ]]">
+                  <template>
+                    <a class="eq-detail-doc" :href="[[ $current.data.url ]]" target="_blank" rel="noopener">
+                      <oj-bind-text value="[[ $current.data.label ]]"></oj-bind-text>
+                    </a>
+                  </template>
+                </oj-bind-for-each>
+              </div>
+            </oj-collapsible>
+          </oj-bind-if>
+        </div>
+
+        <!-- RIGHT: image -->
+        <div style="flex:0 0 360px; max-width:360px;">
+          <img :src="[[ $page.functions.imageObj($variables.recordData.equipmentImage, $application.path, $variables.recordData.equipmentId).src ]]"
+               :alt="[[ $variables.recordData.name ]]"
+               style="max-width:360px; width:100%; max-height:280px; border-radius:8px; object-fit:contain;">
+        </div>
+      </div>
+
+      <!-- ── FREQUENTLY BUNDLED WITH ─────────────────────────────
+           Reciprocal item-to-item bundle links (EQP_M_EQUIPMENT_BUNDLE), one
+           card per suggestion in a horizontal scroll strip. Price/availability
+           come from each item's own catalog row, so a card matches that item's
+           catalog card. Hidden entirely when the item has no links.
+           Each card has its own qty stepper (starts at the link's
+           suggestedQuantity; 0 leaves it out of "Add bundle"). The stepper and
+           Add sit in a SIBLING footer, not inside the clickable body, so using
+           them never also swaps the page to that item. -->
+      <oj-bind-if test="[[ ($variables.bundleSuggestions || []).length > 0 ]]">
+        <oj-collapsible expanded="true">
+          <h3 slot="header" class="oj-typography-heading-xs">
+            <oj-bind-text value="[[ 'Frequently bundled with (' + $variables.bundleSuggestions.length + ')' ]]"></oj-bind-text>
+          </h3>
+          <div>
+            <!-- Add bundle: this item (header qty) + every bundled item at its
+                 stepper qty, in one cart write. -->
+            <div class="eq-bundle-toolbar">
+              <span class="eq-bundle-toolbar-text">
+                <oj-bind-text value="[[ $page.functions.bundleSummaryText($variables.recordData, $variables.qty, $variables.bundleSuggestions, $variables.bundleQtyById) ]]"></oj-bind-text>
+              </span>
+              <oj-button chroming="callToAction"
+                         disabled="[[ !$page.functions.bundleHasAddable($variables.recordData, $variables.qty, $variables.bundleSuggestions, $variables.bundleQtyById) ]]"
+                         on-oj-action="[[$listeners.addBundleClicked]]">
+                <span slot="startIcon" class="oj-ux-ico-cart"></span>
+                Add bundle
+              </oj-button>
+            </div>
+            <div class="eq-bundle-strip" role="list">
+              <oj-bind-for-each data="[[ $variables.bundleSuggestions ]]">
+                <template>
+                  <div class="eq-bundle-card" role="listitem">
+
+                    <div class="eq-bundle-body" role="button" tabindex="0"
+                         :title="[[ 'View ' + $current.data.name ]]"
+                         on-click="[[$listeners.bundleCardClicked]]">
+                      <div class="eq-bundle-img-wrap">
+                        <img class="eq-bundle-img"
+                             :src="[[ $page.functions.imageObj($current.data.image, $application.path, $current.data.id).src ]]"
+                             :alt="[[ $current.data.name ]]">
+                      </div>
+                      <div class="eq-bundle-meta">
+                        <span :class="[[ 'eq-bundle-chip eq-bundle-chip-' + $current.data.linkType ]]">
+                          <oj-bind-text value="[[ $current.data.relationLabel ]]"></oj-bind-text>
+                        </span>
+                        <oj-bind-if test="[[ $current.data.row && $current.data.row.availabilityStatus != null ]]">
+                          <span :class="[[ $page.functions.bundleStatusClass($current.data.row.availabilityStatus) ]]">
+                            <oj-bind-text value="[[ $current.data.row.availabilityStatus ]]"></oj-bind-text>
+                          </span>
+                        </oj-bind-if>
+                      </div>
+                      <div class="eq-bundle-name"><oj-bind-text value="[[ $current.data.name ]]"></oj-bind-text></div>
+                      <div class="eq-bundle-sub">
+                        <oj-bind-text value="[[ $current.data.manufacturer || $current.data.className ]]"></oj-bind-text>
+                      </div>
+                      <div class="eq-bundle-rate">
+                        <oj-bind-text value="[[ $page.functions.bundleRateText($current.data.row, $variables.hideRatesForQuote, $variables.ppmRateText) ]]"></oj-bind-text>
+                      </div>
+                      <oj-bind-if test="[[ $page.functions.cartQtyFor($current.data.id, $flow.variables.CartItemsArray) > 0 ]]">
+                        <span class="eq-bundle-incart">
+                          <oj-bind-text value="[[ '✓ In cart (qty ' + $page.functions.cartQtyFor($current.data.id, $flow.variables.CartItemsArray) + ')' ]]"></oj-bind-text>
+                        </span>
+                      </oj-bind-if>
+                    </div>
+
+                    <div class="eq-bundle-footer">
+                      <oj-c-input-number
+                        value="[[ $page.functions.bundleQtyFor($current.data, $variables.bundleQtyById) ]]"
+                        on-value-changed="[[$listeners.bundleQtyChanged]]"
+                        aria-label="Quantity"
+                        label-edge="none"
+                        stepper-variant="quantitative" min="0" step="1" max="100" virtual-keyboard="number"
+                        display-options.messages="none" user-assistance-density="compact"
+                        disabled="[[ !$current.data.row ]]"
+                        class="eq-bundle-qty"></oj-c-input-number>
+                      <oj-button chroming="callToAction" class="eq-bundle-add"
+                                 disabled="[[ !$current.data.row || !($page.functions.bundleQtyFor($current.data, $variables.bundleQtyById) > 0) ]]"
+                                 on-oj-action="[[$listeners.bundleAddClicked]]">
+                        <span slot="startIcon" class="oj-ux-ico-cart"></span>
+                        <oj-bind-text value="[[ $page.functions.cartQtyFor($current.data.id, $flow.variables.CartItemsArray) > 0 ? 'Update' : 'Add' ]]"></oj-bind-text>
+                      </oj-button>
+                    </div>
+
+                  </div>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </div>
+        </oj-collapsible>
+      </oj-bind-if>
+
+    </oj-bind-if>
+
+  </div>
+
+</oj-sp-general-overview-page>

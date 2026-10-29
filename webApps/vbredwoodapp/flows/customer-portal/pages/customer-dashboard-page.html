@@ -1,0 +1,275 @@
+<!--
+  Customer Dashboard — Dashboard Landing Page
+  Template : oj-sp-general-overview-page
+  KPI      : 3 oj-c-action-card tiles (Active / On-Site / Pending Invoices)
+  Body     : Full-width oj-table mirroring the My Requests column layout
+-->
+
+<style>
+  /* ── KPI tile row ── */
+  .eqr-kpi-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: nowrap;
+  }
+  .eqr-kpi-row oj-c-action-card {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* Status badge colours are defined globally in resources/css/app.css
+     (canonical status palette). Do not redefine them here. */
+
+  /* ── Request # link styling ── */
+  .req-number-link {
+    color: var(--oj-core-brand-color-primary, #005cb1);
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  /* ── Lines count badge ── */
+  .req-lines-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: var(--oj-core-neutral-color-3, #e8e8e8);
+    color: var(--oj-core-text-color-secondary, #565656);
+    border-radius: 50%;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+
+  /* ── Premium table styling (mirror My Requests) ── */
+  #recentActivityTable .oj-table-column-header-cell {
+    background-color: var(--oj-core-neutral-color-2, #f1f1f1);
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--oj-core-text-color-secondary, #565656);
+    padding: 10px 12px;
+  }
+  #recentActivityTable .oj-table-body-row:hover {
+    background-color: var(--oj-core-neutral-color-1, #fafafa);
+    cursor: pointer;
+  }
+  #recentActivityTable .oj-table-data-cell {
+    padding: 10px 12px;
+    font-size: 0.8125rem;
+    vertical-align: middle;
+  }
+
+  /* ── Full-page activity table ── */
+  .eqr-activity-section {
+    display: flex;
+    flex-direction: column;
+    padding: 0 0 16px 0;
+  }
+  .eqr-activity-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 16px 0 8px 0;
+  }
+  .eqr-activity-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--oj-core-text-color-primary, #161616);
+  }
+  .eqr-activity-subtitle {
+    font-size: 0.8rem;
+    color: var(--oj-core-text-color-secondary, #565656);
+    margin-left: 8px;
+  }
+  #recentActivityTable {
+    width: 100%;
+    min-height: 480px;
+  }
+  .eqr-footer {
+    display: flex;
+    justify-content: flex-end;
+    padding: 6px 0 0 0;
+    border-top: 1px solid var(--oj-core-divider-color, #e0e0e0);
+  }
+</style>
+
+<oj-sp-general-overview-page
+  page-title="Customer Dashboard"
+  page-subtitle="Manage your equipment requests and billing in one place."
+  primary-action='{"label":"New Request","icon":"oj-ux-ico-plus","display":"on"}'
+  secondary-actions='[{"id":"browse-catalog","label":"Browse Catalog","icon":"oj-ux-ico-layers","display":"on"}]'
+  on-sp-primary-action="[[$listeners.spPrimaryAction]]"
+  on-sp-secondary-action="[[$listeners.spSecondaryAction]]"
+  display-mode="mixed"
+  display-options.responsive-padding="on">
+
+  <div slot="main" class="oj-sm-padding-4x">
+
+    <!-- ═══════════════════════════════════════════════════════
+         KPI Section — Three action-card tiles
+    ════════════════════════════════════════════════════════ -->
+    <div class="eqr-kpi-row oj-sm-margin-6x-bottom">
+
+      <!-- Tile 1: Active Requests (SUBMITTED / IN_PROCESS) -->
+      <oj-c-action-card on-oj-action="[[$listeners.navigateToMyRequests]]">
+        <div class="oj-flex oj-sm-align-items-center oj-sm-padding-4x" style="gap:16px">
+          <span class="oj-ux-ico-clipboard-list"
+                style="font-size:2rem; color:var(--oj-core-brand-color-primary,#005cb1)"></span>
+          <div>
+            <div style="font-size:1.75rem; font-weight:700; line-height:1.1">
+              <oj-bind-text value="[[ $variables.activeRequestsCount ]]"></oj-bind-text>
+            </div>
+            <div style="font-weight:600; font-size:0.875rem">Active Requests</div>
+            <div style="font-size:0.8rem; color:var(--oj-core-text-color-secondary,#565656)">
+              <oj-bind-text value="[[ $variables.totalRequestsCount + ' total' ]]"></oj-bind-text>
+            </div>
+          </div>
+        </div>
+      </oj-c-action-card>
+
+      <!-- Tile 2: Equipment On-Site (lineStatus=DEPLOYED on IN_PROCESS requests) -->
+      <oj-c-action-card on-oj-action="[[$listeners.navigateToMyRequests]]">
+        <div class="oj-flex oj-sm-align-items-center oj-sm-padding-4x" style="gap:16px">
+          <span class="oj-ux-ico-truck"
+                style="font-size:2rem; color:var(--oj-core-success-color-primary,#268c4d)"></span>
+          <div>
+            <div style="font-size:1.75rem; font-weight:700; line-height:1.1">
+              <oj-bind-text value="[[ $variables.onSiteCount ]]"></oj-bind-text>
+            </div>
+            <div style="font-weight:600; font-size:0.875rem">Equipment On-Site</div>
+            <div style="font-size:0.8rem; color:var(--oj-core-text-color-secondary,#565656)">deployed</div>
+          </div>
+        </div>
+      </oj-c-action-card>
+
+      <!-- Tile 3: Pending Invoices — routes to customer-my-billing, so it is
+           withdrawn on the same condition as that page: with
+           EXTERNAL_PROJECT_ASSIGN_ENABLED on, external requests bill through
+           the assigned internal project and the customer billing screen does
+           not apply. Same isFeatureFlagOff() accessor as the nav's
+           hiddenWhenFlags and the page's own guard, so all three agree; it
+           requires flagsLoaded before showing the tile, so a slow load hides it
+           rather than offering a route that will redirect. -->
+      <oj-bind-if test="[[ $application.functions.isFeatureFlagOff(
+            $application.variables.featureFlags,
+            $application.variables.flagsLoaded, 'EXTERNAL_PROJECT_ASSIGN_ENABLED') ]]">
+      <oj-c-action-card on-oj-action="[[$listeners.navigateToMyBilling]]">
+        <div class="oj-flex oj-sm-align-items-center oj-sm-padding-4x" style="gap:16px">
+          <span class="oj-ux-ico-credit-card"
+                style="font-size:2rem; color:var(--oj-core-warning-color-primary,#b45309)"></span>
+          <div>
+            <div style="font-size:1.75rem; font-weight:700; line-height:1.1">
+              <oj-bind-text value="[[ $variables.pendingInvoicesCount ]]"></oj-bind-text>
+            </div>
+            <div style="font-weight:600; font-size:0.875rem">Pending Invoices</div>
+            <div style="font-size:0.8rem; color:var(--oj-core-text-color-secondary,#565656)">
+              <oj-bind-text value="[[ $variables.overdueCount + ' overdue' ]]"></oj-bind-text>
+            </div>
+          </div>
+        </div>
+      </oj-c-action-card>
+      </oj-bind-if>
+
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         Recent Activity — mirrors My Requests column shape
+    ════════════════════════════════════════════════════════ -->
+    <div class="eqr-activity-section">
+
+      <div class="eqr-activity-header">
+        <span>
+          <span class="eqr-activity-title">Recent Activity</span>
+          <span class="eqr-activity-subtitle">Last 10 requests</span>
+        </span>
+      </div>
+
+      <oj-sp-collection-container>
+        <oj-table
+          id="recentActivityTable"
+          data="[[ $variables.recentRequestsADP ]]"
+          class="oj-table-stretch oj-sm-width-full"
+          scroll-policy="loadMoreOnScroll"
+          scroll-policy-options.fetch-size="10"
+          columns='[
+            {"headerText": "Request #",        "field": "requestNumber",   "template": "reqNumberTpl",      "sortable": "enabled",  "style": "width:150px;"},
+            {"headerText": "Customer Name",    "field": "customerName",    "template": "customerNameTpl",   "sortable": "enabled"},
+            {"headerText": "Start Date",       "field": "startDate",                                        "sortable": "enabled",  "style": "width:115px;"},
+            {"headerText": "End Date",         "field": "endDate",                                          "sortable": "enabled",  "style": "width:115px;"},
+            {"headerText": "Customer Contact", "field": "customerContact", "template": "customerContactTpl","sortable": "enabled",  "style": "width:180px;"},
+            {"headerText": "Status",           "field": "status",          "template": "statusTpl",         "sortable": "enabled",  "style": "width:175px;"},
+            {"headerText": "Lines",            "field": "lines",           "template": "linesTpl",          "sortable": "disabled", "style": "width:80px;"}
+          ]'
+          selection-mode='{"row": "single"}'
+          on-first-selected-row-changed="[[$listeners.onRowAction]]"
+          aria-label="Recent Activity">
+
+          <!-- REQUEST # -->
+          <template slot="reqNumberTpl" data-oj-as="cell">
+            <span class="req-number-link">
+              <oj-bind-text value="[[ cell.data ]]"></oj-bind-text>
+            </span>
+          </template>
+
+          <!-- CUSTOMER NAME -->
+          <template slot="customerNameTpl" data-oj-as="cell">
+            <span style="font-weight:600; color:var(--oj-core-text-color-primary,#161616);">
+              <oj-bind-text value="[[ cell.data ]]"></oj-bind-text>
+            </span>
+          </template>
+
+          <!-- CUSTOMER CONTACT -->
+          <template slot="customerContactTpl" data-oj-as="cell">
+            <span style="color:var(--oj-core-text-color-secondary,#565656);">
+              <oj-bind-text value="[[ cell.data ]]"></oj-bind-text>
+            </span>
+          </template>
+
+          <!-- STATUS — canonical pill. Colour always comes from the shared
+               status module; only the DEPLOYED label is overridden, because
+               this customer-facing dashboard says "On-Site" rather than
+               "Deployed". -->
+          <template slot="statusTpl" data-oj-as="cell">
+            <oj-bind-if test="[[ !!cell.data ]]">
+              <span :class="[[ $application.functions.statusPillClass(cell.data) ]]">
+                <oj-bind-text value="[[ cell.data === 'DEPLOYED' ? 'ON-SITE'
+                  : $application.functions.formatLineStatus(cell.data) ]]"></oj-bind-text>
+              </span>
+            </oj-bind-if>
+          </template>
+
+          <!-- LINES — count badge -->
+          <template slot="linesTpl" data-oj-as="cell">
+            <span class="req-lines-badge">
+              <oj-bind-text value="[[ cell.data || 0 ]]"></oj-bind-text>
+            </span>
+          </template>
+
+          <!-- EMPTY STATE -->
+          <template slot="noData">
+            <div style="text-align:center; padding:48px 0;">
+              <div style="font-size:40px; color:#cbd5e1; margin-bottom:12px;">📋</div>
+              <div style="font-size:15px; font-weight:600; color:#475569; margin-bottom:6px;">No recent requests found.</div>
+              <div style="font-size:13px; color:#94a3b8;">Submit your first request to see it here.</div>
+            </div>
+          </template>
+
+        </oj-table>
+      </oj-sp-collection-container>
+
+      <!-- View All footer -->
+      <div class="eqr-footer">
+        <oj-c-button
+          label="View All"
+          chroming="borderless"
+          on-oj-action="[[$listeners.navigateToMyRequests]]">
+        </oj-c-button>
+      </div>
+
+    </div>
+
+  </div>
+
+</oj-sp-general-overview-page>

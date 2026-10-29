@@ -1,0 +1,11 @@
+{
+    "items": [
+        { "OrganizationId": 300000047274444, "OrganizationCode": "001", "OrganizationName": "Seattle" },
+        { "OrganizationId": 300000047274450, "OrganizationCode": "003", "OrganizationName": "Chicago" },
+        { "OrganizationId": 300000310790600, "OrganizationCode": "RITE_HYD_INV", "OrganizationName": "RITE HYD INV ORG" }
+    ],
+    "count": 3,
+    "hasMore": false,
+    "limit": 500,
+    "offset": 0
+}

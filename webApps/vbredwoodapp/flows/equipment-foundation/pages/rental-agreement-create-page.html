@@ -1,0 +1,422 @@
+<style>
+    #oj_gop_rental_create {
+        --oj-sp-general-overview-page-max-width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    .main-layout-container {
+        max-width: 100%;
+        margin: 0;
+        height: calc(100vh - 160px);
+        overflow: hidden;
+        flex-wrap: nowrap !important;
+    }
+
+    /* ── Settings group card ── */
+    .settings-group {
+        border: 1px solid var(--border-color, #d1d5db);
+        border-radius: 8px;
+        background-color: #ffffff;
+        margin-bottom: 24px;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+    .settings-group-header {
+        padding: 16px;
+        border-bottom: 1px solid var(--border-color, #d1d5db);
+        display: flex;
+        align-items: center;
+    }
+    .settings-group-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 16px;
+        color: white;
+        flex-shrink: 0;
+    }
+    .icon-blue   { background-color: #0f172a; }
+    .icon-teal   { background-color: #0d9488; }
+    .icon-purple { background-color: #8b5cf6; }
+
+    .settings-group-title {
+        font-weight: 600;
+        font-size: 16px;
+        color: var(--text-main, #111827);
+    }
+    .settings-group-subtitle {
+        font-size: 12px;
+        color: var(--text-secondary, #6b7280);
+        margin-top: 2px;
+    }
+    .settings-content {
+        padding: 20px 24px;
+    }
+
+    /* ── Status badge ── */
+    .badge-draft {
+        background-color: #f1f5f9;
+        color: #475569;
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.4px;
+    }
+
+    /* ── Empty state ── */
+    .empty-lines-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 80px 24px;
+        text-align: center;
+    }
+    .empty-lines-icon {
+        font-size: 48px;
+        margin-bottom: 16px;
+        color: #cbd5e1;
+    }
+    .empty-lines-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #64748b;
+        margin-bottom: 8px;
+    }
+    .empty-lines-desc {
+        font-size: 13px;
+        color: #94a3b8;
+        max-width: 360px;
+        line-height: 1.5;
+    }
+</style>
+
+<oj-sp-general-overview-page
+    id="oj_gop_rental_create"
+    display-mode="mixed"
+    display-options.responsive-padding="on"
+    page-title="New Rental Agreement"
+    page-subtitle="Agreement ID will be assigned on save"
+    primary-action='[[ {"label": "Save Agreement", "icon": "oj-ux-ico-save", "display": "on"} ]]'
+    secondary-actions='[[ [{"id": "cancel", "label": "Cancel", "display": "on"}] ]]'
+    display-options.in-flow-back="true"
+    on-sp-in-flow-back="[[$listeners.onSpInFlowBack]]"
+    on-sp-primary-action="[[$listeners.onSave]]"
+    on-sp-secondary-action="[[$listeners.onCancel]]">
+
+    <div slot="main" class="oj-flex oj-sm-gap-6x main-layout-container">
+        <div class="oj-sm-width-full oj-md-margin-6x-top oj-md-margin-6x-horizontal"
+            style="flex: 1 1 auto; min-width: 0; height: calc(100% - 24px); display: flex; flex-direction: column;">
+
+            <!-- ── Content Container ── -->
+            <div style="border-radius: 8px; background-color: #ffffff; flex: 1 1 auto; display: flex; flex-direction: column; overflow: hidden; padding: 0; border: 1px solid var(--border-color, #e2e8f0);">
+
+                <!-- ── Scrollable Content ── -->
+                <div style="flex: 1 1 auto; overflow-y: auto; padding: 24px; padding-bottom: 80px;">
+
+                    <div class="oj-flex oj-sm-flex-direction-column">
+
+                        <!-- ── Agreement Details (collapsible) ── -->
+                        <div class="settings-group">
+                            <oj-collapsible expanded="{{ $variables.agreementDetailsExpanded }}"
+                                on-oj-before-collapse="[[ function() { $variables.agreementDetailsExpanded = false; } ]]"
+                                on-oj-before-expand="[[ function() { $variables.agreementDetailsExpanded = true; } ]]">
+                                <div slot="header" class="oj-flex oj-sm-align-items-center" style="width: 100%; padding: 4px 0;">
+                                    <div class="settings-group-icon icon-blue">
+                                        <span class="oj-ux-ico-file-text" style="font-size: 20px;"></span>
+                                    </div>
+                                    <div>
+                                        <div class="settings-group-title">Agreement Details</div>
+                                        <div class="settings-group-subtitle">Core identifiers and classification for this rental agreement.</div>
+                                    </div>
+                                </div>
+                                <div class="settings-content">
+                                    <oj-form-layout max-columns="4" label-edge="top" direction="row" style="width: 100%;">
+                                        <oj-input-text
+                                            label-hint="Agreement Name"
+                                            value="{{ $variables.formData.agreementName }}"
+                                            required="true"
+                                            placeholder="e.g. Gulf Coast Rig Rental 2025">
+                                        </oj-input-text>
+                                        <oj-select-single
+                                            label-hint="Agreement Type"
+                                            value="{{ $variables.formData.agreementType }}"
+                                            data="[[ $variables.agreementTypeSDP ]]"
+                                            item-text="typeLabel"
+                                            required="true"
+                                            placeholder="— Select Type —">
+                                        </oj-select-single>
+                                        <!-- Business Unit / Billing Frequency / Payment Terms are
+                                             collected in the UI but NOT yet persisted (see save chain)
+                                             and NOT enforced. required removed so the asterisk doesn't
+                                             promise validation the save never performs. -->
+                                        <oj-select-single
+                                            label-hint="Business Unit"
+                                            value="{{ $variables.formData.businessUnit }}"
+                                            data="[[ $variables.businessUnitADP ]]"
+                                            item-text="label"
+                                            placeholder="— Select BU —">
+                                        </oj-select-single>
+                                        <oj-text-area
+                                            label-hint="Notes / Description"
+                                            value="{{ $variables.formData.notes }}"
+                                            placeholder="Optional internal notes..."
+                                            rows="1">
+                                        </oj-text-area>
+                                    </oj-form-layout>
+                                </div>
+                            </oj-collapsible>
+                        </div>
+
+                        <!-- ── Customer Information (collapsible) ── -->
+                        <div class="settings-group">
+                            <oj-collapsible expanded="{{ $variables.customerInfoExpanded }}"
+                                on-oj-before-collapse="[[ function() { $variables.customerInfoExpanded = false; } ]]"
+                                on-oj-before-expand="[[ function() { $variables.customerInfoExpanded = true; } ]]">
+                                <div slot="header" class="oj-flex oj-sm-align-items-center" style="width: 100%; padding: 4px 0;">
+                                    <div class="settings-group-icon icon-teal">
+                                        <span class="oj-ux-ico-contact" style="font-size: 20px;"></span>
+                                    </div>
+                                    <div>
+                                        <div class="settings-group-title">Customer Information</div>
+                                        <div class="settings-group-subtitle">Identify the customer and their primary contact for this agreement.</div>
+                                    </div>
+                                </div>
+                                <div class="settings-content">
+                                    <oj-form-layout max-columns="4" label-edge="top" direction="row" style="width: 100%;">
+                                        <oj-select-single
+                                            label-hint="Customer"
+                                            value="{{ $variables.formData.customerId }}"
+                                            data="[[ $variables.customerSDP ]]"
+                                            item-text="Customer"
+                                            required="true"
+                                            placeholder="— Search customer —"
+                                            on-oj-value-action="[[ function(event) { if (event.detail.itemContext && event.detail.itemContext.data) { $variables.formData.customerId = event.detail.itemContext.data.CustomerId; $variables.formData.customerName = event.detail.itemContext.data.Customer; } else { $variables.formData.customerId = null; $variables.formData.customerName = ''; } } ]]">
+                                            <template slot="itemTemplate" data-oj-as="item">
+                                              <div class="oj-sm-padding-2x oj-sm-background-contrast-subtle oj-sm-border-bottom">
+                                                <div class="oj-sm-text-secondary oj-sm-display-block">
+                                                  <oj-bind-text value="[[ item.data.Customer ]]"></oj-bind-text>
+                                                </div>
+                                                <div class="oj-sm-text-secondary oj-sm-display-block oj-sm-margin-top-2x oj-typography-caption">
+                                                  <small><oj-bind-text value="[[ item.data.CustomerNumber ]]"></oj-bind-text></small>
+                                                </div>
+                                              </div>
+                                            </template>
+                                        </oj-select-single>
+                                        <oj-select-single
+                                            label-hint="Customer Type"
+                                            value="{{ $variables.formData.customerType }}"
+                                            data="[[ $variables.customerTypeADP ]]"
+                                            item-text="label"
+                                            placeholder="— Select —">
+                                        </oj-select-single>
+                                        <oj-input-text
+                                            label-hint="Customer Account No."
+                                            value="{{ $variables.formData.customerAccount }}"
+                                            placeholder="e.g. ACC-10032">
+                                        </oj-input-text>
+                                        <oj-input-text
+                                            label-hint="Contact Name"
+                                            value="{{ $variables.formData.contactName }}"
+                                            placeholder="e.g. Sarah Mitchell">
+                                        </oj-input-text>
+                                        <oj-input-text
+                                            label-hint="Contact Email"
+                                            value="{{ $variables.formData.contactEmail }}"
+                                            placeholder="e.g. sarah.mitchell@customer.com">
+                                        </oj-input-text>
+                                        <oj-input-text
+                                            label-hint="Contact Phone"
+                                            value="{{ $variables.formData.contactPhone }}"
+                                            placeholder="e.g. +1 (713) 555-0100">
+                                        </oj-input-text>
+                                    </oj-form-layout>
+                                </div>
+                            </oj-collapsible>
+                        </div>
+
+                        <!-- ── Agreement Terms (collapsible) ── -->
+                        <div class="settings-group">
+                            <oj-collapsible expanded="{{ $variables.agreementTermsExpanded }}"
+                                on-oj-before-collapse="[[ function() { $variables.agreementTermsExpanded = false; } ]]"
+                                on-oj-before-expand="[[ function() { $variables.agreementTermsExpanded = true; } ]]">
+                                <div slot="header" class="oj-flex oj-sm-align-items-center" style="width: 100%; padding: 4px 0;">
+                                    <div class="settings-group-icon icon-purple">
+                                        <span class="oj-ux-ico-calendar" style="font-size: 20px;"></span>
+                                    </div>
+                                    <div>
+                                        <div class="settings-group-title">Agreement Terms</div>
+                                        <div class="settings-group-subtitle">Define the period, billing structure, and location for this rental agreement.</div>
+                                    </div>
+                                </div>
+                                <div class="settings-content">
+                                    <oj-form-layout max-columns="4" label-edge="top" direction="row" style="width: 100%;">
+                                        <oj-input-date
+                                            label-hint="Start Date"
+                                            value="{{ $variables.formData.startDate }}"
+                                            required="true">
+                                        </oj-input-date>
+                                        <oj-input-date
+                                            label-hint="End Date"
+                                            value="{{ $variables.formData.endDate }}"
+                                            required="true">
+                                        </oj-input-date>
+                                        <oj-select-single
+                                            label-hint="Billing Frequency"
+                                            value="{{ $variables.formData.billingFrequency }}"
+                                            data="[[ $variables.billingFrequencyADP ]]"
+                                            item-text="label"
+                                            placeholder="— Select —">
+                                        </oj-select-single>
+                                        <oj-select-single
+                                            label-hint="Payment Terms"
+                                            value="{{ $variables.formData.paymentTerms }}"
+                                            data="[[ $variables.paymentTermsADP ]]"
+                                            item-text="label"
+                                            placeholder="— Select —">
+                                        </oj-select-single>
+                                    </oj-form-layout>
+                                </div>
+                            </oj-collapsible>
+                        </div>
+
+                        <!-- ── Agreement Line Summary (non-collapsible) ── -->
+                        <div class="settings-group">
+                            <div class="settings-group-header oj-flex oj-sm-align-items-center oj-sm-justify-content-space-between">
+                                <div class="oj-flex oj-sm-align-items-center">
+                                    <div class="settings-group-icon icon-teal">
+                                        <span class="oj-ux-ico-clipboard-list" style="font-size: 20px;"></span>
+                                    </div>
+                                    <div>
+                                        <div class="settings-group-title">Agreement Line Summary</div>
+                                        <div class="settings-group-subtitle">Review the list of equipment included in this agreement.</div>
+                                    </div>
+                                </div>
+                                <div class="oj-flex oj-sm-gap-2x">
+                                    <oj-button chroming="outlined" disabled="[[ !$variables.gridSelection || $variables.gridSelection.length === 0 ]]" on-oj-action="[[$listeners.onDeleteLine]]">
+                                        <span slot="startIcon" class="oj-ux-ico-trash"></span>
+                                        <span>Delete Line</span>
+                                    </oj-button>
+                                    <oj-button class="oj-sm-margin-2x-start" chroming="callToAction" on-oj-action="[[$listeners.onOpenAddLineDrawer]]">
+                                        <span slot="startIcon" class="oj-ux-ico-plus"></span>
+                                        <span>Add Agreement Line</span>
+                                    </oj-button>
+                                </div>
+                            </div>
+                            <div class="settings-content" style="padding: 0;">
+                                <oj-data-grid
+                                    id="agreementLinesGrid"
+                                    class="demo-data-grid oj-sm-width-full"
+                                    style="height: 500px;"
+                                    aria-label="Agreement Lines Grid"
+                                    data="[[ $variables.dataGridProvider ]]"
+                                    selection="{{ $variables.gridSelection }}"
+                                    cell.editable="[[ $functions.getIsEditable.bind($functions) ]]"
+                                    header.column.style="[[ $functions.getColumnHeaderStyle.bind($functions) ]]"
+                                    header.row.style="width:50px;"
+                                    header.column.resizable.width="enable"
+                                    header.row.resizable.height="enable"
+                                    scroll-policy="loadMoreOnScroll"
+                                    edit-mode="cellEdit"
+                                    selection-mode.row="multiple"
+                                    on-selection-changed="[[$listeners.onGridRowSelected]]">
+                                    <template slot="cellTemplate" data-oj-as="cell">
+                                        <oj-bind-if test="[[ $functions.getColumnType(cell.item.columnIndex) === 'readonly' ]]">
+                                            <span class="oj-text-color-secondary oj-typography-body-sm"><oj-bind-text value="[[ cell.item.data.data ]]"></oj-bind-text></span>
+                                        </oj-bind-if>
+                                    </template>
+                                </oj-data-grid>
+                            </div>
+                        </div>
+
+                    </div>
+                </div><!-- /scrollable content -->
+            </div><!-- /content container -->
+        </div><!-- /main content -->
+
+        <!-- ADD AGREEMENT LINE DRAWER (sibling to main content, inside layout) -->
+        <oj-drawer-popup edge="end" opened="{{ $variables.isAddLineDrawerOpen }}" on-opened-changed="[[ function(event) { if (event.detail.value === false) { $listeners.onCloseAddLineDrawer(); } } ]]" auto-dismiss="none">
+            <div style="height: 100vh; display: flex; flex-direction: column; width: 420px; background-color: #f8fafc;">
+                <!-- Drawer Header -->
+                <div style="flex: 0 0 auto; padding: 24px; background-color: #ffffff; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div class="oj-flex oj-sm-flex-direction-column">
+                        <span class="oj-typography-heading-sm oj-typography-bold" style="color: #111827;">Add Agreement Line</span>
+                        <span class="oj-typography-body-sm oj-text-color-secondary">Select equipment to add to this rental agreement.</span>
+                    </div>
+                    <oj-button display="icons" chroming="borderless" on-oj-action="[[ $listeners.onCloseAddLineDrawer ]]">
+                        <span slot="startIcon" class="oj-ux-ico-close"></span>
+                        <span>Close</span>
+                    </oj-button>
+                </div>
+
+                <!-- Drawer Body -->
+                <div style="flex: 1 1 auto; overflow-y: auto; padding: 24px;">
+                    <oj-form-layout max-columns="1" label-edge="top" direction="column">
+                        <oj-select-single
+                            label-hint="Equipment Class"
+                            value="{{ $variables.currentLine.classId }}"
+                            data="[[ $variables.equipmentClassesADP ]]"
+                            item-text="label"
+                            options-keys.value="value"
+                            options-keys.label="label"
+                            required="true"
+                            placeholder="— Select Class —"
+                            on-oj-value-action="[[ $listeners.onClassSelected ]]">
+                        </oj-select-single>
+                        <oj-select-single
+                            label-hint="Equipment Subclass"
+                            value="{{ $variables.currentLine.subclassId }}"
+                            data="[[ $variables.equipmentSubclassesADP ]]"
+                            item-text="label"
+                            options-keys.value="value"
+                            options-keys.label="label"
+                            placeholder="— Select Subclass —"
+                            disabled="[[ !$variables.currentLine.classId ]]"
+                            on-oj-value-action="[[ $listeners.onSubclassSelected ]]">
+                        </oj-select-single>
+                        <oj-select-single
+                            label-hint="Equipment Name"
+                            value="{{ $variables.currentLine.equipmentMasterId }}"
+                            data="[[ $variables.equipmentNamesADP ]]"
+                            item-text="label"
+                            options-keys.value="value"
+                            options-keys.label="label"
+                            placeholder="— Select Equipment —"
+                            disabled="[[ !$variables.currentLine.classId ]]"
+                            on-oj-value-action="[[ function(event) { if (event.detail.itemContext && event.detail.itemContext.data) { $variables.currentLine.equipmentName = event.detail.itemContext.data.label; } } ]]">
+                        </oj-select-single>
+                        <oj-input-text
+                            label-hint="Description"
+                            value="{{ $variables.currentLine.description }}"
+                            placeholder="Optional description">
+                        </oj-input-text>
+                        <oj-input-number
+                            label-hint="Rate"
+                            value="{{ $variables.currentLine.unitPrice }}"
+                            min="0.01"
+                            step="0.01"
+                            required="true">
+                        </oj-input-number>
+                        <oj-select-single
+                            label-hint="Rate Frequency"
+                            value="{{ $variables.currentLine.priceUom }}"
+                            data="[[ $variables.priceUomADP ]]"
+                            item-text="label"
+                            placeholder="— Select UOM —">
+                        </oj-select-single>
+                    </oj-form-layout>
+                </div>
+
+                <!-- Drawer Footer -->
+                <div style="flex: 0 0 auto; padding: 16px 24px; background-color: #ffffff; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 12px;">
+                    <oj-button chroming="outlined" on-oj-action="[[ $listeners.onCloseAddLineDrawer ]]">Cancel</oj-button>
+                    <oj-button chroming="callToAction" on-oj-action="[[$listeners.onAddLine]]">Add Agreement Line</oj-button>
+                </div>
+            </div>
+        </oj-drawer-popup>
+
+    </div><!-- /main layout -->
+</oj-sp-general-overview-page>

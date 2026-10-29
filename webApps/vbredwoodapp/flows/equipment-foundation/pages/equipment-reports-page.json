@@ -1,0 +1,465 @@
+{
+
+  "metadata": {},
+  "variables": {
+    "kpiEquipRecords":     { "type": "number", "defaultValue": 0 },
+    "kpiTotalCost":        { "type": "string", "defaultValue": "" },
+    "kpiRateExceptions":   { "type": "number", "defaultValue": 0 },
+
+    "historyRows":         { "type": "any[]", "defaultValue": [] },
+    "historyFilteredRows": { "type": "any[]", "defaultValue": [] },
+    "historySelection":    { "type": "any[]", "defaultValue": [] },
+    "filterFrom":          { "type": "string", "defaultValue": "" },
+    "filterTo":            { "type": "string", "defaultValue": "" },
+    "filterSerial":        { "type": "string", "defaultValue": "" },
+    "serialOptionsArray":  { "type": "any[]", "defaultValue": [] },
+    "serialOptionsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.serialOptionsArray }}" }
+    },
+
+    "reportsActiveTab": { "type": "string", "defaultValue": "equip-history" },
+    "reportsTabsArray": {
+      "type": "any[]",
+      "defaultValue": [
+        { "id": "equip-history",      "label": "Equipment History" },
+        { "id": "rental-requests",    "label": "Rental Requests Report" },
+        { "id": "proj-cost-detail",   "label": "Project Cost Detail" },
+        { "id": "rate-exceptions",    "label": "Rate Exceptions" },
+        { "id": "rate-schedule-rpt",  "label": "Rate Schedule Report" },
+        { "id": "agreement-expiry",   "label": "Agreement Expiry" }
+      ]
+    },
+    "reportsTabsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": { "itemType": "any", "keyAttributes": "id", "data": "{{ $page.variables.reportsTabsArray }}" }
+    },
+
+    "rentalReqRows":              { "type": "any[]", "defaultValue": [] },
+    "rentalReqSelection":         { "type": "any[]", "defaultValue": [] },
+    "rentalReqShowMore":          { "type": "boolean", "defaultValue": false },
+    "rentalReqActiveFilterCount": { "type": "number",  "defaultValue": 0 },
+    "rentalReqFilterQ":           { "type": "string", "defaultValue": "" },
+    "rentalReqFilterRequest":     { "type": "string", "defaultValue": "" },
+    "rentalReqFilterProject":     { "type": "string", "defaultValue": "" },
+    "rentalReqFilterCustomer":    { "type": "string", "defaultValue": "" },
+    "rentalReqFilterLineStatus":  { "type": "any[]",  "defaultValue": [] },
+    "rentalReqFilterReqStatus":   { "type": "any[]",  "defaultValue": [] },
+    "rentalReqFilterClass":       { "type": "string", "defaultValue": "" },
+    "rentalReqFilterFrom":        { "type": "string", "defaultValue": "" },
+    "rentalReqFilterTo":          { "type": "string", "defaultValue": "" },
+    "rentalReqFilterProcurement": { "type": "string", "defaultValue": "" },
+    "rentalReqProjectOptionsArray": { "type": "any[]", "defaultValue": [] },
+    "rentalReqProjectOptionsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.rentalReqProjectOptionsArray }}" }
+    },
+    "rentalReqCustomerOptionsArray": { "type": "any[]", "defaultValue": [] },
+    "rentalReqCustomerOptionsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.rentalReqCustomerOptionsArray }}" }
+    },
+    "rentalReqLineStatusOptionsArray": { "type": "any[]", "defaultValue": [] },
+    "rentalReqLineStatusOptionsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.rentalReqLineStatusOptionsArray }}" }
+    },
+    "rentalReqReqStatusOptionsArray":  { "type": "any[]", "defaultValue": [] },
+    "rentalReqReqStatusOptionsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.rentalReqReqStatusOptionsArray }}" }
+    },
+    "rentalReqClassOptionsArray": { "type": "any[]", "defaultValue": [] },
+    "rentalReqClassOptionsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.rentalReqClassOptionsArray }}" }
+    },
+    "rentalReqProcurementOptionsArray": {
+      "type": "any[]",
+      "defaultValue": [
+        { "label": "Has Requisition",       "value": "HAS_PR"  },
+        { "label": "Has Purchase Order",    "value": "HAS_PO"  },
+        { "label": "Awaiting PO",           "value": "PENDING" },
+        { "label": "No Procurement",        "value": "NEITHER" }
+      ]
+    },
+    "rentalReqProcurementOptionsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.rentalReqProcurementOptionsArray }}" }
+    },
+
+    "projCostRows":            { "type": "any[]", "defaultValue": [] },
+    "projCostFilteredRows":    { "type": "any[]", "defaultValue": [] },
+    "projCostSelection":       { "type": "any[]", "defaultValue": [] },
+    "projCostFilterProject":   { "type": "string", "defaultValue": "" },
+    "projCostFilterRequest":   { "type": "string", "defaultValue": "" },
+    "projCostFilterCostType":  { "type": "string", "defaultValue": "" },
+    "projCostFilterFrom":      { "type": "string", "defaultValue": "" },
+    "projCostFilterTo":        { "type": "string", "defaultValue": "" },
+    "costTypeOptionsArray": {
+      "type": "any[]",
+      "defaultValue": [
+        { "label": "Equipment Cost",        "value": "Equipment Cost" },
+        { "label": "Transportation Cost",   "value": "Transportation Cost" },
+        { "label": "Rental Charges",        "value": "Rental Charges" },
+        { "label": "Service Charges",       "value": "Service Charges" },
+        { "label": "Miscellaneous Charges", "value": "Miscellaneous Charges" }
+      ]
+    },
+    "costTypeOptionsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.costTypeOptionsArray }}" }
+    },
+    "projOptionsArray": { "type": "any[]", "defaultValue": [] },
+    "projOptionsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.projOptionsArray }}" }
+    },
+    "reqOptionsArray":  { "type": "any[]", "defaultValue": [] },
+    "reqOptionsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.reqOptionsArray }}" }
+    },
+
+    "rateExcRows":           { "type": "any[]", "defaultValue": [] },
+    "rateExcFilteredRows":   { "type": "any[]", "defaultValue": [] },
+    "rateExcSelection":      { "type": "any[]", "defaultValue": [] },
+    "rateExcFilterYard":     { "type": "string", "defaultValue": "" },
+    "rateExcFilterClass":    { "type": "string", "defaultValue": "" },
+    "rateExcFilterReason":   { "type": "string", "defaultValue": "" },
+    "rateExcFilterFrom":     { "type": "string", "defaultValue": "" },
+    "rateExcFilterTo":       { "type": "string", "defaultValue": "" },
+    "rateExcYardOptionsArray":  { "type": "any[]", "defaultValue": [] },
+    "rateExcYardOptionsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.rateExcYardOptionsArray }}" }
+    },
+    "rateExcClassOptionsArray": { "type": "any[]", "defaultValue": [] },
+    "rateExcClassOptionsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.rateExcClassOptionsArray }}" }
+    },
+    "rateExcReasonOptionsArray": {
+      "type": "any[]",
+      "defaultValue": [
+        { "label": "Rate Not Defined",              "value": "Rate Not Defined" },
+        { "label": "No Active Rate for Date Range", "value": "No Active Rate for Date Range" },
+        { "label": "Missing Class Rate",            "value": "Missing Class Rate" },
+        { "label": "Missing Subclass Rate",         "value": "Missing Subclass Rate" },
+        { "label": "Missing Yard-Specific Rate",    "value": "Missing Yard-Specific Rate" }
+      ]
+    },
+    "rateExcReasonOptionsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.rateExcReasonOptionsArray }}" }
+    },
+
+    "rateSchedReportType":       { "type": "string", "defaultValue": "details" },
+    "rateSchedFilterClass":      { "type": "string", "defaultValue": "" },
+    "rateSchedFilterFrom":       { "type": "string", "defaultValue": "" },
+    "rateSchedFilterTo":         { "type": "string", "defaultValue": "" },
+    "rateSchedRows":             { "type": "any[]",  "defaultValue": [] },
+    "rateSchedFilteredRows":     { "type": "any[]",  "defaultValue": [] },
+    "rateSchedExcRows":          { "type": "any[]",  "defaultValue": [] },
+    "rateSchedExcFilteredRows":  { "type": "any[]",  "defaultValue": [] },
+    "rateSchedClassOptionsArray":{ "type": "any[]",  "defaultValue": [] },
+    "rateSchedClassOptionsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.rateSchedClassOptionsArray }}" }
+    },
+    "rateSchedReportTypeOptionsArray": {
+      "type": "any[]",
+      "defaultValue": [
+        { "label": "Rate Details",    "value": "details"    },
+        { "label": "Rate Exceptions", "value": "exceptions" }
+      ]
+    },
+    "rateSchedReportTypeOptionsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.rateSchedReportTypeOptionsArray }}" }
+    },
+
+    "agreementExpiryRows":            { "type": "any[]", "defaultValue": [] },
+    "agreementExpiryFilteredRows":    { "type": "any[]", "defaultValue": [] },
+    "agreementExpirySelection":       { "type": "any[]", "defaultValue": [] },
+    "agreementExpiryFilterStatus":    { "type": "any[]", "defaultValue": [] },
+    "agreementExpiryFilterType":      { "type": "any[]", "defaultValue": [] },
+    "agreementExpiryStatusOptionsArray": { "type": "any[]", "defaultValue": [] },
+    "agreementExpiryStatusOptionsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.agreementExpiryStatusOptionsArray }}" }
+    },
+    "agreementExpiryTypeOptionsArray": { "type": "any[]", "defaultValue": [] },
+    "agreementExpiryTypeOptionsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.agreementExpiryTypeOptionsArray }}" }
+    },
+
+    "_comment_reportsWindow":    { "type": "string", "defaultValue": "Equipment History's date window. Smart search has no date filter type, so this is a page control like the Analytics Utilization Period: reportsDatePreset sends duration, or fromDate/toDate when it is 'custom'. Default 'all' sends nothing, so the report stays unfiltered until a period is chosen. All three controls fire FilterChain via onFilterChanged." },
+    "reportsDatePreset":         { "type": "string", "defaultValue": "all" },
+    "reportsCustomFrom":         { "type": "string", "defaultValue": "" },
+    "reportsCustomTo":           { "type": "string", "defaultValue": "" },
+    "reportsDateOptionsArray": {
+      "type": "any[]",
+      "defaultValue": [
+        { "label": "All Time",      "value": "all"           },
+        { "label": "Last 10 Days",  "value": "LAST_10_DAYS"  },
+        { "label": "Last 30 Days",  "value": "LAST_30_DAYS"  },
+        { "label": "Last 3 Months", "value": "LAST_3_MONTHS" },
+        { "label": "Last 6 Months", "value": "LAST_6_MONTHS" },
+        { "label": "Last Year",     "value": "LAST_YEAR"     },
+        { "label": "Custom",        "value": "custom"        }
+      ]
+    },
+    "reportsDateOptionsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.reportsDateOptionsArray }}" }
+    },
+    "reportsFilterCriterion":    { "type": "any",     "defaultValue": null },
+    "reportsFilterVersion":      { "type": "number",  "defaultValue": 0 },
+    "reportsSmartSearchVisible": { "type": "boolean", "defaultValue": true },
+    "reportsIsLoading":          { "type": "boolean", "defaultValue": false },
+    "_comment_lastQuerySig":     { "type": "string",  "defaultValue": "Params last sent for the active tab. Suppresses a refetch when a criterion change produces no change for THIS endpoint (e.g. a chip the tab doesn't support)." },
+    "reportsLastQuerySignature": { "type": "string",  "defaultValue": "" },
+    "reportsSearchConfiguration": {
+      "type": "oj-sp/smart-search/strategies/JsonSearchConfigProviderFactory",
+      "defaultValue": {
+        "url": "[[ $application.path + 'resources/data/reports/' + $page.variables.reportsActiveTab + '.json' ]]"
+      }
+    },
+    "_comment_searchContext": { "type": "string", "defaultValue": "One entry per filter id used by ANY per-tab config in resources/data/reports/. The ids are deliberately shared across those files so this list stays short; only the ids in the loaded file are rendered as chips. Which file loads is the URL expression on reportsSearchConfiguration above." },
+    "reportsSearchContext": {
+      "type": "object",
+      "defaultValue": {
+        "$search": {
+          "filters": {
+            "AssetGroupFilter": {
+              "options": {
+                "optionsData": "[[ $page.variables.reportsAssetGroupOptionsADP ]]",
+                "optionsKeys": { "label": "label", "value": "value" }
+              }
+            },
+            "ClassFilter": {
+              "options": {
+                "optionsData": "[[ $page.variables.reportsClassOptionsArrayADP ]]",
+                "optionsKeys": { "label": "label", "value": "value" }
+              }
+            },
+            "SubclassFilter": {
+              "options": {
+                "optionsData": "[[ $page.variables.reportsSubclassOptionsArrayADP ]]",
+                "optionsKeys": { "label": "label", "value": "value" }
+              }
+            },
+            "StatusFilter": {
+              "options": {
+                "optionsData": "[[ $page.variables.reportsStatusOptionsArrayADP ]]",
+                "optionsKeys": { "label": "label", "value": "value" }
+              }
+            },
+            "LineStatusFilter": {
+              "options": {
+                "optionsData": "[[ $page.variables.reportsLineStatusOptionsArrayADP ]]",
+                "optionsKeys": { "label": "label", "value": "value" }
+              }
+            },
+            "ProjectFilter": {
+              "options": {
+                "optionsData": "[[ $page.variables.reportsProjectOptionsADP ]]",
+                "optionsKeys": { "label": "label", "value": "value" }
+              }
+            },
+            "EquipmentFilter": {
+              "options": {
+                "optionsData": "[[ $page.variables.reportsEquipmentOptionsADP ]]",
+                "optionsKeys": { "label": "label", "value": "value" }
+              }
+            },
+            "YardFilter": {
+              "options": {
+                "optionsData": "[[ $page.variables.reportsYardOptionsArrayADP ]]",
+                "optionsKeys": { "label": "label", "value": "value" }
+              }
+            },
+            "RateTypeFilter": {
+              "options": {
+                "optionsData": "[[ $page.variables.reportsRateTypeOptionsArrayADP ]]",
+                "optionsKeys": { "label": "label", "value": "value" }
+              }
+            },
+            "PeriodFilter": {
+              "options": {
+                "optionsData": "[[ $page.variables.reportsPeriodOptionsArrayADP ]]",
+                "optionsKeys": { "label": "label", "value": "value" }
+              }
+            },
+            "ActiveFilter": {
+              "options": {
+                "optionsData": "[[ $page.variables.reportsActiveOptionsArrayADP ]]",
+                "optionsKeys": { "label": "label", "value": "value" }
+              }
+            },
+            "TypeFilter": {
+              "options": {
+                "optionsData": "[[ $page.variables.reportsTypeOptionsArrayADP ]]",
+                "optionsKeys": { "label": "label", "value": "value" }
+              }
+            },
+            "ExpiryFilter": {
+              "options": {
+                "optionsData": "[[ $page.variables.reportsExpiryOptionsArrayADP ]]",
+                "optionsKeys": { "label": "label", "value": "value" }
+              }
+            },
+            "PostedFilter": {
+              "options": {
+                "optionsData": "[[ $page.variables.reportsPostedOptionsArrayADP ]]",
+                "optionsKeys": { "label": "label", "value": "value" }
+              }
+            },
+            "ProcurementFilter": {
+              "options": {
+                "optionsData": "[[ $page.variables.reportsProcurementOptionsArrayADP ]]",
+                "optionsKeys": { "label": "label", "value": "value" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "_comment_suggestionFilters": { "type": "string", "defaultValue": "Ordering hint passed to the component as string[] — NOT a gate. Which chips exist is the per-tab config file; this was previously a JSON string, which the component ignored. Set per tab by reportsData.suggestionFiltersFor()." },
+    "reportsSuggestionFilters":  { "type": "any[]", "defaultValue": ["AssetGroupFilter", "EquipmentFilter", "StatusFilter", "SerialFilter"] },
+
+    "_comment_lovArrays": { "type": "string", "defaultValue": "One array per smart-search filter id used by ANY per-tab config in resources/data/reports/, refilled from the ACTIVE tab's rows by reportsData.loadTab (TAB_META.lovs). Ids are shared across those files, so one array serves whichever param that tab filters on — StatusFilter is allocationStatus on Equipment History, requestStatus on Rental Requests and status on Agreement Expiry. A few are fixed enums the rows never carry (Period/Posted/Active/Procurement) and are filled from constants." },
+
+    "reportsAssetGroupOptionsArray": { "type": "any[]", "defaultValue": [] },
+    "reportsAssetGroupOptionsADP":   { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.reportsAssetGroupOptionsArray }}" } },
+    "reportsProjectOptionsArray": { "type": "any[]", "defaultValue": [] },
+    "reportsProjectOptionsADP":   { "type": "vb/ArrayDataProvider2", "description": "UI-only placeholder for the Equipment History tab's Project chip — empty until a real project lookup is wired up, same convention as Asset Group.", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.reportsProjectOptionsArray }}" } },
+    "reportsEquipmentOptionsArray": { "type": "any[]", "defaultValue": [] },
+    "reportsEquipmentOptionsADP":   { "type": "vb/ArrayDataProvider2", "description": "UI-only placeholder for the Equipment History tab's Equipment Name chip — empty until a real equipment-name lookup is wired up.", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.reportsEquipmentOptionsArray }}" } },
+    "reportsClassOptionsArray": { "type": "any[]", "defaultValue": [] },
+    "reportsClassOptionsArrayADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.reportsClassOptionsArray }}" }
+    },
+    "reportsSubclassOptionsArray": { "type": "any[]", "defaultValue": [] },
+    "reportsSubclassOptionsArrayADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.reportsSubclassOptionsArray }}" }
+    },
+    "reportsStatusOptionsArray": { "type": "any[]", "defaultValue": [] },
+    "reportsStatusOptionsArrayADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.reportsStatusOptionsArray }}" }
+    },
+    "reportsLineStatusOptionsArray": { "type": "any[]", "defaultValue": [] },
+    "reportsLineStatusOptionsArrayADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.reportsLineStatusOptionsArray }}" }
+    },
+    "reportsYardOptionsArray": { "type": "any[]", "defaultValue": [] },
+    "reportsYardOptionsArrayADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.reportsYardOptionsArray }}" }
+    },
+    "reportsRateTypeOptionsArray": { "type": "any[]", "defaultValue": [] },
+    "reportsRateTypeOptionsArrayADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.reportsRateTypeOptionsArray }}" }
+    },
+    "reportsPeriodOptionsArray": { "type": "any[]", "defaultValue": [] },
+    "reportsPeriodOptionsArrayADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.reportsPeriodOptionsArray }}" }
+    },
+    "reportsActiveOptionsArray": { "type": "any[]", "defaultValue": [] },
+    "reportsActiveOptionsArrayADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.reportsActiveOptionsArray }}" }
+    },
+    "reportsTypeOptionsArray": { "type": "any[]", "defaultValue": [] },
+    "reportsTypeOptionsArrayADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.reportsTypeOptionsArray }}" }
+    },
+    "reportsExpiryOptionsArray": { "type": "any[]", "defaultValue": [] },
+    "reportsExpiryOptionsArrayADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.reportsExpiryOptionsArray }}" }
+    },
+    "reportsPostedOptionsArray": { "type": "any[]", "defaultValue": [] },
+    "reportsPostedOptionsArrayADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.reportsPostedOptionsArray }}" }
+    },
+    "reportsProcurementOptionsArray": { "type": "any[]", "defaultValue": [] },
+    "reportsProcurementOptionsArrayADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.reportsProcurementOptionsArray }}" }
+    }
+  },
+
+  "eventListeners": {
+    "vbBeforeEnter": {
+      "chains": [
+        { "chain": "enforcePageAccessChain" }
+      ]
+    },
+    "vbEnter":         { "chains": [{ "chain": "InitChain",   "parameters": {} }] },
+    "onFilterChanged": { "chains": [{ "chain": "FilterChain", "parameters": {} }] },
+    "onExportCsv":     { "chains": [{ "chain": "ExportChain", "parameters": {} }] },
+    "onToggleRentalReqMore":  { "chains": [{ "chain": "ToggleRentalReqMoreChain",  "parameters": {} }] },
+    "onClearRentalReqFilters": { "chains": [{ "chain": "ClearRentalReqFiltersChain", "parameters": {} }] },
+    "onReportsSmartSearchChanged": { "chains": [{ "chain": "OnReportsSmartSearchChangedChain", "parameters": { "criterion": "{{ $event.detail.value }}" } }] },
+    "onReportsTabChanged": { "chains": [{ "chain": "OnReportsTabChangedChain", "parameters": { "newTab": "{{ $event.detail.value }}" } }] }
+  },
+
+  "functions": {
+    "computeKpis":                  { "params": { "historyRows": "any[]", "projCostRows": "any[]", "rateExcRows": "any[]" }, "return": "any" },
+    "formatDate":                   { "params": { "val": "any" },                                                                                                                                                        "return": "string" },
+    "formatCurrency":               { "params": { "val": "any" },                                                                                                                                                        "return": "string" },
+    "filterHistoryData":            { "params": { "historyRows": "any[]", "filterFrom": "string", "filterTo": "string", "filterSerial": "string" },                                                                     "return": "any[]"  },
+    "getSerialNumberOptions":       { "params": { "historyRows": "any[]" },                                                                                                                                              "return": "any[]"  },
+    "getEquipHistoryGridProvider":  { "params": { "historyRows": "any[]" },                                                                                                                                              "return": "any"    },
+    "getEquipHistoryColumnHeaderStyle": { "params": { "headerContext": "any" },                                                                                                                                          "return": "string" },
+    "getRentalReqGridProvider":     { "params": { "rows": "any[]" },                                                                                                                                                     "return": "any"    },
+    "getRentalReqColumnHeaderStyle": { "params": { "headerContext": "any" },                                                                                                                                             "return": "string" },
+    "toLovOptions":                 { "params": { "values": "any[]" },                                                                                                                                                    "return": "any[]"  },
+    "getRentalReqLineStatusValues":    { "params": {}, "return": "any[]" },
+    "getRentalReqRequestStatusValues": { "params": {}, "return": "any[]" },
+    "buildRentalReqUriParams":      { "params": { "filterQ": "string", "filterRequest": "string", "filterProject": "string", "filterCustomer": "string", "filterLineStatus": "any[]", "filterReqStatus": "any[]", "filterClass": "string", "filterFrom": "string", "filterTo": "string", "filterProcurement": "string" }, "return": "any" },
+    "countRentalReqDrawerFilters":  { "params": { "filterProject": "string", "filterCustomer": "string", "filterReqStatus": "any[]", "filterClass": "string", "filterFrom": "string", "filterTo": "string", "filterProcurement": "string" }, "return": "number" },
+    "filterProjCostData":           { "params": { "rows": "any[]", "filterProject": "string", "filterRequest": "string", "filterCostType": "string", "filterFrom": "string", "filterTo": "string" },                   "return": "any[]"  },
+    "getProjCostGridProvider":      { "params": { "rows": "any[]" },                                                                                                                                                     "return": "any"    },
+    "getProjCostColumnHeaderStyle": { "params": { "headerContext": "any" },                                                                                                                                              "return": "string" },
+    "getProjOptions":               { "params": { "rows": "any[]" },                                                                                                                                                     "return": "any[]"  },
+    "getReqOptions":                { "params": { "rows": "any[]" },                                                                                                                                                         "return": "any[]"  },
+    "getRateExcYardOptions":         { "params": { "rows": "any[]" },                                                                                                                                                     "return": "any[]"  },
+    "getRateExcClassOptions":        { "params": { "rows": "any[]" },                                                                                                                                                         "return": "any[]"  },
+    "filterRateExcData":             { "params": { "rows": "any[]", "filterYard": "string", "filterClass": "string", "filterReason": "string", "filterFrom": "string", "filterTo": "string" },                                "return": "any[]"  },
+    "getRateExcGridProvider":        { "params": { "rows": "any[]" },                                                                                                                                                         "return": "any"    },
+    "getRateExcColumnHeaderStyle":   { "params": { "headerContext": "any" },                                                                                                                                                   "return": "string" },
+    "getIsEditable":                 { "params": {},                                                                                                                                                                           "return": "any"    },
+    "getHeaderFilterable":          { "params": {},                                                                                                                                                                       "return": "any"    },
+    "exportCSV":                    { "params": { "activeTab": "string", "data": "any" },                                                                                                                                "return": "any"    }
+  },
+
+  "imports": {
+    "components": {
+      "oj-sp-dashboard-landing-page": { "path": "oj-sp/dashboard-landing-page/loader" },
+      "oj-data-grid":    { "path": "ojs/ojdatagrid" },
+      "oj-tab-bar":      { "path": "ojs/ojtabbar" },
+      "oj-button":       { "path": "ojs/ojbutton" },
+      "oj-input-date":   { "path": "ojs/ojdatetimepicker" },
+      "oj-input-text":   { "path": "ojs/ojinputtext" },
+      "oj-select-single":  { "path": "ojs/ojselectsingle" },
+      "oj-select-many":    { "path": "ojs/ojselectcombobox" },
+      "oj-c-select-multiple": { "path": "oj-c/select-multiple/loader" },
+      "oj-collapsible":    { "path": "ojs/ojcollapsible" },
+      "oj-bind-if":      { "path": "ojs/ojknockout" },
+      "oj-bind-text":    { "path": "ojs/ojknockout" },
+      "oj-sp-smart-search": { "path": "oj-sp/smart-search/loader" }
+    }
+  }
+}

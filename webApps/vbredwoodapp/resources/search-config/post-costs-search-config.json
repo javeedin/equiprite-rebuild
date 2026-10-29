@@ -1,0 +1,29 @@
+{
+  "search": {
+    "placeholder": "Request #, project, task, agreement, equipment name...",
+    "fields": [
+      "requestNo",
+      "project",
+      "task",
+      "agreement"
+    ]
+  },
+  "filters": {
+    "RequestStatus": {
+      "label": "Status",
+      "type": "SelectSingle",
+      "options": [
+        { "value": "READY", "label": "Ready" },
+        { "value": "POSTED", "label": "Posted" }
+      ]
+    },
+    "ProjectName": {
+      "label": "Project",
+      "type": "SelectMultiple",
+      "options": [
+        { "value": "Highway Expansion", "label": "Highway Expansion" },
+        { "value": "Airport Runway", "label": "Airport Runway" }
+      ]
+    }
+  }
+}

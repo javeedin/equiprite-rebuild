@@ -1,0 +1,542 @@
+:root {
+  --sidebar-bg: #0b0f1a;
+  --sidebar-hover: #1f2937;
+  --sidebar-active: #1f2937;
+  --sidebar-text: #9ca3af;
+  --sidebar-text-active: #ffffff;
+  --brand-blue: #3b82f6;
+  --brand-primary: #111827;
+  --bg-main: #f8fafc;
+  --card-bg: #ffffff;
+  --border-color: #e5e7eb;
+  --text-main: #111827;
+  --text-muted: #64748b;
+  --oj-sp-shell-sidebar-bg: var(--sidebar-bg);
+
+  /* ══════════════════════════════════════════════════════════════
+     CANONICAL STATUS PILL PALETTE — single source of truth.
+     Every status pill in the application resolves to these tokens.
+     Do NOT redefine pill colours in a page <style> block; add the
+     status to the `.status-pill--*` set below instead so all pages
+     stay identical.
+
+     SCOPE: pills are used for the request HEADER status, the equipment
+     workbench line status, invoice status and timesheet status. The
+     remaining call sites (request-detail line cells, allocation, rate
+     schedules, rental agreements) render as plain text via `.status-text`
+     — see that block.
+     ══════════════════════════════════════════════════════════════ */
+  --status-draft-bg:            #F3F4F6;
+  --status-draft-text:          #6B7280;
+  --status-submitted-bg:        #DBEAFE;
+  --status-submitted-text:      #1D4ED8;
+  --status-quote-generated-bg:  #E0E7FF;
+  --status-quote-generated-text:#4338CA;
+  --status-quote-accepted-bg:   #CCFBF1;
+  --status-quote-accepted-text: #0F766E;
+  --status-in-process-bg:       #FEF3C7;
+  --status-in-process-text:     #B45309;
+  --status-deployed-bg:         #D1FAE5;
+  --status-deployed-text:       #047857;
+  --status-closed-bg:           #DCFCE7;
+  --status-closed-text:         #166534;
+  --status-rejected-bg:         #FEE2E2;
+  --status-rejected-text:       #B91C1C;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   NON-HEADER STATUS TEXT
+   ----------------------------------------------------------------
+   Colour pills are reserved for the REQUEST HEADER status. Every other
+   status in the application — request lines, allocation status, invoice
+   status, timesheet status, rental-agreement status, rate-schedule
+   status — renders as plain text through this class: no background, no
+   border, no per-status colour. It inherits the surrounding table/detail
+   text colour so status columns read as ordinary data.
+   ════════════════════════════════════════════════════════════════ */
+.status-text {
+  display: inline-block;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  line-height: 1.5rem;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  white-space: nowrap;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   GLOBAL STATUS PILL SYSTEM  —  REQUEST HEADER STATUS ONLY
+   ----------------------------------------------------------------
+   Three class families exist across the app for historical reasons:
+     .status-pill    (canonical, use this for new work)
+     .req-status-badge / .req-status--*   (list & dashboard pages)
+     .cr-badge / .cr-badge-*              (detail pages)
+   All three are unified here so a given status renders identically
+   everywhere. Page-level <style> blocks that redefine these were
+   removed; this file is the only place the colours live.
+   ════════════════════════════════════════════════════════════════ */
+
+.status-pill,
+.req-status-badge,
+.cr-badge {
+  display: inline-block;
+  padding: 2px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  border: none;
+}
+
+/* ── Canonical, status-keyed modifiers ── */
+.status-pill--draft,
+.req-status--draft,
+.cr-badge-draft {
+  background-color: var(--status-draft-bg);
+  color: var(--status-draft-text);
+}
+
+.status-pill--submitted,
+.req-status--submitted,
+.cr-badge-submitted {
+  background-color: var(--status-submitted-bg);
+  color: var(--status-submitted-text);
+}
+
+.status-pill--quote-generated,
+.req-status--quote-generated,
+.cr-badge-quote-generated {
+  background-color: var(--status-quote-generated-bg);
+  color: var(--status-quote-generated-text);
+}
+
+.status-pill--quote-accepted,
+.req-status--quote-accepted,
+.cr-badge-quote-accepted {
+  background-color: var(--status-quote-accepted-bg);
+  color: var(--status-quote-accepted-text);
+}
+
+.status-pill--in-process,
+.req-status--in-process,
+.cr-badge-in-process {
+  background-color: var(--status-in-process-bg);
+  color: var(--status-in-process-text);
+}
+
+.status-pill--deployed,
+.req-status--deployed,
+.cr-badge-deployed {
+  background-color: var(--status-deployed-bg);
+  color: var(--status-deployed-text);
+}
+
+.status-pill--closed,
+.req-status--closed,
+.cr-badge-closed {
+  background-color: var(--status-closed-bg);
+  color: var(--status-closed-text);
+}
+
+.status-pill--rejected,
+.req-status--rejected,
+.cr-badge-rejected {
+  background-color: var(--status-rejected-bg);
+  color: var(--status-rejected-text);
+}
+
+/* ── Legacy semantic aliases ──
+   Older markup uses semantic names (--neutral/--warning/--success/
+   --info/--danger) rather than status names. They are mapped onto the
+   canonical palette so untouched pages still match. New markup should
+   use the status-keyed classes above, which are unambiguous. */
+.req-status--neutral,
+.cr-badge-neutral   { background-color: var(--status-draft-bg);           color: var(--status-draft-text); }
+.req-status--info,
+.cr-badge-info      { background-color: var(--status-submitted-bg);       color: var(--status-submitted-text); }
+.req-status--accent,
+.cr-badge-accent    { background-color: var(--status-quote-generated-bg); color: var(--status-quote-generated-text); }
+.req-status--warning,
+.cr-badge-warning   { background-color: var(--status-in-process-bg);      color: var(--status-in-process-text); }
+.req-status--success,
+.cr-badge-success   { background-color: var(--status-deployed-bg);        color: var(--status-deployed-text); }
+.req-status--danger,
+.req-status--error,
+.cr-badge-danger    { background-color: var(--status-rejected-bg);        color: var(--status-rejected-text); }
+
+body {
+  background-color: var(--bg-main) !important;
+  --oj-sp-theme-global-bkgd-banner-height: 300px !important;
+  --oj-sp-page-texture-strip-image: url('https://static.oracle.com/cdn/fnd/gallery/2601.0.0/images/color-strip-netsuite-2x.webp') !important;
+  --oj-sp-page-banner-texture-strip-image: url('https://static.oracle.com/cdn/fnd/gallery/2601.0.0/images/color-strip-netsuite-2x.webp') !important;
+  --oj-sp-theme-global-texture-strip-image: url('https://static.oracle.com/cdn/fnd/gallery/2601.0.0/images/color-strip-netsuite-2x.webp') !important;
+  --oj-sp-general-overview-page-texture-strip-image: url('https://static.oracle.com/cdn/fnd/gallery/2601.0.0/images/color-strip-netsuite-2x.webp') !important;
+}
+
+oj-sp-general-overview-page {
+  --oj-sp-page-banner-height: 120px;
+  --oj-sp-page-banner-bottom-border-color: transparent !important;
+  --oj-sp-page-texture-strip-image: url('https://static.oracle.com/cdn/fnd/gallery/2601.0.0/images/color-strip-netsuite-2x.webp') !important;
+  --oj-sp-page-texture-strip-height: 12px !important;
+  max-width: calc(100% - 80px) !important;
+  margin: 0 auto !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+}
+
+oj-sp-smart-search-page {
+  --oj-sp-page-banner-height: 120px;
+  --oj-sp-page-banner-bottom-border-color: transparent !important;
+  --oj-sp-page-texture-strip-image: url('https://static.oracle.com/cdn/fnd/gallery/2601.0.0/images/color-strip-netsuite-2x.webp') !important;
+  --oj-sp-page-texture-strip-height: 12px !important;
+  max-width: calc(100% - 80px) !important;
+  margin: 0 auto !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+}
+
+.shell-main-content {
+  background-color: transparent !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 0% !important;
+  min-width: 0 !important;
+}
+
+.shell-scrollable-content {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+}
+
+[slot="main"] {
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+.page-content-max-width {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   App-wide dark scrollbars for data grids, tables, and any container
+   that opts in via `.eqr-scroll-x`. Default JET scrollbars are too
+   thin / pale to notice on wide grids — these are darker, slightly
+   taller, and use a rounded thumb so they read as a UI element
+   instead of a system artifact.
+
+   Scoped to the elements that actually scroll so we don't disturb
+   shell-level vertical scrolling.
+   ───────────────────────────────────────────────────────────────── */
+.eqr-scroll-x,
+oj-data-grid .oj-datagrid-databody,
+oj-data-grid .oj-datagrid-scroller,
+oj-table .oj-table-scroller,
+oj-table .oj-table-body {
+  scrollbar-width: thin;                       /* Firefox */
+  scrollbar-color: #475569 #e2e8f0;            /* Firefox: thumb / track */
+}
+
+.eqr-scroll-x::-webkit-scrollbar,
+oj-data-grid .oj-datagrid-databody::-webkit-scrollbar,
+oj-data-grid .oj-datagrid-scroller::-webkit-scrollbar,
+oj-table .oj-table-scroller::-webkit-scrollbar,
+oj-table .oj-table-body::-webkit-scrollbar {
+  height: 12px;
+  width: 12px;
+}
+
+.eqr-scroll-x::-webkit-scrollbar-track,
+oj-data-grid .oj-datagrid-databody::-webkit-scrollbar-track,
+oj-data-grid .oj-datagrid-scroller::-webkit-scrollbar-track,
+oj-table .oj-table-scroller::-webkit-scrollbar-track,
+oj-table .oj-table-body::-webkit-scrollbar-track {
+  background: #e2e8f0;
+  border-radius: 6px;
+}
+
+.eqr-scroll-x::-webkit-scrollbar-thumb,
+oj-data-grid .oj-datagrid-databody::-webkit-scrollbar-thumb,
+oj-data-grid .oj-datagrid-scroller::-webkit-scrollbar-thumb,
+oj-table .oj-table-scroller::-webkit-scrollbar-thumb,
+oj-table .oj-table-body::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 6px;
+  border: 2px solid #e2e8f0;                   /* inset look — thumb sits inside track */
+}
+
+.eqr-scroll-x::-webkit-scrollbar-thumb:hover,
+oj-data-grid .oj-datagrid-databody::-webkit-scrollbar-thumb:hover,
+oj-data-grid .oj-datagrid-scroller::-webkit-scrollbar-thumb:hover,
+oj-table .oj-table-scroller::-webkit-scrollbar-thumb:hover,
+oj-table .oj-table-body::-webkit-scrollbar-thumb:hover {
+  background: #1f2937;                         /* darker on hover for affordance */
+}
+
+/* Premium Table Styling & Hover Effects */
+.analytics-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--oj-core-border-color-enabled);
+  background-color: #ffffff;
+}
+
+.analytics-card-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--oj-core-text-color-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.analytics-card-title-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--oj-core-brand-color-primary);
+}
+
+.analytics-table.oj-table .oj-table-body-row:hover {
+  background-color: var(--oj-core-bg-brand-5, #f0f8ff) !important;
+}
+
+/* Neutral Grey Header (Matches Requests/Master) */
+.analytics-table.oj-table .oj-table-column-header-cell {
+  background-color: var(--oj-core-neutral-color-2, #f1f1f1) !important;
+  color: var(--oj-core-text-color-secondary, #565656);
+  border-bottom: 1px solid var(--oj-core-divider-color, #e0e0e0) !important;
+}
+
+/* Zebra Striping */
+.analytics-table.oj-table .oj-table-body-row:nth-child(even) {
+  background-color: var(--oj-core-bg-neutral-5, #f9fafb) !important;
+}
+
+.analytics-table.oj-table .oj-table-data-cell {
+  padding: 10px 16px !important;
+  color: var(--oj-core-text-color-secondary, #4a5568);
+  border-bottom: 1px solid var(--oj-core-border-color-disabled, #f0f3f7);
+  vertical-align: middle;
+}
+
+/* Empty State */
+.table-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  min-height: 250px;
+  background-color: #f9fafb;
+}
+
+.table-empty-icon {
+  font-size: 3rem;
+  color: #9ca3af;
+  margin-bottom: var(--oj-core-spacing-4x);
+}
+
+.table-empty-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: var(--oj-core-spacing-1x);
+}
+
+.table-empty-desc {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+/* Custom Status Badges — oj-badge variants of the canonical palette above.
+   Kept for markup that styles a real <oj-badge>; the colours are the same
+   tokens the .status-pill classes use, so nothing drifts. */
+.status-draft {
+  --oj-badge-bg-color: var(--status-draft-bg);
+  --oj-badge-text-color: var(--status-draft-text);
+  --oj-badge-border-color: var(--status-draft-bg);
+}
+
+.status-in-progress {
+  --oj-badge-bg-color: var(--status-in-process-bg);
+  --oj-badge-text-color: var(--status-in-process-text);
+  --oj-badge-border-color: var(--status-in-process-bg);
+}
+
+.status-picking-completed {
+  --oj-badge-bg-color: var(--status-deployed-bg);
+  --oj-badge-text-color: var(--status-deployed-text);
+  --oj-badge-border-color: var(--status-deployed-bg);
+}
+
+.status-picking-in-progress {
+  --oj-badge-bg-color: var(--status-submitted-bg);
+  --oj-badge-text-color: var(--status-submitted-text);
+  --oj-badge-border-color: var(--status-submitted-bg);
+}
+
+.status-approved {
+  --oj-badge-bg-color: var(--status-deployed-bg);
+  --oj-badge-text-color: var(--status-deployed-text);
+  --oj-badge-border-color: var(--status-deployed-bg);
+}
+
+/* Excel-like Grid Cell Styling */
+.excel-cell {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  height: 100%;
+  width: 100%;
+  padding: 4px 8px;
+  box-sizing: border-box;
+}
+
+.excel-cell-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b7280;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.excel-cell-value {
+  font-size: 14px;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Equipment Catalog Card Styling */
+.eq-catalog-card {
+  height: calc(100% - var(--oj-core-spacing-4x));
+  margin: var(--oj-core-spacing-2x);
+}
+
+
+/* Searchable LOV fields (oj-input-search / oj-select-single / oracle-search
+   fragment) — strip the magnifier glyph and align padding + placeholder to the
+   peer form fields, so a typeahead LOV reads as a normal input rather than a
+   search box. Applied to the Project, Task and Internal Customer LOVs on the
+   create-request pages. The oj-inputsearch-* selectors cover oj-input-search;
+   input[role="combobox"] covers both it and oj-select-single (the Task LOV),
+   whose own magnifier lives in the dropdown's filter field where it belongs. */
+.eqr-project-lov .oj-inputsearch-icon,
+.eqr-project-lov .oj-inputsearch-search-icon,
+.eqr-project-lov [class*="oj-inputsearch"][class*="icon"] {
+  display: none !important;
+}
+
+.eqr-project-lov .oj-inputsearch-input,
+.eqr-project-lov input[role="combobox"] {
+  padding-inline-start: var(--oj-form-control-padding-inline-start, 12px) !important;
+}
+
+.eqr-project-lov .oj-inputsearch-input::placeholder,
+.eqr-project-lov input[role="combobox"]::placeholder {
+  color: #161513B3 !important;
+  opacity: 1 !important;
+  font-size: 13.744px !important;
+  font-family: "Oracle Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+  font-weight: 600 !important;
+}
+
+/* Locked one-option LOV (Customer Type when forced, INTERNAL Requestor
+   Contact) — keeps the white field box but cannot be opened. The wrapper div
+   also carries the `inert` attribute, which removes it from tab order so the
+   keyboard cannot open it either; pointer-events covers the mouse, and the
+   arrow is hidden so it does not advertise a choice that isn't there. */
+.eqr-locked-lov {
+  pointer-events: none;
+}
+
+.eqr-locked-lov .oj-searchselect-arrow,
+.eqr-locked-lov [class*="oj-searchselect"][class*="arrow"] {
+  display: none !important;
+}
+
+.eqr-required-caption {
+  margin-top: var(--oj-core-spacing-1x, 4px);
+  padding: 0 0 0 2px;
+  color: #161513B3;
+  font-size: 12px;
+  font-family: "Oracle Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1rem;
+  text-align: end;
+}
+
+/* Section header + 2-column field grid — same grouping convention as
+   project-create-request-page's "Project Details / Dates / Delivery
+   Details" sections, sized for a drawer rather than a full-width page
+   (that page uses a 3-column grid; a drawer's ~640px body only comfortably
+   fits 2). Used by the Transfer to Another Site drawer. */
+.eqr-section-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #161513;
+  margin: 18px 0 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.eqr-section-label:first-child {
+  margin-top: 0;
+}
+.eqr-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 16px;
+  align-items: start;
+}
+
+/* ────────────────────────────────────────────────────────────────
+   Import From Fusion dialog — equipment-master-page
+
+   A JET dialog sizes to its content, so the working-screen dialogs that
+   need to be near-full-height must be sized on .oj-dialog-content: that
+   is the element JET measures and scrolls.
+
+   ⚠ Do NOT instead put a vh height on the body slot. Doing so makes the
+     body taller than .oj-dialog-content (measured 769px inside a 664px
+     wrapper), which turns the wrapper into a scroll container, auto-scrolls
+     it down ~80px, and hides the filter dropdowns above the fold. The body
+     slot must stay height:100%.
+   ──────────────────────────────────────────────────────────────── */
+#importFusionDialog .oj-dialog-content {
+  height: calc(100vh - 190px);
+  min-height: 400px;
+  box-sizing: border-box;
+}
+
+/* Review grid cell chrome.
+   Column WIDTHS are not set here — they come from the header.column.style
+   callback in equipment-master-page.js, which is the only place oj-data-grid
+   accepts them and the only place the user's own column resize can win. This
+   is padding and overflow only, so a long description is clipped at the
+   gridline instead of spilling across the next column. */
+#stagingReviewGrid .oj-datagrid-cell {
+  padding: 6px 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* An editing cell hosts a full oj-select-single, so it must not clip it —
+   the dropdown arrow sits at the right edge of the cell. */
+#stagingReviewGrid .oj-datagrid-cell.oj-datagrid-cell-edit {
+  overflow: visible;
+  padding: 2px 4px;
+}

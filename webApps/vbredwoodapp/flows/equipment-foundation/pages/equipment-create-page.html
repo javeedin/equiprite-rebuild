@@ -1,0 +1,288 @@
+<style>
+    .page-content-max-width {
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 24px;
+    }
+
+    #oj_gop_equip_create {
+        --oj-sp-general-overview-page-max-width: 100% !important;
+        max-width: 100% !important;
+    }
+
+
+
+    .main-layout-container {
+        max-width: 100%;
+        margin: 0;
+        height: calc(100vh - 160px);
+        overflow: hidden;
+        flex-wrap: nowrap !important;
+    }
+
+    /* Settings Group Card Styles */
+    .settings-group {
+        border: 1px solid var(--border-color, #d1d5db);
+        border-radius: 8px;
+        background-color: #ffffff;
+        margin-bottom: 24px;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+    .settings-group-header {
+        padding: 16px;
+        border-bottom: 1px solid var(--border-color, #d1d5db);
+        display: flex;
+        align-items: center;
+    }
+    .settings-group-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 16px;
+        color: white;
+    }
+    .icon-blue { background-color: #0f172a; }
+    .icon-teal { background-color: #0d9488; }
+    .icon-purple { background-color: #8b5cf6; }
+    .icon-orange { background-color: #ea580c; }
+    .icon-green { background-color: #16a34a; }
+    
+    .settings-group-title {
+        font-weight: 600;
+        font-size: 16px;
+        color: #111827;
+    }
+    .settings-group-subtitle {
+        font-size: 12px;
+        color: #6b7280;
+        margin-top: 2px;
+    }
+    .settings-content {
+        padding: 24px;
+    }
+
+    .switch-field-container {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        margin-bottom: 12px;
+    }
+    .switch-label {
+        font-size: 13px;
+        color: #475569;
+        font-weight: 500;
+    }
+</style>
+
+<oj-sp-general-overview-page id="oj_gop_equip_create" display-mode="mixed" display-options.responsive-padding="on"
+  page-title="Equipment Master"
+  primary-action='[[ {"label": "Save Equipment", "icon": "oj-ux-ico-check-circle", "display": "on"} ]]'
+  secondary-actions='[[ [{"id": "cancel", "label": "Cancel", "display": "on"}] ]]'
+  on-sp-primary-action="[[$listeners.onSpSave]]" on-sp-secondary-action="[[$listeners.onSpCancel]]">
+
+    <div slot="main" class="oj-flex oj-sm-gap-6x main-layout-container">
+
+        <!-- Main Content Area -->
+        <div class="main-content-area oj-sm-width-full oj-md-margin-6x-top oj-md-margin-6x-horizontal"
+            style="flex: 1 1 auto; min-width: 0; height: calc(100% - 24px); display: flex; flex-direction: column;">
+
+
+
+            <!-- Tabs and Content Panel -->
+            <div class="oj-panel oj-flex-item oj-sm-flex-initial"
+                style="border-radius: 8px; background-color: #ffffff; flex: 1 1 auto; display: flex; flex-direction: column; overflow: hidden; padding: 0; border: 1px solid #e2e8f0;">
+                
+                <oj-tab-bar selection="{{ $variables.activeTab }}" edge="top" style="flex: 0 0 auto; border-bottom: 1px solid #e2e8f0; padding: 0 1rem;">
+                    <ul>
+                        <li id="master"><a href="#"><span class="oj-tabbar-item-label">Master</span></a></li>
+                        <li id="assets"><a href="#"><span class="oj-tabbar-item-label">Assets</span></a></li>
+                        <li id="manufacturer"><a href="#"><span class="oj-tabbar-item-label">Manufacturer</span></a></li>
+                        <li id="location"><a href="#"><span class="oj-tabbar-item-label">Location</span></a></li>
+                    </ul>
+                </oj-tab-bar>
+
+                <div id="scrollable-content" class="oj-sm-padding-6x-horizontal oj-sm-padding-4x-top"
+                    style="flex: 1 1 auto; overflow-y: auto; padding-bottom: 100px;">
+
+                    <!-- TAB 1: MASTER -->
+                    <oj-bind-if test="[[ $variables.activeTab === 'master' ]]">
+                        <div class="settings-group">
+                            <div class="settings-group-header">
+                                <div class="settings-group-icon icon-blue">
+                                    <span class="oj-ux-ico-information" style="font-size: 20px;"></span>
+                                </div>
+                                <div>
+                                    <div class="settings-group-title">Master Information</div>
+                                    <div class="settings-group-subtitle">Core identity and classification details.</div>
+                                </div>
+                            </div>
+                            <div class="settings-content">
+                                <oj-form-layout max-columns="4" label-edge="top" style="width: 100%;">
+                                  <!-- ROW 1 -->
+                                  <oj-select-single label-hint="Organization Name" value="{{ $variables.formData.organization_name }}" data="[[ $variables.owningOrgADP ]]" item-text="label" required="true"></oj-select-single>
+                                  <oj-select-single label-hint="Equipment Type" value="{{ $variables.formData.equipment_type }}" data="[[ $variables.typeADP ]]" item-text="label" required="true"></oj-select-single>
+                                  <span></span>
+                                  <span></span>
+
+                                  <!-- ROW 2 -->
+                                  <oj-select-single label-hint="Equipment Class" value="{{ $variables.formData.equipment_class }}" data="[[ $variables.classADP ]]" item-text="label" required="true"></oj-select-single>
+                                  <oj-select-single label-hint="Equipment Sub-Class" value="{{ $variables.formData.equipment_subclass }}" data="[[ $variables.subclassADP ]]"></oj-select-single>
+                                  <oj-input-text label-hint="Equipment Name" value="{{ $variables.formData.equipment_name }}" required="true"></oj-input-text>
+                                  <oj-input-text label-hint="Equipment Number" value="{{ $variables.formData.equipment_number }}" required="true"></oj-input-text>
+
+                                  <!-- ROW 3 -->
+                                  <oj-select-single label-hint="Inventory Item" value="{{ $variables.formData.inventory_item }}" required="true"></oj-select-single>
+                                  <oj-select-single label-hint="Sub Inventory" value="{{ $variables.formData.sub_inventory }}" required="true"></oj-select-single>
+                                  <oj-input-text label-hint="FA Asset Number" value="{{ $variables.formData.fa_asset_number }}" required="true"></oj-input-text>
+                                  <oj-select-single label-hint="Maintenance Asset" value="{{ $variables.formData.maintenance_asset }}" required="true"></oj-select-single>
+
+                                  <!-- ROW 4 -->
+                                  <oj-input-text label-hint="Serial Number" value="{{ $variables.formData.serial_number }}" required="true"></oj-input-text>
+                                  <oj-input-text label-hint="Equipment Description" value="{{ $variables.formData.description }}"></oj-input-text>
+                                  <oj-select-single label-hint="Non Labor Resource" value="{{ $variables.formData.non_labor_resource }}"></oj-select-single>
+                                  <oj-select-single label-hint="Equipment Status" value="{{ $variables.formData.equipment_status }}" data="[[ $variables.statusADP ]]"></oj-select-single>
+
+                                  <!-- ROW 5 -->
+                                  <oj-switch label-hint="Status" value="{{ $variables.formData.status_toggle }}"></oj-switch>
+                                  <oj-switch label-hint="Is Fixed Asset Track?" value="{{ $variables.formData.track_fixed_asset }}"></oj-switch>
+                                  <oj-switch label-hint="Is Inventory Track?" value="{{ $variables.formData.track_inventory }}"></oj-switch>
+                                  <oj-switch label-hint="Is Maintenance Asset Track?" value="{{ $variables.formData.track_maintenance_asset }}"></oj-switch>
+
+                                  <!-- ROW 6 -->
+                                  <oj-switch label-hint="Surplus" value="{{ $variables.formData.is_surplus }}"></oj-switch>
+                                  <oj-button chroming="outlined" onclick="document.getElementById('hiddenUploadInput').click()">
+                                      <span slot="startIcon" class="oj-ux-ico-upload"></span>
+                                      Upload Image
+                                  </oj-button>
+                                  <span></span>
+                                  <span></span>
+                                </oj-form-layout>
+                                <input type="file" id="hiddenUploadInput" accept="image/*" style="display:none;" />
+                            </div>
+                        </div>
+                    </oj-bind-if>
+
+                    <!-- TAB 2: ASSETS -->
+                    <oj-bind-if test="[[ $variables.activeTab === 'assets' ]]">
+                        <!-- Fixed Assets Section -->
+                        <div class="settings-group">
+                            <div class="settings-group-header">
+                                <div class="settings-group-icon icon-teal">
+                                    <span class="oj-ux-ico-link" style="font-size: 20px;"></span>
+                                </div>
+                                <div>
+                                    <div class="settings-group-title">Fixed Assets</div>
+                                    <div class="settings-group-subtitle">Financial asset registration details.</div>
+                                </div>
+                            </div>
+                            <div class="settings-content">
+                                <oj-form-layout max-columns="4" label-edge="top" style="width: 100%;">
+                                  <oj-select-single label-hint="Purchase Order" value="{{ $variables.formData.purchase_order }}" data="[[ $variables.purchaseOrderADP ]]"></oj-select-single>
+                                  <oj-select-single label-hint="Purchase Order Line" value="{{ $variables.formData.purchase_order_line }}"></oj-select-single>
+                                  <oj-select-single label-hint="Project" value="{{ $variables.formData.project }}"></oj-select-single>
+                                  <oj-select-single label-hint="Task" value="{{ $variables.formData.task }}"></oj-select-single>
+                                  
+                                  <oj-input-text label-hint="Person" value="{{ $variables.formData.person }}"></oj-input-text>
+                                  <oj-input-text label-hint="Insured By" value="{{ $variables.formData.insured_by }}"></oj-input-text>
+                                  <oj-input-text label-hint="Insured Policy" value="{{ $variables.formData.insured_policy }}"></oj-input-text>
+                                  <oj-input-date label-hint="Date In Service" value="{{ $variables.formData.date_in_service }}"></oj-input-date>
+                                  
+                                  <oj-input-date label-hint="Retired Date" value="{{ $variables.formData.retired_date }}"></oj-input-date>
+                                </oj-form-layout>
+                            </div>
+                        </div>
+
+                        <!-- Maintenance Assets Section -->
+                        <div class="settings-group">
+                            <div class="settings-group-header">
+                                <div class="settings-group-icon icon-teal">
+                                    <span class="oj-ux-ico-build" style="font-size: 20px;"></span>
+                                </div>
+                                <div>
+                                    <div class="settings-group-title">Maintenance Assets</div>
+                                    <div class="settings-group-subtitle">Operational maintenance tracking details.</div>
+                                </div>
+                            </div>
+                            <div class="settings-content">
+                                <oj-form-layout max-columns="4" label-edge="top" style="width: 100%;">
+                                  <oj-input-text label-hint="Serial Number" value="{{ $variables.formData.maintenance_serial_number }}"></oj-input-text>
+                                  <oj-input-text label-hint="Maintenance Asset Number" value="{{ $variables.formData.maintenance_asset_number }}"></oj-input-text>
+                                  <oj-input-text label-hint="Operating Organization" value="{{ $variables.formData.operating_organization }}"></oj-input-text>
+                                  <oj-input-text label-hint="Maintenance Organization" value="{{ $variables.formData.maintenance_organization }}"></oj-input-text>
+                                  
+                                  <oj-input-text label-hint="Location Type" value="{{ $variables.formData.location_type }}"></oj-input-text>
+                                  <oj-input-text label-hint="Location Organization" value="{{ $variables.formData.location_organization }}"></oj-input-text>
+                                  <oj-input-text label-hint="Work Center" value="{{ $variables.formData.work_center }}"></oj-input-text>
+                                  <oj-input-text label-hint="Work Area" value="{{ $variables.formData.work_area }}"></oj-input-text>
+                                  
+                                  <oj-input-text label-hint="Asset Group" value="{{ $variables.formData.asset_group }}"></oj-input-text>
+                                </oj-form-layout>
+                            </div>
+                        </div>
+                    </oj-bind-if>
+
+                    <!-- TAB 3: MANUFACTURER -->
+                    <oj-bind-if test="[[ $variables.activeTab === 'manufacturer' ]]">
+                        <div class="settings-group">
+                            <div class="settings-group-header">
+                                <div class="settings-group-icon icon-purple">
+                                    <span class="oj-ux-ico-build" style="font-size: 20px;"></span>
+                                </div>
+                                <div>
+                                    <div class="settings-group-title">Manufacturer Specifications</div>
+                                    <div class="settings-group-subtitle">Brand, model details, and specifications.</div>
+                                </div>
+                            </div>
+                            <div class="settings-content">
+                                <oj-form-layout max-columns="4" label-edge="top" style="width: 100%;">
+                                  <oj-select-single label-hint="Manufacturer" value="{{ $variables.formData.manufacturer }}"></oj-select-single>
+                                  <oj-input-number label-hint="Model Year" value="{{ $variables.formData.model_year }}"></oj-input-number>
+                                  <oj-input-text label-hint="Model Number" value="{{ $variables.formData.model_number }}"></oj-input-text>
+                                  <oj-input-text label-hint="Color" value="{{ $variables.formData.color }}" required="true"></oj-input-text>
+
+                                  <oj-input-text label-hint="License State" value="{{ $variables.formData.license_state }}"></oj-input-text>
+                                  <oj-input-text label-hint="License Number" value="{{ $variables.formData.license_number }}"></oj-input-text>
+                                  <oj-select-single label-hint="Fuel Type" value="{{ $variables.formData.fuel_type }}" data="[[ $variables.fuelADP ]]"></oj-select-single>
+                                  <oj-input-date label-hint="License Expiry" value="{{ $variables.formData.license_expiry }}"></oj-input-date>
+
+                                  <oj-input-text label-hint="Weight" value="{{ $variables.formData.weight }}"></oj-input-text>
+                                  <oj-input-text label-hint="Warranty Code" value="{{ $variables.formData.warranty_code }}"></oj-input-text>
+                                </oj-form-layout>
+                            </div>
+                        </div>
+                    </oj-bind-if>
+
+                    <!-- TAB 4: LOCATION -->
+                    <oj-bind-if test="[[ $variables.activeTab === 'location' ]]">
+                        <div class="settings-group">
+                            <div class="settings-group-header">
+                                <div class="settings-group-icon icon-orange">
+                                    <span class="oj-ux-ico-location" style="font-size: 20px;"></span>
+                                </div>
+                                <div>
+                                    <div class="settings-group-title">Deployment & Tracking</div>
+                                    <div class="settings-group-subtitle">Current physical location and address details.</div>
+                                </div>
+                            </div>
+                            <div class="settings-content">
+                                <oj-form-layout max-columns="4" label-edge="top" style="width: 100%;">
+                                  <oj-select-single label-hint="Default Location" value="{{ $variables.formData.default_location }}" data="[[ $variables.locationADP ]]"></oj-select-single>
+                                  <oj-input-text label-hint="Address Line1" value="{{ $variables.formData.address_line1 }}"></oj-input-text>
+                                  <oj-input-text label-hint="Address Line2" value="{{ $variables.formData.address_line2 }}"></oj-input-text>
+                                  <oj-input-text label-hint="City" value="{{ $variables.formData.city }}"></oj-input-text>
+                                  
+                                  <oj-input-text label-hint="Country" value="{{ $variables.formData.country }}"></oj-input-text>
+                                  <oj-input-text label-hint="Zip" value="{{ $variables.formData.zip }}"></oj-input-text>
+                                </oj-form-layout>
+                            </div>
+                        </div>
+                    </oj-bind-if>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</oj-sp-general-overview-page>

@@ -1,0 +1,55 @@
+{
+  "description": "Smart-search filters for the Rate Exceptions tab ONLY. One config file per tab, because oj-sp-smart-search renders a chip for EVERY filter the loaded config declares \u2014 suggestion-filters does NOT gate that row. Each `field` IS the endpoint's literal query-param name (see reportCriterion.ENDPOINT_PARAMS); a field that is not a real param yields a chip that filters nothing, because the views ignore unknown params silently. This set is deliberately CURATED, not exhaustive \u2014 the endpoint accepts more params than are offered. Equipment Name re-added by request for chip-set parity with the other report tabs (was previously covered by q= alone). Project was ALSO added for the same reason but then removed: this view's rows have no project field at all (unit/class/subclass-level data), so the chip could never be anything but empty.",
+  "filters": {
+    "AssetGroupFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Asset Group",
+      "options": {
+        "field": "assetGroup",
+        "optionsData": "[[ $search.filters.AssetGroupFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.AssetGroupFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "ClassFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Class",
+      "options": {
+        "field": "equipmentClass",
+        "optionsData": "[[ $search.filters.ClassFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.ClassFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "SubclassFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Subclass",
+      "options": {
+        "field": "subclass",
+        "optionsData": "[[ $search.filters.SubclassFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.SubclassFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "YardFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Yard",
+      "options": {
+        "field": "yard",
+        "optionsData": "[[ $search.filters.YardFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.YardFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "EquipmentFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Equipment Name",
+      "options": {
+        "field": "equipmentName",
+        "optionsData": "[[ $search.filters.EquipmentFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.EquipmentFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    }
+  }
+}

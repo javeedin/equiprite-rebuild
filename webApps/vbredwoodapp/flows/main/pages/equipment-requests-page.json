@@ -1,0 +1,309 @@
+{
+
+  "metadata": {},
+  "variables": {
+    "requestsSDP": {
+      "type": "vb/ServiceDataProvider",
+      "defaultValue": {
+        "endpoint": "eqp-v1/getEquipriteV1ViewsMyRequests",
+        "keyAttributes": "requestNumber",
+        "itemsPath": "data",
+        "uriParameters": {
+          "filter": "[[ $application.functions.myRequestsOriginFilter($application.variables.fusionRoles, $application.variables.sessionRoles) ]]"
+        }
+      },
+      "description": "Equipment Requests table. ORIGIN-SCOPED BY ROLE via the filter param: $application.functions.myRequestsOriginFilter() returns 'ALL' for manager/administrator (both origins) and 'Internal' for everyone else. That resolver fails to 'Internal' while fusionRoles is still loading, so a slow role fetch never flashes external requests to a requestor. Origin is the ONLY scoping the endpoint offers \u2014 there is no requestorId param, so an internal requestor sees all INTERNAL requests, not just their own. Expression form (not a literal) so it re-evaluates when the roles land."
+    },
+    "requestsDPV": {
+      "type": "ojs/ojlistdataproviderview",
+      "constructorParams": [
+        "[[ $page.variables.requestsSDP ]]",
+        {
+          "filterCriterion": "[[ $page.variables.filterCriterion ]]"
+        }
+      ]
+    },
+    "filterCriterion": {
+      "type": "any"
+    },
+    "quoteColumnVisible": {
+      "type": "boolean",
+      "description": "NO LONGER CONSUMED \u2014 the Quote column is now always rendered (see requestColumns). Kept because ENABLE_QUOTES still legitimately gates whether quoting is OFFERED for a flow, and a future control here (e.g. hiding the column in an environment with quoting switched off entirely) would want the same expression rather than re-deriving it. Delete it if that never materialises. Reads $application.functions.isQuotingAllowed() with origin PROJECT and fails CLOSED while settings load.",
+      "defaultValue": "[[ $application.functions.isQuotingAllowed($application.variables.globalSettings, $application.variables.flagsLoaded, 'PROJECT') ]]"
+    },
+    "requestColumns": {
+      "type": "any[]",
+      "description": "Table columns, computed rather than inline because two are role-conditional.\n\nMANAGER-ONLY (canChooseCustomerType): Source, pinned FIRST to match equipment-workbench, and 'Internal / External Customer' sitting between Project and Requestor \u2014 same header text and same position as the workbench, so the two tables read alike. Location / Allocation / Est. Cost are deliberately NOT here: the endpoint returns them (my-requests went 9 -> 15 fields) but they were judged noise on this list, and the workbench already shows them.\n\nQUOTE IS ALWAYS SHOWN \u2014 it used to be gated on ENABLE_QUOTES via quoteColumnVisible. It no longer is, because whether a given request has a quote is a per-ROW fact, not a per-environment one: quoteTpl already renders the icon only for QUOTE_GENERATED / QUOTE_ACCEPTED rows and nothing otherwise. Hiding the column setting-wide meant a request that DID carry a quote had no way to reach it. quoteColumnVisible is retained (unused here) rather than deleted \u2014 see its own description.\n\nThe role test fails CLOSED: while fusionRoles loads, the two manager columns stay hidden, matching the filter default of 'Internal'.",
+      "defaultValue": "[[ ($application.functions.canChooseCustomerType($application.variables.fusionRoles, $application.variables.sessionRoles)\n        ? [{'headerText': 'Source', 'field': 'requestOrigin', 'template': 'originTpl', 'sortable': 'enabled', 'style': 'width:110px;'}]\n        : [])\n      .concat([\n        {'headerText': 'Request #',      'field': 'requestNumber', 'template': 'reqNumberTpl',   'sortable': 'enabled',  'style': 'width:130px;'},\n        {'headerText': 'Project / Task', 'field': 'projectName',   'template': 'projectTaskTpl', 'sortable': 'enabled'}\n      ])\n      .concat($application.functions.canChooseCustomerType($application.variables.fusionRoles, $application.variables.sessionRoles)\n        ? [{'headerText': 'Internal / External Customer', 'field': 'customerName', 'template': 'customerTpl', 'sortable': 'enabled', 'style': 'min-width:200px;'}]\n        : [])\n      .concat([\n        {'headerText': 'Requestor',      'field': 'requestorName', 'template': 'requestorTpl',   'sortable': 'enabled',  'style': 'width:150px;'},\n        {'headerText': 'Status',         'field': 'status',        'template': 'statusTpl',      'sortable': 'enabled',  'style': 'width:175px;'},\n        {'headerText': 'Start Date',     'field': 'startDate',     'template': 'dateTpl',        'sortable': 'enabled',  'style': 'width:115px;'},\n        {'headerText': 'End Date',       'field': 'endDate',       'template': 'dateTpl',        'sortable': 'enabled',  'style': 'width:115px;'},\n        {'headerText': 'Lines',          'field': 'lines',         'template': 'linesTpl',       'sortable': 'disabled', 'style': 'width:80px;'},\n        {'headerText': 'Quote',          'field': 'requestNumber', 'template': 'quoteTpl',       'sortable': 'disabled', 'style': 'width:90px;'}\n      ]) ]]"
+    },
+    "searchConfiguration": {
+      "type": "oj-sp/smart-search/strategies/JsonSearchConfigProviderFactory",
+      "description": "Two config files, same reason requestColumns is role-conditional: the Source chip is only meaningful/safe for a manager (canChooseCustomerType), whose role scope already resolves to 'ALL' origins (see requestsSDP). A non-manager's scope is fixed to 'Internal', so they get the Status-only config — same gate, same precedent as the Source COLUMN itself.",
+      "defaultValue": {
+        "url": "[[ $application.functions.canChooseCustomerType($application.variables.fusionRoles)\n          ? ($application.path + 'resources/data/equipmentRequestManagerSearchConfig.json')\n          : ($application.path + 'resources/data/equipmentRequestSearchConfig.json') ]]"
+      }
+    },
+    "searchContext": {
+      "type": "object",
+      "defaultValue": {
+        "$search": {
+          "filters": {
+            "RequestNumberFilter": {
+              "label": "Request #",
+              "options": {
+                "optionsData": "[[ $page.variables.RequestNumberOptionsADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "StatusFilter": {
+              "label": "Status",
+              "options": {
+                "optionsData": "[[ $page.variables.statusOptionsADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "SourceFilter": {
+              "label": "Source",
+              "options": {
+                "optionsData": "[[ $page.variables.sourceOptionsADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "ProjectFilter": {
+              "label": "Project",
+              "options": {
+                "optionsData": "[[ $page.variables.ProjectOptionsADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "statusOptionsArray": {
+      "type": "any[]",
+      "defaultValue": [
+        {
+          "value": "DRAFT",
+          "label": "Draft"
+        },
+        {
+          "value": "SUBMITTED",
+          "label": "Submitted (Awaiting Approval)"
+        },
+        {
+          "value": "IN_PROCESS",
+          "label": "In Process"
+        },
+        {
+          "value": "EQP_INSPECTION_COMPLETE",
+          "label": "Inspection Complete"
+        },
+        {
+          "value": "PICK_INITIATED",
+          "label": "Picking In Progress"
+        },
+        {
+          "value": "PICK_RELEASED",
+          "label": "Picking Completed"
+        },
+        {
+          "value": "SHIPPED",
+          "label": "Shipped"
+        },
+        {
+          "value": "DEPLOYED",
+          "label": "Deployed"
+        },
+        {
+          "value": "REJECTED",
+          "label": "Rejected"
+        },
+        {
+          "value": "RETURNED",
+          "label": "Returned"
+        },
+        {
+          "value": "CLOSED",
+          "label": "Closed"
+        }
+      ]
+    },
+    "statusOptionsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.statusOptionsArray }}"
+      }
+    },
+    "sourceOptionsArray": {
+      "type": "any[]",
+      "description": "Manager-only Source chip options. No 'All' entry — leaving the chip unselected already shows everything the user's role scope grants (ALL for a manager); this chip only NARROWS within that.",
+      "defaultValue": [
+        { "value": "INTERNAL", "label": "Internal" },
+        { "value": "EXTERNAL", "label": "External" }
+      ]
+    },
+    "sourceOptionsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.sourceOptionsArray }}"
+      }
+    },
+    "ProjectOptionsArray": {
+      "type": "any[]",
+      "description": "Distinct project names for the Project chip — no dedicated distinct-values endpoint exists, so LoadRequestProjectOptionsChain (vbEnter) fetches a large page of this user's OWN requests (same role-based origin scope as requestsSDP, so a non-manager's dropdown never leaks an external project name they couldn't otherwise see) and derives this list client-side, once at page load.",
+      "defaultValue": []
+    },
+    "ProjectOptionsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.ProjectOptionsArray }}"
+      }
+    },
+    "RequestNumberOptionsArray": {
+      "type": "any[]",
+      "description": "Distinct request numbers for the Request # chip — same upfront fetch and role-based origin scope as ProjectOptionsArray (see LoadRequestProjectOptionsChain), populated off the same response. Capped at the first 500 rows fetched, so on an account with more than 500 open requests this list is not exhaustive; picking a listed value still filters correctly.",
+      "defaultValue": []
+    },
+    "RequestNumberOptionsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.RequestNumberOptionsArray }}"
+      }
+    },
+    "isDrawerOpen": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "selectedRequest": {
+      "type": "any",
+      "defaultValue": {}
+    }
+  },
+  "types": {
+    "ojs/ojlistdataproviderview": {
+      "constructorType": "vb/InstanceFactory"
+    }
+  },
+  "eventListeners": {
+    "vbBeforeEnter": {
+      "chains": [
+        {
+          "chain": "enforcePageAccessChain"
+        }
+      ]
+    },
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "projectsModuleGuardChain",
+          "parameters": {}
+        },
+        {
+          "chain": "LoadRequestProjectOptionsChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onRowAction": {
+      "chains": [
+        {
+          "chain": "navigateToRequestDetailChain",
+          "parameters": {
+            "requestId": "{{ $event.detail.value?.data.requestNumber }}",
+            "requestNumericId": "{{ $event.detail.value?.data.eqrEquipmentRequestId }}"
+          }
+        }
+      ]
+    },
+    "onProjectQuoteAction": {
+      "chains": [
+        {
+          "chain": "ProjectQuoteChain",
+          "parameters": {
+            "rowData": "{{ $event }}"
+          }
+        }
+      ]
+    },
+    "closeRequestDrawer": {
+      "chains": [
+        {
+          "chain": "closeRequestDrawerChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "spPrimaryAction": {
+      "chains": [
+        {
+          "chain": "navigateToCreateChain",
+          "parameters": {}
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-sp-smart-search-page": {
+        "path": "oj-sp/smart-search-page/loader"
+      },
+      "oj-sp-smart-search": {
+        "path": "oj-sp/smart-search/loader"
+      },
+      "oj-sp-collection-container": {
+        "path": "oj-sp/collection-container/loader"
+      },
+      "oj-sp-general-drawer-template": {
+        "path": "oj-sp/general-drawer-template/loader"
+      },
+      "oj-sp-messages-banner": {
+        "path": "oj-sp/messages-banner/loader"
+      },
+      "oj-table": {
+        "path": "ojs/ojtable"
+      },
+      "oj-button": {
+        "path": "ojs/ojbutton"
+      },
+      "oj-drawer-popup": {
+        "path": "ojs/ojdrawerpopup"
+      },
+      "oj-defer": {
+        "path": "ojs/ojdefer"
+      },
+      "oj-form-layout": {
+        "path": "ojs/ojformlayout"
+      },
+      "oj-bind-if": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-for-each": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-text": {
+        "path": "ojs/ojknockout"
+      }
+    }
+  }
+}

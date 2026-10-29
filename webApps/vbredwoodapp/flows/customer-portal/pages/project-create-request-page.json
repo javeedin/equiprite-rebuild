@@ -1,0 +1,627 @@
+{
+  "metadata": {},
+  "variables": {
+    "selectedContractId": {
+      "type": "any"
+    },
+    "selectedContractObj": {
+      "type": "any"
+    },
+    "selectedCustomerObj": {
+      "type": "any"
+    },
+    "selectedShipToSiteObj": {
+      "type": "any"
+    },
+    "isContractsLoading": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "isShipToSitesLoading": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "shipToSitesLoaded": {
+      "type": "boolean",
+      "description": "True once LoadShipToSitesChain has actually RUN the BIP report for the current project+contract. Distinguishes 'loaded, zero rows' (show 'No Location Found') from 'not fetched yet' — both leave shipToSitesAdp.data empty. Reset to false whenever the contract changes or is cleared.",
+      "defaultValue": false
+    },
+    "shipToSitesLoaded": {
+      "type": "boolean",
+      "description": "True once LoadShipToSitesChain has actually RUN the BIP report for the current project+contract. Distinguishes 'loaded, zero rows' from 'not fetched yet' — both leave shipToSitesAdp.data empty, but only the first should show 'No Location Found'. Reset to false whenever the contract changes or is cleared.",
+      "defaultValue": false
+    },
+    "contractsAdp": {
+      "type": "vb/ArrayDataProvider2",
+      "description": "Plain page-level ADP for the Contract oj-select-single — populated by LoadContractsChain, which mutates .data IN PLACE (never replaces this object) so the component never sees a new data-provider reference and never flickers/remounts.",
+      "defaultValue": {
+        "keyAttributes": "id",
+        "itemType": "any",
+        "data": []
+      }
+    },
+    "shipToSitesAdp": {
+      "type": "vb/ArrayDataProvider2",
+      "description": "Plain page-level ADP for the Ship-to-Site oj-select-single — populated by LoadShipToSitesChain from the project+CONTRACT scoped report (every customer's sites on the contract), same in-place-mutation pattern as contractsAdp.",
+      "defaultValue": {
+        "keyAttributes": "id",
+        "itemType": "any",
+        "data": []
+      }
+    },
+    "tasksDp": {
+      "type": "any",
+      "description": "Task LOV data provider — the CHARGEABLE LEAVES of the selected project's WBS. Built in JS by resources/js/taskDataProvider.js and assigned by LoadTaskTreeChain, hence type 'any' rather than a vb/ ServiceDataProvider or ArrayDataProvider2 declaration. Two reasons it cannot be declarative: (1) showing leaves only means filtering on 'no other row names me as parent', a property of the whole set that no Fusion q predicate can express, so the rows must be fetched and classified in JS first; (2) it is handed over as a DeferredDataProvider wrapping the IN-FLIGHT fetch, so the dropdown renders JET's own loading skeleton and fills in place instead of the field being disabled shut mid-open. Resolves to an ArrayDataProvider keyed on TaskId with textFilterAttributes over TaskName/TaskNumber, so the dropdown's filter field matches locally with no round-trip.",
+      "defaultValue": null
+    },
+    "softReservationArray": {
+      "type": "any[]",
+      "defaultValue": [
+        {
+          "value": "N",
+          "label": "No"
+        },
+        {
+          "value": "Y",
+          "label": "Yes"
+        }
+      ]
+    },
+    "softReservationADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.softReservationArray }}"
+      }
+    },
+    "customerRefsArray": {
+      "type": "any[]",
+      "description": "EQR_CUSTOMER_REF rows for the EXTERNAL Customer Name picker. Loaded by LoadExternalPartyLovsChain. Same source and row shape { id, customerName } as customer-create-req-page, so an external request raised here is indistinguishable from one raised in the customer flow.",
+      "defaultValue": []
+    },
+    "customerRefsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "id",
+        "data": "{{ $page.variables.customerRefsArray }}",
+        "textFilterAttributes": ["customerName"]
+      }
+    },
+    "customerPortalUsersArray": {
+      "type": "any[]",
+      "description": "EQR_CUSTOMER_PORTAL_USER rows for the EXTERNAL Customer Contact picker. ALL portal users, unfiltered — the contact LOV is INDEPENDENT of the chosen customer (there is no DB relationship between them), exactly as on customer-create-req-page. Loaded by LoadExternalPartyLovsChain.",
+      "defaultValue": []
+    },
+    "customerPortalUsersADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "id",
+        "data": "{{ $page.variables.customerPortalUsersArray }}",
+        "textFilterAttributes": ["contactName", "username", "email"]
+      }
+    },
+    "requestTypeArray": {
+      "type": "any[]",
+      "defaultValue": [
+        {
+          "value": "INTERNAL",
+          "label": "Internal"
+        },
+        {
+          "value": "EXTERNAL",
+          "label": "External"
+        }
+      ]
+    },
+    "requestTypeADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.requestTypeArray }}"
+      }
+    },
+    "lockedTypeArray": {
+      "type": "any[]",
+      "description": "ONE-item list holding just the current Customer Type, for the locked (non-choosable) Customer Type box. Rendered as a white single-option LOV rather than a readonly text so it matches the other fields. Written by RequestTypeChangedChain.",
+      "defaultValue": []
+    },
+    "lockedTypeADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.lockedTypeArray }}"
+      }
+    },
+    "requestorArray": {
+      "type": "any[]",
+      "description": "ONE-item list holding just the signed-in user, for the locked INTERNAL Requestor Contact box. Keyed by display name because an unmatched user has no EQR_USER id. Written by SeedRequestorChain.",
+      "defaultValue": []
+    },
+    "requestorADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.requestorArray }}"
+      }
+    },
+    "locationTypeArray": {
+      "type": "any[]",
+      "defaultValue": [
+        {
+          "value": "PROJECT_SITE",
+          "label": "Project site from contract"
+        },
+        {
+          "value": "DELIVERY_LOCATION",
+          "label": "Enter Delivery location"
+        },
+        {
+          "value": "INV_ORG",
+          "label": "Internal Location"
+        }
+      ]
+    },
+    "invOrgLocationSDP": {
+      "type": "vb/ServiceDataProvider",
+      "description": "Delivery Location LOV when Location Type = 'Internal Location'. Server-driven off EQR_BU_ORG_MAPPING via eqp-v1/bu-org-mappings, active rows only, search-as-you-type over invOrgName/invOrgCode/townOrCity. SCOPED TO orgRole=DESTINATION_YARD: the field answers 'where does the equipment go TO', so it offers destinations only — not the EQUIPMENT_YARD rows (sources) and not the VIRTUAL_* rows (Fusion transfer-order plumbing, no physical address). DESTINATION_YARD was added to CHK_BOM_ORG_ROLE in schema v302.\n\nADDRESS COMES FROM THE MAPPING ROW, NOT A LIVE CALL. EQR_BU_ORG_MAPPING already carries the hr_locations address (addressLine1..4, townOrCity, region1..3, postalCode, country) plus invOrgLatitude/invOrgLongitude, written by resources/js/invOrgAddress.js when the admin saves the mapping — it calls BIP /Custom/EquipRite/EQP_INV_ORG_ADDRESSES.xdo and geocodes the result. So the picker needs no BIP or geocoder call of its own: selecting a row already has the full address AND coordinates in hand. Verified live 2026-08-20 — Chicago (003) '233 S Wacker Dr, Chicago IL 60606' and Boise (004) '1314 W Grove St, Boise ID 83702', both with lat/long.",
+      "defaultValue": {
+        "endpoint": "eqp-v1/getBuOrgMappings",
+        "keyAttributes": "invOrgId",
+        "itemsPath": "data",
+        "uriParameters": {
+          "isActiveFlag": "Y",
+          "orgRole": "DESTINATION_YARD"
+        },
+        "textFilterAttributes": ["invOrgName", "invOrgCode", "townOrCity"],
+        "capabilities": {
+          "filter": {
+            "operators": ["$co"]
+          }
+        }
+      }
+    },
+    "selectedInvOrgLocationId": {
+      "type": "number",
+      "description": "invOrgId chosen in the 'Select Inv org' Delivery Location LOV. The human-readable org name is what gets written to request.location (see the on-value-changed handler), because every downstream consumer — geocoder, NavigateToCatalogChain validation, SubmitRequestChain — expects location to be an address-like string, not an id."
+    },
+    "selectedInvOrgLocationItem": {
+      "type": "object",
+      "description": "oj-select-single value-item {key,data,metadata} for the inv-org Delivery Location picker. Same reason as selectedYardItem on request-detail-page: bu-org-mappings cannot resolve a single invOrgId via fetchByKeys, so the component needs the whole item to render the selected label.",
+      "defaultValue": null
+    },
+    "locationTypeADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.locationTypeArray }}"
+      }
+    },
+    "locationType": {
+      "type": "string"
+    },
+    "requestTypeSel": {
+      "type": "string",
+      "description": "PAGE-level mirror of the Request Type picker, and the value every oj-bind-if on this page tests. The select binds HERE, not directly to $flow.variables.request.requestType: writing a NESTED property of a $flow object variable does not reliably re-evaluate oj-bind-if (the flow variable's own reference never changes), so the External/Internal fields did not appear when the type was switched. Same page-scalar + mirror-into-$flow shape the Location Type picker above already uses. RequestTypeChangedChain copies it onto $flow.variables.request.requestType, which stays the value that travels to the cart and gets posted.",
+      "defaultValue": ""
+    },
+    "selectedProjectName": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "selectedTaskName": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "taskTree": {
+      "type": "object",
+      "description": "WBS classification of the selected project's tasks — { summaryIds, depthById, basis } from resources/js/projectTaskTree.js, rebuilt by LoadTaskTreeChain whenever the project changes. tasksSDP returns a FLAT list, so this is the only thing that knows '1.1' is a summary node and '1.1.1.1' is the chargeable leaf. Drives the dropdown's indent + greying, and TaskSelectedChain refuses a summary pick against it. Empty object until loaded, which reads as 'every task is a leaf' — the picker then behaves exactly as it did before this existed.",
+      "defaultValue": {}
+    },
+    "taskError": {
+      "type": "string",
+      "description": "Inline message under the Task field when the user picks a summary task. Cleared on a valid pick and on project change.",
+      "defaultValue": ""
+    },
+    "tasksCacheKey": {
+      "type": "string",
+      "description": "ProjectId whose tasks tasksDp currently holds. Lets LoadTaskTreeChain leave the provider untouched when the project has not changed — rebuilding it would make an already-resolved list skeleton again for no reason. Set only after a successful fetch, so it can never claim a project the provider does not actually hold.",
+      "defaultValue": ""
+    },
+    "sitesADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": [
+          {
+            "value": 501,
+            "label": "Sector A - West"
+          },
+          {
+            "value": 502,
+            "label": "Main Staging Hub"
+          }
+        ]
+      }
+    },
+    "agreementOptionsArray": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "agreementsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $variables.filteredAgreementsArray }}"
+      }
+    },
+    "filteredAgreementsArray": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "selectedAgreementId": {
+      "type": "number",
+      "defaultValue": null
+    },
+    "customerFilterId": {
+      "type": "number",
+      "defaultValue": null
+    },
+    "variable1": {
+      "type": "string"
+    },
+    "isLocationDrawerOpen": {
+      "type": "boolean",
+      "description": "Controls the right-side Delivery Location map drawer (oj-drawer-popup). Auto-opens when Location Type = Enter Delivery location.",
+      "defaultValue": false
+    },
+    "locationSearchText": {
+      "type": "string",
+      "description": "Free-text address typed into the drawer's search box; the page module geocodes it and centres the map.",
+      "defaultValue": ""
+    },
+    "addr1": {
+      "type": "string",
+      "description": "Address Line 1 (Oracle HZ_LOCATIONS.ADDRESS1) — street number + name, parsed from the geocode result.",
+      "defaultValue": ""
+    },
+    "addr2": {
+      "type": "string",
+      "description": "Address Line 2 (suite/unit) — Mapbox doesn't provide this; user-editable.",
+      "defaultValue": ""
+    },
+    "city": {
+      "type": "string",
+      "description": "City / town (Mapbox 'place').",
+      "defaultValue": ""
+    },
+    "county": {
+      "type": "string",
+      "description": "County (Mapbox 'district').",
+      "defaultValue": ""
+    },
+    "addrState": {
+      "type": "string",
+      "description": "State / province (Mapbox 'region').",
+      "defaultValue": ""
+    },
+    "postalCode": {
+      "type": "string",
+      "description": "Postal / ZIP code (Mapbox 'postcode').",
+      "defaultValue": ""
+    },
+    "country": {
+      "type": "string",
+      "description": "Country (Mapbox 'country').",
+      "defaultValue": ""
+    },
+    "pickedLat": {
+      "type": "number",
+      "description": "Latitude of the picked point.",
+      "defaultValue": null
+    },
+    "pickedLng": {
+      "type": "number",
+      "description": "Longitude of the picked point.",
+      "defaultValue": null
+    }
+  },
+  "eventListeners": {
+    "vbBeforeEnter": {
+      "chains": [
+        { "chain": "enforcePageAccessChain" }
+      ]
+    },
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "eitherModuleGuardChain",
+          "parameters": {}
+        },
+        {
+          "chain": "HydrateDraftChain",
+          "parameters": {}
+        },
+        {
+          "chain": "SeedCustomerTypeChain",
+          "parameters": {}
+        },
+        {
+          "chain": "SeedRequestorChain",
+          "parameters": {}
+        },
+        {
+          "chain": "LoadAgreementsChain",
+          "parameters": {}
+        },
+        {
+          "chain": "LoadTaskTreeChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "agreementSelected": {
+      "chains": [
+        {
+          "chain": "AgreementSelectedChain",
+          "parameters": {
+            "agreementId": "[[ $event.detail.value ]]"
+          }
+        }
+      ]
+    },
+    "projectSelected": {
+      "chains": [
+        {
+          "chain": "CaptureProjectNameChain",
+          "parameters": {
+            "data": "[[ $event.detail.value && $event.detail.value.data ]]",
+            "updatedFrom": "[[ $event.detail.updatedFrom ]]"
+          }
+        }
+      ]
+    },
+    "contractSelected": {
+      "chains": [
+        {
+          "chain": "CaptureContractChain",
+          "parameters": {
+            "data": "[[ $event.detail.value && $event.detail.value.data ]]"
+          }
+        }
+      ]
+    },
+    "requestTypeChanged": {
+      "chains": [
+        {
+          "chain": "RequestTypeChangedChain",
+          "parameters": {
+            "requestType": "[[ $event.detail.value ]]"
+          }
+        }
+      ]
+    },
+    "externalCustomerSelected": {
+      "chains": [
+        {
+          "chain": "CaptureExternalCustomerChain",
+          "parameters": {
+            "data": "[[ $event.detail.value && $event.detail.value.data ]]"
+          }
+        }
+      ]
+    },
+    "externalContactSelected": {
+      "chains": [
+        {
+          "chain": "CaptureExternalContactChain",
+          "parameters": {
+            "data": "[[ $event.detail.value && $event.detail.value.data ]]"
+          }
+        }
+      ]
+    },
+    "invOrgLocationSelected": {
+      "chains": [
+        {
+          "chain": "CaptureInvOrgLocationChain",
+          "parameters": {
+            "data": "[[ $event.detail.value && $event.detail.value.data ]]"
+          }
+        }
+      ]
+    },
+    "shipToSiteSelected": {
+      "chains": [
+        {
+          "chain": "CaptureShipToSiteChain",
+          "parameters": {
+            "data": "[[ $event.detail.value && $event.detail.value.data ]]"
+          }
+        }
+      ]
+    },
+    "customerSelected": {
+      "chains": [
+        {
+          "chain": "CustomerSelectedChain",
+          "parameters": {
+            "fusionCustomerId": "[[ $event.detail.value ]]"
+          }
+        }
+      ]
+    },
+    "taskSelectedFromSearch": {
+      "chains": [
+        {
+          "chain": "TaskSelectedChain",
+          "parameters": {
+            "data": "[[ $event.detail.itemContext && $event.detail.itemContext.data ]]"
+          }
+        }
+      ]
+    },
+    "customerSearchRequested": {
+      "chains": [
+        {
+          "chain": "CustomerTypeaheadChain",
+          "parameters": {
+            "searchValue": "[[ $event.text ]]"
+          }
+        }
+      ]
+    },
+    "projectSearchRequested": {
+      "chains": [
+        {
+          "chain": "ProjectTypeaheadChain",
+          "parameters": {
+            "searchValue": "[[ $event.text ]]"
+          }
+        }
+      ]
+    },
+    "customerSelectedFromSDP": {
+      "chains": [
+        {
+          "chain": "CaptureFallbackCustomerChain",
+          "parameters": {
+            "data": "[[ $event.detail.value && $event.detail.value.data ]]",
+            "updatedFrom": "[[ $event.detail.updatedFrom ]]"
+          }
+        }
+      ]
+    },
+    "nextToCatalog": {
+      "chains": [
+        {
+          "chain": "NavigateToCatalogChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onClearAgreementContext": {
+      "chains": [
+        {
+          "chain": "ClearAgreementContextChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "locationDrawerOpenedChanged": {
+      "chains": [
+        {
+          "chain": "LocationDrawerToggleChain",
+          "parameters": {
+            "opened": "[[ $event.detail.value ]]"
+          }
+        }
+      ]
+    },
+    "useLocation": {
+      "chains": [
+        {
+          "chain": "UseLocationChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "locationResolved": {
+      "chains": [
+        {
+          "chain": "LocationResolvedChain",
+          "parameters": {
+            "data": "[[ $event.data ]]"
+          }
+        }
+      ]
+    },
+    "addressSuggestionSelected": {
+      "chains": [
+        {
+          "chain": "AddressSuggestionSelectedChain",
+          "parameters": {
+            "data": "[[ $event.detail.itemContext && $event.detail.itemContext.data ]]"
+          }
+        }
+      ]
+    }
+  },
+  "events": {
+    "customerSearchRequested": {
+      "description": "Fired by the page module's customer ReportSuggestProvider when oj-input-search asks it for suggestions, carrying the typed text, so CustomerTypeaheadChain can run the BIP report EQP_CUSTOMERS_LOV_RP. The chain answers through $page.functions.deliverCustomers(text, rows).",
+      "payloadType": {
+        "text": "string"
+      }
+    },
+    "projectSearchRequested": {
+      "description": "Fired by the page module's ProjectSuggestProvider when oj-input-search asks it for suggestions, carrying the typed text, so ProjectTypeaheadChain can run the BIP report (a page module cannot call it). The chain answers through $page.functions.deliverProjects(text, rows).",
+      "payloadType": {
+        "text": "string"
+      }
+    },
+    "locationResolved": {
+      "description": "Fired by the page module after a geocode/reverse-geocode with the parsed Oracle-style address components + coords, so a chain can write them into the page variables (module can't write variables directly).",
+      "payloadType": {
+        "data": "object"
+      }
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-sp-general-overview-page": {
+        "path": "oj-sp/general-overview-page/loader"
+      },
+      "oj-sp-collection-container": {
+        "path": "oj-sp/collection-container/loader"
+      },
+      "oj-form-layout": {
+        "path": "ojs/ojformlayout"
+      },
+      "oj-input-text": {
+        "path": "ojs/ojinputtext"
+      },
+      "oj-input-date": {
+        "path": "ojs/ojdatetimepicker"
+      },
+      "oj-input-number": {
+        "path": "ojs/ojinputnumber"
+      },
+      "oj-select-single": {
+        "path": "ojs/ojselectsingle"
+      },
+      "oj-input-search": {
+        "path": "ojs/ojinputsearch"
+      },
+      "oj-switch": {
+        "path": "ojs/ojswitch"
+      },
+      "oj-text-area": {
+        "path": "ojs/ojinputtext"
+      },
+      "oj-button": {
+        "path": "ojs/ojbutton"
+      },
+      "oj-dialog": {
+        "path": "ojs/ojdialog"
+      },
+      "oj-drawer-popup": {
+        "path": "ojs/ojdrawerpopup"
+      },
+      "oj-bind-if": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-text": {
+        "path": "ojs/ojbindtext"
+      }
+    }
+  }
+}

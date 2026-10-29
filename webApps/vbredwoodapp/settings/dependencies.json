@@ -1,0 +1,28 @@
+{
+  "component-dependencies": {
+    "oj-sp": {
+      "version": "2601.0.3",
+      "components": {
+        "messages-banner":        "2601.0.3",
+        "messages-toast":         "2601.0.3",
+        "smart-search":           "2601.0.3",
+        "smart-search-page":      "2601.0.3",
+        "collection-container":   "2601.0.3",
+        "scoreboard":             "2601.0.3",
+        "scoreboard-metric-card": "2601.0.3",
+        "dashboard-landing-page": "2601.0.3",
+        "dashboard-grid":         "2601.0.3",
+        "dashboard-panel":            "2601.0.3",
+        "general-drawer-template":    "2601.0.3",
+        "general-overview-page": "2601.0.3",
+        "card": "2601.0.3"
+      }
+    },
+    "oj-dyn": {
+      "version": "18.1.4",
+      "components": {
+        "form": "18.1.4"
+      }
+    }
+  }
+}

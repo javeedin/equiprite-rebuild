@@ -1,0 +1,1272 @@
+{
+  "metadata": {},
+  "variables": {
+    "requestNumber": {
+      "type": "string",
+      "input": "fromUrl",
+      "persisted": false,
+      "defaultValue": ""
+    },
+    "requestId": {
+      "type": "string",
+      "input": "fromUrl",
+      "persisted": false,
+      "defaultValue": ""
+    },
+    "sourcePage": {
+      "type": "string",
+      "input": "fromUrl",
+      "persisted": false,
+      "defaultValue": "Equipment Workbench"
+    },
+    "requestRecord": {
+      "type": "object",
+      "defaultValue": {}
+    },
+    "pageTitle": {
+      "type": "string",
+      "defaultValue": "Request Detail"
+    },
+    "pageSubtitle": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "formData": {
+      "type": "object",
+      "defaultValue": {
+        "request_number": "",
+        "project_customer": "",
+        "task": "",
+        "requestor": "",
+        "location": "",
+        "start_date": "",
+        "end_date": "",
+        "source": "",
+        "total_est_cost": 0
+      }
+    },
+    "linesArray": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "linesADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "line_no",
+        "data": "{{ $page.variables.linesArray }}"
+      }
+    },
+    "isSaving": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "editLineRowIndex": {
+      "type": "number",
+      "description": "Row index of the line currently open in the Edit Line dialog; -1 when closed.",
+      "defaultValue": -1
+    },
+    "editLineRate": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "editLineStartDate": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "editLineEndDate": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "editLineSaving": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "messages": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "totalEstCost": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "allocationProgress": {
+      "type": "string",
+      "defaultValue": "0/0 lines allocated"
+    },
+    "allocationPct": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "currentRowIndex": {
+      "type": "number",
+      "defaultValue": -1
+    },
+    "selectedRows": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "poButtonEnabled": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "confirmEnabled": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "rejectEnabled": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "returnEnabled": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "quoteEnabled": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "quoteVisible": {
+      "type": "boolean",
+      "description": "Whether the Generate Quote / View Quote button renders at all — false hides it outright rather than merely disabling it. Now driven by the ENABLE_QUOTES global setting via quotingAllowed (was hardcoded CUSTOMER-only). Derived in updateActionButtons ($page module) alongside quoteEnabled.",
+      "defaultValue": false
+    },
+    "quotingAllowed": {
+      "type": "boolean",
+      "description": "Whether the ENABLE_QUOTES global setting permits quoting for THIS request's origin. Resolved once in vbEnterChain via $application.functions.isQuotingAllowed(globalSettings, flagsLoaded, source) — the app-flow resolver owns the NONE/PROJECTS/CUSTOMER/BOTH matrix. Held on the page because updateActionButtons is a page-module method with no access to $application (its callers pass only $page). Fails CLOSED (false) until settings load.",
+      "defaultValue": false
+    },
+    "quoteButtonLabel": {
+      "type": "string",
+      "description": "Label for the quote button: 'Generate Quote' while the quote is still to be produced, flipping to 'View Quote' once the header status shows one exists (QUOTE_GENERATED / QUOTE_ACCEPTED / DEPLOYED). Same button and same target page either way — only the wording changes. Derived in updateActionButtons ($page module).",
+      "defaultValue": "Generate Quote"
+    },
+    "invoiceVisible": {
+      "type": "boolean",
+      "description": "Whether the Create Invoice button renders at all. Invoicing is CUSTOMER-only — an internal request is costed to a project through Post Cost and is never invoiced — so on an internally-sourced request the button is HIDDEN rather than shown disabled, same treatment as the quote and Assign Project buttons. TRUE iff formData.source is 'EXTERNAL', resolved through resources/js/requestSource.isExternal(). Derived in updateActionButtons ($page module).",
+      "defaultValue": false
+    },
+    "invoiceEnabled": {
+      "type": "boolean",
+      "description": "Whether the Create Invoice button, once visible, is clickable: at least one SELECTED line is DEPLOYED. Origin is NOT re-tested here — invoiceVisible already carries it. Derived in updateActionButtons ($page module).",
+      "defaultValue": false
+    },
+    "shipConfirmEnabled": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "isCustomerRequest": {
+      "type": "boolean",
+      "description": "True when the request is externally sourced — formData.source is 'EXTERNAL' (the origin vocabulary was formerly 'CUSTOMER' | 'PROJECT', now 'EXTERNAL' | 'INTERNAL'). Resolved via $application.functions.isExternalSource(), the single owner of that rule, which still accepts the legacy spelling. Set on page enter / refresh. The PR drawer reads this to suppress all project-derived fields (Project/Task panel, Expenditure Type/Org) — an external PR is between us and our supplier, with no project applicability. The submit chain (CreatePurchaseRequisitionChain) re-checks it as the authoritative gate before attaching any projectDFF.",
+      "defaultValue": false
+    },
+    "selectionVersion": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "yardMappingSDP": {
+      "type": "vb/ServiceDataProvider",
+      "defaultValue": {
+        "endpoint": "eqp-v1/getBuOrgMappings",
+        "keyAttributes": "invOrgId",
+        "itemsPath": "data",
+        "uriParameters": {
+          "isActiveFlag": "Y",
+          "orgRole": "EQUIPMENT_YARD"
+        },
+        "textFilterAttributes": [
+          "invOrgName",
+          "invOrgCode"
+        ],
+        "capabilities": {
+          "filter": {
+            "operators": [
+              "$co"
+            ]
+          }
+        }
+      }
+    },
+    "selectedYard": {
+      "type": "number",
+      "defaultValue": null
+    },
+    "selectedYardItem": {
+      "type": "object",
+      "description": "oj-select-single value-item {key,data,metadata} for the Yard picker. The component keeps this in sync when the user picks a yard, so the SDP-backed LOV can render the selected label without a fetchByKeys (bu-org-mappings can't resolve a single invOrgId key). No programmatic default is set on load.",
+      "defaultValue": null
+    },
+    "yardOrgSDP": {
+      "type": "vb/ServiceDataProvider",
+      "defaultValue": {
+        "endpoint": "eqp-v1/getInvOrgs",
+        "keyAttributes": "invOrgId",
+        "itemsPath": "data",
+        "textFilterAttributes": [
+          "organizationName",
+          "organizationCode"
+        ],
+        "capabilities": {
+          "filter": {
+            "operators": [
+              "$co",
+              "$eq",
+              "$ew",
+              "$ge",
+              "$gt",
+              "$le",
+              "$lt",
+              "$ne",
+              "$pr",
+              "$sw"
+            ]
+          }
+        }
+      }
+    },
+    "isAssignProjectOpen": {
+      "type": "boolean",
+      "description": "Controls the Assign Project drawer (oj-drawer-popup). Opened by the assignProject branch of ActionChain; cancel/save close it.",
+      "defaultValue": false
+    },
+    "assignProjectSaving": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "assignProjectEnabled": {
+      "type": "boolean",
+      "description": "Kept in lock-step with assignProjectVisible — the Assign Project button is never rendered disabled, so 'usable' and 'shown' are the same condition. Retained as a separate variable so a future state that should show the button greyed out rather than hide it has somewhere to land. Derived in updateActionButtons ($page module).",
+      "defaultValue": false
+    },
+    "assignProjectVisible": {
+      "type": "boolean",
+      "description": "Whether the Assign Project button renders at all — it is HIDDEN, never disabled, in every state where it can't be used. TRUE requires all three: the EXTERNAL_PROJECT_ASSIGN_ENABLED feature flag is on, the request is EXTERNALLY sourced (an internal request already carries its project from creation and must never be re-pointed here), and NO line has been allocated yet (allocation is the point downstream cost attribution starts depending on the project). A disabled button would invite the manager to hunt for a way to enable it, and for the flag and the allocation lock there is none from this page. Derived in updateActionButtons ($page module).",
+      "defaultValue": false
+    },
+    "externalProjectAssignEnabled": {
+      "type": "boolean",
+      "description": "Whether the EXTERNAL_PROJECT_ASSIGN_ENABLED feature flag (Configuration Settings → Application Flags) permits assigning an internal project/task to customer requests. Resolved once in vbEnterChain via $application.functions.isFeatureEnabled(featureFlags, flagsLoaded, ...) — the generic FEATURE_FLAG accessor. Cached on the page for the same reason quotingAllowed is: updateActionButtons is a page-module method whose callers pass only $page, so it can't reach $application. Fails CLOSED (false) until settings load, and gates BOTH the button and the project-required-before-confirm rule, so an environment with the flag off behaves exactly as it did before the feature existed.",
+      "defaultValue": false
+    },
+    "assignProjectId": {
+      "type": "number",
+      "description": "Fusion ProjectId staged in the Assign Project drawer. Committed to EQR_EQUIPMENT_REQUEST.PROJECT_REF_ID on save.",
+      "defaultValue": null
+    },
+    "assignTaskId": {
+      "type": "number",
+      "description": "Fusion TaskId staged in the Assign Project drawer. Committed to EQR_EQUIPMENT_REQUEST.TASK_ID on save.",
+      "defaultValue": null
+    },
+    "assignProjectName": {
+      "type": "string",
+      "description": "Project NAME staged in the drawer. The Project field is an oj-input-search (copied from project-create-request-page), whose `value` two-way-binds the display text, not the id — the id/number are captured off the picked row by AssignProjectSelectedChain. Also what the field renders when the drawer re-opens on an already-assigned request.",
+      "defaultValue": ""
+    },
+    "assignProjectNumber": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "assignProjectBuId": {
+      "type": "number",
+      "description": "Fusion BusinessUnitId of the project staged in the drawer. Not on the picked LOV row — assignProjectsSDP requests only ProjectId,ProjectNumber,ProjectName and projectsLOV has no BusinessUnit attribute — so AssignProjectSelectedChain fetches it from projects/{ProjectId} via resources/js/projectBusinessUnit.js. Committed to EQR_EQUIPMENT_REQUEST.PROJECT_BU_ID on save.",
+      "defaultValue": null
+    },
+    "assignProjectBuName": {
+      "type": "string",
+      "description": "Fusion BusinessUnitName of the staged project, e.g. 'US1 Business Unit'. This is the value that actually posts — Fusion's cost interface takes the business unit as a string — and it replaces a hardcoded literal in the OIC field map that does not exist on the customer pod. Committed to EQR_EQUIPMENT_REQUEST.PROJECT_BU_NAME on save.",
+      "defaultValue": ""
+    },
+    "assignTaskName": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "assignTaskNumber": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "assignTaskTree": {
+      "type": "object",
+      "description": "WBS classification of the staged project's tasks — { summaryIds, depthById, basis } from resources/js/projectTaskTree.js, rebuilt by LoadTaskTreeChain whenever assignProjectId changes. The Task LOV returns a FLAT list, so this is the only thing that knows '1.1' is a summary node and '1.1.1.1' is the chargeable leaf. Drives the dropdown's indent + greying, and AssignTaskSelectedChain refuses a summary pick against it. Empty object until loaded, which reads as 'every task is a leaf' — the picker then behaves exactly as it did before this existed.",
+      "defaultValue": {}
+    },
+    "assignTaskError": {
+      "type": "string",
+      "description": "Inline message under the Task field when the user picks a summary task. Cleared on a valid pick and on project change.",
+      "defaultValue": ""
+    },
+    "assignTasksCacheKey": {
+      "type": "string",
+      "description": "ProjectId whose tasks assignTasksDp currently holds. Lets LoadTaskTreeChain leave the provider untouched when the project has not changed — rebuilding it would make an already-resolved list skeleton again for no reason. Set only after a successful fetch, so it can never claim a project the provider does not actually hold.",
+      "defaultValue": ""
+    },
+    "projectSearchQ": {
+      "type": "string",
+      "description": "Fusion q= predicate backing assignProjectsSDP. Rewritten by AssignProjectTypeaheadChain as the user types (debounced), then the SDP is reset to re-fetch — the same server-side typeahead project-create-request-page uses, so the Project LOV behaves identically on both surfaces.",
+      "defaultValue": "ProjectName LIKE '*'"
+    },
+    "assignProjectsSDP": {
+      "type": "vb/ServiceDataProvider",
+      "description": "Project LOV — copied verbatim from customer-portal project-create-request-page.json projectsSDP. That variable was removed when the create-request Project LOV became a 3-row demo allow-list, then restored when the allow-list was dropped, so the two surfaces once again resolve the SAME set: every project on the pod. Bound to an oj-input-search via `suggestions`; searching happens server-side through projectSearchQ, not client-side filtering.",
+      "defaultValue": {
+        "endpoint": "ProjectLOV/getFscmRestApiResources11_13_18_05ProjectsLOV",
+        "responseType": "ProjectLOV/GetFscmRestApiResources11_13_18_05ProjectsLOV",
+        "keyAttributes": "ProjectId",
+        "itemsPath": "items",
+        "uriParameters": {
+          "q": "[[ $page.variables.projectSearchQ ]]",
+          "fields": "ProjectId,ProjectNumber,ProjectName",
+          "limit": 500
+        },
+        "textFilterAttributes": [
+          "ProjectName",
+          "ProjectNumber"
+        ],
+        "capabilities": {
+          "filter": {
+            "operators": [
+              "$co",
+              "$eq",
+              "$ew",
+              "$ge",
+              "$gt",
+              "$le",
+              "$lt",
+              "$ne",
+              "$pr",
+              "$sw"
+            ]
+          }
+        }
+      }
+    },
+    "assignTasksDp": {
+      "type": "any",
+      "description": "Task LOV data provider — the CHARGEABLE LEAVES of the staged project's WBS. Built in JS by resources/js/taskDataProvider.js and assigned by LoadTaskTreeChain, hence type 'any' rather than a vb/ ServiceDataProvider or ArrayDataProvider2 declaration. Two reasons it cannot be declarative: (1) showing leaves only means filtering on 'no other row names me as parent', a property of the whole set that no Fusion q predicate can express, so the rows must be fetched and classified in JS first; (2) it is handed over as a DeferredDataProvider wrapping the IN-FLIGHT fetch, so the dropdown renders JET's own loading skeleton and fills in place instead of the field being disabled shut mid-open. Resolves to an ArrayDataProvider keyed on TaskId with textFilterAttributes over TaskName/TaskNumber, so the dropdown's filter field matches locally with no round-trip.",
+      "defaultValue": null
+    },
+
+    "transferEnabled": {
+      "type": "boolean",
+      "description": "Gates the Transfer to Another Site button — true when exactly ONE selected line is DEPLOYED. Derived in updateActionButtons ($page module), same pattern as returnEnabled/confirmEnabled.",
+      "defaultValue": false
+    },
+    "isTransferDrawerOpen": {
+      "type": "boolean",
+      "description": "Controls the Transfer to Another Site drawer (oj-drawer-popup). Opened by OpenTransferDrawerChain; cancel/confirm close it.",
+      "defaultValue": false
+    },
+    "transferSaving": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "transferError": {
+      "type": "string",
+      "description": "Inline validation/failure message shown in the Transfer drawer.",
+      "defaultValue": ""
+    },
+    "transferSourceLineId":        { "type": "number", "defaultValue": null },
+    "transferSourceLineNo":        { "type": "number", "defaultValue": null },
+    "transferSourceRequestId":     { "type": "string", "defaultValue": "" },
+    "transferSourceRequestNumber": { "type": "string", "defaultValue": "" },
+    "transferEquipmentMasterId":   { "type": "number", "defaultValue": null },
+    "transferEquipmentName":       { "type": "string", "defaultValue": "" },
+    "transferQuantity":            { "type": "number", "defaultValue": 1 },
+    "transferBillRate":            { "type": "number", "defaultValue": null },
+    "transferPriceUom":            { "type": "string", "defaultValue": "" },
+
+    "transferAllowedProjectsArray": {
+      "type": "any[]",
+      "description": "SAME fixed demo allow-list as project-create-request-page's allowedProjectsArray — the ONLY projects the Transfer drawer's Destination Project field offers, byte-identical rows (ProjectId, ProjectNumber, ProjectName) so a project picked here posts to PPM exactly as one picked on the real create-request page would.",
+      "defaultValue": [
+        { "ProjectId": 300000336994396, "ProjectNumber": "10011",  "ProjectName": "EPC_ MO_Operations" },
+        { "ProjectId": 300000337189715, "ProjectNumber": "100122", "ProjectName": "EPC_ MC_Construction" },
+        { "ProjectId": 300000337189734, "ProjectNumber": "100133", "ProjectName": "EPC_ MD_Development" }
+      ]
+    },
+    "transferAllowedProjectsDp": {
+      "type": "vb/ArrayDataProvider2",
+      "description": "Project LOV provider, local — same shape as allowedProjectsDp. keyAttributes ProjectId matches what TransferProjectSelectedChain reads off the picked row and what LoadTransferTaskTreeChain/TransferLoadContractsChain query Fusion with. textFilterAttributes keeps the field searchable locally, no Fusion round-trip per keystroke.",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "ProjectId",
+        "data": "{{ $page.variables.transferAllowedProjectsArray }}",
+        "textFilterAttributes": ["ProjectName", "ProjectNumber"]
+      }
+    },
+    "transferProjectId":     { "type": "number", "defaultValue": null },
+    "transferProjectName":   { "type": "string", "defaultValue": "" },
+    "transferProjectNumber": { "type": "string", "defaultValue": "" },
+    "transferTaskId":        { "type": "number", "defaultValue": null },
+    "transferTaskName":      { "type": "string", "defaultValue": "" },
+    "transferTaskNumber":    { "type": "string", "defaultValue": "" },
+    "transferTaskError":     { "type": "string", "defaultValue": "" },
+    "transferTaskTree": {
+      "type": "object",
+      "description": "WBS classification of the staged destination project's tasks — same shape/purpose as assignTaskTree, rebuilt by LoadTransferTaskTreeChain whenever transferProjectId changes.",
+      "defaultValue": {}
+    },
+    "transferTasksCacheKey": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "transferProjectSearchQ": {
+      "type": "string",
+      "description": "Fusion q= predicate backing transferProjectsSDP. Rewritten by TransferProjectTypeaheadChain as the user types (debounced), then the SDP is reset to re-fetch — same server-side typeahead pattern as projectSearchQ/assignProjectsSDP.",
+      "defaultValue": "ProjectName LIKE '*'"
+    },
+    "transferProjectsSDP": {
+      "type": "vb/ServiceDataProvider",
+      "description": "Destination-Project LOV for the Transfer drawer — same endpoint/shape as assignProjectsSDP, kept as its own variable so a transfer's staged search never collides with the Assign Project drawer's.",
+      "defaultValue": {
+        "endpoint": "ProjectLOV/getFscmRestApiResources11_13_18_05ProjectsLOV",
+        "responseType": "ProjectLOV/GetFscmRestApiResources11_13_18_05ProjectsLOV",
+        "keyAttributes": "ProjectId",
+        "itemsPath": "items",
+        "uriParameters": {
+          "q": "[[ $page.variables.transferProjectSearchQ ]]",
+          "fields": "ProjectId,ProjectNumber,ProjectName",
+          "limit": 500
+        },
+        "textFilterAttributes": ["ProjectName", "ProjectNumber"],
+        "capabilities": {
+          "filter": {
+            "operators": ["$co", "$eq", "$ew", "$ge", "$gt", "$le", "$lt", "$ne", "$pr", "$sw"]
+          }
+        }
+      }
+    },
+    "transferTasksDp": {
+      "type": "any",
+      "description": "Task LOV data provider for the Transfer drawer — same DeferredDataProvider-over-leaves pattern as assignTasksDp, assigned by LoadTransferTaskTreeChain.",
+      "defaultValue": null
+    },
+    "transferStartDate": { "type": "string", "defaultValue": "" },
+    "transferEndDate":   { "type": "string", "defaultValue": "" },
+
+    "transferMode": {
+      "type": "string",
+      "description": "'new' | 'existing' — which panel the Transfer drawer shows. Derived from transferIsExistingMode; kept only because a couple of comments/older bindings still read it as a string. The oj-switch below is the actual source of truth.",
+      "defaultValue": "new"
+    },
+    "transferIsExistingMode": {
+      "type": "boolean",
+      "description": "Drives the Transfer drawer's mode toggle switch — false = Create New Request, true = Attach to Existing Request. UI-only view state, flipped directly by the switch (no chain).",
+      "defaultValue": false
+    },
+    "transferExistingRequestSearch": {
+      "type": "string",
+      "description": "Display text for the Existing-Request oj-input-search — two-way-bound, same convention as transferProjectName.",
+      "defaultValue": ""
+    },
+    "transferExistingRequestSearchQ": {
+      "type": "string",
+      "description": "Raw q= text sent to getEquipriteV1ViewsMyRequests, rewritten by TransferExistingRequestTypeaheadChain as the user types (debounced).",
+      "defaultValue": ""
+    },
+    "transferExistingRequestsSDP": {
+      "type": "vb/ServiceDataProvider",
+      "description": "Real my-requests lookup (equiprite/v1/views/my-requests) — case-insensitive substring search across requestNumber/projectName/taskName/requestorName via q=. Rows carry NO numeric id (only requestNumber), so keyAttributes is requestNumber and TransferExistingRequestSelectedChain does a SEPARATE getEquipriteV1EquipmentRequests?requestNumber= lookup to resolve the numeric id the line-POST endpoint actually needs.",
+      "defaultValue": {
+        "endpoint": "eqp-v1/getEquipriteV1ViewsMyRequests",
+        "keyAttributes": "requestNumber",
+        "itemsPath": "data",
+        "uriParameters": {
+          "q": "[[ $page.variables.transferExistingRequestSearchQ ]]",
+          "size": 20,
+          "sortOrder": "desc"
+        }
+      }
+    },
+    "transferSelectedExistingRequest": {
+      "type": "any",
+      "description": "The resolved destination request once picked — { id, requestNumber, projectName, taskName, requestorName, status, requestedStartDate, requestedEndDate }. id comes from the separate getEquipriteV1EquipmentRequests lookup (see transferExistingRequestsSDP's description); everything else is carried straight off the my-requests row for the summary card.",
+      "defaultValue": null
+    },
+    "transferExistingRequestError": {
+      "type": "string",
+      "description": "Shown under the search field when a picked request's id could not be resolved (e.g. the lookup call failed or returned no match).",
+      "defaultValue": ""
+    },
+
+    "transferCustomerType": {
+      "type": "string",
+      "description": "'INTERNAL' | 'EXTERNAL' — same value codes as project-create-request-page's requestTypeSel, so every oj-bind-if here tests the identical strings that page does.",
+      "defaultValue": "INTERNAL"
+    },
+    "transferCustomerTypeArray": {
+      "type": "any[]",
+      "defaultValue": [ { "value": "INTERNAL", "label": "Internal" }, { "value": "EXTERNAL", "label": "External" } ]
+    },
+    "transferCustomerTypeADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.transferCustomerTypeArray }}" }
+    },
+
+    "_comment_internalCustomer": { "type": "string", "defaultValue": "Internal Customer typeahead — real Fusion LOV, same endpoint/shape as project-create-request-page's customerSDP. Shown when transferCustomerType is NOT 'EXTERNAL'." },
+    "transferInternalCustomerSearchQ": { "type": "string", "defaultValue": "Customer LIKE '*'" },
+    "transferInternalCustomerSDP": {
+      "type": "vb/ServiceDataProvider",
+      "defaultValue": {
+        "endpoint": "ProjectLOV/getFscmRestApiResources11_13_18_05ShippingCustomersLOV",
+        "responseType": "ProjectLOV/GetFscmRestApiResources11_13_18_05ShippingCustomersLOV",
+        "keyAttributes": "CustomerId",
+        "itemsPath": "items",
+        "uriParameters": {
+          "q": "[[ $page.variables.transferInternalCustomerSearchQ ]]",
+          "fields": "CustomerId,CustomerNumber,Customer",
+          "limit": 500
+        },
+        "textFilterAttributes": ["Customer", "CustomerNumber"],
+        "capabilities": { "filter": { "operators": ["$co", "$eq", "$ew", "$ge", "$gt", "$le", "$lt", "$ne", "$pr", "$sw"] } }
+      }
+    },
+    "transferSelectedInternalCustomerObj": { "type": "any", "defaultValue": null },
+    "transferInternalCustomerId": { "type": "number", "defaultValue": null },
+    "transferFusionCustomerId": {
+      "type": "number",
+      "description": "Fusion CustomerId of the internal Customer pick — used to filter transferFilteredAgreementsArray, mirrors CustomerSelectedChain's role on the real create-request page.",
+      "defaultValue": null
+    },
+
+    "_comment_externalCustomer": { "type": "string", "defaultValue": "External Customer + Customer Contact — real EQR_CUSTOMER_REF / EQR_CUSTOMER_PORTAL_USER lookups, same endpoints and row shape as project-create-request-page's customerRefsADP/customerPortalUsersADP. Both loaded together by TransferLoadExternalPartyLovsChain, shown when transferCustomerType === 'EXTERNAL'." },
+    "transferCustomerId": { "type": "number", "defaultValue": null },
+    "transferCustomerName": { "type": "string", "defaultValue": "" },
+    "transferCustomersArray": { "type": "any[]", "defaultValue": [] },
+    "transferCustomersADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": { "itemType": "any", "keyAttributes": "id", "data": "{{ $page.variables.transferCustomersArray }}", "textFilterAttributes": ["customerName"] }
+    },
+    "transferCustomerPortalUsersArray": { "type": "any[]", "defaultValue": [] },
+    "transferCustomerPortalUsersADP": {
+      "type": "vb/ArrayDataProvider2",
+      "description": "NOT scoped to the selected Customer — no DB relationship between them, same as the real page. Also feeds the internal Requestor Contact field below via the shared transferRequestorId (the two pickers are mutually exclusive on screen, same convention the real page uses).",
+      "defaultValue": { "itemType": "any", "keyAttributes": "id", "data": "{{ $page.variables.transferCustomerPortalUsersArray }}", "textFilterAttributes": ["contactName", "username", "email"] }
+    },
+
+    "_comment_requestor": { "type": "string", "defaultValue": "Requestor Contact (internal) — real declarative SDP, self-fetching, identical to project-create-request-page's usersADP. Shared field: the external Customer Contact picker above ALSO writes into transferRequestorId/transferRequestorName, same as the real page's mutually-exclusive design." },
+    "transferRequestorId": { "type": "number", "defaultValue": null },
+    "transferRequestorName": { "type": "string", "defaultValue": "" },
+    "transferUsersADP": {
+      "type": "vb/ServiceDataProvider",
+      "defaultValue": {
+        "endpoint": "eqp-v1/getEquipriteV1Users2",
+        "responseType": "eqp-v1/UserListResponse",
+        "keyAttributes": "id",
+        "itemsPath": "data"
+      }
+    },
+
+    "_comment_contract": { "type": "string", "defaultValue": "Contract — real BIP-report lookup, same report/params as project-create-request-page's contractsAdp. Reloaded fresh whenever transferProjectId changes (see TransferProjectSelectedChain)." },
+    "transferContractId": {
+      "type": "any",
+      "description": "Bound to transferContractsADP's keyAttributes ('id'), which bipLov.decodeReportRows sets from raw BIP/XML text content — always a STRING (e.g. '11009'), never coerced to a number. Declaring this 'number' silently broke the picker: oj-select-single writes the row's string key here, and a number-typed target failing to hold that string meant no row's key ever matched what the component displayed as 'selected'.",
+      "defaultValue": null
+    },
+    "transferSelectedContractObj": { "type": "any", "defaultValue": null },
+    "transferIsContractsLoading": { "type": "boolean", "defaultValue": false },
+    "transferContractsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "description": "Plain page-level ADP populated by TransferLoadContractsChain, which mutates .data IN PLACE (never replaces the object) so the component never flickers/remounts — same pattern as contractsAdp.",
+      "defaultValue": { "keyAttributes": "id", "itemType": "any", "data": [] }
+    },
+
+    "_comment_agreement": { "type": "string", "defaultValue": "Rental Agreement (optional) — real lookup gated by the AGREEMENTS_ENABLED feature flag, same endpoints as project-create-request-page's agreementsADP/LoadAgreementsChain. Filtered by transferFusionCustomerId when an internal Customer is picked." },
+    "transferAgreementId": { "type": "number", "defaultValue": null },
+    "transferAgreementOptionsArray": { "type": "any[]", "defaultValue": [] },
+    "transferFilteredAgreementsArray": { "type": "any[]", "defaultValue": [] },
+    "transferAgreementsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.transferFilteredAgreementsArray }}" }
+    },
+
+    "transferIsSoftReservation": { "type": "boolean", "defaultValue": false },
+    "transferPlannedHours": { "type": "number", "defaultValue": null },
+
+    "transferLocationType": { "type": "string", "defaultValue": null },
+    "transferLocationTypeArray": {
+      "type": "any[]",
+      "description": "Same value codes as project-create-request-page's Location Type options, for parity.",
+      "defaultValue": [
+        { "label": "Project site",             "value": "PROJECT_SITE" },
+        { "label": "Enter Delivery location",  "value": "DELIVERY_LOCATION" },
+        { "label": "Internal Location",        "value": "INV_ORG" }
+      ]
+    },
+    "transferLocationTypeADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.transferLocationTypeArray }}" }
+    },
+    "transferLocation": {
+      "type": "string",
+      "description": "The resolved delivery-location STRING, whichever Location Type produced it — page-scoped analogue of $flow.variables.request.location on the real create-request page (this page has no flow-level request model to write into).",
+      "defaultValue": ""
+    },
+
+    "_comment_shipToSites": { "type": "string", "defaultValue": "Delivery Location — PROJECT_SITE variant. Real BIP-report lookup scoped to project+contract, same report as project-create-request-page's shipToSitesAdp/LoadShipToSitesChain." },
+    "transferSelectedShipToSiteObj": { "type": "any", "defaultValue": null },
+    "transferIsShipToSitesLoading": { "type": "boolean", "defaultValue": false },
+    "transferShipToSitesLoaded": { "type": "boolean", "defaultValue": false },
+    "transferShipToSitesADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": { "keyAttributes": "id", "itemType": "any", "data": [] }
+    },
+
+    "_comment_invOrgLocation": { "type": "string", "defaultValue": "Delivery Location — INV_ORG variant. Real declarative SDP, self-fetching, identical to project-create-request-page's invOrgLocationSDP (eqp-v1/getBuOrgMappings, orgRole=DESTINATION_YARD)." },
+    "transferInvOrgLocationSDP": {
+      "type": "vb/ServiceDataProvider",
+      "defaultValue": {
+        "endpoint": "eqp-v1/getBuOrgMappings",
+        "keyAttributes": "invOrgId",
+        "itemsPath": "data",
+        "uriParameters": { "isActiveFlag": "Y", "orgRole": "DESTINATION_YARD" },
+        "textFilterAttributes": ["invOrgName", "invOrgCode", "townOrCity"],
+        "capabilities": { "filter": { "operators": ["$co"] } }
+      }
+    },
+    "transferSelectedInvOrgLocationId": { "type": "number", "defaultValue": null },
+    "transferSelectedInvOrgLocationItem": { "type": "any", "defaultValue": null },
+
+    "_comment_map": { "type": "string", "defaultValue": "Delivery Location — DELIVERY_LOCATION variant (map drawer). Real Mapbox integration, verbatim port of project-create-request-page's map — see request-detail-page.js's addressSuggestionsProvider/initLocationMap/applySuggestion/etc." },
+    "transferIsLocationDrawerOpen": { "type": "boolean", "defaultValue": false },
+    "transferLocationSearchText":  { "type": "string", "defaultValue": "" },
+    "transferAddr1":      { "type": "string", "defaultValue": "" },
+    "transferAddr2":      { "type": "string", "defaultValue": "" },
+    "transferCity":       { "type": "string", "defaultValue": "" },
+    "transferCounty":     { "type": "string", "defaultValue": "" },
+    "transferAddrState":  { "type": "string", "defaultValue": "" },
+    "transferPostalCode": { "type": "string", "defaultValue": "" },
+    "transferCountry":    { "type": "string", "defaultValue": "" },
+    "transferPickedLat":  { "type": "number", "defaultValue": null },
+    "transferPickedLng":  { "type": "number", "defaultValue": null },
+
+    "transferNotes": { "type": "string", "defaultValue": "" },
+
+    "prSubmitting": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "isPrDrawerOpen": {
+      "type": "boolean",
+      "description": "Controls the right-side Purchase Requisition drawer (oj-drawer-popup). Set true by the requestPo branch of ActionChain to open; cancel/submit/close set it false.",
+      "defaultValue": false
+    },
+    "expOrgList": {
+      "type": "any[]",
+      "description": "Expenditure-organization LOV for the per-line picker ({value:OrganizationId,label:OrganizationName}). BU-scoped active EXPENDITURES orgs for the request project's business unit (projectOrganizationsLOV finder). Loaded on PR dialog open by the requestPo branch of ActionChain. Each line defaults to the project's owning org; user may pick any of these.",
+      "defaultValue": []
+    },
+    "prHeader": {
+      "type": "object",
+      "description": "Shared header fields chosen once in the PR dialog and applied to every line. Unit of measure is NOT here — it is per line (prLines[].uomCode), alongside that line's quantity. isRequestSpecific forks the cost model (post-demo, Sandeep): true = send project+task on the PR so Fusion posts cost natively; false = send no distribution and let EquipRite cost it later in post-cost from the PO price.",
+      "defaultValue": {
+        "lineTypeCode": "ORA_Rate Based Services",
+        "categoryName": "Capital Equipment",
+        "destinationTypeCode": "EXPENSE",
+        "deliverToLocationId": null,
+        "deliverToLocationType": "INTERNAL",
+        "description": "",
+        "isRequestSpecific": true
+      }
+    },
+    "prLines": {
+      "type": "any[]",
+      "description": "Per-line rows shown in the PR dialog (one per selected NOT AVAILABLE line). Built by the requestPo branch of ActionChain from linesArray. quantity = the line's rental duration in DAYS (inclusive, matching EQR_RESOLVE_RATE's PR-line duration), and uomCode = the pod's Day unit resolved on drawer open — a Rate Based Services line bills quantity-of-UOM x rate. Both editable per line.",
+      "defaultValue": []
+    },
+    "prDeliveryAddress": {
+      "type": "object",
+      "description": "Structured one-time delivery address for the PR (mirrors Fusion's Delivery panel + the US addressStyleFormats layout: Address1/Address2/City/State/PostalCode/County/CountryCode). At submit, POSTed to requisitionOneTimeLocations -> LocationId, which is set on each line as DeliverToCustomerLocationId (DeliverToLocationId null). If Address1 is blank, submit falls back to the registered DeliverToLocationId instead.",
+      "defaultValue": {
+        "address1": "",
+        "address2": "",
+        "city": "",
+        "state": "",
+        "postalCode": "",
+        "county": "",
+        "countryCode": "US"
+      }
+    },
+    "expTypeList": {
+      "type": "any[]",
+      "description": "Expenditure-type LOV for the per-line dropdown ({value:ExpenditureTypeId,label:ExpenditureTypeName}). Loaded on PR dialog open by the requestPo branch of ActionChain.",
+      "defaultValue": []
+    },
+    "prLineTypesSDP": {
+      "type": "vb/ServiceDataProvider",
+      "defaultValue": {
+        "endpoint": "ProjectLOV/getFscmRestApiResources11_13_18_05PurchasingLineTypes",
+        "keyAttributes": "LineTypeCode",
+        "itemsPath": "items",
+        "uriParameters": {
+          "fields": "LineTypeCode,LineType",
+          "limit": 200
+        },
+        "textFilterAttributes": [
+          "LineType",
+          "LineTypeCode"
+        ],
+        "capabilities": {
+          "filter": {
+            "operators": [
+              "$co",
+              "$eq",
+              "$sw"
+            ]
+          }
+        }
+      }
+    },
+    "prCategoriesSDP": {
+      "type": "vb/ServiceDataProvider",
+      "defaultValue": {
+        "endpoint": "ProjectLOV/getFscmRestApiResources11_13_18_05PurchasingCategories",
+        "keyAttributes": "CategoryName",
+        "itemsPath": "items",
+        "uriParameters": {
+          "fields": "CategoryName,CategoryId",
+          "limit": 200
+        },
+        "textFilterAttributes": [
+          "CategoryName"
+        ],
+        "capabilities": {
+          "filter": {
+            "operators": [
+              "$co",
+              "$eq",
+              "$sw"
+            ]
+          }
+        }
+      }
+    },
+    "prDestTypesSDP": {
+      "type": "vb/ServiceDataProvider",
+      "defaultValue": {
+        "endpoint": "ProjectLOV/getFscmRestApiResources11_13_18_05StandardLookupsLOV",
+        "keyAttributes": "LookupCode",
+        "itemsPath": "items",
+        "uriParameters": {
+          "q": "LookupType='POR_DESTINATION_TYPE'",
+          "fields": "LookupCode,Meaning",
+          "limit": 50
+        }
+      }
+    },
+    "prUomsSDP": {
+      "type": "vb/ServiceDataProvider",
+      "defaultValue": {
+        "endpoint": "ProjectLOV/getFscmRestApiResources11_13_18_05UnitsOfMeasure",
+        "keyAttributes": "UOMCode",
+        "itemsPath": "items",
+        "uriParameters": {
+          "fields": "UOMCode,UOM,Description",
+          "limit": 500
+        },
+        "textFilterAttributes": [
+          "UOM",
+          "Description",
+          "UOMCode"
+        ],
+        "capabilities": {
+          "filter": {
+            "operators": [
+              "$co",
+              "$eq",
+              "$sw"
+            ]
+          }
+        }
+      }
+    },
+    "prLocationsSDP": {
+      "type": "vb/ServiceDataProvider",
+      "description": "Deliver-to location picker. Reuses the BU-scoped inventory-org LOV; org's OrganizationId doubles as a valid DeliverToLocationId source is NOT assumed — the picker lists inventory orgs and we resolve the mapped location on submit. For the pilot the manager picks from the yard orgs.",
+      "defaultValue": {
+        "endpoint": "eqp-v1/getInvOrgs",
+        "keyAttributes": "invOrgId",
+        "itemsPath": "data",
+        "textFilterAttributes": [
+          "organizationName",
+          "organizationCode"
+        ],
+        "capabilities": {
+          "filter": {
+            "operators": [
+              "$co",
+              "$eq",
+              "$ew",
+              "$ge",
+              "$gt",
+              "$le",
+              "$lt",
+              "$ne",
+              "$pr",
+              "$sw"
+            ]
+          }
+        }
+      }
+    },
+    "confirmIsRetry": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "confirmLabel": {
+      "type": "string",
+      "defaultValue": "Confirm Request"
+    }
+  },
+  "events": {
+    "transferLocationResolved": {
+      "description": "Fired by the page module (request-detail-page.js) after a Transfer-drawer map geocode/reverse-geocode with the parsed address components + coords, so TransferLocationResolvedChain can write them into page variables — the module can't write $page.variables directly. Same pattern project-create-request-page.json uses for its own map.",
+      "payloadType": { "data": "object" }
+    }
+  },
+  "eventListeners": {
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "vbEnterChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onSpInFlowBack": {
+      "chains": [
+        {
+          "chain": "goToParentChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onConfirmRequest": {
+      "chains": [
+        {
+          "chain": "ActionChain",
+          "parameters": {
+            "actionType": "confirm"
+          }
+        }
+      ]
+    },
+    "onShipConfirm": {
+      "chains": [
+        {
+          "chain": "ActionChain",
+          "parameters": {
+            "actionType": "shipConfirm"
+          }
+        }
+      ]
+    },
+    "onRejectRequest": {
+      "chains": [
+        {
+          "chain": "ActionChain",
+          "parameters": {
+            "actionType": "reject"
+          }
+        }
+      ]
+    },
+    "onSpSecondaryAction": {
+      "chains": [
+        {
+          "chain": "ActionChain",
+          "parameters": {
+            "actionType": "{{ $event.detail.id === 'reject' ? 'reject' : '' }}"
+          }
+        }
+      ]
+    },
+    "onRequestPo": {
+      "chains": [
+        {
+          "chain": "ActionChain",
+          "parameters": {
+            "actionType": "requestPo"
+          }
+        }
+      ]
+    },
+    "onGenerateQuote": {
+      "chains": [
+        {
+          "chain": "ActionChain",
+          "parameters": {
+            "actionType": "generateQuote"
+          }
+        }
+      ]
+    },
+    "onCreateInvoice": {
+      "chains": [
+        {
+          "chain": "ActionChain",
+          "parameters": {
+            "actionType": "createInvoice"
+          }
+        }
+      ]
+    },
+    "onAssignProject": {
+      "chains": [
+        {
+          "chain": "ActionChain",
+          "parameters": {
+            "actionType": "assignProject"
+          }
+        }
+      ]
+    },
+    "onAssignProjectSave": {
+      "chains": [
+        {
+          "chain": "AssignProjectChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onAssignProjectCancel": {
+      "chains": [
+        {
+          "chain": "CloseAssignProjectChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onAssignProjectTypeahead": {
+      "chains": [
+        {
+          "chain": "AssignProjectTypeaheadChain",
+          "parameters": {
+            "searchValue": "[[ $event.detail.value ]]"
+          }
+        }
+      ]
+    },
+    "onAssignProjectSelected": {
+      "chains": [
+        {
+          "chain": "AssignProjectSelectedChain",
+          "parameters": {
+            "data": "[[ $event.detail.itemContext && $event.detail.itemContext.data ]]"
+          }
+        }
+      ]
+    },
+    "onAssignTaskSelected": {
+      "chains": [
+        {
+          "chain": "AssignTaskSelectedChain",
+          "parameters": {
+            "data": "[[ $event.detail.itemContext && $event.detail.itemContext.data ]]"
+          }
+        }
+      ]
+    },
+    "onProcessReturn": {
+      "chains": [
+        {
+          "chain": "ActionChain",
+          "parameters": {
+            "actionType": "processReturn"
+          }
+        }
+      ]
+    },
+    "onTransferToSite": {
+      "chains": [{ "chain": "OpenTransferDrawerChain", "parameters": {} }]
+    },
+    "onTransferCancel": {
+      "chains": [{ "chain": "CloseTransferDrawerChain", "parameters": {} }]
+    },
+    "onTransferConfirm": {
+      "chains": [{ "chain": "TransferToSiteChain", "parameters": {} }]
+    },
+    "onTransferProjectTypeahead": {
+      "chains": [{
+        "chain": "TransferProjectTypeaheadChain",
+        "parameters": { "searchValue": "[[ $event.detail.value ]]" }
+      }]
+    },
+    "onTransferProjectSelected": {
+      "chains": [{
+        "chain": "TransferProjectSelectedChain",
+        "parameters": { "data": "[[ $event.detail.itemContext && $event.detail.itemContext.data ]]" }
+      }]
+    },
+    "onTransferTaskSelected": {
+      "chains": [{
+        "chain": "TransferTaskSelectedChain",
+        "parameters": { "data": "[[ $event.detail.itemContext && $event.detail.itemContext.data ]]" }
+      }]
+    },
+
+    "onTransferCustomerTypeChanged": {
+      "chains": [{ "chain": "TransferRequestTypeChangedChain", "parameters": { "requestType": "[[ $event.detail.value ]]" } }]
+    },
+    "onTransferInternalCustomerTypeahead": {
+      "chains": [{ "chain": "TransferCustomerTypeaheadChain", "parameters": { "searchValue": "[[ $event.detail.value ]]" } }]
+    },
+    "onTransferInternalCustomerSelected": {
+      "chains": [{ "chain": "TransferCaptureFallbackCustomerChain", "parameters": { "data": "[[ $event.detail.itemContext && $event.detail.itemContext.data ]]" } }]
+    },
+    "onTransferExternalCustomerSelected": {
+      "chains": [{ "chain": "TransferCaptureExternalCustomerChain", "parameters": { "data": "[[ $event.detail.value && $event.detail.value.data ]]" } }]
+    },
+    "onTransferExternalContactSelected": {
+      "chains": [{ "chain": "TransferCaptureExternalContactChain", "parameters": { "data": "[[ $event.detail.value && $event.detail.value.data ]]" } }]
+    },
+    "onTransferRequestorSelected": {
+      "chains": [{ "chain": "TransferCaptureRequestorChain", "parameters": { "data": "[[ $event.detail.value && $event.detail.value.data ]]" } }]
+    },
+    "onTransferContractSelected": {
+      "chains": [{ "chain": "TransferCaptureContractChain", "parameters": { "data": "[[ $event.detail.value && $event.detail.value.data ]]" } }]
+    },
+    "onTransferAgreementSelected": {
+      "chains": [{ "chain": "TransferAgreementSelectedChain", "parameters": { "agreementId": "[[ $event.detail.value ]]" } }]
+    },
+    "onTransferShipToSiteSelected": {
+      "chains": [{ "chain": "TransferCaptureShipToSiteChain", "parameters": { "data": "[[ $event.detail.value && $event.detail.value.data ]]" } }]
+    },
+    "onTransferLocationDrawerOpenedChanged": {
+      "chains": [{ "chain": "TransferLocationDrawerToggleChain", "parameters": { "opened": "[[ $event.detail.value ]]" } }]
+    },
+    "onTransferUseLocation": {
+      "chains": [{ "chain": "TransferUseLocationChain", "parameters": {} }]
+    },
+    "transferLocationResolved": {
+      "chains": [{ "chain": "TransferLocationResolvedChain", "parameters": { "data": "[[ $event.data ]]" } }]
+    },
+    "onTransferAddressSuggestionSelected": {
+      "chains": [{ "chain": "TransferAddressSuggestionSelectedChain", "parameters": { "data": "[[ $event.detail.itemContext && $event.detail.itemContext.data ]]" } }]
+    },
+    "onTransferExistingRequestTypeahead": {
+      "chains": [{ "chain": "TransferExistingRequestTypeaheadChain", "parameters": { "searchValue": "[[ $event.detail.value ]]" } }]
+    },
+    "onTransferExistingRequestSelected": {
+      "chains": [{ "chain": "TransferExistingRequestSelectedChain", "parameters": { "data": "[[ $event.detail.itemContext && $event.detail.itemContext.data ]]" } }]
+    },
+    "onTransferClearExistingRequest": {
+      "chains": [{ "chain": "TransferClearExistingRequestChain", "parameters": {} }]
+    },
+
+    "onSubmitPr": {
+      "chains": [
+        {
+          "chain": "CreatePurchaseRequisitionChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onCancelPr": {
+      "chains": [
+        {
+          "chain": "ClosePrDialogChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onRefreshRequest": {
+      "chains": [
+        {
+          "chain": "ActionChain",
+          "parameters": {
+            "actionType": "refresh"
+          }
+        }
+      ]
+    },
+    "onGridRowClick": {
+      "chains": [
+        {
+          "chain": "rowClickChain",
+          "parameters": {
+            "rowIndex": "{{ $event.currentTarget.dataset.rowIndex }}"
+          }
+        }
+      ]
+    },
+    "onEditLineOpen": {
+      "chains": [
+        {
+          "chain": "OpenEditLineChain",
+          "parameters": {
+            "rowIndex": "{{ $event.currentTarget.dataset.rowIndex }}"
+          }
+        }
+      ]
+    },
+    "onEditLineCancel": {
+      "chains": [
+        {
+          "chain": "CloseEditLineChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onEditLineSave": {
+      "chains": [
+        {
+          "chain": "SaveEditLineChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onYardChanged": {
+      "chains": [
+        {
+          "chain": "RescopeYardChain",
+          "parameters": {
+            "yardId": "{{ $event.detail.value }}"
+          }
+        }
+      ]
+    }
+  },
+  "functions": {
+    "getRequestData": {
+      "params": {
+        "requestId": "string"
+      },
+      "return": "any"
+    },
+    "formatCurrency": {
+      "params": {
+        "value": "any"
+      },
+      "return": "string"
+    },
+    "computeTotalCost": {
+      "params": {
+        "lines": "any[]"
+      },
+      "return": "number"
+    },
+    "getAllRequestIds": {
+      "params": {},
+      "return": "string[]"
+    },
+    "updatePoButtonEnabled": {
+      "params": {
+        "$page": "any"
+      },
+      "return": "any"
+    },
+    "isRowLineDetailBlocked": {
+      "params": {
+        "rowIndex": "number",
+        "$page": "any"
+      },
+      "return": "boolean"
+    },
+    "isLineTerminal": {
+      "params": {
+        "rowIndex": "number",
+        "$page": "any"
+      },
+      "return": "boolean"
+    },
+    "isRowEditable": {
+      "params": {
+        "rowIndex": "number"
+      },
+      "return": "boolean"
+    },
+    "updateActionButtons": {
+      "params": {
+        "$page": "any"
+      },
+      "return": "any"
+    },
+    "hasAssignedProject": {
+      "params": {
+        "$page": "any"
+      },
+      "return": "boolean"
+    },
+    "debounce": {
+      "params": {
+        "key": "string",
+        "value": "any",
+        "delay": "number"
+      },
+      "return": "any"
+    },
+    "getSelectedRowIndexes": {
+      "params": {},
+      "return": "number[]"
+    },
+    "markToInitiated": {
+      "params": {
+        "lineIds": "any"
+      },
+      "return": "any"
+    },
+    "hasToInitiated": {
+      "params": {
+        "lineId": "any"
+      },
+      "return": "boolean"
+    },
+    "getExpTypeLOV": {
+      "params": {
+        "list": "any[]"
+      },
+      "return": "any"
+    },
+    "getExpOrgLOV": {
+      "params": {
+        "list": "any[]"
+      },
+      "return": "any"
+    },
+    "getDeliverToTypeLOV": {
+      "params": {},
+      "return": "any"
+    },
+    "deliveryTargetValid": {
+      "params": {
+        "prHeader": "object",
+        "prDeliveryAddress": "object"
+      },
+      "return": "boolean"
+    },
+    "prLinesValid": {
+      "params": {
+        "prLines": "any[]",
+        "isRequestSpecific": "boolean",
+        "isCustomerRequest": "boolean"
+      },
+      "return": "boolean"
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-sp-general-overview-page": { "path": "oj-sp/general-overview-page/loader" },
+      "oj-form-layout": { "path": "ojs/ojformlayout" },
+      "oj-input-text": { "path": "ojs/ojinputtext" },
+      "oj-input-number": { "path": "ojs/ojinputnumber" },
+      "oj-input-date": { "path": "ojs/ojdatetimepicker" },
+      "oj-button": { "path": "ojs/ojbutton" },
+      "oj-menu-button": { "path": "ojs/ojbutton" },
+      "oj-select-single": { "path": "ojs/ojselectsingle" },
+      "oj-input-search": { "path": "ojs/ojinputsearch" },
+      "oj-switch": { "path": "ojs/ojswitch" },
+      "oj-text-area": { "path": "ojs/ojinputtext" },
+      "oj-messages": { "path": "ojs/ojmessages" },
+      "oj-bind-text": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-menu": { "path": "ojs/ojmenu" },
+      "oj-option": { "path": "ojs/ojoption" },
+      "oj-data-grid": { "path": "ojs/ojdatagrid" },
+      "oj-dialog": { "path": "ojs/ojdialog" },
+      "oj-drawer-popup": { "path": "ojs/ojdrawerpopup" },
+      "oj-progress-bar": { "path": "ojs/ojprogress-bar" },
+      "oj-bind-for-each": { "path": "ojs/ojknockout" }
+    }
+  }
+}

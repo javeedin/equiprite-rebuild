@@ -1,0 +1,283 @@
+{
+
+  "variables": {
+    "scheduleId": {
+      "type": "string",
+      "input": "fromCaller"
+    },
+    "selectedTab": {
+      "type": "string",
+      "defaultValue": "detailsTab"
+    },
+    "formData": {
+      "type": "object",
+      "defaultValue": {
+        "scheduleName": "",
+        "scheduleCode": "",
+        "description": "",
+        "customerId": null,
+        "customerName": null,
+        "project": "",
+        "projectName": null,
+        "task": "",
+        "taskName": null,
+        "projectId": null,
+        "taskId": null,
+        "yardOrgId": null,
+        "yardOrgName": null,
+        "currency": "USD",
+        "startDate": "",
+        "endDate": "",
+        "activeStatus": true
+      }
+    },
+
+    "calcBasisArray": {
+      "type": "any[]",
+      "defaultValue": [
+        { "value": "HOURLY", "label": "HOURLY BASIS" },
+        { "value": "DAILY",  "label": "DAILY BASIS" }
+      ]
+    },
+    "calcBasisADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.calcBasisArray }}"
+      }
+    },
+    "calcMethodArray": {
+      "type": "any[]",
+      "defaultValue": [
+        { "value": "COMPLETE_PERIOD",   "label": "Complete Period" },
+        { "value": "UTILIZED_DURATION", "label": "Utilized Duration" }
+      ]
+    },
+    "calcMethodADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.calcMethodArray }}"
+      }
+    },
+    "currencyArray": {
+      "type": "any[]",
+      "defaultValue": [
+        { "value": "USD", "label": "USD — US Dollar" },
+        { "value": "EUR", "label": "EUR — Euro" },
+        { "value": "GBP", "label": "GBP — British Pound" },
+        { "value": "CAD", "label": "CAD — Canadian Dollar" }
+      ]
+    },
+    "currencyADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.currencyArray }}"
+      }
+    },
+    "equipmentLines": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "equipmentLinesADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "id",
+        "data": "{{ $page.variables.equipmentLines }}"
+      }
+    },
+    "dataGridProvider": {
+      "type": "any"
+    },
+    "gridSelection": {
+      "type": "any",
+      "defaultValue": []
+    },
+    "scheduleParamsExpanded": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "currentLine": {
+      "type": "object",
+      "defaultValue": {
+        "classId": null,
+        "subclassId": null,
+        "className": null,
+        "subclassName": null,
+        "equipmentName": null,
+        "calcBasis": null,
+        "calcMethod": null,
+        "rateType": null,
+        "period": null,
+        "threshold": null,
+        "periodAmount": null,
+        "periodDivisor": null,
+        "costRate": null,
+        "billRate": null,
+        "location": null,
+        "startDate": null,
+        "endDate": null
+      }
+    },
+    "customerSDP": {
+      "type": "vb/ServiceDataProvider",
+      "defaultValue": {
+        "endpoint": "ProjectLOV/getFscmRestApiResources11_13_18_05ShippingCustomersLOV",
+        "keyAttributes": "CustomerId",
+        "itemsPath": "items",
+        "capabilities": {
+          "filter": {
+            "operators": ["$co", "$eq", "$ew", "$ge", "$gt", "$le", "$lt", "$ne", "$pr", "$sw"]
+          }
+        }
+      }
+    },
+    "yardOrgArray": {
+      "type": "any[]",
+      "description": "Equipment yards, loaded once by LoadYardsChain from eqp-v1/bu-org-mappings (the BU & Org Mapping config rows) filtered client-side to orgRole=EQUIPMENT_YARD + active — the GET has no orgRole param. invOrgId is the FUSION org id, which is the key EQR_V_YARD_STOCK / EQR_V_YARD_UTILIZATION / EQR_V_ONHAND_QTY / EQR_RATE_EXCEPTION_V all already join on, so it is what YARD_ORG_ID stores. There is no BU filter: the BU was never persisted (no column on EQR_RATE_SCHEDULE) and is derivable from the chosen yard's mapping row. Each item: {invOrgId, invOrgName, invOrgCode, businessUnitId, buName}.",
+      "defaultValue": []
+    },
+    "yardOrgADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "invOrgId",
+        "data": "{{ $page.variables.yardOrgArray }}"
+      }
+    },
+    "classesArray": { "type": "any[]", "defaultValue": [] },
+    "classesADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.classesArray }}"
+      }
+    },
+    "subclassesArray": { "type": "any[]", "defaultValue": [] },
+    "subclassesADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.subclassesArray }}"
+      }
+    },
+    "equipmentNamesArray": { "type": "any[]", "defaultValue": [] },
+    "equipmentNamesADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.equipmentNamesArray }}"
+      }
+    },
+    "isAddLineDrawerOpen": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "deriveGuard": {
+      "type": "boolean",
+      "description": "Re-entrancy guard for the period-total <-> rate derivation in the Add-Line drawer. Total and rate each write the other, and the round trip is lossy (1000/7 = 142.8571, x7 = 999.9997), so an unguarded feedback loop would corrupt the authored total. Handlers also ignore updatedFrom='external' — this is the belt to that pair of braces.",
+      "defaultValue": false
+    },
+    "projectsSDP": {
+      "type": "vb/ServiceDataProvider",
+      "defaultValue": {
+        "endpoint": "ProjectLOV/getFscmRestApiResources11_13_18_05ProjectsLOV",
+        "keyAttributes": "ProjectId",
+        "itemsPath": "items",
+        "capabilities": {
+          "filter": {
+            "operators": ["$co", "$eq", "$ew", "$ge", "$gt", "$le", "$lt", "$ne", "$pr", "$sw"]
+          }
+        }
+      }
+    },
+    "tasksSDP": {
+      "type": "vb/ServiceDataProvider",
+      "defaultValue": {
+        "endpoint": "ProjectLOV/getFscmRestApiResources11_13_18_05ProjectTasksLOV",
+        "keyAttributes": "TaskId",
+        "itemsPath": "items",
+        "uriParameters": {
+          "q": "[[ $variables.formData.projectId ? 'ProjectId=' + $variables.formData.projectId : '' ]]"
+        },
+        "capabilities": {
+          "filter": {
+            "operators": ["$co", "$eq", "$ew", "$ge", "$gt", "$le", "$lt", "$ne", "$pr", "$sw"]
+          }
+        }
+      }
+    }
+  },
+  "eventListeners": {
+    "onProjectSelected": {
+      "chains": [{ "chain": "onProjectSelectedChain", "parameters": {} }]
+    },
+    "vbEnter": {
+      "chains": [
+        { "chain": "rateManagementGuardChain", "parameters": {} },
+        { "chain": "vbEnterChain", "parameters": {} },
+        { "chain": "LoadYardsChain", "parameters": {} }
+      ]
+    },
+    "onSave": {
+      "chains": [{ "chain": "saveScheduleChain", "parameters": {} }]
+    },
+    "onCancel": {
+      "chains": [{ "chain": "cancelChain", "parameters": {} }]
+    },
+    "onSecondaryAction": {
+      "chains": [{ "chain": "onSecondaryActionChain", "parameters": { "event": "[[ $event ]]" } }]
+    },
+    "onAddLine": {
+      "chains": [{ "chain": "addScheduleLineChain", "parameters": {} }]
+    },
+    "onOpenAddLineDrawer": {
+      "chains": [{ "chain": "openAddLineDrawerChain", "parameters": {} }]
+    },
+    "onDeleteLine": {
+      "chains": [{ "chain": "deleteScheduleLineChain", "parameters": {} }]
+    },
+    "onCloseAddLineDrawer": {
+      "chains": [{ "chain": "closeAddLineDrawerChain", "parameters": {} }]
+    },
+    "onTaskSelected": {
+      "chains": [{ "chain": "onTaskSelectedChain", "parameters": {} }]
+    },
+    "onClassSelected": {
+      "chains": [{ "chain": "onClassSelectedChain", "parameters": {} }]
+    },
+    "onSubclassSelected": {
+      "chains": [{ "chain": "onSubclassSelectedChain", "parameters": {} }]
+    },
+    "onGridRowSelected": {
+      "chains": [{ "chain": "collapseScheduleParamsChain" }]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-sp-general-overview-page": { "path": "oj-sp/general-overview-page/loader" },
+      "oj-form-layout":   { "path": "ojs/ojformlayout" },
+      "oj-input-text":    { "path": "ojs/ojinputtext" },
+      "oj-input-date":    { "path": "ojs/ojdatetimepicker" },
+      "oj-select-single": { "path": "ojs/ojselectsingle" },
+      "oj-button":        { "path": "ojs/ojbutton" },
+      "oj-data-grid":     { "path": "ojs/ojdatagrid" },
+      "oj-input-number":  { "path": "ojs/ojinputnumber" },
+      "oj-bind-if":       { "path": "ojs/ojknockout" },
+      "oj-bind-text":     { "path": "ojs/ojknockout" },
+      "oj-checkboxset":   { "path": "ojs/ojcheckboxset" },
+      "oj-collapsible":   { "path": "ojs/ojcollapsible" },
+      "oj-drawer-popup":  { "path": "ojs/ojdrawerpopup" },
+      "oj-option":        { "path": "ojs/ojoption" },
+      "oj-select-one":    { "path": "ojs/ojselectcombobox" }
+    }
+  }
+}

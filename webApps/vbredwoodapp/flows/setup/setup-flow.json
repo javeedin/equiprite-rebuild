@@ -1,0 +1,13 @@
+{
+  "id": "setup",
+  "defaultPage": "configurations",
+  "description": "Application setup and configurations flow.",
+  "pages": {
+    "configurations": {
+      "path": "pages/configurations-page"
+    },
+    "rbac-admin": {
+      "path": "pages/rbac-admin-page"
+    }
+  }
+}

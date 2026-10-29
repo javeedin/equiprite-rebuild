@@ -1,0 +1,209 @@
+{
+    "data": [
+        {
+            "id": 1000000001,
+            "username": "ron.bernard",
+            "email": "ron.bernard@cianbro.com",
+            "fullName": "Ron Bernard",
+            "fusionUserGuid": "IDCS-79782527",
+            "objectVersionNumber": 1,
+            "createdDate": "2026-04-29T03:55:21Z",
+            "lastUpdatedDate": "2026-04-29T03:55:21Z"
+        },
+        {
+            "id": 1000000002,
+            "username": "pete.huard",
+            "email": "pete.huard@cianbro.com",
+            "fullName": "Pete Huard",
+            "fusionUserGuid": "IDCS-82269803",
+            "objectVersionNumber": 1,
+            "createdDate": "2026-04-29T03:55:21Z",
+            "lastUpdatedDate": "2026-04-29T03:55:21Z"
+        },
+        {
+            "id": 1000000003,
+            "username": "linda.shaw",
+            "email": "linda.shaw@cianbro.com",
+            "fullName": "Linda Shaw",
+            "fusionUserGuid": "IDCS-74610234",
+            "objectVersionNumber": 1,
+            "createdDate": "2026-04-29T03:55:21Z",
+            "lastUpdatedDate": "2026-04-29T03:55:21Z"
+        },
+        {
+            "id": 1000000004,
+            "username": "mark.poulin",
+            "email": "mark.poulin@cianbro.com",
+            "fullName": "Mark Poulin",
+            "fusionUserGuid": "IDCS-91234567",
+            "objectVersionNumber": 1,
+            "createdDate": "2026-04-29T03:55:21Z",
+            "lastUpdatedDate": "2026-04-29T03:55:21Z"
+        },
+        {
+            "id": 1000000005,
+            "username": "sarah.colby",
+            "email": "sarah.colby@cianbro.com",
+            "fullName": "Sarah Colby",
+            "fusionUserGuid": "IDCS-65432198",
+            "objectVersionNumber": 1,
+            "createdDate": "2026-04-29T03:55:21Z",
+            "lastUpdatedDate": "2026-04-29T03:55:21Z"
+        },
+        {
+            "id": 1000000006,
+            "username": "tom.nadeau",
+            "email": "tom.nadeau@cianbro.com",
+            "fullName": "Tom Nadeau",
+            "fusionUserGuid": "IDCS-78901234",
+            "objectVersionNumber": 1,
+            "createdDate": "2026-04-29T03:55:21Z",
+            "lastUpdatedDate": "2026-04-29T03:55:21Z"
+        },
+        {
+            "id": 1000000007,
+            "username": "diane.cote",
+            "email": "diane.cote@cianbro.com",
+            "fullName": "Diane Cote",
+            "fusionUserGuid": "IDCS-55678901",
+            "objectVersionNumber": 1,
+            "createdDate": "2026-04-29T03:55:21Z",
+            "lastUpdatedDate": "2026-04-29T03:55:21Z"
+        },
+        {
+            "id": 1000000008,
+            "username": "james.hanson",
+            "email": "james.hanson@cianbro.com",
+            "fullName": "James Hanson",
+            "fusionUserGuid": "IDCS-44321098",
+            "objectVersionNumber": 1,
+            "createdDate": "2026-04-29T03:55:21Z",
+            "lastUpdatedDate": "2026-04-29T03:55:21Z"
+        },
+        {
+            "id": 1000000009,
+            "username": "carol.white",
+            "email": "carol.white@cianbro.com",
+            "fullName": "Carol White",
+            "fusionUserGuid": "IDCS-33210987",
+            "objectVersionNumber": 1,
+            "createdDate": "2026-04-29T03:55:21Z",
+            "lastUpdatedDate": "2026-04-29T03:55:21Z"
+        },
+        {
+            "id": 1000000010,
+            "username": "paul.lavoie",
+            "email": "paul.lavoie@cianbro.com",
+            "fullName": "Paul Lavoie",
+            "fusionUserGuid": "IDCS-22109876",
+            "objectVersionNumber": 1,
+            "createdDate": "2026-04-29T03:55:21Z",
+            "lastUpdatedDate": "2026-04-29T03:55:21Z"
+        },
+        {
+            "id": 1000000011,
+            "username": "nancy.ouellette",
+            "email": "nancy.ouellette@cianbro.com",
+            "fullName": "Nancy Ouellette",
+            "fusionUserGuid": "IDCS-11098765",
+            "objectVersionNumber": 1,
+            "createdDate": "2026-04-29T03:55:21Z",
+            "lastUpdatedDate": "2026-04-29T03:55:21Z"
+        },
+        {
+            "id": 1000000012,
+            "username": "steve.caron",
+            "email": "steve.caron@cianbro.com",
+            "fullName": "Steve Caron",
+            "fusionUserGuid": "IDCS-99887766",
+            "objectVersionNumber": 1,
+            "createdDate": "2026-04-29T03:55:21Z",
+            "lastUpdatedDate": "2026-04-29T03:55:21Z"
+        },
+        {
+            "id": 1000000013,
+            "username": "ann.dostie",
+            "email": "ann.dostie@cianbro.com",
+            "fullName": "Ann Dostie",
+            "fusionUserGuid": "IDCS-88776655",
+            "objectVersionNumber": 1,
+            "createdDate": "2026-04-29T03:55:21Z",
+            "lastUpdatedDate": "2026-04-29T03:55:21Z"
+        },
+        {
+            "id": 1000000014,
+            "username": "bill.pelletier",
+            "email": "bill.pelletier@cianbro.com",
+            "fullName": "Bill Pelletier",
+            "fusionUserGuid": "IDCS-77665544",
+            "objectVersionNumber": 1,
+            "createdDate": "2026-04-29T03:55:21Z",
+            "lastUpdatedDate": "2026-04-29T03:55:21Z"
+        },
+        {
+            "id": 1000000015,
+            "username": "mary.beaulieu",
+            "email": "mary.beaulieu@cianbro.com",
+            "fullName": "Mary Beaulieu",
+            "fusionUserGuid": "IDCS-66554433",
+            "objectVersionNumber": 1,
+            "createdDate": "2026-04-29T03:55:21Z",
+            "lastUpdatedDate": "2026-04-29T03:55:21Z"
+        },
+        {
+            "id": 1000000016,
+            "username": "chad.martin",
+            "email": "chad.martin@cianbro.com",
+            "fullName": "Chad Martin",
+            "fusionUserGuid": "IDCS-55443322",
+            "objectVersionNumber": 1,
+            "createdDate": "2026-04-29T03:55:21Z",
+            "lastUpdatedDate": "2026-04-29T03:55:21Z"
+        },
+        {
+            "id": 1000000017,
+            "username": "lisa.bouchard",
+            "email": "lisa.bouchard@cianbro.com",
+            "fullName": "Lisa Bouchard",
+            "fusionUserGuid": "IDCS-44332211",
+            "objectVersionNumber": 1,
+            "createdDate": "2026-04-29T03:55:21Z",
+            "lastUpdatedDate": "2026-04-29T03:55:21Z"
+        },
+        {
+            "id": 1000000018,
+            "username": "kevin.turgeon",
+            "email": "kevin.turgeon@cianbro.com",
+            "fullName": "Kevin Turgeon",
+            "fusionUserGuid": "IDCS-33221100",
+            "objectVersionNumber": 1,
+            "createdDate": "2026-04-29T03:55:21Z",
+            "lastUpdatedDate": "2026-04-29T03:55:21Z"
+        },
+        {
+            "id": 1000000019,
+            "username": "jean.gagnon",
+            "email": "jean.gagnon@cianbro.com",
+            "fullName": "Jean Gagnon",
+            "fusionUserGuid": "IDCS-22110099",
+            "objectVersionNumber": 1,
+            "createdDate": "2026-04-29T03:55:21Z",
+            "lastUpdatedDate": "2026-04-29T03:55:21Z"
+        },
+        {
+            "id": 1000000020,
+            "username": "sue.bergeron",
+            "email": "sue.bergeron@cianbro.com",
+            "fullName": "Sue Bergeron",
+            "fusionUserGuid": "IDCS-11009988",
+            "objectVersionNumber": 1,
+            "createdDate": "2026-04-29T03:55:21Z",
+            "lastUpdatedDate": "2026-04-29T03:55:21Z"
+        }
+    ],
+    "recordCount": 20,
+    "page": 0,
+    "pageSize": 20,
+    "totalPages": 1,
+    "hasMore": false
+}

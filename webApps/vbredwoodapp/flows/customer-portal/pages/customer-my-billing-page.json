@@ -1,0 +1,154 @@
+{
+  "description": "Customer Billing — requests being billed (contract issued); drill into a request to see per-line invoice schedules",
+  "metadata": {},
+  "variables": {
+    "RequestAllArray": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "RequestFilteredArray": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "RequestADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "requestNumber",
+        "data": "{{ $page.variables.RequestFilteredArray }}"
+      }
+    },
+    "filterCriterion": {
+      "type": "any"
+    },
+    "searchConfiguration": {
+      "type": "oj-sp/smart-search/strategies/JsonSearchConfigProviderFactory",
+      "defaultValue": {
+        "url": "[[ $application.path + 'resources/data/customerRequestSearchConfig.json' ]]"
+      }
+    },
+    "searchContext": {
+      "type": "object",
+      "defaultValue": {
+        "$search": {
+          "filters": {
+            "StatusFilter": {
+              "label": "Status",
+              "options": {
+                "optionsData": "[[ $page.variables.statusOptionsADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "statusOptionsArray": {
+      "type": "any[]",
+      "defaultValue": [
+        {
+          "value": "IN_PROCESS",
+          "label": "In Process"
+        },
+        {
+          "value": "PICK_INITIATED",
+          "label": "Pick In Progress"
+        },
+        {
+          "value": "PICK_RELEASED",
+          "label": "Pick Complete"
+        },
+        {
+          "value": "SHIPPED",
+          "label": "Shipped"
+        },
+        {
+          "value": "DEPLOYED",
+          "label": "Deployed"
+        },
+        {
+          "value": "RETURNED",
+          "label": "Returned"
+        },
+        {
+          "value": "CLOSED",
+          "label": "Closed"
+        }
+      ]
+    },
+    "statusOptionsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.statusOptionsArray }}"
+      }
+    }
+  },
+  "eventListeners": {
+    "vbBeforeEnter": {
+      "chains": [
+        { "chain": "enforcePageAccessChain" }
+      ]
+    },
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "customersModuleGuardChain",
+          "parameters": {}
+        },
+        {
+          "chain": "externalProjectAssignGuardChain",
+          "parameters": {}
+        },
+        {
+          "chain": "BilledRequestInitChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "filterCriterionChanged": {
+      "chains": [
+        {
+          "chain": "BilledRequestFilterChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onNavigateToDetail": {
+      "chains": [
+        {
+          "chain": "NavigateToBillingDetailChain",
+          "parameters": {
+            "rowData": "{{ $event.detail.value?.data }}"
+          }
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-sp-smart-search-page": {
+        "path": "oj-sp/smart-search-page/loader"
+      },
+      "oj-sp-smart-search": {
+        "path": "oj-sp/smart-search/loader"
+      },
+      "oj-sp-collection-container": {
+        "path": "oj-sp/collection-container/loader"
+      },
+      "oj-table": {
+        "path": "ojs/ojtable"
+      },
+      "oj-bind-if": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-text": {
+        "path": "ojs/ojknockout"
+      }
+    }
+  }
+}

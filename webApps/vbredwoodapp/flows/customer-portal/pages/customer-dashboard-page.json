@@ -1,0 +1,135 @@
+{
+
+  "metadata": {},
+  "variables": {
+    "recentRequestsArray": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "recentRequestsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "requestNumber",
+        "data": "{{ $page.variables.recentRequestsArray }}"
+      }
+    },
+    "activeRequestsCount": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "totalRequestsCount": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "onSiteCount": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "pendingInvoicesCount": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "overdueCount": {
+      "type": "number",
+      "defaultValue": 0
+    }
+  },
+  "eventListeners": {
+    "vbBeforeEnter": {
+      "chains": [
+        {
+          "chain": "enforcePageAccessChain"
+        }
+      ]
+    },
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "customersModuleGuardChain",
+          "parameters": {}
+        },
+        {
+          "chain": "CustomerDashboardInitChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "spPrimaryAction": {
+      "chains": [
+        {
+          "chain": "navigateToCatalogChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "spSecondaryAction": {
+      "chains": [
+        {
+          "chain": "browseCatalogChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "navigateToCatalog": {
+      "chains": [
+        {
+          "chain": "browseCatalogChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "navigateToMyRequests": {
+      "chains": [
+        {
+          "chain": "navigateToMyRequestsChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "navigateToMyBilling": {
+      "chains": [
+        {
+          "chain": "navigateToMyBillingChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onRowAction": {
+      "chains": [
+        {
+          "chain": "navigateToRequestDetailChain",
+          "parameters": {
+            "requestNumber": "{{ $event.detail.value?.data.requestNumber }}",
+            "requestNumericId": "{{ $event.detail.value?.data.id }}"
+          }
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-sp-general-overview-page": {
+        "path": "oj-sp/general-overview-page/loader"
+      },
+      "oj-sp-collection-container": {
+        "path": "oj-sp/collection-container/loader"
+      },
+      "oj-table": {
+        "path": "ojs/ojtable"
+      },
+      "oj-c-action-card": {
+        "path": "oj-c/action-card"
+      },
+      "oj-c-button": {
+        "path": "oj-c/button"
+      },
+      "oj-bind-if": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-text": {
+        "path": "ojs/ojknockout"
+      }
+    }
+  }
+}

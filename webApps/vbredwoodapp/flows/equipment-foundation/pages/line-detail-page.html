@@ -1,0 +1,626 @@
+<style>
+  /* ── Page width override ── */
+  #ld_gop {
+    --oj-sp-general-overview-page-max-width: 95% !important;
+    max-width: 95% !important;
+  }
+
+  /* ── Yard select (search slot) — inside floating label so "Yard" stays
+        visible after selection; compact density keeps it tight. ── */
+  #ldYardSelect .oj-text-field-container {
+    min-height: 40px;
+  }
+
+  /* Banner field — white-on-dark overlay so the select blends into the
+     dark overview banner (matches request-detail-page's .cr-banner-filter). */
+  .cr-banner-filter {
+    --oj-text-field-bg-color: rgba(255, 255, 255, 0.08);
+    --oj-text-field-bg-color-readonly: rgba(255, 255, 255, 0.04);
+    --oj-form-control-bg-color: rgba(255, 255, 255, 0.08);
+    --oj-form-control-border-color: rgba(255, 255, 255, 0.35);
+    --oj-form-control-text-color: #ffffff;
+    --oj-label-color: rgba(255, 255, 255, 0.8);
+    background-color: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.35) !important;
+    border-radius: 4px;
+  }
+  .cr-banner-filter, .cr-banner-filter * { color: #ffffff !important; }
+  .cr-banner-filter .oj-label, .cr-banner-filter label { color: rgba(255, 255, 255, 0.8) !important; }
+  .cr-banner-filter .oj-text-field-container, .cr-banner-filter .oj-text-field-input {
+    background-color: transparent !important; border-color: transparent !important;
+  }
+
+  /* ── Bryntum card wrapper ── */
+  #ld-card {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    max-width: 100vw;
+    overflow: hidden;
+    background: #ffffff;
+    border: 1px solid var(--oj-core-border-color-enabled, #e0e0e0);
+    border-radius: 10px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  }
+
+  #ld-main {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    height: 70vh;
+    min-height: 500px;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  /* ── Bryntum Redwood overrides ── */
+  #ld-main .b-grid-header-container {
+    background: var(--oj-core-neutral-color-2, #f5f5f5) !important;
+    border-bottom: 2px solid var(--oj-core-border-color-enabled, #e0e0e0) !important;
+  }
+  #ld-main .b-grid-header {
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    color: var(--oj-core-text-color-secondary, #565656) !important;
+  }
+  #ld-main .b-grid-row:hover {
+    background: var(--oj-core-bg-brand-5, #f0f6ff) !important;
+  }
+  #ld-main .b-grid-row.b-selected {
+    background: var(--oj-core-bg-brand-10, #dbeafe) !important;
+  }
+  #ld-main .b-timeline-subgrid {
+    border-left: 1px solid var(--oj-core-border-color-enabled, #e0e0e0) !important;
+  }
+  #ld-main .b-sch-event {
+    border-radius: 4px !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.18) !important;
+  }
+  #ld-main .b-sch-today-line { border-color: #ef4444 !important; }
+  #ld-main .b-panel-header {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%) !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    border-bottom: 1px solid rgba(255,255,255,0.1) !important;
+  }
+  #ld-main .b-toolbar {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%) !important;
+    border-bottom: 1px solid rgba(255,255,255,0.08) !important;
+  }
+  #ld-main .b-widget-title {
+    color: #f1f5f9 !important;
+    font-weight: 700 !important;
+    font-size: 13px !important;
+    letter-spacing: 0.03em !important;
+  }
+  #ld-main .b-splitter {
+    background: var(--oj-core-border-color-enabled, #e0e0e0) !important;
+    width: 4px !important;
+  }
+  #ld-main .b-splitter:hover {
+    background: var(--oj-core-brand-color-primary, #1565C0) !important;
+  }
+
+  /* ── Map panel overrides ── */
+  #ld-main .eqp-map-panel .b-panel-header,
+  #ld-main .eqp-map-panel .b-toolbar {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;
+  }
+  #ld-main .eqp-map-panel .b-button {
+    border-radius: 5px !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    color: #cbd5e1 !important;
+    border-color: rgba(255,255,255,0.15) !important;
+    background: rgba(255,255,255,0.07) !important;
+  }
+  #ld-main .eqp-map-panel .b-button.b-pressed,
+  #ld-main .eqp-map-panel .b-button:hover {
+    background: rgba(255,255,255,0.18) !important;
+    color: #ffffff !important;
+    border-color: rgba(255,255,255,0.3) !important;
+  }
+
+  /* ── Mapbox popup ── */
+  .mapboxgl-popup-content {
+    border-radius: 10px !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15) !important;
+    padding: 14px 16px !important;
+    border: 1px solid #e5e7eb !important;
+    font-family: var(--oj-typography-body-font-family, 'Oracle Sans', sans-serif) !important;
+  }
+  .mapboxgl-popup-tip {
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1)) !important;
+  }
+  .mapboxgl-popup-close-button {
+    font-size: 16px !important;
+    color: #9ca3af !important;
+    padding: 4px 8px !important;
+  }
+  .mapboxgl-popup-close-button:hover {
+    color: #374151 !important;
+    background: transparent !important;
+  }
+
+  /* ── Yard cell (left-most column) ── */
+  .ld-yard-cell  { display: flex; flex-direction: column; justify-content: center; height: 100%; padding: 2px 0; min-width: 0; }
+  .ld-yard-name  { font-size: 12px; font-weight: 600; color: #374151; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ld-yard-code  { font-size: 11px; color: #6b7280; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ld-yard-empty { font-size: 12px; color: #9ca3af; }
+
+  /* ── Resource cell ── */
+  .ld-resource-cell { display: flex; align-items: center; gap: 10px; padding: 2px 0; height: 100%; }
+  .ld-status-dot    { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 0 2px rgba(0,0,0,0.08); }
+  .ld-resource-name { font-size: 13px; font-weight: 600; color: #111827; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ld-resource-sn   { font-size: 11px; color: #6b7280; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* ── Dark, visible scrollbars (scoped to this page so it doesn't leak) ── */
+  /* Firefox */
+  #ld-card *,
+  #ld-card *::before,
+  #ld-card *::after {
+    scrollbar-width: thin;
+    scrollbar-color: #475569 #e2e8f0;
+  }
+  /* Chromium / Safari */
+  #ld-card *::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+  #ld-card *::-webkit-scrollbar-track {
+    background: #e2e8f0;
+    border-radius: 6px;
+  }
+  #ld-card *::-webkit-scrollbar-thumb {
+    background: #475569;
+    border-radius: 6px;
+    border: 2px solid #e2e8f0;
+  }
+  #ld-card *::-webkit-scrollbar-thumb:hover {
+    background: #1e293b;
+  }
+  #ld-card *::-webkit-scrollbar-corner {
+    background: #e2e8f0;
+  }
+
+  /* Hide Bryntum's bottom mirror scrollbar strips — keep only the top one
+     above the timeline header. Two stacked .b-virtual-scroller elements
+     render at the bottom of the subgrid (one for the resource grid, one
+     for the timeline). */
+  #ld-main .b-virtual-scroller.b-horizontal-overflow {
+    display: none !important;
+  }
+
+  /* ── Inline pill badges in resource cell (Redwood) ── */
+  .ld-pill {
+    display: inline-flex;
+    align-items: center;
+    height: 22px;
+    padding: 0 10px;
+    border-radius: 11px;
+    font-family: var(--oj-typography-body-font-family, 'Oracle Sans', sans-serif);
+    font-size: 11px;
+    font-weight: var(--oj-typography-body-font-weight-bold, 600);
+    border: 1px solid transparent;
+    margin-left: 6px;
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+  }
+
+  /* ── Buttons inside the resource cell (Redwood-compliant) ── */
+  .ld-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 24px;
+    margin-left: 6px;
+    padding: 0 12px;
+    border-radius: var(--oj-button-border-radius, 4px);
+    font-family: var(--oj-typography-body-font-family, 'Oracle Sans', sans-serif);
+    font-size: var(--oj-typography-body-sm-font-size, 0.8125rem);
+    font-weight: var(--oj-typography-body-font-weight-bold, 600);
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+  }
+
+  /* Outlined Assign — Redwood success */
+  .ld-btn-assign {
+    background: transparent;
+    border: 1px solid var(--oj-core-success-color-2, #6ee7b7);
+    color: var(--oj-core-success-color-1, #065f46);
+  }
+  .ld-btn-assign:hover {
+    background: var(--oj-core-success-color-5, #ecfdf5);
+    border-color: var(--oj-core-success-color-1, #065f46);
+  }
+  .ld-btn-assign:active {
+    background: var(--oj-core-success-color-3, #a7f3d0);
+  }
+
+  /* Outlined Release — Redwood danger */
+  .ld-btn-release {
+    background: transparent;
+    border: 1px solid var(--oj-core-danger-color-2, #fca5a5);
+    color: var(--oj-core-danger-color-1, #991b1b);
+  }
+  .ld-btn-release:hover {
+    background: var(--oj-core-danger-color-5, #fef2f2);
+    border-color: var(--oj-core-danger-color-1, #991b1b);
+  }
+  .ld-btn-release:active {
+    background: var(--oj-core-danger-color-3, #fca5a5);
+  }
+
+  /* Borderless Cancel — Redwood neutral */
+  .ld-btn-cancel {
+    background: transparent;
+    border: 1px solid var(--oj-core-neutral-color-3, #d1d5db);
+    color: var(--oj-core-text-color-secondary, #565656);
+  }
+  .ld-btn-cancel:hover {
+    background: var(--oj-core-neutral-color-2, #f3f4f6);
+    border-color: var(--oj-core-text-color-primary, #161616);
+    color: var(--oj-core-text-color-primary, #161616);
+  }
+  .ld-btn-cancel:active {
+    background: var(--oj-core-neutral-color-3, #d1d5db);
+  }
+
+  /* ── Toolbar strip ── */
+  .ld-gantt-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    flex-wrap: wrap;
+  }
+  .ld-month-nav {
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--oj-core-divider-color, #e5e7eb);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .ld-month-label {
+    font-size: 13px;
+    font-weight: 700;
+    min-width: 110px;
+    text-align: center;
+    color: #111827;
+    padding: 0 6px;
+  }
+  .ld-asset-count {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--oj-core-text-color-secondary, #6b7280);
+  }
+
+  /* ── Inline label next to date pickers in toolbar ── */
+  .ld-inline-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--oj-core-text-color-secondary, #565656);
+    white-space: nowrap;
+    margin-left: 8px;
+  }
+
+  /* ── Persistent reminder note (Redwood info) ── */
+  .ld-reminder {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    margin: 4px 0 12px 0;
+    border-radius: var(--oj-message-banner-border-radius, 6px);
+    background: var(--oj-core-info-color-5, #eff6ff);
+    border: 1px solid var(--oj-core-info-color-2, #93c5fd);
+    color: var(--oj-core-info-color-1, #1e40af);
+    font-family: var(--oj-typography-body-font-family, 'Oracle Sans', sans-serif);
+    font-size: var(--oj-typography-body-md-font-size, 0.875rem);
+    font-weight: var(--oj-typography-body-font-weight, 400);
+    line-height: 1.4;
+  }
+  .ld-reminder .oj-ux-ico-information {
+    font-size: 18px;
+    color: var(--oj-core-info-color-1, #1e40af);
+    flex-shrink: 0;
+  }
+
+
+  /* ── Assign button while CheckChildAssetsChain reads Fusion ── */
+  .ld-btn-checking { cursor:progress !important; opacity:0.85; display:inline-flex; align-items:center; gap:6px; }
+  .ld-spin {
+    width:11px; height:11px; border-radius:50%;
+    border:2px solid currentColor; border-right-color:transparent;
+    animation: ld-spin 0.7s linear infinite; flex-shrink:0;
+  }
+  @keyframes ld-spin { to { transform: rotate(360deg); } }
+
+  /* ── Asset-hierarchy warning dialog (childAssetsDialog) ── */
+  .ca-callout {
+    display:flex; gap:12px; align-items:flex-start;
+    background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:12px 14px;
+  }
+  .ca-callout-ico { font-size:20px; color:#d97706; flex-shrink:0; margin-top:1px; }
+  .ca-callout-title { font-size:14px; font-weight:600; color:#92400e; margin:0 0 2px; }
+  .ca-callout-text { font-size:13px; color:#78350f; line-height:1.45; margin:0; }
+  .ca-tree { margin-top:14px; border:1px solid #e5e7eb; border-radius:8px; overflow:hidden;
+             display:flex; flex-direction:column; min-height:0; }
+  .ca-rows { max-height:44vh; overflow-y:auto; padding:2px 0 6px; }
+  .ca-head, .ca-row {
+    display:grid; grid-template-columns: minmax(0,2fr) minmax(0,1fr) minmax(0,1fr);
+    gap:10px; align-items:center; padding:6px 14px;
+  }
+  .ca-head {
+    font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.3px;
+    color:#6b7280; padding-top:8px; padding-bottom:6px; background:#f9fafb; border-bottom:1px solid #f1f5f9;
+  }
+  .ca-row { font-size:13px; border-left:3px solid transparent; }
+  .ca-row:hover { background:#f9fafb; }
+  .ca-role-ancestor .ca-num, .ca-role-ancestor .ca-desc { color:#6b7280; }
+  .ca-role-unit { background:#f0fdfa; border-left-color:#0d9488; }
+  .ca-role-unit:hover { background:#e6fbf7; }
+  .ca-node { display:flex; align-items:flex-start; gap:8px; min-width:0; }
+  .ca-elbow {
+    width:12px; height:14px; margin-top:-4px; flex-shrink:0;
+    border-left:1px solid #cbd5e1; border-bottom:1px solid #cbd5e1; border-bottom-left-radius:4px;
+  }
+  .ca-ico { font-size:15px; color:#6b7280; flex-shrink:0; margin-top:1px; }
+  .ca-role-unit .ca-ico { color:#0d9488; }
+  .ca-role-ancestor .ca-ico { color:#0369a1; }
+  .ca-text { min-width:0; }
+  .ca-num { font-weight:600; color:#111827; font-size:13px; }
+  .ca-desc { color:#4b5563; font-size:13px; }
+  .ca-meta { color:#6b7280; font-size:12px; }
+  .ca-cell { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .ca-badge {
+    font-size:10px; font-weight:600; letter-spacing:.3px; text-transform:uppercase;
+    border-radius:4px; padding:1px 6px; margin-left:6px; vertical-align:1px; white-space:nowrap;
+  }
+  .ca-badge-parent, .ca-badge-ancestor { color:#0369a1; background:#e0f2fe; }
+  .ca-badge-unit { color:#0f766e; background:#ccfbf1; }
+  .ca-badge-grandchild { color:#6b7280; background:#f3f4f6; }
+  .ca-ack {
+    display:flex; align-items:flex-start; gap:10px; margin-top:14px; padding:10px 14px;
+    border:1px solid #e5e7eb; border-radius:8px; background:#fff;
+  }
+  .ca-ack.ca-ack-on { border-color:#0d9488; background:#f0fdfa; }
+  .ca-ack input { width:18px; height:18px; cursor:pointer; accent-color:#0d9488; flex-shrink:0; margin-top:1px; }
+  .ca-ack label { font-size:13px; color:#111827; cursor:pointer; line-height:1.45; }
+  @media (max-width: 560px) {
+    .ca-head { display:none; }
+    .ca-row { grid-template-columns: minmax(0,1fr); }
+    .ca-row .ca-hide-sm { display:none; }
+  }
+</style>
+
+<oj-sp-general-overview-page
+  id="ld_gop"
+  page-title="[[ $variables.pageTitle ]]"
+  page-subtitle="[[ $variables.pageSubtitle ]]"
+  display-mode="mixed"
+  display-options.in-flow-back="true"
+  display-options.responsive-padding="on"
+  primary-action='[[ {"label": "Save", "display": $variables.saveEnabled ? "on" : "disabled"} ]]'
+  on-sp-in-flow-back="[[ $listeners.onSpInFlowBack ]]"
+  on-sp-primary-action="[[ $listeners.onSaveLine ]]"
+  class="oj-sm-width-full">
+
+  <!-- ── SEARCH SLOT: allocation progress (back chevron rendered by oj-sp-general-overview-page) ── -->
+  <div slot="search" style="width:100%;">
+
+    <div class="oj-flex oj-sm-align-items-center oj-sm-flex-wrap-wrap oj-sm-justify-content-space-between" style="gap: 10px; padding: 4px 0;">
+
+      <div class="oj-flex oj-sm-align-items-center" style="gap: 10px;">
+        <oj-c-progress-circle
+          id="ldAllocationCircle"
+          value="[[ $variables.allocationPercent ]]"
+          max="100"
+          size="sm">
+        </oj-c-progress-circle>
+        <span id="ldAllocationSummary"
+              style="font-size: var(--oj-typography-body-md-font-size); font-weight: var(--oj-typography-body-font-weight-bold, 600); color: var(--oj-core-text-color-primary);">
+          0 / 0 serials allocated
+        </span>
+      </div>
+
+      <!-- Yard selector (right) — server-driven LOV (yardMappingSDP →
+           eqp-v1/bu-org-mappings, active mappings across all BUs) with
+           search-as-you-type (?q= over invOrgId/Code/Name). Clearable.
+           selectedYard holds the numeric invOrgId; no default is applied on load
+           (opens "All Yards"). On change, onYardChanged →
+           RescopeYardChain re-fetches line-detail-units with yardId (the view
+           filters the unit rows + availability to that org) and rebuilds the
+           picker. Clearing it spans all orgs. -->
+      <oj-select-single
+        id="ldYardSelect"
+        class="cr-banner-filter oj-form-control-density-compact"
+        label-hint="Yard"
+        label-edge="inside"
+        placeholder="All Yards"
+        clear-value="conditional"
+        style="width:240px; flex:0 0 auto;"
+        value="{{ $variables.selectedYard }}"
+        value-item="{{ $variables.selectedYardItem }}"
+        data="[[ $variables.yardMappingSDP ]]"
+        item-text="invOrgName"
+        on-value-changed="[[ $listeners.onYardChanged ]]">
+        <!-- Two-line row: org name on top (bold), org code small/grey below.
+             Code hidden when it equals the name (many orgs have code===name).
+             Only affects the dropdown list — the collapsed field shows
+             item-text (invOrgName). -->
+        <template slot="itemTemplate">
+          <div style="display:flex; flex-direction:column; line-height:1.25; padding:2px 0;">
+            <span style="font-weight:600; color:#161513;">
+              <oj-bind-text value="[[ $current.data.invOrgName ]]"></oj-bind-text>
+            </span>
+            <oj-bind-if test="[[ $current.data.invOrgCode && $current.data.invOrgCode !== $current.data.invOrgName ]]">
+              <span style="font-size:11px; color:#6b7280;">
+                <oj-bind-text value="[[ $current.data.invOrgCode ]]"></oj-bind-text>
+              </span>
+            </oj-bind-if>
+          </div>
+        </template>
+      </oj-select-single>
+    </div>
+  </div>
+
+  <!-- ── MAIN SLOT ── -->
+  <div slot="main" class="oj-flex oj-sm-flex-direction-column oj-sm-width-full" style="padding: 0 4px; min-width:0; max-width:100vw;">
+
+    <!-- Persistent reminder: allocations are not yet committed -->
+    <div class="ld-reminder" role="note">
+      <span class="oj-ux-ico-information" aria-hidden="true"></span>
+      <span>Reservations will be discarded unless the request is saved.</span>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="ld-gantt-toolbar">
+
+      <div class="ld-month-nav">
+        <oj-button chroming="borderless" display="icons"
+                   on-oj-action="[[ $page.functions.prevMonth.bind($functions) ]]">
+          <span slot="startIcon" class="oj-ux-ico-chevron-left"></span>
+          <span>Previous</span>
+        </oj-button>
+        <span id="ldMonthLabel" class="ld-month-label">May 2026</span>
+        <oj-button chroming="borderless" display="icons"
+                   on-oj-action="[[ $page.functions.nextMonth.bind($functions) ]]">
+          <span slot="startIcon" class="oj-ux-ico-chevron-right"></span>
+          <span>Next</span>
+        </oj-button>
+      </div>
+
+      <oj-button chroming="solid" on-oj-action="[[ $page.functions.goToday.bind($functions) ]]">
+        <span slot="startIcon" class="oj-ux-ico-refresh"></span>
+        Today
+      </oj-button>
+
+      <!-- Inline date pickers — adjust for this line -->
+      <span class="ld-inline-label">Adjust for this line:</span>
+      <oj-input-date
+        id="ldStartDate"
+        label-hint="Start Date"
+        value="{{ $variables.adjustedStartDate }}"
+        :disabled="[[ $variables.lineHasAllocations ]]"
+        :title="[[ $variables.lineHasAllocations ? 'Release existing allocations before changing dates' : '' ]]"
+        user-assistance-density="compact"
+        on-value-changed="[[ function(event) { if (event.detail.updatedFrom !== 'internal') return; $page.functions.onAdjustDates($variables.adjustedStartDate, $variables.adjustedEndDate); $listeners.onRescopeDates && $listeners.onRescopeDates(); } ]]"
+        style="width: 160px;">
+      </oj-input-date>
+      <span style="color: var(--oj-core-text-color-secondary, #6b7280); font-size: 14px;">&rarr;</span>
+      <oj-input-date
+        id="ldEndDate"
+        label-hint="End Date"
+        value="{{ $variables.adjustedEndDate }}"
+        :disabled="[[ $variables.lineHasAllocations ]]"
+        :title="[[ $variables.lineHasAllocations ? 'Release existing allocations before changing dates' : '' ]]"
+        user-assistance-density="compact"
+        on-value-changed="[[ function(event) { if (event.detail.updatedFrom !== 'internal') return; $page.functions.onAdjustDates($variables.adjustedStartDate, $variables.adjustedEndDate); $listeners.onRescopeDates && $listeners.onRescopeDates(); } ]]"
+        style="width: 160px;">
+      </oj-input-date>
+
+      <span class="ld-asset-count" id="ldAssetCount">0 serials</span>
+    </div>
+
+    <!-- Filter panel -->
+    <div id="ldFilterPanel" style="display: none; margin-bottom: 10px;">
+      <oj-form-layout id="ldFilterForm" direction="row" max-columns="3">
+        <oj-input-text id="ldSearchName"
+                       label-hint="Serial / Name"
+                       placeholder="Search by serial or name..."
+                       on-value-changed="[[ $page.functions.applyFilters.bind($functions) ]]">
+          <span slot="start" class="oj-ux-ico-search"></span>
+        </oj-input-text>
+      </oj-form-layout>
+    </div>
+
+    <!-- Bryntum split-pane (Scheduler + Map) -->
+    <div class="oj-flex oj-flex-item">
+      <div class="oj-flex-item" id="ld-card" style="max-width:100vw; min-width:0;">
+        <div id="ld-main"></div>
+      </div>
+    </div>
+
+  </div>
+
+</oj-sp-general-overview-page>
+
+<!-- Maintenance asset hierarchy — read-only warning before a unit that sits
+     in a Fusion asset structure (has a parent, children, or both) is assigned.
+     Opened by CheckChildAssetsChain; rows are the tree flattened top-down. -->
+<oj-dialog id="childAssetsDialog" dialog-title="Review asset hierarchy"
+  initial-visibility="hide" cancel-behavior="none" modality="modal"
+  style="width:760px; max-width:96vw;">
+
+  <div slot="body" style="display:flex; flex-direction:column; max-height:78vh; overflow:hidden;">
+
+    <!-- Warning summary -->
+    <div class="ca-callout">
+      <span class="oj-ux-ico-warning ca-callout-ico" aria-hidden="true"></span>
+      <div style="min-width:0;">
+        <p class="ca-callout-title"><oj-bind-text value="[[ $page.variables.childAssetCheck.headline ]]"></oj-bind-text></p>
+        <oj-bind-if test="[[ $page.variables.childAssetCheck.detail ]]">
+          <p class="ca-callout-text"><oj-bind-text value="[[ $page.variables.childAssetCheck.detail ]]"></oj-bind-text></p>
+        </oj-bind-if>
+      </div>
+    </div>
+
+    <!-- Read-only tree: ancestors (root first), this unit, then everything below it -->
+    <div class="ca-tree">
+      <div class="ca-head">
+        <span>Asset</span><span class="ca-hide-sm">Item</span><span class="ca-hide-sm">Serial</span>
+      </div>
+      <div class="ca-rows">
+        <oj-bind-for-each data="[[ $page.variables.childAssetCheck.rows || [] ]]">
+          <template data-oj-as="row">
+            <div :class="[[ 'ca-row ca-role-' + row.data.role ]]">
+              <div class="ca-node" :style="[[ row.data.indentStyle ]]">
+                <oj-bind-if test="[[ row.data.level > 0 ]]">
+                  <span class="ca-elbow" aria-hidden="true"></span>
+                </oj-bind-if>
+                <span :class="[[ (row.data.role === 'descendant' ? 'oj-ux-ico-file' : 'oj-ux-ico-folder') + ' ca-ico' ]]" aria-hidden="true"></span>
+                <div class="ca-text">
+                  <div class="ca-cell">
+                    <span class="ca-num"><oj-bind-text value="[[ row.data.assetNumber || '—' ]]"></oj-bind-text></span>
+                    <oj-bind-if test="[[ row.data.badge ]]">
+                      <span :class="[[ 'ca-badge ca-badge-' + (row.data.role === 'unit' ? 'unit' : row.data.badge.toLowerCase()) ]]"><oj-bind-text value="[[ row.data.badge ]]"></oj-bind-text></span>
+                    </oj-bind-if>
+                  </div>
+                  <div class="ca-desc ca-cell"><oj-bind-text value="[[ row.data.description ]]"></oj-bind-text></div>
+                </div>
+              </div>
+              <span class="ca-cell ca-meta ca-hide-sm"><oj-bind-text value="[[ row.data.itemNumber || '—' ]]"></oj-bind-text></span>
+              <span class="ca-cell ca-meta ca-hide-sm"><oj-bind-text value="[[ row.data.serialNumber || '—' ]]"></oj-bind-text></span>
+            </div>
+          </template>
+        </oj-bind-for-each>
+      </div>
+    </div>
+
+    <!-- Acknowledge: only this unit ships -->
+    <div :class="[[ $page.variables.childAssetsAcknowledged ? 'ca-ack ca-ack-on' : 'ca-ack' ]]">
+      <input type="checkbox" id="childAssetsAckChk"
+        :checked="[[ $page.variables.childAssetsAcknowledged ]]"
+        on-change="[[ function(e) { $page.variables.childAssetsAcknowledged = e.target.checked; } ]]" />
+      <label for="childAssetsAckChk"><oj-bind-text value="[[ $page.variables.childAssetCheck.ackText ]]"></oj-bind-text></label>
+    </div>
+
+  </div>
+
+  <div slot="footer" style="display:flex; gap:8px; justify-content:flex-end; padding:12px 24px 16px;">
+    <oj-button chroming="outlined" on-oj-action="[[ $listeners.onChildAssetsCancel ]]" class="oj-button-sm">Cancel</oj-button>
+    <oj-button chroming="callToAction"
+      :disabled="[[ !$page.variables.childAssetsAcknowledged ]]"
+      on-oj-action="[[ $listeners.onChildAssetsProceed ]]" class="oj-button-sm">Assign this unit only</oj-button>
+  </div>
+
+</oj-dialog>

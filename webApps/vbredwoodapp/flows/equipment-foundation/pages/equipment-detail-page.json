@@ -1,0 +1,112 @@
+{
+  "variables": {
+    "equipmentId": {
+      "type": "string",
+      "input": "fromUrl",
+      "persisted": "none"
+    },
+    "pageTitle": {
+      "type": "string",
+      "defaultValue": "Equipment Detail"
+    },
+    "pageSubtitle": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "recordData": {
+      "type": "object",
+      "defaultValue": {}
+    },
+    "isLoading": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "badge": {
+      "type": "object",
+      "defaultValue": {
+        "text": "",
+        "status": "neutral"
+      }
+    }
+  },
+  "eventListeners": {
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "vbEnterChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "spGoToParent": {
+      "chains": [
+        {
+          "chain": "goToParentChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onSpInFlowBack": {
+      "chains": [
+        {
+          "chain": "goToParentChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "spPrimaryAction": {
+      "chains": [
+        {
+          "chain": "primaryActionChain",
+          "parameters": {}
+        }
+      ]
+    }
+  },
+  "functions": {
+    "getEquipmentById": {
+      "params": {
+        "equipmentId": "string"
+      },
+      "return": "any"
+    },
+    "formatCurrency": {
+      "params": {
+        "value": "number"
+      },
+      "return": "string"
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-sp-general-overview-page": {
+        "path": "oj-sp/general-overview-page/loader"
+      },
+      "oj-form-layout": {
+        "path": "ojs/ojformlayout"
+      },
+      "oj-input-text": {
+        "path": "ojs/ojinputtext"
+      },
+      "oj-input-number": {
+        "path": "ojs/ojinputnumber"
+      },
+      "oj-text-area": {
+        "path": "ojs/ojinputtext"
+      },
+      "oj-progress-circle": {
+        "path": "ojs/ojprogress"
+      },
+      "oj-bind-if": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-text": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-button": {
+        "path": "ojs/ojbutton"
+      }
+    }
+  },
+  "metadata": {}
+}

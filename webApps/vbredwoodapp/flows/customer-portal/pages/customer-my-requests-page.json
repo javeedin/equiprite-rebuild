@@ -1,0 +1,228 @@
+{
+
+  "variables": {
+    "RequestAllArray": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "RequestFilteredArray": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "quoteColumnVisible": {
+      "type": "boolean",
+      "description": "Whether the Quote column renders. Driven by the ENABLE_QUOTES global setting via $application.functions.isQuotingAllowed() with origin CUSTOMER — this is the customer requests list, so quoting must be on for customer-sourced requests (CUSTOMER or BOTH). An expression variable so it re-evaluates when the app-level settings load; fails CLOSED (column hidden) until then.",
+      "defaultValue": "[[ $application.functions.isQuotingAllowed($application.variables.globalSettings, $application.variables.flagsLoaded, 'CUSTOMER') ]]"
+    },
+    "requestColumns": {
+      "type": "any[]",
+      "description": "Table columns. Held here rather than inline on oj-table because the Quote column is conditional — the columns attribute is static JSON and cannot carry an expression, so the whole array is computed instead.",
+      "defaultValue": "[[ [\n        {'headerText': 'Request #',        'field': 'requestNumber',   'template': 'reqNumberTpl',       'sortable': 'enabled',  'style': 'width:150px;'},\n        {'headerText': 'Customer Name',    'field': 'customerName',    'template': 'customerNameTpl',    'sortable': 'enabled'},\n        {'headerText': 'Start Date',       'field': 'startDate',                                         'sortable': 'enabled',  'style': 'width:115px;'},\n        {'headerText': 'End Date',         'field': 'endDate',                                           'sortable': 'enabled',  'style': 'width:115px;'},\n        {'headerText': 'Customer Contact', 'field': 'customerContact', 'template': 'customerContactTpl', 'sortable': 'enabled',  'style': 'width:180px;'},\n        {'headerText': 'Status',           'field': 'status',          'template': 'statusTpl',          'sortable': 'enabled',  'style': 'width:175px;'},\n        {'headerText': 'Lines',            'field': 'lines',           'template': 'linesTpl',           'sortable': 'disabled', 'style': 'width:80px;'},\n        {'headerText': 'Contract Number',  'field': 'contractNumber',  'template': 'contractNumTpl',     'sortable': 'enabled',  'style': 'width:160px;'}\n      ].concat($page.variables.quoteColumnVisible ? [{'headerText': 'Quote', 'field': 'requestNumber', 'template': 'quoteTpl', 'sortable': 'disabled', 'style': 'width:120px;'}] : []) ]]"
+    },
+    "RequestADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "requestNumber",
+        "data": "{{ $page.variables.RequestFilteredArray }}"
+      }
+    },
+    "filterCriterion": {
+      "type": "any"
+    },
+    "searchConfiguration": {
+      "type": "oj-sp/smart-search/strategies/JsonSearchConfigProviderFactory",
+      "defaultValue": {
+        "url": "[[ $application.path + 'resources/data/customerRequestSearchConfig.json' ]]"
+      }
+    },
+    "searchContext": {
+      "type": "object",
+      "defaultValue": {
+        "$search": {
+          "filters": {
+            "StatusFilter": {
+              "label": "Status",
+              "options": {
+                "optionsData": "[[ $page.variables.statusOptionsADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "statusOptionsArray": {
+      "type": "any[]",
+      "defaultValue": [
+        {
+          "value": "DRAFT",
+          "label": "Draft"
+        },
+        {
+          "value": "SUBMITTED",
+          "label": "Submitted"
+        },
+        {
+          "value": "QUOTE_GENERATED",
+          "label": "Quote Generated"
+        },
+        {
+          "value": "QUOTE_ACCEPTED",
+          "label": "Quote Accepted"
+        },
+        {
+          "value": "IN_PROCESS",
+          "label": "In Process"
+        },
+        {
+          "value": "PICK_INITIATED",
+          "label": "Pick In Progress"
+        },
+        {
+          "value": "PICK_RELEASED",
+          "label": "Pick Complete"
+        },
+        {
+          "value": "SHIPPED",
+          "label": "Shipped"
+        },
+        {
+          "value": "DEPLOYED",
+          "label": "Deployed"
+        },
+        {
+          "value": "REJECTED",
+          "label": "Rejected"
+        },
+        {
+          "value": "RETURNED",
+          "label": "Returned"
+        },
+        {
+          "value": "CLOSED",
+          "label": "Closed"
+        }
+      ]
+    },
+    "statusOptionsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.statusOptionsArray }}"
+      }
+    },
+    "isDrawerOpen": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "selectedRequest": {
+      "type": "any",
+      "defaultValue": {}
+    }
+  },
+  "eventListeners": {
+    "vbBeforeEnter": {
+      "chains": [
+        { "chain": "enforcePageAccessChain" }
+      ]
+    },
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "customersModuleGuardChain",
+          "parameters": {}
+        },
+        {
+          "chain": "EquipmentRequestInitChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "filterCriterionChanged": {
+      "chains": [
+        {
+          "chain": "EquipmentRequestFilterChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onNavigateToDetail": {
+      "chains": [
+        {
+          "chain": "NavigateToDetailChain",
+          "parameters": {
+            "rowData": "{{ $event.detail.value?.data }}"
+          }
+        }
+      ]
+    },
+    "closeRequestDrawer": {
+      "chains": [
+        {
+          "chain": "closeRequestDrawerChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "spPrimaryAction": {
+      "chains": [
+        {
+          "chain": "navigateToCatalogChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onQuoteAction": {
+      "chains": [
+        {
+          "chain": "QuoteChain",
+          "parameters": {
+            "rowData": "{{ $event }}"
+          }
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-sp-smart-search-page": {
+        "path": "oj-sp/smart-search-page/loader"
+      },
+      "oj-sp-smart-search": {
+        "path": "oj-sp/smart-search/loader"
+      },
+      "oj-sp-collection-container": {
+        "path": "oj-sp/collection-container/loader"
+      },
+      "oj-sp-general-drawer-template": {
+        "path": "oj-sp/general-drawer-template/loader"
+      },
+      "oj-table": {
+        "path": "ojs/ojtable"
+      },
+      "oj-drawer-popup": {
+        "path": "ojs/ojdrawerpopup"
+      },
+      "oj-defer": {
+        "path": "ojs/ojdefer"
+      },
+      "oj-bind-if": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-for-each": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-text": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-button": {
+        "path": "ojs/ojbutton"
+      }
+    }
+  }
+}

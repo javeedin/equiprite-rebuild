@@ -1,0 +1,54 @@
+{
+  "data": [
+    {
+      "requestId": 1000000001,
+      "requestNumber": "REQ-2025-P381-001",
+      "source": "PROJECT",
+      "projectOrCustomer": "Portsmouth Naval Shipyard P-381 Dry Dock - Superblock 1",
+      "taskName": "Earthwork & Excavation",
+      "requestor": "Ron Bernard",
+      "location": "Portsmouth Naval Shipyard - Pier A",
+      "startDate": "2025-02-11T00:00:00Z",
+      "endDate": "2025-07-02T00:00:00Z",
+      "status": "IN_PROCESS",
+      "lineCount": 2,
+      "allocationPct": 100,
+      "totalEstCost": 104938.81
+    },
+    {
+      "requestId": 1000000002,
+      "requestNumber": "REQ-2025-P381-002",
+      "source": "PROJECT",
+      "projectOrCustomer": "Portsmouth Naval Shipyard P-381 Dry Dock - Superblock 1",
+      "taskName": "Concrete & Formwork",
+      "requestor": "Pamela Fay",
+      "location": "Portsmouth Naval Shipyard - Pier A",
+      "startDate": "2025-03-17T00:00:00Z",
+      "endDate": "2025-08-29T00:00:00Z",
+      "status": "APPROVED",
+      "lineCount": 3,
+      "allocationPct": 33,
+      "totalEstCost": 78420.00
+    },
+    {
+      "requestId": 1000000016,
+      "requestNumber": "REQ-2025-P381-016",
+      "source": "PROJECT",
+      "projectOrCustomer": "Central Maine Power Transmission Line Upgrade - Phase 2",
+      "taskName": "NJ Turnpike Grading",
+      "requestor": "Diane Cote",
+      "location": "Falmouth Bridge Site - South End",
+      "startDate": "2025-07-11T00:00:00Z",
+      "endDate": "2026-01-01T00:00:00Z",
+      "status": "APPROVED",
+      "lineCount": 0,
+      "allocationPct": 0,
+      "totalEstCost": null
+    }
+  ],
+  "recordCount": 3,
+  "page": 1,
+  "pageSize": 25,
+  "totalPages": 1,
+  "hasMore": false
+}

@@ -1,0 +1,40 @@
+{
+    "data": [
+        {
+            "eqrTimeEntryId": 1000000021,
+            "projectName": "Portsmouth Naval Shipyard P-381 Dry Dock - Superblock 1",
+            "timesheetStatus": "SUBMITTED",
+            "weekStartDate": "2026-05-04",
+            "weekEndDate": "2026-05-10",
+            "submittedByUserId": null,
+            "submittedByName": null,
+            "submittedByEmail": null,
+            "approvedBy": null,
+            "approvedDate": null,
+            "approverName": null,
+            "requestNumber": "REQ-2025-P381-001",
+            "className": "Excavators",
+            "equipmentName": "EQ-00001 CAT 390F Excavator",
+            "hoursType": "REGULAR",
+            "entryStatus": "SUBMITTED",
+            "taskName": "Earthwork & Excavation",
+            "requestedStartDate": "2025-02-11T00:00:00Z",
+            "requestedEndDate": "2026-12-31T00:00:00Z",
+            "nonLaborResource": null,
+            "day1Hours": 0,
+            "day2Hours": 0,
+            "day3Hours": 0,
+            "day4Hours": 0,
+            "day5Hours": 0,
+            "day6Hours": 0,
+            "day7Hours": 0,
+            "totalHours": 0,
+            "totalBill": 0
+        }
+    ],
+    "recordCount": 1,
+    "page": 0,
+    "pageSize": 20,
+    "totalPages": 1,
+    "hasMore": false
+}

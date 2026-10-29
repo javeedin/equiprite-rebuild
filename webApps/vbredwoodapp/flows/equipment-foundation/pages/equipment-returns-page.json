@@ -1,0 +1,514 @@
+{
+  "metadata": {},
+  "variables": {
+    "PickingQueueAllArray": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "PickingQueueFilteredArray": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "PickingQueueADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "id",
+        "data": "{{ $page.variables.PickingQueueFilteredArray }}"
+      }
+    },
+    "filterCriterion": {
+      "type": "any"
+    },
+    "searchConfiguration": {
+      "type": "oj-sp/smart-search/strategies/JsonSearchConfigProviderFactory",
+      "defaultValue": {
+        "url": "[[ $application.path + 'resources/data/initiatePickingSearchConfig.json' ]]"
+      }
+    },
+    "searchContext": {
+      "type": "object",
+      "defaultValue": {
+        "$search": {
+          "filters": {
+            "ClassFilter": {
+              "label": "Class",
+              "options": {
+                "optionsData": "[[ $page.variables.classesADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "classesArray": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "classesADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.classesArray }}"
+      }
+    },
+    "tabCountAll": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "tabCountPending": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "tabCountInProgress": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "tabCountCompleted": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "tabCountException": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "isDrawerOpen": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "selectedRequest": {
+      "type": "any",
+      "defaultValue": {
+        "lines": [],
+        "pickingExceptions": []
+      }
+    },
+    "selectedIds": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "isBulkInitiating": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "resolvingLineId": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "bulkProgressDialogOpen": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "bulkProgressCurrent": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "bulkProgressTotal": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "bulkProgressCurrentRequest": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "showBulkSummary": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "bulkSummaryCompleted": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "bulkSummaryExceptions": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "lastPickingResults": {
+      "type": "any",
+      "defaultValue": {}
+    },
+    "exceptionAltSerials": {
+      "type": "any",
+      "defaultValue": {}
+    },
+    "equipmentSettingsActive": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "activeStatusTab": {
+      "type": "string",
+      "defaultValue": "All"
+    },
+    "isLoading": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "isLoadingDrawer": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "fetchError": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "selectedRequestTOs": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "selectedRequestTOsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.selectedRequestTOs }}"
+      }
+    },
+    "selectedTOId": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "isReleasingTO": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "lineSelectionState": {
+      "type": "object",
+      "defaultValue": {
+        "count": 0
+      }
+    },
+    "lineSelectionTick": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "actualReturnDate": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "directReturnOpen": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "Direct Return dialog visibility."
+    },
+    "directReturnQuery": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "Search term: a scanned unit label, or typed equipment/model/class/request/project."
+    },
+    "directReturnRows": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Candidate deployed units from views/deployed-units. Shaped by resources/js/directReturn."
+    },
+    "directReturnSelected": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "rowKey list the operator ticked. NEVER pre-populated - a serial can map to several rentals."
+    },
+    "directReturnSearching": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "Search in flight."
+    },
+    "directReturnMeta": {
+      "type": "object",
+      "defaultValue": {
+        "recordCount": 0,
+        "page": 0,
+        "hasMore": false,
+        "searched": false
+      },
+      "description": "Paging + state: recordCount, page, hasMore, tooShort, searched, error, ambiguous."
+    },
+    "scanSupported": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "Camera usable here. False on an insecure origin (a LAN IP) or an unsupported browser, which hides the Scan button rather than offering one that can only fail."
+    },
+    "scanOpen": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "Viewfinder showing. Gates the video element into the DOM so a camera stream is never left running behind a hidden node."
+    },
+    "scanStatus": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "Line under the viewfinder: what the scanner is doing, or why it failed."
+    },
+    "scanReadingText": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "OCR pass in flight. Disables the button during the ~5 MB first-use download."
+    },
+    "scanTorchAvailable": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "This device's camera reports a torch. Phones and most tablets do; laptops never do, so the control is hidden rather than offered dead. Read from the live track once the stream opens."
+    },
+    "scanTorchOn": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "Torch currently lit. Tracked so the button can toggle and so teardown can leave the lamp off - a torch left on after the dialog closes drains the device and looks like a fault."
+    }
+  },
+  "eventListeners": {
+    "vbBeforeEnter": {
+      "chains": [
+        {
+          "chain": "enforcePageAccessChain"
+        }
+      ]
+    },
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "InitPickingQueueChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "vbExit": {
+      "chains": [
+        {
+          "chain": "CloseScannerChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "filterCriterionChanged": {
+      "chains": [
+        {
+          "chain": "FilterPickingQueueChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onRowAction": {
+      "chains": [
+        {
+          "chain": "openPickingDrawerChain",
+          "parameters": {
+            "rowData": "{{ $event.detail.value?.data }}"
+          }
+        }
+      ]
+    },
+    "closePickingDrawer": {
+      "chains": [
+        {
+          "chain": "closePickingDrawerChain",
+          "parameters": {
+            "event": "{{ $event }}"
+          }
+        }
+      ]
+    },
+    "onBulkInitiate": {
+      "chains": [
+        {
+          "chain": "BulkInitiatePickingChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onResolveExceptionClick": {
+      "chains": [
+        {
+          "chain": "ResolvePickingExceptionChain",
+          "parameters": {
+            "event": "{{ $event }}"
+          }
+        }
+      ]
+    },
+    "onRowCheckboxChanged": {
+      "chains": [
+        {
+          "chain": "RowCheckboxChangedChain",
+          "parameters": {
+            "event": "{{ $event }}"
+          }
+        }
+      ]
+    },
+    "onToggleSelectAll": {
+      "chains": [
+        {
+          "chain": "ToggleSelectAllChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onClearSelection": {
+      "chains": [
+        {
+          "chain": "ClearSelectionChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onCloseBulkDialog": {
+      "chains": [
+        {
+          "chain": "CloseBulkDialogChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onUpdateAltSerial": {
+      "chains": [
+        {
+          "chain": "UpdateAltSerialChain",
+          "parameters": {
+            "event": "{{ $event }}"
+          }
+        }
+      ]
+    },
+    "onReleaseTO": {
+      "chains": [
+        {
+          "chain": "ReleaseTransferOrderChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onLineSelectionChanged": {
+      "chains": [
+        {
+          "chain": "LineSelectionChangedChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onAcceptReturnLines": {
+      "chains": [
+        {
+          "chain": "AcceptReturnLinesChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onDirectReturnSearch": {
+      "chains": [
+        {
+          "chain": "DirectReturnSearchChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onDirectReturnSubmit": {
+      "chains": [
+        {
+          "chain": "SubmitDirectReturnChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onSecondaryAction": {
+      "chains": [
+        {
+          "chain": "ReturnsSecondaryActionChain",
+          "parameters": {
+            "event": "[[ $event ]]"
+          }
+        }
+      ]
+    },
+    "onCloseDirectReturn": {
+      "chains": [
+        {
+          "chain": "CloseDirectReturnChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onOpenScanner": {
+      "chains": [
+        {
+          "chain": "OpenScannerChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onCloseScanner": {
+      "chains": [
+        {
+          "chain": "CloseScannerChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onToggleTorch": {
+      "chains": [
+        {
+          "chain": "ToggleTorchChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onReadSerialText": {
+      "chains": [
+        {
+          "chain": "ReadSerialTextChain",
+          "parameters": {}
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-sp-smart-search-page": {
+        "path": "oj-sp/smart-search-page/loader"
+      },
+      "oj-sp-smart-search": {
+        "path": "oj-sp/smart-search/loader"
+      },
+      "oj-sp-general-drawer-template": {
+        "path": "oj-sp/general-drawer-template/loader"
+      },
+      "oj-drawer-popup": {
+        "path": "ojs/ojdrawerpopup"
+      },
+      "oj-table": {
+        "path": "ojs/ojtable"
+      },
+      "oj-data-grid": {
+        "path": "ojs/ojdatagrid"
+      },
+      "oj-button": {
+        "path": "ojs/ojbutton"
+      },
+      "oj-dialog": {
+        "path": "ojs/ojdialog"
+      },
+      "oj-progress-bar": {
+        "path": "ojs/ojprogress-bar"
+      },
+      "oj-defer": {
+        "path": "ojs/ojdefer"
+      },
+      "oj-bind-if": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-for-each": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-text": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-select-single": {
+        "path": "ojs/ojselectsingle"
+      },
+      "oj-input-date": {
+        "path": "ojs/ojdatetimepicker"
+      }
+    }
+  },
+  "title": "Equipment Return"
+}

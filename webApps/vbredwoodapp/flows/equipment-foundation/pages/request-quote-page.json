@@ -1,0 +1,82 @@
+{
+
+  "metadata": {},
+  "variables": {
+    "requestId": {
+      "type": "string",
+      "input": "fromUrl",
+      "persisted": "none",
+      "defaultValue": ""
+    },
+    "requestNumber": {
+      "type": "string",
+      "input": "fromUrl",
+      "persisted": "none",
+      "defaultValue": ""
+    },
+    "sourcePage": {
+      "type": "string",
+      "input": "fromUrl",
+      "persisted": "none",
+      "defaultValue": "request-detail"
+    },
+    "quoteData": {
+      "type": "object",
+      "defaultValue": {
+        "requestNumber": "",
+        "customerName": "",
+        "customerContact": "",
+        "startDate": "",
+        "endDate": "",
+        "location": "",
+        "status": "",
+        "marginPercentage": 0,
+        "grandTotal": 0,
+        "lines": []
+      }
+    },
+    "isLoading": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "editMode": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "quoteSnapshot": {
+      "type": "object",
+      "defaultValue": {}
+    },
+    "selectionVersion": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "sendingQuote": {
+      "type": "boolean",
+      "defaultValue": false
+    }
+  },
+  "eventListeners": {
+    "vbEnter": {
+      "chains": [{ "chain": "QuoteInitChain", "parameters": {} }]
+    },
+    "onBack": {
+      "chains": [{ "chain": "QuoteBackChain", "parameters": {} }]
+    },
+    "onSendQuote": {
+      "chains": [{ "chain": "SendQuoteChain", "parameters": {} }]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-sp-general-overview-page": { "path": "oj-sp/general-overview-page/loader" },
+      "oj-bind-if":       { "path": "ojs/ojknockout" },
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-text":     { "path": "ojs/ojknockout" },
+      "oj-button":        { "path": "ojs/ojbutton" },
+      "oj-input-text":    { "path": "ojs/ojinputtext" },
+      "oj-input-number":  { "path": "ojs/ojinputnumber" },
+      "oj-select-single": { "path": "ojs/ojselectsingle" }
+    }
+  }
+}

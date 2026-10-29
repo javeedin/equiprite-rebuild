@@ -1,0 +1,170 @@
+{
+
+  "metadata": {},
+  "variables": {
+    "quotingAllowed": {
+      "type": "boolean",
+      "description": "Whether the ENABLE_QUOTES global setting permits quoting for customer-sourced requests (CUSTOMER or BOTH). Gates the View Quote icon in the banner. This page is customer-sourced by definition, so the origin is fixed. Expression variable — re-evaluates when app-level settings load; fails CLOSED (icon hidden) until then.",
+      "defaultValue": "[[ $application.functions.isQuotingAllowed($application.variables.globalSettings, $application.variables.flagsLoaded, 'CUSTOMER') ]]"
+    },
+    "requestId": {
+      "type": "string",
+      "input": "fromUrl",
+      "persisted": "none"
+    },
+    "isDraftBusy": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "True while a draft action (Edit / Submit / Delete Draft, draftActionChain) is running; disables the draft buttons."
+    },
+    "requestNumericId": {
+      "type": "number",
+      "input": "fromUrl",
+      "persisted": "none"
+    },
+    "formData": {
+      "type": "object",
+      "defaultValue": {}
+    },
+    "dataGridProvider": {
+      "type": "any"
+    },
+    "selection": {
+      "type": "any",
+      "defaultValue": []
+    },
+    "selectionState": {
+      "type": "object",
+      "defaultValue": {
+        "count": 0,
+        "sharedStatus": "",
+        "isMixed": false,
+        "wasMixed": false,
+        "allDeployed": false,
+        "allReturnable": false,
+        "allShipToSite": false
+      }
+    },
+    "selectionTick": {
+      "type": "number",
+      "defaultValue": 0
+    }
+  },
+  "eventListeners": {
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "customersModuleGuardChain",
+          "parameters": {}
+        },
+        {
+          "chain": "initChain",
+          "parameters": {
+            "requestId": "{{ $page.variables.requestId }}",
+            "requestNumericId": "{{ $page.variables.requestNumericId }}"
+          }
+        }
+      ]
+    },
+    "onEditDraft": {
+      "chains": [{ "chain": "draftActionChain", "parameters": { "action": "edit" } }]
+    },
+    "onSubmitDraft": {
+      "chains": [{ "chain": "draftActionChain", "parameters": { "action": "submit" } }]
+    },
+    "onAskDeleteDraft": {
+      "chains": [{ "chain": "draftActionChain", "parameters": { "action": "askDelete" } }]
+    },
+    "onCancelDeleteDraft": {
+      "chains": [{ "chain": "draftActionChain", "parameters": { "action": "cancelDelete" } }]
+    },
+    "onDeleteDraft": {
+      "chains": [{ "chain": "draftActionChain", "parameters": { "action": "delete" } }]
+    },
+    "onInitiateReturn": {
+      "chains": [
+        {
+          "chain": "InitiateReturnChain"
+        }
+      ]
+    },
+    "onAcceptDelivery": {
+      "chains": [
+        {
+          "chain": "acceptDeliveryChain"
+        }
+      ]
+    },
+    "onRejectDelivery": {
+      "chains": [
+        {
+          "chain": "rejectDeliveryChain"
+        }
+      ]
+    },
+    "onOpenCustomerQuote": {
+      "chains": [
+        {
+          "chain": "openCustomerQuoteChain"
+        }
+      ]
+    },
+    "onSelectionChanged": {
+      "chains": [
+        {
+          "chain": "onSelectionChangedChain"
+        }
+      ]
+    },
+    "onSpInFlowBack": {
+      "chains": [
+        {
+          "chain": "GoBackChain"
+        }
+      ]
+    }
+  },
+  "functions": {
+    "formatDate": {
+      "params": {
+        "value": "any"
+      },
+      "return": "string"
+    },
+    "getSelectedLines": {
+      "return": "any"
+    },
+    "getAllLines": {
+      "return": "any"
+    },
+    "getSelectionStateRaw": {
+      "return": "any"
+    },
+    "headerIsConfirmed": {
+      "params": {
+        "status": "string"
+      },
+      "return": "boolean"
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-sp-general-overview-page": {
+        "path": "oj-sp/general-overview-page/loader"
+      },
+      "oj-data-grid": {
+        "path": "ojs/ojdatagrid"
+      },
+      "oj-button": {
+        "path": "ojs/ojbutton"
+      },
+      "oj-dialog": { "path": "ojs/ojdialog" },
+      "oj-bind-if": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-text": {
+        "path": "ojs/ojknockout"
+      }
+    }
+  }
+}

@@ -1,0 +1,377 @@
+<style>
+  #eqp-schedule-page {
+    --oj-sp-general-overview-page-max-width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* ── Legend bar ── */
+  #eqp-legend-bar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 16px;
+    margin-bottom: 10px;
+    background: #ffffff;
+    border: 1px solid var(--oj-core-border-color-enabled, #e0e0e0);
+    border-radius: 8px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  #eqp-legend-bar .eqp-legend-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--oj-core-text-color-secondary, #565656);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-right: 4px;
+  }
+  .eqp-legend-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px 3px 7px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    border: 1px solid transparent;
+  }
+  .eqp-legend-pill .eqp-pill-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .eqp-pill--booked      { background: #e8f0fb; border-color: #c2d4f5; color: #1565C0; }
+  .eqp-pill--reserved    { background: #fef0e6; border-color: #f5cba7; color: #E65100; }
+  .eqp-pill--mobilize    { background: #e8f5e9; border-color: #a5d6a7; color: #2E7D32; }
+  .eqp-pill--maintenance { background: #f5f5f5; border-color: #bdbdbd; color: #424242; }
+  .eqp-pill--available   { background: #e6faf4; border-color: #6ee7b7; color: #065f46; }
+
+  #eqp-asset-badge {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 12px;
+    border-radius: 20px;
+    background: var(--oj-core-brand-color-10, #e8f0fb);
+    border: 1px solid var(--oj-core-brand-color-30, #c2d4f5);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--oj-core-brand-color-primary, #1565C0);
+  }
+
+  /* ── Bryntum card wrapper ── */
+  #eqp-card {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    background: #ffffff;
+    border: 1px solid var(--oj-core-border-color-enabled, #e0e0e0);
+    border-radius: 10px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  }
+
+  #eqp-main {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    height: 78vh;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  /* ── Bryntum overrides for Redwood feel ── */
+  #eqp-main .b-grid-header-container {
+    background: var(--oj-core-neutral-color-2, #f5f5f5) !important;
+    border-bottom: 2px solid var(--oj-core-border-color-enabled, #e0e0e0) !important;
+  }
+  #eqp-main .b-grid-header {
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    color: var(--oj-core-text-color-secondary, #565656) !important;
+  }
+  #eqp-main .b-grid-row:hover {
+    background: var(--oj-core-bg-brand-5, #f0f6ff) !important;
+  }
+  #eqp-main .b-grid-row.b-selected {
+    background: var(--oj-core-bg-brand-10, #dbeafe) !important;
+  }
+  #eqp-main .b-timeline-subgrid {
+    border-left: 1px solid var(--oj-core-border-color-enabled, #e0e0e0) !important;
+  }
+  #eqp-main .b-sch-event {
+    border-radius: 4px !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.18) !important;
+  }
+  #eqp-main .b-panel-header {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%) !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.02em !important;
+    border-bottom: 1px solid rgba(255,255,255,0.1) !important;
+  }
+  #eqp-main .b-toolbar {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%) !important;
+    border-bottom: 1px solid rgba(255,255,255,0.08) !important;
+  }
+  #eqp-main .b-widget-title {
+    color: #f1f5f9 !important;
+    font-weight: 700 !important;
+    font-size: 13px !important;
+    letter-spacing: 0.03em !important;
+  }
+  /* The rules below re-skin Bryntum's datefield for the dark toolbar. They
+     must restate the layout Bryntum's own theme puts on .b-field-inner:
+     overriding only background/border here leaves the spin triggers free to
+     wrap, which stacks the chevrons above and below the date instead of
+     flanking it. */
+  #eqp-main .b-datefield .b-field-inner {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    background: rgba(255,255,255,0.12) !important;
+    border: 1px solid rgba(255,255,255,0.25) !important;
+    border-radius: 6px !important;
+  }
+  #eqp-main .b-datefield input {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    background: transparent !important;
+    color: #ffffff !important;
+    font-size: 12px !important;
+    text-align: center !important;
+  }
+  #eqp-main .b-datefield .b-fieldtrigger {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex: 0 0 auto !important;
+    width: 20px !important;
+    height: 20px !important;
+    font-size: 12px !important;
+    line-height: 1 !important;
+    color: rgba(255,255,255,0.8) !important;
+  }
+  #eqp-main .b-datefield .b-fieldtrigger:hover {
+    color: #ffffff !important;
+  }
+  #eqp-main .b-splitter {
+    background: var(--oj-core-border-color-enabled, #e0e0e0) !important;
+    width: 4px !important;
+  }
+  #eqp-main .b-splitter:hover {
+    background: var(--oj-core-brand-color-primary, #1565C0) !important;
+  }
+
+  /* ── Map panel overrides ── */
+  #eqp-main .eqp-map-panel .b-panel-header,
+  #eqp-main .eqp-map-panel .b-toolbar {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;
+  }
+  #eqp-main .eqp-map-panel .b-button {
+    border-radius: 5px !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    color: #cbd5e1 !important;
+    border-color: rgba(255,255,255,0.15) !important;
+    background: rgba(255,255,255,0.07) !important;
+  }
+  #eqp-main .eqp-map-panel .b-button.b-pressed,
+  #eqp-main .eqp-map-panel .b-button:hover {
+    background: rgba(255,255,255,0.18) !important;
+    color: #ffffff !important;
+    border-color: rgba(255,255,255,0.3) !important;
+  }
+
+  /* Mapbox popup Redwood card style */
+  .mapboxgl-popup-content {
+    border-radius: 10px !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15) !important;
+    padding: 14px 16px !important;
+    border: 1px solid #e5e7eb !important;
+    font-family: var(--oj-typography-body-font-family, 'Oracle Sans', sans-serif) !important;
+  }
+  .mapboxgl-popup-tip {
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1)) !important;
+  }
+  .mapboxgl-popup-close-button {
+    font-size: 16px !important;
+    color: #9ca3af !important;
+    padding: 4px 8px !important;
+  }
+  .mapboxgl-popup-close-button:hover {
+    color: #374151 !important;
+    background: transparent !important;
+  }
+
+  /* ── Resource cell ── */
+  .eqp-resource-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 2px 0;
+    height: 100%;
+  }
+  .eqp-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 0 0 2px rgba(0,0,0,0.08);
+  }
+  .eqp-resource-name {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--oj-core-text-color-primary, #161616);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* Per-row month button. Sits at the right edge of the Equipment cell and
+     only ink-ups on row hover, so 705 rows do not read as 705 buttons. */
+  .eqp-cal-btn {
+    flex-shrink: 0;
+    margin-left: 6px;
+    width: 24px;
+    height: 24px;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    background: transparent;
+    color: #94a3b8;
+    font-size: 12px;
+    line-height: 1;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity .12s ease, background .12s ease, color .12s ease;
+  }
+  #eqp-main .b-grid-row:hover .eqp-cal-btn,
+  #eqp-main .b-grid-row.b-selected .eqp-cal-btn,
+  .eqp-cal-btn:focus-visible {
+    opacity: 1;
+  }
+  .eqp-cal-btn:hover {
+    background: var(--oj-core-bg-brand-10, #dbeafe);
+    border-color: var(--oj-core-brand-color-30, #c2d4f5);
+    color: var(--oj-core-brand-color-primary, #1565C0);
+  }
+
+  .eqp-resource-sn {
+    font-size: 10px;
+    color: var(--oj-core-text-color-secondary, #565656);
+    margin-top: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ── Force Bryntum virtual scrollbar visible inside Gantt only ── */
+  #eqp-main .b-virtual-scrollers {
+    display: flex !important;
+  }
+
+  /* ── Dark, visible scrollbars (scoped so it doesn't leak page-wide) ──
+     Mirrors the styling on line-detail-page.html so the horizontal
+     scrollbar at the bottom of the schedule is clearly visible / draggable
+     instead of the thin pale default Bryntum ships with. */
+  /* Firefox */
+  #eqp-card *,
+  #eqp-card *::before,
+  #eqp-card *::after {
+    scrollbar-width: thin;
+    scrollbar-color: #475569 #e2e8f0;
+  }
+  /* Chromium / Safari */
+  #eqp-card *::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+  #eqp-card *::-webkit-scrollbar-track {
+    background: #e2e8f0;
+    border-radius: 6px;
+  }
+  #eqp-card *::-webkit-scrollbar-thumb {
+    background: #475569;
+    border-radius: 6px;
+    border: 2px solid #e2e8f0;
+  }
+  #eqp-card *::-webkit-scrollbar-thumb:hover {
+    background: #1e293b;
+  }
+  #eqp-card *::-webkit-scrollbar-corner {
+    background: #e2e8f0;
+  }
+
+</style>
+
+<oj-sp-general-overview-page id="eqp-schedule-page" page-title="Equipment Schedule" display-mode="mixed"
+  display-options.responsive-padding="on">
+
+  <oj-sp-smart-search slot="search" filter-criterion="{{ $variables.filterCriterion }}"
+    on-filter-criterion-changed="[[$listeners.filterCriterionChanged]]" search-context="[[ $variables.searchContext ]]"
+    search-config="[[ $variables.searchConfiguration.provider ]]"
+    suggestion-filters='["AssetGroupFilter", "ClassFilter"]'>
+  </oj-sp-smart-search>
+
+  <div slot="main" style="overflow:hidden; min-width:0; max-width:100%; padding: 0 4px;">
+
+    <!-- Legend bar -->
+    <div id="eqp-legend-bar">
+      <span class="eqp-legend-label">Event</span>
+
+      <span class="eqp-legend-pill eqp-pill--booked">
+        <span class="eqp-pill-dot" style="background:#1565C0;"></span>Booked
+      </span>
+      <span class="eqp-legend-pill eqp-pill--maintenance">
+        <span class="eqp-pill-dot" style="background:#757575;"></span>Maintenance
+      </span>
+
+      <span id="eqpAssetCount" class="eqp-legend-label" style="margin-left:auto;">0 assets</span>
+    </div>
+
+    <!-- Bryntum card -->
+    <div class="oj-flex oj-flex-item">
+      <div class="oj-flex-item" id="eqp-card" style="max-width:100vw; min-width:0;">
+        <div id="eqp-main"></div>
+      </div>
+    </div>
+
+  </div>
+
+</oj-sp-general-overview-page>
+
+<!-- ── Month-agenda popup ───────────────────────────────────────────────────
+     Bryntum Calendar 7.3.6 rendered inside an iframe. The iframe is not a
+     workaround for styling: Calendar and the Scheduler Pro 6.1.1 this page
+     already runs share 741 `.b-*` CSS selectors and one `globalThis.bryntum`
+     namespace, across a major version boundary. A separate document is the
+     only way to run both, and it keeps app-flow.json untouched.
+
+     Same shape as the pick-slip preview on initiate-picking-page.html: modal
+     oj-dialog, iframe in the body slot, src set to a blob URL from JS.
+     monthAgendaPopup.js has the full rationale. -->
+<oj-dialog id="eqpMonthAgendaDialog"
+  initial-visibility="hide" cancel-behavior="icon" modality="modal"
+  style="width: 540px; max-width: 94vw;">
+
+  <div slot="header"
+       style="display:flex; flex-direction:column; padding:14px 20px 12px 20px; border-bottom:1px solid var(--oj-core-divider-color,#e2e8f0); gap:4px;">
+    <div style="font-size:1rem; font-weight:700; color:#0f172a;">Month View</div>
+    <div style="font-size:0.8125rem; color:var(--oj-core-text-color-secondary,#565656);">
+      Bookings and planned maintenance for one unit, a month at a time
+    </div>
+  </div>
+
+  <div slot="body" style="padding:0;">
+    <iframe id="eqpMonthAgendaFrame" title="Equipment month agenda"
+      style="width:100%; height:min(700px, 74vh); border:0; border-top:1px solid var(--oj-core-divider-color,#e2e8f0); background:#fff;"></iframe>
+  </div>
+
+</oj-dialog>

@@ -1,0 +1,183 @@
+<oj-sp-general-overview-page id="rentalContractPage" page-title="Rental Contract"
+  display-options.responsive-padding="off" on-sp-go-to-parent="[[ $listeners.onSpGoToParent ]]" display-mode="mixed">
+
+  <div slot="main" class="oj-flex oj-sm-flex-direction-column oj-sm-width-full oj-sm-gap-4x">
+    
+    <!-- Tab Bar -->
+    <div class="oj-flex-item">
+      <oj-tab-bar
+        selection="{{ $variables.selectedTab }}"
+        edge="top"
+        data="[[ $variables.tabsDP ]]">
+        <template slot="itemTemplate" data-oj-as="item">
+          <li :id="[[item.data.id]]">
+            <a href="#">
+              <span :class="[[ 'oj-navigationlist-item-icon ' + item.data.icon ]]"></span>
+              <span class="oj-tabbar-item-label">
+                <oj-bind-text value="[[item.data.label]]"></oj-bind-text>
+              </span>
+            </a>
+          </li>
+        </template>
+      </oj-tab-bar>
+    </div>
+
+    <!-- Summary Card (Shared) -->
+    <div class="oj-flex-item oj-sm-padding-4x-horizontal">
+      <div class="oj-sm-padding-4x oj-sm-border-radius-4x oj-bg-neutral-0" 
+           style="border: 1px solid var(--oj-core-divider-margin); box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+        
+        <h3 class="oj-typography-body-xs oj-typography-bold oj-text-color-secondary oj-sm-margin-4x-bottom">EQUIPMENT IN THIS REQUEST</h3>
+        
+        <div class="oj-flex oj-sm-flex-direction-column oj-sm-gap-2x">
+          <oj-bind-for-each data="[[ $variables.cartItems ]]">
+            <template>
+              <div class="oj-flex oj-sm-justify-content-space-between">
+                <span class="oj-typography-body-sm oj-typography-semi-bold">
+                  <oj-bind-text value="[[ $current.data.name ]]"></oj-bind-text>
+                </span>
+                <span class="oj-typography-body-sm oj-text-color-secondary">
+                  <oj-bind-text value="[[ 'Qty ' + $current.data.qty + ' · $' + $current.data.rate.toLocaleString() + '/day' ]]"></oj-bind-text>
+                </span>
+              </div>
+            </template>
+          </oj-bind-for-each>
+        </div>
+
+        <div class="oj-flex oj-sm-justify-content-space-between oj-sm-margin-4x-top oj-sm-padding-4x-top"
+             style="border-top: 1px solid var(--oj-core-divider-margin);">
+          <span class="oj-typography-body-sm oj-typography-bold">Rental Period</span>
+          <span class="oj-typography-body-sm oj-typography-bold">2026-04-25 → 2026-05-30</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab Content -->
+    <div class="oj-flex-item oj-sm-padding-4x-horizontal">
+      
+      <!-- Tab 1: TERMS -->
+      <oj-bind-if test="[[ $variables.selectedTab === 'terms' ]]">
+        <div class="oj-flex oj-sm-flex-direction-column">
+          
+          <div class="oj-sm-padding-4x oj-sm-border-radius-4x oj-bg-neutral-0" 
+               style="border: 1px solid var(--oj-core-divider-margin);">
+            <div class="oj-flex oj-sm-align-items-center oj-sm-justify-content-space-between oj-sm-margin-2x-bottom">
+               <span class="oj-typography-body-sm oj-typography-bold">TERMS</span>
+               <span class="oj-ux-ico-chevron-down"></span>
+            </div>
+            
+            <div style="height: 300px; overflow-y: auto; border: 1px solid var(--oj-core-divider-margin); border-radius: 4px; padding: 12px; background: #fafafa;">
+                <p class="oj-typography-body-xs oj-text-color-secondary" style="white-space: pre-wrap; margin: 0; line-height: 1.6;">
+                  <oj-bind-text value="[[ $variables.termsText ]]"></oj-bind-text>
+                </p>
+            </div>
+          </div>
+
+          <div class="oj-sm-margin-4x-top oj-sm-padding-6x oj-sm-border-radius-4x oj-bg-neutral-0"
+               style="border: 1px solid var(--oj-core-divider-margin);">
+            <div class="oj-flex oj-sm-align-items-center oj-sm-gap-3x">
+              <input type="checkbox" id="termsCheck" :checked="[[ $variables.agreedToTerms ]]" 
+                     on-change="[[ (event) => $variables.agreedToTerms = event.target.checked ]]"
+                     style="width: 20px; height: 20px;">
+              <label for="termsCheck" class="oj-typography-body-sm oj-typography-bold">I Agree to the Rental Terms and Conditions</label>
+            </div>
+            <p class="oj-typography-body-xs oj-text-color-secondary oj-sm-margin-1x-top oj-sm-margin-8x-start">
+              By checking this box, you acknowledge that you have read and accept all terms above on behalf of Apex Construction Corp.
+            </p>
+          </div>
+        </div>
+      </oj-bind-if>
+
+      <!-- Tab 2: CUSTOMER DETAILS -->
+      <oj-bind-if test="[[ $variables.selectedTab === 'customer' ]]">
+        <div class="oj-flex oj-sm-flex-direction-column">
+          <div class="oj-flex oj-sm-align-items-center oj-sm-gap-2x oj-sm-margin-4x-bottom">
+            <span class="oj-ux-ico-contact-group"></span>
+            <h2 class="oj-typography-body-sm oj-typography-bold oj-sm-margin-0">CUSTOMER DETAILS</h2>
+          </div>
+
+          <oj-form-layout columns="2" direction="row" label-edge="top" class="oj-sm-width-full">
+            <oj-input-text label-hint="Customer Legal Name" value="{{ $variables.customer.legalName }}" readonly="true"></oj-input-text>
+            <oj-input-text label-hint="Account Number" value="{{ $variables.customer.accountNumber }}" readonly="true"></oj-input-text>
+            
+            <oj-input-text label-hint="FIRST NAME" value="{{ $variables.customer.firstName }}" placeholder="Contact first name"></oj-input-text>
+            <oj-input-text label-hint="LAST NAME" value="{{ $variables.customer.lastName }}" placeholder="Contact last name"></oj-input-text>
+            
+            <oj-input-text label-hint="CUSTOMER EMAIL" value="{{ $variables.customer.email }}"></oj-input-text>
+            <oj-input-text label-hint="CONTACT MOBILE NUMBER" value="{{ $variables.customer.mobile }}" placeholder="+1 (555) 000-0000"></oj-input-text>
+          </oj-form-layout>
+
+          <h3 class="oj-typography-body-xs oj-typography-bold oj-text-color-secondary oj-sm-margin-8x-top oj-sm-margin-2x-bottom">SITE / DELIVERY ADDRESS</h3>
+          
+          <oj-form-layout columns="1" label-edge="top" class="oj-sm-width-full">
+            <oj-input-text label-hint="CUSTOMER SITE ADDRESS 1" value="{{ $variables.customer.address1 }}" placeholder="Street address"></oj-input-text>
+            <oj-input-text label-hint="CUSTOMER SITE ADDRESS 2" value="{{ $variables.customer.address2 }}" placeholder="Suite, unit, building (optional)"></oj-input-text>
+          </oj-form-layout>
+
+          <oj-form-layout columns="4" direction="row" label-edge="top" class="oj-sm-margin-2x-top oj-sm-width-full">
+            <oj-input-text label-hint="CITY" value="{{ $variables.customer.city }}" placeholder="City"></oj-input-text>
+            <oj-input-text label-hint="STATE" value="{{ $variables.customer.state }}" placeholder="TX"></oj-input-text>
+            <oj-input-text label-hint="ZIP" value="{{ $variables.customer.zip }}" placeholder="77001"></oj-input-text>
+            <oj-input-text label-hint="COUNTRY" value="{{ $variables.customer.country }}" readonly="true"></oj-input-text>
+          </oj-form-layout>
+        </div>
+      </oj-bind-if>
+
+      <!-- Tab 3: INSURANCE -->
+      <oj-bind-if test="[[ $variables.selectedTab === 'insurance' ]]">
+        <div class="oj-flex oj-sm-flex-direction-column">
+          <div class="oj-flex oj-sm-align-items-center oj-sm-gap-2x oj-sm-margin-4x-bottom">
+            <span class="oj-ux-ico-shield"></span>
+            <h2 class="oj-typography-body-sm oj-typography-bold oj-sm-margin-0">INSURANCE DETAILS</h2>
+          </div>
+
+          <div class="oj-sm-padding-4x oj-sm-margin-4x-bottom oj-sm-border-radius-4x"
+               style="background-color: #f0f7ff; border: 1px solid #cce3ff; display: flex; align-items: center; gap: 16px;">
+            <span class="oj-ux-ico-shield" style="color: #005fb2;"></span>
+            <p class="oj-typography-body-xs" style="color: #005fb2; margin: 0;">
+              Per the rental terms, you must maintain insurance coverage for the full rental period. Please provide your current insurance details. These will be recorded on the rental contract.
+            </p>
+          </div>
+
+          <oj-form-layout columns="2" direction="row" label-edge="top" class="oj-sm-width-full">
+            <oj-input-text label-hint="INSURANCE POLICY #" value="{{ $variables.insurance.policyNumber }}" placeholder="e.g. POL-2026-00123"></oj-input-text>
+            <oj-input-text label-hint="ISSUE AGENCY / INSURER" value="{{ $variables.insurance.insurer }}" placeholder="e.g. Nationwide Insurance"></oj-input-text>
+            <oj-input-date label-hint="POLICY START DATE" value="{{ $variables.insurance.startDate }}"></oj-input-date>
+            <oj-input-date label-hint="POLICY END DATE" value="{{ $variables.insurance.endDate }}"></oj-input-date>
+          </oj-form-layout>
+
+          <div class="oj-sm-margin-8x-top oj-sm-padding-6x oj-sm-border-radius-4x oj-bg-neutral-0"
+               style="border: 1px solid var(--oj-core-divider-margin);">
+            <h4 class="oj-typography-body-xs oj-typography-bold oj-text-color-secondary oj-sm-margin-2x-bottom">MINIMUM COVERAGE REQUIREMENTS</h4>
+            <ul class="oj-typography-body-xs oj-text-color-secondary" style="margin: 0; padding-left: 20px; line-height: 2;">
+              <li>Commercial General Liability: $2,000,000 per occurrence & annual aggregate</li>
+              <li>Comprehensive Coverage: $2,000,000 per occurrence</li>
+              <li>RiteSoftware Solutions must be named as additional insured</li>
+            </ul>
+          </div>
+        </div>
+      </oj-bind-if>
+
+    </div>
+
+    <!-- Actions Footer -->
+    <div class="oj-flex oj-sm-align-items-center oj-sm-justify-content-space-between oj-sm-padding-8x oj-bg-neutral-0"
+         style="border-top: 1px solid var(--oj-core-divider-margin); position: sticky; bottom: 0; z-index: 10;">
+      
+      <div class="oj-flex oj-sm-align-items-center oj-sm-gap-2x">
+        <input type="checkbox" id="continueCheck" :checked="[[ $variables.agreedToContinue ]]"
+               on-change="[[ (event) => $variables.agreedToContinue = event.target.checked ]]"
+               style="width: 18px; height: 18px;">
+        <label for="continueCheck" class="oj-typography-body-xs oj-text-color-secondary">Accept terms to continue</label>
+      </div>
+
+      <div class="oj-flex oj-sm-gap-3x">
+        <oj-button label="Cancel" chroming="outlined" on-oj-action="[[ $listeners.onSpGoToParent ]]" style="min-width: 120px;"></oj-button>
+        <oj-button label="Accept & Submit Request" chroming="solid" disabled="[[ !$variables.agreedToContinue ]]" style="min-width: 200px;"></oj-button>
+      </div>
+
+    </div>
+
+  </div>
+
+</oj-sp-general-overview-page>

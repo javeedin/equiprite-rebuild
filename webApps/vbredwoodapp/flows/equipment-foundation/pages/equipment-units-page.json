@@ -1,0 +1,612 @@
+{
+  "metadata": {},
+  "variables": {
+    "equipmentId": {
+      "type": "string",
+      "input": "fromUrl",
+      "persisted": "none"
+    },
+    "controlType": {
+      "type": "string",
+      "input": "fromUrl",
+      "persisted": "none",
+      "defaultValue": "SERIAL"
+    },
+    "pageTitle": {
+      "type": "string",
+      "defaultValue": "Equipment Units"
+    },
+    "pageSubtitle": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "isLoading": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "isUploading": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "masterRecord": {
+      "type": "object",
+      "defaultValue": {}
+    },
+    "unitsArray": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "unitsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "id",
+        "data": "{{ $page.variables.unitsArray }}"
+      }
+    },
+    "ExpTypeRows": {
+      "type": "any[]",
+      "description": "PPM expenditure types authored AT THIS EQUIPMENT (MASTER scope in EQR_EXP_TYPE_MAP). Same table the Configurations > Expenditure Types tab edits -- one source of truth, two ways in. Empty does NOT mean the timesheet shows nothing: see ExpTypeResolvedLevel.",
+      "defaultValue": []
+    },
+    "ExpTypeRowsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "eqrExpTypeMapId",
+        "data": "{{ $page.variables.ExpTypeRows }}"
+      }
+    },
+    "ExpTypeResolvedLevel": {
+      "type": "string",
+      "description": "What a TIMESHEET would actually use for this equipment: MASTER (its own), SUBCLASS or CLASS (inherited), or NONE (nothing mapped anywhere, so the project's full list shows). From views/exp-type-map-resolve -- the same call the timesheet makes.",
+      "defaultValue": "NONE"
+    },
+    "ExpTypeInherited": {
+      "type": "string",
+      "description": "Comma-joined types inherited when ExpTypeResolvedLevel is SUBCLASS or CLASS. Shown so nobody 'fixes' an inheriting equipment by authoring a duplicate here -- which REPLACES the family mapping rather than adding to it.",
+      "defaultValue": ""
+    },
+    "NewEquipExpType": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "FusionExpTypeOptions": {
+      "type": "any[]",
+      "description": "Fusion's expenditure types with their unit, as {value,label}. Tenant-wide by design: one mapping serves every project this equipment is sent to.",
+      "defaultValue": []
+    },
+    "FusionExpTypeLovDP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "[[ $page.variables.FusionExpTypeOptions ]]"
+      }
+    },
+    "attLevel": {
+      "type": "string",
+      "description": "HEADER = the equipment master (equipment-units-page), LINE = one serial (equipment-unit-detail-page). Decides which record the Attachments dialog reads and writes - see resources/js/equipmentAttachments.js target().",
+      "defaultValue": "HEADER"
+    },
+    "attRows": {
+      "type": "any[]",
+      "description": "This record's ACTIVE attachments (eqpt /equipment-attachments, EQR_ATTACHMENT), mapped by equipmentAttachments.toRow.",
+      "defaultValue": []
+    },
+    "attInheritedRows": {
+      "type": "any[]",
+      "description": "LINE only: the master's attachments, shown read-only under 'From the equipment'.",
+      "defaultValue": []
+    },
+    "attLoading": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "attLoadError": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "attMode": {
+      "type": "string",
+      "description": "'list' | 'add' | 'detail' - which view of the Attachments dialog is showing. Each has its own footer.",
+      "defaultValue": "list"
+    },
+    "attForm": {
+      "type": "object",
+      "defaultValue": {
+        "name": "",
+        "category": null,
+        "validFrom": null,
+        "validTo": null,
+        "notes": ""
+      }
+    },
+    "attNeedsDates": {
+      "type": "boolean",
+      "description": "True when the picked category has validityRequired=Y: Valid from / to are shown and required. Set by attCategoryChangedChain.",
+      "defaultValue": false
+    },
+    "attFileInfo": {
+      "type": "object",
+      "description": "{name,size,type} of the picked file, for display. The File itself is held in equipmentAttachments.setPendingFile - a File does not survive VB's copy into a page variable.",
+      "defaultValue": {}
+    },
+    "attErrors": {
+      "type": "object",
+      "description": "Field errors keyed file | category | name | validFrom | validTo.",
+      "defaultValue": {}
+    },
+    "attNotice": {
+      "type": "object",
+      "description": "{type:'success'|'error', text} banner inside the dialog (the shell toast renders behind a modal).",
+      "defaultValue": {}
+    },
+    "attSaving": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "attViewer": {
+      "type": "object",
+      "description": "{row, url, mintedAt, loading, error} for the detail view. url is a 15-minute common-service link - never persisted.",
+      "defaultValue": {}
+    },
+    "attConfirmRemoveId": {
+      "type": "any"
+    },
+    "attFilterCat": {
+      "type": "string",
+      "defaultValue": "ALL"
+    },
+    "attFilterStatus": {
+      "type": "string",
+      "defaultValue": "ALL"
+    },
+    "attCategoryOptions": {
+      "type": "any[]",
+      "description": "Categories allowed at attLevel (EQR_CONF_ATTACHMENT_CATEGORY, appliesTo = level or BOTH), as {value:id,label,code,validityRequired,defaultValidityMonths}.",
+      "defaultValue": []
+    },
+    "attCategoryFilterOptions": {
+      "type": "any[]",
+      "defaultValue": [
+        {
+          "value": "ALL",
+          "label": "All categories"
+        }
+      ]
+    },
+    "attStatusFilterOptions": {
+      "type": "any[]",
+      "defaultValue": [
+        {
+          "value": "ALL",
+          "label": "All status"
+        },
+        {
+          "value": "valid",
+          "label": "Valid"
+        },
+        {
+          "value": "expired",
+          "label": "Expired"
+        },
+        {
+          "value": "upcoming",
+          "label": "Upcoming"
+        }
+      ]
+    },
+    "attCategoryADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.attCategoryOptions }}"
+      }
+    },
+    "attCategoryFilterADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.attCategoryFilterOptions }}"
+      }
+    },
+    "attStatusFilterADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.attStatusFilterOptions }}"
+      }
+    },
+    "classDraft": {
+      "type": "object",
+      "defaultValue": {
+        "classId": null,
+        "subclassId": null
+      },
+      "description": "Change Class dialog: the class / subclass being chosen. Saved by saveClassChangeChain."
+    },
+    "classOptions": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "allSubclassOptions": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "subclassOptions": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "classOptionsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.classOptions }}"
+      }
+    },
+    "subclassOptionsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.subclassOptions }}"
+      }
+    },
+    "classChangeLoading": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "classChangeSaving": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "classChangeError": {
+      "type": "string",
+      "defaultValue": ""
+    }
+  },
+  "eventListeners": {
+    "vbBeforeEnter": {
+      "chains": [
+        {
+          "chain": "enforcePageAccessChain"
+        }
+      ]
+    },
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "vbEnterChain",
+          "parameters": {}
+        },
+        {
+          "chain": "loadEquipExpTypesChain",
+          "parameters": {}
+        },
+        {
+          "chain": "loadAttachmentsChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onSpInFlowBack": {
+      "chains": [
+        {
+          "chain": "goToParentChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "spGoToParent": {
+      "chains": [
+        {
+          "chain": "goToParentChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onOpenUnit": {
+      "chains": [
+        {
+          "chain": "goToUnitDetailChain",
+          "parameters": {
+            "rowId": "{{ $event.detail && $event.detail.context ? ($event.detail.context.key != null ? $event.detail.context.key : ($event.detail.context.data ? $event.detail.context.data.id : '')) : '' }}"
+          }
+        }
+      ]
+    },
+    "onImageSelected": {
+      "chains": [
+        {
+          "chain": "uploadImageChain",
+          "parameters": {
+            "file": "[[ $event.detail && $event.detail.files && $event.detail.files.length ? $event.detail.files[0] : null ]]"
+          }
+        }
+      ]
+    },
+    "onEquipExpTypeAddClicked": {
+      "chains": [
+        {
+          "chain": "addEquipExpTypeChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onEquipExpTypeRemoveClicked": {
+      "chains": [
+        {
+          "chain": "removeEquipExpTypeChain",
+          "parameters": {
+            "id": "{{ $event.detail.id }}",
+            "action": "delete"
+          }
+        }
+      ]
+    },
+    "onEquipExpTypeDefaultClicked": {
+      "chains": [
+        {
+          "chain": "removeEquipExpTypeChain",
+          "parameters": {
+            "id": "{{ $event.detail.id }}",
+            "action": "default"
+          }
+        }
+      ]
+    },
+    "onOpenAttachments": {
+      "chains": [
+        {
+          "chain": "openAttachmentsChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onAttAdd": {
+      "chains": [
+        {
+          "chain": "resetAttachmentFormChain",
+          "parameters": {
+            "mode": "add"
+          }
+        }
+      ]
+    },
+    "onChangeClassClicked": {
+      "chains": [
+        {
+          "chain": "openChangeClassChain"
+        }
+      ]
+    },
+    "onClassDraftChanged": {
+      "chains": [
+        {
+          "chain": "classDraftChangedChain",
+          "parameters": {
+            "event": "[[ $event ]]"
+          }
+        }
+      ]
+    },
+    "onAttCancel": {
+      "chains": [
+        {
+          "chain": "resetAttachmentFormChain",
+          "parameters": {
+            "mode": "list"
+          }
+        }
+      ]
+    },
+    "onAttFileSelected": {
+      "chains": [
+        {
+          "chain": "pickAttachmentFileChain",
+          "parameters": {
+            "file": "[[ $event.detail && $event.detail.files && $event.detail.files.length ? $event.detail.files[0] : null ]]"
+          }
+        }
+      ]
+    },
+    "onAttFileCleared": {
+      "chains": [
+        {
+          "chain": "pickAttachmentFileChain",
+          "parameters": {
+            "file": null,
+            "clear": true
+          }
+        }
+      ]
+    },
+    "onAttCategoryChanged": {
+      "chains": [
+        {
+          "chain": "attCategoryChangedChain",
+          "parameters": {
+            "categoryId": "{{ $event.detail.value }}"
+          }
+        }
+      ]
+    },
+    "onAttSave": {
+      "chains": [
+        {
+          "chain": "uploadAttachmentChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onAttView": {
+      "chains": [
+        {
+          "chain": "viewAttachmentChain",
+          "parameters": {
+            "id": "{{ $event.detail.id }}",
+            "action": "{{ $event.detail.action }}"
+          }
+        }
+      ]
+    },
+    "onAttDownload": {
+      "chains": [
+        {
+          "chain": "downloadAttachmentChain",
+          "parameters": {
+            "id": "{{ $event.detail.id }}"
+          }
+        }
+      ]
+    },
+    "onAttRemove": {
+      "chains": [
+        {
+          "chain": "removeAttachmentChain",
+          "parameters": {
+            "id": "{{ $event.detail.id }}"
+          }
+        }
+      ]
+    },
+    "onSaveClassClicked": {
+      "chains": [
+        {
+          "chain": "saveClassChangeChain"
+        }
+      ]
+    }
+  },
+  "functions": {
+    "formatDate": {
+      "params": {
+        "value": "any"
+      },
+      "return": "string"
+    },
+    "formatNumber": {
+      "params": {
+        "value": "any"
+      },
+      "return": "string"
+    },
+    "badgeClass": {
+      "params": {
+        "status": "any"
+      },
+      "return": "string"
+    },
+    "badgeLabel": {
+      "params": {
+        "status": "any"
+      },
+      "return": "string"
+    },
+    "yesNo": {
+      "params": {
+        "value": "any"
+      },
+      "return": "string"
+    },
+    "filterAttachments": {
+      "params": {
+        "rows": "any",
+        "category": "any",
+        "status": "any"
+      },
+      "return": "any"
+    },
+    "attStatusClass": {
+      "params": {
+        "status": "any"
+      },
+      "return": "string"
+    },
+    "attButtonLabel": {
+      "params": {
+        "rows": "any"
+      },
+      "return": "string"
+    },
+    "attExpiredCount": {
+      "params": {
+        "rows": "any"
+      },
+      "return": "number"
+    },
+    "subclassOptionsFor": {
+      "params": {
+        "allSubclassOptions": "any[]",
+        "classId": "any"
+      },
+      "return": "any[]"
+    },
+    "isEndDated": {
+      "params": {
+        "effectiveEndDate": "any",
+        "now": "any"
+      },
+      "return": "boolean"
+    },
+    "canSaveClass": {
+      "params": {
+        "draft": "any",
+        "masterRecord": "any",
+        "subclassOptions": "any[]"
+      },
+      "return": "any"
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-sp-general-overview-page": {
+        "path": "oj-sp/general-overview-page/loader"
+      },
+      "oj-table": {
+        "path": "ojs/ojtable"
+      },
+      "oj-button": {
+        "path": "ojs/ojbutton"
+      },
+      "oj-file-picker": {
+        "path": "ojs/ojfilepicker"
+      },
+      "oj-form-layout": {
+        "path": "ojs/ojformlayout"
+      },
+      "oj-input-text": {
+        "path": "ojs/ojinputtext"
+      },
+      "oj-text-area": {
+        "path": "ojs/ojinputtext"
+      },
+      "oj-progress-circle": {
+        "path": "ojs/ojprogress"
+      },
+      "oj-bind-if": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-text": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-dialog": {
+        "path": "ojs/ojdialog"
+      },
+      "oj-select-single": {
+        "path": "ojs/ojselectsingle"
+      },
+      "oj-input-date": {
+        "path": "ojs/ojdatetimepicker"
+      },
+      "oj-bind-for-each": {
+        "path": "ojs/ojknockout"
+      }
+    }
+  }
+}

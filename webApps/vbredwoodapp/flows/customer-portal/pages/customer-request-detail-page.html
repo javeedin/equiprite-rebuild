@@ -1,0 +1,232 @@
+<style>
+  .demo-data-grid {
+    width: 100%;
+    height: calc(100vh - 280px);
+  }
+  .row-action-btn { margin: 0 1px; }
+
+  /* Fill the viewport (up to an ultra-wide cap) so the line grid gets maximum
+     room before it scrolls horizontally, instead of a fixed 1440px column. */
+  #oj_gop_cust_req_detail {
+    --oj-sp-general-overview-page-max-width: 100% !important;
+    width: 100% !important;
+    max-width: min(2400px, calc(100vw - 48px)) !important;
+    margin: 0 auto !important;
+  }
+
+  /* Banner plain-text info fields (dark banner, white text) */
+  .cr-info-label {
+    font-size: var(--oj-typography-body-xs-font-size, 0.6875rem);
+    font-weight: var(--oj-typography-body-font-weight-bold, 700);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: rgba(255, 255, 255, 0.55);
+  }
+  .cr-info-value {
+    font-size: var(--oj-typography-body-sm-font-size, 0.8125rem);
+    color: rgba(255, 255, 255, 0.92);
+    font-weight: 400;
+  }
+  .cr-info-divider {
+    color: rgba(255, 255, 255, 0.35);
+    font-size: 0.75rem;
+    margin: 0 2px;
+  }
+</style>
+
+<oj-sp-general-overview-page
+  id="oj_gop_cust_req_detail"
+  class="oj-sm-width-full"
+  page-title="[[ $variables.formData.requestNumber ]]"
+  display-mode="mixed"
+  display-options.in-flow-back="true"
+  display-options.responsive-padding="on"
+  on-sp-in-flow-back="[[ $listeners.onSpInFlowBack ]]">
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- Search Banner: Inline info row, then all action buttons on one line   -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div slot="search" style="width: 100%;">
+
+    <!-- Row 1: Inline meta — customer | contact | location | dates.
+         Sits directly under the request number, matching the project-side
+         equipment-request-detail-page (info first, then actions) so both detail
+         pages read the same. Dates are folded into this one row rather than
+         wrapping to a second. -->
+    <div style="margin-bottom:4px; display:flex; flex-wrap:wrap; align-items:center; gap:6px;">
+      <span class="cr-info-value"><oj-bind-text value="[[ $variables.formData.customerName || '—' ]]"></oj-bind-text></span>
+      <span class="cr-info-divider">|</span>
+      <span class="cr-info-value"><oj-bind-text value="[[ $variables.formData.customerContact || '—' ]]"></oj-bind-text></span>
+      <span class="cr-info-divider">|</span>
+      <span class="cr-info-value"><oj-bind-text value="[[ $variables.formData.location || '—' ]]"></oj-bind-text></span>
+      <span class="cr-info-divider">|</span>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <span class="cr-info-value"><oj-bind-text value="[[ $page.functions.formatDate($variables.formData.startDate) ]]"></oj-bind-text></span>
+        <span class="cr-info-divider">→</span>
+        <span class="cr-info-value"><oj-bind-text value="[[ $page.functions.formatDate($variables.formData.endDate) ]]"></oj-bind-text></span>
+      </div>
+    </div>
+
+    <!-- Row 2: ALL actions on ONE line — Refresh, Quote, then Reject / Accept /
+         Initiate Return, in a single LEFT-aligned flex group. Previously the
+         icons and the per-line actions were two separate divs, which forced them
+         onto two lines. Same one-group shape as the project-side
+         equipment-request-detail-page, where the conditional buttons are siblings
+         inside the group rather than a flex child of their own (an oj-bind-if as
+         a direct space-between child collapses when false and strands the icons).
+         Refresh — full browser reload; URL params preserve requestId so the
+         reload re-runs initChain with the same id.
+         Quote — same icon as the My Requests Quote column, so the customer can
+         reach the quote from inside the request instead of going back to the
+         list. Shown only once a quote exists (QUOTE_GENERATED awaiting
+         acceptance, QUOTE_ACCEPTED / DEPLOYED as a read-back).
+         Per-line actions are visible once the header is past initial review
+         (IN_PROCESS+); each enables only when EVERY selected line has the
+         matching lineStatus. Mixed or empty selection → all disabled. -->
+    <div class="oj-flex oj-sm-align-items-center"
+         style="justify-content:flex-start; flex-wrap:wrap; margin-bottom:10px;">
+      <div class="oj-flex oj-sm-align-items-center" style="gap:8px;">
+        <oj-button id="btnRefreshPage" display="icons" chroming="borderless"
+                   class="oj-button-sm" title="Refresh"
+                   on-oj-action="[[ function() { window.location.reload(); } ]]">
+          <span slot="startIcon" class="oj-ux-ico-refresh"></span>
+          <span>Refresh</span>
+        </oj-button>
+        <oj-bind-if test="[[ $variables.quotingAllowed && ($variables.formData.status === 'QUOTE_GENERATED' || $variables.formData.status === 'QUOTE_ACCEPTED' || $variables.formData.status === 'DEPLOYED') ]]">
+          <oj-button id="btnViewQuote" display="icons" chroming="borderless"
+                     class="oj-button-sm" title="View quote"
+                     on-oj-action="[[ $listeners.onOpenCustomerQuote ]]">
+            <span slot="startIcon" class="oj-ux-ico-document-check"></span>
+            <span>View quote</span>
+          </oj-button>
+        </oj-bind-if>
+        <!-- DRAFT actions (draftActionChain → resources/js/draftResume.js), same
+             as the project request detail page. -->
+        <oj-bind-if test="[[ $variables.formData.status === 'DRAFT' ]]">
+          <oj-button id="btnDeleteDraft"
+            chroming="outlined" class="oj-button-sm"
+            :disabled="[[ $variables.isDraftBusy ]]"
+            on-oj-action="[[ $listeners.onAskDeleteDraft ]]" display="label">
+            <span slot="startIcon" class="oj-ux-ico-trash"></span>
+            <span>Delete Draft</span>
+          </oj-button>
+          <oj-button id="btnEditDraft"
+            chroming="outlined" class="oj-button-sm"
+            :disabled="[[ $variables.isDraftBusy ]]"
+            on-oj-action="[[ $listeners.onEditDraft ]]" display="label">
+            <span slot="startIcon" class="oj-ux-ico-edit"></span>
+            <span>Edit Draft</span>
+          </oj-button>
+          <oj-button id="btnSubmitDraft"
+            chroming="callToAction" class="oj-button-sm"
+            :disabled="[[ $variables.isDraftBusy ]]"
+            title="Opens the cart with current prices so you can submit"
+            on-oj-action="[[ $listeners.onSubmitDraft ]]" display="label">
+            <span slot="startIcon" class="oj-ux-ico-check-circle"></span>
+            <span>Submit Draft</span>
+          </oj-button>
+        </oj-bind-if>
+        <oj-bind-if test="[[ $functions.headerIsConfirmed($variables.formData.status) ]]">
+          <oj-button id="btnRejectDelivery"
+            chroming="outlined" class="oj-button-sm"
+            :disabled="[[ !$variables.selectionState.allShipToSite ]]"
+            on-oj-action="[[ $listeners.onRejectDelivery ]]" display="label">
+            <span slot="startIcon" class="oj-ux-ico-close-circle"></span>
+            <span>Reject</span>
+          </oj-button>
+          <oj-button id="btnAcceptDelivery"
+            chroming="callToAction" class="oj-button-sm"
+            :disabled="[[ !$variables.selectionState.allShipToSite ]]"
+            on-oj-action="[[ $listeners.onAcceptDelivery ]]" display="label">
+            <span slot="startIcon" class="oj-ux-ico-check-circle"></span>
+            <span>Accept</span>
+          </oj-button>
+          <oj-button id="btnInitiateReturn"
+            chroming="callToAction" class="oj-button-sm"
+            :disabled="[[ !$variables.selectionState.allReturnable ]]"
+            on-oj-action="[[ $listeners.onInitiateReturn ]]" display="label">
+            <span slot="startIcon" class="oj-ux-ico-check-circle"></span>
+            <span>Initiate Return</span>
+          </oj-button>
+        </oj-bind-if>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- MAIN CONTENT: DataGrid                                              -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div class="oj-flex oj-sm-flex-direction-column oj-sm-width-full" slot="main" style="width: 100% !important; padding: 0 12px;">
+
+    <div class="oj-panel oj-bg-neutral-0" style="border-radius: 4px; box-shadow: 0 4px 20px rgba(0,0,0,0.10); overflow: hidden; height: calc(100vh - 280px);">
+      <oj-data-grid id="datagrid" class="demo-data-grid" aria-label="Customer Request Lines"
+        data="[[ $variables.dataGridProvider ]]" selection="{{ $variables.selection }}"
+        cell.editable="[[ $functions.getIsEditable.bind($functions) ]]"
+        header.column.style="[[ $functions.getColumnHeaderStyle.bind($functions) ]]" header.row.style="width:50px;"
+        header.column.filterable="[[ $functions.getHeaderFilterable.bind($functions) ]]"
+        header.column.resizable.width="enable" header.column.resizable.height="enable"
+        header.row.resizable.width="enable" header.row.resizable.height="enable"
+        header.column.hidable="enable" header.row.hidable="enable"
+        scroll-policy="loadMoreOnScroll"
+        edit-mode="none"
+        selection-mode.cell="multiple">
+
+        <template slot="columnHeaderTemplate" data-oj-as="header">
+          <oj-bind-if test="[[ header.item.index === 0 ]]">
+            <div style="display:flex; justify-content:center; align-items:center; height:100%;">
+              <input type="checkbox"
+                :checked="[[ $variables.selectionTick >= 0 && $functions.isAllSelected() ]]"
+                on-change="[[ $functions.onHeaderCheckboxChanged.bind($functions, $listeners.onSelectionChanged) ]]"
+                style="width:16px; height:16px; cursor:pointer; accent-color:var(--oj-core-brand-color-primary);" />
+            </div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ header.item.index !== 0 ]]">
+            <oj-bind-text value="[[ header.item.data ]]"></oj-bind-text>
+          </oj-bind-if>
+        </template>
+
+        <template slot="cellTemplate" data-oj-as="cell">
+
+          <oj-bind-if test="[[ $functions.getColumnType(cell.item.columnIndex) === 'select' ]]">
+            <div style="display: flex; justify-content: center; align-items: center; height: 100%;">
+              <input type="checkbox"
+                :checked="[[ $variables.selectionTick >= 0 && $functions.isRowSelected(cell.item.rowIndex) ]]"
+                on-change="[[ $functions.onRowCheckboxChanged.bind($functions, cell.item.rowIndex, $listeners.onSelectionChanged) ]]"
+                style="width:16px; height:16px; cursor:pointer; accent-color:var(--oj-core-brand-color-primary);" />
+            </div>
+          </oj-bind-if>
+
+          <oj-bind-if test="[[ $functions.getColumnType(cell.item.columnIndex) === 'readonly' ]]">
+            <span class="oj-text-color-secondary oj-typography-body-sm"><oj-bind-text value="[[ cell.item.data.data ]]"></oj-bind-text></span>
+          </oj-bind-if>
+
+          <!-- lineStatus as plain text — colour pills are reserved for the
+               request header status. -->
+          <oj-bind-if test="[[ $functions.getColumnType(cell.item.columnIndex) === 'status' ]]">
+            <oj-bind-if test="[[ !!cell.item.data.data ]]">
+              <span :class="[[ $application.functions.statusTextClass() ]]">
+                <oj-bind-text value="[[ $application.functions.formatLineStatus(cell.item.data.data) ]]"></oj-bind-text>
+              </span>
+            </oj-bind-if>
+          </oj-bind-if>
+
+        </template>
+      </oj-data-grid>
+    </div>
+
+  </div>
+</oj-sp-general-overview-page>
+
+<!-- Delete Draft confirmation (opened by draftActionChain 'askDelete'). -->
+<oj-dialog id="deleteDraftDialog" dialog-title="Delete draft?"
+  initial-visibility="hide" cancel-behavior="icon" modality="modal" style="width:420px;">
+  <div slot="body" style="padding:8px 4px;">
+    <oj-bind-text value="[[ 'Delete draft ' + ($variables.formData.requestNumber || '') + ' and all of its lines? This cannot be undone.' ]]"></oj-bind-text>
+  </div>
+  <div slot="footer">
+    <oj-button chroming="outlined" on-oj-action="[[ $listeners.onCancelDeleteDraft ]]">Cancel</oj-button>
+    <oj-button chroming="danger" :disabled="[[ $variables.isDraftBusy ]]"
+      on-oj-action="[[ $listeners.onDeleteDraft ]]">Delete</oj-button>
+  </div>
+</oj-dialog>

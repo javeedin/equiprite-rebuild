@@ -1,0 +1,898 @@
+<!--
+  Initiate Picking — Smart Search Page (PATH B, hardcoded data)
+  Template: oj-sp-smart-search-page + oj-table + side drawer + bulk dialog
+-->
+<style>
+  /* ── Table column header — scoped via custom wrapper ── */
+  .pick-table-host .oj-table-column-header-cell {
+    background-color: var(--oj-core-neutral-color-2, #f1f1f1);
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--oj-core-text-color-secondary, #565656);
+    padding: 10px 12px;
+  }
+  .pick-table-host .oj-table-column-header-text {
+    white-space: nowrap;
+  }
+  .pick-table-host .oj-table-body-row:hover {
+    background-color: var(--oj-core-neutral-color-1, #fafafa);
+    cursor: pointer;
+  }
+  .pick-table-host .oj-table-data-cell {
+    padding: 8px 12px;
+    font-size: 0.8125rem;
+    vertical-align: middle;
+  }
+
+  /* ── Status / picking badges ── */
+  .pick-status-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+  /* Legacy aliases — colours come from the canonical status palette in
+     resources/css/app.css. New markup should use .status-pill instead. */
+  .pick-status--neutral { background: var(--status-draft-bg);      color: var(--status-draft-text); }
+  .pick-status--info    { background: var(--status-submitted-bg);  color: var(--status-submitted-text); }
+  .pick-status--success { background: var(--status-deployed-bg);   color: var(--status-deployed-text); }
+  .pick-status--warning { background: var(--status-in-process-bg); color: var(--status-in-process-text); }
+  .pick-status--danger  { background: var(--status-rejected-bg);   color: var(--status-rejected-text); }
+
+  /* Inline note when lines are stranded at PICK_INITIATED. Uses the canonical
+     In Process amber from resources/css/app.css. */
+  /* Plain informational text — no banner fill or status colour. It reports a
+     completed state ("all released"), not a warning, so the amber treatment it
+     used to carry read as a problem. */
+  .pick-stuck-note {
+    margin-top: 10px;
+    font-size: 0.75rem;
+    line-height: 1.45;
+    color: var(--oj-core-text-color-secondary, #565656);
+  }
+
+  /* ── Project / Customer shared column ──
+     Secondary line under the party name: the project code for internal rows,
+     the literal "Customer" for outsourced ones. */
+  .pick-party-sub {
+    font-size: 0.75rem;
+    color: var(--oj-core-text-color-secondary, #565656);
+    margin-top: 1px;
+  }
+
+  /* ── Req number link ── */
+  .pick-req-link {
+    color: var(--oj-core-brand-color-primary, #005cb1);
+    font-weight: 700;
+    font-size: 0.8rem;
+  }
+
+  /* ── Settings strip ── */
+  .pick-settings-strip {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 8px 16px;
+    background: var(--oj-core-neutral-color-1, #fafafa);
+    border: 1px solid var(--oj-core-divider-color, #e0e0e0);
+    border-radius: 6px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+  .pick-settings-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--oj-core-text-color-secondary, #565656);
+    margin-bottom: 2px;
+  }
+  .pick-settings-value {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--oj-core-text-color-primary, #161616);
+  }
+  .pick-settings-divider {
+    width: 1px;
+    height: 28px;
+    background: var(--oj-core-divider-color, #e0e0e0);
+  }
+
+  /* ── Filter toolbar ── */
+  .pick-toolbar {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+
+  /* ── Tab count badge ── */
+  .pick-tab-count {
+    font-size: 0.7rem;
+    font-weight: 700;
+    margin-left: 4px;
+    opacity: 0.7;
+  }
+
+  /* ── Drawer detail fields ── */
+  .pick-field-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--oj-core-text-color-secondary, #565656);
+    margin-bottom: 2px;
+  }
+  .pick-field-value {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--oj-core-text-color-primary, #161616);
+  }
+  .pick-section-heading {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--oj-core-brand-color-primary, #005cb1);
+    margin: 14px 0 8px 0;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--oj-core-divider-color, #e0e0e0);
+  }
+
+  /* ── Lines data grid host ── */
+  .pick-grid-host .oj-datagrid-cell {
+    padding: 6px 10px;
+    font-size: 0.8125rem;
+    color: var(--oj-core-text-color-primary, #161616);
+    border-bottom: 1px solid var(--oj-core-divider-color, #f1f5f9);
+  }
+  .pick-grid-host .oj-datagrid-header-cell {
+    border-bottom: 1px solid var(--oj-core-divider-color, #e2e8f0);
+  }
+  .pick-grid-host .oj-datagrid-row-header-cell {
+    background-color: #f8fafc;
+    font-size: 0.7rem;
+    color: var(--oj-core-text-color-secondary, #475569);
+    text-align: center;
+    padding: 6px;
+  }
+
+  /* ── Exception card ── */
+  .pick-exception-card {
+    background: #fff4e0;
+    border: 1px solid #f5c6a0;
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+  }
+  .pick-exception-card--critical {
+    background: #fce8e8;
+    border-color: #ef9a9a;
+  }
+  .pick-exception-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #c45c00;
+    margin-bottom: 4px;
+  }
+  .pick-exception-label--critical { color: #c62828; }
+  .pick-exception-issue { font-size: 0.8125rem; color: #7c3800; }
+  .pick-exception-issue--critical { color: #7f0000; }
+
+  /* ── Last result banner ── */
+  .pick-result-banner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    background: #e8f5e9;
+    border: 1px solid #a5d6a7;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    font-size: 0.8125rem;
+    color: #2e7d32;
+    font-weight: 500;
+  }
+
+  /* Release-result banner. Same shape as .pick-result-banner, in three
+     severities. Lives INSIDE the dialog because the dialog now stays open
+     across releases, so a toast would sit behind the modal overlay. */
+  .pick-release-banner--warning {
+    background: #fff8e1;
+    border-color: #ffcc80;
+    color: #7c3800;
+  }
+
+  .pick-release-banner--error {
+    background: #fdecea;
+    border-color: #f5aca6;
+    color: #a02020;
+  }
+
+  /* ── Rejection block ── */
+  .pick-rejection-block {
+    background: #fff7f0;
+    border: 1px solid #f5c6a0;
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+  }
+  .pick-rejection-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #c45c00;
+    margin-bottom: 4px;
+  }
+</style>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!--  SMART SEARCH PAGE SHELL                                -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<oj-sp-smart-search-page page-title="Initiate Picking" display-mode="mixed" primary-action='[[ {
+    "label": $variables.isBulkInitiating
+              ? "Initiating..."
+              : ($variables.selectedIds.length > 0
+                  ? "Bulk Initiate (" + $variables.selectedIds.length + ")"
+                  : "Bulk Initiate"),
+    "icon": "oj-ux-ico-play",
+    "display": "on",
+    "disabled": $variables.selectedIds.length === 0 || $variables.isBulkInitiating
+  } ]]'
+  on-sp-primary-action="[[$listeners.onBulkInitiate]]" secondary-actions='[[ [{
+    "id": "clear-selection",
+    "label": "Clear Selection",
+    "display": "on",
+    "disabled": $variables.selectedIds.length === 0
+  }] ]]'
+  on-sp-secondary-action="[[$listeners.onClearSelection]]">
+
+  <!-- ── SEARCH SLOT ── -->
+  <oj-sp-smart-search
+    slot="search"
+    filter-criterion="{{ $variables.filterCriterion }}"
+    on-filter-criterion-changed="[[$listeners.filterCriterionChanged]]"
+    search-context="[[ $variables.searchContext ]]"
+    search-config="[[ $variables.searchConfiguration.provider ]]">
+  </oj-sp-smart-search>
+
+  <!-- ── Main Table ── -->
+  <div class="pick-table-host">
+  <oj-sp-collection-container>
+    <oj-table
+      id="initiatePickingTable"
+      data="[[ $variables.PickingQueueADP ]]"
+      class="oj-table-stretch oj-sm-width-full"
+      scroll-policy="loadMoreOnScroll"
+      scroll-policy-options.fetch-size="25"
+      selection-mode='{"row": "single"}'
+      on-first-selected-row-changed="[[$listeners.onRowAction]]"
+      columns='[
+        {"headerText": "",               "template": "checkboxTpl",       "headerTemplate": "checkboxHeaderTpl", "sortable": "disabled", "style": "width:48px; text-align:center;", "headerStyle": "width:48px; text-align:center;"},
+        {"headerText": "Request #",      "field": "requestNumber",         "template": "reqNumTpl",        "sortable": "enabled", "style": "width:130px;"},
+        {"headerText": "Internal / External", "field": "project",           "template": "projectTpl",       "sortable": "enabled"},
+        {"headerText": "Requestor",      "field": "requestor",             "sortable": "enabled",          "style": "width:140px;"},
+        {"headerText": "Needed By",      "field": "neededByDate",          "sortable": "enabled",          "style": "width:110px;"},
+        {"headerText": "Req Status",     "field": "status",                "template": "reqStatusTpl",     "sortable": "enabled", "style": "width:160px;"}
+      ]'
+      style="width:100%; min-height:500px;"
+      aria-label="Initiate Picking Queue">
+
+      <!-- HEADER CHECKBOX — select all / deselect all on filtered set -->
+      <template slot="checkboxHeaderTpl">
+        <oj-bind-if test="[[ $page.functions.isAllSelected($variables.selectedIds, $variables.PickingQueueFilteredArray) ]]">
+          <input type="checkbox"
+                 id="chk-header"
+                 checked
+                 on-click="[[$page.functions.stopEvent]]"
+                 on-change="[[$listeners.onToggleSelectAll]]"
+                 style="cursor:pointer; width:16px; height:16px;" />
+        </oj-bind-if>
+        <oj-bind-if test="[[ !$page.functions.isAllSelected($variables.selectedIds, $variables.PickingQueueFilteredArray) ]]">
+          <input type="checkbox"
+                 id="chk-header"
+                 on-click="[[$page.functions.stopEvent]]"
+                 on-change="[[$listeners.onToggleSelectAll]]"
+                 style="cursor:pointer; width:16px; height:16px;" />
+        </oj-bind-if>
+      </template>
+
+      <!-- ROW CHECKBOX -->
+      <template slot="checkboxTpl" data-oj-as="cell">
+        <oj-bind-if test="[[ $variables.selectedIds.indexOf(cell.row.id) > -1 ]]">
+          <input type="checkbox"
+                 :id="[[ 'chk-' + cell.row.id ]]"
+                 checked
+                 on-click="[[$page.functions.stopEvent]]"
+                 on-change="[[$listeners.onRowCheckboxChanged]]"
+                 style="cursor:pointer; width:16px; height:16px;" />
+        </oj-bind-if>
+        <oj-bind-if test="[[ $variables.selectedIds.indexOf(cell.row.id) === -1 ]]">
+          <input type="checkbox"
+                 :id="[[ 'chk-' + cell.row.id ]]"
+                 on-click="[[$page.functions.stopEvent]]"
+                 on-change="[[$listeners.onRowCheckboxChanged]]"
+                 style="cursor:pointer; width:16px; height:16px;" />
+        </oj-bind-if>
+      </template>
+
+      <!-- REQUEST NUMBER -->
+      <template slot="reqNumTpl" data-oj-as="cell">
+        <span class="pick-req-link">
+          <oj-bind-text value="[[ cell.data ]]"></oj-bind-text>
+        </span>
+      </template>
+
+      <!-- PROJECT / CUSTOMER — one column for both.
+           `project` is resolved upstream in InitPickingQueueChain: projectName
+           for INTERNAL rows, customerName for EXTERNAL rows (semantically the
+           same slot). The column header names both sources; the secondary line
+           says which one this row is, so no badge is needed.
+           Origin vocabulary is EXTERNAL | INTERNAL (was CUSTOMER | PROJECT);
+           cell.row.isCustomer is set by InitPickingQueueChain via
+           $application.functions.isExternalSource(), so only the LABELS below
+           needed renaming. -->
+      <template slot="projectTpl" data-oj-as="cell">
+        <div>
+          <div style="font-weight:600; color:var(--oj-core-text-color-primary,#161616);">
+            <oj-bind-text value="[[ cell.data || '—' ]]"></oj-bind-text>
+          </div>
+          <div class="pick-party-sub">
+            <oj-bind-text value="[[ cell.row.isCustomer ? 'External' : (cell.row.projectCode || 'Internal') ]]"></oj-bind-text>
+          </div>
+        </div>
+      </template>
+
+      <!-- REQ STATUS — canonical pill: colour + label both come from the
+           shared status module, so this cell matches every other page. -->
+      <template slot="reqStatusTpl" data-oj-as="cell">
+        <oj-bind-if test="[[ !!cell.data ]]">
+          <span :class="[[ $application.functions.statusPillClass(cell.data) ]]">
+            <oj-bind-text value="[[ $application.functions.formatLineStatus(cell.data) ]]"></oj-bind-text>
+          </span>
+        </oj-bind-if>
+      </template>
+
+      <!-- NO DATA -->
+      <template slot="noData">
+        <div style="text-align:center; padding:48px 0;">
+          <div style="font-size:40px; color:#cbd5e1; margin-bottom:12px;">📦</div>
+          <div style="font-size:15px; font-weight:600; color:#475569; margin-bottom:6px;">No picking requests match your filters.</div>
+          <div style="font-size:13px; color:#94a3b8;">Try adjusting the tab, filters, or search.</div>
+        </div>
+      </template>
+
+    </oj-table>
+  </oj-sp-collection-container>
+  </div>
+
+</oj-sp-smart-search-page>
+
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!--  REQUEST DETAIL MODAL (centered dialog)                 -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<oj-dialog id="pickingDetailDialog"
+  initial-visibility="hide" cancel-behavior="icon" modality="modal"
+  on-oj-close="[[ $listeners.closePickingDrawer ]]"
+  style="width: 95vw; max-width: 1600px;">
+
+  <div slot="header"
+       style="display:flex; flex-direction:column; padding:14px 20px 12px 20px; border-bottom:1px solid var(--oj-core-divider-color,#e2e8f0); gap:10px;">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+      <div style="font-size:1rem; font-weight:700; color:#0f172a;">
+        <oj-bind-text value="[[ $variables.selectedRequest.requestNumber || 'Request Detail' ]]"></oj-bind-text>
+      </div>
+
+      <!-- ── Pick slip ──────────────────────────────────────────────────
+           An icon action in the dialog header, matching the borderless
+           icon-only toolbar buttons on request-detail-page. It lives HERE, not
+           in the Transfer Order panel, because that panel only renders when the
+           request has a transfer order or an F&M line — and a request with
+           neither is exactly the one Fusion prints nothing for.
+
+           Shown once at least one line is pickable (SCHEDULED_FOR_PICKING or
+           later, which EquipRite knows without Fusion). The slip is generated
+           when the drawer opens, so this only opens it. -->
+      <oj-bind-if test="[[ $application.functions.isFeatureEnabled(
+                             $application.variables.featureFlags,
+                             $application.variables.flagsLoaded,
+                             'SHIPPING_DOCUMENTS_ENABLED')
+                           && $variables.pickSlipUrl
+                           && $page.functions.canPrintPickSlip($variables.selectedRequest.lines) ]]">
+        <oj-button chroming="borderless" display="icons" class="oj-button-sm"
+          on-oj-action="[[ $listeners.onOpenPickSlipPreview ]]"
+          title="Pick slip — ordered by subinventory and locator">
+          <span slot="startIcon" class="oj-ux-ico-print"></span>
+          <span>Pick Slip</span>
+        </oj-button>
+      </oj-bind-if>
+    </div>
+    <div style="font-size:0.8125rem; color:var(--oj-core-text-color-secondary,#565656); line-height:1.5;">
+      <oj-bind-text value="[[
+        ($variables.selectedRequest.project        ? $variables.selectedRequest.project                          : '—')
+        + ($variables.selectedRequest.equipmentClass ? ' · ' + $variables.selectedRequest.equipmentClass         : '')
+        + ($variables.selectedRequest.requestor      ? ($variables.selectedRequest.isCustomer ? '  ·  Contact: ' : '  ·  Requestor: ') + $variables.selectedRequest.requestor : '')
+        + ($variables.selectedRequest.warehouse      ? '  ·  Warehouse: '     + $variables.selectedRequest.warehouse      : '')
+        + ($variables.selectedRequest.neededByDate   ? '  ·  Needed By: '     + $variables.selectedRequest.neededByDate   : '')
+        + ($variables.selectedRequest.subInventory   ? '  ·  Sub-Inventory: ' + $variables.selectedRequest.subInventory   : '')
+      ]]"></oj-bind-text>
+    </div>
+
+  </div>
+
+  <div slot="body" style="padding:0; max-height:70vh; overflow-y:auto;">
+      <div class="oj-flex oj-sm-flex-direction-column" style="padding:1rem 1.25rem;">
+
+        <!-- Last picking result banner -->
+        <oj-bind-if test="[[ $page.functions.hasLastResult($variables.lastPickingResults, $variables.selectedRequest.id) ]]">
+          <div class="pick-result-banner">
+            ✓&nbsp;<oj-bind-text value="[[ ($page.functions.getLastResult($variables.lastPickingResults, $variables.selectedRequest.id) || {}).message ]]"></oj-bind-text>
+          </div>
+        </oj-bind-if>
+
+        <!-- The green "TO … released for picking" banner used to sit here.
+             REMOVED: it duplicated what the panel below already says. On a
+             successful release the panel's own note reports the same outcome
+             ("All transfer orders for this request have been released"), and
+             the LOV shows each order's state, so the banner was a second
+             telling of the same fact stacked above the first.
+
+             WARNING AND ERROR outcomes are NOT lost — those still surface, and
+             they are the ones that actually need saying, because nothing else
+             on the panel can express "that release failed". See the
+             releaseMessage block further down, which renders only for
+             non-confirmation results. -->
+
+        <!-- Rejection block -->
+        <oj-bind-if test="[[ $variables.selectedRequest.rejectionReason ]]">
+          <div class="pick-rejection-block">
+            <div class="pick-rejection-label">Rejection Reason</div>
+            <div style="font-size:0.8125rem; color:#7c3800;">
+              <oj-bind-text value="[[ $variables.selectedRequest.rejectionReason ]]"></oj-bind-text>
+            </div>
+          </div>
+        </oj-bind-if>
+
+        <!-- Transfer Order release panel -->
+        <!-- Panel shows when there are transfer orders OR any F&M line.
+             F&M lines never get a TO, so gating purely on selectedRequestTOs hid
+             this whole panel — Pick and Ship included — for an F&M-only request,
+             which is precisely the request that needs it. -->
+        <oj-bind-if test="[[ ($variables.selectedRequestTOs && $variables.selectedRequestTOs.length > 0)
+                             || $page.functions.hasFAndMLines($variables.selectedRequest.lines) ]]">
+          <div style="border:1px solid var(--oj-core-divider-color,#e2e8f0); border-radius:4px; padding:12px; margin-bottom:14px; background:var(--oj-core-neutral-color-1,#fafafa);">
+            <!-- Heading follows what the panel actually controls: the transfer
+                 order when there is one, otherwise the ticked lines. Leaving it
+                 as "Transfer Order" on an F&M-only request would label a panel
+                 that has no transfer order in it. -->
+            <oj-bind-if test="[[ $variables.selectedRequestTOs && $variables.selectedRequestTOs.length > 0 ]]">
+              <div class="pick-field-label" style="margin-bottom:6px;">Transfer Order</div>
+            </oj-bind-if>
+            <oj-bind-if test="[[ !$variables.selectedRequestTOs || $variables.selectedRequestTOs.length === 0 ]]">
+              <div class="pick-field-label" style="margin-bottom:6px;">Selected Lines</div>
+            </oj-bind-if>
+            <!-- THE TRANSFER ORDER LOV WAS REMOVED FROM HERE.
+                 It was a dropdown of every TO on the request, and it was both
+                 the display of which orders exist AND the control that scoped
+                 Release / Pick and Ship to one of them.
+
+                 It went for two reasons. The grid below now carries a TRANSFER
+                 ORDER NO. column, so the LOV's display job was a second telling
+                 of the same fact. And as a control it could only ever name ONE
+                 order, which made releasing a multi-yard request (Confirm fans
+                 out one TO per source yard, so several is normal) a matter of
+                 re-picking the dropdown between each release.
+
+                 SCOPE NOW COMES FROM THE TICKED LINES. Ticking rows names their
+                 transfer orders — see selectedTOOptions / releasableTOOptions —
+                 and Release for Picking sends EVERY ticked order still awaiting
+                 release to OIC in one batch, which releases them one at a time.
+                 That is the same mechanism F&M lines have always used (they have
+                 no TO to put in a dropdown), so both classes are now selected
+                 the same way instead of two.
+
+                 Control order is deliberate: Release for Picking, Pick and Ship,
+                 Refresh — the two actions in the order the flow actually runs,
+                 with Refresh last as the utility. Controls DISABLE rather than
+                 disappear, so the panel never rearranges itself mid-flow.
+                 Refresh is still hidden with no transfer orders: its whole
+                 purpose is re-reading TO state. -->
+            <div class="oj-flex-bar oj-sm-align-items-center" style="gap:10px; flex-wrap:wrap;">
+              <!-- Live when the ticked lines include at least one transfer order
+                   still awaiting release (or a releasable F&M line). With
+                   several orders ticked it releases them all in one click. -->
+              <oj-button chroming="callToAction"
+                disabled="[[ $variables.isReleasingTO || $variables.isRefreshingDrawer || $variables.isShipConfirming
+                             || !$page.functions.canReleaseSelectedTO($variables.selectedRequestTOs, $variables.selectedTOId, $variables.selectionTick) ]]"
+                on-oj-action="[[ $listeners.onReleaseTO ]]" class="oj-flex-bar-middle oj-md-2"
+                display="label"
+                title="Release the ticked lines — and their transfer orders — for picking">
+                <span slot="startIcon" class="oj-ux-ico-arrow-right"></span>
+                <span>Release for Picking</span>
+              </oj-button>
+
+              <!-- Second, explicit hop: PICK_INITIATED → SHIP_TO_SITE, once the
+                   warehouse has actually picked the equipment. Release for
+                   Picking deliberately stops at Pick Initiated, so this is not
+                   optional on the happy path — it is how a line ships.
+                   Scoped to the SELECTED TO: live when that order is released and
+                   still has lines at Pick Initiated. Previously it tested every
+                   line on the request, so it lit up for a TO with nothing to ship
+                   just because a DIFFERENT one had picked lines. -->
+              <oj-button chroming="callToAction"
+                disabled="[[ $variables.isReleasingTO || $variables.isRefreshingDrawer || $variables.isShipConfirming
+                             || !$page.functions.canShipSelectedTO($variables.selectedRequestTOs, $variables.selectedTOId, $variables.selectedRequest.lines, $variables.selectionTick) ]]"
+                on-oj-action="[[ $listeners.onShipConfirmStuck ]]"
+                display="label"
+                title="Advance the ticked lines at Pick Initiated to Shipped to Site">
+                <span slot="startIcon" class="oj-ux-ico-shipping"></span>
+                <span>Pick and Ship</span>
+              </oj-button>
+
+              <!-- Re-fetches this request's transfer orders and lines without
+                   closing the dialog. Useful when a TO is still being created
+                   in Fusion (no order number yet) or when a line is left at
+                   Pick Initiated and needs its current state re-read.
+                   Hidden with the LOV when the request has no transfer orders:
+                   its whole purpose is to re-read TO state. F&M line statuses
+                   are patched in-memory by their own chains, so there is
+                   nothing here for it to recover. -->
+              <oj-bind-if test="[[ $variables.selectedRequestTOs && $variables.selectedRequestTOs.length > 0 ]]">
+                <oj-button chroming="outlined"
+                  disabled="[[ $variables.isReleasingTO || $variables.isRefreshingDrawer || $variables.isShipConfirming ]]"
+                  on-oj-action="[[ $listeners.onRefreshDrawer ]]"
+                  display="icons"
+                  title="Refresh transfer orders and lines">
+                  <span slot="startIcon" class="oj-ux-ico-refresh"></span>
+                  <span>Refresh</span>
+                </oj-button>
+              </oj-bind-if>
+
+              <oj-bind-if test="[[ $variables.isReleasingTO ]]">
+                <span style="font-size:0.75rem; color:var(--oj-core-text-color-secondary,#565656);">
+                  Releasing…
+                </span>
+              </oj-bind-if>
+              <oj-bind-if test="[[ $variables.isRefreshingDrawer ]]">
+                <span style="font-size:0.75rem; color:var(--oj-core-text-color-secondary,#565656);">
+                  Refreshing…
+                </span>
+              </oj-bind-if>
+              <oj-bind-if test="[[ $variables.isShipConfirming ]]">
+                <span style="font-size:0.75rem; color:var(--oj-core-text-color-secondary,#565656);">
+                  Ship confirming…
+                </span>
+              </oj-bind-if>
+              <oj-bind-if test="[[ $variables.isPrintingPickSlip ]]">
+                <span style="font-size:0.75rem; color:var(--oj-core-text-color-secondary,#565656);">
+                  Generating pick slip…
+                </span>
+              </oj-bind-if>
+            </div>
+
+            <!-- FAILED / PARTIAL releases only. The success banner was removed
+                 as duplicate reporting, but a failure has nothing else to
+                 surface it — the LOV and the note below can only describe state
+                 that changed, and on a failed release nothing did. Rendered
+                 inside the panel, next to the button that caused it. -->
+            <oj-bind-if test="[[ $variables.releaseMessage
+                                 && $variables.releaseMessageType !== 'confirmation' ]]">
+              <div :class="[[ 'pick-result-banner'
+                     + ($variables.releaseMessageType === 'warning' ? ' pick-release-banner--warning' : '')
+                     + ($variables.releaseMessageType === 'error'   ? ' pick-release-banner--error'   : '') ]]"
+                   style="margin-top:10px;">
+                <oj-bind-text value="[[ '!  ' + $variables.releaseMessage ]]"></oj-bind-text>
+              </div>
+            </oj-bind-if>
+
+            <!-- SAYS HOW WIDE THE CLICK IS BEFORE IT HAPPENS.
+                 With the dropdown gone, nothing else names the orders about to
+                 be released: the numbers are in the grid, but a user who has
+                 ticked forty rows should not have to read a column to find out
+                 that Release is about to act on three transfer orders. Releasing
+                 is a real inventory movement, so the scope belongs next to the
+                 button, not in the confirmation afterwards. -->
+            <oj-bind-if test="[[ $variables.selectedRequestTOs.length > 0
+                                 && $page.functions.releasableTONumbers($variables.selectedRequestTOs, $variables.selectionTick) ]]">
+              <div class="pick-stuck-note">
+                Release for Picking will release:
+                <oj-bind-text value="[[ $page.functions.releasableTONumbers($variables.selectedRequestTOs, $variables.selectionTick) ]]"></oj-bind-text>
+              </div>
+            </oj-bind-if>
+
+            <!-- Says why Release is greyed when it is: every transfer order on
+                 the request is done and nothing else is waiting. Without this
+                 the disabled button reads as a fault rather than a completed
+                 step. -->
+            <oj-bind-if test="[[ $variables.selectedRequestTOs.length > 0
+                                 && $page.functions.unreleasedTOCount($variables.selectedRequestTOs) === 0 ]]">
+              <div class="pick-stuck-note">
+                All transfer orders for this request have been released.
+              </div>
+            </oj-bind-if>
+
+            <!-- Nothing ticked, but orders are still waiting: the button is
+                 greyed and the reason is that no lines are selected, not that
+                 the request is finished. -->
+            <oj-bind-if test="[[ $variables.selectedRequestTOs.length > 0
+                                 && $page.functions.unreleasedTOCount($variables.selectedRequestTOs) > 0
+                                 && !$page.functions.releasableTONumbers($variables.selectedRequestTOs, $variables.selectionTick) ]]">
+              <div class="pick-stuck-note">
+                Tick the lines you want to release — their transfer orders are released together.
+              </div>
+            </oj-bind-if>
+
+
+          </div>
+        </oj-bind-if>
+        <!-- Genuinely no transfer order — the request hasn't been confirmed yet.
+             This is now reached ONLY when the list was empty from the start:
+             releasing no longer empties selectedRequestTOs (released TOs are
+             flagged, not removed), so this message can no longer appear directly
+             after a successful release, which is what made it contradict the
+             success banner sitting right above it. -->
+        <oj-bind-if test="[[ (!$variables.selectedRequestTOs || $variables.selectedRequestTOs.length === 0)
+                             && !$page.functions.hasFAndMLines($variables.selectedRequest.lines) ]]">
+          <div style="border:1px dashed var(--oj-core-divider-color,#e2e8f0); border-radius:4px; padding:10px 12px; margin-bottom:14px; color:var(--oj-core-text-color-secondary,#565656); font-size:0.8125rem;">
+            No Transfer Order on this request yet. Confirm the request from its detail page to create one.
+          </div>
+        </oj-bind-if>
+
+        <!-- Equipment Lines -->
+        <div class="pick-section-heading">Equipment Lines</div>
+
+        <oj-bind-if test="[[ $variables.isLoadingDrawer ]]">
+          <div style="color:var(--oj-core-text-color-secondary); font-size:0.8125rem; margin-bottom:8px;">
+            Loading lines and allocations…
+          </div>
+        </oj-bind-if>
+
+        <oj-bind-if test="[[ !$variables.isLoadingDrawer && (!$variables.selectedRequest.lines || $variables.selectedRequest.lines.length === 0) ]]">
+          <div style="color:var(--oj-core-text-color-secondary); font-size:0.8125rem; margin-bottom:8px;">No equipment lines.</div>
+        </oj-bind-if>
+
+        <oj-bind-if test="[[ $variables.selectedRequest.lines && $variables.selectedRequest.lines.length > 0 ]]">
+          <div class="pick-grid-host" style="height: 50vh; min-height: 320px; border: 1px solid var(--oj-core-divider-color,#e2e8f0); border-radius: 4px; overflow: hidden;">
+            <oj-data-grid id="linesDataGrid"
+              aria-label="Equipment Lines"
+              data="[[ $page.functions.getLinesGridProvider($variables.selectedRequest.lines) ]]"
+              cell.editable="[[ $page.functions.getIsEditable.bind($page.functions) ]]"
+              header.column.style="[[ $page.functions.getColumnHeaderStyle.bind($page.functions) ]]"
+              header.row.style="width:50px;"
+              header.column.resizable.width="enable"
+              scroll-policy="loadMoreOnScroll"
+              style="width:100%; height:100%;">
+
+              <!-- Column 0 header = select-all checkbox; every other column
+                   renders its plain header text. Mirrors the same template on
+                   equipment-request-detail-page. -->
+              <template slot="columnHeaderTemplate" data-oj-as="header">
+                <oj-bind-if test="[[ header.item.index === 0 ]]">
+                  <div style="display:flex; justify-content:center; align-items:center; height:100%;">
+                    <input type="checkbox"
+                      :checked="[[ $variables.selectionTick >= 0 && $page.functions.isAllSelected() ]]"
+                      on-change="[[ $page.functions.onHeaderCheckboxChanged.bind($page.functions, $page) ]]"
+                      aria-label="Select all lines"
+                      style="width:16px; height:16px; cursor:pointer; accent-color:var(--oj-core-brand-color-primary);" />
+                  </div>
+                </oj-bind-if>
+                <oj-bind-if test="[[ header.item.index !== 0 ]]">
+                  <oj-bind-text value="[[ header.item.data ]]"></oj-bind-text>
+                </oj-bind-if>
+              </template>
+
+              <template slot="cellTemplate" data-oj-as="cell">
+
+                <!-- Row-select checkbox. Reads/writes the page module's
+                     _selectedRows Set via rowIndex; the cell's own value is
+                     unused. -->
+                <oj-bind-if test="[[ $page.functions.getColumnType(cell.item.columnIndex) === 'select' ]]">
+                  <div style="display:flex; justify-content:center; align-items:center; height:100%;">
+                    <input type="checkbox"
+                      :checked="[[ $variables.selectionTick >= 0 && $page.functions.isRowSelected(cell.item.rowIndex) ]]"
+                      on-change="[[ $page.functions.onRowCheckboxChanged.bind($page.functions, cell.item.rowIndex, $page) ]]"
+                      aria-label="Select line"
+                      style="width:16px; height:16px; cursor:pointer; accent-color:var(--oj-core-brand-color-primary);" />
+                  </div>
+                </oj-bind-if>
+
+                <oj-bind-if test="[[ $page.functions.getColumnType(cell.item.columnIndex) === 'readonly' ]]">
+                  <span class="oj-typography-body-sm" style="padding: 0 4px;">
+                    <oj-bind-text value="[[ cell.item.data.data !== '' && cell.item.data.data != null ? cell.item.data.data : '—' ]]"></oj-bind-text>
+                  </span>
+                </oj-bind-if>
+
+                <!-- Line Status — plain text; blank-out for SUBMITTED /
+                     IN_PROCESS is pre-applied by the page module so the
+                     cell value is already '' when it should render empty. -->
+                <oj-bind-if test="[[ $page.functions.getColumnType(cell.item.columnIndex) === 'statusblank' ]]">
+                  <span class="oj-typography-body-sm" style="padding: 0 4px;">
+                    <oj-bind-text value="[[ cell.item.data.data || '' ]]"></oj-bind-text>
+                  </span>
+                </oj-bind-if>
+
+              </template>
+            </oj-data-grid>
+          </div>
+        </oj-bind-if>
+
+        <!-- Picking Exceptions -->
+        <oj-bind-if test="[[ $variables.selectedRequest.pickingExceptions && $variables.selectedRequest.pickingExceptions.length > 0 ]]">
+          <div class="pick-section-heading">Picking Exceptions — Action Required</div>
+
+          <oj-bind-for-each data="[[ $variables.selectedRequest.pickingExceptions || [] ]]">
+            <template data-oj-as="exc">
+              <div :class="[[ exc.data.severity === 'CRITICAL' ? 'pick-exception-card pick-exception-card--critical' : 'pick-exception-card' ]]">
+                <div :class="[[ exc.data.severity === 'CRITICAL' ? 'pick-exception-label pick-exception-label--critical' : 'pick-exception-label' ]]">
+                  <oj-bind-text value="[[ exc.data.severity + ' — ' + exc.data.equipmentName ]]"></oj-bind-text>
+                </div>
+                <div :class="[[ exc.data.severity === 'CRITICAL' ? 'pick-exception-issue pick-exception-issue--critical' : 'pick-exception-issue' ]]">
+                  <oj-bind-text value="[[ exc.data.issue ]]"></oj-bind-text>
+                </div>
+                <div style="margin-top:10px; display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap;">
+                  <div style="flex:1; min-width:150px;">
+                    <label style="font-size:0.7rem; font-weight:700; color:#565656; display:block; margin-bottom:3px; text-transform:uppercase; letter-spacing:0.05em;">Alt Serial #</label>
+                    <input type="text"
+                           :id="[[ 'alt-serial-' + exc.data.lineId ]]"
+                           placeholder="Enter alternate serial..."
+                           style="border:1px solid #ccc; border-radius:4px; padding:5px 8px; font-size:0.8rem; width:100%; box-sizing:border-box;"
+                           on-input="[[$listeners.onUpdateAltSerial]]" />
+                  </div>
+                  <oj-button
+                    :id="[[ 'resolve-btn-' + exc.data.lineId ]]"
+                    chroming="outlined"
+                    :disabled="[[ $variables.resolvingLineId === exc.data.lineId ]]"
+                    on-oj-action="[[$listeners.onResolveExceptionClick]]">
+                    <oj-bind-if test="[[ $variables.resolvingLineId === exc.data.lineId ]]">
+                      <span>Resolving...</span>
+                    </oj-bind-if>
+                    <oj-bind-if test="[[ $variables.resolvingLineId !== exc.data.lineId ]]">
+                      <span>Resolve</span>
+                    </oj-bind-if>
+                  </oj-button>
+                </div>
+              </div>
+            </template>
+          </oj-bind-for-each>
+        </oj-bind-if>
+
+      </div>
+  </div>
+
+  <div slot="footer" style="display:flex; justify-content:flex-end; gap:8px; padding:10px 20px 14px 20px;">
+    <oj-button chroming="outlined" on-oj-action="[[ $listeners.closePickingDrawer ]]">Close</oj-button>
+  </div>
+</oj-dialog>
+
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!--  BULK INITIATE PROGRESS DIALOG                          -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<oj-dialog
+  id="bulkProgressDialog"
+  open="{{ $variables.bulkProgressDialogOpen }}"
+  dialog-title="Bulk Initiate Picking"
+  cancel-behavior="none"
+  style="width:440px;">
+
+  <div slot="body" style="padding:16px 0;">
+
+    <!-- Progress view -->
+    <oj-bind-if test="[[ !$variables.showBulkSummary ]]">
+      <div style="margin-bottom:14px; font-size:0.875rem; color:var(--oj-core-text-color-secondary);">
+        Processing&nbsp;<strong><oj-bind-text value="[[$variables.bulkProgressCurrent]]"></oj-bind-text></strong>&nbsp;of&nbsp;<strong><oj-bind-text value="[[$variables.bulkProgressTotal]]"></oj-bind-text></strong>
+        <oj-bind-if test="[[ $variables.bulkProgressCurrentRequest ]]">
+          &nbsp;—&nbsp;<oj-bind-text value="[[$variables.bulkProgressCurrentRequest]]"></oj-bind-text>
+        </oj-bind-if>
+      </div>
+      <oj-progress-bar
+        value="[[ $page.functions.getBulkProgressPct($variables.bulkProgressCurrent, $variables.bulkProgressTotal) ]]"
+        style="width:100%;">
+      </oj-progress-bar>
+    </oj-bind-if>
+
+    <!-- Summary view (after completion) -->
+    <oj-bind-if test="[[ $variables.showBulkSummary ]]">
+      <div style="text-align:center; padding:12px 0;">
+        <div style="font-size:36px; margin-bottom:12px;">✅</div>
+        <div style="font-size:1rem; font-weight:700; color:#161616; margin-bottom:8px;">Bulk Initiation Complete</div>
+        <div style="font-size:0.875rem; color:#2e7d32; margin-bottom:4px;">
+          <oj-bind-text value="[[$variables.bulkSummaryCompleted]]"></oj-bind-text>&nbsp;requests initiated successfully
+        </div>
+        <oj-bind-if test="[[ $variables.bulkSummaryExceptions > 0 ]]">
+          <div style="font-size:0.875rem; color:#c62828;">
+            <oj-bind-text value="[[$variables.bulkSummaryExceptions]]"></oj-bind-text>&nbsp;requests have exceptions — review the queue
+          </div>
+        </oj-bind-if>
+      </div>
+    </oj-bind-if>
+
+  </div>
+
+  <div slot="footer">
+    <oj-bind-if test="[[ $variables.showBulkSummary ]]">
+      <oj-button
+        chroming="callToAction"
+        on-oj-action="[[$listeners.onCloseBulkDialog]]">
+        Done
+      </oj-button>
+    </oj-bind-if>
+  </div>
+</oj-dialog>
+
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!--  PICK SLIP PREVIEW                                      -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<!--
+  Sits OVER the picking dialog rather than replacing it: the user came here to
+  release transfer orders, and closing the preview must put them back on the
+  request they printed for, not on the queue.
+
+  Opened imperatively by PrintPickSlipChain (getElementById(...).open()) to match
+  how pickingDetailDialog is driven on this page, and closed through
+  ClosePickSlipPreviewChain, which also revokes the blob.
+
+  Narrower than the picking dialog (900px vs 95vw) so it reads as a sheet of
+  paper rather than another page of the app.
+-->
+<oj-dialog id="pickSlipPreviewDialog"
+  initial-visibility="hide" cancel-behavior="icon" modality="modal"
+  on-oj-close="[[ $listeners.onClosePickSlipPreview ]]"
+  style="width: 900px; max-width: 96vw;">
+
+  <div slot="header"
+       style="display:flex; flex-direction:column; padding:14px 20px 12px 20px; border-bottom:1px solid var(--oj-core-divider-color,#e2e8f0); gap:4px;">
+    <div style="font-size:1rem; font-weight:700; color:#0f172a;">Pick Slip</div>
+    <div style="font-size:0.8125rem; color:var(--oj-core-text-color-secondary,#565656);">
+      <oj-bind-text value="[[
+        $variables.pickSlipDocNumber
+        + ($variables.selectedRequest.requestNumber ? '  ·  ' + $variables.selectedRequest.requestNumber : '')
+        + '  ·  Ordered by subinventory and locator'
+      ]]"></oj-bind-text>
+    </div>
+  </div>
+
+  <div slot="body" style="padding:0;">
+    <oj-bind-if test="[[ $variables.pickSlipUrl ]]">
+      <iframe :src="[[ $variables.pickSlipUrl ]]" title="Pick Slip"
+        style="width:100%; height:70vh; border:0; border-top:1px solid var(--oj-core-divider-color,#e2e8f0); background:#fff;"></iframe>
+    </oj-bind-if>
+    <oj-bind-if test="[[ !$variables.pickSlipUrl ]]">
+      <div style="padding:24px 20px; font-size:0.8125rem; color:var(--oj-core-text-color-secondary,#565656);">
+        No pick slip has been generated yet.
+      </div>
+    </oj-bind-if>
+  </div>
+
+  <div slot="footer" style="display:flex; justify-content:flex-end; gap:8px; padding:10px 20px 14px 20px;">
+    <!-- .bind, not a call: on-oj-action needs the FUNCTION. Writing
+         downloadPickSlip(url, name) here would invoke it once at render time
+         and hand the button its return value. Same shape the data-grid
+         checkbox handlers on this page already use. -->
+    <oj-button chroming="outlined"
+      disabled="[[ !$variables.pickSlipUrl ]]"
+      on-oj-action="[[ $page.functions.downloadPickSlip.bind($page.functions,
+                         $variables.pickSlipUrl, $variables.pickSlipFileName) ]]">
+      <span slot="startIcon" class="oj-ux-ico-download"></span>
+      <span>Download</span>
+    </oj-button>
+    <oj-button chroming="callToAction"
+      disabled="[[ !$variables.pickSlipUrl ]]"
+      on-oj-action="[[ $page.functions.printPickSlip.bind($page.functions) ]]">
+      <span slot="startIcon" class="oj-ux-ico-print"></span>
+      <span>Print</span>
+    </oj-button>
+    <oj-button chroming="outlined" on-oj-action="[[ $listeners.onClosePickSlipPreview ]]">Close</oj-button>
+  </div>
+</oj-dialog>

@@ -1,0 +1,321 @@
+{
+  "metadata": {},
+  "variables": {
+    "dataGridProvider": {
+      "type": "any"
+    },
+    "editingItemId": {
+      "type": "any",
+      "defaultValue": null
+    },
+    "editingQty": {
+      "type": "number",
+      "defaultValue": 1
+    },
+    "editingStartDate": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "editingEndDate": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "editingHours": {
+      "type": "number",
+      "defaultValue": null
+    },
+    "editingOrigStartDate": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "The line's dates when Edit Line opened. A start date already in the past is only rejected if the user changed it (a resumed draft can carry one), and a change from these is what triggers the availability warning."
+    },
+    "editingOrigEndDate": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "editingIsConsumable": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "Line being edited is a consumable (priced per unit), so its dates do not change the price. Drives a dialog warning only."
+    },
+    "editingDateErrors": {
+      "type": "object",
+      "defaultValue": {},
+      "description": "{ start, end } error text for the Edit Line date inputs, set by CartSaveQtyChain. Empty object = no errors."
+    },
+    "editingNotes": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "Line notes being edited in the Notes dialog. Saved to the cart item as notes, posted as LINE_NOTES (VARCHAR2 2000)."
+    },
+    "editingItemName": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "templateName": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "templateDescription": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "templateNameError": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "isTermsDialogOpen": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "termsAccepted": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "isCustomerRequest": {
+      "type": "boolean",
+      "description": "True when this cart holds a CUSTOMER (EXTERNAL) request. Derived in InitCartChain from the Request Type picker (request.requestType), falling back to requestOrigin for customer-create-req-page which has no picker. Drives the customer-vs-project header slot and the hiding of the page action buttons while the T&C dialog is open. Replaces the direct `requestOrigin === 'customer'` tests in the markup: since project-create-request became a unified entry point, an EXTERNAL request raised THERE is a customer request even though its origin is 'project'. SubmitRequestChain derives the same answer independently for the T&C gate and the payload.",
+      "defaultValue": false
+    },
+    "ppmRateText": {
+      "type": "string",
+      "description": "Shown instead of any price when Fusion PPM prices rentals (global PPM_RATES_ENABLED on); '' otherwise. Set on entry from $application.functions.ppmRateText. Takes precedence over hideRatesForQuote.",
+      "defaultValue": ""
+    },
+    "hideRatesForQuote": {
+      "type": "boolean",
+      "description": "True when ENABLE_QUOTES covers this request's origin, so the RATE and SUBTOTAL cells render 'Rate on request' / '—' instead of amounts. The price is settled on the quote (where a manager can still adjust markup and per-line rates), and publishing a figure here would anchor the customer on a number the quote may not honour. Derived in InitCartChain via $application.functions.isQuotingAllowed — the same resolver and rule the catalog card uses, so the two screens never disagree about whether a price is public. Fails CLOSED to false (amounts SHOWN) while settings load.",
+      "defaultValue": false
+    },
+    "showHoursColumn": {
+      "type": "boolean",
+      "description": "True when the HOURS column and the per-line Hours editor should render. Requires BOTH an internal/project request (not EXTERNAL, not the customer flow — those have no hours concept) AND the TIMESHEETS_ENABLED feature flag, which is the app-wide costing-intent switch: with it off the app bills on the complete request period and hours are ignored. Derived in InitCartChain, which is where $application (and therefore the flag) is reachable. Fails CLOSED — false while settings are still loading.",
+      "defaultValue": false
+    },
+    "isCreatingContract": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "True while SubmitRequestChain is creating the Fusion sell contract at submit. Drives the full-page loader overlay — that call is the slow, externally-dependent part of submit, and without it the page looks frozen. Set ONLY on the no-quote customer path (customer origin + quoting disabled for CUSTOMER); when quoting is on, the contract is created at quote-accept instead and that page shows its own overlay."
+    },
+    "isSubmitting": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "True from the moment SubmitRequestChain begins the actual submit (after T&C gate) until it either errors out or navigates away. Disables the Submit Request button to prevent duplicate submissions."
+    },
+    "insurancePolicy": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "issueAgency": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "insuranceStartDate": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "insuranceEndDate": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "missingForSubmit": {
+      "type": "string[]",
+      "defaultValue": [],
+      "description": "Fields a soft reservation still lacks (labels from requestHeaderBody.missingForSubmit), listed in the Complete Request Details popup that SubmitRequestChain opens instead of submitting."
+    }
+  },
+  "eventListeners": {
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "InitCartChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "browseCatalog": {
+      "chains": [
+        {
+          "chain": "NavigateBackChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "secondaryActionDispatch": {
+      "chains": [
+        {
+          "chain": "SecondaryActionChain",
+          "parameters": {
+            "event": "[[ $event ]]"
+          }
+        }
+      ]
+    },
+    "onSpInFlowBack": {
+      "chains": [
+        {
+          "chain": "GoToParentChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "submitRequest": {
+      "chains": [
+        {
+          "chain": "SubmitRequestChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onCartRowAction": {
+      "chains": [
+        {
+          "chain": "CartOpenMenuChain",
+          "parameters": {
+            "event": "[[ $event ]]"
+          }
+        }
+      ]
+    },
+    "onRowMenuAction": {
+      "chains": [
+        {
+          "chain": "CartRowMenuChain",
+          "parameters": {
+            "actionId": "[[ $event.detail.selectedValue ]]",
+            "itemId": "[[ $page.variables.editingItemId ]]"
+          }
+        }
+      ]
+    },
+    "onEditQtySave": {
+      "chains": [
+        {
+          "chain": "CartSaveQtyChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onEditQtyCancel": {
+      "chains": [
+        {
+          "chain": "CartCancelEditChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onNotesSave": {
+      "chains": [
+        {
+          "chain": "CartSaveNotesChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onNotesCancel": {
+      "chains": [
+        {
+          "chain": "CartCancelEditChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onSaveTemplateConfirm": {
+      "chains": [
+        {
+          "chain": "SaveTemplateChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onSaveTemplateCancel": {
+      "chains": [
+        {
+          "chain": "CancelSaveTemplateChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onTermsAccepted": {
+      "chains": [
+        {
+          "chain": "onTermsAcceptedChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onTermsCancel": {
+      "chains": [
+        {
+          "chain": "onTermsCancelChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onCompleteDetails": {
+      "chains": [
+        {
+          "chain": "CompleteDetailsChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onCompleteDetailsCancel": {
+      "chains": [
+        {
+          "chain": "CartCancelEditChain",
+          "parameters": {}
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-sp-general-overview-page": {
+        "path": "oj-sp/general-overview-page/loader"
+      },
+      "oj-data-grid": {
+        "path": "ojs/ojdatagrid"
+      },
+      "oj-button": {
+        "path": "ojs/ojbutton"
+      },
+      "oj-bind-text": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-if": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-for-each": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-menu": {
+        "path": "ojs/ojmenu"
+      },
+      "oj-option": {
+        "path": "ojs/ojoption"
+      },
+      "oj-dialog": {
+        "path": "ojs/ojdialog"
+      },
+      "oj-c-input-number": {
+        "path": "oj-c/input-number"
+      },
+      "oj-input-number": {
+        "path": "ojs/ojinputnumber"
+      },
+      "oj-input-date": {
+        "path": "ojs/ojdatetimepicker"
+      },
+      "oj-input-text": {
+        "path": "ojs/ojinputtext"
+      },
+      "oj-text-area": {
+        "path": "ojs/ojtextarea"
+      },
+      "oj-form-layout": {
+        "path": "ojs/ojformlayout"
+      }
+    }
+  }
+}

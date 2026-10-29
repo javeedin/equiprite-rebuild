@@ -1,0 +1,22 @@
+{
+    "paths": {
+        "exclude": [
+            "build/**",
+            "docs/**",
+            "scripts/**",
+            "tests/**",
+            "**/private",
+            "+(web|mobile)Apps/**/resources/components/**/lib/*"
+        ]
+    },
+    "rules": {
+        "oj-html-slot-pref-content": {
+            "description": "When component metadata defines 'preferredContent' for a slot, child elements placed into that slot should implement one or more of the requested interfaces and document that through their 'implements' metadata. This rule applies to components that are directly allocated to a slot, or which are direct children of a template allocated to that slot.",
+            "enabled": false
+        },
+        "translations.audit.propertyNotTranslated": {
+            "enabled": false
+        }
+    },
+    "auditors": {}
+}

@@ -1,0 +1,23 @@
+{
+  "filters": [
+    {
+      "name": "ClassFilter",
+      "attribute": "class",
+      "label": "Class",
+      "filterType": "select"
+    },
+    {
+      "name": "SubclassFilter",
+      "attribute": "subClass",
+      "label": "Subclass",
+      "filterType": "select"
+    },
+    {
+      "name": "YardFilter",
+      "attribute": "owningOrg",
+      "label": "Yard",
+      "filterType": "select"
+    }
+  ],
+  "searchFields": ["name", "manufacturer", "serialNumber", "class", "subClass", "owningOrg"]
+}

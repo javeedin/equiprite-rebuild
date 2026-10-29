@@ -1,0 +1,45 @@
+{
+  "description": "Equipment Requests smart search configuration — MANAGER variant. Identical to equipmentRequestSearchConfig.json plus a Source chip, which is only safe to offer managers: canChooseCustomerType() is the same role gate the Source COLUMN itself already uses (equipment-requests-page.json's requestColumns), and the role-based origin scope on this page already resolves to 'ALL' for a manager (myRequestsOriginFilter) — this chip NARROWS within that, it does not widen it. Non-managers get equipmentRequestSearchConfig.json instead (Status only), since their role scope is already fixed to 'Internal' and a Source chip would either do nothing or (if ever wired carelessly) risk letting them request outside their own scope.",
+  "filters": {
+    "RequestNumberFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Request #",
+      "options": {
+        "field": "requestNumber",
+        "optionsData": "[[ $search.filters.RequestNumberFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.RequestNumberFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "StatusFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Status",
+      "options": {
+        "field": "status",
+        "optionsData": "[[ $search.filters.StatusFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.StatusFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "SourceFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Source",
+      "options": {
+        "field": "requestOrigin",
+        "optionsData": "[[ $search.filters.SourceFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.SourceFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "ProjectFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Project",
+      "options": {
+        "field": "projectName",
+        "optionsData": "[[ $search.filters.ProjectFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.ProjectFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    }
+  }
+}

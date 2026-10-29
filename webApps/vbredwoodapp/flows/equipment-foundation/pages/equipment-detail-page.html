@@ -1,0 +1,88 @@
+<oj-sp-general-overview-page
+  page-title="[[ $variables.pageTitle ]]"
+  page-subtitle="[[ $variables.pageSubtitle ]]"
+  show-go-to-parent="[[true]]"
+  display-options.in-flow-back="true"
+  on-sp-go-to-parent="[[ $listeners.spGoToParent ]]"
+  on-sp-in-flow-back="[[ $listeners.onSpInFlowBack ]]"
+  display-mode="mixed"
+  primary-action.display="on"
+  primary-action.label="Edit"
+  on-sp-primary-action="[[ $listeners.spPrimaryAction ]]"
+  badge="[[ $variables.badge ]]"
+  display-options.responsive-padding="off"
+  style="--oj-sp-general-overview-page-max-width: 100% !important;">
+
+  <div class="oj-flex oj-sm-flex-direction-column oj-sm-width-full oj-sm-gap-6x"
+       slot="main" style="max-width: 100% !important; padding: 0 24px;">
+
+    <!-- Section 1: General Information -->
+    <div style="border-radius: 8px; border: 1px solid var(--oj-core-divider-margin, #e5e7eb); padding: 24px; background: var(--oj-core-bg-neutral-0, #ffffff);">
+      <h3 class="oj-typography-heading-xs oj-sm-margin-4x-bottom" style="text-transform: uppercase;">General Information</h3>
+      <!-- Two-column layout: form fields fill the left, equipment photo
+           sits flush right. Photo card collapses below the form on narrow
+           viewports via flex-wrap. -->
+      <div style="display:flex; gap:24px; align-items:flex-start; flex-wrap:wrap;">
+        <div style="flex:1 1 480px; min-width:0;">
+          <oj-form-layout max-columns="3" label-edge="inside" direction="column" readonly="true">
+            <oj-input-text label-hint="Equipment Number" value="[[ $variables.recordData.equipment_id ]]"></oj-input-text>
+            <oj-input-text label-hint="Class" value="[[ $variables.recordData.equipment_class ]]"></oj-input-text>
+            <oj-input-text label-hint="Sub-Class" value="[[ $variables.recordData.equipment_subclass ]]"></oj-input-text>
+            <oj-input-text label-hint="Type" value="[[ $variables.recordData.equipment_type ]]"></oj-input-text>
+            <oj-input-text label-hint="Type" value="[[ $variables.recordData.owner_type ]]"></oj-input-text>
+            <oj-input-text label-hint="Location" value="[[ $variables.recordData.location ]]"></oj-input-text>
+            <oj-input-text label-hint="Equipment Yard" value="[[ $variables.recordData.owning_org ]]"></oj-input-text>
+            <oj-input-text label-hint="Model Year" value="[[ $variables.recordData.model_year ]]"></oj-input-text>
+            <oj-input-text label-hint="Manufacturer" value="[[ $variables.recordData.manufacturer ]]"></oj-input-text>
+            <oj-input-text label-hint="Unit of Measure" value="[[ $variables.recordData.uom ]]"></oj-input-text>
+            <oj-input-text label-hint="Color" value="[[ $variables.recordData.color ]]"></oj-input-text>
+            <oj-input-text label-hint="Fuel Type" value="[[ $variables.recordData.fuel_type ]]"></oj-input-text>
+            <oj-text-area label-hint="Description" value="[[ $variables.recordData.description ]]" readonly="true" rows="2"></oj-text-area>
+          </oj-form-layout>
+        </div>
+        <div style="flex:0 0 260px;">
+          <div style="border:1px solid var(--oj-core-divider-margin,#e5e7eb); border-radius:8px; overflow:hidden; background:var(--oj-core-bg-neutral-10,#fafafa); aspect-ratio:1/1; display:flex; align-items:center; justify-content:center;">
+            <img :src="[[ $variables.recordData.equipment_image ]]"
+                 :alt="[[ $variables.recordData.equipment_name ]]"
+                 style="width:100%; height:100%; object-fit:cover; display:block;" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 2: Asset Linkage (Oracle Integrations) -->
+    <div style="border-radius: 8px; border: 1px solid var(--oj-core-divider-margin, #e5e7eb); padding: 24px; background: var(--oj-core-bg-neutral-0, #ffffff);">
+      <h3 class="oj-typography-heading-xs oj-sm-margin-4x-bottom" style="text-transform: uppercase;">Asset Linkage</h3>
+      <oj-form-layout max-columns="4" label-edge="inside" direction="column" readonly="true">
+        <oj-input-text label-hint="Serial Number" value="[[ $variables.recordData.serial_number ]]"></oj-input-text>
+        <oj-input-text label-hint="FA Asset #" value="[[ $variables.recordData.fa_asset_number ]]"></oj-input-text>
+        <oj-input-text label-hint="Maint. Asset #" value="[[ $variables.recordData.maintenance_asset_id ]]"></oj-input-text>
+        <oj-input-text label-hint="Inv. Item Number" value="[[ $variables.recordData.inventory_item_id ]]"></oj-input-text>
+        <oj-input-text label-hint="Serial Controlled" value="[[ $variables.recordData.serial_controlled ? '✓ Yes' : '✗ No' ]]"></oj-input-text>
+        <oj-input-text label-hint="Purchase Order" value="[[ $variables.recordData.purchase_order ]]"></oj-input-text>
+      </oj-form-layout>
+    </div>
+
+    <!-- Section 3: Costing & Dates -->
+    <div style="border-radius: 8px; border: 1px solid var(--oj-core-divider-margin, #e5e7eb); padding: 24px; background: var(--oj-core-bg-neutral-0, #ffffff);">
+      <h3 class="oj-typography-heading-xs oj-sm-margin-4x-bottom" style="text-transform: uppercase;">Costing & Dates</h3>
+      <oj-form-layout max-columns="4" label-edge="inside" direction="column" readonly="true">
+        <oj-input-text label-hint="Acquisition Cost" value="[[ $page.functions.formatCurrency($variables.recordData.acquisition_cost) ]]"></oj-input-text>
+        <oj-input-text label-hint="Acquisition Date" value="[[ $variables.recordData.acquisition_date ]]"></oj-input-text>
+        <oj-input-text label-hint="Last Maintenance" value="[[ $variables.recordData.last_maintenance_date ]]"></oj-input-text>
+        <oj-input-text label-hint="Expenditure Org (PPM)" value="[[ $variables.recordData.expenditure_org ]]"></oj-input-text>
+        <oj-input-text label-hint="Billing Category" value="[[ $variables.recordData.billing_category ]]"></oj-input-text>
+      </oj-form-layout>
+    </div>
+
+    <!-- Section 4: GPS Location -->
+    <div style="border-radius: 8px; border: 1px solid var(--oj-core-divider-margin, #e5e7eb); padding: 24px; background: var(--oj-core-bg-neutral-0, #ffffff);">
+      <h3 class="oj-typography-heading-xs oj-sm-margin-4x-bottom" style="text-transform: uppercase;">GPS Location</h3>
+      <oj-form-layout max-columns="4" label-edge="inside" direction="column" readonly="true">
+        <oj-input-text label-hint="Latitude"  value="[[ $variables.recordData.gps_latitude  || '—' ]]"></oj-input-text>
+        <oj-input-text label-hint="Longitude" value="[[ $variables.recordData.gps_longitude || '—' ]]"></oj-input-text>
+      </oj-form-layout>
+    </div>
+
+  </div>
+</oj-sp-general-overview-page>

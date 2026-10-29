@@ -1,0 +1,113 @@
+{
+    "backends": {
+        "eqpt": {
+            "servers": [
+                {
+                    "url": "http://132.145.153.37:8087",
+                    "description": "132.145.153.37",
+                    "x-vb": {
+                        "forceProxy": "always",
+                        "anonymousAccess": true
+                    }
+                }
+            ]
+        },
+        "commonService": {
+            "description": "Rite Common Services - shared lookups (COMMONRITE.RS_LOOKUP_VALUES), the reference-data table shared across every Rite product. Same host as the eqpt ORDS backend, different port: 8082 vs 8087. Swagger UI at /swagger-ui/index.html, OpenAPI at /api-docs (NOT the springdoc default /v3/api-docs, which 404s). NO x-vb.authentication block on purpose - the service answers anonymously (verified 2026-09-08: GET /common/v1/lookups/values returns 200 with no credentials), exactly like the eqpt backend. Do NOT add a placeholder credential here: a dangling credential reference fails the call outright, which is worse than anonymous access.",
+            "servers": [
+                {
+                    "url": "http://132.145.153.37:8082",
+                    "description": "Rite Common Service",
+                    "x-vb": {
+                        "forceProxy": "always",
+                        "anonymousAccess": true
+                    }
+                }
+            ]
+        },
+        "fusion": {
+            "servers": [
+                {
+                    "url": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com",
+                    "description": "Default Server",
+                    "x-vb": {
+                        "authentication": {
+                            "authenticated": {
+                                "type": "basic",
+                                "credentials": "vb_e32dea99-09a6-44ef-90d6-70c6d837401c"
+                            },
+                            "anonymous": {
+                                "type": "as_authenticated_user"
+                            }
+                        },
+                        "anonymousAccess": true
+                    }
+                }
+            ]
+        },
+        "ics": {
+            "description": "Integration Applications",
+            "serviceType": "ics",
+            "servers": [
+                {
+                    "url": "https://riteoicdev-idjm2yj32zav-ia.integration.us-ashburn-1.ocp.oraclecloud.com",
+                    "description": "Default Server",
+                    "x-vb": {
+                        "authentication": {
+                            "authenticated": {
+                                "type": "basic",
+                                "credentials": "vb_cf7d9fde-2626-44a8-ae92-41c99568c3a4"
+                            },
+                            "anonymous": {
+                                "type": "as_authenticated_user"
+                            }
+                        },
+                        "anonymousAccess": true
+                    }
+                }
+            ]
+        },
+        "callPWPBIP": {
+            "description": "Oracle BI Publisher BIP SOAP API",
+            "servers": [
+                {
+                    "url": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com",
+                    "description": "Fusion BIP Instance",
+                    "x-vb": {
+                        "anonymousAccess": true,
+                        "authentication": {
+                            "authenticated": {
+                                "type": "basic",
+                                "credentials": "vb_e32dea99-09a6-44ef-90d6-70c6d837401c"
+                            },
+                            "anonymous": {
+                                "type": "as_authenticated_user"
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        "bipService": {
+            "description": "Generic BI Publisher SOAP runner (reused by all BIP LOVs)",
+            "servers": [
+                {
+                    "url": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com",
+                    "description": "Fusion BIP Instance",
+                    "x-vb": {
+                        "anonymousAccess": true,
+                        "authentication": {
+                            "authenticated": {
+                                "type": "basic",
+                                "credentials": "vb_e32dea99-09a6-44ef-90d6-70c6d837401c"
+                            },
+                            "anonymous": {
+                                "type": "as_authenticated_user"
+                            }
+                        }
+                    }
+                }
+            ]
+        }
+    }
+}

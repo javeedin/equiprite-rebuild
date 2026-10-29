@@ -1,0 +1,529 @@
+<style>
+  #quotePageOverview { --oj-sp-general-overview-page-max-width: 100% !important; width: 100% !important; max-width: min(2400px, calc(100vw - 48px)) !important; margin: 0 auto !important; }
+
+  .quote-card {
+    background: #fff;
+    border: 1px solid var(--oj-core-divider-color, #e0e0e0);
+    border-radius: 8px;
+    padding: 32px 36px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+    margin-bottom: 24px;
+  }
+  .quote-header-logo {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--oj-core-brand-color-primary, #005cb1);
+    letter-spacing: 0.04em;
+  }
+  .quote-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 4px;
+  }
+  .quote-subtitle {
+    font-size: 0.8125rem;
+    color: var(--oj-core-text-color-secondary, #565656);
+  }
+  .quote-section-title {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--oj-core-brand-color-primary, #005cb1);
+    border-bottom: 2px solid var(--oj-core-brand-color-primary, #005cb1);
+    padding-bottom: 4px;
+    margin: 24px 0 14px 0;
+  }
+  .quote-field-label {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--oj-core-text-color-secondary, #565656);
+    margin-bottom: 2px;
+  }
+  .quote-field-value {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #1e293b;
+  }
+  .quote-status-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    background: #fef7e0;
+    color: #b06000;
+  }
+  .quote-footer-note {
+    font-size: 0.75rem;
+    color: var(--oj-core-text-color-secondary, #8c8c8c);
+    border-top: 1px solid var(--oj-core-divider-color, #e0e0e0);
+    padding-top: 16px;
+    margin-top: 24px;
+    line-height: 1.6;
+  }
+
+  /* ── Line grid (flexbox rows) ──
+     .ql-table-inner shrink-wraps to whichever row needs the most space
+     (shrink-to-fit sizing on display:inline-block), and every row is
+     width:100% OF THAT WRAPPER — so header/data-rows/grand-total always
+     share the exact same width and their fixed-width columns (rate, total,
+     etc.) stay aligned, without having to hand-maintain matching min-width
+     values across three separate rules. */
+  .ql-table-inner {
+    display: inline-block;
+    min-width: 100%;
+  }
+  .ql-hdr, .ql-row {
+    display: flex;
+    width: 100%;
+    align-items: center;
+  }
+  .ql-hdr {
+    background: var(--oj-core-neutral-color-2, #f1f1f1);
+    border-bottom: 2px solid var(--oj-core-divider-color, #e0e0e0);
+    font-weight: 700;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--oj-core-text-color-secondary, #565656);
+  }
+  .ql-row {
+    border-bottom: 1px solid var(--oj-core-divider-color, #e0e0e0);
+    font-size: 0.8125rem;
+  }
+  .ql-row:last-child { border-bottom: none; }
+  .ql-cell { padding: 8px 10px; overflow: hidden; }
+  .ql-sel   { flex: 0 0 34px; text-align: center; }
+  .ql-num   { flex: 0 0 32px; color: var(--oj-core-text-color-secondary, #565656); }
+  .ql-name  { flex: 2 1 0; min-width: 0; }
+  .ql-class { flex: 1.5 1 0; min-width: 0; }
+  .ql-qty   { flex: 0 0 70px; }
+  .ql-date  { flex: 0 0 118px; }
+  .ql-ovr   { flex: 0 0 80px; text-align: center; }
+  .ql-rate  { flex: 0 0 120px; }
+  .ql-margin { flex: 0 0 90px; }
+  .ql-net   { flex: 0 0 120px; }
+  .ql-tier  { flex: 0 0 100px; }
+  .ql-freq  { flex: 0 0 130px; }
+  .ql-total { flex: 0 0 120px; text-align: right; }
+  .ql-act   { flex: 0 0 44px; text-align: center; }
+
+  .ql-grand { display: flex; width: 100%; align-items: center; }
+
+  /* Edit mode: the read-only widths above are sized for short display text,
+     too narrow for the actual input/number/select widgets (labels get cut
+     off, e.g. "Industrial Gate Valve..." → "Indus"). Widen just the editable
+     columns while editing; read mode keeps the compact widths. Row width
+     itself doesn't need an edit-mode override — .ql-table-inner grows to
+     fit whichever row these per-column widenings make widest, and every
+     row (including grand total) is width:100% of that same wrapper. */
+  .ql-editing .ql-name  { min-width: 260px; }
+  .ql-editing .ql-class { min-width: 170px; }
+  .ql-editing .ql-qty   { flex: 0 0 130px; }
+  .ql-editing .ql-date  { flex: 0 0 150px; }
+  .ql-editing .ql-rate  { flex: 0 0 150px; }
+  .ql-editing .ql-margin { flex: 0 0 150px; }
+  .ql-editing .ql-net   { flex: 0 0 140px; }
+  .ql-editing .ql-freq  { flex: 0 0 160px; }
+
+  /* Print: show only the quote area */
+  @media print {
+    .quote-no-print { display: none !important; }
+    body * { visibility: hidden; }
+    #quotePrintArea, #quotePrintArea * { visibility: visible; }
+    #quotePrintArea { position: absolute; top: 0; left: 0; width: 100%; padding: 24px; background: white; box-sizing: border-box; }
+    .quote-card { box-shadow: none; border: 1px solid #ccc; }
+  }
+</style>
+
+<oj-sp-general-overview-page
+  id="quotePageOverview"
+  class="oj-sm-width-full"
+  page-title="[[ 'Quote — ' + ($variables.quoteData.requestNumber || $variables.requestNumber) ]]"
+  display-mode="mixed"
+  display-options.in-flow-back="true"
+  on-sp-in-flow-back="[[ $listeners.onBack ]]">
+
+  <div slot="main" style="width:100%; padding: 0 16px 32px 16px;">
+
+    <!-- Loading state -->
+    <oj-bind-if test="[[ $variables.isLoading ]]">
+      <div style="text-align:center; padding:60px 0; color:var(--oj-core-text-color-secondary,#565656);">
+        Loading quote...
+      </div>
+    </oj-bind-if>
+
+    <oj-bind-if test="[[ !$variables.isLoading ]]">
+
+      <!-- Action bar (hidden when printing) -->
+      <div class="quote-no-print" style="display:flex; justify-content:flex-end; gap:10px; margin-bottom:16px; flex-wrap:wrap;">
+
+        <!-- View mode -->
+        <oj-bind-if test="[[ !$variables.editMode ]]">
+          <!-- Edit — only while the quote is still DRAFT. Once SENT
+               (QUOTE_GENERATED) or ACCEPTED (QUOTE_ACCEPTED) it is view-only. -->
+          <oj-button chroming="outlined" class="oj-button-sm"
+            on-oj-action="[[ $functions.enterEdit.bind($functions, $page) ]]" display="all"
+            :disabled="[[ $functions.isQuoteLocked($variables.quoteData.status) ]]"
+            :title="[[ $functions.isQuoteLocked($variables.quoteData.status) ? 'Quote already sent — view only' : 'Edit this quote' ]]">
+            <span slot="startIcon" class="oj-ux-ico-edit"></span>
+            <span>Edit</span>
+          </oj-button>
+          <oj-button chroming="outlined" class="oj-button-sm"
+            on-oj-action="[[ $functions.print.bind($functions) ]]" display="all">
+            <span slot="startIcon" class="oj-ux-ico-download"></span>
+            <span>Print / Save PDF</span>
+          </oj-button>
+          <!-- Send Quote — disabled while a send is in flight AND once the quote
+               has been sent or accepted. A successful send flips the status to
+               QUOTE_GENERATED (SendQuoteChain) on both the quote and the request
+               header; on reload the status is re-seeded from header.requestStatus
+               (QuoteInitChain), so a sent/accepted quote stays view-only. -->
+          <oj-button chroming="callToAction" class="oj-button-sm"
+            on-oj-action="[[ $listeners.onSendQuote ]]" display="all"
+            :disabled="[[ $variables.sendingQuote || $functions.isQuoteLocked($variables.quoteData.status) ]]"
+            :title="[[ $functions.isQuoteLocked($variables.quoteData.status) ? 'Quote already sent' : 'Send this quote to the customer' ]]">
+            <span slot="startIcon" class="oj-ux-ico-mail"></span>
+            <span>Send Quote</span>
+          </oj-button>
+        </oj-bind-if>
+
+        <!-- Edit mode -->
+        <oj-bind-if test="[[ $variables.editMode ]]">
+          <oj-button chroming="outlined" class="oj-button-sm"
+            on-oj-action="[[ $functions.addLine.bind($functions, $page) ]]" display="all">
+            <span slot="startIcon" class="oj-ux-ico-plus"></span>
+            <span>Add Line</span>
+          </oj-button>
+          <oj-button chroming="outlined" class="oj-button-sm"
+            on-oj-action="[[ $functions.removeSelected.bind($functions, $page) ]]" display="all">
+            <span slot="startIcon" class="oj-ux-ico-trash"></span>
+            <span>Remove Selected</span>
+          </oj-button>
+          <oj-button chroming="borderless" class="oj-button-sm"
+            on-oj-action="[[ $functions.cancelEdit.bind($functions, $page) ]]">
+            Cancel
+          </oj-button>
+          <oj-button chroming="callToAction" class="oj-button-sm"
+            on-oj-action="[[ $functions.saveQuote.bind($functions, $page) ]]" display="all">
+            <span slot="startIcon" class="oj-ux-ico-save"></span>
+            <span>Save</span>
+          </oj-button>
+        </oj-bind-if>
+      </div>
+
+      <!-- Printable area -->
+      <div id="quotePrintArea">
+        <div class="quote-card">
+
+          <!-- Header row -->
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:16px;">
+            <div>
+              <div class="quote-header-logo">EquipRite</div>
+              <div style="font-size:0.75rem; color:var(--oj-core-text-color-secondary,#565656); margin-top:2px;">Equipment Rental Services</div>
+            </div>
+            <div style="text-align:right;">
+              <div class="quote-title">Equipment Rental Quote</div>
+              <div class="quote-subtitle">
+                <oj-bind-text value="[[ $variables.quoteData.requestNumber ]]"></oj-bind-text>
+              </div>
+              <div style="margin-top:6px;">
+                <span class="quote-status-badge">
+                  <oj-bind-text value="[[ $functions.formatQuoteStatus($variables.quoteData.status) ]]"></oj-bind-text>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Request Details -->
+          <div class="quote-section-title">Request Details</div>
+          <div style="display:flex; flex-wrap:wrap; gap:16px 32px;">
+
+            <div style="min-width:180px;">
+              <div class="quote-field-label">Customer</div>
+              <div class="quote-field-value">
+                <oj-bind-if test="[[ !$variables.editMode ]]">
+                  <oj-bind-text value="[[ $variables.quoteData.customerName || '—' ]]"></oj-bind-text>
+                </oj-bind-if>
+                <oj-bind-if test="[[ $variables.editMode ]]">
+                  <oj-input-text value="{{ $variables.quoteData.customerName }}" user-assistance-density="compact" style="width:100%;"></oj-input-text>
+                </oj-bind-if>
+              </div>
+            </div>
+
+            <div style="min-width:180px;">
+              <div class="quote-field-label">Contact</div>
+              <div class="quote-field-value">
+                <oj-bind-if test="[[ !$variables.editMode ]]">
+                  <oj-bind-text value="[[ $variables.quoteData.customerContact || '—' ]]"></oj-bind-text>
+                </oj-bind-if>
+                <oj-bind-if test="[[ $variables.editMode ]]">
+                  <oj-input-text value="{{ $variables.quoteData.customerContact }}" user-assistance-density="compact" style="width:100%;"></oj-input-text>
+                </oj-bind-if>
+              </div>
+            </div>
+
+            <div style="min-width:140px;">
+              <div class="quote-field-label">Start Date</div>
+              <div class="quote-field-value">
+                <oj-bind-if test="[[ !$variables.editMode ]]">
+                  <oj-bind-text value="[[ $variables.quoteData.startDate || '—' ]]"></oj-bind-text>
+                </oj-bind-if>
+                <oj-bind-if test="[[ $variables.editMode ]]">
+                  <oj-input-text value="{{ $variables.quoteData.startDate }}" placeholder="YYYY-MM-DD" user-assistance-density="compact" style="width:100%;"></oj-input-text>
+                </oj-bind-if>
+              </div>
+            </div>
+
+            <div style="min-width:140px;">
+              <div class="quote-field-label">End Date</div>
+              <div class="quote-field-value">
+                <oj-bind-if test="[[ !$variables.editMode ]]">
+                  <oj-bind-text value="[[ $variables.quoteData.endDate || '—' ]]"></oj-bind-text>
+                </oj-bind-if>
+                <oj-bind-if test="[[ $variables.editMode ]]">
+                  <oj-input-text value="{{ $variables.quoteData.endDate }}" placeholder="YYYY-MM-DD" user-assistance-density="compact" style="width:100%;"></oj-input-text>
+                </oj-bind-if>
+              </div>
+            </div>
+
+            <div style="min-width:200px;">
+              <div class="quote-field-label">Delivery Location</div>
+              <div class="quote-field-value">
+                <oj-bind-if test="[[ !$variables.editMode ]]">
+                  <oj-bind-text value="[[ $variables.quoteData.location || '—' ]]"></oj-bind-text>
+                </oj-bind-if>
+                <oj-bind-if test="[[ $variables.editMode ]]">
+                  <oj-input-text value="{{ $variables.quoteData.location }}" user-assistance-density="compact" style="width:100%;"></oj-input-text>
+                </oj-bind-if>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Equipment Lines -->
+          <div class="quote-section-title">Equipment Lines</div>
+
+          <div style="overflow-x:auto;">
+            <div class="ql-table-inner">
+            <!-- Header row -->
+            <div :class="[[ $variables.editMode ? 'ql-hdr ql-editing' : 'ql-hdr' ]]">
+              <oj-bind-if test="[[ $variables.editMode ]]">
+                <div class="ql-cell ql-sel">
+                  <input type="checkbox"
+                    :checked="[[ $functions.isAllLinesSelected($variables.quoteData.lines, $variables.selectionVersion) ]]"
+                    on-change="[[ $functions.toggleAllLines.bind($functions, $page) ]]"
+                    style="width:15px; height:15px; cursor:pointer; accent-color:var(--oj-core-brand-color-primary);" />
+                </div>
+              </oj-bind-if>
+              <div class="ql-cell ql-num">#</div>
+              <div class="ql-cell ql-name">Equipment Name</div>
+              <div class="ql-cell ql-class">Class</div>
+              <div class="ql-cell ql-qty">Qty</div>
+              <div class="ql-cell ql-date">Start Date</div>
+              <div class="ql-cell ql-date">End Date</div>
+              <oj-bind-if test="[[ $variables.editMode ]]">
+                <div class="ql-cell ql-ovr">Override</div>
+              </oj-bind-if>
+              <div class="ql-cell ql-rate">Rate / Day</div>
+              <div class="ql-cell ql-margin">Markup %</div>
+              <div class="ql-cell ql-net">Net Rate</div>
+              <div class="ql-cell ql-tier">Rate Tier</div>
+              <div class="ql-cell ql-freq">Bill Frequency</div>
+              <div class="ql-cell ql-total">Total</div>
+              <oj-bind-if test="[[ $variables.editMode ]]">
+                <div class="ql-cell ql-act"></div>
+              </oj-bind-if>
+            </div>
+
+            <!-- Data rows -->
+            <oj-bind-for-each data="[[ $variables.quoteData.lines ]]">
+              <template data-oj-as="line">
+                <div :class="[[ $variables.editMode ? 'ql-row ql-editing' : 'ql-row' ]]">
+
+                  <!-- select checkbox (edit) -->
+                  <oj-bind-if test="[[ $variables.editMode ]]">
+                    <div class="ql-cell ql-sel">
+                      <input type="checkbox"
+                        :checked="[[ line.data._selected ]]"
+                        on-change="[[ $functions.toggleLine.bind($functions, line.index, $page) ]]"
+                        style="width:15px; height:15px; cursor:pointer; accent-color:var(--oj-core-brand-color-primary);" />
+                    </div>
+                  </oj-bind-if>
+
+                  <div class="ql-cell ql-num">
+                    <oj-bind-text value="[[ line.index + 1 ]]"></oj-bind-text>
+                  </div>
+
+                  <!-- Equipment Name -->
+                  <div class="ql-cell ql-name" style="font-weight:600;">
+                    <oj-bind-if test="[[ !$variables.editMode ]]">
+                      <oj-bind-text value="[[ line.data.equipmentName || '—' ]]"></oj-bind-text>
+                    </oj-bind-if>
+                    <oj-bind-if test="[[ $variables.editMode ]]">
+                      <oj-input-text value="{{ line.data.equipmentName }}" user-assistance-density="compact" style="width:100%;"></oj-input-text>
+                    </oj-bind-if>
+                  </div>
+
+                  <!-- Class -->
+                  <div class="ql-cell ql-class">
+                    <oj-bind-if test="[[ !$variables.editMode ]]">
+                      <oj-bind-text value="[[ line.data.equipmentClass || '—' ]]"></oj-bind-text>
+                    </oj-bind-if>
+                    <oj-bind-if test="[[ $variables.editMode ]]">
+                      <oj-input-text value="{{ line.data.equipmentClass }}" user-assistance-density="compact" style="width:100%;"></oj-input-text>
+                    </oj-bind-if>
+                  </div>
+
+                  <!-- Qty -->
+                  <div class="ql-cell ql-qty">
+                    <oj-bind-if test="[[ !$variables.editMode ]]">
+                      <oj-bind-text value="[[ line.data.quantity != null ? line.data.quantity : 1 ]]"></oj-bind-text>
+                    </oj-bind-if>
+                    <oj-bind-if test="[[ $variables.editMode ]]">
+                      <oj-input-number value="{{ line.data.quantity }}" min="0" step="1" user-assistance-density="compact" style="width:100%;"></oj-input-number>
+                    </oj-bind-if>
+                  </div>
+
+                  <!-- Start Date -->
+                  <div class="ql-cell ql-date">
+                    <oj-bind-if test="[[ !$variables.editMode ]]">
+                      <oj-bind-text value="[[ line.data.startDate || '—' ]]"></oj-bind-text>
+                    </oj-bind-if>
+                    <oj-bind-if test="[[ $variables.editMode ]]">
+                      <oj-input-text value="{{ line.data.startDate }}" placeholder="YYYY-MM-DD" user-assistance-density="compact" style="width:100%;"></oj-input-text>
+                    </oj-bind-if>
+                  </div>
+
+                  <!-- End Date -->
+                  <div class="ql-cell ql-date">
+                    <oj-bind-if test="[[ !$variables.editMode ]]">
+                      <oj-bind-text value="[[ line.data.endDate || '—' ]]"></oj-bind-text>
+                    </oj-bind-if>
+                    <oj-bind-if test="[[ $variables.editMode ]]">
+                      <oj-input-text value="{{ line.data.endDate }}" placeholder="YYYY-MM-DD" user-assistance-density="compact" style="width:100%;"></oj-input-text>
+                    </oj-bind-if>
+                  </div>
+
+                  <!-- Override (edit only) — gate: Rate/Day is only editable when
+                       this is checked; otherwise the schedule/loaded rate stands. -->
+                  <oj-bind-if test="[[ $variables.editMode ]]">
+                    <div class="ql-cell ql-ovr">
+                      <input type="checkbox"
+                        :checked="[[ line.data._rateOverride ]]"
+                        on-change="[[ $functions.toggleRateOverride.bind($functions, line.index, $page) ]]"
+                        style="width:15px; height:15px; cursor:pointer; accent-color:var(--oj-core-brand-color-primary);" />
+                    </div>
+                  </oj-bind-if>
+
+                  <!-- Rate / Day -->
+                  <div class="ql-cell ql-rate" style="font-weight:600; color:var(--oj-core-brand-color-primary,#005cb1);">
+                    <oj-bind-if test="[[ !$variables.editMode ]]">
+                      <oj-bind-text value="[[ line.data.billRate ? '$' + line.data.billRate + ' / day' : '—' ]]"></oj-bind-text>
+                    </oj-bind-if>
+                    <oj-bind-if test="[[ $variables.editMode ]]">
+                      <oj-input-text value="{{ line.data.billRate }}"
+                        :disabled="[[ !line.data._rateOverride ]]"
+                        user-assistance-density="compact" style="width:100%;"></oj-input-text>
+                    </oj-bind-if>
+                  </div>
+
+                  <!-- Markup % — editable in edit mode, read-only otherwise so the
+                       BU-seeded markup is visible without entering edit. 0 removes it. -->
+                  <div class="ql-cell ql-margin">
+                    <oj-bind-if test="[[ $variables.editMode ]]">
+                      <oj-input-text value="{{ line.data.marginPercentage }}" user-assistance-density="compact" style="width:100%;"></oj-input-text>
+                    </oj-bind-if>
+                    <oj-bind-if test="[[ !$variables.editMode ]]">
+                      <oj-bind-text value="[[ $functions.formatMarkupPct(line.data.marginPercentage) ]]"></oj-bind-text>
+                    </oj-bind-if>
+                  </div>
+
+                  <!-- Net Rate (derived: base rate + margin) — read-only -->
+                  <div class="ql-cell ql-net" style="font-weight:600; color:var(--oj-core-brand-color-primary,#005cb1);">
+                    <oj-bind-text value="[[ $functions.formatNetRate(line.data.billRate, line.data.marginPercentage) ]]"></oj-bind-text>
+                  </div>
+
+                  <!-- Rate Tier (resolved server-side; read-only in both modes) -->
+                  <div class="ql-cell ql-tier">
+                    <oj-bind-text value="[[ $functions.formatRateTier(line.data.rateTier) ]]"></oj-bind-text>
+                  </div>
+
+                  <!-- Rate Frequency -->
+                  <div class="ql-cell ql-freq">
+                    <oj-bind-if test="[[ !$variables.editMode ]]">
+                      <oj-bind-text value="[[ $functions.formatRateFrequency(line.data.rateFrequency) ]]"></oj-bind-text>
+                    </oj-bind-if>
+                    <oj-bind-if test="[[ $variables.editMode ]]">
+                      <oj-select-single value="{{ line.data.rateFrequency }}" data="[[ $functions.getRateFrequencyLOV() ]]"
+                        item-text="label" user-assistance-density="compact" style="width:100%;"></oj-select-single>
+                    </oj-bind-if>
+                  </div>
+
+                  <!-- Total (always computed / read-only) -->
+                  <div class="ql-cell ql-total" style="font-weight:600;">
+                    <oj-bind-text value="[[ line.data.lineTotal ? '$' + line.data.lineTotal.toLocaleString() : '—' ]]"></oj-bind-text>
+                  </div>
+
+                  <!-- remove (edit) -->
+                  <oj-bind-if test="[[ $variables.editMode ]]">
+                    <div class="ql-cell ql-act">
+                      <oj-button chroming="borderless" display="icons" class="oj-button-sm"
+                        on-oj-action="[[ $functions.removeLine.bind($functions, line.index, $page) ]]"
+                        title="Remove line">
+                        <span slot="startIcon" class="oj-ux-ico-trash"></span>
+                      </oj-button>
+                    </div>
+                  </oj-bind-if>
+
+                </div>
+              </template>
+            </oj-bind-for-each>
+
+            <!-- No lines -->
+            <oj-bind-if test="[[ !$variables.quoteData.lines || $variables.quoteData.lines.length === 0 ]]">
+              <div style="text-align:center; padding:24px 0; color:var(--oj-core-text-color-secondary,#8c8c8c); font-size:0.875rem;">
+                No equipment lines. <oj-bind-if test="[[ $variables.editMode ]]">Use “Add Line” to add one.</oj-bind-if>
+              </div>
+            </oj-bind-if>
+
+            <!-- Grand total -->
+            <div :class="[[ $variables.editMode ? 'ql-grand ql-editing' : 'ql-grand' ]]"
+              style="border-top:2px solid var(--oj-core-divider-color,#e0e0e0); background:var(--oj-core-neutral-color-1,#fafafa);">
+              <div class="ql-cell" style="flex:1 1 0; font-weight:700; font-size:0.8125rem; color:#1e293b;">Grand Total</div>
+              <div class="ql-cell ql-total" style="font-weight:700; font-size:0.9375rem; color:var(--oj-core-brand-color-primary,#005cb1);">
+                <oj-bind-text value="[[ $variables.quoteData.grandTotal ? '$' + $variables.quoteData.grandTotal.toLocaleString() : '$0' ]]"></oj-bind-text>
+              </div>
+              <oj-bind-if test="[[ $variables.editMode ]]">
+                <div class="ql-cell ql-act"></div>
+              </oj-bind-if>
+            </div>
+            </div><!-- /.ql-table-inner -->
+          </div>
+
+          <oj-bind-if test="[[ $variables.editMode ]]">
+            <div style="font-size:0.72rem; color:var(--oj-core-text-color-secondary,#8c8c8c); margin-top:8px;">
+              Net Rate = Rate × (1 + Markup %). Line and grand totals recalculate when you click Save (Net Rate × Qty × rental days). Set Markup % to 0 to remove the markup on a line.
+            </div>
+          </oj-bind-if>
+
+          <!-- Footer note -->
+          <div class="quote-footer-note">
+            This quote is valid for 30 days from the date of issue. Prices are subject to change without notice.
+            For queries, contact your EquipRite account representative.
+            All equipment rentals are subject to EquipRite's standard Terms and Conditions.
+          </div>
+
+        </div><!-- /.quote-card -->
+      </div><!-- /#quotePrintArea -->
+
+    </oj-bind-if>
+
+  </div>
+</oj-sp-general-overview-page>

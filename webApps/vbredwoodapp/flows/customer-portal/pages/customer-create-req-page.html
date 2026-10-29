@@ -1,0 +1,154 @@
+<oj-sp-general-overview-page
+  id="createRequestPage"
+  page-title="Create Equipment Request"
+  page-subtitle="[[ $variables.pageSubtitle ]]"
+  show-go-to-parent="true"
+  on-sp-go-to-parent="[[ $listeners.spGoToParent ]]"
+  primary-action='{"label": "Next", "display": "on"}'
+  on-sp-primary-action="[[ $listeners.spPrimaryAction ]]"
+  display-mode="mixed">
+
+  <div slot="main">
+
+    <div class="oj-flex">
+      <oj-form-layout class="oj-flex-item oj-sm-12" label-edge="inside" columns="2">
+
+        <!-- Row 1: Customer Name (LOV) + Customer Contact (dependent LOV) -->
+        <oj-select-single
+          label-hint="Customer Name"
+          data="[[ $variables.customerRefsADP ]]"
+          item-text="customerName"
+          value="{{ $variables.formData.customerRefId }}"
+          on-value-item-changed="[[ $listeners.customerSelected ]]"
+          class="oj-form-control-full-width"
+          required="true">
+        </oj-select-single>
+
+        <oj-select-single
+          label-hint="Customer Contact"
+          data="[[ $variables.customerPortalUsersADP ]]"
+          item-text="contactName"
+          value="{{ $variables.formData.requestorId }}"
+          on-value-item-changed="[[ $listeners.contactSelected ]]"
+          placeholder="Select a contact..."
+          class="oj-form-control-full-width"
+          required="true">
+        </oj-select-single>
+
+        <!-- Row 2: Start Date, End Date -->
+        <oj-input-date
+          label-hint="Start Date"
+          value="{{ $variables.formData.requestedStartDate }}"
+          date-picker.show-on="userFocus"
+          class="oj-form-control-full-width"
+          required="true">
+        </oj-input-date>
+        <oj-input-date
+          label-hint="End Date"
+          value="{{ $variables.formData.requestedEndDate }}"
+          date-picker.show-on="userFocus"
+          class="oj-form-control-full-width"
+          required="true" min="[[ $variables.formData.requestedStartDate ]]">
+        </oj-input-date>
+
+        <!-- Row 3: Delivery Location, Notes -->
+        <!-- Clicking opens the map drawer (edge=end). NOT readonly: an empty
+             readonly field renders with no box in Redwood (looks vanished), so
+             it stays editable — the click-to-open means picking on the map is
+             still the path, and "Use this location" fills in the composed label. -->
+        <oj-input-text
+          label-hint="Delivery Location"
+          value="{{ $variables.formData.location }}"
+          placeholder="Click to pick on map"
+          class="oj-form-control-full-width"
+          required="true"
+          on-click="[[ () => { $page.variables.isLocationDrawerOpen = true; } ]]">
+        </oj-input-text>
+        <oj-text-area
+          label-hint="Notes / Special Instructions"
+          value="{{ $variables.formData.notes }}"
+          rows="3"
+          class="oj-form-control-full-width">
+        </oj-text-area>
+
+      </oj-form-layout>
+    </div>
+
+  </div>
+
+</oj-sp-general-overview-page>
+
+<!-- Delivery-location map drawer (right side / edge=end). Opened by clicking the
+     Delivery Location field. Typeahead (module MapboxSuggestProvider) + map-click
+     drop a pin and parse the address into the Oracle-style fields; "Use this
+     location" composes them into $page.variables.formData.location. The map is
+     built imperatively by the page module (initLocationMap) when the drawer opens
+     — see LocationDrawerToggleChain on on-opened-changed. -->
+<oj-drawer-popup id="ccrLocationDrawer" edge="end"
+  opened="{{ $page.variables.isLocationDrawerOpen }}"
+  on-opened-changed="[[ $listeners.locationDrawerOpenedChanged ]]"
+  style="width: 520px; max-width: 96vw;">
+  <div style="display:flex; flex-direction:column; height:100%; padding:20px 20px 16px; box-sizing:border-box;">
+
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
+      <span style="font-size:16px; font-weight:700; color:#0f172a;">Delivery location</span>
+      <oj-button chroming="borderless" display="icons" title="Close"
+        on-oj-action="[[ () => { $page.variables.isLocationDrawerOpen = false; } ]]">
+        <span slot="startIcon" class="oj-ux-ico-close"></span>
+      </oj-button>
+    </div>
+    <div style="font-size:13px; color:#64748b; margin-bottom:12px;">
+      Search an address or click the map to drop a pin.
+    </div>
+
+    <!-- Address typeahead: type ≥3 chars → the module's MapboxSuggestProvider
+         (a custom DataProvider) geocodes inside fetchFirst, which oj-input-search
+         awaits and paints. Picking a suggestion applies its exact parsed
+         components + coords. Map click still fine-tunes. -->
+    <oj-input-search aria-label="Search address" placeholder="Start typing an address…"
+      value="{{ $page.variables.locationSearchText }}"
+      suggestions="[[ $functions.addressSuggestionsProvider() ]]"
+      suggestion-item-text="label"
+      class="oj-form-control-full-width"
+      on-oj-value-action="[[ $listeners.addressSuggestionSelected ]]">
+      <template slot="suggestionItemTemplate" data-oj-as="suggestion">
+        <div class="oj-sm-padding-2x oj-sm-border-bottom" style="line-height:1.35;">
+          <oj-bind-text value="[[ suggestion.data.label ]]"></oj-bind-text>
+        </div>
+      </template>
+    </oj-input-search>
+
+    <div id="ccr-map"
+      style="width:100%; height:340px; margin-top:14px; border-radius:10px; overflow:hidden; border:1px solid #e2e8f0; background:#eef2f7;"></div>
+
+    <div style="margin-top:14px; overflow:auto;">
+      <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#94a3b8; margin-bottom:8px;">Selected address</div>
+      <oj-form-layout max-columns="2" direction="row" label-edge="inside" class="oj-form-control-full-width">
+        <oj-input-text label-hint="Address Line 1" value="{{ $page.variables.addr1 }}"
+          class="oj-form-control-full-width oj-form-cols-span-all"></oj-input-text>
+        <oj-input-text label-hint="Address Line 2" value="{{ $page.variables.addr2 }}"
+          class="oj-form-control-full-width oj-form-cols-span-all"></oj-input-text>
+        <oj-input-text label-hint="City" value="{{ $page.variables.city }}" class="oj-form-control-full-width"></oj-input-text>
+        <oj-input-text label-hint="County" value="{{ $page.variables.county }}" class="oj-form-control-full-width"></oj-input-text>
+        <oj-input-text label-hint="State / Province" value="{{ $page.variables.addrState }}" class="oj-form-control-full-width"></oj-input-text>
+        <oj-input-text label-hint="Postal Code" value="{{ $page.variables.postalCode }}" class="oj-form-control-full-width"></oj-input-text>
+        <oj-input-text label-hint="Country" value="{{ $page.variables.country }}" class="oj-form-control-full-width oj-form-cols-span-all"></oj-input-text>
+      </oj-form-layout>
+      <div style="font-size:12px; color:#64748b; margin-top:6px;">
+        <oj-bind-if test="[[ $page.variables.pickedLat != null ]]">
+          Lat <oj-bind-text value="[[ $page.variables.pickedLat ]]"></oj-bind-text> ·
+          Lng <oj-bind-text value="[[ $page.variables.pickedLng ]]"></oj-bind-text>
+        </oj-bind-if>
+      </div>
+    </div>
+
+    <div style="margin-top:auto; display:flex; gap:8px; justify-content:flex-end; padding-top:16px;">
+      <oj-button chroming="outlined" on-oj-action="[[ () => { $page.variables.isLocationDrawerOpen = false; } ]]">Cancel</oj-button>
+      <oj-button chroming="callToAction" on-oj-action="[[ $listeners.useLocation ]]">
+        <span slot="startIcon" class="oj-ux-ico-check"></span>
+        <span>Use this location</span>
+      </oj-button>
+    </div>
+
+  </div>
+</oj-drawer-popup>

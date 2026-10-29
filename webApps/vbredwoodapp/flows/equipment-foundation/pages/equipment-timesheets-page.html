@@ -1,0 +1,138 @@
+<!--
+  Equipment Timesheets — Smart Search Page
+  Template: oj-sp-smart-search-page + oj-table (standardized to Equipment Requests pattern)
+-->
+<style>
+  /* ── Table styling ── */
+  #timesheetTable .oj-table-column-header-cell {
+    background-color: var(--oj-core-neutral-color-2, #f1f1f1);
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--oj-core-text-color-secondary, #565656);
+    padding: 10px 12px;
+  }
+  #timesheetTable .oj-table-column-header-text {
+    white-space: nowrap;
+  }
+  #timesheetTable .oj-table-body-row:hover {
+    background-color: var(--oj-core-neutral-color-1, #fafafa);
+    cursor: pointer;
+  }
+  #timesheetTable .oj-table-data-cell {
+    padding: 10px 12px;
+    font-size: 0.8125rem;
+    vertical-align: middle;
+  }
+
+  /* ── ID two-line cell ── */
+  .ts-id-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #94a3b8;
+    margin-bottom: 2px;
+  }
+  .ts-id-value {
+    font-weight: 700;
+    color: var(--oj-core-brand-color-primary, #005cb1);
+    font-size: 0.8rem;
+  }
+
+  /* Status badge colours are defined globally in resources/css/app.css
+     (canonical status palette). Do not redefine them here. */
+
+</style>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!--  SMART SEARCH PAGE SHELL                                -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<oj-sp-smart-search-page
+  page-title="Equipment Timesheets"
+  page-subtitle="[[ $application.functions.getFormattedDate() + ' | ' + $variables.TimesheetFilteredArray.length +'  -  Active equipment requests '  ]]"
+  primary-action.display="off"
+  display-mode="mixed">
+
+  <!-- ── SEARCH SLOT ── -->
+  <oj-sp-smart-search
+    slot="search"
+    filter-criterion="{{ $variables.filterCriterion }}"
+    on-filter-criterion-changed="[[$listeners.filterCriterionChanged]]"
+    search-context="[[ $variables.searchContext ]]"
+    search-config="[[ $variables.searchConfiguration.provider ]]"
+    suggestion-filters='["StatusFilter"]'
+    placeholder="Timesheet ID, project...">
+  </oj-sp-smart-search>
+
+  <!-- ── DEFAULT SLOT — collection ── -->
+  <oj-sp-collection-container>
+
+    <oj-table
+      id="timesheetTable"
+      data="[[ $variables.TimesheetADP ]]"
+      class="oj-table-stretch oj-sm-width-full"
+      scroll-policy="loadMoreOnScroll"
+      scroll-policy-options.fetch-size="25"
+      selection-mode='{"row": "single"}'
+      on-first-selected-row-changed="[[$listeners.onRowAction]]"
+      columns='[
+        {"headerText": "Request",             "field": "requestNumber",  "template": "idTpl",        "sortable": "enabled", "style": "width:160px;"},
+        {"headerText": "Project",             "field": "projectName",    "template": "projectTpl",    "sortable": "enabled"},
+        {"headerText": "Task",                "field": "taskName",                                    "sortable": "enabled", "style": "width:160px;"},
+        {"headerText": "Equip Count",         "field": "equipCount",                                  "sortable": "enabled", "style": "width:130px;"},
+        {"headerText": "Week",                "field": "weekStartDate",  "template": "weekTpl",       "sortable": "enabled", "style": "width:200px;"},
+        {"headerText": "Hours",               "field": "totalHours",                                  "sortable": "enabled", "style": "width:110px;"},
+        {"headerText": "Status",              "field": "thisWeekStatus",  "template": "statusTpl",    "sortable": "enabled", "style": "width:120px;"}
+      ]'
+      style="width:100%; min-height:500px;"
+      aria-label="Equipment Timesheets Table">
+
+      <!-- REQUEST -->
+      <template slot="idTpl" data-oj-as="cell">
+        <div class="ts-id-value">
+          <oj-bind-text value="[[ cell.row.requestNumber || '—' ]]"></oj-bind-text>
+        </div>
+      </template>
+
+      <!-- WEEK -->
+      <template slot="weekTpl" data-oj-as="cell">
+        <span>
+          <oj-bind-text value="[[ cell.row.weekStartDate + ' – ' + cell.row.weekEndDate ]]"></oj-bind-text>
+        </span>
+      </template>
+
+      <!-- PROJECT — dash when empty -->
+      <template slot="projectTpl" data-oj-as="cell">
+        <span>
+          <oj-bind-text value="[[ cell.data || '—' ]]"></oj-bind-text>
+        </span>
+      </template>
+
+      <!-- THIS WEEK STATUS — canonical pill. Colour and label both come from
+           the shared status module. A timesheet with no status yet is still
+           treated as DRAFT (unchanged behaviour), which now also drives the
+           pill colour rather than only the label. -->
+      <template slot="statusTpl" data-oj-as="cell">
+        <span :class="[[ $application.functions.statusPillClass(cell.data || 'DRAFT') ]]">
+          <oj-bind-text value="[[ $application.functions.formatLineStatus(cell.data || 'DRAFT') ]]"></oj-bind-text>
+        </span>
+      </template>
+
+
+
+      <!-- EMPTY STATE -->
+      <template slot="noData">
+        <div style="text-align:center; padding:48px 0;">
+          <div style="font-size:40px; color:#cbd5e1; margin-bottom:12px;">📋</div>
+          <div style="font-size:15px; font-weight:600; color:#475569; margin-bottom:6px;">No allocated equipment lines found.</div>
+          <div style="font-size:13px; color:#94a3b8;">Try adjusting your filters or clearing the search.</div>
+        </div>
+      </template>
+
+    </oj-table>
+
+  </oj-sp-collection-container>
+
+</oj-sp-smart-search-page>

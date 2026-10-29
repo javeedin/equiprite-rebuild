@@ -1,0 +1,869 @@
+<!--
+  Initiate Picking — Smart Search Page (PATH B, hardcoded data)
+  Template: oj-sp-smart-search-page + oj-table + side drawer + bulk dialog
+-->
+<style>
+  /* ── Table column header — scoped via custom wrapper ── */
+  .pick-table-host .oj-table-column-header-cell {
+    background-color: var(--oj-core-neutral-color-2, #f1f1f1);
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--oj-core-text-color-secondary, #565656);
+    padding: 10px 12px;
+  }
+  .pick-table-host .oj-table-column-header-text {
+    white-space: nowrap;
+  }
+  .pick-table-host .oj-table-body-row:hover {
+    background-color: var(--oj-core-neutral-color-1, #fafafa);
+    cursor: pointer;
+  }
+  .pick-table-host .oj-table-data-cell {
+    padding: 8px 12px;
+    font-size: 0.8125rem;
+    vertical-align: middle;
+  }
+
+  /* ── Status / picking badges ── */
+  .pick-status-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+  /* Legacy aliases — colours come from the canonical status palette in
+     resources/css/app.css. New markup should use .status-pill instead. */
+  .pick-status--neutral { background: var(--status-draft-bg);      color: var(--status-draft-text); }
+  .pick-status--info    { background: var(--status-submitted-bg);  color: var(--status-submitted-text); }
+  .pick-status--success { background: var(--status-deployed-bg);   color: var(--status-deployed-text); }
+  .pick-status--warning { background: var(--status-in-process-bg); color: var(--status-in-process-text); }
+  .pick-status--danger  { background: var(--status-rejected-bg);   color: var(--status-rejected-text); }
+
+  /* ── Project / Customer shared column ── */
+  .pick-party-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  /* Marks an outsourced (customer) request in the shared Project column.
+     Matches the workbench's CUSTOMER badge so the two pages read alike. */
+  .pick-source-badge {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 12px;
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+    background: #fdecd8;
+    color: #c45c00;
+  }
+
+  /* ── Req number link ── */
+  .pick-req-link {
+    color: var(--oj-core-brand-color-primary, #005cb1);
+    font-weight: 700;
+    font-size: 0.8rem;
+  }
+
+  /* ── Settings strip ── */
+  .pick-settings-strip {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 8px 16px;
+    background: var(--oj-core-neutral-color-1, #fafafa);
+    border: 1px solid var(--oj-core-divider-color, #e0e0e0);
+    border-radius: 6px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+  .pick-settings-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--oj-core-text-color-secondary, #565656);
+    margin-bottom: 2px;
+  }
+  .pick-settings-value {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--oj-core-text-color-primary, #161616);
+  }
+  .pick-settings-divider {
+    width: 1px;
+    height: 28px;
+    background: var(--oj-core-divider-color, #e0e0e0);
+  }
+
+  /* ── Filter toolbar ── */
+  .pick-toolbar {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+
+  /* ── Tab count badge ── */
+  .pick-tab-count {
+    font-size: 0.7rem;
+    font-weight: 700;
+    margin-left: 4px;
+    opacity: 0.7;
+  }
+
+  /* ── Drawer detail fields ── */
+  .pick-field-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--oj-core-text-color-secondary, #565656);
+    margin-bottom: 2px;
+  }
+  .pick-field-value {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--oj-core-text-color-primary, #161616);
+  }
+  .pick-section-heading {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--oj-core-brand-color-primary, #005cb1);
+    margin: 14px 0 8px 0;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--oj-core-divider-color, #e0e0e0);
+  }
+
+  /* ── Lines data grid host ── */
+  .pick-grid-host .oj-datagrid-cell {
+    padding: 6px 10px;
+    font-size: 0.8125rem;
+    color: var(--oj-core-text-color-primary, #161616);
+    border-bottom: 1px solid var(--oj-core-divider-color, #f1f5f9);
+  }
+  .pick-grid-host .oj-datagrid-header-cell {
+    border-bottom: 1px solid var(--oj-core-divider-color, #e2e8f0);
+  }
+  .pick-grid-host .oj-datagrid-row-header-cell {
+    background-color: #f8fafc;
+    font-size: 0.7rem;
+    color: var(--oj-core-text-color-secondary, #475569);
+    text-align: center;
+    padding: 6px;
+  }
+
+  /* ── Exception card ── */
+  .pick-exception-card {
+    background: #fff4e0;
+    border: 1px solid #f5c6a0;
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+  }
+  .pick-exception-card--critical {
+    background: #fce8e8;
+    border-color: #ef9a9a;
+  }
+  .pick-exception-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #c45c00;
+    margin-bottom: 4px;
+  }
+  .pick-exception-label--critical { color: #c62828; }
+  .pick-exception-issue { font-size: 0.8125rem; color: #7c3800; }
+  .pick-exception-issue--critical { color: #7f0000; }
+
+  /* ── Last result banner ── */
+  .pick-result-banner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    background: #e8f5e9;
+    border: 1px solid #a5d6a7;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    font-size: 0.8125rem;
+    color: #2e7d32;
+    font-weight: 500;
+  }
+
+  /* ── Rejection block ── */
+  .pick-rejection-block {
+    background: #fff7f0;
+    border: 1px solid #f5c6a0;
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+  }
+  .pick-rejection-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #c45c00;
+    margin-bottom: 4px;
+  }
+</style>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!--  SMART SEARCH PAGE SHELL                                -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<oj-sp-smart-search-page page-title="Equipment Returns" display-mode="mixed" 
+  on-sp-primary-action="[[$listeners.onBulkInitiate]]" on-sp-secondary-action="[[$listeners.onSecondaryAction]]"
+  secondary-actions='[[ [
+    {"id": "directReturn", "label": "Scan", "display": "on", "chroming": "outlined"}
+  ] ]]'>
+
+  <!-- Direct Return is declared as a page SECONDARY ACTION, not markup in a
+       slot: oj-sp-smart-search-page renders its own action bar and has no
+       toolbar slot to drop a button into.
+
+       ALWAYS ENABLED, deliberately - unlike Accept it takes no selection,
+       because the operator does not yet know which request the unit is on.
+       That is the whole problem it solves: the queue below can only Accept
+       lines already at SHIPPED_TO_YARD, and a unit that just turned up is
+       still DEPLOYED, so nothing else on this page can action it.
+
+       on-sp-secondary-action fires ONE handler for every secondary action, so
+       ReturnsSecondaryActionChain dispatches on $event.detail.id. -->
+
+  <!-- ── SEARCH SLOT ── -->
+  <oj-sp-smart-search
+    slot="search"
+    filter-criterion="{{ $variables.filterCriterion }}"
+    on-filter-criterion-changed="[[$listeners.filterCriterionChanged]]"
+    search-context="[[ $variables.searchContext ]]"
+    search-config="[[ $variables.searchConfiguration.provider ]]">
+  </oj-sp-smart-search>
+
+  <!-- ── Main Table ── -->
+  <oj-table id="equipmentReturnsTable" data="[[ $variables.PickingQueueADP ]]" class="oj-sm-width-full oj-table-stretch"
+    scroll-policy="loadMoreOnScroll" scroll-policy-options.fetch-size="25" selection-mode='{"row": "single"}'
+    on-first-selected-row-changed="[[$listeners.onRowAction]]" columns='[
+        {"headerText": "",               "template": "checkboxTpl",       "headerTemplate": "checkboxHeaderTpl", "sortable": "disabled", "style": "width:48px; text-align:center;", "headerStyle": "width:48px; text-align:center;"},
+        {"headerText": "Request #",      "field": "requestNumber",         "template": "reqNumTpl",        "sortable": "enabled", "style": "width:130px;"},
+        {"headerText": "Project",        "field": "project",               "template": "projectTpl",       "sortable": "enabled"},
+        {"headerText": "Requestor",      "field": "requestor",             "sortable": "enabled",          "style": "width:140px;"},
+        {"headerText": "Needed By",      "field": "neededByDate",          "sortable": "enabled",          "style": "width:110px;"},
+        {"headerText": "Req Status",     "field": "status",                "template": "reqStatusTpl",     "sortable": "enabled", "style": "width:160px;"}
+      ]' style="width:100%; min-height:500px;">
+
+      <!-- HEADER CHECKBOX — select all / deselect all on filtered set -->
+    <template slot="checkboxHeaderTpl">
+    <oj-bind-if
+      test="[[ $page.functions.isAllSelected($variables.selectedIds, $variables.PickingQueueFilteredArray) ]]">
+    <input type="checkbox" id="input--30032390-1" checked="" on-click="[[$page.functions.stopEvent]]"
+      on-change="[[$listeners.onToggleSelectAll]]" style="cursor:pointer; width:16px; height:16px;" />
+    </oj-bind-if>
+    <oj-bind-if
+      test="[[ !$page.functions.isAllSelected($variables.selectedIds, $variables.PickingQueueFilteredArray) ]]">
+    <input type="checkbox" id="input--30032390-2" on-click="[[$page.functions.stopEvent]]"
+      on-change="[[$listeners.onToggleSelectAll]]" style="cursor:pointer; width:16px; height:16px;" />
+    </oj-bind-if>
+    </template>
+
+      <!-- ROW CHECKBOX -->
+    <template slot="checkboxTpl" data-oj-as="cell">
+    <oj-bind-if test="[[ $variables.selectedIds.indexOf(cell.row.id) > -1 ]]">
+    <input type="checkbox" :id="[[ 'chk-' + cell.row.id ]]" checked="" on-click="[[$page.functions.stopEvent]]"
+      on-change="[[$listeners.onRowCheckboxChanged]]" style="cursor:pointer; width:16px; height:16px;" />
+    </oj-bind-if>
+    <oj-bind-if test="[[ $variables.selectedIds.indexOf(cell.row.id) === -1 ]]">
+    <input type="checkbox" :id="[[ 'chk-' + cell.row.id ]]" on-click="[[$page.functions.stopEvent]]"
+      on-change="[[$listeners.onRowCheckboxChanged]]" style="cursor:pointer; width:16px; height:16px;" />
+    </oj-bind-if>
+    </template>
+
+      <!-- REQUEST NUMBER -->
+    <template slot="reqNumTpl" data-oj-as="cell">
+    <span class="pick-req-link">
+    <oj-bind-text value="[[ cell.data ]]"></oj-bind-text>
+    </span>
+    </template>
+
+      <!-- PROJECT / CUSTOMER — one column for both.
+           `project` is resolved upstream in InitPickingQueueChain: projectName
+           for PROJECT rows, customerName for CUSTOMER rows (semantically the
+           same slot). Customer rows get a badge so the two sources stay
+           distinguishable in a shared column. -->
+    <template slot="projectTpl" data-oj-as="cell">
+    <div>
+    <div class="pick-party-line">
+        <span style="font-weight:600; color:var(--oj-core-text-color-primary,#161616);">
+          <oj-bind-text value="[[ cell.data || '—' ]]"></oj-bind-text>
+        </span>
+        <!-- Origin badge. Vocabulary is EXTERNAL | INTERNAL (was CUSTOMER |
+             PROJECT); cell.row.isCustomer is set by InitPickingQueueChain via
+             $application.functions.isExternalSource(), so only the LABEL
+             needed renaming here. -->
+        <oj-bind-if test="[[ cell.row.isCustomer ]]">
+          <span class="pick-source-badge">EXTERNAL</span>
+        </oj-bind-if>
+    </div>
+    <div style="font-size:0.75rem; color:var(--oj-core-text-color-secondary,#565656); margin-top:1px;">
+        <oj-bind-text value="[[ cell.row.projectCode ]]"></oj-bind-text>
+    </div>
+    </div>
+    </template>
+
+      <!-- PICKING STATUS -->
+    <template slot="pickingStatusTpl" data-oj-as="cell">
+    <span>
+    <oj-bind-if test="[[ cell.data === 'PENDING' ]]">
+        <span class="pick-status-badge pick-status--neutral">Pending</span>
+    </oj-bind-if>
+    <oj-bind-if test="[[ cell.data === 'IN_PROGRESS' ]]">
+        <span class="pick-status-badge pick-status--info">In Progress</span>
+    </oj-bind-if>
+    <oj-bind-if test="[[ cell.data === 'COMPLETED' ]]">
+        <span class="pick-status-badge pick-status--success">Completed</span>
+    </oj-bind-if>
+    <oj-bind-if test="[[ cell.data === 'EXCEPTION' ]]">
+        <span class="pick-status-badge pick-status--danger">Exception</span>
+    </oj-bind-if>
+    </span>
+    </template>
+
+      <!-- REQ STATUS -->
+    <template slot="reqStatusTpl" data-oj-as="cell">
+    <span>
+    <oj-bind-if test="[[ !!cell.data ]]">
+      <span :class="[[ $application.functions.statusPillClass(cell.data) ]]">
+        <oj-bind-text value="[[ $application.functions.formatLineStatus(cell.data) ]]"></oj-bind-text>
+      </span>
+    </oj-bind-if>
+    </span>
+    </template>
+
+      <!-- NO DATA -->
+    <template slot="noData">
+    <div style="text-align:center; padding:48px 0;">
+    <div style="font-size:40px; color:#cbd5e1; margin-bottom:12px;">📦</div>
+    <div style="font-size:15px; font-weight:600; color:#475569; margin-bottom:6px;">No picking requests match your filters.</div>
+    <div style="font-size:13px; color:#94a3b8;">Try adjusting the tab, filters, or search.</div>
+    </div>
+    </template>
+  </oj-table>
+
+</oj-sp-smart-search-page>
+
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!--  REQUEST DETAIL MODAL (centered dialog)                 -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<oj-dialog id="pickingDetailDialog"
+  initial-visibility="hide" cancel-behavior="icon" modality="modal"
+  on-oj-close="[[ $listeners.closePickingDrawer ]]"
+  style="width: 95vw; max-width: 1600px;">
+
+  <div slot="header"
+       style="display:flex; flex-direction:column; padding:14px 20px 12px 20px; border-bottom:1px solid var(--oj-core-divider-color,#e2e8f0); gap:10px;">
+    <div style="font-size:1rem; font-weight:700; color:#0f172a;">
+      <oj-bind-text value="[[ $variables.selectedRequest.requestNumber || 'Request Detail' ]]"></oj-bind-text>
+    </div>
+    <div style="font-size:0.8125rem; color:var(--oj-core-text-color-secondary,#565656); line-height:1.5;">
+      <oj-bind-text value="[[
+        ($variables.selectedRequest.project        ? $variables.selectedRequest.project                          : '—')
+        + ($variables.selectedRequest.equipmentClass ? ' · ' + $variables.selectedRequest.equipmentClass         : '')
+        + ($variables.selectedRequest.requestor      ? ($variables.selectedRequest.isCustomer ? '  ·  Contact: ' : '  ·  Requestor: ') + $variables.selectedRequest.requestor : '')
+        + ($variables.selectedRequest.warehouse      ? '  ·  Warehouse: '     + $variables.selectedRequest.warehouse      : '')
+        + ($variables.selectedRequest.neededByDate   ? '  ·  Needed By: '     + $variables.selectedRequest.neededByDate   : '')
+        + ($variables.selectedRequest.subInventory   ? '  ·  Sub-Inventory: ' + $variables.selectedRequest.subInventory   : '')
+      ]]"></oj-bind-text>
+    </div>
+
+  </div>
+
+  <div slot="body" style="padding:0; max-height:70vh; overflow-y:auto;">
+      <div class="oj-flex oj-sm-flex-direction-column" style="padding:1rem 1.25rem;">
+
+        <!-- Last picking result banner -->
+        <oj-bind-if test="[[ $page.functions.hasLastResult($variables.lastPickingResults, $variables.selectedRequest.id) ]]">
+          <div class="pick-result-banner">
+            ✓&nbsp;<oj-bind-text value="[[ ($page.functions.getLastResult($variables.lastPickingResults, $variables.selectedRequest.id) || {}).message ]]"></oj-bind-text>
+          </div>
+        </oj-bind-if>
+
+        <!-- Rejection block -->
+        <oj-bind-if test="[[ $variables.selectedRequest.rejectionReason ]]">
+          <div class="pick-rejection-block">
+            <div class="pick-rejection-label">Rejection Reason</div>
+            <div style="font-size:0.8125rem; color:#7c3800;">
+              <oj-bind-text value="[[ $variables.selectedRequest.rejectionReason ]]"></oj-bind-text>
+            </div>
+          </div>
+        </oj-bind-if>
+
+        <!-- Equipment Lines -->
+        <div class="oj-flex oj-sm-justify-content-space-between oj-sm-align-items-center pick-section-heading">
+          <span>Equipment Lines</span>
+          <!-- Actual return date: stamped onto the line at Accept (SHIPPED_TO_YARD -> CLOSED).
+               Drives the early-return re-price in post cost (writes EQR_REQUEST_LINE.ACTUAL_RETURN_DATE
+               via the patch body; the post-cost view bills LEAST(planned_end, actual_return)).
+               Defaults to today in AcceptReturnLinesChain if left blank. -->
+          <div class="oj-flex oj-sm-align-items-center" style="gap:10px;">
+            <!-- date-picker.modality=modeless + show-on=image: the picker lives
+                 inside an oj-dialog, whose modal overlay treats a click on the
+                 calendar popup (rendered in a top-level overlay layer) as a
+                 click-outside and closes the dialog. Modeless keeps the popup
+                 non-modal so it doesn't fight the dialog; show-on="image" opens
+                 it only via the calendar icon (not on field focus), avoiding the
+                 focus bounce that also collapsed the dialog. -->
+            <!-- NO max/min bound on purpose: the return can be BEFORE the planned
+                 end (early return -> bills fewer days) OR AFTER it (late return ->
+                 bills the overrun). The post-cost view bills to the actual return
+                 date either way.
+                 Plain oj-input-date (no show-on / modality) — this is the proven
+                 working pattern for a date picker inside an oj-dialog in this app
+                 (request-cart-page editQtyDialog). The earlier show-on=image +
+                 modality=modeless variant was fragile and closed the dialog on
+                 date click; the plain form does not. -->
+            <oj-input-date
+              label-hint="Actual Return Date"
+              label-edge="inside"
+              class="oj-form-control-density-compact"
+              style="width:190px;"
+              value="{{ $variables.actualReturnDate }}">
+            </oj-input-date>
+            <oj-button chroming="callToAction" class="oj-button-sm"
+              :disabled="[[ $variables.lineSelectionState.count === 0 ]]"
+              on-oj-action="[[ $listeners.onAcceptReturnLines ]]" display="label">
+              <span slot="startIcon" class="oj-ux-ico-check-circle"></span>
+              <span>Accept</span>
+            </oj-button>
+          </div>
+        </div>
+
+        <oj-bind-if test="[[ $variables.isLoadingDrawer ]]">
+          <div style="color:var(--oj-core-text-color-secondary); font-size:0.8125rem; margin-bottom:8px;">
+            Loading lines and allocations…
+          </div>
+        </oj-bind-if>
+
+        <oj-bind-if test="[[ !$variables.isLoadingDrawer && (!$variables.selectedRequest.lines || $variables.selectedRequest.lines.length === 0) ]]">
+          <div style="color:var(--oj-core-text-color-secondary); font-size:0.8125rem; margin-bottom:8px;">No equipment lines.</div>
+        </oj-bind-if>
+
+        <oj-bind-if test="[[ $variables.selectedRequest.lines && $variables.selectedRequest.lines.length > 0 ]]">
+          <div class="pick-grid-host" style="height: 50vh; min-height: 320px; border: 1px solid var(--oj-core-divider-color,#e2e8f0); border-radius: 4px; overflow: hidden;">
+            <oj-data-grid id="linesDataGrid"
+              aria-label="Equipment Lines"
+              data="[[ $page.functions.getLinesGridProvider($variables.selectedRequest.lines) ]]"
+              cell.editable="[[ $page.functions.getIsEditable.bind($page.functions) ]]"
+              header.column.style="[[ $page.functions.getColumnHeaderStyle.bind($page.functions) ]]"
+              header.row.style="width:50px;"
+              header.column.resizable.width="enable"
+              scroll-policy="loadMoreOnScroll"
+              style="width:100%; height:100%;">
+
+              <template slot="columnHeaderTemplate" data-oj-as="header">
+                <oj-bind-if test="[[ header.item.index === 0 ]]">
+                  <div style="display:flex; justify-content:center; align-items:center; height:100%;">
+                    <input type="checkbox"
+                      :checked="[[ $variables.lineSelectionTick >= 0 && $page.functions.isAllLinesSelected() ]]"
+                      on-click="[[ $page.functions.stopEvent.bind($page.functions) ]]"
+                      on-change="[[ $page.functions.onLineHeaderCheckboxChanged.bind($page.functions, $listeners.onLineSelectionChanged) ]]"
+                      style="cursor:pointer; width:16px; height:16px;" />
+                  </div>
+                </oj-bind-if>
+                <oj-bind-if test="[[ header.item.index !== 0 ]]">
+                  <oj-bind-text value="[[ header.item.data ]]"></oj-bind-text>
+                </oj-bind-if>
+              </template>
+
+              <template slot="cellTemplate" data-oj-as="cell">
+
+                <oj-bind-if test="[[ $page.functions.getColumnType(cell.item.columnIndex) === 'select' ]]">
+                  <div style="display:flex; justify-content:center; align-items:center; height:100%;">
+                    <input type="checkbox"
+                      :checked="[[ $variables.lineSelectionTick >= 0 && $page.functions.isLineRowSelected(cell.item.rowIndex) ]]"
+                      :disabled="[[ !$page.functions.isLineRowEligible(cell.item.rowIndex) ]]"
+                      on-click="[[ $page.functions.stopEvent.bind($page.functions) ]]"
+                      on-change="[[ $page.functions.onLineRowCheckboxChanged.bind($page.functions, cell.item.rowIndex, $listeners.onLineSelectionChanged) ]]"
+                      :style="[[ $page.functions.isLineRowEligible(cell.item.rowIndex) ? 'cursor:pointer; width:16px; height:16px;' : 'cursor:not-allowed; width:16px; height:16px; opacity:0.5;' ]]" />
+                  </div>
+                </oj-bind-if>
+
+                <oj-bind-if test="[[ $page.functions.getColumnType(cell.item.columnIndex) === 'readonly' ]]">
+                  <span class="oj-typography-body-sm" :style="[[ $page.functions.getReturnCellStyle(cell.item.rowIndex) ]]">
+                    <oj-bind-text value="[[ cell.item.data.data !== '' && cell.item.data.data != null ? cell.item.data.data : '—' ]]"></oj-bind-text>
+                  </span>
+                </oj-bind-if>
+
+                <!-- Line Status — plain text; blank-out for SUBMITTED /
+                     IN_PROCESS is pre-applied by the page module so the
+                     cell value is already '' when it should render empty. -->
+                <oj-bind-if test="[[ $page.functions.getColumnType(cell.item.columnIndex) === 'statusblank' ]]">
+                  <span class="oj-typography-body-sm" :style="[[ $page.functions.getReturnCellStyle(cell.item.rowIndex) ]]">
+                    <oj-bind-text value="[[ cell.item.data.data || '' ]]"></oj-bind-text>
+                  </span>
+                </oj-bind-if>
+
+              </template>
+            </oj-data-grid>
+          </div>
+        </oj-bind-if>
+
+        <!-- Picking Exceptions -->
+        <oj-bind-if test="[[ $variables.selectedRequest.pickingExceptions && $variables.selectedRequest.pickingExceptions.length > 0 ]]">
+          <div class="pick-section-heading">Picking Exceptions — Action Required</div>
+
+          <oj-bind-for-each data="[[ $variables.selectedRequest.pickingExceptions || [] ]]">
+            <template data-oj-as="exc">
+              <div :class="[[ exc.data.severity === 'CRITICAL' ? 'pick-exception-card pick-exception-card--critical' : 'pick-exception-card' ]]">
+                <div :class="[[ exc.data.severity === 'CRITICAL' ? 'pick-exception-label pick-exception-label--critical' : 'pick-exception-label' ]]">
+                  <oj-bind-text value="[[ exc.data.severity + ' — ' + exc.data.equipmentName ]]"></oj-bind-text>
+                </div>
+                <div :class="[[ exc.data.severity === 'CRITICAL' ? 'pick-exception-issue pick-exception-issue--critical' : 'pick-exception-issue' ]]">
+                  <oj-bind-text value="[[ exc.data.issue ]]"></oj-bind-text>
+                </div>
+                <div style="margin-top:10px; display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap;">
+                  <div style="flex:1; min-width:150px;">
+                    <label style="font-size:0.7rem; font-weight:700; color:#565656; display:block; margin-bottom:3px; text-transform:uppercase; letter-spacing:0.05em;">Alt Serial #</label>
+                    <input type="text"
+                           :id="[[ 'alt-serial-' + exc.data.lineId ]]"
+                           placeholder="Enter alternate serial..."
+                           style="border:1px solid #ccc; border-radius:4px; padding:5px 8px; font-size:0.8rem; width:100%; box-sizing:border-box;"
+                           on-input="[[$listeners.onUpdateAltSerial]]" />
+                  </div>
+                  <oj-button
+                    :id="[[ 'resolve-btn-' + exc.data.lineId ]]"
+                    chroming="outlined"
+                    :disabled="[[ $variables.resolvingLineId === exc.data.lineId ]]"
+                    on-oj-action="[[$listeners.onResolveExceptionClick]]">
+                    <oj-bind-if test="[[ $variables.resolvingLineId === exc.data.lineId ]]">
+                      <span>Resolving...</span>
+                    </oj-bind-if>
+                    <oj-bind-if test="[[ $variables.resolvingLineId !== exc.data.lineId ]]">
+                      <span>Resolve</span>
+                    </oj-bind-if>
+                  </oj-button>
+                </div>
+              </div>
+            </template>
+          </oj-bind-for-each>
+        </oj-bind-if>
+
+      </div>
+  </div>
+
+  <div slot="footer" style="display:flex; justify-content:flex-end; gap:8px; padding:10px 20px 14px 20px;">
+    <oj-button chroming="outlined" on-oj-action="[[ $listeners.closePickingDrawer ]]">Close</oj-button>
+  </div>
+</oj-dialog>
+
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!--  BULK INITIATE PROGRESS DIALOG                          -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<oj-dialog
+  id="bulkProgressDialog"
+  open="{{ $variables.bulkProgressDialogOpen }}"
+  dialog-title="Bulk Initiate Picking"
+  cancel-behavior="none"
+  style="width:440px;">
+
+  <div slot="body" style="padding:16px 0;">
+
+    <!-- Progress view -->
+    <oj-bind-if test="[[ !$variables.showBulkSummary ]]">
+      <div style="margin-bottom:14px; font-size:0.875rem; color:var(--oj-core-text-color-secondary);">
+        Processing&nbsp;<strong><oj-bind-text value="[[$variables.bulkProgressCurrent]]"></oj-bind-text></strong>&nbsp;of&nbsp;<strong><oj-bind-text value="[[$variables.bulkProgressTotal]]"></oj-bind-text></strong>
+        <oj-bind-if test="[[ $variables.bulkProgressCurrentRequest ]]">
+          &nbsp;—&nbsp;<oj-bind-text value="[[$variables.bulkProgressCurrentRequest]]"></oj-bind-text>
+        </oj-bind-if>
+      </div>
+      <oj-progress-bar
+        value="[[ $page.functions.getBulkProgressPct($variables.bulkProgressCurrent, $variables.bulkProgressTotal) ]]"
+        style="width:100%;">
+      </oj-progress-bar>
+    </oj-bind-if>
+
+    <!-- Summary view (after completion) -->
+    <oj-bind-if test="[[ $variables.showBulkSummary ]]">
+      <div style="text-align:center; padding:12px 0;">
+        <div style="font-size:36px; margin-bottom:12px;">✅</div>
+        <div style="font-size:1rem; font-weight:700; color:#161616; margin-bottom:8px;">Bulk Initiation Complete</div>
+        <div style="font-size:0.875rem; color:#2e7d32; margin-bottom:4px;">
+          <oj-bind-text value="[[$variables.bulkSummaryCompleted]]"></oj-bind-text>&nbsp;requests initiated successfully
+        </div>
+        <oj-bind-if test="[[ $variables.bulkSummaryExceptions > 0 ]]">
+          <div style="font-size:0.875rem; color:#c62828;">
+            <oj-bind-text value="[[$variables.bulkSummaryExceptions]]"></oj-bind-text>&nbsp;requests have exceptions — review the queue
+          </div>
+        </oj-bind-if>
+      </div>
+    </oj-bind-if>
+
+  </div>
+
+  <div slot="footer">
+    <oj-bind-if test="[[ $variables.showBulkSummary ]]">
+      <oj-button
+        chroming="callToAction"
+        on-oj-action="[[$listeners.onCloseBulkDialog]]">
+        Done
+      </oj-button>
+    </oj-bind-if>
+  </div>
+</oj-dialog>
+
+<!-- ══ DIRECT RETURN DIALOG ══════════════════════════════════════════════════
+     Find equipment by whatever is legible on it, then return it.
+
+     WHY NOTHING IS EVER PRE-SELECTED: a serial does not identify a rental.
+     47% of deployed serials map to more than one line — the same physical unit
+     carries live allocations across requests. Live example, one serial:
+       line 1000001850  DEPLOYED          EPC_ MO_Operations
+       line 1000001785  RETURN_INITIATED  EPC_ MO_Operations
+       line 1000001171  DEPLOYED          Oceaneering Demo
+     Picking for the operator would return the wrong rental about half the time
+     and free a unit that is still on site. So every row needs a deliberate tick,
+     even when there is only one. -->
+<!-- Opened IMPERATIVELY via getElementById().open(), matching
+     pickingDetailDialog on this same page. oj-dialog has no `opened` property
+     to bind - initial-visibility only controls the first render, so a bound
+     :opened silently does nothing and the dialog never appears. -->
+<oj-dialog id="directReturnDialog"
+  initial-visibility="hide" cancel-behavior="icon" modality="modal"
+  dialog-title="Scan"
+  style="width: 95vw; max-width: 1600px;">
+
+  <!-- Same sizing as pickingDetailDialog above: a viewport-relative width that
+       shrinks on a small laptop, and a body that scrolls internally instead of
+       pushing the dialog past the bottom of the screen. A 50-row result set is
+       the normal case here, so the max-height is what keeps the footer (and the
+       Return Equipment button) reachable. -->
+  <!-- The grid below owns its own scrolling (fixed-height host +
+       loadMoreOnScroll), so the body must NOT also scroll - two nested
+       scrollers would trap the wheel in whichever the pointer happened to be
+       over. The body is capped so the footer stays on screen; the search box
+       and banners above the grid are short and fixed. -->
+  <div slot="body" style="padding:0; max-height:70vh; overflow:hidden;">
+    <div style="padding:1rem 1.25rem;">
+    <div style="color:var(--oj-core-text-color-secondary); font-size:0.8125rem; margin-bottom:10px;">
+      For equipment returned without prior notice. Scan the unit, or search by
+      equipment, model, class, request or project.
+    </div>
+
+    <!-- Enter submits immediately: a barcode scanner types the label then sends
+         Enter, so waiting on a debounce would swallow the scan. -->
+    <div class="oj-flex oj-sm-align-items-center" style="gap:8px; margin-bottom:12px;">
+      <oj-input-text
+        label-hint="Scan or search"
+        label-edge="inside"
+        class="oj-form-control-density-compact"
+        style="flex:1 1 auto; min-width:320px;"
+        placeholder="Serial, equipment, model, class, request or project"
+        value="{{ $variables.directReturnQuery }}"
+        on-oj-value-action="[[ $listeners.onDirectReturnSearch ]]">
+      </oj-input-text>
+      <oj-button chroming="callToAction" class="oj-button-sm"
+        :disabled="[[ $variables.directReturnSearching ]]"
+        on-oj-action="[[ $listeners.onDirectReturnSearch ]]" display="label">
+        <span slot="startIcon" class="oj-ux-ico-search"></span>
+        <span>Search</span>
+      </oj-button>
+      <!-- Camera. Hidden outright when the browser cannot open one - an
+           insecure origin (a LAN IP) or an unsupported browser - rather than
+           offering a button that can only fail. -->
+      <oj-bind-if test="[[ $variables.scanSupported ]]">
+        <oj-button chroming="outlined" class="oj-button-sm"
+          :disabled="[[ $variables.directReturnSearching ]]"
+          on-oj-action="[[ $listeners.onOpenScanner ]]" display="label"
+          title="Scan a barcode or QR tag, or read a serial plate">
+          <span slot="startIcon" class="oj-ux-ico-camera"></span>
+          <span>Scan</span>
+        </oj-button>
+      </oj-bind-if>
+    </div>
+
+    <!-- A device with no usable camera (a desktop without one, or the page
+         reached over a LAN IP rather than https) keeps every other way in:
+         a barcode gun types into the box, and so does the operator. Say which
+         it is, rather than silently dropping the button and leaving the
+         operator wondering whether scanning is broken. -->
+    <oj-bind-if test="[[ !$variables.scanSupported && !!$variables.scanStatus ]]">
+      <div style="font-size:0.75rem; color:var(--oj-core-text-color-secondary); margin:-6px 0 12px 2px;">
+        <span class="oj-ux-ico-information-s" style="vertical-align:-2px;"></span>
+        <oj-bind-text value="[[ $variables.scanStatus ]]"></oj-bind-text>
+        <span> A barcode scanner still works — scan into the box above.</span>
+      </div>
+    </oj-bind-if>
+
+    <!-- ── Camera viewfinder ────────────────────────────────────────────
+         Only in the DOM while scanning, so the stream is never left running
+         behind a hidden element. The <video> is muted + playsinline because
+         iOS Safari refuses to autoplay inline otherwise and shows a
+         full-screen player instead of the viewfinder. -->
+    <oj-bind-if test="[[ $variables.scanOpen ]]">
+      <div style="margin-bottom:12px; border:1px solid var(--oj-core-divider-color,#e2e8f0); border-radius:6px; overflow:hidden; background:#000;">
+        <div style="position:relative;">
+          <video id="directReturnVideo" muted playsinline autoplay
+                 style="width:100%; max-height:38vh; display:block; object-fit:cover; background:#000;"></video>
+          <!-- Aiming guide. Matches the middle band readTextFromVideo crops
+               to, so what the operator lines up is what OCR actually sees. -->
+          <div style="position:absolute; left:8%; right:8%; top:32.5%; height:35%;
+                      border:2px solid rgba(255,255,255,0.85); border-radius:4px;
+                      box-shadow:0 0 0 9999px rgba(0,0,0,0.28); pointer-events:none;"></div>
+        </div>
+        <div class="oj-flex oj-sm-align-items-center"
+             style="gap:8px; padding:8px 10px; background:var(--oj-core-neutral-color-10,#f1f5f9);">
+          <span style="flex:1 1 auto; font-size:0.8125rem; color:var(--oj-core-text-color-secondary);">
+            <oj-bind-text value="[[ $variables.scanStatus ]]"></oj-bind-text>
+          </span>
+          <!-- Torch. Phones and most tablets have one; laptops never do, so
+               this is gated on the live track's capabilities rather than
+               rendered dead. An unlit stamped tag in a shed or at dusk is the
+               commonest reason a barcode will not resolve. -->
+          <oj-bind-if test="[[ $variables.scanTorchAvailable ]]">
+            <oj-button chroming="outlined" class="oj-button-sm"
+              on-oj-action="[[ $listeners.onToggleTorch ]]" display="label"
+              :title="[[ $variables.scanTorchOn ? 'Turn the light off' : 'Light up the tag' ]]">
+              <span slot="startIcon" class="oj-ux-ico-light-bulb"></span>
+              <span><oj-bind-text value="[[ $variables.scanTorchOn ? 'Light off' : 'Light' ]]"></oj-bind-text></span>
+            </oj-button>
+          </oj-bind-if>
+          <!-- OCR is a separate, explicit action: it downloads ~5 MB on first
+               use and is only ~87.5% accurate per character on stamped metal,
+               so it must never run automatically or fill the box unattended. -->
+          <oj-button chroming="outlined" class="oj-button-sm"
+            :disabled="[[ $variables.scanReadingText ]]"
+            on-oj-action="[[ $listeners.onReadSerialText ]]" display="label"
+            title="No barcode? Photograph the serial plate and read it as text">
+            <span>Read serial text</span>
+          </oj-button>
+          <oj-button chroming="outlined" class="oj-button-sm"
+            on-oj-action="[[ $listeners.onCloseScanner ]]" display="label">
+            <span>Cancel</span>
+          </oj-button>
+        </div>
+      </div>
+    </oj-bind-if>
+
+    <oj-bind-if test="[[ $variables.directReturnSearching ]]">
+      <div style="color:var(--oj-core-text-color-secondary); font-size:0.8125rem;">Searching…</div>
+    </oj-bind-if>
+
+    <!-- Result count, plus the multiple-rentals caution folded into the same
+         line. The caution used to be a full-width oj-badge-warning banner,
+         which read as an error the operator had to clear rather than context.
+         It still has to be SAID - a unit can be out on more than one rental,
+         so picking the wrong row frees equipment that is still on site - but
+         one quiet line next to the count carries that without shouting. -->
+    <oj-bind-if test="[[ !$variables.directReturnSearching && !!$functions.directResultSummary($page) ]]">
+      <div style="font-size:0.8125rem; margin-bottom:8px; color:var(--oj-core-text-color-secondary);">
+        <oj-bind-text value="[[ $functions.directResultSummary($page) ]]"></oj-bind-text>
+        <oj-bind-if test="[[ !!$functions.directAmbiguityWarning($page) ]]">
+          <span> · </span>
+          <oj-bind-text value="[[ $functions.directAmbiguityWarning($page) ]]"></oj-bind-text>
+        </oj-bind-if>
+      </div>
+    </oj-bind-if>
+
+    <!-- Results grid. Same oj-data-grid + ArrayDataGridProvider pattern as
+         linesDataGrid above, rather than a hand-rolled <table>: it brings
+         column resizing, keyboard navigation, a sticky header and virtualised
+         scrolling, and it inherits the Redwood theme instead of hardcoded
+         hex. Selection is by rowKey, never row index - see the page module. -->
+    <oj-bind-if test="[[ ($variables.directReturnRows || []).length > 0 ]]">
+      <div style="height: 46vh; min-height: 260px; border: 1px solid var(--oj-core-divider-color,#e2e8f0); border-radius: 4px; overflow: hidden;">
+        <oj-data-grid id="directReturnGrid"
+          aria-label="Deployed units matching the search"
+          data="[[ $page.functions.getDirectGridProvider($variables.directReturnRows) ]]"
+          cell.editable="[[ $page.functions.getIsEditable.bind($page.functions) ]]"
+          header.column.style="[[ $page.functions.directColumnHeaderStyle.bind($page.functions) ]]"
+          header.row.style="width:44px;"
+          header.column.resizable.width="enable"
+          scroll-policy="loadMoreOnScroll"
+          style="width:100%; height:100%;">
+
+          <template slot="cellTemplate" data-oj-as="cell">
+
+            <!-- Never auto-selected, even for a single result: the same unit
+                 can be out on more than one rental, so the tick is always an
+                 explicit human choice. -->
+            <oj-bind-if test="[[ $page.functions.directColumnType(cell.item.columnIndex) === 'select' ]]">
+              <div style="display:flex; justify-content:center; align-items:center; height:100%;">
+                <input type="checkbox"
+                  :checked="[[ $variables.directReturnSelected && $page.functions.isDirectRowIndexSelected(cell.item.rowIndex, $page) ]]"
+                  on-click="[[ $page.functions.stopEvent.bind($page.functions) ]]"
+                  on-change="[[ $page.functions.toggleDirectRowIndex.bind($page.functions, cell.item.rowIndex, $page) ]]"
+                  style="cursor:pointer; width:16px; height:16px;" />
+              </div>
+            </oj-bind-if>
+
+            <oj-bind-if test="[[ $page.functions.directColumnType(cell.item.columnIndex) === 'unit' ]]">
+              <span class="oj-typography-body-sm" style="font-family:monospace; padding:0 4px;">
+                <oj-bind-text value="[[ cell.item.data.data ]]"></oj-bind-text>
+              </span>
+            </oj-bind-if>
+
+            <oj-bind-if test="[[ $page.functions.directColumnType(cell.item.columnIndex) === 'status' ]]">
+              <span :class="[[ $application.functions.statusPillClass(cell.item.data.data) ]]">
+                <oj-bind-text value="[[ $application.functions.formatLineStatus(cell.item.data.data) ]]"></oj-bind-text>
+              </span>
+            </oj-bind-if>
+
+            <!-- `overdue` is computed server-side; the client never re-derives
+                 it, or the grid and the filter would disagree on the boundary. -->
+            <oj-bind-if test="[[ $page.functions.directColumnType(cell.item.columnIndex) === 'duedate' ]]">
+              <span class="oj-typography-body-sm"
+                    :style="[[ $page.functions.directCellStyle(cell.item.rowIndex, cell.item.columnIndex) ]]">
+                <oj-bind-text value="[[ cell.item.data.data ]]"></oj-bind-text>
+              </span>
+            </oj-bind-if>
+
+            <oj-bind-if test="[[ $page.functions.directColumnType(cell.item.columnIndex) === 'readonly' ]]">
+              <span class="oj-typography-body-sm" style="padding:0 4px;">
+                <oj-bind-text value="[[ cell.item.data.data !== '' && cell.item.data.data != null ? cell.item.data.data : '—' ]]"></oj-bind-text>
+              </span>
+            </oj-bind-if>
+
+          </template>
+        </oj-data-grid>
+      </div>
+    </oj-bind-if>
+
+    <!-- Empty state. A search that matches nothing previously rendered the
+         count line and then blank space. -->
+    <oj-bind-if test="[[ !$variables.directReturnSearching
+                         && ($variables.directReturnMeta || {}).searched
+                         && ($variables.directReturnRows || []).length === 0 ]]">
+      <div style="padding:28px 12px; text-align:center; color:var(--oj-core-text-color-secondary); font-size:0.8125rem;">
+        No deployed equipment matches that. Check the serial, or search by
+        equipment, model, class, request or project.
+      </div>
+    </oj-bind-if>
+    </div>
+  </div>
+
+  <div slot="footer">
+    <oj-button chroming="outlined" class="oj-button-sm"
+      on-oj-action="[[ $listeners.onCloseDirectReturn ]]" display="label">
+      <span>Cancel</span>
+    </oj-button>
+    <oj-button chroming="callToAction" class="oj-button-sm"
+      :disabled="[[ $functions.directSelectedCount($page) === 0 ]]"
+      on-oj-action="[[ $listeners.onDirectReturnSubmit ]]" display="label">
+      <span slot="startIcon" class="oj-ux-ico-undo"></span>
+      <span>Return Equipment</span>
+    </oj-button>
+  </div>
+</oj-dialog>

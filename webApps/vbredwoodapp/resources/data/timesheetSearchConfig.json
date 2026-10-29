@@ -1,0 +1,16 @@
+{
+  "description": "Equipment Timesheets smart search configuration",
+  "_note": "Declare ONLY filters that equipment-timesheets-page.json supplies context for. suggestion-filters does NOT gate this list -- the widget evaluates EVERY filter in the config, so an orphan filter throws in FilterResolver and aborts the smart-search re-render (which silently blanks the table). A 'TypeFilter' was declared here with no matching searchContext entry and no 'type' field in the data; it is removed.",
+  "filters": {
+    "StatusFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Status",
+      "options": {
+        "field": "status",
+        "optionsData": "[[ $search.filters.StatusFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.StatusFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    }
+  }
+}

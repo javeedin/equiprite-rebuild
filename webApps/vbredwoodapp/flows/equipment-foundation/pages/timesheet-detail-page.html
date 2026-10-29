@@ -1,0 +1,529 @@
+<style>
+  .demo-data-grid {
+    width: 100%;
+    height: calc(100vh - 366px);
+  }
+  /* Action buttons — compact icon-onlyyy */
+  .row-action-btn {
+    margin: 0 1px;
+  }
+
+  /* Badge colours are defined globally in resources/css/app.css
+     (canonical status palette). Do not redefine them here. */
+
+  .equip-main-container {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: calc(100vh - 326px);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #oj_gop1, #oj_gop_dg, #oj_gop_equip {
+    --oj-sp-general-overview-page-max-width: 100% !important;
+    max-width: 100% !important;
+    transform: none !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+  }
+
+  /* Scrollable content container for tab synchronization */
+  #scrollable-content {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: calc(100vh - 346px);
+    overflow-y: auto;
+    scroll-behavior: smooth;
+    padding-bottom: 16px;
+  }
+
+  .page-content-max-width {
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden;
+  }
+
+  /* Checkbox cell centering */
+  .cr-cell-center {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+  }
+
+  /* Smart-search-style filters on the maroon banner — translucent dark bg + light text, matching the assignments page look */
+  .cr-banner-filter {
+    --oj-text-field-bg-color: rgba(255, 255, 255, 0.08);
+    --oj-text-field-bg-color-disabled: rgba(255, 255, 255, 0.04);
+    --oj-form-control-bg-color: rgba(255, 255, 255, 0.08);
+    --oj-form-control-bg-color-disabled: rgba(255, 255, 255, 0.04);
+    --oj-form-control-border-color: rgba(255, 255, 255, 0.35);
+    --oj-form-control-text-color: #ffffff;
+    --oj-label-color: rgba(255, 255, 255, 0.8);
+    --oj-form-control-placeholder-color: rgba(255, 255, 255, 0.6);
+    background-color: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.35) !important;
+    border-radius: 4px;
+  }
+  /* Keep the select internals transparent so the translucent container bg shows through, and force light text */
+  .cr-banner-filter,
+  .cr-banner-filter * {
+    color: #ffffff !important;
+  }
+  .cr-banner-filter .oj-label,
+  .cr-banner-filter .oj-label-group,
+  .cr-banner-filter label {
+    color: rgba(255, 255, 255, 0.8) !important;
+  }
+  .cr-banner-filter .oj-select-choice,
+  .cr-banner-filter .oj-text-field-container,
+  .cr-banner-filter .oj-text-field-middle,
+  .cr-banner-filter .oj-text-field-input,
+  .cr-banner-filter input {
+    background-color: transparent !important;
+    color: #ffffff !important;
+    border-color: transparent !important;
+  }
+  .cr-banner-filter::part(container),
+  .cr-banner-filter::part(input) {
+    background-color: transparent !important;
+    color: #ffffff !important;
+  }
+</style>
+
+<oj-sp-general-overview-page id="oj_gop_equip" class="equip-full-width-page"
+  page-title="[[ $variables.projectName || 'PROJECT —' ]]"
+  page-subtitle="[[ ($variables.requestId ? $variables.requestId + ' — ' : '') + ($variables.requestSpanLabel || '…') ]]"
+  display-mode="mixed" display-options.responsive-padding="off"
+  display-options.in-flow-back="true"
+  on-sp-in-flow-back="[[ $listeners.onSpInFlowBack ]]">
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- Header Search: Filters + Action Buttons + Audit + Status          -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div slot="search" style="width: 100%;">
+
+    <!-- Row 1: Filter dropdowns + action buttons -->
+    <div class="oj-flex oj-sm-align-items-flex-end oj-sm-justify-content-space-between" style="flex-wrap: wrap; gap: 12px; margin-bottom: 8px;">
+      <div class="oj-flex oj-sm-align-items-flex-end" style="flex-wrap: wrap; gap: 12px;">
+        <oj-input-search
+          id="equipmentSearch"
+          aria-label="Search equipment"
+          placeholder="Search equipment..."
+          value="{{ $variables.equipmentSearchText }}"
+          on-raw-value-changed="[[ $listeners.onSearchTextChanged ]]"
+          class="cr-banner-filter"
+          style="width: 350px; margin-bottom: 0;">
+        </oj-input-search>
+<!-- Class / Usage Type / Status filter dropdowns removed.
+             They flashed briefly on render but never actually applied a
+             filter — their providers weren't being populated reliably.
+             Search above is the primary filter; if specific Class/Status
+             filters become needed, wire them through applyBannerFilters
+             (which already accepts them as params) and populate the
+             providers in vbEnterChain. -->
+        <oj-select-single
+          id="weekRangeSelect"
+          label-hint="Week"
+          label-edge="inside"
+          value="{{ $variables.selectedWeekStart }}"
+          data="[[ $variables.weekRangeProvider ]]"
+          item-text="label"
+          on-value-changed="[[ $listeners.onWeekChange ]]"
+          user-assistance-density="compact"
+          class="cr-banner-filter"
+          style="width: 200px; margin-bottom: 0;">
+        </oj-select-single>
+      </div>
+      <div class="oj-flex oj-sm-align-items-center" style="gap: 8px;">
+        <oj-button
+          id="exportCsvBtn"
+          chroming="borderless"
+          on-oj-action="[[ $listeners.onExportCsv ]]">
+          <span slot="startIcon" class="oj-ux-ico-download"></span>
+          <span>Export CSV</span>
+        </oj-button>
+        <oj-button
+          id="saveTimesheetBtn"
+          chroming="outlined"
+          disabled="[[ $variables.isSaving || $variables.headerStatus === 'SUBMITTED' || $variables.headerStatus === 'APPROVED' || $variables.headerStatus === 'POSTED' ]]"
+          on-oj-action="[[ $listeners.onSaveTimesheet ]]">
+          <span slot="startIcon" class="oj-ux-ico-save"></span>
+          <span><oj-bind-if test="[[ $variables.isSaving ]]">Saving...</oj-bind-if><oj-bind-if test="[[ !$variables.isSaving ]]">Save</oj-bind-if></span>
+        </oj-button>
+        <oj-button
+          id="submitTimesheetBtn"
+          chroming="callToAction"
+          disabled="[[ $variables.isSubmitting || $variables.headerStatus === 'SUBMITTED' || $variables.headerStatus === 'APPROVED' || $variables.headerStatus === 'POSTED' || $variables.selectedRowCount === 0 ]]"
+          on-oj-action="[[ $listeners.onSubmitTimesheet ]]">
+          <span slot="startIcon" class="oj-ux-ico-send"></span>
+          <span><oj-bind-if test="[[ $variables.isSubmitting ]]">Submitting...</oj-bind-if><oj-bind-if test="[[ !$variables.isSubmitting ]]">Submit</oj-bind-if></span>
+        </oj-button>
+      </div>
+    </div>
+
+    <!-- Row 2: Audit info (left) + Status badges (right) -->
+    <div class="oj-flex oj-sm-align-items-center oj-sm-justify-content-space-between" style="padding-top: 6px; border-top: 1px solid rgba(0,0,0,0.08);">
+      <!-- Left: Summary info -->
+      <div class="oj-flex oj-sm-align-items-center" style="gap: 20px;">
+        <span class="oj-typography-body-xs oj-text-color-secondary">
+          Hours: <span class="oj-typography-bold"><oj-bind-text value="[[ $variables.totalHours || '0' ]]"></oj-bind-text></span>
+        </span>
+
+      </div>
+      <!-- Right: Status badge -->
+      <div class="oj-flex oj-sm-align-items-center" style="gap: 6px;">
+        <span :class="[[ $functions.getStatusBadgeClass($variables.headerStatus || 'Draft') ]]"><oj-bind-text value="[[ $variables.headerStatus || 'Draft' ]]"></oj-bind-text></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- Main Content: ONLY tabs + data grids                              -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div class="oj-flex oj-sm-flex-direction-column oj-sm-width-full" slot="main"
+       style="width: 100% !important; max-width: 100% !important; padding: 0 12px; margin-top: -48px; box-sizing: border-box; overflow-x: hidden;">
+
+    <!-- Single Grid Panel (Copied from Equipment Request Detail) -->
+    <div class="oj-panel oj-bg-neutral-0" style="border-radius: 4px; box-shadow: 0 4px 20px rgba(0,0,0,0.10); overflow: hidden; height: calc(100vh - 280px);">
+      <oj-data-grid
+        id="datagrid"
+        class="demo-data-grid"
+        aria-label="Timesheet Excel Grid"
+        data="[[ $variables.dataGridProvider ]]"
+        selection="{{ $variables.selection }}"
+        cell.editable="[[ $functions.getIsEditable.bind($functions) ]]"
+        header.column.style="[[ $functions.getColumnHeaderStyle.bind($functions) ]]"
+        header.row.style="width:50px;"
+        header.column.filterable="[[ $functions.getHeaderFilterable.bind($functions) ]]"
+        header.column.resizable.width="enable"
+        header.column.resizable.height="enable"
+        header.row.resizable.width="enable"
+        header.row.resizable.height="enable"
+        header.column.hidable="enable"
+        header.row.hidable="enable"
+        scroll-policy="loadMoreOnScroll"
+        edit-mode="cellEdit"
+        on-oj-before-edit="[[ function(event) { $functions.handleBeforeEdit(event); } ]]"
+        on-oj-before-edit-end="[[ function(event) { $functions.handleEditEnd(event); var n = $functions.takeUomNotice(); if (n) { $listeners.onUomChanged(n); } } ]]"
+        data-transfer-options='{"cut": "enable", "copy": "enable", "paste": "enable", "fill": "enable"}'
+        selection-mode.cell="multiple">
+
+        <template slot="columnHeaderTemplate" data-oj-as="header">
+          <!-- Select-all lives in the checkbox column only; every other column
+               keeps its plain label. Header strings carry no newline
+               ("24-Aug-2026 Hours"), so oj-bind-text wraps exactly as the
+               default renderer did.
+               selectedRowCount is only in the :checked expression to make it an
+               observable dependency -- ticking a single row bumps it, which is
+               what re-evaluates the header. -->
+          <oj-bind-if test="[[ header.item.index === 0 ]]">
+            <div class="cr-cell-center">
+              <input type="checkbox"
+                :checked="[[ $variables.selectedRowCount >= 0 && $functions.isAllSelected() ]]"
+                on-change="[[ $functions.toggleAllSelected.bind($functions, $variables) ]]"
+                style="width:16px; height:16px; cursor:pointer; accent-color:var(--oj-core-brand-color-primary);" />
+            </div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ header.item.index !== 0 ]]">
+            <oj-bind-text value="[[ header.item.data ]]"></oj-bind-text>
+          </oj-bind-if>
+        </template>
+
+        <template slot="cellTemplate" data-oj-as="cell">
+
+          <!-- Checkbox (col 0) -->
+          <oj-bind-if test="[[ cell.item.columnIndex === 0 ]]">
+            <div class="cr-cell-center">
+              <input type="checkbox"
+                :checked="[[ $functions.isRowSelected(cell.item.rowIndex) ]]"
+                on-change="[[ $functions.toggleRowSelected.bind($functions, cell.item.rowIndex, $variables) ]]"
+                style="width:16px; height:16px; cursor:pointer; accent-color:var(--oj-core-brand-color-primary);" />
+            </div>
+          </oj-bind-if>
+
+          <!-- Readonly -->
+          <oj-bind-if test="[[ $functions.getColumnType(cell.item.columnIndex) === 'readonly' ]]">
+            <span class="oj-typography-body-sm"><oj-bind-text value="[[ cell.item.data.data ]]"></oj-bind-text></span>
+          </oj-bind-if>
+
+          <!-- Text -->
+          <oj-bind-if test="[[ $functions.getColumnType(cell.item.columnIndex) === 'text' ]]">
+            <oj-bind-if test="[[ cell.mode === 'navigation' ]]"><span class="oj-typography-body-sm"><oj-bind-text value="[[ cell.item.data.data ]]"></oj-bind-text></span></oj-bind-if>
+            <oj-bind-if test="[[ cell.mode === 'edit' ]]"><oj-input-text value="{{ cell.item.data.data }}" style="width: 100%;"></oj-input-text></oj-bind-if>
+          </oj-bind-if>
+
+          <!-- Number -->
+          <oj-bind-if test="[[ $functions.getColumnType(cell.item.columnIndex) === 'number' ]]">
+            <oj-bind-if test="[[ cell.mode === 'navigation' ]]"><span class="oj-typography-body-sm"><oj-bind-text value="[[ cell.item.data.data ]]"></oj-bind-text></span></oj-bind-if>
+            <oj-bind-if test="[[ cell.mode === 'edit' ]]"><oj-input-number value="{{ cell.item.data.data }}" min="0" max="[[ $functions.getHoursMax(cell.item.rowIndex, $variables) ]]" step="[[ $functions.getHoursStep(cell.item.rowIndex, $variables) ]]" style="width: 100%;"></oj-input-number></oj-bind-if>
+          </oj-bind-if>
+
+          <!-- Dropdowns (Shared for all dropdown types) -->
+          <oj-bind-if test="[[ $functions.getColumnType(cell.item.columnIndex) === 'dropdown' ]]">
+            <oj-bind-if test="[[ cell.mode === 'navigation' ]]">
+              <span class="oj-typography-body-sm">
+                <oj-bind-text value="[[ $functions.getDropdownDisplayValue(cell.item.columnIndex, cell.item.data.data) ]]"></oj-bind-text>
+              </span>
+            </oj-bind-if>
+            <oj-bind-if test="[[ cell.mode === 'edit' ]]">
+              <oj-select-single value="{{ cell.item.data.data }}" 
+                data="[[ $functions.getDropdownProviderForCell(cell.item.columnIndex, $variables, cell.item.rowIndex) ]]"
+                item-text="label" style="width: 100%;"></oj-select-single>
+            </oj-bind-if>
+          </oj-bind-if>
+
+          <!-- Actions -->
+          <oj-bind-if test="[[ $functions.getColumnType(cell.item.columnIndex) === 'actions' ]]">
+            <div style="display: flex; justify-content: center; align-items: center; height: 100%;">
+              <oj-button chroming="borderless" display="icons" class="oj-button-sm"
+                on-oj-action="[[ function(event) {
+                  var menu = document.getElementById('rowActionsMenu');
+                  if (!menu) { return; }
+                  menu.setAttribute('data-current-row', cell.item.rowIndex);
+                  // Only a duplicate is deletable -- the parent row comes from the
+                  // deployed request line and would just reappear on refresh.
+                  var delOpt = document.getElementById('rowActionsDelete');
+                  if (delOpt) { delOpt.disabled = !$functions.isDuplicateRow(cell.item.rowIndex); }
+                  menu.open(event, { launcher: event.currentTarget });
+                } ]]">
+                <span slot="startIcon" class="oj-ux-ico-menu-overflow"></span><span>Actions</span>
+              </oj-button>
+            </div>
+          </oj-bind-if>
+
+        </template>
+      </oj-data-grid>
+    </div>
+
+  </div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- Menus & Popups (outside tab content)                               -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+
+<!-- Crew Labor Row Actions Menu -->
+<!-- oj-menu fires ojMenuAction, so the attribute is on-oj-menu-action. on-oj-action is
+     the oj-button event and never fires here -- that is why every option in these menus
+     was dead. Payload is event.detail.selectedValue. -->
+<oj-menu id="rowActionsMenu" style="display:none" on-oj-menu-action="[[ function(event) {
+  var menu = document.getElementById('rowActionsMenu');
+  var idxStr = menu.getAttribute('data-current-row');
+  var target = event.target || event.currentTarget;
+  var action = (event.detail && event.detail.selectedValue) || (target && target.value) || '';
+  if (idxStr === null || idxStr === '') { return; }
+  var rowIndex = parseInt(idxStr, 10);
+  if (isNaN(rowIndex)) { return; }
+  // oj-menu emits BOTH ojAction and ojMenuAction for one click. Only ojMenuAction is
+  // bound here, but both carry the same detail.originalEvent, so claim the click by
+  // that reference -- timeStamp differs between the two and would not dedupe.
+  var claim = (event.detail && event.detail.originalEvent) || event.timeStamp;
+  if (menu.__eqrClaim === claim) { return; }
+  menu.__eqrClaim = claim;
+  if (action === 'duplicate') {
+    $listeners.onDuplicateRow({ rowIndex: rowIndex });
+  } else if (action === 'delete') {
+    $listeners.onDeleteRow({ rowIndex: rowIndex });
+  }
+} ]]">
+  <oj-option value="duplicate">
+    <span slot="startIcon" class="oj-ux-ico-copy"></span>Duplicate
+  </oj-option>
+  <oj-option id="rowActionsDelete" value="delete">
+    <span slot="startIcon" class="oj-ux-ico-trash"></span>Delete
+  </oj-option>
+</oj-menu>
+
+<!-- Equipment Row Actions Menu -->
+<oj-menu id="equipRowActionsMenu" style="display:none" on-oj-menu-action="[[ function(event) {
+  var target = event.target || event.currentTarget;
+  var menu = document.getElementById('equipRowActionsMenu');
+  var idxStr = menu.getAttribute('data-current-row');
+  if (idxStr !== null && idxStr !== '') {
+    var rowIndex = parseInt(idxStr, 10);
+    if (event.detail.selectedValue === 'duplicate' || target.value === 'duplicate') {
+      $listeners.onEquipDuplicateRow({ rowIndex: rowIndex });
+    } else if (event.detail.selectedValue === 'delete' || target.value === 'delete') {
+      $listeners.onEquipDeleteRow({ rowIndex: rowIndex });
+    }
+  }
+} ]]">
+  <oj-option value="duplicate">
+    <span slot="startIcon" class="oj-ux-ico-copy"></span>Duplicate
+  </oj-option>
+  <oj-option value="delete">
+    <span slot="startIcon" class="oj-ux-ico-trash"></span>Delete
+  </oj-option>
+</oj-menu>
+
+<!-- Combo Row Actions Menu -->
+<oj-menu id="comboRowActionsMenu" style="display:none" on-oj-menu-action="[[ function(event) {
+  var target = event.target || event.currentTarget;
+  var menu = document.getElementById('comboRowActionsMenu');
+  var idxStr = menu.getAttribute('data-current-row');
+  if (idxStr !== null && idxStr !== '') {
+    var rowIndex = parseInt(idxStr, 10);
+    if (event.detail.selectedValue === 'duplicate' || target.value === 'duplicate') {
+      $listeners.onComboDuplicateRow({ rowIndex: rowIndex });
+    } else if (event.detail.selectedValue === 'delete' || target.value === 'delete') {
+      $listeners.onComboDeleteRow({ rowIndex: rowIndex });
+    }
+  }
+} ]]">
+  <oj-option value="duplicate">
+    <span slot="startIcon" class="oj-ux-ico-copy"></span>Duplicate
+  </oj-option>
+  <oj-option value="delete">
+    <span slot="startIcon" class="oj-ux-ico-trash"></span>Delete
+  </oj-option>
+</oj-menu>
+
+<!-- Absence Balance Dialog -->
+<oj-dialog id="absenceDialog" dialog-title="Absence Balance" cancel-behavior="icon" style="width: 400px;"
+  initial-visibility="hide">
+  <div slot="body" class="oj-sm-padding-4x">
+    <div
+      class="oj-typography-body-md oj-typography-bold oj-sm-margin-4x-bottom oj-text-color-primary oj-sm-margin-4x-start">
+      <oj-bind-text value="[[ $variables.absencePersonName ]]"></oj-bind-text>
+    </div>
+    <div class="oj-sm-width-full" style="overflow-x: auto;">
+<oj-table data="[[ $variables.absenceDP ]]" class="oj-sm-width-full"
+      selection-mode='{"row": "none", "column": "none"}'
+      columns='[
+        {"headerText": "Plan Name", "field": "planName", "headerClassName": "oj-typography-body-sm oj-typography-bold"},
+        {"headerText": "Balance", "field": "balance", "headerClassName": "oj-typography-body-sm oj-typography-bold"}
+      ]' style="min-width: 1000px;">
+    </oj-table>
+</div>
+  </div>
+  <div slot="footer">
+    <oj-button on-oj-action="[[ () => document.getElementById('absenceDialog').close() ]]">
+      <span>Close</span>
+    </oj-button>
+  </div>
+</oj-dialog>
+
+<!-- Bulk Update Popup - Crew Labor grid -->
+<oj-popup id="bulkUpdatePopup"
+  modality="modeless"
+  initial-focus="firstFocusable"
+  tail="simple"
+  position.my.horizontal="start"
+  position.my.vertical="top"
+  position.at.horizontal="start"
+  position.at.vertical="bottom"
+  position.offset.y="4">
+  <div style="padding: 16px; min-width: 280px;">
+    <div class="oj-typography-body-sm oj-typography-bold" style="margin-bottom: 12px;">Update Selected Cells</div>
+    <div style="margin-bottom: 12px;">
+      <div class="oj-typography-body-xs oj-text-color-secondary" style="margin-bottom: 4px;">Current value</div>
+      <div style="padding: 6px 10px; background: var(--oj-core-bg-neutral-20); border-radius: 4px; min-height: 28px; font-size: 0.875rem;">
+        <oj-bind-text value="[[ ($variables.currentSelectionValue !== null && $variables.currentSelectionValue !== '') ? String($variables.currentSelectionValue) : '(empty)' ]]"></oj-bind-text>
+      </div>
+    </div>
+    <oj-input-text id="bulkUpdateInput"
+      value="{{ $variables.inputTextValue }}"
+      label-hint="New value"
+      user-assistance-density="compact"
+      style="width: 100%; margin-bottom: 12px;">
+    </oj-input-text>
+    <div class="oj-flex oj-sm-justify-content-flex-end" style="gap: 8px;">
+      <oj-button chroming="outlined"
+        on-oj-action="[[ () => { document.getElementById('bulkUpdatePopup').close(); } ]]">
+        <span>Cancel</span>
+      </oj-button>
+      <oj-button chroming="callToAction"
+        on-oj-action="[[ () => {
+          $listeners.onUpdateSelection({});
+          document.getElementById('bulkUpdatePopup').close();
+        } ]]">
+        <span>Update</span>
+      </oj-button>
+    </div>
+  </div>
+</oj-popup>
+
+<!-- Bulk Update Popup - Combo grid -->
+<oj-popup id="comboBulkUpdatePopup"
+  modality="modeless"
+  initial-focus="firstFocusable"
+  tail="simple"
+  position.my.horizontal="start"
+  position.my.vertical="top"
+  position.at.horizontal="start"
+  position.at.vertical="bottom"
+  position.offset.y="4">
+  <div style="padding: 16px; min-width: 280px;">
+    <div class="oj-typography-body-sm oj-typography-bold" style="margin-bottom: 12px;">Update Selected Cells</div>
+    <div style="margin-bottom: 12px;">
+      <div class="oj-typography-body-xs oj-text-color-secondary" style="margin-bottom: 4px;">Current value</div>
+      <div style="padding: 6px 10px; background: var(--oj-core-bg-neutral-20); border-radius: 4px; min-height: 28px; font-size: 0.875rem;">
+        <oj-bind-text value="[[ ($variables.comboCurrentSelectionValue !== null && $variables.comboCurrentSelectionValue !== '') ? String($variables.comboCurrentSelectionValue) : '(empty)' ]]"></oj-bind-text>
+      </div>
+    </div>
+    <oj-input-text id="comboBulkUpdateInput"
+      value="{{ $variables.comboInputTextValue }}"
+      label-hint="New value"
+      user-assistance-density="compact"
+      style="width: 100%; margin-bottom: 12px;">
+    </oj-input-text>
+    <div class="oj-flex oj-sm-justify-content-flex-end" style="gap: 8px;">
+      <oj-button chroming="outlined"
+        on-oj-action="[[ () => { document.getElementById('comboBulkUpdatePopup').close(); } ]]">
+        <span>Cancel</span>
+      </oj-button>
+      <oj-button chroming="callToAction"
+        on-oj-action="[[ () => {
+          $listeners.onComboUpdateSelection({});
+          document.getElementById('comboBulkUpdatePopup').close();
+        } ]]">
+        <span>Update</span>
+      </oj-button>
+    </div>
+  </div>
+</oj-popup>
+
+<!-- Bulk Update Popup - Equipment grid -->
+<oj-popup id="equipBulkUpdatePopup"
+  modality="modeless"
+  initial-focus="firstFocusable"
+  tail="simple"
+  position.my.horizontal="start"
+  position.my.vertical="top"
+  position.at.horizontal="start"
+  position.at.vertical="bottom"
+  position.offset.y="4">
+  <div style="padding: 16px; min-width: 280px;">
+    <div class="oj-typography-body-sm oj-typography-bold" style="margin-bottom: 12px;">Update Selected Cells</div>
+    <div style="margin-bottom: 12px;">
+      <div class="oj-typography-body-xs oj-text-color-secondary" style="margin-bottom: 4px;">Current value</div>
+      <div style="padding: 6px 10px; background: var(--oj-core-bg-neutral-20); border-radius: 4px; min-height: 28px; font-size: 0.875rem;">
+        <oj-bind-text value="[[ ($variables.equipCurrentSelectionValue !== null && $variables.equipCurrentSelectionValue !== '') ? String($variables.equipCurrentSelectionValue) : '(empty)' ]]"></oj-bind-text>
+      </div>
+    </div>
+    <oj-input-text id="equipBulkUpdateInput"
+      value="{{ $variables.equipInputTextValue }}"
+      label-hint="New value"
+      user-assistance-density="compact"
+      style="width: 100%; margin-bottom: 12px;">
+    </oj-input-text>
+    <div class="oj-flex oj-sm-justify-content-flex-end" style="gap: 8px;">
+      <oj-button chroming="outlined"
+        on-oj-action="[[ () => { document.getElementById('equipBulkUpdatePopup').close(); } ]]">
+        <span>Cancel</span>
+      </oj-button>
+      <oj-button chroming="callToAction"
+        on-oj-action="[[ () => {
+          $listeners.onEquipUpdateSelection({});
+          document.getElementById('equipBulkUpdatePopup').close();
+        } ]]">
+        <span>Update</span>
+      </oj-button>
+    </div>
+  </div>
+</oj-popup>
+
+</oj-sp-general-overview-page>

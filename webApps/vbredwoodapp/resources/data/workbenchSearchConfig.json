@@ -1,0 +1,25 @@
+{
+  "description": "Equipment Manager Workbench smart search configuration",
+  "filters": {
+    "StatusFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Status",
+      "options": {
+        "field": "status",
+        "optionsData": "[[ $search.filters.StatusFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.StatusFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "SourceFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "All Sources",
+      "options": {
+        "field": "source",
+        "optionsData": "[[ $search.filters.SourceFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.SourceFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    }
+  }
+}

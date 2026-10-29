@@ -1,0 +1,139 @@
+{
+
+  "metadata": {},
+  "variables": {
+    "PostCostAllArray": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "PostCostFilteredArray": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "PostCostADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "rowKey",
+        "data": "{{ $page.variables.PostCostFilteredArray }}"
+      }
+    },
+    "filterCriterion": {
+      "type": "any"
+    },
+    "searchConfiguration": {
+      "type": "oj-sp/smart-search/strategies/JsonSearchConfigProviderFactory",
+      "defaultValue": {
+        "url": "[[ $application.path + 'resources/data/postCostSearchConfig.json' ]]"
+      }
+    },
+    "searchContext": {
+      "type": "object",
+      "defaultValue": {}
+    },
+    "ppmProjectNumber": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "ppmTaskNumber": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "ppmBusinessUnit": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "ppmProjectRefId": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "ppmTaskRefId": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "internalRequestId": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "rateScheduleId": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "rowKey": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "weekStartDate": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "weekEndDate": {
+      "type": "string",
+      "defaultValue": ""
+    }
+  },
+  "eventListeners": {
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "projectsModuleGuardChain",
+          "parameters": {}
+        },
+        {
+          "chain": "vbEnterChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "filterCriterionChanged": {
+      "chains": [
+        {
+          "chain": "PostCostFilterChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onRowAction": {
+      "chains": [
+        {
+          "chain": "CardClickChain",
+          "parameters": {
+            "requestNumber": "{{ $event.detail.value?.data.requestNumber }}",
+            "eqrEquipmentRequestId": "{{ $event.detail.value?.data.eqrEquipmentRequestId }}",
+            "projectName": "{{ $event.detail.value?.data.projectName }}",
+            "ppmProjectNumber": "{{ $event.detail.value?.data.ppmProjectNumber }}",
+            "ppmTaskNumber": "{{ $event.detail.value?.data.ppmTaskNumber }}",
+            "ppmBusinessUnit": "{{ $event.detail.value?.data.ppmBusinessUnit }}",
+            "ppmProjectRefId": "{{ $event.detail.value?.data.ppmProjectRefId }}",
+            "ppmTaskRefId": "{{ $event.detail.value?.data.ppmTaskRefId }}",
+            "rateScheduleId": "{{ $event.detail.value?.data.rateScheduleId }}",
+            "weekStartDate": "{{ $event.detail.value?.data.weekStartDate }}",
+            "weekEndDate": "{{ $event.detail.value?.data.weekEndDate }}"
+          }
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-sp-smart-search-page": {
+        "path": "oj-sp/smart-search-page/loader"
+      },
+      "oj-sp-smart-search": {
+        "path": "oj-sp/smart-search/loader"
+      },
+      "oj-sp-collection-container": {
+        "path": "oj-sp/collection-container/loader"
+      },
+      "oj-table": {
+        "path": "ojs/ojtable"
+      },
+      "oj-bind-text": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-if": {
+        "path": "ojs/ojknockout"
+      }
+    }
+  }
+}

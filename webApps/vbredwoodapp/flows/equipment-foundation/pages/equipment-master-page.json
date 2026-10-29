@@ -1,0 +1,1812 @@
+{
+  "metadata": {},
+  "variables": {
+    "filterCriterion": {
+      "type": "any"
+    },
+    "searchConfiguration": {
+      "type": "oj-sp/smart-search/strategies/JsonSearchConfigProviderFactory",
+      "defaultValue": {
+        "url": "[[ $application.path + 'resources/data/equipmentMasterSearchConfig.json' ]]"
+      }
+    },
+    "searchContext": {
+      "type": "object",
+      "defaultValue": {
+        "$search": {
+          "filters": {
+            "ClassFilter": {
+              "label": "Class",
+              "options": {
+                "optionsData": "[[ $page.variables.classOptionsADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "SubclassFilter": {
+              "label": "Subclass",
+              "options": {
+                "optionsData": "[[ $page.variables.subclassOptionsADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "AssetGroupFilter": {
+              "label": "Asset Group",
+              "options": {
+                "optionsData": "[[ $page.variables.assetGroupOptionsADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "classOptionsArray": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "classOptionsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.classOptionsArray }}"
+      }
+    },
+    "subclassOptionsArray": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "subclassOptionsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.subclassOptionsArray }}"
+      }
+    },
+    "assetGroupOptionsArray": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "assetGroupOptionsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.assetGroupOptionsArray }}"
+      }
+    },
+    "classesById": {
+      "type": "object",
+      "defaultValue": {}
+    },
+    "subclassesById": {
+      "type": "object",
+      "defaultValue": {}
+    },
+    "equipmentSDP": {
+      "type": "vb/ServiceDataProvider",
+      "defaultValue": {
+        "endpoint": "eqp-v1/getEquipriteV1EquipmentMaster",
+        "keyAttributes": "id",
+        "itemsPath": "data"
+      }
+    },
+    "equipmentDPV": {
+      "type": "ojs/ojlistdataproviderview",
+      "constructorParams": [
+        "[[ $page.variables.equipmentSDP ]]",
+        {
+          "filterCriterion": "[[ $page.variables.filterCriterion ]]"
+        }
+      ]
+    },
+    "isImporting": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "isSyncing": {
+      "type": "boolean",
+      "description": "Sync from Fusion is running (SyncFromFusionChain). Part of isBusy: it writes the same stock staging as Fetch.",
+      "defaultValue": false
+    },
+    "syncStep": {
+      "type": "string",
+      "description": "Which Sync step is running (items / stock / units); shown in the menu item's label.",
+      "defaultValue": ""
+    },
+    "importDialogOpen": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "importPhase": {
+      "type": "string",
+      "defaultValue": "RUNNING"
+    },
+    "importMessage": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "secondaryActions": {
+      "type": "any[]",
+      "defaultValue": [
+        {
+          "id": "syncFusion",
+          "label": "Sync from Fusion",
+          "display": "on"
+        },
+        {
+          "id": "importFusion",
+          "label": "Import From Fusion",
+          "display": "on"
+        },
+        {
+          "id": "refresh",
+          "label": "Refresh",
+          "display": "on"
+        },
+        {
+          "id": "mapView",
+          "label": "Map View",
+          "display": "off"
+        }
+      ]
+    },
+    "itemClassOptionsArray": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "itemClassOptionsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.itemClassOptionsArray }}"
+      }
+    },
+    "selectedItemClass": {
+      "type": "string",
+      "defaultValue": null,
+      "description": "ItemClassName. NULL = no item-class filter."
+    },
+    "itemTypeOptionsArray": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "itemTypeOptionsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.itemTypeOptionsArray }}"
+      }
+    },
+    "selectedItemType": {
+      "type": "string",
+      "defaultValue": null,
+      "description": "EGP_ITEM_TYPE LookupCode. NULL = no item-type filter."
+    },
+    "importStatusOptionsArray": {
+      "type": "any[]",
+      "description": "Review-grid status filter. Values are EQR_EQUIPMENT_MASTER_T.IMPORT_STATUS (CK_EQR_EMPT_IMPORT_STATUS); static, so the filter never waits on a LOV call. Only statuses the package writes: no MERGED (imported rows are deleted from staging since 2026-10-05), and no AMBIGUOUS or REJECTED (allowed by the constraint, never written).",
+      "defaultValue": [
+        { "value": "AUTO_MAPPED",     "label": "Auto-mapped (tick and Import to merge)" },
+        { "value": "ERRORED",         "label": "Errored (class mapping did not resolve)" },
+        { "value": "UNMAPPED",        "label": "Unmapped (no mapping source)" },
+        { "value": "NEW",             "label": "New (not yet classified)" },
+        { "value": "MAPPED",          "label": "Mapped (classified, not yet imported)" },
+        { "value": "NO_UNIT_PATHWAY", "label": "No unit pathway" }
+      ]
+    },
+    "importStatusOptionsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.importStatusOptionsArray }}"
+      }
+    },
+    "selectedImportStatus": {
+      "type": "string",
+      "defaultValue": null,
+      "description": "IMPORT_STATUS to show in the review grid. NULL = every status."
+    },
+    "lovsLoading": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "stagingColumns": {
+      "type": "any[]",
+      "defaultValue": [
+        {
+          "headerText": "Import Status",
+          "field": "importStatus",
+          "id": "importStatus",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "150px"
+        },
+        {
+          "headerText": "Item Number",
+          "field": "itemNumber",
+          "id": "itemNumber",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "170px"
+        },
+        {
+          "headerText": "Item Description",
+          "field": "itemDescription",
+          "id": "itemDescription",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "340px"
+        },
+        {
+          "headerText": "Item Type",
+          "field": "itemType",
+          "id": "itemType",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "130px"
+        },
+        {
+          "headerText": "Item Class Code",
+          "field": "itemClassCode",
+          "id": "itemClassCode",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "200px"
+        },
+        {
+          "headerText": "Fusion Inventory Item Id",
+          "field": "fusionInventoryItemId",
+          "id": "fusionInventoryItemId",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "236px"
+        },
+        {
+          "headerText": "Organization Code",
+          "field": "organizationCode",
+          "id": "organizationCode",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "180px"
+        },
+        {
+          "headerText": "Reject Reason",
+          "field": "rejectReason",
+          "id": "rejectReason",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "280px"
+        },
+        {
+          "headerText": "Maintenance Asset Number",
+          "field": "maintenanceAssetNumber",
+          "id": "maintenanceAssetNumber",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "236px"
+        },
+        {
+          "headerText": "Eqr Equipment Master Id",
+          "field": "eqrEquipmentMasterId",
+          "id": "eqrEquipmentMasterId",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "228px"
+        },
+        {
+          "headerText": "Equipment Number",
+          "field": "equipmentNumber",
+          "id": "equipmentNumber",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "170px"
+        },
+        {
+          "headerText": "Equipment Name",
+          "field": "equipmentName",
+          "id": "equipmentName",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "240px"
+        },
+        {
+          "headerText": "Equipment Description",
+          "field": "equipmentDescription",
+          "id": "equipmentDescription",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "340px"
+        },
+        {
+          "headerText": "Equipment Type",
+          "field": "equipmentType",
+          "id": "equipmentType",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "156px"
+        },
+        {
+          "headerText": "Eqr Equipment Class Id",
+          "field": "eqrEquipmentClassId",
+          "id": "eqrEquipmentClassId",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "220px"
+        },
+        {
+          "headerText": "Eqr Equipment Subclass Id",
+          "field": "eqrEquipmentSubclassId",
+          "id": "eqrEquipmentSubclassId",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "244px"
+        },
+        {
+          "headerText": "Org Id",
+          "field": "orgId",
+          "id": "orgId",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "130px"
+        },
+        {
+          "headerText": "Inventory Item Ref Id",
+          "field": "inventoryItemRefId",
+          "id": "inventoryItemRefId",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "212px"
+        },
+        {
+          "headerText": "Fa Asset Ref Id",
+          "field": "faAssetRefId",
+          "id": "faAssetRefId",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "164px"
+        },
+        {
+          "headerText": "Is Serial Controlled",
+          "field": "isSerialControlled",
+          "id": "isSerialControlled",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "204px"
+        },
+        {
+          "headerText": "Is Lot Controlled",
+          "field": "isLotControlled",
+          "id": "isLotControlled",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "180px"
+        },
+        {
+          "headerText": "Is Fixed Asset Tracked",
+          "field": "isFixedAssetTracked",
+          "id": "isFixedAssetTracked",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "220px"
+        },
+        {
+          "headerText": "Is Inventory Tracked",
+          "field": "isInventoryTracked",
+          "id": "isInventoryTracked",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "204px"
+        },
+        {
+          "headerText": "Is Maintenance Tracked",
+          "field": "isMaintenanceTracked",
+          "id": "isMaintenanceTracked",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "220px"
+        },
+        {
+          "headerText": "Surplus Flag",
+          "field": "surplusFlag",
+          "id": "surplusFlag",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "140px"
+        },
+        {
+          "headerText": "Ownership Status",
+          "field": "ownershipStatus",
+          "id": "ownershipStatus",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "172px"
+        },
+        {
+          "headerText": "Status",
+          "field": "status",
+          "id": "status",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "130px"
+        },
+        {
+          "headerText": "Manufacturer",
+          "field": "manufacturer",
+          "id": "manufacturer",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "200px"
+        },
+        {
+          "headerText": "Mfg Year",
+          "field": "mfgYear",
+          "id": "mfgYear",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "130px"
+        },
+        {
+          "headerText": "Fuel Type",
+          "field": "fuelType",
+          "id": "fuelType",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "130px"
+        },
+        {
+          "headerText": "Engine Sn",
+          "field": "engineSn",
+          "id": "engineSn",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "130px"
+        },
+        {
+          "headerText": "Capacity",
+          "field": "capacity",
+          "id": "capacity",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "130px"
+        },
+        {
+          "headerText": "Weight",
+          "field": "weight",
+          "id": "weight",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "130px"
+        },
+        {
+          "headerText": "Current Location Id",
+          "field": "currentLocationId",
+          "id": "currentLocationId",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "196px"
+        },
+        {
+          "headerText": "Equipment Image",
+          "field": "equipmentImage",
+          "id": "equipmentImage",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "240px"
+        },
+        {
+          "headerText": "Attribute1",
+          "field": "attribute1",
+          "id": "attribute1",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "130px"
+        },
+        {
+          "headerText": "Attribute2",
+          "field": "attribute2",
+          "id": "attribute2",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "130px"
+        },
+        {
+          "headerText": "Attribute3",
+          "field": "attribute3",
+          "id": "attribute3",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "130px"
+        },
+        {
+          "headerText": "Attribute4",
+          "field": "attribute4",
+          "id": "attribute4",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "130px"
+        },
+        {
+          "headerText": "Attribute5",
+          "field": "attribute5",
+          "id": "attribute5",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "130px"
+        },
+        {
+          "headerText": "Attribute6",
+          "field": "attribute6",
+          "id": "attribute6",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "130px"
+        },
+        {
+          "headerText": "Attribute7",
+          "field": "attribute7",
+          "id": "attribute7",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "130px"
+        },
+        {
+          "headerText": "Attribute8",
+          "field": "attribute8",
+          "id": "attribute8",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "130px"
+        },
+        {
+          "headerText": "Attribute9",
+          "field": "attribute9",
+          "id": "attribute9",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "130px"
+        },
+        {
+          "headerText": "Attribute10",
+          "field": "attribute10",
+          "id": "attribute10",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "132px"
+        },
+        {
+          "headerText": "Attribute11",
+          "field": "attribute11",
+          "id": "attribute11",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "132px"
+        },
+        {
+          "headerText": "Attribute12",
+          "field": "attribute12",
+          "id": "attribute12",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "132px"
+        },
+        {
+          "headerText": "Attribute13",
+          "field": "attribute13",
+          "id": "attribute13",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "132px"
+        },
+        {
+          "headerText": "Attribute14",
+          "field": "attribute14",
+          "id": "attribute14",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "132px"
+        },
+        {
+          "headerText": "Attribute15",
+          "field": "attribute15",
+          "id": "attribute15",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "132px"
+        },
+        {
+          "headerText": "Number1",
+          "field": "number1",
+          "id": "number1",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "130px"
+        },
+        {
+          "headerText": "Number2",
+          "field": "number2",
+          "id": "number2",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "130px"
+        },
+        {
+          "headerText": "Number3",
+          "field": "number3",
+          "id": "number3",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "130px"
+        },
+        {
+          "headerText": "Number4",
+          "field": "number4",
+          "id": "number4",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "130px"
+        },
+        {
+          "headerText": "Number5",
+          "field": "number5",
+          "id": "number5",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "130px"
+        },
+        {
+          "headerText": "Date1",
+          "field": "date1",
+          "id": "date1",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "130px"
+        },
+        {
+          "headerText": "Date2",
+          "field": "date2",
+          "id": "date2",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "130px"
+        },
+        {
+          "headerText": "Date3",
+          "field": "date3",
+          "id": "date3",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "130px"
+        },
+        {
+          "headerText": "Date4",
+          "field": "date4",
+          "id": "date4",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "130px"
+        },
+        {
+          "headerText": "Date5",
+          "field": "date5",
+          "id": "date5",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "130px"
+        },
+        {
+          "headerText": "Object Version Number",
+          "field": "objectVersionNumber",
+          "id": "objectVersionNumber",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "212px"
+        },
+        {
+          "headerText": "Created By",
+          "field": "createdBy",
+          "id": "createdBy",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "130px"
+        },
+        {
+          "headerText": "Created Date",
+          "field": "createdDate",
+          "id": "createdDate",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "140px"
+        },
+        {
+          "headerText": "Last Updated By",
+          "field": "lastUpdatedBy",
+          "id": "lastUpdatedBy",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "164px"
+        },
+        {
+          "headerText": "Last Updated Date",
+          "field": "lastUpdatedDate",
+          "id": "lastUpdatedDate",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "180px"
+        },
+        {
+          "headerText": "Master Org Id",
+          "field": "masterOrgId",
+          "id": "masterOrgId",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "148px"
+        },
+        {
+          "headerText": "Inv Organization Id",
+          "field": "invOrganizationId",
+          "id": "invOrganizationId",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "196px"
+        },
+        {
+          "headerText": "Organization Name",
+          "field": "organizationName",
+          "id": "organizationName",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "180px"
+        },
+        {
+          "headerText": "Fusion Last Update Date",
+          "field": "fusionLastUpdateDate",
+          "id": "fusionLastUpdateDate",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "228px"
+        },
+        {
+          "headerText": "Fusion Created By",
+          "field": "fusionCreatedBy",
+          "id": "fusionCreatedBy",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "180px"
+        },
+        {
+          "headerText": "Enabled Flag",
+          "field": "enabledFlag",
+          "id": "enabledFlag",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "140px"
+        },
+        {
+          "headerText": "Start Date Active",
+          "field": "startDateActive",
+          "id": "startDateActive",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "180px"
+        },
+        {
+          "headerText": "End Date Active",
+          "field": "endDateActive",
+          "id": "endDateActive",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "164px"
+        },
+        {
+          "headerText": "Inv Item Status Code",
+          "field": "invItemStatusCode",
+          "id": "invItemStatusCode",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "204px"
+        },
+        {
+          "headerText": "Preliminary Item Flag",
+          "field": "preliminaryItemFlag",
+          "id": "preliminaryItemFlag",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "212px"
+        },
+        {
+          "headerText": "Inventory Item Flag",
+          "field": "inventoryItemFlag",
+          "id": "inventoryItemFlag",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "196px"
+        },
+        {
+          "headerText": "Stock Enabled Flag",
+          "field": "stockEnabledFlag",
+          "id": "stockEnabledFlag",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "188px"
+        },
+        {
+          "headerText": "Mtl Txns Enabled Flag",
+          "field": "mtlTxnsEnabledFlag",
+          "id": "mtlTxnsEnabledFlag",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "212px"
+        },
+        {
+          "headerText": "Serial Num Control Code",
+          "field": "serialNumControlCode",
+          "id": "serialNumControlCode",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "228px"
+        },
+        {
+          "headerText": "Lot Control Code",
+          "field": "lotControlCode",
+          "id": "lotControlCode",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "172px"
+        },
+        {
+          "headerText": "Asset Tracked Flag",
+          "field": "assetTrackedFlag",
+          "id": "assetTrackedFlag",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "188px"
+        },
+        {
+          "headerText": "Asset Class",
+          "field": "assetClass",
+          "id": "assetClass",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "132px"
+        },
+        {
+          "headerText": "Asset Creation Code",
+          "field": "assetCreationCode",
+          "id": "assetCreationCode",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "196px"
+        },
+        {
+          "headerText": "Inventory Asset Flag",
+          "field": "inventoryAssetFlag",
+          "id": "inventoryAssetFlag",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "204px"
+        },
+        {
+          "headerText": "Serial Status Enabled",
+          "field": "serialStatusEnabled",
+          "id": "serialStatusEnabled",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "212px"
+        },
+        {
+          "headerText": "Default Serial Status Id",
+          "field": "defaultSerialStatusId",
+          "id": "defaultSerialStatusId",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "236px"
+        },
+        {
+          "headerText": "Lot Status Enabled",
+          "field": "lotStatusEnabled",
+          "id": "lotStatusEnabled",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "188px"
+        },
+        {
+          "headerText": "Default Lot Status Id",
+          "field": "defaultLotStatusId",
+          "id": "defaultLotStatusId",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "212px"
+        },
+        {
+          "headerText": "Start Auto Serial Number",
+          "field": "startAutoSerialNumber",
+          "id": "startAutoSerialNumber",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "236px"
+        },
+        {
+          "headerText": "Auto Serial Alpha Prefix",
+          "field": "autoSerialAlphaPrefix",
+          "id": "autoSerialAlphaPrefix",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "236px"
+        },
+        {
+          "headerText": "Eam Item Type",
+          "field": "eamItemType",
+          "id": "eamItemType",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "148px"
+        },
+        {
+          "headerText": "Eam Enabled Flag",
+          "field": "eamEnabledFlag",
+          "id": "eamEnabledFlag",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "172px"
+        },
+        {
+          "headerText": "Maint Tracked Flag",
+          "field": "maintTrackedFlag",
+          "id": "maintTrackedFlag",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "188px"
+        },
+        {
+          "headerText": "Item Catalog Group Id",
+          "field": "itemCatalogGroupId",
+          "id": "itemCatalogGroupId",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "212px"
+        },
+        {
+          "headerText": "Category Set Id",
+          "field": "categorySetId",
+          "id": "categorySetId",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "164px"
+        },
+        {
+          "headerText": "Category Id",
+          "field": "categoryId",
+          "id": "categoryId",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "132px"
+        },
+        {
+          "headerText": "Category Name",
+          "field": "categoryName",
+          "id": "categoryName",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "200px"
+        },
+        {
+          "headerText": "Catalog Code",
+          "field": "catalogCode",
+          "id": "catalogCode",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "140px"
+        },
+        {
+          "headerText": "Category Segment 1",
+          "field": "catSegment1",
+          "id": "catSegment1",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "180px"
+        },
+        {
+          "headerText": "Category Segment 2",
+          "field": "catSegment2",
+          "id": "catSegment2",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "180px"
+        },
+        {
+          "headerText": "Primary Uom Code",
+          "field": "primaryUomCode",
+          "id": "primaryUomCode",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "172px"
+        },
+        {
+          "headerText": "Secondary Uom Code",
+          "field": "secondaryUomCode",
+          "id": "secondaryUomCode",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "188px"
+        },
+        {
+          "headerText": "Dual Uom Control",
+          "field": "dualUomControl",
+          "id": "dualUomControl",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "172px"
+        },
+        {
+          "headerText": "Unit Of Issue",
+          "field": "unitOfIssue",
+          "id": "unitOfIssue",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "148px"
+        },
+        {
+          "headerText": "Unit Weight",
+          "field": "unitWeight",
+          "id": "unitWeight",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "132px"
+        },
+        {
+          "headerText": "Weight Uom Code",
+          "field": "weightUomCode",
+          "id": "weightUomCode",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "164px"
+        },
+        {
+          "headerText": "Unit Volume",
+          "field": "unitVolume",
+          "id": "unitVolume",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "132px"
+        },
+        {
+          "headerText": "Volume Uom Code",
+          "field": "volumeUomCode",
+          "id": "volumeUomCode",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "164px"
+        },
+        {
+          "headerText": "Unit Length",
+          "field": "unitLength",
+          "id": "unitLength",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "132px"
+        },
+        {
+          "headerText": "Unit Width",
+          "field": "unitWidth",
+          "id": "unitWidth",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "130px"
+        },
+        {
+          "headerText": "Unit Height",
+          "field": "unitHeight",
+          "id": "unitHeight",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "132px"
+        },
+        {
+          "headerText": "Dimension Uom Code",
+          "field": "dimensionUomCode",
+          "id": "dimensionUomCode",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "188px"
+        },
+        {
+          "headerText": "Shippable Item Flag",
+          "field": "shippableItemFlag",
+          "id": "shippableItemFlag",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "196px"
+        },
+        {
+          "headerText": "Returnable Flag",
+          "field": "returnableFlag",
+          "id": "returnableFlag",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "164px"
+        },
+        {
+          "headerText": "Int Order Enabled Flag",
+          "field": "intOrderEnabledFlag",
+          "id": "intOrderEnabledFlag",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "220px"
+        },
+        {
+          "headerText": "Cust Order Enabled Flag",
+          "field": "custOrderEnabledFlag",
+          "id": "custOrderEnabledFlag",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "228px"
+        },
+        {
+          "headerText": "Reservable Type",
+          "field": "reservableType",
+          "id": "reservableType",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "164px"
+        },
+        {
+          "headerText": "Back Orderable Flag",
+          "field": "backOrderableFlag",
+          "id": "backOrderableFlag",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "196px"
+        },
+        {
+          "headerText": "Indivisible Flag",
+          "field": "indivisibleFlag",
+          "id": "indivisibleFlag",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "172px"
+        },
+        {
+          "headerText": "Source Type",
+          "field": "sourceType",
+          "id": "sourceType",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "132px"
+        },
+        {
+          "headerText": "Source Organization Id",
+          "field": "sourceOrganizationId",
+          "id": "sourceOrganizationId",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "220px"
+        },
+        {
+          "headerText": "Source Subinventory",
+          "field": "sourceSubinventory",
+          "id": "sourceSubinventory",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "196px"
+        },
+        {
+          "headerText": "Default Shipping Org",
+          "field": "defaultShippingOrg",
+          "id": "defaultShippingOrg",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "204px"
+        },
+        {
+          "headerText": "Costing Enabled Flag",
+          "field": "costingEnabledFlag",
+          "id": "costingEnabledFlag",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "204px"
+        },
+        {
+          "headerText": "Invoiceable Item Flag",
+          "field": "invoiceableItemFlag",
+          "id": "invoiceableItemFlag",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "212px"
+        },
+        {
+          "headerText": "Invoice Enabled Flag",
+          "field": "invoiceEnabledFlag",
+          "id": "invoiceEnabledFlag",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "204px"
+        },
+        {
+          "headerText": "Material Billable Flag",
+          "field": "materialBillableFlag",
+          "id": "materialBillableFlag",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "220px"
+        },
+        {
+          "headerText": "Expenditure Type Id",
+          "field": "expenditureTypeId",
+          "id": "expenditureTypeId",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "196px"
+        },
+        {
+          "headerText": "Serviceable Product Flag",
+          "field": "serviceableProductFlag",
+          "id": "serviceableProductFlag",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "236px"
+        },
+        {
+          "headerText": "Enable Iot Flag",
+          "field": "enableIotFlag",
+          "id": "enableIotFlag",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "164px"
+        },
+        {
+          "headerText": "Long Description",
+          "field": "longDescription",
+          "id": "longDescription",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "172px"
+        },
+        {
+          "headerText": "Resolved Class Id",
+          "field": "resolvedClassId",
+          "id": "resolvedClassId",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "180px"
+        },
+        {
+          "headerText": "Resolved Subclass Id",
+          "field": "resolvedSubclassId",
+          "id": "resolvedSubclassId",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "204px"
+        },
+        {
+          "headerText": "Mapping Candidates",
+          "field": "mappingCandidates",
+          "id": "mappingCandidates",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "188px"
+        },
+        {
+          "headerText": "Promoted Master Id",
+          "field": "promotedMasterId",
+          "id": "promotedMasterId",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "188px"
+        },
+        {
+          "headerText": "Last Run Id",
+          "field": "lastRunId",
+          "id": "lastRunId",
+          "resizable": "enabled",
+          "sortable": "enabled",
+          "width": "132px"
+        }
+      ],
+      "description": "Every column of EQR_EQUIPMENT_MASTER_T (133). Triage columns first."
+    },
+    "stagingArray": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "stagingADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "fusionInventoryItemId",
+        "data": "{{ $page.variables.stagingArray }}"
+      }
+    },
+    "stagingLoading": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "stagingSummary": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "unmatchedGroups": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "'What to map next' panel: largest groups of staged items no Class Mapping matched, from GET equipment-import/unmatched-values (LoadUnmatchedValuesChain). Empty hides the panel -- including when the endpoint is missing."
+    },
+    "unmatchedTotalGroups": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "unmatchedLoading": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "unmatchedShowAll": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "importWarning": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "Inline caution shown in the import dialog, e.g. Item Class not chosen. Cleared when the user picks one."
+    },
+    "stagingChangedRows": {
+      "type": "object",
+      "defaultValue": {}
+    },
+    "stagingSearch": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "Review-grid search, sent as ?search= so it covers every fetched row, not just this page."
+    },
+    "stagingAppliedFilters": {
+      "type": "object",
+      "defaultValue": null,
+      "description": "Filters the review grid is actually showing ({itemClass, itemType, importStatus}), recorded by LoadStagingChain. A filter change the user cancels (pending ticks/edits) snaps the dropdowns back to these."
+    },
+    "stagingSelectedRows": {
+      "type": "object",
+      "defaultValue": {},
+      "description": "Ticked review-grid rows, fusionInventoryItemId -> true. Import merges exactly these. Reset on every staging load."
+    },
+    "stagingSaving": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "stagingViewMode": {
+      "type": "string",
+      "defaultValue": "REVIEW"
+    },
+    "stagingPage": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "stagingPageSize": {
+      "type": "number",
+      "defaultValue": 100
+    },
+    "stagingTotalElements": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "stagingGridProvider": {
+      "type": "any"
+    },
+    "stagingSaveMessage": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "isImportingUnits": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "stagingClearing": {
+      "type": "boolean",
+      "defaultValue": false
+    }
+  },
+  "types": {
+    "ojs/ojlistdataproviderview": {
+      "constructorType": "vb/InstanceFactory"
+    }
+  },
+  "functions": {
+    "classNameFor": {
+      "params": {
+        "equipmentClassId": "any",
+        "classesById": "any"
+      },
+      "return": "string"
+    },
+    "subclassNameFor": {
+      "params": {
+        "equipmentSubclassId": "any",
+        "subclassesById": "any"
+      },
+      "return": "string"
+    },
+    "buildStagingGrid": {
+      "params": {
+        "stagingArray": "any",
+        "variables": "any"
+      },
+      "return": "any"
+    },
+    "unitPathwayFor": {
+      "params": {
+        "row": "any"
+      },
+      "return": "string"
+    },
+    "getColumnType": {
+      "params": {
+        "columnIndex": "number"
+      },
+      "return": "string"
+    },
+    "rowKeyAt": {
+      "params": {
+        "rowIndex": "number"
+      },
+      "return": "any"
+    },
+    "displayFor": {
+      "params": {
+        "columnIndex": "number",
+        "value": "any",
+        "variables": "any"
+      },
+      "return": "string"
+    },
+    "getStagingProvider": {
+      "params": {
+        "columnIndex": "number",
+        "rowIndex": "number",
+        "variables": "any"
+      },
+      "return": "any"
+    },
+    "getCellValue": {
+      "params": {
+        "rowIndex": "number",
+        "columnIndex": "number",
+        "variables": "any"
+      },
+      "return": "any"
+    },
+    "canEdit": {
+      "params": {
+        "rowIndex": "number",
+        "columnIndex": "number",
+        "variables": "any"
+      },
+      "return": "boolean"
+    },
+    "applyEdit": {
+      "params": {
+        "rowIndex": "number",
+        "columnIndex": "number",
+        "newValue": "any",
+        "variables": "any"
+      },
+      "return": "any"
+    },
+    "applyEditToRows": {
+      "params": {
+        "rowIndex": "number",
+        "entry": "any",
+        "stagingArray": "any"
+      },
+      "return": "any"
+    },
+    "isRowSelected": {
+      "params": { "rowIndex": "number", "variables": "any" },
+      "return": "boolean"
+    },
+    "pendingWorkCount": {
+      "params": { "variables": "any" },
+      "return": "number"
+    },
+    "pendingWorkText": {
+      "params": { "variables": "any" },
+      "return": "string"
+    },
+    "isBusy": {
+      "params": { "variables": "any" },
+      "return": "boolean"
+    },
+    "sourceLabel": {
+      "params": { "code": "string" },
+      "return": "string"
+    },
+    "recordSourceLabel": {
+      "params": { "createdBy": "string" },
+      "return": "string"
+    },
+    "actionsFor": {
+      "params": { "secondaryActions": "any[]", "accessLevel": "string", "isSyncing": "boolean", "syncStep": "string", "isFetching": "boolean" },
+      "return": "any[]"
+    },
+    "canCloseImportDialog": {
+      "params": { "variables": "any" },
+      "return": "boolean"
+    },
+    "stockLabel": {
+      "params": { "serialUnitCount": "any", "onHandQty": "any" },
+      "return": "string"
+    },
+    "busyText": {
+      "params": { "statusMsg": "string" },
+      "return": "string"
+    },
+    "busyLeaveMessage": {
+      "params": { "variables": "any" },
+      "return": "string"
+    },
+    "setLeaveGuard": {
+      "params": { "active": "boolean" },
+      "return": "boolean"
+    },
+    "syncSummary": {
+      "params": { "counts": "any", "stockOk": "boolean", "stockMessage": "string", "heldNumbers": "any[]" },
+      "return": "any"
+    },
+    "refreshRowCells": {
+      "params": { "rowIndex": "number", "variables": "any" },
+      "return": "boolean"
+    },
+    "canSelect": {
+      "params": { "rowIndex": "number", "variables": "any" },
+      "return": "boolean"
+    },
+    "toggleRowSelection": {
+      "params": { "rowIndex": "number", "checked": "boolean", "variables": "any" },
+      "return": "any"
+    },
+    "setPageSelection": {
+      "params": { "checked": "boolean", "variables": "any" },
+      "return": "any"
+    },
+    "allOnPageSelected": {
+      "params": { "variables": "any" },
+      "return": "boolean"
+    },
+    "selectedCount": {
+      "params": { "stagingSelectedRows": "any" },
+      "return": "number"
+    },
+    "buildImportBody": {
+      "params": { "stagingSelectedRows": "any", "stagingChangedRows": "any", "stagingArray": "any" },
+      "return": "any"
+    },
+    "dimTypeLabel": {
+      "params": { "code": "any" },
+      "return": "string"
+    },
+    "unmatchedText": {
+      "params": { "group": "any" },
+      "return": "string"
+    },
+    "unmatchedAction": {
+      "params": { "group": "any" },
+      "return": "string"
+    },
+    "unmatchedIsFallback": {
+      "params": { "group": "any" },
+      "return": "boolean"
+    },
+    "unmatchedCoveredCount": {
+      "params": { "groups": "any" },
+      "return": "number"
+    },
+    "unmatchedVisible": {
+      "params": { "groups": "any", "showAll": "boolean" },
+      "return": "any"
+    },
+    "unmatchedHasMore": {
+      "params": { "groups": "any" },
+      "return": "boolean"
+    },
+    "unmatchedSummary": {
+      "params": { "groups": "any", "totalGroups": "number" },
+      "return": "string"
+    },
+    "subclassBelongsTo": {
+      "params": {
+        "subclassId": "any",
+        "classId": "any",
+        "variables": "any"
+      },
+      "return": "boolean"
+    }
+  },
+  "eventListeners": {
+    "vbBeforeEnter": {
+      "chains": [
+        {
+          "chain": "enforcePageAccessChain"
+        }
+      ]
+    },
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "EquipmentInitChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "spPrimaryAction": {
+      "chains": [
+        {
+          "chain": "GoToCreateChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onRefreshStaging": {
+      "chains": [
+        {
+          "chain": "RefreshStagingChain"
+        }
+      ]
+    },
+    "vbBeforeExit": {
+      "chains": [
+        {
+          "chain": "BeforeExitChain"
+        }
+      ]
+    },
+    "spSecondaryAction": {
+      "chains": [
+        {
+          "chain": "SecondaryActionChain",
+          "parameters": {
+            "event": "[[ $event ]]"
+          }
+        }
+      ]
+    },
+    "onRowAction": {
+      "chains": [
+        {
+          "chain": "RowClickChain",
+          "parameters": {
+            "rowData": "{{ $event.detail.value?.data }}"
+          }
+        }
+      ]
+    },
+    "onRunImport": {
+      "chains": [
+        {
+          "chain": "ImportFromFusionChain"
+        }
+      ]
+    },
+    "onCancelImport": {
+      "chains": [
+        {
+          "chain": "CancelImportDialogChain"
+        }
+      ]
+    },
+    "onImportDialogClosed": {
+      "chains": [
+        {
+          "chain": "CancelImportDialogChain",
+          "parameters": {
+            "event": "[[ $event ]]"
+          }
+        }
+      ]
+    },
+    "onImportFilterChanged": {
+      "chains": [
+        {
+          "chain": "ClearImportWarningChain"
+        }
+      ]
+    },
+    "onSaveStagingClasses": {
+      "chains": [
+        {
+          "chain": "SaveStagingClassesChain"
+        }
+      ]
+    },
+    "onStagingNextPage": {
+      "chains": [
+        {
+          "chain": "StagingPageChangeChain",
+          "parameters": {
+            "direction": "NEXT"
+          }
+        }
+      ]
+    },
+    "onStagingPrevPage": {
+      "chains": [
+        {
+          "chain": "StagingPageChangeChain",
+          "parameters": {
+            "direction": "PREV"
+          }
+        }
+      ]
+    },
+    "onClearStaging": {
+      "chains": [
+        {
+          "chain": "ClearStagingChain"
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-sp-smart-search-page": {
+        "path": "oj-sp/smart-search-page/loader"
+      },
+      "oj-sp-smart-search": {
+        "path": "oj-sp/smart-search/loader"
+      },
+      "oj-table": {
+        "path": "ojs/ojtable"
+      },
+      "oj-sp-collection-container": {
+        "path": "oj-sp/collection-container/loader"
+      },
+      "oj-button": {
+        "path": "ojs/ojbutton"
+      },
+      "oj-c-button": {
+        "path": "oj-c/button"
+      },
+      "oj-c-input-text": {
+        "path": "oj-c/input-text"
+      },
+      "oj-sp-messages-banner": {
+        "path": "oj-sp/messages-banner/loader"
+      },
+      "oj-bind-if": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-text": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-for-each": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-popup": {
+        "path": "ojs/ojpopup"
+      },
+      "oj-dialog": {
+        "path": "ojs/ojdialog"
+      },
+      "oj-progress-bar": {
+        "path": "ojs/ojprogress-bar"
+      },
+      "oj-select-single": {
+        "path": "ojs/ojselectsingle"
+      },
+      "oj-form-layout": {
+        "path": "ojs/ojformlayout"
+      },
+      "oj-data-grid": {
+        "path": "ojs/ojdatagrid"
+      }
+    }
+  }
+}

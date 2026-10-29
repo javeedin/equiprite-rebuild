@@ -1,0 +1,105 @@
+{
+
+  "metadata": {},
+  "variables": {
+    "requestId": {
+      "type": "string",
+      "input": "fromUrl",
+      "persisted": "none"
+    },
+    "requestNumericId": {
+      "type": "number",
+      "input": "fromUrl",
+      "persisted": "none"
+    },
+    "quoteData": {
+      "type": "object",
+      "defaultValue": {
+        "requestNumber": "",
+        "customerName": "",
+        "customerContact": "",
+        "startDate": "",
+        "endDate": "",
+        "location": "",
+        "status": "",
+        "contractNumber": "",
+        "grandTotal": 0,
+        "lines": []
+      }
+    },
+    "isLoading": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "isAccepting": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "hasQuoteDoc": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "quotePdfUrl": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "quoteFileName": {
+      "type": "string",
+      "defaultValue": "quote.pdf"
+    },
+    "acceptAllowed": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "Whether the ENABLE_QUOTES global setting permits quote ACCEPTANCE here. This page is customer-sourced by definition, so it resolves isQuotingAllowed(..., 'CUSTOMER') — true only under CUSTOMER or BOTH. Resolved in QuoteInitChain. Gates the Accept button ONLY: viewing/downloading an existing quote stays open regardless (the setting gates creation and acceptance, not reads — confirmed with backend). Without this, a customer under ENABLE_QUOTES=NONE|PROJECTS would click Accept and get a raw 403."
+    }
+  },
+  "eventListeners": {
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "customersModuleGuardChain",
+          "parameters": {}
+        },
+        {
+          "chain": "QuoteInitChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onBack": {
+      "chains": [
+        {
+          "chain": "QuoteBackChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onAcceptQuote": {
+      "chains": [
+        {
+          "chain": "AcceptQuoteChain",
+          "parameters": {}
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-sp-general-overview-page": {
+        "path": "oj-sp/general-overview-page/loader"
+      },
+      "oj-bind-if": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-for-each": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-text": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-button": {
+        "path": "ojs/ojbutton"
+      }
+    }
+  }
+}

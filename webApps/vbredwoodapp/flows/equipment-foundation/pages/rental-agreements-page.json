@@ -1,0 +1,170 @@
+{
+
+  "metadata": {},
+  "variables": {
+    "RequestAllArray": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "RequestFilteredArray": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "RequestADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "agreementNumber",
+        "data": "{{ $page.variables.RequestFilteredArray }}"
+      }
+    },
+    "filterCriterion": {
+      "type": "any"
+    },
+    "searchConfiguration": {
+      "type": "oj-sp/smart-search/strategies/JsonSearchConfigProviderFactory",
+      "defaultValue": {
+        "url": "[[ $application.path + 'resources/data/rentalAgreementSearchConfig.json' ]]"
+      }
+    },
+    "searchContext": {
+      "type": "object",
+      "defaultValue": {
+        "$search": {
+          "filters": {
+            "StatusFilter": {
+              "label": "Status",
+              "options": {
+                "optionsData": "[[ $page.variables.statusOptionsADP ]]",
+                "optionsKeys": { "label": "label", "value": "value" }
+              }
+            },
+            "CustomerFilter": {
+              "label": "Customer",
+              "options": {
+                "optionsData": "[[ $page.variables.customerOptionsADP ]]",
+                "optionsKeys": { "label": "label", "value": "value" }
+              }
+            },
+            "TypeFilter": {
+              "label": "Agreement Type",
+              "options": {
+                "optionsData": "[[ $page.variables.typeOptionsADP ]]",
+                "optionsKeys": { "label": "label", "value": "value" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "statusOptionsArray": {
+      "type": "any[]",
+      "defaultValue": [
+        { "value": "DRAFT",     "label": "Draft" },
+        { "value": "PENDING",   "label": "Pending" },
+        { "value": "APPROVED",  "label": "Approved" },
+        { "value": "ACTIVE",    "label": "Active" },
+        { "value": "REJECTED", "label": "Rejected" },
+        { "value": "EXPIRED",   "label": "Expired" }
+      ]
+    },
+    "customerOptionsArray": {
+      "type": "any[]",
+      "defaultValue": [
+        { "value": "ExxonMobil", "label": "ExxonMobil" },
+        { "value": "Chevron", "label": "Chevron" },
+        { "value": "Shell", "label": "Shell" },
+        { "value": "BP America", "label": "BP America" },
+        { "value": "TotalEnergies", "label": "TotalEnergies" },
+        { "value": "ConocoPhillips", "label": "ConocoPhillips" },
+        { "value": "Valero", "label": "Valero" },
+        { "value": "Marathon Petroleum", "label": "Marathon Petroleum" }
+      ]
+    },
+    "typeOptionsArray": {
+      "type": "any[]",
+      "defaultValue": [
+        { "value": "Master Lease", "label": "Master Lease" },
+        { "value": "Short Term", "label": "Short Term" },
+        { "value": "Project Specific", "label": "Project Specific" },
+        { "value": "Long Term", "label": "Long Term" },
+        { "value": "On-Call", "label": "On-Call" }
+      ]
+    },
+    "statusOptionsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.statusOptionsArray }}"
+      }
+    },
+    "customerOptionsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.customerOptionsArray }}"
+      }
+    },
+    "typeOptionsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.typeOptionsArray }}"
+      }
+    },
+    "isDrawerOpen": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "selectedRequest": {
+      "type": "any",
+      "defaultValue": {}
+    }
+  },
+  "eventListeners": {
+    "vbBeforeEnter": {
+      "chains": [
+        { "chain": "agreementsFlagGuardChain", "parameters": {} },
+        { "chain": "enforcePageAccessChain" }
+      ]
+    },
+    "vbEnter": {
+      "chains": [
+        { "chain": "RentalAgreementInitChain", "parameters": {} }
+      ]
+    },
+    "filterCriterionChanged": {
+      "chains": [{ "chain": "RentalAgreementFilterChain", "parameters": {} }]
+    },
+    "onRowAction": {
+      "chains": [{ "chain": "navigateToRentalLinesChain", "parameters": { "requestId": "{{ $event.detail.value?.data.agreementNumber }}" } }]
+    },
+    "closeRequestDrawer": {
+      "chains": [{ "chain": "closeRequestDrawerChain", "parameters": {} }]
+    },
+    "spPrimaryAction": {
+      "chains": [{ "chain": "navigateToCreateChain", "parameters": {} }]
+    },
+    "onAgreementClick": {
+      "chains": [{ "chain": "navigateToEditChain", "parameters": { "agreementId": "{{ $event.originalEvent.currentTarget.dataset.agreementId }}", "statusCode": "{{ $event.originalEvent.currentTarget.dataset.statusCode }}" } }]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-sp-smart-search-page": { "path": "oj-sp/smart-search-page/loader" },
+      "oj-sp-smart-search": { "path": "oj-sp/smart-search/loader" },
+      "oj-sp-collection-container": { "path": "oj-sp/collection-container/loader" },
+      "oj-sp-general-drawer-template": { "path": "oj-sp/general-drawer-template/loader" },
+      "oj-table": { "path": "ojs/ojtable" },
+      "oj-button": { "path": "ojs/ojbutton" },
+      "oj-drawer-popup": { "path": "ojs/ojdrawerpopup" },
+      "oj-defer": { "path": "ojs/ojdefer" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}

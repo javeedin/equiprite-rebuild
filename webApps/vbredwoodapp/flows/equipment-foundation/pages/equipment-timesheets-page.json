@@ -1,0 +1,140 @@
+{
+
+  "metadata": {},
+  "variables": {
+    "TimesheetAllArray": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "TimesheetFilteredArray": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "TimesheetADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "rowKey",
+        "data": "{{ $page.variables.TimesheetFilteredArray }}"
+      }
+    },
+    "filterCriterion": {
+      "type": "any"
+    },
+    "searchConfiguration": {
+      "type": "oj-sp/smart-search/strategies/JsonSearchConfigProviderFactory",
+      "defaultValue": {
+        "url": "[[ $application.path + 'resources/data/timesheetSearchConfig.json' ]]"
+      }
+    },
+    "searchContext": {
+      "type": "object",
+      "defaultValue": {
+        "$search": {
+          "filters": {
+            "StatusFilter": {
+              "label": "This Week",
+              "options": {
+                "optionsData": "[[ $page.variables.statusOptionsADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "statusOptionsArray": {
+      "type": "any[]",
+      "defaultValue": [
+        {
+          "label": "All Statuses",
+          "value": "ALL"
+        },
+        {
+          "label": "Draft",
+          "value": "DRAFT"
+        },
+        {
+          "label": "Submitted",
+          "value": "SUBMITTED"
+        },
+        {
+          "label": "Approved",
+          "value": "APPROVED"
+        }
+      ]
+    },
+    "statusOptionsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.statusOptionsArray }}"
+      }
+    }
+  },
+  "eventListeners": {
+    "vbBeforeEnter": {
+      "chains": [
+        { "chain": "enforcePageAccessChain" }
+      ]
+    },
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "projectsModuleGuardChain",
+          "parameters": {}
+        },
+        {
+          "chain": "TimesheetInitChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "filterCriterionChanged": {
+      "chains": [
+        {
+          "chain": "TimesheetFilterChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onRowAction": {
+      "chains": [
+        {
+          "chain": "CardClickChain",
+          "parameters": {
+            "requestNumber": "{{ $event.detail.value?.data.requestNumber }}",
+            "projectName": "{{ $event.detail.value?.data.projectName }}",
+            "weekStartDate": "{{ $event.detail.value?.data.weekStartDate }}"
+          }
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-sp-smart-search-page": {
+        "path": "oj-sp/smart-search-page/loader"
+      },
+      "oj-sp-smart-search": {
+        "path": "oj-sp/smart-search/loader"
+      },
+      "oj-sp-collection-container": {
+        "path": "oj-sp/collection-container/loader"
+      },
+      "oj-table": {
+        "path": "ojs/ojtable"
+      },
+      "oj-bind-text": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-if": {
+        "path": "ojs/ojknockout"
+      }
+    }
+  }
+}

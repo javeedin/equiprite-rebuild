@@ -1,0 +1,499 @@
+<!--
+  Equipment Requests — Smart Search Page (PATH B, hardcoded data)
+  Template: oj-sp-smart-search-page + oj-table + detail drawer
+-->
+<style>
+  /* ── Source badge (manager-only Source column) ────────────────────────────
+     COPIED from equipment-workbench-page.html, where these rules are
+     page-local rather than in resources/css/app.css. The class names alone
+     would not have styled anything here, so the rules travel with the
+     template. If they ever move to app.css, delete this block rather than
+     leaving a second copy to drift. */
+  .wb-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+  .wb-badge--internal,
+  .wb-badge--project  { background: #e8e0f7; color: #5c35a0; }
+  .wb-badge--external,
+  .wb-badge--customer { background: #fdecd8; color: #c45c00; }
+  /* Fallback for a source value the backend returns that we do not colour
+     explicitly — the cell must still render a readable pill rather than an
+     empty one, which would read as "no source". */
+  .wb-badge--neutral  { background: #e5e7eb; color: #374151; }
+
+  /* ── Request number link style ── */
+  .req-number-link {
+    color: var(--oj-core-brand-color-primary, #005cb1);
+    font-weight: 700;
+    font-size: 0.8rem;
+  }
+
+  /* ── Project / Task two-line cell ── */
+  .req-project-primary {
+    font-weight: 600;
+    color: var(--oj-core-text-color-primary, #161616);
+  }
+  .req-project-secondary {
+    font-size: 0.75rem;
+    color: var(--oj-core-text-color-secondary, #565656);
+    margin-top: 2px;
+  }
+
+  /* ── Lines count badge ── */
+  .req-lines-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: var(--oj-core-neutral-color-3, #e8e8e8);
+    color: var(--oj-core-text-color-secondary, #565656);
+    border-radius: 50%;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+
+  /* Status badge colours are defined globally in resources/css/app.css
+     (canonical status palette). Do not redefine them here. */
+
+  /* ── Drawer detail field label ── */
+  .req-field-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--oj-core-text-color-secondary, #565656);
+    margin-bottom: 2px;
+  }
+  .req-field-value {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--oj-core-text-color-primary, #161616);
+  }
+
+  /* ── Line item card in drawer ── */
+  .req-line-card {
+    border: 1px solid var(--oj-core-divider-color, #e0e0e0);
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    background: var(--oj-core-neutral-color-0, #ffffff);
+  }
+  .req-line-name {
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: var(--oj-core-text-color-primary, #161616);
+  }
+  .req-line-class {
+    font-size: 0.75rem;
+    color: var(--oj-core-text-color-secondary, #565656);
+    margin-top: 1px;
+  }
+  .req-line-meta {
+    font-size: 0.75rem;
+    color: var(--oj-core-text-color-secondary, #565656);
+    margin-top: 6px;
+  }
+
+  /* ── Rejection reason block ── */
+  .req-rejection-block {
+    background: #fff7f0;
+    border: 1px solid #f5c6a0;
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+  }
+  .req-rejection-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #c45c00;
+    margin-bottom: 4px;
+  }
+  .req-rejection-text {
+    font-size: 0.8125rem;
+    color: #7c3800;
+  }
+
+  /* ── Section divider in drawer ── */
+  .req-section-heading {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--oj-core-brand-color-primary, #005cb1);
+    margin: 16px 0 8px 0;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--oj-core-divider-color, #e0e0e0);
+  }
+</style>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!--  SMART SEARCH PAGE SHELL                                -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<oj-sp-smart-search-page page-title="My Requests" primary-action.display="on" primary-action.label="New Request"
+  on-sp-primary-action="[[$listeners.spPrimaryAction]]" display-mode="mixed">
+
+  <!-- ── SEARCH SLOT ──
+       The DPV reads $variables.filterCriterion via its constructor binding —
+       updates from smart-search flow into the DPV automatically. No explicit
+       change listener needed. -->
+  <oj-sp-smart-search
+    slot="search"
+    filter-criterion="{{ $variables.filterCriterion }}"
+    search-context="[[ $variables.searchContext ]]"
+    search-config="[[ $variables.searchConfiguration.provider ]]">
+  </oj-sp-smart-search>
+
+  <!-- ── DEFAULT SLOT — collection ── -->
+  <oj-sp-collection-container>
+
+    <oj-table
+      id="equipmentRequestsTable"
+      data="[[ $variables.requestsDPV.instance ]]"
+      class="oj-table-stretch oj-sm-width-full"
+      scroll-policy="loadMoreOnScroll"
+      scroll-policy-options.fetch-size="20"
+      selection-mode='{"row": "single"}'
+      on-first-selected-row-changed="[[$listeners.onRowAction]]"
+      columns="[[ $variables.requestColumns ]]"
+      style="width:100%; min-height:550px;"
+      aria-label="Equipment Requests Table">
+
+      <!-- REQUEST NUMBER — link style -->
+      <template slot="reqNumberTpl" data-oj-as="cell">
+        <span class="req-number-link">
+          <oj-bind-text value="[[ cell.data ]]"></oj-bind-text>
+        </span>
+      </template>
+
+      <!-- PROJECT / TASK — two-line cell (raw fields: projectName / taskName) -->
+      <template slot="projectTaskTpl" data-oj-as="cell">
+        <div>
+          <div class="req-project-primary">
+            <oj-bind-text value="[[ cell.data ]]"></oj-bind-text>
+          </div>
+          <div class="req-project-secondary">
+            <oj-bind-text value="[[ cell.row.taskName ]]"></oj-bind-text>
+          </div>
+        </div>
+      </template>
+
+      <!-- START / END DATE — trim raw timestamp to yyyy-MM-dd -->
+      <template slot="dateTpl" data-oj-as="cell">
+        <oj-bind-text value="[[ cell.data ? String(cell.data).substring(0, 10) : '' ]]"></oj-bind-text>
+      </template>
+
+      <!-- STATUS — canonical pill: colour + label both come from the shared
+           status module, so this cell matches every other page. -->
+      <template slot="statusTpl" data-oj-as="cell">
+        <oj-bind-if test="[[ !!cell.data ]]">
+          <span :class="[[ $application.functions.statusPillClass(cell.data) ]]">
+            <oj-bind-text value="[[ $application.functions.formatLineStatus(cell.data) ]]"></oj-bind-text>
+          </span>
+        </oj-bind-if>
+      </template>
+
+      <!-- LINES — count badge -->
+      <template slot="linesTpl" data-oj-as="cell">
+        <span class="req-lines-badge">
+          <oj-bind-text value="[[ cell.data || 0 ]]"></oj-bind-text>
+        </span>
+      </template>
+
+      <!-- QUOTE — icon opens the project quote page (PDF + Accept).
+           Shown only once a quote actually exists: QUOTE_GENERATED (awaiting the
+           approver) or QUOTE_ACCEPTED (read-back). Deliberately NOT the customer
+           page's "anything past DRAFT/SUBMITTED" test — a project request passes
+           through IN_PROCESS unquoted, so that test would show an icon leading
+           to an empty page.
+           The guard span stops the native click/mousedown from bubbling to the
+           table's row-selection handler, so hitting the icon fires ONLY the quote
+           action and does NOT navigate to the detail page. (Stopping the ojAction
+           event alone is too late — the row is selected by the native click
+           before ojAction fires.) -->
+      <template slot="quoteTpl" data-oj-as="cell">
+        <oj-bind-if test="[[ cell.row.status === 'QUOTE_GENERATED' || cell.row.status === 'QUOTE_ACCEPTED' ]]">
+          <span style="display:inline-flex; align-items:center;"
+            on-click="[[ function(e) { e.stopPropagation(); } ]]"
+            on-mousedown="[[ function(e) { e.stopPropagation(); } ]]">
+            <oj-button chroming="borderless" class="oj-button-sm" display="icons"
+              title="View quote"
+              on-oj-action="[[ function(e) { $listeners.onProjectQuoteAction({ requestNumber: cell.data, id: cell.row.eqrEquipmentRequestId }); } ]]">
+              <span slot="startIcon" class="oj-ux-ico-document-check"></span>
+              <span>View quote</span>
+            </oj-button>
+          </span>
+        </oj-bind-if>
+      </template>
+
+      <!-- Requestor — falls back to contactName on EXTERNAL rows.
+           er.REQUESTOR_NAME is populated only for INTERNAL requests and
+           er.CONTACT_NAME only for EXTERNAL ones (verified on dev over 100
+           rows: 81 internal → 81 requestorName / 0 contactName; 19 external →
+           0 / 19). Reading requestorName alone therefore left the column blank
+           on every external row.
+
+           Same expression as the workbench's WorkbenchInitChain.js:167
+           (`r.requestor || r.contactName || '-'`), so the two pages name the
+           same person for the same request. Kept as a template rather than a
+           chain mapping because this page binds the endpoint straight to an
+           SDP and has no mapping step to put it in.
+
+           COVERAGE GAP, inherited deliberately: er.CONTACT_NAME is set on only
+           39 of 65 external requests, so roughly a third still render '—'. The
+           workbench has the same gap (35 of 61) because it reads the same
+           column. EQR_CUSTOMER_PORTAL_USER.CONTACT_NAME would cover all 65, but
+           applying it here alone would make this page disagree with the
+           workbench — if that third matters, both views should change together.
+           -->
+      <template slot="requestorTpl" data-oj-as="cell">
+        <oj-bind-text value="[[ cell.row.requestorName || cell.row.contactName || '—' ]]"></oj-bind-text>
+      </template>
+
+      <!-- ── MANAGER-ONLY COLUMNS ────────────────────────────────────────
+           Rendered only when requestColumns includes them (manager-tier roles).
+           A template no column references is never invoked, so these are inert
+           for a requestor rather than conditional markup. -->
+
+      <!-- Source — INTERNAL / EXTERNAL pill, COPIED VERBATIM from
+           equipment-workbench-page's sourceTemplate so the two tables show the
+           same badge for the same value. Label comes from
+           $application.functions.sourceLabel(), which owns the origin
+           vocabulary (it accepts the legacy PROJECT/CUSTOMER spellings too),
+           and the colour classes are the .wb-badge--* rules copied into this
+           page's <style> block — that CSS is page-local to the workbench, so
+           reusing the class names alone would have rendered an unstyled pill.
+           --neutral is the fallback for a value we do not colour explicitly:
+           an unrecognised source must still render a readable pill rather than
+           an empty cell. -->
+      <template slot="originTpl" data-oj-as="cell">
+        <oj-bind-if test="[[ cell.data ]]">
+          <span :class="[[ 'wb-badge ' + (
+                 $application.functions.sourceLabel(cell.data) === 'INTERNAL' ? 'wb-badge--internal' :
+                 $application.functions.sourceLabel(cell.data) === 'EXTERNAL' ? 'wb-badge--external' :
+                 'wb-badge--neutral') ]]">
+            <oj-bind-text value="[[ $application.functions.sourceLabel(cell.data) || cell.data ]]"></oj-bind-text>
+          </span>
+        </oj-bind-if>
+      </template>
+
+      <!-- Internal / External Customer — the two origins carry their party in
+           DIFFERENT fields: EXTERNAL populates customerName, INTERNAL populates
+           projectInternalCustomer, and each is null on the other (verified on
+           dev: 'Rhode Island DOT' vs 'US2 Legal Entity'). Falling back between
+           them keeps ONE column populated for every row instead of two
+           half-empty ones — which is also why the header names both. -->
+      <template slot="customerTpl" data-oj-as="cell">
+        <oj-bind-text value="[[ cell.row.customerName || cell.row.projectInternalCustomer || '—' ]]"></oj-bind-text>
+      </template>
+
+      <!-- EMPTY STATE -->
+      <template slot="noData">
+        <div style="text-align:center; padding:48px 0;">
+          <div style="font-size:40px; color:#cbd5e1; margin-bottom:12px;">📋</div>
+          <div style="font-size:15px; font-weight:600; color:#475569; margin-bottom:6px;">No requests match your search.</div>
+          <div style="font-size:13px; color:#94a3b8;">Try adjusting your filters or clearing the search.</div>
+        </div>
+      </template>
+
+    </oj-table>
+
+  </oj-sp-collection-container>
+
+</oj-sp-smart-search-page>
+
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!--  REQUEST DETAIL DRAWER (right edge)                     -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<oj-drawer-popup opened="{{ $variables.isDrawerOpen }}" edge="end">
+  <oj-defer>
+    <oj-sp-general-drawer-template
+      drawer-title="[[ $variables.selectedRequest.requestNumber || 'Request Detail' ]]"
+      drawer-subtitle="[[ ($variables.selectedRequest.project || '') + ($variables.selectedRequest.task ? ' · ' + $variables.selectedRequest.task : '') ]]"
+      drawer-size="lg"
+      close-action='[[ { "label": "Close", "display": "on" } ]]'
+      on-sp-close="[[ $listeners.closeRequestDrawer ]]">
+
+      <div class="oj-flex oj-sm-flex-direction-column" style="padding: 1rem 1.25rem;">
+
+        <!-- ── Status + Soft Reservation badges ── -->
+        <div class="oj-flex oj-sm-align-items-center" style="gap:8px; margin-bottom:16px; flex-wrap:wrap;">
+
+          <!-- Status badge — canonical pill (colour + label from the shared
+               status module). SUBMITTED keeps its drawer-only qualifier. -->
+          <oj-bind-if test="[[ !!$variables.selectedRequest.status ]]">
+            <span :class="[[ $application.functions.statusPillClass($variables.selectedRequest.status) ]]">
+              <oj-bind-text value="[[ $application.functions.formatLineStatus($variables.selectedRequest.status)
+                + ($variables.selectedRequest.status === 'SUBMITTED' ? ' (AWAITING APPROVAL)' : '') ]]"></oj-bind-text>
+            </span>
+          </oj-bind-if>
+
+          <!-- Soft Reservation badge — not a request status, so it keeps its
+               own informational styling rather than a status pill colour. -->
+          <oj-bind-if test="[[ $variables.selectedRequest.softReservation === true ]]">
+            <span class="status-pill status-pill--submitted">Soft Reservation Active</span>
+          </oj-bind-if>
+
+        </div>
+
+        <!-- ── Rejection reason block (shown when DRAFT has a rejectionReason) ── -->
+        <oj-bind-if test="[[ $variables.selectedRequest.rejectionReason ]]">
+          <div class="req-rejection-block">
+            <div class="req-rejection-label">Rejection Reason</div>
+            <div class="req-rejection-text">
+              <oj-bind-text value="[[ $variables.selectedRequest.rejectionReason ]]"></oj-bind-text>
+            </div>
+            <div style="font-size:0.75rem; color:#a86b00; margin-top:6px;">
+              Edit this request and re-submit for approval.
+            </div>
+          </div>
+        </oj-bind-if>
+
+        <!-- ── Overview fields (2-column grid) ── -->
+        <div class="oj-flex oj-sm-flex-wrap-wrap" style="gap:12px 24px;">
+
+          <div class="oj-flex-item oj-sm-12 oj-md-6">
+            <div class="req-field-label">Request Number</div>
+            <div class="req-field-value" style="color: var(--oj-core-brand-color-primary, #005cb1); font-weight:700;">
+              <oj-bind-text value="[[ $variables.selectedRequest.requestNumber || '—' ]]"></oj-bind-text>
+            </div>
+          </div>
+
+          <div class="oj-flex-item oj-sm-12 oj-md-6">
+            <div class="req-field-label">Requestor</div>
+            <div class="req-field-value">
+              <oj-bind-text value="[[ $variables.selectedRequest.requestor || '—' ]]"></oj-bind-text>
+            </div>
+          </div>
+
+          <div class="oj-flex-item oj-sm-12 oj-md-6">
+            <div class="req-field-label">Project</div>
+            <div class="req-field-value">
+              <oj-bind-text value="[[ $variables.selectedRequest.project || '—' ]]"></oj-bind-text>
+            </div>
+          </div>
+
+          <div class="oj-flex-item oj-sm-12 oj-md-6">
+            <div class="req-field-label">Task</div>
+            <div class="req-field-value">
+              <oj-bind-text value="[[ $variables.selectedRequest.task || '—' ]]"></oj-bind-text>
+            </div>
+          </div>
+
+          <div class="oj-flex-item oj-sm-12 oj-md-6">
+            <div class="req-field-label">Start Date</div>
+            <div class="req-field-value">
+              <oj-bind-text value="[[ $variables.selectedRequest.startDate || '—' ]]"></oj-bind-text>
+            </div>
+          </div>
+
+          <div class="oj-flex-item oj-sm-12 oj-md-6">
+            <div class="req-field-label">End Date</div>
+            <div class="req-field-value">
+              <oj-bind-text value="[[ $variables.selectedRequest.endDate || '—' ]]"></oj-bind-text>
+            </div>
+          </div>
+
+          <div class="oj-flex-item oj-sm-12">
+            <div class="req-field-label">Deployment Location</div>
+            <div class="req-field-value">
+              <oj-bind-text value="[[ $variables.selectedRequest.location || '—' ]]"></oj-bind-text>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ── Equipment Lines ── -->
+        <div class="req-section-heading">
+          Equipment Lines
+        </div>
+
+        <oj-bind-if test="[[ !$variables.selectedRequest.lines || $variables.selectedRequest.lines.length === 0 ]]">
+          <div style="color: var(--oj-core-text-color-secondary); font-size:0.8125rem; margin-bottom:8px;">
+            No equipment lines added.
+          </div>
+        </oj-bind-if>
+
+        <oj-bind-for-each data="[[ $variables.selectedRequest.lines || [] ]]">
+          <template data-oj-as="line">
+            <div class="req-line-card">
+              <div class="oj-flex oj-sm-justify-content-space-between oj-sm-align-items-flex-start">
+                <div>
+                  <div class="req-line-name">
+                    <oj-bind-text value="[[ line.data.equipmentName ]]"></oj-bind-text>
+                  </div>
+                  <div class="req-line-class">
+                    <oj-bind-text value="[[ line.data.equipmentClass ]]"></oj-bind-text>
+                  </div>
+                </div>
+                <!-- Allocation status badge — same canonical pill system; the
+                     helper uppercases, so 'Allocated'/'Failed' resolve fine. -->
+                <oj-bind-if test="[[ !!line.data.allocationStatus ]]">
+                  <span :class="[[ $application.functions.statusTextClass() ]]">
+                    <oj-bind-text value="[[ $application.functions.formatLineStatus(line.data.allocationStatus) ]]"></oj-bind-text>
+                  </span>
+                </oj-bind-if>
+              </div>
+              <div class="req-line-meta">
+                <span>Qty: <strong><oj-bind-text value="[[ line.data.quantity ]]"></oj-bind-text></strong></span>
+                <span style="margin-left:16px;">Crew: <strong><oj-bind-text value="[[ line.data.crew ]]"></oj-bind-text></strong></span>
+                <span style="margin-left:16px;">Utilization: <strong><oj-bind-text value="[[ line.data.utilizationPct + '%' ]]"></oj-bind-text></strong></span>
+                <oj-bind-if test="[[ line.data.allocatedSerialNumber ]]">
+                  <span style="margin-left:16px;">Serial: <strong style="color: var(--oj-core-brand-color-primary, #005cb1);"><oj-bind-text value="[[ line.data.allocatedSerialNumber ]]"></oj-bind-text></strong></span>
+                </oj-bind-if>
+                <oj-bind-if test="[[ line.data.billRate ]]">
+                  <span style="margin-left:16px;">Rate: <strong>$<oj-bind-text value="[[ line.data.billRate ]]"></oj-bind-text>/day</strong></span>
+                </oj-bind-if>
+              </div>
+              <oj-bind-if test="[[ line.data.notes ]]">
+                <div style="font-size:0.75rem; color: var(--oj-core-text-color-secondary); margin-top:4px; font-style:italic;">
+                  <oj-bind-text value="[[ line.data.notes ]]"></oj-bind-text>
+                </div>
+              </oj-bind-if>
+            </div>
+          </template>
+        </oj-bind-for-each>
+
+        <!-- ── Timeline ── -->
+        <oj-bind-if test="[[ $variables.selectedRequest.submittedAt || $variables.selectedRequest.approvedAt ]]">
+          <div class="req-section-heading">Timeline</div>
+          <div style="font-size:0.8125rem; color: var(--oj-core-text-color-secondary);">
+
+            <oj-bind-if test="[[ $variables.selectedRequest.submittedAt ]]">
+              <div style="margin-bottom:6px;">
+                Submitted: <strong><oj-bind-text value="[[ new Date($variables.selectedRequest.submittedAt).toLocaleString() ]]"></oj-bind-text></strong>
+              </div>
+            </oj-bind-if>
+
+            <oj-bind-if test="[[ $variables.selectedRequest.approvedAt ]]">
+              <div style="margin-bottom:6px;">
+                Approved by <oj-bind-text value="[[ $variables.selectedRequest.approvedBy ]]"></oj-bind-text>:
+                <strong><oj-bind-text value="[[ new Date($variables.selectedRequest.approvedAt).toLocaleString() ]]"></oj-bind-text></strong>
+              </div>
+            </oj-bind-if>
+
+          </div>
+        </oj-bind-if>
+
+        <!-- ── Notes ── -->
+        <oj-bind-if test="[[ $variables.selectedRequest.notes ]]">
+          <div class="req-section-heading">Notes</div>
+          <div style="font-size:0.8125rem; color: var(--oj-core-text-color-primary);">
+            <oj-bind-text value="[[ $variables.selectedRequest.notes ]]"></oj-bind-text>
+          </div>
+        </oj-bind-if>
+
+      </div>
+    </oj-sp-general-drawer-template>
+  </oj-defer>
+</oj-drawer-popup>

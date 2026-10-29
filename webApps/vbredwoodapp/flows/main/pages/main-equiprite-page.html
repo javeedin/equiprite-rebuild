@@ -1,0 +1,275 @@
+<oj-sp-general-overview-page
+    id="oj_gop1"
+    page-title="[[ $variables.dashTitle ]]"
+    page-subtitle="[[ $variables.dashSubtitle ]]"
+    display-mode="mixed"
+    display-options.responsive-padding="on">
+    <style>
+        #oj_gop1 {
+            --oj-sp-general-overview-page-max-width: 100% !important;
+            max-width: 100% !important;
+        }
+
+        /* ── Table Styling ── */
+        #dashRequestsTable .oj-table-column-header-cell {
+            background-color: var(--oj-core-neutral-color-2, #f1f1f1);
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--oj-core-text-color-secondary, #565656);
+            padding: 10px 12px;
+        }
+        #dashRequestsTable .oj-table-column-header-text {
+            white-space: nowrap;
+        }
+        #dashRequestsTable .oj-table-body-row:hover {
+            background-color: var(--oj-core-neutral-color-1, #fafafa);
+            cursor: pointer;
+        }
+        #dashRequestsTable .oj-table-data-cell {
+            padding: 10px 12px;
+            font-size: 0.8125rem;
+            vertical-align: middle;
+        }
+
+        /* ── Badge Styles ── */
+        .dash-req-number-link {
+            color: var(--oj-core-brand-color-primary, #005cb1);
+            font-weight: 700;
+            font-size: 0.8rem;
+        }
+        .dash-project-primary {
+            font-weight: 600;
+            color: var(--oj-core-text-color-primary, #161616);
+        }
+        .dash-project-secondary {
+            font-size: 0.75rem;
+            color: var(--oj-core-text-color-secondary, #565656);
+            margin-top: 2px;
+        }
+        /* Status pill styling lives in resources/css/app.css (.status-pill--*),
+           applied via $application.functions.statusPillClass(). Do not add
+           page-local status badge classes here — that is what let this page
+           drift out of sync with the canonical palette. */
+
+        /* ── Source origin pills ──
+           Deliberately NOT reusing the workbench's .wb-badge classes: those are
+           page-local to equipment-workbench-page.html, so referencing them here
+           would render unstyled. Same visual treatment, dashboard-scoped names.
+           (Status pills are different — those DO live in the shared
+           resources/css/app.css and are applied via statusPillClass().) */
+        .dash-src {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            white-space: nowrap;
+        }
+        /* Vocabulary is INTERNAL | EXTERNAL (formerly PROJECT | CUSTOMER); the
+           legacy aliases keep an unmigrated row in its original colour. */
+        .dash-src--internal,
+        .dash-src--project  { background: #e8e0f7; color: #5c35a0; }
+        .dash-src--external,
+        .dash-src--customer { background: #fdecd8; color: #c45c00; }
+        /* Any origin we have not coloured still renders a readable pill, so an
+           unstyled value is obvious rather than looking like "no source". */
+        .dash-src--neutral  { background: #e5e7eb; color: #374151; }
+
+        /* ── KPI tile click affordance ── */
+        .dash-kpi-tile {
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            border-radius: 8px;
+            height: 100%;
+        }
+        .dash-kpi-tile:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--oj-core-box-shadow-md);
+        }
+        /* Accent stripe per tile. The accent name comes from the persona's KPI
+           definition, so a new tile picks up its colour with no CSS change. */
+        .dash-kpi-tile--info    { border-top: 4px solid var(--oj-core-color-info-90); }
+        .dash-kpi-tile--success { border-top: 4px solid var(--oj-core-color-success-90); }
+        .dash-kpi-tile--warning { border-top: 4px solid var(--oj-core-color-warning-90); }
+        .dash-kpi-tile--danger  { border-top: 4px solid var(--oj-core-color-danger-90); }
+    </style>
+
+    <div slot="main" class="oj-sm-padding-4x" style="display: flex; flex-direction: column; width: 100%;">
+        <div style="flex: 1; padding: 24px;">
+
+        <!-- ── KPI / Summary Cards ─────────────────────────────────────────
+             Rendered from $variables.kpiCards rather than hand-written per
+             role: the persona decides how many tiles there are (three or
+             four), what they are called and where they navigate. Adding a
+             seventh persona needs no markup here at all. -->
+        <div class="oj-flex oj-sm-gap-4 oj-sm-margin-6-bottom">
+            <oj-bind-for-each data="[[ $variables.kpiCards ]]">
+                <template data-oj-as="card">
+                    <div class="oj-flex-item oj-sm-12 oj-md-6 oj-lg-3">
+                        <div
+                            :class="[[ 'oj-panel oj-bg-neutral-0 oj-shadow-sm oj-sm-padding-4x oj-sm-margin-2x-bottom oj-md-margin-2x-end dash-kpi-tile dash-kpi-tile--' + card.data.accent ]]"
+                            on-click="[[ $listeners.onKpiClick ]]"
+                            :data-nav-id="[[ card.data.nav ]]">
+                            <div class="oj-flex oj-sm-justify-content-space-between oj-sm-align-items-center oj-sm-margin-2x-bottom">
+                                <span class="oj-typography-body-sm oj-text-color-secondary oj-typography-semi-bold">
+                                    <oj-bind-text value="[[ card.data.label ]]"></oj-bind-text>
+                                </span>
+                                <span :class="[[ card.data.icon + ' oj-text-color-primary' ]]" style="font-size: 1.5rem;"></span>
+                            </div>
+                            <div class="oj-flex oj-sm-align-items-baseline oj-sm-gap-2">
+                                <h1 class="oj-typography-heading-xl oj-text-color-primary" style="margin: 0;">
+                                    <!-- Money tiles format as currency; count tiles print the
+                                         raw number. `money` is declared per KPI so the tile,
+                                         not the page, decides how its value reads. -->
+                                    <oj-bind-if test="[[ card.data.money ]]">
+                                        <oj-bind-text value="[[ $functions.formatCurrency($variables.kpis[card.data.key]) ]]"></oj-bind-text>
+                                    </oj-bind-if>
+                                    <oj-bind-if test="[[ !card.data.money ]]">
+                                        <oj-bind-text value="[[ $variables.kpis[card.data.key] || 0 ]]"></oj-bind-text>
+                                    </oj-bind-if>
+                                </h1>
+                            </div>
+                            <div class="oj-typography-body-xs oj-text-color-secondary oj-sm-margin-2x-top">
+                                <oj-bind-text value="[[ card.data.hint ]]"></oj-bind-text>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </oj-bind-for-each>
+        </div>
+
+        <!-- ── Data Section (Table) ───────────────────────────────────────── -->
+        <div class="oj-flex oj-sm-margin-8-top">
+            <div class="oj-flex-item oj-sm-12">
+                <div class="oj-flex oj-sm-justify-content-space-between oj-sm-align-items-center oj-sm-margin-4-bottom">
+                    <h2 class="oj-typography-heading-sm oj-text-color-primary" style="margin: 0;">
+                        <oj-bind-text value="[[ $variables.tableTitle ]]"></oj-bind-text>
+                    </h2>
+                    <!-- Only when the persona declares a target: with no persona
+                         dashboardInitChain clears it, and a View All with
+                         nowhere to go must not be offered at all. -->
+                    <oj-bind-if test="[[ !!$variables.tableViewAllNav ]]">
+                        <oj-button chroming="borderless" on-oj-action="[[$listeners.onViewAllRecentRequests]]">
+                            <span class="oj-typography-body-sm oj-text-color-primary oj-typography-semi-bold">View All</span>
+                            <span slot="endIcon" class="oj-ux-ico-arrow-right"></span>
+                        </oj-button>
+                    </oj-bind-if>
+                </div>
+
+                <!-- Table Card -->
+                <div class="oj-panel oj-sm-padding-0"
+                     style="border-radius: var(--oj-core-border-radius-xl); box-shadow: var(--oj-core-box-shadow-sm); overflow: hidden; background-color: #ffffff;">
+                    <oj-table
+                        id="dashRequestsTable"
+                        data="[[ $variables.recentRequestsADP ]]"
+                        class="oj-table-stretch oj-sm-width-full"
+                        scroll-policy="loadMoreOnScroll"
+                        scroll-policy-options.fetch-size="25"
+                        selection-mode='{"row": "single"}'
+                        on-first-selected-row-changed="[[$listeners.onRowAction]]"
+                        columns="[[ $variables.tableColumns ]]"
+                        style="width:100%; min-height:400px;"
+                        aria-label="Dashboard Table">
+
+                        <!-- Request Number -->
+                        <template slot="dashReqNumTpl" data-oj-as="cell">
+                            <span class="dash-req-number-link">
+                                <oj-bind-text value="[[ cell.data ]]"></oj-bind-text>
+                            </span>
+                        </template>
+
+                        <!-- Project / Task — two-line cell. Task is omitted when the
+                             persona's payload carries no task (workbench, post-cost). -->
+                        <template slot="dashProjectTpl" data-oj-as="cell">
+                            <div>
+                                <div class="dash-project-primary">
+                                    <oj-bind-text value="[[ cell.data ]]"></oj-bind-text>
+                                </div>
+                                <oj-bind-if test="[[ !!cell.row.task ]]">
+                                    <div class="dash-project-secondary">
+                                        <oj-bind-text value="[[ cell.row.task ]]"></oj-bind-text>
+                                    </div>
+                                </oj-bind-if>
+                            </div>
+                        </template>
+
+                        <!-- Status — canonical pill: colour + label both come from the
+                             shared status module, so this cell matches every other page.
+                             formatLineStatus degrades an unknown code to readable text
+                             rather than rendering blank, so a backend status rename can
+                             never blank this column. -->
+                        <template slot="dashStatusTpl" data-oj-as="cell">
+                            <oj-bind-if test="[[ !!cell.data ]]">
+                                <span :class="[[ $application.functions.statusPillClass(cell.data) ]]">
+                                    <oj-bind-text value="[[ $application.functions.formatLineStatus(cell.data) ]]"></oj-bind-text>
+                                </span>
+                            </oj-bind-if>
+                        </template>
+
+                        <!-- Allocation % — workbench personas only.
+                             Plain number, no progress bar: the bar competed with
+                             the status pill and read poorly at this width. -->
+                        <template slot="dashAllocTpl" data-oj-as="cell">
+                            <span class="oj-typography-body-sm oj-text-color-primary">
+                                <oj-bind-text value="[[ (cell.data == null ? 0 : cell.data) + '%' ]]"></oj-bind-text>
+                            </span>
+                        </template>
+
+                        <!-- Source — INTERNAL | EXTERNAL origin pill.
+                             Label goes through sourceLabel() so a legacy
+                             'PROJECT'/'CUSTOMER' row renders in the CURRENT
+                             vocabulary rather than showing two words for the
+                             same thing in one table. An unrecognised value
+                             still gets a readable neutral pill; only a genuinely
+                             empty source renders nothing. -->
+                        <template slot="dashSourceTpl" data-oj-as="cell">
+                            <oj-bind-if test="[[ !!cell.data ]]">
+                                <span :class="[[ 'dash-src ' + (
+                                       $application.functions.sourceLabel(cell.data) === 'INTERNAL' ? 'dash-src--internal' :
+                                       $application.functions.sourceLabel(cell.data) === 'EXTERNAL' ? 'dash-src--external' :
+                                       'dash-src--neutral') ]]">
+                                    <oj-bind-text value="[[ $application.functions.sourceLabel(cell.data) || cell.data ]]"></oj-bind-text>
+                                </span>
+                            </oj-bind-if>
+                        </template>
+
+                        <!-- Money — finance persona -->
+                        <template slot="dashMoneyTpl" data-oj-as="cell">
+                            <span class="oj-typography-body-sm">
+                                <oj-bind-text value="[[ $functions.formatCurrency(cell.data) ]]"></oj-bind-text>
+                            </span>
+                        </template>
+
+                        <!-- Empty state -->
+                        <template slot="noData">
+                            <div style="text-align:center; padding:48px 0;">
+                                <oj-bind-if test="[[ $variables.isLoading ]]">
+                                    <div style="font-size:15px; font-weight:600; color:#475569;">Loading…</div>
+                                </oj-bind-if>
+                                <oj-bind-if test="[[ !$variables.isLoading && !!$variables.fetchError ]]">
+                                    <div style="font-size:40px; color:#fca5a5; margin-bottom:12px;">⚠️</div>
+                                    <div style="font-size:15px; font-weight:600; color:#b91c1c; margin-bottom:6px;">
+                                        <oj-bind-text value="[[ $variables.fetchError ]]"></oj-bind-text>
+                                    </div>
+                                </oj-bind-if>
+                                <oj-bind-if test="[[ !$variables.isLoading && !$variables.fetchError ]]">
+                                    <div style="font-size:40px; color:#cbd5e1; margin-bottom:12px;">📋</div>
+                                    <div style="font-size:15px; font-weight:600; color:#475569; margin-bottom:6px;">Nothing to show yet.</div>
+                                    <div style="font-size:13px; color:#94a3b8;">New records will appear here.</div>
+                                </oj-bind-if>
+                            </div>
+                        </template>
+
+                    </oj-table>
+                </div>
+            </div>
+
+        </div>
+
+        </div>
+    </div>
+</oj-sp-general-overview-page>

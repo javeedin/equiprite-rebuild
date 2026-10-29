@@ -1,0 +1,167 @@
+{
+  "description": "Reusable search fragment for Oracle Fusion REST endpoints. Config-driven, oj-input-search based.",
+  "variables": {
+    "endpoint": {
+      "type": "string",
+      "input": "fromCaller",
+      "required": true
+    },
+    "searchField": {
+      "type": "string",
+      "input": "fromCaller",
+      "required": true
+    },
+    "displayField1": {
+      "type": "string",
+      "input": "fromCaller"
+    },
+    "displayField2": {
+      "type": "string",
+      "input": "fromCaller"
+    },
+    "keyField": {
+      "type": "string",
+      "input": "fromCaller",
+      "required": true
+    },
+    "returnFields": {
+      "type": "string",
+      "input": "fromCaller"
+    },
+    "labelText": {
+      "type": "string",
+      "input": "fromCaller",
+      "defaultValue": "Search"
+    },
+    "placeholderText": {
+      "type": "string",
+      "input": "fromCaller",
+      "defaultValue": "Search..."
+    },
+    "selectedDisplayFormat": {
+      "type": "string",
+      "input": "fromCaller",
+      "defaultValue": "%displayField1% - %displayField2%",
+      "description": "Format used to render the selected item text in the search input. Use %displayField1% and %displayField2% placeholders. Do not use {{...}} syntax."
+    },
+    "maxResults": {
+      "type": "number",
+      "input": "fromCaller",
+      "defaultValue": 500
+    },
+    "minChars": {
+      "type": "number",
+      "input": "fromCaller",
+      "defaultValue": 2
+    },
+    "searchText": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "baseQuery": {
+      "type": "string",
+      "input": "fromCaller",
+      "defaultValue": ""
+    },
+    "searchQ": {
+      "type": "string",
+      "defaultValue": "1=0"
+    },
+    "selectedItem": {
+      "type": "any",
+      "defaultValue": null,
+      "input": "fromCaller",
+      "writeback": true
+    },
+    "selectedKey": {
+      "type": "any",
+      "defaultValue": null,
+      "input": "fromCaller",
+      "writeback": true
+    },
+    "selectedItemName": {
+      "type": "string",
+      "defaultValue": "",
+      "input": "fromCaller",
+      "writeback": true
+    },
+    "suggestionsSDP": {
+      "type": "vb/ServiceDataProvider",
+      "defaultValue": {
+        "endpoint": "[[ $variables.endpoint ]]",
+        "keyAttributes": "[[ $variables.keyField ]]",
+        "itemsPath": "items",
+        "uriParameters": {
+          "q": "[[ $variables.searchQ ]]",
+          "fields": "[[ $variables.returnFields ]]",
+          "limit": "[[ $variables.maxResults || 500 ]]"
+        }
+      }
+    }
+  },
+  "chains": {},
+  "events": {
+    "itemSelectedEvent": {
+      "payloadType": {
+        "data": "any",
+        "key": "any"
+      }
+    }
+  },
+  "eventListeners": {
+    "selectedKeyChanged": {
+      "chains": [
+        {
+          "chain": "selectedKeyChangedChain",
+          "parameters": {
+            "value": "{{ $event.detail.value }}"
+          }
+        }
+      ]
+    },
+    "baseQueryChanged": {
+      "chains": [
+        {
+          "chain": "baseQueryChangedChain",
+          "parameters": {
+            "value": "{{ $event.detail.value }}"
+          }
+        }
+      ]
+    },
+    "typeaheadChanged": {
+      "chains": [
+        {
+          "chain": "typeaheadChangedChain",
+          "parameters": {
+            "searchValue": "{{ $event.detail.value }}"
+          }
+        }
+      ]
+    },
+    "itemSelected": {
+      "chains": [
+        {
+          "chain": "itemSelectedChain",
+          "parameters": {
+            "selectedRow": "{{ $event.detail.itemContext.data }}"
+          }
+        }
+      ]
+    }
+  },
+  "types": {},
+  "imports": {
+    "components": {
+      "oj-input-search": {
+        "path": "ojs/ojinputsearch"
+      },
+      "oj-bind-if": {
+        "path": "ojs/ojbinddom"
+      },
+      "oj-bind-text": {
+        "path": "ojs/ojbindtext"
+      }
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "description": "Programs smart search configuration",
+  "filters": {
+    "Status": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Status",
+      "options": {
+        "field": "status",
+        "optionsData": "[[ $search.filters.Status.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.Status.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "Client": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Client",
+      "options": {
+        "field": "client",
+        "optionsData": "[[ $search.filters.Client.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.Client.options.optionsKeys ]]"
+      },
+      "data": {}
+    }
+  }
+}

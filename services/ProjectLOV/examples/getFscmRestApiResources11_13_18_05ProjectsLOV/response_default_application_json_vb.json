@@ -1,0 +1,541 @@
+{
+    "items": [
+        {
+            "ProjectId": 99999,
+            "ProjectNumber": "TM001",
+            "ProjectStartDate": "2008-02-01",
+            "ProjectFinishDate": "2009-06-30",
+            "ProjectName": "Rudycorp Software Install",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/99999",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/99999",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                }
+            ]
+        },
+        {
+            "ProjectId": 999991,
+            "ProjectNumber": "TM001123",
+            "ProjectStartDate": "2008-02-01",
+            "ProjectFinishDate": "2009-06-30",
+            "ProjectName": "Rudycorp Software Install 123",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/999991",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/999991",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                }
+            ]
+        },
+        {
+            "ProjectId": 300000058778835,
+            "ProjectNumber": "PCS10001",
+            "ProjectStartDate": "2013-06-03",
+            "ProjectFinishDate": "2025-09-02",
+            "ProjectName": "Hilman HCM Implementation",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/300000058778835",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/300000058778835",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                }
+            ]
+        },
+        {
+            "ProjectId": 300000058779506,
+            "ProjectNumber": "PCS10002",
+            "ProjectStartDate": "2013-03-05",
+            "ProjectFinishDate": "2027-01-12",
+            "ProjectName": "McNally Business Process Reengineering123",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/300000058779506",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/300000058779506",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                }
+            ]
+        },
+        {
+            "ProjectId": 300000058779617,
+            "ProjectNumber": "PCS10003",
+            "ProjectStartDate": "2013-07-01",
+            "ProjectFinishDate": "2015-08-30",
+            "ProjectName": "LAF Procurement Implementation",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/300000058779617",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/300000058779617",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                }
+            ]
+        },
+        {
+            "ProjectId": 300000058779704,
+            "ProjectNumber": "PCS10007",
+            "ProjectStartDate": "2013-08-05",
+            "ProjectFinishDate": "2015-09-27",
+            "ProjectName": "Fox Stores BI Implementation",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/300000058779704",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/300000058779704",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                }
+            ]
+        },
+        {
+            "ProjectId": 300000058800946,
+            "ProjectNumber": "PCS10008",
+            "ProjectStartDate": "2013-09-02",
+            "ProjectFinishDate": "2015-11-01",
+            "ProjectName": "Business World Data Warehouse ",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/300000058800946",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/300000058800946",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                }
+            ]
+        },
+        {
+            "ProjectId": 300000058801059,
+            "ProjectNumber": "PCS10014",
+            "ProjectStartDate": "2013-09-02",
+            "ProjectFinishDate": "2027-12-31",
+            "ProjectName": "Hilman ERP Implementation",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/300000058801059",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/300000058801059",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                }
+            ]
+        },
+        {
+            "ProjectId": 300000058801143,
+            "ProjectNumber": "PCS10016",
+            "ProjectStartDate": "2013-09-30",
+            "ProjectFinishDate": "2015-11-29",
+            "ProjectName": "Stark ERP Implementation",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/300000058801143",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/300000058801143",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                }
+            ]
+        },
+        {
+            "ProjectId": 300000058801204,
+            "ProjectNumber": "PCS10020",
+            "ProjectStartDate": "2013-09-30",
+            "ProjectFinishDate": "2015-11-29",
+            "ProjectName": "Stark Technology Upgrade ",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/300000058801204",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/300000058801204",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                }
+            ]
+        },
+        {
+            "ProjectId": 300000058801392,
+            "ProjectNumber": "PCS10022",
+            "ProjectStartDate": "2013-08-30",
+            "ProjectFinishDate": "2025-05-08",
+            "ProjectName": "Business World Middleware Upgrade",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/300000058801392",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/300000058801392",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                }
+            ]
+        },
+        {
+            "ProjectId": 300000058801477,
+            "ProjectNumber": "PCS10023",
+            "ProjectStartDate": "2013-11-04",
+            "ProjectFinishDate": "2015-12-27",
+            "ProjectName": "McNally HCM Implementation",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/300000058801477",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/300000058801477",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                }
+            ]
+        },
+        {
+            "ProjectId": 300000058801556,
+            "ProjectNumber": "PCS10028",
+            "ProjectStartDate": "2013-12-02",
+            "ProjectFinishDate": "2017-05-31",
+            "ProjectName": "Dixon Financials Upgrade",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/300000058801556",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/300000058801556",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                }
+            ]
+        },
+        {
+            "ProjectId": 300000058801591,
+            "ProjectNumber": "PCS10030",
+            "ProjectStartDate": "2013-12-02",
+            "ProjectFinishDate": "2016-01-31",
+            "ProjectName": "Business World SCM Implementation",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/300000058801591",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/300000058801591",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                }
+            ]
+        },
+        {
+            "ProjectId": 300000069461170,
+            "ProjectNumber": "PI20005",
+            "ProjectStartDate": "2013-06-01",
+            "ProjectFinishDate": "2015-03-31",
+            "ProjectName": "Global Network Tower Construction",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/300000069461170",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/300000069461170",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                }
+            ]
+        },
+        {
+            "ProjectId": 300000069461831,
+            "ProjectNumber": "PI20009",
+            "ProjectStartDate": "2013-09-01",
+            "ProjectFinishDate": "2015-02-28",
+            "ProjectName": "Cloud Based CRM",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/300000069461831",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/300000069461831",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                }
+            ]
+        },
+        {
+            "ProjectId": 300000069461875,
+            "ProjectNumber": "PI20010",
+            "ProjectStartDate": "2013-09-01",
+            "ProjectFinishDate": "2030-03-28",
+            "ProjectName": "Data Center Build Out",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/300000069461875",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/300000069461875",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                }
+            ]
+        },
+        {
+            "ProjectId": 300000069487922,
+            "ProjectNumber": "PI20019",
+            "ProjectStartDate": "2013-11-01",
+            "ProjectFinishDate": "2015-04-30",
+            "ProjectName": "Telephone System Upgrade",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/300000069487922",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/300000069487922",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                }
+            ]
+        },
+        {
+            "ProjectId": 300000069488102,
+            "ProjectNumber": "PI20024",
+            "ProjectStartDate": "2013-11-01",
+            "ProjectFinishDate": "2015-04-30",
+            "ProjectName": "HCM Release 8 Upgrade",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/300000069488102",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/300000069488102",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                }
+            ]
+        },
+        {
+            "ProjectId": 300000069488165,
+            "ProjectNumber": "PI20025",
+            "ProjectStartDate": "2013-12-01",
+            "ProjectFinishDate": "2015-05-31",
+            "ProjectName": "Green Initiative",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/300000069488165",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/300000069488165",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                }
+            ]
+        },
+        {
+            "ProjectId": 300000069488217,
+            "ProjectNumber": "PI20027",
+            "ProjectStartDate": "2014-01-01",
+            "ProjectFinishDate": "2015-06-30",
+            "ProjectName": "Collaborative Technology Initiative",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/300000069488217",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/300000069488217",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                }
+            ]
+        },
+        {
+            "ProjectId": 300000074173713,
+            "ProjectNumber": "PUK10001",
+            "ProjectStartDate": "2014-01-06",
+            "ProjectFinishDate": "2016-02-28",
+            "ProjectName": "Quest CRM Upgrade",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/300000074173713",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/300000074173713",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                }
+            ]
+        },
+        {
+            "ProjectId": 300000074173765,
+            "ProjectNumber": "PUK10004",
+            "ProjectStartDate": "2014-01-06",
+            "ProjectFinishDate": "2016-02-28",
+            "ProjectName": "Hilman UK Business Process Engineering",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/300000074173765",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/300000074173765",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                }
+            ]
+        },
+        {
+            "ProjectId": 300000085442952,
+            "ProjectNumber": "PRGUS001",
+            "ProjectStartDate": "2014-01-01",
+            "ProjectFinishDate": "2014-01-01",
+            "ProjectName": "Water Reservoir Construction",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/300000085442952",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/300000085442952",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                }
+            ]
+        },
+        {
+            "ProjectId": 300000085573140,
+            "ProjectNumber": "00009880",
+            "ProjectStartDate": "2014-07-01",
+            "ProjectFinishDate": "2015-12-31",
+            "ProjectName": "Fire Station Construction",
+            "links": [
+                {
+                    "rel": "self",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/300000085573140",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                },
+                {
+                    "rel": "canonical",
+                    "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV/300000085573140",
+                    "name": "projectsLOV",
+                    "kind": "item"
+                }
+            ]
+        }
+    ],
+    "count": 25,
+    "hasMore": true,
+    "limit": 25,
+    "offset": 0,
+    "links": [
+        {
+            "rel": "self",
+            "href": "https://fa-etao-dev20-saasfademo1.ds-fa.oraclepdemos.com:443/fscmRestApi/resources/11.13.18.05/projectsLOV",
+            "name": "projectsLOV",
+            "kind": "collection"
+        }
+    ]
+}

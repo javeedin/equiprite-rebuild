@@ -1,0 +1,41 @@
+/*
+ * Bryntum overrides — applied after schedulerpro.classic.css.
+ *
+ * Two fixes:
+ *  1. Pin --bryntum-version to match the loaded UMD bundle (6.1.1) so the
+ *     "CSS version doesn't match bundle version" runtime warning is silenced.
+ *  2. Re-declare @font-face for Font Awesome 6 Free using a public CDN —
+ *     the local resources/css/fonts/fa-* files referenced by the original
+ *     schedulerpro.classic.css don't exist in this project.
+ */
+
+:root {
+  --bryntum-version: "6.1.1";
+}
+
+@font-face {
+  font-family: "Font Awesome 6 Free";
+  font-style: normal;
+  font-weight: 900;
+  font-display: block;
+  src: url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/webfonts/fa-solid-900.woff2") format("woff2"),
+       url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/webfonts/fa-solid-900.ttf")   format("truetype");
+}
+
+@font-face {
+  font-family: "Font Awesome 6 Free";
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/webfonts/fa-regular-400.woff2") format("woff2"),
+       url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/webfonts/fa-regular-400.ttf")   format("truetype");
+}
+
+@font-face {
+  font-family: "Font Awesome 6 Brands";
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/webfonts/fa-brands-400.woff2") format("woff2"),
+       url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/webfonts/fa-brands-400.ttf")   format("truetype");
+}

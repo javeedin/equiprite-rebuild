@@ -1,0 +1,154 @@
+{
+  "pageTitle": "Rental Contract",
+  "pageSubtitle": "Review and accept before submitting your request",
+  "metadata": {},
+  "variables": {
+    "selectedTab": {
+      "type": "string",
+      "defaultValue": "terms"
+    },
+    "tabsDP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "id",
+        "data": [
+          {
+            "id": "terms",
+            "label": "TERMS",
+            "icon": "oj-ux-ico-document"
+          },
+          {
+            "id": "customer",
+            "label": "CUSTOMER DETAILS",
+            "icon": "oj-ux-ico-contact-group"
+          },
+          {
+            "id": "insurance",
+            "label": "INSURANCE",
+            "icon": "oj-ux-ico-shield"
+          }
+        ]
+      }
+    },
+    "customer": {
+      "type": "object",
+      "defaultValue": {
+        "legalName": "Apex Construction Corp",
+        "accountNumber": "EXT-1001",
+        "firstName": "",
+        "lastName": "",
+        "email": "Marcus Webb",
+        "mobile": "+1 (555) 000-0000",
+        "address1": "",
+        "address2": "",
+        "city": "",
+        "state": "TX",
+        "zip": "77001",
+        "country": "United States"
+      }
+    },
+    "insurance": {
+      "type": "object",
+      "defaultValue": {
+        "policyNumber": "",
+        "insurer": "",
+        "startDate": "2026-04-25",
+        "endDate": "2026-05-30"
+      }
+    },
+    "cartItems": {
+      "type": "any[]",
+      "defaultValue": [
+        {
+          "name": "Wacker Neuson 797 Light Tower",
+          "qty": 1,
+          "rate": 500
+        },
+        {
+          "name": "John Deere 490 Excavator",
+          "qty": 1,
+          "rate": 1200
+        },
+        {
+          "name": "Komatsu 346 Dozer",
+          "qty": 1,
+          "rate": 1200
+        },
+        {
+          "name": "Wacker Neuson 778 Light Tower",
+          "qty": 1,
+          "rate": 500
+        },
+        {
+          "name": "Doosan 318 Light Tower",
+          "qty": 1,
+          "rate": 500
+        }
+      ]
+    },
+    "termsText": {
+      "type": "string",
+      "defaultValue": "Rental Terms and Conditions\nThese terms and conditions form part of the rental services contract (\"RITE SOFTWARE SOLUTIONS\") and customers as parties below, and apply to all the equipment (the \"Equipment\") rented by you. By accepting this agreement, you accept the terms of the Rental Contract staff and the Rental Company staff policies.\n\nYOU ARE CONSIDERED TO HAVE TAKEN DELIVERY OF THE EQUIPMENT\nUnless otherwise notified by us, the Equipment will be considered as delivered when you take possession thereof, when you pick up the Equipment from our site, or at whatever place you take possession of it. In either case, you are responsible for any damage you cause by improperly preparing your premises for delivery and set up of the Equipment. After taking/signing your item you must notify the Rental Company within 24 hours of a defect or problem with the equipment supplied, you agree that the Equipment is in good working order and that the Equipment is acceptable.\n\nTRANSPORTING EQUIPMENT — PICK UP & DELIVERY\nIF YOU DO NOT PICK UP OR RETURN THE EQUIPMENT TO US, YOU ARE RESPONSIBLE FOR TRANSPORTATION TO AND FROM PICK-UP LOCATIONS. As your request and expense, the Rental Company may arrange shipment of the Equipment to your designated locations. You are responsible for all costs (transportation charges, duties, taxes, levies, liens, benefits, insurance and any other costs) incurred during transit. The Rental Company is not responsible for shipping delays once the Equipment is informed to your carrier. The Rental Company will not accept collect shipments from you.\n\nYOUR RESPONSIBILITIES WITH REGARD TO THE EQUIPMENT\nYOU WILL USE THE EQUIPMENT only in accordance with its operating instructions (as provided by the manufacturer) but, not constrained to, risks while outdoors, at all locations named and consented, at all locations (whether permanent or temporary) and within scope.\nYOUR RESPONSIBILITY ENDS WHEN THE EQUIPMENT IS RETURNED AND THE RENTAL TERM HAS EXPIRED. Equipment will not be deemed as been returned until all of the following conditions have been met:\n• Property has been brought back to the premises during normal business hours;\n• An inventory has been taken and a missing and damaged record signed by the task being completed, if needed;\n• The term of the Rental Contract has expired.\n\nRESTRICTIONS UPON THE USE OF THE EQUIPMENT\nUSE BY QUALIFIED TECHNICIANS ONLY: The Equipment may be used only by your duly qualified employees and/or agents and tenants in accordance with the use contemplated in the Rental Contract. You shall keep the Equipment in your safe custody and shall not permit the Equipment to be rented or sublicensed of any form.\nDO NOT ALTER SERIAL NUMBERS OR COVER COMPANY LOGOS. You may not remove or cover any serial numbers, tags, nameplates, or identifying logos on the Equipment (showing ownership) by the Rental Company.\nNO MOVEMENT OR LOCATION: Delivery as provided by the Rental Company is expected to a particular location. You may not move or cause any movement of any legal, required or implied, to the Equipment in any other situation or areas or agreements written to leasing.\nEQUIPMENT DAMAGED OR DESTROYED WHILE IN THE FIELD\nAS SOON AS YOU REALIZE THAT THE EQUIPMENT IS MISSING, NOTIFY THE RENTAL COMPANY, AND FILE A POLICE REPORT. In all instances immediately report any missing, lost, or stolen equipment on the rental company or on the Rental Company and file a report with the local authorities.\n\nRENTAL CHARGES AND LATE FEES\nRETURN THE EQUIPMENT ON THE DATE SPECIFIED in the Rental Contract. A daily late rental fee of up to 12 hours of the due date's fees will be charged. The late rental is due on the day specified in the Rental Contract or up to 12 hours of the due dates' fees. Any daily late charge will be noted for any Equipment not received on the due date. Full daily costs shall be charged for each business day. If the equipment is not returned after the due date by Rental Company, all subsequent late fees shall be added to the outstanding balance in the amounts above under the Rental Company's rental cost listing.\n\nCREDIT INFORMATION AND PAYMENT TERMS\nTHE TERMS OF PAYMENT are based upon credit information you request and agree to. To the extent of rental, Request for any change in the rental of payment terms, you agree the Rental Company may demand immediate payment without prior notice.\nPAYMENT TERMS: Rental invoices and fees, and damage recovery are payable at invoice and not later than on the 30 Days. Payments due for 30 days or more shall be considered past due for 30 days or more, shall be considered a credit collection matter, a proven notice of intent to claim a credit or other matters, alternately fees and court rules. You agree to pay the rental items directly to us directed by the rental bureau for us.\nRENTAL PAYMENTS DO NOT APPLY TO PURCHASE PRICE. Rental payments may not be applied to the purchase price of any equipment.\n\nCANCELLATION POLICIES\nIn the event of cancellation, charges may apply in cancellations of the rental company's properties, billing on our or on such renting equipment, on your behalf. By keeping the rental company informed of you a continued insurance or such benefit form.\nYOU MUST INSURE ALL EQUIPMENT. You shall, at your expense, and at all times during the rental, maintain in full force and effect insurance covering all equipment rental, loss of function, for full replacement cost, nature vehicle where at an actual cash value, and the loss of use (rental) of the equipment. Coverage must begin from the time you agree to accept delivery of the Equipment and continue until the time the Equipment is returned to the Rental Company. You shall provide the Rental Company, upon request, evidence of the insurance coverages, typically a Certificate of Insurance satisfactory to Rental Company, showing Liability Coverage, Property Insurance and Workers Compensation Insurance, prior to taking delivery of the equipment. You agree to provide all insurance documents in accordance with the terms of this rental to the rental company within 15 days advance notice to the rental company before any policy shall be modified to cancelled. Limits shall be sufficient as necessary of property at risk, regardless of interest, but no more than less than $2,000,000.\nPROPERTY INSURANCE: Your insurance on a worldwide basis, not limited to your home, office, and all similar locations to a coverage of \"All Risk\" of loss or damage to subject insurance shall provide the portfolio of a client at $2M of coverage. The required insurance (All Risk) shall cover for our purposes.\nADDITIONAL INSURED: You must name RiteSoftware Solutions as an additional insured on your liability insurance and your liability insurance shall be deemed primary and non-contributory insurance to the name of any claim or loss. Liability insurance shall meet the following minimum:\n• Commercial General Liability $2,000,000 per occurrence & annual aggregate.\n• Comprehensive & Filming outside the U.S. & Canada: $2,000,000 per occurrence.\n• Damage Liability & Strong outside the U.S. & Canada: $2,000,000 per occurrence.\n\nTHE RIGHTS OF THE RENTAL COMPANY ARE NOT AFFECTED BY YOUR OWN PERFORMANCE. Your insurers shall agree that the rights of the Rental Company under the insurance coverage, as described in the preceding paragraphs shall not be affected by any acts or neglect or non-complaints of the tenants.\nShould you fail to provide any one of the insurance coverages as required by this paragraph, you agree to the Rental Company upon request immediately provide the Coverage for insurance on your behalf, and you shall not be obligated to provide the insurance coverage as required. The failure to provide the required insurance shall be an immediate and automatic default of this agreement.\n\nTITLE AND OWNERSHIP\nYou expressly acknowledge the Rental Company's right to ownership and use of the Equipment and must keep the Equipment in a state of all items, books and undertakings. You may not assign ownership to any other party.\n\nRIGHT OF ENTRY AND INSPECTION\nThe Rental Company reserves the right to enter the Equipment at any time during the rental Term. You shall make any, and all arrangements necessary to allow a qualified employee of the Rental Company access to the location of the Equipment. A breach of any of the provisions of the Rental Contract, the Rental Company has the right to repossess all the Equipment without any liability to you, and without compliance to the Rental Company's rights to reserve any notice to be recorded in due time for delay or removal of the Equipment. Copies of the Rental Contract can be obtained from any Rental Company location.\n\nREGULATING THE RENTAL HOUSE\nThe Rental Company may in its sole discretion decide to place the Equipment on or in the location, as referred to in the rental or at any Rental Company's Rental House facility.\n\nMISCELLANEOUS ASPECTS OF THE RENTAL AGREEMENT\nTHE AGREEMENT WILL BE GOVERNED BY THE LAWS OF THE STATE OF FLORIDA. The Rental Contract shall be deemed to have been made in the County of Orange, and shall be interpreted and the rights and liabilities of the parties determined, in accordance with the laws of the State of Florida.\n\nWHEN THE CUSTOMER IS A CORPORATION, The person executing the Rental Contract on behalf of such a corporation warrants that such individual is fully authorized to execute the Rental Contract and obligate the corporation and its agents with the Rental Contract.\n\nDEFAULT AND BREACH OF TERMS. Each Rental Contract includes provisions for remedies in the event of default by you in payment of rent, or your breach of any terms of the Rental Contract, etc. Please read these sections in the Rental Contract carefully to understand your rights.\n\nENTIRE AGREEMENT. You agreed as Rental Customer and these Terms & Conditions connected the entire agreement between you and the Rental Company. Any changes must be made in writing and must be agreed to by both parties."
+    },
+    "agreedToTerms": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "agreedToContinue": {
+      "type": "boolean",
+      "defaultValue": false
+    }
+  },
+  "eventListeners": {
+    "onSpGoToParent": {
+      "chains": [
+        {
+          "chain": "NavigateBackChain"
+        }
+      ]
+    },
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "customersModuleGuardChain",
+          "parameters": {}
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-sp-general-overview-page": {
+        "path": "oj-sp/general-overview-page/loader"
+      },
+      "oj-tab-bar": {
+        "path": "ojs/ojtabbar"
+      },
+      "oj-form-layout": {
+        "path": "ojs/ojformlayout"
+      },
+      "oj-input-text": {
+        "path": "ojs/ojinputtext"
+      },
+      "oj-input-date": {
+        "path": "ojs/ojdatetimepicker"
+      },
+      "oj-input-number": {
+        "path": "ojs/ojinputnumber"
+      },
+      "oj-checkboxset": {
+        "path": "ojs/ojcheckboxset"
+      },
+      "oj-text-area": {
+        "path": "ojs/ojinputtext"
+      },
+      "oj-button": {
+        "path": "ojs/ojbutton"
+      },
+      "oj-collapsible": {
+        "path": "ojs/ojcollapsible"
+      }
+    }
+  }
+}

@@ -1,0 +1,90 @@
+{
+  "title": "Equipment Schedule",
+  "description": "Bryntum Scheduler — Equipment availability and bookings",
+  "variables": {
+    "filterCriterion": {
+      "type": "any"
+    },
+    "searchConfiguration": {
+      "type": "oj-sp/smart-search/strategies/JsonSearchConfigProviderFactory",
+      "defaultValue": {
+        "url": "[[ $application.path + 'resources/data/equipmentScheduleSearchConfig.json' ]]"
+      }
+    },
+    "searchContext": {
+      "type": "object",
+      "defaultValue": {
+        "$search": {
+          "filters": {
+            "AssetGroupFilter": {
+              "label": "Asset Group",
+              "options": {
+                "optionsData": "[[ $page.variables.assetGroupOptionsADP ]]",
+                "optionsKeys": { "label": "label", "value": "value" }
+              }
+            },
+            "ClassFilter": {
+              "label": "Class",
+              "options": {
+                "optionsData": "[[ $page.variables.classOptionsADP ]]",
+                "optionsKeys": { "label": "label", "value": "value" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "classOptionsArray": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "classOptionsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.classOptionsArray }}"
+      }
+    },
+    "assetGroupOptionsArray": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "assetGroupOptionsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.assetGroupOptionsArray }}"
+      }
+    }
+  },
+  "metadata": {},
+  "eventListeners": {
+    "vbBeforeEnter": {
+      "chains": [
+        { "chain": "enforcePageAccessChain" }
+      ]
+    },
+    "vbEnter": {
+      "chains": [
+        { "chain": "initSchedulerChain" }
+      ]
+    },
+    "filterCriterionChanged": {
+      "chains": [
+        { "chain": "ScheduleFilterChain" }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-sp-general-overview-page": {
+        "path": "oj-sp/general-overview-page/loader"
+      },
+      "oj-sp-smart-search": {
+        "path": "oj-sp/smart-search/loader"
+      }
+    }
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "title": "Timesheet Approval Detail",
+  "variables": {
+    "requestNumber": {
+      "type": "string",
+      "input": "fromUrl",
+      "defaultValue": ""
+    },
+    "weekStartDate": {
+      "type": "string",
+      "input": "fromUrl",
+      "defaultValue": ""
+    },
+    "projectName": {
+      "type": "string",
+      "input": "fromUrl",
+      "defaultValue": ""
+    },
+    "dataGridProvider": {
+      "type": "any",
+      "defaultValue": null
+    },
+    "weekRangeProvider": {
+      "type": "any",
+      "defaultValue": null
+    },
+    "selectedWeekStart": {
+      "type": "any",
+      "defaultValue": null
+    },
+    "headerStatus": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "totalHours": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "billAmount": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "submittedBy": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "submittedByEmail": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "isApproving": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "isRejecting": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "approvalError": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "matchedEntryIds": {
+      "type": "any",
+      "defaultValue": []
+    },
+    "selectedRowCount": {
+      "type": "number",
+      "defaultValue": 0
+    }
+  },
+  "eventListeners": {
+    "vbEnter": {
+      "chains": [
+        { "chain": "projectsModuleGuardChain" },
+        { "chain": "vbEnterChain" }
+      ]
+    },
+    "onApproveTimesheet": {
+      "chains": [{ "chain": "approveTimesheetChain" }]
+    },
+    "onRejectTimesheet": {
+      "chains": [{ "chain": "rejectTimesheetChain" }]
+    },
+    "onSpInFlowBack": {
+      "chains": [{ "chain": "goToParentChain" }]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-sp-general-overview-page": { "path": "oj-sp/general-overview-page/loader" },
+      "oj-data-grid": { "path": "ojs/ojdatagrid" },
+      "oj-button": { "path": "ojs/ojbutton" },
+      "oj-input-text": { "path": "ojs/ojinputtext" },
+      "oj-input-number": { "path": "ojs/ojinputnumber" },
+      "oj-select-single": { "path": "ojs/ojselectsingle" },
+      "oj-bind-text": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" }
+    }
+  }
+}

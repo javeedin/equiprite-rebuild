@@ -1,0 +1,592 @@
+{
+  "metadata": {},
+  "variables": {
+    "equipmentId": {
+      "type": "string",
+      "input": "fromUrl",
+      "persisted": "none"
+    },
+    "serialRefId": {
+      "type": "string",
+      "input": "fromUrl",
+      "persisted": "none"
+    },
+    "controlType": {
+      "type": "string",
+      "input": "fromUrl",
+      "persisted": "none",
+      "defaultValue": "SERIAL"
+    },
+    "pageTitle": {
+      "type": "string",
+      "defaultValue": "Equipment Unit"
+    },
+    "pageSubtitle": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "isLoading": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "unit": {
+      "type": "object",
+      "defaultValue": {}
+    },
+    "masterRecord": {
+      "type": "object",
+      "defaultValue": {}
+    },
+    "locationName": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "displayItem": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "displayLocation": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "displayCurrentLocation": {
+      "type": "string",
+      "description": "Inventory org the unit is presently DEPLOYED at, resolved from EQR_SERIAL_REF.CURRENT_INV_ORG_ID (a FK to the local EQR_INV_ORG.INV_ORG_ID surrogate, not the Fusion organizationId). Written when the unit ships to an internal location - see resources/js/maintAssetLocation.js. Distinct from the home yard, which stays on unit.eqpInvOrgName and does not move when a unit is deployed.",
+      "defaultValue": ""
+    },
+    "displaySubinventory": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "hasServiceData": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "serviceRows": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "isInventoryTracked": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "maintenanceAsset": {
+      "type": "object",
+      "defaultValue": {}
+    },
+    "fixedAsset": {
+      "type": "object",
+      "defaultValue": {}
+    },
+    "workOrdersArray": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "workOrdersADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "WorkOrderNumber",
+        "data": "{{ $page.variables.workOrdersArray }}"
+      }
+    },
+    "deprnScheduleArray": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "deprnScheduleADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "PeriodName",
+        "data": "{{ $page.variables.deprnScheduleArray }}"
+      }
+    },
+    "hasMaintenanceAsset": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "hasFixedAsset": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "maintenanceIsSample": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "workOrdersAreSample": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "workOrdersUnavailable": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "workOrdersMatchedOn": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "fixedAssetIsSample": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "selectedTab": {
+      "type": "string",
+      "defaultValue": "overview"
+    },
+    "tabsDP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "id",
+        "data": "{{ $page.variables.tabsArray }}"
+      }
+    },
+    "tabsArray": {
+      "type": "any[]",
+      "defaultValue": [
+        {
+          "id": "overview",
+          "label": "OVERVIEW",
+          "icon": "oj-ux-ico-information-s"
+        },
+        {
+          "id": "maintenance",
+          "label": "MAINTENANCE ASSET",
+          "icon": "oj-ux-ico-wrench"
+        }
+      ]
+    },
+    "showFixedAssetTab": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "ptForm": {
+      "type": "object",
+      "description": "Project & Task dialog (#projectTaskDialog) draft. Copied from unit on open; saved by saveProjectTaskChain.",
+      "defaultValue": {
+        "projectNumber": "",
+        "taskNumber": ""
+      }
+    },
+    "ptError": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "attLevel": {
+      "type": "string",
+      "description": "HEADER = the equipment master (equipment-units-page), LINE = one serial (equipment-unit-detail-page). Decides which record the Attachments dialog reads and writes - see resources/js/equipmentAttachments.js target().",
+      "defaultValue": "LINE"
+    },
+    "attRows": {
+      "type": "any[]",
+      "description": "This record's ACTIVE attachments (eqpt /equipment-attachments, EQR_ATTACHMENT), mapped by equipmentAttachments.toRow.",
+      "defaultValue": []
+    },
+    "attInheritedRows": {
+      "type": "any[]",
+      "description": "LINE only: the master's attachments, shown read-only under 'From the equipment'.",
+      "defaultValue": []
+    },
+    "attLoading": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "attLoadError": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "attMode": {
+      "type": "string",
+      "description": "'list' | 'add' | 'detail' - which view of the Attachments dialog is showing. Each has its own footer.",
+      "defaultValue": "list"
+    },
+    "attForm": {
+      "type": "object",
+      "defaultValue": {
+        "name": "",
+        "category": null,
+        "validFrom": null,
+        "validTo": null,
+        "notes": ""
+      }
+    },
+    "attNeedsDates": {
+      "type": "boolean",
+      "description": "True when the picked category has validityRequired=Y: Valid from / to are shown and required. Set by attCategoryChangedChain.",
+      "defaultValue": false
+    },
+    "attFileInfo": {
+      "type": "object",
+      "description": "{name,size,type} of the picked file, for display. The File itself is held in equipmentAttachments.setPendingFile - a File does not survive VB's copy into a page variable.",
+      "defaultValue": {}
+    },
+    "attErrors": {
+      "type": "object",
+      "description": "Field errors keyed file | category | name | validFrom | validTo.",
+      "defaultValue": {}
+    },
+    "attNotice": {
+      "type": "object",
+      "description": "{type:'success'|'error', text} banner inside the dialog (the shell toast renders behind a modal).",
+      "defaultValue": {}
+    },
+    "attSaving": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "attViewer": {
+      "type": "object",
+      "description": "{row, url, mintedAt, loading, error} for the detail view. url is a 15-minute common-service link - never persisted.",
+      "defaultValue": {}
+    },
+    "attConfirmRemoveId": {
+      "type": "any"
+    },
+    "attFilterCat": {
+      "type": "string",
+      "defaultValue": "ALL"
+    },
+    "attFilterStatus": {
+      "type": "string",
+      "defaultValue": "ALL"
+    },
+    "attCategoryOptions": {
+      "type": "any[]",
+      "description": "Categories allowed at attLevel (EQR_CONF_ATTACHMENT_CATEGORY, appliesTo = level or BOTH), as {value:id,label,code,validityRequired,defaultValidityMonths}.",
+      "defaultValue": []
+    },
+    "attCategoryFilterOptions": {
+      "type": "any[]",
+      "defaultValue": [
+        {
+          "value": "ALL",
+          "label": "All categories"
+        }
+      ]
+    },
+    "attStatusFilterOptions": {
+      "type": "any[]",
+      "defaultValue": [
+        {
+          "value": "ALL",
+          "label": "All status"
+        },
+        {
+          "value": "valid",
+          "label": "Valid"
+        },
+        {
+          "value": "expired",
+          "label": "Expired"
+        },
+        {
+          "value": "upcoming",
+          "label": "Upcoming"
+        }
+      ]
+    },
+    "attCategoryADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.attCategoryOptions }}"
+      }
+    },
+    "attCategoryFilterADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.attCategoryFilterOptions }}"
+      }
+    },
+    "attStatusFilterADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.attStatusFilterOptions }}"
+      }
+    }
+  },
+  "eventListeners": {
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "vbEnterChain",
+          "parameters": {}
+        },
+        {
+          "chain": "loadAttachmentsChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onSpInFlowBack": {
+      "chains": [
+        {
+          "chain": "goToParentChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "spGoToParent": {
+      "chains": [
+        {
+          "chain": "goToParentChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onOpenAttachments": {
+      "chains": [
+        {
+          "chain": "openAttachmentsChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onEditProjectTask": {
+      "chains": [
+        {
+          "chain": "openProjectTaskChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onSaveProjectTask": {
+      "chains": [
+        {
+          "chain": "saveProjectTaskChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onRecordCost": {
+      "chains": [
+        {
+          "chain": "goToRecordCostChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onAttAdd": {
+      "chains": [
+        {
+          "chain": "resetAttachmentFormChain",
+          "parameters": {
+            "mode": "add"
+          }
+        }
+      ]
+    },
+    "onAttCancel": {
+      "chains": [
+        {
+          "chain": "resetAttachmentFormChain",
+          "parameters": {
+            "mode": "list"
+          }
+        }
+      ]
+    },
+    "onAttFileSelected": {
+      "chains": [
+        {
+          "chain": "pickAttachmentFileChain",
+          "parameters": {
+            "file": "[[ $event.detail && $event.detail.files && $event.detail.files.length ? $event.detail.files[0] : null ]]"
+          }
+        }
+      ]
+    },
+    "onAttFileCleared": {
+      "chains": [
+        {
+          "chain": "pickAttachmentFileChain",
+          "parameters": {
+            "file": null,
+            "clear": true
+          }
+        }
+      ]
+    },
+    "onAttCategoryChanged": {
+      "chains": [
+        {
+          "chain": "attCategoryChangedChain",
+          "parameters": {
+            "categoryId": "{{ $event.detail.value }}"
+          }
+        }
+      ]
+    },
+    "onAttSave": {
+      "chains": [
+        {
+          "chain": "uploadAttachmentChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onAttView": {
+      "chains": [
+        {
+          "chain": "viewAttachmentChain",
+          "parameters": {
+            "id": "{{ $event.detail.id }}",
+            "action": "{{ $event.detail.action }}"
+          }
+        }
+      ]
+    },
+    "onAttDownload": {
+      "chains": [
+        {
+          "chain": "downloadAttachmentChain",
+          "parameters": {
+            "id": "{{ $event.detail.id }}"
+          }
+        }
+      ]
+    },
+    "onAttRemove": {
+      "chains": [
+        {
+          "chain": "removeAttachmentChain",
+          "parameters": {
+            "id": "{{ $event.detail.id }}"
+          }
+        }
+      ]
+    }
+  },
+  "functions": {
+    "formatDate": {
+      "params": {
+        "value": "any"
+      },
+      "return": "string"
+    },
+    "formatDateTime": {
+      "params": {
+        "value": "any"
+      },
+      "return": "string"
+    },
+    "formatNumber": {
+      "params": {
+        "value": "any"
+      },
+      "return": "string"
+    },
+    "formatCurrency": {
+      "params": {
+        "value": "any",
+        "currency": "any"
+      },
+      "return": "string"
+    },
+    "yesNo": {
+      "params": {
+        "value": "any"
+      },
+      "return": "string"
+    },
+    "badgeClass": {
+      "params": {
+        "status": "any"
+      },
+      "return": "string"
+    },
+    "badgeLabel": {
+      "params": {
+        "status": "any"
+      },
+      "return": "string"
+    },
+    "woBadgeClass": {
+      "params": {
+        "status": "any"
+      },
+      "return": "string"
+    },
+    "filterAttachments": {
+      "params": {
+        "rows": "any",
+        "category": "any",
+        "status": "any"
+      },
+      "return": "any"
+    },
+    "attStatusClass": {
+      "params": {
+        "status": "any"
+      },
+      "return": "string"
+    },
+    "attButtonLabel": {
+      "params": {
+        "rows": "any"
+      },
+      "return": "string"
+    },
+    "attExpiredCount": {
+      "params": {
+        "rows": "any"
+      },
+      "return": "number"
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-sp-general-overview-page": {
+        "path": "oj-sp/general-overview-page/loader"
+      },
+      "oj-tab-bar": {
+        "path": "ojs/ojtabbar"
+      },
+      "oj-table": {
+        "path": "ojs/ojtable"
+      },
+      "oj-form-layout": {
+        "path": "ojs/ojformlayout"
+      },
+      "oj-input-text": {
+        "path": "ojs/ojinputtext"
+      },
+      "oj-progress-circle": {
+        "path": "ojs/ojprogress"
+      },
+      "oj-bind-if": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-text": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-for-each": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-dialog": {
+        "path": "ojs/ojdialog"
+      },
+      "oj-button": {
+        "path": "ojs/ojbutton"
+      },
+      "oj-file-picker": {
+        "path": "ojs/ojfilepicker"
+      },
+      "oj-select-single": {
+        "path": "ojs/ojselectsingle"
+      },
+      "oj-input-date": {
+        "path": "ojs/ojdatetimepicker"
+      },
+      "oj-text-area": {
+        "path": "ojs/ojinputtext"
+      }
+    }
+  }
+}

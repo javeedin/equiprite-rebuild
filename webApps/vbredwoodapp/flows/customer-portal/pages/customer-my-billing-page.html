@@ -1,0 +1,168 @@
+<!--
+  Customer Billing — Billed Requests list (Smart Search Page)
+  Mirrors customer-my-requests-page, scoped to requests that have a contract.
+  Whole-row click navigates to customer-billing-detail (request → line → invoices).
+-->
+<style>
+  /* Premium table styling — mirrors my-requests / equipment-master */
+  #customerBillingRequestsTable .oj-table-column-header-cell {
+    background-color: var(--oj-core-neutral-color-2, #f1f1f1);
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--oj-core-text-color-secondary, #565656);
+    padding: 10px 12px;
+  }
+  #customerBillingRequestsTable .oj-table-column-header-text {
+    white-space: nowrap;
+  }
+  #customerBillingRequestsTable .oj-table-body-row:hover {
+    background-color: var(--oj-core-neutral-color-1, #fafafa);
+    cursor: pointer;
+  }
+  #customerBillingRequestsTable .oj-table-body-row:nth-child(even) {
+    background-color: var(--oj-core-neutral-color-0, #ffffff);
+  }
+  #customerBillingRequestsTable .oj-table-data-cell {
+    padding: 10px 12px;
+    font-size: 0.8125rem;
+    vertical-align: middle;
+  }
+
+  /* Request # link */
+  .req-number-link {
+    color: var(--oj-core-brand-color-primary, #005cb1);
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  /* ── Lines count badge ── */
+  .req-lines-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: var(--oj-core-neutral-color-3, #e8e8e8);
+    color: var(--oj-core-text-color-secondary, #565656);
+    border-radius: 50%;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+
+  /* Status badge colours are defined globally in resources/css/app.css
+     (canonical status palette). Do not redefine them here. */
+</style>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!--  SMART SEARCH PAGE SHELL                                -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<oj-sp-smart-search-page
+  page-title="My Billing"
+  page-subtitle="Requests with active billing — open a request to view per-line invoices"
+  primary-action.display="off"
+  display-mode="mixed">
+
+  <!-- ── SEARCH SLOT ── -->
+  <oj-sp-smart-search
+    slot="search"
+    filter-criterion="{{ $variables.filterCriterion }}"
+    on-filter-criterion-changed="[[$listeners.filterCriterionChanged]]"
+    search-context="[[ $variables.searchContext ]]"
+    search-config="[[ $variables.searchConfiguration.provider ]]"
+    suggestion-filters='["StatusFilter"]'
+    placeholder="Search by request #, customer, or contact...">
+  </oj-sp-smart-search>
+
+  <!-- ── COLLECTION CONTAINER ── -->
+  <oj-sp-collection-container>
+
+    <oj-table
+      id="customerBillingRequestsTable"
+      data="[[ $variables.RequestADP ]]"
+      class="oj-table-stretch oj-sm-width-full"
+      scroll-policy="loadMoreOnScroll"
+      scroll-policy-options.fetch-size="25"
+      columns='[
+        {"headerText": "Request #",        "field": "requestNumber",   "template": "reqNumberTpl",      "sortable": "enabled",  "style": "width:150px;"},
+        {"headerText": "Customer Name",    "field": "customerName",    "template": "customerNameTpl",   "sortable": "enabled"},
+        {"headerText": "Start Date",       "field": "startDate",                                        "sortable": "enabled",  "style": "width:115px;"},
+        {"headerText": "End Date",         "field": "endDate",                                          "sortable": "enabled",  "style": "width:115px;"},
+        {"headerText": "Customer Contact", "field": "customerContact", "template": "customerContactTpl","sortable": "enabled",  "style": "width:180px;"},
+        {"headerText": "Status",           "field": "status",          "template": "statusTpl",         "sortable": "enabled",  "style": "width:175px;"},
+        {"headerText": "Lines",            "field": "lines",           "template": "linesTpl",          "sortable": "disabled", "style": "width:80px;"},
+        {"headerText": "Contract Number",  "field": "contractNumber",  "template": "contractNumTpl",    "sortable": "enabled",  "style": "width:160px;"}
+      ]'
+      selection-mode='{"row": "single"}'
+      on-first-selected-row-changed="[[ $listeners.onNavigateToDetail ]]"
+      style="width:100%; min-height:500px;"
+      aria-label="My Billing — Requests">
+
+      <!-- REQUEST NUMBER — plain text; whole-row click navigates to detail -->
+      <template slot="reqNumberTpl" data-oj-as="cell">
+        <span class="req-number-link">
+          <oj-bind-text value="[[ cell.data ]]"></oj-bind-text>
+        </span>
+      </template>
+
+      <!-- CUSTOMER NAME -->
+      <template slot="customerNameTpl" data-oj-as="cell">
+        <span style="font-weight:600; color:var(--oj-core-text-color-primary,#161616);">
+          <oj-bind-text value="[[ cell.data ]]"></oj-bind-text>
+        </span>
+      </template>
+
+      <!-- CUSTOMER CONTACT -->
+      <template slot="customerContactTpl" data-oj-as="cell">
+        <span style="color:var(--oj-core-text-color-secondary,#565656);">
+          <oj-bind-text value="[[ cell.data ]]"></oj-bind-text>
+        </span>
+      </template>
+
+      <!-- STATUS — canonical pill. Colour and label both come from the shared
+           status module, so this cell matches every other page. NB this column
+           is the REQUEST header status (BilledRequestInitChain maps it from
+           r.requestStatus), not the invoice status — the per-invoice schedule
+           on the billing-detail page carries that one. -->
+      <template slot="statusTpl" data-oj-as="cell">
+        <oj-bind-if test="[[ !!cell.data ]]">
+          <span :class="[[ $application.functions.statusPillClass(cell.data) ]]">
+            <oj-bind-text value="[[ $application.functions.formatLineStatus(cell.data) ]]"></oj-bind-text>
+          </span>
+        </oj-bind-if>
+      </template>
+
+      <!-- LINES — count badge (lines is a number from the API) -->
+      <template slot="linesTpl" data-oj-as="cell">
+        <span class="req-lines-badge">
+          <oj-bind-text value="[[ cell.data || 0 ]]"></oj-bind-text>
+        </span>
+      </template>
+
+      <!-- CONTRACT NUMBER -->
+      <template slot="contractNumTpl" data-oj-as="cell">
+        <oj-bind-if test="[[ cell.data ]]">
+          <span style="font-size:0.8rem; font-weight:600; color:var(--oj-core-brand-color-primary,#005cb1);">
+            <oj-bind-text value="[[ cell.data ]]"></oj-bind-text>
+          </span>
+        </oj-bind-if>
+        <oj-bind-if test="[[ !cell.data ]]">
+          <span style="color:var(--oj-core-text-color-secondary,#b0b0b0); font-size:0.8rem;">—</span>
+        </oj-bind-if>
+      </template>
+
+      <!-- EMPTY STATE -->
+      <template slot="noData">
+        <div style="text-align:center; padding:48px 0;">
+          <div style="font-size:40px; color:#cbd5e1; margin-bottom:12px;">🧾</div>
+          <div style="font-size:15px; font-weight:600; color:#475569; margin-bottom:6px;">No billed requests found.</div>
+          <div style="font-size:13px; color:#94a3b8;">Only requests with an active contract appear here.</div>
+        </div>
+      </template>
+
+    </oj-table>
+
+  </oj-sp-collection-container>
+
+</oj-sp-smart-search-page>

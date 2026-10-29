@@ -1,0 +1,14 @@
+{
+  "root": "callFunctionAlterResp",
+  "description": "Placeholder — wire to real REST endpoint when service is ready",
+  "actions": {
+    "callFunctionAlterResp": {
+      "module": "vb/action/builtin/callModuleFunctionAction",
+      "parameters": {
+        "module": "[[ $functions ]]",
+        "functionName": "alterResp",
+        "params": []
+      }
+    }
+  }
+}

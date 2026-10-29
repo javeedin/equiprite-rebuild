@@ -1,0 +1,666 @@
+<!--
+  Equipment Master — Smart Search Page over eqp-v1 /equipment-master
+  (equipmentSDP), plus the Import From Fusion dialog (importFusionDialog).
+-->
+<oj-sp-smart-search-page page-title="Equipment Master"
+                          primary-action.display="[[ $application.functions.pageAccess($application.variables.pageAccessMap, $application.variables.pageAccessLoaded, 'EQR_EQUIPMENT_MASTER') === 'FULL' ? 'on' : 'off' ]]"
+                          primary-action.label="Create Master Details"
+                          on-sp-primary-action="[[$listeners.spPrimaryAction]]"
+                          secondary-actions="[[ $functions.actionsFor($variables.secondaryActions, $application.functions.pageAccess($application.variables.pageAccessMap, $application.variables.pageAccessLoaded, 'EQR_EQUIPMENT_MASTER'), $variables.isSyncing, $variables.syncStep, $variables.isImporting) ]]"
+                          on-sp-secondary-action="[[$listeners.spSecondaryAction]]" display-mode="mixed">
+
+  <!-- SMART SEARCH -->
+  <!-- The DPV reads $variables.filterCriterion via its constructor binding —
+       updates from smart-search flow into the DPV automatically. No
+       explicit change listener needed. -->
+  <oj-sp-smart-search
+    slot="search"
+    filter-criterion="{{ $variables.filterCriterion }}"
+    search-context="[[ $variables.searchContext ]]"
+    search-config="[[ $variables.searchConfiguration.provider ]]"
+    suggestion-filters='["ClassFilter", "SubclassFilter", "AssetGroupFilter"]'
+    placeholder="Number, name, serial, type, manufacturer...">
+  </oj-sp-smart-search>
+
+  <!-- COLLECTION CONTAINER -->
+  <oj-sp-collection-container>
+
+    <oj-table
+      id="equipmentMasterTable"
+      data="[[ $variables.equipmentDPV.instance ]]"
+      class="oj-table-stretch oj-sm-width-full"
+      scroll-policy="loadMoreOnScroll"
+      scroll-policy-options.fetch-size="25"
+      columns='[
+        { "headerText": "Equipment Number", "field": "equipmentNumber", "template": "eqIdTpl",   "sortable": "enabled",  "style": "width:140px;" },
+        { "headerText": "Equipment Name",   "field": "equipmentName",                            "sortable": "enabled" },
+        { "headerText": "Class",            "sortProperty": "className",    "template": "classTpl",  "sortable": "enabled", "style": "width:130px;" },
+        { "headerText": "Subclass",         "sortProperty": "subclassName", "template": "subTpl",    "sortable": "enabled", "style": "width:120px;" },
+        { "headerText": "Type",             "field": "equipmentType",                            "sortable": "enabled",  "style": "width:110px;" },
+        { "headerText": "Status",           "field": "catalogStatus",   "template": "statusTpl", "sortable": "enabled",  "style": "width:120px;" },
+        { "headerText": "Manufacturer",     "field": "manufacturer",                             "sortable": "enabled",  "style": "width:130px;" },
+        { "headerText": "Stock",            "field": "onHandQty",       "template": "stockTpl",  "sortable": "disabled", "style": "width:150px;" },
+        { "headerText": "Source",           "field": "createdBy",       "template": "sourceTpl", "sortable": "disabled", "style": "width:100px;" }
+      ]'
+      selection-mode='{"row": "single"}'
+      on-first-selected-row-changed="[[$listeners.onRowAction]]"
+      style="width:100%; min-height:600px;">
+
+      <!-- Equipment ID column — drill-down link -->
+      <template slot="eqIdTpl" data-oj-as="cell">
+        <span style="color:var(--oj-core-brand-color-primary); font-weight:700;">
+          <oj-bind-text value="[[ cell.data ]]"></oj-bind-text>
+        </span>
+      </template>
+
+      <!-- Status column — badge -->
+      <template slot="statusTpl" data-oj-as="cell">
+        <span>
+          <oj-bind-if test="[[ cell.data === 'ACTIVE' ]]">
+            <span class="eq-status-badge eq-status-badge--active">Active</span>
+          </oj-bind-if>
+          <oj-bind-if test="[[ cell.data === 'AVAILABLE' ]]">
+            <span class="eq-status-badge eq-status-badge--available">Available</span>
+          </oj-bind-if>
+          <oj-bind-if test="[[ cell.data === 'DEPLOYED' ]]">
+            <span class="eq-status-badge eq-status-badge--deployed">Deployed</span>
+          </oj-bind-if>
+          <oj-bind-if test="[[ cell.data === 'MAINTENANCE' ]]">
+            <span class="eq-status-badge eq-status-badge--maintenance">Maintenance</span>
+          </oj-bind-if>
+          <oj-bind-if test="[[ cell.data === 'RETIRED' ]]">
+            <span class="eq-status-badge eq-status-badge--retired">Retired</span>
+          </oj-bind-if>
+          <!-- INACTIVE: a Fusion item whose ENABLED_FLAG is N (the import sets
+               CATALOG_STATUS ACTIVE/INACTIVE). Shown with the retired style.
+               Any other value is printed as-is rather than left blank. -->
+          <oj-bind-if test="[[ cell.data === 'INACTIVE' ]]">
+            <span class="eq-status-badge eq-status-badge--retired">Inactive</span>
+          </oj-bind-if>
+          <oj-bind-if test="[[ cell.data && ['ACTIVE','AVAILABLE','DEPLOYED','MAINTENANCE','RETIRED','INACTIVE'].indexOf(cell.data) === -1 ]]">
+            <span class="eq-status-badge"><oj-bind-text value="[[ cell.data ]]"></oj-bind-text></span>
+          </oj-bind-if>
+        </span>
+      </template>
+
+      <!-- Class column — name resolved from classesById via the row's equipmentClassId -->
+      <template slot="classTpl" data-oj-as="cell">
+        <oj-bind-text value="[[ $page.functions.classNameFor(cell.row.equipmentClassId, $page.variables.classesById) ]]"></oj-bind-text>
+      </template>
+
+      <!-- Subclass column — name resolved from subclassesById -->
+      <template slot="subTpl" data-oj-as="cell">
+        <oj-bind-text value="[[ $page.functions.subclassNameFor(cell.row.equipmentSubclassId, $page.variables.subclassesById) ]]"></oj-bind-text>
+      </template>
+
+      <!-- Stock column — serials and on-hand quantity from the list API
+           (serialUnitCount / onHandQty). Not sortable: not in sortBy. -->
+      <template slot="stockTpl" data-oj-as="cell">
+        <oj-bind-text value="[[ $page.functions.stockLabel(cell.row.serialUnitCount, cell.row.onHandQty) ]]"></oj-bind-text>
+      </template>
+      <!-- Source column — Fusion (created by the import) or Manual. Not
+           sortable: createdBy is not in the backend's sortBy whitelist. -->
+      <template slot="sourceTpl" data-oj-as="cell">
+        <oj-bind-text value="[[ $page.functions.recordSourceLabel(cell.data) ]]"></oj-bind-text>
+      </template>
+
+      <!-- No Data template -->
+      <template slot="noData">
+        <div class="oj-flex oj-sm-justify-content-center oj-sm-padding-8x">
+          <span class="oj-typography-body-md oj-text-color-secondary">No equipment records match your search criteria.</span>
+        </div>
+      </template>
+
+    </oj-table>
+
+  </oj-sp-collection-container>
+
+</oj-sp-smart-search-page>
+
+<!--
+  Import From Fusion — near-full-screen working screen, not a small dialog.
+
+  Layout:
+    row 1   Item Class LOV | Item Type LOV | Import button  (both optional)
+    row 2   status line (counts by IMPORT_STATUS)
+    row 3   grid: every column of EQR_EQUIPMENT_MASTER_T
+
+  The grid is the point. The import stages rows rather than promoting them —
+  class and subclass are assigned by hand afterwards — so the user has to see
+  what landed. A progress toast that says "5,266 imported" and disappears is
+  not enough to work from.
+
+  cancel-behavior="icon" puts JET's own X in the dialog header, top right,
+  alongside the explicit Close button in the footer. Both route through
+  CancelImportDialogChain, which is a no-op while isImporting is true — the
+  sync is server-side and batched, so dismissing mid-run would not stop it and
+  letting the user think otherwise is worse than making them wait.
+
+  ⚠ The X must be wired to ojClose, NOT left to close the dialog by itself.
+    cancel-behavior="icon" closes the DOM element directly without running any
+    chain, so importDialogOpen would stay true and the next open would be
+    refused. The ojClose listener below keeps the variable in step.
+-->
+<!--
+  ⚠ NO open="{{ }}" BINDING. oj-dialog has NO 'open' property — a binding there
+    is stored as the literal string "{{ $variables.importDialogOpen }}" and is
+    never evaluated, so the dialog never opens and nothing errors. Verified in
+    a real browser 2026-09-16: getAttribute('open') returned the raw
+    expression and dlg.opened was undefined.
+
+    JET dialogs are imperative: call dialog.open() / dialog.close(). The chains
+    do that via document.getElementById('importFusionDialog').
+-->
+<!--
+  Dialog sizing lives in resources/css/app.css (#importFusionDialog
+  .oj-dialog-content) — height must go on the wrapper JET measures, not on
+  the body slot, or the filter dropdowns scroll out of view.
+-->
+
+<oj-dialog id="importFusionDialog"
+           dialog-title="Import From Fusion"
+           cancel-behavior="icon"
+           modality="modal"
+           on-oj-close="[[ $listeners.onImportDialogClosed ]]"
+           style="width:95vw; max-width:95vw;">
+
+  <!--
+    ⚠ DO NOT PUT A vh HEIGHT ON THIS DIV.
+
+    JET wraps the body slot in .oj-dialog-content and gives it a fixed height
+    (viewport minus the dialog's header, footer and offsets). Setting
+    height:78vh / calc(100vh - 120px) here made this div TALLER than that
+    wrapper — measured 769px inside a 664px container — so .oj-dialog-content
+    became scrollable and auto-scrolled down 81px, hiding the Item Class and
+    Item Type dropdowns above the fold. "Taller dialog" and "LOVs cut off at
+    the top" were the same bug.
+
+    height:100% fills the wrapper exactly and never exceeds it. To make the
+    dialog itself taller, size .oj-dialog-content (below), not this div.
+  -->
+  <div slot="body" style="display:flex; flex-direction:column; height:100%;">
+
+    <!-- ── Filter row ──────────────────────────────────────────────── -->
+    <!--
+      oj-form-layout, matching the pattern used on equipment-create-page and
+      the other form pages. It handles label placement and baseline alignment
+      itself, so there are no hand-written flex styles or pixel offsets here —
+      an earlier draft did that and the button kept drifting off the input line.
+
+      direction="row" lays the two selects side by side; the button sits outside
+      the layout because oj-form-layout aligns FORM CONTROLS, and a button has no
+      label row to align against.
+    -->
+    <div class="oj-flex oj-sm-align-items-flex-start oj-sm-margin-4x-bottom"
+         style="flex-shrink:0;">
+
+      <oj-form-layout class="oj-flex-item"
+                      max-columns="3"
+                      direction="row"
+                      label-edge="top"
+                      user-assistance-density="compact"
+                      style="max-width:1200px;">
+
+        <!--
+          Two-line option: item class NAME on top, CODE beneath.
+          They are different Oracle attributes and both matter:
+            ItemClass      "Name of the item class"          -> readable label
+            ItemClassCode  "Internal name of an item class"  -> what
+                           EGP_SYSTEM_ITEMS_B.ITEM_CLASS_CODE stores, so it is
+                           the value the extract filters on.
+          The selected VALUE is always the code. Showing the code means the user
+          sees exactly what will be filtered on — name and code diverge once a
+          class is renamed.
+
+          Both dropdowns FILTER THE REVIEW GRID below, not the Fusion extract:
+          Fetch always pulls every item, because OIC has no channel to pass a
+          filter to BIP. Changing either reloads the grid (ClearImportWarningChain).
+        -->
+        <oj-select-single id="importItemClass"
+                          label-hint="Filter by Item Class (optional)"
+                          data="[[ $variables.itemClassOptionsADP ]]"
+                          item-text="label"
+                          value="{{ $variables.selectedItemClass }}"
+                          on-value-changed="[[ $listeners.onImportFilterChanged ]]"
+                          disabled="[[ $variables.lovsLoading || $functions.isBusy($variables) ]]">
+          <template slot="itemTemplate" data-oj-as="item">
+            <div>
+              <div class="oj-typography-body-md">
+                <oj-bind-text value="[[ item.data.label ]]"></oj-bind-text>
+              </div>
+              <div class="oj-typography-body-sm oj-text-color-secondary">
+                <oj-bind-text value="[[ item.data.value ]]"></oj-bind-text>
+              </div>
+            </div>
+          </template>
+        </oj-select-single>
+
+        <!-- Optional: Item Type is nullable on the item, so filtering on it
+             also excludes every item that has no type at all. -->
+        <oj-select-single id="importItemType"
+                          label-hint="Filter by Item Type (optional)"
+                          data="[[ $variables.itemTypeOptionsADP ]]"
+                          item-text="label"
+                          value="{{ $variables.selectedItemType }}"
+                          on-value-changed="[[ $listeners.onImportFilterChanged ]]"
+                          disabled="[[ $variables.lovsLoading || $functions.isBusy($variables) ]]">
+        </oj-select-single>
+
+        <!-- Optional: show only one import status (e.g. Errored to work the
+             queue, Merged to see what was imported). A static list, so it is
+             NOT gated on lovsLoading. Filters the grid on the server like the
+             other two (importStatus on getEquipmentImportStaging). -->
+        <oj-select-single id="importStatusFilter"
+                          label-hint="Filter by Status (optional)"
+                          data="[[ $variables.importStatusOptionsADP ]]"
+                          item-text="label"
+                          value="{{ $variables.selectedImportStatus }}"
+                          on-value-changed="[[ $listeners.onImportFilterChanged ]]"
+                          disabled="[[ $functions.isBusy($variables) ]]">
+        </oj-select-single>
+
+      </oj-form-layout>
+
+      <!-- Outside the form layout: a button has no label row, so letting
+           oj-form-layout own it would misalign it against the inputs. -->
+      <!--
+        oj-form-layout's box starts at its LABEL row, so aligning the row on
+        flex-start puts the button level with the labels. The label row is one
+        line of oj-label height; oj-sm-margin-6x-top drops the button onto the
+        input line beneath it. This is the component's own spacing scale, not a
+        pixel guess.
+
+        Fetch does NOT wait for the filter LOVs (lovsLoading): it always
+        imports everything and the dropdowns only narrow the grid, so a slow or
+        hung Fusion LOV call must never lock the import.
+      -->
+      <oj-button id="importRunBtn"
+                 class="oj-flex-item oj-sm-flex-initial oj-sm-margin-4x-start oj-sm-margin-6x-top"
+                 chroming="callToAction"
+                 disabled="[[ $functions.isBusy($variables) ]]"
+                 on-oj-action="[[ $listeners.onRunImport ]]">Fetch</oj-button>
+
+    </div>
+
+    <!-- ── Inline caution ──────────────────────────────────────────── -->
+    <!--
+      NEITHER FILTER IS REQUIRED. Running with both empty imports every
+      inventory item in the instance, which is the supported broad-import
+      case: a first-time user has no idea what their item classes are called,
+      so they import once and narrow later.
+
+      The caution is kept for anything else the import chain needs to say
+      inline, and is shown on pressing Import rather than up front, so the
+      dialog does not open already complaining.
+    -->
+    <oj-bind-if test="[[ $variables.importWarning ]]">
+      <div class="oj-sm-margin-2x-bottom oj-panel oj-panel-alt2"
+           style="padding:8px 12px; border-left:4px solid var(--oj-palette-warning-rgb, #c74634);">
+        <span class="oj-typography-body-sm">
+          <oj-bind-text value="[[ $variables.importWarning ]]"></oj-bind-text>
+        </span>
+      </div>
+    </oj-bind-if>
+
+    <!-- ── Status line ─────────────────────────────────────────────── -->
+    <oj-bind-if test="[[ $variables.isImporting || $variables.isImportingUnits ]]">
+      <oj-progress-bar value="-1" class="oj-sm-margin-2x-bottom"></oj-progress-bar>
+    </oj-bind-if>
+
+    <!-- Only the import's own progress/result. The staging summary is not
+         shown: with no read endpoint it said only that the endpoint is
+         missing, which is noise to the user. -->
+    <oj-bind-if test="[[ $variables.importMessage ]]">
+      <p class="oj-typography-body-sm oj-text-color-secondary oj-sm-margin-2x-bottom">
+        <oj-bind-text value="[[ $variables.importMessage ]]"></oj-bind-text>
+      </p>
+    </oj-bind-if>
+
+    <!-- ── Staged rows ─────────────────────────────────────────────── -->
+    <!--
+      TWO VIEWS OF THE SAME ROWS.
+
+      REVIEW (default) is where the work happens: 8 columns, two of them
+      editable. ALL_COLUMNS is the original 133-column table, read-only,
+      kept as evidence.
+
+      They are split because editing two columns that sit ~120 columns away
+      from the description you need to read them against is not workable. The
+      wide table keeps its evidentiary job and loses the editing one.
+    -->
+    <div class="oj-flex oj-sm-align-items-center oj-sm-margin-2x-bottom"
+         style="gap:12px; flex:0 0 auto;">
+      <!-- Two plain buttons rather than oj-buttonset-one: that component has
+           no precedent anywhere in this app, and this is not the place to
+           introduce one. Chroming carries the selected state. -->
+      <oj-button id="stagingViewReviewBtn"
+                 chroming="[[ $variables.stagingViewMode === 'REVIEW' ? 'callToAction' : 'outlined' ]]"
+                 on-oj-action="[[ function() { $variables.stagingViewMode = 'REVIEW'; } ]]">Review</oj-button>
+      <oj-button id="stagingViewAllBtn"
+                 chroming="[[ $variables.stagingViewMode === 'ALL_COLUMNS' ? 'callToAction' : 'outlined' ]]"
+                 on-oj-action="[[ function() { $variables.stagingViewMode = 'ALL_COLUMNS'; } ]]">All Columns</oj-button>
+      <!-- Re-read the grid and the mapping panel; keeps ticks and edits. -->
+      <oj-c-button id="stagingRefreshBtn"
+                   label="Refresh"
+                   display="icons"
+                   chroming="borderless"
+                   tooltip="Refresh"
+                   disabled="[[ $functions.isBusy($variables) || $variables.stagingLoading ]]"
+                   on-oj-action="[[ $listeners.onRefreshStaging ]]">
+        <span slot="startIcon" class="oj-ux-ico-refresh"></span>
+      </oj-c-button>
+      <!-- What to map next: the largest groups of items no Class Mapping
+           matches. One mapping on the right value classifies a whole group,
+           so the admin fixes the cause on the Class Mapping tab, not the rows.
+           Shown only when there are groups (LoadUnmatchedValuesChain is quiet
+           on failure, so a missing endpoint also hides it). -->
+      <oj-bind-if test="[[ $variables.unmatchedGroups.length > 0 ]]">
+        <oj-c-button id="unmatchedInfoBtn"
+                     label="What to map next"
+                     display="icons"
+                     chroming="borderless"
+                     tooltip="What to map next"
+                     on-oj-action="[[ function() { var p = document.getElementById('unmatchedPopup'); if (p) p.open('#unmatchedInfoBtn'); } ]]">
+          <span slot="startIcon" class="oj-ux-ico-information"></span>
+        </oj-c-button>
+      </oj-bind-if>
+      <!-- Search across EVERY fetched row, on the server (getEquipmentImportStaging
+           ?search=): item number, description, category, item class, segments.
+           Applies on Enter or leaving the field, with the other filters. -->
+      <oj-c-input-text id="stagingSearch"
+                       value="{{ $variables.stagingSearch }}"
+                       placeholder="Search fetched items"
+                       clear-icon="always"
+                       label-hint="Search fetched items"
+                       label-edge="none"
+                       style="width:280px;"
+                       disabled="[[ $functions.isBusy($variables) ]]"
+                       on-value-changed="[[ $listeners.onImportFilterChanged ]]">
+        <span slot="start" class="oj-ux-ico-search"></span>
+      </oj-c-input-text>
+
+      <span class="oj-typography-body-sm oj-text-color-secondary">
+        <oj-bind-text value="[[ $variables.stagingSummary ]]"></oj-bind-text>
+      </span>
+    </div>
+
+    <!-- ojClose bubbles: without stopPropagation, closing this popup reached
+         the dialog's on-oj-close and closed the whole dialog. -->
+    <oj-popup id="unmatchedPopup" modality="modeless" tail="simple"
+              on-oj-close="[[ function(event) { event.stopPropagation(); } ]]"
+              initial-focus="none" auto-dismiss="focusLoss"
+              position.my.horizontal="start" position.my.vertical="top"
+              position.at.horizontal="start" position.at.vertical="bottom"
+              position.offset.y="4">
+      <div style="width:min(560px, 90vw); padding:8px 4px;">
+        <div class="oj-typography-subheading-xs">What to map next</div>
+        <div class="oj-typography-body-sm oj-text-color-secondary" style="margin:2px 0 8px 0;">
+          <oj-bind-text value="[[ $page.functions.unmatchedSummary($variables.unmatchedGroups, $variables.unmatchedTotalGroups) ]]"></oj-bind-text>.
+          Map these on Configuration Settings › Equipment Classes › Class Mapping; each
+          classifies many items at once. Refresh after saving a mapping.
+        </div>
+        <div style="max-height:300px; overflow:auto;">
+          <oj-bind-for-each data="[[ $page.functions.unmatchedVisible($variables.unmatchedGroups, $variables.unmatchedShowAll) ]]">
+            <template data-oj-as="g">
+              <div class="oj-flex oj-sm-align-items-baseline oj-typography-body-sm"
+                   style="gap:8px; padding:2px 0; flex-wrap:nowrap;">
+                <span class="oj-typography-bold" style="min-width:3.5em; text-align:right; flex:0 0 auto;">
+                  <oj-bind-text value="[[ g.data.itemCount ]]"></oj-bind-text>
+                </span>
+                <span style="flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"
+                      :title="[[ $page.functions.unmatchedText(g.data) + ' (' + $page.functions.unmatchedAction(g.data) + ')' ]]">
+                  <oj-bind-text value="[[ $page.functions.unmatchedText(g.data) ]]"></oj-bind-text>
+                  <oj-bind-if test="[[ $page.functions.unmatchedIsFallback(g.data) ]]">
+                    <span class="oj-text-color-secondary" style="font-style:italic;"> (fallback value)</span>
+                  </oj-bind-if>
+                </span>
+              </div>
+            </template>
+          </oj-bind-for-each>
+        </div>
+        <oj-bind-if test="[[ $page.functions.unmatchedHasMore($variables.unmatchedGroups) ]]">
+          <oj-c-button id="unmatchedShowAllBtn" chroming="borderless"
+                       label="[[ $variables.unmatchedShowAll ? 'Show fewer' : 'Show all ' + $variables.unmatchedGroups.length ]]"
+                       on-oj-action="[[ function() { $variables.unmatchedShowAll = !$variables.unmatchedShowAll; } ]]">
+          </oj-c-button>
+        </oj-bind-if>
+      </div>
+    </oj-popup>
+
+    <!-- ── REVIEW: the editable grid ───────────────────────────────── -->
+    <!--
+      oj-data-grid, not oj-table. oj-table is read-only everywhere in this
+      app; the datagrid's cellEdit mode is the only working editable-cell
+      pattern here (see timesheet-detail-page).
+
+      cellEdit instantiates an oj-select-single ONLY in the focused cell —
+      navigation mode renders a plain span. Never render selects for every
+      row; at 100 rows that is 200 components for two the user can see.
+
+      COLUMN WIDTHS come from header.column.style, not from a columns[] array:
+      oj-data-grid has no such array, so a per-index style callback is the only
+      place a width can go. See stagingColumnHeaderStyle in the page module for
+      the widths and why each one is what it is.
+    -->
+    <oj-bind-if test="[[ $variables.stagingViewMode === 'REVIEW' ]]">
+      <div style="flex:1 1 auto; min-height:300px; overflow:auto;">
+        <oj-data-grid id="stagingReviewGrid"
+                      aria-label="Staged Fusion items for review"
+                      data="[[ $variables.stagingGridProvider ]]"
+                      edit-mode="cellEdit"
+                      gridlines='{"horizontal":"visible","vertical":"visible"}'
+                      selection-mode='{"row":"none","cell":"single"}'
+                      header.column.resizable.width="enable"
+                      header.column.style="[[ $functions.stagingColumnHeaderStyle.bind($functions) ]]"
+                      style="width:100%; height:100%;"
+                      on-oj-before-edit="[[ function(event) {
+                        var ix = event.detail.cellContext.indexes;
+                        if (!$functions.canEdit(ix.row, ix.column, $variables)) {
+                          event.preventDefault();
+                        }
+                      } ]]"
+                      on-oj-before-edit-end="[[ function(event) {
+                        if (event.detail.cancelEdit) { return; }
+                        var ix = event.detail.cellContext.indexes;
+                        var val = event.detail.cellContext.data
+                                  && event.detail.cellContext.data.data;
+                        var changed = $functions.applyEdit(ix.row, ix.column, val, $variables);
+                        $variables.stagingChangedRows = changed;
+                        var key = $functions.rowKeyAt(ix.row);
+                        if (key != null) {
+                          $variables.stagingArray =
+                            $functions.applyEditToRows(ix.row, changed[key], $variables.stagingArray);
+                          // A class change can clear the subclass in the data;
+                          // redraw the row so the grid shows it. Deferred until
+                          // the grid has finished committing this cell.
+                          setTimeout(function () { $functions.refreshRowCells(ix.row, $variables); }, 0);
+                        }
+                      } ]]">
+
+          <template slot="columnHeaderTemplate" data-oj-as="header">
+            <!-- The tick-box column's header is '' (COLUMN_HEADERS): draw
+                 "select all on this page" there. Rebuilding the provider
+                 re-renders every row box from the new selection map. -->
+            <oj-bind-if test="[[ header.item.data === '' ]]">
+              <input type="checkbox"
+                     aria-label="Select all rows on this page"
+                     :checked="[[ $functions.allOnPageSelected($variables) ]]"
+                     on-click="[[ function(event) {
+                       event.stopPropagation();
+                       $variables.stagingSelectedRows =
+                         $functions.setPageSelection(event.target.checked, $variables);
+                     } ]]">
+            </oj-bind-if>
+            <oj-bind-if test="[[ header.item.data !== '' ]]">
+              <oj-bind-text value="[[ header.item.data ]]"></oj-bind-text>
+            </oj-bind-if>
+          </template>
+
+          <template slot="cellTemplate" data-oj-as="cell">
+            <!-- Tick box: Import merges exactly the ticked rows. :checked
+                 reads the LIVE selection map (isRowSelected), not the value
+                 baked into the provider: the grid re-renders rows as it
+                 scrolls, and a frozen value drew rows ticked/unticked wrongly
+                 (review, 2026-10-05). It also makes select-all redraw every
+                 box without rebuilding the grid. Not an editable cell, so
+                 canEdit never opens it. -->
+            <oj-bind-if test="[[ $functions.getColumnType(cell.item.columnIndex) === 'select' ]]">
+              <input type="checkbox"
+                     aria-label="Select row for import"
+                     :checked="[[ $functions.isRowSelected(cell.item.rowIndex, $variables) ]]"
+                     :disabled="[[ !$functions.canSelect(cell.item.rowIndex, $variables) ]]"
+                     on-click="[[ function(event) {
+                       event.stopPropagation();
+                       $variables.stagingSelectedRows =
+                         $functions.toggleRowSelection(cell.item.rowIndex, event.target.checked, $variables);
+                     } ]]">
+            </oj-bind-if>
+
+            <!-- Read-only columns -->
+            <oj-bind-if test="[[ $functions.getColumnType(cell.item.columnIndex) === 'readonly' ]]">
+              <span class="oj-typography-body-sm">
+                <oj-bind-text value="[[ cell.item.data.data ]]"></oj-bind-text>
+              </span>
+            </oj-bind-if>
+
+            <!-- Class / Subclass -->
+            <oj-bind-if test="[[ $functions.getColumnType(cell.item.columnIndex) === 'editable' ]]">
+              <!-- Navigation mode shows the NAME; the cell holds the id. -->
+              <oj-bind-if test="[[ cell.mode === 'navigation' ]]">
+                <span class="oj-typography-body-sm">
+                  <oj-bind-text value="[[ $functions.displayFor(cell.item.columnIndex, cell.item.data.data, $variables) ]]"></oj-bind-text>
+                </span>
+              </oj-bind-if>
+              <!--
+                A FRESH provider per cell. Never cache it: the subclass list is
+                narrowed by THIS row's class, so a shared provider hands row 2
+                row 1's options.
+              -->
+              <oj-bind-if test="[[ cell.mode === 'edit' ]]">
+                <oj-select-single value="{{ cell.item.data.data }}"
+                                  data="[[ $functions.getStagingProvider(cell.item.columnIndex, cell.item.rowIndex, $variables) ]]"
+                                  item-text="label"
+                                  style="width:100%;"></oj-select-single>
+              </oj-bind-if>
+            </oj-bind-if>
+          </template>
+        </oj-data-grid>
+      </div>
+    </oj-bind-if>
+
+    <!-- ── ALL_COLUMNS: the original wide table, read-only ─────────── -->
+    <!--
+      133 columns, so horizontal scroll is expected and the container owns it.
+      Triage columns (status, item number, description, type, class) are first
+      in stagingColumns so the useful ones are visible without scrolling.
+
+      EVERY COLUMN CARRIES AN EXPLICIT width IN stagingColumns.
+
+      layout="fixed" divides the available width among the columns, so with 133
+      of them and no widths set every column collapsed to a sliver — headers
+      wrapped to three lines and values were cut off. Fixed layout HONOURS a
+      per-column width and lets the total overflow into the container's own
+      horizontal scroll, which is what makes the data readable here.
+
+      The widths are generated from the header text (~8px/char, clamped to
+      130–300px) with explicit overrides for the columns whose CONTENT is wider
+      than their header — descriptions, names, reject reason, manufacturer. If
+      columns are ever added to that variable, give them a width too; one
+      column without it is sized by the browser and knocks the row out of line.
+    -->
+    <oj-bind-if test="[[ $variables.stagingViewMode === 'ALL_COLUMNS' ]]">
+      <div style="flex:1 1 auto; min-height:300px; overflow:auto;">
+        <oj-table id="stagingTable"
+                  aria-label="Staged Fusion items"
+                  data="[[ $variables.stagingADP ]]"
+                  columns="[[ $variables.stagingColumns ]]"
+                  layout="fixed"
+                  horizontal-grid-visible="enabled"
+                  vertical-grid-visible="enabled"
+                  selection-mode='{"row":"none","column":"none"}'
+                  style="width:100%; height:100%;">
+          <template slot="noData">
+            <p class="oj-typography-body-sm oj-text-color-secondary oj-sm-padding-4x">
+              No staged rows. Select Fetch to pull items from Fusion, then
+              narrow the list by Item Class and/or Item Type above.
+            </p>
+          </template>
+        </oj-table>
+      </div>
+    </oj-bind-if>
+
+    <oj-bind-if test="[[ $variables.stagingSaveMessage ]]">
+      <p class="oj-typography-body-sm oj-text-color-secondary oj-sm-margin-2x-top">
+        <oj-bind-text value="[[ $variables.stagingSaveMessage ]]"></oj-bind-text>
+      </p>
+    </oj-bind-if>
+
+  </div>
+
+  <div slot="footer" class="oj-flex oj-sm-align-items-center" style="gap:8px;">
+
+    <!-- Paging. Saves before it moves (StagingPageChangeChain) — 5,266 rows
+         is 53 pages, and a confirm dialog on each one is not a design. -->
+    <oj-bind-if test="[[ $variables.stagingViewMode === 'REVIEW' && $variables.stagingTotalElements > 0 ]]">
+      <oj-button id="stagingPrevBtn"
+                 chroming="outlined"
+                 disabled="[[ $variables.stagingPage <= 0 || $variables.stagingLoading || $functions.isBusy($variables) ]]"
+                 on-oj-action="[[ $listeners.onStagingPrevPage ]]">Previous</oj-button>
+      <oj-button id="stagingNextBtn"
+                 chroming="outlined"
+                 disabled="[[ $variables.stagingLoading || $functions.isBusy($variables)
+                              || (($variables.stagingPage + 1) * $variables.stagingPageSize) >= $variables.stagingTotalElements ]]"
+                 on-oj-action="[[ $listeners.onStagingNextPage ]]">Next</oj-button>
+    </oj-bind-if>
+
+    <!--
+      Clear Fetch — destructive, so it sits on the LEFT, away from Import. It
+      discards what Fetch brought in that nobody has acted on; rows a person
+      imported or classified are kept (see ClearStagingChain).
+
+      Hidden when nothing is staged: a button that can only say "already empty"
+      is noise.
+    -->
+    <oj-bind-if test="[[ $variables.stagingTotalElements > 0 ]]">
+      <oj-button id="clearStagingBtn"
+                 chroming="borderless"
+                 disabled="[[ $functions.isBusy($variables) || $variables.stagingLoading ]]"
+                 on-oj-action="[[ $listeners.onClearStaging ]]">
+        <oj-bind-text value="[[ $variables.stagingClearing ? 'Clearing…' : 'Clear Fetch' ]]"></oj-bind-text>
+      </oj-button>
+    </oj-bind-if>
+
+    <span style="flex:1 1 auto;"></span>
+
+    <oj-bind-if test="[[ $variables.stagingViewMode === 'REVIEW' ]]">
+      <oj-button id="stagingSaveBtn"
+                 chroming="callToAction"
+                 disabled="[[ $functions.isBusy($variables) || $variables.stagingLoading
+                              || $functions.selectedCount($variables.stagingSelectedRows) === 0 ]]"
+                 on-oj-action="[[ $listeners.onSaveStagingClasses ]]">
+        <!--
+          "Import", not "Save" — this is the step that commits classified rows
+          to EQR_EQUIPMENT_MASTER (PATCH then promote). "Fetch" above only
+          pulls Fusion rows into staging, where they are still uncommitted.
+          Fetch -> review -> Import is the whole flow, and the labels now say so.
+        -->
+        <!-- Counts TICKED rows: Import merges exactly those (2026-10-03). A
+             class edit alone no longer imports anything -- tick the row. -->
+        <oj-bind-text value="[[ $functions.selectedCount($variables.stagingSelectedRows) > 0
+                                ? 'Import ' + $functions.selectedCount($variables.stagingSelectedRows) + ' Item' + ($functions.selectedCount($variables.stagingSelectedRows) === 1 ? '' : 's')
+                                : 'Import' ]]"></oj-bind-text>
+      </oj-button>
+    </oj-bind-if>
+
+    <!--
+      No separate Import Units button: Fetch stages items AND stock, and
+      promote moves each item's stock with it (ImportFromFusionChain). Stock
+      of an item still awaiting a class waits in staging and moves when the
+      item is imported here.
+    -->
+    <oj-button id="importCloseBtn"
+               disabled="[[ !$functions.canCloseImportDialog($variables) ]]"
+               on-oj-action="[[ $listeners.onCancelImport ]]">Close</oj-button>
+  </div>
+
+</oj-dialog>

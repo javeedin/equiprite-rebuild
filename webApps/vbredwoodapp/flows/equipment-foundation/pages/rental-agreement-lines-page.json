@@ -1,0 +1,160 @@
+{
+
+  "metadata": {},
+  "variables": {
+    "requestId": {
+      "type": "string",
+      "input": "fromCaller",
+      "defaultValue": ""
+    },
+    "requestRecord": {
+      "type": "object",
+      "defaultValue": {}
+    },
+    "pageTitle": {
+      "type": "string",
+      "defaultValue": "Rental Agreement Lines"
+    },
+    "pageSubtitle": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "formData": {
+      "type": "object",
+      "defaultValue": {
+        "agreement_name": "",
+        "project_customer": "",
+        "task": "",
+        "requestor": "",
+        "location": "",
+        "start_date": "",
+        "end_date": "",
+        "source": "",
+        "total_est_cost": 0
+      }
+    },
+    "linesArray": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "filteredLines": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "dataGridProvider": {
+      "type": "any"
+    },
+    "searchQuery": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "selectedCount": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "pendingCart": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "cartCount": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "agreementLineIdByCompositeKey": {
+      "type": "object",
+      "defaultValue": {}
+    },
+    "totalEstCost": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "agreementHeaderId": {
+      "type": "number",
+      "defaultValue": null
+    },
+    "agreementNumber": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "agreementStatus": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "customerName": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "customerRefId": {
+      "type": "number",
+      "defaultValue": null
+    },
+    "fusionCustomerId": {
+      "type": "number",
+      "defaultValue": null
+    },
+    "effectiveFrom": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "effectiveTo": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "agreementNotes": {
+      "type": "string",
+      "defaultValue": ""
+    }
+  },
+  "eventListeners": {
+    "vbBeforeEnter": {
+      "chains": [
+        { "chain": "agreementsFlagGuardChain", "parameters": {} }
+      ]
+    },
+    "vbEnter": {
+      "chains": [
+        { "chain": "vbEnterChain", "parameters": {} }
+      ]
+    },
+    "onSpInFlowBack": {
+      "chains": [{ "chain": "goToParentChain", "parameters": {} }]
+    },
+    "onConfirmRequest": {
+      "chains": [{ "chain": "approveAgreementChain", "parameters": {} }]
+    },
+    "onRejectRequest": {
+      "chains": [{ "chain": "rejectAgreementChain", "parameters": {} }]
+    },
+    "onSearchChanged": {
+      "chains": [{ "chain": "FilterLinesChain", "parameters": {} }]
+    },
+    "onAddToCart": {
+      "chains": [{ "chain": "AddToCartChain", "parameters": {} }]
+    },
+    "onCreateRequestFromAgreement": {
+      "chains": [{ "chain": "CreateRequestFromAgreementChain", "parameters": {} }]
+    }
+  },
+  "functions": {
+    "formatCurrency":       { "params": { "value": "any" },                       "return": "string" },
+    "initGridData":         { "params": { "linesData": "any[]" },                 "return": "any" },
+    "getColumnType":        { "params": { "columnIndex": "number" },              "return": "string" },
+    "getIsEditable":        { "params": { "cellContext": "any" },                 "return": "boolean" },
+    "getColumnHeaderStyle": { "params": { "headerContext": "any" },               "return": "string" },
+    "isRowSelected":        { "params": { "rowIndex": "number" },                 "return": "boolean" },
+    "toggleRowSelected":    { "params": { "rowIndex": "number", "pageVars": "any", "event": "any" } },
+    "clearSelection":       { "params": { "pageVars": "any" } },
+    "getSelectedRowIndices":{ "return": "any[]" }
+  },
+  "imports": {
+    "components": {
+      "oj-sp-general-overview-page": { "path": "oj-sp/general-overview-page/loader" },
+      "oj-input-search":  { "path": "ojs/ojinputsearch" },
+      "oj-input-text":    { "path": "ojs/ojinputtext" },
+      "oj-button":        { "path": "ojs/ojbutton" },
+      "oj-bind-text":     { "path": "ojs/ojknockout" },
+      "oj-bind-if":       { "path": "ojs/ojknockout" },
+      "oj-data-grid":     { "path": "ojs/ojdatagrid" }
+    }
+  }
+}

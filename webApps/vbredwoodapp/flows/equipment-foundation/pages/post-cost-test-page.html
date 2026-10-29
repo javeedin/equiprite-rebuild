@@ -1,0 +1,130 @@
+<!--
+  Post Cost Test — sandbox clone of the Post Costs smart-search list.
+  Template: oj-sp-smart-search-page + oj-table. Real data. Navigates into
+  post-cost-test-detail (the redesigned per-equipment week-by-week drill-down).
+  The live post-cost-page is NOT modified.
+-->
+<style>
+  /* ── Table styling ── */
+  #postCostTestTable .oj-table-column-header-cell {
+    background-color: var(--oj-core-neutral-color-2, #f1f1f1);
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--oj-core-text-color-secondary, #565656);
+    padding: 10px 12px;
+  }
+  #postCostTestTable .oj-table-column-header-text {
+    white-space: nowrap;
+  }
+  #postCostTestTable .oj-table-body-row:hover {
+    background-color: var(--oj-core-neutral-color-1, #fafafa);
+    cursor: pointer;
+  }
+  #postCostTestTable .oj-table-data-cell {
+    padding: 10px 12px;
+    font-size: 0.8125rem;
+    vertical-align: middle;
+  }
+
+  /* ── ID cell ──
+     Request numbers are identifiers: a trailing ellipsis is not a harmless
+     abbreviation the way it is for a project or task name, because the hidden
+     characters are the only thing distinguishing one request from another.
+     So this cell never wraps and never ellipsizes — see the min-width floor on
+     the Request column in post-cost-test-page.js. */
+  .ts-id-value {
+    font-weight: 700;
+    color: var(--oj-core-brand-color-primary, #005cb1);
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+  #postCostTestTable .oj-table-data-cell:has(.ts-id-value) {
+    white-space: nowrap !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+  }
+  #postCostTestTable .ts-id-value {
+    overflow: visible !important;
+    text-overflow: clip !important;
+  }
+
+  /* ── Currency ── */
+  .ts-currency {
+    font-weight: 700;
+    color: #0d9488;
+  }
+</style>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!--  SMART SEARCH PAGE SHELL                                -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<oj-sp-smart-search-page
+  page-title="Post Cost"
+  page-subtitle="[[ 'Per-equipment week-by-week drill-down · ' + $variables.PostCostFilteredArray.length + ' requests' ]]"
+  primary-action.display="off"
+  display-mode="mixed">
+
+  <!-- ── SEARCH SLOT ── -->
+  <oj-sp-smart-search
+    slot="search"
+    filter-criterion="{{ $variables.filterCriterion }}"
+    on-filter-criterion-changed="[[$listeners.filterCriterionChanged]]"
+    search-context="[[ $variables.searchContext ]]"
+    search-config="[[ $variables.searchConfiguration.provider ]]"
+    placeholder="Request #, project, task, agreement...">
+  </oj-sp-smart-search>
+
+  <!-- ── DEFAULT SLOT — collection ── -->
+  <oj-sp-collection-container>
+
+    <oj-table
+      id="postCostTestTable"
+      data="[[ $variables.PostCostADP ]]"
+      class="oj-table-stretch oj-sm-width-full"
+      scroll-policy="loadMoreOnScroll"
+      scroll-policy-options.fetch-size="25"
+      selection-mode='{"row": "single"}'
+      on-first-selected-row-changed="[[$listeners.onRowAction]]"
+      columns="[[ $page.functions.postCostColumns($application.functions.isFeatureEnabled($application.variables.featureFlags, $application.variables.flagsLoaded, 'AGREEMENTS_ENABLED')) ]]"
+      style="width:100%; min-height:500px;"
+      aria-label="Post Cost Table">
+
+      <!-- REQUEST — single-line ID cell. The inner "REQUEST" label was dropped:
+           the column header already says REQUEST, and the second line only cost
+           vertical room without buying any horizontal room for the number. -->
+      <template slot="reqTpl" data-oj-as="cell">
+        <div class="ts-id-value">
+          <oj-bind-text value="[[ cell.row.requestNumber || '—' ]]"></oj-bind-text>
+        </div>
+      </template>
+
+      <!-- PROJECT — dash when empty -->
+      <template slot="projectTpl" data-oj-as="cell">
+        <span>
+          <oj-bind-text value="[[ cell.data || '—' ]]"></oj-bind-text>
+        </span>
+      </template>
+
+      <!-- TOTAL COST — teal currency -->
+      <template slot="costTpl" data-oj-as="cell">
+        <span class="ts-currency">
+          <oj-bind-text value="[[ cell.data ? $page.functions.formatCurrency(cell.data) : '—' ]]"></oj-bind-text>
+        </span>
+      </template>
+
+      <!-- EMPTY STATE -->
+      <template slot="noData">
+        <div style="text-align:center; padding:48px 0;">
+          <div style="font-size:40px; color:#cbd5e1; margin-bottom:12px;">📋</div>
+          <div style="font-size:15px; font-weight:600; color:#475569; margin-bottom:6px;">No requests ready for cost posting.</div>
+          <div style="font-size:13px; color:#94a3b8;">Check back after timesheets have been approved.</div>
+        </div>
+      </template>
+
+    </oj-table>
+
+  </oj-sp-collection-container>
+
+</oj-sp-smart-search-page>

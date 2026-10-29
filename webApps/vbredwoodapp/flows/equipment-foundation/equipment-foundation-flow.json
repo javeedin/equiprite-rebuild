@@ -1,0 +1,201 @@
+{
+  "id": "equipment-foundation",
+  "description": "Equipment Foundation flow",
+  "defaultPage": "equipment-master",
+  "variables": {},
+  "pages": {
+    "equipment-master": {
+      "path": "pages/equipment-master-page"
+    },
+    "equipment-workbench": {
+      "path": "pages/equipment-workbench-page"
+    },
+    "request-detail": {
+      "path": "pages/request-detail-page",
+      "parameters": {
+        "requestNumber": {
+          "type": "string",
+          "input": "fromUrl"
+        },
+        "requestId": {
+          "type": "string",
+          "input": "fromUrl"
+        },
+        "sourcePage": {
+          "type": "string",
+          "input": "fromUrl"
+        }
+      }
+    },
+    "request-quote": {
+      "path": "pages/request-quote-page",
+      "parameters": {
+        "requestNumber": {
+          "type": "string",
+          "input": "fromUrl"
+        },
+        "requestId": {
+          "type": "string",
+          "input": "fromUrl"
+        },
+        "sourcePage": {
+          "type": "string",
+          "input": "fromUrl"
+        }
+      }
+    },
+    "equipment-timesheets": {
+      "path": "pages/equipment-timesheets-page"
+    },
+    "timesheet-detail": {
+      "path": "pages/timesheet-detail-page",
+      "parameters": {
+        "timesheetId": {
+          "type": "string",
+          "input": "fromUrl"
+        }
+      }
+    },
+    "equipment-analytics": {
+      "path": "pages/equipment-analytics-page"
+    },
+    "equipment-reports": {
+      "path": "pages/equipment-reports-page"
+    },
+    "equipment-detail": {
+      "path": "pages/equipment-detail-page"
+    },
+    "equipment-units": {
+      "path": "pages/equipment-units-page",
+      "parameters": {
+        "equipmentId": {
+          "type": "string",
+          "input": "fromUrl"
+        },
+        "controlType": {
+          "type": "string",
+          "input": "fromUrl"
+        }
+      }
+    },
+    "equipment-unit-detail": {
+      "path": "pages/equipment-unit-detail-page",
+      "parameters": {
+        "equipmentId": {
+          "type": "string",
+          "input": "fromUrl"
+        },
+        "serialRefId": {
+          "type": "string",
+          "input": "fromUrl"
+        },
+        "controlType": {
+          "type": "string",
+          "input": "fromUrl"
+        }
+      }
+    },
+    "equipment-record-cost": {
+      "path": "pages/equipment-record-cost-page",
+      "parameters": {
+        "equipmentId": {
+          "type": "string",
+          "input": "fromUrl"
+        },
+        "serialRefId": {
+          "type": "string",
+          "input": "fromUrl"
+        },
+        "controlType": {
+          "type": "string",
+          "input": "fromUrl"
+        }
+      }
+    },
+    "equipment-create": {
+      "path": "pages/equipment-create-page"
+    },
+    "timesheet-approvals": {
+      "path": "pages/timesheet-approvals-page"
+    },
+    "timesheet-approval-detail": {
+      "path": "pages/timesheet-approval-detail-page",
+      "parameters": {
+        "timesheetId": {
+          "type": "string",
+          "input": "fromUrl"
+        }
+      }
+    },
+    "rental-agreements": {
+      "path": "pages/rental-agreements-page"
+    },
+    "rental-agreement-lines": {
+      "path": "pages/rental-agreement-lines-page",
+      "parameters": {
+        "requestId": {
+          "type": "string",
+          "input": "fromUrl"
+        }
+      }
+    },
+    "rental-agreement-create": {
+      "path": "pages/rental-agreement-create-page"
+    },
+    "line-detail": {
+      "path": "pages/line-detail-page",
+      "parameters": {
+        "requestId": {
+          "type": "string",
+          "input": "fromUrl"
+        },
+        "lineId": {
+          "type": "string",
+          "input": "fromUrl"
+        },
+        "equipmentMasterId": {
+          "type": "string",
+          "input": "fromUrl"
+        }
+      }
+    },
+    "post-cost": {
+      "path": "pages/post-cost-page"
+    },
+    "equipment-returns": {
+      "path": "pages/equipment-returns-page"
+    },
+    "initiate-picking": {
+      "path": "pages/initiate-picking-page"
+    },
+    "post-cost-detail": {
+      "path": "pages/post-cost-detail-page",
+      "parameters": {
+        "requestNumber": {
+          "type": "string",
+          "input": "fromUrl"
+        },
+        "projectName": {
+          "type": "string",
+          "input": "fromUrl"
+        }
+      }
+    },
+    "post-cost-test": {
+      "path": "pages/post-cost-test-page"
+    },
+    "post-cost-test-detail": {
+      "path": "pages/post-cost-test-detail-page",
+      "parameters": {
+        "requestNumber": {
+          "type": "string",
+          "input": "fromUrl"
+        },
+        "projectName": {
+          "type": "string",
+          "input": "fromUrl"
+        }
+      }
+    }
+  }
+}

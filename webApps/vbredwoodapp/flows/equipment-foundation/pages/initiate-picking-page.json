@@ -1,0 +1,360 @@
+{
+  "metadata": {},
+  "variables": {
+    "PickingQueueAllArray": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "PickingQueueFilteredArray": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "PickingQueueADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "id",
+        "data": "{{ $page.variables.PickingQueueFilteredArray }}"
+      }
+    },
+    "filterCriterion": {
+      "type": "any"
+    },
+    "searchConfiguration": {
+      "type": "oj-sp/smart-search/strategies/JsonSearchConfigProviderFactory",
+      "defaultValue": {
+        "url": "[[ $application.path + 'resources/data/initiatePickingSearchConfig.json' ]]"
+      }
+    },
+    "searchContext": {
+      "type": "object",
+      "defaultValue": {
+        "$search": {}
+      }
+    },
+    "isDrawerOpen": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "selectedRequest": {
+      "type": "any",
+      "defaultValue": {
+        "lines": [],
+        "pickingExceptions": []
+      }
+    },
+    "selectedIds": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "isBulkInitiating": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "resolvingLineId": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "bulkProgressDialogOpen": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "bulkProgressCurrent": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "bulkProgressTotal": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "bulkProgressCurrentRequest": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "showBulkSummary": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "bulkSummaryCompleted": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "bulkSummaryExceptions": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "lastPickingResults": {
+      "type": "any",
+      "defaultValue": {}
+    },
+    "exceptionAltSerials": {
+      "type": "any",
+      "defaultValue": {}
+    },
+    "equipmentSettingsActive": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "isLoading": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "isLoadingDrawer": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "fetchError": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "selectedRequestTOs": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "selectedTOId": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "Scoping value for the SINGLE-transfer-order consumers: the pick slip header (PrintPickSlipChain) and Pick and Ship's line scoping (ShipConfirmStuckLinesChain). It used to be the Transfer Order LOV's value; the LOV was removed once the lines grid began showing each line's TRANSFER ORDER NO., and this is now DERIVED from the ticked rows by _syncSelectedTOFromTicks - one ticked order gives its id, zero or several give ''. Blank on a multi-TO tick is deliberate: those consumers are single-TO by nature, so pointing them at an arbitrary one of several would be worse than pointing them at none. Multi-TO RELEASE does not read this - ReleaseTransferOrderChain reads $page.functions.releasableTOOptions instead."
+    },
+    "isReleasingTO": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "selectionTick": {
+      "type": "number",
+      "defaultValue": 0,
+      "description": "Bumped by the row/header checkbox handlers. Row selection lives in a plain Set on the page module (grid data is rebuilt on every refresh, so it cannot hold checked state), and a Set mutation is not observable \u2014 bindings that depend on the selection, notably the Release for Picking enablement, read this variable so they re-evaluate when a box is ticked. Same device as selectionTick on equipment-request-detail-page."
+    },
+    "pickInitiatedWarning": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "releaseMessage": {
+      "type": "string",
+      "description": "Result of the last Release for Picking, shown as a banner INSIDE the picking dialog. The dialog now stays open across releases so several TOs can be released in one sitting, which means a toast is no longer usable for this: oj-messages renders behind the modal overlay, which is why every release path used to close the dialog first. Cleared when the drawer opens and on each new release attempt.",
+      "defaultValue": ""
+    },
+    "releaseMessageType": {
+      "type": "string",
+      "description": "'confirmation' | 'warning' | 'error' \u2014 picks the banner styling.",
+      "defaultValue": "confirmation"
+    },
+    "isRefreshingDrawer": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "isShipConfirming": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "isPrintingPickSlip": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "pickSlipUrl": {
+      "type": "string",
+      "description": "Object URL of the generated pick slip PDF, bound to the preview iframe. Revoked and replaced on every reprint and cleared when the preview closes \u2014 an un-revoked blob lives for the life of the tab.",
+      "defaultValue": ""
+    },
+    "pickSlipFileName": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "pickSlipDocNumber": {
+      "type": "string",
+      "description": "PS-{requestNumber}-{yyyyMMddHHmm}. A print reference, not a persisted document number: there is no EQR_PICK_SLIP_SEQ behind it, so two prints of one request produce two references.",
+      "defaultValue": ""
+    }
+  },
+  "eventListeners": {
+    "vbBeforeEnter": {
+      "chains": [
+        {
+          "chain": "enforcePageAccessChain"
+        }
+      ]
+    },
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "InitPickingQueueChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "filterCriterionChanged": {
+      "chains": [
+        {
+          "chain": "FilterPickingQueueChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onRowAction": {
+      "chains": [
+        {
+          "chain": "openPickingDrawerChain",
+          "parameters": {
+            "rowData": "{{ $event.detail.value?.data }}"
+          }
+        }
+      ]
+    },
+    "closePickingDrawer": {
+      "chains": [
+        {
+          "chain": "closePickingDrawerChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onBulkInitiate": {
+      "chains": [
+        {
+          "chain": "BulkInitiatePickingChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onResolveExceptionClick": {
+      "chains": [
+        {
+          "chain": "ResolvePickingExceptionChain",
+          "parameters": {
+            "event": "{{ $event }}"
+          }
+        }
+      ]
+    },
+    "onRowCheckboxChanged": {
+      "chains": [
+        {
+          "chain": "RowCheckboxChangedChain",
+          "parameters": {
+            "event": "{{ $event }}"
+          }
+        }
+      ]
+    },
+    "onToggleSelectAll": {
+      "chains": [
+        {
+          "chain": "ToggleSelectAllChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onClearSelection": {
+      "chains": [
+        {
+          "chain": "ClearSelectionChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onCloseBulkDialog": {
+      "chains": [
+        {
+          "chain": "CloseBulkDialogChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onUpdateAltSerial": {
+      "chains": [
+        {
+          "chain": "UpdateAltSerialChain",
+          "parameters": {
+            "event": "{{ $event }}"
+          }
+        }
+      ]
+    },
+    "onReleaseTO": {
+      "chains": [
+        {
+          "chain": "ReleaseTransferOrderChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onRefreshDrawer": {
+      "chains": [
+        {
+          "chain": "RefreshPickingDrawerChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onShipConfirmStuck": {
+      "chains": [
+        {
+          "chain": "ShipConfirmStuckLinesChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onClosePickSlipPreview": {
+      "chains": [
+        {
+          "chain": "ClosePickSlipPreviewChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onOpenPickSlipPreview": {
+      "chains": [
+        {
+          "chain": "OpenPickSlipPreviewChain",
+          "parameters": {}
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-sp-smart-search-page": {
+        "path": "oj-sp/smart-search-page/loader"
+      },
+      "oj-sp-smart-search": {
+        "path": "oj-sp/smart-search/loader"
+      },
+      "oj-sp-collection-container": {
+        "path": "oj-sp/collection-container/loader"
+      },
+      "oj-sp-general-drawer-template": {
+        "path": "oj-sp/general-drawer-template/loader"
+      },
+      "oj-drawer-popup": {
+        "path": "ojs/ojdrawerpopup"
+      },
+      "oj-table": {
+        "path": "ojs/ojtable"
+      },
+      "oj-data-grid": {
+        "path": "ojs/ojdatagrid"
+      },
+      "oj-button": {
+        "path": "ojs/ojbutton"
+      },
+      "oj-dialog": {
+        "path": "ojs/ojdialog"
+      },
+      "oj-progress-bar": {
+        "path": "ojs/ojprogress-bar"
+      },
+      "oj-defer": {
+        "path": "ojs/ojdefer"
+      },
+      "oj-bind-if": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-for-each": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-text": {
+        "path": "ojs/ojknockout"
+      }
+    }
+  }
+}

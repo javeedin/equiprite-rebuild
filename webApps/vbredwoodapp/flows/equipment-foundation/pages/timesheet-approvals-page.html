@@ -1,0 +1,158 @@
+<!--
+  Timesheet Approvals — Smart Search Page
+  Template: oj-sp-smart-search-page + oj-table (standardized to Equipment Requests pattern)
+-->
+<style>
+  /* ── Table styling ── */
+  #approvalTable .oj-table-column-header-cell {
+    background-color: var(--oj-core-neutral-color-2, #f1f1f1);
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--oj-core-text-color-secondary, #565656);
+    padding: 10px 12px;
+  }
+  #approvalTable .oj-table-column-header-text {
+    white-space: nowrap;
+  }
+  #approvalTable .oj-table-body-row:hover {
+    background-color: var(--oj-core-neutral-color-1, #fafafa);
+    cursor: pointer;
+  }
+  #approvalTable .oj-table-data-cell {
+    padding: 10px 12px;
+    font-size: 0.8125rem;
+    vertical-align: middle;
+  }
+
+  /* ── ID two-line cell ── */
+  .ts-id-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #94a3b8;
+    margin-bottom: 2px;
+  }
+  .ts-id-value {
+    font-weight: 700;
+    color: var(--oj-core-brand-color-primary, #005cb1);
+    font-size: 0.8rem;
+  }
+
+  /* ── Currency ── */
+  .ts-currency {
+    font-weight: 700;
+    color: #0d9488;
+  }
+
+  /* ── Status badges ── */
+  .ts-status-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+  /* Colours come from the canonical status palette in resources/css/app.css.
+     Borders dropped so these match the flat pill styling used app-wide. */
+  .ts-status--submitted { background: var(--status-submitted-bg); color: var(--status-submitted-text); }
+  .ts-status--approved  { background: var(--status-deployed-bg);  color: var(--status-deployed-text); }
+  .ts-status--rejected  { background: var(--status-rejected-bg);  color: var(--status-rejected-text); }
+</style>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!--  SMART SEARCH PAGE SHELL                                -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<oj-sp-smart-search-page
+  page-title="Timesheet Approvals"
+  page-subtitle="[[ $application.functions.getFormattedDate() + ' | Review and approve equipment hour entries | ' + $variables.pendingCount + ' pending reviews' ]]"
+  primary-action.display="off"
+  display-mode="mixed">
+
+  <!-- ── SEARCH SLOT ── -->
+  <oj-sp-smart-search
+    slot="search"
+    filter-criterion="{{ $variables.filterCriterion }}"
+    on-filter-criterion-changed="[[$listeners.filterCriterionChanged]]"
+    search-context="[[ $variables.searchContext ]]"
+    search-config="[[ $variables.searchConfiguration.provider ]]"
+    suggestion-filters='["StatusFilter"]'
+    placeholder="Request ID, project...">
+  </oj-sp-smart-search>
+
+  <!-- ── DEFAULT SLOT — collection ── -->
+  <oj-sp-collection-container>
+
+    <oj-table
+      id="approvalTable"
+      data="[[ $variables.TimesheetADP ]]"
+      class="oj-table-stretch oj-sm-width-full"
+      scroll-policy="loadMoreOnScroll"
+      scroll-policy-options.fetch-size="25"
+      selection-mode='{"row": "single"}'
+      on-first-selected-row-changed="[[$listeners.onRowAction]]"
+      columns='[
+        {"headerText": "Request",     "field": "request_id",   "template": "idTpl",      "sortable": "enabled", "style": "width:145px;"},
+        {"headerText": "Project",     "field": "project",      "template": "projectTpl",  "sortable": "enabled"},
+        {"headerText": "Week",        "field": "week_label",                              "sortable": "enabled", "style": "width:175px;"},
+        {"headerText": "Equip",       "field": "equipment_count",                         "sortable": "enabled", "style": "width:70px;"},
+        {"headerText": "Hours",       "field": "total_hours",                             "sortable": "enabled", "style": "width:70px;"},
+        {"headerText": "Status",      "field": "status",       "template": "statusTpl",   "sortable": "enabled", "style": "width:130px;"}
+      ]'
+      style="width:100%; min-height:500px;"
+      aria-label="Timesheet Approvals Table">
+
+      <!-- REQUEST — two-line ID cell -->
+      <template slot="idTpl" data-oj-as="cell">
+        <div>
+          <div class="ts-id-label">REQUEST</div>
+          <div class="ts-id-value">
+            <oj-bind-text value="[[ cell.row.request_id || '—' ]]"></oj-bind-text>
+          </div>
+        </div>
+      </template>
+
+      <!-- PROJECT — dash when empty -->
+      <template slot="projectTpl" data-oj-as="cell">
+        <span>
+          <oj-bind-text value="[[ cell.data || '—' ]]"></oj-bind-text>
+        </span>
+      </template>
+
+      <!-- BILL AMOUNT column REMOVED (TS-6): cost is not shown on approvals;
+           the approver validates entered TIME only. Cost review is on post-cost. -->
+
+      <!-- STATUS — colour-coded badge -->
+      <template slot="statusTpl" data-oj-as="cell">
+        <span>
+          <oj-bind-if test="[[ cell.data === 'SUBMITTED' ]]">
+            <span class="ts-status-badge ts-status--submitted">Submitted</span>
+          </oj-bind-if>
+          <oj-bind-if test="[[ cell.data === 'APPROVED' ]]">
+            <span class="ts-status-badge ts-status--approved">Approved</span>
+          </oj-bind-if>
+          <oj-bind-if test="[[ cell.data === 'REJECTED' ]]">
+            <span class="ts-status-badge ts-status--rejected">Rejected</span>
+          </oj-bind-if>
+        </span>
+      </template>
+
+      <!-- EMPTY STATE -->
+      <template slot="noData">
+        <div style="text-align:center; padding:48px 0;">
+          <div style="font-size:40px; color:#cbd5e1; margin-bottom:12px;">📋</div>
+          <div style="font-size:15px; font-weight:600; color:#475569; margin-bottom:6px;">No timesheets match your search.</div>
+          <div style="font-size:13px; color:#94a3b8;">Try adjusting your filters or clearing the search.</div>
+        </div>
+      </template>
+
+    </oj-table>
+
+  </oj-sp-collection-container>
+
+</oj-sp-smart-search-page>

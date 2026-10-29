@@ -1,0 +1,337 @@
+{
+
+  "metadata": {},
+  "variables": {
+
+    "selectedYard":               { "type": "number", "defaultValue": null },
+    "selectedUnitStatus":         { "type": "string", "defaultValue": null },
+    "selectedLineStatus":         { "type": "string", "defaultValue": null },
+    "selectedUnitType":           { "type": "string", "defaultValue": null },
+
+    "stockRows":                  { "type": "any[]", "defaultValue": [] },
+    "pendingRows":                { "type": "any[]", "defaultValue": [] },
+    "onhandRows":                 { "type": "any[]", "defaultValue": [] },
+    "utilExportRows":             { "type": "any[]", "defaultValue": [] },
+
+    "chartDonutSeries":           { "type": "any[]", "defaultValue": [] },
+    "chartDonutGroups":           { "type": "any[]", "defaultValue": [] },
+    "chartBarSeries":             { "type": "any[]", "defaultValue": [] },
+    "chartBarGroups":             { "type": "any[]", "defaultValue": [] },
+    "chartDonutTitle":            { "type": "string", "defaultValue": "" },
+    "chartBarTitle":              { "type": "string", "defaultValue": "" },
+
+    "_comment_utilWindow":        { "type": "string", "defaultValue": "Utilization is the one tab with a page-level filter: yard-utilization REQUIRES fromDate/toDate and reportCriterion deliberately refuses to map dates from search. utilDatePreset drives the window via analyticsData.periodToWindow; utilCustomFrom/To are the two date pickers shown only when the preset is 'custom'. All three fire FiltersChangedChain." },
+    "utilDatePreset":             { "type": "string", "defaultValue": "last-30" },
+    "utilCustomFrom":             { "type": "string", "defaultValue": "" },
+    "utilCustomTo":               { "type": "string", "defaultValue": "" },
+    "utilFromDate":               { "type": "string", "defaultValue": "" },
+    "utilToDate":                 { "type": "string", "defaultValue": "" },
+
+    "yardOrgSDP": {
+      "type": "vb/ServiceDataProvider",
+      "defaultValue": {
+        "endpoint": "eqp-v1/getInvOrgs",
+        "keyAttributes": "invOrgId",
+        "itemsPath": "data",
+        "textFilterAttributes": ["organizationName", "organizationCode"],
+        "capabilities": { "filter": { "operators": ["$co", "$eq", "$ew", "$ge", "$gt", "$le", "$lt", "$ne", "$pr", "$sw"] } }
+      }
+    },
+
+    "yardStockSDP": {
+      "type": "vb/ServiceDataProvider",
+      "defaultValue": {
+        "endpoint": "eqp-v1/getEquipriteV1ViewsYardStock",
+        "keyAttributes": "unitRefId",
+        "itemsPath": "data",
+        "textFilterAttributes": ["className", "equipmentName", "unitNumber", "invOrgName", "projectName"],
+        "uriParameters": {
+          "invOrgId":   "[[ $page.variables.selectedYard != null ? $page.variables.selectedYard : undefined ]]",
+          "unitStatus": "[[ $page.variables.selectedUnitStatus != null ? $page.variables.selectedUnitStatus : undefined ]]"
+        },
+        "capabilities": { "filter": { "operators": ["$eq", "$co", "$sw"] } }
+      }
+    },
+
+    "pendingLinesSDP": {
+      "type": "vb/ServiceDataProvider",
+      "defaultValue": {
+        "endpoint": "eqp-v1/getEquipriteV1ViewsPendingApprovalLines",
+        "keyAttributes": "lineId",
+        "itemsPath": "data",
+        "textFilterAttributes": ["className", "equipmentName", "requestNumber", "projectName", "requestor"],
+        "uriParameters": {
+          "invOrgId":   "[[ $page.variables.selectedYard != null ? $page.variables.selectedYard : undefined ]]",
+          "lineStatus": "[[ $page.variables.selectedLineStatus != null ? $page.variables.selectedLineStatus : undefined ]]",
+          "unitType":   "[[ $page.variables.selectedUnitType != null ? $page.variables.selectedUnitType : undefined ]]"
+        },
+        "capabilities": { "filter": { "operators": ["$eq", "$co", "$sw"] } }
+      }
+    },
+
+    "onhandSDP": {
+      "type": "vb/ServiceDataProvider",
+      "defaultValue": {
+        "endpoint": "eqp-v1/getEquipriteV1ViewsOnhandQty",
+        "keyAttributes": "inventoryItemRefId",
+        "itemsPath": "data",
+        "textFilterAttributes": ["className", "equipmentName", "itemNumber", "invOrgName"],
+        "uriParameters": {
+          "invOrgId": "[[ $page.variables.selectedYard != null ? $page.variables.selectedYard : undefined ]]"
+        },
+        "capabilities": { "filter": { "operators": ["$eq", "$co", "$sw"] } }
+      }
+    },
+
+    "yardUtilizationSDP": {
+      "type": "vb/ServiceDataProvider",
+      "defaultValue": {
+        "endpoint": "eqp-v1/getEquipriteV1ViewsYardUtilization",
+        "keyAttributes": ["yardName", "dayDate"],
+        "itemsPath": "data",
+        "uriParameters": {
+          "fromDate":   "[[ $page.variables.utilFromDate ]]",
+          "toDate":     "[[ $page.variables.utilToDate ]]",
+          "invOrgId":   "[[ $page.variables.selectedYard != null ? $page.variables.selectedYard : undefined ]]",
+          "lineStatus": "[[ $page.variables.selectedLineStatus != null ? $page.variables.selectedLineStatus : undefined ]]",
+          "unitType":   "[[ $page.variables.selectedUnitType != null ? $page.variables.selectedUnitType : undefined ]]",
+          "size":       "[[ 10000 ]]"
+        },
+        "capabilities": { "filter": { "operators": ["$eq"] } }
+      }
+    },
+
+    "unitStatusOptionsArray": { "type": "any[]", "defaultValue": [
+      { "label": "All Statuses", "value": null }
+    ] },
+    "unitStatusOptionsADP": { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.unitStatusOptionsArray }}" } },
+
+    "unitTypeOptionsArray": { "type": "any[]", "defaultValue": [
+      { "label": "All Types",  "value": null },
+      { "label": "Serial",     "value": "SERIAL" },
+      { "label": "Lot",        "value": "LOT" },
+      { "label": "Inventory",  "value": "INVENTORY" }
+    ] },
+    "unitTypeOptionsADP": { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.unitTypeOptionsArray }}" } },
+
+    "lineStatusOptionsArray": { "type": "any[]", "defaultValue": [
+      { "label": "All Statuses",       "value": null },
+      { "label": "In Process",         "value": "IN_PROCESS" },
+      { "label": "Allocated",          "value": "ALLOCATED" },
+      { "label": "Pick Initiated",     "value": "PICK_INITIATED" },
+      { "label": "Ship to Site",       "value": "SHIP_TO_SITE" }
+    ] },
+    "lineStatusOptionsADP":   { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.lineStatusOptionsArray }}" } },
+
+    "utilDateOptionsArray":   { "type": "any[]", "defaultValue": [
+      { "label": "Last 30 Days",       "value": "last-30" },
+      { "label": "Last 90 Days",       "value": "last-90" },
+      { "label": "Year to Date",       "value": "ytd" },
+      { "label": "Custom",             "value": "custom" }
+    ] },
+    "utilDateOptionsADP":     { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.utilDateOptionsArray }}" } },
+
+    "pageTitle":                  { "type": "string",                "defaultValue": "Equipment Analytics" },
+    "pageSubtitle":               { "type": "string",                "defaultValue": "Fleet intelligence, utilization tracking & financial reporting" },
+    "kpisArray":                  { "type": "any[]",                 "defaultValue": [] },
+    "kpisADP":                    { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "id", "data": "{{ $page.variables.kpisArray }}" } },
+    "selectedKpi":                { "type": "string",                "defaultValue": "deployed-assets" },
+    "activeTab":                  { "type": "string",                "defaultValue": "master" },
+    "tabsArray":                  { "type": "any[]",                 "defaultValue": [] },
+    "tabsADP":                    { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "id", "data": "{{ $page.variables.tabsArray }}" } },
+    "datePeriod":                 { "type": "string",                "defaultValue": "last-30" },
+    "datePeriodOptionsArray":     { "type": "any[]",                 "defaultValue": [] },
+    "datePeriodOptionsADP":       { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.datePeriodOptionsArray }}" } },
+    "equipmentClass":             { "type": "string",                "defaultValue": "all" },
+    "equipmentClassOptionsArray": { "type": "any[]",                 "defaultValue": [] },
+    "equipmentClassOptionsADP":   { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.equipmentClassOptionsArray }}" } },
+    "projectFocus":               { "type": "string",                "defaultValue": "global" },
+    "projectFocusOptionsArray":   { "type": "any[]",                 "defaultValue": [] },
+    "projectFocusOptionsADP":     { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.projectFocusOptionsArray }}" } },
+    "donutChartArray":            { "type": "any[]",                 "defaultValue": [] },
+    "donutChartADP":              { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "id", "data": "{{ $page.variables.donutChartArray }}" } },
+    "barChartArray":              { "type": "any[]",                 "defaultValue": [] },
+    "barChartADP":                { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "id", "data": "{{ $page.variables.barChartArray }}" } },
+    "donutSeries":                { "type": "any[]",                 "defaultValue": [] },
+    "donutGroups":                { "type": "any[]",                 "defaultValue": [] },
+    "barSeries":                  { "type": "any[]",                 "defaultValue": [] },
+    "barGroups":                  { "type": "any[]",                 "defaultValue": [] },
+
+    "isLoading":                  { "type": "boolean",               "defaultValue": false },
+
+    "analyticsFilterCriterion":       { "type": "any",    "defaultValue": null },
+    "analyticsFilterVersion":         { "type": "number", "defaultValue": 0 },
+    "_comment_lastQuerySig":          { "type": "string", "defaultValue": "Params last sent for the active tab. Suppresses a refetch when a criterion change produces no change for THIS endpoint (e.g. a chip the tab doesn't support)." },
+    "analyticsLastQuerySignature":    { "type": "string", "defaultValue": "" },
+    "_comment_suggestionFilters":     { "type": "string", "defaultValue": "Ordering hint passed to the component as string[] — NOT a gate. Which chips exist is the per-tab config file below; this was previously a JSON string, which the component ignored. Set per tab by analyticsData.suggestionFiltersFor()." },
+    "analyticsSuggestionFilters":     { "type": "any[]", "defaultValue": ["AssetGroupFilter", "ClassFilter", "StatusFilter", "TypeFilter", "ProjectFilter"] },
+    "_comment_searchConfig":          { "type": "string", "defaultValue": "One config file per tab, because the widget renders a chip for EVERY filter the loaded config declares. TabChangedChain also reassigns this explicitly while the search is unmounted." },
+    "analyticsSearchConfiguration": {
+      "type": "oj-sp/smart-search/strategies/JsonSearchConfigProviderFactory",
+      "defaultValue": {
+        "url": "[[ $application.path + 'resources/data/analytics/' + $page.variables.analyticsActiveTab + '.json' ]]"
+      }
+    },
+    "analyticsSearchContext": {
+      "type": "object",
+      "defaultValue": {
+        "$search": {
+          "filters": {
+            "AssetGroupFilter": {
+              "options": {
+                "optionsData": "[[ $page.variables.analyticsAssetGroupOptionsADP ]]",
+                "optionsKeys": { "label": "label", "value": "value" }
+              }
+            },
+            "ClassFilter": {
+              "options": {
+                "optionsData": "[[ $page.variables.analyticsClassOptionsADP ]]",
+                "optionsKeys": { "label": "label", "value": "value" }
+              }
+            },
+            "StatusFilter": {
+              "options": {
+                "optionsData": "[[ $page.variables.analyticsStatusOptionsADP ]]",
+                "optionsKeys": { "label": "label", "value": "value" }
+              }
+            },
+            "TypeFilter": {
+              "options": {
+                "optionsData": "[[ $page.variables.analyticsTypeOptionsADP ]]",
+                "optionsKeys": { "label": "label", "value": "value" }
+              }
+            },
+            "YardFilter": {
+              "options": {
+                "optionsData": "[[ $page.variables.analyticsYardOptionsADP ]]",
+                "optionsKeys": { "label": "label", "value": "value" }
+              }
+            },
+            "ProjectFilter": {
+              "options": {
+                "optionsData": "[[ $page.variables.analyticsProjectOptionsADP ]]",
+                "optionsKeys": { "label": "label", "value": "value" }
+              }
+            },
+            "EquipmentFilter": {
+              "options": {
+                "optionsData": "[[ $page.variables.analyticsEquipmentOptionsADP ]]",
+                "optionsKeys": { "label": "label", "value": "value" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "analyticsKpis":              { "type": "object",                "defaultValue": { "totalUnits": 0, "outOnRent": 0, "available": 0, "utilizationPct": 0, "outOnRentPct": 0, "availablePct": 0 } },
+    "analyticsTabsArray":         { "type": "any[]",                 "defaultValue": "[[ [\n    {\n        \"id\": \"equipment-master\",\n        \"label\": \"Equipment Stock\"\n    },\n    {\n        \"id\": \"equipment-pending\",\n        \"label\": \"Equipment Manager Pending Approval\"\n    },\n    {\n      \"id\":\"onhand\",\n      \"label\":\"Equipment Onhand Quantity\"\n    },\n\t{\n\t\"id\":\"equip-utilization\",\n\t\"label\":\"Equipment Utilization\"\n\t}\n] ]]"},
+    "analyticsTabsADP":           { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "id", "data": "{{ $page.variables.analyticsTabsArray }}" } },
+    "analyticsActiveTab":         { "type": "string",                "defaultValue": "equipment-master" },
+    "analyticsSmartSearchVisible":{ "type": "boolean",               "defaultValue": true },
+
+    "equipMasterSelection":       { "type": "any[]",                 "defaultValue": [] },
+
+    "pendingRequestorSeries":     { "type": "any[]",                 "defaultValue": [] },
+    "pendingRequestorGroups":     { "type": "any[]",                 "defaultValue": [] },
+    "pendingRequestorSubtitle":   { "type": "string",               "defaultValue": "By pending line count" },
+    "pendingRequestorTotal":      { "type": "number",               "defaultValue": 0 },
+    "stockYardStatusSeries":       { "type": "any[]",                 "defaultValue": [] },
+    "stockYardStatusGroups":       { "type": "any[]",                 "defaultValue": [] },
+    "utilDailySeries":             { "type": "any[]",                 "defaultValue": [] },
+    "utilDailyGroups":             { "type": "any[]",                 "defaultValue": [] },
+    "analyticsSearchText":         { "type": "string",                "defaultValue": "" },
+    "analyticsSelectedClass":      { "type": "string",                "defaultValue": null },
+    "analyticsSelectedStatus":     { "type": "string",                "defaultValue": null },
+    "analyticsSelectedLineStatus": { "type": "string",                "defaultValue": null },
+    "analyticsClassOptionsArray":  { "type": "any[]",                 "defaultValue": [] },
+    "analyticsClassOptionsADP":    { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.analyticsClassOptionsArray }}" } },
+    "analyticsStatusOptionsArray": { "type": "any[]",                 "defaultValue": [] },
+    "analyticsStatusOptionsADP":   { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.analyticsStatusOptionsArray }}" } },
+    "analyticsTypeOptionsArray":   { "type": "any[]",                 "defaultValue": [] },
+    "analyticsTypeOptionsADP":     { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.analyticsTypeOptionsArray }}" } },
+    "analyticsYardOptionsArray":   { "type": "any[]",                 "defaultValue": [] },
+    "analyticsYardOptionsADP":     { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.analyticsYardOptionsArray }}" } },
+    "analyticsProjectOptionsArray": { "type": "any[]",                "defaultValue": [] },
+    "analyticsProjectOptionsADP":   { "type": "vb/ArrayDataProvider2", "description": "UI-only placeholder for the Equipment Stock tab's Project chip — empty until a real project lookup is wired up, same convention as Asset Group.", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.analyticsProjectOptionsArray }}" } },
+    "stockDateFrom": { "type": "string", "description": "UI-only Start Date field shown next to the search bar on the Equipment Stock tab — no listener wired yet, mirrors the Utilization tab's date-field pattern (SelectSingleFilter is the only smart-search filter type in this app, so a date range can't be a chip).", "defaultValue": "" },
+    "stockDateTo":   { "type": "string", "defaultValue": "" },
+    "analyticsEquipmentOptionsArray": { "type": "any[]",                "defaultValue": [] },
+    "analyticsEquipmentOptionsADP":   { "type": "vb/ArrayDataProvider2", "description": "UI-only placeholder for the Pending Approval tab's Equipment Name chip — empty until a real equipment-name lookup is wired up, same convention as Asset Group / Project.", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.analyticsEquipmentOptionsArray }}" } },
+    "pendingDateFrom": { "type": "string", "description": "UI-only Start Date field for the Equipment Manager Pending Approval tab — same pattern as stockDateFrom, own variable so the two tabs' date ranges are independent.", "defaultValue": "" },
+    "pendingDateTo":   { "type": "string", "defaultValue": "" },
+    "onhandDateFrom": { "type": "string", "description": "UI-only Start Date field for the Equipment Onhand Quantity tab — same pattern as stockDateFrom/pendingDateFrom, own variable so each tab's date range is independent.", "defaultValue": "" },
+    "onhandDateTo":   { "type": "string", "defaultValue": "" },
+    "analyticsAssetGroupOptionsArray": { "type": "any[]",                 "defaultValue": [] },
+    "analyticsAssetGroupOptionsADP":   { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.analyticsAssetGroupOptionsArray }}" } },
+    "pendingSelection":           { "type": "any[]",                 "defaultValue": [] },
+
+    "onhandSelection":            { "type": "any[]",                 "defaultValue": [] },
+    "onhandArray":                { "type": "any[]",                 "defaultValue": [] },
+    "masterRawArray":             { "type": "any[]",                 "defaultValue": [] },
+    "onhandRawArray":             { "type": "any[]",                 "defaultValue": [] },
+    "monthData":                  { "type": "any[]",                 "defaultValue": [] },
+    "dynamicCols":                { "type": "any[]",                 "defaultValue": [] },
+    "utilizationSelection":       { "type": "any[]",                 "defaultValue": [] },
+    "collapsedMonths":            { "type": "any[]",                 "defaultValue": [] }
+  },
+  "eventListeners": {
+    "vbBeforeEnter": {
+      "chains": [
+        { "chain": "enforcePageAccessChain" }
+      ]
+    },
+    "buttonAction": {
+      "chains": [
+        {
+          "chain": "ButtonActionChain",
+          "parameters": {
+            "event": "{{$event}}",
+            "originalEvent": "{{$event.detail.originalEvent}}"
+          }
+        }
+      ]
+    },
+    "vbEnter": {
+      "chains": [{ "chain": "vbEnterChain", "parameters": {} }]
+    },
+    "onExportAction": {
+      "chains": [{ "chain": "ExportChain", "parameters": {} }]
+    },
+    "onKpiSelectionChanged": {
+      "chains": [{ "chain": "onSelectedKpiChangedChain", "parameters": { "value": "{{ $event.detail.value }}" } }]
+    },
+    "onFilterChanged": {
+      "chains": [{ "chain": "FiltersChangedChain", "parameters": {} }]
+    },
+    "onTabChanged": {
+      "chains": [{ "chain": "TabChangedChain", "parameters": {} }]
+    },
+    "onAnalyticsSmartSearchChanged": {
+      "chains": [{ "chain": "OnAnalyticsSmartSearchChangedChain", "parameters": { "criterion": "{{ $event.detail.value }}" } }]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-button": {
+        "path": "ojs/ojbutton"
+      },
+      "oj-sp-dashboard-landing-page": { "path": "oj-sp/dashboard-landing-page/loader" },
+      "oj-sp-scoreboard":             { "path": "oj-sp/scoreboard/loader" },
+      "oj-sp-scoreboard-metric-card":  { "path": "oj-sp/scoreboard-metric-card/loader" },
+      "oj-sp-dashboard-grid":         { "path": "oj-sp/dashboard-grid/loader" },
+      "oj-sp-dashboard-panel":        { "path": "oj-sp/dashboard-panel/loader" },
+      "oj-chart":                     { "path": "ojs/ojchart" },
+      "oj-progress-bar":              { "path": "ojs/ojprogress-bar" },
+      "oj-popup":                     { "path": "ojs/ojpopup" },
+      "oj-sp-smart-search":           { "path": "oj-sp/smart-search/loader" },
+      "oj-data-grid":                 { "path": "ojs/ojdatagrid" },
+      "oj-table":                     { "path": "ojs/ojtable" },
+      "oj-tab-bar":                   { "path": "ojs/ojtabbar" },
+      "oj-select-single":             { "path": "ojs/ojselectsingle" },
+      "oj-input-date":                { "path": "ojs/ojdatetimepicker" },
+      "oj-input-text":                 { "path": "ojs/ojinputtext" },
+      "oj-bind-if":                   { "path": "ojs/ojknockout" },
+      "oj-bind-text":                 { "path": "ojs/ojknockout" }
+    }
+  }
+}
