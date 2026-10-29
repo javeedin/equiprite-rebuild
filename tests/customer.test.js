@@ -218,7 +218,7 @@ function context(pageVars, pageFns, o) {
   T.eq('an Equipment Manager is', portal.actsForCustomers(Object.assign({ EQR_WORKBENCH: 'FULL' }, CUSTOMER_ACCESS), true), true);
   T.eq('a HIDDEN internal code does not count', portal.actsForCustomers(Object.assign({ EQR_WORKBENCH: 'HIDDEN' }, CUSTOMER_ACCESS), true), false);
   T.eq('nothing while page access loads', portal.actsForCustomers({ EQR_WORKBENCH: 'FULL' }, false), false);
-  T.eq('why not hasInternalPageAccess: it reads a customer as staff', app.hasInternalPageAccess(CUSTOMER_ACCESS, true), true);
+  T.eq('hasInternalPageAccess agrees: a customer is not staff', app.hasInternalPageAccess(CUSTOMER_ACCESS, true), false);
 
   T.section('home: next for you, on site');
   const todo = portal.todo(ROWS, { 3: 2 }, { overdueCount: 1, overdueAmount: 1600 }, { quotingAllowed: true });

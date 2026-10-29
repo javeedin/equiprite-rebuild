@@ -231,11 +231,11 @@ define([
       key: 'request', label: 'Request',
       items: [
         { id: 'new-request', label: 'New request', icon: 'oj-ux-ico-plus',
-          pageCodes: ['EQR_PROJ_CREATE_REQUEST', 'EQR_CUST_CREATE_REQ'], status: 'new',
+          pageCodes: ['EQR_PROJ_CREATE_REQUEST'], status: 'new',
           route: { flow: 'request', page: 'new-request' },
           old: { flow: 'customer-portal', page: 'project-create-request' }, fdd: '7.5' },
         { id: 'my-requests', label: 'My requests', icon: 'oj-ux-ico-file-text',
-          pageCodes: ['EQR_EQUIPMENT_REQUESTS', 'EQR_CUST_MY_REQUESTS'], status: 'new',
+          pageCodes: ['EQR_EQUIPMENT_REQUESTS'], status: 'new',
           route: { flow: 'request', page: 'my-requests' }, pages: ['request-detail'],
           old: { flow: 'main', page: 'equipment-requests' }, fdd: '7.6' }
       ]
@@ -324,9 +324,13 @@ define([
   });
 
   // Every page code that is NOT customer-facing, for hasInternalPageAccess().
+  // Home (EQR_DASHBOARD) is left out: every role holds it, customers included,
+  // so counting it would make everyone "internal". The customer pages
+  // (EQR_CUST_*) are the Customers group's alone; the staff Request items no
+  // longer carry them, so a customer never sees staff screens.
   const INTERNAL_PAGE_CODES = [];
   NAV_GROUPS.forEach(function (g) {
-    if (g.key === 'external') { return; }
+    if (g.key === 'external' || g.key === 'home') { return; }
     g.items.forEach(function (it) {
       (it.pageCodes || []).forEach(function (c) {
         if (INTERNAL_PAGE_CODES.indexOf(c) === -1) { INTERNAL_PAGE_CODES.push(c); }
@@ -1416,6 +1420,16 @@ define([
     getRoleHomeTarget(flags, loaded, map, rbacLoaded) {
       if (!rbacLoaded || !map) {
         return this.getHomeTarget(flags, loaded);
+      }
+      // A customer (customer pages only) lands on the customer portal's home,
+      // before the Home check: customers may hold EQR_DASHBOARD too.
+      if (this.navVisible(map, rbacLoaded, 'EQR_CUST_DASHBOARD') && !this.hasInternalPageAccess(map, rbacLoaded)) {
+        const portal = NAV_ITEMS['customer-portal'];
+        const visible = this.visibleNavGroups(map, rbacLoaded, flags, loaded)
+          .some((g) => (g.items || []).some((it) => it.id === 'customer-portal'));
+        if (portal && visible) {
+          return routeFor(portal);
+        }
       }
       if (this.navVisible(map, rbacLoaded, 'EQR_DASHBOARD')) {
         return this.getHomeTarget(flags, loaded);

@@ -507,8 +507,15 @@ define([
                                        'EQR_CUST_DASHBOARD')
                      && !fns.hasInternalPageAccess($application.variables.pageAccessMap,
                                                    $application.variables.pageAccessLoaded))) {
-          // Customer-only user. New EquipRite has no customer portal yet, so
-          // Home says so and links to it in Old EquipRite instead of redirecting.
+          // Customer-only user: the customer portal's home (getRoleHomeTarget).
+          // When the portal is off (CUSTOMERS_MODULE_ENABLED), Home says so and
+          // links to Old EquipRite's portal instead.
+          const target = fns.getRoleHomeTarget($application.variables.featureFlags, $application.variables.flagsLoaded,
+            $application.variables.pageAccessMap, $application.variables.pageAccessLoaded);
+          if (target && target.flow === 'customer') {
+            await Actions.navigateToFlow(context, { flow: target.flow, page: target.page, target: 'parent' });
+            return;
+          }
           $page.variables.customerOnly = true;
           return;
         }

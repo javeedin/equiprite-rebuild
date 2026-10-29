@@ -69,8 +69,17 @@ T.section('menu: feature flags and page access');
 T.check('nothing shows before page access loads', app.visibleNavGroups(ALL, false, FLAGS, true, {}).length === 0);
 const pm = app.visibleNavGroups({ EQR_DASHBOARD: 'FULL', EQR_PROJ_CREATE_REQUEST: 'FULL', EQR_EQUIPMENT_REQUESTS: 'READ_ONLY' }, true, FLAGS, true, {});
 T.eq('a requestor sees Home and the request group only', ids(pm).join(','), 'home,new-request,my-requests');
-const cust = app.visibleNavGroups({ EQR_CUST_CREATE_REQ: 'FULL' }, true, FLAGS, true, {});
-T.eq('an item opens for ANY of its page codes (customer create)', ids(cust).join(','), 'new-request');
+const reportsOnly = app.visibleNavGroups({ EQR_REPORTS: 'READ_ONLY' }, true, FLAGS, true, {});
+T.eq('an item opens for ANY of its page codes (reports-only role: Analytics)', ids(reportsOnly).join(','), 'analytics');
+const CUSTOMER = { EQR_DASHBOARD: 'FULL', EQR_CUST_DASHBOARD: 'FULL', EQR_CUST_CREATE_REQ: 'FULL', EQR_CUST_MY_REQUESTS: 'FULL' };
+T.eq('a customer sees the customer portal only, never staff request screens',
+  ids(app.visibleNavGroups(CUSTOMER, true, FLAGS, true, {})).join(','), 'home,customer-portal');
+T.eq('a customer is not "internal", even holding Home', app.hasInternalPageAccess(CUSTOMER, true), false);
+T.eq('a customer lands on the customer portal home', JSON.stringify(app.getRoleHomeTarget(FLAGS, true, CUSTOMER, true)),
+  JSON.stringify(app.getNavRoute('customer-portal')));
+T.eq('... unless the customers module is off', app.getRoleHomeTarget(Object.assign({}, FLAGS, { CUSTOMERS_MODULE_ENABLED: 'false' }), true, CUSTOMER, true).page, 'home');
+T.eq('staff holding a customer page as well still land on Home',
+  app.getRoleHomeTarget(FLAGS, true, Object.assign({ EQR_WORKBENCH: 'FULL' }, CUSTOMER), true).page, 'home');
 const noTs = app.visibleNavGroups(ALL, true, Object.assign({}, FLAGS, { TIMESHEETS_ENABLED: 'false' }), true, {});
 T.check('timesheets off hides time entry and approval, keeps post costs',
   !ids(noTs).includes('time-entry') && !ids(noTs).includes('timesheet-approval') && ids(noTs).includes('post-costs'));
