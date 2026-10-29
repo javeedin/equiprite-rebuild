@@ -1,1 +1,160 @@
 /* New EquipRite, Fulfil: workbench, approve and allocate, schedule, picking, inspection, receipt and returns, transfers. Shared pieces (band, cards, chips, grids, fields) are in equiprite.css. */
+
+/* ── Picking and receipt ── */
+/* Initiate picking (flows/logistics/pages/picking-page) and Receipt & returns (receipt-page): a queue, then the
+   open request's workspace below it. er-lg-* is shared by both pages, er-pk-* picking only, er-rc-* receipt only,
+   er-dr-* the Direct Return dialog. */
+
+.er-lg-howto {
+  margin: 0; padding: 10px 14px; border: 1px dashed #94a3b8; border-radius: 8px; background: #fff;
+  font-size: 14px; line-height: 1.5; color: var(--er-muted);
+}
+.er-lg-howto strong { color: var(--er-ink); }
+.er-rc-site { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.er-lg-section-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 12px; }
+.er-lg-push { margin-left: auto; }
+
+/* Queue: a div grid (role=table) with a sticky head; long queues scroll inside the card. */
+.er-lg-queue-wrap { max-height: 460px; overflow: auto; border-top: 0; }
+.er-lg-queue { font-size: 14px; }
+.er-pk-queue { min-width: 1000px; }
+.er-rc-queue { min-width: 900px; }
+.er-lg-qrow { display: grid; gap: 0 12px; align-items: center; padding: 9px 14px; border-bottom: 1px solid var(--er-line); }
+.er-pk-queue .er-lg-qrow {
+  grid-template-columns: minmax(120px, .9fr) minmax(200px, 2fr) minmax(120px, 1fr) 52px 64px 64px 92px minmax(160px, 1.1fr) 84px;
+}
+.er-rc-queue .er-lg-qrow {
+  grid-template-columns: minmax(120px, .9fr) minmax(200px, 2fr) minmax(120px, 1fr) minmax(110px, .9fr) minmax(150px, 1fr) minmax(160px, 1.1fr) 96px;
+}
+.er-lg-qhead {
+  position: sticky; top: 0; z-index: 1; background: var(--er-bg);
+  font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--er-muted); font-weight: 600;
+}
+.er-lg-queue .er-lg-qrow:not(.er-lg-qhead):hover { background: #f8fbfd; }
+.er-lg-qrow--on, .er-lg-queue .er-lg-qrow--on:hover { background: #e0ecf2; box-shadow: inset 4px 0 0 var(--er-band); }
+.er-lg-link {
+  border: 0; background: transparent; padding: 0; font: inherit; font-weight: 700; color: var(--er-accent);
+  text-decoration: underline; text-underline-offset: 2px; cursor: pointer; text-align: left;
+}
+.er-lg-link:focus-visible, .er-lg-open:focus-visible { outline: 2px solid var(--er-band); outline-offset: 2px; }
+.er-lg-open { height: 32px; padding: 0 12px; justify-content: center; }
+.er-lg-late { color: #b91c1c; font-weight: 600; }
+
+.er-lg-empty { display: flex; flex-direction: column; gap: 4px; border-style: dashed; }
+
+/* Workspace: the open request. */
+.er-lg-work { scroll-margin-top: calc(var(--er-header-h) + 12px); padding-bottom: 4px; }
+.er-lg-work-head {
+  display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 12px;
+  padding: 16px; border-bottom: 1px solid var(--er-line);
+}
+.er-lg-work-title { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.er-lg-work-title .er-section-title { font-size: 20px; }
+.er-lg-title-pill { margin-left: 8px; vertical-align: middle; }
+.er-lg-facts { margin: 4px 0 0; display: flex; flex-wrap: wrap; gap: 6px 24px; font-size: 14px; }
+.er-lg-facts div { display: flex; flex-direction: column; }
+.er-lg-facts dt { font-size: 12px; color: var(--er-muted); }
+.er-lg-facts dd { margin: 0; font-weight: 600; }
+
+/* The steps with their line counts. */
+.er-lg-steps {
+  list-style: none; margin: 0; padding: 14px 16px 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px;
+}
+.er-lg-steps--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.er-lg-step {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--er-line); border-radius: 8px;
+  background: #fff; font-size: 14px;
+}
+.er-lg-step > span:last-child { display: flex; flex-direction: column; min-width: 0; }
+.er-lg-step-n {
+  flex: 0 0 auto; min-width: 30px; height: 30px; padding: 0 6px; box-sizing: border-box; border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center; background: var(--er-line); color: var(--er-ink);
+  font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.er-lg-step--current { border-color: var(--er-band); background: #f0f7fb; }
+.er-lg-step--current .er-lg-step-n { background: var(--er-band); color: #fff; }
+.er-lg-step--done .er-lg-step-n { background: #16a34a; }
+@media (max-width: 760px) { .er-lg-steps, .er-lg-steps--4 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+
+.er-lg-banner { margin: 14px 16px 0; padding: 10px 14px; border-radius: 8px; border: 1px solid; font-size: 14px; line-height: 1.45; }
+.er-lg-banner--confirmation { background: #ecfdf5; border-color: #a7f3d0; color: #065f46; }
+.er-lg-banner--warning { background: #fffbeb; border-color: #fcd34d; color: #78350f; }
+.er-lg-banner--error { background: #fef2f2; border-color: #fecaca; color: #7f1d1d; }
+.er-lg-banner--info { background: var(--er-bg); border-color: var(--er-line); border-style: dashed; color: var(--er-muted); }
+
+/* The action bar: what the click will do, next to the buttons. */
+.er-lg-actionbar {
+  display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px;
+  margin: 14px 16px 0; padding: 12px 14px; border-radius: 8px; background: var(--er-bg); border: 1px solid var(--er-line);
+}
+.er-lg-scope { flex: 1 1 280px; font-size: 14px; color: var(--er-muted); align-self: center; }
+.er-lg-scope strong { color: var(--er-ink); }
+.er-lg-scope-ship { display: block; margin-top: 2px; }
+.er-lg-busy { align-self: center; }
+.er-rc-date { flex: 0 0 190px; }
+
+/* Exceptions: a line whose allocated unit cannot be picked. */
+.er-lg-exc { margin: 14px 16px 0; padding: 12px 14px; border: 1px solid #fecaca; border-radius: 8px; background: #fff; }
+.er-lg-exc-title { margin: 0 0 8px; font-size: 16px; color: #7f1d1d; }
+.er-lg-exc-row {
+  display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px;
+  padding: 10px 12px; margin-bottom: 8px; border: 1px solid #fde68a; border-left-width: 4px; border-radius: 6px; background: #fffbeb;
+}
+.er-lg-exc-row--critical { border-color: #fecaca; background: #fef2f2; }
+.er-lg-exc-issue { font-size: 14px; color: #b91c1c; }
+.er-lg-exc .er-note { margin: 0; }
+
+/* Lines. */
+.er-lg-work .er-table-wrap { margin-top: 14px; }
+.er-lg-lines { font-size: 14px; }
+.er-pk-lines { min-width: 940px; }
+.er-rc-lines { min-width: 730px; }
+.er-dr-grid { min-width: 1040px; }
+.er-lg-lrow { display: grid; gap: 0 12px; align-items: center; padding: 9px 14px; border-bottom: 1px solid var(--er-line); }
+.er-pk-lines .er-lg-lrow {
+  grid-template-columns: 36px minmax(200px, 2fr) 44px minmax(120px, 1.1fr) minmax(170px, 1.4fr) minmax(110px, .9fr) minmax(160px, 1fr);
+}
+.er-rc-lines .er-lg-lrow {
+  grid-template-columns: 36px minmax(190px, 2.2fr) 40px minmax(110px, 1.2fr) minmax(120px, 1fr) minmax(150px, 1fr);
+}
+.er-dr-grid .er-lg-lrow {
+  grid-template-columns: 36px minmax(130px, 1fr) minmax(180px, 1.6fr) minmax(130px, 1fr) minmax(150px, 1.2fr) minmax(150px, 1fr) 100px minmax(110px, .9fr);
+}
+.er-lg-lrow input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: var(--er-band); }
+.er-lg-lrow input[type="checkbox"]:disabled { cursor: not-allowed; }
+.er-lg-lrow--exc { box-shadow: inset 4px 0 0 #dc2626; }
+.er-lg-lrow--off { color: #94a3b8; }
+.er-lg-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; overflow-wrap: anywhere; }
+.er-lg-tag {
+  display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: 4px; border: 1px solid #cbd5e1;
+  font-size: 11px; font-weight: 700; letter-spacing: .02em; color: var(--er-muted); background: #fff;
+}
+.er-lg-flag { display: block; margin-top: 2px; font-size: 13px; color: #b45309; font-weight: 600; }
+.er-lg-foot { margin: 0; }
+
+.er-lg-stage { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; background: #f1f5f9; color: #334155; }
+.er-lg-stage--release { background: #fef3c7; color: #92400e; }
+.er-lg-stage--picking { background: #e0f2fe; color: #075985; }
+.er-lg-stage--shipped, .er-lg-stage--ready { background: #d1fae5; color: #065f46; }
+.er-lg-stage--transit { background: #ede9fe; color: #5b21b6; }
+.er-lg-stage--closed { background: #dcfce7; color: #166534; }
+
+/* Pick slip preview. */
+.er-pk-slip { width: 100%; height: 70vh; border: 1px solid var(--er-line); background: #fff; }
+
+/* Direct Return dialog. */
+.er-dr { display: flex; flex-direction: column; gap: 10px; }
+.er-dr-intro, .er-dr-nocam, .er-dr-summary, .er-dr-empty { margin: 0; }
+.er-dr-search { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.er-dr-query { flex: 1 1 320px; min-width: 0; }
+.er-dr-cam { border: 1px solid var(--er-line); border-radius: 8px; overflow: hidden; background: #000; }
+.er-dr-cam-view { position: relative; }
+.er-dr-cam-view video { width: 100%; max-height: 38vh; display: block; object-fit: cover; background: #000; }
+/* Aiming guide: the middle band the serial-plate reader crops to, so what is lined up is what is read. */
+.er-dr-aim {
+  position: absolute; left: 8%; right: 8%; top: 32.5%; height: 35%; border: 2px solid rgba(255, 255, 255, .85); border-radius: 4px;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, .28); pointer-events: none;
+}
+.er-dr-cam-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 10px; background: #f1f5f9; }
+.er-dr-cam-status { flex: 1 1 200px; font-size: 14px; color: var(--er-muted); }
+.er-dr-results { max-height: 46vh; overflow: auto; border: 1px solid var(--er-line); border-radius: 8px; }

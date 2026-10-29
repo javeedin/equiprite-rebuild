@@ -1,0 +1,357 @@
+<!-- Initiate picking (wireframe: Initiate picking). The queue, then the open request's picking workspace below it
+     (the old page's modal, on the page). Chains: picking-page-chains (the release, ship, refresh and pick slip ones
+     are the old page's, unchanged); helpers: picking-page.js. -->
+<div class="er-band">
+  <div class="er-band-inner">
+    <div>
+      <div class="er-band-kicker">Fulfil · FDD 7.16</div>
+      <h1>Initiate picking</h1>
+      <div class="er-band-sub">
+        <oj-bind-text value="[[ $variables.isLoading ? 'Loading the queue…'
+          : ($variables.PickingQueueAllArray.length === 1 ? '1 request ready to pick'
+             : $variables.PickingQueueAllArray.length + ' requests ready to pick')
+            + ' · release sends the transfer order to Fusion to reserve and pick-release' ]]"></oj-bind-text>
+      </div>
+    </div>
+    <div class="er-actions">
+      <oj-bind-if test="[[ $application.functions.oldAppLink($application.variables.oldAppUrl, 'picking') ]]">
+        <a class="er-btn er-btn--ghost" title="Today's Initiate Picking page, for comparison"
+          :href="[[ $application.functions.oldAppLink($application.variables.oldAppUrl, 'picking') ]]">Old version</a>
+      </oj-bind-if>
+      <button type="button" class="er-btn er-btn--primary" :disabled="[[ $variables.isLoading ]]"
+        on-click="[[ $listeners.onRefreshQueue ]]">Refresh queue</button>
+    </div>
+  </div>
+  <div class="er-strip" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+</div>
+
+<div class="er-page">
+  <p class="er-lg-howto">
+    <strong>How picking runs here:</strong> tick the lines and <strong>Release for picking</strong>: their transfer
+    orders go to Fusion, which reserves the stock and pick-releases them, and the lines wait at Pick initiated.
+    Once the warehouse has picked them, <strong>Pick and ship</strong> moves them to Shipped to site.
+    Transfer orders are created when the request is confirmed on the Workbench.
+  </p>
+
+  <div class="er-filters">
+    <label class="er-search">
+      <span class="oj-ux-ico-search" aria-hidden="true"></span>
+      <span class="er-sr">Search the queue</span>
+      <input type="search" placeholder="Request, project, customer or requestor" on-input="[[ $listeners.onSearchInput ]]">
+    </label>
+    <div class="er-chip-row" role="group" aria-label="Show">
+      <oj-bind-for-each data="[[ $functions.queueChips($variables.PickingQueueAllArray) ]]">
+        <template data-oj-as="chip">
+          <button type="button" :data-chip="[[ chip.data.key ]]" on-click="[[ $listeners.onChip ]]"
+            :class="[[ 'er-chip' + ($variables.queueChip === chip.data.key ? ' er-chip--on' : '') ]]"
+            :aria-pressed="[[ $variables.queueChip === chip.data.key ? 'true' : 'false' ]]">
+            <oj-bind-text value="[[ chip.data.label ]]"></oj-bind-text>
+            <span class="er-chip-count"><oj-bind-text value="[[ chip.data.count ]]"></oj-bind-text></span>
+          </button>
+        </template>
+      </oj-bind-for-each>
+    </div>
+  </div>
+
+  <oj-bind-if test="[[ !!$variables.fetchError ]]">
+    <div class="er-error" role="alert"><oj-bind-text value="[[ $variables.fetchError ]]"></oj-bind-text></div>
+  </oj-bind-if>
+
+  <!-- ── Queue ─────────────────────────────────────────────────────────────────────────────────────────── -->
+  <section class="er-card" aria-labelledby="pkQueueTitle">
+    <h2 class="er-sr" id="pkQueueTitle">Requests ready to pick</h2>
+    <div class="er-table-wrap er-lg-queue-wrap">
+      <div class="er-lg-queue er-pk-queue" role="table" aria-labelledby="pkQueueTitle">
+        <div class="er-lg-qrow er-lg-qhead" role="row">
+          <span role="columnheader">Request</span><span role="columnheader">Project / task</span>
+          <span role="columnheader">Requestor</span><span role="columnheader" class="er-num">Lines</span>
+          <span role="columnheader">Start</span><span role="columnheader">End</span>
+          <span role="columnheader" class="er-num">Est. cost</span><span role="columnheader">Status</span>
+          <span role="columnheader"><span class="er-sr">Action</span></span>
+        </div>
+        <oj-bind-for-each data="[[ $functions.queueRows($variables.PickingQueueAllArray, $variables.queueText, $variables.queueChip) ]]">
+          <template data-oj-as="row">
+            <div role="row" :class="[[ 'er-lg-qrow' + ($variables.selectedRequest.id === row.data.id ? ' er-lg-qrow--on' : '') ]]">
+              <span role="cell">
+                <button type="button" class="er-lg-link" :data-id="[[ row.data.id ]]" on-click="[[ $listeners.onOpenRequest ]]">
+                  <oj-bind-text value="[[ row.data.requestNumber || row.data.id ]]"></oj-bind-text>
+                </button>
+              </span>
+              <span role="cell">
+                <span class="er-cell-main"><oj-bind-text value="[[ row.data.project || '—' ]]"></oj-bind-text></span>
+                <span class="er-note"><oj-bind-text value="[[ row.data.isCustomer ? 'Customer' : (row.data.taskName || 'Project') ]]"></oj-bind-text></span>
+              </span>
+              <span role="cell"><oj-bind-text value="[[ row.data.requestor || '—' ]]"></oj-bind-text></span>
+              <span role="cell" class="er-num"><oj-bind-text value="[[ row.data.totalLines == null ? '—' : row.data.totalLines ]]"></oj-bind-text></span>
+              <span role="cell"><oj-bind-text value="[[ $functions.day(row.data.neededByDate) || '—' ]]"></oj-bind-text></span>
+              <span role="cell"><oj-bind-text value="[[ $functions.day(row.data.endDate) || '—' ]]"></oj-bind-text></span>
+              <span role="cell" class="er-num"><oj-bind-text value="[[ $functions.money(row.data.totalEstCost) || '—' ]]"></oj-bind-text></span>
+              <span role="cell">
+                <oj-bind-if test="[[ !!row.data.status ]]">
+                  <span :class="[[ $application.functions.statusPillClass(row.data.status) ]]">
+                    <oj-bind-text value="[[ $application.functions.formatLineStatus(row.data.status) ]]"></oj-bind-text>
+                  </span>
+                </oj-bind-if>
+              </span>
+              <span role="cell">
+                <button type="button" class="er-btn er-btn--plain er-lg-open" :data-id="[[ row.data.id ]]"
+                  :aria-label="[[ 'Pick ' + row.data.requestNumber ]]" on-click="[[ $listeners.onOpenRequest ]]">
+                  <oj-bind-text value="[[ $variables.selectedRequest.id === row.data.id ? 'Open' : 'Pick' ]]"></oj-bind-text>
+                </button>
+              </span>
+            </div>
+          </template>
+        </oj-bind-for-each>
+      </div>
+      <oj-bind-if test="[[ $variables.isLoading ]]">
+        <div class="er-card-pad er-muted">Loading the picking queue…</div>
+      </oj-bind-if>
+      <oj-bind-if test="[[ !$variables.isLoading && !$variables.fetchError
+                           && !$functions.queueRows($variables.PickingQueueAllArray, $variables.queueText, $variables.queueChip).length ]]">
+        <div class="er-card-pad er-muted">
+          <oj-bind-text value="[[ $variables.PickingQueueAllArray.length
+            ? 'No request matches. Clear the search or pick another chip.'
+            : 'Nothing is waiting to be picked. Requests appear here once they are confirmed on the Workbench.' ]]"></oj-bind-text>
+        </div>
+      </oj-bind-if>
+    </div>
+  </section>
+
+  <!-- ── Workspace: the open request ──────────────────────────────────────────────────────────────────── -->
+  <oj-bind-if test="[[ !$variables.selectedRequest.id ]]">
+    <div class="er-card er-card-pad er-lg-empty">
+      <strong>Open a request to pick it.</strong>
+      <span class="er-muted">Its lines show here with where each one sits in the yard, ready to release and ship.</span>
+    </div>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ !!$variables.selectedRequest.id ]]">
+    <section id="pickWorkspace" class="er-card er-lg-work" aria-labelledby="pkWorkTitle">
+      <div class="er-lg-work-head">
+        <div class="er-lg-work-title">
+          <div class="er-note">
+            <oj-bind-text value="[[ $variables.selectedRequest.isCustomer ? 'Customer request' : 'Project request' ]]"></oj-bind-text>
+          </div>
+          <h2 class="er-section-title" id="pkWorkTitle">
+            <oj-bind-text value="[[ $variables.selectedRequest.requestNumber || $variables.selectedRequest.id ]]"></oj-bind-text>
+            <oj-bind-if test="[[ !!$variables.selectedRequest.status ]]">
+              <span :class="[[ $application.functions.statusPillClass($variables.selectedRequest.status) + ' er-lg-title-pill' ]]">
+                <oj-bind-text value="[[ $application.functions.formatLineStatus($variables.selectedRequest.status) ]]"></oj-bind-text>
+              </span>
+            </oj-bind-if>
+          </h2>
+          <dl class="er-lg-facts">
+            <div><dt><oj-bind-text value="[[ $variables.selectedRequest.isCustomer ? 'Customer' : 'Project' ]]"></oj-bind-text></dt>
+              <dd><oj-bind-text value="[[ ($variables.selectedRequest.project || '—') + ($variables.selectedRequest.taskName ? ' · ' + $variables.selectedRequest.taskName : '') ]]"></oj-bind-text></dd></div>
+            <div><dt><oj-bind-text value="[[ $variables.selectedRequest.isCustomer ? 'Contact' : 'Requestor' ]]"></oj-bind-text></dt>
+              <dd><oj-bind-text value="[[ $variables.selectedRequest.requestor || '—' ]]"></oj-bind-text></dd></div>
+            <div><dt>Needed by</dt><dd><oj-bind-text value="[[ $functions.day($variables.selectedRequest.neededByDate) || '—' ]]"></oj-bind-text></dd></div>
+            <div><dt>From yard</dt><dd><oj-bind-text value="[[ $functions.yards($variables.selectedRequest.lines) || '—' ]]"></oj-bind-text></dd></div>
+          </dl>
+        </div>
+        <div class="er-actions">
+          <oj-bind-if test="[[ $application.functions.isFeatureEnabled($application.variables.featureFlags, $application.variables.flagsLoaded, 'SHIPPING_DOCUMENTS_ENABLED')
+                               && !!$variables.pickSlipUrl && $functions.canPrintPickSlip($variables.selectedRequest.lines) ]]">
+            <button type="button" class="er-btn er-btn--plain" title="Pick slip, ordered by subinventory and locator"
+              on-click="[[ $listeners.onOpenPickSlipPreview ]]">
+              <span class="oj-ux-ico-print" aria-hidden="true"></span>Pick slip
+            </button>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.selectedRequestTOs.length > 0 ]]">
+            <button type="button" class="er-btn er-btn--plain" title="Re-read transfer orders and lines"
+              :disabled="[[ $variables.isReleasingTO || $variables.isRefreshingDrawer || $variables.isShipConfirming ]]"
+              on-click="[[ $listeners.onRefreshDrawer ]]">Refresh</button>
+          </oj-bind-if>
+          <button type="button" class="er-btn er-btn--plain"
+            :disabled="[[ $variables.isReleasingTO || $variables.isRefreshingDrawer || $variables.isShipConfirming ]]"
+            on-click="[[ $listeners.onNextRequest ]]">Next request ›</button>
+          <button type="button" class="er-btn er-btn--plain" on-click="[[ $listeners.onCloseRequest ]]">Close</button>
+        </div>
+      </div>
+
+      <!-- The three steps with how many lines are at each: what the next click is for. -->
+      <ol class="er-lg-steps" aria-label="Picking steps">
+        <li :class="[[ 'er-lg-step' + ($functions.currentStage($variables.selectedRequest.lines) === 'release' ? ' er-lg-step--current' : '') ]]">
+          <span class="er-lg-step-n" aria-hidden="true">1</span>
+          <span><strong>Release for picking</strong>
+            <span class="er-note"><oj-bind-text value="[[ $functions.stageCounts($variables.selectedRequest.lines).release + ' waiting for release' ]]"></oj-bind-text></span></span>
+        </li>
+        <li :class="[[ 'er-lg-step' + ($functions.currentStage($variables.selectedRequest.lines) === 'picking' ? ' er-lg-step--current' : '') ]]">
+          <span class="er-lg-step-n" aria-hidden="true">2</span>
+          <span><strong>Pick in the yard</strong>
+            <span class="er-note"><oj-bind-text value="[[ $functions.stageCounts($variables.selectedRequest.lines).picking + ' at Pick initiated' ]]"></oj-bind-text></span></span>
+        </li>
+        <li :class="[[ 'er-lg-step' + ($functions.currentStage($variables.selectedRequest.lines) === 'shipped' ? ' er-lg-step--current er-lg-step--done' : '') ]]">
+          <span class="er-lg-step-n" aria-hidden="true">3</span>
+          <span><strong>Pick and ship</strong>
+            <span class="er-note"><oj-bind-text value="[[ $functions.stageCounts($variables.selectedRequest.lines).shipped + ' shipped to site' ]]"></oj-bind-text></span></span>
+        </li>
+      </ol>
+
+      <oj-bind-if test="[[ !!$variables.releaseMessage ]]">
+        <div :class="[[ 'er-lg-banner er-lg-banner--' + $variables.releaseMessageType ]]" role="status">
+          <oj-bind-text value="[[ $variables.releaseMessage ]]"></oj-bind-text>
+        </div>
+      </oj-bind-if>
+
+      <!-- Release panel: when the request has transfer orders or fixed-asset lines (old page's rule). -->
+      <oj-bind-if test="[[ $variables.selectedRequestTOs.length > 0 || $functions.hasFAndMLines($variables.selectedRequest.lines) ]]">
+        <div class="er-lg-actionbar">
+          <div class="er-lg-scope">
+            <oj-bind-if test="[[ $variables.selectedRequestTOs.length > 0
+                                 && !!$functions.releasableTONumbers($variables.selectedRequestTOs, $variables.selectionTick, $variables.selectedRequest.lines) ]]">
+              <span>Release for picking will release
+                <strong><oj-bind-text value="[[ $functions.releasableTONumbers($variables.selectedRequestTOs, $variables.selectionTick, $variables.selectedRequest.lines) ]]"></oj-bind-text></strong>
+                and every line on it.</span>
+            </oj-bind-if>
+            <oj-bind-if test="[[ $variables.selectedRequestTOs.length > 0 && $functions.unreleasedTOCount($variables.selectedRequestTOs) === 0 ]]">
+              <span>All transfer orders for this request have been released.</span>
+            </oj-bind-if>
+            <oj-bind-if test="[[ $variables.selectedRequestTOs.length > 0 && $functions.unreleasedTOCount($variables.selectedRequestTOs) > 0
+                                 && !$functions.releasableTONumbers($variables.selectedRequestTOs, $variables.selectionTick, $variables.selectedRequest.lines) ]]">
+              <span>Tick the lines you want to release; their transfer orders are released together.</span>
+            </oj-bind-if>
+            <oj-bind-if test="[[ $variables.selectedRequestTOs.length === 0 ]]">
+              <span>Fixed-asset lines have no transfer order: tick them to release and ship them.</span>
+            </oj-bind-if>
+            <oj-bind-if test="[[ $functions.canShipSelectedTO($variables.selectedRequestTOs, $variables.selectedTOId, $variables.selectedRequest.lines, $variables.selectionTick) ]]">
+              <span class="er-lg-scope-ship">Pick and ship will move
+                <strong><oj-bind-text value="[[ $functions.shipCount($variables.selectedRequestTOs, $variables.selectedTOId, $variables.selectedRequest.lines, $variables.selectionTick)
+                  + ($functions.shipCount($variables.selectedRequestTOs, $variables.selectedTOId, $variables.selectedRequest.lines, $variables.selectionTick) === 1 ? ' line' : ' lines') ]]"></oj-bind-text></strong>
+                at Pick initiated to Shipped to site.</span>
+            </oj-bind-if>
+          </div>
+          <div class="er-actions">
+            <oj-bind-if test="[[ $variables.isReleasingTO ]]"><span class="er-note er-lg-busy">Releasing…</span></oj-bind-if>
+            <oj-bind-if test="[[ $variables.isRefreshingDrawer ]]"><span class="er-note er-lg-busy">Refreshing…</span></oj-bind-if>
+            <oj-bind-if test="[[ $variables.isShipConfirming ]]"><span class="er-note er-lg-busy">Ship confirming…</span></oj-bind-if>
+            <oj-bind-if test="[[ $variables.isPrintingPickSlip ]]"><span class="er-note er-lg-busy">Generating pick slip…</span></oj-bind-if>
+            <button type="button" id="pkRelease" title="Release the ticked lines, and their transfer orders, for picking"
+              :class="[[ 'er-btn ' + ($functions.nextAction($variables.selectedRequestTOs, $variables.selectedTOId, $variables.selectedRequest.lines, $variables.selectionTick) === 'release' ? 'er-btn--dark' : 'er-btn--plain') ]]"
+              :disabled="[[ $variables.isReleasingTO || $variables.isRefreshingDrawer || $variables.isShipConfirming
+                            || !$functions.canReleaseSelectedTO($variables.selectedRequestTOs, $variables.selectedTOId, $variables.selectionTick, $variables.selectedRequest.lines) ]]"
+              on-click="[[ $listeners.onReleaseTO ]]">Release for picking</button>
+            <button type="button" id="pkShip" title="Move the ticked lines at Pick initiated to Shipped to site"
+              :class="[[ 'er-btn ' + ($functions.nextAction($variables.selectedRequestTOs, $variables.selectedTOId, $variables.selectedRequest.lines, $variables.selectionTick) === 'ship' ? 'er-btn--dark' : 'er-btn--plain') ]]"
+              :disabled="[[ $variables.isReleasingTO || $variables.isRefreshingDrawer || $variables.isShipConfirming
+                            || !$functions.canShipSelectedTO($variables.selectedRequestTOs, $variables.selectedTOId, $variables.selectedRequest.lines, $variables.selectionTick) ]]"
+              on-click="[[ $listeners.onShipConfirmStuck ]]">Pick and ship</button>
+          </div>
+        </div>
+      </oj-bind-if>
+      <oj-bind-if test="[[ !$variables.isLoadingDrawer && $variables.selectedRequestTOs.length === 0
+                           && !$functions.hasFAndMLines($variables.selectedRequest.lines) ]]">
+        <div class="er-lg-banner er-lg-banner--info">
+          No transfer order on this request yet. Confirm the request on the Workbench to create one.
+        </div>
+      </oj-bind-if>
+
+      <!-- Exceptions: an allocated serial that is damaged, expired or retired. -->
+      <oj-bind-if test="[[ ($variables.selectedRequest.pickingExceptions || []).length > 0 ]]">
+        <div class="er-lg-exc" role="alert">
+          <h3 class="er-lg-exc-title">
+            <oj-bind-text value="[[ $variables.selectedRequest.pickingExceptions.length === 1 ? '1 line cannot be picked as allocated'
+              : $variables.selectedRequest.pickingExceptions.length + ' lines cannot be picked as allocated' ]]"></oj-bind-text>
+          </h3>
+          <oj-bind-for-each data="[[ $variables.selectedRequest.pickingExceptions || [] ]]">
+            <template data-oj-as="exc">
+              <div :class="[[ 'er-lg-exc-row' + (exc.data.severity === 'CRITICAL' ? ' er-lg-exc-row--critical' : '') ]]">
+                <div>
+                  <strong><oj-bind-text value="[[ exc.data.equipmentName || ('Line ' + exc.data.lineId) ]]"></oj-bind-text></strong>
+                  <div class="er-lg-exc-issue"><oj-bind-text value="[[ exc.data.issue ]]"></oj-bind-text></div>
+                </div>
+                <oj-bind-if test="[[ !!$functions.oldLineLink($application.variables.oldAppUrl, $variables.selectedRequest, exc.data.lineId, $variables.selectedRequest.lines) ]]">
+                  <a class="er-btn er-btn--plain" title="Allocate another unit on this line in Old EquipRite"
+                    :href="[[ $functions.oldLineLink($application.variables.oldAppUrl, $variables.selectedRequest, exc.data.lineId, $variables.selectedRequest.lines) ]]">Re-allocate</a>
+                </oj-bind-if>
+              </div>
+            </template>
+          </oj-bind-for-each>
+          <p class="er-note">Re-allocating is done on the line in Old EquipRite. Then come back and Refresh.</p>
+        </div>
+      </oj-bind-if>
+
+      <!-- Lines: a div grid, not a <table> (the browser moves oj-bind-for-each out of <tbody>). -->
+      <oj-bind-if test="[[ $variables.isLoadingDrawer ]]">
+        <div class="er-card-pad er-muted">Loading lines and allocations…</div>
+      </oj-bind-if>
+      <oj-bind-if test="[[ !$variables.isLoadingDrawer && !($variables.selectedRequest.lines || []).length ]]">
+        <div class="er-card-pad er-muted">No line on this request is waiting to be picked or shipped.</div>
+      </oj-bind-if>
+      <oj-bind-if test="[[ ($variables.selectedRequest.lines || []).length > 0 ]]">
+        <div class="er-table-wrap">
+          <div class="er-lg-lines er-pk-lines" role="table" aria-label="Lines to pick">
+            <div class="er-lg-lrow er-lg-qhead" role="row">
+              <span role="columnheader" class="er-col-check">
+                <input type="checkbox" data-line-id="all" aria-label="Tick every line" on-change="[[ $listeners.onToggleLine ]]"
+                  :checked="[[ $variables.selectionTick >= 0 && $functions.isAllSelected($variables.selectedRequest.lines) ]]">
+              </span>
+              <span role="columnheader">Equipment</span><span role="columnheader" class="er-num">Qty</span>
+              <span role="columnheader">Serial</span><span role="columnheader">Pick from</span>
+              <span role="columnheader">Transfer order</span><span role="columnheader">Status</span>
+            </div>
+            <oj-bind-for-each data="[[ $functions.lineRows($variables.selectedRequest.lines) ]]">
+              <template data-oj-as="line">
+                <div role="row" :class="[[ 'er-lg-lrow' + ($variables.selectionTick >= 0 && $functions.isRowSelected(line.data.lineId) ? ' er-row--on' : '')
+                                          + (line.data.pickingStatus === 'EXCEPTION' ? ' er-lg-lrow--exc' : '') ]]">
+                  <span role="cell" class="er-col-check">
+                    <input type="checkbox" :data-line-id="[[ line.data.lineId ]]" on-change="[[ $listeners.onToggleLine ]]"
+                      :aria-label="[[ 'Tick ' + (line.data.equipmentName || ('line ' + line.data.lineId)) ]]"
+                      :checked="[[ $variables.selectionTick >= 0 && $functions.isRowSelected(line.data.lineId) ]]">
+                  </span>
+                  <span role="cell">
+                    <span class="er-cell-main"><oj-bind-text value="[[ line.data.equipmentName || ('Line ' + line.data.lineId) ]]"></oj-bind-text></span>
+                    <span class="er-note">
+                      <oj-bind-text value="[[ line.data.equipmentClass || '' ]]"></oj-bind-text>
+                      <oj-bind-if test="[[ line.data.isFAndM === true ]]">
+                        <span class="er-lg-tag" title="Fixed-asset / maintenance tracked: no transfer order">Fixed asset</span>
+                      </oj-bind-if>
+                    </span>
+                  </span>
+                  <span role="cell" class="er-num"><oj-bind-text value="[[ line.data.quantity ]]"></oj-bind-text></span>
+                  <span role="cell" class="er-lg-mono"><oj-bind-text value="[[ line.data.serialNumber || '—' ]]"></oj-bind-text></span>
+                  <span role="cell">
+                    <span class="er-cell-main"><oj-bind-text value="[[ line.data.yard || '—' ]]"></oj-bind-text></span>
+                    <span class="er-note"><oj-bind-text value="[[ $functions.whereText(line.data) ]]"></oj-bind-text></span>
+                  </span>
+                  <span role="cell">
+                    <oj-bind-text value="[[ line.data.toNumber || (line.data.isFAndM === true ? 'None needed' : '—') ]]"></oj-bind-text>
+                  </span>
+                  <span role="cell">
+                    <oj-bind-if test="[[ !!$functions.getLineStatusLabel(line.data.lineStatus) ]]">
+                      <span :class="[[ 'er-lg-stage er-lg-stage--' + $functions.stageOf(line.data.lineStatus) ]]">
+                        <oj-bind-text value="[[ $functions.getLineStatusLabel(line.data.lineStatus) ]]"></oj-bind-text>
+                      </span>
+                    </oj-bind-if>
+                  </span>
+                </div>
+              </template>
+            </oj-bind-for-each>
+          </div>
+        </div>
+      </oj-bind-if>
+    </section>
+  </oj-bind-if>
+</div>
+
+<!-- Pick slip preview: opened by PrintPickSlipChain / OpenPickSlipPreviewChain (same id as the old page). -->
+<oj-dialog id="pickSlipPreviewDialog" dialog-title="Pick slip" initial-visibility="hide" cancel-behavior="icon"
+  modality="modal" on-oj-close="[[ $listeners.onClosePickSlipPreview ]]" style="width: 900px; max-width: 96vw;">
+  <div slot="body">
+    <p class="er-note">
+      <oj-bind-text value="[[ $variables.pickSlipDocNumber + ($variables.selectedRequest.requestNumber ? ' · ' + $variables.selectedRequest.requestNumber : '')
+        + ' · ordered by subinventory and locator' ]]"></oj-bind-text>
+    </p>
+    <oj-bind-if test="[[ !!$variables.pickSlipUrl ]]">
+      <iframe :src="[[ $variables.pickSlipUrl ]]" title="Pick slip" class="er-pk-slip"></iframe>
+    </oj-bind-if>
+    <oj-bind-if test="[[ !$variables.pickSlipUrl ]]">
+      <p class="er-muted">No pick slip has been generated yet.</p>
+    </oj-bind-if>
+  </div>
+  <div slot="footer" class="er-actions">
+    <button type="button" class="er-btn er-btn--plain" :disabled="[[ !$variables.pickSlipUrl ]]" on-click="[[ $listeners.onDownloadPickSlip ]]">Download</button>
+    <button type="button" class="er-btn er-btn--dark" :disabled="[[ !$variables.pickSlipUrl ]]" on-click="[[ $listeners.onPrintPickSlip ]]">Print</button>
+    <button type="button" class="er-btn er-btn--plain" on-click="[[ $listeners.onClosePickSlipPreview ]]">Close</button>
+  </div>
+</oj-dialog>
