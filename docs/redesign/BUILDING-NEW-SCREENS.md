@@ -72,6 +72,13 @@ Shared classes worth knowing: `er-btn` + `--primary` (white, on the band) `--gho
   { flow, page, params, target: 'parent' })` to another flow.
 - Links into Old EquipRite need `vp/shell/<flow>/<page>` (the app-level `oldAppLink` does this).
 - Writes send `headers: cu.auditHeaders(context)` (`resources/js/currentUser.js`) where the old chain does.
+- `oj-input-text`'s `ojValueAction` never fires in this JET version (so Enter from a barcode gun did nothing in the
+  old Direct Return). Listen for the Enter `keydown` instead.
+- Never make a page module depend statically on a CDN library (jsPDF, Bryntum, Mapbox): when the CDN is
+  unreachable the whole page fails to load. Load it lazily when the feature is used (`require([...])` inside the
+  action), and give the page a readable fallback.
+- Each helper agent or developer builds and tests in their OWN checkout: `npm run build` in someone else's folder
+  wipes their build mid-test.
 
 ## Tests
 
