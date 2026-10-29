@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Integration health</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f8fafc}
+a{color:#1d4ed8}a:hover{color:#1e3a8a}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid #e5e7eb;font-size:14px;white-space:nowrap}
+th{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:#475569;font-weight:600;background:#f8fafc}
+</style>
+</helmet>
+<div style="font-family: 'Source Sans 3', system-ui, sans-serif; color: #111827; background: #f8fafc; font-variant-numeric: tabular-nums">
+  <dc-import name="AppHeader" hint-size="100%,64px"></dc-import>
+  <div style="display: flex; flex-wrap: wrap; align-items: stretch">
+    <div style="flex: 1 1 232px; background: #0b0f1a"><dc-import name="SideNav" active="integration-health" hint-size="100%,980px"></dc-import></div>
+    <main style="flex: 999 1 560px; min-width: 0">
+      <div style="background: #2e5468; color: #ffffff">
+        <div style="padding: 24px 32px 20px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px">
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <span style="font-size: 13px; color: #cfe0e8">FDD 9.4.1–9.4.3, 8 (INT-01–INT-20) · Redwood Dashboard Landing page</span>
+            <h1 style="margin: 0; font-size: 30px; font-weight: 700">Integration health</h1>
+            <span style="color: #e2edf2">17 healthy · 1 degraded · 1 down · checked 1 minute ago</span>
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap">
+            <button type="button" style="height: 40px; padding: 0 16px; border-radius: 6px; border: 1px solid #ffffff; background: transparent; color: #ffffff; font: inherit; font-weight: 600; cursor: pointer">Alert rules</button>
+            <button type="button" style="height: 40px; padding: 0 16px; border-radius: 6px; border: 0; background: #ffffff; color: #111827; font: inherit; font-weight: 700; cursor: pointer">Test all connections</button>
+          </div>
+        </div>
+        <div style="display: flex; height: 6px" aria-hidden="true"><div style="flex: 1; background: #c74634"></div><div style="flex: 1; background: #e5a22f"></div><div style="flex: 1; background: #6f9a3a"></div><div style="flex: 1; background: #2b8cbe"></div><div style="flex: 1; background: #6b4fa3"></div></div>
+      </div>
+
+      <div style="padding: 20px 32px 40px; display: flex; flex-direction: column; gap: 16px">
+        <div role="alert" style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; align-items: center; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 12px 14px; font-size: 14px; color: #7f1d1d">
+          <span><strong>INT-11 AR Invoice is down.</strong> Fusion returned 401 for the last 6 calls: the stored Fusion sign-in has expired. 4 invoices are waiting and will be retried automatically once it is fixed.</span>
+          <span style="display: flex; gap: 8px"><button type="button" style="height: 34px; padding: 0 12px; border-radius: 6px; border: 1px solid #fca5a5; background: #ffffff; font: inherit; cursor: pointer">Show calls</button><button type="button" style="height: 34px; padding: 0 12px; border-radius: 6px; border: 0; background: #111827; color: #ffffff; font: inherit; font-weight: 700; cursor: pointer">Update credential</button></span>
+        </div>
+
+        <section aria-label="Key figures" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr)); gap: 12px">
+          <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px 16px; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 13px; color: #475569">Success rate, 7 days</span><strong style="font-size: 26px">99.2%</strong><span style="font-size: 13px; color: #92400e">Target 99.5%</span></div>
+          <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px 16px; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 13px; color: #475569">Exceptions waiting</span><strong style="font-size: 26px">12</strong><span style="font-size: 13px; color: #475569">3 older than 48 h</span></div>
+          <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px 16px; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 13px; color: #475569">Dead letter queue</span><strong style="font-size: 26px">4</strong><span style="font-size: 13px; color: #166534">Under 10</span></div>
+          <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px 16px; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 13px; color: #475569">Time to resolve</span><strong style="font-size: 26px">3.1 h</strong><span style="font-size: 13px; color: #166534">Critical target 4 h</span></div>
+          <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px 16px; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 13px; color: #475569">Auto-retry success</span><strong style="font-size: 26px">88%</strong><span style="font-size: 13px; color: #166534">Target 85%</span></div>
+        </section>
+
+        <section style="display: flex; flex-direction: column; gap: 10px">
+          <h2 style="margin: 0; font-size: 18px">Integrations</h2>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 10px">
+            <div style="background: #ffffff; border: 1px solid #fecaca; border-left: 4px solid #dc2626; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 4px; font-size: 14px"><span style="display: flex; justify-content: space-between"><strong>INT-11 AR Invoice</strong><span style="color: #b91c1c; font-weight: 700">Down</span></span><span style="color: #475569; font-size: 13px">Last success 27 Oct 22:10 · 61% today</span></div>
+            <div style="background: #ffffff; border: 1px solid #fde68a; border-left: 4px solid #d97706; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 4px; font-size: 14px"><span style="display: flex; justify-content: space-between"><strong>INT-03 Serial availability</strong><span style="color: #92400e; font-weight: 700">Slow</span></span><span style="color: #475569; font-size: 13px">Avg 4.2 s (limit 3 s) · 100% ok</span></div>
+            <div style="background: #ffffff; border: 1px solid #e5e7eb; border-left: 4px solid #16a34a; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 4px; font-size: 14px"><span style="display: flex; justify-content: space-between"><strong>INT-01 Equipment sync</strong><span style="color: #166534; font-weight: 700">Healthy</span></span><span style="color: #475569; font-size: 13px">Last success 08:14 · 100%</span></div>
+            <div style="background: #ffffff; border: 1px solid #e5e7eb; border-left: 4px solid #16a34a; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 4px; font-size: 14px"><span style="display: flex; justify-content: space-between"><strong>INT-04 Transfer order</strong><span style="color: #166534; font-weight: 700">Healthy</span></span><span style="color: #475569; font-size: 13px">OIC · last success 09:02 · 100%</span></div>
+            <div style="background: #ffffff; border: 1px solid #e5e7eb; border-left: 4px solid #16a34a; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 4px; font-size: 14px"><span style="display: flex; justify-content: space-between"><strong>INT-08 Expense posting</strong><span style="color: #166534; font-weight: 700">Healthy</span></span><span style="color: #475569; font-size: 13px">Last success 07:40 · 99.6%</span></div>
+            <div style="background: #ffffff; border: 1px solid #e5e7eb; border-left: 4px solid #16a34a; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 4px; font-size: 14px"><span style="display: flex; justify-content: space-between"><strong>INT-15 Maintenance WOs</strong><span style="color: #166534; font-weight: 700">Healthy</span></span><span style="color: #475569; font-size: 13px">Every 15 min · next 09:30</span></div>
+            <a href="#" style="background: #ffffff; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 12px; display: flex; align-items: center; justify-content: center; font-size: 14px">Show all 20</a>
+          </div>
+        </section>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start">
+          <section style="flex: 3 1 480px; min-width: 0; display: flex; flex-direction: column; gap: 10px">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap"><h2 style="margin: 0; font-size: 18px">Exception queue</h2><button type="button" style="height: 34px; padding: 0 12px; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff; font: inherit; cursor: pointer">Reprocess 2 selected</button></div>
+            <div style="overflow-x: auto; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px">
+              <table style="border-collapse: collapse; width: 100%">
+                <thead><tr><th><input type="checkbox" aria-label="Select all"></th><th>When</th><th>Integration</th><th>Record</th><th>What went wrong</th><th>Tries</th><th>Age</th></tr></thead>
+                <tbody>
+                  <tr><td><input type="checkbox" aria-label="Select" checked></td><td>09:12</td><td>INT-11</td><td>REQ-10418</td><td style="white-space: normal">Fusion sign-in rejected (401)</td><td>3</td><td>12 min</td></tr>
+                  <tr><td><input type="checkbox" aria-label="Select" checked></td><td>Yesterday</td><td>INT-08</td><td>REQ-10392</td><td style="white-space: normal">Project 4.2 closed for charges</td><td>5</td><td style="color: #b91c1c; font-weight: 700">51 h</td></tr>
+                  <tr><td><input type="checkbox" aria-label="Select"></td><td>26 Oct</td><td>INT-05</td><td>TO-55120</td><td style="white-space: normal">Serial EX-2207 already reserved</td><td>DLQ</td><td style="color: #b91c1c; font-weight: 700">3 d</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+          <section style="flex: 2 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 10px">
+            <h2 style="margin: 0; font-size: 18px">Connections</h2>
+            <div style="overflow-x: auto; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px">
+              <table style="border-collapse: collapse; width: 100%">
+                <thead><tr><th>Service</th><th>Sign-in</th><th>Status</th><th></th></tr></thead>
+                <tbody>
+                  <tr><td>EquipRite REST</td><td>None</td><td style="color: #166534">OK · 180 ms</td><td><a href="#">Test</a></td></tr>
+                  <tr><td>Fusion REST</td><td>Fusion user</td><td style="color: #166534">OK · 640 ms</td><td><a href="#">Test</a></td></tr>
+                  <tr><td>BI Publisher</td><td>Fusion user</td><td style="color: #b91c1c">401</td><td><a href="#">Test</a></td></tr>
+                  <tr><td>Integration Cloud</td><td>OIC credential</td><td style="color: #166534">OK · 910 ms</td><td><a href="#">Test</a></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <span style="font-size: 13px; color: #475569">Same list as the desktop app's Web services page, so admins and developers look at one truth.</span>
+          </section>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

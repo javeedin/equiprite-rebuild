@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>New request: project and review</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f8fafc}
+a{color:#1d4ed8}a:hover{color:#1e3a8a}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid #e5e7eb;font-size:14px;white-space:nowrap}
+th{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:#475569;font-weight:600;background:#f8fafc}
+td input,td select{height:32px;border:1px solid #cbd5e1;border-radius:6px;padding:0 8px;font:inherit;font-size:14px}
+</style>
+</helmet>
+<div style="font-family: 'Source Sans 3', system-ui, sans-serif; color: #111827; background: #f8fafc; font-variant-numeric: tabular-nums">
+  <dc-import name="AppHeader" hint-size="100%,64px"></dc-import>
+  <div style="display: flex; flex-wrap: wrap; align-items: stretch">
+    <div style="flex: 1 1 232px; background: #0b0f1a"><dc-import name="SideNav" active="new-request" hint-size="100%,980px"></dc-import></div>
+    <main style="flex: 999 1 560px; min-width: 0">
+      <div style="background: #2e5468; color: #ffffff">
+        <div style="padding: 24px 32px 20px; display: flex; flex-direction: column; gap: 16px">
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <span style="font-size: 13px; color: #cfe0e8">FDD 7.5.2, 7.5.5, 7.5.7 · Redwood General Overview page</span>
+            <h1 style="margin: 0; font-size: 30px; font-weight: 700">New equipment request</h1>
+          </div>
+          <ol aria-label="Steps" style="margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 8px">
+            <li><a href="CartCatalog.dc.html" style="display: flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 999px; border: 1px solid #a8c3d0; color: #ffffff; text-decoration: none"><span style="width: 22px; height: 22px; border-radius: 999px; background: #6f9a3a; display: flex; align-items: center; justify-content: center; font-size: 13px" aria-label="done">✓</span>Equipment</a></li>
+            <li style="display: flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 999px; background: #ffffff; color: #111827; font-weight: 700"><span style="width: 22px; height: 22px; border-radius: 999px; background: #2e5468; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 13px">2</span>Project or customer</li>
+            <li style="display: flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 999px; background: #ffffff; color: #111827; font-weight: 700"><span style="width: 22px; height: 22px; border-radius: 999px; background: #2e5468; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 13px">3</span>Review &amp; submit</li>
+          </ol>
+        </div>
+        <div style="display: flex; height: 6px" aria-hidden="true"><div style="flex: 1; background: #c74634"></div><div style="flex: 1; background: #e5a22f"></div><div style="flex: 1; background: #6f9a3a"></div><div style="flex: 1; background: #2b8cbe"></div><div style="flex: 1; background: #6b4fa3"></div></div>
+      </div>
+
+      <div style="padding: 24px 32px 40px; display: flex; flex-direction: column; gap: 20px">
+        <section style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 14px">
+          <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; align-items: center">
+            <h2 style="margin: 0; font-size: 18px">Who it's for</h2>
+            <div role="group" aria-label="Request for" style="display: flex; border: 1px solid #cbd5e1; border-radius: 6px; overflow: hidden">
+              <button type="button" aria-pressed="true" style="height: 34px; padding: 0 14px; border: 0; background: #111827; color: #ffffff; font: inherit; font-weight: 600">Project</button>
+              <button type="button" aria-pressed="false" style="height: 34px; padding: 0 14px; border: 0; background: #ffffff; color: #111827; font: inherit">Customer</button>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 14px">
+            <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #475569">Project *<select style="height: 38px; padding: 0 10px; border: 1px solid #cbd5e1; border-radius: 6px; font: inherit; font-size: 15px; color: #111827"><option>PRJ-2026-001 Pipeline North</option></select></label>
+            <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #475569">Task * (default for all lines)<select style="height: 38px; padding: 0 10px; border: 1px solid #cbd5e1; border-radius: 6px; font: inherit; font-size: 15px; color: #111827"><option>2.1 Trenching</option></select></label>
+            <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #475569">Start date *<input value="04 Nov 2026" style="height: 38px; padding: 0 10px; border: 1px solid #cbd5e1; border-radius: 6px; font: inherit; font-size: 15px"></label>
+            <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #475569">End date *<input value="30 Nov 2026" style="height: 38px; padding: 0 10px; border: 1px solid #cbd5e1; border-radius: 6px; font: inherit; font-size: 15px"></label>
+            <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #475569">Site location *<select style="height: 38px; padding: 0 10px; border: 1px solid #cbd5e1; border-radius: 6px; font: inherit; font-size: 15px; color: #111827"><option>TEXAS.PRJ-2026-001</option></select></label>
+            <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #475569">Agreement<select style="height: 38px; padding: 0 10px; border: 1px solid #cbd5e1; border-radius: 6px; font: inherit; font-size: 15px; color: #111827"><option>None: standard rate schedules</option></select></label>
+          </div>
+          <span style="font-size: 13px; color: #475569">Site sub-inventory and locator come from the project's expenditure organization; change them only if the equipment goes to a different work area.</span>
+        </section>
+
+        <section style="display: flex; flex-direction: column; gap: 10px">
+          <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; align-items: center">
+            <h2 style="margin: 0; font-size: 18px">Review lines</h2>
+            <a href="CartCatalog.dc.html">Add more equipment</a>
+          </div>
+          <div role="alert" style="background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; border-radius: 8px; padding: 10px 14px; font-size: 14px">No active rate schedule found for <strong>Trench safety kit</strong> (class Safety &amp; consumables). Ask the Equipment Manager to set up rates, or remove the line, before submitting.</div>
+          <div style="overflow-x: auto; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px">
+            <table style="border-collapse: collapse; width: 100%">
+              <thead><tr><th>#</th><th>Equipment</th><th>Qty</th><th>Task</th><th>Start</th><th>End</th><th>Crew</th><th>Rate</th><th>Est. cost</th><th>Notes</th><th><span style="position: absolute; left: -9999px">Remove</span></th></tr></thead>
+              <tbody>
+                <tr><td>1</td><td><strong>CAT 320 Excavator</strong><br><span style="color: #475569; font-size: 13px">Excavators · Crawler</span></td><td><input aria-label="Quantity line 1" value="1" style="width: 52px"></td><td><select aria-label="Task line 1"><option>2.1 Trenching</option></select></td><td><input aria-label="Start line 1" value="04 Nov" style="width: 76px"></td><td><input aria-label="End line 1" value="30 Nov" style="width: 76px"></td><td><select aria-label="Crew line 1"><option>With operator</option></select></td><td>$1,400/day</td><td>$38,400</td><td><input aria-label="Notes line 1" placeholder="Add a note" style="width: 140px"></td><td><button type="button" aria-label="Remove line 1" style="border: 0; background: transparent; color: #b91c1c; cursor: pointer; font: inherit">Remove</button></td></tr>
+                <tr><td>2</td><td><strong>Dump Truck 30t</strong><br><span style="color: #475569; font-size: 13px">Trucks · Articulated</span></td><td><input aria-label="Quantity line 2" value="2" style="width: 52px"></td><td><select aria-label="Task line 2"><option>2.1 Trenching</option></select></td><td><input aria-label="Start line 2" value="04 Nov" style="width: 76px"></td><td><input aria-label="End line 2" value="30 Nov" style="width: 76px"></td><td><select aria-label="Crew line 2"><option>None</option></select></td><td>$800/day</td><td>$41,600</td><td><input aria-label="Notes line 2" placeholder="Add a note" style="width: 140px"></td><td><button type="button" aria-label="Remove line 2" style="border: 0; background: transparent; color: #b91c1c; cursor: pointer; font: inherit">Remove</button></td></tr>
+                <tr style="background: #fef2f2"><td>3</td><td><strong>Trench safety kit</strong><br><span style="color: #475569; font-size: 13px">Safety &amp; consumables</span></td><td><input aria-label="Quantity line 3" value="10" style="width: 52px"></td><td><select aria-label="Task line 3"><option>2.1 Trenching</option></select></td><td><input aria-label="Start line 3" value="04 Nov" style="width: 76px"></td><td><input aria-label="End line 3" value="30 Nov" style="width: 76px"></td><td><select aria-label="Crew line 3"><option>None</option></select></td><td style="color: #b91c1c; font-weight: 600">No rate</td><td>—</td><td><input aria-label="Notes line 3" placeholder="Add a note" style="width: 140px"></td><td><button type="button" aria-label="Remove line 3" style="border: 0; background: transparent; color: #b91c1c; cursor: pointer; font: inherit">Remove</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section style="display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; align-items: center; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px 18px">
+          <div style="display: flex; flex-direction: column; gap: 2px">
+            <span style="font-size: 13px; color: #475569">Estimated total (2 of 3 lines priced)</span>
+            <strong style="font-size: 24px">$80,000</strong>
+            <span style="font-size: 13px; color: #475569">Submitting soft-reserves the equipment for these dates and sends the request to the Equipment Manager.</span>
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap">
+            <button type="button" style="height: 40px; padding: 0 16px; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff; font: inherit; font-weight: 600; cursor: pointer">Save draft</button>
+            <button type="button" style="height: 40px; padding: 0 16px; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff; font: inherit; font-weight: 600; cursor: pointer">Save as template</button>
+            <button type="button" disabled style="height: 40px; padding: 0 18px; border-radius: 6px; border: 0; background: #94a3b8; color: #ffffff; font: inherit; font-weight: 700">Submit for approval</button>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Initiate picking</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f8fafc}
+a{color:#1d4ed8}a:hover{color:#1e3a8a}
+th,td{text-align:left;padding:10px 10px;border-bottom:1px solid #e5e7eb;font-size:14px;white-space:nowrap}
+th{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:#475569;font-weight:600;background:#f8fafc}
+</style>
+</helmet>
+<div style="font-family: 'Source Sans 3', system-ui, sans-serif; color: #111827; background: #f8fafc; font-variant-numeric: tabular-nums">
+  <dc-import name="AppHeader" hint-size="100%,64px"></dc-import>
+  <div style="display: flex; flex-wrap: wrap; align-items: stretch">
+    <div style="flex: 1 1 232px; background: #0b0f1a"><dc-import name="SideNav" active="picking" hint-size="100%,980px"></dc-import></div>
+    <main style="flex: 999 1 560px; min-width: 0">
+      <div style="background: #2e5468; color: #ffffff">
+        <div style="padding: 24px 32px 20px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px">
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <span style="font-size: 13px; color: #cfe0e8">FDD 7.16, 5.3 · Redwood Smart Search page</span>
+            <h1 style="margin: 0; font-size: 30px; font-weight: 700">Initiate picking</h1>
+            <span style="color: #e2edf2">Creates the transfer order, reserves stock and pick-releases in one step</span>
+          </div>
+          <button type="button" style="height: 40px; padding: 0 18px; border-radius: 6px; border: 0; background: #ffffff; color: #111827; font: inherit; font-weight: 700; cursor: pointer">Initiate 2 selected</button>
+        </div>
+        <div style="display: flex; height: 6px" aria-hidden="true"><div style="flex: 1; background: #c74634"></div><div style="flex: 1; background: #e5a22f"></div><div style="flex: 1; background: #6f9a3a"></div><div style="flex: 1; background: #2b8cbe"></div><div style="flex: 1; background: #6b4fa3"></div></div>
+      </div>
+
+      <div style="padding: 20px 32px 40px; display: flex; flex-direction: column; gap: 14px">
+        <div style="background: #f8fafc; border: 1px dashed #94a3b8; border-radius: 8px; padding: 10px 14px; font-size: 14px; color: #334155">Automatic picking runs nightly for requests starting within 3 days (Picking lead time in Settings). Lines ship separately: "Ship entire request together" is off.</div>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center">
+          <label style="flex: 1 1 260px; display: flex"><span style="position: absolute; left: -9999px">Search</span><input type="search" placeholder="Request, project or requester" style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border: 1px solid #cbd5e1; border-radius: 6px; font: inherit; font-size: 15px"></label>
+          <button type="button" style="height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid #cbd5e1; background: #ffffff; font: inherit; font-size: 14px; cursor: pointer">Class</button>
+          <button type="button" style="height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid #2e5468; background: #e0ecf2; font: inherit; font-size: 14px; cursor: pointer">Start: next 7 days</button>
+          <button type="button" style="height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid #cbd5e1; background: #ffffff; font: inherit; font-size: 14px; cursor: pointer">Picking status</button>
+        </div>
+
+        <div style="overflow-x: auto; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px">
+          <table style="border-collapse: collapse; width: 100%">
+            <thead><tr><th><input type="checkbox" aria-label="Select all"></th><th>Request</th><th>Project / task</th><th>Agreement</th><th>Lines</th><th>Start</th><th>End</th><th>Est. cost</th><th>Picking</th><th>Actions</th></tr></thead>
+            <tbody>
+              <tr><td><input type="checkbox" aria-label="Select REQ-10527" checked></td><td><a href="RequestDetail.dc.html">REQ-10527</a></td><td>Plant Expansion B · 1.3</td><td>—</td><td>1</td><td>08 Nov</td><td>22 Nov</td><td>$9,800</td><td><span style="padding: 1px 8px; border-radius: 999px; background: #f1f5f9; color: #475569; font-size: 12px; font-weight: 700">Not started</span></td><td style="display: flex; gap: 10px"><button type="button" style="border: 0; background: transparent; color: #1d4ed8; font: inherit; cursor: pointer; padding: 0">Initiate</button></td></tr>
+              <tr><td><input type="checkbox" aria-label="Select REQ-10530" checked></td><td><a href="RequestDetail.dc.html">REQ-10530</a></td><td>Pipeline North · 2.1</td><td>—</td><td>3</td><td>04 Nov</td><td>30 Nov</td><td>$80,000</td><td><span style="padding: 1px 8px; border-radius: 999px; background: #f1f5f9; color: #475569; font-size: 12px; font-weight: 700">Not started</span></td><td style="display: flex; gap: 10px"><button type="button" style="border: 0; background: transparent; color: #1d4ed8; font: inherit; cursor: pointer; padding: 0">Initiate</button></td></tr>
+              <tr style="background: #fef2f2"><td><input type="checkbox" aria-label="Select REQ-10511"></td><td><a href="RequestDetail.dc.html">REQ-10511</a></td><td>Plant Expansion B · 3.4</td><td>—</td><td>2</td><td>01 Nov</td><td>15 Dec</td><td>$62,100</td><td><span style="padding: 1px 8px; border-radius: 999px; background: #fee2e2; color: #b91c1c; font-size: 12px; font-weight: 700">Partial exception</span></td><td style="display: flex; gap: 10px"><a href="#exceptions">View exceptions</a></td></tr>
+              <tr><td><input type="checkbox" aria-label="Select REQ-10505"></td><td><a href="RequestDetail.dc.html">REQ-10505</a></td><td>Gulf Coast Builders</td><td>GCB-2026</td><td>4</td><td>31 Oct</td><td>31 Jan</td><td>$118,400</td><td><span style="padding: 1px 8px; border-radius: 999px; background: #e0f2fe; color: #075985; font-size: 12px; font-weight: 700">In progress</span></td><td style="display: flex; gap: 10px"><button type="button" style="border: 0; background: transparent; color: #1d4ed8; font: inherit; cursor: pointer; padding: 0">Pick slip</button></td></tr>
+              <tr><td><input type="checkbox" aria-label="Select REQ-10498"></td><td><a href="RequestDetail.dc.html">REQ-10498</a></td><td>Plant Expansion B · 4.2</td><td>—</td><td>3</td><td>15 Oct</td><td>15 Dec</td><td>$176,290</td><td><span style="padding: 1px 8px; border-radius: 999px; background: #dcfce7; color: #166534; font-size: 12px; font-weight: 700">Completed</span></td><td style="display: flex; gap: 10px"><button type="button" style="border: 0; background: transparent; color: #1d4ed8; font: inherit; cursor: pointer; padding: 0">Pick slip</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <section id="exceptions" aria-label="Exceptions for REQ-10511" style="background: #ffffff; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+          <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: center">
+            <h2 style="margin: 0; font-size: 17px">REQ-10511: 1 of 2 lines could not be reserved</h2>
+            <span style="font-size: 14px; color: #475569">TO-778402 created · line 2 pick-released</span>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; border: 1px solid #e5e7eb; border-radius: 6px; padding: 12px">
+            <span style="display: flex; flex-direction: column; gap: 2px"><strong>Line 1 · Komatsu PC210 Excavator · serial EX-2207</strong><span style="font-size: 14px; color: #b91c1c">Not available to reserve: moved to Maintenance subinventory on 30 Oct</span></span>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap">
+              <a href="ApproveAllocate.dc.html" style="height: 34px; padding: 0 12px; border-radius: 6px; border: 1px solid #cbd5e1; display: flex; align-items: center; text-decoration: none; color: #111827">Re-allocate</a>
+              <button type="button" style="height: 34px; padding: 0 12px; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff; font: inherit; cursor: pointer">Let the warehouse pick</button>
+              <button type="button" style="height: 34px; padding: 0 12px; border-radius: 6px; border: 0; background: #111827; color: #ffffff; font: inherit; font-weight: 600; cursor: pointer">Retry</button>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1060}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

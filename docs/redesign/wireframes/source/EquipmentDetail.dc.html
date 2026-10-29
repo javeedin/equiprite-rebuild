@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Equipment detail</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f8fafc}
+a{color:#1d4ed8}a:hover{color:#1e3a8a}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid #e5e7eb;font-size:14px;white-space:nowrap}
+th{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:#475569;font-weight:600;background:#f8fafc}
+</style>
+</helmet>
+<div style="font-family: 'Source Sans 3', system-ui, sans-serif; color: #111827; background: #f8fafc; font-variant-numeric: tabular-nums">
+  <dc-import name="AppHeader" hint-size="100%,64px"></dc-import>
+  <div style="display: flex; flex-wrap: wrap; align-items: stretch">
+    <div style="flex: 1 1 232px; background: #0b0f1a"><dc-import name="SideNav" active="equipment" hint-size="100%,980px"></dc-import></div>
+    <main style="flex: 999 1 560px; min-width: 0">
+      <div style="background: #2e5468; color: #ffffff">
+        <div style="padding: 20px 32px; display: flex; flex-direction: column; gap: 12px">
+          <a href="EquipmentMaster.dc.html" style="color: #cfe0e8; font-size: 14px">Equipment</a>
+          <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px">
+            <div style="display: flex; gap: 16px; align-items: center">
+              <div style="width: 96px; height: 72px; border-radius: 8px; background: #cbd5e1; display: flex; align-items: center; justify-content: center; color: #334155; font-size: 12px">Photo</div>
+              <div style="display: flex; flex-direction: column; gap: 6px">
+                <span style="font-size: 13px; color: #cfe0e8">FDD 7.2.5A–F · Redwood General Overview page</span>
+                <h1 style="margin: 0; font-size: 28px; font-weight: 700">CAT 320 Excavator · EX-2210</h1>
+                <span style="display: flex; flex-wrap: wrap; gap: 6px">
+                  <span style="padding: 2px 8px; border-radius: 999px; background: #fee2e2; color: #b91c1c; font-size: 12px; font-weight: 700">1 open work order</span>
+                  <span style="padding: 2px 8px; border-radius: 999px; background: #fef3c7; color: #92400e; font-size: 12px; font-weight: 700">Certificate expires in 21 days</span>
+                  <span style="padding: 2px 8px; border-radius: 999px; background: #e2e8f0; color: #1f2937; font-size: 12px; font-weight: 700">Company-owned</span>
+                  <span style="padding: 2px 8px; border-radius: 999px; background: #e2e8f0; color: #1f2937; font-size: 12px; font-weight: 700">Dallas Yard · Maintenance</span>
+                </span>
+              </div>
+            </div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap">
+              <button type="button" style="height: 40px; padding: 0 14px; border-radius: 6px; border: 1px solid #ffffff; background: transparent; color: #ffffff; font: inherit; font-weight: 600; cursor: pointer">Watching</button>
+              <button type="button" style="height: 40px; padding: 0 14px; border-radius: 6px; border: 1px solid #ffffff; background: transparent; color: #ffffff; font: inherit; font-weight: 600; cursor: pointer">Refresh from Fusion</button>
+              <button type="button" style="height: 40px; padding: 0 16px; border-radius: 6px; border: 0; background: #ffffff; color: #111827; font: inherit; font-weight: 700; cursor: pointer">Edit</button>
+            </div>
+          </div>
+        </div>
+        <div style="display: flex; height: 6px" aria-hidden="true"><div style="flex: 1; background: #c74634"></div><div style="flex: 1; background: #e5a22f"></div><div style="flex: 1; background: #6f9a3a"></div><div style="flex: 1; background: #2b8cbe"></div><div style="flex: 1; background: #6b4fa3"></div></div>
+      </div>
+
+      <div style="padding: 16px 32px 40px; display: flex; flex-direction: column; gap: 16px">
+        <div role="tablist" aria-label="Equipment sections" style="display: flex; gap: 4px; border-bottom: 1px solid #e5e7eb; flex-wrap: wrap">
+          <button role="tab" aria-selected="true" style="height: 42px; padding: 0 14px; border: 0; border-bottom: 3px solid #2e5468; background: transparent; font: inherit; font-weight: 700; cursor: pointer">Overview</button>
+          <button role="tab" aria-selected="false" style="height: 42px; padding: 0 14px; border: 0; background: transparent; font: inherit; color: #475569; cursor: pointer">Bookings</button>
+          <button role="tab" aria-selected="false" style="height: 42px; padding: 0 14px; border: 0; background: transparent; font: inherit; color: #475569; cursor: pointer">Maintenance</button>
+          <button role="tab" aria-selected="false" style="height: 42px; padding: 0 14px; border: 0; background: transparent; font: inherit; color: #475569; cursor: pointer">Inspections</button>
+          <button role="tab" aria-selected="false" style="height: 42px; padding: 0 14px; border: 0; background: transparent; font: inherit; color: #475569; cursor: pointer">Costs</button>
+          <button role="tab" aria-selected="false" style="height: 42px; padding: 0 14px; border: 0; background: transparent; font: inherit; color: #475569; cursor: pointer">Attachments</button>
+        </div>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start">
+          <div style="flex: 999 1 520px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+            <section style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+              <h2 style="margin: 0; font-size: 17px">General</h2>
+              <dl style="margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); gap: 12px 20px; font-size: 14px">
+                <div><dt style="color: #475569; font-size: 13px">Manufacturer · model</dt><dd style="margin: 0; font-weight: 600">Caterpillar · 320 GC</dd></div>
+                <div><dt style="color: #475569; font-size: 13px">Year · colour</dt><dd style="margin: 0; font-weight: 600">2022 · Yellow</dd></div>
+                <div><dt style="color: #475569; font-size: 13px">Inventory item</dt><dd style="margin: 0; font-weight: 600">EQ-EXC-320</dd></div>
+                <div><dt style="color: #475569; font-size: 13px">Fixed asset</dt><dd style="margin: 0; font-weight: 600">100561 · Excavator 20t Dallas</dd></div>
+                <div><dt style="color: #475569; font-size: 13px">Maintenance asset</dt><dd style="margin: 0; font-weight: 600">MA-30418</dd></div>
+                <div><dt style="color: #475569; font-size: 13px">Non-labor resource</dt><dd style="margin: 0; font-weight: 600">Heavy Equipment</dd></div>
+                <div><dt style="color: #475569; font-size: 13px">Default expenditure type</dt><dd style="margin: 0; font-weight: 600">Equipment Rental</dd></div>
+                <div><dt style="color: #475569; font-size: 13px">Home yard</dt><dd style="margin: 0; font-weight: 600">Dallas Yard</dd></div>
+                <div><dt style="color: #475569; font-size: 13px">Last synced</dt><dd style="margin: 0; font-weight: 600">Today 08:14</dd></div>
+              </dl>
+              <div style="border-top: 1px solid #e5e7eb; padding-top: 12px; display: flex; flex-direction: column; gap: 6px">
+                <strong style="font-size: 15px">Detailed description</strong>
+                <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #334155">Suitable for deep excavation up to 7 m, pipeline trenching and heavy demolition. Fitted with 2D GPS grade control and a quick coupler for 0.9 and 1.2 m³ buckets. Operating weight 20.2 t…</p>
+                <a href="#" style="font-size: 14px">Show all</a>
+              </div>
+            </section>
+
+            <section style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 10px">
+              <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap"><h2 style="margin: 0; font-size: 17px">Certifications</h2><button type="button" style="height: 34px; padding: 0 12px; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff; font: inherit; cursor: pointer">Add certification</button></div>
+              <div style="overflow-x: auto">
+                <table style="border-collapse: collapse; width: 100%">
+                  <thead><tr><th>Type</th><th>Authority</th><th>Certificate</th><th>Expires</th><th>Status</th><th>File</th></tr></thead>
+                  <tbody>
+                    <tr><td>Load test</td><td>Texas Lift Inspect</td><td>TLI-22981</td><td>19 Nov 2026</td><td><span style="padding: 1px 8px; border-radius: 999px; background: #fef3c7; color: #92400e; font-size: 12px; font-weight: 700">Expiring</span></td><td><a href="#">PDF</a></td></tr>
+                    <tr><td>Emissions</td><td>TCEQ</td><td>EM-55102</td><td>02 Mar 2027</td><td><span style="padding: 1px 8px; border-radius: 999px; background: #dcfce7; color: #166534; font-size: 12px; font-weight: 700">Active</span></td><td><a href="#">PDF</a></td></tr>
+                    <tr><td>Safety inspection</td><td>In-house</td><td>SI-2026-0412</td><td>30 Jun 2027</td><td><span style="padding: 1px 8px; border-radius: 999px; background: #dcfce7; color: #166534; font-size: 12px; font-weight: 700">Active</span></td><td><a href="#">PDF</a></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+
+          <aside style="flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+            <section style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+              <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px"><h2 style="margin: 0; font-size: 17px">Total cost of ownership</h2><a href="#" style="font-size: 13px">Recalculate</a></div>
+              <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+                <span style="display: flex; flex-direction: column"><span style="font-size: 13px; color: #475569">Total TCO</span><strong style="font-size: 20px">$311,400</strong></span>
+                <span style="display: flex; flex-direction: column"><span style="font-size: 13px; color: #475569">Revenue</span><strong style="font-size: 20px">$356,900</strong></span>
+                <span style="display: flex; flex-direction: column"><span style="font-size: 13px; color: #475569">Per deployed hour</span><strong style="font-size: 20px">$98</strong></span>
+                <span style="display: flex; flex-direction: column"><span style="font-size: 13px; color: #475569">ROI</span><strong style="font-size: 20px; color: #92400e">14.6%</strong></span>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 6px; font-size: 13px">
+                <span style="display: grid; grid-template-columns: 110px 1fr 70px; gap: 8px; align-items: center"><span>Acquisition</span><span style="height: 8px; background: #2e5468; width: 100%; border-radius: 2px" aria-hidden="true"></span><span>$238,000</span></span>
+                <span style="display: grid; grid-template-columns: 110px 1fr 70px; gap: 8px; align-items: center"><span>Maintenance</span><span style="height: 8px; background: #2e5468; width: 22%; border-radius: 2px" aria-hidden="true"></span><span>$52,100</span></span>
+                <span style="display: grid; grid-template-columns: 110px 1fr 70px; gap: 8px; align-items: center"><span>Insurance</span><span style="height: 8px; background: #2e5468; width: 8%; border-radius: 2px" aria-hidden="true"></span><span>$18,600</span></span>
+                <span style="display: grid; grid-template-columns: 110px 1fr 70px; gap: 8px; align-items: center"><span>Operating</span><span style="height: 8px; background: #2e5468; width: 11%; border-radius: 2px" aria-hidden="true"></span><span>$26,700</span></span>
+                <span style="display: grid; grid-template-columns: 110px 1fr 70px; gap: 8px; align-items: center"><span>Disposal value</span><span style="height: 8px; background: #94a3b8; width: 10%; border-radius: 2px" aria-hidden="true"></span><span>−$24,000</span></span>
+              </div>
+              <span style="font-size: 12px; color: #475569">Sources: Fixed Assets, Maintenance, EquipRite timesheets. Calculated today 08:14.</span>
+            </section>
+            <section style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 8px; font-size: 14px">
+              <h2 style="margin: 0; font-size: 17px">Related equipment</h2>
+              <span style="color: #475569; font-size: 13px">Substitutes</span>
+              <a href="#">Komatsu PC210 Excavator</a>
+              <span style="color: #475569; font-size: 13px; padding-top: 4px">Often ordered together</span>
+              <a href="#">Dump Truck 30t</a>
+              <a href="#">Wheel Loader 950</a>
+            </section>
+          </aside>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1350}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

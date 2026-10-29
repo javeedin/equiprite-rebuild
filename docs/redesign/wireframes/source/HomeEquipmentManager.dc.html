@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Home: Equipment Manager</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f8fafc}
+a{color:#1d4ed8}a:hover{color:#1e3a8a}
+</style>
+</helmet>
+<div style="font-family: 'Source Sans 3', system-ui, sans-serif; color: #111827; background: #f8fafc; font-variant-numeric: tabular-nums">
+  <dc-import name="AppHeader" hint-size="100%,64px"></dc-import>
+  <div style="display: flex; flex-wrap: wrap; align-items: stretch">
+    <div style="flex: 1 1 232px; background: #0b0f1a"><dc-import name="SideNav" active="home" hint-size="100%,980px"></dc-import></div>
+    <main style="flex: 999 1 560px; min-width: 0">
+      <div style="background: #2e5468; color: #ffffff">
+        <div style="padding: 28px 32px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px">
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <span style="font-size: 13px; color: #cfe0e8">FDD 7.1 · Redwood Dashboard Landing page</span>
+            <h1 style="margin: 0; font-size: 30px; font-weight: 700">Equipment Manager home</h1>
+            <span style="color: #e2edf2">Houston Yard, Dallas Yard · scope follows the Region / Org filter</span>
+          </div>
+          <a href="CartCatalog.dc.html" style="padding: 10px 18px; border-radius: 6px; background: #ffffff; color: #111827; font-weight: 700; text-decoration: none">New request</a>
+        </div>
+        <div style="display: flex; height: 6px" aria-hidden="true"><div style="flex: 1; background: #c74634"></div><div style="flex: 1; background: #e5a22f"></div><div style="flex: 1; background: #6f9a3a"></div><div style="flex: 1; background: #2b8cbe"></div><div style="flex: 1; background: #6b4fa3"></div></div>
+      </div>
+
+      <div style="padding: 24px 32px 40px; display: flex; flex-direction: column; gap: 28px">
+        <section aria-label="Key figures" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr)); gap: 12px">
+          <a href="MyRequests.dc.html" style="text-decoration: none; color: #111827; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 4px">
+            <span style="font-size: 13px; color: #475569">Active requests</span><strong style="font-size: 30px">48</strong>
+          </a>
+          <a href="Schedule.dc.html" style="text-decoration: none; color: #111827; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 4px">
+            <span style="font-size: 13px; color: #475569">Equipment deployed</span><strong style="font-size: 30px">132</strong>
+          </a>
+          <a href="Workbench.dc.html" style="text-decoration: none; color: #111827; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 4px">
+            <span style="font-size: 13px; color: #475569">Pending approvals</span><strong style="font-size: 30px">12</strong>
+          </a>
+          <a href="ReceiptReturns.dc.html" style="text-decoration: none; color: #111827; background: #ffffff; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 4px">
+            <span style="font-size: 13px; color: #b91c1c; font-weight: 600">Overdue returns</span><strong style="font-size: 30px; color: #b91c1c">3</strong>
+          </a>
+          <a href="Analytics.dc.html" style="text-decoration: none; color: #111827; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 4px">
+            <span style="font-size: 13px; color: #475569">Fleet utilization</span><strong style="font-size: 30px">71%</strong>
+          </a>
+        </section>
+
+        <section style="display: flex; flex-direction: column; gap: 12px">
+          <h2 style="margin: 0; font-size: 20px">Your work</h2>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr)); gap: 12px">
+            <a href="Workbench.dc.html" style="text-decoration: none; color: #111827; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 10px; min-height: 120px">
+              <span style="display: flex; justify-content: space-between; align-items: center"><strong style="font-size: 17px">Request workbench</strong><span style="padding: 2px 10px; border-radius: 999px; background: #fef3c7; color: #92400e; font-weight: 700; font-size: 13px">12 to approve</span></span>
+              <span style="color: #475569; font-size: 14px">Approve, reject and allocate project and customer requests</span>
+            </a>
+            <a href="InitiatePicking.dc.html" style="text-decoration: none; color: #111827; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 10px; min-height: 120px">
+              <span style="display: flex; justify-content: space-between; align-items: center"><strong style="font-size: 17px">Initiate picking</strong><span style="padding: 2px 10px; border-radius: 999px; background: #e0e7ff; color: #4338ca; font-weight: 700; font-size: 13px">4 approved</span></span>
+              <span style="color: #475569; font-size: 14px">Create transfer orders, reserve and pick release</span>
+            </a>
+            <a href="Inspection.dc.html" style="text-decoration: none; color: #111827; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 10px; min-height: 120px">
+              <span style="display: flex; justify-content: space-between; align-items: center"><strong style="font-size: 17px">Inspection</strong><span style="padding: 2px 10px; border-radius: 999px; background: #e0f2fe; color: #075985; font-weight: 700; font-size: 13px">2 pending</span></span>
+              <span style="color: #475569; font-size: 14px">Pre-ship and return inspections by class</span>
+            </a>
+            <a href="ReceiptReturns.dc.html" style="text-decoration: none; color: #111827; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 10px; min-height: 120px">
+              <span style="display: flex; justify-content: space-between; align-items: center"><strong style="font-size: 17px">Receipt &amp; returns</strong><span style="padding: 2px 10px; border-radius: 999px; background: #ede9fe; color: #5b21b6; font-weight: 700; font-size: 13px">6 in transit</span></span>
+              <span style="color: #475569; font-size: 14px">Accept at site, record discrepancies, return to yard</span>
+            </a>
+            <a href="Schedule.dc.html" style="text-decoration: none; color: #111827; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 10px; min-height: 120px">
+              <span style="display: flex; justify-content: space-between; align-items: center"><strong style="font-size: 17px">Equipment schedule</strong><span style="padding: 2px 10px; border-radius: 999px; background: #fee2e2; color: #b91c1c; font-weight: 700; font-size: 13px">3 conflicts</span></span>
+              <span style="color: #475569; font-size: 14px">Fleet-wide Gantt and map</span>
+            </a>
+            <a href="Transfer.dc.html" style="text-decoration: none; color: #111827; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 10px; min-height: 120px">
+              <span style="display: flex; justify-content: space-between; align-items: center"><strong style="font-size: 17px">Inter-project transfer</strong></span>
+              <span style="color: #475569; font-size: 14px">Move deployed equipment straight to another project</span>
+            </a>
+            <a href="EquipmentMaster.dc.html" style="text-decoration: none; color: #111827; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 10px; min-height: 120px">
+              <span style="display: flex; justify-content: space-between; align-items: center"><strong style="font-size: 17px">Equipment master</strong><span style="padding: 2px 10px; border-radius: 999px; background: #f1f5f9; color: #334155; font-weight: 700; font-size: 13px">412 items</span></span>
+              <span style="color: #475569; font-size: 14px">Fleet records, certifications, maintenance, sync</span>
+            </a>
+            <a href="Analytics.dc.html" style="text-decoration: none; color: #111827; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 10px; min-height: 120px">
+              <span style="display: flex; justify-content: space-between; align-items: center"><strong style="font-size: 17px">Analytics</strong></span>
+              <span style="color: #475569; font-size: 14px">Fleet, utilization, conflicts and cost reports</span>
+            </a>
+          </div>
+        </section>
+
+        <section style="display: flex; flex-direction: column; gap: 12px">
+          <h2 style="margin: 0; font-size: 20px">Needs attention</h2>
+          <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; display: flex; flex-direction: column">
+            <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid #e5e7eb">
+              <span style="display: flex; gap: 10px; align-items: center"><span style="padding: 2px 8px; border-radius: 4px; background: #fee2e2; color: #b91c1c; font-size: 12px; font-weight: 700">OVERDUE</span><span>CAT 320 Excavator on REQ-10482 was due back 21 Oct (Pipeline North)</span></span>
+              <a href="RequestDetail.dc.html">Open request</a>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid #e5e7eb">
+              <span style="display: flex; gap: 10px; align-items: center"><span style="padding: 2px 8px; border-radius: 4px; background: #fef3c7; color: #92400e; font-size: 12px; font-weight: 700">CERTIFICATE</span><span>Load test for Mobile Crane MC-07 expires in 9 days</span></span>
+              <a href="EquipmentDetail.dc.html">Open equipment</a>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid #e5e7eb">
+              <span style="display: flex; gap: 10px; align-items: center"><span style="padding: 2px 8px; border-radius: 4px; background: #fee2e2; color: #b91c1c; font-size: 12px; font-weight: 700">PICKING</span><span>REQ-10511: serial EX-2207 no longer available to reserve</span></span>
+              <a href="InitiatePicking.dc.html">Re-allocate</a>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; padding: 14px 16px">
+              <span style="display: flex; gap: 10px; align-items: center"><span style="padding: 2px 8px; border-radius: 4px; background: #e0f2fe; color: #075985; font-size: 12px; font-weight: 700">PROCUREMENT</span><span>2 new-equipment requisitions waiting for a response</span></span>
+              <a href="Workbench.dc.html">Review</a>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1060}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

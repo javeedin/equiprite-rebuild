@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Rental agreements</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f8fafc}
+a{color:#1d4ed8}a:hover{color:#1e3a8a}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid #e5e7eb;font-size:14px;white-space:nowrap}
+th{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:#475569;font-weight:600;background:#f8fafc}
+</style>
+</helmet>
+<div style="font-family: 'Source Sans 3', system-ui, sans-serif; color: #111827; background: #f8fafc; font-variant-numeric: tabular-nums">
+  <dc-import name="AppHeader" hint-size="100%,64px"></dc-import>
+  <div style="display: flex; flex-wrap: wrap; align-items: stretch">
+    <div style="flex: 1 1 232px; background: #0b0f1a"><dc-import name="SideNav" active="agreements" hint-size="100%,980px"></dc-import></div>
+    <main style="flex: 999 1 560px; min-width: 0">
+      <div style="background: #2e5468; color: #ffffff">
+        <div style="padding: 20px 32px; display: flex; flex-direction: column; gap: 12px">
+          <a href="#" style="color: #cfe0e8; font-size: 14px">Agreements</a>
+          <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px">
+            <div style="display: flex; flex-direction: column; gap: 6px">
+              <span style="font-size: 13px; color: #cfe0e8">FDD 7.3A.1–7.3A.6 · Redwood General Overview page (shown when AGREEMENTS_ENABLED = Yes)</span>
+              <h1 style="margin: 0; font-size: 28px; font-weight: 700">Lone Star Paving MSA 2026</h1>
+              <span style="display: flex; flex-wrap: wrap; gap: 6px">
+                <span style="padding: 2px 8px; border-radius: 999px; background: #dcfce7; color: #166534; font-size: 12px; font-weight: 700">Active</span>
+                <span style="padding: 2px 8px; border-radius: 999px; background: #ffedd5; color: #9a3412; font-size: 12px; font-weight: 700">External customer · AR invoice</span>
+                <span style="padding: 2px 8px; border-radius: 999px; background: #fef3c7; color: #92400e; font-size: 12px; font-weight: 700">Expires in 63 days</span>
+              </span>
+            </div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap">
+              <button type="button" style="height: 40px; padding: 0 14px; border-radius: 6px; border: 1px solid #ffffff; background: transparent; color: #ffffff; font: inherit; font-weight: 600; cursor: pointer">Renew</button>
+              <a href="CartReview.dc.html" style="height: 40px; padding: 0 16px; border-radius: 6px; background: #ffffff; color: #111827; font-weight: 700; text-decoration: none; display: flex; align-items: center">Create request from 3 lines</a>
+            </div>
+          </div>
+        </div>
+        <div style="display: flex; height: 6px" aria-hidden="true"><div style="flex: 1; background: #c74634"></div><div style="flex: 1; background: #e5a22f"></div><div style="flex: 1; background: #6f9a3a"></div><div style="flex: 1; background: #2b8cbe"></div><div style="flex: 1; background: #6b4fa3"></div></div>
+      </div>
+
+      <div style="padding: 20px 32px 40px; display: flex; flex-direction: column; gap: 16px">
+        <section style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+          <dl style="margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr)); gap: 10px 16px; font-size: 14px">
+            <div><dt style="color: #475569; font-size: 13px">Customer</dt><dd style="margin: 0; font-weight: 600">Lone Star Paving LLC</dd></div>
+            <div><dt style="color: #475569; font-size: 13px">Project scope</dt><dd style="margin: 0; font-weight: 600">Any project</dd></div>
+            <div><dt style="color: #475569; font-size: 13px">Class scope</dt><dd style="margin: 0; font-weight: 600">Any class</dd></div>
+            <div><dt style="color: #475569; font-size: 13px">Valid</dt><dd style="margin: 0; font-weight: 600">01 Jan – 31 Dec 2026</dd></div>
+            <div><dt style="color: #475569; font-size: 13px">Linked rate schedule</dt><dd style="margin: 0; font-weight: 600"><a href="RateSchedules.dc.html">Lone Star Paving MSA</a></dd></div>
+            <div><dt style="color: #475569; font-size: 13px">Used on</dt><dd style="margin: 0; font-weight: 600">14 requests · $412k billed</dd></div>
+          </dl>
+          <details style="border-top: 1px solid #e5e7eb; padding-top: 10px; font-size: 14px">
+            <summary style="cursor: pointer; font-weight: 600">Terms &amp; conditions</summary>
+            <p style="margin: 8px 0 0; color: #334155; line-height: 1.5">Minimum rental 1 week. Overtime over 10 h/day billed at 1.25×. Customer liable for damage beyond fair wear; insurance certificate required before dispatch.</p>
+          </details>
+        </section>
+
+        <section style="display: flex; flex-direction: column; gap: 10px">
+          <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px">
+            <h2 style="margin: 0; font-size: 18px">Agreement lines <span style="font-weight: 400; color: #475569">· 1,184 lines</span></h2>
+            <span style="display: flex; gap: 8px; flex-wrap: wrap">
+              <label style="display: flex"><span style="position: absolute; left: -9999px">Search lines</span><input type="search" placeholder="Search lines" style="width: 220px; height: 36px; box-sizing: border-box; padding: 0 10px; border: 1px solid #cbd5e1; border-radius: 6px; font: inherit"></label>
+              <button type="button" style="height: 36px; padding: 0 12px; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff; font: inherit; cursor: pointer">Import from Excel</button>
+              <button type="button" style="height: 36px; padding: 0 12px; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff; font: inherit; cursor: pointer">Add line</button>
+            </span>
+          </div>
+          <div style="overflow-x: auto; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px">
+            <table style="border-collapse: collapse; width: 100%">
+              <thead><tr><th><input type="checkbox" aria-label="Select all"></th><th>Equipment class</th><th>Equipment</th><th>Default qty</th><th>Usage rate</th><th>Mobilization</th><th>Standby</th><th>Schedule rate</th><th>Saving</th><th>Notes</th></tr></thead>
+              <tbody>
+                <tr><td><input type="checkbox" aria-label="Select line" checked></td><td>Excavators</td><td>Any in class</td><td>2</td><td>$1,100/day</td><td>$600 flat</td><td>$350/day</td><td style="color: #475569">$1,240/day</td><td style="color: #166534; font-weight: 600">−11%</td><td>Min 2 weeks</td></tr>
+                <tr><td><input type="checkbox" aria-label="Select line" checked></td><td>Dump trucks</td><td>Volvo A30 · DT-1108</td><td>1</td><td>$100/h</td><td>—</td><td>—</td><td style="color: #475569">$110/h</td><td style="color: #166534; font-weight: 600">−9%</td><td></td></tr>
+                <tr><td><input type="checkbox" aria-label="Select line" checked></td><td>Rollers</td><td>Any in class</td><td>1</td><td>$720/day</td><td>$400 flat</td><td>—</td><td style="color: #475569">$760/day</td><td style="color: #166534; font-weight: 600">−5%</td><td></td></tr>
+                <tr><td><input type="checkbox" aria-label="Select line"></td><td>Generators</td><td>Any in class</td><td>1</td><td style="color: #475569">From schedule</td><td>—</td><td>—</td><td style="color: #475569">$175/h</td><td>—</td><td>Standard rates apply</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <span style="font-size: 13px; color: #475569">A rate on a line always wins. Blank rates fall back to the rate schedule order. Lines are a shortcut for bulk-adding to a request; they don't limit what can be requested.</span>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

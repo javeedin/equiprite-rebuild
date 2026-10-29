@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Timesheet approval</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f8fafc}
+a{color:#1d4ed8}a:hover{color:#1e3a8a}
+th,td{text-align:left;padding:9px 8px;border-bottom:1px solid #e5e7eb;font-size:14px;white-space:nowrap}
+th{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:#475569;font-weight:600;background:#f8fafc}
+</style>
+</helmet>
+<div style="font-family: 'Source Sans 3', system-ui, sans-serif; color: #111827; background: #f8fafc; font-variant-numeric: tabular-nums">
+  <dc-import name="AppHeader" hint-size="100%,64px"></dc-import>
+  <div style="display: flex; flex-wrap: wrap; align-items: stretch">
+    <div style="flex: 1 1 232px; background: #0b0f1a"><dc-import name="SideNav" active="timesheet-approval" hint-size="100%,980px"></dc-import></div>
+    <main style="flex: 999 1 560px; min-width: 0">
+      <div style="background: #2e5468; color: #ffffff">
+        <div style="padding: 24px 32px 20px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px">
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <span style="font-size: 13px; color: #cfe0e8">FDD 7.14, DP-06 · Redwood Smart Search page</span>
+            <h1 style="margin: 0; font-size: 30px; font-weight: 700">Timesheet approval</h1>
+            <span style="color: #e2edf2">Week ending Fri 01 Nov · 9 lines submitted</span>
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap">
+            <button type="button" style="height: 40px; padding: 0 16px; border-radius: 6px; border: 1px solid #ffffff; background: transparent; color: #ffffff; font: inherit; font-weight: 600; cursor: pointer">Reject 3</button>
+            <button type="button" style="height: 40px; padding: 0 18px; border-radius: 6px; border: 0; background: #ffffff; color: #111827; font: inherit; font-weight: 700; cursor: pointer">Approve 3 · $11,620</button>
+          </div>
+        </div>
+        <div style="display: flex; height: 6px" aria-hidden="true"><div style="flex: 1; background: #c74634"></div><div style="flex: 1; background: #e5a22f"></div><div style="flex: 1; background: #6f9a3a"></div><div style="flex: 1; background: #2b8cbe"></div><div style="flex: 1; background: #6b4fa3"></div></div>
+      </div>
+
+      <div style="padding: 20px 32px 40px; display: flex; flex-direction: column; gap: 14px">
+        <section aria-label="Cost impact" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); gap: 12px">
+          <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px 16px; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 13px; color: #475569">Selected for approval</span><strong style="font-size: 24px">$11,620</strong></div>
+          <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px 16px; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 13px; color: #475569">Cost to date, Pipeline North</span><strong style="font-size: 24px">$412,300</strong></div>
+          <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px 16px; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 13px; color: #475569">Equipment budget remaining</span><strong style="font-size: 24px">$37,700</strong></div>
+          <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; color: #78350f; font-weight: 600">Budget used after approval</span><strong style="font-size: 24px; color: #78350f">94%</strong><div style="height: 6px; border-radius: 3px; background: #fde68a" aria-hidden="true"><div style="width: 94%; height: 6px; border-radius: 3px; background: #b45309"></div></div></div>
+        </section>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center">
+          <label style="flex: 1 1 240px; display: flex"><span style="position: absolute; left: -9999px">Search</span><input type="search" placeholder="Request, equipment or project" style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border: 1px solid #cbd5e1; border-radius: 6px; font: inherit; font-size: 15px"></label>
+          <button type="button" style="height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid #2e5468; background: #e0ecf2; font: inherit; font-size: 14px; cursor: pointer">Week: 01 Nov</button>
+          <button type="button" style="height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid #cbd5e1; background: #ffffff; font: inherit; font-size: 14px; cursor: pointer">Project</button>
+          <label style="display: flex; gap: 6px; align-items: center; font-size: 14px"><input type="checkbox">Compare with last week</label>
+          <label style="display: flex; gap: 6px; align-items: center; font-size: 14px"><input type="checkbox" checked>Show all notes</label>
+        </div>
+
+        <div style="overflow-x: auto; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px">
+          <table style="border-collapse: collapse; width: 100%">
+            <thead><tr><th><input type="checkbox" aria-label="Select all"></th><th>Request · equipment</th><th>Type</th><th>Rate</th><th>Sat</th><th>Sun</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Hours</th><th>Cost</th></tr></thead>
+            <tbody>
+              <tr><td><input type="checkbox" aria-label="Select line" checked></td><td><strong>REQ-10482</strong> · EX-2201<br><span style="font-size: 13px; color: #475569">Pipeline North / 2.1</span></td><td>Usage</td><td>$175/h</td><td>0</td><td>0</td><td>8</td><td style="background: #fef3c7">10</td><td>8</td><td>8</td><td>6</td><td>40</td><td>$7,000</td></tr>
+              <tr><td></td><td colspan="12" style="font-size: 13px; color: #78350f; background: #fffbeb; white-space: normal">Tue note: "Overtime: pipe crossing deadline"</td></tr>
+              <tr><td><input type="checkbox" aria-label="Select line" checked></td><td><strong>REQ-10482</strong> · EX-2201<br><span style="font-size: 13px; color: #475569">Pipeline North / 2.1</span></td><td>Standby</td><td>$60/h</td><td>0</td><td>0</td><td>0</td><td>0</td><td>4</td><td>0</td><td>0</td><td>4</td><td>$240</td></tr>
+              <tr><td><input type="checkbox" aria-label="Select line" checked></td><td><strong>REQ-10475</strong> · DT-1108<br><span style="font-size: 13px; color: #475569">Pipeline North / 2.1</span></td><td>Usage</td><td style="background: #fef9c3" title="Agreement rate $100/h vs schedule $110/h">$100/h</td><td>0</td><td>0</td><td>9</td><td>9</td><td><span style="display: flex; flex-direction: column; line-height: 1.1"><span style="text-decoration: line-through; color: #475569; font-size: 12px">18</span><strong>10</strong></span></td><td>9</td><td>7</td><td>44 <span style="padding: 0 6px; border-radius: 4px; background: #e0e7ff; color: #4338ca; font-size: 11px; font-weight: 700">ADJUSTED</span></td><td>$4,380</td></tr>
+              <tr><td><input type="checkbox" aria-label="Select line"></td><td><strong>REQ-10498</strong> · MC-07<br><span style="font-size: 13px; color: #475569">Plant Expansion B / 4.2</span></td><td>Usage</td><td>$262/h</td><td>0</td><td>0</td><td>8</td><td>8</td><td>8</td><td style="background: #fee2e2; color: #b91c1c; font-weight: 700">17</td><td>8</td><td>49</td><td>$12,838</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; color: #334155; align-items: center">
+          <span style="display: flex; gap: 6px; align-items: center"><span style="width: 18px; height: 12px; background: #fef3c7" aria-hidden="true"></span>Over 10 h in a day</span>
+          <span style="display: flex; gap: 6px; align-items: center"><span style="width: 18px; height: 12px; background: #fee2e2" aria-hidden="true"></span>Over 16 h: check entry</span>
+          <span style="display: flex; gap: 6px; align-items: center"><span style="width: 18px; height: 12px; background: #fef9c3" aria-hidden="true"></span>Rate differs from schedule</span>
+          <span>Approving calculates cost with the rate engine. Edited hours keep the original and notify the submitter.</span>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1200}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

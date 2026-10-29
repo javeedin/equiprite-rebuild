@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Settings</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f8fafc}
+a{color:#1d4ed8}a:hover{color:#1e3a8a}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid #e5e7eb;font-size:14px;white-space:nowrap}
+th{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:#475569;font-weight:600;background:#f8fafc}
+</style>
+</helmet>
+<div style="font-family: 'Source Sans 3', system-ui, sans-serif; color: #111827; background: #f8fafc; font-variant-numeric: tabular-nums">
+  <dc-import name="AppHeader" hint-size="100%,64px"></dc-import>
+  <div style="display: flex; flex-wrap: wrap; align-items: stretch">
+    <div style="flex: 1 1 232px; background: #0b0f1a"><dc-import name="SideNav" active="settings" hint-size="100%,980px"></dc-import></div>
+    <main style="flex: 999 1 560px; min-width: 0">
+      <div style="background: #2e5468; color: #ffffff">
+        <div style="padding: 24px 32px 20px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px">
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <span style="font-size: 13px; color: #cfe0e8">FDD 7.17.1–7.17.6, 10.3 · Redwood General Overview page with side tabs</span>
+            <h1 style="margin: 0; font-size: 30px; font-weight: 700">Settings</h1>
+            <span style="color: #e2edf2">Replaces today's 81-chain configuration page with one searchable place</span>
+          </div>
+          <label style="display: flex; flex: 0 1 340px"><span style="position: absolute; left: -9999px">Search settings</span><input type="search" placeholder="Find a setting, e.g. picking lead time" style="width: 100%; height: 40px; box-sizing: border-box; padding: 0 12px; border: 0; border-radius: 6px; font: inherit; font-size: 15px"></label>
+        </div>
+        <div style="display: flex; height: 6px" aria-hidden="true"><div style="flex: 1; background: #c74634"></div><div style="flex: 1; background: #e5a22f"></div><div style="flex: 1; background: #6f9a3a"></div><div style="flex: 1; background: #2b8cbe"></div><div style="flex: 1; background: #6b4fa3"></div></div>
+      </div>
+
+      <div style="padding: 20px 32px 40px; display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start">
+        <nav aria-label="Settings sections" style="flex: 1 1 200px; min-width: 0; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 6px; display: flex; flex-direction: column; font-size: 15px">
+          <a href="#" aria-current="page" style="padding: 10px 12px; border-radius: 6px; background: #e0ecf2; color: #111827; font-weight: 700; text-decoration: none">Modules &amp; features</a>
+          <a href="#" style="padding: 10px 12px; color: #111827; text-decoration: none">Costing &amp; posting</a>
+          <a href="#" style="padding: 10px 12px; color: #111827; text-decoration: none">Warehouse</a>
+          <a href="#" style="padding: 10px 12px; color: #111827; text-decoration: none">Project site</a>
+          <a href="#" style="padding: 10px 12px; color: #111827; text-decoration: none">Inspection points</a>
+          <a href="#" style="padding: 10px 12px; color: #111827; text-decoration: none">Business units &amp; orgs</a>
+          <a href="#" style="padding: 10px 12px; color: #111827; text-decoration: none">Classes &amp; rate types</a>
+          <a href="#" style="padding: 10px 12px; color: #111827; text-decoration: none">Roles &amp; page access</a>
+          <a href="#" style="padding: 10px 12px; color: #111827; text-decoration: none">Notifications</a>
+          <a href="#" style="padding: 10px 12px; color: #111827; text-decoration: none">Change history</a>
+        </nav>
+
+        <div style="flex: 999 1 600px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+          <div role="status" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 10px 14px; font-size: 14px; color: #78350f">
+            <span><strong>2 unsaved changes.</strong> Turning on Customer portal makes 2 pages visible to external users.</span>
+            <span style="display: flex; gap: 8px">
+              <button type="button" style="height: 34px; padding: 0 12px; border-radius: 6px; border: 1px solid #d6b25e; background: #ffffff; font: inherit; cursor: pointer">Discard</button>
+              <button type="button" style="height: 34px; padding: 0 14px; border-radius: 6px; border: 0; background: #111827; color: #ffffff; font: inherit; font-weight: 700; cursor: pointer">Save changes</button>
+            </span>
+          </div>
+
+          <section style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; display: flex; flex-direction: column">
+            <h2 style="margin: 0; padding: 14px 16px; font-size: 18px; border-bottom: 1px solid #e5e7eb">Modules &amp; features</h2>
+            <div style="display: flex; justify-content: space-between; gap: 16px; padding: 14px 16px; border-bottom: 1px solid #e5e7eb; flex-wrap: wrap">
+              <span style="display: flex; flex-direction: column; gap: 2px; flex: 1 1 360px"><strong>Projects module</strong><span style="font-size: 14px; color: #475569">Equipment for internal projects. Uses intercompany billing.</span></span>
+              <span role="switch" aria-checked="true" aria-label="Projects module" style="width: 44px; height: 24px; border-radius: 999px; background: #2e5468; position: relative; flex: none"><span style="position: absolute; right: 3px; top: 3px; width: 18px; height: 18px; border-radius: 999px; background: #ffffff"></span></span>
+            </div>
+            <div style="display: flex; justify-content: space-between; gap: 16px; padding: 14px 16px; border-bottom: 1px solid #e5e7eb; flex-wrap: wrap">
+              <span style="display: flex; flex-direction: column; gap: 2px; flex: 1 1 360px"><strong>Customers module</strong><span style="font-size: 14px; color: #475569">Rent equipment to customers. Adds customer requests and quotes.</span></span>
+              <span role="switch" aria-checked="true" aria-label="Customers module" style="width: 44px; height: 24px; border-radius: 999px; background: #2e5468; position: relative; flex: none"><span style="position: absolute; right: 3px; top: 3px; width: 18px; height: 18px; border-radius: 999px; background: #ffffff"></span></span>
+            </div>
+            <div style="display: flex; justify-content: space-between; gap: 16px; padding: 14px 16px; border-bottom: 1px solid #e5e7eb; flex-wrap: wrap">
+              <span style="display: flex; flex-direction: column; gap: 2px; flex: 1 1 360px"><strong>Rental agreements</strong><span style="font-size: 14px; color: #475569">Negotiated rates and bulk-add lists. <a href="#">Make agreements mandatory on requests</a></span></span>
+              <span role="switch" aria-checked="true" aria-label="Rental agreements" style="width: 44px; height: 24px; border-radius: 999px; background: #2e5468; position: relative; flex: none"><span style="position: absolute; right: 3px; top: 3px; width: 18px; height: 18px; border-radius: 999px; background: #ffffff"></span></span>
+            </div>
+            <div style="display: flex; justify-content: space-between; gap: 16px; padding: 14px 16px 14px 40px; border-bottom: 1px solid #e5e7eb; flex-wrap: wrap; background: #fafafa">
+              <span style="display: flex; flex-direction: column; gap: 2px; flex: 1 1 340px"><strong>External customers (Oracle AR)</strong><span style="font-size: 14px; color: #475569">Needs: Customers module ✓ · Rental agreements ✓</span></span>
+              <span role="switch" aria-checked="true" aria-label="External customers" style="width: 44px; height: 24px; border-radius: 999px; background: #2e5468; position: relative; flex: none"><span style="position: absolute; right: 3px; top: 3px; width: 18px; height: 18px; border-radius: 999px; background: #ffffff"></span></span>
+            </div>
+            <div style="display: flex; justify-content: space-between; gap: 16px; padding: 14px 16px 14px 64px; border-bottom: 1px solid #e5e7eb; flex-wrap: wrap; background: #fffbeb">
+              <span style="display: flex; flex-direction: column; gap: 2px; flex: 1 1 320px"><strong>Customer portal <span style="padding: 0 6px; border-radius: 4px; background: #fde68a; color: #78350f; font-size: 11px; font-weight: 700">CHANGED</span></strong><span style="font-size: 14px; color: #475569">Needs: External customers ✓ · Turn off any time for maintenance</span></span>
+              <span role="switch" aria-checked="true" aria-label="Customer portal" style="width: 44px; height: 24px; border-radius: 999px; background: #2e5468; position: relative; flex: none"><span style="position: absolute; right: 3px; top: 3px; width: 18px; height: 18px; border-radius: 999px; background: #ffffff"></span></span>
+            </div>
+            <div style="display: flex; justify-content: space-between; gap: 16px; padding: 14px 16px; border-bottom: 1px solid #e5e7eb; flex-wrap: wrap">
+              <span style="display: flex; flex-direction: column; gap: 2px; flex: 1 1 360px"><strong>Transfer orders &amp; shipping</strong><span style="font-size: 14px; color: #475569">Per business unit. On for 2 of 3 BUs. <a href="#">Set per BU</a></span></span>
+              <span style="font-size: 14px; color: #475569; font-weight: 600">Mixed</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; gap: 16px; padding: 14px 16px; border-bottom: 1px solid #e5e7eb; flex-wrap: wrap">
+              <span style="display: flex; flex-direction: column; gap: 2px; flex: 1 1 360px"><strong>Inter-project transfers</strong><span style="font-size: 14px; color: #475569">Move equipment between projects without returning it to the yard.</span></span>
+              <span role="switch" aria-checked="true" aria-label="Inter-project transfers" style="width: 44px; height: 24px; border-radius: 999px; background: #2e5468; position: relative; flex: none"><span style="position: absolute; right: 3px; top: 3px; width: 18px; height: 18px; border-radius: 999px; background: #ffffff"></span></span>
+            </div>
+            <div style="display: flex; justify-content: space-between; gap: 16px; padding: 14px 16px; flex-wrap: wrap; background: #fffbeb">
+              <span style="display: flex; flex-direction: column; gap: 2px; flex: 1 1 360px"><strong>Extra project approval <span style="padding: 0 6px; border-radius: 4px; background: #fde68a; color: #78350f; font-size: 11px; font-weight: 700">CHANGED</span></strong><span style="font-size: 14px; color: #475569">Adds a PM approval before the Equipment Manager. Affects 17 open requests.</span></span>
+              <span role="switch" aria-checked="false" aria-label="Extra project approval" style="width: 44px; height: 24px; border-radius: 999px; background: #cbd5e1; position: relative; flex: none"><span style="position: absolute; left: 3px; top: 3px; width: 18px; height: 18px; border-radius: 999px; background: #ffffff"></span></span>
+            </div>
+          </section>
+
+          <div style="display: flex; flex-wrap: wrap; gap: 16px">
+            <section style="flex: 1 1 360px; min-width: 0; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 10px">
+              <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px"><h2 style="margin: 0; font-size: 17px">Inspection points</h2><span style="font-size: 13px; color: #475569">7.17.3</span></div>
+              <div style="overflow-x: auto">
+                <table style="border-collapse: collapse; width: 100%">
+                  <thead><tr><th>Class · subclass</th><th>Yard out</th><th>Site in</th><th>Site out</th><th>Yard in</th></tr></thead>
+                  <tbody>
+                    <tr><td>Excavators · all</td><td>✔</td><td>✔</td><td></td><td>✔</td></tr>
+                    <tr><td>Cranes · mobile</td><td>✔</td><td>✔</td><td>✔</td><td>✔</td></tr>
+                    <tr><td>Generators · all</td><td></td><td></td><td></td><td>✔</td></tr>
+                    <tr><td>Light towers · all</td><td></td><td></td><td></td><td></td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <span style="font-size: 13px; color: #475569">Click a cell to switch it. No ticks: no inspection step for that class.</span>
+            </section>
+            <section style="flex: 1 1 360px; min-width: 0; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 10px">
+              <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px"><h2 style="margin: 0; font-size: 17px">Roles &amp; page access</h2><span style="font-size: 13px; color: #475569">7.17.2B, 10.3</span></div>
+              <div style="overflow-x: auto">
+                <table style="border-collapse: collapse; width: 100%">
+                  <thead><tr><th>EquipRite role</th><th>Fusion role code</th><th>Pages</th></tr></thead>
+                  <tbody>
+                    <tr><td>Requester</td><td>RT_EQP_REQUESTER</td><td><a href="#">8</a></td></tr>
+                    <tr><td>Project manager</td><td>RT_EQP_PROJECT_MGR</td><td><a href="#">11</a></td></tr>
+                    <tr><td>Equipment manager</td><td>RT_EQP_EQUIP_MGR</td><td><a href="#">24</a></td></tr>
+                    <tr><td>Timekeeper</td><td>RT_EQP_TIMEKEEPER</td><td><a href="#">3</a></td></tr>
+                    <tr><td>Time approver</td><td>RT_EQP_TIME_APPROVER</td><td><a href="#">4</a></td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <span style="font-size: 13px; color: #475569">Every page checks access the same way, including the 4 pages that have no guard today. <a href="#">Preview the app as a role</a></span>
+            </section>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1250}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

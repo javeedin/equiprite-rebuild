@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Equipment master</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f8fafc}
+a{color:#1d4ed8}a:hover{color:#1e3a8a}
+th,td{text-align:left;padding:10px 10px;border-bottom:1px solid #e5e7eb;font-size:14px;white-space:nowrap}
+th{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:#475569;font-weight:600;background:#f8fafc}
+</style>
+</helmet>
+<div style="font-family: 'Source Sans 3', system-ui, sans-serif; color: #111827; background: #f8fafc; font-variant-numeric: tabular-nums">
+  <dc-import name="AppHeader" hint-size="100%,64px"></dc-import>
+  <div style="display: flex; flex-wrap: wrap; align-items: stretch">
+    <div style="flex: 1 1 232px; background: #0b0f1a"><dc-import name="SideNav" active="equipment" hint-size="100%,980px"></dc-import></div>
+    <main style="flex: 999 1 560px; min-width: 0">
+      <div style="background: #2e5468; color: #ffffff">
+        <div style="padding: 24px 32px 20px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px">
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <span style="font-size: 13px; color: #cfe0e8">FDD 7.2, 7.2.5D, 7.2.6A · Redwood Smart Search page</span>
+            <h1 style="margin: 0; font-size: 30px; font-weight: 700">Equipment</h1>
+            <span style="color: #e2edf2">412 items · last full import from Fusion 28 Oct 22:00</span>
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap">
+            <button type="button" style="height: 40px; padding: 0 16px; border-radius: 6px; border: 1px solid #ffffff; background: transparent; color: #ffffff; font: inherit; font-weight: 600; cursor: pointer">Import from Fusion</button>
+            <a href="EquipmentDetail.dc.html" style="height: 40px; padding: 0 16px; border-radius: 6px; background: #ffffff; color: #111827; font-weight: 700; text-decoration: none; display: flex; align-items: center">New equipment</a>
+          </div>
+        </div>
+        <div style="display: flex; height: 6px" aria-hidden="true"><div style="flex: 1; background: #c74634"></div><div style="flex: 1; background: #e5a22f"></div><div style="flex: 1; background: #6f9a3a"></div><div style="flex: 1; background: #2b8cbe"></div><div style="flex: 1; background: #6b4fa3"></div></div>
+      </div>
+
+      <div style="padding: 20px 32px 40px; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center">
+          <select aria-label="Saved search" style="height: 40px; padding: 0 10px; border: 1px solid #cbd5e1; border-radius: 6px; font: inherit; font-size: 15px"><option>Saved: My yard, active (default)</option></select>
+          <label style="flex: 1 1 280px; display: flex"><span style="position: absolute; left: -9999px">Search equipment</span><input type="search" placeholder="Name, class or description, e.g. GPS grade control" style="width: 100%; height: 40px; box-sizing: border-box; padding: 0 12px; border: 1px solid #cbd5e1; border-radius: 6px; font: inherit; font-size: 15px"></label>
+          <button type="button" style="height: 40px; padding: 0 12px; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff; font: inherit; cursor: pointer">Save search</button>
+          <div role="group" aria-label="View" style="display: flex; border: 1px solid #cbd5e1; border-radius: 6px; overflow: hidden">
+            <button type="button" aria-pressed="true" style="height: 40px; padding: 0 14px; border: 0; background: #111827; color: #ffffff; font: inherit; font-weight: 600">Grid</button>
+            <button type="button" aria-pressed="false" style="height: 40px; padding: 0 14px; border: 0; background: #ffffff; font: inherit">Map</button>
+          </div>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px">
+          <button type="button" style="height: 34px; padding: 0 12px; border-radius: 999px; border: 1px solid #2e5468; background: #e0ecf2; font: inherit; font-size: 14px; cursor: pointer">Class: Excavators</button>
+          <button type="button" style="height: 34px; padding: 0 12px; border-radius: 999px; border: 1px solid #cbd5e1; background: #ffffff; font: inherit; font-size: 14px; cursor: pointer">Subclass</button>
+          <button type="button" style="height: 34px; padding: 0 12px; border-radius: 999px; border: 1px solid #cbd5e1; background: #ffffff; font: inherit; font-size: 14px; cursor: pointer">Location</button>
+          <button type="button" style="height: 34px; padding: 0 12px; border-radius: 999px; border: 1px solid #2e5468; background: #e0ecf2; font: inherit; font-size: 14px; cursor: pointer">Status: Active</button>
+          <button type="button" style="height: 34px; padding: 0 12px; border-radius: 999px; border: 1px solid #cbd5e1; background: #ffffff; font: inherit; font-size: 14px; cursor: pointer">Ownership</button>
+          <button type="button" style="height: 34px; padding: 0 12px; border-radius: 999px; border: 1px solid #cbd5e1; background: #ffffff; font: inherit; font-size: 14px; cursor: pointer">Maintenance asset</button>
+          <a href="#" style="align-self: center; font-size: 14px">Import review: 3 unmatched values</a>
+        </div>
+
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 8px 12px; font-size: 14px">
+          <span><strong>3 selected</strong> · Syncing 2 of 3 from Fusion…</span>
+          <button type="button" style="height: 34px; padding: 0 12px; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff; font: inherit; cursor: pointer">Sync selected</button>
+        </div>
+
+        <div style="overflow-x: auto; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px">
+          <table style="border-collapse: collapse; width: 100%">
+            <thead><tr><th><input type="checkbox" aria-label="Select all"></th><th>Equipment</th><th>Serial</th><th>Class · subclass</th><th>Maint.</th><th>Certificates</th><th>Location</th><th>Ownership</th><th>Status</th><th>Last synced</th><th><span style="position: absolute; left: -9999px">Watch</span></th></tr></thead>
+            <tbody>
+              <tr><td><input type="checkbox" aria-label="Select EX-2201" checked></td><td><a href="EquipmentDetail.dc.html">CAT 320 Excavator</a></td><td>EX-2201</td><td>Excavators · Crawler</td><td><span title="No open work orders" style="display: inline-block; width: 12px; height: 12px; border-radius: 999px; background: #16a34a"></span></td><td><span style="padding: 1px 8px; border-radius: 999px; background: #dcfce7; color: #166534; font-size: 12px; font-weight: 700">Valid</span></td><td>Pipeline North</td><td>Company-owned</td><td>Active</td><td>Today 08:14</td><td><button type="button" aria-label="Watch EX-2201" style="border: 0; background: transparent; cursor: pointer; font-size: 16px">☆</button></td></tr>
+              <tr><td><input type="checkbox" aria-label="Select EX-2203" checked></td><td><a href="EquipmentDetail.dc.html">CAT 320 Excavator</a></td><td>EX-2203</td><td>Excavators · Crawler</td><td><span title="No open work orders" style="display: inline-block; width: 12px; height: 12px; border-radius: 999px; background: #16a34a"></span></td><td><span style="padding: 1px 8px; border-radius: 999px; background: #dcfce7; color: #166534; font-size: 12px; font-weight: 700">Valid</span></td><td>Houston Yard · Available</td><td>Company-owned</td><td>Active</td><td>Today 08:14</td><td><button type="button" aria-label="Watch EX-2203" style="border: 0; background: transparent; cursor: pointer; font-size: 16px">☆</button></td></tr>
+              <tr style="background: #fef2f2"><td><input type="checkbox" aria-label="Select EX-2210" checked></td><td><a href="EquipmentDetail.dc.html">CAT 320 Excavator</a></td><td>EX-2210</td><td>Excavators · Crawler</td><td><span title="1 open work order: WO-55821 Released" style="display: inline-block; width: 12px; height: 12px; border-radius: 999px; background: #dc2626"></span></td><td><span style="padding: 1px 8px; border-radius: 999px; background: #fef3c7; color: #92400e; font-size: 12px; font-weight: 700">Expires in 21 days</span></td><td>Dallas Yard · Maintenance</td><td>Company-owned</td><td>Maintenance</td><td><span style="color: #b91c1c">Sync failed</span> <a href="#">Retry</a></td><td><button type="button" aria-label="Watch EX-2210" style="border: 0; background: transparent; cursor: pointer; font-size: 16px">★</button></td></tr>
+              <tr><td><input type="checkbox" aria-label="Select EX-2207"></td><td><a href="EquipmentDetail.dc.html">Komatsu PC210 Excavator</a></td><td>EX-2207</td><td>Excavators · Crawler</td><td><span title="No open work orders" style="display: inline-block; width: 12px; height: 12px; border-radius: 999px; background: #16a34a"></span></td><td><span style="padding: 1px 8px; border-radius: 999px; background: #fee2e2; color: #b91c1c; font-size: 12px; font-weight: 700">Expired</span></td><td>Plant Expansion B</td><td>Leased</td><td>Active</td><td>27 Oct</td><td><button type="button" aria-label="Watch EX-2207" style="border: 0; background: transparent; cursor: pointer; font-size: 16px">☆</button></td></tr>
+              <tr><td><input type="checkbox" aria-label="Select EX-3002"></td><td><a href="EquipmentDetail.dc.html">Mini Excavator 3.5t</a></td><td>EX-3002</td><td>Excavators · Mini</td><td><span title="No open work orders" style="display: inline-block; width: 12px; height: 12px; border-radius: 999px; background: #16a34a"></span></td><td><span style="padding: 1px 8px; border-radius: 999px; background: #f1f5f9; color: #475569; font-size: 12px; font-weight: 700">None needed</span></td><td>Houston Yard · Available</td><td>Rented</td><td>Active</td><td style="color: #92400e; font-weight: 600">Never synced</td><td><button type="button" aria-label="Watch EX-3002" style="border: 0; background: transparent; cursor: pointer; font-size: 16px">☆</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <span style="font-size: 13px; color: #475569">Red light: open Fusion maintenance work order (hover for details). Equipment with an expired certificate asks for a justification before it can be requested.</span>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

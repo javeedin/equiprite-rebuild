@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Post costs</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f8fafc}
+a{color:#1d4ed8}a:hover{color:#1e3a8a}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid #e5e7eb;font-size:14px;white-space:nowrap}
+th{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:#475569;font-weight:600;background:#f8fafc}
+</style>
+</helmet>
+<div style="font-family: 'Source Sans 3', system-ui, sans-serif; color: #111827; background: #f8fafc; font-variant-numeric: tabular-nums">
+  <dc-import name="AppHeader" hint-size="100%,64px"></dc-import>
+  <div style="display: flex; flex-wrap: wrap; align-items: stretch">
+    <div style="flex: 1 1 232px; background: #0b0f1a"><dc-import name="SideNav" active="post-costs" hint-size="100%,980px"></dc-import></div>
+    <main style="flex: 999 1 560px; min-width: 0">
+      <div style="background: #2e5468; color: #ffffff">
+        <div style="padding: 24px 32px 20px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px">
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <span style="font-size: 13px; color: #cfe0e8">FDD 7.14A, 7.3.6 · Redwood Smart Search page + detail drawer</span>
+            <h1 style="margin: 0; font-size: 30px; font-weight: 700">Post costs</h1>
+            <span style="color: #e2edf2">Calculated equipment cost to Oracle Projects, with IC billing or AR invoices</span>
+          </div>
+          <button type="button" style="height: 40px; padding: 0 18px; border-radius: 6px; border: 0; background: #ffffff; color: #111827; font: inherit; font-weight: 700; cursor: pointer">Post 2 requests · $63,240</button>
+        </div>
+        <div style="display: flex; height: 6px" aria-hidden="true"><div style="flex: 1; background: #c74634"></div><div style="flex: 1; background: #e5a22f"></div><div style="flex: 1; background: #6f9a3a"></div><div style="flex: 1; background: #2b8cbe"></div><div style="flex: 1; background: #6b4fa3"></div></div>
+      </div>
+
+      <div style="padding: 20px 32px 40px; display: flex; flex-direction: column; gap: 16px">
+        <div style="overflow-x: auto; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px">
+          <table style="border-collapse: collapse; width: 100%">
+            <thead><tr><th><input type="checkbox" aria-label="Select all"></th><th>Request</th><th>Project / customer</th><th>Billing</th><th>Period</th><th>Approved hours</th><th>Calculated cost</th><th>Ready</th></tr></thead>
+            <tbody>
+              <tr style="background: #f0f7fb"><td><input type="checkbox" aria-label="Select REQ-10440" checked></td><td><a href="#preview">REQ-10440</a></td><td>Plant Expansion B</td><td>Intercompany</td><td>15 Jul–15 Sep</td><td>412</td><td>$18,910</td><td><span style="padding: 1px 8px; border-radius: 999px; background: #dcfce7; color: #166534; font-size: 12px; font-weight: 700">Ready</span></td></tr>
+              <tr><td><input type="checkbox" aria-label="Select REQ-10418" checked></td><td><a href="#preview">REQ-10418</a></td><td>Lone Star Paving</td><td>AR invoice</td><td>01 Aug–30 Sep</td><td>780</td><td>$44,330</td><td><span style="padding: 1px 8px; border-radius: 999px; background: #dcfce7; color: #166534; font-size: 12px; font-weight: 700">Ready</span></td></tr>
+              <tr><td><input type="checkbox" aria-label="Select REQ-10475" disabled></td><td><a href="#preview">REQ-10475</a></td><td>Pipeline North</td><td>Intercompany</td><td>02 Sep–30 Nov</td><td>356</td><td>$35,600</td><td><span style="padding: 1px 8px; border-radius: 999px; background: #f1f5f9; color: #475569; font-size: 12px; font-weight: 700">Period not ended</span></td></tr>
+              <tr><td><input type="checkbox" aria-label="Select REQ-10431" disabled></td><td><a href="#preview">REQ-10431</a></td><td>Plant Expansion B</td><td>Intercompany</td><td>01 Aug–30 Sep</td><td>290</td><td>$51,200</td><td><span style="padding: 1px 8px; border-radius: 999px; background: #fef3c7; color: #92400e; font-size: 12px; font-weight: 700">2 timesheets unapproved</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <section id="preview" aria-label="Preview REQ-10440" style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 14px">
+          <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; align-items: center">
+            <h2 style="margin: 0; font-size: 18px">Preview: REQ-10440 · Generator 100 kVA · GN-0412</h2>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap">
+              <button type="button" style="height: 34px; padding: 0 12px; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff; font: inherit; cursor: pointer">Add misc charge</button>
+              <button type="button" style="height: 34px; padding: 0 12px; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff; font: inherit; cursor: pointer">Split across projects</button>
+              <button type="button" style="height: 34px; padding: 0 12px; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff; font: inherit; cursor: pointer">Re-tier</button>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr)); gap: 12px; font-size: 14px">
+            <span style="display: flex; flex-direction: column"><span style="color: #475569; font-size: 13px">Rate schedule</span><strong>US Generators 2026</strong></span>
+            <span style="display: flex; flex-direction: column"><span style="color: #475569; font-size: 13px">Method · basis</span><strong>Utilized duration · hourly</strong></span>
+            <span style="display: flex; flex-direction: column"><span style="color: #475569; font-size: 13px">Total approved</span><strong>412 h</strong></span>
+            <span style="display: flex; flex-direction: column"><span style="color: #475569; font-size: 13px">Rate period applied</span><strong>Monthly (160–479 h)</strong></span>
+          </div>
+          <div style="overflow-x: auto">
+            <table style="border-collapse: collapse; width: 100%">
+              <thead><tr><th>Component</th><th>Quantity</th><th>Rate</th><th>Amount</th><th>Expenditure type</th><th>Status</th></tr></thead>
+              <tbody>
+                <tr><td>Usage, Monthly period</td><td>2.58 months</td><td>$6,800/month</td><td>$17,520</td><td>Equipment Rental</td><td>Not posted</td></tr>
+                <tr><td>Mobilization</td><td>1</td><td>$650 flat</td><td>$650</td><td>Equipment Mobilization</td><td>Not posted</td></tr>
+                <tr><td>Demobilization</td><td>1</td><td>$650 flat</td><td>$650</td><td>Equipment Mobilization</td><td>Not posted</td></tr>
+                <tr><td>Misc: fuel top-up on return</td><td>1</td><td>$90</td><td>$90</td><td>Fuel</td><td>Not posted</td></tr>
+                <tr style="font-weight: 700"><td colspan="3">Total to post</td><td>$18,910</td><td colspan="2">Creates PPM expenditure items and an intercompany invoice</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <span style="font-size: 13px; color: #475569">Posted costs can't be reversed here; use Oracle Projects adjustments.</span>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1060}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>My requests</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f8fafc}
+a{color:#1d4ed8}a:hover{color:#1e3a8a}
+th,td{text-align:left;padding:10px 10px;border-bottom:1px solid #e5e7eb;font-size:14px;white-space:nowrap}
+th{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:#475569;font-weight:600;background:#f8fafc}
+</style>
+</helmet>
+<div style="font-family: 'Source Sans 3', system-ui, sans-serif; color: #111827; background: #f8fafc; font-variant-numeric: tabular-nums">
+  <dc-import name="AppHeader" hint-size="100%,64px"></dc-import>
+  <div style="display: flex; flex-wrap: wrap; align-items: stretch">
+    <div style="flex: 1 1 232px; background: #0b0f1a"><dc-import name="SideNav" active="my-requests" hint-size="100%,980px"></dc-import></div>
+    <main style="flex: 999 1 560px; min-width: 0">
+      <div style="background: #2e5468; color: #ffffff">
+        <div style="padding: 24px 32px 20px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px">
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <span style="font-size: 13px; color: #cfe0e8">FDD 7.6, 7.5.6A · Redwood Smart Search page</span>
+            <h1 style="margin: 0; font-size: 30px; font-weight: 700">My requests</h1>
+          </div>
+          <a href="CartCatalog.dc.html" style="padding: 10px 18px; border-radius: 6px; background: #ffffff; color: #111827; font-weight: 700; text-decoration: none">New request</a>
+        </div>
+        <div style="display: flex; height: 6px" aria-hidden="true"><div style="flex: 1; background: #c74634"></div><div style="flex: 1; background: #e5a22f"></div><div style="flex: 1; background: #6f9a3a"></div><div style="flex: 1; background: #2b8cbe"></div><div style="flex: 1; background: #6b4fa3"></div></div>
+      </div>
+
+      <div style="padding: 20px 32px 40px; display: flex; flex-direction: column; gap: 14px">
+        <div role="tablist" aria-label="Views" style="display: flex; gap: 4px; border-bottom: 1px solid #e5e7eb">
+          <button role="tab" aria-selected="true" style="height: 40px; padding: 0 16px; border: 0; border-bottom: 3px solid #2e5468; background: transparent; font: inherit; font-weight: 700; cursor: pointer">Requests (31)</button>
+          <button role="tab" aria-selected="false" style="height: 40px; padding: 0 16px; border: 0; background: transparent; font: inherit; color: #475569; cursor: pointer">My requisitions (2)</button>
+        </div>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center">
+          <label style="flex: 1 1 280px; display: flex"><span style="position: absolute; left: -9999px">Search requests</span><input type="search" placeholder="Search by request number, equipment or project" style="width: 100%; height: 40px; box-sizing: border-box; padding: 0 12px; border: 1px solid #cbd5e1; border-radius: 6px; font: inherit; font-size: 15px"></label>
+          <button type="button" style="height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid #2e5468; background: #e0ecf2; font: inherit; font-size: 14px; cursor: pointer">Status: Draft, In process, Approved, Deployed</button>
+          <button type="button" style="height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid #cbd5e1; background: #ffffff; font: inherit; font-size: 14px; cursor: pointer">Class</button>
+          <button type="button" style="height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid #cbd5e1; background: #ffffff; font: inherit; font-size: 14px; cursor: pointer">Project</button>
+          <button type="button" style="height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid #cbd5e1; background: #ffffff; font: inherit; font-size: 14px; cursor: pointer">Dates</button>
+          <button type="button" style="height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid #cbd5e1; background: #ffffff; font: inherit; font-size: 14px; cursor: pointer">Soft / hard reserve</button>
+          <label style="display: flex; gap: 6px; align-items: center; font-size: 14px"><input type="checkbox">Show cancelled</label>
+        </div>
+
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 8px 12px; font-size: 14px">
+          <span><strong>2 selected</strong></span>
+          <div style="display: flex; gap: 8px">
+            <button type="button" style="height: 34px; padding: 0 12px; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff; font: inherit; cursor: pointer">Cancel requests</button>
+            <button type="button" style="height: 34px; padding: 0 12px; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff; font: inherit; cursor: pointer">Export to Excel</button>
+          </div>
+        </div>
+
+        <div style="overflow-x: auto; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px">
+          <table style="border-collapse: collapse; width: 100%">
+            <thead><tr><th><input type="checkbox" aria-label="Select all"></th><th>Request</th><th>Equipment</th><th>Serial</th><th>Project / task</th><th>Qty</th><th>Bill rate</th><th>Dates</th><th>Status</th><th>Updated</th><th>Actions</th></tr></thead>
+            <tbody>
+              <tr><td><input type="checkbox" aria-label="Select REQ-10530" checked></td><td><a href="RequestDetail.dc.html">REQ-10530</a></td><td>CAT 320 Excavator</td><td>—</td><td>Pipeline North / 2.1</td><td>1 / 0</td><td>$1,400/day</td><td>04 Nov–30 Nov</td><td><span style="display: inline-flex; gap: 6px; align-items: center"><span style="padding: 2px 10px; border-radius: 999px; background: #fef3c7; color: #92400e; font-size: 13px; font-weight: 600">In process</span><span title="Soft reserve" style="width: 18px; height: 8px; border-radius: 2px; background: #90caf9"></span></span></td><td>Today 09:12</td><td style="display: flex; gap: 10px"><a href="RequestDetail.dc.html">View</a><button type="button" style="border: 0; background: transparent; color: #1d4ed8; font: inherit; cursor: pointer; padding: 0">Cancel</button></td></tr>
+              <tr><td><input type="checkbox" aria-label="Select REQ-10528" checked></td><td><a href="RequestDetail.dc.html">REQ-10528</a></td><td>Wheel Loader 950</td><td>—</td><td>Pipeline North / 2.3</td><td>1 / 0</td><td>$1,150/day</td><td>10 Nov–20 Dec</td><td><span style="padding: 2px 10px; border-radius: 999px; background: #f3f4f6; color: #4b5563; font-size: 13px; font-weight: 600">Draft</span></td><td>Yesterday</td><td style="display: flex; gap: 10px"><a href="CartReview.dc.html">Edit</a><button type="button" style="border: 0; background: transparent; color: #1d4ed8; font: inherit; cursor: pointer; padding: 0">Cancel</button></td></tr>
+              <tr><td><input type="checkbox" aria-label="Select REQ-10511"></td><td><a href="RequestDetail.dc.html">REQ-10511</a></td><td>Komatsu PC210 Excavator</td><td>EX-2207</td><td>Plant Expansion B / 3.4</td><td>1 / 0</td><td>$1,350/day</td><td>01 Nov–15 Dec</td><td><span style="display: inline-flex; gap: 6px; align-items: center"><span style="padding: 2px 10px; border-radius: 999px; background: #e0e7ff; color: #4338ca; font-size: 13px; font-weight: 600">Approved</span><span title="Hard reserve" style="width: 18px; height: 8px; border-radius: 2px; background: #1565c0"></span></span></td><td>28 Oct</td><td><a href="RequestDetail.dc.html">View</a></td></tr>
+              <tr><td><input type="checkbox" aria-label="Select REQ-10482"></td><td><a href="RequestDetail.dc.html">REQ-10482</a></td><td>CAT 320 Excavator</td><td>EX-2201</td><td>Pipeline North / 2.1</td><td>1 / 1</td><td>$1,400/day</td><td>02 Sep–<span style="color: #b91c1c; font-weight: 600">21 Oct</span></td><td><span style="display: inline-flex; gap: 6px; align-items: center"><span style="padding: 2px 10px; border-radius: 999px; background: #d1fae5; color: #065f46; font-size: 13px; font-weight: 600">Deployed</span><span style="padding: 1px 6px; border-radius: 4px; background: #fee2e2; color: #b91c1c; font-size: 11px; font-weight: 700">OVERDUE</span></span></td><td>21 Oct</td><td style="display: flex; gap: 10px"><a href="RequestDetail.dc.html">View</a><a href="ReceiptReturns.dc.html">Return</a></td></tr>
+              <tr><td><input type="checkbox" aria-label="Select REQ-10475"></td><td><a href="RequestDetail.dc.html">REQ-10475</a></td><td>Dump Truck 30t</td><td>DT-1108</td><td>Pipeline North / 2.1</td><td>2 / 2</td><td>$800/day</td><td>02 Sep–30 Nov</td><td><span style="padding: 2px 10px; border-radius: 999px; background: #d1fae5; color: #065f46; font-size: 13px; font-weight: 600">Deployed</span></td><td>03 Sep</td><td style="display: flex; gap: 10px"><a href="RequestDetail.dc.html">View</a><a href="ReceiptReturns.dc.html">Return</a></td></tr>
+              <tr><td><input type="checkbox" aria-label="Select REQ-10440"></td><td><a href="RequestDetail.dc.html">REQ-10440</a></td><td>Generator 100 kVA</td><td>GN-0412</td><td>Plant Expansion B / 4.2</td><td>1 / 1</td><td>$310/day</td><td>15 Jul–15 Sep</td><td><span style="padding: 2px 10px; border-radius: 999px; background: #f1f5f9; color: #334155; font-size: 13px; font-weight: 600">Returned</span></td><td>16 Sep</td><td><a href="RequestDetail.dc.html">View</a></td></tr>
+              <tr><td><input type="checkbox" aria-label="Select REQ-10431"></td><td><a href="RequestDetail.dc.html">REQ-10431</a></td><td>Tower Crane</td><td>—</td><td>Plant Expansion B / 4.2</td><td>1 / 0</td><td>$2,900/day</td><td>01 Aug–30 Sep</td><td><span style="padding: 2px 10px; border-radius: 999px; background: #fee2e2; color: #b91c1c; font-size: 13px; font-weight: 600">Rejected</span></td><td>22 Jul</td><td style="display: flex; gap: 10px"><a href="CartReview.dc.html">Edit &amp; resubmit</a></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; font-size: 14px; color: #475569">
+          <span>Showing 1–7 of 31 · newest first</span>
+          <span style="display: flex; gap: 8px; align-items: center">Rows per page <select aria-label="Rows per page" style="height: 32px; border: 1px solid #cbd5e1; border-radius: 6px; font: inherit"><option>25</option></select> <button type="button" style="height: 32px; padding: 0 10px; border: 1px solid #cbd5e1; border-radius: 6px; background: #ffffff; font: inherit; cursor: pointer">Next</button></span>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1060}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

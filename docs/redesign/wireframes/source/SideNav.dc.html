@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Side navigation</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<nav aria-label="Main menu" style="font-family: 'Source Sans 3', system-ui, sans-serif; background: #0b0f1a; color: #cbd5e1; box-sizing: border-box; padding: 16px 12px 24px; display: flex; flex-direction: column; gap: 18px; min-height: 980px">
+  <sc-for list="{{groups}}" as="group" hint-placeholder-count="7">
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      <sc-if value="{{group.label}}" hint-placeholder-val="{{true}}">
+        <span style="padding: 0 10px 6px; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #8b95a5">{{group.label}}</span>
+      </sc-if>
+      <sc-for list="{{group.items}}" as="item" hint-placeholder-count="3">
+        <a href="{{item.href}}" style="{{item.style}}">
+          <span>{{item.label}}</span>
+          <sc-if value="{{item.count}}" hint-placeholder-val="{{false}}">
+            <span style="min-width: 22px; padding: 0 6px; height: 20px; border-radius: 999px; background: #334155; color: #ffffff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center">{{item.count}}</span>
+          </sc-if>
+        </a>
+      </sc-for>
+    </div>
+  </sc-for>
+  <div style="margin-top: auto; padding: 10px; border-top: 1px solid #1f2937; font-size: 12px; color: #8b95a5; display: flex; flex-direction: column; gap: 4px">
+    <span>Modules on: Foundation · Projects · Customers</span>
+    <span>Items hide by role and module flag</span>
+  </div>
+</nav>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"active":{"editor":"enum","options":["home","new-request","my-requests","workbench","schedule","picking","inspection","receipt","transfer","time-entry","timesheet-approval","post-costs","project-costs","equipment","rates","agreements","analytics","settings","integration-health","portal"],"default":"home"},"$preview":{"width":248,"height":980}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const active = this.props.active ?? 'home';
+    const base = 'display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; padding: 0 10px; border-radius: 6px; text-decoration: none; font-size: 15px;';
+    const groups = [
+      { label: '', items: [{ key: 'home', label: 'Home', href: 'HomeEquipmentManager.dc.html' }] },
+      { label: 'Request', items: [
+        { key: 'new-request', label: 'New request', href: 'CartCatalog.dc.html' },
+        { key: 'my-requests', label: 'My requests', href: 'MyRequests.dc.html' },
+      ] },
+      { label: 'Fulfil', items: [
+        { key: 'workbench', label: 'Workbench', href: 'Workbench.dc.html', count: '12' },
+        { key: 'schedule', label: 'Equipment schedule', href: 'Schedule.dc.html' },
+        { key: 'picking', label: 'Initiate picking', href: 'InitiatePicking.dc.html', count: '4' },
+        { key: 'inspection', label: 'Inspection', href: 'Inspection.dc.html', count: '2' },
+        { key: 'receipt', label: 'Receipt & returns', href: 'ReceiptReturns.dc.html' },
+        { key: 'transfer', label: 'Transfers', href: 'Transfer.dc.html' },
+      ] },
+      { label: 'Usage & cost', items: [
+        { key: 'time-entry', label: 'Time entry', href: 'TimeEntry.dc.html' },
+        { key: 'timesheet-approval', label: 'Timesheet approval', href: 'TimesheetApproval.dc.html', count: '9' },
+        { key: 'post-costs', label: 'Post costs', href: 'PostCosts.dc.html' },
+        { key: 'project-costs', label: 'Direct cost & inventory', href: 'ProjectCosts.dc.html' },
+      ] },
+      { label: 'Master data', items: [
+        { key: 'equipment', label: 'Equipment', href: 'EquipmentMaster.dc.html' },
+        { key: 'rates', label: 'Rate schedules', href: 'RateSchedules.dc.html' },
+        { key: 'agreements', label: 'Rental agreements', href: 'Agreements.dc.html' },
+      ] },
+      { label: 'Insights', items: [{ key: 'analytics', label: 'Analytics', href: 'Analytics.dc.html' }] },
+      { label: 'Settings', items: [
+        { key: 'settings', label: 'Configuration', href: 'Settings.dc.html' },
+        { key: 'integration-health', label: 'Integration health', href: 'IntegrationHealth.dc.html' },
+      ] },
+      { label: 'External', items: [{ key: 'portal', label: 'Customer portal', href: 'PortalHome.dc.html' }] },
+    ];
+    return {
+      groups: groups.map((g) => ({
+        label: g.label,
+        items: g.items.map((it) => ({
+          ...it,
+          count: it.count || '',
+          style: base + (it.key === active
+            ? ' background: #1f2937; color: #ffffff; font-weight: 700;'
+            : ' color: #cbd5e1; font-weight: 400;'),
+        })),
+      })),
+    };
+  }
+}
+</script>
+</body>
+</html>

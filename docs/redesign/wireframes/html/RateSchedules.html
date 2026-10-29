@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<title>Rate schedules</title>
+
+
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f8fafc}
+a{color:#1d4ed8}a:hover{color:#1e3a8a}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid #e5e7eb;font-size:14px;white-space:nowrap}
+th{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:#475569;font-weight:600;background:#f8fafc}
+</style>
+
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</head>
+<body>
+
+
+<div style="font-family: 'Source Sans 3', system-ui, sans-serif; color: #111827; background: #f8fafc; font-variant-numeric: tabular-nums">
+  
+
+<header style="font-family: 'Source Sans 3', system-ui, sans-serif; color: #111827; background: #ffffff; border-bottom: 1px solid #e5e7eb; min-height: 64px; box-sizing: border-box; padding: 8px 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px">
+  <div style="display: flex; align-items: center; gap: 10px">
+    <button type="button" aria-label="Show or hide menu" style="width: 40px; height: 40px; border: 0; border-radius: 6px; background: transparent; display: flex; align-items: center; justify-content: center; cursor: pointer">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"></path></svg>
+    </button>
+    <a href="HomeEquipmentManager.html" style="display: flex; align-items: center; gap: 8px; text-decoration: none; color: #111827">
+      <span style="width: 28px; height: 28px; border-radius: 6px; background: #2e5468; color: #ffffff; font-weight: 700; font-size: 14px; display: flex; align-items: center; justify-content: center" aria-hidden="true">ER</span>
+      <span style="font-weight: 700; font-size: 18px">EquipRite</span>
+    </a>
+  </div>
+
+  <label style="flex: 1 1 320px; min-width: 0; position: relative; display: flex; align-items: center">
+    <span style="position: absolute; left: -9999px">Search</span>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" style="position: absolute; left: 12px" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+    <input type="search" placeholder="Search equipment, requests, projects" style="width: 100%; height: 40px; box-sizing: border-box; padding: 0 12px 0 36px; border: 1px solid #cbd5e1; border-radius: 6px; font: inherit; font-size: 15px; background: #f8fafc">
+  </label>
+
+  <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap">
+    <button type="button" style="height: 40px; padding: 0 12px; border: 1px solid #cbd5e1; border-radius: 6px; background: #ffffff; font: inherit; font-size: 14px; display: flex; align-items: center; gap: 8px; cursor: pointer">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2e5468" stroke-width="2" aria-hidden="true"><path d="M12 21s-7-6.5-7-12a7 7 0 0 1 14 0c0 5.5-7 12-7 12z"></path><circle cx="12" cy="9" r="2.5"></circle></svg>
+      <span style="color: #475569">Region / Org</span>
+      <strong>Houston Yard</strong>
+      <span style="padding: 0 6px; border-radius: 999px; background: #e2e8f0; font-size: 12px">+1</span>
+    </button>
+    <a href="CartReview.html" aria-label="Request cart, 3 items" style="position: relative; width: 40px; height: 40px; border-radius: 6px; display: flex; align-items: center; justify-content: center">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="20" r="1.5"></circle><circle cx="18" cy="20" r="1.5"></circle><path d="M2 3h3l2.5 12h11l2-8H6.2"></path></svg>
+      <span style="position: absolute; top: 2px; right: 0; min-width: 18px; height: 18px; border-radius: 999px; background: #1d4ed8; color: #ffffff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center">3</span>
+    </a>
+    <button type="button" aria-label="Notifications, 5 unread" style="position: relative; width: 40px; height: 40px; border: 0; border-radius: 6px; background: transparent; display: flex; align-items: center; justify-content: center; cursor: pointer">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10 21a2 2 0 0 0 4 0"></path></svg>
+      <span style="position: absolute; top: 2px; right: 0; min-width: 18px; height: 18px; border-radius: 999px; background: #b91c1c; color: #ffffff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center">5</span>
+    </button>
+    <button type="button" aria-label="User menu: profile, my watched equipment, sign out" style="width: 40px; height: 40px; border: 0; border-radius: 999px; background: #334155; color: #ffffff; font: inherit; font-weight: 700; cursor: pointer">JD</button>
+  </div>
+</header>
+
+  <div style="display: flex; flex-wrap: wrap; align-items: stretch">
+    <div style="flex: 1 1 232px; background: #0b0f1a">
+
+<nav aria-label="Main menu" style="font-family: 'Source Sans 3', system-ui, sans-serif; background: #0b0f1a; color: #cbd5e1; box-sizing: border-box; padding: 16px 12px 24px; display: flex; flex-direction: column; gap: 18px; min-height: 980px">
+  
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      
+      
+        <a href="HomeEquipmentManager.html" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; padding: 0 10px; border-radius: 6px; text-decoration: none; font-size: 15px; color: #cbd5e1; font-weight: 400;">
+          <span>Home</span>
+          
+        </a>
+      
+    </div>
+  
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      
+        <span style="padding: 0 10px 6px; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #8b95a5">Request</span>
+      
+      
+        <a href="CartCatalog.html" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; padding: 0 10px; border-radius: 6px; text-decoration: none; font-size: 15px; color: #cbd5e1; font-weight: 400;">
+          <span>New request</span>
+          
+        </a>
+      
+        <a href="MyRequests.html" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; padding: 0 10px; border-radius: 6px; text-decoration: none; font-size: 15px; color: #cbd5e1; font-weight: 400;">
+          <span>My requests</span>
+          
+        </a>
+      
+    </div>
+  
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      
+        <span style="padding: 0 10px 6px; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #8b95a5">Fulfil</span>
+      
+      
+        <a href="Workbench.html" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; padding: 0 10px; border-radius: 6px; text-decoration: none; font-size: 15px; color: #cbd5e1; font-weight: 400;">
+          <span>Workbench</span>
+          
+            <span style="min-width: 22px; padding: 0 6px; height: 20px; border-radius: 999px; background: #334155; color: #ffffff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center">12</span>
+          
+        </a>
+      
+        <a href="Schedule.html" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; padding: 0 10px; border-radius: 6px; text-decoration: none; font-size: 15px; color: #cbd5e1; font-weight: 400;">
+          <span>Equipment schedule</span>
+          
+        </a>
+      
+        <a href="InitiatePicking.html" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; padding: 0 10px; border-radius: 6px; text-decoration: none; font-size: 15px; color: #cbd5e1; font-weight: 400;">
+          <span>Initiate picking</span>
+          
+            <span style="min-width: 22px; padding: 0 6px; height: 20px; border-radius: 999px; background: #334155; color: #ffffff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center">4</span>
+          
+        </a>
+      
+        <a href="Inspection.html" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; padding: 0 10px; border-radius: 6px; text-decoration: none; font-size: 15px; color: #cbd5e1; font-weight: 400;">
+          <span>Inspection</span>
+          
+            <span style="min-width: 22px; padding: 0 6px; height: 20px; border-radius: 999px; background: #334155; color: #ffffff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center">2</span>
+          
+        </a>
+      
+        <a href="ReceiptReturns.html" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; padding: 0 10px; border-radius: 6px; text-decoration: none; font-size: 15px; color: #cbd5e1; font-weight: 400;">
+          <span>Receipt &amp; returns</span>
+          
+        </a>
+      
+        <a href="Transfer.html" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; padding: 0 10px; border-radius: 6px; text-decoration: none; font-size: 15px; color: #cbd5e1; font-weight: 400;">
+          <span>Transfers</span>
+          
+        </a>
+      
+    </div>
+  
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      
+        <span style="padding: 0 10px 6px; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #8b95a5">Usage &amp; cost</span>
+      
+      
+        <a href="TimeEntry.html" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; padding: 0 10px; border-radius: 6px; text-decoration: none; font-size: 15px; color: #cbd5e1; font-weight: 400;">
+          <span>Time entry</span>
+          
+        </a>
+      
+        <a href="TimesheetApproval.html" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; padding: 0 10px; border-radius: 6px; text-decoration: none; font-size: 15px; color: #cbd5e1; font-weight: 400;">
+          <span>Timesheet approval</span>
+          
+            <span style="min-width: 22px; padding: 0 6px; height: 20px; border-radius: 999px; background: #334155; color: #ffffff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center">9</span>
+          
+        </a>
+      
+        <a href="PostCosts.html" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; padding: 0 10px; border-radius: 6px; text-decoration: none; font-size: 15px; color: #cbd5e1; font-weight: 400;">
+          <span>Post costs</span>
+          
+        </a>
+      
+        <a href="ProjectCosts.html" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; padding: 0 10px; border-radius: 6px; text-decoration: none; font-size: 15px; color: #cbd5e1; font-weight: 400;">
+          <span>Direct cost &amp; inventory</span>
+          
+        </a>
+      
+    </div>
+  
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      
+        <span style="padding: 0 10px 6px; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #8b95a5">Master data</span>
+      
+      
+        <a href="EquipmentMaster.html" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; padding: 0 10px; border-radius: 6px; text-decoration: none; font-size: 15px; color: #cbd5e1; font-weight: 400;">
+          <span>Equipment</span>
+          
+        </a>
+      
+        <a href="RateSchedules.html" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; padding: 0 10px; border-radius: 6px; text-decoration: none; font-size: 15px; background: #1f2937; color: #ffffff; font-weight: 700;">
+          <span>Rate schedules</span>
+          
+        </a>
+      
+        <a href="Agreements.html" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; padding: 0 10px; border-radius: 6px; text-decoration: none; font-size: 15px; color: #cbd5e1; font-weight: 400;">
+          <span>Rental agreements</span>
+          
+        </a>
+      
+    </div>
+  
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      
+        <span style="padding: 0 10px 6px; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #8b95a5">Insights</span>
+      
+      
+        <a href="Analytics.html" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; padding: 0 10px; border-radius: 6px; text-decoration: none; font-size: 15px; color: #cbd5e1; font-weight: 400;">
+          <span>Analytics</span>
+          
+        </a>
+      
+    </div>
+  
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      
+        <span style="padding: 0 10px 6px; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #8b95a5">Settings</span>
+      
+      
+        <a href="Settings.html" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; padding: 0 10px; border-radius: 6px; text-decoration: none; font-size: 15px; color: #cbd5e1; font-weight: 400;">
+          <span>Configuration</span>
+          
+        </a>
+      
+        <a href="IntegrationHealth.html" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; padding: 0 10px; border-radius: 6px; text-decoration: none; font-size: 15px; color: #cbd5e1; font-weight: 400;">
+          <span>Integration health</span>
+          
+        </a>
+      
+    </div>
+  
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      
+        <span style="padding: 0 10px 6px; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #8b95a5">External</span>
+      
+      
+        <a href="PortalHome.html" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; padding: 0 10px; border-radius: 6px; text-decoration: none; font-size: 15px; color: #cbd5e1; font-weight: 400;">
+          <span>Customer portal</span>
+          
+        </a>
+      
+    </div>
+  
+  <div style="margin-top: auto; padding: 10px; border-top: 1px solid #1f2937; font-size: 12px; color: #8b95a5; display: flex; flex-direction: column; gap: 4px">
+    <span>Modules on: Foundation · Projects · Customers</span>
+    <span>Items hide by role and module flag</span>
+  </div>
+</nav>
+</div>
+    <main style="flex: 999 1 560px; min-width: 0">
+      <div style="background: #2e5468; color: #ffffff">
+        <div style="padding: 24px 32px 20px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px">
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <span style="font-size: 13px; color: #cfe0e8">FDD 7.3.1–7.3.8, 7.3A.5 · Redwood Smart Search page, master–detail</span>
+            <h1 style="margin: 0; font-size: 30px; font-weight: 700">Rate schedules</h1>
+            <span style="color: #e2edf2">38 schedules · 31 active · drives every cost the rate engine calculates</span>
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap">
+            <button type="button" style="height: 40px; padding: 0 16px; border-radius: 6px; border: 1px solid #ffffff; background: transparent; color: #ffffff; font: inherit; font-weight: 600; cursor: pointer">Copy to new year</button>
+            <button type="button" style="height: 40px; padding: 0 16px; border-radius: 6px; border: 0; background: #ffffff; color: #111827; font: inherit; font-weight: 700; cursor: pointer">New schedule</button>
+          </div>
+        </div>
+        <div style="display: flex; height: 6px" aria-hidden="true"><div style="flex: 1; background: #c74634"></div><div style="flex: 1; background: #e5a22f"></div><div style="flex: 1; background: #6f9a3a"></div><div style="flex: 1; background: #2b8cbe"></div><div style="flex: 1; background: #6b4fa3"></div></div>
+      </div>
+
+      <div style="padding: 20px 32px 40px; display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start">
+        <aside aria-label="Schedules" style="flex: 1 1 260px; min-width: 0; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; display: flex; flex-direction: column">
+          <div style="padding: 12px; border-bottom: 1px solid #e5e7eb; display: flex; flex-direction: column; gap: 8px">
+            <label style="display: flex"><span style="position: absolute; left: -9999px">Search schedules</span><input type="search" placeholder="Schedule, customer or class" style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 10px; border: 1px solid #cbd5e1; border-radius: 6px; font: inherit; font-size: 15px"></label>
+            <span style="display: flex; gap: 6px; flex-wrap: wrap">
+              <button type="button" style="height: 30px; padding: 0 10px; border-radius: 999px; border: 1px solid #2e5468; background: #e0ecf2; font: inherit; font-size: 13px; cursor: pointer">Active</button>
+              <button type="button" style="height: 30px; padding: 0 10px; border-radius: 999px; border: 1px solid #cbd5e1; background: #ffffff; font: inherit; font-size: 13px; cursor: pointer">Tagged to</button>
+              <button type="button" style="height: 30px; padding: 0 10px; border-radius: 999px; border: 1px solid #cbd5e1; background: #ffffff; font: inherit; font-size: 13px; cursor: pointer">Expiring</button>
+            </span>
+          </div>
+          <a href="#" style="padding: 12px; border-bottom: 1px solid #e5e7eb; border-left: 4px solid #2e5468; background: #f0f7fb; color: #111827; text-decoration: none; display: flex; flex-direction: column; gap: 2px">
+            <strong>US Excavators 2026</strong>
+            <span style="font-size: 13px; color: #475569">Class: Excavators · Hourly · Utilized</span>
+          </a>
+          <a href="#" style="padding: 12px; border-bottom: 1px solid #e5e7eb; color: #111827; text-decoration: none; display: flex; flex-direction: column; gap: 2px">
+            <strong>Lone Star Paving MSA</strong>
+            <span style="font-size: 13px; color: #475569">Customer + agreement · Daily · Complete</span>
+          </a>
+          <a href="#" style="padding: 12px; border-bottom: 1px solid #e5e7eb; color: #111827; text-decoration: none; display: flex; flex-direction: column; gap: 2px">
+            <strong>US Generators 2026</strong>
+            <span style="font-size: 13px; color: #475569">Class: Generators · Hourly · Utilized</span>
+          </a>
+          <a href="#" style="padding: 12px; border-bottom: 1px solid #e5e7eb; color: #111827; text-decoration: none; display: flex; flex-direction: column; gap: 2px">
+            <strong>Pipeline North special</strong>
+            <span style="font-size: 13px; color: #475569">Project · Daily · Complete</span>
+          </a>
+          <a href="#" style="padding: 12px; color: #111827; text-decoration: none; display: flex; flex-direction: column; gap: 2px">
+            <strong>Default US 2026</strong>
+            <span style="font-size: 13px; color: #475569">No tags · fallback · Hourly</span>
+          </a>
+        </aside>
+
+        <div style="flex: 999 1 640px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+          <section style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap">
+              <h2 style="margin: 0; font-size: 18px">US Excavators 2026 <span style="padding: 1px 8px; border-radius: 999px; background: #dcfce7; color: #166534; font-size: 12px; font-weight: 700; vertical-align: middle">Active</span></h2>
+              <a href="#" style="font-size: 14px">Edit header</a>
+            </div>
+            <dl style="margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr)); gap: 10px 16px; font-size: 14px">
+              <div><dt style="color: #475569; font-size: 13px">Tagged to</dt><dd style="margin: 0; font-weight: 600">Equipment class: Excavators</dd></div>
+              <div><dt style="color: #475569; font-size: 13px">Basis</dt><dd style="margin: 0; font-weight: 600">Hourly</dd></div>
+              <div><dt style="color: #475569; font-size: 13px">Method</dt><dd style="margin: 0; font-weight: 600">Utilized duration</dd></div>
+              <div><dt style="color: #475569; font-size: 13px">Currency</dt><dd style="margin: 0; font-weight: 600">USD</dd></div>
+              <div><dt style="color: #475569; font-size: 13px">Effective</dt><dd style="margin: 0; font-weight: 600">01 Jan – 31 Dec 2026</dd></div>
+            </dl>
+          </section>
+
+          <section style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap">
+              <h2 style="margin: 0; font-size: 18px">Rates by period</h2>
+              <span style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center">
+                <select aria-label="Rate type" style="height: 34px; padding: 0 8px; border: 1px solid #cbd5e1; border-radius: 6px; font: inherit"><option>Rate type: Usage</option></select>
+                <button type="button" style="height: 34px; padding: 0 12px; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff; font: inherit; cursor: pointer">Add location</button>
+              </span>
+            </div>
+            <div aria-label="Thresholds in hours" style="display: grid; grid-template-columns: 7fr 32fr 120fr 320fr 400fr 240fr; height: 26px; border-radius: 4px; overflow: hidden; font-size: 11px; font-weight: 700; color: #ffffff">
+              <span style="background: #93c5fd; color: #1e3a8a; display: flex; align-items: center; justify-content: center">H</span>
+              <span style="background: #60a5fa; display: flex; align-items: center; justify-content: center">D</span>
+              <span style="background: #3b82f6; display: flex; align-items: center; justify-content: center">Weekly 40</span>
+              <span style="background: #2563eb; display: flex; align-items: center; justify-content: center">Monthly 160</span>
+              <span style="background: #1d4ed8; display: flex; align-items: center; justify-content: center">Quarterly 480</span>
+              <span style="background: #1e3a8a; display: flex; align-items: center; justify-content: center">Yearly 1,920+</span>
+            </div>
+            <div style="overflow-x: auto">
+              <table style="border-collapse: collapse; width: 100%">
+                <thead><tr><th>Location</th><th>Row</th><th>Hourly</th><th>Daily</th><th>Weekly</th><th>Monthly</th><th>Quarterly</th><th>Yearly</th></tr></thead>
+                <tbody>
+                  <tr><td rowspan="3" style="vertical-align: top; font-weight: 600">All locations</td><td style="color: #475569">From–to (h)</td><td>0–7</td><td>8–39</td><td>40–159</td><td>160–479</td><td>480–1,919</td><td>1,920+</td></tr>
+                  <tr><td style="color: #475569">Cost</td><td>$120</td><td>$880</td><td>$3,900</td><td>$12,800</td><td>$34,000</td><td>$118,000</td></tr>
+                  <tr><td style="color: #475569">Bill</td><td style="background: #f0f7fb; outline: 2px solid #2e5468; outline-offset: -2px">$175</td><td>$1,240</td><td>$5,400</td><td>$17,600</td><td>$47,000</td><td>$162,000</td></tr>
+                  <tr><td rowspan="3" style="vertical-align: top; font-weight: 600">Texas</td><td style="color: #475569">From–to (h)</td><td>0–7</td><td>8–39</td><td>40–159</td><td>160–479</td><td>480–1,919</td><td>1,920+</td></tr>
+                  <tr><td style="color: #475569">Cost</td><td>$125</td><td>$910</td><td>$4,050</td><td>$13,300</td><td>$35,200</td><td>$121,000</td></tr>
+                  <tr><td style="color: #475569">Bill</td><td>$180</td><td>$1,280</td><td style="background: #fee2e2; color: #b91c1c; font-weight: 700" title="Bill rate below cost rate">$3,980</td><td>$18,100</td><td>$48,400</td><td>$166,000</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <span style="font-size: 13px; color: #b91c1c">Texas · Weekly: bill rate is lower than cost rate. Fix before you activate.</span>
+          </section>
+
+          <div style="display: flex; flex-wrap: wrap; gap: 16px">
+            <section aria-label="Rate simulator" style="flex: 1 1 320px; min-width: 0; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 10px">
+              <h2 style="margin: 0; font-size: 17px">Try it: what would this cost?</h2>
+              <span style="display: flex; gap: 8px; flex-wrap: wrap">
+                <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #475569">Approved hours<input value="80" style="width: 100px; height: 36px; padding: 0 10px; border: 1px solid #cbd5e1; border-radius: 6px; font: inherit; font-size: 15px"></label>
+                <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #475569">Location<select style="height: 36px; padding: 0 8px; border: 1px solid #cbd5e1; border-radius: 6px; font: inherit"><option>All locations</option></select></label>
+              </span>
+              <div style="background: #f8fafc; border-radius: 6px; padding: 10px 12px; font-size: 14px; line-height: 1.5">80 h falls in <strong>Weekly (40–159 h)</strong> → 2 weeks × $5,400 = <strong style="font-size: 18px">$10,800</strong></div>
+            </section>
+            <section aria-label="Which schedule wins" style="flex: 1 1 320px; min-width: 0; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 8px; font-size: 14px">
+              <h2 style="margin: 0; font-size: 17px">Which rate wins for a request?</h2>
+              <span style="color: #475569; font-size: 13px">Most specific match first (7.3A.5)</span>
+              <ol style="margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 3px">
+                <li>Agreement line rate</li>
+                <li>Schedule tagged to the agreement</li>
+                <li>Customer + project + class</li>
+                <li>Customer + class</li>
+                <li>Project</li>
+                <li style="font-weight: 700; color: #2e5468">Equipment class ← this schedule</li>
+                <li>Default (no tags)</li>
+              </ol>
+            </section>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+
+
+
+</body></html>

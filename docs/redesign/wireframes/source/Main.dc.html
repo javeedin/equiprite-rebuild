@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>EquipRite redesign overview</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f8fafc;color:#111827;font-family:"Source Sans 3",system-ui,"Segoe UI",sans-serif;font-variant-numeric:tabular-nums}
+a{color:#1d4ed8}a:hover{color:#1e3a8a}
+th,td{text-align:left;padding:8px 12px;border-bottom:1px solid #e5e7eb;font-size:14px;vertical-align:top}
+th{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:#475569;font-weight:600;background:#f1f5f9}
+</style>
+</helmet>
+<div style="font-family: 'Source Sans 3', system-ui, sans-serif; color: #111827; background: #f8fafc">
+  <header style="background: #2e5468; color: #ffffff">
+    <div style="max-width: 1280px; margin: 0 auto; padding: 40px 32px 32px; display: flex; flex-direction: column; gap: 10px">
+      <span style="font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: #cfe0e8; font-weight: 600">Wireframes v1 · from FDD v1.7</span>
+      <h1 style="margin: 0; font-size: 40px; line-height: 1.1; font-weight: 700; text-wrap: balance">EquipRite, redesigned on Oracle Redwood</h1>
+      <p style="margin: 0; font-size: 17px; color: #e2edf2; max-width: 780px; line-height: 1.5">One app shell for every role, organised around the five phases of the equipment lifecycle. Each screen below names its FDD section and the Redwood page template it would be built with. Nothing is coded yet: these are for review.</p>
+    </div>
+    <div style="display: flex; height: 8px" aria-hidden="true">
+      <div style="flex: 1; background: #c74634"></div><div style="flex: 1; background: #e5a22f"></div><div style="flex: 1; background: #6f9a3a"></div><div style="flex: 1; background: #2b8cbe"></div><div style="flex: 1; background: #6b4fa3"></div><div style="flex: 1; background: #2e5468"></div>
+    </div>
+  </header>
+
+  <main style="max-width: 1280px; margin: 0 auto; padding: 32px; display: flex; flex-direction: column; gap: 40px">
+
+    <section style="display: flex; flex-direction: column; gap: 16px">
+      <h2 style="margin: 0; font-size: 24px; font-weight: 700">Screens by lifecycle phase</h2>
+      <p style="margin: 0; color: #475569; max-width: 760px">Click a screen to open its wireframe. In Play mode the side navigation on every screen links them together like the real app.</p>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 12px">
+        <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 8px">
+          <span style="font-size: 12px; font-weight: 700; color: #475569; letter-spacing: .06em; text-transform: uppercase">Phase 1 · Setup</span>
+          <a href="EquipmentMaster.dc.html">Equipment master</a>
+          <a href="EquipmentDetail.dc.html">Equipment detail</a>
+          <a href="RateSchedules.dc.html">Rate schedules</a>
+          <a href="Agreements.dc.html">Rental agreements</a>
+          <a href="Settings.dc.html">Configuration settings</a>
+        </div>
+        <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 8px">
+          <span style="font-size: 12px; font-weight: 700; color: #475569; letter-spacing: .06em; text-transform: uppercase">Phase 2 · Request &amp; approve</span>
+          <a href="CartCatalog.dc.html">New request: equipment</a>
+          <a href="CartReview.dc.html">New request: project &amp; review</a>
+          <a href="MyRequests.dc.html">My requests</a>
+          <a href="Workbench.dc.html">Workbench</a>
+          <a href="ApproveAllocate.dc.html">Approve &amp; allocate</a>
+          <a href="Schedule.dc.html">Equipment schedule</a>
+        </div>
+        <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 8px">
+          <span style="font-size: 12px; font-weight: 700; color: #475569; letter-spacing: .06em; text-transform: uppercase">Phase 3 · Pick, ship, receive</span>
+          <a href="InitiatePicking.dc.html">Initiate picking</a>
+          <a href="Inspection.dc.html">Inspection &amp; ship-out</a>
+          <a href="ReceiptReturns.dc.html">Receipt &amp; acceptance</a>
+          <a href="RequestDetail.dc.html">Request detail (status tracker)</a>
+        </div>
+        <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 8px">
+          <span style="font-size: 12px; font-weight: 700; color: #475569; letter-spacing: .06em; text-transform: uppercase">Phase 4 · Usage, cost, billing</span>
+          <a href="TimeEntry.dc.html">Time entry</a>
+          <a href="TimesheetApproval.dc.html">Timesheet approval</a>
+          <a href="PostCosts.dc.html">Post costs</a>
+          <a href="ProjectCosts.dc.html">Direct cost &amp; inventory use</a>
+        </div>
+        <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 8px">
+          <span style="font-size: 12px; font-weight: 700; color: #475569; letter-spacing: .06em; text-transform: uppercase">Phase 5 · Return &amp; settle</span>
+          <a href="ReceiptReturns.dc.html">Returns</a>
+          <a href="Transfer.dc.html">Inter-project transfer</a>
+          <a href="PostCosts.dc.html">Final settlement</a>
+        </div>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 12px">
+        <a href="HomeEquipmentManager.dc.html" style="padding: 10px 16px; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff; text-decoration: none; color: #111827; font-weight: 600">Home: Equipment Manager</a>
+        <a href="HomeProjectManager.dc.html" style="padding: 10px 16px; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff; text-decoration: none; color: #111827; font-weight: 600">Home: Project Manager</a>
+        <a href="Analytics.dc.html" style="padding: 10px 16px; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff; text-decoration: none; color: #111827; font-weight: 600">Analytics</a>
+        <a href="IntegrationHealth.dc.html" style="padding: 10px 16px; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff; text-decoration: none; color: #111827; font-weight: 600">Integration health</a>
+        <a href="PortalHome.dc.html" style="padding: 10px 16px; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff; text-decoration: none; color: #111827; font-weight: 600">Customer portal</a>
+      </div>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 16px">
+      <h2 style="margin: 0; font-size: 24px; font-weight: 700">What changes from today</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); gap: 12px">
+        <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 6px">
+          <strong style="font-size: 16px">One shell, one menu</strong>
+          <span style="color: #475569; line-height: 1.5">Header with the global Region / Inventory Org filter (§7.1.1), search, cart and notifications on every page. Side menu grouped by phase; items hide by role and by module flag.</span>
+        </div>
+        <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 6px">
+          <strong style="font-size: 16px">Home is a work queue</strong>
+          <span style="color: #475569; line-height: 1.5">KPI bar plus role tiles with live counts (§7.1.2–7.1.3). Every number opens the filtered list behind it.</span>
+        </div>
+        <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 6px">
+          <strong style="font-size: 16px">Requesting is a cart</strong>
+          <span style="color: #475569; line-height: 1.5">Three steps: pick equipment from the catalog, set project or customer, review and submit (§7.5). Templates and agreements fill the cart in one click.</span>
+        </div>
+        <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 6px">
+          <strong style="font-size: 16px">One workbench for the Equipment Manager</strong>
+          <span style="color: #475569; line-height: 1.5">Tabs by stage: to approve, to pick, in transit, deployed, returns, procurement. Approve &amp; allocate opens from it, with the schedule embedded (§7.8, §7.11).</span>
+        </div>
+        <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 6px">
+          <strong style="font-size: 16px">Status is always visible</strong>
+          <span style="color: #475569; line-height: 1.5">A lifecycle tracker on every request (§5.6) and the same status colours, soft/hard reserve blues and source badges on every list.</span>
+        </div>
+        <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 6px">
+          <strong style="font-size: 16px">The old app stays</strong>
+          <span style="color: #475569; line-height: 1.5">Today's app is not changed. The <a href="SignIn.dc.html">sign-in window</a> offers Old EquipRite and New EquipRite and opens the one chosen; both use the same data.</span>
+        </div>
+        <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 6px">
+          <strong style="font-size: 16px">Standard Redwood pages</strong>
+          <span style="color: #475569; line-height: 1.5">Lists use the Smart Search page, records the General Overview page, edits a drawer, Home the Dashboard Landing page: the oj-sp templates the app already uses.</span>
+        </div>
+      </div>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 16px">
+      <h2 style="margin: 0; font-size: 24px; font-weight: 700">What it replaces in today's app</h2>
+      <p style="margin: 0; color: #475569; max-width: 820px">Today's app has 47 pages. The redesign covers the same work in 26 screens. Nothing that works today is dropped: duplicates are merged, dead ends are finished, and pages without an access check get one.</p>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr)); gap: 12px">
+        <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px 16px; display: flex; flex-direction: column"><span style="font-size: 13px; color: #475569">Pages today → screens</span><strong style="font-size: 26px">47 → 26</strong></div>
+        <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px 16px; display: flex; flex-direction: column"><span style="font-size: 13px; color: #475569">Duplicate pages merged</span><strong style="font-size: 26px">10</strong></div>
+        <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px 16px; display: flex; flex-direction: column"><span style="font-size: 13px; color: #475569">Stubs and orphans finished</span><strong style="font-size: 26px">7</strong></div>
+        <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px 16px; display: flex; flex-direction: column"><span style="font-size: 13px; color: #475569">Pages that gain an access check</span><strong style="font-size: 26px">4</strong></div>
+      </div>
+      <div style="overflow-x: auto; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px">
+        <table style="border-collapse: collapse; width: 100%; min-width: 900px">
+          <thead><tr><th>Today</th><th>Becomes</th><th>Change</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td>Right-edge drawer menu, groups named after personas, no header bar</td><td><a href="AppHeader.dc.html">App header</a> + <a href="SideNav.dc.html">side menu</a></td><td><span style="padding: 1px 8px; border-radius: 999px; background: #e0e7ff; color: #4338ca; font-size: 12px; font-weight: 700">New</span></td><td>Menu grouped by lifecycle phase; region filter, search, cart and alerts always visible</td></tr>
+            <tr><td>Persona dashboards (dashboardRoleConfig.js)</td><td><a href="HomeEquipmentManager.dc.html">Home: Equipment Manager</a>, <a href="HomeProjectManager.dc.html">Home: Project Manager</a></td><td><span style="padding: 1px 8px; border-radius: 999px; background: #dcfce7; color: #166534; font-size: 12px; font-weight: 700">Kept</span></td><td>Same RT_EQP_* role mapping; tiles become clickable work queues</td></tr>
+            <tr><td>project-create-request, customer-create-req, request-catalog</td><td><a href="CartCatalog.dc.html">New request</a> (catalog → review)</td><td><span style="padding: 1px 8px; border-radius: 999px; background: #ede9fe; color: #5b21b6; font-size: 12px; font-weight: 700">3 → 1</span></td><td>Project or customer is a choice on step 2, not a separate page. EQR_CUST_CATALOG check moves into role access</td></tr>
+            <tr><td>equipment-requests, customer-my-requests (both titled "My Requests")</td><td><a href="MyRequests.dc.html">My requests</a></td><td><span style="padding: 1px 8px; border-radius: 999px; background: #ede9fe; color: #5b21b6; font-size: 12px; font-weight: 700">2 → 1</span></td><td>Source badge (Project / Customer) and a filter instead of two lists</td></tr>
+            <tr><td>equipment-request-detail, customer-request-detail, request-detail</td><td><a href="RequestDetail.dc.html">Request detail</a></td><td><span style="padding: 1px 8px; border-radius: 999px; background: #ede9fe; color: #5b21b6; font-size: 12px; font-weight: 700">3 → 1</span></td><td>One record page with the status tracker; tabs adapt to the source</td></tr>
+            <tr><td>project-quote, customer-quote, request-quote</td><td>Quote tab on <a href="RequestDetail.dc.html">Request detail</a></td><td><span style="padding: 1px 8px; border-radius: 999px; background: #ede9fe; color: #5b21b6; font-size: 12px; font-weight: 700">3 → 1</span></td><td>Quotes keep their PDF; no separate page to find</td></tr>
+            <tr><td>Workbench with Outbound / Deployed / Inbound tabs</td><td><a href="Workbench.dc.html">Workbench</a></td><td><span style="padding: 1px 8px; border-radius: 999px; background: #dcfce7; color: #166534; font-size: 12px; font-weight: 700">Kept</span></td><td>Same tabs, plus To approve, To pick and Procurement</td></tr>
+            <tr><td>Line detail with Bryntum scheduler and Mapbox allocation</td><td><a href="ApproveAllocate.dc.html">Approve &amp; allocate</a>, <a href="Schedule.dc.html">Schedule</a></td><td><span style="padding: 1px 8px; border-radius: 999px; background: #dcfce7; color: #166534; font-size: 12px; font-weight: 700">Kept</span></td><td>Same Bryntum and Mapbox components, now opened from the workbench</td></tr>
+            <tr><td>Pick slip; returns scanner (barcode/QR) and Direct Return</td><td><a href="InitiatePicking.dc.html">Initiate picking</a>, <a href="ReceiptReturns.dc.html">Receipt &amp; returns</a></td><td><span style="padding: 1px 8px; border-radius: 999px; background: #dcfce7; color: #166534; font-size: 12px; font-weight: 700">Kept</span></td><td>Scanner and Direct Return stay as they are</td></tr>
+            <tr><td>post-cost-test, post-cost-test-detail (live, test names); post-cost, post-cost-detail (unreachable)</td><td><a href="PostCosts.dc.html">Post costs</a></td><td><span style="padding: 1px 8px; border-radius: 999px; background: #ede9fe; color: #5b21b6; font-size: 12px; font-weight: 700">4 → 1</span></td><td>Keeps re-tier, split across projects, misc charges and blackout weeks</td></tr>
+            <tr><td>equipment-timesheets (no access check)</td><td><a href="TimeEntry.dc.html">Time entry</a>, <a href="TimesheetApproval.dc.html">Timesheet approval</a></td><td><span style="padding: 1px 8px; border-radius: 999px; background: #fef3c7; color: #92400e; font-size: 12px; font-weight: 700">Guarded</span></td><td>Entry and approval split by role, as in FDD 7.13–7.14</td></tr>
+            <tr><td>equipment-record-cost (mock data)</td><td><a href="ProjectCosts.dc.html">Direct cost &amp; inventory use</a></td><td><span style="padding: 1px 8px; border-radius: 999px; background: #fee2e2; color: #b91c1c; font-size: 12px; font-weight: 700">Finished</span></td><td>Posts to Oracle Projects for real (INT-16, INT-17)</td></tr>
+            <tr><td>Equipment list (Map View does nothing); equipment-create (Save does nothing); equipment-detail (unreachable)</td><td><a href="EquipmentMaster.dc.html">Equipment</a>, <a href="EquipmentDetail.dc.html">Equipment detail</a></td><td><span style="padding: 1px 8px; border-radius: 999px; background: #fee2e2; color: #b91c1c; font-size: 12px; font-weight: 700">Finished</span></td><td>Working map view, create and edit; Fusion import review stays</td></tr>
+            <tr><td>customer-rental-contract (unreachable); rental-agreement-create (no access check)</td><td><a href="Agreements.dc.html">Rental agreements</a></td><td><span style="padding: 1px 8px; border-radius: 999px; background: #fee2e2; color: #b91c1c; font-size: 12px; font-weight: 700">Finished</span></td><td>Shown only when AGREEMENTS_ENABLED is on</td></tr>
+            <tr><td>Rate pages</td><td><a href="RateSchedules.dc.html">Rate schedules</a></td><td><span style="padding: 1px 8px; border-radius: 999px; background: #e0e7ff; color: #4338ca; font-size: 12px; font-weight: 700">New</span></td><td>Spreadsheet grid of the six rate periods, margin check and a cost simulator</td></tr>
+            <tr><td>configurations (2,578 lines, 81 action chains)</td><td><a href="Settings.dc.html">Settings</a></td><td><span style="padding: 1px 8px; border-radius: 999px; background: #ede9fe; color: #5b21b6; font-size: 12px; font-weight: 700">Split</span></td><td>Ten searchable sections; flags show what they depend on and what they affect</td></tr>
+            <tr><td>rbac-admin (Page Access)</td><td><a href="Settings.dc.html">Settings › Roles &amp; page access</a></td><td><span style="padding: 1px 8px; border-radius: 999px; background: #dcfce7; color: #166534; font-size: 12px; font-weight: 700">Kept</span></td><td>Adds "preview the app as a role"</td></tr>
+            <tr><td>equipment-analytics, equipment-reports (no access check)</td><td><a href="Analytics.dc.html">Analytics</a></td><td><span style="padding: 1px 8px; border-radius: 999px; background: #fef3c7; color: #92400e; font-size: 12px; font-weight: 700">Guarded</span></td><td>One report library; each role sees only its reports (7.15.23)</td></tr>
+            <tr><td>Nothing today</td><td><a href="IntegrationHealth.dc.html">Integration health</a>, <a href="Transfer.dc.html">Transfer</a>, <a href="Inspection.dc.html">Inspection</a>, <a href="PortalHome.dc.html">Customer portal</a></td><td><span style="padding: 1px 8px; border-radius: 999px; background: #e0e7ff; color: #4338ca; font-size: 12px; font-weight: 700">New</span></td><td>FDD screens the app doesn't have yet</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="margin: 0; color: #475569; font-size: 14px">The three unused fragments are removed. Page names come from the current webApps/vbredwoodapp code.</p>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 16px">
+      <h2 style="margin: 0; font-size: 24px; font-weight: 700">Who sees what</h2>
+      <p style="margin: 0; color: #475569; max-width: 760px">From the FDD page access matrix (§10.3) and dashboard tiles by role (§7.1.2). "Own" means the user's projects only.</p>
+      <div style="overflow-x: auto; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px">
+        <table style="border-collapse: collapse; width: 100%; min-width: 860px">
+          <thead><tr><th>Menu group</th><th>Project Manager</th><th>Equipment Manager</th><th>Warehouse</th><th>Finance</th><th>Ops Lead</th><th>Admin</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Request</strong></td><td>Full (own)</td><td>View all</td><td>None</td><td>View</td><td>Edit (assigned)</td><td>View</td></tr>
+            <tr><td><strong>Fulfil</strong> (workbench, approve, pick, inspect)</td><td>Schedule view</td><td>Full</td><td>Pick, inspect</td><td>Workbench view</td><td>Workbench, schedule</td><td>View</td></tr>
+            <tr><td><strong>Usage &amp; cost</strong></td><td>Time entry, approve own</td><td>View</td><td>None</td><td>Approve all, post costs</td><td>View</td><td>View</td></tr>
+            <tr><td><strong>Master data</strong></td><td>View</td><td>Equipment full, rates view</td><td>Equipment view</td><td>Rates and agreements full</td><td>View</td><td>Full</td></tr>
+            <tr><td><strong>Insights</strong></td><td>Own projects</td><td>All</td><td>None</td><td>All</td><td>Assigned</td><td>All</td></tr>
+            <tr><td><strong>Settings</strong></td><td>None</td><td>Full</td><td>None</td><td>Partial</td><td>None</td><td>Full</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 16px">
+      <h2 style="margin: 0; font-size: 24px; font-weight: 700">Status colours used on every screen</h2>
+      <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center">
+        <span style="padding: 3px 10px; border-radius: 999px; font-size: 13px; font-weight: 600; background: #f3f4f6; color: #4b5563">Draft</span>
+        <span style="padding: 3px 10px; border-radius: 999px; font-size: 13px; font-weight: 600; background: #fef3c7; color: #92400e">In process</span>
+        <span style="padding: 3px 10px; border-radius: 999px; font-size: 13px; font-weight: 600; background: #e0e7ff; color: #4338ca">Approved</span>
+        <span style="padding: 3px 10px; border-radius: 999px; font-size: 13px; font-weight: 600; background: #e0f2fe; color: #075985">Pick initiated</span>
+        <span style="padding: 3px 10px; border-radius: 999px; font-size: 13px; font-weight: 600; background: #e0f2fe; color: #075985">Pick released</span>
+        <span style="padding: 3px 10px; border-radius: 999px; font-size: 13px; font-weight: 600; background: #ede9fe; color: #5b21b6">Shipped</span>
+        <span style="padding: 3px 10px; border-radius: 999px; font-size: 13px; font-weight: 600; background: #d1fae5; color: #065f46">Deployed</span>
+        <span style="padding: 3px 10px; border-radius: 999px; font-size: 13px; font-weight: 600; background: #f1f5f9; color: #334155">Returned</span>
+        <span style="padding: 3px 10px; border-radius: 999px; font-size: 13px; font-weight: 600; background: #dcfce7; color: #166534">Closed</span>
+        <span style="padding: 3px 10px; border-radius: 999px; font-size: 13px; font-weight: 600; background: #fee2e2; color: #b91c1c">Rejected</span>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: center; font-size: 14px; color: #334155">
+        <span style="display: flex; gap: 8px; align-items: center"><span style="width: 28px; height: 12px; border-radius: 3px; background: #90caf9" aria-hidden="true"></span>Soft reserve</span>
+        <span style="display: flex; gap: 8px; align-items: center"><span style="width: 28px; height: 12px; border-radius: 3px; background: #1565c0" aria-hidden="true"></span>Hard reserve</span>
+        <span style="display: flex; gap: 8px; align-items: center"><span style="width: 28px; height: 12px; border-radius: 3px; background: repeating-linear-gradient(45deg, #f59e0b 0 4px, #fde68a 4px 8px)" aria-hidden="true"></span>Maintenance block</span>
+        <span style="padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 700; background: #f3e8ff; color: #6b21a8">PROJECT</span>
+        <span style="padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 700; background: #ffedd5; color: #9a3412">CUSTOMER</span>
+      </div>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 16px">
+      <h2 style="margin: 0; font-size: 24px; font-weight: 700">Screen index</h2>
+      <div style="overflow-x: auto; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px">
+        <table style="border-collapse: collapse; width: 100%; min-width: 900px">
+          <thead><tr><th>Screen</th><th>FDD</th><th>Redwood template</th><th>Main actions</th></tr></thead>
+          <tbody>
+            <tr><td><a href="HomeEquipmentManager.dc.html">Home</a></td><td>7.1, 7.4</td><td>Dashboard landing page</td><td>KPI bar, role tiles with counts</td></tr>
+            <tr><td><a href="CartCatalog.dc.html">New request</a></td><td>7.5, 7.5.3A, 7.5.4</td><td>Smart search + collection container</td><td>Browse by class, add to cart, use template, request new equipment</td></tr>
+            <tr><td><a href="MyRequests.dc.html">My requests</a></td><td>7.6, 7.5.6A</td><td>Smart search page</td><td>Edit, view, cancel, initiate return, export</td></tr>
+            <tr><td><a href="RequestDetail.dc.html">Request detail</a></td><td>5.6, 7.6</td><td>General overview page</td><td>Lifecycle tracker, lines, transfer order, history</td></tr>
+            <tr><td><a href="Workbench.dc.html">Workbench</a></td><td>7.11</td><td>Smart search page with tabs</td><td>Approve, reject, allocate, bulk actions</td></tr>
+            <tr><td><a href="ApproveAllocate.dc.html">Approve &amp; allocate</a></td><td>7.8, 7.10</td><td>General overview page</td><td>Auto allocate, approve, reject, embedded schedule</td></tr>
+            <tr><td><a href="Schedule.dc.html">Equipment schedule</a></td><td>7.10</td><td>General overview + Bryntum scheduler</td><td>Gantt and map, conflicts, maintenance blocks</td></tr>
+            <tr><td><a href="InitiatePicking.dc.html">Initiate picking</a></td><td>7.16</td><td>Smart search page</td><td>Initiate, bulk initiate, exceptions, retry</td></tr>
+            <tr><td><a href="Inspection.dc.html">Inspection &amp; ship-out</a></td><td>7.12, 7.17.3</td><td>General overview page</td><td>Checklist, photos, defects, complete</td></tr>
+            <tr><td><a href="ReceiptReturns.dc.html">Receipt &amp; returns</a></td><td>5.3.6, 5.5</td><td>Smart search page with tabs</td><td>Receive lines, record discrepancy, return</td></tr>
+            <tr><td><a href="Transfer.dc.html">Inter-project transfer</a></td><td>7.16A</td><td>General drawer template</td><td>Source, destination, lines, submit</td></tr>
+            <tr><td><a href="TimeEntry.dc.html">Time entry</a></td><td>7.13</td><td>General overview page</td><td>Week grid, notes, copy week, submit</td></tr>
+            <tr><td><a href="TimesheetApproval.dc.html">Timesheet approval</a></td><td>7.14</td><td>Smart search page</td><td>Approve, reject, adjust, variances</td></tr>
+            <tr><td><a href="PostCosts.dc.html">Post costs</a></td><td>7.14A</td><td>Smart search page</td><td>Preview, post, bulk post</td></tr>
+            <tr><td><a href="ProjectCosts.dc.html">Direct cost &amp; inventory use</a></td><td>7.9.1A, 7.9.2A</td><td>General overview page with tabs</td><td>Post expense, issue inventory, history</td></tr>
+            <tr><td><a href="EquipmentMaster.dc.html">Equipment master</a></td><td>7.2</td><td>Smart search page</td><td>Search, saved searches, map, sync</td></tr>
+            <tr><td><a href="EquipmentDetail.dc.html">Equipment detail</a></td><td>7.2.5A–F</td><td>General overview page</td><td>Certifications, maintenance, TCO, watch</td></tr>
+            <tr><td><a href="RateSchedules.dc.html">Rate schedules</a></td><td>7.3</td><td>Smart search + grid</td><td>Six-period table, inline edit</td></tr>
+            <tr><td><a href="Agreements.dc.html">Rental agreements</a></td><td>7.3A</td><td>Smart search page</td><td>Lines, create request from agreement</td></tr>
+            <tr><td><a href="Analytics.dc.html">Analytics</a></td><td>7.15</td><td>Dashboard landing page</td><td>Reports, filters, export</td></tr>
+            <tr><td><a href="Settings.dc.html">Settings</a></td><td>7.17</td><td>General overview page with tabs</td><td>Flags, BU mapping, classes, inspection matrix</td></tr>
+            <tr><td><a href="IntegrationHealth.dc.html">Integration health</a></td><td>9.4</td><td>Dashboard landing page</td><td>Integration status, errors, jobs, DLQ</td></tr>
+            <tr><td><a href="PortalHome.dc.html">Customer portal</a></td><td>7.18</td><td>Own branded pages</td><td>Catalog, cart, my requests, billing</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2400}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

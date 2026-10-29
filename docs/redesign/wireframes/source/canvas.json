@@ -1,0 +1,77 @@
+{
+  "v": 3,
+  "createdOnFiles": { "v": 1, "at": "2026-10-29T13:10:00Z" },
+  "title": "EquipRite Redesign Wireframes",
+  "launch": { "view": "canvas", "page": "overview" },
+  "pages": [
+    { "id": "overview", "name": "Overview & shell" },
+    { "id": "home", "name": "Home" },
+    { "id": "request", "name": "Request (Phase 2)" },
+    { "id": "fulfil", "name": "Fulfil (Phases 2-3, 5)" },
+    { "id": "usage", "name": "Usage & cost (Phase 4)" },
+    { "id": "master", "name": "Master data (Phase 1)" },
+    { "id": "insights", "name": "Insights & settings" },
+    { "id": "portal", "name": "Customer portal" }
+  ],
+  "boards": {
+    "Main.dc.html": { "x": 0, "y": 0, "w": 1440, "h": 2400, "title": "Redesign overview", "page": "overview", "expand": "fill" },
+    "AppHeader.dc.html": { "x": 1520, "y": 0, "w": 1440, "h": 64, "title": "Component: app header", "page": "overview" },
+    "SideNav.dc.html": { "x": 1520, "y": 184, "w": 248, "h": 980, "title": "Component: side navigation", "page": "overview", "is_interactive": true },
+    "SignIn.dc.html": { "x": 0, "y": 2520, "w": 1440, "h": 760, "title": "Sign in: choose Old or New EquipRite", "page": "overview", "expand": "fill" },
+
+    "HomeEquipmentManager.dc.html": { "x": 0, "y": 0, "w": 1440, "h": 1060, "title": "Home: Equipment Manager", "page": "home", "expand": "fill", "is_interactive": true },
+    "HomeProjectManager.dc.html": { "x": 1520, "y": 0, "w": 1440, "h": 1060, "title": "Home: Project Manager", "page": "home", "expand": "fill", "is_interactive": true },
+
+    "CartCatalog.dc.html": { "x": 0, "y": 0, "w": 1440, "h": 1180, "title": "New request 1: Equipment selection", "page": "request", "expand": "fill", "is_interactive": true },
+    "CartReview.dc.html": { "x": 1520, "y": 0, "w": 1440, "h": 1180, "title": "New request 2-3: Project & review", "page": "request", "expand": "fill", "is_interactive": true },
+    "MyRequests.dc.html": { "x": 0, "y": 1300, "w": 1440, "h": 1060, "title": "My requests", "page": "request", "expand": "fill", "is_interactive": true },
+    "RequestDetail.dc.html": { "x": 1520, "y": 1300, "w": 1440, "h": 1180, "title": "Request detail", "page": "request", "expand": "fill", "is_interactive": true },
+
+    "Workbench.dc.html": { "x": 0, "y": 0, "w": 1440, "h": 1100, "title": "Equipment Manager workbench", "page": "fulfil", "expand": "fill", "is_interactive": true },
+    "ApproveAllocate.dc.html": { "x": 1520, "y": 0, "w": 1440, "h": 1300, "title": "Approve & allocate", "page": "fulfil", "expand": "fill", "is_interactive": true },
+    "Schedule.dc.html": { "x": 0, "y": 1420, "w": 1440, "h": 1100, "title": "Equipment schedule", "page": "fulfil", "expand": "fill", "is_interactive": true },
+    "InitiatePicking.dc.html": { "x": 1520, "y": 1420, "w": 1440, "h": 1060, "title": "Initiate picking", "page": "fulfil", "expand": "fill", "is_interactive": true },
+    "Inspection.dc.html": { "x": 0, "y": 2640, "w": 1440, "h": 1300, "title": "Inspection & ship-out", "page": "fulfil", "expand": "fill", "is_interactive": true },
+    "ReceiptReturns.dc.html": { "x": 1520, "y": 2640, "w": 1440, "h": 1060, "title": "Receipt, acceptance & returns", "page": "fulfil", "expand": "fill", "is_interactive": true },
+    "Transfer.dc.html": { "x": 0, "y": 4060, "w": 1440, "h": 1060, "title": "Inter-project transfer", "page": "fulfil", "expand": "fill", "is_interactive": true },
+
+    "TimeEntry.dc.html": { "x": 0, "y": 0, "w": 1440, "h": 1100, "title": "Time entry", "page": "usage", "expand": "fill", "is_interactive": true },
+    "TimesheetApproval.dc.html": { "x": 1520, "y": 0, "w": 1440, "h": 1200, "title": "Timesheet approval", "page": "usage", "expand": "fill", "is_interactive": true },
+    "PostCosts.dc.html": { "x": 0, "y": 1320, "w": 1440, "h": 1060, "title": "Post costs", "page": "usage", "expand": "fill", "is_interactive": true },
+    "ProjectCosts.dc.html": { "x": 1520, "y": 1320, "w": 1440, "h": 1150, "title": "Direct cost & inventory consumption", "page": "usage", "expand": "fill", "is_interactive": true },
+
+    "EquipmentMaster.dc.html": { "x": 0, "y": 0, "w": 1440, "h": 1100, "title": "Equipment master", "page": "master", "expand": "fill", "is_interactive": true },
+    "EquipmentDetail.dc.html": { "x": 1520, "y": 0, "w": 1440, "h": 1350, "title": "Equipment detail", "page": "master", "expand": "fill", "is_interactive": true },
+    "RateSchedules.dc.html": { "x": 0, "y": 1470, "w": 1440, "h": 1100, "title": "Rate schedules", "page": "master", "expand": "fill", "is_interactive": true },
+    "Agreements.dc.html": { "x": 1520, "y": 1470, "w": 1440, "h": 1100, "title": "Rental agreements", "page": "master", "expand": "fill", "is_interactive": true },
+
+    "Analytics.dc.html": { "x": 0, "y": 0, "w": 1440, "h": 1300, "title": "Analytics", "page": "insights", "expand": "fill", "is_interactive": true },
+    "Settings.dc.html": { "x": 1520, "y": 0, "w": 1440, "h": 1250, "title": "Configuration settings", "page": "insights", "expand": "fill", "is_interactive": true },
+    "IntegrationHealth.dc.html": { "x": 0, "y": 1420, "w": 1440, "h": 1100, "title": "Integration health", "page": "insights", "expand": "fill", "is_interactive": true },
+
+    "PortalHome.dc.html": { "x": 0, "y": 0, "w": 1440, "h": 1200, "title": "Customer portal: home & catalog", "page": "portal", "expand": "fill", "is_interactive": true },
+    "PortalRequests.dc.html": { "x": 1520, "y": 0, "w": 1440, "h": 1100, "title": "Customer portal: requests & billing", "page": "portal", "expand": "fill", "is_interactive": true }
+  },
+  "order": [
+    "Main.dc.html", "AppHeader.dc.html", "SideNav.dc.html", "SignIn.dc.html",
+    "HomeEquipmentManager.dc.html", "HomeProjectManager.dc.html",
+    "CartCatalog.dc.html", "CartReview.dc.html", "MyRequests.dc.html", "RequestDetail.dc.html",
+    "Workbench.dc.html", "ApproveAllocate.dc.html", "Schedule.dc.html", "InitiatePicking.dc.html", "Inspection.dc.html", "ReceiptReturns.dc.html", "Transfer.dc.html",
+    "TimeEntry.dc.html", "TimesheetApproval.dc.html", "PostCosts.dc.html", "ProjectCosts.dc.html",
+    "EquipmentMaster.dc.html", "EquipmentDetail.dc.html", "RateSchedules.dc.html", "Agreements.dc.html",
+    "Analytics.dc.html", "Settings.dc.html", "IntegrationHealth.dc.html",
+    "PortalHome.dc.html", "PortalRequests.dc.html"
+  ],
+  "notes": {
+    "t-overview": { "x": 0, "y": -300, "text": "EquipRite redesign: overview and app shell", "kind": "title1", "maxW": 2960, "page": "overview" },
+    "n-samples": { "x": 1848, "y": 184, "w": 520, "text": "Wireframes v1, from EquipRite FDD v1.7. Every number, name and record on these screens is an illustrative sample, not real data. Each screen names its FDD section and the Redwood oj-sp page template it would be built with.", "fill": "orange", "page": "overview" },
+    "t-home": { "x": 0, "y": -300, "text": "Home: one launcher, different per role", "kind": "title1", "maxW": 2960, "page": "home" },
+    "t-request": { "x": 0, "y": -300, "text": "Request: catalog cart, my requests, request detail", "kind": "title1", "maxW": 2960, "page": "request" },
+    "t-fulfil": { "x": 0, "y": -300, "text": "Fulfil: approve, allocate, schedule, pick, inspect, receive, transfer", "kind": "title1", "maxW": 2960, "page": "fulfil" },
+    "t-usage": { "x": 0, "y": -300, "text": "Usage and cost: timesheets, approval, posting", "kind": "title1", "maxW": 2960, "page": "usage" },
+    "t-master": { "x": 0, "y": -300, "text": "Master data: equipment, rates, agreements", "kind": "title1", "maxW": 2960, "page": "master" },
+    "t-insights": { "x": 0, "y": -300, "text": "Insights and settings", "kind": "title1", "maxW": 2960, "page": "insights" },
+    "t-portal": { "x": 0, "y": -300, "text": "External customer portal", "kind": "title1", "maxW": 2960, "page": "portal" }
+  },
+  "designSystems": []
+}

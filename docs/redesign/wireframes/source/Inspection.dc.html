@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Inspection and ship-out</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f8fafc}
+a{color:#1d4ed8}a:hover{color:#1e3a8a}
+</style>
+</helmet>
+<div style="font-family: 'Source Sans 3', system-ui, sans-serif; color: #111827; background: #f8fafc; font-variant-numeric: tabular-nums">
+  <dc-import name="AppHeader" hint-size="100%,64px"></dc-import>
+  <div style="display: flex; flex-wrap: wrap; align-items: stretch">
+    <div style="flex: 1 1 232px; background: #0b0f1a"><dc-import name="SideNav" active="inspection" hint-size="100%,980px"></dc-import></div>
+    <main style="flex: 999 1 560px; min-width: 0">
+      <div style="background: #2e5468; color: #ffffff">
+        <div style="padding: 24px 32px 20px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px">
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <span style="font-size: 13px; color: #cfe0e8">FDD 7.12, 7.17.3 · Redwood General Overview page</span>
+            <h1 style="margin: 0; font-size: 30px; font-weight: 700">Inspection</h1>
+          </div>
+          <div role="group" aria-label="Mode" style="display: flex; border: 1px solid #ffffff; border-radius: 6px; overflow: hidden">
+            <button type="button" aria-pressed="true" style="height: 38px; padding: 0 14px; border: 0; background: #ffffff; color: #111827; font: inherit; font-weight: 700">Check-out</button>
+            <button type="button" aria-pressed="false" style="height: 38px; padding: 0 14px; border: 0; background: transparent; color: #ffffff; font: inherit">Check-in</button>
+          </div>
+        </div>
+        <div style="display: flex; height: 6px" aria-hidden="true"><div style="flex: 1; background: #c74634"></div><div style="flex: 1; background: #e5a22f"></div><div style="flex: 1; background: #6f9a3a"></div><div style="flex: 1; background: #2b8cbe"></div><div style="flex: 1; background: #6b4fa3"></div></div>
+      </div>
+
+      <div style="padding: 20px 32px 40px; display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start">
+        <aside aria-label="Waiting for inspection" style="flex: 1 1 260px; min-width: 0; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; display: flex; flex-direction: column">
+          <strong style="padding: 14px 16px; border-bottom: 1px solid #e5e7eb">Waiting (2)</strong>
+          <a href="#" style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; background: #f0f7fb; text-decoration: none; color: #111827; display: flex; flex-direction: column; gap: 2px"><strong>Mobile Crane · MC-11</strong><span style="font-size: 13px; color: #475569">REQ-10505 · Ship-out from yard · picked today</span></a>
+          <a href="#" style="padding: 12px 16px; text-decoration: none; color: #111827; display: flex; flex-direction: column; gap: 2px"><strong>Generator 100 kVA · GN-0419</strong><span style="font-size: 13px; color: #475569">REQ-10505 · Ship-out from yard</span></a>
+        </aside>
+
+        <form style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 14px" aria-label="Inspection form">
+          <section style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr)); gap: 12px; font-size: 14px">
+            <span style="display: flex; flex-direction: column"><span style="color: #475569; font-size: 13px">Equipment</span><strong>Mobile Crane 50t · MC-11</strong></span>
+            <span style="display: flex; flex-direction: column"><span style="color: #475569; font-size: 13px">Class</span><strong>Cranes · Mobile</strong></span>
+            <span style="display: flex; flex-direction: column"><span style="color: #475569; font-size: 13px">Request</span><strong>REQ-10505</strong></span>
+            <span style="display: flex; flex-direction: column"><span style="color: #475569; font-size: 13px">Inspection</span><strong>Ship-out from yard</strong></span>
+            <span style="display: flex; flex-direction: column"><span style="color: #475569; font-size: 13px">Inspector</span><strong>M. Ortiz · 29 Oct 2026</strong></span>
+          </section>
+
+          <section style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+            <h2 style="margin: 0; font-size: 17px">Condition</h2>
+            <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end">
+              <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #475569">Overall condition *<select style="height: 38px; padding: 0 10px; border: 1px solid #cbd5e1; border-radius: 6px; font: inherit; font-size: 15px; color: #111827; min-width: 160px"><option>Good</option></select></label>
+              <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #475569">Hour meter *<input value="6,412" style="height: 38px; padding: 0 10px; border: 1px solid #cbd5e1; border-radius: 6px; font: inherit; font-size: 15px; width: 120px"></label>
+              <span style="font-size: 13px; color: #475569; padding-bottom: 10px">Last recorded 6,380 (+32 h)</span>
+              <label style="display: flex; gap: 8px; align-items: center; font-size: 15px; padding-bottom: 8px"><input type="checkbox">Visible damage (photo required)</label>
+            </div>
+          </section>
+
+          <section style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 4px">
+            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: baseline">
+              <h2 style="margin: 0; font-size: 17px">Checklist: Cranes · Mobile · ship-out</h2>
+              <span style="font-size: 13px; color: #475569">From the inspection matrix · * required</span>
+            </div>
+            <div style="display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px 16px; align-items: center; padding: 10px 0; border-bottom: 1px solid #f1f5f9">
+              <span>Load chart and certificate on board *</span>
+              <div role="group" aria-label="Load chart on board" style="display: flex; gap: 6px"><button type="button" aria-pressed="true" style="height: 32px; padding: 0 12px; border-radius: 6px; border: 1px solid #166534; background: #dcfce7; color: #166534; font: inherit; font-weight: 600">Yes</button><button type="button" aria-pressed="false" style="height: 32px; padding: 0 12px; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff; font: inherit">No</button></div>
+            </div>
+            <div style="display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px 16px; align-items: center; padding: 10px 0; border-bottom: 1px solid #f1f5f9">
+              <span>Wire rope and hook *</span>
+              <div role="group" aria-label="Wire rope and hook" style="display: flex; gap: 6px"><button type="button" aria-pressed="false" style="height: 32px; padding: 0 12px; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff; font: inherit">Pass</button><button type="button" aria-pressed="true" style="height: 32px; padding: 0 12px; border-radius: 6px; border: 1px solid #b91c1c; background: #fee2e2; color: #b91c1c; font: inherit; font-weight: 600">Fail</button></div>
+              <label style="grid-column: 1 / -1; display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #475569">Note<input value="Two broken wires near drum end" style="height: 34px; padding: 0 10px; border: 1px solid #cbd5e1; border-radius: 6px; font: inherit; font-size: 14px; color: #111827"></label>
+            </div>
+            <div style="display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px 16px; align-items: center; padding: 10px 0; border-bottom: 1px solid #f1f5f9">
+              <span>Outrigger pad thickness, mm (40–60) *</span>
+              <input aria-label="Outrigger pad thickness" value="52" style="height: 32px; width: 80px; padding: 0 8px; border: 1px solid #cbd5e1; border-radius: 6px; font: inherit">
+            </div>
+            <div style="display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px 16px; align-items: center; padding: 10px 0">
+              <span>Cab cleanliness (1–5)</span>
+              <div role="group" aria-label="Cab cleanliness" style="display: flex; gap: 4px"><button type="button" style="width: 32px; height: 32px; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff; font: inherit">1</button><button type="button" style="width: 32px; height: 32px; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff; font: inherit">2</button><button type="button" style="width: 32px; height: 32px; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff; font: inherit">3</button><button type="button" aria-pressed="true" style="width: 32px; height: 32px; border-radius: 6px; border: 1px solid #111827; background: #111827; color: #ffffff; font: inherit">4</button><button type="button" style="width: 32px; height: 32px; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff; font: inherit">5</button></div>
+            </div>
+          </section>
+
+          <section style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 10px">
+            <h2 style="margin: 0; font-size: 17px">Photos <span style="font-size: 13px; color: #475569; font-weight: 400">· at least 4 for this inspection type</span></h2>
+            <div style="display: flex; flex-wrap: wrap; gap: 10px">
+              <div style="width: 110px; height: 80px; border-radius: 6px; background: #e2e8f0; display: flex; align-items: flex-end; padding: 4px; box-sizing: border-box; font-size: 12px; color: #334155">Overall</div>
+              <div style="width: 110px; height: 80px; border-radius: 6px; background: #e2e8f0; display: flex; align-items: flex-end; padding: 4px; box-sizing: border-box; font-size: 12px; color: #334155">Component</div>
+              <div style="width: 110px; height: 80px; border-radius: 6px; background: #e2e8f0; display: flex; align-items: flex-end; padding: 4px; box-sizing: border-box; font-size: 12px; color: #334155">Damage</div>
+              <label style="width: 110px; height: 80px; border-radius: 6px; border: 2px dashed #94a3b8; display: flex; align-items: center; justify-content: center; font-size: 13px; color: #334155; cursor: pointer">Add photo<input type="file" style="position: absolute; left: -9999px"></label>
+            </div>
+          </section>
+
+          <section style="background: #ffffff; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 10px">
+            <h2 style="margin: 0; font-size: 17px">Defects</h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr)); gap: 12px">
+              <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #475569; grid-column: span 2">Description<input value="Wire rope: 2 broken wires near drum" style="height: 36px; padding: 0 10px; border: 1px solid #cbd5e1; border-radius: 6px; font: inherit; font-size: 14px; color: #111827"></label>
+              <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #475569">Severity<select style="height: 36px; padding: 0 10px; border: 1px solid #cbd5e1; border-radius: 6px; font: inherit; font-size: 14px; color: #111827"><option>Major</option></select></label>
+              <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #475569">Action<select style="height: 36px; padding: 0 10px; border: 1px solid #cbd5e1; border-radius: 6px; font: inherit; font-size: 14px; color: #111827"><option>Replace</option></select></label>
+              <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #475569">Est. repair cost<input value="$1,800" style="height: 36px; padding: 0 10px; border: 1px solid #cbd5e1; border-radius: 6px; font: inherit; font-size: 14px; color: #111827"></label>
+            </div>
+          </section>
+
+          <section style="display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: center; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px 16px">
+            <span style="display: flex; gap: 10px; align-items: center"><span style="color: #475569">Result</span><span style="padding: 3px 12px; border-radius: 999px; background: #fee2e2; color: #b91c1c; font-weight: 700">Fail: cannot ship</span></span>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap">
+              <button type="button" style="height: 40px; padding: 0 14px; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff; font: inherit; font-weight: 600; cursor: pointer">Create work order</button>
+              <a href="ApproveAllocate.dc.html" style="height: 40px; padding: 0 14px; border-radius: 6px; border: 1px solid #cbd5e1; display: flex; align-items: center; text-decoration: none; color: #111827; font-weight: 600">Substitute equipment</a>
+              <button type="button" style="height: 40px; padding: 0 18px; border-radius: 6px; border: 0; background: #111827; color: #ffffff; font: inherit; font-weight: 700; cursor: pointer">Complete inspection</button>
+            </div>
+          </section>
+        </form>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1300}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

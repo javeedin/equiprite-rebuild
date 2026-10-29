@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Equipment schedule</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f8fafc}
+a{color:#1d4ed8}a:hover{color:#1e3a8a}
+</style>
+</helmet>
+<div style="font-family: 'Source Sans 3', system-ui, sans-serif; color: #111827; background: #f8fafc; font-variant-numeric: tabular-nums">
+  <dc-import name="AppHeader" hint-size="100%,64px"></dc-import>
+  <div style="display: flex; flex-wrap: wrap; align-items: stretch">
+    <div style="flex: 1 1 232px; background: #0b0f1a"><dc-import name="SideNav" active="schedule" hint-size="100%,980px"></dc-import></div>
+    <main style="flex: 999 1 560px; min-width: 0">
+      <div style="background: #2e5468; color: #ffffff">
+        <div style="padding: 24px 32px 20px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px">
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <span style="font-size: 13px; color: #cfe0e8">FDD 7.10 · Redwood General Overview page · Bryntum Scheduler Pro + Mapbox</span>
+            <h1 style="margin: 0; font-size: 30px; font-weight: 700">Equipment schedule</h1>
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center">
+            <button type="button" aria-label="Previous month" style="width: 40px; height: 40px; border-radius: 6px; border: 1px solid #ffffff; background: transparent; color: #ffffff; font: inherit; cursor: pointer">‹</button>
+            <strong style="font-size: 17px; min-width: 110px; text-align: center">November 2026</strong>
+            <button type="button" aria-label="Next month" style="width: 40px; height: 40px; border-radius: 6px; border: 1px solid #ffffff; background: transparent; color: #ffffff; font: inherit; cursor: pointer">›</button>
+          </div>
+        </div>
+        <div style="display: flex; height: 6px" aria-hidden="true"><div style="flex: 1; background: #c74634"></div><div style="flex: 1; background: #e5a22f"></div><div style="flex: 1; background: #6f9a3a"></div><div style="flex: 1; background: #2b8cbe"></div><div style="flex: 1; background: #6b4fa3"></div></div>
+      </div>
+
+      <div style="padding: 20px 32px 40px; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center">
+          <label style="flex: 1 1 240px; display: flex"><span style="position: absolute; left: -9999px">Search</span><input type="search" placeholder="Equipment, project or requester" style="width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px; border: 1px solid #cbd5e1; border-radius: 6px; font: inherit; font-size: 15px"></label>
+          <button type="button" style="height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid #2e5468; background: #e0ecf2; font: inherit; font-size: 14px; cursor: pointer">Class: Excavators, Cranes</button>
+          <button type="button" style="height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid #cbd5e1; background: #ffffff; font: inherit; font-size: 14px; cursor: pointer">Project</button>
+          <label style="display: flex; gap: 6px; align-items: center; font-size: 14px"><input type="checkbox" checked>Conflicts only</label>
+          <div role="group" aria-label="Scale" style="display: flex; border: 1px solid #cbd5e1; border-radius: 6px; overflow: hidden">
+            <button type="button" aria-pressed="false" style="height: 36px; padding: 0 12px; border: 0; background: #ffffff; font: inherit">Day</button>
+            <button type="button" aria-pressed="true" style="height: 36px; padding: 0 12px; border: 0; background: #111827; color: #ffffff; font: inherit; font-weight: 600">Week</button>
+            <button type="button" aria-pressed="false" style="height: 36px; padding: 0 12px; border: 0; background: #ffffff; font: inherit">Month</button>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: stretch">
+          <section aria-label="Timeline" style="flex: 999 1 560px; min-width: 0; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; overflow-x: auto">
+            <div style="min-width: 760px; display: flex; flex-direction: column">
+              <div style="display: grid; grid-template-columns: 220px 1fr; font-size: 12px; color: #475569; border-bottom: 1px solid #e5e7eb; padding-bottom: 6px">
+                <span>Equipment · fixed asset</span>
+                <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr))"><span>02 Nov</span><span>09 Nov</span><span>16 Nov</span><span>23 Nov</span><span>30 Nov</span></div>
+              </div>
+              <span style="padding: 8px 0 4px; font-size: 12px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: .05em">Excavators</span>
+              <div style="display: grid; grid-template-columns: 220px 1fr; align-items: center; min-height: 46px; border-bottom: 1px solid #f1f5f9">
+                <span style="display: flex; flex-direction: column; font-size: 14px"><strong>CAT 320 · EX-2201</strong><span style="font-size: 12px; color: #475569">FA 100482 Excavator 20t</span></span>
+                <div style="position: relative; height: 28px">
+                  <div style="position: absolute; left: 0; width: 14%; top: 3px; bottom: 3px; background: #1565c0; border: 2px solid #b91c1c; border-radius: 4px; color: #ffffff; font-size: 12px; padding: 0 6px; display: flex; align-items: center; overflow: hidden">Pipeline North</div>
+                  <div style="position: absolute; left: 6%; width: 74%; top: 3px; bottom: 3px; background: #90caf9; opacity: .85; border: 2px solid #b91c1c; border-radius: 4px; color: #0b3a66; font-size: 12px; padding: 0 6px 0 60px; display: flex; align-items: center">REQ-10530 · overlaps</div>
+                  <div style="position: absolute; left: 34%; top: -4px; bottom: -4px; width: 0; border-left: 2px dashed #dc2626" title="Today"></div>
+                </div>
+              </div>
+              <div style="display: grid; grid-template-columns: 220px 1fr; align-items: center; min-height: 46px; border-bottom: 1px solid #f1f5f9">
+                <span style="display: flex; flex-direction: column; font-size: 14px"><strong>CAT 320 · EX-2203</strong><span style="font-size: 12px; color: #475569">FA 100517 Excavator 20t</span></span>
+                <div style="position: relative; height: 28px">
+                  <div style="position: absolute; left: 6%; width: 80%; top: 3px; bottom: 3px; background: #90caf9; border-radius: 4px; color: #0b3a66; font-size: 12px; padding: 0 6px; display: flex; align-items: center">REQ-10530 Pipeline North</div>
+                  <div style="position: absolute; left: 34%; top: -4px; bottom: -4px; width: 0; border-left: 2px dashed #dc2626"></div>
+                </div>
+              </div>
+              <div style="display: grid; grid-template-columns: 220px 1fr; align-items: center; min-height: 46px; border-bottom: 1px solid #f1f5f9">
+                <span style="display: flex; flex-direction: column; font-size: 14px"><strong>PC210 · EX-2207</strong><span style="font-size: 12px; color: #475569">FA 100533 Excavator 21t</span></span>
+                <div style="position: relative; height: 28px">
+                  <div style="position: absolute; left: 0; width: 100%; top: 3px; bottom: 3px; background: #1565c0; border-radius: 4px; color: #ffffff; font-size: 12px; padding: 0 6px; display: flex; align-items: center">REQ-10511 Plant Expansion B</div>
+                  <div style="position: absolute; left: 34%; top: -4px; bottom: -4px; width: 0; border-left: 2px dashed #dc2626"></div>
+                </div>
+              </div>
+              <div style="display: grid; grid-template-columns: 220px 1fr; align-items: center; min-height: 46px; border-bottom: 1px solid #f1f5f9">
+                <span style="display: flex; flex-direction: column; font-size: 14px"><strong>CAT 320 · EX-2210</strong><span style="font-size: 12px; color: #475569">FA 100561 Excavator 20t</span></span>
+                <div style="position: relative; height: 28px">
+                  <div style="position: absolute; left: 26%; width: 14%; top: 3px; bottom: 3px; background: repeating-linear-gradient(45deg, #f59e0b 0 5px, #fde68a 5px 10px); border-radius: 4px" title="WO-55821 maintenance"></div>
+                  <span style="position: absolute; left: 44%; top: 5px; font-size: 12px; color: #166534">Available</span>
+                  <div style="position: absolute; left: 34%; top: -4px; bottom: -4px; width: 0; border-left: 2px dashed #dc2626"></div>
+                </div>
+              </div>
+              <span style="padding: 8px 0 4px; font-size: 12px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: .05em">Cranes</span>
+              <div style="display: grid; grid-template-columns: 220px 1fr; align-items: center; min-height: 46px; border-bottom: 1px solid #f1f5f9">
+                <span style="display: flex; flex-direction: column; font-size: 14px"><strong style="display: flex; gap: 6px; align-items: center">Mobile Crane · MC-07 <span title="Load test certificate expires 07 Nov" style="color: #b45309">▲</span></strong><span style="font-size: 12px; color: #475569">FA 100219 Crane 50t</span></span>
+                <div style="position: relative; height: 28px">
+                  <div style="position: absolute; left: 0; width: 100%; top: 3px; bottom: 3px; background: #1565c0; border-radius: 4px; color: #ffffff; font-size: 12px; padding: 0 6px; display: flex; align-items: center">REQ-10498 Plant Expansion B</div>
+                  <div style="position: absolute; left: 34%; top: -4px; bottom: -4px; width: 0; border-left: 2px dashed #dc2626"></div>
+                </div>
+              </div>
+              <div style="display: grid; grid-template-columns: 220px 1fr; align-items: center; min-height: 46px">
+                <span style="display: flex; flex-direction: column; font-size: 14px"><strong>Tower Crane · TC-02</strong><span style="font-size: 12px; color: #475569">FA 100230 Crane tower</span></span>
+                <div style="position: relative; height: 28px">
+                  <div style="position: absolute; left: 0; width: 22%; top: 3px; bottom: 3px; background: #cbd5e1; border-radius: 4px; color: #1f2937; font-size: 12px; padding: 0 6px; display: flex; align-items: center">Returned</div>
+                  <div style="position: absolute; left: 34%; top: -4px; bottom: -4px; width: 0; border-left: 2px dashed #dc2626"></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section aria-label="Map" style="flex: 1 1 320px; min-width: 0; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 10px">
+            <div style="flex: 1; min-height: 380px; border-radius: 6px; background: #e2e8f0; position: relative; display: flex; align-items: center; justify-content: center; color: #475569; font-size: 14px" role="img" aria-label="Map with equipment pins around Houston and Dallas">
+              Map (Mapbox)
+              <span style="position: absolute; left: 30%; top: 40%; width: 16px; height: 16px; border-radius: 999px; background: #16a34a; border: 2px solid #ffffff" aria-hidden="true"></span>
+              <span style="position: absolute; left: 52%; top: 58%; width: 16px; height: 16px; border-radius: 999px; background: #1565c0; border: 2px solid #ffffff" aria-hidden="true"></span>
+              <span style="position: absolute; left: 61%; top: 30%; width: 16px; height: 16px; border-radius: 999px; background: #ea580c; border: 2px solid #ffffff" aria-hidden="true"></span>
+              <span style="position: absolute; left: 70%; top: 66%; width: 16px; height: 16px; border-radius: 999px; background: #b91c1c; border: 2px solid #ffffff" aria-hidden="true"></span>
+              <span style="position: absolute; left: 44%; top: 22%; min-width: 26px; height: 26px; border-radius: 999px; background: #1e293b; color: #ffffff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center" aria-hidden="true">12</span>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 12px; font-size: 13px; color: #334155">
+              <span style="display: flex; gap: 6px; align-items: center"><span style="width: 10px; height: 10px; border-radius: 999px; background: #16a34a" aria-hidden="true"></span>Available</span>
+              <span style="display: flex; gap: 6px; align-items: center"><span style="width: 10px; height: 10px; border-radius: 999px; background: #1565c0" aria-hidden="true"></span>Deployed or reserved</span>
+              <span style="display: flex; gap: 6px; align-items: center"><span style="width: 10px; height: 10px; border-radius: 999px; background: #ea580c" aria-hidden="true"></span>Maintenance</span>
+              <span style="display: flex; gap: 6px; align-items: center"><span style="width: 10px; height: 10px; border-radius: 999px; background: #b91c1c" aria-hidden="true"></span>Overdue return</span>
+            </div>
+          </section>
+        </div>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; color: #334155; align-items: center">
+          <span style="display: flex; gap: 6px; align-items: center"><span style="width: 22px; height: 10px; background: #90caf9" aria-hidden="true"></span>Soft reserve</span>
+          <span style="display: flex; gap: 6px; align-items: center"><span style="width: 22px; height: 10px; background: #1565c0" aria-hidden="true"></span>Hard reserve</span>
+          <span style="display: flex; gap: 6px; align-items: center"><span style="width: 22px; height: 10px; background: #cbd5e1" aria-hidden="true"></span>Returned</span>
+          <span style="display: flex; gap: 6px; align-items: center"><span style="width: 22px; height: 10px; background: repeating-linear-gradient(45deg, #f59e0b 0 4px, #fde68a 4px 8px)" aria-hidden="true"></span>Maintenance block</span>
+          <span style="display: flex; gap: 6px; align-items: center"><span style="width: 22px; height: 10px; border: 2px solid #b91c1c" aria-hidden="true"></span>Conflict</span>
+          <span>Equipment Managers drag bar edges to change dates; approved requests then need re-approval.</span>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

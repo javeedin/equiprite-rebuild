@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Approve and allocate</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f8fafc}
+a{color:#1d4ed8}a:hover{color:#1e3a8a}
+th,td{text-align:left;padding:10px 10px;border-bottom:1px solid #e5e7eb;font-size:14px;white-space:nowrap}
+th{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:#475569;font-weight:600;background:#f8fafc}
+td select{height:32px;border:1px solid #cbd5e1;border-radius:6px;padding:0 8px;font:inherit;font-size:14px}
+</style>
+</helmet>
+<div style="font-family: 'Source Sans 3', system-ui, sans-serif; color: #111827; background: #f8fafc; font-variant-numeric: tabular-nums">
+  <dc-import name="AppHeader" hint-size="100%,64px"></dc-import>
+  <div style="display: flex; flex-wrap: wrap; align-items: stretch">
+    <div style="flex: 1 1 232px; background: #0b0f1a"><dc-import name="SideNav" active="workbench" hint-size="100%,980px"></dc-import></div>
+    <main style="flex: 999 1 560px; min-width: 0">
+      <div style="background: #2e5468; color: #ffffff">
+        <div style="padding: 20px 32px; display: flex; flex-direction: column; gap: 12px">
+          <a href="Workbench.dc.html" style="color: #cfe0e8; font-size: 14px">Workbench</a>
+          <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px">
+            <div style="display: flex; flex-direction: column; gap: 8px">
+              <span style="font-size: 13px; color: #cfe0e8">FDD 7.8, 7.10 · Redwood General Overview page</span>
+              <span style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center"><h1 style="margin: 0; font-size: 30px; font-weight: 700">Approve REQ-10530</h1><span style="padding: 2px 8px; border-radius: 4px; background: #f3e8ff; color: #6b21a8; font-size: 12px; font-weight: 700">PROJECT</span><span style="padding: 2px 10px; border-radius: 999px; background: #fef3c7; color: #92400e; font-size: 13px; font-weight: 600">In process</span></span>
+            </div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap">
+              <button type="button" style="height: 40px; padding: 0 16px; border-radius: 6px; border: 1px solid #ffffff; background: transparent; color: #ffffff; font: inherit; font-weight: 600; cursor: pointer">Reject</button>
+              <button type="button" style="height: 40px; padding: 0 16px; border-radius: 6px; border: 1px solid #ffffff; background: transparent; color: #ffffff; font: inherit; font-weight: 600; cursor: pointer">Auto allocate</button>
+              <button type="button" style="height: 40px; padding: 0 18px; border-radius: 6px; border: 0; background: #ffffff; color: #111827; font: inherit; font-weight: 700; cursor: pointer">Approve</button>
+            </div>
+          </div>
+        </div>
+        <div style="display: flex; height: 6px" aria-hidden="true"><div style="flex: 1; background: #c74634"></div><div style="flex: 1; background: #e5a22f"></div><div style="flex: 1; background: #6f9a3a"></div><div style="flex: 1; background: #2b8cbe"></div><div style="flex: 1; background: #6b4fa3"></div></div>
+      </div>
+
+      <div style="padding: 20px 32px 40px; display: flex; flex-direction: column; gap: 16px">
+        <section aria-label="Request" style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr)); gap: 12px; font-size: 14px">
+          <span style="display: flex; flex-direction: column"><span style="color: #475569; font-size: 13px">Project / task</span><strong>Pipeline North · 2.1 Trenching</strong></span>
+          <span style="display: flex; flex-direction: column"><span style="color: #475569; font-size: 13px">Dates</span><strong>04 Nov–30 Nov 2026</strong></span>
+          <span style="display: flex; flex-direction: column"><span style="color: #475569; font-size: 13px">Site</span><strong>TEXAS.PRJ-2026-001</strong></span>
+          <span style="display: flex; flex-direction: column"><span style="color: #475569; font-size: 13px">Agreement</span><strong>None</strong></span>
+          <span style="display: flex; flex-direction: column"><span style="color: #475569; font-size: 13px">Requested by</span><strong>Priya Nair</strong></span>
+          <span style="display: flex; flex-direction: column"><span style="color: #475569; font-size: 13px">Estimated total</span><strong>$80,000</strong></span>
+        </section>
+
+        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; color: #14532d; border-radius: 8px; padding: 10px 14px; font-size: 14px">Ready to approve. Line 2 is left for warehouse picking: the yard picks the serials on the Oracle mobile app.</div>
+
+        <div style="overflow-x: auto; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px">
+          <table style="border-collapse: collapse; width: 100%">
+            <thead><tr><th>#</th><th>Equipment</th><th>Qty</th><th>Serial / lot</th><th>Allocated</th><th>Allocation</th><th>Availability</th><th>Utilization</th><th>Bill rate</th><th>Est. price</th></tr></thead>
+            <tbody>
+              <tr style="background: #f0f7fb"><td>1</td><td><strong>CAT 320 Excavator</strong><br><span style="font-size: 13px; color: #475569">Excavators · Crawler</span></td><td>1</td><td><span style="padding: 1px 8px; border-radius: 999px; background: #dbeafe; color: #1d4ed8; font-size: 12px; font-weight: 700">Serial</span></td><td><select aria-label="Serial for line 1"><option>EX-2203</option></select></td><td><span style="padding: 1px 8px; border-radius: 999px; background: #dcfce7; color: #166534; font-size: 12px; font-weight: 700">Allocated</span></td><td><span style="padding: 1px 8px; border-radius: 999px; background: #d1fae5; color: #065f46; font-size: 12px; font-weight: 700">Available</span></td><td>38%</td><td>$1,400/day</td><td>$38,400</td></tr>
+              <tr><td>2</td><td><strong>Dump Truck 30t</strong><br><span style="font-size: 13px; color: #475569">Trucks · Articulated</span></td><td>2</td><td><span style="padding: 1px 8px; border-radius: 999px; background: #dbeafe; color: #1d4ed8; font-size: 12px; font-weight: 700">Serial</span></td><td><select aria-label="Serials for line 2"><option>Pick in warehouse</option></select></td><td><span style="padding: 1px 8px; border-radius: 999px; background: #ffedd5; color: #9a3412; font-size: 12px; font-weight: 700">Pending</span></td><td><span style="padding: 1px 8px; border-radius: 999px; background: #d1fae5; color: #065f46; font-size: 12px; font-weight: 700">Available</span></td><td>66%</td><td>$800/day</td><td>$41,600</td></tr>
+              <tr><td>3</td><td><strong>Trench safety kit</strong><br><span style="font-size: 13px; color: #475569">Safety &amp; consumables</span></td><td>10</td><td><span style="padding: 1px 8px; border-radius: 999px; background: #f1f5f9; color: #475569; font-size: 12px; font-weight: 700">Qty</span></td><td style="color: #475569">n/a</td><td style="color: #475569">n/a</td><td><span style="padding: 1px 8px; border-radius: 999px; background: #d1fae5; color: #065f46; font-size: 12px; font-weight: 700">42 on hand</span></td><td>—</td><td>$75/day</td><td>$1,950</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <section aria-label="Schedule for line 1" style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+          <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; align-items: center">
+            <h2 style="margin: 0; font-size: 17px">Line 1 schedule: CAT 320 Excavator, Houston and Dallas yards</h2>
+            <div role="group" aria-label="View" style="display: flex; border: 1px solid #cbd5e1; border-radius: 6px; overflow: hidden">
+              <button type="button" aria-pressed="true" style="height: 32px; padding: 0 12px; border: 0; background: #111827; color: #ffffff; font: inherit; font-size: 14px">Timeline</button>
+              <button type="button" aria-pressed="false" style="height: 32px; padding: 0 12px; border: 0; background: #ffffff; font: inherit; font-size: 14px">Map</button>
+            </div>
+          </div>
+          <div style="overflow-x: auto">
+            <div style="min-width: 860px; display: flex; flex-direction: column">
+              <div style="display: grid; grid-template-columns: 210px 1fr 110px; font-size: 12px; color: #475569; border-bottom: 1px solid #e5e7eb; padding-bottom: 6px">
+                <span>Serial · fixed asset</span>
+                <div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr))"><span>28 Oct</span><span>04 Nov</span><span>11 Nov</span><span>18 Nov</span><span>25 Nov</span><span>02 Dec</span></div>
+                <span></span>
+              </div>
+              <div style="display: grid; grid-template-columns: 210px 1fr 110px; align-items: center; min-height: 52px; border-bottom: 1px solid #f1f5f9">
+                <span style="display: flex; flex-direction: column; font-size: 14px"><strong>EX-2201</strong><span style="font-size: 12px; color: #475569">FA 100482 · at Pipeline North</span></span>
+                <div style="position: relative; height: 30px; background: linear-gradient(to right, transparent 16.7%, #ecfdf5 16.7%, #ecfdf5 92%, transparent 92%)">
+                  <div style="position: absolute; left: 0; width: 22%; top: 4px; bottom: 4px; background: #1565c0; border: 2px solid #b91c1c; border-radius: 4px; color: #ffffff; font-size: 12px; padding: 0 6px; display: flex; align-items: center; overflow: hidden">REQ-10482 overdue</div>
+                </div>
+                <span style="font-size: 13px; color: #b91c1c; font-weight: 600; padding-left: 10px">Conflict</span>
+              </div>
+              <div style="display: grid; grid-template-columns: 210px 1fr 110px; align-items: center; min-height: 52px; border-bottom: 1px solid #f1f5f9; background: #f0f7fb">
+                <span style="display: flex; flex-direction: column; font-size: 14px"><strong>EX-2203</strong><span style="font-size: 12px; color: #475569">FA 100517 · Houston Yard</span></span>
+                <div style="position: relative; height: 30px; background: linear-gradient(to right, transparent 16.7%, #ecfdf5 16.7%, #ecfdf5 92%, transparent 92%)">
+                  <div style="position: absolute; left: 16.7%; width: 75.3%; top: 4px; bottom: 4px; background: #90caf9; border-radius: 4px; color: #0b3a66; font-size: 12px; padding: 0 6px; display: flex; align-items: center">This request (soft)</div>
+                </div>
+                <span style="font-size: 13px; color: #166534; font-weight: 700; padding-left: 10px">Assigned</span>
+              </div>
+              <div style="display: grid; grid-template-columns: 210px 1fr 110px; align-items: center; min-height: 52px; border-bottom: 1px solid #f1f5f9">
+                <span style="display: flex; flex-direction: column; font-size: 14px"><strong>EX-2207</strong><span style="font-size: 12px; color: #475569">FA 100533 · Houston Yard</span></span>
+                <div style="position: relative; height: 30px; background: linear-gradient(to right, transparent 16.7%, #ecfdf5 16.7%, #ecfdf5 92%, transparent 92%)">
+                  <div style="position: absolute; left: 10%; width: 90%; top: 4px; bottom: 4px; background: #1565c0; border-radius: 4px; color: #ffffff; font-size: 12px; padding: 0 6px; display: flex; align-items: center">REQ-10511 Plant Expansion B</div>
+                </div>
+                <span style="font-size: 13px; color: #475569; padding-left: 10px">Booked</span>
+              </div>
+              <div style="display: grid; grid-template-columns: 210px 1fr 110px; align-items: center; min-height: 52px">
+                <span style="display: flex; flex-direction: column; font-size: 14px"><strong>EX-2210</strong><span style="font-size: 12px; color: #475569">FA 100561 · Dallas Yard</span></span>
+                <div style="position: relative; height: 30px; background: linear-gradient(to right, transparent 16.7%, #ecfdf5 16.7%, #ecfdf5 92%, transparent 92%)">
+                  <div style="position: absolute; left: 33%; width: 12%; top: 4px; bottom: 4px; background: repeating-linear-gradient(45deg, #f59e0b 0 5px, #fde68a 5px 10px); border-radius: 4px" title="Maintenance WO-55821, 10–14 Nov"></div>
+                </div>
+                <span style="padding-left: 10px"><button type="button" style="height: 30px; padding: 0 10px; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff; font: inherit; font-size: 13px; cursor: pointer">Assign</button></span>
+              </div>
+            </div>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; color: #334155">
+            <span style="display: flex; gap: 6px; align-items: center"><span style="width: 22px; height: 10px; background: #ecfdf5; border: 1px solid #a7f3d0" aria-hidden="true"></span>Requested dates</span>
+            <span style="display: flex; gap: 6px; align-items: center"><span style="width: 22px; height: 10px; background: #90caf9" aria-hidden="true"></span>Soft reserve</span>
+            <span style="display: flex; gap: 6px; align-items: center"><span style="width: 22px; height: 10px; background: #1565c0" aria-hidden="true"></span>Hard reserve</span>
+            <span style="display: flex; gap: 6px; align-items: center"><span style="width: 22px; height: 10px; background: repeating-linear-gradient(45deg, #f59e0b 0 4px, #fde68a 4px 8px)" aria-hidden="true"></span>Maintenance</span>
+            <span>Auto allocate picks the least-used free serial.</span>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1300}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>
