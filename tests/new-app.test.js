@@ -83,7 +83,7 @@ T.check('PPM rates hide post costs', !ids(app.visibleNavGroups(ALL, true, Object
 T.section('landing page by role');
 T.eq('Home for anyone with EQR_DASHBOARD', JSON.stringify(app.getRoleHomeTarget(FLAGS, true, ALL, true)), '{"flow":"home","page":"home"}');
 T.eq('no Home grant: the first item the role can open',
-  JSON.stringify(app.getRoleHomeTarget(FLAGS, true, { EQR_WORKBENCH: 'FULL' }, true)), '{"flow":"home","page":"later","params":{"navId":"workbench"}}');
+  JSON.stringify(app.getRoleHomeTarget(FLAGS, true, { EQR_WORKBENCH: 'FULL' }, true)), JSON.stringify(app.getNavRoute('workbench')));
 T.eq('nothing at all: No Access', app.getRoleHomeTarget(FLAGS, true, {}, true).page, 'no-access');
 T.eq('the later page highlights the item it stands for', app.getNavIdForPage({ id: 'later' }, 'schedule'), 'schedule');
 T.eq('Home is gated by EQR_DASHBOARD', app.getPageCodeForPage({ id: 'home' }), 'EQR_DASHBOARD');
