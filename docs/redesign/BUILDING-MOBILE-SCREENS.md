@@ -21,7 +21,10 @@ port its chains' calls exactly. The screens are yours to design.
 
 Reference to read first: `flows/track/` (My requests): a list with chips and search, a record with its next step, its
 equipment, its history, the step buttons, the offline copy. Its tests: `tests/mobile-app.test.js` and
-`tests/e2e/mobile-foundation.e2e.js`.
+`tests/e2e/mobile-foundation.e2e.js`. The three work tabs follow the same pattern, each with Next's chains ported
+beside a pure module: `flows/approve/` (`mobileApprove.js`), `flows/pick/` (`mobilePick.js`), `flows/request/`
+(`mobileRequest.js`). Their unit tests run each ported chain next to Next's own on the same answers and check the
+calls are the same.
 
 ## The shell, and what a tab gets from it
 

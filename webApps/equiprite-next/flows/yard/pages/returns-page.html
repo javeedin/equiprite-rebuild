@@ -34,7 +34,7 @@
       </oj-bind-if>
       <button type="button" class="nx-btn nx-btn--primary" id="ydrFindOpen" on-click="[[ $listeners.onOpenFind ]]"
         title="Equipment that came back without notice: scan or type its serial">
-        <span class="oj-ux-ico-barcode-scan" aria-hidden="true"></span>Back without notice</button>
+        <span class="oj-ux-ico-barcode" aria-hidden="true"></span>Back without notice</button>
     </div>
   </div>
 
@@ -322,7 +322,7 @@
         <!-- A barcode gun types the label and sends Enter: Enter searches at once. -->
         <div class="nx-yd-find-form">
           <label class="nx-search" id="ydrQuery">
-            <span class="oj-ux-ico-barcode-scan" aria-hidden="true"></span>
+            <span class="oj-ux-ico-barcode" aria-hidden="true"></span>
             <input type="search" :value="[[ $variables.findQuery ]]" on-input="[[ $listeners.onFindInput ]]" on-keydown="[[ $listeners.onFindKey ]]"
               aria-label="Scan or type a serial" placeholder="Scan or type a serial, or search equipment, request or project">
           </label>

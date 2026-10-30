@@ -4,7 +4,14 @@ EquipRite Mobile is a web app that installs on the phone's home screen (a PWA): 
 tabs their access allows: **Approve** (decide requests), **Pick** (the yard), **Request** (raise one), **My requests**
 and **Me**.
 
-## The quick way: the QR code in the desktop app
+## The quickest way: the QR button in EquipRite Next's toolbar
+
+Click the **QR code** button in the toolbar (left of the cart) and scan the code with the phone's camera.
+- Under VBCS the code is EquipRite Mobile's VBCS address: nothing to set up.
+- In the desktop app it is what the desktop app has set up (below): the VBCS address, or this PC over Wi-Fi while
+  a phone may connect, with a switch between the two. Nothing set up yet: **Set it up** opens the desktop window.
+
+## The QR code in the desktop app
 
 1. On the PC, in EquipRite: **File → EquipRite on your phone (QR code)…** (Ctrl+Shift+5).
 2. Pick a code:
