@@ -43,7 +43,9 @@ define([
       const form = $page.variables.form || {};
       let coords = { latitude: null, longitude: null };
       try {
-        coords = await deliveryCoords.resolve(null, null, form.location);
+        // A point pinned on the map is used as it is; typed words are looked up (New EquipRite's rule).
+        coords = await deliveryCoords.resolve(form.locationPinned ? form.locationLatitude : null, form.locationPinned ? form.locationLongitude : null,
+          form.location);
       } catch (e) {
         console.warn('[reviewChain] delivery point not resolved', e);
       }

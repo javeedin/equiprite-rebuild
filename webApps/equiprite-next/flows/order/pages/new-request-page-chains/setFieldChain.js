@@ -58,6 +58,7 @@ define([
           form.location = '';
           form.locationLatitude = null;
           form.locationLongitude = null;
+          form.locationPinned = false;
         }
         $page.variables.form = form;
         if (changed) {
@@ -68,17 +69,20 @@ define([
         form.location = v;
         form.locationLatitude = null;
         form.locationLongitude = null;
+        form.locationPinned = false;
       } else if (field === 'locationType') {
         if (form.locationType !== v) {
           form.location = '';
           form.locationLatitude = null;
           form.locationLongitude = null;
+          form.locationPinned = false;
         }
         form.locationType = v || 'DELIVERY_LOCATION';
       } else if (field === 'location') {
         form.location = v;
         form.locationLatitude = null;
         form.locationLongitude = null;
+        form.locationPinned = false;
       } else {
         form[field] = v;
       }

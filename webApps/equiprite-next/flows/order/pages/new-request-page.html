@@ -389,9 +389,19 @@
                 </oj-bind-if>
               </oj-bind-if>
               <oj-bind-if test="[[ $variables.form.locationType !== 'PROJECT_SITE' ]]">
-                <input type="text" class="nx-or-input" id="orAddress" data-field="location" placeholder="Street, city, postcode, country"
-                  aria-label="Delivery address" :value="[[ $variables.form.location || '' ]]" on-change="[[ $listeners.onField ]]"
-                  :readonly="[[ $variables.form.locationType === 'INV_ORG' ]]">
+                <div class="nx-or-addr">
+                  <input type="text" class="nx-or-input" id="orAddress" data-field="location" placeholder="Street, city, postcode, country"
+                    aria-label="Delivery address" :value="[[ $variables.form.location || '' ]]" on-change="[[ $listeners.onField ]]"
+                    :readonly="[[ $variables.form.locationType === 'INV_ORG' ]]">
+                  <oj-bind-if test="[[ $variables.form.locationType !== 'INV_ORG' ]]">
+                    <button type="button" class="nx-btn nx-or-mapbtn" id="orMapOpen" data-action="open" on-click="[[ $listeners.onMap ]]"
+                      title="Pick the delivery point on a map"><span class="oj-ux-ico-location-pin" aria-hidden="true"></span>On the map</button>
+                  </oj-bind-if>
+                </div>
+                <oj-bind-if test="[[ !!$variables.form.locationPinned ]]">
+                  <span class="nx-or-pinned" id="orPinned"><span class="oj-ux-ico-location-pin" aria-hidden="true"></span>
+                    <oj-bind-text value="[[ $functions.pinText($variables.form) ]]"></oj-bind-text></span>
+                </oj-bind-if>
                 <oj-bind-if test="[[ $variables.form.locationType === 'INV_ORG' ]]">
                   <span class="nx-note">An internal location kept from the draft.</span>
                 </oj-bind-if>
@@ -570,6 +580,59 @@
           </div>
         </div>
       </aside>
+    </div>
+  </oj-bind-if>
+  <!-- ── The delivery point on a map (mapChain; the map itself is drawn by the page module) ───────────────────── -->
+  <oj-bind-if test="[[ $variables.mapDlg.open ]]">
+    <div class="nx-or-modal">
+      <button type="button" class="nx-or-scrim" tabindex="-1" aria-label="Close the map" data-action="cancel" on-click="[[ $listeners.onMap ]]"></button>
+      <section class="nx-or-mapdlg" id="orMapDialog" role="dialog" aria-modal="true" aria-labelledby="orMapT">
+        <header class="nx-or-mapdlg-head">
+          <div>
+            <h2 id="orMapT">Where should it be delivered?</h2>
+            <p>Search an address, or click the map. Drag the pin to adjust.</p>
+          </div>
+          <button type="button" class="nx-iconbtn" data-action="cancel" on-click="[[ $listeners.onMap ]]" aria-label="Close"><span class="oj-ux-ico-close" aria-hidden="true"></span></button>
+        </header>
+        <div class="nx-or-mapdlg-search">
+          <label class="nx-search">
+            <span class="oj-ux-ico-search" aria-hidden="true"></span>
+            <input type="search" id="orMapSearch" autocomplete="off" placeholder="Search an address or a place" aria-label="Search an address"
+              on-input="[[ $listeners.onMapSearch ]]">
+          </label>
+          <oj-bind-if test="[[ $variables.mapDlg.searching ]]"><span class="nx-note">Searching…</span></oj-bind-if>
+          <oj-bind-if test="[[ $variables.mapDlg.results.length > 0 ]]">
+            <div class="nx-or-mapresults" role="listbox" aria-label="Addresses found">
+              <oj-bind-for-each data="[[ $variables.mapDlg.results ]]">
+                <template data-oj-as="r">
+                  <button type="button" role="option" class="nx-or-mapresult" data-action="pick" :data-index="[[ r.index ]]" on-click="[[ $listeners.onMap ]]">
+                    <span class="oj-ux-ico-location-pin" aria-hidden="true"></span><oj-bind-text value="[[ r.data.label ]]"></oj-bind-text></button>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ !$variables.mapDlg.searching && $variables.mapDlg.query.length >= 3 && !$variables.mapDlg.results.length && !$variables.mapDlg.picked ]]">
+            <span class="nx-note">Nothing found; try a street and a city, or click the map.</span>
+          </oj-bind-if>
+        </div>
+        <div class="nx-or-map" aria-label="Map: click to drop the pin"></div>
+        <oj-bind-if test="[[ !!$variables.mapDlg.error ]]">
+          <div class="nx-error nx-or-maperr" role="alert"><oj-bind-text value="[[ $variables.mapDlg.error ]]"></oj-bind-text></div>
+        </oj-bind-if>
+        <footer class="nx-or-mapdlg-foot">
+          <div class="nx-or-mappicked" id="orMapPicked" role="status">
+            <oj-bind-if test="[[ !!$variables.mapDlg.picked ]]">
+              <span class="oj-ux-ico-location-pin" aria-hidden="true"></span>
+              <span><strong><oj-bind-text value="[[ $variables.mapDlg.picked ? $variables.mapDlg.picked.label : '' ]]"></oj-bind-text></strong>
+                <span class="nx-note"><oj-bind-text value="[[ $functions.coords($variables.mapDlg.picked) ]]"></oj-bind-text></span></span>
+            </oj-bind-if>
+            <oj-bind-if test="[[ !$variables.mapDlg.picked ]]"><span class="nx-note">Nothing picked yet.</span></oj-bind-if>
+          </div>
+          <button type="button" class="nx-btn" data-action="cancel" on-click="[[ $listeners.onMap ]]">Cancel</button>
+          <button type="button" class="nx-btn nx-or-go" id="orMapUse" data-action="use" on-click="[[ $listeners.onMap ]]" :disabled="[[ !$variables.mapDlg.picked ]]">
+            Use this location</button>
+        </footer>
+      </section>
     </div>
   </oj-bind-if>
 </div>

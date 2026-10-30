@@ -1,4 +1,4 @@
-define(['resources/js/orderForm', 'resources/js/fmt'], (order, fmt) => {
+define(['require', 'resources/js/orderForm', 'resources/js/fmt', 'resources/js/mapPicker'], (require, order, fmt, mapPicker) => {
   'use strict';
 
   // New request: binding helpers. The rules are resources/js/orderForm.js; the chains are new-request-page-chains.
@@ -6,6 +6,58 @@ define(['resources/js/orderForm', 'resources/js/fmt'], (order, fmt) => {
   const STEPS = [{ n: 1, label: 'Equipment' }, { n: 2, label: 'Project' }, { n: 3, label: 'Review & submit' }];
 
   class PageModule {
+    constructor(context) {
+      this._helper = context && typeof context.getEventHelper === 'function' ? context.getEventHelper() : null;
+      this._map = null;
+    }
+
+    // ── The delivery point on a map (mapChain) ──────────────────────────────────────────────────────────
+    /**
+     * Draws the map in this tab's open map dialog (the map library loads the first time it is needed). A click or a
+     * drag of the pin answers with the mapPicked event ({ place }); a map that cannot be drawn with ({ error }).
+     */
+    mapOpen(picked) {
+      const fire = (payload) => { if (this._helper) this._helper.fireCustomEvent('mapPicked', payload); };
+      this.mapClose();
+      return new Promise((resolve) => {
+        let tries = 0;
+        const box = () => Array.prototype.filter.call(document.querySelectorAll('.nx-or-map'), (el) => el.getClientRects().length > 0)[0];
+        const go = () => {
+          const el = box();
+          if (!el) {
+            if (tries++ < 40) setTimeout(go, 50); else resolve(false);
+            return;
+          }
+          require(['mapboxgl'], (mapboxgl) => {
+            try {
+              this._map = mapPicker.open(el, mapboxgl, picked, (place) => fire({ place }), (error) => fire({ error }));
+              resolve(true);
+            } catch (e) {
+              fire({ error: (e && e.message) || 'the map could not start' });
+              resolve(false);
+            }
+          }, () => {
+            fire({ error: 'the map library could not be loaded' });
+            resolve(false);
+          });
+        };
+        go();
+      });
+    }
+    mapShow(place) { if (this._map) this._map.show(place); }
+    mapClose() {
+      if (this._map) this._map.destroy();
+      this._map = null;
+    }
+    /** Under the delivery address once it is pinned: "Pinned on the map · 29.76040, -95.36980". */
+    pinText(form) {
+      const f = form || {};
+      return 'Pinned on the map · ' + this.coords({ lat: f.locationLatitude, lng: f.locationLongitude });
+    }
+
+    /** "29.76040, -95.36980" under the picked address. */
+    coords(p) { return p && p.lat != null && p.lng != null ? Number(p.lat).toFixed(5) + ', ' + Number(p.lng).toFixed(5) : ''; }
+
     /** The steps across the top: done, current or to do. */
     steps(step) {
       const cur = Number(step) || 1;

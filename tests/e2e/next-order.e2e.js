@@ -185,6 +185,39 @@ async function shot(env, name) {
     await page.click(vis('button[data-field="contractId"][data-value="300000999"]'));
     await page.fill(vis('input[data-kind="customer"]'), 'acme');
     await page.click(vis('.nx-or-option[data-kind="customer"][data-index="0"]'));
+    T.section('the delivery point on a map');
+    await page.click(vis('#orMapOpen'));
+    await page.waitForSelector(vis('#orMapDialog'));
+    T.eq('a map window, as Old EquipRite\'s location drawer', await env.text(vis('#orMapT')), 'Where should it be delivered?');
+    T.eq('nothing picked yet: Use waits', await page.$eval(vis('#orMapUse'), (b) => b.disabled), true);
+    await page.waitForSelector('.nx-or-map canvas.mapboxgl-canvas, .nx-or-maperr', { timeout: 15000 });
+    T.check('the map is drawn (or says in words why it cannot be)', !!(await page.$('.nx-or-map canvas.mapboxgl-canvas')) || (await env.text(vis('.nx-or-maperr'))).startsWith('The map could not be shown here'));
+    await page.fill(vis('#orMapSearch'), '1200 Pipeline');
+    await page.waitForSelector(vis('.nx-or-mapresult'), { timeout: 10000 });
+    T.eq('addresses found as you type', await env.text(vis('.nx-or-mapresult')), '1200 Pipeline Rd, Odessa, Texas 79761, United States');
+    await page.click(vis('.nx-or-mapresult'));
+    await page.waitForTimeout(300);
+    T.check('picked: the address and its point', (await env.text(vis('#orMapPicked'))).includes('1200 Pipeline Rd, Odessa') && (await env.text(vis('#orMapPicked'))).includes('31.85000, -102.37000'));
+    if (await page.$('.nx-or-map canvas.mapboxgl-canvas')) {
+      await page.waitForTimeout(1500);
+      const pin = await page.evaluate(() => {
+        const m = document.querySelector('.nx-or-map .mapboxgl-marker');
+        const box = document.querySelector('.nx-or-map').getBoundingClientRect();
+        if (!m) return 'none';
+        const r = m.getBoundingClientRect();
+        return r.width > 0 && r.left >= box.left && r.right <= box.right && r.top >= box.top && r.bottom <= box.bottom ? 'in' : 'out ' + JSON.stringify([r, box]);
+      });
+      T.eq('the pin is on the map', pin, 'in');
+    }
+    T.check('the search box keeps its height', (await page.$eval(vis('#orMapDialog .nx-search'), (l) => l.getBoundingClientRect().height)) <= 44);
+    T.check('the map was drawn here, with its pin', !!(await page.$('.nx-or-map canvas.mapboxgl-canvas')) && !!(await page.$('.nx-or-map .mapboxgl-marker')));
+    await shot(env, 'next-order-map.png');
+    await page.click(vis('#orMapUse'));
+    await page.waitForTimeout(300);
+    T.check('closed', !(await page.$(vis('#orMapDialog'))));
+    T.eq('the address is filled in', await page.$eval(vis('#orAddress'), (i) => i.value), '1200 Pipeline Rd, Odessa, Texas 79761, United States');
+    T.eq('and says it is pinned', await env.text(vis('#orPinned')), 'Pinned on the map · 31.85000, -102.37000');
+    T.eq('nothing written', env.writes.length, 0);
     await page.click(vis('button[data-field="locationType"][data-value="PROJECT_SITE"]'));
     await page.click(vis('button[data-field="siteAddress"]'));
     await page.waitForTimeout(300);

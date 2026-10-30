@@ -13,6 +13,7 @@
       "oj-oars": "https://static.oracle.com/cdn/oars/packs/oj-oars/2601.0.1/min",
       "oj-sp": "https://static.oracle.com/cdn/spectra-ui/oj-sp/2601.0.3/",
       "oj-dynamic": "https://static.oracle.com/cdn/jet/packs/oj-dynamic/18.1.4/min/",
+      "mapboxgl": "resources/js/mapbox-gl",
       "jspdf": "https://cdnjs.cloudflare.com/ajax/libs/jspdf/4.0.0/jspdf.umd.min"
     },
     "bundles": {
@@ -861,7 +862,8 @@
       "resources/css/next-yard.css",
       "resources/css/next-insights-admin.css",
       "resources/css/next-customer.css",
-      "resources/css/next-help.css"
+      "resources/css/next-help.css",
+      "resources/css/mapbox-gl.css"
     ]
   }
 }

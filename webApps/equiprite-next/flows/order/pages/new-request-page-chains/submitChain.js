@@ -72,7 +72,10 @@ define([
       const reqNum = 'REQ-' + Date.now();
       const resume = $page.variables.resume && $page.variables.resume.id != null ? $page.variables.resume : null;
       const tag = isDraft ? '[SaveDraft]' : '[Submit]';
-      const geo = await hdr.geocode(hd.locationText, tag);
+      // The delivery point: pinned on the map (its own coordinates), else looked up from the words (New's rule).
+      const pinned = form.locationPinned && form.locationLatitude != null && form.locationLongitude != null && form.location === hd.locationText;
+      const geo = pinned ? { latitude: Number(form.locationLatitude), longitude: Number(form.locationLongitude), formattedAddress: hd.locationText }
+        : await hdr.geocode(hd.locationText, tag);
 
       const headerResult = await hdr.saveHeader(context, Actions, { d: hd, reqNum, resume, headers: cu.auditHeaders(context) });
       if (!headerResult.ok) {

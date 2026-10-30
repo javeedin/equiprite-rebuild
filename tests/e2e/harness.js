@@ -114,8 +114,11 @@ async function start(o) {
   const { chromium } = require('playwright');
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width: o.width || 1440, height: 1000 } });
+  // Mapbox: a geocoder answer for every lookup, and a minimal valid map style (a plain background) so a map can draw.
   await page.route('https://api.mapbox.com/**', (route) => route.fulfill({ contentType: 'application/json',
-    body: JSON.stringify({ features: [{ center: [-102.37, 31.85], place_name: '1200 Pipeline Rd, Odessa, Texas 79761, United States' }] }) }));
+    body: JSON.stringify(/\/styles\/v1\//.test(route.request().url())
+      ? { version: 8, name: 'test', sources: {}, layers: [{ id: 'land', type: 'background', paint: { 'background-color': '#e8eef2' } }] }
+      : { features: [{ center: [-102.37, 31.85], place_name: '1200 Pipeline Rd, Odessa, Texas 79761, United States' }] }) }));
   const errors = [];
   page.on('console', (m) => { if ((m.type() === 'error' || m.type() === 'warning') && !QUIET.test(m.text())) errors.push(`${m.type()}: ${m.text()}`.slice(0, 400)); });
   page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`.slice(0, 400)));

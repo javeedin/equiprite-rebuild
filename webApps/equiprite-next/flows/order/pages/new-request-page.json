@@ -224,6 +224,24 @@
       "type": "any",
       "defaultValue": null,
       "description": "What was last saved from here {id, number, mode: submit | draft}, for the banner."
+    },
+    "mapDlg": {
+      "type": "any",
+      "defaultValue": {
+        "open": false,
+        "query": "",
+        "results": [],
+        "picked": null,
+        "error": "",
+        "searching": false
+      },
+      "description": "The map dialog for the delivery point (mapChain): its search, results, the point picked, an error in words."
+    }
+  },
+  "events": {
+    "mapPicked": {
+      "description": "From the map (page module mapOpen): a point clicked or dragged to, with its address, or why the map cannot show.",
+      "payloadType": "object"
     }
   },
   "eventListeners": {
@@ -410,6 +428,40 @@
           "chain": "goStepChain",
           "parameters": {
             "step": "{{ $event.currentTarget.dataset.step }}"
+          }
+        }
+      ]
+    },
+    "onMap": {
+      "chains": [
+        {
+          "chain": "mapChain",
+          "parameters": {
+            "action": "{{ $event.currentTarget.dataset.action }}",
+            "index": "{{ $event.currentTarget.dataset.index }}"
+          }
+        }
+      ]
+    },
+    "onMapSearch": {
+      "chains": [
+        {
+          "chain": "mapChain",
+          "parameters": {
+            "action": "search",
+            "value": "{{ $event.target.value }}"
+          }
+        }
+      ]
+    },
+    "mapPicked": {
+      "chains": [
+        {
+          "chain": "mapChain",
+          "parameters": {
+            "action": "picked",
+            "place": "{{ $event.place }}",
+            "error": "{{ $event.error }}"
           }
         }
       ]

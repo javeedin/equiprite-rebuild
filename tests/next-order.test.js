@@ -405,6 +405,63 @@ const ends = (calls) => calls.filter((x) => x.endpoint).map((x) => x.endpoint.re
     T.eq('Review is reviewChain\'s (its checks, the delivery point, the prices)', calls.map((x) => x.chain + JSON.stringify(x.params)).join(), 'reviewChain{"to":"review"}');
   }
 
+  T.section('the delivery point on a map');
+  {
+    const mp = load(path.join(JS, 'mapPicker.js'));
+    const urls = [];
+    const fakeFetch = (answer) => async (url) => { urls.push(url); return { ok: true, json: async () => answer }; };
+    const found = await mp.search('1200 pipeline', [-95.4, 29.8], fakeFetch({ features: [
+      { center: [-102.37, 31.85], place_name: '1200 Pipeline Rd, Odessa, Texas 79761, United States' }, { place_name: 'no point' }] }));
+    T.eq('search: places with their point (one without a point is left out)', JSON.stringify(found), '[{"label":"1200 Pipeline Rd, Odessa, Texas 79761, United States","lat":31.85,"lng":-102.37}]');
+    T.check('asked near where the pin is, as you type', urls[0].includes('/mapbox.places/1200%20pipeline.json') && urls[0].includes('autocomplete=true') && urls[0].includes('proximity=-95.4,29.8'));
+    T.eq('two letters are not searched', (await mp.search('12', null, fakeFetch({ features: [] }))).length, 0);
+    const back = await mp.reverse(-95.36, 29.76, fakeFetch({ features: [{ center: [-95.3601, 29.7612], place_name: '901 Bagby St, Houston' }] }));
+    T.eq('a click: the address there, the point kept where it was put', JSON.stringify(back), '{"label":"901 Bagby St, Houston","lat":29.76,"lng":-95.36}');
+    T.eq('no address there: named by its coordinates', (await mp.reverse(-95.36, 29.76, fakeFetch({ features: [] }))).label, '29.76000, -95.36000');
+    T.eq('nothing reachable: still a place', (await mp.reverse(-95.36, 29.76, async () => { throw new Error('offline'); })).label, '29.76000, -95.36000');
+
+    const shown = [];
+    const fns = { mapOpen: async (p) => { shown.push('open ' + JSON.stringify(p)); return true; }, mapShow: (p) => shown.push('show ' + p.label), mapClose: () => shown.push('close') };
+    const picker = { search: async (q) => (q.includes('Pipeline') ? [{ label: '1200 Pipeline Rd, Odessa', lat: 31.85, lng: -102.37 }] : []) };
+    const Map = chain('mapChain', {}, null, { 'resources/js/mapPicker': picker });
+    const c = context(Object.assign({}, FORM, { locationType: 'DELIVERY_LOCATION', location: '1200 Pipeline Rd', locationLatitude: null, locationLongitude: null }), cart,
+      { mapDlg: { open: false } });
+    c.$page.functions = fns;
+    await new Map().run(c, { action: 'open' });
+    T.eq('opening: the map, then the typed address found on it', shown.join(' | ') + ' / ' + c.$page.variables.mapDlg.picked.label, 'open null | show 1200 Pipeline Rd, Odessa / 1200 Pipeline Rd, Odessa');
+    await new Map().run(c, { action: 'picked', place: { label: '1210 Pipeline Rd, Odessa', lat: 31.851, lng: -102.371 } });
+    T.eq('a click or a drag on the map picks that point', c.$page.variables.mapDlg.picked.label, '1210 Pipeline Rd, Odessa');
+    await new Map().run(c, { action: 'picked', error: 'Failed to initialize WebGL' });
+    T.check('a map that cannot show says so; the search still works', c.$page.variables.mapDlg.error.startsWith('The map could not be shown here (Failed to initialize WebGL)'));
+    c.$page.variables.missing = ['Delivery location'];
+    await new Map().run(c, { action: 'use' });
+    const f = c.$page.variables.form;
+    T.eq('Use this location: the address, the point, pinned', [f.location, f.locationLatitude, f.locationLongitude, f.locationPinned, f.locationType].join(' | '),
+      '1210 Pipeline Rd, Odessa | 31.851 | -102.371 | true | DELIVERY_LOCATION');
+    T.eq('and closes; nothing missing any more', [c.$page.variables.mapDlg.open, c.$page.variables.missing.length, shown.pop()].join(), 'false,0,close');
+    await new Map().run(c, { action: 'open' });
+    T.eq('opening again starts on the pin', shown[shown.length - 1], 'open {"label":"1210 Pipeline Rd, Odessa","lat":31.851,"lng":-102.371}');
+    await new Map().run(c, { action: 'cancel' });
+    T.eq('Cancel leaves the address as it was', c.$page.variables.form.location, '1210 Pipeline Rd, Odessa');
+
+    const { calls, Actions } = fakeActions();
+    const pinnedForm = Object.assign({}, FORM, { locationType: 'DELIVERY_LOCATION', location: '1210 Pipeline Rd, Odessa', locationLatitude: 31.851,
+      locationLongitude: -102.371, locationPinned: true });
+    const before = geoAnswer;
+    geoAnswer = { latitude: 1, longitude: 2, formattedAddress: 'elsewhere' };
+    await new (chain('submitChain', Actions))().run(context(pinnedForm, cart), { mode: 'submit' });
+    const site = calls.find((x) => x.endpoint === 'eqp-v1/createShipToSite');
+    T.eq('Submit: the ship-to-site gets the pinned point, not a second lookup of the words', [site.body.latitude, site.body.longitude, site.body.address].join(' | '),
+      '31.851 | -102.371 | 1210 Pipeline Rd, Odessa');
+    calls.length = 0;
+    await new (chain('submitChain', Actions))().run(context(Object.assign({}, pinnedForm, { locationPinned: false }), cart), { mode: 'submit' });
+    T.eq('typed words are still looked up (New\'s rule)', calls.find((x) => x.endpoint === 'eqp-v1/createShipToSite').body.latitude, 1);
+    geoAnswer = before;
+    const typed = context(pinnedForm, cart);
+    await new (chain('setFieldChain', Actions))().run(typed, { field: 'location', value: 'Somewhere else' });
+    T.eq('typing a new address drops the pin', [typed.$page.variables.form.locationPinned, typed.$page.variables.form.locationLatitude].join(), 'false,');
+  }
+
   T.section('the customer and project lists, from their BIP reports');
   {
     // The SOAP body is the real one (bipLov.buildSoapBody); decoding the report needs a browser's XML parser, so the
