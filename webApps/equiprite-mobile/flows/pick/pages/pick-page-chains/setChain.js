@@ -8,7 +8,7 @@ define([
   'use strict';
 
   // A stage chip (again: every stage), the yard (kept on this phone for this person), the search, a section shown or
-  // hidden (Next's setChain), or the unit number being typed.
+  // hidden (Next's setChain), the period (the last few days, or every date), or the unit number being typed.
   class setChain extends ActionChain {
     async run(context, { field, value }) {
       const { $application } = context;
@@ -18,6 +18,7 @@ define([
         return;
       }
       if (field === 'text') v.text = String(value || '');
+      if (field === 'period') v.period = value === 'all' ? 'all' : 'recent';
       if (field === 'stage') {
         v.stage = !value || value === v.stage ? 'all' : value;
         // A chip for pieces in a hidden section shows that section.

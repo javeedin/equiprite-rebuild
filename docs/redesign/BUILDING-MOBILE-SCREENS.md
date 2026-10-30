@@ -42,8 +42,8 @@ calls are the same.
   - `bus.toast(message, 'info' | 'warning' | 'error')` shows a toast over the tab bar;
   - `bus.badge('<tab>', n)` sets the count on your tab's icon. The shell counts each tab from the shared request list
     when the app opens and every five minutes (`countsChain`): Approve, the requests waiting for a decision; Pick, the
-    pieces with a unit ready for the yard; Request, your drafts. Set your own count after a step changes it, or when
-    your tab counts it more exactly.
+    pieces with a unit ready for the yard (both of the last 3 days, as their lists open); Request, your drafts. Set
+    your own count after a step changes it, or when your tab counts it more exactly.
 - **The top bar, the tab bar, the offline strip and the toast** belong to the shell. Leave them alone.
 - **The page head is the Redwood band.** Start your page with `.mb-head` (title, `.mb-head-sub`, a `.mb-back` button
   in `.mb-head-row` on a record). Then put the content in `.mb-body`.
@@ -55,6 +55,12 @@ calls are the same.
 - The width is 320 to 430 px. Never let the page scroll sideways (the e2e tests check it). Long text wraps
   (`overflow-wrap: anywhere`); long names ellipsis.
 - Lists are cards (`.mb-list` > `li` > `button.mb-item`). A tap opens the record. Secondary facts go in `.mb-facts`.
+- Lists open on the **last 3 days** (`resources/js/mobileRecent.js`): a thing is recent when any of its dates (raised or
+  last changed, start, end) falls on or after today minus 3 days; no date at all is recent. Each card keeps its latest
+  date (`lastAt`), so the offline copy is filtered too. Above the search, `.mb-period` switches to All dates; under the
+  list, `.mb-older` says how many it leaves out ("12 older requests · Show all"). A search looks through every date and
+  says so (`.mb-period-note`). Chip counts and the head follow the period; a request handed over (focus, a deep link)
+  opens even when older, switching the tab to All. See track's `applyChain` and `focusChain`.
 - One primary action per screen. When a screen has a main step (Approve, Ship, Submit), put it in a `.mb-dock` held
   above the tab bar.
 - Decisions and pickers slide up as a bottom sheet (`.mb-sheet-wrap` > `.mb-sheet-scrim` + `.mb-sheet` with
@@ -93,7 +99,7 @@ calls are the same.
 
 `resources/js` holds Next's modules, **byte for byte**: `tests/mobile-app.test.js` fails if a shared file differs from
 Next's. If a shared module needs a change, make it in both apps and keep Next's tests green. Mobile's own modules are
-`mobileTabs`, `mobileBus`, `trackList`, `offlineSnapshot`, `installPrompt` and `pwaSetup`. Add yours as
+`mobileTabs`, `mobileBus`, `trackList`, `offlineSnapshot`, `mobileRecent`, `installPrompt` and `pwaSetup`. Add yours as
 `resources/js/mobile<Tab>.js` (pure: no calls, so it can be unit-tested), and add its name to `MOBILE_ONLY` in
 `tests/mobile-app.test.js`.
 

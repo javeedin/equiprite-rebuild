@@ -61,7 +61,8 @@ function modules(dir) {
 const mob = modules(MJS);
 const nxt = modules(NJS);
 const { rules, fmt, queue, aa, unitPicker } = mob;
-const ma = loadAmd(path.join(MJS, 'mobileApprove.js'), { 'resources/js/approvalQueue': queue, 'resources/js/fmt': fmt });
+const recent = loadAmd(path.join(MJS, 'mobileRecent.js'));
+const ma = loadAmd(path.join(MJS, 'mobileApprove.js'), { 'resources/js/approvalQueue': queue, 'resources/js/fmt': fmt, 'resources/js/mobileRecent': recent });
 
 const NOW = Date.UTC(2026, 9, 30, 9);
 const day = (n) => new Date(NOW + n * 86400000).toISOString().slice(0, 10);
@@ -107,6 +108,23 @@ const day = (n) => new Date(NOW + n * 86400000).toISOString().slice(0, 10);
   T.eq('the tab\'s count is the shell\'s: requests waiting for a decision', ma.badge(cards), queue.build(ROWS, LINES, { now: NOW }).filter((q) => q.kind === 'decide').length);
   T.eq('where it is in the list', [ma.position(cards, '9'), ma.position(cards, '99')].join('|'), '3 of 4|');
   T.eq('skip: the next card, none at the end', [ma.after(cards, '11').number, ma.after(cards, '10')].join('|'), 'R12|');
+
+  T.section('the last 3 days (mobileRecent): each card keeps its latest date');
+  {
+    const OROWS = ROWS.concat([{ eqrEquipmentRequestId: 7, requestNumber: 'R7', status: 'SUBMITTED', startDate: day(-40), endDate: day(-10), projectName: 'Old Quarry',
+      requestorName: 'Lee', requestOrigin: 'Internal', createdDate: day(-45) + 'T08:00:00Z' }]);
+    const OLINES = Object.assign({}, LINES, { R7: [LN('SUBMITTED', '', 'Crusher')] });
+    const all = ma.cards(queue.build(OROWS, OLINES, { now: NOW }), OLINES, OROWS, NOW);
+    const r7 = all.find((c) => c.number === 'R7');
+    T.eq('the latest of when it was raised, its start and its end', [r7.lastAt === recent.ms(day(-10)), by('R10').lastAt === recent.ms(day(20))].join(), 'true,true');
+    T.eq('an old request is in the queue, not in its last 3 days', [all.length, recent.only(all, NOW).map((c) => c.number).join()].join(' | '), '5 | R11,R12,R9,R10');
+    T.eq('the line under the title says so', [ma.summary(recent.only(all, NOW), true), ma.summary([], true)].join(' | '),
+      'In the last 3 days: 3 to decide · 1 with units to assign · 1 late | Nothing in the last 3 days');
+    T.eq('the tab\'s count: what the queue opens on (the old one is left out)', [ma.badge(all), ma.badge(all, NOW)].join(), '4,3');
+    T.eq('next up goes through the last 3 days first, then the older ones', [ma.byPeriod(all, 'recent', NOW).map((c) => c.number).join(), ma.byPeriod(all, 'all', NOW).map((c) => c.number).join()]
+      .join(' | '), 'R11,R12,R9,R10,R7 | ' + all.map((c) => c.number).join());
+    T.eq('kept on the phone and back: still dated', ma.restore(ma.keep(all)).filter((c) => !recent.isRecent(c, NOW)).map((c) => c.number).join(), 'R7');
+  }
 
   T.section('next up, once a request is decided');
   const order = cards.map((c) => c.key);
@@ -306,7 +324,7 @@ const day = (n) => new Date(NOW + n * 86400000).toISOString().slice(0, 10);
   const reqData = { load: async () => dataNow, invalidate: () => { invalidated++; } };
 
   const MPage = loadAmd(path.join(PAGE, 'approve-page.js'), { 'resources/js/mobileBus': mbus, 'resources/js/unitPicker': unitPicker, 'resources/js/approvalQueue': queue,
-    'resources/js/mobileApprove': ma, 'resources/js/fmt': fmt });
+    'resources/js/mobileApprove': ma, 'resources/js/fmt': fmt, 'resources/js/mobileRecent': recent });
   const NPage = loadAmd(path.join(NPAGE, 'approvals-page.js'), { 'resources/js/exportKit': { FORMATS: [] }, 'resources/js/fmt': nxt.fmt, 'resources/js/nav': { newUrl: () => '' },
     'resources/js/unitPicker': nxt.unitPicker, 'resources/js/approvalQueue': nxt.queue, 'resources/js/shellBus': { onFocus() {} } });
   const mjson = JSON.parse(read(path.join(PAGE, 'approve-page.json')));
@@ -337,7 +355,7 @@ const day = (n) => new Date(NOW + n * 86400000).toISOString().slice(0, 10);
     const deps = app === 'mobile' ? {
       'vb/action/actionChain': class {}, 'vb/action/actions': Actions, 'resources/js/approveAllocate': aa, 'resources/js/approvalQueue': queue, 'resources/js/mobileApprove': ma,
       'resources/js/requestData': reqData, 'resources/js/mobileBus': mbus, 'resources/js/rules': rules, 'resources/js/requestProgress': mob.Progress, 'resources/js/fmt': fmt,
-      'resources/js/unitPicker': unitPicker, 'resources/js/offlineSnapshot': snap, 'resources/js/currentUser': cu,
+      'resources/js/unitPicker': unitPicker, 'resources/js/offlineSnapshot': snap, 'resources/js/currentUser': cu, 'resources/js/mobileRecent': recent,
     } : {
       'vb/action/actionChain': class {}, 'vb/action/actions': Actions, 'resources/js/approveAllocate': nxt.aa, 'resources/js/approvalQueue': nxt.queue, 'resources/js/rules': nxt.rules,
       'resources/js/requestProgress': nxt.Progress, 'resources/js/fmt': nxt.fmt, 'resources/js/shellBus': nbus, 'resources/js/unitPicker': nxt.unitPicker, 'resources/js/requestData': reqData,
@@ -538,8 +556,8 @@ const day = (n) => new Date(NOW + n * 86400000).toISOString().slice(0, 10);
     badges.length = 0;
     const m = rig('mobile', { runs: ['applyChain', 'focusChain', 'openChain', 'recordChain'] });
     await m.run('loadChain', { refresh: true });
-    T.eq('loaded: the cards, the chip that holds what waits, the line under the title', json([m.v.all.map((c) => c.number), m.v.chip, m.v.shown.length, m.v.summary]),
-      json([['R11', 'R12', 'R9', 'R10'], 'decide', 3, '3 to decide · 1 with units to assign · 1 late']));
+    T.eq('loaded: the cards, the chip that holds what waits, the line under the title (of the last 3 days)', json([m.v.all.map((c) => c.number), m.v.chip, m.v.shown.length, m.v.summary]),
+      json([['R11', 'R12', 'R9', 'R10'], 'decide', 3, 'In the last 3 days: 3 to decide · 1 with units to assign · 1 late']));
     T.eq('…the tab\'s count', json(badges[badges.length - 1]), '["approve",3]');
     T.check('…and a copy on the phone, for this user', !!snap.read('approve', 'priya.raman') && snap.read('approve', 'priya.raman').data.length === 4);
     await m.run('applyChain', { chip: 'allocate' });
@@ -580,6 +598,53 @@ const day = (n) => new Date(NOW + n * 86400000).toISOString().slice(0, 10);
     const none = rig('mobile', { runs: ['applyChain'] });
     await none.run('loadChain', { refresh: true });
     T.eq('no connection and no copy: the error', json([none.v.all, none.v.error]), '[[],"Requests could not be loaded."]');
+  }
+
+  T.section('the queue opens on the last 3 days; search, All and a request handed over reach the older ones');
+  {
+    const rd = (n) => { const x = new Date(); x.setDate(x.getDate() + n); return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0'); };
+    const PROWS = [
+      { eqrEquipmentRequestId: 31, requestNumber: 'R31', status: 'SUBMITTED', startDate: rd(4), endDate: rd(20), projectName: 'Pier B', requestorName: 'Sam', requestOrigin: 'Internal' },
+      { eqrEquipmentRequestId: 32, requestNumber: 'R32', status: 'SUBMITTED', startDate: rd(-40), endDate: rd(-10), projectName: 'Old Quarry', requestorName: 'Lee',
+        requestOrigin: 'Internal', createdDate: rd(-45) + 'T08:00:00Z' },
+      { eqrEquipmentRequestId: 33, requestNumber: 'R33', status: 'SUBMITTED', startDate: rd(-30), endDate: rd(-8), projectName: 'Old Dock', requestorName: 'Lee',
+        requestOrigin: 'Internal', lastUpdateDate: rd(-1) + 'T10:00:00Z' },
+    ];
+    const PLINES = { R31: [LN('SUBMITTED', '', 'Dozer')], R32: [LN('SUBMITTED', '', 'Crusher')], R33: [LN('SUBMITTED', '', 'Pump')] };
+    dataNow = { rows: PROWS, linesByRequest: PLINES, error: '' };
+    badges.length = 0;
+    const m = rig('mobile', { runs: ['applyChain', 'focusChain', 'openChain', 'recordChain'] });
+    await m.run('loadChain', { refresh: true });
+    const shownNow = () => m.v.shown.map((c) => c.number).join();
+    T.eq('it opens on the last 3 days (changed yesterday counts)', [m.v.period, shownNow(), m.v.chip].join(' | '), 'recent | R33,R31 | decide');
+    T.eq('the chips count the last 3 days, the line under the title says so', [json(m.v.chips.map((c) => c.key + ':' + c.count)), m.v.summary].join(' | '),
+      '["decide:2","allocate:0","late:1","all:2"] | In the last 3 days: 2 to decide · 1 late');
+    T.eq('under the list: what it leaves out', json([m.v.dated.older, m.v.dated.olderText]), '[1,"1 older request"]');
+    T.eq('the tab\'s count: what it opens on', json(badges[badges.length - 1]), '["approve",2]');
+    T.eq('…and the phone keeps every date', snap.read('approve', 'priya.raman').data.length, 3);
+    await m.run('applyChain', { text: 'quarry' });
+    T.eq('a search looks through every date, saying so', [shownNow(), m.v.dated.searching, m.v.dated.older].join(' | '), 'R32 | true | 0');
+    await m.run('applyChain', { text: '' });
+    await m.run('applyChain', { period: 'all' });
+    T.eq('All: every date', [shownNow(), m.v.summary, m.v.dated.older, m.v.dated.filtered].join(' | '), 'R32,R33,R31 | 3 to decide · 2 late | 0 | false');
+    await m.run('applyChain', { period: 'recent' });
+    T.eq('back to the last 3 days', shownNow(), 'R33,R31');
+    mbus.focus('approve', { number: 'R32' });
+    await m.run('focusChain', {});
+    T.eq('an older request handed over still opens; the queue behind it shows every date', json([m.v.view, m.v.current.number, m.v.period, m.v.position]),
+      '["detail","R32","all","1 of 3"]');
+    await m.run('openChain', { key: '' });
+    await m.run('applyChain', { period: 'recent' });
+    mbus.focus('approve', { number: 'R31' });
+    await m.run('focusChain', {});
+    T.eq('a recent one leaves the period as it is', json([m.v.current.number, m.v.period]), '["R31","recent"]');
+    await m.run('openChain', { key: '' });
+
+    dataNow = { rows: [], linesByRequest: {}, error: 'Requests could not be loaded.' };
+    const off = rig('mobile', { runs: ['applyChain', 'focusChain'] });
+    await off.run('loadChain', { refresh: true });
+    T.eq('no connection: the saved copy, on its last 3 days too', [off.v.all.length, off.v.shown.map((c) => c.number).join(), off.v.dated.older].join(' | '), '3 | R33,R31 | 1');
+    snap.clear('approve', 'priya.raman');
   }
 
   T.section('the sheets, choosing lines, the reason');

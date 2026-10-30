@@ -63,7 +63,7 @@ define([
       pv.sheet = '';
       pv.cleared = (pv.cleared || 0) + 1;
       if (!(pv.all || []).some((c) => c.key === key)) {
-        pv.done = ma.done({ action: 'units', words, key, number: head.number, list: JSON.parse(JSON.stringify(pv.all || [])), order, chip });
+        pv.done = ma.done({ action: 'units', words, key, number: head.number, list: ma.byPeriod(JSON.parse(JSON.stringify(pv.all || [])), pv.period, Date.now()), order, chip });
         pv.view = 'done';
         if (typeof window !== 'undefined' && window.scrollTo) window.scrollTo(0, 0);
         return;

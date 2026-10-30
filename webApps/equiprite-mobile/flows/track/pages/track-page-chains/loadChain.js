@@ -6,13 +6,15 @@ define([
   'resources/js/offlineSnapshot',
   'resources/js/currentUser',
   'resources/js/rules',
-], (ActionChain, Actions, requestData, trackList, snapshot, cu, rules) => {
+  'resources/js/mobileRecent',
+], (ActionChain, Actions, requestData, trackList, snapshot, cu, rules, recent) => {
   'use strict';
 
   // Loads the requests and their equipment (requestData: shared with the other tabs for half a minute; Refresh loads
   // anew) and makes a card of each of yours, or everyone's for a manager who asks. Which steps a card offers follows
   // page access, as on the tabs that take them; until access has loaded, none (fail closed).
-  // With no connection, the cards this phone saved the last time are shown, saying so (offlineSnapshot).
+  // With no connection, the cards this phone saved the last time are shown, saying so (offlineSnapshot). The list opens
+  // on the chip that holds what needs you among the requests of the period shown (the last few days: mobileRecent).
   const TRIES = 60;
   const GAP_MS = 50;
 
@@ -52,7 +54,7 @@ define([
           pv.error = '';
           snapshot.save('track:' + pv.scope, user, trackList.keep(pv.all), Date.now());
         }
-        if (!pv.chip) pv.chip = trackList.firstChip(pv.all);
+        if (!pv.chip) pv.chip = trackList.firstChip(recent.view(pv.all, pv.period, '', Date.now()).list);
       } finally {
         pv.isLoading = false;
       }

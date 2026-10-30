@@ -6,7 +6,9 @@
  * the test), a request's pick list (by step, in walking order, the next piece), ticking by tap, scan and typed unit,
  * Release and Ship with what they say before and exactly what they write, the pick slip, focus from My requests and a
  * deep link, read-only (no writes offered), no connection (the saved copy, ticks kept, nothing sent; back online,
- * sent only when confirmed), no sideways scroll, no browser errors.
+ * sent only when confirmed), no sideways scroll, no browser errors. The list opens on the last 3 days: an older request
+ * is left out (a line under the list says so, the tab's count leaves it out too), All shows it, a search and a deep
+ * link reach it.
  * Needs `npm run build`. Run: node tests/e2e/mobile-pick.e2e.js   (screenshots go to the OS temp folder)
  */
 const os = require('os');
@@ -28,9 +30,12 @@ const QUEUE = [ // one row per line for 2003, as the view may answer
     requestor: 'Dana Cole', location: 'Odessa camp', requestedStartDate: day(0) + 'T00:00:00Z', requestedEndDate: day(30) + 'T00:00:00Z' },
   { eqrEquipmentRequestId: 2011, requestNumber: 'REQ-2011', requestStatus: 'IN_PROCESS', source: 'EXTERNAL', customerName: 'Gulf Coast Builders', contactName: 'Ann Lee',
     location: 'Galveston', requestedStartDate: day(5) + 'T00:00:00Z', requestedEndDate: day(60) + 'T00:00:00Z' },
+  // Older than the last 3 days (it started and ended before them): left out until All, a search or a deep link asks.
+  { eqrEquipmentRequestId: 1990, requestNumber: 'REQ-1990', requestStatus: 'IN_PROCESS', source: 'INTERNAL', projectName: 'Old Quarry', taskName: '9.1 Crushing',
+    requestor: 'Lee Chan', location: 'Quarry gate', requestedStartDate: day(-40) + 'T00:00:00Z', requestedEndDate: day(-10) + 'T00:00:00Z' },
 ];
 const START = { 5001: 'SCHEDULED_FOR_PICKING', 5002: 'SCHEDULED_FOR_PICKING', 5003: 'PICK_INITIATED', 5004: 'PICK_INITIATED', 5005: 'SHIP_TO_SITE', 5006: 'DRAFT',
-  7101: 'PICK_INITIATED', 7102: 'SCHEDULED_FOR_PICKING', 7201: 'EQP_INSPECTION_COMPLETE', 7202: 'SHIP_TO_SITE' };
+  7101: 'PICK_INITIATED', 7102: 'SCHEDULED_FOR_PICKING', 7201: 'EQP_INSPECTION_COMPLETE', 7202: 'SHIP_TO_SITE', 1901: 'PICK_INITIATED' };
 const status = {};
 const reset = () => Object.assign(status, START);
 const L = (id, name, cls, master, o) => Object.assign({ id, name, cls, master, tx: 'N', mt: 'N', fc: 'F_AND_M', yard: 'Houston Yard', sub: 'Available' }, o);
@@ -52,6 +57,7 @@ const LINES = {
     L(7201, 'Crawler crane 80t', 'Cranes', 31, { to: 'TO-880600', tx: 'Y', fc: 'S_AND_T', unit: 'CR-0080' }),
     L(7202, 'Generator 60 kVA', 'Power', 32, { to: 'TO-880600', tx: 'Y', fc: 'S_AND_T', unit: 'GN-0060' }),
   ],
+  1990: [L(1901, 'Jaw Crusher', 'Crushing', 41, { unit: 'JC-0001', loc: 'Q-01-01' })],
 };
 const TOS = { 2003: [{ id: 9101, orderNumber: 'TO-880101', orderStatus: 'OPEN', createdDate: '2026-10-28T10:00:00Z' }],
   2007: [{ id: 9201, orderNumber: 'TO-880500', orderStatus: 'OPEN', createdDate: '2026-10-27T10:00:00Z' }, { id: 9202, orderNumber: 'TO-880501', orderStatus: 'OPEN', createdDate: '2026-10-29T10:00:00Z' }],
@@ -239,7 +245,7 @@ async function readOnlyRun() {
       'pick,track,me pick');
     T.check('Next\'s queue: the INITIATE stage', env.calls.some((c) => c.includes('/views/workbench-requests?') && c.includes('stage=INITIATE') && c.includes('size=1000')));
     T.eq('in sections by the day it must ship, late first', await sections(page), 'late:REQ-2003 today:REQ-2007 week:REQ-2011');
-    T.eq('the band says what is left', await env.text('#pkSummary'), '7 pieces to get out on 3 requests · 4 late · 2 needed today');
+    T.eq('the band says what is left (in the last 3 days)', await env.text('#pkSummary'), '7 pieces to get out on 3 requests in the last 3 days · 4 late · 2 needed today');
     const late = await env.text('#mbPick .mb-pick-card[data-number="REQ-2003"]');
     T.check('a card: request, how late, project and site, how many picked, the next step, the yard',
       late.includes('REQ-2003') && late.includes('2 days late') && late.includes('EPC_MO_Operations') && late.includes('to Moss Landing site')
@@ -274,6 +280,28 @@ async function readOnlyRun() {
     await page.click('#pkChips .mb-chip[data-value="late"]');
     await settle(page);
     T.eq('again: everything', await cards(page), 'REQ-2003,REQ-2007,REQ-2011');
+
+    T.section('the list opens on the last 3 days');
+    T.eq('the period it opens on', [await env.text('#pkRecent'), await page.$eval('#pkRecent', (b) => b.getAttribute('aria-pressed'))].join(' '), 'Last 3 days true');
+    T.eq('under the list, the older request it leaves out', await env.text('#pkOlder'), '1 older request · Show all');
+    T.eq('the chips count the last 3 days', await env.text('#pkChips .mb-chip[data-value="all"]'), 'All 3');
+    await env.shot('mobile-pick-recent.png');
+    await page.click('#pkOlder');
+    await settle(page);
+    T.eq('Show all: every date, late first', await sections(page), 'late:REQ-1990+REQ-2003 today:REQ-2007 week:REQ-2011');
+    T.eq('…the chips and the band follow', [await env.text('#pkChips .mb-chip[data-value="all"]'), await env.text('#pkSummary')].join(' | '),
+      'All 4 | 8 pieces to get out on 4 requests · 5 late · 2 needed today');
+    T.eq('…nothing left out, All is on', [!!(await page.$('#pkOlder')), await page.$eval('#pkAllDates', (b) => b.getAttribute('aria-pressed'))].join(), 'false,true');
+    await page.click('#pkRecent');
+    await settle(page);
+    T.eq('the last 3 days again', await cards(page), 'REQ-2003,REQ-2007,REQ-2011');
+    await page.fill('#pkSearch', 'crusher');
+    await settle(page);
+    T.eq('a search looks through every date, saying so', [await cards(page), await env.text('#pkSearching')].join(' | '), 'REQ-1990 | Searching all dates');
+    await page.fill('#pkSearch', '');
+    await settle(page);
+    T.eq('search cleared: the last 3 days', [await cards(page), !!(await page.$('#pkSearching'))].join(' | '), 'REQ-2003,REQ-2007,REQ-2011 | false');
+    T.eq('no sideways scroll', await sideways(page), false);
 
     T.section('scan first: a tag scanned on the list opens its request, ticked');
     env.writes.length = 0;
@@ -356,7 +384,7 @@ async function readOnlyRun() {
     T.check('it read the live statuses first', after.findIndex((c) => c.startsWith('GET ' + V1 + '/equipment-requests/2003/lines')) < after.findIndex((c) => c.startsWith('PATCH')));
     T.check('back on the list, the card follows', (await env.text('#mbPick .mb-pick-card[data-number="REQ-2003"]')).includes('4 of 5 pieces picked'),
       await env.text('#mbPick .mb-pick-card[data-number="REQ-2003"]'));
-    T.eq('the Pick tab counts what is left', await env.text('.mb-tabbtn[data-tab="pick"] .mb-tabbadge'), '4');
+    T.eq('the Pick tab counts what is left (of the last 3 days: not REQ-1990\'s)', await env.text('.mb-tabbtn[data-tab="pick"] .mb-tabbadge'), '4');
 
     T.section('the pick slip (Next\'s): share or download');
     await openRequest(page, 'REQ-2003');
@@ -448,6 +476,14 @@ async function readOnlyRun() {
     await settle(page, 400);
     T.check('?tab=pick&number= opens the request', /Gulf Coast Builders/.test(await env.text('#pkWork')));
     T.check('the inspected crane is shipped from Fusion: on the request, not a step here', /Crawler crane 80t[\s\S]*Inspected, ready to ship/.test(await env.text('#pkOther')));
+    await env.open('/?tab=pick&number=REQ-1990');
+    await page.waitForFunction(() => { const h = document.querySelector('#pkNumber'); return h && h.offsetParent && h.textContent.trim() === 'REQ-1990'; }, null, { timeout: 30000 });
+    await page.waitForSelector(shown('#mbPick .mb-pick-group'), { timeout: 20000 });
+    T.check('a deep link to an older request still opens it', /Old Quarry/.test(await env.text('#pkWork')), await env.text('#pkWork'));
+    await page.click('#pkBack');
+    await page.waitForSelector(shown('#pkSummary'), { timeout: 10000 });
+    await settle(page);
+    T.eq('…and the list behind it shows every date', [await page.$eval('#pkAllDates', (b) => b.getAttribute('aria-pressed')), /REQ-1990/.test(await cards(page))].join(), 'true,true');
     await env.open('/?tab=pick&number=REQ-9999');
     await toastSays(page, /REQ-9999 has nothing waiting at the yard to pick or ship\./);
     T.check('a request not waiting at the yard: said', true);

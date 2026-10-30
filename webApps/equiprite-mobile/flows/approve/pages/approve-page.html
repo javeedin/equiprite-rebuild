@@ -1,8 +1,8 @@
-<!-- Approve on a phone. The queue (requests to decide, approved lines with no unit yet, most urgent first), a request in
-     words (its lines, what each costs, free stock, availability) with its one main step in the dock (Approve, or Assign
-     the suggested units), bottom sheets that say what a step will do before it is done (approve, send back with a
-     reason, assign units, a line's units), and after a decision what happened and what is next up.
-     Styles: resources/css/mobile.css (.mb-*) and mobile-approve.css (.mb-approve-*). -->
+<!-- Approve on a phone. The queue (requests to decide, approved lines with no unit yet, most urgent first; the last 3 days,
+     or every date), a request in words (its lines, what each costs, free stock, availability) with its one main step in
+     the dock (Approve, or Assign the suggested units), bottom sheets that say what a step will do before it is done
+     (approve, send back with a reason, assign units, a line's units), and after a decision what happened and what is
+     next up. Styles: resources/css/mobile.css (.mb-*) and mobile-approve.css (.mb-approve-*). -->
 <div class="mb-page mb-approve" id="mbApprove">
 
   <!-- ── The queue ─────────────────────────────────────────────────────────────────────────────────────── -->
@@ -18,6 +18,13 @@
       </div>
     </div>
     <div class="mb-body">
+      <div :class="[[ 'mb-period' + ($variables.dated.searching ? ' mb-period--aside' : '') ]]" id="apPeriod" role="group" aria-label="Which dates">
+        <button type="button" id="apRecent" :class="[[ 'mb-period-btn' + ($variables.period !== 'all' ? ' mb-period-btn--on' : '') ]]" data-period="recent"
+          on-click="[[ $listeners.onPeriod ]]" :aria-pressed="[[ $variables.period !== 'all' ? 'true' : 'false' ]]" :disabled="[[ $variables.busy ]]">
+          <oj-bind-text value="[[ $functions.recentLabel() ]]"></oj-bind-text></button>
+        <button type="button" id="apAllDates" :class="[[ 'mb-period-btn' + ($variables.period === 'all' ? ' mb-period-btn--on' : '') ]]" data-period="all"
+          on-click="[[ $listeners.onPeriod ]]" :aria-pressed="[[ $variables.period === 'all' ? 'true' : 'false' ]]" :disabled="[[ $variables.busy ]]">All dates</button>
+      </div>
       <label class="mb-search">
         <span class="oj-ux-ico-search" aria-hidden="true"></span>
         <input type="search" id="apSearch" placeholder="Request, project, requester, equipment" aria-label="Search the queue" on-input="[[ $listeners.onSearch ]]" />
@@ -33,6 +40,9 @@
           </template>
         </oj-bind-for-each>
       </div>
+      <oj-bind-if test="[[ $variables.dated.searching ]]">
+        <div class="mb-period-note" id="apSearching" role="status"><span class="oj-ux-ico-search" aria-hidden="true"></span>Searching all dates</div>
+      </oj-bind-if>
       <oj-bind-if test="[[ !!$variables.saved ]]">
         <div class="mb-offline mb-approve-saved" id="apSaved"><span class="oj-ux-ico-cloud-off" aria-hidden="true"></span>
           <span><oj-bind-text value="[[ $variables.saved ]]"></oj-bind-text>. Deciding needs a connection.</span></div>
@@ -45,7 +55,7 @@
       </oj-bind-if>
       <oj-bind-if test="[[ !$variables.isLoading && !$variables.error && !$variables.shown.length ]]">
         <div class="mb-empty" id="apEmpty"><span class="oj-ux-ico-check-circle mb-empty-icon" aria-hidden="true"></span>
-          <oj-bind-text value="[[ $functions.empty($variables.chip, $variables.text, $variables.all.length) ]]"></oj-bind-text></div>
+          <oj-bind-text value="[[ $functions.empty($variables.chip, $variables.text, $variables.all.length, $variables.dated) ]]"></oj-bind-text></div>
       </oj-bind-if>
       <ul class="mb-list" id="apList" aria-label="Waiting on you, most urgent first">
         <oj-bind-for-each data="[[ $variables.shown ]]">
@@ -77,6 +87,10 @@
           </template>
         </oj-bind-for-each>
       </ul>
+      <oj-bind-if test="[[ !$variables.isLoading && $variables.dated.older > 0 ]]">
+        <button type="button" class="mb-older" id="apOlder" data-period="all" on-click="[[ $listeners.onPeriod ]]">
+          <span class="mb-older-text"><oj-bind-text value="[[ $variables.dated.olderText ]]"></oj-bind-text></span> <span aria-hidden="true">·</span> <span class="mb-older-go">Show all</span></button>
+      </oj-bind-if>
     </div>
   </oj-bind-if>
 

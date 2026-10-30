@@ -1,4 +1,4 @@
-define(['resources/js/mobileBus', 'resources/js/requestData'], (bus, requestData) => {
+define(['resources/js/mobileBus', 'resources/js/requestData', 'resources/js/mobileRecent'], (bus, requestData, recent) => {
   'use strict';
 
   // My requests: binding helpers, the line from another tab (mobileBus.focus('track', …)) to this screen, and a fresh
@@ -27,11 +27,23 @@ define(['resources/js/mobileBus', 'resources/js/requestData'], (bus, requestData
       return '';
     }
 
-    /** The empty list, in words, for the chip and the search. */
-    empty(chip, text, scope) {
+    /** "Last 3 days": the period the list opens on. */
+    recentLabel() { return recent.LABEL; }
+
+    /** The line under the title: "4 requests in the last 3 days" (", everyone’s" for a manager who asked). */
+    summary(loading, dated, scope) {
+      if (loading) return 'Loading…';
+      const n = (dated && dated.count) || 0;
+      return (n === 1 ? '1 request' : n + ' requests') + (dated && dated.filtered ? ' ' + recent.PHRASE : '') + (scope === 'all' ? ', everyone’s' : '');
+    }
+
+    /** The empty list, in words, for the chip, the search and the period (older requests left out: the line under it). */
+    empty(chip, text, scope, dated) {
       if (text) return 'No request matches “' + text + '”.';
-      if (chip === 'action') return 'Nothing needs you now.';
-      if (chip && chip !== 'all' && chip !== 'open') return 'No request is at this stage.';
+      const lately = dated && dated.filtered && dated.older > 0 ? ' ' + recent.PHRASE : '';
+      if (chip === 'action') return 'Nothing needs you ' + (lately ? recent.PHRASE : 'now') + '.';
+      if (chip && chip !== 'all' && chip !== 'open') return 'No request is at this stage' + lately + '.';
+      if (lately) return 'No requests' + lately + '.';
       return scope === 'all' ? 'No requests yet.' : 'You have no requests yet. Raise one from the Request tab.';
     }
 

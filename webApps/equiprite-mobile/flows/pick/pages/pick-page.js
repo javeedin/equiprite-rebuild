@@ -1,4 +1,4 @@
-define(['resources/js/mobileBus', 'resources/js/mobilePick'], (bus, mp) => {
+define(['resources/js/mobileBus', 'resources/js/mobilePick', 'resources/js/mobileRecent'], (bus, mp, recent) => {
   'use strict';
 
   // Pick & ship: binding helpers, and the page's lines to the outside: a request another tab or a deep link hands over
@@ -44,13 +44,17 @@ define(['resources/js/mobileBus', 'resources/js/mobilePick'], (bus, mp) => {
     /** "3 yards" for the yard button's note (All yards first in the chips). */
     yardCount(chips) { const n = Math.max(0, (chips || []).length - 1); return n === 1 ? '1 yard' : n + ' yards'; }
 
-    /** The empty list, in words. */
-    empty(records, stage, yard, text) {
+    /** "Last 3 days": the period the list opens on. */
+    recentLabel() { return recent.LABEL; }
+
+    /** The empty list, in words (older requests left out by the period: the line under it). */
+    empty(records, stage, yard, text, dated) {
       if (!records || !records.length) return 'Nothing is waiting to go out of the yard.';
       if (text) return 'Nothing matches “' + text + '”.';
-      if (yard && yard !== 'all') return 'Nothing to pick or ship from ' + yard + ' here.';
-      if (stage && stage !== 'all') return 'Nothing at this stage.';
-      return 'Nothing to show.';
+      const lately = dated && dated.filtered && dated.older > 0 ? ' ' + recent.PHRASE : '';
+      if (yard && yard !== 'all') return 'Nothing to pick or ship from ' + yard + ' here' + lately + '.';
+      if (stage && stage !== 'all') return 'Nothing at this stage' + lately + '.';
+      return lately ? 'Nothing to pick or ship' + lately + '.' : 'Nothing to show.';
     }
 
     pieceClass(p, flash, canAct) {
