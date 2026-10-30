@@ -3,7 +3,8 @@ define([], function () {
 
   // Installing EquipRite Mobile on the phone's home screen (a PWA). Android's Chrome and Edge offer an install prompt
   // (beforeinstallprompt), kept here for the Me tab's Install button; an iPhone has none, so the Me tab says how
-  // (Share, then Add to Home Screen). Opened from the home screen, the app runs standalone: installed.
+  // (Share, then Add to Home Screen). Opened from the home screen, the app runs standalone: installed. Opened in
+  // EquipRite for Android (android/, served by the desktop app's Wi-Fi link), it is installed too.
   var deferred = null;
   var listeners = [];
   var installedNow = false;
@@ -23,11 +24,25 @@ define([], function () {
     });
   }
 
-  /** Whether the app is running from the home screen (or was just installed). */
+  /** Whether this is EquipRite for Android (android/): the app's own WebView, which says so in its user agent. */
+  function inApp(win) {
+    var w = win || (typeof window !== 'undefined' ? window : null);
+    if (!w) return false;
+    return !!w.EquipRiteApp || /EquipRiteApp\//.test(String(w.navigator && w.navigator.userAgent || ''));
+  }
+
+  /** The Android app's own details ({ app, version, pc }), or null outside it. */
+  function appInfo(win) {
+    var w = win || (typeof window !== 'undefined' ? window : null);
+    try { return w && w.EquipRiteApp && typeof w.EquipRiteApp.info === 'function' ? JSON.parse(w.EquipRiteApp.info()) : null; } catch (e) { return null; }
+  }
+
+  /** Whether the app is running from the home screen, in the Android app, or was just installed. */
   function installed(win) {
     var w = win || (typeof window !== 'undefined' ? window : null);
     if (installedNow) return true;
     if (!w) return false;
+    if (inApp(w)) return true;
     try {
       if (w.matchMedia && w.matchMedia('(display-mode: standalone)').matches) return true;
     } catch (e) { /* no media queries */ }
@@ -70,5 +85,19 @@ define([], function () {
 
   function onChange(fn) { if (typeof fn === 'function') listeners.push(fn); }
 
-  return { installed: installed, platform: platform, howTo: howTo, canPrompt: canPrompt, prompt: prompt, onChange: onChange };
+  /**
+   * Whether this PC serves EquipRite for Android to this phone (the desktop app's Wi-Fi link: /__app/info). Not under
+   * VBCS, where there is no such file. fetchFn: for tests.
+   */
+  function androidApp(fetchFn) {
+    var go = fetchFn || (typeof fetch === 'function' ? fetch : null);
+    if (!go) return Promise.resolve(false);
+    return go('/__app/info', { credentials: 'same-origin' })
+      .then(function (r) { return r && r.ok ? r.json() : {}; })
+      .then(function (j) { return !!(j && j.android); })
+      .catch(function () { return false; });
+  }
+
+  return { installed: installed, inApp: inApp, appInfo: appInfo, androidApp: androidApp, platform: platform, howTo: howTo, canPrompt: canPrompt,
+    prompt: prompt, onChange: onChange };
 });

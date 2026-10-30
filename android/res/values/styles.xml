@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- No title bar; the band's teal behind the status bar while it starts. -->
+    <style name="AppTheme" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:colorPrimary">#2e5468</item>
+        <item name="android:colorPrimaryDark">#2e5468</item>
+        <item name="android:colorAccent">#2e5468</item>
+        <item name="android:statusBarColor">#2e5468</item>
+        <item name="android:windowBackground">@color/bg</item>
+    </style>
+    <color name="bg">#f3f5f8</color>
+    <color name="band">#2e5468</color>
+</resources>

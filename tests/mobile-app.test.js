@@ -14,6 +14,7 @@ const vm = require('vm');
 const H = require('./_harness');
 
 const T = H.makeAsserter();
+const pending = []; // checks that wait on a promise: the report waits for them
 const APP = path.join(__dirname, '..', 'webApps', 'equiprite-mobile');
 const NEXT = path.join(__dirname, '..', 'webApps', 'equiprite-next');
 const JS = path.join(APP, 'resources', 'js');
@@ -165,6 +166,17 @@ T.eq('standalone: installed', ip.installed({ matchMedia: () => ({ matches: true 
 T.eq('in a browser tab: not installed', ip.installed({ matchMedia: () => ({ matches: false }), navigator: {} }), false);
 T.eq('an iPhone home-screen app: installed', ip.installed({ navigator: { standalone: true } }), true);
 
+T.eq('a browser tab is not the Android app', ip.inApp({ navigator: { userAgent: 'Mozilla/5.0 (Linux; Android 14) Chrome/120 Mobile' } }), false);
+const appWin = { navigator: { userAgent: 'Mozilla/5.0 (Linux; Android 14) Chrome/120 Mobile EquipRiteApp/1.0 (Android)' },
+  EquipRiteApp: { info: () => '{"app":"android","version":"1.0","pc":"192.168.1.23:18898"}' } };
+T.eq('EquipRite for Android: it says so', ip.inApp(appWin), true);
+T.eq('…installed already (no offer to install)', ip.installed(appWin), true);
+T.eq('…and which PC it is connected to', ip.appInfo(appWin).pc, '192.168.1.23:18898');
+let asked = '';
+pending.push(ip.androidApp((u) => { asked = u; return Promise.resolve({ ok: true, json: () => Promise.resolve({ android: { version: '1.0' } }) }); })
+  .then((has) => T.eq('the desktop app\'s Wi-Fi link serves the Android app', [has, asked].join(), 'true,/__app/info')));
+pending.push(ip.androidApp(() => Promise.resolve({ ok: false })).then((has) => T.eq('under VBCS there is none', has, false)));
+
 const pwa = load('pwaSetup');
 function fakeDoc(existing) {
   const head = { kids: (existing || []).slice(), appendChild(n) { this.kids.push(n); },
@@ -242,4 +254,4 @@ files.filter((f) => /\.(html|js)$/.test(f) && !/mapbox-gl/.test(f)).forEach((f) 
 T.check('icons come from the Redwood icon font (oj-ux-ico-*)', icons.size > 5);
 T.eq('index.html: the app\'s own title', /<title>EquipRite Mobile<\/title>/.test(fs.readFileSync(path.join(APP, 'index.html'), 'utf8')), true);
 
-T.report();
+Promise.all(pending).then(() => T.report());

@@ -217,8 +217,8 @@ function signOut() {
   }
   identityStore.remove(identityFile());
   identity = null;
-  // A paired phone works as the person signed in: it stops with them.
-  stopLan();
+  // A paired phone works as the person signed in: it stops with them, and is forgotten.
+  stopLan(true);
   passwordThisRun = null;
   warned.clear();
   pushLog(`${new Date().toTimeString().slice(0, 8)} signed out`);
@@ -303,7 +303,7 @@ ipcMain.handle('signin:submit', (event, form) => {
   }
   const saved = identityStore.save(identityFile(), checked.saved, checked.password, encrypt, previous);
   // Signing in as someone else: a phone paired for the one before must pair again.
-  stopLan();
+  stopLan(true);
   identity = identityStore.toServerIdentity(saved, passwordThisRun, encrypt ? (b) => safeStorage.decryptString(b) : null);
   version = saved.version;
   warned.clear();
@@ -478,6 +478,11 @@ function openMobileWindow(url) {
 // ── EquipRite on your phone ──────────────────────────────────────────────────────────────────────────────
 const phoneFile = () => path.join(app.getPath('userData'), 'phone.json');
 
+/** Keeps these in phone.json (this PC's user data): the VBCS address, and whether the Wi-Fi link is on, with its key. */
+function savePhone(patch) {
+  fs.writeFileSync(phoneFile(), JSON.stringify(Object.assign(loadPhone(), patch), null, 2), 'utf8');
+}
+
 function loadPhone() {
   try {
     return JSON.parse(fs.readFileSync(phoneFile(), 'utf8')) || {};
@@ -497,7 +502,8 @@ function phoneState(vbcsError) {
   };
 }
 
-async function startLan() {
+/** Opens EquipRite Mobile to a paired phone on the Wi-Fi: with token, the same key as before (a restart). */
+async function startLan(token) {
   lan.error = '';
   if (!servers.mobile) {
     lan.error = 'EquipRite Mobile is not built on this PC yet: run "npm run desktop:fresh".';
@@ -512,7 +518,7 @@ async function startLan() {
     lan.error = 'This PC is not on a network a phone can reach. Connect it to the same Wi-Fi as the phone.';
     return;
   }
-  lan.token = phone.newToken();
+  lan.token = token || phone.newToken();
   try {
     lan.server = await createDevServer({
       buildDir: BUILD_DIR,
@@ -523,6 +529,8 @@ async function startLan() {
       getIdentity: () => identity,
       // The other versions' addresses here are this PC's own (localhost): not for a phone.
       getVersions: () => ({}),
+      // EquipRite for Android (android/build.sh): "Open in the EquipRite app" on the phone, or its download.
+      phoneApp: { apkFile: path.join(__dirname, 'phone-app', 'EquipRite.apk'), version: '1.0' },
       backendOverrides: backendOverridesFromEnv(process.env),
       onLog: pushLog,
       onProblem: backendProblem,
@@ -533,10 +541,17 @@ async function startLan() {
     return;
   }
   lan.url = phone.pairUrl(addresses[0].address, PHONE_PORT, lan.token);
+  // On again with this key next time EquipRite starts, so a phone (and its app) keeps working after a restart.
+  savePhone({ lanOn: true, lanToken: lan.token });
   pushLog(`${new Date().toTimeString().slice(0, 8)} EquipRite Mobile open to a paired phone at http://${addresses[0].address}:${PHONE_PORT}/`);
 }
 
-async function stopLan() {
+/** Closes it. forget: switched off, signed out or someone else signed in (a new key next time); else EquipRite is
+ * quitting, and it comes back on with the same key when EquipRite starts again. */
+async function stopLan(forget) {
+  if (forget) {
+    savePhone({ lanOn: false, lanToken: null });
+  }
   lan.token = null;
   lan.url = '';
   const s = lan.server;
@@ -603,7 +618,7 @@ ipcMain.handle('phone:vbcs', (event, text) => {
   if (checked.error) {
     return phoneState(checked.error);
   }
-  fs.writeFileSync(phoneFile(), JSON.stringify(Object.assign(loadPhone(), { vbcs: raw }), null, 2), 'utf8');
+  savePhone({ vbcs: raw });
   return phoneState();
 });
 ipcMain.handle('phone:lan', async (event, on) => {
@@ -614,7 +629,7 @@ ipcMain.handle('phone:lan', async (event, on) => {
     await startLan();
   } else if (!on) {
     lan.error = '';
-    await stopLan();
+    await stopLan(true);
   }
   return phoneState();
 });
@@ -866,6 +881,11 @@ if (!app.requestSingleInstanceLock()) {
     if (identity) {
       pushLog(`${new Date().toTimeString().slice(0, 8)} signed in as ${identity.username}; roles ${identity.roles ? identity.roles.join(', ') : 'from Fusion (ROLES_RP)'}; opening ${VERSIONS[servers[version] ? version : 'old'].label}`);
       win.loadURL(appUrl()).catch(() => {});
+      // The phone's Wi-Fi link was on when EquipRite closed: on again, same key, so a paired phone just carries on.
+      const phoneSaved = loadPhone();
+      if (phoneSaved.lanOn && phoneSaved.lanToken) {
+        startLan(phoneSaved.lanToken).catch(() => {});
+      }
     } else {
       openSignIn();
     }

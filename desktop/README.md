@@ -48,7 +48,11 @@ On first start a sign-in window asks for:
     signed in here, so only a phone that scanned the code gets in (a one-time pairing key, kept as a cookie); every
     other device is refused, and so is the web services page. It stops when switched off, on sign-out, on signing in
     as someone else, and on quit. Windows may ask to let EquipRite on the network: allow private networks only. Over
-    plain http the camera and the phone's location are not available.
+    plain http the camera and the phone's location are not available. It stays on, with the same key, each time
+    EquipRite starts, until switched off.
+  - **EquipRite for Android**: on an Android phone, the page the Wi-Fi code opens offers **Open in the EquipRite
+    app**, which installs a small full-screen app from this PC (`desktop/phone-app/EquipRite.apk`, built by
+    `android/build.sh`) that remembers the PC. See `android/README.md`.
 
 - **Fusion username to sign in as** — what `$application.user` carries; `ROLES_RP` is run for it (`P_LOGIN`).
 - **Fusion login** — stands in for the VBCS stored credential (`vb_e32dea99…`) on BIP and Fusion REST calls: the

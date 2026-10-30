@@ -31,7 +31,7 @@ const http = require('http');
 const https = require('https');
 const path = require('path');
 const { buildCatalog } = require('./catalog');
-const { isLoopback, pairCheck, NOT_PAIRED_HTML } = require('./phone');
+const { isLoopback, pairCheck, appIntent, NOT_PAIRED_HTML, APK_PATH } = require('./phone');
 
 const DESKTOP_DIR = path.join(__dirname, '..');
 
@@ -235,6 +235,9 @@ function time() {
  *                                        for a phone on the same Wi-Fi (lib/phone.js), always with o.pairToken
  * @param {Function} [o.getPhone]         () => { vbcs, lan }: the addresses a phone opens EquipRite Mobile at (File > EquipRite
  *                                        on your phone), served at /__phone to this PC only, for Next's toolbar QR code
+ * @param {object}   [o.phoneApp]         { apkFile, version }: EquipRite for Android, for a paired phone (with o.pairToken):
+ *                                        /__app/info, /__app/EquipRite.apk, and /__app/open ("Open in the EquipRite
+ *                                        app": into the app with this PC's address, or the download without it)
  * @param {Function} [o.pairToken]        () => the pairing key, or null. Given, a request from another device is
  *                                        served only with the key (the QR code's address, then its cookie), never
  *                                        the web services page; this PC's own requests are unaffected
@@ -396,6 +399,22 @@ function createDevServer(o) {
       }
       if (pathname === '/_currentuser') {
         return send(res, 200, 'application/json', JSON.stringify(currentUser(o.getIdentity())));
+      }
+      if (o.phoneApp && pathname.startsWith('/__app/')) {
+        const apk = o.phoneApp.apkFile && fs.existsSync(o.phoneApp.apkFile) ? o.phoneApp.apkFile : '';
+        if (pathname === '/__app/info') {
+          return send(res, 200, 'application/json', JSON.stringify(apk ? { android: { version: o.phoneApp.version || '', bytes: fs.statSync(apk).size } } : {}));
+        }
+        if (pathname === APK_PATH && apk) {
+          return send(res, 200, 'application/vnd.android.package-archive', fs.readFileSync(apk),
+            { 'Content-Disposition': 'attachment; filename="EquipRite.apk"' });
+        }
+        const token = o.pairToken ? o.pairToken() : null;
+        if (pathname === '/__app/open' && apk && token) {
+          res.writeHead(302, { Location: appIntent(String(req.headers.host || ''), token), 'Cache-Control': 'no-store' });
+          return res.end();
+        }
+        return send(res, 404, 'text/plain; charset=utf-8', 'Not found');
       }
       if (pathname === '/__phone') {
         // This PC only, and only by its own name (not a page on another site that renamed itself to this address).

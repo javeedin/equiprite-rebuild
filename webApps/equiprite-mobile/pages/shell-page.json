@@ -69,9 +69,10 @@
       "defaultValue": {
         "open": false,
         "canPrompt": false,
-        "steps": []
+        "steps": [],
+        "app": false
       },
-      "description": "The offer to put the app on the home screen: the browser's Install (Android), else the steps (iPhone)."
+      "description": "The offer to put the app on the home screen: the browser's Install (Android), else the steps (iPhone); app: this PC serves EquipRite for Android (Open in the EquipRite app)."
     }
   },
   "types": {

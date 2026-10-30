@@ -145,7 +145,56 @@ function get(host, port, p, headers) {
   const main = fs.readFileSync(path.join(ROOT, 'desktop', 'main.js'), 'utf8');
   T.check('File > EquipRite on your phone (QR code)', /EquipRite on your phone \(QR code\)/.test(main));
   T.check('the Wi-Fi server listens on the network only with the pairing key', /host: '0\.0\.0\.0',\s*pairToken: \(\) => lan\.token/.test(main));
-  T.check('it stops on sign-out, on a new sign-in and on quit', (main.match(/stopLan\(\);/g) || []).length >= 3);
+  T.check('it stops on sign-out, on a new sign-in and on quit', (main.match(/stopLan\((true)?\);/g) || []).length >= 3);
+  T.check('switched off, signed out or someone else signed in: forgotten (a new key next time)', (main.match(/stopLan\(true\);/g) || []).length >= 3);
+  T.check('on when EquipRite starts again, with the same key, if it was on', /phoneSaved\.lanOn && phoneSaved\.lanToken/.test(main) && /startLan\(phoneSaved\.lanToken\)/.test(main));
+  T.check('the Wi-Fi server serves EquipRite for Android', /phoneApp: \{ apkFile: path\.join\(__dirname, 'phone-app', 'EquipRite\.apk'\)/.test(main));
+
+  T.section('EquipRite for Android (android/, built into desktop/phone-app/EquipRite.apk)');
+  const apkFile = path.join(ROOT, 'desktop', 'phone-app', 'EquipRite.apk');
+  const apk = fs.existsSync(apkFile) ? fs.readFileSync(apkFile) : Buffer.alloc(0);
+  T.check('the app is built and kept with the desktop app', apk.length > 10000 && apk.slice(0, 2).toString() === 'PK');
+  T.check('…with its code, manifest and resources', ['classes.dex', 'AndroidManifest.xml', 'resources.arsc'].every((n) => apk.indexOf(n) !== -1));
+  T.check('…and signed (APK signature block)', apk.indexOf('APK Sig Block 42') !== -1);
+  const manifest = fs.readFileSync(path.join(ROOT, 'android', 'AndroidManifest.xml'), 'utf8');
+  T.check('it opens equiprite://open links (Open in the EquipRite app)', /android:scheme="equiprite" android:host="open"/.test(manifest));
+  T.eq('its package is the one the intent names', /package="([^"]+)"/.exec(manifest)[1], phone.ANDROID_PACKAGE);
+  T.check('http to the PC on the Wi-Fi is allowed', /usesCleartextTraffic="true"/.test(manifest));
+  const src = fs.readFileSync(path.join(ROOT, 'android', 'src', 'com', 'equiprite', 'mobile', 'MainActivity.java'), 'utf8');
+  T.check('only the PC\'s own pages open inside the app; other links go to the browser', /if \(ours\(target\)\) return false;/.test(src) && /ACTION_VIEW, target/.test(src));
+  T.check('it says it is the app (the page hides its install offer)', /EquipRiteApp\/1\.0/.test(src));
+  T.check('no signing key in the project', !fs.readdirSync(path.join(ROOT, 'android')).some((f) => /\.(p12|jks|keystore)$/.test(f)));
+
+  T.section('the phone app from the Wi-Fi server (/__app/…)');
+  const build3 = build2();
+  const key = phone.newToken();
+  const srv3 = await DS.createDevServer({
+    buildDir: build3, repoRoot: ROOT, port: 0, webApp: 'equiprite-mobile', host: '0.0.0.0', getIdentity: () => ({ username: 'x' }), getVersions: () => ({}),
+    pairToken: () => key, phoneApp: { apkFile, version: '1.0' },
+  });
+  try {
+    const info = JSON.parse((await get('127.0.0.1', srv3.port, '/__app/info')).body);
+    T.eq('it says the Android app is there', [info.android.version, info.android.bytes > 10000].join(), '1.0,true');
+    const dl = await new Promise((resolve) => {
+      http.get({ host: '127.0.0.1', port: srv3.port, path: phone.APK_PATH }, (res) => {
+        const chunks = [];
+        res.on('data', (c) => chunks.push(c));
+        res.on('end', () => resolve({ type: res.headers['content-type'], disp: res.headers['content-disposition'], body: Buffer.concat(chunks) }));
+      });
+    });
+    T.check('the download is the APK, as a file a phone installs', dl.type === 'application/vnd.android.package-archive' && /EquipRite\.apk/.test(dl.disp) && dl.body.equals(apk));
+    const open = await new Promise((resolve) => {
+      http.get({ host: '127.0.0.1', port: srv3.port, path: '/__app/open', headers: { host: '192.168.1.23:18898' } }, (res) => { res.resume(); resolve({ status: res.statusCode, to: res.headers.location || '' }); });
+    });
+    T.eq('Open in the EquipRite app: the app, with this PC\'s address and key', open.to, phone.appIntent('192.168.1.23:18898', key));
+    T.check('…or, without the app, its download from this PC', open.status === 302 && /S\.browser_fallback_url=http%3A%2F%2F192\.168\.1\.23%3A18898%2F__app%2FEquipRite\.apk/.test(open.to));
+    const lanAddr = phone.lanAddresses(os.networkInterfaces())[0];
+    if (lanAddr) {
+      T.eq('a device that has not scanned the code gets no app', (await get(lanAddr.address, srv3.port, phone.APK_PATH)).status, 403);
+    }
+  } finally {
+    await srv3.close();
+  }
   T.check('the window only talks to its own preload', /fromPhone\(event\)/.test(main) && fs.existsSync(path.join(ROOT, 'desktop', 'phone-preload.js')));
   const html = fs.readFileSync(path.join(ROOT, 'desktop', 'phone.html'), 'utf8');
   T.check('the window\'s page runs only its own script', /script-src 'self'/.test(html) && /<script src="phone-window\.js"><\/script>/.test(html));

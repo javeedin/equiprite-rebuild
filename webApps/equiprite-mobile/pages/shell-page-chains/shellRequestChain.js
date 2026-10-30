@@ -44,7 +44,10 @@ define([
       }
       if (r.action === 'installOffer') {
         if (installPrompt.installed()) return;
-        v.installSheet = { open: true, canPrompt: installPrompt.canPrompt(), steps: installPrompt.howTo(installPrompt.platform()) };
+        const platform = installPrompt.platform();
+        // An Android phone on the desktop app's Wi-Fi link: EquipRite for Android, from this PC.
+        const app = platform === 'android' ? await installPrompt.androidApp() : false;
+        v.installSheet = { open: true, canPrompt: installPrompt.canPrompt(), steps: installPrompt.howTo(platform), app };
         return;
       }
       if (r.action === 'installRefresh') {
@@ -52,12 +55,12 @@ define([
         return;
       }
       if (r.action === 'installClose') {
-        v.installSheet = { open: false, canPrompt: false, steps: [] };
+        v.installSheet = { open: false, canPrompt: false, steps: [], app: false };
         return;
       }
       if (r.action === 'install') {
         const outcome = await installPrompt.prompt();
-        v.installSheet = { open: false, canPrompt: false, steps: [] };
+        v.installSheet = { open: false, canPrompt: false, steps: [], app: false };
         await Actions.callChain(context, { chain: 'toastChain', params: {
           message: outcome === 'accepted' ? 'Installed: EquipRite is on your home screen.' : 'Not installed. The Me tab can install it any time.',
           tone: 'info' } });

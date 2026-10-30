@@ -57,6 +57,10 @@ function bipReport(rows) {
  * @param {string}   [o.sessionRole] EQUIP_MGR (default), REQUESTOR, ADMIN, CUSTOMER …
  * @param {string}   [o.username]
  * @param {number}   [o.width]      viewport width (default 1440; 390 for mobile)
+ * @param {boolean}  [o.phoneApp]   EquipRite Mobile's server as the desktop app's Wi-Fi link: it serves EquipRite for Android
+ *                                  (desktop/phone-app/EquipRite.apk) at /__app/…, with the pairing key 'test-pair-key'
+ * @param {string}   [o.userAgent]  the browser's user agent (an Android phone, or EquipRite for Android)
+ * @param {Function} [o.init]       run in the page before the app (addInitScript), e.g. to stand in for window.EquipRiteApp
  * @param {Object}   [o.desktop]    as inside the desktop app: { phone: what /__phone answers } (window.erpDesktop.openPhone
  *                                  counts its calls in window.__openedPhone)
  */
@@ -118,14 +122,16 @@ async function start(o) {
     servers.push(await DS.createDevServer(Object.assign({ webApp: 'equiprite-next', port: ports.next }, common)));
   }
   if (DS.isBuilt(path.join(ROOT, 'build'), 'equiprite-mobile')) {
-    servers.push(await DS.createDevServer(Object.assign({ webApp: 'equiprite-mobile', port: ports.mobile }, common)));
+    servers.push(await DS.createDevServer(Object.assign({ webApp: 'equiprite-mobile', port: ports.mobile }, common, o.phoneApp ? {
+      phoneApp: { apkFile: path.join(ROOT, 'desktop', 'phone-app', 'EquipRite.apk'), version: '1.0' }, pairToken: () => 'test-pair-key' } : {})));
   }
   const app = o.app === 'next' || o.app === 'mobile' ? o.app : 'new';
   const { chromium } = require('playwright');
   const browser = await chromium.launch();
   const page = await browser.newPage(app === 'mobile'
-    ? { viewport: { width: o.width || 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }
+    ? Object.assign({ viewport: { width: o.width || 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }, o.userAgent ? { userAgent: o.userAgent } : {})
     : { viewport: { width: o.width || 1440, height: 1000 } });
+  if (typeof o.init === 'function') await page.addInitScript(o.init);
   // Mapbox: a geocoder answer for every lookup, and a minimal valid map style (a plain background) so a map can draw.
   await page.route('https://api.mapbox.com/**', (route) => route.fulfill({ contentType: 'application/json',
     body: JSON.stringify(/\/styles\/v1\//.test(route.request().url())

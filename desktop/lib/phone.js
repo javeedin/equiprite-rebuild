@@ -7,14 +7,19 @@
  * Two ways onto a phone:
  *   VBCS       the deployed app's address (https): the phone opens it, installs it on the home screen, and the camera
  *              and its location work. The address is kept in this PC's user data, never in the project.
- *   This PC    EquipRite Mobile served on the PC's Wi-Fi address (http), for trying it now. Off until switched on.
- *              The phone acts as the person signed in here, so only a phone that scanned the code may use it: the
- *              code carries a one-time pairing key; switching it off, or quitting, ends it.
+ *   This PC    EquipRite Mobile served on the PC's Wi-Fi address (http). Off until switched on; then on, with the
+ *              same key, each time EquipRite starts, until switched off. The phone acts as the person signed in here,
+ *              so only a phone that scanned the code may use it: the code carries a pairing key; switching it off,
+ *              signing out or signing in as someone else ends it. An Android phone can open it in EquipRite for
+ *              Android (android/), which this PC also serves: appIntent.
  */
 const crypto = require('crypto');
 const qrcode = require('./vendor/qrcode-generator');
 
 const PAIR_COOKIE = 'eqp_pair';
+// EquipRite for Android (android/), served to a paired phone by this PC.
+const ANDROID_PACKAGE = 'com.equiprite.mobile';
+const APK_PATH = '/__app/EquipRite.apk';
 const PAIR_PARAM = 'pair';
 // A phone keeps its pairing while the PC serves it (a home-screen icon keeps working); a new switch-on is a new key.
 const PAIR_MAX_AGE_S = 30 * 24 * 3600;
@@ -74,6 +79,18 @@ function newToken() {
 /** The address a phone opens: the PC's Wi-Fi address with the pairing key (and from=qr, so the app offers to install). */
 function pairUrl(address, port, token) {
   return `http://${address}:${port}/?${PAIR_PARAM}=${encodeURIComponent(token)}&from=qr`;
+}
+
+/**
+ * "Open in the EquipRite app" (Android): an intent link that hands the app the PC's address with its pairing key; a
+ * phone without the app downloads it from the PC instead (browser_fallback_url).
+ *   host  the Host the phone used (address:port); token  the pairing key now
+ */
+function appIntent(host, token) {
+  const base = `http://${host}`;
+  const open = `${base}/?${PAIR_PARAM}=${encodeURIComponent(token)}&from=app`;
+  return `intent://open?url=${encodeURIComponent(open)}#Intent;scheme=equiprite;package=${ANDROID_PACKAGE};`
+    + `S.browser_fallback_url=${encodeURIComponent(`${base}${APK_PATH}`)};end`;
 }
 
 /** With from=qr on an address, so the app offers to install itself when it opens. */
@@ -143,6 +160,6 @@ function qrMatrix(text) {
 }
 
 module.exports = {
-  isLoopback, isPrivate, lanAddresses, mobileUrlFromVbcs, newToken, pairUrl, fromQr, pairCheck, qrSvg, qrMatrix,
-  NOT_PAIRED_HTML, PAIR_COOKIE, PAIR_PARAM,
+  isLoopback, isPrivate, lanAddresses, mobileUrlFromVbcs, newToken, pairUrl, fromQr, pairCheck, qrSvg, qrMatrix, appIntent,
+  NOT_PAIRED_HTML, PAIR_COOKIE, PAIR_PARAM, ANDROID_PACKAGE, APK_PATH,
 };

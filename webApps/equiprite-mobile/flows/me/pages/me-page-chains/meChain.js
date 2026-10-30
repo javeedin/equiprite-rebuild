@@ -14,6 +14,7 @@ define([
   //   install  the browser's own install prompt (Android); an iPhone has none: the steps are on the screen
   //   share    this app's address: the phone's share sheet, else copied
   //   clear    forget what this phone keeps for the tabs (their saved copies)
+  //   changePc in EquipRite for Android: connect to another PC (the app's first screen)
   const KEPT = ['track:mine', 'track:all', 'approve', 'pick', 'request'];
 
   class meChain extends ActionChain {
@@ -42,6 +43,10 @@ define([
           // Closing the share sheet is not a failure.
           if (!(e && e.name === 'AbortError')) pv.note = 'The link: ' + url;
         }
+      } else if (act === 'changePc') {
+        // EquipRite for Android: back to its first screen, to connect to another PC.
+        if (window.EquipRiteApp && typeof window.EquipRiteApp.changePc === 'function') window.EquipRiteApp.changePc();
+        return;
       } else if (act === 'clear') {
         KEPT.forEach((k) => snapshot.clear(k, user));
         bus.toast('This phone no longer keeps a copy of your requests.', 'info');
@@ -56,7 +61,11 @@ define([
         tabs: tabs.map((t) => ({ id: t.id, label: t.title, icon: t.icon })),
       };
       const platform = installPrompt.platform();
-      pv.install = { installed: installPrompt.installed(), canPrompt: installPrompt.canPrompt(), platform, steps: installPrompt.howTo(platform) };
+      const inApp = installPrompt.inApp();
+      const info = inApp ? (installPrompt.appInfo() || {}) : {};
+      const installed = installPrompt.installed();
+      pv.install = { installed, canPrompt: installPrompt.canPrompt(), platform, steps: installPrompt.howTo(platform), inApp,
+        pc: info.pc || '', version: info.version || '', app: !installed && platform === 'android' ? await installPrompt.androidApp() : false };
       const here = String(window.location.href).split(/[?#]/)[0];
       pv.link = app.appUrls && app.appUrls.mobile ? app.appUrls.mobile : here;
     }

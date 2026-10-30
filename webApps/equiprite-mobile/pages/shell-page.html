@@ -52,6 +52,13 @@
         </div>
         <div class="mb-sheet-body">
           <p class="mb-note" style="margin:0">It opens full screen, like an app, straight to your work, and keeps a copy of your requests for when there is no signal.</p>
+          <oj-bind-if test="[[ $variables.installSheet.app ]]">
+            <a class="mb-btn mb-btn--primary mb-btn--block" id="mbOpenApp" href="/__app/open">
+              <span class="oj-ux-ico-download" aria-hidden="true"></span>Open in the EquipRite app</a>
+            <p class="mb-note" style="margin:0">The first time, this downloads the app from your PC (EquipRite.apk): open it, allow installing if the phone
+              asks, then tap the button again. From then on, open EquipRite from its own icon.</p>
+            <h4 class="mb-section" style="margin:6px 0 0">Or add this page to the home screen</h4>
+          </oj-bind-if>
           <oj-bind-if test="[[ !$variables.installSheet.canPrompt ]]">
             <ol class="mb-install-steps" id="mbInstallSteps">
               <oj-bind-for-each data="[[ $variables.installSheet.steps ]]">

@@ -39,7 +39,7 @@ define([], function () {
     }
     if (/^http:\/\/\d{1,3}(\.\d{1,3}){3}:\d+\//.test(str(d.lan))) {
       out.push({ key: 'lan', label: 'This PC over Wi-Fi', url: str(d.lan),
-        note: 'A phone on the same Wi-Fi, while EquipRite runs on this PC. The phone works as you.' });
+        note: 'A phone on the same Wi-Fi, while EquipRite runs on this PC. The phone works as you. On Android, the page offers the EquipRite app.' });
     }
     return out;
   }

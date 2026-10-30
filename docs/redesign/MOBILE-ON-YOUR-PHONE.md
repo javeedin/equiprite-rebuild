@@ -30,9 +30,16 @@ Click the **QR code** button in the toolbar (left of the cart) and scan the code
 |---|---|---|
 | Where the phone can be | anywhere with internet | same Wi-Fi as the PC |
 | Needs | the app deployed to VBCS | EquipRite open on the PC |
-| Install on the home screen | yes | iPhone: as a shortcut; Android: as a shortcut |
+| Install on the home screen | yes | Android: the EquipRite app; iPhone: as a shortcut |
 | Camera (scan tags), location | yes | no (needs https) |
 | Signs in as | the phone's own sign-in | the person signed in on the PC |
+
+## As an app on Android: EquipRite for Android
+
+Over this PC's Wi-Fi, an Android phone can have EquipRite as a real app (full screen, its own icon, remembers the
+PC): after scanning, tap **Open in the EquipRite app** on the page that opens. The first time it downloads the app
+from the PC (allow installing, install, tap again). See `android/README.md`. An iPhone has no such app: Add to Home
+Screen, or the VBCS address.
 
 ## Deploying to VBCS
 

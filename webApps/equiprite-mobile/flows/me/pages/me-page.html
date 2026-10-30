@@ -35,13 +35,29 @@
 
     <h3 class="mb-section">On your phone</h3>
     <div class="mb-card mb-card-pad" id="meInstall">
-      <oj-bind-if test="[[ $variables.install.installed ]]">
+      <oj-bind-if test="[[ $variables.install.inApp ]]">
+        <div style="display:flex;flex-direction:column;gap:10px" id="meApp">
+          <div class="mb-ok"><span class="oj-ux-ico-check-circle" aria-hidden="true"></span> The EquipRite app for Android<oj-bind-text
+            value="[[ $variables.install.version ? ' ' + $variables.install.version : '' ]]"></oj-bind-text>.</div>
+          <oj-bind-if test="[[ !!$variables.install.pc ]]">
+            <div class="mb-note" id="mePc"><oj-bind-text value="[[ 'Connected to EquipRite on the PC at ' + $variables.install.pc + '.' ]]"></oj-bind-text></div>
+          </oj-bind-if>
+          <button type="button" class="mb-btn mb-btn--block" id="meChangePc" on-click="[[ $listeners.onChangePc ]]">
+            <span class="oj-ux-ico-refresh" aria-hidden="true"></span>Connect to another PC</button>
+        </div>
+      </oj-bind-if>
+      <oj-bind-if test="[[ $variables.install.installed && !$variables.install.inApp ]]">
         <div class="mb-ok"><span class="oj-ux-ico-check-circle" aria-hidden="true"></span> Installed. EquipRite opens from your home screen like any app.</div>
       </oj-bind-if>
       <oj-bind-if test="[[ !$variables.install.installed ]]">
         <div style="display:flex;flex-direction:column;gap:10px">
           <div style="font-weight:700">Put EquipRite on your home screen</div>
           <div class="mb-note">It opens full screen, like an app, and keeps a copy of your requests for when there is no signal.</div>
+          <oj-bind-if test="[[ $variables.install.app ]]">
+            <a class="mb-btn mb-btn--primary mb-btn--block" id="meOpenApp" href="/__app/open">
+              <span class="oj-ux-ico-download" aria-hidden="true"></span>Open in the EquipRite app</a>
+            <div class="mb-note">The first time, this downloads the app from your PC: open it, allow installing, then tap again.</div>
+          </oj-bind-if>
           <oj-bind-if test="[[ $variables.install.canPrompt ]]">
             <button type="button" class="mb-btn mb-btn--primary mb-btn--block" id="meInstallBtn" on-click="[[ $listeners.onInstall ]]">
               <span class="oj-ux-ico-download" aria-hidden="true"></span>Install EquipRite</button>
