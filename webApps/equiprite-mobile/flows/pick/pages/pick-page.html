@@ -1,4 +1,506 @@
-<div class="mb-page" id="mb-pick">
-  <div class="mb-head"><h2>Pick & ship</h2><div class="mb-head-sub">What the yard picks and ships today.</div></div>
-  <div class="mb-body"><div class="mb-card mb-empty">This tab is on its way.</div></div>
+<!-- Pick & ship on a phone. Today's work (Next's picking queue, in sections by the day it must ship, late first) as cards
+     with a ring of how many pieces are picked; a request opens on its pieces as a big checklist in walking order, with
+     the next piece to fetch; tick by tap, by scanning a tag or by typing a unit number; Release, Ship and the pick slip
+     say what will happen in a sheet first. Logic: resources/js/mobilePick.js over Next's yardWork.js. Styles:
+     resources/css/mobile.css (.mb-*) and mobile-pick.css (.mb-pick-*). -->
+<div class="mb-page mb-pick" id="mbPick">
+
+  <!-- ── Today's work ─────────────────────────────────────────────────────────────────────────────────────────── -->
+  <oj-bind-if test="[[ $variables.view === 'list' ]]">
+    <div class="mb-head">
+      <div class="mb-head-row">
+        <h2 style="flex:1">Pick &amp; ship</h2>
+        <button type="button" class="mb-back" id="pkRefresh" on-click="[[ $listeners.onRefresh ]]" aria-label="Refresh"><span class="oj-ux-ico-refresh" aria-hidden="true"></span></button>
+      </div>
+      <div class="mb-head-sub" id="pkSummary">
+        <oj-bind-text value="[[ $variables.isLoading && !$variables.records.length ? 'Loading today’s work…' : $variables.summary ]]"></oj-bind-text>
+      </div>
+    </div>
+    <div class="mb-body">
+      <div class="mb-pick-tools">
+        <oj-bind-if test="[[ $variables.yardChips.length > 2 || $variables.yard !== 'all' ]]">
+          <button type="button" class="mb-pick-yard" id="pkYard" data-sheet="yard" on-click="[[ $listeners.onSheet ]]" aria-haspopup="dialog">
+            <span class="oj-ux-ico-location-pin mb-pick-yard-icon" aria-hidden="true"></span>
+            <span class="mb-pick-yard-text">
+              <span class="mb-pick-yard-k">Your yard</span>
+              <span class="mb-pick-yard-v" id="pkYardName"><oj-bind-text value="[[ $functions.yardLabel($variables.yard) ]]"></oj-bind-text></span>
+            </span>
+            <span class="oj-ux-ico-chevron-down" aria-hidden="true"></span>
+          </button>
+        </oj-bind-if>
+        <button type="button" class="mb-btn mb-btn--primary mb-pick-scanbtn" id="pkScanList" on-click="[[ $listeners.onScan ]]">
+          <span class="oj-ux-ico-barcode" aria-hidden="true"></span><oj-bind-text value="[[ $variables.can.act ? 'Scan a unit' : 'Find a unit' ]]"></oj-bind-text></button>
+      </div>
+      <label class="mb-search">
+        <span class="oj-ux-ico-search" aria-hidden="true"></span>
+        <input type="search" id="pkSearch" placeholder="Request, project, equipment, unit" aria-label="Search today’s work" on-input="[[ $listeners.onSearch ]]" />
+      </label>
+      <div class="mb-chips" id="pkChips" role="group" aria-label="Where the pieces are">
+        <oj-bind-for-each data="[[ $variables.chips ]]">
+          <template data-oj-as="c">
+            <button type="button" :class="[[ $functions.chipClass(c.data, $variables.stage) ]]" data-field="stage" :data-value="[[ c.data.key ]]" on-click="[[ $listeners.onSet ]]"
+              :aria-pressed="[[ c.data.key === $variables.stage ? 'true' : 'false' ]]">
+              <oj-bind-text value="[[ c.data.label ]]"></oj-bind-text>
+              <span class="mb-chip-count"><oj-bind-text value="[[ $functions.chipCount(c.data) ]]"></oj-bind-text></span>
+            </button>
+          </template>
+        </oj-bind-for-each>
+      </div>
+
+      <oj-bind-for-each data="[[ $variables.pending ]]">
+        <template data-oj-as="pd">
+          <button type="button" class="mb-pick-pending" :data-id="[[ pd.data.id ]]" on-click="[[ $listeners.onPending ]]">
+            <span class="oj-ux-ico-cloud-off" aria-hidden="true"></span>
+            <span class="mb-pick-pending-text"><oj-bind-text value="[[ pd.data.text ]]"></oj-bind-text></span>
+            <span class="mb-pick-pending-go">Review</span>
+          </button>
+        </template>
+      </oj-bind-for-each>
+      <oj-bind-if test="[[ !!$variables.saved ]]">
+        <div class="mb-offline mb-pick-round" id="pkSaved"><span class="oj-ux-ico-cloud-off" aria-hidden="true"></span>
+          <span><oj-bind-text value="[[ $variables.saved ]]"></oj-bind-text>. Ticks are kept on this phone; steps need a connection.</span></div>
+      </oj-bind-if>
+      <oj-bind-if test="[[ !!$variables.error ]]">
+        <div class="mb-error" role="alert" id="pkError"><oj-bind-text value="[[ $variables.error ]]"></oj-bind-text></div>
+      </oj-bind-if>
+      <oj-bind-if test="[[ $variables.linesFailed > 0 ]]">
+        <div class="mb-error" role="status"><oj-bind-text value="[[ 'The pieces of ' + $functions.plural($variables.linesFailed, 'request') + ' could not be loaded: open one to try again.' ]]"></oj-bind-text></div>
+      </oj-bind-if>
+      <oj-bind-if test="[[ $variables.yardsLoading && $variables.yard !== 'all' ]]">
+        <div class="mb-note mb-pick-finding" role="status"><span class="mb-spin" aria-hidden="true"></span>Finding which yard each piece ships from…</div>
+      </oj-bind-if>
+      <oj-bind-if test="[[ $variables.isLoading && !$variables.records.length ]]">
+        <div class="mb-loading" role="status"><span class="mb-spin" aria-hidden="true"></span>Loading what has to go out…</div>
+      </oj-bind-if>
+      <oj-bind-if test="[[ !$variables.isLoading && !$variables.error && !$variables.shown.length ]]">
+        <div class="mb-card mb-empty" id="pkEmpty"><span class="oj-ux-ico-fullfilment-box mb-empty-icon" aria-hidden="true"></span>
+          <oj-bind-text value="[[ $functions.empty($variables.records, $variables.stage, $variables.yard, $variables.text) ]]"></oj-bind-text>
+          <oj-bind-if test="[[ $variables.records.length > 0 && $variables.yard !== 'all' ]]">
+            <div style="margin-top:10px"><button type="button" class="mb-btn" data-field="yard" data-value="all" on-click="[[ $listeners.onSet ]]">Show every yard</button></div>
+          </oj-bind-if>
+        </div>
+      </oj-bind-if>
+
+      <oj-bind-for-each data="[[ $variables.sections ]]">
+        <template data-oj-as="s">
+          <section class="mb-pick-sec" :data-section="[[ s.data.key ]]" :aria-label="[[ s.data.label ]]">
+            <div class="mb-pick-sec-head">
+              <h3 :class="[[ 'mb-section mb-pick-sec-title' + (s.data.key === 'late' ? ' mb-pick-sec-title--late' : '') ]]">
+                <oj-bind-text value="[[ s.data.label ]]"></oj-bind-text><span class="mb-pick-sec-count"><oj-bind-text value="[[ s.data.count ]]"></oj-bind-text></span></h3>
+              <oj-bind-if test="[[ s.data.key === 'done' || s.data.collapsed ]]">
+                <button type="button" class="mb-pick-link" data-field="collapse" :data-value="[[ s.data.key ]]" on-click="[[ $listeners.onSet ]]"
+                  :aria-expanded="[[ s.data.collapsed ? 'false' : 'true' ]]"><oj-bind-text value="[[ s.data.collapsed ? 'Show ' + s.data.count : 'Hide' ]]"></oj-bind-text></button>
+              </oj-bind-if>
+            </div>
+            <ul class="mb-list">
+              <oj-bind-for-each data="[[ s.data.cards ]]">
+                <template data-oj-as="c">
+                  <li>
+                    <button type="button" class="mb-item mb-pick-card" :data-id="[[ c.data.id ]]" :data-number="[[ c.data.number ]]" on-click="[[ $listeners.onOpen ]]">
+                      <span class="mb-pick-ring" :style="[[ c.data.ring ]]" aria-hidden="true"><span class="mb-pick-ring-hole"><oj-bind-text value="[[ c.data.ringText ]]"></oj-bind-text></span></span>
+                      <span class="mb-pick-card-main">
+                        <span class="mb-item-top">
+                          <span class="mb-item-title"><oj-bind-text value="[[ c.data.number ]]"></oj-bind-text></span>
+                          <span :class="[[ $functions.whenClass(c.data) ]]"><oj-bind-text value="[[ c.data.when ]]"></oj-bind-text></span>
+                        </span>
+                        <span class="mb-pick-party"><oj-bind-text value="[[ c.data.party ]]"></oj-bind-text></span>
+                        <oj-bind-if test="[[ !!c.data.sub ]]"><span class="mb-item-sub"><oj-bind-text value="[[ c.data.sub ]]"></oj-bind-text></span></oj-bind-if>
+                        <oj-bind-if test="[[ !!c.data.pickedText ]]"><span class="mb-pick-count"><oj-bind-text value="[[ c.data.pickedText ]]"></oj-bind-text></span></oj-bind-if>
+                        <span class="mb-item-sub"><oj-bind-text value="[[ c.data.summary ]]"></oj-bind-text></span>
+                        <oj-bind-if test="[[ !!c.data.next ]]">
+                          <span class="mb-pick-next"><span class="mb-pick-next-text"><oj-bind-text value="[[ 'Next: ' + c.data.next ]]"></oj-bind-text></span>
+                            <oj-bind-if test="[[ !!$functions.whereText(c.data.where) ]]"><span :class="[[ $functions.whereClass(c.data.where) ]]"><oj-bind-text value="[[ $functions.whereText(c.data.where) ]]"></oj-bind-text></span></oj-bind-if></span>
+                        </oj-bind-if>
+                        <oj-bind-if test="[[ !!c.data.yard ]]">
+                          <span class="mb-pick-from"><span class="oj-ux-ico-location-pin" aria-hidden="true"></span><oj-bind-text value="[[ 'From ' + c.data.yard ]]"></oj-bind-text></span>
+                        </oj-bind-if>
+                        <oj-bind-if test="[[ !!c.data.kept ]]">
+                          <span :class="[[ 'mb-pick-kept' + (c.data.offline ? ' mb-pick-kept--offline' : '') ]]"><span :class="[[ c.data.offline ? 'oj-ux-ico-cloud-off' : 'oj-ux-ico-check' ]]" aria-hidden="true"></span>
+                            <oj-bind-text value="[[ c.data.kept + (c.data.offline ? ', not yet sent' : '') ]]"></oj-bind-text></span>
+                        </oj-bind-if>
+                      </span>
+                    </button>
+                  </li>
+                </template>
+              </oj-bind-for-each>
+            </ul>
+          </section>
+        </template>
+      </oj-bind-for-each>
+    </div>
+  </oj-bind-if>
+
+  <!-- ── A request's pick list ────────────────────────────────────────────────────────────────────────────────── -->
+  <oj-bind-if test="[[ $variables.view === 'work' ]]">
+    <div class="mb-head" id="pkWork">
+      <div class="mb-head-row">
+        <button type="button" class="mb-back" id="pkBack" on-click="[[ $listeners.onBack ]]" aria-label="Back to today’s work"><span class="oj-ux-ico-arrow-left" aria-hidden="true"></span></button>
+        <div style="flex:1;min-width:0">
+          <h2 id="pkNumber"><oj-bind-text value="[[ $variables.work.req.requestNumber || 'Request' ]]"></oj-bind-text></h2>
+          <div class="mb-head-sub mb-pick-ellipsis"><oj-bind-text value="[[ $functions.subline($variables.work.req) ]]"></oj-bind-text></div>
+        </div>
+        <button type="button" class="mb-back" id="pkWorkRefresh" on-click="[[ $listeners.onRefreshWork ]]" :disabled="[[ $variables.workLoading || !!$variables.busy ]]"
+          aria-label="Read it again"><span class="oj-ux-ico-refresh" aria-hidden="true"></span></button>
+      </div>
+    </div>
+    <div class="mb-body">
+      <div class="mb-card mb-card-pad mb-pick-hero" id="pkHero">
+        <span class="mb-pick-ring mb-pick-ring--lg" :style="[[ $variables.check.ring ]]" aria-hidden="true"><span class="mb-pick-ring-hole"><oj-bind-text value="[[ $variables.check.ringText ]]"></oj-bind-text></span></span>
+        <div class="mb-pick-hero-main">
+          <div class="mb-pick-hero-progress" id="pkProgress"><oj-bind-text value="[[ $variables.workLoading && !$variables.work.lines.length ? 'Reading its pieces…' : $variables.check.progress ]]"></oj-bind-text></div>
+          <div :class="[[ 'mb-pick-hero-when' + ($functions.late($variables.work.req) ? ' mb-pick-hero-when--late' : '') ]]"><span class="oj-ux-ico-clock" aria-hidden="true"></span>
+            <oj-bind-text value="[[ $functions.when($variables.work.req) ]]"></oj-bind-text></div>
+          <oj-bind-if test="[[ !!$variables.work.req.location ]]">
+            <div class="mb-pick-hero-to"><span class="oj-ux-ico-truck" aria-hidden="true"></span><oj-bind-text value="[[ 'To ' + $variables.work.req.location ]]"></oj-bind-text></div>
+          </oj-bind-if>
+        </div>
+      </div>
+
+      <oj-bind-if test="[[ !!$variables.workSaved ]]">
+        <div class="mb-offline mb-pick-round" id="pkWorkSaved"><span class="oj-ux-ico-cloud-off" aria-hidden="true"></span>
+          <span><oj-bind-text value="[[ $variables.workSaved ]]"></oj-bind-text>. Ticks are kept on this phone; Release and Ship wait for a fresh read.</span></div>
+      </oj-bind-if>
+      <oj-bind-if test="[[ !$variables.online && !$variables.workSaved && $variables.can.act ]]">
+        <div class="mb-offline mb-pick-round" id="pkOffline"><span class="oj-ux-ico-cloud-off" aria-hidden="true"></span>
+          <span>No connection. Ticks are kept on this phone as picked, not yet sent; nothing is sent until the connection is back.</span></div>
+      </oj-bind-if>
+      <oj-bind-if test="[[ $variables.workLoading ]]">
+        <div class="mb-loading" role="status" style="padding:18px"><span class="mb-spin" aria-hidden="true"></span>Reading its pieces, transfer orders and units…</div>
+      </oj-bind-if>
+      <oj-bind-if test="[[ !!$variables.workError ]]">
+        <div class="mb-error" role="alert" id="pkWorkError"><oj-bind-text value="[[ $variables.workError ]]"></oj-bind-text></div>
+      </oj-bind-if>
+      <oj-bind-if test="[[ !!$variables.banner.text ]]">
+        <div :class="[[ $functions.bannerClass($variables.banner) ]]" id="pkBanner" :role="[[ $variables.banner.type === 'error' ? 'alert' : 'status' ]]">
+          <oj-bind-text value="[[ $variables.banner.text ]]"></oj-bind-text></div>
+      </oj-bind-if>
+      <oj-bind-if test="[[ $variables.can.known && !$variables.can.act ]]">
+        <div class="mb-pick-banner mb-pick-banner--info" id="pkReadOnly"><span class="oj-ux-ico-lock" aria-hidden="true"></span>Your role can see the yard’s work here but not change it.</div>
+      </oj-bind-if>
+
+      <oj-bind-if test="[[ !$variables.workLoading && !$variables.workError ]]">
+        <oj-bind-if test="[[ $variables.work.exceptions.length > 0 ]]">
+          <div class="mb-error mb-pick-exc" role="alert" id="pkExc">
+            <strong><oj-bind-text value="[[ $variables.work.exceptions.length === 1 ? '1 piece cannot be picked as allocated' : $variables.work.exceptions.length + ' pieces cannot be picked as allocated' ]]"></oj-bind-text></strong>
+            <oj-bind-for-each data="[[ $variables.work.exceptions ]]">
+              <template data-oj-as="x">
+                <div class="mb-pick-exc-row">
+                  <span><oj-bind-text value="[[ (x.data.equipmentName || 'Line ' + x.data.lineId) + ': ' + x.data.issue ]]"></oj-bind-text></span>
+                  <oj-bind-if test="[[ !!$functions.oldLineLink($application.variables.appUrls.old, $variables.work.req, x.data.lineId, $variables.work.lines) ]]">
+                    <a class="mb-btn mb-pick-sm" :href="[[ $functions.oldLineLink($application.variables.appUrls.old, $variables.work.req, x.data.lineId, $variables.work.lines) ]]">Re-allocate in Old EquipRite</a>
+                  </oj-bind-if>
+                </div>
+              </template>
+            </oj-bind-for-each>
+          </div>
+        </oj-bind-if>
+
+        <oj-bind-if test="[[ !!$variables.check.fusionText ]]">
+          <div class="mb-pick-note" id="pkFusion"><span class="oj-ux-ico-information" aria-hidden="true"></span>
+            <div>
+              <p class="mb-pick-note-main"><oj-bind-text value="[[ $variables.check.fusionText ]]"></oj-bind-text></p>
+              <p class="mb-note">Releasing a transfer order sends it to Fusion to reserve the stock and create the pick task. That writes to Fusion, so it is done in New EquipRite.</p>
+              <oj-bind-if test="[[ !!$functions.newUrl($application.variables.appUrls.new) ]]">
+                <a class="mb-btn mb-pick-sm" id="pkReleaseInNew" :href="[[ $functions.newUrl($application.variables.appUrls.new) ]]">
+                  <span class="oj-ux-ico-external-link" aria-hidden="true"></span>Do it in New EquipRite</a>
+              </oj-bind-if>
+            </div>
+          </div>
+        </oj-bind-if>
+        <oj-bind-if test="[[ $variables.check.relocates > 0 ]]">
+          <div class="mb-pick-note mb-pick-note--warn" id="pkShipInNew"><span class="oj-ux-ico-warning" aria-hidden="true"></span>
+            <div>
+              <p class="mb-pick-note-main">Shipping these also moves their maintenance asset to the delivery location in Fusion. That writes to Fusion, so ship them in New EquipRite.</p>
+              <oj-bind-if test="[[ !!$functions.newUrl($application.variables.appUrls.new) ]]">
+                <a class="mb-btn mb-pick-sm" :href="[[ $functions.newUrl($application.variables.appUrls.new) ]]"><span class="oj-ux-ico-external-link" aria-hidden="true"></span>Do it in New EquipRite</a>
+              </oj-bind-if>
+            </div>
+          </div>
+        </oj-bind-if>
+
+        <oj-bind-if test="[[ $variables.can.act && !!$variables.check.next ]]">
+          <div class="mb-card mb-pick-nextcard" id="pkNext">
+            <div class="mb-pick-nextcard-k"><span class="oj-ux-ico-arrow-right" aria-hidden="true"></span>Next piece</div>
+            <div class="mb-pick-nextcard-name"><oj-bind-text value="[[ $variables.check.next.name + $functions.qty($variables.check.next) ]]"></oj-bind-text></div>
+            <div class="mb-pick-unit mb-pick-unit--lg"><oj-bind-text value="[[ $functions.unit($variables.check.next) ]]"></oj-bind-text></div>
+            <div class="mb-pick-spot mb-pick-spot--lg"><span class="oj-ux-ico-location-pin" aria-hidden="true"></span><oj-bind-text value="[[ $variables.check.next.where ]]"></oj-bind-text></div>
+            <button type="button" class="mb-btn mb-btn--ok mb-btn--block mb-pick-big" id="pkNextPicked" :data-line-id="[[ $variables.check.next.lineId ]]"
+              on-click="[[ $listeners.onTick ]]" :disabled="[[ !!$variables.busy ]]"><span class="oj-ux-ico-check" aria-hidden="true"></span>Picked</button>
+          </div>
+        </oj-bind-if>
+
+        <div class="mb-pick-worktools">
+          <oj-bind-if test="[[ !$variables.can.act ]]">
+            <button type="button" class="mb-btn" id="pkFind" on-click="[[ $listeners.onScan ]]"><span class="oj-ux-ico-barcode" aria-hidden="true"></span>Find a unit</button>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.can.slip && $variables.check.released ]]">
+            <button type="button" class="mb-btn" id="pkSlipMake" data-action="make" on-click="[[ $listeners.onSlip ]]" :disabled="[[ !!$variables.busy || !!$variables.workSaved ]]">
+              <span class="oj-ux-ico-file-pdf" aria-hidden="true"></span><oj-bind-text value="[[ $variables.busy === 'slip' ? 'Making the slip…' : 'Pick slip' ]]"></oj-bind-text></button>
+          </oj-bind-if>
+        </div>
+
+        <oj-bind-if test="[[ !$variables.check.groups.length ]]">
+          <div class="mb-card mb-empty">No piece of this request is at a picking step.</div>
+        </oj-bind-if>
+        <oj-bind-for-each data="[[ $variables.check.groups ]]">
+          <template data-oj-as="g">
+            <section class="mb-pick-group" :data-group="[[ g.data.key ]]" :aria-label="[[ g.data.label ]]">
+              <div class="mb-pick-group-head">
+                <h3 class="mb-section mb-pick-group-title"><oj-bind-text value="[[ g.data.label ]]"></oj-bind-text>
+                  <span class="mb-pick-sec-count"><oj-bind-text value="[[ g.data.tickable && $variables.can.act ? g.data.ticked + '/' + g.data.count : g.data.count ]]"></oj-bind-text></span></h3>
+                <oj-bind-if test="[[ $variables.can.act && g.data.tickable && g.data.count > 1 ]]">
+                  <button type="button" class="mb-pick-link" :data-group="[[ g.data.key ]]" on-click="[[ $listeners.onTickAll ]]" :disabled="[[ !!$variables.busy ]]">
+                    <oj-bind-text value="[[ g.data.all ? 'Untick all' : 'Tick all' ]]"></oj-bind-text></button>
+                </oj-bind-if>
+              </div>
+              <p class="mb-pick-group-hint"><oj-bind-text value="[[ $variables.can.act ? g.data.hint : g.data.look ]]"></oj-bind-text></p>
+              <ul class="mb-pick-list">
+                <oj-bind-for-each data="[[ g.data.pieces ]]">
+                  <template data-oj-as="p">
+                    <li>
+                      <button type="button" :class="[[ $functions.pieceClass(p.data, $variables.flash, $variables.can.act) ]]" :data-line-id="[[ p.data.lineId ]]" on-click="[[ $listeners.onTick ]]"
+                        :disabled="[[ !$variables.can.act || !p.data.tickable || !!$variables.busy ]]" :aria-pressed="[[ p.data.ticked ? 'true' : 'false' ]]">
+                        <span class="mb-pick-check" aria-hidden="true"><span :class="[[ $functions.checkIcon(p.data, $variables.can.act) ]]"></span></span>
+                        <span class="mb-pick-piece-main">
+                          <span class="mb-pick-piece-name"><oj-bind-text value="[[ p.data.name + $functions.qty(p.data) ]]"></oj-bind-text>
+                            <oj-bind-if test="[[ p.data.fm ]]"><span class="mb-pick-badge">Fixed asset</span></oj-bind-if></span>
+                          <span class="mb-pick-unit"><oj-bind-text value="[[ $functions.unit(p.data) ]]"></oj-bind-text></span>
+                          <span class="mb-pick-spot"><span class="oj-ux-ico-location-pin" aria-hidden="true"></span><oj-bind-text value="[[ p.data.where ]]"></oj-bind-text></span>
+                          <span class="mb-pick-piece-foot">
+                            <span :class="[[ 'mb-pill ' + $functions.stage(p.data.tone) ]]"><oj-bind-text value="[[ p.data.label ]]"></oj-bind-text></span>
+                            <oj-bind-if test="[[ !!p.data.toNumber ]]"><span class="mb-pick-to"><oj-bind-text value="[[ p.data.toNumber ]]"></oj-bind-text></span></oj-bind-if>
+                            <oj-bind-if test="[[ $variables.can.act && !!p.data.word ]]"><span class="mb-pick-word"><oj-bind-text value="[[ p.data.word ]]"></oj-bind-text></span></oj-bind-if>
+                          </span>
+                          <oj-bind-if test="[[ !!p.data.problem ]]">
+                            <span class="mb-pick-problem"><span class="oj-ux-ico-warning" aria-hidden="true"></span><oj-bind-text value="[[ p.data.problem ]]"></oj-bind-text></span>
+                          </oj-bind-if>
+                        </span>
+                      </button>
+                    </li>
+                  </template>
+                </oj-bind-for-each>
+              </ul>
+            </section>
+          </template>
+        </oj-bind-for-each>
+
+        <oj-bind-if test="[[ $functions.others($variables.linesBy, $variables.openId, $variables.work.lines, $variables.work.req.isCustomer).length > 0 ]]">
+          <section class="mb-pick-group" id="pkOther" aria-label="Also on this request">
+            <h3 class="mb-section">Also on this request</h3>
+            <ul class="mb-list">
+              <oj-bind-for-each data="[[ $functions.others($variables.linesBy, $variables.openId, $variables.work.lines, $variables.work.req.isCustomer) ]]">
+                <template data-oj-as="o">
+                  <li class="mb-card mb-card-pad mb-pick-other">
+                    <span class="mb-pick-piece-name"><oj-bind-text value="[[ o.data.name + (o.data.qty > 1 ? ' ×' + o.data.qty : '') ]]"></oj-bind-text></span>
+                    <span :class="[[ 'mb-pill ' + $functions.stage(o.data.tone) ]]"><oj-bind-text value="[[ o.data.label ]]"></oj-bind-text></span>
+                    <oj-bind-if test="[[ !!o.data.next ]]"><span class="mb-note"><oj-bind-text value="[[ 'Next: ' + o.data.next ]]"></oj-bind-text></span></oj-bind-if>
+                  </li>
+                </template>
+              </oj-bind-for-each>
+            </ul>
+          </section>
+        </oj-bind-if>
+
+        <oj-bind-if test="[[ $variables.check.groups.length > 0 ]]">
+          <div class="mb-card mb-card-pad">
+            <dl class="mb-facts" id="pkFacts">
+              <div><dt>From yard</dt><dd><oj-bind-text value="[[ $variables.work.yards || 'Not recorded' ]]"></oj-bind-text></dd></div>
+              <div><dt>Requested by</dt><dd><oj-bind-text value="[[ $variables.work.req.requestor || 'Not recorded' ]]"></oj-bind-text></dd></div>
+              <div class="mb-wide"><dt>Transfer orders</dt><dd><oj-bind-text value="[[ $variables.check.tos || 'None: fixed assets, or none raised yet' ]]"></oj-bind-text></dd></div>
+            </dl>
+          </div>
+        </oj-bind-if>
+      </oj-bind-if>
+    </div>
+
+    <oj-bind-if test="[[ $variables.can.act && !$variables.workLoading && !$variables.workError && $variables.check.groups.length > 0 ]]">
+      <div class="mb-dock mb-pick-dock" id="pkDock">
+        <button type="button" class="mb-btn mb-pick-dock-scan" id="pkScan" on-click="[[ $listeners.onScan ]]" aria-label="Scan a unit’s tag" :disabled="[[ !!$variables.busy ]]">
+          <span class="oj-ux-ico-barcode" aria-hidden="true"></span></button>
+        <oj-bind-if test="[[ $variables.check.primary === 'release' ]]">
+          <button type="button" class="mb-btn mb-btn--primary mb-pick-go" id="pkRelease" data-sheet="release" on-click="[[ $listeners.onSheet ]]" :disabled="[[ !!$variables.busy ]]">
+            <span class="oj-ux-ico-clipboard-check" aria-hidden="true"></span><oj-bind-text value="[[ 'Release ' + $functions.plural($variables.check.release, 'piece') ]]"></oj-bind-text></button>
+        </oj-bind-if>
+        <oj-bind-if test="[[ $variables.check.primary === 'ship' ]]">
+          <button type="button" :class="[[ $functions.shipClass($variables.check) ]]" id="pkShip" data-sheet="ship" on-click="[[ $listeners.onSheet ]]" :disabled="[[ !!$variables.busy ]]">
+            <span class="oj-ux-ico-truck" aria-hidden="true"></span><oj-bind-text value="[[ 'Ship ' + $functions.plural($variables.check.ship, 'piece') ]]"></oj-bind-text></button>
+        </oj-bind-if>
+        <oj-bind-if test="[[ !$variables.check.primary ]]">
+          <div class="mb-pick-dock-hint" id="pkHint"><oj-bind-text value="[[ $variables.check.hint || 'Nothing to do here now' ]]"></oj-bind-text></div>
+        </oj-bind-if>
+      </div>
+    </oj-bind-if>
+  </oj-bind-if>
+
+  <!-- ── Ship or Release: what will happen, before it does ────────────────────────────────────────────────────── -->
+  <oj-bind-if test="[[ $variables.sheet === 'ship' || $variables.sheet === 'release' ]]">
+    <div class="mb-sheet-wrap" id="pkSheet" role="dialog" aria-modal="true" aria-labelledby="pkSheetTitle">
+      <button type="button" class="mb-sheet-scrim" aria-label="Close" on-click="[[ $listeners.onCloseSheet ]]"></button>
+      <div class="mb-sheet">
+        <div class="mb-sheet-grip" aria-hidden="true"></div>
+        <div class="mb-sheet-head">
+          <h3 id="pkSheetTitle"><oj-bind-text value="[[ $variables.sheetData.title ]]"></oj-bind-text></h3>
+          <button type="button" class="mb-iconbtn" on-click="[[ $listeners.onCloseSheet ]]" aria-label="Close"><span class="oj-ux-ico-close" aria-hidden="true"></span></button>
+        </div>
+        <div class="mb-sheet-body">
+          <oj-bind-if test="[[ $variables.sheet === 'ship' && !!$variables.sheetData.to ]]">
+            <div class="mb-pick-sheet-to"><span class="oj-ux-ico-truck" aria-hidden="true"></span><oj-bind-text value="[[ 'Deliver to ' + $variables.sheetData.to ]]"></oj-bind-text></div>
+          </oj-bind-if>
+          <ul class="mb-pick-sheetlist" id="pkSheetList">
+            <oj-bind-for-each data="[[ $variables.sheetData.pieces ]]">
+              <template data-oj-as="p">
+                <li :class="[[ 'mb-pick-sheetrow' + (p.data.ticked || $variables.sheet === 'release' ? '' : ' mb-pick-sheetrow--unticked') ]]" :data-line-id="[[ p.data.lineId ]]">
+                  <span :class="[[ p.data.ticked ? 'oj-ux-ico-check-circle' : 'oj-ux-ico-warning' ]]" aria-hidden="true"></span>
+                  <span class="mb-pick-sheetrow-main">
+                    <span class="mb-pick-piece-name"><oj-bind-text value="[[ p.data.name + (p.data.qty > 1 ? ' ×' + p.data.qty : '') ]]"></oj-bind-text></span>
+                    <span class="mb-note"><oj-bind-text value="[[ (p.data.unit || 'No unit assigned') + (p.data.spot ? ' · ' + p.data.spot : '') ]]"></oj-bind-text></span>
+                  </span>
+                  <oj-bind-if test="[[ $variables.sheet === 'ship' && !p.data.ticked ]]"><span class="mb-pick-sheetrow-tag">Not ticked</span></oj-bind-if>
+                </li>
+              </template>
+            </oj-bind-for-each>
+          </ul>
+          <oj-bind-if test="[[ $variables.sheet === 'ship' && $variables.sheetData.unticked > 0 ]]">
+            <div class="mb-pick-note mb-pick-note--warn" id="pkUnticked"><span class="oj-ux-ico-warning" aria-hidden="true"></span><p class="mb-pick-note-main"><oj-bind-text value="[[ $variables.sheetData.untickedText ]]"></oj-bind-text></p></div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.sheet === 'ship' && $variables.check.relocates > 0 ]]">
+            <div class="mb-error">Shipping these moves their maintenance asset in Fusion: ship them in New EquipRite. Nothing is sent from here.</div>
+          </oj-bind-if>
+          <p class="mb-note"><oj-bind-text value="[[ $variables.sheet === 'ship' ? 'EquipRite marks them shipped to site once they have left the yard. Nothing is sent to Fusion.' : $variables.sheetData.note ]]"></oj-bind-text></p>
+          <oj-bind-if test="[[ !$variables.online ]]">
+            <div class="mb-offline mb-pick-round" id="pkSheetOffline"><span class="oj-ux-ico-cloud-off" aria-hidden="true"></span>No connection: nothing can be sent until it is back.</div>
+          </oj-bind-if>
+        </div>
+        <div class="mb-sheet-foot">
+          <button type="button" class="mb-btn" on-click="[[ $listeners.onCloseSheet ]]" :disabled="[[ !!$variables.busy ]]">Cancel</button>
+          <oj-bind-if test="[[ $variables.sheet === 'ship' ]]">
+            <button type="button" class="mb-btn mb-btn--ok" id="pkShipGo" on-click="[[ $listeners.onShip ]]" :disabled="[[ !!$variables.busy || $variables.check.relocates > 0 ]]">
+              <oj-bind-text value="[[ $variables.busy === 'ship' ? 'Shipping…' : $variables.sheetData.button ]]"></oj-bind-text></button>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.sheet === 'release' ]]">
+            <button type="button" class="mb-btn mb-btn--primary" id="pkReleaseGo" on-click="[[ $listeners.onRelease ]]" :disabled="[[ !!$variables.busy ]]">
+              <oj-bind-text value="[[ $variables.busy === 'release' ? 'Releasing…' : $variables.sheetData.button ]]"></oj-bind-text></button>
+          </oj-bind-if>
+        </div>
+      </div>
+    </div>
+  </oj-bind-if>
+
+  <!-- ── Scan: the camera, or the unit number typed ───────────────────────────────────────────────────────────── -->
+  <oj-bind-if test="[[ $variables.sheet === 'scan' ]]">
+    <div class="mb-sheet-wrap" id="pkScanSheet" role="dialog" aria-modal="true" aria-labelledby="pkScanTitle">
+      <button type="button" class="mb-sheet-scrim" aria-label="Close" on-click="[[ $listeners.onCloseSheet ]]"></button>
+      <div class="mb-sheet">
+        <div class="mb-sheet-grip" aria-hidden="true"></div>
+        <div class="mb-sheet-head">
+          <h3 id="pkScanTitle"><oj-bind-text value="[[ $variables.can.act ? 'Scan to tick' : 'Find a unit' ]]"></oj-bind-text>
+            <oj-bind-if test="[[ $variables.view === 'work' && $variables.check.total > 0 ]]"><span class="mb-pick-scan-count" id="pkScanCount"><oj-bind-text value="[[ $variables.check.progress ]]"></oj-bind-text></span></oj-bind-if></h3>
+          <button type="button" class="mb-iconbtn" on-click="[[ $listeners.onCloseSheet ]]" aria-label="Close"><span class="oj-ux-ico-close" aria-hidden="true"></span></button>
+        </div>
+        <div class="mb-sheet-body">
+          <div :class="[[ 'mb-pick-view' + ($variables.scan.open ? ' mb-pick-view--on' : '') ]]">
+            <video id="pkScanVideo" muted playsinline autoplay></video>
+            <span class="mb-pick-view-frame" aria-hidden="true"></span>
+            <oj-bind-if test="[[ !$variables.scan.open ]]">
+              <div class="mb-pick-view-off" id="pkScanStatus"><span class="oj-ux-ico-camera" aria-hidden="true"></span>
+                <span><oj-bind-text value="[[ $variables.scan.status || 'The camera is off.' ]]"></oj-bind-text></span>
+                <oj-bind-if test="[[ $variables.scan.supported && $variables.scan.status !== 'Starting the camera…' ]]">
+                  <button type="button" class="mb-btn mb-pick-sm" id="pkCameraStart" on-click="[[ $listeners.onScan ]]">Start the camera</button>
+                </oj-bind-if>
+              </div>
+            </oj-bind-if>
+          </div>
+          <oj-bind-if test="[[ $variables.scan.open ]]">
+            <div class="mb-pick-scanbar">
+              <span class="mb-note"><oj-bind-text value="[[ $variables.scan.status ]]"></oj-bind-text></span>
+              <oj-bind-if test="[[ $variables.scan.torch ]]">
+                <button type="button" class="mb-btn mb-pick-sm" on-click="[[ $listeners.onTorch ]]" :aria-pressed="[[ $variables.scan.torchOn ? 'true' : 'false' ]]">
+                  <span class="oj-ux-ico-flashlight" aria-hidden="true"></span><oj-bind-text value="[[ $variables.scan.torchOn ? 'Light off' : 'Light on' ]]"></oj-bind-text></button>
+              </oj-bind-if>
+            </div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ !!$variables.scan.last.title ]]">
+            <div :class="[[ $functions.resultClass($variables.scan.last) ]]" id="pkScanResult" role="status" aria-live="polite">
+              <span :class="[[ $functions.resultIcon($variables.scan.last) ]]" aria-hidden="true"></span>
+              <span class="mb-pick-result-main">
+                <span class="mb-pick-result-title"><oj-bind-text value="[[ $variables.scan.last.title ]]"></oj-bind-text></span>
+                <span class="mb-pick-result-text"><oj-bind-text value="[[ $variables.scan.last.text ]]"></oj-bind-text></span>
+              </span>
+            </div>
+          </oj-bind-if>
+          <div class="mb-field">
+            <label class="mb-label" for="pkUnit">Or type the unit number</label>
+            <div class="mb-pick-typed">
+              <input type="text" class="mb-input mb-pick-typed-input" id="pkUnit" placeholder="e.g. EX-2201" autocomplete="off" autocapitalize="characters" spellcheck="false"
+                enterkeyhint="go" on-input="[[ $listeners.onUnitInput ]]" on-keyup="[[ $listeners.onUnitKey ]]" />
+              <button type="button" class="mb-btn mb-btn--primary" id="pkUnitGo" on-click="[[ $listeners.onUnitGo ]]"><oj-bind-text value="[[ $variables.can.act ? 'Tick' : 'Find' ]]"></oj-bind-text></button>
+            </div>
+            <span class="mb-note">A tag reader that types works here too.</span>
+          </div>
+        </div>
+        <div class="mb-sheet-foot">
+          <button type="button" class="mb-btn mb-btn--block" id="pkScanDone" on-click="[[ $listeners.onCloseSheet ]]">Done</button>
+        </div>
+      </div>
+    </div>
+  </oj-bind-if>
+
+  <!-- ── The yard ─────────────────────────────────────────────────────────────────────────────────────────────── -->
+  <oj-bind-if test="[[ $variables.sheet === 'yard' ]]">
+    <div class="mb-sheet-wrap" id="pkYardSheet" role="dialog" aria-modal="true" aria-labelledby="pkYardTitle">
+      <button type="button" class="mb-sheet-scrim" aria-label="Close" on-click="[[ $listeners.onCloseSheet ]]"></button>
+      <div class="mb-sheet">
+        <div class="mb-sheet-grip" aria-hidden="true"></div>
+        <div class="mb-sheet-head">
+          <h3 id="pkYardTitle">Your yard</h3>
+          <button type="button" class="mb-iconbtn" on-click="[[ $listeners.onCloseSheet ]]" aria-label="Close"><span class="oj-ux-ico-close" aria-hidden="true"></span></button>
+        </div>
+        <div class="mb-sheet-body">
+          <p class="mb-note">Today’s work from the yard you work in. This phone remembers it.</p>
+          <div class="mb-pick-options" role="radiogroup" aria-label="Yard">
+            <oj-bind-for-each data="[[ $variables.yardChips ]]">
+              <template data-oj-as="y">
+                <button type="button" role="radio" :class="[[ 'mb-pick-option' + ($variables.yard === y.data.key ? ' mb-pick-option--on' : '') ]]" data-field="yard" :data-value="[[ y.data.key ]]"
+                  on-click="[[ $listeners.onSet ]]" :aria-checked="[[ $variables.yard === y.data.key ? 'true' : 'false' ]]">
+                  <span :class="[[ y.data.key === 'all' ? 'oj-ux-ico-box-grid' : 'oj-ux-ico-location-pin' ]]" aria-hidden="true"></span>
+                  <span class="mb-pick-option-label"><oj-bind-text value="[[ y.data.label ]]"></oj-bind-text></span>
+                  <span class="mb-pick-option-count"><oj-bind-text value="[[ $functions.plural(y.data.count, 'request') ]]"></oj-bind-text></span>
+                </button>
+              </template>
+            </oj-bind-for-each>
+          </div>
+        </div>
+      </div>
+    </div>
+  </oj-bind-if>
+
+  <!-- ── The pick slip ────────────────────────────────────────────────────────────────────────────────────────── -->
+  <oj-bind-if test="[[ $variables.sheet === 'slip' ]]">
+    <div class="mb-sheet-wrap" id="pkSlip" role="dialog" aria-modal="true" aria-labelledby="pkSlipTitle">
+      <button type="button" class="mb-sheet-scrim" aria-label="Close" data-action="close" on-click="[[ $listeners.onSlip ]]"></button>
+      <div class="mb-sheet">
+        <div class="mb-sheet-grip" aria-hidden="true"></div>
+        <div class="mb-sheet-head">
+          <h3 id="pkSlipTitle">Pick slip</h3>
+          <button type="button" class="mb-iconbtn" data-action="close" on-click="[[ $listeners.onSlip ]]" aria-label="Close"><span class="oj-ux-ico-close" aria-hidden="true"></span></button>
+        </div>
+        <div class="mb-sheet-body">
+          <div class="mb-pick-slip">
+            <span class="oj-ux-ico-file-pdf mb-pick-slip-icon" aria-hidden="true"></span>
+            <div>
+              <div class="mb-pick-piece-name" id="pkSlipDoc"><oj-bind-text value="[[ $variables.slip.docNumber ]]"></oj-bind-text></div>
+              <div class="mb-note" id="pkSlipRows"><oj-bind-text value="[[ $functions.plural($variables.slip.rows, 'line') + ', in walking order' ]]"></oj-bind-text></div>
+            </div>
+          </div>
+          <p class="mb-note">The pieces released for picking, by subinventory and locator: the walk through the yard. Print it from the share sheet, or download it.</p>
+        </div>
+        <div class="mb-sheet-foot">
+          <button type="button" class="mb-btn" id="pkSlipDownload" data-action="download" on-click="[[ $listeners.onSlip ]]"><span class="oj-ux-ico-download" aria-hidden="true"></span>Download</button>
+          <oj-bind-if test="[[ $functions.canShareFiles() ]]">
+            <button type="button" class="mb-btn mb-btn--primary" id="pkSlipShare" data-action="share" on-click="[[ $listeners.onSlip ]]"><span class="oj-ux-ico-share" aria-hidden="true"></span>Share or print</button>
+          </oj-bind-if>
+        </div>
+      </div>
+    </div>
+  </oj-bind-if>
 </div>
