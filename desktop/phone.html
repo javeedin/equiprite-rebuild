@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; img-src data:">
+  <title>EquipRite on your phone</title>
+  <style>
+    :root { color-scheme: light dark; --bg: #f3f5f8; --card: #fff; --ink: #16212c; --muted: #5a6876; --line: #dfe5eb; --band: #2e5468;
+      --ok: #15803d; --warn-bg: #fef3c7; --warn: #78350f; --field: #fff; --err: #b42318; }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg: #15191d; --card: #1f252b; --ink: #e8edf2; --muted: #a4b0bb; --line: #34404a; --field: #182027; --warn-bg: #3a2c0b; --warn: #fcd98b; }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 "Oracle Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    header { position: relative; background: var(--band); color: #fff; padding: 18px 24px 22px; }
+    header::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 5px;
+      background: linear-gradient(90deg, #c74634 0 20%, #e5a22f 20% 40%, #6f9a3a 40% 60%, #2b8cbe 60% 80%, #6b4fa3 80% 100%); }
+    h1 { margin: 0; font-size: 20px; }
+    header p { margin: 4px 0 0; color: #dbe7ee; }
+    main { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 18px 24px 8px; }
+    section { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+    h2 { margin: 0; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+    .tag { font-size: 11.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: #e7f0fb; color: #0a66c9; }
+    .tag--try { background: var(--warn-bg); color: var(--warn); }
+    .muted { color: var(--muted); font-size: 13px; margin: 0; }
+    .qr { align-self: center; background: #fff; border-radius: 12px; padding: 8px; border: 1px solid var(--line); line-height: 0; }
+    .qr--off { width: 256px; height: 256px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 24px;
+      color: var(--muted); line-height: 1.4; background: var(--field); border-style: dashed; }
+    .addr { font-family: ui-monospace, Consolas, monospace; font-size: 12px; word-break: break-all; color: var(--muted); text-align: center; margin: 0; }
+    .row { display: flex; gap: 8px; }
+    input[type=text] { flex: 1; min-width: 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--field); color: var(--ink); font: inherit; }
+    button { padding: 8px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--field); color: var(--ink); font: inherit; font-weight: 600; cursor: pointer; }
+    button.primary { background: var(--band); border-color: var(--band); color: #fff; }
+    button:disabled { opacity: .5; cursor: default; }
+    .switch { display: flex; align-items: center; gap: 10px; font-weight: 600; cursor: pointer; }
+    .switch input { width: 40px; height: 22px; accent-color: var(--band); }
+    .err { color: var(--err); font-size: 13px; margin: 0; }
+    .note { background: var(--warn-bg); color: var(--warn); border-radius: 10px; padding: 8px 12px; font-size: 12.5px; margin: 0; }
+    ol { margin: 0; padding-left: 20px; }
+    li { margin: 2px 0; }
+    footer { padding: 6px 24px 18px; }
+    footer h2 { margin-bottom: 6px; }
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .step { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+    .step b { display: block; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>EquipRite on your phone</h1>
+    <p>Scan a code with the phone's camera. EquipRite opens and offers to put itself on the home screen, like an app.</p>
+  </header>
+  <main>
+    <section id="vbcs">
+      <h2>From VBCS <span class="tag">Recommended</span></h2>
+      <p class="muted">The deployed app: install it on the home screen; the camera (scanning tags) and the phone's location work. Any phone, anywhere.</p>
+      <div class="qr qr--off" id="vbcsQr">Paste EquipRite's VBCS address below to get its code.</div>
+      <p class="addr" id="vbcsAddr" hidden></p>
+      <div class="row">
+        <input type="text" id="vbcsInput" placeholder="https://…/ic/builder/rt/…/live/webApps/equiprite-next/" spellcheck="false" aria-label="EquipRite's address on VBCS">
+        <button type="button" class="primary" id="vbcsSave">Save</button>
+      </div>
+      <p class="err" id="vbcsErr" hidden></p>
+      <p class="muted">Open EquipRite Next (or Mobile) on VBCS in a browser and copy its address. It is kept on this PC only.</p>
+      <div class="row"><button type="button" id="vbcsCopy" hidden>Copy the address</button></div>
+    </section>
+    <section id="lan">
+      <h2>From this PC, over Wi-Fi <span class="tag tag--try">To try it now</span></h2>
+      <p class="muted">No deployment needed: this PC serves EquipRite Mobile to a phone on the same Wi-Fi, while EquipRite runs here.</p>
+      <label class="switch"><input type="checkbox" id="lanOn"> Let my phone connect</label>
+      <div class="qr qr--off" id="lanQr">Switch on to get the code.</div>
+      <p class="addr" id="lanAddr" hidden></p>
+      <p class="err" id="lanErr" hidden></p>
+      <p class="note" id="lanNote">The phone works as you (the person signed in here), so only a phone that scans this code can connect, until you switch it
+        off or quit EquipRite. Windows may ask to let EquipRite on the network: allow <b>Private networks</b> only. Over Wi-Fi the camera and
+        the phone's location are not available (they need the secure VBCS address).</p>
+      <div class="row"><button type="button" id="lanCopy" hidden>Copy the address</button></div>
+    </section>
+  </main>
+  <footer>
+    <h2>Then, on the phone</h2>
+    <div class="steps">
+      <div class="step"><b>1. Scan</b>Open the camera and point it at a code. Tap the link that appears.</div>
+      <div class="step"><b>2. Your tabs</b>EquipRite opens with the tabs your role has: Approve, Pick, Request, My requests (from VBCS, after signing in).</div>
+      <div class="step"><b>3. Add to home screen</b>iPhone: Share, then Add to Home Screen. Android: Install when asked, or ⋮ then Install app.</div>
+    </div>
+    <p class="muted" id="notBuilt" hidden style="margin-top:10px">EquipRite Mobile is not built on this PC yet: run "npm run desktop:fresh", then open this again.</p>
+  </footer>
+  <script src="phone-window.js"></script>
+</body>
+</html>

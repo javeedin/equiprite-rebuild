@@ -31,6 +31,7 @@ const http = require('http');
 const https = require('https');
 const path = require('path');
 const { buildCatalog } = require('./catalog');
+const { isLoopback, pairCheck, NOT_PAIRED_HTML } = require('./phone');
 
 const DESKTOP_DIR = path.join(__dirname, '..');
 
@@ -230,6 +231,11 @@ function time() {
  * @param {Function} [o.onLog]            (line) => void, one line per backend call and per problem
  * @param {Function} [o.onProblem]        ({ kind: 'no-login'|'refused'|'unreachable', backend, report, host }) => void,
  *                                        when a Fusion call is refused (401/403) or a backend cannot be reached
+ * @param {string}   [o.host]             the address to listen on: 127.0.0.1 (this PC only, the default), or 0.0.0.0
+ *                                        for a phone on the same Wi-Fi (lib/phone.js), always with o.pairToken
+ * @param {Function} [o.pairToken]        () => the pairing key, or null. Given, a request from another device is
+ *                                        served only with the key (the QR code's address, then its cookie), never
+ *                                        the web services page; this PC's own requests are unaffected
  */
 function createDevServer(o) {
   const processed = path.join(o.buildDir, 'processed');
@@ -353,6 +359,20 @@ function createDevServer(o) {
     const u = new URL(req.url, 'http://local');
     const pathname = u.pathname;
     Promise.resolve().then(() => {
+      // Another device (a phone on the Wi-Fi) acts as the person signed in here: only with the pairing key.
+      if (o.pairToken && !isLoopback(req.socket.remoteAddress)) {
+        const pass = pairCheck(o.pairToken(), u.searchParams, req.headers.cookie);
+        if (!pass.ok) {
+          log(`${req.method} ${pathname} -> refused: ${req.socket.remoteAddress} has not scanned the pairing code`);
+          return send(res, 403, 'text/html; charset=utf-8', NOT_PAIRED_HTML);
+        }
+        if (pass.setCookie) {
+          res.setHeader('Set-Cookie', pass.setCookie);
+        }
+        if (pathname.startsWith('/__services')) {
+          return send(res, 404, 'text/plain; charset=utf-8', 'Not found');
+        }
+      }
       if (pathname === '/__services') {
         res.writeHead(302, { Location: '/__services/' });
         return res.end();
@@ -407,7 +427,7 @@ function createDevServer(o) {
     server.once('error', (e) => reject(e.code === 'EADDRINUSE'
       ? new Error(`Port ${o.port} is already in use. Close the other EquipRite window, or set EQP_PORT to another port.`)
       : e));
-    server.listen(o.port, '127.0.0.1', () => {
+    server.listen(o.port, o.host || '127.0.0.1', () => {
       const port = server.address().port;
       resolve({ server, port, url: `http://localhost:${port}/`, close: () => new Promise((r) => server.close(r)) });
     });

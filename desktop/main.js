@@ -25,11 +25,14 @@
  * Nothing native is compiled and no shell is started (eScan-safe): the only dependency is Electron, a prebuilt
  * binary.
  */
+const fs = require('fs');
+const os = require('os');
 const path = require('path');
-const { app, BrowserWindow, Menu, shell, ipcMain, safeStorage, dialog } = require('electron');
+const { app, BrowserWindow, Menu, shell, ipcMain, safeStorage, dialog, clipboard } = require('electron');
 const { createDevServer, isBuilt, backendOverridesFromEnv, KNOWN_ROLES } = require('./lib/devserver');
 const identityStore = require('./lib/identity');
 const { navAllowed, opensInOldWindow } = require('./lib/hosts');
+const phone = require('./lib/phone');
 
 const APP_NAME = 'EquipRite';
 const PORT = Number(process.env.EQP_PORT) || 18888;
@@ -53,6 +56,10 @@ let logWin = null;
 let servicesWin = null;
 let oldWin = null; // Old EquipRite beside New, opened from New's "Old" links
 let mobileWin = null; // EquipRite Mobile, phone-sized
+let phoneWin = null; // EquipRite on your phone: the QR codes
+// EquipRite Mobile for a phone on the Wi-Fi (File > EquipRite on your phone): off until switched on, one pairing key.
+const PHONE_PORT = PORT + 10;
+const lan = { server: null, token: null, url: '', error: '' };
 const servers = {}; // version -> running local server, for each app that is built
 let version = 'old'; // which app the window shows
 let quitting = false;
@@ -210,6 +217,8 @@ function signOut() {
   }
   identityStore.remove(identityFile());
   identity = null;
+  // A paired phone works as the person signed in: it stops with them.
+  stopLan();
   passwordThisRun = null;
   warned.clear();
   pushLog(`${new Date().toTimeString().slice(0, 8)} signed out`);
@@ -293,6 +302,8 @@ ipcMain.handle('signin:submit', (event, form) => {
     passwordThisRun = null;
   }
   const saved = identityStore.save(identityFile(), checked.saved, checked.password, encrypt, previous);
+  // Signing in as someone else: a phone paired for the one before must pair again.
+  stopLan();
   identity = identityStore.toServerIdentity(saved, passwordThisRun, encrypt ? (b) => safeStorage.decryptString(b) : null);
   version = saved.version;
   warned.clear();
@@ -464,6 +475,140 @@ function openMobileWindow(url) {
   mobileWin.loadURL(target).catch(() => {});
 }
 
+// ── EquipRite on your phone ──────────────────────────────────────────────────────────────────────────────
+const phoneFile = () => path.join(app.getPath('userData'), 'phone.json');
+
+function loadPhone() {
+  try {
+    return JSON.parse(fs.readFileSync(phoneFile(), 'utf8')) || {};
+  } catch {
+    return {};
+  }
+}
+
+/** What the phone window shows: the VBCS code (from the saved address) and the Wi-Fi code (when switched on). */
+function phoneState(vbcsError) {
+  const saved = loadPhone();
+  const vbcs = saved.vbcs ? phone.mobileUrlFromVbcs(saved.vbcs) : {};
+  return {
+    built: !!servers.mobile,
+    vbcs: { input: saved.vbcs || '', url: vbcs.url || '', qr: vbcs.url ? phone.qrSvg(phone.fromQr(vbcs.url), 256) : '', error: vbcsError || '' },
+    lan: { on: !!lan.server, url: lan.url, qr: lan.url ? phone.qrSvg(lan.url, 256) : '', error: lan.error },
+  };
+}
+
+async function startLan() {
+  lan.error = '';
+  if (!servers.mobile) {
+    lan.error = 'EquipRite Mobile is not built on this PC yet: run "npm run desktop:fresh".';
+    return;
+  }
+  if (!identity) {
+    lan.error = 'Sign in first (File > Sign in as…): the phone works as the person signed in here.';
+    return;
+  }
+  const addresses = phone.lanAddresses(os.networkInterfaces());
+  if (!addresses.length) {
+    lan.error = 'This PC is not on a network a phone can reach. Connect it to the same Wi-Fi as the phone.';
+    return;
+  }
+  lan.token = phone.newToken();
+  try {
+    lan.server = await createDevServer({
+      buildDir: BUILD_DIR,
+      webApp: VERSIONS.mobile.webApp,
+      port: PHONE_PORT,
+      host: '0.0.0.0',
+      pairToken: () => lan.token,
+      getIdentity: () => identity,
+      // The other versions' addresses here are this PC's own (localhost): not for a phone.
+      getVersions: () => ({}),
+      backendOverrides: backendOverridesFromEnv(process.env),
+      onLog: pushLog,
+      onProblem: backendProblem,
+    });
+  } catch (e) {
+    lan.token = null;
+    lan.error = `Could not start it: ${(e && e.message) || e}`;
+    return;
+  }
+  lan.url = phone.pairUrl(addresses[0].address, PHONE_PORT, lan.token);
+  pushLog(`${new Date().toTimeString().slice(0, 8)} EquipRite Mobile open to a paired phone at http://${addresses[0].address}:${PHONE_PORT}/`);
+}
+
+async function stopLan() {
+  lan.token = null;
+  lan.url = '';
+  const s = lan.server;
+  lan.server = null;
+  if (s) {
+    await s.close();
+    pushLog(`${new Date().toTimeString().slice(0, 8)} EquipRite Mobile closed to phones`);
+  }
+}
+
+/** File > EquipRite on your phone: the QR codes. */
+function openPhoneWindow() {
+  if (phoneWin && !phoneWin.isDestroyed()) {
+    phoneWin.focus();
+    return;
+  }
+  phoneWin = new BrowserWindow({
+    width: 900,
+    height: 780,
+    minWidth: 760,
+    minHeight: 640,
+    title: 'EquipRite on your phone',
+    backgroundColor: '#f3f5f8',
+    autoHideMenuBar: true,
+    webPreferences: {
+      preload: path.join(__dirname, 'phone-preload.js'),
+      contextIsolation: true,
+      sandbox: true,
+      nodeIntegration: false,
+    },
+  });
+  phoneWin.setMenu(null);
+  phoneWin.on('closed', () => {
+    phoneWin = null;
+  });
+  phoneWin.loadFile(path.join(__dirname, 'phone.html'));
+}
+
+const fromPhone = (event) => !!phoneWin && !phoneWin.isDestroyed() && event.sender === phoneWin.webContents;
+
+ipcMain.handle('phone:state', (event) => (fromPhone(event) ? phoneState() : null));
+ipcMain.handle('phone:vbcs', (event, text) => {
+  if (!fromPhone(event)) {
+    return null;
+  }
+  const raw = String(text || '').trim();
+  const checked = raw ? phone.mobileUrlFromVbcs(raw) : {};
+  if (checked.error) {
+    return phoneState(checked.error);
+  }
+  fs.writeFileSync(phoneFile(), JSON.stringify(Object.assign(loadPhone(), { vbcs: raw }), null, 2), 'utf8');
+  return phoneState();
+});
+ipcMain.handle('phone:lan', async (event, on) => {
+  if (!fromPhone(event)) {
+    return null;
+  }
+  if (on && !lan.server) {
+    await startLan();
+  } else if (!on) {
+    lan.error = '';
+    await stopLan();
+  }
+  return phoneState();
+});
+ipcMain.handle('phone:copy', (event, text) => {
+  if (fromPhone(event)) {
+    clipboard.writeText(String(text || ''));
+  }
+  return true;
+});
+
 ipcMain.handle('signin:cancel', (event) => {
   if (fromSignin(event) && signinWin) {
     signinWin.close();
@@ -627,6 +772,7 @@ function appMenu() {
         { label: 'Open New EquipRite', accelerator: 'CmdOrCtrl+Shift+2', click: () => openVersion('new') },
         { label: 'Open EquipRite Next', accelerator: 'CmdOrCtrl+Shift+3', click: () => openVersion('next') },
         { label: 'Open EquipRite Mobile (phone size)', accelerator: 'CmdOrCtrl+Shift+4', click: () => openVersion('mobile') },
+        { label: 'EquipRite on your phone (QR code)…', accelerator: 'CmdOrCtrl+Shift+5', click: () => openPhoneWindow() },
         { label: 'Switch this window to Old EquipRite', click: () => openVersion('old') },
         { type: 'separator' },
         { label: 'Sign in as…', accelerator: 'CmdOrCtrl+Shift+S', click: () => openSignIn() },
@@ -718,6 +864,7 @@ if (!app.requestSingleInstanceLock()) {
   app.on('before-quit', () => {
     quitting = true;
     Object.values(servers).forEach((s) => s.close());
+    stopLan();
   });
   app.on('window-all-closed', () => {
     if (process.platform !== 'darwin' || quitting) {

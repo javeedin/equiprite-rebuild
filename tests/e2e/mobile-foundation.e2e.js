@@ -226,6 +226,19 @@ const ROLES = {
     const offlineErrors = env.errors.splice(errorsBefore);
     T.eq('offline: no part of the app failed to load', offlineErrors.filter((e) => /Script error|does not exist|pageerror/.test(e)).join(' | '), '');
 
+    T.section('opened from a QR code (the desktop app\'s EquipRite on your phone)');
+    await env.open('/?from=qr');
+    await page.waitForSelector('#mbInstall', { timeout: 15000 });
+    T.check('it offers to put itself on the home screen', /Put EquipRite on your home screen/.test(await env.text('#mbInstall')));
+    T.check('with the steps for this phone (no browser prompt here)', (await page.$$eval('#mbInstallSteps li', (l) => l.length)) >= 2 && !(await page.$('#mbInstallNow')));
+    await env.shot('mobile-install-offer.png');
+    await page.click('#mbInstallLater');
+    await page.waitForSelector('#mbInstall', { state: 'detached', timeout: 5000 });
+    T.check('Not now closes it', !(await page.$('#mbInstall')));
+    await env.open('/');
+    await settle(page, 600);
+    T.check('opened normally, no offer', !(await page.$('#mbInstall')));
+
     T.section('a deep link');
     await env.open('/?tab=track&number=REQ-2003');
     await page.waitForSelector(shown('#trDetail'), { timeout: 20000 });

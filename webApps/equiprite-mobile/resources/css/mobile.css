@@ -203,6 +203,8 @@
 .mb-sheet-body { padding: 14px 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
 .mb-sheet-foot { display: flex; gap: 8px; padding: 10px 16px 14px; border-top: 1px solid var(--mb-line); }
 .mb-sheet-foot .mb-btn { flex: 1; }
+.mb-logo--band { background: var(--mb-band); color: #fff; flex: none; }
+.mb-install-steps { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 8px; font-size: 15px; }
 .mb-iconbtn {
   width: 40px; height: 40px; flex: none; border: 0; border-radius: 10px; background: transparent; color: var(--mb-muted); font-size: 18px;
   display: inline-flex; align-items: center; justify-content: center; cursor: pointer;

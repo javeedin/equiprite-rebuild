@@ -2,7 +2,8 @@ define([
   'vb/action/actionChain',
   'vb/action/actions',
   'resources/js/mobileBus',
-], (ActionChain, Actions, bus) => {
+  'resources/js/installPrompt',
+], (ActionChain, Actions, bus, installPrompt) => {
   'use strict';
 
   // What a screen asked for (mobileBus), a tap on the tab bar, or the connection changing:
@@ -11,6 +12,7 @@ define([
   //   toast       a toast over the tab bar
   //   badge       the count on a tab's icon
   //   connection  online / offline
+  //   installOffer / install / installClose / installRefresh   the offer to put the app on the home screen (from a QR code)
   const SCROLLED = {};
 
   class shellRequestChain extends ActionChain {
@@ -38,6 +40,27 @@ define([
       }
       if (r.action === 'badge') {
         v.badges = Object.assign({}, v.badges, { [r.tab]: Number(r.count) || 0 });
+        return;
+      }
+      if (r.action === 'installOffer') {
+        if (installPrompt.installed()) return;
+        v.installSheet = { open: true, canPrompt: installPrompt.canPrompt(), steps: installPrompt.howTo(installPrompt.platform()) };
+        return;
+      }
+      if (r.action === 'installRefresh') {
+        if (v.installSheet.open) v.installSheet = Object.assign({}, v.installSheet, { canPrompt: installPrompt.canPrompt() });
+        return;
+      }
+      if (r.action === 'installClose') {
+        v.installSheet = { open: false, canPrompt: false, steps: [] };
+        return;
+      }
+      if (r.action === 'install') {
+        const outcome = await installPrompt.prompt();
+        v.installSheet = { open: false, canPrompt: false, steps: [] };
+        await Actions.callChain(context, { chain: 'toastChain', params: {
+          message: outcome === 'accepted' ? 'Installed: EquipRite is on your home screen.' : 'Not installed. The Me tab can install it any time.',
+          tone: 'info' } });
         return;
       }
       if (r.action === 'connection') {

@@ -1,4 +1,4 @@
-define(['require', 'resources/js/mobileBus', 'resources/js/pwaSetup', 'resources/js/installPrompt'], (require, bus, pwaSetup) => {
+define(['require', 'resources/js/mobileBus', 'resources/js/pwaSetup', 'resources/js/installPrompt'], (require, bus, pwaSetup, installPrompt) => {
   'use strict';
 
   // The mobile shell's page module: the line from the screens in the tabs (mobileBus) to the shell's chains, the
@@ -13,6 +13,8 @@ define(['require', 'resources/js/mobileBus', 'resources/js/pwaSetup', 'resources
       bus.register((req) => fire('shellRequest', {
         action: req.action || '', tab: req.tab || '', message: req.message || '', tone: req.tone || '', count: req.count || 0,
       }));
+      // The browser offering its install prompt late (Android): the offer to install shows the Install button.
+      installPrompt.onChange(() => fire('shellRequest', { action: 'installRefresh' }));
       if (typeof window !== 'undefined' && !PageModule.bound) {
         PageModule.bound = true;
         window.addEventListener('online', () => fire('connection', { online: true }));

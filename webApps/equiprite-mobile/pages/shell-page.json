@@ -57,6 +57,21 @@
       "type": "string",
       "defaultValue": "",
       "input": "fromUrl"
+    },
+    "from": {
+      "type": "string",
+      "defaultValue": "",
+      "input": "fromUrl",
+      "description": "?from=qr: opened from a QR code (the desktop app's File > EquipRite on your phone); the app offers to install itself."
+    },
+    "installSheet": {
+      "type": "any",
+      "defaultValue": {
+        "open": false,
+        "canPrompt": false,
+        "steps": []
+      },
+      "description": "The offer to put the app on the home screen: the browser's Install (Android), else the steps (iPhone)."
     }
   },
   "types": {
@@ -127,6 +142,26 @@
           "parameters": {
             "action": "go",
             "tab": "{{ $event.currentTarget.dataset.tab }}"
+          }
+        }
+      ]
+    },
+    "onInstallNow": {
+      "chains": [
+        {
+          "chain": "shellRequestChain",
+          "parameters": {
+            "action": "install"
+          }
+        }
+      ]
+    },
+    "onInstallClose": {
+      "chains": [
+        {
+          "chain": "shellRequestChain",
+          "parameters": {
+            "action": "installClose"
           }
         }
       ]

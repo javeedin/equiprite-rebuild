@@ -34,6 +34,10 @@ define([
       if (link && (pv.id || pv.number)) {
         await Actions.callChain(context, { chain: 'shellRequestChain', params: { action: 'focus', tab: link, id: pv.id, number: pv.number } });
       }
+      // Opened from a QR code: offer to put the app on the home screen (unless it is already there).
+      if (pv.from === 'qr') {
+        await Actions.callChain(context, { chain: 'shellRequestChain', params: { action: 'installOffer' } });
+      }
       await Actions.callChain(context, { chain: 'countsChain' });
     }
   }

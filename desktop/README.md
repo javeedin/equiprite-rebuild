@@ -39,6 +39,17 @@ On first start a sign-in window asks for:
   18891) in a phone-sized window of its own, beside the main window; the **Mobile** link in EquipRite Next's profile
   menu does the same. Each person gets the tabs their access allows: Approve, Pick, Request, My requests, Me.
 
+  **File → EquipRite on your phone (QR code)…** (Ctrl+Shift+5) puts EquipRite Mobile on a real phone. Scan a code
+  with the phone's camera; the app opens and offers to put itself on the home screen.
+  - **From VBCS** (recommended): paste the address of EquipRite on VBCS once (Next's or Mobile's, from the browser);
+    it is kept in this PC's user data. The phone can install the app, and the camera and its location work (https).
+  - **From this PC, over Wi-Fi** (to try it now, nothing deployed): switch on *Let my phone connect*. This PC serves
+    EquipRite Mobile on its Wi-Fi address (port 18898) to a phone on the same Wi-Fi. The phone works as the person
+    signed in here, so only a phone that scanned the code gets in (a one-time pairing key, kept as a cookie); every
+    other device is refused, and so is the web services page. It stops when switched off, on sign-out, on signing in
+    as someone else, and on quit. Windows may ask to let EquipRite on the network: allow private networks only. Over
+    plain http the camera and the phone's location are not available.
+
 - **Fusion username to sign in as** — what `$application.user` carries; `ROLES_RP` is run for it (`P_LOGIN`).
 - **Fusion login** — stands in for the VBCS stored credential (`vb_e32dea99…`) on BIP and Fusion REST calls: the
   roles report, project lists, PDFs. Use an account that can run `/Custom/EquipRite/ROLES_RP.xdo`.

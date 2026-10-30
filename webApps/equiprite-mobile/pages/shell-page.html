@@ -41,6 +41,36 @@
     </nav>
   </oj-bind-if>
 
+  <oj-bind-if test="[[ $variables.installSheet.open ]]">
+    <div class="mb-sheet-wrap" id="mbInstall" role="dialog" aria-modal="true" aria-labelledby="mbInstallTitle">
+      <button type="button" class="mb-sheet-scrim" aria-label="Not now" on-click="[[ $listeners.onInstallClose ]]"></button>
+      <div class="mb-sheet">
+        <div class="mb-sheet-grip" aria-hidden="true"></div>
+        <div class="mb-sheet-head">
+          <span class="mb-logo mb-logo--band" aria-hidden="true">ER</span>
+          <h3 id="mbInstallTitle">Put EquipRite on your home screen</h3>
+        </div>
+        <div class="mb-sheet-body">
+          <p class="mb-note" style="margin:0">It opens full screen, like an app, straight to your work, and keeps a copy of your requests for when there is no signal.</p>
+          <oj-bind-if test="[[ !$variables.installSheet.canPrompt ]]">
+            <ol class="mb-install-steps" id="mbInstallSteps">
+              <oj-bind-for-each data="[[ $variables.installSheet.steps ]]">
+                <template data-oj-as="s"><li><oj-bind-text value="[[ s.data ]]"></oj-bind-text></li></template>
+              </oj-bind-for-each>
+            </ol>
+          </oj-bind-if>
+        </div>
+        <div class="mb-sheet-foot">
+          <button type="button" class="mb-btn" id="mbInstallLater" on-click="[[ $listeners.onInstallClose ]]">Not now</button>
+          <oj-bind-if test="[[ $variables.installSheet.canPrompt ]]">
+            <button type="button" class="mb-btn mb-btn--primary" id="mbInstallNow" on-click="[[ $listeners.onInstallNow ]]">
+              <span class="oj-ux-ico-download" aria-hidden="true"></span>Install</button>
+          </oj-bind-if>
+        </div>
+      </div>
+    </div>
+  </oj-bind-if>
+
   <oj-bind-if test="[[ !!$variables.toast.message ]]">
     <div :class="[[ 'mb-toast mb-toast--' + $variables.toast.tone ]]" role="status" id="mbToast">
       <span class="mb-toast-text"><oj-bind-text value="[[ $variables.toast.message ]]"></oj-bind-text></span>
