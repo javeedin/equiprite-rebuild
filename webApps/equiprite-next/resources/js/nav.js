@@ -63,15 +63,15 @@ define(['resources/js/rules'], function (rules) {
     ] },
     { key: 'insights', label: 'Insights', items: [
       { id: 'analytics', label: 'Analytics', icon: 'oj-ux-ico-chart-bar', pageCodes: ['EQR_ANALYTICS', 'EQR_REPORTS'],
-        route: { flow: 'insights', page: 'analytics' }, built: false, newNav: 'analytics', keywords: 'reports utilization kpi' }
+        route: { flow: 'insights', page: 'analytics' }, built: true, newNav: 'analytics', keywords: 'reports utilization kpi' }
     ] },
     { key: 'admin', label: 'Admin', items: [
       { id: 'settings', label: 'Settings', icon: 'oj-ux-ico-settings', pageCodes: ['EQR_CONFIGURATIONS'],
-        route: { flow: 'admin', page: 'settings' }, built: false, newNav: 'configuration', keywords: 'configuration flags lookups' },
+        route: { flow: 'admin', page: 'settings' }, built: true, newNav: 'configuration', keywords: 'configuration flags lookups' },
       { id: 'access', label: 'Access', icon: 'oj-ux-ico-shield-user', pageCodes: ['EQR_RBAC_ADMIN'],
-        route: { flow: 'admin', page: 'access' }, built: false, newNav: 'page-access', keywords: 'roles rbac page access security' },
+        route: { flow: 'admin', page: 'access' }, built: true, newNav: 'page-access', keywords: 'roles rbac page access security' },
       { id: 'integrations', label: 'Integrations', icon: 'oj-ux-ico-heartbeat', pageCodes: ['EQR_CONFIGURATIONS'],
-        route: { flow: 'admin', page: 'integrations' }, built: false, newNav: 'integration-health', keywords: 'fusion sync health errors' }
+        route: { flow: 'admin', page: 'integrations' }, built: true, newNav: 'integration-health', keywords: 'fusion sync health errors' }
     ] },
     { key: 'customers', label: 'Customers', flags: ['CUSTOMERS_MODULE_ENABLED'], items: [
       { id: 'customer-portal', label: 'Customer portal', icon: 'oj-ux-ico-customer-request', pageCodes: ['EQR_CUST_DASHBOARD'],

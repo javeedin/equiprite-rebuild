@@ -1,0 +1,105 @@
+{
+  "description": "Settings (FDD 12 / 7.17): the global settings (modules, costing and timesheets, notifications) and the business-unit settings, each saying what it does, what it needs and what changes when it is saved, and the change history. Reads and writes are New EquipRite's Configuration chains, unchanged: conf-global-settings (GET size 500; Save PATCHes a stored key, POSTs a new one, in the order they were changed; then the app's flags are read again), audit-trail, conf-equipment-settings (GET; a business unit saves one PATCH), Fusion's business-unit list (read). The list sections (yards, classes, expenditure types, agreement and attachment types) are managed in New EquipRite.",
+  "navigation": {
+    "embeddable": "enabled"
+  },
+  "variables": {
+    "readOnly": { "type": "boolean", "defaultValue": true, "description": "True unless the role has Full access to EQR_CONFIGURATIONS: every setting shows, nothing can be changed." },
+    "isLoading": { "type": "boolean", "defaultValue": true },
+    "isSaving": { "type": "boolean", "defaultValue": false },
+    "saveError": { "type": "string", "defaultValue": "" },
+    "loadError": { "type": "string", "defaultValue": "" },
+    "ConfigSettingsMap": { "type": "any", "defaultValue": {}, "description": "New's name: { SETTING_KEY: { id, settingValue, businessUnitId } } with the pending changes applied." },
+    "StoredSettingsMap": { "type": "any", "defaultValue": {}, "description": "New's name: the map as loaded." },
+    "changedRows": { "type": "any", "defaultValue": {}, "description": "New's name: the staged changes { SETTING_KEY: { id, settingValue, businessUnitId, settingCategory, description } } in the order they were made." },
+    "hasChanges": { "type": "boolean", "defaultValue": false },
+    "buSettingsDirty": { "type": "boolean", "defaultValue": false, "description": "New's flag, kept for saveChangesChain; nothing sets it." },
+    "PpmTxnSourceSel": { "type": "string", "defaultValue": "" },
+    "PpmDocumentSel": { "type": "string", "defaultValue": "" },
+    "PpmDocEntrySel": { "type": "string", "defaultValue": "" },
+    "PpmExpenditureOrgSel": { "type": "string", "defaultValue": "" },
+    "EnableQuotesSel": { "type": "string", "defaultValue": "" },
+    "WeekEndDaySel": { "type": "string", "defaultValue": "" },
+    "AuditTrailAllArray": { "type": "any[]", "defaultValue": [] },
+    "EsSettingsByBuArray": { "type": "any[]", "defaultValue": [], "description": "New's name: one row per business unit (buildSettingsByBu)." },
+    "FusionBuList": { "type": "any[]", "defaultValue": [] },
+    "EsDraft": { "type": "any", "defaultValue": {}, "description": "New's name: the business unit being edited." },
+    "EsBuSelectedName": { "type": "string", "defaultValue": "" },
+    "esIsEditMode": { "type": "boolean", "defaultValue": false },
+    "isEsDrawerOpen": { "type": "boolean", "defaultValue": false },
+    "isEsSaving": { "type": "boolean", "defaultValue": false },
+    "confirm": { "type": "any", "defaultValue": null, "description": "The confirmation shown before the week-ending day is reset." },
+    "q": { "type": "string", "defaultValue": "", "description": "Find a setting." },
+    "hq": { "type": "string", "defaultValue": "", "description": "Search in the change history." },
+    "histLimit": { "type": "number", "defaultValue": 50 },
+    "exportOpen": { "type": "string", "defaultValue": "", "description": "settings | bu | history" },
+    "vm": {
+      "type": "any",
+      "defaultValue": { "sections": [], "pending": { "list": [], "menu": [], "count": 0 }, "bu": [], "buFields": [], "buChanges": [], "buMenu": "", "history": [] },
+      "description": "What the page shows, worked out by applyChain."
+    }
+  },
+  "eventListeners": {
+    "vbEnter": {
+      "chains": [{ "chain": "enterChain" }]
+    },
+    "onFlag": {
+      "chains": [{ "chain": "updateSettingChain", "parameters": {
+        "settingKey": "{{ $event.currentTarget.dataset.key }}",
+        "value": "{{ $event.currentTarget.dataset.on !== 'true' }}"
+      } }]
+    },
+    "onChoice": {
+      "chains": [{ "chain": "updateSettingChain", "parameters": {
+        "settingKey": "{{ $event.currentTarget.dataset.key }}",
+        "value": "{{ $event.currentTarget.dataset.value }}"
+      } }]
+    },
+    "onText": {
+      "chains": [{ "chain": "updateSettingChain", "parameters": {
+        "settingKey": "{{ $event.target.dataset.key }}",
+        "value": "{{ $event.target.value }}"
+      } }]
+    },
+    "onSave": { "chains": [{ "chain": "saveChangesChain" }] },
+    "onDiscard": { "chains": [{ "chain": "resetChangesChain" }] },
+    "onAskResetWeek": { "chains": [{ "chain": "confirmChain", "parameters": { "action": "ask", "kind": "resetWeek" } }] },
+    "onConfirmOk": { "chains": [{ "chain": "confirmChain", "parameters": { "action": "ok" } }] },
+    "onConfirmCancel": { "chains": [{ "chain": "confirmChain", "parameters": { "action": "cancel" } }] },
+    "onEsEdit": {
+      "chains": [{ "chain": "openEsEditChain", "parameters": { "buId": "{{ $event.currentTarget.dataset.bu }}" } }]
+    },
+    "onEsField": {
+      "chains": [{ "chain": "setDraftChain", "parameters": {
+        "form": "EsDraft",
+        "field": "{{ $event.currentTarget.dataset.field }}",
+        "value": "{{ $event.currentTarget.dataset.value !== undefined ? $event.currentTarget.dataset.value : $event.currentTarget.value }}"
+      } }]
+    },
+    "onEsClose": { "chains": [{ "chain": "closeEsDrawerChain" }] },
+    "onEsSave": { "chains": [{ "chain": "saveEsDrawerChain" }] },
+    "onRefreshAudit": { "chains": [{ "chain": "loadAuditTrailChain" }] },
+    "onSearch": {
+      "chains": [{ "chain": "setChain", "parameters": { "field": "q", "value": "{{ $event.target.value }}" } }]
+    },
+    "onHistSearch": {
+      "chains": [{ "chain": "setChain", "parameters": { "field": "hq", "value": "{{ $event.target.value }}" } }]
+    },
+    "onPick": {
+      "chains": [{ "chain": "setChain", "parameters": { "field": "{{ $event.currentTarget.dataset.field }}", "value": "{{ $event.currentTarget.dataset.value }}" } }]
+    },
+    "onJump": {
+      "chains": [{ "chain": "setChain", "parameters": { "field": "jump", "value": "{{ $event.currentTarget.dataset.key }}" } }]
+    },
+    "onExport": {
+      "chains": [{ "chain": "exportChain", "parameters": { "list": "{{ $event.currentTarget.dataset.list }}", "format": "{{ $event.currentTarget.dataset.format }}" } }]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}
