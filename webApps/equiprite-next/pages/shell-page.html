@@ -40,16 +40,14 @@
       </oj-bind-if>
     </div>
 
+    <oj-bind-if test="[[ $application.functions.canOpen('new-request', $application.variables.pageAccessMap, $application.variables.pageAccessLoaded,
+                           $application.variables.featureFlags, $application.variables.flagsLoaded, $application.variables.buRateSources) ]]">
+      <button type="button" class="nx-btn nx-btn--primary nx-newreq" id="nxNewRequest" data-nav-id="new-request" on-click="[[ $listeners.onNav ]]"
+        title="Start a new equipment request" aria-label="New request">
+        <span class="oj-ux-ico-plus" aria-hidden="true"></span><span class="nx-newreq-text">New request</span></button>
+    </oj-bind-if>
+
     <div class="nx-top-end">
-      <nav class="nx-switch" aria-label="EquipRite version">
-        <oj-bind-if test="[[ !!$application.variables.appUrls.old ]]">
-          <a class="nx-switch-btn" id="nxGoOld" :href="[[ $application.variables.appUrls.old ]]" title="Today's app, unchanged. Same data.">Old</a>
-        </oj-bind-if>
-        <oj-bind-if test="[[ !!$application.variables.appUrls.new ]]">
-          <a class="nx-switch-btn" id="nxGoNew" :href="[[ $application.variables.appUrls.new ]]" title="The Redwood redesign. Same data.">New</a>
-        </oj-bind-if>
-        <span class="nx-switch-btn nx-switch-btn--on" aria-current="page">Next</span>
-      </nav>
       <button type="button" class="nx-iconbtn" id="nxHelp" data-nav-id="help" on-click="[[ $listeners.onNav ]]"
         aria-label="Help: how EquipRite works, the flow of a request" title="Help: how a request moves, step by step">
         <span class="oj-ux-ico-help" aria-hidden="true"></span>
@@ -62,14 +60,17 @@
           <span class="nx-bell-count" aria-hidden="true"><oj-bind-text value="[[ $variables.unread > 99 ? '99+' : $variables.unread ]]"></oj-bind-text></span>
         </oj-bind-if>
       </button>
-      <span class="nx-user">
+      <!-- You: the menu with your name and role, and the EquipRite version (Old / New / Next). -->
+      <button type="button" class="nx-user" id="nxUser" on-click="[[ $listeners.onProfile ]]" aria-controls="nxProfilePanel"
+        :aria-expanded="[[ $variables.profileOpen ? 'true' : 'false' ]]" aria-label="You, and the EquipRite version" title="You, and the EquipRite version">
         <span class="nx-avatar" aria-hidden="true"><oj-bind-text value="[[ $application.functions.userInitials($application.user) ]]"></oj-bind-text></span>
         <span class="nx-user-text">
           <span class="nx-user-name"><oj-bind-text value="[[ $application.functions.userDisplayName($application.user) ]]"></oj-bind-text></span>
           <span class="nx-user-role"><oj-bind-text value="[[ $application.functions.personaLabel(
             $application.functions.persona($application.variables.fusionRoles, $application.variables.sessionRoles, '')) ]]"></oj-bind-text></span>
         </span>
-      </span>
+        <span class="oj-ux-ico-chevron-down nx-user-caret" aria-hidden="true"></span>
+      </button>
     </div>
   </header>
 
@@ -167,8 +168,43 @@
     </main>
   </div>
 
-  <oj-bind-if test="[[ $variables.bellOpen || $variables.tabMenuOpen ]]">
+  <oj-bind-if test="[[ $variables.bellOpen || $variables.tabMenuOpen || $variables.profileOpen ]]">
     <button type="button" class="nx-backdrop" on-click="[[ $listeners.onBackdrop ]]" aria-label="Close" tabindex="-1"></button>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ $variables.profileOpen ]]">
+    <aside class="nx-panel nx-profile-panel" id="nxProfilePanel" role="dialog" aria-labelledby="nxProfileName">
+      <div class="nx-profile-head">
+        <span class="nx-avatar nx-avatar--lg" aria-hidden="true"><oj-bind-text value="[[ $application.functions.userInitials($application.user) ]]"></oj-bind-text></span>
+        <span class="nx-profile-who">
+          <span class="nx-profile-name" id="nxProfileName"><oj-bind-text value="[[ $application.functions.userDisplayName($application.user) ]]"></oj-bind-text></span>
+          <span class="nx-user-role"><oj-bind-text value="[[ $application.functions.personaLabel(
+            $application.functions.persona($application.variables.fusionRoles, $application.variables.sessionRoles, '')) ]]"></oj-bind-text></span>
+        </span>
+        <button type="button" class="nx-iconbtn nx-iconbtn--sm" on-click="[[ $listeners.onProfile ]]" aria-label="Close"><span class="oj-ux-ico-close" aria-hidden="true"></span></button>
+      </div>
+      <div class="nx-profile-sec">
+        <span class="nx-profile-label" id="nxVersionsLabel">EquipRite version</span>
+        <nav class="nx-versions" aria-labelledby="nxVersionsLabel">
+          <oj-bind-if test="[[ !!$application.variables.appUrls.old ]]">
+            <a class="nx-version" id="nxGoOld" :href="[[ $application.variables.appUrls.old ]]">
+              <span class="nx-version-name">Old</span><span class="nx-version-note">Today's app, unchanged</span></a>
+          </oj-bind-if>
+          <oj-bind-if test="[[ !!$application.variables.appUrls.new ]]">
+            <a class="nx-version" id="nxGoNew" :href="[[ $application.variables.appUrls.new ]]">
+              <span class="nx-version-name">New</span><span class="nx-version-note">The Redwood redesign</span></a>
+          </oj-bind-if>
+          <span class="nx-version nx-version--on" aria-current="page">
+            <span class="nx-version-name">Next<span class="oj-ux-ico-check nx-version-tick" aria-hidden="true"></span></span>
+            <span class="nx-version-note">This one: tabs, live status, Help</span></span>
+        </nav>
+        <p class="nx-profile-note">All three work on the same data.</p>
+      </div>
+      <div class="nx-profile-sec nx-profile-links">
+        <button type="button" class="nx-profile-link" data-nav-id="help" on-click="[[ $listeners.onNav ]]">
+          <span class="oj-ux-ico-help" aria-hidden="true"></span>Help: how a request moves</button>
+      </div>
+    </aside>
   </oj-bind-if>
 
   <oj-bind-if test="[[ $variables.bellOpen ]]">

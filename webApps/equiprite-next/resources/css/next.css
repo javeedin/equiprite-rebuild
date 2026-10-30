@@ -74,15 +74,20 @@
 .nx-result-hint { font-size: 12px; color: var(--nx-faint); }
 
 .nx-top-end { margin-left: auto; display: flex; align-items: center; gap: 6px; }
-.nx-switch { display: inline-flex; padding: 3px; gap: 2px; background: var(--nx-surface-2); border: 1px solid var(--nx-line); border-radius: 9px; }
-.nx-switch-btn { padding: 5px 12px; border-radius: 6px; font-size: 13px; font-weight: 600; color: var(--nx-muted); text-decoration: none; }
-.nx-switch-btn:hover { background: var(--nx-hover); color: var(--nx-ink); }
-.nx-switch-btn--on { background: #fff; color: var(--nx-accent); box-shadow: var(--nx-shadow); }
+/* New request, beside the command bar */
+.nx-newreq { flex: none; height: 38px; margin-left: 4px; border-radius: 10px; }
+.nx-newreq span[class^="oj-ux-ico"] { font-size: 18px; }
 .nx-bell-count {
   position: absolute; top: 3px; right: 2px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; box-sizing: border-box;
   background: var(--nx-danger); color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; border: 2px solid #fff;
 }
-.nx-user { display: inline-flex; align-items: center; gap: 8px; padding: 4px 6px 4px 4px; margin-left: 4px; }
+.nx-user {
+  display: inline-flex; align-items: center; gap: 8px; padding: 4px 8px 4px 4px; margin-left: 4px; border: 1px solid transparent; border-radius: 22px;
+  background: transparent; color: var(--nx-ink); font: inherit; text-align: left; cursor: pointer;
+}
+.nx-user:hover, .nx-user[aria-expanded="true"] { background: var(--nx-hover); border-color: var(--nx-line); }
+.nx-user:focus-visible { outline: 2px solid var(--nx-accent); outline-offset: 2px; }
+.nx-user-caret { font-size: 14px; color: var(--nx-muted); }
 .nx-avatar { width: 32px; height: 32px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: #1f3a5f; color: #fff; font-weight: 700; font-size: 12px; }
 .nx-user-text { display: flex; flex-direction: column; line-height: 1.15; }
 .nx-user-name { font-weight: 700; font-size: 13px; }
@@ -147,6 +152,34 @@
 .nx-backdrop { position: fixed; inset: 0; z-index: 40; border: 0; background: transparent; cursor: default; }
 .nx-panel { position: fixed; z-index: 55; background: #fff; border: 1px solid var(--nx-line); border-radius: 12px; box-shadow: var(--nx-shadow-pop); }
 .nx-bell-panel { top: calc(var(--nx-top-h) - 4px); right: 12px; width: min(400px, calc(100vw - 24px)); max-height: min(70vh, 640px); display: flex; flex-direction: column; }
+/* The menu under your name: who you are, the EquipRite version */
+.nx-profile-panel { top: calc(var(--nx-top-h) - 4px); right: 12px; width: min(320px, calc(100vw - 24px)); padding-bottom: 6px; }
+.nx-profile-head { display: flex; align-items: center; gap: 12px; padding: 14px 10px 12px 16px; border-bottom: 1px solid var(--nx-line); }
+.nx-avatar--lg { width: 44px; height: 44px; font-size: 15px; flex: none; }
+.nx-profile-who { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.nx-profile-name { font-weight: 700; font-size: 15px; overflow-wrap: anywhere; }
+.nx-profile-sec { padding: 12px 16px 6px; }
+.nx-profile-label { display: block; font-size: 11px; font-weight: 700; color: var(--nx-faint); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+.nx-versions { display: flex; flex-direction: column; gap: 4px; }
+.nx-version {
+  display: flex; flex-direction: column; gap: 1px; padding: 8px 10px; border: 1px solid var(--nx-line); border-radius: 8px;
+  color: var(--nx-ink); text-decoration: none;
+}
+a.nx-version:hover { border-color: var(--nx-accent); background: var(--nx-accent-soft); }
+a.nx-version:focus-visible { outline: 2px solid var(--nx-accent); outline-offset: 1px; }
+.nx-version--on { border-color: var(--nx-accent); background: var(--nx-accent-soft); }
+.nx-version-name { display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 14px; }
+.nx-version--on .nx-version-name { color: var(--nx-accent); }
+.nx-version-tick { font-size: 16px; }
+.nx-version-note { font-size: 12px; color: var(--nx-muted); }
+.nx-profile-note { margin: 8px 0 0; font-size: 12px; color: var(--nx-faint); }
+.nx-profile-links { border-top: 1px solid var(--nx-line); margin-top: 8px; padding-top: 6px; }
+.nx-profile-link {
+  display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 6px; border: 0; border-radius: 7px; background: transparent;
+  color: var(--nx-ink); font: inherit; font-size: 14px; text-align: left; cursor: pointer;
+}
+.nx-profile-link:hover { background: var(--nx-hover); }
+.nx-profile-link span[class^="oj-ux-ico"] { font-size: 18px; color: var(--nx-muted); }
 .nx-panel-head { display: flex; align-items: center; gap: 8px; padding: 12px 12px 8px 16px; border-bottom: 1px solid var(--nx-line); }
 .nx-panel-head h2 { margin: 0; font-size: 15px; flex: 1; }
 .nx-linkbtn { border: 0; background: transparent; color: var(--nx-accent); font-weight: 600; cursor: pointer; padding: 4px 6px; border-radius: 6px; font-size: 13px; }
@@ -179,6 +212,8 @@
 
 @media (max-width: 1100px) {
   .nx-user-text, .nx-top .nx-kbd { display: none; }
+  .nx-newreq-text { display: none; }
+  .nx-newreq { width: 38px; padding: 0; }
 }
 @media (max-width: 899px) {
   .nx-nav { position: fixed; top: var(--nx-top-h); bottom: 0; left: 0; z-index: 45; transform: translateX(-100%); transition: transform 0.2s ease; width: var(--nx-nav-w); box-shadow: var(--nx-shadow-pop); }
@@ -191,9 +226,10 @@
 }
 @media (max-width: 599px) {
   .nx-top { gap: 4px; padding: 0 6px; }
-  .nx-switch-btn { padding: 4px 7px; font-size: 12px; }
-  .nx-badge, .nx-avatar { display: none; }
-  .nx-user { margin: 0; padding: 0; }
+  .nx-badge, .nx-user-caret { display: none; }
+  .nx-avatar { width: 30px; height: 30px; }
+  .nx-user { margin: 0; padding: 2px; }
+  .nx-newreq { width: 34px; height: 34px; margin: 0; }
   .nx-command { flex: 1 1 0; min-width: 0; padding: 0 8px; }
   .nx-command input::placeholder { color: transparent; }
   .nx-iconbtn { width: 34px; }

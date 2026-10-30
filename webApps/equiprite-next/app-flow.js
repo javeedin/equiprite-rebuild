@@ -30,6 +30,8 @@ define([
     // ── menu ──
     visibleGroups(map, loaded, flags, flagsLoaded, buRateSources) { return nav.visibleGroups(map, loaded, flags, flagsLoaded, buRateSources); }
     navItem(id) { return nav.item(id); }
+    /** Whether this role may open a menu item's screen (the menu's own rule, fail closed). */
+    canOpen(id, map, loaded, flags, flagsLoaded, buRateSources) { return nav.itemVisible(nav.item(id), map, loaded, flags, flagsLoaded, buRateSources); }
     newUrl(newBase, navId) { return nav.newUrl(newBase, navId); }
 
     // ── formatting ──

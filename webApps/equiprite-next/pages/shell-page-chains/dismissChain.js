@@ -6,6 +6,7 @@ define(['vb/action/actionChain'], (ActionChain) => {
     async run(context) {
       const v = context.$page.variables;
       v.bellOpen = false;
+      v.profileOpen = false;
       v.tabMenuOpen = false;
       v.showResults = false;
       v.navOpen = false;

@@ -10,7 +10,7 @@ define([
   //             project's tasks, contracts and business unit (CaptureProjectNameChain)
   //   customer  the Fusion CustomerId and name of the project's customer (CaptureFallbackCustomerChain)
   // Next also asks the catalog again when the project changes, so the list and the cart show this project's rates
-  // straight away rather than only on Review.
+  // straight away rather than only on Review; and Change shows the list from the report again.
   class pickChain extends ActionChain {
     async run(context, { kind, index }) {
       const { $page } = context;
@@ -29,6 +29,8 @@ define([
         $page.variables.form = form;
         $page.variables.customerResults = [];
         $page.variables.customerQuery = '';
+        // Change: the list again, to pick another.
+        if (!row) await Actions.callChain(context, { chain: 'searchChain', params: { kind: 'customer', text: '' } });
         return;
       }
       if (kind !== 'project') {
@@ -61,7 +63,8 @@ define([
       if ($page.variables.missing && $page.variables.missing.length) {
         $page.variables.missing = [];
       }
-      const lists = row ? Actions.callChain(context, { chain: 'loadProjectListsChain', params: { withBusinessUnit: true } }) : null;
+      const lists = row ? Actions.callChain(context, { chain: 'loadProjectListsChain', params: { withBusinessUnit: true } })
+        : Actions.callChain(context, { chain: 'searchChain', params: { kind: 'project', text: '' } });
       const prices = String(before == null ? '' : before) !== String(form.projectId == null ? '' : form.projectId)
         ? Actions.callChain(context, { chain: 'loadCatalogChain' }) : null;
       await Promise.all([lists, prices]);

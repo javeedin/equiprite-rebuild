@@ -5,11 +5,16 @@ define([
 ], (ActionChain, Actions, bipLov) => {
   'use strict';
 
-  // Search as you type for Project and Customer, with the old pickers' BIP reports (ProjectTypeaheadChain,
-  // CustomerTypeaheadChain), as New EquipRite's searchChain: case-insensitive over name and number, P_SEARCH_BY=ALL.
-  // A short pause lets typing settle, and an answer for text the user has already changed is dropped.
+  // The Customer and Project lists, from the old pickers' BIP reports (ProjectTypeaheadChain, CustomerTypeaheadChain),
+  // as New EquipRite's searchChain: case-insensitive over name and number, P_SEARCH_BY=ALL.
+  //   nothing typed   the report's own starter list (a blank P_SEARCH: its first rows by name, the list Old EquipRite's
+  //                   pickers show when the field is clicked), shown as soon as the Project step opens; read once and
+  //                   kept for a few minutes
+  //   typed text      narrows it; a short pause lets typing settle, and an answer for text already changed is dropped
   const PAUSE_MS = 250;
-  const MAX_ROWS = 50;
+  const MAX_ROWS = 200;
+  const KEEP_MS = 5 * 60 * 1000;
+  const starter = { project: null, customer: null };
   const REPORTS = {
     project: {
       xdo: '/Custom/EquipRite/EQP_PROJECTS_LOV_RP.xdo',
@@ -37,17 +42,20 @@ define([
       const q = String(text || '').trim();
       $page.variables[kind + 'Query'] = q;
       const mine = ++seq[kind];
-      if (!q) {
-        $page.variables[kind + 'Results'] = [];
+      if (!q && starter[kind] && Date.now() - starter[kind].at < KEEP_MS) {
+        $page.variables[kind + 'Results'] = starter[kind].rows;
         $page.variables[kind + 'Searching'] = false;
         return;
       }
       $page.variables[kind + 'Searching'] = true;
-      await new Promise((r) => setTimeout(r, PAUSE_MS));
-      if (mine !== seq[kind]) {
-        return;
+      if (q) {
+        await new Promise((r) => setTimeout(r, PAUSE_MS));
+        if (mine !== seq[kind]) {
+          return;
+        }
       }
       let rows = [];
+      let ok = false;
       try {
         const res = await Actions.callRest(context, {
           endpoint: 'bipService/runBIPReport',
@@ -57,9 +65,11 @@ define([
           ]),
         });
         rows = rep.decode(res && res.body).slice(0, MAX_ROWS);
+        ok = !!(res && res.ok);
       } catch (e) {
         console.error('[searchChain]', kind, e);
       }
+      if (!q && ok && rows.length) starter[kind] = { rows, at: Date.now() };
       if (mine !== seq[kind]) {
         return;
       }

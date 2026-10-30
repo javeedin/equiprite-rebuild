@@ -48,6 +48,11 @@
       "type": "boolean",
       "defaultValue": false
     },
+    "profileOpen": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "The menu under your name: who you are, and the EquipRite version (Old / New / Next)."
+    },
     "alerts": {
       "type": "any[]",
       "defaultValue": []
@@ -265,6 +270,13 @@
       "chains": [
         {
           "chain": "bellChain"
+        }
+      ]
+    },
+    "onProfile": {
+      "chains": [
+        {
+          "chain": "profileChain"
         }
       ]
     },

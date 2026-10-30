@@ -48,6 +48,18 @@ define(['resources/js/orderForm', 'resources/js/fmt'], (order, fmt) => {
       return [order.windowText(f.startDate, f.endDate), f.projectName].filter((x) => !!x).join(' · ');
     }
 
+    /**
+     * Under the customer or project list: "Searching…", "No project matches “x”.", "12 projects match “x”." or, before
+     * anything is typed, "50 customers from Oracle Fusion · type a name or number to narrow".
+     */
+    listNote(kind, results, query, searching) {
+      if (searching) return 'Searching…';
+      const n = Array.isArray(results) ? results.length : 0;
+      const what = (count) => count + ' ' + kind + (count === 1 ? '' : 's');
+      if (query) return n ? what(n) + (n === 1 ? ' matches' : ' match') + ' “' + query + '”.' : 'No ' + kind + ' matches “' + query + '”.';
+      return n ? what(n) + ' from Oracle Fusion · type a name or number to narrow' : '';
+    }
+
     /** "3 items · 4 pieces" ("0 items" when empty). */
     cartCount(cart) {
       const s = order.cartSummary(cart, '', '', true);
@@ -72,7 +84,7 @@ define(['resources/js/orderForm', 'resources/js/fmt'], (order, fmt) => {
     }
 
     /** "Still needed before Review: Project, Task and Customer." */
-    missingText(missing) { return 'Still needed: ' + order.listWords(missing || []) + '.'; }
+    missingText(missing) { return 'Still needed: ' + order.listWords(order.screenOrder(missing || [])) + '.'; }
 
     /** The project on Review: "PRJ-2026-001 Pipeline North · EPC_US_BU". */
     projectText(form) {

@@ -153,16 +153,22 @@ async function shot(env, name) {
     T.eq('the stepper on the card', (await env.text(vis('.nx-or-card[data-id="11"] .nx-or-stepper'))).replace(/\s+/g, ' '), '− 2 in cart +');
     T.eq('the cart rail, as New\'s', await env.text(vis('#orCartT')), 'Cart · 2 items · 3 pieces');
     T.eq('the total: 2 × $1,400 × 26 days + $25', await env.text(vis('#orTotal strong')), '$72,825');
-    T.eq('the rail says what is still needed', await env.text(vis('#orNeed')), 'Still needed: Project, Task, Customer and Delivery location.');
+    T.eq('the rail says what is still needed', await env.text(vis('#orNeed')), 'Still needed: Customer, Project, Task and Delivery location.');
     await shot(env, 'next-order-build.png');
     T.eq('step 1 goes on to the project', await env.text(vis('#orContinue')), 'Continue to project');
     await page.click(vis('#orContinue'));
     await page.waitForSelector(vis('#orProject'));
     T.eq('step 2: the project', await page.$eval(vis('.nx-or-stepbtn--current'), (b) => b.dataset.step), '2');
     T.eq('step 1 is marked done', await page.$eval(vis('.nx-or-stepbtn[data-step="1"]'), (b) => b.className.includes('--done')), true);
+    T.eq('the customer comes first, then the project', await page.$$eval(vis('.nx-or-main .nx-or-title'), (h) => h.map((x) => x.innerText.trim()).join(', ')),
+      'Customer, Project, Delivery, Details');
+    await page.waitForSelector(vis('.nx-or-option[data-kind="customer"]'));
+    T.eq('customers listed from the BIP report before anything is typed', await page.$$eval(vis('.nx-or-option[data-kind="customer"] strong'), (o) => o.map((x) => x.innerText).join()), 'Acme Utilities');
+    T.eq('and projects', await page.$$eval(vis('.nx-or-option[data-kind="project"] strong'), (o) => o.map((x) => x.innerText).join()), 'Pipeline North');
+    T.eq('the note says where they come from', await env.text(vis('#orCustomerNote')), '1 customer from Oracle Fusion · type a name or number to narrow');
     await page.click(vis('#orContinue'));
     await page.waitForTimeout(300);
-    T.eq('Review stops and says what is missing', await env.text(vis('#orMissing')), 'Still needed: Project, Task, Customer and Delivery location.');
+    T.eq('Review stops and says what is missing', await env.text(vis('#orMissing')), 'Still needed: Customer, Project, Task and Delivery location.');
     T.check('still on the project step', !!(await page.$(vis('#orFor'))));
 
     T.section('project, task, customer, contract site');

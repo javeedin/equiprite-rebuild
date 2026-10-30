@@ -54,8 +54,25 @@ function handle(req, res) {
     await page.waitForSelector('#page-home', { timeout: 30000 });
     T.check('a light toolbar and menu, no black bar', await page.$eval('.nx-nav', (n) => getComputedStyle(n).backgroundColor) === 'rgb(255, 255, 255)'
       && await page.$eval('.nx-top', (n) => getComputedStyle(n).backgroundColor) === 'rgb(255, 255, 255)');
-    T.eq('Old / New / Next in the toolbar, Next current', await page.$$eval('.nx-switch .nx-switch-btn', (b) => b.map((x) => x.innerText.trim() + (x.getAttribute('aria-current') ? '*' : '')).join(' ')), 'Old New Next*');
+    T.check('New request in the toolbar, beside the command bar', (await env.text('#nxNewRequest')) === 'New request'
+      && await page.evaluate(() => document.querySelector('.nx-command').nextElementSibling.querySelector('#nxNewRequest') !== null
+        || document.querySelector('.nx-command').nextElementSibling.id === 'nxNewRequest'));
+    T.check('the version is not in the toolbar any more', !(await page.$('.nx-top #nxGoOld')) && !(await page.$('.nx-top .nx-versions')));
+    await page.click('#nxUser');
+    await page.waitForSelector('#nxProfilePanel');
+    T.eq('your menu: who you are', (await env.text('#nxProfileName')).length > 0 && (await page.getAttribute('#nxUser', 'aria-expanded')), 'true');
+    T.eq('Old / New / Next in your menu, Next current', await page.$$eval('.nx-versions .nx-version', (b) => b.map((x) => x.querySelector('.nx-version-name').innerText.trim() + (x.getAttribute('aria-current') ? '*' : '')).join(' ')), 'Old New Next*');
     T.check('Old and New point at those apps', (await page.getAttribute('#nxGoOld', 'href')) === env.oldUrl + '/' && (await page.getAttribute('#nxGoNew', 'href')) === env.newUrl + '/');
+    await env.shot('next-shell-profile.png');
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(200);
+    T.check('Escape closes it', !(await page.$('#nxProfilePanel')));
+    await page.click('#nxNewRequest');
+    await page.waitForFunction(() => { const t = document.querySelector('.nx-tab--on'); return t && t.dataset.tabId === 'new-request'; }, null, { timeout: 15000 });
+    T.check('New request opens its tab', true);
+    await page.click('.nx-tab[data-tab-id="new-request"] .nx-tab-close');
+    await page.waitForFunction(() => !document.querySelector('.nx-tab[data-tab-id="new-request"]'), null, { timeout: 10000 });
+    await page.waitForTimeout(300);
     T.eq('My work opens first, pinned (no close button)', await page.$$eval('.nx-tab', (t) => t.map((x) => x.innerText.trim() + (x.querySelector('.nx-tab-close') ? '' : '*')).join()), 'My work*');
     T.eq('the menu, by area', await page.$$eval('.nx-nav-label', (l) => l.map((x) => x.innerText.trim()).join(', ')),
       'REQUESTS, EQUIPMENT, YARD & LOGISTICS, USAGE & BILLING, COMMERCIAL, INSIGHTS, ADMIN, CUSTOMERS');

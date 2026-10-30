@@ -308,9 +308,21 @@ define(['resources/js/requestLineBody', 'resources/js/fmt'], function (lineBody,
     return lineView(it, form, hideRates);
   }
 
+  // The order the screen asks for things in (the customer comes first on the Project step), for saying what is missing.
+  // The labels themselves are missingFor's, New EquipRite's rule.
+  var SCREEN_ORDER = ['Start date', 'End date', 'End date on or after the start date', 'At least one piece of equipment', 'Customer', 'Project', 'Task',
+    'Delivery location'];
+
+  /** Missing labels in the order the screen asks for them (others after, as they came). */
+  function screenOrder(missing) {
+    var list = Array.isArray(missing) ? missing.slice() : [];
+    var rank = function (m) { var i = SCREEN_ORDER.indexOf(m); return i === -1 ? SCREEN_ORDER.length + list.indexOf(m) : i; };
+    return list.sort(function (a, b) { return rank(a) - rank(b); });
+  }
+
   /** The rail's line under the cart: what Submit still needs, in words, or that it is ready for review. */
   function stillNeeded(form, cart) {
-    var m = missingFor('review', form, cart);
+    var m = screenOrder(missingFor('review', form, cart));
     return m.length ? 'Still needed: ' + listWords(m) + '.' : '';
   }
 
@@ -370,6 +382,7 @@ define(['resources/js/requestLineBody', 'resources/js/fmt'], function (lineBody,
     customerRequestUrl: customerRequestUrl,
     agreementText: agreementText,
     listWords: listWords,
+    screenOrder: screenOrder,
     money: money
   };
 });

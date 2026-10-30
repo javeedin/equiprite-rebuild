@@ -231,9 +231,41 @@
 
         <!-- ── Step 2: Project ─────────────────────────────────────────────────────────────────────────────── -->
         <oj-bind-if test="[[ $variables.step === 2 ]]">
-          <section class="nx-card nx-card-pad nx-or-form" aria-labelledby="orPrjT" id="orFor">
+          <section class="nx-card nx-card-pad nx-or-form" aria-labelledby="orCustT2" id="orFor">
+            <h2 class="nx-or-title" id="orCustT2">Customer</h2>
+            <p class="nx-note nx-or-lead">Who the project work is for. The list comes from Oracle Fusion; type a name or number to narrow it.</p>
+            <div class="nx-or-field" id="orCustomerField">
+              <span class="nx-or-label">Customer <span class="nx-note">who the project work is for</span></span>
+              <oj-bind-if test="[[ $functions.picked($variables.form.customerId) ]]">
+                <div class="nx-or-picked">
+                  <span class="nx-or-picked-text"><strong><oj-bind-text value="[[ $variables.form.customerName ]]"></oj-bind-text></strong></span>
+                  <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" data-kind="customer" data-index="-1" on-click="[[ $listeners.onPick ]]">Change</button>
+                </div>
+              </oj-bind-if>
+              <oj-bind-if test="[[ !$functions.picked($variables.form.customerId) ]]">
+                <input type="search" class="nx-or-input" data-kind="customer" placeholder="Type a customer name or number"
+                  on-input="[[ $listeners.onSearch ]]" aria-label="Find a customer">
+                <oj-bind-if test="[[ $variables.customerResults.length > 0 ]]">
+                  <div class="nx-or-options" role="listbox" aria-label="Customers">
+                    <oj-bind-for-each data="[[ $variables.customerResults ]]">
+                      <template data-oj-as="r">
+                        <button type="button" role="option" class="nx-or-option" data-kind="customer" :data-index="[[ r.index ]]" on-click="[[ $listeners.onPick ]]">
+                          <strong><oj-bind-text value="[[ r.data.label ]]"></oj-bind-text></strong>
+                          <span class="nx-note"><oj-bind-text value="[[ r.data.sub ]]"></oj-bind-text></span>
+                        </button>
+                      </template>
+                    </oj-bind-for-each>
+                  </div>
+                </oj-bind-if>
+                <span class="nx-note" id="orCustomerNote"><oj-bind-text value="[[ $functions.listNote('customer', $variables.customerResults, $variables.customerQuery, $variables.customerSearching) ]]"></oj-bind-text></span>
+              </oj-bind-if>
+            </div>
+
+          </section>
+
+          <section class="nx-card nx-card-pad nx-or-form" aria-labelledby="orPrjT">
             <h2 class="nx-or-title" id="orPrjT">Project</h2>
-            <p class="nx-note nx-or-lead">The project's rates apply as soon as you pick it.</p>
+            <p class="nx-note nx-or-lead">The list comes from Oracle Fusion. The project's rates apply as soon as you pick it.</p>
             <div class="nx-or-field" id="orProject">
               <span class="nx-or-label">Project</span>
               <oj-bind-if test="[[ !!$variables.form.projectId ]]">
@@ -258,8 +290,7 @@
                     </oj-bind-for-each>
                   </div>
                 </oj-bind-if>
-                <span class="nx-note"><oj-bind-text value="[[ $variables.projectSearching ? 'Searching…'
-                  : ($variables.projectQuery && !$variables.projectResults.length ? 'No project matches “' + $variables.projectQuery + '”.' : '') ]]"></oj-bind-text></span>
+                <span class="nx-note" id="orProjectNote"><oj-bind-text value="[[ $functions.listNote('project', $variables.projectResults, $variables.projectQuery, $variables.projectSearching) ]]"></oj-bind-text></span>
               </oj-bind-if>
             </div>
 
@@ -317,38 +348,6 @@
                   </oj-bind-for-each>
                 </div>
                 <oj-bind-if test="[[ $variables.contractsLoading ]]"><span class="nx-note">Loading the project's contracts…</span></oj-bind-if>
-              </oj-bind-if>
-            </div>
-
-          </section>
-
-          <section class="nx-card nx-card-pad nx-or-form" aria-labelledby="orCustT2">
-            <h2 class="nx-or-title" id="orCustT2">Customer</h2>
-            <div class="nx-or-field" id="orCustomerField">
-              <span class="nx-or-label">Customer <span class="nx-note">who the project work is for</span></span>
-              <oj-bind-if test="[[ $functions.picked($variables.form.customerId) ]]">
-                <div class="nx-or-picked">
-                  <span class="nx-or-picked-text"><strong><oj-bind-text value="[[ $variables.form.customerName ]]"></oj-bind-text></strong></span>
-                  <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" data-kind="customer" data-index="-1" on-click="[[ $listeners.onPick ]]">Change</button>
-                </div>
-              </oj-bind-if>
-              <oj-bind-if test="[[ !$functions.picked($variables.form.customerId) ]]">
-                <input type="search" class="nx-or-input" data-kind="customer" placeholder="Type a customer name or number"
-                  on-input="[[ $listeners.onSearch ]]" aria-label="Find a customer">
-                <oj-bind-if test="[[ $variables.customerResults.length > 0 ]]">
-                  <div class="nx-or-options" role="listbox" aria-label="Customers">
-                    <oj-bind-for-each data="[[ $variables.customerResults ]]">
-                      <template data-oj-as="r">
-                        <button type="button" role="option" class="nx-or-option" data-kind="customer" :data-index="[[ r.index ]]" on-click="[[ $listeners.onPick ]]">
-                          <strong><oj-bind-text value="[[ r.data.label ]]"></oj-bind-text></strong>
-                          <span class="nx-note"><oj-bind-text value="[[ r.data.sub ]]"></oj-bind-text></span>
-                        </button>
-                      </template>
-                    </oj-bind-for-each>
-                  </div>
-                </oj-bind-if>
-                <span class="nx-note"><oj-bind-text value="[[ $variables.customerSearching ? 'Searching…'
-                  : ($variables.customerQuery && !$variables.customerResults.length ? 'No customer matches “' + $variables.customerQuery + '”.' : '') ]]"></oj-bind-text></span>
               </oj-bind-if>
             </div>
 
@@ -434,9 +433,9 @@
             </div>
             <dl class="nx-or-facts" id="orFacts">
               <div><dt>Dates</dt><dd><oj-bind-text value="[[ $functions.windowText($variables.form.startDate, $variables.form.endDate) ]]"></oj-bind-text></dd></div>
+              <div><dt>Customer</dt><dd><oj-bind-text value="[[ $variables.form.customerName || '—' ]]"></oj-bind-text></dd></div>
               <div><dt>Project</dt><dd><oj-bind-text value="[[ $functions.projectText($variables.form) ]]"></oj-bind-text></dd></div>
               <div><dt>Task</dt><dd><oj-bind-text value="[[ $functions.taskText($variables.form) ]]"></oj-bind-text></dd></div>
-              <div><dt>Customer</dt><dd><oj-bind-text value="[[ $variables.form.customerName || '—' ]]"></oj-bind-text></dd></div>
               <div><dt>Contract</dt><dd><oj-bind-text value="[[ $variables.form.contractNumber || 'None' ]]"></oj-bind-text></dd></div>
               <div><dt>Deliver to</dt><dd><oj-bind-text value="[[ $functions.deliveryText($variables.form) ]]"></oj-bind-text></dd></div>
               <div><dt>Requested by</dt><dd><oj-bind-text value="[[ $variables.form.requestorName || '—' ]]"></oj-bind-text></dd></div>

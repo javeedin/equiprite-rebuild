@@ -140,7 +140,7 @@ T.eq('a line in the rail', JSON.stringify(order.cartLine(cart, 31, FORM, false))
   cost: '$14,400', start: '2026-11-10', end: END, own: true, window: '10 Nov – 27 Nov 2026 · 18 days', notes: '', agreement: false,
   about: '$4,800 / week · 10 Nov – 27 Nov 2026 · 18 days' }));
 T.eq('the lists render from ids', order.cartIds(cart).join(), '11,21,31');
-T.eq('still needed, in words', order.stillNeeded(blank, cart), 'Still needed: Start date, End date, Project, Task, Customer and Delivery location.');
+T.eq('still needed, in words, in the screen\'s order (the customer first)', order.stillNeeded(blank, cart), 'Still needed: Start date, End date, Customer, Project, Task and Delivery location.');
 T.eq('ready: nothing needed', order.stillNeeded(FORM, cart), '');
 T.eq('what Submit does', order.submitWords(cart, null), 'A new request with 3 lines goes to the project\'s approver; it then opens in a tab of its own.');
 T.eq('what Submit does for a draft', order.submitWords(cart.slice(0, 1), { requestNumber: 'EQR-000888' }), 'Draft EQR-000888 with 1 line goes to the project\'s approver; it then opens in a tab of its own.');
@@ -394,8 +394,45 @@ const ends = (calls) => calls.filter((x) => x.endpoint).map((x) => x.endpoint.re
     T.eq('dates and equipment in: on to the project', c.$page.variables.step + ' ' + c.$page.variables.missing.length, '2 0');
     await new (chain('goStepChain', Actions))().run(c, { step: '1' });
     T.eq('back is always allowed', c.$page.variables.step, 1);
+    calls.length = 0;
+    c.$page.variables.form = Object.assign({}, FORM, { customerId: null, projectId: null });
+    await new (chain('goStepChain', Actions))().run(c, { step: '2' });
+    c.$page.variables.form = FORM;
+    T.eq('the Project step lists the customers and projects straight away', calls.map((x) => x.chain + JSON.stringify(x.params)).join(' '),
+      'searchChain{"kind":"customer","text":""} searchChain{"kind":"project","text":""}');
+    calls.length = 0;
     await new (chain('goStepChain', Actions))().run(c, { step: '3' });
     T.eq('Review is reviewChain\'s (its checks, the delivery point, the prices)', calls.map((x) => x.chain + JSON.stringify(x.params)).join(), 'reviewChain{"to":"review"}');
+  }
+
+  T.section('the customer and project lists, from their BIP reports');
+  {
+    // The SOAP body is the real one (bipLov.buildSoapBody); decoding the report needs a browser's XML parser, so the
+    // answer here is the decoded rows.
+    const real = load(path.join(JS, 'bipLov.js'));
+    const sent = [];
+    const ROWS = {
+      EQP_CUSTOMERS_LOV_RP: [{ CUSTOMERID: '1', CUSTOMER: 'Acme Utilities', CUSTOMERNUMBER: 'C-1' }, { CUSTOMERID: '2', CUSTOMER: 'Bayou Energy', CUSTOMERNUMBER: 'C-2' }],
+      EQP_PROJECTS_LOV_RP: [{ PROJECTID: '9', PROJECTNAME: 'Pipeline North', PROJECTNUMBER: 'PRJ-9' }],
+    };
+    const bip = { buildSoapBody: real.buildSoapBody, decodeReportRows: (body) => (body && body.rows) || [] };
+    const Actions = { async callRest(ctx, o) {
+      sent.push(o.body);
+      return { ok: true, status: 200, body: { rows: ROWS[o.body.includes('EQP_CUSTOMERS_LOV_RP') ? 'EQP_CUSTOMERS_LOV_RP' : 'EQP_PROJECTS_LOV_RP'] } };
+    }, async callChain() {} };
+    const Search = chain('searchChain', Actions, null, { 'resources/js/bipLov': bip });
+    const c = context(Object.assign({}, FORM), cart);
+    await new Search().run(c, { kind: 'customer', text: '' });
+    T.eq('nothing typed: the report\'s own list', c.$page.variables.customerResults.map((r) => r.label).join(), 'Acme Utilities,Bayou Energy');
+    T.check('asked with a blank search over name and number', /EQP_CUSTOMERS_LOV_RP[\s\S]*P_SEARCH<\/pub:name><pub:values><pub:item><\/pub:item>[\s\S]*P_SEARCH_BY[\s\S]*ALL/.test(sent[0]), sent[0]);
+    await new Search().run(c, { kind: 'customer', text: '' });
+    T.eq('the list is kept: not asked again', sent.length, 1);
+    await new Search().run(c, { kind: 'project', text: 'pipe' });
+    T.check('typed text narrows it (the report is asked with it)', sent[1].includes('EQP_PROJECTS_LOV_RP') && sent[1].includes('<pub:item>pipe</pub:item>')
+      && c.$page.variables.projectResults[0].label === 'Pipeline North');
+    T.eq('the note under each list', [pg.listNote('customer', c.$page.variables.customerResults, '', false), pg.listNote('project', c.$page.variables.projectResults, 'pipe', false),
+      pg.listNote('project', [], 'zzz', false), pg.listNote('project', [], '', true)].join(' | '),
+      '2 customers from Oracle Fusion · type a name or number to narrow | 1 project matches “pipe”. | No project matches “zzz”. | Searching…');
   }
 
   T.section('the catalog');

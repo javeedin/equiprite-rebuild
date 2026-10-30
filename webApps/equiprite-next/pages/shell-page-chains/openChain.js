@@ -23,6 +23,7 @@ define([
       $page.variables.navOpen = false;
       $page.variables.showResults = false;
       $page.variables.tabMenuOpen = false;
+      $page.variables.profileOpen = false;
       let next = null;
       await shellTabs.update(context, Actions, (st) => { next = tabs.open(st, tab); return next; });
       if (next && next.evicted.length) {

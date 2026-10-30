@@ -14,6 +14,7 @@ define([
       if (action === 'toggle') {
         $page.variables.tabMenuOpen = !$page.variables.tabMenuOpen;
         $page.variables.bellOpen = false;
+        $page.variables.profileOpen = false;
         return;
       }
       $page.variables.tabMenuOpen = false;
