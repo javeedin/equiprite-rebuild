@@ -1,0 +1,6 @@
+{
+  "description": "My work (placeholder while the shell is proven).",
+  "navigation": { "embeddable": "enabled" },
+  "variables": {},
+  "imports": { "components": { "oj-bind-text": { "path": "ojs/ojknockout" } } }
+}

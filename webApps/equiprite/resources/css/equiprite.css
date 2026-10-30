@@ -60,6 +60,10 @@
   color: var(--er-ink); text-decoration: none; font-size: 14px; white-space: nowrap;
 }
 .er-old-link:hover { background: #f1f5f9; }
+.er-switch { display: inline-flex; padding: 3px; gap: 2px; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 8px; }
+.er-switch-btn { padding: 5px 12px; border-radius: 6px; font-size: 13px; font-weight: 600; color: #475569; text-decoration: none; white-space: nowrap; }
+.er-switch-btn:hover { background: #e2e8f0; color: var(--er-ink); }
+.er-switch-btn--on { background: #fff; color: var(--er-band); box-shadow: 0 1px 2px rgba(15, 23, 42, .12); }
 .er-user { display: inline-flex; align-items: center; gap: 8px; }
 .er-avatar {
   width: 34px; height: 34px; border-radius: 999px; background: #334155; color: #fff; font-weight: 700; font-size: 13px;

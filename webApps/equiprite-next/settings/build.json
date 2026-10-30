@@ -1,0 +1,10 @@
+{
+  "optimize": {
+    "suppress": false,
+    "require-js": {
+      "emptyPaths": [
+        "**/resources/js/**"
+      ]
+    }
+  }
+ }

@@ -12,8 +12,9 @@
  */
 const fs = require('fs');
 
-/** Which app the window opens: 'old' (webApps/vbredwoodapp, unchanged) or 'new' (webApps/equiprite, the redesign). */
-const VERSIONS = ['old', 'new'];
+/** Which app the window opens: 'old' (webApps/vbredwoodapp, unchanged), 'new' (webApps/equiprite, the redesign) or
+ * 'next' (webApps/equiprite-next, designed from the FDD). */
+const VERSIONS = ['old', 'new', 'next'];
 const versionOf = (v) => (VERSIONS.includes(v) ? v : 'old');
 
 /**

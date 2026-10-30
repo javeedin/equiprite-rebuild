@@ -45,7 +45,8 @@ function bipReport(rows) {
 
 /**
  * @param {Object}   o
- * @param {number}   o.port         Old EquipRite on this port, New on port + 1 (give each script its own)
+ * @param {number}   o.port         Old EquipRite on this port, New on port + 1, Next on port + 2 (give each script its own)
+ * @param {string}   [o.app]        'new' (default) or 'next': which app open() opens
  * @param {Function} [o.handle]     (req, res) => answer, or undefined to fall through to the defaults.
  *                                  req: { method, path, query (URLSearchParams), body (string), json() }
  *                                  res: { json(obj, status), xml(text, status), bip(rows) }
@@ -98,14 +99,18 @@ async function start(o) {
   const fake = `http://127.0.0.1:${backend.address().port}`;
   const identity = { username: o.username || 'priya.raman', roles: ['RT_EQP_MANAGER'], fusion: null };
   const overrides = { eqpt: fake, commonservice: fake, fusion: fake, bipservice: fake, callpwpbip: fake, ics: fake };
-  const ports = { old: o.port, new: o.port + 1 };
-  const versions = () => ({ old: `http://localhost:${ports.old}/`, new: `http://localhost:${ports.new}/` });
+  const ports = { old: o.port, new: o.port + 1, next: o.port + 2 };
+  const versions = () => ({ old: `http://localhost:${ports.old}/`, new: `http://localhost:${ports.new}/`, next: `http://localhost:${ports.next}/` });
   const serverLog = [];
   const common = { buildDir: path.join(ROOT, 'build'), getIdentity: () => identity, getVersions: versions, backendOverrides: overrides, onLog: (l) => serverLog.push(l) };
   const servers = [
     await DS.createDevServer(Object.assign({ webApp: 'vbredwoodapp', port: ports.old }, common)),
     await DS.createDevServer(Object.assign({ webApp: 'equiprite', port: ports.new }, common)),
   ];
+  if (DS.isBuilt(path.join(ROOT, 'build'), 'equiprite-next')) {
+    servers.push(await DS.createDevServer(Object.assign({ webApp: 'equiprite-next', port: ports.next }, common)));
+  }
+  const app = o.app === 'next' ? 'next' : 'new';
   const { chromium } = require('playwright');
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width: o.width || 1440, height: 1000 } });
@@ -121,10 +126,14 @@ async function start(o) {
     page, calls, writes, errors, serverLog,
     newUrl: `http://localhost:${ports.new}`,
     oldUrl: `http://localhost:${ports.old}`,
-    /** Opens a New EquipRite path (e.g. '/vp/shell/request/my-requests') and waits for the shell. */
+    nextUrl: `http://localhost:${ports.next}`,
+    /**
+     * Opens a path of the app under test and waits for its shell: New EquipRite ('/vp/shell/request/my-requests'), or
+     * EquipRite Next ('/', '/?open=requests', '/?open=request&id=1').
+     */
     async open(p) {
-      await page.goto(`http://localhost:${ports.new}${p || '/'}`, { waitUntil: 'domcontentloaded' });
-      await page.waitForSelector('.er-nav-item', { state: 'attached', timeout: 60000 });
+      await page.goto(`http://localhost:${ports[app]}${p || '/'}`, { waitUntil: 'domcontentloaded' });
+      await page.waitForSelector(app === 'next' ? '.nx-nav-item' : '.er-nav-item', { state: 'attached', timeout: 60000 });
       await page.waitForTimeout(1200);
     },
     /** Visible text of a selector, whitespace collapsed. */

@@ -21,10 +21,18 @@
     </label>
 
     <div class="er-header-end">
-      <oj-bind-if test="[[ $application.variables.oldAppUrl ]]">
-        <a class="er-old-link" :href="[[ $application.variables.oldAppUrl ]]"
-          title="Today's app, unchanged. Same data as this one.">Open Old EquipRite</a>
-      </oj-bind-if>
+      <!-- Old / New / Next: the same data in each. Old opens in a window of its own on the desktop. -->
+      <nav class="er-switch" aria-label="EquipRite version">
+        <oj-bind-if test="[[ $application.variables.oldAppUrl ]]">
+          <a class="er-switch-btn" id="erGoOld" :href="[[ $application.variables.oldAppUrl ]]"
+            title="Today's app, unchanged. Same data as this one.">Old</a>
+        </oj-bind-if>
+        <span class="er-switch-btn er-switch-btn--on" aria-current="page">New</span>
+        <oj-bind-if test="[[ $application.variables.nextAppUrl ]]">
+          <a class="er-switch-btn" id="erGoNext" :href="[[ $application.variables.nextAppUrl ]]"
+            title="EquipRite Next: designed from the FDD, with tabs. Same data.">Next</a>
+        </oj-bind-if>
+      </nav>
       <span class="er-user">
         <span class="er-avatar" aria-hidden="true">
           <oj-bind-text value="[[ $application.functions.userInitials($application.user) ]]"></oj-bind-text>

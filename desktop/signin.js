@@ -6,13 +6,14 @@
   const init = (await window.signin.initial()) || {};
 
   const versionPicked = () => document.querySelector('input[name=version]:checked').value;
-  const LABELS = { old: 'Old EquipRite', new: 'New EquipRite' };
-  document.querySelector(`input[name=version][value=${init.version === 'new' ? 'new' : 'old'}]`).checked = true;
-  if (!init.newAvailable) {
-    $('newChoice').classList.add('off');
-    $('newChoice').querySelector('input').disabled = true;
-    $('newNote').textContent = 'Not built yet: run npm run desktop:fresh';
-  }
+  const LABELS = { old: 'Old EquipRite', new: 'New EquipRite', next: 'EquipRite Next' };
+  document.querySelector(`input[name=version][value=${LABELS[init.version] ? init.version : 'old'}]`).checked = true;
+  [['new', init.newAvailable], ['next', init.nextAvailable]].forEach(([v, ok]) => {
+    if (ok) return;
+    $(v + 'Choice').classList.add('off');
+    $(v + 'Choice').querySelector('input').disabled = true;
+    $(v + 'Note').textContent = 'Not built yet: run npm run desktop:fresh';
+  });
   const syncVersion = () => {
     $('go').textContent = `Sign in and open ${LABELS[versionPicked()]}`;
   };

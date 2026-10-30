@@ -12,9 +12,10 @@
  * saved in userData (lib/identity.js), never in the project. Roles are read from the ROLES_RP report in Fusion,
  * or picked by hand for this PC.
  *
- * Two apps: Old EquipRite (webApps/vbredwoodapp, today's app, unchanged) and New EquipRite (webApps/equiprite, the
- * redesign). The sign-in window asks which to open; File > Open New EquipRite / Switch this window to Old EquipRite
- * switch without signing out. A link to Old EquipRite clicked in New EquipRite opens Old in a window of its own, so
+ * Three apps: Old EquipRite (webApps/vbredwoodapp, today's app, unchanged), New EquipRite (webApps/equiprite, the
+ * Redwood redesign) and EquipRite Next (webApps/equiprite-next, designed from the FDD, with tabs). The sign-in window
+ * asks which to open; File > Open New EquipRite / Open EquipRite Next / Switch this window to Old EquipRite switch
+ * without signing out, and New and Next have an Old / New / Next switch in their toolbar. A link to Old EquipRite clicked in New EquipRite opens Old in a window of its own, so
  * the New window stays put and the two can be shown side by side.
  * Each gets its own local server, at the site root as VB expects; both forward to the same backends with the same
  * sign-in, so they show the same data.
@@ -35,6 +36,7 @@ const BUILD_DIR = path.join(REPO_ROOT, 'build');
 const VERSIONS = {
   old: { webApp: 'vbredwoodapp', label: 'Old EquipRite', port: PORT },
   new: { webApp: 'equiprite', label: 'New EquipRite', port: PORT + 1 },
+  next: { webApp: 'equiprite-next', label: 'EquipRite Next', port: PORT + 2 },
 };
 const originOf = (v) => `http://localhost:${VERSIONS[v].port}`;
 const urlOf = (v) => `${originOf(v)}/`;
@@ -65,7 +67,7 @@ const shownOrigin = () => originOf(servers[version] ? version : 'old');
 function showTitle() {
   if (win && !win.isDestroyed()) {
     const v = servers[version] ? version : 'old';
-    win.setTitle(`${VERSIONS[v].label}${v === 'new' ? ' (preview)' : ''} · ${app.getVersion()}`);
+    win.setTitle(`${VERSIONS[v].label}${v !== 'old' ? ' (preview)' : ''} · ${app.getVersion()}`);
   }
 }
 
@@ -220,7 +222,7 @@ function openSignIn() {
   signinWin = new BrowserWindow({
     parent: win || undefined,
     modal: !!win,
-    width: 560,
+    width: 660,
     height: 960,
     resizable: false,
     minimizable: false,
@@ -255,8 +257,9 @@ ipcMain.handle('signin:initial', (event) => {
   }
   const saved = identityStore.load(identityFile()) || {};
   return {
-    version: servers.new ? identityStore.versionOf(saved.version) : 'old',
+    version: servers[identityStore.versionOf(saved.version)] ? identityStore.versionOf(saved.version) : 'old',
     newAvailable: !!servers.new,
+    nextAvailable: !!servers.next,
     username: saved.username || '',
     fusionUser: saved.fusionUser || '',
     hasPassword: !!saved.fusionPassword || !!passwordThisRun,
@@ -275,8 +278,8 @@ ipcMain.handle('signin:submit', (event, form) => {
   if (checked.error) {
     return { error: checked.error };
   }
-  if (checked.saved.version === 'new' && !servers.new) {
-    return { error: 'New EquipRite is not built yet. Run "npm run desktop:fresh" to build both apps.' };
+  if (checked.saved.version !== 'old' && !servers[checked.saved.version]) {
+    return { error: `${VERSIONS[checked.saved.version].label} is not built yet. Run "npm run desktop:fresh" to build the apps.` };
   }
   const encrypt = canEncrypt() ? (s) => safeStorage.encryptString(s) : null;
   if (checked.password && !encrypt) {
@@ -299,12 +302,12 @@ ipcMain.handle('signin:submit', (event, form) => {
   return { ok: true };
 });
 
-/** File → Open Old / New EquipRite: switch apps and stay signed in. The choice is remembered. */
+/** File → Open Old / New EquipRite / EquipRite Next: switch apps and stay signed in. The choice is remembered. */
 function openVersion(v) {
   if (!servers[v]) {
     dialog.showMessageBox(win, {
       type: 'info', title: APP_NAME, message: `${VERSIONS[v].label} is not built yet`,
-      detail: 'Run "npm run desktop:fresh" to build both apps, then start EquipRite again.', noLink: true,
+      detail: 'Run "npm run desktop:fresh" to build the apps, then start EquipRite again.', noLink: true,
     }).catch(() => {});
     return;
   }
@@ -511,6 +514,15 @@ function createWindow() {
       shell.openExternal(url);
     }
   });
+  // Switching with the Old / New / Next switch in the app: the window title and the app opened next time follow.
+  win.webContents.on('did-navigate', (_event, url) => {
+    const v = Object.keys(VERSIONS).find((k) => servers[k] && String(url).startsWith(urlOf(k)));
+    if (v && v !== version) {
+      version = v;
+      identityStore.saveVersion(identityFile(), v);
+      showTitle();
+    }
+  });
   win.webContents.on('did-fail-load', (_event, code, description, failedUrl, isMainFrame) => {
     // code -3 is an aborted load (e.g. the splash being replaced); ignore it.
     if (isMainFrame && code !== -3 && inApp(failedUrl)) {
@@ -533,6 +545,7 @@ function appMenu() {
       submenu: [
         { label: 'Open Old EquipRite in its own window', accelerator: 'CmdOrCtrl+Shift+1', click: () => openOldWindow() },
         { label: 'Open New EquipRite', accelerator: 'CmdOrCtrl+Shift+2', click: () => openVersion('new') },
+        { label: 'Open EquipRite Next', accelerator: 'CmdOrCtrl+Shift+3', click: () => openVersion('next') },
         { label: 'Switch this window to Old EquipRite', click: () => openVersion('old') },
         { type: 'separator' },
         { label: 'Sign in as…', accelerator: 'CmdOrCtrl+Shift+S', click: () => openSignIn() },
@@ -581,7 +594,7 @@ if (!app.requestSingleInstanceLock()) {
     Menu.setApplicationMenu(appMenu());
     createWindow();
     try {
-      // The old app must be there (it is today's app); the new one is served when it has been built.
+      // The old app must be there (it is today's app); New and Next are served when they have been built.
       for (const v of Object.keys(VERSIONS)) {
         if (v === 'old' || isBuilt(BUILD_DIR, VERSIONS[v].webApp)) {
           servers[v] = await createDevServer({
@@ -589,7 +602,7 @@ if (!app.requestSingleInstanceLock()) {
             webApp: VERSIONS[v].webApp,
             port: VERSIONS[v].port,
             getIdentity: () => identity,
-            getVersions: () => ({ old: urlOf('old'), new: servers.new ? urlOf('new') : '' }),
+            getVersions: () => ({ old: urlOf('old'), new: servers.new ? urlOf('new') : '', next: servers.next ? urlOf('next') : '' }),
             backendOverrides: backendOverridesFromEnv(process.env),
             onLog: pushLog,
             onProblem: backendProblem,

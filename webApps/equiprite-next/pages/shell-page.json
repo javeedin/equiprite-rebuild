@@ -1,0 +1,317 @@
+{
+  "description": "EquipRite Next shell: toolbar (menu toggle, brand, command bar, Old/New/Next switch, bell, user), a light collapsible menu, and the tab strip over oj-vb-switcher, which keeps every open tab's page alive. Tabs: resources/js/tabs.js; menu: resources/js/nav.js; bell: resources/js/alerts.js.",
+  "variables": {
+    "tabs": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "TabType",
+        "keyAttributes": "id"
+      },
+      "description": "The switcher's items, one per open tab (id, name, flow, page, params). Changed only through shellTabs.apply (mutation events), never replaced, so open tabs keep their pages."
+    },
+    "tabList": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "The tab strip, in order: { id, title, icon, navId, pinned }."
+    },
+    "currentTab": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "navCollapsed": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "Menu shown as icons only (kept in this browser)."
+    },
+    "navOpen": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "Menu shown over the content on a narrow window."
+    },
+    "query": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "results": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "resultIndex": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "showResults": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "bellOpen": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "alerts": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "unread": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "readIds": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "alertsAt": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "alertsLoading": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "alertsError": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "tabMenuOpen": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "toast": {
+      "type": "any",
+      "defaultValue": {
+        "message": "",
+        "tone": "info",
+        "seq": 0
+      }
+    },
+    "open": {
+      "type": "string",
+      "defaultValue": "",
+      "input": "fromUrl",
+      "description": "Deep link: ?open=<menu id> opens that screen; ?open=request&id=\u2026&number=\u2026 opens a record."
+    },
+    "id": {
+      "type": "string",
+      "defaultValue": "",
+      "input": "fromUrl"
+    },
+    "number": {
+      "type": "string",
+      "defaultValue": "",
+      "input": "fromUrl"
+    }
+  },
+  "types": {
+    "TabType": {
+      "id": "string",
+      "name": "string",
+      "flow": "string",
+      "page": "string",
+      "params": "object",
+      "title": "string",
+      "icon": "string",
+      "navId": "string",
+      "pinned": "boolean"
+    }
+  },
+  "events": {
+    "shellRequest": {
+      "description": "From a screen in a tab, through resources/js/shellBus.js: open a screen or record, rename or close a tab, show a toast.",
+      "payloadType": {
+        "action": "string",
+        "navId": "string",
+        "record": "string",
+        "params": "object",
+        "id": "string",
+        "title": "string",
+        "message": "string",
+        "tone": "string"
+      }
+    },
+    "refreshAlerts": {
+      "description": "Every five minutes, from the page module.",
+      "payloadType": "object"
+    },
+    "dismiss": {
+      "description": "Escape: closes the open popup.",
+      "payloadType": "object"
+    }
+  },
+  "eventListeners": {
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "shellEnterChain"
+        }
+      ]
+    },
+    "shellRequest": {
+      "chains": [
+        {
+          "chain": "shellRequestChain",
+          "parameters": {
+            "request": "{{ $event }}"
+          }
+        }
+      ]
+    },
+    "refreshAlerts": {
+      "chains": [
+        {
+          "chain": "loadAlertsChain"
+        }
+      ]
+    },
+    "dismiss": {
+      "chains": [
+        {
+          "chain": "dismissChain"
+        }
+      ]
+    },
+    "onNav": {
+      "chains": [
+        {
+          "chain": "openChain",
+          "parameters": {
+            "navId": "{{ $event.currentTarget.dataset.navId }}"
+          }
+        }
+      ]
+    },
+    "onTab": {
+      "chains": [
+        {
+          "chain": "showTabChain",
+          "parameters": {
+            "id": "{{ $event.currentTarget.dataset.id }}"
+          }
+        }
+      ]
+    },
+    "onTabClose": {
+      "chains": [
+        {
+          "chain": "closeTabChain",
+          "parameters": {
+            "id": "{{ $event.currentTarget.dataset.id }}"
+          }
+        }
+      ]
+    },
+    "onTabAux": {
+      "chains": [
+        {
+          "chain": "closeTabChain",
+          "parameters": {
+            "id": "{{ $event.button === 1 ? $event.currentTarget.dataset.id : '' }}"
+          }
+        }
+      ]
+    },
+    "onTabMenu": {
+      "chains": [
+        {
+          "chain": "tabMenuChain",
+          "parameters": {
+            "action": "{{ $event.currentTarget.dataset.action }}"
+          }
+        }
+      ]
+    },
+    "toggleNav": {
+      "chains": [
+        {
+          "chain": "navChain"
+        }
+      ]
+    },
+    "onCommandInput": {
+      "chains": [
+        {
+          "chain": "commandChain",
+          "parameters": {
+            "text": "{{ $event.target.value }}"
+          }
+        }
+      ]
+    },
+    "onCommandKey": {
+      "chains": [
+        {
+          "chain": "commandKeyChain",
+          "parameters": {
+            "key": "{{ $event.key }}"
+          }
+        }
+      ]
+    },
+    "onResult": {
+      "chains": [
+        {
+          "chain": "resultChain",
+          "parameters": {
+            "index": "{{ $event.currentTarget.dataset.index }}"
+          }
+        }
+      ]
+    },
+    "onBell": {
+      "chains": [
+        {
+          "chain": "bellChain"
+        }
+      ]
+    },
+    "onAlert": {
+      "chains": [
+        {
+          "chain": "alertChain",
+          "parameters": {
+            "id": "{{ $event.currentTarget.dataset.id }}"
+          }
+        }
+      ]
+    },
+    "onMarkAllRead": {
+      "chains": [
+        {
+          "chain": "markAllReadChain"
+        }
+      ]
+    },
+    "onToastClose": {
+      "chains": [
+        {
+          "chain": "toastChain",
+          "parameters": {
+            "message": ""
+          }
+        }
+      ]
+    },
+    "onBackdrop": {
+      "chains": [
+        {
+          "chain": "dismissChain"
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-vb-switcher": {
+        "path": "vb/components/oj-vb-switcher/loader"
+      },
+      "oj-bind-for-each": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-if": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-text": {
+        "path": "ojs/ojknockout"
+      }
+    }
+  }
+}
