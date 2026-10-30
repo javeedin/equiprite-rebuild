@@ -33,6 +33,7 @@ const Progress = load('requestProgress');
 const alerts = load('alerts', { 'resources/js/requestProgress': Progress });
 const fmt = load('fmt');
 const list = load('requestList', { 'resources/js/requestProgress': Progress, 'resources/js/fmt': fmt, 'resources/js/rules': rules });
+const myWork = load('myWork', { 'resources/js/requestList': list, 'resources/js/alerts': alerts, 'resources/js/rules': rules });
 
 const ALL = { EQR_DASHBOARD: 'FULL', EQR_EQUIPMENT_REQUESTS: 'FULL', EQR_PROJ_CREATE_REQUEST: 'FULL', EQR_WORKBENCH: 'FULL', EQR_EQUIPMENT_MASTER: 'FULL',
   EQR_EQUIPMENT_SCHEDULE: 'FULL', EQR_INITIATE_PICKING: 'FULL', EQR_EQUIPMENT_RETURNS: 'FULL', EQR_TIMESHEETS: 'FULL', EQR_TIMESHEET_APPROVALS: 'FULL',
@@ -162,6 +163,25 @@ T.section('the Requests screen');
   T.eq('pieces count quantities', items[1].pieces, 3);
   T.eq('summary', list.summary(items), '4 requests · 6 pieces of equipment · 1 late');
   T.check('export columns: stored status kept, status in words', list.exportColumns('list').some((c) => c.label === 'Stored status') && list.exportColumns('list')[4].value(items[0]) === 'Partly returned · 1 of 2');
+}
+
+T.section('My work');
+{
+  const NOWW = Date.UTC(2026, 9, 30, 9);
+  const dd = (n) => new Date(NOWW + n * 86400000).toISOString().slice(0, 10);
+  const rows = [
+    { eqrEquipmentRequestId: 1, requestNumber: 'R1', status: 'IN_PROCESS', startDate: dd(-22), endDate: dd(0), projectName: 'Pier A' },
+    { eqrEquipmentRequestId: 2, requestNumber: 'R2', status: 'SUBMITTED', startDate: dd(5), endDate: dd(20), projectName: 'Plant B' },
+  ];
+  const lines = { R1: [{ lineStatus: 'CLOSED' }, { lineStatus: 'IN_PROCESS' }], R2: [{ lineStatus: 'SUBMITTED' }] };
+  const items = list.decorate(rows, lines, NOWW);
+  const fleet = { total: 10, yard: 5, going: 1, out: 3, due: 1, overdue: 1, maint: 0, outNow: 5, utilizationPct: 50, tight: 0 };
+  const mgr = myWork.build('EQUIP_MGR', items, rows, lines, fleet, () => true, NOWW);
+  T.eq('a manager: approvals, units to assign, late, the fleet', mgr.tiles.map((t) => t.key + ':' + t.value).join(' '), 'approval:1 assign:1 late:1 due:2 out:5 yard:5');
+  const req = myWork.build('REQUESTOR', items, rows, lines, null, (id) => id !== 'timesheets', NOWW);
+  T.eq('a requestor: their open requests; shortcuts only to screens their role opens', req.tiles.map((t) => t.key).join() + ' | ' + req.actions.join(), 'open,out,onsite,late | new-request,requests');
+  T.eq('a tile for a screen the role cannot open is left out', myWork.build('EQUIP_MGR', items, rows, lines, fleet, (id) => id !== 'approvals', NOWW).tiles.map((t) => t.key).join(), 'late,due,out,yard');
+  T.eq('latest requests, newest first', mgr.recent.map((r) => r.requestNumber).join(), 'R2,R1');
 }
 
 T.section('formatting');

@@ -1,6 +1,108 @@
 {
-  "description": "My work (placeholder while the shell is proven).",
-  "navigation": { "embeddable": "enabled" },
-  "variables": {},
-  "imports": { "components": { "oj-bind-text": { "path": "ojs/ojknockout" } } }
+  "description": "My work: for each persona, what needs them now (late, approvals, units to assign, deliveries, sent back), their counts, their latest requests read from the equipment, and the screens they start from. An administrator can view any persona's work.",
+  "navigation": {
+    "embeddable": "enabled"
+  },
+  "variables": {
+    "persona": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "personas": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "work": {
+      "type": "any",
+      "defaultValue": {
+        "tiles": [],
+        "needs": [],
+        "recent": [],
+        "actions": []
+      }
+    },
+    "find": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "isLoading": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "error": {
+      "type": "string",
+      "defaultValue": ""
+    }
+  },
+  "eventListeners": {
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "workChain",
+          "parameters": {
+            "persona": "",
+            "refresh": false
+          }
+        }
+      ]
+    },
+    "onPersona": {
+      "chains": [
+        {
+          "chain": "workChain",
+          "parameters": {
+            "persona": "{{ $event.currentTarget.dataset.persona }}",
+            "refresh": false
+          }
+        }
+      ]
+    },
+    "onRefresh": {
+      "chains": [
+        {
+          "chain": "workChain",
+          "parameters": {
+            "persona": "{{ $variables.persona }}",
+            "refresh": true
+          }
+        }
+      ]
+    },
+    "onOpen": {
+      "chains": [
+        {
+          "chain": "workOpenChain",
+          "parameters": {
+            "navId": "{{ $event.currentTarget.dataset.nav }}",
+            "id": "{{ $event.currentTarget.dataset.id }}",
+            "number": "{{ $event.currentTarget.dataset.number }}"
+          }
+        }
+      ]
+    },
+    "onFind": {
+      "chains": [
+        {
+          "chain": "workFindChain",
+          "parameters": {
+            "text": "{{ $event.target.value }}",
+            "key": "{{ $event.key }}"
+          }
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-if": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-text": {
+        "path": "ojs/ojknockout"
+      }
+    }
+  }
 }

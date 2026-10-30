@@ -43,7 +43,7 @@ function handle(req, res) {
       'REQUESTS, EQUIPMENT, YARD & LOGISTICS, USAGE & BILLING, COMMERCIAL, INSIGHTS, ADMIN, CUSTOMERS');
 
     T.section('tabs keep their pages');
-    await page.fill('#page-home .nx-note-test', 'half-typed note');
+    await page.fill('#workFind', 'half-typed note');
     await page.click('.nx-nav-item[data-nav-id="availability"]');
     await page.waitForSelector('.nx-soon-card');
     T.check('a screen not built yet says so and opens New EquipRite\'s screen', (await page.getAttribute('#soonOpenNew', 'href')) === env.newUrl + '/vp/shell/schedule/schedule');
@@ -51,7 +51,7 @@ function handle(req, res) {
     T.eq('the menu highlights it', await page.$eval('.nx-nav-item--on', (b) => b.dataset.navId), 'availability');
     await page.click('.nx-tab-btn[data-id="home"]');
     await page.waitForTimeout(400);
-    T.eq('back on My work, what was typed is still there', await page.inputValue('#page-home .nx-note-test'), 'half-typed note');
+    T.eq('back on My work, what was typed is still there', await page.inputValue('#workFind'), 'half-typed note');
     await page.click('.nx-nav-item[data-nav-id="analytics"]');
     await page.click('.nx-nav-item[data-nav-id="availability"]');
     await page.waitForTimeout(300);
