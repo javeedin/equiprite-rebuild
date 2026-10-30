@@ -1,0 +1,14 @@
+{
+  "id": "usage",
+  "description": "Usage & billing (FDD 7.13, 7.14, 7.14A, 7.9): Timesheets (a week of hours), Approve time (in bulk, what needs a look first), Post costs (what is ready and what was posted; posting stays in New EquipRite), a request's costs in its own tab, and Direct cost & inventory (what a request has used; recording stays in New EquipRite).",
+  "defaultPage": "timesheets",
+  "navigation": { "embeddable": "enabled" },
+  "pages": {
+    "timesheets": { "path": "pages/timesheets-page" },
+    "approve-time": { "path": "pages/approve-time-page" },
+    "costs": { "path": "pages/costs-page" },
+    "cost": { "path": "pages/cost-page" },
+    "direct-costs": { "path": "pages/direct-costs-page" }
+  },
+  "chains": {}, "services": {}, "types": {}, "variables": {}
+}

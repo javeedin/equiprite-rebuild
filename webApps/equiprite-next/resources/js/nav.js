@@ -47,13 +47,13 @@ define(['resources/js/rules'], function (rules) {
     ] },
     { key: 'usage', label: 'Usage & billing', flags: ['PROJECTS_MODULE_ENABLED'], items: [
       { id: 'timesheets', label: 'Timesheets', icon: 'oj-ux-ico-clock', pageCodes: ['EQR_TIMESHEETS'], flags: ['TIMESHEETS_ENABLED'],
-        route: { flow: 'usage', page: 'timesheets' }, built: false, newNav: 'time-entry', keywords: 'time entry hours usage' },
+        route: { flow: 'usage', page: 'timesheets' }, built: true, newNav: 'time-entry', keywords: 'time entry hours usage' },
       { id: 'approve-time', label: 'Approve time', icon: 'oj-ux-ico-check-circle', pageCodes: ['EQR_TIMESHEET_APPROVALS'], flags: ['TIMESHEETS_ENABLED'],
-        route: { flow: 'usage', page: 'approve-time' }, built: false, newNav: 'timesheet-approval', keywords: 'timesheet approval' },
+        route: { flow: 'usage', page: 'approve-time' }, built: true, newNav: 'timesheet-approval', keywords: 'timesheet approval' },
       { id: 'costs', label: 'Post costs', icon: 'oj-ux-ico-currency-dollar', pageCodes: ['EQR_POST_COST'], hiddenWhenFlags: ['PPM_RATES_ENABLED'],
-        route: { flow: 'usage', page: 'costs' }, built: false, newNav: 'post-costs', keywords: 'cost posting billing finance' },
+        route: { flow: 'usage', page: 'costs' }, built: true, newNav: 'post-costs', keywords: 'cost posting billing finance' },
       { id: 'direct-costs', label: 'Direct cost & inventory', icon: 'oj-ux-ico-wallet-box', pageCodes: ['EQR_EQUIPMENT_MASTER'],
-        route: { flow: 'usage', page: 'direct-costs' }, built: false, newNav: 'project-costs', keywords: 'project costs consumables' }
+        route: { flow: 'usage', page: 'direct-costs' }, built: true, newNav: 'project-costs', keywords: 'project costs consumables' }
     ] },
     { key: 'commercial', label: 'Commercial', items: [
       { id: 'rates', label: 'Rates', icon: 'oj-ux-ico-tables-basic', pageCodes: ['EQR_RATE_SCHEDULE'], hiddenByRateSource: true,
@@ -116,7 +116,9 @@ define(['resources/js/rules'], function (rules) {
       title: function (p) { return (p && (p.number || p.id)) || 'Equipment'; } },
     // An agreement is keyed by its number ({ number: 'RNT-0002' }); { id: 'new' } is a new one.
     agreement: { flow: 'commercial', page: 'agreement', icon: 'oj-ux-ico-file-text', navId: 'agreements',
-      title: function (p) { return (p && (p.number || (p.id === 'new' ? 'New agreement' : p.id))) || 'Agreement'; } }
+      title: function (p) { return (p && (p.number || (p.id === 'new' ? 'New agreement' : p.id))) || 'Agreement'; } },
+    cost: { flow: 'usage', page: 'cost', icon: 'oj-ux-ico-currency-dollar', navId: 'costs',
+      title: function (p) { return ((p && (p.number || p.id)) || 'Request') + ' costs'; } }
   };
 
   /** The page the tab of a menu item shows: its own screen, or the "being built" page for one not built yet. */

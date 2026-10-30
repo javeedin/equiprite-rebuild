@@ -1,0 +1,294 @@
+<!-- Direct cost & inventory. For an active request: what its consumables have used and what is left, the material issues
+     recorded, its direct costs and its cost history. Recording a material issue or a direct cost posts to Fusion, so it
+     is done in New EquipRite (a link on the request). Reads only. -->
+<div class="nx-page nx-dc">
+  <div class="nx-pagehead">
+    <div>
+      <h1>Direct cost &amp; inventory</h1>
+      <div class="nx-sub" id="dcSummary">
+        <oj-bind-text value="[[ $variables.isLoading && !$variables.requests.length ? 'Loading the active requests…'
+          : (!$variables.current ? 'Fuel, parts and consumables used on approved and active requests'
+          : $variables.current.requestNumber + ' · ' + ($variables.current.projectName || '—') + ($variables.current.taskName ? ' / ' + $variables.current.taskName : '')) ]]"></oj-bind-text>
+      </div>
+    </div>
+    <div class="nx-actions">
+      <button type="button" class="nx-btn nx-btn--plain" on-click="[[ $listeners.onRefresh ]]" :disabled="[[ $variables.isLoading || $variables.detailLoading || !!$variables.closed ]]">
+        <span class="oj-ux-ico-refresh" aria-hidden="true"></span>Refresh</button>
+      <oj-bind-if test="[[ !!$variables.current && !!$functions.newUrl($application.variables.appUrls.new, $variables.current ? $variables.current.requestNumber : '') ]]">
+        <a class="nx-btn nx-btn--primary" id="dcInNew" :href="[[ $functions.newUrl($application.variables.appUrls.new, $variables.current ? $variables.current.requestNumber : '') ]]"
+          title="Record a material issue against this request there">
+          <span class="oj-ux-ico-external-link" aria-hidden="true"></span>Record in New EquipRite</a>
+      </oj-bind-if>
+    </div>
+  </div>
+
+  <oj-bind-if test="[[ !!$variables.closed ]]">
+    <div class="nx-card nx-empty" role="alert"><oj-bind-text value="[[ $variables.closed ]]"></oj-bind-text></div>
+  </oj-bind-if>
+  <oj-bind-if test="[[ !!$variables.loadError ]]">
+    <div class="nx-error" role="alert"><oj-bind-text value="[[ $variables.loadError ]]"></oj-bind-text></div>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ !$variables.closed ]]">
+    <div class="nx-u-fusion" id="dcFusion">
+      <p><strong>Recording is done in New EquipRite for now.</strong> A material issue becomes a miscellaneous issue in Fusion
+        Inventory and a direct cost an expenditure item in Fusion Projects, and EquipRite Next does not post to Fusion yet. Here you
+        see what each request has used, what is left and what it has cost.</p>
+    </div>
+
+    <!-- ── Active requests ──────────────────────────────────────────────────────────────────────────────── -->
+    <section class="nx-card nx-ts-queue" aria-labelledby="dcReqTitle">
+      <div class="nx-u-cardhead">
+        <h2 class="nx-u-h2" id="dcReqTitle"><oj-bind-text value="[[ 'Approved and active requests (' + $variables.requests.length + ')' ]]"></oj-bind-text></h2>
+        <label class="nx-search">
+          <span class="oj-ux-ico-search" aria-hidden="true"></span>
+          <input type="search" :value="[[ $variables.requestText ]]" on-input="[[ $listeners.onRequestSearch ]]" aria-label="Find a request" placeholder="Request, project or task">
+        </label>
+        <div class="nx-export">
+          <button type="button" class="nx-btn nx-btn--sm" data-what="requests" id="dcExportRequests" on-click="[[ $listeners.onExportMenu ]]" aria-haspopup="menu"
+            :aria-expanded="[[ $variables.exportOpen === 'requests' ? 'true' : 'false' ]]"><span class="oj-ux-ico-download" aria-hidden="true"></span>Export</button>
+          <oj-bind-if test="[[ $variables.exportOpen === 'requests' ]]">
+            <div class="nx-menu" role="menu" aria-label="Export the requests">
+              <oj-bind-for-each data="[[ $functions.formats() ]]">
+                <template data-oj-as="f">
+                  <button type="button" role="menuitem" class="nx-menu-item" data-what="requests" :data-format="[[ f.data.key ]]" on-click="[[ $listeners.onExport ]]">
+                    <span :class="[[ f.data.icon ]]" aria-hidden="true"></span><oj-bind-text value="[[ f.data.label ]]"></oj-bind-text></button>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </oj-bind-if>
+        </div>
+      </div>
+      <div class="nx-ts-qlist" role="group" aria-label="Requests">
+        <oj-bind-for-each data="[[ $functions.requestRows($variables.requests, $variables.requestText) ]]">
+          <template data-oj-as="r">
+            <button type="button" :class="[[ $functions.itemClass(r.data, $variables.current) ]]" :data-id="[[ '' + r.data.id ]]" :data-request="[[ r.data.requestNumber ]]"
+              on-click="[[ $listeners.onPickRequest ]]" :aria-pressed="[[ $variables.current && $variables.current.id === r.data.id ? 'true' : 'false' ]]"
+              :title="[[ 'Stored status: ' + r.data.status ]]">
+              <span class="nx-ts-qtop"><strong><oj-bind-text value="[[ r.data.requestNumber ]]"></oj-bind-text></strong>
+                <span :class="[[ 'nx-ts-dot nx-stage--' + r.data.tone ]]" aria-hidden="true"></span></span>
+              <span class="nx-ts-qproj"><oj-bind-text value="[[ (r.data.projectName || '—') + (r.data.taskName ? ' / ' + r.data.taskName : '') ]]"></oj-bind-text></span>
+              <span class="nx-ts-qnote"><oj-bind-text value="[[ r.data.word ]]"></oj-bind-text></span>
+            </button>
+          </template>
+        </oj-bind-for-each>
+        <oj-bind-if test="[[ !$variables.isLoading && $functions.requestRows($variables.requests, $variables.requestText).length === 0 ]]">
+          <span class="nx-muted nx-ts-qempty"><oj-bind-text value="[[ $variables.requests.length ? 'Nothing matches the search.' : 'No approved or active request.' ]]"></oj-bind-text></span>
+        </oj-bind-if>
+      </div>
+    </section>
+
+    <oj-bind-if test="[[ !!$variables.current ]]">
+      <oj-bind-if test="[[ !!$variables.detailError ]]">
+        <div class="nx-error" role="alert"><oj-bind-text value="[[ $variables.detailError ]]"></oj-bind-text></div>
+      </oj-bind-if>
+
+      <section class="nx-kpis nx-u-kpis" aria-label="The request">
+        <div class="nx-kpi nx-u-kpi--ready" id="dcKpiCons">
+          <span class="nx-kpi-label">Consumables</span>
+          <span class="nx-kpi-value"><oj-bind-text value="[[ $functions.facts($variables.lines, $variables.consumptions, $variables.directCosts, $variables.costRows).consumables ]]"></oj-bind-text></span>
+          <span class="nx-kpi-note"><oj-bind-text value="[[ $functions.facts($variables.lines, $variables.consumptions, $variables.directCosts, $variables.costRows).used + ' used · '
+            + $functions.facts($variables.lines, $variables.consumptions, $variables.directCosts, $variables.costRows).left + ' left to account for' ]]"></oj-bind-text></span>
+        </div>
+        <div class="nx-kpi nx-u-kpi--wait" id="dcKpiIssues">
+          <span class="nx-kpi-label">Material issues recorded</span>
+          <span class="nx-kpi-value"><oj-bind-text value="[[ $functions.facts($variables.lines, $variables.consumptions, $variables.directCosts, $variables.costRows).issues ]]"></oj-bind-text></span>
+          <span class="nx-kpi-note">Recorded in New EquipRite</span>
+        </div>
+        <div class="nx-kpi nx-u-kpi--run" id="dcKpiDirect">
+          <span class="nx-kpi-label">Direct costs</span>
+          <span class="nx-kpi-value"><oj-bind-text value="[[ $functions.money($functions.facts($variables.lines, $variables.consumptions, $variables.directCosts, $variables.costRows).direct) ]]"></oj-bind-text></span>
+          <span class="nx-kpi-note"><oj-bind-text value="[[ $functions.plural($functions.facts($variables.lines, $variables.consumptions, $variables.directCosts, $variables.costRows).directCount, 'cost') ]]"></oj-bind-text></span>
+        </div>
+        <div class="nx-kpi nx-u-kpi--muted" id="dcKpiCost">
+          <span class="nx-kpi-label">Cost to date</span>
+          <span class="nx-kpi-value"><oj-bind-text value="[[ $functions.money($functions.facts($variables.lines, $variables.consumptions, $variables.directCosts, $variables.costRows).cost) ]]"></oj-bind-text></span>
+          <span class="nx-kpi-note">From the project cost detail</span>
+        </div>
+      </section>
+
+      <!-- Equipment and consumables -->
+      <section class="nx-card" aria-labelledby="dcLinesTitle">
+        <div class="nx-card-head">
+          <h2 id="dcLinesTitle"><oj-bind-text value="[[ 'Equipment and consumables (' + $variables.lines.length + ')' ]]"></oj-bind-text></h2>
+          <div class="nx-export">
+            <button type="button" class="nx-btn nx-btn--sm" data-what="lines" id="dcExportLines" on-click="[[ $listeners.onExportMenu ]]" aria-haspopup="menu"
+              :aria-expanded="[[ $variables.exportOpen === 'lines' ? 'true' : 'false' ]]"><span class="oj-ux-ico-download" aria-hidden="true"></span>Export</button>
+            <oj-bind-if test="[[ $variables.exportOpen === 'lines' ]]">
+              <div class="nx-menu" role="menu" aria-label="Export the lines">
+                <oj-bind-for-each data="[[ $functions.formats() ]]">
+                  <template data-oj-as="f">
+                    <button type="button" role="menuitem" class="nx-menu-item" data-what="lines" :data-format="[[ f.data.key ]]" on-click="[[ $listeners.onExport ]]">
+                      <span :class="[[ f.data.icon ]]" aria-hidden="true"></span><oj-bind-text value="[[ f.data.label ]]"></oj-bind-text></button>
+                  </template>
+                </oj-bind-for-each>
+              </div>
+            </oj-bind-if>
+          </div>
+        </div>
+        <oj-bind-if test="[[ $variables.lines.length === 0 ]]">
+          <div class="nx-empty"><oj-bind-text value="[[ $variables.detailLoading ? 'Loading the lines…' : 'This request has no line to record against.' ]]"></oj-bind-text></div>
+        </oj-bind-if>
+        <oj-bind-if test="[[ $variables.lines.length > 0 ]]">
+          <div class="nx-table">
+            <div class="nx-grid nx-grid--dcl" role="table" aria-label="Equipment and consumables">
+              <div class="nx-row nx-row--head" role="row">
+                <span role="columnheader">Equipment</span><span role="columnheader" class="nx-u-cell-r">Requested</span>
+                <span role="columnheader" class="nx-u-cell-r">Delivered</span><span role="columnheader" class="nx-u-cell-r">Used</span>
+                <span role="columnheader" class="nx-u-cell-r">Left</span><span role="columnheader">Where it is</span>
+              </div>
+              <oj-bind-for-each data="[[ $functions.lineRows($variables.lines, $variables.consumptions) ]]">
+                <template data-oj-as="l">
+                  <div class="nx-row" role="row" :data-line="[[ '' + l.data.lineId ]]">
+                    <span role="cell"><span class="nx-cell-main"><oj-bind-text value="[[ l.data.equipmentName ]]"></oj-bind-text></span>
+                      <span class="nx-cell-sub"><oj-bind-text value="[[ l.data.kind ]]"></oj-bind-text></span></span>
+                    <span role="cell" class="nx-num nx-u-cell-r"><oj-bind-text value="[[ $functions.qty(l.data.requested) ]]"></oj-bind-text></span>
+                    <span role="cell" class="nx-num nx-u-cell-r"><oj-bind-text value="[[ $functions.qty(l.data.delivered) ]]"></oj-bind-text></span>
+                    <span role="cell" class="nx-num nx-u-cell-r"><oj-bind-text value="[[ l.data.consumable || l.data.used ? '' + l.data.used : '—' ]]"></oj-bind-text></span>
+                    <span role="cell" :class="[[ $functions.leftClass(l.data) ]]"><strong><oj-bind-text value="[[ $functions.qty(l.data.left) ]]"></oj-bind-text></strong></span>
+                    <span role="cell"><span :class="[[ 'nx-pill nx-stage--' + l.data.tone ]]" :title="[[ 'Stored line status: ' + l.data.lineStatus ]]"><oj-bind-text value="[[ l.data.word ]]"></oj-bind-text></span></span>
+                  </div>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </div>
+        </oj-bind-if>
+      </section>
+
+      <div class="nx-u-split nx-dc-split">
+        <!-- Material issues -->
+        <section class="nx-card" aria-labelledby="dcIssuesTitle">
+          <div class="nx-card-head">
+            <h2 id="dcIssuesTitle"><oj-bind-text value="[[ 'Material issues recorded (' + $variables.consumptions.length + ')' ]]"></oj-bind-text></h2>
+            <div class="nx-export">
+              <button type="button" class="nx-btn nx-btn--sm" data-what="issues" id="dcExportIssues" on-click="[[ $listeners.onExportMenu ]]" aria-haspopup="menu"
+                :aria-expanded="[[ $variables.exportOpen === 'issues' ? 'true' : 'false' ]]"><span class="oj-ux-ico-download" aria-hidden="true"></span>Export</button>
+              <oj-bind-if test="[[ $variables.exportOpen === 'issues' ]]">
+                <div class="nx-menu" role="menu" aria-label="Export the material issues">
+                  <oj-bind-for-each data="[[ $functions.formats() ]]">
+                    <template data-oj-as="f">
+                      <button type="button" role="menuitem" class="nx-menu-item" data-what="issues" :data-format="[[ f.data.key ]]" on-click="[[ $listeners.onExport ]]">
+                        <span :class="[[ f.data.icon ]]" aria-hidden="true"></span><oj-bind-text value="[[ f.data.label ]]"></oj-bind-text></button>
+                    </template>
+                  </oj-bind-for-each>
+                </div>
+              </oj-bind-if>
+            </div>
+          </div>
+          <oj-bind-if test="[[ $variables.consumptions.length === 0 ]]">
+            <div class="nx-empty">Nothing used on this request yet.</div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.consumptions.length > 0 ]]">
+            <div class="nx-table">
+              <div class="nx-grid nx-grid--dci" role="table" aria-label="Material issues">
+                <div class="nx-row nx-row--head" role="row">
+                  <span role="columnheader">Date</span><span role="columnheader">Item, lot or serial</span><span role="columnheader" class="nx-u-cell-r">Quantity</span>
+                  <span role="columnheader">Used on</span><span role="columnheader">Notes</span>
+                </div>
+                <oj-bind-for-each data="[[ $functions.issueRows($variables.consumptions, $variables.lines) ]]">
+                  <template data-oj-as="c">
+                    <div class="nx-row" role="row">
+                      <span role="cell" class="nx-num"><oj-bind-text value="[[ $functions.date(c.data.date) ]]"></oj-bind-text></span>
+                      <span role="cell" class="nx-ellipsis"><oj-bind-text value="[[ c.data.item ]]"></oj-bind-text></span>
+                      <span role="cell" class="nx-num nx-u-cell-r"><oj-bind-text value="[[ $functions.qty(c.data.quantity) + ' ' + c.data.uom ]]"></oj-bind-text></span>
+                      <span role="cell" class="nx-ellipsis"><oj-bind-text value="[[ c.data.line ]]"></oj-bind-text></span>
+                      <span role="cell" class="nx-ellipsis"><oj-bind-text value="[[ c.data.notes ]]"></oj-bind-text></span>
+                    </div>
+                  </template>
+                </oj-bind-for-each>
+              </div>
+            </div>
+          </oj-bind-if>
+        </section>
+
+        <!-- Direct costs -->
+        <section class="nx-card" aria-labelledby="dcDirectTitle">
+          <div class="nx-card-head">
+            <h2 id="dcDirectTitle"><oj-bind-text value="[[ 'Direct costs (' + $variables.directCosts.length + ')' ]]"></oj-bind-text></h2>
+            <div class="nx-export">
+              <button type="button" class="nx-btn nx-btn--sm" data-what="direct" id="dcExportDirect" on-click="[[ $listeners.onExportMenu ]]" aria-haspopup="menu"
+                :aria-expanded="[[ $variables.exportOpen === 'direct' ? 'true' : 'false' ]]"><span class="oj-ux-ico-download" aria-hidden="true"></span>Export</button>
+              <oj-bind-if test="[[ $variables.exportOpen === 'direct' ]]">
+                <div class="nx-menu" role="menu" aria-label="Export the direct costs">
+                  <oj-bind-for-each data="[[ $functions.formats() ]]">
+                    <template data-oj-as="f">
+                      <button type="button" role="menuitem" class="nx-menu-item" data-what="direct" :data-format="[[ f.data.key ]]" on-click="[[ $listeners.onExport ]]">
+                        <span :class="[[ f.data.icon ]]" aria-hidden="true"></span><oj-bind-text value="[[ f.data.label ]]"></oj-bind-text></button>
+                    </template>
+                  </oj-bind-for-each>
+                </div>
+              </oj-bind-if>
+            </div>
+          </div>
+          <oj-bind-if test="[[ $variables.directCosts.length === 0 ]]">
+            <div class="nx-empty">No direct cost on this request.</div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.directCosts.length > 0 ]]">
+            <div class="nx-table">
+              <div class="nx-grid nx-grid--dcd" role="table" aria-label="Direct costs">
+                <div class="nx-row nx-row--head" role="row">
+                  <span role="columnheader">Date</span><span role="columnheader">What</span><span role="columnheader" class="nx-u-cell-r">Amount</span><span role="columnheader">Status</span>
+                </div>
+                <oj-bind-for-each data="[[ $functions.directRows($variables.directCosts) ]]">
+                  <template data-oj-as="d">
+                    <div class="nx-row" role="row">
+                      <span role="cell" class="nx-num"><oj-bind-text value="[[ $functions.date(d.data.date) ]]"></oj-bind-text></span>
+                      <span role="cell" class="nx-ellipsis"><oj-bind-text value="[[ d.data.what ]]"></oj-bind-text></span>
+                      <span role="cell" class="nx-num nx-u-cell-r"><oj-bind-text value="[[ $functions.money(d.data.amount) ]]"></oj-bind-text></span>
+                      <span role="cell"><oj-bind-text value="[[ d.data.word ]]"></oj-bind-text></span>
+                    </div>
+                  </template>
+                </oj-bind-for-each>
+              </div>
+            </div>
+          </oj-bind-if>
+        </section>
+      </div>
+
+      <!-- Cost history -->
+      <section class="nx-card" aria-labelledby="dcHistTitle">
+        <div class="nx-card-head">
+          <h2 id="dcHistTitle"><oj-bind-text value="[[ 'Cost history (' + $variables.costRows.length + ')' ]]"></oj-bind-text></h2>
+          <div class="nx-export">
+            <button type="button" class="nx-btn nx-btn--sm" data-what="history" id="dcExportHistory" on-click="[[ $listeners.onExportMenu ]]" aria-haspopup="menu"
+              :aria-expanded="[[ $variables.exportOpen === 'history' ? 'true' : 'false' ]]"><span class="oj-ux-ico-download" aria-hidden="true"></span>Export</button>
+            <oj-bind-if test="[[ $variables.exportOpen === 'history' ]]">
+              <div class="nx-menu" role="menu" aria-label="Export the cost history">
+                <oj-bind-for-each data="[[ $functions.formats() ]]">
+                  <template data-oj-as="f">
+                    <button type="button" role="menuitem" class="nx-menu-item" data-what="history" :data-format="[[ f.data.key ]]" on-click="[[ $listeners.onExport ]]">
+                      <span :class="[[ f.data.icon ]]" aria-hidden="true"></span><oj-bind-text value="[[ f.data.label ]]"></oj-bind-text></button>
+                  </template>
+                </oj-bind-for-each>
+              </div>
+            </oj-bind-if>
+          </div>
+        </div>
+        <oj-bind-if test="[[ $variables.costRows.length === 0 ]]">
+          <div class="nx-empty"><oj-bind-text value="[[ $variables.detailLoading ? 'Loading…' : 'No cost recorded on this request yet.' ]]"></oj-bind-text></div>
+        </oj-bind-if>
+        <oj-bind-if test="[[ $variables.costRows.length > 0 ]]">
+          <div class="nx-table">
+            <div class="nx-grid nx-grid--dch" role="table" aria-label="Cost history">
+              <div class="nx-row nx-row--head" role="row">
+                <span role="columnheader">Date</span><span role="columnheader">Equipment</span><span role="columnheader" class="nx-u-cell-r">Quantity</span>
+                <span role="columnheader" class="nx-u-cell-r">Cost</span><span role="columnheader">Status</span>
+              </div>
+              <oj-bind-for-each data="[[ $functions.historyRows($variables.costRows) ]]">
+                <template data-oj-as="h">
+                  <div class="nx-row" role="row">
+                    <span role="cell" class="nx-num"><oj-bind-text value="[[ $functions.date(h.data.date) ]]"></oj-bind-text></span>
+                    <span role="cell" class="nx-ellipsis"><oj-bind-text value="[[ h.data.equipment || '—' ]]"></oj-bind-text></span>
+                    <span role="cell" class="nx-num nx-u-cell-r"><oj-bind-text value="[[ $functions.qty(h.data.quantity) ]]"></oj-bind-text></span>
+                    <span role="cell" class="nx-num nx-u-cell-r"><oj-bind-text value="[[ $functions.money(h.data.cost) ]]"></oj-bind-text></span>
+                    <span role="cell"><oj-bind-text value="[[ h.data.status ]]"></oj-bind-text></span>
+                  </div>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </div>
+        </oj-bind-if>
+      </section>
+    </oj-bind-if>
+  </oj-bind-if>
+</div>

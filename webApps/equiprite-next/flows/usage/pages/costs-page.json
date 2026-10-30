@@ -1,0 +1,103 @@
+{
+  "description": "Post costs (FDD 7.14A, S24), for Finance: every request with cost, what is ready to post, what was posted and what is still running, worked out per request from the same reads and rules as New EquipRite's Post costs. Opens a request's costs in its own tab. Posting to Fusion PPM stays in New EquipRite: nothing is posted, ticked or written here. Logic: resources/js/costPreview.js and costData.js.",
+  "navigation": {
+    "embeddable": "enabled"
+  },
+  "variables": {
+    "closed": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "list": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "One row per request (New's buildList over views/post-cost and the misc charges)."
+    },
+    "misc": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "breakdown": {
+      "type": "any",
+      "defaultValue": {},
+      "description": "{ requestNumber: { ready, posted, running, pending, lastPosted, … } } as each request is worked out (costData.breakdown)."
+    },
+    "progress": {
+      "type": "any",
+      "defaultValue": { "done": 0, "total": 0, "failed": 0 }
+    },
+    "gen": {
+      "type": "number",
+      "defaultValue": 0,
+      "description": "Which load the breakdown belongs to; a Refresh starts a new one."
+    },
+    "text": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "chip": {
+      "type": "string",
+      "defaultValue": "all"
+    },
+    "sortKey": {
+      "type": "string",
+      "defaultValue": "request"
+    },
+    "sortDir": {
+      "type": "string",
+      "defaultValue": "desc"
+    },
+    "limit": {
+      "type": "number",
+      "defaultValue": 100
+    },
+    "isLoading": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "loadError": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "exportOpen": {
+      "type": "boolean",
+      "defaultValue": false
+    }
+  },
+  "eventListeners": {
+    "vbEnter": {
+      "chains": [{ "chain": "loadChain", "parameters": { "refresh": false } }]
+    },
+    "onRefresh": {
+      "chains": [{ "chain": "loadChain", "parameters": { "refresh": true } }]
+    },
+    "onSearch": {
+      "chains": [{ "chain": "setChain", "parameters": { "field": "text", "value": "{{ $event.target.value }}" } }]
+    },
+    "onChip": {
+      "chains": [{ "chain": "setChain", "parameters": { "field": "chip", "value": "{{ $event.currentTarget.dataset.value }}" } }]
+    },
+    "onSort": {
+      "chains": [{ "chain": "setChain", "parameters": { "field": "sort", "value": "{{ $event.currentTarget.dataset.key }}" } }]
+    },
+    "onMore": {
+      "chains": [{ "chain": "setChain", "parameters": { "field": "limit", "value": "more" } }]
+    },
+    "onOpen": {
+      "chains": [{ "chain": "openRecordChain", "parameters": { "number": "{{ $event.currentTarget.dataset.number }}" } }]
+    },
+    "onExportMenu": {
+      "chains": [{ "chain": "setChain", "parameters": { "field": "exportOpen", "value": "toggle" } }]
+    },
+    "onExport": {
+      "chains": [{ "chain": "exportChain", "parameters": { "format": "{{ $event.currentTarget.dataset.format }}" } }]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}

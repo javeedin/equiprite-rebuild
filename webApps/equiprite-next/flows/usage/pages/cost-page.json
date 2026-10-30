@@ -1,0 +1,86 @@
+{
+  "description": "One request's costs in its own tab (record kind 'cost'): what is ready to post, what was posted, what is still running, what would be posted (amounts, expenditure types, projects and splits) and the cost week by week, from New EquipRite's preview reads and rules. Posting stays in New EquipRite (a link to its Post costs on this request); nothing is posted or written here.",
+  "navigation": {
+    "embeddable": "enabled"
+  },
+  "variables": {
+    "id": {
+      "type": "string",
+      "defaultValue": "",
+      "input": "fromCaller"
+    },
+    "number": {
+      "type": "string",
+      "defaultValue": "",
+      "input": "fromCaller"
+    },
+    "closed": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "row": {
+      "type": "any",
+      "defaultValue": {},
+      "description": "The request's Post costs list row (project, task, PPM numbers, dates, rate schedule)."
+    },
+    "rowsAll": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "New's buildPreview tree (equipment, weeks, days, charges, split slices)."
+    },
+    "facts": {
+      "type": "any",
+      "defaultValue": {}
+    },
+    "plan": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "What would be posted: New's postingPlan over everything ready."
+    },
+    "table": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "isLoading": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "error": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "exportOpen": {
+      "type": "boolean",
+      "defaultValue": false
+    }
+  },
+  "eventListeners": {
+    "vbEnter": {
+      "chains": [{ "chain": "loadRecordChain", "parameters": { "refresh": false } }]
+    },
+    "onRefresh": {
+      "chains": [{ "chain": "loadRecordChain", "parameters": { "refresh": true } }]
+    },
+    "onExportMenu": {
+      "chains": [{ "chain": "menuChain" }]
+    },
+    "onExport": {
+      "chains": [
+        {
+          "chain": "exportChain",
+          "parameters": { "format": "{{ $event.currentTarget.dataset.format }}", "what": "{{ $event.currentTarget.dataset.what }}" }
+        }
+      ]
+    },
+    "onOpenList": {
+      "chains": [{ "chain": "openListChain" }]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}
