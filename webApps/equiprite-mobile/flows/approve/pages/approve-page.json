@@ -1,6 +1,72 @@
 {
-  "description": "EquipRite Mobile's Approve tab (placeholder until the tab is built).",
+  "description": "Approve on a phone: the Equipment Manager's queue (requests to decide, approved lines with no unit yet), most urgent first, as cards with chips and search; a request in words (its lines, what each costs, free stock, availability); approve it or the lines chosen, or send back with a reason, in a bottom sheet that says what will happen; assign the suggested units in one tap or pick another unit for a line; then what is next up. The rules and calls are Next's Approve & allocate's (resources/js/approvalQueue.js, approveAllocate.js); the phone's logic is resources/js/mobileApprove.js.",
   "navigation": { "embeddable": "enabled" },
-  "variables": {},
-  "imports": { "components": {} }
+  "variables": {
+    "isLoading": { "type": "boolean", "defaultValue": true },
+    "error": { "type": "string", "defaultValue": "" },
+    "access": { "type": "string", "defaultValue": "", "description": "EQR_WORKBENCH: FULL | READ_ONLY | HIDDEN (rules.pageAccess)." },
+    "canAct": { "type": "boolean", "defaultValue": false, "description": "FULL access: approve, send back, assign units." },
+    "saved": { "type": "string", "defaultValue": "", "description": "When the queue shown is this phone's copy (no connection): when it was saved, in words. Nothing can be decided then." },
+    "all": { "type": "any[]", "defaultValue": [], "description": "The queue as cards (mobileApprove.cards), most urgent first." },
+    "shown": { "type": "any[]", "defaultValue": [], "description": "The cards under the chip, matching the search." },
+    "chips": { "type": "any[]", "defaultValue": [] },
+    "chip": { "type": "string", "defaultValue": "" },
+    "text": { "type": "string", "defaultValue": "" },
+    "summary": { "type": "string", "defaultValue": "" },
+    "view": { "type": "string", "defaultValue": "list", "description": "list | detail | done (what a decision did, and what is next up)" },
+    "current": { "type": "any", "defaultValue": { "key": "" }, "description": "The card of the request open." },
+    "position": { "type": "string", "defaultValue": "", "description": "Where the open request is in the list shown: 2 of 5." },
+    "rec": { "type": "any", "defaultValue": { "loading": false, "error": "", "offline": false, "head": {}, "rows": [], "verdict": { "tone": "", "text": "", "next": "" } },
+      "description": "The open request read in full (recordChain): its head, its lines in words, the one sentence on where it stands." },
+    "lines": { "type": "any[]", "defaultValue": [], "description": "The open request's lines (approveAllocate.loadLines): what the writes act on." },
+    "ticks": { "type": "any[]", "defaultValue": [], "description": "Lines chosen, in the order chosen: a decision acts on these, or on every line." },
+    "sheet": { "type": "string", "defaultValue": "", "description": "The bottom sheet open: approve | reject | assign | unit." },
+    "decision": { "type": "any", "defaultValue": {}, "description": "What the decision sheet will do (mobileApprove.decideSheet)." },
+    "reason": { "type": "string", "defaultValue": "" },
+    "formError": { "type": "string", "defaultValue": "" },
+    "busy": { "type": "boolean", "defaultValue": false },
+    "busyText": { "type": "string", "defaultValue": "" },
+    "result": { "type": "any", "defaultValue": null, "description": "What the last step did on this request, in words, when it stays open: { tone, text, items }." },
+    "sugg": { "type": "any", "defaultValue": { "loading": false, "byLine": {}, "plan": { "count": 0, "lines": [], "none": [], "label": "" } },
+      "description": "The suggested units of each line still needing some (suggestChain), and what assigning them all will do." },
+    "picker": { "type": "any", "defaultValue": { "lineId": "" }, "description": "The line in the unit sheet (the picker itself is kept in the page module)." },
+    "pickTick": { "type": "number", "defaultValue": 0 },
+    "pickNote": { "type": "string", "defaultValue": "" },
+    "recSeq": { "type": "number", "defaultValue": 0 },
+    "settled": { "type": "any", "defaultValue": {}, "description": "Requests read with nothing left to assign: { key: lines taking no unit }. They leave the queue." },
+    "done": { "type": "any", "defaultValue": { "tone": "", "title": "", "text": "", "items": [], "number": "", "againKey": "", "againLabel": "", "next": null, "left": "", "clear": false },
+      "description": "After a decision: what happened, the same request if it still waits, and what is next up (mobileApprove.done)." },
+    "cleared": { "type": "number", "defaultValue": 0, "description": "Decisions and units saved since the app opened." }
+  },
+  "events": {
+    "focusRequest": { "description": "Another tab, or a deep link, asked to show a request here (mobileBus.focus).", "payloadType": "object" }
+  },
+  "eventListeners": {
+    "vbEnter": { "chains": [{ "chain": "loadChain", "parameters": { "refresh": false } }] },
+    "onRefresh": { "chains": [{ "chain": "loadChain", "parameters": { "refresh": true } }] },
+    "onChip": { "chains": [{ "chain": "applyChain", "parameters": { "chip": "{{ $event.currentTarget.dataset.key }}" } }] },
+    "onSearch": { "chains": [{ "chain": "applyChain", "parameters": { "text": "{{ $event.target.value }}" } }] },
+    "onOpen": { "chains": [{ "chain": "openChain", "parameters": { "key": "{{ $event.currentTarget.dataset.key }}" } }] },
+    "onBack": { "chains": [{ "chain": "openChain", "parameters": { "key": "" } }] },
+    "onTick": { "chains": [{ "chain": "tickChain", "parameters": { "id": "{{ $event.currentTarget.dataset.id }}" } }] },
+    "onSheet": { "chains": [{ "chain": "sheetChain", "parameters": { "sheet": "{{ $event.currentTarget.dataset.sheet }}" } }] },
+    "onCloseSheet": { "chains": [{ "chain": "sheetChain", "parameters": { "sheet": "" } }] },
+    "onReason": { "chains": [{ "chain": "reasonChain", "parameters": { "text": "{{ $event.target.value }}" } }] },
+    "onQuickReason": { "chains": [{ "chain": "reasonChain", "parameters": { "phrase": "{{ $event.currentTarget.dataset.phrase }}" } }] },
+    "onDecide": { "chains": [{ "chain": "decideChain", "parameters": { "action": "{{ $event.currentTarget.dataset.action }}" } }] },
+    "onAuto": { "chains": [{ "chain": "autoChain" }] },
+    "onUnits": { "chains": [{ "chain": "unitsChain", "parameters": { "lineId": "{{ $event.currentTarget.dataset.line }}" } }] },
+    "onStage": { "chains": [{ "chain": "stageChain", "parameters": { "action": "{{ $event.currentTarget.dataset.action }}", "id": "{{ $event.currentTarget.dataset.id }}" } }] },
+    "onLotQty": { "chains": [{ "chain": "stageChain", "parameters": { "action": "qty", "id": "{{ $event.target.dataset.id }}", "qty": "{{ $event.target.value }}" } }] },
+    "onSaveUnits": { "chains": [{ "chain": "saveUnitsChain" }] },
+    "onDismissResult": { "chains": [{ "chain": "sheetChain", "parameters": { "sheet": "", "dismiss": true } }] },
+    "focusRequest": { "chains": [{ "chain": "focusChain" }] }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
 }

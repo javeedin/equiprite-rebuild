@@ -1,4 +1,491 @@
-<div class="mb-page" id="mb-approve">
-  <div class="mb-head"><h2>Approve</h2><div class="mb-head-sub">Requests waiting for your decision.</div></div>
-  <div class="mb-body"><div class="mb-card mb-empty">This tab is on its way.</div></div>
+<!-- Approve on a phone. The queue (requests to decide, approved lines with no unit yet, most urgent first), a request in
+     words (its lines, what each costs, free stock, availability) with its one main step in the dock (Approve, or Assign
+     the suggested units), bottom sheets that say what a step will do before it is done (approve, send back with a
+     reason, assign units, a line's units), and after a decision what happened and what is next up.
+     Styles: resources/css/mobile.css (.mb-*) and mobile-approve.css (.mb-approve-*). -->
+<div class="mb-page mb-approve" id="mbApprove">
+
+  <!-- ── The queue ─────────────────────────────────────────────────────────────────────────────────────── -->
+  <oj-bind-if test="[[ $variables.view === 'list' ]]">
+    <div class="mb-head">
+      <div class="mb-head-row">
+        <h2 style="flex:1">Approve</h2>
+        <button type="button" class="mb-back" id="apRefresh" on-click="[[ $listeners.onRefresh ]]" aria-label="Refresh" :disabled="[[ $variables.busy ]]">
+          <span class="oj-ux-ico-refresh" aria-hidden="true"></span></button>
+      </div>
+      <div class="mb-head-sub" id="apSummary">
+        <oj-bind-text value="[[ $variables.isLoading && !$variables.all.length ? 'Loading…' : $variables.summary ]]"></oj-bind-text>
+      </div>
+    </div>
+    <div class="mb-body">
+      <label class="mb-search">
+        <span class="oj-ux-ico-search" aria-hidden="true"></span>
+        <input type="search" id="apSearch" placeholder="Request, project, requester, equipment" aria-label="Search the queue" on-input="[[ $listeners.onSearch ]]" />
+      </label>
+      <div class="mb-chips" id="apChips" role="group" aria-label="Waiting for">
+        <oj-bind-for-each data="[[ $variables.chips ]]">
+          <template data-oj-as="c">
+            <button type="button" :class="[[ 'mb-chip' + (c.data.key === $variables.chip ? ' mb-chip--on' : '') ]]" :data-key="[[ c.data.key ]]" on-click="[[ $listeners.onChip ]]"
+              :aria-pressed="[[ c.data.key === $variables.chip ? 'true' : 'false' ]]">
+              <oj-bind-text value="[[ c.data.label ]]"></oj-bind-text>
+              <span class="mb-chip-count"><oj-bind-text value="[[ $functions.chipCount(c.data) ]]"></oj-bind-text></span>
+            </button>
+          </template>
+        </oj-bind-for-each>
+      </div>
+      <oj-bind-if test="[[ !!$variables.saved ]]">
+        <div class="mb-offline mb-approve-saved" id="apSaved"><span class="oj-ux-ico-cloud-off" aria-hidden="true"></span>
+          <span><oj-bind-text value="[[ $variables.saved ]]"></oj-bind-text>. Deciding needs a connection.</span></div>
+      </oj-bind-if>
+      <oj-bind-if test="[[ !!$variables.error ]]">
+        <div class="mb-error" role="alert" id="apError"><oj-bind-text value="[[ $variables.error ]]"></oj-bind-text></div>
+      </oj-bind-if>
+      <oj-bind-if test="[[ $variables.isLoading && !$variables.all.length ]]">
+        <div class="mb-loading" role="status"><span class="mb-spin" aria-hidden="true"></span>Loading the queue…</div>
+      </oj-bind-if>
+      <oj-bind-if test="[[ !$variables.isLoading && !$variables.error && !$variables.shown.length ]]">
+        <div class="mb-empty" id="apEmpty"><span class="oj-ux-ico-check-circle mb-empty-icon" aria-hidden="true"></span>
+          <oj-bind-text value="[[ $functions.empty($variables.chip, $variables.text, $variables.all.length) ]]"></oj-bind-text></div>
+      </oj-bind-if>
+      <ul class="mb-list" id="apList" aria-label="Waiting on you, most urgent first">
+        <oj-bind-for-each data="[[ $variables.shown ]]">
+          <template data-oj-as="r">
+            <li>
+              <button type="button" :class="[[ 'mb-item mb-approve-card ' + $functions.stage(r.data.tone) ]]" :data-key="[[ r.data.key ]]" :data-number="[[ r.data.number ]]"
+                on-click="[[ $listeners.onOpen ]]">
+                <span class="mb-item-top">
+                  <span class="mb-item-title"><oj-bind-text value="[[ r.data.number ]]"></oj-bind-text></span>
+                  <span class="mb-pill"><oj-bind-text value="[[ r.data.needs ]]"></oj-bind-text></span>
+                </span>
+                <span class="mb-approve-party">
+                  <oj-bind-if test="[[ r.data.external ]]"><span class="mb-approve-tag">Customer</span></oj-bind-if>
+                  <oj-bind-text value="[[ (r.data.party || 'No project') + (r.data.task ? ' · ' + r.data.task : '') ]]"></oj-bind-text>
+                </span>
+                <oj-bind-if test="[[ !!r.data.equipment ]]">
+                  <span class="mb-approve-what"><oj-bind-text value="[[ r.data.equipment ]]"></oj-bind-text></span>
+                </oj-bind-if>
+                <span class="mb-item-sub"><oj-bind-text value="[[ $functions.cardSub(r.data) ]]"></oj-bind-text></span>
+                <span class="mb-approve-when">
+                  <span><oj-bind-text value="[[ r.data.dates || 'No dates' ]]"></oj-bind-text></span>
+                  <span :class="[[ r.data.lateDays ? 'mb-approve-late' : 'mb-approve-soon' ]]"><oj-bind-text value="[[ r.data.lateDays ? r.data.late : r.data.when ]]"></oj-bind-text></span>
+                </span>
+                <oj-bind-if test="[[ !!r.data.age ]]">
+                  <span class="mb-approve-age"><oj-bind-text value="[[ r.data.age ]]"></oj-bind-text></span>
+                </oj-bind-if>
+              </button>
+            </li>
+          </template>
+        </oj-bind-for-each>
+      </ul>
+    </div>
+  </oj-bind-if>
+
+  <!-- ── A request ─────────────────────────────────────────────────────────────────────────────────────── -->
+  <oj-bind-if test="[[ $variables.view === 'detail' ]]">
+    <div class="mb-head" id="apDetail">
+      <div class="mb-head-row">
+        <button type="button" class="mb-back" id="apBack" on-click="[[ $listeners.onBack ]]" aria-label="Back to the queue" :disabled="[[ $variables.busy ]]">
+          <span class="oj-ux-ico-arrow-left" aria-hidden="true"></span></button>
+        <div class="mb-approve-headtext">
+          <h2 id="apNumber"><oj-bind-text value="[[ $variables.current.number ]]"></oj-bind-text></h2>
+          <div class="mb-head-sub mb-approve-ellipsis"><oj-bind-text value="[[ ($variables.current.external ? 'Customer · ' : '') + ($variables.current.party || 'No project') + ($variables.current.task ? ' · ' + $variables.current.task : '') ]]"></oj-bind-text></div>
+        </div>
+        <oj-bind-if test="[[ !!$functions.after($variables.shown, $variables.current.key) ]]">
+          <button type="button" class="mb-approve-skip" id="apSkip" :data-key="[[ $functions.after($variables.shown, $variables.current.key) ]]" on-click="[[ $listeners.onOpen ]]"
+            :disabled="[[ $variables.busy ]]" aria-label="Skip to the next request">Skip<span class="oj-ux-ico-arrow-right" aria-hidden="true"></span></button>
+        </oj-bind-if>
+      </div>
+      <oj-bind-if test="[[ !!$variables.position ]]">
+        <div class="mb-approve-pos" id="apPos"><oj-bind-text value="[[ $variables.position + ' in the queue shown' ]]"></oj-bind-text></div>
+      </oj-bind-if>
+    </div>
+    <div class="mb-body">
+      <oj-bind-if test="[[ $variables.rec.loading && !$variables.rec.head.number ]]">
+        <div class="mb-loading" role="status"><span class="mb-spin" aria-hidden="true"></span><oj-bind-text value="[[ 'Reading ' + $variables.current.number + '…' ]]"></oj-bind-text></div>
+      </oj-bind-if>
+      <oj-bind-if test="[[ !!$variables.rec.error ]]">
+        <div class="mb-error" role="alert" id="apRecError"><oj-bind-text value="[[ $variables.rec.error ]]"></oj-bind-text></div>
+      </oj-bind-if>
+
+      <oj-bind-if test="[[ !!$variables.rec.head.number && !$variables.rec.error ]]">
+        <!-- Where it stands, in one sentence (approvalQueue.verdict) -->
+        <div :class="[[ 'mb-card mb-card-pad mb-approve-where ' + $functions.stage($variables.rec.head.tone) ]]" id="apWhere">
+          <div class="mb-item-top">
+            <span class="mb-pill" id="apHeadline"><oj-bind-text value="[[ $variables.rec.head.headline ]]"></oj-bind-text></span>
+            <span class="mb-note"><oj-bind-text value="[[ $variables.rec.head.pieces ? $functions.count($variables.rec.head.pieces, 'piece') : '' ]]"></oj-bind-text></span>
+          </div>
+          <div :class="[[ 'mb-approve-verdict mb-approve-verdict--' + $variables.rec.verdict.tone ]]" id="apVerdict" role="status">
+            <oj-bind-text value="[[ $variables.rec.verdict.text ]]"></oj-bind-text></div>
+          <oj-bind-if test="[[ !!$variables.rec.head.late ]]">
+            <div class="mb-item-late" style="margin-top:6px"><span class="oj-ux-ico-warning" aria-hidden="true"></span> <oj-bind-text value="[[ $variables.rec.head.late ]]"></oj-bind-text></div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.rec.verdict.next === 'quote' && !!$functions.quoteUrl($application.variables.appUrls.old, $variables.rec.head) ]]">
+            <a class="mb-approve-link" id="apQuoteLink" :href="[[ $functions.quoteUrl($application.variables.appUrls.old, $variables.rec.head) ]]">
+              Generate the quote in Old EquipRite<span class="oj-ux-ico-external-link" aria-hidden="true"></span></a>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.rec.verdict.next === 'picking' && !!$functions.pickingUrl($application.variables.appUrls.new) ]]">
+            <a class="mb-approve-link" id="apPickingLink" :href="[[ $functions.pickingUrl($application.variables.appUrls.new) ]]">
+              Initiate picking in New EquipRite (Fusion)<span class="oj-ux-ico-external-link" aria-hidden="true"></span></a>
+          </oj-bind-if>
+        </div>
+
+        <oj-bind-if test="[[ !!$variables.result ]]">
+          <div :class="[[ 'mb-approve-result mb-approve-result--' + ($variables.result ? $variables.result.tone : 'ok') ]]" id="apResult" role="status">
+            <div class="mb-approve-result-head">
+              <span><oj-bind-text value="[[ $variables.result ? $variables.result.text : '' ]]"></oj-bind-text></span>
+              <button type="button" class="mb-iconbtn" aria-label="Dismiss" on-click="[[ $listeners.onDismissResult ]]"><span class="oj-ux-ico-close" aria-hidden="true"></span></button>
+            </div>
+            <oj-bind-if test="[[ $variables.result && $variables.result.items && $variables.result.items.length > 0 ]]">
+              <ul class="mb-approve-items">
+                <oj-bind-for-each data="[[ $variables.result.items ]]">
+                  <template data-oj-as="it"><li><oj-bind-text value="[[ it.data ]]"></oj-bind-text></li></template>
+                </oj-bind-for-each>
+              </ul>
+            </oj-bind-if>
+          </div>
+        </oj-bind-if>
+
+        <div class="mb-card mb-card-pad">
+          <dl class="mb-facts" id="apFacts">
+            <div><dt>Dates</dt><dd><oj-bind-text value="[[ $variables.rec.head.dates || 'Not set' ]]"></oj-bind-text>
+              <span class="mb-approve-factsub"><oj-bind-text value="[[ $variables.rec.head.when ]]"></oj-bind-text></span></dd></div>
+            <div><dt>Requested by</dt><dd><oj-bind-text value="[[ $variables.rec.head.requestor || 'Not recorded' ]]"></oj-bind-text>
+              <span class="mb-approve-factsub"><oj-bind-text value="[[ $variables.rec.head.age ]]"></oj-bind-text></span></dd></div>
+            <oj-bind-if test="[[ !!$variables.rec.head.location ]]">
+              <div class="mb-wide"><dt>Deliver to</dt><dd><oj-bind-text value="[[ $variables.rec.head.location ]]"></oj-bind-text></dd></div>
+            </oj-bind-if>
+            <oj-bind-if test="[[ !!$variables.rec.head.task ]]">
+              <div><dt>Task</dt><dd><oj-bind-text value="[[ $variables.rec.head.task ]]"></oj-bind-text></dd></div>
+            </oj-bind-if>
+            <oj-bind-if test="[[ !$variables.rec.offline || !!$variables.rec.head.est ]]">
+              <div><dt>Estimated</dt><dd id="apEst"><oj-bind-text value="[[ $variables.rec.head.est ? $functions.money($variables.rec.head.est) : 'Not priced' ]]"></oj-bind-text></dd></div>
+            </oj-bind-if>
+          </dl>
+          <oj-bind-if test="[[ !!$functions.inNewUrl($application.variables.appUrls.new, $variables.rec.head) && !$variables.rec.offline ]]">
+            <a class="mb-approve-link" id="apInNew" :href="[[ $functions.inNewUrl($application.variables.appUrls.new, $variables.rec.head) ]]">
+              Open it in New EquipRite<span class="oj-ux-ico-external-link" aria-hidden="true"></span></a>
+          </oj-bind-if>
+        </div>
+
+        <!-- The phone's saved copy: what the card knew -->
+        <oj-bind-if test="[[ $variables.rec.offline ]]">
+          <div class="mb-card mb-card-pad" id="apOffline">
+            <div class="mb-approve-what"><oj-bind-text value="[[ $variables.rec.head.equipment || 'Its equipment is read with a connection.' ]]"></oj-bind-text></div>
+            <div class="mb-note" style="margin-top:4px"><oj-bind-text value="[[ $variables.rec.head.detail ]]"></oj-bind-text></div>
+          </div>
+        </oj-bind-if>
+
+        <!-- The lines -->
+        <oj-bind-if test="[[ $variables.rec.rows.length > 0 ]]">
+          <div class="mb-approve-lineshead">
+            <h3 class="mb-section" id="apLinesTitle"><oj-bind-text value="[[ 'Equipment (' + $variables.rec.rows.length + ')' ]]"></oj-bind-text></h3>
+            <oj-bind-if test="[[ $variables.rec.head.deciding && $variables.canAct && $variables.ticks.length > 0 ]]">
+              <button type="button" class="mb-approve-clear" id="apClearTicks" data-id="none" on-click="[[ $listeners.onTick ]]">Every line</button>
+            </oj-bind-if>
+          </div>
+          <oj-bind-if test="[[ $variables.rec.head.deciding && $variables.canAct ]]">
+            <div class="mb-note mb-approve-hint" id="apTickHint"><oj-bind-text value="[[ $variables.ticks.length
+              ? $functions.count($variables.ticks.length, 'line') + ' chosen: Approve and Send back act on those only.'
+              : 'Approve and Send back act on every line. Tap a line’s tick to decide only some.' ]]"></oj-bind-text></div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.rec.head.needsUnits && $variables.canAct && $variables.sugg.loading ]]">
+            <div class="mb-note mb-approve-hint" role="status"><span class="mb-spin mb-approve-spin" aria-hidden="true"></span>Finding free units for each line…</div>
+          </oj-bind-if>
+        </oj-bind-if>
+        <ul class="mb-list" id="apLines" aria-labelledby="apLinesTitle">
+          <oj-bind-for-each data="[[ $variables.rec.rows ]]">
+            <template data-oj-as="l">
+              <li :class="[[ 'mb-card mb-approve-line ' + $functions.stage(l.data.stage) + ($functions.has($variables.ticks, l.data.id) ? ' mb-approve-line--on' : '') ]]" :data-line="[[ l.data.id ]]">
+                <div class="mb-approve-line-top">
+                  <div class="mb-approve-line-main">
+                    <div class="mb-approve-line-title"><oj-bind-text value="[[ l.data.title ]]"></oj-bind-text></div>
+                    <div class="mb-item-sub"><oj-bind-text value="[[ l.data.sub ]]"></oj-bind-text></div>
+                  </div>
+                  <oj-bind-if test="[[ $variables.rec.head.deciding && $variables.canAct && l.data.decidable ]]">
+                    <button type="button" :class="[[ 'mb-approve-tick' + ($functions.has($variables.ticks, l.data.id) ? ' mb-approve-tick--on' : '') ]]" :data-id="[[ l.data.id ]]"
+                      on-click="[[ $listeners.onTick ]]" :aria-pressed="[[ $functions.has($variables.ticks, l.data.id) ? 'true' : 'false' ]]"
+                      :aria-label="[[ 'Choose line ' + l.data.no + ', ' + l.data.name ]]" :disabled="[[ $variables.busy ]]">
+                      <span class="oj-ux-ico-check" aria-hidden="true"></span></button>
+                  </oj-bind-if>
+                </div>
+                <div class="mb-approve-tags">
+                  <span class="mb-pill" :title="[[ 'Stored line status: ' + l.data.stored ]]"><oj-bind-text value="[[ l.data.label ]]"></oj-bind-text></span>
+                  <oj-bind-if test="[[ l.data.stored !== 'REJECTED' && l.data.stored !== 'CANCELLED' ]]">
+                    <span :class="[[ 'mb-approve-avail mb-approve-avail--' + l.data.avail ]]"><oj-bind-text value="[[ l.data.availLabel ]]"></oj-bind-text></span>
+                  </oj-bind-if>
+                  <oj-bind-if test="[[ l.data.free ]]"><span class="mb-approve-free">Free stock</span></oj-bind-if>
+                </div>
+                <oj-bind-if test="[[ !!l.data.cost ]]">
+                  <div class="mb-approve-cost"><oj-bind-text value="[[ l.data.cost ]]"></oj-bind-text></div>
+                </oj-bind-if>
+                <oj-bind-if test="[[ !!l.data.notes ]]">
+                  <div class="mb-note"><oj-bind-text value="[[ l.data.notes ]]"></oj-bind-text></div>
+                </oj-bind-if>
+                <oj-bind-if test="[[ !$variables.rec.head.deciding ]]">
+                  <div class="mb-approve-units">
+                    <div class="mb-approve-units-text">
+                      <span :class="[[ 'mb-approve-unitstate mb-approve-unitstate--' + l.data.unitsTone ]]"><oj-bind-text value="[[ l.data.units ]]"></oj-bind-text></span>
+                      <oj-bind-if test="[[ !!$functions.sugText($variables.sugg, l.data.id) ]]">
+                        <span :class="[[ 'mb-approve-sugg mb-approve-sugg--' + $functions.sugText($variables.sugg, l.data.id).state ]]">
+                          <oj-bind-text value="[[ $functions.sugText($variables.sugg, l.data.id).text ]]"></oj-bind-text></span>
+                      </oj-bind-if>
+                      <oj-bind-if test="[[ !!l.data.reason && l.data.action !== 'allocate' && l.data.action !== 'view' ]]">
+                        <span class="mb-note"><oj-bind-text value="[[ l.data.reason ]]"></oj-bind-text></span>
+                      </oj-bind-if>
+                    </div>
+                    <oj-bind-if test="[[ !!$functions.lineButton(l.data, $variables.sugg) && $variables.canAct ]]">
+                      <button type="button" class="mb-btn mb-approve-linebtn" :data-line="[[ l.data.id ]]" on-click="[[ $listeners.onUnits ]]" :disabled="[[ $variables.busy ]]">
+                        <oj-bind-text value="[[ $functions.lineButton(l.data, $variables.sugg) ]]"></oj-bind-text></button>
+                    </oj-bind-if>
+                  </div>
+                </oj-bind-if>
+              </li>
+            </template>
+          </oj-bind-for-each>
+        </ul>
+        <oj-bind-if test="[[ $variables.rec.head.needsUnits && $variables.canAct && !$variables.sugg.loading && !$variables.sugg.plan.count ]]">
+          <div class="mb-note mb-approve-hint" id="apNoSugg">No free unit can be suggested for the lines still needing units. Pick a line’s units yourself, or leave them for the yard to pick.</div>
+        </oj-bind-if>
+      </oj-bind-if>
+    </div>
+
+    <!-- The one main step, held above the tab bar -->
+    <oj-bind-if test="[[ $variables.canAct && !$variables.rec.offline && $variables.rec.head.deciding && !$variables.rec.loading ]]">
+      <div class="mb-dock" id="apDockDecide">
+        <button type="button" class="mb-btn" id="apAskReject" data-sheet="reject" on-click="[[ $listeners.onSheet ]]"
+          :disabled="[[ $variables.busy || $functions.plan('reject', $variables.lines, $variables.ticks, '').count === 0 ]]">
+          <oj-bind-text value="[[ $variables.ticks.length ? 'Send back ' + $variables.ticks.length + '…' : 'Send back…' ]]"></oj-bind-text></button>
+        <button type="button" class="mb-btn mb-btn--ok mb-approve-main" id="apAskApprove" data-sheet="approve" on-click="[[ $listeners.onSheet ]]"
+          :disabled="[[ $variables.busy || $functions.plan('approve', $variables.lines, $variables.ticks, '').count === 0 ]]">
+          <span class="oj-ux-ico-check" aria-hidden="true"></span>
+          <oj-bind-text value="[[ $functions.plan('approve', $variables.lines, $variables.ticks, '').label ]]"></oj-bind-text></button>
+      </div>
+    </oj-bind-if>
+    <oj-bind-if test="[[ $variables.canAct && !$variables.rec.offline && $variables.rec.head.needsUnits && ($variables.sugg.loading || $variables.sugg.plan.count > 0) ]]">
+      <div class="mb-dock" id="apDockAssign">
+        <button type="button" class="mb-btn mb-btn--primary" id="apAskAssign" data-sheet="assign" on-click="[[ $listeners.onSheet ]]"
+          :disabled="[[ $variables.busy || $variables.sugg.loading ]]">
+          <span class="oj-ux-ico-check" aria-hidden="true"></span>
+          <oj-bind-text value="[[ $variables.sugg.loading ? 'Finding free units…' : 'Assign suggested units · ' + $functions.count($variables.sugg.plan.lines.length, 'line') ]]"></oj-bind-text></button>
+      </div>
+    </oj-bind-if>
+  </oj-bind-if>
+
+  <!-- ── Done: what happened, and what is next up ───────────────────────────────────────────────────────── -->
+  <oj-bind-if test="[[ $variables.view === 'done' ]]">
+    <div class="mb-head">
+      <div class="mb-head-row">
+        <button type="button" class="mb-back" id="apDoneBack" data-key="" on-click="[[ $listeners.onOpen ]]" aria-label="Back to the queue">
+          <span class="oj-ux-ico-arrow-left" aria-hidden="true"></span></button>
+        <div class="mb-approve-headtext">
+          <h2>Approve</h2>
+          <div class="mb-head-sub" id="apDoneLeft"><oj-bind-text value="[[ $variables.done.left ]]"></oj-bind-text></div>
+        </div>
+      </div>
+    </div>
+    <div class="mb-body">
+      <div :class="[[ 'mb-card mb-approve-done mb-approve-done--' + $variables.done.tone ]]" id="apDone" role="status">
+        <div class="mb-approve-done-top">
+          <span :class="[[ 'mb-approve-done-icon ' + ($variables.done.tone === 'ok' ? 'oj-ux-ico-check-circle' : 'oj-ux-ico-warning') ]]" aria-hidden="true"></span>
+          <div class="mb-approve-done-body">
+            <div class="mb-approve-done-title" id="apDoneTitle"><oj-bind-text value="[[ $variables.done.title ]]"></oj-bind-text></div>
+            <div class="mb-approve-done-text" id="apDoneText"><oj-bind-text value="[[ $variables.done.text ]]"></oj-bind-text></div>
+          </div>
+        </div>
+        <oj-bind-if test="[[ $variables.done.items.length > 0 ]]">
+          <ul class="mb-approve-items">
+            <oj-bind-for-each data="[[ $variables.done.items ]]">
+              <template data-oj-as="it"><li><oj-bind-text value="[[ it.data ]]"></oj-bind-text></li></template>
+            </oj-bind-for-each>
+          </ul>
+        </oj-bind-if>
+        <oj-bind-if test="[[ $variables.cleared > 1 ]]">
+          <div class="mb-approve-streak"><oj-bind-text value="[[ $variables.cleared + ' steps done since you opened EquipRite' ]]"></oj-bind-text></div>
+        </oj-bind-if>
+      </div>
+      <oj-bind-if test="[[ !!$variables.done.againKey ]]">
+        <button type="button" class="mb-btn mb-btn--block" id="apAgain" :data-key="[[ $variables.done.againKey ]]" on-click="[[ $listeners.onOpen ]]">
+          <span class="oj-ux-ico-arrow-right" aria-hidden="true"></span><oj-bind-text value="[[ $variables.done.againLabel ]]"></oj-bind-text></button>
+      </oj-bind-if>
+      <h3 class="mb-section">Next up</h3>
+      <oj-bind-if test="[[ !!$variables.done.next ]]">
+        <button type="button" :class="[[ 'mb-item mb-approve-card mb-approve-next ' + $functions.stage($variables.done.next ? $variables.done.next.tone : '') ]]" id="apNextCard"
+          :data-key="[[ $variables.done.next ? $variables.done.next.key : '' ]]" on-click="[[ $listeners.onOpen ]]">
+          <span class="mb-item-top">
+            <span class="mb-item-title"><oj-bind-text value="[[ $variables.done.next ? $variables.done.next.number : '' ]]"></oj-bind-text></span>
+            <span class="mb-pill"><oj-bind-text value="[[ $variables.done.next ? $variables.done.next.needs : '' ]]"></oj-bind-text></span>
+          </span>
+          <span class="mb-approve-party"><oj-bind-text value="[[ $variables.done.next ? ($variables.done.next.party || 'No project') : '' ]]"></oj-bind-text></span>
+          <span class="mb-approve-what"><oj-bind-text value="[[ $variables.done.next ? $variables.done.next.equipment : '' ]]"></oj-bind-text></span>
+          <span class="mb-item-sub"><oj-bind-text value="[[ $functions.cardSub($variables.done.next) ]]"></oj-bind-text></span>
+          <span class="mb-approve-when">
+            <span><oj-bind-text value="[[ $variables.done.next ? ($variables.done.next.dates || 'No dates') : '' ]]"></oj-bind-text></span>
+            <span :class="[[ $variables.done.next && $variables.done.next.lateDays ? 'mb-approve-late' : 'mb-approve-soon' ]]">
+              <oj-bind-text value="[[ $variables.done.next ? ($variables.done.next.lateDays ? $variables.done.next.late : $variables.done.next.when) : '' ]]"></oj-bind-text></span>
+          </span>
+        </button>
+        <!-- In the page, not the dock: the toast saying what happened sits over the dock for a few seconds. -->
+        <button type="button" class="mb-btn mb-btn--primary mb-btn--block" id="apOpenNext" :data-key="[[ $variables.done.next ? $variables.done.next.key : '' ]]" on-click="[[ $listeners.onOpen ]]">
+          <oj-bind-text value="[[ 'Next up: ' + ($variables.done.next ? $variables.done.next.number : '') ]]"></oj-bind-text><span class="oj-ux-ico-arrow-right" aria-hidden="true"></span></button>
+      </oj-bind-if>
+      <oj-bind-if test="[[ !$variables.done.next ]]">
+        <div class="mb-card mb-empty" id="apClear"><span class="oj-ux-ico-check-circle mb-empty-icon mb-approve-clearicon" aria-hidden="true"></span>
+          Queue clear. Nothing else is waiting on you.</div>
+      </oj-bind-if>
+      <button type="button" class="mb-btn mb-btn--plain mb-btn--block" id="apToQueue" data-key="" on-click="[[ $listeners.onOpen ]]">Back to the queue</button>
+    </div>
+  </oj-bind-if>
+
+  <!-- ── Bottom sheets ─────────────────────────────────────────────────────────────────────────────────── -->
+  <oj-bind-if test="[[ !!$variables.sheet ]]">
+    <div class="mb-sheet-wrap" id="apSheet">
+      <button type="button" class="mb-sheet-scrim" aria-label="Close" on-click="[[ $listeners.onCloseSheet ]]"></button>
+      <div class="mb-sheet" role="dialog" aria-modal="true" aria-labelledby="apSheetTitle">
+        <div class="mb-sheet-grip" aria-hidden="true"></div>
+
+        <!-- Approve, or send back with a reason -->
+        <oj-bind-if test="[[ $variables.sheet === 'approve' || $variables.sheet === 'reject' ]]">
+          <div class="mb-sheet-head">
+            <h3 id="apSheetTitle"><oj-bind-text value="[[ $variables.decision.title ]]"></oj-bind-text></h3>
+            <button type="button" class="mb-iconbtn" aria-label="Close" on-click="[[ $listeners.onCloseSheet ]]" :disabled="[[ $variables.busy ]]"><span class="oj-ux-ico-close" aria-hidden="true"></span></button>
+          </div>
+          <div class="mb-sheet-body">
+            <div :class="[[ 'mb-approve-say mb-approve-say--' + $variables.sheet ]]" id="apSay"><oj-bind-text value="[[ $variables.decision.say ]]"></oj-bind-text></div>
+            <ul class="mb-approve-names" id="apSheetLines">
+              <oj-bind-for-each data="[[ $variables.decision.names ]]">
+                <template data-oj-as="n"><li><span :class="[[ $variables.sheet === 'reject' ? 'oj-ux-ico-undo' : 'oj-ux-ico-check' ]]" aria-hidden="true"></span><oj-bind-text value="[[ n.data ]]"></oj-bind-text></li></template>
+              </oj-bind-for-each>
+            </ul>
+            <div class="mb-note" id="apSheetNote"><oj-bind-text value="[[ $variables.decision.note ]]"></oj-bind-text></div>
+            <oj-bind-if test="[[ !!$variables.decision.warn ]]">
+              <div class="mb-approve-warn" id="apSheetWarn"><span class="oj-ux-ico-warning" aria-hidden="true"></span><oj-bind-text value="[[ $variables.decision.warn ]]"></oj-bind-text></div>
+            </oj-bind-if>
+            <oj-bind-if test="[[ $variables.sheet === 'reject' ]]">
+              <div class="mb-field">
+                <span class="mb-label"><oj-bind-text value="[[ 'Why? ' + ($variables.rec.head.requestor || 'The requester') + ' gets it in their notifications.' ]]"></oj-bind-text></span>
+                <div class="mb-approve-reasons" id="apReasons" role="group" aria-label="Quick reasons">
+                  <oj-bind-for-each data="[[ $functions.reasons() ]]">
+                    <template data-oj-as="q">
+                      <button type="button" :class="[[ 'mb-chip mb-approve-reason' + ($functions.reasonOn($variables.reason, q.data) ? ' mb-chip--on' : '') ]]" :data-phrase="[[ q.data ]]"
+                        on-click="[[ $listeners.onQuickReason ]]" :aria-pressed="[[ $functions.reasonOn($variables.reason, q.data) ? 'true' : 'false' ]]" :disabled="[[ $variables.busy ]]">
+                        <oj-bind-text value="[[ q.data ]]"></oj-bind-text></button>
+                    </template>
+                  </oj-bind-for-each>
+                </div>
+                <textarea id="apReason" rows="3" :value="[[ $variables.reason ]]" on-input="[[ $listeners.onReason ]]" aria-label="Reason for sending it back"
+                  placeholder="What to change before sending it again"></textarea>
+              </div>
+            </oj-bind-if>
+            <oj-bind-if test="[[ !!$variables.formError ]]">
+              <div class="mb-error" role="alert" id="apFormError"><oj-bind-text value="[[ $variables.formError ]]"></oj-bind-text></div>
+            </oj-bind-if>
+          </div>
+          <oj-bind-if test="[[ $variables.busy ]]">
+            <div class="mb-approve-busy" role="status"><span class="mb-spin" aria-hidden="true"></span><oj-bind-text value="[[ $variables.busyText ]]"></oj-bind-text></div>
+          </oj-bind-if>
+          <div class="mb-sheet-foot">
+            <button type="button" class="mb-btn mb-btn--plain" id="apCancel" on-click="[[ $listeners.onCloseSheet ]]" :disabled="[[ $variables.busy ]]">Cancel</button>
+            <button type="button" :class="[[ 'mb-btn ' + ($variables.sheet === 'reject' ? 'mb-btn--danger' : 'mb-btn--ok') ]]" id="apConfirm" :data-action="[[ $variables.sheet ]]"
+              on-click="[[ $listeners.onDecide ]]" :disabled="[[ $variables.busy ]]"><oj-bind-text value="[[ $variables.decision.label ]]"></oj-bind-text></button>
+          </div>
+        </oj-bind-if>
+
+        <!-- Assign the suggested units of every line -->
+        <oj-bind-if test="[[ $variables.sheet === 'assign' ]]">
+          <div class="mb-sheet-head">
+            <h3 id="apSheetTitle"><oj-bind-text value="[[ 'Assign units on ' + $variables.rec.head.number ]]"></oj-bind-text></h3>
+            <button type="button" class="mb-iconbtn" aria-label="Close" on-click="[[ $listeners.onCloseSheet ]]" :disabled="[[ $variables.busy ]]"><span class="oj-ux-ico-close" aria-hidden="true"></span></button>
+          </div>
+          <div class="mb-sheet-body">
+            <div class="mb-approve-say mb-approve-say--approve" id="apSay"><oj-bind-text value="[[ $variables.sugg.plan.label + ':' ]]"></oj-bind-text></div>
+            <ul class="mb-approve-names" id="apPlan">
+              <oj-bind-for-each data="[[ $variables.sugg.plan.lines ]]">
+                <template data-oj-as="pl"><li><span class="oj-ux-ico-check" aria-hidden="true"></span><oj-bind-text value="[[ pl.data.text ]]"></oj-bind-text></li></template>
+              </oj-bind-for-each>
+            </ul>
+            <oj-bind-if test="[[ $variables.sugg.plan.none.length > 0 ]]">
+              <div class="mb-approve-warn"><span class="oj-ux-ico-warning" aria-hidden="true"></span><oj-bind-text value="[[ 'Left as they are (no free unit for their dates): ' + $variables.sugg.plan.none.join('; ') + '.' ]]"></oj-bind-text></div>
+            </oj-bind-if>
+            <div class="mb-note">Each unit is reserved on its line for the line’s dates: a serial is marked as out on rent, a lot or stock item lowers what is free. Nothing goes to Fusion; picking comes after, in New EquipRite.</div>
+          </div>
+          <oj-bind-if test="[[ $variables.busy ]]">
+            <div class="mb-approve-busy" role="status"><span class="mb-spin" aria-hidden="true"></span><oj-bind-text value="[[ $variables.busyText ]]"></oj-bind-text></div>
+          </oj-bind-if>
+          <div class="mb-sheet-foot">
+            <button type="button" class="mb-btn mb-btn--plain" id="apCancel" on-click="[[ $listeners.onCloseSheet ]]" :disabled="[[ $variables.busy ]]">Cancel</button>
+            <button type="button" class="mb-btn mb-btn--primary" id="apConfirmAssign" on-click="[[ $listeners.onAuto ]]" :disabled="[[ $variables.busy ]]">
+              <oj-bind-text value="[[ 'Assign · ' + $functions.count($variables.sugg.plan.lines.length, 'line') ]]"></oj-bind-text></button>
+          </div>
+        </oj-bind-if>
+
+        <!-- A line's units: use another, release, save -->
+        <oj-bind-if test="[[ $variables.sheet === 'unit' ]]">
+          <div class="mb-sheet-head">
+            <div class="mb-approve-headtext">
+              <h3 id="apSheetTitle"><oj-bind-text value="[[ 'Line ' + $variables.picker.lineNo + ' · ' + $variables.picker.title ]]"></oj-bind-text></h3>
+              <div class="mb-note"><oj-bind-text value="[[ ($variables.picker.dates ? $variables.picker.dates + ' · ' : '') + ($variables.picker.loading ? 'Reading its units…' : $functions.pickerSummary($variables.pickTick).text) ]]"></oj-bind-text></div>
+            </div>
+            <button type="button" class="mb-iconbtn" aria-label="Close" on-click="[[ $listeners.onCloseSheet ]]" :disabled="[[ $variables.busy ]]"><span class="oj-ux-ico-close" aria-hidden="true"></span></button>
+          </div>
+          <div class="mb-sheet-body" id="apUnits">
+            <oj-bind-if test="[[ $variables.picker.loading ]]">
+              <div class="mb-loading" role="status" style="padding:20px"><span class="mb-spin" aria-hidden="true"></span>Reading its units…</div>
+            </oj-bind-if>
+            <oj-bind-if test="[[ !!$variables.picker.readOnlyWhy ]]">
+              <div class="mb-approve-warn"><span class="oj-ux-ico-lock" aria-hidden="true"></span><oj-bind-text value="[[ $variables.picker.readOnlyWhy ]]"></oj-bind-text></div>
+            </oj-bind-if>
+            <oj-bind-if test="[[ !!$variables.picker.error ]]">
+              <div class="mb-approve-warn"><oj-bind-text value="[[ $variables.picker.error ]]"></oj-bind-text></div>
+            </oj-bind-if>
+            <oj-bind-if test="[[ !$variables.picker.loading && !$variables.picker.error && !$functions.pickerSummary($variables.pickTick).locked && $functions.pickerSummary($variables.pickTick).remaining > 0 && $functions.pickerSummary($variables.pickTick).free > 0 ]]">
+              <button type="button" class="mb-btn mb-btn--block" id="apFill" data-action="fill" data-id="" on-click="[[ $listeners.onStage ]]" :disabled="[[ $variables.busy ]]">
+                <span class="oj-ux-ico-check" aria-hidden="true"></span>Fill from free units</button>
+            </oj-bind-if>
+            <oj-bind-if test="[[ !$variables.picker.loading && !$variables.picker.error ]]">
+              <ul class="mb-approve-unitlist">
+                <oj-bind-for-each data="[[ $functions.pickerRows($variables.pickTick, $variables.picker.suggested) ]]">
+                  <template data-oj-as="u">
+                    <li :class="[[ 'mb-approve-unit mb-approve-unit--' + u.data.tone ]]" :data-unit="[[ u.data.name ]]">
+                      <div class="mb-approve-unit-main">
+                        <div class="mb-approve-unit-name">
+                          <oj-bind-text value="[[ u.data.name ]]"></oj-bind-text>
+                          <oj-bind-if test="[[ u.data.suggested ]]"><span class="mb-approve-tag mb-approve-tag--sugg">Suggested</span></oj-bind-if>
+                        </div>
+                        <div class="mb-item-sub"><oj-bind-text value="[[ (u.data.yard ? u.data.yard + ' · ' : '') + u.data.label ]]"></oj-bind-text></div>
+                        <oj-bind-if test="[[ !!u.data.clash ]]">
+                          <div class="mb-approve-clash"><span class="oj-ux-ico-warning" aria-hidden="true"></span><oj-bind-text value="[[ u.data.clash ]]"></oj-bind-text></div>
+                        </oj-bind-if>
+                      </div>
+                      <oj-bind-if test="[[ u.data.qtyMode && u.data.act === 'assign' ]]">
+                        <input type="number" class="mb-input mb-approve-qty" min="1" :max="[[ u.data.qtyMax ]]" :value="[[ u.data.qty ]]" :data-id="[[ u.data.id ]]"
+                          on-change="[[ $listeners.onLotQty ]]" :aria-label="[[ 'How many from ' + u.data.name ]]" />
+                      </oj-bind-if>
+                      <oj-bind-if test="[[ !!u.data.act ]]">
+                        <button type="button" :class="[[ 'mb-btn mb-approve-unitbtn' + (u.data.act === 'assign' ? ' mb-btn--primary' : '') ]]" :data-action="[[ u.data.act ]]" :data-id="[[ u.data.id ]]"
+                          on-click="[[ $listeners.onStage ]]" :disabled="[[ $variables.busy ]]"><oj-bind-text value="[[ u.data.actLabel ]]"></oj-bind-text></button>
+                      </oj-bind-if>
+                    </li>
+                  </template>
+                </oj-bind-for-each>
+              </ul>
+            </oj-bind-if>
+            <oj-bind-if test="[[ !!$variables.pickNote ]]">
+              <div class="mb-error" role="status" id="apPickNote"><oj-bind-text value="[[ $variables.pickNote ]]"></oj-bind-text></div>
+            </oj-bind-if>
+          </div>
+          <oj-bind-if test="[[ !$variables.picker.loading && !!$functions.pickerPlan($variables.pickTick).text ]]">
+            <div class="mb-approve-plan" id="apPickerPlan"><oj-bind-text value="[[ 'Saving will: ' + $functions.pickerPlan($variables.pickTick).text ]]"></oj-bind-text></div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.busy ]]">
+            <div class="mb-approve-busy" role="status"><span class="mb-spin" aria-hidden="true"></span><oj-bind-text value="[[ $variables.busyText ]]"></oj-bind-text></div>
+          </oj-bind-if>
+          <div class="mb-sheet-foot">
+            <button type="button" class="mb-btn mb-btn--plain" id="apCancel" on-click="[[ $listeners.onCloseSheet ]]" :disabled="[[ $variables.busy ]]">Cancel</button>
+            <button type="button" class="mb-btn mb-btn--primary" id="apSaveUnits" on-click="[[ $listeners.onSaveUnits ]]"
+              :disabled="[[ $variables.busy || $variables.picker.loading || !$functions.pickerSummary($variables.pickTick).canSave ]]">Save units</button>
+          </div>
+        </oj-bind-if>
+      </div>
+    </div>
+  </oj-bind-if>
 </div>
