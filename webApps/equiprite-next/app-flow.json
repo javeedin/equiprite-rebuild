@@ -851,7 +851,8 @@
     "css": [
       "https://static.oracle.com/cdn/fnd/gallery/2507.0.3/images/iconfont/ojuxIconFont.min.css",
       "resources/css/next.css",
-      "resources/css/next-order.css"
+      "resources/css/next-order.css",
+      "resources/css/next-availability.css"
     ]
   }
 }

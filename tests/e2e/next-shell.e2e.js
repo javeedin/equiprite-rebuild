@@ -4,10 +4,25 @@
  * keep their pages alive, the command bar, deep links, notifications. Needs `npm run build`.
  * Run: node tests/e2e/next-shell.e2e.js
  */
+const fs = require('fs');
+const path = require('path');
+const vm = require('vm');
 const E = require('./harness');
 const H = require('../_harness');
 
 const T = H.makeAsserter();
+
+// A screen not built in Next yet, looked up in the menu (areas are built side by side, so none is named here).
+function amd(name, deps) {
+  let mod;
+  const sandbox = { define: (names, factory) => { mod = factory(...names.map((n) => (deps || {})[n])); } };
+  vm.createContext(sandbox);
+  vm.runInContext(fs.readFileSync(path.join(E.ROOT, 'webApps', 'equiprite-next', 'resources', 'js', name + '.js'), 'utf8'), sandbox);
+  return mod;
+}
+const nav = amd('nav', { 'resources/js/rules': amd('rules') });
+const SOON = [].concat(...nav.visibleGroups(Object.fromEntries(E.ALL_CODES.map((c) => [c, 'FULL'])), true,
+  Object.fromEntries(E.ALL_FLAGS.map((f) => [f, 'true'])), true, {}).map((g) => g.items)).find((i) => !i.built && i.id !== 'requests');
 const day = (n) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
 const REQS = [
   { eqrEquipmentRequestId: 1764, requestNumber: 'REQ-1764', status: 'IN_PROCESS', startDate: day(-22), endDate: day(0), projectName: 'EPC_MO_Operations', requestOrigin: 'Internal' },
@@ -44,21 +59,21 @@ function handle(req, res) {
 
     T.section('tabs keep their pages');
     await page.fill('#workFind', 'half-typed note');
-    await page.click('.nx-nav-item[data-nav-id="availability"]');
+    await page.click(`.nx-nav-item[data-nav-id="${SOON.id}"]`);
     await page.waitForSelector('.nx-soon-card');
-    T.check('a screen not built yet says so and opens New EquipRite\'s screen', (await page.getAttribute('#soonOpenNew', 'href')) === env.newUrl + '/vp/shell/schedule/schedule');
-    T.eq('it opened in a second tab, current', await page.$eval('.nx-tab--on', (t) => t.innerText.trim()), 'Availability');
-    T.eq('the menu highlights it', await page.$eval('.nx-nav-item--on', (b) => b.dataset.navId), 'availability');
+    T.check('a screen not built yet says so and opens New EquipRite\'s screen', (await page.getAttribute('#soonOpenNew', 'href')) === nav.newUrl(env.newUrl, SOON.id));
+    T.eq('it opened in a second tab, current', await page.$eval('.nx-tab--on', (t) => t.innerText.trim()), SOON.label);
+    T.eq('the menu highlights it', await page.$eval('.nx-nav-item--on', (b) => b.dataset.navId), SOON.id);
     await page.click('.nx-tab-btn[data-id="home"]');
     await page.waitForTimeout(400);
     T.eq('back on My work, what was typed is still there', await page.inputValue('#workFind'), 'half-typed note');
-    await page.click('.nx-nav-item[data-nav-id="analytics"]');
-    await page.click('.nx-nav-item[data-nav-id="availability"]');
+    await page.click('.nx-nav-item[data-nav-id="requests"]');
+    await page.click(`.nx-nav-item[data-nav-id="${SOON.id}"]`);
     await page.waitForTimeout(300);
     T.eq('opening an open screen shows its tab, no duplicate', await page.$$eval('.nx-tab', (t) => t.length), 3);
-    await page.click('.nx-tab-btn[data-id="analytics"]', { button: 'middle' });
+    await page.click('.nx-tab-btn[data-id="requests"]', { button: 'middle' });
     await page.waitForTimeout(300);
-    T.eq('middle-click closes a tab', await page.$$eval('.nx-tab', (t) => t.map((x) => x.dataset.tabId).join()), 'home,availability');
+    T.eq('middle-click closes a tab', await page.$$eval('.nx-tab', (t) => t.map((x) => x.dataset.tabId).join()), 'home,' + SOON.id);
 
     T.section('the menu collapses, and both are remembered');
     await page.click('#nxNavToggle');
@@ -66,9 +81,9 @@ function handle(req, res) {
     const railWidth = await page.$eval('.nx-nav', (n) => n.getBoundingClientRect().width);
     T.check('collapsed to icons', railWidth < 80 && !(await page.isVisible('.nx-nav-item[data-nav-id="fleet"] .nx-nav-text')), String(railWidth));
     await page.reload({ waitUntil: 'domcontentloaded' });
-    await page.waitForSelector('.nx-tab[data-tab-id="availability"]', { timeout: 60000 });
+    await page.waitForSelector(`.nx-tab[data-tab-id="${SOON.id}"]`, { timeout: 60000 });
     await page.waitForTimeout(800);
-    T.check('after a restart: tabs back, menu still collapsed', (await page.$$eval('.nx-tab', (t) => t.map((x) => x.dataset.tabId).join())) === 'home,availability'
+    T.check('after a restart: tabs back, menu still collapsed', (await page.$$eval('.nx-tab', (t) => t.map((x) => x.dataset.tabId).join())) === 'home,' + SOON.id
       && (await page.$eval('.nx-app', (a) => a.className)).includes('nx-app--rail'));
     await page.click('#nxNavToggle');
 

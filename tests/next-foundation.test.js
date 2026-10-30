@@ -61,7 +61,12 @@ T.check('Post costs withdrawn when Fusion PPM prices', !nav.visibleGroups(ALL, t
   .some((g) => g.items.some((i) => i.id === 'costs' || i.id === 'rates')));
 T.eq('every item uses page codes Old and New use', [].concat(...nav.GROUPS.map((g) => g.items)).every((i) => i.pageCodes.every((c) => c in ALL || c === 'EQR_REPORTS')), true);
 T.eq('command bar: label first, then keywords', nav.search('work', groups).map((r) => r.id).slice(0, 2).join(), 'home,approvals');
-T.eq('a screen not built yet opens the "being built" tab', JSON.stringify(nav.routeOf(nav.item('availability'))), '{"flow":"home","page":"soon","params":{"navId":"availability"}}');
+// Whichever screen is not built yet (areas are built side by side, so do not name one here).
+const notBuilt = [].concat(...nav.GROUPS.map((g) => g.items)).find((i) => !i.built);
+if (notBuilt) {
+  T.eq('a screen not built yet opens the "being built" tab', JSON.stringify(nav.routeOf(notBuilt)), JSON.stringify({ flow: 'home', page: 'soon', params: { navId: notBuilt.id } }));
+}
+T.eq('a built screen opens its own flow', JSON.stringify(nav.routeOf(nav.item('availability'))), '{"flow":"availability","page":"availability","params":{}}');
 
 T.section('tabs');
 let s = tabs.restore(null);

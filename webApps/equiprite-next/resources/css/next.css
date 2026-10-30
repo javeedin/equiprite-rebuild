@@ -229,9 +229,11 @@
   background: #fff; color: var(--nx-ink); font-size: 13px; font-weight: 600; cursor: pointer;
 }
 .nx-chip:hover { background: var(--nx-hover); }
+.nx-chip--on:hover { background: var(--nx-ink); }
 .nx-chip--on { background: var(--nx-ink); border-color: var(--nx-ink); color: #fff; }
 .nx-chip--late { border-color: #f1b8b2; color: var(--nx-danger); }
 .nx-chip--late.nx-chip--on { background: var(--nx-danger); border-color: var(--nx-danger); color: #fff; }
+.nx-chip--late.nx-chip--on:hover { background: var(--nx-danger); }
 .nx-chip-count { font-size: 12px; opacity: 0.75; font-variant-numeric: tabular-nums; }
 
 .nx-seg { display: inline-flex; padding: 3px; gap: 2px; background: #e9edf2; border-radius: 9px; }

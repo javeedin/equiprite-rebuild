@@ -1,0 +1,313 @@
+<!-- Availability: which unit is booked when, what is free in your window, where bookings clash. A plain HTML/CSS
+     timeline (no library): bars are placed by percentage of the days shown, so it fits any width without sideways
+     scrolling, and rows come a page at a time. Logic: resources/js/availability.js; calls: availabilityData.js;
+     styles: resources/css/next-availability.css. Read only: a booking opens its request, where it is changed. -->
+<div class="nx-page nx-av">
+  <div class="nx-pagehead">
+    <div>
+      <h1>Availability</h1>
+      <div class="nx-sub" id="avSummary"><oj-bind-text value="[[ $variables.isLoading && !$variables.model ? 'Loading the fleet and its bookings…' : $variables.summary ]]"></oj-bind-text></div>
+    </div>
+    <div class="nx-actions">
+      <button type="button" class="nx-btn nx-btn--plain" id="avRefresh" on-click="[[ $listeners.onRefresh ]]" :disabled="[[ $variables.isLoading ]]">
+        <span class="oj-ux-ico-refresh" aria-hidden="true"></span>Refresh</button>
+      <div class="nx-export">
+        <button type="button" class="nx-btn" id="avExport" data-field="exportOpen" data-value="toggle" on-click="[[ $listeners.onPick ]]" aria-haspopup="menu"
+          :aria-expanded="[[ $variables.exportOpen ? 'true' : 'false' ]]" :disabled="[[ !$variables.model ]]">
+          <span class="oj-ux-ico-download" aria-hidden="true"></span>Export<span class="oj-ux-ico-chevron-down" aria-hidden="true"></span></button>
+        <oj-bind-if test="[[ $variables.exportOpen ]]">
+          <div class="nx-menu" role="menu" aria-label="Export">
+            <oj-bind-for-each data="[[ $functions.formats() ]]">
+              <template data-oj-as="f">
+                <button type="button" role="menuitem" class="nx-menu-item" :data-format="[[ f.data.key ]]" on-click="[[ $listeners.onExport ]]">
+                  <span :class="[[ f.data.icon ]]" aria-hidden="true"></span><oj-bind-text value="[[ f.data.label ]]"></oj-bind-text></button>
+              </template>
+            </oj-bind-for-each>
+            <p class="nx-menu-note"><oj-bind-text value="[[ $variables.view.shownBookings + ' bookings shown, ' + $variables.view.range.label ]]"></oj-bind-text></p>
+          </div>
+        </oj-bind-if>
+      </div>
+    </div>
+  </div>
+
+  <oj-bind-if test="[[ !!$variables.error ]]">
+    <div class="nx-error" role="alert"><oj-bind-text value="[[ $variables.error ]]"></oj-bind-text></div>
+  </oj-bind-if>
+  <oj-bind-for-each data="[[ $variables.notes ]]">
+    <template data-oj-as="n"><div class="nx-error nx-av-note" role="status"><oj-bind-text value="[[ n.data ]]"></oj-bind-text></div></template>
+  </oj-bind-for-each>
+
+  <div class="nx-av-top">
+    <!-- ── Can I have one? Your window, and what is free in it, class by class ───────────────────────────────── -->
+    <section class="nx-card nx-av-ask" aria-labelledby="avAskTitle">
+      <div class="nx-av-ask-head">
+        <h2 class="nx-h2" id="avAskTitle">Free in your window</h2>
+        <div class="nx-av-dates">
+          <label class="nx-av-date"><span>From</span>
+            <input type="date" id="avFrom" :value="[[ $variables.from ]]" on-change="[[ $listeners.onFrom ]]"></label>
+          <label class="nx-av-date"><span>To</span>
+            <input type="date" id="avTo" :value="[[ $variables.to ]]" :min="[[ $variables.from ]]" on-change="[[ $listeners.onTo ]]"></label>
+          <div class="nx-chips nx-av-presets" role="group" aria-label="Quick windows">
+            <button type="button" class="nx-chip" data-field="preset" data-value="7" on-click="[[ $listeners.onPick ]]">Next 7 days</button>
+            <button type="button" class="nx-chip" data-field="preset" data-value="14" on-click="[[ $listeners.onPick ]]">Next 2 weeks</button>
+            <button type="button" class="nx-chip" data-field="preset" data-value="30" on-click="[[ $listeners.onPick ]]">Next 30 days</button>
+          </div>
+        </div>
+        <p class="nx-av-answer" id="avAnswer" aria-live="polite"><oj-bind-text value="[[ $variables.model ? $variables.view.answer : '' ]]"></oj-bind-text></p>
+        <p class="nx-note" id="avAskNote"><oj-bind-text value="[[ $variables.view.win.text + ' · free means no booking and no planned maintenance in EquipRite on those days' + ($variables.maint === 'loading' ? '. Planned maintenance from Fusion is still loading: free counts may still drop.' : ($variables.maint === 'partial' ? '. Planned maintenance could not be read for every unit.' : '.')) ]]"></oj-bind-text></p>
+      </div>
+      <div class="nx-av-cap" role="group" aria-label="Free units per class">
+        <oj-bind-if test="[[ $variables.view.capacity.length > 1 ]]">
+          <button type="button" data-field="cls" data-value="" on-click="[[ $listeners.onPick ]]" :aria-pressed="[[ !$variables.cls ? 'true' : 'false' ]]"
+            :class="[[ 'nx-av-class nx-av-class--all' + (!$variables.cls ? ' nx-av-class--on' : '') ]]">
+            <span class="nx-av-class-name">All classes</span>
+            <span class="nx-av-class-free"><oj-bind-text value="[[ $variables.view.capTotal.headline ]]"></oj-bind-text></span>
+            <span class="nx-av-capbar" aria-hidden="true">
+              <oj-bind-for-each data="[[ $variables.view.capTotal.segs || [] ]]">
+                <template data-oj-as="s"><span :class="[[ 'nx-av-seg nx-av-seg--' + s.data.k ]]" :style="[[ { width: s.data.w } ]]"></span></template>
+              </oj-bind-for-each>
+            </span>
+            <span class="nx-av-class-note"><oj-bind-text value="[[ $variables.view.capTotal.note ]]"></oj-bind-text></span>
+          </button>
+        </oj-bind-if>
+        <oj-bind-for-each data="[[ $variables.view.capacity ]]">
+          <template data-oj-as="c">
+            <button type="button" data-field="cls" :data-value="[[ c.data.key ]]" on-click="[[ $listeners.onPick ]]" :aria-pressed="[[ $variables.cls === c.data.key ? 'true' : 'false' ]]"
+              :class="[[ 'nx-av-class' + ($variables.cls === c.data.key ? ' nx-av-class--on' : '') + (c.data.none ? ' nx-av-class--none' : '') ]]">
+              <span class="nx-av-class-name"><oj-bind-text value="[[ c.data.label ]]"></oj-bind-text></span>
+              <span class="nx-av-class-free"><oj-bind-text value="[[ c.data.headline ]]"></oj-bind-text></span>
+              <span class="nx-av-capbar" aria-hidden="true">
+                <oj-bind-for-each data="[[ c.data.segs ]]">
+                  <template data-oj-as="s"><span :class="[[ 'nx-av-seg nx-av-seg--' + s.data.k ]]" :style="[[ { width: s.data.w } ]]"></span></template>
+                </oj-bind-for-each>
+              </span>
+              <span class="nx-av-class-note"><oj-bind-text value="[[ c.data.note ]]"></oj-bind-text></span>
+            </button>
+          </template>
+        </oj-bind-for-each>
+      </div>
+    </section>
+
+    <!-- ── Where are my clashes? Two holds on one unit at once; turnarounds too tight to make ───────────────── -->
+    <section class="nx-card nx-av-problems" id="avProblems" aria-labelledby="avProbTitle">
+      <div class="nx-card-head">
+        <h2 id="avProbTitle">Clashes and tight turnarounds</h2>
+        <span class="nx-note"><oj-bind-text value="[[ $variables.view.clashCount + ($variables.view.clashCount === 1 ? ' clash' : ' clashes') + ' · ' + $variables.view.tightCount + ' tight' ]]"></oj-bind-text></span>
+      </div>
+      <oj-bind-if test="[[ !$variables.isLoading && !$variables.view.problems.length ]]">
+        <p class="nx-av-ok"><span class="oj-ux-ico-check-circle" aria-hidden="true"></span>
+          <oj-bind-text value="[[ $variables.text || $variables.cls || $variables.yard ? 'No clashes and no tight turnarounds ahead for the units you picked.' : 'No clashes and no tight turnarounds ahead.' ]]"></oj-bind-text></p>
+      </oj-bind-if>
+      <oj-bind-if test="[[ $variables.view.problems.length > 0 ]]">
+        <div class="nx-av-problist">
+          <oj-bind-for-each data="[[ $variables.view.problems ]]">
+            <template data-oj-as="p">
+              <div :class="[[ 'nx-av-prob nx-av-prob--' + p.data.type ]]" :data-unit="[[ p.data.unitId ]]">
+                <div class="nx-av-prob-head">
+                  <span class="nx-av-prob-title"><span :class="[[ p.data.type === 'tight' ? 'oj-ux-ico-clock' : 'oj-ux-ico-warning' ]]" aria-hidden="true"></span><oj-bind-text value="[[ p.data.title ]]"></oj-bind-text></span>
+                  <span class="nx-av-prob-when"><oj-bind-text value="[[ p.data.when ]]"></oj-bind-text></span>
+                </div>
+                <div class="nx-av-prob-unit">
+                  <span class="nx-ellipsis"><strong><oj-bind-text value="[[ p.data.unit ]]"></oj-bind-text></strong> <span class="nx-muted"><oj-bind-text value="[[ p.data.sub ]]"></oj-bind-text></span></span>
+                  <button type="button" class="nx-linkbtn nx-av-show" data-field="focus" :data-value="[[ p.data.unitId + '|' + p.data.from ]]" on-click="[[ $listeners.onPick ]]">Show on the timeline</button>
+                </div>
+                <div class="nx-av-prob-items">
+                  <oj-bind-for-each data="[[ p.data.items ]]">
+                    <template data-oj-as="i">
+                      <oj-bind-if test="[[ i.data.open ]]">
+                        <button type="button" class="nx-av-pitem" :data-id="[[ i.data.requestId ]]" :data-number="[[ i.data.requestNumber ]]" on-click="[[ $listeners.onOpen ]]"
+                          :title="[[ 'Open ' + i.data.requestNumber + ' in a tab' ]]">
+                          <span :class="[[ 'nx-pill nx-stage--' + i.data.stage ]]"><oj-bind-text value="[[ i.data.label ]]"></oj-bind-text></span>
+                          <span class="nx-av-pitem-text"><oj-bind-text value="[[ (i.data.party ? i.data.party + ' · ' : '') + i.data.dates ]]"></oj-bind-text></span>
+                        </button>
+                      </oj-bind-if>
+                      <oj-bind-if test="[[ !i.data.open ]]">
+                        <span class="nx-av-pitem nx-av-pitem--maint">
+                          <span class="nx-pill nx-av-pill--maint"><oj-bind-text value="[[ i.data.label ]]"></oj-bind-text></span>
+                          <span class="nx-av-pitem-text"><oj-bind-text value="[[ (i.data.party ? i.data.party + ' · ' : '') + i.data.dates ]]"></oj-bind-text></span>
+                        </span>
+                      </oj-bind-if>
+                    </template>
+                  </oj-bind-for-each>
+                </div>
+              </div>
+            </template>
+          </oj-bind-for-each>
+        </div>
+        <p class="nx-note nx-av-fix"><oj-bind-text value="[[ ($variables.view.unlistedText ? $variables.view.unlistedText + ' ' : '') + 'To clear one, open a request and give it another unit or other dates.' ]]"></oj-bind-text></p>
+      </oj-bind-if>
+    </section>
+  </div>
+
+  <!-- ── The timeline ───────────────────────────────────────────────────────────────────────────────────────── -->
+  <section class="nx-card nx-av-tl" id="avTimeline" aria-labelledby="avTlTitle">
+    <div class="nx-av-tools">
+      <h2 class="nx-h2" id="avTlTitle">Units and bookings</h2>
+      <label class="nx-search">
+        <span class="oj-ux-ico-search" aria-hidden="true"></span>
+        <input type="search" id="avSearch" :value="[[ $variables.text ]]" on-input="[[ $listeners.onSearch ]]" aria-label="Search units and bookings"
+          placeholder="Unit, equipment, class, yard, request or project">
+      </label>
+      <div class="nx-export nx-av-yard">
+        <button type="button" class="nx-btn" id="avYard" data-field="yardOpen" data-value="toggle" on-click="[[ $listeners.onPick ]]" aria-haspopup="menu"
+          :aria-expanded="[[ $variables.yardOpen ? 'true' : 'false' ]]">
+          <span class="oj-ux-ico-location" aria-hidden="true"></span><oj-bind-text value="[[ $functions.yardText($variables.yard, $variables.yards) ]]"></oj-bind-text><span class="oj-ux-ico-chevron-down" aria-hidden="true"></span></button>
+        <oj-bind-if test="[[ $variables.yardOpen ]]">
+          <div class="nx-menu" role="menu" aria-label="Yard">
+            <button type="button" role="menuitem" class="nx-menu-item" data-field="yard" data-value="" on-click="[[ $listeners.onPick ]]">All yards</button>
+            <oj-bind-for-each data="[[ $variables.yards ]]">
+              <template data-oj-as="y">
+                <button type="button" role="menuitem" :class="[[ 'nx-menu-item' + ($variables.yard === y.data.key ? ' nx-av-menu-on' : '') ]]" data-field="yard" :data-value="[[ y.data.key ]]" on-click="[[ $listeners.onPick ]]">
+                  <oj-bind-text value="[[ y.data.label + ' (' + y.data.count + ')' ]]"></oj-bind-text></button>
+              </template>
+            </oj-bind-for-each>
+          </div>
+        </oj-bind-if>
+      </div>
+      <div class="nx-seg" role="group" aria-label="Group by">
+        <button type="button" data-field="groupBy" data-value="class" on-click="[[ $listeners.onPick ]]" :aria-pressed="[[ $variables.groupBy === 'class' ? 'true' : 'false' ]]"
+          :class="[[ 'nx-seg-btn' + ($variables.groupBy === 'class' ? ' nx-seg-btn--on' : '') ]]">By class</button>
+        <button type="button" data-field="groupBy" data-value="yard" on-click="[[ $listeners.onPick ]]" :aria-pressed="[[ $variables.groupBy === 'yard' ? 'true' : 'false' ]]"
+          :class="[[ 'nx-seg-btn' + ($variables.groupBy === 'yard' ? ' nx-seg-btn--on' : '') ]]">By yard</button>
+      </div>
+      <div class="nx-seg" role="group" aria-label="Zoom">
+        <button type="button" data-field="zoom" data-value="week" on-click="[[ $listeners.onPick ]]" :aria-pressed="[[ $variables.zoom === 'week' ? 'true' : 'false' ]]"
+          title="Four weeks, day by day" :class="[[ 'nx-seg-btn' + ($variables.zoom === 'week' ? ' nx-seg-btn--on' : '') ]]">Week</button>
+        <button type="button" data-field="zoom" data-value="month" on-click="[[ $listeners.onPick ]]" :aria-pressed="[[ $variables.zoom === 'month' ? 'true' : 'false' ]]"
+          title="Thirteen weeks, week by week" :class="[[ 'nx-seg-btn' + ($variables.zoom === 'month' ? ' nx-seg-btn--on' : '') ]]">Month</button>
+      </div>
+      <div class="nx-av-nav" role="group" aria-label="Move the timeline">
+        <button type="button" class="nx-btn nx-btn--sm" id="avPrev" data-field="move" data-value="prev" on-click="[[ $listeners.onPick ]]" aria-label="Earlier">
+          <span class="oj-ux-ico-chevron-left" aria-hidden="true"></span></button>
+        <button type="button" class="nx-btn nx-btn--sm" data-field="move" data-value="today" on-click="[[ $listeners.onPick ]]">Today</button>
+        <button type="button" class="nx-btn nx-btn--sm" data-field="move" data-value="window" on-click="[[ $listeners.onPick ]]">Your window</button>
+        <button type="button" class="nx-btn nx-btn--sm" id="avNext" data-field="move" data-value="next" on-click="[[ $listeners.onPick ]]" aria-label="Later">
+          <span class="oj-ux-ico-chevron-right" aria-hidden="true"></span></button>
+        <span class="nx-av-range" id="avRange"><oj-bind-text value="[[ $variables.view.range.label ]]"></oj-bind-text></span>
+      </div>
+    </div>
+
+    <div class="nx-chips nx-av-chips" role="group" aria-label="Show">
+      <oj-bind-for-each data="[[ $variables.view.chips ]]">
+        <template data-oj-as="c">
+          <button type="button" data-field="chip" :data-value="[[ c.data.key ]]" on-click="[[ $listeners.onPick ]]"
+            :aria-pressed="[[ $variables.chip === c.data.key ? 'true' : 'false' ]]"
+            :class="[[ 'nx-chip' + (c.data.key === 'clash' ? ' nx-chip--late' : '') + ($variables.chip === c.data.key ? ' nx-chip--on' : '') ]]">
+            <oj-bind-text value="[[ c.data.label ]]"></oj-bind-text><span class="nx-chip-count"><oj-bind-text value="[[ c.data.count ]]"></oj-bind-text></span>
+          </button>
+        </template>
+      </oj-bind-for-each>
+      <oj-bind-if test="[[ !!($variables.text || $variables.cls || $variables.yard || $variables.chip !== 'all') ]]">
+        <button type="button" class="nx-linkbtn" id="avClear" data-field="clear" data-value="all" on-click="[[ $listeners.onPick ]]">Clear filters</button>
+      </oj-bind-if>
+    </div>
+
+    <ul class="nx-av-legend" aria-label="What the colours mean">
+      <oj-bind-for-each data="[[ $functions.legend() ]]">
+        <template data-oj-as="k"><li><span :class="[[ k.data.cls ]]" aria-hidden="true"></span><oj-bind-text value="[[ k.data.label ]]"></oj-bind-text></li></template>
+      </oj-bind-for-each>
+    </ul>
+
+    <oj-bind-if test="[[ $variables.isLoading && !$variables.model ]]">
+      <div class="nx-empty">Loading the units, their bookings and where each one is…</div>
+    </oj-bind-if>
+    <oj-bind-if test="[[ !!$variables.model && !$variables.view.matched ]]">
+      <div class="nx-empty" id="avEmpty"><oj-bind-text value="[[ $variables.model.units.length ? 'No units match. Clear the search or pick another class, yard or chip.' : 'There are no units to show: EquipRite has no serial-numbered units yet.' ]]"></oj-bind-text></div>
+    </oj-bind-if>
+
+    <oj-bind-if test="[[ $variables.view.matched > 0 ]]">
+      <div :class="[[ 'nx-av-grid nx-av-grid--' + $variables.view.zoom ]]" role="table" aria-label="Units and their bookings" aria-describedby="avRange">
+        <div class="nx-av-row nx-av-row--head" role="row">
+          <span class="nx-av-unit nx-av-unit--head" role="columnheader"><oj-bind-text value="[[ $variables.view.matched + ($variables.view.matched === 1 ? ' unit' : ' units') ]]"></oj-bind-text></span>
+          <div class="nx-av-track nx-av-track--head" role="columnheader" :aria-label="[[ $variables.view.range.label ]]">
+            <div class="nx-av-months">
+              <oj-bind-for-each data="[[ $variables.view.head.months ]]">
+                <template data-oj-as="mo"><span class="nx-av-month" :style="[[ { left: mo.data.l, width: mo.data.w } ]]"><oj-bind-text value="[[ mo.data.label ]]"></oj-bind-text></span></template>
+              </oj-bind-for-each>
+            </div>
+            <div class="nx-av-ticks">
+              <oj-bind-for-each data="[[ $variables.view.head.ticks ]]">
+                <template data-oj-as="tk">
+                  <span :class="[[ 'nx-av-tick' + (tk.data.weekend ? ' nx-av-tick--weekend' : '') + (tk.data.win ? ' nx-av-tick--win' : '') + (tk.data.today ? ' nx-av-tick--today' : '') + (tk.data.mon ? ' nx-av-tick--mon' : '') ]]"
+                    :style="[[ { left: tk.data.l, width: tk.data.w } ]]" :title="[[ tk.data.key ]]">
+                    <oj-bind-if test="[[ !!tk.data.wd ]]"><span class="nx-av-wd"><oj-bind-text value="[[ tk.data.wd ]]"></oj-bind-text></span></oj-bind-if><oj-bind-text value="[[ tk.data.label ]]"></oj-bind-text></span>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </div>
+        </div>
+        <div class="nx-av-body">
+          <!-- Behind every row: the day or week lines, weekends, your window and today. -->
+          <div :class="[[ 'nx-av-overlay nx-av-lines--' + $variables.view.zoom ]]" :style="[[ { backgroundSize: $variables.view.head.lines } ]]" aria-hidden="true">
+            <oj-bind-if test="[[ !!$variables.view.head.band ]]">
+              <span class="nx-av-band" id="avBand" :style="[[ { left: $variables.view.head.band ? $variables.view.head.band.l : '0', width: $variables.view.head.band ? $variables.view.head.band.w : '0' } ]]"></span>
+            </oj-bind-if>
+            <oj-bind-if test="[[ !!$variables.view.head.today ]]">
+              <span class="nx-av-today" id="avToday" :style="[[ { left: $variables.view.head.today } ]]"></span>
+            </oj-bind-if>
+          </div>
+          <oj-bind-for-each data="[[ $variables.view.items ]]">
+            <template data-oj-as="it">
+              <oj-bind-if test="[[ it.data.type === 'group' ]]">
+                <div class="nx-av-row nx-av-row--group" role="row">
+                  <span class="nx-av-group-cell" role="rowheader">
+                    <button type="button" class="nx-av-group" data-field="collapse" :data-value="[[ it.data.group ]]" on-click="[[ $listeners.onPick ]]"
+                      :aria-expanded="[[ it.data.collapsed ? 'false' : 'true' ]]">
+                      <span :class="[[ it.data.collapsed ? 'oj-ux-ico-chevron-right' : 'oj-ux-ico-chevron-down' ]]" aria-hidden="true"></span>
+                      <span class="nx-av-group-name"><oj-bind-text value="[[ it.data.label ]]"></oj-bind-text></span>
+                      <span class="nx-av-group-text"><oj-bind-text value="[[ it.data.text ]]"></oj-bind-text></span>
+                    </button>
+                  </span>
+                </div>
+              </oj-bind-if>
+              <oj-bind-if test="[[ it.data.type === 'unit' ]]">
+                <div :class="[[ 'nx-av-row nx-av-row--unit' + (it.data.clashes ? ' nx-av-row--clash' : '') ]]" role="row" :data-unit="[[ it.data.unitId ]]">
+                  <div class="nx-av-unit" role="rowheader">
+                    <span class="nx-av-unit-text">
+                      <span class="nx-cell-main" :title="[[ it.data.name ]]"><oj-bind-text value="[[ it.data.name ]]"></oj-bind-text></span>
+                      <span class="nx-cell-sub"><oj-bind-text value="[[ it.data.sub ]]"></oj-bind-text></span>
+                      <span class="nx-cell-sub nx-av-now" :title="[[ it.data.now ]]"><oj-bind-text value="[[ it.data.now ]]"></oj-bind-text></span>
+                    </span>
+                    <span class="nx-av-flags">
+                      <span :class="[[ 'nx-av-state nx-av-state--' + it.data.state ]]" :title="[[ it.data.stateTitle ]]"><oj-bind-text value="[[ it.data.stateLabel ]]"></oj-bind-text></span>
+                      <oj-bind-if test="[[ it.data.clashes > 0 ]]">
+                        <span class="nx-av-flag nx-av-flag--clash" :title="[[ it.data.clashes + (it.data.clashes === 1 ? ' clash' : ' clashes') ]]"><span class="oj-ux-ico-warning" aria-hidden="true"></span><oj-bind-text value="[[ it.data.clashes ]]"></oj-bind-text></span>
+                      </oj-bind-if>
+                      <oj-bind-if test="[[ it.data.tight > 0 && !it.data.clashes ]]">
+                        <span class="nx-av-flag nx-av-flag--tight" title="Tight turnaround"><span class="oj-ux-ico-clock" aria-hidden="true"></span><oj-bind-text value="[[ it.data.tight ]]"></oj-bind-text></span>
+                      </oj-bind-if>
+                    </span>
+                  </div>
+                  <div class="nx-av-track" role="cell" :style="[[ { height: it.data.h } ]]">
+                    <oj-bind-for-each data="[[ it.data.marks ]]">
+                      <template data-oj-as="mk"><span :class="[[ mk.data.cls ]]" :style="[[ { left: mk.data.l, width: mk.data.w } ]]" :title="[[ mk.data.title ]]"></span></template>
+                    </oj-bind-for-each>
+                    <oj-bind-for-each data="[[ it.data.bars ]]">
+                      <template data-oj-as="b">
+                        <oj-bind-if test="[[ b.data.open ]]">
+                          <button type="button" :class="[[ b.data.cls ]]" :style="[[ { left: b.data.l, width: b.data.w, top: b.data.t } ]]" :title="[[ b.data.title ]]"
+                            :data-id="[[ b.data.requestId ]]" :data-number="[[ b.data.requestNumber ]]" on-click="[[ $listeners.onOpen ]]"><oj-bind-text value="[[ b.data.label ]]"></oj-bind-text></button>
+                        </oj-bind-if>
+                        <oj-bind-if test="[[ !b.data.open ]]">
+                          <span :class="[[ b.data.cls ]]" :style="[[ { left: b.data.l, width: b.data.w, top: b.data.t } ]]" :title="[[ b.data.title ]]"><oj-bind-text value="[[ b.data.label ]]"></oj-bind-text></span>
+                        </oj-bind-if>
+                      </template>
+                    </oj-bind-for-each>
+                  </div>
+                </div>
+              </oj-bind-if>
+              <oj-bind-if test="[[ it.data.type === 'more' ]]">
+                <div class="nx-av-row nx-av-row--more" role="row">
+                  <span class="nx-av-more" role="cell">
+                    <button type="button" class="nx-linkbtn" data-field="more" :data-value="[[ it.data.group ]]" on-click="[[ $listeners.onPick ]]">
+                      <span class="oj-ux-ico-chevron-down" aria-hidden="true"></span><oj-bind-text value="[[ it.data.text ]]"></oj-bind-text></button>
+                  </span>
+                </div>
+              </oj-bind-if>
+            </template>
+          </oj-bind-for-each>
+        </div>
+      </div>
+    </oj-bind-if>
+  </section>
+</div>

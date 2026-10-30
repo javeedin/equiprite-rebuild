@@ -1,0 +1,10 @@
+{
+  "id": "availability",
+  "description": "Availability: the equipment schedule read for a window (what is free, class by class) and for clashes. Read only.",
+  "defaultPage": "availability",
+  "navigation": { "embeddable": "enabled" },
+  "pages": {
+    "availability": { "path": "pages/availability-page" }
+  },
+  "chains": {}, "services": {}, "types": {}, "variables": {}
+}

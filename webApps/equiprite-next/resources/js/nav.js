@@ -31,7 +31,7 @@ define(['resources/js/rules'], function (rules) {
       { id: 'fleet', label: 'Fleet', icon: 'oj-ux-ico-truck', pageCodes: ['EQR_WORKBENCH', 'EQR_EQUIPMENT_MASTER'],
         route: { flow: 'fleet', page: 'fleet' }, built: true, newNav: 'equipment-workbench', keywords: 'units serials equipment workbench where' },
       { id: 'availability', label: 'Availability', icon: 'oj-ux-ico-calendar', pageCodes: ['EQR_EQUIPMENT_SCHEDULE'],
-        route: { flow: 'availability', page: 'availability' }, built: false, newNav: 'schedule', keywords: 'schedule gantt calendar booking' },
+        route: { flow: 'availability', page: 'availability' }, built: true, newNav: 'schedule', keywords: 'schedule gantt calendar booking' },
       { id: 'equipment', label: 'Equipment master', icon: 'oj-ux-ico-box-grid', pageCodes: ['EQR_EQUIPMENT_MASTER'],
         route: { flow: 'equipment', page: 'equipment' }, built: false, newNav: 'equipment', keywords: 'catalog items classes import' }
     ] },
