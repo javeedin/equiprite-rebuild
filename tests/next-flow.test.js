@@ -33,6 +33,7 @@ const queue = load('approvalQueue', { 'resources/js/requestProgress': Progress, 
 const history = load('requestHistory', { 'resources/js/requestProgress': Progress, 'resources/js/fmt': fmt });
 const guide = load('helpGuide', { 'resources/js/requestProgress': Progress, 'resources/js/rules': rules });
 const bus = load('shellBus');
+const drafts = load('cartDrafts', { 'resources/js/fmt': fmt, 'resources/js/rules': rules });
 
 const states = (h) => h.milestones.map((m) => m.key + ':' + m.state).join(' ');
 
@@ -190,6 +191,25 @@ T.section('history: load (reads only, a failed read named)');
   bus.onFocus('requests', () => { throw new Error('a closed page'); });
   bus.focus('requests', { stage: 'out' });
   T.eq('a closed screen\'s page failing keeps it for the next one', JSON.stringify(bus.takeFocus('requests')), '{"stage":"out"}');
+
+  T.section('Your carts: the drafts');
+  const DR = [
+    { eqrEquipmentRequestId: 31, requestNumber: 'REQ-31', status: 'DRAFT', projectName: 'Pier B', requestorUsername: 'javeed.shaik', startDate: '2026-10-30', endDate: '2026-10-31',
+      lastUpdatedDate: '2026-10-28T10:00:00Z', totalEstCost: 5330, requestOrigin: 'Internal' },
+    { eqrEquipmentRequestId: 35, requestNumber: 'REQ-35', status: 'DRAFT', requestorName: 'Javeed Shaik', requestOrigin: 'Internal' },
+    { eqrEquipmentRequestId: 33, requestNumber: 'REQ-33', status: 'DRAFT', projectName: 'Plant C', requestorUsername: 'dana.cole', requestOrigin: 'Internal' },
+    { eqrEquipmentRequestId: 34, requestNumber: 'REQ-34', status: 'SUBMITTED', requestorUsername: 'javeed.shaik' },
+    { eqrEquipmentRequestId: 36, requestNumber: 'REQ-36', status: 'draft' },
+  ];
+  const DL = { 'REQ-31': [{ name: 'Komatsu D65EX-18 Dozer', qty: 1 }, { name: 'Tadano ATF 220G-5', qty: 1 }, { name: 'Light Tower', qty: 4 }] };
+  const dr = drafts.list(DR, DL, ['JAVEED.SHAIK', 'Javeed Shaik'], NOW);
+  T.eq('yours, newest first: by username or name, any case; a row naming nobody counts as yours', dr.mine.map((d) => d.number).join(), 'REQ-36,REQ-35,REQ-31');
+  T.eq('someone else\'s, apart (a manager sees them)', dr.others.map((d) => d.number).join(), 'REQ-33');
+  T.check('only drafts', ![].concat(dr.mine, dr.others).some((d) => d.number === 'REQ-34'));
+  const d31 = dr.mine.filter((d) => d.number === 'REQ-31')[0];
+  T.eq('a draft in words', [d31.party, d31.dates, d31.pieces, d31.est, d31.saved].join(' | '), 'Pier B | 30 Oct – 31 Oct 2026 | 6 | $5,330 | Saved 2 days ago');
+  T.eq('what is in it', drafts.about(d31), '6 pieces · Komatsu D65EX-18 Dozer, Tadano ATF 220G-5 and 1 more');
+  T.eq('an empty one says so', drafts.about(dr.mine.filter((d) => d.number === 'REQ-35')[0]), 'No equipment yet');
 
   T.section('Help in the menu');
   const ALL = { EQR_DASHBOARD: 'FULL', EQR_EQUIPMENT_REQUESTS: 'FULL' };

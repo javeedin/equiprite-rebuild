@@ -48,6 +48,25 @@
       "type": "boolean",
       "defaultValue": false
     },
+    "cartOpen": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "Your carts: the drafts panel."
+    },
+    "drafts": {
+      "type": "any",
+      "defaultValue": { "mine": [], "others": [] },
+      "description": "Requests saved as drafts (cartDrafts.list): yours, and everyone else's for a manager."
+    },
+    "draftsAll": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "Everyone's drafts, not only yours."
+    },
+    "draftsLoading": {
+      "type": "boolean",
+      "defaultValue": false
+    },
     "profileOpen": {
       "type": "boolean",
       "defaultValue": false,
@@ -144,6 +163,10 @@
     },
     "dismiss": {
       "description": "Escape: closes the open popup.",
+      "payloadType": "object"
+    },
+    "refreshDrafts": {
+      "description": "From the page module: the requests changed (requestData.onChange), so the cart counts its drafts again.",
       "payloadType": "object"
     }
   },
@@ -270,6 +293,38 @@
       "chains": [
         {
           "chain": "bellChain"
+        }
+      ]
+    },
+    "refreshDrafts": {
+      "chains": [
+        {
+          "chain": "cartChain",
+          "parameters": {
+            "action": "load"
+          }
+        }
+      ]
+    },
+    "onCart": {
+      "chains": [
+        {
+          "chain": "cartChain",
+          "parameters": {
+            "action": "{{ $event.currentTarget.dataset.action }}"
+          }
+        }
+      ]
+    },
+    "onDraft": {
+      "chains": [
+        {
+          "chain": "cartChain",
+          "parameters": {
+            "action": "open",
+            "id": "{{ $event.currentTarget.dataset.id }}",
+            "number": "{{ $event.currentTarget.dataset.number }}"
+          }
         }
       ]
     },

@@ -15,6 +15,7 @@ define([
         $page.variables.tabMenuOpen = !$page.variables.tabMenuOpen;
         $page.variables.bellOpen = false;
         $page.variables.profileOpen = false;
+        $page.variables.cartOpen = false;
         return;
       }
       $page.variables.tabMenuOpen = false;

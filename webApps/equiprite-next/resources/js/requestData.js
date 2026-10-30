@@ -105,8 +105,17 @@ define(['resources/js/rules'], function (rules) {
     return pending;
   }
 
-  /** Forget the shared copy (after a change, so every screen loads fresh). */
-  function invalidate() { cache = null; }
+  // Who wants to know that the requests changed (the shell, for the cart's count of drafts).
+  var listeners = [];
 
-  return { load: load, invalidate: invalidate, lineOf: lineOf, indexLines: indexLines, MAX_AGE: MAX_AGE };
+  /** Forget the shared copy (after a change, so every screen loads fresh), and say so to whoever listens. */
+  function invalidate() {
+    cache = null;
+    listeners.forEach(function (fn) { try { fn(); } catch (e) { /* a listener's own problem */ } });
+  }
+
+  /** fn() after every change to the requests (invalidate). */
+  function onChange(fn) { if (typeof fn === 'function') listeners.push(fn); }
+
+  return { load: load, invalidate: invalidate, onChange: onChange, lineOf: lineOf, indexLines: indexLines, MAX_AGE: MAX_AGE };
 });

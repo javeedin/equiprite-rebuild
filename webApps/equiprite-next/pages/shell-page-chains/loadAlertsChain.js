@@ -6,11 +6,14 @@ define([
   'resources/js/rules',
   'resources/js/nav',
   'resources/js/portalData',
-], (ActionChain, Actions, requestData, alerts, rules, nav, portalData) => {
+  'resources/js/cartDrafts',
+  'resources/js/currentUser',
+], (ActionChain, Actions, requestData, alerts, rules, nav, portalData, cartDrafts, cu) => {
   'use strict';
 
   // The bell's list: alerts worked out from the requests and their equipment for this persona (late, waiting on
-  // them), and the notifications service's entries for this user (read only). Read marks are this browser's.
+  // them), and the notifications service's entries for this user (read only). Read marks are this browser's. The
+  // cart's count of drafts comes from the same request list.
   const MAX = 50;
 
   class loadAlertsChain extends ActionChain {
@@ -31,6 +34,9 @@ define([
         } else {
           data = await requestData.load(context, Actions, { refresh: true });
           derived = alerts.derive(rules.persona(v.fusionRoles, v.sessionRoles), data.rows, data.linesByRequest, Date.now());
+          // The cart's count of drafts, from the same list.
+          $page.variables.drafts = cartDrafts.list(data.rows, data.linesByRequest,
+            [cu.auditActor(context), cu.displayName(context), ($application.user || {}).username], Date.now());
         }
         let updates = [];
         try {

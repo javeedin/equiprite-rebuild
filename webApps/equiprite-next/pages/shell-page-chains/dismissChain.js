@@ -7,6 +7,7 @@ define(['vb/action/actionChain'], (ActionChain) => {
       const v = context.$page.variables;
       v.bellOpen = false;
       v.profileOpen = false;
+      v.cartOpen = false;
       v.tabMenuOpen = false;
       v.showResults = false;
       v.navOpen = false;

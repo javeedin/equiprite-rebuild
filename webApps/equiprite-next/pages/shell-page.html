@@ -48,6 +48,17 @@
     </oj-bind-if>
 
     <div class="nx-top-end">
+      <oj-bind-if test="[[ $application.functions.canOpen('new-request', $application.variables.pageAccessMap, $application.variables.pageAccessLoaded,
+                             $application.variables.featureFlags, $application.variables.flagsLoaded, $application.variables.buRateSources) ]]">
+        <button type="button" class="nx-iconbtn nx-cart" id="nxCart" on-click="[[ $listeners.onCart ]]" data-action="toggle" aria-controls="nxCartPanel"
+          :aria-expanded="[[ $variables.cartOpen ? 'true' : 'false' ]]"
+          :aria-label="[[ 'Your carts: saved drafts' + ($variables.drafts.mine.length ? ', ' + $variables.drafts.mine.length : '') ]]" title="Your carts: requests saved as drafts">
+          <span class="oj-ux-ico-cart" aria-hidden="true"></span>
+          <oj-bind-if test="[[ $variables.drafts.mine.length > 0 ]]">
+            <span class="nx-cart-count" aria-hidden="true"><oj-bind-text value="[[ $variables.drafts.mine.length > 99 ? '99+' : $variables.drafts.mine.length ]]"></oj-bind-text></span>
+          </oj-bind-if>
+        </button>
+      </oj-bind-if>
       <button type="button" class="nx-iconbtn" id="nxHelp" data-nav-id="help" on-click="[[ $listeners.onNav ]]"
         aria-label="Help: how EquipRite works, the flow of a request" title="Help: how a request moves, step by step">
         <span class="oj-ux-ico-help" aria-hidden="true"></span>
@@ -168,8 +179,56 @@
     </main>
   </div>
 
-  <oj-bind-if test="[[ $variables.bellOpen || $variables.tabMenuOpen || $variables.profileOpen ]]">
+  <oj-bind-if test="[[ $variables.bellOpen || $variables.tabMenuOpen || $variables.profileOpen || $variables.cartOpen ]]">
     <button type="button" class="nx-backdrop" on-click="[[ $listeners.onBackdrop ]]" aria-label="Close" tabindex="-1"></button>
+  </oj-bind-if>
+
+  <!-- Your carts: the requests saved as drafts, to carry on with (cartChain; resources/js/cartDrafts.js). -->
+  <oj-bind-if test="[[ $variables.cartOpen ]]">
+    <aside class="nx-panel nx-cart-panel" id="nxCartPanel" role="dialog" aria-labelledby="nxCartTitle">
+      <div class="nx-panel-head">
+        <h2 id="nxCartTitle">Your carts</h2>
+        <oj-bind-if test="[[ $variables.drafts.others.length > 0 ]]">
+          <div class="nx-cart-scope" role="group" aria-label="Whose drafts">
+            <button type="button" data-action="mine" on-click="[[ $listeners.onCart ]]" :aria-pressed="[[ !$variables.draftsAll ? 'true' : 'false' ]]"
+              :class="[[ 'nx-cart-scope-btn' + (!$variables.draftsAll ? ' nx-cart-scope-btn--on' : '') ]]">Mine</button>
+            <button type="button" data-action="all" on-click="[[ $listeners.onCart ]]" :aria-pressed="[[ $variables.draftsAll ? 'true' : 'false' ]]"
+              :class="[[ 'nx-cart-scope-btn' + ($variables.draftsAll ? ' nx-cart-scope-btn--on' : '') ]]">Everyone's</button>
+          </div>
+        </oj-bind-if>
+        <button type="button" class="nx-iconbtn nx-iconbtn--sm" data-action="toggle" on-click="[[ $listeners.onCart ]]" aria-label="Close"><span class="oj-ux-ico-close" aria-hidden="true"></span></button>
+      </div>
+      <p class="nx-panel-note nx-muted">Requests saved as drafts. Open one to carry on where you left it.</p>
+      <oj-bind-if test="[[ $variables.draftsLoading && !$functions.draftsShown($variables.drafts, $variables.draftsAll).length ]]">
+        <p class="nx-panel-empty nx-muted">Looking for your drafts…</p>
+      </oj-bind-if>
+      <oj-bind-if test="[[ !$variables.draftsLoading && !$functions.draftsShown($variables.drafts, $variables.draftsAll).length ]]">
+        <p class="nx-panel-empty nx-muted" id="nxCartEmpty"><span class="oj-ux-ico-cart" aria-hidden="true"></span>No drafts. On New request, Save draft keeps one here.</p>
+      </oj-bind-if>
+      <ul class="nx-cart-list" aria-label="Drafts">
+        <oj-bind-for-each data="[[ $functions.draftsShown($variables.drafts, $variables.draftsAll) ]]">
+          <template data-oj-as="d">
+            <li>
+              <button type="button" class="nx-cart-item" :data-id="[[ d.data.id ]]" :data-number="[[ d.data.number ]]" on-click="[[ $listeners.onDraft ]]"
+                :aria-label="[[ 'Continue ' + d.data.number ]]">
+                <span class="oj-ux-ico-cart nx-cart-item-icon" aria-hidden="true"></span>
+                <span class="nx-cart-item-body">
+                  <span class="nx-cart-item-top"><strong><oj-bind-text value="[[ d.data.number ]]"></oj-bind-text></strong>
+                    <span class="nx-cart-item-saved"><oj-bind-text value="[[ d.data.saved ]]"></oj-bind-text></span></span>
+                  <span class="nx-cart-item-party"><oj-bind-text value="[[ (d.data.party || 'No project yet') + (d.data.dates ? ' · ' + d.data.dates : '') ]]"></oj-bind-text></span>
+                  <span class="nx-cart-item-sub"><oj-bind-text value="[[ $functions.draftAbout(d.data) + ($variables.draftsAll && d.data.requestor ? ' · ' + d.data.requestor : '') ]]"></oj-bind-text></span>
+                </span>
+                <span class="nx-cart-item-go">Continue<span class="oj-ux-ico-arrow-right" aria-hidden="true"></span></span>
+              </button>
+            </li>
+          </template>
+        </oj-bind-for-each>
+      </ul>
+      <div class="nx-cart-foot">
+        <button type="button" class="nx-btn nx-btn--primary nx-btn--sm" data-nav-id="new-request" on-click="[[ $listeners.onNav ]]">
+          <span class="oj-ux-ico-plus" aria-hidden="true"></span>Start a new request</button>
+      </div>
+    </aside>
   </oj-bind-if>
 
   <oj-bind-if test="[[ $variables.profileOpen ]]">

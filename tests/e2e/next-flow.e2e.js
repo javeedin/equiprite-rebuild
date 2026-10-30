@@ -19,6 +19,8 @@ const REQ = {
   2002: { requestNumber: 'REQ-2002', status: 'IN_PROCESS', projectName: 'Plant C', requestorName: 'Rite.User', requestorUserId: 56 },
   2003: { requestNumber: 'REQ-2003', status: 'IN_PROCESS', projectName: 'EPC_MO_Operations', requestorName: 'User Rite', requestorUserId: 55 },
   2004: { requestNumber: 'REQ-2004', status: 'SUBMITTED', projectName: 'Gas Line', requestorName: 'Dana Cole', requestorUserId: 57 },
+  2005: { requestNumber: 'REQ-2005', status: 'DRAFT', projectName: 'Pier B', requestorName: 'priya.raman', requestorUsername: 'priya.raman', requestorUserId: 58 },
+  2006: { requestNumber: 'REQ-2006', status: 'DRAFT', projectName: 'Plant C', requestorName: 'Dana Cole', requestorUsername: 'dana.cole', requestorUserId: 57 },
 };
 const LINES = [
   { id: 1, req: 2001, name: 'Komatsu D65EX-18 Dozer', cls: 'Earthmoving', status: 'SUBMITTED', alloc: 'PENDING' },
@@ -29,6 +31,8 @@ const LINES = [
   { id: 6, req: 2003, name: 'Roller 10t', cls: 'Rollers', status: 'SCHEDULED_FOR_PICKING', alloc: 'ALLOCATED' },
   { id: 7, req: 2003, name: 'Generator 100kVA', cls: 'Power', status: 'DEPLOYED', alloc: 'ALLOCATED' },
   { id: 8, req: 2004, name: 'Light Tower', cls: 'Lighting', status: 'SUBMITTED', alloc: 'PENDING' },
+  { id: 9, req: 2005, name: 'Komatsu D65EX-18 Dozer', cls: 'Earthmoving', status: 'DRAFT', alloc: 'PENDING' },
+  { id: 10, req: 2005, name: 'Tadano ATF 220G-5 Mobile Crane', cls: 'Lifting', status: 'DRAFT', alloc: 'PENDING' },
 ];
 const HISTORY = {
   2003: [
@@ -223,7 +227,26 @@ const sideways = (page) => page.evaluate(() => document.documentElement.scrollWi
     await settle(page, 600);
     T.eq('See them in Requests: that stage', await page.$eval('.nx-chip--on', (c) => c.dataset.value), 'ready');
 
+    T.section('your carts: the drafts, to carry on');
+    await page.waitForSelector('#nxCart .nx-cart-count', { timeout: 15000 });
+    T.eq('the cart counts your drafts', await env.text('#nxCart .nx-cart-count'), '1');
+    await page.click('#nxCart');
+    await page.waitForSelector('#nxCartPanel .nx-cart-item');
+    const items = async () => page.$$eval('#nxCartPanel .nx-cart-item', (b) => b.map((x) => x.dataset.number).join());
+    T.eq('yours', await items(), 'REQ-2005');
+    T.check('each in words: project, what is in it', (await env.text('#nxCartPanel .nx-cart-item')).includes('Pier B')
+      && (await env.text('#nxCartPanel .nx-cart-item')).includes('2 pieces · Komatsu D65EX-18 Dozer, Tadano ATF 220G-5 Mobile Crane'));
+    await page.click('#nxCartPanel [data-action="all"]');
+    await settle(page, 200);
+    T.eq('a manager sees everyone\'s too', await items(), 'REQ-2005,REQ-2006');
+    await env.shot('next-flow-cart.png');
+    await page.click('#nxCartPanel .nx-cart-item[data-number="REQ-2005"]');
+    await page.waitForFunction(() => { const t = document.querySelector('.nx-tab--on'); return t && t.dataset.tabId === 'draft:2005'; }, null, { timeout: 15000 });
+    T.check('a draft opens in its own tab, to carry on', !(await page.$('#nxCartPanel')));
+
     T.section('narrow screens');
+    await page.click('.nx-tab-btn[data-id="requests"]');
+    await page.waitForSelector('.nx-row--click[data-number="REQ-2003"] [data-act="history"]', { state: 'visible', timeout: 10000 });
     await page.setViewportSize({ width: 390, height: 800 });
     await page.click('.nx-row--click[data-number="REQ-2003"] [data-act="history"]');
     await page.waitForSelector('#reqPop .nx-hist-step', { timeout: 15000 });

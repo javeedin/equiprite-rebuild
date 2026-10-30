@@ -1,4 +1,4 @@
-define(['resources/js/shellBus'], (bus) => {
+define(['resources/js/shellBus', 'resources/js/cartDrafts', 'resources/js/requestData'], (bus, cartDrafts, requestData) => {
   'use strict';
 
   // The shell's page module: the line from the screens in the tabs (shellBus) to the shell's chains, the keyboard
@@ -25,8 +25,23 @@ define(['resources/js/shellBus'], (bus) => {
           }
         });
         setInterval(() => fire('refreshAlerts'), ALERT_EVERY_MS);
+        // A request saved, submitted or decided anywhere: the cart counts its drafts again, once things settle.
+        let wait = null;
+        requestData.onChange(() => {
+          clearTimeout(wait);
+          wait = setTimeout(() => fire('refreshDrafts'), 1500);
+        });
       }
     }
+
+    /** The drafts the cart shows: yours, or everyone's (yours first). */
+    draftsShown(drafts, all) {
+      const d = drafts || {};
+      return all ? (d.mine || []).concat(d.others || []) : (d.mine || []);
+    }
+
+    /** "2 pieces · Komatsu D65EX-18 Dozer, Tadano ATF 220G-5". */
+    draftAbout(d) { return cartDrafts.about(d); }
 
     /** The menu item to highlight: the current tab's own item (a record's list for a record tab). */
     activeNav(tabList, currentTab) {

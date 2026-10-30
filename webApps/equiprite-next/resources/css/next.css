@@ -152,6 +152,36 @@
 .nx-backdrop { position: fixed; inset: 0; z-index: 40; border: 0; background: transparent; cursor: default; }
 .nx-panel { position: fixed; z-index: 55; background: #fff; border: 1px solid var(--nx-line); border-radius: 12px; box-shadow: var(--nx-shadow-pop); }
 .nx-bell-panel { top: calc(var(--nx-top-h) - 4px); right: 12px; width: min(400px, calc(100vw - 24px)); max-height: min(70vh, 640px); display: flex; flex-direction: column; }
+/* Your carts: the requests saved as drafts */
+.nx-cart { position: relative; }
+.nx-cart-count {
+  position: absolute; top: 3px; right: 2px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; box-sizing: border-box;
+  background: var(--nx-band); color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; border: 2px solid #fff;
+}
+.nx-cart-panel { top: calc(var(--nx-top-h) - 4px); right: 12px; width: min(420px, calc(100vw - 24px)); max-height: min(72vh, 660px); display: flex; flex-direction: column; }
+.nx-cart-scope { display: inline-flex; padding: 2px; gap: 2px; background: var(--nx-surface-2); border: 1px solid var(--nx-line); border-radius: 8px; }
+.nx-cart-scope-btn { border: 0; background: transparent; padding: 3px 9px; border-radius: 6px; font: inherit; font-size: 12px; font-weight: 600; color: var(--nx-muted); cursor: pointer; }
+.nx-cart-scope-btn--on { background: #fff; color: var(--nx-ink); box-shadow: var(--nx-shadow); }
+.nx-cart-list { list-style: none; margin: 0; padding: 6px 8px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+.nx-cart-item {
+  width: 100%; display: flex; align-items: center; gap: 10px; padding: 10px; border: 1px solid var(--nx-line); border-radius: 10px;
+  background: #fff; color: var(--nx-ink); font: inherit; text-align: left; cursor: pointer;
+}
+.nx-cart-item:hover { border-color: var(--nx-band); background: #f0f6f9; }
+.nx-cart-item:focus-visible { outline: 2px solid var(--nx-accent); outline-offset: 1px; }
+.nx-cart-item-icon {
+  flex: none; width: 36px; height: 36px; border-radius: 9px; display: inline-flex; align-items: center; justify-content: center;
+  background: #e0ecf2; color: var(--nx-band); font-size: 18px;
+}
+.nx-cart-item-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.nx-cart-item-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.nx-cart-item-saved { font-size: 11px; color: var(--nx-faint); white-space: nowrap; }
+.nx-cart-item-party { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nx-cart-item-sub { font-size: 12px; color: var(--nx-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nx-cart-item-go { flex: none; display: inline-flex; align-items: center; gap: 2px; font-size: 12px; font-weight: 700; color: var(--nx-band); }
+.nx-cart-foot { padding: 8px 12px 12px; border-top: 1px solid var(--nx-line); }
+.nx-cart-foot .nx-btn { width: 100%; }
+
 /* The menu under your name: who you are, the EquipRite version */
 .nx-profile-panel { top: calc(var(--nx-top-h) - 4px); right: 12px; width: min(320px, calc(100vw - 24px)); padding-bottom: 6px; }
 .nx-profile-head { display: flex; align-items: center; gap: 12px; padding: 14px 10px 12px 16px; border-bottom: 1px solid var(--nx-line); }
