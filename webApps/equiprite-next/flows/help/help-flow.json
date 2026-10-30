@@ -1,0 +1,8 @@
+{
+  "id": "help",
+  "description": "Help: how a request moves, as a live flow diagram; every status and how it shows; quick answers; shortcuts.",
+  "defaultPage": "help",
+  "navigation": { "embeddable": "enabled" },
+  "pages": { "help": { "path": "pages/help-page" } },
+  "chains": {}, "services": {}, "types": {}, "variables": {}
+}

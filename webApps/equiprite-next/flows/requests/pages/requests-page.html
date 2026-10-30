@@ -96,8 +96,13 @@
               <div role="row" class="nx-row nx-row--click" :data-id="[[ r.data.eqrEquipmentRequestId ]]" :data-number="[[ r.data.requestNumber ]]"
                 on-click="[[ $listeners.onOpen ]]">
                 <span role="cell">
-                  <!-- The row opens the request (a click here reaches it); the button is for the keyboard. -->
-                  <button type="button" class="nx-link nx-req-num"><oj-bind-text value="[[ r.data.requestNumber ]]"></oj-bind-text></button>
+                  <!-- The row opens the request (a click here reaches it); the button is for the keyboard. The clock opens its
+                       timeline: the row's handler reads data-act. -->
+                  <span class="nx-req-numline">
+                    <button type="button" class="nx-link nx-req-num"><oj-bind-text value="[[ r.data.requestNumber ]]"></oj-bind-text></button>
+                    <button type="button" class="nx-rowicon" data-act="history" :aria-label="[[ 'Timeline of ' + r.data.requestNumber ]]"
+                      title="Timeline: what happened, start to end"><span class="oj-ux-ico-clock-history" aria-hidden="true"></span></button>
+                  </span>
                   <span class="nx-cell-sub"><oj-bind-text value="[[ r.data.external ? 'Customer' : 'Project' ]]"></oj-bind-text></span>
                 </span>
                 <span role="cell">
@@ -125,7 +130,26 @@
                   <span class="nx-cell-main nx-num"><oj-bind-text value="[[ r.data.dates || '—' ]]"></oj-bind-text></span>
                   <span class="nx-cell-sub"><oj-bind-text value="[[ $functions.when(r.data.startDate, r.data.endDate) ]]"></oj-bind-text></span>
                 </span>
-                <span role="cell" class="nx-cell-next"><oj-bind-text value="[[ r.data.p.next ? r.data.p.next.text : '' ]]"></oj-bind-text></span>
+                <span role="cell" class="nx-cell-next">
+                  <oj-bind-text value="[[ r.data.p.next ? r.data.p.next.text : '' ]]"></oj-bind-text>
+                  <oj-bind-if test="[[ r.data.acts.approve || r.data.acts.assign || r.data.acts.pick > 0 ]]">
+                    <span class="nx-rowacts">
+                      <oj-bind-if test="[[ r.data.acts.approve ]]">
+                        <button type="button" class="nx-rowact nx-rowact--approve" data-act="approve" :aria-label="[[ 'Approve ' + r.data.requestNumber ]]"
+                          title="Approve or send back, here"><span class="oj-ux-ico-check-circle" aria-hidden="true"></span>Approve</button>
+                      </oj-bind-if>
+                      <oj-bind-if test="[[ r.data.acts.assign ]]">
+                        <button type="button" class="nx-rowact nx-rowact--assign" data-act="assign" :aria-label="[[ 'Assign units on ' + r.data.requestNumber ]]"
+                          title="Open Approve &amp; allocate on this request"><span class="oj-ux-ico-assign-to-me" aria-hidden="true"></span>Assign units</button>
+                      </oj-bind-if>
+                      <oj-bind-if test="[[ r.data.acts.pick > 0 ]]">
+                        <button type="button" class="nx-rowact nx-rowact--pick" data-act="pick" :aria-label="[[ 'Pick ' + r.data.requestNumber ]]"
+                          :title="[[ r.data.acts.pick + (r.data.acts.pick === 1 ? ' piece' : ' pieces') + ' ready at the yard: open Picking & shipping on it' ]]">
+                          <span class="oj-ux-ico-fullfilment-box" aria-hidden="true"></span><oj-bind-text value="[[ 'Pick ' + r.data.acts.pick ]]"></oj-bind-text></button>
+                      </oj-bind-if>
+                    </span>
+                  </oj-bind-if>
+                </span>
                 <span role="cell" class="nx-ellipsis"><oj-bind-text value="[[ r.data.requestorName || r.data.contactName || '—' ]]"></oj-bind-text></span>
               </div>
             </template>
@@ -214,5 +238,167 @@
   <oj-bind-if test="[[ $variables.view !== 'board' && $variables.shown.length > $variables.limit ]]">
     <div><button type="button" class="nx-btn" on-click="[[ $listeners.onMore ]]">
       <oj-bind-text value="[[ 'Show more (' + ($variables.shown.length - $variables.limit) + ' left)' ]]"></oj-bind-text></button></div>
+  </oj-bind-if>
+  <!-- ── A request's popup, from its row: approve it here, or its timeline (popChain) ─────────────────────── -->
+  <oj-bind-if test="[[ !!$variables.pop.kind ]]">
+    <div class="nx-modal">
+      <button type="button" class="nx-modal-scrim" tabindex="-1" aria-label="Close" data-action="close" on-click="[[ $listeners.onPop ]]"></button>
+      <section :class="[[ 'nx-dialog' + ($variables.pop.kind === 'history' ? ' nx-dialog--wide' : '') ]]" id="reqPop" role="dialog" aria-modal="true" aria-labelledby="popTitle">
+        <header class="nx-dialog-head">
+          <div class="nx-dialog-titles">
+            <div class="nx-kicker"><oj-bind-text value="[[ $functions.popKicker($variables.pop) ]]"></oj-bind-text></div>
+            <h2 id="popTitle" class="nx-dialog-title">
+              <oj-bind-text value="[[ $variables.pop.kind === 'approve' && $variables.pop.step !== 'done' ? 'Approve ' + $variables.pop.number + '?' : $variables.pop.number ]]"></oj-bind-text>
+              <span :class="[[ 'nx-pill nx-stage--' + $variables.pop.tone ]]"><oj-bind-text value="[[ $variables.pop.headline ]]"></oj-bind-text></span>
+            </h2>
+            <div class="nx-sub"><oj-bind-text value="[[ $functions.popSub($variables.pop) ]]"></oj-bind-text></div>
+          </div>
+          <button type="button" class="nx-iconbtn" aria-label="Close" data-action="close" on-click="[[ $listeners.onPop ]]"><span class="oj-ux-ico-close" aria-hidden="true"></span></button>
+        </header>
+
+        <!-- Approve: decide it here -->
+        <oj-bind-if test="[[ $variables.pop.kind === 'approve' ]]">
+          <div class="nx-dialog-body">
+            <oj-bind-if test="[[ $variables.pop.step === 'ask' || $variables.pop.step === 'reason' ]]">
+              <ul class="nx-pop-eq" aria-label="Equipment">
+                <oj-bind-for-each data="[[ $variables.pop.equipment ]]">
+                  <template data-oj-as="e">
+                    <li><span class="nx-pop-eq-name"><oj-bind-text value="[[ e.data.name + (e.data.qty > 1 ? ' ×' + e.data.qty : '') ]]"></oj-bind-text></span>
+                      <span :class="[[ 'nx-pill nx-stage--' + e.data.stage ]]"><oj-bind-text value="[[ e.data.label ]]"></oj-bind-text></span></li>
+                  </template>
+                </oj-bind-for-each>
+              </ul>
+            </oj-bind-if>
+            <oj-bind-if test="[[ $variables.pop.step === 'ask' ]]">
+              <div class="nx-pop-after">
+                <strong>What approving does</strong>
+                <ol class="nx-miniflow" aria-label="The steps from here">
+                  <li class="nx-miniflow-on">Approve</li><li>Assign units</li><li>Pick at the yard</li><li>Ship</li><li>On site</li><li>Return</li>
+                </ol>
+                <p class="nx-note"><oj-bind-text value="[[ $functions.approveNote($variables.pop) ]]"></oj-bind-text></p>
+              </div>
+            </oj-bind-if>
+            <oj-bind-if test="[[ $variables.pop.step === 'reason' ]]">
+              <label class="nx-pop-field"><span><oj-bind-text value="[[ 'Why is it sent back? ' + ($variables.pop.requestor || 'The requester') + ' gets this with the request.' ]]"></oj-bind-text></span>
+                <textarea id="popReason" rows="3" on-input="[[ $listeners.onPopReason ]]" placeholder="For example: the dates clash with the shutdown; pick a later week."></textarea></label>
+            </oj-bind-if>
+            <oj-bind-if test="[[ $variables.pop.step === 'busy' ]]">
+              <div class="nx-pop-busy" role="status"><span class="nx-spin" aria-hidden="true"></span><oj-bind-text value="[[ $variables.pop.busyText ]]"></oj-bind-text></div>
+            </oj-bind-if>
+            <oj-bind-if test="[[ $variables.pop.step === 'done' && !!$variables.pop.result ]]">
+              <div :class="[[ 'nx-pop-result nx-pop-result--' + ($variables.pop.result ? $variables.pop.result.tone : '') ]]" role="status" id="popResult">
+                <oj-bind-text value="[[ $variables.pop.result ? $variables.pop.result.text : '' ]]"></oj-bind-text></div>
+              <p class="nx-pop-now"><strong>Now:</strong> <oj-bind-text value="[[ $variables.pop.headline ]]"></oj-bind-text>
+                <oj-bind-if test="[[ !!$variables.pop.next ]]"><span> · <strong>Next:</strong> <oj-bind-text value="[[ $variables.pop.next ]]"></oj-bind-text></span></oj-bind-if></p>
+            </oj-bind-if>
+            <oj-bind-if test="[[ !!$variables.pop.error ]]">
+              <div class="nx-error" role="alert"><oj-bind-text value="[[ $variables.pop.error ]]"></oj-bind-text></div>
+            </oj-bind-if>
+          </div>
+          <footer class="nx-dialog-foot">
+            <oj-bind-if test="[[ $variables.pop.step === 'ask' ]]">
+              <button type="button" class="nx-btn nx-btn--primary nx-btn--ok" id="popApprove" data-action="doApprove" on-click="[[ $listeners.onPop ]]">
+                <span class="oj-ux-ico-check-circle" aria-hidden="true"></span><oj-bind-text value="[[ $functions.approveLabel($variables.pop) ]]"></oj-bind-text></button>
+              <button type="button" class="nx-btn" id="popAskReject" data-action="askReject" on-click="[[ $listeners.onPop ]]">
+                <span class="oj-ux-ico-undo" aria-hidden="true"></span>Send back…</button>
+              <span class="nx-spacer"></span>
+              <button type="button" class="nx-btn nx-btn--plain" data-action="timeline" on-click="[[ $listeners.onPop ]]"><span class="oj-ux-ico-clock-history" aria-hidden="true"></span>Timeline</button>
+              <button type="button" class="nx-btn nx-btn--plain" data-action="record" on-click="[[ $listeners.onPop ]]" title="Open the request in its own tab">Open it</button>
+            </oj-bind-if>
+            <oj-bind-if test="[[ $variables.pop.step === 'reason' ]]">
+              <button type="button" class="nx-btn nx-btn--primary nx-btn--danger" id="popReject" data-action="doReject" on-click="[[ $listeners.onPop ]]">
+                <span class="oj-ux-ico-undo" aria-hidden="true"></span>Send back</button>
+              <button type="button" class="nx-btn" data-action="back" on-click="[[ $listeners.onPop ]]">Back</button>
+            </oj-bind-if>
+            <oj-bind-if test="[[ $variables.pop.step === 'done' ]]">
+              <oj-bind-if test="[[ $variables.pop.acts && $variables.pop.acts.assign ]]">
+                <button type="button" class="nx-btn nx-btn--primary" id="popAssign" data-action="assign" on-click="[[ $listeners.onPop ]]">
+                  <span class="oj-ux-ico-assign-to-me" aria-hidden="true"></span>Assign units</button>
+              </oj-bind-if>
+              <oj-bind-if test="[[ $variables.pop.acts && $variables.pop.acts.pick > 0 ]]">
+                <button type="button" class="nx-btn nx-btn--primary" id="popPick" data-action="pick" on-click="[[ $listeners.onPop ]]">
+                  <span class="oj-ux-ico-fullfilment-box" aria-hidden="true"></span><oj-bind-text value="[[ 'Pick ' + $variables.pop.acts.pick + ' at the yard' ]]"></oj-bind-text></button>
+              </oj-bind-if>
+              <button type="button" class="nx-btn" data-action="timeline" on-click="[[ $listeners.onPop ]]"><span class="oj-ux-ico-clock-history" aria-hidden="true"></span>Timeline</button>
+              <span class="nx-spacer"></span>
+              <button type="button" class="nx-btn nx-btn--plain" data-action="close" on-click="[[ $listeners.onPop ]]">Close</button>
+            </oj-bind-if>
+          </footer>
+        </oj-bind-if>
+
+        <!-- History: the request from start to end -->
+        <oj-bind-if test="[[ $variables.pop.kind === 'history' ]]">
+          <div class="nx-dialog-body">
+            <oj-bind-if test="[[ $variables.pop.h && $variables.pop.h.loading ]]">
+              <div class="nx-pop-busy" role="status"><span class="nx-spin" aria-hidden="true"></span>Reading its history…</div>
+            </oj-bind-if>
+            <oj-bind-if test="[[ $variables.pop.h && !!$variables.pop.h.error ]]">
+              <div class="nx-error" role="alert"><oj-bind-text value="[[ $variables.pop.h.error ]]"></oj-bind-text></div>
+            </oj-bind-if>
+            <oj-bind-if test="[[ $variables.pop.h && !$variables.pop.h.loading && !$variables.pop.h.error ]]">
+              <div class="nx-seg" role="group" aria-label="Show">
+                <button type="button" data-action="tab" data-value="steps" on-click="[[ $listeners.onPop ]]" :aria-pressed="[[ $variables.pop.tab !== 'activity' ? 'true' : 'false' ]]"
+                  :class="[[ 'nx-seg-btn' + ($variables.pop.tab !== 'activity' ? ' nx-seg-btn--on' : '') ]]"><span class="oj-ux-ico-timeline" aria-hidden="true"></span>Steps</button>
+                <button type="button" data-action="tab" data-value="activity" on-click="[[ $listeners.onPop ]]" :aria-pressed="[[ $variables.pop.tab === 'activity' ? 'true' : 'false' ]]"
+                  :class="[[ 'nx-seg-btn' + ($variables.pop.tab === 'activity' ? ' nx-seg-btn--on' : '') ]]"><span class="oj-ux-ico-clock-history" aria-hidden="true"></span>
+                  <oj-bind-text value="[[ 'Everything that happened (' + $functions.arr($variables.pop.h.events).length + ')' ]]"></oj-bind-text></button>
+              </div>
+              <oj-bind-if test="[[ $variables.pop.tab !== 'activity' ]]">
+                <ol class="nx-hist" aria-label="Steps">
+                  <oj-bind-for-each data="[[ $functions.arr($variables.pop.h.milestones) ]]">
+                    <template data-oj-as="m">
+                      <li :class="[[ 'nx-hist-step nx-hist-step--' + m.data.state + ' nx-stage--' + m.data.stage ]]" :data-step="[[ m.data.key ]]">
+                        <span class="nx-hist-dot" aria-hidden="true"></span>
+                        <span class="nx-hist-body">
+                          <span class="nx-hist-label"><oj-bind-text value="[[ m.data.label ]]"></oj-bind-text>
+                            <oj-bind-if test="[[ !!m.data.count ]]"><span class="nx-hist-count"><oj-bind-text value="[[ m.data.count ]]"></oj-bind-text></span></oj-bind-if>
+                            <span class="nx-hist-state"><oj-bind-text value="[[ $functions.stepState(m.data) ]]"></oj-bind-text></span></span>
+                          <span class="nx-hist-when"><oj-bind-text value="[[ $functions.stepWhen(m.data) ]]"></oj-bind-text></span>
+                          <oj-bind-if test="[[ !!m.data.note ]]"><span class="nx-hist-note"><oj-bind-text value="[[ m.data.note ]]"></oj-bind-text></span></oj-bind-if>
+                        </span>
+                      </li>
+                    </template>
+                  </oj-bind-for-each>
+                </ol>
+              </oj-bind-if>
+              <oj-bind-if test="[[ $variables.pop.tab === 'activity' ]]">
+                <oj-bind-if test="[[ !$functions.arr($variables.pop.h.events).length ]]"><p class="nx-note">Nothing has been recorded on this request yet.</p></oj-bind-if>
+                <ul class="nx-act" aria-label="Everything that happened, newest first">
+                  <oj-bind-for-each data="[[ $functions.arr($variables.pop.h.events) ]]">
+                    <template data-oj-as="e">
+                      <li :class="[[ 'nx-act-item nx-stage--' + (e.data.stage || 'ready') + (e.data.kind === 'stopped' ? ' nx-act-item--stopped' : '') ]]">
+                        <span class="nx-act-dot" aria-hidden="true"></span>
+                        <span class="nx-act-body">
+                          <span class="nx-act-title"><oj-bind-text value="[[ e.data.title ]]"></oj-bind-text></span>
+                          <oj-bind-if test="[[ !!e.data.text ]]"><span class="nx-act-text"><oj-bind-text value="[[ e.data.text ]]"></oj-bind-text></span></oj-bind-if>
+                          <span class="nx-act-meta"><oj-bind-text value="[[ $functions.eventMeta(e.data) ]]"></oj-bind-text></span>
+                        </span>
+                      </li>
+                    </template>
+                  </oj-bind-for-each>
+                </ul>
+              </oj-bind-if>
+              <p class="nx-note nx-hist-source"><oj-bind-text value="[[ $variables.pop.h.note ]]"></oj-bind-text></p>
+            </oj-bind-if>
+          </div>
+          <footer class="nx-dialog-foot">
+            <span class="nx-note">Export</span>
+            <oj-bind-for-each data="[[ $functions.formats() ]]">
+              <template data-oj-as="f">
+                <button type="button" class="nx-btn nx-btn--sm" data-action="export" :data-value="[[ f.data.key ]]" on-click="[[ $listeners.onPop ]]"
+                  :disabled="[[ !$variables.pop.h || $variables.pop.h.loading || !!$variables.pop.h.error ]]">
+                  <span :class="[[ f.data.icon ]]" aria-hidden="true"></span><oj-bind-text value="[[ f.data.label ]]"></oj-bind-text></button>
+              </template>
+            </oj-bind-for-each>
+            <span class="nx-spacer"></span>
+            <oj-bind-if test="[[ $variables.pop.acts && $variables.pop.acts.approve ]]">
+              <button type="button" class="nx-btn nx-btn--primary nx-btn--ok" data-action="approve" on-click="[[ $listeners.onPopApprove ]]">
+                <span class="oj-ux-ico-check-circle" aria-hidden="true"></span>Approve…</button>
+            </oj-bind-if>
+            <button type="button" class="nx-btn" data-action="record" on-click="[[ $listeners.onPop ]]">Open the request</button>
+          </footer>
+        </oj-bind-if>
+      </section>
+    </div>
   </oj-bind-if>
 </div>

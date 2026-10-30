@@ -1,0 +1,26 @@
+{
+  "description": "Help: the flow of a request as a diagram (each step: who, where, its statuses, how many pieces are there now), every stored status and how the screens show it, quick answers, shortcuts.",
+  "navigation": { "embeddable": "enabled" },
+  "variables": {
+    "isLoading": { "type": "boolean", "defaultValue": true },
+    "counts": { "type": "any", "defaultValue": {}, "description": "Pieces and requests at each step now (helpGuide.counts)." },
+    "mine": { "type": "any", "defaultValue": {}, "description": "The steps this user takes (helpGuide.mine)." },
+    "sel": { "type": "any", "defaultValue": { "key": "" }, "description": "The step open below the diagram (helpGuide.detail), with open: the screen that takes it, when this user may open it." },
+    "statuses": { "type": "any[]", "defaultValue": [], "description": "Every stored status and how it shows (helpGuide.statusRows)." }
+  },
+  "eventListeners": {
+    "vbEnter": { "chains": [{ "chain": "loadChain", "parameters": { "refresh": false } }] },
+    "onRefresh": { "chains": [{ "chain": "loadChain", "parameters": { "refresh": true } }] },
+    "onDiagram": { "chains": [{ "chain": "stepChain", "parameters": { "act": "select", "key": "{{ $event.target && $event.target.closest && $event.target.closest('[data-step]') ? $event.target.closest('[data-step]').getAttribute('data-step') : '' }}" } }] },
+    "onDiagramKey": { "chains": [{ "chain": "stepChain", "parameters": { "act": "{{ $event.key === 'Enter' || $event.key === ' ' ? 'select' : '' }}", "key": "{{ $event.target && $event.target.closest && $event.target.closest('[data-step]') ? $event.target.closest('[data-step]').getAttribute('data-step') : '' }}" } }] },
+    "onStep": { "chains": [{ "chain": "stepChain", "parameters": { "act": "{{ $event.currentTarget.dataset.act }}", "key": "{{ $event.currentTarget.dataset.key }}" } }] },
+    "onExport": { "chains": [{ "chain": "exportChain", "parameters": { "format": "{{ $event.currentTarget.dataset.format }}" } }] }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}

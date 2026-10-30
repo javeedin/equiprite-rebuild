@@ -860,7 +860,8 @@
       "resources/css/next-usage.css",
       "resources/css/next-yard.css",
       "resources/css/next-insights-admin.css",
-    "resources/css/next-customer.css"
+      "resources/css/next-customer.css",
+      "resources/css/next-help.css"
     ]
   }
 }

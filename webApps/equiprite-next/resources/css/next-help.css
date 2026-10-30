@@ -1,0 +1,87 @@
+/* EquipRite Next: Help (flows/help). The flow diagram is SVG from resources/js/helpGuide.js; its parts are styled here. */
+
+.nx-help-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; font-size: 12px; color: var(--nx-muted); }
+.nx-help-key { display: inline-flex; align-items: center; gap: 6px; }
+.nx-help-key--mine::before { content: ''; width: 18px; height: 12px; border-radius: 4px; border: 2.5px solid var(--nx-accent); background: #fff; }
+.nx-help-dot { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; background: var(--nx-band); color: #fff; font-size: 11px; font-weight: 700; }
+.nx-help-key--loop::before { content: ''; width: 22px; border-top: 2px dashed #b42318; }
+
+.nx-help-diagram { overflow-x: auto; margin: 12px 0 8px; padding-bottom: 4px; }
+.nx-help-diagram svg { display: block; min-width: 1100px; width: 100%; height: auto; font-family: var(--nx-font); }
+
+.hs-lane { fill: #fbfcfd; }
+.hs-lane--alt { fill: #f3f6f9; }
+.hs-lane--fusion { fill: #f5f3ff; }
+.hs-lane-label { font-size: 13px; font-weight: 700; fill: var(--nx-ink); }
+.hs-lane-sub { font-size: 11px; fill: var(--nx-muted); }
+.hs-num { font-size: 11px; font-weight: 700; fill: var(--nx-faint); }
+.hs-flow { fill: none; stroke: #7b8794; stroke-width: 1.6; }
+.hs-arrowhead { fill: #7b8794; }
+.hs-arrowhead--back { fill: #b42318; }
+.hs-loop { fill: none; stroke-width: 1.6; stroke-dasharray: 5 4; }
+.hs-loop--back { stroke: #b42318; }
+.hs-loop--fail { stroke: #c2410c; }
+.hs-loop-label { font-size: 11px; font-weight: 600; }
+.hs-loop-label--back { fill: #b42318; }
+.hs-loop-label--fail { fill: #c2410c; }
+.hs-sys { fill: #fff; stroke: #a78bfa; stroke-dasharray: 4 3; }
+.hs-sys-text { font-size: 11px; fill: #5b21b6; }
+.hs-sys-link { stroke: #a78bfa; stroke-dasharray: 2 3; }
+
+.hs-node { cursor: pointer; outline: none; }
+.hs-shape { fill: var(--st-bg); stroke: var(--st); stroke-width: 1.5; transition: filter 0.15s; }
+.hs-label { font-size: 12.5px; font-weight: 700; fill: var(--nx-ink); pointer-events: none; }
+.hs-node:hover .hs-shape { filter: drop-shadow(0 2px 4px rgba(15, 23, 42, 0.18)); stroke-width: 2.5; }
+.hs-node:focus-visible .hs-shape { stroke: var(--nx-accent); stroke-width: 3; }
+.hs-node--mine .hs-shape { stroke: var(--nx-accent); stroke-width: 2.5; }
+.hs-node--on .hs-shape { fill: var(--st); stroke: var(--st); }
+.hs-node--on .hs-label { fill: #fff; }
+.hs-badge { fill: var(--nx-band); stroke: #fff; stroke-width: 2; }
+.hs-badge-text { font-size: 11px; font-weight: 700; fill: #fff; pointer-events: none; }
+
+.nx-help-step { border-left: 5px solid var(--st); display: flex; flex-direction: column; gap: 14px; }
+.nx-help-step-head { display: flex; align-items: flex-start; gap: 14px; }
+.nx-help-stepnum {
+  width: 40px; height: 40px; flex: none; border-radius: 50%; background: var(--st); color: #fff; font-size: 18px; font-weight: 700;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.nx-help-step-titles { flex: 1; min-width: 0; }
+.nx-help-step-titles h2 { margin: 0; font-size: 19px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.nx-help-yours { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--nx-accent); background: var(--nx-accent-soft); border-radius: 10px; padding: 2px 8px; }
+.nx-help-facts { margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.nx-help-facts dt { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--nx-muted); margin-bottom: 4px; }
+.nx-help-facts dd { margin: 0; font-size: 14px; line-height: 1.45; }
+.nx-help-codes ul { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 18px; }
+.nx-help-codes li { display: inline-flex; align-items: center; gap: 8px; }
+.nx-help-code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; background: #eef2f6; border: 1px solid var(--nx-line); border-radius: 5px; padding: 1px 6px; color: var(--nx-ink); white-space: nowrap; }
+.nx-help-arrow { color: var(--nx-faint); }
+.nx-help-step-acts { justify-content: flex-start; }
+
+.nx-help-two h2 { margin-bottom: 8px; }
+.nx-help-two p { margin: 0 0 10px; line-height: 1.5; }
+.nx-help-two-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+.nx-help-example { border: 1px solid var(--nx-line); border-radius: 10px; padding: 12px 14px; background: var(--nx-surface-2); display: flex; flex-direction: column; gap: 10px; }
+.nx-help-ex-row { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 10px; align-items: center; }
+.nx-help-ex-pieces { display: flex; flex-wrap: wrap; gap: 6px; }
+.nx-help-ex-row--answer { border-top: 1px dashed var(--nx-line-strong); padding-top: 10px; }
+.nx-help-ex-next { display: block; margin-top: 4px; font-size: 13px; }
+
+.nx-help-codes-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.nx-grid--help { min-width: 720px; }
+.nx-grid--help .nx-row { grid-template-columns: 210px minmax(150px, 1fr) minmax(200px, 1.2fr) minmax(200px, 1.3fr); align-items: center; }
+
+.nx-help-faq details { border-top: 1px solid var(--nx-line); padding: 10px 0; }
+.nx-help-faq details:first-of-type { margin-top: 8px; }
+.nx-help-faq summary { cursor: pointer; font-weight: 700; font-size: 15px; }
+.nx-help-faq summary:focus-visible { outline: 2px solid var(--nx-accent); outline-offset: 2px; border-radius: 4px; }
+.nx-help-faq p { margin: 8px 0 0; line-height: 1.55; max-width: 900px; }
+.nx-help-colours { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.nx-help-keys dl { margin: 8px 0 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: 10px 24px; }
+.nx-help-keys dt { font-weight: 700; margin-bottom: 2px; }
+.nx-help-keys dd { margin: 0; color: var(--nx-muted); }
+
+@media (max-width: 899px) {
+  .nx-help-facts, .nx-help-two-grid { grid-template-columns: 1fr; }
+  .nx-help-ex-row { grid-template-columns: 1fr; gap: 4px; }
+}

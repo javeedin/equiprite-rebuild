@@ -498,7 +498,8 @@ const day = (n) => new Date(NOW + n * 86400000).toISOString().slice(0, 10);
   let invalidated = 0;
   const reqData = (rows, lines) => ({ load: async () => ({ rows, linesByRequest: lines, linesLoaded: true, manager: true, error: '' }), invalidate: () => { invalidated++; } });
   const PageModule = loadAmd(path.join(PAGE_DIR, 'approvals-page.js'), { 'resources/js/exportKit': { FORMATS: [] }, 'resources/js/fmt': fmt,
-    'resources/js/nav': { newUrl: (b, id) => (b ? b + 'vp/shell/logistics/picking' : '') }, 'resources/js/unitPicker': unitPicker, 'resources/js/approvalQueue': queue });
+    'resources/js/nav': { newUrl: (b, id) => (b ? b + 'vp/shell/logistics/picking' : '') }, 'resources/js/unitPicker': unitPicker, 'resources/js/approvalQueue': queue,
+    'resources/js/shellBus': { onFocus: () => {} } });
   const pageChain = (name, Actions, extra) => loadAmd(path.join(CHAINS, name + '.js'), Object.assign({
     'vb/action/actionChain': class {}, 'vb/action/actions': Actions, 'resources/js/approveAllocate': aa, 'resources/js/approvalQueue': queue, 'resources/js/rules': rules,
     'resources/js/requestProgress': Progress, 'resources/js/fmt': fmt, 'resources/js/shellBus': bus, 'resources/js/unitPicker': unitPicker,

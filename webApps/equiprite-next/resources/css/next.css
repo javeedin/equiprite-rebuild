@@ -18,6 +18,8 @@
   --nx-danger-soft: #fdecea;
   --nx-warn: #b45309;
   --nx-ok: #15803d;
+  --nx-band: #2e5468;
+  --nx-band-ink: #e2edf2;
   --nx-top-h: 56px;
   --nx-tab-h: 42px;
   --nx-nav-w: 236px;
@@ -198,9 +200,42 @@
 }
 
 /* ── Screens: shared parts ─────────────────────────────────────────────────────────────────────────────── */
-.nx-page { padding: 20px 24px 40px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.nx-page { --nx-pad-x: 24px; padding: 20px var(--nx-pad-x) 40px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .nx-pagehead { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; }
 .nx-pagehead h1 { margin: 0; font-size: 22px; font-weight: 700; line-height: 1.2; }
+
+/* Every page's head is a Redwood band, as in New EquipRite: deep teal, white words, the five-colour strip under it,
+   running to the edges of the tab (the page's top padding gives way to it). Buttons turn white-on-teal; the export
+   menu opens in the page's own colours. */
+.nx-page:has(.nx-pagehead) { padding-top: 0; }
+.nx-pagehead {
+  margin: 0 calc(-1 * var(--nx-pad-x)); padding: 20px var(--nx-pad-x) 26px; position: relative;
+  background: var(--nx-band); color: #fff;
+}
+.nx-pagehead::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 6px; pointer-events: none;
+  background: linear-gradient(90deg, #c74634 0 20%, #e5a22f 20% 40%, #6f9a3a 40% 60%, #2b8cbe 60% 80%, #6b4fa3 80% 100%);
+}
+.nx-pagehead h1 { color: #fff; font-size: 26px; }
+.nx-pagehead .nx-kicker { color: #cfe0e8; }
+.nx-pagehead .nx-sub, .nx-pagehead .nx-note { color: var(--nx-band-ink); }
+.nx-pagehead .nx-btn { background: transparent; border-color: rgba(255, 255, 255, 0.75); color: #fff; }
+.nx-pagehead .nx-btn:hover { background: rgba(255, 255, 255, 0.14); }
+.nx-pagehead .nx-btn--plain { border-color: transparent; }
+.nx-pagehead .nx-btn--primary { background: #fff; border-color: #fff; color: var(--nx-band); }
+.nx-pagehead .nx-btn--primary:hover { background: #e3edf2; }
+.nx-pagehead .nx-link { color: #fff; text-decoration: underline; }
+.nx-pagehead .nx-seg { background: rgba(255, 255, 255, 0.14); }
+.nx-pagehead .nx-seg-btn { color: var(--nx-band-ink); }
+.nx-pagehead .nx-seg-btn--on { background: #fff; color: var(--nx-band); }
+.nx-pagehead .nx-cm-warn { color: #fde68a; }
+.nx-pagehead .nx-cm-btn--dangertext { color: #fecaca; }
+.nx-pagehead :focus-visible { outline-color: #fff; }
+.nx-pagehead .nx-menu { color: var(--nx-ink); }
+.nx-pagehead .nx-menu .nx-seg { background: #e9edf2; }
+.nx-pagehead .nx-menu .nx-seg-btn { color: var(--nx-muted); }
+.nx-pagehead .nx-menu .nx-seg-btn--on { background: #fff; color: var(--nx-ink); }
+.nx-pagehead .nx-menu .nx-note { color: var(--nx-muted); }
 .nx-kicker { font-size: 12px; font-weight: 700; color: var(--nx-faint); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
 .nx-sub { color: var(--nx-muted); margin-top: 4px; font-size: 14px; }
 .nx-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
@@ -312,7 +347,7 @@
 .nx-stop--here .nx-stop-label { color: var(--st); }
 .nx-stop-note { font-size: 12px; color: var(--nx-muted); min-height: 1.2em; }
 .nx-stop--here .nx-stop-note { color: var(--nx-ink); font-weight: 600; }
-@media (max-width: 640px) { .nx-track { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 12px; } .nx-page { padding: 14px 14px 32px; } }
+@media (max-width: 640px) { .nx-track { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 12px; } .nx-page { --nx-pad-x: 14px; padding: 14px var(--nx-pad-x) 32px; } .nx-pagehead h1 { font-size: 22px; } }
 
 /* Being built */
 .nx-soon { align-items: center; padding-top: 48px; }
@@ -420,3 +455,131 @@
 .nx-grid--recent .nx-row { grid-template-columns: 120px minmax(140px, 1.2fr) minmax(170px, 1.2fr) minmax(110px, 0.8fr) 150px minmax(150px, 1.2fr); }
 @media (max-width: 1100px) { .nx-work-cols { grid-template-columns: 1fr; } }
 .nx-work .nx-kpis { grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr)); }
+
+/* ── Requests: a row's steps, and the popup on a request (approve it, or its timeline) ───────────────────── */
+.nx-req-numline { display: inline-flex; align-items: center; gap: 4px; }
+.nx-rowicon {
+  width: 26px; height: 26px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--nx-muted);
+  display: inline-flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; flex: none;
+}
+.nx-rowicon:hover { background: var(--nx-accent-soft); color: var(--nx-accent); border-color: #c7dcf5; }
+.nx-rowacts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.nx-rowact {
+  display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 9px; border-radius: 13px; border: 1px solid;
+  font-size: 12px; font-weight: 700; cursor: pointer; background: #fff; white-space: nowrap;
+}
+.nx-rowact span[class^="oj-ux-ico"] { font-size: 14px; }
+.nx-rowact--approve { color: #166534; border-color: #86efac; background: #f0fdf4; }
+.nx-rowact--approve:hover { background: #dcfce7; }
+.nx-rowact--assign { color: #1d4ed8; border-color: #bfdbfe; background: #eff6ff; }
+.nx-rowact--assign:hover { background: #dbeafe; }
+.nx-rowact--pick { color: #b45309; border-color: #fcd34d; background: #fffbeb; }
+.nx-rowact--pick:hover { background: #fef3c7; }
+.nx-rowicon:focus-visible, .nx-rowact:focus-visible { outline: 2px solid var(--nx-accent); outline-offset: 2px; }
+
+.nx-modal { position: fixed; inset: 0; z-index: 80; display: flex; align-items: flex-start; justify-content: center; padding: 6vh 16px 16px; }
+.nx-modal-scrim { position: absolute; inset: 0; border: 0; padding: 0; background: rgba(15, 23, 42, 0.45); cursor: default; }
+.nx-dialog {
+  position: relative; width: min(560px, 100%); max-height: 88vh; display: flex; flex-direction: column; background: #fff;
+  border-radius: 12px; box-shadow: var(--nx-shadow-pop); overflow: hidden;
+}
+.nx-dialog--wide { width: min(760px, 100%); }
+.nx-dialog-head {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 16px 18px 18px; position: relative;
+  background: var(--nx-band); color: #fff;
+}
+.nx-dialog-head::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 4px;
+  background: linear-gradient(90deg, #c74634 0 20%, #e5a22f 20% 40%, #6f9a3a 40% 60%, #2b8cbe 60% 80%, #6b4fa3 80% 100%);
+}
+.nx-dialog-head .nx-kicker { color: #cfe0e8; }
+.nx-dialog-head .nx-sub { color: var(--nx-band-ink); }
+.nx-dialog-head .nx-iconbtn { color: #fff; }
+.nx-dialog-head .nx-iconbtn:hover { background: rgba(255, 255, 255, 0.14); color: #fff; }
+.nx-dialog-titles { min-width: 0; }
+.nx-dialog-title { margin: 0; font-size: 20px; font-weight: 700; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; color: #fff; }
+.nx-dialog-body { padding: 16px 18px; overflow: auto; display: flex; flex-direction: column; gap: 12px; }
+.nx-dialog-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--nx-line); background: var(--nx-surface-2); }
+.nx-btn--ok { background: #15803d; border-color: #15803d; }
+.nx-btn--ok:hover { background: #166534; }
+.nx-btn--danger { background: var(--nx-danger); border-color: var(--nx-danger); }
+.nx-btn--danger:hover { background: #912018; }
+
+.nx-pop-eq { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.nx-pop-eq li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; border: 1px solid var(--nx-line); border-radius: 8px; }
+.nx-pop-eq-name { font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+.nx-pop-after { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 10px; background: #f0f7fb; border: 1px solid #d3e4ee; }
+.nx-pop-after .nx-note { font-size: 13px; color: var(--nx-ink); }
+.nx-miniflow { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px; counter-reset: step; }
+.nx-miniflow li {
+  position: relative; padding: 4px 10px 4px 8px; border-radius: 6px; background: #fff; border: 1px solid #d3e4ee; font-size: 12px; font-weight: 600;
+  color: var(--nx-muted); counter-increment: step;
+}
+.nx-miniflow li::before { content: counter(step) '. '; color: var(--nx-faint); }
+.nx-miniflow li:not(:last-child)::after { content: '›'; position: absolute; right: -8px; top: 3px; color: var(--nx-faint); }
+.nx-miniflow-on { background: #15803d !important; border-color: #15803d !important; color: #fff !important; }
+.nx-miniflow-on::before { color: #dcfce7 !important; }
+.nx-pop-field { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; }
+.nx-pop-field textarea {
+  font: inherit; font-weight: 400; font-size: 14px; padding: 8px 10px; border: 1px solid var(--nx-line-strong); border-radius: 8px; resize: vertical; min-height: 72px;
+}
+.nx-pop-field textarea:focus { outline: 2px solid var(--nx-accent); outline-offset: 0; border-color: transparent; }
+.nx-pop-busy { display: flex; align-items: center; gap: 10px; padding: 18px 4px; color: var(--nx-muted); }
+.nx-spin { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--nx-line-strong); border-top-color: var(--nx-accent); animation: nx-spin 0.8s linear infinite; }
+@keyframes nx-spin { to { transform: rotate(360deg); } }
+.nx-pop-result { padding: 10px 12px; border-radius: 8px; font-size: 14px; border: 1px solid; }
+.nx-pop-result--ok { background: #f0fdf4; border-color: #bbf7d0; color: #14532d; }
+.nx-pop-result--warn { background: #fffbeb; border-color: #fde68a; color: #78350f; }
+.nx-pop-result--error { background: var(--nx-danger-soft); border-color: #fecaca; color: #7f1d1d; }
+.nx-pop-now { margin: 0; font-size: 14px; }
+
+/* The timeline: a step per milestone, dot and rail coloured by its stage; done is filled, now is ringed, to do is hollow. */
+.nx-hist { list-style: none; margin: 4px 0 0; padding: 0; }
+.nx-hist-step { position: relative; display: flex; gap: 12px; padding: 0 0 14px; }
+.nx-hist-step:not(:last-child)::before {
+  content: ''; position: absolute; left: 8px; top: 20px; bottom: -2px; width: 2px; background: var(--nx-line);
+}
+.nx-hist-step--done:not(:last-child)::before { background: var(--st); }
+.nx-hist-dot { width: 18px; height: 18px; flex: none; border-radius: 50%; border: 2px solid var(--nx-line-strong); background: #fff; margin-top: 1px; position: relative; z-index: 1; }
+.nx-hist-step--done .nx-hist-dot { background: var(--st); border-color: var(--st); }
+.nx-hist-step--done .nx-hist-dot::after { content: ''; position: absolute; left: 4px; top: 1px; width: 5px; height: 9px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.nx-hist-step--partly .nx-hist-dot { border-color: var(--st); background: linear-gradient(90deg, var(--st) 50%, #fff 50%); }
+.nx-hist-step--here .nx-hist-dot { border-color: var(--st); box-shadow: 0 0 0 4px var(--st-bg); }
+.nx-hist-step--stopped .nx-hist-dot { border-color: #b42318; background: #b42318; }
+.nx-hist-step--skipped, .nx-hist-step--todo { color: var(--nx-faint); }
+.nx-hist-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.nx-hist-label { font-weight: 700; display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.nx-hist-step--todo .nx-hist-label, .nx-hist-step--skipped .nx-hist-label { font-weight: 600; }
+.nx-hist-count { font-size: 12px; font-weight: 700; color: var(--st); background: var(--st-bg); border-radius: 10px; padding: 1px 8px; }
+.nx-hist-state { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--st); }
+.nx-hist-when { font-size: 13px; color: var(--nx-muted); }
+.nx-hist-note { font-size: 13px; color: var(--nx-ink); background: var(--st-bg); border-radius: 6px; padding: 4px 8px; margin-top: 2px; align-self: flex-start; }
+.nx-hist-step--stopped .nx-hist-note { background: #fee4e2; }
+.nx-hist-source { margin: 4px 0 0; }
+
+.nx-act { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.nx-act-item { display: flex; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--nx-line); }
+.nx-act-item:last-child { border-bottom: 0; }
+.nx-act-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--st); margin-top: 5px; flex: none; }
+.nx-act-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.nx-act-title { font-weight: 700; }
+.nx-act-text { font-size: 13px; overflow-wrap: anywhere; }
+.nx-act-meta { font-size: 12px; color: var(--nx-muted); }
+.nx-act-item--stopped .nx-act-title { color: var(--nx-danger); }
+
+@media (max-width: 599px) {
+  .nx-modal { padding: 0; align-items: stretch; }
+  .nx-dialog, .nx-dialog--wide { width: 100%; max-height: 100%; border-radius: 0; }
+}
+
+/* A request's tab: its history, steps beside everything that happened (one at a time on a narrow screen). */
+.nx-record-history .nx-h2 { display: inline-flex; align-items: center; gap: 6px; }
+.nx-h3 { margin: 0 0 10px; font-size: 14px; font-weight: 700; color: var(--nx-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.nx-hist-cols { display: grid; grid-template-columns: minmax(240px, 0.9fr) minmax(0, 1.4fr); gap: 28px; margin-top: 12px; }
+.nx-hist-tabs { display: none; margin-top: 10px; }
+@media (max-width: 899px) {
+  .nx-hist-tabs { display: inline-flex; }
+  .nx-hist-cols { grid-template-columns: 1fr; }
+  .nx-hist-cols--steps .nx-hist-col--activity, .nx-hist-cols--activity .nx-hist-col--steps { display: none; }
+  .nx-hist-cols .nx-h3 { display: none; }
+}

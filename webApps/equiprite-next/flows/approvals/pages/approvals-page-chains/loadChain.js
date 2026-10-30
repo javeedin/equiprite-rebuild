@@ -43,6 +43,7 @@ define([
       if (reopen && v.current && v.current.key) {
         await Actions.callChain(context, { chain: 'recordChain', params: {} });
       }
+      await Actions.callChain(context, { chain: 'focusChain' });
     }
   }
 

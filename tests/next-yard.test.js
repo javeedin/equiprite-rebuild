@@ -386,7 +386,7 @@ const rests = (A) => A.calls.filter((c) => c.endpoint).map((c) => c.endpoint.rep
   T.section('the page modules');
   {
     const pick = new (loadFile(path.join(PAGES, 'picking-page.js'), { 'resources/js/exportKit': kit, 'resources/js/nav': nav, 'resources/js/rules': rules,
-      'resources/js/requestProgress': Progress, 'resources/js/yardWork': yw }))();
+      'resources/js/requestProgress': Progress, 'resources/js/yardWork': yw, 'resources/js/shellBus': { onFocus: () => {} } }))();
     T.eq('release words: singular and plural', [pick.stockReleaseText([wl[0]], [tos[0]]), pick.stockReleaseText(wl, tos)].join(' | '),
       '1 piece on transfer order TO-A waits for release. | 1 piece on transfer order TO-A waits for release.');
     T.check('fixed assets: what releasing here does', /2 fixed-asset pieces with no transfer order wait for release/.test(pick.fmReleaseText(wl)) && /Nothing is sent to Fusion/.test(pick.fmReleaseText(wl)));

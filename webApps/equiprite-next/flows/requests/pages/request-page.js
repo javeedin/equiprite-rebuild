@@ -23,6 +23,27 @@ define(['resources/js/exportKit', 'resources/js/fmt', 'resources/js/requestProgr
     lineStage(status, external) { return Progress.line(status, !!external).stage || 'ready'; }
     lineLabel(status, external) { return Progress.line(status, !!external).label; }
 
+    /** An array, or an empty one (no array literals in bindings). */
+    arr(a) { return Array.isArray(a) ? a : []; }
+
+    /** A history step's state in words, beside its label. */
+    stepState(m) {
+      return { done: '', partly: 'in progress', here: 'now', todo: '', stopped: '', skipped: 'not reached' }[m && m.state] || '';
+    }
+
+    /** When a history step was reached and by whom; says so when it was reached but not recorded. */
+    stepWhen(m) {
+      if (!m || m.state === 'todo' || m.state === 'skipped') return '';
+      if (m.when) return m.when + (m.who ? ' · ' + m.who : '');
+      return m.missing ? 'Reached; the date was not recorded' : (m.state === 'here' ? 'Waiting' : '');
+    }
+
+    /** An event's when, who and where it comes from. */
+    eventMeta(e) {
+      if (!e) return '';
+      return [e.when || 'Date not recorded', e.who || '', e.recorded ? 'recorded' : 'from its dates'].filter((t) => !!t).join(' · ');
+    }
+
     /** This request in New EquipRite (where it can be approved, allocated, delivered, returned today), or ''. */
     newUrl(newBase, head) {
       if (!newBase || !head || !head.id) return '';

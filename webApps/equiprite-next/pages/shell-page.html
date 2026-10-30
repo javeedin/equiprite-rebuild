@@ -50,6 +50,10 @@
         </oj-bind-if>
         <span class="nx-switch-btn nx-switch-btn--on" aria-current="page">Next</span>
       </nav>
+      <button type="button" class="nx-iconbtn" id="nxHelp" data-nav-id="help" on-click="[[ $listeners.onNav ]]"
+        aria-label="Help: how EquipRite works, the flow of a request" title="Help: how a request moves, step by step">
+        <span class="oj-ux-ico-help" aria-hidden="true"></span>
+      </button>
       <button type="button" class="nx-iconbtn nx-bell" id="nxBell" on-click="[[ $listeners.onBell ]]" aria-controls="nxBellPanel"
         :aria-expanded="[[ $variables.bellOpen ? 'true' : 'false' ]]"
         :aria-label="[[ 'Notifications' + ($variables.unread ? ', ' + $variables.unread + ' unread' : '') ]]">
@@ -99,6 +103,10 @@
           <span class="nx-nav-loading">Loading your menu…</span>
         </oj-bind-if>
       </div>
+      <button type="button" class="nx-nav-foot" id="nxNavHelp" data-nav-id="help" on-click="[[ $listeners.onNav ]]" title="Help: how EquipRite works">
+        <span class="oj-ux-ico-network-flow-diagram" aria-hidden="true"></span>
+        <span class="nx-nav-text">Help &amp; the flow</span>
+      </button>
       <button type="button" class="nx-nav-foot" on-click="[[ $listeners.toggleNav ]]"
         :aria-label="[[ $variables.navCollapsed ? 'Show the full menu' : 'Collapse the menu to icons' ]]">
         <span :class="[[ $variables.navCollapsed ? 'oj-ux-ico-chevron-double-right' : 'oj-ux-ico-chevron-double-left' ]]" aria-hidden="true"></span>

@@ -78,6 +78,28 @@
     "exportOpen": {
       "type": "boolean",
       "defaultValue": false
+    },
+    "can": {
+      "type": "any",
+      "defaultValue": {
+        "decide": false,
+        "assign": false,
+        "pick": false
+      },
+      "description": "Which row steps this user may take: decide (EQR_WORKBENCH FULL), assign (EQR_WORKBENCH seen), pick (EQR_INITIATE_PICKING seen)."
+    },
+    "pop": {
+      "type": "any",
+      "defaultValue": {
+        "kind": ""
+      },
+      "description": "The open popup on a request: approve (decide it here) or history (its timeline); see popChain."
+    }
+  },
+  "events": {
+    "focusRequest": {
+      "description": "From resources/js/shellBus.js focus(): another screen handed this one a filter (Help: where some pieces are).",
+      "payloadType": "object"
     }
   },
   "eventListeners": {
@@ -139,7 +161,8 @@
           "chain": "openRecordChain",
           "parameters": {
             "id": "{{ $event.currentTarget.dataset.id }}",
-            "number": "{{ $event.currentTarget.dataset.number }}"
+            "number": "{{ $event.currentTarget.dataset.number }}",
+            "act": "{{ $event.target && $event.target.closest && $event.target.closest('[data-act]') ? $event.target.closest('[data-act]').getAttribute('data-act') : 'open' }}"
           }
         }
       ]
@@ -183,6 +206,47 @@
           "parameters": {
             "navId": "new-request"
           }
+        }
+      ]
+    },
+    "onPop": {
+      "chains": [
+        {
+          "chain": "popChain",
+          "parameters": {
+            "action": "{{ $event.currentTarget.dataset.action }}",
+            "value": "{{ $event.currentTarget.dataset.value }}"
+          }
+        }
+      ]
+    },
+    "onPopReason": {
+      "chains": [
+        {
+          "chain": "popChain",
+          "parameters": {
+            "action": "reasonText",
+            "value": "{{ $event.target.value }}"
+          }
+        }
+      ]
+    },
+    "onPopApprove": {
+      "chains": [
+        {
+          "chain": "popChain",
+          "parameters": {
+            "action": "approve",
+            "id": "{{ $variables.pop.id }}",
+            "number": "{{ $variables.pop.number }}"
+          }
+        }
+      ]
+    },
+    "focusRequest": {
+      "chains": [
+        {
+          "chain": "focusChain"
         }
       ]
     }

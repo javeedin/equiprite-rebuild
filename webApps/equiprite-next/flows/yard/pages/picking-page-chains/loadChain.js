@@ -40,6 +40,7 @@ define([
       }
       // Not awaited: the list is usable while the yards come in.
       Actions.callChain(context, { chain: 'lookupYardsChain', params: { token } });
+      await Actions.callChain(context, { chain: 'focusChain' });
     }
   }
 

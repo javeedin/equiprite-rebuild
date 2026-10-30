@@ -202,6 +202,30 @@ define(['resources/js/requestProgress', 'resources/js/fmt', 'resources/js/rules'
     ];
   }
 
+  // A piece the yard can pick: a unit is assigned on an approved request, or picking has started and it has not shipped
+  // (the Picking & shipping queue's own statuses, yardWork / openWorkChain).
+  var PICKABLE = ['ALLOCATED', 'SCHEDULED_FOR_PICKING', 'PICK_INITIATED', 'PICK_RELEASED', 'EQP_INSPECTION_COMPLETE'];
+  var APPROVED_HEADERS = ['IN_PROCESS', 'APPROVED', 'ALLOCATED', 'QUOTE_ACCEPTED'];
+
+  /**
+   * The steps a request's row offers, each only to those whose access lets them take it:
+   *   approve  it waits for a decision (Approve & allocate's queue says 'decide'); can.decide: EQR_WORKBENCH FULL
+   *   assign   approved, units still to assign (the queue says 'allocate'); can.assign: EQR_WORKBENCH not hidden
+   *   pick     pieces ready at the yard, how many; can.pick: EQR_INITIATE_PICKING not hidden
+   *   item: a decorated request; lines: its lines; queueKind: approvalQueue.build's kind for it ('' when not queued).
+   */
+  function actions(item, lines, queueKind, can) {
+    var c = can || {};
+    var status = up(item && (item.status || item.requestStatus));
+    var pick = APPROVED_HEADERS.indexOf(status) === -1 ? 0
+      : (lines || []).filter(function (l) { return PICKABLE.indexOf(up(l.lineStatus)) !== -1; }).length;
+    return {
+      approve: queueKind === 'decide' && !!c.decide,
+      assign: queueKind === 'allocate' && !!c.assign,
+      pick: c.pick ? pick : 0
+    };
+  }
+
   /** The band under the title: "100 requests · 176 pieces · 3 late". */
   function summary(items) {
     var list = items || [];
@@ -213,6 +237,6 @@ define(['resources/js/requestProgress', 'resources/js/fmt', 'resources/js/rules'
   return {
     CHIPS: CHIPS, LANES: LANES, decorate: decorate, keysOf: keysOf, laneOf: laneOf, requestChips: requestChips, filter: filter, sort: sort,
     board: board, equipmentRows: equipmentRows, equipmentChips: equipmentChips, filterEquipment: filterEquipment, exportColumns: exportColumns,
-    summary: summary, unitText: unitText
+    summary: summary, unitText: unitText, actions: actions, PICKABLE: PICKABLE
   };
 });

@@ -3,14 +3,19 @@ define([
   'vb/action/actions',
   'resources/js/requestData',
   'resources/js/requestProgress',
+  'resources/js/requestHistory',
+  'resources/js/requestList',
+  'resources/js/approvalQueue',
   'resources/js/rules',
   'resources/js/shellBus',
-], (ActionChain, Actions, requestData, Progress, rules, bus) => {
+], (ActionChain, Actions, requestData, Progress, history, list, queue, rules, bus) => {
   'use strict';
 
   // Loads one request: its id from the tab (or, given only a number, from the requests list), then its lines
   // (views/request-detail-lines, enriched, one row per line, the request's own fields on each) and its header
-  // (equipment-requests/{id}, for the customer, contract and requestor). Then the tab is named after it.
+  // (equipment-requests/{id}, for the customer, contract and requestor). Then the tab is named after it, the steps it
+  // offers this user are worked out (as on its row in Requests: approve, assign units, pick; by page access), and its
+  // history is read (requestHistory; reads only) while the request already shows.
   class loadRecordChain extends ActionChain {
     async run(context) {
       const { $page } = context;
@@ -63,6 +68,17 @@ define([
         v.lines = lines.map((l) => Object.assign({}, l, { unit: l.serial || ({ ALLOCATED: 'Unit assigned', PENDING: 'No unit assigned yet', UNALLOCATED: 'No unit assigned yet' }[l.allocation] || '—') }));
         v.p = Progress.summarize(status, lines, { start: head.start, end: head.end, external });
         bus.rename('request:' + (v.id || v.number), head.requestNumber);
+        const app = context.$application.variables;
+        const workbench = rules.pageAccess(app.pageAccessMap, app.pageAccessLoaded, 'EQR_WORKBENCH');
+        const picking = rules.pageAccess(app.pageAccessMap, app.pageAccessLoaded, 'EQR_INITIATE_PICKING');
+        const row = { requestNumber: head.requestNumber, status, eqrEquipmentRequestId: id, requestOrigin: external ? 'External' : 'Internal' };
+        const kind = (queue.build([row], { [head.requestNumber]: lines }, {})[0] || {}).kind || '';
+        v.acts = list.actions(row, lines, kind, { decide: workbench === 'FULL', assign: workbench !== 'HIDDEN', pick: picking !== 'HIDDEN' });
+        v.history = { loading: true };
+        history.load(context, Actions, { id, head: { status, external, number: head.requestNumber, requestor: head.requestor, start: head.start, end: head.end,
+          createdDate: header.createdDate || '' }, lines })
+          .then((h) => { v.history = Object.assign({ loading: false }, h); })
+          .catch((e) => { v.history = { loading: false, error: 'Its history could not be read: ' + ((e && e.message) || e) }; });
       } catch (e) {
         console.error('[loadRecordChain] failed', e);
         v.error = 'The request could not be loaded.';

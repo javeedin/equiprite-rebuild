@@ -4,12 +4,19 @@ define([
   'resources/js/rules',
   'resources/js/requestProgress',
   'resources/js/yardWork',
-], (exportKit, nav, rules, Progress, yw) => {
+  'resources/js/shellBus',
+], (exportKit, nav, rules, Progress, yw, bus) => {
   'use strict';
 
   // Picking & shipping: binding helpers. The list's logic is resources/js/yardWork.js; the workspace's rules (ticks,
   // transfer orders, what Pick and ship moves) are New's, in yardWork too.
   class PageModule {
+    constructor(context) {
+      // Another screen may hand over a request to open (shellBus.focus): focusChain takes it.
+      const helper = context && typeof context.getEventHelper === 'function' ? context.getEventHelper() : null;
+      bus.onFocus('picking', () => { if (helper) helper.fireCustomEvent('focusRequest', {}); });
+    }
+
     formats() { return exportKit.FORMATS; }
 
     /** The yard's steps are for those with full access to Initiate picking; read-only sees them, cannot act. */

@@ -24,10 +24,16 @@ Tests for them: `tests/e2e/next-requests.e2e.js`, `tests/next-foundation.test.js
   - `bus.open({ record: 'request', params: { id, number } })` opens a record (record kinds are in `nav.js` `RECORDS`;
     add yours there);
   - `bus.rename(tabId, title)` names your tab once a record loads;
-  - `bus.toast(message, 'info' | 'warning' | 'error')` shows a toast.
+  - `bus.toast(message, 'info' | 'warning' | 'error')` shows a toast;
+  - `bus.focus(navId, { id, number })` opens a screen on one request (Requests' "Assign units" and "Pick" do this). A
+    screen that takes it registers with `bus.onFocus(navId, fn)` in its page module (fire a `focusRequest` event) and
+    reads it once with `bus.takeFocus(navId)` after it has loaded: see Approve & allocate's and Picking's `focusChain`.
 - **`resources/js/nav.js`.** The menu. Your item is already there with its `route` and `pageCodes`. When your screen
   works, set `built: true` on it. Change nothing else in that file except adding a record kind.
-- **The bell, Ctrl+K and the Old / New / Next switch** belong to the shell. Leave them alone.
+- **The bell, Ctrl+K, Help and the Old / New / Next switch** belong to the shell. Leave them alone.
+- **The page head is a Redwood band.** Every `.nx-pagehead` is drawn as New EquipRite's band (deep teal, white title,
+  the five-colour strip) running to the edges of the tab; buttons in it turn white-on-teal. Put your title, kicker,
+  summary and page actions in it as before; nothing else is needed.
 
 ## Page rules (VBCS)
 
@@ -62,6 +68,8 @@ Tests for them: `tests/e2e/next-requests.e2e.js`, `tests/next-foundation.test.js
 | `rules.js` | persona, page access, feature flags, quotes, rate source, user name and initials |
 | `requestData.js` | requests and their lines (shared, half-minute cache), `lineOf`, `indexLines` |
 | `requestProgress.js` | where a request and each piece of equipment is: stage, words, next step, late |
+| `requestHistory.js` | a request from start to end: milestones (when, by whom, how many pieces), everything recorded |
+| `helpGuide.js` | the flow's steps (who, which screen, which statuses), pieces at each step now, the diagram |
 | `exportKit.js` | `run(format, { name, title, subtitle, rows, columns })`: Excel, CSV, PDF, Copy |
 | `fmt.js` | dates, ranges, relative days, money, counts |
 

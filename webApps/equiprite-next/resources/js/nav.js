@@ -73,6 +73,12 @@ define(['resources/js/rules'], function (rules) {
       { id: 'integrations', label: 'Integrations', icon: 'oj-ux-ico-heartbeat', pageCodes: ['EQR_CONFIGURATIONS'],
         route: { flow: 'admin', page: 'integrations' }, built: true, newNav: 'integration-health', keywords: 'fusion sync health errors' }
     ] },
+    // Help is for everyone, once their access has loaded. It sits at the foot of the menu and in the top bar, not in a
+    // group of its own (foot).
+    { key: 'help', label: 'Help', foot: true, items: [
+      { id: 'help', label: 'Help', icon: 'oj-ux-ico-help', pageCodes: [], everyone: true, route: { flow: 'help', page: 'help' }, built: true,
+        keywords: 'help guide how flow diagram process status statuses lifecycle steps approve pick ship return what next' }
+    ] },
     { key: 'customers', label: 'Customers', flags: ['CUSTOMERS_MODULE_ENABLED'], items: [
       { id: 'customer-portal', label: 'Customer portal', icon: 'oj-ux-ico-customer-request', pageCodes: ['EQR_CUST_DASHBOARD'],
         route: { flow: 'customer', page: 'portal' }, built: true, newNav: 'customer-portal', keywords: 'customer portal external' }
@@ -148,6 +154,7 @@ define(['resources/js/rules'], function (rules) {
   function visibleGroups(map, loaded, flags, flagsLoaded, buRateSources) {
     var out = [];
     GROUPS.forEach(function (g) {
+      if (g.foot) return;
       if (!(g.flags || []).every(function (f) { return rules.isFeatureEnabled(flags, flagsLoaded, f); })) return;
       var items = g.items.filter(function (it) { return itemVisible(it, map, loaded, flags, flagsLoaded, buRateSources); });
       if (items.length) out.push({ key: g.key, label: g.label, items: items });
@@ -171,6 +178,7 @@ define(['resources/js/rules'], function (rules) {
 
   function itemVisible(it, map, loaded, flags, flagsLoaded, buRateSources) {
     if (!it) return false;
+    if (it.everyone) return !!loaded;
     if (it.id === 'home' && customerOnly(map, loaded)) return false;
     var group = GROUPS.filter(function (g) { return g.key === it.group; })[0];
     if (group && !(group.flags || []).every(function (f) { return rules.isFeatureEnabled(flags, flagsLoaded, f); })) return false;
@@ -185,7 +193,9 @@ define(['resources/js/rules'], function (rules) {
     var q = String(text || '').trim().toLowerCase();
     if (!q) return [];
     var out = [];
-    (groups || []).forEach(function (g) {
+    // Help (the menu's foot) is found too, for anyone with a menu.
+    var all = (groups || []).length ? groups.concat(GROUPS.filter(function (g) { return g.foot; })) : [];
+    all.forEach(function (g) {
       g.items.forEach(function (it) {
         var label = it.label.toLowerCase();
         var hay = label + ' ' + (g.label || '').toLowerCase() + ' ' + (it.keywords || '');

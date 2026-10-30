@@ -1,13 +1,16 @@
-define(['resources/js/exportKit', 'resources/js/fmt', 'resources/js/nav', 'resources/js/unitPicker', 'resources/js/approvalQueue'], (exportKit, fmt, nav, unitPicker, queue) => {
+define(['resources/js/exportKit', 'resources/js/fmt', 'resources/js/nav', 'resources/js/unitPicker', 'resources/js/approvalQueue', 'resources/js/shellBus'], (exportKit, fmt, nav, unitPicker, queue, bus) => {
   'use strict';
 
   // Approve & allocate: binding helpers, and the unit pickers kept between chains (as New EquipRite's page module
   // keeps them): the one open under a line (manual), and one per line with its suggested units staged (auto-allocate
   // saves exactly those). The logic is resources/js/approvalQueue.js; the calls are resources/js/approveAllocate.js.
   class PageModule {
-    constructor() {
+    constructor(context) {
       this._pick = new unitPicker.Picker();
       this._sugg = {};
+      // Another screen may hand over a request to open (shellBus.focus): focusChain takes it.
+      const helper = context && typeof context.getEventHelper === 'function' ? context.getEventHelper() : null;
+      bus.onFocus('approvals', () => { if (helper) helper.fireCustomEvent('focusRequest', {}); });
     }
 
     formats() { return exportKit.FORMATS; }

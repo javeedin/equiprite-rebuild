@@ -47,6 +47,27 @@
     "exportOpen": {
       "type": "boolean",
       "defaultValue": false
+    },
+    "acts": {
+      "type": "any",
+      "defaultValue": {
+        "approve": false,
+        "assign": false,
+        "pick": 0
+      },
+      "description": "The steps this request offers this user (requestList.actions), as on its row in Requests."
+    },
+    "history": {
+      "type": "any",
+      "defaultValue": {
+        "loading": true
+      },
+      "description": "Its history from start to end (requestHistory.build), read after the request."
+    },
+    "histTab": {
+      "type": "string",
+      "defaultValue": "steps",
+      "description": "steps | activity, on a narrow screen."
     }
   },
   "eventListeners": {
@@ -92,6 +113,17 @@
       "chains": [
         {
           "chain": "finishDraftChain"
+        }
+      ]
+    },
+    "onStep": {
+      "chains": [
+        {
+          "chain": "stepChain",
+          "parameters": {
+            "act": "{{ $event.currentTarget.dataset.act }}",
+            "value": "{{ $event.currentTarget.dataset.value }}"
+          }
         }
       ]
     }
