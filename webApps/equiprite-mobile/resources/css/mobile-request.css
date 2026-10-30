@@ -1,1 +1,242 @@
-/* EquipRite Mobile: the request tab's own styles (.mb-request-*). Shared parts are in mobile.css. */
+/* EquipRite Mobile: the Request tab's own styles (.mb-request-*). Shared parts are in mobile.css, and so are the colours:
+   only its tokens are used here. A phone first: one column, 44 px targets, 16 px inputs, nothing wider than the screen. */
+
+/* The screen fills the space above the tab bar, so the dock sits at the bottom even on a short step. */
+.mb-request { min-height: calc(100vh - var(--mb-top-h) - var(--mb-bar-h) - var(--mb-safe-b)); min-height: calc(100dvh - var(--mb-top-h) - var(--mb-bar-h) - var(--mb-safe-b)); padding-bottom: 0; }
+.mb-request-fill { flex: 1 1 auto; min-height: 0; margin-top: -12px; }
+.mb-request-headsub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ── The steps, in the band ─────────────────────────────────────────────────────────────────────────────── */
+.mb-request-steps { list-style: none; margin: 14px 0 0; padding: 0; display: flex; gap: 6px; }
+.mb-request-step { flex: 1 1 0; min-width: 0; }
+.mb-request-stepbtn {
+  width: 100%; min-height: 46px; display: flex; align-items: center; gap: 7px; padding: 6px 7px; border: 0; border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08); color: var(--mb-band-ink); font: inherit; text-align: left; cursor: pointer;
+}
+.mb-request-step--current .mb-request-stepbtn { background: rgba(255, 255, 255, 0.2); color: #fff; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4); }
+.mb-request-stepnum {
+  width: 24px; height: 24px; flex: none; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+  border: 2px solid rgba(255, 255, 255, 0.5); font-size: 12px; font-weight: 800; line-height: 1;
+}
+.mb-request-step--current .mb-request-stepnum { background: #fff; border-color: #fff; color: var(--mb-band); }
+.mb-request-step--done .mb-request-stepnum { background: var(--mb-ok); border-color: var(--mb-ok); color: #fff; }
+.mb-request-steptext { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
+.mb-request-steplabel { font-size: 13px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mb-request-stepsub { font-size: 11px; opacity: 0.85; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mb-request-stepsub:empty { display: none; }
+
+/* ── Notes above a step ─────────────────────────────────────────────────────────────────────────────────── */
+.mb-request-notice {
+  display: flex; align-items: flex-start; gap: 8px; padding: 10px 6px 10px 12px; border-radius: 12px; background: var(--mb-accent-soft);
+  border: 1px solid #c9dcf3; color: var(--mb-ink); font-size: 14px;
+}
+.mb-request-notice > span[class^="oj-ux-ico"] { color: var(--mb-accent); font-size: 18px; margin-top: 1px; }
+.mb-request-notice-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.mb-request-notice .mb-iconbtn { width: 32px; height: 32px; margin: -4px 0; }
+.mb-request-info { display: flex; align-items: flex-start; gap: 6px; margin: 0; font-size: 13px; color: var(--mb-muted); }
+.mb-request-info > span[class^="oj-ux-ico"] { color: var(--mb-accent); font-size: 16px; }
+.mb-request-need { margin: 0; padding: 10px 12px; border-radius: 12px; background: var(--mb-warn-soft); color: #78350f; font-size: 14px; font-weight: 600; }
+.mb-request-errlink { display: block; margin-top: 8px; font-weight: 700; color: inherit; }
+
+/* ── Step 1: where to start ─────────────────────────────────────────────────────────────────────────────── */
+.mb-request-more-note { margin: -4px 4px 0; }
+.mb-request-again { display: flex; gap: 10px; overflow-x: auto; padding: 2px 2px 6px; scroll-snap-type: x mandatory; scrollbar-width: none; }
+.mb-request-again::-webkit-scrollbar { display: none; }
+.mb-request-againcard {
+  flex: none; width: 232px; max-width: 78vw; display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; scroll-snap-align: start;
+  border: 1px solid var(--mb-line); border-radius: var(--mb-radius); background: var(--mb-surface); box-shadow: var(--mb-shadow);
+  color: var(--mb-ink); font: inherit; text-align: left; cursor: pointer;
+}
+.mb-request-againcard:active { background: #f0f6f9; }
+.mb-request-againcard-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.mb-request-againcard-top span[class^="oj-ux-ico"] { color: var(--mb-band); font-size: 18px; }
+.mb-request-againcard-party { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mb-request-againcard-about { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.mb-request-againcard-go { margin-top: auto; padding-top: 6px; color: var(--mb-accent); font-size: 14px; font-weight: 700; }
+
+/* ── Step 1: the dates ──────────────────────────────────────────────────────────────────────────────────── */
+.mb-request-when { display: flex; flex-direction: column; gap: 10px; }
+.mb-request-when-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.mb-request-when-row .mb-input { padding: 0 10px; min-width: 0; }
+.mb-request-lengths { display: flex; flex-wrap: wrap; gap: 8px; }
+.mb-request-lengths .mb-chip:disabled { opacity: 0.45; cursor: not-allowed; }
+.mb-request-when .mb-note, .mb-request-sec > .mb-note { margin: 0; }
+
+/* ── Step 1: the catalog, a picture card per item ───────────────────────────────────────────────────────── */
+.mb-request-catnote { margin: -4px 4px 0; }
+.mb-request-cards { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; transition: opacity 0.15s; }
+.mb-request-cards--busy { opacity: 0.6; }
+.mb-request-card {
+  display: grid; grid-template-columns: 88px minmax(0, 1fr); grid-template-areas: "pic body" "foot foot"; gap: 10px 12px; padding: 12px;
+  background: var(--mb-surface); border: 1px solid var(--mb-line); border-radius: var(--mb-radius); box-shadow: var(--mb-shadow); min-width: 0;
+}
+.mb-request-card--in { border-color: var(--mb-band); box-shadow: inset 0 0 0 1px var(--mb-band), var(--mb-shadow); }
+.mb-request-pic {
+  grid-area: pic; width: 88px; height: 88px; border-radius: 10px; overflow: hidden; display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, var(--mb-accent-soft), var(--mb-bg));
+}
+.mb-request-pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.mb-request-pic-initials { color: var(--mb-band); font-size: 26px; font-weight: 800; letter-spacing: 0.04em; }
+.mb-request-card-body { grid-area: body; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.mb-request-card-cls { font-size: 12px; color: var(--mb-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mb-request-card-name { margin: 0; font-size: 16px; font-weight: 700; line-height: 1.25; overflow-wrap: anywhere; }
+.mb-request-avail {
+  align-self: flex-start; max-width: 100%; display: inline-flex; align-items: center; gap: 5px; margin-top: 2px; padding: 2px 9px; border-radius: 999px;
+  font-size: 12px; font-weight: 700; background: var(--mb-bg); color: var(--mb-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.mb-request-avail::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: none; }
+.mb-request-avail--ok { background: var(--mb-ok-soft); color: var(--mb-ok); }
+.mb-request-avail--part { background: var(--mb-warn-soft); color: var(--mb-warn); }
+.mb-request-avail--none { background: var(--mb-danger-soft); color: var(--mb-danger); }
+.mb-request-card-foot {
+  grid-area: foot; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 10px; border-top: 1px solid var(--mb-line); min-width: 0;
+}
+.mb-request-card-price { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.mb-request-card-price strong { font-size: 15px; }
+.mb-request-card-price .mb-note { overflow-wrap: anywhere; }
+.mb-request-add { flex: none; min-width: 96px; padding: 0 14px; }
+.mb-request-add:not(:disabled) { border-color: var(--mb-band); color: var(--mb-band); }
+.mb-request-custnote { margin: 4px 4px 0; }
+.mb-request-custnote a { color: var(--mb-accent); font-weight: 700; }
+
+/* The quantity: − n + */
+.mb-request-stepper { flex: none; display: inline-flex; align-items: center; border: 1px solid var(--mb-band); border-radius: 12px; overflow: hidden; background: var(--mb-surface); }
+.mb-request-stepper button {
+  width: 44px; height: 44px; border: 0; background: var(--mb-accent-soft); color: var(--mb-band); font: inherit; font-size: 22px; font-weight: 700;
+  line-height: 1; cursor: pointer;
+}
+.mb-request-stepper button:active { background: #d4e5f8; }
+.mb-request-stepper-n { min-width: 38px; text-align: center; font-size: 16px; font-weight: 800; }
+
+/* ── Step 2: the project, the dates, the delivery ───────────────────────────────────────────────────────── */
+.mb-request-sec { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.mb-request-sectitle { margin: 0; font-size: 15px; font-weight: 700; }
+.mb-request-sechead { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
+.mb-request-sechead .mb-request-sectitle { min-width: 0; overflow-wrap: anywhere; }
+.mb-request-edit { flex: none; min-height: 40px; padding: 0 8px; color: var(--mb-accent); font-size: 14px; }
+.mb-request-pick {
+  width: 100%; min-height: 58px; display: flex; align-items: center; gap: 10px; padding: 9px 10px 9px 12px; border: 1px solid var(--mb-line-strong);
+  border-radius: 12px; background: var(--mb-surface-2); color: var(--mb-ink); font: inherit; text-align: left; cursor: pointer; min-width: 0;
+}
+.mb-request-pick:disabled { opacity: 0.55; cursor: not-allowed; }
+.mb-request-pick:active:not(:disabled) { background: #eef3f7; }
+.mb-request-pick--set { background: var(--mb-surface); border-color: var(--mb-band); }
+.mb-request-pick > span[class^="oj-ux-ico"] { flex: none; color: var(--mb-faint); font-size: 18px; }
+.mb-request-pick-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.mb-request-pick-label { font-size: 12px; font-weight: 700; color: var(--mb-muted); }
+.mb-request-pick-hint { font-weight: 400; color: var(--mb-faint); }
+.mb-request-pick-value { font-size: 16px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mb-request-pick:not(.mb-request-pick--set):not(:disabled) .mb-request-pick-value { color: var(--mb-accent); }
+.mb-request-pick-sub { font-size: 13px; color: var(--mb-muted); overflow-wrap: anywhere; }
+.mb-request-contract { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.mb-request-seg { display: flex; gap: 2px; padding: 3px; border-radius: 13px; background: var(--mb-bg); border: 1px solid var(--mb-line); }
+.mb-request-segbtn {
+  flex: 1 1 0; min-width: 0; min-height: 44px; border: 0; border-radius: 10px; background: transparent; color: var(--mb-muted); font: inherit;
+  font-size: 14px; font-weight: 700; cursor: pointer;
+}
+.mb-request-segbtn--on { background: var(--mb-surface); color: var(--mb-ink); box-shadow: var(--mb-shadow); }
+.mb-request-whereacts { flex-wrap: wrap; }
+.mb-request-whereacts .mb-btn { flex: 1 1 140px; padding: 0 10px; font-size: 14px; white-space: nowrap; }
+.mb-request-whereacts #rqLocate { border-color: var(--mb-band); color: var(--mb-band); }
+.mb-request-pinned { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 13px; font-weight: 600; color: var(--mb-ok); overflow-wrap: anywhere; }
+.mb-request-options { display: flex; flex-direction: column; gap: 6px; }
+.mb-request-option {
+  width: 100%; min-height: 52px; display: flex; align-items: center; gap: 10px; padding: 9px 12px; border: 1px solid var(--mb-line);
+  border-radius: 12px; background: var(--mb-surface); color: var(--mb-ink); font: inherit; text-align: left; cursor: pointer; min-width: 0;
+}
+.mb-request-option:active { background: #f0f6f9; }
+.mb-request-option--on { border-color: var(--mb-band); background: var(--mb-accent-soft); }
+.mb-request-option > span[class^="oj-ux-ico"] { flex: none; color: var(--mb-band); font-size: 18px; }
+.mb-request-option-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; overflow-wrap: anywhere; }
+.mb-request-hours { max-width: 140px; }
+.mb-request-notes { width: 100%; }
+.mb-request-notes textarea { font-size: 16px; }
+
+/* ── Step 3: review ─────────────────────────────────────────────────────────────────────────────────────── */
+.mb-request-factnote { display: block; margin-top: 2px; font-size: 12px; font-weight: 600; color: var(--mb-ok); }
+.mb-request-notesout { margin: 0; padding: 10px 12px; border-radius: 10px; background: var(--mb-surface-2); font-size: 14px; overflow-wrap: anywhere; }
+.mb-request-rlines { list-style: none; margin: 0; padding: 0; }
+.mb-request-rline { padding: 10px 0; border-top: 1px solid var(--mb-line); display: flex; flex-direction: column; gap: 3px; }
+.mb-request-rline:first-child { border-top: 0; padding-top: 0; }
+.mb-request-rline-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.mb-request-rline-name { font-weight: 700; min-width: 0; overflow-wrap: anywhere; }
+.mb-request-rline-qty { margin-left: 4px; color: var(--mb-muted); font-weight: 600; white-space: nowrap; }
+.mb-request-rline-cost { flex: none; font-size: 15px; }
+.mb-request-rline-note { font-style: italic; }
+.mb-request-total {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding-top: 12px; border-top: 2px solid var(--mb-line); font-weight: 700;
+}
+.mb-request-total strong { font-size: 20px; }
+.mb-request-pad { margin: 0; }
+.mb-request-words { display: flex; flex-direction: column; gap: 4px; padding: 0 4px; }
+.mb-request-words p { margin: 0; display: flex; gap: 6px; align-items: flex-start; }
+.mb-request-words span[class^="oj-ux-ico"] { color: var(--mb-ok); font-size: 18px; }
+
+/* ── The dock ───────────────────────────────────────────────────────────────────────────────────────────── */
+.mb-dock.mb-request-dock { flex-wrap: wrap; align-items: center; }
+.mb-dock.mb-request-dock .mb-request-cartbtn { flex: none; width: 56px; padding: 0; position: relative; }
+.mb-request-cartbtn span[class^="oj-ux-ico"] { font-size: 22px; }
+.mb-request-cartcount {
+  position: absolute; top: -7px; right: -7px; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 999px; border: 2px solid var(--mb-surface);
+  background: var(--mb-accent); color: #fff; font-size: 12px; font-weight: 800; line-height: 18px; text-align: center;
+}
+.mb-dock.mb-request-dock .mb-request-save { flex: 1 1 0; min-width: 0; padding: 0 10px; }
+.mb-dock.mb-request-dock .mb-request-go { flex: 1.35 1 0; min-width: 0; padding: 0 12px; }
+.mb-request-offline { flex: 1 1 100%; display: flex; align-items: center; gap: 6px; margin: 0 0 2px; color: #78350f; font-size: 13px; font-weight: 600; }
+
+/* ── Sheets ─────────────────────────────────────────────────────────────────────────────────────────────── */
+.mb-request-sheet .mb-sheet-body { overscroll-behavior: contain; }
+.mb-request-sheettext { margin: 0; font-size: 15px; line-height: 1.45; }
+.mb-request-picksheet { height: 84vh; height: 84dvh; }
+.mb-request-picksheet .mb-sheet-body { flex: 1 1 auto; min-height: 0; }
+.mb-request-picksheet .mb-note { margin: 0; }
+.mb-request-lines { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.mb-request-line { padding: 12px 0; border-bottom: 1px solid var(--mb-line); display: flex; flex-direction: column; gap: 6px; }
+.mb-request-line:first-child { padding-top: 0; }
+.mb-request-line-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.mb-request-line-name { font-weight: 700; min-width: 0; overflow-wrap: anywhere; }
+.mb-request-line-cost { flex: none; }
+.mb-request-line-acts { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.mb-request-own { flex: 1 1 auto; min-width: 0; justify-content: flex-start; min-height: 44px; padding: 0 8px; color: var(--mb-accent); font-size: 14px; }
+.mb-request-remove { color: var(--mb-danger); width: 44px; height: 44px; }
+.mb-request-line-own { display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 10px; background: var(--mb-surface-2); }
+.mb-request-line-own .mb-note { margin: 0; }
+.mb-sheet-foot.mb-request-cartfoot { align-items: center; }
+.mb-request-cartfoot-total { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.mb-request-cartfoot-total strong { font-size: 18px; }
+.mb-sheet-foot.mb-request-cartfoot .mb-btn { flex: none; min-width: 120px; }
+
+/* The map sheet: nearly the whole screen, the map taking what the search leaves */
+.mb-request-mapsheet { height: 92vh; height: 92dvh; max-height: 92vh; max-height: 92dvh; }
+.mb-request-mapsearch { display: flex; flex-direction: column; gap: 6px; padding: 10px 16px 8px; }
+.mb-request-mapsearch-row { display: flex; gap: 8px; }
+.mb-request-mapsearch-row .mb-search { flex: 1 1 auto; min-width: 0; }
+.mb-request-locate { flex: none; width: 46px; padding: 0; border-color: var(--mb-band); color: var(--mb-band); }
+.mb-request-locate span[class^="oj-ux-ico"] { font-size: 20px; }
+.mb-request-mapresults { display: flex; flex-direction: column; max-height: 32vh; overflow-y: auto; border: 1px solid var(--mb-line); border-radius: 12px; }
+.mb-request-mapresult {
+  display: flex; align-items: flex-start; gap: 8px; min-height: 46px; padding: 11px 12px; border: 0; border-bottom: 1px solid var(--mb-line);
+  background: var(--mb-surface); color: var(--mb-ink); font: inherit; font-size: 14px; text-align: left; cursor: pointer; overflow-wrap: anywhere;
+}
+.mb-request-mapresult:last-child { border-bottom: 0; }
+.mb-request-mapresult span[class^="oj-ux-ico"] { color: var(--mb-band); }
+.mb-request-map { position: relative; flex: 1 1 auto; min-height: 200px; margin: 0 16px; border-radius: 12px; overflow: hidden; background: var(--mb-bg); }
+.mb-request-maperr { margin: 6px 16px 0; padding: 8px 10px; border-radius: 10px; background: var(--mb-danger-soft); color: #7f1d1d; font-size: 13px; }
+.mb-request-mapsearch .mb-request-maperr { margin: 0; }
+.mb-request-mappicked { display: flex; align-items: flex-start; gap: 8px; min-height: 48px; padding: 10px 16px 0; }
+.mb-request-mappicked > span[class^="oj-ux-ico"] { color: var(--mb-band); font-size: 20px; }
+.mb-request-mappicked-text { display: flex; flex-direction: column; min-width: 0; overflow-wrap: anywhere; }
+
+/* ── Sent ───────────────────────────────────────────────────────────────────────────────────────────────── */
+.mb-request-done { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 28px 18px 22px; text-align: center; }
+.mb-request-done-icon { font-size: 60px; color: var(--mb-ok); animation: mb-request-pop 0.35s ease-out; }
+.mb-request-done-number { font-size: 24px; font-weight: 800; letter-spacing: 0.02em; overflow-wrap: anywhere; }
+.mb-request-done-text { margin: 6px 0 0; color: var(--mb-muted); font-size: 15px; line-height: 1.45; }
+@keyframes mb-request-pop { from { transform: scale(0.6); opacity: 0; } 70% { transform: scale(1.08); opacity: 1; } to { transform: none; } }
+
+/* A narrow phone (320 px): the steps keep their numbers and names, without the summary under them */
+@media (max-width: 360px) {
+  .mb-request-stepsub { display: none; }
+  .mb-request-card { grid-template-columns: 72px minmax(0, 1fr); }
+  .mb-request-pic { width: 72px; height: 72px; }
+}

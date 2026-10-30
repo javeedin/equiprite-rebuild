@@ -1,4 +1,766 @@
-<div class="mb-page" id="mb-request">
-  <div class="mb-head"><h2>New request</h2><div class="mb-head-sub">Raise a request for equipment.</div></div>
-  <div class="mb-body"><div class="mb-card mb-empty">This tab is on its way.</div></div>
+<!-- Raise a request on a phone, in Next's three steps: 1 Equipment (the dates first, so each card says whether it is free
+     and what it costs for them; drafts to carry on with and past requests to order again while the cart is empty),
+     2 Project (customer first, then project and task, the dates, the delivery point: typed, on a map or where you stand),
+     3 Review and submit. The main step is in the dock above the tab bar, with the cart and Save draft; pickers, the
+     cart and the map slide up as bottom sheets. Rules: orderForm.js (Next's); words: mobileRequest.js; chains:
+     request-page-chains. Styles: resources/css/mobile.css (.mb-*) and mobile-request.css (.mb-request-*). -->
+<div class="mb-page mb-request" id="mbRequest">
+
+  <!-- ── Sent: what happened, and what next ──────────────────────────────────────────────────────────────── -->
+  <oj-bind-if test="[[ $variables.view === 'sent' ]]">
+    <div class="mb-head">
+      <h2>Sent for approval</h2>
+      <div class="mb-head-sub">Nothing more is needed from you for now.</div>
+    </div>
+    <div class="mb-body">
+      <div class="mb-card mb-card-pad mb-request-done" id="rqDone" role="status">
+        <span class="oj-ux-ico-check-circle mb-request-done-icon" aria-hidden="true"></span>
+        <div class="mb-request-done-number" id="rqDoneNumber"><oj-bind-text value="[[ $variables.sent ? $variables.sent.number : '' ]]"></oj-bind-text></div>
+        <oj-bind-if test="[[ $variables.sent && !!$variables.sent.about ]]">
+          <div class="mb-note"><oj-bind-text value="[[ $variables.sent.about ]]"></oj-bind-text></div>
+        </oj-bind-if>
+        <p class="mb-request-done-text"><oj-bind-text value="[[ $functions.sentText($variables.sent) ]]"></oj-bind-text></p>
+      </div>
+      <div class="mb-actions">
+        <button type="button" class="mb-btn mb-btn--primary mb-btn--block" id="rqSeeIt" :data-id="[[ $variables.sent ? $variables.sent.id : '' ]]"
+          :data-number="[[ $variables.sent ? $variables.sent.number : '' ]]" on-click="[[ $listeners.onSeeIt ]]">
+          <span class="oj-ux-ico-documents" aria-hidden="true"></span>See it in My requests</button>
+        <button type="button" class="mb-btn mb-btn--block" id="rqAnotherNew" data-ui="view" data-value="form" on-click="[[ $listeners.onUi ]]">
+          <span class="oj-ux-ico-plus" aria-hidden="true"></span>Raise another request</button>
+      </div>
+    </div>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ $variables.view !== 'sent' ]]">
+    <div class="mb-head">
+      <div class="mb-head-row">
+        <div style="flex:1;min-width:0">
+          <h2 id="rqTitle"><oj-bind-text value="[[ $functions.title($variables.resume) ]]"></oj-bind-text></h2>
+          <div class="mb-head-sub mb-request-headsub" id="rqSub"><oj-bind-text value="[[ $functions.subline($variables.form) ]]"></oj-bind-text></div>
+        </div>
+        <oj-bind-if test="[[ !$variables.isLoading && (!!$variables.resume || !!$variables.loadError || $functions.started($variables.form, $variables.cart)) ]]">
+          <button type="button" class="mb-back" id="rqAnother" data-ui="sheet" data-value="reset" on-click="[[ $listeners.onUi ]]" aria-label="Start another request">
+            <span class="oj-ux-ico-plus" aria-hidden="true"></span></button>
+        </oj-bind-if>
+      </div>
+      <oj-bind-if test="[[ !$variables.isLoading && !$variables.loadError && $variables.requestFor !== 'customer' ]]">
+        <ol class="mb-request-steps" id="rqSteps" aria-label="Steps">
+          <oj-bind-for-each data="[[ $functions.steps($variables.step, $variables.form, $variables.cart) ]]">
+            <template data-oj-as="st">
+              <li :class="[[ $functions.stepClass(st.data) ]]">
+                <button type="button" class="mb-request-stepbtn" :data-step="[[ st.data.n ]]" on-click="[[ $listeners.onStep ]]"
+                  :aria-current="[[ st.data.state === 'current' ? 'step' : 'false' ]]" :aria-label="[[ 'Step ' + st.data.n + ', ' + st.data.label + (st.data.sub ? ': ' + st.data.sub : '') ]]">
+                  <span class="mb-request-stepnum" aria-hidden="true"><oj-bind-text value="[[ st.data.state === 'done' ? '✓' : st.data.n ]]"></oj-bind-text></span>
+                  <span class="mb-request-steptext">
+                    <span class="mb-request-steplabel"><oj-bind-text value="[[ st.data.label ]]"></oj-bind-text></span>
+                    <span class="mb-request-stepsub"><oj-bind-text value="[[ st.data.sub ]]"></oj-bind-text></span>
+                  </span>
+                </button>
+              </li>
+            </template>
+          </oj-bind-for-each>
+        </ol>
+      </oj-bind-if>
+    </div>
+
+    <div class="mb-body">
+      <oj-bind-if test="[[ $variables.isLoading ]]">
+        <div class="mb-loading" role="status"><span class="mb-spin" aria-hidden="true"></span>Opening the request…</div>
+      </oj-bind-if>
+
+      <oj-bind-if test="[[ !!$variables.loadError ]]">
+        <div class="mb-error" role="alert" id="rqLoadError">
+          <oj-bind-text value="[[ $variables.loadError ]]"></oj-bind-text>
+          <oj-bind-if test="[[ $variables.externalDraftId > 0 && !!$functions.customerUrl($application.variables.appUrls.new, $variables.externalDraftId) ]]">
+            <a class="mb-request-errlink" id="rqExternalDraft" :href="[[ $functions.customerUrl($application.variables.appUrls.new, $variables.externalDraftId) ]]">Open it in New EquipRite</a>
+          </oj-bind-if>
+        </div>
+        <button type="button" class="mb-btn mb-btn--block" id="rqLoadReset" on-click="[[ $listeners.onReset ]]"><span class="oj-ux-ico-plus" aria-hidden="true"></span>Start another request</button>
+      </oj-bind-if>
+
+      <!-- A customer request only (no project requests on this tenant): it is raised in New EquipRite. -->
+      <oj-bind-if test="[[ !$variables.isLoading && !$variables.loadError && $variables.requestFor === 'customer' ]]">
+        <section class="mb-card mb-card-pad mb-request-sec" id="rqCustomerOnly">
+          <h3 class="mb-request-sectitle">A customer request is raised in New EquipRite</h3>
+          <p class="mb-note">It needs the customer and their contact, the rental terms and a Fusion sell contract<oj-bind-text value="[[ $variables.customerQuotes
+            ? ' (made when the customer accepts the quote)' : '' ]]"></oj-bind-text>. One of its steps writes to Oracle Fusion, which EquipRite Mobile does not do.</p>
+          <oj-bind-if test="[[ !!$functions.customerUrl($application.variables.appUrls.new, 0) ]]">
+            <a class="mb-btn mb-btn--primary mb-btn--block" id="rqCustomerNew" :href="[[ $functions.customerUrl($application.variables.appUrls.new, 0) ]]">
+              <span class="oj-ux-ico-external-link" aria-hidden="true"></span>Raise it in New EquipRite</a>
+          </oj-bind-if>
+        </section>
+      </oj-bind-if>
+
+      <oj-bind-if test="[[ !$variables.isLoading && !$variables.loadError && $variables.requestFor !== 'customer' ]]">
+        <oj-bind-if test="[[ !!$variables.notice ]]">
+          <div class="mb-request-notice" role="status" id="rqNotice">
+            <span class="oj-ux-ico-information" aria-hidden="true"></span>
+            <span class="mb-request-notice-text"><oj-bind-text value="[[ $variables.notice ]]"></oj-bind-text></span>
+            <button type="button" class="mb-iconbtn" data-ui="notice" data-value="" on-click="[[ $listeners.onUi ]]" aria-label="Dismiss"><span class="oj-ux-ico-close" aria-hidden="true"></span></button>
+          </div>
+        </oj-bind-if>
+        <oj-bind-if test="[[ !!$variables.sent && $variables.sent.mode === 'draft' ]]">
+          <div class="mb-ok" role="status" id="rqSaved">
+            <oj-bind-text value="[[ 'Draft ' + ($variables.sent ? $variables.sent.number : '') + ' is saved. Carry on here, or come back to it from My requests.' ]]"></oj-bind-text></div>
+        </oj-bind-if>
+        <oj-bind-if test="[[ $variables.missing.length > 0 ]]">
+          <div class="mb-error" role="alert" id="rqMissing"><oj-bind-text value="[[ $functions.missingText($variables.missing) ]]"></oj-bind-text></div>
+        </oj-bind-if>
+        <oj-bind-if test="[[ !!$variables.saveError ]]">
+          <div class="mb-error" role="alert" id="rqSaveError"><oj-bind-text value="[[ $variables.saveError ]]"></oj-bind-text></div>
+        </oj-bind-if>
+        <oj-bind-if test="[[ !!$variables.priceNote ]]">
+          <p class="mb-request-info" role="status" id="rqPriceNote"><span class="oj-ux-ico-information" aria-hidden="true"></span><oj-bind-text value="[[ $variables.priceNote ]]"></oj-bind-text></p>
+        </oj-bind-if>
+
+        <!-- ── Step 1: Equipment ──────────────────────────────────────────────────────────────────────────── -->
+        <oj-bind-if test="[[ $variables.step === 1 ]]">
+          <oj-bind-if test="[[ $functions.fresh($variables.cart, $variables.resume) && $variables.drafts.length > 0 ]]">
+            <h3 class="mb-section">Carry on</h3>
+            <ul class="mb-list" id="rqDrafts">
+              <oj-bind-for-each data="[[ $variables.drafts ]]">
+                <template data-oj-as="d">
+                  <li>
+                    <button type="button" :class="[[ 'mb-item mb-stage--' + d.data.stage ]]" :data-id="[[ d.data.id ]]" :data-number="[[ d.data.number ]]" data-mode=""
+                      on-click="[[ $listeners.onOpenRequest ]]">
+                      <span class="mb-item-top">
+                        <span class="mb-item-title"><oj-bind-text value="[[ d.data.number ]]"></oj-bind-text></span>
+                        <span class="mb-pill"><oj-bind-text value="[[ d.data.pill ]]"></oj-bind-text></span>
+                      </span>
+                      <span class="mb-item-sub"><oj-bind-text value="[[ d.data.party + (d.data.dates ? ' · ' + d.data.dates : '') ]]"></oj-bind-text></span>
+                      <span class="mb-item-next"><oj-bind-text value="[[ d.data.about ]]"></oj-bind-text></span>
+                      <oj-bind-if test="[[ !!d.data.saved ]]"><span class="mb-note"><oj-bind-text value="[[ d.data.saved ]]"></oj-bind-text></span></oj-bind-if>
+                    </button>
+                  </li>
+                </template>
+              </oj-bind-for-each>
+            </ul>
+            <oj-bind-if test="[[ $variables.draftMore > 0 ]]">
+              <p class="mb-note mb-request-more-note"><oj-bind-text value="[[ $variables.draftMore + ($variables.draftMore === 1 ? ' more draft' : ' more drafts') + ' in My requests.' ]]"></oj-bind-text></p>
+            </oj-bind-if>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $functions.fresh($variables.cart, $variables.resume) && $variables.recent.length > 0 ]]">
+            <h3 class="mb-section">Order again</h3>
+            <div class="mb-request-again" id="rqAgain">
+              <oj-bind-for-each data="[[ $variables.recent ]]">
+                <template data-oj-as="a">
+                  <button type="button" class="mb-request-againcard" :data-id="[[ a.data.id ]]" :data-number="[[ a.data.number ]]" data-mode="again"
+                    on-click="[[ $listeners.onOpenRequest ]]" :aria-label="[[ 'Order again from ' + a.data.number + ': ' + a.data.about ]]">
+                    <span class="mb-request-againcard-top"><strong><oj-bind-text value="[[ a.data.number ]]"></oj-bind-text></strong>
+                      <span class="oj-ux-ico-cart-buy-again" aria-hidden="true"></span></span>
+                    <span class="mb-request-againcard-party"><oj-bind-text value="[[ a.data.party ]]"></oj-bind-text></span>
+                    <span class="mb-note mb-request-againcard-about"><oj-bind-text value="[[ a.data.about ]]"></oj-bind-text></span>
+                    <span class="mb-request-againcard-go">Order again</span>
+                  </button>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </oj-bind-if>
+
+          <section class="mb-card mb-card-pad mb-request-when" id="rqWhen" aria-label="When">
+            <div class="mb-request-when-row">
+              <label class="mb-field">
+                <span class="mb-label">Needed from</span>
+                <input type="date" class="mb-input" id="rqStart" data-field="startDate" :value="[[ $variables.form.startDate || '' ]]" on-change="[[ $listeners.onField ]]">
+              </label>
+              <label class="mb-field">
+                <span class="mb-label">Until</span>
+                <input type="date" class="mb-input" id="rqEnd" data-field="endDate" :min="[[ $variables.form.startDate || '' ]]"
+                  :value="[[ $variables.form.endDate || '' ]]" on-change="[[ $listeners.onField ]]">
+              </label>
+            </div>
+            <div class="mb-request-lengths" role="group" aria-label="Quick length from the start date">
+              <oj-bind-for-each data="[[ $functions.lengths($variables.form.startDate, $variables.form.endDate) ]]">
+                <template data-oj-as="len">
+                  <button type="button" data-field="length" :data-value="[[ len.data.days ]]" on-click="[[ $listeners.onFieldButton ]]"
+                    :disabled="[[ !$variables.form.startDate ]]" :aria-pressed="[[ len.data.on ? 'true' : 'false' ]]"
+                    :class="[[ 'mb-chip' + (len.data.on ? ' mb-chip--on' : '') ]]"><oj-bind-text value="[[ len.data.label ]]"></oj-bind-text></button>
+                </template>
+              </oj-bind-for-each>
+            </div>
+            <p class="mb-note" id="rqWindow"><oj-bind-text value="[[ $variables.form.startDate && $variables.form.endDate
+              ? 'Free and priced for ' + $functions.windowText($variables.form.startDate, $variables.form.endDate) + '.'
+              : 'Pick the dates first: each card then says whether it is free and what it costs.' ]]"></oj-bind-text></p>
+          </section>
+
+          <label class="mb-search">
+            <span class="oj-ux-ico-search" aria-hidden="true"></span>
+            <input type="search" id="rqSearch" placeholder="Search equipment by name or class" aria-label="Search the catalog" autocomplete="off"
+              on-input="[[ $listeners.onCatalogSearch ]]">
+          </label>
+          <div class="mb-chips" id="rqChips" role="group" aria-label="Equipment class">
+            <oj-bind-if test="[[ !!$variables.form.startDate && !!$variables.form.endDate ]]">
+              <button type="button" id="rqFree" :class="[[ 'mb-chip' + ($variables.catalogAvail === 'free' ? ' mb-chip--on' : '') ]]"
+                :data-avail="[[ $functions.availNext($variables.catalogAvail) ]]" on-click="[[ $listeners.onAvailChip ]]"
+                :aria-pressed="[[ $variables.catalogAvail === 'free' ? 'true' : 'false' ]]"><span class="oj-ux-ico-check" aria-hidden="true"></span>Free only</button>
+            </oj-bind-if>
+            <oj-bind-for-each data="[[ $variables.classChips ]]">
+              <template data-oj-as="chip">
+                <button type="button" :data-cls="[[ chip.data.key ]]" on-click="[[ $listeners.onClassChip ]]"
+                  :class="[[ 'mb-chip' + ($variables.catalogClass === chip.data.key ? ' mb-chip--on' : '') ]]"
+                  :aria-pressed="[[ $variables.catalogClass === chip.data.key ? 'true' : 'false' ]]">
+                  <oj-bind-text value="[[ chip.data.label ]]"></oj-bind-text><span class="mb-chip-count"><oj-bind-text value="[[ chip.data.count ]]"></oj-bind-text></span>
+                </button>
+              </template>
+            </oj-bind-for-each>
+          </div>
+          <div class="mb-note mb-request-catnote" id="rqCatNote"><oj-bind-text value="[[ $functions.catalogNote($variables.catalogCount, $variables.catalogRows.length, $variables.form) ]]"></oj-bind-text></div>
+
+          <oj-bind-if test="[[ !!$variables.catalogError ]]">
+            <div class="mb-error" role="alert" id="rqCatError"><oj-bind-text value="[[ $variables.catalogError ]]"></oj-bind-text>
+              <oj-bind-if test="[[ !$variables.online ]]"> What is in the cart is kept on this phone.</oj-bind-if></div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.catalogLoading && !$variables.catalogRows.length ]]">
+            <div class="mb-loading" role="status"><span class="mb-spin" aria-hidden="true"></span>Loading the catalog…</div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ !$variables.catalogLoading && !$variables.catalogError && !$variables.catalogCount ]]">
+            <div class="mb-card mb-empty" id="rqCatEmpty">Nothing matches. Clear the search, pick another class or turn off “Free only”.</div>
+          </oj-bind-if>
+
+          <ul :class="[[ 'mb-request-cards' + ($variables.catalogLoading ? ' mb-request-cards--busy' : '') ]]" id="rqCatalog" aria-label="Catalog"
+            :aria-busy="[[ $variables.catalogLoading ? 'true' : 'false' ]]">
+            <oj-bind-for-each data="[[ $variables.catalogShown ]]">
+              <template data-oj-as="row">
+                <li :class="[[ 'mb-request-card' + ($functions.qtyIn($variables.cart, row.data.id) > 0 ? ' mb-request-card--in' : '') ]]" :data-id="[[ row.data.id ]]">
+                  <div class="mb-request-pic">
+                    <oj-bind-if test="[[ !!row.data.image ]]">
+                      <img :src="[[ $functions.imageSrc(row.data.image, $application.path) ]]" alt="" loading="lazy">
+                    </oj-bind-if>
+                    <oj-bind-if test="[[ !row.data.image ]]">
+                      <span class="mb-request-pic-initials" aria-hidden="true"><oj-bind-text value="[[ $functions.initials(row.data.cls || row.data.name) ]]"></oj-bind-text></span>
+                    </oj-bind-if>
+                  </div>
+                  <div class="mb-request-card-body">
+                    <span class="mb-request-card-cls"><oj-bind-text value="[[ row.data.cls || 'Equipment' ]]"></oj-bind-text></span>
+                    <h3 class="mb-request-card-name"><oj-bind-text value="[[ row.data.name ]]"></oj-bind-text></h3>
+                    <span :class="[[ $functions.availClass(row.data.avail) ]]"><oj-bind-text value="[[ row.data.availLabel ]]"></oj-bind-text></span>
+                  </div>
+                  <div class="mb-request-card-foot">
+                    <span class="mb-request-card-price">
+                      <strong><oj-bind-text value="[[ row.data.rate ]]"></oj-bind-text></strong>
+                      <span class="mb-note"><oj-bind-text value="[[ row.data.est ? row.data.est + (row.data.estNote ? ' · ' + row.data.estNote : '') : row.data.estNote ]]"></oj-bind-text></span>
+                    </span>
+                    <oj-bind-if test="[[ $functions.qtyIn($variables.cart, row.data.id) > 0 ]]">
+                      <span class="mb-request-stepper" role="group" :aria-label="[[ 'Quantity of ' + row.data.name ]]">
+                        <button type="button" data-action="dec" :data-id="[[ row.data.id ]]" on-click="[[ $listeners.onCart ]]" aria-label="One less">−</button>
+                        <span class="mb-request-stepper-n"><oj-bind-text value="[[ $functions.qtyIn($variables.cart, row.data.id) ]]"></oj-bind-text></span>
+                        <button type="button" data-action="inc" :data-id="[[ row.data.id ]]" on-click="[[ $listeners.onCart ]]" aria-label="One more">+</button>
+                      </span>
+                    </oj-bind-if>
+                    <oj-bind-if test="[[ $functions.qtyIn($variables.cart, row.data.id) === 0 ]]">
+                      <button type="button" class="mb-btn mb-request-add" data-action="add" :data-id="[[ row.data.id ]]"
+                        :disabled="[[ !row.data.addable ]]" on-click="[[ $listeners.onCart ]]"
+                        :aria-label="[[ (row.data.addable ? 'Add to the cart: ' : 'Not free on these dates: ') + row.data.name ]]">
+                        <oj-bind-if test="[[ row.data.addable ]]"><span class="oj-ux-ico-plus" aria-hidden="true"></span>Add</oj-bind-if>
+                        <oj-bind-if test="[[ !row.data.addable ]]">Not free</oj-bind-if>
+                      </button>
+                    </oj-bind-if>
+                  </div>
+                </li>
+              </template>
+            </oj-bind-for-each>
+          </ul>
+          <oj-bind-if test="[[ $variables.catalogCount > $variables.catalogShown.length ]]">
+            <button type="button" class="mb-btn mb-btn--block" id="rqMore" on-click="[[ $listeners.onShowMore ]]">
+              <oj-bind-text value="[[ 'Show more (' + ($variables.catalogCount - $variables.catalogShown.length) + ' left)' ]]"></oj-bind-text></button>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.canCustomer && !$variables.resume ]]">
+            <p class="mb-note mb-request-custnote" id="rqCustomerNote">For a customer instead? A customer request, with its Fusion sell contract, is raised in New EquipRite.
+              <oj-bind-if test="[[ !!$functions.customerUrl($application.variables.appUrls.new, 0) ]]">
+                <a :href="[[ $functions.customerUrl($application.variables.appUrls.new, 0) ]]">Raise it there</a>
+              </oj-bind-if></p>
+          </oj-bind-if>
+        </oj-bind-if>
+
+        <!-- ── Step 2: Project ────────────────────────────────────────────────────────────────────────────── -->
+        <oj-bind-if test="[[ $variables.step === 2 ]]">
+          <section class="mb-card mb-request-sec" id="rqFor" aria-labelledby="rqForT">
+            <h3 class="mb-request-sectitle" id="rqForT">Customer</h3>
+            <button type="button" :class="[[ 'mb-request-pick' + ($functions.picked($variables.form.customerId) ? ' mb-request-pick--set' : '') ]]" id="rqCustomer"
+              data-ui="sheet" data-value="customer" on-click="[[ $listeners.onUi ]]">
+              <span class="mb-request-pick-main">
+                <span class="mb-request-pick-label">Who the project work is for</span>
+                <span class="mb-request-pick-value"><oj-bind-text value="[[ $variables.form.customerName || 'Choose a customer' ]]"></oj-bind-text></span>
+              </span>
+              <span class="oj-ux-ico-chevron-right" aria-hidden="true"></span>
+            </button>
+          </section>
+
+          <section class="mb-card mb-request-sec" id="rqPrj" aria-labelledby="rqPrjT">
+            <h3 class="mb-request-sectitle" id="rqPrjT">Project</h3>
+            <button type="button" :class="[[ 'mb-request-pick' + ($variables.form.projectId ? ' mb-request-pick--set' : '') ]]" id="rqProject"
+              data-ui="sheet" data-value="project" on-click="[[ $listeners.onUi ]]">
+              <span class="mb-request-pick-main">
+                <span class="mb-request-pick-label">Project <span class="mb-request-pick-hint">its rates apply once picked</span></span>
+                <span class="mb-request-pick-value"><oj-bind-text value="[[ $variables.form.projectName || 'Choose the project' ]]"></oj-bind-text></span>
+                <oj-bind-if test="[[ !!$variables.form.projectId ]]">
+                  <span class="mb-request-pick-sub"><oj-bind-text value="[[ $variables.form.projectNumber + ($variables.form.projectBuName ? ' · ' + $variables.form.projectBuName : '') ]]"></oj-bind-text></span>
+                </oj-bind-if>
+              </span>
+              <span class="oj-ux-ico-chevron-right" aria-hidden="true"></span>
+            </button>
+            <button type="button" :class="[[ 'mb-request-pick' + ($variables.form.taskId ? ' mb-request-pick--set' : '') ]]" id="rqTask"
+              data-ui="sheet" data-value="task" on-click="[[ $listeners.onUi ]]" :disabled="[[ !$variables.form.projectId ]]">
+              <span class="mb-request-pick-main">
+                <span class="mb-request-pick-label">Task <span class="mb-request-pick-hint">chargeable tasks only</span></span>
+                <span class="mb-request-pick-value"><oj-bind-text value="[[ !$variables.form.projectId ? 'Pick the project first'
+                  : ($variables.form.taskId ? $functions.taskText($variables.form) : ($variables.tasksLoading ? 'Loading the tasks…' : 'Choose the task')) ]]"></oj-bind-text></span>
+              </span>
+              <span class="oj-ux-ico-chevron-right" aria-hidden="true"></span>
+            </button>
+            <oj-bind-if test="[[ !!$variables.form.projectId ]]">
+              <div class="mb-request-contract" id="rqContract">
+                <span class="mb-label">Contract <span class="mb-request-pick-hint">optional; gives the project’s sites</span></span>
+                <div class="mb-chips" role="group" aria-label="Contract">
+                  <button type="button" data-field="contractId" data-value="" on-click="[[ $listeners.onFieldButton ]]"
+                    :class="[[ 'mb-chip' + (!$functions.picked($variables.form.contractId) ? ' mb-chip--on' : '') ]]"
+                    :aria-pressed="[[ !$functions.picked($variables.form.contractId) ? 'true' : 'false' ]]">No contract</button>
+                  <oj-bind-for-each data="[[ $variables.contractOptions ]]">
+                    <template data-oj-as="c">
+                      <button type="button" data-field="contractId" :data-value="[[ c.data.id ]]" on-click="[[ $listeners.onFieldButton ]]"
+                        :class="[[ 'mb-chip' + ($functions.same($variables.form.contractId, c.data.id) ? ' mb-chip--on' : '') ]]"
+                        :aria-pressed="[[ $functions.same($variables.form.contractId, c.data.id) ? 'true' : 'false' ]]">
+                        <oj-bind-text value="[[ c.data.label ]]"></oj-bind-text></button>
+                    </template>
+                  </oj-bind-for-each>
+                </div>
+                <oj-bind-if test="[[ $variables.contractsLoading ]]"><span class="mb-note">Loading the project’s contracts…</span></oj-bind-if>
+              </div>
+            </oj-bind-if>
+          </section>
+
+          <section class="mb-card mb-request-sec" id="rqWhen2" aria-labelledby="rqWhenT">
+            <h3 class="mb-request-sectitle" id="rqWhenT">When</h3>
+            <div class="mb-request-when-row">
+              <label class="mb-field">
+                <span class="mb-label">Needed from</span>
+                <input type="date" class="mb-input" id="rqStart2" data-field="startDate" :value="[[ $variables.form.startDate || '' ]]" on-change="[[ $listeners.onField ]]">
+              </label>
+              <label class="mb-field">
+                <span class="mb-label">Until</span>
+                <input type="date" class="mb-input" id="rqEnd2" data-field="endDate" :min="[[ $variables.form.startDate || '' ]]"
+                  :value="[[ $variables.form.endDate || '' ]]" on-change="[[ $listeners.onField ]]">
+              </label>
+            </div>
+            <p class="mb-note"><oj-bind-text value="[[ $functions.windowText($variables.form.startDate, $variables.form.endDate) ]]"></oj-bind-text></p>
+          </section>
+
+          <section class="mb-card mb-request-sec" id="rqDelivery" aria-labelledby="rqDelT">
+            <h3 class="mb-request-sectitle" id="rqDelT">Delivery</h3>
+            <div class="mb-request-seg" role="group" aria-label="Where it goes">
+              <button type="button" data-field="locationType" data-value="DELIVERY_LOCATION" on-click="[[ $listeners.onFieldButton ]]"
+                :class="[[ 'mb-request-segbtn' + ($variables.form.locationType !== 'PROJECT_SITE' ? ' mb-request-segbtn--on' : '') ]]"
+                :aria-pressed="[[ $variables.form.locationType !== 'PROJECT_SITE' ? 'true' : 'false' ]]">An address</button>
+              <button type="button" data-field="locationType" data-value="PROJECT_SITE" on-click="[[ $listeners.onFieldButton ]]"
+                :class="[[ 'mb-request-segbtn' + ($variables.form.locationType === 'PROJECT_SITE' ? ' mb-request-segbtn--on' : '') ]]"
+                :aria-pressed="[[ $variables.form.locationType === 'PROJECT_SITE' ? 'true' : 'false' ]]">A contract site</button>
+            </div>
+            <oj-bind-if test="[[ $variables.form.locationType === 'PROJECT_SITE' ]]">
+              <oj-bind-if test="[[ !$functions.picked($variables.form.contractId) ]]">
+                <p class="mb-note">Choose the project’s contract above to see its sites, or give an address instead.</p>
+              </oj-bind-if>
+              <oj-bind-if test="[[ $variables.sitesLoading ]]"><p class="mb-note">Loading the contract’s sites…</p></oj-bind-if>
+              <oj-bind-if test="[[ $variables.sitesLoaded && !$variables.siteOptions.length ]]">
+                <p class="mb-note">This contract has no ship-to sites on this project.</p>
+              </oj-bind-if>
+              <div class="mb-request-options" role="radiogroup" aria-label="Sites" id="rqSites">
+                <oj-bind-for-each data="[[ $variables.siteOptions ]]">
+                  <template data-oj-as="site">
+                    <button type="button" role="radio" data-field="siteAddress" :data-value="[[ site.data.id ]]" on-click="[[ $listeners.onFieldButton ]]"
+                      :class="[[ 'mb-request-option' + ($variables.form.location === site.data.id ? ' mb-request-option--on' : '') ]]"
+                      :aria-checked="[[ $variables.form.location === site.data.id ? 'true' : 'false' ]]">
+                      <span class="oj-ux-ico-location-pin" aria-hidden="true"></span>
+                      <span class="mb-request-option-text"><strong><oj-bind-text value="[[ site.data.label ]]"></oj-bind-text></strong>
+                        <span class="mb-note"><oj-bind-text value="[[ site.data.label2 || '' ]]"></oj-bind-text></span></span>
+                    </button>
+                  </template>
+                </oj-bind-for-each>
+              </div>
+            </oj-bind-if>
+            <oj-bind-if test="[[ $variables.form.locationType !== 'PROJECT_SITE' ]]">
+              <label class="mb-field">
+                <span class="mb-label">Address</span>
+                <input type="text" class="mb-input" id="rqAddress" data-field="location" placeholder="Street, city, postcode" autocomplete="street-address"
+                  aria-label="Delivery address" :value="[[ $variables.form.location || '' ]]" on-change="[[ $listeners.onField ]]"
+                  :readonly="[[ $variables.form.locationType === 'INV_ORG' ]]">
+              </label>
+              <oj-bind-if test="[[ $variables.form.locationType !== 'INV_ORG' ]]">
+                <div class="mb-actions-row mb-request-whereacts">
+                  <button type="button" class="mb-btn" id="rqLocate" data-action="locate" on-click="[[ $listeners.onMap ]]">
+                    <span class="oj-ux-ico-location-found" aria-hidden="true"></span>Use my location</button>
+                  <button type="button" class="mb-btn" id="rqMapOpen" data-action="open" on-click="[[ $listeners.onMap ]]">
+                    <span class="oj-ux-ico-map" aria-hidden="true"></span>On the map</button>
+                </div>
+              </oj-bind-if>
+              <oj-bind-if test="[[ !!$variables.form.locationPinned ]]">
+                <p class="mb-request-pinned" id="rqPinned"><span class="oj-ux-ico-location-pin" aria-hidden="true"></span>
+                  <oj-bind-text value="[[ $functions.pinText($variables.form) ]]"></oj-bind-text></p>
+              </oj-bind-if>
+              <oj-bind-if test="[[ $variables.form.locationType === 'INV_ORG' ]]">
+                <p class="mb-note">An internal location kept from the draft.</p>
+              </oj-bind-if>
+            </oj-bind-if>
+          </section>
+
+          <section class="mb-card mb-request-sec" id="rqDetails" aria-labelledby="rqMoreT">
+            <h3 class="mb-request-sectitle" id="rqMoreT">Details</h3>
+            <dl class="mb-facts">
+              <div class="mb-wide"><dt>Requested by</dt><dd id="rqRequestor"><oj-bind-text value="[[ $variables.form.requestorName || '—' ]]"></oj-bind-text></dd></div>
+            </dl>
+            <oj-bind-if test="[[ $variables.showHours ]]">
+              <label class="mb-field">
+                <span class="mb-label">Planned hours a day <span class="mb-request-pick-hint">optional</span></span>
+                <input type="number" inputmode="numeric" class="mb-input mb-request-hours" min="0" max="24" step="1" data-field="hours" id="rqHours"
+                  :value="[[ $variables.form.hours == null ? '' : $variables.form.hours ]]" on-change="[[ $listeners.onField ]]">
+              </label>
+            </oj-bind-if>
+            <div class="mb-field">
+              <span class="mb-label" id="rqNotesLabel">Notes for the Equipment Manager <span class="mb-request-pick-hint">optional</span></span>
+              <!-- oj-text-area: a native textarea ignores a bound value, so a reopened draft's notes would not show. -->
+              <oj-text-area class="oj-form-control-full-width mb-request-notes" data-field="notes" id="rqNotes" rows="3" labelled-by="rqNotesLabel" label-edge="none"
+                value="[[ $variables.form.notes || '' ]]" on-value-changed="[[ $listeners.onNotes ]]"></oj-text-area>
+            </div>
+          </section>
+        </oj-bind-if>
+
+        <!-- ── Step 3: Review and submit ──────────────────────────────────────────────────────────────────── -->
+        <oj-bind-if test="[[ $variables.step === 3 ]]">
+          <section class="mb-card mb-request-sec" id="rqCheck" aria-labelledby="rqCheckT">
+            <div class="mb-request-sechead">
+              <h3 class="mb-request-sectitle" id="rqCheckT">Who it’s for, when and where</h3>
+              <button type="button" class="mb-btn mb-btn--plain mb-request-edit" data-step="2" on-click="[[ $listeners.onStep ]]"><span class="oj-ux-ico-edit" aria-hidden="true"></span>Edit</button>
+            </div>
+            <dl class="mb-facts" id="rqFacts">
+              <div class="mb-wide"><dt>Dates</dt><dd><oj-bind-text value="[[ $functions.windowText($variables.form.startDate, $variables.form.endDate) ]]"></oj-bind-text></dd></div>
+              <div class="mb-wide"><dt>Deliver to</dt><dd><oj-bind-text value="[[ $functions.deliveryText($variables.form) || '—' ]]"></oj-bind-text>
+                <oj-bind-if test="[[ !!$variables.form.locationPinned ]]"><span class="mb-request-factnote"><oj-bind-text value="[[ $functions.pinText($variables.form) ]]"></oj-bind-text></span></oj-bind-if></dd></div>
+              <div class="mb-wide"><dt>Project</dt><dd><oj-bind-text value="[[ $functions.projectText($variables.form) || '—' ]]"></oj-bind-text></dd></div>
+              <div><dt>Task</dt><dd><oj-bind-text value="[[ $functions.taskText($variables.form) || '—' ]]"></oj-bind-text></dd></div>
+              <div><dt>Customer</dt><dd><oj-bind-text value="[[ $variables.form.customerName || '—' ]]"></oj-bind-text></dd></div>
+              <div><dt>Contract</dt><dd><oj-bind-text value="[[ $variables.form.contractNumber || 'None' ]]"></oj-bind-text></dd></div>
+              <div><dt>Requested by</dt><dd><oj-bind-text value="[[ $variables.form.requestorName || '—' ]]"></oj-bind-text></dd></div>
+              <oj-bind-if test="[[ $variables.showHours && $functions.picked($variables.form.hours) ]]">
+                <div><dt>Hours a day</dt><dd><oj-bind-text value="[[ $variables.form.hours ]]"></oj-bind-text></dd></div>
+              </oj-bind-if>
+            </dl>
+            <oj-bind-if test="[[ !!$variables.form.notes ]]">
+              <p class="mb-request-notesout"><strong>Notes:</strong> <oj-bind-text value="[[ $variables.form.notes ]]"></oj-bind-text></p>
+            </oj-bind-if>
+          </section>
+
+          <section class="mb-card mb-request-sec" id="rqLines" aria-labelledby="rqLinesT">
+            <div class="mb-request-sechead">
+              <h3 class="mb-request-sectitle" id="rqLinesT"><oj-bind-text value="[[ 'Equipment · ' + $functions.cartCount($variables.cart) ]]"></oj-bind-text></h3>
+              <button type="button" class="mb-btn mb-btn--plain mb-request-edit" data-ui="sheet" data-value="cart" on-click="[[ $listeners.onUi ]]"><span class="oj-ux-ico-edit" aria-hidden="true"></span>Change</button>
+            </div>
+            <ul class="mb-request-rlines">
+              <oj-bind-for-each data="[[ $functions.ids($variables.cart) ]]">
+                <template data-oj-as="lid">
+                  <li class="mb-request-rline" :data-id="[[ lid.data ]]">
+                    <div class="mb-request-rline-top">
+                      <span class="mb-request-rline-name"><oj-bind-text value="[[ $functions.line($variables.cart, lid.data, $variables.form, $variables.hideRates).name ]]"></oj-bind-text>
+                        <span class="mb-request-rline-qty"><oj-bind-text value="[[ '× ' + $functions.line($variables.cart, lid.data, $variables.form, $variables.hideRates).qty ]]"></oj-bind-text></span></span>
+                      <strong class="mb-request-rline-cost"><oj-bind-text value="[[ $variables.hideRates ? 'On the quote' : $functions.line($variables.cart, lid.data, $variables.form, $variables.hideRates).cost ]]"></oj-bind-text></strong>
+                    </div>
+                    <div class="mb-note"><oj-bind-text value="[[ $functions.lineAbout($functions.line($variables.cart, lid.data, $variables.form, $variables.hideRates)) ]]"></oj-bind-text></div>
+                    <oj-bind-if test="[[ !!$functions.line($variables.cart, lid.data, $variables.form, $variables.hideRates).notes ]]">
+                      <div class="mb-note mb-request-rline-note"><oj-bind-text value="[[ 'Note: ' + $functions.line($variables.cart, lid.data, $variables.form, $variables.hideRates).notes ]]"></oj-bind-text></div>
+                    </oj-bind-if>
+                  </li>
+                </template>
+              </oj-bind-for-each>
+            </ul>
+            <oj-bind-if test="[[ !$variables.hideRates ]]">
+              <div class="mb-request-total" id="rqTotal">
+                <span>Estimated total <span class="mb-note"><oj-bind-text value="[[ $functions.totals($variables.cart, $variables.form, false).note ]]"></oj-bind-text></span></span>
+                <strong><oj-bind-text value="[[ $functions.totals($variables.cart, $variables.form, false).total ]]"></oj-bind-text></strong>
+              </div>
+            </oj-bind-if>
+            <oj-bind-if test="[[ $variables.hideRates ]]">
+              <p class="mb-note mb-request-pad">Prices come on the quote for this request.</p>
+            </oj-bind-if>
+          </section>
+
+          <div class="mb-request-words" id="rqWords">
+            <p><span class="oj-ux-ico-check-circle" aria-hidden="true"></span><oj-bind-text value="[[ $functions.submitWords($variables.cart, $variables.resume) ]]"></oj-bind-text></p>
+            <p class="mb-note"><oj-bind-text value="[[ $functions.draftWords($variables.resume) ]]"></oj-bind-text></p>
+          </div>
+        </oj-bind-if>
+
+        <oj-bind-if test="[[ $variables.step !== 3 && !$variables.missing.length && $variables.cart.length > 0 && !!$functions.stillNeeded($variables.form, $variables.cart) ]]">
+          <p class="mb-request-need" id="rqNeed"><oj-bind-text value="[[ $functions.stillNeeded($variables.form, $variables.cart) ]]"></oj-bind-text></p>
+        </oj-bind-if>
+      </oj-bind-if>
+    </div>
+
+    <div class="mb-request-fill" aria-hidden="true"></div>
+
+    <!-- ── The dock: the cart, Save draft, and the step's main action ───────────────────────────────────────── -->
+    <oj-bind-if test="[[ !$variables.isLoading && !$variables.loadError && $variables.requestFor !== 'customer' ]]">
+      <div class="mb-dock mb-request-dock" id="rqDock">
+        <oj-bind-if test="[[ !$variables.online ]]">
+          <p class="mb-request-offline" id="rqOffline"><span class="oj-ux-ico-cloud-off" aria-hidden="true"></span>No connection. Keep going: this phone keeps what you enter. Sending waits for the signal.</p>
+        </oj-bind-if>
+        <button type="button" class="mb-btn mb-request-cartbtn" id="rqCart" data-ui="sheet" data-value="cart" on-click="[[ $listeners.onUi ]]"
+          :aria-label="[[ 'Cart: ' + $functions.cartCount($variables.cart) ]]">
+          <span class="oj-ux-ico-cart" aria-hidden="true"></span>
+          <oj-bind-if test="[[ !!$functions.count($variables.cart) ]]">
+            <span class="mb-request-cartcount" id="rqCartCount" aria-hidden="true"><oj-bind-text value="[[ $functions.count($variables.cart) ]]"></oj-bind-text></span>
+          </oj-bind-if>
+        </button>
+        <button type="button" class="mb-btn mb-request-save" id="rqSaveDraft" on-click="[[ $listeners.onSaveDraft ]]" :disabled="[[ $variables.isSubmitting ]]">
+          <oj-bind-text value="[[ $variables.isSubmitting && $variables.submitMode === 'draft' ? 'Saving…' : 'Save draft' ]]"></oj-bind-text></button>
+        <oj-bind-if test="[[ $variables.step < 3 ]]">
+          <button type="button" class="mb-btn mb-btn--primary mb-request-go" id="rqNext" :data-step="[[ $variables.step + 1 ]]" on-click="[[ $listeners.onStep ]]"
+            :disabled="[[ $variables.isSubmitting ]]">
+            <oj-bind-text value="[[ $variables.step === 1 ? 'Next' : 'Review' ]]"></oj-bind-text><span class="oj-ux-ico-arrow-right" aria-hidden="true"></span></button>
+        </oj-bind-if>
+        <oj-bind-if test="[[ $variables.step === 3 ]]">
+          <button type="button" class="mb-btn mb-btn--ok mb-request-go" id="rqSubmit" on-click="[[ $listeners.onSubmit ]]"
+            :disabled="[[ $variables.isSubmitting || $variables.catalogLoading ]]">
+            <oj-bind-text value="[[ $variables.isSubmitting && $variables.submitMode === 'submit' ? 'Sending…' : 'Submit' ]]"></oj-bind-text></button>
+        </oj-bind-if>
+      </div>
+    </oj-bind-if>
+  </oj-bind-if>
+
+  <!-- ── The cart ─────────────────────────────────────────────────────────────────────────────────────────── -->
+  <oj-bind-if test="[[ $variables.sheet === 'cart' ]]">
+    <div class="mb-sheet-wrap" id="rqCartSheet">
+      <button type="button" class="mb-sheet-scrim" tabindex="-1" aria-label="Close the cart" data-ui="sheet" data-value="" on-click="[[ $listeners.onUi ]]"></button>
+      <section class="mb-sheet mb-request-sheet" role="dialog" aria-modal="true" aria-labelledby="rqCartT">
+        <div class="mb-sheet-grip" aria-hidden="true"></div>
+        <div class="mb-sheet-head">
+          <h3 id="rqCartT"><oj-bind-text value="[[ 'Cart · ' + $functions.cartCount($variables.cart) ]]"></oj-bind-text></h3>
+          <button type="button" class="mb-iconbtn" data-ui="sheet" data-value="" on-click="[[ $listeners.onUi ]]" aria-label="Close"><span class="oj-ux-ico-close" aria-hidden="true"></span></button>
+        </div>
+        <div class="mb-sheet-body">
+          <oj-bind-if test="[[ !$variables.cart.length ]]">
+            <div class="mb-empty"><span class="oj-ux-ico-cart mb-empty-icon" aria-hidden="true"></span>Nothing in the cart yet. Add equipment from the catalog.</div>
+          </oj-bind-if>
+          <ul class="mb-request-lines" id="rqCartLines">
+            <oj-bind-for-each data="[[ $functions.ids($variables.cart) ]]">
+              <template data-oj-as="lid">
+                <li class="mb-request-line" :data-id="[[ lid.data ]]">
+                  <div class="mb-request-line-top">
+                    <span class="mb-request-line-name"><oj-bind-text value="[[ $functions.line($variables.cart, lid.data, $variables.form, $variables.hideRates).name ]]"></oj-bind-text></span>
+                    <strong class="mb-request-line-cost"><oj-bind-text value="[[ $variables.hideRates ? '' : $functions.line($variables.cart, lid.data, $variables.form, $variables.hideRates).cost ]]"></oj-bind-text></strong>
+                  </div>
+                  <div class="mb-note"><oj-bind-text value="[[ $functions.lineAbout($functions.line($variables.cart, lid.data, $variables.form, $variables.hideRates)) ]]"></oj-bind-text></div>
+                  <div class="mb-request-line-acts">
+                    <span class="mb-request-stepper" role="group" :aria-label="[[ 'Quantity of ' + $functions.line($variables.cart, lid.data, $variables.form, $variables.hideRates).name ]]">
+                      <button type="button" data-action="dec" :data-id="[[ lid.data ]]" on-click="[[ $listeners.onCart ]]" aria-label="One less">−</button>
+                      <span class="mb-request-stepper-n"><oj-bind-text value="[[ $functions.line($variables.cart, lid.data, $variables.form, $variables.hideRates).qty ]]"></oj-bind-text></span>
+                      <button type="button" data-action="inc" :data-id="[[ lid.data ]]" on-click="[[ $listeners.onCart ]]" aria-label="One more">+</button>
+                    </span>
+                    <button type="button" class="mb-btn mb-btn--plain mb-request-own" data-ui="line" :data-value="[[ lid.data ]]" on-click="[[ $listeners.onUi ]]"
+                      :aria-expanded="[[ $variables.lineOpen === lid.data ? 'true' : 'false' ]]"><span class="oj-ux-ico-calendar" aria-hidden="true"></span>Dates, note</button>
+                    <button type="button" class="mb-iconbtn mb-request-remove" data-action="remove" :data-id="[[ lid.data ]]" on-click="[[ $listeners.onCart ]]"
+                      :aria-label="[[ 'Remove ' + $functions.line($variables.cart, lid.data, $variables.form, $variables.hideRates).name ]]"><span class="oj-ux-ico-trash" aria-hidden="true"></span></button>
+                  </div>
+                  <oj-bind-if test="[[ $variables.lineOpen === lid.data ]]">
+                    <div class="mb-request-line-own">
+                      <p class="mb-note">This line takes the request’s dates unless you give it its own.</p>
+                      <div class="mb-request-when-row">
+                        <label class="mb-field"><span class="mb-label">From</span>
+                          <input type="date" class="mb-input" data-field="startDate" :data-id="[[ lid.data ]]" :value="[[ $functions.line($variables.cart, lid.data, $variables.form, $variables.hideRates).start ]]" on-change="[[ $listeners.onLineField ]]"></label>
+                        <label class="mb-field"><span class="mb-label">Until</span>
+                          <input type="date" class="mb-input" data-field="endDate" :data-id="[[ lid.data ]]" :min="[[ $functions.line($variables.cart, lid.data, $variables.form, $variables.hideRates).start ]]"
+                            :value="[[ $functions.line($variables.cart, lid.data, $variables.form, $variables.hideRates).end ]]" on-change="[[ $listeners.onLineField ]]"></label>
+                      </div>
+                      <label class="mb-field"><span class="mb-label">Note</span>
+                        <input type="text" class="mb-input" data-field="notes" :data-id="[[ lid.data ]]" placeholder="Optional, e.g. with an operator"
+                          :value="[[ $functions.line($variables.cart, lid.data, $variables.form, $variables.hideRates).notes ]]" on-change="[[ $listeners.onLineField ]]"></label>
+                    </div>
+                  </oj-bind-if>
+                </li>
+              </template>
+            </oj-bind-for-each>
+          </ul>
+          <oj-bind-if test="[[ !!$variables.priceNote ]]">
+            <p class="mb-request-info"><span class="oj-ux-ico-information" aria-hidden="true"></span><oj-bind-text value="[[ $variables.priceNote ]]"></oj-bind-text></p>
+          </oj-bind-if>
+        </div>
+        <div class="mb-sheet-foot mb-request-cartfoot">
+          <oj-bind-if test="[[ !$variables.hideRates && $variables.cart.length > 0 ]]">
+            <span class="mb-request-cartfoot-total" id="rqCartTotal"><span class="mb-note">Estimated total</span>
+              <strong><oj-bind-text value="[[ $functions.totals($variables.cart, $variables.form, false).total ]]"></oj-bind-text></strong>
+              <span class="mb-note"><oj-bind-text value="[[ $functions.totals($variables.cart, $variables.form, false).note ]]"></oj-bind-text></span></span>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.hideRates && $variables.cart.length > 0 ]]">
+            <span class="mb-request-cartfoot-total"><span class="mb-note">Prices come on the quote.</span></span>
+          </oj-bind-if>
+          <button type="button" class="mb-btn mb-btn--primary" id="rqCartDone" data-ui="sheet" data-value="" on-click="[[ $listeners.onUi ]]">Done</button>
+        </div>
+      </section>
+    </div>
+  </oj-bind-if>
+
+  <!-- ── Customer, project and task pickers ───────────────────────────────────────────────────────────────── -->
+  <oj-bind-if test="[[ $variables.sheet === 'customer' || $variables.sheet === 'project' || $variables.sheet === 'task' ]]">
+    <div class="mb-sheet-wrap" id="rqPickSheet">
+      <button type="button" class="mb-sheet-scrim" tabindex="-1" aria-label="Close" data-ui="sheet" data-value="" on-click="[[ $listeners.onUi ]]"></button>
+      <section class="mb-sheet mb-request-sheet mb-request-picksheet" role="dialog" aria-modal="true" aria-labelledby="rqPickT">
+        <div class="mb-sheet-grip" aria-hidden="true"></div>
+        <div class="mb-sheet-head">
+          <h3 id="rqPickT"><oj-bind-text value="[[ $variables.sheet === 'customer' ? 'Choose the customer' : ($variables.sheet === 'project' ? 'Choose the project' : 'Choose the task') ]]"></oj-bind-text></h3>
+          <button type="button" class="mb-iconbtn" data-ui="sheet" data-value="" on-click="[[ $listeners.onUi ]]" aria-label="Close"><span class="oj-ux-ico-close" aria-hidden="true"></span></button>
+        </div>
+        <div class="mb-sheet-body">
+          <oj-bind-if test="[[ $variables.sheet === 'customer' ]]">
+            <label class="mb-search">
+              <span class="oj-ux-ico-search" aria-hidden="true"></span>
+              <input type="search" id="rqPickSearch" data-kind="customer" placeholder="A customer name or number" aria-label="Find a customer" autocomplete="off"
+                on-input="[[ $listeners.onSearch ]]">
+            </label>
+            <p class="mb-note" id="rqPickNote"><oj-bind-text value="[[ $functions.listNote('customer', $variables.customerResults, $variables.customerQuery, $variables.customerSearching) || ($variables.online ? '' : 'The list needs a connection.') ]]"></oj-bind-text></p>
+            <div class="mb-request-options" role="listbox" aria-label="Customers" id="rqPickList">
+              <oj-bind-for-each data="[[ $variables.customerResults ]]">
+                <template data-oj-as="r">
+                  <button type="button" role="option" :class="[[ 'mb-request-option' + ($functions.same($variables.form.customerId, r.data.id) ? ' mb-request-option--on' : '') ]]"
+                    data-kind="customer" :data-index="[[ r.index ]]" on-click="[[ $listeners.onPick ]]"
+                    :aria-selected="[[ $functions.same($variables.form.customerId, r.data.id) ? 'true' : 'false' ]]">
+                    <span class="mb-request-option-text"><strong><oj-bind-text value="[[ r.data.label ]]"></oj-bind-text></strong>
+                      <span class="mb-note"><oj-bind-text value="[[ r.data.sub ]]"></oj-bind-text></span></span>
+                  </button>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.sheet === 'project' ]]">
+            <label class="mb-search">
+              <span class="oj-ux-ico-search" aria-hidden="true"></span>
+              <input type="search" id="rqPickSearch" data-kind="project" placeholder="A project name or number" aria-label="Find a project" autocomplete="off"
+                on-input="[[ $listeners.onSearch ]]">
+            </label>
+            <p class="mb-note" id="rqPickNote"><oj-bind-text value="[[ $functions.listNote('project', $variables.projectResults, $variables.projectQuery, $variables.projectSearching) || ($variables.online ? '' : 'The list needs a connection.') ]]"></oj-bind-text></p>
+            <div class="mb-request-options" role="listbox" aria-label="Projects" id="rqPickList">
+              <oj-bind-for-each data="[[ $variables.projectResults ]]">
+                <template data-oj-as="r">
+                  <button type="button" role="option" :class="[[ 'mb-request-option' + ($functions.same($variables.form.projectId, r.data.id) ? ' mb-request-option--on' : '') ]]"
+                    data-kind="project" :data-index="[[ r.index ]]" on-click="[[ $listeners.onPick ]]"
+                    :aria-selected="[[ $functions.same($variables.form.projectId, r.data.id) ? 'true' : 'false' ]]">
+                    <span class="mb-request-option-text"><strong><oj-bind-text value="[[ r.data.label ]]"></oj-bind-text></strong>
+                      <span class="mb-note"><oj-bind-text value="[[ r.data.sub ]]"></oj-bind-text></span></span>
+                  </button>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.sheet === 'task' ]]">
+            <label class="mb-search">
+              <span class="oj-ux-ico-search" aria-hidden="true"></span>
+              <input type="search" id="rqPickSearch" data-field="taskQuery" placeholder="A task number or name" aria-label="Filter the tasks" autocomplete="off"
+                on-input="[[ $listeners.onField ]]">
+            </label>
+            <p class="mb-note" id="rqPickNote"><oj-bind-text value="[[ $functions.taskNote($variables.tasksLoading, $variables.taskOptions, $variables.taskQuery) ]]"></oj-bind-text></p>
+            <div class="mb-request-options" role="listbox" aria-label="Tasks" id="rqPickList">
+              <oj-bind-for-each data="[[ $functions.taskMatches($variables.taskOptions, $variables.taskQuery) ]]">
+                <template data-oj-as="t">
+                  <button type="button" role="option" :class="[[ 'mb-request-option' + ($functions.same($variables.form.taskId, t.data.TaskId) ? ' mb-request-option--on' : '') ]]"
+                    data-field="taskId" :data-value="[[ t.data.TaskId ]]" on-click="[[ $listeners.onFieldButton ]]"
+                    :aria-selected="[[ $functions.same($variables.form.taskId, t.data.TaskId) ? 'true' : 'false' ]]">
+                    <span class="mb-request-option-text"><strong><oj-bind-text value="[[ t.data.TaskNumber ]]"></oj-bind-text></strong>
+                      <span><oj-bind-text value="[[ t.data.TaskName ]]"></oj-bind-text></span></span>
+                  </button>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </oj-bind-if>
+        </div>
+      </section>
+    </div>
+  </oj-bind-if>
+
+  <!-- ── The delivery point on a map (mapChain; the map itself is drawn by the page module) ────────────────── -->
+  <oj-bind-if test="[[ $variables.mapDlg.open ]]">
+    <div class="mb-sheet-wrap" id="rqMapSheet">
+      <button type="button" class="mb-sheet-scrim" tabindex="-1" aria-label="Close the map" data-action="cancel" on-click="[[ $listeners.onMap ]]"></button>
+      <section class="mb-sheet mb-request-sheet mb-request-mapsheet" role="dialog" aria-modal="true" aria-labelledby="rqMapT">
+        <div class="mb-sheet-grip" aria-hidden="true"></div>
+        <div class="mb-sheet-head">
+          <h3 id="rqMapT">Where should it go?</h3>
+          <button type="button" class="mb-iconbtn" data-action="cancel" on-click="[[ $listeners.onMap ]]" aria-label="Close"><span class="oj-ux-ico-close" aria-hidden="true"></span></button>
+        </div>
+        <div class="mb-request-mapsearch">
+          <div class="mb-request-mapsearch-row">
+            <label class="mb-search">
+              <span class="oj-ux-ico-search" aria-hidden="true"></span>
+              <input type="search" id="rqMapSearch" autocomplete="off" placeholder="Search an address or a place" aria-label="Search an address"
+                on-input="[[ $listeners.onMapSearch ]]">
+            </label>
+            <button type="button" class="mb-btn mb-request-locate" id="rqMapLocate" data-action="locate" on-click="[[ $listeners.onMap ]]"
+              :disabled="[[ $variables.mapDlg.locating ]]" aria-label="Use my location" title="Use my location">
+              <span :class="[[ $variables.mapDlg.locating ? 'mb-spin' : 'oj-ux-ico-location-found' ]]" aria-hidden="true"></span></button>
+          </div>
+          <oj-bind-if test="[[ $variables.mapDlg.searching ]]"><span class="mb-note">Searching…</span></oj-bind-if>
+          <oj-bind-if test="[[ $variables.mapDlg.locating ]]"><span class="mb-note" id="rqLocating">Finding where you are…</span></oj-bind-if>
+          <oj-bind-if test="[[ $variables.mapDlg.results.length > 0 ]]">
+            <div class="mb-request-mapresults" role="listbox" aria-label="Addresses found">
+              <oj-bind-for-each data="[[ $variables.mapDlg.results ]]">
+                <template data-oj-as="r">
+                  <button type="button" role="option" class="mb-request-mapresult" data-action="pick" :data-index="[[ r.index ]]" on-click="[[ $listeners.onMap ]]">
+                    <span class="oj-ux-ico-location-pin" aria-hidden="true"></span><span><oj-bind-text value="[[ r.data.label ]]"></oj-bind-text></span></button>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ !$variables.mapDlg.searching && $variables.mapDlg.query.length >= 3 && !$variables.mapDlg.results.length && !$variables.mapDlg.picked ]]">
+            <span class="mb-note">Nothing found; try a street and a city, or tap the map.</span>
+          </oj-bind-if>
+          <oj-bind-if test="[[ !!$variables.mapDlg.note ]]">
+            <div class="mb-request-maperr" role="alert" id="rqLocateNote"><oj-bind-text value="[[ $variables.mapDlg.note ]]"></oj-bind-text></div>
+          </oj-bind-if>
+        </div>
+        <div class="mb-request-map" aria-label="Map: tap to drop the pin"></div>
+        <oj-bind-if test="[[ !!$variables.mapDlg.error ]]">
+          <div class="mb-request-maperr" role="alert" id="rqMapError"><oj-bind-text value="[[ $variables.mapDlg.error ]]"></oj-bind-text></div>
+        </oj-bind-if>
+        <div class="mb-request-mappicked" id="rqMapPicked" role="status">
+          <oj-bind-if test="[[ !!$variables.mapDlg.picked ]]">
+            <span class="oj-ux-ico-location-pin" aria-hidden="true"></span>
+            <span class="mb-request-mappicked-text"><strong><oj-bind-text value="[[ $variables.mapDlg.picked ? $variables.mapDlg.picked.label : '' ]]"></oj-bind-text></strong>
+              <span class="mb-note"><oj-bind-text value="[[ $functions.coords($variables.mapDlg.picked) ]]"></oj-bind-text></span></span>
+          </oj-bind-if>
+          <oj-bind-if test="[[ !$variables.mapDlg.picked ]]"><span class="mb-note">Tap the map, search an address, or use where you are.</span></oj-bind-if>
+        </div>
+        <div class="mb-sheet-foot">
+          <button type="button" class="mb-btn" data-action="cancel" on-click="[[ $listeners.onMap ]]">Cancel</button>
+          <button type="button" class="mb-btn mb-btn--primary" id="rqMapUse" data-action="use" on-click="[[ $listeners.onMap ]]" :disabled="[[ !$variables.mapDlg.picked ]]">
+            Use this place</button>
+        </div>
+      </section>
+    </div>
+  </oj-bind-if>
+
+  <!-- ── Before something entered here is replaced, or cleared ────────────────────────────────────────────── -->
+  <oj-bind-if test="[[ $variables.sheet === 'replace' ]]">
+    <div class="mb-sheet-wrap" id="rqReplaceSheet">
+      <button type="button" class="mb-sheet-scrim" tabindex="-1" aria-label="Keep what is here" data-ui="sheet" data-value="" on-click="[[ $listeners.onUi ]]"></button>
+      <section class="mb-sheet" role="dialog" aria-modal="true" aria-labelledby="rqReplaceT">
+        <div class="mb-sheet-grip" aria-hidden="true"></div>
+        <div class="mb-sheet-head"><h3 id="rqReplaceT"><oj-bind-text value="[[ $functions.replaceText($variables.pending, $variables.form, $variables.cart, $variables.resume).title ]]"></oj-bind-text></h3></div>
+        <div class="mb-sheet-body"><p class="mb-request-sheettext"><oj-bind-text value="[[ $functions.replaceText($variables.pending, $variables.form, $variables.cart, $variables.resume).body ]]"></oj-bind-text></p></div>
+        <div class="mb-sheet-foot">
+          <button type="button" class="mb-btn" id="rqKeep" data-ui="sheet" data-value="" on-click="[[ $listeners.onUi ]]">Keep mine</button>
+          <button type="button" class="mb-btn mb-btn--primary" id="rqReplace" data-ui="replace" data-value="" on-click="[[ $listeners.onUi ]]">
+            <oj-bind-text value="[[ $functions.replaceText($variables.pending, $variables.form, $variables.cart, $variables.resume).go ]]"></oj-bind-text></button>
+        </div>
+      </section>
+    </div>
+  </oj-bind-if>
+  <oj-bind-if test="[[ $variables.sheet === 'reset' ]]">
+    <div class="mb-sheet-wrap" id="rqResetSheet">
+      <button type="button" class="mb-sheet-scrim" tabindex="-1" aria-label="Keep what is here" data-ui="sheet" data-value="" on-click="[[ $listeners.onUi ]]"></button>
+      <section class="mb-sheet" role="dialog" aria-modal="true" aria-labelledby="rqResetT">
+        <div class="mb-sheet-grip" aria-hidden="true"></div>
+        <div class="mb-sheet-head"><h3 id="rqResetT">Start another request?</h3></div>
+        <div class="mb-sheet-body"><p class="mb-request-sheettext"><oj-bind-text value="[[ $functions.resetText($variables.resume, $variables.cart) ]]"></oj-bind-text></p></div>
+        <div class="mb-sheet-foot">
+          <button type="button" class="mb-btn" data-ui="sheet" data-value="" on-click="[[ $listeners.onUi ]]">Keep it</button>
+          <button type="button" class="mb-btn mb-btn--primary" id="rqResetGo" on-click="[[ $listeners.onReset ]]">Start another</button>
+        </div>
+      </section>
+    </div>
+  </oj-bind-if>
 </div>
