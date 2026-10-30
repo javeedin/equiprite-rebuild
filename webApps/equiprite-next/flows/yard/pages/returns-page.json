@@ -1,0 +1,102 @@
+{
+  "description": "Receiving & returns: what is coming back to the yard, one row per request, in sections by the yard's job (overdue first, to receive, return requested, on the way back, due back this week, later), with the yard it goes back to, filtered by stage tiles, yard and search; export. A request opens beside the list: Receive at yard is New's AcceptReturnLinesChain (EquipRite only). A unit back without notice is found by scanning or typing its serial (New's Direct Return search); a fixed-asset return is recorded here (EquipRite only), a stock return needs a return transfer order in Fusion and is left to New EquipRite.",
+  "navigation": {
+    "embeddable": "enabled"
+  },
+  "variables": {
+    "records": { "type": "any[]", "defaultValue": [], "description": "The returns queue (yardWork.queueRows of views/workbench-requests?stage=RETURN)." },
+    "linesBy": { "type": "any", "defaultValue": {} },
+    "yards": { "type": "any", "defaultValue": {} },
+    "loadToken": { "type": "number", "defaultValue": 0 },
+    "yardsLoading": { "type": "boolean", "defaultValue": false },
+    "isLoading": { "type": "boolean", "defaultValue": true },
+    "error": { "type": "string", "defaultValue": "" },
+    "linesFailed": { "type": "number", "defaultValue": 0 },
+    "stage": { "type": "string", "defaultValue": "all" },
+    "yard": { "type": "string", "defaultValue": "all" },
+    "text": { "type": "string", "defaultValue": "" },
+    "collapsed": { "type": "any", "defaultValue": { "later": true, "done": true } },
+    "items": { "type": "any[]", "defaultValue": [] },
+    "shown": { "type": "any[]", "defaultValue": [] },
+    "sections": { "type": "any[]", "defaultValue": [] },
+    "tiles": { "type": "any[]", "defaultValue": [] },
+    "yardChips": { "type": "any[]", "defaultValue": [] },
+    "summary": { "type": "string", "defaultValue": "" },
+    "exportOpen": { "type": "string", "defaultValue": "", "description": "'' | 'list' | 'lines' | 'found'" },
+    "side": { "type": "string", "defaultValue": "", "description": "What is beside the list: '' | 'request' | 'find'." },
+    "openId": { "type": "string", "defaultValue": "" },
+    "work": {
+      "type": "any",
+      "defaultValue": { "req": {}, "lines": [], "tos": [] },
+      "description": "The open request, built with New's receipt openPickingDrawerChain calls: every line, its transfer order, unit and condition."
+    },
+    "workLoading": { "type": "boolean", "defaultValue": false },
+    "workError": { "type": "string", "defaultValue": "" },
+    "ticks": { "type": "any[]", "defaultValue": [], "description": "Ticked line ids (only lines shipped back to the yard can be ticked)." },
+    "returnDate": { "type": "string", "defaultValue": "", "description": "The day the ticked pieces came back; blank is today." },
+    "banner": { "type": "any", "defaultValue": { "type": "", "text": "" } },
+    "busy": { "type": "string", "defaultValue": "", "description": "'' | 'receive' | 'record' | 'search'" },
+    "findQuery": { "type": "string", "defaultValue": "" },
+    "found": { "type": "any[]", "defaultValue": [], "description": "Units still in the field matching the search (resources/js/directReturn)." },
+    "foundTicks": { "type": "any[]", "defaultValue": [], "description": "Row keys ticked. Never pre-filled: a unit can be out on more than one rental." },
+    "foundMeta": { "type": "any", "defaultValue": { "searched": false } },
+    "findBanner": { "type": "any", "defaultValue": { "type": "", "text": "" } },
+    "scan": {
+      "type": "any",
+      "defaultValue": { "supported": false, "open": false, "status": "", "reading": false, "torch": false, "torchOn": false }
+    }
+  },
+  "eventListeners": {
+    "vbEnter": { "chains": [{ "chain": "loadChain", "parameters": { "refresh": false } }] },
+    "vbExit": { "chains": [{ "chain": "closeScannerChain" }] },
+    "onRefresh": { "chains": [{ "chain": "loadChain", "parameters": { "refresh": true } }] },
+    "onSearch": { "chains": [{ "chain": "setChain", "parameters": { "field": "text", "value": "{{ $event.target.value }}" } }] },
+    "onPick": {
+      "chains": [{ "chain": "setChain", "parameters": { "field": "{{ $event.currentTarget.dataset.field }}", "value": "{{ $event.currentTarget.dataset.value }}" } }]
+    },
+    "onExportMenu": {
+      "chains": [{ "chain": "setChain", "parameters": { "field": "exportOpen", "value": "{{ $event.currentTarget.dataset.what }}" } }]
+    },
+    "onExport": {
+      "chains": [{ "chain": "exportChain", "parameters": { "format": "{{ $event.currentTarget.dataset.format }}", "what": "{{ $event.currentTarget.dataset.what }}" } }]
+    },
+    "onRow": {
+      "chains": [{
+        "chain": "rowChain",
+        "parameters": {
+          "id": "{{ $event.currentTarget.dataset.id }}",
+          "number": "{{ $event.currentTarget.dataset.number }}",
+          "act": "{{ $event.target && $event.target.closest && $event.target.closest('[data-act]') ? $event.target.closest('[data-act]').getAttribute('data-act') : 'open' }}"
+        }
+      }]
+    },
+    "onOpenRequest": {
+      "chains": [{ "chain": "openRequestChain", "parameters": { "id": "{{ $event.currentTarget.dataset.id }}", "number": "{{ $event.currentTarget.dataset.number }}" } }]
+    },
+    "onCloseSide": { "chains": [{ "chain": "closeWorkChain" }] },
+    "onRefreshWork": { "chains": [{ "chain": "openWorkChain", "parameters": { "id": "{{ $variables.openId }}", "keepBanner": false } }] },
+    "onTick": {
+      "chains": [{ "chain": "tickChain", "parameters": { "lineId": "{{ $event.target.dataset.lineId }}", "checked": "{{ $event.target.checked }}" } }]
+    },
+    "onTickAll": { "chains": [{ "chain": "tickAllChain" }] },
+    "onReturnDate": { "chains": [{ "chain": "setChain", "parameters": { "field": "returnDate", "value": "{{ $event.target.value }}" } }] },
+    "onReceive": { "chains": [{ "chain": "receiveChain" }] },
+    "onOpenFind": { "chains": [{ "chain": "openFindChain" }] },
+    "onFindInput": { "chains": [{ "chain": "setChain", "parameters": { "field": "findQuery", "value": "{{ $event.target.value }}" } }] },
+    "onFindKey": { "chains": [{ "chain": "findChain", "parameters": { "value": "{{ $event.target.value }}", "key": "{{ $event.key }}" } }] },
+    "onFind": { "chains": [{ "chain": "findChain", "parameters": {} }] },
+    "onTickFound": { "chains": [{ "chain": "setChain", "parameters": { "field": "foundTick", "value": "{{ $event.target.dataset.rowKey }}" } }] },
+    "onRecordReturn": { "chains": [{ "chain": "recordReturnChain" }] },
+    "onOpenScanner": { "chains": [{ "chain": "openScannerChain" }] },
+    "onCloseScanner": { "chains": [{ "chain": "closeScannerChain" }] },
+    "onTorch": { "chains": [{ "chain": "torchChain" }] },
+    "onReadText": { "chains": [{ "chain": "readTextChain" }] }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}

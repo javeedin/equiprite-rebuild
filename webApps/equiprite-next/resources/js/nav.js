@@ -37,9 +37,9 @@ define(['resources/js/rules'], function (rules) {
     ] },
     { key: 'yard', label: 'Yard & logistics', items: [
       { id: 'picking', label: 'Picking & shipping', icon: 'oj-ux-ico-fullfilment-box', pageCodes: ['EQR_INITIATE_PICKING'],
-        route: { flow: 'yard', page: 'picking' }, built: false, newNav: 'picking', keywords: 'pick ship transfer order outbound' },
+        route: { flow: 'yard', page: 'picking' }, built: true, newNav: 'picking', keywords: 'pick ship transfer order outbound' },
       { id: 'returns', label: 'Receiving & returns', icon: 'oj-ux-ico-return-box', pageCodes: ['EQR_EQUIPMENT_RETURNS'],
-        route: { flow: 'yard', page: 'returns' }, built: false, newNav: 'receipt', keywords: 'receipt receive return inbound' },
+        route: { flow: 'yard', page: 'returns' }, built: true, newNav: 'receipt', keywords: 'receipt receive return inbound' },
       { id: 'inspection', label: 'Inspections', icon: 'oj-ux-ico-check-square', pageCodes: ['EQR_WORKBENCH'],
         route: { flow: 'checks', page: 'inspection' }, built: true, newNav: 'inspection', keywords: 'inspect checklist damage' },
       { id: 'transfers', label: 'Transfers', icon: 'oj-ux-ico-inventory-transfer', pageCodes: ['EQR_WORKBENCH'],

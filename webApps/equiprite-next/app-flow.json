@@ -857,7 +857,8 @@
       "resources/css/next-checks.css",
       "resources/css/next-equipment.css",
       "resources/css/next-commercial.css",
-      "resources/css/next-usage.css"
+      "resources/css/next-usage.css",
+      "resources/css/next-yard.css"
     ]
   }
 }

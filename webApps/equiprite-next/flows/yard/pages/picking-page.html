@@ -1,0 +1,349 @@
+<!-- Picking & shipping. What has to go out of the yard: one row per request in sections by the day it is needed (late
+     first), its pieces by stage, the yard it ships from and the yard's next step. A request opens beside the list for
+     the work (New's calls). Logic: resources/js/yardWork.js; reads: resources/js/yardLoad.js. -->
+<div class="nx-page nx-yard" id="ydPicking">
+  <div class="nx-pagehead">
+    <div>
+      <div class="nx-kicker">Yard &amp; logistics</div>
+      <h1>Picking &amp; shipping</h1>
+      <div class="nx-sub" id="ydSummary"><oj-bind-text value="[[ $variables.isLoading && !$variables.records.length ? 'Loading what has to go out…' : $variables.summary ]]"></oj-bind-text></div>
+    </div>
+    <div class="nx-actions">
+      <button type="button" class="nx-btn nx-btn--plain" id="ydRefresh" on-click="[[ $listeners.onRefresh ]]" :disabled="[[ $variables.isLoading ]]">
+        <span class="oj-ux-ico-refresh" aria-hidden="true"></span>Refresh</button>
+      <div class="nx-export">
+        <button type="button" class="nx-btn" id="ydExport" data-what="list" on-click="[[ $listeners.onExportMenu ]]" aria-haspopup="menu"
+          :aria-expanded="[[ $variables.exportOpen === 'list' ? 'true' : 'false' ]]">
+          <span class="oj-ux-ico-download" aria-hidden="true"></span>Export<span class="oj-ux-ico-chevron-down" aria-hidden="true"></span></button>
+        <oj-bind-if test="[[ $variables.exportOpen === 'list' ]]">
+          <div class="nx-menu" role="menu" aria-label="Export what has to go out">
+            <oj-bind-for-each data="[[ $functions.formats() ]]">
+              <template data-oj-as="f">
+                <button type="button" role="menuitem" class="nx-menu-item" :data-format="[[ f.data.key ]]" data-what="list" on-click="[[ $listeners.onExport ]]">
+                  <span :class="[[ f.data.icon ]]" aria-hidden="true"></span><oj-bind-text value="[[ f.data.label ]]"></oj-bind-text></button>
+              </template>
+            </oj-bind-for-each>
+            <p class="nx-menu-note">One row per piece of equipment, as shown</p>
+          </div>
+        </oj-bind-if>
+      </div>
+      <oj-bind-if test="[[ !!$functions.newUrl($application.variables.appUrls.new) ]]">
+        <a class="nx-btn" id="ydInNew" :href="[[ $functions.newUrl($application.variables.appUrls.new) ]]"
+          title="Initiate picking in New EquipRite: the same requests, with the steps that write to Fusion">
+          <span class="oj-ux-ico-external-link" aria-hidden="true"></span>Open in New EquipRite</a>
+      </oj-bind-if>
+    </div>
+  </div>
+
+  <div class="nx-yd-tiles" role="group" aria-label="Where the pieces are">
+    <oj-bind-for-each data="[[ $variables.tiles ]]">
+      <template data-oj-as="t">
+        <button type="button" :class="[[ $functions.tileClass(t.data, $variables.stage) ]]" data-field="stage" :data-value="[[ t.data.key ]]"
+          :aria-pressed="[[ $variables.stage === t.data.key ? 'true' : 'false' ]]" on-click="[[ $listeners.onPick ]]">
+          <span class="nx-yd-tile-label"><oj-bind-text value="[[ t.data.label ]]"></oj-bind-text></span>
+          <span class="nx-yd-tile-value nx-num"><oj-bind-text value="[[ t.data.count ]]"></oj-bind-text></span>
+          <span class="nx-yd-tile-note"><oj-bind-text value="[[ $functions.tileNote(t.data) ]]"></oj-bind-text></span>
+        </button>
+      </template>
+    </oj-bind-for-each>
+  </div>
+
+  <div class="nx-toolbar">
+    <label class="nx-search">
+      <span class="oj-ux-ico-search" aria-hidden="true"></span>
+      <input type="search" :value="[[ $variables.text ]]" on-input="[[ $listeners.onSearch ]]" aria-label="Search"
+        placeholder="Request, project, customer, equipment, serial or transfer order">
+    </label>
+    <oj-bind-if test="[[ $variables.stage !== 'all' ]]">
+      <button type="button" class="nx-btn nx-btn--plain nx-btn--sm" data-field="stage" data-value="all" on-click="[[ $listeners.onPick ]]">
+        <span class="oj-ux-ico-close" aria-hidden="true"></span>Every stage</button>
+    </oj-bind-if>
+  </div>
+  <div class="nx-chips nx-yd-yards" role="group" aria-label="Yard">
+    <oj-bind-for-each data="[[ $variables.yardChips ]]">
+      <template data-oj-as="y">
+        <button type="button" data-field="yard" :data-value="[[ y.data.key ]]" on-click="[[ $listeners.onPick ]]"
+          :aria-pressed="[[ $variables.yard === y.data.key ? 'true' : 'false' ]]" :class="[[ 'nx-chip' + ($variables.yard === y.data.key ? ' nx-chip--on' : '') ]]">
+          <span class="oj-ux-ico-location" aria-hidden="true"></span><oj-bind-text value="[[ y.data.label ]]"></oj-bind-text>
+          <span class="nx-chip-count"><oj-bind-text value="[[ y.data.count ]]"></oj-bind-text></span></button>
+      </template>
+    </oj-bind-for-each>
+    <oj-bind-if test="[[ $variables.yardsLoading ]]"><span class="nx-note nx-yd-finding">Finding which yard each piece ships from…</span></oj-bind-if>
+  </div>
+
+  <oj-bind-if test="[[ !!$variables.error ]]">
+    <div class="nx-error" role="alert"><oj-bind-text value="[[ $variables.error ]]"></oj-bind-text></div>
+  </oj-bind-if>
+  <oj-bind-if test="[[ $variables.linesFailed > 0 ]]">
+    <div class="nx-error" role="status"><oj-bind-text value="[[ 'The lines of ' + $functions.plural($variables.linesFailed, 'request') + ' could not be loaded: they are listed by their dates; open one to try again.' ]]"></oj-bind-text></div>
+  </oj-bind-if>
+
+  <div :class="[[ 'nx-yd-layout' + ($variables.openId ? ' nx-yd-layout--open' : '') ]]">
+    <div class="nx-yd-listcol">
+      <oj-bind-if test="[[ $variables.isLoading && !$variables.records.length ]]">
+        <div class="nx-card nx-empty">Loading the picking queue…</div>
+      </oj-bind-if>
+      <oj-bind-if test="[[ !$variables.isLoading && !$variables.error && !$variables.shown.length ]]">
+        <div class="nx-card nx-empty" id="ydEmpty"><oj-bind-text value="[[ $variables.records.length ? 'Nothing matches. Try another stage or yard, or clear the search.' : 'Nothing is waiting to go out of the yard.' ]]"></oj-bind-text></div>
+      </oj-bind-if>
+
+      <oj-bind-for-each data="[[ $variables.sections ]]">
+        <template data-oj-as="s">
+          <section class="nx-card nx-yd-section" :data-section="[[ s.data.key ]]" :aria-label="[[ s.data.label ]]">
+            <div class="nx-yd-section-head">
+              <h2 :class="[[ 'nx-yd-section-title' + (s.data.key === 'late' ? ' nx-late' : '') ]]">
+                <oj-bind-text value="[[ s.data.label ]]"></oj-bind-text><span class="nx-yd-section-count"><oj-bind-text value="[[ s.data.count ]]"></oj-bind-text></span></h2>
+              <span class="nx-note"><oj-bind-text value="[[ s.data.hint ]]"></oj-bind-text></span>
+              <button type="button" class="nx-linkbtn nx-yd-section-toggle" data-field="collapse" :data-value="[[ s.data.key ]]" on-click="[[ $listeners.onPick ]]"
+                :aria-expanded="[[ s.data.collapsed ? 'false' : 'true' ]]"><oj-bind-text value="[[ s.data.collapsed ? 'Show ' + s.data.count : 'Hide' ]]"></oj-bind-text></button>
+            </div>
+            <oj-bind-if test="[[ !s.data.collapsed ]]">
+              <div class="nx-yd-list" role="list">
+                <div class="nx-yd-row nx-yd-row--head" aria-hidden="true">
+                  <span>When</span><span>Request</span><span class="nx-yd-c-party">Project or customer</span><span class="nx-yd-c-yard">From yard</span>
+                  <span>Pieces</span><span class="nx-yd-c-next">Next step</span><span></span>
+                </div>
+                <oj-bind-for-each data="[[ s.data.items ]]">
+                  <template data-oj-as="it">
+                    <div role="listitem" :class="[[ $functions.rowClass(it.data, $variables.openId) ]]" :data-id="[[ it.data.id ]]"
+                      :data-number="[[ it.data.requestNumber ]]" on-click="[[ $listeners.onRow ]]">
+                      <span :class="[[ $functions.whenClass(it.data) ]]">
+                        <span class="nx-cell-main"><oj-bind-if test="[[ it.data.late > 0 ]]"><span class="oj-ux-ico-warning" aria-hidden="true"></span></oj-bind-if><oj-bind-text value="[[ it.data.when.main ]]"></oj-bind-text></span>
+                        <span class="nx-cell-sub"><oj-bind-text value="[[ it.data.when.sub ]]"></oj-bind-text></span>
+                      </span>
+                      <span class="nx-yd-c-req">
+                        <!-- The row opens the request beside the list; its number opens the request in its own tab. -->
+                        <button type="button" class="nx-link nx-yd-num" data-act="request" :title="[[ 'Open ' + it.data.requestNumber + ' in its own tab' ]]">
+                          <oj-bind-text value="[[ it.data.requestNumber ]]"></oj-bind-text></button>
+                        <span class="nx-cell-sub nx-yd-compact"><oj-bind-text value="[[ it.data.party || '—' ]]"></oj-bind-text></span>
+                        <span class="nx-cell-sub"><oj-bind-text value="[[ it.data.isCustomer ? 'Customer' : 'Project' ]]"></oj-bind-text></span>
+                      </span>
+                      <span class="nx-yd-c-party">
+                        <span class="nx-cell-main"><oj-bind-text value="[[ it.data.party || '—' ]]"></oj-bind-text></span>
+                        <span class="nx-cell-sub"><oj-bind-text value="[[ it.data.location ? 'to ' + it.data.location : (it.data.task || '') ]]"></oj-bind-text></span>
+                      </span>
+                      <span class="nx-yd-c-yard"><oj-bind-text value="[[ it.data.yardText || 'Not recorded' ]]"></oj-bind-text></span>
+                      <span class="nx-yd-c-pieces">
+                        <oj-bind-if test="[[ it.data.segs.length > 0 ]]">
+                          <span class="nx-jbar" role="img" :aria-label="[[ it.data.summary ]]">
+                            <oj-bind-for-each data="[[ it.data.segs ]]">
+                              <template data-oj-as="g"><span :class="[[ 'nx-jbar-seg nx-yd-seg--' + g.data.stage ]]" :title="[[ g.data.title ]]"></span></template>
+                            </oj-bind-for-each>
+                          </span>
+                        </oj-bind-if>
+                        <span class="nx-cell-sub"><oj-bind-text value="[[ it.data.summary ]]"></oj-bind-text></span>
+                        <span class="nx-cell-sub nx-yd-compact"><oj-bind-text value="[[ $functions.compactLine(it.data) ]]"></oj-bind-text></span>
+                      </span>
+                      <span :class="[[ $functions.nextClass(it.data.next) + ' nx-yd-c-next' ]]">
+                        <span class="nx-cell-main"><oj-bind-text value="[[ it.data.next.text ]]"></oj-bind-text></span>
+                        <span class="nx-cell-sub"><oj-bind-text value="[[ it.data.next.note ]]"></oj-bind-text></span>
+                      </span>
+                      <button type="button" class="nx-iconbtn nx-iconbtn--sm nx-yd-toggle" data-act="open"
+                        :aria-label="[[ ($variables.openId === it.data.id ? 'Close ' : 'Open ') + it.data.requestNumber + ' beside the list' ]]"
+                        :aria-expanded="[[ $variables.openId === it.data.id ? 'true' : 'false' ]]">
+                        <span :class="[[ $variables.openId === it.data.id ? 'oj-ux-ico-chevron-left' : 'oj-ux-ico-chevron-right' ]]" aria-hidden="true"></span></button>
+                    </div>
+                  </template>
+                </oj-bind-for-each>
+              </div>
+            </oj-bind-if>
+          </section>
+        </template>
+      </oj-bind-for-each>
+    </div>
+
+    <!-- ── The open request: the yard's work on it ─────────────────────────────────────────────────────────── -->
+    <oj-bind-if test="[[ !!$variables.openId ]]">
+      <section class="nx-card nx-yd-work" id="ydWork" aria-labelledby="ydWorkTitle">
+        <div class="nx-yd-work-head">
+          <div class="nx-yd-work-id">
+            <div class="nx-kicker">Picking</div>
+            <h2 class="nx-yd-work-title" id="ydWorkTitle">
+              <button type="button" class="nx-link" id="ydOpenRequest" :data-id="[[ $variables.work.req.eqrEquipmentRequestId || $variables.openId ]]"
+                :data-number="[[ $variables.work.req.requestNumber ]]" on-click="[[ $listeners.onOpenRequest ]]" title="Open the request in its own tab">
+                <oj-bind-text value="[[ $variables.work.req.requestNumber || 'Request' ]]"></oj-bind-text><span class="oj-ux-ico-external-link" aria-hidden="true"></span></button>
+            </h2>
+            <div class="nx-sub"><oj-bind-text value="[[ $functions.subline($variables.work.req) ]]"></oj-bind-text></div>
+          </div>
+          <div class="nx-actions">
+            <button type="button" class="nx-btn nx-btn--plain nx-btn--sm" id="ydWorkRefresh" on-click="[[ $listeners.onRefreshWork ]]" :disabled="[[ $variables.workLoading || !!$variables.busy ]]">
+              <span class="oj-ux-ico-refresh" aria-hidden="true"></span>Refresh</button>
+            <div class="nx-export">
+              <button type="button" class="nx-btn nx-btn--sm" id="ydLinesExport" data-what="lines" on-click="[[ $listeners.onExportMenu ]]" aria-haspopup="menu"
+                :aria-expanded="[[ $variables.exportOpen === 'lines' ? 'true' : 'false' ]]">
+                <span class="oj-ux-ico-download" aria-hidden="true"></span>Export</button>
+              <oj-bind-if test="[[ $variables.exportOpen === 'lines' ]]">
+                <div class="nx-menu" role="menu" aria-label="Export the lines">
+                  <oj-bind-for-each data="[[ $functions.formats() ]]">
+                    <template data-oj-as="f">
+                      <button type="button" role="menuitem" class="nx-menu-item" :data-format="[[ f.data.key ]]" data-what="lines" on-click="[[ $listeners.onExport ]]">
+                        <span :class="[[ f.data.icon ]]" aria-hidden="true"></span><oj-bind-text value="[[ f.data.label ]]"></oj-bind-text></button>
+                    </template>
+                  </oj-bind-for-each>
+                </div>
+              </oj-bind-if>
+            </div>
+            <oj-bind-if test="[[ $functions.flag($application.variables.featureFlags, $application.variables.flagsLoaded, 'SHIPPING_DOCUMENTS_ENABLED') && $functions.hasReleased($variables.work.lines) ]]">
+              <button type="button" class="nx-btn nx-btn--sm" id="ydSlipMake" data-action="make" on-click="[[ $listeners.onSlip ]]" :disabled="[[ !!$variables.busy ]]"
+                title="The pick slip: released pieces in walking order, by subinventory and locator">
+                <span class="oj-ux-ico-print" aria-hidden="true"></span>Pick slip</button>
+            </oj-bind-if>
+            <button type="button" class="nx-iconbtn nx-iconbtn--sm" id="ydWorkClose" on-click="[[ $listeners.onCloseWork ]]" aria-label="Close the request">
+              <span class="oj-ux-ico-close" aria-hidden="true"></span></button>
+          </div>
+        </div>
+
+        <dl class="nx-yd-facts">
+          <div><dt>Needed by</dt><dd><oj-bind-text value="[[ $application.functions.date($variables.work.req.start) || '—' ]]"></oj-bind-text></dd></div>
+          <div><dt>Deliver to</dt><dd><oj-bind-text value="[[ $variables.work.req.location || '—' ]]"></oj-bind-text></dd></div>
+          <div><dt>From yard</dt><dd id="ydWorkYards"><oj-bind-text value="[[ $variables.work.yards || '—' ]]"></oj-bind-text></dd></div>
+          <div><dt>Transfer orders</dt><dd><oj-bind-text value="[[ $functions.toList($variables.work.tos) || 'None' ]]"></oj-bind-text></dd></div>
+          <div><dt>Requested by</dt><dd><oj-bind-text value="[[ $variables.work.req.requestor || '—' ]]"></oj-bind-text></dd></div>
+        </dl>
+
+        <oj-bind-if test="[[ $variables.workLoading ]]"><div class="nx-empty">Loading its lines, transfer orders and allocations…</div></oj-bind-if>
+        <oj-bind-if test="[[ !!$variables.workError ]]"><div class="nx-error" role="alert"><oj-bind-text value="[[ $variables.workError ]]"></oj-bind-text></div></oj-bind-if>
+        <oj-bind-if test="[[ !!$variables.banner.text ]]">
+          <div :class="[[ $functions.bannerClass($variables.banner) ]]" id="ydBanner" :role="[[ $variables.banner.type === 'error' ? 'alert' : 'status' ]]">
+            <oj-bind-text value="[[ $variables.banner.text ]]"></oj-bind-text></div>
+        </oj-bind-if>
+        <oj-bind-if test="[[ !$functions.canAct($application.variables.pageAccessMap, $application.variables.pageAccessLoaded) ]]">
+          <div class="nx-yd-banner nx-yd-banner--info">Your role can see the yard's work here but not change it.</div>
+        </oj-bind-if>
+
+        <oj-bind-if test="[[ !$variables.workLoading && !$variables.workError ]]">
+          <oj-bind-if test="[[ $variables.work.exceptions.length > 0 ]]">
+            <div class="nx-yd-exc" role="alert">
+              <strong><oj-bind-text value="[[ $variables.work.exceptions.length === 1 ? '1 piece cannot be picked as allocated' : $variables.work.exceptions.length + ' pieces cannot be picked as allocated' ]]"></oj-bind-text></strong>
+              <oj-bind-for-each data="[[ $variables.work.exceptions ]]">
+                <template data-oj-as="x">
+                  <div class="nx-yd-exc-row">
+                    <span><oj-bind-text value="[[ (x.data.equipmentName || 'Line ' + x.data.lineId) + ': ' + x.data.issue ]]"></oj-bind-text></span>
+                    <oj-bind-if test="[[ !!$functions.oldLineLink($application.variables.appUrls.old, $variables.work.req, x.data.lineId, $variables.work.lines) ]]">
+                      <a class="nx-btn nx-btn--sm" :href="[[ $functions.oldLineLink($application.variables.appUrls.old, $variables.work.req, x.data.lineId, $variables.work.lines) ]]">Re-allocate in Old EquipRite</a>
+                    </oj-bind-if>
+                  </div>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </oj-bind-if>
+
+          <ol class="nx-yd-steps" aria-label="The yard's steps">
+            <li :class="[[ $functions.stepClass('release', $variables.work.lines) ]]" data-step="release">
+              <div class="nx-yd-step-head"><span class="nx-yd-step-n" aria-hidden="true">1</span><strong>Release for picking</strong>
+                <span class="nx-yd-step-count"><oj-bind-text value="[[ $functions.steps($variables.work.lines).awaiting + ' waiting' ]]"></oj-bind-text></span></div>
+              <oj-bind-if test="[[ $functions.steps($variables.work.lines).stock > 0 ]]">
+                <div class="nx-yd-fusion" id="ydStockRelease">
+                  <span class="oj-ux-ico-information" aria-hidden="true"></span>
+                  <div>
+                    <p><oj-bind-text value="[[ $functions.stockReleaseText($variables.work.lines, $variables.work.tos) ]]"></oj-bind-text></p>
+                    <p class="nx-note">Releasing a transfer order sends it to Fusion (through OIC) to reserve the stock and create the pick task, then marks its lines being picked. That writes to Fusion, so it is done in New EquipRite.</p>
+                    <oj-bind-if test="[[ !!$functions.newUrl($application.variables.appUrls.new) ]]">
+                      <a class="nx-btn nx-btn--sm" id="ydReleaseInNew" :href="[[ $functions.newUrl($application.variables.appUrls.new) ]]">
+                        <span class="oj-ux-ico-external-link" aria-hidden="true"></span>Do it in New EquipRite</a>
+                    </oj-bind-if>
+                  </div>
+                </div>
+              </oj-bind-if>
+              <oj-bind-if test="[[ $functions.steps($variables.work.lines).fm > 0 ]]">
+                <div class="nx-yd-here">
+                  <p><oj-bind-text value="[[ $functions.fmReleaseText($variables.work.lines) ]]"></oj-bind-text></p>
+                  <button type="button" class="nx-btn nx-btn--primary nx-btn--sm" id="ydReleaseFm" on-click="[[ $listeners.onRelease ]]"
+                    :disabled="[[ !!$variables.busy || !$functions.canAct($application.variables.pageAccessMap, $application.variables.pageAccessLoaded) || $functions.fmToRelease($variables.work.lines, $variables.ticks) === 0 ]]">
+                    <oj-bind-text value="[[ $variables.busy === 'release' ? 'Releasing…' : ($functions.fmToRelease($variables.work.lines, $variables.ticks) ? 'Release ' + $functions.plural($functions.fmToRelease($variables.work.lines, $variables.ticks), 'ticked piece') : 'Tick the fixed-asset pieces to release') ]]"></oj-bind-text></button>
+                </div>
+              </oj-bind-if>
+              <oj-bind-if test="[[ $functions.steps($variables.work.lines).awaiting === 0 ]]"><p class="nx-note">Nothing on this request is waiting for release.</p></oj-bind-if>
+            </li>
+            <li :class="[[ $functions.stepClass('ship', $variables.work.lines) ]]" data-step="ship">
+              <div class="nx-yd-step-head"><span class="nx-yd-step-n" aria-hidden="true">2</span><strong>Pick, then ship</strong>
+                <span class="nx-yd-step-count"><oj-bind-text value="[[ $functions.steps($variables.work.lines).picking + ' being picked' ]]"></oj-bind-text></span></div>
+              <oj-bind-if test="[[ $functions.steps($variables.work.lines).picking > 0 ]]">
+                <div class="nx-yd-here">
+                  <p>Pick them in the yard from the pick slip. Once they have left the yard, Pick and ship marks them shipped to site in EquipRite. Nothing is sent to Fusion.</p>
+                  <oj-bind-if test="[[ $functions.relocates($functions.flag($application.variables.featureFlags, $application.variables.flagsLoaded, 'MAINT_ASSET_LOCATION_SYNC_ENABLED'), $variables.work.tos, $variables.selectedTOId, $variables.work.lines, $variables.ticks) > 0 ]]">
+                    <div class="nx-yd-fusion" id="ydShipInNew">
+                      <span class="oj-ux-ico-information" aria-hidden="true"></span>
+                      <div><p>Shipping these also moves their maintenance asset to the delivery location in Fusion. That writes to Fusion, so ship them in New EquipRite.</p>
+                        <oj-bind-if test="[[ !!$functions.newUrl($application.variables.appUrls.new) ]]">
+                          <a class="nx-btn nx-btn--sm" :href="[[ $functions.newUrl($application.variables.appUrls.new) ]]"><span class="oj-ux-ico-external-link" aria-hidden="true"></span>Do it in New EquipRite</a>
+                        </oj-bind-if></div>
+                    </div>
+                  </oj-bind-if>
+                  <button type="button" class="nx-btn nx-btn--primary nx-btn--sm" id="ydShip" on-click="[[ $listeners.onShip ]]"
+                    :disabled="[[ !!$variables.busy || !$functions.canAct($application.variables.pageAccessMap, $application.variables.pageAccessLoaded)
+                      || !$functions.canShip($variables.work.tos, $variables.selectedTOId, $variables.work.lines, $variables.ticks) ]]">
+                    <oj-bind-text value="[[ $variables.busy === 'ship' ? 'Shipping…' : ($functions.canShip($variables.work.tos, $variables.selectedTOId, $variables.work.lines, $variables.ticks)
+                      ? 'Pick and ship ' + $functions.plural($functions.shipCount($variables.work.tos, $variables.selectedTOId, $variables.work.lines, $variables.ticks), 'piece')
+                      : 'Tick the pieces being picked to ship them') ]]"></oj-bind-text></button>
+                </div>
+              </oj-bind-if>
+              <oj-bind-if test="[[ $functions.steps($variables.work.lines).picking === 0 ]]"><p class="nx-note">Nothing on this request is being picked.</p></oj-bind-if>
+            </li>
+            <li :class="[[ $functions.stepClass('shipped', $variables.work.lines) ]]" data-step="shipped">
+              <div class="nx-yd-step-head"><span class="nx-yd-step-n" aria-hidden="true">3</span><strong>On the way to site</strong>
+                <span class="nx-yd-step-count"><oj-bind-text value="[[ $functions.steps($variables.work.lines).shipped + ' shipped' ]]"></oj-bind-text></span></div>
+              <p class="nx-note">The site accepts the delivery on the request.</p>
+            </li>
+          </ol>
+
+          <oj-bind-if test="[[ !!$variables.slip.url ]]">
+            <div class="nx-yd-slip" id="ydSlip">
+              <div class="nx-yd-slip-head">
+                <span><strong><oj-bind-text value="[[ 'Pick slip ' + $variables.slip.docNumber ]]"></oj-bind-text></strong>
+                  <span class="nx-note"><oj-bind-text value="[[ ' · ' + $functions.plural($variables.slip.rows, 'line') + ', in walking order' ]]"></oj-bind-text></span></span>
+                <span class="nx-actions">
+                  <button type="button" class="nx-btn nx-btn--sm" data-action="print" on-click="[[ $listeners.onSlip ]]"><span class="oj-ux-ico-print" aria-hidden="true"></span>Print</button>
+                  <button type="button" class="nx-btn nx-btn--sm" id="ydSlipDownload" data-action="download" on-click="[[ $listeners.onSlip ]]"><span class="oj-ux-ico-download" aria-hidden="true"></span>Download</button>
+                  <button type="button" class="nx-iconbtn nx-iconbtn--sm" data-action="close" on-click="[[ $listeners.onSlip ]]" aria-label="Close the pick slip"><span class="oj-ux-ico-close" aria-hidden="true"></span></button>
+                </span>
+              </div>
+              <iframe class="nx-yd-slip-frame" :src="[[ $variables.slip.url ]]" title="Pick slip"></iframe>
+            </div>
+          </oj-bind-if>
+
+          <div class="nx-yd-lines" role="table" aria-label="Pieces in picking">
+            <div class="nx-yd-line nx-yd-line--head" role="row">
+              <span role="columnheader"><input type="checkbox" aria-label="Tick every piece" :checked="[[ $functions.allTicked($variables.work.lines, $variables.ticks) ]]"
+                on-click="[[ $listeners.onTickAll ]]" :disabled="[[ !$variables.work.lines.length ]]"></span>
+              <span role="columnheader"><oj-bind-text value="[[ 'Pieces in picking (' + $variables.work.lines.length + ')' + ($functions.tickedCount($variables.work.lines, $variables.ticks) ? ' · ' + $functions.tickedCount($variables.work.lines, $variables.ticks) + ' ticked' : '') ]]"></oj-bind-text></span>
+              <span role="columnheader">Where it is</span>
+            </div>
+            <oj-bind-for-each data="[[ $variables.work.lines ]]">
+              <template data-oj-as="l">
+                <div class="nx-yd-line" role="row" :data-line="[[ l.data.lineId ]]">
+                  <span role="cell"><input type="checkbox" :data-line-id="[[ l.data.lineId ]]" :checked="[[ $functions.ticked($variables.ticks, l.data.lineId) ]]"
+                    on-click="[[ $listeners.onTick ]]" :aria-label="[[ 'Tick ' + (l.data.equipmentName || 'line ' + l.data.lineId) ]]"></span>
+                  <span role="cell" class="nx-yd-line-main">
+                    <span class="nx-cell-main"><oj-bind-text value="[[ (l.data.equipmentName || 'Equipment') + (l.data.quantity > 1 ? ' ×' + l.data.quantity : '') ]]"></oj-bind-text>
+                      <oj-bind-if test="[[ l.data.isFAndM ]]"><span class="nx-pill nx-pill--plain nx-yd-badge">Fixed asset</span></oj-bind-if></span>
+                    <span class="nx-cell-sub"><oj-bind-text value="[[ $functions.lineFacts(l.data) ]]"></oj-bind-text></span>
+                    <span class="nx-cell-sub"><oj-bind-text value="[[ (l.data.serialNumber || 'No unit assigned') + ' · ' + $functions.where(l.data) ]]"></oj-bind-text></span>
+                  </span>
+                  <span role="cell"><span :class="[[ 'nx-pill nx-stage--' + $functions.lineTone(l.data.lineStatus, $variables.work.req.isCustomer) ]]" :title="[[ 'Stored line status: ' + l.data.lineStatus ]]">
+                    <oj-bind-text value="[[ $functions.lineLabel(l.data.lineStatus, $variables.work.req.isCustomer) ]]"></oj-bind-text></span></span>
+                </div>
+              </template>
+            </oj-bind-for-each>
+            <oj-bind-if test="[[ !$variables.work.lines.length ]]"><div class="nx-empty">No piece of this request is at a picking step.</div></oj-bind-if>
+          </div>
+
+          <oj-bind-if test="[[ $functions.otherLines($variables.linesBy, $variables.openId, $variables.work.lines, $variables.work.req.isCustomer).length > 0 ]]">
+            <div class="nx-yd-other" id="ydOther">
+              <h3 class="nx-yd-h3">Also on this request</h3>
+              <oj-bind-for-each data="[[ $functions.otherLines($variables.linesBy, $variables.openId, $variables.work.lines, $variables.work.req.isCustomer) ]]">
+                <template data-oj-as="o">
+                  <div class="nx-yd-other-row">
+                    <span class="nx-ellipsis"><oj-bind-text value="[[ o.data.name + (o.data.qty > 1 ? ' ×' + o.data.qty : '') ]]"></oj-bind-text></span>
+                    <span :class="[[ 'nx-pill nx-stage--' + o.data.tone ]]" :title="[[ 'Stored line status: ' + o.data.status ]]"><oj-bind-text value="[[ o.data.label ]]"></oj-bind-text></span>
+                    <span class="nx-note"><oj-bind-text value="[[ o.data.next ]]"></oj-bind-text></span>
+                  </div>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </oj-bind-if>
+        </oj-bind-if>
+      </section>
+    </oj-bind-if>
+  </div>
+</div>
