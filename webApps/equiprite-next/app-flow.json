@@ -854,7 +854,8 @@
       "resources/css/next-order.css",
       "resources/css/next-availability.css",
       "resources/css/next-approvals.css",
-      "resources/css/next-checks.css"
+      "resources/css/next-checks.css",
+      "resources/css/next-equipment.css"
     ]
   }
 }

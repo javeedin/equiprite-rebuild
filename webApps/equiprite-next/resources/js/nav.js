@@ -33,7 +33,7 @@ define(['resources/js/rules'], function (rules) {
       { id: 'availability', label: 'Availability', icon: 'oj-ux-ico-calendar', pageCodes: ['EQR_EQUIPMENT_SCHEDULE'],
         route: { flow: 'availability', page: 'availability' }, built: true, newNav: 'schedule', keywords: 'schedule gantt calendar booking' },
       { id: 'equipment', label: 'Equipment master', icon: 'oj-ux-ico-box-grid', pageCodes: ['EQR_EQUIPMENT_MASTER'],
-        route: { flow: 'equipment', page: 'equipment' }, built: false, newNav: 'equipment', keywords: 'catalog items classes import' }
+        route: { flow: 'equipment', page: 'equipment' }, built: true, newNav: 'equipment', keywords: 'catalog items classes import' }
     ] },
     { key: 'yard', label: 'Yard & logistics', items: [
       { id: 'picking', label: 'Picking & shipping', icon: 'oj-ux-ico-fullfilment-box', pageCodes: ['EQR_INITIATE_PICKING'],
@@ -111,7 +111,9 @@ define(['resources/js/rules'], function (rules) {
     draft: { flow: 'order', page: 'new-request', icon: 'oj-ux-ico-cart-add', navId: 'new-request',
       title: function (p) { return 'Draft ' + ((p && (p.number || p.id)) || ''); } },
     transfer: { flow: 'checks', page: 'transfer', icon: 'oj-ux-ico-inventory-transfer', navId: 'transfers',
-      title: function (p) { return (p && (p.number || p.id)) || 'Transfer'; } }
+      title: function (p) { return (p && (p.number || p.id)) || 'Transfer'; } },
+    'equipment-item': { flow: 'equipment', page: 'item', icon: 'oj-ux-ico-box-grid', navId: 'equipment',
+      title: function (p) { return (p && (p.number || p.id)) || 'Equipment'; } }
   };
 
   /** The page the tab of a menu item shows: its own screen, or the "being built" page for one not built yet. */

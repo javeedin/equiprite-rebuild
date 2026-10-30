@@ -1,0 +1,562 @@
+<!-- Equipment master (FDD 7.2). Find an item by number, name, class or serial; read what it is and its units; open it in
+     its own tab. List or map; FULL access adds Sync from Fusion and the Import from Fusion view (New's chains).
+     Logic: resources/js/equipmentMaster.js; the Sync and Import functions: resources/js/equipmentImport.js. -->
+<div class="nx-page nx-eqm">
+  <div class="nx-pagehead">
+    <div>
+      <h1>Equipment master</h1>
+      <div class="nx-sub" id="eqmSummary"><oj-bind-text value="[[ $variables.summary || 'Loading the equipment…' ]]"></oj-bind-text></div>
+      <oj-bind-if test="[[ !!$functions.fusionLine($variables.lastRuns) ]]">
+        <div class="nx-note nx-eqm-fusion" id="eqmFusion"><oj-bind-text value="[[ $functions.fusionLine($variables.lastRuns) ]]"></oj-bind-text></div>
+      </oj-bind-if>
+    </div>
+    <div class="nx-actions">
+      <button type="button" class="nx-btn nx-btn--plain" id="eqmRefresh" on-click="[[ $listeners.onRefresh ]]" :disabled="[[ $variables.isLoading ]]">
+        <span class="oj-ux-ico-refresh" aria-hidden="true"></span>Refresh</button>
+      <div class="nx-export">
+        <button type="button" class="nx-btn" id="eqmExport" on-click="[[ $listeners.onExportMenu ]]" aria-haspopup="menu"
+          :aria-expanded="[[ $variables.exportOpen ? 'true' : 'false' ]]">
+          <span class="oj-ux-ico-download" aria-hidden="true"></span>Export<span class="oj-ux-ico-chevron-down" aria-hidden="true"></span></button>
+        <oj-bind-if test="[[ $variables.exportOpen ]]">
+          <div class="nx-menu" role="menu" aria-label="Export">
+            <oj-bind-for-each data="[[ $functions.formats() ]]">
+              <template data-oj-as="f">
+                <button type="button" role="menuitem" class="nx-menu-item" :data-format="[[ f.data.key ]]" on-click="[[ $listeners.onExport ]]">
+                  <span :class="[[ f.data.icon ]]" aria-hidden="true"></span><oj-bind-text value="[[ f.data.label ]]"></oj-bind-text></button>
+              </template>
+            </oj-bind-for-each>
+            <p class="nx-menu-note"><oj-bind-text value="[[ $functions.exportNote($variables) ]]"></oj-bind-text></p>
+          </div>
+        </oj-bind-if>
+      </div>
+      <oj-bind-if test="[[ $variables.canWrite ]]">
+        <button type="button" class="nx-btn" id="eqmSync" on-click="[[ $listeners.onSync ]]" :disabled="[[ $variables.isSyncing ]]"
+          title="Refresh the items already here, and their serials, lots and on-hand, from Fusion">
+          <span class="oj-ux-ico-sync" aria-hidden="true"></span><oj-bind-text value="[[ $functions.syncLabel($variables.isSyncing, $variables.syncStep) ]]"></oj-bind-text></button>
+      </oj-bind-if>
+    </div>
+  </div>
+
+  <oj-bind-if test="[[ !!$variables.ask ]]">
+    <section class="nx-card nx-card-pad nx-eqm-ask" role="alertdialog" aria-labelledby="eqmAskTitle" aria-describedby="eqmAskText">
+      <h2 class="nx-h2" id="eqmAskTitle"><oj-bind-text value="[[ $variables.ask.title ]]"></oj-bind-text></h2>
+      <p id="eqmAskText"><oj-bind-text value="[[ $variables.ask.message ]]"></oj-bind-text></p>
+      <div class="nx-actions">
+        <button type="button" class="nx-btn" data-answer="cancel" on-click="[[ $listeners.onAnswer ]]">Cancel</button>
+        <button type="button" class="nx-btn nx-btn--primary" data-answer="ok" on-click="[[ $listeners.onAnswer ]]">
+          <oj-bind-text value="[[ $variables.ask.ok ]]"></oj-bind-text></button>
+      </div>
+    </section>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ $variables.isSyncing ]]">
+    <div class="nx-card nx-card-pad nx-eqm-running" role="status" id="eqmSyncing">
+      <span class="nx-eqm-spin" aria-hidden="true"></span>
+      <span><strong><oj-bind-text value="[[ $functions.syncLabel(true, $variables.syncStep) ]]"></oj-bind-text></strong>
+        <span class="nx-note"> <oj-bind-text value="[[ $variables.importMessage || 'Items first, then stock, then units.' ]]"></oj-bind-text></span></span>
+    </div>
+  </oj-bind-if>
+  <oj-bind-if test="[[ !$variables.isSyncing && !!$variables.syncResult ]]">
+    <div :class="[[ $functions.resultTone($variables.syncResult) ]]" role="status" id="eqmSyncResult">
+      <span class="nx-eqm-result-text"><strong><oj-bind-text value="[[ $variables.syncResult.title ]]"></oj-bind-text></strong>
+        <oj-bind-text value="[[ ' ' + $variables.syncResult.message ]]"></oj-bind-text></span>
+      <button type="button" class="nx-btn nx-btn--plain nx-btn--sm" data-field="syncResult" data-value="" on-click="[[ $listeners.onPick ]]">Dismiss</button>
+    </div>
+  </oj-bind-if>
+
+  <div class="nx-toolbar">
+    <div class="nx-seg" role="group" aria-label="View">
+      <button type="button" data-field="view" data-value="list" on-click="[[ $listeners.onPick ]]" :aria-pressed="[[ $variables.view === 'list' ? 'true' : 'false' ]]"
+        :class="[[ 'nx-seg-btn' + ($variables.view === 'list' ? ' nx-seg-btn--on' : '') ]]"><span class="oj-ux-ico-list" aria-hidden="true"></span>List</button>
+      <button type="button" data-field="view" data-value="map" on-click="[[ $listeners.onPick ]]" :aria-pressed="[[ $variables.view === 'map' ? 'true' : 'false' ]]"
+        :class="[[ 'nx-seg-btn' + ($variables.view === 'map' ? ' nx-seg-btn--on' : '') ]]"><span class="oj-ux-ico-location" aria-hidden="true"></span>Map</button>
+      <oj-bind-if test="[[ $variables.canWrite ]]">
+        <button type="button" data-field="view" data-value="import" id="eqmImportView" on-click="[[ $listeners.onPick ]]"
+          :aria-pressed="[[ $variables.view === 'import' ? 'true' : 'false' ]]"
+          :class="[[ 'nx-seg-btn' + ($variables.view === 'import' ? ' nx-seg-btn--on' : '') ]]"><span class="oj-ux-ico-download" aria-hidden="true"></span>Import from Fusion
+          <oj-bind-if test="[[ $variables.stagingWaiting > 0 ]]">
+            <span class="nx-eqm-badge"><oj-bind-text value="[[ $variables.stagingWaiting.toLocaleString() + ' to review' ]]"></oj-bind-text></span>
+          </oj-bind-if></button>
+      </oj-bind-if>
+    </div>
+    <oj-bind-if test="[[ $variables.view !== 'import' ]]">
+      <label class="nx-search nx-eqm-search">
+        <span class="oj-ux-ico-search" aria-hidden="true"></span>
+        <input type="search" id="eqmSearch" :value="[[ $variables.text ]]" on-input="[[ $listeners.onSearch ]]" aria-label="Search equipment"
+          placeholder="Number, name, class, serial, maker or location">
+      </label>
+      <button type="button" id="eqmFilters" data-field="filtersOpen" data-value="" on-click="[[ $listeners.onPick ]]"
+        :aria-expanded="[[ $variables.filtersOpen ? 'true' : 'false' ]]"
+        :class="[[ 'nx-chip' + ($variables.filtersOpen ? ' nx-chip--on' : '') ]]"><span class="oj-ux-ico-filter" aria-hidden="true"></span>Filters
+        <oj-bind-if test="[[ $functions.moreOn($variables) > 0 ]]"><span class="nx-chip-count"><oj-bind-text value="[[ $functions.moreOn($variables) + ' on' ]]"></oj-bind-text></span></oj-bind-if></button>
+      <oj-bind-if test="[[ !!$variables.location ]]">
+        <button type="button" class="nx-chip nx-chip--on" id="eqmLocationChip" data-field="location" :data-value="[[ $variables.location ]]" on-click="[[ $listeners.onPick ]]"
+          :aria-label="[[ 'Stop listing only ' + $functions.locationName($variables.location, $variables.locationsById) ]]">
+          <span class="oj-ux-ico-location" aria-hidden="true"></span><oj-bind-text value="[[ $functions.locationName($variables.location, $variables.locationsById) ]]"></oj-bind-text>
+          <span class="oj-ux-ico-close" aria-hidden="true"></span></button>
+      </oj-bind-if>
+      <oj-bind-if test="[[ $functions.anyFilter($variables) ]]">
+        <button type="button" class="nx-btn nx-btn--plain nx-btn--sm" id="eqmClear" data-field="clear" data-value="" on-click="[[ $listeners.onPick ]]">Clear filters</button>
+      </oj-bind-if>
+    </oj-bind-if>
+  </div>
+
+  <!-- ── List and map ───────────────────────────────────────────────────────────────────────────────────── -->
+  <oj-bind-if test="[[ $variables.view !== 'import' ]]">
+    <div class="nx-chips nx-eqm-classes" role="group" aria-label="Class">
+      <oj-bind-for-each data="[[ $variables.chips.classes ]]">
+        <template data-oj-as="c">
+          <button type="button" data-field="class" :data-value="[[ c.data.key ]]" on-click="[[ $listeners.onPick ]]"
+            :aria-pressed="[[ $variables.classId === c.data.key ? 'true' : 'false' ]]"
+            :class="[[ 'nx-chip' + ($variables.classId === c.data.key ? ' nx-chip--on' : '') ]]">
+            <oj-bind-text value="[[ c.data.label ]]"></oj-bind-text><span class="nx-chip-count"><oj-bind-text value="[[ c.data.count ]]"></oj-bind-text></span>
+          </button>
+        </template>
+      </oj-bind-for-each>
+      <oj-bind-if test="[[ $variables.chips.moreClasses > 0 || ($variables.allClasses && $variables.chips.classes.length > 11) ]]">
+        <button type="button" class="nx-btn nx-btn--plain nx-btn--sm" data-field="allClasses" data-value="" on-click="[[ $listeners.onPick ]]">
+          <oj-bind-text value="[[ $variables.allClasses ? 'Fewer classes' : '+' + $variables.chips.moreClasses + ' more classes' ]]"></oj-bind-text></button>
+      </oj-bind-if>
+    </div>
+    <oj-bind-if test="[[ $variables.chips.subclasses.length > 0 ]]">
+      <div class="nx-chips nx-eqm-subclasses" role="group" aria-label="Subclass">
+        <oj-bind-for-each data="[[ $variables.chips.subclasses ]]">
+          <template data-oj-as="s">
+            <button type="button" data-field="subclass" :data-value="[[ s.data.key ]]" on-click="[[ $listeners.onPick ]]"
+              :aria-pressed="[[ $variables.subclassId === s.data.key ? 'true' : 'false' ]]"
+              :class="[[ 'nx-chip nx-eqm-subchip' + ($variables.subclassId === s.data.key ? ' nx-chip--on' : '') ]]">
+              <oj-bind-text value="[[ s.data.label ]]"></oj-bind-text><span class="nx-chip-count"><oj-bind-text value="[[ s.data.count ]]"></oj-bind-text></span>
+            </button>
+          </template>
+        </oj-bind-for-each>
+      </div>
+    </oj-bind-if>
+
+    <oj-bind-if test="[[ $variables.filtersOpen ]]">
+      <section class="nx-card nx-card-pad nx-eqm-filters" aria-label="Filters" id="eqmFilterPanel">
+        <div class="nx-eqm-filterrow">
+          <span class="nx-eqm-label">Status</span>
+          <div class="nx-chips" role="group" aria-label="Status">
+            <oj-bind-for-each data="[[ $variables.chips.statuses ]]">
+              <template data-oj-as="c">
+                <button type="button" data-field="status" :data-value="[[ c.data.key ]]" on-click="[[ $listeners.onPick ]]"
+                  :aria-pressed="[[ $variables.status === c.data.key ? 'true' : 'false' ]]"
+                  :class="[[ 'nx-chip' + ($variables.status === c.data.key ? ' nx-chip--on' : '') ]]">
+                  <oj-bind-text value="[[ c.data.label ]]"></oj-bind-text><span class="nx-chip-count"><oj-bind-text value="[[ c.data.count ]]"></oj-bind-text></span></button>
+              </template>
+            </oj-bind-for-each>
+          </div>
+        </div>
+        <div class="nx-eqm-filterrow">
+          <span class="nx-eqm-label">Tracked by</span>
+          <div class="nx-chips" role="group" aria-label="Tracked by">
+            <oj-bind-for-each data="[[ $variables.chips.tracking ]]">
+              <template data-oj-as="c">
+                <button type="button" data-field="tracking" :data-value="[[ c.data.key ]]" on-click="[[ $listeners.onPick ]]"
+                  :aria-pressed="[[ $variables.tracking === c.data.key ? 'true' : 'false' ]]"
+                  :class="[[ 'nx-chip' + ($variables.tracking === c.data.key ? ' nx-chip--on' : '') ]]">
+                  <oj-bind-text value="[[ c.data.label ]]"></oj-bind-text><span class="nx-chip-count"><oj-bind-text value="[[ c.data.count ]]"></oj-bind-text></span></button>
+              </template>
+            </oj-bind-for-each>
+          </div>
+        </div>
+        <div class="nx-eqm-filterrow">
+          <span class="nx-eqm-label">Source</span>
+          <div class="nx-chips" role="group" aria-label="Source">
+            <oj-bind-for-each data="[[ $variables.chips.sources ]]">
+              <template data-oj-as="c">
+                <button type="button" data-field="source" :data-value="[[ c.data.key ]]" on-click="[[ $listeners.onPick ]]"
+                  :aria-pressed="[[ $variables.source === c.data.key ? 'true' : 'false' ]]"
+                  :class="[[ 'nx-chip' + ($variables.source === c.data.key ? ' nx-chip--on' : '') ]]">
+                  <oj-bind-text value="[[ c.data.label ]]"></oj-bind-text><span class="nx-chip-count"><oj-bind-text value="[[ c.data.count ]]"></oj-bind-text></span></button>
+              </template>
+            </oj-bind-for-each>
+          </div>
+        </div>
+        <oj-bind-if test="[[ $variables.assetGroupOptions.length > 0 ]]">
+          <div class="nx-eqm-filterrow">
+            <span class="nx-eqm-label">Asset group <span class="nx-note">items with an active asset in it</span></span>
+            <div class="nx-chips" role="group" aria-label="Asset group">
+              <oj-bind-for-each data="[[ $variables.assetGroupOptions ]]">
+                <template data-oj-as="g">
+                  <button type="button" data-field="group" :data-value="[[ g.data.value ]]" on-click="[[ $listeners.onPick ]]"
+                    :aria-pressed="[[ $variables.assetGroupId === ('' + g.data.value) ? 'true' : 'false' ]]"
+                    :class="[[ 'nx-chip' + ($variables.assetGroupId === ('' + g.data.value) ? ' nx-chip--on' : '') ]]">
+                    <oj-bind-text value="[[ g.data.label ]]"></oj-bind-text></button>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </div>
+        </oj-bind-if>
+      </section>
+    </oj-bind-if>
+
+    <oj-bind-if test="[[ !!$functions.searchNote($variables.text, $variables.server, $variables.searching) ]]">
+      <p class="nx-note nx-eqm-searchnote" role="status" id="eqmSearchNote"><oj-bind-text value="[[ $functions.searchNote($variables.text, $variables.server, $variables.searching) ]]"></oj-bind-text></p>
+    </oj-bind-if>
+    <oj-bind-if test="[[ !!$variables.error ]]">
+      <div class="nx-error" role="alert" id="eqmError"><oj-bind-text value="[[ $variables.error ]]"></oj-bind-text></div>
+    </oj-bind-if>
+
+    <oj-bind-if test="[[ $variables.view === 'map' ]]">
+      <section class="nx-card nx-card-pad nx-eqm-mapcard" aria-labelledby="eqmMapTitle">
+        <div class="nx-eqm-cardhead">
+          <h2 class="nx-h2" id="eqmMapTitle">Where the equipment is</h2>
+          <span class="nx-note" id="eqmMapNote"><oj-bind-text value="[[ $functions.mapNote($variables.map) ]]"></oj-bind-text></span>
+        </div>
+        <oj-bind-if test="[[ $variables.map.points.length === 0 ]]">
+          <p class="nx-muted">None of these items has a location with coordinates (EQR_LOCATION latitude and longitude).</p>
+        </oj-bind-if>
+        <oj-bind-if test="[[ $variables.map.points.length > 0 ]]">
+          <div class="nx-eqm-map" role="group" aria-label="Locations">
+            <oj-bind-for-each data="[[ $variables.map.points ]]">
+              <template data-oj-as="p">
+                <button type="button" data-field="location" :data-value="[[ p.data.id ]]" on-click="[[ $listeners.onPick ]]"
+                  :class="[[ 'nx-eqm-dot' + ($variables.location === p.data.id ? ' nx-eqm-dot--on' : '') ]]"
+                  :style="[[ $functions.dotStyle(p.data) ]]" :title="[[ p.data.label ]]" :aria-label="[[ p.data.label ]]"
+                  :aria-pressed="[[ $variables.location === p.data.id ? 'true' : 'false' ]]">
+                  <span class="nx-eqm-dot-count"><oj-bind-text value="[[ p.data.count ]]"></oj-bind-text></span>
+                  <span class="nx-eqm-dot-name"><oj-bind-text value="[[ p.data.name ]]"></oj-bind-text></span>
+                </button>
+              </template>
+            </oj-bind-for-each>
+          </div>
+        </oj-bind-if>
+        <oj-bind-if test="[[ $variables.map.unplaced > 0 ]]">
+          <button type="button" class="nx-btn nx-btn--plain nx-btn--sm nx-eqm-unplaced" data-field="location" data-value="none" on-click="[[ $listeners.onPick ]]">
+            <oj-bind-text value="[[ 'List the ' + $variables.map.unplaced + ' with no location on record' ]]"></oj-bind-text></button>
+        </oj-bind-if>
+      </section>
+    </oj-bind-if>
+
+    <oj-bind-if test="[[ !$variables.isLoading && !$variables.error && !$variables.shown.length ]]">
+      <div class="nx-card nx-empty" id="eqmEmpty">
+        <oj-bind-text value="[[ $variables.itemCount ? 'No equipment matches. Try another class, or clear the search and the filters.' : 'There is no equipment in the master yet. Items come in through Import from Fusion.' ]]"></oj-bind-text>
+      </div>
+    </oj-bind-if>
+
+    <oj-bind-if test="[[ $variables.shown.length > 0 ]]">
+      <section class="nx-card">
+        <div class="nx-table">
+          <div class="nx-grid nx-grid--eqm" role="table" aria-label="Equipment">
+            <div class="nx-row nx-row--head" role="row">
+              <span role="columnheader" :aria-sort="[[ $functions.ariaSort('name', $variables.sortKey, $variables.sortDir) ]]">
+                <button type="button" class="nx-sort" data-key="name" on-click="[[ $listeners.onSort ]]">Equipment<oj-bind-text value="[[ $functions.sortMark('name', $variables.sortKey, $variables.sortDir) ]]"></oj-bind-text></button>
+                <button type="button" class="nx-sort nx-eqm-sort2" data-key="number" on-click="[[ $listeners.onSort ]]">Number<oj-bind-text value="[[ $functions.sortMark('number', $variables.sortKey, $variables.sortDir) ]]"></oj-bind-text></button></span>
+              <span role="columnheader" :aria-sort="[[ $functions.ariaSort('class', $variables.sortKey, $variables.sortDir) ]]">
+                <button type="button" class="nx-sort" data-key="class" on-click="[[ $listeners.onSort ]]">Class<oj-bind-text value="[[ $functions.sortMark('class', $variables.sortKey, $variables.sortDir) ]]"></oj-bind-text></button></span>
+              <span role="columnheader">Tracked by</span>
+              <span role="columnheader" :aria-sort="[[ $functions.ariaSort('units', $variables.sortKey, $variables.sortDir) ]]">
+                <button type="button" class="nx-sort" data-key="units" on-click="[[ $listeners.onSort ]]">Units<oj-bind-text value="[[ $functions.sortMark('units', $variables.sortKey, $variables.sortDir) ]]"></oj-bind-text></button></span>
+              <span role="columnheader" :aria-sort="[[ $functions.ariaSort('where', $variables.sortKey, $variables.sortDir) ]]">
+                <button type="button" class="nx-sort" data-key="where" on-click="[[ $listeners.onSort ]]">Location<oj-bind-text value="[[ $functions.sortMark('where', $variables.sortKey, $variables.sortDir) ]]"></oj-bind-text></button></span>
+              <span role="columnheader" :aria-sort="[[ $functions.ariaSort('status', $variables.sortKey, $variables.sortDir) ]]">
+                <button type="button" class="nx-sort" data-key="status" on-click="[[ $listeners.onSort ]]">Status<oj-bind-text value="[[ $functions.sortMark('status', $variables.sortKey, $variables.sortDir) ]]"></oj-bind-text></button></span>
+            </div>
+            <oj-bind-for-each data="[[ $variables.shown.slice(0, $variables.limit) ]]">
+              <template data-oj-as="r">
+                <div role="row" class="nx-row nx-row--click" :data-id="[[ r.data.key ]]" :data-number="[[ r.data.num ]]" on-click="[[ $listeners.onOpen ]]">
+                  <span role="cell">
+                    <!-- The row opens the item (a click here reaches it); the button is for the keyboard. -->
+                    <button type="button" class="nx-link nx-eqm-title"><oj-bind-text value="[[ r.data.title ]]"></oj-bind-text></button>
+                    <span class="nx-cell-sub"><oj-bind-text value="[[ $functions.itemSub(r.data) ]]"></oj-bind-text></span>
+                    <oj-bind-if test="[[ r.data.why === 'server' ]]">
+                      <span class="nx-cell-sub nx-eqm-why"><span class="oj-ux-ico-search" aria-hidden="true"></span><oj-bind-text value="[[ $functions.whyText($variables.text) ]]"></oj-bind-text></span>
+                    </oj-bind-if>
+                  </span>
+                  <span role="cell">
+                    <span :class="[[ r.data.cls ? 'nx-cell-main' : 'nx-cell-main nx-muted' ]]"><oj-bind-text value="[[ r.data.cls || 'No class' ]]"></oj-bind-text></span>
+                    <span class="nx-cell-sub"><oj-bind-text value="[[ r.data.sub ]]"></oj-bind-text></span>
+                  </span>
+                  <span role="cell"><oj-bind-text value="[[ r.data.trackingLabel ]]"></oj-bind-text></span>
+                  <span role="cell">
+                    <span :class="[[ r.data.unitsText ? 'nx-cell-main nx-num' : 'nx-cell-sub' ]]"><oj-bind-text value="[[ r.data.unitsText || 'No units on record' ]]"></oj-bind-text></span>
+                  </span>
+                  <span role="cell" class="nx-ellipsis"><oj-bind-text value="[[ r.data.where || '—' ]]"></oj-bind-text></span>
+                  <span role="cell">
+                    <span :class="[[ 'nx-pill nx-eqm-tone--' + r.data.tone ]]" :title="[[ 'Stored status: ' + (r.data.st || 'none') ]]"><oj-bind-text value="[[ r.data.statusLabel ]]"></oj-bind-text></span>
+                    <span class="nx-cell-sub"><oj-bind-text value="[[ $functions.sourceWords(r.data.source) ]]"></oj-bind-text></span>
+                  </span>
+                </div>
+              </template>
+            </oj-bind-for-each>
+          </div>
+        </div>
+      </section>
+    </oj-bind-if>
+
+    <oj-bind-if test="[[ $variables.shown.length > $variables.limit ]]">
+      <div><button type="button" class="nx-btn" id="eqmMore" on-click="[[ $listeners.onMore ]]">
+        <oj-bind-text value="[[ 'Show more (' + ($variables.shown.length - $variables.limit) + ' left)' ]]"></oj-bind-text></button></div>
+    </oj-bind-if>
+
+    <p class="nx-note nx-eqm-foot">New equipment comes in through Import from Fusion. Fusion syncs run for every item at once; one item
+      cannot be synced on its own.</p>
+  </oj-bind-if>
+
+  <!-- ── Import from Fusion (FULL): Fetch, review and classify, Import the ticked rows ──────────────────── -->
+  <oj-bind-if test="[[ $variables.view === 'import' ]]">
+    <section class="nx-card nx-card-pad nx-eqm-step" aria-labelledby="impFetchTitle">
+      <div class="nx-eqm-stephead">
+        <div>
+          <h2 class="nx-h2" id="impFetchTitle"><span class="nx-eqm-stepnum">1</span>Fetch from Fusion</h2>
+          <p class="nx-note nx-eqm-help">
+            Reads item definitions, then their serials, lots and on-hand from Fusion, classifies them with your Class Mapping
+            and refreshes the stock of items already here. A class match is only a suggestion until you import it. Pick an item
+            class to fetch and review just that class. Nothing is written to Fusion.
+          </p>
+        </div>
+        <button type="button" class="nx-btn nx-btn--primary" id="impFetch" :disabled="[[ $functions.isBusy($variables) ]]" on-click="[[ $listeners.onFetch ]]">
+          <oj-bind-text value="[[ $functions.fetchLabel($variables.isImporting, $variables.selectedItemClass) ]]"></oj-bind-text></button>
+      </div>
+      <div class="nx-eqm-classpick">
+        <oj-bind-if test="[[ !!$variables.selectedItemClass ]]">
+          <div class="nx-eqm-picked">
+            <span>
+              <strong><oj-bind-text value="[[ $functions.itemClassLabel($variables.itemClassOptionsArray, $variables.selectedItemClass) ]]"></oj-bind-text></strong>
+              <span class="nx-note"><oj-bind-text value="[[ ' Item class ' + $variables.selectedItemClass ]]"></oj-bind-text></span>
+            </span>
+            <button type="button" class="nx-btn nx-btn--plain nx-btn--sm" data-kind="itemClass" data-value="" :disabled="[[ $functions.isBusy($variables) ]]"
+              on-click="[[ $listeners.onFilter ]]">All item classes</button>
+          </div>
+        </oj-bind-if>
+        <oj-bind-if test="[[ !$variables.selectedItemClass ]]">
+          <label class="nx-search">
+            <span class="oj-ux-ico-search" aria-hidden="true"></span>
+            <input type="search" data-kind="itemClassQuery" id="impItemClass" aria-label="Find a Fusion item class"
+              :placeholder="[[ $variables.lovsLoading ? 'Loading Fusion item classes…' : 'Item class (optional): type to find one' ]]"
+              :value="[[ $variables.itemClassQuery ]]" on-input="[[ $listeners.onFilterInput ]]">
+          </label>
+          <oj-bind-if test="[[ !!$variables.itemClassQuery ]]">
+            <div class="nx-chips">
+              <oj-bind-for-each data="[[ $functions.itemClassMatches($variables.itemClassOptionsArray, $variables.itemClassQuery) ]]">
+                <template data-oj-as="ic">
+                  <button type="button" class="nx-chip" data-kind="itemClass" :data-value="[[ ic.data.value ]]"
+                    :disabled="[[ $functions.isBusy($variables) ]]" on-click="[[ $listeners.onFilter ]]">
+                    <oj-bind-text value="[[ ic.data.label ]]"></oj-bind-text><span class="nx-chip-count"><oj-bind-text value="[[ ic.data.value ]]"></oj-bind-text></span>
+                  </button>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </oj-bind-if>
+        </oj-bind-if>
+      </div>
+      <oj-bind-if test="[[ $variables.isImporting || ($variables.isImportingUnits && !$variables.isSyncing) ]]">
+        <div class="nx-eqm-progress" role="progressbar" aria-label="Fetching from Fusion"><span></span></div>
+      </oj-bind-if>
+      <oj-bind-if test="[[ !!$functions.fetchLine($variables.importMessage, $variables.importPhase) ]]">
+        <p :class="[[ 'nx-eqm-msg nx-eqm-msg--' + $variables.importPhase ]]" role="status" id="impMessage">
+          <oj-bind-text value="[[ $functions.fetchLine($variables.importMessage, $variables.importPhase) ]]"></oj-bind-text></p>
+      </oj-bind-if>
+      <oj-bind-if test="[[ !!$variables.importWarning ]]">
+        <div class="nx-error" role="alert"><oj-bind-text value="[[ $variables.importWarning ]]"></oj-bind-text></div>
+      </oj-bind-if>
+    </section>
+
+    <section class="nx-card" aria-labelledby="impReviewTitle">
+      <div class="nx-card-pad nx-eqm-reviewhead">
+        <div class="nx-eqm-stephead">
+          <h2 class="nx-h2" id="impReviewTitle"><span class="nx-eqm-stepnum">2</span>Review, give a class, tick</h2>
+          <div class="nx-actions">
+            <oj-bind-if test="[[ $variables.unmatchedGroups.length > 0 ]]">
+              <button type="button" data-kind="panel" data-value="" on-click="[[ $listeners.onFilter ]]" id="impUnmatched"
+                :class="[[ 'nx-chip' + ($variables.unmatchedOpen ? ' nx-chip--on' : '') ]]" :aria-expanded="[[ $variables.unmatchedOpen ? 'true' : 'false' ]]">
+                <span class="oj-ux-ico-information" aria-hidden="true"></span>What to map next
+                <span class="nx-chip-count"><oj-bind-text value="[[ $variables.unmatchedGroups.length ]]"></oj-bind-text></span></button>
+            </oj-bind-if>
+            <button type="button" class="nx-btn nx-btn--plain nx-btn--sm" title="Read the fetched items again (keeps ticks and edits)"
+              :disabled="[[ $functions.isBusy($variables) || $variables.stagingLoading ]]" on-click="[[ $listeners.onStagingRefresh ]]">
+              <span class="oj-ux-ico-refresh" aria-hidden="true"></span>Read again</button>
+          </div>
+        </div>
+        <label class="nx-search nx-eqm-stgsearch">
+          <span class="oj-ux-ico-search" aria-hidden="true"></span>
+          <input type="search" id="impSearch" data-kind="search" aria-label="Search fetched items" placeholder="Item number, description, category, item class or segment"
+            :value="[[ $variables.stagingSearch ]]" :disabled="[[ $functions.isBusy($variables) ]]" on-input="[[ $listeners.onFilterInput ]]">
+        </label>
+        <div class="nx-chips" role="group" aria-label="Import status">
+          <oj-bind-for-each data="[[ $functions.importStatuses() ]]">
+            <template data-oj-as="st">
+              <button type="button" data-kind="status" :data-value="[[ st.data.value ]]" :title="[[ st.data.hint ]]"
+                :disabled="[[ $functions.isBusy($variables) ]]" on-click="[[ $listeners.onFilter ]]"
+                :class="[[ 'nx-chip' + ($variables.selectedImportStatus === st.data.value ? ' nx-chip--on' : '') ]]"
+                :aria-pressed="[[ $variables.selectedImportStatus === st.data.value ? 'true' : 'false' ]]">
+                <oj-bind-text value="[[ st.data.label ]]"></oj-bind-text></button>
+            </template>
+          </oj-bind-for-each>
+          <oj-bind-if test="[[ $variables.itemTypeOptionsArray.length > 0 ]]">
+            <span class="nx-eqm-sep" aria-hidden="true"></span><span class="nx-note nx-eqm-chiplabel">Item type</span>
+          </oj-bind-if>
+          <oj-bind-for-each data="[[ $variables.itemTypeOptionsArray ]]">
+            <template data-oj-as="it">
+              <button type="button" data-kind="itemType" :data-value="[[ it.data.value ]]"
+                :disabled="[[ $functions.isBusy($variables) ]]" on-click="[[ $listeners.onFilter ]]"
+                :aria-pressed="[[ $variables.selectedItemType === it.data.value ? 'true' : 'false' ]]"
+                :class="[[ 'nx-chip nx-eqm-subchip' + ($variables.selectedItemType === it.data.value ? ' nx-chip--on' : '') ]]">
+                <oj-bind-text value="[[ it.data.label ]]"></oj-bind-text></button>
+            </template>
+          </oj-bind-for-each>
+        </div>
+        <p class="nx-note" role="status" id="impSummary"><oj-bind-text value="[[ $variables.stagingLoading ? 'Reading the fetched items…' : $variables.stagingSummary ]]"></oj-bind-text></p>
+      </div>
+
+      <oj-bind-if test="[[ $variables.unmatchedOpen && $variables.unmatchedGroups.length > 0 ]]">
+        <div class="nx-card-pad nx-eqm-unmatched">
+          <h3 class="nx-eqm-h3">What to map next</h3>
+          <p class="nx-note">
+            <oj-bind-text value="[[ $functions.unmatchedSummary($variables.unmatchedGroups, $variables.unmatchedTotalGroups) + '. Map these in Settings, Equipment classes, Class Mapping (in Old EquipRite); one mapping classifies a whole group. Read again after saving a mapping.' ]]"></oj-bind-text>
+          </p>
+          <ol class="nx-eqm-unmatched-list">
+            <oj-bind-for-each data="[[ $functions.unmatchedVisible($variables.unmatchedGroups, $variables.unmatchedShowAll) ]]">
+              <template data-oj-as="g">
+                <li>
+                  <span class="nx-num nx-eqm-unmatched-n"><oj-bind-text value="[[ g.data.itemCount ]]"></oj-bind-text></span>
+                  <span><oj-bind-text value="[[ $functions.unmatchedText(g.data) + ($functions.unmatchedIsFallback(g.data) ? ' (fallback value)' : '') ]]"></oj-bind-text></span>
+                  <span class="nx-note"><oj-bind-text value="[[ $functions.unmatchedAction(g.data) ]]"></oj-bind-text></span>
+                </li>
+              </template>
+            </oj-bind-for-each>
+          </ol>
+          <oj-bind-if test="[[ $functions.unmatchedHasMore($variables.unmatchedGroups) ]]">
+            <button type="button" class="nx-btn nx-btn--plain nx-btn--sm" data-kind="showAll" data-value="" on-click="[[ $listeners.onFilter ]]">
+              <oj-bind-text value="[[ $variables.unmatchedShowAll ? 'Show fewer' : 'Show all ' + $variables.unmatchedGroups.length ]]"></oj-bind-text></button>
+          </oj-bind-if>
+        </div>
+      </oj-bind-if>
+
+      <oj-bind-if test="[[ $functions.selectedCount($variables.stagingSelectedRows) > 0 ]]">
+        <div class="nx-card-pad nx-eqm-bulk" aria-label="Class for the ticked rows" id="impBulk">
+          <div class="nx-eqm-label"><oj-bind-text value="[[ $functions.bulkLabel($functions.selectedCount($variables.stagingSelectedRows)) ]]"></oj-bind-text></div>
+          <div class="nx-chips">
+            <oj-bind-for-each data="[[ $variables.classOptionsArray ]]">
+              <template data-oj-as="c">
+                <button type="button" data-action="bulkClass" data-index="" :data-value="[[ c.data.value ]]" on-click="[[ $listeners.onEdit ]]"
+                  :class="[[ 'nx-chip' + ($variables.bulk.classId === c.data.value ? ' nx-chip--on' : '') ]]">
+                  <oj-bind-text value="[[ c.data.label ]]"></oj-bind-text></button>
+              </template>
+            </oj-bind-for-each>
+          </div>
+          <oj-bind-if test="[[ $variables.bulk.classId != null && $functions.subclassesOf($variables.bulk.classId, $variables).length > 0 ]]">
+            <div class="nx-chips">
+              <oj-bind-for-each data="[[ $functions.subclassesOf($variables.bulk.classId, $variables) ]]">
+                <template data-oj-as="s">
+                  <button type="button" data-action="bulkSubclass" data-index="" :data-value="[[ s.data.value ]]" on-click="[[ $listeners.onEdit ]]"
+                    :class="[[ 'nx-chip nx-eqm-subchip' + ($variables.bulk.subclassId === s.data.value ? ' nx-chip--on' : '') ]]">
+                    <oj-bind-text value="[[ s.data.label ]]"></oj-bind-text></button>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </oj-bind-if>
+          <div><button type="button" class="nx-btn nx-btn--sm" data-action="applyBulk" data-index="" data-value=""
+            :disabled="[[ $variables.bulk.classId == null ]]" on-click="[[ $listeners.onEdit ]]">Set on the ticked rows</button></div>
+        </div>
+      </oj-bind-if>
+
+      <div class="nx-table">
+        <div class="nx-grid nx-grid--stg" role="table" aria-labelledby="impReviewTitle">
+          <div class="nx-row nx-row--head" role="row">
+            <span role="columnheader" class="nx-eqm-check">
+              <input type="checkbox" data-index="all" aria-label="Tick every row on this page" on-change="[[ $listeners.onTick ]]"
+                :checked="[[ $functions.allOnPageSelected($variables) ]]" :disabled="[[ $functions.isBusy($variables) ]]"></span>
+            <span role="columnheader">Status</span>
+            <span role="columnheader">Item</span>
+            <span role="columnheader">Category · item class</span>
+            <span role="columnheader">Class</span>
+            <span role="columnheader">Subclass</span>
+            <span role="columnheader">Units</span>
+            <span role="columnheader">Why · classified by</span>
+          </div>
+          <oj-bind-for-each data="[[ $variables.stagingArray ]]">
+            <template data-oj-as="row">
+              <div role="row" :class="[[ 'nx-row' + ($functions.isRowSelected(row.index, $variables) ? ' nx-eqm-row--on' : '') ]]" :data-item="[[ row.data.itemNumber ]]">
+                <span role="cell" class="nx-eqm-check">
+                  <input type="checkbox" :data-index="[[ row.index ]]" on-change="[[ $listeners.onTick ]]" :aria-label="[[ 'Tick ' + row.data.itemNumber ]]"
+                    :checked="[[ $functions.isRowSelected(row.index, $variables) ]]"
+                    :disabled="[[ !$functions.canSelect(row.index, $variables) || $functions.isBusy($variables) ]]"></span>
+                <span role="cell"><span :class="[[ 'nx-pill nx-eqm-imp--' + (row.data.importStatus || 'NONE') ]]"><oj-bind-text value="[[ $functions.statusLabel(row.data.importStatus) ]]"></oj-bind-text></span></span>
+                <span role="cell">
+                  <span class="nx-cell-main"><oj-bind-text value="[[ row.data.itemNumber ]]"></oj-bind-text></span>
+                  <span class="nx-cell-sub"><oj-bind-text value="[[ row.data.itemDescription ]]"></oj-bind-text></span>
+                </span>
+                <span role="cell">
+                  <span class="nx-cell-main"><oj-bind-text value="[[ row.data.categoryName || '—' ]]"></oj-bind-text></span>
+                  <span class="nx-cell-sub"><oj-bind-text value="[[ $functions.itemMeta(row.data) ]]"></oj-bind-text></span>
+                </span>
+                <span role="cell">
+                  <button type="button" data-action="open" :data-index="[[ row.index ]]" data-value="" on-click="[[ $listeners.onEdit ]]"
+                    :class="[[ 'nx-eqm-cellbtn' + (row.data.resolvedClassId == null ? ' nx-eqm-cellbtn--empty' : '') ]]"
+                    :disabled="[[ !$functions.canEdit(row.index, 6, $variables) || $functions.isBusy($variables) ]]">
+                    <oj-bind-text value="[[ $functions.displayFor(6, row.data.resolvedClassId, $variables) || 'Choose a class' ]]"></oj-bind-text></button>
+                </span>
+                <span role="cell"><oj-bind-text value="[[ $functions.displayFor(7, row.data.resolvedSubclassId, $variables) || '—' ]]"></oj-bind-text></span>
+                <span role="cell"><oj-bind-text value="[[ $functions.unitPathwayFor(row.data) ]]"></oj-bind-text></span>
+                <span role="cell">
+                  <span class="nx-cell-main nx-eqm-reason"><oj-bind-text value="[[ row.data.rejectReason || '' ]]"></oj-bind-text></span>
+                  <span class="nx-cell-sub"><oj-bind-text value="[[ $functions.sourceLabel(row.data.resolvedSource) ]]"></oj-bind-text></span>
+                </span>
+                <oj-bind-if test="[[ $variables.editKey === ('' + row.data.fusionInventoryItemId) ]]">
+                  <div class="nx-eqm-edit" role="cell">
+                    <div class="nx-eqm-label">Class</div>
+                    <div class="nx-chips">
+                      <oj-bind-for-each data="[[ $variables.classOptionsArray ]]">
+                        <template data-oj-as="c">
+                          <button type="button" data-action="class" :data-index="[[ row.index ]]" :data-value="[[ c.data.value ]]" on-click="[[ $listeners.onEdit ]]"
+                            :class="[[ 'nx-chip' + (row.data.resolvedClassId === c.data.value ? ' nx-chip--on' : '') ]]">
+                            <oj-bind-text value="[[ c.data.label ]]"></oj-bind-text></button>
+                        </template>
+                      </oj-bind-for-each>
+                    </div>
+                    <oj-bind-if test="[[ $functions.subclassChoices(row.index, $variables).length > 0 ]]">
+                      <div class="nx-eqm-label">Subclass</div>
+                      <div class="nx-chips">
+                        <oj-bind-for-each data="[[ $functions.subclassChoices(row.index, $variables) ]]">
+                          <template data-oj-as="s">
+                            <button type="button" data-action="subclass" :data-index="[[ row.index ]]" :data-value="[[ s.data.value ]]" on-click="[[ $listeners.onEdit ]]"
+                              :class="[[ 'nx-chip nx-eqm-subchip' + (row.data.resolvedSubclassId === s.data.value ? ' nx-chip--on' : '') ]]">
+                              <oj-bind-text value="[[ s.data.label ]]"></oj-bind-text></button>
+                          </template>
+                        </oj-bind-for-each>
+                      </div>
+                    </oj-bind-if>
+                    <div class="nx-actions">
+                      <span class="nx-note">A class change clears a subclass that is not under it. Nothing is saved until Import.</span>
+                      <button type="button" class="nx-btn nx-btn--sm" data-action="close" data-index="" data-value="" on-click="[[ $listeners.onEdit ]]">Done</button>
+                    </div>
+                  </div>
+                </oj-bind-if>
+              </div>
+            </template>
+          </oj-bind-for-each>
+          <oj-bind-if test="[[ !$variables.stagingLoading && $variables.stagingArray.length === 0 ]]">
+            <div class="nx-empty">No fetched items here. Fetch from Fusion, or clear the filters.</div>
+          </oj-bind-if>
+        </div>
+      </div>
+
+      <div class="nx-card-pad nx-eqm-impfoot">
+        <div class="nx-actions">
+          <oj-bind-if test="[[ $variables.stagingTotalElements > 0 ]]">
+            <button type="button" class="nx-btn nx-btn--sm" id="impPrev" on-click="[[ $listeners.onPrevPage ]]"
+              :disabled="[[ $variables.stagingPage <= 0 || $variables.stagingLoading || $functions.isBusy($variables) ]]">Previous</button>
+            <span class="nx-note nx-num"><oj-bind-text value="[[ $functions.pageText($variables.stagingPage, $variables.stagingPageSize, $variables.stagingTotalElements, $variables.stagingArray.length) ]]"></oj-bind-text></span>
+            <button type="button" class="nx-btn nx-btn--sm" id="impNext" on-click="[[ $listeners.onNextPage ]]"
+              :disabled="[[ $variables.stagingLoading || $functions.isBusy($variables) || $variables.stagingPage >= $functions.lastPage($variables.stagingPageSize, $variables.stagingTotalElements) ]]">Next</button>
+            <button type="button" class="nx-btn nx-btn--plain nx-btn--sm nx-eqm-danger" id="impClear" on-click="[[ $listeners.onClear ]]"
+              :disabled="[[ $functions.isBusy($variables) || $variables.stagingLoading ]]">
+              <oj-bind-text value="[[ $variables.stagingClearing ? 'Clearing…' : 'Clear fetch' ]]"></oj-bind-text></button>
+          </oj-bind-if>
+        </div>
+        <div class="nx-eqm-go">
+          <span class="nx-note" role="status" id="impPreview">
+            <oj-bind-text value="[[ $functions.importPreview($variables.stagingSelectedRows, $variables.stagingChangedRows, $variables.stagingArray, $variables.classesById).text ]]"></oj-bind-text></span>
+          <button type="button" class="nx-btn nx-btn--primary" id="impImport" on-click="[[ $listeners.onImport ]]"
+            :disabled="[[ $functions.isBusy($variables) || $variables.stagingLoading || $functions.selectedCount($variables.stagingSelectedRows) === 0 ]]">
+            <oj-bind-text value="[[ $functions.importLabel($variables.stagingSaving, $functions.selectedCount($variables.stagingSelectedRows)) ]]"></oj-bind-text></button>
+        </div>
+      </div>
+      <oj-bind-if test="[[ !!$variables.stagingSaveMessage ]]">
+        <p class="nx-card-pad nx-eqm-saved" role="status" id="impSaved"><oj-bind-text value="[[ $variables.stagingSaveMessage ]]"></oj-bind-text></p>
+      </oj-bind-if>
+    </section>
+  </oj-bind-if>
+</div>

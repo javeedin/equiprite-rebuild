@@ -1,0 +1,281 @@
+<!-- An equipment item in its own tab (FDD 7.2.5): what it is, its units at a glance and in full, certificates and documents,
+     Fusion work orders, expenditure types; Change class (FULL). Data: loadRecordChain (New's detailInitChain). -->
+<div class="nx-page nx-record nx-eqi">
+  <oj-bind-if test="[[ $variables.isLoading && !$variables.masterRecord.id ]]">
+    <div class="nx-card nx-empty">Loading the equipment…</div>
+  </oj-bind-if>
+  <oj-bind-if test="[[ !!$variables.loadError ]]">
+    <div class="nx-error" role="alert" id="eqiError"><oj-bind-text value="[[ $variables.loadError ]]"></oj-bind-text>
+      <button type="button" class="nx-link" on-click="[[ $listeners.onOpenList ]]">Open the Equipment master</button></div>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ !!$variables.masterRecord.id && !$variables.loadError ]]">
+    <div class="nx-pagehead">
+      <div>
+        <div class="nx-kicker"><oj-bind-text value="[[ $functions.kicker($variables.controlType) ]]"></oj-bind-text></div>
+        <h1 class="nx-record-title" id="eqiTitle">
+          <oj-bind-text value="[[ $variables.masterRecord.equipmentName || $variables.masterRecord.equipmentNumber ]]"></oj-bind-text>
+          <span :class="[[ $functions.statusPill($variables.masterRecord.catalogStatus) ]]" :title="[[ 'Stored status: ' + ($variables.masterRecord.catalogStatus || 'none') ]]">
+            <oj-bind-text value="[[ $functions.statusLabel($variables.masterRecord.catalogStatus) ]]"></oj-bind-text></span>
+        </h1>
+        <div class="nx-sub" id="eqiSub"><oj-bind-text value="[[ $functions.subline($variables.masterRecord) ]]"></oj-bind-text></div>
+      </div>
+      <div class="nx-actions">
+        <button type="button" class="nx-btn nx-btn--plain" on-click="[[ $listeners.onRefresh ]]" :disabled="[[ $variables.isLoading ]]">
+          <span class="oj-ux-ico-refresh" aria-hidden="true"></span>Refresh</button>
+        <div class="nx-export">
+          <button type="button" class="nx-btn" id="eqiExport" on-click="[[ $listeners.onExportMenu ]]" aria-haspopup="menu"
+            :aria-expanded="[[ $variables.exportOpen ? 'true' : 'false' ]]"><span class="oj-ux-ico-download" aria-hidden="true"></span>Export
+            <span class="oj-ux-ico-chevron-down" aria-hidden="true"></span></button>
+          <oj-bind-if test="[[ $variables.exportOpen ]]">
+            <div class="nx-menu nx-eqi-menu" role="menu" aria-label="Export">
+              <div class="nx-seg nx-eqi-what" role="group" aria-label="Which list">
+                <button type="button" data-what="units" on-click="[[ $listeners.onExportWhat ]]" :aria-pressed="[[ $variables.exportWhat === 'units' ? 'true' : 'false' ]]"
+                  :class="[[ 'nx-seg-btn' + ($variables.exportWhat === 'units' ? ' nx-seg-btn--on' : '') ]]">Units</button>
+                <button type="button" data-what="docs" on-click="[[ $listeners.onExportWhat ]]" :aria-pressed="[[ $variables.exportWhat === 'docs' ? 'true' : 'false' ]]"
+                  :class="[[ 'nx-seg-btn' + ($variables.exportWhat === 'docs' ? ' nx-seg-btn--on' : '') ]]">Documents</button>
+                <button type="button" data-what="wos" on-click="[[ $listeners.onExportWhat ]]" :aria-pressed="[[ $variables.exportWhat === 'wos' ? 'true' : 'false' ]]"
+                  :class="[[ 'nx-seg-btn' + ($variables.exportWhat === 'wos' ? ' nx-seg-btn--on' : '') ]]">Work orders</button>
+              </div>
+              <oj-bind-for-each data="[[ $functions.formats() ]]">
+                <template data-oj-as="f">
+                  <button type="button" role="menuitem" class="nx-menu-item" :data-format="[[ f.data.key ]]" on-click="[[ $listeners.onExport ]]">
+                    <span :class="[[ f.data.icon ]]" aria-hidden="true"></span><oj-bind-text value="[[ f.data.label ]]"></oj-bind-text></button>
+                </template>
+              </oj-bind-for-each>
+              <p class="nx-menu-note"><oj-bind-text value="[[ $functions.exportNote($variables) ]]"></oj-bind-text></p>
+            </div>
+          </oj-bind-if>
+        </div>
+        <oj-bind-if test="[[ $variables.canWrite ]]">
+          <button type="button" class="nx-btn nx-btn--primary" id="eqiChangeClass" on-click="[[ $listeners.onChangeClass ]]" :disabled="[[ $variables.classPanelOpen ]]">
+            <span class="oj-ux-ico-edit" aria-hidden="true"></span>Change class</button>
+        </oj-bind-if>
+      </div>
+    </div>
+
+    <oj-bind-if test="[[ $variables.classPanelOpen ]]">
+      <section class="nx-card nx-card-pad nx-eqi-classpanel" aria-labelledby="eqiClassTitle" id="eqiClassPanel">
+        <div class="nx-eqm-cardhead">
+          <h2 class="nx-h2" id="eqiClassTitle">Change class</h2>
+          <button type="button" class="nx-btn nx-btn--plain nx-btn--sm" data-kind="close" data-value="" on-click="[[ $listeners.onClassPick ]]">Close</button>
+        </div>
+        <p class="nx-note">Items already in the equipment master are re-classified by hand: the Class Mapping rules only run on fetched items.</p>
+        <oj-bind-if test="[[ $variables.classChangeLoading ]]"><p class="nx-muted">Loading the classes…</p></oj-bind-if>
+        <div class="nx-eqm-label">Class</div>
+        <div class="nx-chips" role="group" aria-label="Class">
+          <oj-bind-for-each data="[[ $variables.classOptions ]]">
+            <template data-oj-as="c">
+              <button type="button" data-kind="class" :data-value="[[ c.data.value ]]" on-click="[[ $listeners.onClassPick ]]"
+                :class="[[ 'nx-chip' + ($variables.classDraft.classId === c.data.value ? ' nx-chip--on' : '') ]]"
+                :aria-pressed="[[ $variables.classDraft.classId === c.data.value ? 'true' : 'false' ]]">
+                <oj-bind-text value="[[ c.data.label ]]"></oj-bind-text></button>
+            </template>
+          </oj-bind-for-each>
+        </div>
+        <oj-bind-if test="[[ $variables.subclassOptions.length > 0 ]]">
+          <div class="nx-eqm-label">Subclass <span class="nx-note">this class has subclasses: choose one</span></div>
+          <div class="nx-chips" role="group" aria-label="Subclass">
+            <oj-bind-for-each data="[[ $variables.subclassOptions ]]">
+              <template data-oj-as="s">
+                <button type="button" data-kind="subclass" :data-value="[[ s.data.value ]]" on-click="[[ $listeners.onClassPick ]]"
+                  :class="[[ 'nx-chip nx-eqm-subchip' + ($variables.classDraft.subclassId === s.data.value ? ' nx-chip--on' : '') ]]"
+                  :aria-pressed="[[ $variables.classDraft.subclassId === s.data.value ? 'true' : 'false' ]]">
+                  <oj-bind-text value="[[ s.data.label ]]"></oj-bind-text></button>
+              </template>
+            </oj-bind-for-each>
+          </div>
+        </oj-bind-if>
+        <oj-bind-if test="[[ !!$functions.classChangeText($variables.classDraft, $variables.masterRecord, $variables.classOptions, $variables.subclassOptions) ]]">
+          <p class="nx-eqi-consequence" id="eqiConsequence"><oj-bind-text value="[[ $functions.classChangeText($variables.classDraft, $variables.masterRecord, $variables.classOptions, $variables.subclassOptions) ]]"></oj-bind-text></p>
+        </oj-bind-if>
+        <oj-bind-if test="[[ !!$variables.classChangeError ]]">
+          <div class="nx-error" role="alert" id="eqiClassError"><oj-bind-text value="[[ $variables.classChangeError ]]"></oj-bind-text></div>
+        </oj-bind-if>
+        <div class="nx-actions">
+          <button type="button" class="nx-btn nx-btn--primary" id="eqiSaveClass" on-click="[[ $listeners.onSaveClass ]]"
+            :disabled="[[ $variables.classChangeSaving || $variables.classChangeLoading || !$functions.canSaveClass($variables.classDraft, $variables.masterRecord, $variables.subclassOptions).ok ]]">
+            <oj-bind-text value="[[ $variables.classChangeSaving ? 'Saving…' : 'Save class' ]]"></oj-bind-text></button>
+          <span class="nx-note"><oj-bind-text value="[[ $functions.canSaveClass($variables.classDraft, $variables.masterRecord, $variables.subclassOptions).message ]]"></oj-bind-text></span>
+        </div>
+      </section>
+    </oj-bind-if>
+
+    <div class="nx-kpis nx-eqi-glance" aria-label="At a glance">
+      <div class="nx-kpi nx-eqi-tile nx-eqi-tile--info" id="eqiUnitsTile">
+        <span class="nx-kpi-label"><oj-bind-text value="[[ $functions.unitsGlance($variables.unitsArray, $variables.controlType).label ]]"></oj-bind-text></span>
+        <span class="nx-kpi-value"><oj-bind-text value="[[ $variables.isLoading ? '…' : $functions.unitsGlance($variables.unitsArray, $variables.controlType).value ]]"></oj-bind-text></span>
+        <span class="nx-kpi-note"><oj-bind-text value="[[ $variables.isLoading ? 'Reading the units…' : $functions.unitsGlance($variables.unitsArray, $variables.controlType).note ]]"></oj-bind-text></span>
+      </div>
+      <div class="nx-kpi nx-eqi-tile nx-eqi-tile--ok" id="eqiAvailableTile">
+        <span class="nx-kpi-label">Available now</span>
+        <span class="nx-kpi-value"><oj-bind-text value="[[ $variables.isLoading ? '…' : $functions.availableGlance($variables.unitsArray).value ]]"></oj-bind-text></span>
+        <span class="nx-kpi-note"><oj-bind-text value="[[ $variables.isLoading ? '' : $functions.availableGlance($variables.unitsArray).note ]]"></oj-bind-text></span>
+      </div>
+      <div :class="[[ $functions.lightClass($functions.certLight($variables.attRows).tone) ]]" id="eqiCertTile">
+        <span class="nx-kpi-label">Certificates</span>
+        <span class="nx-eqi-tilevalue"><oj-bind-text value="[[ $variables.attLoading ? 'Reading documents…' : $functions.certText($variables.attRows) ]]"></oj-bind-text></span>
+        <span class="nx-kpi-note"><oj-bind-text value="[[ $variables.attRows.length + ($variables.attRows.length === 1 ? ' document on file' : ' documents on file') ]]"></oj-bind-text></span>
+      </div>
+      <div :class="[[ $functions.lightClass($functions.woLight($variables.workOrders, $variables.woLoaded, $variables.woLoading).tone) ]]" id="eqiWoTile">
+        <span class="nx-kpi-label">Maintenance</span>
+        <span class="nx-eqi-tilevalue"><oj-bind-text value="[[ $functions.woText($variables.workOrders, $variables.woLoaded, $variables.woLoading) ]]"></oj-bind-text></span>
+        <span class="nx-kpi-note"><oj-bind-text value="[[ $functions.assetText($variables.masterRecord, $variables.unitsArray) ]]"></oj-bind-text></span>
+      </div>
+    </div>
+
+    <div class="nx-record-body">
+      <section class="nx-card" aria-labelledby="eqiUnitsTitle">
+        <div class="nx-card-head nx-eqi-unitshead">
+          <div>
+            <h2 id="eqiUnitsTitle"><oj-bind-text value="[[ $functions.unitsTitle($variables.controlType) + ' (' + $variables.unitsArray.length + ')' ]]"></oj-bind-text></h2>
+            <div class="nx-chips nx-eqi-counts">
+              <oj-bind-for-each data="[[ $functions.unitCounts($variables.unitsArray) ]]">
+                <template data-oj-as="u">
+                  <span :class="[[ 'nx-pill nx-eqi-unit--' + u.data.tone ]]"><oj-bind-text value="[[ u.data.count + ' ' + u.data.label.toLowerCase() ]]"></oj-bind-text></span>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </div>
+          <label class="nx-search nx-eqi-unitsearch">
+            <span class="oj-ux-ico-search" aria-hidden="true"></span>
+            <input type="search" id="eqiUnitSearch" aria-label="Search the units" placeholder="Number, status, location or asset"
+              :value="[[ $variables.unitFilter ]]" on-input="[[ $listeners.onUnitFilter ]]">
+          </label>
+        </div>
+        <oj-bind-if test="[[ !$variables.isLoading && $variables.unitsArray.length === 0 ]]">
+          <div class="nx-empty">No units on record for this equipment yet. Sync from Fusion (on the Equipment master) brings in serials, lots and on-hand.</div>
+        </oj-bind-if>
+        <oj-bind-if test="[[ $variables.unitsArray.length > 0 ]]">
+          <div class="nx-table">
+            <div class="nx-grid nx-grid--units" role="table" aria-labelledby="eqiUnitsTitle">
+              <div class="nx-row nx-row--head" role="row">
+                <span role="columnheader">Unit</span><span role="columnheader">Status</span><span role="columnheader">Where</span>
+                <span role="columnheader">Qty</span><span role="columnheader">Maintenance asset</span><span role="columnheader">Dates</span>
+              </div>
+              <oj-bind-for-each data="[[ $functions.filterUnits($variables.unitsArray, $variables.unitFilter) ]]">
+                <template data-oj-as="u">
+                  <div class="nx-row" role="row" :data-unit="[[ $functions.unitId(u.data, $variables.controlType) ]]">
+                    <span role="cell">
+                      <oj-bind-if test="[[ $variables.controlType === 'SERIAL' && !!$functions.oldUnitLink($application.variables.appUrls.old, $variables.equipmentId, u.data.id, $variables.controlType) ]]">
+                        <a class="nx-cell-main nx-eqi-unitlink" title="This unit in Old EquipRite: its project and task, its own documents, its cost"
+                          :href="[[ $functions.oldUnitLink($application.variables.appUrls.old, $variables.equipmentId, u.data.id, $variables.controlType) ]]">
+                          <oj-bind-text value="[[ $functions.unitId(u.data, $variables.controlType) || '—' ]]"></oj-bind-text></a>
+                      </oj-bind-if>
+                      <oj-bind-if test="[[ !($variables.controlType === 'SERIAL' && !!$functions.oldUnitLink($application.variables.appUrls.old, $variables.equipmentId, u.data.id, $variables.controlType)) ]]">
+                        <span class="nx-cell-main"><oj-bind-text value="[[ $functions.unitId(u.data, $variables.controlType) || '—' ]]"></oj-bind-text></span>
+                      </oj-bind-if>
+                      <span class="nx-cell-sub"><oj-bind-text value="[[ u.data.unitTagNumber || '' ]]"></oj-bind-text></span>
+                    </span>
+                    <span role="cell"><span :class="[[ $functions.unitPill($functions.unitStatus(u.data)) ]]" :title="[[ 'Stored status: ' + ($functions.unitStatus(u.data) || 'none') ]]">
+                      <oj-bind-text value="[[ $functions.unitWord($functions.unitStatus(u.data)) ]]"></oj-bind-text></span></span>
+                    <span role="cell" class="nx-eqi-where"><oj-bind-text value="[[ $functions.unitWhere(u.data) || '—' ]]"></oj-bind-text></span>
+                    <span role="cell" class="nx-num"><oj-bind-text value="[[ $functions.unitQty(u.data, $variables.controlType) ]]"></oj-bind-text></span>
+                    <span role="cell" class="nx-ellipsis"><oj-bind-text value="[[ u.data.maintenanceAssetNumber || '—' ]]"></oj-bind-text></span>
+                    <span role="cell" class="nx-cell-sub"><oj-bind-text value="[[ $functions.unitDates(u.data, $variables.controlType) ]]"></oj-bind-text></span>
+                  </div>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </div>
+        </oj-bind-if>
+      </section>
+
+      <aside class="nx-card nx-card-pad nx-facts nx-eqi-facts" aria-label="About this item" id="eqiFacts">
+        <dl>
+          <div><dt>Number</dt><dd><oj-bind-text value="[[ $variables.masterRecord.equipmentNumber || '—' ]]"></oj-bind-text></dd></div>
+          <div><dt>Class</dt><dd><oj-bind-text value="[[ $functions.classText($variables.masterRecord) ]]"></oj-bind-text></dd></div>
+          <div><dt>Tracked by</dt><dd><oj-bind-text value="[[ $functions.controlLabel($variables.controlType) ]]"></oj-bind-text></dd></div>
+          <div><dt>Type</dt><dd :title="[[ $variables.masterRecord.equipmentType || '' ]]"><oj-bind-text value="[[ $functions.typeWords($variables.masterRecord.equipmentType) || '—' ]]"></oj-bind-text></dd></div>
+          <div><dt>Manufacturer and model</dt><dd><oj-bind-text value="[[ $functions.makerModel($variables.masterRecord) || '—' ]]"></oj-bind-text></dd></div>
+          <oj-bind-if test="[[ !!$variables.masterRecord.mfgYear ]]"><div><dt>Model year</dt><dd><oj-bind-text value="[[ $variables.masterRecord.mfgYear ]]"></oj-bind-text></dd></div></oj-bind-if>
+          <div><dt>Capacity</dt><dd><oj-bind-text value="[[ $functions.measure($variables.masterRecord.capacity, $variables.masterRecord.capacityUom) ]]"></oj-bind-text></dd></div>
+          <div><dt>Weight</dt><dd><oj-bind-text value="[[ $functions.measure($variables.masterRecord.weight, $variables.masterRecord.weightUom) ]]"></oj-bind-text></dd></div>
+          <div><dt>Maintenance asset</dt><dd><oj-bind-text value="[[ $variables.masterRecord.maintenanceAssetNumber || '—' ]]"></oj-bind-text></dd></div>
+          <div><dt>Tracked in Fusion</dt><dd><oj-bind-text value="[[ $functions.trackedIn($variables.masterRecord) ]]"></oj-bind-text></dd></div>
+          <oj-bind-if test="[[ $functions.yesNo($variables.masterRecord.surplusFlag) === 'Yes' ]]"><div><dt>Surplus</dt><dd>Yes</dd></div></oj-bind-if>
+          <div><dt>Source</dt><dd><oj-bind-text value="[[ $functions.sourceText($variables.masterRecord) ]]"></oj-bind-text></dd></div>
+          <div><dt>Updated</dt><dd><oj-bind-text value="[[ $functions.formatDate($variables.masterRecord.lastUpdatedDate) || '—' ]]"></oj-bind-text></dd></div>
+          <div><dt>Stored status</dt><dd class="nx-muted"><oj-bind-text value="[[ $variables.masterRecord.catalogStatus || '—' ]]"></oj-bind-text></dd></div>
+        </dl>
+        <oj-bind-if test="[[ !!$variables.masterRecord.equipmentDescription ]]">
+          <p class="nx-eqi-desc"><oj-bind-text value="[[ $variables.masterRecord.equipmentDescription ]]"></oj-bind-text></p>
+        </oj-bind-if>
+      </aside>
+    </div>
+
+    <div class="nx-eqi-cards">
+      <section class="nx-card" aria-labelledby="eqiDocsTitle" id="eqiDocs">
+        <div class="nx-card-head"><h2 id="eqiDocsTitle"><oj-bind-text value="[[ 'Certificates and documents (' + $variables.attRows.length + ')' ]]"></oj-bind-text></h2></div>
+        <div class="nx-card-pad">
+          <oj-bind-if test="[[ $variables.attLoading ]]"><p class="nx-muted">Reading the documents…</p></oj-bind-if>
+          <oj-bind-if test="[[ !!$variables.attLoadError ]]"><div class="nx-error"><oj-bind-text value="[[ $variables.attLoadError ]]"></oj-bind-text></div></oj-bind-if>
+          <oj-bind-if test="[[ !$variables.attLoading && !$variables.attLoadError && $variables.attRows.length === 0 ]]">
+            <p class="nx-muted">No documents on this equipment.</p>
+          </oj-bind-if>
+          <ul class="nx-eqi-list">
+            <oj-bind-for-each data="[[ $variables.attRows ]]">
+              <template data-oj-as="d">
+                <li :data-doc="[[ d.data.id ]]">
+                  <span class="nx-eqi-listmain">
+                    <span class="nx-cell-main"><oj-bind-text value="[[ d.data.name ]]"></oj-bind-text></span>
+                    <span class="nx-cell-sub"><oj-bind-text value="[[ $functions.docLine(d.data) ]]"></oj-bind-text></span>
+                  </span>
+                  <oj-bind-if test="[[ !!$functions.docStatus(d.data).label ]]">
+                    <span :class="[[ 'nx-pill nx-eqi-light--' + $functions.docStatus(d.data).tone ]]"><oj-bind-text value="[[ $functions.docStatus(d.data).label ]]"></oj-bind-text></span>
+                  </oj-bind-if>
+                  <button type="button" class="nx-btn nx-btn--sm" :data-id="[[ d.data.id ]]" on-click="[[ $listeners.onOpenDoc ]]"
+                    :aria-label="[[ 'Open ' + d.data.name ]]">Open</button>
+                </li>
+              </template>
+            </oj-bind-for-each>
+          </ul>
+          <p class="nx-note">Uploading and removing documents, and the equipment photo, are in Old EquipRite.
+            <oj-bind-if test="[[ !!$functions.oldUnitsLink($application.variables.appUrls.old, $variables.equipmentId, $variables.controlType) ]]">
+              <a :href="[[ $functions.oldUnitsLink($application.variables.appUrls.old, $variables.equipmentId, $variables.controlType) ]]" id="eqiOldLink">Open this item in Old EquipRite</a>
+            </oj-bind-if></p>
+        </div>
+      </section>
+
+      <section class="nx-card" aria-labelledby="eqiWoTitle" id="eqiWo">
+        <div class="nx-card-head">
+          <h2 id="eqiWoTitle">Maintenance in Fusion</h2>
+          <button type="button" class="nx-btn nx-btn--sm" id="eqiCheckWo" :disabled="[[ $variables.woLoading ]]" on-click="[[ $listeners.onLoadWorkOrders ]]">
+            <oj-bind-text value="[[ $variables.woLoading ? 'Checking Fusion…' : ($variables.woLoaded ? 'Check again' : 'Check Fusion work orders') ]]"></oj-bind-text></button>
+        </div>
+        <div class="nx-card-pad">
+          <p class="nx-note"><oj-bind-text value="[[ $functions.assetText($variables.masterRecord, $variables.unitsArray) + '. Work orders are read from Fusion, never changed here.' ]]"></oj-bind-text></p>
+          <oj-bind-if test="[[ $variables.woLoaded && $variables.workOrders.length === 0 ]]"><p class="nx-muted">Fusion has no work orders for these assets.</p></oj-bind-if>
+          <ul class="nx-eqi-list">
+            <oj-bind-for-each data="[[ $variables.workOrders ]]">
+              <template data-oj-as="w">
+                <li>
+                  <span class="nx-eqi-listmain">
+                    <span class="nx-cell-main"><oj-bind-text value="[[ w.data.number + (w.data.type ? ' · ' + w.data.type : '') ]]"></oj-bind-text></span>
+                    <span class="nx-cell-sub"><oj-bind-text value="[[ $functions.woLine(w.data) ]]"></oj-bind-text></span>
+                  </span>
+                  <span :class="[[ 'nx-pill ' + (w.data.open ? 'nx-eqi-light--warn' : 'nx-eqi-light--none') ]]"><oj-bind-text value="[[ w.data.status || '—' ]]"></oj-bind-text></span>
+                </li>
+              </template>
+            </oj-bind-for-each>
+          </ul>
+        </div>
+      </section>
+
+      <section class="nx-card" aria-labelledby="eqiExpTitle" id="eqiExp">
+        <div class="nx-card-head"><h2 id="eqiExpTitle">Expenditure types</h2></div>
+        <div class="nx-card-pad">
+          <p><oj-bind-text value="[[ $functions.expTypeText($variables.ExpTypeResolvedLevel, $variables.ExpTypeInherited, $variables.ExpTypeRows.length) ]]"></oj-bind-text></p>
+          <ul class="nx-eqi-tags">
+            <oj-bind-for-each data="[[ $variables.ExpTypeRows ]]">
+              <template data-oj-as="e">
+                <li class="nx-eqi-tag"><oj-bind-text value="[[ e.data.expenditureType + (e.data.isDefault === 'Y' ? ' (default)' : '') ]]"></oj-bind-text></li>
+              </template>
+            </oj-bind-for-each>
+          </ul>
+          <p class="nx-note">Adding, removing and choosing the default type are in Old EquipRite.</p>
+        </div>
+      </section>
+    </div>
+  </oj-bind-if>
+</div>
