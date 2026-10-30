@@ -73,6 +73,8 @@ T.eq('an unknown status reads as words, counted as getting ready', JSON.stringif
 T.eq('every stored status has a stage', ['DRAFT', 'SUBMITTED', 'IN_PROCESS', 'QUOTE_GENERATED', 'QUOTE_ACCEPTED', 'ALLOCATED', 'UNDER_PROCUREMENT', 'SCHEDULED_FOR_PICKING',
   'PICK_INITIATED', 'SHIP_TO_SITE', 'DEPLOYED', 'RETURN_INITIATED', 'RETURN_IN_PROCESS', 'SHIPPED_TO_YARD', 'CLOSED', 'CONSUMED', 'REJECTED', 'CANCELLED']
   .map((c) => P.stageOf(c)).join(' '), 'draft approval ready approval ready ready ready ready ready out onsite back back back done done stopped stopped');
+T.eq('a failed inspection waits on the Equipment Manager (DP-03)', JSON.stringify([P.stageOf('INSPECTION_FAILED'), P.line('INSPECTION_FAILED').label, P.line('INSPECTION_FAILED').who]),
+  '["ready","Failed inspection","Equipment Manager"]');
 T.eq('the bulk view\'s shape works too (status / requestStatus)', sum('IN_PROCESS', [{ status: 'DEPLOYED' }, { requestStatus: 'DEPLOYED' }]).headline, 'On site');
 
 T.report();

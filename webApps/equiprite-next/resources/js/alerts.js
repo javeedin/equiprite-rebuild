@@ -1,4 +1,4 @@
-define(['resources/js/requestProgress'], function (Progress) {
+define(['resources/js/requestProgress', 'resources/js/approvalQueue'], function (Progress, Queue) {
   'use strict';
 
   // The bell: what needs the user, in one list.
@@ -51,11 +51,15 @@ define(['resources/js/requestProgress'], function (Progress) {
           title: plural(p.counts.out, 'piece', 'pieces') + ' on the way to ' + (r.projectName || r.customerName || 'site'),
           text: r.requestNumber + ': accept the delivery when it arrives.', open: open });
       }
-      if (MANAGER[persona]) {
-        if (p.stage === 'approval' || p.counts.approval > 0) waitingApproval += 1;
-        active(lines).forEach(function (l) { if (/^(IN_PROCESS|QUOTE_ACCEPTED|APPROVED)$/.test(up(l.status || l.lineStatus))) toAssign += 1; });
-      }
     });
+    // A manager's approvals and units to assign: Approve & allocate's own queue, so the bell, My work and that
+    // screen always give the same numbers.
+    if (MANAGER[persona]) {
+      Queue.build(rows, linesByRequest, { now: now }).forEach(function (q) {
+        if (q.kind === 'decide') waitingApproval += 1;
+        else toAssign += q.waiting;
+      });
+    }
     if (waitingApproval) {
       out.push({ id: 'approvals:' + waitingApproval, kind: 'action', severity: 2, title: plural(waitingApproval, 'request waits', 'requests wait') + ' for approval',
         text: 'Approve, or send back with a reason.', open: { navId: 'approvals' } });
@@ -67,9 +71,6 @@ define(['resources/js/requestProgress'], function (Progress) {
     return out;
   }
 
-  function active(lines) {
-    return (lines || []).filter(function (l) { return !/^(REJECTED|CANCELLED|DECLINED)$/.test(up(l && (l.status || l.lineStatus))); });
-  }
 
   /** Notifications service rows -> alerts (kind 'info'), newest first. */
   function fromServer(rows) {

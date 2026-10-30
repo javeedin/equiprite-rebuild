@@ -1,4 +1,4 @@
-define(['resources/js/requestList', 'resources/js/alerts', 'resources/js/rules'], function (list, alerts, rules) {
+define(['resources/js/requestList', 'resources/js/alerts', 'resources/js/rules', 'resources/js/approvalQueue'], function (list, alerts, rules, Queue) {
   'use strict';
 
   // My work: what each persona needs to see first, from the requests (and, for those who run the fleet, the units).
@@ -31,16 +31,17 @@ define(['resources/js/requestList', 'resources/js/alerts', 'resources/js/rules']
     var late = active.filter(function (r) { return r.p.late.length; });
     var count = function (fn) { return active.filter(fn).length; };
     var pieces = function (stage) { return active.reduce(function (s, r) { return s + (r.p.counts[stage] || 0); }, 0); };
-    var toAssign = active.reduce(function (s, r) {
-      return s + ((linesByRequest || {})[r.requestNumber] || []).filter(function (l) { return /^(IN_PROCESS|QUOTE_ACCEPTED|APPROVED)$/.test(String(l.lineStatus || '')); }).length;
-    }, 0);
+    // Approvals and units to assign: Approve & allocate's own queue (same numbers there, here and in the bell).
+    var queue = Queue.build(rows, linesByRequest, { now: now });
+    var toDecide = queue.filter(function (q) { return q.kind === 'decide'; }).length;
+    var toAssign = queue.filter(function (q) { return q.kind === 'allocate'; }).reduce(function (s, q) { return s + q.waiting; }, 0);
     var tiles = [];
     var add = function (key, label, value, note, navId, tone) {
       if (navId && !open(navId)) return;
       tiles.push({ key: key, label: label, value: value, note: note || '', navId: navId || '', tone: tone || '' });
     };
     if (persona === 'EQUIP_MGR' || persona === 'EQUIP_ADMIN') {
-      add('approval', 'Waiting for approval', count(function (r) { return r.p.counts.approval > 0; }), 'requests', 'approvals', 'approval');
+      add('approval', 'Waiting for approval', toDecide, 'requests', 'approvals', 'approval');
       add('assign', 'Units to assign', toAssign, 'approved pieces', 'approvals', 'ready');
       add('late', 'Late', late.length, 'requests behind', 'requests', 'stopped');
       if (fleet) {

@@ -30,10 +30,11 @@ const nav = load('nav', { 'resources/js/rules': rules });
 const tabs = load('tabs', { 'resources/js/nav': nav });
 const kit = load('exportKit');
 const Progress = load('requestProgress');
-const alerts = load('alerts', { 'resources/js/requestProgress': Progress });
+const approvalQueue = load('approvalQueue', { 'resources/js/requestProgress': Progress, 'resources/js/fmt': load('fmt'), 'resources/js/rules': rules });
+const alerts = load('alerts', { 'resources/js/requestProgress': Progress, 'resources/js/approvalQueue': approvalQueue });
 const fmt = load('fmt');
 const list = load('requestList', { 'resources/js/requestProgress': Progress, 'resources/js/fmt': fmt, 'resources/js/rules': rules });
-const myWork = load('myWork', { 'resources/js/requestList': list, 'resources/js/alerts': alerts, 'resources/js/rules': rules });
+const myWork = load('myWork', { 'resources/js/requestList': list, 'resources/js/alerts': alerts, 'resources/js/rules': rules, 'resources/js/approvalQueue': approvalQueue });
 
 const ALL = { EQR_DASHBOARD: 'FULL', EQR_EQUIPMENT_REQUESTS: 'FULL', EQR_PROJ_CREATE_REQUEST: 'FULL', EQR_WORKBENCH: 'FULL', EQR_EQUIPMENT_MASTER: 'FULL',
   EQR_EQUIPMENT_SCHEDULE: 'FULL', EQR_INITIATE_PICKING: 'FULL', EQR_EQUIPMENT_RETURNS: 'FULL', EQR_TIMESHEETS: 'FULL', EQR_TIMESHEET_APPROVALS: 'FULL',

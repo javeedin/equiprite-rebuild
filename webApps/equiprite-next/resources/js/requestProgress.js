@@ -43,6 +43,7 @@ define([], function () {
     PICK_INITIATED:          ['ready',    'Being picked at the yard',             'Yard',              'pick and ship it'],
     PICK_RELEASED:           ['ready',    'Being picked at the yard',             'Yard',              'pick and ship it'],
     EQP_INSPECTION_COMPLETE: ['ready',    'Inspected, ready to ship',             'Yard',              'ship it'],
+    INSPECTION_FAILED:       ['ready',    'Failed inspection',                    'Equipment Manager', 'swap the unit, have it repaired or cancel the line'],
     SHIP_TO_SITE:            ['out',      'On the way to site',                   'Site',              'accept the delivery'],
     SHIPPED:                 ['out',      'On the way to site',                   'Site',              'accept the delivery'],
     DELIVERED:               ['onsite',   'On site',                              'Requester',         'return it when the job is done'],
