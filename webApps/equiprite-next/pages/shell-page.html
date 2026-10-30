@@ -48,6 +48,10 @@
     </oj-bind-if>
 
     <div class="nx-top-end">
+      <button type="button" class="nx-iconbtn" id="nxPhone" on-click="[[ $listeners.onPhone ]]" data-action="toggle" aria-controls="nxPhonePanel"
+        :aria-expanded="[[ $variables.phoneOpen ? 'true' : 'false' ]]" aria-label="EquipRite on your phone: QR code" title="EquipRite on your phone (QR code)">
+        <span class="oj-ux-ico-qr-code" aria-hidden="true"></span>
+      </button>
       <oj-bind-if test="[[ $application.functions.canOpen('new-request', $application.variables.pageAccessMap, $application.variables.pageAccessLoaded,
                              $application.variables.featureFlags, $application.variables.flagsLoaded, $application.variables.buRateSources) ]]">
         <button type="button" class="nx-iconbtn nx-cart" id="nxCart" on-click="[[ $listeners.onCart ]]" data-action="toggle" aria-controls="nxCartPanel"
@@ -179,8 +183,62 @@
     </main>
   </div>
 
-  <oj-bind-if test="[[ $variables.bellOpen || $variables.tabMenuOpen || $variables.profileOpen || $variables.cartOpen ]]">
+  <oj-bind-if test="[[ $variables.bellOpen || $variables.tabMenuOpen || $variables.profileOpen || $variables.cartOpen || $variables.phoneOpen ]]">
     <button type="button" class="nx-backdrop" on-click="[[ $listeners.onBackdrop ]]" aria-label="Close" tabindex="-1"></button>
+  </oj-bind-if>
+
+  <!-- EquipRite on your phone: a QR code the phone's camera opens EquipRite Mobile from (phoneChain; resources/js/phoneLink.js). -->
+  <oj-bind-if test="[[ $variables.phoneOpen ]]">
+    <aside class="nx-panel nx-phone-panel" id="nxPhonePanel" role="dialog" aria-labelledby="nxPhoneTitle">
+      <div class="nx-panel-head">
+        <h2 id="nxPhoneTitle">EquipRite on your phone</h2>
+        <button type="button" class="nx-iconbtn nx-iconbtn--sm" data-action="toggle" on-click="[[ $listeners.onPhone ]]" aria-label="Close"><span class="oj-ux-ico-close" aria-hidden="true"></span></button>
+      </div>
+      <div class="nx-phone-body">
+        <oj-bind-if test="[[ $variables.phone.options.length > 1 ]]">
+          <div class="nx-cart-scope nx-phone-ways" role="group" aria-label="How the phone opens it">
+            <oj-bind-for-each data="[[ $variables.phone.options ]]">
+              <template data-oj-as="o">
+                <button type="button" data-action="pick" :data-key="[[ o.data.key ]]" on-click="[[ $listeners.onPhone ]]"
+                  :aria-pressed="[[ o.data.key === $variables.phone.sel ? 'true' : 'false' ]]"
+                  :class="[[ 'nx-cart-scope-btn' + (o.data.key === $variables.phone.sel ? ' nx-cart-scope-btn--on' : '') ]]"><oj-bind-text value="[[ o.data.label ]]"></oj-bind-text></button>
+              </template>
+            </oj-bind-for-each>
+          </div>
+        </oj-bind-if>
+        <oj-bind-if test="[[ $variables.phone.loading ]]">
+          <p class="nx-panel-empty nx-muted">Getting the code…</p>
+        </oj-bind-if>
+        <oj-bind-if test="[[ !!$variables.phone.img ]]">
+          <img class="nx-phone-qr" id="nxPhoneQr" :src="[[ $variables.phone.img ]]" alt="QR code that opens EquipRite Mobile" width="220" height="220">
+          <p class="nx-phone-steps"><b>Scan it with the phone's camera.</b> EquipRite Mobile opens with your tabs (approve, pick, request) and offers to go
+            on the home screen, like an app.</p>
+          <oj-bind-for-each data="[[ $variables.phone.options ]]">
+            <template data-oj-as="o">
+              <oj-bind-if test="[[ o.data.key === $variables.phone.sel ]]">
+                <p class="nx-phone-note nx-muted"><oj-bind-text value="[[ o.data.note ]]"></oj-bind-text></p>
+              </oj-bind-if>
+            </template>
+          </oj-bind-for-each>
+          <div class="nx-phone-addr">
+            <code id="nxPhoneUrl"><oj-bind-text value="[[ $variables.phone.url ]]"></oj-bind-text></code>
+            <button type="button" class="nx-btn nx-btn--sm" data-action="copy" on-click="[[ $listeners.onPhone ]]">
+              <span class="oj-ux-ico-copy" aria-hidden="true"></span><oj-bind-text value="[[ $variables.phone.copied ? 'Copied' : 'Copy' ]]"></oj-bind-text></button>
+          </div>
+        </oj-bind-if>
+        <oj-bind-if test="[[ !$variables.phone.loading && !$variables.phone.img ]]">
+          <p class="nx-phone-empty" id="nxPhoneEmpty"><span class="oj-ux-ico-qr-code" aria-hidden="true"></span>
+            <oj-bind-text value="[[ $variables.phone.note ]]"></oj-bind-text></p>
+        </oj-bind-if>
+        <oj-bind-if test="[[ $variables.phone.desktop ]]">
+          <div class="nx-cart-foot">
+            <button type="button" :class="[[ 'nx-btn nx-btn--sm' + ($variables.phone.img ? '' : ' nx-btn--primary') ]]" id="nxPhoneSetup" data-action="setup"
+              on-click="[[ $listeners.onPhone ]]"><span class="oj-ux-ico-settings" aria-hidden="true"></span>
+              <oj-bind-text value="[[ $variables.phone.img ? 'Change how the phone connects' : 'Set it up' ]]"></oj-bind-text></button>
+          </div>
+        </oj-bind-if>
+      </div>
+    </aside>
   </oj-bind-if>
 
   <!-- Your carts: the requests saved as drafts, to carry on with (cartChain; resources/js/cartDrafts.js). -->

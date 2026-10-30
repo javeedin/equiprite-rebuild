@@ -14,6 +14,7 @@ define([
       $page.variables.tabMenuOpen = false;
       $page.variables.profileOpen = false;
       $page.variables.cartOpen = false;
+      $page.variables.phoneOpen = false;
       if ($page.variables.bellOpen && (!this.constructor.lastAt || Date.now() - this.constructor.lastAt > FRESH_MS)) {
         this.constructor.lastAt = Date.now();
         await Actions.callChain(context, { chain: 'loadAlertsChain' });

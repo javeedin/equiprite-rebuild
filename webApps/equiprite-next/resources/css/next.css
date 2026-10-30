@@ -158,6 +158,21 @@
   position: absolute; top: 3px; right: 2px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; box-sizing: border-box;
   background: var(--nx-band); color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; border: 2px solid #fff;
 }
+/* EquipRite on your phone: the QR code under the toolbar's button */
+.nx-phone-panel { top: calc(var(--nx-top-h) - 4px); right: 12px; width: min(360px, calc(100vw - 24px)); max-height: calc(100vh - var(--nx-top-h) - 12px);
+  display: flex; flex-direction: column; overflow-y: auto; }
+.nx-phone-body { display: flex; flex-direction: column; align-items: stretch; gap: 10px; padding: 12px 16px 14px; }
+.nx-phone-ways { align-self: center; }
+.nx-phone-qr { align-self: center; width: 220px; height: 220px; border: 1px solid var(--nx-line); border-radius: 12px; padding: 6px; background: #fff;
+  image-rendering: pixelated; }
+.nx-phone-steps { margin: 0; font-size: 13px; text-align: center; }
+.nx-phone-note { margin: 0; font-size: 12px; text-align: center; }
+.nx-phone-addr { display: flex; align-items: center; gap: 8px; }
+.nx-phone-addr code { flex: 1; min-width: 0; font-size: 11.5px; color: var(--nx-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nx-phone-empty { display: flex; gap: 10px; align-items: flex-start; margin: 0; padding: 8px 0; color: var(--nx-muted); font-size: 13px; }
+.nx-phone-empty span { font-size: 22px; color: var(--nx-band); flex: none; }
+.nx-phone-body .nx-cart-foot { padding: 0; border: 0; justify-content: center; }
+
 .nx-cart-panel { top: calc(var(--nx-top-h) - 4px); right: 12px; width: min(420px, calc(100vw - 24px)); max-height: min(72vh, 660px); display: flex; flex-direction: column; }
 .nx-cart-scope { display: inline-flex; padding: 2px; gap: 2px; background: var(--nx-surface-2); border: 1px solid var(--nx-line); border-radius: 8px; }
 .nx-cart-scope-btn { border: 0; background: transparent; padding: 3px 9px; border-radius: 6px; font: inherit; font-size: 12px; font-weight: 600; color: var(--nx-muted); cursor: pointer; }

@@ -67,6 +67,25 @@
       "type": "boolean",
       "defaultValue": false
     },
+    "phoneOpen": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "The toolbar's QR code: EquipRite Mobile on your phone."
+    },
+    "phone": {
+      "type": "any",
+      "defaultValue": {
+        "loading": false,
+        "options": [],
+        "sel": "",
+        "url": "",
+        "img": "",
+        "note": "",
+        "copied": false,
+        "desktop": false
+      },
+      "description": "The ways onto a phone (resources/js/phoneLink.js), the one shown, its address and QR code."
+    },
     "profileOpen": {
       "type": "boolean",
       "defaultValue": false,
@@ -324,6 +343,17 @@
             "action": "open",
             "id": "{{ $event.currentTarget.dataset.id }}",
             "number": "{{ $event.currentTarget.dataset.number }}"
+          }
+        }
+      ]
+    },
+    "onPhone": {
+      "chains": [
+        {
+          "chain": "phoneChain",
+          "parameters": {
+            "action": "{{ $event.currentTarget.dataset.action }}",
+            "key": "{{ $event.currentTarget.dataset.key }}"
           }
         }
       ]

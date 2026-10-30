@@ -8,6 +8,7 @@ define(['vb/action/actionChain'], (ActionChain) => {
       v.bellOpen = false;
       v.profileOpen = false;
       v.cartOpen = false;
+      v.phoneOpen = false;
       v.tabMenuOpen = false;
       v.showResults = false;
       v.navOpen = false;

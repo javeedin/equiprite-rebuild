@@ -69,6 +69,16 @@ T.eq('a wrong key: out', phone.pairCheck(t1, q('pair=nope'), '').ok, false);
 T.eq('an old cookie after switching on again: out', phone.pairCheck(phone.newToken(), q(''), 'eqp_pair=' + t1).ok, false);
 T.eq('nothing: out', phone.pairCheck(t1, q(''), '').ok, false);
 
+/** A throwaway build folder with EquipRite Mobile in it. */
+function build2() {
+  const b = fs.mkdtempSync(path.join(os.tmpdir(), 'eqp-phone2-'));
+  fs.mkdirSync(path.join(b, 'processed', 'webApps', 'equiprite-mobile'), { recursive: true });
+  fs.mkdirSync(path.join(b, 'processed', 'services'), { recursive: true });
+  fs.writeFileSync(path.join(b, 'processed', 'webApps', 'equiprite-mobile', 'index.html'), '<html>mobile</html>');
+  fs.writeFileSync(path.join(b, 'processed', 'services', 'catalog.json'), '{"backends":{}}');
+  return b;
+}
+
 function get(host, port, p, headers) {
   return new Promise((resolve) => {
     http.get({ host, port, path: p, headers: headers || {} }, (res) => {
@@ -117,6 +127,18 @@ function get(host, port, p, headers) {
   } finally {
     await srv.close();
     fs.rmSync(build, { recursive: true, force: true });
+  }
+
+  T.section('the phone\'s addresses, for Next\'s toolbar (/__phone)');
+  const srv2 = await DS.createDevServer({
+    buildDir: build2(), repoRoot: ROOT, port: 0, webApp: 'equiprite-mobile', getIdentity: () => ({ username: 'x' }),
+    getPhone: () => ({ vbcs: 'https://h/webApps/equiprite-mobile/?from=qr', lan: '' }),
+  });
+  try {
+    T.eq('this PC gets them', JSON.parse((await get('127.0.0.1', srv2.port, '/__phone')).body).vbcs, 'https://h/webApps/equiprite-mobile/?from=qr');
+    T.eq('not by another name (a page on another site rebinding its name to this PC)', (await get('127.0.0.1', srv2.port, '/__phone', { host: 'evil.example:80' })).status, 404);
+  } finally {
+    await srv2.close();
   }
 
   T.section('the desktop app');

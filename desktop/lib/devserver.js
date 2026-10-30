@@ -233,6 +233,8 @@ function time() {
  *                                        when a Fusion call is refused (401/403) or a backend cannot be reached
  * @param {string}   [o.host]             the address to listen on: 127.0.0.1 (this PC only, the default), or 0.0.0.0
  *                                        for a phone on the same Wi-Fi (lib/phone.js), always with o.pairToken
+ * @param {Function} [o.getPhone]         () => { vbcs, lan }: the addresses a phone opens EquipRite Mobile at (File > EquipRite
+ *                                        on your phone), served at /__phone to this PC only, for Next's toolbar QR code
  * @param {Function} [o.pairToken]        () => the pairing key, or null. Given, a request from another device is
  *                                        served only with the key (the QR code's address, then its cookie), never
  *                                        the web services page; this PC's own requests are unaffected
@@ -394,6 +396,14 @@ function createDevServer(o) {
       }
       if (pathname === '/_currentuser') {
         return send(res, 200, 'application/json', JSON.stringify(currentUser(o.getIdentity())));
+      }
+      if (pathname === '/__phone') {
+        // This PC only, and only by its own name (not a page on another site that renamed itself to this address).
+        const host = String(req.headers.host || '').replace(/:\d+$/, '');
+        if (!isLoopback(req.socket.remoteAddress) || !/^(localhost|127\.0\.0\.1|\[::1\])$/.test(host)) {
+          return send(res, 404, 'text/plain; charset=utf-8', 'Not found');
+        }
+        return send(res, 200, 'application/json', JSON.stringify((o.getPhone && o.getPhone()) || {}));
       }
       if (pathname === '/__versions') {
         return send(res, 200, 'application/json', JSON.stringify((o.getVersions && o.getVersions()) || {}));

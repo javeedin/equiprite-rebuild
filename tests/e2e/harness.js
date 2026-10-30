@@ -57,6 +57,8 @@ function bipReport(rows) {
  * @param {string}   [o.sessionRole] EQUIP_MGR (default), REQUESTOR, ADMIN, CUSTOMER …
  * @param {string}   [o.username]
  * @param {number}   [o.width]      viewport width (default 1440; 390 for mobile)
+ * @param {Object}   [o.desktop]    as inside the desktop app: { phone: what /__phone answers } (window.erpDesktop.openPhone
+ *                                  counts its calls in window.__openedPhone)
  */
 async function start(o) {
   const calls = [];
@@ -106,7 +108,8 @@ async function start(o) {
   const versions = () => ({ old: `http://localhost:${ports.old}/`, new: `http://localhost:${ports.new}/`,
     next: built('equiprite-next') ? `http://localhost:${ports.next}/` : '', mobile: built('equiprite-mobile') ? `http://localhost:${ports.mobile}/` : '' });
   const serverLog = [];
-  const common = { buildDir: path.join(ROOT, 'build'), getIdentity: () => identity, getVersions: versions, backendOverrides: overrides, onLog: (l) => serverLog.push(l) };
+  const common = { buildDir: path.join(ROOT, 'build'), getIdentity: () => identity, getVersions: versions, backendOverrides: overrides, onLog: (l) => serverLog.push(l),
+    getPhone: () => (o.desktop && o.desktop.phone) || {} };
   const servers = [
     await DS.createDevServer(Object.assign({ webApp: 'vbredwoodapp', port: ports.old }, common)),
     await DS.createDevServer(Object.assign({ webApp: 'equiprite', port: ports.new }, common)),
@@ -128,6 +131,11 @@ async function start(o) {
     body: JSON.stringify(/\/styles\/v1\//.test(route.request().url())
       ? { version: 8, name: 'test', sources: {}, layers: [{ id: 'land', type: 'background', paint: { 'background-color': '#e8eef2' } }] }
       : { features: [{ center: [-102.37, 31.85], place_name: '1200 Pipeline Rd, Odessa, Texas 79761, United States' }] }) }));
+  if (o.desktop) {
+    await page.addInitScript(() => {
+      window.erpDesktop = { isDesktop: true, app: 'equiprite', openPhone: () => { window.__openedPhone = (window.__openedPhone || 0) + 1; return Promise.resolve(true); } };
+    });
+  }
   const errors = [];
   page.on('console', (m) => { if ((m.type() === 'error' || m.type() === 'warning') && !QUIET.test(m.text())) errors.push(`${m.type()}: ${m.text()}`.slice(0, 400)); });
   page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`.slice(0, 400)));

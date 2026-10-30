@@ -577,6 +577,22 @@ function openPhoneWindow() {
 
 const fromPhone = (event) => !!phoneWin && !phoneWin.isDestroyed() && event.sender === phoneWin.webContents;
 
+/** The addresses a phone opens EquipRite Mobile at, for Next's toolbar QR code (/__phone, this PC only). */
+function phoneLinks() {
+  const saved = loadPhone();
+  const vbcs = saved.vbcs ? phone.mobileUrlFromVbcs(saved.vbcs) : {};
+  return { vbcs: vbcs.url ? phone.fromQr(vbcs.url) : '', lan: lan.url || '' };
+}
+
+// Next's toolbar QR code, from one of the app's windows: "Set it up" opens the phone window.
+ipcMain.handle('desktop:phone', (event) => {
+  const fromApp = [win, oldWin, mobileWin].some((w) => w && !w.isDestroyed() && event.sender === w.webContents);
+  if (fromApp) {
+    openPhoneWindow();
+  }
+  return fromApp;
+});
+
 ipcMain.handle('phone:state', (event) => (fromPhone(event) ? phoneState() : null));
 ipcMain.handle('phone:vbcs', (event, text) => {
   if (!fromPhone(event)) {
@@ -831,6 +847,7 @@ if (!app.requestSingleInstanceLock()) {
             getIdentity: () => identity,
             getVersions: () => ({ old: urlOf('old'), new: servers.new ? urlOf('new') : '', next: servers.next ? urlOf('next') : '',
               mobile: servers.mobile ? urlOf('mobile') : '' }),
+            getPhone: phoneLinks,
             backendOverrides: backendOverridesFromEnv(process.env),
             onLog: pushLog,
             onProblem: backendProblem,
