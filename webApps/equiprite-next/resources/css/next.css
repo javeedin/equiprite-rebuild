@@ -185,8 +185,13 @@
   .nx-command { flex-basis: 160px; margin-left: 0; }
 }
 @media (max-width: 599px) {
-  .nx-switch-btn { padding: 5px 8px; }
-  .nx-badge { display: none; }
+  .nx-top { gap: 4px; padding: 0 6px; }
+  .nx-switch-btn { padding: 4px 7px; font-size: 12px; }
+  .nx-badge, .nx-avatar { display: none; }
+  .nx-user { margin: 0; padding: 0; }
+  .nx-command { flex: 1 1 0; min-width: 0; padding: 0 8px; }
+  .nx-command input::placeholder { color: transparent; }
+  .nx-iconbtn { width: 34px; }
 }
 
 /* ── Screens: shared parts ─────────────────────────────────────────────────────────────────────────────── */

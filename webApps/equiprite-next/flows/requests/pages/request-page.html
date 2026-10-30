@@ -37,7 +37,11 @@
             </div>
           </oj-bind-if>
         </div>
-        <oj-bind-if test="[[ !!$functions.newUrl($application.variables.appUrls.new, $variables.head) ]]">
+        <oj-bind-if test="[[ $variables.head.status === 'DRAFT' && !$variables.head.external ]]">
+          <button type="button" class="nx-btn nx-btn--primary" id="recFinishDraft" on-click="[[ $listeners.onFinishDraft ]]">
+            <span class="oj-ux-ico-edit-box" aria-hidden="true"></span>Finish this draft</button>
+        </oj-bind-if>
+        <oj-bind-if test="[[ $variables.head.status !== 'DRAFT' && !!$functions.newUrl($application.variables.appUrls.new, $variables.head) ]]">
           <a class="nx-btn" id="recInNew" :href="[[ $functions.newUrl($application.variables.appUrls.new, $variables.head) ]]"
             title="Approve, allocate, accept delivery or start a return there, until Next has those steps">
             <span class="oj-ux-ico-external-link" aria-hidden="true"></span>Act on it in New</a>

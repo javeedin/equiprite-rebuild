@@ -87,6 +87,13 @@
           "chain": "openListChain"
         }
       ]
+    },
+    "onFinishDraft": {
+      "chains": [
+        {
+          "chain": "finishDraftChain"
+        }
+      ]
     }
   },
   "imports": {

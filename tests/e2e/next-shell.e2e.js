@@ -113,6 +113,10 @@ function handle(req, res) {
     await page.waitForTimeout(400);
     T.check('...and slides over when asked', (await page.$eval('.nx-nav', (n) => n.getBoundingClientRect().left)) >= 0);
     T.check('no sideways scroll', await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth));
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.waitForTimeout(300);
+    T.check('phone width: the toolbar fits, nothing sideways', await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth
+      && document.querySelector('.nx-top').scrollWidth <= document.querySelector('.nx-top').clientWidth + 1));
     await page.setViewportSize({ width: 1440, height: 1000 });
     await env.shot('next-shell.png');
 

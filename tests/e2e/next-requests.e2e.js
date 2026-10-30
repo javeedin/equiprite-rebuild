@@ -133,6 +133,7 @@ async function download(page, fmt) {
     T.check('next and late', (await env.text('.nx-journey')).includes('Next: Equipment Manager to assign a unit (2 of 3)') && (await env.text('.nx-journey')).includes('22 days late'));
     T.check('lines in words, the unit when assigned', (await env.text('.nx-grid--lines')).includes('Back at the yard, closed') && (await env.text('.nx-grid--lines')).includes('KD-0018'));
     T.check('facts: contract from the header', (await env.text('.nx-facts')).includes('K-77'));
+    T.check('a request that is not a draft offers no "Finish this draft"', !(await page.$('#recFinishDraft')));
     T.eq('act on it in New (until Next has those steps)', await page.getAttribute('#recInNew', 'href'), env.newUrl + '/vp/shell/request/request-detail?requestId=REQ-1764&requestNumericId=1764');
     await env.shot('next-request-record.png');
     await page.click('.nx-tab-btn[data-id="requests"]');
