@@ -9,7 +9,8 @@ define(['resources/js/rules'], function (rules) {
   //   id          the tab id of the screen, and what the menu and the command bar open
   //   pageCodes   shown when ANY is FULL or READ_ONLY
   //   flags       feature flags that must all be on; hiddenWhenFlags: hidden when any is on
-  //   route       { flow, page } of the Next screen
+  //   route       { flow, page } of the Next screen. Each area has a flow of its own (requests, order, approvals, fleet,
+  //               availability, equipment, yard, checks, usage, commercial, insights, admin, customer)
   //   built       false: the screen is being built for Next; the tab says so and links to New and Old EquipRite
   //   newNav      the same screen's menu id in New EquipRite (for that link)
   //   keywords    extra words the command bar matches
@@ -22,17 +23,17 @@ define(['resources/js/rules'], function (rules) {
       { id: 'requests', label: 'Requests', icon: 'oj-ux-ico-documents', pageCodes: ['EQR_EQUIPMENT_REQUESTS'],
         route: { flow: 'requests', page: 'requests' }, built: true, newNav: 'my-requests', keywords: 'my requests requisitions orders' },
       { id: 'new-request', label: 'New request', icon: 'oj-ux-ico-cart-add', pageCodes: ['EQR_PROJ_CREATE_REQUEST'],
-        route: { flow: 'requests', page: 'new-request' }, built: false, newNav: 'new-request', keywords: 'create order catalog cart' },
+        route: { flow: 'order', page: 'new-request' }, built: false, newNav: 'new-request', keywords: 'create order catalog cart' },
       { id: 'approvals', label: 'Approve & allocate', icon: 'oj-ux-ico-clipboard-check', pageCodes: ['EQR_WORKBENCH'],
-        route: { flow: 'requests', page: 'approvals' }, built: false, newNav: 'workbench', keywords: 'workbench approve allocate assign units' }
+        route: { flow: 'approvals', page: 'approvals' }, built: false, newNav: 'workbench', keywords: 'workbench approve allocate assign units' }
     ] },
     { key: 'fleet', label: 'Equipment', items: [
       { id: 'fleet', label: 'Fleet', icon: 'oj-ux-ico-truck', pageCodes: ['EQR_WORKBENCH', 'EQR_EQUIPMENT_MASTER'],
         route: { flow: 'fleet', page: 'fleet' }, built: true, newNav: 'equipment-workbench', keywords: 'units serials equipment workbench where' },
       { id: 'availability', label: 'Availability', icon: 'oj-ux-ico-calendar', pageCodes: ['EQR_EQUIPMENT_SCHEDULE'],
-        route: { flow: 'fleet', page: 'availability' }, built: false, newNav: 'schedule', keywords: 'schedule gantt calendar booking' },
+        route: { flow: 'availability', page: 'availability' }, built: false, newNav: 'schedule', keywords: 'schedule gantt calendar booking' },
       { id: 'equipment', label: 'Equipment master', icon: 'oj-ux-ico-box-grid', pageCodes: ['EQR_EQUIPMENT_MASTER'],
-        route: { flow: 'fleet', page: 'equipment' }, built: false, newNav: 'equipment', keywords: 'catalog items classes import' }
+        route: { flow: 'equipment', page: 'equipment' }, built: false, newNav: 'equipment', keywords: 'catalog items classes import' }
     ] },
     { key: 'yard', label: 'Yard & logistics', items: [
       { id: 'picking', label: 'Picking & shipping', icon: 'oj-ux-ico-fullfilment-box', pageCodes: ['EQR_INITIATE_PICKING'],
@@ -40,9 +41,9 @@ define(['resources/js/rules'], function (rules) {
       { id: 'returns', label: 'Receiving & returns', icon: 'oj-ux-ico-return-box', pageCodes: ['EQR_EQUIPMENT_RETURNS'],
         route: { flow: 'yard', page: 'returns' }, built: false, newNav: 'receipt', keywords: 'receipt receive return inbound' },
       { id: 'inspection', label: 'Inspections', icon: 'oj-ux-ico-check-square', pageCodes: ['EQR_WORKBENCH'],
-        route: { flow: 'yard', page: 'inspection' }, built: false, newNav: 'inspection', keywords: 'inspect checklist damage' },
+        route: { flow: 'checks', page: 'inspection' }, built: false, newNav: 'inspection', keywords: 'inspect checklist damage' },
       { id: 'transfers', label: 'Transfers', icon: 'oj-ux-ico-inventory-transfer', pageCodes: ['EQR_WORKBENCH'],
-        route: { flow: 'yard', page: 'transfers' }, built: false, newNav: 'transfer', keywords: 'move yard to yard' }
+        route: { flow: 'checks', page: 'transfers' }, built: false, newNav: 'transfer', keywords: 'move yard to yard' }
     ] },
     { key: 'usage', label: 'Usage & billing', flags: ['PROJECTS_MODULE_ENABLED'], items: [
       { id: 'timesheets', label: 'Timesheets', icon: 'oj-ux-ico-clock', pageCodes: ['EQR_TIMESHEETS'], flags: ['TIMESHEETS_ENABLED'],
