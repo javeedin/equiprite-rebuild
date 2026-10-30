@@ -20,6 +20,7 @@ define([
       const actor = cu.auditActor(context);
       const name = actor ? (cu.displayName(context) || actor) : '';
       v.mode = 'build';
+      v.step = 1;
       v.form = order.emptyForm(name, actor || '');
       v.cart = [];
       v.resume = null;

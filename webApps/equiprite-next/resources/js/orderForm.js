@@ -162,6 +162,7 @@ define(['resources/js/requestLineBody', 'resources/js/fmt'], function (lineBody,
       return {
         id: Number(r.eqrEquipmentMasterId),
         name: r.equipmentName || 'Equipment',
+        image: r.equipmentImage || '',
         cls: [r.className, r.subclassName].filter(function (x) { return !!x; }).join(' · '),
         avail: a.key,
         availLabel: a.label,

@@ -130,7 +130,7 @@ T.eq('rates as quoted', ROWS.map((r) => order.rateText(r, false)).join(' | '), '
 T.eq('a cart line\'s rate', [order.rateText(cart[0], false), order.rateText(cart[1], false), order.rateText(cart[2], false)].join(' | '), '$1,400 / day | $25 / unit | $4,800 / week');
 T.eq('a quote pending hides every price', order.rateText(ROWS[0], true), 'Rate on request');
 const view = order.catalogView(ROWS, START, END, false);
-T.eq('a catalog row for the dates', JSON.stringify(view[0]), JSON.stringify({ id: 11, name: 'CAT 320 Excavator', cls: 'Excavators · Crawler', avail: 'ok', availLabel: '3 free',
+T.eq('a catalog row for the dates', JSON.stringify(view[0]), JSON.stringify({ id: 11, name: 'CAT 320 Excavator', image: '', cls: 'Excavators · Crawler', avail: 'ok', availLabel: '3 free',
   rate: '$1,400 / day', est: '$36,400', estNote: '26 days, each', addable: true }));
 T.eq('not free: no estimate, cannot be added', [view[1].est, view[1].addable].join(), ',false');
 T.eq('a consumable: each', view[2].est + ' ' + view[2].estNote, '$25 each');
@@ -151,7 +151,10 @@ T.eq('the agreement banner', order.agreementText({ id: 12, number: 'AGR-12', cus
   'From agreement AGR-12 · Acme · 3 lines in the cart at the agreement\'s rates. Pick the dates and the project for this rental.');
 T.eq('the total in the rail', JSON.stringify(pg.totals(cart, FORM, false)), JSON.stringify({ total: '$87,450', note: '' }));
 T.eq('no total before the dates', JSON.stringify(pg.totals([cart[0]], blank, false)), JSON.stringify({ total: '—', note: 'once the dates are in' }));
-T.eq('the cart count', [pg.cartCount([]), pg.cartCount(cart)].join(' | '), 'Empty | 3 items · 13 pieces');
+T.eq('the cart count', [pg.cartCount([]), pg.cartCount(cart)].join(' | '), '0 items | 3 items · 13 pieces');
+T.eq('the three steps, as New EquipRite\'s', pg.steps(2).map((x) => x.n + ' ' + x.label + ':' + x.state).join(' | '), '1 Equipment:done | 2 Project:current | 3 Review & submit:todo');
+T.eq('a card without a picture shows its class\'s initials; a picture under the app path', [pg.initials('Lifting and Cranes'), pg.imageSrc('img/x.png', '/app/'), pg.imageSrc('https://h/y.png', '/app/'), pg.imageSrc('', '/app/')].join(' | '),
+  'LA | /app/img/x.png | https://h/y.png | ');
 T.eq('the catalog note', [pg.catalogNote(4, 4, 4, FORM), pg.catalogNote(1, 1, 4, blank)].join(' | '),
   '4 items · free and priced for 2 Nov – 27 Nov 2026 · 26 days | 1 of 4 items · pick the dates to see what is free');
 
@@ -374,8 +377,25 @@ const ends = (calls) => calls.filter((x) => x.endpoint).map((x) => x.endpoint.re
     await new (chain('reviewChain', Actions))().run(c, { to: 'review' });
     T.eq('complete: Review, the delivery point found, the catalog asked again', [c.$page.variables.mode, c.$page.variables.form.locationLatitude,
       calls.map((x) => x.chain).join()].join(), 'review,31.85,loadCatalogChain');
+    T.eq('Review is step 3', c.$page.variables.step, 3);
     await new (chain('reviewChain', Actions))().run(c, { to: 'build' });
-    T.eq('back to editing', c.$page.variables.mode, 'build');
+    T.eq('back to editing', c.$page.variables.mode + ' ' + c.$page.variables.step, 'build 2');
+  }
+
+  T.section('the steps (New EquipRite\'s goStepChain)');
+  {
+    const { calls, Actions } = fakeActions();
+    const c = context(Object.assign({}, FORM), []);
+    c.$page.variables.step = 1;
+    await new (chain('goStepChain', Actions))().run(c, { step: '2' });
+    T.eq('no equipment yet: stays on step 1 and says what is missing', c.$page.variables.step + ' ' + c.$page.variables.missing.join(), '1 At least one piece of equipment');
+    c.$page.variables.cart = cart;
+    await new (chain('goStepChain', Actions))().run(c, { step: '2' });
+    T.eq('dates and equipment in: on to the project', c.$page.variables.step + ' ' + c.$page.variables.missing.length, '2 0');
+    await new (chain('goStepChain', Actions))().run(c, { step: '1' });
+    T.eq('back is always allowed', c.$page.variables.step, 1);
+    await new (chain('goStepChain', Actions))().run(c, { step: '3' });
+    T.eq('Review is reviewChain\'s (its checks, the delivery point, the prices)', calls.map((x) => x.chain + JSON.stringify(x.params)).join(), 'reviewChain{"to":"review"}');
   }
 
   T.section('the catalog');

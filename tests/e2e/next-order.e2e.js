@@ -102,11 +102,15 @@ async function shot(env, name) {
   try {
     T.section('opening it: nothing written, browse mode');
     await env.open('/?open=new-request');
-    await page.waitForSelector(vis('.nx-or-catrow[data-id="11"]'), { timeout: 30000 });
+    await page.waitForSelector(vis('.nx-or-card[data-id="11"]'), { timeout: 30000 });
     await page.waitForTimeout(400);
     T.eq('a tab of its own', await page.$eval('.nx-tab--on', (t) => t.dataset.tabId + '=' + t.innerText.trim()), 'new-request=New request');
     T.eq('the title', await env.text(vis('#orTitle')), 'New request');
-    T.check('dates first: the catalog says to pick them', (await env.text(vis('.nx-or-catrow[data-id="11"]'))).includes('Pick dates')
+    T.eq('New EquipRite\'s three steps, on the first', await page.$$eval(vis('.nx-or-stepbtn'), (b) => b.map((x) => x.innerText.replace(/\s+/g, ' ').trim() + ':' + x.className.match(/--(\w+)/)[1]).join(' | ')),
+      '1 Equipment:current | 2 Project:todo | 3 Review & submit:todo');
+    T.eq('project or customer request beside them', await env.text(vis('.nx-or-for')), 'Project request Customer request');
+    T.check('the catalog as cards, a picture box on each', !!(await page.$(vis('.nx-or-card[data-id="11"] .nx-or-pic'))) && (await env.text(vis('.nx-or-card[data-id="11"] .nx-or-add'))) === 'Add to cart');
+    T.check('dates first: the catalog says to pick them', (await env.text(vis('.nx-or-card[data-id="11"]'))).includes('Pick dates')
       && (await env.text(vis('#orCatNote'))).includes('pick the dates to see what is free'));
     T.eq('"free only" waits for the dates', await page.$eval(vis('#orFreeOnly'), (b) => b.disabled), true);
     T.check('an empty cart says how to start', (await env.text(vis('#orRail'))).includes('Add equipment from the catalog') && !(await page.$(vis('#orNeed'))));
@@ -118,42 +122,48 @@ async function shot(env, name) {
     await page.waitForTimeout(700);
     T.eq('a quick length sets the end date', await page.$eval(vis('#orEnd'), (i) => i.value), '2026-11-15');
     await setDate(page, '#orEnd', '2026-11-27');
-    const row = async (id) => env.text(vis(`.nx-or-catrow[data-id="${id}"]`));
+    const row = async (id) => env.text(vis(`.nx-or-card[data-id="${id}"]`));
     T.check('free, the rate as quoted, one unit for the dates', /3 free.*\$1,400 \/ day.*\$36,400.*26 days, each/.test(await row(11)), await row(11));
     T.check('weekly price read as a week', (await row(41)).includes('$5,700 / week') && (await row(41)).includes('Some dates only'));
     T.check('a consumable is per unit', (await row(21)).includes('$25 / unit') && (await row(21)).includes('Only 40 free'));
-    T.check('not free: says so and cannot be added', (await row(12)).includes('Not free') && await page.$eval(vis('.nx-or-catrow[data-id="12"] .nx-or-add'), (b) => b.disabled));
+    T.check('not free: says so and cannot be added', (await row(12)).includes('Not free') && await page.$eval(vis('.nx-or-card[data-id="12"] .nx-or-add'), (b) => b.disabled));
     T.check('the catalog was asked for the dates', env.calls.some((c) => c.includes('equipment-catalog') && c.includes('startDate=2026-11-02') && c.includes('endDate=2026-11-27') && c.includes('requestedQty=1')));
     T.check('the window under the dates', (await env.text(vis('#orWindow'))).includes('2 Nov – 27 Nov 2026 · 26 days'));
 
     T.section('the catalog: free only, class, search');
     await page.check(vis('#orFreeOnly'));
     await page.waitForTimeout(300);
-    T.eq('free on these dates only', await page.$$eval(vis('.nx-or-catrow[data-id]'), (r) => r.map((x) => x.dataset.id).join()), '11,21,41');
+    T.eq('free on these dates only', await page.$$eval(vis('.nx-or-card[data-id]'), (r) => r.map((x) => x.dataset.id).join()), '11,21,41');
     await page.uncheck(vis('#orFreeOnly'));
-    await page.click(vis('.nx-chip[data-cls="Excavators"]'));
+    await page.click(vis('.nx-or-class[data-cls="Excavators"]'));
     await page.waitForTimeout(300);
-    T.eq('a class', await page.$$eval(vis('.nx-or-catrow[data-id]'), (r) => r.map((x) => x.dataset.id).join()), '11,12');
-    await page.click(vis('.nx-chip[data-cls="all"]'));
+    T.eq('a class', await page.$$eval(vis('.nx-or-card[data-id]'), (r) => r.map((x) => x.dataset.id).join()), '11,12');
+    await page.click(vis('.nx-or-class[data-cls="all"]'));
     await page.fill(vis('#orCatSearch'), 'loader');
     await page.waitForTimeout(300);
-    T.eq('search', await page.$$eval(vis('.nx-or-catrow[data-id]'), (r) => r.map((x) => x.dataset.id).join()), '41');
+    T.eq('search', await page.$$eval(vis('.nx-or-card[data-id]'), (r) => r.map((x) => x.dataset.id).join()), '41');
     await page.fill(vis('#orCatSearch'), '');
     await page.waitForTimeout(300);
 
     T.section('the cart prices itself');
-    await page.click(vis('.nx-or-catrow[data-id="11"] button[data-action="add"]'));
-    await page.click(vis('.nx-or-catrow[data-id="11"] button[data-action="inc"]'));
-    await page.click(vis('.nx-or-catrow[data-id="21"] button[data-action="add"]'));
+    await page.click(vis('.nx-or-card[data-id="11"] button[data-action="add"]'));
+    await page.click(vis('.nx-or-card[data-id="11"] button[data-action="inc"]'));
+    await page.click(vis('.nx-or-card[data-id="21"] button[data-action="add"]'));
     await page.waitForTimeout(300);
-    T.eq('the stepper on the row', await env.text(vis('.nx-or-catrow[data-id="11"] .nx-or-stepper')), '− 2 +');
+    T.eq('the stepper on the card', (await env.text(vis('.nx-or-card[data-id="11"] .nx-or-stepper'))).replace(/\s+/g, ' '), '− 2 in cart +');
+    T.eq('the cart rail, as New\'s', await env.text(vis('#orCartT')), 'Cart · 2 items · 3 pieces');
     T.eq('the total: 2 × $1,400 × 26 days + $25', await env.text(vis('#orTotal strong')), '$72,825');
     T.eq('the rail says what is still needed', await env.text(vis('#orNeed')), 'Still needed: Project, Task, Customer and Delivery location.');
-    await page.click(vis('#orReview'));
+    await shot(env, 'next-order-build.png');
+    T.eq('step 1 goes on to the project', await env.text(vis('#orContinue')), 'Continue to project');
+    await page.click(vis('#orContinue'));
+    await page.waitForSelector(vis('#orProject'));
+    T.eq('step 2: the project', await page.$eval(vis('.nx-or-stepbtn--current'), (b) => b.dataset.step), '2');
+    T.eq('step 1 is marked done', await page.$eval(vis('.nx-or-stepbtn[data-step="1"]'), (b) => b.className.includes('--done')), true);
+    await page.click(vis('#orContinue'));
     await page.waitForTimeout(300);
     T.eq('Review stops and says what is missing', await env.text(vis('#orMissing')), 'Still needed: Project, Task, Customer and Delivery location.');
-    T.check('still editing', !!(await page.$(vis('#orCatalog'))));
-    await shot(env, 'next-order-build.png');
+    T.check('still on the project step', !!(await page.$(vis('#orFor'))));
 
     T.section('project, task, customer, contract site');
     await page.fill(vis('input[data-kind="project"]'), 'pipe');
@@ -173,18 +183,20 @@ async function shot(env, name) {
     await page.click(vis('button[data-field="siteAddress"]'));
     await page.waitForTimeout(300);
     T.check('nothing more is needed', !(await page.$(vis('#orNeed'))));
+    await page.fill(vis('#orNotes textarea'), 'Call the site lead before delivery');
+    await page.press(vis('#orNotes textarea'), 'Tab');
+    await page.fill(vis('#orHours'), '8');
+    await page.dispatchEvent(vis('#orHours'), 'change');
+    await shot(env, 'next-order-project.png');
 
     T.section('Review: the nearest yard\'s and the project\'s prices, then what Submit does');
-    await page.click(vis('#orReview'));
+    await page.click(vis('#orContinue'));
     await page.waitForSelector(vis('#orFacts'));
     await page.waitForTimeout(800);
     T.check('asked again with the project and the delivery point', env.calls.some((c) => c.includes('equipment-catalog') && c.includes('projectRefId=300000123') && c.includes('latitude=31.85')));
     const facts = await env.text(vis('#orFacts'));
     T.check('the facts', ['PRJ-2026-001 Pipeline North · EPC_US_BU', '2.1 Trenching', 'Acme Utilities', 'K-77', SITE + ' (contract site)', 'priya.raman'].every((x) => facts.includes(x)), facts);
-    await page.fill(vis('#orNotes textarea'), 'Call the site lead before delivery');
-    await page.press(vis('#orNotes textarea'), 'Tab');
-    await page.fill(vis('#orHours'), '8');
-    await page.dispatchEvent(vis('#orHours'), 'change');
+    T.check('the notes are on Review', (await env.text(vis('#orCheck'))).includes('Call the site lead before delivery'));
     await page.fill(vis('.nx-or-rline[data-id="21"] input[type="number"]'), '10');
     await page.dispatchEvent(vis('.nx-or-rline[data-id="21"] input[type="number"]'), 'change');
     await page.waitForTimeout(300);
@@ -234,8 +246,10 @@ async function shot(env, name) {
     await page.waitForTimeout(800);
     T.eq('the tab is named after the draft', await page.$eval('.nx-tab--on', (t) => t.dataset.tabId + '=' + t.innerText.trim()), 'draft:888=Draft EQR-000888');
     T.eq('the title', await env.text(vis('#orTitle')), 'Draft EQR-000888');
-    T.check('its dates, project, task and customer are back', (await page.$eval(vis('#orStart'), (i) => i.value)) === '2026-12-01'
-      && (await env.text(vis('#orProject'))).includes('Pipeline North') && (await env.text(vis('#orTask'))).includes('2.1 Trenching')
+    T.eq('its dates are back', await page.$eval(vis('#orStart'), (i) => i.value), '2026-12-01');
+    await page.click(vis('.nx-or-stepbtn[data-step="2"]'));
+    await page.waitForSelector(vis('#orProject'));
+    T.check('its project, task and customer are back', (await env.text(vis('#orProject'))).includes('Pipeline North') && (await env.text(vis('#orTask'))).includes('2.1 Trenching')
       && (await env.text(vis('#orCustomerField'))).includes('Acme Utilities'));
     T.check('priced from today\'s catalog; a line no longer there is reported', (await env.text(vis('#orRail'))).includes('Wheel Loader 950')
       && (await env.text(vis('#orPriceNote'))).includes('1 line of the draft is no longer in the catalog'));
@@ -248,11 +262,11 @@ async function shot(env, name) {
     T.check('lines stay DRAFT', env.writes[1].body.lines.every((l) => l.lineStatus === 'DRAFT'));
     T.check('it says it is saved and nothing was sent', (await env.text(vis('#orSent'))).includes('Draft EQR-000888 is saved'));
     await shot(env, 'next-order-draft.png');
+    T.eq('the draft\'s notes show in the notes box', await page.$eval(vis('#orNotes textarea'), (t) => t.value), 'Gate code 4417');
     env.writes.length = 0;
-    await page.click(vis('#orReview'));
+    await page.click(vis('#orContinue'));
     await page.waitForSelector(vis('#orSubmit'));
     await page.waitForTimeout(800);
-    T.eq('the draft\'s notes show in the notes box', await page.$eval(vis('#orNotes textarea'), (t) => t.value), 'Gate code 4417');
     T.check('Submit names the draft', (await env.text(vis('#orRail'))).includes('Draft EQR-000888 with 1 line goes to the project\'s approver'));
     await page.click(vis('#orSubmit'));
     await page.waitForFunction(() => { const t = document.querySelector('.nx-tab--on'); return t && t.dataset.tabId === 'request:888'; }, null, { timeout: 20000 });
@@ -284,6 +298,10 @@ async function shot(env, name) {
     await page.waitForTimeout(600);
     T.check('the banner', (await env.text(vis('#orAgreement'))).includes('From agreement AGR-12 · Acme Utilities · 1 line in the cart at the agreement\'s rates'));
     T.check('the cart, at the agreement rate', (await env.text(vis('#orRail'))).includes('Wheel Loader 950') && (await env.text(vis('#orRail'))).includes('agreement rate'));
+    await setDate(page, '#orStart', '2026-12-07');
+    await setDate(page, '#orEnd', '2026-12-18');
+    await page.click(vis('.nx-or-stepbtn[data-step="2"]'));
+    await page.waitForSelector(vis('#orCustomerField'));
     T.check('the customer is filled in', (await env.text(vis('#orCustomerField'))).includes('Acme Utilities'));
     T.check('the catalog is asked with the agreement', env.calls.some((c) => c.includes('equipment-catalog') && c.includes('agreementId=12')));
     T.eq('the hand-over is used once', await page.evaluate(() => [sessionStorage.getItem('eqr.agreement.active'), localStorage.getItem('eqr.draft.fromAgreementId')].join()), ',');

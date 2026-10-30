@@ -27,10 +27,15 @@
       "input": "fromCaller",
       "description": "'review' (or 3) opens a reopened draft on Review."
     },
+    "step": {
+      "type": "number",
+      "defaultValue": 1,
+      "description": "1 Equipment | 2 Project | 3 Review and submit (New EquipRite's steps); goStepChain moves between them."
+    },
     "mode": {
       "type": "string",
       "defaultValue": "build",
-      "description": "build | review"
+      "description": "build | review: review is step 3 (kept for reviewChain)."
     },
     "form": {
       "type": "any",
@@ -361,26 +366,6 @@
         }
       ]
     },
-    "onReview": {
-      "chains": [
-        {
-          "chain": "reviewChain",
-          "parameters": {
-            "to": "review"
-          }
-        }
-      ]
-    },
-    "onEdit": {
-      "chains": [
-        {
-          "chain": "reviewChain",
-          "parameters": {
-            "to": "build"
-          }
-        }
-      ]
-    },
     "onSubmit": {
       "chains": [
         {
@@ -415,6 +400,16 @@
           "parameters": {
             "id": "{{ $event.currentTarget.dataset.id }}",
             "number": "{{ $event.currentTarget.dataset.number }}"
+          }
+        }
+      ]
+    },
+    "onStep": {
+      "chains": [
+        {
+          "chain": "goStepChain",
+          "parameters": {
+            "step": "{{ $event.currentTarget.dataset.step }}"
           }
         }
       ]
