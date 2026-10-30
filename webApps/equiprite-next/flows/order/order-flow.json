@@ -1,0 +1,10 @@
+{
+  "id": "order",
+  "description": "New request: dates, the catalog with availability for them, a cart that prices itself, project and delivery, review, then Submit for approval or Save draft. A saved draft reopens here in a tab of its own.",
+  "defaultPage": "new-request",
+  "navigation": { "embeddable": "enabled" },
+  "pages": {
+    "new-request": { "path": "pages/new-request-page" }
+  },
+  "chains": {}, "services": {}, "types": {}, "variables": {}
+}

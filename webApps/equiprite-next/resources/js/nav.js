@@ -23,7 +23,7 @@ define(['resources/js/rules'], function (rules) {
       { id: 'requests', label: 'Requests', icon: 'oj-ux-ico-documents', pageCodes: ['EQR_EQUIPMENT_REQUESTS'],
         route: { flow: 'requests', page: 'requests' }, built: true, newNav: 'my-requests', keywords: 'my requests requisitions orders' },
       { id: 'new-request', label: 'New request', icon: 'oj-ux-ico-cart-add', pageCodes: ['EQR_PROJ_CREATE_REQUEST'],
-        route: { flow: 'order', page: 'new-request' }, built: false, newNav: 'new-request', keywords: 'create order catalog cart' },
+        route: { flow: 'order', page: 'new-request' }, built: true, newNav: 'new-request', keywords: 'create order catalog cart' },
       { id: 'approvals', label: 'Approve & allocate', icon: 'oj-ux-ico-clipboard-check', pageCodes: ['EQR_WORKBENCH'],
         route: { flow: 'approvals', page: 'approvals' }, built: false, newNav: 'workbench', keywords: 'workbench approve allocate assign units' }
     ] },
@@ -106,7 +106,10 @@ define(['resources/js/rules'], function (rules) {
     request: { flow: 'requests', page: 'request', icon: 'oj-ux-ico-file-text', navId: 'requests',
       title: function (p) { return (p && (p.number || p.id)) || 'Request'; } },
     unit: { flow: 'fleet', page: 'unit', icon: 'oj-ux-ico-truck', navId: 'fleet',
-      title: function (p) { return (p && (p.unit || p.id)) || 'Unit'; } }
+      title: function (p) { return (p && (p.unit || p.id)) || 'Unit'; } },
+    // A saved project draft, reopened in New request to finish it: { id: request id, number }.
+    draft: { flow: 'order', page: 'new-request', icon: 'oj-ux-ico-cart-add', navId: 'new-request',
+      title: function (p) { return 'Draft ' + ((p && (p.number || p.id)) || ''); } }
   };
 
   /** The page the tab of a menu item shows: its own screen, or the "being built" page for one not built yet. */
