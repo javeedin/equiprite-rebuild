@@ -1,0 +1,59 @@
+define([
+  'vb/action/actionChain',
+  'vb/action/actions',
+  'resources/js/deliveryCoords',
+  'resources/js/orderForm',
+], (ActionChain, Actions, deliveryCoords, order) => {
+  'use strict';
+
+  // Review and submit (step 3), or back to editing (step 2). Next's reviewChain (New EquipRite's goStepChain): Review
+  // checks what the request needs first (the dates, equipment, project, task, customer and delivery location) and
+  // lists what is missing instead of moving, on the first step that still needs something.
+  //
+  // Arriving at Review resolves the delivery point (deliveryCoords, as NavigateToCatalogChain does before the old
+  // catalog) and asks the catalog again with the project and that point, so every line shows the price this project
+  // and the nearest yard give before anything is submitted.
+  class reviewChain extends ActionChain {
+    async run(context, { to }) {
+      const { $page } = context;
+      const fns = $page.functions || {};
+      if (to !== 'review') {
+        $page.variables.missing = [];
+        $page.variables.mode = 'build';
+        if ($page.variables.step === 3) $page.variables.step = 2;
+        return;
+      }
+      const missing = order.missingFor('review', $page.variables.form, $page.variables.cart);
+      if (missing.length) {
+        $page.variables.missing = missing;
+        $page.variables.mode = 'build';
+        // Stay on (or go back to) the first step that still needs something.
+        $page.variables.step = order.missingFor(1, $page.variables.form, $page.variables.cart).length ? 1 : 2;
+        if (fns.toTop) fns.toTop('#rqMissing');
+        await Actions.callChain(context, { chain: 'keepChain' });
+        return;
+      }
+      $page.variables.missing = [];
+      $page.variables.saveError = '';
+      $page.variables.mode = 'review';
+      $page.variables.step = 3;
+      if (fns.toTop) fns.toTop('');
+
+      const form = $page.variables.form || {};
+      let coords = { latitude: null, longitude: null };
+      try {
+        // A point pinned on the map is used as it is; typed words are looked up (New EquipRite's rule).
+        coords = await deliveryCoords.resolve(form.locationPinned ? form.locationLatitude : null, form.locationPinned ? form.locationLongitude : null,
+          form.location);
+      } catch (e) {
+        console.warn('[reviewChain] delivery point not resolved', e);
+      }
+      $page.variables.form = Object.assign({}, $page.variables.form,
+        { locationLatitude: coords.latitude, locationLongitude: coords.longitude });
+      await Actions.callChain(context, { chain: 'keepChain' });
+      await Actions.callChain(context, { chain: 'loadCatalogChain' });
+    }
+  }
+
+  return reviewChain;
+});
