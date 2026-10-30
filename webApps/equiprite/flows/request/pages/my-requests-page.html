@@ -76,13 +76,12 @@
   <!-- ── Requests: a card per request, its equipment on the card ───────────────────────────────────── -->
   <oj-bind-if test="[[ !$variables.isLoading && $variables.view === 'requests' ]]">
     <oj-bind-if test="[[ !$variables.filteredRows.length && !$variables.fetchError ]]">
-      <div class="er-card er-card-pad er-muted">No requests match. Try another status or clear the search.</div>
+      <div class="er-card er-card-pad er-muted">No requests match. Try another stage or clear the search.</div>
     </oj-bind-if>
     <ul class="er-mr-list" aria-label="Requests">
       <oj-bind-for-each data="[[ $variables.filteredRows.slice(0, $variables.limit) ]]">
         <template data-oj-as="r">
-          <li :class="[[ 'er-mr-card er-mr-card--' + $functions.lineState(r.data.status || r.data.requestStatus) ]]"
-            :data-number="[[ r.data.requestNumber ]]">
+          <li :class="[[ 'er-mr-card er-stage--' + r.data.progress.tone ]]" :data-number="[[ r.data.requestNumber ]]">
             <div class="er-mr-head">
               <div class="er-mr-id">
                 <button type="button" class="er-mr-number" :data-id="[[ r.data.eqrEquipmentRequestId ]]" :data-number="[[ r.data.requestNumber ]]"
@@ -93,11 +92,11 @@
                     <oj-bind-text value="[[ $application.functions.sourceLabel(r.data.requestOrigin) === 'EXTERNAL' ? 'Customer' : 'Project' ]]"></oj-bind-text>
                   </span>
                 </oj-bind-if>
-                <oj-bind-if test="[[ !!(r.data.status || r.data.requestStatus) ]]">
-                  <span :class="[[ $application.functions.statusPillClass(r.data.status || r.data.requestStatus) ]]">
-                    <oj-bind-text value="[[ $application.functions.formatLineStatus(r.data.status || r.data.requestStatus) ]]"></oj-bind-text>
-                  </span>
-                </oj-bind-if>
+                <!-- Where the request is, from its equipment; the stored request status is in the tooltip. -->
+                <span :class="[[ 'er-stagepill er-stage--' + r.data.progress.tone ]]"
+                  :title="[[ 'Request status: ' + $application.functions.formatLineStatus(r.data.status || r.data.requestStatus) ]]">
+                  <oj-bind-text value="[[ r.data.progress.headline ]]"></oj-bind-text>
+                </span>
               </div>
               <div class="er-mr-when">
                 <span class="er-mr-dates"><oj-bind-text value="[[ $functions.dateRange(r.data.startDate, r.data.endDate) ]]"></oj-bind-text></span>
@@ -121,13 +120,38 @@
               <span class="er-note er-mr-requestor"><oj-bind-text value="[[ 'Requested by ' + (r.data.requestorName || r.data.contactName || '—') ]]"></oj-bind-text></span>
             </div>
 
+            <div class="er-mr-journey">
+              <oj-bind-if test="[[ ($variables.linesByRequest[r.data.requestNumber] || []).length > 0 ]]">
+                <span class="er-jbar" role="img" :aria-label="[[ r.data.progress.detail || r.data.progress.headline ]]">
+                  <oj-bind-for-each data="[[ $variables.linesByRequest[r.data.requestNumber] ]]">
+                    <template data-oj-as="seg">
+                      <span :class="[[ 'er-jbar-seg er-stage--' + $functions.lineStage(seg.data.status || r.data.status || r.data.requestStatus, r.data.requestOrigin) ]]"
+                        :title="[[ seg.data.name + ': ' + $functions.lineLabel(seg.data.status || r.data.status || r.data.requestStatus, r.data.requestOrigin) ]]"></span>
+                    </template>
+                  </oj-bind-for-each>
+                </span>
+              </oj-bind-if>
+              <oj-bind-if test="[[ !!r.data.progress.detail ]]">
+                <span class="er-note er-mr-detail"><oj-bind-text value="[[ r.data.progress.detail ]]"></oj-bind-text></span>
+              </oj-bind-if>
+              <oj-bind-if test="[[ !!r.data.progress.next ]]">
+                <span class="er-mr-next"><strong>Next:</strong> <oj-bind-text value="[[ r.data.progress.next ? r.data.progress.next.text : '' ]]"></oj-bind-text></span>
+              </oj-bind-if>
+              <oj-bind-for-each data="[[ r.data.progress.late ]]">
+                <template data-oj-as="lt">
+                  <span class="er-mr-late"><span class="oj-ux-ico-warning" aria-hidden="true"></span>
+                    <oj-bind-text value="[[ lt.data.text ]]"></oj-bind-text></span>
+                </template>
+              </oj-bind-for-each>
+            </div>
+
             <div class="er-mr-equip">
               <div class="er-mr-chips" aria-label="Equipment on this request">
                 <oj-bind-if test="[[ ($variables.linesByRequest[r.data.requestNumber] || []).length ]]">
                   <oj-bind-for-each data="[[ $functions.chips($variables.linesByRequest[r.data.requestNumber], 4).shown ]]">
                     <template data-oj-as="l">
-                      <span :class="[[ 'er-eqchip er-eqchip--' + $functions.lineState(l.data.status || r.data.status || r.data.requestStatus) ]]"
-                        :title="[[ l.data.name + (l.data.status ? ' · ' + $application.functions.formatLineStatus(l.data.status) : '') ]]">
+                      <span :class="[[ 'er-eqchip er-stage--' + $functions.lineStage(l.data.status || r.data.status || r.data.requestStatus, r.data.requestOrigin) ]]"
+                        :title="[[ l.data.name + ': ' + $functions.lineLabel(l.data.status || r.data.status || r.data.requestStatus, r.data.requestOrigin) ]]">
                         <span class="er-eqchip-dot" aria-hidden="true"></span>
                         <span class="er-eqchip-name"><oj-bind-text value="[[ l.data.name ]]"></oj-bind-text></span>
                         <span class="er-eqchip-qty"><oj-bind-text value="[[ '×' + l.data.qty ]]"></oj-bind-text></span>
@@ -174,11 +198,12 @@
                             <span role="cell"><span class="er-cell-main"><oj-bind-text value="[[ ln.data.name ]]"></oj-bind-text></span>
                               <span class="er-note"><oj-bind-text value="[[ ln.data.cls ]]"></oj-bind-text></span></span>
                             <span role="cell" class="er-num"><oj-bind-text value="[[ ln.data.qty ]]"></oj-bind-text></span>
-                            <span role="cell"><oj-bind-text value="[[ ln.data.serial || (ln.data.allocation ? $application.functions.formatLineStatus(ln.data.allocation) : '—') ]]"></oj-bind-text></span>
+                            <span role="cell"><oj-bind-text value="[[ $functions.serialText(ln.data) ]]"></oj-bind-text></span>
                             <span role="cell"><oj-bind-text value="[[ $functions.dateRange(ln.data.start || r.data.startDate, ln.data.end || r.data.endDate) ]]"></oj-bind-text></span>
                             <span role="cell"><oj-bind-text value="[[ ln.data.location || '—' ]]"></oj-bind-text></span>
-                            <span role="cell"><span :class="[[ $application.functions.statusPillClass(ln.data.status || r.data.status || r.data.requestStatus) ]]">
-                              <oj-bind-text value="[[ $application.functions.formatLineStatus(ln.data.status || r.data.status || r.data.requestStatus) ]]"></oj-bind-text></span></span>
+                            <span role="cell"><span :class="[[ 'er-stagepill er-stage--' + $functions.lineStage(ln.data.status || r.data.status || r.data.requestStatus, r.data.requestOrigin) ]]"
+                              :title="[[ 'Line status: ' + $application.functions.formatLineStatus(ln.data.status || r.data.status || r.data.requestStatus) ]]">
+                              <oj-bind-text value="[[ $functions.lineLabel(ln.data.status || r.data.status || r.data.requestStatus, r.data.requestOrigin) ]]"></oj-bind-text></span></span>
                           </div>
                         </template>
                       </oj-bind-for-each>
@@ -227,8 +252,9 @@
                   <span role="cell"><oj-bind-text value="[[ e.data.location || '—' ]]"></oj-bind-text></span>
                   <span role="cell"><span class="er-cell-main"><oj-bind-text value="[[ $functions.dateRange(e.data.start, e.data.end) ]]"></oj-bind-text></span>
                     <span class="er-note"><oj-bind-text value="[[ $functions.windowProgress(e.data.start, e.data.end).label ]]"></oj-bind-text></span></span>
-                  <span role="cell"><span :class="[[ $application.functions.statusPillClass(e.data.status) ]]">
-                    <oj-bind-text value="[[ $application.functions.formatLineStatus(e.data.status) ]]"></oj-bind-text></span></span>
+                  <span role="cell"><span :class="[[ 'er-stagepill er-stage--' + e.data.stage ]]" :title="[[ 'Line status: ' + $application.functions.formatLineStatus(e.data.status) ]]">
+                    <oj-bind-text value="[[ e.data.label ]]"></oj-bind-text></span>
+                    <oj-bind-if test="[[ !!e.data.late ]]"><span class="er-mr-late er-note"><oj-bind-text value="[[ e.data.late ]]"></oj-bind-text></span></oj-bind-if></span>
                   <span role="cell">
                     <oj-bind-if test="[[ e.data.util !== null ]]">
                       <span class="er-util" :title="[[ e.data.util + '% used' ]]"><span :style="[[ { width: e.data.util + '%' } ]]"></span></span>

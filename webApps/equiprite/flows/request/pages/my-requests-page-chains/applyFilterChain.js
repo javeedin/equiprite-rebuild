@@ -3,8 +3,9 @@ define([
 ], (ActionChain) => {
   'use strict';
 
-  // Search, status chips and source for both views. Requests: the request's own fields and its equipment.
-  // Equipment: every line, joined to its request, by the line's own status.
+  // Search, journey chips and source for both views. Requests: the request's own fields and its equipment, each
+  // card carrying its progress (where its equipment is, what is next, what is late: requestProgress.summarize).
+  // Equipment: every line, joined to its request, by the line's own stage.
   class applyFilterChain extends ActionChain {
     async run(context, { text }) {
       const { $page, $functions } = context;
@@ -13,9 +14,11 @@ define([
       }
       const v = $page.variables;
       const lines = $functions.flattenLines(v.allRows, v.linesByRequest);
+      const progress = $functions.progressMap(v.allRows, v.linesByRequest);
       v.allLines = lines;
-      v.groupChips = v.view === 'equipment' ? $functions.lineGroups(lines) : $functions.groups(v.allRows);
-      v.filteredRows = $functions.filterRows(v.allRows, v.searchText, v.group, v.source, v.linesByRequest);
+      v.groupChips = v.view === 'equipment' ? $functions.lineGroups(lines) : $functions.groups(v.allRows, progress);
+      v.filteredRows = $functions.filterRows(v.allRows, v.searchText, v.group, v.source, v.linesByRequest, progress)
+        .map((r) => Object.assign({}, r, { progress: progress[r.requestNumber || ''] }));
       v.filteredLines = $functions.filterLines(lines, v.searchText, v.group, v.source);
     }
   }

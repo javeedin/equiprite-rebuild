@@ -15,7 +15,8 @@
     },
     "filteredRows": {
       "type": "any[]",
-      "defaultValue": []
+      "defaultValue": [],
+      "description": "The requests shown, each with progress: where its equipment is (requestProgress.summarize)."
     },
     "linesByRequest": {
       "type": "any",

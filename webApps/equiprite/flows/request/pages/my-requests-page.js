@@ -1,4 +1,4 @@
-define([], () => {
+define(['resources/js/requestProgress'], (Progress) => {
   'use strict';
 
   // My requests, two ways to look at the same requests:
@@ -8,27 +8,50 @@ define([], () => {
   // Search covers both: "excavator" finds the requests that hold one. Lines come in bulk from views/my-request-lines;
   // a request the bulk view does not cover loads its own (views/request-detail-lines, as Request detail does).
 
-  // Status groups for the chips (FDD 5.6 lifecycle, plus the line/quote states the backend also uses). Every
-  // status a request can have belongs to exactly one group, so the group counts add up to "All".
-  const GROUPS = [
-    { key: 'action',  label: 'Needs action', statuses: ['DRAFT', 'REJECTED', 'QUOTE_GENERATED'] },
-    { key: 'waiting', label: 'Waiting',      statuses: ['SUBMITTED', 'IN_PROCESS', 'APPROVED', 'ALLOCATED', 'QUOTE_ACCEPTED', 'UNDER_PROCUREMENT', 'SCHEDULED_FOR_PICKING'] },
-    // On the way out to site, or back to the yard.
-    { key: 'moving',  label: 'On the way',   statuses: ['PICK_INITIATED', 'PICK_RELEASED', 'EQP_INSPECTION_COMPLETE', 'SHIPPED', 'SHIP_TO_SITE', 'RETURN_IN_PROCESS', 'SHIPPED_TO_YARD'] },
-    { key: 'onsite',  label: 'On site',      statuses: ['DEPLOYED', 'DELIVERED', 'RETURN_INITIATED'] },
-    { key: 'done',    label: 'Done',         statuses: ['RETURNED', 'CLOSED', 'CANCELLED', 'DECLINED', 'CONSUMED'] },
+  // Where a request is comes from its equipment, not from the request's own status, which stays IN_PROCESS from
+  // approval to the end (resources/js/requestProgress.js). The chips follow the equipment's journey. A request
+  // shows under every stage its equipment is in (one piece on the way and two being picked: On the way and Getting
+  // ready), so the chips need not add up to All. Late comes first: not shipped by the start date, or still out after
+  // the end date.
+  const CHIPS = [
+    { key: 'late',     label: 'Late' },
+    { key: 'action',   label: 'Needs action' },          // drafts, sent back, a quote waiting for the customer
+    { key: 'approval', label: 'Waiting for approval' },
+    { key: 'ready',    label: 'Getting ready' },
+    { key: 'out',      label: 'On the way' },
+    { key: 'onsite',   label: 'On site' },
+    { key: 'back',     label: 'Coming back' },
+    { key: 'done',     label: 'Done' },
   ];
-  const GROUP_OF = {};
-  GROUPS.forEach((g) => g.statuses.forEach((s) => { GROUP_OF[s] = g.key; }));
   const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const DAY = 86400000;
 
   // Same rule as sourceLabel in app-flow.js: EXTERNAL or legacy CUSTOMER is external, anything else internal.
   const originOf = (r) => (/^(EXTERNAL|CUSTOMER)$/i.test(String((r && r.requestOrigin) || '').trim()) ? 'EXTERNAL' : 'INTERNAL');
   const statusOf = (r) => String((r && (r.status || r.requestStatus)) || '').toUpperCase();
-  // Anything not listed (a new backend status) counts as Waiting rather than vanishing from every group.
-  const groupOf = (r) => GROUP_OF[statusOf(r)] || 'waiting';
-  const lineGroupOf = (l) => GROUP_OF[String((l && l.status) || '').toUpperCase()] || 'waiting';
+  const isExternal = (r) => originOf(r) === 'EXTERNAL';
+  // The chips a request belongs to, from its progress.
+  const keysOf = (p) => {
+    if (!p) return [];
+    const keys = p.late && p.late.length ? ['late'] : [];
+    if (p.stage === 'draft' || p.headline === 'Sent back' || (p.next && p.next.who === 'Customer')) keys.push('action');
+    if (p.stage === 'stopped' && p.headline !== 'Sent back') keys.push('done');
+    return keys.concat(p.stages.filter((k) => k !== 'draft' && k !== 'stopped'));
+  };
+  // The chips one piece of equipment belongs to: its stage, Needs action when it waits on the requester, Late.
+  const lineKeysOf = (l) => {
+    const keys = l.late ? ['late'] : [];
+    if (l.stage === 'draft' || l.status === 'REJECTED' || l.status === 'QUOTE_GENERATED') keys.push('action');
+    else keys.push(l.stage === 'stopped' ? 'done' : l.stage);
+    return keys;
+  };
+  const chipCounts = (items, keysFn) => {
+    const counts = {};
+    items.forEach((it) => keysFn(it).forEach((k) => { counts[k] = (counts[k] || 0) + 1; }));
+    return [{ key: 'all', label: 'All', count: items.length }]
+      .concat(CHIPS.map((c) => ({ key: c.key, label: c.label, count: counts[c.key] || 0 })))
+      .filter((c) => c.key === 'all' || c.count > 0 || c.key !== 'late');
+  };
   const pick = (r, names) => {
     for (let i = 0; i < names.length; i++) {
       const v = r && r[names[i]];
@@ -43,32 +66,39 @@ define([], () => {
   const lc = (v) => String(v || '').toLowerCase();
 
   class PageModule {
-    /** Chip definitions with counts: [{ key, label, count }], "All" first. */
-    groups(rows) {
-      const list = Array.isArray(rows) ? rows : [];
-      const counts = {};
-      list.forEach((r) => { const g = groupOf(r); counts[g] = (counts[g] || 0) + 1; });
-      return [{ key: 'all', label: 'All', count: list.length }]
-        .concat(GROUPS.map((g) => ({ key: g.key, label: g.label, count: counts[g.key] || 0 })));
+    /** Each request's progress from its equipment, by request number (requestProgress.summarize). */
+    progressMap(rows, linesByRequest, now) {
+      const out = {};
+      (Array.isArray(rows) ? rows : []).forEach((r) => {
+        if (!r) return;
+        out[r.requestNumber || ''] = Progress.summarize(statusOf(r), (linesByRequest || {})[r.requestNumber] || [],
+          { start: r.startDate, end: r.endDate, external: isExternal(r), now });
+      });
+      return out;
     }
 
-    /** The same chips for equipment lines, counted by each line's own status. */
+    /** Chip definitions with counts: [{ key, label, count }], "All" first; a request counts in each stage it is in. */
+    groups(rows, progress) {
+      const list = Array.isArray(rows) ? rows : [];
+      const p = progress || this.progressMap(list, {});
+      return chipCounts(list, (r) => keysOf(p[r.requestNumber || '']));
+    }
+
+    /** The same chips for equipment, each piece counted by its own stage. */
     lineGroups(lines) {
-      const list = Array.isArray(lines) ? lines : [];
-      const counts = {};
-      list.forEach((l) => { const g = lineGroupOf(l); counts[g] = (counts[g] || 0) + 1; });
-      return [{ key: 'all', label: 'All', count: list.length }]
-        .concat(GROUPS.map((g) => ({ key: g.key, label: g.label, count: counts[g.key] || 0 })));
+      return chipCounts(Array.isArray(lines) ? lines : [], lineKeysOf);
     }
 
     /**
-     * The rows the list shows: status group, source (INTERNAL / EXTERNAL, managers only) and free text across
+     * The rows the list shows: journey chip, source (INTERNAL / EXTERNAL, managers only) and free text across
      * request number, project, task, customer and requestor, and (when given) the request's equipment.
      */
-    filterRows(rows, text, group, source, linesByRequest) {
+    filterRows(rows, text, group, source, linesByRequest, progress) {
       const q = String(text || '').trim().toLowerCase();
-      return (Array.isArray(rows) ? rows : []).filter((r) => {
-        if (group && group !== 'all' && groupOf(r) !== group) {
+      const list = Array.isArray(rows) ? rows : [];
+      const p = progress || (group && group !== 'all' ? this.progressMap(list, linesByRequest) : {});
+      return list.filter((r) => {
+        if (group && group !== 'all' && keysOf(p[r.requestNumber || '']).indexOf(group) === -1) {
           return false;
         }
         if (source && originOf(r) !== source) {
@@ -90,7 +120,7 @@ define([], () => {
     filterLines(lines, text, group, source) {
       const q = String(text || '').trim().toLowerCase();
       return (Array.isArray(lines) ? lines : []).filter((l) => {
-        if (group && group !== 'all' && lineGroupOf(l) !== group) return false;
+        if (group && group !== 'all' && lineKeysOf(l).indexOf(group) === -1) return false;
         if (source && l.origin !== source) return false;
         if (!q) return true;
         return [l.name, l.cls, l.serial, l.requestNumber, l.project, l.customer, l.location, l.requestor]
@@ -141,13 +171,20 @@ define([], () => {
      * list's own order (newest request first), each request's lines in line order. Lines of requests outside this
      * list (another scope) are left out.
      */
-    flattenLines(rows, linesByRequest) {
+    flattenLines(rows, linesByRequest, now) {
       const out = [];
       (Array.isArray(rows) ? rows : []).forEach((r) => {
         const lines = (linesByRequest || {})[r.requestNumber] || [];
         lines.forEach((l) => {
+          const status = l.status || statusOf(r);
+          const info = Progress.line(status, isExternal(r));
+          const one = Progress.summarize(status, [{ status, start: l.start, end: l.end }],
+            { start: r.startDate, end: r.endDate, external: isExternal(r), now });
           out.push(Object.assign({}, l, {
-            status: l.status || statusOf(r),
+            status,
+            stage: info.stage,
+            label: info.label,
+            late: one.late.length ? one.late[0].text.replace(/^1 /, '') : '',
             requestId: r.eqrEquipmentRequestId,
             project: r.projectName || '',
             task: r.taskName || '',
@@ -192,9 +229,22 @@ define([], () => {
       return { pct: Math.round((nth / total) * 100), label: `Day ${nth} of ${total}`, state: 'running' };
     }
 
-    /** Status pill colour key for a line status (empty when unknown). */
-    lineState(status) {
-      return GROUP_OF[String(status || '').toUpperCase()] || (status ? 'waiting' : '');
+    /** The journey stage of a line status (the colour), customer requests read as such. */
+    lineStage(status, origin) {
+      return Progress.line(status, isExternal({ requestOrigin: origin })).stage || 'ready';
+    }
+
+    /** A line status in words: "Approved, no unit assigned yet", "On the way to site". */
+    lineLabel(status, origin) {
+      return Progress.line(status, isExternal({ requestOrigin: origin })).label;
+    }
+
+    /** The serial, else whether a unit is assigned yet (the allocation status), in words. */
+    serialText(line) {
+      const l = line || {};
+      if (l.serial) return l.serial;
+      return { ALLOCATED: 'Unit assigned', PARTIALLY_ALLOCATED: 'Partly assigned', PENDING: 'No unit assigned yet',
+        UNALLOCATED: 'No unit assigned yet' }[l.allocation] || '—';
     }
 
     /** "2 Nov – 15 Dec 2026" (the year once when both dates share it), from ISO dates. */

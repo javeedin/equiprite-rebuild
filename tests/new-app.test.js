@@ -152,7 +152,8 @@ items.filter((i) => i.status !== 'new').forEach((i) => {
 });
 
 T.section('My requests: status groups, filters, columns');
-const MyReq = loadAmd(path.join(NEW, 'flows', 'request', 'pages', 'my-requests-page.js'));
+const Progress = loadAmd(path.join(NEW, 'resources', 'js', 'requestProgress.js'));
+const MyReq = loadAmd(path.join(NEW, 'flows', 'request', 'pages', 'my-requests-page.js'), { 'resources/js/requestProgress': Progress });
 const myReq = new MyReq();
 const ROWS = [
   { requestNumber: 'R1', status: 'DRAFT', requestOrigin: 'Internal', projectName: 'Pipeline North' },
@@ -163,9 +164,11 @@ const ROWS = [
 ];
 const chips = myReq.groups(ROWS);
 T.eq('All counts every row', chips[0].count, 5);
-T.eq('group counts add up to All (no status falls through)', chips.slice(1).reduce((n, c) => n + c.count, 0), 5);
+T.eq('without equipment loaded, each request counts once (no status falls through)', chips.slice(1).reduce((n, c) => n + c.count, 0), 5);
+T.eq('chips follow the journey; Late only when something is late', chips.map((c) => c.key).join(), 'all,action,approval,ready,out,onsite,back,done');
 T.eq('Needs action = draft, rejected, quote generated', myReq.filterRows(ROWS, '', 'action', '').map((r) => r.requestNumber).join(), 'R1');
-T.eq('an unknown status counts as Waiting', myReq.filterRows(ROWS, '', 'waiting', '').map((r) => r.requestNumber).join(), 'R2,R5');
+T.eq('a submitted request waits for approval', myReq.filterRows(ROWS, '', 'approval', '').map((r) => r.requestNumber).join(), 'R2');
+T.eq('an unknown status counts as Getting ready', myReq.filterRows(ROWS, '', 'ready', '').map((r) => r.requestNumber).join(), 'R5');
 T.eq('source Customer includes the legacy CUSTOMER origin', myReq.filterRows(ROWS, '', 'all', 'EXTERNAL').map((r) => r.requestNumber).join(), 'R2,R4');
 T.eq('search matches customer names, any case', myReq.filterRows(ROWS, 'lone STAR', 'all', '').map((r) => r.requestNumber).join(), 'R2');
 // Equipment on the requests: bulk lines (views/my-request-lines) and per-request lines (views/request-detail-lines)
@@ -186,18 +189,31 @@ T.eq('search finds a request by the equipment on it', myReq.filterRows(ROWS, 'ex
 const flat = myReq.flattenLines(ROWS, byReq);
 T.eq('Equipment view: every line of a listed request, joined to it', flat.map((l) => l.requestNumber + ':' + l.name.split(' ')[0]).join(), 'R2:Roller,R3:EQ-00001,R3:Dump');
 T.eq('a line takes its request\'s project and source', flat[1].project + '|' + flat[0].origin, 'Plant B|EXTERNAL');
-T.eq('equipment chips count lines by their own status', myReq.lineGroups(flat).filter((g) => g.count).map((g) => g.key + ':' + g.count).join(), 'all:3,waiting:1,onsite:2');
+T.eq('equipment chips count lines by their own stage', myReq.lineGroups(flat).filter((g) => g.count).map((g) => g.key + ':' + g.count).join(), 'all:3,approval:1,onsite:2');
+T.eq('each line in words', flat.map((l) => l.label).join(' | '), 'Waiting for approval | On site | On site');
 T.eq('equipment search by class', myReq.filterLines(flat, 'trucks', 'all', '').length, 1);
 T.eq('card chips: first n and how many more', JSON.stringify((({ shown, more, units }) => [shown.length, more, units])(myReq.chips(byReq.R3, 1))), '[1,1,3]');
 const NOW = Date.UTC(2026, 9, 29);
 T.eq('rental window: running', JSON.stringify(myReq.windowProgress('2026-10-20', '2026-10-29', NOW)), '{"pct":100,"label":"Day 10 of 10","state":"running"}');
 T.eq('rental window: upcoming', myReq.windowProgress('2026-11-03', '2026-11-20', NOW).label, 'Starts in 5 days');
 T.eq('rental window: ended', myReq.windowProgress('2026-10-01', '2026-10-28', NOW).label, 'Ended yesterday');
-T.eq('returning equipment counts as on the way', myReq.filterRows([{ status: 'SHIPPED_TO_YARD' }], '', 'moving', '').length, 1);
+T.eq('returning equipment counts as coming back', myReq.filterRows([{ requestNumber: 'X', status: 'SHIPPED_TO_YARD' }], '', 'back', '').length, 1);
+// One request, IN_PROCESS since approval, with one of three pieces shipped: it is on the way AND getting ready.
+const SPLIT = [{ requestNumber: 'S1', status: 'IN_PROCESS', startDate: '2026-10-08', endDate: '2026-12-30' }];
+const splitLines = myReq.indexLines([
+  { requestNumber: 'S1', lineNumber: 1, equipmentName: 'Dozer', lineStatus: 'SHIP_TO_SITE' },
+  { requestNumber: 'S1', lineNumber: 2, equipmentName: 'Loader', lineStatus: 'IN_PROCESS', allocationStatus: 'PENDING' },
+  { requestNumber: 'S1', lineNumber: 3, equipmentName: 'Truck', lineStatus: 'SCHEDULED_FOR_PICKING' }]);
+const sp = myReq.progressMap(SPLIT, splitLines, NOW + 86400000).S1;
+T.eq('the card reads from the equipment, not IN PROCESS', sp.headline, 'Partly shipped · 1 of 3');
+T.eq('a request shows under each stage its equipment is in', ['out', 'ready', 'onsite'].map((g) => myReq.filterRows(SPLIT, '', g, '', splitLines).length).join(), '1,1,0');
+T.check('late: not shipped by the start date', myReq.groups(SPLIT, myReq.progressMap(SPLIT, splitLines, NOW + 86400000)).find((c) => c.key === 'late').count === 1);
+T.eq('serial column: a serial, else whether a unit is assigned, in words', [{ serial: 'EX-1' }, { allocation: 'ALLOCATED' }, { allocation: 'PENDING' }, {}].map((l) => myReq.serialText(l)).join(' | '),
+  'EX-1 | Unit assigned | No unit assigned yet | —');
 T.eq('date range reads like a person wrote it', myReq.dateRange('2026-11-02', '2026-12-15'), '2 Nov – 15 Dec 2026');
 
 T.section('Request detail: selection, tracker, links');
-const Detail = loadAmd(path.join(NEW, 'flows', 'request', 'pages', 'request-detail-page.js'));
+const Detail = loadAmd(path.join(NEW, 'flows', 'request', 'pages', 'request-detail-page.js'), { 'resources/js/requestProgress': Progress });
 const detail = new Detail();
 const LINES = [
   { lineId: '1', equipmentName: 'Excavator', lineStatus: 'DEPLOYED', isReturnable: true },
@@ -215,10 +231,15 @@ T.check('a deployed line can be returned', detail.getSelectionStateRaw().allRetu
 detail.setAllSelected(true);
 T.check('select all', detail.isAllSelected() && detail.getSelectedLines().length === 3);
 T.eq('a new request list clears the selection', detail.initGridData(LINES).length + detail.getSelectedLines().length, 3);
-const stateAt = (status, lines) => detail.steps(status, lines).map((s) => s.state[0]).join('');
-T.eq('tracker: header IN_PROCESS with a line on site shows On site', stateAt('IN_PROCESS', LINES), 'dddddctt');
-T.eq('tracker: a draft', stateAt('DRAFT', []), 'cttttttt');
-T.eq('tracker: rejected stops at the review step', detail.steps('REJECTED', []).map((s) => s.state === 'stopped' ? s.label : '').join(''), 'Rejected');
+const journey = detail.progress('IN_PROCESS', LINES, { startDate: '2099-01-01', endDate: '2099-02-01' });
+T.eq('journey: the heading comes from the lines, not IN_PROCESS', journey.headline, 'Partly on site · 1 of 3');
+T.eq('journey: a piece at each of three stops', journey.stops.map((s) => s.count + s.state[0]).join(' '), '0d 1h 1h 1h 0t 0t');
+T.eq('journey: stop notes', journey.stops.map((s) => detail.stopNote(s, journey.total)).join('|'), 'All past|1 of 3 here|1 of 3 here|1 of 3 here||');
+T.eq('journey: next is what holds it up', journey.next.text, 'Yard to pick and ship it (1 of 3)');
+T.eq('journey: a draft and a request sent back', [detail.progress('DRAFT', []).headline, detail.progress('REJECTED', []).headline].join(), 'Draft,Sent back');
+T.eq('lines in words, coloured by stage', LINES.map((l) => detail.lineStage(l.lineStatus) + ':' + detail.lineLabel(l.lineStatus)).join(' | '),
+  'onsite:On site | out:On the way to site | ready:Being picked at the yard');
+T.eq('serial column in words when no unit yet', [{ allocatedSerialNumber: 'EX-1' }, { allocStatus: 'PENDING' }].map((l) => detail.serialText(l)).join(), 'EX-1,No unit assigned yet');
 T.eq('line actions only once the request is in operations', ['DRAFT', 'SUBMITTED', 'IN_PROCESS', 'DEPLOYED', 'CLOSED'].map((s) => detail.headerIsConfirmed(s) ? 1 : 0).join(''), '00110');
 T.eq('old project request link', detail.oldDetailLink('http://x/', 'REQ-1', 1, false), 'http://x/vp/shell/main/equipment-request-detail?requestId=REQ-1&requestNumericId=1');
 T.eq('old customer request link', detail.oldDetailLink('http://x/', 'REQ-2', 2, true), 'http://x/vp/shell/customer-portal/customer-request-detail?requestId=REQ-2&requestNumericId=2');

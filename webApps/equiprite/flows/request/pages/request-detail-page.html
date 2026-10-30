@@ -10,8 +10,10 @@
       <h1>
         <oj-bind-text value="[[ $variables.formData.requestNumber || $variables.requestId || 'Request' ]]"></oj-bind-text>
         <oj-bind-if test="[[ !!$variables.formData.status ]]">
-          <span :class="[[ $application.functions.statusPillClass($variables.formData.status) + ' er-band-pill' ]]">
-            <oj-bind-text value="[[ $application.functions.formatLineStatus($variables.formData.status) ]]"></oj-bind-text>
+          <!-- Where the request is, from its equipment; the stored request status is in the tooltip. -->
+          <span :class="[[ 'er-stagepill er-band-pill er-stage--' + $functions.progress($variables.formData.status, $variables.dataGridProvider, $variables.formData).tone ]]"
+            :title="[[ 'Request status: ' + $application.functions.formatLineStatus($variables.formData.status) ]]">
+            <oj-bind-text value="[[ $functions.progress($variables.formData.status, $variables.dataGridProvider, $variables.formData).headline ]]"></oj-bind-text>
           </span>
         </oj-bind-if>
       </h1>
@@ -53,17 +55,41 @@
   </oj-bind-if>
 
   <oj-bind-if test="[[ !$variables.isLoading && !$variables.fetchError ]]">
-    <ol class="er-tracker" aria-label="Where this request is">
-      <oj-bind-for-each data="[[ $functions.steps($variables.formData.status, $variables.dataGridProvider, $variables.selectionTick) ]]">
-        <template data-oj-as="step">
-          <li :class="[[ 'er-step er-step--' + step.data.state ]]"
-            :aria-current="[[ step.data.state === 'current' || step.data.state === 'stopped' ? 'step' : 'false' ]]">
-            <span class="er-step-bar" aria-hidden="true"></span>
-            <span class="er-step-label"><oj-bind-text value="[[ step.data.label ]]"></oj-bind-text></span>
-          </li>
-        </template>
-      </oj-bind-for-each>
-    </ol>
+    <!-- The journey of this request's equipment: how many pieces are at each stop, what is next, what is late. -->
+    <section class="er-card er-card-pad er-journey" aria-labelledby="journeyTitle">
+      <div class="er-journey-head">
+        <h2 class="er-section-title" id="journeyTitle">
+          <oj-bind-text value="[[ $functions.progress($variables.formData.status, $variables.dataGridProvider, $variables.formData).headline ]]"></oj-bind-text>
+        </h2>
+        <oj-bind-if test="[[ !!$functions.progress($variables.formData.status, $variables.dataGridProvider, $variables.formData).detail ]]">
+          <span class="er-note"><oj-bind-text value="[[ $functions.progress($variables.formData.status, $variables.dataGridProvider, $variables.formData).detail ]]"></oj-bind-text></span>
+        </oj-bind-if>
+      </div>
+      <ol class="er-jtrack" aria-label="Where the equipment is">
+        <oj-bind-for-each data="[[ $functions.progress($variables.formData.status, $variables.dataGridProvider, $variables.formData).stops ]]">
+          <template data-oj-as="stop">
+            <li :class="[[ 'er-jstop er-jstop--' + stop.data.state + ' er-stage--' + stop.data.key ]]" :data-stop="[[ stop.data.key ]]"
+              :aria-current="[[ stop.data.state === 'here' ? 'step' : 'false' ]]">
+              <span class="er-jstop-bar" aria-hidden="true"></span>
+              <span class="er-jstop-label"><oj-bind-text value="[[ stop.data.label ]]"></oj-bind-text></span>
+              <span class="er-jstop-note"><oj-bind-text value="[[ $functions.stopNote(stop.data, $functions.progress($variables.formData.status, $variables.dataGridProvider, $variables.formData).total) ]]"></oj-bind-text></span>
+            </li>
+          </template>
+        </oj-bind-for-each>
+      </ol>
+      <div class="er-journey-foot">
+        <oj-bind-if test="[[ !!$functions.progress($variables.formData.status, $variables.dataGridProvider, $variables.formData).next ]]">
+          <span class="er-mr-next"><strong>Next:</strong>
+            <oj-bind-text value="[[ ($functions.progress($variables.formData.status, $variables.dataGridProvider, $variables.formData).next || {}).text ]]"></oj-bind-text></span>
+        </oj-bind-if>
+        <oj-bind-for-each data="[[ $functions.progress($variables.formData.status, $variables.dataGridProvider, $variables.formData).late ]]">
+          <template data-oj-as="lt">
+            <span class="er-mr-late"><span class="oj-ux-ico-warning" aria-hidden="true"></span>
+              <oj-bind-text value="[[ lt.data.text ]]"></oj-bind-text></span>
+          </template>
+        </oj-bind-for-each>
+      </div>
+    </section>
 
     <section class="er-card er-card-pad">
       <dl class="er-facts">
@@ -132,12 +158,13 @@
                 </span>
                 <span role="cell"><oj-bind-text value="[[ line.data.quantity ]]"></oj-bind-text></span>
                 <span role="cell"><oj-bind-text value="[[ line.data.startDate + ' – ' + line.data.endDate ]]"></oj-bind-text></span>
-                <span role="cell"><oj-bind-text value="[[ line.data.allocatedSerialNumber || '—' ]]"></oj-bind-text></span>
+                <span role="cell"><oj-bind-text value="[[ $functions.serialText(line.data) ]]"></oj-bind-text></span>
                 <span role="cell"><oj-bind-text value="[[ line.data.billRate || '—' ]]"></oj-bind-text></span>
                 <span role="cell">
                   <oj-bind-if test="[[ !!line.data.lineStatus ]]">
-                    <span :class="[[ $application.functions.statusPillClass(line.data.lineStatus) ]]">
-                      <oj-bind-text value="[[ $application.functions.formatLineStatus(line.data.lineStatus) ]]"></oj-bind-text>
+                    <span :class="[[ 'er-stagepill er-stage--' + $functions.lineStage(line.data.lineStatus, $variables.formData.isCustomer) ]]"
+                      :title="[[ 'Line status: ' + $application.functions.formatLineStatus(line.data.lineStatus) ]]">
+                      <oj-bind-text value="[[ $functions.lineLabel(line.data.lineStatus, $variables.formData.isCustomer) ]]"></oj-bind-text>
                     </span>
                   </oj-bind-if>
                 </span>

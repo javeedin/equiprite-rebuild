@@ -157,6 +157,10 @@ define([
           returnedQuantity:      r.returnedQuantity  != null ? Number(r.returnedQuantity)  : null,
           startDate:             formatDate(r.startDate),
           endDate:               formatDate(r.endDate),
+          // ISO dates and the allocation status for the journey (requestProgress): what is late, unit assigned yet.
+          startIso:              r.startDate ? String(r.startDate).substring(0, 10) : '',
+          endIso:                r.endDate ? String(r.endDate).substring(0, 10) : '',
+          allocStatus:           String(r.allocStatus || '').toUpperCase(),
           allocatedSerialNumber: r.allocatedSerial || '',
           billRate:              formatRateWithUom(rawRate, rateUom),
           isFromAgreement:       isFromAgreement,

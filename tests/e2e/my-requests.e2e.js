@@ -22,6 +22,7 @@ const LINES = [
   { requestNumber: 'REQ-17865000041', lineNumber: 2, equipmentName: 'EQ-00102 Volvo A30 Dump Truck', className: 'Trucks', qty: 2, requestStatus: 'IN_PROCESS' },
   { requestNumber: 'REQ-17865000042', lineNumber: 1, equipmentName: 'EQ-00230 Light Tower', className: 'Lighting', qty: 4, requestStatus: 'DEPLOYED', deploymentLocation: 'Seventh Avenue site', utilPct: 64 },
   { requestNumber: 'REQ-17865000044', lineNumber: 1, equipmentName: 'EQ-00310 Roller 10t', className: 'Rollers', qty: 1, requestStatus: 'SHIP_TO_SITE' },
+  { requestNumber: 'REQ-17865000044', lineNumber: 2, equipmentName: 'EQ-00311 Plate compactor', className: 'Compaction', qty: 1, lineStatus: 'SCHEDULED_FOR_PICKING', requestStatus: 'SHIP_TO_SITE' },
 ];
 // REQ-…43 is not in the bulk view: its lines come from request-detail-lines when the card is opened.
 const DETAIL_43 = [
@@ -53,7 +54,28 @@ function handle(req, res) {
     const chips41 = await page.$$eval('.er-mr-card[data-number="REQ-17865000041"] .er-eqchip', (c) => c.map((x) => x.innerText.replace(/\s+/g, ' ').trim()));
     T.eq('equipment on the card, with quantities', chips41.join(' | '), 'EQ-00001 CAT 390F Excavator ×1 | EQ-00102 Volvo A30 Dump Truck ×2');
     T.check('the rental window says where today is', /Day \d+ of \d+/.test(await env.text('.er-mr-card[data-number="REQ-17865000041"] .er-mr-when')));
-    T.check('the header counts the equipment', (await env.text('.er-band-sub')).includes('8 pieces of equipment'));
+    T.check('the header counts the equipment', (await env.text('.er-band-sub')).includes('9 pieces of equipment'));
+
+    T.section('Where each request is, from its equipment');
+    const card = (num) => env.text(`.er-mr-card[data-number="${num}"]`);
+    T.eq('one of two shipped: the card says so, not the stored status', await env.text('.er-mr-card[data-number="REQ-17865000044"] .er-stagepill'), 'Partly shipped · 1 of 2');
+    T.check('...with the stored status one hover away', (await page.$eval('.er-mr-card[data-number="REQ-17865000044"] .er-stagepill', (e) => e.title)).includes('SHIPPED TO SITE'));
+    T.eq('a bar segment per piece, coloured by where it is', await page.$$eval('.er-mr-card[data-number="REQ-17865000044"] .er-jbar-seg', (s) => s.map((x) => x.className.replace('er-jbar-seg er-stage--', '')).join()), 'out,ready');
+    T.check('what happens next, and who does it', (await card('REQ-17865000044')).includes('Next: Yard to start picking (1 of 2)'));
+    T.check('approved but no unit assigned, past the start: late, by how much', /2 not shipped, due \d+ \w{3} \(21 days late\)/.test(await card('REQ-17865000041'))
+      && (await card('REQ-17865000041')).includes('Next: Equipment Manager to assign a unit (2 of 2)'));
+    T.eq('a running rental with everything on site', await env.text('.er-mr-card[data-number="REQ-17865000042"] .er-stagepill'), 'On site');
+    T.check('no request reads IN PROCESS', !(await page.$$eval('.er-mr-card .er-stagepill', (p) => p.map((x) => x.innerText).join('|'))).includes('IN PROCESS'));
+    T.eq('Late comes first in the chips', (await page.$$eval('.er-page > .er-chip-row button', (b) => b.map((x) => x.dataset.group))).slice(0, 2).join(), 'all,late');
+    await page.click('button[data-group="late"]');
+    await page.waitForTimeout(300);
+    T.eq('Late: the requests behind', (await page.$$eval('.er-mr-card', (c) => c.map((x) => x.dataset.number))).join(), 'REQ-17865000044,REQ-17865000041');
+    await page.click('button[data-group="out"]');
+    await page.waitForTimeout(300);
+    T.eq('On the way: a request with anything on its way', (await page.$$eval('.er-mr-card', (c) => c.map((x) => x.dataset.number))).join(), 'REQ-17865000044');
+    await page.click('button[data-group="all"]');
+    await page.waitForTimeout(300);
+    await env.shot('my-requests-journey.png');
     const fill = (num) => page.$eval(`.er-mr-card[data-number="${num}"] .er-mr-progress`, (t) => Math.round((t.firstElementChild.getBoundingClientRect().width / t.getBoundingClientRect().width) * 100));
     T.eq('an upcoming rental has an empty bar', await fill('REQ-17865000043'), 0);
     const running = await fill('REQ-17865000042');
@@ -83,9 +105,10 @@ function handle(req, res) {
     await page.click('button[data-view="equipment"]');
     await page.waitForSelector('.er-grid--equip');
     await page.waitForTimeout(300);
-    T.eq('a row per piece of equipment (bulk + opened)', await page.$$eval('.er-grid--equip .er-grid-row:not(.er-grid-head)', (r) => r.length), 6);
+    T.eq('a row per piece of equipment (bulk + opened)', await page.$$eval('.er-grid--equip .er-grid-row:not(.er-grid-head)', (r) => r.length), 7);
     const chipText = (await env.text('.er-page > .er-chip-row')).replace(/\s+/g, ' ');
-    T.check('chips count equipment by its own status', chipText.includes('All 6') && chipText.includes('On site 1') && chipText.includes('On the way 1'));
+    T.check('chips count equipment by its own stage', chipText.includes('All 7') && chipText.includes('On site 1') && chipText.includes('On the way 1') && chipText.includes('Getting ready 3'), chipText);
+    T.check('each piece says where it is in words', (await env.text('.er-grid--equip')).includes('Approved, no unit assigned yet') && (await env.text('.er-grid--equip')).includes('Waiting to be picked'));
     await page.click('button[data-group="onsite"]');
     await page.waitForTimeout(300);
     T.check('the Equipment table fits the page', await page.$eval('.er-grid--equip', (g) => g.scrollWidth <= g.parentElement.clientWidth + 1));

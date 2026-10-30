@@ -1,20 +1,8 @@
-define([], () => {
+define(['resources/js/requestProgress'], (Progress) => {
   'use strict';
 
-  // Lifecycle steps for the tracker (FDD 5.6), with the statuses that mean "at this step". Line statuses count too:
-  // a request whose lines are on site is shown on site even while the header still reads IN_PROCESS.
-  const STEPS = [
-    { key: 'draft',     label: 'Draft',     statuses: ['DRAFT'] },
-    { key: 'submitted', label: 'Submitted', statuses: ['SUBMITTED', 'QUOTE_GENERATED', 'QUOTE_ACCEPTED'] },
-    { key: 'approved',  label: 'Approved',  statuses: ['IN_PROCESS', 'APPROVED', 'ALLOCATED'] },
-    { key: 'picking',   label: 'Picking',   statuses: ['PICK_INITIATED', 'PICK_RELEASED', 'EQP_INSPECTION_COMPLETE'] },
-    { key: 'shipped',   label: 'Shipped',   statuses: ['SHIPPED', 'SHIP_TO_SITE'] },
-    { key: 'onsite',    label: 'On site',   statuses: ['DEPLOYED', 'DELIVERED', 'CONSUMED'] },
-    { key: 'returning', label: 'Returning', statuses: ['RETURN_INITIATED', 'RETURNED'] },
-    { key: 'closed',    label: 'Closed',    statuses: ['CLOSED'] },
-  ];
-  const STOPPED = ['REJECTED', 'CANCELLED', 'DECLINED'];
-  const stepIndex = (status) => STEPS.findIndex((s) => s.statuses.indexOf(String(status || '').toUpperCase()) !== -1);
+  // Where the request is comes from its equipment (resources/js/requestProgress.js): the request's own status stays
+  // IN_PROCESS from approval to the end, so the heading, the journey and each line's status are read from the lines.
 
   class PageModule {
     constructor() {
@@ -90,21 +78,44 @@ define([], () => {
       return value ? String(value).substring(0, 10) : '';
     }
 
-    // ── Tracker ───────────────────────────────────────────────────────────────────────────────────────────────
+    // ── Journey ───────────────────────────────────────────────────────────────────────────────────────────────
 
-    /** [{ label, state: 'done' | 'current' | 'todo' | 'stopped' }] for the header status and the lines. */
-    steps(status, lines, tick) {
-      const header = String(status || '').toUpperCase();
-      let at = stepIndex(header);
-      (Array.isArray(lines) ? lines : []).forEach((l) => { at = Math.max(at, stepIndex(l.lineStatus)); });
-      const stopped = STOPPED.indexOf(header) !== -1;
-      if (stopped && at < 1) {
-        at = 1; // a rejected request stopped at the review step
-      }
-      return STEPS.map((s, i) => ({
-        label: stopped && i === at ? header.charAt(0) + header.slice(1).toLowerCase() : s.label,
-        state: stopped && i === at ? 'stopped' : (i < at ? 'done' : (i === at ? 'current' : 'todo')),
-      }));
+    /**
+     * Where the request is, from its lines: headline ("Partly shipped · 1 of 3"), detail, next step, what is late,
+     * and the stops of the journey with how many pieces are at each (requestProgress.summarize).
+     */
+    progress(status, lines, form) {
+      const f = form || {};
+      return Progress.summarize(status, (Array.isArray(lines) ? lines : []).map((l) => ({
+        lineStatus: l.lineStatus, start: l.startIso, end: l.endIso,
+      })), { start: f.startDate, end: f.endDate, external: !!f.isCustomer });
+    }
+
+    /** A stop's note under the journey: "2 of 3 here", "all past", "". */
+    stopNote(stop, total) {
+      if (!stop) return '';
+      if (stop.state === 'here') return total > 1 ? `${stop.count} of ${total} here` : 'Here';
+      if (stop.state === 'done') return 'All past';
+      if (stop.state === 'passed') return 'Some past';
+      return '';
+    }
+
+    /** The journey stage of a line status (its colour). */
+    lineStage(status, isCustomer) {
+      return Progress.line(status, !!isCustomer).stage || 'ready';
+    }
+
+    /** A line status in words: "Approved, no unit assigned yet", "On the way to site". */
+    lineLabel(status, isCustomer) {
+      return Progress.line(status, !!isCustomer).label;
+    }
+
+    /** The serial, else whether a unit is assigned yet, in words. */
+    serialText(line) {
+      const l = line || {};
+      if (l.allocatedSerialNumber) return l.allocatedSerialNumber;
+      return { ALLOCATED: 'Unit assigned', PARTIALLY_ALLOCATED: 'Partly assigned', PENDING: 'No unit assigned yet',
+        UNALLOCATED: 'No unit assigned yet' }[l.allocStatus] || '—';
     }
 
     // ── Old EquipRite links ───────────────────────────────────────────────────────────────────────────────────
