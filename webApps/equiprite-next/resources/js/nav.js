@@ -25,7 +25,7 @@ define(['resources/js/rules'], function (rules) {
       { id: 'new-request', label: 'New request', icon: 'oj-ux-ico-cart-add', pageCodes: ['EQR_PROJ_CREATE_REQUEST'],
         route: { flow: 'order', page: 'new-request' }, built: true, newNav: 'new-request', keywords: 'create order catalog cart' },
       { id: 'approvals', label: 'Approve & allocate', icon: 'oj-ux-ico-clipboard-check', pageCodes: ['EQR_WORKBENCH'],
-        route: { flow: 'approvals', page: 'approvals' }, built: false, newNav: 'workbench', keywords: 'workbench approve allocate assign units' }
+        route: { flow: 'approvals', page: 'approvals' }, built: true, newNav: 'workbench', keywords: 'workbench approve allocate assign units' }
     ] },
     { key: 'fleet', label: 'Equipment', items: [
       { id: 'fleet', label: 'Fleet', icon: 'oj-ux-ico-truck', pageCodes: ['EQR_WORKBENCH', 'EQR_EQUIPMENT_MASTER'],

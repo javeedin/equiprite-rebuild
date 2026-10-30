@@ -1,0 +1,10 @@
+{
+  "id": "approvals",
+  "description": "Approve & allocate: the Equipment Manager's queue of requests to decide and of approved lines with no unit yet; approve or send back, assign units.",
+  "defaultPage": "approvals",
+  "navigation": { "embeddable": "enabled" },
+  "pages": {
+    "approvals": { "path": "pages/approvals-page" }
+  },
+  "chains": {}, "services": {}, "types": {}, "variables": {}
+}
