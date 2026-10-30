@@ -1,11 +1,13 @@
-define(['resources/js/mobileBus'], (bus) => {
+define(['resources/js/mobileBus', 'resources/js/requestData'], (bus, requestData) => {
   'use strict';
 
-  // My requests: binding helpers, and the line from another tab (mobileBus.focus('track', …)) to this screen.
+  // My requests: binding helpers, the line from another tab (mobileBus.focus('track', …)) to this screen, and a fresh
+  // list whenever a tab changes the requests (requestData.invalidate after an approval, a submit, a draft saved).
   class PageModule {
     constructor(context) {
       const helper = context && typeof context.getEventHelper === 'function' ? context.getEventHelper() : null;
       bus.onFocus('track', () => { if (helper) helper.fireCustomEvent('focusRequest', {}); });
+      requestData.onChange(() => { if (helper) helper.fireCustomEvent('requestsChanged', {}); });
     }
 
     /** The class for a stage's colours. */

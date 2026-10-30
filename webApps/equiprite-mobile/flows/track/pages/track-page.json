@@ -19,7 +19,8 @@
     "hist": { "type": "any", "defaultValue": { "loading": false, "error": "", "milestones": [], "note": "" }, "description": "Its history (requestHistory.load)." }
   },
   "events": {
-    "focusRequest": { "description": "Another tab, or a deep link, asked to show a request here (mobileBus.focus).", "payloadType": "object" }
+    "focusRequest": { "description": "Another tab, or a deep link, asked to show a request here (mobileBus.focus).", "payloadType": "object" },
+    "requestsChanged": { "description": "A tab changed the requests (requestData.onChange): the list is read again.", "payloadType": "object" }
   },
   "eventListeners": {
     "vbEnter": { "chains": [{ "chain": "loadChain", "parameters": { "refresh": false } }] },
@@ -30,7 +31,8 @@
     "onOpen": { "chains": [{ "chain": "openChain", "parameters": { "number": "{{ $event.currentTarget.dataset.number }}" } }] },
     "onBack": { "chains": [{ "chain": "openChain", "parameters": { "number": "" } }] },
     "onAct": { "chains": [{ "chain": "actChain", "parameters": { "act": "{{ $event.currentTarget.dataset.act }}" } }] },
-    "focusRequest": { "chains": [{ "chain": "focusChain" }] }
+    "focusRequest": { "chains": [{ "chain": "focusChain" }] },
+    "requestsChanged": { "chains": [{ "chain": "loadChain", "parameters": { "refresh": false } }] }
   },
   "imports": {
     "components": {

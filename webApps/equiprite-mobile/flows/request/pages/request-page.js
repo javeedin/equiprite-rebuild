@@ -114,29 +114,9 @@ define(['require', 'resources/js/mobileBus', 'resources/js/mobileRequest', 'reso
       } catch (e) { /* not in a browser */ }
     }
 
-    /**
-     * A request just sent, in My requests. My requests reads its list when it opens and on its Refresh, so a list it
-     * read before this request was sent does not have it yet: when My requests is open already, its own Refresh is
-     * pressed first (back to its list if a request is open there), and the request is asked for while it loads; My
-     * requests takes it once its list is in (its focusChain waits for its load).
-     */
-    async showInTrack(id, number) {
-      const what = { id: id ? Number(id) : undefined, number: number || '' };
-      const wait = () => new Promise((r) => setTimeout(r, 50));
-      try {
-        const back = document.getElementById('trBack');
-        if (back) {
-          back.click();
-          for (let i = 0; i < 20 && !document.getElementById('trRefresh'); i++) await wait();
-        }
-        const refresh = document.getElementById('trRefresh');
-        if (refresh) {
-          refresh.click();
-          const sum = document.getElementById('trSummary');
-          for (let i = 0; i < 8 && sum && sum.textContent.indexOf('Loading') === -1; i++) await wait();
-        }
-      } catch (e) { /* My requests is not open yet: it reads the list when it opens */ }
-      bus.focus('track', what);
+    /** A request just sent, in My requests: it reads its list again when requests change, and finds this one there. */
+    showInTrack(id, number) {
+      bus.focus('track', { id: id ? Number(id) : undefined, number: number || '' });
     }
 
     // ── Binding helpers ─────────────────────────────────────────────────────────────────────────────────────
