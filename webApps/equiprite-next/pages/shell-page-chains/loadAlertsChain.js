@@ -4,7 +4,9 @@ define([
   'resources/js/requestData',
   'resources/js/alerts',
   'resources/js/rules',
-], (ActionChain, Actions, requestData, alerts, rules) => {
+  'resources/js/nav',
+  'resources/js/portalData',
+], (ActionChain, Actions, requestData, alerts, rules, nav, portalData) => {
   'use strict';
 
   // The bell's list: alerts worked out from the requests and their equipment for this persona (late, waiting on
@@ -17,9 +19,19 @@ define([
       const v = $application.variables;
       $page.variables.alertsLoading = true;
       try {
-        const data = await requestData.load(context, Actions, { refresh: true });
-        const persona = rules.persona(v.fusionRoles, v.sessionRoles);
-        const derived = alerts.derive(persona, data.rows, data.linesByRequest, Date.now());
+        // A customer's bell reads their own views and the portal's rule; everyone else's, the requests (staff views).
+        // Until page access is known neither is read (nothing is worked out on a guess).
+        let data = { error: '' };
+        let derived = [];
+        if (!v.pageAccessLoaded) {
+          derived = [];
+        } else if (nav.customerOnly(v.pageAccessMap, v.pageAccessLoaded)) {
+          data = await portalData.load(context, Actions);
+          derived = alerts.fromPortal(data.needs);
+        } else {
+          data = await requestData.load(context, Actions, { refresh: true });
+          derived = alerts.derive(rules.persona(v.fusionRoles, v.sessionRoles), data.rows, data.linesByRequest, Date.now());
+        }
         let updates = [];
         try {
           const u = $application.user || {};

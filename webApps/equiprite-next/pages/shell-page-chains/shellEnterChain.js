@@ -8,10 +8,12 @@ define([
 ], (ActionChain, Actions, tabs, shellTabs, nav, alerts) => {
   'use strict';
 
-  // Opening EquipRite Next: the tabs kept from last time (or My work), plus a deep link (?open=…); the menu as it was
-  // left (full or icons). Once page access is known, tabs this role may not open are closed (fail closed), and when
-  // nothing is left the first screen the role may open is shown. Then the bell is checked.
-  const TRIES = 200;
+  // Opening EquipRite Next: the tabs kept from last time (or My work), plus a deep link (?open=…), and the menu as it
+  // was left (full or icons). No tab is opened before page access is known: the tabs this role may not open are left
+  // out first (fail closed), so no page the role cannot open is ever created (and reads nothing). When nothing is
+  // left, the first screen the role may open is shown. Then the bell is checked.
+  // Page access can take a while on a slow sign-in (roles from Fusion first): wait up to a minute.
+  const TRIES = 1200;
   const GAP_MS = 50;
 
   class shellEnterChain extends ActionChain {
@@ -29,24 +31,27 @@ define([
       if (pv.number) q.set('number', pv.number);
       const link = tabs.fromQuery('?' + q.toString() || window.location.search);
       if (link) state = tabs.open(state, link);
-      await shellTabs.update(context, Actions, () => state);
       $page.variables.readIds = alerts.loadRead();
 
       const v = $application.variables;
       for (let i = 0; i < TRIES && !(v.pageAccessLoaded && v.flagsLoaded); i++) {
         await new Promise((r) => setTimeout(r, GAP_MS));
       }
+      if (!v.pageAccessLoaded) return;
       const visible = (t) => nav.itemVisible(nav.item(t.navId), v.pageAccessMap, v.pageAccessLoaded, v.featureFlags, v.flagsLoaded, v.buRateSources);
-      await shellTabs.update(context, Actions, (now) => {
-        let keep = now.tabs.filter(visible);
-        if (!keep.length) {
-          const groups = nav.visibleGroups(v.pageAccessMap, v.pageAccessLoaded, v.featureFlags, v.flagsLoaded, v.buRateSources);
-          const first = groups.length ? tabs.forItem(groups[0].items[0].id) : null;
-          keep = first ? [first] : [];
-        }
-        if (keep.length === now.tabs.length && keep.every((t, i) => t.id === now.tabs[i].id)) return null;
-        return { tabs: keep, current: keep.some((t) => t.id === now.current) ? now.current : (keep[0] ? keep[0].id : '') };
-      });
+      let keep = state.tabs.filter(visible);
+      if (!keep.length) {
+        const groups = nav.visibleGroups(v.pageAccessMap, v.pageAccessLoaded, v.featureFlags, v.flagsLoaded, v.buRateSources);
+        const first = groups.length ? tabs.forItem(groups[0].items[0].id) : null;
+        keep = first ? [first] : [];
+      }
+      const current = keep.some((t) => t.id === state.current) ? state.current : (keep[0] ? keep[0].id : '');
+      // Anything opened in the meantime (a click while access loaded) stays, after the restored tabs.
+      await shellTabs.update(context, Actions, (now) => ({
+        tabs: keep.concat(now.tabs.filter((t) => !keep.some((k) => k.id === t.id))),
+        current: now.current && now.tabs.some((t) => t.id === now.current) ? now.current : current,
+      }));
+      $page.variables.shellReady = true;
       await Actions.callChain(context, { chain: 'loadAlertsChain' });
     }
   }

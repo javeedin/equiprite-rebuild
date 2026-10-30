@@ -144,6 +144,15 @@
         </div>
       </div>
       <div class="nx-content">
+        <oj-bind-if test="[[ !$variables.tabList.length ]]">
+          <div class="nx-page nx-soon">
+            <div class="nx-card nx-card-pad nx-soon-card" id="nxStartNote">
+              <oj-bind-text value="[[ $variables.shellReady || $application.variables.pageAccessLoaded && !$application.functions.visibleGroups($application.variables.pageAccessMap,
+                $application.variables.pageAccessLoaded, $application.variables.featureFlags, $application.variables.flagsLoaded, $application.variables.buRateSources).length
+                ? 'Your role has no EquipRite screens yet. Ask an administrator to give it access (Admin > Access).' : 'Opening your screens…' ]]"></oj-bind-text>
+            </div>
+          </div>
+        </oj-bind-if>
         <oj-vb-switcher id="nxSwitcher" class="nx-switcher" data="[[ $variables.tabs ]]" current-item="{{ $variables.currentTab }}"
           bridge="[[ vbBridge ]]"></oj-vb-switcher>
       </div>

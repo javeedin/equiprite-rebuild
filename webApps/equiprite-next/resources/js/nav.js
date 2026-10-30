@@ -155,8 +155,23 @@ define(['resources/js/rules'], function (rules) {
     return out;
   }
 
+  /**
+   * A customer's role: it opens the customer pages and no internal screen (EQR_DASHBOARD aside, which customers may
+   * hold). Such a role lands on the portal and does not see My work, as New sends customer-only roles to the portal.
+   */
+  function customerOnly(map, loaded) {
+    if (!rules.canSee(map, loaded, ['EQR_CUST_DASHBOARD'])) return false;
+    var internal = [];
+    GROUPS.forEach(function (g) {
+      if (g.key === 'customers') return;
+      g.items.forEach(function (it) { if (it.id !== 'home') internal = internal.concat(it.pageCodes); });
+    });
+    return !rules.canSee(map, loaded, internal);
+  }
+
   function itemVisible(it, map, loaded, flags, flagsLoaded, buRateSources) {
     if (!it) return false;
+    if (it.id === 'home' && customerOnly(map, loaded)) return false;
     var group = GROUPS.filter(function (g) { return g.key === it.group; })[0];
     if (group && !(group.flags || []).every(function (f) { return rules.isFeatureEnabled(flags, flagsLoaded, f); })) return false;
     if ((it.hiddenWhenFlags || []).some(function (f) { return !rules.isFeatureFlagOff(flags, flagsLoaded, f); })) return false;
@@ -190,6 +205,7 @@ define(['resources/js/rules'], function (rules) {
     newUrl: newUrl,
     visibleGroups: visibleGroups,
     itemVisible: itemVisible,
+    customerOnly: customerOnly,
     search: search
   };
 });

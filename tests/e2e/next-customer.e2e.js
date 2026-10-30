@@ -156,7 +156,8 @@ async function noSideways(page) {
   // ══ A customer ════════════════════════════════════════════════════════════════════════════════════════════════
   const env = await E.start({
     port: 19390, handle, app: 'next', sessionRole: 'EXTERNAL_REQUESTOR', username: 'maria.torres',
-    access: { EQR_CUST_DASHBOARD: 'FULL', EQR_CUST_MY_REQUESTS: 'FULL', EQR_CUST_CREATE_REQ: 'FULL' }, shots: process.env.E2E_SHOTS,
+    // EQR_DASHBOARD too: customers may hold it, and still land on the portal without My work.
+    access: { EQR_DASHBOARD: 'FULL', EQR_CUST_DASHBOARD: 'FULL', EQR_CUST_MY_REQUESTS: 'FULL', EQR_CUST_CREATE_REQ: 'FULL' }, shots: process.env.E2E_SHOTS,
   });
   const { page } = env;
   try {
@@ -170,6 +171,14 @@ async function noSideways(page) {
     T.check('a greeting by name, the customer and what needs them', (await env.text(visible('.nx-cu .nx-pagehead'))).includes('Maria')
       && (await env.text(visible('#cuSummary'))) === CUST + ' · 4 open requests · 4 things need you', await env.text(visible('#cuSummary')));
     T.check('a customer sign-in gets no staff banner', !(await page.$(visible('#cuBehalf'))));
+    await page.waitForSelector('.nx-bell-count', { timeout: 20000 });
+    await page.click('#nxBell');
+    await page.waitForSelector('.nx-alert');
+    T.eq('the bell: what needs the customer, from the portal (the overdue invoice first)', await page.$$eval('.nx-alert-title', (t) => t.map((x) => x.innerText).join(' | ')),
+      '1 invoice is overdue | Accept the quote for EQR-000610 | Accept the delivery of EQR-000700 | Finish and send EQR-000905');
+    T.check('… never from the staff request views', !env.calls.some((c) => /\/views\/my-requests\?|\/views\/my-request-lines\?/.test(c)),
+      env.calls.filter((c) => /\/views\/my-requests\?|\/views\/my-request-lines\?/.test(c)).join(', '));
+    await page.keyboard.press('Escape');
 
     T.section('the home: what needs them, what is on its way, what is on their site');
     T.eq('what needs them, New\'s order: the quote, the delivery, the draft, the overdue invoice', await page.$$eval('.nx-cu-need-title', (t) => t.map((x) => x.innerText).join(' | ')),

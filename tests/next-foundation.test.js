@@ -69,6 +69,14 @@ if (notBuilt) {
 }
 T.eq('a built screen opens its own flow', JSON.stringify(nav.routeOf(nav.item('availability'))), '{"flow":"availability","page":"availability","params":{}}');
 
+const CUST = { EQR_DASHBOARD: 'FULL', EQR_CUST_DASHBOARD: 'FULL', EQR_CUST_MY_REQUESTS: 'FULL', EQR_CUST_CREATE_REQ: 'FULL' };
+T.check('a customer-only role (even with the dashboard code) is a customer', nav.customerOnly(CUST, true) && !nav.customerOnly(ALL, true));
+T.eq('a customer does not see My work: their menu is the portal', nav.visibleGroups(CUST, true, FLAGS, true, {}).map((g) => g.items.map((i) => i.id).join('+')).join(' | '), 'customer-portal');
+T.eq('the bell for a customer: the portal\'s "needs you", each opening its tab', JSON.stringify(alerts.fromPortal([
+  { kind: 'delivery', title: 'Accept the delivery of REQ-9', text: '2 pieces were shipped', open: { record: 'customer-request', params: { id: 9, number: 'REQ-9' } } },
+  { kind: 'invoice', title: '1 invoice overdue', text: 'Pay it', open: { view: 'invoices', chip: 'overdue' } }]).map((a) => [a.id, a.kind, a.open.record || a.open.navId])),
+  '[["cu:delivery:REQ-9","action","customer-request"],["cu:invoice:1 invoice overdue","late","customer-portal"]]');
+
 T.section('tabs');
 let s = tabs.restore(null);
 T.eq('first start: My work, pinned', s.tabs.map((t) => t.id + (t.pinned ? '*' : '')).join() + ' / ' + s.current, 'home* / home');

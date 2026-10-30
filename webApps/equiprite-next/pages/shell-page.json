@@ -99,6 +99,11 @@
       "type": "string",
       "defaultValue": "",
       "input": "fromUrl"
+    },
+    "shellReady": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "True once page access is known and the tabs this role may open are open."
     }
   },
   "types": {

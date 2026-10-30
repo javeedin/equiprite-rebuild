@@ -90,6 +90,19 @@ define(['resources/js/requestProgress', 'resources/js/approvalQueue'], function 
     }).sort(function (a, b) { return String(b.when).localeCompare(String(a.when)); });
   }
 
+  /**
+   * A customer's alerts: the portal's own "needs you" (portalView.needs) as bell entries, each opening its tab (an
+   * overdue invoice on several requests opens the portal).
+   */
+  function fromPortal(needs) {
+    return (Array.isArray(needs) ? needs : []).map(function (n) {
+      var number = n.open && n.open.params ? n.open.params.number : '';
+      var open = n.open && n.open.record ? n.open : { navId: 'customer-portal' };
+      return { id: 'cu:' + n.kind + ':' + (number || n.title), kind: n.kind === 'invoice' ? 'late' : 'action', severity: n.kind === 'invoice' ? 1 : 2,
+        title: n.title, text: n.text, open: open };
+    });
+  }
+
   /** One list: unread first, then by severity; with the unread count. */
   function merge(derived, updates, readIds) {
     var read = {};
@@ -113,5 +126,5 @@ define(['resources/js/requestProgress', 'resources/js/approvalQueue'], function 
     return list;
   }
 
-  return { derive: derive, fromServer: fromServer, merge: merge, loadRead: loadRead, saveRead: saveRead, READ_KEY: READ_KEY };
+  return { derive: derive, fromPortal: fromPortal, fromServer: fromServer, merge: merge, loadRead: loadRead, saveRead: saveRead, READ_KEY: READ_KEY };
 });
