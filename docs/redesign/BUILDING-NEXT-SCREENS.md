@@ -46,6 +46,14 @@ Tests for them: `tests/e2e/next-requests.e2e.js`, `tests/next-foundation.test.js
 - Never change a view's variable and its rows in two steps that a template can see between them. Compute the new
   rows first, then switch (see `requests-page-chains/applyChain.js`).
 - One click, one handler: inside a clickable row, a button lets the row handle it.
+- A native `<select>` ignores a bound `:value` (it sets the attribute, not the selection): bind `:selected` on each
+  `<option>` instead. A native input stops following its bound value once someone has typed in it: when a chain
+  changes it, set the element's value too.
+- Read what you need from a page variable before setting it to null; a later read of the old object throws.
+- Long work that must not be cut off (a Fusion sync): `bus.guard(tabId, 'what closing would interrupt')` while it
+  runs, `bus.guard(tabId, null)` after. The shell asks before closing the tab.
+- A record kind may name its own key (`key: (p) => …`) and be `transient` (not kept after a restart); see
+  `agreement-request` in `nav.js`.
 
 ## Shared parts
 
