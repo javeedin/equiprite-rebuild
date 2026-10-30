@@ -92,6 +92,9 @@ T.eq('restore drops junk and unknown screens', tabs.restore('{"tabs":[{"id":"nop
 T.eq('deep links', [tabs.fromQuery('?open=fleet').id, tabs.fromQuery('?open=request&id=7&number=REQ-7').title, tabs.fromQuery('?x=1')].join(), 'fleet,REQ-7,');
 const d = tabs.diff(r.tabs, tabs.rename(tabs.close(r, 'requests'), 'request:10482', 'REQ-10482 · Pier A').tabs);
 T.eq('what the switcher must add, remove, rename', JSON.stringify([d.add.length, d.remove, d.update.map((x) => x.id)]), '[0,["requests"],["request:10482"]]');
+const handoffTab = tabs.forRecord('agreement-request', { agreement: 'RNT-0002', at: 5 });
+T.eq('a request from an agreement: a tab of its own per click, not kept after a restart',
+  [handoffTab.id, handoffTab.title, tabs.restore(tabs.serialize(tabs.open(tabs.restore(null), handoffTab))).tabs.map((t) => t.id).join()].join(' | '), 'agreement-request:RNT-0002-5 | Request · RNT-0002 | home');
 T.eq('switcher item: id, safe router name, route', JSON.stringify(tabs.switcherItem(tabs.forRecord('request', { id: 5, number: 'R-5' })).name), '"tab_request_5"');
 
 T.section('export');

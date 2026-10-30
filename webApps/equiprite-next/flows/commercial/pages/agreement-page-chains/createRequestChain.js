@@ -19,7 +19,7 @@ define([
   //     fromAgreementId / Number / Customer / CustomerRefId / FusionCustomerId / EffectiveFrom / EffectiveTo / Notes,
   //     agreementLineIdByEquipmentId, agreementRateByEquipmentId) and the tab flag eqr.agreement.active
   //     (agreementRules.writeHandoff).
-  // Then the New request tab opens (bus.open new-request), which reads the hand-off once.
+  // Then a New request tab of its own opens (record 'agreement-request'), which reads the hand-off once.
   class createRequestChain extends ActionChain {
     async run(context) {
       const { $page } = context;
@@ -103,7 +103,8 @@ define([
         v.selected = {};
         this.say(v, cartItems.length + (cartItems.length === 1 ? ' line went' : ' lines went') + ' to New request at this agreement\'s rates. '
           + 'Add the project, dates and delivery there.', 'info');
-        bus.open({ navId: 'new-request' });
+        // A New request tab of its own reads the hand-off (one already open keeps what is in it).
+        bus.open({ record: 'agreement-request', params: { agreement: v.agreementNumber || String(v.agreementHeaderId || ''), at: Date.now() } });
       } finally {
         try { v.busy = false; } catch (e) { /* tab already closed */ }
       }

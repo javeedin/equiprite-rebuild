@@ -58,7 +58,7 @@ define(['resources/js/rules'], function (rules) {
     { key: 'commercial', label: 'Commercial', items: [
       { id: 'rates', label: 'Rates', icon: 'oj-ux-ico-tables-basic', pageCodes: ['EQR_RATE_SCHEDULE'], hiddenByRateSource: true,
         route: { flow: 'commercial', page: 'rates' }, built: true, newNav: 'rates', keywords: 'rate schedules pricing' },
-      { id: 'agreements', label: 'Agreements', icon: 'oj-ux-ico-file-text', pageCodes: ['EQR_RENTAL_AGREEMENTS'], flags: ['AGREEMENTS_ENABLED'],
+      { id: 'agreements', label: 'Agreements', icon: 'oj-ux-ico-file-text', pageCodes: ['EQR_RENTAL_AGREEMENTS'], flags: ['AGREEMENTS_ENABLED', 'PROJECTS_MODULE_ENABLED'],
         route: { flow: 'commercial', page: 'agreements' }, built: true, newNav: 'agreements', keywords: 'rental agreements contracts' }
     ] },
     { key: 'insights', label: 'Insights', items: [
@@ -112,6 +112,12 @@ define(['resources/js/rules'], function (rules) {
       title: function (p) { return 'Draft ' + ((p && (p.number || p.id)) || ''); } },
     transfer: { flow: 'checks', page: 'transfer', icon: 'oj-ux-ico-inventory-transfer', navId: 'transfers',
       title: function (p) { return (p && (p.number || p.id)) || 'Transfer'; } },
+    // A request started from an agreement's lines (Agreements, Create request): a New request tab of its own, which
+    // reads the hand-off once, so a New request already open keeps what is in it. Not kept after a restart (its
+    // hand-off has been read by then).
+    'agreement-request': { flow: 'order', page: 'new-request', icon: 'oj-ux-ico-cart-add', navId: 'new-request', transient: true,
+      key: function (p) { return p && p.agreement ? p.agreement + '-' + (p.at || '') : ''; },
+      title: function (p) { return 'Request · ' + ((p && p.agreement) || 'agreement'); } },
     'equipment-item': { flow: 'equipment', page: 'item', icon: 'oj-ux-ico-box-grid', navId: 'equipment',
       title: function (p) { return (p && (p.number || p.id)) || 'Equipment'; } },
     // An agreement is keyed by its number ({ number: 'RNT-0002' }); { id: 'new' } is a new one.

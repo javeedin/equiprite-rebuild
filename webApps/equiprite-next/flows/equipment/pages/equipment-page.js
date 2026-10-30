@@ -2,7 +2,8 @@ define([
   'resources/js/equipmentImport',
   'resources/js/equipmentMaster',
   'resources/js/exportKit',
-], (EquipmentImport, em, exportKit) => {
+  'resources/js/shellBus',
+], (EquipmentImport, em, exportKit, bus) => {
   'use strict';
 
   // Equipment master: binding helpers. The list's logic is resources/js/equipmentMaster.js; the functions the Sync and
@@ -10,6 +11,12 @@ define([
   class PageModule extends EquipmentImport {
     /** The export menu's formats. */
     formats() { return exportKit.FORMATS; }
+
+    /** New's leave guard (reload / close the window), and the shell's: closing this tab mid-run asks first. */
+    setLeaveGuard(active) {
+      bus.guard('equipment', active ? 'Equipment master is still syncing or fetching from Fusion; closing it stops the run part-way.' : null);
+      return super.setLeaveGuard(active);
+    }
 
     /** Sort arrow for a column header. */
     sortMark(key, sortKey, sortDir) { return key === sortKey ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''; }

@@ -57,7 +57,8 @@ const equipmentAttachments = js('equipmentAttachments');
 const AppModule = loadAmd(path.join(NEXT, 'app-flow.js'), { 'resources/js/rules': rules, 'resources/js/nav': nav, 'resources/js/fmt': fmt });
 const app = new AppModule();
 
-const EqPage = loadAmd(path.join(PAGES, 'equipment-page.js'), { 'resources/js/equipmentImport': EquipmentImport, 'resources/js/equipmentMaster': em, 'resources/js/exportKit': exportKit });
+const shellBus = loadAmd(path.join(NEXT, 'resources', 'js', 'shellBus.js'));
+const EqPage = loadAmd(path.join(PAGES, 'equipment-page.js'), { 'resources/js/equipmentImport': EquipmentImport, 'resources/js/equipmentMaster': em, 'resources/js/exportKit': exportKit, 'resources/js/shellBus': shellBus });
 const ItemPage = loadAmd(path.join(PAGES, 'item-page.js'), { 'resources/js/equipmentMaster': em, 'resources/js/exportKit': exportKit, 'resources/js/fmt': fmt });
 const NewList = loadAmd(path.join(NEW_PAGES, 'equipment-page.js'));
 const NewImport = loadAmd(path.join(NEW_PAGES, 'equipment-import-page.js'));

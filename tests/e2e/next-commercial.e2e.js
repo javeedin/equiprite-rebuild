@@ -391,15 +391,28 @@ async function settle(page, ms) { await page.waitForTimeout(ms || 400); }
       '2 lines go to New request at this agreement\'s rates. 1 line names only a class: it takes the first equipment of that class. You add the project, dates and delivery there.');
     T.eq('the button says how many', await vtext(page, '#agrCreateRequest'), 'Create request from 2 lines');
     await env.shot('next-agreement.png');
+    // The hand-off is read (and cleared) by New request as soon as its tab opens: keep what was written, as written.
+    await page.evaluate(() => {
+      const orig = Storage.prototype.setItem;
+      Storage.prototype.setItem = function (k, v) {
+        orig.call(this, k, v);
+        if (this === window.sessionStorage && k === 'eqr.agreement.active') {
+          const snap = {};
+          Object.keys(localStorage).forEach((x) => { if (x.indexOf('eqr.draft.') === 0) snap[x] = localStorage.getItem(x); });
+          window.__handoff = { snap, flag: v };
+        }
+      };
+    });
     await page.click($v('#agrCreateRequest'));
-    await page.waitForFunction(() => document.querySelector('.nx-tab--on') && document.querySelector('.nx-tab--on').dataset.tabId === 'new-request', null, { timeout: 15000 });
+    await page.waitForFunction(() => document.querySelector('.nx-tab--on') && document.querySelector('.nx-tab--on').dataset.tabId.indexOf('agreement-request:RNT-0002-') === 0, null, { timeout: 15000 });
     T.check('a class-only line takes the first equipment of its class', env.calls.some((c) => c.includes('/equipment-master?') && c.includes('equipmentClassId=4') && c.includes('size=5')));
     const hand = await page.evaluate(() => {
-      const keys = Object.keys(localStorage).filter((k) => k.indexOf('eqr.draft.') === 0).sort();
-      const get = (k) => JSON.parse(localStorage.getItem('eqr.draft.' + k));
+      const snap = (window.__handoff && window.__handoff.snap) || {};
+      const keys = Object.keys(snap).sort();
+      const get = (k) => JSON.parse(snap['eqr.draft.' + k] || 'null');
       return { keys: keys.join(','), cart: get('CartItemsArray'), origin: get('requestOrigin'), id: get('fromAgreementId'), number: get('fromAgreementNumber'),
         customer: get('fromAgreementCustomer'), fusion: get('fromAgreementFusionCustomerId'), from: get('fromAgreementEffectiveFrom'), notes: get('fromAgreementNotes'),
-        lineIds: get('agreementLineIdByEquipmentId'), rates: get('agreementRateByEquipmentId'), flag: sessionStorage.getItem('eqr.agreement.active') };
+        lineIds: get('agreementLineIdByEquipmentId'), rates: get('agreementRateByEquipmentId'), flag: window.__handoff && window.__handoff.flag };
     });
     // draftStorage.save(key, null) removes the key, so fromAgreementCustomerRefId (null on a Fusion customer) is absent, as in New.
     T.eq('the hand-off keys, exactly as New writes them', hand.keys, ['agreementLineIdByEquipmentId', 'agreementRateByEquipmentId', 'CartItemsArray', 'fromAgreementCustomer',
@@ -412,6 +425,10 @@ async function settle(page, ms) { await page.waitForTimeout(ms || 400); }
       'agreement|31|RNT-0002|Lone Star Paving|900|2026-01-01T00:00:00Z|Minimum one week|1');
     T.eq('the line ids and rates by equipment', JSON.stringify([hand.lineIds, hand.rates]),
       JSON.stringify([{ 101: 11, 205: 12 }, { 101: { billingRate: 1050, billingUnit: 'DAY' }, 205: { billingRate: 720, billingUnit: 'DAY' } }]));
+    await page.waitForSelector('#orAgreement:visible', { timeout: 20000 });
+    T.check('New request (its own tab) takes the lines at the agreement\'s rates', (await vtext(page, '#orAgreement')).includes('RNT-0002')
+      && (await page.$$eval('.nx-or-line', (l) => l.filter((x) => x.offsetParent).length)) === 2, await vtext(page, '#orAgreement'));
+    T.eq('the hand-off is read once', await page.evaluate(() => String(sessionStorage.getItem('eqr.agreement.active')) + '|' + Object.keys(localStorage).filter((k) => k.indexOf('eqr.draft.') === 0).length), 'null|0');
     T.eq('nothing written to the server', env.writes.length, agrStart);
 
     T.section('A draft agreement: Approve');

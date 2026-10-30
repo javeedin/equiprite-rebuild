@@ -27,7 +27,7 @@ define(['resources/js/nav'], function (nav) {
   function forRecord(kind, params) {
     var rec = nav.RECORDS[kind];
     var p = params || {};
-    var key = p.id != null && p.id !== '' ? p.id : p.number;
+    var key = rec && rec.key ? rec.key(p) : (p.id != null && p.id !== '' ? p.id : p.number);
     if (!rec || key == null || key === '') return null;
     return { id: kind + ':' + key, flow: rec.flow, page: rec.page, params: p, title: String(rec.title(p)), icon: rec.icon, navId: rec.navId, pinned: false };
   }
@@ -105,11 +105,15 @@ define(['resources/js/nav'], function (nav) {
       title: tab.title, icon: tab.icon, navId: tab.navId, pinned: !!tab.pinned };
   }
 
-  /** The tabs to keep for the next start (no more than MAX_TABS, nothing but plain data). */
+  /** The tabs to keep for the next start (no more than MAX_TABS, nothing but plain data; not a transient record's). */
   function serialize(state) {
+    var kept = (state.tabs || []).filter(function (x) {
+      var rec = nav.RECORDS[String(x.id).split(':')[0]];
+      return !(String(x.id).indexOf(':') !== -1 && rec && rec.transient);
+    });
     return JSON.stringify({
-      current: state.current,
-      tabs: (state.tabs || []).slice(0, MAX_TABS).map(function (x) {
+      current: kept.some(function (x) { return x.id === state.current; }) ? state.current : (kept[0] ? kept[0].id : ''),
+      tabs: kept.slice(0, MAX_TABS).map(function (x) {
         return { id: x.id, flow: x.flow, page: x.page, params: x.params || {}, title: x.title, icon: x.icon, navId: x.navId, pinned: !!x.pinned };
       })
     });

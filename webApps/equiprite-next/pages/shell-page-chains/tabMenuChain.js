@@ -3,7 +3,8 @@ define([
   'vb/action/actions',
   'resources/js/tabs',
   'resources/js/shellTabs',
-], (ActionChain, Actions, tabs, shellTabs) => {
+  'resources/js/shellBus',
+], (ActionChain, Actions, tabs, shellTabs, bus) => {
   'use strict';
 
   // The tab strip's menu: toggle it, close the other tabs, or close them all (My work stays).
@@ -16,6 +17,10 @@ define([
         return;
       }
       $page.variables.tabMenuOpen = false;
+      const st = shellTabs.state(context);
+      const closing = st.tabs.filter((t) => !t.pinned && (action === 'all' || t.id !== st.current)).map((t) => t.id);
+      const warning = bus.closeWarning(closing);
+      if (warning && !window.confirm(warning + ' Close the tabs anyway?')) return;
       if (action === 'others') await shellTabs.update(context, Actions, (st) => tabs.closeOthers(st, st.current));
       if (action === 'all') await shellTabs.update(context, Actions, (st) => tabs.closeOthers(st, ''));
     }
