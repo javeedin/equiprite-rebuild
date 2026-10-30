@@ -1,0 +1,389 @@
+<!-- One rental agreement in its own tab: what it is, where it stands and what is next; its lines and their rates;
+     Approve / Reject; tick lines and Create request (the hand-off to New request); Edit in place. Rules:
+     resources/js/agreementRules.js (New EquipRite's, unchanged); calls: agreement-page-chains (New's, call for call). -->
+<div class="nx-page nx-cm nx-record nx-agreement">
+  <oj-bind-if test="[[ !!$variables.unavailable ]]">
+    <div class="nx-card nx-empty" role="status"><oj-bind-text value="[[ $variables.unavailable ]]"></oj-bind-text></div>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ !!$variables.ask ]]">
+    <section class="nx-card nx-card-pad nx-cm-ask" role="alertdialog" aria-labelledby="agrAskTitle">
+      <h2 class="nx-h2" id="agrAskTitle"><oj-bind-text value="[[ $variables.ask.title ]]"></oj-bind-text></h2>
+      <p class="nx-cm-ask-text"><oj-bind-text value="[[ $variables.ask.message ]]"></oj-bind-text></p>
+      <div class="nx-actions">
+        <button type="button" class="nx-btn" data-action="answer" data-value="cancel" on-click="[[ $listeners.onUi ]]">Keep it</button>
+        <button type="button" class="nx-btn nx-cm-btn--danger" id="agrAskOk" data-action="answer" data-value="ok" on-click="[[ $listeners.onUi ]]">
+          <oj-bind-text value="[[ $variables.ask.ok ]]"></oj-bind-text></button>
+      </div>
+    </section>
+  </oj-bind-if>
+
+  <!-- ══ View ══════════════════════════════════════════════════════════════════════════════════════════ -->
+  <oj-bind-if test="[[ $variables.mode === 'view' && !$variables.unavailable ]]">
+    <oj-bind-if test="[[ $variables.isLoading && !$variables.agreementHeaderId ]]">
+      <div class="nx-card nx-empty">Loading the agreement…</div>
+    </oj-bind-if>
+    <oj-bind-if test="[[ !!$variables.loadError ]]">
+      <div class="nx-error" role="alert"><oj-bind-text value="[[ $variables.loadError ]]"></oj-bind-text>
+        <button type="button" class="nx-link" data-action="list" data-value="" on-click="[[ $listeners.onUi ]]">Open Agreements</button></div>
+    </oj-bind-if>
+
+    <oj-bind-if test="[[ !!$variables.agreementHeaderId && !$variables.loadError ]]">
+      <div class="nx-pagehead">
+        <div>
+          <div class="nx-kicker"><oj-bind-text value="[[ 'Rental agreement' + ($variables.agreementType ? ' · ' + $variables.agreementType : '') ]]"></oj-bind-text></div>
+          <h1 class="nx-record-title">
+            <oj-bind-text value="[[ $variables.agreementName || $variables.agreementNumber ]]"></oj-bind-text>
+            <span :class="[[ 'nx-pill nx-record-pill ' + $functions.tone($variables.agreementStatus) ]]" id="agrStatus" :title="[[ 'Stored status: ' + ($variables.agreementStatus || 'none') ]]">
+              <oj-bind-text value="[[ $functions.statusLabel($variables.agreementStatus) ]]"></oj-bind-text></span>
+          </h1>
+          <div class="nx-sub"><oj-bind-text value="[[ $functions.subline($variables.agreementNumber, $variables.customerName, $variables.effectiveFrom, $variables.effectiveTo) ]]"></oj-bind-text>
+            <oj-bind-if test="[[ !!$functions.expiryText($variables.agreementStatus, $variables.effectiveTo) ]]">
+              <span class="nx-cm-warn nx-cm-subwarn" id="agrEnds"><span class="oj-ux-ico-warning" aria-hidden="true"></span><oj-bind-text value="[[ $functions.expiryText($variables.agreementStatus, $variables.effectiveTo) ]]"></oj-bind-text></span>
+            </oj-bind-if>
+          </div>
+        </div>
+        <div class="nx-actions">
+          <button type="button" class="nx-btn nx-btn--plain" data-action="refresh" data-value="" on-click="[[ $listeners.onUi ]]" :disabled="[[ $variables.isLoading || $variables.busy ]]">
+            <span class="oj-ux-ico-refresh" aria-hidden="true"></span>Refresh</button>
+          <div class="nx-export">
+            <button type="button" class="nx-btn" id="agrLinesExport" data-action="exportMenu" data-value="" on-click="[[ $listeners.onUi ]]" aria-haspopup="menu"
+              :aria-expanded="[[ $variables.exportOpen ? 'true' : 'false' ]]"><span class="oj-ux-ico-download" aria-hidden="true"></span>Export<span class="oj-ux-ico-chevron-down" aria-hidden="true"></span></button>
+            <oj-bind-if test="[[ $variables.exportOpen ]]">
+              <div class="nx-menu" role="menu" aria-label="Export the lines">
+                <oj-bind-for-each data="[[ $functions.formats() ]]">
+                  <template data-oj-as="f">
+                    <button type="button" role="menuitem" class="nx-menu-item" :data-format="[[ f.data.key ]]" on-click="[[ $listeners.onExport ]]">
+                      <span :class="[[ f.data.icon ]]" aria-hidden="true"></span><oj-bind-text value="[[ f.data.label ]]"></oj-bind-text></button>
+                  </template>
+                </oj-bind-for-each>
+                <p class="nx-menu-note"><oj-bind-text value="[[ $functions.shownCount($variables.linesArray, $variables.searchText) + ' lines, as shown' ]]"></oj-bind-text></p>
+              </div>
+            </oj-bind-if>
+          </div>
+          <oj-bind-if test="[[ $variables.canWrite && $functions.canEdit($variables.agreementStatus) ]]">
+            <button type="button" class="nx-btn" id="agrEdit" data-action="edit" data-value="" on-click="[[ $listeners.onUi ]]">
+              <span class="oj-ux-ico-edit" aria-hidden="true"></span>Edit</button>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.canWrite && $functions.canDecide($variables.agreementStatus) ]]">
+            <button type="button" class="nx-btn nx-cm-btn--dangertext" id="agrReject" on-click="[[ $listeners.onReject ]]" :disabled="[[ $variables.busy ]]">Reject</button>
+            <button type="button" class="nx-btn nx-btn--primary" id="agrApprove" on-click="[[ $listeners.onApprove ]]" :disabled="[[ $variables.busy || $variables.linesArray.length === 0 ]]"
+              :title="[[ $variables.linesArray.length === 0 ? 'An agreement needs at least one line before it is approved' : 'Makes the agreement active: its lines can then be requested' ]]">
+              <span class="oj-ux-ico-check" aria-hidden="true"></span>Approve</button>
+          </oj-bind-if>
+        </div>
+      </div>
+
+      <oj-bind-if test="[[ !!$variables.note ]]">
+        <div :class="[[ $variables.noteTone === 'error' ? 'nx-error' : 'nx-cm-note' ]]" role="status" id="agrNote"><oj-bind-text value="[[ $variables.note ]]"></oj-bind-text></div>
+      </oj-bind-if>
+
+      <section class="nx-card nx-card-pad nx-cm-next" aria-label="What is next">
+        <span class="nx-next" id="agrNext"><strong>Next:</strong> <oj-bind-text value="[[ $functions.nextStep($variables.agreementStatus, $variables.effectiveTo, $variables.linesArray.length) ]]"></oj-bind-text></span>
+        <oj-bind-if test="[[ $functions.canRequest($variables.agreementStatus) ]]">
+          <div class="nx-cm-request">
+            <span class="nx-note" id="agrPreview"><oj-bind-text value="[[ $functions.requestPreview($variables.selected, $variables.linesArray, $variables.idMap) ]]"></oj-bind-text></span>
+            <button type="button" class="nx-btn nx-btn--primary" id="agrCreateRequest" on-click="[[ $listeners.onCreateRequest ]]"
+              :disabled="[[ $functions.selectedCount($variables.selected) === 0 || $variables.busy ]]">
+              <span class="oj-ux-ico-cart-add" aria-hidden="true"></span><oj-bind-text value="[[ $functions.createLabel($variables.selected) ]]"></oj-bind-text></button>
+          </div>
+        </oj-bind-if>
+        <oj-bind-if test="[[ $variables.canWrite && $functions.canDecide($variables.agreementStatus) && $variables.linesArray.length === 0 ]]">
+          <span class="nx-note">An agreement needs at least one line before it is approved: Edit it to add lines.</span>
+        </oj-bind-if>
+      </section>
+
+      <div class="nx-record-body">
+        <section class="nx-card" aria-labelledby="agrLinesTitle">
+          <div class="nx-card-head">
+            <h2 id="agrLinesTitle"><oj-bind-text value="[[ 'Lines and rates (' + $variables.linesArray.length + ')' ]]"></oj-bind-text></h2>
+            <label class="nx-search nx-cm-search--sm">
+              <span class="oj-ux-ico-search" aria-hidden="true"></span>
+              <input type="search" :value="[[ $variables.searchText ]]" on-input="[[ $listeners.onSearch ]]" aria-label="Search the lines" placeholder="Equipment, class or description">
+            </label>
+          </div>
+          <oj-bind-if test="[[ $variables.linesArray.length === 0 && !$variables.isLoading ]]">
+            <div class="nx-empty">No lines yet.</div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.linesArray.length > 0 ]]">
+            <div class="nx-table">
+              <div class="nx-grid nx-cm-lgrid" role="table" aria-labelledby="agrLinesTitle">
+                <div class="nx-row nx-row--head" role="row">
+                  <span role="columnheader">
+                    <oj-bind-if test="[[ $functions.canRequest($variables.agreementStatus) ]]">
+                      <input type="checkbox" class="nx-cm-tick" data-key="all" aria-label="Tick every line shown"
+                        :checked="[[ $functions.allShownSelected($variables.selected, $variables.linesArray, $variables.searchText, $variables.idMap) ]]" on-change="[[ $listeners.onTick ]]">
+                    </oj-bind-if>
+                  </span>
+                  <span role="columnheader">Line</span><span role="columnheader">Equipment</span><span role="columnheader">Rate</span>
+                  <span role="columnheader">Qty</span><span role="columnheader">Estimated cost</span>
+                </div>
+                <oj-bind-for-each data="[[ $functions.visibleLines($variables.linesArray, $variables.searchText, $variables.showLimit) ]]">
+                  <template data-oj-as="l">
+                    <div :class="[[ 'nx-row' + ($functions.isSelected($variables.selected, l.data.compositeKey) ? ' nx-cm-row--on' : '') ]]" role="row" :data-line="[[ l.data.line_no ]]">
+                      <span role="cell">
+                        <oj-bind-if test="[[ $functions.canRequest($variables.agreementStatus) ]]">
+                          <input type="checkbox" class="nx-cm-tick" :data-key="[[ l.data.compositeKey ]]" :disabled="[[ !$functions.canTick($variables.idMap, l.data.compositeKey) ]]"
+                            :checked="[[ $functions.isSelected($variables.selected, l.data.compositeKey) ]]" on-change="[[ $listeners.onTick ]]"
+                            :aria-label="[[ 'Request line ' + l.data.line_no + ', ' + l.data.equipment_name ]]">
+                        </oj-bind-if>
+                      </span>
+                      <span role="cell" class="nx-num"><oj-bind-text value="[[ l.data.line_no ]]"></oj-bind-text></span>
+                      <span role="cell"><span class="nx-cell-main"><oj-bind-text value="[[ l.data.equipment_name ]]"></oj-bind-text></span>
+                        <span class="nx-cell-sub"><oj-bind-text value="[[ $functions.lineSub(l.data) ]]"></oj-bind-text></span></span>
+                      <span role="cell" :class="[[ $functions.fromSchedule(l.data) ? 'nx-muted' : 'nx-num nx-cm-strong' ]]"><oj-bind-text value="[[ $functions.rateText(l.data) ]]"></oj-bind-text></span>
+                      <span role="cell" class="nx-num"><oj-bind-text value="[[ l.data.qty ]]"></oj-bind-text></span>
+                      <span role="cell" class="nx-num"><oj-bind-text value="[[ l.data.est_cost ? $functions.money(l.data.est_cost, $variables.currencyCode) : '—' ]]"></oj-bind-text></span>
+                    </div>
+                  </template>
+                </oj-bind-for-each>
+              </div>
+            </div>
+            <div class="nx-cm-linesfoot">
+              <span class="nx-note">A rate on a line wins; a line without one takes the rate schedule's. Lines are a shortcut for a request; they do not limit what can be requested.</span>
+              <oj-bind-if test="[[ $functions.shownCount($variables.linesArray, $variables.searchText) > $variables.showLimit ]]">
+                <button type="button" class="nx-btn nx-btn--sm" data-action="more" data-value="" on-click="[[ $listeners.onUi ]]">
+                  <oj-bind-text value="[[ 'Show more (' + ($functions.shownCount($variables.linesArray, $variables.searchText) - $variables.showLimit) + ' left)' ]]"></oj-bind-text></button>
+              </oj-bind-if>
+            </div>
+          </oj-bind-if>
+        </section>
+
+        <aside class="nx-card nx-card-pad nx-facts" aria-label="About this agreement">
+          <dl>
+            <div><dt>Customer</dt><dd><oj-bind-text value="[[ $variables.customerName || $variables.banner.project_customer || '—' ]]"></oj-bind-text></dd></div>
+            <div><dt>Valid</dt><dd><oj-bind-text value="[[ $functions.range($variables.effectiveFrom, $variables.effectiveTo) ]]"></oj-bind-text></dd></div>
+            <div><dt>Agreement</dt><dd><oj-bind-text value="[[ $variables.agreementNumber + ($variables.agreementType ? ' · ' + $variables.agreementType : '') ]]"></oj-bind-text></dd></div>
+            <div><dt>Estimated value</dt><dd class="nx-num"><oj-bind-text value="[[ $variables.totalEstCost ? $functions.money($variables.totalEstCost, $variables.currencyCode) : '—' ]]"></oj-bind-text></dd></div>
+            <oj-bind-if test="[[ $variables.banner.task && $variables.banner.task !== '—' ]]">
+              <div><dt>Task</dt><dd><oj-bind-text value="[[ $variables.banner.task ]]"></oj-bind-text></dd></div>
+            </oj-bind-if>
+            <oj-bind-if test="[[ $variables.banner.location && $variables.banner.location !== '—' ]]">
+              <div><dt>Location</dt><dd><oj-bind-text value="[[ $variables.banner.location ]]"></oj-bind-text></dd></div>
+            </oj-bind-if>
+            <oj-bind-if test="[[ !!$variables.agreementNotes ]]">
+              <div><dt>Terms and notes</dt><dd id="agrNotes"><oj-bind-text value="[[ $variables.agreementNotes ]]"></oj-bind-text></dd></div>
+            </oj-bind-if>
+            <div><dt>Stored status</dt><dd class="nx-muted"><oj-bind-text value="[[ $variables.agreementStatus || '—' ]]"></oj-bind-text></dd></div>
+          </dl>
+        </aside>
+      </div>
+    </oj-bind-if>
+  </oj-bind-if>
+
+  <!-- ══ Edit (or new) ══════════════════════════════════════════════════════════════════════════════════ -->
+  <oj-bind-if test="[[ $variables.mode === 'edit' && !$variables.unavailable ]]">
+    <div class="nx-pagehead">
+      <div>
+        <div class="nx-kicker"><oj-bind-text value="[[ $variables.loadedHeader ? 'Edit agreement · ' + $variables.loadedHeader.agreementNumber : 'New agreement' ]]"></oj-bind-text></div>
+        <h1 class="nx-record-title"><oj-bind-text value="[[ $variables.form.agreementName || ($variables.loadedHeader ? $variables.loadedHeader.agreementNumber : 'New agreement') ]]"></oj-bind-text></h1>
+        <div class="nx-sub"><oj-bind-text value="[[ $variables.loadedHeader ? 'Changes are kept here until you save.' : 'Saved as a draft; it is used once approved.' ]]"></oj-bind-text></div>
+      </div>
+    </div>
+    <oj-bind-if test="[[ $variables.editLoading ]]">
+      <div class="nx-card nx-empty">Loading the agreement…</div>
+    </oj-bind-if>
+    <oj-bind-if test="[[ !!$variables.editError ]]">
+      <div class="nx-error" role="alert"><oj-bind-text value="[[ $variables.editError ]]"></oj-bind-text></div>
+    </oj-bind-if>
+    <oj-bind-if test="[[ $variables.missing.length > 0 ]]">
+      <div class="nx-error" role="alert" id="agrMissing"><oj-bind-text value="[[ $functions.missingText($variables.missing) ]]"></oj-bind-text></div>
+    </oj-bind-if>
+
+    <oj-bind-if test="[[ !$variables.editLoading && !$variables.editError ]]">
+      <section class="nx-card nx-card-pad nx-cm-form" aria-label="The agreement">
+        <div class="nx-cm-form-row">
+          <label class="nx-cm-field nx-cm-field--grow">
+            <span class="nx-cm-label">Agreement name <span class="nx-cm-req">*</span></span>
+            <input class="nx-cm-input" id="agrName" data-action="field" data-field="agreementName" :value="[[ $variables.form.agreementName ]]" on-change="[[ $listeners.onField ]]">
+          </label>
+          <label class="nx-cm-field">
+            <span class="nx-cm-label">Start <span class="nx-cm-req">*</span></span>
+            <input class="nx-cm-input" type="date" id="agrStart" data-action="field" data-field="startDate" :value="[[ $variables.form.startDate ]]" on-change="[[ $listeners.onField ]]">
+          </label>
+          <label class="nx-cm-field">
+            <span class="nx-cm-label">End <span class="nx-cm-req">*</span></span>
+            <input class="nx-cm-input" type="date" id="agrEnd" data-action="field" data-field="endDate" :value="[[ $variables.form.endDate ]]" on-change="[[ $listeners.onField ]]">
+          </label>
+        </div>
+        <oj-bind-if test="[[ $functions.datesBackwards($variables.form) ]]">
+          <p class="nx-cm-warn">The end date is before the start date.</p>
+        </oj-bind-if>
+        <div class="nx-cm-form-row">
+          <div class="nx-cm-field">
+            <span class="nx-cm-label">Type <span class="nx-cm-req">*</span></span>
+            <div class="nx-chips" role="group" aria-label="Agreement type">
+              <oj-bind-for-each data="[[ $variables.typeOptions ]]">
+                <template data-oj-as="t">
+                  <button type="button" data-action="field" data-field="agreementType" :data-value="[[ t.data.value ]]" data-index="" on-click="[[ $listeners.onFieldButton ]]"
+                    :aria-pressed="[[ $variables.form.agreementType === t.data.value ? 'true' : 'false' ]]"
+                    :class="[[ 'nx-chip nx-cm-chip--sm' + ($variables.form.agreementType === t.data.value ? ' nx-chip--on' : '') ]]"><oj-bind-text value="[[ t.data.label ]]"></oj-bind-text></button>
+                </template>
+              </oj-bind-for-each>
+              <oj-bind-if test="[[ $variables.typeOptions.length === 0 ]]"><span class="nx-note">No agreement types are set up (Settings, Agreement types).</span></oj-bind-if>
+            </div>
+          </div>
+          <div class="nx-cm-field">
+            <span class="nx-cm-label">Currency</span>
+            <div class="nx-seg" role="group" aria-label="Currency">
+              <oj-bind-for-each data="[[ $functions.currencies() ]]">
+                <template data-oj-as="cur">
+                  <button type="button" data-action="field" data-field="currencyCode" :data-value="[[ cur.data ]]" data-index="" on-click="[[ $listeners.onFieldButton ]]"
+                    :aria-pressed="[[ $variables.form.currencyCode === cur.data ? 'true' : 'false' ]]"
+                    :class="[[ 'nx-seg-btn' + ($variables.form.currencyCode === cur.data ? ' nx-seg-btn--on' : '') ]]"><oj-bind-text value="[[ cur.data ]]"></oj-bind-text></button>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </div>
+        </div>
+        <div class="nx-cm-field">
+          <span class="nx-cm-label">Customer <span class="nx-cm-req">*</span></span>
+          <oj-bind-if test="[[ !!$variables.form.customerId ]]">
+            <div class="nx-cm-picked" id="agrCustomer"><strong><oj-bind-text value="[[ $variables.form.customerName || ('Customer ' + $variables.form.customerId) ]]"></oj-bind-text></strong>
+              <button type="button" class="nx-link" data-action="customerClear" data-field="" data-value="" data-index="" on-click="[[ $listeners.onFieldButton ]]">Change</button></div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ !$variables.form.customerId ]]">
+            <input class="nx-cm-input" type="search" id="agrCustomerSearch" data-action="customerSearch" data-field="" placeholder="Find a customer (2+ letters)"
+              :value="[[ $variables.customerQuery ]]" on-input="[[ $listeners.onField ]]" aria-label="Find a customer">
+            <div class="nx-cm-results">
+              <oj-bind-for-each data="[[ $variables.customerResults ]]">
+                <template data-oj-as="r">
+                  <button type="button" class="nx-cm-result" data-action="customerPick" data-field="" data-value="" :data-index="[[ r.index ]]" on-click="[[ $listeners.onFieldButton ]]">
+                    <strong><oj-bind-text value="[[ r.data.label ]]"></oj-bind-text></strong><span class="nx-note"><oj-bind-text value="[[ r.data.sub ]]"></oj-bind-text></span></button>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </oj-bind-if>
+        </div>
+        <label class="nx-cm-field">
+          <span class="nx-cm-label">Terms and notes</span>
+          <textarea class="nx-cm-input nx-cm-textarea" id="agrNotesInput" rows="3" data-action="field" data-field="notes" :value="[[ $variables.form.notes ]]" on-change="[[ $listeners.onField ]]"></textarea>
+        </label>
+      </section>
+
+      <section class="nx-card" aria-labelledby="agrEditLinesTitle">
+        <div class="nx-card-head">
+          <h2 id="agrEditLinesTitle"><oj-bind-text value="[[ 'Lines and rates (' + $variables.equipmentLines.length + ')' ]]"></oj-bind-text></h2>
+          <button type="button" class="nx-btn nx-btn--sm" id="agrAddLine" data-action="open" data-value="" data-key="" on-click="[[ $listeners.onLine ]]">
+            <span class="oj-ux-ico-plus" aria-hidden="true"></span>Add line</button>
+        </div>
+        <oj-bind-if test="[[ !!$variables.lineError ]]">
+          <div class="nx-error nx-cm-inset" role="alert"><oj-bind-text value="[[ $variables.lineError ]]"></oj-bind-text></div>
+        </oj-bind-if>
+
+        <oj-bind-if test="[[ $variables.addLineOpen ]]">
+          <div class="nx-cm-addrow" id="agrAddPanel">
+            <div class="nx-cm-label">Class <span class="nx-cm-req">*</span></div>
+            <div class="nx-chips">
+              <oj-bind-for-each data="[[ $variables.equipmentClassesArray ]]">
+                <template data-oj-as="c">
+                  <button type="button" data-action="class" :data-value="[[ c.data.value ]]" data-key="" on-click="[[ $listeners.onLine ]]"
+                    :class="[[ 'nx-chip nx-cm-chip--sm' + ($variables.currentLine.classId === c.data.value ? ' nx-chip--on' : '') ]]"><oj-bind-text value="[[ c.data.label ]]"></oj-bind-text></button>
+                </template>
+              </oj-bind-for-each>
+            </div>
+            <oj-bind-if test="[[ $variables.equipmentSubclassesArray.length > 0 ]]">
+              <div class="nx-cm-label">Subclass <span class="nx-note">(optional)</span></div>
+              <div class="nx-chips">
+                <oj-bind-for-each data="[[ $variables.equipmentSubclassesArray ]]">
+                  <template data-oj-as="s">
+                    <button type="button" data-action="subclass" :data-value="[[ s.data.value ]]" data-key="" on-click="[[ $listeners.onLine ]]"
+                      :class="[[ 'nx-chip nx-cm-chip--sm' + ($variables.currentLine.subclassId === s.data.value ? ' nx-chip--on' : '') ]]"><oj-bind-text value="[[ s.data.label ]]"></oj-bind-text></button>
+                  </template>
+                </oj-bind-for-each>
+              </div>
+            </oj-bind-if>
+            <oj-bind-if test="[[ $variables.equipmentNamesArray.length > 0 ]]">
+              <div class="nx-cm-label">Equipment <span class="nx-note">(optional: without one, the line covers the class)</span></div>
+              <div class="nx-chips">
+                <oj-bind-for-each data="[[ $variables.equipmentNamesArray ]]">
+                  <template data-oj-as="e">
+                    <button type="button" data-action="equipment" :data-value="[[ e.data.value ]]" data-key="" on-click="[[ $listeners.onLine ]]"
+                      :class="[[ 'nx-chip nx-cm-chip--sm' + ($variables.currentLine.equipmentMasterId === e.data.value ? ' nx-chip--on' : '') ]]"><oj-bind-text value="[[ e.data.label ]]"></oj-bind-text></button>
+                  </template>
+                </oj-bind-for-each>
+              </div>
+            </oj-bind-if>
+            <div class="nx-cm-form-row">
+              <label class="nx-cm-field">
+                <span class="nx-cm-label">Rate <span class="nx-cm-req">*</span></span>
+                <input class="nx-cm-input nx-cm-input--num" type="number" min="0" step="any" id="agrDraftRate" data-action="unitPrice" :value="[[ $variables.currentLine.unitPrice ]]" on-change="[[ $listeners.onLineInput ]]">
+              </label>
+              <div class="nx-cm-field">
+                <span class="nx-cm-label">Per</span>
+                <div class="nx-seg" role="group" aria-label="Per">
+                  <oj-bind-for-each data="[[ $functions.uoms() ]]">
+                    <template data-oj-as="u">
+                      <button type="button" data-action="priceUom" :data-value="[[ u.data.value ]]" data-key="" on-click="[[ $listeners.onLine ]]"
+                        :class="[[ 'nx-seg-btn' + ($variables.currentLine.priceUom === u.data.value ? ' nx-seg-btn--on' : '') ]]"><oj-bind-text value="[[ u.data.label ]]"></oj-bind-text></button>
+                    </template>
+                  </oj-bind-for-each>
+                </div>
+              </div>
+              <label class="nx-cm-field nx-cm-field--grow">
+                <span class="nx-cm-label">Description <span class="nx-note">(optional)</span></span>
+                <input class="nx-cm-input" data-action="description" :value="[[ $variables.currentLine.description ]]" on-change="[[ $listeners.onLineInput ]]">
+              </label>
+            </div>
+            <div class="nx-actions">
+              <button type="button" class="nx-btn nx-btn--primary" id="agrAddLineOk" data-action="add" data-value="" data-key="" on-click="[[ $listeners.onLine ]]">Add the line</button>
+              <button type="button" class="nx-btn nx-btn--plain" data-action="close" data-value="" data-key="" on-click="[[ $listeners.onLine ]]">Cancel</button>
+            </div>
+          </div>
+        </oj-bind-if>
+
+        <oj-bind-if test="[[ $variables.equipmentLines.length === 0 ]]">
+          <div class="nx-empty">No lines yet. An agreement needs at least one before it is approved.</div>
+        </oj-bind-if>
+        <oj-bind-if test="[[ $variables.equipmentLines.length > 0 ]]">
+          <div class="nx-table">
+            <div class="nx-grid nx-cm-egrid" role="table" aria-labelledby="agrEditLinesTitle">
+              <div class="nx-row nx-row--head" role="row">
+                <span role="columnheader">Line</span><span role="columnheader">Equipment</span><span role="columnheader">Rate</span>
+                <span role="columnheader">Per</span><span role="columnheader">Description</span><span role="columnheader"><span class="nx-sr">Remove</span></span>
+              </div>
+              <oj-bind-for-each data="[[ $variables.equipmentLines ]]">
+                <template data-oj-as="l">
+                  <div class="nx-row" role="row" :data-line="[[ l.data.lineNumber ]]">
+                    <span role="cell" class="nx-num"><oj-bind-text value="[[ l.data.lineNumber ]]"></oj-bind-text><oj-bind-if test="[[ !l.data.lineId ]]"><span class="nx-cell-sub">new</span></oj-bind-if></span>
+                    <span role="cell"><span class="nx-cell-main"><oj-bind-text value="[[ $functions.editLineTitle(l.data) ]]"></oj-bind-text></span>
+                      <span class="nx-cell-sub"><oj-bind-text value="[[ $functions.editLineSub(l.data) ]]"></oj-bind-text></span></span>
+                    <span role="cell"><input class="nx-cm-input nx-cm-input--num" type="number" min="0" step="any" data-action="lineField" data-field="unitPrice" :data-index="[[ l.data.lineNumber ]]"
+                      :value="[[ l.data.unitPrice ]]" on-change="[[ $listeners.onField ]]" :aria-label="[[ 'Rate of line ' + l.data.lineNumber ]]"></span>
+                    <span role="cell">
+                      <div class="nx-seg nx-cm-seg--sm" role="group" :aria-label="[[ 'Per, line ' + l.data.lineNumber ]]">
+                        <oj-bind-for-each data="[[ $functions.uoms() ]]">
+                          <template data-oj-as="u">
+                            <button type="button" data-action="lineField" data-field="priceUom" :data-value="[[ u.data.value ]]" :data-index="[[ l.data.lineNumber ]]" on-click="[[ $listeners.onFieldButton ]]"
+                              :class="[[ 'nx-seg-btn' + (l.data.priceUom === u.data.value ? ' nx-seg-btn--on' : '') ]]"><oj-bind-text value="[[ u.data.label ]]"></oj-bind-text></button>
+                          </template>
+                        </oj-bind-for-each>
+                      </div>
+                    </span>
+                    <span role="cell"><input class="nx-cm-input" data-action="lineField" data-field="description" :data-index="[[ l.data.lineNumber ]]" :value="[[ l.data.description ]]"
+                      on-change="[[ $listeners.onField ]]" :aria-label="[[ 'Description of line ' + l.data.lineNumber ]]"></span>
+                    <span role="cell"><button type="button" class="nx-cm-x" data-action="remove" data-value="" :data-key="[[ l.data.lineNumber ]]" on-click="[[ $listeners.onLine ]]"
+                      :aria-label="[[ 'Remove line ' + l.data.lineNumber ]]" title="Remove this line (deleted when you save)">×</button></span>
+                  </div>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </div>
+        </oj-bind-if>
+      </section>
+
+      <div :class="[[ 'nx-cm-savebar' + ($variables.dirty ? ' nx-cm-savebar--dirty' : '') ]]" role="region" aria-label="Save">
+        <span class="nx-cm-savebar-text">
+          <strong><oj-bind-text value="[[ $variables.dirty ? 'Not saved yet' : 'No changes' ]]"></oj-bind-text></strong>
+          <span class="nx-note" id="agrSaveText"><oj-bind-text value="[[ $functions.saveText(!!$variables.loadedHeader, $variables.equipmentLines, $variables.deletedLineIds) ]]"></oj-bind-text></span>
+        </span>
+        <span class="nx-actions">
+          <button type="button" class="nx-btn nx-btn--plain" id="agrCancelEdit" data-action="cancelEdit" data-value="" on-click="[[ $listeners.onUi ]]" :disabled="[[ $variables.saving ]]">
+            <oj-bind-text value="[[ $variables.loadedHeader ? 'Cancel' : 'Close' ]]"></oj-bind-text></button>
+          <button type="button" class="nx-btn nx-btn--primary" id="agrSave" :disabled="[[ $variables.saving ]]" on-click="[[ $listeners.onSave ]]">
+            <oj-bind-text value="[[ $variables.saving ? 'Saving…' : ($variables.loadedHeader ? 'Save agreement' : 'Create agreement') ]]"></oj-bind-text></button>
+        </span>
+      </div>
+    </oj-bind-if>
+  </oj-bind-if>
+</div>

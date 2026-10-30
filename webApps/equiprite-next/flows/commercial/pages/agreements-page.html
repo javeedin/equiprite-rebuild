@@ -1,0 +1,116 @@
+<!-- Agreements. Every rental agreement: what is active, what ends soon (within 60 days), what waits for approval,
+     and the next step for each. Chips, search, sort, export; a row opens the agreement in its own tab. Rules:
+     resources/js/agreementRules.js (New EquipRite's, unchanged); calls: agreements-page-chains. -->
+<div class="nx-page nx-cm nx-agreements">
+  <div class="nx-pagehead">
+    <div>
+      <div class="nx-kicker">Commercial</div>
+      <h1>Agreements</h1>
+      <div class="nx-sub" id="agrSummary"><oj-bind-text value="[[ $variables.unavailable ? 'Not available' : ($variables.isLoading && !$variables.rows.length ? 'Loading the agreements…' : $variables.summary) ]]"></oj-bind-text></div>
+    </div>
+    <oj-bind-if test="[[ !$variables.unavailable ]]">
+      <div class="nx-actions">
+        <button type="button" class="nx-btn nx-btn--plain" id="agrRefresh" on-click="[[ $listeners.onRefresh ]]" :disabled="[[ $variables.isLoading ]]">
+          <span class="oj-ux-ico-refresh" aria-hidden="true"></span>Refresh</button>
+        <div class="nx-export">
+          <button type="button" class="nx-btn" id="agrExport" on-click="[[ $listeners.onExportMenu ]]" aria-haspopup="menu"
+            :aria-expanded="[[ $variables.exportOpen ? 'true' : 'false' ]]">
+            <span class="oj-ux-ico-download" aria-hidden="true"></span>Export<span class="oj-ux-ico-chevron-down" aria-hidden="true"></span></button>
+          <oj-bind-if test="[[ $variables.exportOpen ]]">
+            <div class="nx-menu" role="menu" aria-label="Export">
+              <oj-bind-for-each data="[[ $functions.formats() ]]">
+                <template data-oj-as="f">
+                  <button type="button" role="menuitem" class="nx-menu-item" :data-format="[[ f.data.key ]]" on-click="[[ $listeners.onExport ]]">
+                    <span :class="[[ f.data.icon ]]" aria-hidden="true"></span><oj-bind-text value="[[ f.data.label ]]"></oj-bind-text></button>
+                </template>
+              </oj-bind-for-each>
+              <p class="nx-menu-note"><oj-bind-text value="[[ $variables.shown.length + ($variables.shown.length === 1 ? ' agreement' : ' agreements') + ', as shown' ]]"></oj-bind-text></p>
+            </div>
+          </oj-bind-if>
+        </div>
+        <oj-bind-if test="[[ $variables.canWrite ]]">
+          <button type="button" class="nx-btn nx-btn--primary" id="agrNew" on-click="[[ $listeners.onNew ]]"><span class="oj-ux-ico-plus" aria-hidden="true"></span>New agreement</button>
+        </oj-bind-if>
+      </div>
+    </oj-bind-if>
+  </div>
+
+  <oj-bind-if test="[[ !!$variables.unavailable ]]">
+    <div class="nx-card nx-empty" role="status"><oj-bind-text value="[[ $variables.unavailable ]]"></oj-bind-text></div>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ !$variables.unavailable ]]">
+    <div class="nx-toolbar">
+      <label class="nx-search">
+        <span class="oj-ux-ico-search" aria-hidden="true"></span>
+        <input type="search" :value="[[ $variables.text ]]" on-input="[[ $listeners.onSearch ]]" aria-label="Search agreements"
+          placeholder="Agreement, name, customer or type">
+      </label>
+    </div>
+    <div class="nx-chips" role="group" aria-label="Which agreements">
+      <oj-bind-for-each data="[[ $variables.chips ]]">
+        <template data-oj-as="c">
+          <button type="button" :data-value="[[ c.data.key ]]" on-click="[[ $listeners.onChip ]]"
+            :aria-pressed="[[ $variables.chip === c.data.key ? 'true' : 'false' ]]"
+            :class="[[ 'nx-chip' + (c.data.warn ? ' nx-cm-chip--warn' : '') + ($variables.chip === c.data.key ? ' nx-chip--on' : '') ]]">
+            <oj-bind-text value="[[ c.data.label ]]"></oj-bind-text><span class="nx-chip-count"><oj-bind-text value="[[ c.data.count ]]"></oj-bind-text></span>
+          </button>
+        </template>
+      </oj-bind-for-each>
+    </div>
+
+    <oj-bind-if test="[[ !!$variables.error ]]">
+      <div class="nx-error" role="alert"><oj-bind-text value="[[ $variables.error ]]"></oj-bind-text></div>
+    </oj-bind-if>
+    <oj-bind-if test="[[ !$variables.isLoading && !$variables.error && !$variables.shown.length ]]">
+      <div class="nx-card nx-empty"><oj-bind-text value="[[ $variables.rows.length ? 'Nothing matches. Try another chip or clear the search.' : 'No rental agreements yet.' ]]"></oj-bind-text></div>
+    </oj-bind-if>
+
+    <oj-bind-if test="[[ $variables.shown.length > 0 ]]">
+      <section class="nx-card">
+        <div class="nx-table">
+          <div class="nx-grid nx-cm-agrid" role="table" aria-label="Agreements">
+            <div class="nx-row nx-row--head" role="row">
+              <span role="columnheader" :aria-sort="[[ $functions.ariaSort('number', $variables.sortKey, $variables.sortDir) ]]">
+                <button type="button" class="nx-sort" data-key="number" on-click="[[ $listeners.onSort ]]">Agreement<oj-bind-text value="[[ $functions.sortMark('number', $variables.sortKey, $variables.sortDir) ]]"></oj-bind-text></button></span>
+              <span role="columnheader" :aria-sort="[[ $functions.ariaSort('customer', $variables.sortKey, $variables.sortDir) ]]">
+                <button type="button" class="nx-sort" data-key="customer" on-click="[[ $listeners.onSort ]]">Customer<oj-bind-text value="[[ $functions.sortMark('customer', $variables.sortKey, $variables.sortDir) ]]"></oj-bind-text></button></span>
+              <span role="columnheader" :aria-sort="[[ $functions.ariaSort('status', $variables.sortKey, $variables.sortDir) ]]">
+                <button type="button" class="nx-sort" data-key="status" on-click="[[ $listeners.onSort ]]">Status<oj-bind-text value="[[ $functions.sortMark('status', $variables.sortKey, $variables.sortDir) ]]"></oj-bind-text></button></span>
+              <span role="columnheader" :aria-sort="[[ $functions.ariaSort('valid', $variables.sortKey, $variables.sortDir) ]]">
+                <button type="button" class="nx-sort" data-key="valid" on-click="[[ $listeners.onSort ]]">Valid<oj-bind-text value="[[ $functions.sortMark('valid', $variables.sortKey, $variables.sortDir) ]]"></oj-bind-text></button></span>
+              <span role="columnheader" :aria-sort="[[ $functions.ariaSort('lines', $variables.sortKey, $variables.sortDir) ]]">
+                <button type="button" class="nx-sort" data-key="lines" on-click="[[ $listeners.onSort ]]">Lines<oj-bind-text value="[[ $functions.sortMark('lines', $variables.sortKey, $variables.sortDir) ]]"></oj-bind-text></button></span>
+              <span role="columnheader">Next step</span>
+            </div>
+            <oj-bind-for-each data="[[ $variables.shown ]]">
+              <template data-oj-as="r">
+                <div role="row" class="nx-row nx-row--click" :data-number="[[ r.data.agreementNumber ]]" on-click="[[ $listeners.onOpen ]]">
+                  <span role="cell">
+                    <!-- The row opens the agreement (a click here reaches it); the button is for the keyboard. -->
+                    <button type="button" class="nx-link nx-cm-num"><oj-bind-text value="[[ r.data.agreementNumber ]]"></oj-bind-text></button>
+                    <span class="nx-cell-sub"><oj-bind-text value="[[ r.data.agreementName || '—' ]]"></oj-bind-text></span>
+                  </span>
+                  <span role="cell">
+                    <span class="nx-cell-main"><oj-bind-text value="[[ r.data.customer || '—' ]]"></oj-bind-text></span>
+                    <span class="nx-cell-sub"><oj-bind-text value="[[ r.data.agreementType ]]"></oj-bind-text></span>
+                  </span>
+                  <span role="cell"><span :class="[[ 'nx-pill ' + $functions.tone(r.data.statusCode) ]]" :title="[[ 'Stored status: ' + (r.data.statusCode || 'none') ]]">
+                    <oj-bind-text value="[[ $functions.statusLabel(r.data.statusCode) ]]"></oj-bind-text></span></span>
+                  <span role="cell">
+                    <span class="nx-cell-main nx-num"><oj-bind-text value="[[ $functions.range(r.data.startDate, r.data.endDate) ]]"></oj-bind-text></span>
+                    <oj-bind-if test="[[ !!$functions.expiryText(r.data) ]]">
+                      <span class="nx-cell-sub nx-cm-warn"><span class="oj-ux-ico-warning" aria-hidden="true"></span><oj-bind-text value="[[ $functions.expiryText(r.data) ]]"></oj-bind-text></span>
+                    </oj-bind-if>
+                  </span>
+                  <span role="cell" class="nx-num"><oj-bind-text value="[[ $functions.lines(r.data.lineCount) ]]"></oj-bind-text></span>
+                  <span role="cell" class="nx-cell-next"><oj-bind-text value="[[ $functions.nextStep(r.data) ]]"></oj-bind-text></span>
+                </div>
+              </template>
+            </oj-bind-for-each>
+          </div>
+        </div>
+      </section>
+    </oj-bind-if>
+  </oj-bind-if>
+</div>

@@ -57,9 +57,9 @@ define(['resources/js/rules'], function (rules) {
     ] },
     { key: 'commercial', label: 'Commercial', items: [
       { id: 'rates', label: 'Rates', icon: 'oj-ux-ico-tables-basic', pageCodes: ['EQR_RATE_SCHEDULE'], hiddenByRateSource: true,
-        route: { flow: 'commercial', page: 'rates' }, built: false, newNav: 'rates', keywords: 'rate schedules pricing' },
+        route: { flow: 'commercial', page: 'rates' }, built: true, newNav: 'rates', keywords: 'rate schedules pricing' },
       { id: 'agreements', label: 'Agreements', icon: 'oj-ux-ico-file-text', pageCodes: ['EQR_RENTAL_AGREEMENTS'], flags: ['AGREEMENTS_ENABLED'],
-        route: { flow: 'commercial', page: 'agreements' }, built: false, newNav: 'agreements', keywords: 'rental agreements contracts' }
+        route: { flow: 'commercial', page: 'agreements' }, built: true, newNav: 'agreements', keywords: 'rental agreements contracts' }
     ] },
     { key: 'insights', label: 'Insights', items: [
       { id: 'analytics', label: 'Analytics', icon: 'oj-ux-ico-chart-bar', pageCodes: ['EQR_ANALYTICS', 'EQR_REPORTS'],
@@ -113,7 +113,10 @@ define(['resources/js/rules'], function (rules) {
     transfer: { flow: 'checks', page: 'transfer', icon: 'oj-ux-ico-inventory-transfer', navId: 'transfers',
       title: function (p) { return (p && (p.number || p.id)) || 'Transfer'; } },
     'equipment-item': { flow: 'equipment', page: 'item', icon: 'oj-ux-ico-box-grid', navId: 'equipment',
-      title: function (p) { return (p && (p.number || p.id)) || 'Equipment'; } }
+      title: function (p) { return (p && (p.number || p.id)) || 'Equipment'; } },
+    // An agreement is keyed by its number ({ number: 'RNT-0002' }); { id: 'new' } is a new one.
+    agreement: { flow: 'commercial', page: 'agreement', icon: 'oj-ux-ico-file-text', navId: 'agreements',
+      title: function (p) { return (p && (p.number || (p.id === 'new' ? 'New agreement' : p.id))) || 'Agreement'; } }
   };
 
   /** The page the tab of a menu item shows: its own screen, or the "being built" page for one not built yet. */
