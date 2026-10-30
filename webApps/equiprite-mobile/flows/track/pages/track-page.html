@@ -1,5 +1,5 @@
-<!-- My requests on a phone. A list of cards (where each request is, from its equipment), then one request: its next
-     step, its equipment, its history from start to end. Styles: resources/css/mobile.css (.mb-*). -->
+<!-- My requests on a phone. A list of cards (where each request is, from its equipment; the last 3 days, or every date),
+     then one request: its next step, its equipment, its history from start to end. Styles: resources/css/mobile.css (.mb-*). -->
 <div class="mb-page" id="mbTrack">
   <oj-bind-if test="[[ $variables.view === 'list' ]]">
     <div class="mb-head">
@@ -8,7 +8,7 @@
         <button type="button" class="mb-back" id="trRefresh" on-click="[[ $listeners.onRefresh ]]" aria-label="Refresh"><span class="oj-ux-ico-refresh" aria-hidden="true"></span></button>
       </div>
       <div class="mb-head-sub" id="trSummary">
-        <oj-bind-text value="[[ $variables.isLoading ? 'Loading…' : ($variables.all.length === 1 ? '1 request' : $variables.all.length + ' requests') + ($variables.scope === 'all' ? ', everyone’s' : '') ]]"></oj-bind-text>
+        <oj-bind-text value="[[ $functions.summary($variables.isLoading, $variables.dated, $variables.scope) ]]"></oj-bind-text>
       </div>
     </div>
     <div class="mb-body">
@@ -20,6 +20,12 @@
             :aria-pressed="[[ $variables.scope === 'all' ? 'true' : 'false' ]]">Everyone’s</button>
         </div>
       </oj-bind-if>
+      <div :class="[[ 'mb-period' + ($variables.dated.searching ? ' mb-period--aside' : '') ]]" id="trPeriod" role="group" aria-label="Which dates">
+        <button type="button" id="trRecent" :class="[[ 'mb-period-btn' + ($variables.period !== 'all' ? ' mb-period-btn--on' : '') ]]" data-period="recent"
+          on-click="[[ $listeners.onPeriod ]]" :aria-pressed="[[ $variables.period !== 'all' ? 'true' : 'false' ]]"><oj-bind-text value="[[ $functions.recentLabel() ]]"></oj-bind-text></button>
+        <button type="button" id="trAllDates" :class="[[ 'mb-period-btn' + ($variables.period === 'all' ? ' mb-period-btn--on' : '') ]]" data-period="all"
+          on-click="[[ $listeners.onPeriod ]]" :aria-pressed="[[ $variables.period === 'all' ? 'true' : 'false' ]]">All dates</button>
+      </div>
       <label class="mb-search">
         <span class="oj-ux-ico-search" aria-hidden="true"></span>
         <input type="search" id="trSearch" placeholder="Request, project, equipment" aria-label="Search your requests" on-input="[[ $listeners.onSearch ]]" />
@@ -35,6 +41,9 @@
           </template>
         </oj-bind-for-each>
       </div>
+      <oj-bind-if test="[[ $variables.dated.searching ]]">
+        <div class="mb-period-note" id="trSearching" role="status"><span class="oj-ux-ico-search" aria-hidden="true"></span>Searching all dates</div>
+      </oj-bind-if>
       <oj-bind-if test="[[ !!$variables.saved ]]">
         <div class="mb-offline" style="border-radius:12px" id="trSaved"><span class="oj-ux-ico-cloud-off" aria-hidden="true"></span>
           <span><oj-bind-text value="[[ $variables.saved ]]"></oj-bind-text>. Steps need a connection.</span></div>
@@ -47,7 +56,7 @@
       </oj-bind-if>
       <oj-bind-if test="[[ !$variables.isLoading && !$variables.error && !$variables.shown.length ]]">
         <div class="mb-empty" id="trEmpty"><span class="oj-ux-ico-documents mb-empty-icon" aria-hidden="true"></span>
-          <oj-bind-text value="[[ $functions.empty($variables.chip, $variables.text, $variables.scope) ]]"></oj-bind-text></div>
+          <oj-bind-text value="[[ $functions.empty($variables.chip, $variables.text, $variables.scope, $variables.dated) ]]"></oj-bind-text></div>
       </oj-bind-if>
       <ul class="mb-list" id="trList">
         <oj-bind-for-each data="[[ $variables.shown ]]">
@@ -75,6 +84,10 @@
           </template>
         </oj-bind-for-each>
       </ul>
+      <oj-bind-if test="[[ !$variables.isLoading && $variables.dated.older > 0 ]]">
+        <button type="button" class="mb-older" id="trOlder" data-period="all" on-click="[[ $listeners.onPeriod ]]">
+          <span class="mb-older-text"><oj-bind-text value="[[ $variables.dated.olderText ]]"></oj-bind-text></span> <span aria-hidden="true">·</span> <span class="mb-older-go">Show all</span></button>
+      </oj-bind-if>
     </div>
   </oj-bind-if>
 

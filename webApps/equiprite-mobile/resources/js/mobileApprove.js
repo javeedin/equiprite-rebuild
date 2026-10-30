@@ -1,4 +1,4 @@
-define(['resources/js/approvalQueue', 'resources/js/fmt'], function (queue, fmt) {
+define(['resources/js/approvalQueue', 'resources/js/fmt', 'resources/js/mobileRecent'], function (queue, fmt, recent) {
   'use strict';
 
   // EquipRite Mobile's Approve tab, pure (no calls): the Equipment Manager's queue as cards on a phone, the chips, what
@@ -6,7 +6,8 @@ define(['resources/js/approvalQueue', 'resources/js/fmt'], function (queue, fmt)
   // for sending back, the units of a line in the unit sheet, and the copy kept on the phone.
   //
   // The rules are Next's Approve & allocate's (approvalQueue: the queue, the gates, the words; approveAllocate: the
-  // calls). Nothing here decides who may do what: it says it.
+  // calls). Nothing here decides who may do what: it says it. Each card keeps its latest date (lastAt: when it was raised
+  // or last changed, its start, its end) so the queue can open on the last few days (mobileRecent).
 
   // approveAllocate's allow-lists (confirmRequestChain's CASCADABLE, rejectRequestChain's TERMINAL_STATES), to name the
   // lines a decision will change before it is made. tests/mobile-approve.test.js checks they are approveAllocate's and
@@ -119,6 +120,7 @@ define(['resources/js/approvalQueue', 'resources/js/fmt'], function (queue, fmt)
       needs: it.kind === 'decide' ? 'To decide' : (it.quoteOwed ? 'Quote owed' : 'To assign units'),
       tone: it.kind === 'decide' ? 'approval' : 'ready',
       age: age(pick(row, CREATED), now),
+      lastAt: recent.latest(row, [it.start, it.end]),
       hay: it.hay || ''
     };
   }
@@ -149,10 +151,14 @@ define(['resources/js/approvalQueue', 'resources/js/fmt'], function (queue, fmt)
     return 'all';
   }
 
-  /** The line under the title: "3 to decide · 1 with units to assign · 1 late". */
-  function summary(list) {
+  /**
+   * The line under the title: "3 to decide · 1 with units to assign · 1 late"; when the list is the last few days of a
+   * queue that is not empty (lately): "In the last 3 days: 3 to decide · 1 late", or "Nothing in the last 3 days".
+   */
+  function summary(list, lately) {
     var l = list || [];
-    if (!l.length) return 'Nothing is waiting on you';
+    var lead = lately ? cap(recent.PHRASE) + ': ' : '';
+    if (!l.length) return lately ? 'Nothing ' + recent.PHRASE : 'Nothing is waiting on you';
     var decide = l.filter(function (c) { return c.kind === 'decide'; }).length;
     var allocate = l.length - decide;
     var late = l.filter(function (c) { return c.lateDays; }).length;
@@ -160,12 +166,16 @@ define(['resources/js/approvalQueue', 'resources/js/fmt'], function (queue, fmt)
     if (decide) parts.push(decide + ' to decide');
     if (allocate) parts.push(allocate + ' with units to assign');
     if (late) parts.push(late + ' late');
-    return parts.join(' · ');
+    return lead + parts.join(' · ');
   }
 
-  /** The tab's count (as the shell counts it): the requests waiting for a decision. */
-  function badge(list) {
-    return (list || []).filter(function (c) { return c.kind === 'decide'; }).length;
+  /**
+   * The tab's count (as the shell counts it): the requests waiting for a decision, of what the queue opens on (the last
+   * few days), so the count matches the list it opens. now: given, the cards older than the period are left out.
+   */
+  function badge(list, now) {
+    var l = now === undefined ? (list || []) : recent.only(list, now);
+    return l.filter(function (c) { return c.kind === 'decide'; }).length;
   }
 
   /** A card's second line: "2 pieces · Sam Ortiz", or for units "1 of 3 lines still without a unit · Sam Ortiz". */
@@ -212,6 +222,14 @@ define(['resources/js/approvalQueue', 'resources/js/fmt'], function (queue, fmt)
       }
     }
     return pool[0];
+  }
+
+  /**
+   * The queue as next up goes through it: on the last few days (period recent), their cards first, then the older ones
+   * (each in the queue's order); on every date, as it is.
+   */
+  function byPeriod(list, period, now) {
+    return period === 'all' ? (list || []).slice() : recent.recentFirst(list, now);
   }
 
   /**
@@ -434,7 +452,7 @@ define(['resources/js/approvalQueue', 'resources/js/fmt'], function (queue, fmt)
   return {
     CHIPS: CHIPS, REASONS: REASONS, OFFLINE: OFFLINE, APPROVABLE: APPROVABLE, REJECT_TERMINAL: REJECT_TERMINAL,
     online: online, age: age, waitingLines: waitingLines, cards: cards, keysOf: keysOf, chips: chips, filter: filter, firstChip: firstChip,
-    summary: summary, badge: badge, cardSub: cardSub, position: position, after: after, nextUp: nextUp, done: done, keep: keep,
+    summary: summary, badge: badge, cardSub: cardSub, position: position, after: after, nextUp: nextUp, byPeriod: byPeriod, done: done, keep: keep,
     restore: restore, offlineRec: offlineRec, lineCards: lineCards, acting: acting, decideSheet: decideSheet, addReason: addReason,
     hasReason: hasReason, suggestedNames: suggestedNames, lineButton: lineButton, unitRows: unitRows, toastTone: toastTone,
     pickingUrl: pickingUrl, inNewUrl: inNewUrl, quoteUrl: quoteUrl

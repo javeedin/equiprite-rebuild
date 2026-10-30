@@ -35,8 +35,9 @@ const bus = load('mobileBus');
 const list = load('requestList', { 'resources/js/requestProgress': Progress, 'resources/js/fmt': fmt, 'resources/js/rules': rules });
 const queue = load('approvalQueue', { 'resources/js/requestProgress': Progress, 'resources/js/fmt': fmt, 'resources/js/rules': rules });
 const drafts = load('cartDrafts', { 'resources/js/fmt': fmt, 'resources/js/rules': rules });
+const recent = load('mobileRecent');
 const track = load('trackList', { 'resources/js/requestList': list, 'resources/js/requestProgress': Progress, 'resources/js/cartDrafts': drafts,
-  'resources/js/approvalQueue': queue });
+  'resources/js/approvalQueue': queue, 'resources/js/mobileRecent': recent });
 
 // ── Tabs by role ────────────────────────────────────────────────────────────────────────────────────────
 T.section('the tabs each role gets');
@@ -192,7 +193,8 @@ T.eq('shortcuts open a tab', manifest.shortcuts.map((s) => s.url.split('=')[1]).
 // ── Guards ──────────────────────────────────────────────────────────────────────────────────────────────
 T.section('guards');
 // Mobile's own modules; each tab's builder adds theirs (mobileApprove, mobilePick, mobileRequest).
-const MOBILE_ONLY = ['mobileTabs', 'mobileBus', 'trackList', 'offlineSnapshot', 'installPrompt', 'pwaSetup', 'mobileApprove', 'mobilePick', 'mobileRequest'];
+const MOBILE_ONLY = ['mobileTabs', 'mobileBus', 'trackList', 'offlineSnapshot', 'installPrompt', 'pwaSetup', 'mobileApprove', 'mobilePick', 'mobileRequest',
+  'mobileRecent'];
 const shared = fs.readdirSync(JS).filter((f) => f.endsWith('.js') && !MOBILE_ONLY.includes(f.replace(/\.js$/, '')));
 const differ = shared.filter((f) => !fs.existsSync(path.join(NEXT, 'resources', 'js', f))
   || fs.readFileSync(path.join(JS, f), 'utf8') !== fs.readFileSync(path.join(NEXT, 'resources', 'js', f), 'utf8'));
@@ -242,4 +244,86 @@ files.filter((f) => /\.(html|js)$/.test(f) && !/mapbox-gl/.test(f)).forEach((f) 
 T.check('icons come from the Redwood icon font (oj-ux-ico-*)', icons.size > 5);
 T.eq('index.html: the app\'s own title', /<title>EquipRite Mobile<\/title>/.test(fs.readFileSync(path.join(APP, 'index.html'), 'utf8')), true);
 
-T.report();
+// The last 3 days (below) runs its chains, then reports.
+// ── My requests on the last 3 days ──────────────────────────────────────────────────────────────────────
+T.section('My requests open on the last 3 days (mobileRecent); search, All and a request handed over reach the older ones');
+function loadFile(file, deps, extra) {
+  const sandbox = Object.assign({ console, Intl, Date, setTimeout, JSON, Promise }, extra || {});
+  let mod;
+  sandbox.define = (names, factory) => { mod = factory(...names.map((n) => (deps || {})[n])); };
+  vm.createContext(sandbox);
+  vm.runInContext(fs.readFileSync(file, 'utf8'), sandbox, { filename: path.basename(file) });
+  return mod;
+}
+(async () => {
+  // Dated from the clock: the chains read it.
+  const rd = (n) => { const x = new Date(); x.setDate(x.getDate() + n); return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0'); };
+  const RROWS = [
+    { eqrEquipmentRequestId: 21, requestNumber: 'REQ-21', status: 'SUBMITTED', projectName: 'Pier B', requestorUsername: 'priya.raman', startDate: rd(4), endDate: rd(30) },
+    { eqrEquipmentRequestId: 22, requestNumber: 'REQ-22', status: 'DRAFT', projectName: 'Gas Line', requestorUsername: 'priya.raman', createdDate: rd(-1) + 'T09:00:00Z' },
+    { eqrEquipmentRequestId: 23, requestNumber: 'REQ-23', status: 'IN_PROCESS', projectName: 'Old Quarry', requestorUsername: 'priya.raman', startDate: rd(-40), endDate: rd(-10),
+      createdDate: rd(-45) + 'T08:00:00Z', lastUpdateDate: rd(-9) + 'T08:00:00Z' },
+    { eqrEquipmentRequestId: 24, requestNumber: 'REQ-24', status: 'DRAFT', projectName: 'Old Dock', requestorUsername: 'priya.raman', createdDate: rd(-20) + 'T08:00:00Z',
+      lastUpdatedDate: rd(-20) + 'T09:00:00Z' },
+    { eqrEquipmentRequestId: 25, requestNumber: 'REQ-25', status: 'SUBMITTED', projectName: 'No dates', requestorUsername: 'priya.raman' },
+  ];
+  const RLINES = { 'REQ-21': [L('REQ-21', 'Dozer', 'SUBMITTED')], 'REQ-22': [L('REQ-22', 'Crane', 'DRAFT')], 'REQ-23': [L('REQ-23', 'Crusher', 'DEPLOYED')],
+    'REQ-24': [L('REQ-24', 'Pump', 'DRAFT')], 'REQ-25': [L('REQ-25', 'Saw', 'SUBMITTED')] };
+  const rc = track.cards(RROWS, RLINES, { who, scope: 'mine', can, now: Date.now() });
+  const rby = (n) => rc.filter((c) => c.number === n)[0];
+  T.eq('a card keeps its latest date: raised, changed, start, end', [rby('REQ-23').lastAt === recent.ms(rd(-9) + 'T08:00:00Z'), rby('REQ-21').lastAt === recent.ms(rd(30)),
+    rby('REQ-25').lastAt].join(), 'true,true,');
+  T.eq('…kept on the phone and back', track.restore(track.keep(rc)).filter((c) => !recent.isRecent(c, Date.now())).map((c) => c.number).join(), 'REQ-23,REQ-24');
+
+  const TP = path.join(APP, 'flows', 'track', 'pages');
+  const pj = JSON.parse(fs.readFileSync(path.join(TP, 'track-page.json'), 'utf8'));
+  const pv = {};
+  Object.keys(pj.variables).forEach((k) => { pv[k] = JSON.parse(JSON.stringify(pj.variables[k].defaultValue === undefined ? null : pj.variables[k].defaultValue)); });
+  pv.all = rc;
+  pv.isLoading = false;
+  pv.chip = 'all';
+  const asked = [];
+  const tbus = load('mobileBus');
+  const Actions = { async callChain(c, o) { asked.push(o.chain + (o.params && o.params.period ? ':' + o.params.period : '')); if (o.chain === 'applyChain' || o.chain === 'openChain') await chainRun(o.chain, o.params); } };
+  const deps = { 'vb/action/actionChain': class {}, 'vb/action/actions': Actions, 'resources/js/trackList': track, 'resources/js/mobileRecent': recent, 'resources/js/mobileBus': tbus,
+    'resources/js/requestData': { load: async () => ({ linesByRequest: RLINES }) }, 'resources/js/requestHistory': { load: async () => ({ milestones: [], note: '' }) } };
+  const ctx = { $page: { variables: pv } };
+  async function chainRun(name, params) {
+    const C = loadFile(path.join(TP, 'track-page-chains', name + '.js'), deps, { window: { scrollTo() {} } });
+    return new C().run(ctx, params || {});
+  }
+  const shownNow = () => pv.shown.map((c) => c.number).join();
+  T.eq('a list opens on the last 3 days', pv.period, 'recent');
+  await chainRun('applyChain', {});
+  T.eq('the last 3 days: an old request is left out; no date at all, or raised yesterday, keeps one in', shownNow(), 'REQ-21,REQ-22,REQ-25');
+  T.eq('the chips count the period', track.chips(pv.shown).filter((c) => c.key === 'all')[0].count + ':' + pv.chips.filter((c) => c.key === 'all')[0].count, '3:3');
+  T.eq('under the list: what it leaves out', JSON.stringify([pv.dated.older, pv.dated.olderText, pv.dated.filtered, pv.dated.count]), '[2,"2 older requests",true,3]');
+  await chainRun('applyChain', { chip: 'action' });
+  T.eq('…under the chip (an old draft)', [shownNow(), pv.dated.olderText].join(' | '), 'REQ-22 | 1 older request');
+  await chainRun('applyChain', { chip: 'all', text: 'quarry' });
+  T.eq('a search looks through every date, saying so', [shownNow(), pv.dated.searching, pv.dated.older].join(' | '), 'REQ-23 | true | 0');
+  await chainRun('applyChain', { text: '' });
+  await chainRun('applyChain', { period: 'all' });
+  T.eq('All: every date', [shownNow(), pv.dated.filtered, pv.dated.older].join(' | '), 'REQ-21,REQ-22,REQ-23,REQ-24,REQ-25 | false | 0');
+  await chainRun('applyChain', { period: 'recent' });
+  tbus.focus('track', { number: 'REQ-23' });
+  await chainRun('focusChain', {});
+  T.eq('an older request handed over (another tab, a deep link) still opens; the list behind it shows every date', [asked.join(), pv.view, pv.sel.number, pv.period].join(' | '),
+    'applyChain:all,openChain | detail | REQ-23 | all');
+  await chainRun('openChain', { number: '' });
+  await chainRun('applyChain', { period: 'recent' });
+  asked.length = 0;
+  tbus.focus('track', { number: 'REQ-21' });
+  await chainRun('focusChain', {});
+  T.eq('a recent one leaves the period as it is', [asked.join(), pv.sel.number, pv.period].join(' | '), 'openChain | REQ-21 | recent');
+
+  const TPage = loadFile(path.join(TP, 'track-page.js'), { 'resources/js/mobileBus': tbus, 'resources/js/requestData': { onChange() {} }, 'resources/js/mobileRecent': recent });
+  const tp = new TPage();
+  T.eq('the line under the title says so', [tp.summary(false, { count: 3, filtered: true }, 'mine'), tp.summary(false, { count: 1, filtered: false }, 'all'),
+    tp.summary(true, {}, 'mine')].join(' | '), '3 requests in the last 3 days | 1 request, everyone’s | Loading…');
+  T.eq('an empty period says what it leaves out', [tp.empty('action', '', 'mine', { filtered: true, older: 2 }), tp.empty('all', '', 'mine', { filtered: true, older: 2 }),
+    tp.empty('ready', '', 'mine', { filtered: true, older: 1 }), tp.empty('action', '', 'mine', { filtered: true, older: 0 }), tp.empty('all', 'x', 'mine', { filtered: true, older: 2 })].join(' | '),
+    'Nothing needs you in the last 3 days. | No requests in the last 3 days. | No request is at this stage in the last 3 days. | Nothing needs you now. | No request matches “x”.');
+  T.eq('the period\'s name', tp.recentLabel(), 'Last 3 days');
+})().catch((e) => T.check('the last 3 days: run finished', false, e && e.stack)).then(() => T.report());
+

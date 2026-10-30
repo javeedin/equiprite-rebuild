@@ -4,6 +4,8 @@
  * with counts, search, the tab's count), a request in words, sending back one line with a quick reason, approving the
  * rest, "next up" to clear the queue, assigning units (one line changed by hand, then the suggestions accepted in one
  * tap), a request handed over by My requests and by a deep link, and no connection (the saved queue, nothing sent).
+ * The queue opens on the last 3 days: older requests are left out (a line under the list says how many, the tab's
+ * count leaves them out too), All shows them, a search and a deep link reach them.
  * Every write is checked (method, path, body) against what Next's Approve & allocate sends for the same steps.
  * Needs `npm run build`. Run: node tests/e2e/mobile-approve.e2e.js (screenshots: the OS temp folder, equiprite-e2e/).
  */
@@ -30,6 +32,11 @@ function world() {
     504: { requestNumber: 'REQ-504', status: 'IN_PROCESS', origin: 'Internal', projectName: 'Pipeline North', requestorName: 'Priya Nair', start: 2, end: 20, created: -12 },
     505: { requestNumber: 'REQ-505', status: 'IN_PROCESS', origin: 'Internal', projectName: 'Refinery Turnaround', requestorName: 'Lee Chan', start: -10, end: 15, created: -20 },
     506: { requestNumber: 'REQ-506', status: 'DRAFT', origin: 'Internal', projectName: 'Pipeline North', requestorName: 'Priya Nair', start: 12, end: 40, created: 0 },
+    // Older than the last 3 days (raised, started and ended before them): in the queue, left out until All, a search or
+    // a deep link asks for them.
+    490: { requestNumber: 'REQ-490', status: 'SUBMITTED', origin: 'Internal', projectName: 'Old Quarry', taskName: '9.1 Crushing', requestorName: 'Lee Chan',
+      requestorUserId: 73, start: -40, end: -10, created: -45 },
+    491: { requestNumber: 'REQ-491', status: 'IN_PROCESS', origin: 'Internal', projectName: 'Old Dock', requestorName: 'Lee Chan', start: -30, end: -8, created: -35 },
   };
   const serial = { isSerialControlled: 'Y', isLotControlled: 'N', isInventoryTracked: 'Y' };
   const L = (req, id, name, extra) => Object.assign({ req, lineId: id, equipmentName: name, className: 'Excavators', quantity: 1, lineStatus: 'SUBMITTED',
@@ -48,6 +55,8 @@ function world() {
     L(504, 9041, 'Roller 10t', { lineStatus: 'ALLOCATED', allocated: 1 }),
     L(505, 9051, 'Light tower', { lineStatus: 'DEPLOYED', allocated: 1 }),
     L(506, 9061, 'Skid steer', { lineStatus: 'DRAFT' }),
+    L(490, 4901, 'Jaw Crusher', { className: 'Crushing', equipmentMasterId: 81, estimatedCost: 15000 }),
+    L(491, 4911, 'Submersible Pump', { className: 'Pumps', lineStatus: 'IN_PROCESS', equipmentMasterId: 82, estimatedCost: 4000 }),
   ];
   // Serial units of the CAT 320 (master 11), lots of the cones (master 62).
   const SERIALS = [
@@ -194,7 +203,7 @@ const vshot = (page, name) => page.screenshot({ path: path.join(os.tmpdir(), 'eq
     await settle(page, 800);
     T.eq('Approve is the tab it opens on', await current(page), 'approve');
     T.eq('nothing is written on opening', env.writes.length, 0);
-    T.eq('the line under the title', await env.text('#apSummary'), '3 to decide · 1 with units to assign · 1 late');
+    T.eq('the line under the title (of the last 3 days)', await env.text('#apSummary'), 'In the last 3 days: 3 to decide · 1 with units to assign · 1 late');
     T.eq('chips with their counts', await chips(page), 'decide:3 allocate:1 late:1 all:4');
     T.eq('it opens on what waits for a decision', await env.text('#apChips .mb-chip--on'), 'To decide 3');
     T.eq('most urgent first: the late one, then by start date', await cards(page), 'REQ-509,REQ-501,REQ-502');
@@ -205,9 +214,31 @@ const vshot = (page, name) => page.screenshot({ path: path.join(os.tmpdir(), 'eq
     const c502 = await env.text('#apList .mb-approve-card[data-number="REQ-502"]');
     T.check('a customer request says so and names the customer', c502.includes('Customer') && c502.includes('Gulf Coast Builders') && c502.includes('Starts in 6 days'), c502);
     await page.waitForFunction(() => { const b = document.querySelector('.mb-tabbtn[data-tab="approve"] .mb-tabbadge'); return b && b.innerText.trim() === '3'; }, null, { timeout: 15000 });
-    T.eq('the tab counts the requests waiting for a decision', await badge(page), '3');
+    T.eq('the tab counts the requests waiting for a decision (of the last 3 days: not REQ-490)', await badge(page), '3');
     T.eq('no sideways scroll', await sideways(page), false);
     await env.shot('mobile-approve-queue.png');
+
+    T.section('the queue opens on the last 3 days');
+    T.eq('the period it opens on', [await env.text('#apRecent'), await page.$eval('#apRecent', (b) => b.getAttribute('aria-pressed'))].join(' '), 'Last 3 days true');
+    T.eq('under the list, the older request to decide it leaves out', await env.text('#apOlder'), '1 older request · Show all');
+    await vshot(page, 'mobile-approve-recent-screen.png');
+    await page.click('#apOlder');
+    await settle(page);
+    T.eq('Show all: every date, most urgent first', await cards(page), 'REQ-490,REQ-509,REQ-501,REQ-502');
+    T.eq('…the chips and the line under the title follow', [await chips(page), await env.text('#apSummary')].join(' | '),
+      'decide:4 allocate:2 late:3 all:6 | 4 to decide · 2 with units to assign · 3 late');
+    T.eq('…nothing left out, All is on', [!!(await page.$('#apOlder')), await page.$eval('#apAllDates', (b) => b.getAttribute('aria-pressed'))].join(), 'false,true');
+    T.eq('…the tab still counts what it opens on', await badge(page), '3');
+    await page.click('#apRecent');
+    await settle(page);
+    T.eq('the last 3 days again', [await cards(page), await chips(page)].join(' | '), 'REQ-509,REQ-501,REQ-502 | decide:3 allocate:1 late:1 all:4');
+    await page.fill('#apSearch', 'quarry');
+    await settle(page);
+    T.eq('a search looks through every date, saying so', [await cards(page), await env.text('#apSearching')].join(' | '), 'REQ-490 | Searching all dates');
+    await page.fill('#apSearch', '');
+    await settle(page);
+    T.eq('search cleared: the last 3 days', [await cards(page), !!(await page.$('#apSearching'))].join(' | '), 'REQ-509,REQ-501,REQ-502 | false');
+    T.eq('nothing written', env.writes.length, 0);
 
     await page.click('#apChips .mb-chip[data-key="allocate"]');
     await settle(page);
@@ -462,6 +493,14 @@ const vshot = (page, name) => page.screenshot({ path: path.join(os.tmpdir(), 'eq
     await env.open('/?tab=approve&number=REQ-505');
     await page.waitForSelector('#mbToast', { timeout: 30000 });
     T.eq('a request with nothing waiting: said so', await env.text('#mbToast .mb-toast-text'), 'REQ-505 has nothing waiting to approve or assign.');
+    await env.open('/?tab=approve&number=REQ-490');
+    await page.waitForFunction(() => { const h = document.querySelector('#apNumber'); return h && h.offsetParent && h.innerText.trim() === 'REQ-490'; }, null, { timeout: 30000 });
+    await idle(page);
+    T.eq('a deep link to an older request still opens it', [await current(page), await env.text('#apNumber'), await env.text('#apHeadline')].join(), 'approve,REQ-490,Waiting for approval');
+    await page.click('#apBack');
+    await page.waitForSelector(shown('#apList'), { timeout: 10000 });
+    T.eq('…and the queue behind it shows every date', [await page.$eval('#apAllDates', (b) => b.getAttribute('aria-pressed')), (await cards(page)).split(',')[0]].join(' | '),
+      'true | REQ-490');
 
     T.eq('no browser errors', env.errors.join(' | '), '');
   } catch (e) {

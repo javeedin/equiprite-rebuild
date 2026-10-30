@@ -56,7 +56,8 @@ const cu = load('currentUser');
 const mal = load('maintAssetLocation');
 const snapshot = load('offlineSnapshot');
 const pickSlip = load('pickSlip', { jspdf: { jsPDF: function () {} } });
-const mp = load('mobilePick', { 'resources/js/yardWork': yw, 'resources/js/requestProgress': Progress, 'resources/js/fmt': fmt });
+const recent = load('mobileRecent');
+const mp = load('mobilePick', { 'resources/js/yardWork': yw, 'resources/js/requestProgress': Progress, 'resources/js/fmt': fmt, 'resources/js/mobileRecent': recent });
 
 const NOW = Date.UTC(2026, 9, 30, 9, 0, 0);
 const d = (n) => new Date(NOW + n * 86400000).toISOString().slice(0, 10);
@@ -198,6 +199,42 @@ const work = { req, lines, exceptions: [], tos, yards: 'Houston Yard' };
   T.eq('in yardWork\'s sections, late first, a card each', secs.map((s) => s.key + ':' + s.cards.map((x) => x.number).join('+')).join(' '), 'late:REQ-2003 today:REQ-2007');
   T.eq('the stage chips: All first, then the tiles', mp.chips(yw.tiles('picking', its), its).map((x) => x.key + x.count).join(), 'all2,late3,pick1,picking3,ship0,shipped1');
   T.eq('what is left for the yard (the Pick tab\'s count)', mp.left(its), 4);
+  T.section('today\'s work on the last 3 days (mobileRecent, over what a work item carries)');
+  {
+    const OQ = QUEUE.concat([
+      { eqrEquipmentRequestId: 1990, requestNumber: 'REQ-1990', requestStatus: 'IN_PROCESS', source: 'INTERNAL', projectName: 'Old Quarry',
+        requestedStartDate: d(-40) + 'T00:00:00Z', requestedEndDate: d(-10) + 'T00:00:00Z' },
+      { eqrEquipmentRequestId: 1991, requestNumber: 'REQ-1991', requestStatus: 'IN_PROCESS', source: 'INTERNAL', projectName: 'Old Dock',
+        requestedStartDate: d(-40) + 'T00:00:00Z', requestedEndDate: d(-10) + 'T00:00:00Z' },
+      { eqrEquipmentRequestId: 1992, requestNumber: 'REQ-1992', requestStatus: 'IN_PROCESS', source: 'INTERNAL', projectName: 'No dates' },
+    ]);
+    const oRecords = yw.queueRows(OQ, rules.isExternalSource);
+    const oLines = Object.assign({}, linesBy, {
+      1990: [DL(1990, 9901, 'PICK_INITIATED')],
+      // Its request ended long ago, but one piece stays out until next week: still running.
+      1991: [DL(1991, 9911, 'PICK_INITIATED'), DL(1991, 9912, 'SCHEDULED_FOR_PICKING', { startDate: d(-40), endDate: d(6) })],
+      1992: [DL(1992, 9921, 'SCHEDULED_FOR_PICKING')],
+    });
+    const oIts = yw.items('picking', oRecords, oLines, yards, NOW, {});
+    const it = (n) => oIts.filter((i) => i.requestNumber === n)[0];
+    T.eq('a work item\'s latest date: its request\'s start and end, the day it is needed by, its pieces\'',
+      [mp.lastAt(it('REQ-2003')) === recent.ms(d(-2)), mp.lastAt(it('REQ-1990')) === recent.ms(d(-10)), mp.lastAt(it('REQ-1991')) === recent.ms(d(6)), mp.lastAt(it('REQ-1992'))].join(),
+      'true,true,true,');
+    T.eq('the last 3 days: an old request is left out; a piece still out, or no date at all, keeps one in',
+      mp.recentItems(oIts, NOW).map((i) => i.requestNumber).join(), 'REQ-2007,REQ-2003,REQ-1992,REQ-1991');
+    const v = mp.period(oIts, 'recent', '', NOW);
+    T.eq('what the list shows, and what it leaves out', [v.list.length, v.filtered, v.older].join(), '4,true,1');
+    T.eq('a search looks through every date', [mp.period(oIts, 'recent', 'quarry', NOW).list.length, mp.period(oIts, 'recent', 'quarry', NOW).searching].join(), '5,true');
+    T.eq('All: every date', mp.period(oIts, 'all', '', NOW).list.length, 5);
+    T.eq('the line under the title says so', mp.summary(mp.recentItems(oIts, NOW), true),
+      yw.summary('picking', mp.recentItems(oIts, NOW)).replace(/^([^·]+?)( · |$)/, '$1 in the last 3 days$2'));
+    T.check('…"in the last 3 days" right after what is left to get out', /^\d+ pieces to get out on 4 requests in the last 3 days( · |$)/.test(mp.summary(mp.recentItems(oIts, NOW), true)),
+      mp.summary(mp.recentItems(oIts, NOW), true));
+    T.eq('…nothing in the last 3 days', mp.summary([], true), 'Nothing waiting to go out in the last 3 days.');
+    T.eq('…every date: yardWork\'s words', mp.summary(oIts, false), yw.summary('picking', oIts));
+    T.eq('the tab\'s count: pieces left on the last 3 days', [mp.left(oIts), mp.left(mp.recentItems(oIts, NOW))].join(), [mp.left(oIts), mp.left(oIts) - 1].join());
+  }
+
   T.eq('New EquipRite\'s picking screen', [mp.newUrl('http://n/'), mp.newUrl('http://n'), mp.newUrl('')].join(' '), 'http://n/vp/shell/logistics/picking http://n/vp/shell/logistics/picking ');
   T.eq('the yard in words', [mp.yardLabel('all'), mp.yardLabel('Houston Yard')].join(), 'All yards,Houston Yard');
   T.eq('when it must ship', [mp.whenText({ start: d(-2) }, NOW), mp.whenText({ start: d(0) }, NOW), mp.whenText({}, NOW)].join(' | '),
@@ -250,6 +287,7 @@ const work = { req, lines, exceptions: [], tos, yards: 'Houston Yard' };
     'vb/action/actionChain': ActionChain, 'vb/action/actions': Actions, 'resources/js/yardWork': yw, 'resources/js/requestLineBody': lineBody,
     'resources/js/currentUser': cu, 'resources/js/requestData': requestData, 'resources/js/rules': rules, 'resources/js/maintAssetLocation': mal,
     'resources/js/requestDetailLines': rdl, 'resources/js/mobilePick': mp, 'resources/js/offlineSnapshot': snapshot, 'resources/js/mobileBus': bus,
+    'resources/js/mobileRecent': recent,
     'resources/js/yardLoad': yardLoad, 'resources/js/shellBus': { open() {}, toast() {}, takeFocus() { return null; }, onFocus() {} },
     'resources/js/unitScanner': { isCameraAvailable: () => ({ ok: false, message: 'This browser cannot open the camera.' }) },
     require: (names, ok) => ok(pickSlipStub),
@@ -537,6 +575,50 @@ const work = { req, lines, exceptions: [], tos, yards: 'Houston Yard' };
     bus.takeFocus = () => { taken += 1; return null; };
     await new (chain('focusChain', fakeActions(() => null)))().run(ctx(pageVars({ isLoading: true })));
     T.eq('still loading: left for the load to take', taken, 0);
+  }
+
+  T.section('the list on the last 3 days: the period, search, a request handed over');
+  {
+    // Dated from the clock: the chains read it.
+    const rd = (n) => { const x = new Date(); x.setDate(x.getDate() + n); return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0'); };
+    const PQ = [
+      { eqrEquipmentRequestId: 3001, requestNumber: 'REQ-3001', requestStatus: 'IN_PROCESS', source: 'INTERNAL', projectName: 'Pier B', requestedStartDate: rd(1), requestedEndDate: rd(20) },
+      { eqrEquipmentRequestId: 3002, requestNumber: 'REQ-3002', requestStatus: 'IN_PROCESS', source: 'INTERNAL', projectName: 'Old Quarry', requestedStartDate: rd(-40), requestedEndDate: rd(-10) },
+    ];
+    const precs = yw.queueRows(PQ, rules.isExternalSource);
+    const plines = { 3001: [DL(3001, 3101, 'SCHEDULED_FOR_PICKING')], 3002: [DL(3002, 3201, 'PICK_INITIATED')] };
+    const v = pageVars({ records: precs, linesBy: plines, items: [], period: 'recent' });
+    // Actions that run applyChain (setChain and focusChain ask for it) and note every chain asked for.
+    const live = () => {
+      const L = { calls: [], callRest: async () => null };
+      L.callChain = async (c, o) => { L.calls.push(o.chain); if (o.chain === 'applyChain') await new (chain('applyChain', L))().run(ctx(v), o.params); return null; };
+      return L;
+    };
+    const run = async (name, params, A) => new (chain(name, A || live()))().run(ctx(v), params);
+    bus.takeFocus = () => focusWant;
+    const cardsNow = () => v.sections.map((x) => x.cards.map((c) => c.number).join('+')).join(' ');
+    await run('applyChain');
+    T.eq('it opens on the last 3 days', [cardsNow(), v.dated.older, v.dated.olderText].join(' | '), 'REQ-3001 | 1 | 1 older request');
+    T.eq('the chips count the period, the line under the title says so', [v.chips[0].count, /in the last 3 days/.test(v.summary)].join(), '1,true');
+    T.eq('every date is kept (the yards are looked up, a scan finds its request)', v.items.length, 2);
+    await run('setChain', { field: 'text', value: 'quarry' });
+    T.eq('a search looks through every date, saying so', [cardsNow(), v.dated.searching, v.dated.older].join(' | '), 'REQ-3002 | true | 0');
+    await run('setChain', { field: 'text', value: '' });
+    await run('setChain', { field: 'period', value: 'all' });
+    T.eq('All: every date (late first)', [cardsNow(), v.dated.filtered, /in the last 3 days/.test(v.summary)].join(' | '), 'REQ-3002 REQ-3001 | false | false');
+    await run('setChain', { field: 'period', value: 'recent' });
+    T.eq('back to the last 3 days', cardsNow(), 'REQ-3001');
+    focusWant = { number: 'REQ-3002' };
+    const A = live();
+    await run('focusChain', undefined, A);
+    T.eq('an older request handed over still opens; the list behind it shows every date', [A.calls.join(), v.period, cardsNow()].join(' | '),
+      'applyChain,openWorkChain | all | REQ-3002 REQ-3001');
+    v.period = 'recent';
+    focusWant = { number: 'REQ-3001' };
+    const B = live();
+    await run('focusChain', undefined, B);
+    T.eq('a recent one leaves the period as it is', [B.calls.join(), v.period].join(' | '), 'openWorkChain | recent');
+    focusWant = null;
   }
 
   T.section('loading today\'s work');

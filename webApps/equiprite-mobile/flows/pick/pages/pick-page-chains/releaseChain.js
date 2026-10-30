@@ -98,7 +98,7 @@ define([
         const user = cu.auditActor(context) || ($application.user || {}).username || '';
         mp.keep(snapshot, user, (k, at) => mp.withTicks(mp.withWork(k, JSON.parse(JSON.stringify(v.work)), at), String(v.openId), number, ticks, undefined, at));
         bus.toast(released + (released === 1 ? ' piece' : ' pieces') + ' of ' + number + ' released for picking.', 'info');
-        bus.badge('pick', mp.left(v.items));
+        bus.badge('pick', mp.left(mp.recentItems(v.items, Date.now())));
       } catch (e) {
         console.error('[releaseChain] failed', e);
         v.banner = { type: 'error', text: 'The release was interrupted (' + ((e && e.message) || e) + '). Refresh to see where the pieces stand.' };

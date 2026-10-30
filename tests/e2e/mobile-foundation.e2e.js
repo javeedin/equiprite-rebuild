@@ -3,7 +3,9 @@
  * EquipRite Mobile, the foundation, in a phone-sized browser (390 x 844): the tabs each role gets (approver, picker,
  * requester, nobody), the tab bar and its count, My requests (cards, chips, search, a request's equipment and history,
  * the step buttons that open the tab taking them), a deep link, Me (role, install, versions), installable (manifest),
- * and with no connection (the strip, the saved copy).
+ * and with no connection (the strip, the saved copy). The lists open on the last 3 days: older requests are left out
+ * (a line under the list says how many), All shows them, a search and a deep link reach them, and the tab counts
+ * count what the tabs open on.
  * Needs `npm run build`. Run: node tests/e2e/mobile-foundation.e2e.js
  */
 const E = require('./harness');
@@ -18,7 +20,14 @@ const REQ = {
   2003: { requestNumber: 'REQ-2003', status: 'IN_PROCESS', projectName: 'EPC_MO_Operations', requestorName: 'Priya Raman', requestorUsername: 'priya.raman' },
   2004: { requestNumber: 'REQ-2004', status: 'SUBMITTED', projectName: 'Gas Line', requestorName: 'Dana Cole', requestorUsername: 'dana.cole' },
   2005: { requestNumber: 'REQ-2005', status: 'DRAFT', projectName: 'Pier B', requestorName: 'Priya Raman', requestorUsername: 'priya.raman' },
+  // Older than the last 3 days: raised, changed, started and ended before them. Left out of the lists (and the counts)
+  // until All, a search or a deep link asks for them.
+  2006: { requestNumber: 'REQ-2006', status: 'IN_PROCESS', projectName: 'Old Quarry', requestorName: 'Priya Raman', requestorUsername: 'priya.raman',
+    start: -40, end: -10, created: -45, updated: -9 },
+  2007: { requestNumber: 'REQ-2007', status: 'SUBMITTED', projectName: 'Old Dock', requestorName: 'Dana Cole', requestorUsername: 'dana.cole', start: -30, end: -8, created: -35 },
 };
+const START = (r) => (r.start == null ? 5 : r.start);
+const END = (r) => (r.end == null ? 30 : r.end);
 const LINES = [
   { id: 1, req: 2001, name: 'Komatsu D65EX-18 Dozer', cls: 'Earthmoving', status: 'SUBMITTED', alloc: 'PENDING' },
   { id: 2, req: 2001, name: 'Bobcat S76 Skid Steer Loader', cls: 'Earthmoving', status: 'SUBMITTED', alloc: 'PENDING' },
@@ -28,6 +37,8 @@ const LINES = [
   { id: 7, req: 2003, name: 'Generator 100kVA', cls: 'Power', status: 'DEPLOYED', alloc: 'ALLOCATED' },
   { id: 8, req: 2004, name: 'Light Tower', cls: 'Lighting', status: 'SUBMITTED', alloc: 'PENDING' },
   { id: 9, req: 2005, name: 'Tadano ATF 220G-5 Mobile Crane', cls: 'Lifting', status: 'DRAFT', alloc: 'PENDING' },
+  { id: 10, req: 2006, name: 'Jaw Crusher', cls: 'Crushing', status: 'ALLOCATED', alloc: 'ALLOCATED' },
+  { id: 11, req: 2007, name: 'Submersible Pump', cls: 'Pumps', status: 'SUBMITTED', alloc: 'PENDING' },
 ];
 const HISTORY = {
   2003: [
@@ -38,14 +49,19 @@ const HISTORY = {
 
 const lineRow = (l) => ({ requestNumber: REQ[l.req].requestNumber, lineId: l.id, lineNumber: l.id, equipmentName: l.name, className: l.cls, qty: 1, quantity: 1,
   lineStatus: l.status, allocationStatus: l.alloc, requestStatus: REQ[l.req].status, projectName: REQ[l.req].projectName,
-  requestedStartDate: day(5), requestedEndDate: day(30), requestorName: REQ[l.req].requestorName });
+  requestedStartDate: day(START(REQ[l.req])), requestedEndDate: day(END(REQ[l.req])), requestorName: REQ[l.req].requestorName });
 
 function handle(req, res) {
   const p = req.path.replace('/equiprite/v1', '');
   const q = req.query;
   let m;
   if (p === '/views/my-requests') {
-    return res.json({ data: Object.keys(REQ).map((id) => Object.assign({ eqrEquipmentRequestId: Number(id), startDate: day(5), endDate: day(30), requestOrigin: 'Internal' }, REQ[id])) });
+    return res.json({ data: Object.keys(REQ).map((id) => {
+      const r = REQ[id];
+      return Object.assign({ eqrEquipmentRequestId: Number(id), startDate: day(START(r)), endDate: day(END(r)), requestOrigin: 'Internal' },
+        r.created != null ? { createdDate: day(r.created) + 'T08:00:00Z' } : {}, r.updated != null ? { lastUpdateDate: day(r.updated) + 'T09:30:00Z' } : {},
+        { requestNumber: r.requestNumber, status: r.status, projectName: r.projectName, requestorName: r.requestorName, requestorUsername: r.requestorUsername });
+    }) });
   }
   if (p === '/views/my-request-lines') return res.json({ data: LINES.map(lineRow) });
   if (p === '/views/request-detail-lines') return res.json({ data: LINES.filter((l) => l.req === Number(q.get('requestId'))).map(lineRow) });
@@ -95,8 +111,8 @@ const ROLES = {
     T.eq('opens on the first work tab', await current(page), 'approve');
     T.eq('the top bar names the app', await env.text('.mb-top-title'), 'EquipRite');
     await page.waitForFunction(() => { const b = document.querySelector('.mb-tabbtn[data-tab="approve"] .mb-tabbadge'); return b && b.textContent.trim(); }, null, { timeout: 15000 });
-    T.eq('Approve counts the requests waiting for a decision', await env.text('.mb-tabbtn[data-tab="approve"] .mb-tabbadge'), '2');
-    T.eq('Pick counts the pieces ready for the yard', await env.text('.mb-tabbtn[data-tab="pick"] .mb-tabbadge'), '2');
+    T.eq('Approve counts the requests waiting for a decision (of the last 3 days: not REQ-2007)', await env.text('.mb-tabbtn[data-tab="approve"] .mb-tabbadge'), '2');
+    T.eq('Pick counts the pieces ready for the yard (of the last 3 days: not REQ-2006\'s)', await env.text('.mb-tabbtn[data-tab="pick"] .mb-tabbadge'), '2');
     T.eq('Request counts your drafts', await env.text('.mb-tabbtn[data-tab="request"] .mb-tabbadge'), '1');
     T.eq('the tab bar sits at the bottom of the screen', await page.$eval('#mbTabbar', (n) => Math.round(n.getBoundingClientRect().bottom)), 844);
     T.eq('no sideways scroll on a phone', await sideways(page), false);
@@ -131,6 +147,32 @@ const ROLES = {
     await page.click('#trChips .mb-chip[data-key="all"]');
     await settle(page);
     T.eq('all of yours, newest first', await cards(), 'REQ-2005,REQ-2003,REQ-2001');
+
+    T.section('My requests opens on the last 3 days');
+    T.eq('the period it opens on', [await env.text('#trRecent'), await page.$eval('#trRecent', (b) => b.getAttribute('aria-pressed'))].join(' '), 'Last 3 days true');
+    T.eq('the band says so', await env.text('#trSummary'), '3 requests in the last 3 days');
+    T.eq('under the list, the older ones it leaves out', await env.text('#trOlder'), '1 older request · Show all');
+    T.eq('the chips count the last 3 days', await env.text('#trChips .mb-chip[data-key="all"]'), 'All 3');
+    T.eq('the period control fits the phone', await page.$eval('#trPeriod', (n) => n.getBoundingClientRect().width <= 390 - 24 && n.getBoundingClientRect().height >= 44), true);
+    await env.shot('mobile-track-recent.png');
+    await page.click('#trOlder');
+    await page.waitForFunction(() => document.querySelectorAll('#trList .mb-item').length === 4, null, { timeout: 10000 });
+    T.eq('Show all: every date', await cards(), 'REQ-2006,REQ-2005,REQ-2003,REQ-2001');
+    T.eq('…All is on, the band counts every date, nothing is left out', [await page.$eval('#trAllDates', (b) => b.getAttribute('aria-pressed')), await env.text('#trSummary'),
+      !!(await page.$('#trOlder'))].join(' | '), 'true | 4 requests | false');
+    T.eq('…and the chips', await env.text('#trChips .mb-chip[data-key="all"]'), 'All 4');
+    await page.click('#trRecent');
+    await page.waitForFunction(() => document.querySelectorAll('#trList .mb-item').length === 3, null, { timeout: 10000 });
+    T.eq('the last 3 days again', await cards(), 'REQ-2005,REQ-2003,REQ-2001');
+    await page.fill('#trSearch', 'quarry');
+    await settle(page);
+    T.eq('a search looks through every date', await cards(), 'REQ-2006');
+    T.eq('…and says so', await env.text('#trSearching'), 'Searching all dates');
+    T.eq('…nothing is said to be left out while searching', !!(await page.$('#trOlder')), false);
+    await env.shot('mobile-track-search-all-dates.png');
+    await page.fill('#trSearch', '');
+    await settle(page);
+    T.eq('search cleared: the last 3 days', [await cards(), !!(await page.$('#trSearching'))].join(' | '), 'REQ-2005,REQ-2003,REQ-2001 | false');
     T.eq('a card says where it is', await env.text('#trList .mb-item[data-number="REQ-2001"] .mb-pill'), 'Waiting for approval');
     T.check('and what is next', /Next: Equipment Manager to approve it/.test(await env.text('#trList .mb-item[data-number="REQ-2001"]')),
       await env.text('#trList .mb-item[data-number="REQ-2001"]'));
@@ -138,6 +180,8 @@ const ROLES = {
     await page.click('#trAll');
     await page.waitForFunction(() => document.querySelectorAll('#trList .mb-item').length === 5, null, { timeout: 10000 });
     T.eq('a manager can see everyone\'s', await cards(), 'REQ-2005,REQ-2004,REQ-2003,REQ-2002,REQ-2001');
+    T.eq('…of the last 3 days, the older ones left out', [await env.text('#trSummary'), await env.text('#trOlder')].join(' | '),
+      '5 requests in the last 3 days, everyone’s | 2 older requests · Show all');
     await page.fill('#trSearch', 'light tower');
     await settle(page);
     T.eq('search reaches the equipment', await cards(), 'REQ-2004');
@@ -213,7 +257,8 @@ const ROLES = {
     T.check('My requests shows this phone\'s saved copy, saying when', /Saved on this phone at \d\d:\d\d/.test(await env.text('#trSaved')), await env.text('#trSaved'));
     await page.click('#trChips .mb-chip[data-key="all"]');
     await settle(page);
-    T.eq('the saved cards', await cards(), 'REQ-2005,REQ-2003,REQ-2001');
+    T.eq('the saved cards, of the last 3 days', await cards(), 'REQ-2005,REQ-2003,REQ-2001');
+    T.eq('…the saved copy keeps the older ones: All shows them', await env.text('#trOlder'), '1 older request · Show all');
     await page.click('#trList .mb-item[data-number="REQ-2001"]');
     await page.waitForSelector(shown('#trDetail'), { timeout: 10000 });
     T.check('no steps offline (they need a connection)', !(await page.$('#trApprove')));
@@ -243,6 +288,16 @@ const ROLES = {
     await env.open('/?tab=track&number=REQ-2003');
     await page.waitForSelector(shown('#trDetail'), { timeout: 20000 });
     T.eq('?tab=track&number= opens on the request', [await current(page), await env.text('#trNumber')].join(), 'track,REQ-2003');
+    await env.open('/?tab=track&number=REQ-2006');
+    await page.waitForSelector(shown('#trDetail'), { timeout: 20000 });
+    T.eq('a deep link to an older request still opens it', [await current(page), await env.text('#trNumber')].join(), 'track,REQ-2006');
+    await page.click('#trBack');
+    await page.waitForSelector(shown('#trList'), { timeout: 10000 });
+    await page.click('#trChips .mb-chip[data-key="all"]');
+    await settle(page);
+    T.eq('…and the list behind it shows every date', [await page.$eval('#trAllDates', (b) => b.getAttribute('aria-pressed')), await cards()].join(' | '),
+      'true | REQ-2006,REQ-2005,REQ-2003,REQ-2001');
+    T.eq('no sideways scroll', await sideways(page), false);
 
     T.eq('no browser errors', env.errors.join(' | '), '');
   } catch (e) {

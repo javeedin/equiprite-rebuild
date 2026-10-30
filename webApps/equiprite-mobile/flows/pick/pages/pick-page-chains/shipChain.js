@@ -165,7 +165,7 @@ define([
           mp.keep(snapshot, user, (k, at) => mp.withTicks(k, String(v.openId), number, left, left.length ? undefined : false, at));
           bus.toast(ok + (ok === 1 ? ' piece' : ' pieces') + ' of ' + number + (party ? ' shipped to ' + party + '.' : ' shipped to site.') + assetNote,
             assetNote ? 'warning' : 'info');
-          bus.badge('pick', mp.left(v.items));
+          bus.badge('pick', mp.left(mp.recentItems(v.items, Date.now())));
         }
       } catch (e) {
         console.error('[shipChain] failed:', e);

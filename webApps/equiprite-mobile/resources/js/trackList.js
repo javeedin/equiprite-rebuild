@@ -1,5 +1,5 @@
-define(['resources/js/requestList', 'resources/js/requestProgress', 'resources/js/cartDrafts', 'resources/js/approvalQueue'],
-  function (List, Progress, Drafts, Queue) {
+define(['resources/js/requestList', 'resources/js/requestProgress', 'resources/js/cartDrafts', 'resources/js/approvalQueue', 'resources/js/mobileRecent'],
+  function (List, Progress, Drafts, Queue, Recent) {
   'use strict';
 
   // My requests on a phone, pure: a card per request (where it is, read from its equipment by requestProgress, as
@@ -7,6 +7,8 @@ define(['resources/js/requestList', 'resources/js/requestProgress', 'resources/j
   // offers (approve, pick, carry on with a draft) follows page access, as on the tabs that take them.
   //
   // Mine are the requests whose requester is you (cartDrafts.isMine); a manager can switch to everyone's.
+  // Each card keeps its latest date (lastAt: when it was raised or last changed, its start, its end), so the list can
+  // open on the last few days (mobileRecent), the copy kept on the phone too.
 
   var CHIPS = [
     { key: 'open', label: 'Open' },
@@ -69,6 +71,7 @@ define(['resources/js/requestList', 'resources/js/requestProgress', 'resources/j
       approve: !!acts.approve,
       pick: acts.pick || 0,
       carryOn: !!c.request && (p.stage === 'draft' || p.headline === 'Sent back'),
+      lastAt: Recent.latest(r),
       text: lc([r.requestNumber, r.party, r.partyFor, r.taskName, r.requestorName, p.headline, (lines || []).map(function (l) { return l.name; }).join(' ')].join(' '))
     };
   }

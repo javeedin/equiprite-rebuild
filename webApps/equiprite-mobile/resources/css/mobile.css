@@ -162,6 +162,28 @@
 .mb-chip--on { background: var(--mb-band); border-color: var(--mb-band); color: #fff; }
 .mb-chip-count { font-size: 12px; opacity: 0.8; }
 
+/* The period a list shows: the last few days (it opens on them) or every date. A search looks through every date: the
+   control steps back while one is typed, and a note says so. Under the list, what the period leaves out. */
+.mb-period {
+  display: flex; padding: 3px; gap: 3px; border: 1px solid var(--mb-line-strong); border-radius: 12px; background: var(--mb-surface-2);
+  transition: opacity 0.15s ease-out;
+}
+.mb-period--aside { opacity: 0.55; }
+.mb-period-btn {
+  flex: 1; min-width: 0; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 10px; border: 0;
+  border-radius: 9px; background: transparent; color: var(--mb-muted); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.mb-period-btn--on { background: var(--mb-band); color: #fff; box-shadow: var(--mb-shadow); }
+.mb-period-note { display: flex; align-items: center; gap: 8px; padding: 0 4px; font-size: 13px; font-weight: 600; color: var(--mb-accent); }
+.mb-older {
+  width: 100%; min-height: 46px; padding: 10px 14px; border: 1px dashed var(--mb-line-strong); border-radius: 12px; background: transparent;
+  color: var(--mb-muted); font: inherit; font-size: 14px; text-align: center; cursor: pointer; overflow-wrap: anywhere;
+}
+.mb-older:active { background: #f0f6f9; }
+.mb-older-text { font-weight: 600; }
+.mb-older-go { font-weight: 700; color: var(--mb-accent); }
+
 /* Fields */
 .mb-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .mb-label { font-size: 13px; font-weight: 700; }

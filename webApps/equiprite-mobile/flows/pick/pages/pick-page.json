@@ -1,5 +1,5 @@
 {
-  "description": "Pick & ship on a phone: today's work for the yard (Next's picking queue, in sections by the day it must ship, late first) as cards with a ring of how many pieces are picked; the yard (several: chosen once, remembered on this phone); search. A request opens on its pieces as a big checklist in walking order, by step (release, being picked, waiting for Fusion, shipped), with the next piece to fetch; ticked by tap, by scanning its tag or by typing its unit number. Release (fixed assets), Pick and ship and the pick slip are Next's chains, with the same calls, order and guards; each says what will happen in a sheet first. Read-only looks. With no connection: the copy saved on this phone, ticks kept as picked, not yet sent, and nothing is sent.",
+  "description": "Pick & ship on a phone: today's work for the yard (Next's picking queue, in sections by the day it must ship, late first) as cards with a ring of how many pieces are picked; the yard (several: chosen once, remembered on this phone); the last 3 days, or every date; search (every date). A request opens on its pieces as a big checklist in walking order, by step (release, being picked, waiting for Fusion, shipped), with the next piece to fetch; ticked by tap, by scanning its tag or by typing its unit number. Release (fixed assets), Pick and ship and the pick slip are Next's chains, with the same calls, order and guards; each says what will happen in a sheet first. Read-only looks. With no connection: the copy saved on this phone, ticks kept as picked, not yet sent, and nothing is sent.",
   "navigation": { "embeddable": "enabled" },
   "variables": {
     "isLoading": { "type": "boolean", "defaultValue": true },
@@ -16,8 +16,11 @@
     "yard": { "type": "string", "defaultValue": "all", "description": "The yard this person works from ('all' for every yard), remembered on this phone." },
     "yardKnown": { "type": "boolean", "defaultValue": false, "description": "The remembered yard has been read from the phone." },
     "text": { "type": "string", "defaultValue": "" },
+    "period": { "type": "string", "defaultValue": "recent", "description": "recent (the last few days: mobileRecent) | all. A search looks through every date." },
+    "dated": { "type": "any", "defaultValue": { "filtered": true, "searching": false, "older": 0, "olderText": "", "count": 0 },
+      "description": "The period shown (mobileRecent.dated): applied or set aside for a search, the older requests it leaves out under the chip and yard, how many it keeps." },
     "collapsed": { "type": "any", "defaultValue": { "done": true } },
-    "items": { "type": "any[]", "defaultValue": [], "description": "yardWork.items('picking', …): each request with its pieces." },
+    "items": { "type": "any[]", "defaultValue": [], "description": "yardWork.items('picking', …): each request with its pieces, of every date." },
     "shown": { "type": "any[]", "defaultValue": [] },
     "sections": { "type": "any[]", "defaultValue": [], "description": "yardWork.sections, each with its cards (mobilePick.sections)." },
     "chips": { "type": "any[]", "defaultValue": [] },

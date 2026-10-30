@@ -71,7 +71,7 @@ define([
         pv.reason = '';
         pv.ticks = [];
         pv.sheet = '';
-        pv.done = ma.done({ action, words, key, number: head.number, list: JSON.parse(JSON.stringify(pv.all || [])), order, chip });
+        pv.done = ma.done({ action, words, key, number: head.number, list: ma.byPeriod(JSON.parse(JSON.stringify(pv.all || [])), pv.period, Date.now()), order, chip });
         pv.view = 'done';
         if (typeof window !== 'undefined' && window.scrollTo) window.scrollTo(0, 0);
         return;

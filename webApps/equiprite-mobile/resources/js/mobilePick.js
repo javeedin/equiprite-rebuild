@@ -1,4 +1,4 @@
-define(['resources/js/yardWork', 'resources/js/requestProgress', 'resources/js/fmt'], function (yw, Progress, fmt) {
+define(['resources/js/yardWork', 'resources/js/requestProgress', 'resources/js/fmt', 'resources/js/mobileRecent'], function (yw, Progress, fmt, recent) {
   'use strict';
 
   // EquipRite Mobile's Pick tab, pure (no calls, no storage, no DOM): what a phone in the yard shows of Next's yard
@@ -9,7 +9,9 @@ define(['resources/js/yardWork', 'resources/js/requestProgress', 'resources/js/f
   //     with the next piece to fetch;
   //   - a scanned or typed unit matched to its piece (or to the request it is really on);
   //   - what the Release and Ship sheets say before anything is sent;
-  //   - the copy kept on the phone for a yard with no signal (the list, the requests opened, the ticks).
+  //   - the copy kept on the phone for a yard with no signal (the list, the requests opened, the ticks);
+  //   - the list on the last few days (mobileRecent), from the dates a work item carries: the request's start and end,
+  //     the day it is needed by, its pieces' start and end.
   //
   // A tick is Next's tick (it scopes Release and Pick and ship). On a phone it means "picked" for a piece being picked
   // and "release this one" for a fixed asset waiting for release. Only those two kinds can be ticked: a stock piece
@@ -466,6 +468,34 @@ define(['resources/js/yardWork', 'resources/js/requestProgress', 'resources/js/f
     });
   }
 
+  // ── The period (mobileRecent) ───────────────────────────────────────────────────────────────────────────────
+  /** A work item's latest date (ms, null when it has none): the request's start and end, the day it is needed by, its pieces'. */
+  function lastAt(item) {
+    var it = item || {};
+    var more = [it.date];
+    (Array.isArray(it.pieces) ? it.pieces : []).forEach(function (p) { more.push(p && p.start, p && p.end); });
+    return recent.latest(it, more, recent.SPAN);
+  }
+
+  /** The work items of the last few days (what the list opens on, and what the tab's count counts). */
+  function recentItems(items, now) { return recent.only(items, now, lastAt); }
+
+  /** What the list shows for the period and the search (mobileRecent.view, over work items). */
+  function period(items, which, text, now) { return recent.view(items, which, text, now, lastAt); }
+
+  /**
+   * The line under the title (yardWork's); when the list is the last few days of work that is not empty (lately):
+   * "7 pieces to get out on 3 requests in the last 3 days · 4 late", or "Nothing waiting to go out in the last 3 days.".
+   */
+  function summary(items, lately) {
+    var said = yw.summary('picking', items);
+    if (!lately) return said;
+    if (!(items || []).length) return 'Nothing waiting to go out ' + recent.PHRASE + '.';
+    var parts = said.split(' · ');
+    parts[0] = parts[0] + ' ' + recent.PHRASE;
+    return parts.join(' · ');
+  }
+
   /** Pieces still to get out of the yard (to pick, being picked, ready to ship): the Pick tab's count. */
   function left(items) {
     return (Array.isArray(items) ? items : []).reduce(function (n, it) {
@@ -630,6 +660,10 @@ define(['resources/js/yardWork', 'resources/js/requestProgress', 'resources/js/f
     card: card,
     sections: sections,
     left: left,
+    lastAt: lastAt,
+    recentItems: recentItems,
+    period: period,
+    summary: summary,
     yardLabel: yardLabel,
     newUrl: newUrl,
     kept: kept,

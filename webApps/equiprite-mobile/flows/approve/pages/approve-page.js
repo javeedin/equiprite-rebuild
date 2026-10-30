@@ -1,5 +1,5 @@
-define(['resources/js/mobileBus', 'resources/js/unitPicker', 'resources/js/approvalQueue', 'resources/js/mobileApprove', 'resources/js/fmt'],
-  (bus, unitPicker, queue, ma, fmt) => {
+define(['resources/js/mobileBus', 'resources/js/unitPicker', 'resources/js/approvalQueue', 'resources/js/mobileApprove', 'resources/js/fmt', 'resources/js/mobileRecent'],
+  (bus, unitPicker, queue, ma, fmt, recent) => {
   'use strict';
 
   // Approve on a phone: binding helpers, what the chains keep between them (the request list as last read, the unit
@@ -61,14 +61,18 @@ define(['resources/js/mobileBus', 'resources/js/unitPicker', 'resources/js/appro
     inNewUrl(base, head) { return ma.inNewUrl(base, head); }
     quoteUrl(base, head) { return ma.quoteUrl(base, head); }
 
-    /** The empty queue, in words, for the chip and the search. */
-    empty(chip, text, total) {
+    /** "Last 3 days": the period the queue opens on. */
+    recentLabel() { return recent.LABEL; }
+
+    /** The empty queue, in words, for the chip, the search and the period (older requests left out: the line under it). */
+    empty(chip, text, total, dated) {
       if (text) return 'No request matches “' + text + '”.';
       if (!total) return 'Nothing is waiting on you. New requests to decide, and approved lines with no unit yet, appear here.';
-      if (chip === 'decide') return 'Nothing left to decide.';
-      if (chip === 'allocate') return 'No approved line is waiting for a unit.';
-      if (chip === 'late') return 'Nothing is late.';
-      return 'Nothing here.';
+      const lately = dated && dated.filtered && dated.older > 0 ? ' ' + recent.PHRASE : '';
+      if (chip === 'decide') return lately ? 'Nothing to decide' + lately + '.' : 'Nothing left to decide.';
+      if (chip === 'allocate') return 'No approved line is waiting for a unit' + lately + '.';
+      if (chip === 'late') return 'Nothing is late' + lately + '.';
+      return lately ? 'Nothing' + lately + '.' : 'Nothing here.';
     }
   }
 
