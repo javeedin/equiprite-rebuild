@@ -10,8 +10,10 @@ define([
   class closeTabChain extends ActionChain {
     async run(context, { id }) {
       if (!id) return;
-      const next = tabs.close(shellTabs.state(context), id);
-      if (next.closed) await shellTabs.apply(context, Actions, next);
+      await shellTabs.update(context, Actions, (st) => {
+        const next = tabs.close(st, id);
+        return next.closed ? next : null;
+      });
     }
   }
 

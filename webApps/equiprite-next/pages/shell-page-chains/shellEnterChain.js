@@ -29,7 +29,7 @@ define([
       if (pv.number) q.set('number', pv.number);
       const link = tabs.fromQuery('?' + q.toString() || window.location.search);
       if (link) state = tabs.open(state, link);
-      await shellTabs.apply(context, Actions, state);
+      await shellTabs.update(context, Actions, () => state);
       $page.variables.readIds = alerts.loadRead();
 
       const v = $application.variables;
@@ -37,17 +37,16 @@ define([
         await new Promise((r) => setTimeout(r, GAP_MS));
       }
       const visible = (t) => nav.itemVisible(nav.item(t.navId), v.pageAccessMap, v.pageAccessLoaded, v.featureFlags, v.flagsLoaded, v.buRateSources);
-      const now = shellTabs.state(context);
-      let keep = now.tabs.filter(visible);
-      if (!keep.length) {
-        const groups = nav.visibleGroups(v.pageAccessMap, v.pageAccessLoaded, v.featureFlags, v.flagsLoaded, v.buRateSources);
-        const first = groups.length ? tabs.forItem(groups[0].items[0].id) : null;
-        keep = first ? [first] : [];
-      }
-      if (keep.length !== now.tabs.length || keep.some((t, i) => t.id !== now.tabs[i].id)) {
-        const current = keep.some((t) => t.id === now.current) ? now.current : (keep[0] ? keep[0].id : '');
-        await shellTabs.apply(context, Actions, { tabs: keep, current });
-      }
+      await shellTabs.update(context, Actions, (now) => {
+        let keep = now.tabs.filter(visible);
+        if (!keep.length) {
+          const groups = nav.visibleGroups(v.pageAccessMap, v.pageAccessLoaded, v.featureFlags, v.flagsLoaded, v.buRateSources);
+          const first = groups.length ? tabs.forItem(groups[0].items[0].id) : null;
+          keep = first ? [first] : [];
+        }
+        if (keep.length === now.tabs.length && keep.every((t, i) => t.id === now.tabs[i].id)) return null;
+        return { tabs: keep, current: keep.some((t) => t.id === now.current) ? now.current : (keep[0] ? keep[0].id : '') };
+      });
       await Actions.callChain(context, { chain: 'loadAlertsChain' });
     }
   }

@@ -1,0 +1,218 @@
+<!-- Requests. Each request reads from its equipment (requestProgress): "Partly shipped · 1 of 3", the next step and who
+     takes it, what is late. List, Board (a column per stage) or Equipment (a row per piece). Logic: requestList.js. -->
+<div class="nx-page nx-requests">
+  <div class="nx-pagehead">
+    <div>
+      <h1>Requests</h1>
+      <div class="nx-sub" id="reqSummary"><oj-bind-text value="[[ $variables.isLoading && !$variables.rows.length ? 'Loading requests and their equipment…' : $variables.summary ]]"></oj-bind-text></div>
+    </div>
+    <div class="nx-actions">
+      <button type="button" class="nx-btn nx-btn--plain" on-click="[[ $listeners.onRefresh ]]" :disabled="[[ $variables.isLoading ]]">
+        <span class="oj-ux-ico-refresh" aria-hidden="true"></span>Refresh</button>
+      <div class="nx-export">
+        <button type="button" class="nx-btn" id="reqExport" on-click="[[ $listeners.onExportMenu ]]" aria-haspopup="menu"
+          :aria-expanded="[[ $variables.exportOpen ? 'true' : 'false' ]]">
+          <span class="oj-ux-ico-download" aria-hidden="true"></span>Export<span class="oj-ux-ico-chevron-down" aria-hidden="true"></span></button>
+        <oj-bind-if test="[[ $variables.exportOpen ]]">
+          <div class="nx-menu" role="menu" aria-label="Export">
+            <oj-bind-for-each data="[[ $functions.formats() ]]">
+              <template data-oj-as="f">
+                <button type="button" role="menuitem" class="nx-menu-item" :data-format="[[ f.data.key ]]" on-click="[[ $listeners.onExport ]]">
+                  <span :class="[[ f.data.icon ]]" aria-hidden="true"></span><oj-bind-text value="[[ f.data.label ]]"></oj-bind-text></button>
+              </template>
+            </oj-bind-for-each>
+            <p class="nx-menu-note"><oj-bind-text value="[[ $variables.shown.length + ($variables.view === 'equipment' ? ' pieces' : ' requests') + ', as shown' ]]"></oj-bind-text></p>
+          </div>
+        </oj-bind-if>
+      </div>
+      <button type="button" class="nx-btn nx-btn--primary" on-click="[[ $listeners.onNew ]]"><span class="oj-ux-ico-plus" aria-hidden="true"></span>New request</button>
+    </div>
+  </div>
+
+  <div class="nx-toolbar">
+    <div class="nx-seg" role="group" aria-label="View">
+      <button type="button" data-field="view" data-value="list" on-click="[[ $listeners.onPick ]]" :aria-pressed="[[ $variables.view === 'list' ? 'true' : 'false' ]]"
+        :class="[[ 'nx-seg-btn' + ($variables.view === 'list' ? ' nx-seg-btn--on' : '') ]]"><span class="oj-ux-ico-list" aria-hidden="true"></span>List</button>
+      <button type="button" data-field="view" data-value="board" on-click="[[ $listeners.onPick ]]" :aria-pressed="[[ $variables.view === 'board' ? 'true' : 'false' ]]"
+        :class="[[ 'nx-seg-btn' + ($variables.view === 'board' ? ' nx-seg-btn--on' : '') ]]"><span class="oj-ux-ico-three-boxes-vertical" aria-hidden="true"></span>Board</button>
+      <button type="button" data-field="view" data-value="equipment" on-click="[[ $listeners.onPick ]]" :aria-pressed="[[ $variables.view === 'equipment' ? 'true' : 'false' ]]"
+        :class="[[ 'nx-seg-btn' + ($variables.view === 'equipment' ? ' nx-seg-btn--on' : '') ]]"><span class="oj-ux-ico-truck" aria-hidden="true"></span>Equipment</button>
+    </div>
+    <label class="nx-search">
+      <span class="oj-ux-ico-search" aria-hidden="true"></span>
+      <input type="search" :value="[[ $variables.text ]]" on-input="[[ $listeners.onSearch ]]" aria-label="Search"
+        :placeholder="[[ $variables.view === 'equipment' ? 'Equipment, serial, request, project or location' : 'Request, project, customer, requestor or equipment' ]]">
+    </label>
+    <oj-bind-if test="[[ $variables.manager ]]">
+      <div class="nx-chips" role="group" aria-label="Type">
+        <button type="button" data-field="source" data-value="INTERNAL" on-click="[[ $listeners.onPick ]]" :aria-pressed="[[ $variables.source === 'INTERNAL' ? 'true' : 'false' ]]"
+          :class="[[ 'nx-chip' + ($variables.source === 'INTERNAL' ? ' nx-chip--on' : '') ]]">Project</button>
+        <button type="button" data-field="source" data-value="EXTERNAL" on-click="[[ $listeners.onPick ]]" :aria-pressed="[[ $variables.source === 'EXTERNAL' ? 'true' : 'false' ]]"
+          :class="[[ 'nx-chip' + ($variables.source === 'EXTERNAL' ? ' nx-chip--on' : '') ]]">Customer</button>
+      </div>
+    </oj-bind-if>
+  </div>
+
+  <div class="nx-chips" role="group" aria-label="Where the equipment is">
+    <oj-bind-for-each data="[[ $variables.chips ]]">
+      <template data-oj-as="c">
+        <button type="button" data-field="stage" :data-value="[[ c.data.key ]]" on-click="[[ $listeners.onPick ]]"
+          :aria-pressed="[[ $variables.stage === c.data.key ? 'true' : 'false' ]]"
+          :class="[[ 'nx-chip' + (c.data.key === 'late' ? ' nx-chip--late' : '') + ($variables.stage === c.data.key ? ' nx-chip--on' : '') ]]">
+          <oj-bind-text value="[[ c.data.label ]]"></oj-bind-text><span class="nx-chip-count"><oj-bind-text value="[[ c.data.count ]]"></oj-bind-text></span>
+        </button>
+      </template>
+    </oj-bind-for-each>
+  </div>
+
+  <oj-bind-if test="[[ !!$variables.error ]]">
+    <div class="nx-error" role="alert"><oj-bind-text value="[[ $variables.error ]]"></oj-bind-text></div>
+  </oj-bind-if>
+  <oj-bind-if test="[[ !$variables.isLoading && !$variables.error && !$variables.shown.length ]]">
+    <div class="nx-card nx-empty">Nothing matches. Try another stage or clear the search.</div>
+  </oj-bind-if>
+
+  <!-- ── List ─────────────────────────────────────────────────────────────────────────────────────────── -->
+  <oj-bind-if test="[[ $variables.view === 'list' && $variables.shown.length > 0 ]]">
+    <section class="nx-card">
+      <div class="nx-table">
+        <div class="nx-grid nx-grid--req" role="table" aria-label="Requests">
+          <div class="nx-row nx-row--head" role="row">
+            <span role="columnheader" :aria-sort="[[ $functions.ariaSort('number', $variables.sortKey, $variables.sortDir) ]]">
+              <button type="button" class="nx-sort" data-key="number" on-click="[[ $listeners.onSort ]]">Request<oj-bind-text value="[[ $functions.sortMark('number', $variables.sortKey, $variables.sortDir) ]]"></oj-bind-text></button></span>
+            <span role="columnheader" :aria-sort="[[ $functions.ariaSort('party', $variables.sortKey, $variables.sortDir) ]]">
+              <button type="button" class="nx-sort" data-key="party" on-click="[[ $listeners.onSort ]]">Project or customer<oj-bind-text value="[[ $functions.sortMark('party', $variables.sortKey, $variables.sortDir) ]]"></oj-bind-text></button></span>
+            <span role="columnheader" :aria-sort="[[ $functions.ariaSort('stage', $variables.sortKey, $variables.sortDir) ]]">
+              <button type="button" class="nx-sort" data-key="stage" on-click="[[ $listeners.onSort ]]">Where the equipment is<oj-bind-text value="[[ $functions.sortMark('stage', $variables.sortKey, $variables.sortDir) ]]"></oj-bind-text></button></span>
+            <span role="columnheader">Equipment</span>
+            <span role="columnheader" :aria-sort="[[ $functions.ariaSort('start', $variables.sortKey, $variables.sortDir) ]]">
+              <button type="button" class="nx-sort" data-key="start" on-click="[[ $listeners.onSort ]]">Dates<oj-bind-text value="[[ $functions.sortMark('start', $variables.sortKey, $variables.sortDir) ]]"></oj-bind-text></button></span>
+            <span role="columnheader">Next step</span>
+            <span role="columnheader" :aria-sort="[[ $functions.ariaSort('requestor', $variables.sortKey, $variables.sortDir) ]]">
+              <button type="button" class="nx-sort" data-key="requestor" on-click="[[ $listeners.onSort ]]">Requested by<oj-bind-text value="[[ $functions.sortMark('requestor', $variables.sortKey, $variables.sortDir) ]]"></oj-bind-text></button></span>
+          </div>
+          <oj-bind-for-each data="[[ $variables.shown.slice(0, $variables.limit) ]]">
+            <template data-oj-as="r">
+              <div role="row" class="nx-row nx-row--click" :data-id="[[ r.data.eqrEquipmentRequestId ]]" :data-number="[[ r.data.requestNumber ]]"
+                on-click="[[ $listeners.onOpen ]]">
+                <span role="cell">
+                  <!-- The row opens the request (a click here reaches it); the button is for the keyboard. -->
+                  <button type="button" class="nx-link nx-req-num"><oj-bind-text value="[[ r.data.requestNumber ]]"></oj-bind-text></button>
+                  <span class="nx-cell-sub"><oj-bind-text value="[[ r.data.external ? 'Customer' : 'Project' ]]"></oj-bind-text></span>
+                </span>
+                <span role="cell">
+                  <span class="nx-cell-main"><oj-bind-text value="[[ r.data.party || '—' ]]"></oj-bind-text></span>
+                  <span class="nx-cell-sub"><oj-bind-text value="[[ r.data.taskName || (r.data.partyFor ? 'for ' + r.data.partyFor : '') ]]"></oj-bind-text></span>
+                </span>
+                <span role="cell">
+                  <span :class="[[ 'nx-pill nx-stage--' + r.data.p.tone ]]" :title="[[ 'Stored request status: ' + (r.data.status || r.data.requestStatus || '') ]]">
+                    <oj-bind-text value="[[ r.data.p.headline ]]"></oj-bind-text></span>
+                  <oj-bind-for-each data="[[ r.data.p.late ]]">
+                    <template data-oj-as="lt"><span class="nx-cell-sub nx-late"><span class="oj-ux-ico-warning" aria-hidden="true"></span><oj-bind-text value="[[ lt.data.text ]]"></oj-bind-text></span></template>
+                  </oj-bind-for-each>
+                </span>
+                <span role="cell">
+                  <oj-bind-if test="[[ r.data.segs.length > 0 ]]">
+                    <span class="nx-jbar" role="img" :aria-label="[[ r.data.p.detail || r.data.p.headline ]]">
+                      <oj-bind-for-each data="[[ r.data.segs ]]">
+                        <template data-oj-as="s"><span :class="[[ 'nx-jbar-seg nx-stage--' + s.data.stage ]]" :title="[[ s.data.title ]]"></span></template>
+                      </oj-bind-for-each>
+                    </span>
+                  </oj-bind-if>
+                  <span class="nx-cell-sub"><oj-bind-text value="[[ r.data.pieces ? r.data.pieces + (r.data.pieces === 1 ? ' piece' : ' pieces') + (r.data.p.detail ? ' · ' + r.data.p.detail : '') : 'Open to see the equipment' ]]"></oj-bind-text></span>
+                </span>
+                <span role="cell">
+                  <span class="nx-cell-main nx-num"><oj-bind-text value="[[ r.data.dates || '—' ]]"></oj-bind-text></span>
+                  <span class="nx-cell-sub"><oj-bind-text value="[[ $functions.when(r.data.startDate, r.data.endDate) ]]"></oj-bind-text></span>
+                </span>
+                <span role="cell" class="nx-cell-next"><oj-bind-text value="[[ r.data.p.next ? r.data.p.next.text : '' ]]"></oj-bind-text></span>
+                <span role="cell" class="nx-ellipsis"><oj-bind-text value="[[ r.data.requestorName || r.data.contactName || '—' ]]"></oj-bind-text></span>
+              </div>
+            </template>
+          </oj-bind-for-each>
+        </div>
+      </div>
+    </section>
+  </oj-bind-if>
+
+  <!-- ── Board: a column per stage; each request in the column of what holds it up ─────────────────────── -->
+  <oj-bind-if test="[[ $variables.view === 'board' && $variables.shown.length > 0 ]]">
+    <div class="nx-board" aria-label="Requests by stage">
+      <oj-bind-for-each data="[[ $variables.lanes ]]">
+        <template data-oj-as="lane">
+          <section :class="[[ 'nx-lane nx-stage--' + (lane.data.key === 'action' ? 'stopped' : lane.data.key) ]]" :data-lane="[[ lane.data.key ]]"
+            :aria-label="[[ lane.data.label ]]">
+            <div class="nx-lane-head">
+              <span class="nx-lane-title"><oj-bind-text value="[[ lane.data.label ]]"></oj-bind-text></span>
+              <span class="nx-lane-count"><oj-bind-text value="[[ lane.data.count ]]"></oj-bind-text></span>
+            </div>
+            <span class="nx-lane-hint"><oj-bind-text value="[[ lane.data.hint ]]"></oj-bind-text></span>
+            <oj-bind-for-each data="[[ lane.data.items ]]">
+              <template data-oj-as="r">
+                <button type="button" class="nx-rcard" :data-id="[[ r.data.eqrEquipmentRequestId ]]" :data-number="[[ r.data.requestNumber ]]"
+                  on-click="[[ $listeners.onOpen ]]">
+                  <span class="nx-rcard-top">
+                    <span class="nx-rcard-num"><oj-bind-text value="[[ r.data.requestNumber ]]"></oj-bind-text></span>
+                    <oj-bind-if test="[[ r.data.p.late.length > 0 ]]"><span class="nx-late nx-rcard-late"><span class="oj-ux-ico-warning" aria-hidden="true"></span>Late</span></oj-bind-if>
+                  </span>
+                  <span class="nx-rcard-party"><oj-bind-text value="[[ r.data.party || '—' ]]"></oj-bind-text></span>
+                  <oj-bind-if test="[[ r.data.segs.length > 0 ]]">
+                    <span class="nx-jbar" aria-hidden="true">
+                      <oj-bind-for-each data="[[ r.data.segs ]]">
+                        <template data-oj-as="s"><span :class="[[ 'nx-jbar-seg nx-stage--' + s.data.stage ]]"></span></template>
+                      </oj-bind-for-each>
+                    </span>
+                  </oj-bind-if>
+                  <span class="nx-rcard-head"><oj-bind-text value="[[ r.data.p.headline ]]"></oj-bind-text></span>
+                  <oj-bind-if test="[[ !!r.data.p.next ]]"><span class="nx-rcard-next"><oj-bind-text value="[[ r.data.p.next ? r.data.p.next.text : '' ]]"></oj-bind-text></span></oj-bind-if>
+                  <span class="nx-rcard-dates"><oj-bind-text value="[[ r.data.dates ]]"></oj-bind-text></span>
+                </button>
+              </template>
+            </oj-bind-for-each>
+            <oj-bind-if test="[[ lane.data.more > 0 ]]">
+              <span class="nx-lane-more"><oj-bind-text value="[[ '+' + lane.data.more + ' more: narrow it with the search or the chips' ]]"></oj-bind-text></span>
+            </oj-bind-if>
+          </section>
+        </template>
+      </oj-bind-for-each>
+    </div>
+  </oj-bind-if>
+
+  <!-- ── Equipment: a row per piece ─────────────────────────────────────────────────────────────────────── -->
+  <oj-bind-if test="[[ $variables.view === 'equipment' && $variables.shown.length > 0 ]]">
+    <oj-bind-if test="[[ !$variables.linesLoaded ]]">
+      <div class="nx-error">The equipment could not be loaded in one go; open a request to see its equipment.</div>
+    </oj-bind-if>
+    <section class="nx-card">
+      <div class="nx-table">
+        <div class="nx-grid nx-grid--eq" role="table" aria-label="Equipment on requests">
+          <div class="nx-row nx-row--head" role="row">
+            <span role="columnheader">Equipment</span><span role="columnheader">Request</span><span role="columnheader">Unit</span>
+            <span role="columnheader">Where it is</span><span role="columnheader">Dates</span><span role="columnheader">Location</span>
+            <span role="columnheader">Project or customer</span>
+          </div>
+          <oj-bind-for-each data="[[ $variables.shown.slice(0, $variables.limit) ]]">
+            <template data-oj-as="e">
+              <div role="row" class="nx-row nx-row--click" :data-id="[[ e.data.requestId ]]" :data-number="[[ e.data.requestNumber ]]" on-click="[[ $listeners.onOpen ]]">
+                <span role="cell"><span class="nx-cell-main"><oj-bind-text value="[[ e.data.name + (e.data.qty > 1 ? ' ×' + e.data.qty : '') ]]"></oj-bind-text></span>
+                  <span class="nx-cell-sub"><oj-bind-text value="[[ e.data.cls ]]"></oj-bind-text></span></span>
+                <span role="cell"><button type="button" class="nx-link"><oj-bind-text value="[[ e.data.requestNumber ]]"></oj-bind-text></button></span>
+                <span role="cell" class="nx-ellipsis"><oj-bind-text value="[[ e.data.unit || '—' ]]"></oj-bind-text></span>
+                <span role="cell"><span :class="[[ 'nx-pill nx-stage--' + e.data.stage ]]" :title="[[ 'Stored line status: ' + e.data.status ]]"><oj-bind-text value="[[ e.data.label ]]"></oj-bind-text></span>
+                  <oj-bind-if test="[[ !!e.data.late ]]"><span class="nx-cell-sub nx-late"><oj-bind-text value="[[ e.data.late ]]"></oj-bind-text></span></oj-bind-if></span>
+                <span role="cell" class="nx-num"><oj-bind-text value="[[ $functions.range(e.data.start, e.data.end) ]]"></oj-bind-text></span>
+                <span role="cell" class="nx-ellipsis"><oj-bind-text value="[[ e.data.location || '—' ]]"></oj-bind-text></span>
+                <span role="cell" class="nx-ellipsis"><oj-bind-text value="[[ e.data.party || '—' ]]"></oj-bind-text></span>
+              </div>
+            </template>
+          </oj-bind-for-each>
+        </div>
+      </div>
+    </section>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ $variables.view !== 'board' && $variables.shown.length > $variables.limit ]]">
+    <div><button type="button" class="nx-btn" on-click="[[ $listeners.onMore ]]">
+      <oj-bind-text value="[[ 'Show more (' + ($variables.shown.length - $variables.limit) + ' left)' ]]"></oj-bind-text></button></div>
+  </oj-bind-if>
+</div>

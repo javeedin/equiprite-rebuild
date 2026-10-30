@@ -32,6 +32,7 @@ const kit = load('exportKit');
 const Progress = load('requestProgress');
 const alerts = load('alerts', { 'resources/js/requestProgress': Progress });
 const fmt = load('fmt');
+const list = load('requestList', { 'resources/js/requestProgress': Progress, 'resources/js/fmt': fmt, 'resources/js/rules': rules });
 
 const ALL = { EQR_DASHBOARD: 'FULL', EQR_EQUIPMENT_REQUESTS: 'FULL', EQR_PROJ_CREATE_REQUEST: 'FULL', EQR_WORKBENCH: 'FULL', EQR_EQUIPMENT_MASTER: 'FULL',
   EQR_EQUIPMENT_SCHEDULE: 'FULL', EQR_INITIATE_PICKING: 'FULL', EQR_EQUIPMENT_RETURNS: 'FULL', EQR_TIMESHEETS: 'FULL', EQR_TIMESHEET_APPROVALS: 'FULL',
@@ -136,6 +137,32 @@ const server = alerts.fromServer([{ notificationId: 9, subject: 'Request approve
 T.eq('server notifications, whatever their field names', server.map((n) => n.id + ':' + n.title + ':' + n.serverRead).join(), 'n:9:Request approved:false,n:10:Old:true');
 const merged = alerts.merge(mgr, server, [mgr[2].id]);
 T.eq('unread first, by severity; the count', [merged.unread, merged.items[0].title, merged.items[merged.items.length - 1].read].join(), '4,R1 is late,true');
+
+T.section('the Requests screen');
+{
+  const NOWR = Date.UTC(2026, 9, 30, 9);
+  const dd = (n) => new Date(NOWR + n * 86400000).toISOString().slice(0, 10);
+  const rows = [
+    { eqrEquipmentRequestId: 1, requestNumber: 'R1', status: 'IN_PROCESS', startDate: dd(-22), endDate: dd(0), projectName: 'Pier A' },
+    { eqrEquipmentRequestId: 2, requestNumber: 'R2', status: 'IN_PROCESS', startDate: dd(5), endDate: dd(20), projectName: 'Plant B' },
+    { eqrEquipmentRequestId: 3, requestNumber: 'R3', status: 'DRAFT', startDate: dd(5), endDate: dd(9), customerName: 'Acme', requestOrigin: 'External' },
+    { eqrEquipmentRequestId: 4, requestNumber: 'R4', status: 'CLOSED', startDate: dd(-40), endDate: dd(-20), projectName: 'Old job' },
+  ];
+  const lines = { R1: [{ lineStatus: 'CLOSED', qty: 1, name: 'Dozer' }, { lineStatus: 'IN_PROCESS', qty: 1, name: 'Loader', allocation: 'PENDING' }],
+    R2: [{ lineStatus: 'SHIP_TO_SITE', qty: 1, name: 'Excavator' }, { lineStatus: 'SCHEDULED_FOR_PICKING', qty: 2, name: 'Truck' }], R4: [{ lineStatus: 'CLOSED', qty: 1 }] };
+  const items = list.decorate(rows, lines, NOWR);
+  T.eq('board column: what holds the request up', items.map((r) => r.requestNumber + ':' + r.lane).join(' '), 'R1:ready R2:ready R3:action R4:done');
+  T.eq('chips: a request in each stage it is in', list.requestChips(items).filter((c) => c.count).map((c) => c.key + ':' + c.count).join(' '),
+    'all:4 late:1 action:1 ready:2 out:1 done:2');
+  T.eq('filter by stage and search by equipment', [list.filter(items, '', 'out').map((r) => r.requestNumber).join(), list.filter(items, 'truck', 'all', '', lines).map((r) => r.requestNumber).join()].join(' | '), 'R2 | R2');
+  T.eq('sort by stage puts what needs action first', list.sort(items, 'stage', 'asc').map((r) => r.requestNumber).join(), 'R3,R1,R2,R4');
+  const eq = list.equipmentRows(items, lines, NOWR);
+  T.eq('equipment rows: words, unit, late', eq.filter((e) => e.requestNumber === 'R1').map((e) => e.label + '|' + e.unit + '|' + (e.late ? 'late' : '')).join(' ; '),
+    'Back at the yard, closed|| ; Approved, no unit assigned yet|No unit assigned yet|late');
+  T.eq('pieces count quantities', items[1].pieces, 3);
+  T.eq('summary', list.summary(items), '4 requests · 6 pieces of equipment · 1 late');
+  T.check('export columns: stored status kept, status in words', list.exportColumns('list').some((c) => c.label === 'Stored status') && list.exportColumns('list')[4].value(items[0]) === 'Partly returned · 1 of 2');
+}
 
 T.section('formatting');
 T.eq('dates and ranges', [fmt.date('2026-10-08'), fmt.range('2026-10-08', '2026-10-30'), fmt.relative(day(3), NOW)].join(' | '), '8 Oct 2026 | 8 Oct – 30 Oct 2026 | in 3 days');

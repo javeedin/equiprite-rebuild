@@ -23,9 +23,9 @@ define([
       $page.variables.navOpen = false;
       $page.variables.showResults = false;
       $page.variables.tabMenuOpen = false;
-      const next = tabs.open(shellTabs.state(context), tab);
-      await shellTabs.apply(context, Actions, next);
-      if (next.evicted.length) {
+      let next = null;
+      await shellTabs.update(context, Actions, (st) => { next = tabs.open(st, tab); return next; });
+      if (next && next.evicted.length) {
         await Actions.callChain(context, { chain: 'toastChain', params: {
           message: `Closed ${next.evicted.length === 1 ? 'the oldest tab' : next.evicted.length + ' older tabs'}: up to ${tabs.MAX_TABS} stay open.`, tone: 'info' } });
       }

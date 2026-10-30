@@ -37,5 +37,19 @@ define(['resources/js/tabs'], function (tabs) {
     return { tabs: (v.tabList || []).slice(), current: v.currentTab };
   }
 
-  return { apply: apply, state: state };
+  // Tab changes run one after another, each from the state the one before left: two quick clicks that both open a
+  // tab must not both add it (the switcher refuses an item twice).
+  var queue = Promise.resolve();
+
+  /** Runs change(state) -> next state (or null for no change) after the changes before it, and applies it. */
+  function update(context, Actions, change) {
+    var step = queue.then(function () {
+      var next = change(state(context));
+      return next ? apply(context, Actions, next) : null;
+    });
+    queue = step.catch(function (e) { console.error('[shellTabs] tab change failed', e); });
+    return step;
+  }
+
+  return { apply: apply, state: state, update: update };
 });

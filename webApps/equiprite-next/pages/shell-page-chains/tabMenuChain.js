@@ -16,9 +16,8 @@ define([
         return;
       }
       $page.variables.tabMenuOpen = false;
-      const state = shellTabs.state(context);
-      if (action === 'others') await shellTabs.apply(context, Actions, tabs.closeOthers(state, state.current));
-      if (action === 'all') await shellTabs.apply(context, Actions, tabs.closeOthers(state, ''));
+      if (action === 'others') await shellTabs.update(context, Actions, (st) => tabs.closeOthers(st, st.current));
+      if (action === 'all') await shellTabs.update(context, Actions, (st) => tabs.closeOthers(st, ''));
     }
   }
 

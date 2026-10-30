@@ -13,7 +13,7 @@ define([
       if (r.action === 'open') {
         await Actions.callChain(context, { chain: 'openChain', params: r.record ? { record: r.record, params: r.params || {} } : { navId: r.navId } });
       } else if (r.action === 'rename' && r.id && r.title) {
-        await shellTabs.apply(context, Actions, tabs.rename(shellTabs.state(context), r.id, r.title));
+        await shellTabs.update(context, Actions, (st) => tabs.rename(st, r.id, r.title));
       } else if (r.action === 'close' && r.id) {
         await Actions.callChain(context, { chain: 'closeTabChain', params: { id: r.id } });
       } else if (r.action === 'toast') {
