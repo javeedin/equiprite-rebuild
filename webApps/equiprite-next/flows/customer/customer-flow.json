@@ -1,0 +1,14 @@
+{
+  "id": "customer",
+  "description": "Customer portal (FDD 7.18, S11): the customer's home (what is on its way, what is on their site, what needs them), their requests, their equipment and their invoices; a request, its quote and its invoices each in a tab of their own; raising a request. New EquipRite's customer rules (resources/js/customerPortal.js); the steps that write to Fusion are left to New.",
+  "defaultPage": "portal",
+  "navigation": { "embeddable": "enabled" },
+  "pages": {
+    "portal": { "path": "pages/portal-page" },
+    "request": { "path": "pages/request-page" },
+    "quote": { "path": "pages/quote-page" },
+    "invoice": { "path": "pages/invoice-page" },
+    "order": { "path": "pages/order-page" }
+  },
+  "chains": {}, "services": {}, "types": {}, "variables": {}
+}

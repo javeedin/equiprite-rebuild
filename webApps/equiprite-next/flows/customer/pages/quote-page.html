@@ -1,0 +1,136 @@
+<!-- A customer quote in its own tab: what it covers and adds up to, the rental terms, the PDF, and how to accept it.
+     Accepting creates the Fusion rental contract (New's acceptQuoteChain), so it is done in New EquipRite.
+     Logic: resources/js/portalView.js. Styles: resources/css/next-customer.css. -->
+<div class="nx-page nx-record nx-cu">
+  <oj-bind-if test="[[ $variables.isLoading && !$variables.quote.requestNumber ]]">
+    <div class="nx-card nx-empty">Loading your quote…</div>
+  </oj-bind-if>
+  <oj-bind-if test="[[ !!$variables.error ]]">
+    <div class="nx-error" role="alert" id="cqError"><oj-bind-text value="[[ $variables.error ]]"></oj-bind-text>
+      <button type="button" class="nx-link" data-record="portal" on-click="[[ $listeners.onOpen ]]">Open the customer portal</button></div>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ !!$variables.quote.requestNumber && !$variables.error ]]">
+    <div class="nx-pagehead">
+      <div>
+        <div class="nx-kicker"><oj-bind-text value="[[ 'Quote for ' + $variables.quote.requestNumber ]]"></oj-bind-text></div>
+        <h1 class="nx-record-title" id="cqTitle">Your quote
+          <span :class="[[ 'nx-pill nx-record-pill nx-stage--' + $variables.state.tone ]]" :title="[[ 'Stored request status: ' + $variables.quote.status ]]">
+            <oj-bind-text value="[[ $variables.state.pill ]]"></oj-bind-text></span></h1>
+        <div class="nx-sub"><oj-bind-text value="[[ ($variables.quote.customerName ? $variables.quote.customerName + ' · ' : '') + ($functions.range($variables.quote.startDate, $variables.quote.endDate) || '') ]]"></oj-bind-text></div>
+      </div>
+      <div class="nx-actions">
+        <button type="button" class="nx-btn nx-btn--plain" on-click="[[ $listeners.onRefresh ]]" :disabled="[[ $variables.isLoading ]]">
+          <span class="oj-ux-ico-refresh" aria-hidden="true"></span>Refresh</button>
+        <div class="nx-export">
+          <button type="button" class="nx-btn" id="cqExport" on-click="[[ $listeners.onExportMenu ]]" aria-haspopup="menu"
+            :aria-expanded="[[ $variables.exportOpen ? 'true' : 'false' ]]"><span class="oj-ux-ico-download" aria-hidden="true"></span>Export
+            <span class="oj-ux-ico-chevron-down" aria-hidden="true"></span></button>
+          <oj-bind-if test="[[ $variables.exportOpen ]]">
+            <div class="nx-menu" role="menu" aria-label="Export the quote">
+              <oj-bind-for-each data="[[ $functions.formats() ]]">
+                <template data-oj-as="f">
+                  <button type="button" role="menuitem" class="nx-menu-item" :data-format="[[ f.data.key ]]" on-click="[[ $listeners.onExport ]]">
+                    <span :class="[[ f.data.icon ]]" aria-hidden="true"></span><oj-bind-text value="[[ f.data.label ]]"></oj-bind-text></button>
+                </template>
+              </oj-bind-for-each>
+              <p class="nx-menu-note"><oj-bind-text value="[[ $variables.quote.lines.length + ($variables.quote.lines.length === 1 ? ' line' : ' lines') + ' and the total' ]]"></oj-bind-text></p>
+            </div>
+          </oj-bind-if>
+        </div>
+        <oj-bind-if test="[[ $variables.hasQuoteDoc ]]">
+          <a class="nx-btn" id="cqPdf" target="_blank" rel="noopener" :href="[[ $variables.quotePdfUrl ]]">
+            <span class="oj-ux-ico-file-pdf" aria-hidden="true"></span>Open the PDF</a>
+          <a class="nx-btn nx-btn--plain" id="cqDownload" :href="[[ $variables.quotePdfUrl ]]" :download="[[ $variables.quoteFileName ]]">
+            <span class="oj-ux-ico-download" aria-hidden="true"></span>Download</a>
+        </oj-bind-if>
+        <button type="button" class="nx-btn nx-btn--plain" data-record="customer-request" on-click="[[ $listeners.onOpen ]]">
+          <span class="oj-ux-ico-customer-request" aria-hidden="true"></span>The request</button>
+      </div>
+    </div>
+
+    <!-- The decision, with what it does, before anything is clicked. -->
+    <section :class="[[ 'nx-card nx-cu-step nx-cu-step--' + ($variables.state.key === 'ready' ? 'action' : ($variables.state.key === 'accepted' ? 'done' : 'wait')) ]]"
+      aria-labelledby="cqStateT" id="cqState" :data-state="[[ $variables.state.key ]]">
+      <div class="nx-cu-step-text">
+        <span class="nx-kicker">Next step</span>
+        <h2 class="nx-h2" id="cqStateT"><oj-bind-text value="[[ $variables.state.title ]]"></oj-bind-text></h2>
+        <p><oj-bind-text value="[[ $variables.state.text ]]"></oj-bind-text></p>
+        <oj-bind-if test="[[ $variables.state.key === 'ready' ]]">
+          <p class="nx-cu-fusion" id="cqFusion"><span class="oj-ux-ico-information" aria-hidden="true"></span>
+            <span>Your rental contract is created in Oracle Fusion the moment you accept, and EquipRite Next does not write to Fusion yet.
+            So you accept in New EquipRite: the button opens this quote there, with the same prices and terms.</span></p>
+          <p class="nx-note">Not what you need? Declining a quote is not available online: contact your equipment manager to change or cancel it.</p>
+        </oj-bind-if>
+      </div>
+      <div class="nx-actions nx-cu-step-actions">
+        <oj-bind-if test="[[ $variables.state.key === 'ready' && !!$functions.acceptUrl($application.variables.appUrls.new, $variables.quote, $variables.requestId) ]]">
+          <a class="nx-btn nx-btn--primary" id="cqAccept" :href="[[ $functions.acceptUrl($application.variables.appUrls.new, $variables.quote, $variables.requestId) ]]">
+            <span class="oj-ux-ico-external-link" aria-hidden="true"></span>Accept it in New EquipRite</a>
+        </oj-bind-if>
+        <oj-bind-if test="[[ $variables.state.key !== 'ready' ]]">
+          <button type="button" class="nx-btn" data-record="customer-request" on-click="[[ $listeners.onOpen ]]">Track the request</button>
+        </oj-bind-if>
+      </div>
+    </section>
+
+    <div class="nx-cu-quote">
+      <section class="nx-card" aria-labelledby="cqLinesT" id="cqLines">
+        <div class="nx-card-head"><h2 id="cqLinesT">What the quote covers</h2>
+          <strong class="nx-num nx-cu-total" id="cqTotal"><oj-bind-text value="[[ $functions.money($variables.quote.grandTotal) ]]"></oj-bind-text></strong></div>
+        <div class="nx-table">
+          <div class="nx-grid nx-grid--cuquote" role="table" aria-labelledby="cqLinesT">
+            <div class="nx-row nx-row--head" role="row">
+              <span role="columnheader">Equipment</span><span role="columnheader">Qty</span><span role="columnheader">Dates</span>
+              <span role="columnheader" class="nx-cu-r">Rate</span><span role="columnheader" class="nx-cu-r">Line total</span>
+            </div>
+            <oj-bind-for-each data="[[ $variables.quote.lines ]]">
+              <template data-oj-as="l">
+                <div class="nx-row" role="row">
+                  <span role="cell"><span class="nx-cell-main"><oj-bind-text value="[[ l.data.equipmentName || 'Equipment' ]]"></oj-bind-text></span>
+                    <span class="nx-cell-sub"><oj-bind-text value="[[ l.data.equipmentClass ]]"></oj-bind-text></span></span>
+                  <span role="cell" class="nx-num"><oj-bind-text value="[[ l.data.quantity ]]"></oj-bind-text></span>
+                  <span role="cell" class="nx-num"><oj-bind-text value="[[ $functions.range(l.data.startDate, l.data.endDate) || '—' ]]"></oj-bind-text>
+                    <span class="nx-cell-sub"><oj-bind-text value="[[ $functions.days(l.data.startDate, l.data.endDate) ]]"></oj-bind-text></span></span>
+                  <span role="cell" class="nx-num nx-cu-r"><oj-bind-text value="[[ $functions.rateText(l.data) ]]"></oj-bind-text></span>
+                  <span role="cell" class="nx-num nx-cu-r"><strong><oj-bind-text value="[[ $functions.money(l.data.lineTotal) ]]"></oj-bind-text></strong></span>
+                </div>
+              </template>
+            </oj-bind-for-each>
+            <div class="nx-row nx-cu-totalrow" role="row">
+              <span role="cell"><strong>Total</strong></span><span role="cell"></span><span role="cell"></span><span role="cell"></span>
+              <span role="cell" class="nx-num nx-cu-r"><strong><oj-bind-text value="[[ $functions.money($variables.quote.grandTotal) ]]"></oj-bind-text></strong></span>
+            </div>
+          </div>
+        </div>
+        <p class="nx-note nx-cu-foot">The PDF is the quote your equipment manager sent; these figures add up its lines. Each period is billed once
+          the equipment is on your site.</p>
+      </section>
+
+      <section class="nx-card nx-card-pad nx-cu-qterms" aria-labelledby="cqTermsT" id="cqTerms">
+        <h2 class="nx-h2" id="cqTermsT">The terms you accept</h2>
+        <dl class="nx-cu-facts nx-cu-facts--tight">
+          <div><dt>Rental period</dt><dd><oj-bind-text value="[[ ($functions.range($variables.quote.startDate, $variables.quote.endDate) || '—') + ($functions.days($variables.quote.startDate, $variables.quote.endDate) ? ' · ' + $functions.days($variables.quote.startDate, $variables.quote.endDate) : '') ]]"></oj-bind-text></dd></div>
+          <div><dt>Deliver to</dt><dd><oj-bind-text value="[[ $variables.quote.location || '—' ]]"></oj-bind-text></dd></div>
+          <div><dt>Total</dt><dd class="nx-num"><oj-bind-text value="[[ $functions.money($variables.quote.grandTotal) ]]"></oj-bind-text></dd></div>
+          <div><dt>Contract</dt><dd><oj-bind-text value="[[ $variables.quote.contractNumber || 'Created when you accept' ]]"></oj-bind-text></dd></div>
+        </dl>
+        <div class="nx-cu-terms" tabindex="0" aria-label="Rental terms and conditions">
+          <oj-bind-for-each data="[[ $functions.termsIntro() ]]">
+            <template data-oj-as="para"><p><oj-bind-text value="[[ para.data ]]"></oj-bind-text></p></template>
+          </oj-bind-for-each>
+          <oj-bind-for-each data="[[ $functions.termsSections() ]]">
+            <template data-oj-as="sec">
+              <h3><oj-bind-text value="[[ sec.data.title ]]"></oj-bind-text></h3>
+              <oj-bind-for-each data="[[ sec.data.paras ]]">
+                <template data-oj-as="pa">
+                  <p :class="[[ pa.data.bullet ? 'nx-cu-terms-bullet' : '' ]]"><oj-bind-if test="[[ !!pa.data.lead ]]"><strong><oj-bind-text value="[[ pa.data.lead + ' ' ]]"></oj-bind-text></strong></oj-bind-if><oj-bind-text value="[[ pa.data.text ]]"></oj-bind-text></p>
+                </template>
+              </oj-bind-for-each>
+            </template>
+          </oj-bind-for-each>
+        </div>
+      </section>
+    </div>
+  </oj-bind-if>
+</div>

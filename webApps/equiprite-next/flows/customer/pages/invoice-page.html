@@ -1,0 +1,101 @@
+<!-- The invoices of one customer request in its own tab: the figures, then each piece of equipment with its invoices.
+     Reads only (New's invoice page reads). Logic: resources/js/portalView.js. Styles: resources/css/next-customer.css. -->
+<div class="nx-page nx-record nx-cu">
+  <oj-bind-if test="[[ $variables.isLoading && !$variables.head.requestNumber ]]">
+    <div class="nx-card nx-empty">Loading the invoices…</div>
+  </oj-bind-if>
+  <oj-bind-if test="[[ !!$variables.error ]]">
+    <div class="nx-error" role="alert" id="ciError"><oj-bind-text value="[[ $variables.error ]]"></oj-bind-text>
+      <button type="button" class="nx-link" data-record="portal" on-click="[[ $listeners.onOpen ]]">Open the customer portal</button></div>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ !!$variables.head.requestNumber && !$variables.error ]]">
+    <div class="nx-pagehead">
+      <div>
+        <div class="nx-kicker">Invoices</div>
+        <h1 id="ciTitle"><oj-bind-text value="[[ $variables.head.requestNumber ]]"></oj-bind-text></h1>
+        <div class="nx-sub"><oj-bind-text value="[[ ($variables.head.contractNumber ? 'Contract ' + $variables.head.contractNumber + ' · ' : '') + ($functions.range($variables.head.startDate, $variables.head.endDate) || '') ]]"></oj-bind-text></div>
+      </div>
+      <div class="nx-actions">
+        <button type="button" class="nx-btn nx-btn--plain" on-click="[[ $listeners.onRefresh ]]" :disabled="[[ $variables.isLoading ]]">
+          <span class="oj-ux-ico-refresh" aria-hidden="true"></span>Refresh</button>
+        <div class="nx-export">
+          <button type="button" class="nx-btn" id="ciExport" on-click="[[ $listeners.onExportMenu ]]" aria-haspopup="menu"
+            :aria-expanded="[[ $variables.exportOpen ? 'true' : 'false' ]]"><span class="oj-ux-ico-download" aria-hidden="true"></span>Export
+            <span class="oj-ux-ico-chevron-down" aria-hidden="true"></span></button>
+          <oj-bind-if test="[[ $variables.exportOpen ]]">
+            <div class="nx-menu" role="menu" aria-label="Export the invoices">
+              <oj-bind-for-each data="[[ $functions.formats() ]]">
+                <template data-oj-as="f">
+                  <button type="button" role="menuitem" class="nx-menu-item" :data-format="[[ f.data.key ]]" on-click="[[ $listeners.onExport ]]">
+                    <span :class="[[ f.data.icon ]]" aria-hidden="true"></span><oj-bind-text value="[[ f.data.label ]]"></oj-bind-text></button>
+                </template>
+              </oj-bind-for-each>
+              <p class="nx-menu-note"><oj-bind-text value="[[ $variables.rows.length + ($variables.rows.length === 1 ? ' invoice' : ' invoices') ]]"></oj-bind-text></p>
+            </div>
+          </oj-bind-if>
+        </div>
+        <button type="button" class="nx-btn" data-record="customer-request" on-click="[[ $listeners.onOpen ]]">
+          <span class="oj-ux-ico-customer-request" aria-hidden="true"></span>Track the request</button>
+      </div>
+    </div>
+
+    <div class="nx-kpis nx-cu-tiles" role="group" aria-label="This request's figures" id="ciTiles">
+      <div :class="[[ 'nx-kpi nx-cu-kpi-static ' + ($variables.totals.overdueCount ? 'nx-stage--stopped' : 'nx-stage--approval') ]]">
+        <span class="nx-kpi-label">Still to pay</span>
+        <span class="nx-kpi-value"><oj-bind-text value="[[ $functions.money($variables.totals.outstandingAmount) ]]"></oj-bind-text></span>
+        <span class="nx-kpi-note"><oj-bind-text value="[[ ($variables.totals.overdueCount || 0) + ' overdue' ]]"></oj-bind-text></span></div>
+      <div class="nx-kpi nx-cu-kpi-static nx-stage--onsite">
+        <span class="nx-kpi-label">Paid</span>
+        <span class="nx-kpi-value"><oj-bind-text value="[[ $functions.money($variables.totals.paidAmount) ]]"></oj-bind-text></span>
+        <span class="nx-kpi-note"><oj-bind-text value="[[ 'of ' + $functions.money($variables.totals.totalInvoiced) + ' invoiced' ]]"></oj-bind-text></span></div>
+      <div class="nx-kpi nx-cu-kpi-static nx-stage--done">
+        <span class="nx-kpi-label">Last invoice</span>
+        <span class="nx-kpi-value nx-cu-kpi-date"><oj-bind-text value="[[ $variables.totals.lastInvoiceLabel || '—' ]]"></oj-bind-text></span>
+        <span class="nx-kpi-note"><oj-bind-text value="[[ $variables.totals.hasAdjustments ? 'Net adjustments ' + $functions.money($variables.totals.netAdjustment) : 'No adjustments' ]]"></oj-bind-text></span></div>
+    </div>
+
+    <oj-bind-if test="[[ !$variables.isLoading && !$variables.groups.length ]]">
+      <div class="nx-card nx-empty">This request has no equipment lines.</div>
+    </oj-bind-if>
+    <oj-bind-for-each data="[[ $variables.groups ]]">
+      <template data-oj-as="g">
+        <section class="nx-card nx-cu-group" :aria-label="[[ 'Invoices for ' + (g.data.equipmentName || 'a piece of equipment') ]]" :data-line="[[ g.data.lineId ]]">
+          <div class="nx-card-head nx-cu-group-head">
+            <div class="nx-cu-group-what"><strong><oj-bind-text value="[[ g.data.equipmentName || '—' ]]"></oj-bind-text></strong>
+              <span class="nx-note"><oj-bind-text value="[[ $functions.lineSub(g.data) ]]"></oj-bind-text></span></div>
+            <span :class="[[ 'nx-pill nx-stage--' + $functions.lineStage(g.data.lineStatus) ]]" :title="[[ 'Stored line status: ' + g.data.lineStatus ]]"><oj-bind-text value="[[ $functions.lineWords(g.data.lineStatus) ]]"></oj-bind-text></span>
+            <span class="nx-cu-group-sum"><strong class="nx-num"><oj-bind-text value="[[ $functions.money(g.data.totalValue) ]]"></oj-bind-text></strong>
+              <span class="nx-note"><oj-bind-text value="[[ g.data.invoiceCount + (g.data.invoiceCount === 1 ? ' invoice' : ' invoices') ]]"></oj-bind-text></span></span>
+          </div>
+          <oj-bind-if test="[[ !g.data.invoices.length ]]">
+            <p class="nx-note nx-cu-foot">Not invoiced yet. A period is billed once the equipment is on your site.</p>
+          </oj-bind-if>
+          <oj-bind-if test="[[ g.data.invoices.length > 0 ]]">
+            <div class="nx-table">
+              <div class="nx-grid nx-grid--cuinvl" role="table" :aria-label="[[ 'Invoices for ' + g.data.equipmentName ]]">
+                <div class="nx-row nx-row--head" role="row">
+                  <span role="columnheader">Invoice</span><span role="columnheader">Period</span><span role="columnheader">Due</span>
+                  <span role="columnheader" class="nx-cu-r">Amount</span><span role="columnheader">Status</span>
+                </div>
+                <oj-bind-for-each data="[[ g.data.invoices ]]">
+                  <template data-oj-as="i">
+                    <div :class="[[ 'nx-row' + (i.data.when === 'current' ? ' nx-cu-row--now' : '') ]]" role="row" :data-invoice="[[ i.data.invoiceNumber ]]">
+                      <span role="cell"><span class="nx-cell-main"><oj-bind-text value="[[ i.data.invoiceNumber || 'Not numbered yet' ]]"></oj-bind-text></span>
+                        <span class="nx-cell-sub"><oj-bind-text value="[[ i.data.note || ('Billed ' + i.data.billDate) ]]"></oj-bind-text></span></span>
+                      <span role="cell" class="nx-num"><oj-bind-text value="[[ i.data.periodLabel ]]"></oj-bind-text></span>
+                      <span role="cell" class="nx-num"><oj-bind-text value="[[ i.data.dueDate ]]"></oj-bind-text></span>
+                      <span role="cell" class="nx-num nx-cu-r"><oj-bind-text value="[[ $functions.money(i.data.amount) ]]"></oj-bind-text></span>
+                      <span role="cell"><span :class="[[ 'nx-pill nx-stage--' + i.data.tone ]]" :title="[[ 'Stored status: ' + i.data.status ]]"><oj-bind-text value="[[ i.data.words ]]"></oj-bind-text></span></span>
+                    </div>
+                  </template>
+                </oj-bind-for-each>
+              </div>
+            </div>
+          </oj-bind-if>
+        </section>
+      </template>
+    </oj-bind-for-each>
+    <p class="nx-note">Invoices come from Oracle Receivables. Each period is billed once the equipment is on your site; cancelled invoices do not count toward the totals.</p>
+  </oj-bind-if>
+</div>

@@ -75,7 +75,7 @@ define(['resources/js/rules'], function (rules) {
     ] },
     { key: 'customers', label: 'Customers', flags: ['CUSTOMERS_MODULE_ENABLED'], items: [
       { id: 'customer-portal', label: 'Customer portal', icon: 'oj-ux-ico-customer-request', pageCodes: ['EQR_CUST_DASHBOARD'],
-        route: { flow: 'customer', page: 'portal' }, built: false, newNav: 'customer-portal', keywords: 'customer portal external' }
+        route: { flow: 'customer', page: 'portal' }, built: true, newNav: 'customer-portal', keywords: 'customer portal external' }
     ] }
   ];
 
@@ -124,7 +124,18 @@ define(['resources/js/rules'], function (rules) {
     agreement: { flow: 'commercial', page: 'agreement', icon: 'oj-ux-ico-file-text', navId: 'agreements',
       title: function (p) { return (p && (p.number || (p.id === 'new' ? 'New agreement' : p.id))) || 'Agreement'; } },
     cost: { flow: 'usage', page: 'cost', icon: 'oj-ux-ico-currency-dollar', navId: 'costs',
-      title: function (p) { return ((p && (p.number || p.id)) || 'Request') + ' costs'; } }
+      title: function (p) { return ((p && (p.number || p.id)) || 'Request') + ' costs'; } },
+    // The customer portal's records ({ id: request id, number: request number }): a request tracked, its quote, its
+    // invoices; and a customer's new request ({} for a new one, { draft: id, number } to finish a saved draft).
+    'customer-request': { flow: 'customer', page: 'request', icon: 'oj-ux-ico-customer-request', navId: 'customer-portal',
+      title: function (p) { return (p && (p.number || p.id)) || 'Request'; } },
+    quote: { flow: 'customer', page: 'quote', icon: 'oj-ux-ico-document-check', navId: 'customer-portal',
+      title: function (p) { return 'Quote · ' + ((p && (p.number || p.id)) || ''); } },
+    invoice: { flow: 'customer', page: 'invoice', icon: 'oj-ux-ico-invoice', navId: 'customer-portal',
+      title: function (p) { return 'Invoices · ' + ((p && (p.number || p.id)) || ''); } },
+    'customer-order': { flow: 'customer', page: 'order', icon: 'oj-ux-ico-cart-add', navId: 'customer-portal',
+      key: function (p) { return p && p.draft ? 'draft-' + p.draft : 'new'; },
+      title: function (p) { return p && p.draft ? 'Draft ' + (p.number || p.draft) : 'New request'; } }
   };
 
   /** The page the tab of a menu item shows: its own screen, or the "being built" page for one not built yet. */
