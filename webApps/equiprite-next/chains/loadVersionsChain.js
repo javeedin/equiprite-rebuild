@@ -15,14 +15,15 @@ define([
       const here = String(window.location.href);
       const m = /^(.*\/webApps\/)equiprite-next\//.exec(here);
       if (m) {
-        $application.variables.appUrls = { old: m[1] + 'vbredwoodapp/', new: m[1] + 'equiprite/', next: m[1] + 'equiprite-next/' };
+        $application.variables.appUrls = { old: m[1] + 'vbredwoodapp/', new: m[1] + 'equiprite/', next: m[1] + 'equiprite-next/',
+          mobile: m[1] + 'equiprite-mobile/' };
         return;
       }
       try {
         const res = await fetch('/__versions', { credentials: 'same-origin' });
         if (res.ok) {
           const v = await res.json();
-          $application.variables.appUrls = { old: (v && v.old) || '', new: (v && v.new) || '', next: (v && v.next) || '' };
+          $application.variables.appUrls = { old: (v && v.old) || '', new: (v && v.new) || '', next: (v && v.next) || '', mobile: (v && v.mobile) || '' };
         }
       } catch (e) {
         console.warn('[loadVersionsChain] no /__versions here; the Old/New switch is hidden', e);

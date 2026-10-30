@@ -1,0 +1,82 @@
+<!-- Me: you and your role, what you can do here, installing the app on the phone, sharing it, the other versions.
+     Styles: resources/css/mobile.css (.mb-*). -->
+<div class="mb-page" id="mbMe">
+  <div class="mb-head">
+    <div class="mb-head-row">
+      <span class="mb-top-user" style="width:48px;height:48px;font-size:17px;background:rgba(255,255,255,.2)" aria-hidden="true">
+        <oj-bind-text value="[[ $application.functions.userInitials($application.user) || '?' ]]"></oj-bind-text></span>
+      <div style="flex:1;min-width:0">
+        <h2 id="meName"><oj-bind-text value="[[ $variables.me.name ]]"></oj-bind-text></h2>
+        <div class="mb-head-sub" id="meRole"><oj-bind-text value="[[ $variables.me.role || $variables.me.username ]]"></oj-bind-text></div>
+      </div>
+    </div>
+  </div>
+  <div class="mb-body">
+    <oj-bind-if test="[[ !!$variables.note ]]">
+      <div class="mb-ok" role="status" id="meNote"><oj-bind-text value="[[ $variables.note ]]"></oj-bind-text></div>
+    </oj-bind-if>
+
+    <h3 class="mb-section">What you can do here</h3>
+    <div class="mb-card mb-card-pad" id="meCan">
+      <oj-bind-if test="[[ !$variables.me.tabs.length ]]">
+        <div class="mb-note">Your access gives you nothing to do in EquipRite Mobile yet. An administrator gives access in EquipRite (Admin, Access).</div>
+      </oj-bind-if>
+      <ul class="mb-list" style="gap:4px">
+        <oj-bind-for-each data="[[ $variables.me.tabs ]]">
+          <template data-oj-as="t">
+            <li style="display:flex;align-items:center;gap:12px;padding:8px 0">
+              <span :class="[[ t.data.icon ]]" style="font-size:22px;color:var(--mb-band)" aria-hidden="true"></span>
+              <span style="font-weight:600"><oj-bind-text value="[[ t.data.label ]]"></oj-bind-text></span>
+            </li>
+          </template>
+        </oj-bind-for-each>
+      </ul>
+    </div>
+
+    <h3 class="mb-section">On your phone</h3>
+    <div class="mb-card mb-card-pad" id="meInstall">
+      <oj-bind-if test="[[ $variables.install.installed ]]">
+        <div class="mb-ok"><span class="oj-ux-ico-check-circle" aria-hidden="true"></span> Installed. EquipRite opens from your home screen like any app.</div>
+      </oj-bind-if>
+      <oj-bind-if test="[[ !$variables.install.installed ]]">
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="font-weight:700">Put EquipRite on your home screen</div>
+          <div class="mb-note">It opens full screen, like an app, and keeps a copy of your requests for when there is no signal.</div>
+          <oj-bind-if test="[[ $variables.install.canPrompt ]]">
+            <button type="button" class="mb-btn mb-btn--primary mb-btn--block" id="meInstallBtn" on-click="[[ $listeners.onInstall ]]">
+              <span class="oj-ux-ico-download" aria-hidden="true"></span>Install EquipRite</button>
+          </oj-bind-if>
+          <oj-bind-if test="[[ !$variables.install.canPrompt ]]">
+            <ol style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px" id="meSteps">
+              <oj-bind-for-each data="[[ $variables.install.steps ]]">
+                <template data-oj-as="s"><li><oj-bind-text value="[[ s.data ]]"></oj-bind-text></li></template>
+              </oj-bind-for-each>
+            </ol>
+          </oj-bind-if>
+        </div>
+      </oj-bind-if>
+      <div class="mb-actions-row" style="margin-top:12px">
+        <button type="button" class="mb-btn" id="meShare" on-click="[[ $listeners.onShare ]]"><span class="oj-ux-ico-share" aria-hidden="true"></span>Share</button>
+        <button type="button" class="mb-btn" id="meClear" on-click="[[ $listeners.onClear ]]"><span class="oj-ux-ico-trash" aria-hidden="true"></span>Clear copy</button>
+      </div>
+    </div>
+
+    <oj-bind-if test="[[ $functions.versions($application.variables.appUrls).length > 0 ]]">
+      <h3 class="mb-section">On a computer</h3>
+      <ul class="mb-list" id="meVersions">
+        <oj-bind-for-each data="[[ $functions.versions($application.variables.appUrls) ]]">
+          <template data-oj-as="v">
+            <li>
+              <a class="mb-item" :href="[[ v.data.url ]]" target="_blank" rel="noopener" :data-version="[[ v.data.key ]]" style="text-decoration:none">
+                <span class="mb-item-top"><span class="mb-item-title"><oj-bind-text value="[[ v.data.label ]]"></oj-bind-text></span>
+                  <span class="oj-ux-ico-arrow-right" aria-hidden="true"></span></span>
+                <span class="mb-item-sub"><oj-bind-text value="[[ v.data.about ]]"></oj-bind-text></span>
+              </a>
+            </li>
+          </template>
+        </oj-bind-for-each>
+      </ul>
+    </oj-bind-if>
+    <p class="mb-note" style="text-align:center;margin:8px 0 0">EquipRite Mobile · the same requests, equipment and access as EquipRite on a computer.</p>
+  </div>
+</div>

@@ -1,0 +1,161 @@
+{
+  "description": "EquipRite Mobile's shell: a top bar, the tab's screen (oj-vb-switcher keeps each tab alive), and the tab bar across the bottom with the tabs this role gets (mobileTabs). Screens reach it through resources/js/mobileBus.js.",
+  "variables": {
+    "tabs": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "TabType",
+        "keyAttributes": "id"
+      },
+      "description": "The switcher's items, one per tab this role gets; added once access is known, never replaced."
+    },
+    "tabBar": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "The tab bar: { id, label, icon, title } for each tab this role gets."
+    },
+    "currentTab": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "The tab shown."
+    },
+    "badges": {
+      "type": "any",
+      "defaultValue": {},
+      "description": "The count on each tab's icon (tab id -> number), from mobileBus.badge and the shell's own counts."
+    },
+    "toast": {
+      "type": "any",
+      "defaultValue": {
+        "message": "",
+        "tone": "info",
+        "seq": 0
+      }
+    },
+    "online": {
+      "type": "boolean",
+      "defaultValue": true,
+      "description": "Whether the phone has a connection (an offline strip shows when not)."
+    },
+    "shellReady": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "True once page access is known and the tabs this role gets are in place."
+    },
+    "tab": {
+      "type": "string",
+      "defaultValue": "",
+      "input": "fromUrl",
+      "description": "Deep link: ?tab=approve opens on that tab (when the role has it); ?tab=track&id=…&number=… on a request."
+    },
+    "id": {
+      "type": "string",
+      "defaultValue": "",
+      "input": "fromUrl"
+    },
+    "number": {
+      "type": "string",
+      "defaultValue": "",
+      "input": "fromUrl"
+    }
+  },
+  "types": {
+    "TabType": {
+      "id": "string",
+      "name": "string",
+      "flow": "string",
+      "page": "string",
+      "params": "object",
+      "title": "string",
+      "icon": "string"
+    }
+  },
+  "events": {
+    "shellRequest": {
+      "description": "From a screen, through resources/js/mobileBus.js: show a tab, a toast, a tab's count.",
+      "payloadType": "object"
+    },
+    "refreshCounts": {
+      "description": "Every five minutes, from the page module: the tabs' counts read again.",
+      "payloadType": "object"
+    },
+    "connection": {
+      "description": "The phone went online or offline (window online / offline).",
+      "payloadType": "object"
+    }
+  },
+  "eventListeners": {
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "shellEnterChain"
+        }
+      ]
+    },
+    "shellRequest": {
+      "chains": [
+        {
+          "chain": "shellRequestChain",
+          "parameters": {
+            "request": "{{ $event }}"
+          }
+        }
+      ]
+    },
+    "refreshCounts": {
+      "chains": [
+        {
+          "chain": "countsChain"
+        }
+      ]
+    },
+    "connection": {
+      "chains": [
+        {
+          "chain": "shellRequestChain",
+          "parameters": {
+            "action": "connection",
+            "online": "{{ $event.online }}"
+          }
+        }
+      ]
+    },
+    "onTab": {
+      "chains": [
+        {
+          "chain": "shellRequestChain",
+          "parameters": {
+            "action": "go",
+            "tab": "{{ $event.currentTarget.dataset.tab }}"
+          }
+        }
+      ]
+    },
+    "onToastClose": {
+      "chains": [
+        {
+          "chain": "toastChain",
+          "parameters": {
+            "message": ""
+          }
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-vb-switcher": {
+        "path": "vb/components/oj-vb-switcher/loader"
+      },
+      "oj-bind-for-each": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-if": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-text": {
+        "path": "ojs/ojknockout"
+      }
+    }
+  }
+}

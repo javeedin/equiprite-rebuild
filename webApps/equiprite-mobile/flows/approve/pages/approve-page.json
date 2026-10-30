@@ -1,0 +1,6 @@
+{
+  "description": "EquipRite Mobile's Approve tab (placeholder until the tab is built).",
+  "navigation": { "embeddable": "enabled" },
+  "variables": {},
+  "imports": { "components": {} }
+}

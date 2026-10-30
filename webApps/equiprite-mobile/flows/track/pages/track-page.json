@@ -1,0 +1,42 @@
+{
+  "description": "My requests on a phone: a card per request with where it is (from its equipment), chips by stage, search; a request opens on its equipment, its next step and its history. Steps (approve, pick, carry on with a draft) open the tab that takes them.",
+  "navigation": { "embeddable": "enabled" },
+  "variables": {
+    "isLoading": { "type": "boolean", "defaultValue": true },
+    "error": { "type": "string", "defaultValue": "" },
+    "manager": { "type": "boolean", "defaultValue": false, "description": "A manager can switch between their own requests and everyone's." },
+    "scope": { "type": "string", "defaultValue": "mine", "description": "mine | all" },
+    "all": { "type": "any[]", "defaultValue": [], "description": "The cards (trackList.cards) in this scope." },
+    "shown": { "type": "any[]", "defaultValue": [], "description": "The cards under the chip, matching the search." },
+    "chips": { "type": "any[]", "defaultValue": [] },
+    "chip": { "type": "string", "defaultValue": "" },
+    "text": { "type": "string", "defaultValue": "" },
+    "saved": { "type": "string", "defaultValue": "", "description": "When the list shown is this phone's saved copy (no connection): when it was saved, in words." },
+    "can": { "type": "any", "defaultValue": { "decide": false, "pick": false, "request": false } },
+    "view": { "type": "string", "defaultValue": "list", "description": "list | detail" },
+    "sel": { "type": "any", "defaultValue": {}, "description": "The request open (a card)." },
+    "equipment": { "type": "any[]", "defaultValue": [], "description": "Its equipment in words (trackList.equipment)." },
+    "hist": { "type": "any", "defaultValue": { "loading": false, "error": "", "milestones": [], "note": "" }, "description": "Its history (requestHistory.load)." }
+  },
+  "events": {
+    "focusRequest": { "description": "Another tab, or a deep link, asked to show a request here (mobileBus.focus).", "payloadType": "object" }
+  },
+  "eventListeners": {
+    "vbEnter": { "chains": [{ "chain": "loadChain", "parameters": { "refresh": false } }] },
+    "onRefresh": { "chains": [{ "chain": "loadChain", "parameters": { "refresh": true } }] },
+    "onChip": { "chains": [{ "chain": "applyChain", "parameters": { "chip": "{{ $event.currentTarget.dataset.key }}" } }] },
+    "onScope": { "chains": [{ "chain": "loadChain", "parameters": { "refresh": false, "scope": "{{ $event.currentTarget.dataset.scope }}" } }] },
+    "onSearch": { "chains": [{ "chain": "applyChain", "parameters": { "text": "{{ $event.target.value }}" } }] },
+    "onOpen": { "chains": [{ "chain": "openChain", "parameters": { "number": "{{ $event.currentTarget.dataset.number }}" } }] },
+    "onBack": { "chains": [{ "chain": "openChain", "parameters": { "number": "" } }] },
+    "onAct": { "chains": [{ "chain": "actChain", "parameters": { "act": "{{ $event.currentTarget.dataset.act }}" } }] },
+    "focusRequest": { "chains": [{ "chain": "focusChain" }] }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}

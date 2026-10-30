@@ -17,7 +17,9 @@
  * asks which to open; File > Open New EquipRite / Open EquipRite Next / Switch this window to Old EquipRite switch
  * without signing out, and New and Next have an Old / New / Next switch in their toolbar. A link to Old EquipRite clicked in New EquipRite opens Old in a window of its own, so
  * the New window stays put and the two can be shown side by side.
- * Each gets its own local server, at the site root as VB expects; both forward to the same backends with the same
+ * EquipRite Mobile (webApps/equiprite-mobile, the phone app) opens with File > Open EquipRite Mobile in a phone-sized
+ * window of its own, beside whichever app the main window shows.
+ * Each gets its own local server, at the site root as VB expects; all forward to the same backends with the same
  * sign-in, so they show the same data.
  *
  * Nothing native is compiled and no shell is started (eScan-safe): the only dependency is Electron, a prebuilt
@@ -37,6 +39,8 @@ const VERSIONS = {
   old: { webApp: 'vbredwoodapp', label: 'Old EquipRite', port: PORT },
   new: { webApp: 'equiprite', label: 'New EquipRite', port: PORT + 1 },
   next: { webApp: 'equiprite-next', label: 'EquipRite Next', port: PORT + 2 },
+  // Never the main window's app: it opens in a phone-sized window of its own (openMobileWindow).
+  mobile: { webApp: 'equiprite-mobile', label: 'EquipRite Mobile', port: PORT + 3 },
 };
 const originOf = (v) => `http://localhost:${VERSIONS[v].port}`;
 const urlOf = (v) => `${originOf(v)}/`;
@@ -48,6 +52,7 @@ let signinWin = null;
 let logWin = null;
 let servicesWin = null;
 let oldWin = null; // Old EquipRite beside New, opened from New's "Old" links
+let mobileWin = null; // EquipRite Mobile, phone-sized
 const servers = {}; // version -> running local server, for each app that is built
 let version = 'old'; // which app the window shows
 let quitting = false;
@@ -304,6 +309,10 @@ ipcMain.handle('signin:submit', (event, form) => {
 
 /** File → Open Old / New EquipRite / EquipRite Next: switch apps and stay signed in. The choice is remembered. */
 function openVersion(v) {
+  if (v === 'mobile' && servers.mobile) {
+    openMobileWindow();
+    return;
+  }
   if (!servers[v]) {
     dialog.showMessageBox(win, {
       type: 'info', title: APP_NAME, message: `${VERSIONS[v].label} is not built yet`,
@@ -392,6 +401,67 @@ function openOldWindow(url) {
   });
   pushLog(`${new Date().toTimeString().slice(0, 8)} opening ${VERSIONS.old.label} in its own window`);
   oldWin.loadURL(target).catch(() => {});
+}
+
+/** EquipRite Mobile in a phone-sized window of its own (one; a second open brings it to the front). */
+function openMobileWindow(url) {
+  if (!identity) {
+    openSignIn();
+    return;
+  }
+  const target = url || urlOf('mobile');
+  if (mobileWin && !mobileWin.isDestroyed()) {
+    mobileWin.loadURL(target).catch(() => {});
+    if (mobileWin.isMinimized()) {
+      mobileWin.restore();
+    }
+    mobileWin.focus();
+    return;
+  }
+  const [x, y] = win && !win.isDestroyed() ? win.getPosition() : [undefined, undefined];
+  mobileWin = new BrowserWindow({
+    width: 410,
+    height: 860,
+    minWidth: 340,
+    minHeight: 560,
+    x: x != null ? x + 72 : undefined,
+    y: y != null ? y + 32 : undefined,
+    title: `${VERSIONS.mobile.label} (preview) · ${app.getVersion()}`,
+    backgroundColor: '#f3f5f8',
+    autoHideMenuBar: true,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      sandbox: true,
+      nodeIntegration: false,
+      spellcheck: true,
+    },
+  });
+  mobileWin.setMenu(null);
+  mobileWin.on('page-title-updated', (event) => event.preventDefault());
+  mobileWin.webContents.setWindowOpenHandler(({ url: next }) => {
+    if (allowedNav(next)) {
+      return { action: 'allow' };
+    }
+    if (/^https?:\/\//i.test(next)) {
+      shell.openExternal(next);
+    }
+    return { action: 'deny' };
+  });
+  mobileWin.webContents.on('will-navigate', (event, next) => {
+    if (allowedNav(next)) {
+      return;
+    }
+    event.preventDefault();
+    if (/^https?:\/\//i.test(next)) {
+      shell.openExternal(next);
+    }
+  });
+  mobileWin.on('closed', () => {
+    mobileWin = null;
+  });
+  pushLog(`${new Date().toTimeString().slice(0, 8)} opening ${VERSIONS.mobile.label} in a phone-sized window`);
+  mobileWin.loadURL(target).catch(() => {});
 }
 
 ipcMain.handle('signin:cancel', (event) => {
@@ -492,6 +562,11 @@ function createWindow() {
       openOldWindow(url);
       return { action: 'deny' };
     }
+    // Next's profile menu links to EquipRite Mobile: the phone-sized window.
+    if (servers.mobile && String(url).startsWith(urlOf('mobile'))) {
+      openMobileWindow(url);
+      return { action: 'deny' };
+    }
     if (allowedNav(url)) {
       return { action: 'allow' };
     }
@@ -506,6 +581,11 @@ function createWindow() {
       openOldWindow(url);
       return;
     }
+    if (servers.mobile && String(url).startsWith(urlOf('mobile'))) {
+      event.preventDefault();
+      openMobileWindow(url);
+      return;
+    }
     if (allowedNav(url)) {
       return;
     }
@@ -516,7 +596,7 @@ function createWindow() {
   });
   // Switching with the Old / New / Next switch in the app: the window title and the app opened next time follow.
   win.webContents.on('did-navigate', (_event, url) => {
-    const v = Object.keys(VERSIONS).find((k) => servers[k] && String(url).startsWith(urlOf(k)));
+    const v = Object.keys(VERSIONS).find((k) => k !== 'mobile' && servers[k] && String(url).startsWith(urlOf(k)));
     if (v && v !== version) {
       version = v;
       identityStore.saveVersion(identityFile(), v);
@@ -546,6 +626,7 @@ function appMenu() {
         { label: 'Open Old EquipRite in its own window', accelerator: 'CmdOrCtrl+Shift+1', click: () => openOldWindow() },
         { label: 'Open New EquipRite', accelerator: 'CmdOrCtrl+Shift+2', click: () => openVersion('new') },
         { label: 'Open EquipRite Next', accelerator: 'CmdOrCtrl+Shift+3', click: () => openVersion('next') },
+        { label: 'Open EquipRite Mobile (phone size)', accelerator: 'CmdOrCtrl+Shift+4', click: () => openVersion('mobile') },
         { label: 'Switch this window to Old EquipRite', click: () => openVersion('old') },
         { type: 'separator' },
         { label: 'Sign in as…', accelerator: 'CmdOrCtrl+Shift+S', click: () => openSignIn() },
@@ -594,7 +675,7 @@ if (!app.requestSingleInstanceLock()) {
     Menu.setApplicationMenu(appMenu());
     createWindow();
     try {
-      // The old app must be there (it is today's app); New and Next are served when they have been built.
+      // The old app must be there (it is today's app); New, Next and Mobile are served when they have been built.
       for (const v of Object.keys(VERSIONS)) {
         if (v === 'old' || isBuilt(BUILD_DIR, VERSIONS[v].webApp)) {
           servers[v] = await createDevServer({
@@ -602,7 +683,8 @@ if (!app.requestSingleInstanceLock()) {
             webApp: VERSIONS[v].webApp,
             port: VERSIONS[v].port,
             getIdentity: () => identity,
-            getVersions: () => ({ old: urlOf('old'), new: servers.new ? urlOf('new') : '', next: servers.next ? urlOf('next') : '' }),
+            getVersions: () => ({ old: urlOf('old'), new: servers.new ? urlOf('new') : '', next: servers.next ? urlOf('next') : '',
+              mobile: servers.mobile ? urlOf('mobile') : '' }),
             backendOverrides: backendOverridesFromEnv(process.env),
             onLog: pushLog,
             onProblem: backendProblem,

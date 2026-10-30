@@ -1,0 +1,8 @@
+{
+  "id": "me",
+  "description": "Me: who you are, what you can do in EquipRite Mobile, installing it on the phone, sharing it, the other EquipRite versions.",
+  "defaultPage": "me",
+  "navigation": { "embeddable": "enabled" },
+  "pages": { "me": { "path": "pages/me-page" } },
+  "chains": {}, "services": {}, "types": {}, "variables": {}
+}

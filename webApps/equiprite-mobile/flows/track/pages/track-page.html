@@ -1,0 +1,198 @@
+<!-- My requests on a phone. A list of cards (where each request is, from its equipment), then one request: its next
+     step, its equipment, its history from start to end. Styles: resources/css/mobile.css (.mb-*). -->
+<div class="mb-page" id="mbTrack">
+  <oj-bind-if test="[[ $variables.view === 'list' ]]">
+    <div class="mb-head">
+      <div class="mb-head-row">
+        <h2 style="flex:1">My requests</h2>
+        <button type="button" class="mb-back" id="trRefresh" on-click="[[ $listeners.onRefresh ]]" aria-label="Refresh"><span class="oj-ux-ico-refresh" aria-hidden="true"></span></button>
+      </div>
+      <div class="mb-head-sub" id="trSummary">
+        <oj-bind-text value="[[ $variables.isLoading ? 'Loading…' : ($variables.all.length === 1 ? '1 request' : $variables.all.length + ' requests') + ($variables.scope === 'all' ? ', everyone’s' : '') ]]"></oj-bind-text>
+      </div>
+    </div>
+    <div class="mb-body">
+      <oj-bind-if test="[[ $variables.manager ]]">
+        <div class="mb-actions-row" role="group" aria-label="Whose requests">
+          <button type="button" id="trMine" :class="[[ 'mb-chip' + ($variables.scope === 'mine' ? ' mb-chip--on' : '') ]]" data-scope="mine" on-click="[[ $listeners.onScope ]]"
+            :aria-pressed="[[ $variables.scope === 'mine' ? 'true' : 'false' ]]">Mine</button>
+          <button type="button" id="trAll" :class="[[ 'mb-chip' + ($variables.scope === 'all' ? ' mb-chip--on' : '') ]]" data-scope="all" on-click="[[ $listeners.onScope ]]"
+            :aria-pressed="[[ $variables.scope === 'all' ? 'true' : 'false' ]]">Everyone’s</button>
+        </div>
+      </oj-bind-if>
+      <label class="mb-search">
+        <span class="oj-ux-ico-search" aria-hidden="true"></span>
+        <input type="search" id="trSearch" placeholder="Request, project, equipment" aria-label="Search your requests" on-input="[[ $listeners.onSearch ]]" />
+      </label>
+      <div class="mb-chips" id="trChips" role="group" aria-label="Where they are">
+        <oj-bind-for-each data="[[ $variables.chips ]]">
+          <template data-oj-as="c">
+            <button type="button" :class="[[ 'mb-chip' + (c.data.key === $variables.chip ? ' mb-chip--on' : '') ]]" :data-key="[[ c.data.key ]]" on-click="[[ $listeners.onChip ]]"
+              :aria-pressed="[[ c.data.key === $variables.chip ? 'true' : 'false' ]]">
+              <oj-bind-text value="[[ c.data.label ]]"></oj-bind-text>
+              <span class="mb-chip-count"><oj-bind-text value="[[ $functions.count(c.data) ]]"></oj-bind-text></span>
+            </button>
+          </template>
+        </oj-bind-for-each>
+      </div>
+      <oj-bind-if test="[[ !!$variables.saved ]]">
+        <div class="mb-offline" style="border-radius:12px" id="trSaved"><span class="oj-ux-ico-cloud-off" aria-hidden="true"></span>
+          <span><oj-bind-text value="[[ $variables.saved ]]"></oj-bind-text>. Steps need a connection.</span></div>
+      </oj-bind-if>
+      <oj-bind-if test="[[ !!$variables.error ]]">
+        <div class="mb-error" role="alert" id="trError"><oj-bind-text value="[[ $variables.error ]]"></oj-bind-text></div>
+      </oj-bind-if>
+      <oj-bind-if test="[[ $variables.isLoading && !$variables.all.length ]]">
+        <div class="mb-loading" role="status"><span class="mb-spin" aria-hidden="true"></span>Loading your requests…</div>
+      </oj-bind-if>
+      <oj-bind-if test="[[ !$variables.isLoading && !$variables.error && !$variables.shown.length ]]">
+        <div class="mb-empty" id="trEmpty"><span class="oj-ux-ico-documents mb-empty-icon" aria-hidden="true"></span>
+          <oj-bind-text value="[[ $functions.empty($variables.chip, $variables.text, $variables.scope) ]]"></oj-bind-text></div>
+      </oj-bind-if>
+      <ul class="mb-list" id="trList">
+        <oj-bind-for-each data="[[ $variables.shown ]]">
+          <template data-oj-as="r">
+            <li>
+              <button type="button" :class="[[ 'mb-item ' + $functions.stage(r.data.tone) ]]" :data-number="[[ r.data.number ]]" on-click="[[ $listeners.onOpen ]]">
+                <span class="mb-item-top">
+                  <span class="mb-item-title"><oj-bind-text value="[[ r.data.number ]]"></oj-bind-text></span>
+                  <span class="mb-pill"><oj-bind-text value="[[ r.data.headline ]]"></oj-bind-text></span>
+                </span>
+                <span class="mb-item-sub"><oj-bind-text value="[[ (r.data.party || 'No project') + (r.data.dates ? ' · ' + r.data.dates : '') ]]"></oj-bind-text></span>
+                <span class="mb-jbar" aria-hidden="true">
+                  <oj-bind-for-each data="[[ r.data.segs ]]">
+                    <template data-oj-as="s"><span :class="[[ 'mb-jbar-seg ' + $functions.stage(s.data.stage) ]]" :title="[[ s.data.title ]]"></span></template>
+                  </oj-bind-for-each>
+                </span>
+                <oj-bind-if test="[[ !!r.data.next ]]">
+                  <span class="mb-item-next"><oj-bind-text value="[[ 'Next: ' + r.data.next ]]"></oj-bind-text></span>
+                </oj-bind-if>
+                <oj-bind-if test="[[ !!r.data.late ]]">
+                  <span class="mb-item-late"><oj-bind-text value="[[ r.data.late ]]"></oj-bind-text></span>
+                </oj-bind-if>
+              </button>
+            </li>
+          </template>
+        </oj-bind-for-each>
+      </ul>
+    </div>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ $variables.view === 'detail' ]]">
+    <div class="mb-head" id="trDetail">
+      <div class="mb-head-row">
+        <button type="button" class="mb-back" id="trBack" on-click="[[ $listeners.onBack ]]" aria-label="Back to my requests"><span class="oj-ux-ico-arrow-left" aria-hidden="true"></span></button>
+        <div style="flex:1;min-width:0">
+          <h2 id="trNumber"><oj-bind-text value="[[ $variables.sel.number ]]"></oj-bind-text></h2>
+          <div class="mb-head-sub"><oj-bind-text value="[[ $variables.sel.party || 'No project' ]]"></oj-bind-text></div>
+        </div>
+      </div>
+    </div>
+    <div class="mb-body">
+      <div :class="[[ 'mb-card mb-card-pad ' + $functions.stage($variables.sel.tone) ]]" id="trWhere">
+        <div class="mb-item-top">
+          <span class="mb-pill" id="trHeadline"><oj-bind-text value="[[ $variables.sel.headline ]]"></oj-bind-text></span>
+          <span class="mb-note"><oj-bind-text value="[[ $functions.pieces($variables.sel.pieces) ]]"></oj-bind-text></span>
+        </div>
+        <oj-bind-if test="[[ !!$variables.sel.detail ]]">
+          <div class="mb-note" style="margin-top:8px"><oj-bind-text value="[[ $variables.sel.detail ]]"></oj-bind-text></div>
+        </oj-bind-if>
+        <oj-bind-if test="[[ !!$variables.sel.next ]]">
+          <div style="margin-top:8px;font-weight:600" id="trNext"><oj-bind-text value="[[ 'Next: ' + $variables.sel.next ]]"></oj-bind-text></div>
+        </oj-bind-if>
+        <oj-bind-if test="[[ !!$variables.sel.late ]]">
+          <div class="mb-item-late" style="margin-top:6px"><oj-bind-text value="[[ $variables.sel.late ]]"></oj-bind-text></div>
+        </oj-bind-if>
+      </div>
+
+      <oj-bind-if test="[[ $variables.sel.approve || $variables.sel.pick > 0 || $variables.sel.carryOn ]]">
+        <div class="mb-actions" id="trActs">
+          <oj-bind-if test="[[ $variables.sel.approve ]]">
+            <button type="button" class="mb-btn mb-btn--ok mb-btn--block" id="trApprove" data-act="approve" on-click="[[ $listeners.onAct ]]">
+              <span class="oj-ux-ico-check-circle" aria-hidden="true"></span>Approve or send back</button>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.sel.pick > 0 ]]">
+            <button type="button" class="mb-btn mb-btn--primary mb-btn--block" id="trPick" data-act="pick" on-click="[[ $listeners.onAct ]]">
+              <span class="oj-ux-ico-fullfilment-box" aria-hidden="true"></span>
+              <oj-bind-text value="[[ 'Pick ' + ($variables.sel.pick === 1 ? '1 piece' : $variables.sel.pick + ' pieces') ]]"></oj-bind-text></button>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.sel.carryOn ]]">
+            <button type="button" class="mb-btn mb-btn--primary mb-btn--block" id="trContinue" data-act="continue" on-click="[[ $listeners.onAct ]]">
+              <span class="oj-ux-ico-edit" aria-hidden="true"></span>
+              <oj-bind-text value="[[ $variables.sel.sentBack ? 'Fix it and send again' : 'Carry on with this draft' ]]"></oj-bind-text></button>
+          </oj-bind-if>
+        </div>
+      </oj-bind-if>
+
+      <div class="mb-card mb-card-pad">
+        <dl class="mb-facts">
+          <div><dt>Dates</dt><dd><oj-bind-text value="[[ $variables.sel.dates || 'Not set' ]]"></oj-bind-text></dd></div>
+          <div><dt>Requested by</dt><dd><oj-bind-text value="[[ $variables.sel.requestor || 'Not recorded' ]]"></oj-bind-text></dd></div>
+          <oj-bind-if test="[[ !!$variables.sel.partyFor ]]">
+            <div><dt>Customer</dt><dd><oj-bind-text value="[[ $variables.sel.partyFor ]]"></oj-bind-text></dd></div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ !!$variables.sel.task ]]">
+            <div><dt>Task</dt><dd><oj-bind-text value="[[ $variables.sel.task ]]"></oj-bind-text></dd></div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ !!$variables.sel.location ]]">
+            <div class="mb-wide"><dt>Deliver to</dt><dd><oj-bind-text value="[[ $variables.sel.location ]]"></oj-bind-text></dd></div>
+          </oj-bind-if>
+        </dl>
+      </div>
+
+      <h3 class="mb-section">Equipment</h3>
+      <oj-bind-if test="[[ !$variables.equipment.length ]]">
+        <div class="mb-card mb-empty">No equipment on it yet.</div>
+      </oj-bind-if>
+      <ul class="mb-list" id="trEquipment">
+        <oj-bind-for-each data="[[ $variables.equipment ]]">
+          <template data-oj-as="e">
+            <li :class="[[ 'mb-card mb-card-pad ' + $functions.stage(e.data.stage) ]]">
+              <div class="mb-item-top">
+                <span class="mb-item-title" style="font-size:15px"><oj-bind-text value="[[ e.data.name + (e.data.qty > 1 ? ' × ' + e.data.qty : '') ]]"></oj-bind-text></span>
+              </div>
+              <div style="margin-top:6px"><span class="mb-pill"><oj-bind-text value="[[ e.data.label ]]"></oj-bind-text></span></div>
+              <div class="mb-item-sub" style="margin-top:6px"><oj-bind-text value="[[ $functions.lineSub(e.data) ]]"></oj-bind-text></div>
+              <oj-bind-if test="[[ !!e.data.next ]]">
+                <div class="mb-note" style="margin-top:4px"><oj-bind-text value="[[ 'Next: ' + e.data.next ]]"></oj-bind-text></div>
+              </oj-bind-if>
+            </li>
+          </template>
+        </oj-bind-for-each>
+      </ul>
+
+      <h3 class="mb-section">History</h3>
+      <div class="mb-card mb-card-pad" id="trHistory">
+        <oj-bind-if test="[[ $variables.hist.loading ]]">
+          <div class="mb-loading" role="status" style="padding:16px"><span class="mb-spin" aria-hidden="true"></span>Reading its history…</div>
+        </oj-bind-if>
+        <oj-bind-if test="[[ !!$variables.hist.error ]]">
+          <div class="mb-note"><oj-bind-text value="[[ $variables.hist.error ]]"></oj-bind-text></div>
+        </oj-bind-if>
+        <ol class="mb-hist">
+          <oj-bind-for-each data="[[ $variables.hist.milestones ]]">
+            <template data-oj-as="m">
+              <li :class="[[ $functions.step(m.data) ]]">
+                <span class="mb-hist-dot" aria-hidden="true"></span>
+                <span class="mb-hist-body">
+                  <span class="mb-hist-label"><oj-bind-text value="[[ m.data.label ]]"></oj-bind-text>
+                    <oj-bind-if test="[[ !!m.data.count ]]"><span class="mb-hist-count"><oj-bind-text value="[[ m.data.count ]]"></oj-bind-text></span></oj-bind-if>
+                  </span>
+                  <oj-bind-if test="[[ !!$functions.when(m.data) ]]">
+                    <span class="mb-hist-when"><oj-bind-text value="[[ $functions.when(m.data) ]]"></oj-bind-text></span>
+                  </oj-bind-if>
+                  <oj-bind-if test="[[ !!m.data.note ]]">
+                    <span class="mb-hist-note"><oj-bind-text value="[[ m.data.note ]]"></oj-bind-text></span>
+                  </oj-bind-if>
+                </span>
+              </li>
+            </template>
+          </oj-bind-for-each>
+        </ol>
+        <oj-bind-if test="[[ !!$variables.hist.note ]]">
+          <div class="mb-note" style="margin-top:4px"><oj-bind-text value="[[ $variables.hist.note ]]"></oj-bind-text></div>
+        </oj-bind-if>
+      </div>
+    </div>
+  </oj-bind-if>
+</div>

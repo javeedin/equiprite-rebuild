@@ -1,0 +1,8 @@
+{
+  "id": "request",
+  "description": "EquipRite Mobile's New request tab.",
+  "defaultPage": "request",
+  "navigation": { "embeddable": "enabled" },
+  "pages": { "request": { "path": "pages/request-page" } },
+  "chains": {}, "services": {}, "types": {}, "variables": {}
+}

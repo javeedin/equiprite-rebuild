@@ -1,0 +1,245 @@
+/*
+ * EquipRite Mobile (webApps/equiprite-mobile): the tabs each role gets (mobileTabs), the line from a tab to the shell
+ * (mobileBus), My requests' cards (trackList), the copy kept on the phone (offlineSnapshot), installing it
+ * (installPrompt, pwaSetup, the manifest), and guards: the modules shared with Next are the same files, every chain a
+ * page names exists, bindings use only what VB's expression language allows. Loads the real modules.
+ *
+ * Run:  node tests/mobile-app.test.js
+ */
+'use strict';
+
+const fs = require('fs');
+const path = require('path');
+const vm = require('vm');
+const H = require('./_harness');
+
+const T = H.makeAsserter();
+const APP = path.join(__dirname, '..', 'webApps', 'equiprite-mobile');
+const NEXT = path.join(__dirname, '..', 'webApps', 'equiprite-next');
+const JS = path.join(APP, 'resources', 'js');
+
+function load(name, deps, extra) {
+  const sandbox = Object.assign({ console, Intl, Date, setTimeout, JSON }, extra || {});
+  let mod;
+  sandbox.define = (names, factory) => { mod = factory(...names.map((n) => (deps || {})[n])); };
+  vm.createContext(sandbox);
+  vm.runInContext(fs.readFileSync(path.join(JS, name + '.js'), 'utf8'), sandbox, { filename: name + '.js' });
+  return mod;
+}
+
+const rules = load('rules');
+const fmt = load('fmt');
+const Progress = load('requestProgress');
+const tabs = load('mobileTabs', { 'resources/js/rules': rules });
+const bus = load('mobileBus');
+const list = load('requestList', { 'resources/js/requestProgress': Progress, 'resources/js/fmt': fmt, 'resources/js/rules': rules });
+const queue = load('approvalQueue', { 'resources/js/requestProgress': Progress, 'resources/js/fmt': fmt, 'resources/js/rules': rules });
+const drafts = load('cartDrafts', { 'resources/js/fmt': fmt, 'resources/js/rules': rules });
+const track = load('trackList', { 'resources/js/requestList': list, 'resources/js/requestProgress': Progress, 'resources/js/cartDrafts': drafts,
+  'resources/js/approvalQueue': queue });
+
+// ── Tabs by role ────────────────────────────────────────────────────────────────────────────────────────
+T.section('the tabs each role gets');
+const ids = (map, loaded) => tabs.visible(map, loaded === undefined ? true : loaded).map((t) => t.id).join(',');
+const ALL = { EQR_WORKBENCH: 'FULL', EQR_INITIATE_PICKING: 'FULL', EQR_PROJ_CREATE_REQUEST: 'FULL', EQR_EQUIPMENT_REQUESTS: 'FULL' };
+T.eq('an Equipment Manager: every tab, in order', ids(ALL), 'approve,pick,request,track,me');
+T.eq('an approver', ids({ EQR_WORKBENCH: 'FULL', EQR_EQUIPMENT_REQUESTS: 'READ_ONLY' }), 'approve,track,me');
+T.eq('a picker (read-only can look)', ids({ EQR_INITIATE_PICKING: 'READ_ONLY' }), 'pick,me');
+T.eq('a requester', ids({ EQR_PROJ_CREATE_REQUEST: 'FULL', EQR_EQUIPMENT_REQUESTS: 'FULL' }), 'request,track,me');
+T.eq('approving and raising need FULL', ids({ EQR_WORKBENCH: 'READ_ONLY', EQR_PROJ_CREATE_REQUEST: 'READ_ONLY' }), 'me');
+T.eq('hidden is hidden', ids({ EQR_INITIATE_PICKING: 'HIDDEN' }), 'me');
+T.eq('before access has loaded only Me (fail closed)', ids(ALL, false), 'me');
+T.eq('opens on the first work tab', tabs.first({ EQR_PROJ_CREATE_REQUEST: 'FULL', EQR_EQUIPMENT_REQUESTS: 'FULL' }, true), 'request');
+T.eq('nothing to do: Me', tabs.first({}, true), 'me');
+T.eq('what you can do, in words', tabs.summary({ EQR_WORKBENCH: 'FULL', EQR_INITIATE_PICKING: 'FULL' }, true), 'Approve requests · Pick and ship');
+const item = tabs.item(tabs.tab('approve'));
+T.eq('a switcher item', [item.id, item.name, item.flow, item.page].join(), 'approve,tab_approve,approve,approve');
+T.eq('an unknown tab', tabs.tab('nope'), null);
+T.eq('every tab has an icon the font has', tabs.TABS.filter((t) => !/^oj-ux-ico-[a-z-]+$/.test(t.icon)).length, 0);
+
+// ── The bus ─────────────────────────────────────────────────────────────────────────────────────────────
+T.section('a tab asks the shell (mobileBus)');
+bus.toast('early', 'info');
+const got = [];
+bus.register((r) => got.push(r.action + ':' + (r.tab || r.message)));
+T.eq('asked before the shell was there: delivered once it is', got.join(), 'toast:early');
+bus.badge('pick', '4');
+T.eq('a count', got[got.length - 1], 'badge:pick');
+let woke = 0;
+bus.onFocus('track', () => { woke++; });
+bus.focus('track', { id: 7, number: 'REQ-7' });
+T.eq('focus shows the tab', got[got.length - 1], 'go:track');
+T.eq('and wakes the tab if it is open', woke, 1);
+T.eq('the tab takes it once', JSON.stringify(bus.takeFocus('track')), '{"id":7,"number":"REQ-7"}');
+T.eq('then it is gone', bus.takeFocus('track'), null);
+
+// ── My requests ─────────────────────────────────────────────────────────────────────────────────────────
+T.section('My requests (trackList)');
+const now = Date.parse('2026-10-30T09:00:00Z');
+const rows = [
+  { eqrEquipmentRequestId: 1, requestNumber: 'REQ-1', status: 'SUBMITTED', projectName: 'Pier B', requestorUsername: 'priya.raman', requestorName: 'Priya Raman',
+    startDate: '2026-11-04', endDate: '2026-12-01' },
+  { eqrEquipmentRequestId: 2, requestNumber: 'REQ-2', status: 'IN_PROCESS', projectName: 'Plant C', requestorUsername: 'priya.raman', startDate: '2026-11-04', endDate: '2026-12-01' },
+  { eqrEquipmentRequestId: 3, requestNumber: 'REQ-3', status: 'DRAFT', projectName: 'Gas Line', requestorUsername: 'priya.raman' },
+  { eqrEquipmentRequestId: 4, requestNumber: 'REQ-4', status: 'SUBMITTED', projectName: 'Dock', requestorUsername: 'dana.cole', requestorName: 'Dana Cole' },
+  { eqrEquipmentRequestId: 5, requestNumber: 'REQ-5', status: 'REJECTED', projectName: 'Yard', requestorUsername: 'priya.raman' },
+  { eqrEquipmentRequestId: 6, requestNumber: 'REQ-6', status: 'IN_PROCESS', projectName: 'Mine', requestorUsername: 'priya.raman' },
+];
+const L = (n, name, status, extra) => Object.assign({ requestNumber: n, name, lineStatus: status, qty: 1, allocation: status === 'ALLOCATED' ? 'ALLOCATED' : '' }, extra || {});
+const lines = {
+  'REQ-1': [L('REQ-1', 'Dozer', 'SUBMITTED'), L('REQ-1', 'Light Tower', 'SUBMITTED')],
+  'REQ-2': [L('REQ-2', 'Roller', 'ALLOCATED', { serial: 'RL-9' }), L('REQ-2', 'Generator', 'DEPLOYED')],
+  'REQ-3': [L('REQ-3', 'Crane', 'DRAFT')],
+  'REQ-4': [L('REQ-4', 'Pump', 'SUBMITTED')],
+  'REQ-5': [L('REQ-5', 'Saw', 'REJECTED')],
+  'REQ-6': [L('REQ-6', 'Truck', 'RETURNED')],
+};
+const who = ['priya.raman', 'Priya Raman'];
+const can = { decide: true, pick: true, request: true };
+const mine = track.cards(rows, lines, { who, scope: 'mine', can, now });
+T.eq('mine: the requests I raised', mine.map((c) => c.number).join(), 'REQ-1,REQ-2,REQ-3,REQ-5,REQ-6');
+T.eq('everyone\'s', track.cards(rows, lines, { who, scope: 'all', can, now }).length, 6);
+const by = (n) => mine.filter((c) => c.number === n)[0];
+T.eq('where it is', by('REQ-1').headline, 'Waiting for approval');
+T.eq('what is next', by('REQ-1').next, 'Equipment Manager to approve it (2 of 2)');
+T.eq('waiting for a decision: approve, for a decider', by('REQ-1').approve, true);
+T.eq('not for someone who may not decide', track.cards(rows, lines, { who, scope: 'mine', can: { pick: true }, now })[0].approve, false);
+T.eq('pieces ready at the yard: pick', by('REQ-2').pick, 1);
+T.eq('a draft: carry on', by('REQ-3').carryOn, true);
+T.eq('sent back: carry on (fix it)', [by('REQ-5').carryOn, by('REQ-5').sentBack].join(), 'true,true');
+T.eq('only if you may raise requests', track.cards(rows, lines, { who, scope: 'mine', can: {}, now }).filter((c) => c.carryOn).length, 0);
+T.eq('a journey bar segment per piece', by('REQ-2').segs.length, 2);
+const chips = track.chips(mine);
+const n = (k) => chips.filter((c) => c.key === k)[0].count;
+T.eq('chips: needs you (draft, sent back)', n('action'), 2);
+T.eq('open: everything not finished (sent back counts)', n('open'), 4);
+T.eq('done', n('done'), 1);
+T.eq('all', n('all'), 5);
+T.eq('opens on what needs you', track.firstChip(mine), 'action');
+T.eq('nothing needs you: open', track.firstChip(mine.filter((c) => !c.keys.includes('action'))), 'open');
+T.eq('a chip', track.filter(mine, 'action', '').map((c) => c.number).join(), 'REQ-3,REQ-5');
+T.eq('search reaches the equipment', track.filter(mine, 'all', 'light tower').map((c) => c.number).join(), 'REQ-1');
+T.eq('every word must match', track.filter(mine, 'all', 'pier crane').length, 0);
+const eq = track.equipment(lines['REQ-2'], false);
+T.eq('a piece in words', [eq[0].name, eq[0].label, eq[0].stage, eq[0].serial].join(), 'Roller,Unit assigned,ready,Unit RL-9');
+T.eq('no unit yet: nothing said twice', eq[1].serial, '');
+T.eq('what is next for it', eq[0].next, 'Equipment Manager to confirm it for picking');
+const kept = track.keep(mine, 2);
+T.eq('the phone keeps a few cards, without the search text', [kept.length, 'text' in kept[0]].join(), '2,false');
+const back = track.restore(kept);
+T.eq('back from the phone: searchable, no steps (they need a connection)', [back[0].approve, back[0].carryOn, track.filter(back, 'all', 'pier').length].join(), 'false,false,1');
+
+// ── Offline copy ────────────────────────────────────────────────────────────────────────────────────────
+T.section('the copy kept on the phone (offlineSnapshot)');
+const store = {};
+const fakeWindow = { localStorage: { getItem: (k) => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: (k) => { delete store[k]; } } };
+const snap = load('offlineSnapshot', {}, { window: fakeWindow });
+T.eq('kept', snap.save('track:mine', 'Priya.Raman', [{ number: 'REQ-1' }], now), true);
+T.eq('per user, any case', snap.read('track:mine', 'priya.raman').data[0].number, 'REQ-1');
+T.eq('another user sees nothing', snap.read('track:mine', 'dana.cole'), null);
+snap.clear('track:mine', 'priya.raman');
+T.eq('cleared', snap.read('track:mine', 'priya.raman'), null);
+store['equiprite-mobile:bad:x'] = '{oops';
+T.eq('a broken copy is no copy', snap.read('bad', 'x'), null);
+const noStore = load('offlineSnapshot', {}, { window: { get localStorage() { throw new Error('denied'); } } });
+T.eq('no storage (private mode): never throws', [noStore.save('a', 'b', 1), noStore.read('a', 'b')].join(), 'false,');
+const at = new Date(2026, 9, 30, 14, 5).getTime();
+T.eq('saved today', snap.savedText(at, new Date(2026, 9, 30, 18, 0).getTime()), 'Saved on this phone at 14:05');
+T.eq('saved before', snap.savedText(at, new Date(2026, 10, 2, 9, 0).getTime()), 'Saved on this phone 30 Oct, 14:05');
+
+// ── Installing ──────────────────────────────────────────────────────────────────────────────────────────
+T.section('installing it (installPrompt, pwaSetup, the manifest)');
+const listeners = {};
+const ip = load('installPrompt', {}, { window: { addEventListener: (n, fn) => { listeners[n] = fn; } }, navigator: { userAgent: 'x' } });
+T.eq('an iPhone', ip.platform('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Safari'), 'ios');
+T.eq('Android', ip.platform('Mozilla/5.0 (Linux; Android 14) Chrome/120 Mobile'), 'android');
+T.eq('a computer', ip.platform('Mozilla/5.0 (Windows NT 10.0) Chrome/120'), 'other');
+T.check('the iPhone steps name Add to Home Screen', ip.howTo('ios').join(' ').indexOf('Add to Home Screen') !== -1);
+T.eq('no prompt offered yet', ip.canPrompt(), false);
+let prompted = 0;
+let changed = 0;
+ip.onChange(() => { changed++; });
+listeners.beforeinstallprompt({ preventDefault() {}, prompt() { prompted++; }, userChoice: Promise.resolve({ outcome: 'accepted' }) });
+T.eq('the browser offered it: kept for the Install button', [ip.canPrompt(), changed].join(), 'true,1');
+T.eq('standalone: installed', ip.installed({ matchMedia: () => ({ matches: true }) }), true);
+T.eq('in a browser tab: not installed', ip.installed({ matchMedia: () => ({ matches: false }), navigator: {} }), false);
+T.eq('an iPhone home-screen app: installed', ip.installed({ navigator: { standalone: true } }), true);
+
+const pwa = load('pwaSetup');
+function fakeDoc(existing) {
+  const head = { kids: (existing || []).slice(), appendChild(n) { this.kids.push(n); },
+    querySelector(sel) {
+      const m = /^(link|meta)\[(rel|name)="([^"]+)"\]$/.exec(sel);
+      return this.kids.filter((k) => k.tag === m[1] && k.attrs[m[2]] === m[3])[0] || null;
+    } };
+  return { head, createElement: (tag) => ({ tag, attrs: {}, setAttribute(k, v) { this.attrs[k] = v; } }) };
+}
+const doc = fakeDoc();
+const added = pwa.apply(doc, (p) => '/version_1/' + p);
+T.check('the manifest, the icons, the bar colour', ['manifest', 'apple-touch-icon', 'icon', 'theme-color'].every((k) => added.includes(k)), added.join());
+T.eq('at the version folder\'s address', doc.head.querySelector('link[rel="manifest"]').attrs.href, '/version_1/resources/pwa/manifest.json');
+T.eq('VB\'s own PWA manifest is left alone', pwa.apply(fakeDoc([{ tag: 'link', attrs: { rel: 'manifest', href: 'vb.json' } }]), (p) => p).includes('manifest'), false);
+T.eq('twice adds nothing more', pwa.apply(doc, (p) => p).length, 0);
+
+const manifest = JSON.parse(fs.readFileSync(path.join(APP, 'resources', 'pwa', 'manifest.json'), 'utf8'));
+T.eq('the manifest: name, standalone', [manifest.name, manifest.display].join(), 'EquipRite Mobile,standalone');
+T.eq('it starts at the app (three folders up from the manifest, past the version folder)',
+  new URL(manifest.start_url, 'https://h/ic/webApps/equiprite-mobile/version_9/resources/pwa/manifest.json').href, 'https://h/ic/webApps/equiprite-mobile/');
+T.eq('icons 192 and 512, and a maskable one', manifest.icons.map((i) => i.sizes + ':' + i.purpose).join(), '192x192:any,512x512:any,512x512:maskable');
+T.eq('every icon is there', manifest.icons.concat([{ src: 'apple-touch-icon.png' }]).filter((i) => !fs.existsSync(path.join(APP, 'resources', 'pwa', i.src))).length, 0);
+T.eq('shortcuts open a tab', manifest.shortcuts.map((s) => s.url.split('=')[1]).join(), 'approve,pick,request');
+
+// ── Guards ──────────────────────────────────────────────────────────────────────────────────────────────
+T.section('guards');
+// Mobile's own modules; each tab's builder adds theirs (mobileApprove, mobilePick, mobileRequest).
+const MOBILE_ONLY = ['mobileTabs', 'mobileBus', 'trackList', 'offlineSnapshot', 'installPrompt', 'pwaSetup', 'mobileApprove', 'mobilePick', 'mobileRequest'];
+const shared = fs.readdirSync(JS).filter((f) => f.endsWith('.js') && !MOBILE_ONLY.includes(f.replace(/\.js$/, '')));
+const differ = shared.filter((f) => !fs.existsSync(path.join(NEXT, 'resources', 'js', f))
+  || fs.readFileSync(path.join(JS, f), 'utf8') !== fs.readFileSync(path.join(NEXT, 'resources', 'js', f), 'utf8'));
+T.eq('the modules shared with Next are the same files (change them in both)', differ.join(), '');
+T.check('Next\'s shell-only modules are not here', !['nav.js', 'shellBus.js', 'tabs.js', 'shellTabs.js'].some((f) => fs.existsSync(path.join(JS, f))));
+
+function walk(dir, out) {
+  fs.readdirSync(dir, { withFileTypes: true }).forEach((d) => {
+    const p = path.join(dir, d.name);
+    if (d.isDirectory()) walk(p, out); else out.push(p);
+  });
+  return out;
+}
+const files = walk(APP, []);
+const pages = files.filter((f) => /-page\.json$/.test(f));
+const missing = [];
+pages.forEach((f) => {
+  const src = fs.readFileSync(f, 'utf8');
+  const dir = f.replace(/\.json$/, '-chains');
+  (src.match(/"chain":\s*"([^"]+)"/g) || []).map((m) => m.split('"')[3]).forEach((c) => {
+    if (!fs.existsSync(path.join(dir, c + '.js')) && !fs.existsSync(path.join(APP, 'chains', c + '.js'))) missing.push(path.basename(f) + ':' + c);
+  });
+  const own = fs.existsSync(dir) ? fs.readdirSync(dir) : [];
+  own.forEach((c) => {
+    const name = c.replace(/\.js$/, '');
+    const used = src.indexOf('"' + name + '"') !== -1 || own.some((o) => fs.readFileSync(path.join(dir, o), 'utf8').indexOf("chain: '" + name + "'") !== -1);
+    if (!used) missing.push('unused ' + c);
+  });
+});
+T.eq('every chain a page names exists, and each is used', missing.join(), '');
+T.eq('every tab\'s page can sit in the switcher (embeddable)', pages.filter((f) => !/shell-page/.test(f) && !/"embeddable":\s*"enabled"/.test(fs.readFileSync(f, 'utf8'))).map((f) => path.basename(f)).join(), '');
+const flows = fs.readdirSync(path.join(APP, 'flows'));
+T.eq('every tab has its flow and page', tabs.TABS.filter((t) => !fs.existsSync(path.join(APP, 'flows', t.flow, 'pages', t.page + '-page.json'))).map((t) => t.id).join(), '');
+T.eq('and every flow is a tab', flows.filter((f) => !tabs.TABS.some((t) => t.flow === f)).join(), '');
+
+const bad = [];
+files.filter((f) => f.endsWith('.html')).forEach((f) => {
+  const src = fs.readFileSync(f, 'utf8');
+  (src.match(/\[\[[\s\S]*?\]\]|\{\{[\s\S]*?\}\}/g) || []).forEach((b) => {
+    if (/=>|\b(String|Number|Boolean)\(|\[\s*[\w$'"]/.test(b.slice(2, -2).replace(/\$variables\.\w+\[/g, ''))) bad.push(path.basename(f) + ': ' + b.slice(0, 70));
+  });
+  if (/<(table|tbody|select)[^>]*>\s*<oj-bind-for-each/.test(src)) bad.push(path.basename(f) + ': for-each in a table or select');
+});
+T.eq('bindings: no arrow functions, String/Number/Boolean or array literals (VB expressions)', bad.join(' | '), '');
+const icons = new Set();
+files.filter((f) => /\.(html|js)$/.test(f) && !/mapbox-gl/.test(f)).forEach((f) => (fs.readFileSync(f, 'utf8').match(/oj-ux-ico-[a-z0-9-]+/g) || []).forEach((i) => icons.add(i)));
+T.check('icons come from the Redwood icon font (oj-ux-ico-*)', icons.size > 5);
+T.eq('index.html: the app\'s own title', /<title>EquipRite Mobile<\/title>/.test(fs.readFileSync(path.join(APP, 'index.html'), 'utf8')), true);
+
+T.report();

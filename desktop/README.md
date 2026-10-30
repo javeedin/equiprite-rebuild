@@ -35,6 +35,10 @@ On first start a sign-in window asks for:
   (Ctrl+Shift+1) does the same from the menu; **File → Open New EquipRite** (Ctrl+Shift+2) and **File → Switch this
   window to Old EquipRite** change the main window, without signing out, and the choice is remembered.
 
+  **File → Open EquipRite Mobile (phone size)** (Ctrl+Shift+4) opens the phone app (webApps/equiprite-mobile, port
+  18891) in a phone-sized window of its own, beside the main window; the **Mobile** link in EquipRite Next's profile
+  menu does the same. Each person gets the tabs their access allows: Approve, Pick, Request, My requests, Me.
+
 - **Fusion username to sign in as** — what `$application.user` carries; `ROLES_RP` is run for it (`P_LOGIN`).
 - **Fusion login** — stands in for the VBCS stored credential (`vb_e32dea99…`) on BIP and Fusion REST calls: the
   roles report, project lists, PDFs. Use an account that can run `/Custom/EquipRite/ROLES_RP.xdo`.

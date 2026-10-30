@@ -1,0 +1,8 @@
+{
+  "id": "pick",
+  "description": "EquipRite Mobile's Pick & ship tab.",
+  "defaultPage": "pick",
+  "navigation": { "embeddable": "enabled" },
+  "pages": { "pick": { "path": "pages/pick-page" } },
+  "chains": {}, "services": {}, "types": {}, "variables": {}
+}

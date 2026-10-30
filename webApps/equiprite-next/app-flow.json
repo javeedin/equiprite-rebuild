@@ -801,9 +801,10 @@
       "defaultValue": {
         "old": "",
         "new": "",
-        "next": ""
+        "next": "",
+        "mobile": ""
       },
-      "description": "Where Old, New and Next EquipRite live, for the toolbar's switch. Set by loadVersionsChain: from the desktop app's /__versions locally, or under VBCS by swapping webApps/equiprite-next for webApps/vbredwoodapp and webApps/equiprite in this page's address. Empty until known; the switch then shows only Next."
+      "description": "Where Old, New, Next and Mobile EquipRite live, for the profile menu's versions. Set by loadVersionsChain: from the desktop app's /__versions locally, or under VBCS by swapping webApps/equiprite-next for the others in this page's address. Empty until known; the menu then shows only Next."
     },
     "viewAs": {
       "type": "string",

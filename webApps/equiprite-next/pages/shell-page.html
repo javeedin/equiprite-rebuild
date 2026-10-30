@@ -256,8 +256,12 @@
           <span class="nx-version nx-version--on" aria-current="page">
             <span class="nx-version-name">Next<span class="oj-ux-ico-check nx-version-tick" aria-hidden="true"></span></span>
             <span class="nx-version-note">This one: tabs, live status, Help</span></span>
+          <oj-bind-if test="[[ !!$application.variables.appUrls.mobile ]]">
+            <a class="nx-version" id="nxGoMobile" :href="[[ $application.variables.appUrls.mobile ]]" target="_blank" rel="noopener">
+              <span class="nx-version-name">Mobile</span><span class="nx-version-note">On your phone: approve, pick, request</span></a>
+          </oj-bind-if>
         </nav>
-        <p class="nx-profile-note">All three work on the same data.</p>
+        <p class="nx-profile-note">All of them work on the same data.</p>
       </div>
       <div class="nx-profile-sec nx-profile-links">
         <button type="button" class="nx-profile-link" data-nav-id="help" on-click="[[ $listeners.onNav ]]">

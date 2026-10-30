@@ -1,0 +1,8 @@
+{
+  "id": "track",
+  "description": "My requests: where each of your requests is, what happens next and who does it, its equipment and its history from start to end.",
+  "defaultPage": "track",
+  "navigation": { "embeddable": "enabled" },
+  "pages": { "track": { "path": "pages/track-page" } },
+  "chains": {}, "services": {}, "types": {}, "variables": {}
+}

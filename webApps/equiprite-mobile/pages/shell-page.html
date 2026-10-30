@@ -1,0 +1,50 @@
+<!-- EquipRite Mobile shell: a slim top bar, the tab's screen (oj-vb-switcher keeps each tab alive, so switching tabs
+     keeps your place), and the tab bar across the bottom with the tabs this role gets. Styles: resources/css/mobile.css. -->
+<div class="mb-app">
+  <header class="mb-top">
+    <span class="mb-logo" aria-hidden="true">ER</span>
+    <!-- The app's name; once the screen's own title has scrolled away, the tab's title takes its place. -->
+    <h1 class="mb-top-title"><span class="mb-top-brand">EquipRite</span><span class="mb-top-tab" id="mbTitle"><oj-bind-text
+      value="[[ $functions.title($variables.tabBar, $variables.currentTab) ]]"></oj-bind-text></span></h1>
+    <span class="mb-top-user" aria-hidden="true"><oj-bind-text value="[[ $application.functions.userInitials($application.user) ]]"></oj-bind-text></span>
+  </header>
+
+  <oj-bind-if test="[[ !$variables.online ]]">
+    <div class="mb-offline" role="status" id="mbOffline"><span class="oj-ux-ico-cloud-off" aria-hidden="true"></span>No connection. What you see may be out of date.</div>
+  </oj-bind-if>
+
+  <main class="mb-main" id="mbMain">
+    <oj-bind-if test="[[ !$variables.shellReady ]]">
+      <div class="mb-loading" role="status"><span class="mb-spin" aria-hidden="true"></span>Getting your work ready…</div>
+    </oj-bind-if>
+    <oj-vb-switcher id="mbSwitcher" class="mb-switcher" data="[[ $variables.tabs ]]" current-item="{{ $variables.currentTab }}"
+      bridge="[[ vbBridge ]]"></oj-vb-switcher>
+  </main>
+
+  <oj-bind-if test="[[ $variables.shellReady ]]">
+    <nav class="mb-tabbar" id="mbTabbar" aria-label="EquipRite Mobile">
+      <oj-bind-for-each data="[[ $variables.tabBar ]]">
+        <template data-oj-as="t">
+          <button type="button" :class="[[ 'mb-tabbtn' + (t.data.id === $variables.currentTab ? ' mb-tabbtn--on' : '') ]]" :data-tab="[[ t.data.id ]]"
+            on-click="[[ $listeners.onTab ]]" :aria-current="[[ t.data.id === $variables.currentTab ? 'page' : 'false' ]]"
+            :aria-label="[[ t.data.label + ($functions.badge($variables.badges, t.data.id) ? ', ' + $functions.badge($variables.badges, t.data.id) + ' waiting' : '') ]]">
+            <span class="mb-tabicon">
+              <span :class="[[ t.data.icon ]]" aria-hidden="true"></span>
+              <oj-bind-if test="[[ !!$functions.badge($variables.badges, t.data.id) ]]">
+                <span class="mb-tabbadge" aria-hidden="true"><oj-bind-text value="[[ $functions.badge($variables.badges, t.data.id) ]]"></oj-bind-text></span>
+              </oj-bind-if>
+            </span>
+            <span class="mb-tablabel"><oj-bind-text value="[[ t.data.label ]]"></oj-bind-text></span>
+          </button>
+        </template>
+      </oj-bind-for-each>
+    </nav>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ !!$variables.toast.message ]]">
+    <div :class="[[ 'mb-toast mb-toast--' + $variables.toast.tone ]]" role="status" id="mbToast">
+      <span class="mb-toast-text"><oj-bind-text value="[[ $variables.toast.message ]]"></oj-bind-text></span>
+      <button type="button" class="mb-toast-close" on-click="[[ $listeners.onToastClose ]]" aria-label="Dismiss"><span class="oj-ux-ico-close" aria-hidden="true"></span></button>
+    </div>
+  </oj-bind-if>
+</div>

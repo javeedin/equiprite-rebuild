@@ -1,0 +1,8 @@
+{
+  "id": "approve",
+  "description": "EquipRite Mobile's Approve tab.",
+  "defaultPage": "approve",
+  "navigation": { "embeddable": "enabled" },
+  "pages": { "approve": { "path": "pages/approve-page" } },
+  "chains": {}, "services": {}, "types": {}, "variables": {}
+}

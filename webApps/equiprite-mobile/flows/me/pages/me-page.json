@@ -1,0 +1,27 @@
+{
+  "description": "Me: you and your role, the tabs your access gives you, installing the app on the phone's home screen (the browser's prompt, or the steps for an iPhone), sharing its link, the other EquipRite versions, and clearing what this phone keeps.",
+  "navigation": { "embeddable": "enabled" },
+  "variables": {
+    "me": { "type": "any", "defaultValue": { "name": "", "username": "", "role": "", "can": "", "tabs": [] } },
+    "install": { "type": "any", "defaultValue": { "installed": false, "canPrompt": false, "platform": "other", "steps": [] } },
+    "link": { "type": "string", "defaultValue": "", "description": "This app's address, to share." },
+    "note": { "type": "string", "defaultValue": "" }
+  },
+  "events": {
+    "installChanged": { "description": "The browser offered, or finished, installing the app (installPrompt.onChange).", "payloadType": "object" }
+  },
+  "eventListeners": {
+    "vbEnter": { "chains": [{ "chain": "meChain", "parameters": { "act": "load" } }] },
+    "installChanged": { "chains": [{ "chain": "meChain", "parameters": { "act": "load" } }] },
+    "onInstall": { "chains": [{ "chain": "meChain", "parameters": { "act": "install" } }] },
+    "onShare": { "chains": [{ "chain": "meChain", "parameters": { "act": "share" } }] },
+    "onClear": { "chains": [{ "chain": "meChain", "parameters": { "act": "clear" } }] }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}
