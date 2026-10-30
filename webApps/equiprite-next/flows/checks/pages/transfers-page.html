@@ -1,0 +1,146 @@
+<!-- Transfers. Every transfer order EquipRite keeps (out to site, back to the yard, between projects): what is moving, from
+     where to where, where it is (read from the equipment), what is late. A transfer opens in its own tab. Reads only:
+     recording a transfer writes transfer orders, and that is done in New EquipRite. Logic: resources/js/transferList.js. -->
+<div class="nx-page nx-trf-page">
+  <div class="nx-pagehead">
+    <div>
+      <h1>Transfers</h1>
+      <div class="nx-sub" id="trfSummary"><oj-bind-text value="[[ $variables.isLoading && !$variables.rows.length ? 'Loading the transfers…' : $variables.summary ]]"></oj-bind-text></div>
+    </div>
+    <div class="nx-actions">
+      <button type="button" class="nx-btn nx-btn--plain" on-click="[[ $listeners.onRefresh ]]" :disabled="[[ $variables.isLoading ]]">
+        <span class="oj-ux-ico-refresh" aria-hidden="true"></span>Refresh</button>
+      <div class="nx-export">
+        <button type="button" class="nx-btn" id="trfExport" on-click="[[ $listeners.onExportMenu ]]" aria-haspopup="menu"
+          :aria-expanded="[[ $variables.exportOpen ? 'true' : 'false' ]]">
+          <span class="oj-ux-ico-download" aria-hidden="true"></span>Export<span class="oj-ux-ico-chevron-down" aria-hidden="true"></span></button>
+        <oj-bind-if test="[[ $variables.exportOpen ]]">
+          <div class="nx-menu" role="menu" aria-label="Export">
+            <oj-bind-for-each data="[[ $functions.formats() ]]">
+              <template data-oj-as="f">
+                <button type="button" role="menuitem" class="nx-menu-item" :data-format="[[ f.data.key ]]" on-click="[[ $listeners.onExport ]]">
+                  <span :class="[[ f.data.icon ]]" aria-hidden="true"></span><oj-bind-text value="[[ f.data.label ]]"></oj-bind-text></button>
+              </template>
+            </oj-bind-for-each>
+            <p class="nx-menu-note"><oj-bind-text value="[[ $variables.shown.length + ($variables.shown.length === 1 ? ' transfer' : ' transfers') + ', as shown' ]]"></oj-bind-text></p>
+          </div>
+        </oj-bind-if>
+      </div>
+      <oj-bind-if test="[[ !!$functions.newUrl($application.variables.appUrls.new, 'transfers') && !$functions.interProjectOff($application.variables.featureFlags, $application.variables.flagsLoaded) ]]">
+        <a class="nx-btn nx-btn--primary" id="trfMoveInNew" :href="[[ $functions.newUrl($application.variables.appUrls.new, 'transfers') ]]"
+          title="Recording a transfer creates a transfer order (the inter-org transfer, INT-18, in Fusion). Until Next has that step, it is done in New EquipRite.">
+          <span class="oj-ux-ico-external-link" aria-hidden="true"></span>Move equipment between projects (in New)</a>
+      </oj-bind-if>
+    </div>
+  </div>
+
+  <oj-bind-if test="[[ $functions.interProjectOff($application.variables.featureFlags, $application.variables.flagsLoaded) ]]">
+    <div class="nx-trf-note" role="status">Inter-project transfer is switched off in Configuration (ENABLE_INTER_PROJECT_TRANSFER): transfers can be looked at here, not made.</div>
+  </oj-bind-if>
+
+  <div class="nx-toolbar">
+    <div class="nx-seg nx-trf-kinds" role="group" aria-label="Kind of transfer">
+      <oj-bind-for-each data="[[ $variables.kindChips ]]">
+        <template data-oj-as="k">
+          <button type="button" data-field="kind" :data-value="[[ k.data.key ]]" on-click="[[ $listeners.onPick ]]" :aria-pressed="[[ $variables.kind === k.data.key ? 'true' : 'false' ]]"
+            :class="[[ 'nx-seg-btn' + ($variables.kind === k.data.key ? ' nx-seg-btn--on' : '') ]]"><oj-bind-text value="[[ k.data.label ]]"></oj-bind-text>
+            <span class="nx-chip-count"><oj-bind-text value="[[ k.data.count ]]"></oj-bind-text></span></button>
+        </template>
+      </oj-bind-for-each>
+    </div>
+    <label class="nx-search">
+      <span class="oj-ux-ico-search" aria-hidden="true"></span>
+      <input type="search" :value="[[ $variables.text ]]" on-input="[[ $listeners.onSearch ]]" aria-label="Search the transfers"
+        placeholder="Transfer, request, project, yard, site, equipment or serial">
+    </label>
+  </div>
+
+  <div class="nx-chips" role="group" aria-label="Where it is">
+    <oj-bind-for-each data="[[ $variables.chips ]]">
+      <template data-oj-as="c">
+        <button type="button" data-field="chip" :data-value="[[ c.data.key ]]" on-click="[[ $listeners.onPick ]]"
+          :aria-pressed="[[ $variables.chip === c.data.key ? 'true' : 'false' ]]"
+          :class="[[ 'nx-chip' + (c.data.key === 'late' ? ' nx-chip--late' : '') + ($variables.chip === c.data.key ? ' nx-chip--on' : '') ]]">
+          <oj-bind-text value="[[ c.data.label ]]"></oj-bind-text><span class="nx-chip-count"><oj-bind-text value="[[ c.data.count ]]"></oj-bind-text></span>
+        </button>
+      </template>
+    </oj-bind-for-each>
+  </div>
+
+  <oj-bind-if test="[[ !!$variables.error ]]">
+    <div class="nx-error" role="alert"><oj-bind-text value="[[ $variables.error ]]"></oj-bind-text></div>
+  </oj-bind-if>
+  <oj-bind-if test="[[ $variables.detailLoading ]]">
+    <div class="nx-trf-note" role="status" id="trfReading">Reading what is on each open transfer and where it is…</div>
+  </oj-bind-if>
+  <oj-bind-if test="[[ !!$variables.note ]]">
+    <div class="nx-trf-note" role="status"><oj-bind-text value="[[ $variables.note ]]"></oj-bind-text></div>
+  </oj-bind-if>
+  <oj-bind-if test="[[ !$variables.isLoading && !$variables.error && !$variables.shown.length ]]">
+    <div class="nx-card nx-empty" id="trfEmpty"><oj-bind-text value="[[ $variables.rows.length
+      ? 'Nothing matches. Try another chip or kind, or clear the search.'
+      : 'No transfers yet. Equipment moves on transfer orders once picking starts; with transfer orders switched off for a business unit, EquipRite tracks requests only.' ]]"></oj-bind-text></div>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ $variables.shown.length > 0 ]]">
+    <section class="nx-card">
+      <div class="nx-table">
+        <div class="nx-grid nx-grid--trf" role="table" aria-label="Transfers">
+          <div class="nx-row nx-row--head" role="row">
+            <span role="columnheader" :aria-sort="[[ $functions.ariaSort('number', $variables.sortKey, $variables.sortDir) ]]">
+              <button type="button" class="nx-sort" data-key="number" on-click="[[ $listeners.onSort ]]">Transfer<oj-bind-text value="[[ $functions.sortMark('number', $variables.sortKey, $variables.sortDir) ]]"></oj-bind-text></button></span>
+            <span role="columnheader" :aria-sort="[[ $functions.ariaSort('request', $variables.sortKey, $variables.sortDir) ]]">
+              <button type="button" class="nx-sort" data-key="request" on-click="[[ $listeners.onSort ]]">Request<oj-bind-text value="[[ $functions.sortMark('request', $variables.sortKey, $variables.sortDir) ]]"></oj-bind-text></button></span>
+            <span role="columnheader">From → to</span>
+            <span role="columnheader">What is moving</span>
+            <span role="columnheader" :aria-sort="[[ $functions.ariaSort('state', $variables.sortKey, $variables.sortDir) ]]">
+              <button type="button" class="nx-sort" data-key="state" on-click="[[ $listeners.onSort ]]">Where it is<oj-bind-text value="[[ $functions.sortMark('state', $variables.sortKey, $variables.sortDir) ]]"></oj-bind-text></button></span>
+            <span role="columnheader" :aria-sort="[[ $functions.ariaSort('due', $variables.sortKey, $variables.sortDir) ]]">
+              <button type="button" class="nx-sort" data-key="due" on-click="[[ $listeners.onSort ]]">Due<oj-bind-text value="[[ $functions.sortMark('due', $variables.sortKey, $variables.sortDir) ]]"></oj-bind-text></button></span>
+          </div>
+          <oj-bind-for-each data="[[ $variables.shown.slice(0, $variables.limit) ]]">
+            <template data-oj-as="r">
+              <div role="row" class="nx-row nx-row--click" :data-key="[[ r.data.key ]]" :data-id="[[ r.data.id == null ? '' : '' + r.data.id ]]" :data-number="[[ r.data.number ]]"
+                :data-source="[[ r.data.synthetic ? 'history' : '' ]]" on-click="[[ $listeners.onOpen ]]">
+                <span role="cell">
+                  <!-- The row opens the transfer (a click here reaches it); the button is for the keyboard. -->
+                  <button type="button" class="nx-link nx-trf-num"><oj-bind-text value="[[ r.data.number ]]"></oj-bind-text></button>
+                  <span class="nx-cell-sub"><oj-bind-text value="[[ r.data.kindLabel ]]"></oj-bind-text></span>
+                </span>
+                <span role="cell">
+                  <span class="nx-cell-main"><oj-bind-text value="[[ r.data.requestNumber || '—' ]]"></oj-bind-text></span>
+                  <span class="nx-cell-sub"><oj-bind-text value="[[ r.data.fromRequest ? 'from ' + r.data.fromRequest : r.data.party ]]"></oj-bind-text></span>
+                </span>
+                <span role="cell" class="nx-trf-route">
+                  <span class="nx-cell-main"><oj-bind-text value="[[ r.data.from ]]"></oj-bind-text></span>
+                  <span class="nx-cell-sub"><span aria-hidden="true">→ </span><span class="nx-sr">to </span><oj-bind-text value="[[ r.data.to ]]"></oj-bind-text></span>
+                </span>
+                <span role="cell">
+                  <span class="nx-cell-main"><oj-bind-text value="[[ r.data.what || '—' ]]"></oj-bind-text></span>
+                  <span class="nx-cell-sub"><oj-bind-text value="[[ $functions.unitsText(r.data) ]]"></oj-bind-text></span>
+                </span>
+                <span role="cell">
+                  <span :class="[[ 'nx-pill nx-stage--' + r.data.stage ]]" :title="[[ 'Stored order status: ' + (r.data.storedStatus || '—') ]]"><oj-bind-text value="[[ r.data.label ]]"></oj-bind-text></span>
+                  <oj-bind-if test="[[ !!r.data.detail ]]"><span class="nx-cell-sub"><oj-bind-text value="[[ r.data.detail ]]"></oj-bind-text></span></oj-bind-if>
+                </span>
+                <span role="cell">
+                  <oj-bind-if test="[[ r.data.late ]]">
+                    <span class="nx-late nx-trf-late"><span class="oj-ux-ico-warning" aria-hidden="true"></span><oj-bind-text value="[[ r.data.lateText ]]"></oj-bind-text></span>
+                  </oj-bind-if>
+                  <oj-bind-if test="[[ !r.data.late ]]">
+                    <span class="nx-cell-sub nx-trf-due"><oj-bind-text value="[[ r.data.dueText || '—' ]]"></oj-bind-text></span>
+                  </oj-bind-if>
+                </span>
+              </div>
+            </template>
+          </oj-bind-for-each>
+        </div>
+      </div>
+    </section>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ $variables.shown.length > $variables.limit ]]">
+    <div><button type="button" class="nx-btn" on-click="[[ $listeners.onMore ]]">
+      <oj-bind-text value="[[ 'Show more (' + ($variables.shown.length - $variables.limit) + ' left)' ]]"></oj-bind-text></button></div>
+  </oj-bind-if>
+</div>

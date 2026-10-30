@@ -1,0 +1,116 @@
+{
+  "description": "One transfer in its own tab: what is moving, from where to where, where each unit is (read from its request line), what is late, the dates, the inter-project history; export of its units; act on it in New EquipRite (release, ship, receive and the inter-org transfer write to Fusion). Reads only: transfer-orders/{id}, transfer-order-lines, inv-orgs, request-detail-lines, transfer-history.",
+  "navigation": {
+    "embeddable": "enabled"
+  },
+  "variables": {
+    "id": {
+      "type": "string",
+      "defaultValue": "",
+      "input": "fromCaller"
+    },
+    "number": {
+      "type": "string",
+      "defaultValue": "",
+      "input": "fromCaller"
+    },
+    "source": {
+      "type": "string",
+      "defaultValue": "",
+      "input": "fromCaller",
+      "description": "'history': an inter-project transfer on record without an order of its own."
+    },
+    "head": {
+      "type": "any",
+      "defaultValue": {}
+    },
+    "units": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "historyRows": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "isLoading": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "error": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "note": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "exportOpen": {
+      "type": "boolean",
+      "defaultValue": false
+    }
+  },
+  "eventListeners": {
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "loadRecordChain"
+        }
+      ]
+    },
+    "onRefresh": {
+      "chains": [
+        {
+          "chain": "loadRecordChain"
+        }
+      ]
+    },
+    "onExportMenu": {
+      "chains": [
+        {
+          "chain": "menuChain"
+        }
+      ]
+    },
+    "onExport": {
+      "chains": [
+        {
+          "chain": "exportUnitsChain",
+          "parameters": {
+            "format": "{{ $event.currentTarget.dataset.format }}"
+          }
+        }
+      ]
+    },
+    "onOpenRequest": {
+      "chains": [
+        {
+          "chain": "openRequestChain",
+          "parameters": {
+            "id": "{{ $event.currentTarget.dataset.id }}",
+            "number": "{{ $event.currentTarget.dataset.number }}"
+          }
+        }
+      ]
+    },
+    "onOpenList": {
+      "chains": [
+        {
+          "chain": "openListChain"
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-if": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-text": {
+        "path": "ojs/ojknockout"
+      }
+    }
+  }
+}

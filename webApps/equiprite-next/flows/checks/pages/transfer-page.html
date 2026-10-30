@@ -1,0 +1,167 @@
+<!-- One transfer in its own tab: from where to where, what is moving and where each unit is, what is late, the dates and,
+     between projects, its history. Reads only; release, shipping, receiving and the inter-org transfer are done in New. -->
+<div class="nx-page nx-record nx-trf-record">
+  <oj-bind-if test="[[ $variables.isLoading && !$variables.head.number ]]">
+    <div class="nx-card nx-empty">Loading the transfer…</div>
+  </oj-bind-if>
+  <oj-bind-if test="[[ !!$variables.error ]]">
+    <div class="nx-error" role="alert"><oj-bind-text value="[[ $variables.error ]]"></oj-bind-text>
+      <button type="button" class="nx-link" on-click="[[ $listeners.onOpenList ]]">Open Transfers</button></div>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ !!$variables.head.number && !$variables.error ]]">
+    <div class="nx-pagehead">
+      <div>
+        <div class="nx-kicker"><oj-bind-text value="[[ $variables.head.kindLabel ]]"></oj-bind-text></div>
+        <h1 class="nx-record-title">
+          <oj-bind-text value="[[ $variables.head.number ]]"></oj-bind-text>
+          <span :class="[[ 'nx-pill nx-record-pill nx-stage--' + $variables.head.stage ]]" id="trfPill" :title="[[ 'Stored order status: ' + ($variables.head.storedStatus || '—') ]]">
+            <oj-bind-text value="[[ $variables.head.label ]]"></oj-bind-text></span>
+        </h1>
+        <div class="nx-sub"><oj-bind-text value="[[ ($variables.head.requestNumber || '') + ($variables.head.party ? ' · ' + $variables.head.party : '') ]]"></oj-bind-text></div>
+      </div>
+      <div class="nx-actions">
+        <button type="button" class="nx-btn nx-btn--plain" on-click="[[ $listeners.onRefresh ]]" :disabled="[[ $variables.isLoading ]]">
+          <span class="oj-ux-ico-refresh" aria-hidden="true"></span>Refresh</button>
+        <div class="nx-export">
+          <button type="button" class="nx-btn" id="trfRecExport" on-click="[[ $listeners.onExportMenu ]]" aria-haspopup="menu"
+            :aria-expanded="[[ $variables.exportOpen ? 'true' : 'false' ]]"><span class="oj-ux-ico-download" aria-hidden="true"></span>Export
+            <span class="oj-ux-ico-chevron-down" aria-hidden="true"></span></button>
+          <oj-bind-if test="[[ $variables.exportOpen ]]">
+            <div class="nx-menu" role="menu" aria-label="Export what is on this transfer">
+              <oj-bind-for-each data="[[ $functions.formats() ]]">
+                <template data-oj-as="f">
+                  <button type="button" role="menuitem" class="nx-menu-item" :data-format="[[ f.data.key ]]" on-click="[[ $listeners.onExport ]]">
+                    <span :class="[[ f.data.icon ]]" aria-hidden="true"></span><oj-bind-text value="[[ f.data.label ]]"></oj-bind-text></button>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </oj-bind-if>
+        </div>
+        <oj-bind-if test="[[ !!$functions.newUrl($application.variables.appUrls.new, $variables.head) ]]">
+          <a class="nx-btn" id="trfInNew" :href="[[ $functions.newUrl($application.variables.appUrls.new, $variables.head) ]]" :title="[[ $functions.newTitle($variables.head) ]]">
+            <span class="oj-ux-ico-external-link" aria-hidden="true"></span><oj-bind-text value="[[ $functions.newLabel($variables.head) ]]"></oj-bind-text></a>
+        </oj-bind-if>
+      </div>
+    </div>
+
+    <section class="nx-card nx-card-pad nx-trf-way" aria-labelledby="trfWayTitle">
+      <h2 class="nx-h2" id="trfWayTitle">From where to where</h2>
+      <div class="nx-trf-legs">
+        <div class="nx-trf-leg">
+          <span class="nx-trf-leg-label">From</span>
+          <span class="nx-trf-leg-place" id="trfFrom"><oj-bind-text value="[[ $variables.head.from ]]"></oj-bind-text></span>
+          <oj-bind-if test="[[ !!$variables.head.fromRequest ]]">
+            <button type="button" class="nx-link nx-trf-leg-req" :data-id="[[ $variables.head.sourceRequestId == null ? '' : '' + $variables.head.sourceRequestId ]]"
+              :data-number="[[ $variables.head.sourceRequestNumber ]]" on-click="[[ $listeners.onOpenRequest ]]"><oj-bind-text value="[[ $variables.head.fromRequest ]]"></oj-bind-text></button>
+          </oj-bind-if>
+          <span class="nx-note"><oj-bind-text value="[[ $variables.head.shipped ? 'Shipped ' + $functions.date($variables.head.shipped) : ($variables.head.requested ? 'Requested for ' + $functions.date($variables.head.requested) : '') ]]"></oj-bind-text></span>
+        </div>
+        <span class="nx-trf-arrow oj-ux-ico-arrow-right" aria-hidden="true"></span>
+        <div class="nx-trf-leg">
+          <span class="nx-trf-leg-label">To</span>
+          <span class="nx-trf-leg-place" id="trfTo"><oj-bind-text value="[[ $variables.head.to ]]"></oj-bind-text></span>
+          <oj-bind-if test="[[ !!$variables.head.requestNumber ]]">
+            <button type="button" class="nx-link nx-trf-leg-req" id="trfOpenRequest" :data-id="[[ $variables.head.requestId == null ? '' : '' + $variables.head.requestId ]]"
+              :data-number="[[ $variables.head.requestNumber ]]" on-click="[[ $listeners.onOpenRequest ]]"><oj-bind-text value="[[ $variables.head.requestNumber + ($variables.head.party ? ' · ' + $variables.head.party : '') ]]"></oj-bind-text></button>
+          </oj-bind-if>
+          <span class="nx-note"><oj-bind-text value="[[ $variables.head.received ? 'Received ' + $functions.date($variables.head.received) : $variables.head.dueText ]]"></oj-bind-text></span>
+        </div>
+      </div>
+      <p class="nx-note nx-trf-kindhint"><oj-bind-text value="[[ $functions.kindHint($variables.head.kind) ]]"></oj-bind-text></p>
+      <div class="nx-trf-flags">
+        <oj-bind-if test="[[ $variables.head.late ]]">
+          <span class="nx-late" id="trfLate"><span class="oj-ux-ico-warning" aria-hidden="true"></span><oj-bind-text value="[[ $variables.head.lateText ]]"></oj-bind-text></span>
+        </oj-bind-if>
+        <oj-bind-if test="[[ !!$variables.head.detail ]]">
+          <span class="nx-note"><oj-bind-text value="[[ $variables.head.detail ]]"></oj-bind-text></span>
+        </oj-bind-if>
+      </div>
+      <oj-bind-if test="[[ $variables.head.kind === 'between' && $variables.head.state === 'waiting' ]]">
+        <p class="nx-trf-fusion" id="trfFusion">Recorded in EquipRite and waiting for the inter-org transfer in Oracle Fusion (INT-18). Until it completes the
+          units stay on their request and their status is not changed here.</p>
+      </oj-bind-if>
+      <oj-bind-if test="[[ $variables.head.storedStatus === 'FAILED' ]]">
+        <p class="nx-error">The transfer failed in Fusion. Retry it in New EquipRite.</p>
+      </oj-bind-if>
+    </section>
+
+    <oj-bind-if test="[[ !!$variables.note ]]">
+      <div class="nx-trf-note" role="status"><oj-bind-text value="[[ $variables.note ]]"></oj-bind-text></div>
+    </oj-bind-if>
+
+    <div class="nx-record-body">
+      <section class="nx-card" aria-labelledby="trfUnitsTitle">
+        <div class="nx-card-head"><h2 id="trfUnitsTitle"><oj-bind-text value="[[ 'What is moving (' + $variables.units.length + ')' ]]"></oj-bind-text></h2></div>
+        <oj-bind-if test="[[ !$variables.units.length ]]">
+          <p class="nx-empty">No equipment is on this transfer.</p>
+        </oj-bind-if>
+        <oj-bind-if test="[[ $variables.units.length > 0 ]]">
+          <div class="nx-table">
+            <div class="nx-grid nx-grid--trfunits" role="table" aria-labelledby="trfUnitsTitle">
+              <div class="nx-row nx-row--head" role="row">
+                <span role="columnheader">Equipment</span><span role="columnheader">Serial</span><span role="columnheader">Qty</span>
+                <span role="columnheader">Where it is</span><span role="columnheader">On the order</span>
+              </div>
+              <oj-bind-for-each data="[[ $variables.units ]]">
+                <template data-oj-as="u">
+                  <div class="nx-row" role="row" :data-line="[[ u.data.requestLineId == null ? '' : '' + u.data.requestLineId ]]">
+                    <span role="cell"><span class="nx-cell-main"><oj-bind-text value="[[ u.data.name ]]"></oj-bind-text></span>
+                      <span class="nx-cell-sub"><oj-bind-text value="[[ u.data.cls ]]"></oj-bind-text></span></span>
+                    <span role="cell" class="nx-ellipsis"><oj-bind-text value="[[ u.data.serial || '—' ]]"></oj-bind-text></span>
+                    <span role="cell" class="nx-num"><oj-bind-text value="[[ u.data.qty ]]"></oj-bind-text></span>
+                    <span role="cell"><span :class="[[ 'nx-pill nx-stage--' + ($functions.unitStage(u.data) || $variables.head.stage) ]]" :title="[[ 'Stored line status: ' + (u.data.lineStatus || '—') ]]">
+                      <oj-bind-text value="[[ u.data.state.words ]]"></oj-bind-text></span></span>
+                    <span role="cell" class="nx-cell-sub"><oj-bind-text value="[[ u.data.toLineStatus || '—' ]]"></oj-bind-text></span>
+                  </div>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </div>
+        </oj-bind-if>
+      </section>
+
+      <aside class="nx-card nx-card-pad nx-facts" aria-label="About this transfer">
+        <dl>
+          <div><dt>Kind</dt><dd><oj-bind-text value="[[ $variables.head.kindLabel ]]"></oj-bind-text></dd></div>
+          <div><dt>Requested</dt><dd><oj-bind-text value="[[ $functions.date($variables.head.requested) ]]"></oj-bind-text></dd></div>
+          <div><dt>Need by</dt><dd><oj-bind-text value="[[ $functions.date($variables.head.needBy) ]]"></oj-bind-text></dd></div>
+          <div><dt>Shipped</dt><dd><oj-bind-text value="[[ $functions.date($variables.head.shipped) ]]"></oj-bind-text></dd></div>
+          <div><dt>Received</dt><dd><oj-bind-text value="[[ $functions.date($variables.head.received) ]]"></oj-bind-text></dd></div>
+          <oj-bind-if test="[[ !!$variables.head.carrier || !!$variables.head.tracking ]]">
+            <div><dt>Carrier</dt><dd><oj-bind-text value="[[ ($variables.head.carrier || '—') + ($variables.head.tracking ? ' · ' + $variables.head.tracking : '') ]]"></oj-bind-text></dd></div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ !!$variables.head.notes ]]">
+            <div><dt>Notes</dt><dd><oj-bind-text value="[[ $variables.head.notes ]]"></oj-bind-text></dd></div>
+          </oj-bind-if>
+          <div><dt>Stored status</dt><dd class="nx-muted"><oj-bind-text value="[[ $variables.head.storedStatus || '—' ]]"></oj-bind-text></dd></div>
+        </dl>
+      </aside>
+    </div>
+
+    <oj-bind-if test="[[ $variables.historyRows.length > 0 ]]">
+      <section class="nx-card" aria-labelledby="trfHistTitle">
+        <div class="nx-card-head"><h2 id="trfHistTitle">Transfer history</h2></div>
+        <div class="nx-table">
+          <div class="nx-grid nx-grid--trfhist" role="table" aria-labelledby="trfHistTitle">
+            <div class="nx-row nx-row--head" role="row">
+              <span role="columnheader">Date</span><span role="columnheader">Equipment</span><span role="columnheader">From → to</span>
+              <span role="columnheader">Status</span><span role="columnheader">By</span>
+            </div>
+            <oj-bind-for-each data="[[ $variables.historyRows ]]">
+              <template data-oj-as="h">
+                <div class="nx-row" role="row">
+                  <span role="cell" class="nx-num"><oj-bind-text value="[[ h.data.date || '—' ]]"></oj-bind-text></span>
+                  <span role="cell" class="nx-ellipsis"><oj-bind-text value="[[ h.data.equipment ]]"></oj-bind-text></span>
+                  <span role="cell"><oj-bind-text value="[[ h.data.from + ' → ' + h.data.to ]]"></oj-bind-text></span>
+                  <span role="cell"><span :class="[[ 'nx-pill nx-stage--' + $functions.statusStage(h.data.status) ]]"><oj-bind-text value="[[ $functions.statusText(h.data.status) ]]"></oj-bind-text></span></span>
+                  <span role="cell" class="nx-ellipsis"><oj-bind-text value="[[ h.data.by || '—' ]]"></oj-bind-text></span>
+                </div>
+              </template>
+            </oj-bind-for-each>
+          </div>
+        </div>
+      </section>
+    </oj-bind-if>
+  </oj-bind-if>
+</div>

@@ -41,9 +41,9 @@ define(['resources/js/rules'], function (rules) {
       { id: 'returns', label: 'Receiving & returns', icon: 'oj-ux-ico-return-box', pageCodes: ['EQR_EQUIPMENT_RETURNS'],
         route: { flow: 'yard', page: 'returns' }, built: false, newNav: 'receipt', keywords: 'receipt receive return inbound' },
       { id: 'inspection', label: 'Inspections', icon: 'oj-ux-ico-check-square', pageCodes: ['EQR_WORKBENCH'],
-        route: { flow: 'checks', page: 'inspection' }, built: false, newNav: 'inspection', keywords: 'inspect checklist damage' },
+        route: { flow: 'checks', page: 'inspection' }, built: true, newNav: 'inspection', keywords: 'inspect checklist damage' },
       { id: 'transfers', label: 'Transfers', icon: 'oj-ux-ico-inventory-transfer', pageCodes: ['EQR_WORKBENCH'],
-        route: { flow: 'checks', page: 'transfers' }, built: false, newNav: 'transfer', keywords: 'move yard to yard' }
+        route: { flow: 'checks', page: 'transfers' }, built: true, newNav: 'transfer', keywords: 'move yard to yard' }
     ] },
     { key: 'usage', label: 'Usage & billing', flags: ['PROJECTS_MODULE_ENABLED'], items: [
       { id: 'timesheets', label: 'Timesheets', icon: 'oj-ux-ico-clock', pageCodes: ['EQR_TIMESHEETS'], flags: ['TIMESHEETS_ENABLED'],
@@ -109,7 +109,9 @@ define(['resources/js/rules'], function (rules) {
       title: function (p) { return (p && (p.unit || p.id)) || 'Unit'; } },
     // A saved project draft, reopened in New request to finish it: { id: request id, number }.
     draft: { flow: 'order', page: 'new-request', icon: 'oj-ux-ico-cart-add', navId: 'new-request',
-      title: function (p) { return 'Draft ' + ((p && (p.number || p.id)) || ''); } }
+      title: function (p) { return 'Draft ' + ((p && (p.number || p.id)) || ''); } },
+    transfer: { flow: 'checks', page: 'transfer', icon: 'oj-ux-ico-inventory-transfer', navId: 'transfers',
+      title: function (p) { return (p && (p.number || p.id)) || 'Transfer'; } }
   };
 
   /** The page the tab of a menu item shows: its own screen, or the "being built" page for one not built yet. */

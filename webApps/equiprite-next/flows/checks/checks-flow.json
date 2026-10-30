@@ -1,0 +1,12 @@
+{
+  "id": "checks",
+  "description": "Yard checks: Inspections (FDD 7.12: the queue, class checklists, defects with photos, pass / conditional / fail, what happens to a failed unit) and Transfers (FDD 7.16, 7.16A: every transfer order, from where to where, what is moving, its state, what is late; a transfer in its own tab).",
+  "defaultPage": "inspection",
+  "navigation": { "embeddable": "enabled" },
+  "pages": {
+    "inspection": { "path": "pages/inspection-page" },
+    "transfers": { "path": "pages/transfers-page" },
+    "transfer": { "path": "pages/transfer-page" }
+  },
+  "chains": {}, "services": {}, "types": {}, "variables": {}
+}
