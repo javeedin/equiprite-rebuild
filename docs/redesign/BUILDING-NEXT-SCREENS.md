@@ -100,8 +100,10 @@ Don't restyle shared classes.
 
 - **EquipRite's own data** (requests, lines, allocations, inspections, timesheets, settings): keep the same calls,
   order and guards as the equivalent New/Old chain, and read the result back.
-- **Fusion** (contracts, transfer orders, ICS syncs, cost postings, anything that writes to Fusion): not part of Next
-  yet. Reading from Fusion is fine.
+- **Fusion** (contracts, transfer orders, ICS syncs, anything that writes to Fusion): not part of Next yet. Reading from
+  Fusion is fine. The one exception is **posting costs to Fusion PPM**, done in a request's costs tab
+  (`flows/usage/pages/cost-page`, `resources/js/costPosting.js`) with New's calls in New's order (New's
+  `postCostToFusion.js`, copied unchanged); `tests/next-posting.test.js` runs New's chains beside Next's. For the rest:
   - Show the step and what it would do.
   - Offer to do it in New EquipRite (a link to the same screen there; see `nav.newUrl`, or the request tab's
     "Act on it in New").

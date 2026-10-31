@@ -1,5 +1,5 @@
 {
-  "description": "Post costs (FDD 7.14A, S24), for Finance: every request with cost, what is ready to post, what was posted and what is still running, worked out per request from the same reads and rules as New EquipRite's Post costs. Opens a request's costs in its own tab. Posting to Fusion PPM stays in New EquipRite: nothing is posted, ticked or written here. Logic: resources/js/costPreview.js and costData.js.",
+  "description": "Post costs (FDD 7.14A, S24), for Finance: every request with cost, what is ready to post, what was posted and what is still running, worked out per request from the same reads and rules as New EquipRite's Post costs. Opens a request's costs in its own tab, where who may post (EQR_POST_COST, not read-only) posts it to Fusion PPM; this list writes nothing itself and reads again after a post. Logic: resources/js/costPreview.js, costData.js and costPosting.js.",
   "navigation": {
     "embeddable": "enabled"
   },
@@ -62,10 +62,21 @@
     "exportOpen": {
       "type": "boolean",
       "defaultValue": false
+    },
+    "readOnly": {
+      "type": "boolean",
+      "defaultValue": true,
+      "description": "Post costs is read-only for the role (New's isPageReadOnly on EQR_POST_COST): no Post affordances."
     }
+  },
+  "events": {
+    "costsPosted": { "description": "From resources/js/costPosting.js announce(): a request's costs were posted in its own tab.", "payloadType": "object" }
   },
   "eventListeners": {
     "vbEnter": {
+      "chains": [{ "chain": "loadChain", "parameters": { "refresh": false } }]
+    },
+    "costsPosted": {
       "chains": [{ "chain": "loadChain", "parameters": { "refresh": false } }]
     },
     "onRefresh": {

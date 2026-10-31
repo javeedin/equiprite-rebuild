@@ -1,6 +1,6 @@
 {
   "id": "usage",
-  "description": "Usage & billing (FDD 7.13, 7.14, 7.14A, 7.9): Timesheets (a week of hours), Approve time (in bulk, what needs a look first), Post costs (what is ready and what was posted; posting stays in New EquipRite), a request's costs in its own tab, and Direct cost & inventory (what a request has used; recording stays in New EquipRite).",
+  "description": "Usage & billing (FDD 7.13, 7.14, 7.14A, 7.9): Timesheets (a week of hours), Approve time (in bulk, what needs a look first), Post costs (what is ready and what was posted), a request's costs in its own tab (where it is posted to Fusion PPM, with New EquipRite's calls), and Direct cost & inventory (what a request has used; recording stays in New EquipRite).",
   "defaultPage": "timesheets",
   "navigation": { "embeddable": "enabled" },
   "pages": {

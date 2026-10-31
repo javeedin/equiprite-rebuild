@@ -5,8 +5,9 @@
  *                   Submit (exactly what New EquipRite writes, in its order), export
  *   Approve time    what needs a look first, select what looks right, approve, reject, adjust with an audit entry;
  *                   under Fusion PPM rates approving is left to New EquipRite (nothing written)
- *   Post costs      what is ready and what was posted per request, a request's costs in its own tab, what would be
- *                   posted (amounts, projects, splits), export; nothing is ever posted or written
+ *   Post costs      what is ready and what was posted per request, a request's costs in its own tab, what will be
+ *                   posted (amounts, projects, splits), export; opening and reading writes nothing (posting itself:
+ *                   tests/e2e/next-posting.e2e.js)
  *   Direct cost     what an active request has used and what is left; recording stays in New EquipRite
  * Each screen: no sideways scroll, no browser errors, a screenshot.
  * Needs `npm run build`. Run: node tests/e2e/next-usage.e2e.js   (screenshots go to the OS temp folder, or E2E_SHOTS)
@@ -392,7 +393,7 @@ const writesSince = (env, n) => env.writes.slice(n).map((w) => w.method + ' ' + 
     const pcRowText = async (n) => (await page.$eval(`.nx-grid--pc .nx-row--click[data-number="${n}"]`, (r) => r.innerText)).replace(/\s+/g, ' ').trim();
     const lastPosted = (() => { const d = new Date(addDays(W(-3), 6) + 'T00:00:00Z'); return d.getUTCDate() + ' ' + MON[d.getUTCMonth()]; })();
     T.check('a request: cost to date, posted, ready (3 weeks ended + 1 charge), running, last posted', (await pcRowText('REQ-10440'))
-      .endsWith('$6,390 160 h $1,400 $3,590 3 weeks + 1 charge $1,400 1 week not ended ' + lastPosted), await pcRowText('REQ-10440'));
+      .endsWith('$6,390 160 h $1,400 $3,590 3 weeks + 1 charge Review & post $1,400 1 week not ended ' + lastPosted), await pcRowText('REQ-10440'));
     T.check('a request with everything posted', (await pcRowText('REQ-10418')).includes('Rental over') && (await pcRowText('REQ-10418')).includes('$44,330 — '));
     T.eq('chips by what is left to post', await page.$$eval('.nx-pc .nx-chip', (c) => c.map((x) => x.innerText.replace(/\s+/g, ' ').trim()).join(' | ')),
       'All 3 | Ready to post 1 | Rental running 0 | All posted 1 | Nothing to post 1');
@@ -407,7 +408,8 @@ const writesSince = (env, n) => env.writes.slice(n).map((w) => w.method + ' ' + 
     T.eq('the export: what is shown, with ready and posted', [pcLines.length, pcLines[0].endsWith(',Cost to date,Ready to post,Posted,"Running, not ended",Last posted')].join(' | '),
       '2 | true');
     T.check('the export row', pcLines[1].startsWith('REQ-10440,Plant Expansion B,Electrical,PRJ-B,4.2,') && pcLines[1].endsWith(',6390,3590,1400,1400,' + lastPosted), pcLines[1]);
-    T.eq('Post in New EquipRite', await page.getAttribute('#pcInNew', 'href'), env.newUrl + '/vp/shell/usage/post-costs');
+    T.check('posting is done here, request by request (tests/e2e/next-posting.e2e.js posts)', (await env.text('#pcFusion')).startsWith('Post to Fusion PPM from here')
+      && (await env.text('#pcPostNext')) === 'Post REQ-10440');
 
     T.section('A request\'s costs in its own tab: what would be posted');
     await page.click('.nx-grid--pc .nx-row--click[data-number="REQ-10440"]');
@@ -428,13 +430,13 @@ const writesSince = (env, n) => env.writes.slice(n).map((w) => w.method + ' ' + 
     const weeksTable = await env.text('.nx-grid--pr');
     T.check('week by week: posted, ready, running, in words; a future week left out', weeksTable.includes('Posted') && weeksTable.includes('Ready to post')
       && weeksTable.includes('This week, not ended') && !weeksTable.includes(usageWeeks.weekLabel(W(10))));
-    T.eq('posting is done in New EquipRite, on this request', await page.getAttribute('#prInNew', 'href'), env.newUrl + '/vp/shell/usage/post-costs?request=REQ-10440');
+    T.eq('everything ready is ticked, and posted from here', await env.text('#prPost'), 'Post 3 weeks and 1 charge · $3,590');
     const planCsv = await download(page, '#prExport', '.nx-menu-item[data-what="plan"][data-format="csv"]');
     const planLines = planCsv.text.replace(/^﻿/, '').split('\r\n').filter(Boolean);
     T.eq('the plan exports', [planLines.length, planLines[0]].join(' | '), '5 | What,Quantity,Expenditure type,Posts to,Amount,Note');
     await env.shot('next-request-costs.png');
     T.check('no sideways scroll', await noSideways(page));
-    T.eq('Post costs writes nothing, ever', env.writes.length, w0);
+    T.eq('opening and reading costs writes nothing', env.writes.length, w0);
 
     // ════════════════════════════════════════════════════════════════════════════════════════════════════════
     T.section('Direct cost & inventory: what a request has used and what is left');

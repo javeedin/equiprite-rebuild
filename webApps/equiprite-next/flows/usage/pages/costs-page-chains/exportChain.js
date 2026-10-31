@@ -16,7 +16,7 @@ define([
       const res = await exportKit.run(format, {
         name: 'post-costs',
         title: 'Post costs',
-        subtitle: [chip && chip.key !== 'all' ? chip.label : 'All requests', v.text ? '"' + v.text + '"' : '', 'Posting is done in New EquipRite'].filter(Boolean).join(' · '),
+        subtitle: [chip && chip.key !== 'all' ? chip.label : 'All requests', v.text ? '"' + v.text + '"' : ''].filter(Boolean).join(' · '),
         rows: fns.shownRows(v.list, v.text, v.chip, v.breakdown, v.sortKey, v.sortDir),
         columns: fns.exportColumns('list'),
       });

@@ -5,8 +5,8 @@ define([
 ], (ActionChain, exportKit, bus) => {
   'use strict';
 
-  // Exports what would be posted (each ledger row or charge: what, quantity, expenditure type, where it posts, amount),
-  // or the cost week by week.
+  // Exports what will be posted (each ledger row or charge ticked: what, quantity, expenditure type, where it posts,
+  // amount; everything ready for a role that may only look), or the cost week by week.
   class exportChain extends ActionChain {
     async run(context, { format, what }) {
       const { $page } = context;
@@ -17,8 +17,8 @@ define([
       const plan = what === 'plan';
       const res = await exportKit.run(format, {
         name: num + (plan ? '-to-post' : '-costs'),
-        title: num + (plan ? ': what would be posted' : ': cost week by week'),
-        subtitle: [fns.subline(v.row), plan ? fns.money(fns.planTotal(v.plan)) + ' · posted from New EquipRite' : ''].filter(Boolean).join(' · '),
+        title: num + (plan ? (v.readOnly ? ': what would be posted' : ': what will be posted') : ': cost week by week'),
+        subtitle: [fns.subline(v.row), plan ? fns.money(fns.planTotal(v.plan)) + ' to Fusion PPM' : ''].filter(Boolean).join(' · '),
         rows: plan ? v.plan : v.table,
         columns: fns.exportColumns(plan ? 'plan' : 'weeks'),
       });

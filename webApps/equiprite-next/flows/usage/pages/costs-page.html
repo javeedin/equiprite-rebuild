@@ -1,6 +1,7 @@
 <!-- Post costs, for Finance. Every request with cost: what is ready to post (a rental week once it has ended, a charge
      not yet posted), what was posted and what is still running, worked out request by request with New EquipRite's
-     rules. A request opens in its own tab with what would be posted. Posting is done in New EquipRite. -->
+     rules. A request opens in its own tab, where it is posted to Fusion PPM (who may post) or looked at (who may only
+     look). After a post there, this list reads again. -->
 <div class="nx-page nx-pc">
   <div class="nx-pagehead">
     <div>
@@ -26,9 +27,10 @@
           </div>
         </oj-bind-if>
       </div>
-      <oj-bind-if test="[[ !!$functions.newPostUrl($application.variables.appUrls.new) && !$variables.closed ]]">
-        <a class="nx-btn nx-btn--primary" id="pcInNew" :href="[[ $functions.newPostUrl($application.variables.appUrls.new) ]]">
-          <span class="oj-ux-ico-external-link" aria-hidden="true"></span>Post in New EquipRite</a>
+      <oj-bind-if test="[[ !$variables.readOnly && !$variables.closed && !!$functions.nextReady($variables.list, $variables.breakdown) ]]">
+        <button type="button" class="nx-btn nx-btn--primary" id="pcPostNext" :data-number="[[ $functions.nextReady($variables.list, $variables.breakdown) ]]"
+          on-click="[[ $listeners.onOpen ]]" title="Open the newest request with cost ready to post">
+          <span class="oj-ux-ico-send" aria-hidden="true"></span><oj-bind-text value="[[ 'Post ' + $functions.nextReady($variables.list, $variables.breakdown) ]]"></oj-bind-text></button>
       </oj-bind-if>
     </div>
   </div>
@@ -42,8 +44,13 @@
 
   <oj-bind-if test="[[ !$variables.closed ]]">
     <div class="nx-u-fusion" id="pcFusion">
-      <p><strong>Posting to Fusion PPM is done in New EquipRite for now.</strong> Here you see what each request has ready to post,
-        what was posted and what would be posted; nothing is posted or marked posted from EquipRite Next.</p>
+      <oj-bind-if test="[[ !$variables.readOnly ]]">
+        <p><strong>Post to Fusion PPM from here, request by request.</strong> Open a request to choose its ended weeks and charges, split
+          or correct them, see exactly what will be recorded and sent, then post it.</p>
+      </oj-bind-if>
+      <oj-bind-if test="[[ $variables.readOnly ]]">
+        <p><strong>Your role can see what is ready and what was posted, not post it.</strong> Open a request to see what would be posted.</p>
+      </oj-bind-if>
     </div>
 
     <section class="nx-kpis nx-u-kpis" aria-label="Across the requests">
@@ -134,6 +141,9 @@
                   <span role="cell" class="nx-u-cell-r">
                     <span :class="[[ 'nx-cell-main nx-num' + (r.data.b && r.data.b.ready > 0 ? ' nx-pc-ready' : '') ]]"><oj-bind-text value="[[ $functions.cell(r.data.b, 'ready') ]]"></oj-bind-text></span>
                     <span class="nx-cell-sub"><oj-bind-text value="[[ $functions.readyNote(r.data.b) ]]"></oj-bind-text></span>
+                    <oj-bind-if test="[[ !$variables.readOnly && !!r.data.b && r.data.b.ready > 0 ]]">
+                      <button type="button" class="nx-link nx-pc-post">Review &amp; post</button>
+                    </oj-bind-if>
                   </span>
                   <span role="cell" class="nx-u-cell-r">
                     <span class="nx-cell-main nx-num"><oj-bind-text value="[[ $functions.cell(r.data.b, 'running') ]]"></oj-bind-text></span>
