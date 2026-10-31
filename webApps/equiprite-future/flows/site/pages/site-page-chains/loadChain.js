@@ -5,6 +5,13 @@ define(['vb/action/actionChain', 'resources/js/future/fxPage', 'resources/js/fut
   // the site's weekend marked), its project segments and what each move means for the money (fxOps.site). Runs on
   // vbEnter and on every fxRefresh; replaces v, never mutates it. A confirmation or a Return dialog left open is worked
   // out again (the state may have changed in another tab, or the demo clock reached a planned return).
+  /** Native inputs keep what they showed: when the Return dialog's rows are worked out again, set them too. */
+  function setInputs(list) {
+    const apply = () => (list || []).forEach((x) => { const el = document.getElementById(x.id); if (el && el.value !== x.value) el.value = x.value; });
+    apply();
+    setTimeout(apply, 0);
+  }
+
   class loadChain extends ActionChain {
     async run(context) {
       const $v = context.$page.variables;
@@ -23,6 +30,8 @@ define(['vb/action/actionChain', 'resources/js/future/fxPage', 'resources/js/fut
         const def = fxReturn.def(s, { requestId: $v.retDef.requestId, lineId: $v.retDef.lineId }, draft.date, draft);
         $v.retView = fxReturn.preview(s, def, draft);
         $v.retDef = def;
+        // A day that has passed is no longer planned (its standard hours go): native inputs keep what they showed, so set them.
+        setInputs(def.rows.map((r) => ({ id: r.uid, value: r.usage })).concat(def.rows.map((r) => ({ id: r.sid, value: r.standby }))));
       }
     }
   }

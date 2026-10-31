@@ -1,5 +1,5 @@
 {
-  "description": "Receive, hours, moves: the requesting BU on site. v = fxOps.site(state) (store.view('site') with, for each unit on hire, its project segments, a grid of its days on hire up to today from store.view('hours', lineId) with the site country's weekend marked, and what each move means for the money), set by loadChain on vbEnter and on every fxRefresh. Receive, the hours (record to today, one day, approve) and the moves (breakdown, another project, another group company, lost) open a confirmation first (askChain: fxOps.ask, a dry run of the engine); Confirm runs it through actChain (fxPage.act), and a failure stays in the dialog and on the page. Return opens a dialog of its own (returnChain, fxReturn): the return date (a later one is planned), the final timesheet day by day and the final bill, live; Confirm sends logHoursBulk, then offHire. Returned units whose final timesheet is still open are listed too. Every list exports.",
+  "description": "Receive, hours, moves: the requesting BU on site. v = fxOps.site(state) (store.view('site') with, for each unit on hire, its project segments, a grid of its days on hire up to today from store.view('hours', lineId) with the site country's weekend marked, and what each move means for the money), set by loadChain on vbEnter and on every fxRefresh. Receive, the hours (record to today, one day, approve) and the moves (breakdown, another project, another group company, lost) open a confirmation first (askChain: fxOps.ask, a dry run of the engine); Confirm runs it through actChain (fxPage.act), and a failure stays in the dialog and on the page. Return opens a dialog of its own (returnChain, fxReturn): the return date (the request's end by default, a later one is planned), the timesheet day by day (actual up to today, planned after it) and the final bill, live (estimated for a planned return); Confirm sends logHoursBulk with the actual days, then offHire. Returned units whose final timesheet is still open are listed too. Every list exports.",
   "navigation": {
     "embeddable": "enabled"
   },
@@ -51,8 +51,8 @@
     },
     "retDef": {
       "type": "any",
-      "defaultValue": { "open": false, "mode": "return", "requestId": "", "lineId": "", "kicker": "", "title": "", "sub": "", "date": "", "minDate": "", "rows": [], "canApprove": false, "approveLabel": "", "waitText": "", "rangeText": "", "weekendText": "", "plannedText": "", "returnedText": "", "rental": false },
-      "description": "The Return dialog open (fxReturn.def): its words and the rows of the final timesheet for the return date; rebuilt when the date changes, kept while hours are typed."
+      "defaultValue": { "open": false, "mode": "return", "requestId": "", "lineId": "", "kicker": "", "title": "", "sub": "", "datesText": "", "early": false, "date": "", "minDate": "", "dateNote": "", "rows": [], "canApprove": false, "approveLabel": "", "waitText": "", "rangeText": "", "weekendText": "", "plannedText": "", "returnedText": "", "rental": false, "sheetTitle": "The final timesheet", "ruleText": "", "notYetText": "", "planText": "", "emptyText": "", "hasActual": false, "actualCount": 0, "plannedCount": 0 },
+      "description": "The Return dialog open (fxReturn.def): its words (the request's dates, the hire's start) and the rows of the timesheet for the return date (actual up to today, planned after it; by the hour to the return day); rebuilt when the date changes, kept while hours are typed."
     },
     "ret": {
       "type": "any",
@@ -62,7 +62,7 @@
     "retView": {
       "type": "any",
       "defaultValue": { "ok": false, "warn": "", "planned": false, "whenText": "", "sheetText": "", "droppedText": "", "canFill": false, "states": {}, "bill": null, "does": [], "told": [], "confirm": "", "tone": "primary", "toast": "" },
-      "description": "fxReturn.preview: what Confirm does (a dry run as the person played), each day's state, the final bill, the payloads and the toast."
+      "description": "fxReturn.preview: what Confirm does (a dry run as the person played), each day's state (Planned after today), the final bill (estimated for a planned return), the payloads and the toast."
     },
     "retError": {
       "type": "string",

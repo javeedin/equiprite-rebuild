@@ -272,11 +272,12 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
   }
 
   // ── On site ───────────────────────────────────────────────────────────────────────────────────────────────────
-  /** The days on hire up to today (or the day before off hire), each with its hours, the site's weekend marked. */
+  /** The days on hire from the hire's start up to today (after a return: to the return day by the hour, the day
+   *  before by the day), each with its hours, the site's weekend marked. Empty while the hire has not started. */
   function hoursGrid(s, r, l) {
     var out = [];
     if (!l.events.onHire) return out;
-    var end = l.events.offHire ? U.addDays(l.events.offHire, -1) : s.today;
+    var end = l.events.offHire ? Ret.lastDay(s, l, '') : s.today;
     var rec = {};
     V.hours(s, l.id).forEach(function (h) { rec[h.date] = h; });
     for (var d = l.events.onHire; d <= end; d = U.addDays(d, 1)) {
@@ -303,8 +304,11 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
     var u = L.unit(s, l.unitId);
     var ag = L.agreement(s, l.agreementId);
     var me = V.me(s);
-    var end = l.events.offHire ? U.addDays(l.events.offHire, -1) : s.today;
-    var days = U.diffDays(end, l.events.onHire) + 1;
+    var end = l.events.offHire ? Ret.lastDay(s, l, '') : s.today;
+    // A unit delivered before the request's start date is on hire from that date: nothing to record before it.
+    var started = l.events.onHire <= s.today;
+    var days = started ? U.diffDays(end, l.events.onHire) + 1 : 0;
+    var early = l.earlyDelivery || null;
     var grid = hoursGrid(s, r, l);
     var rec = grid.filter(function (g) { return g.recorded; });
     var seg = currentSeg(l);
@@ -329,12 +333,18 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
     var planned = l.plannedReturn || '';
     // The return on a date (off hire): what it means for the money, by the hour or by the day.
     var retMoney = (hourly ? 'By the hour: the final timesheet makes the bill (' + F.money(hourRate, price.currency) + ' an hour' + (price.minHours ? ', at least ' + price.minHours + ' hours per hire' : '') + ').'
-      : 'By the day: returned today, ' + chargedTo(s, l) + '.' + (minLeft ? ' Minimum hire ' + ag.minDays + ' days: ' + plural(minLeft, 'more day') + ' charged.' : ''))
+      : !started ? 'By the day, from the hire\'s start (' + F.date(l.events.onHire) + ').'
+        : 'By the day: returned today, ' + chargedTo(s, l) + '.' + (minLeft ? ' Minimum hire ' + ag.minDays + ' days: ' + plural(minLeft, 'more day') + ' charged.' : ''))
       + (ag && ag.transport && !l.inPlace ? ' Transport back ' + F.money(ag.transport, ag.currency) + '.' : '');
     return {
       id: l.id, requestId: r.id, number: r.number, typeText: TYPE[r.type], serial: u.serial, unitName: u.name, unitId: u.id, holdText: holdText(u),
       owner: L.leShort(s, l.providerLe) + ' · ' + L.buName(s, l.provider), relationLabel: x.relationLabel, relationTone: x.relationTone,
-      site: r.site, country: countryName(s, r.country), weekend: weekendText(s, r.country), since: F.date(l.events.onHire), daysText: plural(days, 'day') + ' on hire',
+      site: r.site, country: countryName(s, r.country), weekend: weekendText(s, r.country), since: F.date(l.events.onHire),
+      sinceLabel: started ? 'On hire since' : 'On hire from', started: started,
+      daysText: started ? plural(days, 'day') + ' on hire' : 'Starts in ' + plural(U.diffDays(l.events.onHire, s.today), 'day'),
+      requested: r.from && r.to ? range(r.from, r.to) : '', requestedText: r.from && r.to ? plural(U.diffDays(r.to, r.from) + 1, 'day') + ' requested' : '',
+      early: !!early, earlyText: early ? 'Delivered early on ' + F.short(early.arrived) + ': on hire from ' + F.short(early.startsOn) : '',
+      startsText: started ? '' : 'The hours start on ' + F.date(l.events.onHire) + ', the hire\'s start' + (early ? ' (delivered early on ' + F.short(early.arrived) + ')' : '') + '.',
       agreement: agreementText(s, l), price: priceText(l.price), segments: segments, moved: segments.length > 1, project: cur ? cur.number : '',
       hourly: hourly, billingText: hourly ? 'Billed by the hour' : 'Billed by the day', billingTone: hourly ? 'cust' : 'na',
       planned: planned, plannedText: planned ? 'Return planned for ' + F.date(planned) : '',
@@ -374,8 +384,10 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
         var rec = {};
         s.hours.forEach(function (x) { if (x.lineId === l.id) rec[x.date] = x; });
         var missing = 0;
-        for (var d = l.events.onHire; d < l.events.offHire; d = U.addDays(d, 1)) if (!rec[d] && !E.isWeekend(s, r.country, d)) missing++;
-        var waiting = Object.keys(rec).filter(function (k) { return k < l.events.offHire && !rec[k].approved; }).length;
+        // The timesheet runs to the return day by the hour (its hours count), to the day before by the day.
+        var last = Ret.lastDay(s, l, '');
+        for (var d = l.events.onHire; d <= last; d = U.addDays(d, 1)) if (!rec[d] && !E.isWeekend(s, r.country, d)) missing++;
+        var waiting = Object.keys(rec).filter(function (k) { return k <= last && !rec[k].approved; }).length;
         if (!missing && !waiting) return;
         var u = L.unit(s, l.unitId);
         var hourly = (l.price || {}).billing === 'HOURLY';

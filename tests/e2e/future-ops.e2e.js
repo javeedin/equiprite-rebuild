@@ -17,9 +17,10 @@ const PORT = 19620;
 const NAMES = { 'p-pm': 'Priya Raman', 'p-site': 'Omar Haddad', 'p-pcfin': 'Mark Lee', 'p-pk': 'Faisal Al-Qahtani', 'p-pf': 'Huda Saleh', 'p-em': 'Ana Costa',
   'p-yard': 'Ravi Kumar', 'p-desk': 'Lena Novak', 'p-fin': 'Sara Ahmed' };
 
-/** Plays the story to `point`, opens the app as `persona` on `navId`, and runs fn with helpers. */
-async function story(point, persona, navId, fn) {
-  const s0 = F.state(point);
+/** Plays the story to `point` (a fixture point, or { name, state } built here), opens the app as `persona` on `navId`, and runs fn with helpers. */
+async function story(at, persona, navId, fn) {
+  const point = typeof at === 'string' ? at : at.name;
+  const s0 = typeof at === 'string' ? F.state(at) : at.state;
   const ids = F.ids(s0);
   const env = await E.start({ port: PORT, app: 'future', init: F.init(s0, persona) });
   const { page } = env;
@@ -120,6 +121,21 @@ async function widths(h, sel, label) {
   }
   await h.page.setViewportSize({ width: 1440, height: 1000 });
   await h.page.waitForTimeout(300);
+}
+
+/** FR-1001: Customer Y rents an excavator for 9 Nov – 6 Dec; FleetCo delivers it today, 2 Nov (early): on hire from 9 Nov. */
+function earlyState() {
+  let s = F.state('fresh');
+  const as = (id) => { s = F.Engine.apply(s, 'setPersona', { id }).state; };
+  const act = (type, payload) => { const r = F.Engine.apply(s, type, payload); if (!r.ok) throw new Error('early: ' + type + ' failed: ' + r.error); s = r.state; return r.result; };
+  as('p-desk');
+  const id = act('createRequest', { requestingBu: 'BU-FC', customerId: 'C-Y', from: '2026-11-09', to: '2026-12-06', lines: [{ cls: 'EXC', unitId: 'U-EX2' }] }).id;
+  const lid = s.requests.find((r) => r.id === id).lines[0].id;
+  act('takeDeposit', { requestId: id });
+  as('p-em'); act('approveLine', { requestId: id, lineId: lid, unitId: 'U-EX2' });
+  as('p-yard'); act('shipLine', { requestId: id, lineId: lid });
+  as('p-desk'); act('receiveLine', { requestId: id, lineId: lid });
+  return s;
 }
 
 (async () => {
@@ -347,8 +363,13 @@ async function widths(h, sel, label) {
     const { page, ids } = h;
     T.section('Return today (Omar)');
     await h.ask('#page-site .fx-hire[data-request="FR-1002"] .fx-mv-return', '#stReturn');
-    T.eq('the Return dialog: today by default, the hire stops that day', [await h.text('#stRetTitle'), await page.inputValue('#stRetDate'), await h.text('#stRetWhenText')].join(' | '),
-      'Return CR-2001 | 2026-11-30 | Returned today: the hire stops that day, charged up to 29 Nov 2026.');
+    T.eq('the Return dialog: the request\'s end by default (after today), its dates in the head', [await h.text('#stRetTitle'), await page.inputValue('#stRetDate'), await h.text('#stRetDates'),
+      await h.text('#stRetBillTitle')].join(' | '), 'Return CR-2001 | 2026-12-31 | Requested 3 Nov – 31 Dec 2026 · on hire since 7 Nov 2026 | ESTIMATED FINAL BILL');
+    await page.fill('#stRetDate', '2026-11-30');
+    await page.waitForFunction(() => /Returned today/.test(document.getElementById('stRetWhenText').innerText), null, { timeout: 5000 });
+    await page.waitForTimeout(300);
+    T.eq('…today picked: the hire stops that day', [await page.inputValue('#stRetDate'), await h.text('#stRetWhenText'), await h.text('#stRetBillTitle')].join(' | '),
+      '2026-11-30 | Returned today: the hire stops that day, charged up to 29 Nov 2026. | THE FINAL BILL');
     T.check('it says the hours of today are dropped and the yard is told to collect', (await h.text('#stRetDoes')).includes('Stops the hire of CR-2001 on 30 Nov 2026; 1 day of hours recorded from then on is dropped.')
       && (await h.text('#stRetDoes')).includes('Collect CR-2001 from Dubai Marina: returned on 30 Nov 2026.'), await h.text('#stRetDoes'));
     T.eq('Omar may not agree the hours: who does is named', await h.text('#stRetWait'), 'They wait for the approval of Priya Raman or Mark Lee; the bill counts them once approved.');
@@ -428,32 +449,34 @@ async function widths(h, sel, label) {
     await h.confirm('#stAsk');
     T.eq('the small print says what a return is, once', [await page.$$eval('#page-site .fx-st-fine', (x) => x.length), (await h.text('#stReturnTerm')).split(':')[0]].join(' | '), '1 | Return (off hire)');
     await h.ask(hire + ' .fx-mv-return', '#stReturn');
-    T.eq('Return: today by default, the timesheet prefilled to the day before', [await h.text('#stRetTitle'), await page.inputValue('#stRetDate'),
-      await page.$$eval('#stRetRows .fx-sheet-row', (r) => r.map((x) => x.dataset.date.slice(8)).join())].join(' | '), 'Return GN-3002 | 2026-11-14 | 07,08,09,10,11,12,13');
+    T.eq('Return: the request\'s end by default, the timesheet to the return day (by the hour), planned after today', [await h.text('#stRetTitle'), await page.inputValue('#stRetDate'),
+      await page.$$eval('#stRetRows .fx-sheet-row', (r) => r.map((x) => x.dataset.date.slice(8) + (x.className.includes('fx-sheet-row--planned') ? 'p' : '')).join())].join(' | '),
+      'Return GN-3002 | 2026-11-25 | 07,08,09,10,11,12,13,14,15p,16p,17p,18p,19p,20p,21p,22p,23p,24p,25p');
     await page.fill('#stRetDate', '2026-11-12');
-    await page.waitForFunction(() => document.querySelectorAll('#stRetRows .fx-sheet-row').length === 5, null, { timeout: 5000 });
+    await page.waitForFunction(() => document.querySelectorAll('#stRetRows .fx-sheet-row').length === 6, null, { timeout: 5000 });
     await page.waitForTimeout(300);
-    T.eq('two days ago: the rows to the day before, the weekend marked, prefilled', await page.$$eval('#stRetRows .fx-sheet-row', (r) => r.map((x) => x.dataset.date.slice(8)
+    T.eq('two days ago: the rows to the return day (its hours count, by the hour), the weekend marked, prefilled', await page.$$eval('#stRetRows .fx-sheet-row', (r) => r.map((x) => x.dataset.date.slice(8)
       + (x.className.includes('fx-sheet-row--we') ? 'w' : '') + ':' + x.querySelector('[data-kind="usage"]').value + '/' + x.querySelector('[data-kind="standby"]').value).join(' ')),
-      '07w:/ 08w:/ 09:8/0 10:8/0 11:8/0');
+      '07w:/ 08w:/ 09:8/0 10:8/0 11:8/0 12:8/0');
+    T.eq('…the last row is the return day', await h.text('#stRetRows .fx-sheet-row[data-date="2026-11-12"] .fx-sheet-ret'), 'RETURN DAY');
     T.eq('…when, and the hours after it dropped', [await h.text('#stRetWhenText'), await h.text('#stRetDropped')].join(' | '),
-      'Returned on Thu 12 Nov 2026: the hire stops that day, charged up to 11 Nov 2026. | Hours recorded on 12 Nov and 13 Nov are dropped: the hire stops on 12 Nov 2026.');
-    T.eq('the final bill: hours × AED 52.50, transport out and back, VAT', await page.$$eval('#stRetBillRows .fx-bill-row', (r) => r.map((x) => x.innerText.replace(/\s+/g, ' ').trim()).join(' ; ')),
-      'Rental 24 h of use × AED 52.50 an hour AED 1,260.00 ; Transport out to the site AED 2,200.00 ; Transport back when the yard collects it AED 2,200.00');
+      'Returned on Thu 12 Nov 2026: the hire stops that day; by the hour, the hours of the return day count too. | Hours recorded on 13 Nov are dropped: the hire stops on 12 Nov 2026 (its hours count, not the days after).');
+    T.eq('the final bill: hours × AED 52.50 (the return day\'s too), transport out and back, VAT', await page.$$eval('#stRetBillRows .fx-bill-row', (r) => r.map((x) => x.innerText.replace(/\s+/g, ' ').trim()).join(' ; ')),
+      'Rental 32 h of use × AED 52.50 an hour AED 1,680.00 ; Transport out to the site AED 2,200.00 ; Transport back when the yard collects it AED 2,200.00');
     T.eq('…the total for the hire, with VAT, already charged and still to charge', [await h.text('#stRetTotal'), await h.text('#stRetGross'), await h.text('#stRetToCharge')].join(' | '),
-      'AED 5,660.00 | AED 5,943.00 | AED 5,660.00 at the next charge run');
+      'AED 6,080.00 | AED 6,384.00 | AED 6,080.00 at the next charge run');
     await page.fill('#stRetU-2026-11-10', '6');
     await page.fill('#stRetS-2026-11-10', '2');
-    await page.waitForFunction(() => /AED 5,607.50/.test(document.getElementById('stRetTotal').innerText), null, { timeout: 5000 });
+    await page.waitForFunction(() => /AED 6,027.50/.test(document.getElementById('stRetTotal').innerText), null, { timeout: 5000 });
     T.eq('a day changed: the bill follows as it is typed', [await h.text('#stRetSum'), await h.text('#stRetRows .fx-sheet-row[data-date="2026-11-10"] .fx-chip'),
       await page.$$eval('#stRetBillRows .fx-bill-row', (r) => r.slice(0, 2).map((x) => x.innerText.replace(/\s+/g, ' ').trim()).join(' ; ')), await h.text('#stRetTotal')].join(' | '),
-      '3 days with hours · 22 h of use · 2 h of standby | Changed | Rental 22 h of use × AED 52.50 an hour AED 1,155.00 ; Standby 2 h × AED 26.25 (50 % of the hour rate) AED 52.50 | AED 5,607.50');
+      '4 days with hours · 30 h of use · 2 h of standby | Changed | Rental 30 h of use × AED 52.50 an hour AED 1,575.00 ; Standby 2 h × AED 26.25 (50 % of the hour rate) AED 52.50 | AED 6,027.50');
     T.check('…the field keeps what was typed', (await page.inputValue('#stRetU-2026-11-10')) === '6' && (await page.inputValue('#stRetS-2026-11-10')) === '2');
     T.eq('the hours agreed: signed by the customer', await h.text('#page-site #stReturn .fx-ret-agree'), 'These hours are agreed (signed by the customer, Customer Y)');
     await page.check('#stRetApprove');
     await page.waitForFunction(() => /agrees every day of it/.test(document.getElementById('stRetDoes').innerText), null, { timeout: 5000 });
     const does = await h.text('#stRetDoes');
-    T.check('What EquipRite does: stops the hire, records and agrees the timesheet, the yard collects', ['Stops the hire of GN-3002 on 12 Nov 2026; 2 days of hours recorded from then on are dropped.',
+    T.check('What EquipRite does: stops the hire, records and agrees the timesheet, the yard collects', ['Stops the hire of GN-3002 on 12 Nov 2026; 1 day of hours recorded after it is dropped.',
       'Records 1 day of the timesheet and agrees every day of it (signed by the customer).', 'Collect GN-3002 from Customer site: returned on 12 Nov 2026.'].every((x) => does.includes(x)), does);
     T.eq('Confirm says it', await h.text('#stRetConfirm'), 'Return GN-3002 on 12 Nov 2026');
     for (const w of [1440, 1024]) {
@@ -466,14 +489,14 @@ async function widths(h, sel, label) {
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.waitForTimeout(300);
     await h.confirmReturn();
-    T.eq('the toast: returned, the days, the hours, the final bill', await h.toast(), 'GN-3002 returned on 12 Nov 2026: 5 days, 22 h of use, final bill AED 5,607.50 + VAT 5 % AED 280.38.');
+    T.eq('the toast: returned, the days, the hours, the final bill', await h.toast(), 'GN-3002 returned on 12 Nov 2026: 6 days with the return day, 30 h of use, final bill AED 6,027.50 + VAT 5 % AED 301.38.');
     const s = await h.state();
     const l = h.line(s, ids.r3);
     const hrs = s.hours.filter((x) => x.lineId === l.id).sort((a, b) => a.date.localeCompare(b.date));
     T.eq('the state: returned on that date', [l.status, l.events.offHire].join(), 'OFF_HIRED,2026-11-12');
-    T.eq('…the hours to the day before, approved: signed by the customer', hrs.map((x) => x.date.slice(8) + ':' + x.usage + '/' + x.standby + (x.approved ? ':' + x.approvedBy : '')).join(' | '),
-      '09:8/0:Lena Novak (signed by the customer) | 10:6/2:Lena Novak (signed by the customer) | 11:8/0:Lena Novak (signed by the customer)');
-    T.eq('…none from the return date on', hrs.filter((x) => x.date >= '2026-11-12').length, 0);
+    T.eq('…the hours to the return day, approved: signed by the customer', hrs.map((x) => x.date.slice(8) + ':' + x.usage + '/' + x.standby + (x.approved ? ':' + x.approvedBy : '')).join(' | '),
+      '09:8/0:Lena Novak (signed by the customer) | 10:6/2:Lena Novak (signed by the customer) | 11:8/0:Lena Novak (signed by the customer) | 12:8/0:Lena Novak (signed by the customer)');
+    T.eq('…none after the return date', hrs.filter((x) => x.date > '2026-11-12').length, 0);
     T.check('the unit has left On hire', !(await page.$(hire)));
 
     T.section('The request\'s Money: the bill for this hire');
@@ -484,7 +507,7 @@ async function widths(h, sel, label) {
     await page.waitForSelector(bill, { timeout: 10000 });
     T.eq('by the hour, from the approved timesheet: the final bill', [await h.text(bill + ' .fx-bill-cardhead .fx-chip'), await h.text(bill + ' .fx-bill-mode'), await h.text(bill + ' .fx-bill-totalv'),
       await h.text(bill + ' .fx-bill-gross'), await h.text(bill + ' .fx-bill-charged')].join(' | '),
-      'By the hour: from the approved timesheet | Returned 12 Nov 2026: on hire 7 Nov – 11 Nov 2026 (5 days) | AED 5,607.50 | AED 5,887.88 | AED 0.00 nothing charged yet');
+      'By the hour: from the approved timesheet | Returned 12 Nov 2026: on hire 7 Nov – 12 Nov 2026 (6 days, the return day included) | AED 6,027.50 | AED 6,328.88 | AED 0.00 nothing charged yet');
     T.check('…damage after the yard\'s inspection', (await h.text(bill + ' .fx-bill-notes')).includes('Damage, if any, is added after the yard’s inspection.'));
     T.check('…the step says returned, the hours signed by the customer', (await page.click('#recTab-flow'), await page.waitForSelector('#recFlow'), await h.text('#recFlow .fx-fs[data-key="offHire"]')).includes('Returned: the hire stops')
       && (await h.text('#recFlow .fx-fs[data-key="hours"]')).includes('Timesheet signed by the customer'));
@@ -506,13 +529,13 @@ async function widths(h, sel, label) {
     await h.ask(hire + ' .fx-mv-return', '#stReturn');
     await page.fill('#stRetDate', '2026-11-12');
     await page.waitForFunction(() => /Planned return/.test(document.getElementById('stRetWhenText').innerText), null, { timeout: 5000 });
-    T.eq('in 5 days: planned, the timesheet to today, the bill at the return', [await h.text('#stRetWhenText'), await h.text('#stRetConfirm'), await h.text('#stRetBillTitle'),
-      await page.$$eval('#stRetRows .fx-sheet-row', (r) => r.map((x) => x.dataset.date.slice(8)).join())].join(' | '),
-      'Planned return: the hire stops by itself on 12 Nov 2026; the final timesheet is asked for then. | Book the return for 12 Nov 2026 | THE BILL AT THE PLANNED RETURN | 07');
-    T.check('…by the day: 5 days, transport out and back', (await h.text('#stRetBillRows')).includes('Rental 5 days at AED 3,500.00 a week or AED 800.00 a day AED 3,500.00') && (await h.text('#stRetTotal')) === 'AED 6,500.00',
-      await h.text('#stRetBillRows'));
+    T.eq('in 5 days: planned, the timesheet to the day before (by the day), planned after today, the estimated bill', [await h.text('#stRetWhenText'), await h.text('#stRetConfirm'), await h.text('#stRetBillTitle'),
+      await page.$$eval('#stRetRows .fx-sheet-row', (r) => r.map((x) => x.dataset.date.slice(8) + (x.className.includes('fx-sheet-row--planned') ? 'p' : '')).join())].join(' | '),
+      'Planned return: the hire stops by itself on 12 Nov 2026. Until then, record the hours as the days pass; the final timesheet is asked for on the day. | Book the return for 12 Nov 2026 | ESTIMATED FINAL BILL | 07,08p,09p,10p,11p');
+    T.eq('…by the day: the actual day and the planned ones apart (5 days at the week rate), transport out and back', [await page.$$eval('#stRetBillRows .fx-bill-row', (r) => r.slice(0, 2).map((x) => x.innerText.replace(/\s+/g, ' ').trim()).join(' ; ')),
+      await h.text('#stRetTotal')].join(' | '), 'Rental, actual 7 Nov 2026 · 1 day AED 800.00 ; Rental, planned 8 Nov – 11 Nov 2026 · 4 days AED 2,700.00 | AED 6,500.00');
     await h.confirmReturn();
-    T.eq('the toast', await h.toast(), 'EX-1001: return planned for 12 Nov 2026 (the hire stops by itself then).');
+    T.eq('the toast', await h.toast(), 'Return booked for 12 Nov 2026 (EX-1001). Until then, record the hours as the days pass; the final timesheet is asked for on the day.');
     let s = await h.state();
     T.eq('booked, still on hire', [h.line(s, ids.r1).status, h.line(s, ids.r1).plannedReturn].join(), 'ON_HIRE,2026-11-12');
     T.eq('the card: the return planned, and Change', [await h.text(hire + ' .fx-planned'), await h.text(hire + ' .fx-mv-return')].join(' | '), 'Return planned for 12 Nov 2026 | Change the return…');
@@ -541,6 +564,96 @@ async function widths(h, sel, label) {
     T.eq('sent: waiting for Priya or Mark', s.hours.filter((x) => x.lineId === h.line(s, ids.r1).id).map((x) => x.date.slice(8) + ':' + x.usage + (x.approved ? 'A' : '')).join(' '), '09:8 10:8 11:8');
     T.eq('…the card says who approves', await h.text(back + ' .fx-hours-wait'), 'Waiting for the approval of Priya Raman or Mark Lee.');
     await widths(h, '#page-site', 'Receive, hours, moves with a returned unit');
+  });
+
+  // ── 'early': FR-1001, a Customer Y rental for 9 Nov – 6 Dec, delivered on 2 Nov (today): Lena books the return on the
+  //    request's end with an estimated final bill; two weeks on she records the actual days and keeps the return. ───
+  await story({ name: 'early', state: earlyState() }, 'p-desk', 'site', async (h) => {
+    const { page } = h;
+    const hire = '#page-site .fx-hire[data-request="FR-1001"]';
+    T.section('Delivered early: on hire from the request\'s start (Lena, FR-1001, Customer Y, 9 Nov – 6 Dec)');
+    await page.waitForSelector(hire, { timeout: 10000 });
+    T.eq('the card: delivered early, the request\'s dates, on hire from 9 Nov', [await h.text(hire + ' .fx-early'), await h.text(hire + ' .fx-hire-requested'), await h.text(hire + ' .fx-hire-since')].map((x) => x.replace(/\s+/g, ' ')).join(' | '),
+      'Delivered early on 2 Nov: on hire from 9 Nov | REQUESTED 9 Nov – 6 Dec 2026 28 days requested | ON HIRE FROM 9 Nov 2026 Starts in 7 days');
+    T.eq('…the hours start at the hire\'s start: no day yet, no standard hours to record', [await h.text(hire + ' .fx-hours-notyet'), (await page.$$(hire + ' .fx-day')).length, !!(await page.$(hire + ' .fx-fill'))].join(' | '),
+      'The hours start on 9 Nov 2026, the hire\'s start (delivered early on 2 Nov). | 0 | false');
+    await widths(h, '#page-site', 'Receive, hours, moves with a unit delivered early');
+
+    T.section('Return at 2 Nov: the request\'s end, the planned days, the estimated final bill');
+    await h.ask(hire + ' .fx-mv-return', '#stReturn');
+    T.eq('the return date: the request\'s end, not before the hire\'s start', [await page.inputValue('#stRetDate'), await page.getAttribute('#stRetDate', 'min'), await h.text('#stRetDates')].join(' | '),
+      '2026-12-06 | 2026-11-09 | Requested 9 Nov – 6 Dec 2026 · on hire from 9 Nov (delivered early on 2 Nov)');
+    T.eq('nothing to record yet, said so; the days planned', [await h.text('#stRetNotYet'), await h.text('#stRetRange')].join(' | '),
+      'The hire starts on 9 Nov 2026 (delivered early on 2 Nov): no day to record yet. | 9 Nov – 6 Dec 2026 · 28 days (28 planned) · Weekend in United Arab Emirates: Sat–Sun');
+    T.eq('the planned rows, prefilled with standard hours (the weekend empty), the return day last', await page.$$eval('#stRetRows .fx-sheet-row', (r) => r.slice(0, 7).concat(r.slice(-1)).map((x) => x.dataset.date.slice(5)
+      + (x.className.includes('fx-sheet-row--planned') ? 'p' : '') + ':' + x.querySelector('[data-kind="usage"]').value + '/' + x.querySelector('[data-kind="standby"]').value + ':' + x.querySelector('.fx-chip').innerText.trim()
+      + (x.querySelector('.fx-sheet-ret') ? ':R' : '')).join(' ')),
+      '11-09p:8/0:Planned 11-10p:8/0:Planned 11-11p:8/0:Planned 11-12p:8/0:Planned 11-13p:8/0:Planned 11-14p:/:Planned 11-15p:/:Planned 12-06p:/:Planned:R');
+    T.eq('the estimated final bill: 160 planned hours × AED 140, transport out and back, VAT; no minimum top-up', [await h.text('#stRetBillTitle'),
+      await page.$$eval('#stRetBillRows .fx-bill-row', (r) => r.map((x) => x.innerText.replace(/\s+/g, ' ').trim()).join(' ; ')), await h.text('#stRetTotal'), await h.text('#stRetGross')].join(' | '),
+      'ESTIMATED FINAL BILL | Rental, planned 9 Nov – 6 Dec 2026 · 160 h of use × AED 140.00 an hour (estimate) AED 22,400.00 ; Transport out to the site AED 2,200.00 ; Transport back when the yard collects it AED 2,200.00 | AED 26,800.00 | AED 28,140.00');
+    T.eq('…the actual days and the planned ones apart', await page.$$eval('#stRetSplit .fx-ret-phase', (r) => r.map((x) => x.innerText.replace(/\s+/g, ' ').trim()).join(' / ')),
+      'ACTUAL, UP TO TODAY None yet: the hire starts on 9 Nov 2026 (delivered early on 2 Nov) AED 0.00 / PLANNED, AN ESTIMATE 9 Nov – 6 Dec 2026 · 28 days · 160 h of use AED 22,400.00');
+    T.check('…no agreement to tick before a day has passed', !(await page.$('#stRetApprove')));
+    T.eq('Confirm books it', await h.text('#stRetConfirm'), 'Book the return for 6 Dec 2026');
+    for (const w of [1440, 1024]) {
+      await page.setViewportSize({ width: w, height: 1000 });
+      await page.waitForTimeout(400);
+      const f = await h.dialogFits('#stReturn');
+      T.check(`${w}px, the Return dialog with the estimate: no sideways scroll`, f.ok, f.over);
+    }
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.waitForTimeout(300);
+    T.check('screenshot: the estimated final bill at 2 Nov', !!(await h.env.shot('future-ops-return-estimate.png')));
+    await h.confirmReturn();
+    T.eq('the toast says the return is booked', await h.toast(), 'Return booked for 6 Dec 2026 (EX-1002). Until then, record the hours as the days pass; the final timesheet is asked for on the day.');
+    let s = await h.state();
+    let l = h.line(s, 'R1001');
+    T.eq('the state: the return planned for 6 Dec, still on hire, no hours saved', [l.status, l.plannedReturn, s.hours.filter((x) => x.lineId === l.id).length].join(' | '), 'ON_HIRE | 2026-12-06 | 0');
+    T.eq('the card says it', [await h.text(hire + ' .fx-planned'), await h.text(hire + ' .fx-mv-return')].join(' | '), 'Return planned for 6 Dec 2026 | Change the return…');
+
+    T.section('A week and more on (+1 week, then to Sun 15 Nov): the actual days 9–15 Nov, the rest planned');
+    await page.click('#fxWeek');
+    await page.waitForFunction(() => document.getElementById('fxToday').innerText.trim() === 'Mon 9 Nov 2026', null, { timeout: 5000 });
+    for (let i = 0; i < 6; i++) { await page.click('#fxDay'); await page.waitForTimeout(250); }
+    await page.waitForFunction(() => document.getElementById('fxToday').innerText.trim() === 'Sun 15 Nov 2026', null, { timeout: 5000 });
+    await page.waitForTimeout(500);
+    T.eq('the card: on hire since 9 Nov, the grid from the hire\'s start', [await h.text(hire + ' .fx-hire-since').then((x) => x.replace(/\s+/g, ' ')),
+      await page.$$eval(hire + ' .fx-day', (d) => d.map((x) => x.dataset.date.slice(8)).join())].join(' | '), 'ON HIRE SINCE 9 Nov 2026 7 days on hire | 09,10,11,12,13,14,15');
+    await h.ask(hire + ' .fx-mv-return', '#stReturn');
+    T.eq('Return again: the booked date; 9–15 Nov actual and editable, then planned', [await page.inputValue('#stRetDate'),
+      await page.$$eval('#stRetRows .fx-sheet-row:not(.fx-sheet-row--planned)', (r) => r.map((x) => x.dataset.date.slice(8) + ':' + x.querySelector('[data-kind="usage"]').value + (x.querySelector('input').disabled ? 'x' : '')).join(' ')),
+      await page.$eval('#stRetRows .fx-sheet-row--planned', (x) => x.dataset.date), await h.text('#stRetRange')].join(' | '),
+      '2026-12-06 | 09: 10: 11: 12: 13: 14: 15: | 2026-11-16 | 9 Nov – 6 Dec 2026 · 28 days (7 actual, 21 planned) · Weekend in United Arab Emirates: Sat–Sun');
+    await page.click('#stRetFill');
+    await page.waitForTimeout(400);
+    await page.check('#stRetApprove');
+    await page.waitForFunction(() => /agrees every day of it/.test(document.getElementById('stRetDoes').innerText), null, { timeout: 5000 });
+    T.eq('filled and agreed: the actual days recorded, the planned ones an estimate', [await page.$$eval('#stRetRows .fx-sheet-row:not(.fx-sheet-row--planned)', (r) => r.map((x) => x.dataset.date.slice(8) + ':'
+      + x.querySelector('[data-kind="usage"]').value + ':' + x.querySelector('.fx-chip').innerText.trim()).join(' ')), await h.text('#stRetSum')].join(' | '),
+      '09:8:New 10:8:New 11:8:New 12:8:New 13:8:New 14::Weekend 15::Weekend | Actual: 5 days with hours · 40 h of use · 0 h of standby — Planned: 15 days with hours · 120 h of use · 0 h of standby (an estimate)');
+    T.eq('…the estimate: 40 h actual, 120 h planned', [await page.$$eval('#stRetBillRows .fx-bill-row', (r) => r.slice(0, 2).map((x) => x.innerText.replace(/\s+/g, ' ').trim()).join(' ; ')), await h.text('#stRetTotal')].join(' | '),
+      'Rental, actual 9 Nov – 15 Nov 2026 · 40 h of use × AED 140.00 an hour AED 5,600.00 ; Rental, planned 16 Nov – 6 Dec 2026 · 120 h of use × AED 140.00 an hour (estimate) AED 16,800.00 | AED 26,800.00');
+    T.eq('Confirm records them and keeps the return', await h.text('#stRetConfirm'), 'Record the hours, keep the return on 6 Dec 2026');
+    for (const w of [1440, 1024]) {
+      await page.setViewportSize({ width: w, height: 1000 });
+      await page.waitForTimeout(400);
+      const f = await h.dialogFits('#stReturn');
+      T.check(`${w}px, the Return dialog at 15 Nov: no sideways scroll`, f.ok, f.over);
+    }
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.waitForTimeout(300);
+    await page.$eval('#stReturn .nx-dialog-body', (b) => { b.scrollTop = 0; });
+    await page.waitForTimeout(200);
+    T.check('screenshot: the dialog at 15 Nov', !!(await h.env.shot('future-ops-return-actual.png')));
+    await h.confirmReturn();
+    T.eq('the toast', await h.toast(), 'Return booked for 6 Dec 2026 (EX-1002, 5 days of hours recorded and agreed). Until then, record the hours as the days pass; the final timesheet is asked for on the day.');
+    s = await h.state();
+    l = h.line(s, 'R1001');
+    T.eq('the state: 9–13 Nov saved and approved (signed by the customer), the return still planned for 6 Dec', [s.hours.filter((x) => x.lineId === l.id).map((x) => x.date.slice(8) + ':' + x.usage + (x.approved ? ':' + x.approvedBy : '')).join(' | '),
+      l.status, l.plannedReturn].join(' | '),
+      '09:8:Lena Novak (signed by the customer) | 10:8:Lena Novak (signed by the customer) | 11:8:Lena Novak (signed by the customer) | 12:8:Lena Novak (signed by the customer) | 13:8:Lena Novak (signed by the customer) | ON_HIRE | 2026-12-06');
+    await widths(h, '#page-site', 'Receive, hours, moves at 15 Nov');
   });
 
   // ── 'fresh': Sara switches an intercompany agreement to billing by the hour (a new version) ─────────────────────────

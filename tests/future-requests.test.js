@@ -223,10 +223,10 @@ const r3 = R.request(as(F.state('returned'), 'p-desk'), ids.r3);
 T.check('a customer rental: deposit, invoice, damage', r3.items.map((i) => i.key).join() === 'ops,charges,deposit,invoiced,paid,depositSettled,damage'
   && /AED 1,500.00 · Cracked panel · 3 photos/.test(r3.lines[0].damageText), r3.items.map((i) => i.key).join() + ' ' + r3.lines[0].damageText);
 const b3 = r3.bills[0];
-T.eq('…the bill for this hire: by the hour from the approved timesheet, the return\'s hours dropped, damage added', [b3.mode, b3.basisShort, b3.rows.map((x) => x.label + ' ' + x.amountText).join(', ')].join(' | '),
-  'final | By the hour: from the approved timesheet | Rental AED 5,670.00, Standby AED 315.00, Transport out AED 2,200.00, Transport back AED 2,200.00, Damage at the return AED 1,500.00');
+T.eq('…the bill for this hire: by the hour from the approved timesheet, the return day\'s hours counted, damage added', [b3.mode, b3.basisShort, b3.rows.map((x) => x.label + ' ' + x.amountText).join(', ')].join(' | '),
+  'final | By the hour: from the approved timesheet | Rental AED 6,090.00, Standby AED 315.00, Transport out AED 2,200.00, Transport back AED 2,200.00, Damage at the return AED 1,500.00');
 T.eq('…charged so far, still to charge (the November run again), the total with VAT', [b3.chargedText, b3.toChargeText, b3.totalText, b3.vat.amountText, b3.grossText, b3.modeText].join(' | '),
-  'AED 8,605.00 | AED 3,280.00 | AED 11,885.00 | AED 594.25 | AED 12,479.25 | Returned 30 Nov 2026: on hire 7 Nov – 29 Nov 2026 (23 days)');
+  'AED 8,605.00 | AED 3,700.00 | AED 12,305.00 | AED 615.25 | AED 12,920.25 | Returned 30 Nov 2026: on hire 7 Nov – 30 Nov 2026 (24 days, the return day included)');
 const b1 = R.request(s, ids.r1).bills[0];
 T.eq('an intercompany hire still on hire: by the day, so far, all charged', [b1.mode, b1.basisShort, b1.totalText, b1.chargedText, b1.toChargeText, b1.notes.join(' ')].join(' | '),
   'sofar | By the day | AED 15,000.00 | AED 15,000.00 | AED 0.00 | At the return: transport back AED 1,500.00.');

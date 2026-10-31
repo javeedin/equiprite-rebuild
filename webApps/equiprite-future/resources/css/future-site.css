@@ -100,3 +100,33 @@ button.fx-day:hover { border-color: var(--nx-accent); box-shadow: 0 0 0 2px var(
   .fx-ret-cols { grid-template-columns: minmax(0, 1fr); }
   .fx-ret-bill { position: static; }
 }
+
+/* The request's dates: a unit delivered early is on hire from the request's start date (the card, the dialog's head). */
+.fx-early { display: inline-flex; align-items: center; gap: 5px; white-space: normal; }
+.fx-early span[class^="oj-ux-ico"] { font-size: 14px; }
+.fx-hours-notyet { margin: 0; display: flex; align-items: flex-start; gap: 6px; font-size: 13px; }
+.fx-ret-dates { display: flex; align-items: flex-start; gap: 6px; margin-top: 4px; font-size: 13px; font-weight: 700; color: #fff; overflow-wrap: anywhere; }
+.fx-ret-dates span[class^="oj-ux-ico"] { font-size: 15px; flex: none; margin-top: 1px; color: #cfe0e8; }
+.fx-ret-dates--early span[class^="oj-ux-ico"] { color: #fde68a; }
+
+/* The timesheet: the actual days up to today, then the planned ones (an estimate, not saved); the return day. */
+.fx-ret-rule { margin: 0; font-size: 12.5px; }
+.fx-ret-notyet, .fx-ret-plan { margin: 0; display: flex; align-items: flex-start; gap: 6px; font-size: 13px; }
+.fx-ret-notyet { font-weight: 600; color: #92400e; }
+.fx-ret-plan { color: #3730a3; }
+.fx-ret-notyet span[class^="oj-ux-ico"], .fx-ret-plan span[class^="oj-ux-ico"] { font-size: 15px; flex: none; margin-top: 1px; }
+.fx-grid--sheet .fx-sheet-row--planned { background-color: #f5f7ff; }
+.fx-sheet-row--planned .fx-input--hours { border-style: dashed; font-style: italic; color: #3730a3; }
+.fx-grid--sheet .fx-sheet-row--return { box-shadow: inset 3px 0 0 var(--nx-accent); }
+.fx-sheet-ret { font-size: 11px; font-weight: 700; color: var(--nx-accent); text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; }
+.fx-chip--planned { --fx-c: #3730a3; --fx-bg: #e0e7ff; }
+
+/* The estimated final bill: the actual days and the planned ones apart. */
+.fx-ret-split { display: flex; flex-direction: column; gap: 6px; }
+.fx-ret-phase { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--nx-line); background: #fff; font-size: 13px; }
+.fx-ret-phase--planned { border-style: dashed; border-color: #a5b4fc; background: #f5f7ff; }
+.fx-ret-phase-k { grid-column: 1 / -1; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--nx-muted); }
+.fx-ret-phase--planned .fx-ret-phase-k { color: #3730a3; }
+.fx-ret-phase-v { min-width: 0; overflow-wrap: anywhere; }
+.fx-ret-phase-amt { font-weight: 700; white-space: nowrap; text-align: right; }
+.fx-bill-row--planned .fx-bill-amt { color: #3730a3; font-style: italic; }

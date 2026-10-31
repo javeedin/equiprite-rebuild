@@ -1,8 +1,9 @@
 define(['vb/action/actionChain', 'resources/js/future/fxPage', 'resources/js/future/fxReturn', 'resources/js/shellBus'], (ActionChain, fx, fxReturn, bus) => {
   'use strict';
 
-  const CLOSED = { open: false, mode: 'return', requestId: '', lineId: '', kicker: '', title: '', sub: '', date: '', minDate: '', rows: [], canApprove: false, approveLabel: '',
-    waitText: '', rangeText: '', weekendText: '', plannedText: '', returnedText: '', rental: false };
+  const CLOSED = { open: false, mode: 'return', requestId: '', lineId: '', kicker: '', title: '', sub: '', datesText: '', early: false, date: '', minDate: '', dateNote: '', rows: [],
+    canApprove: false, approveLabel: '', waitText: '', rangeText: '', weekendText: '', plannedText: '', returnedText: '', rental: false, sheetTitle: 'The final timesheet', ruleText: '',
+    notYetText: '', planText: '', emptyText: '', hasActual: false, actualCount: 0, plannedCount: 0 };
 
   /** A plain copy of a page variable (the dialog's definition and draft go to fxReturn and the engine as plain data). */
   function plain(x) { return JSON.parse(JSON.stringify(x || {})); }
@@ -15,12 +16,15 @@ define(['vb/action/actionChain', 'resources/js/future/fxPage', 'resources/js/fut
   }
 
   // The Return dialog (fxReturn), op:
-  //   open     data-request-id, data-line-id: today (or the planned date) as the return date, the timesheet prefilled
-  //   date     a return date picked: the rows follow it (to the day before, not after today), the values typed stay
+  //   open     data-request-id, data-line-id: the request's end (or today, or the planned date) as the return date,
+  //            the timesheet from the hire's start prefilled (the days after today planned, with standard hours)
+  //   date     a return date picked: the rows follow it (by the hour to the return day, by the day to the day before;
+  //            planned after today), the values typed stay
   //   hours    a day's hours of use or standby typed (data-kind, data-date): the bill follows; the rows stay (focus)
   //   approve  "These hours are agreed" ticked or not
   //   fill     Fill standard hours: 8 h of use on each empty working day
-  //   confirm  the final timesheet (logHoursBulk, approved when ticked), then the return (offHire): one toast
+  //   confirm  the actual days of the timesheet (logHoursBulk, approved when ticked), then the return (offHire; a later
+  //            date books it): one toast. The planned days are an estimate and never sent.
   //   close    closes it, nothing done
   class returnChain extends ActionChain {
     async run(context, { op, data, value, kind, date, checked }) {
