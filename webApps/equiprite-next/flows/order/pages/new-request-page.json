@@ -225,6 +225,8 @@
       "defaultValue": null,
       "description": "What was last saved from here {id, number, mode: submit | draft}, for the banner."
     },
+    "avail": { "type": "any", "defaultValue": { "open": false, "loading": false, "id": null, "name": "", "cls": "", "image": "", "datesSet": false, "result": null, "notes": [], "error": "" },
+      "description": "Where is it, and when can I have it? A catalog item's availability for the request's dates: by inventory org and yard, units out and when back, other dates, alternatives (availChain)." },
     "mapDlg": {
       "type": "any",
       "defaultValue": {
@@ -326,6 +328,8 @@
         }
       ]
     },
+    "onAvail": { "chains": [{ "chain": "availChain", "parameters": { "act": "{{ $event.currentTarget.dataset.action }}", "id": "{{ $event.currentTarget.dataset.id }}",
+      "from": "{{ $event.currentTarget.dataset.from }}", "to": "{{ $event.currentTarget.dataset.to }}" } }] },
     "onCart": {
       "chains": [
         {

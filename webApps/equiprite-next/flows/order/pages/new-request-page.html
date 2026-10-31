@@ -198,6 +198,9 @@
                       <span :class="[[ 'nx-or-avail nx-or-avail--' + row.data.avail ]]"><oj-bind-text value="[[ row.data.availLabel ]]"></oj-bind-text></span>
                     </div>
                     <div class="nx-or-card-body">
+                      <button type="button" class="nx-or-where" data-action="open" :data-id="[[ row.data.id ]]" on-click="[[ $listeners.onAvail ]]"
+                        :aria-label="[[ 'Where is it and when is it free: ' + row.data.name ]]" title="Where is it? Free by yard, when the others are back, other dates">
+                        <span class="oj-ux-ico-location-pin" aria-hidden="true"></span></button>
                       <span class="nx-note"><oj-bind-text value="[[ row.data.cls || 'Equipment' ]]"></oj-bind-text></span>
                       <h3 class="nx-or-card-name"><oj-bind-text value="[[ row.data.name ]]"></oj-bind-text></h3>
                       <span class="nx-or-card-rate nx-num"><oj-bind-text value="[[ row.data.rate ]]"></oj-bind-text></span>
@@ -583,6 +586,128 @@
     </div>
   </oj-bind-if>
   <!-- ── The delivery point on a map (mapChain; the map itself is drawn by the page module) ───────────────────── -->
+  <!-- Where is it, and when can I have it? One catalog item for the request's dates (availChain; resources/js/itemAvailability.js). -->
+  <oj-bind-if test="[[ $variables.avail.open ]]">
+    <div class="nx-modal">
+      <button type="button" class="nx-modal-scrim" tabindex="-1" aria-label="Close" data-action="close" on-click="[[ $listeners.onAvail ]]"></button>
+      <section class="nx-dialog nx-dialog--wide" id="orAvail" role="dialog" aria-modal="true" aria-labelledby="orAvailTitle">
+        <header class="nx-dialog-head">
+          <div class="nx-dialog-titles">
+            <div class="nx-kicker"><oj-bind-text value="[[ ($variables.avail.cls || 'Equipment') + ' · where it is' ]]"></oj-bind-text></div>
+            <h2 id="orAvailTitle" class="nx-dialog-title"><oj-bind-text value="[[ $variables.avail.name ]]"></oj-bind-text></h2>
+            <div class="nx-sub"><oj-bind-text value="[[ $variables.avail.result ? 'For ' + $variables.avail.result.window.text + ($variables.avail.datesSet ? '' : ' (pick your dates for your own window)') : 'Reading its units…' ]]"></oj-bind-text></div>
+          </div>
+          <button type="button" class="nx-iconbtn" aria-label="Close" data-action="close" on-click="[[ $listeners.onAvail ]]"><span class="oj-ux-ico-close" aria-hidden="true"></span></button>
+        </header>
+        <div class="nx-dialog-body">
+          <oj-bind-if test="[[ $variables.avail.loading ]]">
+            <p class="nx-muted nx-or-av-loading"><span class="nx-spin" aria-hidden="true"></span>Finding its units, where they are and what they are booked on…</p>
+          </oj-bind-if>
+          <oj-bind-if test="[[ !!$variables.avail.error ]]">
+            <p class="nx-error" role="alert"><oj-bind-text value="[[ $variables.avail.error ]]"></oj-bind-text></p>
+          </oj-bind-if>
+          <oj-bind-if test="[[ !!$variables.avail.result ]]">
+            <div :class="[[ 'nx-or-av-answer nx-or-av-answer--' + $variables.avail.result.tone ]]" id="orAvailAnswer">
+              <span :class="[[ $functions.availIcon($variables.avail.result.tone) ]]" aria-hidden="true"></span>
+              <div>
+                <strong><oj-bind-text value="[[ $variables.avail.result.headline ]]"></oj-bind-text></strong>
+                <span class="nx-note"><oj-bind-text value="[[ $variables.avail.result.note ]]"></oj-bind-text></span>
+              </div>
+            </div>
+
+            <oj-bind-if test="[[ $variables.avail.result.places.length > 0 ]]">
+              <h3 class="nx-h3">Where it is</h3>
+              <ul class="nx-or-av-places" id="orAvailPlaces">
+                <oj-bind-for-each data="[[ $variables.avail.result.places ]]">
+                  <template data-oj-as="p">
+                    <li :class="[[ 'nx-or-av-place' + (p.data.free > 0 ? ' nx-or-av-place--free' : '') ]]">
+                      <span class="oj-ux-ico-warehouse" aria-hidden="true"></span>
+                      <span class="nx-or-av-place-name"><oj-bind-text value="[[ p.data.label ]]"></oj-bind-text></span>
+                      <span class="nx-or-av-place-count"><oj-bind-text value="[[ p.data.free + ' of ' + p.data.total + ' free' ]]"></oj-bind-text></span>
+                    </li>
+                  </template>
+                </oj-bind-for-each>
+              </ul>
+            </oj-bind-if>
+
+            <oj-bind-if test="[[ $variables.avail.result.units.length > 0 ]]">
+              <h3 class="nx-h3">Its units</h3>
+              <ul class="nx-or-av-units" id="orAvailUnits">
+                <oj-bind-for-each data="[[ $variables.avail.result.units ]]">
+                  <template data-oj-as="u">
+                    <li :class="[[ 'nx-or-av-unit nx-or-av-unit--' + u.data.tone ]]" :data-serial="[[ u.data.serial ]]">
+                      <span class="nx-or-av-unit-serial"><oj-bind-text value="[[ u.data.serial ]]"></oj-bind-text></span>
+                      <span class="nx-or-av-unit-state"><oj-bind-text value="[[ u.data.stateLabel ]]"></oj-bind-text></span>
+                      <span class="nx-or-av-unit-where"><oj-bind-text value="[[ u.data.place + ' · now: ' + u.data.now ]]"></oj-bind-text></span>
+                      <span class="nx-or-av-unit-why"><oj-bind-text value="[[ u.data.backText ? u.data.why + ' · ' + u.data.backText : u.data.why ]]"></oj-bind-text></span>
+                    </li>
+                  </template>
+                </oj-bind-for-each>
+              </ul>
+            </oj-bind-if>
+
+            <oj-bind-if test="[[ $variables.avail.result.slots.length > 0 || !!$variables.avail.result.partial ]]">
+              <h3 class="nx-h3">Dates that work</h3>
+              <ul class="nx-or-av-slots" id="orAvailSlots">
+                <oj-bind-for-each data="[[ $variables.avail.result.slots ]]">
+                  <template data-oj-as="s">
+                    <li class="nx-or-av-slot">
+                      <div>
+                        <strong><oj-bind-text value="[[ s.data.text ]]"></oj-bind-text></strong>
+                        <span class="nx-note"><oj-bind-text value="[[ s.data.shiftText + ' · ' + (s.data.count === 1 ? '1 unit' : s.data.count + ' units') + ' · ' + s.data.places + (s.data.tight ? ' · tight turnaround' : '') ]]"></oj-bind-text></span>
+                      </div>
+                      <button type="button" class="nx-btn nx-btn--sm" data-action="dates" :data-from="[[ s.data.start ]]" :data-to="[[ s.data.end ]]"
+                        on-click="[[ $listeners.onAvail ]]">Use these dates</button>
+                    </li>
+                  </template>
+                </oj-bind-for-each>
+                <oj-bind-if test="[[ !!$variables.avail.result.partial ]]">
+                  <li class="nx-or-av-slot nx-or-av-slot--part">
+                    <div>
+                      <strong><oj-bind-text value="[[ 'Shorter: ' + $variables.avail.result.partial.text ]]"></oj-bind-text></strong>
+                      <span class="nx-note"><oj-bind-text value="[[ $variables.avail.result.partial.serial + ' at ' + $variables.avail.result.partial.place + ' is free for part of your dates: shorten the request, or split it.' ]]"></oj-bind-text></span>
+                    </div>
+                    <button type="button" class="nx-btn nx-btn--sm" data-action="dates" :data-from="[[ $variables.avail.result.partial.start ]]"
+                      :data-to="[[ $variables.avail.result.partial.end ]]" on-click="[[ $listeners.onAvail ]]">Use these dates</button>
+                  </li>
+                </oj-bind-if>
+              </ul>
+            </oj-bind-if>
+
+            <oj-bind-if test="[[ $variables.avail.result.alternatives.length > 0 ]]">
+              <h3 class="nx-h3">Free instead, in its class</h3>
+              <ul class="nx-or-av-alts" id="orAvailAlts">
+                <oj-bind-for-each data="[[ $variables.avail.result.alternatives ]]">
+                  <template data-oj-as="x">
+                    <li class="nx-or-av-alt">
+                      <span class="nx-or-av-alt-name"><oj-bind-text value="[[ x.data.name ]]"></oj-bind-text></span>
+                      <span class="nx-or-av-alt-free"><oj-bind-text value="[[ x.data.label ]]"></oj-bind-text></span>
+                      <button type="button" class="nx-btn nx-btn--sm" data-action="add" :data-id="[[ x.data.id ]]" on-click="[[ $listeners.onAvail ]]">Add instead</button>
+                    </li>
+                  </template>
+                </oj-bind-for-each>
+              </ul>
+            </oj-bind-if>
+
+            <oj-bind-for-each data="[[ $variables.avail.notes ]]">
+              <template data-oj-as="n"><p class="nx-note nx-or-av-note"><oj-bind-text value="[[ n.data ]]"></oj-bind-text></p></template>
+            </oj-bind-for-each>
+          </oj-bind-if>
+        </div>
+        <footer class="nx-dialog-foot">
+          <oj-bind-if test="[[ !!$variables.avail.result && $variables.avail.result.free > 0 && $functions.qtyIn($variables.cart, $variables.avail.id) === 0 ]]">
+            <button type="button" class="nx-btn nx-btn--primary" id="orAvailAdd" data-action="add" :data-id="[[ $variables.avail.id ]]" on-click="[[ $listeners.onAvail ]]">
+              <span class="oj-ux-ico-cart-add" aria-hidden="true"></span>Add to cart</button>
+          </oj-bind-if>
+          <button type="button" class="nx-btn" id="orAvailHistory" data-action="history" on-click="[[ $listeners.onAvail ]]">
+            <span class="oj-ux-ico-clock" aria-hidden="true"></span>Its full history</button>
+          <button type="button" class="nx-btn" id="orAvailOpen" data-action="availability" on-click="[[ $listeners.onAvail ]]">
+            <span class="oj-ux-ico-calendar" aria-hidden="true"></span>Open in Availability</button>
+        </footer>
+      </section>
+    </div>
+  </oj-bind-if>
+
   <oj-bind-if test="[[ $variables.mapDlg.open ]]">
     <div class="nx-or-modal">
       <button type="button" class="nx-or-scrim" tabindex="-1" aria-label="Close the map" data-action="cancel" on-click="[[ $listeners.onMap ]]"></button>

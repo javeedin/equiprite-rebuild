@@ -246,3 +246,47 @@
   .nx-or-addr { flex-wrap: wrap; }
   .nx-or-mapbtn { width: 100%; }
 }
+
+/* Where is it, and when can I have it? The location icon on a card, and its dialog (availChain). */
+.nx-or-card-body { position: relative; }
+.nx-or-where {
+  position: absolute; top: 10px; right: 10px; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--nx-line); background: #fff;
+  color: var(--nx-band); display: inline-flex; align-items: center; justify-content: center; font-size: 17px; cursor: pointer;
+}
+.nx-or-where:hover { background: #eef5f8; border-color: var(--nx-band); }
+.nx-or-av-loading { display: flex; align-items: center; gap: 10px; margin: 0; }
+.nx-or-av-answer { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border-radius: 10px; border: 1px solid; }
+.nx-or-av-answer > span { font-size: 22px; flex: none; }
+.nx-or-av-answer div { display: flex; flex-direction: column; gap: 2px; }
+.nx-or-av-answer strong { font-size: 16px; }
+.nx-or-av-answer--ok { background: #ecf8f0; border-color: #bfe5cc; color: #14532d; }
+.nx-or-av-answer--short { background: #fff8e6; border-color: #f2d9a0; color: #78350f; }
+.nx-or-av-answer--none { background: #fdecea; border-color: #f5c2bd; color: #7f1d1d; }
+.nx-or-av-answer--unknown { background: var(--nx-surface-2); border-color: var(--nx-line); color: var(--nx-ink); }
+.nx-or-av-answer .nx-note { color: inherit; opacity: 0.9; }
+.nx-or-av-places, .nx-or-av-units, .nx-or-av-slots, .nx-or-av-alts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.nx-or-av-places { flex-direction: row; flex-wrap: wrap; }
+.nx-or-av-place { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--nx-line); background: var(--nx-surface-2); }
+.nx-or-av-place--free { background: #ecf8f0; border-color: #bfe5cc; }
+.nx-or-av-place-name { font-weight: 600; }
+.nx-or-av-place-count { font-size: 12px; color: var(--nx-muted); }
+.nx-or-av-unit {
+  display: grid; grid-template-columns: minmax(90px, auto) auto 1fr; gap: 2px 12px; align-items: baseline; padding: 8px 12px; border-radius: 8px;
+  border: 1px solid var(--nx-line); border-left-width: 4px;
+}
+.nx-or-av-unit--ok { border-left-color: #15803d; }
+.nx-or-av-unit--tight { border-left-color: #d97706; }
+.nx-or-av-unit--busy { border-left-color: #b42318; }
+.nx-or-av-unit-serial { font-weight: 700; font-family: ui-monospace, Consolas, monospace; }
+.nx-or-av-unit-state { font-size: 12px; font-weight: 700; color: var(--nx-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.nx-or-av-unit-where { font-size: 13px; text-align: right; color: var(--nx-muted); overflow-wrap: anywhere; }
+.nx-or-av-unit-why { grid-column: 1 / -1; font-size: 13px; overflow-wrap: anywhere; }
+.nx-or-av-slot, .nx-or-av-alt {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border-radius: 8px; border: 1px solid #d3e4ee; background: #f4f9fc;
+}
+.nx-or-av-slot div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.nx-or-av-slot--part { background: #fffdf5; border-color: #f2e3b8; }
+.nx-or-av-alt { background: #fff; border-color: var(--nx-line); }
+.nx-or-av-alt-name { font-weight: 600; flex: 1; min-width: 0; }
+.nx-or-av-alt-free { font-size: 12px; font-weight: 700; color: #15803d; }
+.nx-or-av-note { margin: 0; }

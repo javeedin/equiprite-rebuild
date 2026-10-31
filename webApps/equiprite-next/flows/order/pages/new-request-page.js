@@ -65,6 +65,11 @@ define(['require', 'resources/js/orderForm', 'resources/js/fmt', 'resources/js/m
     }
 
     /** First letters of the class name for the card's picture box when the equipment has no image (New's rule). */
+    /** The answer's icon in the availability dialog. */
+    availIcon(tone) {
+      return tone === 'ok' ? 'oj-ux-ico-check-circle' : (tone === 'unknown' ? 'oj-ux-ico-information' : 'oj-ux-ico-warning');
+    }
+
     initials(name) {
       return String(name || '').split(/\s+/).filter((w) => /^[A-Za-z0-9]/.test(w)).slice(0, 2)
         .map((w) => w.charAt(0).toUpperCase()).join('') || '?';
