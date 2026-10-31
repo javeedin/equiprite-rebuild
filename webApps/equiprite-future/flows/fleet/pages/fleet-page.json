@@ -1,0 +1,199 @@
+{
+  "description": "Fleet: every unit read from yard stock, units out and bookings (equipmentBoard.js): lanes from in the yard to overdue, tight turnarounds, a unit's bookings; board or list; export.",
+  "navigation": {
+    "embeddable": "enabled"
+  },
+  "variables": {
+    "units": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "shown": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "lanes": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "sum": {
+      "type": "any",
+      "defaultValue": {
+        "total": 0,
+        "yard": 0,
+        "going": 0,
+        "out": 0,
+        "due": 0,
+        "overdue": 0,
+        "maint": 0,
+        "tight": 0,
+        "outNow": 0,
+        "utilizationPct": null
+      }
+    },
+    "classes": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "yards": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "view": {
+      "type": "string",
+      "defaultValue": "board"
+    },
+    "text": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "lane": {
+      "type": "string",
+      "defaultValue": "all"
+    },
+    "cls": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "yard": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "tight": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "selected": {
+      "type": "any",
+      "defaultValue": null
+    },
+    "isLoading": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "error": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "exportOpen": {
+      "type": "boolean",
+      "defaultValue": false
+    }
+  },
+  "eventListeners": {
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "loadFleetChain"
+        }
+      ]
+    },
+    "onRefresh": {
+      "chains": [
+        {
+          "chain": "loadFleetChain"
+        }
+      ]
+    },
+    "onSearch": {
+      "chains": [
+        {
+          "chain": "setChain",
+          "parameters": {
+            "field": "text",
+            "value": "{{ $event.target.value }}"
+          }
+        }
+      ]
+    },
+    "onPick": {
+      "chains": [
+        {
+          "chain": "setChain",
+          "parameters": {
+            "field": "{{ $event.currentTarget.dataset.field }}",
+            "value": "{{ $event.currentTarget.dataset.value }}"
+          }
+        }
+      ]
+    },
+    "onUnit": {
+      "chains": [
+        {
+          "chain": "selectChain",
+          "parameters": {
+            "key": "{{ $event.currentTarget.dataset.key }}"
+          }
+        }
+      ]
+    },
+    "onClosePanel": {
+      "chains": [
+        {
+          "chain": "selectChain",
+          "parameters": {
+            "key": ""
+          }
+        }
+      ]
+    },
+    "onOpenRequest": {
+      "chains": [
+        {
+          "chain": "openChain",
+          "parameters": {
+            "id": "{{ $event.currentTarget.dataset.id }}",
+            "number": "{{ $event.currentTarget.dataset.number }}",
+            "navId": ""
+          }
+        }
+      ]
+    },
+    "onOpenScreen": {
+      "chains": [
+        {
+          "chain": "openChain",
+          "parameters": {
+            "id": "",
+            "number": "",
+            "navId": "{{ $event.currentTarget.dataset.nav }}"
+          }
+        }
+      ]
+    },
+    "onExportMenu": {
+      "chains": [
+        {
+          "chain": "setChain",
+          "parameters": {
+            "field": "exportOpen",
+            "value": "toggle"
+          }
+        }
+      ]
+    },
+    "onExport": {
+      "chains": [
+        {
+          "chain": "exportChain",
+          "parameters": {
+            "format": "{{ $event.currentTarget.dataset.format }}"
+          }
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-if": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-text": {
+        "path": "ojs/ojknockout"
+      }
+    }
+  }
+}

@@ -1,0 +1,112 @@
+{
+  "description": "Analytics: five questions (what is out or idle, how busy each yard has been, what is late, how requests move, what equipment costs), each answered with a sentence, tiles, charts drawn with CSS and SVG, and a table that exports. Fleet and utilization load through analyticsData.loadActiveTab (New EquipRite's module, unchanged); requests through requestData; cost through the Old Reports page's project-cost-detail call. Reads only.",
+  "navigation": {
+    "embeddable": "enabled"
+  },
+  "variables": {
+    "reports": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "The questions this role may open (insightsModel.reportsFor)."
+    },
+    "report": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "The question picked. cur.report follows once its data is in."
+    },
+    "cur": {
+      "type": "any",
+      "defaultValue": { "report": "", "m": {} },
+      "description": "What is shown: the report and its model, switched together in one step (applyChain)."
+    },
+    "canAnalytics": { "type": "boolean", "defaultValue": false },
+    "canReports": { "type": "boolean", "defaultValue": false },
+    "accessChecked": { "type": "boolean", "defaultValue": false },
+    "loaded": {
+      "type": "any",
+      "defaultValue": {},
+      "description": "{ report: true } once its data is loaded (late and flow share the requests)."
+    },
+    "isLoading": { "type": "boolean", "defaultValue": true },
+    "errors": {
+      "type": "any",
+      "defaultValue": {},
+      "description": "{ report: text } when a call behind it failed."
+    },
+    "raw": {
+      "type": "any",
+      "defaultValue": {},
+      "description": "What was loaded: stockRows, kpis, mixGroups, mixSeries (fleet); utilRows (use); rows, linesByRequest, linesLoaded (late, flow); costRows (cost)."
+    },
+    "win": {
+      "type": "any",
+      "defaultValue": { "fromDate": "", "toDate": "" },
+      "description": "The utilization window (analyticsData.periodToWindow)."
+    },
+    "f": {
+      "type": "any",
+      "defaultValue": {
+        "fleet": { "show": "all", "yard": "", "cls": "", "text": "" },
+        "use": { "preset": "last-30", "from": "", "to": "", "yard": "", "view": "yard" },
+        "late": { "kind": "all", "party": "", "text": "" },
+        "flow": { "months": 6, "lane": "", "month": "", "text": "" },
+        "cost": { "posted": "all", "party": "", "yard": "", "text": "" }
+      },
+      "description": "Each report's own filters."
+    },
+    "limit": { "type": "number", "defaultValue": 100 },
+    "exportOpen": { "type": "boolean", "defaultValue": false },
+    "checkedAt": { "type": "string", "defaultValue": "" }
+  },
+  "eventListeners": {
+    "vbEnter": {
+      "chains": [{ "chain": "enterChain" }]
+    },
+    "onReport": {
+      "chains": [{ "chain": "pickChain", "parameters": { "report": "{{ $event.currentTarget.dataset.report }}" } }]
+    },
+    "onRefresh": {
+      "chains": [{ "chain": "loadChain", "parameters": { "refresh": true } }]
+    },
+    "onPick": {
+      "chains": [{ "chain": "setChain", "parameters": { "field": "{{ $event.currentTarget.dataset.field }}", "value": "{{ $event.currentTarget.dataset.value }}" } }]
+    },
+    "onClear": {
+      "chains": [{ "chain": "setChain", "parameters": { "field": "{{ $event.currentTarget.dataset.field }}", "value": "", "clear": true } }]
+    },
+    "onSearch": {
+      "chains": [{ "chain": "setChain", "parameters": { "field": "text", "value": "{{ $event.target.value }}" } }]
+    },
+    "onPeriod": {
+      "chains": [{ "chain": "periodChain", "parameters": { "preset": "{{ $event.currentTarget.dataset.preset }}" } }]
+    },
+    "onCustomDate": {
+      "chains": [{ "chain": "periodChain", "parameters": {
+        "from": "{{ $event.target.dataset.edge === 'from' ? $event.target.value : undefined }}",
+        "to": "{{ $event.target.dataset.edge === 'to' ? $event.target.value : undefined }}"
+      } }]
+    },
+    "onOpenRequest": {
+      "chains": [{ "chain": "openRequestChain", "parameters": { "id": "{{ $event.currentTarget.dataset.id }}", "number": "{{ $event.currentTarget.dataset.number }}" } }]
+    },
+    "onOpenScreen": {
+      "chains": [{ "chain": "openScreenChain", "parameters": { "navId": "{{ $event.currentTarget.dataset.nav }}" } }]
+    },
+    "onExportMenu": {
+      "chains": [{ "chain": "setChain", "parameters": { "field": "exportOpen", "value": "toggle" } }]
+    },
+    "onExport": {
+      "chains": [{ "chain": "exportChain", "parameters": { "format": "{{ $event.currentTarget.dataset.format }}" } }]
+    },
+    "onMore": {
+      "chains": [{ "chain": "setChain", "parameters": { "field": "limit", "value": "more" } }]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}

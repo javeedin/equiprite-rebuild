@@ -1,0 +1,299 @@
+{
+  "description": "Availability (FDD 7.10): units as rows grouped by class or yard, bookings as bars coloured by the journey stage, planned maintenance, today and your window; free capacity per class for the window; clashes and tight turnarounds; search, filters, week or month view; export of the bookings shown. A yard grid (Timeline | Yard grid): equipment or units as rows, yards as columns, a tick where each is with how many are free in your window; a row opens everything about that equipment. Other screens open it prefilled with shellBus.focus('availability', { text, from, to, view }). A booking opens its request in a tab. Read only, as New and Old EquipRite's schedule: bookings change on the request line. Logic: resources/js/availability.js and availabilityPivot.js (the grid); calls: resources/js/availabilityData.js.",
+  "navigation": {
+    "embeddable": "enabled"
+  },
+  "variables": {
+    "model": {
+      "type": "any",
+      "defaultValue": null,
+      "description": "availability.build(): units, bookings by unit, clashes, tight turnarounds, today."
+    },
+    "isLoading": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "error": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "notes": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Sources that failed without stopping the page."
+    },
+    "maint": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "Planned maintenance from Fusion: loading | ready | partial | none."
+    },
+    "loadSeq": {
+      "type": "number",
+      "defaultValue": 0,
+      "description": "The latest load; an older one that finishes late is dropped."
+    },
+    "from": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "Your window, first day (YYYY-MM-DD)."
+    },
+    "to": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "Your window, last day."
+    },
+    "viewStart": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "The Monday at the left of the timeline."
+    },
+    "zoom": {
+      "type": "string",
+      "defaultValue": "week",
+      "description": "week (four weeks, day by day) | month (thirteen weeks)."
+    },
+    "groupBy": {
+      "type": "string",
+      "defaultValue": "class",
+      "description": "class | yard."
+    },
+    "text": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "cls": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "The class picked in the capacity panel ('' for all)."
+    },
+    "yard": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "The yard key ('' for all, '-' for units with none recorded)."
+    },
+    "chip": {
+      "type": "string",
+      "defaultValue": "all",
+      "description": "all | free | booked | maint | clash | tight."
+    },
+    "collapsed": {
+      "type": "any",
+      "defaultValue": {}
+    },
+    "more": {
+      "type": "any",
+      "defaultValue": {},
+      "description": "Extra rows shown per group ({ groupKey: n }), from its \"Show more\"."
+    },
+    "view": {
+      "type": "any",
+      "defaultValue": {
+        "win": { "text": "" },
+        "range": { "label": "" },
+        "head": { "months": [], "ticks": [], "today": "", "band": null, "lines": "" },
+        "capacity": [],
+        "capTotal": {},
+        "answer": "",
+        "chips": [],
+        "items": [],
+        "more": 0,
+        "matched": 0,
+        "ordered": [],
+        "problems": [],
+        "clashCount": 0,
+        "tightCount": 0,
+        "unlisted": 0,
+        "unlistedText": "",
+        "shownBookings": 0,
+        "zoom": "week",
+        "groupBy": "class"
+      },
+      "description": "availability.view(): everything the page shows, worked out in one go."
+    },
+    "summary": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "yards": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "exportOpen": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "yardOpen": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "layout": {
+      "type": "string",
+      "defaultValue": "timeline",
+      "description": "What the Units and bookings card shows: timeline | grid (the yard grid)."
+    },
+    "grain": {
+      "type": "string",
+      "defaultValue": "equipment",
+      "description": "The yard grid's rows: equipment (one per equipment item) | units (one per unit)."
+    },
+    "grid": {
+      "type": "any",
+      "defaultValue": {
+        "grain": "equipment",
+        "win": { "text": "" },
+        "columns": [],
+        "cols": "",
+        "items": [],
+        "totals": { "cells": [], "units": 0, "free": 0, "freeCls": "" },
+        "rows": 0,
+        "units": 0,
+        "free": 0,
+        "more": 0,
+        "head": "Equipment",
+        "note": "",
+        "exportNote": ""
+      },
+      "description": "availabilityPivot.grid(): the yard grid's columns, rows and totals, worked out in one go."
+    },
+    "gridCollapsed": {
+      "type": "any",
+      "defaultValue": {},
+      "description": "Classes folded in the yard grid ({ groupKey: true })."
+    },
+    "gridMore": {
+      "type": "any",
+      "defaultValue": {},
+      "description": "Extra rows shown per class in the yard grid ({ groupKey: n }), from its \"Show more\"."
+    },
+    "equipmentIds": {
+      "type": "any",
+      "defaultValue": {},
+      "description": "{ serial: equipment master id } from serial-refs, so an equipment row opens with its id."
+    }
+  },
+  "events": {
+    "focusRequest": {
+      "description": "From resources/js/shellBus.js focus(): another screen handed this one a search, a window and a view (Check availability).",
+      "payloadType": "object"
+    }
+  },
+  "eventListeners": {
+    "focusRequest": {
+      "chains": [
+        {
+          "chain": "focusChain"
+        }
+      ]
+    },
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "loadChain",
+          "parameters": {
+            "refresh": false
+          }
+        }
+      ]
+    },
+    "onRefresh": {
+      "chains": [
+        {
+          "chain": "loadChain",
+          "parameters": {
+            "refresh": true
+          }
+        }
+      ]
+    },
+    "onSearch": {
+      "chains": [
+        {
+          "chain": "setChain",
+          "parameters": {
+            "field": "text",
+            "value": "{{ $event.target.value }}"
+          }
+        }
+      ]
+    },
+    "onFrom": {
+      "chains": [
+        {
+          "chain": "setChain",
+          "parameters": {
+            "field": "from",
+            "value": "{{ $event.target.value }}"
+          }
+        }
+      ]
+    },
+    "onTo": {
+      "chains": [
+        {
+          "chain": "setChain",
+          "parameters": {
+            "field": "to",
+            "value": "{{ $event.target.value }}"
+          }
+        }
+      ]
+    },
+    "onPick": {
+      "chains": [
+        {
+          "chain": "setChain",
+          "parameters": {
+            "field": "{{ $event.currentTarget.dataset.field }}",
+            "value": "{{ $event.currentTarget.dataset.value }}"
+          }
+        }
+      ]
+    },
+    "onOpen": {
+      "chains": [
+        {
+          "chain": "openRecordChain",
+          "parameters": {
+            "id": "{{ $event.currentTarget.dataset.id }}",
+            "number": "{{ $event.currentTarget.dataset.number }}"
+          }
+        }
+      ]
+    },
+    "onExport": {
+      "chains": [
+        {
+          "chain": "exportChain",
+          "parameters": {
+            "format": "{{ $event.currentTarget.dataset.format }}"
+          }
+        }
+      ]
+    },
+    "onOpenItem": {
+      "chains": [
+        {
+          "chain": "openEquipmentChain",
+          "parameters": {
+            "name": "{{ $event.currentTarget.dataset.name }}",
+            "equipmentId": "{{ $event.currentTarget.dataset.equipmentId }}",
+            "serial": "{{ $event.currentTarget.dataset.serial }}"
+          }
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-if": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-text": {
+        "path": "ojs/ojknockout"
+      }
+    }
+  }
+}

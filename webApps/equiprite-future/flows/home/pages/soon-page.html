@@ -1,0 +1,16 @@
+<div class="nx-page nx-soon">
+  <div class="nx-card nx-card-pad nx-soon-card">
+    <span :class="[[ $functions.item($variables.navId).icon + ' nx-soon-icon' ]]" aria-hidden="true"></span>
+    <h1><oj-bind-text value="[[ $functions.item($variables.navId).label ]]"></oj-bind-text></h1>
+    <p class="nx-muted">This screen is being designed and built for EquipRite Next. Meanwhile it works in New EquipRite, with the same data.</p>
+    <div class="nx-actions">
+      <oj-bind-if test="[[ !!$functions.newUrl($application.variables.appUrls.new, $variables.navId) ]]">
+        <a class="nx-btn nx-btn--primary" id="soonOpenNew" :href="[[ $functions.newUrl($application.variables.appUrls.new, $variables.navId) ]]">
+          <span class="oj-ux-ico-external-link" aria-hidden="true"></span>Open it in New EquipRite</a>
+      </oj-bind-if>
+      <oj-bind-if test="[[ !!$application.variables.appUrls.old ]]">
+        <a class="nx-btn" :href="[[ $application.variables.appUrls.old ]]">Open Old EquipRite</a>
+      </oj-bind-if>
+    </div>
+  </div>
+</div>

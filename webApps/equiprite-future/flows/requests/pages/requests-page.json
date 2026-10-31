@@ -1,0 +1,267 @@
+{
+  "description": "Requests: every request read from its equipment (requestProgress) as a list, a board by stage, or one row per piece of equipment; journey chips (Late first), search, sort, export. Opens a request in its own tab.",
+  "navigation": {
+    "embeddable": "enabled"
+  },
+  "variables": {
+    "rows": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Requests with their progress (requestList.decorate)."
+    },
+    "linesByRequest": {
+      "type": "any",
+      "defaultValue": {}
+    },
+    "linesLoaded": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "manager": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "isLoading": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "error": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "view": {
+      "type": "string",
+      "defaultValue": "list",
+      "description": "list | board | equipment"
+    },
+    "text": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "stage": {
+      "type": "string",
+      "defaultValue": "all"
+    },
+    "source": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "sortKey": {
+      "type": "string",
+      "defaultValue": "number"
+    },
+    "sortDir": {
+      "type": "string",
+      "defaultValue": "desc"
+    },
+    "shown": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "What the current view shows, filtered and sorted."
+    },
+    "lanes": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "chips": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "summary": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "limit": {
+      "type": "number",
+      "defaultValue": 100
+    },
+    "exportOpen": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "can": {
+      "type": "any",
+      "defaultValue": {
+        "decide": false,
+        "assign": false,
+        "pick": false
+      },
+      "description": "Which row steps this user may take: decide (EQR_WORKBENCH FULL), assign (EQR_WORKBENCH seen), pick (EQR_INITIATE_PICKING seen)."
+    },
+    "pop": {
+      "type": "any",
+      "defaultValue": {
+        "kind": ""
+      },
+      "description": "The open popup on a request: approve (decide it here) or history (its timeline); see popChain."
+    }
+  },
+  "events": {
+    "focusRequest": {
+      "description": "From resources/js/shellBus.js focus(): another screen handed this one a filter (Help: where some pieces are).",
+      "payloadType": "object"
+    }
+  },
+  "eventListeners": {
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "loadChain",
+          "parameters": {
+            "refresh": false
+          }
+        }
+      ]
+    },
+    "onRefresh": {
+      "chains": [
+        {
+          "chain": "loadChain",
+          "parameters": {
+            "refresh": true
+          }
+        }
+      ]
+    },
+    "onSearch": {
+      "chains": [
+        {
+          "chain": "setChain",
+          "parameters": {
+            "field": "text",
+            "value": "{{ $event.target.value }}"
+          }
+        }
+      ]
+    },
+    "onPick": {
+      "chains": [
+        {
+          "chain": "setChain",
+          "parameters": {
+            "field": "{{ $event.currentTarget.dataset.field }}",
+            "value": "{{ $event.currentTarget.dataset.value }}"
+          }
+        }
+      ]
+    },
+    "onSort": {
+      "chains": [
+        {
+          "chain": "sortChain",
+          "parameters": {
+            "key": "{{ $event.currentTarget.dataset.key }}"
+          }
+        }
+      ]
+    },
+    "onOpen": {
+      "chains": [
+        {
+          "chain": "openRecordChain",
+          "parameters": {
+            "id": "{{ $event.currentTarget.dataset.id }}",
+            "number": "{{ $event.currentTarget.dataset.number }}",
+            "act": "{{ $event.target && $event.target.closest && $event.target.closest('[data-act]') ? $event.target.closest('[data-act]').getAttribute('data-act') : 'open' }}"
+          }
+        }
+      ]
+    },
+    "onExportMenu": {
+      "chains": [
+        {
+          "chain": "setChain",
+          "parameters": {
+            "field": "exportOpen",
+            "value": "toggle"
+          }
+        }
+      ]
+    },
+    "onExport": {
+      "chains": [
+        {
+          "chain": "exportChain",
+          "parameters": {
+            "format": "{{ $event.currentTarget.dataset.format }}"
+          }
+        }
+      ]
+    },
+    "onMore": {
+      "chains": [
+        {
+          "chain": "setChain",
+          "parameters": {
+            "field": "limit",
+            "value": "more"
+          }
+        }
+      ]
+    },
+    "onNew": {
+      "chains": [
+        {
+          "chain": "openScreenChain",
+          "parameters": {
+            "navId": "new-request"
+          }
+        }
+      ]
+    },
+    "onPop": {
+      "chains": [
+        {
+          "chain": "popChain",
+          "parameters": {
+            "action": "{{ $event.currentTarget.dataset.action }}",
+            "value": "{{ $event.currentTarget.dataset.value }}"
+          }
+        }
+      ]
+    },
+    "onPopReason": {
+      "chains": [
+        {
+          "chain": "popChain",
+          "parameters": {
+            "action": "reasonText",
+            "value": "{{ $event.target.value }}"
+          }
+        }
+      ]
+    },
+    "onPopApprove": {
+      "chains": [
+        {
+          "chain": "popChain",
+          "parameters": {
+            "action": "approve",
+            "id": "{{ $variables.pop.id }}",
+            "number": "{{ $variables.pop.number }}"
+          }
+        }
+      ]
+    },
+    "focusRequest": {
+      "chains": [
+        {
+          "chain": "focusChain"
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-if": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-text": {
+        "path": "ojs/ojknockout"
+      }
+    }
+  }
+}

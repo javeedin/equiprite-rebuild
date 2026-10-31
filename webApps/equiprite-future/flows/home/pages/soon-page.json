@@ -1,0 +1,9 @@
+{
+  "description": "Stands in for a screen not built in Next yet: says so and opens the same screen in New EquipRite (or Old).",
+  "navigation": { "embeddable": "enabled" },
+  "variables": {
+    "navId": { "type": "string", "defaultValue": "", "input": "fromCaller" }
+  },
+  "eventListeners": {},
+  "imports": { "components": { "oj-bind-if": { "path": "ojs/ojknockout" }, "oj-bind-text": { "path": "ojs/ojknockout" } } }
+}

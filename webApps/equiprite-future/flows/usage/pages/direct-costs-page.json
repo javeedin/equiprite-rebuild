@@ -1,0 +1,95 @@
+{
+  "description": "Direct cost & inventory (FDD 7.9.1A, 7.9.2A, S25): for an active request, what its consumables have used and what is left, the material issues recorded, its direct costs and its cost history. Reads New EquipRite's calls (views/my-requests through requestData, views/request-detail-lines, inventory-consumptions, direct-cost-txns, views/project-cost-detail). Recording a material issue or a direct cost posts to Fusion (a miscellaneous issue, an expenditure item), so it is left to New EquipRite; nothing is written here. Logic: resources/js/directCost.js (New's rules, unchanged).",
+  "navigation": {
+    "embeddable": "enabled"
+  },
+  "variables": {
+    "closed": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "requests": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Active requests (New's activeRequests over views/my-requests)."
+    },
+    "requestText": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "isLoading": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "loadError": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "current": {
+      "type": "any",
+      "defaultValue": null
+    },
+    "lines": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "New's issuableLines of views/request-detail-lines."
+    },
+    "consumptions": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "directCosts": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "costRows": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "detailLoading": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "detailError": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "exportOpen": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "Which card's export menu is open: requests | lines | issues | direct | history."
+    }
+  },
+  "eventListeners": {
+    "vbEnter": {
+      "chains": [{ "chain": "loadChain", "parameters": { "refresh": false } }]
+    },
+    "onRefresh": {
+      "chains": [{ "chain": "loadChain", "parameters": { "refresh": true } }]
+    },
+    "onRequestSearch": {
+      "chains": [{ "chain": "setChain", "parameters": { "field": "requestText", "value": "{{ $event.target.value }}" } }]
+    },
+    "onPickRequest": {
+      "chains": [{ "chain": "pickRequestChain", "parameters": { "id": "{{ $event.currentTarget.dataset.id }}" } }]
+    },
+    "onExportMenu": {
+      "chains": [{ "chain": "setChain", "parameters": { "field": "exportOpen", "value": "{{ $event.currentTarget.dataset.what }}" } }]
+    },
+    "onExport": {
+      "chains": [
+        {
+          "chain": "exportChain",
+          "parameters": { "format": "{{ $event.currentTarget.dataset.format }}", "what": "{{ $event.currentTarget.dataset.what }}" }
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}

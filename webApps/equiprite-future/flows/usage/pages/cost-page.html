@@ -1,0 +1,589 @@
+<!-- A request's costs, in its own tab: what is ready to post, what was posted, what is running, and the cost week by week.
+     Who may post ticks what to post (everything ready is ticked), splits a week, excludes days, adds charges, sets the
+     expenditure type, sees what will be posted and exactly what will be sent, and posts it to Fusion PPM with New
+     EquipRite's calls (postChain). A role that may only look sees what would be posted. -->
+<div class="nx-page nx-record nx-pr">
+  <oj-bind-if test="[[ !!$variables.closed ]]">
+    <div class="nx-card nx-empty" role="alert"><oj-bind-text value="[[ $variables.closed ]]"></oj-bind-text></div>
+  </oj-bind-if>
+  <oj-bind-if test="[[ $variables.isLoading && !$variables.facts.total && !$variables.closed ]]">
+    <div class="nx-card nx-empty">Loading the request's costs…</div>
+  </oj-bind-if>
+  <oj-bind-if test="[[ !!$variables.error ]]">
+    <div class="nx-error" role="alert" id="prError"><oj-bind-text value="[[ $variables.error ]]"></oj-bind-text>
+      <button type="button" class="nx-link" on-click="[[ $listeners.onOpenList ]]">Open Post costs</button></div>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ !$variables.closed && !!$variables.row.requestNumber ]]">
+    <div class="nx-pagehead">
+      <div>
+        <div class="nx-kicker">Request costs</div>
+        <h1 class="nx-record-title">
+          <oj-bind-text value="[[ $variables.row.requestNumber ]]"></oj-bind-text>
+          <oj-bind-if test="[[ !!$functions.headWord($variables.facts) ]]">
+            <span :class="[[ 'nx-pill nx-record-pill nx-stage--' + $functions.headTone($variables.facts) ]]" id="prHead"><oj-bind-text value="[[ $functions.headWord($variables.facts) ]]"></oj-bind-text></span>
+          </oj-bind-if>
+        </h1>
+        <div class="nx-sub"><oj-bind-text value="[[ $functions.subline($variables.row) ]]"></oj-bind-text></div>
+      </div>
+      <div class="nx-actions">
+        <button type="button" class="nx-btn nx-btn--plain" on-click="[[ $listeners.onRefresh ]]" :disabled="[[ $variables.isLoading || $variables.isPosting ]]">
+          <span class="oj-ux-ico-refresh" aria-hidden="true"></span>Refresh</button>
+        <div class="nx-export">
+          <button type="button" class="nx-btn" id="prExport" on-click="[[ $listeners.onExportMenu ]]" aria-haspopup="menu"
+            :aria-expanded="[[ $variables.exportOpen ? 'true' : 'false' ]]"><span class="oj-ux-ico-download" aria-hidden="true"></span>Export
+            <span class="oj-ux-ico-chevron-down" aria-hidden="true"></span></button>
+          <oj-bind-if test="[[ $variables.exportOpen ]]">
+            <div class="nx-menu nx-u-menu" role="menu" aria-label="Export">
+              <p class="nx-u-menu-head"><oj-bind-text value="[[ ($variables.readOnly ? 'What would be posted, ' : 'What will be posted, ') + $functions.plural($variables.plan.length, 'line') ]]"></oj-bind-text></p>
+              <oj-bind-for-each data="[[ $functions.formats() ]]">
+                <template data-oj-as="f">
+                  <button type="button" role="menuitem" class="nx-menu-item" data-what="plan" :data-format="[[ f.data.key ]]" on-click="[[ $listeners.onExport ]]">
+                    <span :class="[[ f.data.icon ]]" aria-hidden="true"></span><oj-bind-text value="[[ f.data.label ]]"></oj-bind-text></button>
+                </template>
+              </oj-bind-for-each>
+              <p class="nx-u-menu-head">The cost week by week</p>
+              <oj-bind-for-each data="[[ $functions.formats() ]]">
+                <template data-oj-as="f">
+                  <button type="button" role="menuitem" class="nx-menu-item" data-what="weeks" :data-format="[[ f.data.key ]]" on-click="[[ $listeners.onExport ]]">
+                    <span :class="[[ f.data.icon ]]" aria-hidden="true"></span><oj-bind-text value="[[ f.data.label ]]"></oj-bind-text></button>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </oj-bind-if>
+        </div>
+        <oj-bind-if test="[[ !$variables.readOnly ]]">
+          <button type="button" class="nx-btn nx-btn--primary" id="prPost" data-panel="post" on-click="[[ $listeners.onPanel ]]"
+            :disabled="[[ $variables.isPosting || $variables.isLoading || $functions.selection($variables.rowsAll).items === 0 ]]"
+            title="Review what will be recorded and sent, then post it to Fusion PPM">
+            <span class="oj-ux-ico-send" aria-hidden="true"></span><oj-bind-text value="[[ $functions.postLabel($variables.rowsAll) ]]"></oj-bind-text></button>
+        </oj-bind-if>
+      </div>
+    </div>
+
+    <section class="nx-kpis nx-u-kpis" aria-label="This request">
+      <div class="nx-kpi nx-u-kpi--ready" id="prKpiReady">
+        <span class="nx-kpi-label">Ready to post</span>
+        <span class="nx-kpi-value"><oj-bind-text value="[[ $functions.money($variables.facts.ready) ]]"></oj-bind-text></span>
+        <span class="nx-kpi-note"><oj-bind-text value="[[ $functions.readyNote($variables.facts) ]]"></oj-bind-text></span>
+      </div>
+      <div class="nx-kpi nx-u-kpi--done" id="prKpiPosted">
+        <span class="nx-kpi-label">Posted</span>
+        <span class="nx-kpi-value"><oj-bind-text value="[[ $functions.money($variables.facts.posted) ]]"></oj-bind-text></span>
+        <span class="nx-kpi-note"><oj-bind-text value="[[ $variables.facts.lastPosted ? 'Last posted ' + $variables.facts.lastPosted : 'Nothing posted yet' ]]"></oj-bind-text></span>
+      </div>
+      <div class="nx-kpi nx-u-kpi--run" id="prKpiRunning">
+        <span class="nx-kpi-label">Running, not ended</span>
+        <span class="nx-kpi-value"><oj-bind-text value="[[ $functions.money($variables.facts.running) ]]"></oj-bind-text></span>
+        <span class="nx-kpi-note"><oj-bind-text value="[[ $variables.facts.runningWeeks ? $functions.plural($variables.facts.runningWeeks, 'week') + ', ready once it ends' : 'No week running' ]]"></oj-bind-text></span>
+      </div>
+      <div class="nx-kpi nx-u-kpi--muted" id="prKpiTotal">
+        <span class="nx-kpi-label">Cost to date</span>
+        <span class="nx-kpi-value"><oj-bind-text value="[[ $functions.money($variables.facts.total) ]]"></oj-bind-text></span>
+        <span class="nx-kpi-note"><oj-bind-text value="[[ $variables.facts.pending ? $functions.money($variables.facts.pending) + ' waits for its Fusion material issue' : (($variables.facts.netAdjustment ? 'Net re-tier adjustment ' + $functions.money($variables.facts.netAdjustment) : 'Weeks not started left out')) ]]"></oj-bind-text></span>
+      </div>
+    </section>
+
+    <oj-bind-if test="[[ $variables.readOnly ]]">
+      <div class="nx-u-fusion" id="prReadOnly">
+        <p><strong>Your role can see these costs, not post them.</strong> This is what would be recorded and sent to Fusion PPM if everything
+          ready were posted now. Someone with Post costs can post it from here.</p>
+      </div>
+    </oj-bind-if>
+    <oj-bind-if test="[[ !!$variables.postError ]]">
+      <div class="nx-error" role="alert" id="prPostError"><oj-bind-text value="[[ $variables.postError ]]"></oj-bind-text></div>
+    </oj-bind-if>
+    <oj-bind-if test="[[ !!$variables.postNote ]]">
+      <div class="nx-u-ok" role="status" id="prPostNote"><oj-bind-text value="[[ $variables.postNote ]]"></oj-bind-text></div>
+    </oj-bind-if>
+
+    <oj-bind-if test="[[ $functions.hasResult($variables.result) && $variables.panel !== 'post' ]]">
+      <section class="nx-card" id="prResult" aria-labelledby="prResultTitle">
+        <div class="nx-card-head"><h2 id="prResultTitle">The last post</h2>
+          <span class="nx-note"><oj-bind-text value="[[ $variables.result.number ]]"></oj-bind-text></span></div>
+        <div class="nx-pp-pad">
+          <div :class="[[ $functions.toneClass($variables.result.tone) ]]" role="status"><oj-bind-text value="[[ $variables.result.summary ]]"></oj-bind-text></div>
+          <ul class="nx-pp-lines" aria-label="Each line">
+            <oj-bind-for-each data="[[ $functions.linesOf($variables.result) ]]">
+              <template data-oj-as="l">
+                <li :data-key="[[ l.data.key ]]"><span class="nx-pp-line-main"><strong><oj-bind-text value="[[ l.data.what ]]"></oj-bind-text></strong>
+                  <span class="nx-pp-line-words"><oj-bind-text value="[[ l.data.words ]]"></oj-bind-text></span></span>
+                  <span class="nx-num"><oj-bind-text value="[[ $functions.money(l.data.amount) ]]"></oj-bind-text></span>
+                  <span :class="[[ 'nx-pill nx-stage--' + $functions.stateTone(l.data.state) ]]"><oj-bind-text value="[[ $functions.stateWord(l.data.state) ]]"></oj-bind-text></span></li>
+              </template>
+            </oj-bind-for-each>
+            <oj-bind-for-each data="[[ $functions.chargeLines($variables.result.charges) ]]">
+              <template data-oj-as="l">
+                <li data-key="charges"><span class="nx-pp-line-main"><strong><oj-bind-text value="[[ l.data.what ]]"></oj-bind-text></strong>
+                  <span class="nx-pp-line-words"><oj-bind-text value="[[ l.data.words ]]"></oj-bind-text></span></span>
+                  <span class="nx-num"><oj-bind-text value="[[ $functions.money(l.data.amount) ]]"></oj-bind-text></span>
+                  <span :class="[[ 'nx-pill nx-stage--' + $functions.stateTone(l.data.state) ]]"><oj-bind-text value="[[ $functions.stateWord(l.data.state) ]]"></oj-bind-text></span></li>
+              </template>
+            </oj-bind-for-each>
+            <li data-key="fusion"><span class="nx-pp-line-main"><strong>Fusion PPM</strong>
+              <span class="nx-pp-line-words"><oj-bind-text value="[[ $variables.result.fusion.words ]]"></oj-bind-text></span></span>
+              <span class="nx-num"></span>
+              <span :class="[[ 'nx-pill nx-stage--' + $functions.stateTone($variables.result.fusion.state) ]]"><oj-bind-text value="[[ $functions.stateWord($variables.result.fusion.state) ]]"></oj-bind-text></span></li>
+          </ul>
+        </div>
+      </section>
+    </oj-bind-if>
+
+    <oj-bind-if test="[[ !!$variables.reverseAsk ]]">
+      <div class="nx-u-confirm" role="alertdialog" aria-labelledby="prRevTitle" id="prReverse">
+        <span id="prRevTitle">
+          <strong><oj-bind-text value="[[ 'Reverse ' + $functions.reversePreview($variables.rowsAll, $variables.reverseAsk).weeks + ' posted week(s) of '
+            + $functions.reversePreview($variables.rowsAll, $variables.reverseAsk).equipment + '?' ]]"></oj-bind-text></strong>
+          <oj-bind-text value="[[ ' ' + $functions.reversePreview($variables.rowsAll, $variables.reverseAsk).labels.join(', ') + '. Credits '
+            + $functions.money($functions.reversePreview($variables.rowsAll, $variables.reverseAsk).credit) + ' and drafts '
+            + $functions.money($functions.reversePreview($variables.rowsAll, $variables.reverseAsk).redraft)
+            + ' at the new tier. Nothing goes to Fusion PPM until you post the drafts.' ]]"></oj-bind-text>
+        </span>
+        <span class="nx-actions">
+          <button type="button" class="nx-btn nx-btn--plain" on-click="[[ $listeners.onReverseCancel ]]">Cancel</button>
+          <button type="button" class="nx-btn nx-btn--danger" on-click="[[ $listeners.onReverseGo ]]" :disabled="[[ $variables.isPosting ]]">Reverse and re-draft</button>
+        </span>
+      </div>
+    </oj-bind-if>
+
+    <section class="nx-card" aria-labelledby="prPlanTitle">
+      <div class="nx-card-head">
+        <h2 id="prPlanTitle"><oj-bind-text value="[[ ($variables.readOnly ? 'What would be posted (' : 'What will be posted (') + $variables.plan.length + ')' ]]"></oj-bind-text></h2>
+        <strong class="nx-num" id="prPlanTotal"><oj-bind-text value="[[ $functions.money($functions.planTotal($variables.plan)) ]]"></oj-bind-text></strong>
+      </div>
+      <oj-bind-if test="[[ !$variables.readOnly && $functions.readyCount($variables.rowsAll) > 0 ]]">
+        <div class="nx-pp-bar">
+          <span class="nx-pp-bar-text" id="prTicked"><oj-bind-text value="[[ $functions.tickedText($variables.rowsAll) + ' · tick or untick the weeks and charges below' ]]"></oj-bind-text></span>
+          <span class="nx-actions">
+            <button type="button" class="nx-btn nx-btn--plain nx-btn--sm" id="prSelectAll" data-action="all" on-click="[[ $listeners.onTree ]]" :disabled="[[ $variables.isPosting ]]">Select all ready</button>
+            <button type="button" class="nx-btn nx-btn--plain nx-btn--sm" id="prSelectNone" data-action="none" on-click="[[ $listeners.onTree ]]" :disabled="[[ $variables.isPosting ]]">Select none</button>
+          </span>
+        </div>
+      </oj-bind-if>
+      <oj-bind-if test="[[ $variables.plan.length === 0 ]]">
+        <div class="nx-empty"><oj-bind-text value="[[ $variables.isLoading ? 'Working it out…' : ($functions.readyCount($variables.rowsAll) > 0 && !$variables.readOnly
+          ? 'Nothing is ticked. Tick the weeks and charges to post, or Select all ready.' : 'Nothing is ready to post: no week has ended that is not posted, and no charge is waiting.') ]]"></oj-bind-text></div>
+      </oj-bind-if>
+      <oj-bind-if test="[[ $variables.plan.length > 0 ]]">
+        <div class="nx-table">
+          <div class="nx-grid nx-grid--plan" role="table" :aria-label="[[ $variables.readOnly ? 'What would be posted' : 'What will be posted' ]]">
+            <div class="nx-row nx-row--head" role="row">
+              <span role="columnheader">What</span><span role="columnheader">Quantity</span><span role="columnheader">Expenditure type</span>
+              <span role="columnheader">Posts to</span><span role="columnheader" class="nx-u-cell-r">Amount</span>
+            </div>
+            <oj-bind-for-each data="[[ $variables.plan ]]">
+              <template data-oj-as="p">
+                <div class="nx-row" role="row" :data-key="[[ p.data.key ]]">
+                  <span role="cell"><span class="nx-cell-main"><oj-bind-text value="[[ p.data.what ]]"></oj-bind-text></span>
+                    <oj-bind-if test="[[ !!p.data.note ]]"><span class="nx-cell-sub nx-pr-note"><oj-bind-text value="[[ p.data.note ]]"></oj-bind-text></span></oj-bind-if></span>
+                  <span role="cell" class="nx-num"><oj-bind-text value="[[ p.data.quantity ]]"></oj-bind-text></span>
+                  <span role="cell"><oj-bind-text value="[[ p.data.expType ]]"></oj-bind-text></span>
+                  <span role="cell"><oj-bind-text value="[[ p.data.destination ]]"></oj-bind-text></span>
+                  <span role="cell" class="nx-u-cell-r nx-num"><strong><oj-bind-text value="[[ $functions.money(p.data.amount) ]]"></oj-bind-text></strong></span>
+                </div>
+              </template>
+            </oj-bind-for-each>
+          </div>
+        </div>
+        <oj-bind-if test="[[ !$variables.readOnly ]]">
+          <div class="nx-pp-foot">
+            <details class="nx-pp-calls" id="prCalls">
+              <summary><oj-bind-text value="[[ 'Exactly what is sent: ' + $functions.plural($functions.calls($variables.rowsAll, $variables.row).length, 'call') + ', in this order' ]]"></oj-bind-text></summary>
+              <ol class="nx-pp-calllist">
+                <oj-bind-for-each data="[[ $functions.calls($variables.rowsAll, $variables.row) ]]">
+                  <template data-oj-as="c">
+                    <li>
+                      <span class="nx-pp-call-what"><strong><oj-bind-text value="[[ c.data.n + '. ' + c.data.what ]]"></oj-bind-text></strong></span>
+                      <code class="nx-pp-code"><oj-bind-text value="[[ c.data.method + ' ' + c.data.path ]]"></oj-bind-text></code>
+                      <pre class="nx-pp-body"><oj-bind-text value="[[ c.data.body ]]"></oj-bind-text></pre>
+                      <oj-bind-if test="[[ !!c.data.note ]]"><span class="nx-note"><oj-bind-text value="[[ c.data.note ]]"></oj-bind-text></span></oj-bind-if>
+                    </li>
+                  </template>
+                </oj-bind-for-each>
+              </ol>
+            </details>
+            <button type="button" class="nx-btn nx-btn--primary" id="prPostBottom" data-panel="post" on-click="[[ $listeners.onPanel ]]"
+              :disabled="[[ $variables.isPosting || $variables.isLoading ]]"><oj-bind-text value="[[ $functions.postLabel($variables.rowsAll) ]]"></oj-bind-text></button>
+          </div>
+        </oj-bind-if>
+      </oj-bind-if>
+    </section>
+
+    <section class="nx-card" aria-labelledby="prWeeksTitle">
+      <div class="nx-card-head"><h2 id="prWeeksTitle">The cost week by week</h2>
+        <span class="nx-note"><oj-bind-text value="[[ $variables.readOnly ? 'Weeks not started are left out until they are posted.'
+          : 'Tick what to post. Exclude days a machine was down, split a week across projects, add a charge or set the expenditure type.' ]]"></oj-bind-text></span></div>
+      <oj-bind-if test="[[ $variables.table.length === 0 ]]">
+        <div class="nx-empty"><oj-bind-text value="[[ $variables.isLoading ? 'Loading…' : 'No cost on this request yet.' ]]"></oj-bind-text></div>
+      </oj-bind-if>
+      <oj-bind-if test="[[ $variables.table.length > 0 ]]">
+        <div class="nx-table">
+          <div :class="[[ 'nx-grid nx-grid--pr' + ($variables.readOnly ? '' : ' nx-pr-pick') ]]" role="table" aria-label="Cost by equipment and week">
+            <div class="nx-row nx-row--head nx-pr-row" role="row">
+              <oj-bind-if test="[[ !$variables.readOnly ]]"><span role="columnheader" class="nx-pr-c-pick"><span class="nx-sr">Post</span></span></oj-bind-if>
+              <span role="columnheader">Equipment · week</span><span role="columnheader">State</span><span role="columnheader">Rate</span>
+              <span role="columnheader" class="nx-u-cell-r">Days</span><span role="columnheader">Expenditure type</span><span role="columnheader">Posts to</span>
+              <span role="columnheader" class="nx-u-cell-r">Cost</span>
+            </div>
+            <oj-bind-for-each data="[[ $functions.gridRows($variables.rowsAll, $variables.row, $variables.readOnly) ]]">
+              <template data-oj-as="t">
+                <div role="row" :class="[[ $functions.rowClass(t.data) ]]" :data-key="[[ t.data.key ]]" :data-kind="[[ t.data.kind ]]">
+                  <oj-bind-if test="[[ !$variables.readOnly ]]">
+                    <span role="cell" class="nx-pr-c-pick">
+                      <oj-bind-if test="[[ t.data.kind === 'group' && t.data.canAll ]]">
+                        <input type="checkbox" data-action="group" :data-key="[[ t.data.groupKey ]]" :checked="[[ t.data.allOn ]]" :disabled="[[ $variables.isPosting ]]"
+                          :aria-label="[[ 'Post every ready week of ' + t.data.label ]]" on-change="[[ $listeners.onTick ]]">
+                      </oj-bind-if>
+                      <oj-bind-if test="[[ (t.data.kind === 'week' || t.data.kind === 'misc') && t.data.canTick ]]">
+                        <input type="checkbox" :data-action="[[ t.data.kind ]]" :data-key="[[ t.data.key ]]" :checked="[[ t.data.on ]]" :disabled="[[ $variables.isPosting ]]"
+                          :aria-label="[[ 'Post ' + t.data.equipment + ' ' + t.data.label ]]" on-change="[[ $listeners.onTick ]]">
+                      </oj-bind-if>
+                    </span>
+                  </oj-bind-if>
+                  <span role="cell">
+                    <oj-bind-if test="[[ t.data.kind === 'day' ]]">
+                      <label class="nx-u-check nx-pr-day">
+                        <input type="checkbox" :data-key="[[ t.data.key ]]" :checked="[[ t.data.excluded ]]" :disabled="[[ !t.data.canExclude || $variables.isPosting ]]"
+                          on-change="[[ $listeners.onBlackout ]]"><oj-bind-text value="[[ (t.data.excluded ? 'Excluded: ' : 'Exclude ') + t.data.label ]]"></oj-bind-text></label>
+                      <oj-bind-if test="[[ t.data.inert ]]"><span class="nx-note">recorded, not billed</span></oj-bind-if>
+                      <oj-bind-if test="[[ t.data.locked ]]"><span class="nx-note">posted, frozen</span></oj-bind-if>
+                    </oj-bind-if>
+                    <oj-bind-if test="[[ t.data.kind !== 'day' ]]">
+                      <span class="nx-cell-main"><oj-bind-text value="[[ t.data.label ]]"></oj-bind-text></span>
+                      <span class="nx-cell-sub"><oj-bind-text value="[[ t.data.note ]]"></oj-bind-text>
+                        <oj-bind-if test="[[ t.data.retier ]]"><span class="nx-u-tag nx-u-tag--warn">Tier changed since posting</span></oj-bind-if>
+                        <oj-bind-if test="[[ t.data.reversal ]]"><span class="nx-u-tag nx-u-tag--warn">Line reversed</span></oj-bind-if>
+                        <oj-bind-if test="[[ !!t.data.lockText ]]"><span class="nx-u-tag" :title="[[ t.data.lockWhy ]]"><oj-bind-text value="[[ t.data.lockText ]]"></oj-bind-text></span></oj-bind-if></span>
+                      <span class="nx-pr-acts">
+                        <oj-bind-if test="[[ t.data.kind === 'group' && t.data.canCharge ]]">
+                          <button type="button" class="nx-linkbtn nx-pr-act" data-panel="misc" :data-key="[[ t.data.groupKey ]]" on-click="[[ $listeners.onPanel ]]">Add a charge</button>
+                        </oj-bind-if>
+                        <oj-bind-if test="[[ t.data.kind === 'group' && t.data.canRetier ]]">
+                          <button type="button" class="nx-linkbtn nx-pr-act nx-pr-act--danger" :data-key="[[ t.data.groupKey ]]" on-click="[[ $listeners.onReverse ]]"
+                            title="Reverse the posted weeks whose tier changed and re-draft them at the new rate">Re-tier (reverse)</button>
+                        </oj-bind-if>
+                        <oj-bind-if test="[[ t.data.kind === 'week' && t.data.canDays ]]">
+                          <button type="button" class="nx-linkbtn nx-pr-act" data-action="toggleDays" :data-key="[[ t.data.key ]]" on-click="[[ $listeners.onTree ]]"
+                            :aria-expanded="[[ t.data.daysOpen ? 'true' : 'false' ]]" title="Mark days the equipment was down, so they are not billed">
+                            <oj-bind-text value="[[ t.data.daysOpen ? 'Hide days' : 'Exclude days' ]]"></oj-bind-text></button>
+                        </oj-bind-if>
+                        <oj-bind-if test="[[ t.data.kind === 'week' && t.data.canSplit ]]">
+                          <button type="button" class="nx-linkbtn nx-pr-act" data-panel="split" :data-key="[[ t.data.key ]]" on-click="[[ $listeners.onPanel ]]"
+                            title="Divide this week across more than one project"><oj-bind-text value="[[ t.data.splitText ]]"></oj-bind-text></button>
+                        </oj-bind-if>
+                        <oj-bind-if test="[[ t.data.kind === 'misc' && t.data.canRemove ]]">
+                          <button type="button" class="nx-linkbtn nx-pr-act nx-pr-act--danger" :data-key="[[ t.data.key ]]" on-click="[[ $listeners.onDeleteMisc ]]">Remove</button>
+                        </oj-bind-if>
+                      </span>
+                    </oj-bind-if>
+                  </span>
+                  <span role="cell">
+                    <oj-bind-if test="[[ !!t.data.word ]]">
+                      <span :class="[[ 'nx-pill nx-stage--' + t.data.tone ]]"><oj-bind-text value="[[ t.data.word ]]"></oj-bind-text></span>
+                    </oj-bind-if>
+                  </span>
+                  <span role="cell" class="nx-ellipsis nx-num" :title="[[ t.data.tier ? 'Tier: ' + t.data.tier : '' ]]"><oj-bind-text value="[[ t.data.kind === 'day' ? '' : t.data.rate ]]"></oj-bind-text></span>
+                  <span role="cell" class="nx-u-cell-r nx-num"><oj-bind-text value="[[ t.data.kind === 'day' ? '' : t.data.days ]]"></oj-bind-text></span>
+                  <span role="cell" class="nx-ellipsis">
+                    <oj-bind-if test="[[ t.data.expEdit ]]">
+                      <button type="button" :class="[[ 'nx-linkbtn nx-pr-act' + (t.data.expUnset ? ' nx-pr-act--unset' : '') ]]" data-panel="exptype" :data-key="[[ t.data.groupKey ]]"
+                        on-click="[[ $listeners.onPanel ]]" title="The type this equipment's cost posts to Fusion PPM under"><oj-bind-text value="[[ t.data.expType ]]"></oj-bind-text></button>
+                    </oj-bind-if>
+                    <oj-bind-if test="[[ !t.data.expEdit && t.data.kind !== 'day' ]]"><oj-bind-text value="[[ t.data.expType ]]"></oj-bind-text></oj-bind-if>
+                  </span>
+                  <span role="cell"><oj-bind-text value="[[ t.data.kind === 'day' ? '' : t.data.where ]]"></oj-bind-text></span>
+                  <span role="cell" class="nx-u-cell-r nx-num"><oj-bind-text value="[[ t.data.kind === 'day' && t.data.excluded ? 'excluded' : $functions.money(t.data.cost) ]]"></oj-bind-text></span>
+                </div>
+              </template>
+            </oj-bind-for-each>
+          </div>
+        </div>
+      </oj-bind-if>
+    </section>
+
+    <!-- Post: what will happen, then each line as it goes, then the result -->
+    <oj-bind-if test="[[ $variables.panel === 'post' ]]">
+      <div class="nx-modal">
+        <button type="button" class="nx-modal-scrim" tabindex="-1" aria-label="Close" on-click="[[ $listeners.onPostClose ]]"></button>
+        <section class="nx-dialog nx-dialog--wide" id="prPostDialog" role="dialog" aria-modal="true" aria-labelledby="prPostTitle">
+          <header class="nx-dialog-head">
+            <div class="nx-dialog-titles">
+              <div class="nx-kicker"><oj-bind-text value="[[ $functions.postKicker($variables.post) ]]"></oj-bind-text></div>
+              <h2 id="prPostTitle" class="nx-dialog-title"><oj-bind-text value="[[ $variables.post.step === 'ask' ? $functions.sentence($variables.rowsAll, $variables.row).title
+                : ($variables.post.step === 'posting' ? 'Posting ' + $variables.row.requestNumber : 'The result, line by line') ]]"></oj-bind-text></h2>
+              <div class="nx-sub"><oj-bind-text value="[[ $variables.row.requestNumber + ' · ' + $functions.subline($variables.row) ]]"></oj-bind-text></div>
+            </div>
+            <button type="button" class="nx-iconbtn" aria-label="Close" on-click="[[ $listeners.onPostClose ]]" :disabled="[[ $variables.isPosting ]]"><span class="oj-ux-ico-close" aria-hidden="true"></span></button>
+          </header>
+          <oj-bind-if test="[[ $variables.post.step === 'ask' ]]">
+            <div class="nx-dialog-body">
+              <oj-bind-if test="[[ !!$functions.sentence($variables.rowsAll, $variables.row).split ]]">
+                <p class="nx-pp-split" id="prSplitNote"><oj-bind-text value="[[ $functions.sentence($variables.rowsAll, $variables.row).split ]]"></oj-bind-text></p>
+              </oj-bind-if>
+              <ul class="nx-pp-lines" id="prAskLines" aria-label="What will be posted">
+                <oj-bind-for-each data="[[ $variables.plan ]]">
+                  <template data-oj-as="p">
+                    <li :data-key="[[ p.data.key ]]"><span class="nx-pp-line-main"><strong><oj-bind-text value="[[ p.data.what ]]"></oj-bind-text></strong>
+                      <span class="nx-pp-line-words"><oj-bind-text value="[[ p.data.quantity + ' · ' + p.data.expType + ' · to ' + p.data.destination ]]"></oj-bind-text></span>
+                      <oj-bind-if test="[[ !!p.data.note ]]"><span class="nx-pp-line-words nx-pr-note"><oj-bind-text value="[[ p.data.note ]]"></oj-bind-text></span></oj-bind-if></span>
+                      <strong class="nx-num"><oj-bind-text value="[[ $functions.money(p.data.amount) ]]"></oj-bind-text></strong></li>
+                  </template>
+                </oj-bind-for-each>
+              </ul>
+              <div class="nx-pp-total"><span>Total to post</span><strong class="nx-num" id="prAskTotal"><oj-bind-text value="[[ $functions.money($functions.planTotal($variables.plan)) ]]"></oj-bind-text></strong></div>
+              <div class="nx-pop-after">
+                <strong>What posting does</strong>
+                <ol class="nx-miniflow" aria-label="The steps" id="prSteps">
+                  <oj-bind-for-each data="[[ $functions.steps($variables.rowsAll, $variables.row) ]]">
+                    <template data-oj-as="s"><li><oj-bind-text value="[[ s.data ]]"></oj-bind-text></li></template>
+                  </oj-bind-for-each>
+                </ol>
+                <span class="nx-note">Fusion PPM takes every recorded line of the request not yet sent, as project expenditure items. Posted weeks
+                  cannot be undone here: a week whose tier changes later is corrected with Re-tier, anything else with Oracle Projects adjustments.</span>
+              </div>
+              <details class="nx-pp-calls">
+                <summary><oj-bind-text value="[[ 'Exactly what is sent: ' + $functions.plural($functions.calls($variables.rowsAll, $variables.row).length, 'call') ]]"></oj-bind-text></summary>
+                <ol class="nx-pp-calllist">
+                  <oj-bind-for-each data="[[ $functions.calls($variables.rowsAll, $variables.row) ]]">
+                    <template data-oj-as="c">
+                      <li>
+                        <span class="nx-pp-call-what"><strong><oj-bind-text value="[[ c.data.n + '. ' + c.data.what ]]"></oj-bind-text></strong></span>
+                        <code class="nx-pp-code"><oj-bind-text value="[[ c.data.method + ' ' + c.data.path ]]"></oj-bind-text></code>
+                        <pre class="nx-pp-body"><oj-bind-text value="[[ c.data.body ]]"></oj-bind-text></pre>
+                      </li>
+                    </template>
+                  </oj-bind-for-each>
+                </ol>
+              </details>
+            </div>
+            <footer class="nx-dialog-foot">
+              <span class="nx-spacer"></span>
+              <button type="button" class="nx-btn nx-btn--plain" on-click="[[ $listeners.onPostClose ]]">Cancel</button>
+              <button type="button" class="nx-btn nx-btn--primary" id="prGo" on-click="[[ $listeners.onPost ]]" :disabled="[[ $variables.isPosting ]]">
+                <oj-bind-text value="[[ 'Post ' + $functions.money($functions.planTotal($variables.plan)) + ' to Fusion PPM' ]]"></oj-bind-text></button>
+            </footer>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.post.step !== 'ask' ]]">
+            <div class="nx-dialog-body">
+              <oj-bind-if test="[[ !!$variables.post.summary ]]">
+                <div :class="[[ $functions.toneClass($variables.post.tone) ]]" role="status" id="prPostSummary"><oj-bind-text value="[[ $variables.post.summary ]]"></oj-bind-text></div>
+              </oj-bind-if>
+              <ul class="nx-pp-lines" id="prPostLines" aria-label="Each line" aria-live="polite">
+                <oj-bind-for-each data="[[ $functions.linesOf($variables.post) ]]">
+                  <template data-oj-as="l">
+                    <li :data-key="[[ l.data.key ]]" :data-state="[[ l.data.state ]]"><span class="nx-pp-line-main"><strong><oj-bind-text value="[[ l.data.what ]]"></oj-bind-text></strong>
+                      <span class="nx-pp-line-words"><oj-bind-text value="[[ l.data.words ]]"></oj-bind-text></span></span>
+                      <span class="nx-num"><oj-bind-text value="[[ $functions.money(l.data.amount) ]]"></oj-bind-text></span>
+                      <span :class="[[ 'nx-pill nx-stage--' + $functions.stateTone(l.data.state) ]]"><oj-bind-text value="[[ $functions.stateWord(l.data.state) ]]"></oj-bind-text></span></li>
+                  </template>
+                </oj-bind-for-each>
+                <oj-bind-for-each data="[[ $functions.chargeLines($variables.post.charges) ]]">
+                  <template data-oj-as="l">
+                    <li data-key="charges" :data-state="[[ l.data.state ]]"><span class="nx-pp-line-main"><strong><oj-bind-text value="[[ l.data.what ]]"></oj-bind-text></strong>
+                      <span class="nx-pp-line-words"><oj-bind-text value="[[ l.data.words ]]"></oj-bind-text></span></span>
+                      <span class="nx-num"><oj-bind-text value="[[ $functions.money(l.data.amount) ]]"></oj-bind-text></span>
+                      <span :class="[[ 'nx-pill nx-stage--' + $functions.stateTone(l.data.state) ]]"><oj-bind-text value="[[ $functions.stateWord(l.data.state) ]]"></oj-bind-text></span></li>
+                  </template>
+                </oj-bind-for-each>
+                <oj-bind-if test="[[ !!($variables.post.fusion && $variables.post.fusion.state) ]]">
+                  <li data-key="fusion" :data-state="[[ $variables.post.fusion.state ]]"><span class="nx-pp-line-main"><strong>Fusion PPM</strong>
+                    <span class="nx-pp-line-words"><oj-bind-text value="[[ $variables.post.fusion.words ]]"></oj-bind-text></span></span>
+                    <span class="nx-num"></span>
+                    <span :class="[[ 'nx-pill nx-stage--' + $functions.stateTone($variables.post.fusion.state) ]]"><oj-bind-text value="[[ $functions.stateWord($variables.post.fusion.state) ]]"></oj-bind-text></span></li>
+                </oj-bind-if>
+              </ul>
+              <oj-bind-if test="[[ $variables.post.rereading ]]"><p class="nx-note">Reading the costs of the request again…</p></oj-bind-if>
+            </div>
+            <footer class="nx-dialog-foot">
+              <span class="nx-spacer"></span>
+              <button type="button" class="nx-btn nx-btn--primary" id="prPostDone" on-click="[[ $listeners.onPostClose ]]" :disabled="[[ $variables.isPosting ]]">
+                <oj-bind-text value="[[ $variables.isPosting ? 'Posting…' : 'Close' ]]"></oj-bind-text></button>
+            </footer>
+          </oj-bind-if>
+        </section>
+      </div>
+    </oj-bind-if>
+
+    <!-- Add a charge -->
+    <oj-bind-if test="[[ $variables.panel === 'misc' ]]">
+      <div class="nx-modal">
+        <button type="button" class="nx-modal-scrim" tabindex="-1" aria-label="Close" on-click="[[ $listeners.onClosePanel ]]"></button>
+        <section class="nx-dialog" id="prMiscDialog" role="dialog" aria-modal="true" aria-labelledby="prMiscTitle">
+          <header class="nx-dialog-head">
+            <div class="nx-dialog-titles">
+              <div class="nx-kicker">Add a charge</div>
+              <h2 id="prMiscTitle" class="nx-dialog-title"><oj-bind-text value="[[ $variables.misc.line.equipmentName ]]"></oj-bind-text></h2>
+              <div class="nx-sub">Saved as a draft on this equipment, then posted with the weeks you tick.</div>
+            </div>
+            <button type="button" class="nx-iconbtn" aria-label="Close" on-click="[[ $listeners.onClosePanel ]]"><span class="oj-ux-ico-close" aria-hidden="true"></span></button>
+          </header>
+          <div class="nx-dialog-body">
+            <oj-bind-if test="[[ !!$variables.misc.error ]]"><div class="nx-error" role="alert"><oj-bind-text value="[[ $variables.misc.error ]]"></oj-bind-text></div></oj-bind-if>
+            <div class="nx-pp-form">
+              <label class="nx-pp-field nx-pp-field--wide"><span class="nx-pp-label">Expenditure type</span>
+                <input class="nx-pp-input" id="prMiscType" list="prExpTypes" data-field="expenditureType" :value="[[ $variables.misc.draft.expenditureType ]]" on-change="[[ $listeners.onMiscField ]]"></label>
+              <label class="nx-pp-field nx-pp-field--wide"><span class="nx-pp-label">Expenditure organization</span>
+                <input class="nx-pp-input" readonly="" :value="[[ $variables.misc.draft.expenditureOrg ]]"></label>
+              <label class="nx-pp-field"><span class="nx-pp-label">Item date</span>
+                <input class="nx-pp-input" id="prMiscDate" type="date" data-field="expItemDate" :value="[[ $variables.misc.draft.expItemDate ]]" on-change="[[ $listeners.onMiscField ]]"></label>
+              <label class="nx-pp-field"><span class="nx-pp-label">Quantity</span>
+                <input class="nx-pp-input" id="prMiscQty" type="number" min="0" step="1" data-field="quantity" :value="[[ $variables.misc.draft.quantity ]]" on-change="[[ $listeners.onMiscField ]]"></label>
+              <label class="nx-pp-field"><span class="nx-pp-label">Amount (USD)</span>
+                <input class="nx-pp-input" id="prMiscAmount" type="number" min="0" step="0.01" data-field="rawCost" :value="[[ $variables.misc.draft.rawCost == null ? '' : $variables.misc.draft.rawCost ]]" on-change="[[ $listeners.onMiscField ]]"></label>
+              <label class="nx-pp-field"><span class="nx-pp-label">Currency</span>
+                <input class="nx-pp-input" readonly="" :value="[[ $variables.misc.draft.currency ]]"></label>
+              <label class="nx-pp-field nx-pp-field--wide"><span class="nx-pp-label">Description (sent to PPM)</span>
+                <textarea class="nx-pp-input" id="prMiscComments" rows="2" data-field="comments" :value="[[ $variables.misc.draft.comments ]]" on-change="[[ $listeners.onMiscField ]]"></textarea></label>
+            </div>
+            <datalist id="prExpTypes">
+              <oj-bind-for-each data="[[ $variables.expTypeList ]]">
+                <template data-oj-as="o"><option :value="[[ o.data.value ]]"></option></template>
+              </oj-bind-for-each>
+            </datalist>
+          </div>
+          <footer class="nx-dialog-foot">
+            <span class="nx-spacer"></span>
+            <button type="button" class="nx-btn nx-btn--plain" on-click="[[ $listeners.onClosePanel ]]">Cancel</button>
+            <button type="button" class="nx-btn nx-btn--primary" id="prMiscSave" on-click="[[ $listeners.onSaveMisc ]]" :disabled="[[ $variables.isSavingMisc ]]">
+              <oj-bind-text value="[[ $variables.isSavingMisc ? 'Saving…' : 'Add charge' ]]"></oj-bind-text></button>
+          </footer>
+        </section>
+      </div>
+    </oj-bind-if>
+
+    <!-- An equipment's expenditure type -->
+    <oj-bind-if test="[[ $variables.panel === 'exptype' ]]">
+      <div class="nx-modal">
+        <button type="button" class="nx-modal-scrim" tabindex="-1" aria-label="Close" on-click="[[ $listeners.onClosePanel ]]"></button>
+        <section class="nx-dialog" id="prExpDialog" role="dialog" aria-modal="true" aria-labelledby="prExpTitle">
+          <header class="nx-dialog-head">
+            <div class="nx-dialog-titles">
+              <div class="nx-kicker">Expenditure type</div>
+              <h2 id="prExpTitle" class="nx-dialog-title"><oj-bind-text value="[[ $variables.exp.line.equipmentName ]]"></oj-bind-text></h2>
+              <div class="nx-sub">Every week not yet posted posts to Fusion PPM under it. Left unset, it posts as Equipment.</div>
+            </div>
+            <button type="button" class="nx-iconbtn" aria-label="Close" on-click="[[ $listeners.onClosePanel ]]"><span class="oj-ux-ico-close" aria-hidden="true"></span></button>
+          </header>
+          <div class="nx-dialog-body">
+            <oj-bind-if test="[[ $variables.exp.line.hasPosted ]]">
+              <div class="nx-u-note">Some weeks are already posted; they keep the type they were sent with.</div>
+            </oj-bind-if>
+            <oj-bind-if test="[[ !!$variables.exp.error ]]"><div class="nx-error" role="alert"><oj-bind-text value="[[ $variables.exp.error ]]"></oj-bind-text></div></oj-bind-if>
+            <label class="nx-search nx-pp-search">
+              <span class="oj-ux-ico-search" aria-hidden="true"></span>
+              <input type="search" id="prExpFind" placeholder="Find a type" aria-label="Find an expenditure type" on-input="[[ $listeners.onExpQuery ]]">
+            </label>
+            <div class="nx-pp-opts" role="listbox" aria-label="Expenditure types">
+              <oj-bind-for-each data="[[ $functions.expMatches($variables.expTypeList, $variables.exp.query, 40) ]]">
+                <template data-oj-as="o">
+                  <button type="button" role="option" :data-value="[[ o.data.value ]]" on-click="[[ $listeners.onExpPick ]]"
+                    :aria-selected="[[ $variables.exp.choice === o.data.value ? 'true' : 'false' ]]"
+                    :class="[[ 'nx-pp-opt' + ($variables.exp.choice === o.data.value ? ' nx-pp-opt--on' : '') ]]">
+                    <oj-bind-text value="[[ o.data.label + (o.data.uom ? ' · ' + o.data.uom : '') ]]"></oj-bind-text></button>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </div>
+          <footer class="nx-dialog-foot">
+            <span class="nx-spacer"></span>
+            <button type="button" class="nx-btn nx-btn--plain" on-click="[[ $listeners.onClosePanel ]]">Cancel</button>
+            <button type="button" class="nx-btn nx-btn--primary" id="prExpSave" on-click="[[ $listeners.onSaveExp ]]" :disabled="[[ $variables.isSavingExp || !$variables.exp.choice ]]">
+              <oj-bind-text value="[[ $variables.isSavingExp ? 'Saving…' : 'Use ' + ($variables.exp.choice || 'this type') ]]"></oj-bind-text></button>
+          </footer>
+        </section>
+      </div>
+    </oj-bind-if>
+
+    <!-- Split a week across projects -->
+    <oj-bind-if test="[[ $variables.panel === 'split' ]]">
+      <div class="nx-modal">
+        <button type="button" class="nx-modal-scrim" tabindex="-1" aria-label="Close" on-click="[[ $listeners.onClosePanel ]]"></button>
+        <section class="nx-dialog nx-dialog--wide" id="prSplitDialog" role="dialog" aria-modal="true" aria-labelledby="prSplitTitle">
+          <header class="nx-dialog-head">
+            <div class="nx-dialog-titles">
+              <div class="nx-kicker">Split across projects</div>
+              <h2 id="prSplitTitle" class="nx-dialog-title"><oj-bind-text value="[[ $variables.split.line.equipmentName + ' · ' + $variables.split.line.weekLabel ]]"></oj-bind-text></h2>
+              <div class="nx-sub"><oj-bind-text value="[[ $functions.money($variables.split.line.weekCost) + '. Percentages only: the amounts are worked out when the week posts. Other weeks are not affected.' ]]"></oj-bind-text></div>
+            </div>
+            <button type="button" class="nx-iconbtn" aria-label="Close" on-click="[[ $listeners.onClosePanel ]]"><span class="oj-ux-ico-close" aria-hidden="true"></span></button>
+          </header>
+          <div class="nx-dialog-body">
+            <oj-bind-if test="[[ $variables.split.line.locked ]]">
+              <div class="nx-u-note"><oj-bind-text value="[[ $variables.split.line.lockReason || 'This week cannot be split.' ]]"></oj-bind-text></div>
+            </oj-bind-if>
+            <ul class="nx-pp-slices" aria-label="The split">
+              <oj-bind-for-each data="[[ $variables.split.slices ]]">
+                <template data-oj-as="s">
+                  <li>
+                    <span class="nx-pp-line-main"><strong><oj-bind-text value="[[ s.data.projectName || s.data.projectNumber ]]"></oj-bind-text></strong>
+                      <span class="nx-pp-line-words"><oj-bind-text value="[[ s.data.projectNumber + ' / task ' + (s.data.taskNumber || '—') + (s.data.taskName ? ' ' + s.data.taskName : '') ]]"></oj-bind-text></span></span>
+                    <span class="nx-pp-pctbox"><input class="nx-pp-input nx-pp-pct" type="number" min="0" max="100" step="0.01" :data-index="[[ '' + s.index ]]" :value="[[ s.data.pct == null ? '' : s.data.pct ]]"
+                      :disabled="[[ $variables.split.line.locked ]]" aria-label="Percentage" on-change="[[ $listeners.onSplitSlicePct ]]"><span>%</span></span>
+                    <oj-bind-if test="[[ !$variables.split.line.locked ]]">
+                      <button type="button" class="nx-linkbtn nx-pr-act nx-pr-act--danger" :data-index="[[ '' + s.index ]]" on-click="[[ $listeners.onSplitRemove ]]">Remove</button>
+                    </oj-bind-if>
+                  </li>
+                </template>
+              </oj-bind-for-each>
+            </ul>
+            <oj-bind-if test="[[ !$variables.split.line.locked ]]">
+              <div class="nx-pp-total"><span id="prSplitTotal"><oj-bind-text value="[[ $functions.splitTotalText($variables.split.slices) ]]"></oj-bind-text></span>
+                <button type="button" class="nx-linkbtn nx-pr-act" id="prSplitEvenly" on-click="[[ $listeners.onSplitEvenly ]]" :disabled="[[ $variables.split.slices.length < 2 ]]">Split evenly</button></div>
+              <oj-bind-if test="[[ !!($variables.split.error || $functions.splitFormError($variables.split.slices, 2, 5)) ]]">
+                <div class="nx-error" role="alert" id="prSplitError"><oj-bind-text value="[[ $variables.split.error || $functions.splitFormError($variables.split.slices, 2, 5) ]]"></oj-bind-text></div>
+              </oj-bind-if>
+              <fieldset class="nx-pp-add">
+                <legend>Add a project</legend>
+                <oj-bind-if test="[[ !$variables.split.pick.projectId ]]">
+                  <label class="nx-search nx-pp-search"><span class="oj-ux-ico-search" aria-hidden="true"></span>
+                    <input type="search" id="prSplitFind" placeholder="Project name, 2 letters or more" aria-label="Find a project" on-input="[[ $listeners.onSplitSearch ]]"></label>
+                  <div class="nx-pp-opts">
+                    <oj-bind-for-each data="[[ $variables.split.results ]]">
+                      <template data-oj-as="p">
+                        <button type="button" class="nx-pp-opt" :data-index="[[ '' + p.index ]]" on-click="[[ $listeners.onSplitProject ]]">
+                          <strong><oj-bind-text value="[[ p.data.ProjectName ]]"></oj-bind-text></strong>
+                          <span class="nx-note"><oj-bind-text value="[[ ' ' + p.data.ProjectNumber ]]"></oj-bind-text></span></button>
+                      </template>
+                    </oj-bind-for-each>
+                  </div>
+                </oj-bind-if>
+                <oj-bind-if test="[[ !!$variables.split.pick.projectId ]]">
+                  <div class="nx-pp-picked" id="prSplitPicked"><strong><oj-bind-text value="[[ $variables.split.pick.projectName ]]"></oj-bind-text></strong>
+                    <span class="nx-note"><oj-bind-text value="[[ $variables.split.pick.projectNumber + ($variables.split.pick.taskNumber ? ' / task ' + $variables.split.pick.taskNumber : ' · pick a task') ]]"></oj-bind-text></span></div>
+                  <oj-bind-if test="[[ !$variables.split.pick.taskId ]]">
+                    <input class="nx-pp-input" type="search" placeholder="Filter the tasks" on-input="[[ $listeners.onSplitTaskQuery ]]" aria-label="Filter the tasks">
+                    <div class="nx-pp-opts">
+                      <oj-bind-for-each data="[[ $functions.taskMatches($variables.split.tasks, $variables.split.taskQuery) ]]">
+                        <template data-oj-as="t">
+                          <button type="button" class="nx-pp-opt" :data-index="[[ '' + t.index ]]" on-click="[[ $listeners.onSplitTask ]]">
+                            <oj-bind-text value="[[ (t.data.TaskNumber || '') + ' ' + (t.data.TaskName || '') ]]"></oj-bind-text></button>
+                        </template>
+                      </oj-bind-for-each>
+                    </div>
+                  </oj-bind-if>
+                  <oj-bind-if test="[[ !!$variables.split.taskError ]]"><div class="nx-error"><oj-bind-text value="[[ $variables.split.taskError ]]"></oj-bind-text></div></oj-bind-if>
+                  <div class="nx-pp-addrow">
+                    <span class="nx-pp-pctbox"><input class="nx-pp-input nx-pp-pickpct" id="prSplitPct" type="number" min="0" max="100" step="0.01" placeholder="%" aria-label="Percentage for this project"
+                      on-change="[[ $listeners.onSplitPickPct ]]"><span>%</span></span>
+                    <button type="button" class="nx-btn nx-btn--plain" id="prSplitAdd" on-click="[[ $listeners.onSplitAdd ]]">Add to the split</button>
+                  </div>
+                </oj-bind-if>
+              </fieldset>
+            </oj-bind-if>
+          </div>
+          <footer class="nx-dialog-foot">
+            <oj-bind-if test="[[ $variables.split.line.splitCount > 0 && !$variables.split.line.locked ]]">
+              <button type="button" class="nx-btn nx-btn--plain nx-u-btn--danger" on-click="[[ $listeners.onSplitClear ]]" :disabled="[[ $variables.isSavingSplit ]]">Remove the split</button>
+            </oj-bind-if>
+            <span class="nx-spacer"></span>
+            <button type="button" class="nx-btn nx-btn--plain" on-click="[[ $listeners.onClosePanel ]]">Close</button>
+            <oj-bind-if test="[[ !$variables.split.line.locked ]]">
+              <button type="button" class="nx-btn nx-btn--primary" id="prSplitSave" on-click="[[ $listeners.onSplitSave ]]"
+                :disabled="[[ $variables.isSavingSplit || !!$functions.splitFormError($variables.split.slices, 2, 5) ]]">Apply the split</button>
+            </oj-bind-if>
+          </footer>
+        </section>
+      </div>
+    </oj-bind-if>
+  </oj-bind-if>
+</div>

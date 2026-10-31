@@ -1,0 +1,223 @@
+{
+  "description": "One customer request in its own tab, tracked like a parcel: the next thing the customer does (send a draft, accept the quote, accept or refuse a delivery, start a return), where each piece is (requestProgress), the equipment with its rates, the rental contract and terms. Accept, refuse and return are New's customer chains (EquipRite only); a consumable issued from stock on delivery writes to Fusion and is left to New. Nothing is written on entry.",
+  "navigation": {
+    "embeddable": "enabled"
+  },
+  "variables": {
+    "id": {
+      "type": "string",
+      "defaultValue": "",
+      "input": "fromCaller"
+    },
+    "number": {
+      "type": "string",
+      "defaultValue": "",
+      "input": "fromCaller"
+    },
+    "requestId": {
+      "type": "number",
+      "defaultValue": 0,
+      "description": "The request's id, from the customer's own view (never only from the tab)."
+    },
+    "head": {
+      "type": "any",
+      "defaultValue": {},
+      "description": "New's formData: number, customer, contact, status, dates, delivery, contract, raised."
+    },
+    "lines": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "views/request-detail-lines, mapped as New's customer request page maps them (portalView.mapLine). No serial numbers."
+    },
+    "ticks": {
+      "type": "any",
+      "defaultValue": {},
+      "description": "{ lineId: true } for the ticked pieces."
+    },
+    "p": {
+      "type": "any",
+      "defaultValue": {
+        "headline": "",
+        "tone": "",
+        "stops": [],
+        "late": [],
+        "total": 0
+      }
+    },
+    "step": {
+      "type": "any",
+      "defaultValue": {
+        "key": "",
+        "tone": "",
+        "title": "",
+        "text": "",
+        "action": ""
+      },
+      "description": "What the customer does next (portalView.nextStep on New's nextAction)."
+    },
+    "ask": {
+      "type": "any",
+      "defaultValue": {},
+      "description": "An action staged with what it will do, waiting for the customer's go: { kind, title, text, button }."
+    },
+    "banner": {
+      "type": "any",
+      "defaultValue": {
+        "type": "",
+        "text": "",
+        "link": ""
+      }
+    },
+    "quotingAllowed": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "billingShown": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "busy": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "deleteAsk": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "showTerms": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "isLoading": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "error": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "exportOpen": {
+      "type": "boolean",
+      "defaultValue": false
+    }
+  },
+  "eventListeners": {
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "loadRecordChain"
+        }
+      ]
+    },
+    "onRefresh": {
+      "chains": [
+        {
+          "chain": "loadRecordChain"
+        }
+      ]
+    },
+    "onTick": {
+      "chains": [
+        {
+          "chain": "tickChain",
+          "parameters": {
+            "lineId": "{{ $event.target.dataset.line }}",
+            "checked": "{{ $event.target.checked }}"
+          }
+        }
+      ]
+    },
+    "onSelect": {
+      "chains": [
+        {
+          "chain": "tickChain",
+          "parameters": {
+            "status": "{{ $event.currentTarget.dataset.status }}"
+          }
+        }
+      ]
+    },
+    "onAsk": {
+      "chains": [
+        {
+          "chain": "askChain",
+          "parameters": {
+            "kind": "{{ $event.currentTarget.dataset.kind }}"
+          }
+        }
+      ]
+    },
+    "onAccept": {
+      "chains": [
+        {
+          "chain": "acceptDeliveryChain"
+        }
+      ]
+    },
+    "onRefuse": {
+      "chains": [
+        {
+          "chain": "rejectDeliveryChain"
+        }
+      ]
+    },
+    "onReturn": {
+      "chains": [
+        {
+          "chain": "initiateReturnChain"
+        }
+      ]
+    },
+    "onDeleteDraft": {
+      "chains": [
+        {
+          "chain": "deleteDraftChain"
+        }
+      ]
+    },
+    "onUi": {
+      "chains": [
+        {
+          "chain": "uiChain",
+          "parameters": {
+            "what": "{{ $event.currentTarget.dataset.ui }}"
+          }
+        }
+      ]
+    },
+    "onExport": {
+      "chains": [
+        {
+          "chain": "exportChain",
+          "parameters": {
+            "format": "{{ $event.currentTarget.dataset.format }}"
+          }
+        }
+      ]
+    },
+    "onOpen": {
+      "chains": [
+        {
+          "chain": "openChain",
+          "parameters": {
+            "record": "{{ $event.currentTarget.dataset.record }}",
+            "step": "{{ $event.currentTarget.dataset.step }}"
+          }
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-if": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-text": {
+        "path": "ojs/ojknockout"
+      }
+    }
+  }
+}

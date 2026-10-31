@@ -1,0 +1,120 @@
+{
+  "description": "Rates: every rate schedule (who uses it: customer, project, task, yard; when; whether the rate engine can use it) on the left, the open one on the right as one grid of the six rate periods per class, the margin check and Try a rate. Calls and rules are New EquipRite's rates page (FDD 7.3): GET /rate-schedules, /bu-org-mappings, /rate-schedules/{id}, /rate-period-lines; Save writes the header and then every line (saveScheduleChain); a saved line is deleted at once; Delete schedule. Export on both lists.",
+  "navigation": {
+    "embeddable": "enabled"
+  },
+  "variables": {
+    "hidden": { "type": "string", "defaultValue": "", "description": "Why rates are withdrawn (every business unit takes Fusion PPM rates), or ''." },
+    "canWrite": { "type": "boolean", "defaultValue": false, "description": "FULL access to EQR_RATE_SCHEDULE." },
+    "isLoading": { "type": "boolean", "defaultValue": true },
+    "listError": { "type": "string", "defaultValue": "" },
+    "schedules": { "type": "any[]", "defaultValue": [], "description": "New's loadSchedulesChain rows (rateRules.scheduleRow)." },
+    "listText": { "type": "string", "defaultValue": "" },
+    "listChip": { "type": "string", "defaultValue": "all" },
+    "shown": { "type": "any[]", "defaultValue": [], "description": "The schedules the search and chip show." },
+    "chips": { "type": "any[]", "defaultValue": [] },
+    "summary": { "type": "string", "defaultValue": "" },
+    "selectedId": { "type": "string", "defaultValue": "", "description": "Schedule id, or 'new'." },
+    "detailLoading": { "type": "boolean", "defaultValue": false },
+    "detailError": { "type": "string", "defaultValue": "" },
+    "formData": { "type": "any", "defaultValue": {}, "description": "The old editor's formData." },
+    "lines": { "type": "any[]", "defaultValue": [], "description": "The old editor's equipmentLines." },
+    "dirty": { "type": "boolean", "defaultValue": false },
+    "saving": { "type": "boolean", "defaultValue": false },
+    "saveNote": { "type": "string", "defaultValue": "", "description": "What the last Save or delete did, in words, kept on the page." },
+    "saveTone": { "type": "string", "defaultValue": "info" },
+    "lineError": { "type": "string", "defaultValue": "" },
+    "headerOpen": { "type": "boolean", "defaultValue": false },
+    "yardOptions": { "type": "any[]", "defaultValue": [] },
+    "customerQuery": { "type": "string", "defaultValue": "" },
+    "customerResults": { "type": "any[]", "defaultValue": [] },
+    "projectQuery": { "type": "string", "defaultValue": "" },
+    "projectResults": { "type": "any[]", "defaultValue": [] },
+    "taskOptions": { "type": "any[]", "defaultValue": [] },
+    "taskQuery": { "type": "string", "defaultValue": "" },
+    "addRowOpen": { "type": "boolean", "defaultValue": false },
+    "addRow": { "type": "any", "defaultValue": {} },
+    "addClasses": { "type": "any[]", "defaultValue": [] },
+    "addSubclasses": { "type": "any[]", "defaultValue": [] },
+    "addEquipment": { "type": "any[]", "defaultValue": [] },
+    "sim": { "type": "any", "defaultValue": { "hours": 80, "daysWorked": 10, "daysOnRent": 14, "qty": 1 } },
+    "simGroup": { "type": "string", "defaultValue": "", "description": "The row Try a rate prices ('' for every Usage row)." },
+    "ask": { "type": "any", "defaultValue": null },
+    "exportOpen": { "type": "string", "defaultValue": "", "description": "'list' or 'lines': which export menu is open." }
+  },
+  "eventListeners": {
+    "vbEnter": { "chains": [{ "chain": "initChain" }] },
+    "onRefresh": { "chains": [{ "chain": "refreshChain" }] },
+    "onListSearch": { "chains": [{ "chain": "listChain", "parameters": { "action": "search", "value": "{{ $event.target.value }}" } }] },
+    "onListChip": { "chains": [{ "chain": "listChain", "parameters": { "action": "chip", "value": "{{ $event.currentTarget.dataset.value }}" } }] },
+    "onSimInput": { "chains": [{ "chain": "listChain", "parameters": { "action": "{{ $event.target.dataset.field }}", "value": "{{ $event.target.value }}" } }] },
+    "onSimGroup": { "chains": [{ "chain": "listChain", "parameters": { "action": "simGroup", "value": "{{ $event.currentTarget.dataset.value }}" } }] },
+    "onExportMenu": { "chains": [{ "chain": "listChain", "parameters": { "action": "exportMenu", "value": "{{ $event.currentTarget.dataset.value }}" } }] },
+    "onExport": {
+      "chains": [{ "chain": "exportChain", "parameters": { "what": "{{ $event.currentTarget.dataset.what }}", "format": "{{ $event.currentTarget.dataset.format }}" } }]
+    },
+    "onSelect": { "chains": [{ "chain": "selectScheduleChain", "parameters": { "id": "{{ $event.currentTarget.dataset.id }}" } }] },
+    "onNew": { "chains": [{ "chain": "selectScheduleChain", "parameters": { "id": "new" } }] },
+    "onHeader": {
+      "chains": [{
+        "chain": "headerChain",
+        "parameters": {
+          "action": "{{ $event.currentTarget.dataset.action }}",
+          "field": "{{ $event.currentTarget.dataset.field }}",
+          "value": "{{ $event.currentTarget.dataset.value }}",
+          "index": "{{ $event.currentTarget.dataset.index }}"
+        }
+      }]
+    },
+    "onHeaderInput": {
+      "chains": [{
+        "chain": "headerChain",
+        "parameters": {
+          "action": "{{ $event.target.dataset.action }}",
+          "field": "{{ $event.target.dataset.field }}",
+          "value": "{{ $event.target.type === 'checkbox' ? $event.target.checked : $event.target.value }}"
+        }
+      }]
+    },
+    "onLineEdit": {
+      "chains": [{
+        "chain": "lineEditChain",
+        "parameters": { "key": "{{ $event.target.dataset.key }}", "field": "{{ $event.target.dataset.field }}", "value": "{{ $event.target.value }}" }
+      }]
+    },
+    "onAddLine": {
+      "chains": [{
+        "chain": "addLineChain",
+        "parameters": { "groupKey": "{{ $event.currentTarget.dataset.group }}", "period": "{{ $event.currentTarget.dataset.period }}" }
+      }]
+    },
+    "onRemoveLine": {
+      "chains": [{ "chain": "removeLineChain", "parameters": { "key": "{{ $event.currentTarget.dataset.key }}" } }]
+    },
+    "onAddRow": {
+      "chains": [{
+        "chain": "addRowChain",
+        "parameters": { "action": "{{ $event.currentTarget.dataset.action }}", "value": "{{ $event.currentTarget.dataset.value }}" }
+      }]
+    },
+    "onAddRowInput": {
+      "chains": [{
+        "chain": "addRowChain",
+        "parameters": { "action": "{{ $event.target.dataset.action }}", "value": "{{ $event.target.value }}" }
+      }]
+    },
+    "onSave": { "chains": [{ "chain": "saveScheduleChain" }] },
+    "onDiscard": { "chains": [{ "chain": "discardChain" }] },
+    "onDelete": { "chains": [{ "chain": "deleteScheduleChain", "parameters": {} }] },
+    "onAnswer": {
+      "chains": [{ "chain": "answerChain", "parameters": { "answer": "{{ $event.currentTarget.dataset.answer }}" } }]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}

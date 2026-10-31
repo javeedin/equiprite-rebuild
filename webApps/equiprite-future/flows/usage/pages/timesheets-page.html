@@ -1,0 +1,280 @@
+<!-- Timesheets. The requests on site, then a week of hours for one: type a number, Enter moves down a day, arrows move
+     between boxes; totals by day, by row and by rate type; what is missing; Copy last week. Save and Submit are New
+     EquipRite's (saveTimesheetChain). Typed values live in $variables.edits, so the grid keeps its focus. -->
+<div class="nx-page nx-ts">
+  <div class="nx-pagehead">
+    <div>
+      <h1>Timesheets</h1>
+      <div class="nx-sub" id="tsSummary">
+        <oj-bind-if test="[[ $variables.isLoading && !$variables.requestNumber ]]"><span>Loading the requests on site…</span></oj-bind-if>
+        <oj-bind-if test="[[ !!$variables.requestNumber ]]">
+          <span><oj-bind-text value="[[ $functions.weekTitle($variables.weekStart) + ' · ' + $variables.requestNumber + ($variables.projectName ? ' · ' + $variables.projectName : '') ]]"></oj-bind-text></span>
+        </oj-bind-if>
+        <oj-bind-if test="[[ !$variables.isLoading && !$variables.requestNumber && !$variables.closed ]]"><span>No request has equipment on site to enter time against.</span></oj-bind-if>
+      </div>
+    </div>
+    <div class="nx-actions">
+      <button type="button" class="nx-btn nx-btn--plain" id="tsRefresh" on-click="[[ $listeners.onRefresh ]]" :disabled="[[ $variables.isLoading || $variables.isSaving || !!$variables.closed ]]">
+        <span class="oj-ux-ico-refresh" aria-hidden="true"></span>Refresh</button>
+      <div class="nx-export">
+        <button type="button" class="nx-btn" id="tsExport" on-click="[[ $listeners.onExportMenu ]]" aria-haspopup="menu"
+          :aria-expanded="[[ $variables.exportOpen ? 'true' : 'false' ]]" :disabled="[[ !!$variables.closed ]]">
+          <span class="oj-ux-ico-download" aria-hidden="true"></span>Export<span class="oj-ux-ico-chevron-down" aria-hidden="true"></span></button>
+        <oj-bind-if test="[[ $variables.exportOpen ]]">
+          <div class="nx-menu nx-u-menu" role="menu" aria-label="Export">
+            <p class="nx-u-menu-head"><oj-bind-text value="[[ 'This week, ' + $functions.plural($variables.rows.length, 'row') + ' as shown' ]]"></oj-bind-text></p>
+            <oj-bind-for-each data="[[ $functions.formats() ]]">
+              <template data-oj-as="f">
+                <button type="button" role="menuitem" class="nx-menu-item" data-what="week" :data-format="[[ f.data.key ]]" on-click="[[ $listeners.onExport ]]">
+                  <span :class="[[ f.data.icon ]]" aria-hidden="true"></span><oj-bind-text value="[[ f.data.label ]]"></oj-bind-text></button>
+              </template>
+            </oj-bind-for-each>
+            <p class="nx-u-menu-head"><oj-bind-text value="[[ 'Requests on site, ' + $functions.queueShown($variables.queue, $variables.queueText, $variables.queueKind).length + ' as shown' ]]"></oj-bind-text></p>
+            <oj-bind-for-each data="[[ $functions.formats() ]]">
+              <template data-oj-as="f">
+                <button type="button" role="menuitem" class="nx-menu-item" data-what="queue" :data-format="[[ f.data.key ]]" on-click="[[ $listeners.onExport ]]">
+                  <span :class="[[ f.data.icon ]]" aria-hidden="true"></span><oj-bind-text value="[[ f.data.label ]]"></oj-bind-text></button>
+              </template>
+            </oj-bind-for-each>
+          </div>
+        </oj-bind-if>
+      </div>
+    </div>
+  </div>
+
+  <oj-bind-if test="[[ !!$variables.closed ]]">
+    <div class="nx-card nx-empty" role="alert" id="tsClosed"><oj-bind-text value="[[ $variables.closed ]]"></oj-bind-text></div>
+  </oj-bind-if>
+  <oj-bind-if test="[[ !!$variables.loadError ]]">
+    <div class="nx-error" role="alert"><oj-bind-text value="[[ $variables.loadError ]]"></oj-bind-text></div>
+  </oj-bind-if>
+
+  <!-- ── The requests on site ─────────────────────────────────────────────────────────────────────────── -->
+  <oj-bind-if test="[[ !$variables.closed ]]">
+    <section class="nx-card nx-ts-queue" aria-labelledby="tsQueueTitle">
+      <div class="nx-u-cardhead">
+        <h2 class="nx-u-h2" id="tsQueueTitle"><oj-bind-text value="[[ 'Requests on site (' + $variables.queue.length + ')' ]]"></oj-bind-text></h2>
+        <div class="nx-chips" role="group" aria-label="What the request still needs">
+          <oj-bind-for-each data="[[ $functions.queueChips($variables.queue) ]]">
+            <template data-oj-as="c">
+              <button type="button" data-field="queueKind" :data-value="[[ c.data.key ]]" on-click="[[ $listeners.onQueueKind ]]"
+                :aria-pressed="[[ $variables.queueKind === c.data.key ? 'true' : 'false' ]]"
+                :class="[[ 'nx-chip' + ($variables.queueKind === c.data.key ? ' nx-chip--on' : '') ]]">
+                <oj-bind-text value="[[ c.data.label ]]"></oj-bind-text><span class="nx-chip-count"><oj-bind-text value="[[ c.data.count ]]"></oj-bind-text></span>
+              </button>
+            </template>
+          </oj-bind-for-each>
+        </div>
+        <label class="nx-search nx-ts-qsearch">
+          <span class="oj-ux-ico-search" aria-hidden="true"></span>
+          <input type="search" :value="[[ $variables.queueText ]]" on-input="[[ $listeners.onQueueSearch ]]" aria-label="Find a request" placeholder="Request, project or task">
+        </label>
+      </div>
+      <div class="nx-ts-qlist" role="group" aria-label="Requests on site">
+        <oj-bind-for-each data="[[ $functions.queueShown($variables.queue, $variables.queueText, $variables.queueKind) ]]">
+          <template data-oj-as="q">
+            <button type="button" :class="[[ $functions.queueItemClass(q.data, $variables.requestNumber) ]]" :data-request="[[ q.data.requestNumber ]]"
+              on-click="[[ $listeners.onPickRequest ]]" :aria-pressed="[[ $variables.requestNumber === q.data.requestNumber ? 'true' : 'false' ]]"
+              :title="[[ 'Stored status: ' + (q.data.status || '—') ]]">
+              <span class="nx-ts-qtop"><strong><oj-bind-text value="[[ q.data.requestNumber ]]"></oj-bind-text></strong>
+                <span :class="[[ 'nx-ts-dot nx-stage--' + $functions.statusTone(q.data.status) ]]" aria-hidden="true"></span></span>
+              <span class="nx-ts-qproj"><oj-bind-text value="[[ (q.data.projectName || '—') + (q.data.taskName ? ' / ' + q.data.taskName : '') ]]"></oj-bind-text></span>
+              <span class="nx-ts-qnote"><oj-bind-text value="[[ $functions.queueNote(q.data) ]]"></oj-bind-text></span>
+            </button>
+          </template>
+        </oj-bind-for-each>
+        <oj-bind-if test="[[ !$variables.queueLoading && $functions.queueShown($variables.queue, $variables.queueText, $variables.queueKind).length === 0 ]]">
+          <span class="nx-muted nx-ts-qempty"><oj-bind-text value="[[ $variables.queue.length ? 'Nothing matches. Try another chip or clear the search.' : 'No request has a deployed line to enter time against.' ]]"></oj-bind-text></span>
+        </oj-bind-if>
+      </div>
+    </section>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ !!$variables.pendingMove ]]">
+    <div class="nx-u-confirm" role="alertdialog" aria-labelledby="tsMoveTitle" id="tsMove">
+      <span><strong id="tsMoveTitle">This week has hours that are not saved.</strong> Save them first, or discard them to move on.</span>
+      <span class="nx-actions">
+        <button type="button" class="nx-btn" on-click="[[ $listeners.onKeepEditing ]]">Keep editing</button>
+        <button type="button" class="nx-btn nx-u-btn--danger" id="tsDiscard" on-click="[[ $listeners.onDiscardMove ]]">Discard changes</button>
+      </span>
+    </div>
+  </oj-bind-if>
+
+  <!-- ── The week ─────────────────────────────────────────────────────────────────────────────────────── -->
+  <oj-bind-if test="[[ !!$variables.requestNumber && !$variables.closed ]]">
+    <section class="nx-card nx-ts-week" aria-labelledby="tsWeekTitle">
+      <div class="nx-ts-weekhead">
+        <div class="nx-ts-weeknav">
+          <button type="button" class="nx-iconbtn nx-iconbtn--sm" data-dir="prev" id="tsPrev" aria-label="Previous week" on-click="[[ $listeners.onWeekStep ]]"
+            :disabled="[[ !$functions.stepOk($variables.weeks, $variables.weekStart, -1) ]]"><span class="oj-ux-ico-chevron-left" aria-hidden="true"></span></button>
+          <h2 class="nx-u-h2" id="tsWeekTitle"><oj-bind-text value="[[ $functions.weekLabel($variables.weekStart) ]]"></oj-bind-text></h2>
+          <button type="button" class="nx-iconbtn nx-iconbtn--sm" data-dir="next" id="tsNext" aria-label="Next week" on-click="[[ $listeners.onWeekStep ]]"
+            :disabled="[[ !$functions.stepOk($variables.weeks, $variables.weekStart, 1) ]]"><span class="oj-ux-ico-chevron-right" aria-hidden="true"></span></button>
+          <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" on-click="[[ $listeners.onThisWeek ]]">This week</button>
+          <span :class="[[ 'nx-pill nx-stage--' + $functions.statusTone($variables.headerStatus) ]]" id="tsWeekStatus" :title="[[ 'Stored status: ' + ($variables.headerStatus || '—') ]]">
+            <oj-bind-text value="[[ $functions.weekWord($variables.headerStatus, $variables.rows) ]]"></oj-bind-text></span>
+        </div>
+        <div class="nx-actions nx-ts-weekactions">
+          <button type="button" class="nx-btn" id="tsCopy" on-click="[[ $listeners.onCopyLastWeek ]]" :disabled="[[ $variables.isSaving || $variables.readOnly || $variables.rows.length === 0 ]]"
+            title="Fill this week's open days with last week's hours and rate types, on the same lines. Nothing is saved until you Save.">
+            <span class="oj-ux-ico-copy" aria-hidden="true"></span>Copy last week</button>
+          <button type="button" class="nx-btn nx-btn--plain" id="tsUndo" on-click="[[ $listeners.onUndo ]]" :disabled="[[ $functions.dirtyCount($variables.rows, $variables.edits) === 0 ]]">Undo changes</button>
+          <button type="button" class="nx-btn" id="tsSave" on-click="[[ $listeners.onSave ]]"
+            :disabled="[[ $variables.isSaving || $variables.readOnly || $functions.pendingCount($variables.rows, $variables.edits) === 0 ]]"
+            title="Saves the changed rows as a draft. Nothing goes to the approver.">
+            <oj-bind-text value="[[ $functions.saveLabel($variables.rows, $variables.edits, $variables.isSaving, $variables.saveMode) ]]"></oj-bind-text></button>
+          <button type="button" class="nx-btn nx-btn--primary" id="tsSubmit" on-click="[[ $listeners.onSubmit ]]"
+            :disabled="[[ $variables.isSaving || $variables.readOnly || $functions.pickedCount($variables.picked) === 0 ]]"
+            title="Saves the ticked rows, then sends them to the approver. Sent rows cannot be changed until they are approved or sent back.">
+            <oj-bind-text value="[[ $functions.submitLabel($variables.picked, $variables.isSaving, $variables.saveMode) ]]"></oj-bind-text></button>
+        </div>
+      </div>
+
+      <oj-bind-if test="[[ !!$variables.saveError ]]">
+        <div class="nx-error nx-u-msg" role="alert" id="tsSaveError"><oj-bind-text value="[[ $variables.saveError ]]"></oj-bind-text></div>
+      </oj-bind-if>
+      <oj-bind-if test="[[ $functions.problems($variables.rows, $variables.edits, $variables.weekDays, $variables.expTypeList).length > 0 ]]">
+        <div class="nx-error nx-u-msg" role="alert" id="tsProblems">
+          <oj-bind-text value="[[ ($functions.problems($variables.rows, $variables.edits, $variables.weekDays, $variables.expTypeList).length === 1 ? '1 problem: '
+            : $functions.problems($variables.rows, $variables.edits, $variables.weekDays, $variables.expTypeList).length + ' problems: ')
+            + $functions.problems($variables.rows, $variables.edits, $variables.weekDays, $variables.expTypeList).join(' ') ]]"></oj-bind-text>
+        </div>
+      </oj-bind-if>
+      <oj-bind-if test="[[ !!$variables.notice && !$variables.saveError ]]">
+        <div class="nx-u-note nx-u-msg" id="tsNotice"><oj-bind-text value="[[ $variables.notice ]]"></oj-bind-text></div>
+      </oj-bind-if>
+      <oj-bind-if test="[[ $variables.readOnly ]]">
+        <div class="nx-u-note nx-u-msg">You can see this timesheet. Your role cannot change it.</div>
+      </oj-bind-if>
+
+      <!-- What is missing before the week can be approved -->
+      <oj-bind-if test="[[ $variables.rows.length > 0 ]]">
+        <div class="nx-ts-missing" id="tsMissing" aria-label="What is missing">
+          <oj-bind-if test="[[ $functions.missing($variables.rows, $variables.edits, $variables.weekDays, $variables.ppmOn).length === 0 ]]">
+            <span class="nx-ts-allset"><span class="oj-ux-ico-check-circle" aria-hidden="true"></span>
+              <oj-bind-text value="[[ $functions.weekFacts($variables.rows, $variables.edits, $variables.picked).open > 0 ? 'Nothing is missing. Save, then submit the week for approval.' : 'Nothing is missing on this week.' ]]"></oj-bind-text></span>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $functions.missing($variables.rows, $variables.edits, $variables.weekDays, $variables.ppmOn).length > 0 ]]">
+            <strong class="nx-ts-missing-title"><oj-bind-text value="[[ 'Still missing (' + $functions.missing($variables.rows, $variables.edits, $variables.weekDays, $variables.ppmOn).length + ')' ]]"></oj-bind-text></strong>
+            <ul class="nx-ts-missing-list">
+              <oj-bind-for-each data="[[ $functions.missing($variables.rows, $variables.edits, $variables.weekDays, $variables.ppmOn) ]]">
+                <template data-oj-as="m">
+                  <li :class="[[ 'nx-ts-miss nx-ts-miss--' + m.data.tone ]]"><oj-bind-text value="[[ m.data.text ]]"></oj-bind-text></li>
+                </template>
+              </oj-bind-for-each>
+            </ul>
+          </oj-bind-if>
+        </div>
+      </oj-bind-if>
+
+      <div class="nx-table nx-ts-table">
+        <div class="nx-grid nx-grid--ts" role="grid" data-grid="time" aria-label="Hours by day" on-keydown="[[ $functions.gridKey ]]">
+          <div class="nx-row nx-row--head nx-ts-row" role="row">
+            <span role="columnheader" class="nx-ts-c-pick">
+              <input type="checkbox" aria-label="Tick every open row for Submit" on-change="[[ $listeners.onPickAll ]]"
+                :checked="[[ $functions.pickedCount($variables.picked) > 0 ]]" :disabled="[[ $variables.readOnly ]]">
+            </span>
+            <span role="columnheader">Equipment · task</span>
+            <span role="columnheader">Rate type</span>
+            <span role="columnheader" title="Per equipment line: it applies to every week of the line">Expenditure type</span>
+            <oj-bind-for-each data="[[ $variables.weekDays ]]">
+              <template data-oj-as="day">
+                <span role="columnheader" :class="[[ $functions.dayHeadClass(day.data) ]]" :title="[[ day.data.label ]]">
+                  <oj-bind-text value="[[ day.data.dow ]]"></oj-bind-text><small><oj-bind-text value="[[ day.data.num ]]"></oj-bind-text></small></span>
+              </template>
+            </oj-bind-for-each>
+            <span role="columnheader" class="nx-ts-c-total">Total</span>
+          </div>
+
+          <oj-bind-for-each data="[[ $variables.rows ]]">
+            <template data-oj-as="row">
+              <div role="row" :class="[[ $functions.rowClass(row.data, $variables.edits, $variables.readOnly) ]]" :data-key="[[ row.data.key ]]">
+                <span role="gridcell" class="nx-ts-c-pick">
+                  <oj-bind-if test="[[ $functions.canPick(row.data) ]]">
+                    <input type="checkbox" :data-key="[[ row.data.key ]]" :checked="[[ $functions.isPicked($variables.picked, row.data.key) ]]"
+                      :aria-label="[[ 'Submit ' + row.data.equipmentName ]]" on-change="[[ $listeners.onPick ]]" :disabled="[[ $variables.readOnly ]]">
+                  </oj-bind-if>
+                </span>
+                <span role="gridcell" class="nx-ts-c-eq">
+                  <span class="nx-cell-main"><oj-bind-text value="[[ row.data.equipmentName ]]"></oj-bind-text></span>
+                  <span class="nx-cell-sub"><oj-bind-text value="[[ $functions.rowSub(row.data, $variables.lineRates) ]]"></oj-bind-text></span>
+                  <span class="nx-ts-tags">
+                    <span :class="[[ 'nx-pill nx-ts-pill nx-stage--' + $functions.statusTone(row.data.status) ]]" :title="[[ 'Stored status: ' + (row.data.status || 'none yet') ]]">
+                      <oj-bind-text value="[[ $functions.statusWord(row.data.status) ]]"></oj-bind-text></span>
+                    <oj-bind-if test="[[ row.data.prefilled ]]"><span class="nx-pill nx-pill--plain nx-ts-pill" title="Filled with the line's planned hours; check them, then Save">Planned hours</span></oj-bind-if>
+                  </span>
+                </span>
+                <span role="gridcell">
+                  <select class="nx-ts-select" data-field="type" :data-key="[[ row.data.key ]]" aria-label="Rate type"
+                    on-change="[[ $listeners.onRowField ]]" :disabled="[[ !$functions.isEditable(row.data, $variables.readOnly) ]]">
+                    <option value="" :selected="[[ $functions.typeOf(row.data, $variables.edits) === '' ]]">Choose…</option>
+                    <option value="USAGE" :selected="[[ $functions.typeOf(row.data, $variables.edits) === 'USAGE' ]]">Usage</option>
+                    <option value="MOBILIZATION" :selected="[[ $functions.typeOf(row.data, $variables.edits) === 'MOBILIZATION' ]]">Mobilization</option>
+                    <option value="RETURNING" :selected="[[ $functions.typeOf(row.data, $variables.edits) === 'RETURNING' ]]">Return</option>
+                    <option value="STANDBY" :selected="[[ $functions.typeOf(row.data, $variables.edits) === 'STANDBY' ]]">Standby</option>
+                  </select>
+                </span>
+                <span role="gridcell">
+                  <input class="nx-ts-exp" type="text" list="nxTsExpTypes" data-field="exp" :data-key="[[ row.data.key ]]"
+                    :value="[[ $functions.expOf(row.data, $variables.edits) ]]" on-change="[[ $listeners.onRowField ]]"
+                    :placeholder="[[ $variables.ppmOn ? 'Needed' : 'Not set' ]]" aria-label="Expenditure type (all weeks of this line)"
+                    :disabled="[[ !$functions.isEditable(row.data, $variables.readOnly) ]]">
+                </span>
+                <oj-bind-for-each data="[[ $variables.weekDays ]]">
+                  <template data-oj-as="day">
+                    <span role="gridcell" class="nx-ts-c-day">
+                      <input :class="[[ $functions.cellClass(row.data, day.data, $variables.edits, $variables.expTypeList, $variables.weekDays) ]]"
+                        type="text" inputmode="decimal" autocomplete="off"
+                        :data-key="[[ row.data.key ]]" :data-r="[[ '' + row.index ]]" :data-d="[[ '' + day.data.i ]]"
+                        :value="[[ $functions.cellRaw(row.data, day.data.i, $variables.edits) ]]"
+                        :disabled="[[ !$functions.cellEditable(row.data, day.data, $variables.readOnly) ]]"
+                        :aria-label="[[ row.data.equipmentName + ', ' + day.data.label ]]"
+                        on-focus="[[ $functions.selectAll ]]" on-change="[[ $listeners.onHours ]]">
+                    </span>
+                  </template>
+                </oj-bind-for-each>
+                <span role="gridcell" class="nx-ts-c-total nx-num"><oj-bind-text value="[[ $functions.rowTotal(row.data, $variables.edits) ]]"></oj-bind-text></span>
+              </div>
+            </template>
+          </oj-bind-for-each>
+
+          <oj-bind-if test="[[ $variables.rows.length > 0 ]]">
+            <div class="nx-row nx-ts-row nx-ts-foot" role="row" id="tsFoot">
+              <span role="gridcell"></span>
+              <span role="gridcell" class="nx-ts-foot-label">
+                <strong>Week total</strong>
+                <span class="nx-cell-sub"><oj-bind-text value="[[ $functions.typeTotalsWords($variables.rows, $variables.edits) ]]"></oj-bind-text></span>
+              </span>
+              <span role="gridcell"></span>
+              <span role="gridcell"></span>
+              <oj-bind-for-each data="[[ $variables.weekDays ]]">
+                <template data-oj-as="day">
+                  <span role="gridcell" class="nx-ts-c-day nx-num"><oj-bind-text value="[[ $functions.dayTotals($variables.rows, $variables.edits)[day.data.i] ]]"></oj-bind-text></span>
+                </template>
+              </oj-bind-for-each>
+              <span role="gridcell" class="nx-ts-c-total nx-num" id="tsWeekTotal"><strong><oj-bind-text value="[[ $functions.weekTotal($variables.rows, $variables.edits) ]]"></oj-bind-text></strong></span>
+            </div>
+          </oj-bind-if>
+        </div>
+      </div>
+      <oj-bind-if test="[[ $variables.rows.length === 0 ]]">
+        <div class="nx-empty"><oj-bind-text value="[[ $variables.isLoading ? 'Loading the week…' : 'No equipment of this request is on site in this week.' ]]"></oj-bind-text></div>
+      </oj-bind-if>
+
+      <div class="nx-u-legend nx-note">
+        <span><span class="nx-u-kbd">Enter</span> moves down a day, the arrows move between boxes; a box takes 0 to 24 hours (0 to 1 for a line entered in days).</span>
+        <span><span class="nx-ts-key nx-ts-key--gap"></span>A weekday inside the line's dates with no hours.</span>
+        <span>Greyed boxes are outside the line's dates, or the row is waiting for approval or approved.</span>
+        <oj-bind-if test="[[ $functions.canOpen($application.variables, 'approve-time') ]]">
+          <button type="button" class="nx-link" on-click="[[ $listeners.onOpenApprove ]]">Open Approve time</button>
+        </oj-bind-if>
+      </div>
+    </section>
+
+    <datalist id="nxTsExpTypes">
+      <oj-bind-for-each data="[[ $variables.expTypeList ]]">
+        <template data-oj-as="t"><option :value="[[ t.data.value ]]"></option></template>
+      </oj-bind-for-each>
+    </datalist>
+  </oj-bind-if>
+</div>

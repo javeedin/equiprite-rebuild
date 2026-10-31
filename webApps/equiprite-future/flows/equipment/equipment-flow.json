@@ -1,0 +1,11 @@
+{
+  "id": "equipment",
+  "description": "Equipment master: the catalog of equipment items (list, map, Import from Fusion) and an item's own tab.",
+  "defaultPage": "equipment",
+  "navigation": { "embeddable": "enabled" },
+  "pages": {
+    "equipment": { "path": "pages/equipment-page" },
+    "item": { "path": "pages/item-page" }
+  },
+  "chains": {}, "services": {}, "types": {}, "variables": {}
+}

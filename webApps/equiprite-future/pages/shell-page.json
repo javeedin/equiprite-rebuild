@@ -1,0 +1,585 @@
+{
+  "description": "EquipRite Next shell: toolbar (menu toggle, brand, global search (screens, requests, equipment, units, transfers: resources/js/globalSearch.js), Check availability (resources/js/quickAvailability.js), Old/New/Next switch, bell, user), a light collapsible menu, and the tab strip over oj-vb-switcher, which keeps every open tab's page alive. Tabs: resources/js/tabs.js; menu: resources/js/nav.js; bell: resources/js/alerts.js.",
+  "variables": {
+    "tabs": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "TabType",
+        "keyAttributes": "id"
+      },
+      "description": "The switcher's items, one per open tab (id, name, flow, page, params). Changed only through shellTabs.apply (mutation events), never replaced, so open tabs keep their pages."
+    },
+    "tabList": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "The tab strip, in order: { id, title, icon, navId, pinned }."
+    },
+    "currentTab": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "navCollapsed": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "Menu shown as icons only (kept in this browser)."
+    },
+    "navOpen": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "Menu shown over the content on a narrow window."
+    },
+    "query": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "results": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "The search list, in order: group headings ({ type: head }), matches ({ type: row, n, label, sub, hint, open }) and \"N more\" ({ type: more, n }); n numbers the ones that can be chosen (resources/js/globalSearch.js)."
+    },
+    "resultIndex": {
+      "type": "number",
+      "defaultValue": 0,
+      "description": "The n of the match chosen (arrow keys)."
+    },
+    "showResults": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "search": {
+      "type": "any",
+      "defaultValue": {
+        "scope": "all",
+        "expanded": "",
+        "scopes": [],
+        "count": 0,
+        "forQuery": "",
+        "empty": "",
+        "foot": ""
+      },
+      "description": "The global search: the scope (all | screens | requests | equipment), a group opened by \"N more\", the scopes with their counts, how many matches can be chosen, the words they are for, and the foot (what is searched, what could not be read)."
+    },
+    "bellOpen": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "cartOpen": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "Your carts: the drafts panel."
+    },
+    "drafts": {
+      "type": "any",
+      "defaultValue": {
+        "mine": [],
+        "others": []
+      },
+      "description": "Requests saved as drafts (cartDrafts.list): yours, and everyone else's for a manager."
+    },
+    "draftsAll": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "Everyone's drafts, not only yours."
+    },
+    "draftsLoading": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "phoneOpen": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "The toolbar's QR code: EquipRite Mobile on your phone."
+    },
+    "phone": {
+      "type": "any",
+      "defaultValue": {
+        "loading": false,
+        "options": [],
+        "sel": "",
+        "url": "",
+        "img": "",
+        "note": "",
+        "copied": false,
+        "desktop": false
+      },
+      "description": "The ways onto a phone (resources/js/phoneLink.js), the one shown, its address and QR code."
+    },
+    "qaOpen": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "Check availability: the toolbar panel."
+    },
+    "qa": {
+      "type": "any",
+      "defaultValue": {
+        "loading": false,
+        "error": "",
+        "note": "",
+        "maint": "",
+        "text": "",
+        "pickKind": "",
+        "pickKey": "",
+        "pickLabel": "",
+        "from": "",
+        "to": "",
+        "preset": "",
+        "winText": "",
+        "presets": [],
+        "options": [],
+        "optIndex": 0,
+        "optOpen": false,
+        "can360": false,
+        "answer": {
+          "kind": "none",
+          "headline": "",
+          "rows": [],
+          "units": [],
+          "more": 0,
+          "moreText": "",
+          "availText": "",
+          "win": {
+            "from": "",
+            "to": "",
+            "days": 0,
+            "text": ""
+          }
+        }
+      },
+      "description": "Check availability (qaChain; resources/js/quickAvailability.js): what is asked (equipment typed or picked, the window), the suggestions, and the answer."
+    },
+    "colours": {
+      "type": "any",
+      "defaultValue": {
+        "theme": "teal",
+        "menu": "dark"
+      },
+      "description": "Your colours: the theme and the menu dark or light (resources/js/theme.js), kept on this computer."
+    },
+    "profileOpen": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "The menu under your name: who you are, and the EquipRite version (Old / New / Next)."
+    },
+    "alerts": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "unread": {
+      "type": "number",
+      "defaultValue": 0
+    },
+    "readIds": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "alertsAt": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "alertsLoading": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "alertsError": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "tabMenuOpen": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "toast": {
+      "type": "any",
+      "defaultValue": {
+        "message": "",
+        "tone": "info",
+        "seq": 0
+      }
+    },
+    "open": {
+      "type": "string",
+      "defaultValue": "",
+      "input": "fromUrl",
+      "description": "Deep link: ?open=<menu id> opens that screen; ?open=request&id=\u2026&number=\u2026 opens a record."
+    },
+    "id": {
+      "type": "string",
+      "defaultValue": "",
+      "input": "fromUrl"
+    },
+    "number": {
+      "type": "string",
+      "defaultValue": "",
+      "input": "fromUrl"
+    },
+    "shellReady": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "True once page access is known and the tabs this role may open are open."
+    }
+  },
+  "types": {
+    "TabType": {
+      "id": "string",
+      "name": "string",
+      "flow": "string",
+      "page": "string",
+      "params": "object",
+      "title": "string",
+      "icon": "string",
+      "navId": "string",
+      "pinned": "boolean"
+    }
+  },
+  "events": {
+    "shellRequest": {
+      "description": "From a screen in a tab, through resources/js/shellBus.js: open a screen or record, rename or close a tab, show a toast.",
+      "payloadType": {
+        "action": "string",
+        "navId": "string",
+        "record": "string",
+        "params": "object",
+        "id": "string",
+        "title": "string",
+        "message": "string",
+        "tone": "string"
+      }
+    },
+    "refreshAlerts": {
+      "description": "Every five minutes, from the page module.",
+      "payloadType": "object"
+    },
+    "dismiss": {
+      "description": "Escape: closes the open popup.",
+      "payloadType": "object"
+    },
+    "refreshDrafts": {
+      "description": "From the page module: the requests changed (requestData.onChange), so the cart counts its drafts again.",
+      "payloadType": "object"
+    },
+    "searchAway": {
+      "description": "From the page module: a click outside the search box and its list, which closes the list.",
+      "payloadType": "object"
+    }
+  },
+  "eventListeners": {
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "themeChain"
+        },
+        {
+          "chain": "shellEnterChain"
+        }
+      ]
+    },
+    "shellRequest": {
+      "chains": [
+        {
+          "chain": "shellRequestChain",
+          "parameters": {
+            "request": "{{ $event }}"
+          }
+        }
+      ]
+    },
+    "refreshAlerts": {
+      "chains": [
+        {
+          "chain": "loadAlertsChain"
+        }
+      ]
+    },
+    "dismiss": {
+      "chains": [
+        {
+          "chain": "dismissChain"
+        }
+      ]
+    },
+    "onNav": {
+      "chains": [
+        {
+          "chain": "openChain",
+          "parameters": {
+            "navId": "{{ $event.currentTarget.dataset.navId }}"
+          }
+        }
+      ]
+    },
+    "onTab": {
+      "chains": [
+        {
+          "chain": "showTabChain",
+          "parameters": {
+            "id": "{{ $event.currentTarget.dataset.id }}"
+          }
+        }
+      ]
+    },
+    "onTabClose": {
+      "chains": [
+        {
+          "chain": "closeTabChain",
+          "parameters": {
+            "id": "{{ $event.currentTarget.dataset.id }}"
+          }
+        }
+      ]
+    },
+    "onTabAux": {
+      "chains": [
+        {
+          "chain": "closeTabChain",
+          "parameters": {
+            "id": "{{ $event.button === 1 ? $event.currentTarget.dataset.id : '' }}"
+          }
+        }
+      ]
+    },
+    "onTabMenu": {
+      "chains": [
+        {
+          "chain": "tabMenuChain",
+          "parameters": {
+            "action": "{{ $event.currentTarget.dataset.action }}"
+          }
+        }
+      ]
+    },
+    "toggleNav": {
+      "chains": [
+        {
+          "chain": "navChain"
+        }
+      ]
+    },
+    "onCommandInput": {
+      "chains": [
+        {
+          "chain": "commandChain",
+          "parameters": {
+            "text": "{{ $event.target.value }}"
+          }
+        }
+      ]
+    },
+    "onCommandKey": {
+      "chains": [
+        {
+          "chain": "commandKeyChain",
+          "parameters": {
+            "key": "{{ $event.key }}"
+          }
+        }
+      ]
+    },
+    "onCommandFocus": {
+      "chains": [
+        {
+          "chain": "searchFocusChain"
+        }
+      ]
+    },
+    "onSearchScope": {
+      "chains": [
+        {
+          "chain": "searchScopeChain",
+          "parameters": {
+            "scope": "{{ $event.currentTarget.dataset.scope }}"
+          }
+        }
+      ]
+    },
+    "onResult": {
+      "chains": [
+        {
+          "chain": "resultChain",
+          "parameters": {
+            "index": "{{ $event.currentTarget.dataset.index }}"
+          }
+        }
+      ]
+    },
+    "searchAway": {
+      "chains": [
+        {
+          "chain": "searchCloseChain"
+        }
+      ]
+    },
+    "onBell": {
+      "chains": [
+        {
+          "chain": "bellChain"
+        }
+      ]
+    },
+    "refreshDrafts": {
+      "chains": [
+        {
+          "chain": "cartChain",
+          "parameters": {
+            "action": "load"
+          }
+        }
+      ]
+    },
+    "onCart": {
+      "chains": [
+        {
+          "chain": "cartChain",
+          "parameters": {
+            "action": "{{ $event.currentTarget.dataset.action }}"
+          }
+        }
+      ]
+    },
+    "onDraft": {
+      "chains": [
+        {
+          "chain": "cartChain",
+          "parameters": {
+            "action": "open",
+            "id": "{{ $event.currentTarget.dataset.id }}",
+            "number": "{{ $event.currentTarget.dataset.number }}"
+          }
+        }
+      ]
+    },
+    "onPhone": {
+      "chains": [
+        {
+          "chain": "phoneChain",
+          "parameters": {
+            "action": "{{ $event.currentTarget.dataset.action }}",
+            "key": "{{ $event.currentTarget.dataset.key }}"
+          }
+        }
+      ]
+    },
+    "onQa": {
+      "chains": [
+        {
+          "chain": "qaChain",
+          "parameters": {
+            "action": "{{ $event.currentTarget.dataset.action }}",
+            "key": "{{ $event.currentTarget.dataset.key }}"
+          }
+        }
+      ]
+    },
+    "onQaText": {
+      "chains": [
+        {
+          "chain": "qaChain",
+          "parameters": {
+            "action": "text",
+            "text": "{{ $event.target.value }}"
+          }
+        }
+      ]
+    },
+    "onQaKey": {
+      "chains": [
+        {
+          "chain": "qaChain",
+          "parameters": {
+            "action": "key",
+            "key": "{{ $event.key }}"
+          }
+        }
+      ]
+    },
+    "onQaFrom": {
+      "chains": [
+        {
+          "chain": "qaChain",
+          "parameters": {
+            "action": "from",
+            "value": "{{ $event.target.value }}"
+          }
+        }
+      ]
+    },
+    "onQaTo": {
+      "chains": [
+        {
+          "chain": "qaChain",
+          "parameters": {
+            "action": "to",
+            "value": "{{ $event.target.value }}"
+          }
+        }
+      ]
+    },
+    "onTheme": {
+      "chains": [
+        {
+          "chain": "themeChain",
+          "parameters": {
+            "theme": "{{ $event.currentTarget.dataset.theme }}",
+            "menu": "{{ $event.currentTarget.dataset.menu }}"
+          }
+        }
+      ]
+    },
+    "onProfile": {
+      "chains": [
+        {
+          "chain": "profileChain"
+        }
+      ]
+    },
+    "onAlert": {
+      "chains": [
+        {
+          "chain": "alertChain",
+          "parameters": {
+            "id": "{{ $event.currentTarget.dataset.id }}"
+          }
+        }
+      ]
+    },
+    "onMarkAllRead": {
+      "chains": [
+        {
+          "chain": "markAllReadChain"
+        }
+      ]
+    },
+    "onToastClose": {
+      "chains": [
+        {
+          "chain": "toastChain",
+          "parameters": {
+            "message": ""
+          }
+        }
+      ]
+    },
+    "onBackdrop": {
+      "chains": [
+        {
+          "chain": "dismissChain"
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-vb-switcher": {
+        "path": "vb/components/oj-vb-switcher/loader"
+      },
+      "oj-bind-for-each": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-if": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-text": {
+        "path": "ojs/ojknockout"
+      }
+    }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "id": "requests",
+  "description": "Requests: the list (journey, board, equipment) and a request's own tab.",
+  "defaultPage": "requests",
+  "navigation": { "embeddable": "enabled" },
+  "pages": {
+    "requests": { "path": "pages/requests-page" },
+    "request": { "path": "pages/request-page" }
+  },
+  "chains": {}, "services": {}, "types": {}, "variables": {}
+}

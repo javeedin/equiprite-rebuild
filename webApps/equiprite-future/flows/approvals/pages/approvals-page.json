@@ -1,0 +1,83 @@
+{
+  "description": "Approve & allocate (FDD 7.8, 7.11): the Equipment Manager's queue of requests to decide and approved lines with no unit yet, most urgent first; a request's lines with availability and suggested units; approve or send back with a reason (one or many requests), auto-allocate or pick units. The calls are New EquipRite's Approve & allocate chains (resources/js/approveAllocate.js); the logic is resources/js/approvalQueue.js and unitPicker.js.",
+  "navigation": {
+    "embeddable": "enabled"
+  },
+  "variables": {
+    "isLoading": { "type": "boolean", "defaultValue": true },
+    "error": { "type": "string", "defaultValue": "" },
+    "access": { "type": "string", "defaultValue": "", "description": "EQR_WORKBENCH: FULL | READ_ONLY | HIDDEN (resources/js/rules.js pageAccess)." },
+    "canAct": { "type": "boolean", "defaultValue": false, "description": "FULL access: approve, send back, assign units." },
+    "showSource": { "type": "boolean", "defaultValue": false, "description": "Project / customer chips, with the customers module." },
+    "linesLoaded": { "type": "boolean", "defaultValue": true },
+    "rows": { "type": "any[]", "defaultValue": [], "description": "views/my-requests rows (requestData)." },
+    "linesByRequest": { "type": "any", "defaultValue": {} },
+    "items": { "type": "any[]", "defaultValue": [], "description": "The queue (approvalQueue.build), most urgent first." },
+    "shown": { "type": "any[]", "defaultValue": [], "description": "The queue after the chip, the source and the search." },
+    "chips": { "type": "any[]", "defaultValue": [] },
+    "summary": { "type": "string", "defaultValue": "" },
+    "text": { "type": "string", "defaultValue": "" },
+    "stage": { "type": "string", "defaultValue": "all" },
+    "source": { "type": "string", "defaultValue": "" },
+    "limit": { "type": "number", "defaultValue": 60 },
+    "exportOpen": { "type": "boolean", "defaultValue": false },
+    "selectedIds": { "type": "any[]", "defaultValue": [], "description": "Ticked requests to decide (queue keys)." },
+    "selection": { "type": "any", "defaultValue": { "count": 0, "ids": [], "text": "" } },
+    "bulk": { "type": "any", "defaultValue": { "mode": "", "reason": "", "error": "" }, "description": "mode reject: the send-back confirmation with its reason." },
+    "bulkResult": { "type": "any", "defaultValue": null },
+    "current": { "type": "any", "defaultValue": { "key": "" }, "description": "The queue item open in the panel." },
+    "rec": { "type": "any", "defaultValue": { "loading": false, "error": "", "head": {}, "rows": [], "verdict": { "tone": "", "text": "", "next": "" } } },
+    "lines": { "type": "any[]", "defaultValue": [], "description": "The open request's lines (approveAllocate.loadLines), what the writes act on." },
+    "ticks": { "type": "any[]", "defaultValue": [], "description": "Ticked line ids, in the order ticked: a decision acts on these, or on every line." },
+    "confirm": { "type": "string", "defaultValue": "", "description": "reject | auto: the confirmation open in the panel." },
+    "reason": { "type": "string", "defaultValue": "" },
+    "formError": { "type": "string", "defaultValue": "" },
+    "busy": { "type": "boolean", "defaultValue": false },
+    "busyText": { "type": "string", "defaultValue": "" },
+    "busyWhere": { "type": "string", "defaultValue": "", "description": "bulk | panel: where the progress shows." },
+    "result": { "type": "any", "defaultValue": null, "description": "What the last action did, in words: { tone, text, items }." },
+    "sugg": { "type": "any", "defaultValue": { "loading": false, "byLine": {}, "plan": { "count": 0, "lines": [], "none": [], "label": "" } } },
+    "picker": { "type": "any", "defaultValue": { "lineId": "" }, "description": "The unit picker open under a line (staging kept in the page module)." },
+    "pickTick": { "type": "number", "defaultValue": 0 },
+    "pickNote": { "type": "string", "defaultValue": "" },
+    "recSeq": { "type": "number", "defaultValue": 0 },
+    "settled": { "type": "any", "defaultValue": {}, "description": "Requests read with nothing left to assign: { key: lines taking no unit }. They leave the queue for this tab." }
+  },
+  "events": {
+    "focusRequest": { "description": "From resources/js/shellBus.js focus(): another screen handed this one a request to open.", "payloadType": "object" }
+  },
+  "eventListeners": {
+    "focusRequest": { "chains": [{ "chain": "focusChain" }] },
+    "vbEnter": { "chains": [{ "chain": "loadChain", "parameters": { "refresh": false } }] },
+    "onRefresh": { "chains": [{ "chain": "loadChain", "parameters": { "refresh": true, "reopen": true } }] },
+    "onSearch": { "chains": [{ "chain": "setChain", "parameters": { "field": "text", "value": "{{ $event.target.value }}" } }] },
+    "onPick": { "chains": [{ "chain": "setChain", "parameters": { "field": "{{ $event.currentTarget.dataset.field }}", "value": "{{ $event.currentTarget.dataset.value }}" } }] },
+    "onExportMenu": { "chains": [{ "chain": "setChain", "parameters": { "field": "exportOpen", "value": "toggle" } }] },
+    "onExport": { "chains": [{ "chain": "exportChain", "parameters": { "format": "{{ $event.currentTarget.dataset.format }}" } }] },
+    "onMore": { "chains": [{ "chain": "setChain", "parameters": { "field": "limit", "value": "more" } }] },
+    "onTick": { "chains": [{ "chain": "tickChain", "parameters": { "id": "{{ $event.target.dataset.id }}", "checked": "{{ $event.target.checked }}" } }] },
+    "onBulk": { "chains": [{ "chain": "bulkChain", "parameters": { "action": "{{ $event.currentTarget.dataset.action }}" } }] },
+    "onBulkReason": { "chains": [{ "chain": "setChain", "parameters": { "field": "bulkReason", "value": "{{ $event.target.value }}" } }] },
+    "onDismissBulk": { "chains": [{ "chain": "setChain", "parameters": { "field": "bulkResult", "value": "" } }] },
+    "onSelect": { "chains": [{ "chain": "selectChain", "parameters": { "key": "{{ $event.currentTarget.dataset.key }}" } }] },
+    "onBack": { "chains": [{ "chain": "selectChain", "parameters": { "key": "" } }] },
+    "onLineTick": { "chains": [{ "chain": "lineTickChain", "parameters": { "id": "{{ $event.target.dataset.id }}", "checked": "{{ $event.target.checked }}" } }] },
+    "onDecide": { "chains": [{ "chain": "decideChain", "parameters": { "action": "{{ $event.currentTarget.dataset.action }}" } }] },
+    "onReason": { "chains": [{ "chain": "setChain", "parameters": { "field": "reason", "value": "{{ $event.target.value }}" } }] },
+    "onAuto": { "chains": [{ "chain": "autoChain", "parameters": { "action": "{{ $event.currentTarget.dataset.action }}" } }] },
+    "onUnits": { "chains": [{ "chain": "unitsChain", "parameters": { "lineId": "{{ $event.currentTarget.dataset.line }}" } }] },
+    "onCloseUnits": { "chains": [{ "chain": "unitsChain", "parameters": { "close": true } }] },
+    "onStage": { "chains": [{ "chain": "stageChain", "parameters": { "action": "{{ $event.currentTarget.dataset.action }}", "id": "{{ $event.currentTarget.dataset.id }}" } }] },
+    "onLotQty": { "chains": [{ "chain": "stageChain", "parameters": { "action": "qty", "id": "{{ $event.target.dataset.id }}", "qty": "{{ $event.target.value }}" } }] },
+    "onSaveUnits": { "chains": [{ "chain": "saveUnitsChain" }] },
+    "onOpenRecord": { "chains": [{ "chain": "openRecordChain", "parameters": { "id": "{{ $event.currentTarget.dataset.id }}", "number": "{{ $event.currentTarget.dataset.number }}" } }] },
+    "onDismissResult": { "chains": [{ "chain": "setChain", "parameters": { "field": "result", "value": "" } }] }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}

@@ -1,0 +1,132 @@
+{
+  "description": "Equipment master (FDD 7.2): the catalog of equipment items as a list or a map, found by number, name, class or serial (the list at once, the server's q after a pause), class chips and filters, sort, export; an item opens in its own tab. FULL access: Sync from Fusion (New's chain) and the Import from Fusion view (New's import page and its chains, on the same variables).",
+  "navigation": {
+    "embeddable": "enabled"
+  },
+  "variables": {
+    "canWrite": { "type": "boolean", "defaultValue": false, "description": "FULL access to EQR_EQUIPMENT_MASTER: Sync from Fusion and Import from Fusion." },
+    "rows": { "type": "any[]", "defaultValue": [], "description": "Every item GET /equipment-master answered (every page), with the asset group filter when one is picked." },
+    "server": { "type": "any", "defaultValue": { "q": "", "ids": {}, "rows": [], "failed": false }, "description": "What the server's search (q) found for the text typed: ids and rows." },
+    "searching": { "type": "boolean", "defaultValue": false },
+    "loadedCount": { "type": "number", "defaultValue": 0 },
+    "total": { "type": "number", "defaultValue": 0 },
+    "isLoading": { "type": "boolean", "defaultValue": true },
+    "error": { "type": "string", "defaultValue": "" },
+    "view": { "type": "string", "defaultValue": "list", "description": "list | map | import" },
+    "text": { "type": "string", "defaultValue": "" },
+    "classId": { "type": "string", "defaultValue": "" },
+    "subclassId": { "type": "string", "defaultValue": "" },
+    "status": { "type": "string", "defaultValue": "" },
+    "tracking": { "type": "string", "defaultValue": "" },
+    "source": { "type": "string", "defaultValue": "" },
+    "assetGroupId": { "type": "string", "defaultValue": "" },
+    "location": { "type": "string", "defaultValue": "" },
+    "filtersOpen": { "type": "boolean", "defaultValue": false },
+    "allClasses": { "type": "boolean", "defaultValue": false },
+    "sortKey": { "type": "string", "defaultValue": "name" },
+    "sortDir": { "type": "string", "defaultValue": "asc" },
+    "itemCount": { "type": "number", "defaultValue": 0 },
+    "shown": { "type": "any[]", "defaultValue": [], "description": "What the list shows: found, filtered, sorted (equipmentMaster.decorate rows)." },
+    "chips": { "type": "any", "defaultValue": { "classes": [], "moreClasses": 0, "subclasses": [], "statuses": [], "tracking": [], "sources": [] } },
+    "map": { "type": "any", "defaultValue": { "points": [], "unplaced": 0, "placed": 0 } },
+    "summary": { "type": "string", "defaultValue": "" },
+    "limit": { "type": "number", "defaultValue": 100 },
+    "exportOpen": { "type": "boolean", "defaultValue": false },
+    "classOptionsArray": { "type": "any[]", "defaultValue": [], "description": "Every class { label, value }, by name (the list's chips and the import's class editor)." },
+    "subclassOptionsArray": { "type": "any[]", "defaultValue": [], "description": "Every subclass { label, value, classId }." },
+    "classesById": { "type": "any", "defaultValue": {} },
+    "subclassesById": { "type": "any", "defaultValue": {} },
+    "assetGroupOptions": { "type": "any[]", "defaultValue": [] },
+    "locations": { "type": "any[]", "defaultValue": [] },
+    "locationsById": { "type": "any", "defaultValue": {} },
+    "lastRuns": { "type": "any", "defaultValue": {} },
+    "stagingWaiting": { "type": "number", "defaultValue": 0, "description": "Fetched items waiting in staging (FULL only)." },
+    "isSyncing": { "type": "boolean", "defaultValue": false },
+    "syncStep": { "type": "string", "defaultValue": "" },
+    "syncResult": { "type": "any", "defaultValue": null, "description": "{ title, message, type }: how the last Sync ended, kept on the page." },
+    "ask": { "type": "any", "defaultValue": null, "description": "The question card: { kind, title, message, ok }." },
+    "importReady": { "type": "boolean", "defaultValue": false, "description": "The Import view has loaded its lists (importInitChain runs the first time it opens)." },
+    "importDialogOpen": { "type": "boolean", "defaultValue": true, "description": "Always true: read by the copied import chains (the old dialog's flag)." },
+    "isImporting": { "type": "boolean", "defaultValue": false },
+    "isImportingUnits": { "type": "boolean", "defaultValue": false },
+    "importPhase": { "type": "string", "defaultValue": "RUNNING", "description": "RUNNING | DONE | ERROR for the Fetch; SYNC while the line is Sync's stock step." },
+    "importMessage": { "type": "string", "defaultValue": "" },
+    "importWarning": { "type": "string", "defaultValue": "" },
+    "itemClassOptionsArray": { "type": "any[]", "defaultValue": [] },
+    "itemClassQuery": { "type": "string", "defaultValue": "" },
+    "selectedItemClass": { "type": "any", "defaultValue": null },
+    "itemTypeOptionsArray": { "type": "any[]", "defaultValue": [] },
+    "selectedItemType": { "type": "any", "defaultValue": null },
+    "selectedImportStatus": { "type": "any", "defaultValue": null },
+    "lovsLoading": { "type": "boolean", "defaultValue": false },
+    "stagingArray": { "type": "any[]", "defaultValue": [] },
+    "stagingLoading": { "type": "boolean", "defaultValue": false },
+    "stagingSummary": { "type": "string", "defaultValue": "" },
+    "unmatchedGroups": { "type": "any[]", "defaultValue": [] },
+    "unmatchedTotalGroups": { "type": "number", "defaultValue": 0 },
+    "unmatchedLoading": { "type": "boolean", "defaultValue": false },
+    "unmatchedShowAll": { "type": "boolean", "defaultValue": false },
+    "unmatchedOpen": { "type": "boolean", "defaultValue": false },
+    "stagingChangedRows": { "type": "any", "defaultValue": {} },
+    "stagingSearch": { "type": "string", "defaultValue": "" },
+    "stagingAppliedFilters": { "type": "any", "defaultValue": null },
+    "stagingSelectedRows": { "type": "any", "defaultValue": {} },
+    "stagingSaving": { "type": "boolean", "defaultValue": false },
+    "stagingPage": { "type": "number", "defaultValue": 0 },
+    "stagingPageSize": { "type": "number", "defaultValue": 100 },
+    "stagingTotalElements": { "type": "number", "defaultValue": 0 },
+    "stagingSaveMessage": { "type": "string", "defaultValue": "" },
+    "stagingClearing": { "type": "boolean", "defaultValue": false },
+    "editKey": { "type": "string", "defaultValue": "" },
+    "bulk": { "type": "any", "defaultValue": { "classId": null, "subclassId": null } }
+  },
+  "eventListeners": {
+    "vbEnter": { "chains": [{ "chain": "loadChain", "parameters": { "refresh": false } }] },
+    "onRefresh": { "chains": [{ "chain": "loadChain", "parameters": { "refresh": true } }] },
+    "onSearch": { "chains": [{ "chain": "setChain", "parameters": { "field": "text", "value": "{{ $event.target.value }}" } }] },
+    "onPick": {
+      "chains": [{ "chain": "setChain", "parameters": { "field": "{{ $event.currentTarget.dataset.field }}", "value": "{{ $event.currentTarget.dataset.value }}" } }]
+    },
+    "onSort": { "chains": [{ "chain": "sortChain", "parameters": { "key": "{{ $event.currentTarget.dataset.key }}" } }] },
+    "onOpen": {
+      "chains": [{ "chain": "openRecordChain", "parameters": { "id": "{{ $event.currentTarget.dataset.id }}", "number": "{{ $event.currentTarget.dataset.number }}" } }]
+    },
+    "onExportMenu": { "chains": [{ "chain": "setChain", "parameters": { "field": "exportOpen", "value": "toggle" } }] },
+    "onExport": { "chains": [{ "chain": "exportChain", "parameters": { "format": "{{ $event.currentTarget.dataset.format }}" } }] },
+    "onMore": { "chains": [{ "chain": "setChain", "parameters": { "field": "limit", "value": "more" } }] },
+    "onSync": { "chains": [{ "chain": "SyncFromFusionChain", "parameters": {} }] },
+    "onAnswer": { "chains": [{ "chain": "answerChain", "parameters": { "answer": "{{ $event.currentTarget.dataset.answer }}" } }] },
+    "onFetch": { "chains": [{ "chain": "ImportFromFusionChain" }] },
+    "onImport": { "chains": [{ "chain": "SaveStagingClassesChain" }] },
+    "onClear": { "chains": [{ "chain": "ClearStagingChain", "parameters": {} }] },
+    "onFilter": {
+      "chains": [{ "chain": "setStagingFilterChain", "parameters": { "kind": "{{ $event.currentTarget.dataset.kind }}", "value": "{{ $event.currentTarget.dataset.value }}" } }]
+    },
+    "onFilterInput": {
+      "chains": [{ "chain": "setStagingFilterChain", "parameters": { "kind": "{{ $event.target.dataset.kind }}", "value": "{{ $event.target.value }}" } }]
+    },
+    "onTick": {
+      "chains": [{ "chain": "tickChain", "parameters": { "index": "{{ $event.target.dataset.index }}", "checked": "{{ $event.target.checked }}" } }]
+    },
+    "onEdit": {
+      "chains": [{
+        "chain": "classEditChain",
+        "parameters": {
+          "action": "{{ $event.currentTarget.dataset.action }}",
+          "index": "{{ $event.currentTarget.dataset.index }}",
+          "value": "{{ $event.currentTarget.dataset.value }}"
+        }
+      }]
+    },
+    "onPrevPage": { "chains": [{ "chain": "StagingPageChangeChain", "parameters": { "direction": "PREV" } }] },
+    "onNextPage": { "chains": [{ "chain": "StagingPageChangeChain", "parameters": { "direction": "NEXT" } }] },
+    "onStagingRefresh": { "chains": [{ "chain": "RefreshStagingChain" }] }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}
