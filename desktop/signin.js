@@ -6,9 +6,9 @@
   const init = (await window.signin.initial()) || {};
 
   const versionPicked = () => document.querySelector('input[name=version]:checked').value;
-  const LABELS = { old: 'Old EquipRite', new: 'New EquipRite', next: 'EquipRite Next' };
+  const LABELS = { old: 'Old EquipRite', new: 'New EquipRite', next: 'EquipRite Next', future: 'EquipRite Future' };
   document.querySelector(`input[name=version][value=${LABELS[init.version] ? init.version : 'old'}]`).checked = true;
-  [['new', init.newAvailable], ['next', init.nextAvailable]].forEach(([v, ok]) => {
+  [['new', init.newAvailable], ['next', init.nextAvailable], ['future', init.futureAvailable]].forEach(([v, ok]) => {
     if (ok) return;
     $(v + 'Choice').classList.add('off');
     $(v + 'Choice').querySelector('input').disabled = true;

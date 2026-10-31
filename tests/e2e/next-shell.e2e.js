@@ -61,9 +61,11 @@ function handle(req, res) {
     await page.click('#nxUser');
     await page.waitForSelector('#nxProfilePanel');
     T.eq('your menu: who you are', (await env.text('#nxProfileName')).length > 0 && (await page.getAttribute('#nxUser', 'aria-expanded')), 'true');
-    T.eq('Old / New / Next / Mobile in your menu, Next current', await page.$$eval('.nx-versions .nx-version', (b) => b.map((x) => x.querySelector('.nx-version-name').innerText.trim() + (x.getAttribute('aria-current') ? '*' : '')).join(' ')), 'Old New Next* Mobile');
+    T.eq('Old / New / Next / Mobile / Future in your menu, Next current', await page.$$eval('.nx-versions .nx-version', (b) => b.map((x) => x.querySelector('.nx-version-name').innerText.trim() + (x.getAttribute('aria-current') ? '*' : '')).join(' ')), 'Old New Next* Mobile Future');
     T.check('Old and New point at those apps', (await page.getAttribute('#nxGoOld', 'href')) === env.oldUrl + '/' && (await page.getAttribute('#nxGoNew', 'href')) === env.newUrl + '/');
     T.eq('Mobile opens the phone app in a window of its own', [await page.getAttribute('#nxGoMobile', 'href'), await page.getAttribute('#nxGoMobile', 'target')].join(), env.mobileUrl + '/,_blank');
+    T.eq('Future, after Mobile: many companies, intercompany', [await page.getAttribute('#nxGoFuture', 'href'), await env.text('#nxGoFuture .nx-version-note')].join(' | '),
+      env.futureUrl + '/ | Many companies, intercompany (prototype)');
     await env.shot('next-shell-profile.png');
     await page.keyboard.press('Escape');
     await page.waitForTimeout(200);
@@ -219,8 +221,9 @@ function handle(req, res) {
     T.section('New EquipRite has the same switch');
     await page.goto(env.newUrl + '/vp/shell/home/home', { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('.er-switch #erGoNext', { timeout: 60000 });
-    T.eq('Old / New / Next in New\'s header, New current', await page.$$eval('.er-switch .er-switch-btn', (b) => b.map((x) => x.innerText.trim() + (x.getAttribute('aria-current') ? '*' : '')).join(' ')), 'Old New* Next');
+    T.eq('Old / New / Next / Future in New\'s header, New current', await page.$$eval('.er-switch .er-switch-btn', (b) => b.map((x) => x.innerText.trim() + (x.getAttribute('aria-current') ? '*' : '')).join(' ')), 'Old New* Next Future');
     T.eq('Next points at EquipRite Next', await page.getAttribute('#erGoNext', 'href'), env.nextUrl + '/');
+    T.eq('Future points at EquipRite Future', await page.getAttribute('#erGoFuture', 'href'), env.futureUrl + '/');
     T.eq('reads only', env.writes.length, 0);
     T.eq('no browser errors', env.errors.filter((e) => !e.startsWith('warning')).join('\n'), '');
   } catch (e) {

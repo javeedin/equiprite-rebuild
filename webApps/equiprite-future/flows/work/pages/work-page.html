@@ -1,0 +1,167 @@
+<!-- My work: what waits for the persona played, their latest requests, their notifications, and the story's next step.
+     v = store.view('work') + story (loadChain); clicks: actChain (data-act), openChain (data-nav / data-record). -->
+<div class="nx-page fx-work" id="page-work">
+  <div class="nx-pagehead">
+    <div>
+      <div class="nx-kicker" id="workToday"><oj-bind-text value="[[ $variables.v.me.weekday + ' ' + $variables.v.me.todayText + ' · the demo’s today' ]]"></oj-bind-text></div>
+      <h1 id="workTitle"><oj-bind-text value="[[ $functions.title($variables.v.me) ]]"></oj-bind-text></h1>
+      <div class="nx-sub" id="workWho"><oj-bind-text value="[[ $variables.v.me.title + ($variables.v.me.busText ? ' · business units: ' + $variables.v.me.busText : '') ]]"></oj-bind-text></div>
+    </div>
+    <div class="nx-actions">
+      <oj-bind-if test="[[ $functions.canOpen('new-request', $variables.v.me.roles) ]]">
+        <button type="button" class="nx-btn nx-btn--primary" id="workNew" data-nav="new-request" on-click="[[ $listeners.onOpen ]]">
+          <span class="oj-ux-ico-plus" aria-hidden="true"></span>New request</button>
+      </oj-bind-if>
+      <button type="button" class="nx-btn" id="workGuide" data-nav="guide" on-click="[[ $listeners.onOpen ]]">
+        <span class="oj-ux-ico-guided-process" aria-hidden="true"></span>The guide</button>
+    </div>
+  </div>
+
+  <oj-bind-if test="[[ !!$variables.v.error ]]"><div class="nx-error" role="alert"><oj-bind-text value="[[ $variables.v.error ]]"></oj-bind-text></div></oj-bind-if>
+
+  <oj-bind-if test="[[ $variables.v.ready ]]">
+    <div class="nx-kpis" role="group" aria-label="Your counts">
+      <div class="nx-kpi fx-kpi nx-stage--ready" id="workKpiWaiting">
+        <span class="nx-kpi-label">Waiting for you</span>
+        <span class="nx-kpi-value"><oj-bind-text value="[[ $variables.v.total ]]"></oj-bind-text></span>
+        <span class="nx-kpi-note"><oj-bind-text value="[[ $functions.waitingNote($variables.v.items) ]]"></oj-bind-text></span>
+      </div>
+      <div class="nx-kpi fx-kpi nx-stage--out" id="workKpiRequests">
+        <span class="nx-kpi-label">Your BUs' requests</span>
+        <span class="nx-kpi-value"><oj-bind-text value="[[ $variables.v.myRequests.length ]]"></oj-bind-text></span>
+        <span class="nx-kpi-note"><oj-bind-text value="[[ $variables.v.me.busText ]]"></oj-bind-text></span>
+      </div>
+      <div class="nx-kpi fx-kpi nx-stage--approval" id="workKpiMoney">
+        <span class="nx-kpi-label">Money not complete</span>
+        <span class="nx-kpi-value"><oj-bind-text value="[[ $variables.v.unfinished ]]"></oj-bind-text></span>
+        <span class="nx-kpi-note">requests with a financial step still to do</span>
+      </div>
+      <div class="nx-kpi fx-kpi nx-stage--onsite" id="workKpiUnread">
+        <span class="nx-kpi-label">Unread notifications</span>
+        <span class="nx-kpi-value"><oj-bind-text value="[[ $variables.v.notifications.unread ]]"></oj-bind-text></span>
+        <span class="nx-kpi-note"><oj-bind-text value="[[ 'for ' + $variables.v.me.name ]]"></oj-bind-text></span>
+      </div>
+    </div>
+
+    <div class="nx-work-cols">
+      <section class="nx-card" aria-labelledby="workWaitingTitle">
+        <div class="nx-card-head"><h2 id="workWaitingTitle">Waiting for you</h2>
+          <span class="nx-note"><oj-bind-text value="[[ $variables.v.items.length ? $functions.plural($variables.v.items.length, 'queue') : '' ]]"></oj-bind-text></span></div>
+        <oj-bind-if test="[[ !$variables.v.items.length ]]">
+          <p class="nx-empty" id="workNothing"><span class="oj-ux-ico-check-circle nx-ok-icon" aria-hidden="true"></span>
+            <oj-bind-text value="[[ 'Nothing waits for ' + $functions.first($variables.v.me.name) + ' right now. The story’s next step says who plays next.' ]]"></oj-bind-text></p>
+        </oj-bind-if>
+        <ul class="nx-needs" id="workItems">
+          <oj-bind-for-each data="[[ $variables.v.items ]]">
+            <template data-oj-as="it">
+              <li>
+                <button type="button" class="nx-need fx-wait" :data-nav="[[ it.data.navId ]]" on-click="[[ $listeners.onOpen ]]">
+                  <span class="fx-wait-count"><oj-bind-text value="[[ it.data.count ]]"></oj-bind-text></span>
+                  <span class="nx-need-body"><span class="nx-need-title"><oj-bind-text value="[[ it.data.label ]]"></oj-bind-text></span>
+                    <span class="nx-need-text"><oj-bind-text value="[[ 'In ' + $functions.label(it.data.navId) ]]"></oj-bind-text></span></span>
+                  <span :class="[[ $functions.icon(it.data.navId) + ' fx-wait-icon' ]]" aria-hidden="true"></span>
+                  <span class="oj-ux-ico-chevron-right nx-need-go" aria-hidden="true"></span>
+                </button>
+              </li>
+            </template>
+          </oj-bind-for-each>
+        </ul>
+      </section>
+
+      <div class="nx-work-side">
+        <section class="nx-card fx-next" aria-labelledby="workNextTitle" id="workNext">
+          <div class="nx-card-head"><h2 id="workNextTitle">Next in the story</h2>
+            <span class="nx-note"><oj-bind-text value="[[ $variables.v.story.done + ' of ' + $variables.v.story.total + ' steps done' ]]"></oj-bind-text></span></div>
+          <div class="nx-card-pad fx-next-body">
+            <div class="fx-progress" aria-hidden="true"><span :style="[[ { width: $variables.v.story.pct + '%' } ]]"></span></div>
+            <oj-bind-if test="[[ !!$variables.v.story.next ]]">
+              <p class="fx-next-step"><span class="fx-next-n"><oj-bind-text value="[[ 'Step ' + $variables.v.story.next.n ]]"></oj-bind-text></span>
+                <span id="workNextText"><oj-bind-text value="[[ $variables.v.story.next.text ]]"></oj-bind-text></span></p>
+              <span class="fx-who">
+                <span class="nx-avatar fx-avatar" aria-hidden="true"><oj-bind-text value="[[ $variables.v.story.next.initials ]]"></oj-bind-text></span>
+                <span class="fx-who-text"><span class="fx-who-name"><oj-bind-text value="[[ $variables.v.story.next.personaName ]]"></oj-bind-text></span>
+                  <span class="fx-who-title"><oj-bind-text value="[[ $variables.v.story.next.title ]]"></oj-bind-text></span></span>
+              </span>
+              <oj-bind-if test="[[ $variables.v.story.next.mine ]]">
+                <button type="button" class="nx-btn nx-btn--primary" id="workPlay" :data-nav="[[ $variables.v.story.next.navId ]]" on-click="[[ $listeners.onOpen ]]">
+                  <span class="oj-ux-ico-arrow-right" aria-hidden="true"></span><oj-bind-text value="[[ $variables.v.story.next.action ]]"></oj-bind-text></button>
+              </oj-bind-if>
+              <oj-bind-if test="[[ !$variables.v.story.next.mine ]]">
+                <button type="button" class="nx-btn nx-btn--primary" id="workPlay" data-act="setPersona" :data-id="[[ $variables.v.story.next.persona ]]"
+                  :data-open="[[ $variables.v.story.next.navId ]]" on-click="[[ $listeners.onAct ]]">
+                  <span class="oj-ux-ico-person-rotation" aria-hidden="true"></span><oj-bind-text value="[[ $variables.v.story.next.action ]]"></oj-bind-text></button>
+              </oj-bind-if>
+            </oj-bind-if>
+            <oj-bind-if test="[[ $variables.v.story.complete ]]">
+              <p class="fx-next-step" id="workStoryDone"><span class="oj-ux-ico-check-circle nx-ok-icon" aria-hidden="true"></span> The whole story has been played.
+                Try another scenario from the guide, or reset the demo from your menu.</p>
+            </oj-bind-if>
+            <button type="button" class="nx-linkbtn" data-nav="guide" on-click="[[ $listeners.onOpen ]]">All thirteen steps, and who plays them</button>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <section class="nx-card" aria-labelledby="workRequestsTitle">
+      <div class="nx-card-head"><h2 id="workRequestsTitle">Latest requests of your business units</h2>
+        <oj-bind-if test="[[ $functions.canOpen('requests', $variables.v.me.roles) ]]">
+          <button type="button" class="nx-linkbtn" data-nav="requests" on-click="[[ $listeners.onOpen ]]">All your requests</button>
+        </oj-bind-if></div>
+      <oj-bind-if test="[[ !$variables.v.myRequests.length ]]">
+        <p class="nx-empty" id="workNoRequests"><oj-bind-text value="[[ $functions.canOpen('new-request', $variables.v.me.roles)
+          ? 'No requests yet. New request raises one for your business unit.' : 'No requests raised by your business units.' ]]"></oj-bind-text></p>
+      </oj-bind-if>
+      <oj-bind-if test="[[ $variables.v.myRequests.length > 0 ]]">
+        <div class="nx-table">
+          <div class="nx-grid fx-grid--work" role="table" aria-labelledby="workRequestsTitle" id="workRequests">
+            <div role="row" class="nx-row nx-row--head">
+              <span role="columnheader">Request</span><span role="columnheader">For</span><span role="columnheader">Where it is</span>
+              <span role="columnheader">Owner</span><span role="columnheader">Money</span>
+            </div>
+            <oj-bind-for-each data="[[ $variables.v.myRequests ]]">
+              <template data-oj-as="r">
+                <div role="row" class="nx-row nx-row--click" data-record="request" :data-id="[[ r.data.id ]]" :data-number="[[ r.data.number ]]" on-click="[[ $listeners.onOpen ]]">
+                  <span role="cell"><span class="nx-cell-main"><button type="button" class="nx-link"><oj-bind-text value="[[ r.data.number ]]"></oj-bind-text></button></span>
+                    <span class="nx-cell-sub"><oj-bind-text value="[[ r.data.typeText + ' · ' + r.data.dates ]]"></oj-bind-text></span></span>
+                  <span role="cell" class="nx-ellipsis"><span class="nx-cell-main"><oj-bind-text value="[[ r.data.project || r.data.customer ]]"></oj-bind-text></span>
+                    <span class="nx-cell-sub"><oj-bind-text value="[[ r.data.buName + ' · ' + r.data.site ]]"></oj-bind-text></span></span>
+                  <span role="cell"><span :class="[[ 'nx-pill nx-stage--' + $functions.stageTone(r.data.stage) ]]" :title="[[ r.data.stage ]]"><oj-bind-text value="[[ r.data.words ]]"></oj-bind-text></span></span>
+                  <span role="cell" class="nx-ellipsis"><span class="nx-cell-main"><oj-bind-text value="[[ r.data.owners ]]"></oj-bind-text></span>
+                    <span class="nx-cell-sub"><oj-bind-text value="[[ r.data.relations ]]"></oj-bind-text></span></span>
+                  <span role="cell"><span :class="[[ 'fx-chip fx-chip--' + (r.data.finComplete ? 'ok' : 'todo') ]]"><oj-bind-text value="[[ r.data.finDone + ' of ' + r.data.finTotal + ' done' ]]"></oj-bind-text></span>
+                    <span class="nx-cell-sub"><oj-bind-text value="[[ r.data.finWords ]]"></oj-bind-text></span></span>
+                </div>
+              </template>
+            </oj-bind-for-each>
+          </div>
+        </div>
+      </oj-bind-if>
+    </section>
+
+    <section class="nx-card" aria-labelledby="workNotesTitle">
+      <div class="nx-card-head"><h2 id="workNotesTitle">Your notifications</h2>
+        <oj-bind-if test="[[ $variables.v.notifications.unread > 0 ]]">
+          <button type="button" class="nx-linkbtn" id="workMarkRead" data-act="markRead" on-click="[[ $listeners.onAct ]]">Mark all read</button>
+        </oj-bind-if></div>
+      <oj-bind-if test="[[ !$variables.v.notifications.rows.length ]]">
+        <p class="nx-empty"><oj-bind-text value="[[ 'Nothing for ' + $functions.first($variables.v.me.name) + ' yet.' ]]"></oj-bind-text></p>
+      </oj-bind-if>
+      <ul class="nx-alerts fx-work-notes" id="workNotes">
+        <oj-bind-for-each data="[[ $functions.latest($variables.v.notifications.rows) ]]">
+          <template data-oj-as="n">
+            <li>
+              <button type="button" :class="[[ 'nx-alert fx-note fx-note--' + n.data.kind + (n.data.unread ? '' : ' nx-alert--read') ]]"
+                :data-nav="[[ $functions.linkNav(n.data.link) ]]" :data-record="[[ $functions.linkRecord(n.data.link) ]]" :data-id="[[ $functions.linkId(n.data.link) ]]"
+                on-click="[[ $listeners.onOpen ]]">
+                <span :class="[[ $functions.noteIcon(n.data.kind) + ' nx-alert-icon' ]]" aria-hidden="true"></span>
+                <span class="nx-alert-body"><span class="nx-alert-text fx-note-text"><oj-bind-text value="[[ n.data.text ]]"></oj-bind-text></span>
+                  <span class="fx-note-at"><oj-bind-text value="[[ n.data.at ]]"></oj-bind-text></span></span>
+                <oj-bind-if test="[[ n.data.unread ]]"><span class="nx-alert-dot" aria-label="Unread"></span></oj-bind-if>
+              </button>
+            </li>
+          </template>
+        </oj-bind-for-each>
+      </ul>
+    </section>
+  </oj-bind-if>
+</div>

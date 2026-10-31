@@ -1,11 +1,20 @@
 {
   "id": "requests",
-  "description": "Requests: the list (journey, board, equipment) and a request's own tab.",
+  "description": "Requests: My requests (the requests of the persona's business units) and a request in its own tab. Pages start as skeletons on the Future page pattern; each screen's builder replaces its own page.",
   "defaultPage": "requests",
-  "navigation": { "embeddable": "enabled" },
-  "pages": {
-    "requests": { "path": "pages/requests-page" },
-    "request": { "path": "pages/request-page" }
+  "navigation": {
+    "embeddable": "enabled"
   },
-  "chains": {}, "services": {}, "types": {}, "variables": {}
+  "pages": {
+    "requests": {
+      "path": "pages/requests-page"
+    },
+    "request": {
+      "path": "pages/request-page"
+    }
+  },
+  "chains": {},
+  "services": {},
+  "types": {},
+  "variables": {}
 }

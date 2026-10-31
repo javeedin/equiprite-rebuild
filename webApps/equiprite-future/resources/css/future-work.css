@@ -1,0 +1,19 @@
+/* EquipRite Future · My work (flows/work). Next's My work parts (nx-work-cols, nx-needs, nx-kpis) with Future's queues. */
+.fx-work .fx-kpi { cursor: default; }
+.fx-work .nx-kpi-value { color: var(--st, var(--nx-ink)); }
+.fx-work .nx-kpis { grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr)); }
+.fx-wait { align-items: center; }
+.fx-wait-count {
+  flex: none; min-width: 38px; height: 38px; padding: 0 8px; box-sizing: border-box; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center;
+  background: #fef3c7; color: #92400e; font-size: 17px; font-weight: 800; font-variant-numeric: tabular-nums;
+}
+.fx-wait-icon { flex: none; font-size: 18px; color: var(--nx-faint); }
+.fx-next-body { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+.fx-next-body .fx-progress { align-self: stretch; }
+.fx-next-step { margin: 0; display: flex; flex-direction: column; gap: 4px; font-size: 15px; font-weight: 600; }
+.fx-next-n { font-size: 11px; font-weight: 700; color: var(--nx-faint); text-transform: uppercase; letter-spacing: 0.06em; }
+.fx-next .nx-btn { white-space: normal; height: auto; min-height: 36px; padding: 6px 14px; text-align: left; }
+.fx-grid--work { min-width: 760px; }
+.fx-grid--work .nx-row { grid-template-columns: 150px minmax(180px, 1.4fr) minmax(170px, 1.1fr) minmax(130px, 0.9fr) minmax(170px, 1fr); align-items: start; }
+.fx-grid--work .nx-row--head { align-items: center; }
+.fx-work-notes { padding: 6px 8px 10px; }

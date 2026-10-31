@@ -1,0 +1,50 @@
+{
+  "description": "My work (the reference screen of the Future page pattern, docs/redesign/BUILDING-FUTURE-SCREENS.md): v = store.view('work') with the Guide's next step (fxGuide.story), set by loadChain on vbEnter and again on every fxRefresh (the store changed). Clicks go through actChain (data-act) and openChain (data-nav, data-record).",
+  "navigation": {
+    "embeddable": "enabled"
+  },
+  "variables": {
+    "v": {
+      "type": "any",
+      "defaultValue": {
+        "ready": false,
+        "error": "",
+        "me": { "id": "", "name": "", "title": "", "roles": [], "busText": "", "todayText": "", "weekday": "" },
+        "items": [],
+        "total": 0,
+        "myRequests": [],
+        "unfinished": 0,
+        "notifications": { "rows": [], "unread": 0 },
+        "story": { "steps": [], "next": null, "done": 0, "total": 0, "pct": 0, "complete": false }
+      },
+      "description": "store.view('work') (fxViews.work: me, items per screen, total, myRequests, unfinished, notifications, guide) plus story: fxGuide.story(guide, me.id)."
+    }
+  },
+  "events": {
+    "fxRefresh": {
+      "description": "From the page module (fxPage.watch): the store changed, so loadChain runs again.",
+      "payloadType": "object"
+    }
+  },
+  "eventListeners": {
+    "vbEnter": {
+      "chains": [{ "chain": "loadChain" }]
+    },
+    "fxRefresh": {
+      "chains": [{ "chain": "loadChain" }]
+    },
+    "onAct": {
+      "chains": [{ "chain": "actChain", "parameters": { "data": "{{ $event.currentTarget.dataset }}" } }]
+    },
+    "onOpen": {
+      "chains": [{ "chain": "openChain", "parameters": { "data": "{{ $event.currentTarget.dataset }}" } }]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}

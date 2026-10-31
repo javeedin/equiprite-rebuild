@@ -1,0 +1,23 @@
+{
+  "id": "money",
+  "description": "Money: charges and statements, the intercompany workbench, customer billing. Pages start as skeletons on the Future page pattern; each screen's builder replaces its own page.",
+  "defaultPage": "charges",
+  "navigation": {
+    "embeddable": "enabled"
+  },
+  "pages": {
+    "charges": {
+      "path": "pages/charges-page"
+    },
+    "ic-workbench": {
+      "path": "pages/ic-workbench-page"
+    },
+    "billing": {
+      "path": "pages/billing-page"
+    }
+  },
+  "chains": {},
+  "services": {},
+  "types": {},
+  "variables": {}
+}

@@ -39,7 +39,11 @@ On first start a sign-in window asks for:
   18891) in a phone-sized window of its own, beside the main window; the **Mobile** link in EquipRite Next's profile
   menu does the same. Each person gets the tabs their access allows: Approve, Pick, Request, My requests, Me.
 
-  **File → EquipRite on your phone (QR code)…** (Ctrl+Shift+5) puts EquipRite Mobile on a real phone. Scan a code
+  **File → Open EquipRite Future** (Ctrl+Shift+5) opens EquipRite Future (webApps/equiprite-future, port 18892): FDD
+  v2.0's many companies and intercompany hire, a prototype that plays a simulated group in the browser and calls no
+  backend. It is served once built, like Next, and listed in the version switch of New, Next and Future.
+
+  **File → EquipRite on your phone (QR code)…** (Ctrl+Shift+6) puts EquipRite Mobile on a real phone. Scan a code
   with the phone's camera; the app opens and offers to put itself on the home screen.
   - **From VBCS** (recommended): paste the address of EquipRite on VBCS once (Next's or Mobile's, from the browser);
     it is kept in this PC's user data. The phone can install the app, and the camera and its location work (https).

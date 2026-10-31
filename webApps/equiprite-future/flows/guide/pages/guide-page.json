@@ -1,0 +1,45 @@
+{
+  "description": "Guide: the end-to-end story (the second reference screen of the Future page pattern). v = store.view('guide') with each step's and scenario's player (fxGuide.story) and the FDD v2.0 rules, set by loadChain on vbEnter and on every fxRefresh. Play as … switches the persona and opens the step's screen in one click (actChain: data-act=\"setPersona\" data-id data-open).",
+  "navigation": {
+    "embeddable": "enabled"
+  },
+  "variables": {
+    "v": {
+      "type": "any",
+      "defaultValue": {
+        "ready": false,
+        "error": "",
+        "me": { "id": "", "name": "", "title": "" },
+        "story": { "steps": [], "scenarios": [], "rules": [], "model": [], "next": null, "done": 0, "total": 0, "pct": 0, "complete": false }
+      },
+      "description": "store.view('guide') plus me (store.view('me')) and story: fxGuide.story(guide, me.id)."
+    }
+  },
+  "events": {
+    "fxRefresh": {
+      "description": "From the page module (fxPage.watch): the store changed, so loadChain runs again.",
+      "payloadType": "object"
+    }
+  },
+  "eventListeners": {
+    "vbEnter": {
+      "chains": [{ "chain": "loadChain" }]
+    },
+    "fxRefresh": {
+      "chains": [{ "chain": "loadChain" }]
+    },
+    "onAct": {
+      "chains": [{ "chain": "actChain", "parameters": { "data": "{{ $event.currentTarget.dataset }}" } }]
+    },
+    "onOpen": {
+      "chains": [{ "chain": "openChain", "parameters": { "data": "{{ $event.currentTarget.dataset }}" } }]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}

@@ -802,9 +802,10 @@
         "old": "",
         "new": "",
         "next": "",
-        "mobile": ""
+        "mobile": "",
+        "future": ""
       },
-      "description": "Where Old, New, Next and Mobile EquipRite live, for the profile menu's versions. Set by loadVersionsChain: from the desktop app's /__versions locally, or under VBCS by swapping webApps/equiprite-next for the others in this page's address. Empty until known; the menu then shows only Next."
+      "description": "Where Old, New, Next, Mobile and Future EquipRite live, for the profile menu's versions. Set by loadVersionsChain: from the desktop app's /__versions locally, or under VBCS by swapping webApps/equiprite-next for the others in this page's address. Empty until known; the menu then shows only Next."
     },
     "viewAs": {
       "type": "string",

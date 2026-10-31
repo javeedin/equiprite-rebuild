@@ -3,10 +3,11 @@ define([
 ], (ActionChain) => {
   'use strict';
 
-  // Where Old, New and Next EquipRite live, for the toolbar's switch.
+  // Where Old, New, Next, Mobile and Future EquipRite live, for the version list in the profile menu.
   //
-  // Under VBCS the three web apps sit in one visual application, so the others' addresses are this one with
-  // webApps/equiprite-next swapped for webApps/vbredwoodapp (Old) and webApps/equiprite (New). Locally the desktop
+  // Under VBCS the web apps sit in one visual application, so the others' addresses are this one with
+  // webApps/equiprite-next swapped for webApps/vbredwoodapp (Old), webApps/equiprite (New), webApps/equiprite-mobile
+  // (Mobile) and webApps/equiprite-future (Future). Locally the desktop
   // app runs each on its own port and says where at /__versions. Anything else (Designer preview) leaves them empty
   // and the switch shows Next alone, rather than guessing.
   class loadVersionsChain extends ActionChain {
@@ -16,14 +17,15 @@ define([
       const m = /^(.*\/webApps\/)equiprite-next\//.exec(here);
       if (m) {
         $application.variables.appUrls = { old: m[1] + 'vbredwoodapp/', new: m[1] + 'equiprite/', next: m[1] + 'equiprite-next/',
-          mobile: m[1] + 'equiprite-mobile/' };
+          mobile: m[1] + 'equiprite-mobile/', future: m[1] + 'equiprite-future/' };
         return;
       }
       try {
         const res = await fetch('/__versions', { credentials: 'same-origin' });
         if (res.ok) {
           const v = await res.json();
-          $application.variables.appUrls = { old: (v && v.old) || '', new: (v && v.new) || '', next: (v && v.next) || '', mobile: (v && v.mobile) || '' };
+          $application.variables.appUrls = { old: (v && v.old) || '', new: (v && v.new) || '', next: (v && v.next) || '', mobile: (v && v.mobile) || '',
+            future: (v && v.future) || '' };
         }
       } catch (e) {
         console.warn('[loadVersionsChain] no /__versions here; the Old/New switch is hidden', e);

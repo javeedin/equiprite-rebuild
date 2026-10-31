@@ -1,0 +1,71 @@
+{
+  "description": "Accounting (shown) (skeleton: being built). v = store.view('ledger', leId), store.view('consolidation'), set by loadChain on vbEnter and on every fxRefresh; actions through actChain, links through openChain (docs/redesign/BUILDING-FUTURE-SCREENS.md).",
+  "navigation": {
+    "embeddable": "enabled"
+  },
+  "variables": {
+    "v": {
+      "type": "any",
+      "defaultValue": {
+        "ready": false,
+        "error": ""
+      },
+      "description": "The view model: store.view('ledger', leId), store.view('consolidation')."
+    }
+  },
+  "events": {
+    "fxRefresh": {
+      "description": "From the page module (fxPage.watch): the store changed, so loadChain runs again.",
+      "payloadType": "object"
+    }
+  },
+  "eventListeners": {
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "loadChain"
+        }
+      ]
+    },
+    "fxRefresh": {
+      "chains": [
+        {
+          "chain": "loadChain"
+        }
+      ]
+    },
+    "onAct": {
+      "chains": [
+        {
+          "chain": "actChain",
+          "parameters": {
+            "data": "{{ $event.currentTarget.dataset }}"
+          }
+        }
+      ]
+    },
+    "onOpen": {
+      "chains": [
+        {
+          "chain": "openChain",
+          "parameters": {
+            "data": "{{ $event.currentTarget.dataset }}"
+          }
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-if": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-text": {
+        "path": "ojs/ojknockout"
+      }
+    }
+  }
+}

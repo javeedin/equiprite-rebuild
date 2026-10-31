@@ -1,0 +1,20 @@
+{
+  "id": "finance",
+  "description": "Finance: the accounting (shown, never posted) and the reports. Pages start as skeletons on the Future page pattern; each screen's builder replaces its own page.",
+  "defaultPage": "accounting",
+  "navigation": {
+    "embeddable": "enabled"
+  },
+  "pages": {
+    "accounting": {
+      "path": "pages/accounting-page"
+    },
+    "reports": {
+      "path": "pages/reports-page"
+    }
+  },
+  "chains": {},
+  "services": {},
+  "types": {},
+  "variables": {}
+}

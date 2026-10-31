@@ -1,0 +1,10 @@
+{
+  "id": "work",
+  "description": "My work: what waits for the persona played, their latest requests, their notifications and the story's next step (store.view('work')).",
+  "defaultPage": "work",
+  "navigation": { "embeddable": "enabled" },
+  "pages": {
+    "work": { "path": "pages/work-page" }
+  },
+  "chains": {}, "services": {}, "types": {}, "variables": {}
+}

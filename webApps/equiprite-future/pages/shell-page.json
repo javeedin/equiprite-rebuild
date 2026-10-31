@@ -1,5 +1,8 @@
 {
-  "description": "EquipRite Next shell: toolbar (menu toggle, brand, global search (screens, requests, equipment, units, transfers: resources/js/globalSearch.js), Check availability (resources/js/quickAvailability.js), Old/New/Next switch, bell, user), a light collapsible menu, and the tab strip over oj-vb-switcher, which keeps every open tab's page alive. Tabs: resources/js/tabs.js; menu: resources/js/nav.js; bell: resources/js/alerts.js.",
+  "description": "EquipRite Future shell: toolbar (menu toggle, brand, New request, the demo clock, Guide, the bell, Playing as, your menu), the prototype banner, a coloured collapsible menu (resources/js/nav.js, by the persona played, with badges from fxViews.work) and the tab strip over oj-vb-switcher, which keeps every open tab's page alive (resources/js/tabs.js). Everything it shows comes from the simulated store (resources/js/future/fxStore.js); the store's changes reach it as fxRefresh (refreshChain).",
+  "navigation": {
+    "embeddable": "enabled"
+  },
   "variables": {
     "tabs": {
       "type": "vb/ArrayDataProvider2",
@@ -28,124 +31,64 @@
       "defaultValue": false,
       "description": "Menu shown over the content on a narrow window."
     },
-    "query": {
-      "type": "string",
-      "defaultValue": ""
-    },
-    "results": {
-      "type": "any[]",
-      "defaultValue": [],
-      "description": "The search list, in order: group headings ({ type: head }), matches ({ type: row, n, label, sub, hint, open }) and \"N more\" ({ type: more, n }); n numbers the ones that can be chosen (resources/js/globalSearch.js)."
-    },
-    "resultIndex": {
-      "type": "number",
-      "defaultValue": 0,
-      "description": "The n of the match chosen (arrow keys)."
-    },
-    "showResults": {
-      "type": "boolean",
-      "defaultValue": false
-    },
-    "search": {
+    "me": {
       "type": "any",
       "defaultValue": {
-        "scope": "all",
-        "expanded": "",
-        "scopes": [],
-        "count": 0,
-        "forQuery": "",
-        "empty": "",
-        "foot": ""
+        "id": "",
+        "name": "",
+        "initials": "",
+        "title": "",
+        "roles": [],
+        "bus": [],
+        "busText": "",
+        "today": "",
+        "todayText": "",
+        "weekday": "",
+        "monthEnd": false
       },
-      "description": "The global search: the scope (all | screens | requests | equipment), a group opened by \"N more\", the scopes with their counts, how many matches can be chosen, the words they are for, and the foot (what is searched, what could not be read)."
+      "description": "The persona played (fxViews.me): name, title, roles, business units, and the demo clock's today."
+    },
+    "personas": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Everyone in the demo group (fxViews.personas), for Playing as."
+    },
+    "menu": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "The menu for the persona played: nav.visibleGroups(me.roles, nav.badges(fxViews.work().items))."
+    },
+    "bell": {
+      "type": "any",
+      "defaultValue": {
+        "rows": [],
+        "unread": 0
+      },
+      "description": "The persona's notifications (fxViews.notifications): read marks are per persona, in the store."
     },
     "bellOpen": {
       "type": "boolean",
       "defaultValue": false
     },
-    "cartOpen": {
+    "profileOpen": {
       "type": "boolean",
       "defaultValue": false,
-      "description": "Your carts: the drafts panel."
+      "description": "Your menu: the EquipRite version, colours, Reset the demo."
     },
-    "drafts": {
-      "type": "any",
-      "defaultValue": {
-        "mine": [],
-        "others": []
-      },
-      "description": "Requests saved as drafts (cartDrafts.list): yours, and everyone else's for a manager."
-    },
-    "draftsAll": {
+    "personaOpen": {
       "type": "boolean",
       "defaultValue": false,
-      "description": "Everyone's drafts, not only yours."
+      "description": "Playing as: the list of people to play."
     },
-    "draftsLoading": {
-      "type": "boolean",
-      "defaultValue": false
-    },
-    "phoneOpen": {
+    "clockOpen": {
       "type": "boolean",
       "defaultValue": false,
-      "description": "The toolbar's QR code: EquipRite Mobile on your phone."
+      "description": "The demo clock's panel: what moving it does."
     },
-    "phone": {
-      "type": "any",
-      "defaultValue": {
-        "loading": false,
-        "options": [],
-        "sel": "",
-        "url": "",
-        "img": "",
-        "note": "",
-        "copied": false,
-        "desktop": false
-      },
-      "description": "The ways onto a phone (resources/js/phoneLink.js), the one shown, its address and QR code."
-    },
-    "qaOpen": {
+    "resetAsk": {
       "type": "boolean",
       "defaultValue": false,
-      "description": "Check availability: the toolbar panel."
-    },
-    "qa": {
-      "type": "any",
-      "defaultValue": {
-        "loading": false,
-        "error": "",
-        "note": "",
-        "maint": "",
-        "text": "",
-        "pickKind": "",
-        "pickKey": "",
-        "pickLabel": "",
-        "from": "",
-        "to": "",
-        "preset": "",
-        "winText": "",
-        "presets": [],
-        "options": [],
-        "optIndex": 0,
-        "optOpen": false,
-        "can360": false,
-        "answer": {
-          "kind": "none",
-          "headline": "",
-          "rows": [],
-          "units": [],
-          "more": 0,
-          "moreText": "",
-          "availText": "",
-          "win": {
-            "from": "",
-            "to": "",
-            "days": 0,
-            "text": ""
-          }
-        }
-      },
-      "description": "Check availability (qaChain; resources/js/quickAvailability.js): what is asked (equipment typed or picked, the window), the suggestions, and the answer."
+      "description": "Reset the demo is asking first."
     },
     "colours": {
       "type": "any",
@@ -153,36 +96,7 @@
         "theme": "teal",
         "menu": "dark"
       },
-      "description": "Your colours: the theme and the menu dark or light (resources/js/theme.js), kept on this computer."
-    },
-    "profileOpen": {
-      "type": "boolean",
-      "defaultValue": false,
-      "description": "The menu under your name: who you are, and the EquipRite version (Old / New / Next)."
-    },
-    "alerts": {
-      "type": "any[]",
-      "defaultValue": []
-    },
-    "unread": {
-      "type": "number",
-      "defaultValue": 0
-    },
-    "readIds": {
-      "type": "any[]",
-      "defaultValue": []
-    },
-    "alertsAt": {
-      "type": "string",
-      "defaultValue": ""
-    },
-    "alertsLoading": {
-      "type": "boolean",
-      "defaultValue": false
-    },
-    "alertsError": {
-      "type": "string",
-      "defaultValue": ""
+      "description": "Your colours: the theme and the menu dark or light (resources/js/theme.js), kept on this computer (the same key as Next)."
     },
     "tabMenuOpen": {
       "type": "boolean",
@@ -200,7 +114,7 @@
       "type": "string",
       "defaultValue": "",
       "input": "fromUrl",
-      "description": "Deep link: ?open=<menu id> opens that screen; ?open=request&id=\u2026&number=\u2026 opens a record."
+      "description": "Deep link: ?open=<menu id> opens that screen; ?open=request&id=…&number=… opens a request."
     },
     "id": {
       "type": "string",
@@ -215,7 +129,7 @@
     "shellReady": {
       "type": "boolean",
       "defaultValue": false,
-      "description": "True once page access is known and the tabs this role may open are open."
+      "description": "True once the tabs this persona may open are open."
     }
   },
   "types": {
@@ -245,20 +159,12 @@
         "tone": "string"
       }
     },
-    "refreshAlerts": {
-      "description": "Every five minutes, from the page module.",
+    "fxRefresh": {
+      "description": "From the page module: the store changed (an action here or in another tab, the persona, the demo clock, a reset).",
       "payloadType": "object"
     },
     "dismiss": {
       "description": "Escape: closes the open popup.",
-      "payloadType": "object"
-    },
-    "refreshDrafts": {
-      "description": "From the page module: the requests changed (requestData.onChange), so the cart counts its drafts again.",
-      "payloadType": "object"
-    },
-    "searchAway": {
-      "description": "From the page module: a click outside the search box and its list, which closes the list.",
       "payloadType": "object"
     }
   },
@@ -283,10 +189,10 @@
         }
       ]
     },
-    "refreshAlerts": {
+    "fxRefresh": {
       "chains": [
         {
-          "chain": "loadAlertsChain"
+          "chain": "refreshChain"
         }
       ]
     },
@@ -354,57 +260,24 @@
         }
       ]
     },
-    "onCommandInput": {
+    "onPersona": {
       "chains": [
         {
-          "chain": "commandChain",
+          "chain": "personaChain",
           "parameters": {
-            "text": "{{ $event.target.value }}"
+            "action": "{{ $event.currentTarget.dataset.action }}",
+            "id": "{{ $event.currentTarget.dataset.id }}"
           }
         }
       ]
     },
-    "onCommandKey": {
+    "onClock": {
       "chains": [
         {
-          "chain": "commandKeyChain",
+          "chain": "clockChain",
           "parameters": {
-            "key": "{{ $event.key }}"
+            "action": "{{ $event.currentTarget.dataset.action }}"
           }
-        }
-      ]
-    },
-    "onCommandFocus": {
-      "chains": [
-        {
-          "chain": "searchFocusChain"
-        }
-      ]
-    },
-    "onSearchScope": {
-      "chains": [
-        {
-          "chain": "searchScopeChain",
-          "parameters": {
-            "scope": "{{ $event.currentTarget.dataset.scope }}"
-          }
-        }
-      ]
-    },
-    "onResult": {
-      "chains": [
-        {
-          "chain": "resultChain",
-          "parameters": {
-            "index": "{{ $event.currentTarget.dataset.index }}"
-          }
-        }
-      ]
-    },
-    "searchAway": {
-      "chains": [
-        {
-          "chain": "searchCloseChain"
         }
       ]
     },
@@ -415,100 +288,29 @@
         }
       ]
     },
-    "refreshDrafts": {
+    "onNote": {
       "chains": [
         {
-          "chain": "cartChain",
+          "chain": "noteChain",
           "parameters": {
-            "action": "load"
+            "id": "{{ $event.currentTarget.dataset.id }}"
           }
         }
       ]
     },
-    "onCart": {
+    "onMarkRead": {
       "chains": [
         {
-          "chain": "cartChain",
+          "chain": "markReadChain"
+        }
+      ]
+    },
+    "onReset": {
+      "chains": [
+        {
+          "chain": "resetChain",
           "parameters": {
             "action": "{{ $event.currentTarget.dataset.action }}"
-          }
-        }
-      ]
-    },
-    "onDraft": {
-      "chains": [
-        {
-          "chain": "cartChain",
-          "parameters": {
-            "action": "open",
-            "id": "{{ $event.currentTarget.dataset.id }}",
-            "number": "{{ $event.currentTarget.dataset.number }}"
-          }
-        }
-      ]
-    },
-    "onPhone": {
-      "chains": [
-        {
-          "chain": "phoneChain",
-          "parameters": {
-            "action": "{{ $event.currentTarget.dataset.action }}",
-            "key": "{{ $event.currentTarget.dataset.key }}"
-          }
-        }
-      ]
-    },
-    "onQa": {
-      "chains": [
-        {
-          "chain": "qaChain",
-          "parameters": {
-            "action": "{{ $event.currentTarget.dataset.action }}",
-            "key": "{{ $event.currentTarget.dataset.key }}"
-          }
-        }
-      ]
-    },
-    "onQaText": {
-      "chains": [
-        {
-          "chain": "qaChain",
-          "parameters": {
-            "action": "text",
-            "text": "{{ $event.target.value }}"
-          }
-        }
-      ]
-    },
-    "onQaKey": {
-      "chains": [
-        {
-          "chain": "qaChain",
-          "parameters": {
-            "action": "key",
-            "key": "{{ $event.key }}"
-          }
-        }
-      ]
-    },
-    "onQaFrom": {
-      "chains": [
-        {
-          "chain": "qaChain",
-          "parameters": {
-            "action": "from",
-            "value": "{{ $event.target.value }}"
-          }
-        }
-      ]
-    },
-    "onQaTo": {
-      "chains": [
-        {
-          "chain": "qaChain",
-          "parameters": {
-            "action": "to",
-            "value": "{{ $event.target.value }}"
           }
         }
       ]
@@ -528,23 +330,6 @@
       "chains": [
         {
           "chain": "profileChain"
-        }
-      ]
-    },
-    "onAlert": {
-      "chains": [
-        {
-          "chain": "alertChain",
-          "parameters": {
-            "id": "{{ $event.currentTarget.dataset.id }}"
-          }
-        }
-      ]
-    },
-    "onMarkAllRead": {
-      "chains": [
-        {
-          "chain": "markAllReadChain"
         }
       ]
     },

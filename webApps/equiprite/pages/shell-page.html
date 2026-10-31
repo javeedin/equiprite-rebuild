@@ -21,7 +21,7 @@
     </label>
 
     <div class="er-header-end">
-      <!-- Old / New / Next: the same data in each. Old opens in a window of its own on the desktop. -->
+      <!-- Old / New / Next: the same data in each (Future: its own demo data). Old opens in a window of its own on the desktop. -->
       <nav class="er-switch" aria-label="EquipRite version">
         <oj-bind-if test="[[ $application.variables.oldAppUrl ]]">
           <a class="er-switch-btn" id="erGoOld" :href="[[ $application.variables.oldAppUrl ]]"
@@ -31,6 +31,10 @@
         <oj-bind-if test="[[ $application.variables.nextAppUrl ]]">
           <a class="er-switch-btn" id="erGoNext" :href="[[ $application.variables.nextAppUrl ]]"
             title="EquipRite Next: designed from the FDD, with tabs. Same data.">Next</a>
+        </oj-bind-if>
+        <oj-bind-if test="[[ $application.variables.futureAppUrl ]]">
+          <a class="er-switch-btn" id="erGoFuture" :href="[[ $application.variables.futureAppUrl ]]"
+            title="EquipRite Future: many companies, intercompany (a prototype on its own demo data).">Future</a>
         </oj-bind-if>
       </nav>
       <span class="er-user">

@@ -1,10 +1,17 @@
 {
   "id": "order",
-  "description": "New request: dates, the catalog with availability for them, a cart that prices itself, project and delivery, review, then Submit for approval or Save draft. A saved draft reopens here in a tab of its own.",
+  "description": "New request: raise a request for the persona's business unit (or, at the rental desk, a customer). Pages start as skeletons on the Future page pattern; each screen's builder replaces its own page.",
   "defaultPage": "new-request",
-  "navigation": { "embeddable": "enabled" },
-  "pages": {
-    "new-request": { "path": "pages/new-request-page" }
+  "navigation": {
+    "embeddable": "enabled"
   },
-  "chains": {}, "services": {}, "types": {}, "variables": {}
+  "pages": {
+    "new-request": {
+      "path": "pages/new-request-page"
+    }
+  },
+  "chains": {},
+  "services": {},
+  "types": {},
+  "variables": {}
 }

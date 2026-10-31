@@ -1,0 +1,108 @@
+<!-- Guide: the end-to-end story of EquipRite Future. The thirteen steps (done, next, to do), who plays each with the one
+     click that plays it, the five scenarios and how to start each, and FDD v2.0's rules in one card.
+     v = store.view('guide') + me + story (loadChain; resources/js/future/fxGuide.js). -->
+<div class="nx-page fx-guide" id="page-guide">
+  <div class="nx-pagehead">
+    <div>
+      <div class="nx-kicker">EquipRite Future · FDD v2.0</div>
+      <h1>Guide: the end-to-end story</h1>
+      <div class="nx-sub" id="guideSummary"><oj-bind-text value="[[ 'From ProjectCo’s request to the money settled between two companies, played by the people who do each step. '
+        + $variables.v.story.done + ' of ' + $variables.v.story.total + ' steps done.' ]]"></oj-bind-text></div>
+      <div class="fx-progress" aria-hidden="true"><span :style="[[ { width: $variables.v.story.pct + '%' } ]]"></span></div>
+    </div>
+    <div class="nx-actions">
+      <button type="button" class="nx-btn" data-nav="work" on-click="[[ $listeners.onOpen ]]"><span class="oj-ux-ico-inbox" aria-hidden="true"></span>My work</button>
+    </div>
+  </div>
+
+  <oj-bind-if test="[[ !!$variables.v.error ]]"><div class="nx-error" role="alert"><oj-bind-text value="[[ $variables.v.error ]]"></oj-bind-text></div></oj-bind-if>
+
+  <oj-bind-if test="[[ $variables.v.ready ]]">
+    <div class="fx-guide-cols">
+      <section class="nx-card" aria-labelledby="guideStepsTitle">
+        <div class="nx-card-head"><h2 id="guideStepsTitle">The thirteen steps</h2>
+          <span class="nx-note" id="guidePlaying"><oj-bind-text value="[[ 'Playing as ' + $variables.v.me.name ]]"></oj-bind-text></span></div>
+        <ol class="fx-steps" id="guideSteps">
+          <oj-bind-for-each data="[[ $variables.v.story.steps ]]">
+            <template data-oj-as="s">
+              <li :class="[[ 'fx-step fx-step--' + s.data.state ]]" :data-step="[[ s.data.n ]]">
+                <span class="fx-step-n" aria-hidden="true"><oj-bind-text value="[[ s.data.done ? '✓' : s.data.n ]]"></oj-bind-text></span>
+                <div class="fx-step-body">
+                  <span class="fx-step-text"><oj-bind-text value="[[ s.data.text ]]"></oj-bind-text></span>
+                  <span class="fx-step-meta">
+                    <span :class="[[ 'fx-chip fx-chip--' + (s.data.done ? 'ok' : (s.data.next ? 'next' : 'na')) ]]"><oj-bind-text value="[[ s.data.stateText ]]"></oj-bind-text></span>
+                    <span class="fx-who">
+                      <span class="nx-avatar fx-avatar" aria-hidden="true"><oj-bind-text value="[[ s.data.initials ]]"></oj-bind-text></span>
+                      <span class="fx-who-text"><span class="fx-who-name"><oj-bind-text value="[[ s.data.personaName ]]"></oj-bind-text></span>
+                        <span class="fx-who-title"><oj-bind-text value="[[ s.data.title ]]"></oj-bind-text></span></span>
+                    </span>
+                  </span>
+                </div>
+                <div class="fx-step-act">
+                  <oj-bind-if test="[[ s.data.mine ]]">
+                    <button type="button" :class="[[ 'nx-btn nx-btn--sm' + (s.data.next ? ' nx-btn--primary' : '') ]]" :data-nav="[[ s.data.navId ]]" on-click="[[ $listeners.onOpen ]]">
+                      <span class="oj-ux-ico-arrow-right" aria-hidden="true"></span><oj-bind-text value="[[ s.data.action ]]"></oj-bind-text></button>
+                  </oj-bind-if>
+                  <oj-bind-if test="[[ !s.data.mine ]]">
+                    <button type="button" :class="[[ 'nx-btn nx-btn--sm fx-play' + (s.data.next ? ' nx-btn--primary' : '') ]]" data-act="setPersona" :data-id="[[ s.data.persona ]]"
+                      :data-open="[[ s.data.navId ]]" on-click="[[ $listeners.onAct ]]">
+                      <span class="oj-ux-ico-person-rotation" aria-hidden="true"></span><oj-bind-text value="[[ s.data.action ]]"></oj-bind-text></button>
+                  </oj-bind-if>
+                </div>
+              </li>
+            </template>
+          </oj-bind-for-each>
+        </ol>
+        <p class="fx-guide-tip"><span class="oj-ux-ico-calendar-day" aria-hidden="true"></span> Step 6 needs a month end: the demo clock in the toolbar moves the
+          group's today (+1 day, +1 week, Month end). Statements not answered in three days are accepted by silence.</p>
+      </section>
+
+      <div class="fx-guide-side">
+        <section class="nx-card" aria-labelledby="guideRulesTitle" id="guideRules">
+          <div class="nx-card-head"><h2 id="guideRulesTitle">FDD v2.0 in one card</h2><span class="nx-note">docs/fdd-v2</span></div>
+          <dl class="fx-model">
+            <oj-bind-for-each data="[[ $variables.v.story.model ]]">
+              <template data-oj-as="m">
+                <div class="fx-model-row"><dt><oj-bind-text value="[[ m.data.label ]]"></oj-bind-text></dt><dd><oj-bind-text value="[[ m.data.text ]]"></oj-bind-text></dd></div>
+              </template>
+            </oj-bind-for-each>
+          </dl>
+          <h3 class="fx-rules-title">The seven rules</h3>
+          <ol class="fx-rules">
+            <oj-bind-for-each data="[[ $variables.v.story.rules ]]">
+              <template data-oj-as="r">
+                <li><span class="fx-rule-id"><oj-bind-text value="[[ r.data.id ]]"></oj-bind-text></span>
+                  <span><b><oj-bind-text value="[[ r.data.title ]]"></oj-bind-text>.</b> <oj-bind-text value="[[ r.data.text ]]"></oj-bind-text></span></li>
+              </template>
+            </oj-bind-for-each>
+          </ol>
+        </section>
+      </div>
+    </div>
+
+    <section class="nx-card" aria-labelledby="guideScenariosTitle">
+      <div class="nx-card-head"><h2 id="guideScenariosTitle">Five scenarios, and how to play them</h2>
+        <span class="nx-note">The thirteen steps play scenario 1; the others start the same way, from New request.</span></div>
+      <div class="fx-scenarios" id="guideScenarios">
+        <oj-bind-for-each data="[[ $variables.v.story.scenarios ]]">
+          <template data-oj-as="c">
+            <article class="fx-scenario" :data-scenario="[[ c.data.id ]]">
+              <div class="fx-scenario-top"><span class="fx-scenario-id"><oj-bind-text value="[[ c.data.id ]]"></oj-bind-text></span>
+                <span :class="[[ 'fx-chip fx-chip--' + c.data.tone ]]"><oj-bind-text value="[[ c.data.rel ]]"></oj-bind-text></span></div>
+              <h3 class="fx-scenario-title"><oj-bind-text value="[[ c.data.title ]]"></oj-bind-text></h3>
+              <p class="fx-scenario-how"><oj-bind-text value="[[ c.data.how ]]"></oj-bind-text></p>
+              <oj-bind-if test="[[ c.data.mine ]]">
+                <button type="button" class="nx-btn nx-btn--sm" :data-nav="[[ c.data.navId ]]" on-click="[[ $listeners.onOpen ]]">
+                  <span class="oj-ux-ico-arrow-right" aria-hidden="true"></span><oj-bind-text value="[[ c.data.action ]]"></oj-bind-text></button>
+              </oj-bind-if>
+              <oj-bind-if test="[[ !c.data.mine ]]">
+                <button type="button" class="nx-btn nx-btn--sm fx-play" data-act="setPersona" :data-id="[[ c.data.persona ]]" :data-open="[[ c.data.navId ]]" on-click="[[ $listeners.onAct ]]">
+                  <span class="oj-ux-ico-person-rotation" aria-hidden="true"></span><oj-bind-text value="[[ c.data.action ]]"></oj-bind-text></button>
+              </oj-bind-if>
+            </article>
+          </template>
+        </oj-bind-for-each>
+      </div>
+    </section>
+  </oj-bind-if>
+</div>

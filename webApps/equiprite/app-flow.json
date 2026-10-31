@@ -812,6 +812,11 @@
       "defaultValue": "",
       "description": "Address of EquipRite Next, for the header's Old / New / Next switch. Set by loadVersionsChain like oldAppUrl (webApps/equiprite-next under VBCS, /__versions locally). Empty: the switch shows Old and New only."
     },
+    "futureAppUrl": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "Address of EquipRite Future (many companies, intercompany; a prototype on its own demo data), for the header's version switch. Set by loadVersionsChain like nextAppUrl (webApps/equiprite-future under VBCS, /__versions locally). Empty: Future is not offered."
+    },
     "laterNavId": {
       "type": "string",
       "defaultValue": "",

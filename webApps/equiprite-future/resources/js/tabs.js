@@ -1,17 +1,18 @@
 define(['resources/js/nav'], function (nav) {
   'use strict';
 
-  // The tabs of EquipRite Next: every screen and every record opens in a tab of its own, and each tab keeps its page
-  // alive while another is shown (oj-vb-switcher), so filters, scroll and half-typed forms survive switching.
+  // The tabs of EquipRite Future (as Next's): every screen and every record opens in a tab of its own, and each tab
+  // keeps its page alive while another is shown (oj-vb-switcher), so filters, scroll and half-typed forms survive
+  // switching. Its own keys (eqr.future.*): under VBCS Next and Future share one origin, and so one localStorage.
   //
   // Pure: the shell keeps { tabs, current } and applies what these return. A tab:
   //   { id, flow, page, params, title, icon, navId, pinned, used }
-  //   id      the menu item id ('requests'), or kind:key for a record ('request:10482'): a screen opens once
+  //   id      the menu item id ('requests'), or kind:key for a record ('request:R1001'): a screen opens once
   //   pinned  My work, which cannot be closed
   //   used    when it was last shown, to choose which tab to close when there are too many
   var MAX_TABS = 12;
-  var STORE_KEY = 'eqr.next.tabs';
-  var HOME = 'home';
+  var STORE_KEY = 'eqr.future.tabs';
+  var HOME = nav.HOME || 'work';
 
   function now(t) { return t != null ? t : Date.now(); }
 
@@ -20,10 +21,10 @@ define(['resources/js/nav'], function (nav) {
     var it = nav.item(navId);
     if (!it) return null;
     var r = nav.routeOf(it);
-    return { id: it.id, flow: r.flow, page: r.page, params: r.params, title: it.label, icon: it.icon, navId: it.id, pinned: it.id === HOME };
+    return { id: it.id, flow: r.flow, page: r.page, params: r.params, title: it.tab || it.label, icon: it.icon, navId: it.id, pinned: it.id === HOME };
   }
 
-  /** A tab for a record ('request', { id: 10482, number: 'REQ-10482' }), or null for an unknown kind or no key. */
+  /** A tab for a record ('request', { id: 'R1001', number: 'FR-1001' }), or null for an unknown kind or no key. */
   function forRecord(kind, params) {
     var rec = nav.RECORDS[kind];
     var p = params || {};
@@ -139,7 +140,7 @@ define(['resources/js/nav'], function (nav) {
     return { tabs: tabs.slice(0, MAX_TABS), current: current };
   }
 
-  /** A deep link: ?open=requests, or ?open=request&id=10482&number=REQ-10482. Null when there is none. */
+  /** A deep link: ?open=requests, or ?open=request&id=R1001&number=FR-1001. Null when there is none. */
   function fromQuery(search) {
     var q = new URLSearchParams(String(search || ''));
     var what = q.get('open');

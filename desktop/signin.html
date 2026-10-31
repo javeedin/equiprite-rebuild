@@ -31,7 +31,7 @@
     .roles label { display: flex; gap: 6px; align-items: center; cursor: pointer; }
     .pick-only { margin-left: 24px; }
     .disabled { opacity: .45; pointer-events: none; }
-    .versions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .versions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
     .version { display: flex; gap: 8px; align-items: flex-start; border: 1px solid var(--line); border-radius: 10px;
       background: var(--field); padding: 8px 12px; cursor: pointer; }
     .version:has(input:checked) { border: 2px solid #2e5468; padding: 7px 11px; }
@@ -61,8 +61,11 @@
           <div><b>New EquipRite <span class="tag">PREVIEW</span></b><span id="newNote">The Redwood redesign</span></div></label>
         <label class="version" id="nextChoice"><input type="radio" name="version" value="next">
           <div><b>EquipRite Next <span class="tag">PREVIEW</span></b><span id="nextNote">Designed from the FDD, with tabs</span></div></label>
+        <label class="version" id="futureChoice"><input type="radio" name="version" value="future">
+          <div><b>EquipRite Future <span class="tag">PROTOTYPE</span></b><span id="futureNote">Many companies, intercompany</span></div></label>
       </div>
-      <p class="help">Same data in all three. Switch any time: File menu, or the Old / New / Next switch in New and Next.</p>
+      <p class="help">Old, New and Next share the same data; Future plays a demo group of its own. Switch any time: File menu, or the
+        version switch in New, Next and Future.</p>
     </fieldset>
 
     <fieldset>

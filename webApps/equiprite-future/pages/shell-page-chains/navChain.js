@@ -13,7 +13,7 @@ define(['vb/action/actionChain'], (ActionChain) => {
         return;
       }
       $page.variables.navCollapsed = !$page.variables.navCollapsed;
-      try { localStorage.setItem('eqr.next.nav', $page.variables.navCollapsed ? 'rail' : 'full'); } catch (e) { /* private mode */ }
+      try { localStorage.setItem('eqr.future.nav', $page.variables.navCollapsed ? 'rail' : 'full'); } catch (e) { /* private mode */ }
     }
   }
 

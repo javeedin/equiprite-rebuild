@@ -1,248 +1,21 @@
 {
-  "description": "New request (FDD 7.5, 7.4 catalog): dates first, so the catalog shows what is free and what it costs for them; the project and delivery; a cart that prices itself; Review, then Submit for approval or Save draft. Posts what New EquipRite's New request posts (the old cart's INTERNAL path) through the same requestHeaderBody / requestLineBody builders. A draft tab (record 'draft', id = the request id) reopens a saved project draft and saves it in place. A customer request is raised in New EquipRite, which creates its Fusion sell contract.",
+  "description": "New request (skeleton: being built). v = store.view('me') + fxEngine.sourcing(...), set by loadChain on vbEnter and on every fxRefresh; actions through actChain, links through openChain (docs/redesign/BUILDING-FUTURE-SCREENS.md).",
   "navigation": {
     "embeddable": "enabled"
   },
   "variables": {
-    "id": {
-      "type": "string",
-      "defaultValue": "",
-      "input": "fromCaller",
-      "description": "A DRAFT request to reopen (EQR_EQUIPMENT_REQUEST id), from a draft tab. Empty for a new request."
-    },
-    "number": {
-      "type": "string",
-      "defaultValue": "",
-      "input": "fromCaller"
-    },
-    "draftId": {
-      "type": "string",
-      "defaultValue": "",
-      "input": "fromCaller",
-      "description": "The same as id, under New EquipRite's name for it."
-    },
-    "startStep": {
-      "type": "string",
-      "defaultValue": "",
-      "input": "fromCaller",
-      "description": "'review' (or 3) opens a reopened draft on Review."
-    },
-    "step": {
-      "type": "number",
-      "defaultValue": 1,
-      "description": "1 Equipment | 2 Project | 3 Review and submit (New EquipRite's steps); goStepChain moves between them."
-    },
-    "mode": {
-      "type": "string",
-      "defaultValue": "build",
-      "description": "build | review: review is step 3 (kept for reviewChain)."
-    },
-    "form": {
-      "type": "any",
-      "defaultValue": {},
-      "description": "The request in the old flow's request shape (orderForm.emptyForm); set by initChain."
-    },
-    "cart": {
-      "type": "any[]",
-      "defaultValue": [],
-      "description": "Cart lines built by catalogCart.itemFromRow; a line can carry its own startDate, endDate and notes."
-    },
-    "resume": {
-      "type": "any",
-      "defaultValue": null,
-      "description": "The draft this page saves into {id, requestNumber, attribute1, shipToSiteId}: a reopened one, or the one Save draft created."
-    },
-    "agreementId": {
-      "type": "number",
-      "defaultValue": null
-    },
-    "agreementLineMap": {
-      "type": "any",
-      "defaultValue": {}
-    },
-    "fromAgreement": {
-      "type": "any",
-      "defaultValue": null,
-      "description": "The agreement this request was started from: {id, number, customer, lines}."
-    },
-    "catalogRows": {
-      "type": "any[]",
-      "defaultValue": []
-    },
-    "catalogShown": {
-      "type": "any[]",
-      "defaultValue": [],
-      "description": "The rows the list shows (filtered, at most catalogLimit), as orderForm.catalogView reads them."
-    },
-    "catalogCount": {
-      "type": "number",
-      "defaultValue": 0
-    },
-    "classChips": {
-      "type": "any[]",
-      "defaultValue": []
-    },
-    "catalogText": {
-      "type": "string",
-      "defaultValue": ""
-    },
-    "catalogClass": {
-      "type": "string",
-      "defaultValue": "all"
-    },
-    "catalogAvail": {
-      "type": "string",
-      "defaultValue": ""
-    },
-    "catalogLimit": {
-      "type": "number",
-      "defaultValue": 40
-    },
-    "catalogLoading": {
-      "type": "boolean",
-      "defaultValue": true
-    },
-    "catalogError": {
-      "type": "string",
-      "defaultValue": ""
-    },
-    "projectQuery": {
-      "type": "string",
-      "defaultValue": ""
-    },
-    "projectResults": {
-      "type": "any[]",
-      "defaultValue": []
-    },
-    "projectSearching": {
-      "type": "boolean",
-      "defaultValue": false
-    },
-    "customerQuery": {
-      "type": "string",
-      "defaultValue": ""
-    },
-    "customerResults": {
-      "type": "any[]",
-      "defaultValue": []
-    },
-    "customerSearching": {
-      "type": "boolean",
-      "defaultValue": false
-    },
-    "taskOptions": {
-      "type": "any[]",
-      "defaultValue": []
-    },
-    "taskQuery": {
-      "type": "string",
-      "defaultValue": ""
-    },
-    "tasksLoading": {
-      "type": "boolean",
-      "defaultValue": false
-    },
-    "contractOptions": {
-      "type": "any[]",
-      "defaultValue": []
-    },
-    "contractsLoading": {
-      "type": "boolean",
-      "defaultValue": false
-    },
-    "siteOptions": {
-      "type": "any[]",
-      "defaultValue": []
-    },
-    "sitesLoading": {
-      "type": "boolean",
-      "defaultValue": false
-    },
-    "sitesLoaded": {
-      "type": "boolean",
-      "defaultValue": false
-    },
-    "requestFor": {
-      "type": "string",
-      "defaultValue": "project",
-      "description": "project, or customer (raised in New EquipRite, which creates the Fusion sell contract)."
-    },
-    "canCustomer": {
-      "type": "boolean",
-      "defaultValue": false,
-      "description": "Manager-tier roles (canChooseCustomerType) with the customers module on see the Project / Customer choice."
-    },
-    "customerQuotes": {
-      "type": "boolean",
-      "defaultValue": false,
-      "description": "ENABLE_QUOTES covers customer requests: their Fusion contract comes when the quote is accepted, not at submit."
-    },
-    "hideRates": {
-      "type": "boolean",
-      "defaultValue": false,
-      "description": "A quote is coming for project requests (isQuotingAllowed INTERNAL): no prices are shown or posted."
-    },
-    "showHours": {
-      "type": "boolean",
-      "defaultValue": false,
-      "description": "TIMESHEETS_ENABLED: planned hours per day are asked for."
-    },
-    "missing": {
-      "type": "any[]",
-      "defaultValue": []
-    },
-    "priceNote": {
-      "type": "string",
-      "defaultValue": ""
-    },
-    "isLoading": {
-      "type": "boolean",
-      "defaultValue": true
-    },
-    "loadError": {
-      "type": "string",
-      "defaultValue": ""
-    },
-    "externalDraftId": {
-      "type": "number",
-      "defaultValue": 0,
-      "description": "A customer draft asked for here: it is edited in New EquipRite's customer New request."
-    },
-    "isSubmitting": {
-      "type": "boolean",
-      "defaultValue": false
-    },
-    "submitMode": {
-      "type": "string",
-      "defaultValue": ""
-    },
-    "saveError": {
-      "type": "string",
-      "defaultValue": ""
-    },
-    "sent": {
-      "type": "any",
-      "defaultValue": null,
-      "description": "What was last saved from here {id, number, mode: submit | draft}, for the banner."
-    },
-    "avail": { "type": "any", "defaultValue": { "open": false, "loading": false, "id": null, "name": "", "cls": "", "image": "", "datesSet": false, "result": null, "notes": [], "error": "" },
-      "description": "Where is it, and when can I have it? A catalog item's availability for the request's dates: by inventory org and yard, units out and when back, other dates, alternatives (availChain)." },
-    "mapDlg": {
+    "v": {
       "type": "any",
       "defaultValue": {
-        "open": false,
-        "query": "",
-        "results": [],
-        "picked": null,
-        "error": "",
-        "searching": false
+        "ready": false,
+        "error": ""
       },
-      "description": "The map dialog for the delivery point (mapChain): its search, results, the point picked, an error in words."
+      "description": "The view model: store.view('me') + fxEngine.sourcing(...)."
     }
   },
   "events": {
-    "mapPicked": {
-      "description": "From the map (page module mapOpen): a point clicked or dragged to, with its address, or why the map cannot show.",
+    "fxRefresh": {
+      "description": "From the page module (fxPage.watch): the store changed, so loadChain runs again.",
       "payloadType": "object"
     }
   },
@@ -250,222 +23,33 @@
     "vbEnter": {
       "chains": [
         {
-          "chain": "initChain"
+          "chain": "loadChain"
         }
       ]
     },
-    "onField": {
+    "fxRefresh": {
       "chains": [
         {
-          "chain": "setFieldChain",
+          "chain": "loadChain"
+        }
+      ]
+    },
+    "onAct": {
+      "chains": [
+        {
+          "chain": "actChain",
           "parameters": {
-            "field": "{{ $event.target.dataset.field }}",
-            "value": "{{ $event.target.value }}"
+            "data": "{{ $event.currentTarget.dataset }}"
           }
         }
       ]
     },
-    "onNotes": {
+    "onOpen": {
       "chains": [
         {
-          "chain": "setFieldChain",
+          "chain": "openChain",
           "parameters": {
-            "field": "notes",
-            "value": "{{ $event.detail.value }}",
-            "from": "{{ $event.detail.updatedFrom }}"
-          }
-        }
-      ]
-    },
-    "onFieldButton": {
-      "chains": [
-        {
-          "chain": "setFieldChain",
-          "parameters": {
-            "field": "{{ $event.currentTarget.dataset.field }}",
-            "value": "{{ $event.currentTarget.dataset.value }}"
-          }
-        }
-      ]
-    },
-    "onCatalogSearch": {
-      "chains": [
-        {
-          "chain": "filterCatalogChain",
-          "parameters": {
-            "text": "{{ $event.target.value }}"
-          }
-        }
-      ]
-    },
-    "onClassChip": {
-      "chains": [
-        {
-          "chain": "filterCatalogChain",
-          "parameters": {
-            "cls": "{{ $event.currentTarget.dataset.cls }}"
-          }
-        }
-      ]
-    },
-    "onAvailToggle": {
-      "chains": [
-        {
-          "chain": "filterCatalogChain",
-          "parameters": {
-            "avail": "{{ $event.target.checked }}"
-          }
-        }
-      ]
-    },
-    "onShowMore": {
-      "chains": [
-        {
-          "chain": "filterCatalogChain",
-          "parameters": {
-            "more": true
-          }
-        }
-      ]
-    },
-    "onAvail": { "chains": [{ "chain": "availChain", "parameters": { "act": "{{ $event.currentTarget.dataset.action }}", "id": "{{ $event.currentTarget.dataset.id }}",
-      "from": "{{ $event.currentTarget.dataset.from }}", "to": "{{ $event.currentTarget.dataset.to }}" } }] },
-    "onCart": {
-      "chains": [
-        {
-          "chain": "cartChain",
-          "parameters": {
-            "action": "{{ $event.currentTarget.dataset.action }}",
-            "id": "{{ $event.currentTarget.dataset.id }}"
-          }
-        }
-      ]
-    },
-    "onLineQty": {
-      "chains": [
-        {
-          "chain": "cartChain",
-          "parameters": {
-            "action": "set",
-            "id": "{{ $event.target.dataset.id }}",
-            "value": "{{ $event.target.value }}"
-          }
-        }
-      ]
-    },
-    "onLineField": {
-      "chains": [
-        {
-          "chain": "cartChain",
-          "parameters": {
-            "action": "line",
-            "id": "{{ $event.target.dataset.id }}",
-            "field": "{{ $event.target.dataset.field }}",
-            "value": "{{ $event.target.value }}"
-          }
-        }
-      ]
-    },
-    "onSearch": {
-      "chains": [
-        {
-          "chain": "searchChain",
-          "parameters": {
-            "kind": "{{ $event.target.dataset.kind }}",
-            "text": "{{ $event.target.value }}"
-          }
-        }
-      ]
-    },
-    "onPick": {
-      "chains": [
-        {
-          "chain": "pickChain",
-          "parameters": {
-            "kind": "{{ $event.currentTarget.dataset.kind }}",
-            "index": "{{ $event.currentTarget.dataset.index }}"
-          }
-        }
-      ]
-    },
-    "onSubmit": {
-      "chains": [
-        {
-          "chain": "submitChain",
-          "parameters": {
-            "mode": "submit"
-          }
-        }
-      ]
-    },
-    "onSaveDraft": {
-      "chains": [
-        {
-          "chain": "submitChain",
-          "parameters": {
-            "mode": "draft"
-          }
-        }
-      ]
-    },
-    "onReset": {
-      "chains": [
-        {
-          "chain": "resetChain"
-        }
-      ]
-    },
-    "onOpenSaved": {
-      "chains": [
-        {
-          "chain": "openRequestChain",
-          "parameters": {
-            "id": "{{ $event.currentTarget.dataset.id }}",
-            "number": "{{ $event.currentTarget.dataset.number }}"
-          }
-        }
-      ]
-    },
-    "onStep": {
-      "chains": [
-        {
-          "chain": "goStepChain",
-          "parameters": {
-            "step": "{{ $event.currentTarget.dataset.step }}"
-          }
-        }
-      ]
-    },
-    "onMap": {
-      "chains": [
-        {
-          "chain": "mapChain",
-          "parameters": {
-            "action": "{{ $event.currentTarget.dataset.action }}",
-            "index": "{{ $event.currentTarget.dataset.index }}"
-          }
-        }
-      ]
-    },
-    "onMapSearch": {
-      "chains": [
-        {
-          "chain": "mapChain",
-          "parameters": {
-            "action": "search",
-            "value": "{{ $event.target.value }}"
-          }
-        }
-      ]
-    },
-    "mapPicked": {
-      "chains": [
-        {
-          "chain": "mapChain",
-          "parameters": {
-            "action": "picked",
-            "place": "{{ $event.place }}",
-            "error": "{{ $event.error }}"
+            "data": "{{ $event.currentTarget.dataset }}"
           }
         }
       ]
@@ -481,9 +65,6 @@
       },
       "oj-bind-text": {
         "path": "ojs/ojknockout"
-      },
-      "oj-text-area": {
-        "path": "ojs/ojinputtext"
       }
     }
   }

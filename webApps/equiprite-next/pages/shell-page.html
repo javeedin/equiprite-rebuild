@@ -122,7 +122,7 @@
           <span class="nx-bell-count" aria-hidden="true"><oj-bind-text value="[[ $variables.unread > 99 ? '99+' : $variables.unread ]]"></oj-bind-text></span>
         </oj-bind-if>
       </button>
-      <!-- You: the menu with your name and role, and the EquipRite version (Old / New / Next). -->
+      <!-- You: the menu with your name and role, and the EquipRite version (Old / New / Next / Mobile / Future). -->
       <button type="button" class="nx-user" id="nxUser" on-click="[[ $listeners.onProfile ]]" aria-controls="nxProfilePanel"
         :aria-expanded="[[ $variables.profileOpen ? 'true' : 'false' ]]" aria-label="You, and the EquipRite version" title="You, and the EquipRite version">
         <span class="nx-avatar" aria-hidden="true"><oj-bind-text value="[[ $application.functions.userInitials($application.user) ]]"></oj-bind-text></span>
@@ -503,8 +503,12 @@
             <a class="nx-version" id="nxGoMobile" :href="[[ $application.variables.appUrls.mobile ]]" target="_blank" rel="noopener">
               <span class="nx-version-name">Mobile</span><span class="nx-version-note">On your phone: approve, pick, request</span></a>
           </oj-bind-if>
+          <oj-bind-if test="[[ !!$application.variables.appUrls.future ]]">
+            <a class="nx-version" id="nxGoFuture" :href="[[ $application.variables.appUrls.future ]]">
+              <span class="nx-version-name">Future</span><span class="nx-version-note">Many companies, intercompany (prototype)</span></a>
+          </oj-bind-if>
         </nav>
-        <p class="nx-profile-note">All of them work on the same data.</p>
+        <p class="nx-profile-note">Old, New, Next and Mobile work on the same data; Future plays a demo group of its own.</p>
       </div>
       <div class="nx-profile-sec">
         <span class="nx-profile-label" id="nxColoursLabel">Colours</span>

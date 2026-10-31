@@ -12,10 +12,12 @@
  * saved in userData (lib/identity.js), never in the project. Roles are read from the ROLES_RP report in Fusion,
  * or picked by hand for this PC.
  *
- * Three apps: Old EquipRite (webApps/vbredwoodapp, today's app, unchanged), New EquipRite (webApps/equiprite, the
- * Redwood redesign) and EquipRite Next (webApps/equiprite-next, designed from the FDD, with tabs). The sign-in window
- * asks which to open; File > Open New EquipRite / Open EquipRite Next / Switch this window to Old EquipRite switch
- * without signing out, and New and Next have an Old / New / Next switch in their toolbar. A link to Old EquipRite clicked in New EquipRite opens Old in a window of its own, so
+ * Four apps: Old EquipRite (webApps/vbredwoodapp, today's app, unchanged), New EquipRite (webApps/equiprite, the
+ * Redwood redesign), EquipRite Next (webApps/equiprite-next, designed from the FDD, with tabs) and EquipRite Future
+ * (webApps/equiprite-future, many companies and intercompany hire from FDD v2.0: a prototype on a simulated group,
+ * calling no backend). The sign-in window asks which to open; File > Open New EquipRite / Open EquipRite Next / Open
+ * EquipRite Future / Switch this window to Old EquipRite switch without signing out, and New, Next and Future have a
+ * version switch of their own. A link to Old EquipRite clicked in New EquipRite opens Old in a window of its own, so
  * the New window stays put and the two can be shown side by side.
  * EquipRite Mobile (webApps/equiprite-mobile, the phone app) opens with File > Open EquipRite Mobile in a phone-sized
  * window of its own, beside whichever app the main window shows.
@@ -44,6 +46,8 @@ const VERSIONS = {
   next: { webApp: 'equiprite-next', label: 'EquipRite Next', port: PORT + 2 },
   // Never the main window's app: it opens in a phone-sized window of its own (openMobileWindow).
   mobile: { webApp: 'equiprite-mobile', label: 'EquipRite Mobile', port: PORT + 3 },
+  // Served like Next (only when built); its data is simulated in the browser, so it calls no backend.
+  future: { webApp: 'equiprite-future', label: 'EquipRite Future', port: PORT + 4 },
 };
 const originOf = (v) => `http://localhost:${VERSIONS[v].port}`;
 const urlOf = (v) => `${originOf(v)}/`;
@@ -274,6 +278,7 @@ ipcMain.handle('signin:initial', (event) => {
     version: servers[identityStore.versionOf(saved.version)] ? identityStore.versionOf(saved.version) : 'old',
     newAvailable: !!servers.new,
     nextAvailable: !!servers.next,
+    futureAvailable: !!servers.future,
     username: saved.username || '',
     fusionUser: saved.fusionUser || '',
     hasPassword: !!saved.fusionPassword || !!passwordThisRun,
@@ -318,7 +323,7 @@ ipcMain.handle('signin:submit', (event, form) => {
   return { ok: true };
 });
 
-/** File → Open Old / New EquipRite / EquipRite Next: switch apps and stay signed in. The choice is remembered. */
+/** File → Open Old / New EquipRite / EquipRite Next / EquipRite Future: switch apps and stay signed in. The choice is remembered. */
 function openVersion(v) {
   if (v === 'mobile' && servers.mobile) {
     openMobileWindow();
@@ -779,7 +784,8 @@ function createWindow() {
       shell.openExternal(url);
     }
   });
-  // Switching with the Old / New / Next switch in the app: the window title and the app opened next time follow.
+  // Switching with the version switch in the app (Old / New / Next / Future): the window title and the app opened next
+  // time follow. Mobile opens in its own phone-sized window instead (above).
   win.webContents.on('did-navigate', (_event, url) => {
     const v = Object.keys(VERSIONS).find((k) => k !== 'mobile' && servers[k] && String(url).startsWith(urlOf(k)));
     if (v && v !== version) {
@@ -812,7 +818,8 @@ function appMenu() {
         { label: 'Open New EquipRite', accelerator: 'CmdOrCtrl+Shift+2', click: () => openVersion('new') },
         { label: 'Open EquipRite Next', accelerator: 'CmdOrCtrl+Shift+3', click: () => openVersion('next') },
         { label: 'Open EquipRite Mobile (phone size)', accelerator: 'CmdOrCtrl+Shift+4', click: () => openVersion('mobile') },
-        { label: 'EquipRite on your phone (QR code)…', accelerator: 'CmdOrCtrl+Shift+5', click: () => openPhoneWindow() },
+        { label: 'Open EquipRite Future', accelerator: 'CmdOrCtrl+Shift+5', click: () => openVersion('future') },
+        { label: 'EquipRite on your phone (QR code)…', accelerator: 'CmdOrCtrl+Shift+6', click: () => openPhoneWindow() },
         { label: 'Switch this window to Old EquipRite', click: () => openVersion('old') },
         { type: 'separator' },
         { label: 'Sign in as…', accelerator: 'CmdOrCtrl+Shift+S', click: () => openSignIn() },
@@ -861,7 +868,7 @@ if (!app.requestSingleInstanceLock()) {
     Menu.setApplicationMenu(appMenu());
     createWindow();
     try {
-      // The old app must be there (it is today's app); New, Next and Mobile are served when they have been built.
+      // The old app must be there (it is today's app); New, Next, Mobile and Future are served when they have been built.
       for (const v of Object.keys(VERSIONS)) {
         if (v === 'old' || isBuilt(BUILD_DIR, VERSIONS[v].webApp)) {
           servers[v] = await createDevServer({
@@ -870,7 +877,7 @@ if (!app.requestSingleInstanceLock()) {
             port: VERSIONS[v].port,
             getIdentity: () => identity,
             getVersions: () => ({ old: urlOf('old'), new: servers.new ? urlOf('new') : '', next: servers.next ? urlOf('next') : '',
-              mobile: servers.mobile ? urlOf('mobile') : '' }),
+              mobile: servers.mobile ? urlOf('mobile') : '', future: servers.future ? urlOf('future') : '' }),
             getPhone: phoneLinks,
             backendOverrides: backendOverridesFromEnv(process.env),
             onLog: pushLog,

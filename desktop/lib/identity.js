@@ -12,9 +12,10 @@
  */
 const fs = require('fs');
 
-/** Which app the window opens: 'old' (webApps/vbredwoodapp, unchanged), 'new' (webApps/equiprite, the redesign) or
- * 'next' (webApps/equiprite-next, designed from the FDD). */
-const VERSIONS = ['old', 'new', 'next'];
+/** Which app the window opens: 'old' (webApps/vbredwoodapp, unchanged), 'new' (webApps/equiprite, the redesign),
+ * 'next' (webApps/equiprite-next, designed from the FDD) or 'future' (webApps/equiprite-future, FDD v2.0's many
+ * companies, a prototype). */
+const VERSIONS = ['old', 'new', 'next', 'future'];
 const versionOf = (v) => (VERSIONS.includes(v) ? v : 'old');
 
 /**

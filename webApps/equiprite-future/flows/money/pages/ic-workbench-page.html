@@ -1,0 +1,27 @@
+<!-- Intercompany workbench: SKELETON, being built. The screen's builder replaces this page's HTML and chains, keeping the Future page
+     pattern (docs/redesign/BUILDING-FUTURE-SCREENS.md): v = store.view('workbench') (loadChain, again on fxRefresh), actions through
+     actChain (data-act + data-…), links through openChain (data-nav, data-record). Set built: true in resources/js/nav.js. -->
+<div class="nx-page fx-skeleton" id="page-ic-workbench">
+  <div class="nx-pagehead">
+    <div>
+      <div class="nx-kicker">Money</div>
+      <h1>Intercompany workbench</h1>
+      <div class="nx-sub">Create the intercompany AR and AP invoice pair, accrue what is late, settle by netting, post cross-charges.</div>
+    </div>
+  </div>
+
+  <oj-bind-if test="[[ !!$variables.v.error ]]"><div class="nx-error" role="alert"><oj-bind-text value="[[ $variables.v.error ]]"></oj-bind-text></div></oj-bind-if>
+
+  <section class="nx-card" aria-labelledby="icworkbenchSoonTitle">
+    <div class="nx-card-head"><h2 id="icworkbenchSoonTitle">Being built for EquipRite Future</h2><span class="nx-note">FDD v2.0</span></div>
+    <p class="nx-card-pad nx-muted">This screen is next. Meanwhile, this is what the simulated backend already has here for the person played, from
+      <code>store.view('workbench')</code>:</p>
+    <ul class="fx-skeleton-list">
+      <oj-bind-for-each data="[[ $functions.outline($variables.v) ]]">
+        <template data-oj-as="o">
+          <li><code><oj-bind-text value="[[ o.data.key ]]"></oj-bind-text></code><span><oj-bind-text value="[[ o.data.text ]]"></oj-bind-text></span></li>
+        </template>
+      </oj-bind-for-each>
+    </ul>
+  </section>
+</div>

@@ -1,203 +1,33 @@
-<!-- One request in its own tab: where its equipment is (the journey), what is next and late, the equipment, the facts. -->
-<div class="nx-page nx-record">
-  <oj-bind-if test="[[ $variables.isLoading && !$variables.head.requestNumber ]]">
-    <div class="nx-card nx-empty">Loading the request…</div>
-  </oj-bind-if>
-  <oj-bind-if test="[[ !!$variables.error ]]">
-    <div class="nx-error" role="alert"><oj-bind-text value="[[ $variables.error ]]"></oj-bind-text>
-      <button type="button" class="nx-link" on-click="[[ $listeners.onOpenList ]]">Open Requests</button></div>
-  </oj-bind-if>
-
-  <oj-bind-if test="[[ !!$variables.head.requestNumber && !$variables.error ]]">
-    <div class="nx-pagehead">
-      <div>
-        <div class="nx-kicker"><oj-bind-text value="[[ $variables.head.external ? 'Customer request' : 'Project request' ]]"></oj-bind-text></div>
-        <h1 class="nx-record-title">
-          <oj-bind-text value="[[ $variables.head.requestNumber ]]"></oj-bind-text>
-          <span :class="[[ 'nx-pill nx-record-pill nx-stage--' + $variables.p.tone ]]" :title="[[ 'Stored request status: ' + $variables.head.status ]]">
-            <oj-bind-text value="[[ $variables.p.headline ]]"></oj-bind-text></span>
-        </h1>
-        <div class="nx-sub"><oj-bind-text value="[[ $functions.subline($variables.head) ]]"></oj-bind-text></div>
-      </div>
-      <div class="nx-actions">
-        <button type="button" class="nx-btn nx-btn--plain" on-click="[[ $listeners.onRefresh ]]" :disabled="[[ $variables.isLoading ]]">
-          <span class="oj-ux-ico-refresh" aria-hidden="true"></span>Refresh</button>
-        <div class="nx-export">
-          <button type="button" class="nx-btn" id="recExport" on-click="[[ $listeners.onExportMenu ]]" aria-haspopup="menu"
-            :aria-expanded="[[ $variables.exportOpen ? 'true' : 'false' ]]"><span class="oj-ux-ico-download" aria-hidden="true"></span>Export
-            <span class="oj-ux-ico-chevron-down" aria-hidden="true"></span></button>
-          <oj-bind-if test="[[ $variables.exportOpen ]]">
-            <div class="nx-menu" role="menu" aria-label="Export the equipment">
-              <oj-bind-for-each data="[[ $functions.formats() ]]">
-                <template data-oj-as="f">
-                  <button type="button" role="menuitem" class="nx-menu-item" :data-format="[[ f.data.key ]]" on-click="[[ $listeners.onExport ]]">
-                    <span :class="[[ f.data.icon ]]" aria-hidden="true"></span><oj-bind-text value="[[ f.data.label ]]"></oj-bind-text></button>
-                </template>
-              </oj-bind-for-each>
-            </div>
-          </oj-bind-if>
-        </div>
-        <oj-bind-if test="[[ $variables.head.status === 'DRAFT' && !$variables.head.external ]]">
-          <button type="button" class="nx-btn nx-btn--primary" id="recFinishDraft" on-click="[[ $listeners.onFinishDraft ]]">
-            <span class="oj-ux-ico-edit-box" aria-hidden="true"></span>Finish this draft</button>
-        </oj-bind-if>
-        <oj-bind-if test="[[ $variables.acts.approve ]]">
-          <button type="button" class="nx-btn nx-btn--primary" id="recApprove" data-act="approve" on-click="[[ $listeners.onStep ]]"
-            title="Approve or send back in Approve &amp; allocate, opened on this request"><span class="oj-ux-ico-check-circle" aria-hidden="true"></span>Approve…</button>
-        </oj-bind-if>
-        <oj-bind-if test="[[ $variables.acts.assign ]]">
-          <button type="button" class="nx-btn nx-btn--primary" id="recAssign" data-act="assign" on-click="[[ $listeners.onStep ]]">
-            <span class="oj-ux-ico-assign-to-me" aria-hidden="true"></span>Assign units</button>
-        </oj-bind-if>
-        <oj-bind-if test="[[ $variables.acts.pick > 0 ]]">
-          <button type="button" class="nx-btn nx-btn--primary" id="recPick" data-act="pick" on-click="[[ $listeners.onStep ]]">
-            <span class="oj-ux-ico-fullfilment-box" aria-hidden="true"></span><oj-bind-text value="[[ 'Pick ' + $variables.acts.pick + ' at the yard' ]]"></oj-bind-text></button>
-        </oj-bind-if>
-        <oj-bind-if test="[[ $variables.head.status !== 'DRAFT' && !!$functions.newUrl($application.variables.appUrls.new, $variables.head) ]]">
-          <a class="nx-btn" id="recInNew" :href="[[ $functions.newUrl($application.variables.appUrls.new, $variables.head) ]]"
-            title="Approve, allocate, accept delivery or start a return there, until Next has those steps">
-            <span class="oj-ux-ico-external-link" aria-hidden="true"></span>Act on it in New</a>
-        </oj-bind-if>
-      </div>
+<!-- Request: SKELETON, being built. The screen's builder replaces this page's HTML and chains, keeping the Future page
+     pattern (docs/redesign/BUILDING-FUTURE-SCREENS.md): v = store.view('request', id) (loadChain, again on fxRefresh), actions through
+     actChain (data-act + data-…), links through openChain (data-nav, data-record). Set built: true in resources/js/nav.js. -->
+<div class="nx-page fx-skeleton" id="page-request">
+  <div class="nx-pagehead">
+    <div>
+      <div class="nx-kicker">Requests</div>
+      <h1><oj-bind-text value="[[ $variables.number || $variables.id ]]"></oj-bind-text></h1>
+      <div class="nx-sub">One request: its lines, owners and relationships, its timeline, and every financial transaction it should make, done or not, with the accounting each company's Fusion makes (shown, never posted).</div>
     </div>
+  </div>
 
-    <section class="nx-card nx-card-pad nx-journey" aria-labelledby="recJourney">
-      <div class="nx-journey-head">
-        <h2 class="nx-h2" id="recJourney">Where the equipment is</h2>
-        <oj-bind-if test="[[ !!$variables.p.detail ]]"><span class="nx-note"><oj-bind-text value="[[ $variables.p.detail ]]"></oj-bind-text></span></oj-bind-if>
-      </div>
-      <ol class="nx-track" aria-label="The journey">
-        <oj-bind-for-each data="[[ $variables.p.stops ]]">
-          <template data-oj-as="stop">
-            <li :class="[[ 'nx-stop nx-stop--' + stop.data.state + ' nx-stage--' + stop.data.key ]]" :data-stop="[[ stop.data.key ]]"
-              :aria-current="[[ stop.data.state === 'here' ? 'step' : 'false' ]]">
-              <span class="nx-stop-bar" aria-hidden="true"></span>
-              <span class="nx-stop-label"><oj-bind-text value="[[ stop.data.label ]]"></oj-bind-text></span>
-              <span class="nx-stop-note"><oj-bind-text value="[[ $functions.stopNote(stop.data, $variables.p.total) ]]"></oj-bind-text></span>
-            </li>
-          </template>
-        </oj-bind-for-each>
-      </ol>
-      <div class="nx-journey-foot">
-        <oj-bind-if test="[[ !!$variables.p.next ]]">
-          <span class="nx-next"><strong>Next:</strong> <oj-bind-text value="[[ $variables.p.next ? $variables.p.next.text : '' ]]"></oj-bind-text></span>
-        </oj-bind-if>
-        <oj-bind-for-each data="[[ $variables.p.late ]]">
-          <template data-oj-as="lt"><span class="nx-late"><span class="oj-ux-ico-warning" aria-hidden="true"></span><oj-bind-text value="[[ lt.data.text ]]"></oj-bind-text></span></template>
-        </oj-bind-for-each>
-      </div>
-    </section>
-
-    <div class="nx-record-body">
-      <section class="nx-card" aria-labelledby="recLines">
-        <div class="nx-card-head"><h2 id="recLines"><oj-bind-text value="[[ 'Equipment (' + $variables.lines.length + ')' ]]"></oj-bind-text></h2></div>
-        <div class="nx-table">
-          <div class="nx-grid nx-grid--lines" role="table" aria-labelledby="recLines">
-            <div class="nx-row nx-row--head" role="row">
-              <span role="columnheader">Equipment</span><span role="columnheader">Qty</span><span role="columnheader">Unit</span>
-              <span role="columnheader">Where it is</span><span role="columnheader">Dates</span><span role="columnheader">Rate</span>
-            </div>
-            <oj-bind-for-each data="[[ $variables.lines ]]">
-              <template data-oj-as="l">
-                <div class="nx-row" role="row" :data-line="[[ l.data.lineNumber ]]">
-                  <span role="cell"><span class="nx-cell-main"><oj-bind-text value="[[ l.data.name ]]"></oj-bind-text></span>
-                    <span class="nx-cell-sub"><oj-bind-text value="[[ l.data.cls + (l.data.agreementNumber ? ' · agreement ' + l.data.agreementNumber : '') ]]"></oj-bind-text></span></span>
-                  <span role="cell" class="nx-num"><oj-bind-text value="[[ l.data.qty ]]"></oj-bind-text></span>
-                  <span role="cell" class="nx-ellipsis"><oj-bind-text value="[[ l.data.unit ]]"></oj-bind-text></span>
-                  <span role="cell"><span :class="[[ 'nx-pill nx-stage--' + $functions.lineStage(l.data.lineStatus, $variables.head.external) ]]" :title="[[ 'Stored line status: ' + l.data.lineStatus ]]">
-                    <oj-bind-text value="[[ $functions.lineLabel(l.data.lineStatus, $variables.head.external) ]]"></oj-bind-text></span></span>
-                  <span role="cell" class="nx-num"><oj-bind-text value="[[ $functions.range(l.data.start || $variables.head.start, l.data.end || $variables.head.end) ]]"></oj-bind-text></span>
-                  <span role="cell" class="nx-num"><oj-bind-text value="[[ l.data.billRate != null && l.data.billRate !== '' ? $functions.money(l.data.billRate) + (l.data.priceUom ? ' / ' + l.data.priceUom : '') : '—' ]]"></oj-bind-text></span>
-                </div>
-              </template>
-            </oj-bind-for-each>
-          </div>
-        </div>
-      </section>
-
-      <aside class="nx-card nx-card-pad nx-facts" aria-label="About this request">
-        <dl>
-          <div><dt>Requested by</dt><dd><oj-bind-text value="[[ $variables.head.requestor || '—' ]]"></oj-bind-text></dd></div>
-          <div><dt>Dates</dt><dd><oj-bind-text value="[[ $functions.range($variables.head.start, $variables.head.end) || '—' ]]"></oj-bind-text></dd></div>
-          <div><dt>Deliver to</dt><dd><oj-bind-text value="[[ $variables.head.location || '—' ]]"></oj-bind-text></dd></div>
-          <oj-bind-if test="[[ !!$variables.head.project ]]"><div><dt>Project</dt><dd><oj-bind-text value="[[ $variables.head.project ]]"></oj-bind-text></dd></div></oj-bind-if>
-          <oj-bind-if test="[[ !!$variables.head.customer ]]"><div><dt>Customer</dt><dd><oj-bind-text value="[[ $variables.head.customer ]]"></oj-bind-text></dd></div></oj-bind-if>
-          <oj-bind-if test="[[ !!$variables.head.contract ]]"><div><dt>Contract</dt><dd><oj-bind-text value="[[ $variables.head.contract ]]"></oj-bind-text></dd></div></oj-bind-if>
-          <oj-bind-if test="[[ $variables.head.estCost != null ]]"><div><dt>Estimated cost</dt><dd class="nx-num"><oj-bind-text value="[[ $functions.money($variables.head.estCost) ]]"></oj-bind-text></dd></div></oj-bind-if>
-          <div><dt>Stored status</dt><dd class="nx-muted"><oj-bind-text value="[[ $variables.head.status || '—' ]]"></oj-bind-text></dd></div>
-        </dl>
-      </aside>
-    </div>
-
-    <!-- History: from start to end (requestHistory). Steps on the left, everything that happened on the right. -->
-    <section class="nx-card nx-card-pad nx-record-history" aria-labelledby="recHistory">
-      <div class="nx-journey-head">
-        <h2 class="nx-h2" id="recHistory"><span class="oj-ux-ico-clock-history" aria-hidden="true"></span> History</h2>
-        <div class="nx-actions">
-          <button type="button" class="nx-link" data-act="help" on-click="[[ $listeners.onStep ]]">How a request moves</button>
-          <oj-bind-for-each data="[[ $functions.formats() ]]">
-            <template data-oj-as="f">
-              <button type="button" class="nx-btn nx-btn--sm" data-act="export" :data-value="[[ f.data.key ]]" on-click="[[ $listeners.onStep ]]"
-                :disabled="[[ $variables.history.loading || !!$variables.history.error ]]" :title="[[ 'Export the history: ' + f.data.label ]]">
-                <span :class="[[ f.data.icon ]]" aria-hidden="true"></span><oj-bind-text value="[[ f.data.label ]]"></oj-bind-text></button>
-            </template>
-          </oj-bind-for-each>
-        </div>
-      </div>
-      <oj-bind-if test="[[ $variables.history.loading ]]">
-        <div class="nx-pop-busy" role="status"><span class="nx-spin" aria-hidden="true"></span>Reading its history…</div>
-      </oj-bind-if>
-      <oj-bind-if test="[[ !!$variables.history.error ]]">
-        <div class="nx-error" role="alert"><oj-bind-text value="[[ $variables.history.error ]]"></oj-bind-text></div>
-      </oj-bind-if>
-      <oj-bind-if test="[[ !$variables.history.loading && !$variables.history.error ]]">
-        <div class="nx-seg nx-hist-tabs" role="group" aria-label="Show">
-          <button type="button" data-act="tab" data-value="steps" on-click="[[ $listeners.onStep ]]" :aria-pressed="[[ $variables.histTab !== 'activity' ? 'true' : 'false' ]]"
-            :class="[[ 'nx-seg-btn' + ($variables.histTab !== 'activity' ? ' nx-seg-btn--on' : '') ]]">Steps</button>
-          <button type="button" data-act="tab" data-value="activity" on-click="[[ $listeners.onStep ]]" :aria-pressed="[[ $variables.histTab === 'activity' ? 'true' : 'false' ]]"
-            :class="[[ 'nx-seg-btn' + ($variables.histTab === 'activity' ? ' nx-seg-btn--on' : '') ]]">Everything that happened</button>
-        </div>
-        <div :class="[[ 'nx-hist-cols nx-hist-cols--' + $variables.histTab ]]">
-          <div class="nx-hist-col nx-hist-col--steps">
-            <h3 class="nx-h3">Steps</h3>
-            <ol class="nx-hist" aria-label="Steps">
-              <oj-bind-for-each data="[[ $functions.arr($variables.history.milestones) ]]">
-                <template data-oj-as="m">
-                  <li :class="[[ 'nx-hist-step nx-hist-step--' + m.data.state + ' nx-stage--' + m.data.stage ]]" :data-step="[[ m.data.key ]]">
-                    <span class="nx-hist-dot" aria-hidden="true"></span>
-                    <span class="nx-hist-body">
-                      <span class="nx-hist-label"><oj-bind-text value="[[ m.data.label ]]"></oj-bind-text>
-                        <oj-bind-if test="[[ !!m.data.count ]]"><span class="nx-hist-count"><oj-bind-text value="[[ m.data.count ]]"></oj-bind-text></span></oj-bind-if>
-                        <span class="nx-hist-state"><oj-bind-text value="[[ $functions.stepState(m.data) ]]"></oj-bind-text></span></span>
-                      <span class="nx-hist-when"><oj-bind-text value="[[ $functions.stepWhen(m.data) ]]"></oj-bind-text></span>
-                      <oj-bind-if test="[[ !!m.data.note ]]"><span class="nx-hist-note"><oj-bind-text value="[[ m.data.note ]]"></oj-bind-text></span></oj-bind-if>
-                    </span>
-                  </li>
-                </template>
-              </oj-bind-for-each>
-            </ol>
-          </div>
-          <div class="nx-hist-col nx-hist-col--activity">
-            <h3 class="nx-h3"><oj-bind-text value="[[ 'Everything that happened (' + $functions.arr($variables.history.events).length + ')' ]]"></oj-bind-text></h3>
-            <oj-bind-if test="[[ !$functions.arr($variables.history.events).length ]]"><p class="nx-note">Nothing has been recorded on this request yet.</p></oj-bind-if>
-            <ul class="nx-act" aria-label="Everything that happened, newest first">
-              <oj-bind-for-each data="[[ $functions.arr($variables.history.events) ]]">
-                <template data-oj-as="e">
-                  <li :class="[[ 'nx-act-item nx-stage--' + (e.data.stage || 'ready') + (e.data.kind === 'stopped' ? ' nx-act-item--stopped' : '') ]]">
-                    <span class="nx-act-dot" aria-hidden="true"></span>
-                    <span class="nx-act-body">
-                      <span class="nx-act-title"><oj-bind-text value="[[ e.data.title ]]"></oj-bind-text></span>
-                      <oj-bind-if test="[[ !!e.data.text ]]"><span class="nx-act-text"><oj-bind-text value="[[ e.data.text ]]"></oj-bind-text></span></oj-bind-if>
-                      <span class="nx-act-meta"><oj-bind-text value="[[ $functions.eventMeta(e.data) ]]"></oj-bind-text></span>
-                    </span>
-                  </li>
-                </template>
-              </oj-bind-for-each>
-            </ul>
-          </div>
-        </div>
-        <p class="nx-note nx-hist-source"><oj-bind-text value="[[ $variables.history.note ]]"></oj-bind-text></p>
-      </oj-bind-if>
-    </section>
+  <oj-bind-if test="[[ !!$variables.v.error ]]"><div class="nx-error" role="alert"><oj-bind-text value="[[ $variables.v.error ]]"></oj-bind-text></div></oj-bind-if>
+  <oj-bind-if test="[[ $variables.v.ready && $variables.v.hidden ]]">
+    <div class="nx-card nx-card-pad" id="requestHidden">This request is not one of your business units', nor does it use your fleet.</div>
   </oj-bind-if>
+  <oj-bind-if test="[[ $variables.v.ready && $variables.v.missing ]]">
+    <div class="nx-card nx-card-pad" id="requestMissing">There is no such request in the demo (it may have been reset).</div>
+  </oj-bind-if>
+
+  <section class="nx-card" aria-labelledby="requestSoonTitle">
+    <div class="nx-card-head"><h2 id="requestSoonTitle">Being built for EquipRite Future</h2><span class="nx-note">FDD v2.0</span></div>
+    <p class="nx-card-pad nx-muted">This screen is next. Meanwhile, this is what the simulated backend already has here for the person played, from
+      <code>store.view('request', id)</code>:</p>
+    <ul class="fx-skeleton-list">
+      <oj-bind-for-each data="[[ $functions.outline($variables.v) ]]">
+        <template data-oj-as="o">
+          <li><code><oj-bind-text value="[[ o.data.key ]]"></oj-bind-text></code><span><oj-bind-text value="[[ o.data.text ]]"></oj-bind-text></span></li>
+        </template>
+      </oj-bind-for-each>
+    </ul>
+  </section>
 </div>

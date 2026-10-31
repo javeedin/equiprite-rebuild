@@ -45,9 +45,10 @@ function bipReport(rows) {
 
 /**
  * @param {Object}   o
- * @param {number}   o.port         Old EquipRite on this port, New on port + 1, Next on port + 2, Mobile on port + 3 (give each
- *                                  script its own)
- * @param {string}   [o.app]        'new' (default), 'next' or 'mobile': which app open() opens (mobile: a phone's viewport)
+ * @param {number}   o.port         Old EquipRite on this port, New on port + 1, Next on port + 2, Mobile on port + 3, Future on
+ *                                  port + 4 (give each script its own)
+ * @param {string}   [o.app]        'new' (default), 'next', 'mobile' or 'future': which app open() opens (mobile: a phone's
+ *                                  viewport). Future calls no backend: its data is simulated in the browser
  * @param {Function} [o.handle]     (req, res) => answer, or undefined to fall through to the defaults.
  *                                  req: { method, path, query (URLSearchParams), body (string), json() }
  *                                  res: { json(obj, status), xml(text, status), bip(rows) }
@@ -106,11 +107,12 @@ async function start(o) {
   const fake = `http://127.0.0.1:${backend.address().port}`;
   const identity = { username: o.username || 'priya.raman', roles: ['RT_EQP_MANAGER'], fusion: null };
   const overrides = { eqpt: fake, commonservice: fake, fusion: fake, bipservice: fake, callpwpbip: fake, ics: fake };
-  const ports = { old: o.port, new: o.port + 1, next: o.port + 2, mobile: o.port + 3 };
-  // Like the desktop app: Next and Mobile are listed when built (and then served, below).
+  const ports = { old: o.port, new: o.port + 1, next: o.port + 2, mobile: o.port + 3, future: o.port + 4 };
+  // Like the desktop app: Next, Mobile and Future are listed when built (and then served, below).
   const built = (w) => DS.isBuilt(path.join(ROOT, 'build'), w);
   const versions = () => ({ old: `http://localhost:${ports.old}/`, new: `http://localhost:${ports.new}/`,
-    next: built('equiprite-next') ? `http://localhost:${ports.next}/` : '', mobile: built('equiprite-mobile') ? `http://localhost:${ports.mobile}/` : '' });
+    next: built('equiprite-next') ? `http://localhost:${ports.next}/` : '', mobile: built('equiprite-mobile') ? `http://localhost:${ports.mobile}/` : '',
+    future: built('equiprite-future') ? `http://localhost:${ports.future}/` : '' });
   const serverLog = [];
   const common = { buildDir: path.join(ROOT, 'build'), getIdentity: () => identity, getVersions: versions, backendOverrides: overrides, onLog: (l) => serverLog.push(l),
     getPhone: () => (o.desktop && o.desktop.phone) || {} };
@@ -121,12 +123,15 @@ async function start(o) {
   if (DS.isBuilt(path.join(ROOT, 'build'), 'equiprite-next')) {
     servers.push(await DS.createDevServer(Object.assign({ webApp: 'equiprite-next', port: ports.next }, common)));
   }
+  if (DS.isBuilt(path.join(ROOT, 'build'), 'equiprite-future')) {
+    servers.push(await DS.createDevServer(Object.assign({ webApp: 'equiprite-future', port: ports.future }, common)));
+  }
   if (DS.isBuilt(path.join(ROOT, 'build'), 'equiprite-mobile')) {
     servers.push(await DS.createDevServer(Object.assign({ webApp: 'equiprite-mobile', port: ports.mobile }, common, o.phoneApp ? {
       phoneApp: { apkFile: path.join(ROOT, 'desktop', 'phone-app', 'EquipRite.apk'),
         version: JSON.parse(fs.readFileSync(path.join(ROOT, 'desktop', 'phone-app', 'version.json'), 'utf8')).versionName }, pairToken: () => 'test-pair-key' } : {})));
   }
-  const app = o.app === 'next' || o.app === 'mobile' ? o.app : 'new';
+  const app = ['next', 'mobile', 'future'].indexOf(o.app) !== -1 ? o.app : 'new';
   const { chromium } = require('playwright');
   const browser = await chromium.launch();
   const page = await browser.newPage(app === 'mobile'
@@ -155,13 +160,17 @@ async function start(o) {
     oldUrl: `http://localhost:${ports.old}`,
     nextUrl: `http://localhost:${ports.next}`,
     mobileUrl: `http://localhost:${ports.mobile}`,
+    futureUrl: `http://localhost:${ports.future}`,
+    /** What /__versions answers here (the desktop app's list): { old, new, next, mobile, future }. */
+    versions,
     /**
      * Opens a path of the app under test and waits for its shell: New EquipRite ('/vp/shell/request/my-requests'), or
-     * EquipRite Next ('/', '/?open=requests', '/?open=request&id=1'), or EquipRite Mobile ('/', '/?tab=track').
+     * EquipRite Next ('/', '/?open=requests', '/?open=request&id=1'), EquipRite Mobile ('/', '/?tab=track'), or EquipRite
+     * Future ('/', '/?open=guide', '/?open=request&id=R1001').
      */
     async open(p) {
       await page.goto(`http://localhost:${ports[app]}${p || '/'}`, { waitUntil: 'domcontentloaded' });
-      await page.waitForSelector({ next: '.nx-nav-item', mobile: '.mb-tabbtn', new: '.er-nav-item' }[app], { state: 'attached', timeout: 60000 });
+      await page.waitForSelector({ next: '.nx-nav-item', future: '.nx-nav-item', mobile: '.mb-tabbtn', new: '.er-nav-item' }[app], { state: 'attached', timeout: 60000 });
       await page.waitForTimeout(1200);
     },
     /** Visible text of a selector, whitespace collapsed. */

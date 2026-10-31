@@ -1,0 +1,10 @@
+{
+  "id": "guide",
+  "description": "Help: the Guide to the end-to-end story (store.view('guide') decorated by resources/js/future/fxGuide.js).",
+  "defaultPage": "guide",
+  "navigation": { "embeddable": "enabled" },
+  "pages": {
+    "guide": { "path": "pages/guide-page" }
+  },
+  "chains": {}, "services": {}, "types": {}, "variables": {}
+}

@@ -1,0 +1,17 @@
+{
+  "id": "setup",
+  "description": "Setup: companies, BUs, countries, who may source from whom, the agreements and the decisions. Pages start as skeletons on the Future page pattern; each screen's builder replaces its own page.",
+  "defaultPage": "setup",
+  "navigation": {
+    "embeddable": "enabled"
+  },
+  "pages": {
+    "setup": {
+      "path": "pages/setup-page"
+    }
+  },
+  "chains": {},
+  "services": {},
+  "types": {},
+  "variables": {}
+}

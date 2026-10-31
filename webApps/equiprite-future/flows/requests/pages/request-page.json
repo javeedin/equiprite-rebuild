@@ -1,5 +1,5 @@
 {
-  "description": "One request in its own tab: what it is, where each piece of equipment is (the journey), what is next and late, the equipment, the facts; export of its equipment.",
+  "description": "Request (skeleton: being built). v = store.view('request', id), set by loadChain on vbEnter and on every fxRefresh; actions through actChain, links through openChain (docs/redesign/BUILDING-FUTURE-SCREENS.md).",
   "navigation": {
     "embeddable": "enabled"
   },
@@ -7,122 +7,61 @@
     "id": {
       "type": "string",
       "defaultValue": "",
-      "input": "fromCaller"
+      "input": "fromCaller",
+      "description": "The request's id (R1001), from its tab."
     },
     "number": {
       "type": "string",
       "defaultValue": "",
-      "input": "fromCaller"
+      "input": "fromCaller",
+      "description": "The request's number (FR-1001), from its tab."
     },
-    "requestId": {
-      "type": "number",
-      "defaultValue": 0
-    },
-    "head": {
-      "type": "any",
-      "defaultValue": {}
-    },
-    "lines": {
-      "type": "any[]",
-      "defaultValue": []
-    },
-    "p": {
+    "v": {
       "type": "any",
       "defaultValue": {
-        "headline": "",
-        "tone": "",
-        "stops": [],
-        "late": [],
-        "total": 0
-      }
-    },
-    "isLoading": {
-      "type": "boolean",
-      "defaultValue": true
-    },
-    "error": {
-      "type": "string",
-      "defaultValue": ""
-    },
-    "exportOpen": {
-      "type": "boolean",
-      "defaultValue": false
-    },
-    "acts": {
-      "type": "any",
-      "defaultValue": {
-        "approve": false,
-        "assign": false,
-        "pick": 0
+        "ready": false,
+        "error": ""
       },
-      "description": "The steps this request offers this user (requestList.actions), as on its row in Requests."
-    },
-    "history": {
-      "type": "any",
-      "defaultValue": {
-        "loading": true
-      },
-      "description": "Its history from start to end (requestHistory.build), read after the request."
-    },
-    "histTab": {
-      "type": "string",
-      "defaultValue": "steps",
-      "description": "steps | activity, on a narrow screen."
+      "description": "The view model: store.view('request', id)."
+    }
+  },
+  "events": {
+    "fxRefresh": {
+      "description": "From the page module (fxPage.watch): the store changed, so loadChain runs again.",
+      "payloadType": "object"
     }
   },
   "eventListeners": {
     "vbEnter": {
       "chains": [
         {
-          "chain": "loadRecordChain"
+          "chain": "loadChain"
         }
       ]
     },
-    "onRefresh": {
+    "fxRefresh": {
       "chains": [
         {
-          "chain": "loadRecordChain"
+          "chain": "loadChain"
         }
       ]
     },
-    "onExportMenu": {
+    "onAct": {
       "chains": [
         {
-          "chain": "menuChain"
-        }
-      ]
-    },
-    "onExport": {
-      "chains": [
-        {
-          "chain": "exportLinesChain",
+          "chain": "actChain",
           "parameters": {
-            "format": "{{ $event.currentTarget.dataset.format }}"
+            "data": "{{ $event.currentTarget.dataset }}"
           }
         }
       ]
     },
-    "onOpenList": {
+    "onOpen": {
       "chains": [
         {
-          "chain": "openListChain"
-        }
-      ]
-    },
-    "onFinishDraft": {
-      "chains": [
-        {
-          "chain": "finishDraftChain"
-        }
-      ]
-    },
-    "onStep": {
-      "chains": [
-        {
-          "chain": "stepChain",
+          "chain": "openChain",
           "parameters": {
-            "act": "{{ $event.currentTarget.dataset.act }}",
-            "value": "{{ $event.currentTarget.dataset.value }}"
+            "data": "{{ $event.currentTarget.dataset }}"
           }
         }
       ]

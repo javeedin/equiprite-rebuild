@@ -1,0 +1,141 @@
+/* EquipRite Future: the shell's own controls (Playing as, the demo clock, the prototype banner, menu badges) and the
+   parts every Future screen shares (chips for states and relationships, the finance checklist, people). Everything
+   else is Next's (next.css): page head band, cards, chips, grids, buttons. A screen's own styles go in
+   future-<flow>.css. */
+
+:root {
+  --fx-ic: #1d4ed8; --fx-ic-bg: #dbeafe;          /* intercompany, domestic */
+  --fx-xb: #7c3aed; --fx-xb-bg: #ede9fe;          /* intercompany, cross-border */
+  --fx-cust: #b45309; --fx-cust-bg: #fef3c7;      /* a customer rental / an outside customer */
+  --fx-info: #0f766e; --fx-info-bg: #ccfbf1;      /* same company: cross-charge */
+  --fx-neutral: #475569; --fx-neutral-bg: #e2e8f0; /* own fleet */
+  --fx-ok: #15803d; --fx-ok-bg: #dcfce7;
+  --fx-bad: #b42318; --fx-bad-bg: #fee4e2;
+  --fx-run: #1d4ed8; --fx-run-bg: #dbeafe;
+  --fx-todo: #92400e; --fx-todo-bg: #fef3c7;
+  --fx-banner-h: 28px;
+}
+/* A little wider than Next's menu: Future's labels are longer ("Guide: the end-to-end story"). */
+.fx-app { --nx-nav-w: 262px; }
+
+/* ── Toolbar ──────────────────────────────────────────────────────────────────────────────────────────────── */
+.fx-badge { color: #6b21a8; background: #f3e8ff; }
+.fx-logo { background: linear-gradient(135deg, #6b4fa3, #0e9384); }
+
+.fx-clock { display: inline-flex; align-items: stretch; height: 36px; border: 1px solid var(--nx-line); border-radius: 10px; background: var(--nx-surface-2); overflow: hidden; flex: none; }
+.fx-clock-date, .fx-clock-btn {
+  display: inline-flex; align-items: center; gap: 6px; border: 0; background: transparent; color: var(--nx-ink); font: inherit; font-size: 13px;
+  cursor: pointer; white-space: nowrap; padding: 0 10px;
+}
+.fx-clock-date { font-weight: 700; }
+.fx-clock-date span[class^="oj-ux-ico"] { font-size: 17px; color: var(--nx-band); }
+.fx-clock-btn { border-left: 1px solid var(--nx-line); color: var(--nx-muted); font-weight: 600; }
+.fx-clock-date:hover, .fx-clock-btn:hover { background: var(--nx-hover); color: var(--nx-ink); }
+.fx-clock-date[aria-expanded="true"] { background: var(--nx-hover); }
+
+.fx-persona { gap: 8px; margin-left: 2px; border-color: var(--nx-line); background: var(--nx-surface-2); }
+.fx-persona-kicker { font-size: 10px; font-weight: 700; color: var(--nx-faint); text-transform: uppercase; letter-spacing: 0.06em; line-height: 1.1; }
+.fx-persona .nx-user-name { white-space: nowrap; }
+.fx-persona-title { white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+.fx-avatar { background: linear-gradient(135deg, #2e5468, #1f3a5f); flex: none; }
+
+/* The prototype banner, under the toolbar. */
+.fx-banner {
+  flex: none; height: var(--fx-banner-h); display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0 12px;
+  background: #fff7e6; border-bottom: 1px solid #f3dfb2; color: #7a4b00; font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden;
+}
+.fx-banner > span:last-child { overflow: hidden; text-overflow: ellipsis; }
+.fx-banner span[class^="oj-ux-ico"] { font-size: 15px; flex: none; }
+
+/* Menu badges: what waits for the persona on each screen (fxViews.work). */
+.fx-nav-badge {
+  margin-left: auto; flex: none; min-width: 20px; height: 20px; padding: 0 6px; box-sizing: border-box; border-radius: 999px; background: #f59e0b; color: #1f2937;
+  font-size: 11.5px; font-weight: 800; line-height: 20px; text-align: center; font-variant-numeric: tabular-nums;
+}
+.nx-app--rail .fx-nav-badge { position: absolute; top: 3px; right: 8px; min-width: 16px; height: 16px; line-height: 16px; padding: 0 4px; font-size: 10px; }
+
+/* ── Panels ───────────────────────────────────────────────────────────────────────────────────────────────── */
+.fx-persona-panel { top: calc(var(--nx-top-h) - 4px); right: 12px; width: min(400px, calc(100vw - 24px)); max-height: calc(100vh - var(--nx-top-h) - 12px); display: flex; flex-direction: column; }
+.fx-persona-panel .nx-panel-note { margin: 10px 16px 4px; font-size: 12.5px; }
+.fx-people { list-style: none; margin: 0; padding: 6px 8px 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+.fx-person {
+  width: 100%; display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid transparent; border-radius: 10px; background: transparent;
+  color: var(--nx-ink); font: inherit; text-align: left; cursor: pointer;
+}
+.fx-person:hover { background: var(--nx-hover); }
+.fx-person--on { border-color: var(--nx-accent); background: var(--nx-accent-soft); }
+.fx-person-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.fx-person-name { font-weight: 700; font-size: 14px; }
+.fx-person-title { font-size: 12.5px; color: var(--nx-ink); }
+.fx-person-bus { font-size: 12px; color: var(--nx-muted); }
+.fx-person-tick { color: var(--nx-accent); font-size: 18px; }
+
+.fx-clock-panel { top: calc(var(--nx-top-h) - 4px); right: 12px; width: min(380px, calc(100vw - 24px)); }
+.fx-clock-body { display: flex; flex-direction: column; gap: 12px; padding: 14px 16px 16px; }
+.fx-clock-now { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 16px; }
+.fx-clock-now span[class^="oj-ux-ico"] { font-size: 20px; color: var(--nx-band); }
+.fx-clock-acts { display: flex; flex-wrap: wrap; gap: 8px; }
+.fx-clock-note { margin: 0; font-size: 12.5px; color: var(--nx-muted); line-height: 1.45; }
+
+.fx-note-text { color: var(--nx-ink); font-size: 13px; }
+.nx-alert--read .fx-note-text { color: var(--nx-muted); }
+.fx-note-at { font-size: 11.5px; color: var(--nx-faint); }
+.fx-note--warning .nx-alert-icon { color: var(--nx-warn); }
+.fx-note--error .nx-alert-icon { color: var(--nx-danger); }
+.fx-note--action .nx-alert-icon { color: var(--nx-accent); }
+
+/* ── Shared by the screens ────────────────────────────────────────────────────────────────────────────────── */
+/* A chip of meaning: fx-chip--<tone>. States: ok (done), todo, bad (failed), run (running), na. Relationships
+   (fxViews REL tone): neutral (own fleet), info (same company), ic (intercompany), xb (cross-border), cust. */
+.fx-chip {
+  display: inline-flex; align-items: center; gap: 5px; padding: 1px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; line-height: 1.6;
+  white-space: nowrap; color: var(--fx-c, var(--nx-muted)); background: var(--fx-bg, #f1f5f9);
+}
+.fx-chip--ok { --fx-c: var(--fx-ok); --fx-bg: var(--fx-ok-bg); }
+.fx-chip--todo { --fx-c: var(--fx-todo); --fx-bg: var(--fx-todo-bg); }
+.fx-chip--bad { --fx-c: var(--fx-bad); --fx-bg: var(--fx-bad-bg); }
+.fx-chip--run { --fx-c: var(--fx-run); --fx-bg: var(--fx-run-bg); }
+.fx-chip--na { --fx-c: var(--nx-faint); --fx-bg: #f1f5f9; }
+.fx-chip--next { --fx-c: #fff; --fx-bg: var(--nx-accent); }
+.fx-chip--neutral { --fx-c: var(--fx-neutral); --fx-bg: var(--fx-neutral-bg); }
+.fx-chip--info { --fx-c: var(--fx-info); --fx-bg: var(--fx-info-bg); }
+.fx-chip--ic { --fx-c: var(--fx-ic); --fx-bg: var(--fx-ic-bg); }
+.fx-chip--xb { --fx-c: var(--fx-xb); --fx-bg: var(--fx-xb-bg); }
+.fx-chip--cust { --fx-c: var(--fx-cust); --fx-bg: var(--fx-cust-bg); }
+
+/* Someone in the demo: avatar, name, title. */
+.fx-who { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.fx-who .nx-avatar { width: 28px; height: 28px; font-size: 11px; }
+.fx-who-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
+.fx-who-name { font-weight: 700; font-size: 13px; }
+.fx-who-title { font-size: 12px; color: var(--nx-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* A progress bar (n of m done). */
+.fx-progress { height: 8px; border-radius: 4px; background: #e2e8f0; overflow: hidden; }
+.fx-progress > span { display: block; height: 100%; border-radius: 4px; background: var(--nx-ok); }
+.nx-pagehead .fx-progress { background: rgba(255, 255, 255, 0.25); max-width: 420px; margin-top: 10px; }
+.nx-pagehead .fx-progress > span { background: #fff; }
+
+/* The skeleton page of a screen being built. */
+.fx-skeleton-list { margin: 0; padding: 0 16px 16px; list-style: none; display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+.fx-skeleton-list li { display: flex; gap: 10px; }
+.fx-skeleton-list code { color: var(--nx-muted); }
+
+/* ── Narrower windows ─────────────────────────────────────────────────────────────────────────────────────── */
+@media (max-width: 1279px) {
+  .fx-persona-title, .fx-persona-kicker { display: none; }
+}
+@media (max-width: 1100px) {
+  /* next.css hides the user's text here; Playing as keeps the name. */
+  .fx-persona .fx-persona-text { display: flex; }
+  .fx-clock-date, .fx-clock-btn { padding: 0 8px; }
+}
+@media (max-width: 899px) {
+  .fx-clock-btn { display: none; }
+  .fx-persona .fx-persona-text { display: none; }
+  .fx-banner { justify-content: flex-start; font-size: 12px; }
+}
+@media (max-width: 599px) {
+  .fx-clock-text { display: none; }
+  .fx-clock { height: 34px; }
+}

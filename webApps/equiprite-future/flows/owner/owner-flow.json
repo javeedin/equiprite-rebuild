@@ -1,0 +1,20 @@
+{
+  "id": "owner",
+  "description": "The fleet owner (the sourcing BU): approve and allocate, and the yard. Pages start as skeletons on the Future page pattern; each screen's builder replaces its own page.",
+  "defaultPage": "approvals",
+  "navigation": {
+    "embeddable": "enabled"
+  },
+  "pages": {
+    "approvals": {
+      "path": "pages/approvals-page"
+    },
+    "yard": {
+      "path": "pages/yard-page"
+    }
+  },
+  "chains": {},
+  "services": {},
+  "types": {},
+  "variables": {}
+}

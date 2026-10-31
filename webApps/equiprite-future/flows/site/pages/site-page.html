@@ -1,0 +1,27 @@
+<!-- Receive, hours, moves: SKELETON, being built. The screen's builder replaces this page's HTML and chains, keeping the Future page
+     pattern (docs/redesign/BUILDING-FUTURE-SCREENS.md): v = store.view('site') (loadChain, again on fxRefresh), actions through
+     actChain (data-act + data-…), links through openChain (data-nav, data-record). Set built: true in resources/js/nav.js. -->
+<div class="nx-page fx-skeleton" id="page-site">
+  <div class="nx-pagehead">
+    <div>
+      <div class="nx-kicker">On site</div>
+      <h1>Receive, hours, moves</h1>
+      <div class="nx-sub">Receive what arrives (on hire), log and approve the hours, report a breakdown, move a unit, off hire.</div>
+    </div>
+  </div>
+
+  <oj-bind-if test="[[ !!$variables.v.error ]]"><div class="nx-error" role="alert"><oj-bind-text value="[[ $variables.v.error ]]"></oj-bind-text></div></oj-bind-if>
+
+  <section class="nx-card" aria-labelledby="siteSoonTitle">
+    <div class="nx-card-head"><h2 id="siteSoonTitle">Being built for EquipRite Future</h2><span class="nx-note">FDD v2.0</span></div>
+    <p class="nx-card-pad nx-muted">This screen is next. Meanwhile, this is what the simulated backend already has here for the person played, from
+      <code>store.view('site')</code>:</p>
+    <ul class="fx-skeleton-list">
+      <oj-bind-for-each data="[[ $functions.outline($variables.v) ]]">
+        <template data-oj-as="o">
+          <li><code><oj-bind-text value="[[ o.data.key ]]"></oj-bind-text></code><span><oj-bind-text value="[[ o.data.text ]]"></oj-bind-text></span></li>
+        </template>
+      </oj-bind-for-each>
+    </ul>
+  </section>
+</div>
