@@ -4,6 +4,7 @@ define(['vb/action/actionChain', 'resources/js/future/fxPage'], (ActionChain, fx
   // Open what a clicked element names in its tab: data-nav="<navId>", or data-record="request" data-id data-number.
   class openChain extends ActionChain {
     async run(context, { data }) {
+      context.$page.variables.exportOpen = '';
       fx.open(data);
     }
   }

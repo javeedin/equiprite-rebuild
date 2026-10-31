@@ -1,27 +1,347 @@
-<!-- Receive, hours, moves: SKELETON, being built. The screen's builder replaces this page's HTML and chains, keeping the Future page
-     pattern (docs/redesign/BUILDING-FUTURE-SCREENS.md): v = store.view('site') (loadChain, again on fxRefresh), actions through
-     actChain (data-act + data-…), links through openChain (data-nav, data-record). Set built: true in resources/js/nav.js. -->
-<div class="nx-page fx-skeleton" id="page-site">
+<!-- Receive, hours, moves: the requesting BU on site. To receive (confirming receipt starts the hire), then one card per
+     unit on hire: its project (segments when moved), a grid of its days on hire up to today with the site country's
+     weekend marked (record standard hours, edit a day, approve), and its moves with what each means for the money.
+     Every action opens a confirmation first (what EquipRite does, what Fusion would do). v = fxOps.site (loadChain). -->
+<div class="nx-page fx-ops fx-st" id="page-site">
   <div class="nx-pagehead">
     <div>
-      <div class="nx-kicker">On site</div>
+      <div class="nx-kicker"><oj-bind-text value="[[ 'On site · ' + $variables.v.busText ]]"></oj-bind-text></div>
       <h1>Receive, hours, moves</h1>
-      <div class="nx-sub">Receive what arrives (on hire), log and approve the hours, report a breakdown, move a unit, off hire.</div>
+      <div class="nx-sub"><oj-bind-text value="[[ 'The units your business units use: confirm what arrives (the hire starts), record and approve the hours, report a breakdown, move a unit, off hire.' ]]"></oj-bind-text></div>
+    </div>
+    <div class="nx-actions">
+      <div class="nx-export">
+        <button type="button" class="nx-btn" id="stExport" data-list="onHire" on-click="[[ $listeners.onExportMenu ]]" aria-haspopup="menu" :aria-expanded="[[ $variables.exportOpen === 'onHire' ? 'true' : 'false' ]]">
+          <span class="oj-ux-ico-download" aria-hidden="true"></span>Export on hire<span class="oj-ux-ico-chevron-down" aria-hidden="true"></span></button>
+        <oj-bind-if test="[[ $variables.exportOpen === 'onHire' ]]">
+          <div class="nx-menu" role="menu" aria-label="Export the units on hire">
+            <oj-bind-for-each data="[[ $functions.formats() ]]"><template data-oj-as="x">
+              <button type="button" role="menuitem" class="nx-menu-item" data-list="onHire" :data-format="[[ x.data.key ]]" on-click="[[ $listeners.onExport ]]"><span :class="[[ x.data.icon ]]" aria-hidden="true"></span><oj-bind-text value="[[ x.data.label ]]"></oj-bind-text></button>
+            </template></oj-bind-for-each>
+          </div>
+        </oj-bind-if>
+      </div>
     </div>
   </div>
 
   <oj-bind-if test="[[ !!$variables.v.error ]]"><div class="nx-error" role="alert"><oj-bind-text value="[[ $variables.v.error ]]"></oj-bind-text></div></oj-bind-if>
+  <oj-bind-if test="[[ !!$variables.failure.text ]]">
+    <div class="nx-error fx-failure" role="alert" id="stFailure">
+      <span class="oj-ux-ico-error" aria-hidden="true"></span>
+      <span class="fx-failure-text"><b><oj-bind-text value="[[ ($variables.failure.what ? $variables.failure.what + ': ' : '') + 'it did not go through.' ]]"></oj-bind-text></b>
+        <oj-bind-text value="[[ ' ' + $variables.failure.text ]]"></oj-bind-text></span>
+      <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" on-click="[[ $listeners.onDismiss ]]">Dismiss</button>
+    </div>
+  </oj-bind-if>
 
-  <section class="nx-card" aria-labelledby="siteSoonTitle">
-    <div class="nx-card-head"><h2 id="siteSoonTitle">Being built for EquipRite Future</h2><span class="nx-note">FDD v2.0</span></div>
-    <p class="nx-card-pad nx-muted">This screen is next. Meanwhile, this is what the simulated backend already has here for the person played, from
-      <code>store.view('site')</code>:</p>
-    <ul class="fx-skeleton-list">
-      <oj-bind-for-each data="[[ $functions.outline($variables.v) ]]">
-        <template data-oj-as="o">
-          <li><code><oj-bind-text value="[[ o.data.key ]]"></oj-bind-text></code><span><oj-bind-text value="[[ o.data.text ]]"></oj-bind-text></span></li>
+  <oj-bind-if test="[[ $variables.v.ready ]]">
+    <!-- To receive -->
+    <section class="nx-card" aria-labelledby="stReceiveTitle" id="stReceive">
+      <div class="nx-card-head fx-sec-head">
+        <h2 class="fx-sec-title" id="stReceiveTitle"><span class="oj-ux-ico-truck" aria-hidden="true"></span>To receive
+          <span :class="[[ $functions.countClass($variables.v.counts.receive) ]]"><oj-bind-text value="[[ $variables.v.counts.receive ]]"></oj-bind-text></span></h2>
+        <div class="fx-sec-tools nx-export">
+          <button type="button" class="nx-btn nx-btn--sm" data-list="toReceive" on-click="[[ $listeners.onExportMenu ]]" aria-haspopup="menu" :aria-expanded="[[ $variables.exportOpen === 'toReceive' ? 'true' : 'false' ]]">
+            <span class="oj-ux-ico-download" aria-hidden="true"></span>Export</button>
+          <oj-bind-if test="[[ $variables.exportOpen === 'toReceive' ]]">
+            <div class="nx-menu" role="menu" aria-label="Export to receive">
+              <oj-bind-for-each data="[[ $functions.formats() ]]"><template data-oj-as="x">
+                <button type="button" role="menuitem" class="nx-menu-item" data-list="toReceive" :data-format="[[ x.data.key ]]" on-click="[[ $listeners.onExport ]]"><span :class="[[ x.data.icon ]]" aria-hidden="true"></span><oj-bind-text value="[[ x.data.label ]]"></oj-bind-text></button>
+              </template></oj-bind-for-each>
+            </div>
+          </oj-bind-if>
+        </div>
+      </div>
+      <oj-bind-if test="[[ !$variables.v.toReceive.length ]]"><p class="fx-sec-empty">Nothing on the way: what an owner ships to your sites comes here.</p></oj-bind-if>
+      <ul class="fx-items">
+        <oj-bind-for-each data="[[ $variables.v.toReceive ]]">
+          <template data-oj-as="x">
+            <li class="fx-item" :data-line="[[ x.data.id ]]" :data-request="[[ x.data.number ]]">
+              <div class="fx-item-main"><span class="fx-item-title"><oj-bind-text value="[[ x.data.serial ]]"></oj-bind-text> <span class="fx-item-name"><oj-bind-text value="[[ x.data.unitName ]]"></oj-bind-text></span></span>
+                <span class="fx-item-sub"><oj-bind-text value="[[ x.data.holdText + ' · ' + x.data.owner ]]"></oj-bind-text></span></div>
+              <div class="fx-cell"><span class="fx-k">For</span>
+                <button type="button" class="nx-link" data-record="request" :data-id="[[ x.data.requestId ]]" :data-number="[[ x.data.number ]]" on-click="[[ $listeners.onOpen ]]"><oj-bind-text value="[[ x.data.number ]]"></oj-bind-text></button>
+                <span class="fx-v-sub"><oj-bind-text value="[[ x.data.forMain ]]"></oj-bind-text></span></div>
+              <div class="fx-cell"><span class="fx-k">Arriving at</span><span><oj-bind-text value="[[ x.data.site ]]"></oj-bind-text></span>
+                <span class="fx-v-sub"><oj-bind-text value="[[ x.data.country + ' · ' + x.data.shipped ]]"></oj-bind-text></span></div>
+              <div class="fx-cell fx-cell--wide"><span class="fx-k">What Fusion does at receipt</span>
+                <span :class="[[ 'fx-chip fx-chip--' + x.data.fusionTone ]]"><oj-bind-text value="[[ x.data.fusion ]]"></oj-bind-text></span>
+                <span :class="[[ 'fx-chip fx-chip--' + x.data.relationTone ]]"><oj-bind-text value="[[ x.data.relationLabel ]]"></oj-bind-text></span></div>
+              <oj-bind-if test="[[ $variables.v.can.receive ]]">
+                <div class="fx-item-act"><button type="button" class="nx-btn nx-btn--sm nx-btn--primary fx-receive" data-ask="receive" :data-request-id="[[ x.data.requestId ]]" :data-line-id="[[ x.data.id ]]" on-click="[[ $listeners.onAsk ]]">
+                  <span class="oj-ux-ico-check" aria-hidden="true"></span>Confirm receipt…</button></div>
+              </oj-bind-if>
+            </li>
+          </template>
+        </oj-bind-for-each>
+      </ul>
+    </section>
+
+    <!-- On hire -->
+    <div class="fx-st-head">
+      <h2 class="fx-sec-title fx-st-h2" id="stHireTitle"><span class="oj-ux-ico-location-pin" aria-hidden="true"></span>On hire
+        <span class="fx-count"><oj-bind-text value="[[ $variables.v.counts.onHire ]]"></oj-bind-text></span></h2>
+      <oj-bind-if test="[[ $variables.v.counts.waiting > 0 ]]">
+        <span class="fx-chip fx-chip--todo" id="stWaiting"><oj-bind-text value="[[ $functions.plural($variables.v.counts.waiting, 'day') + ' of hours wait for approval' ]]"></oj-bind-text></span>
+      </oj-bind-if>
+    </div>
+    <oj-bind-if test="[[ !$variables.v.onHire.length ]]">
+      <section class="nx-card" id="stNoHire"><p class="fx-sec-empty">Nothing on hire for your business units.</p></section>
+    </oj-bind-if>
+    <div class="fx-hires" id="stHires">
+      <oj-bind-for-each data="[[ $variables.v.onHire ]]">
+        <template data-oj-as="h">
+          <article class="nx-card fx-hire" :data-line="[[ h.data.id ]]" :data-request="[[ h.data.number ]]" :data-unit="[[ h.data.serial ]]" :aria-label="[[ h.data.serial + ' on ' + h.data.number ]]">
+            <div class="fx-ap-head">
+              <div class="fx-ap-title">
+                <span class="fx-hire-unit"><oj-bind-text value="[[ h.data.serial ]]"></oj-bind-text></span>
+                <span class="fx-ap-cls"><oj-bind-text value="[[ h.data.unitName ]]"></oj-bind-text></span>
+                <span :class="[[ 'fx-chip fx-chip--' + h.data.relationTone ]]"><oj-bind-text value="[[ h.data.relationLabel ]]"></oj-bind-text></span>
+              </div>
+              <button type="button" class="nx-link" data-record="request" :data-id="[[ h.data.requestId ]]" :data-number="[[ h.data.number ]]" on-click="[[ $listeners.onOpen ]]">
+                <oj-bind-text value="[[ h.data.number + ' · ' + h.data.typeText ]]"></oj-bind-text></button>
+            </div>
+            <div class="fx-hire-facts">
+              <div class="fx-cell"><span class="fx-k">On hire since</span><span><oj-bind-text value="[[ h.data.since ]]"></oj-bind-text></span>
+                <span class="fx-v-sub"><oj-bind-text value="[[ h.data.daysText ]]"></oj-bind-text></span></div>
+              <div class="fx-cell fx-cell--wide"><span class="fx-k"><oj-bind-text value="[[ h.data.forLabel ]]"></oj-bind-text></span>
+                <oj-bind-if test="[[ h.data.rental ]]"><span class="fx-hire-customer"><oj-bind-text value="[[ h.data.customer ]]"></oj-bind-text></span></oj-bind-if>
+                <ul class="fx-segs">
+                  <oj-bind-for-each data="[[ h.data.segments ]]"><template data-oj-as="g">
+                    <li :class="[[ g.data.current ? 'fx-seg fx-seg--now' : 'fx-seg' ]]"><span class="fx-seg-name"><oj-bind-text value="[[ g.data.text ]]"></oj-bind-text></span>
+                      <span class="fx-v-sub"><oj-bind-text value="[[ g.data.period + (g.data.task ? ' · task ' + g.data.task : '') ]]"></oj-bind-text></span></li>
+                  </template></oj-bind-for-each>
+                </ul></div>
+              <div class="fx-cell"><span class="fx-k">Owner</span><span><oj-bind-text value="[[ h.data.owner ]]"></oj-bind-text></span>
+                <span class="fx-v-sub"><oj-bind-text value="[[ h.data.holdText ]]"></oj-bind-text></span></div>
+              <div class="fx-cell"><span class="fx-k">Site</span><span><oj-bind-text value="[[ h.data.site ]]"></oj-bind-text></span>
+                <span class="fx-v-sub"><oj-bind-text value="[[ h.data.country ]]"></oj-bind-text></span></div>
+              <div class="fx-cell"><span class="fx-k">Agreement and price</span><span><oj-bind-text value="[[ h.data.agreement ]]"></oj-bind-text></span>
+                <span class="fx-v-sub"><oj-bind-text value="[[ h.data.price ]]"></oj-bind-text></span></div>
+            </div>
+
+            <div class="fx-hours">
+              <div class="fx-hours-head">
+                <h3 class="fx-ask-h"><span class="oj-ux-ico-clock" aria-hidden="true"></span>Hours</h3>
+                <span class="nx-note fx-hours-sum"><oj-bind-text value="[[ $functions.plural(h.data.recorded, 'day') + ' recorded · ' + h.data.usage + ' h of use · ' + h.data.standby + ' h of standby · '
+                  + h.data.approvedDays + ' approved, ' + h.data.waiting + ' waiting' ]]"></oj-bind-text></span>
+                <span class="fx-hours-legend" aria-hidden="true">
+                  <span class="fx-leg fx-leg--approved">Approved</span><span class="fx-leg fx-leg--waiting">Waiting</span>
+                  <span class="fx-leg fx-leg--we"><oj-bind-text value="[[ 'Weekend in ' + h.data.country + ': ' + h.data.weekend ]]"></oj-bind-text></span></span>
+              </div>
+              <div class="fx-days" role="group" :aria-label="[[ 'Hours of ' + h.data.serial + ' by day' ]]">
+                <oj-bind-for-each data="[[ h.data.grid ]]">
+                  <template data-oj-as="g">
+                    <oj-bind-if test="[[ $variables.v.can.log ]]">
+                      <button type="button" :class="[[ $functions.dayClass(g.data) ]]" :data-date="[[ g.data.date ]]" :title="[[ g.data.title ]]" :aria-label="[[ g.data.title + '. Change it.' ]]"
+                        data-ask="log" :data-request-id="[[ h.data.requestId ]]" :data-line-id="[[ h.data.id ]]" on-click="[[ $listeners.onAsk ]]">
+                        <span class="fx-day-dow"><oj-bind-text value="[[ g.data.dow + ' ' + g.data.day ]]"></oj-bind-text></span>
+                        <span class="fx-day-h"><oj-bind-text value="[[ g.data.text ]]"></oj-bind-text></span>
+                        <span class="fx-day-sb"><oj-bind-text value="[[ g.data.sub ]]"></oj-bind-text></span></button>
+                    </oj-bind-if>
+                    <oj-bind-if test="[[ !$variables.v.can.log ]]">
+                      <span :class="[[ $functions.dayClass(g.data) ]]" :data-date="[[ g.data.date ]]" :title="[[ g.data.title ]]" :aria-label="[[ g.data.title ]]">
+                        <span class="fx-day-dow"><oj-bind-text value="[[ g.data.dow + ' ' + g.data.day ]]"></oj-bind-text></span>
+                        <span class="fx-day-h"><oj-bind-text value="[[ g.data.text ]]"></oj-bind-text></span>
+                        <span class="fx-day-sb"><oj-bind-text value="[[ g.data.sub ]]"></oj-bind-text></span></span>
+                    </oj-bind-if>
+                  </template>
+                </oj-bind-for-each>
+              </div>
+              <div class="fx-hours-acts">
+                <oj-bind-if test="[[ $variables.v.can.fill ]]">
+                  <button type="button" class="nx-btn nx-btn--sm fx-fill" data-ask="fill" :data-request-id="[[ h.data.requestId ]]" :data-line-id="[[ h.data.id ]]" on-click="[[ $listeners.onAsk ]]">
+                    <span class="oj-ux-ico-calendar" aria-hidden="true"></span>Record standard hours to today…</button>
+                </oj-bind-if>
+                <oj-bind-if test="[[ $variables.v.can.approve && h.data.waiting > 0 ]]">
+                  <button type="button" class="nx-btn nx-btn--sm nx-btn--primary nx-btn--ok fx-approve-hours" data-ask="approveHours" :data-request-id="[[ h.data.requestId ]]" :data-line-id="[[ h.data.id ]]" on-click="[[ $listeners.onAsk ]]">
+                    <span class="oj-ux-ico-check" aria-hidden="true"></span><oj-bind-text value="[[ 'Approve hours (' + $functions.plural(h.data.waiting, 'day') + ')…' ]]"></oj-bind-text></button>
+                </oj-bind-if>
+                <oj-bind-if test="[[ !$variables.v.can.approve && h.data.waiting > 0 ]]">
+                  <span class="nx-note fx-hours-wait"><oj-bind-text value="[[ $functions.plural(h.data.waiting, 'day') + ' wait for the approval of ' + h.data.approvers + '.' ]]"></oj-bind-text></span>
+                </oj-bind-if>
+                <span class="nx-spacer"></span>
+                <div class="nx-export">
+                  <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" :data-list="[[ $functions.hoursList(h.data.id) ]]" on-click="[[ $listeners.onExportMenu ]]" aria-haspopup="menu"
+                    :aria-expanded="[[ $variables.exportOpen === $functions.hoursList(h.data.id) ? 'true' : 'false' ]]"><span class="oj-ux-ico-download" aria-hidden="true"></span>Export hours</button>
+                  <oj-bind-if test="[[ $variables.exportOpen === $functions.hoursList(h.data.id) ]]">
+                    <div class="nx-menu" role="menu" aria-label="Export the hours">
+                      <oj-bind-for-each data="[[ $functions.formats() ]]"><template data-oj-as="x">
+                        <button type="button" role="menuitem" class="nx-menu-item" :data-list="[[ $functions.hoursList(h.data.id) ]]" :data-format="[[ x.data.key ]]" on-click="[[ $listeners.onExport ]]">
+                          <span :class="[[ x.data.icon ]]" aria-hidden="true"></span><oj-bind-text value="[[ x.data.label ]]"></oj-bind-text></button>
+                      </template></oj-bind-for-each>
+                    </div>
+                  </oj-bind-if>
+                </div>
+              </div>
+            </div>
+
+            <oj-bind-if test="[[ h.data.breakdowns.length > 0 ]]">
+              <p class="fx-hire-bd"><span class="oj-ux-ico-warning" aria-hidden="true"></span><oj-bind-text value="[[ 'Breakdowns: ' + h.data.breakdowns.join('; ') ]]"></oj-bind-text></p>
+            </oj-bind-if>
+
+            <oj-bind-if test="[[ $functions.anyMove($variables.v.can, h.data) ]]">
+              <div class="fx-moves">
+                <h3 class="fx-ask-h"><span class="oj-ux-ico-swap" aria-hidden="true"></span>Moves, and what each means for the money</h3>
+                <ul class="fx-moves-list">
+                  <oj-bind-if test="[[ $variables.v.can.breakdown ]]">
+                    <li><button type="button" class="nx-btn nx-btn--sm fx-mv-breakdown" data-ask="breakdown" :data-request-id="[[ h.data.requestId ]]" :data-line-id="[[ h.data.id ]]" on-click="[[ $listeners.onAsk ]]">
+                      <span class="oj-ux-ico-warning" aria-hidden="true"></span>Breakdown…</button><span class="fx-move-text"><oj-bind-text value="[[ h.data.moves.breakdown ]]"></oj-bind-text></span></li>
+                  </oj-bind-if>
+                  <oj-bind-if test="[[ $variables.v.can.offHire ]]">
+                    <li><button type="button" class="nx-btn nx-btn--sm fx-mv-offhire" data-ask="offHire" :data-request-id="[[ h.data.requestId ]]" :data-line-id="[[ h.data.id ]]" on-click="[[ $listeners.onAsk ]]">
+                      <span class="oj-ux-ico-arrow-left" aria-hidden="true"></span>Off hire…</button><span class="fx-move-text"><oj-bind-text value="[[ h.data.moves.offHire ]]"></oj-bind-text></span></li>
+                  </oj-bind-if>
+                  <oj-bind-if test="[[ $variables.v.can.redeploy && !h.data.rental ]]">
+                    <li><oj-bind-if test="[[ h.data.canRedeploy ]]"><button type="button" class="nx-btn nx-btn--sm fx-mv-redeploy" data-ask="redeploy" :data-request-id="[[ h.data.requestId ]]" :data-line-id="[[ h.data.id ]]" on-click="[[ $listeners.onAsk ]]">
+                      <span class="oj-ux-ico-arrow-right" aria-hidden="true"></span>Move to another project…</button></oj-bind-if>
+                      <oj-bind-if test="[[ !h.data.canRedeploy ]]"><span class="fx-move-off">Move to another project</span></oj-bind-if>
+                      <span class="fx-move-text"><oj-bind-text value="[[ h.data.moves.redeploy ]]"></oj-bind-text></span></li>
+                  </oj-bind-if>
+                  <oj-bind-if test="[[ $variables.v.can.handover && !h.data.rental ]]">
+                    <li><oj-bind-if test="[[ h.data.canHandover ]]"><button type="button" class="nx-btn nx-btn--sm fx-mv-handover" data-ask="handover" :data-request-id="[[ h.data.requestId ]]" :data-line-id="[[ h.data.id ]]" on-click="[[ $listeners.onAsk ]]">
+                      <span class="oj-ux-ico-person-rotation" aria-hidden="true"></span>Hand over to another group company…</button></oj-bind-if>
+                      <oj-bind-if test="[[ !h.data.canHandover ]]"><span class="fx-move-off">Hand over to another group company</span></oj-bind-if>
+                      <span class="fx-move-text"><oj-bind-text value="[[ h.data.moves.handover ]]"></oj-bind-text></span></li>
+                  </oj-bind-if>
+                  <oj-bind-if test="[[ $variables.v.can.loss ]]">
+                    <li><button type="button" class="nx-btn nx-btn--sm fx-mv-loss" data-ask="loss" :data-request-id="[[ h.data.requestId ]]" :data-line-id="[[ h.data.id ]]" on-click="[[ $listeners.onAsk ]]">
+                      <span class="oj-ux-ico-error" aria-hidden="true"></span>Report lost…</button><span class="fx-move-text"><oj-bind-text value="[[ h.data.moves.loss ]]"></oj-bind-text></span></li>
+                  </oj-bind-if>
+                </ul>
+              </div>
+            </oj-bind-if>
+          </article>
         </template>
       </oj-bind-for-each>
-    </ul>
-  </section>
+    </div>
+  </oj-bind-if>
+
+  <!-- The confirmation: what it will do, what Fusion would do (a dry run of the engine), then Confirm. -->
+  <oj-bind-if test="[[ $variables.askDef.open ]]">
+    <div class="nx-modal fx-ask" id="stAsk" role="dialog" aria-modal="true" aria-labelledby="stAskTitle">
+      <button type="button" class="nx-modal-scrim" aria-label="Close without doing it" on-click="[[ $listeners.onAskClose ]]"></button>
+      <div class="nx-dialog nx-dialog--wide">
+        <div class="nx-dialog-head">
+          <div class="nx-dialog-titles">
+            <div class="nx-kicker"><oj-bind-text value="[[ $variables.askDef.kicker ]]"></oj-bind-text></div>
+            <h2 class="nx-dialog-title" id="stAskTitle"><oj-bind-text value="[[ $variables.askDef.title ]]"></oj-bind-text></h2>
+            <div class="nx-sub"><oj-bind-text value="[[ $variables.askDef.sub ]]"></oj-bind-text></div>
+          </div>
+          <button type="button" class="nx-iconbtn" aria-label="Close" on-click="[[ $listeners.onAskClose ]]"><span class="oj-ux-ico-close" aria-hidden="true"></span></button>
+        </div>
+        <div class="nx-dialog-body">
+          <oj-bind-if test="[[ $variables.askDef.fields.length > 0 ]]">
+            <div class="fx-ask-fields">
+              <oj-bind-for-each data="[[ $variables.askDef.fields ]]">
+                <template data-oj-as="f">
+                  <oj-bind-if test="[[ $functions.shown(f.data, $variables.form) ]]">
+                    <div class="fx-field" :data-key="[[ f.data.key ]]">
+                      <oj-bind-if test="[[ f.data.type === 'choice' ]]">
+                        <fieldset class="fx-choices"><legend><oj-bind-text value="[[ f.data.label ]]"></oj-bind-text></legend>
+                          <oj-bind-for-each data="[[ f.data.options ]]">
+                            <template data-oj-as="o">
+                              <label class="fx-choice"><input type="radio" :name="[[ 'stField-' + f.data.key ]]" :value="[[ o.data.value ]]" :data-field="[[ f.data.key ]]"
+                                :checked="[[ $functions.isOn($variables.form, f.data.key, o.data.value) ]]" on-change="[[ $listeners.onField ]]">
+                                <span class="fx-choice-body"><span class="fx-choice-label"><oj-bind-text value="[[ o.data.label ]]"></oj-bind-text></span>
+                                  <span class="fx-choice-sub"><oj-bind-text value="[[ o.data.sub ]]"></oj-bind-text></span></span></label>
+                            </template>
+                          </oj-bind-for-each>
+                          <oj-bind-if test="[[ !f.data.options.length ]]"><p class="fx-field-hint">Nothing to choose from.</p></oj-bind-if>
+                        </fieldset>
+                      </oj-bind-if>
+                      <oj-bind-if test="[[ f.data.type === 'number' ]]">
+                        <label class="nx-pop-field"><span><oj-bind-text value="[[ f.data.label ]]"></oj-bind-text></span>
+                          <input type="number" class="fx-input" :id="[[ 'stField-' + f.data.key ]]" :data-field="[[ f.data.key ]]" :min="[[ f.data.min ]]" :max="[[ f.data.max ]]" :step="[[ f.data.step ]]"
+                            :value="[[ f.data.initial ]]" on-input="[[ $listeners.onField ]]"></label>
+                      </oj-bind-if>
+                      <oj-bind-if test="[[ f.data.type === 'text' ]]">
+                        <label class="nx-pop-field"><span><oj-bind-text value="[[ f.data.label ]]"></oj-bind-text></span>
+                          <input type="text" class="fx-input fx-input--text" :id="[[ 'stField-' + f.data.key ]]" :data-field="[[ f.data.key ]]" :placeholder="[[ f.data.placeholder || '' ]]"
+                            :value="[[ f.data.initial ]]" on-input="[[ $listeners.onField ]]"></label>
+                      </oj-bind-if>
+                      <oj-bind-if test="[[ f.data.type === 'textarea' ]]">
+                        <label class="nx-pop-field"><span><oj-bind-text value="[[ f.data.label + (f.data.required ? ' (required)' : '') ]]"></oj-bind-text></span>
+                          <textarea rows="3" :id="[[ 'stField-' + f.data.key ]]" :data-field="[[ f.data.key ]]" :placeholder="[[ f.data.placeholder || '' ]]" :value="[[ f.data.initial ]]"
+                            on-input="[[ $listeners.onField ]]"></textarea></label>
+                      </oj-bind-if>
+                    </div>
+                  </oj-bind-if>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ !!$variables.askError ]]">
+            <div class="nx-pop-result nx-pop-result--error fx-ask-error" role="alert" id="stAskError"><b>It did not go through.</b> <oj-bind-text value="[[ $variables.askError ]]"></oj-bind-text></div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ !$variables.ask.ok && !$variables.askError ]]">
+            <div class="nx-pop-result nx-pop-result--warn" id="stAskWarn"><b>Not yet:</b> <oj-bind-text value="[[ $variables.ask.warn ]]"></oj-bind-text></div>
+          </oj-bind-if>
+          <section class="fx-ask-sec" id="stAskDoes">
+            <h3 class="fx-ask-h"><span class="oj-ux-ico-check-circle" aria-hidden="true"></span>What EquipRite does</h3>
+            <ul class="fx-ask-list">
+              <oj-bind-for-each data="[[ $variables.ask.does ]]"><template data-oj-as="d"><li><oj-bind-text value="[[ d.data ]]"></oj-bind-text></li></template></oj-bind-for-each>
+            </ul>
+          </section>
+          <oj-bind-if test="[[ $variables.ask.money.length > 0 ]]">
+            <section class="fx-ask-sec" id="stAskMoney">
+              <h3 class="fx-ask-h"><span class="oj-ux-ico-currency-dollar" aria-hidden="true"></span>The money</h3>
+              <ul class="fx-ask-list">
+                <oj-bind-for-each data="[[ $variables.ask.money ]]"><template data-oj-as="d"><li><oj-bind-text value="[[ d.data ]]"></oj-bind-text></li></template></oj-bind-for-each>
+              </ul>
+            </section>
+          </oj-bind-if>
+          <section class="fx-ask-sec fx-ask-sec--fusion" id="stAskFusion">
+            <h3 class="fx-ask-h"><span class="oj-ux-ico-building" aria-hidden="true"></span>What Fusion would do</h3>
+            <ul class="fx-ask-list">
+              <oj-bind-for-each data="[[ $variables.ask.fusion ]]"><template data-oj-as="d"><li><oj-bind-text value="[[ d.data ]]"></oj-bind-text></li></template></oj-bind-for-each>
+            </ul>
+            <oj-bind-for-each data="[[ $variables.ask.txs ]]">
+              <template data-oj-as="t">
+                <div class="fx-tx">
+                  <div class="fx-tx-head"><span class="fx-chip fx-chip--run"><oj-bind-text value="[[ t.data.kindText ]]"></oj-bind-text></span>
+                    <b><oj-bind-text value="[[ t.data.company ]]"></oj-bind-text></b><span class="nx-note"><oj-bind-text value="[[ t.data.number + ' · ' + t.data.source ]]"></oj-bind-text></span></div>
+                  <div class="fx-tx-title"><oj-bind-text value="[[ t.data.title ]]"></oj-bind-text></div>
+                  <oj-bind-if test="[[ t.data.lines.length > 0 ]]">
+                    <div class="nx-grid fx-grid--je" role="table" :aria-label="[[ 'Accounting of ' + t.data.number ]]">
+                      <div role="row" class="nx-row nx-row--head"><span role="columnheader">Account</span><span role="columnheader" class="nx-num">Debit</span><span role="columnheader" class="nx-num">Credit</span></div>
+                      <oj-bind-for-each data="[[ t.data.lines ]]">
+                        <template data-oj-as="j">
+                          <div role="row" class="nx-row"><span role="cell"><oj-bind-text value="[[ j.data.account + ' ' + j.data.name ]]"></oj-bind-text></span>
+                            <span role="cell" class="nx-num"><oj-bind-text value="[[ j.data.dr ]]"></oj-bind-text></span><span role="cell" class="nx-num"><oj-bind-text value="[[ j.data.cr ]]"></oj-bind-text></span></div>
+                        </template>
+                      </oj-bind-for-each>
+                    </div>
+                  </oj-bind-if>
+                  <p class="fx-tx-note"><oj-bind-text value="[[ t.data.note + (t.data.lines.length ? ' (' + t.data.currency + ')' : '') ]]"></oj-bind-text></p>
+                </div>
+              </template>
+            </oj-bind-for-each>
+            <oj-bind-for-each data="[[ $variables.ask.customs ]]">
+              <template data-oj-as="k"><p class="fx-ask-customs"><span class="oj-ux-ico-globe" aria-hidden="true"></span><oj-bind-text value="[[ k.data.text ]]"></oj-bind-text></p></template>
+            </oj-bind-for-each>
+          </section>
+          <oj-bind-if test="[[ $variables.ask.told.length > 0 ]]">
+            <section class="fx-ask-sec" id="stAskTold">
+              <h3 class="fx-ask-h"><span class="oj-ux-ico-notification" aria-hidden="true"></span>Who is told</h3>
+              <ul class="fx-ask-list">
+                <oj-bind-for-each data="[[ $variables.ask.told ]]">
+                  <template data-oj-as="n"><li><b><oj-bind-text value="[[ n.data.who ]]"></oj-bind-text></b>: <oj-bind-text value="[[ n.data.text ]]"></oj-bind-text></li></template>
+                </oj-bind-for-each>
+              </ul>
+            </section>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.ask.logged.length > 0 ]]">
+            <p class="nx-note fx-ask-logged"><oj-bind-text value="[[ 'On the request’s timeline: ' + $variables.ask.logged.join(' ') ]]"></oj-bind-text></p>
+          </oj-bind-if>
+        </div>
+        <div class="nx-dialog-foot">
+          <button type="button" class="nx-btn" id="stAskCancel" on-click="[[ $listeners.onAskClose ]]">Cancel</button>
+          <span class="nx-spacer"></span>
+          <button type="button" :class="[[ $functions.confirmClass($variables.askDef.tone) ]]" id="stAskConfirm" on-click="[[ $listeners.onConfirm ]]">
+            <oj-bind-text value="[[ $variables.askDef.confirm ]]"></oj-bind-text></button>
+        </div>
+      </div>
+    </div>
+  </oj-bind-if>
 </div>

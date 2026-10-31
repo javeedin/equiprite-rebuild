@@ -1,1 +1,61 @@
-/* EquipRite Future · On site (flows/site). The screens' own styles go here; the shared ones are next.css and future.css. */
+/* EquipRite Future · On site (flows/site). The screens' own styles go here; the shared ones are next.css and future.css.
+   Receive, hours, moves shares the queue, facts and confirmation parts of the owner's screens (.fx-ops, future-owner.css);
+   here: the cards of the units on hire, their hours grid and their moves. */
+
+.fx-st-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-top: 4px; }
+.fx-st-h2 { margin: 0; font-size: 17px; font-weight: 700; }
+.fx-hires { display: flex; flex-direction: column; gap: 14px; }
+.fx-hire { overflow: hidden; }
+.fx-hire-unit { font-size: 17px; font-weight: 800; }
+.fx-hire-facts { display: flex; flex-wrap: wrap; gap: 12px 24px; padding: 14px 16px 4px; }
+.fx-segs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.fx-seg { display: flex; flex-direction: column; padding-left: 10px; border-left: 3px solid var(--nx-line-strong); }
+.fx-seg--now { border-left-color: var(--nx-ok); }
+.fx-seg-name { font-weight: 600; }
+.fx-seg:not(.fx-seg--now) .fx-seg-name { color: var(--nx-muted); }
+
+/* The hours: one tile per day on hire, up to today. */
+.fx-hours { display: flex; flex-direction: column; gap: 10px; margin: 10px 16px 14px; padding: 12px; border: 1px solid var(--nx-line); border-radius: 10px; background: var(--nx-surface-2); }
+.fx-hours-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; }
+.fx-hours-sum { font-size: 12.5px; }
+.fx-hours-legend { display: inline-flex; flex-wrap: wrap; gap: 6px 12px; margin-left: auto; font-size: 12px; color: var(--nx-muted); }
+.fx-leg { display: inline-flex; align-items: center; gap: 5px; }
+.fx-leg::before { content: ''; width: 12px; height: 12px; border-radius: 3px; border: 1px solid var(--nx-line-strong); background: #fff; }
+.fx-leg--approved::before { background: var(--fx-ok-bg); border-color: #86efac; }
+.fx-leg--waiting::before { background: var(--fx-todo-bg); border-color: #fcd34d; }
+.fx-leg--we::before { background: repeating-linear-gradient(-45deg, #eef1f5, #eef1f5 3px, #fff 3px, #fff 6px); }
+.fx-days { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 6px; }
+.fx-day {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 1px; min-width: 0; padding: 6px 7px; border: 1px solid var(--nx-line-strong); border-radius: 8px;
+  background: #fff; color: var(--nx-ink); font: inherit; text-align: left;
+}
+button.fx-day { cursor: pointer; }
+button.fx-day:hover { border-color: var(--nx-accent); box-shadow: 0 0 0 2px var(--nx-accent-soft); }
+.fx-day-dow { font-size: 11px; font-weight: 700; color: var(--nx-muted); white-space: nowrap; }
+.fx-day-h { font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.fx-day-sb { font-size: 11px; color: var(--nx-muted); min-height: 1.2em; white-space: nowrap; }
+.fx-day--approved { background: var(--fx-ok-bg); border-color: #86efac; }
+.fx-day--approved .fx-day-h { color: var(--fx-ok); }
+.fx-day--waiting { background: var(--fx-todo-bg); border-color: #fcd34d; }
+.fx-day--waiting .fx-day-h { color: #92400e; }
+.fx-day--empty .fx-day-h { color: var(--nx-faint); }
+.fx-day--we { background-image: repeating-linear-gradient(-45deg, rgba(100, 116, 139, 0.09), rgba(100, 116, 139, 0.09) 4px, transparent 4px, transparent 8px); }
+.fx-day--weekend .fx-day-h { color: var(--nx-faint); font-weight: 600; font-size: 13px; }
+.fx-hours-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.fx-hours-acts .nx-btn { white-space: normal; height: auto; min-height: 30px; }
+.fx-hours-wait { color: #92400e; font-weight: 600; }
+.fx-hire-bd { display: flex; align-items: flex-start; gap: 8px; margin: 0 16px 12px; font-size: 13px; color: #78350f; }
+.fx-hire-bd span[class^="oj-ux-ico"] { font-size: 16px; flex: none; }
+
+/* The moves: each a button and what it means for the money. */
+.fx-moves { display: flex; flex-direction: column; gap: 8px; padding: 12px 16px 14px; border-top: 1px solid var(--nx-line); }
+.fx-moves-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.fx-moves-list li { display: grid; grid-template-columns: minmax(200px, 270px) minmax(0, 1fr); align-items: center; gap: 6px 14px; }
+.fx-moves-list .nx-btn { justify-content: flex-start; white-space: normal; height: auto; min-height: 30px; text-align: left; }
+.fx-move-text { font-size: 13px; color: var(--nx-ink); min-width: 0; overflow-wrap: anywhere; }
+.fx-move-off { font-size: 13px; font-weight: 600; color: var(--nx-faint); padding-left: 10px; }
+
+@media (max-width: 1100px) {
+  .fx-moves-list li { grid-template-columns: 1fr; }
+  .fx-hours-legend { margin-left: 0; }
+}
