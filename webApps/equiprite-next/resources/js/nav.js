@@ -63,7 +63,12 @@ define(['resources/js/rules'], function (rules) {
     ] },
     { key: 'insights', label: 'Insights', items: [
       { id: 'analytics', label: 'Analytics', icon: 'oj-ux-ico-chart-bar', pageCodes: ['EQR_ANALYTICS', 'EQR_REPORTS'],
-        route: { flow: 'insights', page: 'analytics' }, built: true, newNav: 'analytics', keywords: 'reports utilization kpi' }
+        route: { flow: 'insights', page: 'analytics' }, built: true, newNav: 'analytics', keywords: 'reports utilization kpi' },
+      // The FDD, its flows across the Fusion modules and how much of it is built (flows/fdd). Like Help, for everyone
+      // signed in (no page code), but not a customer-only role: their menu stays the portal.
+      { id: 'fdd', label: 'EquipRite FDD', icon: 'oj-ux-ico-document-check', pageCodes: [], everyone: true, staff: true,
+        route: { flow: 'fdd', page: 'fdd' }, built: true,
+        keywords: 'fdd functional design document requirements business mapping development status progress swimlane diagrams scenarios integrations' }
     ] },
     { key: 'admin', label: 'Admin', items: [
       { id: 'settings', label: 'Settings', icon: 'oj-ux-ico-settings', pageCodes: ['EQR_CONFIGURATIONS'],
@@ -183,9 +188,24 @@ define(['resources/js/rules'], function (rules) {
     return !rules.canSee(map, loaded, internal);
   }
 
+  /**
+   * True when this role holds an internal page code (any page outside the customer portal). An item marked `staff`
+   * (EquipRite FDD) shows only then: a role with no page still gets "no EquipRite screens yet", and a customer's menu
+   * stays the portal. Page codes only, not feature flags, so switching a module off does not move it.
+   */
+  function staffScreens(map, loaded) {
+    if (!loaded || customerOnly(map, loaded)) return false;
+    var internal = [];
+    GROUPS.forEach(function (g) {
+      if (g.key === 'customers') return;
+      g.items.forEach(function (x) { internal = internal.concat(x.pageCodes || []); });
+    });
+    return rules.canSee(map, loaded, internal);
+  }
+
   function itemVisible(it, map, loaded, flags, flagsLoaded, buRateSources) {
     if (!it) return false;
-    if (it.everyone) return !!loaded;
+    if (it.everyone) return !!loaded && (!it.staff || staffScreens(map, loaded));
     if (it.id === 'home' && customerOnly(map, loaded)) return false;
     var group = GROUPS.filter(function (g) { return g.key === it.group; })[0];
     if (group && !(group.flags || []).every(function (f) { return rules.isFeatureEnabled(flags, flagsLoaded, f); })) return false;
