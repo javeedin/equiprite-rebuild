@@ -123,6 +123,26 @@
 .nx-app--rail .nx-nav-item, .nx-app--rail .nx-nav-foot { justify-content: center; padding-left: 0; padding-right: 0; }
 .nx-app--rail .nx-nav-group { border-top: 1px solid var(--nx-line); padding-top: 8px; }
 .nx-app--rail .nx-nav-group:first-child { border-top: 0; padding-top: 0; }
+
+/* The menu in the Redwood band's teal with white type, like the page heads and dialogs. */
+.nx-nav { background: var(--nx-band); border-right-color: #24434f; color: #fff; }
+.nx-nav-label { color: rgba(226, 237, 242, 0.68); }
+.nx-nav-item { color: #fff; }
+.nx-nav-icon { opacity: 0.92; }
+.nx-nav-item:hover { background: rgba(255, 255, 255, 0.1); }
+.nx-nav-item--on { background: rgba(255, 255, 255, 0.18); color: #fff; }
+.nx-nav-item--on .nx-nav-icon { opacity: 1; }
+.nx-nav-item--on::before { background: #fff; }
+.nx-nav-item:focus-visible, .nx-nav-foot:focus-visible { outline: 2px solid #fff; outline-offset: -2px; }
+.nx-nav-soon { background: rgba(255, 255, 255, 0.55); }
+.nx-nav-loading { color: var(--nx-band-ink); }
+.nx-nav-foot { color: var(--nx-band-ink); }
+.nx-nav-foot:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+.nx-app--rail .nx-nav-group { border-top-color: rgba(255, 255, 255, 0.16); }
+.nx-nav-scroll { scrollbar-color: rgba(255, 255, 255, 0.35) transparent; }
+.nx-nav-scroll::-webkit-scrollbar { width: 8px; }
+.nx-nav-scroll::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.3); border-radius: 4px; }
+.nx-nav-scroll::-webkit-scrollbar-track { background: transparent; }
 .nx-scrim { display: none; }
 
 .nx-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
