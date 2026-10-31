@@ -1,27 +1,421 @@
-<!-- Reports: SKELETON, being built. The screen's builder replaces this page's HTML and chains, keeping the Future page
-     pattern (docs/redesign/BUILDING-FUTURE-SCREENS.md): v = store.view('reports') (loadChain, again on fxRefresh), actions through
-     actChain (data-act + data-…), links through openChain (data-nav, data-record). Set built: true in resources/js/nav.js. -->
-<div class="nx-page fx-skeleton" id="page-reports">
+<!-- Reports (MC-FR-32), each a card that exports: utilisation by owner company and country, intercompany charges by pair
+     and month, the reconciliation (charges = AR = AP), margins by request, the fleet by country with customs, the
+     certificates by country, accruals, disputes by age. Scoped to the persona's companies (the whole group for IC finance
+     and Admin). v = fxFinance.reports(state) (loadChain, again on fxRefresh); exports: exportChain; links: openChain. -->
+<div class="nx-page fx-rep" id="page-reports">
   <div class="nx-pagehead">
     <div>
-      <div class="nx-kicker">Finance</div>
+      <div class="nx-kicker">Finance · reports (MC-FR-32)</div>
       <h1>Reports</h1>
-      <div class="nx-sub">Utilisation by owner and country, intercompany by pair, margins, customs permits, certificates, accruals, disputes.</div>
+      <div class="nx-sub" id="repScope"><oj-bind-text value="[[ $variables.v.scope ? $variables.v.scope + ' · as of ' + $variables.v.today : '' ]]"></oj-bind-text></div>
+    </div>
+    <div class="nx-actions">
+      <oj-bind-if test="[[ $functions.canOpen('accounting', $variables.v.me.roles) ]]">
+        <button type="button" class="nx-btn" id="repAccounting" data-nav="accounting" on-click="[[ $listeners.onOpen ]]">
+          <span class="oj-ux-ico-tables-basic" aria-hidden="true"></span>Accounting (shown)</button>
+      </oj-bind-if>
     </div>
   </div>
 
+  <oj-bind-if test="[[ !!$variables.failure ]]">
+    <div class="nx-error fx-failure" role="alert" id="repFailure"><span class="oj-ux-ico-error" aria-hidden="true"></span><oj-bind-text value="[[ $variables.failure ]]"></oj-bind-text></div>
+  </oj-bind-if>
   <oj-bind-if test="[[ !!$variables.v.error ]]"><div class="nx-error" role="alert"><oj-bind-text value="[[ $variables.v.error ]]"></oj-bind-text></div></oj-bind-if>
 
-  <section class="nx-card" aria-labelledby="reportsSoonTitle">
-    <div class="nx-card-head"><h2 id="reportsSoonTitle">Being built for EquipRite Future</h2><span class="nx-note">FDD v2.0</span></div>
-    <p class="nx-card-pad nx-muted">This screen is next. Meanwhile, this is what the simulated backend already has here for the person played, from
-      <code>store.view('reports')</code>:</p>
-    <ul class="fx-skeleton-list">
-      <oj-bind-for-each data="[[ $functions.outline($variables.v) ]]">
-        <template data-oj-as="o">
-          <li><code><oj-bind-text value="[[ o.data.key ]]"></oj-bind-text></code><span><oj-bind-text value="[[ o.data.text ]]"></oj-bind-text></span></li>
-        </template>
-      </oj-bind-for-each>
-    </ul>
-  </section>
+  <oj-bind-if test="[[ $variables.v.ready && !$variables.v.error ]]">
+    <div class="nx-kpis fx-rep-kpis" role="group" aria-label="The reports at a glance">
+      <div class="nx-kpi fx-kpi nx-stage--out" id="repKpiOut">
+        <span class="nx-kpi-label">Fleet out</span>
+        <span class="nx-kpi-value"><oj-bind-text value="[[ $variables.v.kpis.out ]]"></oj-bind-text></span>
+        <span class="nx-kpi-note"><oj-bind-text value="[[ $variables.v.kpis.outNote ]]"></oj-bind-text></span>
+      </div>
+      <div class="nx-kpi fx-kpi nx-stage--approval" id="repKpiIc">
+        <span class="nx-kpi-label">Intercompany charged</span>
+        <span class="nx-kpi-value fx-kpi-money"><oj-bind-text value="[[ $variables.v.kpis.icCharged ]]"></oj-bind-text></span>
+        <span class="nx-kpi-note"><oj-bind-text value="[[ $variables.v.kpis.icNote ]]"></oj-bind-text></span>
+      </div>
+      <div :class="[[ 'nx-kpi fx-kpi nx-stage--' + $variables.v.kpis.reconTone ]]" id="repKpiRecon">
+        <span class="nx-kpi-label">Reconciliation</span>
+        <span class="nx-kpi-value fx-kpi-money"><oj-bind-text value="[[ $variables.v.kpis.recon ]]"></oj-bind-text></span>
+        <span class="nx-kpi-note"><oj-bind-text value="[[ $variables.v.kpis.reconNote ]]"></oj-bind-text></span>
+      </div>
+      <div class="nx-kpi fx-kpi nx-stage--ready" id="repKpiCustoms">
+        <span class="nx-kpi-label">Temporary imports open</span>
+        <span class="nx-kpi-value"><oj-bind-text value="[[ $variables.v.kpis.customs ]]"></oj-bind-text></span>
+        <span class="nx-kpi-note"><oj-bind-text value="[[ $variables.v.kpis.customsNote ]]"></oj-bind-text></span>
+      </div>
+      <div :class="[[ 'nx-kpi fx-kpi ' + ($variables.v.kpis.certs ? 'nx-stage--stopped' : 'nx-stage--onsite') ]]" id="repKpiCerts">
+        <span class="nx-kpi-label">Certificates expiring</span>
+        <span class="nx-kpi-value"><oj-bind-text value="[[ $variables.v.kpis.certs ]]"></oj-bind-text></span>
+        <span class="nx-kpi-note"><oj-bind-text value="[[ $variables.v.kpis.certsNote ]]"></oj-bind-text></span>
+      </div>
+      <div class="nx-kpi fx-kpi nx-stage--back" id="repKpiDisputes">
+        <span class="nx-kpi-label">Disputes open</span>
+        <span class="nx-kpi-value"><oj-bind-text value="[[ $variables.v.kpis.disputes ]]"></oj-bind-text></span>
+        <span class="nx-kpi-note"><oj-bind-text value="[[ $variables.v.kpis.disputesNote ]]"></oj-bind-text></span>
+      </div>
+    </div>
+
+    <div class="fx-rep-grid">
+      <!-- Utilisation -->
+      <section class="nx-card fx-rep-card" aria-labelledby="repUtilTitle" id="repUtil">
+        <div class="nx-card-head">
+          <div class="fx-head-text"><h2 id="repUtilTitle">Utilisation by owner company and country</h2><span class="nx-note">The whole group's fleet, where each unit is now</span></div>
+          <div class="nx-export">
+            <button type="button" class="nx-btn nx-btn--sm" id="repExportUtil" data-field="exportOpen" data-value="utilisation" on-click="[[ $listeners.onPick ]]" aria-haspopup="menu"
+              :aria-expanded="[[ $functions.pressed($variables.exportOpen === 'utilisation') ]]"><span class="oj-ux-ico-download" aria-hidden="true"></span>Export</button>
+            <oj-bind-if test="[[ $variables.exportOpen === 'utilisation' ]]">
+              <div class="nx-menu" role="menu" aria-label="Export the utilisation">
+                <oj-bind-for-each data="[[ $functions.formats() ]]"><template data-oj-as="fm">
+                  <button type="button" role="menuitem" class="nx-menu-item" data-list="utilisation" :data-format="[[ fm.data.key ]]" on-click="[[ $listeners.onExport ]]">
+                    <span :class="[[ fm.data.icon ]]" aria-hidden="true"></span><oj-bind-text value="[[ fm.data.label ]]"></oj-bind-text></button>
+                </template></oj-bind-for-each>
+              </div>
+            </oj-bind-if>
+          </div>
+        </div>
+        <ul class="fx-bars" id="repUtilBars">
+          <oj-bind-for-each data="[[ $variables.v.utilisation ]]">
+            <template data-oj-as="u">
+              <li class="fx-bar" :data-key="[[ u.data.key ]]">
+                <div class="fx-bar-top"><span class="fx-bar-label"><oj-bind-text value="[[ u.data.key ]]"></oj-bind-text></span>
+                  <span class="fx-bar-pct nx-num"><oj-bind-text value="[[ u.data.pctText ]]"></oj-bind-text></span></div>
+                <div class="fx-bar-track" role="img" :aria-label="[[ u.data.key + ': ' + u.data.pctText + ' out' ]]"><span :style="[[ { width: $functions.barWidth(u.data.pct) } ]]"></span></div>
+                <div class="fx-bar-sub"><oj-bind-text value="[[ u.data.text + (u.data.rest ? ' · ' + u.data.rest : '') ]]"></oj-bind-text></div>
+              </li>
+            </template>
+          </oj-bind-for-each>
+        </ul>
+      </section>
+
+      <div class="fx-rep-stack">
+        <!-- Accruals -->
+        <section class="nx-card fx-rep-card" aria-labelledby="repAccrTitle" id="repAccruals">
+          <div class="nx-card-head">
+            <div class="fx-head-text"><h2 id="repAccrTitle">Accruals</h2><span class="nx-note">Not invoiced by the IC cut-off: accrued in both ledgers, reversed once invoiced (MC-FR-24)</span></div>
+            <div class="nx-export">
+              <button type="button" class="nx-btn nx-btn--sm" id="repExportAccruals" data-field="exportOpen" data-value="accruals" on-click="[[ $listeners.onPick ]]" aria-haspopup="menu"
+                :aria-expanded="[[ $functions.pressed($variables.exportOpen === 'accruals') ]]"><span class="oj-ux-ico-download" aria-hidden="true"></span>Export</button>
+              <oj-bind-if test="[[ $variables.exportOpen === 'accruals' ]]">
+                <div class="nx-menu" role="menu" aria-label="Export the accruals">
+                  <oj-bind-for-each data="[[ $functions.formats() ]]"><template data-oj-as="fm">
+                    <button type="button" role="menuitem" class="nx-menu-item" data-list="accruals" :data-format="[[ fm.data.key ]]" on-click="[[ $listeners.onExport ]]">
+                      <span :class="[[ fm.data.icon ]]" aria-hidden="true"></span><oj-bind-text value="[[ fm.data.label ]]"></oj-bind-text></button>
+                  </template></oj-bind-for-each>
+                </div>
+              </oj-bind-if>
+            </div>
+          </div>
+          <oj-bind-if test="[[ !$variables.v.accruals.length ]]"><p class="nx-empty fx-empty--sm" id="repAccrNone">Nothing accrued: every statement was invoiced by the cut-off.</p></oj-bind-if>
+          <ul class="fx-list" id="repAccrRows">
+            <oj-bind-for-each data="[[ $variables.v.accruals ]]">
+              <template data-oj-as="a">
+                <li class="fx-list-item" :data-statement="[[ a.data.number ]]">
+                  <div class="fx-list-top"><span class="fx-list-title"><oj-bind-text value="[[ a.data.number + ' · ' + a.data.pair ]]"></oj-bind-text></span>
+                    <span :class="[[ 'fx-chip fx-chip--' + a.data.tone ]]"><oj-bind-text value="[[ a.data.stateText ]]"></oj-bind-text></span></div>
+                  <div class="fx-list-sub"><oj-bind-text value="[[ a.data.period + ' · accrued ' + a.data.amount + ' on ' + a.data.at ]]"></oj-bind-text></div>
+                  <div class="fx-list-sub"><oj-bind-text value="[[ a.data.entries ]]"></oj-bind-text></div>
+                  <oj-bind-if test="[[ !!a.data.reversal ]]"><div class="fx-list-sub"><oj-bind-text value="[[ 'Reversed: ' + a.data.reversal ]]"></oj-bind-text></div></oj-bind-if>
+                </li>
+              </template>
+            </oj-bind-for-each>
+          </ul>
+        </section>
+
+        <!-- Disputes by age -->
+        <section class="nx-card fx-rep-card" aria-labelledby="repDispTitle" id="repDisputes">
+          <div class="nx-card-head">
+            <div class="fx-head-text"><h2 id="repDispTitle">Disputes by age</h2><span class="nx-note">Raised by the user on a statement line, resolved by the owner (MC-FR-23)</span></div>
+            <div class="nx-export">
+              <button type="button" class="nx-btn nx-btn--sm" id="repExportDisputes" data-field="exportOpen" data-value="disputes" on-click="[[ $listeners.onPick ]]" aria-haspopup="menu"
+                :aria-expanded="[[ $functions.pressed($variables.exportOpen === 'disputes') ]]"><span class="oj-ux-ico-download" aria-hidden="true"></span>Export</button>
+              <oj-bind-if test="[[ $variables.exportOpen === 'disputes' ]]">
+                <div class="nx-menu" role="menu" aria-label="Export the disputes">
+                  <oj-bind-for-each data="[[ $functions.formats() ]]"><template data-oj-as="fm">
+                    <button type="button" role="menuitem" class="nx-menu-item" data-list="disputes" :data-format="[[ fm.data.key ]]" on-click="[[ $listeners.onExport ]]">
+                      <span :class="[[ fm.data.icon ]]" aria-hidden="true"></span><oj-bind-text value="[[ fm.data.label ]]"></oj-bind-text></button>
+                  </template></oj-bind-for-each>
+                </div>
+              </oj-bind-if>
+            </div>
+          </div>
+          <div class="fx-buckets" id="repBuckets">
+            <oj-bind-for-each data="[[ $variables.v.buckets ]]">
+              <template data-oj-as="b">
+                <span :class="[[ 'fx-bucket' + (b.data.count ? ' fx-bucket--on' : '') ]]"><span class="fx-bucket-n"><oj-bind-text value="[[ b.data.count ]]"></oj-bind-text></span>
+                  <oj-bind-text value="[[ b.data.label ]]"></oj-bind-text></span>
+              </template>
+            </oj-bind-for-each>
+          </div>
+          <oj-bind-if test="[[ !$variables.v.disputes.length ]]"><p class="nx-empty fx-empty--sm" id="repDispNone">No dispute raised.</p></oj-bind-if>
+          <ul class="fx-list" id="repDispRows">
+            <oj-bind-for-each data="[[ $variables.v.disputes ]]">
+              <template data-oj-as="d">
+                <li class="fx-list-item" :data-charge="[[ d.data.charge ]]">
+                  <div class="fx-list-top"><span class="fx-list-title"><oj-bind-text value="[[ d.data.serial + ' ' + d.data.kind.toLowerCase() + ' · ' + d.data.amount ]]"></oj-bind-text></span>
+                    <span :class="[[ 'fx-chip fx-chip--' + d.data.tone ]]"><oj-bind-text value="[[ d.data.open ? d.data.ageText + ' open' : d.data.state ]]"></oj-bind-text></span></div>
+                  <div class="fx-list-sub"><oj-bind-text value="[[ '“' + d.data.reason + '” · ' + d.data.by + ', ' + d.data.raised ]]"></oj-bind-text></div>
+                  <div class="fx-list-sub"><oj-bind-text value="[[ d.data.statement + ' · ' + d.data.pair + ' · ' + d.data.charge ]]"></oj-bind-text>
+                    <oj-bind-if test="[[ !!d.data.requestId ]]"><button type="button" class="fx-link-chip" data-record="request" :data-id="[[ d.data.requestId ]]" :data-number="[[ d.data.requestNumber ]]"
+                      on-click="[[ $listeners.onOpen ]]"><oj-bind-text value="[[ d.data.requestNumber ]]"></oj-bind-text></button></oj-bind-if></div>
+                </li>
+              </template>
+            </oj-bind-for-each>
+          </ul>
+        </section>
+      </div>
+      <!-- Intercompany charges by pair and month -->
+      <section class="nx-card fx-rep-card fx-rep-card--wide" aria-labelledby="repIcTitle" id="repIc">
+        <div class="nx-card-head">
+          <div class="fx-head-text"><h2 id="repIcTitle">Intercompany charges by pair and month</h2><span class="nx-note">Charged on statements, invoiced in the invoice pair, and what is still open</span></div>
+          <div class="nx-export">
+            <button type="button" class="nx-btn nx-btn--sm" id="repExportIc" data-field="exportOpen" data-value="icByPair" on-click="[[ $listeners.onPick ]]" aria-haspopup="menu"
+              :aria-expanded="[[ $functions.pressed($variables.exportOpen === 'icByPair') ]]"><span class="oj-ux-ico-download" aria-hidden="true"></span>Export</button>
+            <oj-bind-if test="[[ $variables.exportOpen === 'icByPair' ]]">
+              <div class="nx-menu" role="menu" aria-label="Export the intercompany charges">
+                <oj-bind-for-each data="[[ $functions.formats() ]]"><template data-oj-as="fm">
+                  <button type="button" role="menuitem" class="nx-menu-item" data-list="icByPair" :data-format="[[ fm.data.key ]]" on-click="[[ $listeners.onExport ]]">
+                    <span :class="[[ fm.data.icon ]]" aria-hidden="true"></span><oj-bind-text value="[[ fm.data.label ]]"></oj-bind-text></button>
+                </template></oj-bind-for-each>
+              </div>
+            </oj-bind-if>
+          </div>
+        </div>
+        <oj-bind-if test="[[ !$variables.v.icByPair.length ]]"><p class="nx-empty" id="repIcNone">No intercompany charges yet: they come with the month-end charge run.</p></oj-bind-if>
+        <oj-bind-if test="[[ $variables.v.icByPair.length > 0 ]]">
+          <div class="nx-table">
+            <div class="nx-grid fx-grid--ic" role="table" aria-labelledby="repIcTitle" id="repIcRows">
+              <div role="row" class="nx-row nx-row--head"><span role="columnheader">Owner → user · month</span><span role="columnheader" class="fx-r">Charged</span>
+                <span role="columnheader" class="fx-r">Invoiced</span><span role="columnheader" class="fx-r">Open</span><span role="columnheader">State</span></div>
+              <oj-bind-for-each data="[[ $variables.v.icByPair ]]">
+                <template data-oj-as="r">
+                  <div role="row" class="nx-row" :data-pair="[[ r.data.pair ]]" :data-period="[[ r.data.period ]]">
+                    <span role="cell"><span class="nx-cell-main"><oj-bind-text value="[[ r.data.pair ]]"></oj-bind-text></span>
+                      <span class="nx-cell-sub"><span :class="[[ 'fx-chip fx-chip--' + r.data.tone ]]"><oj-bind-text value="[[ r.data.relation ]]"></oj-bind-text></span>
+                        <oj-bind-text value="[[ ' ' + r.data.periodText ]]"></oj-bind-text></span></span>
+                    <span role="cell" class="fx-r nx-num"><oj-bind-text value="[[ r.data.chargedText ]]"></oj-bind-text></span>
+                    <span role="cell" class="fx-r nx-num"><oj-bind-text value="[[ r.data.invoicedText ]]"></oj-bind-text></span>
+                    <span role="cell" class="fx-r nx-num"><oj-bind-text value="[[ r.data.openText ]]"></oj-bind-text></span>
+                    <span role="cell"><span :class="[[ 'fx-chip fx-chip--' + r.data.stateTone ]]"><oj-bind-text value="[[ r.data.state ]]"></oj-bind-text></span>
+                      <span class="nx-cell-sub"><oj-bind-text value="[[ r.data.statements + (r.data.accrued ? ' · ' + r.data.accrued : '') ]]"></oj-bind-text></span></span>
+                  </div>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </div>
+        </oj-bind-if>
+      </section>
+
+      <!-- Reconciliation -->
+      <section class="nx-card fx-rep-card fx-rep-card--wide" aria-labelledby="repReconTitle" id="repRecon">
+        <div class="nx-card-head">
+          <div class="fx-head-text"><h2 id="repReconTitle">Intercompany reconciliation</h2><span class="nx-note">For every invoice pair: the charges = the owner's AR = the user's AP</span></div>
+          <div class="nx-export">
+            <button type="button" class="nx-btn nx-btn--sm" id="repExportRecon" data-field="exportOpen" data-value="recon" on-click="[[ $listeners.onPick ]]" aria-haspopup="menu"
+              :aria-expanded="[[ $functions.pressed($variables.exportOpen === 'recon') ]]"><span class="oj-ux-ico-download" aria-hidden="true"></span>Export</button>
+            <oj-bind-if test="[[ $variables.exportOpen === 'recon' ]]">
+              <div class="nx-menu" role="menu" aria-label="Export the reconciliation">
+                <oj-bind-for-each data="[[ $functions.formats() ]]"><template data-oj-as="fm">
+                  <button type="button" role="menuitem" class="nx-menu-item" data-list="recon" :data-format="[[ fm.data.key ]]" on-click="[[ $listeners.onExport ]]">
+                    <span :class="[[ fm.data.icon ]]" aria-hidden="true"></span><oj-bind-text value="[[ fm.data.label ]]"></oj-bind-text></button>
+                </template></oj-bind-for-each>
+              </div>
+            </oj-bind-if>
+          </div>
+        </div>
+        <oj-bind-if test="[[ !$variables.v.recon.length ]]"><p class="nx-empty" id="repReconNone">No invoice pair yet: the reconciliation starts with the first one (Intercompany workbench).</p></oj-bind-if>
+        <oj-bind-if test="[[ $variables.v.recon.length > 0 ]]">
+          <div class="nx-table">
+            <div class="nx-grid fx-grid--recon" role="table" aria-labelledby="repReconTitle" id="repReconRows">
+              <div role="row" class="nx-row nx-row--head"><span role="columnheader">Statement</span><span role="columnheader" class="fx-r">Charges</span>
+                <span role="columnheader" class="fx-r">AR (owner)</span><span role="columnheader" class="fx-r">AP (user)</span><span role="columnheader" class="fx-r">Difference</span></div>
+              <oj-bind-for-each data="[[ $variables.v.recon ]]">
+                <template data-oj-as="r">
+                  <div role="row" class="nx-row" :data-statement="[[ r.data.number ]]">
+                    <span role="cell"><span class="nx-cell-main"><oj-bind-text value="[[ r.data.number ]]"></oj-bind-text></span>
+                      <span class="nx-cell-sub"><oj-bind-text value="[[ r.data.pairText + ' · ' + r.data.pair ]]"></oj-bind-text></span></span>
+                    <span role="cell" class="fx-r nx-num"><oj-bind-text value="[[ r.data.charges ]]"></oj-bind-text></span>
+                    <span role="cell" class="fx-r nx-num"><oj-bind-text value="[[ r.data.ar ]]"></oj-bind-text></span>
+                    <span role="cell" class="fx-r"><span class="nx-cell-main nx-num"><oj-bind-text value="[[ r.data.apMain ]]"></oj-bind-text></span>
+                      <span class="nx-cell-sub"><oj-bind-text value="[[ r.data.apBooked ]]"></oj-bind-text></span></span>
+                    <span role="cell" class="fx-r"><span :class="[[ 'fx-chip fx-chip--' + r.data.tone ]]"><oj-bind-text value="[[ r.data.diffText ]]"></oj-bind-text></span></span>
+                  </div>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </div>
+        </oj-bind-if>
+      </section>
+
+      <!-- Margins by request -->
+      <section class="nx-card fx-rep-card fx-rep-card--wide" aria-labelledby="repMarginTitle" id="repMargins">
+        <div class="nx-card-head">
+          <div class="fx-head-text"><h2 id="repMarginTitle">Margins by request</h2>
+            <span class="nx-note"><oj-bind-text value="[[ 'Each request in its user company’s currency, and what the group keeps in ' + $variables.v.groupCurrency + ' once intercompany eliminates' ]]"></oj-bind-text></span></div>
+          <div class="nx-export">
+            <button type="button" class="nx-btn nx-btn--sm" id="repExportMargins" data-field="exportOpen" data-value="margins" on-click="[[ $listeners.onPick ]]" aria-haspopup="menu"
+              :aria-expanded="[[ $functions.pressed($variables.exportOpen === 'margins') ]]"><span class="oj-ux-ico-download" aria-hidden="true"></span>Export</button>
+            <oj-bind-if test="[[ $variables.exportOpen === 'margins' ]]">
+              <div class="nx-menu" role="menu" aria-label="Export the margins">
+                <oj-bind-for-each data="[[ $functions.formats() ]]"><template data-oj-as="fm">
+                  <button type="button" role="menuitem" class="nx-menu-item" data-list="margins" :data-format="[[ fm.data.key ]]" on-click="[[ $listeners.onExport ]]">
+                    <span :class="[[ fm.data.icon ]]" aria-hidden="true"></span><oj-bind-text value="[[ fm.data.label ]]"></oj-bind-text></button>
+                </template></oj-bind-for-each>
+              </div>
+            </oj-bind-if>
+          </div>
+        </div>
+        <oj-bind-if test="[[ !$variables.v.margins.length ]]"><p class="nx-empty">No charges yet: margins come once a month is charged.</p></oj-bind-if>
+        <oj-bind-if test="[[ $variables.v.margins.length > 0 ]]">
+          <div class="nx-table">
+            <div class="nx-grid fx-grid--margin" role="table" aria-labelledby="repMarginTitle" id="repMarginRows">
+              <div role="row" class="nx-row nx-row--head"><span role="columnheader">Request · owner → user</span>
+                <span role="columnheader" class="fx-r">Equipment cost</span><span role="columnheader" class="fx-r">Customer revenue</span>
+                <span role="columnheader" class="fx-r">Margin</span><span role="columnheader" class="fx-r">Group</span></div>
+              <oj-bind-for-each data="[[ $variables.v.margins ]]">
+                <template data-oj-as="m">
+                  <div role="row" class="nx-row nx-row--click" data-record="request" :data-id="[[ m.data.id ]]" :data-number="[[ m.data.number ]]" on-click="[[ $listeners.onOpen ]]">
+                    <span role="cell"><span class="nx-cell-main"><button type="button" class="nx-link"><oj-bind-text value="[[ m.data.number ]]"></oj-bind-text></button>
+                      <oj-bind-text value="[[ ' · ' + m.data.type ]]"></oj-bind-text></span>
+                      <span class="nx-cell-sub"><oj-bind-text value="[[ m.data.owner + ' → ' + m.data.company + ' ' ]]"></oj-bind-text><span :class="[[ 'fx-chip fx-chip--' + m.data.tone ]]"><oj-bind-text value="[[ m.data.relation ]]"></oj-bind-text></span></span></span>
+                    <span role="cell" class="fx-r"><span class="nx-cell-main nx-num"><oj-bind-text value="[[ m.data.costText || '—' ]]"></oj-bind-text></span>
+                      <span class="nx-cell-sub"><oj-bind-text value="[[ m.data.costSub ]]"></oj-bind-text></span></span>
+                    <span role="cell" class="fx-r"><span class="nx-cell-main nx-num"><oj-bind-text value="[[ m.data.revenueText || '—' ]]"></oj-bind-text></span>
+                      <span class="nx-cell-sub"><oj-bind-text value="[[ m.data.revenueSub ]]"></oj-bind-text></span></span>
+                    <span role="cell" class="fx-r"><span :class="[[ 'fx-chip fx-chip--' + m.data.marginTone ]]"><oj-bind-text value="[[ m.data.marginText ]]"></oj-bind-text></span></span>
+                    <span role="cell" class="fx-r"><span class="nx-cell-main nx-num"><oj-bind-text value="[[ m.data.groupText ]]"></oj-bind-text></span>
+                      <span class="nx-cell-sub"><oj-bind-text value="[[ m.data.groupSub ]]"></oj-bind-text></span></span>
+                  </div>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </div>
+        </oj-bind-if>
+      </section>
+
+      <!-- The fleet by country, with customs -->
+      <section class="nx-card fx-rep-card fx-rep-card--wide" aria-labelledby="repFleetTitle" id="repFleet">
+        <div class="nx-card-head">
+          <div class="fx-head-text"><h2 id="repFleetTitle">The fleet by country, with customs</h2>
+            <span class="nx-note">Your companies' units and the units on hire to them, by the country they are in now; temporary imports with their re-export dates (MC-FR-17)</span></div>
+          <div class="nx-export">
+            <button type="button" class="nx-btn nx-btn--sm" id="repExportFleet" data-field="exportOpen" data-value="fleet" on-click="[[ $listeners.onPick ]]" aria-haspopup="menu"
+              :aria-expanded="[[ $functions.pressed($variables.exportOpen === 'fleet') ]]"><span class="oj-ux-ico-download" aria-hidden="true"></span>Export</button>
+            <oj-bind-if test="[[ $variables.exportOpen === 'fleet' ]]">
+              <div class="nx-menu" role="menu" aria-label="Export the fleet by country">
+                <oj-bind-for-each data="[[ $functions.formats() ]]"><template data-oj-as="fm">
+                  <button type="button" role="menuitem" class="nx-menu-item" data-list="fleet" :data-format="[[ fm.data.key ]]" on-click="[[ $listeners.onExport ]]">
+                    <span :class="[[ fm.data.icon ]]" aria-hidden="true"></span><oj-bind-text value="[[ fm.data.label ]]"></oj-bind-text></button>
+                </template></oj-bind-for-each>
+              </div>
+            </oj-bind-if>
+          </div>
+        </div>
+        <div class="fx-countries" id="repFleetCountries">
+          <oj-bind-for-each data="[[ $variables.v.fleet ]]">
+            <template data-oj-as="c">
+              <div class="fx-country" :data-country="[[ c.data.code ]]">
+                <h3 class="fx-country-head"><span class="oj-ux-ico-location-pin" aria-hidden="true"></span><oj-bind-text value="[[ c.data.country + ' · ' + c.data.countText ]]"></oj-bind-text></h3>
+                <div class="nx-grid fx-grid--fleet" role="table" :aria-label="[[ 'Units in ' + c.data.country ]]">
+                  <oj-bind-for-each data="[[ c.data.units ]]">
+                    <template data-oj-as="u">
+                      <div role="row" class="nx-row" :data-serial="[[ u.data.serial ]]">
+                        <span role="cell"><span class="nx-cell-main"><oj-bind-text value="[[ u.data.serial ]]"></oj-bind-text></span><span class="nx-cell-sub"><oj-bind-text value="[[ u.data.name ]]"></oj-bind-text></span></span>
+                        <span role="cell"><span class="nx-cell-main"><oj-bind-text value="[[ u.data.owner ]]"></oj-bind-text></span><span class="nx-cell-sub"><oj-bind-text value="[[ u.data.hold ]]"></oj-bind-text></span></span>
+                        <span role="cell"><span class="nx-cell-main"><oj-bind-text value="[[ u.data.status ]]"></oj-bind-text></span><span class="nx-cell-sub"><oj-bind-text value="[[ u.data.where ]]"></oj-bind-text></span></span>
+                        <span role="cell"><oj-bind-if test="[[ !!u.data.request ]]">
+                          <button type="button" class="fx-link-chip" data-record="request" :data-id="[[ u.data.request ? u.data.request.id : '' ]]" :data-number="[[ u.data.request ? u.data.request.number : '' ]]" on-click="[[ $listeners.onOpen ]]">
+                            <span class="oj-ux-ico-file-text" aria-hidden="true"></span><oj-bind-text value="[[ u.data.request ? u.data.request.number : '' ]]"></oj-bind-text></button></oj-bind-if></span>
+                        <span role="cell"><oj-bind-if test="[[ !!u.data.customs ]]"><span class="nx-cell-main"><oj-bind-text value="[[ u.data.customs ]]"></oj-bind-text></span>
+                          <span :class="[[ 'fx-chip fx-chip--' + u.data.customsTone ]]"><oj-bind-text value="[[ u.data.customsLeft ]]"></oj-bind-text></span></oj-bind-if>
+                          <oj-bind-if test="[[ !u.data.customs ]]"><span class="nx-cell-sub">no customs</span></oj-bind-if></span>
+                      </div>
+                    </template>
+                  </oj-bind-for-each>
+                </div>
+              </div>
+            </template>
+          </oj-bind-for-each>
+        </div>
+        <div class="fx-subhead">
+          <h3 id="repCustomsTitle">Temporary imports</h3>
+          <div class="nx-export">
+            <button type="button" class="nx-btn nx-btn--sm" id="repExportCustoms" data-field="exportOpen" data-value="customs" on-click="[[ $listeners.onPick ]]" aria-haspopup="menu"
+              :aria-expanded="[[ $functions.pressed($variables.exportOpen === 'customs') ]]"><span class="oj-ux-ico-download" aria-hidden="true"></span>Export</button>
+            <oj-bind-if test="[[ $variables.exportOpen === 'customs' ]]">
+              <div class="nx-menu" role="menu" aria-label="Export the customs permits">
+                <oj-bind-for-each data="[[ $functions.formats() ]]"><template data-oj-as="fm">
+                  <button type="button" role="menuitem" class="nx-menu-item" data-list="customs" :data-format="[[ fm.data.key ]]" on-click="[[ $listeners.onExport ]]">
+                    <span :class="[[ fm.data.icon ]]" aria-hidden="true"></span><oj-bind-text value="[[ fm.data.label ]]"></oj-bind-text></button>
+                </template></oj-bind-for-each>
+              </div>
+            </oj-bind-if>
+          </div>
+        </div>
+        <oj-bind-if test="[[ !$variables.v.customs.length ]]"><p class="nx-empty fx-empty--sm" id="repCustomsNone">No unit has crossed a border yet.</p></oj-bind-if>
+        <oj-bind-if test="[[ $variables.v.customs.length > 0 ]]">
+          <div class="nx-table">
+            <div class="nx-grid fx-grid--customs" role="table" aria-labelledby="repCustomsTitle" id="repCustomsRows">
+              <div role="row" class="nx-row nx-row--head"><span role="columnheader">Permit · unit · from → to</span>
+                <span role="columnheader">Re-export by</span><span role="columnheader">Days left</span><span role="columnheader">Status · documents</span></div>
+              <oj-bind-for-each data="[[ $variables.v.customs ]]">
+                <template data-oj-as="c">
+                  <div role="row" class="nx-row" :data-permit="[[ c.data.permit ]]">
+                    <span role="cell"><span class="nx-cell-main"><oj-bind-text value="[[ c.data.permit + ' · ' + c.data.serial ]]"></oj-bind-text></span>
+                      <span class="nx-cell-sub"><oj-bind-text value="[[ c.data.route + ' · ' + c.data.regime + ' · ' + c.data.owner + ', value ' + c.data.value ]]"></oj-bind-text></span></span>
+                    <span role="cell"><span class="nx-cell-main"><oj-bind-text value="[[ c.data.reexportBy ]]"></oj-bind-text></span><span class="nx-cell-sub"><oj-bind-text value="[[ 'entered ' + c.data.entry ]]"></oj-bind-text></span></span>
+                    <span role="cell"><span :class="[[ 'fx-chip fx-days fx-chip--' + c.data.tone ]]"><oj-bind-text value="[[ c.data.daysText || c.data.status ]]"></oj-bind-text></span></span>
+                    <span role="cell"><span class="nx-cell-main"><oj-bind-text value="[[ c.data.status ]]"></oj-bind-text></span><span class="nx-cell-sub"><oj-bind-text value="[[ c.data.docs ]]"></oj-bind-text></span>
+                      <oj-bind-if test="[[ !!c.data.request ]]"><button type="button" class="fx-link-chip" data-record="request" :data-id="[[ c.data.request ? c.data.request.id : '' ]]"
+                        :data-number="[[ c.data.request ? c.data.request.number : '' ]]" on-click="[[ $listeners.onOpen ]]"><oj-bind-text value="[[ c.data.request ? c.data.request.number : '' ]]"></oj-bind-text></button></oj-bind-if></span>
+                  </div>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </div>
+        </oj-bind-if>
+      </section>
+
+      <!-- Certificates by country -->
+      <section class="nx-card fx-rep-card fx-rep-card--wide" aria-labelledby="repCertTitle" id="repCerts">
+        <div class="nx-card-head">
+          <div class="fx-head-text"><h2 id="repCertTitle">Certificates by country</h2><span class="nx-note">The soonest first; within 90 days highlighted (MC-FR-18 blocks a hire ending after one)</span></div>
+          <div class="nx-export">
+            <button type="button" class="nx-btn nx-btn--sm" id="repExportCerts" data-field="exportOpen" data-value="certs" on-click="[[ $listeners.onPick ]]" aria-haspopup="menu"
+              :aria-expanded="[[ $functions.pressed($variables.exportOpen === 'certs') ]]"><span class="oj-ux-ico-download" aria-hidden="true"></span>Export</button>
+            <oj-bind-if test="[[ $variables.exportOpen === 'certs' ]]">
+              <div class="nx-menu" role="menu" aria-label="Export the certificates">
+                <oj-bind-for-each data="[[ $functions.formats() ]]"><template data-oj-as="fm">
+                  <button type="button" role="menuitem" class="nx-menu-item" data-list="certs" :data-format="[[ fm.data.key ]]" on-click="[[ $listeners.onExport ]]">
+                    <span :class="[[ fm.data.icon ]]" aria-hidden="true"></span><oj-bind-text value="[[ fm.data.label ]]"></oj-bind-text></button>
+                </template></oj-bind-for-each>
+              </div>
+            </oj-bind-if>
+          </div>
+        </div>
+        <div class="fx-countries fx-countries--cols" id="repCertCountries">
+          <oj-bind-for-each data="[[ $variables.v.certs ]]">
+            <template data-oj-as="c">
+              <div class="fx-country" :data-country="[[ c.data.code ]]">
+                <h3 class="fx-country-head"><span class="oj-ux-ico-badge" aria-hidden="true"></span><oj-bind-text value="[[ c.data.country + ' · ' + c.data.count + ' certificates' + (c.data.soon ? ', ' + c.data.soon + ' expiring soon' : '') ]]"></oj-bind-text></h3>
+                <div class="nx-grid fx-grid--certs" role="table" :aria-label="[[ 'Certificates for ' + c.data.country ]]">
+                  <oj-bind-for-each data="[[ c.data.rows ]]">
+                    <template data-oj-as="r">
+                      <div role="row" :class="[[ 'nx-row' + (r.data.soon ? ' fx-row--soon' : '') ]]" :data-serial="[[ r.data.serial ]]" :data-soon="[[ r.data.soon ? 'yes' : 'no' ]]">
+                        <span role="cell"><span class="nx-cell-main"><oj-bind-text value="[[ r.data.serial ]]"></oj-bind-text></span><span class="nx-cell-sub"><oj-bind-text value="[[ r.data.owner ]]"></oj-bind-text></span></span>
+                        <span role="cell"><span class="nx-cell-main"><oj-bind-text value="[[ r.data.type ]]"></oj-bind-text></span><span class="nx-cell-sub"><oj-bind-text value="[[ r.data.hereText || 'not in the country now' ]]"></oj-bind-text></span></span>
+                        <span role="cell"><span class="nx-cell-main"><oj-bind-text value="[[ r.data.expiry ]]"></oj-bind-text></span>
+                          <span :class="[[ 'fx-chip fx-chip--' + r.data.tone ]]"><oj-bind-text value="[[ r.data.daysText ]]"></oj-bind-text></span></span>
+                      </div>
+                    </template>
+                  </oj-bind-for-each>
+                </div>
+              </div>
+            </template>
+          </oj-bind-for-each>
+        </div>
+      </section>
+
+    </div>
+  </oj-bind-if>
 </div>

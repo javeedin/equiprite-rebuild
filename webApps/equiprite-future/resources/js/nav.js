@@ -57,15 +57,15 @@ define([], function () {
     ] },
     { key: 'finance', label: 'Finance', items: [
       { id: 'accounting', label: 'Accounting (shown)', icon: 'oj-ux-ico-tables-basic', player: 'p-fin', roles: ['finance', 'owner-finance', 'ic-finance'],
-        route: { flow: 'finance', page: 'accounting' }, view: 'ledger', built: false,
+        route: { flow: 'finance', page: 'accounting' }, view: 'ledger', built: true,
         does: 'The accounting each company\'s Fusion makes for EquipRite\'s transactions, shown and never posted, and the group view.' },
       { id: 'reports', label: 'Reports', icon: 'oj-ux-ico-chart-bar', player: 'p-fin', roles: ['requester', 'receiver-review', 'owner-em', 'yard', 'desk', 'finance', 'owner-finance', 'ic-finance'],
-        route: { flow: 'finance', page: 'reports' }, view: 'reports', built: false,
+        route: { flow: 'finance', page: 'reports' }, view: 'reports', built: true,
         does: 'Utilisation by owner and country, intercompany by pair, margins, customs permits, certificates, accruals, disputes.' }
     ] },
     { key: 'setup', label: 'Setup', items: [
       { id: 'setup', label: 'Companies & agreements', icon: 'oj-ux-ico-building', player: 'p-fin', roles: ROLES,
-        route: { flow: 'setup', page: 'setup' }, view: 'setup', built: false,
+        route: { flow: 'setup', page: 'setup' }, view: 'setup', built: true,
         does: 'The companies, BUs, countries and orgs, who may source from whom, the intercompany agreements and the decisions (OD-…).' }
     ] },
     { key: 'help', label: 'Help', items: [

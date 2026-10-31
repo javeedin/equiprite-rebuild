@@ -1,5 +1,5 @@
 {
-  "description": "Reports (skeleton: being built). v = store.view('reports'), set by loadChain on vbEnter and on every fxRefresh; actions through actChain, links through openChain (docs/redesign/BUILDING-FUTURE-SCREENS.md).",
+  "description": "Reports (MC-FR-32): utilisation by owner company and country, intercompany charges by pair and month, the reconciliation, margins by request, the fleet by country with customs, certificates by country, accruals, disputes by age. v = fxFinance.reports(store.get()) over fxViews.reports / workbench, scoped to the persona's companies (the whole group for IC finance and Admin), set by loadChain on vbEnter and on every fxRefresh; exports through exportChain, links through openChain (docs/redesign/BUILDING-FUTURE-SCREENS.md).",
   "navigation": {
     "embeddable": "enabled"
   },
@@ -8,9 +8,34 @@
       "type": "any",
       "defaultValue": {
         "ready": false,
-        "error": ""
+        "error": "",
+        "scope": "",
+        "today": "",
+        "groupCurrency": "",
+        "kpis": {},
+        "utilisation": [],
+        "icByPair": [],
+        "recon": [],
+        "margins": [],
+        "fleet": [],
+        "customs": [],
+        "certs": [],
+        "accruals": [],
+        "disputes": [],
+        "buckets": [],
+        "me": { "name": "", "roles": [] }
       },
-      "description": "The view model: store.view('reports')."
+      "description": "fxFinance.reports(state) plus me."
+    },
+    "exportOpen": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "Which report's export menu is open."
+    },
+    "failure": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "The last failure, in words, kept on the page until the next thing works."
     }
   },
   "events": {
@@ -21,51 +46,29 @@
   },
   "eventListeners": {
     "vbEnter": {
-      "chains": [
-        {
-          "chain": "loadChain"
-        }
-      ]
+      "chains": [{ "chain": "loadChain" }]
     },
     "fxRefresh": {
-      "chains": [
-        {
-          "chain": "loadChain"
-        }
-      ]
+      "chains": [{ "chain": "loadChain" }]
     },
     "onAct": {
-      "chains": [
-        {
-          "chain": "actChain",
-          "parameters": {
-            "data": "{{ $event.currentTarget.dataset }}"
-          }
-        }
-      ]
+      "chains": [{ "chain": "actChain", "parameters": { "data": "{{ $event.currentTarget.dataset }}" } }]
     },
     "onOpen": {
-      "chains": [
-        {
-          "chain": "openChain",
-          "parameters": {
-            "data": "{{ $event.currentTarget.dataset }}"
-          }
-        }
-      ]
+      "chains": [{ "chain": "openChain", "parameters": { "data": "{{ $event.currentTarget.dataset }}" } }]
+    },
+    "onPick": {
+      "chains": [{ "chain": "pickChain", "parameters": { "field": "{{ $event.currentTarget.dataset.field }}", "value": "{{ $event.currentTarget.dataset.value }}" } }]
+    },
+    "onExport": {
+      "chains": [{ "chain": "exportChain", "parameters": { "list": "{{ $event.currentTarget.dataset.list }}", "format": "{{ $event.currentTarget.dataset.format }}" } }]
     }
   },
   "imports": {
     "components": {
-      "oj-bind-for-each": {
-        "path": "ojs/ojknockout"
-      },
-      "oj-bind-if": {
-        "path": "ojs/ojknockout"
-      },
-      "oj-bind-text": {
-        "path": "ojs/ojknockout"
-      }
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
     }
   }
 }
