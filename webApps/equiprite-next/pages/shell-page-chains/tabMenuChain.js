@@ -17,6 +17,7 @@ define([
         $page.variables.profileOpen = false;
         $page.variables.cartOpen = false;
         $page.variables.phoneOpen = false;
+        $page.variables.qaOpen = false;
         return;
       }
       $page.variables.tabMenuOpen = false;

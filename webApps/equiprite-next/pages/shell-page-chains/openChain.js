@@ -26,6 +26,7 @@ define([
       $page.variables.profileOpen = false;
       $page.variables.cartOpen = false;
       $page.variables.phoneOpen = false;
+      $page.variables.qaOpen = false;
       let next = null;
       await shellTabs.update(context, Actions, (st) => { next = tabs.open(st, tab); return next; });
       if (next && next.evicted.length) {

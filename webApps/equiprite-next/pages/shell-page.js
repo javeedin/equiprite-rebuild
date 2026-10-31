@@ -2,7 +2,8 @@ define(['resources/js/shellBus', 'resources/js/cartDrafts', 'resources/js/reques
   'use strict';
 
   // The shell's page module: the line from the screens in the tabs (shellBus) to the shell's chains, the keyboard
-  // (Ctrl+K: the command bar; Escape: close the open popup) and the bell's five-minute check.
+  // (Ctrl+K: the search box; Escape: close the open popup), a click outside the search list, and the bell's five-minute
+  // check.
   const ALERT_EVERY_MS = 5 * 60 * 1000;
 
   class PageModule {
@@ -24,6 +25,12 @@ define(['resources/js/shellBus', 'resources/js/cartDrafts', 'resources/js/reques
             fire('dismiss');
           }
         });
+        // The search list closes on a click anywhere outside the box and its list (the popups have a backdrop for that;
+        // the list sits in the toolbar, above it).
+        document.addEventListener('pointerdown', (e) => {
+          const inBox = e.target && typeof e.target.closest === 'function' && e.target.closest('.nx-command');
+          if (!inBox && document.getElementById('nxResults')) fire('searchAway');
+        }, true);
         setInterval(() => fire('refreshAlerts'), ALERT_EVERY_MS);
         // A request saved, submitted or decided anywhere: the cart counts its drafts again, once things settle.
         let wait = null;
