@@ -6,8 +6,8 @@ define(['resources/js/prPassThrough', 'resources/js/usageWeeks', 'resources/js/f
   // CostRules below is New EquipRite's Post costs page module (webApps/equiprite/flows/usage/pages/post-costs-page.js)
   // COPIED UNCHANGED, so the list, the preview tree, which weeks are ready (a rental week once it has ended, a one-time
   // charge from its start), the ledger body and the posting plan are New's, figure for figure. tests/next-usage.test.js
-  // holds every method to New's source text. EquipRite Next posts nothing: the CostPreview class at the end only reads
-  // these to show what is ready and what would be posted, and Posting stays in New EquipRite.
+  // holds every method to New's source text. The CostPreview class at the end only reads these to show what is ready
+  // and what would be posted; posting (EquipRite Next only) is resources/js/costPosting.js, on New's ledger bodies.
 
   /*
    * ── New's header, as it stands ──
@@ -913,7 +913,7 @@ define(['resources/js/prPassThrough', 'resources/js/usageWeeks', 'resources/js/f
 
   // ════════════════════════════════════════════════════════════════════════════════════════════════════════════
   // EquipRite Next's own layer. Reads only: what is ready, what was posted, what would be posted. Nothing here
-  // ticks, writes or posts; "would be posted" is New's postingPlan over everything New would let Finance tick.
+  // writes or posts (costPosting.js does, in Next); "would be posted" is New's postingPlan over everything ready.
   // ════════════════════════════════════════════════════════════════════════════════════════════════════════════
 
   const LIST_CHIPS = [

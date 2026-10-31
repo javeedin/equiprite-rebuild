@@ -61,6 +61,10 @@ const CPm = loadAmd(path.join(NJS, 'costPreview.js'), { 'resources/js/prPassThro
 const DCm = loadAmd(path.join(NJS, 'directCost.js'), { 'resources/js/requestProgress': Progress });
 const expStub = { resolveRequestIdByNumber: async () => 4440, loadForRequest: async () => [], attachUnits: async (c, l) => l };
 const costData = loadAmd(path.join(NJS, 'costData.js'), { 'resources/js/costPreview': CPm, 'resources/js/prPassThrough': prPassThrough, 'resources/js/expenditureTypes': expStub });
+const postCostToFusion = loadAmd(path.join(NJS, 'postCostToFusion.js'), {});
+const costPosting = loadAmd(path.join(NJS, 'costPosting.js'), { 'resources/js/costPreview': CPm, 'resources/js/postCostToFusion': postCostToFusion,
+  'resources/js/usageWeeks': weeks, 'resources/js/fmt': fmt });
+const projectTaskTree = loadAmd(path.join(NJS, 'projectTaskTree.js'), {});
 
 const NEW_W = { usageWeeks: loadAmd(path.join(WJS, 'usageWeeks.js'), {}), timesheetRows: loadAmd(path.join(WJS, 'timesheetRows.js'), {}),
   prPassThrough: loadAmd(path.join(WJS, 'prPassThrough.js'), {}), requestLineBody: loadAmd(path.join(WJS, 'requestLineBody.js'), {}),
@@ -72,7 +76,7 @@ const NewDC = loadAmd(path.join(WPAGES, 'project-costs-page.js'), {});
 
 // Next's page modules (the classes the chains call as $page.functions).
 const pageDeps = { 'resources/js/timeEntry': TEm, 'resources/js/timeApproval': TAm, 'resources/js/costPreview': CPm, 'resources/js/directCost': DCm,
-  'resources/js/exportKit': exportKit, 'resources/js/nav': nav, 'resources/js/fmt': fmt, 'resources/js/usageWeeks': weeks };
+  'resources/js/exportKit': exportKit, 'resources/js/nav': nav, 'resources/js/fmt': fmt, 'resources/js/usageWeeks': weeks, 'resources/js/costPosting': costPosting };
 const NextTE = loadAmd(path.join(NPAGES, 'timesheets-page.js'), pageDeps);
 const NextTA = loadAmd(path.join(NPAGES, 'approve-time-page.js'), pageDeps);
 const NextPC = loadAmd(path.join(NPAGES, 'costs-page.js'), pageDeps);
@@ -110,6 +114,7 @@ function nextChain(page, name, f, extra) {
     'vb/action/actionChain': class {}, 'vb/action/actions': f.Actions, 'resources/js/currentUser': cu, 'resources/js/requestLineBody': lineBody,
     'resources/js/shellBus': f.bus, 'resources/js/expenditureTypes': expStub, 'resources/js/exportKit': exportKit, 'resources/js/costData': costData,
     'resources/js/usageAccess': usageAccess, 'resources/js/requestData': { load: async () => ({ rows: [], error: '' }) },
+    'resources/js/costPosting': costPosting, 'resources/js/projectTaskTree': projectTaskTree, 'resources/js/prPassThrough': prPassThrough,
   }, extra || {}));
 }
 const clone = (o) => JSON.parse(JSON.stringify(o));
@@ -424,7 +429,10 @@ const preClass = (text, cls) => text.slice(text.search(/\n {2}(const|function) /
     await new Rec().run(ctx, { refresh: false });
     T.eq('a request\'s tab is named after it', f.calls.filter((c) => c.rename).map((c) => c.rename).join(), 'cost:REQ-10440=REQ-10440 costs');
     T.check('...and holds what would be posted', ctx.$page.variables.plan.length > 0 && !ctx.$page.variables.error);
-    T.eq('New\'s Post costs, opened on the request', new NextPR().newPostUrl('https://x/equiprite/', 'REQ-10440'), 'https://x/equiprite/vp/shell/usage/post-costs?request=REQ-10440');
+    const prf = new NextPR();
+    const ticked = prf.selection(ctx.$page.variables.rowsAll).items;
+    T.check('a role with Post costs may post (New\'s isPageReadOnly), and everything ready is ticked', ctx.$page.variables.readOnly === false
+      && ticked > 0 && ticked === prf.selection(prf.everythingReady(ctx.$page.variables.rowsAll)).items, ctx.$page.variables.readOnly + '/' + ticked);
   }
 
   // ════════════════════════════════════════════════════════════════════════════════════════════════════════════
@@ -453,24 +461,34 @@ const preClass = (text, cls) => text.slice(text.search(/\n {2}(const|function) /
   }
 
   // ════════════════════════════════════════════════════════════════════════════════════════════════════════════
-  T.section('Fusion stays in New: nothing in Next\'s Usage screens writes to Fusion or posts');
+  T.section('Fusion: only a request\'s costs posts, with New\'s calls (tests/next-posting.test.js runs them beside New\'s)');
   const files = [];
   (function walk(d) { fs.readdirSync(d).forEach((n) => { const p = path.join(d, n); if (fs.statSync(p).isDirectory()) walk(p); else if (/\.js$/.test(n)) files.push(p); }); }(NPAGES));
-  ['timeEntry', 'timeApproval', 'costPreview', 'directCost', 'costData', 'usageAccess'].forEach((m) => files.push(path.join(NJS, m + '.js')));
+  ['timeEntry', 'timeApproval', 'costPreview', 'directCost', 'costData', 'usageAccess', 'costPosting', 'postCostToFusion'].forEach((m) => files.push(path.join(NJS, m + '.js')));
   const endpoints = {};
   files.forEach((f) => { (read(f).match(/'(eqp-v1|ics|ProjectLOV)\/[A-Za-z0-9_]+'/g) || []).forEach((e) => { (endpoints[e.slice(1, -1)] = endpoints[e.slice(1, -1)] || []).push(path.relative(NPAGES, f)); }); });
   const spec = JSON.parse(read(path.join(ROOT, 'services', 'eqp-v1', 'openapi3.json')));
   const ops = {};
   Object.values(spec.paths).forEach((m) => Object.values(m).forEach((o) => { if (o && o.operationId) ops[o.operationId] = 1; }));
   T.eq('every eqp-v1 endpoint named exists', Object.keys(endpoints).filter((e) => e.startsWith('eqp-v1/') && !ops[e.slice(7)]).join(','), '');
-  T.eq('no Fusion call, no OIC flow (postCostToFusion is not even copied)', Object.keys(endpoints).filter((e) => !e.startsWith('eqp-v1/')).join(',') + '|'
-    + fs.existsSync(path.join(NJS, 'postCostToFusion.js')), '|false');
-  const WRITES = /^eqp-v1\/(create|patch|post|put|delete|update|replace|unpost)/i;
+  T.eq('the only Fusion writes are New\'s OIC post-cost flow, through New\'s postCostToFusion (copied unchanged)',
+    Object.keys(endpoints).filter((e) => e.startsWith('ics/')).sort().join(',') + '|' + (read(path.join(NJS, 'postCostToFusion.js')) === read(path.join(WJS, 'postCostToFusion.js'))),
+    'ics/postCostToFusion,ics/postCostToFusionProject|true');
+  const allNext = [];
+  (function walk(d) { fs.readdirSync(d).forEach((n) => { const p = path.join(d, n); if (fs.statSync(p).isDirectory()) walk(p); else if (/\.js$/.test(n)) allNext.push(p); }); }(NEXT));
+  T.eq('...sent only by costPosting.post, which only a request\'s Post runs', [allNext.filter((f) => read(f).includes('resources/js/postCostToFusion\'')),
+    allNext.filter((f) => /costPosting\.post\(/.test(read(f)))].map((l) => l.map((f) => path.relative(NEXT, f)).join('+')).join(' | '),
+    'resources/js/costPosting.js | flows/usage/pages/cost-page-chains/postChain.js');
+  T.eq('...and the Fusion reads are the split\'s project and task lists', Object.keys(endpoints).filter((e) => e.startsWith('ProjectLOV/')).map((e) => e + '<' + endpoints[e].join('+')).sort().join(','),
+    'ProjectLOV/getFscmRestApiResources11_13_18_05ProjectTasks<cost-page-chains/splitChain.js,ProjectLOV/getFscmRestApiResources11_13_18_05ProjectsLOV<cost-page-chains/splitChain.js');
+  const WRITES = /^eqp-v1\/(create|patch|post|put|delete|update|replace|unpost|clear|reverse)/i;
   const writers = Object.keys(endpoints).filter((e) => WRITES.test(e)).sort();
-  T.eq('the only writes are New\'s timesheet writes (EquipRite data)', writers.join(','),
-    'eqp-v1/createAuditTrailEntry,eqp-v1/createTimeEntry,eqp-v1/createTimeEntryDay,eqp-v1/patchTimeEntry');
-  T.eq('...and none from Post costs, a request\'s costs or Direct cost', writers.filter((e) => endpoints[e].some((f) => /^(costs|cost|direct-costs)-page|resources/.test(f))).join(','), '');
-  T.check('the expenditure-type batch goes through New\'s requestLineBody (patchRequestLinesBatch)', read(path.join(NPAGES, 'timesheets-page-chains', 'saveTimesheetChain.js')).includes('lineBody.updateLines'));
+  T.eq('the writes: New\'s timesheet writes, and New\'s posting writes', writers.join(','),
+    'eqp-v1/clearLineProjectSplits,eqp-v1/createAuditTrailEntry,eqp-v1/createLineDayException,eqp-v1/createMiscTransaction,eqp-v1/createPostedWeek,eqp-v1/createPostedWeekSplit,'
+    + 'eqp-v1/createTimeEntry,eqp-v1/createTimeEntryDay,eqp-v1/deleteMiscTransactionById,eqp-v1/patchTimeEntry,eqp-v1/postMiscTransactions,eqp-v1/replaceLineProjectSplits,eqp-v1/reverseRequestLine');
+  T.eq('...the posting writes only from a request\'s costs (none from the list or Direct cost)', writers.filter((e) => endpoints[e].some((f) => /^(costs|direct-costs)-page/.test(f))).join(','), '');
+  T.check('the expenditure-type batch goes through New\'s requestLineBody (patchRequestLinesBatch)', read(path.join(NPAGES, 'timesheets-page-chains', 'saveTimesheetChain.js')).includes('lineBody.updateLines')
+    && read(path.join(NPAGES, 'cost-page-chains', 'expTypeChain.js')).includes('lineBody.updateLines'));
 
   // ════════════════════════════════════════════════════════════════════════════════════════════════════════════
   T.section('who may open what (usageAccess, the menu\'s rule)');

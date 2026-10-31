@@ -1,5 +1,5 @@
 {
-  "description": "One request's costs in its own tab (record kind 'cost'): what is ready to post, what was posted, what is still running, what would be posted (amounts, expenditure types, projects and splits) and the cost week by week, from New EquipRite's preview reads and rules. Posting stays in New EquipRite (a link to its Post costs on this request); nothing is posted or written here.",
+  "description": "One request's costs in its own tab (record kind 'cost'): what is ready to post, what was posted, what is still running, and the cost week by week, from New EquipRite's preview reads and rules. Who may post (EQR_POST_COST, not read-only: New's isPageReadOnly) chooses what to post (everything ready is ticked; untick, select all or none), splits a week across projects, excludes days, adds charges, sets an equipment's expenditure type and re-tiers, sees what will be posted and exactly what will be sent, then posts it to Fusion PPM with New's calls in New's order (resources/js/costPosting.js, New's postCostToFusion.js): each week to the posting ledger, the charges, then the OIC post-cost flow. A role that may only look sees what would be posted.",
   "navigation": {
     "embeddable": "enabled"
   },
@@ -21,12 +21,12 @@
     "row": {
       "type": "any",
       "defaultValue": {},
-      "description": "The request's Post costs list row (project, task, PPM numbers, dates, rate schedule)."
+      "description": "The request's Post costs list row (project, task, PPM numbers, dates, rate schedule): New's $page.variables.current."
     },
     "rowsAll": {
       "type": "any[]",
       "defaultValue": [],
-      "description": "New's buildPreview tree (equipment, weeks, days, charges, split slices)."
+      "description": "New's buildPreview tree (equipment, weeks, days, charges, split slices), with what is ticked (selected)."
     },
     "facts": {
       "type": "any",
@@ -35,7 +35,7 @@
     "plan": {
       "type": "any[]",
       "defaultValue": [],
-      "description": "What would be posted: New's postingPlan over everything ready."
+      "description": "What will be posted: New's postingPlan over what is ticked (over everything ready for a role that may only look)."
     },
     "table": {
       "type": "any[]",
@@ -52,6 +52,85 @@
     "exportOpen": {
       "type": "boolean",
       "defaultValue": false
+    },
+    "readOnly": {
+      "type": "boolean",
+      "defaultValue": true,
+      "description": "Post costs is read-only for the role (New's isPageReadOnly on EQR_POST_COST). Closed until the access is known."
+    },
+    "unticked": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Row keys of ready weeks and charges the person unticked; everything else ready is ticked, read after read."
+    },
+    "expTypeList": {
+      "type": "any[]",
+      "defaultValue": [
+        { "value": "Equipment", "label": "Equipment", "id": null },
+        { "value": "Purchased Equipment", "label": "Purchased Equipment", "id": null },
+        { "value": "Supplies", "label": "Supplies", "id": null },
+        { "value": "Miscellaneous", "label": "Miscellaneous", "id": null }
+      ],
+      "description": "New's proven expenditure types until the tenant's list loads (expenditureTypes.loadForRequest)."
+    },
+    "panel": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "The open dialog: post (confirm, progress, result), misc (add a charge), exptype or split."
+    },
+    "post": {
+      "type": "any",
+      "defaultValue": {},
+      "description": "The post dialog: { step: ask | posting | done, lines, charges, fusion, summary, tone }."
+    },
+    "result": {
+      "type": "any",
+      "defaultValue": {},
+      "description": "The last post's outcome, kept on the page: { summary, tone, lines, charges, fusion }."
+    },
+    "isPosting": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "postError": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "postNote": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "misc": {
+      "type": "any",
+      "defaultValue": {},
+      "description": "{ line: { groupKey, equipmentName, requestLineId }, draft: { expenditureType, expenditureOrg, expItemDate, quantity, rawCost, currency, comments }, error }"
+    },
+    "isSavingMisc": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "exp": {
+      "type": "any",
+      "defaultValue": {},
+      "description": "{ line: { groupKey, equipmentName, current, hasPosted }, choice, query, error }"
+    },
+    "isSavingExp": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "split": {
+      "type": "any",
+      "defaultValue": {},
+      "description": "{ line, slices, error, query, results, searching, pick, tasks, taskQuery, tree, taskError }"
+    },
+    "isSavingSplit": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "reverseAsk": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "The equipment whose re-tier reversal is waiting for confirmation."
     }
   },
   "eventListeners": {
@@ -74,6 +153,87 @@
     },
     "onOpenList": {
       "chains": [{ "chain": "openListChain" }]
+    },
+    "onTick": {
+      "chains": [{ "chain": "treeChain", "parameters": { "action": "{{ $event.target.dataset.action }}", "key": "{{ $event.target.dataset.key }}", "checked": "{{ $event.target.checked }}" } }]
+    },
+    "onTree": {
+      "chains": [{ "chain": "treeChain", "parameters": { "action": "{{ $event.currentTarget.dataset.action }}", "key": "{{ $event.currentTarget.dataset.key }}" } }]
+    },
+    "onPanel": {
+      "chains": [{ "chain": "panelChain", "parameters": { "panel": "{{ $event.currentTarget.dataset.panel }}", "key": "{{ $event.currentTarget.dataset.key }}" } }]
+    },
+    "onClosePanel": {
+      "chains": [{ "chain": "panelChain", "parameters": { "panel": "" } }]
+    },
+    "onPost": {
+      "chains": [{ "chain": "postChain", "parameters": { "step": "go" } }]
+    },
+    "onPostClose": {
+      "chains": [{ "chain": "postChain", "parameters": { "step": "close" } }]
+    },
+    "onBlackout": {
+      "chains": [{ "chain": "blackoutChain", "parameters": { "key": "{{ $event.target.dataset.key }}" } }]
+    },
+    "onMiscField": {
+      "chains": [{ "chain": "miscChain", "parameters": { "action": "field", "field": "{{ $event.target.dataset.field }}", "value": "{{ $event.target.value }}" } }]
+    },
+    "onSaveMisc": {
+      "chains": [{ "chain": "miscChain", "parameters": { "action": "save" } }]
+    },
+    "onDeleteMisc": {
+      "chains": [{ "chain": "miscChain", "parameters": { "action": "delete", "key": "{{ $event.currentTarget.dataset.key }}" } }]
+    },
+    "onExpQuery": {
+      "chains": [{ "chain": "expTypeChain", "parameters": { "action": "query", "value": "{{ $event.target.value }}" } }]
+    },
+    "onExpPick": {
+      "chains": [{ "chain": "expTypeChain", "parameters": { "action": "pick", "value": "{{ $event.currentTarget.dataset.value }}" } }]
+    },
+    "onSaveExp": {
+      "chains": [{ "chain": "expTypeChain", "parameters": { "action": "save" } }]
+    },
+    "onSplitSearch": {
+      "chains": [{ "chain": "splitChain", "parameters": { "action": "search", "value": "{{ $event.target.value }}" } }]
+    },
+    "onSplitProject": {
+      "chains": [{ "chain": "splitChain", "parameters": { "action": "project", "index": "{{ $event.currentTarget.dataset.index }}" } }]
+    },
+    "onSplitTaskQuery": {
+      "chains": [{ "chain": "splitChain", "parameters": { "action": "taskQuery", "value": "{{ $event.target.value }}" } }]
+    },
+    "onSplitTask": {
+      "chains": [{ "chain": "splitChain", "parameters": { "action": "task", "index": "{{ $event.currentTarget.dataset.index }}" } }]
+    },
+    "onSplitPickPct": {
+      "chains": [{ "chain": "splitChain", "parameters": { "action": "pickPct", "value": "{{ $event.target.value }}" } }]
+    },
+    "onSplitAdd": {
+      "chains": [{ "chain": "splitChain", "parameters": { "action": "add" } }]
+    },
+    "onSplitRemove": {
+      "chains": [{ "chain": "splitChain", "parameters": { "action": "remove", "index": "{{ $event.currentTarget.dataset.index }}" } }]
+    },
+    "onSplitSlicePct": {
+      "chains": [{ "chain": "splitChain", "parameters": { "action": "slicePct", "index": "{{ $event.target.dataset.index }}", "value": "{{ $event.target.value }}" } }]
+    },
+    "onSplitEvenly": {
+      "chains": [{ "chain": "splitChain", "parameters": { "action": "evenly" } }]
+    },
+    "onSplitSave": {
+      "chains": [{ "chain": "saveSplitChain" }]
+    },
+    "onSplitClear": {
+      "chains": [{ "chain": "clearSplitChain" }]
+    },
+    "onReverse": {
+      "chains": [{ "chain": "reverseLineChain", "parameters": { "groupKey": "{{ $event.currentTarget.dataset.key }}" } }]
+    },
+    "onReverseGo": {
+      "chains": [{ "chain": "reverseLineChain", "parameters": { "confirm": "go" } }]
+    },
+    "onReverseCancel": {
+      "chains": [{ "chain": "reverseLineChain", "parameters": { "confirm": "cancel" } }]
     }
   },
   "imports": {

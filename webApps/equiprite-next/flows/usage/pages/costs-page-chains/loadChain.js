@@ -6,9 +6,10 @@ define([
 ], (ActionChain, Actions, usageAccess, costData) => {
   'use strict';
 
-  // Opens Post costs (or Refresh). Once the settings are in (usageAccess: Post costs is withdrawn under Fusion PPM
-  // rates, as in New), New's list reads (costData.list: views/post-cost and the misc charges), then each request is
-  // worked out in the background (breakdownChain). Reads only: nothing is written here, on entry or later.
+  // Opens Post costs (or Refresh, or after a request was posted in its own tab). Once the settings are in (usageAccess:
+  // Post costs is withdrawn under Fusion PPM rates, as in New; read-only for a role that may only look), New's list
+  // reads (costData.list: views/post-cost and the misc charges; after a post, the list the request's tab just read),
+  // then each request is worked out in the background (breakdownChain). Reads only: nothing is written here.
   class loadChain extends ActionChain {
     async run(context, { refresh }) {
       const { $page } = context;
@@ -21,6 +22,7 @@ define([
           v.isLoading = false;
           return;
         }
+        v.readOnly = !!acc.readOnly;
       }
       try {
         const data = await costData.list(context, Actions, { refresh: !!refresh });

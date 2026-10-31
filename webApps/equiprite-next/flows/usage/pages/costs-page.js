@@ -1,13 +1,26 @@
-define(['resources/js/costPreview', 'resources/js/exportKit', 'resources/js/nav', 'resources/js/fmt'], (CP, exportKit, nav, fmt) => {
+define(['resources/js/costPreview', 'resources/js/costPosting', 'resources/js/exportKit', 'resources/js/fmt'], (CP, costPosting, exportKit, fmt) => {
   'use strict';
 
   // Post costs: binding helpers. The rules are New EquipRite's Post costs (resources/js/costPreview.js CostRules:
   // buildList, filterList, buildPreview, postingPlan …); what is ready and posted per request is its CostPreview layer.
+  // A request is posted in its own tab (cost-page); when one is, this list reads again (costPosting.onPosted fires
+  // costsPosted, which runs loadChain).
   class PageModule extends CP.CostPreview {
+    constructor(context) {
+      super();
+      const helper = context && typeof context.getEventHelper === 'function' ? context.getEventHelper() : null;
+      costPosting.onPosted('costs', (number) => { if (helper) helper.fireCustomEvent('costsPosted', { number: number || '' }); });
+    }
+
     formats() { return exportKit.FORMATS; }
 
-    /** Post costs in New EquipRite, where the posting is done. */
-    newPostUrl(newBase) { return nav.newUrl(newBase, 'costs'); }
+    /** The newest request with cost ready to post, for the head's Post button ('' when none). */
+    nextReady(list, breakdown) {
+      const b = breakdown || {};
+      const ready = (Array.isArray(list) ? list : []).filter((r) => b[r.requestNumber] && b[r.requestNumber].ready > 0)
+        .sort((x, y) => (Number(y.eqrEquipmentRequestId) || 0) - (Number(x.eqrEquipmentRequestId) || 0));
+      return ready.length ? ready[0].requestNumber : '';
+    }
 
     money(n) { return fmt.money(n) || '$0'; }
 

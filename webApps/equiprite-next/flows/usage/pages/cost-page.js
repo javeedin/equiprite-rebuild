@@ -1,15 +1,11 @@
-define(['resources/js/costPreview', 'resources/js/exportKit', 'resources/js/nav', 'resources/js/fmt'], (CP, exportKit, nav, fmt) => {
+define(['resources/js/costPreview', 'resources/js/costPosting', 'resources/js/exportKit', 'resources/js/fmt'], (CP, costPosting, exportKit, fmt) => {
   'use strict';
 
-  // A request's costs: binding helpers. The figures are New EquipRite's (resources/js/costPreview.js).
+  // A request's costs: binding helpers. The figures and the posting rules are New EquipRite's (resources/js/costPreview.js
+  // CostRules, New's Post costs page module unchanged); what is ticked, the confirmation's words, the calls as they will
+  // be sent and the grid's rows are resources/js/costPosting.js.
   class PageModule extends CP.CostPreview {
     formats() { return exportKit.FORMATS; }
-
-    /** New EquipRite's Post costs, opened on this request (its ?request=), where it is posted. */
-    newPostUrl(newBase, number) {
-      const u = nav.newUrl(newBase, 'costs');
-      return u && number ? u + '?request=' + encodeURIComponent(number) : u;
-    }
 
     money(n) { return fmt.money(n) || '$0'; }
 
@@ -52,9 +48,70 @@ define(['resources/js/costPreview', 'resources/js/exportKit', 'resources/js/nav'
       return parts.length ? parts.join(' + ') : 'Nothing has ended that is not posted';
     }
 
-    rowClass(t) {
-      return 'nx-row nx-pr-row nx-pr-row--' + t.kind;
+    // ── posting ──
+
+    /** The head's Post button: what it posts, or why it cannot. */
+    postLabel(all) {
+      const s = this.selection(all);
+      return s.items ? 'Post ' + costPosting.itemsText(s) + ' · ' + this.money(s.cost) : 'Tick what to post';
     }
+
+    /** "3 weeks and 1 charge ticked, $3,590" over the grid. */
+    tickedText(all) {
+      const s = this.selection(all);
+      return s.items ? costPosting.itemsText(s) + ' ticked, ' + this.money(s.cost) : 'Nothing ticked';
+    }
+
+    readyCount(all) {
+      return (all || []).filter((r) => costPosting.tickable(r)).length;
+    }
+
+    sentence(all, row) { return costPosting.sentence(all, this.hdrOf(row)); }
+
+    steps(all, row) { return costPosting.steps(all, row && row.requestNumber); }
+
+    calls(all, row) { return costPosting.calls(all, row); }
+
+    gridRows(all, row, readOnly) { return costPosting.gridRows(all, this.hdrOf(row), readOnly); }
+
+    /** The grid's row class: its kind, and whether it is ticked. */
+    rowClass(t) {
+      return 'nx-row nx-pr-row nx-pr-row--' + t.kind + (t.on ? ' nx-pr-row--on' : '') + (t.excluded ? ' nx-pr-row--out' : '');
+    }
+
+    /** A line's state in the post dialog and the result: its pill. */
+    stateTone(state) {
+      return { waiting: 'draft', posting: 'out', recorded: 'approval', posted: 'onsite', failed: 'stopped', skipped: 'draft' }[state] || 'draft';
+    }
+
+    stateWord(state) {
+      return { waiting: 'Waiting', posting: 'Sending…', recorded: 'Recorded', posted: 'Posted', failed: 'Not posted', skipped: 'Not sent' }[state] || '';
+    }
+
+    /** The post dialog's kicker: what it is doing, then how it went. */
+    postKicker(post) {
+      const p = post || {};
+      if (p.step === 'ask') return 'Post to Fusion PPM';
+      if (p.step === 'posting') return 'Posting…';
+      if (p.tone === 'error') return 'Not posted';
+      if (p.fusion && p.fusion.state === 'failed') return 'Recorded, not sent to Fusion PPM yet';
+      return p.tone === 'warn' ? 'Partly posted' : 'Posted';
+    }
+
+    toneClass(tone) {
+      return 'nx-pp-result nx-pp-result--' + (tone || 'ok');
+    }
+
+    /** The charges of a post as one line, or none. */
+    chargeLines(charges) { return charges ? [charges] : []; }
+
+    /** A post's lines so far. */
+    linesOf(post) { return post && Array.isArray(post.lines) ? post.lines : []; }
+
+    hasResult(r) { return !!(r && r.summary); }
+
+    /** The slices' percentages added up, in words ("Total 100%"). */
+    splitTotalText(slices) { return 'Total ' + (this.splitPctTotal(slices) / 100) + '%'; }
   }
 
   return PageModule;
