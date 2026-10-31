@@ -46,13 +46,13 @@ define([], function () {
     ] },
     { key: 'money', label: 'Money', items: [
       { id: 'charges', label: 'Charges & statements', icon: 'oj-ux-ico-currency-dollar', player: 'p-fin', roles: ['receiver-review', 'finance', 'owner-finance', 'ic-finance'],
-        route: { flow: 'money', page: 'charges' }, view: 'charges', built: false,
+        route: { flow: 'money', page: 'charges' }, view: 'charges', built: true,
         does: 'Run the month\'s charges, release the statement (owner), agree or dispute it (user).' },
       { id: 'ic-workbench', label: 'Intercompany workbench', icon: 'oj-ux-ico-invoice', player: 'p-fin', roles: ['ic-finance', 'finance'],
-        route: { flow: 'money', page: 'ic-workbench' }, view: 'workbench', built: false,
+        route: { flow: 'money', page: 'ic-workbench' }, view: 'workbench', built: true,
         does: 'Create the intercompany AR and AP invoice pair, accrue what is late, settle by netting, post cross-charges.' },
       { id: 'billing', label: 'Customer billing', icon: 'oj-ux-ico-wallet-box', player: 'p-pcfin', roles: ['desk', 'owner-finance', 'ic-finance', 'finance', 'receiver-review'],
-        route: { flow: 'money', page: 'billing' }, view: 'billing', built: false,
+        route: { flow: 'money', page: 'billing' }, view: 'billing', built: true,
         does: 'Bill the outside customers: FleetCo\'s rentals (scenario 3) and ProjectCo\'s customer projects (scenario 2), deposits.' }
     ] },
     { key: 'finance', label: 'Finance', items: [
