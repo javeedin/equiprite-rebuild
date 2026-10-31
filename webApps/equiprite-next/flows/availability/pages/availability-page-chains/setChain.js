@@ -2,11 +2,13 @@ define([
   'vb/action/actionChain',
   'vb/action/actions',
   'resources/js/availability',
-], (ActionChain, Actions, av) => {
+  'resources/js/availabilityPivot',
+], (ActionChain, Actions, av, pivot) => {
   'use strict';
 
   // A choice changed: the window (dates or a quick one), the search, a class, yard or chip, grouping, zoom, moving
-  // the timeline, folding a group, more rows in a group, showing a clash on the timeline, or a menu. Nothing here
+  // the timeline, folding a group, more rows in a group, showing a clash on the timeline, or a menu; the timeline or
+  // the yard grid, the grid's rows (equipment or units), folding a class in the grid, more rows in it. Nothing here
   // reads or writes data; the page is worked out again (applyChain). A new filter starts the groups' rows afresh.
   class setChain extends ActionChain {
     async run(context, { field, value }) {
@@ -17,6 +19,9 @@ define([
       if (field === 'exportOpen') { v.exportOpen = !v.exportOpen; v.yardOpen = false; return; }
       if (field === 'yardOpen') { v.yardOpen = !v.yardOpen; v.exportOpen = false; return; }
       let scroll = false;
+      // The card's view and the grid's rows switch inside applyChain, once what they show is worked out.
+      let layout = v.layout;
+      let grain = v.grain;
       if (field === 'more') {
         v.more = Object.assign({}, v.more || {}, { [val]: ((v.more || {})[val] || 0) + av.MORE_ROWS });
       } else if (field === 'from' || field === 'to' || field === 'preset') {
@@ -52,27 +57,44 @@ define([
         const next = Object.assign({}, v.collapsed || {});
         if (next[val]) delete next[val]; else next[val] = true;
         v.collapsed = next;
+      } else if (field === 'layout') {
+        layout = val === 'grid' ? 'grid' : 'timeline';
+        v.yardOpen = false;
+      } else if (field === 'grain') {
+        grain = val === 'units' ? 'units' : 'equipment';
+        v.gridMore = {};
+      } else if (field === 'pvCollapse') {
+        const next = Object.assign({}, v.gridCollapsed || {});
+        if (next[val]) delete next[val]; else next[val] = true;
+        v.gridCollapsed = next;
+      } else if (field === 'pvMore') {
+        v.gridMore = Object.assign({}, v.gridMore || {}, { [val]: ((v.gridMore || {})[val] || 0) + pivot.MORE_ROWS });
       } else if (field === 'text') {
         v.text = val;
         v.more = {};
+        v.gridMore = {};
       } else if (field === 'cls') {
         v.cls = v.cls === val ? '' : val;
         v.more = {};
+        v.gridMore = {};
       } else if (field === 'yard') {
         v.yard = val;
         v.yardOpen = false;
         v.more = {};
+        v.gridMore = {};
       } else if (field === 'chip') {
         v.chip = val || 'all';
         v.more = {};
+        v.gridMore = {};
       } else if (field === 'clear') {
         v.text = '';
         v.cls = '';
         v.yard = '';
         v.chip = 'all';
         v.more = {};
+        v.gridMore = {};
       } else if (field === 'focus') {
-        // "Show on the timeline": that unit alone, its clash or turnaround in view.
+        // "Show on the timeline": that unit alone, its clash or turnaround in view (on the timeline, from the grid too).
         const at = val.lastIndexOf('|');
         const unit = at === -1 ? val : val.slice(0, at);
         const from = at === -1 ? '' : val.slice(at + 1);
@@ -82,13 +104,15 @@ define([
         v.chip = 'all';
         v.collapsed = {};
         v.more = {};
+        v.gridMore = {};
         if (av.d10(from)) v.viewStart = av.fitView({ from, days: 1 }, v.zoom).viewStart;
+        layout = 'timeline';
         scroll = true;
       } else {
         return;
       }
       v.exportOpen = false;
-      await Actions.callChain(context, { chain: 'applyChain' });
+      await Actions.callChain(context, { chain: 'applyChain', params: { layout, grain } });
       if (scroll) $page.functions.scrollToTimeline();
     }
   }

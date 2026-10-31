@@ -4,12 +4,14 @@ define([
   'resources/js/availability',
   'resources/js/availabilityData',
   'resources/js/requestData',
-], (ActionChain, Actions, av, data, requestData) => {
+  'resources/js/availabilityPivot',
+], (ActionChain, Actions, av, data, requestData, pivot) => {
   'use strict';
 
   // Loads the fleet and its bookings (New EquipRite's schedule calls, availabilityData.js) with the requests and
   // their lines (requestData, shared with Requests and the bell, for where each booking is on its journey), draws
-  // the page, then reads planned maintenance from Fusion and draws it again. Reads only.
+  // the page, takes what another screen handed over (focusChain), then reads planned maintenance from Fusion and
+  // draws it again. Reads only.
   class loadChain extends ActionChain {
     async run(context, { refresh }) {
       const v = context.$page.variables;
@@ -58,10 +60,12 @@ define([
       v.error = core.error;
       v.notes = notes;
       v.yards = av.yards(model);
+      v.equipmentIds = pivot.equipmentIds(core.serials);
       v.maint = hasAssets ? 'loading' : 'none';
       v.model = model;
       v.isLoading = false;
       await Actions.callChain(context, { chain: 'applyChain' });
+      await Actions.callChain(context, { chain: 'focusChain' });
       if (!hasAssets) return;
 
       // Planned maintenance arrives a moment later: one Fusion lookup per maintenance asset, eight at a time.

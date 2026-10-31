@@ -1,7 +1,9 @@
 <!-- Availability: which unit is booked when, what is free in your window, where bookings clash. A plain HTML/CSS
      timeline (no library): bars are placed by percentage of the days shown, so it fits any width without sideways
      scrolling, and rows come a page at a time. Logic: resources/js/availability.js; calls: availabilityData.js;
-     styles: resources/css/next-availability.css. Read only: a booking opens its request, where it is changed. -->
+     styles: resources/css/next-availability.css. Read only: a booking opens its request, where it is changed.
+     The yard grid (Timeline | Yard grid): equipment or units as rows, yards as columns, a tick where each is; logic:
+     resources/js/availabilityPivot.js; styles: resources/css/next-pivot.css. A row opens everything about it. -->
 <div class="nx-page nx-av">
   <div class="nx-pagehead">
     <div>
@@ -23,7 +25,7 @@
                   <span :class="[[ f.data.icon ]]" aria-hidden="true"></span><oj-bind-text value="[[ f.data.label ]]"></oj-bind-text></button>
               </template>
             </oj-bind-for-each>
-            <p class="nx-menu-note"><oj-bind-text value="[[ $variables.view.shownBookings + ' bookings shown, ' + $variables.view.range.label ]]"></oj-bind-text></p>
+            <p class="nx-menu-note"><oj-bind-text value="[[ $variables.layout === 'grid' ? $variables.grid.exportNote : $variables.view.shownBookings + ' bookings shown, ' + $variables.view.range.label ]]"></oj-bind-text></p>
           </div>
         </oj-bind-if>
       </div>
@@ -143,6 +145,14 @@
   <section class="nx-card nx-av-tl" id="avTimeline" aria-labelledby="avTlTitle">
     <div class="nx-av-tools">
       <h2 class="nx-h2" id="avTlTitle">Units and bookings</h2>
+      <div class="nx-seg nx-pv-switch" role="group" aria-label="Show as">
+        <button type="button" id="avShowTimeline" data-field="layout" data-value="timeline" on-click="[[ $listeners.onPick ]]" :aria-pressed="[[ $variables.layout !== 'grid' ? 'true' : 'false' ]]"
+          title="Each unit's bookings on a timeline" :class="[[ 'nx-seg-btn' + ($variables.layout !== 'grid' ? ' nx-seg-btn--on' : '') ]]">
+          <span class="oj-ux-ico-calendar" aria-hidden="true"></span>Timeline</button>
+        <button type="button" id="avShowGrid" data-field="layout" data-value="grid" on-click="[[ $listeners.onPick ]]" :aria-pressed="[[ $variables.layout === 'grid' ? 'true' : 'false' ]]"
+          title="Equipment by yard: a tick where it is, how many are free in your window" :class="[[ 'nx-seg-btn' + ($variables.layout === 'grid' ? ' nx-seg-btn--on' : '') ]]">
+          <span class="oj-ux-ico-table" aria-hidden="true"></span>Yard grid</button>
+      </div>
       <label class="nx-search">
         <span class="oj-ux-ico-search" aria-hidden="true"></span>
         <input type="search" id="avSearch" :value="[[ $variables.text ]]" on-input="[[ $listeners.onSearch ]]" aria-label="Search units and bookings"
@@ -164,6 +174,8 @@
           </div>
         </oj-bind-if>
       </div>
+      <!-- The timeline's own tools: grouping, zoom, moving it. The grid groups by class and reads only your window. -->
+      <oj-bind-if test="[[ $variables.layout !== 'grid' ]]">
       <div class="nx-seg" role="group" aria-label="Group by">
         <button type="button" data-field="groupBy" data-value="class" on-click="[[ $listeners.onPick ]]" :aria-pressed="[[ $variables.groupBy === 'class' ? 'true' : 'false' ]]"
           :class="[[ 'nx-seg-btn' + ($variables.groupBy === 'class' ? ' nx-seg-btn--on' : '') ]]">By class</button>
@@ -185,6 +197,7 @@
           <span class="oj-ux-ico-chevron-right" aria-hidden="true"></span></button>
         <span class="nx-av-range" id="avRange"><oj-bind-text value="[[ $variables.view.range.label ]]"></oj-bind-text></span>
       </div>
+      </oj-bind-if>
     </div>
 
     <div class="nx-chips nx-av-chips" role="group" aria-label="Show">
@@ -202,11 +215,13 @@
       </oj-bind-if>
     </div>
 
-    <ul class="nx-av-legend" aria-label="What the colours mean">
-      <oj-bind-for-each data="[[ $functions.legend() ]]">
-        <template data-oj-as="k"><li><span :class="[[ k.data.cls ]]" aria-hidden="true"></span><oj-bind-text value="[[ k.data.label ]]"></oj-bind-text></li></template>
-      </oj-bind-for-each>
-    </ul>
+    <oj-bind-if test="[[ $variables.layout !== 'grid' ]]">
+      <ul class="nx-av-legend" aria-label="What the colours mean">
+        <oj-bind-for-each data="[[ $functions.legend() ]]">
+          <template data-oj-as="k"><li><span :class="[[ k.data.cls ]]" aria-hidden="true"></span><oj-bind-text value="[[ k.data.label ]]"></oj-bind-text></li></template>
+        </oj-bind-for-each>
+      </ul>
+    </oj-bind-if>
 
     <oj-bind-if test="[[ $variables.isLoading && !$variables.model ]]">
       <div class="nx-empty">Loading the units, their bookings and where each one is…</div>
@@ -215,7 +230,7 @@
       <div class="nx-empty" id="avEmpty"><oj-bind-text value="[[ $variables.model.units.length ? 'No units match. Clear the search or pick another class, yard or chip.' : 'There are no units to show: EquipRite has no serial-numbered units yet.' ]]"></oj-bind-text></div>
     </oj-bind-if>
 
-    <oj-bind-if test="[[ $variables.view.matched > 0 ]]">
+    <oj-bind-if test="[[ $variables.view.matched > 0 && $variables.layout !== 'grid' ]]">
       <div :class="[[ 'nx-av-grid nx-av-grid--' + $variables.view.zoom ]]" role="table" aria-label="Units and their bookings" aria-describedby="avRange">
         <div class="nx-av-row nx-av-row--head" role="row">
           <span class="nx-av-unit nx-av-unit--head" role="columnheader"><oj-bind-text value="[[ $variables.view.matched + ($variables.view.matched === 1 ? ' unit' : ' units') ]]"></oj-bind-text></span>
@@ -306,6 +321,105 @@
               </oj-bind-if>
             </template>
           </oj-bind-for-each>
+        </div>
+      </div>
+    </oj-bind-if>
+
+    <!-- ── The yard grid: equipment (or units) by yard, a tick where each is, how many are free in your window ── -->
+    <oj-bind-if test="[[ $variables.layout === 'grid' && $variables.view.matched > 0 ]]">
+      <div class="nx-pv" id="avGrid">
+        <div class="nx-pv-bar">
+          <div class="nx-seg" role="group" aria-label="One row per">
+            <button type="button" id="avGrainEquipment" data-field="grain" data-value="equipment" on-click="[[ $listeners.onPick ]]"
+              :aria-pressed="[[ $variables.grid.grain !== 'units' ? 'true' : 'false' ]]" title="One row per equipment item: how many are at each yard"
+              :class="[[ 'nx-seg-btn' + ($variables.grid.grain !== 'units' ? ' nx-seg-btn--on' : '') ]]">Equipment</button>
+            <button type="button" id="avGrainUnits" data-field="grain" data-value="units" on-click="[[ $listeners.onPick ]]"
+              :aria-pressed="[[ $variables.grid.grain === 'units' ? 'true' : 'false' ]]" title="One row per unit: the yard it is at"
+              :class="[[ 'nx-seg-btn' + ($variables.grid.grain === 'units' ? ' nx-seg-btn--on' : '') ]]">Units</button>
+          </div>
+          <p class="nx-note nx-pv-note" id="avGridNote"><oj-bind-text value="[[ $variables.grid.note ]]"></oj-bind-text></p>
+          <ul class="nx-av-legend nx-pv-legend" aria-label="What the colours mean">
+            <oj-bind-for-each data="[[ $functions.gridLegend($variables.grid.grain) ]]">
+              <template data-oj-as="k"><li :title="[[ k.data.title ]]"><span :class="[[ k.data.cls ]]" aria-hidden="true"></span><oj-bind-text value="[[ k.data.label ]]"></oj-bind-text></li></template>
+            </oj-bind-for-each>
+          </ul>
+        </div>
+        <div class="nx-pv-scroll" id="avGridScroll" tabindex="0" role="region" :aria-label="[[ $variables.grid.grain === 'units' ? 'Units by yard' : 'Equipment by yard' ]]">
+          <div class="nx-pv-grid" role="table" :aria-label="[[ $variables.grid.note ]]" :style="[[ { gridTemplateColumns: $variables.grid.cols } ]]">
+            <div class="nx-pv-row nx-pv-row--head" role="row">
+              <span class="nx-pv-cell nx-pv-first nx-pv-corner" role="columnheader"><oj-bind-text value="[[ $variables.grid.head ]]"></oj-bind-text></span>
+              <oj-bind-for-each data="[[ $variables.grid.columns ]]">
+                <template data-oj-as="c">
+                  <span :class="[[ c.data.cls ]]" role="columnheader" :data-yard="[[ c.data.key ]]" :title="[[ c.data.title ]]">
+                    <span class="nx-pv-yard-code"><oj-bind-text value="[[ c.data.code ]]"></oj-bind-text></span>
+                    <oj-bind-if test="[[ !!c.data.name ]]"><span class="nx-pv-yard-name"><oj-bind-text value="[[ c.data.name ]]"></oj-bind-text></span></oj-bind-if>
+                  </span>
+                </template>
+              </oj-bind-for-each>
+              <span class="nx-pv-cell nx-pv-num nx-pv-numhead" role="columnheader" title="Units in the row">Units</span>
+              <span class="nx-pv-cell nx-pv-num nx-pv-numhead" role="columnheader" :title="[[ 'Free in your window, ' + $variables.view.win.text ]]">Free</span>
+            </div>
+            <oj-bind-for-each data="[[ $variables.grid.items ]]">
+              <template data-oj-as="it">
+                <oj-bind-if test="[[ it.data.type === 'group' ]]">
+                  <div class="nx-pv-row nx-pv-row--group" role="row" :data-group="[[ it.data.group ]]">
+                    <span class="nx-pv-cell nx-pv-first" role="rowheader">
+                      <button type="button" class="nx-pv-group" data-field="pvCollapse" :data-value="[[ it.data.group ]]" on-click="[[ $listeners.onPick ]]"
+                        :aria-expanded="[[ it.data.collapsed ? 'false' : 'true' ]]" :title="[[ it.data.label + ': ' + it.data.text ]]">
+                        <span :class="[[ it.data.collapsed ? 'oj-ux-ico-chevron-right' : 'oj-ux-ico-chevron-down' ]]" aria-hidden="true"></span>
+                        <span class="nx-pv-group-text">
+                          <span class="nx-pv-group-name"><oj-bind-text value="[[ it.data.label ]]"></oj-bind-text></span>
+                          <span class="nx-pv-group-sub"><oj-bind-text value="[[ it.data.text ]]"></oj-bind-text></span>
+                        </span>
+                      </button>
+                    </span>
+                    <oj-bind-for-each data="[[ it.data.cells ]]">
+                      <template data-oj-as="c"><span :class="[[ c.data.cls ]]" role="cell" :data-yard="[[ c.data.key ]]" :title="[[ c.data.title ]]"><oj-bind-text value="[[ c.data.text ]]"></oj-bind-text></span></template>
+                    </oj-bind-for-each>
+                    <span class="nx-pv-cell nx-pv-num" role="cell"><oj-bind-text value="[[ it.data.units ]]"></oj-bind-text></span>
+                    <span :class="[[ it.data.freeCls ]]" role="cell"><oj-bind-text value="[[ it.data.free ]]"></oj-bind-text></span>
+                  </div>
+                </oj-bind-if>
+                <oj-bind-if test="[[ it.data.type === 'row' ]]">
+                  <!-- The row handles the click (its name button and every cell): everything about this equipment, in a tab. -->
+                  <div class="nx-pv-row nx-pv-row--item" role="row" :data-key="[[ it.data.key ]]" :data-name="[[ it.data.name ]]" :data-equipment-id="[[ it.data.equipmentId ]]"
+                    :data-serial="[[ it.data.serial ]]" on-click="[[ $listeners.onOpenItem ]]">
+                    <span class="nx-pv-cell nx-pv-first" role="rowheader">
+                      <button type="button" class="nx-pv-name" :title="[[ it.data.title ]]">
+                        <span class="nx-cell-main"><oj-bind-text value="[[ it.data.main ]]"></oj-bind-text></span>
+                        <span class="nx-cell-sub"><oj-bind-text value="[[ it.data.sub ]]"></oj-bind-text></span>
+                      </button>
+                    </span>
+                    <oj-bind-for-each data="[[ it.data.cells ]]">
+                      <template data-oj-as="c">
+                        <span :class="[[ c.data.cls ]]" role="cell" :data-yard="[[ c.data.key ]]" :title="[[ c.data.title ]]">
+                          <oj-bind-if test="[[ c.data.n > 0 ]]"><span :class="[[ c.data.tickCls ]]"><oj-bind-text value="[[ c.data.text ]]"></oj-bind-text></span></oj-bind-if>
+                        </span>
+                      </template>
+                    </oj-bind-for-each>
+                    <span class="nx-pv-cell nx-pv-num" role="cell"><oj-bind-text value="[[ it.data.units ]]"></oj-bind-text></span>
+                    <span :class="[[ it.data.freeCls ]]" role="cell"><oj-bind-text value="[[ it.data.free ]]"></oj-bind-text></span>
+                  </div>
+                </oj-bind-if>
+                <oj-bind-if test="[[ it.data.type === 'more' ]]">
+                  <div class="nx-pv-row nx-pv-row--more" role="row">
+                    <span class="nx-pv-more" role="cell">
+                      <button type="button" class="nx-linkbtn" data-field="pvMore" :data-value="[[ it.data.group ]]" on-click="[[ $listeners.onPick ]]">
+                        <span class="oj-ux-ico-chevron-down" aria-hidden="true"></span><oj-bind-text value="[[ it.data.text ]]"></oj-bind-text></button>
+                    </span>
+                  </div>
+                </oj-bind-if>
+              </template>
+            </oj-bind-for-each>
+            <div class="nx-pv-row nx-pv-row--total" role="row">
+              <span class="nx-pv-cell nx-pv-first" role="rowheader">Total</span>
+              <oj-bind-for-each data="[[ $variables.grid.totals.cells ]]">
+                <template data-oj-as="c"><span :class="[[ c.data.cls ]]" role="cell" :data-yard="[[ c.data.key ]]" :title="[[ c.data.title ]]"><oj-bind-text value="[[ c.data.text ]]"></oj-bind-text></span></template>
+              </oj-bind-for-each>
+              <span class="nx-pv-cell nx-pv-num" role="cell"><oj-bind-text value="[[ $variables.grid.totals.units ]]"></oj-bind-text></span>
+              <span :class="[[ $variables.grid.totals.freeCls ]]" role="cell"><oj-bind-text value="[[ $variables.grid.totals.free ]]"></oj-bind-text></span>
+            </div>
+          </div>
         </div>
       </div>
     </oj-bind-if>

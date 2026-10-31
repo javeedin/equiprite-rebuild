@@ -1,1 +1,101 @@
-/* EquipRite Next: Availability's yard grid (equipment by yard). */
+/* EquipRite Next: Availability's yard grid (equipment by yard). One CSS grid for every cell (rows are display:
+   contents), so the columns line up whatever a cell holds; the name column and the header stay put while the grid
+   scrolls; it scrolls sideways inside its card when there are many yards, never the page. Colours are the page's:
+   free green, tight amber, booked slate, maintenance orange; none free is the danger tone, as in the capacity panel. */
+
+.nx-pv-switch .nx-seg-btn span[class^="oj-ux-ico"] { font-size: 15px; }
+
+.nx-pv { --pv-first: 280px; --pv-col: 128px; --pv-num: 72px; display: flex; flex-direction: column; min-width: 0; border-top: 1px solid var(--nx-line); }
+.nx-pv-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 10px 16px 10px; }
+.nx-pv-note { margin: 0; font-weight: 600; color: var(--nx-ink); }
+.nx-pv-legend { padding: 0; margin-left: auto; }
+.nx-pv-key { display: inline-block; width: 14px; height: 14px; border-radius: 4px; padding: 0; }
+
+.nx-pv-scroll {
+  position: relative; max-width: 100%; overflow: auto; max-height: max(360px, calc(100vh - 250px));
+  border-top: 1px solid var(--nx-line); overscroll-behavior-x: contain; border-bottom-left-radius: var(--nx-radius); border-bottom-right-radius: var(--nx-radius);
+}
+.nx-pv-scroll:focus-visible { outline: 2px solid var(--nx-accent); outline-offset: -2px; }
+.nx-pv-grid { display: grid; width: max-content; min-width: 100%; font-size: 13px; color: var(--nx-ink); }
+.nx-pv-row { display: contents; }
+
+.nx-pv-cell {
+  display: flex; align-items: center; justify-content: center; min-width: 0; padding: 6px 8px; box-sizing: border-box;
+  background: var(--nx-surface); border-bottom: 1px solid var(--nx-line); border-right: 1px solid var(--nx-line);
+  white-space: nowrap; font-variant-numeric: tabular-nums;
+}
+/* The name column stays at the left while the yards scroll by. */
+.nx-pv-first { position: sticky; left: 0; z-index: 2; justify-content: flex-start; padding: 6px 12px 6px 16px; border-right: 1px solid var(--nx-line-strong); }
+.nx-pv-num { justify-content: flex-end; padding-right: 14px; }
+.nx-pv-num--free { color: #166534; font-weight: 700; }
+.nx-pv-num--none { color: var(--nx-danger); }
+
+/* Header: sticks to the top of the grid; the corner sticks both ways. */
+.nx-pv-row--head > .nx-pv-cell {
+  position: sticky; top: 0; z-index: 3; flex-direction: column; gap: 1px; padding-top: 8px; padding-bottom: 8px;
+  background: var(--nx-surface-2); border-bottom: 1px solid var(--nx-line-strong); font-size: 12px; font-weight: 700; color: var(--nx-muted);
+}
+.nx-pv-row--head > .nx-pv-first { left: 0; z-index: 5; align-items: flex-start; justify-content: center; text-transform: uppercase; letter-spacing: 0.04em; }
+.nx-pv-row--head > .nx-pv-num { align-items: flex-end; text-transform: uppercase; letter-spacing: 0.04em; }
+.nx-pv-yard-code { color: var(--nx-ink); font-size: 12px; font-weight: 800; }
+.nx-pv-yard-name { display: block; max-width: 150px; white-space: normal; text-align: center; font-weight: 500; line-height: 1.25; }
+.nx-pv-yard--empty .nx-pv-yard-code, .nx-pv-yard--empty .nx-pv-yard-name { color: var(--nx-faint); }
+
+/* Class rows: fold like the timeline's, with the class's units per yard. */
+.nx-pv-row--group > .nx-pv-cell { background: #f1f5f9; color: var(--nx-muted); font-size: 12px; font-weight: 700; }
+.nx-pv-row--group > .nx-pv-first { padding: 0; }
+.nx-pv-group {
+  display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; height: 100%; padding: 6px 12px 6px 16px; border: 0; background: transparent;
+  font: inherit; color: var(--nx-ink); text-align: left; cursor: pointer;
+}
+.nx-pv-group:hover { background: rgba(226, 232, 240, 0.7); }
+.nx-pv-group > span[class^="oj-ux-ico"] { color: var(--nx-muted); flex: none; }
+.nx-pv-group-text { display: flex; flex-direction: column; min-width: 0; }
+.nx-pv-group-name { font-weight: 800; font-size: 13px; overflow: hidden; text-overflow: ellipsis; }
+.nx-pv-group-sub { font-size: 12px; font-weight: 500; color: var(--nx-muted); overflow: hidden; text-overflow: ellipsis; }
+.nx-pv-c--sum { font-weight: 700; }
+
+/* An equipment (or unit) row: the whole row opens everything about it. */
+.nx-pv-row--item > .nx-pv-cell { cursor: pointer; }
+.nx-pv-row--item:hover > .nx-pv-cell { background: var(--nx-hover); }
+.nx-pv-name {
+  display: flex; flex-direction: column; align-items: flex-start; min-width: 0; max-width: 100%; padding: 0; border: 0; background: transparent;
+  font: inherit; color: inherit; text-align: left; cursor: pointer;
+}
+.nx-pv-name .nx-cell-main, .nx-pv-name .nx-cell-sub { max-width: 100%; }
+.nx-pv-row--item:hover .nx-pv-name .nx-cell-main { color: var(--nx-accent); text-decoration: underline; }
+
+/* The tick: how many are there and how many are free in your window (or one unit's state). */
+.nx-pv-tick { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; line-height: 18px; }
+.nx-pv-tick--all, .nx-pv-tick--free { color: #166534; background: #dcfce7; }
+.nx-pv-tick--some, .nx-pv-tick--tight { color: #92400e; background: #fef3c7; }
+.nx-pv-tick--none { color: var(--nx-danger); background: var(--nx-danger-soft); }
+.nx-pv-tick--booked { color: #334155; background: #e2e8f0; }
+.nx-pv-tick--maint { color: #9a3412; background: #ffedd5; }
+.nx-pv-key.nx-pv-tick--all, .nx-pv-key.nx-pv-tick--free { box-shadow: inset 0 0 0 1px #86efac; }
+.nx-pv-key.nx-pv-tick--some, .nx-pv-key.nx-pv-tick--tight { box-shadow: inset 0 0 0 1px #fcd34d; }
+.nx-pv-key.nx-pv-tick--none { box-shadow: inset 0 0 0 1px #f1b8b2; }
+.nx-pv-key.nx-pv-tick--booked { box-shadow: inset 0 0 0 1px #cbd5e1; }
+.nx-pv-key.nx-pv-tick--maint { box-shadow: inset 0 0 0 1px #fdba74; }
+
+/* "Show more" inside a class: the link stays in view while the grid scrolls sideways. */
+.nx-pv-more { grid-column: 1 / -1; display: block; padding: 4px 10px; background: var(--nx-surface); border-bottom: 1px solid var(--nx-line); }
+.nx-pv-more .nx-linkbtn { position: sticky; left: 10px; display: inline-flex; align-items: center; gap: 4px; }
+
+/* Totals per yard: stick to the bottom of the grid. */
+.nx-pv-row--total > .nx-pv-cell {
+  position: sticky; bottom: 0; z-index: 3; background: var(--nx-surface-2); border-top: 1px solid var(--nx-line-strong); border-bottom: 0; font-weight: 700;
+}
+.nx-pv-row--total > .nx-pv-first { z-index: 5; }
+
+@media (max-width: 900px) {
+  .nx-pv { --pv-first: 200px; --pv-col: 116px; --pv-num: 64px; }
+  .nx-pv-legend { margin-left: 0; }
+}
+@media (max-width: 640px) {
+  .nx-pv { --pv-first: 140px; --pv-col: 108px; --pv-num: 54px; }
+  .nx-pv-first { padding-left: 10px; padding-right: 8px; }
+  .nx-pv-group { padding-left: 10px; padding-right: 8px; }
+  .nx-pv-tick { padding: 2px 6px; font-size: 11px; }
+  .nx-pv-yard-name { max-width: 100px; }
+}
