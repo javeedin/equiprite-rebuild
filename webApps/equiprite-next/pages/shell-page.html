@@ -14,29 +14,68 @@
       <span class="nx-badge">Next</span>
     </button>
 
+    <!-- The global search: screens, requests, equipment, units, transfers and yards this role may see, grouped, best first
+         (searchChain; resources/js/globalSearch.js, data read once on first focus: resources/js/searchData.js). -->
     <div class="nx-command">
       <span class="oj-ux-ico-search" aria-hidden="true"></span>
-      <input id="nxCommand" type="search" autocomplete="off" placeholder="Go to a screen or open a request…"
-        aria-label="Go to a screen or open a request" role="combobox" aria-autocomplete="list" aria-controls="nxResults"
-        :aria-expanded="[[ $variables.showResults && $variables.results.length > 0 ? 'true' : 'false' ]]"
-        :value="[[ $variables.query ]]" on-input="[[ $listeners.onCommandInput ]]" on-keydown="[[ $listeners.onCommandKey ]]">
+      <input id="nxCommand" type="search" autocomplete="off" placeholder="Search screens, requests, equipment, units…"
+        aria-label="Search screens, requests, equipment, units and transfers" role="combobox" aria-autocomplete="list" aria-controls="nxResultList"
+        :aria-expanded="[[ $variables.showResults ? 'true' : 'false' ]]"
+        :aria-activedescendant="[[ $variables.showResults && $variables.search.count > 0 ? 'nxRes-' + $variables.resultIndex : '' ]]"
+        :value="[[ $variables.query ]]" on-input="[[ $listeners.onCommandInput ]]" on-keydown="[[ $listeners.onCommandKey ]]" on-focus="[[ $listeners.onCommandFocus ]]">
       <kbd class="nx-kbd" aria-hidden="true">Ctrl K</kbd>
-      <oj-bind-if test="[[ $variables.showResults && $variables.results.length > 0 ]]">
-        <ul id="nxResults" class="nx-results" role="listbox" aria-label="Matches">
-          <oj-bind-for-each data="[[ $variables.results ]]">
-            <template data-oj-as="res">
-              <li role="presentation">
-                <button type="button" role="option" :data-index="[[ res.index ]]" on-click="[[ $listeners.onResult ]]"
-                  :aria-selected="[[ res.index === $variables.resultIndex ? 'true' : 'false' ]]"
-                  :class="[[ 'nx-result' + (res.index === $variables.resultIndex ? ' nx-result--on' : '') ]]">
-                  <span :class="[[ res.data.icon + ' nx-result-icon' ]]" aria-hidden="true"></span>
-                  <span class="nx-result-label"><oj-bind-text value="[[ res.data.label ]]"></oj-bind-text></span>
-                  <span class="nx-result-hint"><oj-bind-text value="[[ res.data.hint ]]"></oj-bind-text></span>
-                </button>
-              </li>
-            </template>
-          </oj-bind-for-each>
-        </ul>
+      <oj-bind-if test="[[ $variables.showResults ]]">
+        <div id="nxResults" class="nx-results nx-gs">
+          <oj-bind-if test="[[ $variables.search.scopes.length > 2 ]]">
+            <div class="nx-gs-scopes" role="group" aria-label="Search in">
+              <oj-bind-for-each data="[[ $variables.search.scopes ]]">
+                <template data-oj-as="sc">
+                  <button type="button" :data-scope="[[ sc.data.key ]]" on-click="[[ $listeners.onSearchScope ]]" :aria-pressed="[[ sc.data.on ? 'true' : 'false' ]]"
+                    :class="[[ 'nx-gs-scope' + (sc.data.on ? ' nx-gs-scope--on' : '') ]]">
+                    <oj-bind-text value="[[ sc.data.label ]]"></oj-bind-text><span class="nx-gs-scope-n"><oj-bind-text value="[[ sc.data.count ]]"></oj-bind-text></span>
+                  </button>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </oj-bind-if>
+          <ul id="nxResultList" class="nx-gs-list" role="listbox" aria-label="Matches">
+            <oj-bind-for-each data="[[ $variables.results ]]">
+              <template data-oj-as="res">
+                <oj-bind-if test="[[ res.data.type === 'head' ]]">
+                  <li role="presentation" class="nx-gs-head"><span class="nx-gs-head-label"><oj-bind-text value="[[ res.data.label ]]"></oj-bind-text></span>
+                    <span class="nx-gs-head-n"><oj-bind-text value="[[ res.data.count ]]"></oj-bind-text></span></li>
+                </oj-bind-if>
+                <oj-bind-if test="[[ res.data.type === 'note' ]]">
+                  <li role="presentation" class="nx-gs-note"><oj-bind-text value="[[ res.data.label ]]"></oj-bind-text></li>
+                </oj-bind-if>
+                <oj-bind-if test="[[ res.data.type === 'row' || res.data.type === 'more' ]]">
+                  <li role="presentation">
+                    <button type="button" role="option" :id="[[ 'nxRes-' + res.data.n ]]" :data-index="[[ res.data.n ]]" :data-key="[[ res.data.key ]]"
+                      on-click="[[ $listeners.onResult ]]" :title="[[ res.data.title ]]"
+                      :aria-selected="[[ res.data.n === $variables.resultIndex ? 'true' : 'false' ]]"
+                      :class="[[ 'nx-result nx-gs-row nx-gs-row--' + res.data.type + (res.data.n === $variables.resultIndex ? ' nx-result--on' : '') ]]">
+                      <span :class="[[ res.data.icon + ' nx-result-icon' ]]" aria-hidden="true"></span>
+                      <span class="nx-gs-text">
+                        <span class="nx-result-label"><oj-bind-text value="[[ res.data.label ]]"></oj-bind-text></span>
+                        <oj-bind-if test="[[ !!res.data.sub ]]">
+                          <span class="nx-gs-sub"><oj-bind-text value="[[ res.data.sub ]]"></oj-bind-text></span>
+                        </oj-bind-if>
+                      </span>
+                      <span :class="[[ 'nx-result-hint' + (res.data.tone ? ' nx-gs-tone--' + res.data.tone : '') ]]"><oj-bind-text value="[[ res.data.hint ]]"></oj-bind-text></span>
+                    </button>
+                  </li>
+                </oj-bind-if>
+              </template>
+            </oj-bind-for-each>
+          </ul>
+          <oj-bind-if test="[[ !$variables.results.length ]]">
+            <p class="nx-gs-empty" id="nxResultsEmpty"><oj-bind-text value="[[ 'Nothing matches “' + $variables.query.trim() + '”' + ($variables.search.scope !== 'all' ? ' here: try Everything.' : '.') ]]"></oj-bind-text></p>
+          </oj-bind-if>
+          <div class="nx-gs-foot">
+            <span class="nx-gs-foot-text" id="nxResultsFoot"><oj-bind-text value="[[ $variables.search.foot ]]"></oj-bind-text></span>
+            <span class="nx-gs-keys" aria-hidden="true"><kbd>↑</kbd><kbd>↓</kbd> move <kbd>Enter</kbd> open <kbd>Esc</kbd> close</span>
+          </div>
+        </div>
       </oj-bind-if>
     </div>
 
@@ -48,6 +87,14 @@
     </oj-bind-if>
 
     <div class="nx-top-end">
+      <oj-bind-if test="[[ $application.functions.canOpen('availability', $application.variables.pageAccessMap, $application.variables.pageAccessLoaded,
+                             $application.variables.featureFlags, $application.variables.flagsLoaded, $application.variables.buRateSources) ]]">
+        <button type="button" class="nx-iconbtn nx-qa-btn" id="nxQa" on-click="[[ $listeners.onQa ]]" data-action="toggle" aria-controls="nxQaPanel"
+          :aria-expanded="[[ $variables.qaOpen ? 'true' : 'false' ]]" aria-label="Check availability: what is free, and where"
+          title="Check availability: what is free, and where">
+          <span class="oj-ux-ico-event-available" aria-hidden="true"></span><span class="nx-qa-btn-text">Check availability</span>
+        </button>
+      </oj-bind-if>
       <button type="button" class="nx-iconbtn" id="nxPhone" on-click="[[ $listeners.onPhone ]]" data-action="toggle" aria-controls="nxPhonePanel"
         :aria-expanded="[[ $variables.phoneOpen ? 'true' : 'false' ]]" aria-label="EquipRite on your phone: QR code" title="EquipRite on your phone (QR code)">
         <span class="oj-ux-ico-qr-code" aria-hidden="true"></span>
@@ -183,8 +230,146 @@
     </main>
   </div>
 
-  <oj-bind-if test="[[ $variables.bellOpen || $variables.tabMenuOpen || $variables.profileOpen || $variables.cartOpen || $variables.phoneOpen ]]">
+  <oj-bind-if test="[[ $variables.bellOpen || $variables.tabMenuOpen || $variables.profileOpen || $variables.cartOpen || $variables.phoneOpen || $variables.qaOpen ]]">
     <button type="button" class="nx-backdrop" on-click="[[ $listeners.onBackdrop ]]" aria-label="Close" tabindex="-1"></button>
+  </oj-bind-if>
+
+  <!-- Check availability: equipment and a window, and at once how many units are free and where, on the Availability
+       screen's rules (qaChain; resources/js/quickAvailability.js; the fleet shared with the search: resources/js/searchData.js). -->
+  <oj-bind-if test="[[ $variables.qaOpen ]]">
+    <aside class="nx-panel nx-qa-panel" id="nxQaPanel" role="dialog" aria-labelledby="nxQaTitle">
+      <div class="nx-panel-head">
+        <h2 id="nxQaTitle"><span class="oj-ux-ico-event-available" aria-hidden="true"></span>Check availability</h2>
+        <button type="button" class="nx-iconbtn nx-iconbtn--sm" data-action="toggle" on-click="[[ $listeners.onQa ]]" aria-label="Close"><span class="oj-ux-ico-close" aria-hidden="true"></span></button>
+      </div>
+      <div class="nx-qa-body">
+        <div class="nx-qa-ask">
+          <label class="nx-qa-label" for="nxQaText">Equipment</label>
+          <div class="nx-qa-field">
+            <span class="oj-ux-ico-search" aria-hidden="true"></span>
+            <input id="nxQaText" type="search" autocomplete="off" placeholder="An excavator, a model, a class…" role="combobox" aria-autocomplete="list"
+              aria-controls="nxQaOptions" :aria-expanded="[[ $variables.qa.optOpen ? 'true' : 'false' ]]"
+              :aria-activedescendant="[[ $variables.qa.optOpen ? 'nxQaOpt-' + $variables.qa.optIndex : '' ]]"
+              :value="[[ $variables.qa.text ]]" on-input="[[ $listeners.onQaText ]]" on-keydown="[[ $listeners.onQaKey ]]">
+            <oj-bind-if test="[[ !!$variables.qa.text ]]">
+              <button type="button" class="nx-iconbtn nx-iconbtn--sm" data-action="clear" on-click="[[ $listeners.onQa ]]" aria-label="Clear the equipment">
+                <span class="oj-ux-ico-close" aria-hidden="true"></span></button>
+            </oj-bind-if>
+          </div>
+          <oj-bind-if test="[[ $variables.qa.optOpen ]]">
+            <div class="nx-qa-options" id="nxQaOptions" role="listbox" aria-label="Equipment and classes">
+              <oj-bind-for-each data="[[ $variables.qa.options ]]">
+                <template data-oj-as="o">
+                  <button type="button" role="option" :id="[[ 'nxQaOpt-' + o.data.n ]]" data-action="pick" :data-key="[[ o.data.key ]]" on-click="[[ $listeners.onQa ]]"
+                    :aria-selected="[[ o.data.n === $variables.qa.optIndex ? 'true' : 'false' ]]"
+                    :class="[[ 'nx-qa-opt nx-qa-opt--' + o.data.kind + (o.data.n === $variables.qa.optIndex ? ' nx-qa-opt--on' : '') ]]">
+                    <span class="nx-qa-opt-label"><oj-bind-text value="[[ o.data.label ]]"></oj-bind-text></span>
+                    <span class="nx-qa-opt-sub"><oj-bind-text value="[[ o.data.sub ]]"></oj-bind-text></span>
+                  </button>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </oj-bind-if>
+        </div>
+        <div class="nx-qa-when">
+          <div class="nx-cart-scope nx-qa-presets" role="group" aria-label="When">
+            <oj-bind-for-each data="[[ $variables.qa.presets ]]">
+              <template data-oj-as="p">
+                <button type="button" data-action="preset" :data-key="[[ p.data.key ]]" on-click="[[ $listeners.onQa ]]"
+                  :aria-pressed="[[ p.data.key === $variables.qa.preset ? 'true' : 'false' ]]"
+                  :class="[[ 'nx-cart-scope-btn' + (p.data.key === $variables.qa.preset ? ' nx-cart-scope-btn--on' : '') ]]"><oj-bind-text value="[[ p.data.label ]]"></oj-bind-text></button>
+              </template>
+            </oj-bind-for-each>
+          </div>
+          <div class="nx-qa-dates">
+            <label class="nx-qa-date"><span>From</span>
+              <input id="nxQaFrom" type="date" :value="[[ $variables.qa.from ]]" on-change="[[ $listeners.onQaFrom ]]"></label>
+            <label class="nx-qa-date"><span>To</span>
+              <input id="nxQaTo" type="date" :value="[[ $variables.qa.to ]]" :min="[[ $variables.qa.from ]]" on-change="[[ $listeners.onQaTo ]]"></label>
+          </div>
+        </div>
+        <p class="nx-qa-win" id="nxQaWin"><oj-bind-text value="[[ $variables.qa.winText ]]"></oj-bind-text></p>
+
+        <oj-bind-if test="[[ $variables.qa.loading ]]">
+          <p class="nx-panel-empty nx-muted" id="nxQaLoading">Reading the fleet and its bookings…</p>
+        </oj-bind-if>
+        <oj-bind-if test="[[ !!$variables.qa.error ]]">
+          <p class="nx-qa-error nx-error-text" id="nxQaError"><oj-bind-text value="[[ $variables.qa.error ]]"></oj-bind-text></p>
+        </oj-bind-if>
+        <oj-bind-if test="[[ !$variables.qa.loading && !$variables.qa.error ]]">
+          <div class="nx-qa-answer">
+            <p class="nx-qa-headline" id="nxQaAnswer" aria-live="polite"><oj-bind-text value="[[ $variables.qa.answer.headline ]]"></oj-bind-text></p>
+            <ul class="nx-qa-rows" aria-label="What is free">
+              <oj-bind-for-each data="[[ $variables.qa.answer.rows ]]">
+                <template data-oj-as="r">
+                  <li :class="[[ 'nx-qa-row nx-qa-row--' + r.data.kind + (r.data.none ? ' nx-qa-row--none' : '') ]]" :data-key="[[ r.data.key ]]">
+                    <div class="nx-qa-row-top">
+                      <span class="nx-qa-row-what">
+                        <span class="nx-qa-row-name"><oj-bind-text value="[[ r.data.name ]]"></oj-bind-text></span>
+                        <span class="nx-qa-row-sub"><oj-bind-text value="[[ r.data.sub ]]"></oj-bind-text></span>
+                      </span>
+                      <span class="nx-qa-count"><oj-bind-text value="[[ r.data.headline ]]"></oj-bind-text></span>
+                    </div>
+                    <span class="nx-qa-bar" aria-hidden="true">
+                      <oj-bind-for-each data="[[ r.data.segs ]]">
+                        <template data-oj-as="s"><span :class="[[ 'nx-qa-seg nx-qa-seg--' + s.data.k ]]" :style="[[ { width: s.data.w } ]]"></span></template>
+                      </oj-bind-for-each>
+                    </span>
+                    <p class="nx-qa-yards"><span class="oj-ux-ico-location-pin" aria-hidden="true"></span><oj-bind-text value="[[ r.data.yardText ]]"></oj-bind-text></p>
+                    <oj-bind-if test="[[ !!r.data.notes ]]">
+                      <p class="nx-qa-notes"><oj-bind-text value="[[ r.data.notes ]]"></oj-bind-text></p>
+                    </oj-bind-if>
+                    <oj-bind-if test="[[ !!r.data.tightWhy ]]">
+                      <p class="nx-qa-why nx-qa-why--tight"><oj-bind-text value="[[ r.data.tightWhy ]]"></oj-bind-text></p>
+                    </oj-bind-if>
+                    <oj-bind-if test="[[ !!r.data.maintWhy ]]">
+                      <p class="nx-qa-why nx-qa-why--maint"><span class="oj-ux-ico-wrench" aria-hidden="true"></span><oj-bind-text value="[[ r.data.maintWhy ]]"></oj-bind-text></p>
+                    </oj-bind-if>
+                    <div class="nx-qa-acts">
+                      <oj-bind-if test="[[ r.data.kind === 'class' ]]">
+                        <button type="button" class="nx-btn nx-btn--sm" data-action="pick" :data-key="[[ r.data.key ]]" on-click="[[ $listeners.onQa ]]">
+                          Its equipment<span class="oj-ux-ico-chevron-right" aria-hidden="true"></span></button>
+                      </oj-bind-if>
+                      <oj-bind-if test="[[ r.data.kind === 'item' && $variables.qa.can360 ]]">
+                        <button type="button" class="nx-btn nx-btn--sm" data-action="open" :data-key="[[ r.data.key ]]" on-click="[[ $listeners.onQa ]]">
+                          <span class="oj-ux-ico-clock-history" aria-hidden="true"></span>Everything about it</button>
+                      </oj-bind-if>
+                      <button type="button" class="nx-btn nx-btn--sm" data-action="availability" :data-key="[[ r.data.key ]]" on-click="[[ $listeners.onQa ]]">
+                        <span class="oj-ux-ico-calendar" aria-hidden="true"></span>Open in Availability</button>
+                    </div>
+                  </li>
+                </template>
+              </oj-bind-for-each>
+            </ul>
+            <oj-bind-if test="[[ $variables.qa.answer.units.length > 0 ]]">
+              <ul class="nx-qa-units" aria-label="Its units in your window">
+                <oj-bind-for-each data="[[ $variables.qa.answer.units ]]">
+                  <template data-oj-as="u">
+                    <li>
+                      <button type="button" class="nx-qa-unit" data-action="unit" :data-key="[[ u.data.serial ]]" on-click="[[ $listeners.onQa ]]"
+                        :disabled="[[ !$variables.qa.can360 ]]" :title="[[ u.data.why ]]">
+                        <span class="nx-qa-unit-serial"><oj-bind-text value="[[ u.data.serial ]]"></oj-bind-text></span>
+                        <span class="nx-qa-unit-yard"><oj-bind-text value="[[ u.data.yard ]]"></oj-bind-text></span>
+                        <span :class="[[ 'nx-qa-state nx-qa-state--' + u.data.state ]]"><oj-bind-text value="[[ u.data.label ]]"></oj-bind-text></span>
+                        <span class="nx-qa-unit-why"><oj-bind-text value="[[ u.data.why ]]"></oj-bind-text></span>
+                      </button>
+                    </li>
+                  </template>
+                </oj-bind-for-each>
+              </ul>
+            </oj-bind-if>
+            <oj-bind-if test="[[ !!$variables.qa.answer.moreText ]]">
+              <p class="nx-qa-more nx-muted"><oj-bind-text value="[[ $variables.qa.answer.moreText ]]"></oj-bind-text></p>
+            </oj-bind-if>
+          </div>
+        </oj-bind-if>
+        <p class="nx-qa-note" id="nxQaNote"><oj-bind-text value="[[ $variables.qa.note ]]"></oj-bind-text></p>
+      </div>
+      <div class="nx-cart-foot nx-qa-foot">
+        <button type="button" class="nx-btn nx-btn--primary nx-btn--sm" id="nxQaOpenAvailability" data-action="availability" data-key="" on-click="[[ $listeners.onQa ]]">
+          <span class="oj-ux-ico-calendar" aria-hidden="true"></span>Open in Availability</button>
+      </div>
+    </aside>
   </oj-bind-if>
 
   <!-- EquipRite on your phone: a QR code the phone's camera opens EquipRite Mobile from (phoneChain; resources/js/phoneLink.js). -->

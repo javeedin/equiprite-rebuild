@@ -1,30 +1,33 @@
 define([
   'vb/action/actionChain',
-  'resources/js/nav',
-], (ActionChain, nav) => {
+  'vb/action/actions',
+], (ActionChain, Actions) => {
   'use strict';
 
-  // The command bar: screens this role may open that match what is typed (label, group, keywords), and, when the text
-  // looks like a request number, "Open request …" first.
-  const MAX = 8;
+  // The toolbar search, as it is typed: the words are kept at once, and the matches (searchChain: screens, requests,
+  // equipment, units, transfers) are worked out once typing pauses (DEBOUNCE_MS), so typing never waits for them.
+  // Enter and the arrow keys do not wait for the pause (commandKeyChain asks for the matches at once).
+  const DEBOUNCE_MS = 80;
+  let seq = 0;
 
   class commandChain extends ActionChain {
     async run(context, { text }) {
-      const { $page, $application } = context;
-      const v = $application.variables;
+      const pv = context.$page.variables;
       const q = String(text || '');
-      $page.variables.query = q;
-      const groups = nav.visibleGroups(v.pageAccessMap, v.pageAccessLoaded, v.featureFlags, v.flagsLoaded, v.buRateSources);
-      const out = nav.search(q, groups).map((r) => ({ kind: 'nav', navId: r.id, label: r.label, icon: r.icon, hint: r.group || 'Screen' }));
-      const t = q.trim();
-      const canRequests = groups.some((g) => g.items.some((i) => i.id === 'requests'));
-      if (canRequests && /\d{3,}/.test(t)) {
-        const number = /^\d+$/.test(t) ? 'REQ-' + t : t.toUpperCase();
-        out.unshift({ kind: 'record', record: 'request', params: { number }, label: 'Open request ' + number, icon: 'oj-ux-ico-file-text', hint: 'Request' });
+      const search = pv.search || {};
+      pv.query = q;
+      const mine = ++seq;
+      if (!q.trim()) {
+        pv.showResults = false;
+        pv.results = [];
+        pv.search = Object.assign({}, search, { forQuery: '', expanded: '', count: 0 });
+        return;
       }
-      $page.variables.results = out.slice(0, MAX);
-      $page.variables.resultIndex = 0;
-      $page.variables.showResults = !!t;
+      await new Promise((r) => setTimeout(r, DEBOUNCE_MS));
+      if (mine !== seq) return;
+      // "N more" opened a group for the words before: new words start from the groups' first rows again.
+      if ((pv.search || {}).expanded) pv.search = Object.assign({}, pv.search, { expanded: '' });
+      await Actions.callChain(context, { chain: 'searchChain', params: {} });
     }
   }
 

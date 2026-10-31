@@ -26,6 +26,7 @@ define([
       if (action === 'toggle') {
         v.cartOpen = !v.cartOpen;
         v.phoneOpen = false;
+        v.qaOpen = false;
         v.bellOpen = false;
         v.profileOpen = false;
         v.tabMenuOpen = false;

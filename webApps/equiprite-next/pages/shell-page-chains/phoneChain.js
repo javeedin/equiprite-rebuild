@@ -34,6 +34,7 @@ define([
         return;
       }
       v.phoneOpen = !v.phoneOpen;
+      v.qaOpen = false;
       v.bellOpen = false;
       v.profileOpen = false;
       v.cartOpen = false;

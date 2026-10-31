@@ -1,5 +1,5 @@
 {
-  "description": "EquipRite Next shell: toolbar (menu toggle, brand, command bar, Old/New/Next switch, bell, user), a light collapsible menu, and the tab strip over oj-vb-switcher, which keeps every open tab's page alive. Tabs: resources/js/tabs.js; menu: resources/js/nav.js; bell: resources/js/alerts.js.",
+  "description": "EquipRite Next shell: toolbar (menu toggle, brand, global search (screens, requests, equipment, units, transfers: resources/js/globalSearch.js), Check availability (resources/js/quickAvailability.js), Old/New/Next switch, bell, user), a light collapsible menu, and the tab strip over oj-vb-switcher, which keeps every open tab's page alive. Tabs: resources/js/tabs.js; menu: resources/js/nav.js; bell: resources/js/alerts.js.",
   "variables": {
     "tabs": {
       "type": "vb/ArrayDataProvider2",
@@ -34,15 +34,30 @@
     },
     "results": {
       "type": "any[]",
-      "defaultValue": []
+      "defaultValue": [],
+      "description": "The search list, in order: group headings ({ type: head }), matches ({ type: row, n, label, sub, hint, open }) and \"N more\" ({ type: more, n }); n numbers the ones that can be chosen (resources/js/globalSearch.js)."
     },
     "resultIndex": {
       "type": "number",
-      "defaultValue": 0
+      "defaultValue": 0,
+      "description": "The n of the match chosen (arrow keys)."
     },
     "showResults": {
       "type": "boolean",
       "defaultValue": false
+    },
+    "search": {
+      "type": "any",
+      "defaultValue": {
+        "scope": "all",
+        "expanded": "",
+        "scopes": [],
+        "count": 0,
+        "forQuery": "",
+        "empty": "",
+        "foot": ""
+      },
+      "description": "The global search: the scope (all | screens | requests | equipment), a group opened by \"N more\", the scopes with their counts, how many matches can be chosen, the words they are for, and the foot (what is searched, what could not be read)."
     },
     "bellOpen": {
       "type": "boolean",
@@ -55,7 +70,10 @@
     },
     "drafts": {
       "type": "any",
-      "defaultValue": { "mine": [], "others": [] },
+      "defaultValue": {
+        "mine": [],
+        "others": []
+      },
       "description": "Requests saved as drafts (cartDrafts.list): yours, and everyone else's for a manager."
     },
     "draftsAll": {
@@ -85,6 +103,49 @@
         "desktop": false
       },
       "description": "The ways onto a phone (resources/js/phoneLink.js), the one shown, its address and QR code."
+    },
+    "qaOpen": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "Check availability: the toolbar panel."
+    },
+    "qa": {
+      "type": "any",
+      "defaultValue": {
+        "loading": false,
+        "error": "",
+        "note": "",
+        "maint": "",
+        "text": "",
+        "pickKind": "",
+        "pickKey": "",
+        "pickLabel": "",
+        "from": "",
+        "to": "",
+        "preset": "",
+        "winText": "",
+        "presets": [],
+        "options": [],
+        "optIndex": 0,
+        "optOpen": false,
+        "can360": false,
+        "answer": {
+          "kind": "none",
+          "headline": "",
+          "rows": [],
+          "units": [],
+          "more": 0,
+          "moreText": "",
+          "availText": "",
+          "win": {
+            "from": "",
+            "to": "",
+            "days": 0,
+            "text": ""
+          }
+        }
+      },
+      "description": "Check availability (qaChain; resources/js/quickAvailability.js): what is asked (equipment typed or picked, the window), the suggestions, and the answer."
     },
     "profileOpen": {
       "type": "boolean",
@@ -186,6 +247,10 @@
     },
     "refreshDrafts": {
       "description": "From the page module: the requests changed (requestData.onChange), so the cart counts its drafts again.",
+      "payloadType": "object"
+    },
+    "searchAway": {
+      "description": "From the page module: a click outside the search box and its list, which closes the list.",
       "payloadType": "object"
     }
   },
@@ -298,6 +363,23 @@
         }
       ]
     },
+    "onCommandFocus": {
+      "chains": [
+        {
+          "chain": "searchFocusChain"
+        }
+      ]
+    },
+    "onSearchScope": {
+      "chains": [
+        {
+          "chain": "searchScopeChain",
+          "parameters": {
+            "scope": "{{ $event.currentTarget.dataset.scope }}"
+          }
+        }
+      ]
+    },
     "onResult": {
       "chains": [
         {
@@ -305,6 +387,13 @@
           "parameters": {
             "index": "{{ $event.currentTarget.dataset.index }}"
           }
+        }
+      ]
+    },
+    "searchAway": {
+      "chains": [
+        {
+          "chain": "searchCloseChain"
         }
       ]
     },
@@ -354,6 +443,61 @@
           "parameters": {
             "action": "{{ $event.currentTarget.dataset.action }}",
             "key": "{{ $event.currentTarget.dataset.key }}"
+          }
+        }
+      ]
+    },
+    "onQa": {
+      "chains": [
+        {
+          "chain": "qaChain",
+          "parameters": {
+            "action": "{{ $event.currentTarget.dataset.action }}",
+            "key": "{{ $event.currentTarget.dataset.key }}"
+          }
+        }
+      ]
+    },
+    "onQaText": {
+      "chains": [
+        {
+          "chain": "qaChain",
+          "parameters": {
+            "action": "text",
+            "text": "{{ $event.target.value }}"
+          }
+        }
+      ]
+    },
+    "onQaKey": {
+      "chains": [
+        {
+          "chain": "qaChain",
+          "parameters": {
+            "action": "key",
+            "key": "{{ $event.key }}"
+          }
+        }
+      ]
+    },
+    "onQaFrom": {
+      "chains": [
+        {
+          "chain": "qaChain",
+          "parameters": {
+            "action": "from",
+            "value": "{{ $event.target.value }}"
+          }
+        }
+      ]
+    },
+    "onQaTo": {
+      "chains": [
+        {
+          "chain": "qaChain",
+          "parameters": {
+            "action": "to",
+            "value": "{{ $event.target.value }}"
           }
         }
       ]
