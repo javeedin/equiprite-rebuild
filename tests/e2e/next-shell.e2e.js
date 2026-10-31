@@ -101,6 +101,27 @@ function handle(req, res) {
     await page.waitForTimeout(300);
     T.eq('middle-click closes a tab', await page.$$eval('.nx-tab', (t) => t.map((x) => x.dataset.tabId).join()), 'home,' + TAB2.id);
 
+    T.section('the tab menu: close other tabs, close all tabs');
+    const tabIds = () => page.$$eval('.nx-tab', (t) => t.map((x) => x.dataset.tabId).join());
+    await page.click('.nx-nav-item[data-nav-id="requests"]');
+    await page.click('.nx-nav-item[data-nav-id="fleet"]');
+    await page.click('.nx-tab-btn[data-id="requests"]');
+    await page.waitForTimeout(300);
+    await page.click('.nx-tabbar-end [data-action="toggle"]');
+    await page.waitForSelector('.nx-tabbar-end .nx-menu');
+    await page.click('.nx-tabbar-end .nx-menu [data-action="others"]');
+    await page.waitForFunction(() => document.querySelectorAll('.nx-tab').length === 2, null, { timeout: 5000 }).catch(() => {});
+    T.eq('Close other tabs: My work and the one in front stay', await tabIds(), 'home,requests');
+    T.check('…and the menu closes', !(await page.$('.nx-tabbar-end .nx-menu')));
+    await page.click('.nx-nav-item[data-nav-id="fleet"]');
+    await page.waitForTimeout(300);
+    await page.click('.nx-tabbar-end [data-action="toggle"]');
+    await page.click('.nx-tabbar-end .nx-menu [data-action="all"]');
+    await page.waitForFunction(() => document.querySelectorAll('.nx-tab').length === 1, null, { timeout: 5000 }).catch(() => {});
+    T.eq('Close all tabs: only My work', await tabIds(), 'home');
+    await page.click(`.nx-nav-item[data-nav-id="${TAB2.id}"]`);
+    await page.waitForSelector(`.nx-tab--on[data-tab-id="${TAB2.id}"]`);
+
     T.section('the menu collapses, and both are remembered');
     await page.click('#nxNavToggle');
     await page.waitForTimeout(300);

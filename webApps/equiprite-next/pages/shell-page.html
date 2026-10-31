@@ -179,7 +179,7 @@
     <button type="button" class="nx-scrim" on-click="[[ $listeners.toggleNav ]]" aria-label="Close the menu" tabindex="-1"></button>
 
     <main class="nx-main">
-      <div class="nx-tabbar">
+      <div :class="[[ 'nx-tabbar' + ($variables.tabMenuOpen ? ' nx-tabbar--menu' : '') ]]">
         <div class="nx-tabs" role="tablist" aria-label="Open screens">
           <oj-bind-for-each data="[[ $variables.tabList ]]">
             <template data-oj-as="tab">

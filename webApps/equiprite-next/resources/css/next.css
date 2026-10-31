@@ -150,6 +150,9 @@
 .nx-switcher { display: block; min-height: 100%; }
 
 .nx-backdrop { position: fixed; inset: 0; z-index: 40; border: 0; background: transparent; cursor: default; }
+/* The tab bar is its own stacking layer (z-index 20): while its menu is open it sits above the backdrop, or the
+   backdrop would take the menu's clicks (Close other tabs, Close all tabs) and only close it. */
+.nx-tabbar--menu { z-index: 45; }
 .nx-panel { position: fixed; z-index: 55; background: #fff; border: 1px solid var(--nx-line); border-radius: 12px; box-shadow: var(--nx-shadow-pop); }
 .nx-bell-panel { top: calc(var(--nx-top-h) - 4px); right: 12px; width: min(400px, calc(100vw - 24px)); max-height: min(70vh, 640px); display: flex; flex-direction: column; }
 /* Your carts: the requests saved as drafts */
