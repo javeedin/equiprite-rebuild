@@ -118,7 +118,8 @@ define(['resources/js/rules'], function (rules) {
       key: function (p) { return p && (p.serial || p.unit) ? 'unit-' + (p.serial || p.unit) : 'item-' + ((p && (p.equipmentId || p.name)) || ''); },
       title: function (p) { return (p && (p.serial || p.unit || p.name || p.equipmentId)) || 'Equipment'; } },
     unit: { flow: 'fleet', page: 'equipment', icon: 'oj-ux-ico-truck', navId: 'fleet',
-      title: function (p) { return (p && (p.unit || p.id)) || 'Unit'; } },
+      key: function (p) { return p ? (p.unit || p.serial || p.id || '') : ''; },
+      title: function (p) { return (p && (p.unit || p.serial || p.id)) || 'Unit'; } },
     // A saved project draft, reopened in New request to finish it: { id: request id, number }.
     draft: { flow: 'order', page: 'new-request', icon: 'oj-ux-ico-cart-add', navId: 'new-request',
       title: function (p) { return 'Draft ' + ((p && (p.number || p.id)) || ''); } },
