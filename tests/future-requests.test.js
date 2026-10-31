@@ -50,7 +50,7 @@ T.eq('…nothing matches: said in words', R.list(s, { text: 'nothing like this' 
 T.eq('Faisal sees only ProjectCo KSA\'s', [R.list(as(s, 'p-pk'), {}).scope, R.list(as(s, 'p-pk'), {}).rows.map((r) => r.number).join()].join(' | '), 'Requests of ProjectCo KSA Projects | FR-1003');
 T.eq('…its relationship: cross-border', R.list(as(s, 'p-pk'), {}).rows[0].relChips.map((c) => c.label + '/' + c.tone).join(), 'Intercompany · cross-border/xb');
 T.eq('Lena (rental desk) sees FleetCo\'s customer rental', R.list(as(s, 'p-desk'), {}).rows.map((r) => r.number + ' ' + r.typeText + ' ' + r.relText).join(), 'FR-1004 Customer rental Customer rental');
-const ret = as(F.state('returned'), 'p-pm');
+const ret = as(F.state('closed'), 'p-pm');
 const done = R.list(ret, { chip: 'unfinished' });
 T.check('returned: r1 is financially complete, off the "Money not complete" chip', R.list(ret, {}).rows.find((r) => r.id === ids.r1).finComplete && !done.rows.some((r) => r.id === ids.r1));
 T.eq('…and the list says so', R.list(ret, {}).rows.find((r) => r.id === ids.r1).moneyLine, '7 of 7 · Financially complete');

@@ -202,7 +202,7 @@ function fxState() {
     await page.click('#setupSections .fx-section[data-value="people"]');
     await page.waitForSelector('#setupPeopleRows');
     T.eq('the people, Sara playing now, the others to play as', await page.$$eval('#setupPeopleRows .nx-row[data-person]', (r) => r.map((x) => (x.querySelector('.fx-play') || x.querySelector('.fx-chip')).innerText.trim()).join(', ')),
-      'Play as Priya, Play as Omar, Play as Mark, Play as Faisal, Play as Huda, Play as Ana, Play as Ravi, Play as Lena, Playing now, Play as Admin');
+      'Play as Priya, Play as Omar, Play as Yusuf, Play as Mark, Play as Faisal, Play as Huda, Play as Ana, Play as Ravi, Play as Lena, Playing now, Play as Admin');
 
     T.section('a rate change makes version 2, and says so first');
     await page.click('#setupSections .fx-section[data-value="agreements"]');
@@ -231,7 +231,7 @@ function fxState() {
     T.check('…the card says v2, the draft is gone', (await page.$eval('#setupAgreements .fx-ag[data-agreement="ICA-01"] .fx-ag-version', (v) => v.innerText)) === 'v2'
       && !(await page.$('.fx-preview[data-preview="rate|ICA-01|EXC|"]')));
     T.check('…and the toast says what happened', (await toast()).includes('ICA-FC-PC-2026 v2: EXC 850/day, 3700/week'), await toast());
-    T.check('a customer agreement\'s history starts at v1 as set up', (await page.$eval('#setupAgreements .fx-ag[data-agreement="RA-01"] .fx-versions', (v) => v.innerText)).includes('As the demo group was set up'));
+    T.check('a customer agreement\'s history starts at v1 as set up', (await page.$eval('#setupAgreements .fx-ag[data-agreement="RA-01"] .fx-versions', (v) => v.innerText)).includes('FleetCo rental desk'));
 
     T.section('decisions: a switch, a choice, a number');
     await page.click('#setupSections .fx-section[data-value="decisions"]');

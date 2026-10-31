@@ -27,6 +27,9 @@ define(['resources/js/future/fxSeed'], function (Seed) {
   function clone(o) { return JSON.parse(JSON.stringify(o)); }
   function byId(list, id) { for (var i = 0; i < (list || []).length; i++) if (list[i].id === id) return list[i]; return null; }
   function pad(n, w) { var s = String(n); while (s.length < w) s = '0' + s; return s; }
+  var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  function hd(x) { if (!x) return ''; var q = String(x).split('-'); return (+q[2]) + ' ' + MON[+q[1] - 1] + ' ' + q[0]; }
+  function mny(n, cur) { var v = r2(n); return (cur ? cur + ' ' : '') + (v < 0 ? '−' : '') + Math.abs(v).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
   function sum(list, f) { return r2((list || []).reduce(function (a, x) { return a + (f ? f(x) : x); }, 0)); }
 
   // ── Lookups ────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -109,8 +112,8 @@ define(['resources/js/future/fxSeed'], function (Seed) {
     var c = (u.certs || []).filter(function (x) { return x.country === countryCode; });
     if (!c.length) return { ok: false, text: 'No certificate for ' + country(s, countryCode).name };
     var bad = c.filter(function (x) { return x.expiry < to; })[0];
-    if (bad) return { ok: false, text: bad.type + ' (' + countryCode + ') expires ' + bad.expiry + ', before the hire ends' };
-    return { ok: true, text: c.map(function (x) { return x.type + ' to ' + x.expiry; }).join('; ') };
+    if (bad) return { ok: false, text: bad.type + ' (' + countryCode + ') expires ' + hd(bad.expiry) + ', before the hire ends' };
+    return { ok: true, text: c.map(function (x) { return x.type + ' to ' + hd(x.expiry); }).join('; ') };
   }
 
   /**
@@ -140,7 +143,10 @@ define(['resources/js/future/fxSeed'], function (Seed) {
           unitId: u.id, serial: u.serial, name: u.name, cls: u.cls, hold: u.hold, owner: pv.bu, ownerName: buName(s, pv.bu), ownerLe: leOf(s, pv.bu).id,
           ownerShort: leOf(s, pv.bu).short, relation: rel, priority: pv.priority, leadDays: pv.leadDays, country: u.country,
           agreementId: ag ? ag.id : '', price: price, estimate: est, estimateCurrency: lec, estimateNote: price && price.currency !== lec ? 'estimate at today\'s rate' : '',
-          free: !b, busyWith: b, certOk: cert.ok, certText: cert.text, usable: !b && cert.ok && !!price && !(u.status === 'IN_REPAIR')
+          free: !b, busyWith: b, certOk: cert.ok, certText: cert.text, unitStatus: u.status,
+          usable: !b && cert.ok && !!price && ['IN_REPAIR', 'INSPECTION'].indexOf(u.status) === -1,
+          why: b ? 'Booked on ' + b.request + ' until ' + hd(b.to) : u.status === 'IN_REPAIR' ? 'In repair at the yard' : u.status === 'INSPECTION' ? 'Back at the yard, waiting for its inspection'
+            : !price ? 'No agreed price for this class with ' + buName(s, pv.bu) : !cert.ok ? cert.text : 'Free · ' + cert.text
         });
       });
     });
@@ -196,7 +202,7 @@ define(['resources/js/future/fxSeed'], function (Seed) {
     run: function (s, p, x) {
       var days = Math.max(1, Math.min(120, Number(x.days) || 1));
       for (var i = 0; i < days; i++) { s.today = addDays(s.today, 1); daily(s); }
-      log(s, p, 'Moved the demo clock to ' + s.today);
+      log(s, p, 'Moved the demo clock to ' + hd(s.today));
     }
   };
   A.toMonthEnd = {
@@ -204,7 +210,7 @@ define(['resources/js/future/fxSeed'], function (Seed) {
       var end = monthEnd(monthOf(s.today));
       if (end === s.today) end = monthEnd(nextMonth(monthOf(s.today)));
       while (s.today < end) { s.today = addDays(s.today, 1); daily(s); }
-      log(s, p, 'Moved the demo clock to the month end, ' + s.today);
+      log(s, p, 'Moved the demo clock to the month end, ' + hd(s.today));
     }
   };
 
@@ -233,7 +239,7 @@ define(['resources/js/future/fxSeed'], function (Seed) {
     (s.customs || []).filter(function (c) { return c.status === 'OPEN'; }).forEach(function (c) {
       var left = diffDays(c.reexportBy, s.today);
       [30, 14, 7].forEach(function (t) {
-        if (left === t) notify(s, { bu: c.owner, roles: ['owner-em', 'yard', 'ic-finance'] }, 'Temporary import ' + c.permit + ' for ' + c.serial + ' ends in ' + t + ' days (' + c.reexportBy + '): extend, re-export or regularise.', { navId: 'reports' }, 'warning');
+        if (left === t) notify(s, { bu: c.owner, roles: ['owner-em', 'yard', 'ic-finance'] }, 'Temporary import ' + c.permit + ' for ' + c.serial + ' ends in ' + t + ' days (' + hd(c.reexportBy) + '): extend, re-export or regularise.', { navId: 'reports' }, 'warning');
       });
     });
     (s.units || []).filter(function (u) { return u.custody.kind === 'site' || u.custody.kind === 'customer'; }).forEach(function (u) {
@@ -262,7 +268,7 @@ define(['resources/js/future/fxSeed'], function (Seed) {
         }
       }
       if (!x.from || !x.to || x.to < x.from) fail('Give the dates the equipment is needed, from and to.');
-      if (x.from < s.today) fail('The start cannot be in the past (today is ' + s.today + ').');
+      if (x.from < s.today) fail('The start cannot be in the past (today is ' + hd(s.today) + ').');
       if (!(x.lines || []).length) fail('Add at least one piece of equipment.');
       var siteCountry = rental ? cust.country : prj.country;
       var id = 'R' + next(s, 'request');
@@ -277,9 +283,9 @@ define(['resources/js/future/fxSeed'], function (Seed) {
         var opts = sourcing(s, { requestingBu: reqBu, cls: ln.cls, from: x.from, to: x.to, country: siteCountry, customerId: rental ? cust.id : '' });
         var o = ln.unitId ? opts.filter(function (q) { return q.unitId === ln.unitId; })[0] : opts.filter(function (q) { return q.usable && (!ln.provider || q.owner === ln.provider); })[0];
         if (!o) fail('Nothing usable in ' + ln.cls + ' for these dates.');
-        if (!o.usable) fail(o.serial + ' cannot be used: ' + (o.busyWith ? 'booked on ' + o.busyWith.request : !o.certOk ? o.certText : 'no price agreed'));
+        if (!o.usable) fail(o.serial + ' cannot be used: ' + o.why + '.');
         r.lines.push({
-          id: 'L' + next(s, 'line'), cls: ln.cls, provider: o.owner, providerLe: o.ownerLe, relation: o.relation, agreementId: o.agreementId,
+          id: 'L' + next(s, 'line'), cls: ln.cls, provider: o.owner, providerLe: o.ownerLe, relation: o.relation, agreementId: o.agreementId, agreementVersion: o.agreementId ? agreement(s, o.agreementId).version : 0,
           preferredUnit: o.unitId, unitId: null, hold: o.hold, status: 'REQUESTED', price: o.price, estimate: o.estimate,
           segments: prj ? [{ projectId: prj.id, task: r.task, from: x.from }] : [], events: { requested: s.today }, inspection: null, loss: null, customsId: null, reason: ''
         });
@@ -340,8 +346,9 @@ define(['resources/js/future/fxSeed'], function (Seed) {
       if (o.l.status !== 'REQUESTED') fail('This line is already ' + o.l.status.toLowerCase().replace(/_/g, ' ') + '.');
       var u = unitOf(s, x.unitId || o.l.preferredUnit);
       if (!u || u.owner !== o.l.provider || u.cls !== o.l.cls) fail('Choose one of your own units of this class.');
+      if (o.l.inPlace ? u.id !== o.l.preferredUnit : u.status !== 'AVAILABLE') fail(u.serial + ' cannot be allocated: ' + ({ IN_REPAIR: 'it is in repair', INSPECTION: 'it waits for its inspection', LOST: 'it is lost', OUT: 'it is out on another hire' }[u.status] || 'it is not in the yard') + '.');
       var b = busy(s, u.id, o.r.from, o.r.to, o.l.id);
-      if (b) fail(u.serial + ' is booked on ' + b.request + ' until ' + b.to + '.');
+      if (b) fail(u.serial + ' is booked on ' + b.request + ' until ' + hd(b.to) + '.');
       var c = certCheck(s, u, o.r.country, o.r.to);
       if (!c.ok) fail(u.serial + ' cannot go: ' + c.text + ' (MC-FR-18).');
       if (o.r.type === 'CUSTOMER_RENTAL') {
@@ -383,7 +390,7 @@ define(['resources/js/future/fxSeed'], function (Seed) {
       var t = addTx(s, { kind: 'DEPOSIT', le: l.providerLe, title: 'Deposit from ' + customer(s, r.customerId).name, refs: { requestId: r.id, customerId: r.customerId },
         lines: [{ account: '1100', dr: amt }, { account: '2300', cr: amt, sub: customer(s, r.customerId).name }] });
       r.deposit = { amount: amt, txId: t.id, date: s.today, settled: false };
-      log(s, p, 'Received the deposit of ' + amt + ' on ' + r.number, { requestId: r.id });
+      log(s, p, 'Received the deposit of ' + mny(amt, ag.currency) + ' on ' + r.number, { requestId: r.id });
     }
   };
 
@@ -432,14 +439,14 @@ define(['resources/js/future/fxSeed'], function (Seed) {
       if (o.l.status !== 'SHIPPED' && !(o.l.status === 'APPROVED' && o.l.inPlace)) fail('Receive it when it has been shipped.');
       var u = unitOf(s, o.l.unitId);
       if (u.hold === 'STOCK' && o.l.toOrg && !o.l.inPlace) {
-        addTx(s, { kind: 'TO_RECEIPT', le: leOf(s, u.owner).id, title: 'Transfer order ' + (o.l.toNumber || '') + ' received at ' + byId(s.orgs, o.l.toOrg).name + ' (locator ' + (project(s, o.r.projectId) || {}).number + ')',
+        addTx(s, { kind: 'TO_RECEIPT', le: leOf(s, u.owner).id, title: 'Transfer order ' + (o.l.toNumber || '') + ' received at ' + byId(s.orgs, o.l.toOrg).name + ' (locator ' + (o.r.projectId ? project(s, o.r.projectId).number : customer(s, o.r.customerId).name) + ')',
           refs: { requestId: o.r.id, lineId: o.l.id, unitId: u.id }, lines: [{ account: '1320', dr: u.stock.bookValue, sub: byId(s.orgs, o.l.toOrg).name }, { account: '1310', cr: u.stock.bookValue }] });
       }
       o.l.status = 'ON_HIRE';
       o.l.events.onHire = s.settings.onHire === 'DISPATCH' ? (o.l.events.shipped || s.today) : s.today;
       u.custody = { kind: o.r.type === 'CUSTOMER_RENTAL' ? 'customer' : 'site', org: o.l.toOrg || '', label: o.r.site + (o.r.projectId ? ' · ' + project(s, o.r.projectId).number : '') };
       u.country = o.r.country;
-      log(s, p, 'Received ' + u.serial + ': on hire from ' + o.l.events.onHire, { requestId: o.r.id, lineId: o.l.id });
+      log(s, p, 'Received ' + u.serial + ': on hire from ' + hd(o.l.events.onHire), { requestId: o.r.id, lineId: o.l.id });
     }
   };
 
@@ -492,8 +499,9 @@ define(['resources/js/future/fxSeed'], function (Seed) {
       var o = userLine(s, p, x);
       if (o.l.status !== 'ON_HIRE') fail('Only a unit on hire can break down.');
       var days = Math.max(1, Math.min(30, Number(x.days) || 1));
-      s.breakdowns.push({ id: 'B' + next(s, 'note'), requestId: o.r.id, lineId: o.l.id, date: s.today, days: days, reason: x.reason || 'Owner-caused fault', by: p.name });
-      notify(s, { bu: o.l.provider, roles: ['owner-em'] }, unitOf(s, o.l.unitId).serial + ' broke down at ' + o.r.site + ' (' + days + ' day(s)): ' + (x.reason || ''), { record: 'request', id: o.r.id }, 'warning');
+      var why = x.reason || 'Owner-caused fault';
+      s.breakdowns.push({ id: 'B' + next(s, 'note'), requestId: o.r.id, lineId: o.l.id, date: s.today, days: days, reason: why, by: p.name });
+      notify(s, { bu: o.l.provider, roles: ['owner-em'] }, unitOf(s, o.l.unitId).serial + ' broke down at ' + o.r.site + ' (' + days + ' day(s)): ' + why, { record: 'request', id: o.r.id }, 'warning');
       log(s, p, 'Reported a breakdown of ' + days + ' day(s)', { requestId: o.r.id, lineId: o.l.id });
     }
   };
@@ -505,7 +513,7 @@ define(['resources/js/future/fxSeed'], function (Seed) {
       o.l.status = 'OFF_HIRED';
       o.l.events.offHire = s.today;
       unitOf(s, o.l.unitId).custody.label = 'Released at ' + o.r.site + ', waiting for collection';
-      notify(s, { bu: o.l.provider, roles: ['yard'] }, 'Collect ' + unitOf(s, o.l.unitId).serial + ' from ' + o.r.site + ' (off hire ' + s.today + ').', { navId: 'yard' }, 'action');
+      notify(s, { bu: o.l.provider, roles: ['yard'] }, 'Collect ' + unitOf(s, o.l.unitId).serial + ' from ' + o.r.site + ' (off hire ' + hd(s.today) + ').', { navId: 'yard' }, 'action');
       log(s, p, 'Off hire: ' + unitOf(s, o.l.unitId).serial, { requestId: o.r.id, lineId: o.l.id });
     }
   };
@@ -543,8 +551,8 @@ define(['resources/js/future/fxSeed'], function (Seed) {
       if (amt > 0 && !(Number(x.photos) >= 1 || x.photos == null)) fail('A damage charge needs photos (MC-FR-29).');
       o.l.status = 'CLOSED';
       u.status = amt > 0 ? 'IN_REPAIR' : 'AVAILABLE';
-      if (amt > 0) notify(s, { bu: o.r.requestingBu, roles: ['requester', 'receiver-review'] }, u.serial + ' came back damaged: ' + amt + ' will be charged' + (amt > s.settings.damageThreshold ? ' (needs your acceptance, OD-11)' : '') + '.', { record: 'request', id: o.r.id }, 'warning');
-      log(s, p, 'Inspected ' + u.serial + ': ' + (amt > 0 ? 'damage ' + amt : 'pass'), { requestId: o.r.id, lineId: o.l.id });
+      if (amt > 0) notify(s, { bu: o.r.requestingBu, roles: ['requester', 'receiver-review'] }, u.serial + ' came back damaged: ' + mny(amt, (o.l.price || {}).currency) + ' will be charged' + (amt > s.settings.damageThreshold ? ' (needs your acceptance, OD-11)' : '') + '.', { record: 'request', id: o.r.id }, 'warning');
+      log(s, p, 'Inspected ' + u.serial + ': ' + (amt > 0 ? 'damage ' + mny(amt, (o.l.price || {}).currency) : 'pass'), { requestId: o.r.id, lineId: o.l.id });
     }
   };
   A.repairDone = { who: ['owner-em', 'yard'], run: function (s, p, x) { var u = unitOf(s, x.unitId); if (!u || !inBu(p, u.owner)) fail('Not your unit.'); u.status = 'AVAILABLE'; log(s, p, u.serial + ' repaired, back in the fleet'); } };
@@ -572,7 +580,7 @@ define(['resources/js/future/fxSeed'], function (Seed) {
           lines: [{ account: '1520', dr: value }, { account: l.toOrg ? '1320' : '1310', cr: nbv }, { account: '4310', cr: r2(value - nbv) }] });
       }
       if (l.customsId) { var c = byId(s.customs, l.customsId); c.status = 'REGULARISE'; c.outcome = 'Lost: regularise with customs'; }
-      notify(s, { bu: l.provider, roles: ['owner-em', 'owner-finance'] }, u.serial + ' lost at ' + r.site + ': charged at ' + value + ' (net book value + ' + Math.round(s.settings.lossMarkupPct * 100) + ' %).', { record: 'request', id: r.id }, 'warning');
+      notify(s, { bu: l.provider, roles: ['owner-em', 'owner-finance'] }, u.serial + ' lost at ' + r.site + ': charged at ' + mny(value, leOf(s, u.owner).currency) + ' (net book value + ' + Math.round(s.settings.lossMarkupPct * 100) + ' %).', { record: 'request', id: r.id }, 'warning');
       log(s, p, 'Reported ' + u.serial + ' lost; insurance claim ' + l.loss.claim, { requestId: r.id, lineId: l.id });
     }
   };
@@ -587,7 +595,7 @@ define(['resources/js/future/fxSeed'], function (Seed) {
       if (!to || to.bu !== o.r.requestingBu) fail('Choose another project of the same business unit.');
       if (o.l.segments.length && o.l.segments[o.l.segments.length - 1].projectId === to.id) fail('It is already on that project.');
       o.l.segments.push({ projectId: to.id, task: x.task || to.tasks[0], from: s.today });
-      log(s, p, unitOf(s, o.l.unitId).serial + ' moved to ' + to.number + ' from ' + s.today + ': charges go there from today', { requestId: o.r.id, lineId: o.l.id });
+      log(s, p, unitOf(s, o.l.unitId).serial + ' moved to ' + to.number + ' from ' + hd(s.today) + ': charges go there from today', { requestId: o.r.id, lineId: o.l.id });
     }
   };
   A.moveToCompany = {
@@ -595,6 +603,7 @@ define(['resources/js/future/fxSeed'], function (Seed) {
     run: function (s, p, x) {
       var o = userLine(s, p, x);
       if (o.l.status !== 'ON_HIRE') fail('Move a unit while it is on hire.');
+      if (o.r.type === 'CUSTOMER_RENTAL') fail('A customer has this unit: it comes back to the owner first.');
       var to = project(s, x.projectId);
       if (!to || to.bu === o.r.requestingBu) fail('Choose a project of another group company.');
       if (to.country !== o.r.country) fail('A handover on site stays in ' + country(s, o.r.country).name + ': across a border, return it and request it again.');
@@ -611,7 +620,7 @@ define(['resources/js/future/fxSeed'], function (Seed) {
       var nr = { id: 'R' + next(s, 'request'), number: 'FR-' + s.seq.request, requestingBu: to.bu, requestingLe: leOf(s, to.bu).id, type: to.type === 'contract' ? 'CUSTOMER_PROJECT' : 'INTERNAL',
         projectId: to.id, task: to.tasks[0], customerId: to.customer || '', site: to.site, country: to.country, from: s.today, to: x.to || o.r.to, note: 'Moved on site from ' + o.r.number,
         createdBy: p.name, createdAt: s.today, status: 'SUBMITTED', deposit: null, lines: [] };
-      nr.lines.push({ id: 'L' + next(s, 'line'), cls: o.l.cls, provider: o.l.provider, providerLe: o.l.providerLe, relation: rel, agreementId: ag ? ag.id : '', preferredUnit: u.id, unitId: null,
+      nr.lines.push({ id: 'L' + next(s, 'line'), cls: o.l.cls, provider: o.l.provider, providerLe: o.l.providerLe, relation: rel, agreementId: ag ? ag.id : '', agreementVersion: ag ? ag.version : 0, preferredUnit: u.id, unitId: null,
         hold: u.hold, status: 'REQUESTED', price: priceFor(s, u, rel, ag), estimate: 0, inPlace: true, toOrg: o.l.toOrg, toNumber: o.l.toNumber,
         segments: [{ projectId: to.id, task: to.tasks[0], from: s.today }], events: { requested: s.today }, inspection: null, loss: null, customsId: o.l.customsId, reason: '' });
       o.l.status = 'TRANSFERRED';
@@ -634,7 +643,7 @@ define(['resources/js/future/fxSeed'], function (Seed) {
     var u = unitOf(s, l.unitId);
     var base = { period: period, requestId: r.id, requestNumber: r.number, lineId: l.id, unitId: l.unitId, serial: u ? u.serial : '', relation: l.relation, provider: l.provider,
       providerLe: l.providerLe, receiver: r.requestingBu, receiverLe: r.requestingLe, customerId: r.type === 'CUSTOMER_RENTAL' ? r.customerId : '', currency: price.currency,
-      agreementId: l.agreementId, agreementVersion: ag ? ag.version : 0 };
+      agreementId: l.agreementId, agreementVersion: l.agreementVersion || (ag ? ag.version : 0) };
     function add(o) { out.push(Object.assign({}, base, o)); }
     if (l.events.onHire) {
       var hireEnd = l.events.offHire ? addDays(l.events.offHire, -1) : pe;
@@ -676,7 +685,7 @@ define(['resources/js/future/fxSeed'], function (Seed) {
     who: ['ic-finance', 'owner-finance'],
     run: function (s, p, x) {
       var period = x.period || monthOf(addDays(monthStart(monthOf(s.today)), s.today === monthEnd(monthOf(s.today)) ? 0 : -1));
-      if (s.today < monthEnd(period)) fail('The period ' + period + ' is still open: run it on or after ' + monthEnd(period) + ' (move the demo clock to the month end).');
+      if (s.today < monthEnd(period)) fail('The period ' + period + ' is still open: run it on or after ' + hd(monthEnd(period)) + ' (move the demo clock to the month end).');
       var made = 0;
       var changed = 0;
       var existing = {};
@@ -737,8 +746,8 @@ define(['resources/js/future/fxSeed'], function (Seed) {
       st.status = 'RELEASED';
       st.releasedAt = s.today;
       st.dueBy = addDays(s.today, s.settings.disputeDays);
-      notify(s, { bu: st.receiver, roles: ['receiver-review'] }, 'Statement ' + st.number + ' from ' + buName(s, st.provider) + ': agree or dispute by ' + st.dueBy + '.', { navId: 'charges' }, 'action');
-      log(s, p, 'Released statement ' + st.number + ' (answer by ' + st.dueBy + ')', { statementId: st.id });
+      notify(s, { bu: st.receiver, roles: ['receiver-review'] }, 'Statement ' + st.number + ' from ' + buName(s, st.provider) + ': agree or dispute by ' + hd(st.dueBy) + '.', { navId: 'charges' }, 'action');
+      log(s, p, 'Released statement ' + st.number + ' (answer by ' + hd(st.dueBy) + ')', { statementId: st.id });
     }
   };
   A.acceptStatement = {
@@ -800,7 +809,9 @@ define(['resources/js/future/fxSeed'], function (Seed) {
       if (!inBu(p, st.provider)) fail('Only the owner resolves.');
       var dsp = st.disputes.filter(function (q) { return q.chargeId === c.id && !q.resolved; })[0];
       if (x.resolution === 'credit') {
-        var amt = x.amount == null ? c.amount : Math.min(Math.abs(c.amount), Math.abs(Number(x.amount)));
+        if (x.amount != null && x.amount !== '' && !(Number(x.amount) > 0)) fail('Give the credit as an amount above zero.');
+        if (x.amount != null && x.amount !== '' && Number(x.amount) > Math.abs(c.amount)) fail('The credit cannot be more than the line (' + mny(Math.abs(c.amount), c.currency) + ').');
+        var amt = x.amount == null || x.amount === '' ? Math.abs(c.amount) : Number(x.amount);
         var cr = Object.assign({}, c, { id: 'CH' + pad(next(s, 'charge'), 5), kind: 'CREDIT', amount: -r2(amt), qty: 1, uom: 'each', rate: -r2(amt), text: 'Credit for ' + c.id + ': ' + (dsp ? dsp.reason : ''), status: 'ACCEPTED', dispute: null, seg: 'cr' + s.seq.charge, createdAt: s.today });
         s.charges.push(cr);
         c.status = 'ACCEPTED';
@@ -837,7 +848,8 @@ define(['resources/js/future/fxSeed'], function (Seed) {
       var ag = agreement(s, st.agreementId);
       var prov = le(s, st.providerLe);
       var recv = le(s, st.receiverLe);
-      if (s.settings.simulateFailure && !st.failedOnce) {
+      if (s.settings.simulateFailure) {
+        s.settings.simulateFailure = false;
         st.failedOnce = true;
         st.status = 'FAILED';
         st.pair = { status: 'FAILED', error: 'Fusion Payables rejected the AP invoice: supplier site ' + prov.short + ' is not enabled for ' + buName(s, st.receiver) + ' (setup, section 12). Fix it in Fusion, then retry.', at: s.today };
@@ -906,12 +918,12 @@ define(['resources/js/future/fxSeed'], function (Seed) {
     var recv = le(s, st.receiverLe);
     var date = monthEnd(st.period);
     var fx = rate(s, st.currency, recv.currency, date);
-    var a1 = addTx(s, { kind: 'ACCRUAL', le: prov.id, date: date, title: 'Accrued IC revenue ' + st.number + ' (reverses ' + addDays(date, 1) + ')', refs: { statementId: st.id },
+    var a1 = addTx(s, { kind: 'ACCRUAL', le: prov.id, date: date, title: 'Accrued IC revenue ' + st.number + ' (reverses ' + hd(addDays(date, 1)) + ')', refs: { statementId: st.id },
       lines: [{ account: '1220', dr: net, sub: recv.short }, { account: '4110', cr: net }] });
-    var a2 = addTx(s, { kind: 'ACCRUAL', le: recv.id, date: date, title: 'Accrued IC cost ' + st.number + ' (reverses ' + addDays(date, 1) + ')', refs: { statementId: st.id },
+    var a2 = addTx(s, { kind: 'ACCRUAL', le: recv.id, date: date, title: 'Accrued IC cost ' + st.number + ' (reverses ' + hd(addDays(date, 1)) + ')', refs: { statementId: st.id },
       lines: [{ account: '5130', dr: r2(net * fx) }, { account: '2120', cr: r2(net * fx), sub: prov.short }] });
     st.accrued = { at: s.today, amount: net, txs: [a1.id, a2.id], reversed: false };
-    notify(s, { roles: ['ic-finance'] }, st.number + ' was not invoiced by the IC cut-off: accrued in both ledgers (' + net + ').', { navId: 'ic-workbench' }, 'warning');
+    notify(s, { roles: ['ic-finance'] }, st.number + ' was not invoiced by the IC cut-off: accrued in both ledgers (' + mny(net, st.currency) + ').', { navId: 'ic-workbench' }, 'warning');
     log(s, p, 'Accrued ' + st.number + ' at the cut-off in both ledgers', { statementId: st.id });
   }
   function reverseAccrual(s, p, st) {
@@ -957,7 +969,7 @@ define(['resources/js/future/fxSeed'], function (Seed) {
       if (st.status === 'INVOICED') st.status = 'SETTLED';
       ar.status = 'SETTLED';
       ap.status = 'SETTLED';
-      log(s, p, 'Settled ' + st.pair.number + (wht ? ' net of withholding ' + wht : '') + (diff ? ', exchange difference ' + diff + ' ' + recv.currency : ''), { statementId: st.id });
+      log(s, p, 'Settled ' + st.pair.number + (wht ? ' net of withholding ' + mny(wht, st.currency) : '') + (diff ? ', exchange difference ' + mny(diff, recv.currency) : ''), { statementId: st.id });
     }
   };
 
@@ -1035,7 +1047,7 @@ define(['resources/js/future/fxSeed'], function (Seed) {
         open: r2(bill + vat), cost: cost, margin: r2(bill - cost), note: ppm ? 'Billed by PPM under the contract (OD-07 a).' : 'Invoiced by EquipRite from ProjectCo; the IC cost lines are non-billable on the contract, so the customer is never billed twice.' });
       if (!ppm) costs.forEach(function (q) { q.nonBillableOnContract = true; });
       costs.forEach(function (q) { q.billed = t.number; });
-      log(s, p, 'Billed ' + cust.name + ' for ' + prj.number + ': ' + bill + ' (equipment cost ' + cost + ')', { projectId: prj.id });
+      log(s, p, 'Billed ' + cust.name + ' for ' + prj.number + ': ' + mny(bill, leP.currency) + ' (equipment cost ' + mny(cost, leP.currency) + ')', { projectId: prj.id });
       return { number: t.number, bill: bill };
     }
   };
@@ -1067,7 +1079,7 @@ define(['resources/js/future/fxSeed'], function (Seed) {
       if (dep - applied > 0) lines.push({ account: '1100', cr: r2(dep - applied), memo: 'refunded' });
       addTx(s, { kind: 'DEPOSIT_SETTLE', le: r.lines[0].providerLe, title: 'Deposit settled on ' + r.number, refs: { requestId: r.id, customerId: r.customerId }, lines: lines });
       r.deposit.settled = { at: s.today, applied: applied, refunded: r2(dep - applied) };
-      log(s, p, 'Settled the deposit on ' + r.number + ': ' + applied + ' applied, ' + r2(dep - applied) + ' refunded', { requestId: r.id });
+      log(s, p, 'Settled the deposit on ' + r.number + ': ' + mny(applied, le(s, r.lines[0].providerLe).currency) + ' applied, ' + mny(dep - applied, le(s, r.lines[0].providerLe).currency) + ' refunded', { requestId: r.id });
     }
   };
 
@@ -1092,8 +1104,16 @@ define(['resources/js/future/fxSeed'], function (Seed) {
     run: function (s, p, x) {
       if (!(x.key in s.settings)) fail('No such setting.');
       var v = x.value;
-      if (typeof s.settings[x.key] === 'number') v = Number(v);
+      var LIMITS = { requesterThreshold: [0, 1e9], disputeDays: [1, 30], cutoffDay: [1, 28], damageThreshold: [0, 1e9], lossMarkupPct: [0, 1] };
+      var CHOICES = { onHire: ['RECEIPT', 'DISPATCH'], s2Billing: ['PPM', 'EQUIPRITE'], invoicing: ['PAIR'], billingFrequency: ['MONTHLY'], groupCurrency: ['AED'] };
+      if (typeof s.settings[x.key] === 'number') {
+        v = Number(v);
+        var lim = LIMITS[x.key] || [0, 1e9];
+        if (!isFinite(v) || v < lim[0] || v > lim[1]) fail('Give a number from ' + lim[0] + ' to ' + lim[1] + '.');
+        if (x.key === 'cutoffDay' || x.key === 'disputeDays') v = Math.round(v);
+      }
       if (typeof s.settings[x.key] === 'boolean') v = v === true || v === 'true';
+      if (CHOICES[x.key] && CHOICES[x.key].indexOf(v) === -1) fail('Choose one of: ' + CHOICES[x.key].join(', ') + '.');
       s.settings[x.key] = v;
       log(s, p, 'Setting ' + x.key + ' = ' + v, {});
     }

@@ -163,11 +163,11 @@ T.eq('Priya may not, and is told why', [svPm.canEdit, svPm.whyNot].join(' | '),
 T.check('Admin may too', Set.setup(as(settled, 'p-admin')).canEdit);
 T.eq('companies with VAT, withholding, e-invoicing, weekend', sv.companies.map((c) => [c.short, c.currency, c.vat, c.wht, c.weekend].join(' ')).join(' | '), 'FleetCo AED 5 % none Sat–Sun | ProjectCo AED 5 % none Sat–Sun | ProjectCo KSA SAR 15 % 5 % Fri–Sat');
 T.eq('orgs with the units in them now (GR-6)', sv.orgs.filter((o) => o.count).map((o) => o.id + ':' + o.units).join(' '), 'FC-YARD:EX-1002, EX-1003, LF-4001, LF-4002 FC-DEP-SA:GN-3001 FC-CUST-AE:GN-3002 PC-SITE:GN-3901');
-T.eq('the people, with who is played', sv.people.filter((p) => p.on).map((p) => p.name).join() + ' / ' + sv.people.length, 'Sara Ahmed / 10');
+T.eq('the people, with who is played', sv.people.filter((p) => p.on).map((p) => p.name).join() + ' / ' + sv.people.length, 'Sara Ahmed / 11');
 T.eq('relationships: what stopping does, said first', sv.relations[0].stopText,
   'Stop: New request no longer offers ProjectCo Projects the 8 units of FleetCo Fleet (MC-FR-04); lines already approved go on and are billed as before. Fusion: nothing, the matrix lives in EquipRite.');
 T.eq('the cross-charge and customer agreements start their history at v1, as set up', sv.agreements.filter((a) => a.kindKey !== 'INTERCOMPANY').map((a) => a.history.map((h) => 'v' + h.version + ' ' + h.by).join()).join(' | '),
-  'v1 As the demo group was set up | v1 As the demo group was set up | v1 As the demo group was set up');
+  'v1 ProjectCo finance | v1 FleetCo rental desk | v1 FleetCo rental desk');
 
 T.section('a new rate: what it does before, version 2 after');
 const ica = sv.agreements.find((a) => a.id === 'ICA-01');

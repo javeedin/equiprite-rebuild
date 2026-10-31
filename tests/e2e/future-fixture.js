@@ -4,7 +4,7 @@
  * the browser's localStorage before the app loads, so a screen can be tested at that point without the others.
  *
  *   const F = require('./future-fixture');
- *   const s = F.state('invoiced');                 // 'fresh' | 'raised' | 'onHire' | 'monthEnd' | 'released' | 'agreed' | 'invoiced' | 'settled' | 'returned'
+ *   const s = F.state('invoiced');                 // 'fresh' | 'raised' | 'onHire' | 'monthEnd' | 'released' | 'agreed' | 'invoiced' | 'settled' | 'returned' | 'closed'
  *   const env = await E.start({ port, app: 'future', init: F.init(s, 'p-fin') });   // optionally play as someone
  *   F.ids(s)  → { r1, r2, rk, r3, rl }: the requests of the story (S1, S2, KSA, S3, same company)
  */
@@ -27,7 +27,7 @@ const Seed = load('fxSeed');
 const Engine = load('fxEngine');
 const Views = load('fxViews');
 
-const STEPS = ['fresh', 'raised', 'onHire', 'monthEnd', 'released', 'agreed', 'invoiced', 'settled', 'returned'];
+const STEPS = ['fresh', 'raised', 'onHire', 'monthEnd', 'released', 'agreed', 'invoiced', 'settled', 'returned', 'closed'];
 
 function state(upTo) {
   const stop = STEPS.indexOf(upTo || 'fresh');
@@ -84,6 +84,15 @@ function state(upTo) {
   as('p-desk'); act('offHire', { requestId: r3, lineId: line(r3).id });
   as('p-site'); act('offHire', { requestId: r1, lineId: line(r1).id });
   as('p-yard'); [r3, r1].forEach((r) => { act('returnLine', { requestId: r, lineId: line(r).id }); act('inspectLine', { requestId: r, lineId: line(r).id, damage: r === r3 ? 1500 : 0, note: r === r3 ? 'Cracked panel' : '', photos: 3 }); });
+  if (stop < 9) return s;
+  // 'closed': November run again for what changed after it was charged (off hire, transport back, damage), then
+  // the new statement agreed, invoiced and settled, Customer Y invoiced and paid, the deposit settled.
+  as('p-fin'); act('runCharges', { period: '2026-11' });
+  s.statements.filter((st) => st.status === 'DRAFT').forEach((st) => act('releaseStatement', { statementId: st.id }));
+  as('p-pcfin'); s.statements.filter((st) => st.status === 'RELEASED' && st.receiver === 'BU-PC').forEach((st) => act('acceptStatement', { statementId: st.id }));
+  as('p-fin'); s.statements.filter((st) => st.status === 'AGREED').forEach((st) => { act('createInvoicePair', { statementId: st.id }); act('settle', { statementId: st.id }); });
+  as('p-desk'); act('invoiceCustomer', {});
+  s.tx.filter((t) => t.kind === 'CUSTOMER_AR' && t.open > 0).map((t) => t.id).forEach((id) => act('customerPays', { txId: id }));
   return s;
 }
 

@@ -166,18 +166,24 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine'], function 
       lines.map(function (l) { return (L.unit(s, l.unitId || l.preferredUnit) || {}).serial + ': ' + (LINE[l.status] || {}).words; }).join('; '));
     // Every closed month on hire is charged.
     var missing = [];
+    var stale = [];
+    var openMonth = false;
     lines.forEach(function (l) {
       if (!l.events.onHire) return;
-      var end = l.events.offHire || s.today;
+      var end = l.events.returned || l.events.offHire || s.today;
+      if (l.inspection && l.inspection.date > end) end = l.inspection.date;
       for (var pm = U.monthOf(l.events.onHire); pm <= U.monthOf(end); pm = U.nextMonth(pm)) {
-        if (U.monthEnd(pm) > s.today) continue;
-        var any = cs.some(function (c) { return c.lineId === l.id && c.period === pm; });
-        if (!any && E.lineCharges(s, r, l, pm).length) missing.push(period(pm));
+        var expected = E.lineCharges(s, r, l, pm);
+        if (U.monthEnd(pm) > s.today) { if (expected.length) openMonth = true; continue; }
+        var have = cs.filter(function (c) { return c.lineId === l.id && c.period === pm && c.kind !== 'CREDIT'; });
+        if (!have.length) { if (expected.length) missing.push(period(pm)); continue; }
+        if (Math.abs(U.sum(expected, function (c) { return c.amount; }) - U.sum(have, function (c) { return c.amount; })) > 0.005) stale.push(period(pm));
       }
     });
     var hiring = lines.some(function (l) { return l.events.onHire && !l.events.offHire; });
-    add('charges', 'Charges calculated for every month on hire', 'IC finance (charge run)', !lines.some(function (l) { return l.events.onHire; }) ? 'na' : missing.length ? 'pending' : hiring ? 'running' : 'done',
-      missing.length ? 'Not yet run: ' + unique(missing).join(', ') : (cs.length ? plural(cs.length, 'charge line') + ' so far' : 'Still on hire this month'));
+    add('charges', 'Charges calculated for every month on hire', 'IC finance (charge run)', !lines.some(function (l) { return l.events.onHire; }) ? 'na' : missing.length || stale.length ? 'pending' : hiring || openMonth ? 'running' : 'done',
+      missing.length ? 'Not yet run: ' + unique(missing).join(', ') : stale.length ? 'Changed since it was charged (off hire, return, damage): run ' + unique(stale).join(', ') + ' again'
+        : openMonth ? 'This month is charged at its month end (' + date(U.monthEnd(U.monthOf(s.today))) + ')' : (cs.length ? plural(cs.length, 'charge line') + ' so far' : 'Still on hire this month'));
     var rels = unique(lines.map(function (l) { return l.relation; }));
     var unf = function (list, f) { return list.length && list.every(f); };
     if (rels.some(function (x) { return x.indexOf('IC_') === 0; })) {
@@ -242,7 +248,8 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine'], function 
     var billNos = unique(costTx.map(function (t) { return t.billed; }));
     var txs = s.tx.filter(function (t) {
       var rf = t.refs || {};
-      return rf.requestId === r.id || (rf.chargeIds || []).some(function (x) { return chargeIds.indexOf(x) !== -1; }) || (rf.statementId && stIds.indexOf(rf.statementId) !== -1)
+      return rf.requestId === r.id || (rf.chargeIds || []).some(function (x) { return chargeIds.indexOf(x) !== -1; })
+        || (rf.statementId && stIds.indexOf(rf.statementId) !== -1 && !(rf.chargeIds || []).length)
         || billNos.indexOf(t.number) !== -1 || (rf.invoiceTx && s.tx.some(function (q) { return q.id === rf.invoiceTx && billNos.indexOf(q.number) !== -1; }));
     });
     var byLe = {};
@@ -276,7 +283,7 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine'], function 
         .filter(function (o) { return o.owner === x.provider; });
       var l = L.line(s, r.id, x.id);
       return Object.assign(x, { options: opts.map(function (o) { return { unitId: o.unitId, serial: o.serial, name: o.name, hold: o.hold, usable: o.usable, preferred: o.unitId === l.preferredUnit,
-        why: o.usable ? 'Free · ' + o.certText : (o.busyWith ? 'Booked on ' + o.busyWith.request + ' to ' + short(o.busyWith.to) : o.certText) }; }),
+        why: o.why }; }),
         needsDeposit: r.type === 'CUSTOMER_RENTAL' && !r.deposit && !!(L.agreement(s, l.agreementId) || {}).depositPct, requester: r.createdBy });
     });
     return { rows: rows, count: rows.length, scope: 'Lines that use the fleet of ' + p.bus.map(function (b) { return L.buName(s, b); }).join(', ') };
@@ -332,7 +339,8 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine'], function 
       charges: cs.map(function (c) { return chargeRow(s, c); }), requests: unique(cs.map(function (c) { return c.requestNumber; })).join(', '),
       iOwn: L.inBu(p, st.provider), iUse: L.inBu(p, st.receiver), disputes: st.disputes,
       canRelease: st.status === 'DRAFT' && L.inBu(p, st.provider) && (L.can(p, 'owner-finance') || L.can(p, 'ic-finance')),
-      canReview: ['RELEASED', 'PARTLY_AGREED', 'DISPUTED'].indexOf(st.status) !== -1 && L.inBu(p, st.receiver) && L.can(p, 'receiver-review'),
+      canReview: ['RELEASED', 'PARTLY_AGREED', 'DISPUTED'].indexOf(st.status) !== -1 && L.inBu(p, st.receiver) && L.can(p, 'receiver-review')
+        && cs.some(function (c) { return c.status === 'IN_STATEMENT' || (c.needsAcceptance && c.status !== 'ACCEPTED' && c.status !== 'INVOICED'); }),
       canPair: ['AGREED', 'PARTLY_AGREED', 'FAILED'].indexOf(st.status) !== -1 && L.can(p, 'ic-finance') && cs.some(function (c) { return c.status === 'ACCEPTED' && !c.arNumber; }),
       canSettle: ['INVOICED', 'PARTLY_INVOICED'].indexOf(st.status) !== -1 && st.pair && !st.pair.settled && L.can(p, 'ic-finance'),
       canAccrue: !st.accrued && !(st.pair && st.pair.status === 'CREATED') && L.can(p, 'ic-finance')
@@ -352,7 +360,7 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine'], function 
   }
   function workbench(s) {
     var p = E.persona(s);
-    var all = s.statements.map(function (st) { return stRow(s, st); });
+    var all = s.statements.filter(function (st) { return L.inBu(p, st.provider) || L.inBu(p, st.receiver); }).map(function (st) { return stRow(s, st); });
     var recon = all.filter(function (x) { return x.pair && x.pair.status === 'CREATED'; }).map(function (x) {
       var st = U.byId(s.statements, x.id);
       var ar = U.byId(s.tx, st.pair.arTx);
@@ -361,7 +369,8 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine'], function 
       var arNet = U.r2(ar.entered.amount - st.pair.vat);
       var apNet = U.r2(ap.entered.amount - st.pair.vat);
       return { number: x.number, pair: st.pair.number, charges: money(invoiced, st.currency), ar: money(arNet, st.currency), ap: money(apNet, st.currency) + (ap.currency !== st.currency ? ' (booked ' + money(U.byId(ap.lines.map(function (l) { return Object.assign({ id: l.account }, l); }), '2110').cr, ap.currency) + ')' : ''),
-        diff: U.r2(invoiced - arNet) + U.r2(arNet - apNet), ok: U.r2(invoiced - arNet) === 0 && U.r2(arNet - apNet) === 0 };
+        booked: (function () { var bk = U.byId(ap.lines.map(function (l) { return Object.assign({ id: l.account }, l); }), '2110').cr; var exp = U.r2(U.r2(ar.entered.amount) * st.pair.rate); return { amount: bk, expected: exp, ok: Math.abs(bk - exp) < 0.05 + 0.01 * ap.lines.length }; })(),
+        diff: U.r2(Math.abs(invoiced - arNet) + Math.abs(arNet - apNet)), ok: U.r2(invoiced - arNet) === 0 && U.r2(arNet - apNet) === 0 };
     });
     var internal = s.charges.filter(function (c) { return (c.relation === 'SAME_LE' || c.relation === 'SAME_BU') && c.status === 'CALCULATED'; }).map(function (c) { return chargeRow(s, c); });
     return {
@@ -388,7 +397,7 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine'], function 
       return { id: r.id, number: r.number, customer: (L.customer(s, r.customerId) || {}).name, deposit: r.deposit ? money(r.deposit.amount, ag.currency) : '', needed: !!ag.depositPct && !r.deposit,
         settled: r.deposit && r.deposit.settled ? 'Applied ' + num(r.deposit.settled.applied) + ', refunded ' + num(r.deposit.settled.refunded) : '', canSettle: !!r.deposit && !r.deposit.settled && r.lines.every(function (l) { return ['CLOSED', 'LOST', 'REJECTED'].indexOf(l.status) !== -1; }) };
     });
-    return { invoices: invoices.reverse(), waiting: waiting, projects: projects, deposits: deposits, s2Mode: s.settings.s2Billing, canDesk: L.can(p, 'desk') || L.can(p, 'ic-finance') || L.can(p, 'owner-finance'), canBill: L.can(p, 'finance') || L.can(p, 'receiver-review') || L.can(p, 'ic-finance') };
+    return { invoices: invoices.reverse(), waiting: waiting, projects: projects, deposits: deposits, s2Mode: s.settings.s2Billing, canDeposit: L.can(p, 'desk'), canDesk: L.can(p, 'desk') || L.can(p, 'ic-finance') || L.can(p, 'owner-finance'), canBill: L.can(p, 'finance') || L.can(p, 'receiver-review') || L.can(p, 'ic-finance') };
   }
 
   // ── Accounting (shown) and the group view ─────────────────────────────────────────────────────────────────────

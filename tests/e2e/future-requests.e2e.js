@@ -316,7 +316,7 @@ async function run(point, persona, title, fn, prepare) {
   });
 
   // ── returned: complete ──────────────────────────────────────────────────────────────────────────────────
-  await run('returned', 'p-pm', 'returned as Priya: r1 is financially complete', async (env, k, ids) => {
+  await run('closed', 'p-pm', 'closed as Priya: r1 is financially complete', async (env, k, ids) => {
     const { page } = env;
     await env.open('/?open=requests');
     await page.waitForSelector('#page-requests #rqRows', { timeout: 30000 });

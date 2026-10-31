@@ -72,7 +72,7 @@ const T = H.makeAsserter();
     await page.waitForSelector('#fxPersonaPanel');
     T.eq('everyone in the demo group, Priya current', await page.$$eval('#fxPersonaPanel .fx-person', (b) => b.map((x) => x.querySelector('.fx-person-name').innerText.trim()
       + (x.getAttribute('aria-current') === 'true' ? '*' : '')).join(', ')),
-      'Priya Raman*, Omar Haddad, Mark Lee, Faisal Al-Qahtani, Huda Saleh, Ana Costa, Ravi Kumar, Lena Novak, Sara Ahmed, Admin');
+      'Priya Raman*, Omar Haddad, Yusuf Rahman, Mark Lee, Faisal Al-Qahtani, Huda Saleh, Ana Costa, Ravi Kumar, Lena Novak, Sara Ahmed, Admin');
     T.eq('each with their business units', await env.text('#fxPersonaPanel .fx-person[data-id="p-em"] .fx-person-bus'), 'FleetCo Fleet');
     await env.shot('future-persona-menu.png');
     await page.keyboard.press('Escape');

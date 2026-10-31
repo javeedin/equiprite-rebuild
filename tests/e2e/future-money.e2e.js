@@ -214,8 +214,7 @@ const NAMES = { 'p-fin': 'Sara Ahmed', 'p-pcfin': 'Mark Lee', 'p-desk': 'Lena No
     const ap = s.tx.find((t) => t.id === st(s, 'S1').pair.apTx);
     T.eq('Retry: the AR in FleetCo and the AP in ProjectCo, one number', [ar.le, ap.le, ar.number, ap.number].join(' '), 'LE-FC LE-PC FL-ICAR-000101 FL-ICAR-000101');
     T.eq('…as the preview said', ar.entered.amount, 70087.5);
-    await page.click('#wbSwitch');
-    await until((x) => x.settings.simulateFailure === false, 'the failure switch off');
+    await until((x) => x.settings.simulateFailure === false, 'the failure switch off by itself after one failure');
     await page.waitForSelector(w2 + ' .fxm-pair-go');
     T.check('the switch off: no failure announced', !(await page.$(w2 + ' .fxm-willfail')) && !(await page.$('#wbDemoOn')));
     await page.click(w2 + ' .fxm-pair-go');

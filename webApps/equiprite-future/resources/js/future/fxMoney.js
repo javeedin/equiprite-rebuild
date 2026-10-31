@@ -266,7 +266,7 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
     var prov = L.le(s, raw.providerLe);
     var recv = L.le(s, raw.receiverLe);
     var d = dry(s, 'createInvoicePair', { statementId: stId }, { settings: { simulateFailure: false } });
-    var willFail = !!s.settings.simulateFailure && !raw.failedOnce;
+    var willFail = !!s.settings.simulateFailure;
     if (!d.ok) return { ok: false, error: d.error, willFail: willFail };
     var pair = U.byId(d.state.statements, stId).pair;
     var ar = d.txs.filter(function (t) { return t.kind === 'IC_AR'; })[0];
@@ -406,7 +406,7 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
       internalDoes: 'Posts ' + plural(internal.length, 'line') + ' to PPM without invoices: a cross-charge between two BUs of one company (no tax, OD-14) or the cost of a BU\'s own equipment. In Fusion: PPM cost (borrowed and lent), accounting below.',
       txChips: TX_GROUPS.map(function (g) { return { key: g.key, label: g.label, on: g.key === group.key, count: g.kinds ? txAll.filter(function (t) { return g.kinds.indexOf(t.kind) !== -1; }).length : txAll.length }; }),
       reconText: recon.length ? (v.reconOk ? 'Every invoiced statement: EquipRite\'s charges = the AR = the AP.' : 'A difference: look at the statement below.') : 'Nothing invoiced yet.',
-      switchText: s.settings.simulateFailure ? 'each statement\'s first invoice pair fails once (Fusion Payables rejects the AP), to show the error and Retry. The switch above turns it off.' : 'Off',
+      switchText: s.settings.simulateFailure ? 'the next invoice pair fails once (Fusion Payables rejects the AP), to show the error and Retry; then the switch turns itself off.' : 'Off',
       switchDoes: s.settings.simulateFailure ? 'Turns the demo failure off: invoice pairs go through first time.' : 'Turns the demo failure on: the next invoice pair fails once (Fusion Payables rejects the AP), so you can see the error and Retry.',
       done: arr(v.done).map(deco),
       kpi: { create: toCreate.length, settle: toSettle.length, internal: internal.length, waiting: waiting.length, recon: recon.filter(function (r) { return r.ok; }).length + ' of ' + recon.length }
