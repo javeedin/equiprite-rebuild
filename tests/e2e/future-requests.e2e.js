@@ -10,6 +10,12 @@
  *   fresh as Priya    Source from FleetCo on step 1: its card (relationship, money, lead time, agreement, units free),
  *                     step 2 shows only FleetCo's units and says so, Show every company and back, the review's
  *                     "Requested by … → Sourced from …", Submit: the line's provider is BU-FC.
+ *   fresh as Lena     a rental for Customer Y: the tab opens on Approval & flow; Ana is the approver; the deposit is
+ *                     next and it is Lena's ("It's you"), "Here now" on it in the customer's lane; she takes it in
+ *                     Customer billing; then Ana's approval is current, the flag in FleetCo's lane, and "Play as Ana"
+ *                     switches the persona and opens Approve & allocate.
+ *   onHire as Priya   My requests: the journey as dots, "Here now: the hours · Priya Raman"; r1's flow: approved by
+ *                     Ana Costa with the date, shipped, received; the flag on the hours in ProjectCo's lane.
  *   invoiced as Priya My requests: ProjectCo Projects' requests only (not the KSA one), chips, search, export; the r1
  *                     tab's Money: the IC AR and AP done, settlement to do, and where it happens; another BU's request
  *                     hidden.
@@ -26,7 +32,7 @@ const F = require('./future-fixture');
 const T = H.makeAsserter();
 const PORT = 19610;
 const SOURCES_PRIYA = 'Any company in the group (Every allowed owner)* ; ProjectCo Projects (Own fleet) ; ProjectCo Facilities (Same company · cross-charge) ; FleetCo Fleet (Intercompany · domestic)';
-const NAMES = { 'p-pm': 'Priya Raman', 'p-pk': 'Faisal Al-Qahtani', 'p-desk': 'Lena Novak', 'p-fin': 'Sara Ahmed', 'p-admin': 'Admin' };
+const NAMES = { 'p-pm': 'Priya Raman', 'p-pk': 'Faisal Al-Qahtani', 'p-desk': 'Lena Novak', 'p-fin': 'Sara Ahmed', 'p-em': 'Ana Costa', 'p-admin': 'Admin' };
 
 function kit(env) {
   const { page } = env;
@@ -163,8 +169,14 @@ async function run(point, persona, title, fn, prepare) {
     T.eq('…in the state: ProjectCo Projects, PC-INT-014, FleetCo\'s EX-1001, intercompany, waiting for the owner',
       [r.number, r.requestingBu, r.projectId, r.task, r.from, r.to, r.lines.map((l) => l.preferredUnit + ' ' + l.provider + ' ' + l.relation + ' ' + l.status).join()].join(' | '),
       'FR-1001 | BU-PC | P-INT | 1.1 Site works | 2026-11-03 | 2026-12-20 | U-EX1 BU-FC IC_DOMESTIC REQUESTED');
-    T.eq('the tab: the owner approves next, in Approve & allocate (Priya plays Ana there)', await env.text('#recLines .fx-rec-linenext'), 'Next FleetCo Fleet approves and allocates a unit Play as Ana and open Approve & allocate');
-    T.eq('…money: nothing to do yet', await env.text('#recFinBadge'), 'Next: Equipment back and inspected · Owner\'s yard');
+    T.eq('the tab opens on Approval & flow: not on hire yet', await page.getAttribute('#recTab-flow', 'aria-selected'), 'true');
+    T.eq('…who approves, in words', await env.text('#recApproverText'), 'Approver: Ana Costa (Equipment Manager, FleetCo Fleet), the owner of EX-1001.');
+    T.eq('…the head names the real next step and who does it', await env.text('#recFinBadge'), 'Next: approval · Ana Costa, Equipment Manager');
+    await page.click('#recTab-equipment');
+    await page.waitForSelector('#recLines');
+    T.eq('Equipment: the approver and the next step, in short', [await env.text('#recCompactApprover'), await env.text('#recCompactNext')].join(' | '),
+      'Ana Costa (Equipment Manager, FleetCo Fleet) | Owner approves and allocates · Ana Costa, Equipment Manager');
+    T.eq('…the owner approves next, in Approve & allocate (Priya plays Ana there)', await env.text('#recLines .fx-rec-linenext'), 'Next FleetCo Fleet approves and allocates a unit Play as Ana and open Approve & allocate');
     await page.click('.nx-tab-btn[data-id="new-request"]');
     await page.waitForSelector('#nrSent');
     T.check('New request starts again, saying what was raised', (await env.text('#nrSent')).startsWith('FR-1001 is raised for ProjectCo Projects'));
@@ -237,6 +249,10 @@ async function run(point, persona, title, fn, prepare) {
     await k.waitTab('request:R1002');
     await page.waitForSelector('#recApprove');
     T.check('its tab: Priya\'s approve button, saying what it does', (await env.text('#recApproveCard')).includes('agrees to this request above its threshold of AED 50,000.00'));
+    await page.waitForSelector('#recFlow .fx-fs[data-key="requester"]');
+    T.check('…the flow: ProjectCo Projects approves first, and it\'s Priya', (await env.text('#recFlow .fx-fs[data-key="requester"]')).includes('Now')
+      && (await env.text('#recFlow .fx-fs[data-key="requester"] .fx-fs-go')).includes('It\'s you') && (await env.text('#recApproverAlso')).startsWith('ProjectCo Projects approves first'),
+      await env.text('#recFlow .fx-fs[data-key="requester"]'));
     T.eq('…waiting for her BU', (await k.stored()).requests[1].status, 'AWAITING_REQUESTER_APPROVAL');
     await page.click('#recApprove');
     await page.waitForFunction(() => !document.getElementById('recApprove'), null, { timeout: 10000 });
@@ -324,7 +340,7 @@ async function run(point, persona, title, fn, prepare) {
     T.eq('chips: All, Open, Money not complete', await page.$$eval('#rqChips .nx-chip', (c) => c.map((x) => x.innerText.replace(/\s+/g, ' ').trim()).join(' | ')), 'All 3 | Open 3 | Money not complete 3');
     const r1 = await env.text(`#rqRows .fx-rq-row[data-id="${ids.r1}"]`);
     T.check('a row: number, type, project, BU and company, owner, relationship, stage, money, cost', ['FR-1001', 'Internal project', 'PC-INT-014 · ProjectCo head office fit-out', 'ProjectCo Projects',
-      'FleetCo Fleet · FleetCo', 'Intercompany · domestic', 'On hire', '4 of 7', 'Next: Equipment back and inspected · Owner\'s yard', 'AED 15,000.00'].every((x) => r1.includes(x)), r1);
+      'FleetCo Fleet · FleetCo', 'Intercompany · domestic', 'On hire', 'Here now: off hire · Omar Haddad (ProjectCo Projects)', '4 of 7', 'Money next: Settled · Treasury', 'AED 15,000.00'].every((x) => r1.includes(x)), r1);
     T.eq('…same company: its chip', await env.text(`#rqRows .fx-rq-row[data-id="${ids.rl}"] .fx-rq-chips`), 'Same company · cross-charge');
     await page.fill('#rqSearch', 'cr-2001');
     await page.waitForTimeout(300);
@@ -377,6 +393,109 @@ async function run(point, persona, title, fn, prepare) {
     await env.open(`/?open=request&id=${ids.rk}`);
     await page.waitForSelector('#requestHidden', { timeout: 20000 });
     T.eq('the KSA request: hidden from Priya', (await env.text('#requestHidden')).split('.')[0], 'This request belongs to other business units');
+  });
+
+  // ── fresh as Lena: a customer rental, its approval and flow ────────────────────────────────────────────
+  await run('fresh', 'p-desk', 'fresh as Lena: a rental for Customer Y, who approves and what is next', async (env, k) => {
+    const { page } = env;
+    await env.open('/?open=new-request');
+    await page.waitForSelector('#page-new-request #nrOptions', { timeout: 30000 });
+    await k.pick('#nrOptions [data-value="C:C-Y"]');
+    await k.pick('#nrToEquipment');
+    await k.pick('#nrClasses [data-cls="GEN"]');
+    await k.pick('#nrGroups .fx-nr-card[data-unit="GN-3001"] .fx-nr-add');
+    await k.pick('#nrToReview');
+    await page.click('#nrSubmit');
+    await k.waitTab('request:R1001');
+    await page.waitForSelector('#page-request #recFlow', { timeout: 15000 });
+    T.eq('raised: the request opens on Approval & flow', [await page.getAttribute('#recTab-flow', 'aria-selected'), (await env.text('#recTabs')).split(/\s+/).slice(0, 4).join(' ')].join(' | '), 'true | Approval & flow 1');
+    T.eq('…the approver is Ana, the owner; the deposit comes first', [await env.text('#recApproverText'), await env.text('#recApproverAlso')].join(' '),
+      'Approver: Ana Costa (Equipment Manager, FleetCo Fleet), the owner of GN-3001. First Lena Novak (rental desk) takes the deposit; only then may the owner approve.');
+    T.eq('…the head: next, the deposit by Lena', await env.text('#recFinBadge'), 'Next: the deposit · Lena Novak, rental desk');
+    T.check('…next: the deposit, and it\'s Lena', (await env.text('#recFlowNext')).startsWith('NEXT Deposit taken FleetCo Fleet (Requesting and sourcing BU) · Lena Novak · Rental desk · FleetCo It\'s you'),
+      await env.text('#recFlowNext'));
+    const steps = () => page.$$eval('#recFlow [data-section="L1"] .fx-fs', (l) => l.map((x) => x.dataset.key + ':' + x.dataset.state).join(' '));
+    T.eq('…the steps in order: the deposit now, the owner\'s approval waiting', await steps(),
+      'raised:done requester:na deposit:current approve:waiting ship:waiting receive:waiting offHire:waiting back:waiting');
+    const dep = await env.text('#recFlow .fx-fs[data-key="deposit"]');
+    T.check('…the deposit: what, the BU, who, "It\'s you"', ['Deposit taken', 'Now', '25 % of four weeks (AED 2,100.00), before the owner may approve', 'FleetCo Fleet · FleetCo',
+      'Lena Novak · Rental desk · FleetCo', 'It\'s you', 'Open Customer billing'].every((x) => dep.includes(x)), dep);
+    const ap = await env.text('#recFlow .fx-fs[data-key="approve"]');
+    T.check('…the approval: the approver, Ana Costa, waiting for the deposit', ['Owner approves and allocates', 'Waiting', 'The approver', 'Ana Costa · Equipment Manager · FleetCo',
+      'Waits for the deposit: the rental desk takes it first'].every((x) => ap.includes(x)), ap);
+    const here = () => page.$eval('#recJourneyGrid .fx-jr-node--here', (n) => [n.dataset.key, n.dataset.lane, n.querySelector('.fx-jr-flag').innerText.trim(),
+      n.querySelector('.fx-jr-persontext').innerText.trim()].join(' | '));
+    T.eq('the journey: the lanes, by name', await page.$$eval('#recJourneyGrid .fx-jr-lanename', (l) => l.map((x) => x.innerText.replace(/\s+/g, ' ').trim()).join(' | ')),
+      'Customer Y rents, through FleetCo Fleet’s rental desk | FleetCo Fleet owns, approves, ships | Money starts when it is on hire');
+    T.eq('…"Here now" on the deposit, in Lena\'s lane (the customer\'s, through the rental desk)', await here(), 'deposit | 1 | HERE NOW | Lena Novak · takes the deposit');
+    T.eq('…raised: done, with its date', await env.text('#recJourneyGrid [data-key="raised"]'), 'Raised 2 Nov');
+    T.eq('…in words: her turn', await env.text('#recJourneySentence'), 'FR-1001 is with FleetCo Fleet. It\'s your turn: take the deposit in Customer billing. Before that: Lena Novak raised it on 2 Nov 2026.');
+    T.check('…the hand-over to the owner is drawn', (await page.$$('#recJourneyGrid .fx-jr-link')).length === 3);
+    shots.push(await k.shot('future-request-flow-deposit.png'));
+    await k.fits('Approval & flow, waiting for the deposit');
+
+    await page.click('#recFlow .fx-fs[data-key="deposit"] .fx-fs-go [data-nav="billing"]');
+    await k.waitTab('billing');
+    await page.waitForSelector('#blDeposits .fxm-deposit[data-id="R1001"] .fxm-deposit-take', { timeout: 15000 });
+    await page.click('#blDeposits .fxm-deposit[data-id="R1001"] .fxm-deposit-take');
+    await page.waitForFunction(() => !document.querySelector('#blDeposits .fxm-deposit[data-id="R1001"] .fxm-deposit-take'), null, { timeout: 10000 });
+    T.check('Customer billing: the deposit taken', (await k.stored()).requests[0].deposit.amount === 2100);
+    await page.click('.nx-tab-btn[data-id="request:R1001"]');
+    await page.waitForSelector('#recFlow .fx-fs[data-key="approve"][data-state="current"]', { timeout: 10000 });
+    T.eq('after the deposit: Ana\'s approval is current', await steps(), 'raised:done requester:na deposit:done approve:current ship:waiting receive:waiting offHire:waiting back:waiting');
+    T.check('…the deposit done by Lena, with the date', (await env.text('#recFlow .fx-fs[data-key="deposit"]')).includes('Done 2 Nov 2026 by Lena Novak'));
+    T.eq('…Lena plays Ana there', await env.text('#recFlow .fx-fs[data-key="approve"] .fx-fs-go'), 'Play as Ana and open Approve & allocate');
+    T.eq('…the flag moves to Ana, in FleetCo\'s lane', await here(), 'approve | 2 | HERE NOW | Ana Costa · approves');
+    T.eq('…in words', await env.text('#recJourneySentence'), 'FR-1001 is with FleetCo Fleet: Ana Costa (Equipment Manager) approves and allocates. Before that: Lena Novak took the deposit on 2 Nov 2026.');
+    T.eq('…the head', await env.text('#recFinBadge'), 'Next: approval · Ana Costa, Equipment Manager');
+    shots.push(await k.shot('future-request-flow-approval.png'));
+    await page.click('#recFlow .fx-fs[data-key="approve"] .fx-play');
+    await k.waitTab('approvals');
+    T.eq('Play as Ana: one click switches the persona and opens Approve & allocate', await env.text('#fxPersonaName'), 'Ana Costa');
+    await page.waitForSelector('#apLines', { timeout: 15000 });
+    T.check('…where FR-1001 waits for her', (await env.text('#apLines')).includes('FR-1001'));
+  });
+
+  // ── onHire as Priya: r1's flow half-way ───────────────────────────────────────────────────────────────
+  await run('onHire', 'p-pm', 'onHire as Priya: r1 approved, shipped, received; its hours now', async (env, k, ids) => {
+    const { page } = env;
+    await env.open('/?open=requests');
+    await page.waitForSelector('#page-requests #rqRows', { timeout: 30000 });
+    const row = `#rqRows .fx-rq-row[data-id="${ids.r1}"]`;
+    T.eq('My requests: where it is now, and who', await env.text(row + ' .fx-rq-here'), 'Here now: the hours · Priya Raman (ProjectCo Projects)');
+    T.eq('…its journey as dots: done, here, waiting', await page.$$eval(row + ' .fx-jr-dot', (d) => d.map((x) => x.className.replace(/fx-jr-dot ?/g, '').replace(/--/g, '') || '-').join(' ')),
+      'done done done done current here waiting waiting current money waiting waiting waiting');
+    shots.push(await k.shot('future-my-requests-here-now.png'));
+    await k.fits('My requests with the journey dots');
+    await page.click(row);
+    await k.waitTab('request:' + ids.r1);
+    await page.waitForSelector('#page-request #recLines', { timeout: 15000 });
+    T.eq('on hire: the tab opens on Equipment, the approver and the next step on top', [await page.getAttribute('#recTab-equipment', 'aria-selected'), await env.text('#recCompactApprover'),
+      await env.text('#recCompactNext')].join(' | '), 'true | Ana Costa (Equipment Manager, FleetCo Fleet) | Hours recorded and approved · Priya Raman, Project Manager');
+    await page.click('#recCompactAll');
+    await page.waitForSelector('#recFlow');
+    const done = (key) => env.text(`#recFlow [data-section="L1"] [data-key="${key}"] .fx-fs-done`);
+    T.eq('Approval & flow: approved by Ana Costa with the date, shipped, received', [await done('approve'), await done('ship'), await done('receive')].join(' | '),
+      'Done 2 Nov 2026 by Ana Costa | Done 2 Nov 2026 by Ravi Kumar | Done 7 Nov 2026 by Omar Haddad');
+    T.eq('…now the hours: it\'s Priya', await env.text('#recFlow [data-section="L1"] [data-key="hours"] .fx-fs-go'), 'It\'s you Open Receive, hours, moves');
+    const nodes = await page.$$eval('#recJourneyGrid .fx-jr-node', (n) => n.map((x) => x.dataset.lane + ':' + x.dataset.key + ':' + x.dataset.state + (x.classList.contains('fx-jr-node--here') ? '*' : '')).join(' '));
+    T.eq('the journey: done nodes, the flag on the hours in ProjectCo\'s lane, the money from the day on hire', nodes,
+      '1:raised:done 2:approve:done 2:ship:done 1:receive:done 1:hours:current* 1:offHire:waiting 2:back:waiting 3:m-charges:current 3:m-agreed:waiting 3:m-pair:waiting 3:m-settled:waiting');
+    T.eq('…its person', await env.text('#recJourneyGrid .fx-jr-node--here .fx-jr-persontext'), 'Priya Raman · approves the hours');
+    T.eq('…the done nodes carry their dates', await page.$$eval('#recJourneyGrid .fx-jr-node--done .fx-jr-date', (d) => d.map((x) => x.innerText.trim()).join()), '2 Nov,2 Nov,2 Nov,7 Nov');
+    T.eq('…in words', await env.text('#recJourneySentence'),
+      'FR-1001 is with ProjectCo Projects. It\'s your turn: record and approve the hours in Receive, hours, moves. Before that: Omar Haddad received it on 7 Nov 2026.');
+    T.eq('…the head', await env.text('#recFinBadge'), 'Next: the hours · Priya Raman, Project Manager');
+    shots.push(await k.shot('future-request-flow-onhire.png'));
+    await k.fits('Approval & flow, on hire');
+    await page.setViewportSize({ width: 1024, height: 900 });
+    await page.waitForTimeout(300);
+    T.check('1024px: the journey scrolls inside its own box, not the page', await page.evaluate(() => {
+      const box = document.querySelector('.fx-jr-scroll');
+      return document.documentElement.scrollWidth <= document.documentElement.clientWidth && box.scrollWidth >= box.clientWidth;
+    }));
+    shots.push(await k.shot('future-request-flow-onhire-1024.png'));
+    await page.setViewportSize({ width: 1440, height: 1000 });
   });
 
   // ── settled: the accounting shown ─────────────────────────────────────────────────────────────────────

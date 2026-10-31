@@ -3,7 +3,9 @@
  * search, relationship chips, money progress), New request (who it is for; Source from, the sourcing business units the
  * requesting BU may borrow from, and step 2 filtered to the one chosen; the sourcing cards own fleet first with price,
  * estimate and why not; "Requested by … → sourced from …"; what will happen per owner; the payload createRequest takes,
- * each line naming its provider) and a request's tab (lines,
+ * each line naming its provider) and a request's tab (Approval & flow: the approver, every step of each line and of the
+ * money in order with its BU, its people and its state, the current step and who plays it, at every point of the
+ * story, the requesting BU's approval when OD-12 asks for it, the journey as swimlanes; the head's next step; lines,
  * the finance checklist with where each step is done, totals per company, the accounting shown for this request only).
  * Plays the story with the real engine (tests/e2e/future-fixture.js) and reads it back through the module.
  *
@@ -45,7 +47,8 @@ T.eq('a row: type, project, BU and company, owners', [r1.typeText, r1.party, r1.
   'Internal project | PC-INT-014 · ProjectCo head office fit-out | ProjectCo Projects · ProjectCo | FleetCo Fleet · FleetCo');
 T.eq('…relationship chips with their tones', l.rows.map((r) => r.relChips.map((c) => c.label + '/' + c.tone).join()).join(' ; '),
   'Same company · cross-charge/info ; Intercompany · domestic/ic ; Intercompany · domestic/ic');
-T.eq('…money progress: done of total and what is next, who does it', r1.moneyLine, '4 of 7 · Next: Equipment back and inspected · Owner\'s yard');
+T.eq('…money progress: done of total and the next money step, who does it', r1.moneyLine, '4 of 7 · Money next: Settled · Treasury');
+T.eq('…and where the request is now, with its person', r1.flowNext, 'Here now: off hire · Omar Haddad (ProjectCo Projects)');
 T.eq('…cost so far, on the project', [r1.costSoFar, r1.costNote].join(' '), 'AED 15,000.00 on the project');
 T.eq('search: by unit serial', R.list(s, { text: 'cr-2001' }).rows.map((r) => r.number).join(), 'FR-1002');
 T.eq('…nothing matches: said in words', R.list(s, { text: 'nothing like this' }).empty, 'Nothing matches. Try another chip or clear the search.');
@@ -190,7 +193,7 @@ T.section('A request\'s tab');
 let v = R.request(s, ids.r1);
 T.eq('head', [v.number, v.typeText, v.buText, v.party, v.siteText, v.datesText, v.words].join(' | '),
   'FR-1001 | Internal project | ProjectCo Projects · ProjectCo Contracting LLC | PC-INT-014 · ProjectCo head office fit-out | Business Bay, Dubai · United Arab Emirates | 3 Nov 2026 to 20 Dec 2026 | On hire');
-T.eq('…money badge: what is next', v.finBadge, 'Next: Equipment back and inspected · Owner\'s yard');
+T.eq('…the badge: the real next step and who does it (not the money checklist\'s first item)', v.finBadge, 'Next: off hire · Omar Haddad, site supervisor');
 const ln = v.lines[0];
 T.eq('a line: unit, owner, agreement, events in order', [ln.unitTitle, ln.ownerText, ln.agreementText, ln.eventList.map((e) => e.label + ' ' + e.date).join(', ')].join(' | '),
   'EX-1001 · CAT 320 Excavator | FleetCo Fleet · FleetCo Equipment LLC | ICA-FC-PC-2026 v1 (intercompany agreement) | Requested 2 Nov 2026, Approved and allocated 2 Nov 2026, Shipped 2 Nov 2026, On hire 7 Nov 2026');
@@ -230,10 +233,145 @@ const raised = E.apply(th, 'createRequest', R.payload(th, big));
 v = R.request(raised.state, raised.result.id);
 T.check('…the tab shows Priya\'s approve button, saying what it does', v.needsMyApproval && /agrees to this request above its threshold of AED 50,000.00/.test(v.approveText), v.approveText);
 
+T.section('Approval & flow: the approver and the current step, at every point of the story');
+// The own-fleet case: Priya asks for ProjectCo Projects' own GN-3901 at each point (from the next day).
+const withOwn = (st) => {
+  const made = E.apply(as(st, 'p-pm'), 'createRequest', { requestingBu: 'BU-PC', projectId: 'P-INT', from: E.util.addDays(st.today, 1), to: E.util.addDays(st.today, 10), lines: [{ cls: 'GEN', unitId: 'U-GN9' }] });
+  return { s: made.state, id: made.result && made.result.id };
+};
+const nowOf = (fl) => (fl.next ? fl.next.key + ' ' + (fl.next.people[0] || {}).name + ' (' + fl.next.buName + ')' : 'none');
+const approverOf = (fl) => fl.approvers.map((a) => a.name + ', ' + a.buName).join('; ');
+const STORY = {
+  fresh: { own: 'approve Yusuf Rahman (ProjectCo Projects)' },
+  raised: { r1: 'approve Ana Costa (FleetCo Fleet)', rl: 'approve Huda Saleh (ProjectCo Facilities)', r3: 'deposit Lena Novak (FleetCo Fleet)' },
+  onHire: { r1: 'hours Priya Raman (ProjectCo Projects)', rl: 'hours Priya Raman (ProjectCo Projects)', r3: 'offHire Lena Novak (FleetCo Fleet)' },
+  monthEnd: { r1: 'offHire Omar Haddad (ProjectCo Projects)', rl: 'offHire Omar Haddad (ProjectCo Projects)', r3: 'offHire Lena Novak (FleetCo Fleet)' },
+  released: { r1: 'offHire Omar Haddad (ProjectCo Projects)', rl: 'offHire Omar Haddad (ProjectCo Projects)', r3: 'offHire Lena Novak (FleetCo Fleet)' },
+  agreed: { r1: 'offHire Omar Haddad (ProjectCo Projects)', rl: 'offHire Omar Haddad (ProjectCo Projects)', r3: 'offHire Lena Novak (FleetCo Fleet)' },
+  invoiced: { r1: 'offHire Omar Haddad (ProjectCo Projects)', rl: 'offHire Omar Haddad (ProjectCo Projects)', r3: 'offHire Lena Novak (FleetCo Fleet)' },
+  settled: { r1: 'offHire Omar Haddad (ProjectCo Projects)', rl: 'offHire Omar Haddad (ProjectCo Projects)', r3: 'offHire Lena Novak (FleetCo Fleet)' },
+  returned: { r1: 'm-charges Sara Ahmed (FleetCo Fleet)', rl: 'offHire Omar Haddad (ProjectCo Projects)', r3: 'm-charges Sara Ahmed (FleetCo Fleet)' },
+  closed: { r1: 'none', rl: 'offHire Omar Haddad (ProjectCo Projects)', r3: 'm-depositSettled Lena Novak (FleetCo Fleet)' }
+};
+const APPROVER = { r1: 'Ana Costa, FleetCo Fleet', rl: 'Huda Saleh, ProjectCo Facilities', r3: 'Ana Costa, FleetCo Fleet', own: 'Yusuf Rahman, ProjectCo Projects' };
+F.STEPS.forEach((point) => {
+  const o = withOwn(as(F.state(point), 'p-admin'));
+  const st = as(o.s, 'p-admin');
+  const fid = F.ids(st);
+  const want = Object.assign({ own: 'approve Yusuf Rahman (ProjectCo Projects)' }, STORY[point]);
+  const got = {};
+  Object.keys(want).forEach((k) => { const fl = R.flow(st, k === 'own' ? o.id : fid[k]); got[k] = nowOf(fl) + ' | ' + approverOf(fl); });
+  T.eq(point + ': the current step and the approver of ' + Object.keys(want).join(', '), Object.keys(want).map((k) => k + ': ' + got[k]).join(' ; '),
+    Object.keys(want).map((k) => k + ': ' + want[k] + ' | ' + APPROVER[k]).join(' ; '));
+});
+
+T.section('Approval & flow: the steps of a line, who does each, and what the state knows');
+const raisedPm = as(F.state('raised'), 'p-pm');
+let fl = R.request(raisedPm, ids.r1).flow;
+const keys = (f) => f.lines[0].steps.map((x) => x.key + ':' + x.state).join(' ');
+T.eq('r1 raised: the steps in order, the owner\'s approval current', keys(fl), 'raised:done requester:na approve:current ship:waiting receive:waiting hours:waiting offHire:waiting back:waiting');
+T.eq('…the approver in words, and why ProjectCo does not approve', [fl.approverText, fl.alsoText].join(' '),
+  'Approver: Ana Costa (Equipment Manager, FleetCo Fleet), the owner of EX-1001. ProjectCo does not approve: only the owner approves (OD-12 off).');
+const step = (f, k) => f.lines[0].steps.find((x) => x.key === k);
+let ap = step(fl, 'approve');
+T.eq('…the approval: the sourcing BU, its people, the approver', [ap.side, ap.buText, ap.peopleText, ap.approver].join(' | '), 'Sourcing BU | FleetCo Fleet · FleetCo | Ana Costa · Equipment Manager · FleetCo | true');
+T.eq('…Priya plays Ana there', [ap.go.mine, ap.go.persona, ap.go.navId, ap.go.action].join(' | '), 'false | p-em | approvals | Play as Ana and open Approve & allocate');
+T.eq('…raised: by whom and when', step(fl, 'raised').doneText, '2 Nov 2026 by Priya Raman');
+T.eq('…the requesting BU\'s approval: not needed', step(fl, 'requester').note, 'Not needed: only the owner approves (OD-12)');
+T.eq('…shipping and receiving: the owner\'s yard, then the site', [step(fl, 'ship').buText + ' ' + step(fl, 'ship').people.map((p) => p.name).join('/'), step(fl, 'receive').buText + ' ' + step(fl, 'receive').people.map((p) => p.name).join('/')].join(' | '),
+  'FleetCo Fleet · FleetCo Ravi Kumar/Ana Costa | ProjectCo Projects · ProjectCo Omar Haddad/Priya Raman');
+T.eq('…the money waits until it is on hire', [fl.money.map((x) => x.key + ':' + x.state).join(' '), fl.sections[1].sub].join(' | '),
+  'm-charges:waiting m-agreed:waiting m-ar:waiting m-ap:waiting m-cost:waiting m-settled:waiting | Starts when the equipment is on hire');
+T.eq('…the head badge, and My requests', [R.request(raisedPm, ids.r1).finBadge, R.list(raisedPm, {}).rows.find((r) => r.id === ids.r1).flowNext].join(' | '),
+  'Next: approval · Ana Costa, Equipment Manager | Here now: approval · Ana Costa (FleetCo)');
+T.eq('…opens on Approval & flow while not on hire; on Equipment once it is', [R.request(raisedPm, ids.r1).defaultTab, R.request(as(F.state('onHire'), 'p-pm'), ids.r1).defaultTab].join(), 'flow,equipment');
+const onHirePm = as(F.state('onHire'), 'p-pm');
+fl = R.request(onHirePm, ids.r1).flow;
+T.eq('r1 on hire: approved by Ana with the date, shipped by Ravi, received by Omar', ['approve', 'ship', 'receive'].map((k) => k + ' ' + step(fl, k).state + ' ' + step(fl, k).doneText).join(' | '),
+  'approve done 2 Nov 2026 by Ana Costa | ship done 2 Nov 2026 by Ravi Kumar | receive done 7 Nov 2026 by Omar Haddad');
+T.eq('…now the hours, and it\'s Priya', [fl.next.key, fl.next.go.mine, fl.next.go.youText].join(' | '), 'hours | true | It\'s you: Priya Raman does it in Receive, hours, moves');
+T.eq('…the money: the charge run at the month end, nothing to press yet', [fl.money[0].state, fl.money[0].stateText, fl.money[0].note, fl.money[0].go].join(' | '),
+  'current | Now: running | This month is charged at its month end (30 Nov 2026) | ');
+fl = R.request(as(F.state('invoiced'), 'p-pm'), ids.r1).flow;
+T.eq('r1 invoiced: the hours approved so far, the money steps done by whom', [step(fl, 'hours').doneText, step(fl, 'hours').note, fl.money.filter((x) => x.state === 'done').map((x) => x.key + ' ' + x.doneText).join('; ')].join(' | '),
+  '30 Nov 2026 by Priya Raman | 16 days approved so far; more come while it is on hire | m-agreed 30 Nov 2026 by Mark Lee; m-ar 30 Nov 2026 by Sara Ahmed; m-ap 30 Nov 2026 by Sara Ahmed; m-cost 30 Nov 2026 by Sara Ahmed');
+T.eq('…the charge run runs alongside; settlement is the money\'s current step', fl.money.map((x) => x.key + ':' + x.state).join(' '), 'm-charges:running m-agreed:done m-ar:done m-ap:done m-cost:done m-settled:current');
+T.eq('…and the inner tab counts the steps done', R.request(as(F.state('invoiced'), 'p-pm'), ids.r1).flow.countText, '5 of 7');
+fl = R.flow(as(F.state('closed'), 'p-pm'), ids.r1);
+T.eq('r1 closed: every step done, back and inspected by Ravi; nothing next', [step(fl, 'back').doneText, step(fl, 'back').note, fl.next, fl.badge].join(' | '),
+  '30 Nov 2026 by Ravi Kumar | Passed |  | Financially complete');
+
+T.section('Approval & flow: a customer rental, the deposit before the owner approves');
+const lenaRaised = as(F.state('raised'), 'p-desk');
+fl = R.request(lenaRaised, ids.r3).flow;
+T.eq('r3: the deposit is current (Lena, rental desk), the owner\'s approval waits for it', keys(fl), 'raised:done requester:na deposit:current approve:waiting ship:waiting receive:waiting offHire:waiting back:waiting');
+T.eq('…in words', [fl.approverText, fl.alsoText].join(' '), 'Approver: Ana Costa (Equipment Manager, FleetCo Fleet), the owner of GN-3002. First Lena Novak (rental desk) takes the deposit; only then may the owner approve.');
+T.eq('…the deposit: its amount, and it\'s Lena', [step(fl, 'deposit').what, fl.next.go.youText, fl.next.go.action].join(' | '),
+  'The rental desk takes Customer Y’s deposit, 25 % of four weeks (AED 2,100.00), before the owner may approve; Fusion Receivables records it | It\'s you: Lena Novak does it in Customer billing | Open Customer billing');
+T.eq('…the approval waits, and says why', [step(fl, 'approve').state, step(fl, 'approve').note, step(fl, 'approve').people.map((p) => p.name).join()].join(' | '), 'waiting | Waits for the deposit: the rental desk takes it first | Ana Costa');
+T.eq('…the badge', R.request(lenaRaised, ids.r3).finBadge, 'Next: the deposit · Lena Novak, rental desk');
+const dep = E.apply(lenaRaised, 'takeDeposit', { requestId: ids.r3 });
+fl = R.request(dep.state, ids.r3).flow;
+T.eq('deposit taken: done by Lena that day; now Ana approves (Lena plays her)', [step(fl, 'deposit').doneText, fl.next.key, fl.next.go.persona, fl.next.go.action, fl.alsoText].join(' | '),
+  '2 Nov 2026 by Lena Novak | approve | p-em | Play as Ana and open Approve & allocate | The rental desk took the deposit first (2 Nov 2026 by Lena Novak).');
+T.eq('…the receipt and the off hire are the rental desk\'s', ['receive', 'offHire'].map((k) => step(fl, k).people.map((p) => p.name).join()).join(' | '), 'Lena Novak | Lena Novak');
+
+T.section('Approval & flow: the own fleet, the same company, a refused line');
+let o = withOwn(F.state('fresh'));
+fl = R.flow(as(o.s, 'p-pm'), o.id);
+T.eq('own fleet: Yusuf (ProjectCo Projects) approves; no other approval', [fl.approverText, fl.alsoText, step(fl, 'approve').side].join(' | '),
+  'Approver: Yusuf Rahman (Equipment coordinator, ProjectCo Projects), the owner of GN-3901 (its own fleet). | ProjectCo Projects is the owner too: no other approval (OD-12 off). | Requesting and sourcing BU');
+fl = R.flow(raisedPm, ids.rl);
+T.eq('same company: Huda (ProjectCo Facilities) approves and ships; ProjectCo Projects does not approve', [fl.approverText, fl.alsoText, step(fl, 'ship').peopleText].join(' | '),
+  'Approver: Huda Saleh (Facilities Manager, ProjectCo Facilities), the owner of TW-5001. | ProjectCo Projects does not approve: only the owner approves (OD-12 off). | Huda Saleh · Facilities Manager · ProjectCo');
+const ref = E.apply(as(raisedPm, 'p-em'), 'rejectLine', { requestId: ids.r1, lineId: R.request(raisedPm, ids.r1).lines[0].id, reason: 'In for its annual service' });
+fl = R.flow(as(ref.state, 'p-pm'), ids.r1);
+T.eq('a refused line: refused by Ana, why, the rest not needed', [step(fl, 'approve').state, step(fl, 'approve').doneText, step(fl, 'approve').note, step(fl, 'ship').state, fl.badge].join(' | '),
+  'refused | 2 Nov 2026 by Ana Costa | Refused: In for its annual service | na | Refused by the owner: nothing more to do');
+
+T.section('Approval & flow: the requesting BU approves first when OD-12 asks (above its threshold)');
+fl = R.request(raised.state, raised.result.id).flow;
+const rq = step(fl, 'requester');
+T.eq('the step is there and current: ProjectCo Projects, its receiver review', [rq.state, rq.side, rq.buText, rq.people.map((p) => p.name).join(', '), rq.note].join(' | '),
+  'current | Requesting BU | ProjectCo Projects · ProjectCo | Priya Raman, Mark Lee | The estimate, AED 195,000.00, is above ProjectCo Projects’ threshold of AED 50,000.00 (OD-12)');
+T.eq('…Priya approves it here', [rq.go.mine, rq.go.act, rq.go.action].join(' | '), 'true | approveRequest | Approve for my BU');
+T.eq('…the owner waits for it', [step(fl, 'approve').state, step(fl, 'approve').note].join(' | '), 'waiting | Waits for ProjectCo Projects’ approval first');
+T.eq('…in words, and the badge', [fl.alsoText, R.request(raised.state, raised.result.id).finBadge].join(' | '),
+  'ProjectCo Projects approves first (receiver review: Priya Raman or Mark Lee), as the estimate, AED 195,000.00, is above its threshold of AED 50,000.00 (OD-12); then the owner. | Next: ProjectCo Projects’ approval · Priya Raman, Project Manager');
+T.eq('…Omar (the site) plays Priya to approve it', R.flow(as(raised.state, 'p-site'), raised.result.id).next.go.action, 'Play as Priya and approve it here');
+const okd = E.apply(raised.state, 'approveRequest', { requestId: raised.result.id });
+fl = R.flow(okd.state, raised.result.id);
+T.eq('approved: done by Priya, now the owner', [step(fl, 'requester').state, step(fl, 'requester').doneText, fl.next.key, fl.next.people[0].name].join(' | '), 'done | 2 Nov 2026 by Priya Raman | approve | Ana Costa');
+T.eq('setting on, below the threshold: not needed, and why', step(R.flow(as(Object.assign({}, raisedPm, { settings: Object.assign({}, raisedPm.settings, { requesterApproval: true }) }), 'p-pm'), ids.r1), 'requester').note,
+  'Not needed: the estimate, AED 24,500.00, is not above its threshold of AED 50,000.00 (OD-12)');
+
+T.section('Approval & flow: the journey, drawn as swimlanes');
+let jr = R.flow(lenaRaised, ids.r3).journey;
+const nodesOf = (j) => j.all.map((n) => n.lane + ':' + n.label + ':' + n.state + (n.here ? '*' : '')).join(' ');
+T.eq('the rental: the customer\'s lane, the owner\'s, the money', jr.lanes.map((x) => x.name + ' · ' + x.role).join(' | '),
+  'Customer Y · rents, through FleetCo Fleet’s rental desk | FleetCo Fleet · owns, approves, ships | Money · starts when it is on hire');
+T.eq('…the deposit is here now, in Lena\'s lane', nodesOf(jr),
+  '1:Raised:done 1:Deposit:current* 2:Owner approves:waiting 2:Shipped:waiting 1:On hire:waiting 1:Off hire:waiting 2:Back & inspected:waiting 3:Charge run:waiting 3:Customer invoice:waiting 3:Paid:waiting 3:Deposit settled:waiting');
+T.eq('…its person, and the hand-overs between the lanes', [jr.all.find((n) => n.here).personText, jr.links.map((x) => x.style.gridColumn).join()].join(' | '), 'Lena Novak · takes the deposit | 4,6,8');
+T.eq('…in words (Lena plays it: her turn)', jr.sentence, 'FR-1004 is with FleetCo Fleet. It\'s your turn: take the deposit in Customer billing. Before that: Lena Novak raised it on 2 Nov 2026.');
+jr = R.flow(dep.state, ids.r3).journey;
+T.eq('deposit taken: the flag moves to Ana, in FleetCo\'s lane', [jr.all.filter((n) => n.here).map((n) => n.lane + ':' + n.label + ':' + n.personText).join(), jr.sentence].join(' | '),
+  '2:Owner approves:Ana Costa · approves | FR-1004 is with FleetCo Fleet: Ana Costa (Equipment Manager) approves and allocates. Before that: Lena Novak took the deposit on 2 Nov 2026.');
+jr = R.flow(onHirePm, ids.r1).journey;
+T.eq('r1 on hire: done nodes with dates, the flag on the hours in ProjectCo\'s lane', jr.nodes.map((n) => n.lane + ':' + n.label + ':' + n.state + (n.dateText ? '(' + n.dateText + ')' : '') + (n.here ? '*' : '')).join(' '),
+  '1:Raised:done(2 Nov) 2:Owner approves:done(2 Nov) 2:Shipped:done(2 Nov) 1:On hire:done(7 Nov) 1:Hours:current* 1:Off hire:waiting 2:Back & inspected:waiting');
+T.eq('…the money lane from the day it went on hire', jr.money.map((n) => n.col + ':' + n.label + ':' + n.state).join(' '), '4:Charge run:current 5:Statement:waiting 6:Invoice pair:waiting 7:Settled:waiting');
+T.eq('…the lanes, and the request in words', [jr.lanes.map((x) => x.name).join(' | '), jr.sentence].join(' | '),
+  'ProjectCo Projects | FleetCo Fleet | Money | FR-1001 is with ProjectCo Projects. It\'s your turn: record and approve the hours in Receive, hours, moves. Before that: Omar Haddad received it on 7 Nov 2026.');
+T.eq('My requests: the journey as dots', R.list(onHirePm, {}).rows.find((r) => r.id === ids.r1).flowDots.map((d) => d.cls.replace(/fx-jr-dot ?/g, '').replace(/--/g, '')).join(' '),
+  'done done done done current here waiting waiting current money waiting waiting waiting');
+
 T.section('exports');
-T.eq('My requests', [R.exportOf('requests', l).name, R.exportOf('requests', l).rows.length, R.exportOf('requests', l).columns.length].join(), 'requests,3,17');
+T.eq('My requests', [R.exportOf('requests', l).name, R.exportOf('requests', l).rows.length, R.exportOf('requests', l).columns.length].join(), 'requests,3,18');
 v = R.request(s, ids.r1);
-T.eq('a request\'s tabs', ['equipment', 'money', 'accounting', 'history'].map((k) => k + ':' + R.exportOf(k, v).rows.length).join(' '), 'equipment:1 money:3 accounting:12 history:6');
+T.eq('a request\'s tabs', ['flow', 'equipment', 'money', 'accounting', 'history'].map((k) => k + ':' + R.exportOf(k, v).rows.length).join(' '), 'flow:14 equipment:1 money:3 accounting:12 history:6');
+T.eq('…the flow: each step with its BU, people and state', ['section', 'label', 'buText', 'peopleText', 'stateText', 'doneText'].map((c) => R.exportOf('flow', v).rows[2][c]).join(' | '),
+  'EX-1001 · CAT 320 Excavator | Owner approves and allocates | FleetCo Fleet · FleetCo | Ana Costa · Equipment Manager · FleetCo | Done | 2 Nov 2026 by Ana Costa');
 T.eq('…the accounting lines as numbers', JSON.stringify(R.exportOf('accounting', v).rows.filter((x) => x.number === 'PC-JE-000009').map((x) => [x.dr, x.cr])), '[["",""]]');
 T.eq('the units offered', R.exportOf('options', pk).rows.length, 3);
 

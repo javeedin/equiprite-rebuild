@@ -156,3 +156,155 @@
 .fx-acc-sum { background: var(--nx-surface-2); font-weight: 700; }
 
 .fx-rec-history { padding: 4px 16px 12px; }
+
+/* ── Approval & flow ─────────────────────────────────────────────────────────────────────────────────────── */
+.fx-flow { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+/* The journey: swimlanes on a grid (lane names, then one column per step); scrolls inside its own box when narrow. */
+.fx-jr-card { overflow: hidden; }
+.fx-jr-scroll { overflow-x: auto; border-top: 1px solid var(--nx-line); }
+.fx-jr-scroll:focus-visible { outline: 2px solid var(--nx-accent); outline-offset: -2px; }
+.fx-jr {
+  --fx-jr-label: 148px; --fx-jr-col: 88px; --fx-jr-row: 128px; --fx-jr-mrow: 104px; --fx-jr-line: #cfd7e0;
+  --fx-jr-req: #eef5fb; --fx-jr-src: #f4f1fb; --fx-jr-money: #f2f7ef;
+  display: grid; grid-template-rows: var(--fx-jr-row) var(--fx-jr-row) var(--fx-jr-mrow); column-gap: 0; row-gap: 0; min-width: min-content;
+}
+.fx-jr-lane { grid-column: 1 / -1; z-index: 0; border-bottom: 1px solid var(--nx-line); }
+.fx-jr-lane--req { background: var(--fx-jr-req); }
+.fx-jr-lane--src { background: var(--fx-jr-src); }
+.fx-jr-lane--money { background: var(--fx-jr-money); border-bottom: 0; border-top: 1px dashed var(--nx-line-strong); }
+.fx-jr-lanename {
+  grid-column: 1; position: sticky; left: 0; z-index: 4; display: flex; flex-direction: column; justify-content: center; gap: 2px;
+  padding: 8px 12px; border-right: 1px solid var(--nx-line); border-bottom: 1px solid var(--nx-line); min-width: 0;
+}
+.fx-jr-lanename--req { background: var(--fx-jr-req); box-shadow: inset 4px 0 0 #3b82c4; }
+.fx-jr-lanename--src { background: var(--fx-jr-src); box-shadow: inset 4px 0 0 #7c5cc4; }
+.fx-jr-lanename--money { background: var(--fx-jr-money); box-shadow: inset 4px 0 0 var(--nx-ok); border-bottom: 0; }
+.fx-jr-lanetitle { font-size: 13px; line-height: 1.25; overflow-wrap: anywhere; }
+.fx-jr-lanerole { font-size: 11.5px; color: var(--nx-muted); line-height: 1.3; }
+
+/* A node: the flag, the mark on the line, its label, its date or its person. The line runs at the mark's centre. */
+.fx-jr-node { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 0 4px; min-width: 0; gap: 3px; }
+.fx-jr-node::before, .fx-jr-node::after { content: none; position: absolute; top: 38px; height: 3px; background: var(--fx-jr-line); z-index: -1; }
+.fx-jr-node--in::before { content: ''; left: 0; right: 50%; }
+.fx-jr-node--out::after { content: ''; left: 50%; right: 0; }
+.fx-jr-node--indone::before, .fx-jr-node--outdone::after { background: var(--nx-ok); }
+.fx-jr-mark {
+  margin-top: 26px; width: 26px; height: 26px; flex: none; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 800; background: #fff; color: var(--nx-faint); border: 2px solid var(--fx-jr-line);
+}
+.fx-jr-mark span[class^="oj-ux-ico"] { font-size: 14px; }
+.fx-jr-node--done .fx-jr-mark { background: var(--nx-ok); border-color: var(--nx-ok); color: #fff; }
+.fx-jr-node--current .fx-jr-mark { border-color: var(--nx-accent); color: var(--nx-accent); }
+.fx-jr-node--running .fx-jr-mark { border-color: var(--fx-run); color: var(--fx-run); border-style: dashed; }
+.fx-jr-node--refused .fx-jr-mark, .fx-jr-node--failed .fx-jr-mark { background: var(--nx-danger); border-color: var(--nx-danger); color: #fff; }
+.fx-jr-node--here .fx-jr-mark {
+  margin-top: 21px; width: 36px; height: 36px; font-size: 14px; background: var(--nx-accent); border-color: var(--nx-accent); color: #fff;
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--nx-accent) 22%, transparent);
+}
+.fx-jr-label { font-size: 12px; font-weight: 700; line-height: 1.25; color: var(--nx-ink); overflow-wrap: anywhere; }
+.fx-jr-node--waiting .fx-jr-label, .fx-jr-node--running .fx-jr-label { color: var(--nx-muted); font-weight: 600; }
+.fx-jr-node--here .fx-jr-label { color: var(--nx-accent); }
+.fx-jr-date { font-size: 11px; color: var(--nx-ok); font-weight: 700; font-variant-numeric: tabular-nums; }
+.fx-jr-flag {
+  position: absolute; top: 1px; left: 50%; transform: translateX(-50%); z-index: 3; white-space: nowrap; background: var(--nx-accent); color: #fff;
+  font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; padding: 2px 8px; border-radius: 999px; line-height: 1.3;
+}
+.fx-jr-flag::after { content: ''; position: absolute; left: 50%; bottom: -4px; margin-left: -4px; border: 4px solid transparent; border-bottom: 0; border-top-color: var(--nx-accent); }
+.fx-jr-person { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; font-size: 11px; font-weight: 600; color: var(--nx-ink); line-height: 1.2; text-align: left; }
+.fx-jr-person .nx-avatar { width: 20px; height: 20px; font-size: 8.5px; flex: none; background: var(--nx-accent); }
+.fx-jr-persontext { overflow-wrap: anywhere; min-width: 0; }
+
+/* The money lane: thinner nodes on their own line. */
+.fx-jr-node--money::before, .fx-jr-node--money::after { top: 33px; }
+.fx-jr-node--money .fx-jr-mark { margin-top: 24px; width: 20px; height: 20px; font-size: 10.5px; }
+.fx-jr-node--money .fx-jr-mark span[class^="oj-ux-ico"] { font-size: 12px; }
+.fx-jr-node--money.fx-jr-node--here .fx-jr-mark { margin-top: 19px; width: 30px; height: 30px; }
+.fx-jr-node--money .fx-jr-label { font-size: 11.5px; }
+
+/* A hand-over: the vertical line where the next step is the other side's (from one lane's line to the other's). */
+.fx-jr-link { position: relative; z-index: 1; pointer-events: none; }
+.fx-jr-link::before { content: ''; position: absolute; left: -1px; top: 38px; height: var(--fx-jr-row); width: 3px; background: var(--fx-jr-line); }
+.fx-jr-link--done::before { background: var(--nx-ok); }
+
+.fx-jr-sentence { margin: 0; padding: 12px 16px 14px; font-size: 14px; line-height: 1.5; font-weight: 600; border-top: 1px solid var(--nx-line); overflow-wrap: anywhere; }
+
+@media (max-width: 1279px) {
+  .fx-jr { --fx-jr-label: 120px; --fx-jr-col: 80px; }
+}
+
+/* My requests: the journey as dots, and where it is now. */
+.fx-jr-dots { display: flex; flex-wrap: wrap; align-items: center; gap: 3px; margin: 7px 0 2px; }
+.fx-jr-dot { width: 8px; height: 8px; border-radius: 50%; background: #cbd5e1; flex: none; }
+.fx-jr-dot--done { background: var(--nx-ok); }
+.fx-jr-dot--current { background: #fff; box-shadow: inset 0 0 0 2px var(--nx-accent); }
+.fx-jr-dot--running { background: #fff; box-shadow: inset 0 0 0 2px var(--fx-run); }
+.fx-jr-dot--refused, .fx-jr-dot--failed { background: var(--nx-danger); }
+.fx-jr-dot--here { width: 12px; height: 12px; background: var(--nx-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--nx-accent) 22%, transparent); }
+.fx-jr-dot--money { margin-left: 6px; }
+.fx-rq-here { color: var(--nx-ink); font-weight: 600; }
+.fx-rq-here--mine { color: var(--nx-accent); }
+
+/* Who approves, and the next step */
+.fx-flow-head { display: flex; flex-direction: column; }
+.fx-flow-who { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; }
+.fx-flow-who-ico { font-size: 22px; color: var(--nx-band); flex: none; margin-top: 1px; }
+.fx-flow-who-body { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.fx-flow-approver { margin: 0; font-size: 15px; font-weight: 700; line-height: 1.45; overflow-wrap: anywhere; }
+.fx-flow-also { margin: 0; font-size: 13.5px; color: var(--nx-muted); line-height: 1.5; overflow-wrap: anywhere; }
+.fx-flow-k { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: var(--nx-faint); flex: none; }
+.fx-flow-next { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 12px 16px; border-top: 1px solid var(--nx-line); background: var(--nx-accent-soft); }
+.fx-flow-next .fx-flow-k { color: var(--nx-accent); }
+.fx-flow-next--none { background: var(--nx-surface-2); }
+.fx-flow-next-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 260px; }
+.fx-flow-next-label { font-weight: 700; font-size: 14px; overflow-wrap: anywhere; }
+.fx-flow-next-who { font-size: 12.5px; color: var(--nx-muted); overflow-wrap: anywhere; }
+
+/* The steps of a line, and of the money */
+.fx-flow-sechead { flex-wrap: wrap; align-items: flex-start; }
+.fx-flow-sectitle { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.fx-fslist { list-style: none; margin: 0; padding: 8px 16px 12px; }
+.fx-fs { position: relative; display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 12px; padding: 6px 0; }
+.fx-fs::before { content: ''; position: absolute; left: 14px; top: 0; bottom: 0; width: 2px; background: var(--nx-line); }
+.fx-fs:first-child::before { top: 22px; }
+.fx-fs:last-child::before { bottom: calc(100% - 22px); }
+.fx-fs-n {
+  position: relative; z-index: 1; width: 30px; height: 30px; margin-top: 6px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+  font-size: 12.5px; font-weight: 800; background: #fff; color: var(--nx-muted); border: 2px solid var(--nx-line-strong);
+}
+.fx-fs--done .fx-fs-n { background: var(--nx-ok); border-color: var(--nx-ok); color: #fff; }
+.fx-fs--current .fx-fs-n { background: var(--nx-accent); border-color: var(--nx-accent); color: #fff; box-shadow: 0 0 0 4px color-mix(in srgb, var(--nx-accent) 20%, transparent); }
+.fx-fs--refused .fx-fs-n { background: var(--nx-danger); border-color: var(--nx-danger); color: #fff; }
+.fx-fs--running .fx-fs-n { border-color: var(--fx-run); color: var(--fx-run); border-style: dashed; }
+.fx-fs--na .fx-fs-n { border-style: dashed; color: var(--nx-faint); }
+.fx-fs-body { min-width: 0; display: flex; flex-direction: column; gap: 4px; padding: 8px 12px 10px; border-radius: 10px; border: 1px solid transparent; }
+.fx-fs--current .fx-fs-body { background: #f0f7fb; border-color: #c9dfee; }
+.fx-fs--approver .fx-fs-body { border-left: 3px solid var(--fx-ic); }
+.fx-fs--na .fx-fs-label, .fx-fs--na .fx-fs-what { color: var(--nx-faint); }
+.fx-fs-top { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.fx-fs-label { font-weight: 700; font-size: 14.5px; overflow-wrap: anywhere; }
+.fx-fs-state, .fx-fs-tag { font-size: 11px; }
+.fx-fs-what { margin: 0; font-size: 13.5px; line-height: 1.45; overflow-wrap: anywhere; }
+.fx-fs-meta { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; font-size: 12.5px; color: var(--nx-muted); }
+.fx-fs-k { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--nx-faint); margin-right: 6px; }
+.fx-fs-bu { overflow-wrap: anywhere; min-width: 0; }
+.fx-fs-people { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; min-width: 0; max-width: 100%; }
+.fx-flow-person { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 2px 9px 2px 2px; border-radius: 999px; background: var(--nx-surface-2); border: 1px solid var(--nx-line); color: var(--nx-ink); font-size: 12.5px; }
+.fx-flow-person .nx-avatar { width: 22px; height: 22px; font-size: 9px; flex: none; }
+.fx-flow-person-text { overflow-wrap: anywhere; min-width: 0; line-height: 1.3; }
+.fx-flow-person-title { color: var(--nx-muted); }
+.fx-fs-done { margin: 0; display: flex; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 700; color: var(--nx-ok); }
+.fx-fs--refused .fx-fs-done { color: var(--nx-danger); }
+.fx-fs-done span[class^="oj-ux-ico"] { font-size: 14px; }
+.fx-fs-note { margin: 0; font-size: 12.5px; color: var(--nx-muted); line-height: 1.45; overflow-wrap: anywhere; }
+.fx-fs-go { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 2px; }
+.fx-fs-go .nx-btn { white-space: normal; height: auto; min-height: 30px; padding-top: 4px; padding-bottom: 4px; text-align: left; }
+.fx-you { text-transform: none; letter-spacing: 0; font-size: 12px; }
+.fx-you span[class^="oj-ux-ico"] { font-size: 13px; }
+
+/* Equipment: the approver and the next step, in short */
+.fx-flow-compact { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 22px; padding: 12px 16px; border-left: 4px solid var(--nx-accent); }
+.fx-flow-compact-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; min-width: 0; }
+.fx-flow-compact-text { font-size: 13.5px; font-weight: 600; overflow-wrap: anywhere; min-width: 0; }
+.fx-flow-compact-all { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; font-size: 13px; }
+.fx-flow-compact-all span[class^="oj-ux-ico"] { font-size: 14px; }

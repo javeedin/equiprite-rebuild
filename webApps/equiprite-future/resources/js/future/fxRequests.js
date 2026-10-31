@@ -10,7 +10,10 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
    *   form(s, form)                New request: the three steps (For with Source from, Equipment, Review), the sourcing
    *                                cards (only the sourcing BU's when one is chosen), the cart
    *   payload(s, form)             what Submit sends to createRequest
-   *   request(s, id)               a request's tab: head, equipment, money (the finance checklist), accounting, history
+   *   request(s, id)               a request's tab: head (its next step), approval & flow, equipment, money (the finance
+   *                                checklist), accounting, history
+   *   flow(s, id)                  a request's approval and flow: every step in order, its BU, its people, its state,
+   *                                the next step, the approver in words, the journey (swimlanes)
    *   exportOf(kind, v)            { name, title, subtitle, rows, columns } for exportKit
    */
   var U = E.util;
@@ -71,9 +74,17 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
     var cust = L.customer(s, r.customerId);
     var party = r.type === 'CUSTOMER_RENTAL' ? (cust ? cust.name : '') : (prj ? prj.number + ' · ' + prj.name : '');
     var partySub = r.type === 'CUSTOMER_PROJECT' && cust ? 'for ' + cust.name : r.site + ' · ' + countryName(s, r.country);
-    var nextItem = fin.items.filter(function (i) { return i.state !== 'done' && i.state !== 'na'; })[0];
-    var nextText = fin.complete ? 'Financially complete' : nextItem ? 'Next: ' + nextItem.label.replace(/ \([^)]*\)$/, '') + ' · ' + nextItem.who : fin.words;
+    // The money column names the first money step open; one still running counts only while nothing after it is done (as
+    // in the flow). The equipment's own steps are the flow's (flowNext).
+    var money = fin.items.filter(function (i) { return i.key !== 'ops'; });
+    var nextItem = money.filter(function (i, k) {
+      if (i.state === 'done' || i.state === 'na') return false;
+      return i.state !== 'running' || !money.slice(k + 1).some(function (x) { return x.state === 'done'; });
+    })[0];
+    var nextText = fin.complete ? 'Financially complete' : nextItem ? 'Money next: ' + nextItem.label.replace(/ \([^)]*\)$/, '') + ' · ' + nextItem.who : fin.words;
+    var fl = flow(s, r.id);
     return Object.assign({}, row, {
+      flowNext: fl.nextListText, flowNextMine: !!(fl.next && fl.next.go && fl.next.go.mine), flowDots: fl.journey.dots,
       party: party, partySub: partySub, relChips: rels, relText: rels.map(function (x) { return x.label; }).join(', '), ownersText: owners.join('; '),
       buCompany: row.buName + ' · ' + row.company, stageTone: stageTone(row.stage), countryName: countryName(s, r.country),
       moneyText: row.finDone + ' of ' + row.finTotal, moneyNext: nextText, moneyLine: row.finDone + ' of ' + row.finTotal + ' · ' + nextText,
@@ -613,6 +624,496 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
     });
   }
 
+  // ── Approval & flow: every step of a request in order, the BU that does it, who can, and where it is ──────────
+  /**
+   * The rules (FDD v2.0): the requesting BU asks and carries the cost; the sourcing BU (the owner) approves and
+   * allocates (owner-em) and ships (yard); the requesting BU approves first only when OD-12 asks for it (above its
+   * threshold, status AWAITING_REQUESTER_APPROVAL); a customer rental takes the rental desk's deposit before the owner
+   * may approve; the site receives (for a customer rental the owner's rental desk); the requesting BU approves the
+   * hours; then the money steps of fxViews.finance. Each step's people are PERSONAS with one of its roles in its BU.
+   */
+  var FLOW_STATE = { done: ['ok', 'Done'], current: ['next', 'Now'], waiting: ['todo', 'Waiting'], na: ['na', 'Not needed'], refused: ['bad', 'Refused'], running: ['run', 'Running'] };
+
+  /** A title's role inside a sentence: "Rental desk" → "rental desk"; "Equipment Manager" stays. */
+  function roleWords(title) {
+    var role = String(title || '').split(' · ')[0];
+    var w = role.split(' ');
+    return w.length > 1 && /^[A-Z]/.test(w[1]) ? role : role.charAt(0).toLowerCase() + role.slice(1);
+  }
+
+  /**
+   * Who can do a step: the people played (never Admin) with one of its roles in its BU, who may open its screen (the
+   * request's own tab when navId is ''); the screen's player first, so "Play as" names the first one.
+   */
+  function peopleFor(s, roles, buId, navId) {
+    var it = navId ? nav.item(navId) : null;
+    var list = Seed.PERSONAS.filter(function (p) {
+      return !isAdmin(p) && p.bus.indexOf(buId) !== -1 && roles.some(function (x) { return p.roles.indexOf(x) !== -1; }) && (!it || nav.itemVisible(it, p.roles));
+    });
+    if (it && it.player) list = list.filter(function (p) { return p.id === it.player; }).concat(list.filter(function (p) { return p.id !== it.player; }));
+    return list.map(function (p) {
+      var role = p.title.split(' · ')[0];
+      return { id: p.id, name: p.name, initials: p.initials, title: p.title, role: role, text: p.name + ' · ' + p.title, inWords: p.name + ', ' + roleWords(p.title) };
+    });
+  }
+
+  /** The current step's button: "It's you" (open its screen, or act here), or "Play as Ana and open Approve & allocate". */
+  function stepGo(s, st, people) {
+    var me = E.persona(s);
+    var it = st.navId ? nav.item(st.navId) : null;
+    var screen = it ? it.label : '';
+    var mine = st.roles.some(function (x) { return L.can(me, x); }) && L.inBu(me, st.bu) && (!it || nav.itemVisible(it, me.roles));
+    if (mine) {
+      return { mine: true, none: false, persona: me.id, personaName: me.name, navId: st.navId, act: st.act || '', requestId: st.requestId || '',
+        action: st.act ? st.actLabel : 'Open ' + screen, youText: 'It\'s you: ' + me.name + (st.act ? ' does it here' : ' does it in ' + screen) };
+    }
+    var p = people[0];
+    if (!p) return { mine: false, none: true, persona: '', personaName: '', navId: '', act: '', requestId: '', youText: '', action: 'No one plays this for ' + L.buName(s, st.bu) + ' in the demo (Admin can)' };
+    return { mine: false, none: false, persona: p.id, personaName: p.name, navId: st.navId, act: '', requestId: '', youText: '',
+      action: 'Play as ' + first(p.name) + (screen ? ' and open ' + screen : ' and ' + st.hereText) };
+  }
+
+  /** The log entries of this request (newest first), the first one that matches: { at, who } of a step done. */
+  function saidOn(s, r, re, lineId) {
+    return (s.log || []).filter(function (x) { return x.refs && x.refs.requestId === r.id && (!lineId || x.refs.lineId === lineId) && re.test(x.what); })[0] || null;
+  }
+
+  /** One line's steps in order, before their states are settled (open, done, na, refused). */
+  function lineSteps(s, r, l) {
+    var rental = r.type === 'CUSTOMER_RENTAL';
+    var u = L.unit(s, l.unitId || l.preferredUnit);
+    var serial = u ? u.serial : ((U.byId(s.classes, l.cls) || {}).name || l.cls);
+    var reqBu = r.requestingBu;
+    var own = l.provider;
+    var ownCo = L.leShort(s, l.providerLe);
+    var ownName = L.buName(s, own);
+    var reqName = L.buName(s, reqBu);
+    var cust = L.customer(s, r.customerId);
+    var custName = cust ? cust.name.split(' · ')[0] : 'the customer';
+    var refused = l.status === 'REJECTED';
+    var lost = l.status === 'LOST';
+    var moved = l.status === 'TRANSFERRED';
+    var siteBu = rental ? own : reqBu;
+    var siteRoles = rental ? ['desk'] : ['site'];
+    var gone = 'Not needed: ' + ownName + ' refused the line';
+    var said = function (re, perLine) { return saidOn(s, r, re, perLine ? l.id : ''); };
+    var out = [];
+
+    out.push({ key: 'raised', label: 'Raised', short: 'raising', bu: reqBu, roles: rental ? ['desk'] : ['requester'], navId: 'new-request', state: 'done', at: r.createdAt, who: r.createdBy, note: r.note || '',
+      what: rental ? whose(reqName) + ' rental desk raises it for ' + custName + ' and carries it' : reqName + ' asks for ' + serial + ' for its project and carries the cost' });
+
+    // The requesting BU's approval, only above its threshold when OD-12 asks for it.
+    var cur = L.le(s, r.requestingLe).currency;
+    var est = U.sum(r.lines, function (x) { return x.estimate || 0; });
+    var thText = F.money(s.settings.requesterThreshold, cur);
+    var awaiting = r.status === 'AWAITING_REQUESTER_APPROVAL';
+    var apLog = said(/above the threshold$/);
+    var why = 'The estimate, ' + F.money(est, cur) + ', is above ' + whose(reqName) + ' threshold of ' + thText + ' (OD-12)';
+    out.push({ key: 'requester', label: 'Requesting BU approves', short: whose(reqName) + ' approval', bu: reqBu, roles: ['receiver-review'], navId: '', act: 'approveRequest', actLabel: 'Approve for my BU', requestId: r.id,
+      hereText: 'approve it here', state: awaiting ? 'open' : apLog ? 'done' : 'na', at: apLog ? apLog.at : '', who: apLog ? apLog.who : '',
+      what: reqName + ' agrees to the request before the owner sees it (receiver review)',
+      note: awaiting || apLog ? why : rental ? 'Not needed: a customer rental is approved by the owner only'
+        : !s.settings.requesterApproval ? 'Not needed: only the owner approves (OD-12)'
+          : est <= s.settings.requesterThreshold ? 'Not needed: the estimate, ' + F.money(est, cur) + ', is not above its threshold of ' + thText + ' (OD-12)'
+            : 'Not needed: raised before OD-12 asked for it' });
+
+    var ag = L.agreement(s, l.agreementId);
+    var deposit = rental && ag && ag.depositPct;
+    if (rental) {
+      var amt = r.deposit ? r.deposit.amount : U.r2(U.sum(r.lines, function (q) { return q.price ? q.price.week * 4 : 0; }) * (deposit || 0));
+      var dLog = said(/^Received the deposit/);
+      out.push({ key: 'deposit', label: 'Deposit taken', short: 'the deposit', bu: own, roles: ['desk'], navId: 'billing', at: r.deposit ? r.deposit.date : '', who: dLog ? dLog.who : '',
+        state: !deposit ? 'na' : r.deposit ? 'done' : 'open',
+        what: 'The rental desk takes ' + whose(custName) + ' deposit' + (deposit ? ', ' + pct(deposit) + ' of four weeks (' + F.money(amt, ag.currency) + ')' : '') + ', before the owner may approve; Fusion Receivables records it',
+        note: deposit ? '' : 'Not needed: the rental agreement asks for no deposit' });
+    }
+
+    var rLog = said(/^Refused a line/, true);
+    var allocated = l.unitId ? L.unit(s, l.unitId) : null;
+    out.push({ key: 'approve', approver: true, label: 'Owner approves and allocates', short: 'approval', bu: own, roles: ['owner-em'], navId: 'approvals',
+      state: refused ? 'refused' : l.events.approved ? 'done' : 'open', at: refused ? (rLog ? rLog.at : '') : l.events.approved || '', who: refused ? (rLog ? rLog.who : '') : l.approvedBy || '',
+      what: ownName + ', the owner of ' + serial + ', approves the line and allocates a unit: the approver',
+      note: refused ? 'Refused: ' + (l.reason || 'no reason given') : l.events.approved ? (allocated ? 'Allocated ' + allocated.serial : '')
+        : awaiting ? 'Waits for ' + whose(reqName) + ' approval first' : deposit && !r.deposit ? 'Waits for the deposit: the rental desk takes it first' : '' });
+
+    var sLog = said(/^Shipped /, true);
+    var customs = l.customsId ? U.byId(s.customs, l.customsId) : null;
+    out.push({ key: 'ship', label: 'Shipped', short: 'shipping', bu: own, roles: ['yard'], navId: 'yard',
+      state: refused || l.inPlace ? 'na' : l.events.shipped ? 'done' : 'open', at: l.events.shipped || '', who: sLog ? sLog.who : '',
+      what: whose(ownCo) + ' yard ships it to ' + r.site + (u && u.hold === 'STOCK' ? ': a transfer order inside ' + ownCo + ' (GR-6)' : ': Fusion Assets updates its location'),
+      note: refused ? gone : l.inPlace ? 'Not needed: handed over on site, it is already there' : customs ? 'Temporary import ' + customs.permit + ' at the border' : '' });
+
+    var vLog = said(/: on hire from /, true);
+    out.push({ key: 'receive', label: 'Received: on hire', short: 'receipt on site', bu: siteBu, roles: siteRoles, navId: 'site',
+      state: refused ? 'na' : l.events.onHire ? 'done' : 'open', at: l.events.onHire || '', who: vLog ? vLog.who : '',
+      what: rental ? 'The rental desk confirms ' + custName + ' has it: on hire from that day' : 'The site receives it at ' + r.site + ': on hire from that day (OD-05)',
+      note: refused ? gone : '' });
+
+    if (!rental) {
+      var hrs = s.hours.filter(function (h) { return h.lineId === l.id; });
+      var waiting = hrs.filter(function (h) { return !h.approved; }).length;
+      var approved = hrs.filter(function (h) { return h.approved; });
+      var hLog = said(/^Approved \d+ days of hours/, true);
+      var ended = !!l.events.offHire || lost || moved;
+      var hs = 'open';
+      var hn = '';
+      if (refused) { hs = 'na'; hn = gone; } else if (!l.events.onHire) hn = 'From the day it is on hire';
+      else if (waiting) hn = waiting + (waiting === 1 ? ' day' : ' days') + ' of hours waiting for approval' + (approved.length ? '; ' + approved.length + ' approved' : '');
+      else if (!hrs.length) { hs = ended ? 'na' : 'open'; hn = ended ? 'No hours were recorded' : 'No hours recorded yet: the site records them each day on hire'; }
+      else { hs = 'done'; hn = approved.length + (approved.length === 1 ? ' day' : ' days') + ' approved' + (ended ? '' : ' so far; more come while it is on hire'); }
+      out.push({ key: 'hours', label: 'Hours recorded and approved', short: 'the hours', bu: reqBu, roles: ['requester', 'receiver-review'], navId: 'site', state: hs,
+        at: hs === 'done' && hLog ? hLog.at : '', who: hs === 'done' ? (hLog ? hLog.who : (approved[approved.length - 1] || {}).approvedBy || '') : '',
+        what: 'The site records the hours each day on hire; ' + reqName + ' approves them: they are what is charged', note: hn });
+    }
+
+    var oLog = said(/^Off hire: /, true);
+    var mLog = said(/handed over on site to/, true);
+    out.push({ key: 'offHire', label: 'Off hire', short: 'off hire', bu: siteBu, roles: siteRoles, navId: 'site',
+      state: refused ? 'na' : moved || lost || l.events.offHire ? 'done' : 'open', at: lost ? l.loss.date : l.events.offHire || '', who: lost ? l.loss.by : moved ? (mLog ? mLog.who : '') : (oLog ? oLog.who : ''),
+      what: (rental ? 'The rental desk' : 'The site') + ' releases it when the job is done: the charges stop that day',
+      note: refused ? gone : moved ? 'Handed over on site to ' + L.buName(s, l.movedTo) : lost ? 'Lost: charged at the agreed value' : '' });
+
+    var bLog = said(/^Received back /, true);
+    var ins = l.inspection;
+    out.push({ key: 'back', label: 'Back at the yard and inspected', short: 'the return and inspection', bu: own, roles: ['yard', 'owner-em'], navId: 'yard',
+      state: refused || moved || lost ? 'na' : ins ? 'done' : 'open', at: ins ? ins.date : '', who: ins ? ins.by : '',
+      what: whose(ownCo) + ' yard collects it and inspects it; damage is charged with photos (MC-FR-29)',
+      note: refused ? gone : moved ? 'Not needed: handed over on site to ' + L.buName(s, l.movedTo) + ', it stays out' : lost ? 'Not needed: lost, charged at the agreed value'
+        : ins ? (ins.damage > 0 ? 'Damaged: ' + F.money(ins.damage, (l.price || {}).currency) + (ins.note ? ', ' + ins.note : '') : 'Passed')
+          : l.events.returned ? 'Back at the yard ' + F.date(l.events.returned) + (bLog ? ' (' + bLog.who + ')' : '') + ': to inspect' : '' });
+    return out;
+  }
+
+  // Each money step (fxViews.finance key): where it is done, by which roles, on which side, its name in a sentence.
+  var MONEY = {
+    charges: ['charges', ['ic-finance', 'owner-finance'], 'provider', 'the charge run'],
+    agreed: ['charges', ['receiver-review'], 'requesting', 'the statement agreed'],
+    ar: ['ic-workbench', ['ic-finance'], 'provider', 'the invoice pair'], ap: ['ic-workbench', ['ic-finance'], 'requesting', 'the invoice pair'],
+    cost: ['ic-workbench', ['ic-finance'], 'requesting', 'the cost on the project'], accrual: ['ic-workbench', ['ic-finance'], 'provider', 'the accruals reversed'],
+    settled: ['ic-workbench', ['ic-finance'], 'provider', 'settlement'], internal: ['ic-workbench', ['ic-finance'], 'requesting', 'posting to PPM'],
+    bill: ['billing', ['finance', 'receiver-review'], 'requesting', 'billing the customer'], invoiced: ['billing', ['desk'], 'provider', 'the customer invoice'],
+    paid: ['billing', ['desk', 'finance', 'owner-finance', 'ic-finance'], 'requesting', 'the customer’s payment'],
+    depositSettled: ['billing', ['desk'], 'provider', 'settling the deposit'], damage: ['charges', ['receiver-review', 'owner-finance', 'ic-finance'], 'requesting', 'the damage charge']
+  };
+
+  /** When a money step was done and by whom, where the state knows it (the log, the statement, the transaction). */
+  function moneyDone(s, r, key) {
+    var cs = s.charges.filter(function (c) { return c.requestId === r.id; });
+    var ids = cs.map(function (c) { return c.id; });
+    var stIds = unique(cs.map(function (c) { return c.statementId; }));
+    var sts = stIds.map(function (id) { return U.byId(s.statements, id); }).filter(Boolean);
+    var find = function (re, f) { return (s.log || []).filter(function (x) { return re.test(x.what) && (!f || f(x)); })[0] || null; };
+    var onSt = function (x) { return !!x.refs && stIds.indexOf(x.refs.statementId) !== -1; };
+    var mine = function (t) { return (t.refs.chargeIds || []).some(function (x) { return ids.indexOf(x) !== -1; }); };
+    var last = function (list) { return list[list.length - 1] || null; };
+    var x = null;
+    if (key === 'charges') {
+      var periods = unique(cs.map(function (c) { return c.period; }));
+      x = find(/^Charge run /, function (q) { return periods.some(function (p) { return q.what.indexOf('Charge run ' + p) === 0; }); });
+    } else if (key === 'agreed') {
+      var st = last(sts.filter(function (q) { return q.agreedAt; }));
+      if (st) return { at: st.agreedAt, who: /^No answer/.test(st.agreedBy || '') ? 'silence (no answer in time, MC-FR-23)' : st.agreedBy || '' };
+    } else if (key === 'ar' || key === 'ap' || key === 'cost' || key === 'accrual') x = find(/^Created the invoice pair/, onSt);
+    else if (key === 'settled') x = find(/^Settled /, onSt);
+    else if (key === 'internal') {
+      var it = last(s.tx.filter(function (t) { return (t.kind === 'CROSS_CHARGE' || t.kind === 'OWN_COST') && mine(t); }));
+      if (it) { x = find(/internal cost line/, function (q) { return q.at === it.date; }); return { at: it.date, who: x ? x.who : '' }; }
+    } else if (key === 'bill') {
+      var bt = last(s.tx.filter(function (t) { return (t.kind === 'PROJECT_COST' || t.kind === 'CROSS_CHARGE' || t.kind === 'OWN_COST') && mine(t) && t.billed; }));
+      var bill = bt ? s.tx.filter(function (t) { return t.number === bt.billed; })[0] : null;
+      if (bill) { x = find(/^Billed /, function (q) { return q.refs && q.refs.projectId === r.projectId && q.at === bill.date; }); return { at: bill.date, who: x ? x.who : '' }; }
+    } else if (key === 'invoiced') {
+      var inv = last(s.tx.filter(function (t) { return t.kind === 'CUSTOMER_AR' && mine(t); }));
+      if (inv) x = find(/^Invoiced the customer/, function (q) { return q.what.indexOf(inv.number) !== -1; });
+    } else if (key === 'paid') {
+      var nos = s.tx.filter(function (t) { return (t.kind === 'CUSTOMER_AR' && mine(t)) || t.kind === 'PROJECT_BILL'; }).map(function (t) { return t.number; });
+      x = find(/ paid /, function (q) { return nos.some(function (n) { return q.what.slice(-n.length) === n; }); });
+    } else if (key === 'depositSettled') x = saidOn(s, r, /^Settled the deposit on/);
+    return x ? { at: x.at, who: x.who } : null;
+  }
+
+  /** The money steps (fxViews.finance, without the equipment and the deposit, which are steps of the lines). */
+  function moneySteps(s, r, fin) {
+    var rental = r.type === 'CUSTOMER_RENTAL';
+    var live = r.lines.filter(function (l) { return l.status !== 'REJECTED'; });
+    var provider = (live[0] || r.lines[0] || {}).provider;
+    var ownCo = L.leShort(s, L.leOf(s, provider).id);
+    var reqCo = L.leShort(s, r.requestingLe);
+    var sts = unique(s.charges.filter(function (c) { return c.requestId === r.id; }).map(function (c) { return c.statementId; })).map(function (id) { return U.byId(s.statements, id); }).filter(Boolean);
+    var draft = sts.some(function (x) { return x.status === 'DRAFT'; });
+    var prj = L.project(s, r.projectId);
+    var cust = L.customer(s, r.customerId);
+    var WHAT = {
+      charges: 'The month’s charge run prices each day on hire from the agreement: rental, standby, transport',
+      agreed: ownCo + ' releases the month’s statement; ' + reqCo + ' agrees it, or disputes a line within ' + s.settings.disputeDays + ' days (MC-FR-23)',
+      ar: 'EquipRite creates the invoice pair: the AR invoice in ' + ownCo, ap: 'The AP invoice in ' + reqCo + ', coded to ' + (prj ? prj.number : 'the project') + ' and its task',
+      cost: 'Fusion PPM takes the AP invoice’s cost onto ' + (prj ? prj.number : 'the project'), accrual: 'The cut-off accruals in both ledgers are reversed once the pair is invoiced',
+      settled: 'The monthly netting, or a payment, settles the invoice pair', internal: 'One legal entity: a PPM cost on ' + (prj ? prj.number : 'the project') + ', no invoice and no tax',
+      bill: reqCo + ' bills ' + (cust ? cust.name.split(' · ')[0] : 'the customer') + ' for the equipment at cost + ' + (prj && prj.markupPct ? Math.round(prj.markupPct * 100) + ' %' : 'its markup'),
+      invoiced: ownCo + ' invoices ' + (cust ? cust.name.split(' · ')[0] : 'the customer') + ' in Fusion Receivables from the month’s charges',
+      paid: 'The customer pays; the receipt is recorded in Fusion Receivables', depositSettled: 'After the return inspection the deposit is applied to open invoices or refunded',
+      damage: 'Damage or loss found at the return is charged (the user accepts it above the threshold, OD-11)'
+    };
+    var started = r.lines.some(function (l) { return l.events.onHire; });
+    var items = fin.items.filter(function (it) { return it.key !== 'ops' && it.key !== 'deposit' && MONEY[it.key]; });
+    return items.map(function (it, i) {
+      var g = MONEY[it.key];
+      // Running (still on hire this month): the step to watch only while nothing after it is done; else it runs alongside.
+      var later = items.slice(i + 1).some(function (x) { return x.state === 'done'; });
+      var side = it.key === 'paid' ? (rental ? 'provider' : 'requesting') : g[2];
+      var roles = g[1];
+      var note = /^0 /.test(it.detail || '') ? '' : it.detail || '';
+      if (it.key === 'agreed' && draft) { roles = ['owner-finance', 'ic-finance']; side = 'provider'; note = 'The owner releases it first: ' + note; }
+      var state = it.state === 'done' ? 'done' : it.state === 'na' ? 'na' : it.state === 'running' && later ? 'running' : 'open';
+      if (it.key === 'charges' && it.state === 'na' && !started && live.length) { state = 'open'; note = 'From the day it is on hire, at each month end'; }
+      var done = it.state === 'done' ? moneyDone(s, r, it.key) : null;
+      return { key: 'm-' + it.key, money: true, label: it.label, short: g[3], bu: side === 'provider' ? provider : r.requestingBu, roles: roles, navId: g[0],
+        state: state, failed: it.state === 'failed', running: it.state === 'running',
+        at: done ? done.at : '', who: done ? done.who : '', what: WHAT[it.key] || it.label, note: note };
+    });
+  }
+
+  /** The states settled: the first open step is the current one (unless held), the other open ones wait. */
+  function settle(s, r, raw, hold) {
+    var cur = -1;
+    if (!hold) raw.some(function (st, i) { if (st.state === 'open') { cur = i; return true; } return false; });
+    var both = function (b) { return b === r.requestingBu && r.lines.some(function (l) { return l.provider === b; }); };
+    return raw.map(function (st, i) {
+      var state = st.state === 'open' ? (i === cur ? 'current' : 'waiting') : st.state;
+      var people = peopleFor(s, st.roles, st.bu, st.navId);
+      var b = L.bu(s, st.bu);
+      var tone = st.failed && state !== 'done' ? ['bad', state === 'current' ? 'Failed: now' : 'Failed'] : st.running && state === 'current' ? ['run', 'Now: running'] : FLOW_STATE[state];
+      return Object.assign({}, st, {
+        n: i + 1, state: state, current: i === cur, tone: tone[0], stateText: tone[1], approver: !!st.approver, failed: !!st.failed, running: !!st.running,
+        buName: L.buName(s, st.bu), company: b ? L.leShort(s, b.le) : '', side: both(st.bu) ? 'Requesting and sourcing BU' : st.bu === r.requestingBu ? 'Requesting BU' : 'Sourcing BU',
+        buText: L.buName(s, st.bu) + ' · ' + (b ? L.leShort(s, b.le) : ''),
+        people: people, peopleText: people.length ? people.map(function (p) { return p.text; }).join('; ') : 'No one plays this in the demo (Admin can)',
+        doneText: state === 'done' || state === 'refused' ? [st.at ? F.date(st.at) : '', st.who ? 'by ' + st.who : ''].filter(Boolean).join(' ') : '',
+        // A step still running (charged at the month end) has nothing to press yet.
+        go: i === cur && !st.running ? stepGo(s, st, people) : null
+      });
+    });
+  }
+
+  /** "Approver: Ana Costa (Equipment Manager, FleetCo Fleet), the owner of EX-1001." and what the requesting BU does. */
+  function approverWords(s, r, lines) {
+    var order = [];
+    var serials = {};
+    r.lines.forEach(function (l, i) {
+      if (order.indexOf(l.provider) === -1) order.push(l.provider);
+      (serials[l.provider] = serials[l.provider] || []).push(lines[i].serial);
+    });
+    var rental = r.type === 'CUSTOMER_RENTAL';
+    var approvers = order.map(function (b) {
+      var em = peopleFor(s, ['owner-em'], b, 'approvals')[0] || null;
+      var who = em ? em.name + ' (' + em.role + ', ' + L.buName(s, b) + ')' : whose(L.buName(s, b)) + ' equipment manager (no one plays it in the demo; Admin can)';
+      return { bu: b, buName: L.buName(s, b), company: L.leShort(s, L.leOf(s, b).id), id: em ? em.id : '', name: em ? em.name : '', role: em ? em.role : '', initials: em ? em.initials : '',
+        short: who, serials: serials[b].join(', '), own: b === r.requestingBu && !rental,
+        text: who + ', the owner of ' + serials[b].join(', ') + (b === r.requestingBu && !rental ? ' (its own fleet)' : '') };
+    });
+    var reqName = L.buName(s, r.requestingBu);
+    var cur = L.le(s, r.requestingLe).currency;
+    var est = U.sum(r.lines, function (x) { return x.estimate || 0; });
+    var apLog = saidOn(s, r, /above the threshold$/);
+    var reviewers = peopleFor(s, ['receiver-review'], r.requestingBu, '');
+    var also = '';
+    if (rental) {
+      var ag = L.agreement(s, (r.lines[0] || {}).agreementId);
+      var desk = peopleFor(s, ['desk'], (r.lines[0] || {}).provider, 'billing')[0];
+      var dLog = saidOn(s, r, /^Received the deposit/);
+      also = !(ag && ag.depositPct) ? 'A customer rental: only the owner approves, no deposit.'
+        : r.deposit ? 'The rental desk took the deposit first (' + F.date(r.deposit.date) + (dLog ? ' by ' + dLog.who : '') + ').'
+          : 'First ' + (desk ? desk.name + ' (' + roleWords(desk.title) + ')' : 'the rental desk') + ' takes the deposit; only then may the owner approve.';
+    } else if (r.status === 'AWAITING_REQUESTER_APPROVAL') {
+      also = reqName + ' approves first (receiver review: ' + (reviewers.map(function (p) { return p.name; }).join(' or ') || 'no one plays it in the demo') + '), as the estimate, ' + F.money(est, cur)
+        + ', is above its threshold of ' + F.money(s.settings.requesterThreshold, cur) + ' (OD-12); then the owner.';
+    } else if (apLog) {
+      also = reqName + ' approved it first (' + F.date(apLog.at) + ' by ' + apLog.who + '), as the estimate was above its threshold (OD-12).';
+    } else if (r.lines.every(function (l) { return l.provider === r.requestingBu; })) {
+      also = reqName + ' is the owner too: no other approval (OD-12 ' + (s.settings.requesterApproval ? 'on, but not above the threshold' : 'off') + ').';
+    } else {
+      var reqWho = r.lines.some(function (l) { return l.providerLe === r.requestingLe; }) ? reqName : L.leShort(s, r.requestingLe);
+      also = reqWho + ' does not approve: ' + (s.settings.requesterApproval ? 'the estimate, ' + F.money(est, cur) + ', is not above its threshold of ' + F.money(s.settings.requesterThreshold, cur) + ' (OD-12).'
+        : 'only the owner approves (OD-12 off).');
+    }
+    return { approvers: approvers, text: (approvers.length > 1 ? 'Approvers: ' : 'Approver: ') + approvers.map(function (a) { return a.text; }).join('; ') + '.', also: also,
+      short: approvers.map(function (a) { return a.short; }).join('; ') };
+  }
+
+  // ── The journey: the flow drawn as swimlanes (requesting side, sourcing side, money) ────────────────────────────
+  // Per step: [node label, what the person does on the node, does (a sentence), do it (to the persona played), did].
+  var WORDS = {
+    raised: ['Raised', 'raises it', 'raises it', 'raise it', 'raised it'],
+    requester: ['BU approves', 'approves', 'approves it for its BU', 'approve it for your BU', 'approved it for its BU'],
+    deposit: ['Deposit', 'takes the deposit', 'takes the deposit', 'take the deposit', 'took the deposit'],
+    approve: ['Owner approves', 'approves', 'approves and allocates', 'approve and allocate a unit', 'approved and allocated it'],
+    ship: ['Shipped', 'ships', 'ships it', 'ship it', 'shipped it'],
+    receive: ['On hire', 'receives', 'receives it: on hire', 'receive it: it goes on hire', 'received it'],
+    hours: ['Hours', 'approves the hours', 'records and approves the hours', 'record and approve the hours', 'approved the hours'],
+    offHire: ['Off hire', 'releases it', 'releases it: off hire', 'release it when the job is done', 'released it'],
+    back: ['Back & inspected', 'inspects', 'collects and inspects it', 'collect and inspect it', 'inspected it'],
+    'm-charges': ['Charge run', 'runs the charges', 'runs the month’s charges', 'run the month’s charges', 'ran the charges'],
+    'm-agreed': ['Statement', 'agrees', 'agrees the statement', 'agree the statement', 'agreed the statement'],
+    'm-ar': ['Invoice pair', 'invoices', 'creates the invoice pair', 'create the invoice pair', 'created the invoice pair'],
+    'm-settled': ['Settled', 'settles', 'settles the invoice pair', 'settle the invoice pair', 'settled the invoice pair'],
+    'm-internal': ['Posted to PPM', 'posts it', 'posts the cost to PPM', 'post the cost to PPM', 'posted the cost to PPM'],
+    'm-bill': ['Customer billed', 'bills', 'bills the customer', 'bill the customer', 'billed the customer'],
+    'm-invoiced': ['Customer invoice', 'invoices', 'invoices the customer', 'invoice the customer', 'invoiced the customer'],
+    'm-paid': ['Paid', 'records it', 'records the customer’s payment', 'record the customer’s payment', 'recorded the customer’s payment'],
+    'm-depositSettled': ['Deposit settled', 'settles it', 'settles the deposit', 'settle the deposit', 'settled the deposit'],
+    'm-damage': ['Damage', 'charges it', 'charges the damage', 'charge the damage', 'charged the damage']
+  };
+  WORDS['m-ap'] = WORDS['m-cost'] = WORDS['m-accrual'] = WORDS['m-ar'];
+  var RELEASE = ['Statement', 'releases', 'releases the statement', 'release the statement', 'released the statement'];
+  // The money nodes: the invoice pair is one node (AR, AP, the cost on the project, the accruals reversed).
+  var NODE_OF = { 'm-ar': 'm-pair', 'm-ap': 'm-pair', 'm-cost': 'm-pair', 'm-accrual': 'm-pair' };
+  // The steps the requesting side does (for a customer rental, the rental desk for the customer); the rest are the owner's.
+  var REQ_LANE = { raised: 1, requester: 1, deposit: 1, receive: 1, hours: 1, offHire: 1 };
+
+  function wordsOf(st) { return st.key === 'm-agreed' && st.roles.indexOf('owner-finance') !== -1 ? RELEASE : WORDS[st.key] || [st.label, 'does it', 'does it', 'do it', 'did it']; }
+
+  /**
+   * The journey of one line (the one where the request is now): its steps as nodes in the lane of the side that does
+   * them, then the money in a lane of its own from the day it is on hire. Each node: done (its date), current (the one
+   * where the request is now carries the "Here now" flag and its person), waiting; connectors between steps, and a
+   * hand-over where the next step is the other side's.
+   */
+  function journey(s, r, lines, money, next) {
+    var rental = r.type === 'CUSTOMER_RENTAL';
+    var focus = (next && !next.money ? lines.filter(function (l) { return l.serial === next.line; })[0] : null)
+      || lines.filter(function (l) { return r.lines.some(function (x) { return x.id === l.id && x.status !== 'REJECTED'; }); })[0] || lines[0];
+    var raw = r.lines.filter(function (x) { return x.id === focus.id; })[0];
+    var isHere = function (st) { return !!next && st.key === next.key && st.line === next.line; };
+    var node = function (st, i, lane, col, group) {
+      var w = wordsOf(st);
+      var list = group || [st];
+      var here = list.some(isHere);
+      var state = list.some(function (x) { return x.state === 'refused'; }) ? 'refused' : list.some(function (x) { return x.state === 'current'; }) ? 'current'
+        : list.every(function (x) { return x.state === 'done'; }) ? 'done' : list.some(function (x) { return x.state === 'running'; }) ? 'running' : 'waiting';
+      var failed = list.some(function (x) { return x.failed && x.state !== 'done'; });
+      var dates = list.filter(function (x) { return x.state === 'done' && x.at; }).map(function (x) { return x.at; }).sort();
+      var at = dates.length ? dates[dates.length - 1] : (st.state === 'refused' ? st.at : '');
+      var hereStep = list.filter(isHere)[0] || st;
+      var p = here && hereStep.people[0] ? hereStep.people[0] : null;
+      return {
+        key: (group ? NODE_OF[st.key] || st.key : st.key), label: w[0], lane: lane, col: col, state: failed ? 'failed' : state, here: here, n: i + 1,
+        dateText: at ? F.short(at) : '', personInitials: p ? p.initials : '', personText: p ? p.name + ' · ' + wordsOf(hereStep)[1] : '',
+        title: w[0] + ': ' + (FLOW_STATE[state] || ['', state])[1] + (at ? ' ' + F.date(at) : '') + (st.who && state === 'done' ? ' by ' + st.who : '') + ' · ' + st.buName,
+        style: { gridColumn: String(col + 1), gridRow: String(lane) }
+      };
+    };
+    var ops = focus.steps.filter(function (x) { return x.state !== 'na'; });
+    var nodes = ops.map(function (st, i) { return node(st, i, REQ_LANE[st.key] ? 1 : 2, i + 1); });
+    var links = [];
+    nodes.forEach(function (n, i) {
+      var prev = nodes[i - 1];
+      n.inLine = !!prev;
+      n.outLine = i < nodes.length - 1;
+      n.inDone = !!prev && prev.state === 'done';
+      n.outDone = n.state === 'done';
+      n.cls = 'fx-jr-node fx-jr-node--' + n.state + (n.here ? ' fx-jr-node--here' : '') + (prev ? ' fx-jr-node--in' : '') + (n.outLine ? ' fx-jr-node--out' : '')
+        + (n.inDone ? ' fx-jr-node--indone' : '') + (n.outDone ? ' fx-jr-node--outdone' : '');
+      if (prev && prev.lane !== n.lane) {
+        links.push({ key: 'x' + n.col, done: prev.state === 'done', up: n.lane < prev.lane, cls: 'fx-jr-link' + (prev.state === 'done' ? ' fx-jr-link--done' : ''),
+          style: { gridColumn: String(n.col + 1), gridRow: '1 / span 2' }, title: 'Handed over to ' + (n.lane === 1 ? 'the requesting side' : 'the owner') });
+      }
+    });
+    // Money: from the column where it went on hire, one node per step (the invoice pair as one).
+    var start = 1;
+    ops.forEach(function (st, i) { if (st.key === 'receive') start = i + 1; });
+    var groups = [];
+    money.filter(function (x) { return x.state !== 'na'; }).forEach(function (st) {
+      var k = NODE_OF[st.key] || st.key;
+      var g = groups.filter(function (x) { return x.key === k; })[0];
+      if (g) g.steps.push(st); else groups.push({ key: k, steps: [st] });
+    });
+    var mnodes = groups.map(function (g, j) { return node(g.steps[0], j, 3, start + j, g.steps); });
+    mnodes.forEach(function (n, j) {
+      var prev = mnodes[j - 1];
+      n.cls = 'fx-jr-node fx-jr-node--money fx-jr-node--' + n.state + (n.here ? ' fx-jr-node--here' : '') + (prev ? ' fx-jr-node--in' : '') + (j < mnodes.length - 1 ? ' fx-jr-node--out' : '')
+        + (prev && prev.state === 'done' ? ' fx-jr-node--indone' : '') + (n.state === 'done' ? ' fx-jr-node--outdone' : '');
+    });
+    var cols = Math.max(nodes.length, start + mnodes.length - 1, 1);
+    var cust = L.customer(s, r.customerId);
+    var owners = unique(r.lines.map(function (l) { return L.buName(s, l.provider); }));
+    var reqName = L.buName(s, r.requestingBu);
+    var started = r.lines.some(function (l) { return l.events.onHire; });
+    var lanes = [
+      { key: 'req', name: rental ? (cust ? cust.name.split(' · ')[0] : 'The customer') : reqName, role: rental ? 'rents, through ' + whose(owners[0]) + ' rental desk' : 'requests and pays',
+        cls: 'fx-jr-lane fx-jr-lane--req', nameCls: 'fx-jr-lanename fx-jr-lanename--req', style: { gridRow: '1' } },
+      { key: 'src', name: owners.join(', '), role: owners.length > 1 ? 'own, approve, ship' : 'owns, approves, ships', cls: 'fx-jr-lane fx-jr-lane--src', nameCls: 'fx-jr-lanename fx-jr-lanename--src',
+        style: { gridRow: '2' } },
+      { key: 'money', name: 'Money', role: started ? 'from the day it is on hire' : 'starts when it is on hire', cls: 'fx-jr-lane fx-jr-lane--money', nameCls: 'fx-jr-lanename fx-jr-lanename--money', style: { gridRow: '3' } }
+    ];
+    // In words: where the request is now, who does it (or "It's your turn"), and what came just before.
+    var seq = focus.steps.concat(money);
+    var at = next ? seq.map(isHere).indexOf(true) : -1;
+    var before = (at === -1 ? seq : seq.slice(0, at)).filter(function (x) { return x.state === 'done'; }).slice(-1)[0] || null;
+    var sentence;
+    if (next) {
+      var p = next.people[0];
+      var w = wordsOf(next);
+      var it = next.navId ? nav.item(next.navId) : null;
+      sentence = r.number + ' is with ' + next.buName + (next.go && next.go.mine ? '. It\'s your turn: ' + w[3] + (next.go.act ? ' here' : it ? ' in ' + it.label : '') + '.'
+        : ': ' + (p ? p.name + ' (' + p.role + ')' : whose(next.buName) + ' ' + roleWords(next.roles[0])) + ' ' + w[2] + '.');
+    } else if (raw && raw.status === 'REJECTED') {
+      sentence = r.number + ' was refused by ' + L.buName(s, raw.provider) + (raw.reason ? ': ' + raw.reason : '') + '.';
+    } else {
+      sentence = r.number + ' is done: the equipment is back and every step of its money is complete.';
+    }
+    if (before) sentence += ' Before that: ' + (before.who || before.buName) + ' ' + wordsOf(before)[4] + (before.at ? ' on ' + F.date(before.at) : '') + '.';
+    return {
+      lanes: lanes, nodes: nodes, links: links, money: mnodes, all: nodes.concat(mnodes), cols: cols, line: focus.serial, lineText: lines.length > 1 ? 'Shown for ' + focus.title + ', where the request is now' : '',
+      gridStyle: { gridTemplateColumns: 'var(--fx-jr-label) repeat(' + cols + ', minmax(var(--fx-jr-col), 1fr))' },
+      sentence: sentence,
+      dots: nodes.concat(mnodes).map(function (n, i) { return { key: n.key + '-' + i, cls: 'fx-jr-dot fx-jr-dot--' + n.state + (n.here ? ' fx-jr-dot--here' : '') + (i === nodes.length ? ' fx-jr-dot--money' : ''), title: n.title }; })
+    };
+  }
+
+  /**
+   * A request's approval and flow: per line its steps in order (raised, the requesting BU's approval, the deposit, the
+   * owner's approval: the approver, shipped, received, hours, off hire, back and inspected), then the money steps; the
+   * next step (operations first, then money: the earliest current step), and the approver in words.
+   */
+  function flow(s, id) {
+    var r = L.request(s, id);
+    if (!r) return null;
+    var fin = V.finance(s, r.id);
+    var lines = r.lines.map(function (l) {
+      var u = L.unit(s, l.unitId || l.preferredUnit);
+      var serial = u ? u.serial : l.cls;
+      var steps = settle(s, r, lineSteps(s, r, l), false).map(function (x) { return Object.assign({}, x, { line: serial, labelFull: x.label + (r.lines.length > 1 ? ' · ' + serial : '') }); });
+      return { id: l.id, serial: serial, title: u ? u.serial + ' · ' + u.name : ((U.byId(s.classes, l.cls) || {}).name || l.cls) + ' (unit to be chosen)',
+        sub: 'Owner: ' + L.buName(s, l.provider) + ' · ' + L.leShort(s, l.providerLe) + ' · ' + relOf(l.relation).label, relChip: relOf(l.relation), steps: steps,
+        current: steps.filter(function (x) { return x.current; })[0] || null };
+    });
+    var started = r.lines.some(function (l) { return l.events.onHire; });
+    var money = settle(s, r, moneySteps(s, r, fin), !started).map(function (x) { return Object.assign({}, x, { line: '', labelFull: x.label }); });
+    var opsNext = lines.map(function (l) { return l.current; }).filter(Boolean).sort(function (a, b) { return a.n - b.n; })[0] || null;
+    var next = opsNext || money.filter(function (x) { return x.current; })[0] || null;
+    var who = function (st) { return st.people[0] ? st.people[0].inWords : 'no one plays it for ' + st.buName + ' in the demo'; };
+    var words = approverWords(s, r, lines);
+    var all = [];
+    lines.forEach(function (l) { all = all.concat(l.steps); });
+    var counted = all.filter(function (x) { return x.state !== 'na'; });
+    var refused = r.lines.length > 0 && r.lines.every(function (l) { return l.status === 'REJECTED'; });
+    var sections = lines.map(function (l) { return { key: l.id, kind: 'line', title: l.title, sub: l.sub, relChip: l.relChip, steps: l.steps }; });
+    var mCount = money.filter(function (x) { return x.state !== 'na'; });
+    sections.push({ key: 'money', kind: 'money', title: 'Then the money', sub: started ? mCount.filter(function (x) { return x.state === 'done'; }).length + ' of ' + mCount.length + ' done; the Money tab has the details'
+      : 'Starts when the equipment is on hire', relChip: null, steps: money });
+    // In a list: the step's person and their company, or their BU when it is in the requesting BU's own company.
+    var whereOf = function (st) { var b = L.bu(s, st.bu); return b && b.le !== r.requestingLe ? st.company : st.buName; };
+    return {
+      lines: lines, money: money, sections: sections, next: next, approvers: words.approvers, approverText: words.text, alsoText: words.also, approverShort: words.short,
+      journey: journey(s, r, lines, money, next),
+      nextText: next ? 'Next: ' + next.short + ' · ' + who(next) : '',
+      nextListText: next ? 'Here now: ' + next.short + ' · ' + (next.people[0] ? next.people[0].name + ' (' + whereOf(next) + ')' : next.buName) : '',
+      badge: next ? 'Next: ' + next.short + ' · ' + who(next) : fin.complete ? 'Financially complete' : refused ? 'Refused by the owner: nothing more to do' : 'Nothing left to do',
+      done: counted.filter(function (x) { return x.state === 'done'; }).length, total: counted.length,
+      countText: counted.filter(function (x) { return x.state === 'done'; }).length + ' of ' + counted.length
+    };
+  }
+
   /** Totals per company: what each company charged, invoiced, booked as cost, settled, for this request's charges only. */
   function companyTotals(s, r) {
     var cs = s.charges.filter(function (c) { return c.requestId === r.id; });
@@ -751,6 +1252,7 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
     var cust = L.customer(s, r.customerId);
     var openLines = lines.filter(function (l) { return l.next; });
     var head = rowOf(s, v);
+    var fl = flow(s, r.id);
     return Object.assign({}, v, {
       ready: true, error: '', missing: false, me: V.me(s), stageTone: stageTone(v.stage),
       ownersText: head.ownersText, relChips: head.relChips, relText: head.relText, moneyNext: head.moneyNext,
@@ -759,7 +1261,9 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
       partyLabel: r.type === 'CUSTOMER_RENTAL' ? 'Customer' : 'Project', customerText: r.type === 'CUSTOMER_PROJECT' && cust ? 'for ' + cust.name : '',
       taskText: r.task || '', siteText: r.site + ' · ' + countryName(s, r.country), datesText: F.date(r.from) + ' to ' + F.date(r.to),
       buText: v.buName + ' · ' + L.le(s, r.requestingLe).name, raisedText: 'Raised by ' + r.createdBy + ' on ' + F.date(r.createdAt),
-      finBadge: fin.complete ? 'Financially complete' : head.moneyNext, finTone: fin.complete ? 'ok' : 'todo', finProgress: fin.done + ' of ' + fin.total + ' done',
+      // The head's badge names the request's real next step (the flow's: operations first, then money).
+      flow: fl, defaultTab: r.lines.some(function (l) { return !l.events.onHire; }) ? 'flow' : 'equipment',
+      finBadge: fl.badge, finTone: fin.complete ? 'ok' : 'todo', finProgress: fin.done + ' of ' + fin.total + ' done',
       finPct: fin.total ? Math.round(fin.done / fin.total * 100) : 0,
       lines: lines, lineCount: lines.length, openLines: openLines.length,
       items: items, charges: charges, chargeTotals: Object.keys(byCur).map(function (k) { return F.money(byCur[k], k); }).join(' · '),
@@ -777,7 +1281,7 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
   function col(key, label, type) { return { key: key, label: label, type: type || 'text' }; }
   var COLUMNS = {
     requests: [col('number', 'Request'), col('typeText', 'Type'), col('party', 'Project or customer'), col('buName', 'Requesting BU'), col('company', 'Company'),
-      col('ownersText', 'Owners'), col('relText', 'Relationships'), col('words', 'Stage'), col('finDone', 'Money steps done', 'number'), col('finTotal', 'Money steps', 'number'),
+      col('ownersText', 'Owners'), col('relText', 'Relationships'), col('words', 'Stage'), col('flowNext', 'Here now'), col('finDone', 'Money steps done', 'number'), col('finTotal', 'Money steps', 'number'),
       col('moneyNext', 'Money'), col('costSoFar', 'Cost so far'), col('equipment', 'Equipment'), col('site', 'Site'), col('countryName', 'Country'), col('fromText', 'From'), col('toText', 'To')],
     equipment: [col('serial', 'Unit'), col('unitName', 'Name'), col('providerName', 'Owner BU'), col('providerShort', 'Owner company'), col('relationLabel', 'Relationship'),
       col('agreementText', 'Agreement'), col('priceText', 'Price'), col('words', 'Status'), col('eventsText', 'Events'), col('hoursText', 'Hours'), col('customsText', 'Customs'),
@@ -787,11 +1291,13 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
     accounting: [col('company', 'Company'), col('number', 'Transaction'), col('kindText', 'Kind'), col('date', 'Date'), col('account', 'Account'), col('name', 'Account name'),
       col('dr', 'Debit', 'number'), col('cr', 'Credit', 'number'), col('currency', 'Currency'), col('memo', 'Memo'), col('source', 'Made by (Fusion)')],
     history: [col('at', 'When'), col('who', 'Who'), col('title', 'Role'), col('what', 'What happened')],
+    flow: [col('section', 'Line or money'), col('n', 'Step', 'number'), col('label', 'What'), col('what', 'What happens'), col('side', 'Side'), col('buText', 'Business unit'),
+      col('peopleText', 'Who can do it'), col('stateText', 'State'), col('doneText', 'Done'), col('note', 'Note')],
     options: [col('serial', 'Unit'), col('name', 'Name'), col('ownerName', 'Owner BU'), col('ownerShort', 'Owner company'), col('relLabel', 'Relationship'), col('holdText', 'Asset or stock'),
       col('where', 'Where it is'), col('countryName', 'Country'), col('lead', 'Lead time'), col('price', 'Price'), col('estimateText', 'Estimate'), col('estimateNote', 'Estimate note'),
       col('why', 'Why not usable'), col('certText', 'Certificate')]
   };
-  /** What an export takes for a list of these screens (kind: requests, equipment, money, accounting, history, options). */
+  /** What an export takes for a list of these screens (kind: requests, flow, equipment, money, accounting, history, options). */
   function exportOf(kind, v) {
     var x = v || {};
     var rows;
@@ -799,6 +1305,10 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
     else if (kind === 'equipment') rows = x.lines || [];
     else if (kind === 'money') rows = x.charges || [];
     else if (kind === 'history') rows = x.history || [];
+    else if (kind === 'flow') {
+      rows = [];
+      ((x.flow && x.flow.sections) || []).forEach(function (sec) { sec.steps.forEach(function (st) { rows.push(Object.assign({ section: sec.title }, st)); }); });
+    }
     else if (kind === 'options') rows = x.cards || [];
     else if (kind === 'accounting') {
       rows = [];
@@ -811,14 +1321,14 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
         });
       });
     } else rows = [];
-    var names = { requests: 'requests', equipment: 'equipment', money: 'charges', accounting: 'accounting', history: 'history', options: 'equipment-options' };
-    var titles = { requests: 'My requests', equipment: 'Equipment', money: 'Charges', accounting: 'Accounting (shown)', history: 'History', options: 'Equipment for the request' };
+    var names = { requests: 'requests', flow: 'approval-and-flow', equipment: 'equipment', money: 'charges', accounting: 'accounting', history: 'history', options: 'equipment-options' };
+    var titles = { requests: 'My requests', flow: 'Approval & flow', equipment: 'Equipment', money: 'Charges', accounting: 'Accounting (shown)', history: 'History', options: 'Equipment for the request' };
     var subtitle = kind === 'requests' ? [x.scope, x.chip && x.chip !== 'all' ? (CHIPS.filter(function (c) { return c[0] === x.chip; })[0] || [])[1] : '', x.text ? '"' + x.text + '"' : ''].filter(Boolean).join(' · ')
       : kind === 'options' ? [x.title, x.shownText, x.clsName, x.daysText].filter(Boolean).join(' · ') : [x.number, x.party].filter(Boolean).join(' · ');
     return { name: (kind === 'requests' || kind === 'options' ? '' : (x.number || '') + '-') + names[kind], title: (kind === 'requests' || kind === 'options' ? '' : (x.number || '') + ' · ') + titles[kind],
       subtitle: subtitle, rows: rows, columns: COLUMNS[kind] || [] };
   }
 
-  return { list: list, form: form, change: change, payload: payload, request: request, exportOf: exportOf, requesterBus: requesterBus, forOptions: forOptions, sourceBus: sourceBus,
+  return { list: list, form: form, change: change, payload: payload, request: request, flow: flow, exportOf: exportOf, requesterBus: requesterBus, forOptions: forOptions, sourceBus: sourceBus,
     certWords: certWords, doer: doer, COLUMNS: COLUMNS, CHIPS: CHIPS };
 });

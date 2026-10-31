@@ -1,5 +1,7 @@
-<!-- A request in its own tab: the head band (what it is, for whom, where, when, its stage and its money), then four tabs:
-     Equipment (each line: unit, owner, relationship, agreement, events, hours, moves, customs, inspection, damage, loss,
+<!-- A request in its own tab: the head band (what it is, for whom, where, when, its stage, its next step and who does
+     it, its money), then five tabs: Approval & flow (who approves, then every step of each line and of the money in
+     order, the BU that does it, who can, and done / now / waiting / not needed; shown first while a line is not yet on
+     hire), Equipment (the approver and the next step, then each line: unit, owner, relationship, agreement, events, hours, moves, customs, inspection, damage, loss,
      and where its next step happens), Money (the request's financial clarity: every transaction it should make, done or
      not, the charges, totals per company), Accounting (shown: what each company's Fusion makes) and History.
      v = fxRequests.request(state, id) (loadChain, again on fxRefresh). Styles: resources/css/future-requests.css. -->
@@ -100,8 +102,181 @@
       </oj-bind-for-each>
     </div>
 
+    <!-- ── Approval & flow: who approves, then every step in order, the BU that does it, who can, and where it is ── -->
+    <oj-bind-if test="[[ $variables.tab === 'flow' ]]">
+      <div class="fx-flow" id="recFlow" role="tabpanel" aria-labelledby="recTab-flow">
+        <!-- The journey: each step a node in the lane of the side that does it (requesting, sourcing, money); done
+             green with its date, the one where it is now flagged "Here now" with its person, the rest grey; a
+             vertical hand-over where the ball passes to the other side. Scrolls inside its own box when narrow. -->
+        <section class="nx-card fx-jr-card" id="recJourney" aria-labelledby="recJourneyTitle">
+          <div class="nx-card-head"><h2 id="recJourneyTitle">Where it is</h2>
+            <span class="nx-note"><oj-bind-text value="[[ $variables.v.flow.journey.lineText || 'Each step sits in the lane of the side that does it' ]]"></oj-bind-text></span></div>
+          <div class="fx-jr-scroll" tabindex="0" role="group" aria-label="The journey, step by step">
+            <div class="fx-jr" id="recJourneyGrid" :style="[[ $variables.v.flow.journey.gridStyle ]]">
+              <oj-bind-for-each data="[[ $variables.v.flow.journey.lanes ]]">
+                <template data-oj-as="ln">
+                  <div :class="[[ ln.data.cls ]]" :style="[[ ln.data.style ]]" aria-hidden="true"></div>
+                  <div :class="[[ ln.data.nameCls ]]" :style="[[ ln.data.style ]]" :data-lane="[[ ln.data.key ]]">
+                    <b class="fx-jr-lanetitle"><oj-bind-text value="[[ ln.data.name ]]"></oj-bind-text></b>
+                    <span class="fx-jr-lanerole"><oj-bind-text value="[[ ln.data.role ]]"></oj-bind-text></span>
+                  </div>
+                </template>
+              </oj-bind-for-each>
+              <oj-bind-for-each data="[[ $variables.v.flow.journey.links ]]">
+                <template data-oj-as="x"><span :class="[[ x.data.cls ]]" :style="[[ x.data.style ]]" :title="[[ x.data.title ]]" aria-hidden="true"></span></template>
+              </oj-bind-for-each>
+              <oj-bind-for-each data="[[ $variables.v.flow.journey.all ]]">
+                <template data-oj-as="n">
+                  <div :class="[[ n.data.cls ]]" :style="[[ n.data.style ]]" :data-key="[[ n.data.key ]]" :data-state="[[ n.data.state ]]" :data-lane="[[ n.data.lane ]]" :title="[[ n.data.title ]]">
+                    <oj-bind-if test="[[ n.data.here ]]"><span class="fx-jr-flag">Here now</span></oj-bind-if>
+                    <span class="fx-jr-mark" aria-hidden="true">
+                      <oj-bind-if test="[[ n.data.state === 'done' ]]"><span class="oj-ux-ico-check"></span></oj-bind-if>
+                      <oj-bind-if test="[[ n.data.state === 'refused' || n.data.state === 'failed' ]]"><span class="oj-ux-ico-close"></span></oj-bind-if>
+                      <oj-bind-if test="[[ n.data.state !== 'done' && n.data.state !== 'refused' && n.data.state !== 'failed' ]]"><oj-bind-text value="[[ n.data.n ]]"></oj-bind-text></oj-bind-if>
+                    </span>
+                    <span class="fx-jr-label"><oj-bind-text value="[[ n.data.label ]]"></oj-bind-text></span>
+                    <oj-bind-if test="[[ !!n.data.dateText ]]"><span class="fx-jr-date"><oj-bind-text value="[[ n.data.dateText ]]"></oj-bind-text></span></oj-bind-if>
+                    <oj-bind-if test="[[ n.data.here && !!n.data.personText ]]">
+                      <span class="fx-jr-person"><span class="nx-avatar" aria-hidden="true"><oj-bind-text value="[[ n.data.personInitials ]]"></oj-bind-text></span>
+                        <span class="fx-jr-persontext"><oj-bind-text value="[[ n.data.personText ]]"></oj-bind-text></span></span>
+                    </oj-bind-if>
+                  </div>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </div>
+          <p class="fx-jr-sentence" id="recJourneySentence"><oj-bind-text value="[[ $variables.v.flow.journey.sentence ]]"></oj-bind-text></p>
+        </section>
+
+        <section class="nx-card fx-flow-head" id="recFlowHead" aria-label="Who approves, and what is next">
+          <div class="fx-flow-who">
+            <span class="oj-ux-ico-clipboard-check fx-flow-who-ico" aria-hidden="true"></span>
+            <div class="fx-flow-who-body">
+              <p class="fx-flow-approver" id="recApproverText"><oj-bind-text value="[[ $variables.v.flow.approverText ]]"></oj-bind-text></p>
+              <p class="fx-flow-also" id="recApproverAlso"><oj-bind-text value="[[ $variables.v.flow.alsoText ]]"></oj-bind-text></p>
+            </div>
+          </div>
+          <oj-bind-if test="[[ !!$variables.v.flow.next ]]">
+            <div class="fx-flow-next" id="recFlowNext">
+              <span class="fx-flow-k">Next</span>
+              <div class="fx-flow-next-body">
+                <span class="fx-flow-next-label"><oj-bind-text value="[[ $variables.v.flow.next.labelFull ]]"></oj-bind-text></span>
+                <span class="fx-flow-next-who"><oj-bind-text value="[[ $variables.v.flow.next.buName + ' (' + $variables.v.flow.next.side + ') · ' + ($variables.v.flow.next.people.length ? $variables.v.flow.next.people[0].text : 'no one plays it in the demo') ]]"></oj-bind-text></span>
+              </div>
+              <div class="fx-fs-go">
+                <oj-bind-if test="[[ $variables.v.flow.next.go && $variables.v.flow.next.go.mine ]]">
+                  <span class="fx-chip fx-chip--next fx-you"><span class="oj-ux-ico-check" aria-hidden="true"></span>It's you</span>
+                  <oj-bind-if test="[[ !!$variables.v.flow.next.go.act ]]">
+                    <button type="button" class="nx-btn nx-btn--primary nx-btn--sm" :data-act="[[ $variables.v.flow.next.go.act ]]" :data-request-id="[[ $variables.v.flow.next.go.requestId ]]"
+                      on-click="[[ $listeners.onAct ]]"><span class="oj-ux-ico-check-circle" aria-hidden="true"></span><oj-bind-text value="[[ $variables.v.flow.next.go.action ]]"></oj-bind-text></button>
+                  </oj-bind-if>
+                  <oj-bind-if test="[[ !$variables.v.flow.next.go.act && !!$variables.v.flow.next.go.navId ]]">
+                    <button type="button" class="nx-btn nx-btn--primary nx-btn--sm" :data-nav="[[ $variables.v.flow.next.go.navId ]]" on-click="[[ $listeners.onOpen ]]">
+                      <span class="oj-ux-ico-arrow-right" aria-hidden="true"></span><oj-bind-text value="[[ $variables.v.flow.next.go.action ]]"></oj-bind-text></button>
+                  </oj-bind-if>
+                </oj-bind-if>
+                <oj-bind-if test="[[ $variables.v.flow.next.go && !$variables.v.flow.next.go.mine && !$variables.v.flow.next.go.none ]]">
+                  <button type="button" class="nx-btn nx-btn--sm fx-play" data-act="setPersona" :data-id="[[ $variables.v.flow.next.go.persona ]]" :data-open="[[ $variables.v.flow.next.go.navId ]]"
+                    on-click="[[ $listeners.onAct ]]"><span class="oj-ux-ico-person-rotation" aria-hidden="true"></span><oj-bind-text value="[[ $variables.v.flow.next.go.action ]]"></oj-bind-text></button>
+                </oj-bind-if>
+                <oj-bind-if test="[[ $variables.v.flow.next.go && $variables.v.flow.next.go.none ]]"><span class="nx-note"><oj-bind-text value="[[ $variables.v.flow.next.go.action ]]"></oj-bind-text></span></oj-bind-if>
+                <oj-bind-if test="[[ !$variables.v.flow.next.go ]]"><span class="nx-note"><oj-bind-text value="[[ $variables.v.flow.next.note ]]"></oj-bind-text></span></oj-bind-if>
+              </div>
+            </div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ !$variables.v.flow.next ]]">
+            <div class="fx-flow-next fx-flow-next--none" id="recFlowNext"><span class="fx-flow-k">Next</span>
+              <span class="fx-flow-next-label"><oj-bind-text value="[[ $variables.v.finBadge ]]"></oj-bind-text></span></div>
+          </oj-bind-if>
+        </section>
+
+        <oj-bind-for-each data="[[ $variables.v.flow.sections ]]">
+          <template data-oj-as="sec">
+            <section :class="[[ 'nx-card fx-flow-sec fx-flow-sec--' + sec.data.kind ]]" :data-section="[[ sec.data.key ]]">
+              <div class="nx-card-head fx-flow-sechead">
+                <div class="fx-flow-sectitle"><h2><oj-bind-text value="[[ sec.data.title ]]"></oj-bind-text></h2>
+                  <span class="nx-note"><oj-bind-text value="[[ sec.data.sub ]]"></oj-bind-text></span></div>
+                <oj-bind-if test="[[ !!sec.data.relChip ]]">
+                  <span :class="[[ 'fx-chip fx-chip--' + (sec.data.relChip ? sec.data.relChip.tone : 'na') ]]"><oj-bind-text value="[[ sec.data.relChip ? sec.data.relChip.label : '' ]]"></oj-bind-text></span>
+                </oj-bind-if>
+              </div>
+              <ol class="fx-fslist" :aria-label="[[ 'Steps of ' + sec.data.title + ', in order' ]]">
+                <oj-bind-for-each data="[[ sec.data.steps ]]">
+                  <template data-oj-as="st">
+                    <li :class="[[ 'fx-fs fx-fs--' + st.data.state + (st.data.approver ? ' fx-fs--approver' : '') ]]" :data-key="[[ st.data.key ]]" :data-state="[[ st.data.state ]]"
+                      :aria-current="[[ st.data.current ? 'step' : 'false' ]]">
+                      <span class="fx-fs-n" aria-hidden="true"><oj-bind-text value="[[ st.data.n ]]"></oj-bind-text></span>
+                      <div class="fx-fs-body">
+                        <div class="fx-fs-top">
+                          <span class="fx-fs-label"><oj-bind-text value="[[ st.data.label ]]"></oj-bind-text></span>
+                          <span :class="[[ 'fx-chip fx-fs-state fx-chip--' + st.data.tone ]]"><oj-bind-text value="[[ st.data.stateText ]]"></oj-bind-text></span>
+                          <oj-bind-if test="[[ st.data.approver ]]"><span class="fx-chip fx-chip--ic fx-fs-tag">The approver</span></oj-bind-if>
+                        </div>
+                        <p class="fx-fs-what"><oj-bind-text value="[[ st.data.what ]]"></oj-bind-text></p>
+                        <div class="fx-fs-meta">
+                          <span class="fx-fs-bu"><span class="fx-fs-k"><oj-bind-text value="[[ st.data.side ]]"></oj-bind-text></span><oj-bind-text value="[[ st.data.buText ]]"></oj-bind-text></span>
+                          <oj-bind-if test="[[ st.data.state !== 'na' ]]">
+                            <span class="fx-fs-people"><span class="fx-fs-k">Who can do it</span>
+                              <oj-bind-for-each data="[[ st.data.people ]]">
+                                <template data-oj-as="p">
+                                  <span class="fx-flow-person" :title="[[ p.data.text ]]"><span class="nx-avatar" aria-hidden="true"><oj-bind-text value="[[ p.data.initials ]]"></oj-bind-text></span><span class="fx-flow-person-text"><b><oj-bind-text value="[[ p.data.name ]]"></oj-bind-text></b><span class="fx-flow-person-title"><oj-bind-text value="[[ ' · ' + p.data.title ]]"></oj-bind-text></span></span></span>
+                                </template>
+                              </oj-bind-for-each>
+                              <oj-bind-if test="[[ !st.data.people.length ]]"><span class="nx-note">No one plays this in the demo (Admin can)</span></oj-bind-if>
+                            </span>
+                          </oj-bind-if>
+                        </div>
+                        <oj-bind-if test="[[ !!st.data.doneText ]]">
+                          <p class="fx-fs-done"><span class="oj-ux-ico-check" aria-hidden="true"></span><oj-bind-text value="[[ (st.data.state === 'refused' ? 'Refused ' : 'Done ') + st.data.doneText ]]"></oj-bind-text></p>
+                        </oj-bind-if>
+                        <oj-bind-if test="[[ !!st.data.note ]]"><p class="fx-fs-note"><oj-bind-text value="[[ st.data.note ]]"></oj-bind-text></p></oj-bind-if>
+                        <oj-bind-if test="[[ !!st.data.go ]]">
+                          <div class="fx-fs-go">
+                            <oj-bind-if test="[[ st.data.go && st.data.go.mine ]]">
+                              <span class="fx-chip fx-chip--next fx-you"><span class="oj-ux-ico-check" aria-hidden="true"></span>It's you</span>
+                              <oj-bind-if test="[[ !!st.data.go.act ]]">
+                                <button type="button" class="nx-btn nx-btn--primary nx-btn--sm" :data-act="[[ st.data.go.act ]]" :data-request-id="[[ st.data.go.requestId ]]" on-click="[[ $listeners.onAct ]]">
+                                  <span class="oj-ux-ico-check-circle" aria-hidden="true"></span><oj-bind-text value="[[ st.data.go.action ]]"></oj-bind-text></button>
+                              </oj-bind-if>
+                              <oj-bind-if test="[[ !st.data.go.act && !!st.data.go.navId ]]">
+                                <button type="button" class="nx-btn nx-btn--sm" :data-nav="[[ st.data.go.navId ]]" on-click="[[ $listeners.onOpen ]]">
+                                  <span class="oj-ux-ico-arrow-right" aria-hidden="true"></span><oj-bind-text value="[[ st.data.go.action ]]"></oj-bind-text></button>
+                              </oj-bind-if>
+                            </oj-bind-if>
+                            <oj-bind-if test="[[ st.data.go && !st.data.go.mine && !st.data.go.none ]]">
+                              <button type="button" class="nx-btn nx-btn--sm fx-play" data-act="setPersona" :data-id="[[ st.data.go.persona ]]" :data-open="[[ st.data.go.navId ]]"
+                                on-click="[[ $listeners.onAct ]]"><span class="oj-ux-ico-person-rotation" aria-hidden="true"></span><oj-bind-text value="[[ st.data.go.action ]]"></oj-bind-text></button>
+                            </oj-bind-if>
+                            <oj-bind-if test="[[ st.data.go && st.data.go.none ]]"><span class="nx-note"><oj-bind-text value="[[ st.data.go.action ]]"></oj-bind-text></span></oj-bind-if>
+                          </div>
+                        </oj-bind-if>
+                      </div>
+                    </li>
+                  </template>
+                </oj-bind-for-each>
+              </ol>
+            </section>
+          </template>
+        </oj-bind-for-each>
+      </div>
+    </oj-bind-if>
+
     <!-- ── Equipment ─────────────────────────────────────────────────────────────────────────────────────────── -->
     <oj-bind-if test="[[ $variables.tab === 'equipment' ]]">
+      <section class="nx-card fx-flow-compact" id="recFlowCompact" aria-label="Who approves, and what is next">
+        <div class="fx-flow-compact-row"><span class="fx-flow-k">Approver</span>
+          <span class="fx-flow-compact-text" id="recCompactApprover"><oj-bind-text value="[[ $variables.v.flow.approverShort ]]"></oj-bind-text></span></div>
+        <div class="fx-flow-compact-row"><span class="fx-flow-k">Next</span>
+          <span class="fx-flow-compact-text" id="recCompactNext"><oj-bind-text value="[[ $variables.v.flow.next ? $variables.v.flow.next.labelFull + ' · ' + ($variables.v.flow.next.people.length ? $variables.v.flow.next.people[0].inWords : $variables.v.flow.next.buName) : $variables.v.finBadge ]]"></oj-bind-text></span>
+          <oj-bind-if test="[[ $variables.v.flow.next && $variables.v.flow.next.go && $variables.v.flow.next.go.mine ]]"><span class="fx-chip fx-chip--next fx-you">It's you</span></oj-bind-if>
+          <oj-bind-if test="[[ $variables.v.flow.next && $variables.v.flow.next.go && !$variables.v.flow.next.go.mine && !$variables.v.flow.next.go.none ]]">
+            <button type="button" class="nx-btn nx-btn--sm fx-play" data-act="setPersona" :data-id="[[ $variables.v.flow.next.go.persona ]]" :data-open="[[ $variables.v.flow.next.go.navId ]]"
+              on-click="[[ $listeners.onAct ]]"><span class="oj-ux-ico-person-rotation" aria-hidden="true"></span><oj-bind-text value="[[ $variables.v.flow.next.go.action ]]"></oj-bind-text></button>
+          </oj-bind-if>
+        </div>
+        <button type="button" class="nx-link fx-flow-compact-all" id="recCompactAll" data-tab="flow" on-click="[[ $listeners.onTab ]]">
+          See the whole approval &amp; flow<span class="oj-ux-ico-chevron-right" aria-hidden="true"></span></button>
+      </section>
       <div class="fx-rec-lines" id="recLines" role="tabpanel" aria-labelledby="recTab-equipment">
         <oj-bind-for-each data="[[ $variables.v.lines ]]">
           <template data-oj-as="l">
