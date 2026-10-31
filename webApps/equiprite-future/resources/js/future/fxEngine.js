@@ -469,20 +469,28 @@ define(['resources/js/future/fxSeed'], function (Seed) {
     run: function (s, p, x) {
       var o = userLine(s, p, x);
       if (!o.l.events.onHire) fail('Hours start when the unit is on hire.');
-      if (x.date < o.l.events.onHire || x.date > s.today || (o.l.events.offHire && x.date >= o.l.events.offHire)) fail('Only days on hire, up to today.');
+      if (x.date < o.l.events.onHire || x.date > s.today || x.date > lastHourDay(s, o.l)) fail('Only days on hire, up to today' + (o.l.events.offHire ? (hourly(o.l) ? ' and the return day.' : ', before the return day.') : '.'));
       var usage = Math.max(0, Math.min(24, Number(x.usage) || 0));
       var standby = Math.max(0, Math.min(24 - usage, Number(x.standby) || 0));
       s.hours = s.hours.filter(function (h) { return !(h.lineId === o.l.id && h.date === x.date); });
       s.hours.push({ requestId: o.r.id, lineId: o.l.id, date: x.date, usage: usage, standby: standby, approved: false, by: p.name, weekend: isWeekend(s, o.r.country, x.date) });
     }
   };
+  function hourly(l) { return !!(l && l.price && l.price.billing === 'HOURLY'); }
+  /** The last day a line's hours can be recorded for: by the hour, the return day itself (worked, then returned);
+   *  by the day, the day before the return (the return day is not charged); while on hire, today. */
+  function lastHourDay(s, l, until) {
+    var ret = l.events.offHire || until;
+    if (!ret) return s.today;
+    return hourly(l) ? ret : addDays(ret, -1);
+  }
   function isWeekend(s, code, date) { return (country(s, code).weekend || []).indexOf(dow(date)) !== -1; }
   A.fillHours = {
     who: ['site', 'desk'],
     run: function (s, p, x) {
       var o = userLine(s, p, x);
       if (!o.l.events.onHire) fail('Hours start when the unit is on hire.');
-      var end = o.l.events.offHire ? addDays(o.l.events.offHire, -1) : s.today;
+      var end = minS(lastHourDay(s, o.l), s.today);
       var n = 0;
       for (var dt = o.l.events.onHire; dt <= end; dt = addDays(dt, 1)) {
         if (isWeekend(s, o.r.country, dt)) continue;
@@ -523,7 +531,7 @@ define(['resources/js/future/fxSeed'], function (Seed) {
     l.status = 'OFF_HIRED';
     l.events.offHire = date;
     l.plannedReturn = null;
-    s.hours = s.hours.filter(function (h) { return !(h.lineId === l.id && h.date >= date); });
+    s.hours = s.hours.filter(function (h) { return !(h.lineId === l.id && (hourly(l) ? h.date > date : h.date >= date)); });
     var u = unitOf(s, l.unitId);
     u.custody.label = 'Returned by ' + (r.type === 'CUSTOMER_RENTAL' ? customer(s, r.customerId).name : r.site) + ' on ' + hd(date) + ', waiting for collection';
     notify(s, { bu: l.provider, roles: ['yard'] }, 'Collect ' + u.serial + ' from ' + r.site + ': returned on ' + hd(date) + '.', { navId: 'yard' }, 'action');
@@ -553,7 +561,7 @@ define(['resources/js/future/fxSeed'], function (Seed) {
     run: function (s, p, x) {
       var o = userLine(s, p, x);
       if (!o.l.events.onHire) fail('Hours start when the unit is on hire.');
-      var last = o.l.events.offHire ? addDays(o.l.events.offHire, -1) : (x.until ? addDays(x.until, -1) : s.today);
+      var last = lastHourDay(s, o.l, x.until);
       var n = 0;
       (x.days || []).forEach(function (dy) {
         if (!dy || !dy.date || dy.date < o.l.events.onHire || dy.date > last || dy.date > s.today) return;
@@ -710,7 +718,7 @@ define(['resources/js/future/fxSeed'], function (Seed) {
       agreementId: l.agreementId, agreementVersion: l.agreementVersion || (ag ? ag.version : 0) };
     function add(o) { out.push(Object.assign({}, base, o)); }
     if (l.events.onHire) {
-      var hireEnd = l.events.offHire ? addDays(l.events.offHire, -1) : pe;
+      var hireEnd = l.events.offHire ? (l.price && l.price.billing === 'HOURLY' ? l.events.offHire : addDays(l.events.offHire, -1)) : pe;
       var segs = l.segments.length ? l.segments : [{ projectId: '', task: '', from: l.events.onHire }];
       var hourly = price.billing === 'HOURLY';
       var hourRate = price.hour != null ? price.hour : r2(price.day / 8);
