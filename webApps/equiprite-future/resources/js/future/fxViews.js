@@ -67,6 +67,7 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine'], function 
   function lineView(s, r, l) {
     var u = L.unit(s, l.unitId || l.preferredUnit);
     var lw = LINE[l.status] || { stage: 'requested', words: l.status };
+    if (l.status === 'REQUESTED') lw = { stage: 'requested', words: waitingWords(s, r) };
     var hrs = s.hours.filter(function (h) { return h.lineId === l.id; });
     var seg = l.segments.length ? l.segments[l.segments.length - 1] : null;
     return {
@@ -83,13 +84,23 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine'], function 
       customs: l.customsId ? U.byId(s.customs, l.customsId) : null, inPlace: !!l.inPlace, toNumber: l.toNumber || ''
     };
   }
-  function requestStage(r) {
+  function needsDeposit(s, r) {
+    if (r.type !== 'CUSTOMER_RENTAL' || r.deposit) return false;
+    var ag = L.agreement(s, (r.lines[0] || {}).agreementId);
+    return !!(ag && ag.depositPct);
+  }
+  function waitingWords(s, r) {
+    if (r.status === 'AWAITING_REQUESTER_APPROVAL') return 'Waiting for the requesting BU\'s approval';
+    if (needsDeposit(s, r)) return 'Waiting for the deposit (rental desk), then the owner approves';
+    return LINE.REQUESTED.words;
+  }
+  function requestStage(s, r) {
     var st = r.lines.map(function (l) { return l.status; });
     if (r.status === 'AWAITING_REQUESTER_APPROVAL') return { stage: 'requested', words: 'Waiting for the requesting BU\'s approval' };
     var order = ['REQUESTED', 'APPROVED', 'SHIPPED', 'ON_HIRE', 'OFF_HIRED', 'RETURNED'];
     for (var i = 0; i < order.length; i++) if (st.indexOf(order[i]) !== -1) {
       var n = st.filter(function (x) { return x === order[i]; }).length;
-      return { stage: LINE[order[i]].stage, words: LINE[order[i]].words + (r.lines.length > 1 ? ' (' + n + ' of ' + r.lines.length + ')' : '') };
+      return { stage: LINE[order[i]].stage, words: (order[i] === 'REQUESTED' ? waitingWords(s, r) : LINE[order[i]].words) + (r.lines.length > 1 ? ' (' + n + ' of ' + r.lines.length + ')' : '') };
     }
     if (st.every(function (x) { return x === 'REJECTED'; })) return { stage: 'rejected', words: 'Refused' };
     return { stage: 'closed', words: 'Equipment back' };
@@ -98,7 +109,7 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine'], function 
     var prj = L.project(s, r.projectId);
     var cust = L.customer(s, r.customerId);
     var fin = finance(s, r.id);
-    var st = requestStage(r);
+    var st = requestStage(s, r);
     return {
       id: r.id, number: r.number, type: r.type, typeText: TYPE[r.type], bu: r.requestingBu, buName: L.buName(s, r.requestingBu), company: L.leShort(s, r.requestingLe),
       project: prj ? prj.number + ' · ' + prj.name : '', customer: cust ? cust.name : '', site: r.site, country: r.country, from: r.from, to: r.to, dates: short(r.from) + ' – ' + date(r.to),
@@ -228,12 +239,14 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine'], function 
     if (dmg.length) add('damage', 'Damage or loss charged', 'Owner', dmg.every(function (l) { return cs.some(function (c) { return c.lineId === l.id && (c.kind === 'DAMAGE' || c.kind === 'LOSS') && ['ACCEPTED', 'INVOICED', 'POSTED'].indexOf(c.status) !== -1; }); }) ? 'done' : 'pending', '');
     var counted = items.filter(function (i) { return i.state !== 'na'; });
     var done = counted.filter(function (i) { return i.state === 'done'; }).length;
-    var nextItem = counted.filter(function (i) { return i.state !== 'done'; })[0];
+    var open = counted.filter(function (i) { return i.state !== 'done'; });
+    var nextItem = open.filter(function (i) { return i.key !== 'ops' && i.state !== 'running'; })[0] || open.filter(function (i) { return i.key !== 'ops'; })[0] || open[0];
+    var started = lines.some(function (l) { return !!l.events.onHire; }) || !!r.deposit;
     var costRx = s.tx.filter(function (t) { return ['PROJECT_COST', 'CROSS_CHARGE', 'OWN_COST'].indexOf(t.kind) !== -1 && (t.refs.chargeIds || []).some(function (x) { return cs.some(function (c) { return c.id === x; }); }); });
     var curr = L.le(s, r.requestingLe).currency;
     return {
       items: items, total: counted.length, done: done, complete: counted.length > 0 && done === counted.length,
-      words: counted.length && done === counted.length ? 'Financially complete' : nextItem ? 'Next: ' + nextItem.label + ' (' + nextItem.who + ')' : 'Nothing yet',
+      words: counted.length && done === counted.length ? 'Financially complete' : !started ? 'Money starts when the equipment is on hire' : nextItem ? 'Next: ' + nextItem.label + ' (' + nextItem.who + ')' : 'Nothing yet',
       cost: U.sum(costRx, function (t) { return t.amount; }), costText: costRx.length ? money(U.sum(costRx, function (t) { return t.amount; }), curr) : '',
       charged: U.sum(cs, function (c) { return c.amount; }), chargedText: cs.length ? money(U.sum(cs, function (c) { return c.amount; }), (cs[0] || {}).currency) : ''
     };
