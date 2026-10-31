@@ -1,27 +1,380 @@
-<!-- Charges & statements: SKELETON, being built. The screen's builder replaces this page's HTML and chains, keeping the Future page
-     pattern (docs/redesign/BUILDING-FUTURE-SCREENS.md): v = store.view('charges', filter) (loadChain, again on fxRefresh), actions through
-     actChain (data-act + data-…), links through openChain (data-nav, data-record). Set built: true in resources/js/nav.js. -->
-<div class="nx-page fx-skeleton" id="page-charges">
+<!-- Charges & statements: how FleetCo bills ProjectCo, month by month. The charge run (what it does, whether the month
+     is ready, a dry run of what it makes), the statements the persona owns or uses with their lines, and what each side
+     does: the owner releases and resolves disputes, the user agrees, disputes a line or accepts held damage. Customer
+     and same-company charges wait elsewhere. v = fxMoney.charges(state, store.view('charges', { period }), ui). -->
+<div class="nx-page fxm-money fxm-charges" id="page-charges">
   <div class="nx-pagehead">
     <div>
-      <div class="nx-kicker">Money</div>
+      <div class="nx-kicker">Money · FleetCo bills ProjectCo, month by month</div>
       <h1>Charges &amp; statements</h1>
-      <div class="nx-sub">Run the month's charges, release the statement (owner), agree or dispute it (user).</div>
+      <div class="nx-sub" id="chSub"><oj-bind-text value="[[ $functions.whoText($variables.v) ]]"></oj-bind-text></div>
+    </div>
+    <div class="nx-actions">
+      <oj-bind-if test="[[ $functions.canOpen('ic-workbench', $variables.v.me.roles) ]]">
+        <button type="button" class="nx-btn" data-nav="ic-workbench" on-click="[[ $listeners.onOpen ]]"><span class="oj-ux-ico-invoice" aria-hidden="true"></span>Intercompany workbench</button>
+      </oj-bind-if>
+      <oj-bind-if test="[[ $functions.canOpen('billing', $variables.v.me.roles) ]]">
+        <button type="button" class="nx-btn" data-nav="billing" on-click="[[ $listeners.onOpen ]]"><span class="oj-ux-ico-wallet-box" aria-hidden="true"></span>Customer billing</button>
+      </oj-bind-if>
     </div>
   </div>
 
-  <oj-bind-if test="[[ !!$variables.v.error ]]"><div class="nx-error" role="alert"><oj-bind-text value="[[ $variables.v.error ]]"></oj-bind-text></div></oj-bind-if>
+  <oj-bind-if test="[[ !!$variables.v.error ]]"><div class="nx-error" role="alert" id="chError"><oj-bind-text value="[[ $variables.v.error ]]"></oj-bind-text></div></oj-bind-if>
 
-  <section class="nx-card" aria-labelledby="chargesSoonTitle">
-    <div class="nx-card-head"><h2 id="chargesSoonTitle">Being built for EquipRite Future</h2><span class="nx-note">FDD v2.0</span></div>
-    <p class="nx-card-pad nx-muted">This screen is next. Meanwhile, this is what the simulated backend already has here for the person played, from
-      <code>store.view('charges', filter)</code>:</p>
-    <ul class="fx-skeleton-list">
-      <oj-bind-for-each data="[[ $functions.outline($variables.v) ]]">
-        <template data-oj-as="o">
-          <li><code><oj-bind-text value="[[ o.data.key ]]"></oj-bind-text></code><span><oj-bind-text value="[[ o.data.text ]]"></oj-bind-text></span></li>
-        </template>
-      </oj-bind-for-each>
-    </ul>
-  </section>
+  <oj-bind-if test="[[ $variables.v.ready && !$variables.v.error ]]">
+    <div class="nx-kpis fxm-kpis" role="group" aria-label="What waits">
+      <div class="nx-kpi fxm-kpi nx-stage--ready" id="chKpiRelease">
+        <span class="nx-kpi-label">To release (owner)</span>
+        <span class="nx-kpi-value"><oj-bind-text value="[[ $variables.v.counts.release ]]"></oj-bind-text></span>
+        <span class="nx-kpi-note">statements the owner checks and sends</span>
+      </div>
+      <div class="nx-kpi fxm-kpi nx-stage--approval" id="chKpiReview">
+        <span class="nx-kpi-label">To agree or dispute (user)</span>
+        <span class="nx-kpi-value"><oj-bind-text value="[[ $variables.v.counts.review ]]"></oj-bind-text></span>
+        <span class="nx-kpi-note">statements waiting for your business units</span>
+      </div>
+      <div class="nx-kpi fxm-kpi nx-stage--stopped" id="chKpiDisputes">
+        <span class="nx-kpi-label">Lines in dispute</span>
+        <span class="nx-kpi-value"><oj-bind-text value="[[ $variables.v.counts.disputes ]]"></oj-bind-text></span>
+        <span class="nx-kpi-note">held; the rest goes on</span>
+      </div>
+      <div class="nx-kpi fxm-kpi nx-stage--out" id="chKpiElsewhere">
+        <span class="nx-kpi-label">Not on a statement</span>
+        <span class="nx-kpi-value"><oj-bind-text value="[[ $variables.v.waitingCustomer.length + $variables.v.waitingInternal.length ]]"></oj-bind-text></span>
+        <span class="nx-kpi-note">customer and same-company lines waiting</span>
+      </div>
+    </div>
+
+    <div class="fxm-cols">
+      <section class="nx-card fxm-run" aria-labelledby="chRunTitle" id="chRun">
+        <div class="nx-card-head"><h2 id="chRunTitle">Charge run</h2><span class="nx-note" id="chLastRun"><oj-bind-text value="[[ $variables.v.lastRunText ]]"></oj-bind-text></span></div>
+        <div class="nx-card-pad fxm-run-body">
+          <div class="fxm-run-period">
+            <span class="fxm-label" id="chRunPeriodLabel">Period to run</span>
+            <div class="nx-seg" role="group" aria-labelledby="chRunPeriodLabel" id="chRunPeriods">
+              <oj-bind-for-each data="[[ $variables.v.run.options ]]">
+                <template data-oj-as="o">
+                  <button type="button" :class="[[ 'nx-seg-btn' + (o.data.on ? ' nx-seg-btn--on' : '') ]]" :aria-pressed="[[ o.data.on ? 'true' : 'false' ]]"
+                    data-field="runPeriod" :data-value="[[ o.data.key ]]" on-click="[[ $listeners.onPick ]]"><oj-bind-text value="[[ o.data.label ]]"></oj-bind-text></button>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </div>
+          <p :class="[[ 'fxm-ready ' + ($variables.v.run.ready ? 'fxm-ready--ok' : 'fxm-ready--wait') ]]" id="chRunReady">
+            <span :class="[[ $variables.v.run.ready ? 'oj-ux-ico-check-circle' : 'oj-ux-ico-calendar-clock' ]]" aria-hidden="true"></span>
+            <span><oj-bind-text value="[[ $variables.v.run.readyText ]]"></oj-bind-text>
+              <oj-bind-if test="[[ !$variables.v.run.ready ]]"> <b id="chRunNotReady"><oj-bind-text value="[[ $variables.v.run.notReadyText ]]"></oj-bind-text></b></oj-bind-if></span>
+          </p>
+          <oj-bind-if test="[[ $variables.v.run.canMoveClock ]]">
+            <div class="fxm-act">
+              <button type="button" class="nx-btn nx-btn--sm" id="chMoveClock" data-act="toMonthEnd" on-click="[[ $listeners.onAct ]]">
+                <span class="oj-ux-ico-calendar-day" aria-hidden="true"></span><oj-bind-text value="[[ 'Move the demo clock to ' + $variables.v.run.monthEndText ]]"></oj-bind-text></button>
+              <span class="fxm-does">Days pass for everyone: statements are accepted by silence and alerts fire on the way (the demo clock in the toolbar does the same).</span>
+            </div>
+          </oj-bind-if>
+          <div class="fxm-run-does">
+            <h3 class="fxm-h3">What the run does</h3>
+            <ul class="fxm-list" id="chRunDoes">
+              <oj-bind-for-each data="[[ $variables.v.run.does ]]">
+                <template data-oj-as="d"><li><oj-bind-text value="[[ d.data ]]"></oj-bind-text></li></template>
+              </oj-bind-for-each>
+            </ul>
+            <p class="fxm-fusion"><span class="oj-ux-ico-information" aria-hidden="true"></span><oj-bind-text value="[[ $variables.v.run.fusion ]]"></oj-bind-text></p>
+          </div>
+          <oj-bind-if test="[[ $variables.v.run.ready && $variables.v.run.preview.ok ]]">
+            <div class="fxm-preview" id="chRunPreview">
+              <span class="fxm-preview-kicker">Before it runs</span>
+              <p><oj-bind-text value="[[ $variables.v.run.preview.words ]]"></oj-bind-text></p>
+              <div class="fx-chips-row">
+                <oj-bind-for-each data="[[ $variables.v.run.preview.kinds ]]">
+                  <template data-oj-as="k"><span class="fx-chip fx-chip--run"><oj-bind-text value="[[ k.data.text ]]"></oj-bind-text></span></template>
+                </oj-bind-for-each>
+              </div>
+            </div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.v.run.ready && !$variables.v.run.preview.ok && !!$variables.v.run.preview.error ]]">
+            <p class="nx-error fxm-fail" role="alert"><oj-bind-text value="[[ 'Not ready: ' + $variables.v.run.preview.error ]]"></oj-bind-text></p>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $functions.failedAt($variables.failure, 'run') ]]">
+            <p class="nx-error fxm-fail" role="alert" id="chRunFail"><oj-bind-text value="[[ 'Not done: ' + $variables.failure.text ]]"></oj-bind-text></p>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.v.run.canRun ]]">
+            <div class="fxm-act">
+              <button type="button" class="nx-btn nx-btn--primary" id="chRunGo" data-act="runCharges" :data-period="[[ $variables.v.run.period ]]"
+                :disabled="[[ !$variables.v.run.ready ]]" on-click="[[ $listeners.onAct ]]">
+                <span class="oj-ux-ico-play" aria-hidden="true"></span><oj-bind-text value="[[ 'Run the charges for ' + $variables.v.run.periodText ]]"></oj-bind-text></button>
+            </div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ !$variables.v.run.canRun ]]">
+            <p class="fxm-does">Intercompany finance or the owner's finance runs the charges; you see what they make here.</p>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.lastRun.done ]]">
+            <p class="fxm-result" id="chRunResult" role="status"><span class="oj-ux-ico-check-circle" aria-hidden="true"></span><oj-bind-text value="[[ $variables.lastRun.text ]]"></oj-bind-text></p>
+          </oj-bind-if>
+        </div>
+      </section>
+
+      <section class="nx-card fxm-rulecard" aria-labelledby="chRulesTitle" id="chRules">
+        <div class="nx-card-head"><h2 id="chRulesTitle">How statements work</h2><span class="nx-note">MC-FR-22, 23 · OD-11</span></div>
+        <ul class="fxm-rule-list">
+          <oj-bind-for-each data="[[ $variables.v.rules ]]">
+            <template data-oj-as="r"><li :data-rule="[[ r.data.key ]]"><span class="oj-ux-ico-check" aria-hidden="true"></span><span><oj-bind-text value="[[ r.data.text ]]"></oj-bind-text></span></li></template>
+          </oj-bind-for-each>
+        </ul>
+      </section>
+    </div>
+
+    <section class="nx-card" aria-labelledby="chStatementsTitle" id="chStatementsCard">
+      <div class="nx-card-head fxm-head">
+        <h2 id="chStatementsTitle">Statements</h2>
+        <div class="nx-chips" role="group" aria-label="Period" id="chPeriods">
+          <oj-bind-for-each data="[[ $variables.v.periodChips ]]">
+            <template data-oj-as="pc">
+              <button type="button" :class="[[ 'nx-chip' + (pc.data.on ? ' nx-chip--on' : '') ]]" :aria-pressed="[[ pc.data.on ? 'true' : 'false' ]]" data-field="period" :data-value="[[ pc.data.key ]]"
+                on-click="[[ $listeners.onPick ]]"><oj-bind-text value="[[ pc.data.label ]]"></oj-bind-text><span class="nx-chip-count"><oj-bind-text value="[[ pc.data.count ]]"></oj-bind-text></span></button>
+            </template>
+          </oj-bind-for-each>
+        </div>
+        <div class="nx-export">
+          <button type="button" class="nx-btn nx-btn--sm" id="chExport" data-list="statements" on-click="[[ $listeners.onExportMenu ]]" aria-haspopup="menu"
+            :aria-expanded="[[ $variables.exportOpen === 'statements' ? 'true' : 'false' ]]">
+            <span class="oj-ux-ico-download" aria-hidden="true"></span>Export<span class="oj-ux-ico-chevron-down" aria-hidden="true"></span></button>
+          <oj-bind-if test="[[ $variables.exportOpen === 'statements' ]]">
+            <div class="nx-menu fxm-menu" role="menu" aria-label="Export the statements">
+              <p class="fxm-menu-title"><oj-bind-text value="[[ 'Statements · ' + $functions.count('statements', $variables.v) + ' rows' ]]"></oj-bind-text></p>
+              <oj-bind-for-each data="[[ $functions.formats() ]]">
+                <template data-oj-as="f">
+                  <button type="button" role="menuitem" class="nx-menu-item" :data-format="[[ f.data.key ]]" data-list="statements" on-click="[[ $listeners.onExport ]]">
+                    <span :class="[[ f.data.icon ]]" aria-hidden="true"></span><oj-bind-text value="[[ f.data.label ]]"></oj-bind-text></button>
+                </template>
+              </oj-bind-for-each>
+              <p class="fxm-menu-title"><oj-bind-text value="[[ 'Their lines · ' + $functions.count('lines', $variables.v) + ' rows' ]]"></oj-bind-text></p>
+              <oj-bind-for-each data="[[ $functions.formats() ]]">
+                <template data-oj-as="f">
+                  <button type="button" role="menuitem" class="nx-menu-item" :data-format="[[ f.data.key ]]" data-list="lines" on-click="[[ $listeners.onExport ]]">
+                    <span :class="[[ f.data.icon ]]" aria-hidden="true"></span><oj-bind-text value="[[ f.data.label ]]"></oj-bind-text></button>
+                </template>
+              </oj-bind-for-each>
+              <p class="nx-menu-note"><oj-bind-text value="[[ $variables.v.filterText + ', as shown' ]]"></oj-bind-text></p>
+            </div>
+          </oj-bind-if>
+        </div>
+      </div>
+
+      <oj-bind-if test="[[ !$variables.v.statements.length ]]">
+        <p class="nx-empty" id="chNoStatements">No statements here yet. The charge run makes one per company pair and month, once the month has ended.</p>
+      </oj-bind-if>
+
+      <div class="fxm-sts" id="chStatements">
+        <oj-bind-for-each data="[[ $variables.v.statements ]]">
+          <template data-oj-as="st">
+            <article class="fxm-st" :data-id="[[ st.data.id ]]" :data-status="[[ st.data.status ]]" :aria-label="[[ st.data.number ]]">
+              <header class="fxm-st-head">
+                <div class="fxm-st-title">
+                  <span class="fxm-st-number"><oj-bind-text value="[[ st.data.number ]]"></oj-bind-text></span>
+                  <span class="fxm-st-pair"><oj-bind-text value="[[ st.data.pairText ]]"></oj-bind-text></span>
+                  <span class="fxm-st-bus"><oj-bind-text value="[[ st.data.busText + ' · ' + st.data.periodText ]]"></oj-bind-text></span>
+                </div>
+                <div class="fxm-st-chips">
+                  <span :class="[[ 'fx-chip fx-chip--' + st.data.relTone ]]"><oj-bind-text value="[[ st.data.relationLabel ]]"></oj-bind-text></span>
+                  <span :class="[[ 'fx-chip fxm-st-status fx-chip--' + st.data.statusTone ]]" :title="[[ st.data.status ]]"><oj-bind-text value="[[ st.data.statusText ]]"></oj-bind-text></span>
+                </div>
+                <div class="fxm-st-total">
+                  <span class="fxm-st-amount"><oj-bind-text value="[[ st.data.totalText ]]"></oj-bind-text></span>
+                  <span class="nx-cell-sub"><oj-bind-text value="[[ st.data.lineCount + (st.data.lineCount === 1 ? ' line' : ' lines') + (st.data.dueText ? ' · ' + st.data.dueText : '') ]]"></oj-bind-text></span>
+                </div>
+              </header>
+              <p class="fxm-st-next"><span class="oj-ux-ico-arrow-right" aria-hidden="true"></span><span class="fxm-st-nexttext"><oj-bind-text value="[[ st.data.nextText ]]"></oj-bind-text></span></p>
+              <p class="fxm-st-meta"><oj-bind-text value="[[ st.data.roleText + ' · ' + st.data.taxText + (st.data.agreementText ? ' · agreement ' + st.data.agreementText : '') + (st.data.pairNumber ? ' · invoice pair ' + st.data.pairNumber : '') ]]"></oj-bind-text></p>
+
+              <oj-bind-if test="[[ $functions.failedAt($variables.failure, st.data.id) && !$variables.failure.chargeId ]]">
+                <p class="nx-error fxm-fail" role="alert"><oj-bind-text value="[[ 'Not done: ' + $variables.failure.text ]]"></oj-bind-text></p>
+              </oj-bind-if>
+
+              <oj-bind-if test="[[ st.data.canRelease || st.data.canAgree ]]">
+                <div class="fxm-st-acts">
+                  <oj-bind-if test="[[ st.data.canRelease ]]">
+                    <div class="fxm-act">
+                      <button type="button" class="nx-btn nx-btn--primary nx-btn--sm fxm-st-release" data-act="releaseStatement" :data-statement-id="[[ st.data.id ]]" on-click="[[ $listeners.onAct ]]">
+                        <span class="oj-ux-ico-send" aria-hidden="true"></span><oj-bind-text value="[[ 'Release to ' + st.data.receiverBu ]]"></oj-bind-text></button>
+                      <span class="fxm-does"><oj-bind-text value="[[ st.data.releaseDoes ]]"></oj-bind-text></span>
+                    </div>
+                  </oj-bind-if>
+                  <oj-bind-if test="[[ st.data.canAgree ]]">
+                    <div class="fxm-act">
+                      <button type="button" class="nx-btn nx-btn--primary nx-btn--sm fxm-st-agree" data-act="acceptStatement" :data-statement-id="[[ st.data.id ]]" on-click="[[ $listeners.onAct ]]">
+                        <span class="oj-ux-ico-check" aria-hidden="true"></span>Agree the statement</button>
+                      <span class="fxm-does"><oj-bind-text value="[[ st.data.agreeDoes ]]"></oj-bind-text></span>
+                    </div>
+                  </oj-bind-if>
+                </div>
+              </oj-bind-if>
+
+              <div class="fxm-lines-wrap">
+                <div class="nx-grid fxm-lines" role="table" :aria-label="[[ 'Lines of ' + st.data.number ]]">
+                  <div role="row" class="nx-row nx-row--head">
+                    <span role="columnheader">Line</span><span role="columnheader">Unit · request</span><span role="columnheader">Project · task</span>
+                    <span role="columnheader" class="fxm-num">Quantity</span><span role="columnheader" class="fxm-num">Amount</span><span role="columnheader">Status</span>
+                  </div>
+                  <oj-bind-for-each data="[[ st.data.rows ]]">
+                    <template data-oj-as="c">
+                      <div role="row" :class="[[ 'nx-row fxm-line' + (c.data.status === 'DISPUTED' ? ' fxm-line--disputed' : '') ]]" :data-id="[[ c.data.id ]]" :data-kind="[[ c.data.kind ]]" :data-status="[[ c.data.status ]]">
+                        <span role="cell" class="fxm-cell"><span class="nx-cell-main"><oj-bind-text value="[[ c.data.what ]]"></oj-bind-text></span>
+                          <span class="nx-cell-sub fxm-wrap"><oj-bind-text value="[[ c.data.detail ]]"></oj-bind-text></span></span>
+                        <span role="cell" class="fxm-cell"><span class="nx-cell-main"><oj-bind-text value="[[ c.data.serial ]]"></oj-bind-text></span>
+                          <button type="button" class="nx-link fxm-reqlink" data-record="request" :data-id="[[ c.data.requestId ]]" :data-number="[[ c.data.requestNumber ]]" on-click="[[ $listeners.onOpen ]]"><oj-bind-text value="[[ c.data.requestNumber ]]"></oj-bind-text></button></span>
+                        <span role="cell" class="fxm-cell fxm-wrap"><oj-bind-text value="[[ c.data.projectTask ]]"></oj-bind-text></span>
+                        <span role="cell" class="fxm-num"><oj-bind-text value="[[ c.data.qtyText ]]"></oj-bind-text></span>
+                        <span role="cell" :class="[[ 'fxm-num fxm-amt' + (c.data.credit ? ' fxm-amt--neg' : '') ]]"><oj-bind-text value="[[ c.data.amountText ]]"></oj-bind-text></span>
+                        <span role="cell" class="fxm-cell fxm-line-state">
+                          <span :class="[[ 'fx-chip fx-chip--' + c.data.statusTone ]]" :title="[[ c.data.status ]]"><oj-bind-text value="[[ c.data.statusText ]]"></oj-bind-text></span>
+                          <oj-bind-if test="[[ !!c.data.disputeText ]]"><span class="fxm-line-note fxm-line-dispute-text"><oj-bind-text value="[[ 'Dispute: ' + c.data.disputeText ]]"></oj-bind-text></span></oj-bind-if>
+                          <oj-bind-if test="[[ !!c.data.resolvedText ]]"><span class="fxm-line-note fxm-line-resolved"><oj-bind-text value="[[ c.data.resolvedText ]]"></oj-bind-text></span></oj-bind-if>
+                          <oj-bind-if test="[[ !!c.data.heldText ]]"><span class="fxm-line-note fxm-line-held"><oj-bind-text value="[[ c.data.heldText ]]"></oj-bind-text></span></oj-bind-if>
+                          <oj-bind-if test="[[ !!c.data.invoiceText ]]"><span class="fxm-line-note"><oj-bind-text value="[[ c.data.invoiceText ]]"></oj-bind-text></span></oj-bind-if>
+                          <span class="fxm-line-acts">
+                            <oj-bind-if test="[[ c.data.canDispute ]]">
+                              <button type="button" class="nx-btn nx-btn--sm fxm-line-dispute" data-field="dispute" :data-value="[[ c.data.id ]]" on-click="[[ $listeners.onPick ]]"
+                                :aria-expanded="[[ $variables.ui.disputing === c.data.id ? 'true' : 'false' ]]">Dispute</button>
+                            </oj-bind-if>
+                            <oj-bind-if test="[[ c.data.canAccept ]]">
+                              <button type="button" class="nx-btn nx-btn--sm fxm-line-accept" data-act="acceptCharge" :data-charge-id="[[ c.data.id ]]" :title="[[ c.data.acceptDoes ]]"
+                                on-click="[[ $listeners.onAct ]]">Accept the damage</button>
+                            </oj-bind-if>
+                            <oj-bind-if test="[[ c.data.canResolve ]]">
+                              <button type="button" class="nx-btn nx-btn--sm fxm-line-resolve" data-field="resolve" :data-value="[[ c.data.id ]]" on-click="[[ $listeners.onPick ]]"
+                                :aria-expanded="[[ $variables.ui.resolving === c.data.id ? 'true' : 'false' ]]">Resolve</button>
+                            </oj-bind-if>
+                          </span>
+                        </span>
+                      </div>
+                      <oj-bind-if test="[[ c.data.canAccept ]]">
+                        <p class="fxm-line-form fxm-does fxm-accept-does"><oj-bind-text value="[[ 'Accept the damage: ' + c.data.acceptDoes ]]"></oj-bind-text></p>
+                      </oj-bind-if>
+                      <oj-bind-if test="[[ $variables.ui.disputing === c.data.id ]]">
+                        <div class="fxm-line-form" id="chDisputeForm" role="group" :aria-label="[[ 'Dispute ' + c.data.id ]]">
+                          <label class="fxm-label" for="chReason"><oj-bind-text value="[[ 'Why do you dispute ' + c.data.whatLower + ' ' + c.data.amountText + '? Required: ' + st.data.providerBu + ' sees it.' ]]"></oj-bind-text></label>
+                          <textarea id="chReason" class="fxm-input fxm-textarea" rows="2" data-field="reason" :value="[[ $variables.ui.reason ]]" on-input="[[ $listeners.onField ]]"
+                            placeholder="For example: the crane stood idle two days waiting for permits"></textarea>
+                          <p class="fxm-does"><oj-bind-text value="[[ c.data.disputeDoes ]]"></oj-bind-text></p>
+                          <oj-bind-if test="[[ $functions.failedLine($variables.failure, c.data.id) ]]">
+                            <p class="nx-error fxm-fail" role="alert" id="chDisputeFail"><oj-bind-text value="[[ 'Not done: ' + $variables.failure.text ]]"></oj-bind-text></p>
+                          </oj-bind-if>
+                          <div class="fxm-form-acts">
+                            <button type="button" class="nx-btn nx-btn--primary nx-btn--sm" id="chDisputeSend" data-act="disputeCharge" :data-charge-id="[[ c.data.id ]]" on-click="[[ $listeners.onAct ]]">Dispute this line</button>
+                            <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" data-field="cancel" on-click="[[ $listeners.onPick ]]">Cancel</button>
+                          </div>
+                        </div>
+                      </oj-bind-if>
+                      <oj-bind-if test="[[ $variables.ui.resolving === c.data.id ]]">
+                        <div class="fxm-line-form" id="chResolveForm" role="group" :aria-label="[[ 'Resolve the dispute on ' + c.data.id ]]">
+                          <p class="fxm-form-title"><oj-bind-text value="[[ 'Resolve the dispute on ' + c.data.whatLower + ' ' + c.data.amountText + ': ' + c.data.disputeText ]]"></oj-bind-text></p>
+                          <div class="fxm-resolve">
+                            <div class="fxm-resolve-opt">
+                              <label class="fxm-label" for="chCredit"><oj-bind-text value="[[ 'Credit all or part (up to ' + c.data.maxCreditText + ')' ]]"></oj-bind-text></label>
+                              <div class="fxm-inline">
+                                <span class="fxm-cur"><oj-bind-text value="[[ c.data.currency ]]"></oj-bind-text></span>
+                                <input id="chCredit" type="number" class="fxm-input fxm-input--num" min="0.01" step="0.01" :max="[[ c.data.maxCredit ]]" data-field="credit"
+                                  :value="[[ $variables.ui.credit ]]" on-input="[[ $listeners.onField ]]">
+                                <button type="button" class="nx-btn nx-btn--primary nx-btn--sm" id="chCreditSend" data-act="resolveDispute" data-resolution="credit" :data-charge-id="[[ c.data.id ]]"
+                                  on-click="[[ $listeners.onAct ]]">Credit this amount</button>
+                              </div>
+                              <p class="fxm-does"><oj-bind-text value="[[ c.data.creditDoes ]]"></oj-bind-text></p>
+                            </div>
+                            <div class="fxm-resolve-opt">
+                              <span class="fxm-label">Or keep it</span>
+                              <div class="fxm-inline">
+                                <button type="button" class="nx-btn nx-btn--sm" id="chKeep" data-act="resolveDispute" data-resolution="keep" :data-charge-id="[[ c.data.id ]]" on-click="[[ $listeners.onAct ]]">Keep the charge</button>
+                              </div>
+                              <p class="fxm-does"><oj-bind-text value="[[ c.data.keepDoes ]]"></oj-bind-text></p>
+                            </div>
+                          </div>
+                          <oj-bind-if test="[[ $functions.failedLine($variables.failure, c.data.id) ]]">
+                            <p class="nx-error fxm-fail" role="alert" id="chResolveFail"><oj-bind-text value="[[ 'Not done: ' + $variables.failure.text ]]"></oj-bind-text></p>
+                          </oj-bind-if>
+                          <div class="fxm-form-acts"><button type="button" class="nx-btn nx-btn--sm nx-btn--plain" data-field="cancel" on-click="[[ $listeners.onPick ]]">Cancel</button></div>
+                        </div>
+                      </oj-bind-if>
+                    </template>
+                  </oj-bind-for-each>
+                </div>
+              </div>
+
+              <oj-bind-if test="[[ st.data.disputes.length > 0 ]]">
+                <ul class="fxm-disputes" :aria-label="[[ 'Disputes on ' + st.data.number ]]">
+                  <oj-bind-for-each data="[[ st.data.disputes ]]">
+                    <template data-oj-as="d">
+                      <li :class="[[ 'fxm-dispute' + (d.data.resolved ? ' fxm-dispute--done' : '') ]]">
+                        <span :class="[[ d.data.resolved ? 'oj-ux-ico-check-circle' : 'oj-ux-ico-warning' ]]" aria-hidden="true"></span>
+                        <span><oj-bind-text value="[[ d.data.chargeId + ' disputed by ' + d.data.by + ', ' + d.data.at + ': “' + d.data.reason + '”' + (d.data.resolved ? ' · ' + d.data.resolution + ' (' + d.data.resolvedBy + ')' : ' · waiting for the owner') ]]"></oj-bind-text></span>
+                      </li>
+                    </template>
+                  </oj-bind-for-each>
+                </ul>
+              </oj-bind-if>
+            </article>
+          </template>
+        </oj-bind-for-each>
+      </div>
+    </section>
+
+    <section class="nx-card" aria-labelledby="chWaitingTitle" id="chWaiting">
+      <div class="nx-card-head fxm-head">
+        <h2 id="chWaitingTitle">Not on a statement: customer and same-company charges</h2>
+        <div class="nx-export">
+          <button type="button" class="nx-btn nx-btn--sm" id="chExportWaiting" data-list="waiting" on-click="[[ $listeners.onExportMenu ]]" aria-haspopup="menu"
+            :aria-expanded="[[ $variables.exportOpen === 'waiting' ? 'true' : 'false' ]]">
+            <span class="oj-ux-ico-download" aria-hidden="true"></span>Export<span class="oj-ux-ico-chevron-down" aria-hidden="true"></span></button>
+          <oj-bind-if test="[[ $variables.exportOpen === 'waiting' ]]">
+            <div class="nx-menu fxm-menu" role="menu" aria-label="Export the waiting charges">
+              <oj-bind-for-each data="[[ $functions.formats() ]]">
+                <template data-oj-as="f">
+                  <button type="button" role="menuitem" class="nx-menu-item" :data-format="[[ f.data.key ]]" data-list="waiting" on-click="[[ $listeners.onExport ]]">
+                    <span :class="[[ f.data.icon ]]" aria-hidden="true"></span><oj-bind-text value="[[ f.data.label ]]"></oj-bind-text></button>
+                </template>
+              </oj-bind-for-each>
+              <p class="nx-menu-note"><oj-bind-text value="[[ $functions.count('waiting', $variables.v) + ' rows, as shown' ]]"></oj-bind-text></p>
+            </div>
+          </oj-bind-if>
+        </div>
+      </div>
+      <div class="fxm-elsewhere">
+        <div class="fxm-elsewhere-box" id="chWaitingCustomer">
+          <span class="fx-chip fx-chip--cust">Customer rental</span>
+          <p class="fxm-elsewhere-text"><b><oj-bind-text value="[[ $functions.plural($variables.v.waitingCustomer.length, 'line') + ' · ' + $variables.v.waitingCustomerTotal ]]"></oj-bind-text></b>
+            The owner invoices its own customer in Fusion Receivables (scenario 3): no statement, no intercompany.</p>
+          <oj-bind-if test="[[ $functions.canOpen('billing', $variables.v.me.roles) ]]">
+            <button type="button" class="nx-btn nx-btn--sm" data-nav="billing" on-click="[[ $listeners.onOpen ]]"><span class="oj-ux-ico-arrow-right" aria-hidden="true"></span>Customer billing</button>
+          </oj-bind-if>
+        </div>
+        <div class="fxm-elsewhere-box" id="chWaitingInternal">
+          <span class="fx-chip fx-chip--info">Same company · own fleet</span>
+          <p class="fxm-elsewhere-text"><b><oj-bind-text value="[[ $functions.plural($variables.v.waitingInternal.length, 'line') + ' · ' + $variables.v.waitingInternalTotal ]]"></oj-bind-text></b>
+            Posted to PPM without invoices: a cross-charge between two BUs of one company, or a BU's own equipment.</p>
+          <oj-bind-if test="[[ $functions.canOpen('ic-workbench', $variables.v.me.roles) ]]">
+            <button type="button" class="nx-btn nx-btn--sm" data-nav="ic-workbench" on-click="[[ $listeners.onOpen ]]"><span class="oj-ux-ico-arrow-right" aria-hidden="true"></span>Intercompany workbench</button>
+          </oj-bind-if>
+        </div>
+      </div>
+      <oj-bind-if test="[[ ($variables.v.waitingCustomer.length + $variables.v.waitingInternal.length) > 0 ]]">
+        <div class="nx-grid fxm-waitgrid" role="table" aria-labelledby="chWaitingTitle" id="chWaitingRows">
+          <div role="row" class="nx-row nx-row--head">
+            <span role="columnheader">Line</span><span role="columnheader">Relationship</span><span role="columnheader">Unit · request</span><span role="columnheader">For</span><span role="columnheader" class="fxm-num">Amount</span>
+          </div>
+          <oj-bind-for-each data="[[ $variables.v.waitingAll ]]">
+            <template data-oj-as="w">
+              <div role="row" class="nx-row" :data-id="[[ w.data.id ]]">
+                <span role="cell" class="fxm-cell"><span class="nx-cell-main"><oj-bind-text value="[[ w.data.kindText ]]"></oj-bind-text></span><span class="nx-cell-sub fxm-wrap"><oj-bind-text value="[[ w.data.detail + ' · ' + w.data.periodText ]]"></oj-bind-text></span></span>
+                <span role="cell" class="fxm-cell fxm-wrap"><oj-bind-text value="[[ w.data.relationLabel ]]"></oj-bind-text></span>
+                <span role="cell" class="fxm-cell"><span class="nx-cell-main"><oj-bind-text value="[[ w.data.serial ]]"></oj-bind-text></span>
+                  <button type="button" class="nx-link fxm-reqlink" data-record="request" :data-id="[[ w.data.requestId ]]" :data-number="[[ w.data.requestNumber ]]" on-click="[[ $listeners.onOpen ]]"><oj-bind-text value="[[ w.data.requestNumber ]]"></oj-bind-text></button></span>
+                <span role="cell" class="fxm-cell fxm-wrap"><oj-bind-text value="[[ w.data.receiver + (w.data.project ? ' · ' + w.data.project : '') ]]"></oj-bind-text></span>
+                <span role="cell" class="fxm-num fxm-amt"><oj-bind-text value="[[ w.data.amountText ]]"></oj-bind-text></span>
+              </div>
+            </template>
+          </oj-bind-for-each>
+        </div>
+      </oj-bind-if>
+    </section>
+  </oj-bind-if>
 </div>

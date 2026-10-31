@@ -1,5 +1,5 @@
 {
-  "description": "Intercompany workbench (skeleton: being built). v = store.view('workbench'), set by loadChain on vbEnter and on every fxRefresh; actions through actChain, links through openChain (docs/redesign/BUILDING-FUTURE-SCREENS.md).",
+  "description": "Intercompany workbench: the user's workbench that creates the intercompany AR and AP. v = fxMoney.workbench(state, store.view('workbench'), ui): the agreed statements and a dry run of the invoice pair each will create (AR in the owner, AP in the user at the day's rate, coded per project and task, the PPM cost), failed pairs with their error and Retry, accruals at the cut-off, settlements with withholding and exchange difference, internal postings, the reconciliation and every transaction created with the accounting Fusion makes (shown, not posted). Set by loadChain on vbEnter and on every fxRefresh; actions through actChain, links through openChain, the page's own state through setChain.",
   "navigation": {
     "embeddable": "enabled"
   },
@@ -8,10 +8,31 @@
       "type": "any",
       "defaultValue": {
         "ready": false,
-        "error": ""
+        "error": "",
+        "me": { "name": "", "roles": [], "todayText": "" },
+        "toCreate": [],
+        "toSettle": [],
+        "waitingUser": [],
+        "internal": [],
+        "internalTxs": [],
+        "recon": [],
+        "txs": [],
+        "txChips": [],
+        "kpi": { "create": 0, "settle": 0, "internal": 0, "waiting": 0, "recon": "" }
       },
-      "description": "The view model: store.view('workbench')."
-    }
+      "description": "fxMoney.workbench(state, store.view('workbench'), ui)."
+    },
+    "ui": {
+      "type": "any",
+      "defaultValue": { "txKind": "", "openTx": {} },
+      "description": "The transactions' kind shown (txKind) and the transactions and previews whose accounting is open (openTx)."
+    },
+    "failure": {
+      "type": "any",
+      "defaultValue": { "text": "", "type": "", "ref": "", "chargeId": "" },
+      "description": "The last action that did not go through, in words, shown where it happened (fxMoney.failure)."
+    },
+    "exportOpen": { "type": "string", "defaultValue": "", "description": "The list whose export menu is open ('' = none)." }
   },
   "events": {
     "fxRefresh": {
@@ -20,52 +41,19 @@
     }
   },
   "eventListeners": {
-    "vbEnter": {
-      "chains": [
-        {
-          "chain": "loadChain"
-        }
-      ]
-    },
-    "fxRefresh": {
-      "chains": [
-        {
-          "chain": "loadChain"
-        }
-      ]
-    },
-    "onAct": {
-      "chains": [
-        {
-          "chain": "actChain",
-          "parameters": {
-            "data": "{{ $event.currentTarget.dataset }}"
-          }
-        }
-      ]
-    },
-    "onOpen": {
-      "chains": [
-        {
-          "chain": "openChain",
-          "parameters": {
-            "data": "{{ $event.currentTarget.dataset }}"
-          }
-        }
-      ]
-    }
+    "vbEnter": { "chains": [{ "chain": "loadChain" }] },
+    "fxRefresh": { "chains": [{ "chain": "loadChain" }] },
+    "onAct": { "chains": [{ "chain": "actChain", "parameters": { "data": "{{ $event.currentTarget.dataset }}" } }] },
+    "onOpen": { "chains": [{ "chain": "openChain", "parameters": { "data": "{{ $event.currentTarget.dataset }}" } }] },
+    "onPick": { "chains": [{ "chain": "setChain", "parameters": { "field": "{{ $event.currentTarget.dataset.field }}", "value": "{{ $event.currentTarget.dataset.value }}" } }] },
+    "onExportMenu": { "chains": [{ "chain": "setChain", "parameters": { "field": "exportOpen", "value": "{{ $event.currentTarget.dataset.list }}" } }] },
+    "onExport": { "chains": [{ "chain": "exportChain", "parameters": { "format": "{{ $event.currentTarget.dataset.format }}", "list": "{{ $event.currentTarget.dataset.list }}" } }] }
   },
   "imports": {
     "components": {
-      "oj-bind-for-each": {
-        "path": "ojs/ojknockout"
-      },
-      "oj-bind-if": {
-        "path": "ojs/ojknockout"
-      },
-      "oj-bind-text": {
-        "path": "ojs/ojknockout"
-      }
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
     }
   }
 }

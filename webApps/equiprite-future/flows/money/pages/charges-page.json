@@ -1,5 +1,5 @@
 {
-  "description": "Charges & statements (skeleton: being built). v = store.view('charges', filter), set by loadChain on vbEnter and on every fxRefresh; actions through actChain, links through openChain (docs/redesign/BUILDING-FUTURE-SCREENS.md).",
+  "description": "Charges & statements: how FleetCo bills ProjectCo, month by month. v = fxMoney.charges(state, store.view('charges', { period }), ui): the charge run (a dry run shows what it makes), the statements the persona owns or uses with their lines, the owner's release and dispute resolution, the user's agreement and disputes, and the charges waiting elsewhere. Set by loadChain on vbEnter and on every fxRefresh; actions through actChain (data-act), links through openChain, the page's own state through setChain.",
   "navigation": {
     "embeddable": "enabled"
   },
@@ -8,10 +8,37 @@
       "type": "any",
       "defaultValue": {
         "ready": false,
-        "error": ""
+        "error": "",
+        "me": { "name": "", "roles": [], "todayText": "" },
+        "statements": [],
+        "periodChips": [],
+        "allLines": [],
+        "waitingCustomer": [],
+        "waitingInternal": [],
+        "rules": [],
+        "counts": { "release": 0, "review": 0, "disputes": 0 },
+        "run": { "options": [], "does": [], "preview": { "ok": false, "kinds": [] } }
       },
-      "description": "The view model: store.view('charges', filter)."
-    }
+      "description": "fxMoney.charges(state, store.view('charges', { period }), { period, runPeriod })."
+    },
+    "period": { "type": "string", "defaultValue": "", "description": "The statements shown: one period (2026-11) or all ('')." },
+    "runPeriod": { "type": "string", "defaultValue": "", "description": "The period the charge run panel is set to ('' = the view's runPeriod)." },
+    "ui": {
+      "type": "any",
+      "defaultValue": { "disputing": "", "reason": "", "resolving": "", "credit": "" },
+      "description": "The open forms: the line being disputed and its reason, the dispute being resolved and the credit."
+    },
+    "failure": {
+      "type": "any",
+      "defaultValue": { "text": "", "type": "", "ref": "", "chargeId": "" },
+      "description": "The last action that did not go through, in words, shown where it happened (fxMoney.failure)."
+    },
+    "lastRun": {
+      "type": "any",
+      "defaultValue": { "done": false, "text": "" },
+      "description": "What the last charge run from this tab made."
+    },
+    "exportOpen": { "type": "string", "defaultValue": "", "description": "The list whose export menu is open ('' = none)." }
   },
   "events": {
     "fxRefresh": {
@@ -20,52 +47,20 @@
     }
   },
   "eventListeners": {
-    "vbEnter": {
-      "chains": [
-        {
-          "chain": "loadChain"
-        }
-      ]
-    },
-    "fxRefresh": {
-      "chains": [
-        {
-          "chain": "loadChain"
-        }
-      ]
-    },
-    "onAct": {
-      "chains": [
-        {
-          "chain": "actChain",
-          "parameters": {
-            "data": "{{ $event.currentTarget.dataset }}"
-          }
-        }
-      ]
-    },
-    "onOpen": {
-      "chains": [
-        {
-          "chain": "openChain",
-          "parameters": {
-            "data": "{{ $event.currentTarget.dataset }}"
-          }
-        }
-      ]
-    }
+    "vbEnter": { "chains": [{ "chain": "loadChain" }] },
+    "fxRefresh": { "chains": [{ "chain": "loadChain" }] },
+    "onAct": { "chains": [{ "chain": "actChain", "parameters": { "data": "{{ $event.currentTarget.dataset }}" } }] },
+    "onOpen": { "chains": [{ "chain": "openChain", "parameters": { "data": "{{ $event.currentTarget.dataset }}" } }] },
+    "onPick": { "chains": [{ "chain": "setChain", "parameters": { "field": "{{ $event.currentTarget.dataset.field }}", "value": "{{ $event.currentTarget.dataset.value }}" } }] },
+    "onField": { "chains": [{ "chain": "setChain", "parameters": { "field": "{{ $event.target.dataset.field }}", "value": "{{ $event.target.value }}" } }] },
+    "onExportMenu": { "chains": [{ "chain": "setChain", "parameters": { "field": "exportOpen", "value": "{{ $event.currentTarget.dataset.list }}" } }] },
+    "onExport": { "chains": [{ "chain": "exportChain", "parameters": { "format": "{{ $event.currentTarget.dataset.format }}", "list": "{{ $event.currentTarget.dataset.list }}" } }] }
   },
   "imports": {
     "components": {
-      "oj-bind-for-each": {
-        "path": "ojs/ojknockout"
-      },
-      "oj-bind-if": {
-        "path": "ojs/ojknockout"
-      },
-      "oj-bind-text": {
-        "path": "ojs/ojknockout"
-      }
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
     }
   }
 }

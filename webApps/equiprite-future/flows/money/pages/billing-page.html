@@ -1,27 +1,303 @@
-<!-- Customer billing: SKELETON, being built. The screen's builder replaces this page's HTML and chains, keeping the Future page
-     pattern (docs/redesign/BUILDING-FUTURE-SCREENS.md): v = store.view('billing') (loadChain, again on fxRefresh), actions through
-     actChain (data-act + data-…), links through openChain (data-nav, data-record). Set built: true in resources/js/nav.js. -->
-<div class="nx-page fx-skeleton" id="page-billing">
+<!-- Customer billing: the outside customers. Scenario 3, FleetCo rents to its own customers: the charges waiting and a
+     dry run of the Fusion AR invoice each customer gets (VAT, e-invoicing by Fusion); deposits taken before approval and
+     settled after the return. Scenario 2, ProjectCo bills Customer X for its project at cost plus mark-up: PPM contract
+     billing or an EquipRite invoice (OD-07), never both. The customer invoices with what is open, the payment, and the
+     accounting Fusion makes (shown, not posted). v = fxMoney.billing(state, store.view('billing'), ui). -->
+<div class="nx-page fxm-money fxm-billing" id="page-billing">
   <div class="nx-pagehead">
     <div>
-      <div class="nx-kicker">Money</div>
+      <div class="nx-kicker">Money · the outside customers</div>
       <h1>Customer billing</h1>
-      <div class="nx-sub">Bill the outside customers: FleetCo's rentals (scenario 3) and ProjectCo's customer projects (scenario 2), deposits.</div>
+      <div class="nx-sub">FleetCo invoices its rental customers (scenario 3); ProjectCo bills Customer X for its project (scenario 2). The invoices live in Fusion Receivables; e-invoicing is Fusion's.</div>
+    </div>
+    <div class="nx-actions">
+      <oj-bind-if test="[[ $functions.canOpen('charges', $variables.v.me.roles) ]]">
+        <button type="button" class="nx-btn" data-nav="charges" on-click="[[ $listeners.onOpen ]]"><span class="oj-ux-ico-currency-dollar" aria-hidden="true"></span>Charges &amp; statements</button>
+      </oj-bind-if>
+      <oj-bind-if test="[[ $functions.canOpen('ic-workbench', $variables.v.me.roles) ]]">
+        <button type="button" class="nx-btn" data-nav="ic-workbench" on-click="[[ $listeners.onOpen ]]"><span class="oj-ux-ico-invoice" aria-hidden="true"></span>Intercompany workbench</button>
+      </oj-bind-if>
     </div>
   </div>
 
-  <oj-bind-if test="[[ !!$variables.v.error ]]"><div class="nx-error" role="alert"><oj-bind-text value="[[ $variables.v.error ]]"></oj-bind-text></div></oj-bind-if>
+  <oj-bind-if test="[[ !!$variables.v.error ]]"><div class="nx-error" role="alert" id="blError"><oj-bind-text value="[[ $variables.v.error ]]"></oj-bind-text></div></oj-bind-if>
 
-  <section class="nx-card" aria-labelledby="billingSoonTitle">
-    <div class="nx-card-head"><h2 id="billingSoonTitle">Being built for EquipRite Future</h2><span class="nx-note">FDD v2.0</span></div>
-    <p class="nx-card-pad nx-muted">This screen is next. Meanwhile, this is what the simulated backend already has here for the person played, from
-      <code>store.view('billing')</code>:</p>
-    <ul class="fx-skeleton-list">
-      <oj-bind-for-each data="[[ $functions.outline($variables.v) ]]">
-        <template data-oj-as="o">
-          <li><code><oj-bind-text value="[[ o.data.key ]]"></oj-bind-text></code><span><oj-bind-text value="[[ o.data.text ]]"></oj-bind-text></span></li>
-        </template>
-      </oj-bind-for-each>
-    </ul>
-  </section>
+  <oj-bind-if test="[[ $variables.v.ready && !$variables.v.error ]]">
+    <div class="nx-kpis fxm-kpis" role="group" aria-label="Customer billing in numbers">
+      <div class="nx-kpi fxm-kpi nx-stage--ready" id="blKpiWaiting"><span class="nx-kpi-label">Rental charges to invoice</span>
+        <span class="nx-kpi-value"><oj-bind-text value="[[ $variables.v.kpi.waiting ]]"></oj-bind-text></span><span class="nx-kpi-note">scenario 3 · FleetCo's customers</span></div>
+      <div class="nx-kpi fxm-kpi nx-stage--approval" id="blKpiDeposits"><span class="nx-kpi-label">Deposits to act on</span>
+        <span class="nx-kpi-value"><oj-bind-text value="[[ $variables.v.kpi.deposits ]]"></oj-bind-text></span><span class="nx-kpi-note">to take, or to settle after the return</span></div>
+      <div class="nx-kpi fxm-kpi nx-stage--out" id="blKpiProjects"><span class="nx-kpi-label">Projects to bill</span>
+        <span class="nx-kpi-value"><oj-bind-text value="[[ $variables.v.kpi.projects ]]"></oj-bind-text></span><span class="nx-kpi-note">scenario 2 · cost plus mark-up</span></div>
+      <div class="nx-kpi fxm-kpi nx-stage--onsite" id="blKpiOpen"><span class="nx-kpi-label">Invoices open</span>
+        <span class="nx-kpi-value"><oj-bind-text value="[[ $variables.v.kpi.open ]]"></oj-bind-text></span><span class="nx-kpi-note">waiting for the customer's payment</span></div>
+    </div>
+
+    <section class="nx-card" aria-labelledby="blS3Title" id="blS3">
+      <div class="nx-card-head fxm-head">
+        <h2 id="blS3Title">Scenario 3 · FleetCo rents to its own customers</h2>
+        <span class="fx-chip fx-chip--cust">Customer rental · no intercompany</span>
+        <div class="nx-export">
+          <button type="button" class="nx-btn nx-btn--sm" data-list="waiting" on-click="[[ $listeners.onExportMenu ]]" aria-haspopup="menu" :aria-expanded="[[ $variables.exportOpen === 'waiting' ? 'true' : 'false' ]]">
+            <span class="oj-ux-ico-download" aria-hidden="true"></span>Export<span class="oj-ux-ico-chevron-down" aria-hidden="true"></span></button>
+          <oj-bind-if test="[[ $variables.exportOpen === 'waiting' ]]">
+            <div class="nx-menu fxm-menu" role="menu" aria-label="Export the customer charges">
+              <p class="fxm-menu-title"><oj-bind-text value="[[ 'Charges to invoice · ' + $functions.count('waiting', $variables.v) + ' rows' ]]"></oj-bind-text></p>
+              <oj-bind-for-each data="[[ $functions.formats() ]]"><template data-oj-as="f">
+                <button type="button" role="menuitem" class="nx-menu-item" :data-format="[[ f.data.key ]]" data-list="waiting" on-click="[[ $listeners.onExport ]]"><span :class="[[ f.data.icon ]]" aria-hidden="true"></span><oj-bind-text value="[[ f.data.label ]]"></oj-bind-text></button>
+              </template></oj-bind-for-each>
+              <p class="fxm-menu-title"><oj-bind-text value="[[ 'Deposits · ' + $functions.count('deposits', $variables.v) + ' rows' ]]"></oj-bind-text></p>
+              <oj-bind-for-each data="[[ $functions.formats() ]]"><template data-oj-as="f">
+                <button type="button" role="menuitem" class="nx-menu-item" :data-format="[[ f.data.key ]]" data-list="deposits" on-click="[[ $listeners.onExport ]]"><span :class="[[ f.data.icon ]]" aria-hidden="true"></span><oj-bind-text value="[[ f.data.label ]]"></oj-bind-text></button>
+              </template></oj-bind-for-each>
+            </div>
+          </oj-bind-if>
+        </div>
+      </div>
+      <oj-bind-if test="[[ !$variables.v.customers.length ]]">
+        <p class="nx-empty" id="blNoCharges">No rental charges wait to be invoiced. The charge run makes them at the month end.</p>
+      </oj-bind-if>
+      <div class="fxm-sts">
+        <oj-bind-for-each data="[[ $variables.v.customers ]]">
+          <template data-oj-as="cu">
+            <article class="fxm-st fxm-cust" :data-id="[[ cu.data.id ]]" :aria-label="[[ cu.data.name ]]">
+              <header class="fxm-st-head">
+                <div class="fxm-st-title"><span class="fxm-st-number"><oj-bind-text value="[[ cu.data.company + ' · ' + cu.data.count + (cu.data.count === 1 ? ' charge' : ' charges') ]]"></oj-bind-text></span>
+                  <span class="fxm-st-pair"><oj-bind-text value="[[ cu.data.name ]]"></oj-bind-text></span></div>
+              </header>
+              <div class="fxm-lines-wrap">
+                <div class="nx-grid fxm-custgrid" role="table" :aria-label="[[ 'Charges for ' + cu.data.name ]]">
+                  <div role="row" class="nx-row nx-row--head"><span role="columnheader">Line</span><span role="columnheader">Unit · request</span><span role="columnheader">Period</span><span role="columnheader" class="fxm-num">Amount</span></div>
+                  <oj-bind-for-each data="[[ cu.data.lines ]]">
+                    <template data-oj-as="c">
+                      <div role="row" class="nx-row" :data-id="[[ c.data.id ]]">
+                        <span role="cell" class="fxm-cell"><span class="nx-cell-main"><oj-bind-text value="[[ c.data.kindText ]]"></oj-bind-text></span><span class="nx-cell-sub fxm-wrap"><oj-bind-text value="[[ c.data.detail ]]"></oj-bind-text></span></span>
+                        <span role="cell" class="fxm-cell"><span class="nx-cell-main"><oj-bind-text value="[[ c.data.serial ]]"></oj-bind-text></span>
+                          <button type="button" class="nx-link fxm-reqlink" data-record="request" :data-id="[[ c.data.requestId ]]" :data-number="[[ c.data.requestNumber ]]" on-click="[[ $listeners.onOpen ]]"><oj-bind-text value="[[ c.data.requestNumber ]]"></oj-bind-text></button></span>
+                        <span role="cell"><oj-bind-text value="[[ c.data.periodText ]]"></oj-bind-text></span>
+                        <span role="cell" class="fxm-num fxm-amt"><oj-bind-text value="[[ c.data.amountText ]]"></oj-bind-text></span>
+                      </div>
+                    </template>
+                  </oj-bind-for-each>
+                </div>
+              </div>
+              <oj-bind-if test="[[ !!cu.data.error ]]"><p class="nx-error fxm-fail"><oj-bind-text value="[[ cu.data.error ]]"></oj-bind-text></p></oj-bind-if>
+              <div class="fxm-preview">
+                <span class="fxm-preview-kicker">Before it runs: the Fusion AR invoice</span>
+                <oj-bind-for-each data="[[ cu.data.invoices ]]">
+                  <template data-oj-as="iv">
+                    <dl class="fxm-dl fxm-inv-pv">
+                      <div><dt>Invoice</dt><dd><oj-bind-text value="[[ iv.data.title ]]"></oj-bind-text></dd></div>
+                      <div><dt>Net</dt><dd class="fxm-num"><oj-bind-text value="[[ iv.data.net ]]"></oj-bind-text></dd></div>
+                      <div><dt>Tax</dt><dd class="fxm-num"><oj-bind-text value="[[ iv.data.vatText ]]"></oj-bind-text></dd></div>
+                      <div class="fxm-dl-total"><dt>Total</dt><dd class="fxm-num"><oj-bind-text value="[[ iv.data.total ]]"></oj-bind-text></dd></div>
+                    </dl>
+                    <p class="fxm-acc-meta"><oj-bind-text value="[[ 'Accounting (shown, not posted): ' + iv.data.tx.drcr ]]"></oj-bind-text></p>
+                  </template>
+                </oj-bind-for-each>
+                <p class="fxm-says"><span class="oj-ux-ico-information" aria-hidden="true"></span><oj-bind-text value="[[ cu.data.eInvoicing ]]"></oj-bind-text></p>
+              </div>
+              <oj-bind-if test="[[ $functions.failedAt($variables.failure, cu.data.id) ]]">
+                <p class="nx-error fxm-fail" role="alert"><oj-bind-text value="[[ 'Not done: ' + $variables.failure.text ]]"></oj-bind-text></p>
+              </oj-bind-if>
+              <oj-bind-if test="[[ $variables.v.canInvoice ]]">
+                <div class="fxm-st-acts"><div class="fxm-act">
+                  <button type="button" class="nx-btn nx-btn--primary nx-btn--sm fxm-invoice-go" data-act="invoiceCustomer" :data-customer-id="[[ cu.data.id ]]" on-click="[[ $listeners.onAct ]]">
+                    <span class="oj-ux-ico-invoice" aria-hidden="true"></span>Invoice the customer</button>
+                  <span class="fxm-does"><oj-bind-text value="[[ cu.data.does ]]"></oj-bind-text></span>
+                </div></div>
+              </oj-bind-if>
+            </article>
+          </template>
+        </oj-bind-for-each>
+      </div>
+
+      <div class="fxm-subhead"><h3 class="fxm-h3" id="blDepositsTitle">Deposits</h3><span class="nx-note">taken before the owner approves; applied or refunded after the return inspection</span></div>
+      <oj-bind-if test="[[ !$variables.v.deposits.length ]]"><p class="nx-empty fxm-empty-sm">No customer rental of yours needs a deposit.</p></oj-bind-if>
+      <ul class="fxm-waits fxm-deposits" id="blDeposits" aria-labelledby="blDepositsTitle">
+        <oj-bind-for-each data="[[ $variables.v.deposits ]]">
+          <template data-oj-as="dp">
+            <li class="fxm-wait fxm-deposit" :data-id="[[ dp.data.id ]]">
+              <div class="fxm-wait-top">
+                <span><button type="button" class="nx-link" data-record="request" :data-id="[[ dp.data.id ]]" :data-number="[[ dp.data.number ]]" on-click="[[ $listeners.onOpen ]]"><oj-bind-text value="[[ dp.data.number ]]"></oj-bind-text></button>
+                  <span class="fxm-muted"><oj-bind-text value="[[ ' · ' + dp.data.customer ]]"></oj-bind-text></span></span>
+                <span class="fxm-num fxm-amt"><oj-bind-text value="[[ dp.data.deposit || 'not taken' ]]"></oj-bind-text></span>
+              </div>
+              <span :class="[[ 'fx-chip fxm-deposit-state fx-chip--' + dp.data.tone ]]"><oj-bind-text value="[[ dp.data.statusText ]]"></oj-bind-text></span>
+              <oj-bind-if test="[[ $functions.failedAt($variables.failure, dp.data.id) ]]">
+                <p class="nx-error fxm-fail" role="alert"><oj-bind-text value="[[ 'Not done: ' + $variables.failure.text ]]"></oj-bind-text></p>
+              </oj-bind-if>
+              <oj-bind-if test="[[ dp.data.canTake ]]">
+                <div class="fxm-act">
+                  <button type="button" class="nx-btn nx-btn--primary nx-btn--sm fxm-deposit-take" data-act="takeDeposit" :data-request-id="[[ dp.data.id ]]" on-click="[[ $listeners.onAct ]]">Take the deposit</button>
+                  <span class="fxm-does"><oj-bind-text value="[[ dp.data.takeText ]]"></oj-bind-text></span>
+                </div>
+              </oj-bind-if>
+              <oj-bind-if test="[[ dp.data.canSettleNow ]]">
+                <div class="fxm-act">
+                  <button type="button" class="nx-btn nx-btn--primary nx-btn--sm fxm-deposit-settle" data-act="settleDeposit" :data-request-id="[[ dp.data.id ]]" on-click="[[ $listeners.onAct ]]">Settle the deposit</button>
+                  <span class="fxm-does"><oj-bind-text value="[[ dp.data.settleText ]]"></oj-bind-text></span>
+                </div>
+              </oj-bind-if>
+              <oj-bind-if test="[[ (dp.data.needed && !dp.data.canTake) || (dp.data.canSettle && !dp.data.canSettleNow) ]]">
+                <span class="fxm-does">The rental desk takes and settles deposits.</span>
+              </oj-bind-if>
+            </li>
+          </template>
+        </oj-bind-for-each>
+      </ul>
+    </section>
+
+    <section class="nx-card" aria-labelledby="blS2Title" id="blS2">
+      <div class="nx-card-head fxm-head">
+        <h2 id="blS2Title">Scenario 2 · ProjectCo bills Customer X</h2>
+        <span class="fx-chip fx-chip--ic">Equipment cost from the intercompany AP</span>
+        <div class="nx-export">
+          <button type="button" class="nx-btn nx-btn--sm" data-list="projects" on-click="[[ $listeners.onExportMenu ]]" aria-haspopup="menu" :aria-expanded="[[ $variables.exportOpen === 'projects' ? 'true' : 'false' ]]">
+            <span class="oj-ux-ico-download" aria-hidden="true"></span>Export<span class="oj-ux-ico-chevron-down" aria-hidden="true"></span></button>
+          <oj-bind-if test="[[ $variables.exportOpen === 'projects' ]]">
+            <div class="nx-menu fxm-menu" role="menu" aria-label="Export the customer projects">
+              <oj-bind-for-each data="[[ $functions.formats() ]]"><template data-oj-as="f">
+                <button type="button" role="menuitem" class="nx-menu-item" :data-format="[[ f.data.key ]]" data-list="projects" on-click="[[ $listeners.onExport ]]"><span :class="[[ f.data.icon ]]" aria-hidden="true"></span><oj-bind-text value="[[ f.data.label ]]"></oj-bind-text></button>
+              </template></oj-bind-for-each>
+              <p class="nx-menu-note"><oj-bind-text value="[[ $functions.count('projects', $variables.v) + ' rows, as shown' ]]"></oj-bind-text></p>
+            </div>
+          </oj-bind-if>
+        </div>
+      </div>
+      <div class="fxm-card-body">
+        <p class="fxm-mode" id="blMode"><span class="oj-ux-ico-information" aria-hidden="true"></span>
+          <span><b><oj-bind-text value="[[ $variables.v.s2ModeText + '.' ]]"></oj-bind-text></b> <oj-bind-text value="[[ $variables.v.neverBoth ]]"></oj-bind-text></span></p>
+      </div>
+      <oj-bind-if test="[[ !$variables.v.projects.length ]]">
+        <p class="nx-empty" id="blNoProjects">No customer project of your business units.</p>
+      </oj-bind-if>
+      <div class="fxm-sts">
+        <oj-bind-for-each data="[[ $variables.v.projects ]]">
+          <template data-oj-as="pj">
+            <article class="fxm-st fxm-prj" :data-id="[[ pj.data.id ]]" :aria-label="[[ pj.data.number ]]">
+              <header class="fxm-st-head">
+                <div class="fxm-st-title"><span class="fxm-st-number"><oj-bind-text value="[[ pj.data.number + ' · mark-up ' + pj.data.markup ]]"></oj-bind-text></span>
+                  <span class="fxm-st-pair"><oj-bind-text value="[[ pj.data.name ]]"></oj-bind-text></span>
+                  <span class="fxm-st-bus"><oj-bind-text value="[[ pj.data.customer ]]"></oj-bind-text></span></div>
+                <div class="fxm-st-total"><span class="fxm-st-amount"><oj-bind-text value="[[ pj.data.cost ]]"></oj-bind-text></span><span class="nx-cell-sub">billable equipment cost so far</span></div>
+              </header>
+              <oj-bind-if test="[[ !pj.data.costLines.length ]]">
+                <p class="fxm-does">No billable equipment cost yet: it comes with the intercompany invoice pair (the AP coded to this project).</p>
+              </oj-bind-if>
+              <oj-bind-if test="[[ pj.data.costLines.length > 0 ]]">
+                <ul class="fxm-ppm fxm-costs">
+                  <oj-bind-for-each data="[[ pj.data.costLines ]]">
+                    <template data-oj-as="c">
+                      <li><span class="fxm-ppm-top"><b><oj-bind-text value="[[ c.data.title ]]"></oj-bind-text></b><span class="fxm-num"><oj-bind-text value="[[ c.data.amount ]]"></oj-bind-text></span></span>
+                        <span class="fxm-ppm-name"><oj-bind-text value="[[ c.data.kindText + ' · ' + c.data.number ]]"></oj-bind-text></span>
+                        <span :class="[[ 'fx-chip ' + (c.data.billed ? 'fx-chip--ok' : 'fx-chip--todo') ]]"><oj-bind-text value="[[ c.data.billedText ]]"></oj-bind-text></span></li>
+                    </template>
+                  </oj-bind-for-each>
+                </ul>
+              </oj-bind-if>
+              <oj-bind-if test="[[ !!pj.data.preview ]]">
+                <div class="fxm-preview">
+                  <span class="fxm-preview-kicker">Before it runs: the bill at cost plus mark-up</span>
+                  <dl class="fxm-dl fxm-bill-pv">
+                    <div><dt>Equipment cost (from the IC AP)</dt><dd class="fxm-num"><oj-bind-text value="[[ pj.data.preview.cost ]]"></oj-bind-text></dd></div>
+                    <div><dt><oj-bind-text value="[[ 'Mark-up ' + pj.data.preview.markup ]]"></oj-bind-text></dt><dd class="fxm-num fxm-margin"><oj-bind-text value="[[ pj.data.preview.margin ]]"></oj-bind-text></dd></div>
+                    <div><dt>Bill</dt><dd class="fxm-num"><oj-bind-text value="[[ pj.data.preview.bill ]]"></oj-bind-text></dd></div>
+                    <div><dt>VAT</dt><dd class="fxm-num"><oj-bind-text value="[[ pj.data.preview.vat ]]"></oj-bind-text></dd></div>
+                    <div class="fxm-dl-total"><dt>Customer pays</dt><dd class="fxm-num"><oj-bind-text value="[[ pj.data.preview.total ]]"></oj-bind-text></dd></div>
+                  </dl>
+                  <p class="fxm-acc-meta"><oj-bind-text value="[[ 'Accounting (shown, not posted): ' + pj.data.preview.tx.drcr ]]"></oj-bind-text></p>
+                </div>
+              </oj-bind-if>
+              <oj-bind-if test="[[ $functions.failedAt($variables.failure, pj.data.id) ]]">
+                <p class="nx-error fxm-fail" role="alert"><oj-bind-text value="[[ 'Not done: ' + $variables.failure.text ]]"></oj-bind-text></p>
+              </oj-bind-if>
+              <oj-bind-if test="[[ pj.data.canBillNow ]]">
+                <div class="fxm-st-acts"><div class="fxm-act">
+                  <button type="button" class="nx-btn nx-btn--primary nx-btn--sm fxm-bill-go" data-act="billProject" :data-project-id="[[ pj.data.id ]]" on-click="[[ $listeners.onAct ]]">
+                    <span class="oj-ux-ico-invoice" aria-hidden="true"></span>Bill the customer</button>
+                  <span class="fxm-does"><oj-bind-text value="[[ pj.data.does ]]"></oj-bind-text></span>
+                </div></div>
+              </oj-bind-if>
+            </article>
+          </template>
+        </oj-bind-for-each>
+      </div>
+    </section>
+
+    <section class="nx-card" aria-labelledby="blInvTitle" id="blInvoicesCard">
+      <div class="nx-card-head fxm-head">
+        <h2 id="blInvTitle">The customer invoices</h2>
+        <span class="fx-chip fx-chip--na">Accounting shown, not posted</span>
+        <div class="nx-export">
+          <button type="button" class="nx-btn nx-btn--sm" data-list="invoices" on-click="[[ $listeners.onExportMenu ]]" aria-haspopup="menu" :aria-expanded="[[ $variables.exportOpen === 'invoices' ? 'true' : 'false' ]]">
+            <span class="oj-ux-ico-download" aria-hidden="true"></span>Export<span class="oj-ux-ico-chevron-down" aria-hidden="true"></span></button>
+          <oj-bind-if test="[[ $variables.exportOpen === 'invoices' ]]">
+            <div class="nx-menu fxm-menu" role="menu" aria-label="Export the customer invoices">
+              <oj-bind-for-each data="[[ $functions.formats() ]]"><template data-oj-as="f">
+                <button type="button" role="menuitem" class="nx-menu-item" :data-format="[[ f.data.key ]]" data-list="invoices" on-click="[[ $listeners.onExport ]]"><span :class="[[ f.data.icon ]]" aria-hidden="true"></span><oj-bind-text value="[[ f.data.label ]]"></oj-bind-text></button>
+              </template></oj-bind-for-each>
+              <p class="nx-menu-note"><oj-bind-text value="[[ $functions.count('invoices', $variables.v) + ' rows, as shown' ]]"></oj-bind-text></p>
+            </div>
+          </oj-bind-if>
+        </div>
+      </div>
+      <oj-bind-if test="[[ !$variables.v.invoices.length ]]">
+        <p class="nx-empty" id="blNoInvoices">No customer invoice of your companies yet.</p>
+      </oj-bind-if>
+      <ul class="fxm-txs" id="blInvoices">
+        <oj-bind-for-each data="[[ $variables.v.invoices ]]">
+          <template data-oj-as="t">
+            <li class="fxm-tx fxm-inv" :data-id="[[ t.data.id ]]" :data-number="[[ t.data.number ]]" :data-paid="[[ t.data.paid ? 'yes' : 'no' ]]">
+              <div class="fxm-inv-row">
+                <button type="button" class="fxm-tx-row" data-field="tx" :data-value="[[ t.data.id ]]" on-click="[[ $listeners.onPick ]]" :aria-expanded="[[ $functions.isOpen($variables.ui.openTx, t.data.id) ? 'true' : 'false' ]]">
+                  <span :class="[[ ($functions.isOpen($variables.ui.openTx, t.data.id) ? 'oj-ux-ico-chevron-down' : 'oj-ux-ico-chevron-right') + ' fxm-tx-chev' ]]" aria-hidden="true"></span>
+                  <span class="fxm-tx-main"><span class="fxm-tx-number"><oj-bind-text value="[[ t.data.number + ' · ' + t.data.kindWords ]]"></oj-bind-text></span>
+                    <span class="fxm-tx-title"><oj-bind-text value="[[ t.data.title ]]"></oj-bind-text></span></span>
+                  <span class="fxm-tx-kind"><span class="nx-cell-main"><oj-bind-text value="[[ t.data.customer ]]"></oj-bind-text></span><span class="nx-cell-sub"><oj-bind-text value="[[ t.data.company + ' · ' + t.data.date ]]"></oj-bind-text></span></span>
+                  <span class="fxm-num fxm-amt"><oj-bind-text value="[[ t.data.totalText ]]"></oj-bind-text></span>
+                </button>
+                <div class="fxm-inv-state">
+                  <span :class="[[ 'fx-chip fxm-inv-open ' + (t.data.paid ? 'fx-chip--ok' : 'fx-chip--todo') ]]"><oj-bind-text value="[[ t.data.paid ? 'Paid' : 'Open ' + t.data.openText ]]"></oj-bind-text></span>
+                  <oj-bind-if test="[[ !!t.data.marginText ]]"><span class="fxm-inv-margin"><oj-bind-text value="[[ t.data.marginText ]]"></oj-bind-text></span></oj-bind-if>
+                  <oj-bind-if test="[[ !!t.data.receiptText ]]"><span class="fxm-does"><oj-bind-text value="[[ t.data.receiptText ]]"></oj-bind-text></span></oj-bind-if>
+                </div>
+              </div>
+              <oj-bind-if test="[[ $functions.failedAt($variables.failure, t.data.id) ]]">
+                <p class="nx-error fxm-fail" role="alert"><oj-bind-text value="[[ 'Not done: ' + $variables.failure.text ]]"></oj-bind-text></p>
+              </oj-bind-if>
+              <oj-bind-if test="[[ t.data.canPayNow ]]">
+                <div class="fxm-act fxm-inv-pay">
+                  <button type="button" class="nx-btn nx-btn--primary nx-btn--sm fxm-pay-go" data-act="customerPays" :data-tx-id="[[ t.data.id ]]" on-click="[[ $listeners.onAct ]]">
+                    <span class="oj-ux-ico-wallet-box" aria-hidden="true"></span>Record the payment</button>
+                  <span class="fxm-does"><oj-bind-text value="[[ t.data.payDoes ]]"></oj-bind-text></span>
+                </div>
+              </oj-bind-if>
+              <oj-bind-if test="[[ $functions.isOpen($variables.ui.openTx, t.data.id) ]]">
+                <div class="fxm-acc fxm-tx-acc">
+                  <p class="fxm-acc-head"><span class="fx-chip fx-chip--na">Shown, not posted</span><span class="fxm-acc-src"><oj-bind-text value="[[ t.data.accounting.source ]]"></oj-bind-text></span></p>
+                  <div class="nx-grid fxm-accgrid" role="table" :aria-label="[[ 'Accounting of ' + t.data.number ]]">
+                    <div role="row" class="nx-row nx-row--head"><span role="columnheader">Account</span><span role="columnheader">Name</span><span role="columnheader" class="fxm-num">Debit</span><span role="columnheader" class="fxm-num">Credit</span></div>
+                    <oj-bind-for-each data="[[ t.data.accounting.lines ]]"><template data-oj-as="l">
+                      <div role="row" class="nx-row"><span role="cell"><oj-bind-text value="[[ l.data.account ]]"></oj-bind-text></span><span role="cell" class="fxm-wrap"><oj-bind-text value="[[ l.data.name + (l.data.memo ? ' (' + l.data.memo + ')' : '') ]]"></oj-bind-text></span>
+                        <span role="cell" class="fxm-num"><oj-bind-text value="[[ l.data.drText ]]"></oj-bind-text></span><span role="cell" class="fxm-num"><oj-bind-text value="[[ l.data.crText ]]"></oj-bind-text></span></div>
+                    </template></oj-bind-for-each>
+                    <div role="row" class="nx-row fxm-acc-total"><span role="cell"></span><span role="cell"><oj-bind-text value="[[ 'Total, ' + t.data.accounting.currency ]]"></oj-bind-text></span><span role="cell" class="fxm-num"><oj-bind-text value="[[ t.data.accounting.totalDr ]]"></oj-bind-text></span><span role="cell" class="fxm-num"><oj-bind-text value="[[ t.data.accounting.totalCr ]]"></oj-bind-text></span></div>
+                  </div>
+                  <oj-bind-if test="[[ !!t.data.accounting.note ]]"><p class="fxm-acc-note"><oj-bind-text value="[[ t.data.accounting.note ]]"></oj-bind-text></p></oj-bind-if>
+                  <oj-bind-if test="[[ !!t.data.payTx ]]">
+                    <p class="fxm-acc-meta"><oj-bind-text value="[[ 'When the payment is recorded (shown, not posted): ' + (t.data.payTx ? t.data.payTx.drcr : '') ]]"></oj-bind-text></p>
+                  </oj-bind-if>
+                  <oj-bind-for-each data="[[ t.data.receipts ]]"><template data-oj-as="r">
+                    <p class="fxm-acc-meta"><oj-bind-text value="[[ r.data.number + ' · ' + r.data.kindText + ' ' + r.data.dateText + ': ' + r.data.drcr ]]"></oj-bind-text></p>
+                  </template></oj-bind-for-each>
+                </div>
+              </oj-bind-if>
+            </li>
+          </template>
+        </oj-bind-for-each>
+      </ul>
+    </section>
+  </oj-bind-if>
 </div>
