@@ -302,7 +302,7 @@ async function download(page, fmt) {
     await page.click('.nx-av-prob[data-unit="MC-07"] .nx-av-show');
     await page.waitForSelector('.nx-av-row--unit', { timeout: 10000 });
     await settle(400);
-    T.eq('a clash\'s "Show on the timeline" goes back to the timeline', (await page.$$eval('.nx-av-row--unit', (r) => r.map((x) => x.dataset.unit))).join() + ' '
+    T.eq('a clash\'s "Show on the timeline" goes back to the timeline', (await page.$$eval('#avTimeline .nx-av-row--unit', (r) => r.map((x) => x.dataset.unit))).join() + ' '
       + (await page.$eval('#avShowTimeline', (b) => b.getAttribute('aria-pressed'))) + ' ' + !!(await page.$('#avGrid')), 'MC-07 true false');
     await page.click('#avClear');
     await settle(300);
@@ -318,7 +318,7 @@ async function download(page, fmt) {
     await handover({ view: 'timeline' });
     await page.waitForSelector('.nx-av-row--unit', { timeout: 10000 });
     await settle(300);
-    T.eq('a view alone: the timeline, the search kept', (await page.$$eval('.nx-av-row--unit', (r) => r.map((x) => x.dataset.unit))).join() + ' / ' + (await page.inputValue('#avSearch')), 'TC-02,TC-05 / Tower Crane');
+    T.eq('a view alone: the timeline, the search kept', (await page.$$eval('#avTimeline .nx-av-row--unit', (r) => r.map((x) => x.dataset.unit))).join() + ' / ' + (await page.inputValue('#avSearch')), 'TC-02,TC-05 / Tower Crane');
     // With the tab closed: it opens, loads, then takes what was handed over.
     await page.click('.nx-tab-close[data-id="availability"]');
     await settle(600);

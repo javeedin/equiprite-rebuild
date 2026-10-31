@@ -374,7 +374,9 @@ define(['resources/js/availability', 'resources/js/availabilityData', 'resources
     var c = core || {};
     var m = c.master || {};
     var first = (model && model.units && model.units[0]) || {};
-    var name = m.equipmentName || first.name || c.name || (c.serial ? '' : 'Equipment');
+    // The master's name, else the name it was opened with, else a unit's (never a serial standing in for a name).
+    var unitName = first.name && up(first.name) !== up(first.serial) ? first.name : '';
+    var name = m.equipmentName || c.name || unitName || (c.serial ? '' : 'Equipment');
     var cls = c.className || (first.cls && first.cls !== av.NO_CLASS ? first.cls : '');
     var facts = uniq([m.equipmentNumber, m.manufacturer, m.modelNumber, m.mfgYear != null ? String(m.mfgYear) : '', m.capacity, words(m.equipmentType)]);
     var image = m.equipmentImage || m.imageUrl || '';
@@ -388,7 +390,7 @@ define(['resources/js/availability', 'resources/js/availabilityData', 'resources
         where: r ? (r.yard && r.yard !== av.NO_YARD ? 'Kept at ' + r.yard : 'No yard recorded') : '',
         now: r ? r.now : null, facts: facts, image: image, equipmentId: c.equipmentId || '',
         allText: others > 1 ? 'All ' + others + ' units of this equipment' : 'All units of this equipment',
-        tabTitle: c.serial + (name ? ' · ' + name : '')
+        tabTitle: c.serial + (name && up(name) !== up(c.serial) ? ' · ' + name : '')
       };
     }
     var yards = {};
@@ -834,7 +836,9 @@ define(['resources/js/availability', 'resources/js/availabilityData', 'resources
     } else if (!eqId) {
       if (!tg.name) { core.error = 'No equipment was named. Open one from the search, Availability or the Fleet.'; return core; }
       var found = await avData.readAll(call, EP.masters, { q: tg.name, page: 0, size: 50 });
-      var exact = found.rows.filter(function (m) { return m && up(m.equipmentName) === up(tg.name); })[0] || found.rows.filter(function (m) { return m && has(m.id); })[0];
+      // The master of that name; else one whose name holds it; never an unrelated one the search also returned.
+      var exact = found.rows.filter(function (m) { return m && has(m.id) && up(m.equipmentName) === up(tg.name); })[0]
+        || found.rows.filter(function (m) { return m && has(m.id) && up(m.equipmentName).indexOf(up(tg.name)) !== -1; })[0];
       if (!exact || !has(exact.id)) {
         core.error = found.ok ? tg.name + ' was not found in the equipment master.' : tg.name + ' could not be looked up in the equipment master (HTTP ' + http(found) + ').';
         return core;
@@ -855,6 +859,8 @@ define(['resources/js/availability', 'resources/js/availabilityData', 'resources
     var seen = {};
     var serials = r[1].rows.filter(function (s) {
       if (!s || !s.serialNumber || seen[up(s.serialNumber)]) return false;
+      // Asked for this equipment's units: a row naming another equipment is not one of them.
+      if (has(s.equipmentId) && String(s.equipmentId) !== String(id)) return false;
       seen[up(s.serialNumber)] = true;
       return true;
     });
