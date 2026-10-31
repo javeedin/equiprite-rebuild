@@ -1,5 +1,6 @@
 <!-- My requests: the requests of the persona's requesting business units (FDD v2.0 MC-FR-08), one row each: what it is
-     for, who owns the equipment and how they relate, where it is, and whether all its money is done ("4 of 7 · Next: …").
+     for, who owns the equipment and how they relate, where it is (its journey as dots, "Here now: approval · Ana Costa
+     (FleetCo)"), and whether all its money is done ("4 of 7 · Money next: …").
      v = fxRequests.list(state, { chip, text }) (loadChain, again on fxRefresh and filterChain). A row opens the request
      in its own tab (openChain, data-record). Export: exportChain (exportKit). Styles: resources/css/future-requests.css. -->
 <div class="nx-page fx-rq" id="page-requests">
@@ -99,6 +100,14 @@
                   <span role="cell" class="fx-rq-c-stage">
                     <span :class="[[ 'nx-pill nx-stage--' + r.data.stageTone ]]"><oj-bind-text value="[[ r.data.words ]]"></oj-bind-text></span>
                     <span class="nx-cell-sub"><oj-bind-text value="[[ r.data.equipment ]]"></oj-bind-text></span>
+                    <span class="fx-jr-dots" aria-hidden="true">
+                      <oj-bind-for-each data="[[ r.data.flowDots ]]">
+                        <template data-oj-as="d"><span :class="[[ d.data.cls ]]" :title="[[ d.data.title ]]"></span></template>
+                      </oj-bind-for-each>
+                    </span>
+                    <oj-bind-if test="[[ !!r.data.flowNext ]]">
+                      <span :class="[[ 'nx-cell-sub fx-rq-wrap fx-rq-here' + (r.data.flowNextMine ? ' fx-rq-here--mine' : '') ]]"><oj-bind-text value="[[ r.data.flowNext ]]"></oj-bind-text></span>
+                    </oj-bind-if>
                   </span>
                   <span role="cell" class="fx-rq-c-money">
                     <span class="fx-rq-moneyhead">

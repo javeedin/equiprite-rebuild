@@ -1,5 +1,5 @@
 {
-  "description": "A request in its own tab: head band, then Equipment, Money (the request's financial clarity), Accounting (shown) and History. v = fxRequests.request(state, id), set by loadChain on vbEnter and on every fxRefresh; actions (approveRequest, Play as …) through actChain, links through openChain, export of the tab shown through exportChain (docs/redesign/BUILDING-FUTURE-SCREENS.md).",
+  "description": "A request in its own tab: head band (its next step and who does it), then Approval & flow, Equipment, Money (the request's financial clarity), Accounting (shown) and History. v = fxRequests.request(state, id), set by loadChain on vbEnter and on every fxRefresh; actions (approveRequest, Play as …) through actChain, links through openChain, export of the tab shown through exportChain (docs/redesign/BUILDING-FUTURE-SCREENS.md).",
   "navigation": {
     "embeddable": "enabled"
   },
@@ -30,14 +30,15 @@
         "acc": [],
         "history": [],
         "nextSteps": [],
-        "finance": { "items": [], "done": 0, "total": 0, "complete": false }
+        "finance": { "items": [], "done": 0, "total": 0, "complete": false },
+        "flow": { "sections": [], "approvers": [], "next": null, "journey": { "lanes": [], "links": [], "all": [], "nodes": [], "money": [], "dots": [] } }
       },
-      "description": "fxRequests.request(state, id): fxViews.request with lines (details, next step), items (finance checklist with where each is done), charges, companies (totals), acc (accounting per company), history."
+      "description": "fxRequests.request(state, id): fxViews.request with flow (the approver, every step of each line and of the money in order with its BU, people and state, the next step, the journey's swimlanes), lines (details, next step), items (finance checklist with where each is done), charges, companies (totals), acc (accounting per company), history."
     },
     "tab": {
       "type": "string",
-      "defaultValue": "equipment",
-      "description": "The inner tab shown: equipment, money, accounting or history."
+      "defaultValue": "",
+      "description": "The inner tab shown: flow, equipment, money, accounting or history. Empty until the request is first shown: loadChain then opens Approval & flow while a line is not yet on hire, else Equipment (v.defaultTab)."
     },
     "exportOpen": {
       "type": "boolean",
