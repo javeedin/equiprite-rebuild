@@ -452,10 +452,15 @@ define(['resources/js/future/fxSeed'], function (Seed) {
           refs: { requestId: o.r.id, lineId: o.l.id, unitId: u.id }, lines: [{ account: '1320', dr: u.stock.bookValue, sub: byId(s.orgs, o.l.toOrg).name }, { account: '1310', cr: u.stock.bookValue }] });
       }
       o.l.status = 'ON_HIRE';
-      o.l.events.onHire = s.settings.onHire === 'DISPATCH' ? (o.l.events.shipped || s.today) : s.today;
+      // The hire starts on the request's start date: a unit delivered early is the owner's choice, not charged before
+      // it; one delivered late starts when it arrives (OD-05: at receipt, or at dispatch when the setting says so).
+      var arrived = s.settings.onHire === 'DISPATCH' ? (o.l.events.shipped || s.today) : s.today;
+      o.l.events.received = s.today;
+      o.l.events.onHire = maxS(arrived, o.r.from);
+      if (o.l.events.onHire > s.today) o.l.earlyDelivery = { arrived: s.today, startsOn: o.l.events.onHire };
       u.custody = { kind: o.r.type === 'CUSTOMER_RENTAL' ? 'customer' : 'site', org: o.l.toOrg || '', label: o.r.site + (o.r.projectId ? ' · ' + project(s, o.r.projectId).number : '') };
       u.country = o.r.country;
-      log(s, p, 'Received ' + u.serial + ': on hire from ' + hd(o.l.events.onHire), { requestId: o.r.id, lineId: o.l.id });
+      log(s, p, 'Received ' + u.serial + (o.l.earlyDelivery ? ' early, on ' + hd(s.today) + ': the hire starts on the requested date, ' + hd(o.l.events.onHire) : ': on hire from ' + hd(o.l.events.onHire)), { requestId: o.r.id, lineId: o.l.id });
     }
   };
 

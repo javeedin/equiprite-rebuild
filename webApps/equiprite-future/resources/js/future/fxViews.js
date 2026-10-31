@@ -75,7 +75,8 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine'], function 
       chosen: !!l.unitId, hold: l.hold, holdText: l.hold === 'STOCK' ? 'Stock (inventory item)' : 'Asset (fixed asset)', provider: l.provider, providerName: L.buName(s, l.provider),
       providerShort: L.leShort(s, l.providerLe), relation: l.relation, relationLabel: (REL[l.relation] || {}).label || l.relation, relationTone: (REL[l.relation] || {}).tone || '', relationWords: (REL[l.relation] || {}).words || '',
       agreement: l.agreementId ? (L.agreement(s, l.agreementId) || {}).number : 'none (own equipment)', price: l.price ? money(l.price.week, l.price.currency) + '/week · ' + money(l.price.day, '') + '/day' : '',
-      status: l.status, stage: lw.stage, words: lw.words + (l.status === 'ON_HIRE' && l.events.onHire ? ' since ' + short(l.events.onHire) : '') + (l.reason ? ': ' + l.reason : ''),
+      status: l.status, stage: lw.stage, words: (l.status === 'ON_HIRE' && l.events.onHire && l.events.onHire > s.today ? 'Delivered early: on hire from ' + short(l.events.onHire)
+        : lw.words + (l.status === 'ON_HIRE' && l.events.onHire ? ' since ' + short(l.events.onHire) : '')) + (l.reason ? ': ' + l.reason : ''),
       events: l.events, eventsText: ['requested', 'approved', 'shipped', 'onHire', 'offHire', 'returned'].filter(function (k) { return l.events[k]; })
         .map(function (k) { return { requested: 'Requested', approved: 'Approved', shipped: 'Shipped', onHire: 'On hire', offHire: 'Off hire', returned: 'Back' }[k] + ' ' + short(l.events[k]); }).join(' · '),
       hoursDays: hrs.length, hoursWaiting: hrs.filter(function (h) { return !h.approved; }).length, usage: U.sum(hrs, function (h) { return h.usage; }), standby: U.sum(hrs, function (h) { return h.standby; }),
