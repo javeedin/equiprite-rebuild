@@ -9,5 +9,9 @@ how the owner bills the user company, multi-country rules, and the accounting en
 - `tools/journals.js`: the worked accounting example (one function, used by the PDF and the explorer).
 - `tools/build-fdd-v2.js`: the content and the build.
 
+EquipRite Future shows the document in its own tab (menu Help → FDD 2.0, `webApps/equiprite-future/flows/fdd2`) from
+copies in `webApps/equiprite-future/resources/fdd2/`; the build writes them too, byte for byte (`--no-pdf` copies the
+PDF already here), and `tests/future-fdd2.test.js` checks they match.
+
 Rebuild after editing: `node docs/fdd-v2/tools/build-fdd-v2.js`. Checked by `node tests/fdd-v2.test.js` (every entry
 balances, every flow is well formed, every journal code on a flow exists).

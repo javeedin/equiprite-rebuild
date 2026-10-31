@@ -69,6 +69,9 @@ define([], function () {
         does: 'The companies, BUs, countries and orgs, who may source from whom, the intercompany agreements and the decisions (OD-…).' }
     ] },
     { key: 'help', label: 'Help', items: [
+      { id: 'fdd2', label: 'FDD 2.0', tab: 'FDD 2.0', icon: 'oj-ux-ico-document-check', roles: ROLES,
+        route: { flow: 'fdd2', page: 'fdd2' }, view: 'me', built: true,
+        does: 'FDD v2.0, the design this prototype is built from: its chapters, flows, accounting entries and journal explorer, and the PDF.' },
       { id: 'guide', label: 'Guide: the end-to-end story', tab: 'Guide', icon: 'oj-ux-ico-guided-process', roles: ROLES,
         route: { flow: 'guide', page: 'guide' }, view: 'guide', built: true,
         does: 'The thirteen steps from a request to the money settled, who plays each, the five scenarios and the FDD v2.0 rules.' }

@@ -1,0 +1,31 @@
+/* EquipRite Future · FDD 2.0 (flows/fdd2): the band, a chip per chapter, and the document filling the rest of the tab.
+   The tab's height is the window less the shell's toolbar, banner and tab bar; the frame takes what the band and the
+   chips leave of it (never under 600 px), edge to edge like the band, and scrolls by itself. */
+.fx-fdd2 {
+  --fx-fdd2-tab: calc(100vh - var(--nx-top-h) - var(--fx-banner-h) - var(--nx-tab-h));
+  min-height: var(--fx-fdd2-tab); padding-bottom: 0; gap: 12px;
+}
+.fx-fdd2 .nx-pagehead { padding-bottom: 22px; }
+.fx-fdd2 .nx-pagehead > div:first-child { flex: 1 1 520px; max-width: 760px; min-width: 0; }
+
+.fx-fdd2-bar { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.fx-fdd2-chips { gap: 6px 4px; }
+.fx-fdd2-chip { height: 28px; padding: 0 8px 0 4px; gap: 4px; font-size: 12px; }
+.fx-fdd2-chip-n {
+  min-width: 18px; height: 18px; padding: 0 4px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center;
+  background: var(--nx-accent-soft); color: var(--nx-band); font-size: 10.5px; font-weight: 800; font-variant-numeric: tabular-nums;
+}
+.fx-fdd2-chip.nx-chip--on { background: var(--nx-band); border-color: var(--nx-band); }
+.fx-fdd2-chip.nx-chip--on:hover { background: var(--nx-band); }
+.fx-fdd2-chip.nx-chip--on .fx-fdd2-chip-n { background: #fff; color: var(--nx-band); }
+
+.fx-fdd2-note { display: flex; align-items: flex-start; gap: 6px; margin: 0; font-size: 13px; color: var(--nx-muted); line-height: 1.4; }
+.fx-fdd2-note span[class^="oj-ux-ico"] { font-size: 16px; color: var(--nx-band); flex: none; }
+.fx-fdd2-note .nx-link { font-size: 13px; }
+
+.fx-fdd2-frame {
+  flex: 1 0 auto; display: block; min-height: 600px; border: 0;
+  margin: 0 calc(-1 * var(--nx-pad-x)); width: calc(100% + 2 * var(--nx-pad-x)); max-width: none;
+  box-shadow: 0 -1px 0 var(--nx-line); background: #e2e8f0;
+}
+@media (max-width: 640px) { .fx-fdd2-chip-label { max-width: 46vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } }
