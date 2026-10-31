@@ -670,7 +670,7 @@ define([
       kpis: [
         { key: 'all', field: 'posted', label: 'Equipment cost', value: money(total), note: plural(all.length, 'cost line'), tone: 'total' },
         { key: 'posted', field: 'posted', label: 'Posted to projects', value: money(posted), note: pct(posted, total) + '% of the cost', tone: 'onsite' },
-        { key: 'unposted', field: 'posted', label: 'Not posted yet', value: money(unposted), note: pct(unposted, total) + '% · posting happens in New EquipRite', tone: 'ready' }
+        { key: 'unposted', field: 'posted', label: 'Not posted yet', value: money(unposted), note: pct(unposted, total) + '% · posted from Post costs', tone: 'ready' }
       ],
       parties: byParty.items,
       morePartiesText: byParty.more ? '+' + plural(byParty.more, 'more project or customer', 'more projects or customers') + ' in the table' : '',
