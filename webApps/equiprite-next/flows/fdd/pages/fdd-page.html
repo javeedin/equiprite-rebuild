@@ -1,12 +1,13 @@
-<!-- EquipRite FDD: the FDD's requirements, its flows across the Fusion modules, and how much of it the development has
-     built. Three tabs inside the page. Content: resources/js/fddCatalog.js (from the FDD summary, FDD section numbers kept);
-     logic and the swimlane SVG: resources/js/fddModel.js. Nothing is read from the server or written. -->
+<!-- EquipRite FDD: the FDD's requirements, its flows across the Fusion modules, and how much of it EquipRite Next (with
+     its phone app) has built, with a drill-down behind every number. Three tabs inside the page. Content:
+     resources/js/fddCatalog.js (from the FDD summary, FDD section numbers kept); logic, the drills and the swimlane SVG:
+     resources/js/fddModel.js. Nothing is read from the server or written. -->
 <div class="nx-page nx-fdd">
   <div class="nx-pagehead">
     <div>
       <div class="nx-kicker">Functional design · FDD v1.7</div>
       <h1>EquipRite FDD</h1>
-      <div class="nx-sub" id="fddSub">What the FDD asks for, how its flows run across Fusion Inventory, PPM, Procurement, Maintenance and AR, and how much of it Old, New, Next and Mobile EquipRite have built.</div>
+      <div class="nx-sub" id="fddSub">What the FDD asks for, how its flows run across Fusion Inventory, PPM, Procurement, Maintenance and AR, and how much of it EquipRite Next has built (with its phone app).</div>
     </div>
     <div class="nx-actions">
       <div class="nx-export">
@@ -22,7 +23,7 @@
               </template>
             </oj-bind-for-each>
             <p class="nx-menu-note"><oj-bind-text value="[[ $functions.exportNote($variables.tab, $variables.reqView.shown.length,
-              $functions.flowSteps($variables.flows, $variables.flowId), $variables.mapView.rows.length) ]]"></oj-bind-text></p>
+              $functions.flowSteps($variables.flows, $variables.flowId), $variables.mapView.rows.length, $variables.drill) ]]"></oj-bind-text></p>
           </div>
         </oj-bind-if>
       </div>
@@ -46,8 +47,8 @@
   <oj-bind-if test="[[ $variables.tab === 'requirements' ]]">
     <div class="fdd-panel" id="fddPanel-requirements" role="tabpanel" aria-labelledby="fddTab-requirements">
       <p class="fdd-intro">The FDD's business requirements (4.1) and what each page must do (section 7), grouped by the module that holds them (1.1). Each
-        keeps its FDD section; open one for its detail, the roles, the scenarios that exercise it and how far it is built. Source: the FDD summary
-        (<span class="fdd-code">docs/redesign/tools/build-fdd-summary.js</span>); the FDD gives no priorities.</p>
+        keeps its FDD section; open one for its detail, the roles, the scenarios that exercise it and how far EquipRite Next has built it. Source: the FDD
+        summary (<span class="fdd-code">docs/redesign/tools/build-fdd-summary.js</span>); the FDD gives no priorities.</p>
       <div class="nx-toolbar">
         <label class="nx-search">
           <span class="oj-ux-ico-search" aria-hidden="true"></span>
@@ -146,11 +147,12 @@
                         </oj-bind-if>
                       </div>
                       <div>
-                        <h3>In the development</h3>
+                        <h3>In EquipRite Next</h3>
                         <p><span :class="[[ 'fdd-st fdd-st--' + r.data.status ]]"><oj-bind-text value="[[ r.data.statusLabel ]]"></oj-bind-text></span></p>
                         <oj-bind-if test="[[ !!r.data.has ]]"><p style="margin-top:6px"><oj-bind-text value="[[ r.data.has ]]"></oj-bind-text></p></oj-bind-if>
                         <oj-bind-if test="[[ !!r.data.missing ]]"><p class="fdd-missing" style="margin-top:6px"><oj-bind-text value="[[ 'Missing: ' + r.data.missing ]]"></oj-bind-text></p></oj-bind-if>
-                        <oj-bind-if test="[[ !!r.data.nextText ]]"><p class="nx-note" style="margin-top:6px"><oj-bind-text value="[[ 'In Next: ' + r.data.nextText ]]"></oj-bind-text></p></oj-bind-if>
+                        <oj-bind-if test="[[ !!r.data.nextText ]]"><p class="nx-note" style="margin-top:6px"><oj-bind-text value="[[ 'Next screens: ' + r.data.nextText ]]"></oj-bind-text></p></oj-bind-if>
+                        <oj-bind-if test="[[ !!r.data.phoneText ]]"><p class="nx-note"><oj-bind-text value="[[ 'On the phone: ' + r.data.phoneText ]]"></oj-bind-text></p></oj-bind-if>
                       </div>
                       <oj-bind-if test="[[ !!r.data.vague ]]">
                         <div class="fdd-vague"><span class="oj-ux-ico-warning" aria-hidden="true"></span><span><oj-bind-text value="[[ 'Where the FDD is vague: ' + r.data.vague ]]"></oj-bind-text></span></div>
@@ -199,7 +201,7 @@
           <span class="fdd-key fdd-key--end"><i></i>Outcome</span>
           <span class="fdd-key fdd-key--int"><i></i>Integration hop (INT-xx)</span>
           <span class="fdd-key fdd-key--back"><i></i>Back, sent back or failed</span>
-          <span class="fdd-key">In the development:</span>
+          <span class="fdd-key">In EquipRite Next:</span>
           <span class="fdd-key fdd-key--dot fdd-key--done"><i></i>Done</span>
           <span class="fdd-key fdd-key--dot fdd-key--partly"><i></i>Partly</span>
           <span class="fdd-key fdd-key--dot fdd-key--none"><i></i>Not started</span>
@@ -239,11 +241,10 @@
                   <span :class="[[ 'fdd-mini fdd-mini--' + x.data.status ]]" :title="[[ x.data.text + ' · ' + x.data.statusLabel ]]"><oj-bind-text value="[[ x.data.id + ' · ' + x.data.statusLabel ]]"></oj-bind-text></span>
                 </template></oj-bind-for-each></dd></div>
             </oj-bind-if>
-            <div><dt>In the development</dt><dd class="fdd-text" id="fddStepDev">
+            <div><dt>In EquipRite Next</dt><dd class="fdd-text" id="fddStepDev">
               <oj-bind-text value="[[ ($variables.sel.mapTitle ? $variables.sel.mapTitle + ': ' : '') + ($variables.sel.has || 'Not built.') ]]"></oj-bind-text>
               <oj-bind-if test="[[ !!$variables.sel.missing ]]"><span class="fdd-missing"><oj-bind-text value="[[ ' Missing: ' + $variables.sel.missing ]]"></oj-bind-text></span></oj-bind-if></dd></div>
-            <div><dt>Other apps</dt><dd class="fdd-text"><oj-bind-text value="[[ ($variables.sel.newText ? 'New: ' + $variables.sel.newText + '. ' : '') + ($variables.sel.oldText ? 'Old: ' + $variables.sel.oldText + '. ' : '')
-              + ($variables.sel.mobileText ? 'Mobile: ' + $variables.sel.mobileText + '. ' : '') + ($variables.sel.deviceText ? $variables.sel.deviceText + '.' : '') || '—' ]]"></oj-bind-text></dd></div>
+            <div><dt>On the phone</dt><dd class="fdd-text" id="fddStepPhone"><oj-bind-text value="[[ $variables.sel.phoneText || '—' ]]"></oj-bind-text></dd></div>
           </dl>
           <div class="fdd-step-acts">
             <oj-bind-for-each data="[[ $variables.sel.screens ]]">
@@ -264,199 +265,401 @@
     </div>
   </oj-bind-if>
 
-  <!-- ── Mapping to development ──────────────────────────────────────────────────────────────────────────────── -->
+  <!-- ── Mapping to development: judged on EquipRite Next only. Every number is a button that opens the items behind it
+       (the drill, under the tiles); while a drill is open the bars, lists and table make way for it. ──────────────── -->
   <oj-bind-if test="[[ $variables.tab === 'mapping' ]]">
     <div id="fddPanel-mapping" role="tabpanel" aria-labelledby="fddTab-mapping" class="fdd-panel">
       <p class="fdd-answer" id="fddHeadline"><oj-bind-text value="[[ $variables.kpis.headline ]]"></oj-bind-text></p>
-      <p class="fdd-source">Mapped from the code on 31 Oct 2026: each item's screens in the four web apps (nav.js, the flows), their chains and the tests. Done needs a screen
-        and its evidence (a file named below); where a part could not be found it is partly done, with what is missing. Statuses: Done, Partly done, Not started,
-        Not applicable (a future phase).</p>
-      <div class="nx-kpis fdd-kpis" id="fddKpis">
+      <p class="fdd-judged" id="fddJudged"><span class="oj-ux-ico-information" aria-hidden="true"></span><span><oj-bind-text value="[[ $variables.kpis.judged ]]"></oj-bind-text></span></p>
+      <p class="fdd-source">Done needs a Next screen (or the phone app) and its evidence, a file named with it; where a part could not be found in Next's code it is
+        partly done, with what is missing. Statuses: Done, Partly done, Not started, Not applicable (a future phase). Click any number to see the items behind it.</p>
+      <div class="nx-kpis fdd-kpis" id="fddKpis" role="group" aria-label="Requirements in EquipRite Next: each number opens its items">
         <oj-bind-for-each data="[[ $variables.kpis.tiles ]]">
           <template data-oj-as="k">
-            <div :class="[[ 'nx-kpi fdd-kpi--' + k.data.st ]]" :data-kpi="[[ k.data.key ]]">
+            <button type="button" :class="[[ 'nx-kpi fdd-kpi fdd-kpi--' + k.data.st + ($variables.drill.open && $variables.drillSpec.source === k.data.drill ? ' fdd-kpi--on' : '') ]]"
+              :data-kpi="[[ k.data.key ]]" data-act="open" :data-value="[[ k.data.drill ]]" data-status="all" :data-count="[[ k.data.count ]]" on-click="[[ $listeners.onDrillAct ]]"
+              aria-controls="fddDrill" :aria-expanded="[[ $variables.drill.open && $variables.drillSpec.source === k.data.drill ? 'true' : 'false' ]]">
               <span class="nx-kpi-label"><oj-bind-text value="[[ k.data.label ]]"></oj-bind-text></span>
               <span class="nx-kpi-value"><oj-bind-text value="[[ k.data.value ]]"></oj-bind-text></span>
               <span class="nx-kpi-note"><oj-bind-text value="[[ k.data.note ]]"></oj-bind-text></span>
-            </div>
+              <span class="fdd-kpi-go" aria-hidden="true">Show <span class="oj-ux-ico-chevron-right"></span></span>
+            </button>
           </template>
         </oj-bind-for-each>
       </div>
-      <div class="nx-kpis fdd-kpis fdd-kpis--small" id="fddKpis2">
+      <div class="nx-kpis fdd-kpis fdd-kpis--small" id="fddKpis2" role="group" aria-label="EquipRite Next, the phone, integrations, scenarios and decision points: each number opens its items">
         <oj-bind-for-each data="[[ $variables.kpis.tiles2 ]]">
           <template data-oj-as="k">
-            <div :class="[[ 'nx-kpi fdd-kpi--' + k.data.st ]]" :data-kpi="[[ k.data.key ]]">
+            <button type="button" :class="[[ 'nx-kpi fdd-kpi fdd-kpi--' + k.data.st + ($variables.drill.open && $variables.drillSpec.source === k.data.drill ? ' fdd-kpi--on' : '') ]]"
+              :data-kpi="[[ k.data.key ]]" data-act="open" :data-value="[[ k.data.drill ]]" data-status="all" :data-count="[[ k.data.count ]]" on-click="[[ $listeners.onDrillAct ]]"
+              aria-controls="fddDrill" :aria-expanded="[[ $variables.drill.open && $variables.drillSpec.source === k.data.drill ? 'true' : 'false' ]]">
               <span class="nx-kpi-label"><oj-bind-text value="[[ k.data.label ]]"></oj-bind-text></span>
               <span class="nx-kpi-value"><oj-bind-text value="[[ k.data.value ]]"></oj-bind-text></span>
               <span class="nx-kpi-note"><oj-bind-text value="[[ k.data.note ]]"></oj-bind-text></span>
-            </div>
+              <span class="fdd-kpi-go" aria-hidden="true">Show <span class="oj-ux-ico-chevron-right"></span></span>
+            </button>
           </template>
         </oj-bind-for-each>
       </div>
 
-      <div class="fdd-two">
-        <section class="nx-card nx-card-pad" aria-labelledby="fddByModule">
-          <h2 class="nx-h2" id="fddByModule" style="margin-bottom:12px">Requirements by module</h2>
-          <div class="fdd-bars">
-            <oj-bind-for-each data="[[ $variables.byModule ]]">
-              <template data-oj-as="b">
-                <div class="fdd-bar-row" :data-group="[[ b.data.key ]]">
-                  <span class="fdd-bar-label"><oj-bind-text value="[[ b.data.label ]]"></oj-bind-text><small><oj-bind-text value="[[ b.data.sub ]]"></oj-bind-text></small></span>
-                  <span class="fdd-bar" role="img" :aria-label="[[ b.data.aria + ': ' + b.data.text ]]">
-                    <oj-bind-for-each data="[[ b.data.segs ]]"><template data-oj-as="s"><span :class="[[ 'fdd-seg fdd-seg--' + s.data.status ]]" :style="[[ { width: s.data.w + '%' } ]]" :title="[[ s.data.title ]]"></span></template></oj-bind-for-each>
-                  </span>
-                  <span class="fdd-bar-pct"><oj-bind-text value="[[ b.data.pctText ]]"></oj-bind-text></span>
-                  <span class="fdd-bar-text"><oj-bind-text value="[[ b.data.text ]]"></oj-bind-text></span>
-                </div>
-              </template>
-            </oj-bind-for-each>
+      <!-- The drill: what is behind the number clicked -->
+      <oj-bind-if test="[[ $variables.drill.open ]]">
+        <section class="nx-card fdd-drill" id="fddDrill" aria-labelledby="fddDrillTitle" :data-source="[[ $variables.drillSpec.source ]]">
+          <nav class="fdd-crumbs" aria-label="Where you are">
+            <ol>
+              <oj-bind-for-each data="[[ $variables.drill.crumbs ]]">
+                <template data-oj-as="c">
+                  <li :data-crumb="[[ c.data.key ]]">
+                    <oj-bind-if test="[[ !c.data.last ]]">
+                      <button type="button" class="nx-link fdd-crumb" data-act="crumb" :data-value="[[ c.data.key ]]" on-click="[[ $listeners.onDrillAct ]]"><oj-bind-text value="[[ c.data.label ]]"></oj-bind-text></button>
+                    </oj-bind-if>
+                    <oj-bind-if test="[[ c.data.last ]]"><span class="fdd-crumb fdd-crumb--here" aria-current="page"><oj-bind-text value="[[ c.data.label ]]"></oj-bind-text></span></oj-bind-if>
+                  </li>
+                </template>
+              </oj-bind-for-each>
+            </ol>
+          </nav>
+          <div class="fdd-drill-head">
+            <div class="fdd-drill-titles">
+              <h2 id="fddDrillTitle" tabindex="-1"><oj-bind-text value="[[ $variables.drill.title ]]"></oj-bind-text></h2>
+              <p class="fdd-drill-intro"><oj-bind-text value="[[ $variables.drill.intro ]]"></oj-bind-text></p>
+            </div>
+            <div class="fdd-drill-acts">
+              <oj-bind-if test="[[ $variables.drill.mode === 'pct' ]]">
+                <button type="button" class="nx-btn nx-btn--sm" id="fddToReach" data-act="open" data-value="reach" data-status="all" on-click="[[ $listeners.onDrillAct ]]">
+                  <span class="oj-ux-ico-arrow-up" aria-hidden="true"></span>To reach 100%</button>
+              </oj-bind-if>
+              <div class="nx-export">
+                <button type="button" class="nx-btn nx-btn--sm" id="fddDrillExport" data-act="exportMenu" on-click="[[ $listeners.onDrillAct ]]" aria-haspopup="menu"
+                  :aria-expanded="[[ $variables.drillExportOpen ? 'true' : 'false' ]]">
+                  <span class="oj-ux-ico-download" aria-hidden="true"></span>Export<span class="oj-ux-ico-chevron-down" aria-hidden="true"></span></button>
+                <oj-bind-if test="[[ $variables.drillExportOpen ]]">
+                  <div class="nx-menu fdd-drill-menu" role="menu" aria-label="Export what this shows">
+                    <oj-bind-for-each data="[[ $functions.formats() ]]">
+                      <template data-oj-as="f">
+                        <button type="button" role="menuitem" class="nx-menu-item" :data-format="[[ f.data.key ]]" on-click="[[ $listeners.onExport ]]">
+                          <span :class="[[ f.data.icon ]]" aria-hidden="true"></span><oj-bind-text value="[[ f.data.label ]]"></oj-bind-text></button>
+                      </template>
+                    </oj-bind-for-each>
+                    <p class="nx-menu-note"><oj-bind-text value="[[ $functions.drillNote($variables.drill) ]]"></oj-bind-text></p>
+                  </div>
+                </oj-bind-if>
+              </div>
+              <button type="button" class="nx-btn nx-btn--sm" id="fddDrillClose" data-act="close" on-click="[[ $listeners.onDrillAct ]]">
+                <span class="oj-ux-ico-arrow-left" aria-hidden="true"></span>Back to Mapping</button>
+            </div>
           </div>
-        </section>
-        <section class="nx-card nx-card-pad" aria-labelledby="fddByPhase">
-          <h2 class="nx-h2" id="fddByPhase" style="margin-bottom:12px">Requirements by phase</h2>
-          <div class="fdd-bars">
-            <oj-bind-for-each data="[[ $variables.byPhase ]]">
-              <template data-oj-as="b">
-                <div class="fdd-bar-row" :data-group="[[ b.data.key ]]">
-                  <span class="fdd-bar-label"><oj-bind-text value="[[ b.data.label ]]"></oj-bind-text><small><oj-bind-text value="[[ b.data.sub ]]"></oj-bind-text></small></span>
-                  <span class="fdd-bar" role="img" :aria-label="[[ b.data.aria + ': ' + b.data.text ]]">
-                    <oj-bind-for-each data="[[ b.data.segs ]]"><template data-oj-as="s"><span :class="[[ 'fdd-seg fdd-seg--' + s.data.status ]]" :style="[[ { width: s.data.w + '%' } ]]" :title="[[ s.data.title ]]"></span></template></oj-bind-for-each>
-                  </span>
-                  <span class="fdd-bar-pct"><oj-bind-text value="[[ b.data.pctText ]]"></oj-bind-text></span>
-                  <span class="fdd-bar-text"><oj-bind-text value="[[ b.data.text ]]"></oj-bind-text></span>
-                </div>
-              </template>
-            </oj-bind-for-each>
-          </div>
-          <div class="fdd-legend"><span class="fdd-key fdd-key--dot fdd-key--done"><i></i>Done</span><span class="fdd-key fdd-key--dot fdd-key--partly"><i></i>Partly done</span>
-            <span class="fdd-key fdd-key--dot fdd-key--none"><i></i>Not started</span><span class="fdd-key fdd-key--dot fdd-key--na"><i></i>Not applicable</span></div>
-        </section>
-      </div>
-
-      <div class="fdd-two">
-        <section class="nx-card" aria-labelledby="fddPendingTitle">
-          <div class="nx-card-head"><h2 id="fddPendingTitle">Still pending: not started</h2><span class="nx-note"><oj-bind-text value="[[ $variables.pendingRows.length + ' items' ]]"></oj-bind-text></span></div>
-          <div class="fdd-list" id="fddPending">
-            <oj-bind-for-each data="[[ $variables.pendingRows ]]">
-              <template data-oj-as="r">
-                <div class="fdd-item" :data-id="[[ r.data.id ]]">
-                  <span class="fdd-id"><oj-bind-text value="[[ r.data.label ]]"></oj-bind-text></span>
-                  <span class="fdd-item-title"><oj-bind-text value="[[ r.data.title ]]"></oj-bind-text></span>
-                  <span class="fdd-st fdd-st--none">Not started</span>
-                  <span class="fdd-item-text"><oj-bind-text value="[[ r.data.kindLabel + ' · ' + r.data.missing ]]"></oj-bind-text></span>
-                </div>
-              </template>
-            </oj-bind-for-each>
-          </div>
-        </section>
-        <section class="nx-card" aria-labelledby="fddPartlyTitle">
-          <div class="nx-card-head"><h2 id="fddPartlyTitle">Partly done: what is missing</h2><span class="nx-note"><oj-bind-text value="[[ $variables.partlyView.rows.length + ' items' ]]"></oj-bind-text></span></div>
-          <div class="nx-chips" role="group" aria-label="Kind" style="padding:10px 16px 0">
-            <oj-bind-for-each data="[[ $variables.partlyView.chips ]]">
-              <template data-oj-as="c">
-                <button type="button" data-field="partlyKind" :data-value="[[ c.data.key ]]" on-click="[[ $listeners.onPick ]]" :aria-pressed="[[ $variables.partlyKind === c.data.key ? 'true' : 'false' ]]"
-                  :class="[[ 'nx-chip' + ($variables.partlyKind === c.data.key ? ' nx-chip--on' : '') ]]"><oj-bind-text value="[[ c.data.label ]]"></oj-bind-text><span class="nx-chip-count"><oj-bind-text value="[[ c.data.count ]]"></oj-bind-text></span></button>
-              </template>
-            </oj-bind-for-each>
-          </div>
-          <div class="fdd-list" id="fddPartly">
-            <oj-bind-for-each data="[[ $variables.partlyView.rows ]]">
-              <template data-oj-as="r">
-                <div class="fdd-item" :data-id="[[ r.data.id ]]">
-                  <span class="fdd-id"><oj-bind-text value="[[ r.data.label ]]"></oj-bind-text></span>
-                  <span class="fdd-item-title"><oj-bind-text value="[[ r.data.title ]]"></oj-bind-text></span>
-                  <span class="fdd-st fdd-st--partly">Partly</span>
-                  <span class="fdd-item-text"><oj-bind-text value="[[ 'Missing: ' + r.data.missing ]]"></oj-bind-text></span>
-                </div>
-              </template>
-            </oj-bind-for-each>
-          </div>
-        </section>
-      </div>
-
-      <section class="nx-card" aria-labelledby="fddMapTitle">
-        <div class="nx-card-head">
-          <h2 id="fddMapTitle">Every item, mapped</h2>
-          <span class="nx-note" id="fddMapSummary"><oj-bind-text value="[[ $variables.mapView.summary ]]"></oj-bind-text></span>
-        </div>
-        <div class="fdd-filters" style="padding:12px 16px">
-          <div class="nx-seg" role="group" aria-label="What to map" style="flex-wrap:wrap">
-            <oj-bind-for-each data="[[ $variables.mapView.kinds ]]">
-              <template data-oj-as="k">
-                <button type="button" data-field="mapKind" :data-value="[[ k.data.key ]]" on-click="[[ $listeners.onPick ]]" :aria-pressed="[[ $variables.mapKind === k.data.key ? 'true' : 'false' ]]"
-                  :class="[[ 'nx-seg-btn' + ($variables.mapKind === k.data.key ? ' nx-seg-btn--on' : '') ]]"><oj-bind-text value="[[ k.data.label + ' ' + k.data.count ]]"></oj-bind-text></button>
-              </template>
-            </oj-bind-for-each>
-          </div>
-          <div class="nx-toolbar">
+          <oj-bind-if test="[[ !!$variables.drill.rule ]]">
+            <p class="fdd-rule" id="fddDrillRule"><span class="oj-ux-ico-calculator" aria-hidden="true"></span><span><oj-bind-text value="[[ $variables.drill.rule ]]"></oj-bind-text></span></p>
+          </oj-bind-if>
+          <div class="fdd-drill-tools">
             <label class="nx-search">
               <span class="oj-ux-ico-search" aria-hidden="true"></span>
-              <input type="search" id="fddMapSearch" :value="[[ $variables.mapText ]]" on-input="[[ $listeners.onMapSearch ]]" aria-label="Search the mapping"
-                placeholder="Item, screen, test or file">
+              <input type="search" id="fddDrillSearch" :value="[[ $variables.drillSpec.text ]]" on-input="[[ $listeners.onDrillSearch ]]" aria-label="Search these items"
+                placeholder="ID, title, what is missing, screen or test">
             </label>
-            <div class="nx-chips" role="group" aria-label="Status">
-              <oj-bind-for-each data="[[ $variables.mapView.chips ]]">
-                <template data-oj-as="c">
-                  <button type="button" data-field="mapStatus" :data-value="[[ c.data.key ]]" on-click="[[ $listeners.onPick ]]" :aria-pressed="[[ $variables.mapStatus === c.data.key ? 'true' : 'false' ]]"
-                    :class="[[ 'nx-chip' + ($variables.mapStatus === c.data.key ? ' nx-chip--on' : '') ]]"><oj-bind-text value="[[ c.data.label ]]"></oj-bind-text><span class="nx-chip-count"><oj-bind-text value="[[ c.data.count ]]"></oj-bind-text></span></button>
-                </template>
-              </oj-bind-for-each>
-            </div>
+            <span class="nx-note" id="fddDrillSummary" role="status"><oj-bind-text value="[[ $variables.drill.summary ]]"></oj-bind-text></span>
           </div>
-        </div>
-        <oj-bind-if test="[[ !$variables.mapView.rows.length ]]"><div class="nx-empty">Nothing matches. Clear the search or pick another status.</div></oj-bind-if>
-        <oj-bind-if test="[[ $variables.mapView.rows.length > 0 ]]">
-          <div class="nx-table">
-            <div class="nx-grid fdd-grid-map" role="table" aria-labelledby="fddMapTitle">
-              <div class="nx-row nx-row--head" role="row">
-                <span role="columnheader">ID</span><span role="columnheader">Item</span><span role="columnheader">Status</span>
-                <span role="columnheader">EquipRite Next</span><span role="columnheader">Elsewhere</span><span role="columnheader">Tests</span><span role="columnheader"></span>
+          <oj-bind-if test="[[ $variables.drill.chips.length > 0 ]]">
+            <div class="fdd-filter-row fdd-drill-chips">
+              <span class="fdd-filter-label" id="fddDrillStLabel">Status</span>
+              <div class="nx-chips" role="group" aria-labelledby="fddDrillStLabel" id="fddDrillChips">
+                <oj-bind-for-each data="[[ $variables.drill.chips ]]">
+                  <template data-oj-as="c">
+                    <button type="button" data-act="status" :data-value="[[ c.data.key ]]" on-click="[[ $listeners.onDrillAct ]]" :aria-pressed="[[ $variables.drill.status === c.data.key ? 'true' : 'false' ]]"
+                      :class="[[ 'nx-chip fdd-chip--' + c.data.key + ($variables.drill.status === c.data.key ? ' nx-chip--on' : '') ]]"><oj-bind-text value="[[ c.data.label ]]"></oj-bind-text><span class="nx-chip-count"><oj-bind-text value="[[ c.data.count ]]"></oj-bind-text></span></button>
+                  </template>
+                </oj-bind-for-each>
               </div>
-              <oj-bind-for-each data="[[ $variables.mapView.rows ]]">
-                <template data-oj-as="r">
-                  <div role="row" :class="[[ 'nx-row fdd-map-row' + ($variables.mapOpen === r.data.id ? ' fdd-map-row--open' : '') ]]" :data-id="[[ r.data.id ]]"
-                    data-field="mapOpen" :data-value="[[ r.data.id ]]" on-click="[[ $listeners.onPick ]]">
-                    <span role="cell"><button type="button" class="nx-link fdd-id" :aria-expanded="[[ $variables.mapOpen === r.data.id ? 'true' : 'false' ]]"><oj-bind-text value="[[ r.data.label ]]"></oj-bind-text></button></span>
-                    <span role="cell"><span class="nx-cell-main"><oj-bind-text value="[[ r.data.title ]]"></oj-bind-text></span><span class="nx-cell-sub"><oj-bind-text value="[[ r.data.kindLabel + ' · FDD ' + r.data.section ]]"></oj-bind-text></span></span>
-                    <span role="cell"><span :class="[[ 'fdd-st fdd-st--' + r.data.status ]]"><oj-bind-text value="[[ r.data.statusLabel ]]"></oj-bind-text></span></span>
-                    <span role="cell" class="fdd-cell-list"><oj-bind-text value="[[ r.data.nextText || '—' ]]"></oj-bind-text></span>
-                    <span role="cell" class="fdd-cell-list nx-muted"><oj-bind-text value="[[ r.data.apps || '—' ]]"></oj-bind-text></span>
-                    <span role="cell" class="nx-num"><oj-bind-text value="[[ r.data.testCount ? r.data.testCount + (r.data.testCount === 1 ? ' test' : ' tests') : '—' ]]"></oj-bind-text></span>
-                    <span role="cell" class="oj-ux-ico-chevron-down fdd-chev" aria-hidden="true"></span>
+            </div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.drill.modules.length > 2 ]]">
+            <div class="fdd-filter-row fdd-drill-chips">
+              <span class="fdd-filter-label" id="fddDrillModLabel">Module</span>
+              <div class="nx-chips" role="group" aria-labelledby="fddDrillModLabel" id="fddDrillModules">
+                <oj-bind-for-each data="[[ $variables.drill.modules ]]">
+                  <template data-oj-as="c">
+                    <button type="button" data-act="module" :data-value="[[ c.data.key ]]" on-click="[[ $listeners.onDrillAct ]]" :aria-pressed="[[ $variables.drill.module === c.data.key ? 'true' : 'false' ]]"
+                      :class="[[ 'nx-chip' + ($variables.drill.module === c.data.key ? ' nx-chip--on' : '') ]]"><oj-bind-text value="[[ c.data.label ]]"></oj-bind-text><span class="nx-chip-count"><oj-bind-text value="[[ c.data.count ]]"></oj-bind-text></span></button>
+                  </template>
+                </oj-bind-for-each>
+              </div>
+            </div>
+          </oj-bind-if>
+
+          <oj-bind-if test="[[ $variables.drill.empty ]]">
+            <div class="nx-empty" id="fddDrillEmpty"><oj-bind-text value="[[ $variables.drill.count ? 'Nothing matches. Clear the search or pick another chip.' : 'None: nothing is behind this number.' ]]"></oj-bind-text></div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.drill.mode === 'reach' && $variables.drill.rows.length > 0 ]]">
+            <h3 class="fdd-drill-sub">The requirements to finish, biggest gain first</h3>
+          </oj-bind-if>
+          <div class="fdd-drows" role="list" id="fddDrillRows" aria-labelledby="fddDrillTitle">
+            <oj-bind-for-each data="[[ $variables.drill.rows ]]">
+              <template data-oj-as="r">
+                <article class="fdd-drow" role="listitem" :data-id="[[ r.data.id ]]" :data-status="[[ r.data.status ]]">
+                  <div class="fdd-drow-head">
+                    <span class="fdd-id"><oj-bind-text value="[[ r.data.label ]]"></oj-bind-text></span>
+                    <span class="fdd-drow-title"><strong><oj-bind-text value="[[ r.data.title ]]"></oj-bind-text></strong><small><oj-bind-text value="[[ r.data.kindLabel + ' · FDD ' + r.data.section ]]"></oj-bind-text></small></span>
+                    <span class="fdd-drow-tags">
+                      <oj-bind-if test="[[ !!r.data.figure ]]"><span class="fdd-fig" :title="[[ r.data.figureTitle ]]"><oj-bind-text value="[[ r.data.figure ]]"></oj-bind-text></span></oj-bind-if>
+                      <span :class="[[ 'fdd-st fdd-st--' + r.data.status ]]"><oj-bind-text value="[[ r.data.statusLabel ]]"></oj-bind-text></span>
+                    </span>
                   </div>
-                  <oj-bind-if test="[[ $variables.mapOpen === r.data.id ]]">
-                    <div class="fdd-map-detail" role="row" :id="[[ 'fddMapDetail-' + r.data.id ]]">
-                      <div role="cell">
-                        <h3>What is built</h3><p><oj-bind-text value="[[ r.data.has || '—' ]]"></oj-bind-text></p>
-                        <oj-bind-if test="[[ !!r.data.missing ]]"><h3 style="margin-top:10px">What is missing</h3><p class="fdd-missing"><oj-bind-text value="[[ r.data.missing ]]"></oj-bind-text></p></oj-bind-if>
+                  <div class="fdd-drow-body">
+                    <div><h4>What Next has</h4><p><oj-bind-text value="[[ r.data.has || 'Nothing yet.' ]]"></oj-bind-text></p></div>
+                    <div><h4>What is missing</h4><p class="fdd-missing"><oj-bind-text value="[[ r.data.missing || (r.data.status === 'done' ? 'Nothing: it is done.' : '—') ]]"></oj-bind-text></p></div>
+                    <div>
+                      <h4>Next screens</h4>
+                      <div class="fdd-tagline">
+                        <oj-bind-for-each data="[[ r.data.screens ]]">
+                          <template data-oj-as="s">
+                            <oj-bind-if test="[[ s.data.open ]]">
+                              <button type="button" class="fdd-screen" data-act="screen" :data-value="[[ s.data.id ]]" on-click="[[ $listeners.onDrillAct ]]" :title="[[ 'Open ' + s.data.label + ' in its tab' ]]">
+                                <span class="oj-ux-ico-external-link" aria-hidden="true"></span><oj-bind-text value="[[ s.data.label ]]"></oj-bind-text></button>
+                            </oj-bind-if>
+                            <oj-bind-if test="[[ !s.data.open ]]">
+                              <span class="fdd-mini fdd-mini--plain" title="Not in your menu"><oj-bind-text value="[[ s.data.label + ' (not in your menu)' ]]"></oj-bind-text></span>
+                            </oj-bind-if>
+                          </template>
+                        </oj-bind-for-each>
+                        <oj-bind-if test="[[ !r.data.screens.length ]]"><span class="nx-note">No Next screen.</span></oj-bind-if>
                       </div>
-                      <div role="cell">
-                        <h3>Where it lives</h3>
-                        <ul>
-                          <li><oj-bind-text value="[[ 'Next: ' + (r.data.nextText || '—') ]]"></oj-bind-text></li>
-                          <li><oj-bind-text value="[[ 'New: ' + (r.data.newText || '—') ]]"></oj-bind-text></li>
-                          <li><oj-bind-text value="[[ 'Old: ' + (r.data.oldText || '—') ]]"></oj-bind-text></li>
-                          <li><oj-bind-text value="[[ 'Mobile: ' + (r.data.mobileText || '—') ]]"></oj-bind-text></li>
-                          <li><oj-bind-text value="[[ 'Desktop / Android: ' + (r.data.deviceText || '—') ]]"></oj-bind-text></li>
-                        </ul>
-                      </div>
-                      <div role="cell">
-                        <h3>Evidence</h3>
-                        <oj-bind-if test="[[ !r.data.evidence.length ]]"><p class="nx-note">No file: nothing was found in the code.</p></oj-bind-if>
-                        <ul><oj-bind-for-each data="[[ r.data.evidence ]]"><template data-oj-as="x"><li><span class="fdd-code"><oj-bind-text value="[[ x.data ]]"></oj-bind-text></span></li></template></oj-bind-for-each></ul>
-                        <oj-bind-if test="[[ r.data.tests.length > 0 ]]">
-                          <h3 style="margin-top:10px">Tests</h3>
-                          <ul><oj-bind-for-each data="[[ r.data.tests ]]"><template data-oj-as="x"><li><span class="fdd-code"><oj-bind-text value="[[ x.data ]]"></oj-bind-text></span></li></template></oj-bind-for-each></ul>
-                        </oj-bind-if>
-                      </div>
+                      <oj-bind-if test="[[ r.data.phone.length > 0 ]]">
+                        <h4>On the phone</h4>
+                        <div class="fdd-tagline"><oj-bind-for-each data="[[ r.data.phone ]]"><template data-oj-as="x"><span class="fdd-mini fdd-mini--phone"><oj-bind-text value="[[ x.data ]]"></oj-bind-text></span></template></oj-bind-for-each></div>
+                      </oj-bind-if>
+                      <oj-bind-if test="[[ r.data.tests.length > 0 ]]">
+                        <h4>Tests</h4>
+                        <div class="fdd-tagline"><oj-bind-for-each data="[[ r.data.tests ]]"><template data-oj-as="x"><span class="fdd-code"><oj-bind-text value="[[ x.data ]]"></oj-bind-text></span></template></oj-bind-for-each></div>
+                      </oj-bind-if>
+                    </div>
+                  </div>
+                  <oj-bind-if test="[[ r.data.touches.length > 0 ]]">
+                    <div class="fdd-drow-touch"><span class="fdd-filter-label">Not done, it touches</span>
+                      <div class="fdd-tagline"><oj-bind-for-each data="[[ r.data.touches ]]"><template data-oj-as="x">
+                        <span :class="[[ 'fdd-mini fdd-mini--' + x.data.status ]]" :title="[[ x.data.title + ' · ' + x.data.statusLabel ]]"><oj-bind-text value="[[ x.data.id ]]"></oj-bind-text><span class="nx-sr"><oj-bind-text value="[[ ', ' + x.data.statusLabel.toLowerCase() ]]"></oj-bind-text></span></span>
+                      </template></oj-bind-for-each></div>
                     </div>
                   </oj-bind-if>
+                  <div class="fdd-drow-foot">
+                    <oj-bind-for-each data="[[ r.data.reqLinks ]]">
+                      <template data-oj-as="q">
+                        <button type="button" class="nx-link fdd-reqlink" data-act="req" :data-value="[[ q.data.id ]]" on-click="[[ $listeners.onDrillAct ]]" :title="[[ q.data.title ]]">
+                          <oj-bind-text value="[[ r.data.self ? 'Its full entry on Requirements' : q.data.label + ' on Requirements' ]]"></oj-bind-text><span class="oj-ux-ico-arrow-right" aria-hidden="true"></span></button>
+                      </template>
+                    </oj-bind-for-each>
+                  </div>
+                </article>
+              </template>
+            </oj-bind-for-each>
+          </div>
+
+          <oj-bind-if test="[[ $variables.drill.extra.length > 0 ]]">
+            <h3 class="fdd-drill-sub" id="fddReachExtraTitle">Then the integrations and decision points not done, with what each needs</h3>
+            <div class="fdd-drows fdd-drows--extra" role="list" id="fddReachExtra" aria-labelledby="fddReachExtraTitle">
+              <oj-bind-for-each data="[[ $variables.drill.extra ]]">
+                <template data-oj-as="r">
+                  <article class="fdd-drow fdd-drow--slim" role="listitem" :data-id="[[ r.data.id ]]" :data-status="[[ r.data.status ]]">
+                    <div class="fdd-drow-head">
+                      <span class="fdd-id"><oj-bind-text value="[[ r.data.label ]]"></oj-bind-text></span>
+                      <span class="fdd-drow-title"><strong><oj-bind-text value="[[ r.data.title ]]"></oj-bind-text></strong><small><oj-bind-text value="[[ r.data.kindLabel ]]"></oj-bind-text></small></span>
+                      <span class="fdd-drow-tags"><span :class="[[ 'fdd-st fdd-st--' + r.data.status ]]"><oj-bind-text value="[[ r.data.statusLabel ]]"></oj-bind-text></span></span>
+                    </div>
+                    <p class="fdd-drow-needs"><strong>Needs: </strong><oj-bind-text value="[[ r.data.needs || '—' ]]"></oj-bind-text></p>
+                    <div class="fdd-drow-foot">
+                      <oj-bind-for-each data="[[ r.data.screens ]]">
+                        <template data-oj-as="s">
+                          <oj-bind-if test="[[ s.data.open ]]">
+                            <button type="button" class="fdd-screen" data-act="screen" :data-value="[[ s.data.id ]]" on-click="[[ $listeners.onDrillAct ]]">
+                              <span class="oj-ux-ico-external-link" aria-hidden="true"></span><oj-bind-text value="[[ s.data.label ]]"></oj-bind-text></button>
+                          </oj-bind-if>
+                        </template>
+                      </oj-bind-for-each>
+                      <oj-bind-for-each data="[[ r.data.reqLinks ]]">
+                        <template data-oj-as="q">
+                          <button type="button" class="nx-link fdd-reqlink" data-act="req" :data-value="[[ q.data.id ]]" on-click="[[ $listeners.onDrillAct ]]" :title="[[ q.data.title ]]">
+                            <oj-bind-text value="[[ q.data.label ]]"></oj-bind-text><span class="oj-ux-ico-arrow-right" aria-hidden="true"></span></button>
+                        </template>
+                      </oj-bind-for-each>
+                    </div>
+                  </article>
                 </template>
               </oj-bind-for-each>
             </div>
+          </oj-bind-if>
+        </section>
+      </oj-bind-if>
+
+      <oj-bind-if test="[[ !$variables.drill.open ]]">
+        <div class="fdd-two">
+          <section class="nx-card nx-card-pad" aria-labelledby="fddByModule">
+            <h2 class="nx-h2" id="fddByModule" style="margin-bottom:12px">Requirements by module</h2>
+            <div class="fdd-bars">
+              <oj-bind-for-each data="[[ $variables.byModule ]]">
+                <template data-oj-as="b">
+                  <div class="fdd-bar-row" :data-group="[[ b.data.key ]]">
+                    <button type="button" class="fdd-bar-label" data-act="open" :data-value="[[ b.data.drill ]]" data-status="all" :data-count="[[ b.data.total ]]" on-click="[[ $listeners.onDrillAct ]]"
+                      :aria-label="[[ b.data.aria ]]"><oj-bind-text value="[[ b.data.label ]]"></oj-bind-text><small><oj-bind-text value="[[ b.data.sub ]]"></oj-bind-text></small></button>
+                    <span class="fdd-bar" role="group" :aria-label="[[ b.data.label + ': ' + b.data.text ]]">
+                      <oj-bind-for-each data="[[ b.data.segs ]]"><template data-oj-as="s"><button type="button" :class="[[ 'fdd-seg fdd-seg--' + s.data.status ]]" :style="[[ { width: s.data.w + '%' } ]]"
+                        :title="[[ s.data.title ]]" :aria-label="[[ s.data.aria ]]" data-act="open" :data-value="[[ b.data.drill ]]" :data-status="[[ s.data.status ]]" :data-count="[[ s.data.n ]]"
+                        on-click="[[ $listeners.onDrillAct ]]"></button></template></oj-bind-for-each>
+                    </span>
+                    <span class="fdd-bar-pct"><oj-bind-text value="[[ b.data.pctText ]]"></oj-bind-text></span>
+                    <span class="fdd-bar-text"><oj-bind-text value="[[ b.data.text ]]"></oj-bind-text></span>
+                  </div>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </section>
+          <section class="nx-card nx-card-pad" aria-labelledby="fddByPhase">
+            <h2 class="nx-h2" id="fddByPhase" style="margin-bottom:12px">Requirements by phase</h2>
+            <div class="fdd-bars">
+              <oj-bind-for-each data="[[ $variables.byPhase ]]">
+                <template data-oj-as="b">
+                  <div class="fdd-bar-row" :data-group="[[ b.data.key ]]">
+                    <button type="button" class="fdd-bar-label" data-act="open" :data-value="[[ b.data.drill ]]" data-status="all" :data-count="[[ b.data.total ]]" on-click="[[ $listeners.onDrillAct ]]"
+                      :aria-label="[[ b.data.aria ]]"><oj-bind-text value="[[ b.data.label ]]"></oj-bind-text><small><oj-bind-text value="[[ b.data.sub ]]"></oj-bind-text></small></button>
+                    <span class="fdd-bar" role="group" :aria-label="[[ b.data.label + ': ' + b.data.text ]]">
+                      <oj-bind-for-each data="[[ b.data.segs ]]"><template data-oj-as="s"><button type="button" :class="[[ 'fdd-seg fdd-seg--' + s.data.status ]]" :style="[[ { width: s.data.w + '%' } ]]"
+                        :title="[[ s.data.title ]]" :aria-label="[[ s.data.aria ]]" data-act="open" :data-value="[[ b.data.drill ]]" :data-status="[[ s.data.status ]]" :data-count="[[ s.data.n ]]"
+                        on-click="[[ $listeners.onDrillAct ]]"></button></template></oj-bind-for-each>
+                    </span>
+                    <span class="fdd-bar-pct"><oj-bind-text value="[[ b.data.pctText ]]"></oj-bind-text></span>
+                    <span class="fdd-bar-text"><oj-bind-text value="[[ b.data.text ]]"></oj-bind-text></span>
+                  </div>
+                </template>
+              </oj-bind-for-each>
+            </div>
+            <div class="fdd-legend"><span class="fdd-key fdd-key--dot fdd-key--done"><i></i>Done</span><span class="fdd-key fdd-key--dot fdd-key--partly"><i></i>Partly done</span>
+              <span class="fdd-key fdd-key--dot fdd-key--none"><i></i>Not started</span><span class="fdd-key fdd-key--dot fdd-key--na"><i></i>Not applicable</span>
+              <span class="fdd-key">Click a bar, or one of its colours, for those requirements.</span></div>
+          </section>
+        </div>
+
+        <div class="fdd-two">
+          <section class="nx-card" aria-labelledby="fddPendingTitle">
+            <div class="nx-card-head"><h2 id="fddPendingTitle">Still pending: not started</h2><span class="nx-note"><oj-bind-text value="[[ $variables.pendingRows.length + ' items' ]]"></oj-bind-text></span></div>
+            <div class="fdd-list" id="fddPending">
+              <oj-bind-for-each data="[[ $variables.pendingRows ]]">
+                <template data-oj-as="r">
+                  <div class="fdd-item" :data-id="[[ r.data.id ]]">
+                    <span class="fdd-id"><oj-bind-text value="[[ r.data.label ]]"></oj-bind-text></span>
+                    <span class="fdd-item-title"><oj-bind-text value="[[ r.data.title ]]"></oj-bind-text></span>
+                    <span class="fdd-st fdd-st--none">Not started</span>
+                    <span class="fdd-item-text"><oj-bind-text value="[[ r.data.kindLabel + ' · ' + r.data.missing ]]"></oj-bind-text></span>
+                  </div>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </section>
+          <section class="nx-card" aria-labelledby="fddPartlyTitle">
+            <div class="nx-card-head"><h2 id="fddPartlyTitle">Partly done: what is missing</h2><span class="nx-note"><oj-bind-text value="[[ $variables.partlyView.rows.length + ' items' ]]"></oj-bind-text></span></div>
+            <div class="nx-chips" role="group" aria-label="Kind" style="padding:10px 16px 0">
+              <oj-bind-for-each data="[[ $variables.partlyView.chips ]]">
+                <template data-oj-as="c">
+                  <button type="button" data-field="partlyKind" :data-value="[[ c.data.key ]]" on-click="[[ $listeners.onPick ]]" :aria-pressed="[[ $variables.partlyKind === c.data.key ? 'true' : 'false' ]]"
+                    :class="[[ 'nx-chip' + ($variables.partlyKind === c.data.key ? ' nx-chip--on' : '') ]]"><oj-bind-text value="[[ c.data.label ]]"></oj-bind-text><span class="nx-chip-count"><oj-bind-text value="[[ c.data.count ]]"></oj-bind-text></span></button>
+                </template>
+              </oj-bind-for-each>
+            </div>
+            <div class="fdd-list" id="fddPartly">
+              <oj-bind-for-each data="[[ $variables.partlyView.rows ]]">
+                <template data-oj-as="r">
+                  <div class="fdd-item" :data-id="[[ r.data.id ]]">
+                    <span class="fdd-id"><oj-bind-text value="[[ r.data.label ]]"></oj-bind-text></span>
+                    <span class="fdd-item-title"><oj-bind-text value="[[ r.data.title ]]"></oj-bind-text></span>
+                    <span class="fdd-st fdd-st--partly">Partly</span>
+                    <span class="fdd-item-text"><oj-bind-text value="[[ 'Missing: ' + r.data.missing ]]"></oj-bind-text></span>
+                  </div>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </section>
+        </div>
+
+        <section class="nx-card" aria-labelledby="fddMapTitle">
+          <div class="nx-card-head">
+            <h2 id="fddMapTitle">Every item, mapped to EquipRite Next</h2>
+            <span class="nx-note" id="fddMapSummary"><oj-bind-text value="[[ $variables.mapView.summary ]]"></oj-bind-text></span>
           </div>
-        </oj-bind-if>
-      </section>
+          <div class="fdd-filters" style="padding:12px 16px">
+            <div class="nx-seg" role="group" aria-label="What to map" style="flex-wrap:wrap">
+              <oj-bind-for-each data="[[ $variables.mapView.kinds ]]">
+                <template data-oj-as="k">
+                  <button type="button" data-field="mapKind" :data-value="[[ k.data.key ]]" on-click="[[ $listeners.onPick ]]" :aria-pressed="[[ $variables.mapKind === k.data.key ? 'true' : 'false' ]]"
+                    :class="[[ 'nx-seg-btn' + ($variables.mapKind === k.data.key ? ' nx-seg-btn--on' : '') ]]"><oj-bind-text value="[[ k.data.label + ' ' + k.data.count ]]"></oj-bind-text></button>
+                </template>
+              </oj-bind-for-each>
+            </div>
+            <div class="nx-toolbar">
+              <label class="nx-search">
+                <span class="oj-ux-ico-search" aria-hidden="true"></span>
+                <input type="search" id="fddMapSearch" :value="[[ $variables.mapText ]]" on-input="[[ $listeners.onMapSearch ]]" aria-label="Search the mapping"
+                  placeholder="Item, screen, test or file">
+              </label>
+              <div class="nx-chips" role="group" aria-label="Status">
+                <oj-bind-for-each data="[[ $variables.mapView.chips ]]">
+                  <template data-oj-as="c">
+                    <button type="button" data-field="mapStatus" :data-value="[[ c.data.key ]]" on-click="[[ $listeners.onPick ]]" :aria-pressed="[[ $variables.mapStatus === c.data.key ? 'true' : 'false' ]]"
+                      :class="[[ 'nx-chip' + ($variables.mapStatus === c.data.key ? ' nx-chip--on' : '') ]]"><oj-bind-text value="[[ c.data.label ]]"></oj-bind-text><span class="nx-chip-count"><oj-bind-text value="[[ c.data.count ]]"></oj-bind-text></span></button>
+                  </template>
+                </oj-bind-for-each>
+              </div>
+            </div>
+          </div>
+          <oj-bind-if test="[[ !$variables.mapView.rows.length ]]"><div class="nx-empty">Nothing matches. Clear the search or pick another status.</div></oj-bind-if>
+          <oj-bind-if test="[[ $variables.mapView.rows.length > 0 ]]">
+            <div class="nx-table">
+              <div class="nx-grid fdd-grid-map" role="table" aria-labelledby="fddMapTitle">
+                <div class="nx-row nx-row--head" role="row">
+                  <span role="columnheader">ID</span><span role="columnheader">Item</span><span role="columnheader">Status</span>
+                  <span role="columnheader">EquipRite Next</span><span role="columnheader">On the phone</span><span role="columnheader">Tests</span><span role="columnheader"></span>
+                </div>
+                <oj-bind-for-each data="[[ $variables.mapView.rows ]]">
+                  <template data-oj-as="r">
+                    <div role="row" :class="[[ 'nx-row fdd-map-row' + ($variables.mapOpen === r.data.id ? ' fdd-map-row--open' : '') ]]" :data-id="[[ r.data.id ]]"
+                      data-field="mapOpen" :data-value="[[ r.data.id ]]" on-click="[[ $listeners.onPick ]]">
+                      <span role="cell"><button type="button" class="nx-link fdd-id" :aria-expanded="[[ $variables.mapOpen === r.data.id ? 'true' : 'false' ]]"><oj-bind-text value="[[ r.data.label ]]"></oj-bind-text></button></span>
+                      <span role="cell"><span class="nx-cell-main"><oj-bind-text value="[[ r.data.title ]]"></oj-bind-text></span><span class="nx-cell-sub"><oj-bind-text value="[[ r.data.kindLabel + ' · FDD ' + r.data.section ]]"></oj-bind-text></span></span>
+                      <span role="cell"><span :class="[[ 'fdd-st fdd-st--' + r.data.status ]]"><oj-bind-text value="[[ r.data.statusLabel ]]"></oj-bind-text></span></span>
+                      <span role="cell" class="fdd-cell-list"><oj-bind-text value="[[ r.data.nextText || '—' ]]"></oj-bind-text></span>
+                      <span role="cell" class="fdd-cell-list nx-muted"><oj-bind-text value="[[ r.data.phoneText || '—' ]]"></oj-bind-text></span>
+                      <span role="cell" class="nx-num"><oj-bind-text value="[[ r.data.testCount ? r.data.testCount + (r.data.testCount === 1 ? ' test' : ' tests') : '—' ]]"></oj-bind-text></span>
+                      <span role="cell" class="oj-ux-ico-chevron-down fdd-chev" aria-hidden="true"></span>
+                    </div>
+                    <oj-bind-if test="[[ $variables.mapOpen === r.data.id ]]">
+                      <div class="fdd-map-detail" role="row" :id="[[ 'fddMapDetail-' + r.data.id ]]">
+                        <div role="cell">
+                          <h3>What Next has</h3><p><oj-bind-text value="[[ r.data.has || '—' ]]"></oj-bind-text></p>
+                          <oj-bind-if test="[[ !!r.data.missing ]]"><h3 style="margin-top:10px">What is missing</h3><p class="fdd-missing"><oj-bind-text value="[[ r.data.missing ]]"></oj-bind-text></p></oj-bind-if>
+                        </div>
+                        <div role="cell">
+                          <h3>Where it lives</h3>
+                          <ul>
+                            <li><oj-bind-text value="[[ 'Next screens: ' + (r.data.nextText || '—') ]]"></oj-bind-text></li>
+                            <li><oj-bind-text value="[[ 'On the phone: ' + (r.data.phoneText || '—') ]]"></oj-bind-text></li>
+                            <oj-bind-if test="[[ !!r.data.desktopText ]]"><li>The desktop client</li></oj-bind-if>
+                          </ul>
+                        </div>
+                        <div role="cell">
+                          <h3>Evidence</h3>
+                          <oj-bind-if test="[[ !r.data.evidence.length ]]"><p class="nx-note">No file: nothing was found in Next's code.</p></oj-bind-if>
+                          <ul><oj-bind-for-each data="[[ r.data.evidence ]]"><template data-oj-as="x"><li><span class="fdd-code"><oj-bind-text value="[[ x.data ]]"></oj-bind-text></span></li></template></oj-bind-for-each></ul>
+                          <oj-bind-if test="[[ r.data.tests.length > 0 ]]">
+                            <h3 style="margin-top:10px">Tests</h3>
+                            <ul><oj-bind-for-each data="[[ r.data.tests ]]"><template data-oj-as="x"><li><span class="fdd-code"><oj-bind-text value="[[ x.data ]]"></oj-bind-text></span></li></template></oj-bind-for-each></ul>
+                          </oj-bind-if>
+                        </div>
+                      </div>
+                    </oj-bind-if>
+                  </template>
+                </oj-bind-for-each>
+              </div>
+            </div>
+          </oj-bind-if>
+        </section>
+      </oj-bind-if>
     </div>
   </oj-bind-if>
 </div>

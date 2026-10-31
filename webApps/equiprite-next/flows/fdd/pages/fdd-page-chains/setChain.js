@@ -16,6 +16,7 @@ define([
       if (field === 'exportOpen') { v.exportOpen = value === 'toggle' ? !v.exportOpen : !!value; return; }
       if (field === 'tab') {
         v.exportOpen = false;
+        v.drillExportOpen = false;
         v.tab = value || 'requirements';
         if (v.tab === 'flows') await Actions.callChain(context, { chain: 'flowChain', params: { act: 'draw', key: '' } });
         return;

@@ -1,5 +1,5 @@
 {
-  "description": "EquipRite FDD: three tabs. Requirements (BR-001 to BR-014 and the pages of FDD 7, grouped by module, searchable, filtered by module, phase and kind, each opening on its detail, roles, scenarios and how far it is built). Flows (swimlane diagrams across the parties and Fusion modules with statuses, INT hops and DP decisions; a step opens its detail and the Next screen that takes it). Mapping to development (KPIs, by module and phase, pending and partly done, every item with its screens, tests and evidence; export). Data: resources/js/fddCatalog.js; logic: resources/js/fddModel.js. Reads nothing from the server and writes nothing.",
+  "description": "EquipRite FDD: three tabs. Requirements (BR-001 to BR-014 and the pages of FDD 7, grouped by module, searchable, filtered by module, phase and kind, each opening on its detail, roles, scenarios and how far EquipRite Next has it). Flows (swimlane diagrams across the parties and Fusion modules with statuses, INT hops and DP decisions; a step opens its detail and the Next screen that takes it). Mapping to development, judged on EquipRite Next only (with its phone app, EquipRite Mobile and EquipRite for Android): KPIs, each a button that opens the items behind it (the drill: a breadcrumb, status and module chips, search, export, one row per item with what Next has and lacks, its Next screens to open, its tests, a link to its entry on Requirements); To reach 100%; bars by module and phase whose segments drill too; pending and partly done; every item with its screens, tests and evidence; export. Data: resources/js/fddCatalog.js; logic: resources/js/fddModel.js. Reads nothing from the server and writes nothing.",
   "navigation": { "embeddable": "enabled" },
   "variables": {
     "tab": { "type": "string", "defaultValue": "requirements", "description": "requirements | flows | mapping" },
@@ -16,7 +16,7 @@
     "flowId": { "type": "string", "defaultValue": "e2e" },
     "flowInfo": { "type": "any", "defaultValue": { "id": "" } },
     "sel": { "type": "any", "defaultValue": { "key": "" }, "description": "The step open below the diagram (fddModel.stepDetail)." },
-    "kpis": { "type": "any", "defaultValue": { "tiles": [], "tiles2": [], "headline": "" } },
+    "kpis": { "type": "any", "defaultValue": { "tiles": [], "tiles2": [], "headline": "", "judged": "" } },
     "byModule": { "type": "any[]", "defaultValue": [] },
     "byPhase": { "type": "any[]", "defaultValue": [] },
     "pendingRows": { "type": "any[]", "defaultValue": [] },
@@ -26,7 +26,11 @@
     "mapStatus": { "type": "string", "defaultValue": "all" },
     "mapText": { "type": "string", "defaultValue": "" },
     "mapOpen": { "type": "string", "defaultValue": "" },
-    "mapView": { "type": "any", "defaultValue": { "rows": [], "chips": [], "kinds": [], "summary": "" }, "description": "The mapping rows shown, its status chips and kinds." }
+    "mapView": { "type": "any", "defaultValue": { "rows": [], "chips": [], "kinds": [], "summary": "" }, "description": "The mapping rows shown, its status chips and kinds." },
+    "drillSpec": { "type": "any", "defaultValue": { "source": "", "status": "all", "module": "all", "text": "" }, "description": "The number open (source) and how it is narrowed (status, module, search)." },
+    "drill": { "type": "any", "defaultValue": { "open": false, "rows": [], "extra": [], "crumbs": [], "chips": [], "modules": [], "mode": "", "rule": "", "summary": "", "count": 0 }, "description": "What the drill shows (fddModel.drill), set in one step." },
+    "drillFrom": { "type": "string", "defaultValue": "", "description": "The tile or bar that opened the drill (source|status), for focus on the way back." },
+    "drillExportOpen": { "type": "boolean", "defaultValue": false }
   },
   "eventListeners": {
     "vbEnter": { "chains": [{ "chain": "loadChain" }] },
@@ -36,6 +40,8 @@
     "onMapSearch": { "chains": [{ "chain": "setChain", "parameters": { "field": "mapText", "value": "{{ $event.target.value }}" } }] },
     "onExportMenu": { "chains": [{ "chain": "setChain", "parameters": { "field": "exportOpen", "value": "toggle" } }] },
     "onExport": { "chains": [{ "chain": "exportChain", "parameters": { "format": "{{ $event.currentTarget.dataset.format }}" } }] },
+    "onDrillAct": { "chains": [{ "chain": "drillChain", "parameters": { "act": "{{ $event.currentTarget.dataset.act }}", "value": "{{ $event.currentTarget.dataset.value }}", "status": "{{ $event.currentTarget.dataset.status }}" } }] },
+    "onDrillSearch": { "chains": [{ "chain": "drillChain", "parameters": { "act": "text", "value": "{{ $event.target.value }}" } }] },
     "onFlow": { "chains": [{ "chain": "flowChain", "parameters": { "act": "flow", "key": "{{ $event.currentTarget.dataset.value }}" } }] },
     "onDiagram": { "chains": [{ "chain": "flowChain", "parameters": { "act": "select", "key": "{{ $event.target && $event.target.closest && $event.target.closest('[data-step]') ? $event.target.closest('[data-step]').getAttribute('data-step') : '' }}" } }] },
     "onDiagramKey": { "chains": [{ "chain": "flowChain", "parameters": { "act": "{{ $event.key === 'Enter' || $event.key === ' ' ? 'select' : '' }}", "key": "{{ $event.target && $event.target.closest && $event.target.closest('[data-step]') ? $event.target.closest('[data-step]').getAttribute('data-step') : '' }}" } }] },

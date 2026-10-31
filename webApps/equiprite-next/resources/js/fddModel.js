@@ -2,8 +2,12 @@ define(['resources/js/fddCatalog'], function (C) {
   'use strict';
 
   // The EquipRite FDD page's logic, pure: the requirements as rows (filters, groups by module), the KPIs and the
-  // breakdowns of the mapping to the development, the mapping's rows and lists, the flows' step details, and each flow
-  // as a swimlane diagram in SVG (static markup, as Help's helpGuide.svg). The content is resources/js/fddCatalog.js.
+  // breakdowns of the mapping to EquipRite Next, the drill-down behind every number (and what it takes to reach 100%),
+  // the mapping's rows and lists, the flows' step details, and each flow as a swimlane diagram in SVG (static markup, as
+  // Help's helpGuide.svg). The content is resources/js/fddCatalog.js.
+  //
+  // Every status is EquipRite Next's (with its phone app: EquipRite Mobile and EquipRite for Android). Old and New
+  // EquipRite are not counted.
   //
   // Screens are named through `names`: { nav: { id: label } (Next's menu, nav.ITEMS), open: { id: true } (the Next
   // screens this user may open) }; without them the ids are shown as they are and nothing opens.
@@ -13,10 +17,10 @@ define(['resources/js/fddCatalog'], function (C) {
   var KIND_LABEL = { business: 'Business requirement', page: 'Page (functional)', integration: 'Integration', scenario: 'Scenario', decision: 'Decision point', beyond: 'Beyond the FDD' };
   var MOBILE_LABEL = { approve: 'Approve', pick: 'Pick', request: 'Request', track: 'My requests', me: 'Me' };
   var DEVICE_LABEL = { desktop: 'Desktop client', android: 'Android app' };
-  var APPS = [
-    { key: 'next', label: 'EquipRite Next' }, { key: 'newApp', label: 'New EquipRite' }, { key: 'oldApp', label: 'Old EquipRite' },
-    { key: 'mobile', label: 'EquipRite Mobile' }, { key: 'device', label: 'Desktop and Android' }
-  ];
+  var JUDGED = 'Judged on EquipRite Next only, as its code stood on ' + C.SOURCE.checked + ': its screens (nav.js and the flows), their chains and '
+    + 'resources/js, the calls they make in services/, and its tests. EquipRite Mobile and EquipRite for Android count as Next\'s phone app, '
+    + 'because Mobile runs on Next\'s own resources/js (Android is a frame around Mobile). Old and New EquipRite are not counted: what only they do '
+    + 'is listed as missing.';
 
   function byId(list) { var o = {}; (list || []).forEach(function (x) { o[x.id || x.key] = x; }); return o; }
   var MOD = byId(C.MODULES);
@@ -33,22 +37,29 @@ define(['resources/js/fddCatalog'], function (C) {
   function statusLabel(s) { return STATUS_LABEL[s] || ''; }
   function navLabel(names, id) { var n = names && names.nav; return (n && n[id]) || id; }
   function plural(n, one, many) { return n + ' ' + (n === 1 ? one : (many || one + 's')); }
+  function one(x) { return (Math.round(x * 10) / 10).toFixed(1); }
+  function two(x) { return (Math.round(x * 100) / 100).toFixed(2); }
+  function fileName(f) { var s = String(f || ''); return s.slice(s.lastIndexOf('/') + 1); }
 
-  /** Where a mapping entry lives, in words: { next: [{ id, label, open }], newApp, oldApp, mobile, device, any }. */
+  /** Where a mapping entry lives in Next, in words: { next: [{ id, label, open }], mobile, device, phone }. */
   function where(entry, names) {
     var e = entry || {};
     var open = (names && names.open) || {};
+    var mobile = (e.mobile || []).map(function (t) { return MOBILE_LABEL[t] || t; });
+    var device = (e.device || []).map(function (d) { return DEVICE_LABEL[d] || d; });
     return {
       next: (e.next || []).map(function (id) { return { id: id, label: navLabel(names, id), open: !!open[id] }; }),
-      newApp: (e.newApp || []).slice(),
-      oldApp: (e.oldApp || []).slice(),
-      mobile: (e.mobile || []).map(function (t) { return MOBILE_LABEL[t] || t; }),
-      device: (e.device || []).map(function (d) { return DEVICE_LABEL[d] || d; })
+      mobile: mobile,
+      device: device,
+      // On the phone: EquipRite Mobile's tabs, and the Android app (a frame around them)
+      phone: mobile.concat((e.device || []).indexOf('android') !== -1 ? [DEVICE_LABEL.android] : []),
+      desktop: (e.device || []).indexOf('desktop') !== -1
     };
   }
+  function onPhone(id) { var m = mapOf(id); return !!m && ((m.mobile || []).length > 0 || (m.device || []).indexOf('android') !== -1); }
 
   // ── Requirements ─────────────────────────────────────────────────────────────────────────────────────────────
-  /** Every requirement as a row: what the FDD says, its module and phase, the roles and scenarios, how far it is built. */
+  /** Every requirement as a row: what the FDD says, its module and phase, the roles and scenarios, how far Next has it. */
   function requirementRows(names) {
     return C.REQUIREMENTS.map(function (r) {
       var mp = mapOf(r.id) || {};
@@ -64,7 +75,7 @@ define(['resources/js/fddCatalog'], function (C) {
         integrations: (r.integrations || []).map(function (id) { return { id: id, title: (INTS[id] || {}).name || '', status: statusOf(id), statusLabel: statusLabel(statusOf(id)) }; }),
         detail: (r.detail || []).slice(),
         status: mp.status || '', statusLabel: statusLabel(mp.status), has: mp.has || '', missing: mp.missing || '',
-        next: w.next, nextText: w.next.map(function (x) { return x.label; }).join(', '),
+        next: w.next, nextText: w.next.map(function (x) { return x.label; }).join(', '), phoneText: w.phone.join(', '),
         search: low([r.id, label, r.title, r.says, r.section, (MOD[r.module] || {}).label, (PHASE[r.phase] || {}).label, (r.detail || []).join(' '), r.vague,
           (r.roles || []).map(function (k) { return C.ROLES[k]; }).join(' '), (r.scenarios || []).join(' '), (r.integrations || []).join(' '), mp.has, mp.missing].join(' '))
       };
@@ -110,60 +121,80 @@ define(['resources/js/fddCatalog'], function (C) {
     var c = { total: 0, done: 0, partly: 0, none: 0, na: 0 };
     (ids || []).forEach(function (id) { var s = statusOf(id) || 'none'; c.total += 1; c[s] += 1; });
     c.applicable = c.total - c.na;
-    c.pct = c.applicable ? Math.round(((c.done + c.partly / 2) / c.applicable) * 100) : 0;
+    c.exact = c.applicable ? ((c.done + c.partly / 2) / c.applicable) * 100 : 0;
+    c.pct = Math.round(c.exact);
     return c;
   }
 
   function reqIds() { return C.REQUIREMENTS.map(function (r) { return r.id; }); }
   function fddScenarioIds() { return C.SCENARIOS.filter(function (s) { return s.inFdd !== false; }).map(function (s) { return s.id; }); }
+  function intIds() { return C.INTEGRATIONS.map(function (i) { return i.id; }); }
+  function dpIds() { return C.DECISIONS.map(function (d) { return d.id; }); }
+  function inNextIds() { return reqIds().filter(function (id) { var m = mapOf(id); return !!m && m.next.length > 0; }); }
+  function phoneIds() { return reqIds().filter(onPhone); }
 
-  /** The KPIs: requirements by status and % complete, by app, integrations, scenarios and decision points. */
+  /** What one requirement is worth on Complete %: done 1, partly ½, not started 0 (n/a is left out), as points of the %. */
+  function shareOf(id, applicable) {
+    var s = statusOf(id);
+    var pts = s === 'done' ? 1 : (s === 'partly' ? 0.5 : 0);
+    return { points: pts, share: applicable ? (pts / applicable) * 100 : 0, gain: applicable && (s === 'partly' || s === 'none') ? ((1 - pts) / applicable) * 100 : 0 };
+  }
+
+  /** The KPIs: requirements by status and % complete, what it takes to reach 100%, in Next and on the phone, integrations, scenarios, DPs. */
   function kpis() {
     var r = count(reqIds());
-    var ints = count(C.INTEGRATIONS.map(function (i) { return i.id; }));
+    var ints = count(intIds());
     var sc = count(fddScenarioIds());
-    var dp = count(C.DECISIONS.map(function (d) { return d.id; }));
-    var apps = APPS.map(function (a) {
-      var n = C.REQUIREMENTS.filter(function (q) { var m = mapOf(q.id); return m && (m[a.key] || []).length > 0; }).length;
-      return { key: a.key, label: a.label, n: n, total: r.total, text: n + ' of ' + r.total };
-    });
+    var dp = count(dpIds());
+    var inNext = inNextIds().length;
+    var phone = phoneIds().length;
+    var toFinish = r.partly + r.none;
     return {
-      req: r, ints: ints, scen: sc, dps: dp, apps: apps,
+      req: r, ints: ints, scen: sc, dps: dp, inNext: inNext, phone: phone, toGo: 100 - r.exact,
       business: C.REQUIREMENTS.filter(function (q) { return q.kind === 'business'; }).length,
       pages: C.REQUIREMENTS.filter(function (q) { return q.kind === 'page'; }).length,
       beyond: C.BEYOND.length,
-      headline: r.pct + '% of the FDD\'s requirements are built: ' + r.done + ' done, ' + r.partly + ' partly done, ' + r.none + ' not started'
-        + (r.na ? ', ' + r.na + ' not applicable yet' : '') + '. Integrations ' + ints.done + ' of ' + ints.total + ' done (' + ints.partly + ' partly); scenarios '
-        + sc.done + ' of ' + sc.total + ' done (' + sc.partly + ' partly).',
+      judged: JUDGED,
+      headline: 'EquipRite Next (with its phone app) has built ' + r.pct + '% of the FDD\'s requirements: ' + r.done + ' done, ' + r.partly + ' partly done, '
+        + r.none + ' not started' + (r.na ? ', ' + r.na + ' not applicable yet' : '') + '. Integrations ' + ints.done + ' of ' + ints.total + ' done ('
+        + ints.partly + ' partly); scenarios ' + sc.done + ' of ' + sc.total + ' done (' + sc.partly + ' partly); decision points ' + dp.done + ' of '
+        + dp.total + ' done (' + dp.partly + ' partly).',
       tiles: [
-        { key: 'total', label: 'Requirements', value: String(r.total), note: '14 business (4.1), ' + (r.total - 14) + ' pages (7)', st: 'all' },
-        { key: 'done', label: 'Done', value: String(r.done), note: 'Built and usable', st: 'done' },
-        { key: 'partly', label: 'Partly done', value: String(r.partly), note: 'Something is missing', st: 'partly' },
-        { key: 'none', label: 'Not started', value: String(r.none), note: 'Nothing in the code', st: 'none' },
-        { key: 'na', label: 'Not applicable', value: String(r.na), note: 'A future phase (2.3)', st: 'na' },
-        { key: 'pct', label: 'Complete', value: r.pct + '%', note: 'Done counts 1, partly ½', st: 'pct' }
+        { key: 'total', label: 'Requirements', value: String(r.total), note: '14 business (4.1), ' + (r.total - 14) + ' pages (7)', st: 'all', drill: 'req', count: r.total },
+        { key: 'done', label: 'Done', value: String(r.done), note: 'Built and usable in Next', st: 'done', drill: 'req:done', count: r.done },
+        { key: 'partly', label: 'Partly done', value: String(r.partly), note: 'Something is missing', st: 'partly', drill: 'req:partly', count: r.partly },
+        { key: 'none', label: 'Not started', value: String(r.none), note: 'Nothing in Next\'s code', st: 'none', drill: 'req:none', count: r.none },
+        { key: 'na', label: 'Not applicable', value: String(r.na), note: 'A future phase (2.3)', st: 'na', drill: 'req:na', count: r.na },
+        { key: 'pct', label: 'Complete', value: r.pct + '%', note: plural(r.applicable, 'requirement') + ': done 1, partly ½', st: 'pct', drill: 'pct', count: r.applicable },
+        { key: 'reach', label: 'To reach 100%', value: '+' + one(100 - r.exact), note: plural(toFinish, 'requirement') + ' to finish for these points, biggest gain first',
+          st: 'reach', drill: 'reach', count: toFinish }
       ],
-      tiles2: apps.slice(0, 4).map(function (a) { return { key: a.key, label: 'In ' + a.label, value: a.text, note: 'requirements with a screen there', st: 'app' }; }).concat([
-        { key: 'ints', label: 'Integrations', value: ints.done + ' + ' + ints.partly + ' of ' + ints.total, note: 'done + partly; ' + ints.none + ' not started', st: 'ints' },
-        { key: 'scen', label: 'Scenarios', value: sc.done + ' + ' + sc.partly + ' of ' + sc.total, note: 'done + partly; ' + sc.none + ' not started (S35 is the redesign\'s)', st: 'scen' },
-        { key: 'dps', label: 'Decision points', value: dp.done + ' + ' + dp.partly + ' of ' + dp.total, note: 'DP-01 to DP-10; ' + dp.none + ' not started', st: 'dps' }
-      ])
+      tiles2: [
+        { key: 'next', label: 'In EquipRite Next', value: inNext + ' of ' + r.total, note: 'requirements with a Next screen', st: 'app', drill: 'next', count: inNext },
+        { key: 'phone', label: 'On the phone', value: phone + ' of ' + r.total, note: 'requirements on EquipRite Mobile or Android', st: 'phone', drill: 'phone', count: phone },
+        { key: 'ints', label: 'Integrations', value: ints.done + ' + ' + ints.partly + ' of ' + ints.total, note: 'done + partly; ' + ints.none + ' not started', st: 'ints', drill: 'ints', count: ints.total },
+        { key: 'scen', label: 'Scenarios', value: sc.done + ' + ' + sc.partly + ' of ' + sc.total, note: 'done + partly; ' + sc.none + ' not started (S35 is the redesign\'s)', st: 'scen', drill: 'scen', count: sc.total },
+        { key: 'dps', label: 'Decision points', value: dp.done + ' + ' + dp.partly + ' of ' + dp.total, note: 'DP-01 to DP-10; ' + dp.none + ' not started', st: 'dps', drill: 'dps', count: dp.total }
+      ]
     };
   }
 
-  /** Requirements by module or by phase: per group the counts and the bar's segments (width in %). */
+  /** Requirements by module or by phase: per group the counts and the bar's segments (width in %), each a drill-down. */
   function breakdown(by) {
     var groups = by === 'phase' ? C.PHASES : C.MODULES;
     return groups.map(function (g) {
+      var label = by === 'phase' ? g.short : g.label;
       var ids = C.REQUIREMENTS.filter(function (r) { return (by === 'phase' ? r.phase : r.module) === g.key; }).map(function (r) { return r.id; });
       var c = count(ids);
       var segs = STATUS_ORDER.filter(function (s) { return c[s] > 0; }).map(function (s) {
-        return { status: s, n: c[s], w: c.total ? Math.round((c[s] / c.total) * 1000) / 10 : 0, title: c[s] + ' ' + STATUS_LABEL[s].toLowerCase() };
+        return { status: s, n: c[s], w: c.total ? Math.round((c[s] / c.total) * 1000) / 10 : 0, title: c[s] + ' ' + STATUS_LABEL[s].toLowerCase(),
+          aria: label + ': ' + c[s] + ' ' + STATUS_LABEL[s].toLowerCase() + '. Show them' };
       });
       return {
-        key: g.key, label: by === 'phase' ? g.short : g.label, sub: plural(c.total, 'requirement'), total: c.total, pct: c.pct, pctText: c.applicable ? c.pct + '%' : '—', segs: segs,
+        key: g.key, label: label, sub: plural(c.total, 'requirement'), total: c.total, pct: c.pct, pctText: c.applicable ? c.pct + '%' : '—', segs: segs,
+        drill: by + ':' + g.key,
         text: STATUS_ORDER.filter(function (s) { return c[s] > 0; }).map(function (s) { return c[s] + ' ' + STATUS_LABEL[s].toLowerCase(); }).join(' · '),
-        aria: (by === 'phase' ? g.short : g.label) + ': ' + plural(c.total, 'requirement') + (c.applicable ? ', ' + c.pct + '% complete' : ', not expected yet')
+        aria: label + ': ' + plural(c.total, 'requirement') + (c.applicable ? ', ' + c.pct + '% complete' : ', not expected yet') + '. Show them'
       };
     }).filter(function (g) { return g.total > 0; });
   }
@@ -173,27 +204,38 @@ define(['resources/js/fddCatalog'], function (C) {
     { key: 'decisions', label: 'Decision points' }, { key: 'beyond', label: 'Beyond the FDD' }, { key: 'all', label: 'Everything' }
   ];
 
-  function itemsOf(kind) {
-    var out = [];
-    if (kind === 'requirements' || kind === 'all') {
-      C.REQUIREMENTS.forEach(function (r) { out.push({ id: r.id, label: r.kind === 'page' ? '§' + r.id : r.id, kind: r.kind, title: r.title, section: r.section, module: r.module, phase: r.phase }); });
-    }
-    if (kind === 'integrations' || kind === 'all') {
-      C.INTEGRATIONS.forEach(function (i) { out.push({ id: i.id, label: i.id, kind: 'integration', title: i.name + ' (' + i.module + ', ' + i.dir + ')', section: '8.1', module: 'cross', phase: 'across' }); });
-    }
-    if (kind === 'scenarios' || kind === 'all') {
-      C.SCENARIOS.forEach(function (s) { out.push({ id: s.id, label: s.id, kind: 'scenario', title: s.title, section: s.refs, module: 'cross', phase: s.phase, inFdd: s.inFdd !== false }); });
-    }
-    if (kind === 'decisions' || kind === 'all') {
-      C.DECISIONS.forEach(function (d) { out.push({ id: d.id, label: d.id, kind: 'decision', title: d.title, section: d.id + ', ' + d.scenario, module: 'cross', phase: (SCEN[d.scenario] || {}).phase || 'across' }); });
-    }
-    if (kind === 'beyond' || kind === 'all') {
-      C.BEYOND.forEach(function (b) { out.push({ id: b.id, label: b.id, kind: 'beyond', title: b.title, section: b.note, module: 'cross', phase: 'across' }); });
-    }
-    return out;
+  function itemOf(id) {
+    var r = REQS[id];
+    if (r) return { id: r.id, label: r.kind === 'page' ? '§' + r.id : r.id, kind: r.kind, title: r.title, section: r.section, module: r.module, phase: r.phase };
+    var i = INTS[id];
+    if (i) return { id: i.id, label: i.id, kind: 'integration', title: i.name + ' (' + i.module + ', ' + i.dir + ')', section: '8.1', module: 'cross', phase: 'across' };
+    var s = SCEN[id];
+    if (s) return { id: s.id, label: s.id, kind: 'scenario', title: s.title, section: s.refs, module: 'cross', phase: s.phase, inFdd: s.inFdd !== false };
+    var d = DPS[id];
+    if (d) return { id: d.id, label: d.id, kind: 'decision', title: d.title, section: d.id + ', ' + d.scenario, module: 'cross', phase: (SCEN[d.scenario] || {}).phase || 'across' };
+    var b = BEY[id];
+    if (b) return { id: b.id, label: b.id, kind: 'beyond', title: b.title, section: b.note, module: 'cross', phase: 'across' };
+    return null;
   }
 
-  /** The mapping's rows for one kind (or 'all'): status, where it lives in each app, tests, evidence, built, missing. */
+  function itemsOf(kind) {
+    var ids = [];
+    if (kind === 'requirements' || kind === 'all') ids = ids.concat(reqIds());
+    if (kind === 'integrations' || kind === 'all') ids = ids.concat(intIds());
+    if (kind === 'scenarios' || kind === 'all') ids = ids.concat(C.SCENARIOS.map(function (s) { return s.id; }));
+    if (kind === 'decisions' || kind === 'all') ids = ids.concat(dpIds());
+    if (kind === 'beyond' || kind === 'all') ids = ids.concat(C.BEYOND.map(function (b) { return b.id; }));
+    return ids.map(itemOf);
+  }
+
+  /** The requirements that name an item (itself for a requirement; a decision point through its scenario). */
+  function requirementsOf(id) {
+    if (REQS[id]) return [REQS[id]];
+    var key = DPS[id] ? DPS[id].scenario : id;
+    return C.REQUIREMENTS.filter(function (r) { return (r.scenarios || []).indexOf(key) !== -1 || (r.integrations || []).indexOf(key) !== -1; });
+  }
+
+  /** The mapping's rows for one kind (or 'all'): status, where it lives in Next and on the phone, tests, evidence, has, missing. */
   function mappingRows(kind, names) {
     return itemsOf(kind || 'requirements').map(function (it) {
       var mp = mapOf(it.id) || {};
@@ -201,14 +243,12 @@ define(['resources/js/fddCatalog'], function (C) {
       var status = mp.status || 'none';
       return {
         id: it.id, label: it.label, kind: it.kind, kindLabel: KIND_LABEL[it.kind], title: it.title, section: it.section, status: status, statusLabel: statusLabel(status),
-        next: w.next, nextText: w.next.map(function (x) { return x.label; }).join(', '), newText: w.newApp.join(', '), oldText: w.oldApp.join(', '),
-        mobileText: w.mobile.join(', '), deviceText: w.device.join(', '),
-        apps: [w.next.length ? 'Next' : '', w.newApp.length ? 'New' : '', w.oldApp.length ? 'Old' : '', w.mobile.length ? 'Mobile' : '', w.device.length ? w.device.join(', ') : '']
-          .filter(function (x) { return !!x; }).join(' · '),
+        next: w.next, nextText: w.next.map(function (x) { return x.label; }).join(', '), phoneText: w.phone.join(', '), mobileText: w.mobile.join(', '),
+        deviceText: w.device.join(', '), desktopText: w.desktop ? DEVICE_LABEL.desktop : '',
         tests: (mp.tests || []).slice(), testsText: (mp.tests || []).join(', '), testCount: (mp.tests || []).length,
         evidence: (mp.evidence || []).slice(), evidenceText: (mp.evidence || []).join(', '), has: mp.has || '', missing: mp.missing || '', inFdd: it.inFdd !== false,
         search: low([it.id, it.label, it.title, it.section, mp.has, mp.missing, (mp.next || []).join(' '), w.next.map(function (x) { return x.label; }).join(' '),
-          (mp.newApp || []).join(' '), (mp.oldApp || []).join(' '), w.mobile.join(' '), (mp.tests || []).join(' '), (mp.evidence || []).join(' ')].join(' '))
+          w.phone.join(' '), (mp.tests || []).join(' '), (mp.evidence || []).join(' ')].join(' '))
       };
     });
   }
@@ -242,6 +282,192 @@ define(['resources/js/fddCatalog'], function (C) {
     return MAP_KINDS.filter(function (k) { return k.key !== 'beyond' && k.key !== 'all'; }).map(function (k) {
       return { key: k.key, label: k.label, count: partly(k.key, names).length };
     });
+  }
+
+  // ── The drill-down behind every number ───────────────────────────────────────────────────────────────────────
+  // A drill is { source, status, module, text }. source says which number it opens:
+  //   req                every requirement            req:<status>   the requirements with that status (done, partly, none, na)
+  //   pct                Complete %: each applicable requirement's share
+  //   reach              To reach 100%: every partly or not started requirement, biggest gain first, then the not-done
+  //                      integrations and decision points with what each needs
+  //   next | phone       the requirements with a Next screen | on the phone
+  //   ints | scen | dps  the integrations | the FDD's scenarios | the decision points
+  //   module:<key> | phase:<key>   a bar (with status: one of its segments)
+  // status, module and text narrow it (status chips, module chips, search). The count on a tile or a bar is the number of
+  // rows its drill lists, before any narrowing.
+  var REACH_RULE_TAIL = 'Integrations and decision points do not count in Complete %; the ones not done are listed after the requirements, with what each needs.';
+
+  function sortedReach() {
+    var c = count(reqIds());
+    var rank = {};
+    reqIds().forEach(function (id, i) { rank[id] = i; });
+    return reqIds().filter(function (id) { var s = statusOf(id); return s === 'partly' || s === 'none'; }).sort(function (a, b) {
+      var ga = shareOf(a, c.applicable).gain;
+      var gb = shareOf(b, c.applicable).gain;
+      if (ga !== gb) return gb - ga;
+      var ta = touches(a).length;
+      var tb = touches(b).length;
+      if (ta !== tb) return tb - ta;
+      return rank[a] - rank[b];
+    });
+  }
+
+  /** The scenarios and integrations a requirement names that are not done in Next (n/a left out). */
+  function touches(id) {
+    var r = REQS[id];
+    if (!r) return [];
+    return (r.scenarios || []).concat(r.integrations || []).filter(function (x) { var s = statusOf(x); return s === 'partly' || s === 'none'; }).map(function (x) {
+      return { id: x, title: (SCEN[x] && SCEN[x].title) || (INTS[x] && INTS[x].name) || '', status: statusOf(x), statusLabel: statusLabel(statusOf(x)) };
+    });
+  }
+
+  function drillBase(source) {
+    var src = String(source || '');
+    var c = count(reqIds());
+    var parts = src.split(':');
+    var head = parts[0];
+    var key = parts.slice(1).join(':');
+    var reqKind = { kind: 'requirements', modules: true, mode: '' };
+    if (head === 'req' && !key) {
+      return Object.assign({}, reqKind, { title: 'Requirements', ids: reqIds(), intro: 'Every requirement of the FDD (4.1 and the pages of 7) and how far EquipRite Next has it.' });
+    }
+    if (head === 'req' && STATUS_LABEL[key]) {
+      var intro = { done: 'Built and usable in EquipRite Next (or its phone app).', partly: 'Built in part in Next: each says what Next lacks.',
+        none: 'Nothing in Next\'s code yet.', na: 'Not expected now: a future phase in the FDD (2.3).' }[key];
+      return Object.assign({}, reqKind, { title: STATUS_LABEL[key], ids: reqIds().filter(function (id) { return statusOf(id) === key; }), intro: intro });
+    }
+    if (head === 'pct') {
+      return Object.assign({}, reqKind, { mode: 'pct', title: 'Complete', ids: reqIds().filter(function (id) { return statusOf(id) !== 'na'; }),
+        intro: 'What each requirement adds to Complete %: done counts 1, partly done ½, not started 0, each as a share of the ' + c.applicable
+          + ' requirements that apply (' + plural(c.na, 'requirement') + ' not applicable left out).' });
+    }
+    if (head === 'reach') {
+      return Object.assign({}, reqKind, { mode: 'reach', title: 'To reach 100%', ids: sortedReach(),
+        intro: 'Every requirement not done yet, the biggest gain first, with the scenarios and integrations it touches that are not done either.' });
+    }
+    if (head === 'next') {
+      return Object.assign({}, reqKind, { title: 'In EquipRite Next', ids: inNextIds(), intro: 'The requirements that have a screen in Next\'s menu, whatever their status.' });
+    }
+    if (head === 'phone') {
+      return Object.assign({}, reqKind, { mode: 'phone', title: 'On the phone', ids: phoneIds(),
+        intro: 'What Next does on the phone: EquipRite Mobile\'s tabs (it runs on Next\'s own resources/js) and EquipRite for Android, a frame around them with its own scanner.' });
+    }
+    if (head === 'ints') return { kind: 'integrations', modules: false, mode: '', title: 'Integrations', ids: intIds(), intro: 'The 20 integrations of FDD 8.1 and how far Next calls them.' };
+    if (head === 'scen') return { kind: 'scenarios', modules: false, mode: '', title: 'Scenarios', ids: fddScenarioIds(), intro: 'The FDD\'s scenarios (S01 to S34) and how far Next takes them.' };
+    if (head === 'dps') return { kind: 'decisions', modules: false, mode: '', title: 'Decision points', ids: dpIds(), intro: 'DP-01 to DP-10 and how far Next decides them.' };
+    if (head === 'module' && MOD[key]) {
+      return Object.assign({}, reqKind, { modules: false, title: MOD[key].label, ids: reqIds().filter(function (id) { return REQS[id].module === key; }), intro: MOD[key].what });
+    }
+    if (head === 'phase' && PHASE[key]) {
+      return Object.assign({}, reqKind, { title: PHASE[key].label, ids: reqIds().filter(function (id) { return REQS[id].phase === key; }), intro: 'FDD ' + PHASE[key].section + '.' });
+    }
+    return null;
+  }
+
+  /** One row of a drill: the item, its status, what Next has and lacks, its Next screens, its phone tabs, its tests, where to read it. */
+  function drillRow(id, names, mode, applicable) {
+    var it = itemOf(id);
+    var mp = mapOf(id) || {};
+    var w = where(mp, names);
+    var status = mp.status || 'none';
+    var sh = shareOf(id, applicable);
+    var t = mode === 'reach' ? touches(id) : [];
+    var figure = '';
+    var figureTitle = '';
+    if (mode === 'pct') {
+      figure = two(sh.share) + '%';
+      figureTitle = (sh.points === 1 ? 'Counts 1' : (sh.points ? 'Counts ½' : 'Counts 0')) + ' of ' + applicable + ': ' + two(sh.share) + ' points of Complete %';
+    } else if (mode === 'reach') {
+      figure = '+' + two(sh.gain) + ' pts';
+      figureTitle = 'Finishing it adds ' + (status === 'partly' ? '½' : '1') + ' × 1/' + applicable + ' × 100 = ' + two(sh.gain) + ' points to Complete %';
+    }
+    var reqs = requirementsOf(id);
+    return {
+      id: id, label: it.label, kind: it.kind, kindLabel: KIND_LABEL[it.kind], title: it.title, section: it.section, module: it.module,
+      status: status, statusLabel: statusLabel(status), has: mp.has || '', missing: mp.missing || '',
+      screens: w.next, screensText: w.next.map(function (x) { return x.label; }).join(', '),
+      phone: w.phone, phoneText: w.phone.join(', '), desktop: w.desktop,
+      tests: (mp.tests || []).map(fileName), testsText: (mp.tests || []).join(', '), evidenceText: (mp.evidence || []).join(', '),
+      reqLinks: reqs.map(function (r) { return { id: r.id, label: (r.kind === 'page' ? '§' : '') + r.id, title: r.title }; }),
+      self: !!REQS[id],
+      points: sh.points, pointsText: mode === 'pct' ? (sh.points === 1 ? '1' : (sh.points ? '½' : '0')) : '', share: sh.share, gain: mode === 'reach' ? sh.gain : 0,
+      figure: figure, figureTitle: figureTitle,
+      touches: t, touchesText: t.map(function (x) { return x.id + ' ' + x.statusLabel.toLowerCase(); }).join(', '),
+      needs: mp.missing || '',
+      search: low([id, it.label, it.title, it.section, mp.has, mp.missing, w.next.map(function (x) { return x.label + ' ' + x.id; }).join(' '), w.phone.join(' '),
+        (mp.tests || []).join(' '), (mp.evidence || []).join(' '), t.map(function (x) { return x.id; }).join(' ')].join(' '))
+    };
+  }
+
+  function matches(rows, text) {
+    var words = low(text).split(/\s+/).filter(function (w) { return !!w; });
+    return (rows || []).filter(function (r) { return words.every(function (w) { return r.search.indexOf(w) !== -1; }); });
+  }
+
+  /**
+   * The drill behind a number: spec { source, status, module, text } → { open, source, title, intro, count (rows before
+   * narrowing), crumbs, rows, extra (To reach 100%: the integrations and decision points not done), chips (status, with
+   * counts), modules (module chips), summary, rule (Complete % and To reach 100%), exact, toGo }, or null for an
+   * unknown source.
+   */
+  function drill(spec, names) {
+    var sp = spec || {};
+    var base = drillBase(sp.source);
+    if (!base) return null;
+    var c = count(reqIds());
+    var status = STATUS_LABEL[sp.status] ? sp.status : 'all';
+    var module = base.modules && MOD[sp.module] ? sp.module : 'all';
+    var text = String(sp.text == null ? '' : sp.text);
+    var all = base.ids.map(function (id) { return drillRow(id, names, base.mode, c.applicable); });
+    var byText = matches(all, text);
+    var byModule = byText.filter(function (r) { return module === 'all' || r.module === module; });
+    var rows = byModule.filter(function (r) { return status === 'all' || r.status === status; });
+    var present = STATUS_ORDER.filter(function (s) { return all.some(function (r) { return r.status === s; }); });
+    var chipRows = present.length > 1 ? [{ key: 'all', label: 'All', count: byModule.length }].concat(present.map(function (s) {
+      return { key: s, label: STATUS_LABEL[s], count: byModule.filter(function (r) { return r.status === s; }).length };
+    })) : [];
+    var modChips = base.modules ? [{ key: 'all', label: 'All modules', count: byText.filter(function (r) { return status === 'all' || r.status === status; }).length }].concat(
+      C.MODULES.filter(function (m) { return all.some(function (r) { return r.module === m.key; }); }).map(function (m) {
+        return { key: m.key, label: m.label, count: byText.filter(function (r) { return r.module === m.key && (status === 'all' || r.status === status); }).length };
+      })) : [];
+    var crumbs = [{ key: 'mapping', label: 'Mapping', last: false }, { key: 'base', label: base.title + ' · ' + all.length, last: false }];
+    if (status !== 'all') crumbs.push({ key: 'status', label: STATUS_LABEL[status] + ' · ' + all.filter(function (r) { return r.status === status; }).length, last: false });
+    if (module !== 'all') crumbs.push({ key: 'module', label: MOD[module].label + ' · ' + all.filter(function (r) { return r.module === module && (status === 'all' || r.status === status); }).length, last: false });
+    crumbs[crumbs.length - 1].last = true;
+    var extra = [];
+    if (base.mode === 'reach') {
+      extra = matches(intIds().concat(dpIds()).filter(function (id) { var s = statusOf(id); return s === 'partly' || s === 'none'; }).map(function (id) {
+        return drillRow(id, names, '', c.applicable);
+      }), text).filter(function (r) { return status === 'all' || r.status === status; });
+    }
+    var noun = base.kind === 'integrations' ? 'integration' : (base.kind === 'scenarios' ? 'scenario' : (base.kind === 'decisions' ? 'decision point' : 'requirement'));
+    var narrowed = rows.length !== all.length;
+    var rule = '';
+    if (base.mode === 'pct') {
+      rule = 'Complete % = (done + ½ × partly) ÷ the ' + c.applicable + ' requirements that apply × 100 = (' + c.done + ' + ½ × ' + c.partly + ') ÷ ' + c.applicable
+        + ' × 100 = ' + one(c.exact) + '%, shown as ' + c.pct + '%. Each row is that requirement\'s share (to two decimals); the shares add up to ' + one(c.exact) + '%.';
+    } else if (base.mode === 'reach') {
+      rule = 'Each requirement that applies is 1/' + c.applicable + ' of Complete %. A partly done one that is finished adds ½ × 1/' + c.applicable + ' × 100 = '
+        + two(50 / c.applicable) + ' points; a not started one adds 1/' + c.applicable + ' × 100 = ' + two(100 / c.applicable) + ' points. Now ' + one(c.exact)
+        + '% (shown ' + c.pct + '%): these gains add up to the ' + one(100 - c.exact) + ' points still to go. ' + REACH_RULE_TAIL;
+    }
+    return {
+      open: true, source: String(sp.source), kind: base.kind, mode: base.mode, title: base.title, intro: base.intro, count: all.length,
+      status: status, module: module, text: text, crumbs: crumbs, rows: rows, extra: extra, chips: chipRows, modules: modChips,
+      summary: (narrowed ? rows.length + ' of ' + plural(all.length, noun) : plural(all.length, noun)) + (extra.length ? '; then ' + plural(extra.length, 'integration or decision point', 'integrations and decision points') + ' not done' : ''),
+      empty: !rows.length && !extra.length, rule: rule, exact: c.exact, toGo: 100 - c.exact
+    };
+  }
+
+  /** What a drill's Export takes: exactly the rows it shows (To reach 100%: then the integrations and DPs), and their columns. */
+  function drillExport(d) {
+    var x = d || { rows: [], extra: [] };
+    var cols = [{ key: 'label', label: 'ID' }, { key: 'kindLabel', label: 'Kind' }, { key: 'title', label: 'Item' }, { key: 'statusLabel', label: 'Status' }];
+    if (x.mode === 'pct') cols = cols.concat([{ key: 'pointsText', label: 'Counts as' }, { key: 'figure', label: 'Share of Complete %' }]);
+    if (x.mode === 'reach') cols = cols.concat([{ key: 'figure', label: 'Gain to Complete %' }, { key: 'touchesText', label: 'Touches, not done' }]);
+    cols = cols.concat([{ key: 'has', label: 'What Next has' }, { key: 'missing', label: 'What is missing' }, { key: 'screensText', label: 'Next screens' },
+      { key: 'phoneText', label: 'On the phone' }, { key: 'testsText', label: 'Tests' }, { key: 'evidenceText', label: 'Evidence' }]);
+    return { rows: (x.rows || []).concat(x.extra || []), columns: cols };
   }
 
   // ── What each tab shows, in one object (the page sets it in one step) ─────────────────────────────────────────
@@ -281,17 +507,16 @@ define(['resources/js/fddCatalog'], function (C) {
       return [{ key: 'label', label: 'ID' }, { key: 'kindLabel', label: 'Kind' }, { key: 'title', label: 'Requirement' }, { key: 'says', label: 'What the FDD says' },
         { key: 'moduleLabel', label: 'Module' }, { key: 'phaseLabel', label: 'Phase' }, { key: 'priority', label: 'Priority' }, { key: 'section', label: 'FDD section' },
         { key: 'rolesText', label: 'Roles' }, { key: 'scenariosText', label: 'Scenarios' }, { key: 'integrationsText', label: 'Integrations' },
-        { key: 'statusLabel', label: 'Development status' }, { key: 'vague', label: 'Where the FDD is vague' }];
+        { key: 'statusLabel', label: 'Status in EquipRite Next' }, { key: 'nextText', label: 'Next screens' }, { key: 'vague', label: 'Where the FDD is vague' }];
     }
     if (view === 'flows') {
       return [{ key: 'flow', label: 'Flow' }, { key: 'n', label: 'Step' }, { key: 'title', label: 'What' }, { key: 'laneLabel', label: 'Who / where' }, { key: 'kindLabel', label: 'Kind' },
         { key: 'section', label: 'FDD section' }, { key: 'fdd', label: 'FDD status' }, { key: 'devText', label: 'Stored statuses' }, { key: 'dpText', label: 'Decision point' },
-        { key: 'intsText', label: 'Integrations' }, { key: 'statusLabel', label: 'Development status' }, { key: 'screensText', label: 'Next screens' }, { key: 'what', label: 'What happens' }];
+        { key: 'intsText', label: 'Integrations' }, { key: 'statusLabel', label: 'Status in EquipRite Next' }, { key: 'screensText', label: 'Next screens' }, { key: 'what', label: 'What happens' }];
     }
     return [{ key: 'label', label: 'ID' }, { key: 'kindLabel', label: 'Kind' }, { key: 'title', label: 'Item' }, { key: 'section', label: 'FDD' }, { key: 'statusLabel', label: 'Status' },
-      { key: 'nextText', label: 'EquipRite Next' }, { key: 'newText', label: 'New EquipRite' }, { key: 'oldText', label: 'Old EquipRite' }, { key: 'mobileText', label: 'EquipRite Mobile' },
-      { key: 'deviceText', label: 'Desktop / Android' }, { key: 'testsText', label: 'Tests' }, { key: 'evidenceText', label: 'Evidence' }, { key: 'has', label: 'What is built' },
-      { key: 'missing', label: 'What is missing' }];
+      { key: 'nextText', label: 'EquipRite Next' }, { key: 'phoneText', label: 'On the phone' }, { key: 'desktopText', label: 'Desktop client' },
+      { key: 'testsText', label: 'Tests' }, { key: 'evidenceText', label: 'Evidence' }, { key: 'has', label: 'What Next has' }, { key: 'missing', label: 'What is missing' }];
   }
 
   /** Requirement rows ready for export (lists as text). */
@@ -366,7 +591,7 @@ define(['resources/js/fddCatalog'], function (C) {
       dpText: s.dp || '', ints: ints, intsText: (s.ints || []).join(', '), notInFdd: !!s.notInFdd,
       map: s.map || '', mapTitle: mapTitle, status: status, statusLabel: status ? statusLabel(status) : 'Not mapped', has: mp ? mp.has : '', missing: mp ? mp.missing : '',
       screens: screens, screensText: screens.map(function (x) { return x.label; }).join(', '), canOpen: screens.some(function (x) { return x.open; }),
-      newText: w.newApp.join(', '), oldText: w.oldApp.join(', '), mobileText: w.mobile.join(', '), deviceText: w.device.join(', '),
+      phoneText: w.phone.join(', '), desktopText: w.desktop ? DEVICE_LABEL.desktop : '',
       first: i === 0, last: i === f.steps.length - 1, prev: i > 0 ? f.steps[i - 1].key : '', next: i < f.steps.length - 1 ? f.steps[i + 1].key : ''
     };
   }
@@ -549,7 +774,7 @@ define(['resources/js/fddCatalog'], function (C) {
     STATUS_ORDER: STATUS_ORDER,
     KIND_LABEL: KIND_LABEL,
     MAP_KINDS: MAP_KINDS,
-    APPS: APPS,
+    JUDGED: JUDGED,
     statusOf: statusOf,
     statusLabel: statusLabel,
     requirementRows: requirementRows,
@@ -568,6 +793,11 @@ define(['resources/js/fddCatalog'], function (C) {
     reqView: reqView,
     mapView: mapView,
     partlyView: partlyView,
+    drill: drill,
+    drillExport: drillExport,
+    shareOf: shareOf,
+    touches: touches,
+    requirementsOf: requirementsOf,
     exportColumns: exportColumns,
     exportRequirements: exportRequirements,
     flowList: flowList,
