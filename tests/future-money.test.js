@@ -50,10 +50,10 @@ act('toMonthEnd');
 const before = JSON.stringify(s);
 c = charges({ runPeriod: '2026-11' });
 T.eq('the dry run left the state alone', JSON.stringify(s) === before, true);
-T.eq('30 Nov: ready, and the preview counts what the run makes', [c.run.ready, c.run.preview.made, c.run.preview.statements, c.run.preview.kinds.map((k) => k.text).join(', ')].join(' | '), 'true | 9 | 2 | Rental 5, Transport 4');
+T.eq('30 Nov: ready, and the preview counts what the run makes', [c.run.ready, c.run.preview.made, c.run.preview.statements, c.run.preview.kinds.map((k) => k.text).join(', ')].join(' | '), 'true | 8 | 2 | Rental 4, Transport 4');
 const ran = act('runCharges', { period: '2026-11' });
-T.eq('…exactly what the run then made', [ran.made, ran.statements].join(), '9,2');
-T.eq('afterAct keeps the result in words', M.afterAct({ type: 'runCharges' }, { ok: true, result: ran }, s, {}).set.lastRun.text, 'Charge run Nov 2026 done: 9 new charge lines, 2 statements made or topped up.');
+T.eq('…exactly what the run then made', [ran.made, ran.statements].join(), '8,2');
+T.eq('afterAct keeps the result in words', M.afterAct({ type: 'runCharges' }, { ok: true, result: ran }, s, {}).set.lastRun.text, 'Charge run Nov 2026 done: 8 new charge lines, 2 statements made or topped up.');
 T.check('a rerun says nothing new', /Nothing new to charge for Nov 2026/.test(charges({ runPeriod: '2026-11' }).run.preview.words));
 
 T.section('statements: who does what');
@@ -65,7 +65,7 @@ T.eq('Sara: the owner releases, the pair and relationship in words', [c1.pairTex
 T.check('Release says what it does, and what Fusion does', /to agree or dispute by 3 Dec 2026; no answer by then accepts it\. In Fusion: nothing yet/.test(c1.releaseDoes));
 T.eq('lines: the detail with its money', c1.rows.find((r) => r.id === 'CH00004').detail, '24 days, 7 Nov – 30 Nov, at AED 15,000.00 a week or AED 3,000.00 a day');
 T.eq('the rules, the dispute window from the settings', c.rules.map((r) => r.key).join(), 'silence,held,damage,rerun,duties');
-T.eq('waiting elsewhere: customer and same company', [c.waitingCustomer.length, c.waitingCustomerTotal, c.waitingInternal.length, c.waitingInternalTotal].join(' | '), '2 | AED 9,760.00 | 1 | AED 1,620.00');
+T.eq('waiting elsewhere: customer and same company', [c.waitingCustomer.length, c.waitingCustomerTotal, c.waitingInternal.length, c.waitingInternalTotal].join(' | '), '3 | AED 8,605.00 | 1 | AED 1,620.00');
 T.eq('period chips with counts', c.periodChips.map((p) => p.label + ' ' + p.count).join(', '), 'All periods 2, Nov 2026 2');
 s.statements.forEach((x) => act('releaseStatement', { statementId: x.id }));
 as('p-pcfin');
@@ -156,12 +156,12 @@ s = Fx.state('agreed');
 as('p-desk');
 let b = billing();
 T.eq('scenario 3: Customer Y\'s charges and the invoice Fusion would make', [b.customers.length, b.customers[0].name, b.customers[0].invoices.map((i) => i.net + ' + ' + i.vatText + ' = ' + i.total).join()].join(' | '),
-  '1 | Customer Y · Gulf Builders | AED 9,760.00 + VAT 5 %: AED 488.00 = AED 10,248.00');
+  '1 | Customer Y · Gulf Builders | AED 8,605.00 + VAT 5 %: AED 430.25 = AED 9,035.25');
 T.eq('…e-invoicing is Fusion\'s', b.customers[0].eInvoicing, 'E-invoicing is Fusion\'s, not EquipRite\'s: United Arab Emirates, planned (Fusion localisation).');
 act('invoiceCustomer', { customerId: 'C-Y' });
 b = billing();
-T.eq('…the invoice made as previewed, open', [b.invoices[0].totalText, b.invoices[0].openText, b.invoices[0].canPayNow].join(' | '), 'AED 10,248.00 | AED 10,248.00 | true');
-T.check('Record the payment says what it records', /Records the payment of AED 10,248\.00 from Customer Y · Gulf Builders in Fusion Receivables/.test(b.invoices[0].payDoes));
+T.eq('…the invoice made as previewed, open', [b.invoices[0].totalText, b.invoices[0].openText, b.invoices[0].canPayNow].join(' | '), 'AED 9,035.25 | AED 9,035.25 | true');
+T.check('Record the payment says what it records', /Records the payment of AED 9,035\.25 from Customer Y · Gulf Builders in Fusion Receivables/.test(b.invoices[0].payDoes));
 act('customerPays', { txId: b.invoices[0].id });
 T.eq('paid, with its receipt', [billing().invoices[0].paid, /^Paid 30 Nov 2026/.test(billing().invoices[0].receiptText)].join(), 'true,true');
 T.eq('the deposit: held until the return; only the desk settles it', [billing().deposits[0].statusText, billing().deposits[0].canSettleNow].join(' | '), 'Received 2 Nov 2026: held until the return inspection | false');

@@ -1,6 +1,6 @@
 {
   "id": "site",
-  "description": "On site: receive, hours, moves, off hire. Pages start as skeletons on the Future page pattern; each screen's builder replaces its own page.",
+  "description": "On site: receive, hours, moves, the return on a date. Pages start as skeletons on the Future page pattern; each screen's builder replaces its own page.",
   "defaultPage": "site",
   "navigation": {
     "embeddable": "enabled"

@@ -1,9 +1,10 @@
-define(['resources/js/future/fxSeed', 'resources/js/nav'], function (Seed, nav) {
+define(['resources/js/future/fxSeed', 'resources/js/nav', 'resources/js/future/fxReturn'], function (Seed, nav, Ret) {
   'use strict';
 
   /**
    * The Guide's words around fxViews.guide(): the FDD v2.0 rules in one card, how each scenario is played, and each
-   * step with who plays it and the one click that plays it ("Play as Ana and open Approve & allocate"). Pure.
+   * step with who plays it and the one click that plays it ("Play as Ana and open Approve & allocate"). Pure. The
+   * steps and scenarios are fxViews.guide()'s, in the screens' words (the return on a date, fxReturn.words).
    */
 
   // FDD v2.0, section 2: the seven rules everything else follows (docs/fdd-v2/tools/build-fdd-v2.js RULES).
@@ -54,11 +55,11 @@ define(['resources/js/future/fxSeed', 'resources/js/nav'], function (Seed, nav) 
   function story(guide, meId) {
     var g = guide || { steps: [], scenarios: [], done: 0, total: 0 };
     var steps = (g.steps || []).map(function (s) {
-      return Object.assign({}, s, play(s.persona, s.navId, meId), { state: s.done ? 'done' : (s.next ? 'next' : 'todo'), stateText: s.done ? 'Done' : (s.next ? 'Next' : 'To do') });
+      return Object.assign({}, s, play(s.persona, s.navId, meId), { text: Ret.words(s.text), state: s.done ? 'done' : (s.next ? 'next' : 'todo'), stateText: s.done ? 'Done' : (s.next ? 'Next' : 'To do') });
     });
     var scenarios = (g.scenarios || []).map(function (sc) {
       var m = SCENARIO[sc.id] || { persona: 'p-pm', navId: 'new-request', tone: '', rel: '' };
-      return Object.assign({}, sc, play(m.persona, m.navId, meId), { tone: m.tone, rel: m.rel });
+      return Object.assign({}, sc, play(m.persona, m.navId, meId), { how: Ret.words(sc.how), tone: m.tone, rel: m.rel });
     });
     var next = steps.filter(function (s) { return s.next; })[0] || null;
     return { steps: steps, scenarios: scenarios, next: next, done: g.done || 0, total: g.total || steps.length, complete: !!steps.length && steps.every(function (s) { return s.done; }),

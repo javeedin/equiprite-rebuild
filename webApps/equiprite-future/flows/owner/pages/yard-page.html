@@ -1,4 +1,4 @@
-<!-- Yard: the owner's yard. To ship (what the owner approved), out (where each unit is), to collect (off hire), to
+<!-- Yard: the owner's yard. To ship (what the owner approved), out (where each unit is), to collect (returned by its site), to
      inspect, in repair, and the fleet of the persona's BUs (status, where, country, asset or stock, value, certificates by
      country, open customs). Ship, Collect, Inspect and Repaired open a confirmation first (what EquipRite does, what
      Fusion would do: the transfer order inside the owner, or the asset's location). v = fxOps.yard (loadChain). -->
@@ -7,7 +7,7 @@
     <div>
       <div class="nx-kicker"><oj-bind-text value="[[ 'Fleet owner · ' + $variables.v.busText ]]"></oj-bind-text></div>
       <h1>Yard</h1>
-      <div class="nx-sub"><oj-bind-text value="[[ 'Ship what ' + $variables.v.busText + ' approved, collect what is off hire, inspect what comes back; the fleet and where each unit is.' ]]"></oj-bind-text></div>
+      <div class="nx-sub"><oj-bind-text value="[[ 'Ship what ' + $variables.v.busText + ' approved, collect what the sites returned, inspect what comes back; the fleet and where each unit is.' ]]"></oj-bind-text></div>
     </div>
   </div>
 
@@ -25,7 +25,7 @@
     <div class="nx-kpis" role="group" aria-label="The yard's counts" id="ydKpis">
       <div class="nx-kpi fx-kpi nx-stage--ready"><span class="nx-kpi-label">To ship</span><span class="nx-kpi-value"><oj-bind-text value="[[ $variables.v.counts.ship ]]"></oj-bind-text></span><span class="nx-kpi-note">approved</span></div>
       <div class="nx-kpi fx-kpi nx-stage--onsite"><span class="nx-kpi-label">Out</span><span class="nx-kpi-value"><oj-bind-text value="[[ $variables.v.counts.out ]]"></oj-bind-text></span><span class="nx-kpi-note">on the way or on hire</span></div>
-      <div class="nx-kpi fx-kpi nx-stage--back"><span class="nx-kpi-label">To collect</span><span class="nx-kpi-value"><oj-bind-text value="[[ $variables.v.counts.collect ]]"></oj-bind-text></span><span class="nx-kpi-note">off hire</span></div>
+      <div class="nx-kpi fx-kpi nx-stage--back"><span class="nx-kpi-label">To collect</span><span class="nx-kpi-value"><oj-bind-text value="[[ $variables.v.counts.collect ]]"></oj-bind-text></span><span class="nx-kpi-note">returned by the sites</span></div>
       <div class="nx-kpi fx-kpi nx-stage--approval"><span class="nx-kpi-label">To inspect</span><span class="nx-kpi-value"><oj-bind-text value="[[ $variables.v.counts.inspect ]]"></oj-bind-text></span><span class="nx-kpi-note">back at the yard</span></div>
       <div class="nx-kpi fx-kpi nx-stage--stopped"><span class="nx-kpi-label">In repair</span><span class="nx-kpi-value"><oj-bind-text value="[[ $variables.v.counts.repair ]]"></oj-bind-text></span><span class="nx-kpi-note">came back damaged</span></div>
       <div class="nx-kpi fx-kpi nx-stage--done"><span class="nx-kpi-label">The fleet</span><span class="nx-kpi-value"><oj-bind-text value="[[ $variables.v.counts.fleet ]]"></oj-bind-text></span><span class="nx-kpi-note">units</span></div>
@@ -129,7 +129,7 @@
           </oj-bind-if>
         </div>
       </div>
-      <oj-bind-if test="[[ !$variables.v.toCollect.length ]]"><p class="fx-sec-empty">Nothing to collect: a unit comes here when its site releases it (off hire).</p></oj-bind-if>
+      <oj-bind-if test="[[ !$variables.v.toCollect.length ]]"><p class="fx-sec-empty">Nothing to collect: a unit comes here when its site returns it (on the return date).</p></oj-bind-if>
       <ul class="fx-items">
         <oj-bind-for-each data="[[ $variables.v.toCollect ]]">
           <template data-oj-as="x">

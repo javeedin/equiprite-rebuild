@@ -4,8 +4,9 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
   /**
    * EquipRite Future · Setup (flows/setup): FDD v2.0's companies and agreements around fxViews.setup(): who may change
    * them and why not, the people to play with their roles in words, who may source from whom and what stopping it
-   * does, the agreements with their version history and what a new rate does before it is saved, and the decisions
-   * (OD-…) with what each one changes in EquipRite and in Fusion. Pure functions; the drafts are the page's.
+   * does, the agreements with their version history, how each bills (by the day, or by the hour from the timesheet,
+   * with the hour rate per class) and what a new rate or a switch of billing does before it is saved, and the
+   * decisions (OD-…) with what each one changes in EquipRite and in Fusion. Pure functions; the drafts are the page's.
    */
   var U = E.util;
   var L = E.lookups;
@@ -98,11 +99,26 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
       var hist = (a.versions || []).slice();
       if (!hist.some(function (h) { return h.version === 1; })) hist.unshift({ version: 1, from: s.startDate, approvedBy: 'As the demo group was set up', note: 'The rates below, before any change' });
       var cur = a.currency;
-      return Object.assign({}, va, { kindKey: a.kind, status: a.status, provider: L.buName(s, a.provider), receiver: a.customer ? (L.customer(s, a.customer) || {}).name : L.buName(s, a.receiver),
+      var hourly = (a.billing || 'DAILY') === 'HOURLY';
+      var minHours = a.minHours || 16;
+      return Object.assign({}, va, { kindKey: a.kind, status: a.status,
+        billing: hourly ? 'HOURLY' : 'DAILY', hourly: hourly, billingText: hourly ? 'Billed by the hour (timesheet)' : 'Billed by the day', billingTone: hourly ? 'cust' : 'na',
+        billingWords: hourly ? 'Rental = approved hours of use × the hour rate; standby hours at ' + va.standby + ' of it; at least ' + (a.minHours || 0) + ' hours per hire, charged at the return.'
+          : 'Rental = the days on hire at the day and week rates (the hours count for standby only); a minimum hire of ' + (a.minDays || 0) + ' days.',
+        billingTo: hourly ? 'DAILY' : 'HOURLY', billingFlipLabel: hourly ? 'Bill by the day' : 'Bill by the hour',
+        billingFlip: 'Switching makes ' + a.number + ' version ' + (a.version + 1) + ' from ' + F.date(s.today) + ': ' + (hourly ? 'billed by the day, at the day and week rates.'
+          : 'billed by the hour from the approved timesheets (hours × the hour rate below, at least ' + minHours + ' hours per hire).')
+          + ' Lines already requested keep the billing they were raised with; new requests follow version ' + (a.version + 1) + '. Fusion: nothing now.', provider: L.buName(s, a.provider), receiver: a.customer ? (L.customer(s, a.customer) || {}).name : L.buName(s, a.receiver),
         tone: a.kind === 'CUSTOMER' ? 'cust' : a.kind === 'CROSS_CHARGE' ? 'info' : (E.relationType(s, a.provider, a.receiver) === 'IC_CROSS_BORDER' ? 'xb' : 'ic'),
-        transportText: a.transport ? F.money(a.transport, cur) + ' a trip' : 'none', minText: a.minDays ? a.minDays + (a.minDays === 1 ? ' day' : ' days') : 'none', standbyText: va.standby,
+        transportText: a.transport ? F.money(a.transport, cur) + ' a trip' : 'none',
+        minText: hourly ? (a.minHours ? a.minHours + ' hours per hire' : 'none') : a.minDays ? a.minDays + (a.minDays === 1 ? ' day' : ' days') : 'none', standbyText: va.standby,
         breakdownText: a.breakdownCredit ? 'Credited' : 'Not credited', depositText: a.depositPct ? Math.round(a.depositPct * 100) + ' % of a month' : 'none', whtText: a.wht ? Math.round(a.wht * 100) + ' %' : 'none',
-        rates: va.rates.map(function (r) { return Object.assign({}, r, { agreementId: a.id, key: 'rate|' + a.id + '|' + r.cls + '|', dayText: F.money(r.day, cur), weekText: F.money(r.week, cur), currency: cur }); }),
+        rates: va.rates.map(function (r) {
+          var raw = (a.rates || {})[r.cls] || {};
+          var hour = raw.hour != null ? raw.hour : U.r2(r.day / 8);
+          return Object.assign({}, r, { agreementId: a.id, key: 'rate|' + a.id + '|' + r.cls + '|', dayText: F.money(r.day, cur), weekText: F.money(r.week, cur), currency: cur,
+            hour: hour, hourText: F.money(hour, cur), hourNote: raw.hour != null ? 'an hour' : 'the day rate ÷ 8' });
+        }),
         history: hist.map(function (h) { return { version: h.version, from: F.date(h.from), by: h.approvedBy || '', note: h.note || '', current: h.version === a.version }; }).reverse(),
         nextVersion: a.version + 1, today: F.date(s.today) });
     });
@@ -196,8 +212,8 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
       relations: { name: 'ic-relationships', title: 'Intercompany relationships (MC-FR-04)', rows: x.relations, columns: [['provider', 'Provider (owner)'], ['receiver', 'Receiver (user)'], ['type', 'Type'],
         ['mechanism', 'Mechanism'], ['lead', 'Lead time'], ['netting', 'Netting'], ['priority', 'Priority'], ['agreement', 'Agreement'], ['state', 'State']] },
       agreements: { name: 'agreements', title: 'Agreements and rates', rows: [].concat.apply([], (x.agreements || []).map(function (a) {
-        return a.rates.map(function (r) { return { number: a.number, kind: a.kind, between: a.between, currency: a.currency, version: a.version, tax: a.tax, cls: r.clsName, day: r.day, week: r.week, terms: a.terms }; });
-      })), columns: [['number', 'Agreement'], ['kind', 'Kind'], ['between', 'Between'], ['currency', 'Currency'], ['version', 'Version'], ['tax', 'Tax'], ['cls', 'Class'], ['day', 'Day rate'], ['week', 'Week rate'], ['terms', 'Terms']] },
+        return a.rates.map(function (r) { return { number: a.number, kind: a.kind, between: a.between, currency: a.currency, version: a.version, tax: a.tax, billing: a.billingText, cls: r.clsName, day: r.day, week: r.week, hour: r.hour, terms: a.terms }; });
+      })), columns: [['number', 'Agreement'], ['kind', 'Kind'], ['between', 'Between'], ['currency', 'Currency'], ['version', 'Version'], ['tax', 'Tax'], ['billing', 'Billing'], ['cls', 'Class'], ['day', 'Day rate'], ['week', 'Week rate'], ['hour', 'Hour rate'], ['terms', 'Terms']] },
       decisions: { name: 'decisions', title: 'Decisions (FDD v2.0)', rows: (x.settings || []).map(function (st) { return { ref: st.ref, label: st.label, value: st.valueShown, does: st.does, fusion: st.fusion, switchable: 'Here' }; })
         .concat((x.fixed || []).map(function (f) { return { ref: f.ref, label: f.label, value: f.text, does: '', fusion: '', switchable: 'Decided (recommendation)' }; })),
         columns: [['ref', 'Ref'], ['label', 'Decision'], ['value', 'Now'], ['does', 'What it does'], ['fusion', 'In Fusion'], ['switchable', 'Changed']] }
@@ -205,7 +221,7 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
     var sp = specs[list];
     if (!sp) return { name: list || 'export', title: list || 'Export', rows: [], columns: [] };
     return { name: sp.name, title: sp.title, subtitle: 'EquipRite Future setup · ' + (x.today || ''), rows: sp.rows || [],
-      columns: sp.columns.map(function (c) { return { key: c[0], label: c[1], type: c[0] === 'version' || c[0] === 'day' || c[0] === 'week' || c[0] === 'units' || c[0] === 'priority' ? undefined : 'text' }; }) };
+      columns: sp.columns.map(function (c) { return { key: c[0], label: c[1], type: c[0] === 'version' || c[0] === 'day' || c[0] === 'week' || c[0] === 'hour' || c[0] === 'units' || c[0] === 'priority' ? undefined : 'text' }; }) };
   }
 
   return { ROLE: ROLE, INFO: INFO, FIXED: FIXED, setup: setup, draftOf: draftOf, rateChange: rateChange, ratePayload: ratePayload, settingChange: settingChange,

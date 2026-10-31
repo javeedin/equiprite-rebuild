@@ -121,6 +121,29 @@
 .fx-skeleton-list li { display: flex; gap: 10px; }
 .fx-skeleton-list code { color: var(--nx-muted); }
 
+/* ── The bill of a hire (the Return dialog's final bill, a request's Money tab) ───────────────────────────────── */
+.fx-bill { display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 12px; border: 1px solid #d3e4ee; border-radius: 10px; background: #f6fafc; }
+.fx-bill-mode { margin: 0; font-size: 13px; font-weight: 600; }
+.fx-bill-basis { margin: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.fx-bill-basis .nx-note { overflow-wrap: anywhere; }
+.fx-grid--bill { border-top: 1px solid var(--nx-line); }
+.fx-grid--bill .nx-row { grid-template-columns: minmax(0, 1fr) auto; gap: 10px; padding: 6px 2px; font-size: 13px; align-items: start; }
+.fx-bill-what { min-width: 0; }
+.fx-bill-what .nx-cell-main, .fx-bill-what .nx-cell-sub { white-space: normal; overflow-wrap: anywhere; }
+.fx-bill-amt { font-weight: 700; white-space: nowrap; text-align: right; }
+.fx-bill-row--expected .fx-bill-amt { color: var(--nx-muted); }
+.fx-bill-row--credit .fx-bill-amt { color: var(--fx-ok); }
+.fx-bill-totals { margin: 0; display: flex; flex-direction: column; gap: 4px; }
+.fx-bill-totals > div { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 13px; }
+.fx-bill-totals dt { color: var(--nx-muted); }
+.fx-bill-totals dd { margin: 0; text-align: right; font-weight: 600; }
+.fx-bill-totals dd .nx-cell-sub { font-weight: 400; white-space: normal; }
+.fx-bill-totals .fx-bill-total { padding: 6px 0; border-top: 1px solid var(--nx-line-strong); font-size: 15px; }
+.fx-bill-totals .fx-bill-total dt { color: var(--nx-ink); font-weight: 700; }
+.fx-bill-totals .fx-bill-total dd { font-weight: 800; }
+.fx-bill-notes { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; font-size: 12.5px; color: var(--nx-muted); }
+.fx-bill-damage { color: #92400e; }
+
 /* ── Narrower windows ─────────────────────────────────────────────────────────────────────────────────────── */
 @media (max-width: 1279px) {
   .fx-persona-title, .fx-persona-kicker { display: none; }

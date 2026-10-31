@@ -48,7 +48,7 @@ T.eq('a row: type, project, BU and company, owners', [r1.typeText, r1.party, r1.
 T.eq('…relationship chips with their tones', l.rows.map((r) => r.relChips.map((c) => c.label + '/' + c.tone).join()).join(' ; '),
   'Same company · cross-charge/info ; Intercompany · domestic/ic ; Intercompany · domestic/ic');
 T.eq('…money progress: done of total and the next money step, who does it', r1.moneyLine, '4 of 7 · Money next: Settled · Treasury');
-T.eq('…and where the request is now, with its person', r1.flowNext, 'Here now: off hire · Omar Haddad (ProjectCo Projects)');
+T.eq('…and where the request is now, with its person', r1.flowNext, 'Here now: the return · Omar Haddad (ProjectCo Projects)');
 T.eq('…cost so far, on the project', [r1.costSoFar, r1.costNote].join(' '), 'AED 15,000.00 on the project');
 T.eq('search: by unit serial', R.list(s, { text: 'cr-2001' }).rows.map((r) => r.number).join(), 'FR-1002');
 T.eq('…nothing matches: said in words', R.list(s, { text: 'nothing like this' }).empty, 'Nothing matches. Try another chip or clear the search.');
@@ -193,7 +193,7 @@ T.section('A request\'s tab');
 let v = R.request(s, ids.r1);
 T.eq('head', [v.number, v.typeText, v.buText, v.party, v.siteText, v.datesText, v.words].join(' | '),
   'FR-1001 | Internal project | ProjectCo Projects · ProjectCo Contracting LLC | PC-INT-014 · ProjectCo head office fit-out | Business Bay, Dubai · United Arab Emirates | 3 Nov 2026 to 20 Dec 2026 | On hire');
-T.eq('…the badge: the real next step and who does it (not the money checklist\'s first item)', v.finBadge, 'Next: off hire · Omar Haddad, site supervisor');
+T.eq('…the badge: the real next step and who does it (not the money checklist\'s first item)', v.finBadge, 'Next: the return · Omar Haddad, site supervisor');
 const ln = v.lines[0];
 T.eq('a line: unit, owner, agreement, events in order', [ln.unitTitle, ln.ownerText, ln.agreementText, ln.eventList.map((e) => e.label + ' ' + e.date).join(', ')].join(' | '),
   'EX-1001 · CAT 320 Excavator | FleetCo Fleet · FleetCo Equipment LLC | ICA-FC-PC-2026 v1 (intercompany agreement) | Requested 2 Nov 2026, Approved and allocated 2 Nov 2026, Shipped 2 Nov 2026, On hire 7 Nov 2026');
@@ -222,6 +222,14 @@ T.eq('returned: r1 financially complete, inspected', [v.finBadge, v.finance.comp
 const r3 = R.request(as(F.state('returned'), 'p-desk'), ids.r3);
 T.check('a customer rental: deposit, invoice, damage', r3.items.map((i) => i.key).join() === 'ops,charges,deposit,invoiced,paid,depositSettled,damage'
   && /AED 1,500.00 · Cracked panel · 3 photos/.test(r3.lines[0].damageText), r3.items.map((i) => i.key).join() + ' ' + r3.lines[0].damageText);
+const b3 = r3.bills[0];
+T.eq('…the bill for this hire: by the hour from the approved timesheet, the return\'s hours dropped, damage added', [b3.mode, b3.basisShort, b3.rows.map((x) => x.label + ' ' + x.amountText).join(', ')].join(' | '),
+  'final | By the hour: from the approved timesheet | Rental AED 5,670.00, Standby AED 315.00, Transport out AED 2,200.00, Transport back AED 2,200.00, Damage at the return AED 1,500.00');
+T.eq('…charged so far, still to charge (the November run again), the total with VAT', [b3.chargedText, b3.toChargeText, b3.totalText, b3.vat.amountText, b3.grossText, b3.modeText].join(' | '),
+  'AED 8,605.00 | AED 3,280.00 | AED 11,885.00 | AED 594.25 | AED 12,479.25 | Returned 30 Nov 2026: on hire 7 Nov – 29 Nov 2026 (23 days)');
+const b1 = R.request(s, ids.r1).bills[0];
+T.eq('an intercompany hire still on hire: by the day, so far, all charged', [b1.mode, b1.basisShort, b1.totalText, b1.chargedText, b1.toChargeText, b1.notes.join(' ')].join(' | '),
+  'sofar | By the day | AED 15,000.00 | AED 15,000.00 | AED 0.00 | At the return: transport back AED 1,500.00.');
 
 T.section('the requesting BU\'s approval above its threshold (OD-12)');
 const th = as(F.state('fresh'), 'p-pm');
@@ -244,7 +252,7 @@ const approverOf = (fl) => fl.approvers.map((a) => a.name + ', ' + a.buName).joi
 const STORY = {
   fresh: { own: 'approve Yusuf Rahman (ProjectCo Projects)' },
   raised: { r1: 'approve Ana Costa (FleetCo Fleet)', rl: 'approve Huda Saleh (ProjectCo Facilities)', r3: 'deposit Lena Novak (FleetCo Fleet)' },
-  onHire: { r1: 'hours Priya Raman (ProjectCo Projects)', rl: 'hours Priya Raman (ProjectCo Projects)', r3: 'offHire Lena Novak (FleetCo Fleet)' },
+  onHire: { r1: 'hours Priya Raman (ProjectCo Projects)', rl: 'hours Priya Raman (ProjectCo Projects)', r3: 'hours Lena Novak (FleetCo Fleet)' },
   monthEnd: { r1: 'offHire Omar Haddad (ProjectCo Projects)', rl: 'offHire Omar Haddad (ProjectCo Projects)', r3: 'offHire Lena Novak (FleetCo Fleet)' },
   released: { r1: 'offHire Omar Haddad (ProjectCo Projects)', rl: 'offHire Omar Haddad (ProjectCo Projects)', r3: 'offHire Lena Novak (FleetCo Fleet)' },
   agreed: { r1: 'offHire Omar Haddad (ProjectCo Projects)', rl: 'offHire Omar Haddad (ProjectCo Projects)', r3: 'offHire Lena Novak (FleetCo Fleet)' },
@@ -304,7 +312,7 @@ T.eq('r1 closed: every step done, back and inspected by Ravi; nothing next', [st
 T.section('Approval & flow: a customer rental, the deposit before the owner approves');
 const lenaRaised = as(F.state('raised'), 'p-desk');
 fl = R.request(lenaRaised, ids.r3).flow;
-T.eq('r3: the deposit is current (Lena, rental desk), the owner\'s approval waits for it', keys(fl), 'raised:done requester:na deposit:current approve:waiting ship:waiting receive:waiting offHire:waiting back:waiting');
+T.eq('r3: the deposit is current (Lena, rental desk), the owner\'s approval waits for it', keys(fl), 'raised:done requester:na deposit:current approve:waiting ship:waiting receive:waiting hours:waiting offHire:waiting back:waiting');
 T.eq('…in words', [fl.approverText, fl.alsoText].join(' '), 'Approver: Ana Costa (Equipment Manager, FleetCo Fleet), the owner of GN-3002. First Lena Novak (rental desk) takes the deposit; only then may the owner approve.');
 T.eq('…the deposit: its amount, and it\'s Lena', [step(fl, 'deposit').what, fl.next.go.youText, fl.next.go.action].join(' | '),
   'The rental desk takes Customer Y’s deposit, 25 % of four weeks (AED 2,100.00), before the owner may approve; Fusion Receivables records it | It\'s you: Lena Novak does it in Customer billing | Open Customer billing');
@@ -351,15 +359,15 @@ const nodesOf = (j) => j.all.map((n) => n.lane + ':' + n.label + ':' + n.state +
 T.eq('the rental: the customer\'s lane, the owner\'s, the money', jr.lanes.map((x) => x.name + ' · ' + x.role).join(' | '),
   'Customer Y · rents, through FleetCo Fleet’s rental desk | FleetCo Fleet · owns, approves, ships | Money · starts when it is on hire');
 T.eq('…the deposit is here now, in Lena\'s lane', nodesOf(jr),
-  '1:Raised:done 1:Deposit:current* 2:Owner approves:waiting 2:Shipped:waiting 1:On hire:waiting 1:Off hire:waiting 2:Back & inspected:waiting 3:Charge run:waiting 3:Customer invoice:waiting 3:Paid:waiting 3:Deposit settled:waiting');
-T.eq('…its person, and the hand-overs between the lanes', [jr.all.find((n) => n.here).personText, jr.links.map((x) => x.style.gridColumn).join()].join(' | '), 'Lena Novak · takes the deposit | 4,6,8');
+  '1:Raised:done 1:Deposit:current* 2:Owner approves:waiting 2:Shipped:waiting 1:On hire:waiting 1:Hours:waiting 1:Returned:waiting 2:Back & inspected:waiting 3:Charge run:waiting 3:Customer invoice:waiting 3:Paid:waiting 3:Deposit settled:waiting');
+T.eq('…its person, and the hand-overs between the lanes', [jr.all.find((n) => n.here).personText, jr.links.map((x) => x.style.gridColumn).join()].join(' | '), 'Lena Novak · takes the deposit | 4,6,9');
 T.eq('…in words (Lena plays it: her turn)', jr.sentence, 'FR-1004 is with FleetCo Fleet. It\'s your turn: take the deposit in Customer billing. Before that: Lena Novak raised it on 2 Nov 2026.');
 jr = R.flow(dep.state, ids.r3).journey;
 T.eq('deposit taken: the flag moves to Ana, in FleetCo\'s lane', [jr.all.filter((n) => n.here).map((n) => n.lane + ':' + n.label + ':' + n.personText).join(), jr.sentence].join(' | '),
   '2:Owner approves:Ana Costa · approves | FR-1004 is with FleetCo Fleet: Ana Costa (Equipment Manager) approves and allocates. Before that: Lena Novak took the deposit on 2 Nov 2026.');
 jr = R.flow(onHirePm, ids.r1).journey;
 T.eq('r1 on hire: done nodes with dates, the flag on the hours in ProjectCo\'s lane', jr.nodes.map((n) => n.lane + ':' + n.label + ':' + n.state + (n.dateText ? '(' + n.dateText + ')' : '') + (n.here ? '*' : '')).join(' '),
-  '1:Raised:done(2 Nov) 2:Owner approves:done(2 Nov) 2:Shipped:done(2 Nov) 1:On hire:done(7 Nov) 1:Hours:current* 1:Off hire:waiting 2:Back & inspected:waiting');
+  '1:Raised:done(2 Nov) 2:Owner approves:done(2 Nov) 2:Shipped:done(2 Nov) 1:On hire:done(7 Nov) 1:Hours:current* 1:Returned:waiting 2:Back & inspected:waiting');
 T.eq('…the money lane from the day it went on hire', jr.money.map((n) => n.col + ':' + n.label + ':' + n.state).join(' '), '4:Charge run:current 5:Statement:waiting 6:Invoice pair:waiting 7:Settled:waiting');
 T.eq('…the lanes, and the request in words', [jr.lanes.map((x) => x.name).join(' | '), jr.sentence].join(' | '),
   'ProjectCo Projects | FleetCo Fleet | Money | FR-1001 is with ProjectCo Projects. It\'s your turn: record and approve the hours in Receive, hours, moves. Before that: Omar Haddad received it on 7 Nov 2026.');

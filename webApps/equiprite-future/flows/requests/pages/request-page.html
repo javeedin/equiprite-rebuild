@@ -372,6 +372,59 @@
           </ol>
         </section>
 
+        <!-- The bill of each hire (fxReturn.bill): what the charge run makes for it, from the start of the hire to today
+             or to the return; by the hour from the approved timesheet, or by the day. -->
+        <div class="fx-bills" id="recBills">
+          <oj-bind-for-each data="[[ $variables.v.bills ]]">
+            <template data-oj-as="b">
+              <section class="nx-card fx-bill-card" :data-line="[[ b.data.lineId ]]" :aria-label="[[ 'The bill for this hire: ' + b.data.title ]]">
+                <div class="nx-card-head fx-bill-cardhead">
+                  <div class="fx-head-text"><h2>The bill for this hire</h2><span class="nx-note"><oj-bind-text value="[[ b.data.title ]]"></oj-bind-text></span></div>
+                  <span :class="[[ 'fx-chip fx-chip--' + (b.data.basisTone || 'na') ]]"><oj-bind-text value="[[ b.data.basisShort || '' ]]"></oj-bind-text></span>
+                </div>
+                <div class="nx-card-pad fx-bill-cardbody">
+                  <oj-bind-if test="[[ !b.data.started ]]"><p class="fx-sec-empty"><oj-bind-text value="[[ b.data.modeText ]]"></oj-bind-text></p></oj-bind-if>
+                  <oj-bind-if test="[[ b.data.started ]]">
+                    <div class="fx-bill fx-bill--card">
+                      <p class="fx-bill-mode"><oj-bind-text value="[[ b.data.modeText ]]"></oj-bind-text></p>
+                      <p class="fx-bill-basis"><span class="nx-note"><oj-bind-text value="[[ b.data.basisText + (b.data.hoursText ? ' · ' + b.data.hoursText : '') ]]"></oj-bind-text></span></p>
+                      <div class="fx-bill-split">
+                        <div class="nx-grid fx-grid--bill" role="table" :aria-label="[[ 'The bill of ' + b.data.serial + ', line by line' ]]">
+                          <oj-bind-for-each data="[[ b.data.rows ]]">
+                            <template data-oj-as="x">
+                              <div role="row" :class="[[ 'nx-row fx-bill-row' + (x.data.expected ? ' fx-bill-row--expected' : '') + (x.data.credit ? ' fx-bill-row--credit' : '') ]]" :data-kind="[[ x.data.kind ]]">
+                                <span role="cell" class="fx-bill-what"><span class="nx-cell-main"><oj-bind-text value="[[ x.data.label ]]"></oj-bind-text></span>
+                                  <span class="nx-cell-sub"><oj-bind-text value="[[ x.data.detail ]]"></oj-bind-text></span></span>
+                                <span role="cell" class="nx-num fx-bill-amt"><oj-bind-text value="[[ x.data.amountText ]]"></oj-bind-text></span>
+                              </div>
+                            </template>
+                          </oj-bind-for-each>
+                          <oj-bind-if test="[[ b.data.empty ]]"><div role="row" class="nx-row fx-bill-row"><span role="cell" class="nx-note">Nothing to bill yet: no approved hours so far.</span><span role="cell"></span></div></oj-bind-if>
+                        </div>
+                        <div class="fx-bill-side">
+                          <dl class="fx-bill-totals">
+                            <div><dt>Charged so far</dt><dd class="nx-num fx-bill-charged"><oj-bind-text value="[[ b.data.chargedText ]]"></oj-bind-text><span class="nx-cell-sub"><oj-bind-text value="[[ b.data.chargedNote ]]"></oj-bind-text></span></dd></div>
+                            <div><dt>Still to charge</dt><dd class="nx-num fx-bill-tocharge"><oj-bind-text value="[[ b.data.toChargeText ]]"></oj-bind-text><span class="nx-cell-sub"><oj-bind-text value="[[ b.data.toChargeNote ]]"></oj-bind-text></span></dd></div>
+                            <div class="fx-bill-total"><dt><oj-bind-text value="[[ b.data.totalLabel ]]"></oj-bind-text></dt><dd class="nx-num fx-bill-totalv"><oj-bind-text value="[[ b.data.totalText ]]"></oj-bind-text></dd></div>
+                            <oj-bind-if test="[[ !!b.data.vat ]]">
+                              <div><dt><oj-bind-text value="[[ b.data.vat ? b.data.vat.text : '' ]]"></oj-bind-text></dt><dd class="nx-num"><oj-bind-text value="[[ b.data.vat ? b.data.vat.amountText : '' ]]"></oj-bind-text></dd></div>
+                              <div class="fx-bill-total"><dt>With VAT, to the customer</dt><dd class="nx-num fx-bill-gross"><oj-bind-text value="[[ b.data.grossText ]]"></oj-bind-text></dd></div>
+                            </oj-bind-if>
+                          </dl>
+                          <ul class="fx-bill-notes">
+                            <oj-bind-if test="[[ !!b.data.damageNote ]]"><li class="fx-bill-damage"><oj-bind-text value="[[ b.data.damageNote ]]"></oj-bind-text></li></oj-bind-if>
+                            <oj-bind-for-each data="[[ b.data.notes ]]"><template data-oj-as="n"><li><oj-bind-text value="[[ n.data ]]"></oj-bind-text></li></template></oj-bind-for-each>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </oj-bind-if>
+                </div>
+              </section>
+            </template>
+          </oj-bind-for-each>
+        </div>
+
         <section class="nx-card" aria-labelledby="recChargesTitle">
           <div class="nx-card-head"><h2 id="recChargesTitle">Charges</h2>
             <span class="nx-note" id="recChargesTotal"><oj-bind-text value="[[ $variables.v.charges.length ? $functions.plural($variables.v.charges.length, 'charge line') + ' · ' + $variables.v.chargeTotals : 'None yet: the month’s charge run makes them' ]]"></oj-bind-text></span></div>

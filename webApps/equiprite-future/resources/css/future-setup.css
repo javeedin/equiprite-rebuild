@@ -70,7 +70,15 @@
 .fx-ag-history { padding: 4px 16px 14px; border-left: 1px solid var(--nx-line); min-width: 0; }
 .fx-mini { margin: 10px 16px 6px; font-size: 12px; font-weight: 800; color: var(--nx-muted); text-transform: uppercase; letter-spacing: 0.04em; }
 .fx-ag-history .fx-mini { margin-left: 0; }
-.fx-grid--rates .nx-row { grid-template-columns: minmax(120px, 1fr) minmax(96px, 130px) minmax(96px, 130px) minmax(96px, auto); align-items: center; padding-top: 7px; padding-bottom: 7px; }
+.fx-grid--rates .nx-row { grid-template-columns: minmax(110px, 1fr) minmax(92px, 130px) minmax(92px, 130px) minmax(84px, 110px) minmax(96px, auto); align-items: center; padding-top: 7px; padding-bottom: 7px; }
+.fx-rate-hour { white-space: nowrap; }
+/* How an agreement bills: by the day, or by the hour from the timesheet; IC finance switches it (a new version). */
+.fx-ag-billing { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px 18px; padding: 10px 16px; border-bottom: 1px solid var(--nx-line); background: var(--nx-surface-2); }
+.fx-ag-billing-now { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; flex: 1 1 360px; min-width: 0; }
+.fx-ag-billing-words { font-size: 13px; overflow-wrap: anywhere; min-width: 0; }
+.fx-ag-billing-flip { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; flex: 1 1 360px; min-width: 0; }
+.fx-ag-billing-flip .nx-btn { white-space: nowrap; }
+.fx-ag-billing-what { flex: 1 1 220px; min-width: 0; overflow-wrap: anywhere; }
 .fx-input {
   width: 100%; max-width: 130px; height: 32px; box-sizing: border-box; padding: 0 8px; border: 1px solid var(--nx-line-strong); border-radius: 8px; background: #fff; color: var(--nx-ink);
   font: inherit; font-size: 13.5px; text-align: right; font-variant-numeric: tabular-nums;

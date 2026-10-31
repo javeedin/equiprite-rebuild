@@ -1,4 +1,4 @@
-define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources/js/future/fxViews', 'resources/js/nav'], function (Seed, E, V, nav) {
+define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources/js/future/fxViews', 'resources/js/nav', 'resources/js/future/fxReturn'], function (Seed, E, V, nav, Ret) {
   'use strict';
 
   /**
@@ -11,7 +11,7 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
    *                                cards (only the sourcing BU's when one is chosen), the cart
    *   payload(s, form)             what Submit sends to createRequest
    *   request(s, id)               a request's tab: head (its next step), approval & flow, equipment, money (the finance
-   *                                checklist), accounting, history
+   *                                checklist, the bill of each hire: fxReturn.bill), accounting, history
    *   flow(s, id)                  a request's approval and flow: every step in order, its BU, its people, its state,
    *                                the next step, the approver in words, the journey (swimlanes)
    *   exportOf(kind, v)            { name, title, subtitle, rows, columns } for exportKit
@@ -84,7 +84,7 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
     var nextText = fin.complete ? 'Financially complete' : nextItem ? 'Money next: ' + nextItem.label.replace(/ \([^)]*\)$/, '') + ' · ' + nextItem.who : fin.words;
     var fl = flow(s, r.id);
     return Object.assign({}, row, {
-      flowNext: fl.nextListText, flowNextMine: !!(fl.next && fl.next.go && fl.next.go.mine), flowDots: fl.journey.dots,
+      words: Ret.words(row.words), flowNext: fl.nextListText, flowNextMine: !!(fl.next && fl.next.go && fl.next.go.mine), flowDots: fl.journey.dots,
       party: party, partySub: partySub, relChips: rels, relText: rels.map(function (x) { return x.label; }).join(', '), ownersText: owners.join('; '),
       buCompany: row.buName + ' · ' + row.company, stageTone: stageTone(row.stage), countryName: countryName(s, r.country),
       moneyText: row.finDone + ' of ' + row.finTotal, moneyNext: nextText, moneyLine: row.finDone + ' of ' + row.finTotal + ' · ' + nextText,
@@ -549,7 +549,7 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
   }
 
   // ── A request in its own tab ─────────────────────────────────────────────────────────────────────────────────
-  var EVENTS = [['requested', 'Requested'], ['approved', 'Approved and allocated'], ['shipped', 'Shipped'], ['onHire', 'On hire'], ['offHire', 'Off hire'], ['returned', 'Back at the yard']];
+  var EVENTS = [['requested', 'Requested'], ['approved', 'Approved and allocated'], ['shipped', 'Shipped'], ['onHire', 'On hire'], ['offHire', 'Returned'], ['returned', 'Back at the yard']];
 
   function lineNext(s, r, l) {
     var rental = r.type === 'CUSTOMER_RENTAL';
@@ -563,7 +563,8 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
     }
     if (l.status === 'APPROVED') return l.inPlace ? doer(s, 'site', siteRoles, siteBu, 'Receive it on site (handed over in place)') : doer(s, 'yard', ['yard'], l.provider, L.leShort(s, l.providerLe) + '\'s yard ships it');
     if (l.status === 'SHIPPED') return doer(s, 'site', siteRoles, siteBu, 'Receive it on site: it goes on hire');
-    if (l.status === 'ON_HIRE') return doer(s, 'site', rental ? ['desk'] : ['site', 'requester'], siteBu, 'On site: hours, breakdowns, moves, off hire');
+    if (l.status === 'ON_HIRE') return doer(s, 'site', rental ? ['desk'] : ['site', 'requester'], siteBu, l.plannedReturn ? 'On site: the hours until the return planned for ' + F.date(l.plannedReturn) + ', then the final timesheet'
+      : 'On site: hours, breakdowns, moves, the return on a date with the final timesheet');
     if (l.status === 'OFF_HIRED') return doer(s, 'yard', ['yard'], l.provider, L.leShort(s, l.providerLe) + '\'s yard collects it');
     if (l.status === 'RETURNED') return doer(s, 'yard', ['yard', 'owner-em'], l.provider, L.leShort(s, l.providerLe) + ' inspects it');
     return null;
@@ -572,6 +573,7 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
   function lineDetail(s, r, l, lv) {
     var u = L.unit(s, l.unitId || l.preferredUnit);
     var events = EVENTS.filter(function (e) { return l.events[e[0]]; }).map(function (e) { return { label: e[1], date: F.date(l.events[e[0]]) }; });
+    if (l.plannedReturn && !l.events.offHire) events.push({ label: 'Return planned', date: F.date(l.plannedReturn) });
     if (l.inspection) events.push({ label: 'Inspected', date: F.date(l.inspection.date) });
     if (l.loss) events.push({ label: 'Lost', date: F.date(l.loss.date) });
     var bds = s.breakdowns.filter(function (b) { return b.lineId === l.id; }).map(function (b) { return F.date(b.date) + ': ' + b.days + (b.days === 1 ? ' day' : ' days') + ', ' + b.reason + ' (' + b.by + ')'; });
@@ -586,6 +588,8 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
     var hrs = s.hours.filter(function (h) { return h.lineId === l.id; });
     var dayCount = hrs.length;
     return Object.assign({}, lv, {
+      words: Ret.words(lv.words), eventsText: Ret.words(lv.eventsText) + (l.plannedReturn && !l.events.offHire ? ' · Return planned ' + F.short(l.plannedReturn) : ''),
+      billingText: l.price ? (l.price.billing === 'HOURLY' ? 'By the hour: the approved timesheet is the bill' : 'By the day') : '',
       unitTitle: u ? u.serial + ' · ' + u.name : lv.clsName + ' (unit to be chosen)',
       ownerText: lv.providerName + ' · ' + L.le(s, l.providerLe).name, relChip: relOf(l.relation), stageTone: stageTone(lv.stage),
       agreementText: ag ? ag.number + ' v' + ag.version + ' (' + { INTERCOMPANY: 'intercompany agreement', CROSS_CHARGE: 'cross-charge rates', CUSTOMER: 'customer agreement' }[ag.kind] + ')' : 'None: own equipment at the internal cost rate',
@@ -620,7 +624,7 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
       var g = GO[it.key];
       if (it.key === 'paid') g = ['billing', ['desk', 'finance', 'owner-finance', 'ic-finance'], r.type === 'CUSTOMER_RENTAL' ? 'provider' : 'requesting'];
       var go = g && (it.state === 'pending' || it.state === 'failed') ? doer(s, g[0], g[1], g[2] === 'provider' ? provider : r.requestingBu, it.label) : null;
-      return Object.assign({}, it, { tone: { done: 'ok', pending: 'todo', failed: 'bad', running: 'run', na: 'na' }[it.state] || 'todo', go: go });
+      return Object.assign({}, it, { detail: Ret.words(it.detail), tone: { done: 'ok', pending: 'todo', failed: 'bad', running: 'run', na: 'na' }[it.state] || 'todo', go: go });
     });
   }
 
@@ -749,29 +753,37 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
       what: rental ? 'The rental desk confirms ' + custName + ' has it: on hire from that day' : 'The site receives it at ' + r.site + ': on hire from that day (OD-05)',
       note: refused ? gone : '' });
 
-    if (!rental) {
+    // The hours: the site records them and the requesting BU approves them; a rental billed by the hour has them too
+    // (the customer's timesheet, signed through the rental desk: it is the bill).
+    var hourly = (l.price || {}).billing === 'HOURLY';
+    if (!rental || hourly) {
       var hrs = s.hours.filter(function (h) { return h.lineId === l.id; });
       var waiting = hrs.filter(function (h) { return !h.approved; }).length;
       var approved = hrs.filter(function (h) { return h.approved; });
-      var hLog = said(/^Approved \d+ days of hours/, true);
+      var hLog = said(/^(Approved \d+ days of hours|Final timesheet: .*approved$)/, true);
       var ended = !!l.events.offHire || lost || moved;
       var hs = 'open';
       var hn = '';
       if (refused) { hs = 'na'; hn = gone; } else if (!l.events.onHire) hn = 'From the day it is on hire';
       else if (waiting) hn = waiting + (waiting === 1 ? ' day' : ' days') + ' of hours waiting for approval' + (approved.length ? '; ' + approved.length + ' approved' : '');
-      else if (!hrs.length) { hs = ended ? 'na' : 'open'; hn = ended ? 'No hours were recorded' : 'No hours recorded yet: the site records them each day on hire'; }
+      else if (!hrs.length) { hs = ended ? 'na' : 'open'; hn = ended ? 'No hours were recorded' : 'No hours recorded yet: ' + (rental ? 'the rental desk records the customer’s timesheet' : 'the site records them each day on hire'); }
       else { hs = 'done'; hn = approved.length + (approved.length === 1 ? ' day' : ' days') + ' approved' + (ended ? '' : ' so far; more come while it is on hire'); }
-      out.push({ key: 'hours', label: 'Hours recorded and approved', short: 'the hours', bu: reqBu, roles: ['requester', 'receiver-review'], navId: 'site', state: hs,
+      out.push({ key: 'hours', label: rental ? 'Timesheet signed by the customer' : 'Hours recorded and approved', short: rental ? 'the customer’s timesheet' : 'the hours', bu: reqBu,
+        roles: ['requester', 'receiver-review'], navId: 'site', state: hs,
         at: hs === 'done' && hLog ? hLog.at : '', who: hs === 'done' ? (hLog ? hLog.who : (approved[approved.length - 1] || {}).approvedBy || '') : '',
-        what: 'The site records the hours each day on hire; ' + reqName + ' approves them: they are what is charged', note: hn });
+        what: rental ? 'The rental desk records ' + whose(custName) + ' timesheet and has it signed: billed by the hour, the hours are the bill'
+          : 'The site records the hours each day on hire; ' + reqName + ' approves them: they are what is ' + (hourly ? 'billed (by the hour)' : 'charged'), note: hn });
     }
 
-    var oLog = said(/^Off hire: /, true);
+    var oLog = said(/^(Returned |Planned return reached: |Off hire: )/, true);
+    var pLog = said(/^Planned the return of /, true);
     var mLog = said(/handed over on site to/, true);
-    out.push({ key: 'offHire', label: 'Off hire', short: 'off hire', bu: siteBu, roles: siteRoles, navId: 'site',
+    out.push({ key: 'offHire', label: 'Returned: the hire stops', short: 'the return', bu: siteBu, roles: siteRoles, navId: 'site',
       state: refused ? 'na' : moved || lost || l.events.offHire ? 'done' : 'open', at: lost ? l.loss.date : l.events.offHire || '', who: lost ? l.loss.by : moved ? (mLog ? mLog.who : '') : (oLog ? oLog.who : ''),
-      what: (rental ? 'The rental desk' : 'The site') + ' releases it when the job is done: the charges stop that day',
-      note: refused ? gone : moved ? 'Handed over on site to ' + L.buName(s, l.movedTo) : lost ? 'Lost: charged at the agreed value' : '' });
+      what: (rental ? 'The rental desk' : 'The site') + ' returns it on a date when the job is done (a later date is planned): the charges stop that day, the final timesheet goes with it',
+      note: refused ? gone : moved ? 'Handed over on site to ' + L.buName(s, l.movedTo) : lost ? 'Lost: charged at the agreed value'
+        : l.plannedReturn && !l.events.offHire ? 'Return planned for ' + F.date(l.plannedReturn) + (pLog ? ' (booked by ' + pLog.who + ')' : '') + ': the hire stops by itself that day'
+          : oLog && /^Planned return reached/.test(oLog.what) ? 'The planned return was reached: the hire stopped by itself' : '' });
 
     var bLog = said(/^Received back /, true);
     var ins = l.inspection;
@@ -862,7 +874,7 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
       var later = items.slice(i + 1).some(function (x) { return x.state === 'done'; });
       var side = it.key === 'paid' ? (rental ? 'provider' : 'requesting') : g[2];
       var roles = g[1];
-      var note = /^0 /.test(it.detail || '') ? '' : it.detail || '';
+      var note = /^0 /.test(it.detail || '') ? '' : Ret.words(it.detail || '');
       if (it.key === 'agreed' && draft) { roles = ['owner-finance', 'ic-finance']; side = 'provider'; note = 'The owner releases it first: ' + note; }
       var state = it.state === 'done' ? 'done' : it.state === 'na' ? 'na' : it.state === 'running' && later ? 'running' : 'open';
       if (it.key === 'charges' && it.state === 'na' && !started && live.length) { state = 'open'; note = 'From the day it is on hire, at each month end'; }
@@ -950,7 +962,7 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
     ship: ['Shipped', 'ships', 'ships it', 'ship it', 'shipped it'],
     receive: ['On hire', 'receives', 'receives it: on hire', 'receive it: it goes on hire', 'received it'],
     hours: ['Hours', 'approves the hours', 'records and approves the hours', 'record and approve the hours', 'approved the hours'],
-    offHire: ['Off hire', 'releases it', 'releases it: off hire', 'release it when the job is done', 'released it'],
+    offHire: ['Returned', 'returns it', 'returns it on a date', 'return it on a date, with the final timesheet', 'returned it'],
     back: ['Back & inspected', 'inspects', 'collects and inspects it', 'collect and inspect it', 'inspected it'],
     'm-charges': ['Charge run', 'runs the charges', 'runs the month’s charges', 'run the month’s charges', 'ran the charges'],
     'm-agreed': ['Statement', 'agrees', 'agrees the statement', 'agree the statement', 'agreed the statement'],
@@ -1072,7 +1084,7 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
 
   /**
    * A request's approval and flow: per line its steps in order (raised, the requesting BU's approval, the deposit, the
-   * owner's approval: the approver, shipped, received, hours, off hire, back and inspected), then the money steps; the
+   * owner's approval: the approver, shipped, received, hours, the return, back and inspected), then the money steps; the
    * next step (operations first, then money: the earliest current step), and the approver in words.
    */
   function flow(s, id) {
@@ -1253,7 +1265,10 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
     var openLines = lines.filter(function (l) { return l.next; });
     var head = rowOf(s, v);
     var fl = flow(s, r.id);
+    // The bill of each hire: what the charge run makes for it, charged so far and still to charge (fxReturn.bill).
+    var bills = r.lines.filter(function (l) { return l.status !== 'REJECTED'; }).map(function (l) { return Ret.bill(s, r.id, l.id, null); });
     return Object.assign({}, v, {
+      words: Ret.words(v.words), bills: bills, billCount: bills.filter(function (b) { return b.started; }).length,
       ready: true, error: '', missing: false, me: V.me(s), stageTone: stageTone(v.stage),
       ownersText: head.ownersText, relChips: head.relChips, relText: head.relText, moneyNext: head.moneyNext,
       finWordsShort: fin.complete ? 'Financially complete' : head.moneyNext,

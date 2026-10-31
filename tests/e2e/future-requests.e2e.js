@@ -340,7 +340,7 @@ async function run(point, persona, title, fn, prepare) {
     T.eq('chips: All, Open, Money not complete', await page.$$eval('#rqChips .nx-chip', (c) => c.map((x) => x.innerText.replace(/\s+/g, ' ').trim()).join(' | ')), 'All 3 | Open 3 | Money not complete 3');
     const r1 = await env.text(`#rqRows .fx-rq-row[data-id="${ids.r1}"]`);
     T.check('a row: number, type, project, BU and company, owner, relationship, stage, money, cost', ['FR-1001', 'Internal project', 'PC-INT-014 · ProjectCo head office fit-out', 'ProjectCo Projects',
-      'FleetCo Fleet · FleetCo', 'Intercompany · domestic', 'On hire', 'Here now: off hire · Omar Haddad (ProjectCo Projects)', '4 of 7', 'Money next: Settled · Treasury', 'AED 15,000.00'].every((x) => r1.includes(x)), r1);
+      'FleetCo Fleet · FleetCo', 'Intercompany · domestic', 'On hire', 'Here now: the return · Omar Haddad (ProjectCo Projects)', '4 of 7', 'Money next: Settled · Treasury', 'AED 15,000.00'].every((x) => r1.includes(x)), r1);
     T.eq('…same company: its chip', await env.text(`#rqRows .fx-rq-row[data-id="${ids.rl}"] .fx-rq-chips`), 'Same company · cross-charge');
     await page.fill('#rqSearch', 'cr-2001');
     await page.waitForTimeout(300);
@@ -372,7 +372,16 @@ async function run(point, persona, title, fn, prepare) {
       'Rental AED 12,900.00 ; Standby AED 600.00 ; Transport AED 1,500.00');
     T.check('…each with its AR and AP numbers', (await env.text('#recCharges [data-charge="CH00001"] .fx-ch-inv')) === 'AR FL-ICAR-000101 AP FL-ICAR-000101', await env.text('#recCharges [data-charge="CH00001"] .fx-ch-inv'));
     T.eq('totals per company', await page.$$eval('#recCompanies .fx-rec-company', (c) => c.map((x) => x.querySelector('b').innerText.trim()).join()), 'FleetCo,ProjectCo');
+    const bill = '#recBills .fx-bill-card[data-line="L1"]';
+    T.eq('the bill for this hire: by the day, so far, charged and still to charge, the total', [await env.text(bill + ' .fx-bill-cardhead .fx-chip'), await env.text(bill + ' .fx-bill-mode'),
+      await env.text(bill + ' .fx-bill-charged'), await env.text(bill + ' .fx-bill-tocharge'), await env.text(bill + ' .fx-bill-totalv')].join(' | '),
+      'By the day | So far, to today (30 Nov 2026): on hire since 7 Nov 2026 | AED 15,000.00 3 charge lines | AED 0.00 to today, at the month end’s charge run | AED 15,000.00');
+    T.eq('…its lines', await page.$$eval(bill + ' .fx-bill-row', (r) => r.map((x) => x.innerText.replace(/\s+/g, ' ').trim()).join(' ; ')),
+      'Rental 24 days at AED 3,500.00 a week or AED 800.00 a day AED 12,900.00 ; Standby 12 h × AED 50.00 (50 % of the day rate ÷ 8) AED 600.00 ; Transport out to the site AED 1,500.00');
+    T.check('…what comes at the return', (await env.text(bill + ' .fx-bill-notes')).includes('At the return: transport back AED 1,500.00.'));
     shots.push(await k.shot('future-request-money.png'));
+    await page.$eval(bill, (e) => e.scrollIntoView({ block: 'start' }));
+    shots.push(await (async () => { const f = require('path').join(require('os').tmpdir(), 'equiprite-e2e', 'future-request-bill.png'); await (await page.$(bill)).screenshot({ path: f }); return f; })());
     await page.click('#recExport');
     const charges = (await k.download('csv')).trim().split(/\r\n/);
     T.check('export of the tab shown: the charges', charges.length === 4 && /^Period,Kind,What,Unit,Project/.test(charges[0]), charges[0]);
@@ -416,7 +425,7 @@ async function run(point, persona, title, fn, prepare) {
       await env.text('#recFlowNext'));
     const steps = () => page.$$eval('#recFlow [data-section="L1"] .fx-fs', (l) => l.map((x) => x.dataset.key + ':' + x.dataset.state).join(' '));
     T.eq('…the steps in order: the deposit now, the owner\'s approval waiting', await steps(),
-      'raised:done requester:na deposit:current approve:waiting ship:waiting receive:waiting offHire:waiting back:waiting');
+      'raised:done requester:na deposit:current approve:waiting ship:waiting receive:waiting hours:waiting offHire:waiting back:waiting');
     const dep = await env.text('#recFlow .fx-fs[data-key="deposit"]');
     T.check('…the deposit: what, the BU, who, "It\'s you"', ['Deposit taken', 'Now', '25 % of four weeks (AED 2,100.00), before the owner may approve', 'FleetCo Fleet · FleetCo',
       'Lena Novak · Rental desk · FleetCo', 'It\'s you', 'Open Customer billing'].every((x) => dep.includes(x)), dep);
@@ -442,7 +451,7 @@ async function run(point, persona, title, fn, prepare) {
     T.check('Customer billing: the deposit taken', (await k.stored()).requests[0].deposit.amount === 2100);
     await page.click('.nx-tab-btn[data-id="request:R1001"]');
     await page.waitForSelector('#recFlow .fx-fs[data-key="approve"][data-state="current"]', { timeout: 10000 });
-    T.eq('after the deposit: Ana\'s approval is current', await steps(), 'raised:done requester:na deposit:done approve:current ship:waiting receive:waiting offHire:waiting back:waiting');
+    T.eq('after the deposit: Ana\'s approval is current', await steps(), 'raised:done requester:na deposit:done approve:current ship:waiting receive:waiting hours:waiting offHire:waiting back:waiting');
     T.check('…the deposit done by Lena, with the date', (await env.text('#recFlow .fx-fs[data-key="deposit"]')).includes('Done 2 Nov 2026 by Lena Novak'));
     T.eq('…Lena plays Ana there', await env.text('#recFlow .fx-fs[data-key="approve"] .fx-fs-go'), 'Play as Ana and open Approve & allocate');
     T.eq('…the flag moves to Ana, in FleetCo\'s lane', await here(), 'approve | 2 | HERE NOW | Ana Costa · approves');

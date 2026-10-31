@@ -91,6 +91,16 @@
 
 /* Money */
 .fx-rec-money-panel { display: flex; flex-direction: column; gap: 16px; }
+/* The bill of each hire: its lines beside charged so far, still to charge and the total (one under the other when narrow). */
+.fx-bills { display: flex; flex-direction: column; gap: 16px; }
+.fx-bill-cardhead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.fx-bill-cardhead .fx-head-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.fx-bill-cardhead h2 { margin: 0; }
+.fx-bill-cardbody { padding-top: 12px; }
+.fx-bill--card { background: #fff; border-color: var(--nx-line); }
+.fx-bill-split { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(260px, 1fr); gap: 12px 24px; align-items: start; }
+.fx-bill-side { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+@media (max-width: 1100px) { .fx-bill-split { grid-template-columns: minmax(0, 1fr); } }
 .fx-rec-intro { margin: 0; padding-bottom: 4px; color: var(--nx-muted); font-size: 13.5px; line-height: 1.5; }
 .fx-fin { list-style: none; margin: 0; padding: 4px 16px 12px; display: flex; flex-direction: column; }
 .fx-fin-item { display: grid; grid-template-columns: 82px minmax(0, 1fr) auto; gap: 6px 14px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--nx-line); }

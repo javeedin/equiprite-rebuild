@@ -176,7 +176,7 @@ function fxState() {
     T.eq('utilisation by owner and country, as bars', await page.$$eval('#repUtilBars .fx-bar', (b) => b.map((x) => x.dataset.key + ' ' + x.querySelector('.fx-bar-pct').innerText).join(' | ')),
       'FleetCo · United Arab Emirates 43 % | FleetCo · Saudi Arabia 100 % | ProjectCo · United Arab Emirates 50 %');
     T.eq('margins by request', await page.$$eval('#repMarginRows .nx-row--click', (r) => r.map((x) => x.dataset.number + ' ' + x.querySelector('.fx-chip--ok, .fx-chip--na, .fx-chip--todo').innerText).join(' | ')),
-      'FR-1001 Cost only | FR-1002 AED 23,100.00 | FR-1003 SAR 2,440.41 | FR-1004 AED 9,760.00 | FR-1005 Cost only');
+      'FR-1001 Cost only | FR-1002 AED 23,100.00 | FR-1003 SAR 2,440.41 | FR-1004 AED 8,605.00 | FR-1005 Cost only');
     T.eq('accruals and disputes: none in this story', [await env.text('#repAccrNone'), await env.text('#repDispNone')].join(' | '), 'Nothing accrued: every statement was invoiced by the cut-off. | No dispute raised.');
     await page.click('#repExportIc');
     const [icFile] = await Promise.all([page.waitForEvent('download', { timeout: 10000 }), page.click('#repIc .nx-menu-item[data-format="csv"]')]);
@@ -322,7 +322,7 @@ function fxState() {
     }
     T.eq('…and nothing on any section changes it', editable, 0);
     T.check('…rates shown as text', (await page.click('#setupSections .fx-section[data-value="agreements"]'), await page.waitForTimeout(250),
-      (await page.$eval('#setupAgreements .fx-ag[data-agreement="ICA-01"] .fx-rate[data-cls="EXC"]', (r) => r.innerText.replace(/\s+/g, ' ').trim())) === 'Excavators AED AED 850.00 AED 3,700.00'));
+      (await page.$eval('#setupAgreements .fx-ag[data-agreement="ICA-01"] .fx-rate[data-cls="EXC"]', (r) => r.innerText.replace(/\s+/g, ' ').trim())) === 'Excavators AED AED 850.00 AED 3,700.00 AED 106.25'));
     await env.shot('future-setup-readonly.png');
     await page.click('#setupPlaySara');
     await page.waitForFunction(() => { const e = document.getElementById('fxPersonaName'); return e && e.innerText.trim() === 'Sara Ahmed'; }, null, { timeout: 10000 });

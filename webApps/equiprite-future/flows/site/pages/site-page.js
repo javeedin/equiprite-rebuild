@@ -31,6 +31,22 @@ define(['resources/js/future/fxPage', 'resources/js/exportKit'], (fx, exportKit)
 
     /** Whether any move is the persona's to make. */
     anyMove(can, h) { return !!can && !!h && (can.breakdown || can.offHire || (can.redeploy && !h.rental) || (can.handover && !h.rental) || can.loss); }
+
+    /** A row of the final timesheet: its state as typed (New, Changed, Approved, Waiting, Check). */
+    retState(view, date) { return ((view && view.states) || {})[date] || { text: '—', tone: 'na' }; }
+
+    /** Whether the final bill can be shown (a return date that the engine takes). */
+    billShown(bill) { return !!bill && !!bill.started && !bill.error; }
+
+    /** Why the final bill is not shown yet. */
+    billWhy(bill) { return bill && bill.modeText ? bill.modeText : 'Pick a return date to see the final bill.'; }
+
+    /** A line of the bill: expected (the transport back), a credit. */
+    billRowClass(row) { return 'nx-row fx-bill-row' + (row && row.expected ? ' fx-bill-row--expected' : '') + (row && row.credit ? ' fx-bill-row--credit' : ''); }
+
+    /** The VAT line of a customer's bill. */
+    vatText(bill) { return bill && bill.vat ? bill.vat.text : ''; }
+    vatAmount(bill) { return bill && bill.vat ? bill.vat.amountText : ''; }
   }
 
   return PageModule;

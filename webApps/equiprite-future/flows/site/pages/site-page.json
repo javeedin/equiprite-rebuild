@@ -1,5 +1,5 @@
 {
-  "description": "Receive, hours, moves: the requesting BU on site. v = fxOps.site(state) (store.view('site') with, for each unit on hire, its project segments, a grid of its days on hire up to today from store.view('hours', lineId) with the site country's weekend marked, and what each move means for the money), set by loadChain on vbEnter and on every fxRefresh. Receive, the hours (record to today, one day, approve) and the moves (breakdown, off hire, another project, another group company, lost) open a confirmation first (askChain: fxOps.ask, a dry run of the engine); Confirm runs it through actChain (fxPage.act), and a failure stays in the dialog and on the page. Every list exports.",
+  "description": "Receive, hours, moves: the requesting BU on site. v = fxOps.site(state) (store.view('site') with, for each unit on hire, its project segments, a grid of its days on hire up to today from store.view('hours', lineId) with the site country's weekend marked, and what each move means for the money), set by loadChain on vbEnter and on every fxRefresh. Receive, the hours (record to today, one day, approve) and the moves (breakdown, another project, another group company, lost) open a confirmation first (askChain: fxOps.ask, a dry run of the engine); Confirm runs it through actChain (fxPage.act), and a failure stays in the dialog and on the page. Return opens a dialog of its own (returnChain, fxReturn): the return date (a later one is planned), the final timesheet day by day and the final bill, live; Confirm sends logHoursBulk, then offHire. Returned units whose final timesheet is still open are listed too. Every list exports.",
   "navigation": {
     "embeddable": "enabled"
   },
@@ -11,9 +11,10 @@
         "error": "",
         "toReceive": [],
         "onHire": [],
+        "returned": [],
         "busText": "",
-        "counts": { "receive": 0, "onHire": 0, "waiting": 0 },
-        "can": { "receive": false, "fill": false, "log": false, "approve": false, "breakdown": false, "offHire": false, "redeploy": false, "handover": false, "loss": false },
+        "counts": { "receive": 0, "onHire": 0, "waiting": 0, "returned": 0, "planned": 0 },
+        "can": { "receive": false, "fill": false, "log": false, "approve": false, "breakdown": false, "offHire": false, "redeploy": false, "handover": false, "loss": false, "timesheet": false },
         "me": { "id": "", "name": "", "roles": [] }
       },
       "description": "fxOps.site(state)."
@@ -47,6 +48,26 @@
       "type": "string",
       "defaultValue": "",
       "description": "The list whose export menu is open."
+    },
+    "retDef": {
+      "type": "any",
+      "defaultValue": { "open": false, "mode": "return", "requestId": "", "lineId": "", "kicker": "", "title": "", "sub": "", "date": "", "minDate": "", "rows": [], "canApprove": false, "approveLabel": "", "waitText": "", "rangeText": "", "weekendText": "", "plannedText": "", "returnedText": "", "rental": false },
+      "description": "The Return dialog open (fxReturn.def): its words and the rows of the final timesheet for the return date; rebuilt when the date changes, kept while hours are typed."
+    },
+    "ret": {
+      "type": "any",
+      "defaultValue": { "date": "", "usage": {}, "standby": {}, "approve": false },
+      "description": "What is typed in the Return dialog: the return date, the hours of use and standby by day, whether they are agreed."
+    },
+    "retView": {
+      "type": "any",
+      "defaultValue": { "ok": false, "warn": "", "planned": false, "whenText": "", "sheetText": "", "droppedText": "", "canFill": false, "states": {}, "bill": null, "does": [], "told": [], "confirm": "", "tone": "primary", "toast": "" },
+      "description": "fxReturn.preview: what Confirm does (a dry run as the person played), each day's state, the final bill, the payloads and the toast."
+    },
+    "retError": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "Why the last Confirm of the Return dialog did not go through, in the engine's words."
     }
   },
   "events": {
@@ -66,7 +87,14 @@
     "onField": { "chains": [{ "chain": "fieldChain", "parameters": { "field": "{{ $event.target.dataset.field }}", "value": "{{ $event.target.value }}" } }] },
     "onExportMenu": { "chains": [{ "chain": "exportChain", "parameters": { "list": "{{ $event.currentTarget.dataset.list }}" } }] },
     "onExport": { "chains": [{ "chain": "exportChain", "parameters": { "list": "{{ $event.currentTarget.dataset.list }}", "format": "{{ $event.currentTarget.dataset.format }}" } }] },
-    "onDismiss": { "chains": [{ "chain": "dismissChain" }] }
+    "onDismiss": { "chains": [{ "chain": "dismissChain" }] },
+    "onReturn": { "chains": [{ "chain": "returnChain", "parameters": { "op": "open", "data": "{{ $event.currentTarget.dataset }}" } }] },
+    "onRetClose": { "chains": [{ "chain": "returnChain", "parameters": { "op": "close" } }] },
+    "onRetDate": { "chains": [{ "chain": "returnChain", "parameters": { "op": "date", "value": "{{ $event.target.value }}" } }] },
+    "onRetHours": { "chains": [{ "chain": "returnChain", "parameters": { "op": "hours", "kind": "{{ $event.target.dataset.kind }}", "date": "{{ $event.target.dataset.date }}", "value": "{{ $event.target.value }}" } }] },
+    "onRetApprove": { "chains": [{ "chain": "returnChain", "parameters": { "op": "approve", "checked": "{{ $event.target.checked }}" } }] },
+    "onRetFill": { "chains": [{ "chain": "returnChain", "parameters": { "op": "fill" } }] },
+    "onRetConfirm": { "chains": [{ "chain": "returnChain", "parameters": { "op": "confirm" } }] }
   },
   "imports": {
     "components": {
