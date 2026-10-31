@@ -1,11 +1,16 @@
-define(['vb/action/actionChain', 'resources/js/future/fxPage'], (ActionChain, fx) => {
+define(['vb/action/actionChain', 'resources/js/future/fxPage', 'resources/js/future/fxRequests'], (ActionChain, fx, fxReq) => {
   'use strict';
 
-  // My requests's view model: store.view('requests', filter). Runs on vbEnter and on every fxRefresh; replaces v, never mutates it.
+  // My requests' view model: fxRequests.list(state, { chip, text }) for the persona played. Runs on vbEnter and on every
+  // fxRefresh (the store changed: an action, the persona, the demo clock); replaces v, never mutates it.
   class loadChain extends ActionChain {
     async run(context) {
-      const v = fx.view('requests', {});
-      context.$page.variables.v = v;
+      const pv = context.$page.variables;
+      try {
+        pv.v = Object.assign({ ready: true, error: '' }, fxReq.list(fx.store.get(), { chip: pv.chip, text: pv.text }));
+      } catch (e) {
+        pv.v = { ready: true, error: 'My requests could not be shown: ' + ((e && e.message) || e), chips: [], rows: [] };
+      }
     }
   }
 

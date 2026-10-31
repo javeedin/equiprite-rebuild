@@ -1,5 +1,5 @@
 {
-  "description": "My requests (skeleton: being built). v = store.view('requests', filter), set by loadChain on vbEnter and on every fxRefresh; actions through actChain, links through openChain (docs/redesign/BUILDING-FUTURE-SCREENS.md).",
+  "description": "My requests: the requests of the persona's requesting BUs, each with its owners and relationships, its stage and its money progress. v = fxRequests.list(state, { chip, text }), set by loadChain on vbEnter and on every fxRefresh, and by filterChain; links through openChain (a row opens the request's tab), export through exportChain (docs/redesign/BUILDING-FUTURE-SCREENS.md).",
   "navigation": {
     "embeddable": "enabled"
   },
@@ -8,9 +8,30 @@
       "type": "any",
       "defaultValue": {
         "ready": false,
-        "error": ""
+        "error": "",
+        "scope": "",
+        "summary": "",
+        "chips": [],
+        "rows": [],
+        "empty": "",
+        "canNew": false
       },
-      "description": "The view model: store.view('requests', filter)."
+      "description": "fxRequests.list(state, { chip, text }): scope, chips (with counts), rows (decorated fxViews.requests rows), empty, canNew."
+    },
+    "chip": {
+      "type": "string",
+      "defaultValue": "all",
+      "description": "The chip: all, open or unfinished (money not complete)."
+    },
+    "text": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "The search text."
+    },
+    "exportOpen": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "The export menu is open."
     }
   },
   "events": {
@@ -21,51 +42,35 @@
   },
   "eventListeners": {
     "vbEnter": {
-      "chains": [
-        {
-          "chain": "loadChain"
-        }
-      ]
+      "chains": [{ "chain": "loadChain" }]
     },
     "fxRefresh": {
-      "chains": [
-        {
-          "chain": "loadChain"
-        }
-      ]
+      "chains": [{ "chain": "loadChain" }]
     },
     "onAct": {
-      "chains": [
-        {
-          "chain": "actChain",
-          "parameters": {
-            "data": "{{ $event.currentTarget.dataset }}"
-          }
-        }
-      ]
+      "chains": [{ "chain": "actChain", "parameters": { "data": "{{ $event.currentTarget.dataset }}" } }]
     },
     "onOpen": {
-      "chains": [
-        {
-          "chain": "openChain",
-          "parameters": {
-            "data": "{{ $event.currentTarget.dataset }}"
-          }
-        }
-      ]
+      "chains": [{ "chain": "openChain", "parameters": { "data": "{{ $event.currentTarget.dataset }}" } }]
+    },
+    "onChip": {
+      "chains": [{ "chain": "filterChain", "parameters": { "chip": "{{ $event.currentTarget.dataset.chip }}" } }]
+    },
+    "onSearch": {
+      "chains": [{ "chain": "filterChain", "parameters": { "text": "{{ $event.target.value }}" } }]
+    },
+    "onExportMenu": {
+      "chains": [{ "chain": "exportMenuChain" }]
+    },
+    "onExport": {
+      "chains": [{ "chain": "exportChain", "parameters": { "format": "{{ $event.currentTarget.dataset.format }}" } }]
     }
   },
   "imports": {
     "components": {
-      "oj-bind-for-each": {
-        "path": "ojs/ojknockout"
-      },
-      "oj-bind-if": {
-        "path": "ojs/ojknockout"
-      },
-      "oj-bind-text": {
-        "path": "ojs/ojknockout"
-      }
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
     }
   }
 }

@@ -1,5 +1,5 @@
 {
-  "description": "Request (skeleton: being built). v = store.view('request', id), set by loadChain on vbEnter and on every fxRefresh; actions through actChain, links through openChain (docs/redesign/BUILDING-FUTURE-SCREENS.md).",
+  "description": "A request in its own tab: head band, then Equipment, Money (the request's financial clarity), Accounting (shown) and History. v = fxRequests.request(state, id), set by loadChain on vbEnter and on every fxRefresh; actions (approveRequest, Play as …) through actChain, links through openChain, export of the tab shown through exportChain (docs/redesign/BUILDING-FUTURE-SCREENS.md).",
   "navigation": {
     "embeddable": "enabled"
   },
@@ -20,9 +20,34 @@
       "type": "any",
       "defaultValue": {
         "ready": false,
-        "error": ""
+        "error": "",
+        "hidden": false,
+        "missing": false,
+        "lines": [],
+        "items": [],
+        "charges": [],
+        "companies": [],
+        "acc": [],
+        "history": [],
+        "nextSteps": [],
+        "finance": { "items": [], "done": 0, "total": 0, "complete": false }
       },
-      "description": "The view model: store.view('request', id)."
+      "description": "fxRequests.request(state, id): fxViews.request with lines (details, next step), items (finance checklist with where each is done), charges, companies (totals), acc (accounting per company), history."
+    },
+    "tab": {
+      "type": "string",
+      "defaultValue": "equipment",
+      "description": "The inner tab shown: equipment, money, accounting or history."
+    },
+    "exportOpen": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "The export menu is open."
+    },
+    "failure": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "The engine's words when the last action here did not go through (stays on the page)."
     }
   },
   "events": {
@@ -33,51 +58,32 @@
   },
   "eventListeners": {
     "vbEnter": {
-      "chains": [
-        {
-          "chain": "loadChain"
-        }
-      ]
+      "chains": [{ "chain": "loadChain" }]
     },
     "fxRefresh": {
-      "chains": [
-        {
-          "chain": "loadChain"
-        }
-      ]
+      "chains": [{ "chain": "loadChain" }]
     },
     "onAct": {
-      "chains": [
-        {
-          "chain": "actChain",
-          "parameters": {
-            "data": "{{ $event.currentTarget.dataset }}"
-          }
-        }
-      ]
+      "chains": [{ "chain": "actChain", "parameters": { "data": "{{ $event.currentTarget.dataset }}" } }]
     },
     "onOpen": {
-      "chains": [
-        {
-          "chain": "openChain",
-          "parameters": {
-            "data": "{{ $event.currentTarget.dataset }}"
-          }
-        }
-      ]
+      "chains": [{ "chain": "openChain", "parameters": { "data": "{{ $event.currentTarget.dataset }}" } }]
+    },
+    "onTab": {
+      "chains": [{ "chain": "tabChain", "parameters": { "tab": "{{ $event.currentTarget.dataset.tab }}" } }]
+    },
+    "onExportMenu": {
+      "chains": [{ "chain": "exportMenuChain" }]
+    },
+    "onExport": {
+      "chains": [{ "chain": "exportChain", "parameters": { "format": "{{ $event.currentTarget.dataset.format }}" } }]
     }
   },
   "imports": {
     "components": {
-      "oj-bind-for-each": {
-        "path": "ojs/ojknockout"
-      },
-      "oj-bind-if": {
-        "path": "ojs/ojknockout"
-      },
-      "oj-bind-text": {
-        "path": "ojs/ojknockout"
-      }
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
     }
   }
 }

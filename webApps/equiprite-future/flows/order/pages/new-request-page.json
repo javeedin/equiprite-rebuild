@@ -1,5 +1,5 @@
 {
-  "description": "New request (skeleton: being built). v = store.view('me') + fxEngine.sourcing(...), set by loadChain on vbEnter and on every fxRefresh; actions through actChain, links through openChain (docs/redesign/BUILDING-FUTURE-SCREENS.md).",
+  "description": "New request in three steps (For, Equipment, Review) on the Future page pattern: v = fxRequests.form(state, form), set by loadChain on vbEnter and on every fxRefresh, and by formChain on every change of the form (it only reads the store); Submit runs createRequest through actChain, which opens the new request's tab; the units offered export through exportChain (docs/redesign/BUILDING-FUTURE-SCREENS.md).",
   "navigation": {
     "embeddable": "enabled"
   },
@@ -8,9 +8,44 @@
       "type": "any",
       "defaultValue": {
         "ready": false,
-        "error": ""
+        "error": "",
+        "canRaise": false,
+        "form": { "step": 1, "bu": "", "forKey": "", "task": "", "from": "", "to": "", "site": "", "note": "", "cls": "", "lines": [] },
+        "steps": [],
+        "bus": [],
+        "options": [],
+        "tasks": [],
+        "dateErrors": [],
+        "classes": [],
+        "groups": [],
+        "lines": [],
+        "review": [],
+        "reqNotes": [],
+        "step": 1,
+        "lineCount": 0,
+        "cardCount": 0
       },
-      "description": "The view model: store.view('me') + fxEngine.sourcing(...)."
+      "description": "fxRequests.form(state, form): the steps, the BUs, the options (projects or customers), the dates, the classes, the sourcing cards grouped by owner, the lines added, what will happen per owner, the estimate."
+    },
+    "form": {
+      "type": "any",
+      "defaultValue": { "step": 1, "lines": [] },
+      "description": "What the person chose so far: step, bu, forKey (P:<project> or C:<customer>), task, from, to, site, note, cls, lines [{ unitId, cls }]."
+    },
+    "sent": {
+      "type": "any",
+      "defaultValue": null,
+      "description": "The request just raised ({ id, number, bu }), for the banner."
+    },
+    "failure": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "The engine's words when Submit did not go through (stays on the page)."
+    },
+    "exportOpen": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "The export menu is open."
     }
   },
   "events": {
@@ -21,51 +56,35 @@
   },
   "eventListeners": {
     "vbEnter": {
-      "chains": [
-        {
-          "chain": "loadChain"
-        }
-      ]
+      "chains": [{ "chain": "loadChain" }]
     },
     "fxRefresh": {
-      "chains": [
-        {
-          "chain": "loadChain"
-        }
-      ]
+      "chains": [{ "chain": "loadChain" }]
     },
     "onAct": {
-      "chains": [
-        {
-          "chain": "actChain",
-          "parameters": {
-            "data": "{{ $event.currentTarget.dataset }}"
-          }
-        }
-      ]
+      "chains": [{ "chain": "actChain", "parameters": { "data": "{{ $event.currentTarget.dataset }}" } }]
     },
     "onOpen": {
-      "chains": [
-        {
-          "chain": "openChain",
-          "parameters": {
-            "data": "{{ $event.currentTarget.dataset }}"
-          }
-        }
-      ]
+      "chains": [{ "chain": "openChain", "parameters": { "data": "{{ $event.currentTarget.dataset }}" } }]
+    },
+    "onPick": {
+      "chains": [{ "chain": "formChain", "parameters": { "field": "{{ $event.currentTarget.dataset.field }}", "value": "{{ $event.currentTarget.dataset.value }}" } }]
+    },
+    "onField": {
+      "chains": [{ "chain": "formChain", "parameters": { "field": "{{ $event.target.dataset.field }}", "value": "{{ $event.target.value }}" } }]
+    },
+    "onExportMenu": {
+      "chains": [{ "chain": "exportMenuChain" }]
+    },
+    "onExport": {
+      "chains": [{ "chain": "exportChain", "parameters": { "format": "{{ $event.currentTarget.dataset.format }}" } }]
     }
   },
   "imports": {
     "components": {
-      "oj-bind-for-each": {
-        "path": "ojs/ojknockout"
-      },
-      "oj-bind-if": {
-        "path": "ojs/ojknockout"
-      },
-      "oj-bind-text": {
-        "path": "ojs/ojknockout"
-      }
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
     }
   }
 }

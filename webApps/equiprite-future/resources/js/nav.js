@@ -24,10 +24,10 @@ define([], function () {
     ] },
     { key: 'requests', label: 'Requests', items: [
       { id: 'requests', label: 'My requests', icon: 'oj-ux-ico-documents', player: 'p-pm', roles: ['requester', 'desk', 'site', 'receiver-review', 'finance', 'ic-finance'],
-        route: { flow: 'requests', page: 'requests' }, view: 'requests', built: false,
+        route: { flow: 'requests', page: 'requests' }, view: 'requests', built: true,
         does: 'The requests of your business units (the requesting BU), where each one is, and whether all its money is done.' },
       { id: 'new-request', label: 'New request', icon: 'oj-ux-ico-cart-add', player: 'p-pm', roles: ['requester', 'desk'],
-        route: { flow: 'order', page: 'new-request' }, view: 'me', built: false,
+        route: { flow: 'order', page: 'new-request' }, view: 'me', built: true,
         does: 'Raise a request for one of your BU\'s projects (or, at the rental desk, a customer): the owner and the price come from the unit chosen.' }
     ] },
     { key: 'owner', label: 'Fleet owner', items: [
