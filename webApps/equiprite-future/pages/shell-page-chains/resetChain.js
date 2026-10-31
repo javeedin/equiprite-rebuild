@@ -17,8 +17,8 @@ define([
         return;
       }
       v.resetAsk = false;
-      if (action !== 'confirm') return;
-      store.reset();
+      if (action !== 'confirm' && action !== 'erase') return;
+      store.reset({ erase: action === 'erase' });
       await shellTabs.update(context, Actions, (st) => {
         const keep = st.tabs.filter((t) => String(t.id).indexOf(':') === -1);
         if (keep.length === st.tabs.length) return null;
@@ -26,7 +26,9 @@ define([
       });
       const me = store.view('me');
       Actions.callChain(context, { chain: 'toastChain', params: {
-        message: `The demo starts again on ${me.weekday} ${me.todayText}: the group as it was set up, no requests yet. Still playing as ${me.name}.`, tone: 'info' } });
+        message: action === 'erase'
+          ? `Everything erased (the story, its history and the snapshots). Fresh start on ${me.weekday} ${me.todayText}: no requests yet. Still playing as ${me.name}.`
+          : `Fresh start on ${me.weekday} ${me.todayText}: the group as it was set up, no requests yet (the old story is kept as a snapshot). Still playing as ${me.name}.`, tone: 'info' } });
     }
   }
 

@@ -33,6 +33,10 @@
         <button type="button" class="fx-clock-btn" id="fxWeek" data-action="week" on-click="[[ $listeners.onClock ]]" title="Move the demo clock on one week">+1 week</button>
         <button type="button" class="fx-clock-btn" id="fxMonthEnd" data-action="month" on-click="[[ $listeners.onClock ]]" title="Move the demo clock to the month end">Month end</button>
       </div>
+      <!-- Start fresh: the demo group as set up, no requests (asks first; keep a snapshot, or erase everything). -->
+      <button type="button" class="nx-btn nx-btn--sm fx-fresh" id="fxFresh" data-action="ask" on-click="[[ $listeners.onReset ]]"
+        title="Clear the story and start fresh: no requests, the clock back to 2 Nov 2026" aria-label="Start fresh">
+        <span class="oj-ux-ico-reset" aria-hidden="true"></span><span class="fx-fresh-label">Start fresh</span></button>
       <button type="button" class="nx-iconbtn" id="nxHelp" data-nav-id="guide" on-click="[[ $listeners.onNav ]]"
         aria-label="Guide: the end-to-end story" title="Guide: the end-to-end story, who plays each step">
         <span class="oj-ux-ico-help" aria-hidden="true"></span>
@@ -324,19 +328,25 @@
         <div class="nx-dialog-head">
           <div class="nx-dialog-titles">
             <div class="nx-kicker">The demo</div>
-            <h2 class="nx-dialog-title" id="fxResetTitle">Start the story again?</h2>
+            <h2 class="nx-dialog-title" id="fxResetTitle">Clear the data and start fresh?</h2>
           </div>
         </div>
         <div class="nx-dialog-body">
           <p id="fxResetText">Every request, charge, statement, invoice and notification goes. The group comes back as it was set up (its companies,
             fleet and agreements) and the demo clock goes back to 2 Nov 2026. You keep playing as
             <b><oj-bind-text value="[[ $variables.me.name ]]"></oj-bind-text></b>.</p>
+          <ul class="fx-fresh-choices">
+            <li><b>Start fresh</b>: today's story is kept as a snapshot first (in the desktop app's DuckDB), so you can bring it back.</li>
+            <li><b>Erase everything</b>: the story, its saved history and every snapshot are deleted for good. Nothing can be brought back.</li>
+          </ul>
         </div>
         <div class="nx-dialog-foot">
           <span class="nx-spacer"></span>
           <button type="button" class="nx-btn" id="fxResetCancel" data-action="cancel" on-click="[[ $listeners.onReset ]]">Keep the story</button>
+          <button type="button" class="nx-btn" id="fxResetErase" data-action="erase" on-click="[[ $listeners.onReset ]]">
+            <span class="oj-ux-ico-delete" aria-hidden="true"></span>Erase everything</button>
           <button type="button" class="nx-btn nx-btn--danger" id="fxResetConfirm" data-action="confirm" on-click="[[ $listeners.onReset ]]">
-            <span class="oj-ux-ico-reset" aria-hidden="true"></span>Reset the demo</button>
+            <span class="oj-ux-ico-reset" aria-hidden="true"></span>Start fresh</button>
         </div>
       </div>
     </div>

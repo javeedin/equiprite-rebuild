@@ -50,6 +50,28 @@ const KEY = 'equiprite-future:state:v3';
     T.check('saved as a named snapshot', snap.id > 0);
     const list = await page.evaluate(() => fetch('/__future/snapshots').then((r) => r.json()));
     T.eq('listed', list.map((x) => x.name + ' ' + x.requests).join(), 'Two days in 5');
+
+    T.section('Start fresh, and erase everything');
+    await page.click('#fxFresh');
+    await page.waitForSelector('#fxResetDialog');
+    T.check('Start fresh asks first, with both choices', (await env.text('#fxResetDialog')).includes('Erase everything') && (await env.text('#fxResetConfirm')) === 'Start fresh');
+    await page.click('#fxResetConfirm');
+    await page.waitForTimeout(1500);
+    const kept = await page.evaluate(() => fetch('/__future/snapshots').then((r) => r.json()));
+    const fresh = await page.evaluate(() => fetch('/__future/story').then((r) => r.json()));
+    T.eq('fresh: no requests, back to 2 Nov; the old story kept as a snapshot', [fresh.requests.length, fresh.today, kept.length, /Before the reset/.test(kept[0].name)].join(), '0,2026-11-02,2,true');
+    await page.click('#fxDay');
+    await page.waitForTimeout(500);
+    await page.click('#fxFresh');
+    await page.waitForSelector('#fxResetErase');
+    await page.click('#fxResetErase');
+    await page.waitForTimeout(1500);
+    const none = await page.evaluate(() => fetch('/__future/snapshots').then((r) => r.json()));
+    const hist = await page.evaluate(() => fetch('/__future/history').then((r) => r.json()));
+    const after = await page.evaluate(() => fetch('/__future/story').then((r) => r.json()));
+    T.eq('erase everything: no snapshots, history only the fresh save, the story fresh', [none.length, hist.length <= 1, after && after.requests.length, after && after.today].join(), '0,true,0,2026-11-02');
+    T.check('the toast says what went', /Everything erased/.test(await env.text('#nxToast')), await env.text('#nxToast'));
+    await env.shot('future-start-fresh.png');
     T.eq('no browser errors', env.errors.join(' | '), '');
   } catch (e) {
     T.check('run finished', false, e && e.stack);

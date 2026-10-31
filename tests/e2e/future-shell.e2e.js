@@ -144,7 +144,7 @@ const T = H.makeAsserter();
     await page.waitForFunction(() => document.getElementById('fxToday').innerText.trim() === 'Mon 2 Nov 2026', null, { timeout: 5000 });
     T.eq('Reset: back to 2 Nov 2026, still Ana, the request\'s tab closed', [await env.text('#fxPersonaName'), await page.$$eval('.nx-tab', (t) => t.map((x) => x.dataset.tabId).join())].join(' | '),
       'Ana Costa | work,approvals');
-    T.check('…and the toast says so', (await toast()).startsWith('The demo starts again'), await toast());
+    T.check('…and the toast says so', (await toast()).startsWith('Fresh start on'), await toast());
     T.eq('…no badges, nothing waiting', await badges(), '');
 
     T.section('the Guide: who plays each step, in one click');

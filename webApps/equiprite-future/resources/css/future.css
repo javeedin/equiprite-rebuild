@@ -139,3 +139,9 @@
   .fx-clock-text { display: none; }
   .fx-clock { height: 34px; }
 }
+
+/* Start fresh: beside the demo clock, and its two choices in the dialog. */
+.fx-fresh { height: 36px; flex: none; white-space: nowrap; }
+.fx-fresh-choices { margin: 10px 0 0; padding-left: 18px; color: var(--nx-muted); }
+.fx-fresh-choices li { margin: 4px 0; }
+@media (max-width: 1360px) { .fx-fresh { padding: 0 9px; } .fx-fresh .fx-fresh-label { display: none; } }

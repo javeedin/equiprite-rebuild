@@ -459,6 +459,7 @@ function createDevServer(o) {
           if (snap && req.method === 'GET') { const t = await fs_.loadSnapshot(snap[1]); return t ? send(res, 200, 'application/json', t) : json(404, {}); }
           if (snap && req.method === 'DELETE') return json(200, await fs_.deleteSnapshot(snap[1]));
           if (pathname === '/__future/history' && req.method === 'GET') return json(200, await fs_.history());
+          if (pathname === '/__future/erase' && req.method === 'POST') return json(200, await fs_.erase());
           if (hist && req.method === 'GET' && fs_.loadHistory) { const t = await fs_.loadHistory(hist[1]); return t ? send(res, 200, 'application/json', t) : json(404, {}); }
           if (pathname === '/__future/sql' && req.method === 'POST') {
             const b = JSON.parse(await bodyOf() || '{}');

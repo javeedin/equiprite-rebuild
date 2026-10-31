@@ -84,6 +84,7 @@ function jsonStore(file) {
     loadSnapshot: async (id) => { const x = readSnaps().find((q) => q.id === Number(id)); return x ? x.json : null; },
     deleteSnapshot: async (id) => { writeAtomic(snapFile, JSON.stringify(readSnaps().filter((q) => q.id !== Number(id)))); return { deleted: true }; },
     history: async () => [],
+    erase: async () => { [storyFile, snapFile].forEach((f) => { try { fs.unlinkSync(f); } catch (e) { /* not there */ } }); return { erased: true }; },
     query: async () => { throw new Error('SQL needs DuckDB, which is not available on this computer.'); },
     close: async () => {}
   };
@@ -155,6 +156,14 @@ async function open(file) {
     deleteSnapshot: (id) => serial(async () => { await con.run(`DELETE FROM snapshots WHERE id = $1`, [Number(id)]); return { deleted: true }; }),
     history: () => serial(() => rows(`SELECT seq, CAST(saved_at AS VARCHAR) AS saved_at, CAST(demo_today AS VARCHAR) AS demo_today, requests FROM story_history ORDER BY seq DESC`)),
     loadHistory: (seq) => serial(async () => { const r = await rows(`SELECT json FROM story_history WHERE seq = $1`, [Number(seq)]); return r.length ? r[0].json : null; }),
+    /** Erase everything: the story, its history, the snapshots and the story's tables. */
+    erase: () => serial(async () => {
+      await con.run('DELETE FROM story');
+      await con.run('DELETE FROM story_history');
+      await con.run('DELETE FROM snapshots');
+      for (const name of Object.keys(TABLES)) await con.run(`DROP TABLE IF EXISTS ${name}`);
+      return { erased: true };
+    }),
     /** Read-only SQL over the story's tables (SELECT, WITH, DESCRIBE, SUMMARIZE, SHOW): at most 1,000 rows. */
     query: (sql) => serial(async () => {
       const q = String(sql || '').trim().replace(/;+\s*$/, '');

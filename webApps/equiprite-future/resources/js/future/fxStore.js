@@ -164,9 +164,20 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
     emit('replace');
     return state;
   }
-  function reset() {
+  function reset(opts) {
     var who = state ? state.personaId : 'p-pm';
     var before = state;
+    if (opts && opts.erase) {
+      // Everything goes: the story, its history and the snapshots (DuckDB), and this browser's copies.
+      try { if (window.localStorage) window.localStorage.removeItem(BACKUP); } catch (e) { /* nothing kept */ }
+      state = Seed.seed();
+      state.personaId = who;
+      state.savedAt = now();
+      saveLocal();
+      emit('reset');
+      if (server.available) api('erase', { method: 'POST' }).then(pushToServer, function (e) { console.warn('[fxStore] DuckDB not erased', e.message); });
+      return;
+    }
     if (before && before.requests && before.requests.length) {
       keepBackup(JSON.stringify(before), 'Reset');
       if (server.available) api('snapshots', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'Before the reset of ' + new Date().toLocaleString(), story: before }) }).catch(function () {});
