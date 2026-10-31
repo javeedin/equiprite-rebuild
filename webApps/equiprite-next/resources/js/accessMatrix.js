@@ -141,7 +141,8 @@ define(['resources/js/nav'], function (nav) {
 
   function menuItems(groups) {
     var out = {};
-    (groups || []).forEach(function (g) { (g.items || []).forEach(function (it) { out[it.id] = it.label; }); });
+    // Items for everyone (no page code, e.g. EquipRite FDD) follow the role's other screens, so they are not a gain or loss.
+    (groups || []).forEach(function (g) { (g.items || []).forEach(function (it) { if (!it.everyone) out[it.id] = it.label; }); });
     return out;
   }
 

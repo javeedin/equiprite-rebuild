@@ -1,0 +1,51 @@
+{
+  "description": "EquipRite FDD: three tabs. Requirements (BR-001 to BR-014 and the pages of FDD 7, grouped by module, searchable, filtered by module, phase and kind, each opening on its detail, roles, scenarios and how far it is built). Flows (swimlane diagrams across the parties and Fusion modules with statuses, INT hops and DP decisions; a step opens its detail and the Next screen that takes it). Mapping to development (KPIs, by module and phase, pending and partly done, every item with its screens, tests and evidence; export). Data: resources/js/fddCatalog.js; logic: resources/js/fddModel.js. Reads nothing from the server and writes nothing.",
+  "navigation": { "embeddable": "enabled" },
+  "variables": {
+    "tab": { "type": "string", "defaultValue": "requirements", "description": "requirements | flows | mapping" },
+    "exportOpen": { "type": "boolean", "defaultValue": false },
+    "names": { "type": "any", "defaultValue": { "nav": {}, "open": {} }, "description": "Next's menu labels and the screens this user may open (nav.js)." },
+    "reqAll": { "type": "any[]", "defaultValue": [], "description": "Every requirement (fddModel.requirementRows)." },
+    "reqText": { "type": "string", "defaultValue": "" },
+    "reqModule": { "type": "string", "defaultValue": "all" },
+    "reqPhase": { "type": "string", "defaultValue": "all" },
+    "reqKind": { "type": "string", "defaultValue": "all" },
+    "reqOpen": { "type": "string", "defaultValue": "", "description": "The requirement open on its detail." },
+    "reqView": { "type": "any", "defaultValue": { "groups": [], "shown": [], "summary": "", "module": [], "phase": [], "kind": [] }, "description": "What the filters keep: groups by module, the flat list (for export), the chips." },
+    "flows": { "type": "any[]", "defaultValue": [] },
+    "flowId": { "type": "string", "defaultValue": "e2e" },
+    "flowInfo": { "type": "any", "defaultValue": { "id": "" } },
+    "sel": { "type": "any", "defaultValue": { "key": "" }, "description": "The step open below the diagram (fddModel.stepDetail)." },
+    "kpis": { "type": "any", "defaultValue": { "tiles": [], "tiles2": [], "headline": "" } },
+    "byModule": { "type": "any[]", "defaultValue": [] },
+    "byPhase": { "type": "any[]", "defaultValue": [] },
+    "pendingRows": { "type": "any[]", "defaultValue": [] },
+    "partlyKind": { "type": "string", "defaultValue": "requirements" },
+    "partlyView": { "type": "any", "defaultValue": { "rows": [], "chips": [] } },
+    "mapKind": { "type": "string", "defaultValue": "requirements" },
+    "mapStatus": { "type": "string", "defaultValue": "all" },
+    "mapText": { "type": "string", "defaultValue": "" },
+    "mapOpen": { "type": "string", "defaultValue": "" },
+    "mapView": { "type": "any", "defaultValue": { "rows": [], "chips": [], "kinds": [], "summary": "" }, "description": "The mapping rows shown, its status chips and kinds." }
+  },
+  "eventListeners": {
+    "vbEnter": { "chains": [{ "chain": "loadChain" }] },
+    "onTab": { "chains": [{ "chain": "setChain", "parameters": { "field": "tab", "value": "{{ $event.currentTarget.dataset.value }}" } }] },
+    "onPick": { "chains": [{ "chain": "setChain", "parameters": { "field": "{{ $event.currentTarget.dataset.field }}", "value": "{{ $event.currentTarget.dataset.value }}" } }] },
+    "onReqSearch": { "chains": [{ "chain": "setChain", "parameters": { "field": "reqText", "value": "{{ $event.target.value }}" } }] },
+    "onMapSearch": { "chains": [{ "chain": "setChain", "parameters": { "field": "mapText", "value": "{{ $event.target.value }}" } }] },
+    "onExportMenu": { "chains": [{ "chain": "setChain", "parameters": { "field": "exportOpen", "value": "toggle" } }] },
+    "onExport": { "chains": [{ "chain": "exportChain", "parameters": { "format": "{{ $event.currentTarget.dataset.format }}" } }] },
+    "onFlow": { "chains": [{ "chain": "flowChain", "parameters": { "act": "flow", "key": "{{ $event.currentTarget.dataset.value }}" } }] },
+    "onDiagram": { "chains": [{ "chain": "flowChain", "parameters": { "act": "select", "key": "{{ $event.target && $event.target.closest && $event.target.closest('[data-step]') ? $event.target.closest('[data-step]').getAttribute('data-step') : '' }}" } }] },
+    "onDiagramKey": { "chains": [{ "chain": "flowChain", "parameters": { "act": "{{ $event.key === 'Enter' || $event.key === ' ' ? 'select' : '' }}", "key": "{{ $event.target && $event.target.closest && $event.target.closest('[data-step]') ? $event.target.closest('[data-step]').getAttribute('data-step') : '' }}" } }] },
+    "onStep": { "chains": [{ "chain": "flowChain", "parameters": { "act": "{{ $event.currentTarget.dataset.act }}", "key": "{{ $event.currentTarget.dataset.key }}" } }] }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}

@@ -54,8 +54,9 @@ T.section('menu');
 const groups = nav.visibleGroups(ALL, true, FLAGS, true, {});
 T.eq('groups for full access', groups.map((g) => g.key).join(), 'work,requests,fleet,yard,usage,commercial,insights,admin,customers');
 T.eq('My work first, alone', groups[0].items.map((i) => i.id).join(), 'home');
-T.eq('a requestor sees My work and requests', nav.visibleGroups({ EQR_DASHBOARD: 'FULL', EQR_EQUIPMENT_REQUESTS: 'FULL', EQR_PROJ_CREATE_REQUEST: 'FULL' }, true, FLAGS, true, {})
-  .map((g) => g.items.map((i) => i.id).join('+')).join(' | '), 'home | requests+new-request');
+T.eq('a requestor sees My work and requests (and the EquipRite FDD, open to every role with a screen)',
+  nav.visibleGroups({ EQR_DASHBOARD: 'FULL', EQR_EQUIPMENT_REQUESTS: 'FULL', EQR_PROJ_CREATE_REQUEST: 'FULL' }, true, FLAGS, true, {})
+    .map((g) => g.items.map((i) => i.id).join('+')).join(' | '), 'home | requests+new-request | fdd');
 T.eq('nothing until access loads (fail closed)', nav.visibleGroups(ALL, false, FLAGS, true, {}).length, 0);
 T.check('Usage needs the projects module', !nav.visibleGroups(ALL, true, { TIMESHEETS_ENABLED: 'true' }, true, {}).some((g) => g.key === 'usage'));
 T.check('Post costs withdrawn when Fusion PPM prices', !nav.visibleGroups(ALL, true, Object.assign({ PPM_RATES_ENABLED: 'true' }, FLAGS), true, {})

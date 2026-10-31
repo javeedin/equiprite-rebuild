@@ -1,0 +1,8 @@
+{
+  "id": "fdd",
+  "description": "EquipRite FDD: the FDD's requirements, its flows across the Fusion modules as swimlane diagrams, and how much of it the development has built (Old, New, Next, Mobile, desktop, Android).",
+  "defaultPage": "fdd",
+  "navigation": { "embeddable": "enabled" },
+  "pages": { "fdd": { "path": "pages/fdd-page" } },
+  "chains": {}, "services": {}, "types": {}, "variables": {}
+}
