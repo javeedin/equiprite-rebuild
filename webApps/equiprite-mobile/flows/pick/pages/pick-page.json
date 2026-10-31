@@ -44,7 +44,8 @@
     "slip": { "type": "any", "defaultValue": { "url": "", "fileName": "", "docNumber": "", "rows": 0 } },
     "sheet": { "type": "string", "defaultValue": "", "description": "'' | ship | release | scan | yard | slip: the bottom sheet open." },
     "sheetData": { "type": "any", "defaultValue": { "title": "", "pieces": [], "count": 0, "ids": [] }, "description": "What the Ship or Release sheet says (mobilePick.shipSheet, releaseSheet)." },
-    "scan": { "type": "any", "defaultValue": { "open": false, "supported": true, "status": "", "torch": false, "torchOn": false, "last": { "tone": "", "title": "", "text": "" } } },
+    "scan": { "type": "any", "defaultValue": { "open": false, "supported": true, "native": false, "status": "", "torch": false, "torchOn": false, "last": { "tone": "", "title": "", "text": "" } },
+      "description": "The scanner sheet: the page's camera, or (native) EquipRite for Android's own scanner, one tag a tap." },
     "unitText": { "type": "string", "defaultValue": "" },
     "flash": { "type": "string", "defaultValue": "", "description": "The piece last scanned, shown lit in the list." }
   },

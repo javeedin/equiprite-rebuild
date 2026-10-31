@@ -33,6 +33,7 @@ const location = (url) => new Promise((resolve) => {
     T.eq('…which this PC hands over', await env.page.getAttribute('#mbOpenApp', 'href'), '/__app/open');
     T.check('…saying the first tap downloads it', /downloads the app from your PC/.test(await env.text('#mbInstall')));
     T.check('…with adding the page to the home screen as the other way', /Or add this page to the home screen/i.test(await env.text('#mbInstall')));
+    T.eq('…and a plain download, to update an older app', await env.page.getAttribute('#mbGetApp', 'href'), '/__app/EquipRite.apk');
     await env.shot('mobile-android-offer.png');
     const open = await location(`${env.mobileUrl}/__app/open`);
     const port = Number(env.mobileUrl.split(':').pop());
@@ -65,6 +66,10 @@ const location = (url) => new Promise((resolve) => {
     T.check('Me: the app, its version', /The EquipRite app for Android 1\.0/.test(await env.text('#meApp')));
     T.eq('…and the PC it is connected to', await env.text('#mePc'), 'Connected to EquipRite on the PC at 192.168.1.23:18898.');
     T.check('no install steps here', !(await env.page.$('#meSteps')) && !(await env.page.$('#meOpenApp')));
+    const served = JSON.parse(require('fs').readFileSync(path.join(__dirname, '..', '..', 'desktop', 'phone-app', 'version.json'), 'utf8')).versionName;
+    await env.page.waitForSelector(shown('#meUpdate'), { timeout: 10000 });
+    T.eq('the app (1.0) is told the PC has a newer one, and how to get it (1.0 cannot fetch it itself)', [await env.text('#meUpdate'), !!(await env.page.$('#meUpdateBtn'))].join(' | '),
+      `EquipRite ${served} is on your PC. To get it: scan the PC's code with this phone's camera, and tap Download the app on the page that opens. | false`);
     await env.shot('mobile-android-in-app-me.png');
     await env.page.click('#meChangePc');
     await env.page.waitForFunction(() => window.__changedPc === 1, null, { timeout: 5000 });
@@ -73,6 +78,45 @@ const location = (url) => new Promise((resolve) => {
   } catch (e) {
     T.check('run finished', false, e && e.stack);
     await env.shot('mobile-android-failure-2.png').catch(() => {});
+  } finally {
+    await env.close();
+  }
+
+  env = await E.start({ port: 20930, app: 'mobile', access: ACCESS, userAgent: IN_APP.replace('1.0', '1.1'), phoneApp: true,
+    init: () => {
+      window.EquipRiteApp = { info: () => '{"app":"android","version":"1.1","pc":"192.168.1.23:18898","scan":true}', changePc() {},
+        update: () => { window.__updated = (window.__updated || 0) + 1; }, scan() {} };
+    } });
+  try {
+    T.section('inside EquipRite for Android 1.1');
+    await env.open('/');
+    await env.page.click('.mb-tabbtn[data-tab="me"]');
+    await env.page.waitForSelector(shown('#meApp'), { timeout: 10000 });
+    await env.page.waitForTimeout(800);
+    T.check('up to date: no update offered', !(await env.page.$('#meUpdate')));
+    T.eq('no browser errors', env.errors.join(' | '), '');
+  } catch (e) {
+    T.check('run finished', false, e && e.stack);
+  } finally {
+    await env.close();
+  }
+
+  env = await E.start({ port: 20940, app: 'mobile', access: ACCESS, userAgent: IN_APP.replace('1.0', '1.1'), phoneApp: true,
+    init: () => {
+      window.EquipRiteApp = { info: () => '{"app":"android","version":"1.0.9","pc":"192.168.1.23:18898","scan":true}', changePc() {},
+        update: () => { window.__updated = (window.__updated || 0) + 1; }, scan() {} };
+    } });
+  try {
+    T.section('an app that can fetch its update (1.1 and later), older than the PC\'s');
+    await env.open('/');
+    await env.page.click('.mb-tabbtn[data-tab="me"]');
+    await env.page.waitForSelector(shown('#meUpdateBtn'), { timeout: 10000 });
+    await env.page.click('#meUpdateBtn');
+    await env.page.waitForFunction(() => window.__updated === 1, null, { timeout: 5000 });
+    T.check('Update the app: the app fetches it from the PC', /Downloading the new app/.test(await env.text('#meNote')));
+    T.eq('no browser errors', env.errors.join(' | '), '');
+  } catch (e) {
+    T.check('run finished', false, e && e.stack);
   } finally {
     await env.close();
   }

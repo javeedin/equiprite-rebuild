@@ -162,8 +162,18 @@ function get(host, port, p, headers) {
   T.check('http to the PC on the Wi-Fi is allowed', /usesCleartextTraffic="true"/.test(manifest));
   const src = fs.readFileSync(path.join(ROOT, 'android', 'src', 'com', 'equiprite', 'mobile', 'MainActivity.java'), 'utf8');
   T.check('only the PC\'s own pages open inside the app; other links go to the browser', /if \(ours\(target\)\) return false;/.test(src) && /ACTION_VIEW, target/.test(src));
-  T.check('it says it is the app (the page hides its install offer)', /EquipRiteApp\/1\.0/.test(src));
+  T.check('it says it is the app, with its version (the page hides its install offer)', /UA_NAME = "EquipRiteApp"/.test(src) && /UA_NAME \+ "\/" \+ version\(\)/.test(src));
   T.check('no signing key in the project', !fs.readdirSync(path.join(ROOT, 'android')).some((f) => /\.(p12|jks|keystore)$/.test(f)));
+  const ver = JSON.parse(fs.readFileSync(path.join(ROOT, 'desktop', 'phone-app', 'version.json'), 'utf8'));
+  T.eq('the version beside the APK is the manifest\'s', ver.versionName + '/' + ver.versionCode,
+    /android:versionName="([^"]+)"/.exec(manifest)[1] + '/' + /android:versionCode="([^"]+)"/.exec(manifest)[1]);
+  T.check('the desktop app offers phones that version', /version: phoneAppVersion\(\)/.test(main) && /version\.json/.test(main));
+  T.check('the app has its own scanner (portrait, not opened by other apps)', /android:name="\.ScanActivity"\s+android:exported="false"\s+android:screenOrientation="portrait"/.test(manifest));
+  T.check('…the first screen scans the PC\'s QR code', /button\("Scan the QR code", true\)/.test(src) && /EXTRA_QR_ONLY, true/.test(src));
+  T.check('…a scanned code must be an address (a unit\'s tag is not taken for the PC)', /static String scannedAddress/.test(src) && /scannedAddress\(data\.getStringExtra/.test(src));
+  T.check('…and a page can ask it to scan (the answer as the equiprite-scan event)', /public void scan\(final String prompt\)/.test(src) && /equiprite-scan/.test(src));
+  T.check('ZXing (the scanner\'s decoder) with its licence', fs.existsSync(path.join(ROOT, 'android', 'libs', 'zxing-core-3.5.3.jar'))
+    && /Apache License/.test(fs.readFileSync(path.join(ROOT, 'android', 'libs', 'LICENSE-zxing.txt'), 'utf8')));
 
   T.section('the phone app from the Wi-Fi server (/__app/…)');
   const build3 = build2();

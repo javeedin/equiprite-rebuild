@@ -607,6 +607,13 @@ async function both(chainName, start, fails, rounds) {
       'open {"record":"transfer","params":{"id":880,"number":"INV-TX 882104","source":"history"}} / open {"record":"transfer","params":{"id":310,"number":"TO-310"}}');
   }
 
+  // The chain reads the clock (Date.now): how late 28 Oct is today, in its words.
+  const lateSince = (iso) => {
+    const t = new Date(); t.setHours(0, 0, 0, 0);
+    const d = new Date(iso + 'T00:00:00'); d.setHours(0, 0, 0, 0);
+    const n = Math.round((t - d) / 86400000);
+    return n === 1 ? '1 day late' : n + ' days late';
+  };
   T.section('transfer chains: a transfer\'s tab');
   {
     const answer = (o) => {
@@ -636,7 +643,7 @@ async function both(chainName, start, fails, rounds) {
     T.eq('by id: the order, its lines, the sites, then its request\'s lines and history', rest(r310.calls).join(),
       'getInvOrgs,getTransferOrderById,getTransferOrderLines,getEquipriteV1ViewsRequestDetailLines,getTransferHistory');
     T.eq('where it is, unit by unit', [r310.v.head.label, r310.v.units.map((u) => u.state.words).join(', '), r310.v.head.lateText].join(' | '),
-      'Being picked at the yard | Being picked at the yard, Arrived on site | Due on site 28 Oct · 2 days late');
+      'Being picked at the yard | Being picked at the yard, Arrived on site | Due on site 28 Oct · ' + lateSince('2026-10-28'));
     T.eq('the tab is named after it', r310.bus.join(), 'rename transfer:310=TO-310');
     T.eq('nothing is written', writes(r310.calls).length, 0);
     const byNumber = await rec({ number: 'TO-320' });

@@ -90,14 +90,19 @@ define([], function () {
    * VBCS, where there is no such file. fetchFn: for tests.
    */
   function androidApp(fetchFn) {
-    var go = fetchFn || (typeof fetch === 'function' ? fetch : null);
-    if (!go) return Promise.resolve(false);
-    return go('/__app/info', { credentials: 'same-origin' })
-      .then(function (r) { return r && r.ok ? r.json() : {}; })
-      .then(function (j) { return !!(j && j.android); })
-      .catch(function () { return false; });
+    return androidAppVersion(fetchFn).then(function (v) { return v !== null; });
   }
 
-  return { installed: installed, inApp: inApp, appInfo: appInfo, androidApp: androidApp, platform: platform, howTo: howTo, canPrompt: canPrompt,
+  /** The version of EquipRite for Android this PC serves ('1.1'; '' when it does not say), or null when it serves none. */
+  function androidAppVersion(fetchFn) {
+    var go = fetchFn || (typeof fetch === 'function' ? fetch : null);
+    if (!go) return Promise.resolve(null);
+    return go('/__app/info', { credentials: 'same-origin' })
+      .then(function (r) { return r && r.ok ? r.json() : {}; })
+      .then(function (j) { return j && j.android ? String(j.android.version || '') : null; })
+      .catch(function () { return null; });
+  }
+
+  return { installed: installed, inApp: inApp, appInfo: appInfo, androidApp: androidApp, androidAppVersion: androidAppVersion, platform: platform, howTo: howTo, canPrompt: canPrompt,
     prompt: prompt, onChange: onChange };
 });

@@ -3,8 +3,8 @@
   "navigation": { "embeddable": "enabled" },
   "variables": {
     "me": { "type": "any", "defaultValue": { "name": "", "username": "", "role": "", "can": "", "tabs": [] } },
-    "install": { "type": "any", "defaultValue": { "installed": false, "canPrompt": false, "platform": "other", "steps": [], "inApp": false, "pc": "", "version": "", "app": false },
-      "description": "Installing: the browser's prompt or the steps; inApp: in EquipRite for Android (its PC, its version); app: this PC serves that app." },
+    "install": { "type": "any", "defaultValue": { "installed": false, "canPrompt": false, "platform": "other", "steps": [], "inApp": false, "pc": "", "version": "", "app": false, "update": "", "canUpdate": false },
+      "description": "Installing: the browser's prompt or the steps; inApp: in EquipRite for Android (its PC, its version); app: this PC serves that app; update: the newer version it serves." },
     "link": { "type": "string", "defaultValue": "", "description": "This app's address, to share." },
     "note": { "type": "string", "defaultValue": "" }
   },
@@ -17,7 +17,8 @@
     "onInstall": { "chains": [{ "chain": "meChain", "parameters": { "act": "install" } }] },
     "onShare": { "chains": [{ "chain": "meChain", "parameters": { "act": "share" } }] },
     "onClear": { "chains": [{ "chain": "meChain", "parameters": { "act": "clear" } }] },
-    "onChangePc": { "chains": [{ "chain": "meChain", "parameters": { "act": "changePc" } }] }
+    "onChangePc": { "chains": [{ "chain": "meChain", "parameters": { "act": "changePc" } }] },
+    "onUpdate": { "chains": [{ "chain": "meChain", "parameters": { "act": "update" } }] }
   },
   "imports": {
     "components": {

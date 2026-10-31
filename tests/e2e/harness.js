@@ -123,7 +123,8 @@ async function start(o) {
   }
   if (DS.isBuilt(path.join(ROOT, 'build'), 'equiprite-mobile')) {
     servers.push(await DS.createDevServer(Object.assign({ webApp: 'equiprite-mobile', port: ports.mobile }, common, o.phoneApp ? {
-      phoneApp: { apkFile: path.join(ROOT, 'desktop', 'phone-app', 'EquipRite.apk'), version: '1.0' }, pairToken: () => 'test-pair-key' } : {})));
+      phoneApp: { apkFile: path.join(ROOT, 'desktop', 'phone-app', 'EquipRite.apk'),
+        version: JSON.parse(fs.readFileSync(path.join(ROOT, 'desktop', 'phone-app', 'version.json'), 'utf8')).versionName }, pairToken: () => 'test-pair-key' } : {})));
   }
   const app = o.app === 'next' || o.app === 'mobile' ? o.app : 'new';
   const { chromium } = require('playwright');

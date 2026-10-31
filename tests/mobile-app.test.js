@@ -178,6 +178,40 @@ pending.push(ip.androidApp((u) => { asked = u; return Promise.resolve({ ok: true
   .then((has) => T.eq('the desktop app\'s Wi-Fi link serves the Android app', [has, asked].join(), 'true,/__app/info')));
 pending.push(ip.androidApp(() => Promise.resolve({ ok: false })).then((has) => T.eq('under VBCS there is none', has, false)));
 
+T.section('the Android app\'s own scanner (appScan) and its updates');
+const appScan = load('appScan', {}, { window: { addEventListener() {} } });
+T.eq('a browser: no app scanner', appScan.available({}), false);
+const scanWin = { EquipRiteApp: { scan: (prompt) => { scanWin.asked = prompt; setTimeout(() => appScan.onResult({ detail: { text: 'RL-1002' } }), 5); } } };
+T.eq('the app (1.1): its scanner', appScan.available(scanWin), true);
+pending.push(appScan.scan('Point at the tag', scanWin).then((text) => T.eq('it reads a tag and hands it back', [text, scanWin.asked].join(' | '), 'RL-1002 | Point at the tag')));
+const cancelWin = { EquipRiteApp: { scan: () => setTimeout(() => appScan.onResult({ detail: { text: '' } }), 5) } };
+pending.push(new Promise((r) => setTimeout(r, 20)).then(() => appScan.scan('', cancelWin)).then((text) => T.eq('cancelled: nothing', text, '')));
+pending.push(new Promise((r) => setTimeout(r, 40)).then(() => appScan.scan('', { EquipRiteApp: { scan: () => { throw new Error('gone'); } } }))
+  .then((text) => T.eq('a scanner that fails: nothing, never stuck', text, '')));
+T.eq('newer versions', [appScan.newer('1.1', '1.0'), appScan.newer('1.10', '1.9'), appScan.newer('1.1', '1.1'), appScan.newer('1.0', '1.1'), appScan.newer('2', '1.9.9')].join(),
+  'true,true,false,false,true');
+pending.push(ip.androidAppVersion(() => Promise.resolve({ ok: true, json: () => Promise.resolve({ android: { version: '1.1' } }) }))
+  .then((v) => T.eq('the version the PC serves', v, '1.1')));
+pending.push(ip.androidAppVersion(() => Promise.resolve({ ok: false })).then((v) => T.eq('none served (VBCS)', v, null)));
+
+T.section('Pick scans through the app\'s scanner (scanOpenChain)');
+pending.push((async () => {
+  const src = fs.readFileSync(path.join(APP, 'flows', 'pick', 'pages', 'pick-page-chains', 'scanOpenChain.js'), 'utf8');
+  const calls = [];
+  const fakeScan = { available: () => true, scan: async (prompt) => { calls.push('scan:' + prompt); return 'RL-1002'; } };
+  const Actions = { callChain: async (c, o) => { calls.push(o.chain + ':' + o.params.value + ':' + o.params.source); } };
+  let C;
+  const sandbox = { console, setTimeout, Promise, Object, String, document: { getElementById: () => null }, window: {} };
+  sandbox.define = (names, factory) => { C = factory(...names.map((n) => ({ 'vb/action/actionChain': class {}, 'vb/action/actions': Actions,
+    'resources/js/unitScanner': { isCameraAvailable: () => ({ ok: false, message: 'no camera on http' }) }, 'resources/js/appScan': fakeScan })[n])); };
+  vm.createContext(sandbox);
+  vm.runInContext(src, sandbox, { filename: 'scanOpenChain.js' });
+  const v = { busy: false, sheet: '', scan: { open: false, last: { title: '' } }, unitText: '' };
+  await new C().run({ $page: { variables: v } }, {});
+  T.eq('the app\'s scanner reads the tag, and it is ticked as a camera read', calls.join(' | '), 'scan:Point the camera at the unit’s tag | scanHitChain:RL-1002:camera');
+  T.eq('the sheet offers the next scan (the page\'s own camera untouched)', [v.sheet, v.scan.native, v.scan.open, v.scan.status].join(' | '), 'scan | true | false | Read RL-1002.');
+})().catch((e) => T.check('Pick through the app\'s scanner: run finished', false, e && e.stack)));
+
 const pwa = load('pwaSetup');
 function fakeDoc(existing) {
   const head = { kids: (existing || []).slice(), appendChild(n) { this.kids.push(n); },
@@ -205,7 +239,7 @@ T.eq('shortcuts open a tab', manifest.shortcuts.map((s) => s.url.split('=')[1]).
 // ── Guards ──────────────────────────────────────────────────────────────────────────────────────────────
 T.section('guards');
 // Mobile's own modules; each tab's builder adds theirs (mobileApprove, mobilePick, mobileRequest).
-const MOBILE_ONLY = ['mobileTabs', 'mobileBus', 'trackList', 'offlineSnapshot', 'installPrompt', 'pwaSetup', 'mobileApprove', 'mobilePick', 'mobileRequest',
+const MOBILE_ONLY = ['mobileTabs', 'mobileBus', 'trackList', 'offlineSnapshot', 'installPrompt', 'pwaSetup', 'mobileApprove', 'mobilePick', 'mobileRequest', 'appScan',
   'mobileRecent'];
 const shared = fs.readdirSync(JS).filter((f) => f.endsWith('.js') && !MOBILE_ONLY.includes(f.replace(/\.js$/, '')));
 const differ = shared.filter((f) => !fs.existsSync(path.join(NEXT, 'resources', 'js', f))

@@ -418,7 +418,8 @@
               <div class="mb-pick-view-off" id="pkScanStatus"><span class="oj-ux-ico-camera" aria-hidden="true"></span>
                 <span><oj-bind-text value="[[ $variables.scan.status || 'The camera is off.' ]]"></oj-bind-text></span>
                 <oj-bind-if test="[[ $variables.scan.supported && $variables.scan.status !== 'Starting the camera…' ]]">
-                  <button type="button" class="mb-btn mb-pick-sm" id="pkCameraStart" on-click="[[ $listeners.onScan ]]">Start the camera</button>
+                  <button type="button" class="mb-btn mb-pick-sm" id="pkCameraStart" on-click="[[ $listeners.onScan ]]"><oj-bind-text
+                    value="[[ $variables.scan.native ? 'Scan a tag' : 'Start the camera' ]]"></oj-bind-text></button>
                 </oj-bind-if>
               </div>
             </oj-bind-if>

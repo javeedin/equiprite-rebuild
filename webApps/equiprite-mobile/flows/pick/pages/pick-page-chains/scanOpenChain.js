@@ -2,7 +2,8 @@ define([
   'vb/action/actionChain',
   'vb/action/actions',
   'resources/js/unitScanner',
-], (ActionChain, Actions, scanner) => {
+  'resources/js/appScan',
+], (ActionChain, Actions, scanner, appScan) => {
   'use strict';
 
   // The scanner sheet: the camera looking for a unit's barcode or QR tag (Next's openScannerChain, resources/js/
@@ -10,6 +11,8 @@ define([
   // ticked (scanHitChain); the camera then keeps looking for the next piece while the sheet is open, so a person can
   // walk the yard scanning one piece after another. With no camera here the sheet says why and the box still works.
   // The stream is torn down by scanCloseChain (the sheet closing, the page hidden or left).
+  // In EquipRite for Android (served over the PC's Wi-Fi, where the page's camera is not available) the app's own
+  // scanner reads one tag per tap instead (appScan), and the sheet offers the next.
   const NEXT_READ_MS = 900;
 
   function waitForEl(id, timeoutMs) {
@@ -40,6 +43,14 @@ define([
       v.unitText = '';
       v.scan = Object.assign({}, v.scan, { open: false, supported: true, torch: false, torchOn: false, status: 'Starting the camera…' });
       v.sheet = 'scan';
+      if (appScan.available()) {
+        v.scan = Object.assign({}, v.scan, { open: false, supported: true, native: true, status: 'Scanning with the app’s camera…' });
+        const text = await appScan.scan('Point the camera at the unit’s tag');
+        if (v.sheet !== 'scan') return;
+        v.scan = Object.assign({}, v.scan, { status: text ? 'Read ' + text + '.' : 'Tap Scan a tag to read a unit’s tag.' });
+        if (text) await Actions.callChain(context, { chain: 'scanHitChain', params: { value: text, source: 'camera' } });
+        return;
+      }
       const probe = scanner.isCameraAvailable();
       if (!probe.ok) {
         v.scan = Object.assign({}, v.scan, { supported: false, status: probe.message });

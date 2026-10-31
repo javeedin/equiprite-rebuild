@@ -36,6 +36,8 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
+import org.json.JSONObject;
+
 /**
  * EquipRite for Android: EquipRite Mobile, served by the EquipRite desktop app on the PC, full screen like any app
  * (no browser bars), remembering the PC.
@@ -43,7 +45,10 @@ import android.widget.TextView;
  * Pairing: on the PC, EquipRite's QR code (This PC over Wi-Fi) opens EquipRite Mobile in the phone's browser; its
  * "Open in the EquipRite app" hands this app the PC's address with its pairing key (equiprite://open?url=…), and
  * from then on the app opens straight on it. Without the app installed, the same button downloads it from the PC.
- * The address can also be pasted on the first screen.
+ * The first screen scans the PC's QR code with the app's own scanner (ScanActivity), or takes the address typed.
+ *
+ * The page can ask the app to scan a unit's tag (window.EquipRiteApp.scan: its camera is not available over the PC's
+ * plain-http Wi-Fi) and to fetch its newer version from the PC (update).
  *
  * Only the PC's own pages open inside the app; any other link opens in the browser. The page's camera, location and
  * file pickers are passed through, each asked for only when a screen needs it.
@@ -51,10 +56,12 @@ import android.widget.TextView;
 public class MainActivity extends Activity {
     static final String PREFS = "equiprite";
     static final String KEY_URL = "url";
-    static final String UA = " EquipRiteApp/1.0 (Android)";
+    static final String UA_NAME = "EquipRiteApp";
     static final int REQ_FILE = 1;
     static final int REQ_CAMERA = 2;
     static final int REQ_LOCATION = 3;
+    static final int REQ_SCAN_SETUP = 4;
+    static final int REQ_SCAN_PAGE = 5;
     static final int BAND = Color.rgb(46, 84, 104);
     static final int INK = Color.rgb(22, 33, 44);
     static final int MUTED = Color.rgb(90, 104, 118);
@@ -105,6 +112,23 @@ public class MainActivity extends Activity {
         return valid(data.getQueryParameter("url"));
     }
 
+    /** A scanned code that is an address (http or https, with a host), or null: anything else is not the PC's code. */
+    static String scannedAddress(String text) {
+        if (text == null) return null;
+        String t = text.trim();
+        if (!t.startsWith("http://") && !t.startsWith("https://")) return null;
+        return valid(t);
+    }
+
+    /** This app's version, as installed ("1.1"). */
+    String version() {
+        try {
+            return getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
     /** An http(s) address with a host, or null. */
     static String valid(String u) {
         if (u == null) return null;
@@ -133,7 +157,7 @@ public class MainActivity extends Activity {
             s.setMediaPlaybackRequiresUserGesture(false);
             s.setAllowFileAccess(false);
             s.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
-            s.setUserAgentString(s.getUserAgentString() + UA);
+            s.setUserAgentString(s.getUserAgentString() + " " + UA_NAME + "/" + version() + " (Android)");
             CookieManager.getInstance().setAcceptCookie(true);
             CookieManager.getInstance().setAcceptThirdPartyCookies(web, true);
             web.addJavascriptInterface(new Bridge(), "EquipRiteApp");
@@ -206,13 +230,50 @@ public class MainActivity extends Activity {
         web.loadUrl(u);
     }
 
-    /** What the page can ask the app (window.EquipRiteApp): who it is, and to connect to another PC. */
+    /**
+     * What the page can ask the app (window.EquipRiteApp): who it is, to connect to another PC, to scan a code with
+     * the app's camera (the answer comes back as the page's "equiprite-scan" event: { text }, '' when cancelled), and
+     * to fetch the newer app from the PC (the browser downloads it; the phone installs it over this one).
+     */
     class Bridge {
         @JavascriptInterface
         public String info() {
             Uri home = url == null ? null : Uri.parse(url);
             String pc = home == null ? "" : home.getHost() + (home.getPort() > 0 ? ":" + home.getPort() : "");
-            return "{\"app\":\"android\",\"version\":\"1.0\",\"pc\":\"" + pc.replace("\"", "") + "\"}";
+            try {
+                return new JSONObject().put("app", "android").put("version", version()).put("pc", pc).put("scan", true).toString();
+            } catch (Exception e) {
+                return "{}";
+            }
+        }
+
+        @JavascriptInterface
+        public void scan(final String prompt) {
+            runOnUiThread(new Runnable() {
+                public void run() {
+                    Intent i = new Intent(MainActivity.this, ScanActivity.class);
+                    i.putExtra(ScanActivity.EXTRA_PROMPT, prompt == null || prompt.isEmpty() ? "Point the camera at the unit's tag" : prompt);
+                    startActivityForResult(i, REQ_SCAN_PAGE);
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void update() {
+            runOnUiThread(new Runnable() {
+                public void run() {
+                    Uri home = url == null ? null : Uri.parse(url);
+                    if (home == null) return;
+                    String pair = home.getQueryParameter("pair");
+                    Uri apk = home.buildUpon().path("/__app/EquipRite.apk").clearQuery()
+                        .appendQueryParameter("pair", pair == null ? "" : pair).build();
+                    try {
+                        startActivity(new Intent(Intent.ACTION_VIEW, apk));
+                    } catch (Exception e) {
+                        // no browser
+                    }
+                }
+            });
         }
 
         @JavascriptInterface
@@ -239,6 +300,19 @@ public class MainActivity extends Activity {
         if (requestCode == REQ_FILE && fileCallback != null) {
             fileCallback.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(resultCode, data));
             fileCallback = null;
+        } else if (requestCode == REQ_SCAN_SETUP) {
+            if (resultCode != RESULT_OK || data == null) return;
+            String u = scannedAddress(data.getStringExtra(ScanActivity.EXTRA_TEXT));
+            if (u == null) {
+                showSetup("That is not EquipRite's code. On the PC, scan the code under This PC over Wi-Fi.");
+                return;
+            }
+            save(u);
+            showWeb(u);
+        } else if (requestCode == REQ_SCAN_PAGE && web != null) {
+            String text = resultCode == RESULT_OK && data != null ? data.getStringExtra(ScanActivity.EXTRA_TEXT) : "";
+            web.evaluateJavascript("window.dispatchEvent(new CustomEvent('equiprite-scan', { detail: { text: "
+                + JSONObject.quote(text == null ? "" : text) + " } }));", null);
         }
     }
 
@@ -264,10 +338,14 @@ public class MainActivity extends Activity {
         box.addView(gap(12));
         if (problem != null) box.addView(note(problem));
         box.addView(text("Connect to your PC", 18, INK, true));
-        box.addView(text("1.  On the PC, open EquipRite and click the QR code button in the toolbar (or File → EquipRite on your phone).\n\n"
-            + "2.  Choose This PC over Wi-Fi and switch on Let my phone connect. The phone must be on the same Wi-Fi.\n\n"
-            + "3.  Scan the code with this phone's camera, then tap Open in the EquipRite app.", 15, INK, false));
-        box.addView(gap(12));
+        box.addView(text("On the PC, open EquipRite and click the QR code button in the toolbar. Choose This PC over Wi-Fi and switch on "
+            + "Let my phone connect. This phone must be on the same Wi-Fi.", 15, INK, false));
+        Button scan = button("Scan the QR code", true);
+        scan.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) { scanSetup(); }
+        });
+        box.addView(scan);
+        box.addView(gap(20));
         box.addView(text("Or type the address shown under the code:", 14, MUTED, false));
         final EditText input = new EditText(this);
         input.setHint("http://192.168.1.23:18898/?pair=…");
@@ -275,7 +353,7 @@ public class MainActivity extends Activity {
         input.setImeOptions(EditorInfo.IME_ACTION_GO);
         input.setSingleLine(true);
         box.addView(input, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        Button go = button("Connect", true);
+        Button go = button("Connect", false);
         go.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 String u = valid(input.getText().toString());
@@ -308,7 +386,14 @@ public class MainActivity extends Activity {
             if (detail != null && !detail.isEmpty()) box.addView(text(detail, 12, MUTED, false));
         }
         box.addView(gap(8));
-        Button retry = button("Try again", true);
+        if (unpaired) {
+            Button again = button("Scan the code again", true);
+            again.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View v) { scanSetup(); }
+            });
+            box.addView(again);
+        }
+        Button retry = button("Try again", !unpaired);
         retry.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) { if (url != null) showWeb(url); else showSetup(null); }
         });
@@ -323,6 +408,14 @@ public class MainActivity extends Activity {
         });
         box.addView(other);
         show(scroll(box));
+    }
+
+    /** The app's scanner, for the PC's QR code. */
+    void scanSetup() {
+        Intent i = new Intent(this, ScanActivity.class);
+        i.putExtra(ScanActivity.EXTRA_PROMPT, "Scan the QR code on the PC");
+        i.putExtra(ScanActivity.EXTRA_QR_ONLY, true);
+        startActivityForResult(i, REQ_SCAN_SETUP);
     }
 
     // ── Small helpers for the two native screens ─────────────────────────────────────────────────────────

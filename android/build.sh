@@ -1,6 +1,7 @@
 #!/bin/bash
 # Builds EquipRite for Android (android/), signed, into desktop/phone-app/EquipRite.apk, where the desktop app serves
-# it to a phone on the Wi-Fi. Plain framework code (no Gradle, no libraries), so it builds with Ubuntu's packages:
+# it to a phone on the Wi-Fi. Plain framework code and one library, ZXing's core (libs/, Apache 2.0) for the scanner;
+# no Gradle, so it builds with Ubuntu's packages:
 #   sudo apt-get install android-sdk-platform-23 aapt dalvik-exchange zipalign apksigner openjdk-21-jdk-headless
 # Signing: the key in $EQP_ANDROID_KEYSTORE (a PKCS#12 file; password in $EQP_ANDROID_KEYPASS), else one made once in
 # ~/.equiprite/android-signing.p12. Keep it: an update installs over the app only when signed with the same key.
@@ -29,11 +30,16 @@ fi
 
 mkdir -p "$WORK/gen" "$WORK/classes" "$(dirname "$OUT")"
 aapt package -f -m -J "$WORK/gen" -M "$HERE/AndroidManifest.xml" -S "$HERE/res" -I "$SDK" -F "$WORK/app.unsigned.apk"
-javac --release 8 -nowarn -Xlint:-options -encoding UTF-8 -classpath "$SDK" -d "$WORK/classes" \
+LIBS="$HERE/libs/zxing-core-3.5.3.jar"
+javac --release 8 -nowarn -Xlint:-options -encoding UTF-8 -classpath "$SDK:$LIBS" -d "$WORK/classes" \
   $(find "$HERE/src" "$WORK/gen" -name '*.java')
-dalvik-exchange --dex --min-sdk-version=24 --output="$WORK/classes.dex" "$WORK/classes"
+dalvik-exchange --dex --min-sdk-version=24 --output="$WORK/classes.dex" "$WORK/classes" "$LIBS"
 (cd "$WORK" && zip -q -j app.unsigned.apk classes.dex)
 zipalign -f -p 4 "$WORK/app.unsigned.apk" "$WORK/app.aligned.apk"
 apksigner sign --v4-signing-enabled false --ks "$KEY" --ks-pass "pass:$PASS" --ks-key-alias equiprite --out "$OUT" "$WORK/app.aligned.apk"
 apksigner verify "$OUT"
-echo "Built $OUT ($(wc -c < "$OUT") bytes)"
+# The version, for the desktop app (it offers a phone with an older app the newer one).
+VNAME=$(sed -n 's/.*android:versionName="\([^"]*\)".*/\1/p' "$HERE/AndroidManifest.xml")
+VCODE=$(sed -n 's/.*android:versionCode="\([^"]*\)".*/\1/p' "$HERE/AndroidManifest.xml")
+printf '{ "versionName": "%s", "versionCode": %s }\n' "$VNAME" "$VCODE" > "$(dirname "$OUT")/version.json"
+echo "Built $OUT ($(wc -c < "$OUT") bytes), version $VNAME"

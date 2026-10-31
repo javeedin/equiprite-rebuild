@@ -6,7 +6,8 @@ define([
   'resources/js/currentUser',
   'resources/js/rules',
   'resources/js/mobileBus',
-], (ActionChain, mobileTabs, installPrompt, snapshot, cu, rules, bus) => {
+  'resources/js/appScan',
+], (ActionChain, mobileTabs, installPrompt, snapshot, cu, rules, bus, appScan) => {
   'use strict';
 
   // The Me tab:
@@ -15,6 +16,7 @@ define([
   //   share    this app's address: the phone's share sheet, else copied
   //   clear    forget what this phone keeps for the tabs (their saved copies)
   //   changePc in EquipRite for Android: connect to another PC (the app's first screen)
+  //   update   in EquipRite for Android: fetch the newer app the PC has
   const KEPT = ['track:mine', 'track:all', 'approve', 'pick', 'request'];
 
   class meChain extends ActionChain {
@@ -43,6 +45,11 @@ define([
           // Closing the share sheet is not a failure.
           if (!(e && e.name === 'AbortError')) pv.note = 'The link: ' + url;
         }
+      } else if (act === 'update') {
+        // EquipRite for Android: the browser downloads the newer app from the PC; the phone installs it over this one.
+        if (window.EquipRiteApp && typeof window.EquipRiteApp.update === 'function') window.EquipRiteApp.update();
+        pv.note = 'Downloading the new app: open it when it is done, and install.';
+        return;
       } else if (act === 'changePc') {
         // EquipRite for Android: back to its first screen, to connect to another PC.
         if (window.EquipRiteApp && typeof window.EquipRiteApp.changePc === 'function') window.EquipRiteApp.changePc();
@@ -64,8 +71,12 @@ define([
       const inApp = installPrompt.inApp();
       const info = inApp ? (installPrompt.appInfo() || {}) : {};
       const installed = installPrompt.installed();
+      const served = inApp || (!installed && platform === 'android') ? await installPrompt.androidAppVersion() : null;
+      // In the app: a newer one on the PC (1.0 had no update of its own: its browser fetches it).
+      const update = inApp && served && appScan.newer(served, info.version || '1.0') ? served : '';
       pv.install = { installed, canPrompt: installPrompt.canPrompt(), platform, steps: installPrompt.howTo(platform), inApp,
-        pc: info.pc || '', version: info.version || '', app: !installed && platform === 'android' ? await installPrompt.androidApp() : false };
+        pc: info.pc || '', version: info.version || '', app: !installed && served !== null, update,
+        canUpdate: !!(window.EquipRiteApp && typeof window.EquipRiteApp.update === 'function') };
       const here = String(window.location.href).split(/[?#]/)[0];
       pv.link = app.appUrls && app.appUrls.mobile ? app.appUrls.mobile : here;
     }

@@ -42,6 +42,14 @@
           <oj-bind-if test="[[ !!$variables.install.pc ]]">
             <div class="mb-note" id="mePc"><oj-bind-text value="[[ 'Connected to EquipRite on the PC at ' + $variables.install.pc + '.' ]]"></oj-bind-text></div>
           </oj-bind-if>
+          <oj-bind-if test="[[ !!$variables.install.update ]]">
+            <div class="mb-note" id="meUpdate" style="color:var(--mb-ink)"><b><oj-bind-text value="[[ 'EquipRite ' + $variables.install.update + ' is on your PC.' ]]"></oj-bind-text></b>
+              <oj-bind-text value="[[ $variables.install.canUpdate ? ' Download it and install it over this one.' : ' To get it: scan the PC\'s code with this phone\'s camera, and tap Download the app on the page that opens.' ]]"></oj-bind-text></div>
+            <oj-bind-if test="[[ $variables.install.canUpdate ]]">
+              <button type="button" class="mb-btn mb-btn--primary mb-btn--block" id="meUpdateBtn" on-click="[[ $listeners.onUpdate ]]">
+                <span class="oj-ux-ico-download" aria-hidden="true"></span>Update the app</button>
+            </oj-bind-if>
+          </oj-bind-if>
           <button type="button" class="mb-btn mb-btn--block" id="meChangePc" on-click="[[ $listeners.onChangePc ]]">
             <span class="oj-ux-ico-refresh" aria-hidden="true"></span>Connect to another PC</button>
         </div>

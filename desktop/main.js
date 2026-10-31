@@ -502,6 +502,15 @@ function phoneState(vbcsError) {
   };
 }
 
+/** EquipRite for Android's version (android/build.sh writes it next to the APK), so a phone with an older app is offered it. */
+function phoneAppVersion() {
+  try {
+    return String(JSON.parse(fs.readFileSync(path.join(__dirname, 'phone-app', 'version.json'), 'utf8')).versionName || '');
+  } catch {
+    return '';
+  }
+}
+
 /** Opens EquipRite Mobile to a paired phone on the Wi-Fi: with token, the same key as before (a restart). */
 async function startLan(token) {
   lan.error = '';
@@ -530,7 +539,7 @@ async function startLan(token) {
       // The other versions' addresses here are this PC's own (localhost): not for a phone.
       getVersions: () => ({}),
       // EquipRite for Android (android/build.sh): "Open in the EquipRite app" on the phone, or its download.
-      phoneApp: { apkFile: path.join(__dirname, 'phone-app', 'EquipRite.apk'), version: '1.0' },
+      phoneApp: { apkFile: path.join(__dirname, 'phone-app', 'EquipRite.apk'), version: phoneAppVersion() },
       backendOverrides: backendOverridesFromEnv(process.env),
       onLog: pushLog,
       onProblem: backendProblem,
