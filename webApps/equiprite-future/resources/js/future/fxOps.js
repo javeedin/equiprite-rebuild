@@ -1,4 +1,4 @@
-define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources/js/future/fxViews'], function (Seed, E, V) {
+define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources/js/future/fxViews', 'resources/js/future/fxReturn'], function (Seed, E, V, Ret) {
   'use strict';
 
   /**
@@ -8,7 +8,9 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
    *
    *   approvals(s)                 the sourcing BU's lines, each with its unit options (preferred first, usable or why not)
    *   yard(s)                      to ship, out, to collect, to inspect, in repair, the fleet
-   *   site(s)                      to receive, on hire (the hours grid, the moves and what each means for the money)
+   *   site(s)                      to receive, on hire (the hours grid, the moves and what each means for the money, a
+   *                                return planned), returned units whose final timesheet is still to send or approve
+   *                                (the Return dialog itself, with the final timesheet and bill, is fxReturn)
    *   ask(s, kind, ids, form)      an action's confirmation: what EquipRite does, the money, what Fusion would do (the
    *                                transactions and their accounting from a dry run of the engine, never posted), who is
    *                                told, and the payload. { def, form, preview }
@@ -24,7 +26,7 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
   // The roles each action of these screens needs (fxEngine's `who`): a button shows only when the engine would take it.
   var WHO = {
     approveLine: ['owner-em'], rejectLine: ['owner-em'], shipLine: ['yard'], returnLine: ['yard'], inspectLine: ['yard', 'owner-em'], repairDone: ['owner-em', 'yard'],
-    receiveLine: ['site', 'desk'], logHours: ['site'], fillHours: ['site'], approveHours: ['requester', 'receiver-review'], reportBreakdown: ['site'],
+    receiveLine: ['site', 'desk'], logHours: ['site', 'desk'], fillHours: ['site', 'desk'], logHoursBulk: ['site', 'desk', 'requester'], approveHours: ['requester', 'receiver-review'], reportBreakdown: ['site'],
     offHire: ['site', 'desk'], redeploy: ['requester', 'site'], moveToCompany: ['requester'], reportLoss: ['site', 'owner-em']
   };
   function may(s, type) { var p = E.persona(s); return (WHO[type] || []).some(function (r) { return L.can(p, r); }); }
@@ -66,7 +68,11 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
   function nbv(u) { return u.hold === 'ASSET' ? U.r2(u.asset.cost - u.asset.accDep) : u.stock.bookValue; }
   function holdText(u) { return u.hold === 'ASSET' ? 'Asset ' + u.asset.number : 'Stock item ' + u.stock.item; }
   function ownerCur(s, u) { return L.leOf(s, u.owner).currency; }
-  function priceText(price) { return price ? F.money(price.week, price.currency) + '/week or ' + F.money(price.day, price.currency) + '/day' : 'No price'; }
+  function priceText(price) {
+    if (!price) return 'No price';
+    if (price.billing === 'HOURLY') return F.money(price.hour, price.currency) + '/hour, by the hour' + (price.minHours ? ' (at least ' + price.minHours + ' h per hire)' : '');
+    return F.money(price.week, price.currency) + '/week or ' + F.money(price.day, price.currency) + '/day';
+  }
   function agreementText(s, l) {
     var ag = L.agreement(s, l.agreementId);
     if (ag) return ag.number + ' v' + ag.version;
@@ -221,14 +227,15 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
     var out = v.out.map(function (x) {
       var y = yardLine(s, x);
       var c = y.l.customsId ? U.byId(s.customs, y.l.customsId) : null;
-      return Object.assign(y.base, { status: y.l.status, statusText: x.words, stage: x.stage, where: y.u.custody.label || orgName(s, y.u.custody.org), whereCountry: countryName(s, y.u.country),
+      return Object.assign(y.base, { status: y.l.status, statusText: Ret.words(x.words) + (y.l.plannedReturn ? ' · return planned for ' + F.date(y.l.plannedReturn) : ''), stage: x.stage,
+        where: y.u.custody.label || orgName(s, y.u.custody.org), whereCountry: countryName(s, y.u.country),
         since: y.l.status === 'ON_HIRE' ? 'On hire since ' + F.date(y.l.events.onHire) : 'Shipped ' + F.date(y.l.events.shipped), project: x.project || '',
         customs: c ? c.permit + ' · re-export by ' + F.date(c.reexportBy) : '' });
     });
     var toCollect = v.toCollect.map(function (x) {
       var y = yardLine(s, x);
       var c = y.l.customsId ? U.byId(s.customs, y.l.customsId) : null;
-      return Object.assign(y.base, { offHire: 'Off hire ' + F.date(y.l.events.offHire),
+      return Object.assign(y.base, { offHire: 'Returned by ' + (y.r.type === 'CUSTOMER_RENTAL' ? 'the customer' : 'the site') + ' on ' + F.date(y.l.events.offHire) + ', to collect',
         fusion: y.u.hold === 'STOCK' && y.l.toOrg ? 'Return transfer order inside ' + y.owner.short + ': ' + orgName(s, y.l.toOrg) + ' → ' + orgName(s, y.u.home) : 'Asset location back to ' + orgName(s, y.u.home) + ', no accounting',
         fusionTone: y.u.hold === 'STOCK' && y.l.toOrg ? 'run' : 'na', customs: c && c.status === 'OPEN' ? 'Closes temporary import ' + c.permit + ' (re-exported)' : '' });
     });
@@ -317,28 +324,71 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
     var minLeft = ag && ag.minDays && total < ag.minDays ? ag.minDays - total : 0;
     var loss = U.r2(nbv(u) * (1 + s.settings.lossMarkupPct));
     var approvers = people(r.requestingBu, ['requester', 'receiver-review']);
+    var hourly = price.billing === 'HOURLY';
+    var hourRate = price.hour != null ? price.hour : U.r2((price.day || 0) / 8);
+    var planned = l.plannedReturn || '';
+    // The return on a date (off hire): what it means for the money, by the hour or by the day.
+    var retMoney = (hourly ? 'By the hour: the final timesheet makes the bill (' + F.money(hourRate, price.currency) + ' an hour' + (price.minHours ? ', at least ' + price.minHours + ' hours per hire' : '') + ').'
+      : 'By the day: returned today, ' + chargedTo(s, l) + '.' + (minLeft ? ' Minimum hire ' + ag.minDays + ' days: ' + plural(minLeft, 'more day') + ' charged.' : ''))
+      + (ag && ag.transport && !l.inPlace ? ' Transport back ' + F.money(ag.transport, ag.currency) + '.' : '');
     return {
       id: l.id, requestId: r.id, number: r.number, typeText: TYPE[r.type], serial: u.serial, unitName: u.name, unitId: u.id, holdText: holdText(u),
       owner: L.leShort(s, l.providerLe) + ' · ' + L.buName(s, l.provider), relationLabel: x.relationLabel, relationTone: x.relationTone,
       site: r.site, country: countryName(s, r.country), weekend: weekendText(s, r.country), since: F.date(l.events.onHire), daysText: plural(days, 'day') + ' on hire',
       agreement: agreementText(s, l), price: priceText(l.price), segments: segments, moved: segments.length > 1, project: cur ? cur.number : '',
+      hourly: hourly, billingText: hourly ? 'Billed by the hour' : 'Billed by the day', billingTone: hourly ? 'cust' : 'na',
+      planned: planned, plannedText: planned ? 'Return planned for ' + F.date(planned) : '',
       rental: rental, forLabel: rental ? 'Customer' : 'Project', customer: rental ? ((L.customer(s, r.customerId) || {}).name || '') + ' · customer rental' : '',
       grid: grid, recorded: rec.length, usage: U.sum(rec, function (g) { return g.usage; }), standby: U.sum(rec, function (g) { return g.standby; }),
       waiting: rec.filter(function (g) { return !g.approved; }).length, approvedDays: rec.filter(function (g) { return g.approved; }).length,
       approvers: orNames(approvers), breakdowns: s.breakdowns.filter(function (b) { return b.lineId === l.id; }).map(function (b) { return F.date(b.date) + ': ' + plural(b.days, 'day') + ', ' + b.reason; }),
       moves: {
-        breakdown: ag && ag.breakdownCredit ? 'A credit of ' + F.money(price.day, price.currency) + ' a day off this month\'s charges (' + ag.number + ').'
+        breakdown: hourly ? 'Billed by the hour: the hours it cannot work stay off the timesheet, so nothing is charged for them (no credit needed).'
+          : ag && ag.breakdownCredit ? 'A credit of ' + F.money(price.day, price.currency) + ' a day off this month\'s charges (' + ag.number + ').'
           : (l.relation === 'SAME_BU' ? 'Own equipment: no credit, the cost stays on the project.' : 'No breakdown credit in ' + agreementText(s, l) + '.'),
-        offHire: 'The hire stops today: ' + chargedTo(s, l) + '.' + (minLeft ? ' Minimum hire ' + ag.minDays + ' days: ' + plural(minLeft, 'more day') + ' charged.' : '')
-          + (ag && ag.transport && !l.inPlace ? ' Transport back ' + F.money(ag.transport, ag.currency) + '.' : ''),
+        offHire: planned ? 'Return planned for ' + F.date(planned) + ': the hire stops by itself that day and ' + (rental ? 'the rental desk' : 'the site') + ' is asked for the final timesheet. Book another date to move it. ' + retMoney
+          : 'Pick the return date: the hire stops that day (a later date is booked and happens by itself), with the final timesheet and the final bill. ' + retMoney,
         redeploy: redeployTo.length ? 'Charges go to the new project from today; until yesterday they stay on ' + (cur ? cur.number : 'this project') + '.'
           : (rental ? 'A customer rental has no project.' : 'No other project of ' + L.buName(s, r.requestingBu) + '.'),
-        handover: rental ? 'The customer has it: off hire it, then raise a request for the group company.' : handTo.length ? 'Off hire for ' + L.leShort(s, r.requestingLe) + ' today; ' + L.buName(s, l.provider) + ' approves a new line and bills the other company directly (no sub-lending).'
+        handover: rental ? 'The customer has it: return it, then raise a request for the group company.' : handTo.length ? 'Returned for ' + L.leShort(s, r.requestingLe) + ' today; ' + L.buName(s, l.provider) + ' approves a new line and bills the other company directly (no sub-lending).'
           : (l.relation === 'SAME_BU' ? 'Own equipment: hand it over through its owner.' : 'No other group company\'s project in ' + countryName(s, r.country) + ' that ' + L.leShort(s, l.providerLe) + ' has an agreement with.'),
         loss: 'Charged at ' + F.money(loss, ownerCur(s, u)) + ': net book value ' + F.money(nbv(u), ownerCur(s, u)) + ' + ' + Math.round(s.settings.lossMarkupPct * 100) + ' % (OD-11).'
       },
       canRedeploy: redeployTo.length > 0, canHandover: handTo.length > 0, inPlace: !!l.inPlace, me: me.id
     };
+  }
+  /**
+   * Units already returned whose final timesheet is still open: a working day on hire without hours, or hours waiting
+   * for approval (a planned return reached by itself asks the site for it). Same scope as fxViews.site: the persona's
+   * BUs, and for the rental desk its customers' rentals.
+   */
+  function returned(s) {
+    var p = E.persona(s);
+    var out = [];
+    (s.requests || []).forEach(function (r) {
+      var rental = r.type === 'CUSTOMER_RENTAL';
+      var mine = L.inBu(p, r.requestingBu) || (rental && r.lines.some(function (l) { return L.inBu(p, l.provider); }) && L.can(p, 'desk'));
+      if (!mine) return;
+      r.lines.forEach(function (l) {
+        if (['OFF_HIRED', 'RETURNED', 'CLOSED'].indexOf(l.status) === -1 || !l.events.onHire || !l.events.offHire) return;
+        var rec = {};
+        s.hours.forEach(function (x) { if (x.lineId === l.id) rec[x.date] = x; });
+        var missing = 0;
+        for (var d = l.events.onHire; d < l.events.offHire; d = U.addDays(d, 1)) if (!rec[d] && !E.isWeekend(s, r.country, d)) missing++;
+        var waiting = Object.keys(rec).filter(function (k) { return k < l.events.offHire && !rec[k].approved; }).length;
+        if (!missing && !waiting) return;
+        var u = L.unit(s, l.unitId);
+        var hourly = (l.price || {}).billing === 'HOURLY';
+        var days = U.diffDays(l.events.offHire, l.events.onHire);
+        out.push({ id: l.id, requestId: r.id, number: r.number, serial: u ? u.serial : l.cls, unitName: u ? u.name : '', site: r.site, rental: rental,
+          forMain: forText(s, r).main, returnedText: 'Returned ' + F.date(l.events.offHire) + ' · ' + plural(days, 'day') + ' on hire from ' + F.short(l.events.onHire),
+          missing: missing, waiting: waiting,
+          sheetText: [missing ? plural(missing, 'working day') + ' without hours' : '', waiting ? plural(waiting, 'day') + ' waiting for approval' : ''].filter(Boolean).join(' · '),
+          billText: hourly ? 'By the hour: the timesheet is the bill' : 'By the day: the hours count for standby',
+          approvers: orNames(people(r.requestingBu, ['requester', 'receiver-review'])) });
+      });
+    });
+    return out;
   }
   function site(s) {
     var v = V.site(s);
@@ -355,10 +405,12 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
         fusionTone: stock ? 'run' : 'na', price: priceText(l.price) };
     });
     var onHire = v.onHire.map(function (x) { return hire(s, v, x); });
-    return { toReceive: toReceive, onHire: onHire, me: me, busText: me.busText,
-      counts: { receive: toReceive.length, onHire: onHire.length, waiting: U.sum(onHire, function (h) { return h.waiting; }) },
+    var back = returned(s);
+    return { toReceive: toReceive, onHire: onHire, returned: back, me: me, busText: me.busText,
+      counts: { receive: toReceive.length, onHire: onHire.length, waiting: U.sum(onHire, function (h) { return h.waiting; }), returned: back.length,
+        planned: onHire.filter(function (h) { return h.planned; }).length },
       can: { receive: may(s, 'receiveLine'), fill: may(s, 'fillHours'), log: may(s, 'logHours'), approve: may(s, 'approveHours'), breakdown: may(s, 'reportBreakdown'),
-        offHire: may(s, 'offHire'), redeploy: may(s, 'redeploy'), handover: may(s, 'moveToCompany'), loss: may(s, 'reportLoss') } };
+        offHire: may(s, 'offHire'), redeploy: may(s, 'redeploy'), handover: may(s, 'moveToCompany'), loss: may(s, 'reportLoss'), timesheet: may(s, 'logHoursBulk') } };
   }
 
   // ── The confirmation of an action: a dry run of the engine says what Fusion would do and who is told ────────────
@@ -395,6 +447,11 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
 
   function hoursNote(s, l) {
     var ag = L.agreement(s, l.agreementId);
+    var pr = l.price || {};
+    if (pr.billing === 'HOURLY') {
+      return 'Nothing in Fusion now: once the requester approves them, the month-end charge run bills these hours: hours of use × ' + F.money(pr.hour, pr.currency) + ' an hour'
+        + (ag && ag.standbyPct ? ', standby at ' + Math.round(ag.standbyPct * 100) + ' % of it' : '') + (pr.minHours ? ', at least ' + pr.minHours + ' hours per hire' : '') + ' (' + (ag ? ag.number : '') + ', by the hour).';
+    }
     return 'Nothing in Fusion now: once the requester approves them, the month-end charge run prices the days on hire'
       + (ag && ag.standbyPct ? ', and standby hours at ' + Math.round(ag.standbyPct * 100) + ' % of the day rate (' + ag.number + ')' : '') + '.';
   }
@@ -560,6 +617,7 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
       money: function (s, c, f) {
         var d = Math.max(1, Math.min(30, Math.round(num(f.days, 1)) || 1));
         var p = c.l.price || {};
+        if (p.billing === 'HOURLY') return ['No credit needed: billed by the hour, the hours it cannot work stay off the timesheet (' + agreementText(s, c.l) + ').'];
         if (c.ag && c.ag.breakdownCredit) return ['A credit of ' + d + ' × ' + F.money(p.day, p.currency) + ' = ' + F.money(-U.r2(d * p.day), p.currency) + ' on this month\'s charges (' + c.ag.number + ' gives a breakdown credit).'];
         return [c.l.relation === 'SAME_BU' ? 'Own equipment: no credit, the cost stays on the project.' : 'No credit: ' + agreementText(s, c.l) + ' gives none.'];
       },
@@ -568,12 +626,12 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
     offHire: {
       type: 'offHire',
       def: function (s, c) {
-        return { kicker: 'On site · ' + c.u.serial, title: 'Off hire ' + c.u.serial, sub: c.r.number + ' · ' + c.r.site, confirm: 'Off hire today', tone: 'primary', fields: [] };
+        return { kicker: 'On site · ' + c.u.serial, title: 'Return ' + c.u.serial + ' today', sub: c.r.number + ' · ' + c.r.site, confirm: 'Return today', tone: 'primary', fields: [] };
       },
       payload: function (c) { return { requestId: c.r.id, lineId: c.l.id }; },
       does: function (s, c) {
         var yd = people(c.l.provider, ['yard']);
-        return ['Releases ' + c.u.serial + ' at ' + c.r.site + ' today, ' + F.date(s.today) + ': the hire stops, ' + chargedTo(s, c.l) + '.',
+        return ['Returns ' + c.u.serial + ' at ' + c.r.site + ' today, ' + F.date(s.today) + ': the hire stops, ' + chargedTo(s, c.l) + '.',
           poss(L.buName(s, c.l.provider)) + ' yard' + (yd.length ? ' (' + names(yd) + ')' : '') + ' is told to collect it.'];
       },
       money: function (s, c) {
@@ -629,7 +687,7 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
         var to = L.project(s, f.projectId);
         if (!to) return ['Choose the project.'];
         var ag = (s.agreements || []).filter(function (a) { return a.status === 'ACTIVE' && a.provider === c.l.provider && a.receiver === to.bu; })[0];
-        return ['Ends ' + poss(L.buName(s, c.r.requestingBu)) + ' hire today (off hire): ' + chargedTo(s, c.l) + '.',
+        return ['Ends ' + poss(L.buName(s, c.r.requestingBu)) + ' hire today (returned on site): ' + chargedTo(s, c.l) + '.',
           'Raises ' + (dry.ok && dry.result ? dry.result.number : 'a new request') + ' for ' + L.buName(s, to.bu) + ' on ' + to.number + ': ' + L.buName(s, c.l.provider) + ' approves the new line; the unit stays on site, no transport.',
           'No sub-lending: ' + L.leShort(s, c.l.providerLe) + ' bills ' + L.buName(s, to.bu) + ' directly' + (ag ? ' under ' + ag.number : '') + '; ' + L.leShort(s, c.r.requestingLe) + ' never re-bills it.'];
       },
@@ -662,7 +720,7 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
       },
       payload: function (c) { return { requestId: c.r.id, lineId: c.l.id }; },
       does: function (s, c) {
-        return ['Receives ' + c.u.serial + ' back at ' + orgName(s, c.u.home) + ' from ' + c.r.site + '.', 'It waits for inspection; the hire stopped at off hire (' + F.date(c.l.events.offHire) + ').'];
+        return ['Receives ' + c.u.serial + ' back at ' + orgName(s, c.u.home) + ' from ' + c.r.site + '.', 'It waits for inspection; the hire stopped at the return (' + F.date(c.l.events.offHire) + ').'];
       },
       money: function (s, c) { return c.ag && c.ag.transport && !c.l.inPlace ? ['Transport back: ' + F.money(c.ag.transport, c.ag.currency) + ' on this month\'s charges (' + c.ag.number + ').'] : []; },
       fusion: function (s, c) {
@@ -756,7 +814,7 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
     out: { title: 'Yard · out', columns: [col('serial', 'Unit'), col('unitName', 'Equipment'), col('number', 'Request'), col('user', 'Used by'), col('statusText', 'Status'),
       col('where', 'Where'), col('whereCountry', 'Country'), col('since', 'Since'), col('customs', 'Customs')] },
     toCollect: { title: 'Yard · to collect', columns: [col('serial', 'Unit'), col('unitName', 'Equipment'), col('number', 'Request'), col('site', 'Site'), col('country', 'Country'),
-      col('offHire', 'Off hire'), col('fusion', 'What Fusion does'), col('customs', 'Customs')] },
+      col('offHire', 'Returned'), col('fusion', 'What Fusion does'), col('customs', 'Customs')] },
     toInspect: { title: 'Yard · to inspect', columns: [col('serial', 'Unit'), col('unitName', 'Equipment'), col('number', 'Request'), col('user', 'Used by'), col('returned', 'Back'), col('threshold', 'Damage rule')] },
     repairs: { title: 'Yard · in repair', columns: [col('serial', 'Unit'), col('unitName', 'Equipment'), col('home', 'Yard'), col('damage', 'Damage'), col('note', 'Inspection')] },
     fleet: { title: 'Yard · the fleet', columns: [col('serial', 'Unit'), col('name', 'Equipment'), col('clsName', 'Class'), col('owner', 'Owner'), col('statusText', 'Status'), col('where', 'Where'),
@@ -766,7 +824,9 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
       col('site', 'Site'), col('country', 'Country'), col('shipped', 'Shipped'), col('fusion', 'What Fusion does')] },
     onHire: { title: 'On site · on hire', columns: [col('serial', 'Unit'), col('unitName', 'Equipment'), col('number', 'Request'), col('owner', 'Owner'), col('relationLabel', 'Relationship'),
       col('project', 'Project now'), col('site', 'Site'), col('since', 'On hire since'), col('recorded', 'Days recorded'), col('usage', 'Hours of use'), col('standby', 'Hours of standby'),
-      col('waiting', 'Days waiting for approval'), col('price', 'Price')] },
+      col('waiting', 'Days waiting for approval'), col('price', 'Price'), col('billingText', 'Billing'), col('plannedText', 'Return planned')] },
+    returned: { title: 'On site · returned, the final timesheet', columns: [col('serial', 'Unit'), col('unitName', 'Equipment'), col('number', 'Request'), col('forMain', 'For'), col('site', 'Site'),
+      col('returnedText', 'Returned'), col('sheetText', 'Timesheet'), col('billText', 'Billing')] },
     hours: { title: 'Hours', columns: [col('date', 'Date'), col('dow', 'Day'), col('weekend', 'Weekend', function (g) { return g.weekend ? 'Yes' : ''; }), col('usage', 'Hours of use'),
       col('standby', 'Hours of standby'), col('state', 'State', function (g) { return { approved: 'Approved', waiting: 'Waiting for approval', empty: 'Not recorded', weekend: 'Weekend, not recorded' }[g.state]; })] }
   };
@@ -792,5 +852,5 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
     return { name: e.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''), title: e.title, subtitle: (m.busText || '') + chip, rows: rows || [], columns: e.columns };
   }
 
-  return { approvals: approvals, yard: yard, site: site, ask: ask, exportSpec: exportSpec, byRelation: byRelation, hoursGrid: hoursGrid, may: may, WHO: WHO, KINDS: Object.keys(KINDS), certFor: certFor, destOrg: destOrg };
+  return { approvals: approvals, yard: yard, site: site, returned: returned, ask: ask, exportSpec: exportSpec, byRelation: byRelation, hoursGrid: hoursGrid, may: may, WHO: WHO, KINDS: Object.keys(KINDS), certFor: certFor, destOrg: destOrg };
 });

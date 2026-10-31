@@ -121,7 +121,7 @@ T.eq('certificates by country, the soon ones', rep.certs.map((c) => c.code + ':'
   'AE:EX-1002 62 days left SA:EX-1003 expired 10 days ago');
 T.eq('utilisation by owner and country', rep.utilisation.map((u) => u.key + ' ' + u.pctText).join(' | '), 'FleetCo · United Arab Emirates 43 % | FleetCo · Saudi Arabia 100 % | ProjectCo · United Arab Emirates 50 %');
 T.eq('margins: S1 cost only, S2 at cost + markup, KSA in SAR, S3 FleetCo\'s revenue, same company', rep.margins.map((m) => m.number + ' ' + m.marginText + ' / ' + m.groupText).join(' | '),
-  'FR-1001 Cost only / AED 0.00 | FR-1002 AED 23,100.00 / AED 80,850.00 | FR-1003 SAR 2,440.41 / AED 9,213.75 | FR-1004 AED 9,760.00 / AED 9,760.00 | FR-1005 Cost only / AED 0.00');
+  'FR-1001 Cost only / AED 0.00 | FR-1002 AED 23,100.00 / AED 80,850.00 | FR-1003 SAR 2,440.41 / AED 9,213.75 | FR-1004 AED 8,605.00 / AED 8,605.00 | FR-1005 Cost only / AED 0.00');
 T.eq('the KPIs', [rep.kpis.out, rep.kpis.icCharged, rep.kpis.recon, rep.kpis.customs, rep.kpis.certs, rep.kpis.disputes].join(' | '), '5 of 10 | AED 79,575.00 | All reconciled | 1 | 2 | 0');
 const repPm = Fin.reports(as(settled, 'p-pm'));
 T.eq('Priya\'s reports: ProjectCo\'s only (MC-BR-12)', [repPm.scope, repPm.icByPair.map((x) => x.pair).join(), repPm.recon.length, repPm.customs.length, repPm.margins.map((m) => m.number).join()].join(' | '),
@@ -190,6 +190,19 @@ T.eq('…the rate', ica2.rates.find((r) => r.cls === 'EXC').dayText + ' ' + ica2
 T.eq('…the drafts of that rate go once saved, others stay', JSON.stringify(Set.dropDrafts(Object.assign({ 'setting|cutoffDay|': '6' }, drafts), 'rate|ICA-01|EXC|')), '{"setting|cutoffDay|":"6"}');
 T.check('Priya cannot (the engine refuses too)', !E.apply(as(settled, 'p-pm'), 'setAgreementRate', payload).ok);
 
+T.section('billing: by the day, or by the hour from the timesheet (a new version)');
+const ry = sv.agreements.find((a) => a.id === 'RA-01');
+T.eq('Customer Y\'s agreement bills by the hour, with the hour rate per class', [ry.billingText, ry.billingWords, ry.rates.map((r) => r.cls + ' ' + r.hourText).join(', ')].join(' | '),
+  'Billed by the hour (timesheet) | Rental = approved hours of use × the hour rate; standby hours at 50 % of it; at least 16 hours per hire, charged at the return. | EXC AED 140.00, CRN AED 525.00, GEN AED 52.50, LFT AED 65.00');
+T.eq('the intercompany agreement by the day, and what switching it does', [ica.billingText, ica.billingFlipLabel, ica.billingFlip].join(' | '),
+  'Billed by the day | Bill by the hour | Switching makes ICA-FC-PC-2026 version 2 from 30 Nov 2026: billed by the hour from the approved timesheets (hours × the hour rate below, at least 16 hours per hire). '
+  + 'Lines already requested keep the billing they were raised with; new requests follow version 2. Fusion: nothing now.');
+const hb = E.apply(sara, 'setAgreementBilling', { agreementId: 'ICA-01', billing: ica.billingTo });
+const ica3 = Set.setup(hb.state).agreements.find((a) => a.id === 'ICA-01');
+T.eq('Sara switches it: version 2, by the hour', [hb.ok, ica3.version, ica3.billingText, ica3.history[0].note].join(' | '), 'true | 2 | Billed by the hour (timesheet) | Billing daily → hourly');
+T.eq('…a rate saved without an hour rate shows the day rate ÷ 8', [ica2.rates.find((r) => r.cls === 'EXC').hourText, ica2.rates.find((r) => r.cls === 'EXC').hourNote].join(' | '), 'AED 106.25 | the day rate ÷ 8');
+T.check('…Priya cannot (the engine refuses)', !E.apply(as(settled, 'p-pm'), 'setAgreementBilling', { agreementId: 'ICA-01', billing: 'HOURLY' }).ok);
+
 T.section('decisions');
 const cut = sv.settings.find((x) => x.key === 'cutoffDay');
 T.eq('a number: what saving changes', Set.settingChange({ 'setting|cutoffDay|': '6' }, cut).text,
@@ -215,6 +228,6 @@ T.section('setup exports');
 const setupEmpty = ['companies', 'bus', 'orgs', 'people', 'relations', 'agreements', 'decisions'].filter((k) => { const sp = Set.exportOf(k, sv); return !sp.columns.length || !sp.rows.length; });
 T.eq('every Setup list has columns and rows', setupEmpty.join(), '');
 T.eq('the rates: one row per agreement and class, numbers as numbers', (() => { const sp = Set.exportOf('agreements', sv); return sp.rows.length + ' ' + exportKit.csv(sp.rows, sp.columns).split('\r\n')[1]; })(),
-  '22 ICA-FC-PC-2026,Intercompany,FleetCo Fleet → ProjectCo Projects,AED,1,Domestic VAT,Excavators,800,3500,Domestic: VAT at the owner\'s country rate.');
+  '22 ICA-FC-PC-2026,Intercompany,FleetCo Fleet → ProjectCo Projects,AED,1,Domestic VAT,Billed by the day,Excavators,800,3500,100,Domestic: VAT at the owner\'s country rate.');
 
 T.report();

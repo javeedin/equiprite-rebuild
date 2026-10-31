@@ -102,12 +102,12 @@ const NAMES = { 'p-fin': 'Sara Ahmed', 'p-pcfin': 'Mark Lee', 'p-desk': 'Lena No
     await page.waitForFunction(() => document.getElementById('fxToday').innerText.trim() === 'Mon 30 Nov 2026', null, { timeout: 10000 });
     await page.waitForSelector('#chRunPreview', { timeout: 10000 });
     T.eq('after the month end: ready', await text('#chRunReady'), 'Ready: Nov 2026 closed on 30 Nov 2026.');
-    T.check('before it runs, it says what it will make', (await text('#chRunPreview')).includes('9 new charge lines: 6 intercompany lines on 2 statements (FleetCo → ProjectCo, FleetCo → ProjectCo KSA)'), await text('#chRunPreview'));
+    T.check('before it runs, it says what it will make', (await text('#chRunPreview')).includes('8 new charge lines: 6 intercompany lines on 2 statements (FleetCo → ProjectCo, FleetCo → ProjectCo KSA)'), await text('#chRunPreview'));
     await page.click('#chRunGo');
     let s = await until((x) => x.statements.length === 2, 'two statements');
-    T.eq('Run the charges: 9 charge lines, two statements in draft', [s.charges.length, s.statements.map((x) => x.status).join()].join(' | '), '9 | DRAFT,DRAFT');
+    T.eq('Run the charges: 8 charge lines (Customer Y bills by the hour: no approved hours yet, so only its transport), two statements in draft', [s.charges.length, s.statements.map((x) => x.status).join()].join(' | '), '8 | DRAFT,DRAFT');
     await page.waitForSelector('#chRunResult');
-    T.eq('…and the result stays on the panel', await text('#chRunResult'), 'Charge run Nov 2026 done: 9 new charge lines, 2 statements made or topped up.');
+    T.eq('…and the result stays on the panel', await text('#chRunResult'), 'Charge run Nov 2026 done: 8 new charge lines, 2 statements made or topped up.');
     T.eq('the statements are listed', await page.$$eval('#chStatements .fxm-st', (a) => a.map((x) => x.dataset.id).join()), 'S2,S1');
     await shot('future-money-run.png');
 
@@ -123,7 +123,7 @@ const NAMES = { 'p-fin': 'Sara Ahmed', 'p-pcfin': 'Mark Lee', 'p-desk': 'Lena No
     T.check('before Release, it says what it does and what Fusion does', (await text(s1 + ' .fxm-st-acts')).includes('to agree or dispute by 3 Dec 2026; no answer by then accepts it. In Fusion: nothing yet'));
     T.check('the rules: silence accepts after 3 days, disputed lines held, the rest goes on', /not answered in 3 days is agreed by itself[\s\S]*disputed line is held; the rest of the statement goes on/.test(await text('#chRules')));
     T.check('Sara, not the user, cannot agree or dispute', !(await page.$('.fxm-st-agree')) && !(await page.$('.fxm-line-dispute')));
-    T.eq('the waiting customer and same-company lines, with their screens', [await text('#chWaitingCustomer b'), await text('#chWaitingInternal b')].join(' | '), '2 lines · AED 9,760.00 | 1 line · AED 1,620.00');
+    T.eq('the waiting customer and same-company lines, with their screens', [await text('#chWaitingCustomer b'), await text('#chWaitingInternal b')].join(' | '), '3 lines · AED 8,605.00 | 1 line · AED 1,620.00');
     const csv = await download('#chExport', '#chStatementsCard .nx-menu-item[data-list="statements"][data-format="csv"]');
     T.eq('the statements export (CSV): a header and the two statements', [csv.lines.length, csv.lines[0].split(',').slice(0, 3).join(','), csv.lines.slice(1).map((l) => l.split(',')[0]).join(' ')].join(' | '),
       '3 | Statement,Period,Owner company | ICS-2026-11-002 ICS-2026-11-001');
@@ -277,12 +277,12 @@ const NAMES = { 'p-fin': 'Sara Ahmed', 'p-pcfin': 'Mark Lee', 'p-desk': 'Lena No
     await load('invoiced', 'p-desk', 'billing');
     const inv = '#blInvoices .fxm-inv[data-number="FC-AR-000013"]';
     T.eq('FleetCo\'s invoice to Customer Y, open', [await text(inv + ' .fxm-tx-number'), await text(inv + ' .fxm-tx-kind .nx-cell-main'), await text(inv + ' .fxm-inv-open')].join(' | '),
-      'FC-AR-000013 · Customer invoice | Customer Y · Gulf Builders | Open AED 10,248.00');
-    T.check('Record the payment says what it does first', (await text(inv + ' .fxm-inv-pay')).includes('Records the payment of AED 10,248.00 from Customer Y · Gulf Builders in Fusion Receivables (Dr bank, Cr receivable)'));
+      'FC-AR-000013 · Customer invoice | Customer Y · Gulf Builders | Open AED 9,035.25');
+    T.check('Record the payment says what it does first', (await text(inv + ' .fxm-inv-pay')).includes('Records the payment of AED 9,035.25 from Customer Y · Gulf Builders in Fusion Receivables (Dr bank, Cr receivable)'));
     T.check('the deposit is held until the return', (await text('#blDeposits')).includes('Received 2 Nov 2026: held until the return inspection'));
     await page.click(inv + ' .fxm-tx-row');
     await page.waitForSelector(inv + ' .fxm-accgrid');
-    T.check('the invoice opens to its accounting, with VAT, shown not posted', /Shown, not posted[\s\S]*1200[\s\S]*10,248\.00[\s\S]*2200 Output VAT[\s\S]*488\.00/.test(await text(inv + ' .fxm-tx-acc')));
+    T.check('the invoice opens to its accounting, with VAT, shown not posted', /Shown, not posted[\s\S]*1200[\s\S]*9,035\.25[\s\S]*2200 Output VAT[\s\S]*430\.25/.test(await text(inv + ' .fxm-tx-acc')));
     await page.click(inv + ' .fxm-pay-go');
     s = await until((x) => x.tx.some((t) => t.kind === 'CUSTOMER_RECEIPT'), 'the receipt');
     T.eq('Record the payment: the invoice paid, a receipt in FleetCo', [s.tx.find((t) => t.number === 'FC-AR-000013').open, s.tx.find((t) => t.kind === 'CUSTOMER_RECEIPT').le].join(), '0,LE-FC');
@@ -313,7 +313,7 @@ const NAMES = { 'p-fin': 'Sara Ahmed', 'p-pcfin': 'Mark Lee', 'p-desk': 'Lena No
     T.check('Settle the deposit says what it does', (await text(dp)).includes('Applies AED 2,100.00 to the open invoices of Customer Y · Gulf Builders and refunds AED 0.00'));
     await page.click(dp + ' .fxm-deposit-settle');
     s = await until((x) => x.requests.find((r) => r.id === 'R1004').deposit.settled, 'the deposit settled');
-    T.eq('Settle the deposit: applied, nothing refunded, the invoice open for the rest', [s.requests.find((r) => r.id === 'R1004').deposit.settled.applied, s.tx.find((t) => t.number === 'FC-AR-000013').open].join(), '2100,8148');
+    T.eq('Settle the deposit: applied, nothing refunded, the invoice open for the rest', [s.requests.find((r) => r.id === 'R1004').deposit.settled.applied, s.tx.find((t) => t.number === 'FC-AR-000013').open].join(), '2100,6935.25');
 
     T.section('fits the window');
     await load('agreed', 'p-fin', 'charges');

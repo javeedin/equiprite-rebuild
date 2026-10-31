@@ -54,6 +54,22 @@ async function story(point, persona, navId, fn) {
       await page.waitForSelector(dialog, { state: 'detached', timeout: 10000 });
       await page.waitForTimeout(400);
     },
+    /** The Return dialog: Confirm, and wait for it to close. */
+    async confirmReturn() {
+      await page.click('#stRetConfirm');
+      await page.waitForSelector('#stReturn', { state: 'detached', timeout: 10000 });
+      await page.waitForTimeout(400);
+    },
+    /** No sideways scroll inside an open dialog (nor the window). */
+    dialogFits: (sel) => page.evaluate((q) => {
+      const d = document.querySelector(q + ' .nx-dialog');
+      const body = d.querySelector('.nx-dialog-body');
+      const right = d.getBoundingClientRect().right;
+      const over = Array.prototype.filter.call(d.querySelectorAll('*'), (e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.right > right + 1; })
+        .map((e) => e.tagName.toLowerCase() + '.' + String(e.className).split(' ')[0]).slice(0, 4);
+      const de = document.documentElement;
+      return { ok: de.scrollWidth <= de.clientWidth && body.scrollWidth <= body.clientWidth + 1 && right <= window.innerWidth && !over.length, over: over.join(', ') };
+    }, sel),
     /** No sideways scroll: neither the window nor the tab's content, and nothing on the page sticks out on the right. */
     fits: (sel) => page.evaluate((q) => {
       const pg = document.querySelector(q);
@@ -311,7 +327,7 @@ async function widths(h, sel, label) {
     T.eq('the grid shows them approved', await page.$$eval(hire('FR-1001') + ' .fx-day--approved', (d) => d.length), 6);
     T.check('Priya may hand a unit over to another group company (same country)', !!(await page.$(hire('FR-1001') + ' .fx-mv-handover')));
     await h.ask(hire('FR-1001') + ' .fx-mv-handover', '#stAsk');
-    T.check('…it says: off hire for ProjectCo, the owner approves the new line, no sub-lending', (await h.text('#stAskDoes')).includes('FleetCo Fleet approves the new line')
+    T.check('…it says: returned for ProjectCo, the owner approves the new line, no sub-lending', (await h.text('#stAskDoes')).includes('FleetCo Fleet approves the new line')
       && (await h.text('#stAskDoes')).includes('No sub-lending: FleetCo bills ProjectCo Facilities directly under ICA-FC-PF-2026'));
     await page.click('#stAskCancel');
     await page.waitForSelector('#stAsk', { state: 'detached' });
@@ -329,13 +345,16 @@ async function widths(h, sel, label) {
   // ── 'returned': Omar releases the crane; Ravi collects it and inspects it with damage; a repair is done ─────────
   await story('returned', 'p-site', 'site', async (h) => {
     const { page, ids } = h;
-    T.section('Off hire (Omar)');
-    await h.ask('#page-site .fx-hire[data-request="FR-1002"] .fx-mv-offhire', '#stAsk');
-    T.check('it says the hire stops and the yard is told to collect', (await h.text('#stAskDoes')).includes('Releases CR-2001 at Dubai Marina today, 30 Nov 2026: the hire stops, charged up to 29 Nov 2026.')
-      && (await h.text('#stAskTold')).includes('Collect CR-2001 from Dubai Marina'));
-    await h.confirm('#stAsk');
+    T.section('Return today (Omar)');
+    await h.ask('#page-site .fx-hire[data-request="FR-1002"] .fx-mv-return', '#stReturn');
+    T.eq('the Return dialog: today by default, the hire stops that day', [await h.text('#stRetTitle'), await page.inputValue('#stRetDate'), await h.text('#stRetWhenText')].join(' | '),
+      'Return CR-2001 | 2026-11-30 | Returned today: the hire stops that day, charged up to 29 Nov 2026.');
+    T.check('it says the hours of today are dropped and the yard is told to collect', (await h.text('#stRetDoes')).includes('Stops the hire of CR-2001 on 30 Nov 2026; 1 day of hours recorded from then on is dropped.')
+      && (await h.text('#stRetDoes')).includes('Collect CR-2001 from Dubai Marina: returned on 30 Nov 2026.'), await h.text('#stRetDoes'));
+    T.eq('Omar may not agree the hours: who does is named', await h.text('#stRetWait'), 'They wait for the approval of Priya Raman or Mark Lee; the bill counts them once approved.');
+    await h.confirmReturn();
     let s = await h.state();
-    T.eq('off hire', [h.line(s, ids.r2).status, h.line(s, ids.r2).events.offHire].join(), 'OFF_HIRED,2026-11-30');
+    T.eq('returned on the day', [h.line(s, ids.r2).status, h.line(s, ids.r2).events.offHire].join(), 'OFF_HIRED,2026-11-30');
 
     T.section('Collect and inspect (Ravi): damage above the threshold');
     await h.playAs('p-yard');
@@ -393,6 +412,158 @@ async function widths(h, sel, label) {
     await h.page.waitForTimeout(400);
     T.check('screenshot at 1024 px', !!(await h.shotFull('future-ops-yard-1024.png')));
     await h.page.setViewportSize({ width: 1440, height: 1000 });
+  });
+
+  // ── 'onHire': Lena returns Customer Y's unit two days ago, with the customer's signed timesheet; the bill by the hour ─
+  await story('onHire', 'p-desk', 'site', async (h) => {
+    const { page, ids } = h;
+    const hire = '#page-site .fx-hire[data-request="FR-1004"]';
+    T.section('Return on a date with the final timesheet and the final bill (Lena, Customer Y, billed by the hour)');
+    await page.click('#fxWeek');
+    await page.waitForFunction(() => document.getElementById('fxToday').innerText.trim() === 'Sat 14 Nov 2026', null, { timeout: 5000 });
+    await page.waitForTimeout(500);
+    T.eq('the card: billed by the hour, the hour rate', [await h.text(hire + ' .fx-ap-title'), await h.text(hire + ' .fx-hire-facts')].map((x) => x.includes('Billed by the hour') || x.includes('AED 52.50/hour, by the hour (at least 16 h per hire)')).join(), 'true,true');
+    T.check('the desk records the customer\'s hours: the days are buttons, standard hours to today', (await page.$$(hire + ' button.fx-day')).length === 8 && !!(await page.$(hire + ' .fx-fill')));
+    await h.ask(hire + ' .fx-fill', '#stAsk');
+    await h.confirm('#stAsk');
+    T.eq('the small print says what a return is, once', [await page.$$eval('#page-site .fx-st-fine', (x) => x.length), (await h.text('#stReturnTerm')).split(':')[0]].join(' | '), '1 | Return (off hire)');
+    await h.ask(hire + ' .fx-mv-return', '#stReturn');
+    T.eq('Return: today by default, the timesheet prefilled to the day before', [await h.text('#stRetTitle'), await page.inputValue('#stRetDate'),
+      await page.$$eval('#stRetRows .fx-sheet-row', (r) => r.map((x) => x.dataset.date.slice(8)).join())].join(' | '), 'Return GN-3002 | 2026-11-14 | 07,08,09,10,11,12,13');
+    await page.fill('#stRetDate', '2026-11-12');
+    await page.waitForFunction(() => document.querySelectorAll('#stRetRows .fx-sheet-row').length === 5, null, { timeout: 5000 });
+    await page.waitForTimeout(300);
+    T.eq('two days ago: the rows to the day before, the weekend marked, prefilled', await page.$$eval('#stRetRows .fx-sheet-row', (r) => r.map((x) => x.dataset.date.slice(8)
+      + (x.className.includes('fx-sheet-row--we') ? 'w' : '') + ':' + x.querySelector('[data-kind="usage"]').value + '/' + x.querySelector('[data-kind="standby"]').value).join(' ')),
+      '07w:/ 08w:/ 09:8/0 10:8/0 11:8/0');
+    T.eq('…when, and the hours after it dropped', [await h.text('#stRetWhenText'), await h.text('#stRetDropped')].join(' | '),
+      'Returned on Thu 12 Nov 2026: the hire stops that day, charged up to 11 Nov 2026. | Hours recorded on 12 Nov and 13 Nov are dropped: the hire stops on 12 Nov 2026.');
+    T.eq('the final bill: hours × AED 52.50, transport out and back, VAT', await page.$$eval('#stRetBillRows .fx-bill-row', (r) => r.map((x) => x.innerText.replace(/\s+/g, ' ').trim()).join(' ; ')),
+      'Rental 24 h of use × AED 52.50 an hour AED 1,260.00 ; Transport out to the site AED 2,200.00 ; Transport back when the yard collects it AED 2,200.00');
+    T.eq('…the total for the hire, with VAT, already charged and still to charge', [await h.text('#stRetTotal'), await h.text('#stRetGross'), await h.text('#stRetToCharge')].join(' | '),
+      'AED 5,660.00 | AED 5,943.00 | AED 5,660.00 at the next charge run');
+    await page.fill('#stRetU-2026-11-10', '6');
+    await page.fill('#stRetS-2026-11-10', '2');
+    await page.waitForFunction(() => /AED 5,607.50/.test(document.getElementById('stRetTotal').innerText), null, { timeout: 5000 });
+    T.eq('a day changed: the bill follows as it is typed', [await h.text('#stRetSum'), await h.text('#stRetRows .fx-sheet-row[data-date="2026-11-10"] .fx-chip'),
+      await page.$$eval('#stRetBillRows .fx-bill-row', (r) => r.slice(0, 2).map((x) => x.innerText.replace(/\s+/g, ' ').trim()).join(' ; ')), await h.text('#stRetTotal')].join(' | '),
+      '3 days with hours · 22 h of use · 2 h of standby | Changed | Rental 22 h of use × AED 52.50 an hour AED 1,155.00 ; Standby 2 h × AED 26.25 (50 % of the hour rate) AED 52.50 | AED 5,607.50');
+    T.check('…the field keeps what was typed', (await page.inputValue('#stRetU-2026-11-10')) === '6' && (await page.inputValue('#stRetS-2026-11-10')) === '2');
+    T.eq('the hours agreed: signed by the customer', await h.text('#page-site #stReturn .fx-ret-agree'), 'These hours are agreed (signed by the customer, Customer Y)');
+    await page.check('#stRetApprove');
+    await page.waitForFunction(() => /agrees every day of it/.test(document.getElementById('stRetDoes').innerText), null, { timeout: 5000 });
+    const does = await h.text('#stRetDoes');
+    T.check('What EquipRite does: stops the hire, records and agrees the timesheet, the yard collects', ['Stops the hire of GN-3002 on 12 Nov 2026; 2 days of hours recorded from then on are dropped.',
+      'Records 1 day of the timesheet and agrees every day of it (signed by the customer).', 'Collect GN-3002 from Customer site: returned on 12 Nov 2026.'].every((x) => does.includes(x)), does);
+    T.eq('Confirm says it', await h.text('#stRetConfirm'), 'Return GN-3002 on 12 Nov 2026');
+    for (const w of [1440, 1024]) {
+      await page.setViewportSize({ width: w, height: 1000 });
+      await page.waitForTimeout(400);
+      const f = await h.dialogFits('#stReturn');
+      T.check(`${w}px, the Return dialog: no sideways scroll`, f.ok, f.over);
+      T.check(`${w}px, …a screenshot of it`, !!(await h.env.shot(w === 1440 ? 'future-ops-return-dialog.png' : 'future-ops-return-dialog-1024.png')));
+    }
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.waitForTimeout(300);
+    await h.confirmReturn();
+    T.eq('the toast: returned, the days, the hours, the final bill', await h.toast(), 'GN-3002 returned on 12 Nov 2026: 5 days, 22 h of use, final bill AED 5,607.50 + VAT 5 % AED 280.38.');
+    const s = await h.state();
+    const l = h.line(s, ids.r3);
+    const hrs = s.hours.filter((x) => x.lineId === l.id).sort((a, b) => a.date.localeCompare(b.date));
+    T.eq('the state: returned on that date', [l.status, l.events.offHire].join(), 'OFF_HIRED,2026-11-12');
+    T.eq('…the hours to the day before, approved: signed by the customer', hrs.map((x) => x.date.slice(8) + ':' + x.usage + '/' + x.standby + (x.approved ? ':' + x.approvedBy : '')).join(' | '),
+      '09:8/0:Lena Novak (signed by the customer) | 10:6/2:Lena Novak (signed by the customer) | 11:8/0:Lena Novak (signed by the customer)');
+    T.eq('…none from the return date on', hrs.filter((x) => x.date >= '2026-11-12').length, 0);
+    T.check('the unit has left On hire', !(await page.$(hire)));
+
+    T.section('The request\'s Money: the bill for this hire');
+    await h.env.open(`/?open=request&id=${ids.r3}`);
+    await page.waitForSelector('#page-request #recTabs', { timeout: 20000 });
+    await page.click('#recTab-money');
+    const bill = '#recBills .fx-bill-card';
+    await page.waitForSelector(bill, { timeout: 10000 });
+    T.eq('by the hour, from the approved timesheet: the final bill', [await h.text(bill + ' .fx-bill-cardhead .fx-chip'), await h.text(bill + ' .fx-bill-mode'), await h.text(bill + ' .fx-bill-totalv'),
+      await h.text(bill + ' .fx-bill-gross'), await h.text(bill + ' .fx-bill-charged')].join(' | '),
+      'By the hour: from the approved timesheet | Returned 12 Nov 2026: on hire 7 Nov – 11 Nov 2026 (5 days) | AED 5,607.50 | AED 5,887.88 | AED 0.00 nothing charged yet');
+    T.check('…damage after the yard\'s inspection', (await h.text(bill + ' .fx-bill-notes')).includes('Damage, if any, is added after the yard’s inspection.'));
+    T.check('…the step says returned, the hours signed by the customer', (await page.click('#recTab-flow'), await page.waitForSelector('#recFlow'), await h.text('#recFlow .fx-fs[data-key="offHire"]')).includes('Returned: the hire stops')
+      && (await h.text('#recFlow .fx-fs[data-key="hours"]')).includes('Timesheet signed by the customer'));
+    await page.click('#recTab-money');
+    await page.waitForSelector(bill);
+    await page.$eval(bill, (e) => e.scrollIntoView({ block: 'start' }));
+    await page.waitForTimeout(300);
+    const shot = require('path').join(require('os').tmpdir(), 'equiprite-e2e', 'future-ops-request-bill.png');
+    await (await page.$(bill)).screenshot({ path: shot });
+    T.check('screenshot of the bill card', !!shot);
+    await widths(h, '#page-request', 'the request\'s Money');
+  });
+
+  // ── 'onHire': Omar books a return in 5 days; a week on the clock returns it by itself and asks for the timesheet ──
+  await story('onHire', 'p-site', 'site', async (h) => {
+    const { page, ids } = h;
+    const hire = '#page-site .fx-hire[data-request="FR-1001"]';
+    T.section('A planned return (Omar): booked for a later date, it happens by itself');
+    await h.ask(hire + ' .fx-mv-return', '#stReturn');
+    await page.fill('#stRetDate', '2026-11-12');
+    await page.waitForFunction(() => /Planned return/.test(document.getElementById('stRetWhenText').innerText), null, { timeout: 5000 });
+    T.eq('in 5 days: planned, the timesheet to today, the bill at the return', [await h.text('#stRetWhenText'), await h.text('#stRetConfirm'), await h.text('#stRetBillTitle'),
+      await page.$$eval('#stRetRows .fx-sheet-row', (r) => r.map((x) => x.dataset.date.slice(8)).join())].join(' | '),
+      'Planned return: the hire stops by itself on 12 Nov 2026; the final timesheet is asked for then. | Book the return for 12 Nov 2026 | THE BILL AT THE PLANNED RETURN | 07');
+    T.check('…by the day: 5 days, transport out and back', (await h.text('#stRetBillRows')).includes('Rental 5 days at AED 3,500.00 a week or AED 800.00 a day AED 3,500.00') && (await h.text('#stRetTotal')) === 'AED 6,500.00',
+      await h.text('#stRetBillRows'));
+    await h.confirmReturn();
+    T.eq('the toast', await h.toast(), 'EX-1001: return planned for 12 Nov 2026 (the hire stops by itself then).');
+    let s = await h.state();
+    T.eq('booked, still on hire', [h.line(s, ids.r1).status, h.line(s, ids.r1).plannedReturn].join(), 'ON_HIRE,2026-11-12');
+    T.eq('the card: the return planned, and Change', [await h.text(hire + ' .fx-planned'), await h.text(hire + ' .fx-mv-return')].join(' | '), 'Return planned for 12 Nov 2026 | Change the return…');
+    await page.click('#fxWeek');
+    await page.waitForFunction(() => document.getElementById('fxToday').innerText.trim() === 'Sat 14 Nov 2026', null, { timeout: 5000 });
+    await page.waitForTimeout(600);
+    s = await h.state();
+    T.eq('a week on: returned by itself on the date', [h.line(s, ids.r1).status, h.line(s, ids.r1).events.offHire].join(), 'OFF_HIRED,2026-11-12');
+    await page.click('#nxBell');
+    await page.waitForSelector('#nxBellPanel .nx-alert');
+    T.check('the bell asks Omar for the final timesheet', (await h.text('#nxBellPanel')).includes('EX-1001 was returned on 12 Nov 2026: send the final timesheet.'), await h.text('#nxBellPanel'));
+    await page.click('.nx-backdrop');
+    await page.waitForTimeout(300);
+    const back = '#stReturned .fx-item[data-unit="EX-1001"]';
+    await page.waitForSelector(back, { timeout: 10000 });
+    T.eq('Returned: the final timesheet to send', await h.text(back + ' .fx-ret-open'), '3 working days without hours');
+    await h.ask(back + ' .fx-send-sheet', '#stReturn');
+    T.eq('the timesheet only: returned already', [await h.text('#stRetTitle'), await h.text('#stRetWhenText'), !!(await page.$('#stRetDate'))].join(' | '),
+      'The final timesheet of EX-1001 | Returned on 12 Nov 2026: the hire stopped that day. The timesheet runs to 11 Nov 2026. | false');
+    await page.click('#stRetFill');
+    await page.waitForTimeout(400);
+    T.eq('Fill standard hours: 8 h on each working day, the weekend left empty', await page.$$eval('#stRetRows [data-kind="usage"]', (r) => r.map((x) => x.dataset.date.slice(8) + ':' + x.value).join(' ')),
+      '07: 08: 09:8 10:8 11:8');
+    await h.confirmReturn();
+    s = await h.state();
+    T.eq('sent: waiting for Priya or Mark', s.hours.filter((x) => x.lineId === h.line(s, ids.r1).id).map((x) => x.date.slice(8) + ':' + x.usage + (x.approved ? 'A' : '')).join(' '), '09:8 10:8 11:8');
+    T.eq('…the card says who approves', await h.text(back + ' .fx-hours-wait'), 'Waiting for the approval of Priya Raman or Mark Lee.');
+    await widths(h, '#page-site', 'Receive, hours, moves with a returned unit');
+  });
+
+  // ── 'fresh': Sara switches an intercompany agreement to billing by the hour (a new version) ─────────────────────────
+  await story('fresh', 'p-fin', 'setup', async (h) => {
+    const { page } = h;
+    T.section('Setup: billed by the hour (timesheet) or by the day (Sara)');
+    await page.click('#setupSections .fx-section[data-value="agreements"]');
+    const ag = '#setupAgreements .fx-ag[data-agreement="ICA-01"]';
+    await page.waitForSelector(ag);
+    T.eq('each agreement says how it bills', await page.$$eval('#setupAgreements .fx-ag', (a) => a.map((x) => x.dataset.agreement + ': ' + x.querySelector('.fx-ag-billing-chip').innerText.trim()).join(' | ')),
+      'ICA-01: Billed by the day | ICA-02: Billed by the day | ICA-03: Billed by the day | XCA-01: Billed by the day | RA-01: Billed by the hour (timesheet) | RA-02: Billed by the hour (timesheet)');
+    T.eq('…the hour rate per class, next to the day and the week', await page.$eval(ag + ' .fx-rate[data-cls="EXC"] .fx-rate-hour', (x) => x.innerText.trim()), 'AED 100.00');
+    T.check('…what switching does, before it is done', (await h.text(ag + ' .fx-ag-billing-what')).startsWith('Switching makes ICA-FC-PC-2026 version 2 from 2 Nov 2026: billed by the hour from the approved timesheets'));
+    await page.click(ag + ' .fx-billing');
+    await page.waitForFunction((q) => { const v = document.querySelector(q + ' .fx-ag-version'); return v && v.innerText.trim() === 'v2'; }, ag, { timeout: 10000 });
+    await page.waitForTimeout(300);
+    const s = await h.state();
+    const a = s.agreements.find((x) => x.id === 'ICA-01');
+    T.eq('switched: version 2, by the hour, 16 hours at least', [a.version, a.billing, a.minHours, a.versions[a.versions.length - 1].note].join(' | '), '2 | HOURLY | 16 | Billing daily → hourly');
+    T.eq('…the card says so, and offers the way back', [await h.text(ag + ' .fx-ag-billing-chip'), await h.text(ag + ' .fx-billing')].join(' | '), 'Billed by the hour (timesheet) | Bill by the day');
+    T.check('…the toast', (await h.toast()).includes('ICA-FC-PC-2026 v2: billed by the hour (timesheets)'), await h.toast());
+    await widths(h, '#page-setup', 'Setup, agreements');
+    T.check('screenshot', !!(await h.shotFull('future-setup-billing.png')));
   });
 
   T.report();

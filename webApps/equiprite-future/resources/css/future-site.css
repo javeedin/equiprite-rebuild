@@ -59,3 +59,44 @@ button.fx-day:hover { border-color: var(--nx-accent); box-shadow: 0 0 0 2px var(
   .fx-moves-list li { grid-template-columns: 1fr; }
   .fx-hours-legend { margin-left: 0; }
 }
+
+/* The return (off hire) in small print, once; a unit's planned return; a returned unit's open timesheet. */
+.fx-st-fine { flex: 1 1 100%; margin: 0; font-size: 12px; }
+.fx-planned { display: inline-flex; align-items: center; gap: 5px; }
+.fx-planned span[class^="oj-ux-ico"] { font-size: 14px; }
+.fx-ret-open { font-weight: 600; color: #92400e; }
+
+/* The Return dialog: the date and the final timesheet beside the final bill (one under the other when narrow). */
+.fx-ret .nx-dialog.fx-ret-dialog { width: min(1080px, 100%); }
+.fx-ret-cols { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(300px, 1fr); gap: 16px; align-items: start; }
+.fx-ret-main { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.fx-ret-date { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 6px 14px; }
+.fx-ret-date .nx-pop-field { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; }
+.fx-input--date { max-width: 200px; }
+.fx-ret-planned { margin: 0; display: flex; align-items: flex-start; gap: 6px; font-size: 13px; color: var(--fx-run); }
+.fx-ret-whentext { margin: 0; padding: 8px 12px; border-radius: 8px; background: var(--fx-ok-bg); color: #14532d; font-size: 13.5px; font-weight: 600; }
+.fx-ret-whentext--planned { background: var(--fx-run-bg); color: #1e3a8a; }
+.fx-ret-sheethead { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.fx-ret-sheethead .nx-spacer { flex: 1 1 auto; }
+.fx-sheet-scroll { max-height: 340px; overflow-y: auto; overflow-x: hidden; border: 1px solid var(--nx-line); border-radius: 10px; }
+.fx-grid--sheet .nx-row { grid-template-columns: minmax(96px, 1fr) minmax(76px, 104px) minmax(76px, 104px) minmax(74px, 96px); gap: 8px; padding: 5px 10px; font-size: 13px; }
+.fx-grid--sheet .nx-row--head { font-size: 11px; padding-top: 6px; padding-bottom: 6px; }
+.fx-sheet-row--we { background-image: repeating-linear-gradient(-45deg, rgba(100, 116, 139, 0.08), rgba(100, 116, 139, 0.08) 4px, transparent 4px, transparent 8px); }
+.fx-sheet-day { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; min-width: 0; }
+.fx-sheet-dow { font-weight: 600; white-space: nowrap; }
+.fx-sheet-we { font-size: 11px; font-weight: 700; color: var(--nx-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.fx-input--hours { width: 100%; max-width: 104px; height: 30px; padding: 0 8px; font-variant-numeric: tabular-nums; }
+.fx-grid--sheet .fx-chip { font-size: 11.5px; }
+.fx-ret-sum { margin: 0; }
+.fx-ret-dropped { margin: 0; display: flex; align-items: flex-start; gap: 6px; font-size: 13px; color: #92400e; }
+.fx-ret-dropped span[class^="oj-ux-ico"] { font-size: 15px; flex: none; margin-top: 1px; }
+.fx-ret-agree { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 1px solid var(--nx-line-strong); border-radius: 8px; background: #fff; cursor: pointer; font-size: 14px; font-weight: 600; }
+.fx-ret-agree:has(input:checked) { border-color: #86efac; background: var(--fx-ok-bg); }
+.fx-ret-agree input { margin-top: 3px; flex: none; accent-color: #15803d; width: 16px; height: 16px; }
+.fx-ret-wait { margin: 0; color: #92400e; }
+.fx-ret-bill { position: sticky; top: 0; }
+
+@media (max-width: 960px) {
+  .fx-ret-cols { grid-template-columns: minmax(0, 1fr); }
+  .fx-ret-bill { position: static; }
+}

@@ -1,13 +1,15 @@
 <!-- Receive, hours, moves: the requesting BU on site. To receive (confirming receipt starts the hire), then one card per
      unit on hire: its project (segments when moved), a grid of its days on hire up to today with the site country's
      weekend marked (record standard hours, edit a day, approve), and its moves with what each means for the money.
-     Every action opens a confirmation first (what EquipRite does, what Fusion would do). v = fxOps.site (loadChain). -->
+     Every action opens a confirmation first (what EquipRite does, what Fusion would do). v = fxOps.site (loadChain).
+     Return: a dialog of its own (#stReturn, fxReturn): the return date (a later one is planned), the final timesheet
+     day by day, and the final bill, live; then the returned units whose final timesheet is still open. -->
 <div class="nx-page fx-ops fx-st" id="page-site">
   <div class="nx-pagehead">
     <div>
       <div class="nx-kicker"><oj-bind-text value="[[ 'On site · ' + $variables.v.busText ]]"></oj-bind-text></div>
       <h1>Receive, hours, moves</h1>
-      <div class="nx-sub"><oj-bind-text value="[[ 'The units your business units use: confirm what arrives (the hire starts), record and approve the hours, report a breakdown, move a unit, off hire.' ]]"></oj-bind-text></div>
+      <div class="nx-sub"><oj-bind-text value="[[ 'The units your business units use: confirm what arrives (the hire starts), record and approve the hours, report a breakdown, move a unit, return it on a date with the final timesheet.' ]]"></oj-bind-text></div>
     </div>
     <div class="nx-actions">
       <div class="nx-export">
@@ -84,6 +86,9 @@
       <oj-bind-if test="[[ $variables.v.counts.waiting > 0 ]]">
         <span class="fx-chip fx-chip--todo" id="stWaiting"><oj-bind-text value="[[ $functions.plural($variables.v.counts.waiting, 'day') + ' of hours wait for approval' ]]"></oj-bind-text></span>
       </oj-bind-if>
+      <oj-bind-if test="[[ $variables.v.onHire.length > 0 ]]">
+        <p class="nx-note fx-st-fine" id="stReturnTerm">Return (off hire): pick the date the hire stops, today or earlier; a later date is booked and happens by itself. The final timesheet and the final bill go with it.</p>
+      </oj-bind-if>
     </div>
     <oj-bind-if test="[[ !$variables.v.onHire.length ]]">
       <section class="nx-card" id="stNoHire"><p class="fx-sec-empty">Nothing on hire for your business units.</p></section>
@@ -97,6 +102,8 @@
                 <span class="fx-hire-unit"><oj-bind-text value="[[ h.data.serial ]]"></oj-bind-text></span>
                 <span class="fx-ap-cls"><oj-bind-text value="[[ h.data.unitName ]]"></oj-bind-text></span>
                 <span :class="[[ 'fx-chip fx-chip--' + h.data.relationTone ]]"><oj-bind-text value="[[ h.data.relationLabel ]]"></oj-bind-text></span>
+                <span :class="[[ 'fx-chip fx-chip--' + h.data.billingTone ]]"><oj-bind-text value="[[ h.data.billingText ]]"></oj-bind-text></span>
+                <oj-bind-if test="[[ !!h.data.planned ]]"><span class="fx-chip fx-chip--next fx-planned"><span class="oj-ux-ico-calendar" aria-hidden="true"></span><oj-bind-text value="[[ h.data.plannedText ]]"></oj-bind-text></span></oj-bind-if>
               </div>
               <button type="button" class="nx-link" data-record="request" :data-id="[[ h.data.requestId ]]" :data-number="[[ h.data.number ]]" on-click="[[ $listeners.onOpen ]]">
                 <oj-bind-text value="[[ h.data.number + ' · ' + h.data.typeText ]]"></oj-bind-text></button>
@@ -189,8 +196,9 @@
                       <span class="oj-ux-ico-warning" aria-hidden="true"></span>Breakdown…</button><span class="fx-move-text"><oj-bind-text value="[[ h.data.moves.breakdown ]]"></oj-bind-text></span></li>
                   </oj-bind-if>
                   <oj-bind-if test="[[ $variables.v.can.offHire ]]">
-                    <li><button type="button" class="nx-btn nx-btn--sm fx-mv-offhire" data-ask="offHire" :data-request-id="[[ h.data.requestId ]]" :data-line-id="[[ h.data.id ]]" on-click="[[ $listeners.onAsk ]]">
-                      <span class="oj-ux-ico-arrow-left" aria-hidden="true"></span>Off hire…</button><span class="fx-move-text"><oj-bind-text value="[[ h.data.moves.offHire ]]"></oj-bind-text></span></li>
+                    <li><button type="button" class="nx-btn nx-btn--sm fx-mv-return" :data-request-id="[[ h.data.requestId ]]" :data-line-id="[[ h.data.id ]]" on-click="[[ $listeners.onReturn ]]">
+                      <span class="oj-ux-ico-arrow-left" aria-hidden="true"></span><oj-bind-text value="[[ h.data.planned ? 'Change the return…' : 'Return…' ]]"></oj-bind-text></button>
+                      <span class="fx-move-text"><oj-bind-text value="[[ h.data.moves.offHire ]]"></oj-bind-text></span></li>
                   </oj-bind-if>
                   <oj-bind-if test="[[ $variables.v.can.redeploy && !h.data.rental ]]">
                     <li><oj-bind-if test="[[ h.data.canRedeploy ]]"><button type="button" class="nx-btn nx-btn--sm fx-mv-redeploy" data-ask="redeploy" :data-request-id="[[ h.data.requestId ]]" :data-line-id="[[ h.data.id ]]" on-click="[[ $listeners.onAsk ]]">
@@ -215,6 +223,45 @@
         </template>
       </oj-bind-for-each>
     </div>
+
+    <!-- Returned: the final timesheet still to send (a planned return reached by itself asks for it) or to approve -->
+    <oj-bind-if test="[[ $variables.v.returned.length > 0 ]]">
+      <section class="nx-card" aria-labelledby="stReturnedTitle" id="stReturned">
+        <div class="nx-card-head fx-sec-head">
+          <h2 class="fx-sec-title" id="stReturnedTitle"><span class="oj-ux-ico-clock" aria-hidden="true"></span>Returned: the final timesheet
+            <span class="fx-count fx-count--on"><oj-bind-text value="[[ $variables.v.returned.length ]]"></oj-bind-text></span></h2>
+          <span class="nx-note">The hire has stopped; these days still need their hours, or their approval, for the final bill.</span>
+        </div>
+        <ul class="fx-items">
+          <oj-bind-for-each data="[[ $variables.v.returned ]]">
+            <template data-oj-as="x">
+              <li class="fx-item" :data-line="[[ x.data.id ]]" :data-request="[[ x.data.number ]]" :data-unit="[[ x.data.serial ]]">
+                <div class="fx-item-main"><span class="fx-item-title"><oj-bind-text value="[[ x.data.serial ]]"></oj-bind-text> <span class="fx-item-name"><oj-bind-text value="[[ x.data.unitName ]]"></oj-bind-text></span></span>
+                  <span class="fx-item-sub"><oj-bind-text value="[[ x.data.returnedText ]]"></oj-bind-text></span></div>
+                <div class="fx-cell"><span class="fx-k">For</span>
+                  <button type="button" class="nx-link" data-record="request" :data-id="[[ x.data.requestId ]]" :data-number="[[ x.data.number ]]" on-click="[[ $listeners.onOpen ]]"><oj-bind-text value="[[ x.data.number ]]"></oj-bind-text></button>
+                  <span class="fx-v-sub"><oj-bind-text value="[[ x.data.forMain ]]"></oj-bind-text></span></div>
+                <div class="fx-cell fx-cell--wide"><span class="fx-k">The timesheet</span><span class="fx-ret-open"><oj-bind-text value="[[ x.data.sheetText ]]"></oj-bind-text></span>
+                  <span class="fx-v-sub"><oj-bind-text value="[[ x.data.billText ]]"></oj-bind-text></span></div>
+                <div class="fx-item-act">
+                  <oj-bind-if test="[[ $variables.v.can.timesheet && x.data.missing > 0 ]]">
+                    <button type="button" class="nx-btn nx-btn--sm nx-btn--primary fx-send-sheet" :data-request-id="[[ x.data.requestId ]]" :data-line-id="[[ x.data.id ]]" on-click="[[ $listeners.onReturn ]]">
+                      <span class="oj-ux-ico-calendar" aria-hidden="true"></span>Send the final timesheet…</button>
+                  </oj-bind-if>
+                  <oj-bind-if test="[[ $variables.v.can.approve && x.data.waiting > 0 ]]">
+                    <button type="button" class="nx-btn nx-btn--sm nx-btn--primary nx-btn--ok fx-approve-hours" data-ask="approveHours" :data-request-id="[[ x.data.requestId ]]" :data-line-id="[[ x.data.id ]]" on-click="[[ $listeners.onAsk ]]">
+                      <span class="oj-ux-ico-check" aria-hidden="true"></span><oj-bind-text value="[[ 'Approve hours (' + $functions.plural(x.data.waiting, 'day') + ')…' ]]"></oj-bind-text></button>
+                  </oj-bind-if>
+                  <oj-bind-if test="[[ !$variables.v.can.approve && x.data.waiting > 0 && x.data.missing === 0 ]]">
+                    <span class="nx-note fx-hours-wait"><oj-bind-text value="[[ 'Waiting for the approval of ' + x.data.approvers + '.' ]]"></oj-bind-text></span>
+                  </oj-bind-if>
+                </div>
+              </li>
+            </template>
+          </oj-bind-for-each>
+        </ul>
+      </section>
+    </oj-bind-if>
   </oj-bind-if>
 
   <!-- The confirmation: what it will do, what Fusion would do (a dry run of the engine), then Confirm. -->
@@ -340,6 +387,144 @@
           <span class="nx-spacer"></span>
           <button type="button" :class="[[ $functions.confirmClass($variables.askDef.tone) ]]" id="stAskConfirm" on-click="[[ $listeners.onConfirm ]]">
             <oj-bind-text value="[[ $variables.askDef.confirm ]]"></oj-bind-text></button>
+        </div>
+      </div>
+    </div>
+  </oj-bind-if>
+
+  <!-- Return: the return date (a later one is a planned return), the final timesheet day by day (prefilled from the
+       hours recorded, the site's weekend marked), and the final bill, live (fxReturn.preview: the engine's charge rules
+       on a copy of the state). Confirm sends the timesheet (logHoursBulk) and then the return (offHire). The rows stay
+       while typing (retDef), the values are the draft (ret), the rest follows (retView). -->
+  <oj-bind-if test="[[ $variables.retDef.open ]]">
+    <div class="nx-modal fx-ask fx-ret" id="stReturn" role="dialog" aria-modal="true" aria-labelledby="stRetTitle">
+      <button type="button" class="nx-modal-scrim" aria-label="Close without doing it" on-click="[[ $listeners.onRetClose ]]"></button>
+      <div class="nx-dialog nx-dialog--wide fx-ret-dialog">
+        <div class="nx-dialog-head">
+          <div class="nx-dialog-titles">
+            <div class="nx-kicker"><oj-bind-text value="[[ $variables.retDef.kicker ]]"></oj-bind-text></div>
+            <h2 class="nx-dialog-title" id="stRetTitle"><oj-bind-text value="[[ $variables.retDef.title ]]"></oj-bind-text></h2>
+            <div class="nx-sub"><oj-bind-text value="[[ $variables.retDef.sub ]]"></oj-bind-text></div>
+          </div>
+          <button type="button" class="nx-iconbtn" aria-label="Close" on-click="[[ $listeners.onRetClose ]]"><span class="oj-ux-ico-close" aria-hidden="true"></span></button>
+        </div>
+        <div class="nx-dialog-body fx-ret-body">
+          <div class="fx-ret-cols">
+            <div class="fx-ret-main">
+              <section class="fx-ask-sec fx-ret-when" id="stRetWhen" aria-labelledby="stRetWhenTitle">
+                <h3 class="fx-ask-h" id="stRetWhenTitle"><span class="oj-ux-ico-calendar" aria-hidden="true"></span>Return date</h3>
+                <oj-bind-if test="[[ $variables.retDef.mode === 'return' ]]">
+                  <div class="fx-ret-date">
+                    <label class="nx-pop-field"><span>The hire stops on</span>
+                      <input type="date" class="fx-input fx-input--date" id="stRetDate" :min="[[ $variables.retDef.minDate ]]" :value="[[ $variables.retDef.date ]]" on-change="[[ $listeners.onRetDate ]]"></label>
+                    <span class="nx-note">Today unless you pick another day; not before the hire started.</span>
+                  </div>
+                  <oj-bind-if test="[[ !!$variables.retDef.plannedText ]]"><p class="fx-ret-planned" id="stRetPlanned"><span class="oj-ux-ico-calendar" aria-hidden="true"></span><oj-bind-text value="[[ $variables.retDef.plannedText ]]"></oj-bind-text></p></oj-bind-if>
+                </oj-bind-if>
+                <p :class="[[ 'fx-ret-whentext' + ($variables.retView.planned ? ' fx-ret-whentext--planned' : '') ]]" id="stRetWhenText"><oj-bind-text value="[[ $variables.retView.whenText ]]"></oj-bind-text></p>
+              </section>
+
+              <section class="fx-ask-sec fx-ret-sheet" id="stRetSheet" aria-labelledby="stRetSheetTitle">
+                <div class="fx-ret-sheethead">
+                  <h3 class="fx-ask-h" id="stRetSheetTitle"><span class="oj-ux-ico-clock" aria-hidden="true"></span>The final timesheet</h3>
+                  <span class="nx-note" id="stRetRange"><oj-bind-text value="[[ $variables.retDef.rangeText + ' · ' + $variables.retDef.weekendText ]]"></oj-bind-text></span>
+                  <span class="nx-spacer"></span>
+                  <button type="button" class="nx-btn nx-btn--sm" id="stRetFill" :disabled="[[ !$variables.retView.canFill ]]" on-click="[[ $listeners.onRetFill ]]">
+                    <span class="oj-ux-ico-calendar" aria-hidden="true"></span>Fill standard hours</button>
+                </div>
+                <oj-bind-if test="[[ !$variables.retDef.rows.length ]]"><p class="fx-sec-empty">No day to record: the hire stops the day it started.</p></oj-bind-if>
+                <oj-bind-if test="[[ $variables.retDef.rows.length > 0 ]]">
+                  <div class="fx-sheet-scroll">
+                    <div class="nx-grid fx-grid--sheet" role="table" aria-label="The final timesheet, day by day" id="stRetRows">
+                      <div role="row" class="nx-row nx-row--head"><span role="columnheader">Day</span><span role="columnheader">Hours of use</span>
+                        <span role="columnheader">Standby</span><span role="columnheader">State</span></div>
+                      <oj-bind-for-each data="[[ $variables.retDef.rows ]]">
+                        <template data-oj-as="r">
+                          <div role="row" :class="[[ r.data.cls ]]" :data-date="[[ r.data.date ]]">
+                            <span role="cell" class="fx-sheet-day" :title="[[ r.data.title ]]"><span class="fx-sheet-dow"><oj-bind-text value="[[ r.data.label ]]"></oj-bind-text></span>
+                              <oj-bind-if test="[[ r.data.weekend ]]"><span class="fx-sheet-we">Weekend</span></oj-bind-if></span>
+                            <span role="cell"><input type="number" min="0" max="24" step="0.5" inputmode="decimal" class="fx-input fx-input--hours" :id="[[ r.data.uid ]]" data-kind="usage"
+                              :data-date="[[ r.data.date ]]" :value="[[ r.data.usage ]]" :aria-label="[[ 'Hours of use, ' + r.data.title ]]" on-input="[[ $listeners.onRetHours ]]"></span>
+                            <span role="cell"><input type="number" min="0" max="24" step="0.5" inputmode="decimal" class="fx-input fx-input--hours" :id="[[ r.data.sid ]]" data-kind="standby"
+                              :data-date="[[ r.data.date ]]" :value="[[ r.data.standby ]]" :aria-label="[[ 'Hours of standby, ' + r.data.title ]]" on-input="[[ $listeners.onRetHours ]]"></span>
+                            <span role="cell"><span :class="[[ 'fx-chip fx-chip--' + $functions.retState($variables.retView, r.data.date).tone ]]"><oj-bind-text value="[[ $functions.retState($variables.retView, r.data.date).text ]]"></oj-bind-text></span></span>
+                          </div>
+                        </template>
+                      </oj-bind-for-each>
+                    </div>
+                  </div>
+                </oj-bind-if>
+                <p class="nx-note fx-ret-sum" id="stRetSum"><oj-bind-text value="[[ $variables.retView.sheetText ]]"></oj-bind-text></p>
+                <oj-bind-if test="[[ !!$variables.retView.droppedText ]]"><p class="fx-ret-dropped" id="stRetDropped"><span class="oj-ux-ico-warning" aria-hidden="true"></span><oj-bind-text value="[[ $variables.retView.droppedText ]]"></oj-bind-text></p></oj-bind-if>
+                <oj-bind-if test="[[ $variables.retDef.canApprove ]]">
+                  <label class="fx-ret-agree"><input type="checkbox" id="stRetApprove" :checked="[[ $variables.ret.approve ]]" on-change="[[ $listeners.onRetApprove ]]">
+                    <span><oj-bind-text value="[[ $variables.retDef.approveLabel ]]"></oj-bind-text></span></label>
+                </oj-bind-if>
+                <oj-bind-if test="[[ !$variables.retDef.canApprove ]]"><p class="nx-note fx-ret-wait" id="stRetWait"><oj-bind-text value="[[ $variables.retDef.waitText ]]"></oj-bind-text></p></oj-bind-if>
+              </section>
+            </div>
+
+            <aside class="fx-bill fx-ret-bill" id="stRetBill" aria-labelledby="stRetBillTitle">
+              <h3 class="fx-ask-h" id="stRetBillTitle"><span class="oj-ux-ico-currency-dollar" aria-hidden="true"></span><oj-bind-text value="[[ $variables.retView.planned ? 'The bill at the planned return' : 'The final bill' ]]"></oj-bind-text></h3>
+              <oj-bind-if test="[[ $functions.billShown($variables.retView.bill) ]]">
+                <p class="fx-bill-mode"><oj-bind-text value="[[ $variables.retView.bill.modeText ]]"></oj-bind-text></p>
+                <p class="fx-bill-basis"><span :class="[[ 'fx-chip fx-chip--' + $variables.retView.bill.basisTone ]]"><oj-bind-text value="[[ $variables.retView.bill.basisShort ]]"></oj-bind-text></span>
+                  <span class="nx-note"><oj-bind-text value="[[ $variables.retView.bill.basisText ]]"></oj-bind-text></span></p>
+                <div class="nx-grid fx-grid--bill" role="table" aria-label="The final bill, line by line" id="stRetBillRows">
+                  <oj-bind-for-each data="[[ $variables.retView.bill.rows ]]">
+                    <template data-oj-as="b">
+                      <div role="row" :class="[[ $functions.billRowClass(b.data) ]]" :data-kind="[[ b.data.kind ]]">
+                        <span role="cell" class="fx-bill-what"><span class="nx-cell-main"><oj-bind-text value="[[ b.data.label ]]"></oj-bind-text></span>
+                          <span class="nx-cell-sub"><oj-bind-text value="[[ b.data.detail ]]"></oj-bind-text></span></span>
+                        <span role="cell" class="nx-num fx-bill-amt"><oj-bind-text value="[[ b.data.amountText ]]"></oj-bind-text></span>
+                      </div>
+                    </template>
+                  </oj-bind-for-each>
+                  <oj-bind-if test="[[ $variables.retView.bill.empty ]]"><div role="row" class="nx-row fx-bill-row"><span role="cell" class="nx-note">Nothing to bill yet.</span><span role="cell"></span></div></oj-bind-if>
+                </div>
+                <dl class="fx-bill-totals" id="stRetTotals">
+                  <div class="fx-bill-total"><dt><oj-bind-text value="[[ $variables.retView.bill.totalLabel ]]"></oj-bind-text></dt><dd class="nx-num" id="stRetTotal"><oj-bind-text value="[[ $variables.retView.bill.totalText ]]"></oj-bind-text></dd></div>
+                  <oj-bind-if test="[[ !!$variables.retView.bill.vat ]]">
+                    <div><dt><oj-bind-text value="[[ $functions.vatText($variables.retView.bill) ]]"></oj-bind-text></dt><dd class="nx-num"><oj-bind-text value="[[ $functions.vatAmount($variables.retView.bill) ]]"></oj-bind-text></dd></div>
+                    <div class="fx-bill-total"><dt>With VAT, to the customer</dt><dd class="nx-num" id="stRetGross"><oj-bind-text value="[[ $variables.retView.bill.grossText ]]"></oj-bind-text></dd></div>
+                  </oj-bind-if>
+                  <div><dt>Already charged</dt><dd class="nx-num"><oj-bind-text value="[[ $variables.retView.bill.chargedText ]]"></oj-bind-text><span class="nx-cell-sub"><oj-bind-text value="[[ $variables.retView.bill.chargedNote ]]"></oj-bind-text></span></dd></div>
+                  <div><dt>Still to charge</dt><dd class="nx-num" id="stRetToCharge"><oj-bind-text value="[[ $variables.retView.bill.toChargeText ]]"></oj-bind-text><span class="nx-cell-sub"><oj-bind-text value="[[ $variables.retView.bill.toChargeNote ]]"></oj-bind-text></span></dd></div>
+                </dl>
+                <ul class="fx-bill-notes" id="stRetNotes">
+                  <oj-bind-if test="[[ !!$variables.retView.bill.damageNote ]]"><li class="fx-bill-damage"><oj-bind-text value="[[ $variables.retView.bill.damageNote ]]"></oj-bind-text></li></oj-bind-if>
+                  <oj-bind-for-each data="[[ $variables.retView.bill.notes ]]"><template data-oj-as="n"><li><oj-bind-text value="[[ n.data ]]"></oj-bind-text></li></template></oj-bind-for-each>
+                  <oj-bind-if test="[[ !$variables.ret.approve ]]"><li><oj-bind-text value="[[ $variables.retDef.rental ? 'The hours are counted as agreed: they are billed once the customer has signed them.' : 'The hours are counted as agreed: they are billed once approved.' ]]"></oj-bind-text></li></oj-bind-if>
+                </ul>
+              </oj-bind-if>
+              <oj-bind-if test="[[ !$functions.billShown($variables.retView.bill) ]]">
+                <p class="nx-note" id="stRetNoBill"><oj-bind-text value="[[ $functions.billWhy($variables.retView.bill) ]]"></oj-bind-text></p>
+              </oj-bind-if>
+            </aside>
+          </div>
+
+          <oj-bind-if test="[[ !!$variables.retError ]]">
+            <div class="nx-pop-result nx-pop-result--error fx-ask-error" role="alert" id="stRetError"><b>It did not go through.</b> <oj-bind-text value="[[ $variables.retError ]]"></oj-bind-text></div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ !$variables.retView.ok && !$variables.retError ]]">
+            <div class="nx-pop-result nx-pop-result--warn" id="stRetWarn"><b>Not yet:</b> <oj-bind-text value="[[ $variables.retView.warn ]]"></oj-bind-text></div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.retView.does.length > 0 ]]">
+            <section class="fx-ask-sec" id="stRetDoes">
+              <h3 class="fx-ask-h"><span class="oj-ux-ico-check-circle" aria-hidden="true"></span>What EquipRite does</h3>
+              <ul class="fx-ask-list">
+                <oj-bind-for-each data="[[ $variables.retView.does ]]"><template data-oj-as="d"><li><oj-bind-text value="[[ d.data ]]"></oj-bind-text></li></template></oj-bind-for-each>
+                <oj-bind-for-each data="[[ $variables.retView.told ]]"><template data-oj-as="n"><li><b><oj-bind-text value="[[ n.data.who ]]"></oj-bind-text></b>: <oj-bind-text value="[[ n.data.text ]]"></oj-bind-text></li></template></oj-bind-for-each>
+              </ul>
+              <p class="nx-note">Nothing in Fusion now: the month-end charge run makes the charges, then the invoice; the yard's collection moves the unit back.</p>
+            </section>
+          </oj-bind-if>
+        </div>
+        <div class="nx-dialog-foot">
+          <button type="button" class="nx-btn" id="stRetCancel" on-click="[[ $listeners.onRetClose ]]">Cancel</button>
+          <span class="nx-spacer"></span>
+          <button type="button" :class="[[ $functions.confirmClass($variables.retView.tone) ]]" id="stRetConfirm" :disabled="[[ !$variables.retView.ok ]]" on-click="[[ $listeners.onRetConfirm ]]">
+            <oj-bind-text value="[[ $variables.retView.confirm ]]"></oj-bind-text></button>
         </div>
       </div>
     </div>
