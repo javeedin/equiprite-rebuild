@@ -243,7 +243,7 @@ function handle(req, res) {
     await page.click('#nxQaPanel .nx-qa-row button[data-action="availability"]');
     await page.waitForFunction(() => { const t = document.querySelector('.nx-tab--on'); return t && t.dataset.tabId === 'availability'; }, null, { timeout: 15000 });
     T.check('Open in Availability: its tab, the panel closed', !(await page.$('#nxQaPanel')));
-    await page.waitForSelector('.nx-av-row--unit', { timeout: 30000 });
+    await page.waitForSelector('#avTimeline .nx-av-row--unit', { timeout: 30000 });
 
     T.section('everything about it, from an answer');
     await page.click('#nxQa');
