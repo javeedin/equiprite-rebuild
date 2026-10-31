@@ -85,10 +85,11 @@ define(['resources/js/future/fxSeed'], function (Seed) {
     return { day: day, week: r2(day * 5) };
   }
   function priceFor(s, u, rel, ag) {
-    if (rel === 'SAME_BU') return { day: ownRate(u).day, week: ownRate(u).week, currency: leOf(s, u.owner).currency, basis: 'Own equipment: internal cost rate' };
+    if (rel === 'SAME_BU') return { day: ownRate(u).day, week: ownRate(u).week, hour: r2(ownRate(u).day / 8), billing: 'DAILY', currency: leOf(s, u.owner).currency, basis: 'Own equipment: internal cost rate' };
     var r = ag && ag.rates && ag.rates[u.cls];
     if (!r) return null;
-    return { day: r.day, week: r.week, currency: ag.currency, basis: (ag.kind === 'CUSTOMER' ? 'Customer agreement ' : ag.kind === 'CROSS_CHARGE' ? 'Cross-charge rates ' : 'Intercompany agreement ') + ag.number + ' v' + ag.version };
+    return { day: r.day, week: r.week, hour: r.hour != null ? r.hour : r2(r.day / 8), billing: ag.billing || 'DAILY', minHours: ag.minHours || 0, currency: ag.currency,
+      basis: (ag.kind === 'CUSTOMER' ? 'Customer agreement ' : ag.kind === 'CROSS_CHARGE' ? 'Cross-charge rates ' : 'Intercompany agreement ') + ag.number + ' v' + ag.version + ((ag.billing || 'DAILY') === 'HOURLY' ? ' · by the hour' : ' · by the day') };
   }
   function rental(days, r) {
     if (!r || days <= 0) return 0;
@@ -217,6 +218,14 @@ define(['resources/js/future/fxSeed'], function (Seed) {
   /** Things that happen by themselves as days pass: silence accepts a statement, the IC cut-off accrues, alerts. */
   function daily(s) {
     var sys = { name: 'EquipRite', title: 'the system' };
+    (s.requests || []).forEach(function (r) {
+      (r.lines || []).forEach(function (l) {
+        if (l.status === 'ON_HIRE' && l.plannedReturn && l.plannedReturn <= s.today) {
+          doReturn(s, sys, r, l, l.plannedReturn, true);
+          notify(s, { bu: r.requestingBu, roles: ['site', 'desk', 'requester'] }, unitOf(s, l.unitId).serial + ' was returned on ' + hd(l.events.offHire) + ': send the final timesheet.', { navId: 'site' }, 'action');
+        }
+      });
+    });
     (s.statements || []).forEach(function (st) {
       if (st.status === 'RELEASED' && st.dueBy && s.today > st.dueBy) {
         var held = s.charges.filter(function (c) { return c.statementId === st.id && c.needsAcceptance && c.status !== 'ACCEPTED'; });
@@ -451,7 +460,7 @@ define(['resources/js/future/fxSeed'], function (Seed) {
   };
 
   A.logHours = {
-    who: ['site'],
+    who: ['site', 'desk'],
     run: function (s, p, x) {
       var o = userLine(s, p, x);
       if (!o.l.events.onHire) fail('Hours start when the unit is on hire.');
@@ -464,7 +473,7 @@ define(['resources/js/future/fxSeed'], function (Seed) {
   };
   function isWeekend(s, code, date) { return (country(s, code).weekend || []).indexOf(dow(date)) !== -1; }
   A.fillHours = {
-    who: ['site'],
+    who: ['site', 'desk'],
     run: function (s, p, x) {
       var o = userLine(s, p, x);
       if (!o.l.events.onHire) fail('Hours start when the unit is on hire.');
@@ -505,16 +514,66 @@ define(['resources/js/future/fxSeed'], function (Seed) {
       log(s, p, 'Reported a breakdown of ' + days + ' day(s)', { requestId: o.r.id, lineId: o.l.id });
     }
   };
+  function doReturn(s, p, r, l, date, planned) {
+    l.status = 'OFF_HIRED';
+    l.events.offHire = date;
+    l.plannedReturn = null;
+    s.hours = s.hours.filter(function (h) { return !(h.lineId === l.id && h.date >= date); });
+    var u = unitOf(s, l.unitId);
+    u.custody.label = 'Returned by ' + (r.type === 'CUSTOMER_RENTAL' ? customer(s, r.customerId).name : r.site) + ' on ' + hd(date) + ', waiting for collection';
+    notify(s, { bu: l.provider, roles: ['yard'] }, 'Collect ' + u.serial + ' from ' + r.site + ': returned on ' + hd(date) + '.', { navId: 'yard' }, 'action');
+    log(s, p, (planned ? 'Planned return reached: ' : 'Returned ') + u.serial + ' on ' + hd(date) + ' (the hire stops that day)', { requestId: r.id, lineId: l.id });
+  }
   A.offHire = {
     who: ['site', 'desk'],
     run: function (s, p, x) {
       var o = userLine(s, p, x);
-      if (o.l.status !== 'ON_HIRE') fail('Only a unit on hire can be released.');
-      o.l.status = 'OFF_HIRED';
-      o.l.events.offHire = s.today;
-      unitOf(s, o.l.unitId).custody.label = 'Released at ' + o.r.site + ', waiting for collection';
-      notify(s, { bu: o.l.provider, roles: ['yard'] }, 'Collect ' + unitOf(s, o.l.unitId).serial + ' from ' + o.r.site + ' (off hire ' + hd(s.today) + ').', { navId: 'yard' }, 'action');
-      log(s, p, 'Off hire: ' + unitOf(s, o.l.unitId).serial, { requestId: o.r.id, lineId: o.l.id });
+      if (o.l.status !== 'ON_HIRE') fail('Only a unit on hire can be returned.');
+      var date = x.date || s.today;
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) fail('Give the return date.');
+      if (date < o.l.events.onHire) fail('The return date cannot be before the hire started (' + hd(o.l.events.onHire) + ').');
+      if (date > s.today) {
+        o.l.plannedReturn = date;
+        notify(s, { bu: o.l.provider, roles: ['yard'] }, unitOf(s, o.l.unitId).serial + ' will be returned on ' + hd(date) + ' from ' + o.r.site + '.', { navId: 'yard' });
+        log(s, p, 'Planned the return of ' + unitOf(s, o.l.unitId).serial + ' on ' + hd(date), { requestId: o.r.id, lineId: o.l.id });
+        return { planned: date };
+      }
+      doReturn(s, p, o.r, o.l, date, false);
+      return { returned: date };
+    }
+  };
+  // The final timesheet: many days at once (at the return), approved at once when the person may approve hours.
+  A.logHoursBulk = {
+    who: ['site', 'desk', 'requester'],
+    run: function (s, p, x) {
+      var o = userLine(s, p, x);
+      if (!o.l.events.onHire) fail('Hours start when the unit is on hire.');
+      var last = o.l.events.offHire ? addDays(o.l.events.offHire, -1) : (x.until ? addDays(x.until, -1) : s.today);
+      var n = 0;
+      (x.days || []).forEach(function (dy) {
+        if (!dy || !dy.date || dy.date < o.l.events.onHire || dy.date > last || dy.date > s.today) return;
+        var usage = Math.max(0, Math.min(24, Number(dy.usage) || 0));
+        var standby = Math.max(0, Math.min(24 - usage, Number(dy.standby) || 0));
+        s.hours = s.hours.filter(function (h) { return !(h.lineId === o.l.id && h.date === dy.date); });
+        if (usage + standby > 0) { s.hours.push({ requestId: o.r.id, lineId: o.l.id, date: dy.date, usage: usage, standby: standby, approved: false, by: p.name, weekend: isWeekend(s, o.r.country, dy.date) }); n++; }
+      });
+      var canApprove = inBu(p, o.r.requestingBu) && (can(p, 'requester') || can(p, 'receiver-review'));
+      if (x.approve && canApprove) s.hours.forEach(function (h) { if (h.lineId === o.l.id && !h.approved) { h.approved = true; h.approvedBy = p.name + (o.r.type === 'CUSTOMER_RENTAL' ? ' (signed by the customer)' : ''); } });
+      log(s, p, 'Final timesheet: ' + n + ' day(s)' + (x.approve && canApprove ? ', approved' : ''), { requestId: o.r.id, lineId: o.l.id });
+      return { days: n, approved: !!(x.approve && canApprove) };
+    }
+  };
+  A.setAgreementBilling = {
+    who: ['ic-finance'],
+    run: function (s, p, x) {
+      var ag = agreement(s, x.agreementId);
+      if (!ag) fail('No such agreement.');
+      if (['HOURLY', 'DAILY'].indexOf(x.billing) === -1) fail('Choose by the hour or by the day.');
+      ag.versions.push({ version: ag.version + 1, from: s.today, approvedBy: p.name, note: 'Billing ' + (ag.billing || 'DAILY').toLowerCase() + ' → ' + x.billing.toLowerCase() });
+      ag.version += 1;
+      ag.billing = x.billing;
+      if (x.billing === 'HOURLY' && !ag.minHours) ag.minHours = 16;
+      log(s, p, ag.number + ' v' + ag.version + ': billed ' + (x.billing === 'HOURLY' ? 'by the hour (timesheets)' : 'by the day'), {});
     }
   };
   A.returnLine = {
@@ -648,23 +707,37 @@ define(['resources/js/future/fxSeed'], function (Seed) {
     if (l.events.onHire) {
       var hireEnd = l.events.offHire ? addDays(l.events.offHire, -1) : pe;
       var segs = l.segments.length ? l.segments : [{ projectId: '', task: '', from: l.events.onHire }];
+      var hourly = price.billing === 'HOURLY';
+      var hourRate = price.hour != null ? price.hour : r2(price.day / 8);
+      var approved = s.hours.filter(function (h) { return h.lineId === l.id && h.approved && h.date >= ps && h.date <= pe; });
       segs.forEach(function (sg, i) {
         var sFrom = maxS(maxS(sg.from, l.events.onHire), ps);
         var sTo = minS(minS(i + 1 < segs.length ? addDays(segs[i + 1].from, -1) : hireEnd, hireEnd), pe);
+        if (hourly) {
+          var used = sum(approved.filter(function (h) { return h.date >= sFrom && h.date <= sTo; }), function (h) { return h.usage; });
+          if (used > 0) add({ kind: 'RENTAL', seg: i, projectId: sg.projectId, task: sg.task, qty: used, uom: 'hours', rate: hourRate, from: sFrom, to: sTo, amount: r2(used * hourRate),
+            text: used + ' hours of use at ' + hourRate + '/hour (the approved timesheet)' });
+          return;
+        }
         var days = sFrom <= sTo ? diffDays(sTo, sFrom) + 1 : 0;
         if (days > 0) add({ kind: 'RENTAL', seg: i, projectId: sg.projectId, task: sg.task, qty: days, uom: 'days', rate: price.day, from: sFrom, to: sTo, amount: rental(days, price),
           text: days + ' day(s) at ' + price.week + '/week or ' + price.day + '/day' });
       });
       var lastSeg = segs[segs.length - 1];
-      var hrs = s.hours.filter(function (h) { return h.lineId === l.id && h.approved && h.date >= ps && h.date <= pe; });
-      var sb = sum(hrs, function (h) { return h.standby; });
-      if (sb > 0 && ag && ag.standbyPct) add({ kind: 'STANDBY', seg: 0, projectId: lastSeg.projectId, task: lastSeg.task, qty: sb, uom: 'hours', rate: r2(price.day / 8 * ag.standbyPct), amount: r2(sb * price.day / 8 * ag.standbyPct), text: sb + ' standby hours at ' + Math.round(ag.standbyPct * 100) + ' %' });
-      s.breakdowns.filter(function (b) { return b.lineId === l.id && b.date >= ps && b.date <= pe; }).forEach(function (b, i) {
+      var sb = sum(approved, function (h) { return h.standby; });
+      var sbRate = r2((hourly ? hourRate : price.day / 8) * ((ag && ag.standbyPct) || 0));
+      if (sb > 0 && ag && ag.standbyPct) add({ kind: 'STANDBY', seg: 0, projectId: lastSeg.projectId, task: lastSeg.task, qty: sb, uom: 'hours', rate: sbRate, amount: r2(sb * sbRate), text: sb + ' standby hours at ' + Math.round(ag.standbyPct * 100) + ' % of ' + (hourly ? hourRate + '/hour' : 'the day rate / 8') });
+      if (!hourly) s.breakdowns.filter(function (b) { return b.lineId === l.id && b.date >= ps && b.date <= pe; }).forEach(function (b, i) {
         if (ag && ag.breakdownCredit) add({ kind: 'BREAKDOWN_CREDIT', seg: i, projectId: lastSeg.projectId, task: lastSeg.task, qty: b.days, uom: 'days', rate: price.day, amount: -r2(b.days * price.day), text: 'Breakdown: ' + b.reason });
       });
-      if (l.events.offHire && l.events.offHire >= ps && l.events.offHire <= pe && ag && ag.minDays && !l.loss) {
-        var total = diffDays(l.events.offHire, l.events.onHire);
-        if (total < ag.minDays) add({ kind: 'MIN_HIRE', seg: 0, projectId: lastSeg.projectId, task: lastSeg.task, qty: ag.minDays - total, uom: 'days', rate: price.day, amount: r2(rental(ag.minDays, price) - rental(total, price)), text: 'Minimum hire ' + ag.minDays + ' days' });
+      if (l.events.offHire && l.events.offHire >= ps && l.events.offHire <= pe && ag && !l.loss) {
+        if (hourly && price.minHours) {
+          var allUsed = sum(s.hours.filter(function (h) { return h.lineId === l.id && h.approved; }), function (h) { return h.usage; });
+          if (allUsed < price.minHours) add({ kind: 'MIN_HIRE', seg: 0, projectId: lastSeg.projectId, task: lastSeg.task, qty: r2(price.minHours - allUsed), uom: 'hours', rate: hourRate, amount: r2((price.minHours - allUsed) * hourRate), text: 'Minimum ' + price.minHours + ' hours per hire' });
+        } else if (!hourly && ag.minDays) {
+          var total = diffDays(l.events.offHire, l.events.onHire);
+          if (total < ag.minDays) add({ kind: 'MIN_HIRE', seg: 0, projectId: lastSeg.projectId, task: lastSeg.task, qty: ag.minDays - total, uom: 'days', rate: price.day, amount: r2(rental(ag.minDays, price) - rental(total, price)), text: 'Minimum hire ' + ag.minDays + ' days' });
+        }
       }
       if (ag && ag.transport && !l.inPlace) {
         if (l.events.shipped && l.events.shipped >= ps && l.events.shipped <= pe) add({ kind: 'TRANSPORT', seg: 0, projectId: segs[0].projectId, task: segs[0].task, qty: 1, uom: 'trip', rate: ag.transport, amount: ag.transport, text: 'Transport out' });

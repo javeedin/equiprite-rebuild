@@ -13,7 +13,7 @@ define([], function () {
   function seed() {
     var start = '2026-11-02';
     return {
-      version: 3,
+      version: 4,
       today: start,
       startDate: start,
       personaId: 'p-pm',
@@ -102,14 +102,15 @@ define([], function () {
         icAgreement('ICA-02', 'ICA-FC-PK-2026', 'BU-FC', 'BU-PK', 'AED', 'REVERSE_CHARGE', 0.05),
         icAgreement('ICA-03', 'ICA-FC-PF-2026', 'BU-FC', 'BU-PF', 'AED', 'DOMESTIC', 0),
         { id: 'XCA-01', number: 'XC-PF-PC-2026', kind: 'CROSS_CHARGE', provider: 'BU-PF', receiver: 'BU-PC', currency: 'AED', status: 'ACTIVE', version: 1, versions: [{ version: 1, from: '2026-01-01', approvedBy: 'ProjectCo finance', note: 'Internal cost rates 2026' }],
-          rates: { TWR: { day: 90, week: 450 }, GEN: { day: 150, week: 750 } }, transport: 0, standbyPct: 0, minDays: 1, breakdownCredit: true, tax: 'NONE', wht: 0,
+          billing: 'DAILY', rates: { TWR: { day: 90, week: 450, hour: 11.25 }, GEN: { day: 150, week: 750, hour: 18.75 } }, transport: 0, standbyPct: 0, minDays: 1, breakdownCredit: true, tax: 'NONE', wht: 0,
           terms: 'Same legal entity: PPM cross-charge, no invoices, no tax (OD-14).' },
         { id: 'RA-01', number: 'RA-FC-Y-2026', kind: 'CUSTOMER', provider: 'BU-FC', customer: 'C-Y', currency: 'AED', status: 'ACTIVE', version: 1, versions: [{ version: 1, from: '2026-01-01', approvedBy: 'FleetCo rental desk', note: 'Customer price list 2026' }],
-          rates: { EXC: { day: 1100, week: 5200 }, CRN: { day: 4200, week: 21000 }, GEN: { day: 420, week: 2100 }, LFT: { day: 520, week: 2600 } },
+          billing: 'HOURLY', minHours: 16,
+          rates: { EXC: { day: 1100, week: 5200, hour: 140 }, CRN: { day: 4200, week: 21000, hour: 525 }, GEN: { day: 420, week: 2100, hour: 52.5 }, LFT: { day: 520, week: 2600, hour: 65 } },
           transport: 2200, standbyPct: 0.5, minDays: 7, breakdownCredit: true, tax: 'DOMESTIC', wht: 0, depositPct: 0.25,
           terms: 'FleetCo rental terms: weekly billing in arrears, deposit 25 % of a month.' },
         { id: 'RA-02', number: 'RA-FC-W-2026', kind: 'CUSTOMER', provider: 'BU-FC', customer: 'C-W', currency: 'AED', status: 'ACTIVE', version: 1, versions: [{ version: 1, from: '2026-01-01', approvedBy: 'FleetCo rental desk', note: 'Customer price list 2026' }],
-          rates: { GEN: { day: 420, week: 2100 } }, transport: 2200, standbyPct: 0.5, minDays: 7, breakdownCredit: true, tax: 'DOMESTIC', wht: 0, depositPct: 0.25, terms: 'On credit hold.' }
+          billing: 'HOURLY', minHours: 16, rates: { GEN: { day: 420, week: 2100, hour: 52.5 } }, transport: 2200, standbyPct: 0.5, minDays: 7, breakdownCredit: true, tax: 'DOMESTIC', wht: 0, depositPct: 0.25, terms: 'On credit hold.' }
       ],
       requests: [],
       hours: [],
@@ -131,7 +132,7 @@ define([], function () {
   function icAgreement(id, number, provider, receiver, currency, tax, wht) {
     return { id: id, number: number, kind: 'INTERCOMPANY', provider: provider, receiver: receiver, currency: currency, status: 'ACTIVE', version: 1,
       versions: [{ version: 1, from: '2026-01-01', approvedBy: 'Group Finance and both companies', note: 'Market rate card 2026 (OD-04)' }],
-      rates: { EXC: { day: 800, week: 3500 }, CRN: { day: 3000, week: 15000 }, GEN: { day: 300, week: 1400 }, LFT: { day: 380, week: 1800 }, TWR: { day: 110, week: 520 } },
+      billing: 'DAILY', rates: { EXC: { day: 800, week: 3500, hour: 100 }, CRN: { day: 3000, week: 15000, hour: 375 }, GEN: { day: 300, week: 1400, hour: 37.5 }, LFT: { day: 380, week: 1800, hour: 47.5 }, TWR: { day: 110, week: 520, hour: 13.75 } },
       transport: 1500, standbyPct: 0.5, minDays: 7, breakdownCredit: true, tax: tax, wht: wht,
       terms: tax === 'REVERSE_CHARGE' ? 'Cross-border: invoiced without VAT, the user self-assesses (reverse charge) and withholds tax at payment.' : 'Domestic: VAT at the owner\'s country rate.' };
   }

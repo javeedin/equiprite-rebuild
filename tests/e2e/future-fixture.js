@@ -67,6 +67,8 @@ function state(upTo) {
   as('p-site'); [r1, r2, rl].forEach((r) => act('fillHours', { requestId: r, lineId: line(r).id }));
   as('p-pm'); [r1, r2, rl].forEach((r) => act('approveHours', { requestId: r, lineId: line(r).id }));
   as('p-pk'); act('fillHours', { requestId: rk, lineId: line(rk).id }); act('approveHours', { requestId: rk, lineId: line(rk).id });
+  // Customer Y's rental is billed by the hour: the rental desk records the customer's timesheet and approves it.
+  as('p-desk'); act('fillHours', { requestId: r3, lineId: line(r3).id }); act('approveHours', { requestId: r3, lineId: line(r3).id });
   as('p-fin'); act('runCharges', {});
   if (stop < 4) return s;
   s.statements.forEach((st) => act('releaseStatement', { statementId: st.id }));

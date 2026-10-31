@@ -142,7 +142,7 @@ const ex1 = f.cards.find((c) => c.serial === 'EX-1001');
 T.eq('an excavator card: owner, relationship, asset, where, lead time', [ex1.ownerName, ex1.ownerShort, ex1.relLabel, ex1.holdText, ex1.where, ex1.countryName, ex1.lead].join(' | '),
   'FleetCo Fleet | FleetCo | Intercompany · domestic | Asset · FA-10021 | FleetCo Jebel Ali Yard | United Arab Emirates | Lead time 2 days: on site from 4 Nov 2026');
 T.eq('…the IC agreement\'s price, and the estimate for the dates', [ex1.price, ex1.priceBasis, ex1.estimateText, ex1.estimateFor].join(' | '),
-  'AED 3,500.00 a week · AED 800.00 a day | Intercompany agreement ICA-FC-PC-2026 v1 | AED 24,500.00 | for 48 days');
+  'AED 3,500.00 a week · AED 800.00 a day | Intercompany agreement ICA-FC-PC-2026 v1 · by the day | AED 24,500.00 | for 48 days');
 T.check('…lead time later than the start: said, not blocked', ex1.usable && ex1.leadLate && /after the start, 3 Nov 2026/.test(ex1.leadNote), ex1.leadNote);
 const pk = R.form(as(fresh, 'p-pk'), R.change(R.change(R.change({}, 'from', '2026-11-09'), 'to', '2026-12-31'), 'cls', 'EXC'));
 T.eq('Faisal: his one project, chosen for him; Riyadh in Saudi Arabia', [pk.form.forKey, pk.siteText].join(' | '), 'P:P-KSA | Riyadh · Saudi Arabia');
