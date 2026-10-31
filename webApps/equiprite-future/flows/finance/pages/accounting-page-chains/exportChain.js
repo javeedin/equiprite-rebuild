@@ -1,0 +1,17 @@
+define(['vb/action/actionChain', 'resources/js/exportKit', 'resources/js/shellBus', 'resources/js/future/fxFinance'], (ActionChain, exportKit, bus, fxFinance) => {
+  'use strict';
+
+  // Exports one list as it is shown (the journal with its filter, the trial balance, the eliminations, what remains
+  // after them): Excel, CSV, PDF (print) or Copy. A failure is toasted and stays on the page in words.
+  class exportChain extends ActionChain {
+    async run(context, { list, format }) {
+      const pv = context.$page.variables;
+      pv.exportOpen = '';
+      const res = await exportKit.run(format, fxFinance.exportOf(list, pv.v));
+      bus.toast(res.message, res.ok ? 'info' : 'error');
+      pv.failure = res.ok ? '' : res.message;
+    }
+  }
+
+  return exportChain;
+});

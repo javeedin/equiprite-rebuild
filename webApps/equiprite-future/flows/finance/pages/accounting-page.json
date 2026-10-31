@@ -1,5 +1,5 @@
 {
-  "description": "Accounting (shown) (skeleton: being built). v = store.view('ledger', leId), store.view('consolidation'), set by loadChain on vbEnter and on every fxRefresh; actions through actChain, links through openChain (docs/redesign/BUILDING-FUTURE-SCREENS.md).",
+  "description": "Accounting (shown): each company's journal and trial balance, and the group's consolidation with its eliminations. v = fxFinance.accounting(store.get(), { le, kind }) built on fxViews.ledger / consolidation, set by loadChain on vbEnter and on every fxRefresh; the company switch and the kind filter go through pickChain, exports through exportChain, links through openChain (docs/redesign/BUILDING-FUTURE-SCREENS.md). Never posts anything.",
   "navigation": {
     "embeddable": "enabled"
   },
@@ -8,9 +8,38 @@
       "type": "any",
       "defaultValue": {
         "ready": false,
-        "error": ""
+        "error": "",
+        "companies": [],
+        "current": "",
+        "isGroup": false,
+        "none": false,
+        "banner": "",
+        "subtitle": "",
+        "me": { "name": "", "roles": [] },
+        "ledger": { "company": "", "currency": "", "count": 0, "shown": 0, "kinds": [], "txs": [], "trial": [], "balanced": true, "balancedText": "", "empty": true, "emptyText": "" },
+        "group": { "currency": "", "eliminations": [], "after": [], "companies": [], "ok": true, "okCount": 0, "fxText": "", "afterText": "" }
       },
-      "description": "The view model: store.view('ledger', leId), store.view('consolidation')."
+      "description": "fxFinance.accounting(state, { le, kind, statementNav }) plus me."
+    },
+    "le": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "The company shown (a legal entity id, or GROUP); empty: the persona's first company."
+    },
+    "kind": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "The journal's kind filter (a transaction kind; empty: all)."
+    },
+    "exportOpen": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "Which list's export menu is open."
+    },
+    "failure": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "The last failure, in words, kept on the page until the next thing works."
     }
   },
   "events": {
@@ -21,51 +50,29 @@
   },
   "eventListeners": {
     "vbEnter": {
-      "chains": [
-        {
-          "chain": "loadChain"
-        }
-      ]
+      "chains": [{ "chain": "loadChain" }]
     },
     "fxRefresh": {
-      "chains": [
-        {
-          "chain": "loadChain"
-        }
-      ]
+      "chains": [{ "chain": "loadChain" }]
     },
     "onAct": {
-      "chains": [
-        {
-          "chain": "actChain",
-          "parameters": {
-            "data": "{{ $event.currentTarget.dataset }}"
-          }
-        }
-      ]
+      "chains": [{ "chain": "actChain", "parameters": { "data": "{{ $event.currentTarget.dataset }}" } }]
     },
     "onOpen": {
-      "chains": [
-        {
-          "chain": "openChain",
-          "parameters": {
-            "data": "{{ $event.currentTarget.dataset }}"
-          }
-        }
-      ]
+      "chains": [{ "chain": "openChain", "parameters": { "data": "{{ $event.currentTarget.dataset }}" } }]
+    },
+    "onPick": {
+      "chains": [{ "chain": "pickChain", "parameters": { "field": "{{ $event.currentTarget.dataset.field }}", "value": "{{ $event.currentTarget.dataset.value }}" } }]
+    },
+    "onExport": {
+      "chains": [{ "chain": "exportChain", "parameters": { "list": "{{ $event.currentTarget.dataset.list }}", "format": "{{ $event.currentTarget.dataset.format }}" } }]
     }
   },
   "imports": {
     "components": {
-      "oj-bind-for-each": {
-        "path": "ojs/ojknockout"
-      },
-      "oj-bind-if": {
-        "path": "ojs/ojknockout"
-      },
-      "oj-bind-text": {
-        "path": "ojs/ojknockout"
-      }
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
     }
   }
 }

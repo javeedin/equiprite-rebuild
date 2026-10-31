@@ -1,5 +1,5 @@
 {
-  "description": "Companies & agreements (skeleton: being built). v = store.view('setup'), set by loadChain on vbEnter and on every fxRefresh; actions through actChain, links through openChain (docs/redesign/BUILDING-FUTURE-SCREENS.md).",
+  "description": "Companies & agreements (FDD v2.0 setup): the companies, business units, inventory orgs and people (read-only, with Play as), who may source from whom (allowed or stopped), the agreements with their rates and versions, the decisions (OD-…), and Reset the demo. v = fxSetup.setup(store.get()) over fxViews.setup, set by loadChain on vbEnter and on every fxRefresh. Only IC finance and Admin change things: setRelation, setAgreementRate (a new version), setSetting through actChain; edits are drafts (draftChain) that say what saving does before it is saved. Sections and export menus: pickChain; exports: exportChain; reset: resetChain (asks first).",
   "navigation": {
     "embeddable": "enabled"
   },
@@ -8,9 +8,48 @@
       "type": "any",
       "defaultValue": {
         "ready": false,
-        "error": ""
+        "error": "",
+        "canEdit": false,
+        "whyNot": "",
+        "today": "",
+        "me": { "id": "", "name": "", "roles": [] },
+        "companies": [],
+        "bus": [],
+        "orgs": [],
+        "people": [],
+        "relations": [],
+        "agreements": [],
+        "settings": [],
+        "fixed": [],
+        "counts": {},
+        "gr6": ""
       },
-      "description": "The view model: store.view('setup')."
+      "description": "fxSetup.setup(state): fxViews.setup with the people, what each change does, the version histories."
+    },
+    "section": {
+      "type": "string",
+      "defaultValue": "companies",
+      "description": "The section shown: companies, people, relations, agreements, decisions."
+    },
+    "drafts": {
+      "type": "any",
+      "defaultValue": {},
+      "description": "Values typed but not saved: { 'rate|ICA-01|EXC|day': '850', 'setting|cutoffDay|': '6' }."
+    },
+    "exportOpen": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "Which list's export menu is open."
+    },
+    "failure": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "The last failure, in words, kept on the page until the next thing works."
+    },
+    "resetAsk": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "Reset the demo: the question is open."
     }
   },
   "events": {
@@ -21,51 +60,43 @@
   },
   "eventListeners": {
     "vbEnter": {
-      "chains": [
-        {
-          "chain": "loadChain"
-        }
-      ]
+      "chains": [{ "chain": "loadChain" }]
     },
     "fxRefresh": {
-      "chains": [
-        {
-          "chain": "loadChain"
-        }
-      ]
+      "chains": [{ "chain": "loadChain" }]
     },
     "onAct": {
-      "chains": [
-        {
-          "chain": "actChain",
-          "parameters": {
-            "data": "{{ $event.currentTarget.dataset }}"
-          }
-        }
-      ]
+      "chains": [{ "chain": "actChain", "parameters": { "data": "{{ $event.currentTarget.dataset }}" } }]
+    },
+    "onSaveRate": {
+      "chains": [{ "chain": "actChain", "parameters": { "type": "setAgreementRate", "payload": "{{ $functions.ratePayload($variables.drafts, $event.currentTarget.dataset) }}",
+        "clear": "{{ $event.currentTarget.dataset.draft }}" } }]
+    },
+    "onSaveSetting": {
+      "chains": [{ "chain": "actChain", "parameters": { "type": "setSetting", "payload": "{{ $functions.settingPayload($variables.drafts, $event.currentTarget.dataset) }}",
+        "clear": "{{ $event.currentTarget.dataset.draft }}" } }]
     },
     "onOpen": {
-      "chains": [
-        {
-          "chain": "openChain",
-          "parameters": {
-            "data": "{{ $event.currentTarget.dataset }}"
-          }
-        }
-      ]
+      "chains": [{ "chain": "openChain", "parameters": { "data": "{{ $event.currentTarget.dataset }}" } }]
+    },
+    "onPick": {
+      "chains": [{ "chain": "pickChain", "parameters": { "field": "{{ $event.currentTarget.dataset.field }}", "value": "{{ $event.currentTarget.dataset.value }}" } }]
+    },
+    "onDraft": {
+      "chains": [{ "chain": "draftChain", "parameters": { "key": "{{ $event.target.dataset.key }}", "value": "{{ $event.target.value }}" } }]
+    },
+    "onExport": {
+      "chains": [{ "chain": "exportChain", "parameters": { "list": "{{ $event.currentTarget.dataset.list }}", "format": "{{ $event.currentTarget.dataset.format }}" } }]
+    },
+    "onReset": {
+      "chains": [{ "chain": "resetChain", "parameters": { "action": "{{ $event.currentTarget.dataset.action }}" } }]
     }
   },
   "imports": {
     "components": {
-      "oj-bind-for-each": {
-        "path": "ojs/ojknockout"
-      },
-      "oj-bind-if": {
-        "path": "ojs/ojknockout"
-      },
-      "oj-bind-text": {
-        "path": "ojs/ojknockout"
-      }
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
     }
   }
 }
