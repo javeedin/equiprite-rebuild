@@ -238,6 +238,9 @@ function time() {
  * @param {object}   [o.phoneApp]         { apkFile, version }: EquipRite for Android, for a paired phone (with o.pairToken):
  *                                        /__app/info, /__app/EquipRite.apk, and /__app/open ("Open in the EquipRite
  *                                        app": into the app with this PC's address, or the download without it)
+ * @param {object}   [o.futureStore]      EquipRite Future: its demo story's store (lib/futureDb.js, DuckDB in the desktop app's
+ *                                        data folder), served to this PC only at /__future/story, /snapshots, /history,
+ *                                        /sql (read-only) and /info, so the story survives restarts, rebuilds and a cleared cache
  * @param {Function} [o.pairToken]        () => the pairing key, or null. Given, a request from another device is
  *                                        served only with the key (the QR code's address, then its cookie), never
  *                                        the web services page; this PC's own requests are unaffected
@@ -423,6 +426,47 @@ function createDevServer(o) {
           return send(res, 404, 'text/plain; charset=utf-8', 'Not found');
         }
         return send(res, 200, 'application/json', JSON.stringify((o.getPhone && o.getPhone()) || {}));
+      }
+      if (pathname.startsWith('/__future/') && o.futureStore) {
+        // EquipRite Future's story in DuckDB (lib/futureDb.js): this PC only, by its own name.
+        const host = String(req.headers.host || '').replace(/:\d+$/, '');
+        if (!isLoopback(req.socket.remoteAddress) || !/^(localhost|127\.0\.0\.1|\[::1\])$/.test(host)) {
+          return send(res, 404, 'text/plain; charset=utf-8', 'Not found');
+        }
+        const fs_ = o.futureStore;
+        const json = (status, body) => send(res, status, 'application/json', JSON.stringify(body), { 'Cache-Control': 'no-store' });
+        const bodyOf = () => new Promise((resolve, reject) => {
+          const chunks = [];
+          let size = 0;
+          req.on('data', (c) => { size += c.length; if (size <= 20 * 1024 * 1024) chunks.push(c); });
+          req.on('end', () => (size > 20 * 1024 * 1024 ? reject(new Error('Too large')) : resolve(Buffer.concat(chunks).toString('utf8'))));
+          req.on('error', reject);
+        });
+        const snap = /^\/__future\/snapshots\/(\d+)$/.exec(pathname);
+        const hist = /^\/__future\/history\/(\d+)$/.exec(pathname);
+        (async () => {
+          if (pathname === '/__future/info') return json(200, await fs_.info());
+          if (pathname === '/__future/story' && req.method === 'GET') {
+            const text = await fs_.load();
+            return text ? send(res, 200, 'application/json', text, { 'Cache-Control': 'no-store' }) : json(200, null);
+          }
+          if (pathname === '/__future/story' && (req.method === 'PUT' || req.method === 'POST')) return json(200, await fs_.save(await bodyOf()));
+          if (pathname === '/__future/snapshots' && req.method === 'GET') return json(200, await fs_.snapshots());
+          if (pathname === '/__future/snapshots' && req.method === 'POST') {
+            const b = JSON.parse(await bodyOf() || '{}');
+            return json(200, await fs_.saveSnapshot(b.name, b.story ? JSON.stringify(b.story) : await fs_.load()));
+          }
+          if (snap && req.method === 'GET') { const t = await fs_.loadSnapshot(snap[1]); return t ? send(res, 200, 'application/json', t) : json(404, {}); }
+          if (snap && req.method === 'DELETE') return json(200, await fs_.deleteSnapshot(snap[1]));
+          if (pathname === '/__future/history' && req.method === 'GET') return json(200, await fs_.history());
+          if (hist && req.method === 'GET' && fs_.loadHistory) { const t = await fs_.loadHistory(hist[1]); return t ? send(res, 200, 'application/json', t) : json(404, {}); }
+          if (pathname === '/__future/sql' && req.method === 'POST') {
+            const b = JSON.parse(await bodyOf() || '{}');
+            try { return json(200, await fs_.query(b.sql)); } catch (e) { return json(400, { error: e.message }); }
+          }
+          return json(404, { error: 'Not found' });
+        })().catch((e) => json(400, { error: e.message }));
+        return undefined;
       }
       if (pathname === '/__versions') {
         return send(res, 200, 'application/json', JSON.stringify((o.getVersions && o.getVersions()) || {}));

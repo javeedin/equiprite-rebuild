@@ -40,6 +40,12 @@ const APP_NAME = 'EquipRite';
 const PORT = Number(process.env.EQP_PORT) || 18888;
 const REPO_ROOT = path.resolve(__dirname, '..');
 const BUILD_DIR = path.join(REPO_ROOT, 'build');
+// EquipRite Future's story store (DuckDB, future.duckdb in the data folder), opened once when Future is served.
+let futureDbStore = null;
+async function futureStore() {
+  if (!futureDbStore) futureDbStore = await require('./lib/futureDb').open(path.join(app.getPath('userData'), 'future.duckdb'));
+  return futureDbStore;
+}
 const VERSIONS = {
   old: { webApp: 'vbredwoodapp', label: 'Old EquipRite', port: PORT },
   new: { webApp: 'equiprite', label: 'New EquipRite', port: PORT + 1 },
@@ -879,6 +885,8 @@ if (!app.requestSingleInstanceLock()) {
             getVersions: () => ({ old: urlOf('old'), new: servers.new ? urlOf('new') : '', next: servers.next ? urlOf('next') : '',
               mobile: servers.mobile ? urlOf('mobile') : '', future: servers.future ? urlOf('future') : '' }),
             getPhone: phoneLinks,
+            // EquipRite Future keeps its demo story in DuckDB in this app's data folder (survives restarts and rebuilds).
+            futureStore: v === 'future' ? await futureStore() : undefined,
             backendOverrides: backendOverridesFromEnv(process.env),
             onLog: pushLog,
             onProblem: backendProblem,
@@ -915,6 +923,7 @@ if (!app.requestSingleInstanceLock()) {
     }
   });
   app.on('before-quit', () => {
+    if (futureDbStore) futureDbStore.close().catch(() => {});
     quitting = true;
     Object.values(servers).forEach((s) => s.close());
     stopLan();

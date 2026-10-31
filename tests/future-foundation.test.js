@@ -265,7 +265,7 @@ T.eq('every module a file loads is there (nothing left of Next\'s)', deps.join('
 T.section('no REST anywhere: the simulated store only');
 const rest = files.filter((f) => /\.(js|json|html)$/.test(f)).filter((f) => /callRest|eqp-v1|getNotifications|\/services\/|"services": \{\s*"/.test(fs.readFileSync(f, 'utf8')));
 T.eq('no callRest, no eqp-v1, no service', rest.map(rel).join(), '');
-T.eq('the only fetch is the desktop app\'s /__versions', files.filter((f) => /\.js$/.test(f) && /\bfetch\(/.test(fs.readFileSync(f, 'utf8'))).map(rel).join(), 'chains/loadVersionsChain.js');
+T.eq('the only fetch is the desktop app\'s /__versions', files.filter((f) => /\.js$/.test(f) && /\bfetch\(/.test(fs.readFileSync(f, 'utf8'))).map(rel).join(), 'chains/loadVersionsChain.js,resources/js/future/fxStore.js');
 
 T.section('switching versions as usual');
 const nextShell = read('webApps/equiprite-next/pages/shell-page.html');

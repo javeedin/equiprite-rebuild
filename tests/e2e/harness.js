@@ -123,8 +123,11 @@ async function start(o) {
   if (DS.isBuilt(path.join(ROOT, 'build'), 'equiprite-next')) {
     servers.push(await DS.createDevServer(Object.assign({ webApp: 'equiprite-next', port: ports.next }, common)));
   }
+  let futureStore = null;
   if (DS.isBuilt(path.join(ROOT, 'build'), 'equiprite-future')) {
-    servers.push(await DS.createDevServer(Object.assign({ webApp: 'equiprite-future', port: ports.future }, common)));
+    // o.futureDb: a DuckDB file for Future's story (as the desktop app keeps it); without it the story lives in the browser only.
+    futureStore = o.futureDb ? await require('../../desktop/lib/futureDb').open(o.futureDb) : null;
+    servers.push(await DS.createDevServer(Object.assign({ webApp: 'equiprite-future', port: ports.future }, common, futureStore ? { futureStore } : {})));
   }
   if (DS.isBuilt(path.join(ROOT, 'build'), 'equiprite-mobile')) {
     servers.push(await DS.createDevServer(Object.assign({ webApp: 'equiprite-mobile', port: ports.mobile }, common, o.phoneApp ? {
@@ -179,6 +182,7 @@ async function start(o) {
     async close() {
       await browser.close();
       await Promise.all(servers.map((s) => s.close()));
+      if (futureStore) await futureStore.close();
       backend.close();
     },
   };

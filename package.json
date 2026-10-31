@@ -19,5 +19,8 @@
     "serve": "npm run build && node desktop/lib/devserver.js",
     "desktop": "node tools/get-electron.js && electron desktop",
     "desktop:fresh": "npm run build && node tools/get-electron.js && electron desktop"
+  },
+  "dependencies": {
+    "@duckdb/node-api": "^1.4.5-r.1"
   }
 }
