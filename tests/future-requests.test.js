@@ -1,7 +1,9 @@
 /*
  * EquipRite Future · Requests (resources/js/future/fxRequests.js): My requests (scoped by the requesting BU, chips,
- * search, relationship chips, money progress), New request (who it is for, the sourcing cards own fleet first with
- * price, estimate and why not, what will happen per owner, the payload createRequest takes) and a request's tab (lines,
+ * search, relationship chips, money progress), New request (who it is for; Source from, the sourcing business units the
+ * requesting BU may borrow from, and step 2 filtered to the one chosen; the sourcing cards own fleet first with price,
+ * estimate and why not; "Requested by … → sourced from …"; what will happen per owner; the payload createRequest takes,
+ * each line naming its provider) and a request's tab (lines,
  * the finance checklist with where each step is done, totals per company, the accounting shown for this request only).
  * Plays the story with the real engine (tests/e2e/future-fixture.js) and reads it back through the module.
  *
@@ -71,6 +73,62 @@ T.eq('Lena (rental desk): FleetCo\'s customers, the one on hold flagged', desk.o
   'Customer Y · Gulf Builders; Customer W · Oman Roads (credit hold) (hold)');
 T.eq('Mark (finance) does not raise requests', R.form(as(fresh, 'p-pcfin'), {}).canRaise, false);
 
+T.section('New request: step 1, Source from (the sourcing business unit that lends the equipment)');
+const srcList = (x) => x.sources.map((c) => c.title + (c.any ? '' : ' (' + c.relLabel + ')') + (c.on ? '*' : '')).join(' ; ');
+f = R.form(as(fresh, 'p-pm'), {});
+T.eq('Priya: Any (the default), then own fleet, ProjectCo Facilities (cross-charge), FleetCo Fleet (intercompany, domestic)', srcList(f),
+  'Any company in the group* ; ProjectCo Projects (Own fleet) ; ProjectCo Facilities (Same company · cross-charge) ; FleetCo Fleet (Intercompany · domestic)');
+const card = (x, key) => { const c = x.sources.find((y) => y.key === key); return [c.title, c.sub, c.relLabel, c.money, c.lead, c.agreement, c.unitsText].join(' | '); };
+T.eq('…FleetCo: BU and company, country, relationship, the money, lead time, agreement and version, units', card(f, 'BU-FC'),
+  'FleetCo Fleet | FleetCo Equipment LLC · United Arab Emirates | Intercompany · domestic | Invoice pair: AR in FleetCo, AP in ProjectCo coded to the project; VAT 5 % | Lead time 2 days | ICA-FC-PC-2026 v1 (intercompany agreement) | 8 units · 8 free for the dates');
+T.eq('…own fleet: cost straight to the project, no invoice', card(f, 'BU-PC'),
+  'ProjectCo Projects | ProjectCo Contracting LLC · United Arab Emirates | Own fleet | Cost straight to the project, no invoice | On hand: no lead time | No agreement: own equipment at its internal cost rate | 1 unit · 1 free for the dates');
+T.eq('…ProjectCo Facilities: a cross-charge, its rates', card(f, 'BU-PF'),
+  'ProjectCo Facilities | ProjectCo Contracting LLC · United Arab Emirates | Same company · cross-charge | PPM cross-charge to the project: no invoices, no tax (one legal entity) | Lead time 1 day | XC-PF-PC-2026 v1 (cross-charge rates) | 1 unit · 1 free for the dates');
+T.eq('…Any company in the group: everything, own fleet first', card(f, 'any'),
+  'Any company in the group | Step 2 shows every unit you may use, own fleet first | Every allowed owner | Each owner approves and bills its own lines, as its card says | On hand to 2 days, by owner | Each owner’s own agreement | 10 units · 10 free for the dates');
+T.eq('…the route before a choice', f.routeText, 'Requested by ProjectCo Projects (ProjectCo) → sourced from any company in the group');
+const pkSrc = R.form(as(fresh, 'p-pk'), {});
+T.eq('Faisal: FleetCo Fleet across the border, plus Any', srcList(pkSrc), 'Any company in the group* ; FleetCo Fleet (Intercompany · cross-border)');
+T.eq('…the money and the lead time across the border', card(pkSrc, 'BU-FC'),
+  'FleetCo Fleet | FleetCo Equipment LLC · United Arab Emirates | Intercompany · cross-border | Invoice pair in AED without VAT: ProjectCo KSA self-assesses 15 % and withholds 5 %; customs at the border | Lead time 7 days | ICA-FC-PK-2026 v1 (intercompany agreement) | 8 units · 8 free for the dates');
+const deskSrc = R.form(as(fresh, 'p-desk'), R.change({}, 'forKey', 'C:C-Y'));
+T.eq('Lena (customer rental): her own fleet only, chosen', srcList(deskSrc), 'FleetCo Fleet (Customer rental)*');
+T.eq('…the customer\'s rental agreement, and why only the owner', [card(deskSrc, 'BU-FC'), deskSrc.sourceNote].join(' | '),
+  'FleetCo Fleet | FleetCo Equipment LLC · United Arab Emirates | Customer rental | FleetCo invoices the customer in Fusion Receivables: no intercompany | On hand: no lead time | Rental agreement RA-FC-Y-2026 v1 | 8 units · 8 free for the dates'
+  + ' | A customer rental always comes from the owner itself: FleetCo Fleet rents out its own units, never another company’s.');
+T.eq('…even before a customer is chosen; no other company can be asked for', [srcList(R.form(as(fresh, 'p-desk'), R.change({}, 'source', 'any'))), R.form(as(fresh, 'p-desk'), {}).form.source].join(' | '),
+  'FleetCo Fleet (Customer rental)* | BU-FC');
+const onHire = as(F.state('onHire'), 'p-pm');
+T.eq('free for the dates: units on hire are not', R.form(onHire, {}).sources.map((c) => c.key + ': ' + c.unitsText).join(' ; '),
+  'any: 10 units · 5 free for the dates ; BU-PC: 1 unit · 1 free for the dates ; BU-PF: 1 unit · 0 free for the dates ; BU-FC: 8 units · 4 free for the dates');
+T.eq('…dates not right: said, not counted', R.form(onHire, R.change(R.change({}, 'from', '2026-12-25'), 'to', '2026-12-01')).sources[3].unitsText, '8 units · give the dates to see how many are free');
+T.eq('a BU the matrix does not allow is not offered (and forgotten)', R.form(as(fresh, 'p-pm'), R.change({}, 'source', 'BU-PK')).form.source, '');
+
+T.section('New request: choosing FleetCo on step 1 filters step 2');
+let src = R.change(R.change(R.change(R.change({}, 'forKey', 'P:P-INT'), 'from', '2026-11-03'), 'to', '2026-12-20'), 'source', 'BU-FC');
+f = R.form(as(fresh, 'p-pm'), R.change(R.change(src, 'cls', 'GEN'), 'step', '2'));
+T.eq('the choice is kept in the form, its card on', [f.form.source, f.sources.filter((c) => c.on).map((c) => c.title).join()].join(' | '), 'BU-FC | FleetCo Fleet');
+T.eq('…step 2: FleetCo\'s generators only, and it says so', [f.step, f.groups.map((g) => g.title).join(' ; '), f.cards.map((c) => c.serial).join(), f.shownText, f.canShowAll].join(' | '),
+  '2 | FleetCo Fleet · FleetCo | GN-3001,GN-3002 | Units of FleetCo Fleet (FleetCo) | true');
+T.eq('…the head: requested by → sourced from', f.routeText, 'Requested by ProjectCo Projects (ProjectCo) → sourced from FleetCo Fleet (FleetCo)');
+T.eq('…the class chips count FleetCo\'s units only', f.classes.map((c) => c.id + ' ' + c.count + '/' + c.total).join(', '), 'EXC 3/3, CRN 1/1, GEN 2/2, LFT 2/2, TWR 0/0');
+T.eq('…a class FleetCo has none of: said in words', R.form(as(fresh, 'p-pm'), R.change(R.change(src, 'cls', 'TWR'), 'step', '2')).emptyText,
+  'FleetCo Fleet has no Light towers for you. Try another class, or show every company.');
+const every = R.form(as(fresh, 'p-pm'), R.change(R.change(f.form, 'source', 'any'), 'step', '2'));
+T.eq('Show every company: own fleet first again', [every.form.source, every.groups.map((g) => g.title).join(' ; '), every.shownText, every.canShowAll, every.routeText].join(' | '),
+  ' | Your own fleet · ProjectCo Projects ; FleetCo Fleet · FleetCo | Units of every company you may source from, own fleet first | false | Requested by ProjectCo Projects (ProjectCo) → sourced from any company in the group');
+const own = R.form(as(fresh, 'p-pm'), R.change(src, 'source', 'BU-PC'));
+T.eq('own fleet chosen: the head says so', own.routeText, 'Requested by ProjectCo Projects (ProjectCo) → sourced from ProjectCo Projects (ProjectCo), its own fleet');
+let mixed = R.change(R.change(R.change(src, 'source', 'any'), 'add', 'U-EX1|EXC'), 'add', 'U-TW1|TWR');
+T.eq('with units of two owners on the request, step 1 says what choosing one does', R.form(as(fresh, 'p-pm'), mixed).sourceHint,
+  'On the request so far: EX-1001 (FleetCo Fleet), TW-5001 (ProjectCo Facilities). Choosing one company keeps only its units on the request.');
+mixed = R.form(as(fresh, 'p-pm'), R.change(mixed, 'source', 'BU-FC'));
+T.eq('…choosing FleetCo keeps only FleetCo\'s', mixed.lines.map((c) => c.serial).join(), 'EX-1001');
+const lena = R.form(as(fresh, 'p-desk'), R.change(R.change(R.change({}, 'forKey', 'C:C-Y'), 'cls', 'GEN'), 'step', '2'));
+T.eq('a customer rental: its own units, no "Show every company"', [lena.routeText, lena.shownText, lena.canShowAll].join(' | '),
+  'Requested by FleetCo Fleet (FleetCo) → sourced from FleetCo Fleet (FleetCo), its own fleet | Units of FleetCo Fleet (FleetCo), your own fleet: a customer rental always comes from the owner itself | false');
+
 T.section('New request: step 2, every unit sourcing offers, own fleet first');
 let raw = R.change(R.change(R.change({}, 'forKey', 'P:P-INT'), 'from', '2026-11-03'), 'to', '2026-12-20');
 f = R.form(as(fresh, 'p-pm'), R.change(raw, 'cls', 'GEN'));
@@ -101,6 +159,10 @@ T.eq('…what will happen: FleetCo', f.review[0].happen.map((h) => h.key).join()
 T.check('…who approves (the owner\'s BU), and the invoice pair coded to the project', /FleetCo Fleet, the owner, approves .*Ana Costa/.test(f.review[0].happen[0].text)
   && /an AR invoice in FleetCo and an AP invoice in ProjectCo coded to PC-INT-014/.test(f.review[0].happen[2].text), f.review[0].happen[2].text);
 T.check('…the same company: a cross-charge, no invoice', /PPM cross-charge from ProjectCo Facilities to PC-INT-014: no invoices and no tax/.test(f.review[1].happen.find((h) => h.key === 'bill').text));
+T.eq('…each group: requested by → sourced from', f.review.map((g) => g.routeText).join(' ; '),
+  'Requested by ProjectCo Projects (ProjectCo) → Sourced from FleetCo Fleet (FleetCo) ; Requested by ProjectCo Projects (ProjectCo) → Sourced from ProjectCo Facilities (ProjectCo)');
+T.eq('…the head (any company) and the sourcing BUs of the lines', [f.routeText, f.sourcingText].join(' | '),
+  'Requested by ProjectCo Projects (ProjectCo) → sourced from any company in the group | FleetCo Fleet · FleetCo; ProjectCo Facilities · ProjectCo');
 T.eq('…the estimated total', [f.totalText, f.totalNote, f.step].join(' | '), 'AED 27,650.00 | estimate | 3');
 const xb = R.form(as(fresh, 'p-pk'), R.change(R.change(R.change(R.change(R.change({}, 'from', '2026-11-09'), 'to', '2026-12-31'), 'cls', 'EXC'), 'add', 'U-EX1|EXC'), 'step', '3'));
 T.check('cross-border: customs and the reverse charge in words', /temporary import permit/.test((xb.review[0].happen.find((h) => h.key === 'customs') || {}).text)
@@ -108,9 +170,16 @@ T.check('cross-border: customs and the reverse charge in words', /temporary impo
 T.check('…and the customer project\'s billing', xb.reqNotes.some((n) => /ProjectCo KSA bills Customer Z/.test(n)), xb.reqNotes.join());
 const pay = R.payload(as(fresh, 'p-pm'), raw);
 T.eq('the payload createRequest takes', JSON.stringify(pay),
-  '{"requestingBu":"BU-PC","from":"2026-11-03","to":"2026-12-20","note":"","lines":[{"cls":"EXC","unitId":"U-EX1"},{"cls":"TWR","unitId":"U-TW1"}],"projectId":"P-INT","task":"1.1 Site works"}');
+  '{"requestingBu":"BU-PC","from":"2026-11-03","to":"2026-12-20","note":"","lines":[{"cls":"EXC","unitId":"U-EX1","provider":"BU-FC"},{"cls":"TWR","unitId":"U-TW1","provider":"BU-PF"}],"projectId":"P-INT","task":"1.1 Site works"}');
 const made = E.apply(as(fresh, 'p-pm'), 'createRequest', pay);
 T.eq('…and the engine raises it', [made.ok, made.result && made.result.number, made.state && made.state.requests[0].lines.map((x) => x.relation).join()].join(' | '), 'true | FR-1001 | IC_DOMESTIC,SAME_LE');
+const fromFc = R.change(R.change(R.change(src, 'cls', 'EXC'), 'add', 'U-EX1|EXC'), 'step', '3');
+f = R.form(as(fresh, 'p-pm'), fromFc);
+T.eq('sourced from FleetCo: the review\'s head and its one group', [f.routeText, f.review.map((g) => g.routeText).join(' ; ')].join(' | '),
+  'Requested by ProjectCo Projects (ProjectCo) → sourced from FleetCo Fleet (FleetCo) | Requested by ProjectCo Projects (ProjectCo) → Sourced from FleetCo Fleet (FleetCo)');
+T.check('…who approves stays FleetCo\'s Equipment Manager, by name', /^FleetCo Fleet, the owner, approves and allocates each unit in Approve & allocate \(Ana Costa, Equipment Manager · FleetCo\)\.$/.test(f.review[0].happen[0].text), f.review[0].happen[0].text);
+const fcMade = E.apply(as(fresh, 'p-pm'), 'createRequest', R.payload(as(fresh, 'p-pm'), f.form));
+T.eq('…raised: the line\'s provider is BU-FC', [fcMade.ok, fcMade.state.requests[0].lines.map((x) => x.preferredUnit + ' ' + x.provider + ' ' + x.relation).join()].join(' | '), 'true | U-EX1 BU-FC IC_DOMESTIC');
 const hold = R.payload(as(fresh, 'p-desk'), R.change(R.change({}, 'forKey', 'C:C-W'), 'add', 'U-GN1|GEN'));
 const refused = E.apply(as(fresh, 'p-desk'), 'createRequest', hold);
 T.check('a customer on credit hold: the engine refuses, in words', !refused.ok && /credit hold/.test(refused.error), refused.error);

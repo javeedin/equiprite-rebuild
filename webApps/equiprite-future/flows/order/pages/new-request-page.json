@@ -1,5 +1,5 @@
 {
-  "description": "New request in three steps (For, Equipment, Review) on the Future page pattern: v = fxRequests.form(state, form), set by loadChain on vbEnter and on every fxRefresh, and by formChain on every change of the form (it only reads the store); Submit runs createRequest through actChain, which opens the new request's tab; the units offered export through exportChain (docs/redesign/BUILDING-FUTURE-SCREENS.md).",
+  "description": "New request in three steps (For with Source from, Equipment, Review) on the Future page pattern: v = fxRequests.form(state, form), set by loadChain on vbEnter and on every fxRefresh, and by formChain on every change of the form (it only reads the store); Submit runs createRequest through actChain, which opens the new request's tab; the units offered export through exportChain (docs/redesign/BUILDING-FUTURE-SCREENS.md).",
   "navigation": {
     "embeddable": "enabled"
   },
@@ -10,8 +10,11 @@
         "ready": false,
         "error": "",
         "canRaise": false,
-        "form": { "step": 1, "bu": "", "forKey": "", "task": "", "from": "", "to": "", "site": "", "note": "", "cls": "", "lines": [] },
+        "form": { "step": 1, "bu": "", "forKey": "", "task": "", "from": "", "to": "", "site": "", "note": "", "cls": "", "source": "", "lines": [] },
         "steps": [],
+        "sources": [],
+        "source": null,
+        "route": null,
         "bus": [],
         "options": [],
         "tasks": [],
@@ -25,12 +28,12 @@
         "lineCount": 0,
         "cardCount": 0
       },
-      "description": "fxRequests.form(state, form): the steps, the BUs, the options (projects or customers), the dates, the classes, the sourcing cards grouped by owner, the lines added, what will happen per owner, the estimate."
+      "description": "fxRequests.form(state, form): the steps, the BUs, the sourcing BUs of Source from (Any first, then own fleet and the providers the IC matrix allows) and the route (requested by → sourced from), the options (projects or customers), the dates, the classes, the sourcing cards grouped by owner, the lines added, what will happen per owner, the estimate."
     },
     "form": {
       "type": "any",
       "defaultValue": { "step": 1, "lines": [] },
-      "description": "What the person chose so far: step, bu, forKey (P:<project> or C:<customer>), task, from, to, site, note, cls, lines [{ unitId, cls }]."
+      "description": "What the person chose so far: step, bu, source (the sourcing BU of Source from, '' for any company in the group), forKey (P:<project> or C:<customer>), task, from, to, site, note, cls, lines [{ unitId, cls }]."
     },
     "sent": {
       "type": "any",

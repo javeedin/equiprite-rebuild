@@ -1,4 +1,4 @@
-/* EquipRite Future · New request (flows/order): the three steps, the sourcing cards and the review. Next's parts (page
+/* EquipRite Future · New request (flows/order): the three steps, Source from, the sourcing cards and the review. Next's parts (page
    head band, cards, chips, buttons) with Future's chips; these are only the screen's own layouts. */
 
 .fx-nr-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
@@ -37,6 +37,27 @@
 .fx-nr-option-note { font-size: 12.5px; color: var(--nx-muted); line-height: 1.4; overflow-wrap: anywhere; }
 .fx-nr-option-where { font-size: 12.5px; color: var(--nx-ink); display: inline-flex; gap: 4px; align-items: center; }
 
+/* Step 1: Source from, the sourcing business unit (who lends the equipment), under the requesting one. */
+.fx-nr-sourcefield { gap: 10px; padding: 12px 14px 14px; border-radius: 10px; background: var(--nx-surface-2); border: 1px solid var(--nx-line); }
+.fx-nr-source-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; }
+.fx-nr-source-title { margin: 0; font-size: 15px; }
+.fx-nr-sources { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(236px, 100%), 1fr)); gap: 10px; }
+.fx-nr-source {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 5px; padding: 11px 13px 12px; border: 1px solid var(--nx-line-strong); border-radius: 10px; background: #fff;
+  color: var(--nx-ink); font: inherit; text-align: left; cursor: pointer; min-width: 0;
+}
+.fx-nr-source:hover { border-color: var(--nx-band); background: #f6fafc; }
+.fx-nr-source--on { border-color: var(--nx-band); box-shadow: 0 0 0 2px color-mix(in srgb, var(--nx-band) 22%, transparent); background: #f3f8fb; }
+.fx-nr-source--any:not(.fx-nr-source--on) { border-style: dashed; }
+.fx-nr-source .fx-chip { white-space: normal; line-height: 1.35; }
+.fx-nr-source-name { font-weight: 700; font-size: 14.5px; overflow-wrap: anywhere; }
+.fx-nr-source-sub { font-size: 12.5px; color: var(--nx-muted); line-height: 1.4; overflow-wrap: anywhere; }
+.fx-nr-source-money, .fx-nr-source-facts > span { display: flex; gap: 6px; align-items: flex-start; font-size: 12.5px; line-height: 1.4; overflow-wrap: anywhere; min-width: 0; }
+.fx-nr-source-money { font-weight: 600; }
+.fx-nr-source-facts { display: flex; flex-direction: column; gap: 3px; width: 100%; margin-top: auto; padding-top: 6px; border-top: 1px dashed var(--nx-line); }
+.fx-nr-source-money > span[class^="oj-ux-ico"], .fx-nr-source-facts span[class^="oj-ux-ico"] { flex: none; font-size: 14px; color: var(--nx-faint); margin-top: 1px; }
+.fx-nr-source-units { font-weight: 600; }
+
 .fx-nr-dates { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 18px; }
 .fx-nr-dates .fx-nr-field { flex: 0 1 190px; }
 .fx-nr-window { display: flex; flex-direction: column; gap: 2px; padding-bottom: 4px; }
@@ -50,6 +71,15 @@
 /* Step 2: the cards beside the cart (the cart below them when the window is narrower). */
 .fx-nr-cols { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start; }
 @media (max-width: 1279px) { .fx-nr-cols { grid-template-columns: minmax(0, 1fr); } }
+/* Steps 2 and 3 open with the route: requested by → sourced from. */
+.fx-nr-route { margin: 0; display: flex; gap: 8px; align-items: flex-start; padding: 9px 14px; border-radius: 10px; background: #f0f7fb; border: 1px solid #d3e4ee; font-size: 14px; line-height: 1.45; }
+.fx-nr-route > span[class^="oj-ux-ico"] { flex: none; color: var(--nx-band); font-size: 18px; margin-top: 1px; }
+.fx-nr-route-text { min-width: 0; overflow-wrap: anywhere; }
+.fx-nr-route-arrow { color: var(--nx-band); font-weight: 800; }
+.fx-nr-shown { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: 13.5px; color: var(--nx-muted); }
+.fx-nr-shown > span[class^="oj-ux-ico"] { font-size: 16px; color: var(--nx-faint); }
+.fx-nr-shown--one { color: var(--nx-ink); font-weight: 600; }
+.fx-nr-shown .nx-link { font-size: 13.5px; }
 .fx-nr-catalog .nx-card-head { flex-wrap: wrap; }
 .fx-nr-for { margin: 0; }
 .fx-nr-groups { display: flex; flex-direction: column; gap: 18px; }
@@ -96,6 +126,7 @@
 .fx-nr-owner-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
 .fx-nr-owner-head h3 { margin: 0; font-size: 15px; }
 .fx-nr-owner-sum { margin-left: auto; font-weight: 800; }
+.fx-nr-owner-route { margin: -4px 0 0; font-size: 13px; color: var(--nx-muted); overflow-wrap: anywhere; }
 .fx-nr-owner-units { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 13.5px; }
 .fx-nr-owner-units .nx-note { display: block; }
 .fx-nr-happen { margin: 0; display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border-radius: 8px; background: #f0f7fb; border: 1px solid #d3e4ee; }

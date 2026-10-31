@@ -1,10 +1,15 @@
 'use strict';
 /*
  * EquipRite Future · Requests in a real browser, played as the people who use them (FDD v2.0):
- *   fresh as Priya    New request for PC-INT-014 with a FleetCo excavator: the sourcing cards (own fleet first, the IC
- *                     price, the estimate), what will happen, Submit, the new request's tab; as Faisal the KSA project
- *                     (a unit blocked by its certificate for Saudi Arabia); as Lena a customer on credit hold (the
- *                     failure stays in words); as Priya again a request above the threshold, approved by her BU.
+ *   fresh as Priya    New request for PC-INT-014 with a FleetCo excavator, sourced from any company in the group (the
+ *                     default of Source from): the sourcing cards (own fleet first, the IC price, the estimate), the
+ *                     head "Requested by … → sourced from …", what will happen, Submit, the new request's tab; as Faisal
+ *                     the KSA project (Source from: FleetCo across the border; a unit blocked by its certificate for
+ *                     Saudi Arabia); as Lena a customer on credit hold (Source from: her own fleet only; the failure
+ *                     stays in words); as Priya again a request above the threshold, approved by her BU.
+ *   fresh as Priya    Source from FleetCo on step 1: its card (relationship, money, lead time, agreement, units free),
+ *                     step 2 shows only FleetCo's units and says so, Show every company and back, the review's
+ *                     "Requested by … → Sourced from …", Submit: the line's provider is BU-FC.
  *   invoiced as Priya My requests: ProjectCo Projects' requests only (not the KSA one), chips, search, export; the r1
  *                     tab's Money: the IC AR and AP done, settlement to do, and where it happens; another BU's request
  *                     hidden.
@@ -20,6 +25,7 @@ const F = require('./future-fixture');
 
 const T = H.makeAsserter();
 const PORT = 19610;
+const SOURCES_PRIYA = 'Any company in the group (Every allowed owner)* ; ProjectCo Projects (Own fleet) ; ProjectCo Facilities (Same company · cross-charge) ; FleetCo Fleet (Intercompany · domestic)';
 const NAMES = { 'p-pm': 'Priya Raman', 'p-pk': 'Faisal Al-Qahtani', 'p-desk': 'Lena Novak', 'p-fin': 'Sara Ahmed', 'p-admin': 'Admin' };
 
 function kit(env) {
@@ -58,6 +64,9 @@ function kit(env) {
       await page.waitForTimeout(200);
     },
     pick: async (sel) => { await page.click(sel); await page.waitForTimeout(250); },
+    /** Step 1's Source from cards: "name (relationship)", the one chosen marked *. */
+    sources: () => page.$$eval('#nrSources .fx-nr-source', (c) => c.map((x) => x.querySelector('.fx-nr-source-name').innerText.trim() + ' (' + x.querySelector('.fx-chip').innerText.trim() + ')'
+      + (x.getAttribute('aria-pressed') === 'true' ? '*' : '')).join(' ; ')),
     download: async (format) => {
       const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 10000 }), page.click(`.nx-menu [data-format="${format}"]`)]);
       return fs.readFileSync(await dl.path(), 'utf8').replace(/^﻿/, '');
@@ -96,6 +105,8 @@ async function run(point, persona, title, fn, prepare) {
     T.eq('for: its projects, internal or customer', await page.$$eval('#nrOptions .fx-nr-option', (o) => o.map((x) => x.querySelector('.fx-chip').innerText.trim() + ': ' + x.querySelector('.fx-nr-option-title').innerText.trim()).join(' ; ')),
       'Internal project: PC-INT-014 · ProjectCo head office fit-out ; Customer project: PC-C-2207 · Marina Tower (Customer X)');
     T.check('nothing chosen yet: it says so, and the next step waits', (await env.text('#nrForHint')).startsWith('Choose what the equipment is for') && await page.isDisabled('#nrToEquipment'));
+    T.eq('Source from: who lends the equipment', await env.text('#nrSourceTitle'), 'Sourcing business unit: who lends the equipment');
+    T.eq('…Any company in the group (the default), own fleet, ProjectCo Facilities, FleetCo Fleet', await k.sources(), SOURCES_PRIYA);
     await k.pick('#nrOptions [data-value="P:P-INT"]');
     await page.fill('#nrFrom', '2026-10-30');
     await page.waitForTimeout(250);
@@ -110,6 +121,8 @@ async function run(point, persona, title, fn, prepare) {
 
     await k.pick('#nrToEquipment');
     await page.waitForSelector('#nrStepEquipment');
+    T.eq('step 2\'s head: requested by → sourced from any company in the group', await env.text('#nrRoute'), 'Requested by ProjectCo Projects (ProjectCo) → sourced from any company in the group');
+    T.eq('…every company\'s units, nothing to undo', [await env.text('#nrShownText'), !!(await page.$('#nrShowAll'))].join(' | '), 'Units of every company you may source from, own fleet first | false');
     await k.pick('#nrClasses [data-cls="GEN"]');
     T.eq('generators: own fleet first, then same company, then FleetCo', await page.$$eval('#nrGroups .fx-nr-group', (g) => g.map((x) => x.querySelector('.fx-nr-group-title').innerText.trim() + ' (' + x.querySelector('.fx-chip').innerText.trim() + ')').join(' ; ')),
       'Your own fleet · ProjectCo Projects (Own fleet) ; FleetCo Fleet · FleetCo (Intercompany · domestic)');
@@ -129,6 +142,8 @@ async function run(point, persona, title, fn, prepare) {
     await k.pick('#nrToReview');
     await page.waitForSelector('#nrStepReview');
     T.eq('review: grouped by owner', await page.$$eval('#nrReview .fx-nr-owner h3', (h) => h.map((x) => x.innerText.trim()).join()), 'FleetCo Fleet · FleetCo');
+    T.eq('…the head, and the group: requested by → sourced from', [await env.text('#nrReviewRoute'), await env.text('#nrReview .fx-nr-owner-route'), await env.text('#nrSourcing')].join(' | '),
+      'Requested by ProjectCo Projects (ProjectCo) → sourced from any company in the group | Requested by ProjectCo Projects (ProjectCo) → Sourced from FleetCo Fleet (FleetCo) | FleetCo Fleet · FleetCo');
     const happen = await env.text('#nrReview .fx-nr-happen');
     T.check('…what will happen: FleetCo approves (Ana), its yard ships, the invoice pair coded to the project, VAT, terms',
       ['APPROVES FleetCo Fleet, the owner, approves and allocates each unit in Approve & allocate (Ana Costa, Equipment Manager · FleetCo).',
@@ -161,6 +176,10 @@ async function run(point, persona, title, fn, prepare) {
     T.eq('FR-1001 is not his BU\'s: hidden', (await env.text('#requestHidden')).split('.')[0], 'This request belongs to other business units');
     await page.click('.nx-tab-btn[data-id="new-request"]');
     await page.waitForSelector('#nrOptions');
+    T.eq('Source from: FleetCo Fleet across the border, plus Any', await k.sources(), 'Any company in the group (Every allowed owner)* ; FleetCo Fleet (Intercompany · cross-border)');
+    const xbCard = await env.text('#nrSources [data-source="BU-FC"]');
+    T.check('…the money across the border, its lead time and agreement', ['Invoice pair in AED without VAT: ProjectCo KSA self-assesses 15 % and withholds 5 %; customs at the border', 'Lead time 7 days',
+      'ICA-FC-PK-2026 v1'].every((x) => xbCard.includes(x)), xbCard);
     T.eq('his one BU and project, chosen for him', [await env.text('#nrBu'), await page.$$eval('#nrOptions .fx-nr-option--on .fx-nr-option-title', (o) => o.map((x) => x.innerText.trim()).join())].join(' | '),
       'ProjectCo KSA Projects · ProjectCo Arabia Ltd (Saudi Arabia, SAR) | PK-C-0310 · Riyadh Metro Depot (Customer Z)');
     await page.fill('#nrFrom', '2026-11-09');
@@ -183,6 +202,8 @@ async function run(point, persona, title, fn, prepare) {
     await page.waitForSelector('#nrOptions');
     T.eq('the rental desk rents to FleetCo\'s customers', await page.$$eval('#nrOptions .fx-nr-option-title', (o) => o.map((x) => x.innerText.trim()).join(' ; ')),
       'Customer Y · Gulf Builders ; Customer W · Oman Roads (credit hold)');
+    T.eq('Source from: her own fleet only, and why', [await k.sources(), await env.text('#nrSourceNote')].join(' | '),
+      'FleetCo Fleet (Customer rental)* | A customer rental always comes from the owner itself: FleetCo Fleet rents out its own units, never another company’s.');
     await k.pick('#nrOptions [data-value="C:C-W"]');
     T.check('Customer W: on credit hold, said before anything', (await env.text('#nrHold')).includes('on credit hold in Fusion Receivables'));
     await k.pick('#nrToEquipment');
@@ -223,6 +244,74 @@ async function run(point, persona, title, fn, prepare) {
     T.check('…the toast says so', (await k.toast()).includes('Approved FR-1002 above the threshold.'), await k.toast());
     await k.fits('a request\'s tab');
   }, (s) => { s.settings.requesterApproval = true; });
+
+  // ── fresh: sourced from FleetCo, chosen on step 1 ─────────────────────────────────────────────────────────
+  await run('fresh', 'p-pm', 'fresh as Priya: Source from FleetCo on step 1, only its units on step 2', async (env, k) => {
+    const { page } = env;
+    await env.open('/?open=new-request');
+    await page.waitForSelector('#page-new-request #nrSources', { timeout: 30000 });
+    T.eq('Source from: Any first, chosen', await k.sources(), SOURCES_PRIYA);
+    T.check('…shown under the requesting business unit, before what it is for', await page.evaluate(() => {
+      const bu = document.getElementById('nrBu'); const src = document.getElementById('nrSourceField'); const opts = document.getElementById('nrOptions');
+      return !!(bu.compareDocumentPosition(src) & Node.DOCUMENT_POSITION_FOLLOWING) && !!(src.compareDocumentPosition(opts) & Node.DOCUMENT_POSITION_FOLLOWING);
+    }));
+    const fc = await env.text('#nrSources [data-source="BU-FC"]');
+    T.check('FleetCo\'s card: BU and company, country, relationship, money, lead time, agreement and version, units', ['FleetCo Fleet', 'FleetCo Equipment LLC · United Arab Emirates', 'Intercompany · domestic',
+      'Invoice pair: AR in FleetCo, AP in ProjectCo coded to the project; VAT 5 %', 'Lead time 2 days', 'ICA-FC-PC-2026 v1 (intercompany agreement)', '8 units · 8 free for the dates'].every((x) => fc.includes(x)), fc);
+    T.check('…own fleet: cost straight to the project, no invoice', (await env.text('#nrSources [data-source="BU-PC"]')).includes('Own fleet ProjectCo Projects ProjectCo Contracting LLC · United Arab Emirates Cost straight to the project, no invoice'),
+      await env.text('#nrSources [data-source="BU-PC"]'));
+    T.check('…ProjectCo Facilities: a cross-charge at its rates', (await env.text('#nrSources [data-source="BU-PF"]')).includes('XC-PF-PC-2026 v1 (cross-charge rates)'));
+    await k.pick('#nrOptions [data-value="P:P-INT"]');
+    await page.fill('#nrFrom', '2026-11-03');
+    await page.fill('#nrTo', '2026-12-20');
+    await page.waitForTimeout(300);
+    await k.pick('#nrSources [data-source="BU-FC"]');
+    T.eq('FleetCo chosen: its card on, Any off', await k.sources(),
+      'Any company in the group (Every allowed owner) ; ProjectCo Projects (Own fleet) ; ProjectCo Facilities (Same company · cross-charge) ; FleetCo Fleet (Intercompany · domestic)*');
+    shots.push(await k.shot('future-new-request-source-from.png'));
+    await k.fits('New request, Source from');
+
+    await k.pick('#nrToEquipment');
+    await page.waitForSelector('#nrStepEquipment');
+    T.eq('step 2\'s head: requested by ProjectCo → sourced from FleetCo', await env.text('#nrRoute'), 'Requested by ProjectCo Projects (ProjectCo) → sourced from FleetCo Fleet (FleetCo)');
+    T.eq('…says whose units it shows, and offers every company', [await env.text('#nrShownText'), await env.text('#nrShowAll')].join(' | '), 'Units of FleetCo Fleet (FleetCo) | Show every company');
+    const owners = () => page.$$eval('#nrGroups .fx-nr-group', (g) => g.map((x) => x.dataset.owner).join());
+    const units = () => page.$$eval('#nrGroups .fx-nr-card', (c) => c.map((x) => x.dataset.unit).join());
+    await k.pick('#nrClasses [data-cls="GEN"]');
+    T.eq('generators: FleetCo\'s only, not the own fleet\'s GN-3901', [await owners(), await units()].join(' | '), 'BU-FC | GN-3001,GN-3002');
+    await k.pick('#nrClasses [data-cls="TWR"]');
+    T.eq('light towers: FleetCo has none, said in words', await env.text('#nrNoUnits'), 'FleetCo Fleet has no Light towers for you. Try another class, or show every company.');
+    await k.pick('#nrShowAll');
+    T.eq('Show every company: the head and the units follow', [await env.text('#nrRoute'), await env.text('#nrShownText'), await owners()].join(' | '),
+      'Requested by ProjectCo Projects (ProjectCo) → sourced from any company in the group | Units of every company you may source from, own fleet first | BU-PF');
+    await k.pick('#nrSteps [data-step="1"]');
+    T.eq('…and step 1 says Any again', await k.sources(), SOURCES_PRIYA);
+    await k.pick('#nrSources [data-source="BU-FC"]');
+    await k.pick('#nrToEquipment');
+    await k.pick('#nrClasses [data-cls="EXC"]');
+    T.eq('FleetCo again: its excavators', [await owners(), await units()].join(' | '), 'BU-FC | EX-1001,EX-1002,EX-1003');
+    await k.pick('#nrGroups .fx-nr-card[data-unit="EX-1001"] .fx-nr-add');
+    T.eq('EX-1001 on the request', await page.$$eval('#nrCart .fx-nr-cartlist li', (l) => l.map((x) => x.dataset.unit).join()), 'EX-1001');
+    shots.push(await k.shot('future-new-request-fleetco-units.png'));
+    await k.fits('New request, FleetCo\'s units');
+
+    await k.pick('#nrToReview');
+    await page.waitForSelector('#nrStepReview');
+    T.eq('review: the head, the group, the sourcing BU', [await env.text('#nrReviewRoute'), await env.text('#nrReview .fx-nr-owner-route'), await env.text('#nrSourcing')].join(' | '),
+      'Requested by ProjectCo Projects (ProjectCo) → sourced from FleetCo Fleet (FleetCo) | Requested by ProjectCo Projects (ProjectCo) → Sourced from FleetCo Fleet (FleetCo) | FleetCo Fleet · FleetCo');
+    T.check('…FleetCo\'s Equipment Manager approves, by name; billed by the invoice pair', (await env.text('#nrReview [data-key="approve"]')).includes('(Ana Costa, Equipment Manager · FleetCo)')
+      && (await env.text('#nrReview [data-key="bill"]')).includes('an AR invoice in FleetCo and an AP invoice in ProjectCo coded to PC-INT-014'));
+    shots.push(await k.shot('future-new-request-fleetco-review.png'));
+    await k.fits('New request, review from FleetCo');
+    await page.click('#nrSubmit');
+    await k.waitTab('request:R1001');
+    const r = (await k.stored()).requests[0];
+    T.eq('Submit: the line\'s provider is BU-FC', [r.number, r.requestingBu, r.lines.map((l) => l.preferredUnit + ' ' + l.provider + ' ' + l.relation + ' ' + l.status).join()].join(' | '),
+      'FR-1001 | BU-PC | U-EX1 BU-FC IC_DOMESTIC REQUESTED');
+    await page.click('.nx-tab-btn[data-id="new-request"]');
+    await page.waitForSelector('#nrSent');
+    T.eq('the form starts again: Any company in the group', await k.sources(), SOURCES_PRIYA);
+  });
 
   // ── invoiced: My requests and the money of r1 ───────────────────────────────────────────────────────────
   await run('invoiced', 'p-pm', 'invoiced as Priya: My requests and the money of a request', async (env, k, ids) => {

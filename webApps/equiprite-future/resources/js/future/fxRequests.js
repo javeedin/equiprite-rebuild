@@ -7,7 +7,8 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
    * request). Pure functions on top of fxViews and fxEngine; nothing here changes the state.
    *
    *   list(s, { chip, text })      My requests: fxViews.requests() with relationship chips, owners, money progress
-   *   form(s, form)                New request: the three steps (For, Equipment, Review), the sourcing cards, the cart
+   *   form(s, form)                New request: the three steps (For with Source from, Equipment, Review), the sourcing
+   *                                cards (only the sourcing BU's when one is chosen), the cart
    *   payload(s, form)             what Submit sends to createRequest
    *   request(s, id)               a request's tab: head, equipment, money (the finance checklist), accounting, history
    *   exportOf(kind, v)            { name, title, subtitle, rows, columns } for exportKit
@@ -156,9 +157,104 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
 
   var STEPS = [[1, 'For'], [2, 'Equipment'], [3, 'Review']];
 
+  // ── Source from: the sourcing business units the requesting BU may borrow from (MC-FR-04, 11) ─────────────────
+  /**
+   * The BUs a requesting BU may source from, in fxEngine.sourcing's order: its own fleet first (when it owns units),
+   * then every provider the IC matrix allows (receiver = the requesting BU, allowed), by priority. A customer rental
+   * comes from the owner itself: its own fleet only.
+   */
+  function sourceBus(s, buId, rental) {
+    if (!L.bu(s, buId)) return [];
+    var out = [];
+    if ((s.units || []).some(function (u) { return u.owner === buId && u.status !== 'LOST'; })) out.push({ bu: buId, leadDays: 0, priority: 0 });
+    if (rental) return out;
+    (s.icRelations || []).filter(function (r) { return r.receiver === buId && r.allowed && r.provider !== buId; })
+      .map(function (r, i) { return { bu: r.provider, leadDays: r.leadDays || 0, priority: r.priority, i: i }; })
+      .sort(function (a, b) { return (a.priority - b.priority) || (a.i - b.i); })
+      .forEach(function (r) { if (!out.some(function (x) { return x.bu === r.bu; })) out.push({ bu: r.bu, leadDays: r.leadDays, priority: r.priority }); });
+    return out;
+  }
+  /** A request is a customer rental when its option is a customer, or (nothing chosen yet) when every option is. */
+  function isRental(opts, opt) {
+    return opt ? opt.kind === 'customer' : (opts.length > 0 && opts.every(function (o) { return o.kind === 'customer'; }));
+  }
+  function leadText(days) { return days ? 'Lead time ' + days + (days === 1 ? ' day' : ' days') : 'On hand: no lead time'; }
+  function unitsWord(n) { return n + (n === 1 ? ' unit' : ' units'); }
+
+  /** What sourcing from this BU means for the money, in one line. */
+  function moneyWords(s, rel, provider, reqBuId, ag) {
+    var provLe = L.leOf(s, provider);
+    var reqLe = L.leOf(s, reqBuId);
+    if (rel === 'SAME_BU') return 'Cost straight to the project, no invoice';
+    if (rel === 'SAME_LE') return 'PPM cross-charge to the project: no invoices, no tax (one legal entity)';
+    if (rel === 'IC_DOMESTIC') return 'Invoice pair: AR in ' + provLe.short + ', AP in ' + reqLe.short + ' coded to the project; VAT ' + pct(L.country(s, provLe.country).vat);
+    if (rel === 'IC_CROSS_BORDER') {
+      return 'Invoice pair in ' + (ag ? ag.currency : provLe.currency) + ' without VAT: ' + reqLe.short + ' self-assesses ' + pct(L.country(s, reqLe.country).vat)
+        + (ag && ag.wht ? ' and withholds ' + pct(ag.wht) : '') + '; customs at the border';
+    }
+    if (rel === 'CUSTOMER') return provLe.short + ' invoices the customer in Fusion Receivables: no intercompany';
+    return '';
+  }
+
+  /**
+   * Step 1's Source from: one card per sourcing BU (BU and company, country, relationship, the money in one line, lead
+   * time, agreement and version, units in total and free for the dates, from fxEngine.sourcing), after a first card
+   * "Any company in the group" (the default). A customer rental shows the own fleet only.
+   */
+  function sources(s, f, opt, rental, datesOk) {
+    var reqBu = L.bu(s, f.bu);
+    if (!reqBu) return [];
+    var list = sourceBus(s, f.bu, rental);
+    var units = E.sourcing(s, { requestingBu: f.bu, cls: '', from: datesOk ? f.from : '', to: datesOk ? f.to : '', country: opt ? opt.country : '' });
+    var count = function (bu) {
+      var mine = units.filter(function (o) { return !bu || o.owner === bu; });
+      var free = mine.filter(function (o) { return o.free && ['IN_REPAIR', 'INSPECTION'].indexOf(o.unitStatus) === -1; }).length;
+      return { total: mine.length, free: free, text: unitsWord(mine.length) + ' · ' + (datesOk ? free + ' free for the dates' : 'give the dates to see how many are free') };
+    };
+    var on = rental ? f.bu : f.source;
+    var cards = list.map(function (x) {
+      var le = L.leOf(s, x.bu);
+      var rel = rental ? 'CUSTOMER' : E.relationType(s, x.bu, f.bu);
+      var r = relOf(rel);
+      var ag = rel === 'SAME_BU' ? null : (s.agreements || []).filter(function (a) {
+        return a.status === 'ACTIVE' && a.provider === x.bu && (rel === 'CUSTOMER' ? (opt && opt.kind === 'customer' && a.customer === opt.id) : a.receiver === f.bu);
+      })[0] || null;
+      var agText = rel === 'SAME_BU' ? 'No agreement: own equipment at its internal cost rate'
+        : rel === 'CUSTOMER' ? (opt ? (ag ? 'Rental agreement ' + ag.number + ' v' + ag.version : 'No rental agreement with this customer') : 'The customer’s rental agreement')
+          : ag ? ag.number + ' v' + ag.version + (ag.kind === 'CROSS_CHARGE' ? ' (cross-charge rates)' : ' (intercompany agreement)') : 'No agreement yet: no price, its units cannot be used';
+      var n = count(x.bu);
+      return { key: x.bu, id: x.bu, any: false, own: x.bu === f.bu, on: on === x.bu, title: L.buName(s, x.bu), company: le.short, companyName: le.name,
+        countryName: countryName(s, le.country), sub: le.name + ' · ' + countryName(s, le.country),
+        relation: rel, relLabel: r.label, relTone: r.tone, money: moneyWords(s, rel, x.bu, f.bu, ag),
+        leadDays: x.leadDays, lead: leadText(x.leadDays), agreement: agText, agreementNumber: ag ? ag.number : '', agreementVersion: ag ? ag.version : 0,
+        total: n.total, free: n.free, unitsText: n.text };
+    });
+    if (rental || !cards.length) return cards;
+    var all = count('');
+    var leads = cards.map(function (c) { return c.leadDays; });
+    var lo = Math.min.apply(null, leads);
+    var hi = Math.max.apply(null, leads);
+    var any = { key: 'any', id: '', any: true, own: false, on: !on, title: 'Any company in the group', company: '', companyName: '', countryName: '',
+      sub: 'Step 2 shows every unit you may use' + (cards[0].own ? ', own fleet first' : ', by priority'),
+      relation: '', relLabel: 'Every allowed owner', relTone: 'na', money: 'Each owner approves and bills its own lines, as its card says',
+      leadDays: lo, lead: hi === lo ? leadText(hi) : (lo ? 'Lead time ' + lo : 'On hand') + ' to ' + hi + (hi === 1 ? ' day' : ' days') + ', by owner',
+      agreement: 'Each owner’s own agreement', agreementNumber: '', agreementVersion: 0, total: all.total, free: all.free, unitsText: all.text };
+    return [any].concat(cards);
+  }
+
+  /** "Requested by ProjectCo Projects (ProjectCo) → sourced from FleetCo Fleet (FleetCo)", or "… from any company in the group". */
+  function routeOf(s, bu, source) {
+    if (!bu) return null;
+    var src = source ? L.bu(s, source) : null;
+    var srcCo = src ? L.leShort(s, src.le) : '';
+    var to = src ? src.name + ' (' + srcCo + ')' + (src.id === bu.id ? ', its own fleet' : '') : 'any company in the group';
+    return { reqName: bu.name, reqCompany: bu.company, any: !src, srcName: src ? src.name : 'any company in the group', srcCompany: srcCo, own: !!src && src.id === bu.id,
+      text: 'Requested by ' + bu.name + ' (' + bu.company + ') → sourced from ' + to };
+  }
+
   /** The form made whole for the persona played: a BU they request for, a known option, dates, a class, units still offered. */
   function normalise(s, form) {
-    var f = Object.assign({ step: 1, bu: '', forKey: '', task: '', from: '', to: '', site: '', note: '', cls: '', lines: [] }, form || {});
+    var f = Object.assign({ step: 1, bu: '', forKey: '', task: '', from: '', to: '', site: '', note: '', cls: '', source: '', lines: [] }, form || {});
     var bus = requesterBus(s);
     if (!bus.some(function (b) { return b.id === f.bu; })) f.bu = bus.length ? bus[0].id : '';
     var opts = forOptions(s, f.bu);
@@ -169,10 +265,16 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
     if (!f.from) f.from = U.addDays(s.today, 7);
     if (!f.to) f.to = U.addDays(f.from, 27);
     if (!s.classes.some(function (c) { return c.id === f.cls; })) f.cls = s.classes[0].id;
+    // The sourcing BU chosen on step 1: one the requesting BU may source from, else '' (any company in the group); a
+    // customer rental always comes from the owner itself.
+    var rental = isRental(opts, opt);
+    var srcIds = sourceBus(s, f.bu, rental).map(function (x) { return x.bu; });
+    if (rental) f.source = srcIds.indexOf(f.bu) !== -1 ? f.bu : '';
+    else if (srcIds.indexOf(f.source) === -1) f.source = '';
     f.step = [1, 2, 3].indexOf(Number(f.step)) !== -1 ? Number(f.step) : 1;
     var seen = {};
     f.lines = (f.lines || []).filter(function (l) { if (!l || !l.unitId || seen[l.unitId]) return false; seen[l.unitId] = true; return true; });
-    return { f: f, bus: bus, opts: opts, opt: opt };
+    return { f: f, bus: bus, opts: opts, opt: opt, rental: rental };
   }
 
   function dateErrors(s, f) {
@@ -232,11 +334,14 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
     };
   }
 
-  /** The cards for a class and the dates, grouped by owner: own fleet first, then the same company, then intercompany. */
+  /**
+   * The cards for a class and the dates, grouped by owner: own fleet first, then the same company, then intercompany;
+   * only the sourcing BU's units when one is chosen on step 1 (f.source).
+   */
   function sourcingFor(s, f, opt, cls) {
     if (!opt) return [];
     var q = { requestingBu: f.bu, cls: cls, from: f.from, to: f.to, country: opt.country, customerId: opt.kind === 'customer' ? opt.id : '' };
-    var list = E.sourcing(s, q).slice().sort(function (a, b) { return (a.priority - b.priority) || (b.usable - a.usable) || a.serial.localeCompare(b.serial); });
+    var list = E.sourcing(s, q).filter(function (o) { return !f.source || o.owner === f.source; }).sort(function (a, b) { return (a.priority - b.priority) || (b.usable - a.usable) || a.serial.localeCompare(b.serial); });
     return list.map(function (o) { return card(s, o, f, opt, f.lines.some(function (l) { return l.unitId === o.unitId; })); });
   }
   function groupCards(cards) {
@@ -338,6 +443,7 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
       g.cards.push(c);
     });
     groups.forEach(function (g) {
+      g.routeText = bu ? 'Requested by ' + bu.name + ' (' + bu.company + ') → Sourced from ' + g.ownerName + ' (' + g.ownerShort + ')' : '';
       g.happen = willHappen(s, f, opt, g.owner, g.cards);
       g.subtotal = U.sum(g.cards, function (c) { return c.estimate; });
       g.subtotalText = bu ? F.money(g.subtotal, bu.currency) : '';
@@ -358,6 +464,12 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
     if (f.step > 1 && !step1Ok) f.step = 1;
     if (f.step > 2 && !stepOk[2]) f.step = 2;
     var canRaise = n.bus.length > 0;
+    // Source from (step 1) and what steps 2 and 3 say about it.
+    var srcCards = canRaise ? sources(s, f, opt, n.rental, !errors.length) : [];
+    var src = srcCards.filter(function (c) { return c.on && !c.any; })[0] || null;
+    var route = routeOf(s, bu, f.source);
+    var clsName = (U.byId(s.classes, f.cls) || {}).name || f.cls;
+    var owners = unique(lines.map(function (c) { return c.ownerName + ' · ' + c.ownerShort; }));
     return {
       ready: true, error: '', me: me, form: f, canRaise: canRaise, bus: n.bus, bu: bu, multiBu: n.bus.length > 1,
       options: n.opts.map(function (o) { return Object.assign({}, o, { on: o.key === f.forKey }); }), opt: opt,
@@ -369,7 +481,18 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
       countryText: opt ? countryFacts(s, opt.country) : '',
       steps: STEPS.map(function (x) { return { n: x[0], label: x[1], state: x[0] === f.step ? 'current' : (x[0] < f.step ? 'done' : 'todo'), ok: x[0] === 1 ? true : stepOk[x[0] - 1] }; }),
       step: f.step, step1Ok: step1Ok, step2Ok: stepOk[2],
-      classes: classes, cls: f.cls, clsName: (U.byId(s.classes, f.cls) || {}).name || f.cls, groups: groupCards(cards), cardCount: cards.length, cards: cards,
+      sources: srcCards, source: src, rental: n.rental, route: route, routeText: route ? route.text : '',
+      sourceIntro: n.rental ? 'The owner of the equipment rents it out' : 'The sourcing business unit owns the equipment: it approves each line, ships it and bills it',
+      sourceNote: n.rental && bu ? 'A customer rental always comes from the owner itself: ' + bu.name + ' rents out its own units, never another company’s.' : '',
+      sourceHint: !n.rental && lines.length ? 'On the request so far: ' + lines.map(function (c) { return c.serial + ' (' + c.ownerName + ')'; }).join(', ')
+        + '. Choosing one company keeps only its units on the request.' : '',
+      shownText: src ? 'Units of ' + src.title + ' (' + src.company + ')' + (src.own ? ', your own fleet' : '') + (n.rental ? ': a customer rental always comes from the owner itself' : '')
+        : 'Units of every company you may source from' + (srcCards.some(function (c) { return c.own; }) ? ', own fleet first' : ', by priority'),
+      canShowAll: !!src && !n.rental,
+      emptyText: src && !n.rental ? src.title + ' has no ' + clsName + ' for you. Try another class, or show every company.'
+        : 'No business unit you may source from has ' + clsName + '. Try another class.',
+      sourcingText: owners.join('; '),
+      classes: classes, cls: f.cls, clsName: clsName, groups: groupCards(cards), cardCount: cards.length, cards: cards,
       lines: lines, lineCount: lines.length, review: groups, blocked: blocked.map(function (c) { return c.serial + ': ' + c.why; }),
       total: total, totalText: bu ? F.money(total, bu.currency) : '', totalNote: converted ? 'estimate at today\'s rate' : 'estimate', reqNotes: reqNotes,
       submitText: canRaise && bu ? 'Submit raises the request for ' + bu.name + ' and tells each owner\'s equipment manager. EquipRite records it; nothing goes to Fusion yet: Fusion\'s part starts when the owner ships (asset location or a transfer order) and with the month\'s charges (invoices).' : '',
@@ -388,9 +511,10 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
     var f = Object.assign({}, raw || {});
     f.lines = (f.lines || []).slice();
     var v = value == null ? '' : String(value);
-    if (field === 'bu') { f.bu = v; f.forKey = ''; f.task = ''; f.lines = []; f.step = 1; }
+    if (field === 'bu') { f.bu = v; f.forKey = ''; f.task = ''; f.source = ''; f.lines = []; f.step = 1; }
     else if (field === 'forKey') { if (f.forKey !== v) f.lines = []; f.forKey = v; f.task = ''; f.site = ''; }
     else if (field === 'task' || field === 'site' || field === 'note' || field === 'cls') f[field] = v;
+    else if (field === 'source') f.source = v === 'any' ? '' : v;
     else if (field === 'from') { f.from = v; if (f.to && v && f.to < v) f.to = v; }
     else if (field === 'to') f.to = v;
     else if (field === 'step') f.step = Number(v) || 1;
@@ -405,7 +529,10 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
     var n = normalise(s, raw);
     var f = n.f;
     var o = n.opt;
-    var p = { requestingBu: f.bu, from: f.from, to: f.to, note: f.note || '', lines: f.lines.map(function (l) { return { cls: l.cls, unitId: l.unitId }; }) };
+    // Each line names its sourcing BU (the unit's owner); a sourcing BU chosen on step 1 keeps only its units.
+    var lines = f.lines.map(function (l) { var u = L.unit(s, l.unitId); return { cls: l.cls, unitId: l.unitId, provider: u ? u.owner : '' }; })
+      .filter(function (l) { return !f.source || l.provider === f.source; });
+    var p = { requestingBu: f.bu, from: f.from, to: f.to, note: f.note || '', lines: lines };
     if (o && o.kind === 'customer') { p.customerId = o.id; if (f.site) p.site = f.site; } else if (o) { p.projectId = o.id; if (f.task) p.task = f.task; }
     return p;
   }
@@ -687,11 +814,11 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
     var names = { requests: 'requests', equipment: 'equipment', money: 'charges', accounting: 'accounting', history: 'history', options: 'equipment-options' };
     var titles = { requests: 'My requests', equipment: 'Equipment', money: 'Charges', accounting: 'Accounting (shown)', history: 'History', options: 'Equipment for the request' };
     var subtitle = kind === 'requests' ? [x.scope, x.chip && x.chip !== 'all' ? (CHIPS.filter(function (c) { return c[0] === x.chip; })[0] || [])[1] : '', x.text ? '"' + x.text + '"' : ''].filter(Boolean).join(' · ')
-      : kind === 'options' ? [x.title, x.clsName, x.daysText].filter(Boolean).join(' · ') : [x.number, x.party].filter(Boolean).join(' · ');
+      : kind === 'options' ? [x.title, x.shownText, x.clsName, x.daysText].filter(Boolean).join(' · ') : [x.number, x.party].filter(Boolean).join(' · ');
     return { name: (kind === 'requests' || kind === 'options' ? '' : (x.number || '') + '-') + names[kind], title: (kind === 'requests' || kind === 'options' ? '' : (x.number || '') + ' · ') + titles[kind],
       subtitle: subtitle, rows: rows, columns: COLUMNS[kind] || [] };
   }
 
-  return { list: list, form: form, change: change, payload: payload, request: request, exportOf: exportOf, requesterBus: requesterBus, forOptions: forOptions,
+  return { list: list, form: form, change: change, payload: payload, request: request, exportOf: exportOf, requesterBus: requesterBus, forOptions: forOptions, sourceBus: sourceBus,
     certWords: certWords, doer: doer, COLUMNS: COLUMNS, CHIPS: CHIPS };
 });

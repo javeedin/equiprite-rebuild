@@ -1,7 +1,10 @@
-<!-- New request, in three steps like Next's: 1 For (the requesting BU, a project of it or, at the rental desk, a customer,
-     the dates, the site and its country), 2 Equipment (a class, then every unit the engine's sourcing offers for it and
-     the dates, own fleet first: owner, relationship, where it is, lead time, price, estimate, usable or exactly why not),
-     3 Review (the lines grouped by owner, what will happen for each, the estimate) and Submit (createRequest).
+<!-- New request, in three steps like Next's: 1 For (the requesting BU, then Source from: the sourcing BU that lends the
+     equipment, any company in the group by default, or one of the BUs it may source from with what that means for the
+     money; a project of it or, at the rental desk, a customer, the dates, the site and its country), 2 Equipment
+     (a class, then every unit the engine's sourcing offers for it and the dates, own fleet first, or only the sourcing
+     BU's: owner, relationship, where it is, lead time, price, estimate, usable or exactly why not), 3 Review (the lines
+     grouped by owner, requested by → sourced from, what will happen for each, the estimate) and Submit (createRequest).
+     Steps 2 and 3 open with "Requested by … → sourced from …".
      v = fxRequests.form(state, form) (loadChain, formChain); Submit through actChain. Styles: resources/css/future-order.css. -->
 <div class="nx-page fx-nr" id="page-new-request">
   <div class="nx-pagehead">
@@ -52,7 +55,7 @@
     <!-- ── Step 1 · For ────────────────────────────────────────────────────────────────────────────────────── -->
     <oj-bind-if test="[[ $variables.v.step === 1 ]]">
       <section class="nx-card" aria-labelledby="nrForTitle" id="nrStepFor">
-        <div class="nx-card-head"><h2 id="nrForTitle">1 · Who and what it is for</h2><span class="nx-note">The requesting business unit is the one the cost lands on</span></div>
+        <div class="nx-card-head"><h2 id="nrForTitle">1 · Who and what it is for</h2><span class="nx-note">The requesting business unit carries the cost; the sourcing business unit lends the equipment</span></div>
         <div class="nx-card-pad fx-nr-body">
           <div class="fx-nr-field">
             <span class="fx-nr-label">Requesting business unit</span>
@@ -68,6 +71,40 @@
             </oj-bind-if>
             <oj-bind-if test="[[ !$variables.v.multiBu && !!$variables.v.bu ]]">
               <span class="fx-nr-value" id="nrBu"><oj-bind-text value="[[ $variables.v.bu.name + ' · ' + $variables.v.bu.companyName + ' (' + $variables.v.bu.country + ', ' + $variables.v.bu.currency + ')' ]]"></oj-bind-text></span>
+            </oj-bind-if>
+          </div>
+
+          <!-- Source from: the sourcing BU (who owns, approves, ships and bills), kept in the form as form.source. -->
+          <div class="fx-nr-field fx-nr-sourcefield" id="nrSourceField">
+            <span class="fx-nr-label">Source from</span>
+            <div class="fx-nr-source-head">
+              <h3 class="fx-nr-source-title" id="nrSourceTitle">Sourcing business unit: who lends the equipment</h3>
+              <span class="nx-note"><oj-bind-text value="[[ $variables.v.sourceIntro ]]"></oj-bind-text></span>
+            </div>
+            <div class="fx-nr-sources" role="group" aria-labelledby="nrSourceTitle" id="nrSources">
+              <oj-bind-for-each data="[[ $variables.v.sources ]]">
+                <template data-oj-as="c">
+                  <button type="button" :class="[[ 'fx-nr-source' + (c.data.on ? ' fx-nr-source--on' : '') + (c.data.any ? ' fx-nr-source--any' : '') ]]" data-field="source"
+                    :data-value="[[ c.data.key ]]" :data-source="[[ c.data.key ]]" :aria-pressed="[[ c.data.on ? 'true' : 'false' ]]" on-click="[[ $listeners.onPick ]]">
+                    <span class="fx-nr-option-top"><span :class="[[ 'fx-chip fx-chip--' + c.data.relTone ]]"><oj-bind-text value="[[ c.data.relLabel ]]"></oj-bind-text></span>
+                      <oj-bind-if test="[[ c.data.on ]]"><span class="oj-ux-ico-check-circle fx-nr-tick" aria-hidden="true"></span></oj-bind-if></span>
+                    <span class="fx-nr-source-name"><oj-bind-text value="[[ c.data.title ]]"></oj-bind-text></span>
+                    <span class="fx-nr-source-sub"><oj-bind-text value="[[ c.data.sub ]]"></oj-bind-text></span>
+                    <span class="fx-nr-source-money"><span class="oj-ux-ico-invoice" aria-hidden="true"></span><oj-bind-text value="[[ c.data.money ]]"></oj-bind-text></span>
+                    <span class="fx-nr-source-facts">
+                      <span class="fx-nr-source-lead"><span class="oj-ux-ico-clock" aria-hidden="true"></span><oj-bind-text value="[[ c.data.lead ]]"></oj-bind-text></span>
+                      <span class="fx-nr-source-ag"><span class="oj-ux-ico-file-text" aria-hidden="true"></span><oj-bind-text value="[[ c.data.agreement ]]"></oj-bind-text></span>
+                      <span class="fx-nr-source-units"><span class="oj-ux-ico-truck" aria-hidden="true"></span><oj-bind-text value="[[ c.data.unitsText ]]"></oj-bind-text></span>
+                    </span>
+                  </button>
+                </template>
+              </oj-bind-for-each>
+            </div>
+            <oj-bind-if test="[[ !!$variables.v.sourceNote ]]">
+              <p class="fx-nr-reqnote" id="nrSourceNote"><span class="oj-ux-ico-information" aria-hidden="true"></span><oj-bind-text value="[[ $variables.v.sourceNote ]]"></oj-bind-text></p>
+            </oj-bind-if>
+            <oj-bind-if test="[[ !!$variables.v.sourceHint ]]">
+              <span class="nx-note" id="nrSourceHint"><oj-bind-text value="[[ $variables.v.sourceHint ]]"></oj-bind-text></span>
             </oj-bind-if>
           </div>
 
@@ -170,7 +207,18 @@
             </div>
           </div>
           <div class="nx-card-pad fx-nr-body">
+            <oj-bind-if test="[[ !!$variables.v.route ]]">
+              <p class="fx-nr-route" id="nrRoute"><span class="oj-ux-ico-truck" aria-hidden="true"></span><span class="fx-nr-route-text">Requested by <b><oj-bind-text value="[[ $variables.v.route.reqName ]]"></oj-bind-text></b>
+                <oj-bind-text value="[[ '(' + $variables.v.route.reqCompany + ')' ]]"></oj-bind-text> <span class="fx-nr-route-arrow">→</span> sourced from <b><oj-bind-text value="[[ $variables.v.route.srcName ]]"></oj-bind-text></b><oj-bind-text value="[[ $variables.v.route.any ? '' : ' (' + $variables.v.route.srcCompany + ')' + ($variables.v.route.own ? ', its own fleet' : '') ]]"></oj-bind-text></span></p>
+            </oj-bind-if>
             <p class="nx-note fx-nr-for"><oj-bind-text value="[[ $variables.v.daysText + ' · ' + $variables.v.siteText ]]"></oj-bind-text></p>
+            <div :class="[[ 'fx-nr-shown' + ($variables.v.source ? ' fx-nr-shown--one' : '') ]]" id="nrShown">
+              <span class="oj-ux-ico-building" aria-hidden="true"></span>
+              <span class="fx-nr-shown-text" id="nrShownText"><oj-bind-text value="[[ $variables.v.shownText ]]"></oj-bind-text></span>
+              <oj-bind-if test="[[ $variables.v.canShowAll ]]">
+                <button type="button" class="nx-link" id="nrShowAll" data-field="source" data-value="any" on-click="[[ $listeners.onPick ]]">Show every company</button>
+              </oj-bind-if>
+            </div>
             <div class="nx-chips" role="group" aria-label="Class" id="nrClasses">
               <oj-bind-for-each data="[[ $variables.v.classes ]]">
                 <template data-oj-as="c">
@@ -183,7 +231,7 @@
               </oj-bind-for-each>
             </div>
             <oj-bind-if test="[[ !$variables.v.cardCount ]]">
-              <p class="nx-empty" id="nrNoUnits"><oj-bind-text value="[[ 'No business unit you may source from has ' + $variables.v.clsName + '. Try another class.' ]]"></oj-bind-text></p>
+              <p class="nx-empty" id="nrNoUnits"><oj-bind-text value="[[ $variables.v.emptyText ]]"></oj-bind-text></p>
             </oj-bind-if>
             <div class="fx-nr-groups" id="nrGroups">
               <oj-bind-for-each data="[[ $variables.v.groups ]]">
@@ -275,9 +323,14 @@
       <section class="nx-card" aria-labelledby="nrReviewTitle" id="nrStepReview">
         <div class="nx-card-head"><h2 id="nrReviewTitle">3 · Review: what will happen</h2><span class="nx-note">Nothing is raised until you submit</span></div>
         <div class="nx-card-pad fx-nr-body">
+          <oj-bind-if test="[[ !!$variables.v.route ]]">
+            <p class="fx-nr-route" id="nrReviewRoute"><span class="oj-ux-ico-truck" aria-hidden="true"></span><span class="fx-nr-route-text">Requested by <b><oj-bind-text value="[[ $variables.v.route.reqName ]]"></oj-bind-text></b>
+              <oj-bind-text value="[[ '(' + $variables.v.route.reqCompany + ')' ]]"></oj-bind-text> <span class="fx-nr-route-arrow">→</span> sourced from <b><oj-bind-text value="[[ $variables.v.route.srcName ]]"></oj-bind-text></b><oj-bind-text value="[[ $variables.v.route.any ? '' : ' (' + $variables.v.route.srcCompany + ')' + ($variables.v.route.own ? ', its own fleet' : '') ]]"></oj-bind-text></span></p>
+          </oj-bind-if>
           <dl class="fx-nr-site fx-nr-summary" id="nrSummary">
             <div><dt>For</dt><dd><oj-bind-text value="[[ $variables.v.opt ? $variables.v.opt.typeText + ' · ' + $variables.v.opt.title : '' ]]"></oj-bind-text></dd></div>
             <div><dt>Requesting BU</dt><dd><oj-bind-text value="[[ $variables.v.bu ? $variables.v.bu.name + ' · ' + $variables.v.bu.company : '' ]]"></oj-bind-text></dd></div>
+            <div><dt>Sourcing BU</dt><dd id="nrSourcing"><oj-bind-text value="[[ $variables.v.sourcingText ]]"></oj-bind-text></dd></div>
             <div><dt>Site</dt><dd><oj-bind-text value="[[ $variables.v.siteText ]]"></oj-bind-text></dd></div>
             <div><dt>Dates</dt><dd><oj-bind-text value="[[ $variables.v.daysText ]]"></oj-bind-text></dd></div>
             <oj-bind-if test="[[ !!$variables.v.form.task ]]"><div><dt>Task</dt><dd><oj-bind-text value="[[ $variables.v.form.task ]]"></oj-bind-text></dd></div></oj-bind-if>
@@ -292,6 +345,7 @@
                     <span :class="[[ 'fx-chip fx-chip--' + g.data.relTone ]]"><oj-bind-text value="[[ g.data.relLabel ]]"></oj-bind-text></span>
                     <span class="fx-nr-owner-sum nx-num"><oj-bind-text value="[[ g.data.subtotalText ]]"></oj-bind-text></span>
                   </div>
+                  <p class="fx-nr-owner-route"><oj-bind-text value="[[ g.data.routeText ]]"></oj-bind-text></p>
                   <ul class="fx-nr-owner-units">
                     <oj-bind-for-each data="[[ g.data.cards ]]">
                       <template data-oj-as="c">
