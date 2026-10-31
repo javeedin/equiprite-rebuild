@@ -1,0 +1,61 @@
+{
+  "description": "FDD 2.0: the design this prototype is built from, in a tab of its own. The page-head band (Open full screen, Download the PDF), a chip per chapter, and the document (resources/fdd2, written by docs/fdd-v2/tools/build-fdd-v2.js) in an iframe filling the rest of the tab. v = store.view('me') plus the document's links and chapters (resources/js/future/fxFdd2.js), set by loadChain on vbEnter and on every fxRefresh; src and chapter change only when a chip is clicked (chapterChain), so the store's changes never move the document.",
+  "navigation": {
+    "embeddable": "enabled"
+  },
+  "variables": {
+    "v": {
+      "type": "any",
+      "defaultValue": {
+        "ready": false,
+        "error": "",
+        "name": "",
+        "chapters": [],
+        "html": "",
+        "pdf": "",
+        "pdfName": ""
+      },
+      "description": "store.view('me') plus fxFdd2.doc($application.path): the chapters (n, id, label, title), the document's address (html) and its PDF's (pdf)."
+    },
+    "src": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "The iframe's address: the document, plus #c<n> once a chapter's chip is clicked (fxFdd2.src). Set once by loadChain, then only by chapterChain."
+    },
+    "chapter": {
+      "type": "number",
+      "defaultValue": 0,
+      "description": "The chapter whose chip was clicked last (1..15), its chip marked; 0: the document's cover."
+    }
+  },
+  "events": {
+    "fxRefresh": {
+      "description": "From the page module (fxPage.watch): the store changed, so loadChain runs again.",
+      "payloadType": "object"
+    }
+  },
+  "eventListeners": {
+    "vbEnter": {
+      "chains": [{ "chain": "loadChain" }]
+    },
+    "fxRefresh": {
+      "chains": [{ "chain": "loadChain" }]
+    },
+    "onAct": {
+      "chains": [{ "chain": "actChain", "parameters": { "data": "{{ $event.currentTarget.dataset }}" } }]
+    },
+    "onOpen": {
+      "chains": [{ "chain": "openChain", "parameters": { "data": "{{ $event.currentTarget.dataset }}" } }]
+    },
+    "onChapter": {
+      "chains": [{ "chain": "chapterChain", "parameters": { "data": "{{ $event.currentTarget.dataset }}" } }]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}

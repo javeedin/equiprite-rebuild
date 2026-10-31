@@ -48,20 +48,20 @@ T.eq('groups', nav.GROUPS.map((g) => g.label).join(', '), 'Home, Requests, Fleet
 T.eq('items, in order', nav.GROUPS.map((g) => g.items.map((i) => i.id + '=' + i.label).join(' | ')).join(' || '),
   'work=My work || requests=My requests | new-request=New request || approvals=Approve & allocate | yard=Yard || site=Receive, hours, moves'
   + ' || charges=Charges & statements | ic-workbench=Intercompany workbench | billing=Customer billing || accounting=Accounting (shown) | reports=Reports'
-  + ' || setup=Companies & agreements || guide=Guide: the end-to-end story');
+  + ' || setup=Companies & agreements || fdd2=FDD 2.0 | guide=Guide: the end-to-end story');
 T.eq('routes: flow and page (page = id)', nav.GROUPS.map((g) => g.items.map((i) => i.id + '>' + i.route.flow + '/' + i.route.page).join(' ')).join(' '),
   'work>work/work requests>requests/requests new-request>order/new-request approvals>owner/approvals yard>owner/yard site>site/site'
-  + ' charges>money/charges ic-workbench>money/ic-workbench billing>money/billing accounting>finance/accounting reports>finance/reports setup>setup/setup guide>guide/guide');
+  + ' charges>money/charges ic-workbench>money/ic-workbench billing>money/billing accounting>finance/accounting reports>finance/reports setup>setup/setup fdd2>fdd2/fdd2 guide>guide/guide');
 T.eq('roles named in the brief', ['approvals', 'yard', 'site', 'ic-workbench'].map((id) => id + ':' + nav.item(id).roles.join('+')).join(' '),
   'approvals:owner-em yard:yard+owner-em site:site+requester+desk+receiver-review ic-workbench:ic-finance+finance');
 T.check('every item lists roles, every role is one the personas have', [].concat(...nav.GROUPS.map((g) => g.items)).every((i) => i.roles.length
   && i.roles.every((r) => Seed.PERSONAS.some((p) => p.roles.indexOf(r) !== -1))));
-T.eq('Priya (ProjectCo PM) sees her requests, the site and the money she reviews', menuOf('p-pm'), 'work requests new-request site charges billing reports setup guide');
-T.eq('Ana (FleetCo Equipment Manager) sees the fleet owner\'s screens', menuOf('p-em'), 'work approvals yard reports setup guide');
-T.eq('Ravi (yard)', menuOf('p-yard'), 'work yard reports setup guide');
-T.eq('Sara (group IC finance) sees the workbench and the accounting', menuOf('p-fin'), 'work requests charges ic-workbench billing accounting reports setup guide');
-T.eq('Admin sees everything', menuOf('p-admin').split(' ').length, 13);
-T.check('My work and the Guide for everyone', Seed.PERSONAS.every((p) => /^work .* guide$/.test(menuOf(p.id))));
+T.eq('Priya (ProjectCo PM) sees her requests, the site and the money she reviews', menuOf('p-pm'), 'work requests new-request site charges billing reports setup fdd2 guide');
+T.eq('Ana (FleetCo Equipment Manager) sees the fleet owner\'s screens', menuOf('p-em'), 'work approvals yard reports setup fdd2 guide');
+T.eq('Ravi (yard)', menuOf('p-yard'), 'work yard reports setup fdd2 guide');
+T.eq('Sara (group IC finance) sees the workbench and the accounting', menuOf('p-fin'), 'work requests charges ic-workbench billing accounting reports setup fdd2 guide');
+T.eq('Admin sees everything', menuOf('p-admin').split(' ').length, 14);
+T.check('My work, FDD 2.0 and the Guide for everyone', Seed.PERSONAS.every((p) => /^work .* fdd2 guide$/.test(menuOf(p.id))));
 T.eq('a request is a record of its own tab', JSON.stringify([nav.RECORDS.request.flow, nav.RECORDS.request.page, nav.RECORDS.request.navId]), '["requests","request","requests"]');
 T.eq('who could open a screen: its player first', ['approvals', 'yard', 'ic-workbench', 'new-request'].map((id) => nav.whoCanOpen(id, Seed.PERSONAS).name).join(', '),
   'Ana Costa, Ravi Kumar, Sara Ahmed, Priya Raman');
@@ -188,16 +188,17 @@ T.eq('app chains', fs.readdirSync(path.join(APP, 'chains')).join(), 'loadVersion
 T.check('the version chain knows Future\'s address under VBCS and from /__versions', /equiprite-future\//.test(read('webApps/equiprite-future/chains/loadVersionsChain.js'))
   && /future: \(v && v\.future\)/.test(read('webApps/equiprite-future/chains/loadVersionsChain.js')));
 T.check('every stylesheet it imports exists', app.imports.css.filter((c) => !/^https:/.test(c)).every((c) => fs.existsSync(path.join(APP, c))));
-T.eq('Next\'s screens are gone: the flows are Future\'s', fs.readdirSync(path.join(APP, 'flows')).sort().join(), 'finance,guide,money,order,owner,requests,setup,site,work');
+T.eq('Next\'s screens are gone: the flows are Future\'s', fs.readdirSync(path.join(APP, 'flows')).sort().join(), 'fdd2,finance,guide,money,order,owner,requests,setup,site,work');
 T.eq('the shared code kept', fs.readdirSync(path.join(APP, 'resources', 'js')).sort().join(), 'exportKit.js,fmt.js,future,nav.js,shellBus.js,shellTabs.js,tabs.js,theme.js');
 T.eq('…and the stylesheets', fs.readdirSync(path.join(APP, 'resources', 'css')).sort().join(),
-  'future-finance.css,future-guide.css,future-money.css,future-order.css,future-owner.css,future-requests.css,future-setup.css,future-site.css,future-work.css,future.css,next.css');
+  'future-fdd2.css,future-finance.css,future-guide.css,future-money.css,future-order.css,future-owner.css,future-requests.css,future-setup.css,future-site.css,future-work.css,future.css,next.css');
 T.eq('index.html title', /<title>([^<]+)<\/title>/.exec(read('webApps/equiprite-future/index.html'))[1], 'EquipRite Future');
 
 T.section('every page on the pattern');
 const walk = (dir) => fs.readdirSync(dir).reduce((a, f) => { const p = path.join(dir, f); return a.concat(fs.statSync(p).isDirectory() ? walk(p) : [p]); }, []);
-const files = walk(APP);
 const rel = (p) => path.relative(APP, p);
+// resources/fdd2 is FDD v2.0 itself (its HTML and PDF, copied there by docs/fdd-v2/tools/build-fdd-v2.js): a document, not app code.
+const files = walk(APP).filter((f) => !/^resources[\\/]fdd2[\\/]/.test(rel(f)));
 const pageJsons = files.filter((f) => /-page\.json$/.test(f));
 const flowJsons = files.filter((f) => /-flow\.json$/.test(f) && !/app-flow/.test(f));
 T.check('every flow and page JSON is embeddable (the shell too)', flowJsons.concat(pageJsons).every((f) => (JSON.parse(fs.readFileSync(f, 'utf8')).navigation || {}).embeddable === 'enabled'),

@@ -1,0 +1,10 @@
+{
+  "id": "fdd2",
+  "description": "Help: FDD 2.0, the design this prototype is built from, in a tab of its own (resources/fdd2, copied there by docs/fdd-v2/tools/build-fdd-v2.js).",
+  "defaultPage": "fdd2",
+  "navigation": { "embeddable": "enabled" },
+  "pages": {
+    "fdd2": { "path": "pages/fdd2-page" }
+  },
+  "chains": {}, "services": {}, "types": {}, "variables": {}
+}

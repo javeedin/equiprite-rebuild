@@ -1,0 +1,44 @@
+<!-- FDD 2.0: the design EquipRite Future is built from, in a tab of its own. The page-head band (Open full screen in a
+     browser tab, Download the PDF), a chip per chapter (the document's c1..c15), and the document itself in an iframe
+     filling the rest of the tab, journal explorer and all. The document is resources/fdd2, written there by
+     docs/fdd-v2/tools/build-fdd-v2.js; v = store.view('me') + fxFdd2.doc (loadChain); src and chapter: chapterChain. -->
+<div class="nx-page fx-fdd2" id="page-fdd2">
+  <div class="nx-pagehead">
+    <div>
+      <div class="nx-kicker">Functional design · version 2.0 draft</div>
+      <h1>EquipRite FDD 2.0: many companies, many countries</h1>
+      <div class="nx-sub" id="fdd2Sub">Requests by business unit, intercompany hire, how FleetCo bills ProjectCo, the accounting of each case, the rules
+        for many countries, and the requirements this prototype is built from.</div>
+    </div>
+    <div class="nx-actions">
+      <a class="nx-btn nx-btn--primary" id="fdd2Full" :href="[[ $variables.src ]]" target="_blank" rel="noopener"
+        title="Open the document in a browser tab of its own"><span class="oj-ux-ico-external-link" aria-hidden="true"></span>Open full screen</a>
+      <a class="nx-btn" id="fdd2Pdf" :href="[[ $variables.v.pdf ]]" download="EquipRite-FDD-v2.pdf"
+        title="EquipRite-FDD-v2.pdf, A4 landscape"><span class="oj-ux-ico-file-pdf" aria-hidden="true"></span>Download the PDF</a>
+    </div>
+  </div>
+
+  <oj-bind-if test="[[ !!$variables.v.error ]]"><div class="nx-error" role="alert"><oj-bind-text value="[[ $variables.v.error ]]"></oj-bind-text></div></oj-bind-if>
+
+  <oj-bind-if test="[[ $variables.v.ready ]]">
+    <div class="fx-fdd2-bar">
+      <nav class="nx-chips fx-fdd2-chips" id="fdd2Chapters" aria-label="Chapters of FDD 2.0">
+        <oj-bind-for-each data="[[ $variables.v.chapters ]]">
+          <template data-oj-as="c">
+            <button type="button" :class="[[ 'nx-chip fx-fdd2-chip' + (c.data.n === $variables.chapter ? ' nx-chip--on' : '') ]]" :data-n="[[ c.data.n ]]"
+              :title="[[ c.data.title ]]" :aria-current="[[ c.data.n === $variables.chapter ? 'true' : 'false' ]]" on-click="[[ $listeners.onChapter ]]">
+              <span class="fx-fdd2-chip-n" aria-hidden="true"><oj-bind-text value="[[ c.data.n ]]"></oj-bind-text></span>
+              <span class="fx-fdd2-chip-label"><oj-bind-text value="[[ c.data.label ]]"></oj-bind-text></span></button>
+          </template>
+        </oj-bind-for-each>
+      </nav>
+      <p class="fx-fdd2-note" id="fdd2Note"><span class="oj-ux-ico-guided-process" aria-hidden="true"></span>
+        <span>Future is the working prototype of this document: try each scenario from
+          <button type="button" class="nx-link" id="fdd2Guide" data-nav="guide" on-click="[[ $listeners.onOpen ]]">the Guide</button>.</span></p>
+    </div>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ !!$variables.src ]]">
+    <iframe class="fx-fdd2-frame" id="fdd2Frame" :src="[[ $variables.src ]]" title="EquipRite FDD 2.0: many companies, many countries (the document)"></iframe>
+  </oj-bind-if>
+</div>

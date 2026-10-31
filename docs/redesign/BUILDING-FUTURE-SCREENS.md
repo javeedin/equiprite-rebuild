@@ -45,6 +45,7 @@ every page of the flow, so screens built side by side never touch the same flow 
 | Finance | `accounting` | `finance/accounting` | `flows/finance/pages/accounting-page.*` | `ledger` (company), `consolidation` | finance, owner-finance, ic-finance |
 | Finance | `reports` | `finance/reports` | `flows/finance/pages/reports-page.*` | `reports` | everyone but the site supervisor |
 | Setup | `setup` | `setup/setup` | `flows/setup/pages/setup-page.*` | `setup` | everyone (changes: ic-finance) |
+| Help | `fdd2` | `fdd2/fdd2` | `flows/fdd2/pages/fdd2-page.*` (built: FDD v2.0 itself, `resources/fdd2`) | `me` | everyone |
 | Help | `guide` | `guide/guide` | `flows/guide/pages/guide-page.*` (built) | `guide` | everyone |
 | (record) | `request` | `requests/request` | `flows/requests/pages/request-page.*` | `request` (id) | anyone; the view says `hidden` when not theirs |
 

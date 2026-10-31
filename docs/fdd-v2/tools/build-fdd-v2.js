@@ -3,6 +3,9 @@
  * Builds EquipRite FDD v2.0 (draft): many companies, many countries, intercompany hire.
  *   docs/fdd-v2/EquipRite-FDD-v2-Multi-Company.html   (with the journal explorer)
  *   docs/fdd-v2/EquipRite-FDD-v2-Multi-Company.pdf
+ * and the copies EquipRite Future shows in its FDD 2.0 tab (byte for byte the same, so they never drift):
+ *   webApps/equiprite-future/resources/fdd2/EquipRite-FDD-v2.html
+ *   webApps/equiprite-future/resources/fdd2/EquipRite-FDD-v2.pdf
  * It extends FDD v1.7 (RITE-FDD-EQUIPRITE-001; summary in docs/redesign/tools/build-fdd-summary.js). The content is
  * data in this file; the flows are tools/flows.js (drawn by EquipRite Next's own renderer, tools/diagrams.js); the
  * worked accounting example is tools/journals.js. Rerun after editing:  node docs/fdd-v2/tools/build-fdd-v2.js
@@ -15,6 +18,10 @@ const { svgs, FLOWS } = require('./diagrams');
 const ROOT = path.resolve(__dirname, '..');
 const HTML_OUT = path.join(ROOT, 'EquipRite-FDD-v2-Multi-Company.html');
 const PDF_OUT = path.join(ROOT, 'EquipRite-FDD-v2-Multi-Company.pdf');
+// EquipRite Future's copies (its FDD 2.0 screen, flows/fdd2): rewritten on every build, never edited by hand.
+const FUTURE_DIR = path.resolve(ROOT, '..', '..', 'webApps', 'equiprite-future', 'resources', 'fdd2');
+const FUTURE_HTML = path.join(FUTURE_DIR, 'EquipRite-FDD-v2.html');
+const FUTURE_PDF = path.join(FUTURE_DIR, 'EquipRite-FDD-v2.pdf');
 const DATE = '31 Oct 2026';
 
 const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -688,11 +695,23 @@ ${jTable.toString()}
 </body></html>`;
 }
 
+/** Copies the document into EquipRite Future (resources/fdd2): the HTML always, the PDF when there is one. */
+function copyToFuture() {
+  fs.mkdirSync(FUTURE_DIR, { recursive: true });
+  fs.copyFileSync(HTML_OUT, FUTURE_HTML);
+  console.log('wrote', path.relative(process.cwd(), FUTURE_HTML));
+  if (fs.existsSync(PDF_OUT)) {
+    fs.copyFileSync(PDF_OUT, FUTURE_PDF);
+    console.log('wrote', path.relative(process.cwd(), FUTURE_PDF));
+  }
+}
+
 async function main() {
   fs.mkdirSync(ROOT, { recursive: true });
   fs.writeFileSync(HTML_OUT, render());
   console.log('wrote', path.relative(process.cwd(), HTML_OUT));
-  if (process.argv.includes('--no-pdf')) return;
+  // --no-pdf keeps the PDF as it is: Future gets the new HTML and the PDF already there.
+  if (process.argv.includes('--no-pdf')) return copyToFuture();
   const { chromium } = require('playwright');
   const browser = await chromium.launch();
   try {
@@ -706,7 +725,8 @@ async function main() {
   } finally {
     await browser.close();
   }
+  copyToFuture();
 }
 
 if (require.main === module) main().catch((e) => { console.error(e); process.exit(1); });
-module.exports = { render, journals, BR, FR, DECISIONS, SCEN_LIST };
+module.exports = { render, journals, BR, FR, DECISIONS, SCEN_LIST, CHAPTERS, HTML_OUT, PDF_OUT, FUTURE_HTML, FUTURE_PDF };

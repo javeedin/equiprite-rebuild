@@ -44,7 +44,7 @@ const T = H.makeAsserter();
     T.eq('playing as Priya, the Project Manager, to start', [await env.text('#fxPersonaName'), await env.text('#fxPersonaTitle')].join(' | '), 'Priya Raman | Project Manager · ProjectCo');
     T.eq('the demo clock starts on 2 Nov 2026', await env.text('#fxToday'), 'Mon 2 Nov 2026');
     T.eq('Priya\'s menu: her requests, the site, money she reviews; no fleet owner screens',
-      await menu(), 'work requests new-request site charges billing reports setup guide');
+      await menu(), 'work requests new-request site charges billing reports setup fdd2 guide');
     T.eq('the menu\'s groups', await page.$$eval('.nx-nav-label', (l) => l.map((x) => x.innerText.trim()).join(', ')),
       'HOME, REQUESTS, ON SITE, MONEY, FINANCE, SETUP, HELP');
     T.check('no global search, Check availability, phone QR or cart (Next\'s, left out)',
@@ -83,7 +83,7 @@ const T = H.makeAsserter();
     T.eq('My work lists it at once (the store\'s change refreshes the screen)', await env.text('#workRequests .nx-row--click .nx-link'), 'FR-1001');
     T.check('Priya does not see Approve & allocate', !(await menu()).includes('approvals'));
     await playAs('p-em');
-    T.eq('Ana\'s menu: the fleet owner\'s screens', await menu(), 'work approvals yard reports setup guide');
+    T.eq('Ana\'s menu: the fleet owner\'s screens', await menu(), 'work approvals yard reports setup fdd2 guide');
     T.eq('…with a badge on what waits for her', await badges(), 'approvals:1');
     T.check('…no New request in the toolbar', !(await page.$('#nxNewRequest')));
     T.check('the toast says who is played', (await toast()).startsWith('Playing as Ana Costa, Equipment Manager · FleetCo.'), await toast());
@@ -93,7 +93,7 @@ const T = H.makeAsserter();
     T.check('a queue opens its screen', true);
     await playAs('p-pm');
     T.eq('back to Priya: Approve & allocate closes (not hers), the menu is hers again', [await page.$$eval('.nx-tab', (t) => t.map((x) => x.dataset.tabId).join()), await menu()].join(' | '),
-      'work | work requests new-request site charges billing reports setup guide');
+      'work | work requests new-request site charges billing reports setup fdd2 guide');
     T.check('…and the toast says so', (await toast()).includes('Closed Approve & allocate: not open to Priya.'), await toast());
     await page.click('#workRequests .nx-row--click');
     await page.waitForSelector('.nx-tab[data-tab-id="request:R1001"]', { timeout: 10000 });
