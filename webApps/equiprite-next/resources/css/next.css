@@ -20,6 +20,8 @@
   --nx-ok: #15803d;
   --nx-band: #2e5468;
   --nx-band-ink: #e2edf2;
+  --nx-nav-bg: #1d3846;
+  --nx-nav-edge: #142a35;
   --nx-top-h: 56px;
   --nx-tab-h: 42px;
   --nx-nav-w: 236px;
@@ -125,7 +127,7 @@
 .nx-app--rail .nx-nav-group:first-child { border-top: 0; padding-top: 0; }
 
 /* The menu in the Redwood band's teal with white type, like the page heads and dialogs. */
-.nx-nav { background: var(--nx-band); border-right-color: #24434f; color: #fff; }
+.nx-nav { background: var(--nx-nav-bg); border-right-color: var(--nx-nav-edge); color: #fff; }
 .nx-nav-label { color: rgba(226, 237, 242, 0.68); }
 .nx-nav-item { color: #fff; }
 .nx-nav-icon { opacity: 0.92; }
@@ -143,6 +145,40 @@
 .nx-nav-scroll::-webkit-scrollbar { width: 8px; }
 .nx-nav-scroll::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.3); border-radius: 4px; }
 .nx-nav-scroll::-webkit-scrollbar-track { background: transparent; }
+
+/* Colour themes (resources/js/theme.js, chosen in your menu): the menu dark, the page heads the same colour lighter. */
+html[data-nx-theme="industry"] { --nx-band: #1f5491; --nx-band-ink: #dce8f6; --nx-nav-bg: #0f2c52; --nx-nav-edge: #0a2140; }
+html[data-nx-theme="smoky"] { --nx-band: #4b5461; --nx-band-ink: #e4e7eb; --nx-nav-bg: #25292f; --nx-nav-edge: #1a1d21; }
+html[data-nx-theme="slate"] { --nx-band: #3d5170; --nx-band-ink: #dfe6f0; --nx-nav-bg: #1e2a3a; --nx-nav-edge: #151e2a; }
+html[data-nx-theme="forest"] { --nx-band: #2f5b42; --nx-band-ink: #dcebe1; --nx-nav-bg: #1b3326; --nx-nav-edge: #13261b; }
+html[data-nx-theme="ember"] { --nx-band: #8a3d2c; --nx-band-ink: #f5e3dd; --nx-nav-bg: #45211a; --nx-nav-edge: #331812; }
+/* A light menu: white, dark type, the open screen marked in the theme's colour. */
+html[data-nx-menu="light"] .nx-nav { background: var(--nx-surface); color: var(--nx-ink); border-right-color: var(--nx-line); }
+html[data-nx-menu="light"] .nx-nav-label { color: var(--nx-faint); }
+html[data-nx-menu="light"] .nx-nav-item { color: var(--nx-ink); }
+html[data-nx-menu="light"] .nx-nav-item:hover { background: var(--nx-hover); }
+html[data-nx-menu="light"] .nx-nav-item--on { background: color-mix(in srgb, var(--nx-band) 12%, #fff); color: var(--nx-band); }
+html[data-nx-menu="light"] .nx-nav-item--on::before { background: var(--nx-band); }
+html[data-nx-menu="light"] .nx-nav-item:focus-visible, html[data-nx-menu="light"] .nx-nav-foot:focus-visible { outline-color: var(--nx-band); }
+html[data-nx-menu="light"] .nx-nav-soon { background: #c3ccd6; }
+html[data-nx-menu="light"] .nx-nav-loading, html[data-nx-menu="light"] .nx-nav-foot { color: var(--nx-muted); }
+html[data-nx-menu="light"] .nx-nav-foot:hover { background: var(--nx-hover); color: var(--nx-ink); }
+html[data-nx-menu="light"] .nx-app--rail .nx-nav-group { border-top-color: var(--nx-line); }
+html[data-nx-menu="light"] .nx-nav-scroll { scrollbar-color: #c3ccd6 transparent; }
+html[data-nx-menu="light"] .nx-nav-scroll::-webkit-scrollbar-thumb { background: #c3ccd6; }
+
+/* The colour picker in your menu */
+.nx-themes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.nx-theme {
+  display: flex; flex-direction: column; align-items: stretch; gap: 4px; padding: 4px; border: 1px solid var(--nx-line); border-radius: 8px; background: #fff;
+  cursor: pointer; font: inherit; font-size: 11.5px; color: var(--nx-ink); text-align: center;
+}
+.nx-theme:hover { border-color: var(--nx-line-strong, #c3ccd6); }
+.nx-theme--on { border: 2px solid var(--nx-band); padding: 3px; font-weight: 700; }
+.nx-theme-chip { height: 22px; border-radius: 5px; }
+.nx-menu-modes { display: flex; gap: 4px; margin-top: 10px; padding: 2px; background: var(--nx-surface-2); border: 1px solid var(--nx-line); border-radius: 8px; }
+.nx-menu-mode { flex: 1; padding: 6px 8px; border: 0; border-radius: 6px; background: transparent; font: inherit; font-size: 12.5px; color: var(--nx-muted); cursor: pointer; }
+.nx-menu-mode--on { background: #fff; color: var(--nx-ink); font-weight: 700; box-shadow: 0 1px 2px rgba(16, 24, 40, 0.08); }
 .nx-scrim { display: none; }
 
 .nx-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }

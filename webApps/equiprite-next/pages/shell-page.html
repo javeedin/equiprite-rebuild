@@ -506,6 +506,31 @@
         </nav>
         <p class="nx-profile-note">All of them work on the same data.</p>
       </div>
+      <div class="nx-profile-sec">
+        <span class="nx-profile-label" id="nxColoursLabel">Colours</span>
+        <div class="nx-themes" role="radiogroup" aria-labelledby="nxColoursLabel" id="nxThemes">
+          <oj-bind-for-each data="[[ $functions.themes() ]]">
+            <template data-oj-as="t">
+              <button type="button" role="radio" :class="[[ 'nx-theme' + ($variables.colours.theme === t.data.id ? ' nx-theme--on' : '') ]]"
+                :aria-checked="[[ $variables.colours.theme === t.data.id ? 'true' : 'false' ]]" :data-theme="[[ t.data.id ]]" on-click="[[ $listeners.onTheme ]]"
+                :title="[[ t.data.label + ': the menu dark, the page heads the same colour lighter' ]]">
+                <span class="nx-theme-chip" :style="[[ $functions.swatch(t.data) ]]" aria-hidden="true"></span>
+                <oj-bind-text value="[[ t.data.label ]]"></oj-bind-text>
+              </button>
+            </template>
+          </oj-bind-for-each>
+        </div>
+        <div class="nx-menu-modes" role="radiogroup" aria-label="The menu" id="nxMenuModes">
+          <oj-bind-for-each data="[[ $functions.menus() ]]">
+            <template data-oj-as="m">
+              <button type="button" role="radio" :class="[[ 'nx-menu-mode' + ($variables.colours.menu === m.data.id ? ' nx-menu-mode--on' : '') ]]"
+                :aria-checked="[[ $variables.colours.menu === m.data.id ? 'true' : 'false' ]]" :data-menu="[[ m.data.id ]]" on-click="[[ $listeners.onTheme ]]">
+                <oj-bind-text value="[[ m.data.label ]]"></oj-bind-text></button>
+            </template>
+          </oj-bind-for-each>
+        </div>
+        <p class="nx-profile-note">Kept on this computer.</p>
+      </div>
       <div class="nx-profile-sec nx-profile-links">
         <button type="button" class="nx-profile-link" data-nav-id="help" on-click="[[ $listeners.onNav ]]">
           <span class="oj-ux-ico-help" aria-hidden="true"></span>Help: how a request moves</button>

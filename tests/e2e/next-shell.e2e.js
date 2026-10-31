@@ -52,7 +52,7 @@ function handle(req, res) {
     T.section('the shell');
     await env.open('/');
     await page.waitForSelector('#page-home', { timeout: 30000 });
-    T.check('a light toolbar and menu, no black bar', await page.$eval('.nx-nav', (n) => getComputedStyle(n).backgroundColor) === 'rgb(255, 255, 255)'
+    T.check('a light toolbar, the menu in the page head\'s colour (dark), no black bar', await page.$eval('.nx-nav', (n) => getComputedStyle(n).backgroundColor) === 'rgb(29, 56, 70)'
       && await page.$eval('.nx-top', (n) => getComputedStyle(n).backgroundColor) === 'rgb(255, 255, 255)');
     T.check('New request in the toolbar, beside the command bar', (await env.text('#nxNewRequest')) === 'New request'
       && await page.evaluate(() => document.querySelector('.nx-command').nextElementSibling.querySelector('#nxNewRequest') !== null
@@ -100,6 +100,34 @@ function handle(req, res) {
     await page.click('.nx-tab-btn[data-id="requests"]', { button: 'middle' });
     await page.waitForTimeout(300);
     T.eq('middle-click closes a tab', await page.$$eval('.nx-tab', (t) => t.map((x) => x.dataset.tabId).join()), 'home,' + TAB2.id);
+
+    T.section('colours: a theme and the menu, kept on this computer');
+    const navBg = () => page.$eval('#nxNav', (n) => getComputedStyle(n).backgroundColor);
+    const bandBg = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--nx-band').trim());
+    T.eq('Redwood teal, a dark menu, to start', [await page.getAttribute('html', 'data-nx-theme'), await navBg()].join(' | '), 'teal | rgb(29, 56, 70)');
+    await page.click('#nxUser');
+    await page.waitForSelector('#nxThemes');
+    T.eq('your menu offers the colours', await page.$$eval('#nxThemes .nx-theme', (b) => b.map((x) => x.innerText.trim()).join()), 'Redwood teal,Industry blue,Smoky,Slate,Forest,Ember');
+    await page.click('#nxThemes [data-theme="industry"]');
+    await page.waitForTimeout(300);
+    T.eq('Industry blue: the menu dark, the page heads the same blue, lighter', [await navBg(), await bandBg()].join(' | '), 'rgb(15, 44, 82) | #1f5491');
+    T.eq('…marked as chosen', await page.getAttribute('#nxThemes [data-theme="industry"]', 'aria-checked'), 'true');
+    await page.click('#nxMenuModes [data-menu="light"]');
+    await page.waitForTimeout(300);
+    T.eq('a light menu', await navBg(), 'rgb(255, 255, 255)');
+    await env.shot('next-shell-theme-light-menu.png');
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('.nx-nav-item', { state: 'attached', timeout: 60000 });
+    await page.waitForTimeout(800);
+    T.eq('kept after a reload', [await page.getAttribute('html', 'data-nx-theme'), await page.getAttribute('html', 'data-nx-menu'), await navBg()].join(' | '), 'industry | light | rgb(255, 255, 255)');
+    await page.click('#nxUser');
+    await page.waitForSelector('#nxThemes');
+    await page.click('#nxMenuModes [data-menu="dark"]');
+    await page.click('#nxThemes [data-theme="teal"]');
+    await page.waitForTimeout(300);
+    await page.keyboard.press('Escape');
+    T.eq('back to Redwood teal', [await page.getAttribute('html', 'data-nx-theme'), await navBg()].join(' | '), 'teal | rgb(29, 56, 70)');
+    await page.click('.nx-tab-btn[data-id="home"]').catch(() => {});
 
     T.section('the tab menu: close other tabs, close all tabs');
     const tabIds = () => page.$$eval('.nx-tab', (t) => t.map((x) => x.dataset.tabId).join());

@@ -147,6 +147,14 @@
       },
       "description": "Check availability (qaChain; resources/js/quickAvailability.js): what is asked (equipment typed or picked, the window), the suggestions, and the answer."
     },
+    "colours": {
+      "type": "any",
+      "defaultValue": {
+        "theme": "teal",
+        "menu": "dark"
+      },
+      "description": "Your colours: the theme and the menu dark or light (resources/js/theme.js), kept on this computer."
+    },
     "profileOpen": {
       "type": "boolean",
       "defaultValue": false,
@@ -257,6 +265,9 @@
   "eventListeners": {
     "vbEnter": {
       "chains": [
+        {
+          "chain": "themeChain"
+        },
         {
           "chain": "shellEnterChain"
         }
@@ -498,6 +509,17 @@
           "parameters": {
             "action": "to",
             "value": "{{ $event.target.value }}"
+          }
+        }
+      ]
+    },
+    "onTheme": {
+      "chains": [
+        {
+          "chain": "themeChain",
+          "parameters": {
+            "theme": "{{ $event.currentTarget.dataset.theme }}",
+            "menu": "{{ $event.currentTarget.dataset.menu }}"
           }
         }
       ]

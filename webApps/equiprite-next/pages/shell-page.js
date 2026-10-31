@@ -1,4 +1,4 @@
-define(['resources/js/shellBus', 'resources/js/cartDrafts', 'resources/js/requestData'], (bus, cartDrafts, requestData) => {
+define(['resources/js/shellBus', 'resources/js/cartDrafts', 'resources/js/requestData', 'resources/js/theme'], (bus, cartDrafts, requestData, theme) => {
   'use strict';
 
   // The shell's page module: the line from the screens in the tabs (shellBus) to the shell's chains, the keyboard
@@ -8,6 +8,8 @@ define(['resources/js/shellBus', 'resources/js/cartDrafts', 'resources/js/reques
 
   class PageModule {
     constructor(context) {
+      // The colours chosen on this computer, before anything is drawn (theme.js; your menu, Colours).
+      theme.apply(theme.load());
       const helper = context && typeof context.getEventHelper === 'function' ? context.getEventHelper() : null;
       const fire = (name, payload) => { if (helper) helper.fireCustomEvent(name, payload || {}); };
       bus.register((req) => fire('shellRequest', {
@@ -55,6 +57,15 @@ define(['resources/js/shellBus', 'resources/js/cartDrafts', 'resources/js/reques
       const t = (tabList || []).filter((x) => x.id === currentTab)[0];
       return t ? t.navId : '';
     }
+
+    /** The colour themes, for the picker in your menu. */
+    themes() { return theme.THEMES; }
+
+    /** A theme's swatch: the menu's colour and the page head's. */
+    swatch(t) { return theme.swatch(t); }
+
+    /** The menu's two looks. */
+    menus() { return theme.MENUS; }
   }
 
   return PageModule;
