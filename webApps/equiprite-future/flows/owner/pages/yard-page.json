@@ -1,5 +1,5 @@
 {
-  "description": "Yard (skeleton: being built). v = store.view('yard'), set by loadChain on vbEnter and on every fxRefresh; actions through actChain, links through openChain (docs/redesign/BUILDING-FUTURE-SCREENS.md).",
+  "description": "Yard: the owner's yard. v = fxOps.yard(state) (store.view('yard') with what Fusion does for each move): to ship, out (where each unit is), to collect (off hire), to inspect, in repair, and the fleet of the persona's BUs with certificates by country and open customs; set by loadChain on vbEnter and on every fxRefresh. Ship, Collect, Inspect and Repaired open a confirmation first (askChain: fxOps.ask, a dry run of the engine that shows the transfer order or the asset's location update and its accounting); Confirm runs it through actChain (fxPage.act), and a failure stays in the dialog and on the page. Every list exports.",
   "navigation": {
     "embeddable": "enabled"
   },
@@ -8,9 +8,52 @@
       "type": "any",
       "defaultValue": {
         "ready": false,
-        "error": ""
+        "error": "",
+        "toShip": [],
+        "out": [],
+        "toCollect": [],
+        "toInspect": [],
+        "repairs": [],
+        "fleet": [],
+        "busText": "",
+        "counts": { "ship": 0, "out": 0, "collect": 0, "inspect": 0, "repair": 0, "fleet": 0 },
+        "canShip": false,
+        "canReturn": false,
+        "canInspect": false,
+        "canRepair": false,
+        "me": { "id": "", "name": "", "roles": [] }
       },
-      "description": "The view model: store.view('yard')."
+      "description": "fxOps.yard(state)."
+    },
+    "askDef": {
+      "type": "any",
+      "defaultValue": { "open": false, "kind": "", "ids": {}, "kicker": "", "title": "", "sub": "", "confirm": "", "tone": "primary", "fields": [] },
+      "description": "The confirmation open (fxOps.ask().def): its words and fields; kept while the fields are typed in."
+    },
+    "form": {
+      "type": "any",
+      "defaultValue": {},
+      "description": "The values typed in the confirmation's fields."
+    },
+    "ask": {
+      "type": "any",
+      "defaultValue": { "ok": true, "warn": "", "type": "", "payload": {}, "does": [], "money": [], "fusion": [], "txs": [], "customs": [], "told": [], "logged": [] },
+      "description": "fxOps.ask().preview: what EquipRite does, the money, what Fusion would do, who is told; the action and its payload."
+    },
+    "askError": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "Why the last Confirm did not go through, in the engine's words (stays in the dialog)."
+    },
+    "failure": {
+      "type": "any",
+      "defaultValue": { "text": "", "what": "" },
+      "description": "The last action that did not go through, kept on the page until dismissed or until an action works."
+    },
+    "exportOpen": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "The list whose export menu is open."
     }
   },
   "events": {
@@ -20,52 +63,23 @@
     }
   },
   "eventListeners": {
-    "vbEnter": {
-      "chains": [
-        {
-          "chain": "loadChain"
-        }
-      ]
-    },
-    "fxRefresh": {
-      "chains": [
-        {
-          "chain": "loadChain"
-        }
-      ]
-    },
-    "onAct": {
-      "chains": [
-        {
-          "chain": "actChain",
-          "parameters": {
-            "data": "{{ $event.currentTarget.dataset }}"
-          }
-        }
-      ]
-    },
-    "onOpen": {
-      "chains": [
-        {
-          "chain": "openChain",
-          "parameters": {
-            "data": "{{ $event.currentTarget.dataset }}"
-          }
-        }
-      ]
-    }
+    "vbEnter": { "chains": [{ "chain": "loadChain" }] },
+    "fxRefresh": { "chains": [{ "chain": "loadChain" }] },
+    "onAct": { "chains": [{ "chain": "actChain", "parameters": { "data": "{{ $event.currentTarget.dataset }}" } }] },
+    "onConfirm": { "chains": [{ "chain": "actChain", "parameters": { "type": "{{ $variables.ask.type }}", "payload": "{{ $variables.ask.payload }}", "fromAsk": true } }] },
+    "onOpen": { "chains": [{ "chain": "openChain", "parameters": { "data": "{{ $event.currentTarget.dataset }}" } }] },
+    "onAsk": { "chains": [{ "chain": "askChain", "parameters": { "data": "{{ $event.currentTarget.dataset }}" } }] },
+    "onAskClose": { "chains": [{ "chain": "askChain", "parameters": { "close": true } }] },
+    "onField": { "chains": [{ "chain": "fieldChain", "parameters": { "field": "{{ $event.target.dataset.field }}", "value": "{{ $event.target.value }}" } }] },
+    "onExportMenu": { "chains": [{ "chain": "exportChain", "parameters": { "list": "{{ $event.currentTarget.dataset.list }}" } }] },
+    "onExport": { "chains": [{ "chain": "exportChain", "parameters": { "list": "{{ $event.currentTarget.dataset.list }}", "format": "{{ $event.currentTarget.dataset.format }}" } }] },
+    "onDismiss": { "chains": [{ "chain": "dismissChain" }] }
   },
   "imports": {
     "components": {
-      "oj-bind-for-each": {
-        "path": "ojs/ojknockout"
-      },
-      "oj-bind-if": {
-        "path": "ojs/ojknockout"
-      },
-      "oj-bind-text": {
-        "path": "ojs/ojknockout"
-      }
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
     }
   }
 }

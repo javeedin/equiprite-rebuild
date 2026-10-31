@@ -32,16 +32,16 @@ define([], function () {
     ] },
     { key: 'owner', label: 'Fleet owner', items: [
       { id: 'approvals', label: 'Approve & allocate', icon: 'oj-ux-ico-clipboard-check', player: 'p-em', roles: ['owner-em'],
-        route: { flow: 'owner', page: 'approvals' }, view: 'approvals', built: false,
+        route: { flow: 'owner', page: 'approvals' }, view: 'approvals', built: true,
         does: 'The sourcing BU decides: approve or refuse each line that uses your fleet, and choose the unit.' },
       { id: 'yard', label: 'Yard', icon: 'oj-ux-ico-fullfilment-box', player: 'p-yard', roles: ['yard', 'owner-em'],
-        route: { flow: 'owner', page: 'yard' }, view: 'yard', built: false,
+        route: { flow: 'owner', page: 'yard' }, view: 'yard', built: true,
         does: 'Ship what is approved, collect what is off hire, inspect what comes back; your fleet and where each unit is.' }
     ] },
     { key: 'site', label: 'On site', items: [
       // receiver-review too: whoever approves the hours (fxEngine approveHours) works them here, and My work sends them here.
       { id: 'site', label: 'Receive, hours, moves', icon: 'oj-ux-ico-location-pin', player: 'p-site', roles: ['site', 'requester', 'desk', 'receiver-review'],
-        route: { flow: 'site', page: 'site' }, view: 'site', built: false,
+        route: { flow: 'site', page: 'site' }, view: 'site', built: true,
         does: 'Receive what arrives (on hire), log and approve the hours, report a breakdown, move a unit, off hire.' }
     ] },
     { key: 'money', label: 'Money', items: [
