@@ -1,1 +1,95 @@
-/* EquipRite Next: the equipment page: everything about a piece of equipment. */
+/* EquipRite Next: the equipment page: everything about a piece of equipment (flows/fleet equipment page).
+   The availability timeline is Availability's (.nx-av-* in next-availability.css: bars, ticks, today, the window band,
+   the journey colours from next.css); this file sizes it for one item's units and lays out the rest. */
+
+/* ── The head: picture, name, class, how many units and where ─────────────────────────────────────────────── */
+.nx-e3-head { align-items: flex-start; }
+.nx-e3-headmain { display: flex; align-items: flex-start; gap: 16px; min-width: 0; flex: 1 1 420px; }
+.nx-e3-headtext { display: flex; flex-direction: column; min-width: 0; }
+.nx-e3-pic {
+  width: 92px; height: 92px; flex: none; object-fit: cover; border-radius: var(--nx-radius); background: var(--nx-surface);
+  border: 2px solid rgba(255, 255, 255, 0.75); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+}
+.nx-e3-title { margin: 0; }
+.nx-e3-name { overflow-wrap: anywhere; }
+.nx-e3-nowpill { font-size: 13px; }
+.nx-e3-where { margin-top: 2px; }
+.nx-e3-facts { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.nx-e3-fact { font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 999px; background: rgba(255, 255, 255, 0.14); color: var(--nx-band-ink); }
+.nx-e3-all { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 13px; align-self: flex-start; }
+.nx-e3-menu { min-width: 260px; }
+.nx-e3-menuhead { margin: 4px 0 2px; padding: 6px 10px 2px; font-size: 11px; font-weight: 700; color: var(--nx-faint); text-transform: uppercase; letter-spacing: 0.04em; }
+.nx-e3-menuhead:not(:first-child) { border-top: 1px solid var(--nx-line); padding-top: 8px; }
+.nx-e3-note { font-size: 13px; }
+
+/* ── The units ───────────────────────────────────────────────────────────────────────────────────────────── */
+.nx-e3-ugrid { min-width: 860px; }
+.nx-e3-ugrid .nx-row {
+  grid-template-columns: minmax(150px, 1fr) minmax(130px, 0.9fr) minmax(190px, 1.4fr) minmax(170px, 1.2fr) minmax(170px, 1.2fr); align-items: start;
+}
+.nx-e3-ugrid .nx-row--head { align-items: center; }
+.nx-e3-ucell { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; min-width: 0; }
+.nx-e3-serial { font-variant-numeric: tabular-nums; }
+.nx-e3-nowtext, .nx-e3-why { white-space: normal; overflow-wrap: anywhere; text-align: left; }
+button.nx-e3-nowtext { color: var(--nx-accent); font-weight: 600; }
+.nx-e3-nextbtn { font-size: 13px; overflow-wrap: anywhere; }
+.nx-e3-lbl { display: none; font-size: 11px; font-weight: 700; color: var(--nx-faint); text-transform: uppercase; letter-spacing: 0.04em; }
+.nx-e3-pill--free { --st: #15803d; --st-bg: #dcfce7; }
+.nx-e3 .nx-stage--maint { --st: #c2410c; --st-bg: #ffedd5; }
+
+/* ── Availability ahead: one item's units, so a narrower unit column and a lighter head ────────────────────── */
+.nx-e3-ahead.nx-av { --av-unit-w: 220px; }
+.nx-e3-askhead { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px 10px; }
+.nx-e3-answer { margin: 2px 0 0; }
+.nx-e3-answer--free { color: #166534; }
+.nx-e3-answer--tight { color: #92400e; }
+.nx-e3-answer--none { color: var(--nx-danger); }
+.nx-e3-asknote { margin: 0; }
+.nx-e3-grid .nx-av-unit { padding-top: 4px; padding-bottom: 4px; }
+
+/* ── History ─────────────────────────────────────────────────────────────────────────────────────────────── */
+.nx-e3-hist { display: flex; flex-direction: column; gap: 10px; }
+.nx-e3-hist .nx-h2 { display: inline-flex; align-items: center; gap: 6px; }
+.nx-e3-busy { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--nx-muted); }
+.nx-e3-busy .nx-spin { width: 14px; height: 14px; }
+.nx-e3-failed { font-size: 13px; }
+.nx-e3-hempty { margin: 4px 0; }
+.nx-e3-hlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.nx-e3-h { border-bottom: 1px solid var(--nx-line); }
+.nx-e3-h:last-child { border-bottom: 0; }
+.nx-e3-hbtn {
+  display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; gap: 12px; align-items: start; width: 100%; box-sizing: border-box;
+  padding: 10px 8px; margin: 0; border: 0; border-radius: 8px; background: transparent; color: var(--nx-ink); font: inherit; text-align: left;
+}
+button.nx-e3-hbtn { cursor: pointer; }
+button.nx-e3-hbtn:hover { background: var(--nx-hover); }
+button.nx-e3-hbtn:hover .nx-e3-hopen { color: var(--nx-accent); }
+.nx-e3-hdot { width: 10px; height: 10px; border-radius: 50%; background: var(--st, #94a3b8); margin-top: 5px; }
+.nx-e3-hbody { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.nx-e3-hkind { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--st, var(--nx-muted)); }
+.nx-e3-htitle { font-weight: 700; overflow-wrap: anywhere; }
+.nx-e3-htext { font-size: 13px; overflow-wrap: anywhere; }
+.nx-e3-hmeta { font-size: 12px; color: var(--nx-muted); }
+.nx-e3-h--stopped .nx-e3-htitle { color: var(--nx-danger); }
+.nx-e3-hside { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; min-width: 0; }
+.nx-e3-hunit {
+  font-size: 12px; font-weight: 700; color: var(--nx-muted); background: var(--nx-surface-2); border: 1px solid var(--nx-line); border-radius: 999px;
+  padding: 1px 9px; white-space: nowrap; font-variant-numeric: tabular-nums;
+}
+.nx-e3-hopen { display: inline-flex; align-items: center; gap: 2px; font-size: 12px; font-weight: 600; color: var(--nx-muted); white-space: nowrap; }
+.nx-e3-hnote { margin: 4px 0 0; }
+
+@media (max-width: 900px) {
+  .nx-e3-ahead.nx-av { --av-unit-w: 170px; }
+}
+/* A phone: the units as cards (each value labelled), the timeline's unit column narrow, the history's side under it. */
+@media (max-width: 700px) {
+  .nx-e3-pic { width: 64px; height: 64px; }
+  .nx-e3-ugrid { min-width: 0; }
+  .nx-e3-ugrid .nx-row--head { display: none; }
+  .nx-e3-ugrid .nx-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px 12px; }
+  .nx-e3-lbl { display: block; }
+  .nx-e3-ahead.nx-av { --av-unit-w: 112px; }
+  .nx-e3-hbtn { grid-template-columns: 10px minmax(0, 1fr); }
+  .nx-e3-hside { grid-column: 2; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: flex-start; }
+}
