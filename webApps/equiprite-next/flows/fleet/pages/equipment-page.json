@@ -1,0 +1,11 @@
+{
+  "description": "Everything about a piece of equipment (record equipment-360, or unit): an equipment item with all its units, or one unit; where each is, its availability ahead, its full history. Placeholder until built.",
+  "navigation": { "embeddable": "enabled" },
+  "variables": {
+    "name": { "type": "string", "defaultValue": "", "input": "fromCaller", "description": "The equipment item's name (e.g. Komatsu D65EX-18 Dozer)." },
+    "equipmentId": { "type": "string", "defaultValue": "", "input": "fromCaller", "description": "The equipment master's id, when known." },
+    "serial": { "type": "string", "defaultValue": "", "input": "fromCaller", "description": "One unit's serial: the page opens on that unit." },
+    "unit": { "type": "string", "defaultValue": "", "input": "fromCaller", "description": "As serial (the unit record's name for it)." }
+  },
+  "imports": { "components": { "oj-bind-text": { "path": "ojs/ojknockout" } } }
+}

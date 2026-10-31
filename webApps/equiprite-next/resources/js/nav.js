@@ -111,7 +111,13 @@ define(['resources/js/rules'], function (rules) {
   var RECORDS = {
     request: { flow: 'requests', page: 'request', icon: 'oj-ux-ico-file-text', navId: 'requests',
       title: function (p) { return (p && (p.number || p.id)) || 'Request'; } },
-    unit: { flow: 'fleet', page: 'unit', icon: 'oj-ux-ico-truck', navId: 'fleet',
+    // Everything about a piece of equipment: an equipment item ({ name, equipmentId }) with all its units, or one unit
+    // ({ serial }): where each is, its availability ahead, and its full history (flows/fleet equipment page). Opened
+    // from the global search, Availability's yard grid and Check availability. A unit ({ unit }) opens the same page.
+    'equipment-360': { flow: 'fleet', page: 'equipment', icon: 'oj-ux-ico-truck', navId: 'fleet',
+      key: function (p) { return p && (p.serial || p.unit) ? 'unit-' + (p.serial || p.unit) : 'item-' + ((p && (p.equipmentId || p.name)) || ''); },
+      title: function (p) { return (p && (p.serial || p.unit || p.name || p.equipmentId)) || 'Equipment'; } },
+    unit: { flow: 'fleet', page: 'equipment', icon: 'oj-ux-ico-truck', navId: 'fleet',
       title: function (p) { return (p && (p.unit || p.id)) || 'Unit'; } },
     // A saved project draft, reopened in New request to finish it: { id: request id, number }.
     draft: { flow: 'order', page: 'new-request', icon: 'oj-ux-ico-cart-add', navId: 'new-request',

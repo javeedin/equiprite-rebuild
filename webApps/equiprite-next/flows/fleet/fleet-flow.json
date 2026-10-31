@@ -3,6 +3,6 @@
   "description": "Fleet: every unit, where it is and what is next for it.",
   "defaultPage": "fleet",
   "navigation": { "embeddable": "enabled" },
-  "pages": { "fleet": { "path": "pages/fleet-page" } },
+  "pages": { "fleet": { "path": "pages/fleet-page" }, "equipment": { "path": "pages/equipment-page" } },
   "chains": {}, "services": {}, "types": {}, "variables": {}
 }
