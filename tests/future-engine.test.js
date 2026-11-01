@@ -102,7 +102,12 @@ act('approveHours', { requestId: rk, lineId: line(rk).id });
 T.section('scenario 3: FleetCo rents to Customer Y');
 as('p-desk');
 r = act('createRequest', { requestingBu: 'BU-FC', customerId: 'C-W', from: '2026-11-06', to: '2026-11-25', lines: [{ cls: 'GEN' }] }, true);
-T.check('a customer on credit hold cannot rent (INT-26)', !r.ok && /credit hold/.test(r.error), r.error);
+T.check('a customer on credit hold: raised on credit hold, it waits for credit control (INT-26)', r.ok && r.result.creditHold && s.requests.find((x) => x.id === r.result.id).status === 'CREDIT_HOLD', r.error);
+const rw = r.result.id;
+T.check('…nobody may approve it or take its deposit before credit control decides', /credit hold/.test(E.apply(Object.assign({}, s, { personaId: 'p-em' }), 'approveLine', { requestId: rw, lineId: line(rw).id }).error)
+  && /credit hold/.test(E.apply(s, 'takeDeposit', { requestId: rw }).error));
+as('p-fin'); act('refuseCredit', { requestId: rw, reason: 'Overdue invoices' }); as('p-desk');
+T.eq('…credit control refuses it: every line refused, the reason kept', [s.requests.find((x) => x.id === rw).status, line(rw).status, line(rw).reason].join(' | '), 'REFUSED | REJECTED | Refused by credit control: Overdue invoices');
 r = act('createRequest', { requestingBu: 'BU-FC', customerId: 'C-Y', from: '2026-11-06', to: '2026-11-25', lines: [{ cls: 'GEN', unitId: 'U-GN2' }] });
 const r3 = r.result.id;
 T.eq('customer rental, priced on the customer agreement', [line(r3).relation, line(r3).agreementId].join(), 'CUSTOMER,RA-01');

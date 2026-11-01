@@ -5,8 +5,11 @@
  *                     default of Source from): the sourcing cards (own fleet first, the IC price, the estimate), the
  *                     head "Requested by … → sourced from …", what will happen, Submit, the new request's tab; as Faisal
  *                     the KSA project (Source from: FleetCo across the border; a unit blocked by its certificate for
- *                     Saudi Arabia); as Lena a customer on credit hold (Source from: her own fleet only; the failure
- *                     stays in words); as Priya again a request above the threshold, approved by her BU.
+ *                     Saudi Arabia); as Lena a customer on credit hold (Source from: her own fleet only; the hold, its
+ *                     reason and who decides, said before Submit); as Priya again a request above the threshold.
+ *   fresh, credit     Lena raises Customer W's rental: on credit hold, the flow's credit check is now; Sara (credit
+ *                     control) on Customer billing: Refuse needs a reason; released against cash in advance; Lena
+ *                     takes the whole estimate; Ana's approval is next.
  *   fresh as Priya    Source from FleetCo on step 1: its card (relationship, money, lead time, agreement, units free),
  *                     step 2 shows only FleetCo's units and says so, Show every company and back, the review's
  *                     "Requested by … → Sourced from …", Submit: the line's provider is BU-FC.
@@ -208,28 +211,26 @@ async function run(point, persona, title, fn, prepare) {
       && ksa.includes('Intercompany · cross-border'), ksa);
     shots.push(await k.shot('future-new-request-ksa.png'));
 
-    T.section('fresh as Lena: a customer on credit hold, the failure stays in words');
+    T.section('fresh as Lena: a customer on credit hold, said before Submit (raised later in its own story)');
     await k.playAs('p-desk');
     await page.click('.nx-tab-btn[data-id="new-request"]');
     await page.waitForSelector('#nrOptions');
-    T.eq('the rental desk rents to FleetCo\'s customers', await page.$$eval('#nrOptions .fx-nr-option-title', (o) => o.map((x) => x.innerText.trim()).join(' ; ')),
-      'Customer Y · Gulf Builders ; Customer W · Oman Roads (credit hold)');
+    T.eq('the rental desk rents to FleetCo\'s customers, each with its credit', await page.$$eval('#nrOptions .fx-nr-option', (o) => o.map((x) => x.querySelector('.fx-nr-option-title').innerText.trim()
+      + ' [' + x.querySelector('.fx-nr-option-credit').innerText.trim() + ']').join(' ; ')),
+      'Customer Y · Gulf Builders [Credit limit AED 150,000.00 · AED 150,000.00 available] ; Customer W · Oman Roads [Credit: on hold]');
     T.eq('Source from: her own fleet only, and why', [await k.sources(), await env.text('#nrSourceNote')].join(' | '),
       'FleetCo Fleet (Customer rental)* | A customer rental always comes from the owner itself: FleetCo Fleet rents out its own units, never another company’s.');
     await k.pick('#nrOptions [data-value="C:C-W"]');
-    T.check('Customer W: on credit hold, said before anything', (await env.text('#nrHold')).includes('on credit hold in Fusion Receivables'));
+    T.eq('Customer W: on credit hold, why, and what happens if raised', [await env.text('#nrCreditTitle'), await env.text('#nrCreditText')].join(' | '),
+      'Customer W · Oman Roads is on credit hold in Fusion Receivables: 2 invoices over 90 days overdue (AED 38,400.00). | You can still raise the request: it waits on credit hold until FleetCo credit control (Sara Ahmed) releases it (for this request only, against cash in advance, or by lifting the hold) or refuses it. Nobody approves, ships or takes a deposit until then.');
     await k.pick('#nrToEquipment');
     await k.pick('#nrClasses [data-cls="GEN"]');
     T.check('…its rental agreement\'s rates', (await env.text('#nrGroups .fx-nr-card[data-unit="GN-3001"]')).includes('Customer agreement RA-FC-W-2026 v1'));
     await k.pick('#nrGroups .fx-nr-card[data-unit="GN-3001"] .fx-nr-add');
     await k.pick('#nrToReview');
     T.check('…the review: a customer rental, FleetCo invoices the customer, no intercompany', (await env.text('#nrReview')).includes('No intercompany'));
-    await page.click('#nrSubmit');
-    await page.waitForSelector('#nrFailure', { timeout: 10000 });
-    T.check('Submit refused: the engine\'s words stay on the page', (await env.text('#nrFailure')).startsWith('Not raised, nothing changed: Customer W · Oman Roads (credit hold) is on credit hold in Fusion Receivables (INT-26)'), await env.text('#nrFailure'));
-    st = await k.stored();
-    T.eq('…and nothing changed', st.requests.length, 1);
-    shots.push(await k.shot('future-new-request-failure.png'));
+    T.check('…and that it goes on credit hold', (await env.text('#page-new-request')).includes('On credit hold: it waits for FleetCo credit control (Sara Ahmed).'));
+    shots.push(await k.shot('future-new-request-credit-hold.png'));
 
     T.section('fresh as Priya: above the threshold, her BU approves first (OD-12)');
     await k.playAs('p-pm');
@@ -417,7 +418,7 @@ async function run(point, persona, title, fn, prepare) {
     await page.click('#nrSubmit');
     await k.waitTab('request:R1001');
     await page.waitForSelector('#page-request #recFlow', { timeout: 15000 });
-    T.eq('raised: the request opens on Approval & flow', [await page.getAttribute('#recTab-flow', 'aria-selected'), (await env.text('#recTabs')).split(/\s+/).slice(0, 4).join(' ')].join(' | '), 'true | Approval & flow 1');
+    T.eq('raised: the request opens on Approval & flow', [await page.getAttribute('#recTab-flow', 'aria-selected'), (await env.text('#recTabs')).split(/\s+/).slice(0, 4).join(' ')].join(' | '), 'true | Approval & flow 2');
     T.eq('…the approver is Ana, the owner; the deposit comes first', [await env.text('#recApproverText'), await env.text('#recApproverAlso')].join(' '),
       'Approver: Ana Costa (Equipment Manager, FleetCo Fleet), the owner of GN-3001. First Lena Novak (rental desk) takes the deposit; only then may the owner approve.');
     T.eq('…the head: next, the deposit by Lena', await env.text('#recFinBadge'), 'Next: the deposit · Lena Novak, rental desk');
@@ -425,7 +426,7 @@ async function run(point, persona, title, fn, prepare) {
       await env.text('#recFlowNext'));
     const steps = () => page.$$eval('#recFlow [data-section="L1"] .fx-fs', (l) => l.map((x) => x.dataset.key + ':' + x.dataset.state).join(' '));
     T.eq('…the steps in order: the deposit now, the owner\'s approval waiting', await steps(),
-      'raised:done requester:na deposit:current approve:waiting ship:waiting receive:waiting hours:waiting offHire:waiting back:waiting');
+      'raised:done requester:na credit:done deposit:current approve:waiting ship:waiting receive:waiting hours:waiting offHire:waiting back:waiting');
     const dep = await env.text('#recFlow .fx-fs[data-key="deposit"]');
     T.check('…the deposit: what, the BU, who, "It\'s you"', ['Deposit taken', 'Now', '25 % of four weeks (AED 2,100.00), before the owner may approve', 'FleetCo Fleet · FleetCo',
       'Lena Novak · Rental desk · FleetCo', 'It\'s you', 'Open Customer billing'].every((x) => dep.includes(x)), dep);
@@ -451,7 +452,7 @@ async function run(point, persona, title, fn, prepare) {
     T.check('Customer billing: the deposit taken', (await k.stored()).requests[0].deposit.amount === 2100);
     await page.click('.nx-tab-btn[data-id="request:R1001"]');
     await page.waitForSelector('#recFlow .fx-fs[data-key="approve"][data-state="current"]', { timeout: 10000 });
-    T.eq('after the deposit: Ana\'s approval is current', await steps(), 'raised:done requester:na deposit:done approve:current ship:waiting receive:waiting hours:waiting offHire:waiting back:waiting');
+    T.eq('after the deposit: Ana\'s approval is current', await steps(), 'raised:done requester:na credit:done deposit:done approve:current ship:waiting receive:waiting hours:waiting offHire:waiting back:waiting');
     T.check('…the deposit done by Lena, with the date', (await env.text('#recFlow .fx-fs[data-key="deposit"]')).includes('Done 2 Nov 2026 by Lena Novak'));
     T.eq('…Lena plays Ana there', await env.text('#recFlow .fx-fs[data-key="approve"] .fx-fs-go'), 'Play as Ana and open Approve & allocate');
     T.eq('…the flag moves to Ana, in FleetCo\'s lane', await here(), 'approve | 2 | HERE NOW | Ana Costa · approves');
@@ -530,6 +531,72 @@ async function run(point, persona, title, fn, prepare) {
     await page.click('#recTab-equipment');
     T.check('…the customs record of the line', (await env.text('#recLines')).includes('Temporary import TI-SA-00001: United Arab Emirates → Saudi Arabia'));
     await k.fits('the accounting');
+  });
+
+  // ── fresh: Customer W on credit hold: Lena raises it, Sara releases it against cash in advance, Lena takes it, Ana approves ──
+  await run('fresh', 'p-desk', 'credit hold: raised on hold, released by credit control against cash in advance', async (env, k) => {
+    const { page } = env;
+    await env.open('/?open=new-request');
+    await page.waitForSelector('#nrOptions', { timeout: 30000 });
+    await k.pick('#nrOptions [data-value="C:C-W"]');
+    await k.pick('#nrToEquipment');
+    await k.pick('#nrClasses [data-cls="GEN"]');
+    await k.pick('#nrGroups .fx-nr-card[data-unit="GN-3001"] .fx-nr-add');
+    await k.pick('#nrToReview');
+    await page.click('#nrSubmit');
+    await k.waitTab('request:R1001');
+    await page.waitForTimeout(500);
+    let st = await k.stored();
+    T.eq('raised on credit hold: no owner told, the credit check waits', [st.requests[0].status, st.requests[0].credit.reason, st.notifications.filter((n) => n.to.roles && n.to.roles.includes('owner-em')).length].join(' | '),
+      'CREDIT_HOLD | HOLD | 0');
+    T.check('the toast says so', (await k.toast()).includes('on credit hold, waiting for credit control'), await k.toast());
+    await page.click('#recTab-flow');
+    await page.waitForSelector('#recFlow .fx-fs[data-key="credit"]');
+    T.eq('the flow: the credit check is now, credit control\'s', [await page.getAttribute('#recFlow .fx-fs[data-key="credit"]', 'data-state'), (await env.text('#recFlow .fx-fs[data-key="credit"]')).includes('On hold: the customer is on credit hold (2 invoices over 90 days overdue (AED 38,400.00))')].join(' | '),
+      'current | true');
+    T.check('…the deposit and the owner wait for the credit release', (await env.text('#recFlow .fx-fs[data-key="deposit"]')).includes('Waits for the credit release first')
+      && (await env.text('#recFlow .fx-fs[data-key="approve"]')).includes('Waits for the credit release first'));
+    shots.push(await k.shot('future-request-credit-hold-flow.png'));
+
+    await k.playAs('p-fin');
+    await env.open('/?open=billing');
+    await page.waitForSelector('#blHolds .fxm-hold[data-id="R1001"]', { timeout: 20000 });
+    const hold = '#blHolds .fxm-hold[data-id="R1001"]';
+    T.eq('Sara: the hold, why, and three ways to release it', [await env.text('#blKpiCredit .nx-kpi-value'), await env.text(hold + ' .fxm-hold-why'),
+      await page.$$eval(hold + ' .fxm-release', (b) => b.map((x) => x.innerText.trim()).join(' ; '))].join(' | '),
+      '1 | Customer W · Oman Roads is on credit hold: 2 invoices over 90 days overdue (AED 38,400.00). | Release this request only ; Release against cash in advance ; Lift the hold, limit AED 20,000.00');
+    await page.click(hold + ' .fxm-refuse');
+    await page.waitForSelector('#blRefuseForm');
+    await page.click('#blRefuseSend');
+    await page.waitForTimeout(400);
+    T.eq('Refuse without a reason: said where it happened, nothing changed', [await env.text(hold + ' .fxm-fail'), (await k.stored()).requests[0].status].join(' | '),
+      'Not done: Say why it is refused: the rental desk tells the customer. | CREDIT_HOLD');
+    await page.click('#blRefuseForm [data-field="cancel"]');
+    await page.waitForTimeout(300);
+    await k.fits('Customer billing with a credit hold');
+    shots.push(await k.shot('future-billing-credit-control.png'));
+    await page.click(hold + ' .fxm-release[data-how="PREPAY"]');
+    await page.waitForSelector(hold, { state: 'detached', timeout: 10000 });
+    st = await k.stored();
+    T.eq('released against cash in advance: on its way, the owner told', [st.requests[0].status, st.requests[0].credit.status, st.requests[0].credit.how, st.requests[0].credit.by, st.requests[0].prepay].join(' | '),
+      'SUBMITTED | RELEASED | PREPAY | Sara Ahmed | true');
+
+    await k.playAs('p-desk');
+    await page.waitForSelector('#blDeposits .fxm-deposit[data-id="R1001"] .fxm-deposit-take', { timeout: 15000 });
+    T.check('Lena: the cash in advance to take, the whole estimate', (await env.text('#blDeposits .fxm-deposit[data-id="R1001"]')).includes('Cash in advance, as credit control asked'));
+    await page.click('#blDeposits .fxm-deposit[data-id="R1001"] .fxm-deposit-take');
+    await page.waitForTimeout(600);
+    st = await k.stored();
+    T.eq('…taken: the whole estimate', [st.requests[0].deposit.amount, st.requests[0].lines[0].estimate, st.requests[0].deposit.prepay].join(' | '), [st.requests[0].lines[0].estimate, st.requests[0].lines[0].estimate, true].join(' | '));
+    await k.playAs('p-em');
+    await env.open('/?open=request&id=R1001');
+    await page.waitForSelector('#page-request #recTabs', { timeout: 20000 });
+    await page.click('#recTab-flow');
+    await page.waitForSelector('#recFlow .fx-fs[data-key="credit"]');
+    T.eq('the flow now: credit released by Sara, cash in advance taken, Ana approves next', [await page.getAttribute('#recFlow .fx-fs[data-key="credit"]', 'data-state'),
+      await page.getAttribute('#recFlow .fx-fs[data-key="deposit"]', 'data-state'), await page.getAttribute('#recFlow .fx-fs[data-key="approve"]', 'data-state')].join(' | '), 'done | done | current');
+    T.check('…the credit step says how and who', (await env.text('#recFlow .fx-fs[data-key="credit"]')).includes('Released against cash in advance') && (await env.text('#recFlow .fx-fs[data-key="credit"]')).includes('Sara Ahmed'),
+      await env.text('#recFlow .fx-fs[data-key="credit"]'));
   });
 
   // ── returned: complete ──────────────────────────────────────────────────────────────────────────────────

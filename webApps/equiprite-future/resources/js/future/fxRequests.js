@@ -159,11 +159,50 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
         var k = L.country(s, c.country);
         out.push({ key: 'C:' + c.id, kind: 'customer', id: c.id, type: 'CUSTOMER_RENTAL', typeText: TYPE.CUSTOMER_RENTAL, title: c.name, number: '', site: '', country: c.country,
           countryName: k.name, currency: k.currency, tasks: [], onHold: !!c.onHold, tone: 'cust',
-          note: c.onHold ? 'On credit hold in Fusion Receivables: no new rentals until finance releases it'
-            : (ag ? 'Rental agreement ' + ag.number + (ag.depositPct ? ', deposit ' + pct(ag.depositPct) + ' of a month before approval' : '') : 'No rental agreement with this customer') });
+          note: c.onHold ? 'On credit hold in Fusion Receivables' + (c.holdReason ? ': ' + c.holdReason : '') + '. A request waits for credit control.'
+            : (ag ? 'Rental agreement ' + ag.number + (ag.depositPct ? ', deposit ' + pct(ag.depositPct) + ' of a month before approval' : '') : 'No rental agreement with this customer'),
+          creditText: creditLine(s, c) });
       });
     }
     return out;
+  }
+
+  /** A customer's credit in one line: "Credit limit AED 150,000.00 · AED 144,000.00 available", or the hold. */
+  function creditLine(s, c) {
+    var cr = E.creditOf(s, c.id, null);
+    var cur = L.le(s, c.of).currency;
+    if (!cr) return '';
+    return cr.onHold ? 'Credit: on hold' : 'Credit limit ' + F.money(cr.limit, cur) + ' · ' + F.money(Math.max(0, cr.available), cur) + ' available';
+  }
+  /** Who decides on credit for a BU's customers (the credit role in its BU). */
+  function creditPeople(s, buId) { return peopleFor(s, ['credit'], buId, 'billing'); }
+
+  /**
+   * The credit check New request shows before Submit (the engine's own, fxEngine.creditOf): on hold, over the limit
+   * with this request's estimate, or within it. null for a project.
+   */
+  function creditAhead(s, bu, opt, total) {
+    if (!opt || opt.kind !== 'customer' || !bu) return null;
+    var c = L.customer(s, opt.id);
+    var cr = E.creditOf(s, opt.id, null);
+    if (!c || !cr) return null;
+    var cur = bu.currency;
+    var who = creditPeople(s, bu.id).map(function (p) { return p.name; });
+    var whoText = L.leShort(s, L.bu(s, bu.id).le) + ' credit control' + (who.length ? ' (' + who.join(' or ') + ')' : '');
+    var ways = 'for this request only, against cash in advance, or by lifting the hold';
+    if (cr.onHold) {
+      return { hold: true, over: false, tone: 'warn', title: c.name + ' is on credit hold in Fusion Receivables' + (cr.holdReason ? ': ' + cr.holdReason : '') + '.',
+        text: 'You can still raise the request: it waits on credit hold until ' + whoText + ' releases it (' + ways + ') or refuses it. Nobody approves, ships or takes a deposit until then.',
+        short: 'On credit hold: it waits for ' + whoText + '.' };
+    }
+    var after = U.r2(cr.used + total);
+    if (total > 0 && after > cr.limit) {
+      return { hold: false, over: true, tone: 'warn', title: 'Over the credit limit: ' + F.money(after, cur) + ' used with this request, the limit is ' + F.money(cr.limit, cur) + '.',
+        text: 'It is raised on credit hold: ' + whoText + ' releases it (' + ways + ') or refuses it before anything else happens.',
+        short: 'Over the credit limit: it waits for ' + whoText + '.' };
+    }
+    return { hold: false, over: false, tone: 'ok', title: 'Credit check passes: ' + F.money(after, cur) + ' of ' + F.money(cr.limit, cur) + ' used with this request.',
+      text: 'Open invoices ' + F.money(cr.openAr, cur) + ' + rentals out ' + F.money(cr.rentals, cur) + ' + this request ' + F.money(total, cur) + ' (Fusion Receivables credit management).', short: '' };
   }
 
   var STEPS = [[1, 'For'], [2, 'Equipment'], [3, 'Review']];
@@ -471,6 +510,8 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
       reqNotes.push(bu.company + ' bills ' + (L.customer(s, prj.customer) || {}).name + ' for it ' + (s.settings.s2Billing === 'PPM' ? 'under the project contract (PPM billing)' : 'with an EquipRite invoice (OD-07 b)')
         + ', at cost + ' + Math.round(prj.markupPct * 100) + ' %, once the cost is on the project.');
     }
+    var credit = creditAhead(s, bu, opt, total);
+    if (credit && (credit.hold || credit.over)) reqNotes.unshift(credit.short + ' Credit control releases it or refuses it; then the owner sees it.');
     var stepOk = { 1: step1Ok, 2: step1Ok && lines.length > 0 && !blocked.length, 3: step1Ok && lines.length > 0 && !blocked.length };
     if (f.step > 1 && !step1Ok) f.step = 1;
     if (f.step > 2 && !stepOk[2]) f.step = 2;
@@ -506,7 +547,9 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
       classes: classes, cls: f.cls, clsName: clsName, groups: groupCards(cards), cardCount: cards.length, cards: cards,
       lines: lines, lineCount: lines.length, review: groups, blocked: blocked.map(function (c) { return c.serial + ': ' + c.why; }),
       total: total, totalText: bu ? F.money(total, bu.currency) : '', totalNote: converted ? 'estimate at today\'s rate' : 'estimate', reqNotes: reqNotes,
-      submitText: canRaise && bu ? 'Submit raises the request for ' + bu.name + ' and tells each owner\'s equipment manager. EquipRite records it; nothing goes to Fusion yet: Fusion\'s part starts when the owner ships (asset location or a transfer order) and with the month\'s charges (invoices).' : '',
+      credit: credit,
+      submitText: credit && (credit.hold || credit.over) ? 'Submit raises the request on credit hold: credit control is told and decides; the owner\'s equipment manager sees it once it is released. Nothing goes to Fusion yet.'
+        : canRaise && bu ? 'Submit raises the request for ' + bu.name + ' and tells each owner\'s equipment manager. EquipRite records it; nothing goes to Fusion yet: Fusion\'s part starts when the owner ships (asset location or a transfer order) and with the month\'s charges (invoices).' : '',
       title: opt ? (opt.kind === 'customer' ? 'Customer rental for ' + opt.title : opt.typeText + ' ' + opt.number) : 'New request'
     };
   }
@@ -557,8 +600,9 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
     var siteBu = rental ? l.provider : r.requestingBu;
     if (l.status === 'REQUESTED') {
       if (r.status === 'AWAITING_REQUESTER_APPROVAL') return null;
+      if (r.status === 'CREDIT_HOLD') return doer(s, 'billing', ['credit'], r.requestingBu, 'Credit control releases it or refuses it (on credit hold)');
       var ag = L.agreement(s, l.agreementId);
-      if (rental && ag && ag.depositPct && !r.deposit) return doer(s, 'billing', ['desk'], l.provider, 'The rental desk takes the deposit, then the owner approves');
+      if (rental && ((ag && ag.depositPct) || r.prepay) && !r.deposit) return doer(s, 'billing', ['desk'], l.provider, r.prepay ? 'The rental desk takes the cash in advance, then the owner approves' : 'The rental desk takes the deposit, then the owner approves');
       return doer(s, 'approvals', ['owner-em'], l.provider, L.buName(s, l.provider) + ' approves and allocates a unit');
     }
     if (l.status === 'APPROVED') return l.inPlace ? doer(s, 'site', siteRoles, siteBu, 'Receive it on site (handed over in place)') : doer(s, 'yard', ['yard'], l.provider, L.leShort(s, l.providerLe) + '\'s yard ships it');
@@ -694,12 +738,14 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
     var reqName = L.buName(s, reqBu);
     var cust = L.customer(s, r.customerId);
     var custName = cust ? cust.name.split(' · ')[0] : 'the customer';
+    var creditRefused = r.status === 'REFUSED';
+    var onCredit = r.status === 'CREDIT_HOLD';
     var refused = l.status === 'REJECTED';
     var lost = l.status === 'LOST';
     var moved = l.status === 'TRANSFERRED';
     var siteBu = rental ? own : reqBu;
     var siteRoles = rental ? ['desk'] : ['site'];
-    var gone = 'Not needed: ' + ownName + ' refused the line';
+    var gone = creditRefused ? 'Not needed: credit control refused the request' : 'Not needed: ' + ownName + ' refused the line';
     var said = function (re, perLine) { return saidOn(s, r, re, perLine ? l.id : ''); };
     var out = [];
 
@@ -722,23 +768,41 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
             : 'Not needed: raised before OD-12 asked for it' });
 
     var ag = L.agreement(s, l.agreementId);
-    var deposit = rental && ag && ag.depositPct;
+    var deposit = rental && ((ag && ag.depositPct) || r.prepay);
+    var crGone = 'Not needed: credit control refused the request';
     if (rental) {
-      var amt = r.deposit ? r.deposit.amount : U.r2(U.sum(r.lines, function (q) { return q.price ? q.price.week * 4 : 0; }) * (deposit || 0));
+      var cr = r.credit || null;
+      var crCur = L.le(s, r.requestingLe).currency;
+      var crHow = { ONCE: 'this request only (the customer stays as it was)', PREPAY: 'against cash in advance: the whole estimate as the deposit', LIMIT: 'the hold lifted, the credit limit raised' };
+      var crWhy = cr ? (cr.reason === 'LIMIT' ? 'over the credit limit: ' + F.money(U.r2(cr.used + cr.value), crCur) + ' with this request, the limit ' + F.money(cr.limit, crCur)
+        : 'the customer is on credit hold' + (cr.holdReason ? ' (' + cr.holdReason + ')' : '')) : '';
+      // auto: passed by Fusion Receivables itself (within the limit), a row of the flow but no node of the journey.
+      out.push({ key: 'credit', label: 'Credit check', short: 'the credit check', bu: reqBu, roles: ['credit'], navId: 'billing', auto: !!cr && cr.status === 'PASSED',
+        state: !cr ? 'na' : cr.status === 'HOLD' ? 'open' : cr.status === 'REFUSED' ? 'refused' : 'done',
+        at: !cr ? '' : cr.status === 'PASSED' ? cr.checkedAt : cr.at, who: !cr ? '' : cr.status === 'PASSED' ? 'Fusion Receivables (automatic)' : cr.by,
+        what: 'Fusion Receivables checks ' + whose(custName) + ' credit: on hold, or over its limit with this request, it waits for credit control to release it or refuse it',
+        note: !cr ? 'Not checked: raised before the credit check'
+          : cr.status === 'PASSED' ? 'Passed: ' + F.money(U.r2(cr.used + cr.value), crCur) + ' of ' + F.money(cr.limit, crCur) + ' used with this request'
+            : cr.status === 'HOLD' ? 'On hold: ' + crWhy
+              : cr.status === 'RELEASED' ? 'Released ' + (crHow[cr.how] || '') + '; it was ' + crWhy
+                : 'Refused: ' + (cr.note || 'no reason given') + '; it was ' + crWhy });
+      var amt = r.deposit ? r.deposit.amount : r.prepay ? U.r2(U.sum(r.lines, function (q) { return q.estimate || 0; }))
+        : U.r2(U.sum(r.lines, function (q) { return q.price ? q.price.week * 4 : 0; }) * ((ag && ag.depositPct) || 0));
       var dLog = said(/^Received the deposit/);
-      out.push({ key: 'deposit', label: 'Deposit taken', short: 'the deposit', bu: own, roles: ['desk'], navId: 'billing', at: r.deposit ? r.deposit.date : '', who: dLog ? dLog.who : '',
-        state: !deposit ? 'na' : r.deposit ? 'done' : 'open',
-        what: 'The rental desk takes ' + whose(custName) + ' deposit' + (deposit ? ', ' + pct(deposit) + ' of four weeks (' + F.money(amt, ag.currency) + ')' : '') + ', before the owner may approve; Fusion Receivables records it',
-        note: deposit ? '' : 'Not needed: the rental agreement asks for no deposit' });
+      out.push({ key: 'deposit', label: r.prepay ? 'Cash in advance taken' : 'Deposit taken', short: r.prepay ? 'the cash in advance' : 'the deposit', bu: own, roles: ['desk'], navId: 'billing', at: r.deposit ? r.deposit.date : '', who: dLog ? dLog.who : '',
+        state: creditRefused ? 'na' : !deposit ? 'na' : r.deposit ? 'done' : 'open',
+        what: r.prepay ? 'The rental desk takes ' + whose(custName) + ' cash in advance, the whole estimate (' + F.money(amt, ag.currency) + '), as credit control asked, before the owner may approve; Fusion Receivables records it'
+          : 'The rental desk takes ' + whose(custName) + ' deposit' + (deposit ? ', ' + pct(ag.depositPct) + ' of four weeks (' + F.money(amt, ag.currency) + ')' : '') + ', before the owner may approve; Fusion Receivables records it',
+        note: creditRefused ? crGone : !deposit ? 'Not needed: the rental agreement asks for no deposit' : onCredit ? 'Waits for the credit release first' : '' });
     }
 
     var rLog = said(/^Refused a line/, true);
     var allocated = l.unitId ? L.unit(s, l.unitId) : null;
     out.push({ key: 'approve', approver: true, label: 'Owner approves and allocates', short: 'approval', bu: own, roles: ['owner-em'], navId: 'approvals',
-      state: refused ? 'refused' : l.events.approved ? 'done' : 'open', at: refused ? (rLog ? rLog.at : '') : l.events.approved || '', who: refused ? (rLog ? rLog.who : '') : l.approvedBy || '',
+      state: creditRefused ? 'na' : refused ? 'refused' : l.events.approved ? 'done' : 'open', at: refused ? (rLog ? rLog.at : '') : l.events.approved || '', who: refused ? (rLog ? rLog.who : '') : l.approvedBy || '',
       what: ownName + ', the owner of ' + serial + ', approves the line and allocates a unit: the approver',
-      note: refused ? 'Refused: ' + (l.reason || 'no reason given') : l.events.approved ? (allocated ? 'Allocated ' + allocated.serial : '')
-        : awaiting ? 'Waits for ' + whose(reqName) + ' approval first' : deposit && !r.deposit ? 'Waits for the deposit: the rental desk takes it first' : '' });
+      note: creditRefused ? crGone : refused ? 'Refused: ' + (l.reason || 'no reason given') : l.events.approved ? (allocated ? 'Allocated ' + allocated.serial : '')
+        : awaiting ? 'Waits for ' + whose(reqName) + ' approval first' : onCredit ? 'Waits for the credit release first' : deposit && !r.deposit ? 'Waits for the ' + (r.prepay ? 'cash in advance' : 'deposit') + ': the rental desk takes it first' : '' });
 
     var sLog = said(/^Shipped /, true);
     var customs = l.customsId ? U.byId(s.customs, l.customsId) : null;
@@ -933,9 +997,15 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
       var ag = L.agreement(s, (r.lines[0] || {}).agreementId);
       var desk = peopleFor(s, ['desk'], (r.lines[0] || {}).provider, 'billing')[0];
       var dLog = saidOn(s, r, /^Received the deposit/);
-      also = !(ag && ag.depositPct) ? 'A customer rental: only the owner approves, no deposit.'
+      var crd = r.credit || {};
+      var crp = creditPeople(s, r.requestingBu).map(function (p) { return p.name; }).join(' or ');
+      var crText = r.status === 'CREDIT_HOLD' ? 'On credit hold: ' + (crp ? crp + ' (credit control)' : 'credit control') + ' releases it or refuses it first. '
+        : crd.status === 'RELEASED' ? 'Credit control released it (' + F.date(crd.at) + ' by ' + crd.by + (crd.how === 'PREPAY' ? ', against cash in advance' : crd.how === 'LIMIT' ? ', the hold lifted' : ', this request only') + '). '
+          : r.status === 'REFUSED' ? 'Credit control refused it (' + F.date(crd.at) + ' by ' + crd.by + '): ' + (crd.note || '') + '. ' : '';
+      if (r.status === 'REFUSED') also = crText.trim();
+      else also = crText + (!(ag && ag.depositPct) && !r.prepay ? 'A customer rental: only the owner approves, no deposit.'
         : r.deposit ? 'The rental desk took the deposit first (' + F.date(r.deposit.date) + (dLog ? ' by ' + dLog.who : '') + ').'
-          : 'First ' + (desk ? desk.name + ' (' + roleWords(desk.title) + ')' : 'the rental desk') + ' takes the deposit; only then may the owner approve.';
+          : (r.status === 'CREDIT_HOLD' ? 'Then ' : 'First ') + (desk ? desk.name + ' (' + roleWords(desk.title) + ')' : 'the rental desk') + ' takes the ' + (r.prepay ? 'cash in advance' : 'deposit') + '; only then may the owner approve.');
     } else if (r.status === 'AWAITING_REQUESTER_APPROVAL') {
       also = reqName + ' approves first (receiver review: ' + (reviewers.map(function (p) { return p.name; }).join(' or ') || 'no one plays it in the demo') + '), as the estimate, ' + F.money(est, cur)
         + ', is above its threshold of ' + F.money(s.settings.requesterThreshold, cur) + ' (OD-12); then the owner.';
@@ -957,6 +1027,7 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
   var WORDS = {
     raised: ['Raised', 'raises it', 'raises it', 'raise it', 'raised it'],
     requester: ['BU approves', 'approves', 'approves it for its BU', 'approve it for your BU', 'approved it for its BU'],
+    credit: ['Credit check', 'decides', 'releases it or refuses it (credit control)', 'release it or refuse it', 'released it'],
     deposit: ['Deposit', 'takes the deposit', 'takes the deposit', 'take the deposit', 'took the deposit'],
     approve: ['Owner approves', 'approves', 'approves and allocates', 'approve and allocate a unit', 'approved and allocated it'],
     ship: ['Shipped', 'ships', 'ships it', 'ship it', 'shipped it'],
@@ -1014,7 +1085,7 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
         style: { gridColumn: String(col + 1), gridRow: String(lane) }
       };
     };
-    var ops = focus.steps.filter(function (x) { return x.state !== 'na'; });
+    var ops = focus.steps.filter(function (x) { return x.state !== 'na' && !x.auto; });
     var nodes = ops.map(function (st, i) { return node(st, i, REQ_LANE[st.key] ? 1 : 2, i + 1); });
     var links = [];
     nodes.forEach(function (n, i) {
@@ -1060,7 +1131,7 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
     // In words: where the request is now, who does it (or "It's your turn"), and what came just before.
     var seq = focus.steps.concat(money);
     var at = next ? seq.map(isHere).indexOf(true) : -1;
-    var before = (at === -1 ? seq : seq.slice(0, at)).filter(function (x) { return x.state === 'done'; }).slice(-1)[0] || null;
+    var before = (at === -1 ? seq : seq.slice(0, at)).filter(function (x) { return x.state === 'done' && !x.auto; }).slice(-1)[0] || null;
     var sentence;
     if (next) {
       var p = next.people[0];
@@ -1068,6 +1139,8 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
       var it = next.navId ? nav.item(next.navId) : null;
       sentence = r.number + ' is with ' + next.buName + (next.go && next.go.mine ? '. It\'s your turn: ' + w[3] + (next.go.act ? ' here' : it ? ' in ' + it.label : '') + '.'
         : ': ' + (p ? p.name + ' (' + p.role + ')' : whose(next.buName) + ' ' + roleWords(next.roles[0])) + ' ' + w[2] + '.');
+    } else if (r.status === 'REFUSED') {
+      sentence = r.number + ' was refused by credit control' + (r.credit && r.credit.by ? ' (' + r.credit.by + ')' : '') + (r.credit && r.credit.note ? ': ' + r.credit.note : '') + '.';
     } else if (raw && raw.status === 'REJECTED') {
       sentence = r.number + ' was refused by ' + L.buName(s, raw.provider) + (raw.reason ? ': ' + raw.reason : '') + '.';
     } else {

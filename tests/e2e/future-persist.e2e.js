@@ -92,7 +92,7 @@ const KEY = 'equiprite-future:state:v3';
     await env2.page.click('#fxDay');
     await env2.page.waitForTimeout(800);
     const s = await env2.page.evaluate((k) => JSON.parse(localStorage.getItem(k)), KEY);
-    T.eq('version 4, the 5 requests kept, played on a day', [s.version, s.upgradedFrom, s.requests.length, s.today].join(), '4,3,5,2026-11-08');
+    T.eq('version 5, the 5 requests kept, played on a day', [s.version, s.upgradedFrom, s.requests.length, s.today].join(), '5,3,5,2026-11-08');
     T.eq('no browser errors', env2.errors.join(' | '), '');
   } catch (e) {
     T.check('run finished (upgrade)', false, e && e.stack);

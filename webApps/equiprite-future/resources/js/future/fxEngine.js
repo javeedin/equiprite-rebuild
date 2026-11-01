@@ -271,10 +271,6 @@ define(['resources/js/future/fxSeed'], function (Seed) {
       var cust = rental ? customer(s, x.customerId) : null;
       if (rental) {
         if (!cust || cust.of !== leOf(s, reqBu).id) fail('Choose one of ' + leShort(s, leOf(s, reqBu).id) + '\'s customers.');
-        if (cust.onHold) {
-          notify(s, { bu: reqBu, roles: ['desk', 'owner-finance'] }, cust.name + ' is on credit hold: the request cannot go on.', null, 'warning');
-          fail(cust.name + ' is on credit hold in Fusion Receivables (INT-26): no new rentals until finance releases it.');
-        }
       }
       if (!x.from || !x.to || x.to < x.from) fail('Give the dates the equipment is needed, from and to.');
       if (x.from < s.today) fail('The start cannot be in the past (today is ' + hd(s.today) + ').');
@@ -300,17 +296,149 @@ define(['resources/js/future/fxSeed'], function (Seed) {
         });
       });
       var value = sum(r.lines, function (l) { return l.estimate; });
-      if (s.settings.requesterApproval && !rental && value > s.settings.requesterThreshold) {
+      if (rental) creditCheck(s, r, cust, value);
+      if (r.status === 'CREDIT_HOLD') {
+        // Nobody else sees it until credit control decides (the owner's approvers are told on release).
+      } else if (s.settings.requesterApproval && !rental && value > s.settings.requesterThreshold) {
         r.status = 'AWAITING_REQUESTER_APPROVAL';
         notify(s, { bu: reqBu, roles: ['receiver-review'] }, r.number + ' (' + value + ') needs your approval before the owners see it.', { record: 'request', id: id }, 'action');
       } else {
         notifyOwners(s, r);
       }
       s.requests.push(r);
-      log(s, p, 'Raised ' + r.number + ' for ' + buName(s, reqBu) + (prj ? ' · ' + prj.number : ' · ' + cust.name), { requestId: id });
-      return { id: id, number: r.number };
+      log(s, p, 'Raised ' + r.number + ' for ' + buName(s, reqBu) + (prj ? ' · ' + prj.number : ' · ' + cust.name)
+        + (r.status === 'CREDIT_HOLD' ? ': on credit hold, waiting for credit control' : ''), { requestId: id });
+      return { id: id, number: r.number, creditHold: r.status === 'CREDIT_HOLD', credit: r.credit || null };
     }
   };
+  // ── Credit (Fusion Receivables credit management, INT-26) ──────────────────────────────────────────────────────
+  /**
+   * A customer's credit as Fusion Receivables would see it: the limit, the hold, and what is used. Used = the open
+   * invoices (not paid) + the estimates of the rentals still out (released, not refused, not back), this one excepted.
+   * A request on credit hold uses nothing until it is released.
+   */
+  function creditOf(s, custId, exceptId) {
+    var c = customer(s, custId);
+    if (!c) return null;
+    var openAr = r2(sum((s.tx || []).filter(function (t) { return t.kind === 'CUSTOMER_AR' && t.refs && t.refs.customerId === custId && t.open > 0; }), function (t) { return t.open; }));
+    var out = (s.requests || []).filter(function (r) { return r.type === 'CUSTOMER_RENTAL' && r.customerId === custId && r.id !== exceptId && r.status !== 'CREDIT_HOLD'; });
+    var rentals = r2(sum(out, function (r) {
+      return sum(r.lines.filter(function (l) { return ['REQUESTED', 'APPROVED', 'SHIPPED', 'ON_HIRE'].indexOf(l.status) !== -1; }), function (l) { return l.estimate || 0; });
+    }));
+    var limit = Number(c.creditLimit) || 0;
+    return { limit: limit, onHold: !!c.onHold, holdReason: c.holdReason || '', openAr: openAr, rentals: rentals, used: r2(openAr + rentals), available: r2(limit - openAr - rentals) };
+  }
+  /** The credit check when a rental is raised: on hold, or over the limit with it, it waits for credit control. */
+  function creditCheck(s, r, cust, value) {
+    var c = creditOf(s, cust.id, r.id);
+    var over = !c.onHold && c.used + value > c.limit;
+    r.credit = { status: c.onHold || over ? 'HOLD' : 'PASSED', reason: c.onHold ? 'HOLD' : over ? 'LIMIT' : '', holdReason: c.holdReason, limit: c.limit, used: c.used, value: r2(value),
+      checkedAt: s.today, by: '', at: '', how: '', note: '' };
+    if (r.credit.status !== 'HOLD') return;
+    r.status = 'CREDIT_HOLD';
+    var why = c.onHold ? cust.name + ' is on credit hold' + (c.holdReason ? ' (' + c.holdReason + ')' : '')
+      : cust.name + ' would use ' + mny(c.used + value, 'AED') + ' of its ' + mny(c.limit, 'AED') + ' credit limit';
+    notify(s, { bu: r.requestingBu, roles: ['credit'] }, r.number + ': ' + why + '. Release it or refuse it.', { navId: 'billing' }, 'action');
+  }
+  function heldRequest(s, p, x) {
+    var r = requestOf(s, x.requestId);
+    if (!r || r.type !== 'CUSTOMER_RENTAL') fail('No such customer rental.');
+    if (r.status !== 'CREDIT_HOLD') fail(r.number + ' is not on credit hold' + (r.credit && r.credit.status === 'RELEASED' ? ': released by ' + r.credit.by + ' on ' + hd(r.credit.at) : r.credit && r.credit.status === 'REFUSED' ? ': refused by ' + r.credit.by + ' on ' + hd(r.credit.at) : '') + '.');
+    if (!inBu(p, r.requestingBu)) fail('Only ' + leShort(s, r.requestingLe) + '\'s credit control decides on its customers.');
+    return r;
+  }
+  var CREDIT_HOW = { ONCE: 'released this request only (the customer stays on hold)', PREPAY: 'released against cash in advance (the whole estimate as the deposit)',
+    LIMIT: 'released by lifting the hold' };
+  /**
+   * Credit control releases a request on hold: ONCE (this request only; the customer stays as it is), PREPAY (cash in
+   * advance: the deposit becomes the whole estimate, taken by the rental desk before the owner approves) or LIMIT
+   * (the hold lifted and the limit set to cover what is used plus this request; other held requests that now fit go too).
+   */
+  A.releaseCredit = {
+    who: ['credit'],
+    run: function (s, p, x) {
+      var r = heldRequest(s, p, x);
+      var cust = customer(s, r.customerId);
+      var how = x.how;
+      if (!CREDIT_HOW[how]) fail('Choose how to release it: this request only, against cash in advance, or lift the hold.');
+      var released = [r];
+      if (how === 'LIMIT') {
+        var c = creditOf(s, cust.id, r.id);
+        var lim = Number(x.limit);
+        if (!(lim > 0)) fail('Give the new credit limit.');
+        var need = r2(c.used + r.credit.value);
+        if (lim < need) fail('A limit of ' + mny(lim, 'AED') + ' does not cover ' + mny(need, 'AED') + ' (what ' + cust.name + ' uses, with this request).');
+        cust.onHold = false;
+        cust.holdReason = '';
+        cust.creditLimit = lim;
+        log(s, p, 'Lifted the credit hold on ' + cust.name + ': credit limit ' + mny(lim, 'AED'), { customerId: cust.id });
+      }
+      var one = function (q, w) {
+        q.status = 'SUBMITTED';
+        q.credit = Object.assign({}, q.credit, { status: 'RELEASED', how: w, by: p.name, at: s.today, note: x.note || '' });
+        if (w === 'PREPAY') q.prepay = true;
+        var dep = q.prepay || (agreement(s, q.lines[0].agreementId) || {}).depositPct;
+        notify(s, { bu: q.requestingBu, roles: ['desk'] }, q.number + ': ' + CREDIT_HOW[w] + ' by ' + p.name + (dep ? '. Take the deposit' + (q.prepay ? ' (cash in advance)' : '') + ', then the owner approves.' : '.'),
+          dep ? { navId: 'billing' } : { record: 'request', id: q.id }, 'action');
+        notifyOwners(s, q);
+        log(s, p, 'Credit: ' + CREDIT_HOW[w] + ' on ' + q.number, { requestId: q.id });
+      };
+      one(r, how);
+      if (how === 'LIMIT') {
+        // The other requests of this customer that waited on the hold and now fit under the new limit.
+        s.requests.filter(function (q) { return q.id !== r.id && q.status === 'CREDIT_HOLD' && q.customerId === cust.id; }).forEach(function (q) {
+          var c2 = creditOf(s, cust.id, q.id);
+          if (c2.used + q.credit.value <= cust.creditLimit) { one(q, 'LIMIT'); released.push(q); }
+        });
+      }
+      return { released: released.map(function (q) { return q.number; }), how: how };
+    }
+  };
+  /** Credit control refuses a request on hold: every line refused with the reason; the rental desk is told. */
+  A.refuseCredit = {
+    who: ['credit'],
+    run: function (s, p, x) {
+      var r = heldRequest(s, p, x);
+      var why = String(x.reason || '').trim();
+      if (!why) fail('Say why (the rental desk tells the customer).');
+      r.status = 'REFUSED';
+      r.lines.forEach(function (l) { l.status = 'REJECTED'; l.reason = 'Refused by credit control: ' + why; });
+      r.credit = Object.assign({}, r.credit, { status: 'REFUSED', by: p.name, at: s.today, note: why });
+      notify(s, { bu: r.requestingBu, roles: ['desk'] }, r.number + ': refused by credit control (' + p.name + '): ' + why, { record: 'request', id: r.id }, 'warning');
+      log(s, p, 'Credit: refused ' + r.number + ': ' + why, { requestId: r.id });
+    }
+  };
+  /** Credit control puts a customer on hold (with the reason) or lifts it, and sets its credit limit (Fusion Receivables). */
+  A.setCustomerCredit = {
+    who: ['credit'],
+    run: function (s, p, x) {
+      var cust = customer(s, x.customerId);
+      if (!cust) fail('No such customer.');
+      if (!s.bus.some(function (b) { return b.le === cust.of && inBu(p, b.id); })) fail('Only ' + leShort(s, cust.of) + '\'s credit control sets its customers\' credit.');
+      var said = [];
+      if (x.onHold === true && !cust.onHold) {
+        var why = String(x.reason || '').trim();
+        if (!why) fail('Say why it goes on hold (the rental desk sees it).');
+        cust.onHold = true;
+        cust.holdReason = why;
+        said.push('put on credit hold: ' + why);
+      } else if (x.onHold === false && cust.onHold) {
+        cust.onHold = false;
+        cust.holdReason = '';
+        said.push('credit hold lifted');
+      }
+      if (x.limit != null && x.limit !== '') {
+        var lim = Number(x.limit);
+        if (!(lim >= 0)) fail('Give a credit limit of 0 or more.');
+        if (lim !== cust.creditLimit) { cust.creditLimit = lim; said.push('credit limit ' + mny(lim, 'AED')); }
+      }
+      if (!said.length) fail('Nothing to change.');
+      notify(s, { bu: s.bus.filter(function (b) { return b.le === cust.of && b.roles.indexOf('rental') !== -1; }).map(function (b) { return b.id; })[0], roles: ['desk'] },
+        cust.name + ': ' + said.join('; ') + ' (credit control, ' + p.name + ').', null, cust.onHold ? 'warning' : 'info');
+      log(s, p, cust.name + ': ' + said.join('; '), { customerId: cust.id });
+    }
+  };
+
   function notifyOwners(s, r) {
     var owners = {};
     r.lines.forEach(function (l) { owners[l.provider] = (owners[l.provider] || 0) + 1; });
@@ -352,6 +480,7 @@ define(['resources/js/future/fxSeed'], function (Seed) {
     run: function (s, p, x) {
       var o = ownerLine(s, p, x, 'owner-em');
       if (o.r.status === 'AWAITING_REQUESTER_APPROVAL') fail('The requesting BU has not approved this request yet.');
+      if (o.r.status === 'CREDIT_HOLD') fail(o.r.number + ' is on credit hold: credit control releases it first.');
       if (o.l.status !== 'REQUESTED') fail('This line is already ' + o.l.status.toLowerCase().replace(/_/g, ' ') + '.');
       var u = unitOf(s, x.unitId || o.l.preferredUnit);
       if (!u || u.owner !== o.l.provider || u.cls !== o.l.cls) fail('Choose one of your own units of this class.');
@@ -362,7 +491,7 @@ define(['resources/js/future/fxSeed'], function (Seed) {
       if (!c.ok) fail(u.serial + ' cannot go: ' + c.text + ' (MC-FR-18).');
       if (o.r.type === 'CUSTOMER_RENTAL') {
         var ag = agreement(s, o.l.agreementId);
-        if (ag && ag.depositPct && !o.r.deposit) fail('Take the customer\'s deposit first (rental desk).');
+        if (((ag && ag.depositPct) || o.r.prepay) && !o.r.deposit) fail('Take the customer\'s deposit first (rental desk)' + (o.r.prepay ? ': cash in advance, as credit control asked.' : '.'));
       }
       o.l.unitId = u.id;
       o.l.status = 'APPROVED';
@@ -392,14 +521,18 @@ define(['resources/js/future/fxSeed'], function (Seed) {
       var r = requestOf(s, x.requestId);
       if (!r || r.type !== 'CUSTOMER_RENTAL') fail('Deposits are for customer rentals.');
       if (r.deposit) fail('Deposit already received.');
+      if (r.status === 'CREDIT_HOLD') fail(r.number + ' is on credit hold: credit control releases it first.');
+      if (r.status === 'REFUSED') fail(r.number + ' was refused.');
       var l = r.lines[0];
       var ag = agreement(s, l.agreementId);
       if (!inBu(p, l.provider)) fail('Only the rental desk of the owner takes the deposit.');
-      var amt = r2(sum(r.lines, function (q) { return q.price ? q.price.week * 4 : 0; }) * (ag.depositPct || 0.25));
-      var t = addTx(s, { kind: 'DEPOSIT', le: l.providerLe, title: 'Deposit from ' + customer(s, r.customerId).name, refs: { requestId: r.id, customerId: r.customerId },
+      // Cash in advance (credit control's release): the whole estimate; else the agreement's share of four weeks.
+      var amt = r.prepay ? r2(sum(r.lines, function (q) { return q.estimate || 0; }))
+        : r2(sum(r.lines, function (q) { return q.price ? q.price.week * 4 : 0; }) * (ag.depositPct || 0.25));
+      var t = addTx(s, { kind: 'DEPOSIT', le: l.providerLe, title: (r.prepay ? 'Cash in advance from ' : 'Deposit from ') + customer(s, r.customerId).name, refs: { requestId: r.id, customerId: r.customerId },
         lines: [{ account: '1100', dr: amt }, { account: '2300', cr: amt, sub: customer(s, r.customerId).name }] });
-      r.deposit = { amount: amt, txId: t.id, date: s.today, settled: false };
-      log(s, p, 'Received the deposit of ' + mny(amt, ag.currency) + ' on ' + r.number, { requestId: r.id });
+      r.deposit = { amount: amt, txId: t.id, date: s.today, settled: false, prepay: !!r.prepay };
+      log(s, p, 'Received the deposit of ' + mny(amt, ag.currency) + (r.prepay ? ' (cash in advance)' : '') + ' on ' + r.number, { requestId: r.id });
     }
   };
 
@@ -1254,7 +1387,7 @@ define(['resources/js/future/fxSeed'], function (Seed) {
   }
 
   return {
-    apply: apply, actions: Object.keys(A), sourcing: sourcing, relationType: relationType, rental: rental, rate: rate, persona: persona, visibleTo: visibleTo,
+    apply: apply, actions: Object.keys(A), sourcing: sourcing, creditOf: creditOf, relationType: relationType, rental: rental, rate: rate, persona: persona, visibleTo: visibleTo,
     lineCharges: lineCharges, certCheck: certCheck, busy: busy, isWeekend: isWeekend,
     util: { addDays: addDays, diffDays: diffDays, monthOf: monthOf, monthEnd: monthEnd, monthStart: monthStart, nextMonth: nextMonth, r2: r2, sum: sum, byId: byId, clone: clone, dow: dow },
     lookups: { bu: bu, le: le, leOf: leOf, country: country, unit: unitOf, project: project, customer: customer, agreement: agreement, request: requestOf, line: lineOf, buName: buName, leShort: leShort, can: can, inBu: inBu }

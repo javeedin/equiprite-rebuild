@@ -90,7 +90,7 @@ const fail = M.failure(s, { type: 'disputeCharge', payload: { chargeId: 'CH00004
 T.eq('a failure on a line is shown on its statement and its form', [fail.ref, fail.chargeId, fail.text].join(' | '), 'S1 | CH00004 | Say why.');
 T.eq('…the run, the internal postings, the switch, an invoice', ['runCharges', 'postInternal', 'setSetting'].map((t) => M.failure(s, { type: t, payload: {} }, 'x').ref).concat([M.failure(s, { type: 'customerPays', payload: { txId: 'T9' } }, 'x').ref]).join(), 'run,internal,switch,T9');
 T.eq('a failed engine answer stays; a good one clears it and closes the forms', JSON.stringify([M.afterAct({ type: 'acceptStatement', payload: { statementId: 'S1' } }, { ok: false, error: 'Nothing to agree.' }, s, {}).set.failure.ref,
-  M.afterAct({ type: 'x' }, { ok: true }, s, { ui: { disputing: 'CH1', reason: 'r', txKind: 'IC_AR' } }).set.ui]), '["S1",{"disputing":"","reason":"","txKind":"IC_AR","resolving":"","credit":""}]');
+  M.afterAct({ type: 'x' }, { ok: true }, s, { ui: { disputing: 'CH1', reason: 'r', txKind: 'IC_AR' } }).set.ui]), '["S1",{"disputing":"","reason":"","txKind":"IC_AR","resolving":"","credit":"","refusing":"","holding":""}]');
 act('resolveDispute', { chargeId: 'CH00004', resolution: 'credit', amount: 6000 });
 T.eq('resolved: the dispute says so', charges({}).statements.find((x) => x.id === 'S1').rows.find((r) => r.id === 'CH00004').resolvedText, 'Credit given by Sara Ahmed, 30 Nov 2026');
 
@@ -202,5 +202,34 @@ Fx.STEPS.forEach((pt) => {
   });
 });
 T.eq('no screen fails for anyone', bad.join('; '), '');
+
+T.section('credit control: a rental on credit hold, released against cash in advance (Customer W)');
+s = Fx.state('fresh');
+as('p-desk');
+const cw = act('createRequest', { requestingBu: 'BU-FC', customerId: 'C-W', from: '2026-11-06', to: '2026-11-25', lines: [{ cls: 'GEN', unitId: 'U-GN1' }] });
+const billingOf = () => M.billing(s, V.billing(s), {});
+let bl = billingOf();
+T.eq('Lena sees it held, cannot decide, and is told who does', [cw.creditHold, bl.credit.holds.length, bl.credit.canDecide, bl.credit.who, bl.kpi.credit, bl.deposits[0].statusText].join(' | '),
+  'true | 1 | false | Sara Ahmed | 1 | On credit hold: no deposit until credit control releases it');
+as('p-fin');
+bl = billingOf();
+const hw = bl.credit.holds[0];
+T.eq('Sara: the hold, why, the figures', [hw.number, hw.reasonText, hw.why, hw.facts.map((f) => f.k + ' ' + f.v).join(' · ')].join(' | '),
+  'FR-1001 | Customer on credit hold | Customer W · Oman Roads is on credit hold: 2 invoices over 90 days overdue (AED 38,400.00). | Limit AED 0.00 · Open invoices AED 0.00 · Rentals out AED 0.00 · This request AED 6,300.00 · With it AED 6,300.00');
+T.eq('…three ways to release it, each saying what it does', hw.ways.map((w) => w.how + ': ' + w.label).join(' ; '),
+  'ONCE: Release this request only ; PREPAY: Release against cash in advance ; LIMIT: Lift the hold, limit AED 10,000.00');
+T.check('…cash in advance: the whole estimate as the deposit', hw.ways[1].does === 'The deposit becomes the whole estimate, AED 6,300.00, taken by the rental desk before the owner may approve. No credit is given.', hw.ways[1].does);
+T.eq('…the customers\' credit: W on hold, Y within its limit', bl.credit.customers.map((c) => c.name + ': ' + c.stateText + ' (' + c.usedText2 + ')').join(' ; '),
+  'Customer Y · Gulf Builders: Within the limit (AED 0.00 used of AED 150,000.00) ; Customer W · Oman Roads: On credit hold (AED 0.00 used of AED 0.00)');
+T.eq('…in Sara\'s work', V.work(s).items.filter((i) => i.navId === 'billing').map((i) => i.count + ' ' + i.label).join(), '1 rentals on credit hold to release or refuse');
+T.eq('refusing needs a reason (the page says so first)', M.check(s, M.withForm({ type: 'refuseCredit', payload: { requestId: cw.id } }, { reason: '  ' })), 'Say why it is refused: the rental desk tells the customer.');
+act('releaseCredit', { requestId: cw.id, how: 'PREPAY' });
+as('p-desk');
+bl = billingOf();
+T.eq('released: the rental desk takes the cash in advance', [bl.credit.holds.length, bl.deposits[0].needed, bl.deposits[0].statusText, bl.deposits[0].takeText].join(' | '),
+  '0 | true | Cash in advance, as credit control asked: the whole estimate, before the owner can approve | Records AED 6,300.00 received from Customer W · Oman Roads (Fusion Receivables: Dr bank, Cr customer deposits).');
+act('takeDeposit', { requestId: cw.id });
+as('p-em');
+T.check('…then the owner approves', E.apply(s, 'approveLine', { requestId: cw.id, lineId: s.requests.find((r) => r.id === cw.id).lines[0].id }).ok);
 
 T.report();

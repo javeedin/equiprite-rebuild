@@ -15,13 +15,14 @@
         "projects": [],
         "invoices": [],
         "waiting": [],
-        "kpi": { "waiting": 0, "deposits": 0, "projects": 0, "open": 0 }
+        "credit": { "holds": [], "customers": [], "canDecide": false, "who": "", "intro": "", "empty": "" },
+        "kpi": { "credit": 0, "waiting": 0, "deposits": 0, "projects": 0, "open": 0 }
       },
       "description": "fxMoney.billing(state, store.view('billing'), ui)."
     },
     "ui": {
       "type": "any",
-      "defaultValue": { "openTx": {} },
+      "defaultValue": { "openTx": {}, "refusing": "", "holding": "", "reason": "" },
       "description": "The invoices and previews whose accounting is open (openTx)."
     },
     "failure": {
@@ -42,6 +43,7 @@
     "fxRefresh": { "chains": [{ "chain": "loadChain" }] },
     "onAct": { "chains": [{ "chain": "actChain", "parameters": { "data": "{{ $event.currentTarget.dataset }}" } }] },
     "onOpen": { "chains": [{ "chain": "openChain", "parameters": { "data": "{{ $event.currentTarget.dataset }}" } }] },
+    "onField": { "chains": [{ "chain": "setChain", "parameters": { "field": "{{ $event.target.dataset.field }}", "value": "{{ $event.target.value }}" } }] },
     "onPick": { "chains": [{ "chain": "setChain", "parameters": { "field": "{{ $event.currentTarget.dataset.field }}", "value": "{{ $event.currentTarget.dataset.value }}" } }] },
     "onExportMenu": { "chains": [{ "chain": "setChain", "parameters": { "field": "exportOpen", "value": "{{ $event.currentTarget.dataset.list }}" } }] },
     "onExport": { "chains": [{ "chain": "exportChain", "parameters": { "format": "{{ $event.currentTarget.dataset.format }}", "list": "{{ $event.currentTarget.dataset.list }}" } }] }

@@ -44,6 +44,15 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
         if (a.rates[k] && a.rates[k].hour == null) a.rates[k].hour = f.rates && f.rates[k] && f.rates[k].hour != null ? f.rates[k].hour : Math.round(a.rates[k].day / 8 * 100) / 100;
       });
     });
+    // Version 5: credit control. A customer's hold has its reason; the name no longer says "(credit hold)".
+    var custs = {};
+    fresh.customers.forEach(function (c) { custs[c.id] = c; });
+    (s.customers || []).forEach(function (c) {
+      var f = custs[c.id];
+      if (f && c.name === f.name + ' (credit hold)') c.name = f.name;
+      if (f && c.onHold && c.holdReason == null) c.holdReason = f.holdReason || '';
+    });
+    (s.agreements || []).forEach(function (a) { var f = byId[a.id]; if (f && a.terms === 'On credit hold.') a.terms = f.terms; });
     (s.requests || []).forEach(function (r) {
       (r.lines || []).forEach(function (l) {
         if (l.price && !l.price.billing) {

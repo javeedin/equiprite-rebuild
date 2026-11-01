@@ -24,6 +24,8 @@
 
   <oj-bind-if test="[[ $variables.v.ready && !$variables.v.error ]]">
     <div class="nx-kpis fxm-kpis" role="group" aria-label="Customer billing in numbers">
+      <div class="nx-kpi fxm-kpi nx-stage--approval" id="blKpiCredit"><span class="nx-kpi-label">On credit hold</span>
+        <span class="nx-kpi-value"><oj-bind-text value="[[ $variables.v.kpi.credit ]]"></oj-bind-text></span><span class="nx-kpi-note">rentals waiting for credit control</span></div>
       <div class="nx-kpi fxm-kpi nx-stage--ready" id="blKpiWaiting"><span class="nx-kpi-label">Rental charges to invoice</span>
         <span class="nx-kpi-value"><oj-bind-text value="[[ $variables.v.kpi.waiting ]]"></oj-bind-text></span><span class="nx-kpi-note">scenario 3 · FleetCo's customers</span></div>
       <div class="nx-kpi fxm-kpi nx-stage--approval" id="blKpiDeposits"><span class="nx-kpi-label">Deposits to act on</span>
@@ -33,6 +35,111 @@
       <div class="nx-kpi fxm-kpi nx-stage--onsite" id="blKpiOpen"><span class="nx-kpi-label">Invoices open</span>
         <span class="nx-kpi-value"><oj-bind-text value="[[ $variables.v.kpi.open ]]"></oj-bind-text></span><span class="nx-kpi-note">waiting for the customer's payment</span></div>
     </div>
+
+    <!-- Credit control (Fusion Receivables credit management): the rentals on credit hold, released one of three ways or
+         refused with a reason; every rental customer's credit with Put on hold / Lift the hold. v.credit (fxMoney). -->
+    <section class="nx-card fxm-credit" aria-labelledby="blCreditTitle" id="blCredit">
+      <div class="nx-card-head fxm-head">
+        <h2 id="blCreditTitle">Credit control · Fusion Receivables</h2>
+        <span :class="[[ 'fx-chip fx-chip--' + ($variables.v.credit.holds.length ? 'todo' : 'ok') ]]" id="blCreditChip"><oj-bind-text value="[[ $variables.v.credit.holds.length ? $variables.v.credit.holds.length + ' on credit hold' : 'Nothing on hold' ]]"></oj-bind-text></span>
+      </div>
+      <p class="fxm-credit-intro nx-note" id="blCreditIntro"><oj-bind-text value="[[ $variables.v.credit.intro ]]"></oj-bind-text></p>
+      <oj-bind-if test="[[ !$variables.v.credit.holds.length ]]"><p class="nx-empty fxm-empty-sm" id="blNoHolds"><oj-bind-text value="[[ $variables.v.credit.empty ]]"></oj-bind-text></p></oj-bind-if>
+      <ul class="fxm-holds" id="blHolds" aria-label="Rentals on credit hold">
+        <oj-bind-for-each data="[[ $variables.v.credit.holds ]]">
+          <template data-oj-as="h">
+            <li class="fxm-hold" :data-id="[[ h.data.id ]]">
+              <div class="fxm-hold-top">
+                <span class="fxm-hold-title"><button type="button" class="nx-link" data-record="request" :data-id="[[ h.data.id ]]" :data-number="[[ h.data.number ]]" on-click="[[ $listeners.onOpen ]]"><oj-bind-text value="[[ h.data.number ]]"></oj-bind-text></button>
+                  <span class="fxm-muted"><oj-bind-text value="[[ ' · ' + h.data.customer + ' · ' + h.data.dates ]]"></oj-bind-text></span></span>
+                <span :class="[[ 'fx-chip fx-chip--' + h.data.tone ]]"><oj-bind-text value="[[ h.data.reasonText ]]"></oj-bind-text></span>
+              </div>
+              <p class="fxm-hold-why"><span class="oj-ux-ico-warning" aria-hidden="true"></span><oj-bind-text value="[[ h.data.why ]]"></oj-bind-text></p>
+              <p class="fxm-does"><oj-bind-text value="[[ h.data.units + ' · raised by ' + h.data.raisedBy + ' on ' + h.data.raisedAt ]]"></oj-bind-text></p>
+              <dl class="fxm-hold-facts">
+                <oj-bind-for-each data="[[ h.data.facts ]]"><template data-oj-as="f">
+                  <div class="fxm-hold-fact"><dt><oj-bind-text value="[[ f.data.k ]]"></oj-bind-text></dt><dd class="nx-num"><oj-bind-text value="[[ f.data.v ]]"></oj-bind-text></dd></div>
+                </template></oj-bind-for-each>
+              </dl>
+              <oj-bind-if test="[[ $functions.failedAt($variables.failure, h.data.id) ]]">
+                <p class="nx-error fxm-fail" role="alert"><oj-bind-text value="[[ 'Not done: ' + $variables.failure.text ]]"></oj-bind-text></p>
+              </oj-bind-if>
+              <oj-bind-if test="[[ $variables.v.credit.canDecide ]]">
+                <div class="fxm-ways" role="group" :aria-label="[[ 'Release or refuse ' + h.data.number ]]">
+                  <oj-bind-for-each data="[[ h.data.ways ]]"><template data-oj-as="w">
+                    <div class="fxm-way">
+                      <button type="button" :class="[[ 'nx-btn nx-btn--sm fxm-release' + (w.data.how === 'PREPAY' ? ' nx-btn--primary' : '') ]]" data-act="releaseCredit" :data-request-id="[[ h.data.id ]]" :data-how="[[ w.data.how ]]"
+                        :data-limit="[[ w.data.limit ]]" on-click="[[ $listeners.onAct ]]"><oj-bind-text value="[[ w.data.label ]]"></oj-bind-text></button>
+                      <span class="fxm-does"><oj-bind-text value="[[ w.data.does ]]"></oj-bind-text></span>
+                    </div>
+                  </template></oj-bind-for-each>
+                  <div class="fxm-way">
+                    <button type="button" class="nx-btn nx-btn--sm fxm-refuse" data-field="refuseCredit" :data-value="[[ h.data.id ]]" on-click="[[ $listeners.onPick ]]"
+                      :aria-expanded="[[ $variables.ui.refusing === h.data.id ? 'true' : 'false' ]]">Refuse…</button>
+                    <span class="fxm-does"><oj-bind-text value="[[ h.data.refuseDoes ]]"></oj-bind-text></span>
+                  </div>
+                </div>
+                <oj-bind-if test="[[ $variables.ui.refusing === h.data.id ]]">
+                  <div class="fxm-line-form" id="blRefuseForm" role="group" :aria-label="[[ 'Refuse ' + h.data.number ]]">
+                    <label class="fxm-label" for="blRefuseReason"><oj-bind-text value="[[ 'Why is ' + h.data.number + ' refused? Required: the rental desk tells ' + h.data.customer + '.' ]]"></oj-bind-text></label>
+                    <textarea id="blRefuseReason" class="fxm-input fxm-textarea" rows="2" data-field="reason" :value="[[ $variables.ui.reason ]]" on-input="[[ $listeners.onField ]]"
+                      placeholder="For example: overdue invoices not paid; offer cash in advance"></textarea>
+                    <div class="fxm-form-acts">
+                      <button type="button" class="nx-btn nx-btn--danger nx-btn--sm" id="blRefuseSend" data-act="refuseCredit" :data-request-id="[[ h.data.id ]]" on-click="[[ $listeners.onAct ]]">Refuse the request</button>
+                      <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" data-field="cancel" on-click="[[ $listeners.onPick ]]">Cancel</button>
+                    </div>
+                  </div>
+                </oj-bind-if>
+              </oj-bind-if>
+              <oj-bind-if test="[[ !$variables.v.credit.canDecide ]]">
+                <span class="fxm-does fxm-credit-who"><oj-bind-text value="[[ 'Credit control decides: ' + ($variables.v.credit.who || 'no one plays it in the demo (Admin can)') + '.' ]]"></oj-bind-text></span>
+              </oj-bind-if>
+            </li>
+          </template>
+        </oj-bind-for-each>
+      </ul>
+
+      <div class="fxm-subhead"><h3 class="fxm-h3" id="blCustCreditTitle">Customers' credit</h3><span class="nx-note">limit, used (open invoices + rentals out) and the hold, as Fusion Receivables keeps them</span></div>
+      <ul class="fxm-custcredit" id="blCustCredit" aria-labelledby="blCustCreditTitle">
+        <oj-bind-for-each data="[[ $variables.v.credit.customers ]]">
+          <template data-oj-as="cu">
+            <li class="fxm-cc" :data-id="[[ cu.data.id ]]">
+              <div class="fxm-cc-top">
+                <span class="fxm-cc-name"><oj-bind-text value="[[ cu.data.name ]]"></oj-bind-text></span>
+                <span :class="[[ 'fx-chip fx-chip--' + cu.data.tone ]]"><oj-bind-text value="[[ cu.data.stateText ]]"></oj-bind-text></span>
+              </div>
+              <div class="fxm-cc-bar" role="img" :aria-label="[[ cu.data.usedText2 ]]"><span :class="[[ 'fxm-cc-fill fxm-cc-fill--' + cu.data.tone ]]" :style="[[ cu.data.barStyle ]]"></span></div>
+              <p class="fxm-does"><oj-bind-text value="[[ cu.data.usedText2 + ' · ' + cu.data.availableText + ' available' + (cu.data.heldText ? ' · ' + cu.data.heldText : '') ]]"></oj-bind-text></p>
+              <oj-bind-if test="[[ cu.data.onHold ]]"><p class="fxm-hold-why"><span class="oj-ux-ico-lock" aria-hidden="true"></span><oj-bind-text value="[[ 'On hold: ' + (cu.data.holdReason || 'no reason recorded') ]]"></oj-bind-text></p></oj-bind-if>
+              <oj-bind-if test="[[ $functions.failedAt($variables.failure, cu.data.id) ]]">
+                <p class="nx-error fxm-fail" role="alert"><oj-bind-text value="[[ 'Not done: ' + $variables.failure.text ]]"></oj-bind-text></p>
+              </oj-bind-if>
+              <oj-bind-if test="[[ $variables.v.credit.canDecide ]]">
+                <oj-bind-if test="[[ cu.data.onHold ]]">
+                  <div class="fxm-act"><button type="button" class="nx-btn nx-btn--sm fxm-lift" data-act="setCustomerCredit" :data-customer-id="[[ cu.data.id ]]" data-on-hold="false" on-click="[[ $listeners.onAct ]]">Lift the hold</button>
+                    <span class="fxm-does"><oj-bind-text value="[[ cu.data.liftDoes ]]"></oj-bind-text></span></div>
+                </oj-bind-if>
+                <oj-bind-if test="[[ !cu.data.onHold ]]">
+                  <div class="fxm-act"><button type="button" class="nx-btn nx-btn--sm fxm-puthold" data-field="holdCustomer" :data-value="[[ cu.data.id ]]" on-click="[[ $listeners.onPick ]]">Put on hold…</button>
+                    <span class="fxm-does"><oj-bind-text value="[[ cu.data.holdDoes ]]"></oj-bind-text></span></div>
+                  <oj-bind-if test="[[ $variables.ui.holding === cu.data.id ]]">
+                    <div class="fxm-line-form" id="blHoldForm" role="group" :aria-label="[[ 'Put ' + cu.data.name + ' on credit hold' ]]">
+                      <label class="fxm-label" for="blHoldReason">Why does it go on hold? Required: the rental desk sees it.</label>
+                      <textarea id="blHoldReason" class="fxm-input fxm-textarea" rows="2" data-field="reason" :value="[[ $variables.ui.reason ]]" on-input="[[ $listeners.onField ]]"
+                        placeholder="For example: invoice FC-AR-000012 over 60 days overdue"></textarea>
+                      <div class="fxm-form-acts">
+                        <button type="button" class="nx-btn nx-btn--primary nx-btn--sm" id="blHoldSend" data-act="setCustomerCredit" :data-customer-id="[[ cu.data.id ]]" data-on-hold="true" on-click="[[ $listeners.onAct ]]">Put on credit hold</button>
+                        <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" data-field="cancel" on-click="[[ $listeners.onPick ]]">Cancel</button>
+                      </div>
+                    </div>
+                  </oj-bind-if>
+                </oj-bind-if>
+              </oj-bind-if>
+            </li>
+          </template>
+        </oj-bind-for-each>
+      </ul>
+    </section>
 
     <section class="nx-card" aria-labelledby="blS3Title" id="blS3">
       <div class="nx-card-head fxm-head">

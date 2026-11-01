@@ -119,14 +119,19 @@
                       <oj-bind-if test="[[ o.data.on ]]"><span class="oj-ux-ico-check-circle fx-nr-tick" aria-hidden="true"></span></oj-bind-if></span>
                     <span class="fx-nr-option-title"><oj-bind-text value="[[ o.data.title ]]"></oj-bind-text></span>
                     <span class="fx-nr-option-note"><oj-bind-text value="[[ o.data.note ]]"></oj-bind-text></span>
+                    <oj-bind-if test="[[ !!o.data.creditText ]]"><span :class="[[ 'fx-nr-option-credit' + (o.data.onHold ? ' fx-nr-option-credit--hold' : '') ]]"><span class="oj-ux-ico-credit-card" aria-hidden="true"></span><oj-bind-text value="[[ o.data.creditText ]]"></oj-bind-text></span></oj-bind-if>
                     <span class="fx-nr-option-where"><span class="oj-ux-ico-location-pin" aria-hidden="true"></span><oj-bind-text value="[[ (o.data.site || 'Customer site') + ' · ' + o.data.countryName ]]"></oj-bind-text></span>
                   </button>
                 </template>
               </oj-bind-for-each>
             </div>
             <oj-bind-if test="[[ !!$variables.v.forError ]]"><span class="fx-nr-hint" id="nrForHint"><oj-bind-text value="[[ $variables.v.forError ]]"></oj-bind-text></span></oj-bind-if>
-            <oj-bind-if test="[[ $variables.v.opt && $variables.v.opt.onHold ]]">
-              <div class="nx-error" role="alert" id="nrHold"><oj-bind-text value="[[ $variables.v.opt.title + ' is on credit hold in Fusion Receivables: EquipRite will refuse the request until finance releases it.' ]]"></oj-bind-text></div>
+            <oj-bind-if test="[[ !!$variables.v.credit ]]">
+              <div :class="[[ 'fx-nr-credit fx-nr-credit--' + $variables.v.credit.tone ]]" :role="[[ $variables.v.credit.tone === 'warn' ? 'alert' : 'status' ]]" id="nrCredit">
+                <span :class="[[ $variables.v.credit.tone === 'warn' ? 'oj-ux-ico-lock fx-nr-credit-ico' : 'oj-ux-ico-check-circle fx-nr-credit-ico' ]]" aria-hidden="true"></span>
+                <div><p class="fx-nr-credit-title" id="nrCreditTitle"><oj-bind-text value="[[ $variables.v.credit.title ]]"></oj-bind-text></p>
+                  <p class="fx-nr-credit-text" id="nrCreditText"><oj-bind-text value="[[ $variables.v.credit.text ]]"></oj-bind-text></p></div>
+              </div>
             </oj-bind-if>
           </div>
 

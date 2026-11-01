@@ -73,7 +73,7 @@ const admin = R.form(as(fresh, 'p-admin'), {});
 T.eq('Admin requests for every BU: chosen, the first by default', [admin.bus.map((b) => b.id).join(), admin.multiBu, admin.form.bu].join(' | '), 'BU-FC,BU-PC,BU-PF,BU-PK | true | BU-FC');
 const desk = R.form(as(fresh, 'p-desk'), {});
 T.eq('Lena (rental desk): FleetCo\'s customers, the one on hold flagged', desk.options.map((o) => o.title + (o.onHold ? ' (hold)' : '')).join('; '),
-  'Customer Y · Gulf Builders; Customer W · Oman Roads (credit hold) (hold)');
+  'Customer Y · Gulf Builders; Customer W · Oman Roads (hold)');
 T.eq('Mark (finance) does not raise requests', R.form(as(fresh, 'p-pcfin'), {}).canRaise, false);
 
 T.section('New request: step 1, Source from (the sourcing business unit that lends the equipment)');
@@ -184,8 +184,13 @@ T.check('…who approves stays FleetCo\'s Equipment Manager, by name', /^FleetCo
 const fcMade = E.apply(as(fresh, 'p-pm'), 'createRequest', R.payload(as(fresh, 'p-pm'), f.form));
 T.eq('…raised: the line\'s provider is BU-FC', [fcMade.ok, fcMade.state.requests[0].lines.map((x) => x.preferredUnit + ' ' + x.provider + ' ' + x.relation).join()].join(' | '), 'true | U-EX1 BU-FC IC_DOMESTIC');
 const hold = R.payload(as(fresh, 'p-desk'), R.change(R.change({}, 'forKey', 'C:C-W'), 'add', 'U-GN1|GEN'));
-const refused = E.apply(as(fresh, 'p-desk'), 'createRequest', hold);
-T.check('a customer on credit hold: the engine refuses, in words', !refused.ok && /credit hold/.test(refused.error), refused.error);
+const held = E.apply(as(fresh, 'p-desk'), 'createRequest', hold);
+T.check('a customer on credit hold: raised on credit hold (credit control decides)', held.ok && held.result.creditHold && held.state.requests[0].status === 'CREDIT_HOLD', held.error);
+const holdForm = R.form(as(fresh, 'p-desk'), R.change(R.change({}, 'forKey', 'C:C-W'), 'add', 'U-GN1|GEN'));
+T.eq('…said before Submit: the hold, its reason, who decides and how', [holdForm.credit.hold, holdForm.credit.title, holdForm.credit.text].join(' | '),
+  'true | Customer W · Oman Roads is on credit hold in Fusion Receivables: 2 invoices over 90 days overdue (AED 38,400.00). | You can still raise the request: it waits on credit hold until FleetCo credit control (Sara Ahmed) releases it (for this request only, against cash in advance, or by lifting the hold) or refuses it. Nobody approves, ships or takes a deposit until then.');
+const okForm = R.form(as(fresh, 'p-desk'), R.change(R.change({}, 'forKey', 'C:C-Y'), 'add', 'U-GN1|GEN'));
+T.eq('…a customer within its limit: the check passes, in figures', [okForm.credit.hold, okForm.credit.over, okForm.credit.title].join(' | '), 'false | false | Credit check passes: AED 8,400.00 of AED 150,000.00 used with this request.');
 const blocked = R.form(as(fresh, 'p-pk'), R.change(R.change(R.change({}, 'from', '2026-11-09'), 'to', '2026-12-31'), 'add', 'U-EX2|EXC'));
 T.eq('a unit not usable stays out of the review', [blocked.lineCount, blocked.step2Ok, blocked.blocked.join()].join(' | '), '1 | false | EX-1002: No certificate for Saudi Arabia (MC-FR-18)');
 
@@ -312,7 +317,7 @@ T.eq('r1 closed: every step done, back and inspected by Ravi; nothing next', [st
 T.section('Approval & flow: a customer rental, the deposit before the owner approves');
 const lenaRaised = as(F.state('raised'), 'p-desk');
 fl = R.request(lenaRaised, ids.r3).flow;
-T.eq('r3: the deposit is current (Lena, rental desk), the owner\'s approval waits for it', keys(fl), 'raised:done requester:na deposit:current approve:waiting ship:waiting receive:waiting hours:waiting offHire:waiting back:waiting');
+T.eq('r3: the deposit is current (Lena, rental desk), the owner\'s approval waits for it', keys(fl), 'raised:done requester:na credit:done deposit:current approve:waiting ship:waiting receive:waiting hours:waiting offHire:waiting back:waiting');
 T.eq('…in words', [fl.approverText, fl.alsoText].join(' '), 'Approver: Ana Costa (Equipment Manager, FleetCo Fleet), the owner of GN-3002. First Lena Novak (rental desk) takes the deposit; only then may the owner approve.');
 T.eq('…the deposit: its amount, and it\'s Lena', [step(fl, 'deposit').what, fl.next.go.youText, fl.next.go.action].join(' | '),
   'The rental desk takes Customer Y’s deposit, 25 % of four weeks (AED 2,100.00), before the owner may approve; Fusion Receivables records it | It\'s you: Lena Novak does it in Customer billing | Open Customer billing');

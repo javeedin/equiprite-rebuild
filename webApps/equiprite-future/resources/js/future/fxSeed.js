@@ -13,7 +13,7 @@ define([], function () {
   function seed() {
     var start = '2026-11-02';
     return {
-      version: 4,
+      version: 5,
       today: start,
       startDate: start,
       personaId: 'p-pm',
@@ -86,7 +86,7 @@ define([], function () {
       customers: [
         { id: 'C-X', name: 'Customer X · Marina Developments', of: 'LE-PC', country: 'AE', creditLimit: 2000000 },
         { id: 'C-Y', name: 'Customer Y · Gulf Builders', of: 'LE-FC', country: 'AE', creditLimit: 150000, depositPct: 0.25 },
-        { id: 'C-W', name: 'Customer W · Oman Roads (credit hold)', of: 'LE-FC', country: 'AE', creditLimit: 0, onHold: true },
+        { id: 'C-W', name: 'Customer W · Oman Roads', of: 'LE-FC', country: 'AE', creditLimit: 0, onHold: true, holdReason: '2 invoices over 90 days overdue (AED 38,400.00)' },
         { id: 'C-Z', name: 'Customer Z · Riyadh Transit', of: 'LE-PK', country: 'SA', creditLimit: 3000000 }
       ],
       // MC-FR-04: who may source from whom, and how they settle.
@@ -110,7 +110,7 @@ define([], function () {
           transport: 2200, standbyPct: 0.5, minDays: 7, breakdownCredit: true, tax: 'DOMESTIC', wht: 0, depositPct: 0.25,
           terms: 'FleetCo rental terms: weekly billing in arrears, deposit 25 % of a month.' },
         { id: 'RA-02', number: 'RA-FC-W-2026', kind: 'CUSTOMER', provider: 'BU-FC', customer: 'C-W', currency: 'AED', status: 'ACTIVE', version: 1, versions: [{ version: 1, from: '2026-01-01', approvedBy: 'FleetCo rental desk', note: 'Customer price list 2026' }],
-          billing: 'HOURLY', minHours: 16, rates: { GEN: { day: 420, week: 2100, hour: 52.5 } }, transport: 2200, standbyPct: 0.5, minDays: 7, breakdownCredit: true, tax: 'DOMESTIC', wht: 0, depositPct: 0.25, terms: 'On credit hold.' }
+          billing: 'HOURLY', minHours: 16, rates: { GEN: { day: 420, week: 2100, hour: 52.5 } }, transport: 2200, standbyPct: 0.5, minDays: 7, breakdownCredit: true, tax: 'DOMESTIC', wht: 0, depositPct: 0.25, terms: 'FleetCo rental terms: deposit 25 % of a month; every new rental is checked against the credit limit in Fusion Receivables.' }
       ],
       requests: [],
       hours: [],
@@ -148,7 +148,7 @@ define([], function () {
     { id: 'p-em', name: 'Ana Costa', initials: 'AC', title: 'Equipment Manager · FleetCo', bus: ['BU-FC'], roles: ['owner-em', 'yard'] },
     { id: 'p-yard', name: 'Ravi Kumar', initials: 'RK', title: 'Yard lead · FleetCo', bus: ['BU-FC'], roles: ['yard'] },
     { id: 'p-desk', name: 'Lena Novak', initials: 'LN', title: 'Rental desk · FleetCo', bus: ['BU-FC'], roles: ['requester', 'desk', 'owner-finance'] },
-    { id: 'p-fin', name: 'Sara Ahmed', initials: 'SA', title: 'Group intercompany finance', bus: ['BU-FC', 'BU-PC', 'BU-PF', 'BU-PK'], roles: ['ic-finance', 'owner-finance', 'finance'] },
+    { id: 'p-fin', name: 'Sara Ahmed', initials: 'SA', title: 'Group intercompany finance', bus: ['BU-FC', 'BU-PC', 'BU-PF', 'BU-PK'], roles: ['ic-finance', 'owner-finance', 'finance', 'credit'] },
     { id: 'p-admin', name: 'Admin', initials: 'AD', title: 'Sees everything (demo)', bus: ['BU-FC', 'BU-PC', 'BU-PF', 'BU-PK'], roles: ['admin'] }
   ];
 

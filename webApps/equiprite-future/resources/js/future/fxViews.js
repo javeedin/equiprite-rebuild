@@ -86,18 +86,26 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine'], function 
     };
   }
   function needsDeposit(s, r) {
-    if (r.type !== 'CUSTOMER_RENTAL' || r.deposit) return false;
+    if (r.type !== 'CUSTOMER_RENTAL' || r.deposit || r.status === 'CREDIT_HOLD' || r.status === 'REFUSED') return false;
     var ag = L.agreement(s, (r.lines[0] || {}).agreementId);
-    return !!(ag && ag.depositPct);
+    return !!((ag && ag.depositPct) || r.prepay);
+  }
+  /** The words of a request on credit hold: why, and who decides. */
+  function creditWords(s, r) {
+    var c = r.credit || {};
+    return 'On credit hold: ' + (c.reason === 'LIMIT' ? 'over the credit limit' : 'the customer is on hold') + ', waiting for credit control';
   }
   function waitingWords(s, r) {
     if (r.status === 'AWAITING_REQUESTER_APPROVAL') return 'Waiting for the requesting BU\'s approval';
-    if (needsDeposit(s, r)) return 'Waiting for the deposit (rental desk), then the owner approves';
+    if (r.status === 'CREDIT_HOLD') return creditWords(s, r);
+    if (needsDeposit(s, r)) return r.prepay ? 'Waiting for the cash in advance (rental desk), then the owner approves' : 'Waiting for the deposit (rental desk), then the owner approves';
     return LINE.REQUESTED.words;
   }
   function requestStage(s, r) {
     var st = r.lines.map(function (l) { return l.status; });
     if (r.status === 'AWAITING_REQUESTER_APPROVAL') return { stage: 'requested', words: 'Waiting for the requesting BU\'s approval' };
+    if (r.status === 'CREDIT_HOLD') return { stage: 'requested', words: creditWords(s, r) };
+    if (r.status === 'REFUSED') return { stage: 'rejected', words: 'Refused by credit control' };
     var order = ['REQUESTED', 'APPROVED', 'SHIPPED', 'ON_HIRE', 'OFF_HIRED', 'RETURNED'];
     for (var i = 0; i < order.length; i++) if (st.indexOf(order[i]) !== -1) {
       var n = st.filter(function (x) { return x === order[i]; }).length;
@@ -146,7 +154,8 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine'], function 
       hidden: false, lineRows: lines, chargeRows: charges, finance: finance(s, r.id), accounting: requestAccounting(s, r.id),
       timeline: s.log.filter(function (x) { return x.refs && x.refs.requestId === r.id; }).map(function (x) { return { at: date(x.at), who: x.who, title: x.whoTitle, what: x.what }; }),
       createdBy: r.createdBy, createdAt: date(r.createdAt), note: r.note, deposit: r.deposit, requestingLe: L.leShort(s, r.requestingLe), status: r.status,
-      iAmUser: L.inBu(p, r.requestingBu), iAmOwner: r.lines.some(function (l) { return L.inBu(p, l.provider); }), needsMyApproval: r.status === 'AWAITING_REQUESTER_APPROVAL' && L.inBu(p, r.requestingBu) && L.can(p, 'receiver-review')
+      iAmUser: L.inBu(p, r.requestingBu), iAmOwner: r.lines.some(function (l) { return L.inBu(p, l.provider); }), needsMyApproval: r.status === 'AWAITING_REQUESTER_APPROVAL' && L.inBu(p, r.requestingBu) && L.can(p, 'receiver-review'),
+      credit: r.credit || null, onCreditHold: r.status === 'CREDIT_HOLD', needsMyCredit: r.status === 'CREDIT_HOLD' && L.inBu(p, r.requestingBu) && L.can(p, 'credit')
     });
   }
 
@@ -291,7 +300,7 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine'], function 
   /** Approve & allocate: the lines that use MY fleet (the sourcing BU decides, MC-FR-13/14). */
   function approvals(s) {
     var p = E.persona(s);
-    var rows = allLines(s, function (r, l) { return l.status === 'REQUESTED' && r.status !== 'AWAITING_REQUESTER_APPROVAL' && L.inBu(p, l.provider); }).map(function (x) {
+    var rows = allLines(s, function (r, l) { return l.status === 'REQUESTED' && r.status !== 'AWAITING_REQUESTER_APPROVAL' && r.status !== 'CREDIT_HOLD' && L.inBu(p, l.provider); }).map(function (x) {
       var r = L.request(s, x.requestId);
       var opts = E.sourcing(s, { requestingBu: r.requestingBu, cls: x.cls, from: r.from, to: r.to, country: r.country, customerId: r.type === 'CUSTOMER_RENTAL' ? r.customerId : '' })
         .filter(function (o) { return o.owner === x.provider; });
@@ -408,10 +417,40 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine'], function 
     });
     var deposits = s.requests.filter(function (r) { return r.type === 'CUSTOMER_RENTAL' && r.lines.some(function (l) { return L.inBu(p, l.provider); }); }).map(function (r) {
       var ag = L.agreement(s, r.lines[0].agreementId) || {};
-      return { id: r.id, number: r.number, customer: (L.customer(s, r.customerId) || {}).name, deposit: r.deposit ? money(r.deposit.amount, ag.currency) : '', needed: !!ag.depositPct && !r.deposit,
+      return { id: r.id, number: r.number, customer: (L.customer(s, r.customerId) || {}).name, deposit: r.deposit ? money(r.deposit.amount, ag.currency) : '', needed: needsDeposit(s, r), prepay: !!r.prepay,
+        held: r.status === 'CREDIT_HOLD', refused: r.status === 'REFUSED',
         settled: r.deposit && r.deposit.settled ? 'Applied ' + num(r.deposit.settled.applied) + ', refunded ' + num(r.deposit.settled.refunded) : '', canSettle: !!r.deposit && !r.deposit.settled && r.lines.every(function (l) { return ['CLOSED', 'LOST', 'REJECTED'].indexOf(l.status) !== -1; }) };
     });
-    return { invoices: invoices.reverse(), waiting: waiting, projects: projects, deposits: deposits, s2Mode: s.settings.s2Billing, canDeposit: L.can(p, 'desk'), canDesk: L.can(p, 'desk') || L.can(p, 'ic-finance') || L.can(p, 'owner-finance'), canBill: L.can(p, 'finance') || L.can(p, 'receiver-review') || L.can(p, 'ic-finance') };
+    return { invoices: invoices.reverse(), waiting: waiting, projects: projects, deposits: deposits, credit: credit(s), s2Mode: s.settings.s2Billing, canDeposit: L.can(p, 'desk'), canDesk: L.can(p, 'desk') || L.can(p, 'ic-finance') || L.can(p, 'owner-finance'), canBill: L.can(p, 'finance') || L.can(p, 'receiver-review') || L.can(p, 'ic-finance') };
+  }
+
+  /**
+   * Credit control (Fusion Receivables credit management): the rentals on credit hold in my companies, and every
+   * rental customer's credit (limit, used: open invoices + rentals out, available, hold). canDecide: the credit role.
+   */
+  function credit(s) {
+    var p = E.persona(s);
+    var les = s.bus.filter(function (b) { return b.roles.indexOf('rental') !== -1 && L.inBu(p, b.id); }).map(function (b) { return b.le; });
+    var holds = s.requests.filter(function (r) { return r.status === 'CREDIT_HOLD' && L.inBu(p, r.requestingBu); }).map(function (r) {
+      var cust = L.customer(s, r.customerId) || {};
+      var c = E.creditOf(s, r.customerId, r.id);
+      var cur = L.le(s, r.requestingLe).currency;
+      var need = U.r2(c.used + (r.credit.value || 0));
+      return { id: r.id, number: r.number, customerId: cust.id, customer: cust.name, raisedBy: r.createdBy, raisedAt: date(r.createdAt), dates: short(r.from) + ' – ' + date(r.to),
+        reason: r.credit.reason, reasonText: r.credit.reason === 'LIMIT' ? 'Over the credit limit' : 'Customer on credit hold', holdReason: cust.onHold ? cust.holdReason || '' : '',
+        value: r.credit.value, valueText: money(r.credit.value, cur), limit: c.limit, limitText: money(c.limit, cur), used: c.used, usedText: money(c.used, cur), openArText: money(c.openAr, cur),
+        rentalsText: money(c.rentals, cur), need: need, needText: money(need, cur), onHold: c.onHold,
+        units: r.lines.map(function (l) { var u = L.unit(s, l.preferredUnit); return u ? u.serial + ' · ' + u.name : l.cls; }).join(', ') };
+    });
+    var customers = s.customers.filter(function (c) { return les.indexOf(c.of) !== -1; }).map(function (cu) {
+      var c = E.creditOf(s, cu.id, null);
+      var cur = L.le(s, cu.of).currency;
+      var held = s.requests.filter(function (r) { return r.status === 'CREDIT_HOLD' && r.customerId === cu.id; }).length;
+      return { id: cu.id, name: cu.name, company: L.leShort(s, cu.of), onHold: c.onHold, holdReason: c.holdReason, limit: c.limit, limitText: money(c.limit, cur), used: c.used, usedText: money(c.used, cur),
+        openArText: money(c.openAr, cur), rentalsText: money(c.rentals, cur), available: c.available, availableText: money(Math.max(0, c.available), cur), over: c.available < 0,
+        usedPct: c.limit > 0 ? Math.min(100, Math.round(c.used / c.limit * 100)) : (c.used > 0 ? 100 : 0), held: held };
+    });
+    return { holds: holds, customers: customers, canDecide: L.can(p, 'credit'), who: Seed.PERSONAS.filter(function (x) { return x.roles.indexOf('credit') !== -1 && les.some(function (le) { return x.bus.some(function (b) { return L.bu(s, b) && L.bu(s, b).le === le; }); }); }).map(function (x) { return x.name; }) };
   }
 
   // ── Accounting (shown) and the group view ─────────────────────────────────────────────────────────────────────
@@ -570,6 +609,7 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine'], function 
     add(w.toCreate.length, 'invoice pairs to create', 'ic-workbench', L.can(p, 'ic-finance'));
     add(w.toSettle.length, 'invoiced statements to settle', 'ic-workbench', L.can(p, 'ic-finance'));
     add(w.internal.length, 'cross-charges and own-equipment costs to post', 'ic-workbench', L.can(p, 'ic-finance') || L.can(p, 'finance'));
+    add(b.credit.holds.length, 'rentals on credit hold to release or refuse', 'billing', L.can(p, 'credit'));
     add(b.waiting.length, 'customer charges to invoice', 'billing', b.canDesk);
     add(b.projects.filter(function (x) { return x.canBill; }).length, 'customer projects to bill', 'billing', b.canBill);
     add(s.requests.filter(function (r) { return r.status === 'AWAITING_REQUESTER_APPROVAL' && L.inBu(p, r.requestingBu); }).length, 'requests over your threshold to approve', 'requests', L.can(p, 'receiver-review'));
@@ -579,6 +619,6 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine'], function 
   }
 
   return { me: me, personas: personas, requests: requests, request: request, finance: finance, requestAccounting: requestAccounting, approvals: approvals, yard: yard, site: site, hours: hours,
-    charges: charges, workbench: workbench, billing: billing, ledger: ledger, consolidation: consolidation, reports: reports, setup: setup, guide: guide, notifications: notifications, work: work,
+    charges: charges, workbench: workbench, billing: billing, credit: credit, ledger: ledger, consolidation: consolidation, reports: reports, setup: setup, guide: guide, notifications: notifications, work: work,
     fmt: { date: date, short: short, period: period, num: num, money: money }, REL: REL, TYPE: TYPE };
 });

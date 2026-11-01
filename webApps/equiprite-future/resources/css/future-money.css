@@ -200,3 +200,30 @@
 .fxm-inv-margin { font-size: 12.5px; font-weight: 700; color: var(--fx-ok); }
 .fxm-inv-pay { padding: 0 16px 12px 44px; }
 @media (max-width: 1100px) { .fxm-inv-row { grid-template-columns: minmax(0, 1fr); } .fxm-inv-state { padding: 0 16px 10px 44px; } }
+
+/* Credit control (Customer billing): rentals on credit hold, the ways to release them, the customers' credit. */
+.fxm-credit-intro { margin: 0; padding: 4px 16px 10px; }
+.fxm-holds, .fxm-custcredit { list-style: none; margin: 0; padding: 0; }
+.fxm-hold { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; border-top: 1px solid var(--nx-line); }
+.fxm-hold-top, .fxm-cc-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.fxm-hold-title { font-weight: 700; min-width: 0; }
+.fxm-hold-why { display: flex; gap: 8px; align-items: flex-start; margin: 0; font-size: 13px; line-height: 1.45; color: var(--nx-ink); }
+.fxm-hold-why [class^="oj-ux-ico"] { color: var(--nx-danger); margin-top: 2px; }
+.fxm-hold-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(130px, 100%), 1fr)); gap: 8px; margin: 0; }
+.fxm-hold-fact { padding: 8px 10px; border: 1px solid var(--nx-line); border-radius: 8px; background: var(--nx-bg, transparent); min-width: 0; }
+.fxm-hold-fact dt { font-size: 11.5px; color: var(--nx-faint); text-transform: uppercase; letter-spacing: 0.04em; }
+.fxm-hold-fact dd { margin: 2px 0 0; font-weight: 700; overflow-wrap: anywhere; }
+.fxm-hold-fact:last-child { border-color: var(--nx-danger); }
+.fxm-ways { display: grid; gap: 8px; padding: 10px 12px; border: 1px dashed var(--nx-line); border-radius: 8px; }
+.fxm-way { display: grid; grid-template-columns: minmax(200px, auto) minmax(0, 1fr); gap: 4px 12px; align-items: start; }
+.fxm-way .nx-btn { justify-self: start; }
+.fxm-way .fxm-does { padding-top: 5px; }
+@media (max-width: 760px) { .fxm-way { grid-template-columns: minmax(0, 1fr); } }
+.fxm-cc { display: flex; flex-direction: column; gap: 6px; padding: 12px 16px; border-top: 1px solid var(--nx-line); }
+.fxm-cc-name { font-weight: 700; }
+.fxm-cc-bar { height: 8px; border-radius: 999px; background: var(--nx-line); overflow: hidden; }
+.fxm-cc-fill { display: block; height: 100%; border-radius: inherit; background: var(--nx-brand, #227e9e); }
+.fxm-cc-fill--todo { background: var(--nx-warn); }
+.fxm-cc-fill--bad { background: var(--nx-danger); }
+.fxm-cc-fill--ok { background: var(--nx-ok); }
+.fxm-cc .fxm-does, .fxm-hold .fxm-does { margin: 0; }

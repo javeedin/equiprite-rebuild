@@ -460,8 +460,10 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
       var ag = L.agreement(s, (r.lines || [{}])[0].agreementId) || {};
       return Object.assign({}, dp, {
         canTake: dp.needed && desk, canSettleNow: dp.canSettle && desk,
-        statusText: dp.needed ? 'Needed before the owner can approve: ' + pct(ag.depositPct) + ' of four weeks\' rent' : dp.settled ? dp.settled : r.deposit ? 'Received ' + F.date(r.deposit.date) + ': held until the return inspection' : 'No deposit on this agreement',
-        tone: dp.needed ? 'todo' : dp.settled ? 'ok' : 'run',
+        statusText: dp.held ? 'On credit hold: no deposit until credit control releases it' : dp.refused ? 'Refused by credit control: no deposit'
+          : dp.needed ? (dp.prepay ? 'Cash in advance, as credit control asked: the whole estimate, before the owner can approve' : 'Needed before the owner can approve: ' + pct(ag.depositPct) + ' of four weeks\' rent')
+            : dp.settled ? dp.settled : r.deposit ? (r.deposit.prepay ? 'Cash in advance received ' : 'Received ') + F.date(r.deposit.date) + ': held until the return inspection' : 'No deposit on this agreement',
+        tone: dp.held ? 'todo' : dp.refused ? 'bad' : dp.needed ? 'todo' : dp.settled ? 'ok' : 'run',
         takeText: takeTx ? 'Records ' + F.money(takeTx.total, takeTx.currency) + ' received from ' + dp.customer + ' (Fusion Receivables: Dr bank, Cr customer deposits).' : (take ? take.error : ''),
         settleText: setInfo ? 'Applies ' + F.money(setInfo.applied, setTx.currency) + ' to the open invoices of ' + dp.customer + ' and refunds ' + F.money(setInfo.refunded, setTx.currency) + ' (Fusion Receivables).' : (settle ? settle.error : ''),
         txs: [takeTx, setTx].filter(Boolean).map(function (t) { return txRow(s, t); })
@@ -502,12 +504,57 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
       });
     });
     var open = invoices.filter(function (t) { return !t.paid; });
+    var credit = creditPanel(s, v.credit, p);
     return Object.assign({}, v, {
-      me: me, customers: customers, deposits: deposits, projects: projects, invoices: invoices, canInvoice: canInvoice, canDeposit: desk, canPay: canPay,
+      me: me, customers: customers, deposits: deposits, projects: projects, invoices: invoices, canInvoice: canInvoice, canDeposit: desk, canPay: canPay, credit: credit,
       s2ModeText: ppm ? 'PPM contract billing (OD-07 a): ProjectCo\'s project contract bills Customer X' : 'EquipRite invoice from ProjectCo (OD-07 b): the IC cost is non-billable on the contract',
       neverBoth: 'Never both: the customer is billed once, either by the project contract or by EquipRite. The mode is the setting “Who bills Customer X” in Setup.',
-      kpi: { waiting: arr(v.waiting).length, deposits: deposits.filter(function (d) { return d.needed || d.canSettle; }).length, projects: projects.filter(function (x) { return x.canBill; }).length, open: open.length }
+      kpi: { credit: credit.holds.length, waiting: arr(v.waiting).length, deposits: deposits.filter(function (d) { return d.needed || d.canSettle; }).length, projects: projects.filter(function (x) { return x.canBill; }).length, open: open.length }
     });
+  }
+
+  // ── Credit control (Fusion Receivables credit management) ─────────────────────────────────────────────────────
+  /** A limit that covers what is needed with room: 25 % more, rounded up to 10,000. */
+  function proposeLimit(need) { return Math.max(10000, Math.ceil(need * 1.25 / 10000) * 10000); }
+  /**
+   * The credit panel: each rental on credit hold with its facts and the three ways to release it (and Refuse), and
+   * every rental customer's credit with Put on hold / Lift the hold. Who may decide: the credit role (fxViews.credit).
+   */
+  function creditPanel(s, c, p) {
+    var cr = c || { holds: [], customers: [], canDecide: false, who: [] };
+    var who = arr(cr.who).join(' or ');
+    var holds = arr(cr.holds).map(function (h) {
+      var r = L.request(s, h.id) || { lines: [] };
+      var cur = L.le(s, r.requestingLe).currency;
+      var lim = proposeLimit(h.need);
+      var prepay = U.r2(U.sum(r.lines, function (l) { return l.estimate || 0; }));
+      return Object.assign({}, h, {
+        tone: h.reason === 'LIMIT' ? 'todo' : 'bad',
+        facts: [['Limit', h.limitText], ['Open invoices', h.openArText], ['Rentals out', h.rentalsText], ['This request', h.valueText], ['With it', h.needText]].map(function (x) { return { k: x[0], v: x[1] }; }),
+        why: h.reason === 'LIMIT' ? 'With this request ' + h.customer + ' would use ' + h.needText + ' of its ' + h.limitText + ' limit.' : h.customer + ' is on credit hold' + (h.holdReason ? ': ' + h.holdReason : '') + '.',
+        proposal: lim, prepay: prepay,
+        ways: [
+          { how: 'ONCE', label: 'Release this request only', limit: '', does: 'Only ' + h.number + ' goes on; ' + h.customer + ' stays ' + (h.onHold ? 'on hold' : 'at its limit') + ' for the next one. The rental desk takes the usual deposit.' },
+          { how: 'PREPAY', label: 'Release against cash in advance', limit: '', does: 'The deposit becomes the whole estimate, ' + F.money(prepay, cur) + ', taken by the rental desk before the owner may approve. No credit is given.' },
+          { how: 'LIMIT', label: 'Lift the hold, limit ' + F.money(lim, cur), limit: String(lim), does: (h.onHold ? 'Lifts the hold on ' + h.customer + ' and sets' : 'Raises') + ' its credit limit to ' + F.money(lim, cur)
+            + ' (it needs ' + h.needText + '); other requests of ' + h.customer + ' on hold that now fit go on too.' }
+        ],
+        refuseDoes: 'Refuses every line of ' + h.number + ' with your reason; the rental desk (' + h.raisedBy + ') is told and tells the customer.'
+      });
+    });
+    var customers = arr(cr.customers).map(function (cu) {
+      return Object.assign({}, cu, {
+        stateText: cu.onHold ? 'On credit hold' : cu.over ? 'Over the limit' : 'Within the limit', tone: cu.onHold ? 'bad' : cu.over ? 'todo' : 'ok',
+        barStyle: { width: cu.usedPct + '%' }, usedText2: cu.usedText + ' used of ' + cu.limitText,
+        heldText: cu.held ? plural(cu.held, 'request') + ' on credit hold' : '',
+        liftDoes: cu.limit > 0 ? 'Lifts the hold: new rentals for ' + cu.name + ' are checked against its limit of ' + cu.limitText + ' again.'
+          : 'Lifts the hold, but its credit limit is ' + cu.limitText + ': every new rental still waits here (over the limit). To give credit, use “Lift the hold, limit …” on a request on hold.',
+        holdDoes: 'Every new rental for ' + cu.name + ' waits for credit control until the hold is lifted; the rental desk sees the reason.'
+      });
+    });
+    return { holds: holds, customers: customers, canDecide: !!cr.canDecide, who: who,
+      intro: 'Fusion Receivables checks every new rental: a customer on hold, or over its limit with the request, waits here. ' + (who ? who + ' (credit control) decides' : 'Credit control decides') + '; the rental desk raises, so it never releases its own.',
+      empty: 'No rental waits on credit hold.' };
   }
 
   // ── Checks and failures ─────────────────────────────────────────────────────────────────────────────────────
@@ -515,6 +562,8 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
   function check(s, req) {
     var r = req || {};
     var x = r.payload || {};
+    if (r.type === 'refuseCredit' && !String(x.reason || '').trim()) return 'Say why it is refused: the rental desk tells the customer.';
+    if (r.type === 'setCustomerCredit' && x.onHold === true && !String(x.reason || '').trim()) return 'Say why the customer goes on hold: the rental desk sees it.';
     if (r.type === 'disputeCharge' && !String(x.reason || '').trim()) return 'Give the reason for the dispute: ' + 'the owner sees it and resolves the line.';
     if (r.type === 'resolveDispute' && x.resolution === 'credit') {
       var c = U.byId(s.charges, x.chargeId);
@@ -533,7 +582,7 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
     return { text: String(text || 'That did not go through.'), type: r.type || '', ref: ref, chargeId: x.chargeId || '' };
   }
   var NO_FAILURE = { text: '', type: '', ref: '', chargeId: '' };
-  var FORM_KEYS = { disputing: '', reason: '', resolving: '', credit: '' };
+  var FORM_KEYS = { disputing: '', reason: '', resolving: '', credit: '', refusing: '', holding: '' };
 
   /** The action a form sends: the dispute's reason and the credit's amount come from the page's open form (ui). */
   function withForm(req, ui) {
@@ -541,6 +590,7 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
     var u = ui || {};
     r.payload = Object.assign({}, r.payload || {});
     if (r.type === 'disputeCharge' && r.payload.reason == null) r.payload.reason = String(u.reason || '').trim();
+    if ((r.type === 'refuseCredit' || (r.type === 'setCustomerCredit' && r.payload.onHold === true)) && r.payload.reason == null) r.payload.reason = String(u.reason || '').trim();
     if (r.type === 'resolveDispute' && r.payload.resolution === 'credit' && r.payload.amount == null) r.payload.amount = u.credit === '' || u.credit == null ? NaN : Number(u.credit);
     return r;
   }
@@ -564,6 +614,8 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
         var c = U.byId((s && s.charges) || [], val);
         return { set: { ui: Object.assign(ui, { resolving: ui.resolving === val ? '' : val, credit: c ? String(Math.abs(c.amount)) : '', disputing: '', reason: '' }), failure: NO_FAILURE } };
       }
+      case 'refuseCredit': return { set: { ui: Object.assign(ui, FORM_KEYS, { refusing: ui.refusing === val ? '' : val }), failure: NO_FAILURE } };
+      case 'holdCustomer': return { set: { ui: Object.assign(ui, FORM_KEYS, { holding: ui.holding === val ? '' : val }), failure: NO_FAILURE } };
       case 'cancel': return { set: { ui: Object.assign(ui, FORM_KEYS), failure: NO_FAILURE } };
       case 'reason': case 'credit': ui[field] = val; return { set: { ui: ui } };
       case 'tx': {

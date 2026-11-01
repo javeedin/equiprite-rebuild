@@ -85,7 +85,7 @@ function loadStore() {
     old.agreements.forEach((a) => { delete a.billing; delete a.minHours; Object.keys(a.rates).forEach((k) => { delete a.rates[k].hour; }); });
     old.requests.forEach((r) => r.lines.forEach((l) => { if (l.price) { delete l.price.billing; delete l.price.hour; delete l.price.minHours; } }));
     const up = Store.upgrade(JSON.parse(JSON.stringify(old)));
-    T.eq('version 3 → 4, the same requests', [up.version, up.upgradedFrom, up.requests.length].join(), '4,3,' + old.requests.length);
+    T.eq('version 3 → 5, the same requests', [up.version, up.upgradedFrom, up.requests.length].join(), '5,3,' + old.requests.length);
     T.eq('Customer Y\'s agreement now bills by the hour, with hour rates', [up.agreements.find((a) => a.id === 'RA-01').billing, up.agreements.find((a) => a.id === 'RA-01').rates.GEN.hour].join(), 'HOURLY,52.5');
     T.check('its lines carry the billing', up.requests.every((r) => r.lines.every((l) => !l.price || l.price.billing)));
     T.eq('a story from a newer version is not guessed at', Store.upgrade(Object.assign({}, old, { version: 99 })), null);

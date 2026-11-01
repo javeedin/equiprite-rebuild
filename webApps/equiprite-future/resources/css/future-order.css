@@ -142,3 +142,16 @@
 .fx-nr-banner { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px; background: #f0fdf4; border: 1px solid #bbf7d0; color: #14532d; }
 .fx-nr-banner > span[class^="oj-ux-ico"] { font-size: 20px; color: var(--nx-ok); }
 .fx-nr-banner-text { flex: 1 1 300px; font-weight: 600; }
+
+/* The credit check before Submit (a customer rental): on hold or over the limit (warn), or passing (ok). */
+.fx-nr-option-credit { font-size: 12.5px; color: var(--nx-ink); display: inline-flex; gap: 4px; align-items: center; }
+.fx-nr-option-credit--hold { color: var(--nx-danger); font-weight: 700; }
+.fx-nr-credit { display: flex; gap: 10px; align-items: flex-start; margin-top: 10px; padding: 12px 14px; border-radius: 8px; border: 1px solid var(--nx-line); background: var(--nx-panel, transparent); }
+.fx-nr-credit p { margin: 0; }
+.fx-nr-credit-title { font-weight: 700; line-height: 1.4; }
+.fx-nr-credit-text { margin-top: 4px !important; font-size: 13px; color: var(--nx-muted); line-height: 1.45; }
+.fx-nr-credit-ico { font-size: 18px; margin-top: 1px; }
+.fx-nr-credit--warn { border-color: var(--nx-warn); border-left-width: 4px; }
+.fx-nr-credit--warn .fx-nr-credit-ico { color: var(--nx-warn); }
+.fx-nr-credit--ok { border-left: 4px solid var(--nx-ok); }
+.fx-nr-credit--ok .fx-nr-credit-ico { color: var(--nx-ok); }
