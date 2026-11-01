@@ -94,7 +94,8 @@
     "onRetHours": { "chains": [{ "chain": "returnChain", "parameters": { "op": "hours", "kind": "{{ $event.target.dataset.kind }}", "date": "{{ $event.target.dataset.date }}", "value": "{{ $event.target.value }}" } }] },
     "onRetApprove": { "chains": [{ "chain": "returnChain", "parameters": { "op": "approve", "checked": "{{ $event.target.checked }}" } }] },
     "onRetFill": { "chains": [{ "chain": "returnChain", "parameters": { "op": "fill" } }] },
-    "onRetConfirm": { "chains": [{ "chain": "returnChain", "parameters": { "op": "confirm" } }] }
+    "onRetConfirm": { "chains": [{ "chain": "returnChain", "parameters": { "op": "confirm" } }] },
+    "onRetNow": { "chains": [{ "chain": "returnChain", "parameters": { "op": "now" } }] }
   },
   "imports": {
     "components": {

@@ -406,7 +406,7 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
       planText: nPlanned ? 'Days after today (' + F.date(s.today) + ') are planned: standard hours, 8 h of use on each working day and the weekend empty, an estimate you can change. They are not saved: record the hours as the days pass.' : '',
       emptyText: notYet ? '' : 'No day to record: the hire stops the day it started.',
       canApprove: mayApprove(s, c.r),
-      approveLabel: (nPlanned ? 'The hours up to today are agreed (' : 'These hours are agreed (') + (c.rental ? 'signed by the customer, ' + c.custName : 'approved by the project, ' + c.party) + ')',
+      approveLabel: (nPlanned ? (nActual ? 'The hours up to today are agreed (' : 'The hours are agreed when the return is closed (') : 'These hours are agreed (') + (c.rental ? 'signed by the customer, ' + c.custName : 'approved by the project, ' + c.party) + ')',
       waitText: 'They wait for the approval of ' + (appr.length ? names(appr, 'or') : 'the requester') + '; the bill counts them once approved.',
       basisText: bs.text, basisShort: bs.short, basisTone: bs.tone
     };
@@ -499,6 +499,8 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
     var est = ahead.filter(function (x) { return !x.bad && x.usage + x.standby > 0; }).map(function (x) { return { date: x.date, usage: x.usage, standby: x.standby }; });
     var waiting = (s.hours || []).filter(function (x) { return x.lineId === c.l.id && !x.approved && x.date <= last; });
     var approve = !!d.approve && dv.canApprove && actual.length > 0;
+    // Closing the return now makes every day actual: the tick then agrees them all (the planned days too).
+    var approveAll = !!d.approve && dv.canApprove;
     var bulk = days.length || (approve && waiting.length) ? { requestId: c.r.id, lineId: c.l.id, days: days, approve: approve } : null;
     if (bulk && !returned) bulk.until = date;
     var kept = planned && c.l.plannedReturn === date;
@@ -565,8 +567,15 @@ define(['resources/js/future/fxSeed', 'resources/js/future/fxEngine', 'resources
       canFill: emptyWork > 0,
       droppedText: dropped.length ? 'Hours recorded on ' + names(dropped.map(function (x) { return F.short(x); })) + ' are dropped: the hire stops on ' + F.date(date)
         + (c.hourly ? ' (its hours count, not the days after).' : ' (the return day is not charged).') : '',
-      confirm: returned ? 'Send the final timesheet' : !dateOk ? 'Return' : planned ? (kept ? 'Record the hours, keep the return on ' + F.date(date) : 'Book the return for ' + F.date(date)) : 'Return ' + c.serial + ' on ' + F.date(date),
-      tone: planned ? 'primary' : 'ok', toast: toast
+      confirm: returned ? 'Send the final timesheet' : !dateOk ? 'Close the return' : planned ? (kept ? 'Record the hours, keep the return on ' + F.date(date) : 'Book a future return for ' + F.date(date)) : 'Close the return on ' + F.date(date),
+      tone: planned ? 'secondary' : 'ok', toast: toast,
+      // A later date, returned now: the clock moves to it and the whole timesheet (actual and planned) is recorded.
+      now: planned && dateOk && !returned && !warn ? { requestId: c.r.id, lineId: c.l.id, date: date, approve: approveAll,
+        days: inRange.filter(function (x) { return !x.bad && x.usage + x.standby > 0; }).map(function (x) { return { date: x.date, usage: x.usage, standby: x.standby }; }) } : null,
+      nowLabel: planned && dateOk ? 'Close the return on ' + F.date(date) : '',
+      nowText: planned && dateOk ? 'Book a future return: the hire stops by itself on ' + F.date(date) + '. Close the return: done now, on ' + F.date(date) + '; it moves the demo clock from ' + F.date(s.today) + ' to ' + F.date(date) + ' (the days between pass for everyone), records the whole timesheet ('
+        + h(all.usage) + ' h of use) as actual' + (approveAll ? ' and agreed (' + agreed + ')' : dv.canApprove ? ', waiting for approval (tick that they are agreed for the final bill to count them)' : ', waiting for approval') + ', and stops the hire on ' + F.date(date) + '.' : '',
+      nowToast: planned && dateOk ? c.serial + ' returned on ' + F.date(date) + ' (the demo clock is now on ' + F.date(date) + '): ' + h(all.usage) + ' h of use' + (approveAll ? ', agreed' + (billText ? ', final bill ' + billText : '') : ', waiting for approval: the final bill counts them once agreed') + '.' : ''
     };
   }
   function poss(n) { return /s$/.test(n) ? n + '\'' : n + '\'s'; }

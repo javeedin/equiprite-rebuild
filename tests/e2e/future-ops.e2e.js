@@ -478,7 +478,7 @@ function earlyState() {
     const does = await h.text('#stRetDoes');
     T.check('What EquipRite does: stops the hire, records and agrees the timesheet, the yard collects', ['Stops the hire of GN-3002 on 12 Nov 2026; 1 day of hours recorded after it is dropped.',
       'Records 1 day of the timesheet and agrees every day of it (signed by the customer).', 'Collect GN-3002 from Customer site: returned on 12 Nov 2026.'].every((x) => does.includes(x)), does);
-    T.eq('Confirm says it', await h.text('#stRetConfirm'), 'Return GN-3002 on 12 Nov 2026');
+    T.eq('Confirm says it', await h.text('#stRetConfirm'), 'Close the return on 12 Nov 2026');
     for (const w of [1440, 1024]) {
       await page.setViewportSize({ width: w, height: 1000 });
       await page.waitForTimeout(400);
@@ -531,7 +531,7 @@ function earlyState() {
     await page.waitForFunction(() => /Planned return/.test(document.getElementById('stRetWhenText').innerText), null, { timeout: 5000 });
     T.eq('in 5 days: planned, the timesheet to the day before (by the day), planned after today, the estimated bill', [await h.text('#stRetWhenText'), await h.text('#stRetConfirm'), await h.text('#stRetBillTitle'),
       await page.$$eval('#stRetRows .fx-sheet-row', (r) => r.map((x) => x.dataset.date.slice(8) + (x.className.includes('fx-sheet-row--planned') ? 'p' : '')).join())].join(' | '),
-      'Planned return: the hire stops by itself on 12 Nov 2026. Until then, record the hours as the days pass; the final timesheet is asked for on the day. | Book the return for 12 Nov 2026 | ESTIMATED FINAL BILL | 07,08p,09p,10p,11p');
+      'Planned return: the hire stops by itself on 12 Nov 2026. Until then, record the hours as the days pass; the final timesheet is asked for on the day. | Book a future return for 12 Nov 2026 | ESTIMATED FINAL BILL | 07,08p,09p,10p,11p');
     T.eq('…by the day: the actual day and the planned ones apart (5 days at the week rate), transport out and back', [await page.$$eval('#stRetBillRows .fx-bill-row', (r) => r.slice(0, 2).map((x) => x.innerText.replace(/\s+/g, ' ').trim()).join(' ; ')),
       await h.text('#stRetTotal')].join(' | '), 'Rental, actual 7 Nov 2026 · 1 day AED 800.00 ; Rental, planned 8 Nov – 11 Nov 2026 · 4 days AED 2,700.00 | AED 6,500.00');
     await h.confirmReturn();
@@ -594,8 +594,8 @@ function earlyState() {
       'ESTIMATED FINAL BILL | Rental, planned 9 Nov – 6 Dec 2026 · 160 h of use × AED 140.00 an hour (estimate) AED 22,400.00 ; Transport out to the site AED 2,200.00 ; Transport back when the yard collects it AED 2,200.00 | AED 26,800.00 | AED 28,140.00');
     T.eq('…the actual days and the planned ones apart', await page.$$eval('#stRetSplit .fx-ret-phase', (r) => r.map((x) => x.innerText.replace(/\s+/g, ' ').trim()).join(' / ')),
       'ACTUAL, UP TO TODAY None yet: the hire starts on 9 Nov 2026 (delivered early on 2 Nov) AED 0.00 / PLANNED, AN ESTIMATE 9 Nov – 6 Dec 2026 · 28 days · 160 h of use AED 22,400.00');
-    T.check('…no agreement to tick before a day has passed', !(await page.$('#stRetApprove')));
-    T.eq('Confirm books it', await h.text('#stRetConfirm'), 'Book the return for 6 Dec 2026');
+    T.eq('…the agreement is for closing it now (no day has passed yet)', await h.text('#page-site #stReturn .fx-ret-agree'), 'The hours are agreed when the return is closed (signed by the customer, Customer Y)');
+    T.eq('Confirm books it', await h.text('#stRetConfirm'), 'Book a future return for 6 Dec 2026');
     for (const w of [1440, 1024]) {
       await page.setViewportSize({ width: w, height: 1000 });
       await page.waitForTimeout(400);
@@ -654,6 +654,48 @@ function earlyState() {
       l.status, l.plannedReturn].join(' | '),
       '09:8:Lena Novak (signed by the customer) | 10:8:Lena Novak (signed by the customer) | 11:8:Lena Novak (signed by the customer) | 12:8:Lena Novak (signed by the customer) | 13:8:Lena Novak (signed by the customer) | ON_HIRE | 2026-12-06');
     await widths(h, '#page-site', 'Receive, hours, moves at 15 Nov');
+  });
+
+  // ── 'early' again: at 2 Nov Lena does not wait for 6 Dec: she closes the return on 6 Dec now (the clock moves there) ──
+  await story({ name: 'early', state: earlyState() }, 'p-desk', 'site', async (h) => {
+    const { page } = h;
+    const hire = '#page-site .fx-hire[data-request="FR-1001"]';
+    T.section('Close the return on a later date now (Lena at 2 Nov, FR-1001 returned on 6 Dec without waiting)');
+    await page.waitForSelector(hire, { timeout: 10000 });
+    await h.ask(hire + ' .fx-mv-return', '#stReturn');
+    T.eq('the return date asked: the request\'s end by default', await page.inputValue('#stRetDate'), '2026-12-06');
+    T.eq('two choices: book a future return, or close the return on that date now', [await h.text('#stRetConfirm'), await h.text('#stRetNow')].join(' | '),
+      'Book a future return for 6 Dec 2026 | Close the return on 6 Dec 2026');
+    T.check('…what each does, said before it is done', /^Book a future return: the hire stops by itself on 6 Dec 2026\. Close the return: done now, on 6 Dec 2026; it moves the demo clock from 2 Nov 2026 to 6 Dec 2026/.test(await h.text('#stRetNowText')), await h.text('#stRetNowText'));
+    T.eq('the hours can be agreed now (signed by the customer): Close makes every day actual', await h.text('#page-site #stReturn .fx-ret-agree'),
+      'The hours are agreed when the return is closed (signed by the customer, Customer Y)');
+    await page.check('#stRetApprove');
+    await page.waitForFunction(() => /as actual and agreed \(signed by the customer\)/.test(document.getElementById('stRetNowText').innerText), null, { timeout: 5000 });
+    for (const w of [1440, 1024]) {
+      await page.setViewportSize({ width: w, height: 1000 });
+      await page.waitForTimeout(400);
+      const f = await h.dialogFits('#stReturn');
+      T.check(`${w}px, the Return dialog with both choices: no sideways scroll`, f.ok, f.over);
+    }
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.waitForTimeout(300);
+    T.check('screenshot: the two choices', !!(await h.env.shot('future-ops-return-now.png')));
+    await page.click('#stRetNow');
+    await page.waitForSelector('#stReturn', { state: 'detached', timeout: 15000 });
+    await page.waitForFunction(() => document.getElementById('fxToday').innerText.trim() === 'Sun 6 Dec 2026', null, { timeout: 10000 });
+    await page.waitForTimeout(500);
+    T.eq('the toast: returned on 6 Dec, the clock moved, the hours agreed, the final bill', await h.toast(),
+      'EX-1002 returned on 6 Dec 2026 (the demo clock is now on 6 Dec 2026): 160 h of use, agreed, final bill AED 26,800.00 + VAT 5 % AED 1,340.00.');
+    const s = await h.state();
+    const l = h.line(s, 'R1001');
+    const hrs = s.hours.filter((x) => x.lineId === l.id).sort((a, b) => a.date.localeCompare(b.date));
+    T.eq('the state: returned on 6 Dec, the hire from 9 Nov, the clock on 6 Dec, no return planned', [l.status, l.events.onHire, l.events.offHire, s.today, l.plannedReturn || ''].join(' | '),
+      'OFF_HIRED | 2026-11-09 | 2026-12-06 | 2026-12-06 | ');
+    T.eq('…the whole timesheet saved: every working day 9 Nov – 4 Dec, 8 h each', [hrs.length, hrs[0] && hrs[0].date, hrs[hrs.length - 1] && hrs[hrs.length - 1].date, hrs.reduce((a, x) => a + x.usage, 0)].join(' | '),
+      '20 | 2026-11-09 | 2026-12-04 | 160');
+    T.check('…every day agreed (signed by the customer)', hrs.every((x) => x.approved && /signed by the customer/.test(x.approvedBy)), JSON.stringify(hrs[0]));
+    T.check('the unit has left On hire', !(await page.$(hire)));
+    await widths(h, '#page-site', 'Receive, hours, moves after closing a return on a later date');
   });
 
   // ── 'fresh': Sara switches an intercompany agreement to billing by the hour (a new version) ─────────────────────────

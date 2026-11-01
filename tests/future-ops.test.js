@@ -280,7 +280,7 @@ draft = { date: '2026-11-12', usage: {}, standby: {}, approve: false };
 dv = Rt.def(s, { requestId: rx, lineId: lx }, '2026-11-12', draft);
 pv = Rt.preview(s, dv, draft);
 T.eq('in 5 days: a planned return; by the day the timesheet stops the day before the return, planned after today', [pv.planned, pv.whenText, pv.confirm, dv.rows.map((r) => r.date.slice(8) + (r.planned ? 'p' : '') + (r.returnDay ? 'R' : '')).join(), dv.ruleText].join(' | '),
-  'true | Planned return: the hire stops by itself on 12 Nov 2026. Until then, record the hours as the days pass; the final timesheet is asked for on the day. | Book the return for 12 Nov 2026 | 07,08p,09p,10p,11p | '
+  'true | Planned return: the hire stops by itself on 12 Nov 2026. Until then, record the hours as the days pass; the final timesheet is asked for on the day. | Book a future return for 12 Nov 2026 | 07,08p,09p,10p,11p | '
   + 'By the day, the return day is not charged: the timesheet stops the day before.');
 T.eq('…the estimated bill at the return: by the day, the actual day and the planned ones apart', [pv.bill.mode, pv.bill.heading, pv.bill.rows.map((r) => r.label + ' ' + r.amountText).join(', '), pv.bill.totalText, pv.bill.notes[0]].join(' | '),
   'planned | Estimated final bill | Rental, actual AED 800.00, Rental, planned AED 2,700.00, Transport out AED 1,500.00, Transport back AED 1,500.00 | AED 6,500.00 | '
@@ -340,7 +340,7 @@ const ebs = Rt.preview(s, o.def, Object.assign({}, o.draft, { standby: { '2026-1
 T.eq('…a planned day changed: the estimate follows, standby at 50 %', [ebs.rows.filter((r) => r.kind !== 'TRANSPORT').map((r) => r.label + ' ' + r.amountText).join(', '), ebs.totalText].join(' | '),
   'Rental, planned AED 22,120.00, Standby, planned AED 140.00 | AED 26,660.00');
 T.eq('Confirm: books the return, sends no hours', [json([pv.bulk, pv.offHire]), pv.confirm, pv.toast].join(' | '),
-  '[null,{"requestId":"R1001","lineId":"L1","date":"2026-12-06"}] | Book the return for 6 Dec 2026 | Return booked for 6 Dec 2026 (EX-1002). Until then, record the hours as the days pass; the final timesheet is asked for on the day.');
+  '[null,{"requestId":"R1001","lineId":"L1","date":"2026-12-06"}] | Book a future return for 6 Dec 2026 | Return booked for 6 Dec 2026 (EX-1002). Until then, record the hours as the days pass; the final timesheet is asked for on the day.');
 const r13 = Rt.def(s, ie, '2026-11-13', o.draft);
 T.eq('a return on the 13th lists 9–13 Nov, the 13th labelled the return day', r13.rows.map((r) => r.label + (r.returnDay ? ' (Return day)' : '')).join(', '),
   'Mon 9 Nov, Tue 10 Nov, Wed 11 Nov, Thu 12 Nov, Fri 13 Nov (Return day)');
@@ -371,5 +371,40 @@ T.eq('sent: 9–13 Nov saved and approved, signed by the customer; the return st
 ce = O.site(s).onHire.find((x) => x.requestId === re);
 T.eq('the card now: on hire since 9 Nov, delivered early, the grid from 9 Nov', [ce.sinceLabel, ce.daysText, ce.earlyText, ce.grid.map((g) => g.day).join(), ce.startsText].join(' | '),
   'On hire since | 7 days on hire | Delivered early on 2 Nov: on hire from 9 Nov | 9,10,11,12,13,14,15 | ');
+
+T.section('Close the return on a later date now: no waiting for the day (Lena at 2 Nov, return on 6 Dec)');
+s = require('./e2e/future-fixture').state('fresh');
+as('p-desk');
+const rn = act('createRequest', { requestingBu: 'BU-FC', customerId: 'C-Y', from: '2026-11-09', to: '2026-12-06', lines: [{ cls: 'EXC', unitId: 'U-EX2' }] }).result.id;
+act('takeDeposit', { requestId: rn });
+as('p-em'); act('approveLine', { requestId: rn, lineId: line(rn).id, unitId: 'U-EX2' });
+as('p-yard'); act('shipLine', { requestId: rn, lineId: line(rn).id });
+as('p-desk'); act('receiveLine', { requestId: rn, lineId: line(rn).id });
+const ln = { requestId: rn, lineId: line(rn).id };
+o = Rt.open(s, ln);
+pv = Rt.preview(s, o.def, o.draft);
+T.eq('the date asked; two choices: book it, or close it on that date now', [o.draft.date, pv.confirm, pv.tone, pv.nowLabel, !!pv.now, pv.now && pv.now.date, pv.now && pv.now.days.length].join(' | '),
+  '2026-12-06 | Book a future return for 6 Dec 2026 | secondary | Close the return on 6 Dec 2026 | true | 2026-12-06 | 20');
+T.check('…what Close does, said first: the clock moves, the timesheet becomes actual, the hire stops', pv.nowText.indexOf('Close the return: done now, on 6 Dec 2026; it moves the demo clock from 2 Nov 2026 to 6 Dec 2026') > 0
+  && /records the whole timesheet \(160 h of use\) as actual/.test(pv.nowText), pv.nowText);
+T.eq('…the hours can be agreed before a day has passed: Close makes them all actual', [o.def.canApprove, o.def.hasActual, o.def.approveLabel, pv.now.approve, /waiting for approval \(tick that they are agreed/.test(pv.nowText)].join(' | '),
+  'true | false | The hours are agreed when the return is closed (signed by the customer, Customer Y) | false | true');
+pv = Rt.preview(s, o.def, Object.assign({}, o.draft, { approve: true }));
+T.eq('…ticked: Close agrees every day (the planned ones too); the toast gives the final bill', [pv.now.approve, pv.bulk, /as actual and agreed \(signed by the customer\)/.test(pv.nowText), pv.nowToast].join(' | '),
+  'true |  | true | EX-1002 returned on 6 Dec 2026 (the demo clock is now on 6 Dec 2026): 160 h of use, agreed, final bill AED 26,800.00 + VAT 5 % AED 1,340.00.');
+const beforeNow = s;
+T.check('a person who does not run the site cannot', !E.apply(Object.assign({}, s, { personaId: 'p-pcfin' }), 'returnNow', pv.now).ok);
+T.eq('…nor before the hire started, nor without a date', [E.apply(s, 'returnNow', Object.assign({}, pv.now, { date: '2026-11-05' })).error, E.apply(s, 'returnNow', Object.assign({}, pv.now, { date: '' })).error].join(' | '),
+  'The return date cannot be before the hire started (9 Nov 2026). | Give the return date.');
+T.check('…a refusal changes nothing', s === beforeNow && s.today === '2026-11-02' && line(rn).status === 'ON_HIRE');
+const rnRes = act('returnNow', pv.now);
+const hn = s.hours.filter((x) => x.lineId === ln.lineId).sort((a, b) => a.date.localeCompare(b.date));
+T.eq('closed: the clock on 6 Dec, returned on 6 Dec, the hire from 9 Nov, no return planned', [s.today, line(rn).status, line(rn).events.onHire, line(rn).events.offHire, line(rn).plannedReturn || '', json(rnRes.result)].join(' | '),
+  '2026-12-06 | OFF_HIRED | 2026-11-09 | 2026-12-06 |  | {"returned":"2026-12-06","from":"2026-11-02","days":20}');
+T.eq('…the whole timesheet saved as actual: 20 working days, 160 h', [hn.length, hn[0].date, hn[hn.length - 1].date, hn.reduce((a, x) => a + x.usage, 0)].join(' | '), '20 | 2026-11-09 | 2026-12-04 | 160');
+T.check('…the log says the clock moved', s.log.some((x) => /The demo clock moved from 2 Nov 2026 to 6 Dec 2026 to return EX-1002/.test(x.what)), json(s.log.slice(0, 3)));
+T.eq('…once returned, not again', E.apply(s, 'returnNow', { requestId: rn, lineId: ln.lineId, date: '2026-12-07' }).error, 'Only a unit on hire can be returned.');
+const bn = Rt.bill(s, rn, ln.lineId, null);
+T.eq('the final bill: 160 h × AED 140 + transport out and back, every day agreed', [bn.total, 160 * 140 + 2 * 2200, hn.every((x) => x.approved)].join(' | '), '26800 | 26800 | true');
 
 T.report();

@@ -474,7 +474,7 @@
                 </oj-bind-if>
                 <p class="nx-note fx-ret-sum" id="stRetSum"><oj-bind-text value="[[ $variables.retView.sheetText ]]"></oj-bind-text></p>
                 <oj-bind-if test="[[ !!$variables.retView.droppedText ]]"><p class="fx-ret-dropped" id="stRetDropped"><span class="oj-ux-ico-warning" aria-hidden="true"></span><oj-bind-text value="[[ $variables.retView.droppedText ]]"></oj-bind-text></p></oj-bind-if>
-                <oj-bind-if test="[[ $variables.retDef.canApprove && $variables.retDef.hasActual ]]">
+                <oj-bind-if test="[[ $variables.retDef.canApprove && ($variables.retDef.hasActual || !!$variables.retView.now) ]]">
                   <label class="fx-ret-agree"><input type="checkbox" id="stRetApprove" :checked="[[ $variables.ret.approve ]]" on-change="[[ $listeners.onRetApprove ]]">
                     <span><oj-bind-text value="[[ $variables.retDef.approveLabel ]]"></oj-bind-text></span></label>
                 </oj-bind-if>
@@ -551,8 +551,15 @@
         <div class="nx-dialog-foot">
           <button type="button" class="nx-btn" id="stRetCancel" on-click="[[ $listeners.onRetClose ]]">Cancel</button>
           <span class="nx-spacer"></span>
+          <oj-bind-if test="[[ !!$variables.retView.now ]]">
+            <span class="fx-ret-nowtext" id="stRetNowText"><oj-bind-text value="[[ $variables.retView.nowText ]]"></oj-bind-text></span>
+          </oj-bind-if>
           <button type="button" :class="[[ $functions.confirmClass($variables.retView.tone) ]]" id="stRetConfirm" :disabled="[[ !$variables.retView.ok ]]" on-click="[[ $listeners.onRetConfirm ]]">
             <oj-bind-text value="[[ $variables.retView.confirm ]]"></oj-bind-text></button>
+          <oj-bind-if test="[[ !!$variables.retView.now ]]">
+            <button type="button" class="nx-btn nx-btn--primary nx-btn--ok" id="stRetNow" :disabled="[[ !$variables.retView.ok ]]" on-click="[[ $listeners.onRetNow ]]">
+              <oj-bind-text value="[[ $variables.retView.nowLabel ]]"></oj-bind-text></button>
+          </oj-bind-if>
         </div>
       </div>
     </div>

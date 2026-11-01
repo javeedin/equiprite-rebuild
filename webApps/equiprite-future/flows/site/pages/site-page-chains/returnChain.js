@@ -80,6 +80,21 @@ define(['vb/action/actionChain', 'resources/js/future/fxPage', 'resources/js/fut
         setInputs(f.reset);
         return;
       }
+      if (op === 'now') {
+        const pv = fxReturn.preview(s, def, draft);
+        if (!pv.ok || !pv.now) { $v.retView = pv; $v.retError = pv.warn || 'Pick a return date after today to return it now.'; return; }
+        const res = fx.act({ type: 'returnNow', payload: pv.now, quiet: true });
+        if (!res || res.cancelled) return;
+        if (!res.ok) {
+          $v.retError = res.error || 'It did not go through.';
+          $v.failure = { text: $v.retError, what: def.title };
+          return;
+        }
+        $v.failure = { text: '', what: '' };
+        $v.retDef = Object.assign({}, CLOSED);
+        bus.toast(pv.nowToast || 'Returned.', 'info');
+        return;
+      }
       if (op === 'confirm') {
         const pv = fxReturn.preview(s, def, draft);
         if (!pv.ok) { $v.retView = pv; $v.retError = pv.warn; return; }

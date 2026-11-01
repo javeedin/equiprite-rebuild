@@ -130,3 +130,6 @@ button.fx-day:hover { border-color: var(--nx-accent); box-shadow: 0 0 0 2px var(
 .fx-ret-phase-v { min-width: 0; overflow-wrap: anywhere; }
 .fx-ret-phase-amt { font-weight: 700; white-space: nowrap; text-align: right; }
 .fx-bill-row--planned .fx-bill-amt { color: #3730a3; font-style: italic; }
+
+/* Return now on a later date: what it does, beside the buttons. */
+.fx-ret-nowtext { flex: 1 1 320px; color: var(--nx-muted); font-size: 12.5px; line-height: 1.35; margin-right: 8px; }

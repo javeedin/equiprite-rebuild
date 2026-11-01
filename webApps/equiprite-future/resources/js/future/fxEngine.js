@@ -555,6 +555,26 @@ define(['resources/js/future/fxSeed'], function (Seed) {
       return { returned: date };
     }
   };
+  // Return on a later date now: the demo clock moves to that date (the days between pass for everyone, as +1 day
+  // would), the whole timesheet is recorded (agreed when ticked), and the hire stops on that date.
+  A.returnNow = {
+    who: ['site', 'desk'],
+    run: function (s, p, x) {
+      var o = userLine(s, p, x);
+      if (o.l.status !== 'ON_HIRE') fail('Only a unit on hire can be returned.');
+      var date = x.date;
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(date || ''))) fail('Give the return date.');
+      if (date < o.l.events.onHire) fail('The return date cannot be before the hire started (' + hd(o.l.events.onHire) + ').');
+      var from = s.today;
+      o.l.plannedReturn = null;
+      while (s.today < date) { s.today = addDays(s.today, 1); daily(s); }
+      if (o.l.status !== 'ON_HIRE') fail('It was returned on the way (' + hd(o.l.events.offHire) + ').');
+      var rec = A.logHoursBulk.run(s, p, { requestId: o.r.id, lineId: o.l.id, days: x.days || [], until: date, approve: !!x.approve });
+      doReturn(s, p, o.r, o.l, date, false);
+      if (from < date) log(s, p, 'The demo clock moved from ' + hd(from) + ' to ' + hd(date) + ' to return ' + unitOf(s, o.l.unitId).serial, { requestId: o.r.id, lineId: o.l.id });
+      return { returned: date, from: from, days: rec ? rec.days : 0 };
+    }
+  };
   // The final timesheet: many days at once (at the return), approved at once when the person may approve hours.
   A.logHoursBulk = {
     who: ['site', 'desk', 'requester'],

@@ -18,7 +18,7 @@ define(['resources/js/future/fxPage', 'resources/js/exportKit'], (fx, exportKit)
     isOn(form, key, value) { return String((form || {})[key]) === String(value); }
 
     /** The confirm button's colour (fxOps.ask def.tone). */
-    confirmClass(tone) { return 'nx-btn ' + ({ ok: 'nx-btn--primary nx-btn--ok', danger: 'nx-btn--primary nx-btn--danger' }[tone] || 'nx-btn--primary'); }
+    confirmClass(tone) { return 'nx-btn' + ({ ok: ' nx-btn--primary nx-btn--ok', danger: ' nx-btn--primary nx-btn--danger', secondary: '' }[tone] != null ? { ok: ' nx-btn--primary nx-btn--ok', danger: ' nx-btn--primary nx-btn--danger', secondary: '' }[tone] : ' nx-btn--primary'); }
 
     /** A day of the hours grid: approved, waiting for approval, nothing recorded, or the site's weekend. */
     dayClass(g) { return 'fx-day fx-day--' + ((g && g.state) || 'empty') + (g && g.weekend ? ' fx-day--we' : ''); }
