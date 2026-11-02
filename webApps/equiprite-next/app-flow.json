@@ -869,6 +869,7 @@
       "resources/css/next-pivot.css",
       "resources/css/next-equipment-360.css",
       "resources/css/next-search.css",
+      "resources/css/next-sql.css",
       "resources/css/mapbox-gl.css"
     ]
   }

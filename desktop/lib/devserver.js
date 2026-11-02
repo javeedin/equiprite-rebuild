@@ -241,6 +241,9 @@ function time() {
  * @param {object}   [o.futureStore]      EquipRite Future: its demo story's store (lib/futureDb.js, DuckDB in the desktop app's
  *                                        data folder), served to this PC only at /__future/story, /snapshots, /history,
  *                                        /sql (read-only) and /info, so the story survives restarts, rebuilds and a cleared cache
+ * @param {object}   [o.sqlStore]         EquipRite Next's SQL worksheet (lib/oracleSql.js: Oracle connections kept on this PC,
+ *                                        passwords in the OS keychain), served at /__sql/* to this PC only, by its own name, and
+ *                                        only to the app's own page (the X-EquipRite-SQL header, which no other site can send)
  * @param {Function} [o.pairToken]        () => the pairing key, or null. Given, a request from another device is
  *                                        served only with the key (the QR code's address, then its cookie), never
  *                                        the web services page; this PC's own requests are unaffected
@@ -467,6 +470,67 @@ function createDevServer(o) {
           }
           return json(404, { error: 'Not found' });
         })().catch((e) => json(400, { error: e.message }));
+        return undefined;
+      }
+      if (pathname.startsWith('/__sql/') && o.sqlStore) {
+        // EquipRite Next's SQL worksheet (lib/oracleSql.js). This PC only, by its own name; and only the app's own page:
+        // it sends X-EquipRite-SQL, which a page of another site cannot send without a preflight this server never allows.
+        const host = String(req.headers.host || '').replace(/:\d+$/, '');
+        if (!isLoopback(req.socket.remoteAddress) || !/^(localhost|127\.0\.0\.1|\[::1\])$/.test(host)) {
+          return send(res, 404, 'text/plain; charset=utf-8', 'Not found');
+        }
+        const origin = req.headers.origin;
+        if (req.headers['x-equiprite-sql'] !== '1' || (origin && origin !== `http://${req.headers.host}`)) {
+          return send(res, 403, 'application/json', JSON.stringify({ error: 'Refused: not from EquipRite Next on this PC.' }));
+        }
+        const sq = o.sqlStore;
+        const json = (status, body) => send(res, status, 'application/json', JSON.stringify(body), { 'Cache-Control': 'no-store' });
+        const bodyOf = () => new Promise((resolve, reject) => {
+          const chunks = [];
+          let size = 0;
+          req.on('data', (c) => { size += c.length; if (size <= 2 * 1024 * 1024) chunks.push(c); });
+          req.on('end', () => (size > 2 * 1024 * 1024 ? reject(new Error('Too large')) : resolve(Buffer.concat(chunks).toString('utf8'))));
+          req.on('error', reject);
+        });
+        const post = req.method === 'POST';
+        const conn = /^\/__sql\/connections\/([A-Za-z0-9]+)$/.exec(pathname);
+        const started = Date.now();
+        (async () => {
+          const b = post ? JSON.parse((await bodyOf()) || '{}') : {};
+          if (pathname === '/__sql/info') return json(200, sq.info());
+          if (pathname === '/__sql/connections' && req.method === 'GET') return json(200, sq.list());
+          if (pathname === '/__sql/connections' && post) return json(200, sq.save(b));
+          if (conn && req.method === 'DELETE') return json(200, sq.remove(conn[1]));
+          if (pathname === '/__sql/tns') return json(200, sq.tnsAliases(u.searchParams.get('dir') || ''));
+          if (pathname === '/__sql/sessions') return json(200, sq.sessions());
+          if (pathname === '/__sql/test' && post) {
+            const r = await sq.test(b);
+            log(`SQL test ${b.name || ''} -> ${r.ok ? 'ok' : 'failed'} (${r.ms} ms)`);
+            return json(200, r);
+          }
+          if (pathname === '/__sql/connect' && post) {
+            const r = await sq.connect(b);
+            log(`SQL connect ${r.name} as ${r.user} -> ok (${Date.now() - started} ms)`);
+            return json(200, r);
+          }
+          if (pathname === '/__sql/run' && post) {
+            try {
+              const r = await sq.run(b.session, b.sql, { fetch: b.fetch });
+              log(`SQL ${r.kind} -> ok (${r.ms} ms)`);
+              return json(200, r);
+            } catch (e) {
+              log(`SQL run -> ${String(e.message).split('\n')[0].slice(0, 120)}`);
+              // A statement the database refused is an answer, not a failed call: its words go back as data.
+              return json(200, { error: e.message, ms: e.ms || Date.now() - started });
+            }
+          }
+          if (pathname === '/__sql/more' && post) return json(200, await sq.more(b.session, b.count));
+          if (pathname === '/__sql/commit' && post) return json(200, await sq.commit(b.session));
+          if (pathname === '/__sql/rollback' && post) return json(200, await sq.rollback(b.session));
+          if (pathname === '/__sql/cancel' && post) return json(200, await sq.cancel(b.session));
+          if (pathname === '/__sql/disconnect' && post) return json(200, await sq.disconnect(b.session));
+          return json(404, { error: 'Not found' });
+        })().catch((e) => json(200, { error: e.message }));
         return undefined;
       }
       if (pathname === '/__versions') {

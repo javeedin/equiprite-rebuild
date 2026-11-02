@@ -1,0 +1,395 @@
+{
+ "description": "SQL worksheet (Admin): SQL run against an Oracle database from this PC, as in SQL Developer. Connections (Basic: host, port, SID or service name; TNS: an alias of tnsnames.ora; or a connect identifier) are kept by the desktop app on this PC, passwords in the OS keychain; Test, Save and Connect as in SQL Developer's New / Select Database Connection. Ctrl+Enter runs the statement under the cursor, F5 the script; results in a grid with fetch more; changes wait for Commit or Rollback; DBMS output, history and export. The desktop app runs it (desktop/lib/oracleSql.js, node-oracledb Thin); not available in VBCS.",
+ "navigation": {
+  "embeddable": "enabled"
+ },
+ "variables": {
+  "info": {
+   "type": "any",
+   "defaultValue": {
+    "checked": false,
+    "available": false,
+    "error": "",
+    "version": "",
+    "keychain": false,
+    "tnsAdmin": ""
+   }
+  },
+  "conns": {
+   "type": "any",
+   "defaultValue": []
+  },
+  "session": {
+   "type": "any",
+   "defaultValue": {
+    "id": "",
+    "name": "",
+    "user": "",
+    "target": "",
+    "banner": "",
+    "readOnly": false,
+    "pending": false,
+    "connId": ""
+   }
+  },
+  "dlg": {
+   "type": "any",
+   "defaultValue": {
+    "open": false,
+    "form": {},
+    "status": "",
+    "tone": "",
+    "busy": "",
+    "aliases": [],
+    "tnsNote": "",
+    "advanced": false
+   }
+  },
+  "sql": {
+   "type": "string",
+   "defaultValue": ""
+  },
+  "raw": {
+   "type": "any",
+   "defaultValue": {
+    "columns": [],
+    "rows": []
+   }
+  },
+  "res": {
+   "type": "any",
+   "defaultValue": {
+    "has": false,
+    "kind": "",
+    "columns": [],
+    "rows": [],
+    "style": {},
+    "more": false,
+    "fetched": 0,
+    "ms": 0,
+    "message": "",
+    "error": "",
+    "statement": ""
+   }
+  },
+  "script": {
+   "type": "any",
+   "defaultValue": []
+  },
+  "output": {
+   "type": "any",
+   "defaultValue": []
+  },
+  "history": {
+   "type": "any",
+   "defaultValue": []
+  },
+  "tab": {
+   "type": "string",
+   "defaultValue": "result"
+  },
+  "busy": {
+   "type": "string",
+   "defaultValue": ""
+  },
+  "fetch": {
+   "type": "number",
+   "defaultValue": 200
+  },
+  "exportOpen": {
+   "type": "boolean",
+   "defaultValue": false
+  }
+ },
+ "eventListeners": {
+  "vbEnter": {
+   "chains": [
+    {
+     "chain": "loadChain"
+    }
+   ]
+  },
+  "onNewConn": {
+   "chains": [
+    {
+     "chain": "dlgChain",
+     "parameters": {
+      "op": "new"
+     }
+    }
+   ]
+  },
+  "onEditConn": {
+   "chains": [
+    {
+     "chain": "dlgChain",
+     "parameters": {
+      "op": "edit",
+      "id": "{{ $event.currentTarget.dataset.id }}"
+     }
+    }
+   ]
+  },
+  "onDlgPick": {
+   "chains": [
+    {
+     "chain": "dlgChain",
+     "parameters": {
+      "op": "pick",
+      "id": "{{ $event.currentTarget.dataset.id }}"
+     }
+    }
+   ]
+  },
+  "onDlgClose": {
+   "chains": [
+    {
+     "chain": "dlgChain",
+     "parameters": {
+      "op": "close"
+     }
+    }
+   ]
+  },
+  "onDlgClear": {
+   "chains": [
+    {
+     "chain": "dlgChain",
+     "parameters": {
+      "op": "clear"
+     }
+    }
+   ]
+  },
+  "onReadTns": {
+   "chains": [
+    {
+     "chain": "dlgChain",
+     "parameters": {
+      "op": "tns"
+     }
+    }
+   ]
+  },
+  "onField": {
+   "chains": [
+    {
+     "chain": "setChain",
+     "parameters": {
+      "field": "{{ 'form.' + $event.target.dataset.field }}",
+      "value": "{{ $event.target.value }}"
+     }
+    }
+   ]
+  },
+  "onCheck": {
+   "chains": [
+    {
+     "chain": "setChain",
+     "parameters": {
+      "field": "{{ 'form.' + $event.target.dataset.field }}",
+      "value": "{{ $event.target.checked }}"
+     }
+    }
+   ]
+  },
+  "onPick": {
+   "chains": [
+    {
+     "chain": "setChain",
+     "parameters": {
+      "field": "{{ $event.currentTarget.dataset.field }}",
+      "value": "{{ $event.currentTarget.dataset.value }}"
+     }
+    }
+   ]
+  },
+  "onFetch": {
+   "chains": [
+    {
+     "chain": "setChain",
+     "parameters": {
+      "field": "fetch",
+      "value": "{{ $event.target.value }}"
+     }
+    }
+   ]
+  },
+  "onEditor": {
+   "chains": [
+    {
+     "chain": "setChain",
+     "parameters": {
+      "field": "sql",
+      "value": "{{ $event.target.value }}"
+     }
+    }
+   ]
+  },
+  "onDlgSave": {
+   "chains": [
+    {
+     "chain": "connChain",
+     "parameters": {
+      "op": "save"
+     }
+    }
+   ]
+  },
+  "onDlgTest": {
+   "chains": [
+    {
+     "chain": "connChain",
+     "parameters": {
+      "op": "test"
+     }
+    }
+   ]
+  },
+  "onDlgConnect": {
+   "chains": [
+    {
+     "chain": "connChain",
+     "parameters": {
+      "op": "connect"
+     }
+    }
+   ]
+  },
+  "onDlgDelete": {
+   "chains": [
+    {
+     "chain": "connChain",
+     "parameters": {
+      "op": "delete"
+     }
+    }
+   ]
+  },
+  "onConnectSaved": {
+   "chains": [
+    {
+     "chain": "connChain",
+     "parameters": {
+      "op": "connectSaved",
+      "id": "{{ $event.currentTarget.dataset.id }}"
+     }
+    }
+   ]
+  },
+  "onDisconnect": {
+   "chains": [
+    {
+     "chain": "connChain",
+     "parameters": {
+      "op": "disconnect"
+     }
+    }
+   ]
+  },
+  "onRun": {
+   "chains": [
+    {
+     "chain": "runChain",
+     "parameters": {
+      "op": "statement"
+     }
+    }
+   ]
+  },
+  "onRunScript": {
+   "chains": [
+    {
+     "chain": "runChain",
+     "parameters": {
+      "op": "script"
+     }
+    }
+   ]
+  },
+  "onMore": {
+   "chains": [
+    {
+     "chain": "runChain",
+     "parameters": {
+      "op": "more"
+     }
+    }
+   ]
+  },
+  "onCommit": {
+   "chains": [
+    {
+     "chain": "runChain",
+     "parameters": {
+      "op": "commit"
+     }
+    }
+   ]
+  },
+  "onRollback": {
+   "chains": [
+    {
+     "chain": "runChain",
+     "parameters": {
+      "op": "rollback"
+     }
+    }
+   ]
+  },
+  "onCancel": {
+   "chains": [
+    {
+     "chain": "runChain",
+     "parameters": {
+      "op": "cancel"
+     }
+    }
+   ]
+  },
+  "onHistory": {
+   "chains": [
+    {
+     "chain": "runChain",
+     "parameters": {
+      "op": "history",
+      "index": "{{ $event.currentTarget.dataset.index }}"
+     }
+    }
+   ]
+  },
+  "onClearHistory": {
+   "chains": [
+    {
+     "chain": "runChain",
+     "parameters": {
+      "op": "clearHistory"
+     }
+    }
+   ]
+  },
+  "onExport": {
+   "chains": [
+    {
+     "chain": "exportChain",
+     "parameters": {
+      "format": "{{ $event.currentTarget.dataset.format }}"
+     }
+    }
+   ]
+  }
+ },
+ "imports": {
+  "components": {
+   "oj-bind-for-each": {
+    "path": "ojs/ojknockout"
+   },
+   "oj-bind-if": {
+    "path": "ojs/ojknockout"
+   },
+   "oj-bind-text": {
+    "path": "ojs/ojknockout"
+   }
+  }
+ }
+}

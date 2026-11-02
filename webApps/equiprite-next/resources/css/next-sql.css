@@ -1,0 +1,95 @@
+/* EquipRite Next · SQL worksheet (flows/admin sql page): connections as SQL Developer lists them, the worksheet, the
+   result grid and the New / Select Database Connection dialog. Colours from next.css tokens; the grid scrolls inside
+   its own box, never the page. */
+.nx-sql-layout { display: grid; grid-template-columns: minmax(240px, 300px) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 1100px) { .nx-sql-layout { grid-template-columns: minmax(0, 1fr); } }
+.nx-sql-conns { padding-bottom: 8px; }
+.nx-sql-none { margin: 0; padding: 14px 16px; color: var(--nx-muted); font-size: 13px; line-height: 1.5; }
+.nx-sql-connlist { list-style: none; margin: 0; padding: 0; }
+.nx-sql-conn { display: grid; grid-template-columns: 12px minmax(0, 1fr); gap: 4px 10px; padding: 10px 14px; border-top: 1px solid var(--nx-line); }
+.nx-sql-conn--on { background: var(--nx-hover, rgba(34, 126, 158, 0.08)); }
+.nx-sql-dot { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid var(--nx-faint, #94a3b8); margin-top: 5px; box-sizing: border-box; display: inline-block; }
+.nx-sql-dot--live { background: var(--nx-ok); border-color: var(--nx-ok); margin: 0 6px 0 0; }
+.nx-sql-conn-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.nx-sql-conn-name { font-size: 14px; }
+.nx-sql-conn-details { font-size: 12px; color: var(--nx-muted); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; overflow-wrap: anywhere; }
+.nx-sql-conn-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+.nx-sql-conn-tags .nx-chip { height: 20px; font-size: 11px; padding: 0 7px; }
+.nx-sql-tag--on { background: var(--nx-ok); border-color: var(--nx-ok); color: #fff; }
+.nx-sql-conn-acts { grid-column: 2; display: flex; gap: 6px; margin-top: 4px; }
+.nx-sql-engine { padding: 10px 14px 4px; margin: 0; font-size: 11.5px; }
+
+.nx-sql-work { display: flex; flex-direction: column; min-width: 0; }
+.nx-sql-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 12px 16px; border-bottom: 1px solid var(--nx-line); }
+.nx-sql-status { margin: 0 auto 0 0; font-size: 13.5px; font-weight: 600; display: inline-flex; align-items: center; min-width: 0; overflow-wrap: anywhere; }
+.nx-sql-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.nx-sql-fetch { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--nx-muted); margin-left: 4px; }
+.nx-sql-fetch select { height: 30px; border: 1px solid var(--nx-line); border-radius: 6px; padding: 0 6px; background: var(--nx-card, #fff); color: inherit; }
+.nx-sql-pending { display: flex; gap: 8px; align-items: center; padding: 8px 16px; font-size: 13px; background: rgba(180, 83, 9, 0.1); color: var(--nx-ink); border-bottom: 1px solid var(--nx-line); }
+.nx-sql-pending [class^="oj-ux-ico"] { color: var(--nx-warn); }
+.nx-sql-editor { display: block; width: 100%; box-sizing: border-box; min-height: 220px; height: 34vh; resize: vertical; margin: 0; padding: 12px 16px; border: 0; border-bottom: 1px solid var(--nx-line);
+  font: 13px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--nx-ink); background: var(--nx-card, #fff); tab-size: 4; outline: none; }
+.nx-sql-editor:focus { box-shadow: inset 0 0 0 2px var(--nx-accent, #227e9e); }
+.nx-sql-tabs { margin: 10px 16px 0; flex-wrap: wrap; align-self: flex-start; }
+.nx-sql-panel { padding: 8px 16px 16px; min-width: 0; }
+.nx-sql-resbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 4px 0 8px; font-size: 12.5px; color: var(--nx-muted); }
+.nx-sql-resbar .nx-export { margin-left: auto; position: relative; }
+.nx-sql-msg { display: flex; gap: 8px; align-items: center; margin: 6px 0; font-size: 13px; }
+.nx-sql-msg [class^="oj-ux-ico"] { color: var(--nx-ok); }
+.nx-sql-err { white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px; }
+.nx-sql-gridwrap { overflow: auto; max-height: 52vh; border: 1px solid var(--nx-line); border-radius: 8px; }
+.nx-sql-grid { display: grid; min-width: min-content; font-size: 12.5px; }
+.nx-sql-row { display: contents; }
+.nx-sql-c { padding: 5px 10px; border-bottom: 1px solid var(--nx-line); border-right: 1px solid var(--nx-line); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.nx-sql-row--head .nx-sql-c { position: sticky; top: 0; z-index: 1; background: var(--nx-head, #eef2f6); font-family: inherit; font-weight: 700; color: var(--nx-ink); }
+.nx-sql-rn { color: var(--nx-faint, #94a3b8); text-align: right; background: var(--nx-head, #f6f8fa); }
+.nx-sql-num { text-align: right; }
+.nx-sql-null { color: var(--nx-faint, #94a3b8); font-style: italic; }
+.nx-sql-log, .nx-sql-hist { list-style: none; margin: 0; padding: 0; }
+.nx-sql-log-item { display: flex; flex-wrap: wrap; gap: 4px 12px; padding: 8px 0; border-bottom: 1px solid var(--nx-line); font-size: 12.5px; }
+.nx-sql-log-item--bad .nx-sql-log-out { color: var(--nx-danger); }
+.nx-sql-log-sql, .nx-sql-hist-item code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; overflow-wrap: anywhere; color: var(--nx-ink); }
+.nx-sql-log-out { color: var(--nx-muted); }
+.nx-sql-pre { margin: 0; padding: 10px 12px; border: 1px solid var(--nx-line); border-radius: 8px; font: 12.5px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; min-height: 40px; }
+.nx-sql-hist-item { display: flex; flex-direction: column; gap: 2px; width: 100%; text-align: left; padding: 8px 10px; border: 0; border-bottom: 1px solid var(--nx-line); background: transparent; cursor: pointer; font-size: 12.5px; color: inherit; }
+.nx-sql-hist-item:hover { background: var(--nx-hover, rgba(34, 126, 158, 0.08)); }
+.nx-sql-hist-item--bad code { color: var(--nx-danger); }
+.nx-sql-hist-meta { color: var(--nx-muted); font-size: 11.5px; }
+
+/* The dialog: saved connections on the left, the form on the right, the status line and buttons at the foot. */
+.nx-sql-dialog { width: min(1000px, 100%); max-height: 90vh; display: flex; flex-direction: column; }
+.nx-sql-dlgbody { display: grid; grid-template-columns: minmax(200px, 270px) minmax(0, 1fr); gap: 16px; overflow: auto; }
+@media (max-width: 760px) { .nx-sql-dlgbody { grid-template-columns: minmax(0, 1fr); } }
+.nx-sql-dlglist { border: 1px solid var(--nx-line); border-radius: 8px; overflow: auto; max-height: 60vh; align-self: start; }
+.nx-sql-dlglist-head, .nx-sql-dlglist-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 8px; padding: 6px 10px; font-size: 12px; }
+.nx-sql-dlglist-head { font-weight: 700; background: var(--nx-head, #eef2f6); border-bottom: 1px solid var(--nx-line); }
+.nx-sql-dlglist-row { width: 100%; border: 0; border-bottom: 1px solid var(--nx-line); background: transparent; text-align: left; cursor: pointer; color: inherit; }
+.nx-sql-dlglist-row span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nx-sql-dlglist-row--on { background: var(--nx-accent, #227e9e); color: #fff; }
+.nx-sql-form { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.nx-sql-frow { display: grid; grid-template-columns: 150px minmax(0, 1fr) auto auto; align-items: center; gap: 8px 10px; }
+.nx-sql-frow > :nth-child(2):last-child { grid-column: 2 / -1; }
+.nx-sql-frow--top { align-items: start; }
+.nx-sql-frow label, .nx-sql-lbl { font-size: 13px; color: var(--nx-ink); }
+.nx-sql-lbl2 { margin-left: 6px; }
+.nx-sql-fixed { font-size: 13px; color: var(--nx-muted); grid-column: 2 / -1; }
+.nx-sql-in { height: 32px; box-sizing: border-box; border: 1px solid var(--nx-line); border-radius: 6px; padding: 0 10px; font-size: 13px; background: var(--nx-card, #fff); color: var(--nx-ink); min-width: 0; width: 100%; }
+.nx-sql-in:disabled { background: var(--nx-head, #eef2f6); color: var(--nx-faint, #94a3b8); }
+.nx-sql-in--sm { width: 120px; }
+.nx-sql-in--md { width: 240px; }
+.nx-sql-in--area { height: auto; padding: 8px 10px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; resize: vertical; }
+.nx-sql-check, .nx-sql-radio { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
+.nx-sql-box { border: 1px solid var(--nx-line); border-radius: 8px; padding: 10px 12px 12px; margin: 0; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.nx-sql-box legend { font-size: 12.5px; font-weight: 700; padding: 0 6px; }
+.nx-sql-colors { display: inline-flex; gap: 4px; grid-column: 3 / -1; }
+.nx-sql-color { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--nx-faint, #94a3b8); cursor: pointer; padding: 0; }
+.nx-sql-color--on { outline: 2px solid var(--nx-ink); outline-offset: 2px; }
+.nx-sql-aliases { display: flex; flex-wrap: wrap; gap: 6px; }
+.nx-sql-advtoggle { align-self: flex-start; }
+.nx-sql-dlgfoot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.nx-sql-dlgstatus { margin: 0 auto 0 0; font-size: 13px; min-width: 0; overflow-wrap: anywhere; flex: 1 1 280px; }
+.nx-sql-dlgstatus--ok { color: var(--nx-ok); }
+.nx-sql-dlgstatus--bad { color: var(--nx-danger); }
+.nx-sql-dlgbtns { display: flex; flex-wrap: wrap; gap: 6px; }
+@media (max-width: 760px) { .nx-sql-frow { grid-template-columns: minmax(0, 1fr); } .nx-sql-frow > * { grid-column: 1 !important; } }

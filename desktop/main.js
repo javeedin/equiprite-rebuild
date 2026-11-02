@@ -46,6 +46,18 @@ async function futureStore() {
   if (!futureDbStore) futureDbStore = await require('./lib/futureDb').open(path.join(app.getPath('userData'), 'future.duckdb'));
   return futureDbStore;
 }
+// EquipRite Next's SQL worksheet: Oracle connections kept in this app's data folder, passwords in the OS keychain.
+let sqlConnStore = null;
+async function sqlStore() {
+  if (!sqlConnStore) {
+    sqlConnStore = await require('./lib/oracleSql').open({
+      file: path.join(app.getPath('userData'), 'sql-connections.json'),
+      encrypt: canEncrypt() ? (t) => safeStorage.encryptString(t) : null,
+      decrypt: canEncrypt() ? (b) => safeStorage.decryptString(b) : null,
+    });
+  }
+  return sqlConnStore;
+}
 const VERSIONS = {
   old: { webApp: 'vbredwoodapp', label: 'Old EquipRite', port: PORT },
   new: { webApp: 'equiprite', label: 'New EquipRite', port: PORT + 1 },
@@ -887,6 +899,8 @@ if (!app.requestSingleInstanceLock()) {
             getPhone: phoneLinks,
             // EquipRite Future keeps its demo story in DuckDB in this app's data folder (survives restarts and rebuilds).
             futureStore: v === 'future' ? await futureStore() : undefined,
+            // EquipRite Next's SQL worksheet: the desktop app connects to Oracle for it (node-oracledb, Thin mode).
+            sqlStore: v === 'next' ? await sqlStore() : undefined,
             backendOverrides: backendOverridesFromEnv(process.env),
             onLog: pushLog,
             onProblem: backendProblem,
@@ -924,6 +938,7 @@ if (!app.requestSingleInstanceLock()) {
   });
   app.on('before-quit', () => {
     if (futureDbStore) futureDbStore.close().catch(() => {});
+    if (sqlConnStore) sqlConnStore.close().catch(() => {});
     quitting = true;
     Object.values(servers).forEach((s) => s.close());
     stopLan();

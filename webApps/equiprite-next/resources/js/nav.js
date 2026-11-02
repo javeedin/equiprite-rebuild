@@ -76,7 +76,11 @@ define(['resources/js/rules'], function (rules) {
       { id: 'access', label: 'Access', icon: 'oj-ux-ico-shield-user', pageCodes: ['EQR_RBAC_ADMIN'],
         route: { flow: 'admin', page: 'access' }, built: true, newNav: 'page-access', keywords: 'roles rbac page access security' },
       { id: 'integrations', label: 'Integrations', icon: 'oj-ux-ico-heartbeat', pageCodes: ['EQR_CONFIGURATIONS'],
-        route: { flow: 'admin', page: 'integrations' }, built: true, newNav: 'integration-health', keywords: 'fusion sync health errors' }
+        route: { flow: 'admin', page: 'integrations' }, built: true, newNav: 'integration-health', keywords: 'fusion sync health errors' },
+      // SQL against an Oracle database from this PC, as in SQL Developer (flows/admin sql page): the desktop app connects
+      // for it (desktop/lib/oracleSql.js), so it works in the desktop app only. For admins (the Settings page code).
+      { id: 'sql', label: 'SQL', icon: 'oj-ux-ico-database', pageCodes: ['EQR_CONFIGURATIONS'],
+        route: { flow: 'admin', page: 'sql' }, built: true, keywords: 'query database oracle developer tns select statement' }
     ] },
     // Help is for everyone, once their access has loaded. It sits at the foot of the menu and in the top bar, not in a
     // group of its own (foot).

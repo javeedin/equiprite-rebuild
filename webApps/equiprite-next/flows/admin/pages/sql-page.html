@@ -1,0 +1,328 @@
+<!-- SQL worksheet: SQL against an Oracle database from this PC, as in SQL Developer. The desktop app connects for the page
+     (desktop/lib/oracleSql.js at /__sql/*); the page's own logic is resources/js/sqlWorksheet.js. -->
+<div class="nx-page nx-sql" id="page-sql">
+  <div class="nx-pagehead">
+    <div>
+      <div class="nx-kicker">Admin</div>
+      <h1>SQL worksheet</h1>
+      <div class="nx-sub" id="sqlSub">Run SQL against an Oracle database from this PC, as in SQL Developer. Connections stay on this PC; saved passwords are encrypted by the operating system.</div>
+    </div>
+    <div class="nx-actions">
+      <oj-bind-if test="[[ $variables.info.available ]]">
+        <button type="button" class="nx-btn nx-btn--primary" id="sqlNewConn" on-click="[[ $listeners.onNewConn ]]"><span class="oj-ux-ico-plus" aria-hidden="true"></span>New connection</button>
+      </oj-bind-if>
+    </div>
+  </div>
+
+  <oj-bind-if test="[[ !$variables.info.checked ]]"><div class="nx-card nx-empty" role="status">Looking for the database connections…</div></oj-bind-if>
+  <oj-bind-if test="[[ $variables.info.checked && !$variables.info.available ]]">
+    <div class="nx-error" role="alert" id="sqlUnavailable"><oj-bind-text value="[[ $variables.info.error ]]"></oj-bind-text></div>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ $variables.info.available ]]">
+    <div class="nx-sql-layout">
+      <!-- Connections, as SQL Developer lists them: name and user@host:port/service -->
+      <aside class="nx-card nx-sql-conns" aria-labelledby="sqlConnsTitle">
+        <div class="nx-card-head"><h2 id="sqlConnsTitle">Connections</h2></div>
+        <oj-bind-if test="[[ !$variables.conns.length ]]">
+          <p class="nx-sql-none" id="sqlNoConns">No connection yet. <strong>New connection</strong> sets one up, as in SQL Developer: name, username, password, then host, port and service name, or a TNS alias.</p>
+        </oj-bind-if>
+        <ul class="nx-sql-connlist" id="sqlConnList">
+          <oj-bind-for-each data="[[ $variables.conns ]]">
+            <template data-oj-as="c">
+              <li :class="[[ 'nx-sql-conn' + ($variables.session.connId === c.data.id ? ' nx-sql-conn--on' : '') ]]" :data-id="[[ c.data.id ]]">
+                <span class="nx-sql-dot" :style="[[ $functions.dot(c.data.color) ]]" aria-hidden="true"></span>
+                <div class="nx-sql-conn-main">
+                  <strong class="nx-sql-conn-name"><oj-bind-text value="[[ c.data.name ]]"></oj-bind-text></strong>
+                  <span class="nx-sql-conn-details"><oj-bind-text value="[[ c.data.details ]]"></oj-bind-text></span>
+                  <span class="nx-sql-conn-tags">
+                    <oj-bind-if test="[[ $variables.session.connId === c.data.id ]]"><span class="nx-chip nx-sql-tag--on">Connected</span></oj-bind-if>
+                    <oj-bind-if test="[[ c.data.readOnly ]]"><span class="nx-chip">Read only</span></oj-bind-if>
+                    <oj-bind-if test="[[ c.data.role !== 'default' ]]"><span class="nx-chip"><oj-bind-text value="[[ c.data.role ]]"></oj-bind-text></span></oj-bind-if>
+                    <oj-bind-if test="[[ !c.data.hasPassword ]]"><span class="nx-chip">Password asked</span></oj-bind-if>
+                  </span>
+                </div>
+                <div class="nx-sql-conn-acts">
+                  <oj-bind-if test="[[ $variables.session.connId !== c.data.id ]]">
+                    <button type="button" class="nx-btn nx-btn--sm nx-sql-connect" :data-id="[[ c.data.id ]]" on-click="[[ $listeners.onConnectSaved ]]" :disabled="[[ !!$variables.busy ]]">Connect</button>
+                  </oj-bind-if>
+                  <button type="button" class="nx-btn nx-btn--sm nx-btn--plain nx-sql-edit" :data-id="[[ c.data.id ]]" on-click="[[ $listeners.onEditConn ]]" :aria-label="[[ 'Edit ' + c.data.name ]]">Edit</button>
+                </div>
+              </li>
+            </template>
+          </oj-bind-for-each>
+        </ul>
+        <p class="nx-note nx-sql-engine" id="sqlEngine"><oj-bind-text value="[[ 'Oracle driver: node-oracledb ' + $variables.info.version + ', Thin mode (no Oracle client needed). Passwords: ' + ($variables.info.keychain ? 'encrypted by the operating system.' : 'kept for this run only (no keychain on this PC).') ]]"></oj-bind-text></p>
+      </aside>
+
+      <!-- The worksheet -->
+      <section class="nx-card nx-sql-work" aria-labelledby="sqlWorkTitle">
+        <div class="nx-sql-bar">
+          <h2 id="sqlWorkTitle" class="nx-sql-status">
+            <oj-bind-if test="[[ !!$variables.session.id ]]">
+              <span class="nx-sql-dot nx-sql-dot--live" aria-hidden="true"></span>
+              <span id="sqlConnected" :title="[[ $variables.session.banner ]]"><oj-bind-text value="[[ $variables.session.name + ' · ' + $variables.session.user + ' · ' + $variables.session.target + ($variables.session.readOnly ? ' · read only' : '') ]]"></oj-bind-text></span>
+            </oj-bind-if>
+            <oj-bind-if test="[[ !$variables.session.id ]]"><span id="sqlNotConnected">Not connected: choose Connect beside a connection</span></oj-bind-if>
+          </h2>
+          <div class="nx-sql-tools" role="toolbar" aria-label="Worksheet">
+            <button type="button" class="nx-btn nx-btn--primary nx-btn--sm" id="sqlRun" on-click="[[ $listeners.onRun ]]" :disabled="[[ !$variables.session.id || !!$variables.busy ]]" title="Run the statement under the cursor (Ctrl+Enter)">
+              <span class="oj-ux-ico-play" aria-hidden="true"></span>Run statement</button>
+            <button type="button" class="nx-btn nx-btn--sm" id="sqlRunScript" on-click="[[ $listeners.onRunScript ]]" :disabled="[[ !$variables.session.id || !!$variables.busy ]]" title="Run every statement in order (F5)">
+              <span class="oj-ux-ico-list" aria-hidden="true"></span>Run script</button>
+            <button type="button" class="nx-btn nx-btn--sm nx-btn--ok" id="sqlCommit" on-click="[[ $listeners.onCommit ]]" :disabled="[[ !$variables.session.pending || !!$variables.busy ]]">Commit</button>
+            <button type="button" class="nx-btn nx-btn--sm" id="sqlRollback" on-click="[[ $listeners.onRollback ]]" :disabled="[[ !$variables.session.pending || !!$variables.busy ]]">Rollback</button>
+            <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" id="sqlCancel" on-click="[[ $listeners.onCancel ]]" :disabled="[[ $variables.busy !== 'run' ]]">Cancel</button>
+            <label class="nx-sql-fetch">Fetch
+              <select id="sqlFetch" on-change="[[ $listeners.onFetch ]]">
+                <option value="50" :selected="[[ $variables.fetch === 50 ]]">50</option><option value="200" :selected="[[ $variables.fetch === 200 ]]">200</option>
+                <option value="500" :selected="[[ $variables.fetch === 500 ]]">500</option><option value="1000" :selected="[[ $variables.fetch === 1000 ]]">1,000</option>
+                <option value="5000" :selected="[[ $variables.fetch === 5000 ]]">5,000</option>
+              </select> rows</label>
+            <oj-bind-if test="[[ !!$variables.session.id ]]">
+              <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" id="sqlDisconnect" on-click="[[ $listeners.onDisconnect ]]" :disabled="[[ !!$variables.busy ]]">Disconnect</button>
+            </oj-bind-if>
+          </div>
+        </div>
+        <oj-bind-if test="[[ $variables.session.pending ]]">
+          <div class="nx-sql-pending" id="sqlPending" role="status"><span class="oj-ux-ico-warning" aria-hidden="true"></span>
+            Uncommitted changes in this session. Commit keeps them, Rollback undoes them; Disconnect rolls them back.</div>
+        </oj-bind-if>
+        <textarea id="sqlEditor" class="nx-sql-editor" spellcheck="false" autocomplete="off" aria-label="SQL" :value="[[ $variables.sql ]]" on-input="[[ $listeners.onEditor ]]"
+          placeholder="select * from dual;&#10;&#10;Ctrl+Enter runs the statement under the cursor (or the selection); F5 runs the whole script. End statements with ; and PL/SQL blocks with a line holding /."></textarea>
+
+        <div class="nx-seg nx-sql-tabs" role="tablist" aria-label="Results">
+          <button type="button" role="tab" id="sqlTab-result" :class="[[ 'nx-seg-btn' + ($variables.tab === 'result' ? ' nx-seg-btn--on' : '') ]]" :aria-selected="[[ $variables.tab === 'result' ? 'true' : 'false' ]]" data-field="tab" data-value="result" on-click="[[ $listeners.onPick ]]">
+            <oj-bind-text value="[[ 'Query result' + ($variables.res.columns.length ? ' (' + $variables.res.fetched + ($variables.res.more ? '+' : '') + ')' : '') ]]"></oj-bind-text></button>
+          <button type="button" role="tab" id="sqlTab-script" :class="[[ 'nx-seg-btn' + ($variables.tab === 'script' ? ' nx-seg-btn--on' : '') ]]" :aria-selected="[[ $variables.tab === 'script' ? 'true' : 'false' ]]" data-field="tab" data-value="script" on-click="[[ $listeners.onPick ]]">
+            <oj-bind-text value="[[ 'Script output' + ($variables.script.length ? ' (' + $variables.script.length + ')' : '') ]]"></oj-bind-text></button>
+          <button type="button" role="tab" id="sqlTab-output" :class="[[ 'nx-seg-btn' + ($variables.tab === 'output' ? ' nx-seg-btn--on' : '') ]]" :aria-selected="[[ $variables.tab === 'output' ? 'true' : 'false' ]]" data-field="tab" data-value="output" on-click="[[ $listeners.onPick ]]">
+            <oj-bind-text value="[[ 'DBMS output' + ($variables.output.length ? ' (' + $variables.output.length + ')' : '') ]]"></oj-bind-text></button>
+          <button type="button" role="tab" id="sqlTab-history" :class="[[ 'nx-seg-btn' + ($variables.tab === 'history' ? ' nx-seg-btn--on' : '') ]]" :aria-selected="[[ $variables.tab === 'history' ? 'true' : 'false' ]]" data-field="tab" data-value="history" on-click="[[ $listeners.onPick ]]">
+            <oj-bind-text value="[[ 'History' + ($variables.history.length ? ' (' + $variables.history.length + ')' : '') ]]"></oj-bind-text></button>
+        </div>
+
+        <!-- Query result -->
+        <oj-bind-if test="[[ $variables.tab === 'result' ]]">
+          <div class="nx-sql-panel" role="tabpanel" aria-labelledby="sqlTab-result" id="sqlResult">
+            <oj-bind-if test="[[ !$variables.res.has && $variables.busy !== 'run' ]]"><p class="nx-sql-none">Run a statement: its rows show here.</p></oj-bind-if>
+            <oj-bind-if test="[[ $variables.busy === 'run' ]]"><p class="nx-sql-none" role="status" id="sqlRunning">Running…</p></oj-bind-if>
+            <oj-bind-if test="[[ !!$variables.res.error ]]">
+              <div class="nx-error nx-sql-err" role="alert" id="sqlError"><oj-bind-text value="[[ $variables.res.error ]]"></oj-bind-text></div>
+            </oj-bind-if>
+            <oj-bind-if test="[[ !!$variables.res.message ]]">
+              <p class="nx-sql-msg" id="sqlMessage" role="status"><span class="oj-ux-ico-check-circle" aria-hidden="true"></span><oj-bind-text value="[[ $variables.res.message ]]"></oj-bind-text></p>
+            </oj-bind-if>
+            <oj-bind-if test="[[ $variables.res.columns.length > 0 ]]">
+              <div class="nx-sql-resbar">
+                <span id="sqlFetched"><oj-bind-text value="[[ 'Fetched ' + $variables.res.fetched + ' row' + ($variables.res.fetched === 1 ? '' : 's') + ($variables.res.more ? ' (more to fetch)' : '') + ' in ' + $functions.took($variables.res.ms) ]]"></oj-bind-text></span>
+                <oj-bind-if test="[[ $variables.res.more ]]">
+                  <button type="button" class="nx-btn nx-btn--sm" id="sqlMore" on-click="[[ $listeners.onMore ]]" :disabled="[[ !!$variables.busy ]]"><oj-bind-text value="[[ 'Fetch ' + $variables.fetch + ' more' ]]"></oj-bind-text></button>
+                </oj-bind-if>
+                <div class="nx-export">
+                  <button type="button" class="nx-btn nx-btn--sm" id="sqlExport" data-field="exportOpen" data-value="toggle" on-click="[[ $listeners.onPick ]]" aria-haspopup="menu" :aria-expanded="[[ $variables.exportOpen ? 'true' : 'false' ]]">
+                    <span class="oj-ux-ico-download" aria-hidden="true"></span>Export<span class="oj-ux-ico-chevron-down" aria-hidden="true"></span></button>
+                  <oj-bind-if test="[[ $variables.exportOpen ]]">
+                    <div class="nx-menu" role="menu" aria-label="Export the rows">
+                      <oj-bind-for-each data="[[ $functions.formats() ]]"><template data-oj-as="f">
+                        <button type="button" role="menuitem" class="nx-menu-item" :data-format="[[ f.data.key ]]" on-click="[[ $listeners.onExport ]]"><span :class="[[ f.data.icon ]]" aria-hidden="true"></span><oj-bind-text value="[[ f.data.label ]]"></oj-bind-text></button>
+                      </template></oj-bind-for-each>
+                    </div>
+                  </oj-bind-if>
+                </div>
+              </div>
+              <div class="nx-sql-gridwrap">
+                <div class="nx-sql-grid" role="grid" :aria-rowcount="[[ $variables.res.fetched + 1 ]]" :style="[[ $functions.gridStyle($variables.res.style) ]]" id="sqlGrid">
+                  <div class="nx-sql-row nx-sql-row--head" role="row">
+                    <span class="nx-sql-c nx-sql-rn" role="columnheader">#</span>
+                    <oj-bind-for-each data="[[ $variables.res.columns ]]"><template data-oj-as="col">
+                      <span class="nx-sql-c" role="columnheader" :title="[[ col.data.title ]]"><oj-bind-text value="[[ col.data.name ]]"></oj-bind-text></span>
+                    </template></oj-bind-for-each>
+                  </div>
+                  <oj-bind-for-each data="[[ $variables.res.rows ]]"><template data-oj-as="r">
+                    <div class="nx-sql-row" role="row">
+                      <span class="nx-sql-c nx-sql-rn" role="rowheader"><oj-bind-text value="[[ r.data.n ]]"></oj-bind-text></span>
+                      <oj-bind-for-each data="[[ r.data.cells ]]"><template data-oj-as="x">
+                        <span :class="[[ 'nx-sql-c ' + x.data.cls ]]" role="gridcell" :title="[[ x.data.full ]]"><oj-bind-text value="[[ x.data.t ]]"></oj-bind-text></span>
+                      </template></oj-bind-for-each>
+                    </div>
+                  </template></oj-bind-for-each>
+                </div>
+              </div>
+            </oj-bind-if>
+          </div>
+        </oj-bind-if>
+
+        <!-- Script output: one line per statement -->
+        <oj-bind-if test="[[ $variables.tab === 'script' ]]">
+          <div class="nx-sql-panel" role="tabpanel" aria-labelledby="sqlTab-script" id="sqlScript">
+            <oj-bind-if test="[[ !$variables.script.length ]]"><p class="nx-sql-none">Run script (F5) runs every statement in order and says here what each did.</p></oj-bind-if>
+            <ol class="nx-sql-log">
+              <oj-bind-for-each data="[[ $variables.script ]]"><template data-oj-as="s">
+                <li :class="[[ 'nx-sql-log-item' + (s.data.ok ? '' : ' nx-sql-log-item--bad') ]]">
+                  <code class="nx-sql-log-sql"><oj-bind-text value="[[ s.data.short ]]"></oj-bind-text></code>
+                  <span class="nx-sql-log-out"><oj-bind-text value="[[ s.data.outcome + ' · ' + $functions.took(s.data.ms) ]]"></oj-bind-text></span>
+                </li>
+              </template></oj-bind-for-each>
+            </ol>
+          </div>
+        </oj-bind-if>
+
+        <!-- DBMS output -->
+        <oj-bind-if test="[[ $variables.tab === 'output' ]]">
+          <div class="nx-sql-panel" role="tabpanel" aria-labelledby="sqlTab-output" id="sqlOutput">
+            <oj-bind-if test="[[ !$variables.output.length ]]"><p class="nx-sql-none">DBMS_OUTPUT.PUT_LINE from a PL/SQL block shows here.</p></oj-bind-if>
+            <pre class="nx-sql-pre"><oj-bind-text value="[[ $functions.lines($variables.output) ]]"></oj-bind-text></pre>
+          </div>
+        </oj-bind-if>
+
+        <!-- History on this PC -->
+        <oj-bind-if test="[[ $variables.tab === 'history' ]]">
+          <div class="nx-sql-panel" role="tabpanel" aria-labelledby="sqlTab-history" id="sqlHistory">
+            <oj-bind-if test="[[ !$variables.history.length ]]"><p class="nx-sql-none">Every statement you run is kept here (on this PC, the last 100). Choose one to put it back in the worksheet.</p></oj-bind-if>
+            <oj-bind-if test="[[ $variables.history.length > 0 ]]">
+              <div class="nx-sql-resbar"><span><oj-bind-text value="[[ $variables.history.length + ' statements on this PC' ]]"></oj-bind-text></span>
+                <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" id="sqlClearHistory" on-click="[[ $listeners.onClearHistory ]]">Clear history</button></div>
+            </oj-bind-if>
+            <ul class="nx-sql-hist">
+              <oj-bind-for-each data="[[ $functions.historyRows($variables.history) ]]"><template data-oj-as="h">
+                <li><button type="button" :class="[[ 'nx-sql-hist-item' + (h.data.ok ? '' : ' nx-sql-hist-item--bad') ]]" :data-index="[[ h.data.i ]]" on-click="[[ $listeners.onHistory ]]">
+                  <code><oj-bind-text value="[[ h.data.short ]]"></oj-bind-text></code>
+                  <span class="nx-sql-hist-meta"><oj-bind-text value="[[ h.data.when + ' · ' + h.data.conn + ' · ' + h.data.outcome ]]"></oj-bind-text></span></button></li>
+              </template></oj-bind-for-each>
+            </ul>
+          </div>
+        </oj-bind-if>
+      </section>
+    </div>
+  </oj-bind-if>
+
+  <!-- New / Select Database Connection, as SQL Developer has it -->
+  <oj-bind-if test="[[ $variables.dlg.open ]]">
+    <div class="nx-modal">
+      <button type="button" class="nx-modal-scrim" tabindex="-1" aria-label="Close" on-click="[[ $listeners.onDlgClose ]]"></button>
+      <section class="nx-dialog nx-sql-dialog" id="sqlDialog" role="dialog" aria-modal="true" aria-labelledby="sqlDlgTitle">
+        <header class="nx-dialog-head">
+          <div class="nx-dialog-titles">
+            <div class="nx-kicker">SQL worksheet</div>
+            <h2 id="sqlDlgTitle" class="nx-dialog-title">New / Select Database Connection</h2>
+          </div>
+          <button type="button" class="nx-iconbtn" aria-label="Close" on-click="[[ $listeners.onDlgClose ]]"><span class="oj-ux-ico-close" aria-hidden="true"></span></button>
+        </header>
+        <div class="nx-dialog-body nx-sql-dlgbody">
+          <!-- Saved connections, as SQL Developer lists them on the left -->
+          <div class="nx-sql-dlglist" role="listbox" aria-label="Saved connections" id="sqlDlgList">
+            <div class="nx-sql-dlglist-head"><span>Connection Name</span><span>Connection Details</span></div>
+            <oj-bind-for-each data="[[ $variables.conns ]]"><template data-oj-as="c">
+              <button type="button" role="option" :class="[[ 'nx-sql-dlglist-row' + ($variables.dlg.form.id === c.data.id ? ' nx-sql-dlglist-row--on' : '') ]]" :aria-selected="[[ $variables.dlg.form.id === c.data.id ? 'true' : 'false' ]]" :data-id="[[ c.data.id ]]" on-click="[[ $listeners.onDlgPick ]]">
+                <span><oj-bind-text value="[[ c.data.name ]]"></oj-bind-text></span><span><oj-bind-text value="[[ c.data.details ]]"></oj-bind-text></span></button>
+            </template></oj-bind-for-each>
+          </div>
+
+          <div class="nx-sql-form">
+            <div class="nx-sql-frow nx-sql-frow--name">
+              <label for="sqlName">Name</label>
+              <input id="sqlName" class="nx-sql-in" type="text" data-field="name" :value="[[ $variables.dlg.form.name ]]" on-input="[[ $listeners.onField ]]" placeholder="e.g. paasdev"/>
+              <span class="nx-sql-colors" role="group" aria-label="Color">
+                <oj-bind-for-each data="[[ $functions.colors() ]]"><template data-oj-as="k">
+                  <button type="button" :class="[[ 'nx-sql-color' + ($variables.dlg.form.color === k.data ? ' nx-sql-color--on' : '') ]]" :style="[[ $functions.dot(k.data) ]]" data-field="form.color" :data-value="[[ k.data ]]" on-click="[[ $listeners.onPick ]]" :aria-label="[[ k.data ? 'Color ' + k.data : 'No color' ]]"></button>
+                </template></oj-bind-for-each>
+              </span>
+            </div>
+            <div class="nx-sql-frow"><span class="nx-sql-lbl">Database Type</span><span class="nx-sql-fixed">Oracle</span></div>
+
+            <fieldset class="nx-sql-box">
+              <legend>User Info</legend>
+              <div class="nx-sql-frow"><span class="nx-sql-lbl">Authentication Type</span><span class="nx-sql-fixed">Default</span></div>
+              <div class="nx-sql-frow">
+                <label for="sqlUser">Username</label>
+                <input id="sqlUser" class="nx-sql-in" type="text" autocomplete="off" data-field="username" :value="[[ $variables.dlg.form.username ]]" on-input="[[ $listeners.onField ]]"/>
+                <label for="sqlRole" class="nx-sql-lbl2">Role</label>
+                <select id="sqlRole" class="nx-sql-in nx-sql-in--sm" data-field="role" :value="[[ $variables.dlg.form.role ]]" on-change="[[ $listeners.onField ]]">
+                  <option value="default">default</option><option value="SYSDBA">SYSDBA</option><option value="SYSOPER">SYSOPER</option>
+                </select>
+              </div>
+              <div class="nx-sql-frow">
+                <label for="sqlPassword">Password</label>
+                <input id="sqlPassword" class="nx-sql-in" type="password" autocomplete="new-password" data-field="password" :value="[[ $variables.dlg.form.password ]]" on-input="[[ $listeners.onField ]]"
+                  :placeholder="[[ $variables.dlg.form.hasPassword ? 'Saved: leave empty to keep it' : '' ]]"/>
+                <label class="nx-sql-check"><input type="checkbox" id="sqlSavePw" data-field="savePassword" :checked="[[ $variables.dlg.form.savePassword ]]" on-change="[[ $listeners.onCheck ]]"/>Save Password</label>
+              </div>
+            </fieldset>
+
+            <div class="nx-sql-frow">
+              <label for="sqlType">Connection Type</label>
+              <select id="sqlType" class="nx-sql-in nx-sql-in--md" data-field="type" :value="[[ $variables.dlg.form.type ]]" on-change="[[ $listeners.onField ]]">
+                <option value="basic">Basic</option><option value="tns">TNS</option><option value="custom">Custom (connect identifier)</option>
+              </select>
+            </div>
+
+            <fieldset class="nx-sql-box">
+              <legend><oj-bind-text value="[[ $variables.dlg.form.type === 'tns' ? 'TNS' : ($variables.dlg.form.type === 'custom' ? 'Connect identifier' : 'Details') ]]"></oj-bind-text></legend>
+              <oj-bind-if test="[[ $variables.dlg.form.type === 'basic' ]]">
+                <div class="nx-sql-frow"><label for="sqlHost">Hostname</label>
+                  <input id="sqlHost" class="nx-sql-in" type="text" autocomplete="off" data-field="host" :value="[[ $variables.dlg.form.host ]]" on-input="[[ $listeners.onField ]]" placeholder="host name or IP address"/></div>
+                <div class="nx-sql-frow"><label for="sqlPort">Port</label>
+                  <input id="sqlPort" class="nx-sql-in nx-sql-in--sm" type="text" inputmode="numeric" data-field="port" :value="[[ $variables.dlg.form.port ]]" on-input="[[ $listeners.onField ]]"/></div>
+                <div class="nx-sql-frow">
+                  <label class="nx-sql-radio"><input type="radio" name="sqlSidType" id="sqlSidTypeSid" value="sid" data-field="sidType" :checked="[[ $variables.dlg.form.sidType === 'sid' ]]" on-change="[[ $listeners.onField ]]"/>SID</label>
+                  <input id="sqlSid" class="nx-sql-in" type="text" data-field="sid" :value="[[ $variables.dlg.form.sid ]]" on-input="[[ $listeners.onField ]]" :disabled="[[ $variables.dlg.form.sidType !== 'sid' ]]"/></div>
+                <div class="nx-sql-frow">
+                  <label class="nx-sql-radio"><input type="radio" name="sqlSidType" id="sqlSidTypeService" value="service" data-field="sidType" :checked="[[ $variables.dlg.form.sidType !== 'sid' ]]" on-change="[[ $listeners.onField ]]"/>Service name</label>
+                  <input id="sqlService" class="nx-sql-in" type="text" data-field="service" :value="[[ $variables.dlg.form.service ]]" on-input="[[ $listeners.onField ]]" :disabled="[[ $variables.dlg.form.sidType === 'sid' ]]"/></div>
+              </oj-bind-if>
+              <oj-bind-if test="[[ $variables.dlg.form.type === 'tns' ]]">
+                <div class="nx-sql-frow"><label for="sqlTnsDir">TNS folder</label>
+                  <input id="sqlTnsDir" class="nx-sql-in" type="text" data-field="tnsAdmin" :value="[[ $variables.dlg.form.tnsAdmin ]]" on-input="[[ $listeners.onField ]]"
+                    :placeholder="[[ $variables.info.tnsAdmin ? 'TNS_ADMIN: ' + $variables.info.tnsAdmin : 'the folder holding tnsnames.ora, e.g. C:\\oracle\\network\\admin' ]]"/>
+                  <button type="button" class="nx-btn nx-btn--sm" id="sqlReadTns" on-click="[[ $listeners.onReadTns ]]">Read aliases</button></div>
+                <oj-bind-if test="[[ !!$variables.dlg.tnsNote ]]"><p class="nx-note" id="sqlTnsNote"><oj-bind-text value="[[ $variables.dlg.tnsNote ]]"></oj-bind-text></p></oj-bind-if>
+                <oj-bind-if test="[[ $variables.dlg.aliases.length > 0 ]]">
+                  <div class="nx-sql-aliases" role="group" aria-label="Network aliases in tnsnames.ora" id="sqlAliases">
+                    <oj-bind-for-each data="[[ $variables.dlg.aliases ]]"><template data-oj-as="a">
+                      <button type="button" :class="[[ 'nx-chip' + ($variables.dlg.form.tnsAlias === a.data ? ' nx-chip--on' : '') ]]" data-field="form.tnsAlias" :data-value="[[ a.data ]]" on-click="[[ $listeners.onPick ]]"><oj-bind-text value="[[ a.data ]]"></oj-bind-text></button>
+                    </template></oj-bind-for-each>
+                  </div>
+                </oj-bind-if>
+                <div class="nx-sql-frow"><label for="sqlAlias">Network Alias</label>
+                  <input id="sqlAlias" class="nx-sql-in" type="text" data-field="tnsAlias" :value="[[ $variables.dlg.form.tnsAlias ]]" on-input="[[ $listeners.onField ]]" placeholder="an alias of tnsnames.ora"/></div>
+              </oj-bind-if>
+              <oj-bind-if test="[[ $variables.dlg.form.type === 'custom' ]]">
+                <div class="nx-sql-frow nx-sql-frow--top"><label for="sqlConnStr">Connect identifier</label>
+                  <textarea id="sqlConnStr" class="nx-sql-in nx-sql-in--area" rows="3" data-field="connectString" :value="[[ $variables.dlg.form.connectString ]]" on-input="[[ $listeners.onField ]]"
+                    placeholder="host:1521/service, or (DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=…)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=…)))"></textarea></div>
+              </oj-bind-if>
+            </fieldset>
+
+            <button type="button" class="nx-btn nx-btn--plain nx-btn--sm nx-sql-advtoggle" id="sqlAdvanced" data-field="advanced" data-value="toggle" on-click="[[ $listeners.onPick ]]" :aria-expanded="[[ $variables.dlg.advanced ? 'true' : 'false' ]]">
+              <span :class="[[ $variables.dlg.advanced ? 'oj-ux-ico-chevron-down' : 'oj-ux-ico-chevron-right' ]]" aria-hidden="true"></span>Advanced</button>
+            <oj-bind-if test="[[ $variables.dlg.advanced ]]">
+              <fieldset class="nx-sql-box">
+                <legend>Advanced</legend>
+                <label class="nx-sql-check"><input type="checkbox" id="sqlReadOnly" data-field="readOnly" :checked="[[ $variables.dlg.form.readOnly ]]" on-change="[[ $listeners.onCheck ]]"/>Read only: run queries only (SELECT, WITH)</label>
+                <div class="nx-sql-frow"><label for="sqlWallet">Wallet folder</label>
+                  <input id="sqlWallet" class="nx-sql-in" type="text" data-field="walletLocation" :value="[[ $variables.dlg.form.walletLocation ]]" on-input="[[ $listeners.onField ]]" placeholder="for TCPS (Autonomous Database): the folder of ewallet.pem"/></div>
+                <div class="nx-sql-frow"><label for="sqlWalletPw">Wallet password</label>
+                  <input id="sqlWalletPw" class="nx-sql-in" type="password" autocomplete="new-password" data-field="walletPassword" :value="[[ $variables.dlg.form.walletPassword ]]" on-input="[[ $listeners.onField ]]"/></div>
+              </fieldset>
+            </oj-bind-if>
+          </div>
+        </div>
+        <footer class="nx-dialog-foot nx-sql-dlgfoot">
+          <p :class="[[ 'nx-sql-dlgstatus nx-sql-dlgstatus--' + ($variables.dlg.tone || 'none') ]]" id="sqlDlgStatus" role="status">
+            <oj-bind-text value="[[ 'Status : ' + ($variables.dlg.busy ? $variables.dlg.busy : $variables.dlg.status) ]]"></oj-bind-text></p>
+          <div class="nx-sql-dlgbtns">
+            <oj-bind-if test="[[ !!$variables.dlg.form.id ]]">
+              <button type="button" class="nx-btn nx-btn--plain" id="sqlDlgDelete" on-click="[[ $listeners.onDlgDelete ]]" :disabled="[[ !!$variables.dlg.busy ]]">Delete</button>
+            </oj-bind-if>
+            <button type="button" class="nx-btn" id="sqlDlgSave" on-click="[[ $listeners.onDlgSave ]]" :disabled="[[ !!$variables.dlg.busy ]]">Save</button>
+            <button type="button" class="nx-btn" id="sqlDlgClear" on-click="[[ $listeners.onDlgClear ]]" :disabled="[[ !!$variables.dlg.busy ]]">Clear</button>
+            <button type="button" class="nx-btn" id="sqlDlgTest" on-click="[[ $listeners.onDlgTest ]]" :disabled="[[ !!$variables.dlg.busy ]]">Test</button>
+            <button type="button" class="nx-btn nx-btn--primary" id="sqlDlgConnect" on-click="[[ $listeners.onDlgConnect ]]" :disabled="[[ !!$variables.dlg.busy ]]">Connect</button>
+            <button type="button" class="nx-btn nx-btn--plain" id="sqlDlgCancel" on-click="[[ $listeners.onDlgClose ]]">Cancel</button>
+          </div>
+        </footer>
+      </section>
+    </div>
+  </oj-bind-if>
+</div>
