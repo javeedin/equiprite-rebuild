@@ -99,6 +99,14 @@
   "exportOpen": {
    "type": "boolean",
    "defaultValue": false
+  },
+  "connsOpen": {
+   "type": "boolean",
+   "defaultValue": true
+  },
+  "connsError": {
+   "type": "string",
+   "defaultValue": ""
   }
  },
  "eventListeners": {

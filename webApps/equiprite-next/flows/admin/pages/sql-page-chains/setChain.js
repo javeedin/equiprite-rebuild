@@ -24,6 +24,11 @@ define([
       else if (f === 'fetch') v.fetch = Number(value) || 200;
       else if (f === 'exportOpen') v.exportOpen = !v.exportOpen;
       else if (f === 'advanced') v.dlg = Object.assign({}, v.dlg, { advanced: !v.dlg.advanced });
+      else if (f === 'connsOpen') {
+        // The Connections panel shown or folded to a rail, kept on this PC.
+        v.connsOpen = !v.connsOpen;
+        try { window.localStorage.setItem('equiprite-next:sql-conns-open', v.connsOpen ? '1' : '0'); } catch (e) { /* no storage */ }
+      }
     }
   }
 

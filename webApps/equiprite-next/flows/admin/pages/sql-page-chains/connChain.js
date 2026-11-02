@@ -48,10 +48,19 @@ define([
         const miss = W.missing(form, false);
         if (miss) return status(miss, 'bad');
         if (!(await this.leave(v))) return undefined;
-        v.dlg = Object.assign({}, v.dlg, { busy: 'Connecting…', status: '', tone: '' });
-        const r = await sql.connect(form);
-        if (!r.ok) return status('Failure: ' + ((r.body && r.body.error) || 'no answer from the desktop app'), 'bad');
-        this.connected(v, r.body, form.id || '');
+        // Connect saves the connection first, as SQL Developer does: it is in the list from now on (named for it when
+        // the Name was left empty), with the dialog's values.
+        const named = String(form.name || '').trim() ? form
+          : W.setField(form, 'name', W.autoName(form, (v.conns || []).filter((c) => c.id !== form.id).map((c) => c.name)));
+        v.dlg = Object.assign({}, v.dlg, { busy: 'Saving…', status: '', tone: '' });
+        const sv = await sql.save(named);
+        if (!sv.ok) return status('Not saved, so not connected: ' + ((sv.body && sv.body.error) || 'no answer from the desktop app'), 'bad', { form: named });
+        await this.reload(v);
+        const saved = Object.assign({}, named, { id: sv.body.id });
+        v.dlg = Object.assign({}, v.dlg, { busy: 'Connecting…', form: Object.assign({}, W.formOf(sv.body.saved), { password: form.password }) });
+        const r = await sql.connect(saved);
+        if (!r.ok) return status('Saved "' + named.name + '", but not connected: ' + ((r.body && r.body.error) || 'no answer from the desktop app'), 'bad');
+        this.connected(v, r.body, sv.body.id);
         v.dlg = Object.assign({}, v.dlg, { open: false, busy: '', form: W.blankForm() });
         return undefined;
       }
@@ -72,6 +81,7 @@ define([
           return undefined;
         }
         this.connected(v, r.body, c.id);
+        await this.reload(v);
         return undefined;
       }
       if (op === 'delete') {
@@ -94,7 +104,7 @@ define([
 
     async reload(v) {
       const c = await sql.connections();
-      if (c.ok && Array.isArray(c.body)) v.conns = c.body;
+      if (c.ok && Array.isArray(c.body)) { v.conns = c.body; v.connsError = ''; } else v.connsError = 'The saved connections could not be read: ' + ((c.body && c.body.error) || 'no answer from the desktop app') + '.';
     }
 
     /** Leaving the current session for another: asked first when changes are not committed (they are rolled back). */

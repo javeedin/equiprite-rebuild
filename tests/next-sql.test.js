@@ -59,6 +59,8 @@ const json = (x) => JSON.stringify(x);
   T.eq('…to save it needs a name', W.missing(f, true), 'Give a name.');
   T.eq('SID, TNS alias and connect identifier details', [W.details(Object.assign({}, f, { sidType: 'sid', sid: 'ORCL' })), W.details(Object.assign({}, f, { type: 'tns', tnsAlias: 'DEVDB' })),
     W.details(Object.assign({}, f, { type: 'custom', connectString: 'db:1521/x' }))].join(' ; '), 'equiprite@10.1.2.3:1521:ORCL ; equiprite@DEVDB ; equiprite@db:1521/x');
+  T.eq('Connect without a name: named for it, and kept apart from a name taken', [W.autoName(f, []), W.autoName(f, ['EQUIPRITE@DEVDB']), W.autoName(Object.assign({}, f, { type: 'tns', tnsAlias: 'PROD' }), [])].join(' ; '),
+    'equiprite@devdb ; equiprite@devdb (2) ; equiprite@PROD');
   T.eq('a saved connection in the form: its password never comes back', [W.formOf({ id: 'a', name: 'devdb', hasPassword: true, password: 'leak' }).password, W.formOf({ id: 'a', hasPassword: true }).hasPassword].join(), ',true');
   const hist = W.remember(W.remember([], { at: '2026-11-02T10:00:00Z', conn: 'devdb', sql: 'select 1 from dual', kind: 'query', ok: true, outcome: '1 row fetched' }),
     { at: '2026-11-02T10:01:00Z', conn: 'devdb', sql: 'select 1 from dual', kind: 'query', ok: true, outcome: '1 row fetched' });

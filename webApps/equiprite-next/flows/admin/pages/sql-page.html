@@ -20,12 +20,28 @@
   </oj-bind-if>
 
   <oj-bind-if test="[[ $variables.info.available ]]">
-    <div class="nx-sql-layout">
+    <div :class="[[ 'nx-sql-layout' + ($variables.connsOpen ? '' : ' nx-sql-layout--folded') ]]">
+      <!-- Folded: a rail that opens the Connections again (kept on this PC) -->
+      <oj-bind-if test="[[ !$variables.connsOpen ]]">
+        <aside class="nx-card nx-sql-rail" aria-label="Connections">
+          <button type="button" class="nx-sql-railbtn" id="sqlConnsShow" data-field="connsOpen" data-value="toggle" on-click="[[ $listeners.onPick ]]" aria-expanded="false"
+            :title="[[ 'Show the connections (' + $variables.conns.length + ')' ]]">
+            <span class="oj-ux-ico-chevron-right" aria-hidden="true"></span>
+            <span class="nx-sql-railtext"><oj-bind-text value="[[ 'Connections · ' + $variables.conns.length ]]"></oj-bind-text></span>
+          </button>
+        </aside>
+      </oj-bind-if>
       <!-- Connections, as SQL Developer lists them: name and user@host:port/service -->
+      <oj-bind-if test="[[ $variables.connsOpen ]]">
       <aside class="nx-card nx-sql-conns" aria-labelledby="sqlConnsTitle">
-        <div class="nx-card-head"><h2 id="sqlConnsTitle">Connections</h2></div>
-        <oj-bind-if test="[[ !$variables.conns.length ]]">
-          <p class="nx-sql-none" id="sqlNoConns">No connection yet. <strong>New connection</strong> sets one up, as in SQL Developer: name, username, password, then host, port and service name, or a TNS alias.</p>
+        <div class="nx-card-head nx-sql-connshead">
+          <h2 id="sqlConnsTitle"><oj-bind-text value="[[ 'Connections' + ($variables.conns.length ? ' (' + $variables.conns.length + ')' : '') ]]"></oj-bind-text></h2>
+          <button type="button" class="nx-iconbtn" id="sqlConnsHide" data-field="connsOpen" data-value="toggle" on-click="[[ $listeners.onPick ]]" aria-expanded="true" aria-label="Hide the connections" title="Hide the connections">
+            <span class="oj-ux-ico-chevron-left" aria-hidden="true"></span></button>
+        </div>
+        <oj-bind-if test="[[ !!$variables.connsError ]]"><p class="nx-error nx-sql-connserr" role="alert" id="sqlConnsError"><oj-bind-text value="[[ $variables.connsError ]]"></oj-bind-text></p></oj-bind-if>
+        <oj-bind-if test="[[ !$variables.conns.length && !$variables.connsError ]]">
+          <p class="nx-sql-none" id="sqlNoConns">No connection yet. <strong>New connection</strong> sets one up, as in SQL Developer: name, username, password, then host, port and service name, or a TNS alias. Save or Connect keeps it here.</p>
         </oj-bind-if>
         <ul class="nx-sql-connlist" id="sqlConnList">
           <oj-bind-for-each data="[[ $variables.conns ]]">
@@ -54,6 +70,7 @@
         </ul>
         <p class="nx-note nx-sql-engine" id="sqlEngine"><oj-bind-text value="[[ 'Oracle driver: node-oracledb ' + $variables.info.version + ', Thin mode (no Oracle client needed). Passwords: ' + ($variables.info.keychain ? 'encrypted by the operating system.' : 'kept for this run only (no keychain on this PC).') ]]"></oj-bind-text></p>
       </aside>
+      </oj-bind-if>
 
       <!-- The worksheet -->
       <section class="nx-card nx-sql-work" aria-labelledby="sqlWorkTitle">

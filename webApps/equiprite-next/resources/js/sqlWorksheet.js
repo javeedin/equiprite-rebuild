@@ -142,6 +142,21 @@ define([], function () {
     if (f.type === 'custom') return u + '@' + (String(f.connectString || '(connect identifier)').replace(/\s+/g, ' ').slice(0, 60));
     return u + '@' + (f.host || '(host)') + ':' + (f.port || '1521') + (f.sidType === 'sid' ? ':' + (f.sid || '(SID)') : '/' + (f.service || '(service)'));
   }
+  /**
+   * A name for a connection connected without one (Connect saves it, as SQL Developer does): user@service, user@SID,
+   * user@alias or user@host; " (2)", " (3)"… when another connection has that name already.
+   */
+  function autoName(f, taken) {
+    var u = String(f.username || 'user').trim();
+    var where = f.type === 'tns' ? f.tnsAlias : f.type === 'custom' ? String(f.connectString || '').split(/[/(\s]/).filter(Boolean)[0] || 'database'
+      : (f.sidType === 'sid' ? f.sid : f.service) || f.host;
+    var base = u + '@' + String(where || 'database').trim();
+    var names = (taken || []).map(function (n) { return String(n).toLowerCase(); });
+    var name = base;
+    for (var i = 2; names.indexOf(name.toLowerCase()) !== -1 && i < 100; i++) name = base + ' (' + i + ')';
+    return name;
+  }
+
   /** What is missing before Test or Connect, in words ('' when the form is complete). */
   function missing(f, forSave) {
     var m = [];
@@ -211,5 +226,5 @@ define([], function () {
   }
 
   return { KINDS: KINDS, COLORS: COLORS, kindOf: kindOf, isBlock: isBlock, split: split, atCursor: atCursor, cellOf: cellOf, grid: grid, exportSpec: exportSpec,
-    blankForm: blankForm, formOf: formOf, details: details, missing: missing, setField: setField, fillInputs: fillInputs, remember: remember, historyRows: historyRows, took: took };
+    blankForm: blankForm, formOf: formOf, details: details, missing: missing, setField: setField, fillInputs: fillInputs, autoName: autoName, remember: remember, historyRows: historyRows, took: took };
 });

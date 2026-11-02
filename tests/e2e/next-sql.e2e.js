@@ -69,6 +69,36 @@ const T = H.makeAsserter();
     await page.waitForSelector('#sqlConnected');
     T.eq('connected: name, user, where', await text('#sqlConnected'), 'devdb · EQUIPRITE · 10.1.2.3:1521/devdb');
 
+    T.section('Connect without Save: the connection is kept, as in SQL Developer');
+    await page.click('#sqlNewConn');
+    await page.waitForSelector('#sqlDialog');
+    T.eq('a new dialog starts empty (the inputs too)', [await page.inputValue('#sqlName'), await page.inputValue('#sqlUser'), await page.inputValue('#sqlHost')].join('|'), '||');
+    await page.fill('#sqlUser', 'equiprite');
+    await page.fill('#sqlPassword', 'secret');
+    await page.fill('#sqlHost', '10.1.2.3');
+    await page.fill('#sqlService', 'devdb');
+    await page.click('#sqlDlgConnect');
+    await page.waitForSelector('#sqlDialog', { state: 'detached', timeout: 10000 });
+    await page.waitForFunction(() => /^equiprite@devdb/.test(document.getElementById('sqlConnected').innerText), null, { timeout: 10000 });
+    T.eq('connected, named for it', await text('#sqlConnected'), 'equiprite@devdb · EQUIPRITE · 10.1.2.3:1521/devdb');
+    T.eq('…and in the list, beside the saved one, marked connected', await page.$$eval('#sqlConnList .nx-sql-conn', (l) => l.map((x) => x.querySelector('.nx-sql-conn-name').innerText.trim()
+      + (x.className.includes('--on') ? '*' : '')).join(', ')), 'devdb, equiprite@devdb*');
+    T.eq('…the panel counts them', await text('#sqlConnsTitle'), 'Connections (2)');
+
+    T.section('the Connections panel folds away, and stays folded');
+    const wide = async () => page.$eval('#page-sql .nx-sql-work', (e) => Math.round(e.getBoundingClientRect().width));
+    const before = await wide();
+    await page.click('#sqlConnsHide');
+    await page.waitForSelector('#sqlConnsShow');
+    T.check('folded to a rail; the worksheet takes the width', (await text('#sqlConnsShow')) === 'Connections · 2' && (await wide()) > before + 150, (await wide()) + ' vs ' + before);
+    await env.shot('next-sql-folded.png');
+    await env.open('/?open=sql');
+    await page.waitForSelector('#sqlConnsShow', { timeout: 30000 });
+    T.check('opened again: still folded, still connected', (await text('#sqlConnected')).startsWith('equiprite@devdb'));
+    await page.click('#sqlConnsShow');
+    await page.waitForSelector('#sqlConnList');
+    T.check('shown again', await page.isVisible('#sqlConnsHide'));
+
     T.section('Ctrl+Enter runs the statement under the cursor');
     await page.fill('#sqlEditor', 'select * from emp;\n\nupdate emp set sal = sal + 1;\n');
     await page.focus('#sqlEditor');
@@ -130,7 +160,7 @@ const T = H.makeAsserter();
     await page.click('#sqlDisconnect');
     await page.waitForSelector('#sqlNotConnected', { timeout: 10000 });
     T.eq('Disconnect after a PL/SQL block: asked first, then rolled back', [asked, D.calls.filter((x) => x.op === 'rollback').length > 0].join(' | '),
-      'Disconnecting rolls back the uncommitted changes in devdb. Disconnect? | true');
+      'Disconnecting rolls back the uncommitted changes in equiprite@devdb. Disconnect? | true');
     T.eq('no browser errors', env.errors.filter((e) => !e.startsWith('warning') && !/status of 403/.test(e)).join('\n'), '');
   } catch (e) {
     T.check('run finished', false, e.stack);

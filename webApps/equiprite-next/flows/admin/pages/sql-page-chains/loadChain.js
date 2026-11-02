@@ -14,8 +14,11 @@ define([
       const info = await sql.info();
       v.info = Object.assign({ checked: true }, info);
       if (!info.available) return;
+      try { v.connsOpen = window.localStorage.getItem('equiprite-next:sql-conns-open') !== '0'; } catch (e) { /* no storage */ }
       const c = await sql.connections();
       v.conns = c.ok && Array.isArray(c.body) ? c.body : [];
+      // Said, not shown as "No connection yet", when the saved connections cannot be read.
+      v.connsError = c.ok && Array.isArray(c.body) ? '' : 'The saved connections could not be read: ' + ((c.body && c.body.error) || 'no answer from the desktop app') + '.';
       let last = null;
       try { last = JSON.parse(window.sessionStorage.getItem('equiprite-next:sql-session') || 'null'); } catch (e) { last = null; }
       if (last && last.id) {

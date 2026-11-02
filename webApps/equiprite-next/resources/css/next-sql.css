@@ -93,3 +93,18 @@
 .nx-sql-dlgstatus--bad { color: var(--nx-danger); }
 .nx-sql-dlgbtns { display: flex; flex-wrap: wrap; gap: 6px; }
 @media (max-width: 760px) { .nx-sql-frow { grid-template-columns: minmax(0, 1fr); } .nx-sql-frow > * { grid-column: 1 !important; } }
+
+/* The Connections panel folded to a rail (kept on this PC), so the worksheet takes the width. */
+.nx-sql-layout--folded { grid-template-columns: 44px minmax(0, 1fr); }
+.nx-sql-connshead { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.nx-sql-connserr { margin: 10px 14px; }
+.nx-sql-rail { padding: 0; align-self: stretch; min-height: 200px; }
+.nx-sql-railbtn { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; height: 100%; min-height: 200px; padding: 12px 0; border: 0; background: transparent; cursor: pointer; color: var(--nx-ink); border-radius: inherit; }
+.nx-sql-railbtn:hover { background: var(--nx-hover, rgba(34, 126, 158, 0.08)); }
+.nx-sql-railtext { writing-mode: vertical-rl; transform: rotate(180deg); font-size: 13px; font-weight: 600; white-space: nowrap; }
+@media (max-width: 1100px) {
+  .nx-sql-layout--folded { grid-template-columns: minmax(0, 1fr); }
+  .nx-sql-rail, .nx-sql-railbtn { min-height: 0; }
+  .nx-sql-railbtn { flex-direction: row; justify-content: flex-start; padding: 10px 14px; }
+  .nx-sql-railtext { writing-mode: horizontal-tb; transform: none; }
+}
