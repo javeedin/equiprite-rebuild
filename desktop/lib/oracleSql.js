@@ -267,7 +267,7 @@ async function open(opts) {
       let version = '';
       try { version = getDriver().versionString || ''; } catch (e) { /* not installed */ }
       return { engine: driverError ? '' : 'oracledb', version, thin: driver ? driver.thin !== false : true, tnsAdmin: process.env.TNS_ADMIN || '',
-        keychain: !!o.encrypt, error: driverError };
+        keychain: !!o.encrypt, error: driverError, file };
     },
     list() {
       return read().connections.map(publicOf).sort((a, b) => a.name.localeCompare(b.name));

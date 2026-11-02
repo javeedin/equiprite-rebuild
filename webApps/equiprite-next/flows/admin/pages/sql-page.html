@@ -68,6 +68,9 @@
             </template>
           </oj-bind-for-each>
         </ul>
+        <oj-bind-if test="[[ !!$variables.info.file ]]">
+          <p class="nx-note nx-sql-engine nx-sql-where" id="sqlWhere"><oj-bind-text value="[[ 'Saved on this PC in ' + $variables.info.file + ' (by Save, and by Connect).' ]]"></oj-bind-text></p>
+        </oj-bind-if>
         <p class="nx-note nx-sql-engine" id="sqlEngine"><oj-bind-text value="[[ 'Oracle driver: node-oracledb ' + $variables.info.version + ', Thin mode (no Oracle client needed). Passwords: ' + ($variables.info.keychain ? 'encrypted by the operating system.' : 'kept for this run only (no keychain on this PC).') ]]"></oj-bind-text></p>
       </aside>
       </oj-bind-if>

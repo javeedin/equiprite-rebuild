@@ -33,7 +33,7 @@ define([], function () {
       if (r.status !== 200 || !b || (b.engine !== 'oracledb' && !b.error)) {
         return { available: false, error: 'The SQL worksheet runs in the EquipRite desktop app, which connects to the database from this PC. It is not available in the browser (VBCS).' };
       }
-      return { available: !b.error, engine: b.engine, version: b.version || '', keychain: !!b.keychain, tnsAdmin: b.tnsAdmin || '', error: b.error || '' };
+      return { available: !b.error, engine: b.engine, version: b.version || '', keychain: !!b.keychain, tnsAdmin: b.tnsAdmin || '', error: b.error || '', file: b.file || '' };
     });
   }
 

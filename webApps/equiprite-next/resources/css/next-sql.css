@@ -108,3 +108,4 @@
   .nx-sql-railbtn { flex-direction: row; justify-content: flex-start; padding: 10px 14px; }
   .nx-sql-railtext { writing-mode: horizontal-tb; transform: none; }
 }
+.nx-sql-where { overflow-wrap: anywhere; padding-bottom: 0; }

@@ -31,6 +31,7 @@ const T = H.makeAsserter();
     T.check('SQL is in the Admin menu', await page.$('.nx-nav-item[data-nav-id="sql"]') !== null);
     T.eq('nothing connected yet', await text('#sqlNotConnected'), 'Not connected: choose Connect beside a connection');
     T.eq('fetches 200 rows at a time, as the box says', await page.inputValue('#sqlFetch'), '200');
+    T.check('where the connections are kept, said', (await text('#sqlWhere')).startsWith('Saved on this PC in ') && (await text('#sqlWhere')).includes('sql-connections.json'), await text('#sqlWhere'));
     T.check('the driver said: Thin, no Oracle client; passwords encrypted', /node-oracledb 6\.10\.0, Thin mode .*encrypted by the operating system/.test(await text('#sqlEngine')), await text('#sqlEngine'));
 
     T.section('New / Select Database Connection, as in SQL Developer');
