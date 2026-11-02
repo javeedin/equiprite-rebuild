@@ -113,15 +113,15 @@ define([], function () {
     return {
       key: id || (s.assetNumber ? 'A:' + s.assetNumber : ''),
       id: id,
-      unit: pick(s, ['unitNumber']) || (dep && (dep.serialNumber || dep.unitIdentifier)) || '—',
+      unit: String(pick(s, ['unitNumber']) || (dep && (dep.serialNumber || dep.unitIdentifier)) || '—'),
       type: up(pick(s, ['unitType']) || (dep && dep.unitType)),
       asset: s.assetNumber || '',
-      name: s.equipmentName || (dep && dep.equipmentName) || 'Equipment',
-      cls: s.className || (dep && dep.className) || '',
+      name: String(s.equipmentName || (dep && dep.equipmentName) || 'Equipment'),
+      cls: String(s.className || (dep && dep.className) || ''),
       qty: s.onhandQty != null ? Number(s.onhandQty) : null,
       status: status,
       lane: lane,
-      yard: s.invOrgName || (dep && dep.yardOrgName) || '',
+      yard: String(s.invOrgName || (dep && dep.yardOrgName) || ''),
       yardId: s.invOrgId != null ? String(s.invOrgId) : (dep && dep.yardOrgId != null ? String(dep.yardOrgId) : ''),
       party: (dep && dep.partyName) || s.projectName || '',
       requestNumber: dep ? dep.requestNumber : '',
@@ -147,25 +147,41 @@ define([], function () {
    * Every unit, joined across the three views. A deployed unit the stock view does not list still appears (built
    * from its deployment), so nothing that is out goes missing.
    */
-  function build(stockRows, deployedRows, workbenchLines, now) {
+  function build(stockRows, deployedRows, workbenchLines, now, out) {
     var t = today(now || Date.now());
-    var books = bookingsByUnit(workbenchLines);
+    var o = out || {};
+    o.skipped = 0;
+    o.firstError = '';
+    // One odd row (null, or a field of an unexpected kind) is left out and counted; it never empties the board.
+    var safe = function (fn) {
+      try { return fn(); } catch (e) { o.skipped += 1; if (!o.firstError) o.firstError = (e && e.message) || String(e); return null; }
+    };
+    var books = safe(function () { return bookingsByUnit((workbenchLines || []).filter(Boolean)); }) || {};
     var depById = {};
     (deployedRows || []).forEach(function (d) {
+      if (!d) return;
       var id = up(d.serialNumber || d.unitIdentifier);
       if (id && !depById[id]) depById[id] = d;
     });
     var seen = {};
-    var units = (stockRows || []).map(function (s) {
-      var id = idOf(s);
-      if (id) seen[id] = true;
-      return unitOf(s, id ? depById[id] : undefined, id ? books[id] : undefined, t);
+    var units = [];
+    (stockRows || []).forEach(function (s) {
+      if (!s) return;
+      var u = safe(function () {
+        var id = idOf(s);
+        if (id) seen[id] = true;
+        return unitOf(s, id ? depById[id] : undefined, id ? books[id] : undefined, t);
+      });
+      if (u) units.push(u);
     });
     Object.keys(depById).forEach(function (id) {
       if (seen[id]) return;
       var d = depById[id];
-      units.push(unitOf({ unitNumber: d.serialNumber || d.unitIdentifier, unitType: d.unitType, equipmentName: d.equipmentName,
-        className: d.className, invOrgName: d.yardOrgName, invOrgId: d.yardOrgId, unitStatus: d.unitStatus }, d, books[id], t));
+      var u = safe(function () {
+        return unitOf({ unitNumber: d.serialNumber || d.unitIdentifier, unitType: d.unitType, equipmentName: d.equipmentName,
+          className: d.className, invOrgName: d.yardOrgName, invOrgId: d.yardOrgId, unitStatus: d.unitStatus }, d, books[id], t);
+      });
+      if (u) units.push(u);
     });
     // A unit with neither identifier nor asset number (a quantity of an item) still needs a stable key.
     units.forEach(function (u, i) { if (!u.key) u.key = 'row-' + i; });

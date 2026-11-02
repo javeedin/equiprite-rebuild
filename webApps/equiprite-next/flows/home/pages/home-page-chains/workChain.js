@@ -7,8 +7,8 @@ define([
   'resources/js/rules',
   'resources/js/nav',
   'resources/js/equipmentBoard',
-  'resources/js/directReturn',
-], (ActionChain, Actions, requestData, list, myWork, rules, nav, board, directReturn) => {
+  'resources/js/fleetData',
+], (ActionChain, Actions, requestData, list, myWork, rules, nav, board, fleetData) => {
   'use strict';
 
   // My work for a persona (the user's own, or one an administrator picked): requests and their equipment (shared
@@ -52,14 +52,10 @@ define([
     /** The fleet's summary (in the yard, out, due back, overdue), or null when it cannot be read. */
     async fleet(context) {
       try {
-        const [stock, deployed, lines] = await Promise.all([
-          Actions.callRest(context, { endpoint: 'eqp-v1/getEquipriteV1ViewsYardStock', uriParams: { page: 0, size: 10000 } }).catch(() => null),
-          directReturn.findDeployedUnits(context, Actions, { size: 2000, lineStatus: 'SHIP_TO_SITE,DEPLOYED,RETURN_INITIATED' }).catch(() => ({ ok: false, rows: [] })),
-          Actions.callRest(context, { endpoint: 'eqp-v1/getEquipriteV1ViewsWorkbenchLines', uriParams: { page: 0, size: 2000 } }).catch(() => null),
-        ]);
-        if (!stock || !stock.ok) return null;
-        const rows = (r) => (r && r.ok && r.body && Array.isArray(r.body.data)) ? r.body.data : [];
-        return board.summary(board.build(rows(stock), (deployed && deployed.rows) || [], rows(lines), Date.now()));
+        // The same read as Fleet (resources/js/fleetData.js): page by page, each part on its own.
+        const res = await fleetData.load((options) => Actions.callRest(context, options), Date.now());
+        if (res.failed.some((f) => f.part === fleetData.PARTS[0].what)) return null;
+        return board.summary(res.units);
       } catch (e) {
         return null;
       }

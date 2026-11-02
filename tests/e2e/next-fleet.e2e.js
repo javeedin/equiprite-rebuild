@@ -1,6 +1,7 @@
 'use strict';
 /*
- * EquipRite Next, Fleet, in a real browser: lane tiles, board and list, a unit's panel, tight turnarounds, export.
+ * EquipRite Next, Fleet, in a real browser: lane tiles, board and list, a unit's panel, tight turnarounds, export, and
+ * a backend that fails (each part named with its HTTP status).
  * Needs `npm run build`. Run: node tests/e2e/next-fleet.e2e.js
  */
 const fs = require('fs');
@@ -31,8 +32,10 @@ const LINES = [
   { requestNumber: 'REQ-10512', requestStatus: 'ALLOCATED', startDate: day(40), endDate: day(50), projectName: 'Plant Expansion B', allocatedSerial: 'RL-0302' },
 ];
 
+let failing = false;
 function handle(req, res) {
   const p = req.path;
+  if (failing && /\/views\/(yard-stock|deployed-units|workbench-lines)$/.test(p)) return res.json({ error: 'down' }, 500);
   if (p.endsWith('/views/yard-stock')) return res.json({ data: STOCK });
   if (p.endsWith('/views/deployed-units')) return res.json({ data: DEPLOYED, recordCount: DEPLOYED.length });
   if (p.endsWith('/views/workbench-lines')) return res.json({ data: LINES });
@@ -107,6 +110,14 @@ function handle(req, res) {
     await env.shot('next-fleet-list.png');
     T.eq('reads only', env.writes.length, 0);
     T.eq('no browser errors', env.errors.filter((e) => !e.startsWith('warning')).join('\n'), '');
+
+    T.section('the backend fails: the page says which part and its HTTP status');
+    failing = true;
+    await page.click('.nx-fleet .nx-pagehead .nx-btn--plain');
+    await page.waitForSelector('.nx-fleet .nx-error', { timeout: 15000 });
+    T.eq('each part named, with its status', await env.text('.nx-fleet .nx-error'),
+      'The fleet could not be loaded: the unit list (yard stock) (HTTP 500), units out on rent (HTTP 500), bookings (HTTP 500).');
+    await env.shot('next-fleet-error.png');
   } catch (e) {
     T.check('run finished', false, e.message);
     await env.shot('next-fleet-failed.png').catch(() => {});
