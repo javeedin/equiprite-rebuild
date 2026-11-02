@@ -14,7 +14,8 @@ define([
 
   // The counts on the tab icons, from the shared request list (requestData), for the tabs this role has:
   //   approve  requests waiting for this approver's decision (Approve & allocate's own queue)
-  //   pick     pieces with a unit, ready for the yard to pick (the rule of Next's "Pick" on a request's row)
+  //   pick     pieces in the yard's queue: confirmed for picking, or being picked (the rule of Next's "Pick" on a request's
+  //            row). A piece with only its unit assigned waits for Confirm (its transfer order) and is not the yard's yet.
   //   request  your drafts, to carry on with
   // Approve and Pick count what their list opens on, the last few days (mobileRecent), so a count matches the list it
   // opens: Approve its cards' dates (raised, changed, start, end), Pick a request's start and end and its pieces' (the

@@ -44,6 +44,13 @@ define(['resources/js/exportKit', 'resources/js/fmt', 'resources/js/requestProgr
       return [e.when || 'Date not recorded', e.who || '', e.recorded ? 'recorded' : 'from its dates'].filter((t) => !!t).join(' · ');
     }
 
+    /** This request on Old EquipRite's request detail, where Confirm Request is (it creates the transfer order), or ''. */
+    oldRequestUrl(oldBase, head) {
+      if (!oldBase || !head || !head.id) return '';
+      const base = oldBase.slice(-1) === '/' ? oldBase : oldBase + '/';
+      return base + 'vp/shell/equipment-foundation/request-detail?requestId=' + encodeURIComponent(head.id) + '&requestNumber=' + encodeURIComponent(head.requestNumber || '');
+    }
+
     /** This request in New EquipRite (where it can be approved, allocated, delivered, returned today), or ''. */
     newUrl(newBase, head) {
       if (!newBase || !head || !head.id) return '';

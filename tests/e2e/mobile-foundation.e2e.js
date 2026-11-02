@@ -112,7 +112,7 @@ const ROLES = {
     T.eq('the top bar names the app', await env.text('.mb-top-title'), 'EquipRite');
     await page.waitForFunction(() => { const b = document.querySelector('.mb-tabbtn[data-tab="approve"] .mb-tabbadge'); return b && b.textContent.trim(); }, null, { timeout: 15000 });
     T.eq('Approve counts the requests waiting for a decision (of the last 3 days: not REQ-2007)', await env.text('.mb-tabbtn[data-tab="approve"] .mb-tabbadge'), '2');
-    T.eq('Pick counts the pieces ready for the yard (of the last 3 days: not REQ-2006\'s)', await env.text('.mb-tabbtn[data-tab="pick"] .mb-tabbadge'), '2');
+    T.eq('Pick counts the pieces in the yard\'s queue (of the last 3 days: not REQ-2006\'s; not REQ-2003\'s piece waiting for Confirm)', await env.text('.mb-tabbtn[data-tab="pick"] .mb-tabbadge'), '1');
     T.eq('Request counts your drafts', await env.text('.mb-tabbtn[data-tab="request"] .mb-tabbadge'), '1');
     T.eq('the tab bar sits at the bottom of the screen', await page.$eval('#mbTabbar', (n) => Math.round(n.getBoundingClientRect().bottom)), 844);
     T.eq('no sideways scroll on a phone', await sideways(page), false);
@@ -198,7 +198,7 @@ const ROLES = {
     T.eq('where it is, from its equipment', await env.text('#trHeadline'), 'Partly on site · 1 of 3');
     T.eq('its equipment', await page.$$eval('#trEquipment > li', (l) => l.length), 3);
     T.check('each piece in words', /Being picked|Waiting to be picked|Unit assigned/.test(await env.text('#trEquipment')), await env.text('#trEquipment'));
-    T.eq('ready pieces offer picking', await env.text('#trPick'), 'Pick 2 pieces');
+    T.eq('the piece in the yard\'s queue offers picking (not the one waiting for Confirm)', await env.text('#trPick'), 'Pick 1 piece');
     T.check('no approve on an approved request', !(await page.$('#trApprove')));
     await page.waitForSelector('#trHistory .mb-hist-step', { timeout: 15000 });
     T.eq('its history, start to end', await page.$$eval('#trHistory .mb-hist-step', (s) => s.length), 9);

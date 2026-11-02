@@ -106,7 +106,9 @@ T.eq('where it is', by('REQ-1').headline, 'Waiting for approval');
 T.eq('what is next', by('REQ-1').next, 'Equipment Manager to approve it (2 of 2)');
 T.eq('waiting for a decision: approve, for a decider', by('REQ-1').approve, true);
 T.eq('not for someone who may not decide', track.cards(rows, lines, { who, scope: 'mine', can: { pick: true }, now })[0].approve, false);
-T.eq('pieces ready at the yard: pick', by('REQ-2').pick, 1);
+T.eq('a unit assigned is not the yard\'s yet (it waits for Confirm): no pick', by('REQ-2').pick, 0);
+T.eq('pieces in the yard\'s queue: pick', track.cards([rows[1]], { 'REQ-2': [L('REQ-2', 'Roller', 'SCHEDULED_FOR_PICKING'), L('REQ-2', 'Pump', 'PICK_INITIATED')] },
+  { who, scope: 'all', can, now })[0].pick, 2);
 T.eq('a draft: carry on', by('REQ-3').carryOn, true);
 T.eq('sent back: carry on (fix it)', [by('REQ-5').carryOn, by('REQ-5').sentBack].join(), 'true,true');
 T.eq('only if you may raise requests', track.cards(rows, lines, { who, scope: 'mine', can: {}, now }).filter((c) => c.carryOn).length, 0);

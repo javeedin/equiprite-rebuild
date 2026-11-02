@@ -20,8 +20,12 @@ define([
   //             the step to take it: assign units (Approve & allocate) or pick (Picking & shipping).
   //   history   the request from start to end (requestHistory): the milestones, when and by whom each was reached,
   //             and everything recorded; exportable.
-  //   action: approve | history | close | askReject | back | doApprove | doReject | reasonText | assign | pick | record
-  //           | timeline | tab | export
+  //   road      getting it to site, from the row's Confirm or Pick: the five steps from "unit to assign" to "on the way
+  //             to site" with how many pieces sit at each (requestList.yardJourney), each piece with its unit, and the
+  //             step to take for each: Assign units (Approve & allocate), Confirm (Old EquipRite's request detail:
+  //             Confirm Request creates the transfer order in Fusion) and Pick (Picking & shipping, opened on it).
+  //   action: approve | history | road | close | askReject | back | doApprove | doReject | reasonText | assign | pick
+  //           | record | timeline | tab | export
   class popChain extends ActionChain {
     async run(context, { action, id, number, value }) {
       const v = context.$page.variables;
@@ -34,9 +38,14 @@ define([
       if (action === 'back') { set({ step: 'ask', error: '' }); return; }
       if (action === 'tab') { set({ tab: value === 'activity' ? 'activity' : 'steps' }); return; }
 
-      if (action === 'approve' || action === 'history') {
-        const base = summaryOf(v, id, number);
+      if (action === 'approve' || action === 'history' || action === 'road') {
+        // From the popup itself (the decided step's "Get it to site"), the request is the one already shown.
+        const base = action === 'road' && !id && !number ? summaryOf(v, pop.id, pop.number) : summaryOf(v, id, number);
         if (!base) return;
+        if (action === 'road') {
+          v.pop = Object.assign(base, { kind: 'road' });
+          return;
+        }
         if (action === 'approve') {
           v.pop = Object.assign(base, { kind: 'approve', step: 'ask', reason: '', error: '', result: null, busy: false });
           return;
@@ -55,7 +64,10 @@ define([
         return;
       }
       if (action === 'assign' || action === 'pick') {
-        bus.focus(action === 'assign' ? 'approvals' : 'picking', { id: Number(pop.id) || undefined, number: pop.number });
+        // Picking & shipping is told what else waits, to say so when the request is not in the yard's queue yet.
+        const road = pop.road || {};
+        bus.focus(action === 'assign' ? 'approvals' : 'picking', { id: Number(pop.id) || undefined, number: pop.number,
+          confirm: road.confirm || 0, pick: road.pick || 0 });
         v.pop = { kind: '' };
         return;
       }
@@ -144,6 +156,7 @@ define([
         return { name: l.name, qty: l.qty, label: info.label, stage: info.stage || 'ready' };
       }),
       acts,
+      road: list.yardJourney(lines),
     };
   }
 

@@ -49,8 +49,21 @@
           <button type="button" class="nx-btn nx-btn--primary" id="recAssign" data-act="assign" on-click="[[ $listeners.onStep ]]">
             <span class="oj-ux-ico-assign-to-me" aria-hidden="true"></span>Assign units</button>
         </oj-bind-if>
+        <!-- Unit assigned, not confirmed: Confirm Request (Old EquipRite) creates the transfer order; only then can the yard pick it. -->
+        <oj-bind-if test="[[ $variables.acts.confirm > 0 ]]">
+          <oj-bind-if test="[[ !!$functions.oldRequestUrl($application.variables.appUrls.old, $variables.head) ]]">
+            <a class="nx-btn" id="recConfirm" :href="[[ $functions.oldRequestUrl($application.variables.appUrls.old, $variables.head) ]]"
+              title="The unit is assigned; Confirm Request creates the transfer order in Fusion and schedules it for picking. Done in Old EquipRite's request detail.">
+              <span class="oj-ux-ico-check-square" aria-hidden="true"></span><oj-bind-text value="[[ 'Confirm ' + $variables.acts.confirm + ' for picking in Old' ]]"></oj-bind-text></a>
+          </oj-bind-if>
+          <oj-bind-if test="[[ !$functions.oldRequestUrl($application.variables.appUrls.old, $variables.head) ]]">
+            <span class="nx-pill nx-stage--ready" id="recConfirm" title="Confirm Request, in Old EquipRite's request detail, creates the transfer order in Fusion">
+              <oj-bind-text value="[[ $variables.acts.confirm + ' to confirm for picking, in Old EquipRite' ]]"></oj-bind-text></span>
+          </oj-bind-if>
+        </oj-bind-if>
         <oj-bind-if test="[[ $variables.acts.pick > 0 ]]">
-          <button type="button" class="nx-btn nx-btn--primary" id="recPick" data-act="pick" on-click="[[ $listeners.onStep ]]">
+          <button type="button" class="nx-btn nx-btn--primary" id="recPick" data-act="pick" on-click="[[ $listeners.onStep ]]"
+            title="In the yard's queue: Picking & shipping opens on this request, highlighted">
             <span class="oj-ux-ico-fullfilment-box" aria-hidden="true"></span><oj-bind-text value="[[ 'Pick ' + $variables.acts.pick + ' at the yard' ]]"></oj-bind-text></button>
         </oj-bind-if>
         <oj-bind-if test="[[ $variables.head.status !== 'DRAFT' && !!$functions.newUrl($application.variables.appUrls.new, $variables.head) ]]">

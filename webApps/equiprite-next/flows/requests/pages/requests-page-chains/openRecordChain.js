@@ -6,20 +6,18 @@ define(['vb/action/actionChain', 'vb/action/actions', 'resources/js/shellBus'], 
   //   approve   decide it here, in a popup (popChain)
   //   history   its timeline from start to end, in a popup (popChain)
   //   assign    Approve & allocate, opened on it (units to assign)
-  //   pick      Picking & shipping, opened on it
+  //   confirm   getting it to site, in a popup (popChain road): pieces with their unit, waiting for Confirm
+  //   pick      the same popup: pieces in the yard's queue, and Picking & shipping from there
   class openRecordChain extends ActionChain {
     async run(context, { id, number, act }) {
       if (!id && !number) return;
-      if (act === 'approve' || act === 'history') {
-        await Actions.callChain(context, { chain: 'popChain', params: { action: act, id: String(id || ''), number: number || '' } });
+      if (act === 'approve' || act === 'history' || act === 'confirm' || act === 'pick') {
+        const action = act === 'confirm' || act === 'pick' ? 'road' : act;
+        await Actions.callChain(context, { chain: 'popChain', params: { action, id: String(id || ''), number: number || '' } });
         return;
       }
       if (act === 'assign') {
         bus.focus('approvals', { id: id ? Number(id) : undefined, number: number || '' });
-        return;
-      }
-      if (act === 'pick') {
-        bus.focus('picking', { id: id ? Number(id) : undefined, number: number || '' });
         return;
       }
       bus.open({ record: 'request', params: { id: id ? Number(id) : undefined, number: number || '' } });

@@ -26,6 +26,7 @@ define(['resources/js/exportKit', 'resources/js/fmt', 'resources/js/shellBus'], 
     // ── The popup on a request (popChain) ───────────────────────────────────────────────────────────────
     popKicker(pop) {
       if (!pop || pop.kind === 'history') return 'Timeline: start to end';
+      if (pop.kind === 'road') return 'Getting it to site';
       return pop.step === 'done' ? 'Decided' : (pop.external ? 'Customer request' : 'Project request');
     }
 
@@ -44,8 +45,45 @@ define(['resources/js/exportKit', 'resources/js/fmt', 'resources/js/shellBus'], 
       const n = (pop && pop.waiting) || 0;
       const who = (pop && pop.requestor) || 'the requester';
       return (n > 1 ? 'The ' + n + ' pieces still waiting are approved together' : 'The piece waiting is approved')
-        + ': all or nothing. A piece that already has its unit goes straight to the yard for picking; the others wait for a unit '
-        + '(Assign units). Sending back asks for a reason, which ' + who + ' gets.';
+        + ': all or nothing. A piece that already has its unit waits for Confirm (its transfer order), then the yard picks it; the '
+        + 'others wait for a unit first (Assign units). Sending back asks for a reason, which ' + who + ' gets.';
+    }
+
+    // ── Getting it to site (popChain road) ──────────────────────────────────────────────────────────────
+    pieces(n) { return fmt.count(Number(n) || 0, 'piece'); }
+
+    /** The row's Confirm N: what it is and who does it. */
+    confirmTitle(n) {
+      return this.pieces(n) + ' with the unit assigned, waiting for the Equipment Manager to confirm for picking (it creates the transfer order). '
+        + 'Opens where each piece is, and what to do.';
+    }
+
+    /** The row's Pick N. */
+    pickTitle(n) { return this.pieces(n) + ' in the yard\'s queue, to release, pick and ship. Opens where each piece is, and what to do.'; }
+
+    /** The pick card: how many wait for release and how many are being picked. */
+    pickNote(road) {
+      const steps = (road && road.steps) || [];
+      const at = (k) => (steps.filter((s) => s.key === k)[0] || {}).count || 0;
+      const parts = [];
+      if (at('pick')) parts.push(this.pieces(at('pick')) + (at('pick') === 1 ? ' is' : ' are') + ' confirmed and waiting to be released for picking');
+      if (at('picking')) parts.push(this.pieces(at('picking')) + (at('picking') === 1 ? ' is' : ' are') + ' being picked, to ship');
+      return parts.join('; ') + '. Picking & shipping opens on this request, highlighted, with these pieces beside the list.';
+    }
+
+    /** Pieces not on the road now: still before approval, or past it (on site, on the way back). */
+    roadElse(road) {
+      const out = [];
+      if (road && road.before) out.push(this.pieces(road.before) + ' still before approval');
+      if (road && road.beyond) out.push(this.pieces(road.beyond) + ' already past this (on site or on the way back)');
+      return 'Not shown: ' + out.join(', and ') + '.';
+    }
+
+    /** This request on Old EquipRite's request detail, where Confirm Request is; '' while Old's address is unknown. */
+    oldRequestUrl(oldBase, pop) {
+      if (!oldBase || !pop || !pop.id) return '';
+      const b = oldBase.slice(-1) === '/' ? oldBase : oldBase + '/';
+      return b + 'vp/shell/equipment-foundation/request-detail?requestId=' + encodeURIComponent(pop.id) + '&requestNumber=' + encodeURIComponent(pop.number || '');
     }
 
     /** A step's state in words, beside its label. */

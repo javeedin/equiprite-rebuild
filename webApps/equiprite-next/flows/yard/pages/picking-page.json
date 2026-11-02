@@ -34,6 +34,8 @@
     "ticks": { "type": "any[]", "defaultValue": [], "description": "Ticked line ids: they scope Release and Pick and ship, as in New." },
     "selectedTOId": { "type": "string", "defaultValue": "", "description": "The single ticked transfer order, or ''." },
     "banner": { "type": "any", "defaultValue": { "type": "", "text": "" } },
+    "handed": { "type": "any", "defaultValue": { "tone": "" }, "description": "focusChain: the request another screen opened here, and what it says about it ('ok' opened, 'wait' not in the yard's queue yet)." },
+    "flashId": { "type": "string", "defaultValue": "", "description": "The row that flashes for a moment after another screen opened it here." },
     "busy": { "type": "string", "defaultValue": "", "description": "'' | 'release' | 'ship' | 'slip': a step in flight (its buttons are disabled)." },
     "slip": { "type": "any", "defaultValue": { "url": "", "fileName": "", "docNumber": "", "rows": 0 } }
   },

@@ -60,6 +60,17 @@
 .nx-yd-row:hover { background: #f6f9fc; }
 .nx-yd-row--open { background: var(--nx-accent-soft); box-shadow: inset 3px 0 0 var(--nx-accent); }
 .nx-yd-row--open:hover { background: var(--nx-accent-soft); }
+/* The request another screen opened here: flashes once so the eye finds it. */
+.nx-yd-row--flash { animation: nx-yd-flash 1.2s ease-in-out 2; }
+@keyframes nx-yd-flash { 50% { background: #fde68a; box-shadow: inset 3px 0 0 #b45309; } }
+@media (prefers-reduced-motion: reduce) { .nx-yd-row--flash { animation: none; outline: 2px solid #b45309; outline-offset: -2px; } }
+.nx-yd-handed { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: 10px; border: 1px solid #d4c6ee; background: #f6f2fc; }
+.nx-yd-handed > span[class^="oj-ux-ico"] { font-size: 18px; color: #6b4fa3; margin-top: 1px; }
+.nx-yd-handed--ok { border-color: #bfdbfe; background: #eff6ff; }
+.nx-yd-handed--ok > span[class^="oj-ux-ico"] { color: #1d4ed8; }
+.nx-yd-handed-body { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
+.nx-yd-handed-body p { margin: 0; font-size: 13px; line-height: 1.45; }
+.nx-yd-handed-acts { display: flex; flex-wrap: wrap; gap: 8px; }
 .nx-yd-row--head { cursor: default; background: var(--nx-surface-2); font-size: 12px; font-weight: 700; color: var(--nx-muted); text-transform: uppercase; letter-spacing: 0.04em; padding-top: 7px; padding-bottom: 7px; }
 .nx-yd-row--head:hover { background: var(--nx-surface-2); }
 .nx-yd-when .nx-cell-main { display: inline-flex; align-items: center; gap: 4px; }

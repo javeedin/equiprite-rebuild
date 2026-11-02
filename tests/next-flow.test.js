@@ -142,11 +142,38 @@ T.section('history: load (reads only, a failed read named)');
   };
   const kinds = {};
   queue.build(rows, lines, { now: NOW }).forEach((q) => { kinds[q.number] = q.kind; });
-  const acts = (r, c) => { const a = list.actions(r, lines[r.requestNumber], kinds[r.requestNumber] || '', c); return [a.approve ? 'approve' : '', a.assign ? 'assign' : '', a.pick ? 'pick' + a.pick : ''].filter(Boolean).join('+') || 'none'; };
-  T.eq('waiting: approve; approved without units: assign; units at the yard: pick 2; a draft: none', rows.map((r) => acts(r, can)).join(' | '), 'approve | assign | pick2 | none');
-  T.eq('read-only on Approve & allocate: assign (to look), never approve', rows.map((r) => acts(r, { decide: false, assign: true, pick: false })).join(' | '), 'none | assign | none | none');
+  const acts = (r, c) => {
+    const a = list.actions(r, lines[r.requestNumber], kinds[r.requestNumber] || '', c);
+    return [a.approve ? 'approve' : '', a.assign ? 'assign' : '', a.confirm ? 'confirm' + a.confirm : '', a.pick ? 'pick' + a.pick : ''].filter(Boolean).join('+') || 'none';
+  };
+  T.eq('waiting: approve; without units: assign; unit assigned: confirm 1, apart from the 1 in the yard\'s queue: pick 1; a draft: none',
+    rows.map((r) => acts(r, can)).join(' | '), 'approve | assign | confirm1+pick1 | none');
+  T.eq('read-only on Approve & allocate: assign and confirm (to look), never approve', rows.map((r) => acts(r, { decide: false, assign: true, pick: false })).join(' | '),
+    'none | assign | confirm1 | none');
   T.eq('no access: nothing (fail closed)', rows.map((r) => acts(r, {})).join(' | '), 'none | none | none | none');
-  T.eq('a request still waiting is never picked', list.actions({ status: 'SUBMITTED' }, [{ lineStatus: 'ALLOCATED' }], 'decide', can).pick, 0);
+  T.eq('a request still waiting is never confirmed or picked', JSON.stringify(['confirm', 'pick'].map((k) => list.actions({ status: 'SUBMITTED' }, [{ lineStatus: 'ALLOCATED' }], 'decide', can)[k])), '[0,0]');
+  T.eq('a unit assigned is not at the yard yet: confirm, not pick', JSON.stringify(list.actions({ status: 'IN_PROCESS' }, [{ lineStatus: 'ALLOCATED' }, { lineStatus: 'ALLOCATED' }], 'allocate', can)),
+    '{"approve":false,"assign":true,"confirm":2,"pick":0}');
+  T.eq('being picked still counts for the yard', list.actions({ status: 'IN_PROCESS' }, [{ lineStatus: 'PICK_INITIATED' }, { lineStatus: 'SHIP_TO_SITE' }], '', can).pick, 1);
+
+  T.section('Requests: getting it to site (the road popup)');
+  const road = list.yardJourney([
+    { key: 1, lineStatus: 'IN_PROCESS', name: 'Mixer' }, { key: 2, lineStatus: 'ALLOCATED', name: 'Dump truck', serial: 'VA30-0007' },
+    { key: 3, lineStatus: 'SCHEDULED_FOR_PICKING', name: 'Roller', serial: 'RL-10-2' }, { key: 4, lineStatus: 'PICK_INITIATED', name: 'Pump' },
+    { key: 5, lineStatus: 'DEPLOYED', name: 'Generator' }, { key: 6, lineStatus: 'SUBMITTED', name: 'Light' }, { key: 7, lineStatus: 'REJECTED', name: 'Crane' },
+  ]);
+  T.eq('five steps, each with its pieces', road.steps.map((x) => x.key + ':' + x.count).join(' '), 'assign:1 confirm:1 pick:1 picking:1 shipped:0');
+  T.eq('the one most behind is now; the rest with pieces are also', road.steps.map((x) => x.state).join(' '), 'now also also also todo');
+  T.eq('the counts the cards use', [road.assign, road.confirm, road.pick, road.shipped].join(), '1,1,2,0');
+  T.eq('each piece with its unit and step', road.pieces.map((x) => x.name + '/' + (x.unit || '-') + '/' + x.step).join(' | '),
+    'Mixer/-/assign | Dump truck/VA30-0007/confirm | Roller/RL-10-2/pick | Pump/-/picking');
+  T.eq('before approval and past the site are counted apart; refused is not', [road.before, road.beyond].join(), '1,1');
+  T.eq('a unit is named; past "to assign" without a serial it is still assigned', road.pieces.map((x) => x.unitText).join(' | '),
+    'No unit yet | Unit VA30-0007 | Unit RL-10-2 | Unit assigned');
+  const r3 = list.yardJourney(lines.R3.map((l, i) => Object.assign({ key: i }, l)));
+  T.eq('R3: confirm is now, pick is ahead with a piece, the yard has 1', [r3.now, r3.steps.map((x) => x.state).join(' '), r3.confirm, r3.pick].join(' | '),
+    'confirm | past now also todo todo | 1 | 1');
+  T.eq('nothing on the road', JSON.stringify([list.yardJourney([]).now, list.yardJourney(null).steps.map((x) => x.state).join()]), '["","todo,todo,todo,todo,todo"]');
 
   // ── Help ────────────────────────────────────────────────────────────────────────────────────────────
   T.section('Help: the flow');

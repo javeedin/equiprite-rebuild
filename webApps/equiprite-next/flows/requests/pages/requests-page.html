@@ -132,7 +132,7 @@
                 </span>
                 <span role="cell" class="nx-cell-next">
                   <oj-bind-text value="[[ r.data.p.next ? r.data.p.next.text : '' ]]"></oj-bind-text>
-                  <oj-bind-if test="[[ r.data.acts.approve || r.data.acts.assign || r.data.acts.pick > 0 ]]">
+                  <oj-bind-if test="[[ r.data.acts.approve || r.data.acts.assign || r.data.acts.confirm > 0 || r.data.acts.pick > 0 ]]">
                     <span class="nx-rowacts">
                       <oj-bind-if test="[[ r.data.acts.approve ]]">
                         <button type="button" class="nx-rowact nx-rowact--approve" data-act="approve" :aria-label="[[ 'Approve ' + r.data.requestNumber ]]"
@@ -142,9 +142,15 @@
                         <button type="button" class="nx-rowact nx-rowact--assign" data-act="assign" :aria-label="[[ 'Assign units on ' + r.data.requestNumber ]]"
                           title="Open Approve &amp; allocate on this request"><span class="oj-ux-ico-assign-to-me" aria-hidden="true"></span>Assign units</button>
                       </oj-bind-if>
+                      <!-- Confirm and Pick open "Getting it to site" here (popChain road): where each piece is, and the step for each. -->
+                      <oj-bind-if test="[[ r.data.acts.confirm > 0 ]]">
+                        <button type="button" class="nx-rowact nx-rowact--confirm" data-act="confirm" :aria-label="[[ 'Confirm for picking on ' + r.data.requestNumber ]]"
+                          :title="[[ $functions.confirmTitle(r.data.acts.confirm) ]]">
+                          <span class="oj-ux-ico-check-square" aria-hidden="true"></span><oj-bind-text value="[[ 'Confirm ' + r.data.acts.confirm ]]"></oj-bind-text></button>
+                      </oj-bind-if>
                       <oj-bind-if test="[[ r.data.acts.pick > 0 ]]">
                         <button type="button" class="nx-rowact nx-rowact--pick" data-act="pick" :aria-label="[[ 'Pick ' + r.data.requestNumber ]]"
-                          :title="[[ r.data.acts.pick + (r.data.acts.pick === 1 ? ' piece' : ' pieces') + ' ready at the yard: open Picking & shipping on it' ]]">
+                          :title="[[ $functions.pickTitle(r.data.acts.pick) ]]">
                           <span class="oj-ux-ico-fullfilment-box" aria-hidden="true"></span><oj-bind-text value="[[ 'Pick ' + r.data.acts.pick ]]"></oj-bind-text></button>
                       </oj-bind-if>
                     </span>
@@ -243,7 +249,7 @@
   <oj-bind-if test="[[ !!$variables.pop.kind ]]">
     <div class="nx-modal">
       <button type="button" class="nx-modal-scrim" tabindex="-1" aria-label="Close" data-action="close" on-click="[[ $listeners.onPop ]]"></button>
-      <section :class="[[ 'nx-dialog' + ($variables.pop.kind === 'history' ? ' nx-dialog--wide' : '') ]]" id="reqPop" role="dialog" aria-modal="true" aria-labelledby="popTitle">
+      <section :class="[[ 'nx-dialog' + ($variables.pop.kind === 'history' || $variables.pop.kind === 'road' ? ' nx-dialog--wide' : '') ]]" id="reqPop" role="dialog" aria-modal="true" aria-labelledby="popTitle">
         <header class="nx-dialog-head">
           <div class="nx-dialog-titles">
             <div class="nx-kicker"><oj-bind-text value="[[ $functions.popKicker($variables.pop) ]]"></oj-bind-text></div>
@@ -273,7 +279,7 @@
               <div class="nx-pop-after">
                 <strong>What approving does</strong>
                 <ol class="nx-miniflow" aria-label="The steps from here">
-                  <li class="nx-miniflow-on">Approve</li><li>Assign units</li><li>Pick at the yard</li><li>Ship</li><li>On site</li><li>Return</li>
+                  <li class="nx-miniflow-on">Approve</li><li>Assign units</li><li>Confirm</li><li>Pick at the yard</li><li>Ship</li><li>On site</li><li>Return</li>
                 </ol>
                 <p class="nx-note"><oj-bind-text value="[[ $functions.approveNote($variables.pop) ]]"></oj-bind-text></p>
               </div>
@@ -315,14 +321,95 @@
                 <button type="button" class="nx-btn nx-btn--primary" id="popAssign" data-action="assign" on-click="[[ $listeners.onPop ]]">
                   <span class="oj-ux-ico-assign-to-me" aria-hidden="true"></span>Assign units</button>
               </oj-bind-if>
-              <oj-bind-if test="[[ $variables.pop.acts && $variables.pop.acts.pick > 0 ]]">
-                <button type="button" class="nx-btn nx-btn--primary" id="popPick" data-action="pick" on-click="[[ $listeners.onPop ]]">
-                  <span class="oj-ux-ico-fullfilment-box" aria-hidden="true"></span><oj-bind-text value="[[ 'Pick ' + $variables.pop.acts.pick + ' at the yard' ]]"></oj-bind-text></button>
+              <oj-bind-if test="[[ $variables.pop.acts && ($variables.pop.acts.confirm > 0 || $variables.pop.acts.pick > 0) ]]">
+                <button type="button" class="nx-btn nx-btn--primary" id="popRoad" data-action="road" on-click="[[ $listeners.onPop ]]">
+                  <span class="oj-ux-ico-fullfilment-box" aria-hidden="true"></span>Get it to site…</button>
               </oj-bind-if>
               <button type="button" class="nx-btn" data-action="timeline" on-click="[[ $listeners.onPop ]]"><span class="oj-ux-ico-clock-history" aria-hidden="true"></span>Timeline</button>
               <span class="nx-spacer"></span>
               <button type="button" class="nx-btn nx-btn--plain" data-action="close" on-click="[[ $listeners.onPop ]]">Close</button>
             </oj-bind-if>
+          </footer>
+        </oj-bind-if>
+
+        <!-- Getting it to site: where each piece is between approval and the site, and the step to take for each -->
+        <oj-bind-if test="[[ $variables.pop.kind === 'road' && !!$variables.pop.road ]]">
+          <div class="nx-dialog-body">
+            <ol class="nx-road" aria-label="From approval to site">
+              <oj-bind-for-each data="[[ $functions.arr($variables.pop.road.steps) ]]">
+                <template data-oj-as="s">
+                  <li :class="[[ 'nx-road-step nx-road-step--' + s.data.state + ' nx-road--' + s.data.key ]]" :data-step="[[ s.data.key ]]"
+                    :aria-label="[[ s.data.label + ': ' + $functions.pieces(s.data.count) + (s.data.state === 'now' ? ', the step now' : '') ]]">
+                    <span class="nx-road-dot" aria-hidden="true"><oj-bind-text value="[[ s.data.count ? s.data.count : '' ]]"></oj-bind-text></span>
+                    <span class="nx-road-label"><oj-bind-text value="[[ s.data.label ]]"></oj-bind-text></span>
+                    <span class="nx-road-n"><oj-bind-text value="[[ s.data.count ? $functions.pieces(s.data.count) : '' ]]"></oj-bind-text></span>
+                  </li>
+                </template>
+              </oj-bind-for-each>
+            </ol>
+
+            <div class="nx-road-todo" aria-label="What to do">
+              <oj-bind-if test="[[ $variables.pop.road.assign > 0 ]]">
+                <div class="nx-road-card nx-road--assign" id="roadAssign">
+                  <div class="nx-road-card-head"><span class="oj-ux-ico-assign-to-me" aria-hidden="true"></span>
+                    <strong><oj-bind-text value="[[ 'Assign a unit to ' + $functions.pieces($variables.pop.road.assign) ]]"></oj-bind-text></strong><span class="nx-note">Equipment Manager</span></div>
+                  <p>Approved, with no unit yet. Pick the unit for each in Approve &amp; allocate; then it waits for Confirm.</p>
+                  <oj-bind-if test="[[ $variables.pop.acts && $variables.pop.acts.assign ]]">
+                    <button type="button" class="nx-btn nx-btn--sm" id="roadAssignBtn" data-action="assign" on-click="[[ $listeners.onPop ]]">
+                      <span class="oj-ux-ico-assign-to-me" aria-hidden="true"></span>Open Approve &amp; allocate</button>
+                  </oj-bind-if>
+                </div>
+              </oj-bind-if>
+              <oj-bind-if test="[[ $variables.pop.road.confirm > 0 ]]">
+                <div class="nx-road-card nx-road--confirm" id="roadConfirm">
+                  <div class="nx-road-card-head"><span class="oj-ux-ico-check-square" aria-hidden="true"></span>
+                    <strong><oj-bind-text value="[[ 'Confirm ' + $functions.pieces($variables.pop.road.confirm) + ' for picking' ]]"></oj-bind-text></strong><span class="nx-note">Equipment Manager</span></div>
+                  <p>The unit is assigned, but the yard cannot pick it yet. <strong>Confirm Request</strong> creates its transfer order in Fusion and
+                    schedules it for picking; then it shows in Picking &amp; shipping. Confirm writes to Fusion, so it is done in Old EquipRite's request detail.</p>
+                  <oj-bind-if test="[[ !!$functions.oldRequestUrl($application.variables.appUrls.old, $variables.pop) ]]">
+                    <a class="nx-btn nx-btn--sm" id="roadConfirmOld" :href="[[ $functions.oldRequestUrl($application.variables.appUrls.old, $variables.pop) ]]">
+                      <span class="oj-ux-ico-external-link" aria-hidden="true"></span><oj-bind-text value="[[ 'Confirm ' + $variables.pop.number + ' in Old EquipRite' ]]"></oj-bind-text></a>
+                  </oj-bind-if>
+                  <oj-bind-if test="[[ !$functions.oldRequestUrl($application.variables.appUrls.old, $variables.pop) ]]">
+                    <p class="nx-note"><oj-bind-text value="[[ 'In Old EquipRite: open ' + $variables.pop.number + ', then Confirm Request.' ]]"></oj-bind-text></p>
+                  </oj-bind-if>
+                </div>
+              </oj-bind-if>
+              <oj-bind-if test="[[ $variables.pop.road.pick > 0 ]]">
+                <div class="nx-road-card nx-road--pick" id="roadPick">
+                  <div class="nx-road-card-head"><span class="oj-ux-ico-fullfilment-box" aria-hidden="true"></span>
+                    <strong><oj-bind-text value="[[ 'Pick ' + $functions.pieces($variables.pop.road.pick) + ' at the yard' ]]"></oj-bind-text></strong><span class="nx-note">Yard</span></div>
+                  <p><oj-bind-text value="[[ $functions.pickNote($variables.pop.road) ]]"></oj-bind-text></p>
+                  <oj-bind-if test="[[ $variables.pop.acts && $variables.pop.acts.pick > 0 ]]">
+                    <button type="button" class="nx-btn nx-btn--sm nx-btn--primary" id="roadPickBtn" data-action="pick" on-click="[[ $listeners.onPop ]]">
+                      <span class="oj-ux-ico-fullfilment-box" aria-hidden="true"></span>Open in Picking &amp; shipping</button>
+                  </oj-bind-if>
+                </div>
+              </oj-bind-if>
+              <oj-bind-if test="[[ !$variables.pop.road.assign && !$variables.pop.road.confirm && !$variables.pop.road.pick ]]">
+                <p class="nx-note" id="roadNothing"><oj-bind-text value="[[ $variables.pop.road.shipped ? 'Everything on the way is with the carrier: the site accepts the delivery.' : 'Nothing on this request is on its way to site now.' ]]"></oj-bind-text></p>
+              </oj-bind-if>
+            </div>
+
+            <ul class="nx-road-pieces" aria-label="Each piece">
+              <oj-bind-for-each data="[[ $functions.arr($variables.pop.road.pieces) ]]">
+                <template data-oj-as="e">
+                  <li :class="[[ 'nx-road--' + e.data.step ]]"><span class="nx-road-piece-dot" aria-hidden="true"></span>
+                    <span class="nx-road-piece-name"><oj-bind-text value="[[ e.data.name ]]"></oj-bind-text></span>
+                    <span class="nx-road-piece-unit"><oj-bind-text value="[[ e.data.unitText ]]"></oj-bind-text></span>
+                    <span class="nx-road-pill"><oj-bind-text value="[[ e.data.label ]]"></oj-bind-text></span></li>
+                </template>
+              </oj-bind-for-each>
+            </ul>
+            <oj-bind-if test="[[ $variables.pop.road.before > 0 || $variables.pop.road.beyond > 0 ]]">
+              <p class="nx-note"><oj-bind-text value="[[ $functions.roadElse($variables.pop.road) ]]"></oj-bind-text></p>
+            </oj-bind-if>
+          </div>
+          <footer class="nx-dialog-foot">
+            <button type="button" class="nx-btn" data-action="timeline" on-click="[[ $listeners.onPop ]]"><span class="oj-ux-ico-clock-history" aria-hidden="true"></span>Timeline</button>
+            <button type="button" class="nx-btn" data-action="record" on-click="[[ $listeners.onPop ]]">Open the request</button>
+            <span class="nx-spacer"></span>
+            <button type="button" class="nx-btn nx-btn--plain" data-action="close" on-click="[[ $listeners.onPop ]]">Close</button>
           </footer>
         </oj-bind-if>
 

@@ -4,12 +4,14 @@ define([
 ], (ActionChain, Actions) => {
   'use strict';
 
-  // A stage tile (again: every stage), a yard, the search, a section shown or hidden, or an export menu.
+  // A stage tile (again: every stage), a yard, the search, a section shown or hidden, an export menu, or the note on a
+  // request another screen opened here (handed: dismissed).
   class setChain extends ActionChain {
     async run(context, { field, value }) {
       const v = context.$page.variables;
       if (field === 'exportOpen') { v.exportOpen = v.exportOpen === value ? '' : (value || ''); return; }
       v.exportOpen = '';
+      if (field === 'handed') { v.handed = { tone: '' }; return; }
       if (field === 'text') v.text = String(value || '');
       if (field === 'stage') {
         v.stage = !value || value === v.stage ? 'all' : value;

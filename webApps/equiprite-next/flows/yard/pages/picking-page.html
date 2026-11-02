@@ -51,7 +51,7 @@
   <div class="nx-toolbar">
     <label class="nx-search">
       <span class="oj-ux-ico-search" aria-hidden="true"></span>
-      <input type="search" :value="[[ $variables.text ]]" on-input="[[ $listeners.onSearch ]]" aria-label="Search"
+      <input type="search" id="ydSearch" :value="[[ $variables.text ]]" on-input="[[ $listeners.onSearch ]]" aria-label="Search"
         placeholder="Request, project, customer, equipment, serial or transfer order">
     </label>
     <oj-bind-if test="[[ $variables.stage !== 'all' ]]">
@@ -76,6 +76,30 @@
   </oj-bind-if>
   <oj-bind-if test="[[ $variables.linesFailed > 0 ]]">
     <div class="nx-error" role="status"><oj-bind-text value="[[ 'The lines of ' + $functions.plural($variables.linesFailed, 'request') + ' could not be loaded: they are listed by their dates; open one to try again.' ]]"></oj-bind-text></div>
+  </oj-bind-if>
+
+  <!-- The request another screen opened here (focusChain): where it is, or why it is not in the queue yet. -->
+  <oj-bind-if test="[[ !!$variables.handed.tone ]]">
+    <div :class="[[ 'nx-yd-handed' + ($variables.handed.tone === 'ok' ? ' nx-yd-handed--ok' : '') ]]" id="ydHanded" role="status">
+      <span :class="[[ $variables.handed.tone === 'ok' ? 'oj-ux-ico-information' : 'oj-ux-ico-check-square' ]]" aria-hidden="true"></span>
+      <div class="nx-yd-handed-body">
+        <strong><oj-bind-text value="[[ $variables.handed.title ]]"></oj-bind-text></strong>
+        <p><oj-bind-text value="[[ $variables.handed.text ]]"></oj-bind-text></p>
+        <oj-bind-if test="[[ $variables.handed.confirm > 0 || $variables.handed.tone === 'wait' ]]">
+          <div class="nx-yd-handed-acts">
+            <oj-bind-if test="[[ $variables.handed.confirm > 0 && !!$functions.oldRequestUrl($application.variables.appUrls.old, $variables.handed) ]]">
+              <a class="nx-btn nx-btn--sm" id="ydHandedConfirm" :href="[[ $functions.oldRequestUrl($application.variables.appUrls.old, $variables.handed) ]]">
+                <span class="oj-ux-ico-external-link" aria-hidden="true"></span><oj-bind-text value="[[ 'Confirm ' + $variables.handed.number + ' in Old EquipRite' ]]"></oj-bind-text></a>
+            </oj-bind-if>
+            <oj-bind-if test="[[ $variables.handed.tone === 'wait' && !!$variables.handed.id ]]">
+              <button type="button" class="nx-btn nx-btn--sm" id="ydHandedOpen" :data-id="[[ $variables.handed.id ]]" :data-number="[[ $variables.handed.number ]]"
+                data-act="request" on-click="[[ $listeners.onRow ]]">Open the request</button>
+            </oj-bind-if>
+          </div>
+        </oj-bind-if>
+      </div>
+      <button type="button" class="nx-iconbtn nx-iconbtn--sm" aria-label="Dismiss" data-field="handed" on-click="[[ $listeners.onPick ]]"><span class="oj-ux-ico-close" aria-hidden="true"></span></button>
+    </div>
   </oj-bind-if>
 
   <div :class="[[ 'nx-yd-layout' + ($variables.openId ? ' nx-yd-layout--open' : '') ]]">
@@ -105,7 +129,7 @@
                 </div>
                 <oj-bind-for-each data="[[ s.data.items ]]">
                   <template data-oj-as="it">
-                    <div role="listitem" :class="[[ $functions.rowClass(it.data, $variables.openId) ]]" :data-id="[[ it.data.id ]]"
+                    <div role="listitem" :class="[[ $functions.rowClass(it.data, $variables.openId, $variables.flashId) ]]" :data-id="[[ it.data.id ]]"
                       :data-number="[[ it.data.requestNumber ]]" on-click="[[ $listeners.onRow ]]">
                       <span :class="[[ $functions.whenClass(it.data) ]]">
                         <span class="nx-cell-main"><oj-bind-if test="[[ it.data.late > 0 ]]"><span class="oj-ux-ico-warning" aria-hidden="true"></span></oj-bind-if><oj-bind-text value="[[ it.data.when.main ]]"></oj-bind-text></span>
@@ -340,6 +364,12 @@
                   </div>
                 </template>
               </oj-bind-for-each>
+              <oj-bind-if test="[[ $functions.toConfirm($functions.otherLines($variables.linesBy, $variables.openId, $variables.work.lines, $variables.work.req.isCustomer)) > 0 ]]">
+                <p class="nx-note" id="ydOtherConfirm">Unit assigned is not in the yard's queue yet: Confirm Request, in Old EquipRite's request detail, creates its transfer order in Fusion; then it shows here.
+                  <oj-bind-if test="[[ !!$functions.oldRequestUrl($application.variables.appUrls.old, $variables.work.req) ]]">
+                    <a class="nx-link" :href="[[ $functions.oldRequestUrl($application.variables.appUrls.old, $variables.work.req) ]]">Confirm it in Old EquipRite</a>
+                  </oj-bind-if></p>
+              </oj-bind-if>
             </div>
           </oj-bind-if>
         </oj-bind-if>

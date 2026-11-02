@@ -53,6 +53,7 @@
       "defaultValue": {
         "approve": false,
         "assign": false,
+        "confirm": 0,
         "pick": 0
       },
       "description": "The steps this request offers this user (requestList.actions), as on its row in Requests."

@@ -202,27 +202,74 @@ define(['resources/js/requestProgress', 'resources/js/fmt', 'resources/js/rules'
     ];
   }
 
-  // A piece the yard can pick: a unit is assigned on an approved request, or picking has started and it has not shipped
-  // (the Picking & shipping queue's own statuses, yardWork / openWorkChain).
-  var PICKABLE = ['ALLOCATED', 'SCHEDULED_FOR_PICKING', 'PICK_INITIATED', 'PICK_RELEASED', 'EQP_INSPECTION_COMPLETE'];
+  // A piece with its unit assigned waits for the Equipment Manager to confirm it for picking: Confirm creates its
+  // transfer order in Fusion and schedules it for picking (Old EquipRite's request detail, New's Workbench). Only then
+  // is it in the yard's queue: the pieces the yard can pick are those confirmed or being picked, not shipped yet (the
+  // Picking & shipping workspace's own statuses, openWorkChain).
+  var CONFIRMABLE = ['ALLOCATED'];
+  var PICKABLE = ['SCHEDULED_FOR_PICKING', 'PICK_INITIATED', 'PICK_RELEASED', 'EQP_INSPECTION_COMPLETE'];
   var APPROVED_HEADERS = ['IN_PROCESS', 'APPROVED', 'ALLOCATED', 'QUOTE_ACCEPTED'];
+
+  // The road from approval to site, as the "Get it to site" popup draws it: each step, who takes it, its statuses.
+  var YARD_STEPS = [
+    { key: 'assign', label: 'Unit to assign', who: 'Equipment Manager assigns a unit (Approve & allocate)', statuses: ['IN_PROCESS', 'APPROVED', 'QUOTE_ACCEPTED'] },
+    { key: 'confirm', label: 'Unit assigned', who: 'Equipment Manager confirms it for picking: the transfer order is created in Fusion', statuses: CONFIRMABLE },
+    { key: 'pick', label: 'Waiting to be picked', who: 'Yard releases it for picking (Picking & shipping)', statuses: ['SCHEDULED_FOR_PICKING'] },
+    { key: 'picking', label: 'Being picked', who: 'Yard picks and ships it (Picking & shipping)', statuses: ['PICK_INITIATED', 'PICK_RELEASED', 'EQP_INSPECTION_COMPLETE'] },
+    { key: 'shipped', label: 'On the way to site', who: 'Site accepts the delivery', statuses: ['SHIP_TO_SITE', 'SHIPPED'] }
+  ];
+
+  /**
+   * Where each piece of a request is on its road to site: the five steps with how many pieces sit at each (the one most
+   * behind is "now"), and each piece with its unit and where it is. Pieces before approval or already on site are
+   * counted apart (before, beyond).
+   */
+  function yardJourney(lines) {
+    var steps = YARD_STEPS.map(function (s) { return { key: s.key, label: s.label, who: s.who, count: 0, pieces: [] }; });
+    var before = 0;
+    var beyond = 0;
+    (lines || []).forEach(function (l) {
+      var st = up(l.lineStatus);
+      var i = -1;
+      YARD_STEPS.forEach(function (s, k) { if (s.statuses.indexOf(st) !== -1) i = k; });
+      if (i === -1) {
+        if (['DRAFT', 'SUBMITTED', 'QUOTE_GENERATED'].indexOf(st) !== -1) before += 1;
+        else if (['REJECTED', 'CANCELLED', 'DECLINED'].indexOf(st) === -1) beyond += 1;
+        return;
+      }
+      steps[i].count += 1;
+      // A serial is not in every view: past "unit to assign" the unit is there even when its serial is not shown (at
+      // "Unit assigned" its step already says so).
+      steps[i].pieces.push({ key: String(l.key || l.name) + ':' + i, name: l.name || 'Equipment', unit: l.serial || '', step: steps[i].key, label: steps[i].label,
+        unitText: l.serial ? 'Unit ' + l.serial : (i === 0 ? 'No unit yet' : i === 1 ? '' : 'Unit assigned') });
+    });
+    var at = -1;
+    steps.forEach(function (s, k) { if (at === -1 && s.count > 0) at = k; });
+    var now = at === -1 ? null : steps[at];
+    steps.forEach(function (s, k) { s.state = at === -1 ? 'todo' : k === at ? 'now' : k < at ? 'past' : s.count ? 'also' : 'todo'; });
+    return { steps: steps, pieces: [].concat.apply([], steps.map(function (s) { return s.pieces; })), now: now ? now.key : '', before: before, beyond: beyond,
+      assign: steps[0].count, confirm: steps[1].count, pick: steps[2].count + steps[3].count, shipped: steps[4].count };
+  }
 
   /**
    * The steps a request's row offers, each only to those whose access lets them take it:
    *   approve  it waits for a decision (Approve & allocate's queue says 'decide'); can.decide: EQR_WORKBENCH FULL
    *   assign   approved, units still to assign (the queue says 'allocate'); can.assign: EQR_WORKBENCH not hidden
-   *   pick     pieces ready at the yard, how many; can.pick: EQR_INITIATE_PICKING not hidden
+   *   confirm  pieces with their unit assigned, waiting for the Equipment Manager to confirm them for picking (creates
+   *            the transfer order in Fusion), how many; can.assign: EQR_WORKBENCH not hidden
+   *   pick     pieces in the yard's queue (confirmed, or being picked), how many; can.pick: EQR_INITIATE_PICKING not hidden
    *   item: a decorated request; lines: its lines; queueKind: approvalQueue.build's kind for it ('' when not queued).
    */
   function actions(item, lines, queueKind, can) {
     var c = can || {};
     var status = up(item && (item.status || item.requestStatus));
-    var pick = APPROVED_HEADERS.indexOf(status) === -1 ? 0
-      : (lines || []).filter(function (l) { return PICKABLE.indexOf(up(l.lineStatus)) !== -1; }).length;
+    var approved = APPROVED_HEADERS.indexOf(status) !== -1;
+    var count = function (set) { return approved ? (lines || []).filter(function (l) { return set.indexOf(up(l.lineStatus)) !== -1; }).length : 0; };
     return {
       approve: queueKind === 'decide' && !!c.decide,
       assign: queueKind === 'allocate' && !!c.assign,
-      pick: c.pick ? pick : 0
+      confirm: c.assign ? count(CONFIRMABLE) : 0,
+      pick: c.pick ? count(PICKABLE) : 0
     };
   }
 
@@ -237,6 +284,6 @@ define(['resources/js/requestProgress', 'resources/js/fmt', 'resources/js/rules'
   return {
     CHIPS: CHIPS, LANES: LANES, decorate: decorate, keysOf: keysOf, laneOf: laneOf, requestChips: requestChips, filter: filter, sort: sort,
     board: board, equipmentRows: equipmentRows, equipmentChips: equipmentChips, filterEquipment: filterEquipment, exportColumns: exportColumns,
-    summary: summary, unitText: unitText, actions: actions, PICKABLE: PICKABLE
+    summary: summary, unitText: unitText, actions: actions, yardJourney: yardJourney, PICKABLE: PICKABLE, CONFIRMABLE: CONFIRMABLE
   };
 });
