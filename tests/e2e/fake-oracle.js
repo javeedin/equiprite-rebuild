@@ -31,6 +31,11 @@ function fakeOracle(opts) {
             const line = output.shift();
             return { outBinds: line === undefined ? { ln: null, st: 1 } : { ln: line, st: 0 } };
           }
+          if (/^select user from dual$/i.test(s)) return { rows: [[String(p.user).toUpperCase()]] };
+          if (/from user_tab_columns/i.test(s)) {
+            return { rows: [['DEPT', 'DEPTNO', 'NUMBER', 'TABLE'], ['DEPT', 'DNAME', 'VARCHAR2', 'TABLE'], ['EMP', 'EMPNO', 'NUMBER', 'TABLE'], ['EMP', 'ENAME', 'VARCHAR2', 'TABLE'],
+              ['EMP', 'SAL', 'NUMBER', 'TABLE'], ['EMP', 'HIREDATE', 'DATE', 'TABLE'], ['EMP', 'DEPTNO', 'NUMBER', 'TABLE'], ['BIN$abc', 'X', 'NUMBER', 'TABLE']] };
+          }
           if (/^select\b.*\bfrom\s+nope\b/i.test(s)) throw new Error('ORA-00942: table or view does not exist');
           if (/^(select|with)\b.*\bfrom\s+emp\b/is.test(s)) {
             let at = 0;

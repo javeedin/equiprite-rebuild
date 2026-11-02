@@ -244,6 +244,8 @@ function time() {
  * @param {object}   [o.sqlStore]         EquipRite Next's SQL worksheet (lib/oracleSql.js: Oracle connections kept on this PC,
  *                                        passwords in the OS keychain), served at /__sql/* to this PC only, by its own name, and
  *                                        only to the app's own page (the X-EquipRite-SQL header, which no other site can send)
+ * @param {object}   [o.aiStore]          Ask AI in the SQL worksheet (lib/aiSql.js): the LLM chosen and its key, kept on this PC; served
+ *                                        at /__sql/ai/* behind the same guard as /__sql/*
  * @param {Function} [o.pairToken]        () => the pairing key, or null. Given, a request from another device is
  *                                        served only with the key (the QR code's address, then its cookie), never
  *                                        the web services page; this PC's own requests are unaffected
@@ -522,6 +524,28 @@ function createDevServer(o) {
               log(`SQL run -> ${String(e.message).split('\n')[0].slice(0, 120)}`);
               // A statement the database refused is an answer, not a failed call: its words go back as data.
               return json(200, { error: e.message, ms: e.ms || Date.now() - started });
+            }
+          }
+          // Ask AI (lib/aiSql.js): the LLM the person chose, with their key, called from here; the page never holds a key.
+          const ai = o.aiStore;
+          if (pathname.startsWith('/__sql/ai/') && !ai) return json(200, { error: 'Ask AI is not set up in this app.' });
+          if (pathname === '/__sql/ai/settings' && req.method === 'GET') return json(200, ai.settings());
+          if (pathname === '/__sql/ai/settings' && post) return json(200, ai.save(b));
+          if (pathname === '/__sql/ai/forget' && post) return json(200, ai.forget(b.provider));
+          if (pathname === '/__sql/ai/models' && post) {
+            const r = await ai.models(b.provider);
+            log(`AI models ${b.provider} -> ${r.ok ? r.models.length + ' models' : 'failed'} (${r.ms} ms)`);
+            return json(200, r);
+          }
+          if (pathname === '/__sql/ai/ask' && post) {
+            try {
+              const sc = b.session ? await sq.schema(b.session) : { owner: '', banner: '', tables: [] };
+              const r = await ai.ask({ question: b.question, sql: b.sql, schema: sc, banner: sc.banner, provider: b.provider });
+              log(`AI ask ${r.provider} ${r.model} -> ${r.sql ? 'SQL' : 'no SQL'} (${r.ms} ms, ${r.sent.tables} tables named)`);
+              return json(200, r);
+            } catch (e) {
+              log(`AI ask -> ${String(e.message).slice(0, 160)}`);
+              return json(200, { error: e.message });
             }
           }
           if (pathname === '/__sql/more' && post) return json(200, await sq.more(b.session, b.count));

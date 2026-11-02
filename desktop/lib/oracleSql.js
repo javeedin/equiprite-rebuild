@@ -383,6 +383,34 @@ async function open(opts) {
         throw err;
       }
     },
+    /**
+     * For Ask AI: the connected schema's tables and views with their columns and types (names only, never a row), and
+     * the database's banner. The user's own objects; with none, those its synonyms point to.
+     */
+    async schema(sessionId) {
+      const s = sessionOf(sessionId);
+      const d = getDriver();
+      const opt = { outFormat: d.OUT_FORMAT_ARRAY || 4001, maxRows: 50000 };
+      let owner = s.user;
+      try { const u = await s.conn.execute('select user from dual', [], opt); owner = (u.rows && u.rows[0] && u.rows[0][0]) || owner; } catch (e) { /* the user named at connect */ }
+      let rows = [];
+      try {
+        rows = (await s.conn.execute('select c.table_name, c.column_name, c.data_type, o.object_type from user_tab_columns c join user_objects o on o.object_name = c.table_name and o.object_type in (\'TABLE\', \'VIEW\') order by c.table_name, c.column_id', [], opt)).rows || [];
+      } catch (e) { rows = []; }
+      if (!rows.length) {
+        try {
+          rows = (await s.conn.execute('select c.table_name, c.column_name, c.data_type, \'TABLE\' from all_tab_columns c where c.owner in (select distinct table_owner from user_synonyms) order by c.owner, c.table_name, c.column_id', [], opt)).rows || [];
+        } catch (e) { rows = []; }
+      }
+      const by = new Map();
+      rows.forEach((r) => {
+        const name = String(r[0]);
+        if (/^(BIN\$|DR\$|SYS_|MLOG\$|RUPD\$)/.test(name)) return;
+        if (!by.has(name)) by.set(name, { name, kind: String(r[3] || 'TABLE'), columns: [] });
+        by.get(name).columns.push({ name: String(r[1]), type: String(r[2] || '') });
+      });
+      return { owner: String(owner || ''), banner: s.banner || '', tables: Array.from(by.values()) };
+    },
     async more(sessionId, count) {
       const s = sessionOf(sessionId);
       if (!s.rs) return { rows: [], more: false };

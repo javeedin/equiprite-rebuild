@@ -1,7 +1,8 @@
 define([
   'vb/action/actionChain',
+  'vb/action/actions',
   'resources/js/sqlClient',
-], (ActionChain, sql) => {
+], (ActionChain, Actions, sql) => {
   'use strict';
 
   // Opening the worksheet: is the desktop app there to connect (not in VBCS), the saved connections, the worksheet's
@@ -15,6 +16,8 @@ define([
       v.info = Object.assign({ checked: true }, info);
       if (!info.available) return;
       try { v.connsOpen = window.localStorage.getItem('equiprite-next:sql-conns-open') !== '0'; } catch (e) { /* no storage */ }
+      // Ask AI: which LLM it uses (the bar says it).
+      await Actions.callChain(context, { chain: 'aiChain', params: { op: 'load' } });
       const c = await sql.connections();
       v.conns = c.ok && Array.isArray(c.body) ? c.body : [];
       // Said, not shown as "No connection yet", when the saved connections cannot be read.

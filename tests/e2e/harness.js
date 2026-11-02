@@ -122,7 +122,7 @@ async function start(o) {
   ];
   if (DS.isBuilt(path.join(ROOT, 'build'), 'equiprite-next')) {
     // o.sqlStore: the SQL worksheet's store (desktop/lib/oracleSql.js, with a fake driver in tests).
-    servers.push(await DS.createDevServer(Object.assign({ webApp: 'equiprite-next', port: ports.next }, common, o.sqlStore ? { sqlStore: o.sqlStore } : {})));
+    servers.push(await DS.createDevServer(Object.assign({ webApp: 'equiprite-next', port: ports.next }, common, o.sqlStore ? { sqlStore: o.sqlStore } : {}, o.aiStore ? { aiStore: o.aiStore } : {})));
   }
   let futureStore = null;
   if (DS.isBuilt(path.join(ROOT, 'build'), 'equiprite-future')) {

@@ -108,6 +108,19 @@
           <div class="nx-sql-pending" id="sqlPending" role="status"><span class="oj-ux-ico-warning" aria-hidden="true"></span>
             Uncommitted changes in this session. Commit keeps them, Rollback undoes them; Disconnect rolls them back.</div>
         </oj-bind-if>
+        <!-- Ask AI: a question in plain words; the chosen LLM writes the SQL into the worksheet, selected, never run by itself -->
+        <div class="nx-sql-ai" id="sqlAi">
+          <span class="nx-sql-ai-tag"><span class="oj-ux-ico-lightbulb" aria-hidden="true"></span>Ask AI</span>
+          <input id="sqlAiAsk" class="nx-sql-ai-in" type="text" autocomplete="off" :value="[[ $variables.ai.question ]]" on-input="[[ $listeners.onAiQuestion ]]"
+            aria-label="Ask AI for SQL, in plain words" placeholder="In plain words, e.g. requests still on hire past their end date, by project"/>
+          <button type="button" class="nx-btn nx-btn--primary nx-btn--sm" id="sqlAiGo" on-click="[[ $listeners.onAiAsk ]]" :disabled="[[ !$variables.session.id || !!$variables.busy ]]">
+            <oj-bind-text value="[[ $variables.busy === 'ai' ? 'Asking…' : 'Ask' ]]"></oj-bind-text></button>
+          <button type="button" class="nx-btn nx-btn--sm nx-btn--plain nx-sql-ai-who" id="sqlAiWho" on-click="[[ $listeners.onAiSettings ]]" title="Choose the LLM, its key and its model">
+            <span class="oj-ux-ico-settings" aria-hidden="true"></span><oj-bind-text value="[[ $variables.ai.who || 'Choose the LLM…' ]]"></oj-bind-text></button>
+        </div>
+        <oj-bind-if test="[[ !!$variables.ai.note ]]">
+          <p :class="[[ 'nx-sql-ai-note nx-sql-ai-note--' + ($variables.ai.tone || 'none') ]]" id="sqlAiNote" role="status"><oj-bind-text value="[[ $variables.ai.note ]]"></oj-bind-text></p>
+        </oj-bind-if>
         <textarea id="sqlEditor" class="nx-sql-editor" spellcheck="false" autocomplete="off" aria-label="SQL" :value="[[ $variables.sql ]]" on-input="[[ $listeners.onEditor ]]"
           placeholder="select * from dual;&#10;&#10;Ctrl+Enter runs the statement under the cursor (or the selection); F5 runs the whole script. End statements with ; and PL/SQL blocks with a line holding /."></textarea>
 
@@ -213,6 +226,75 @@
             </ul>
           </div>
         </oj-bind-if>
+      </section>
+    </div>
+  </oj-bind-if>
+
+  <!-- Ask AI: which LLM, its key and its model -->
+  <oj-bind-if test="[[ $variables.aiDlg.open ]]">
+    <div class="nx-modal">
+      <button type="button" class="nx-modal-scrim" tabindex="-1" aria-label="Close" on-click="[[ $listeners.onAiClose ]]"></button>
+      <section class="nx-dialog nx-sql-dialog" id="sqlAiDialog" role="dialog" aria-modal="true" aria-labelledby="sqlAiTitle">
+        <header class="nx-dialog-head">
+          <div class="nx-dialog-titles">
+            <div class="nx-kicker">SQL worksheet · Ask AI</div>
+            <h2 id="sqlAiTitle" class="nx-dialog-title">Choose the LLM that writes your SQL</h2>
+          </div>
+          <button type="button" class="nx-iconbtn" aria-label="Close" on-click="[[ $listeners.onAiClose ]]"><span class="oj-ux-ico-close" aria-hidden="true"></span></button>
+        </header>
+        <div class="nx-dialog-body nx-sql-dlgbody">
+          <div class="nx-sql-aiprov" role="radiogroup" aria-label="LLM" id="sqlAiProviders">
+            <oj-bind-for-each data="[[ $variables.aiDlg.settings.catalog ]]"><template data-oj-as="p">
+              <button type="button" role="radio" :class="[[ 'nx-sql-aiprov-card' + ($variables.aiDlg.provider === p.data.id ? ' nx-sql-aiprov-card--on' : '') ]]" :aria-checked="[[ $variables.aiDlg.provider === p.data.id ? 'true' : 'false' ]]"
+                :data-value="[[ p.data.id ]]" on-click="[[ $listeners.onAiProvider ]]">
+                <strong><oj-bind-text value="[[ p.data.label ]]"></oj-bind-text></strong>
+                <oj-bind-if test="[[ $variables.aiDlg.settings.active === p.data.id ]]"><span class="nx-chip nx-sql-tag--on">In use</span></oj-bind-if>
+              </button>
+            </template></oj-bind-for-each>
+          </div>
+          <div class="nx-sql-form">
+            <p class="nx-note" id="sqlAiProvNote"><oj-bind-text value="[[ $functions.provNote($variables.aiDlg.settings.catalog, $variables.aiDlg.provider) ]]"></oj-bind-text></p>
+            <oj-bind-for-each data="[[ $variables.aiDlg.fields ]]"><template data-oj-as="f">
+              <div :class="[[ 'nx-sql-frow' + (f.data.area ? ' nx-sql-frow--top' : '') ]]">
+                <label :for="[[ 'sqlAiF-' + f.data.key ]]"><oj-bind-text value="[[ f.data.label ]]"></oj-bind-text></label>
+                <oj-bind-if test="[[ f.data.area ]]">
+                  <textarea :id="[[ 'sqlAiF-' + f.data.key ]]" class="nx-sql-in nx-sql-in--area" rows="4" spellcheck="false" :data-field="[[ f.data.key ]]" on-input="[[ $listeners.onAiField ]]"
+                    :placeholder="[[ f.data.saved ? 'Saved: leave empty to keep it' : '-----BEGIN PRIVATE KEY-----' ]]"></textarea>
+                </oj-bind-if>
+                <oj-bind-if test="[[ !f.data.area ]]">
+                  <input :id="[[ 'sqlAiF-' + f.data.key ]]" class="nx-sql-in" :type="[[ f.data.secret ? 'password' : 'text' ]]" autocomplete="off" :data-field="[[ f.data.key ]]"
+                    :value="[[ f.data.secret ? '' : $functions.fieldVal($variables.aiDlg.form, f.data.key) ]]" on-input="[[ $listeners.onAiField ]]"
+                    :placeholder="[[ f.data.saved ? 'Saved: leave empty to keep it' : f.data.hint ]]"/>
+                </oj-bind-if>
+              </div>
+            </template></oj-bind-for-each>
+            <fieldset class="nx-sql-box">
+              <legend>Model</legend>
+              <div class="nx-sql-frow"><label for="sqlAiModel">Model</label>
+                <input id="sqlAiModel" class="nx-sql-in" type="text" autocomplete="off" data-field="model" :value="[[ $variables.aiDlg.form.model ]]" on-input="[[ $listeners.onAiModelTyped ]]" placeholder="Load models, then pick one"/>
+                <button type="button" class="nx-btn nx-btn--sm" id="sqlAiLoad" on-click="[[ $listeners.onAiModels ]]" :disabled="[[ !!$variables.aiDlg.busy ]]">Load models</button></div>
+              <oj-bind-if test="[[ $variables.aiDlg.models.length > 0 ]]">
+                <div class="nx-sql-aimodels" role="listbox" aria-label="Models this key may use" id="sqlAiModels">
+                  <oj-bind-for-each data="[[ $variables.aiDlg.models ]]"><template data-oj-as="m">
+                    <button type="button" role="option" :class="[[ 'nx-sql-aimodel' + ($variables.aiDlg.form.model === m.data.id ? ' nx-sql-aimodel--on' : '') ]]" :aria-selected="[[ $variables.aiDlg.form.model === m.data.id ? 'true' : 'false' ]]"
+                      :data-value="[[ m.data.id ]]" on-click="[[ $listeners.onAiModel ]]"><oj-bind-text value="[[ m.data.label ]]"></oj-bind-text></button>
+                  </template></oj-bind-for-each>
+                </div>
+              </oj-bind-if>
+            </fieldset>
+            <p class="nx-note nx-sql-aisent" id="sqlAiSent">What is sent: your question, the names and types of the tables and columns of the connected schema, the database version, and the SQL in the worksheet. Never any rows. The SQL comes back into the worksheet, selected; nothing runs until you run it.</p>
+          </div>
+        </div>
+        <footer class="nx-dialog-foot nx-sql-dlgfoot">
+          <p :class="[[ 'nx-sql-dlgstatus nx-sql-dlgstatus--' + ($variables.aiDlg.tone || 'none') ]]" id="sqlAiStatus" role="status">
+            <oj-bind-text value="[[ 'Status : ' + ($variables.aiDlg.busy || $variables.aiDlg.status) ]]"></oj-bind-text></p>
+          <div class="nx-sql-dlgbtns">
+            <button type="button" class="nx-btn nx-btn--plain" id="sqlAiForget" on-click="[[ $listeners.onAiForget ]]" :disabled="[[ !!$variables.aiDlg.busy ]]">Remove key</button>
+            <button type="button" class="nx-btn" id="sqlAiTest" on-click="[[ $listeners.onAiModels ]]" :disabled="[[ !!$variables.aiDlg.busy ]]">Test</button>
+            <button type="button" class="nx-btn nx-btn--primary" id="sqlAiSave" on-click="[[ $listeners.onAiSave ]]" :disabled="[[ !!$variables.aiDlg.busy ]]">Save and use</button>
+            <button type="button" class="nx-btn nx-btn--plain" id="sqlAiCancel" on-click="[[ $listeners.onAiClose ]]">Close</button>
+          </div>
+        </footer>
       </section>
     </div>
   </oj-bind-if>

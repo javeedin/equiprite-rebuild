@@ -186,11 +186,11 @@ define([], function () {
    * The dialog's inputs set to the form, after a chain changed the form (New, Clear, picking a connection, Save): a
    * native input the person typed in keeps its own value otherwise. Run after the dialog has drawn.
    */
-  function fillInputs(form, doc) {
+  function fillInputs(form, doc, root) {
     var d = doc || (typeof document !== 'undefined' ? document : null);
     if (!d) return 0;
     var n = 0;
-    Array.prototype.forEach.call(d.querySelectorAll('#sqlDialog [data-field]'), function (el) {
+    Array.prototype.forEach.call(d.querySelectorAll((root || '#sqlDialog') + ' [data-field]'), function (el) {
       var k = el.getAttribute('data-field');
       if (!Object.prototype.hasOwnProperty.call(form || {}, k)) return;
       if (el.type === 'checkbox') el.checked = !!form[k];
@@ -200,6 +200,31 @@ define([], function () {
       n += 1;
     });
     return n;
+  }
+
+  // ── Ask AI ───────────────────────────────────────────────────────────────────────────────────────────────────
+  /**
+   * The SQL an LLM wrote, put at the end of the worksheet under a comment naming who wrote it and for what; returns the
+   * new text and where the statement sits, so it is selected (Ctrl+Enter runs the selection) and never run by itself.
+   */
+  function aiInsert(text, sql, question, who) {
+    var body = String(sql || '').trim();
+    if (body && !/;\s*$/.test(body) && !/\n\/\s*$/.test(body)) body += ';';
+    var head = '-- Ask AI (' + (who || 'LLM') + '): ' + String(question || '').replace(/\s+/g, ' ').trim().slice(0, 200);
+    var before = String(text || '').replace(/\s+$/, '');
+    var lead = before ? before + '\n\n' : '';
+    var out = lead + head + '\n' + body + '\n';
+    var start = (lead + head + '\n').length;
+    return { text: out, start: start, end: start + body.length };
+  }
+  /** "Claude (Anthropic) · <model>", or what is still to choose. */
+  function aiWho(settings) {
+    var st = settings || {};
+    var id = st.active;
+    var cat = (st.catalog || []).filter(function (p) { return p.id === id; })[0];
+    var pr = (st.providers || {})[id] || {};
+    if (!cat) return '';
+    return cat.label + (pr.model ? ' · ' + pr.model : ' · no model yet');
   }
 
   // ── History: the last statements run on this PC ────────────────────────────────────────────────────────────────
@@ -226,5 +251,5 @@ define([], function () {
   }
 
   return { KINDS: KINDS, COLORS: COLORS, kindOf: kindOf, isBlock: isBlock, split: split, atCursor: atCursor, cellOf: cellOf, grid: grid, exportSpec: exportSpec,
-    blankForm: blankForm, formOf: formOf, details: details, missing: missing, setField: setField, fillInputs: fillInputs, autoName: autoName, remember: remember, historyRows: historyRows, took: took };
+    blankForm: blankForm, formOf: formOf, details: details, missing: missing, setField: setField, fillInputs: fillInputs, autoName: autoName, aiInsert: aiInsert, aiWho: aiWho, remember: remember, historyRows: historyRows, took: took };
 });

@@ -51,6 +51,12 @@ define([], function () {
     commit: function (session) { return call('commit', 'POST', { session: session }); },
     rollback: function (session) { return call('rollback', 'POST', { session: session }); },
     cancel: function (session) { return call('cancel', 'POST', { session: session }); },
-    disconnect: function (session) { return call('disconnect', 'POST', { session: session }); }
+    disconnect: function (session) { return call('disconnect', 'POST', { session: session }); },
+    // Ask AI: the LLM chosen and its key stay in the desktop app; the page sends the question and gets SQL back.
+    aiSettings: function () { return call('ai/settings'); },
+    aiSave: function (form) { return call('ai/settings', 'POST', form); },
+    aiForget: function (provider) { return call('ai/forget', 'POST', { provider: provider }); },
+    aiModels: function (provider) { return call('ai/models', 'POST', { provider: provider }); },
+    aiAsk: function (session, question, sql) { return call('ai/ask', 'POST', { session: session, question: question, sql: sql }); }
   };
 });

@@ -21,7 +21,18 @@ const T = H.makeAsserter();
   const enc = (t) => Buffer.from('ENC:' + Buffer.from(t).toString('base64'));
   const dec = (b) => Buffer.from(b.toString().slice(4), 'base64').toString();
   const sqlStore = await require('../../desktop/lib/oracleSql').open({ file: path.join(tmp, 'sql-connections.json'), driver: D, encrypt: enc, decrypt: dec });
-  const env = await E.start({ port: 19730, app: 'next', sqlStore, username: 'javeed.shaik' });
+  // Ask AI over a fake LLM (Anthropic's API shape): its models, and an answer with SQL.
+  const aiCalls = [];
+  const aiFetch = async (url, init) => {
+    const i = init || {};
+    aiCalls.push({ url, headers: i.headers || {}, body: i.body ? JSON.parse(i.body) : null });
+    const json = (body) => ({ ok: true, status: 200, text: async () => JSON.stringify(body) });
+    if (/\/v1\/models/.test(url)) return json({ data: [{ id: 'model-b', display_name: 'Model B' }, { id: 'model-a', display_name: 'Model A' }] });
+    if (/\/v1\/messages/.test(url)) return json({ content: [{ type: 'text', text: '```sql\nselect e.empno, e.ename from emp e where e.sal is null\n```\nEmployees with no salary recorded.' }] });
+    return { ok: false, status: 404, text: async () => '{}' };
+  };
+  const aiStore = await require('../../desktop/lib/aiSql').open({ file: path.join(tmp, 'ai-settings.json'), encrypt: enc, decrypt: dec, fetch: aiFetch });
+  const env = await E.start({ port: 19730, app: 'next', sqlStore, aiStore, username: 'javeed.shaik' });
   const { page } = env;
   const text = async (sel) => ((await page.$(sel)) ? env.text(sel) : '');
   try {
@@ -100,16 +111,58 @@ const T = H.makeAsserter();
     await page.waitForSelector('#sqlConnList');
     T.check('shown again', await page.isVisible('#sqlConnsHide'));
 
+    T.section('Ask AI: choose the LLM and its key, then ask in plain words');
+    T.eq('no LLM chosen yet', await text('#sqlAiWho'), 'Choose the LLM…');
+    await page.fill('#sqlAiAsk', 'employees without a salary');
+    await page.press('#sqlAiAsk', 'Enter');
+    await page.waitForSelector('#sqlAiDialog', { timeout: 10000 });
+    T.eq('asking first opens the choice, and says why', await text('#sqlAiStatus'), 'Status : Choose the LLM and a model first, then ask again.');
+    T.eq('the LLMs to choose from', await page.$$eval('#sqlAiProviders .nx-sql-aiprov-card strong', (c) => c.map((x) => x.innerText.trim()).join(' | ')),
+      'Claude (Anthropic) | ChatGPT (OpenAI) | Oracle OCI Generative AI | Google Gemini | Other (OpenAI-compatible)');
+    await page.click('#sqlAiProviders [data-value="oci"]');
+    await page.waitForSelector('#sqlAiF-compartmentId');
+    T.eq('Oracle OCI asks for its tenancy and signing key', await page.$$eval('#sqlAiDialog .nx-sql-form label', (l) => l.map((x) => x.innerText.trim()).join(' | ')),
+      'Region | Compartment OCID | Tenancy OCID | User OCID | Key fingerprint | Private key (PEM) | Key passphrase (if any) | Model');
+    await page.click('#sqlAiProviders [data-value="anthropic"]');
+    await page.waitForSelector('#sqlAiF-key');
+    await page.fill('#sqlAiF-key', 'sk-ant-TESTKEY');
+    await page.click('#sqlAiLoad');
+    await page.waitForSelector('#sqlAiModels', { timeout: 10000 });
+    T.eq('Load models: the models this key may use, from the provider', [await page.$$eval('#sqlAiModels .nx-sql-aimodel', (m) => m.map((x) => x.innerText.trim()).join(' ; ')), await text('#sqlAiStatus')].join(' | '),
+      'Model B · model-b ; Model A · model-a | Status : Success: 2 models this key may use. Pick one, then Save.');
+    T.check('…the key typed went to the desktop app; the field now says it is saved', (await page.inputValue('#sqlAiF-key')) === '' && (await page.getAttribute('#sqlAiF-key', 'placeholder')) === 'Saved: leave empty to keep it');
+    await page.click('#sqlAiModels [data-value="model-a"]');
+    T.eq('a model picked', await page.inputValue('#sqlAiModel'), 'model-a');
+    await env.shot('next-sql-ai-settings.png');
+    await page.click('#sqlAiSave');
+    await page.waitForSelector('#sqlAiDialog', { state: 'detached', timeout: 10000 });
+    T.eq('in use, said in the bar', await text('#sqlAiWho'), 'Claude (Anthropic) · model-a');
+    await page.click('#sqlAiGo');
+    await page.waitForFunction(() => /Written by/.test((document.getElementById('sqlAiNote') || {}).innerText || ''), null, { timeout: 10000 });
+    const ed = await page.evaluate(() => { const e = document.getElementById('sqlEditor'); return { tail: e.value.trim().split('\n').slice(-2).join('\n'), sel: e.value.slice(e.selectionStart, e.selectionEnd) }; });
+    T.eq('the SQL written into the worksheet under who wrote it, selected, not run', [ed.tail, ed.sel].join(' | '),
+      '-- Ask AI (Claude (Anthropic)): employees without a salary\nselect e.empno, e.ename from emp e where e.sal is null; | select e.empno, e.ename from emp e where e.sal is null;');
+    T.check('…the note: who, why, and what was sent', /^Written by Claude \(Anthropic\) · model-a in .*: Employees with no salary recorded\. Sent: your question and the names of 2 tables and their columns \(no rows\)/.test(await text('#sqlAiNote')), await text('#sqlAiNote'));
+    const sent = aiCalls.filter((c) => /messages/.test(c.url)).pop().body.messages[0].content;
+    T.check('the LLM got the names, never a row', sent.includes('TABLE EMP (EMPNO NUMBER, ENAME VARCHAR2, SAL NUMBER, HIREDATE DATE, DEPTNO NUMBER)') && !sent.includes('EMP 1'), sent);
+    await env.shot('next-sql-ai-written.png');
+    await page.keyboard.press('Control+Enter');
+    await page.waitForFunction(() => /EMPNO/.test((document.getElementById('sqlGrid') || {}).innerText || ''), null, { timeout: 10000 });
+    T.eq('Ctrl+Enter runs what it wrote', D.calls.filter((x) => x.op === 'execute' && /sal is null/.test(x.sql)).pop().sql, 'select e.empno, e.ename from emp e where e.sal is null');
+    T.check('the key is in no page, storage or file as text', !(await page.evaluate(() => document.documentElement.outerHTML + JSON.stringify(localStorage) + JSON.stringify(sessionStorage))).includes('sk-ant-TESTKEY')
+      && !fs.readFileSync(path.join(tmp, 'ai-settings.json'), 'utf8').includes('sk-ant-TESTKEY'));
+
     T.section('Ctrl+Enter runs the statement under the cursor');
     await page.fill('#sqlEditor', 'select * from emp;\n\nupdate emp set sal = sal + 1;\n');
     await page.focus('#sqlEditor');
     await page.evaluate(() => { const e = document.getElementById('sqlEditor'); e.setSelectionRange(3, 3); });
+    const mark = D.calls.length;
     await page.keyboard.press('Control+Enter');
     await page.waitForSelector('#sqlGrid', { timeout: 10000 });
     T.eq('the query ran: columns and 200 rows, more to fetch', [await page.$$eval('#sqlGrid .nx-sql-row--head .nx-sql-c', (c) => c.map((x) => x.innerText.trim()).join()),
       await page.$$eval('#sqlGrid .nx-sql-row:not(.nx-sql-row--head)', (r) => r.length), await text('#sqlTab-result')].join(' | '), '#,EMPNO,ENAME,SAL,HIREDATE | 200 | Query result (200+)');
     T.eq('…a null and a date', await page.$$eval('#sqlGrid .nx-sql-row:nth-child(2) .nx-sql-c', (c) => c.map((x) => x.innerText.trim()).join(' | ')), '1 | 7000 | EMP 1 | (null) | 2026-01-01 09:30:00');
-    T.eq('…only that statement reached the database', D.calls.filter((x) => x.op === 'execute' && /emp/i.test(x.sql)).map((x) => x.sql).join(' ; '), 'select * from emp');
+    T.eq('…only that statement reached the database', D.calls.slice(mark).filter((x) => x.op === 'execute' && /emp/i.test(x.sql)).map((x) => x.sql).join(' ; '), 'select * from emp');
     await env.shot('next-sql-result.png');
     await page.click('#sqlMore');
     await page.waitForFunction(() => document.querySelectorAll('#sqlGrid .nx-sql-row').length === 401, null, { timeout: 10000 });

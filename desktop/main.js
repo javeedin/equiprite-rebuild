@@ -58,6 +58,21 @@ async function sqlStore() {
   }
   return sqlConnStore;
 }
+// Ask AI in the SQL worksheet: the LLM chosen and its key, kept in this app's data folder (the key in the OS keychain).
+// Calls go through Chromium's network stack (net.fetch), so the PC's proxy settings apply.
+let aiConnStore = null;
+async function aiStore() {
+  if (!aiConnStore) {
+    const { net } = require('electron');
+    aiConnStore = await require('./lib/aiSql').open({
+      file: path.join(app.getPath('userData'), 'ai-settings.json'),
+      encrypt: canEncrypt() ? (t) => safeStorage.encryptString(t) : null,
+      decrypt: canEncrypt() ? (b) => safeStorage.decryptString(b) : null,
+      fetch: net && typeof net.fetch === 'function' ? (url, init) => net.fetch(url, init) : undefined,
+    });
+  }
+  return aiConnStore;
+}
 const VERSIONS = {
   old: { webApp: 'vbredwoodapp', label: 'Old EquipRite', port: PORT },
   new: { webApp: 'equiprite', label: 'New EquipRite', port: PORT + 1 },
@@ -901,6 +916,7 @@ if (!app.requestSingleInstanceLock()) {
             futureStore: v === 'future' ? await futureStore() : undefined,
             // EquipRite Next's SQL worksheet: the desktop app connects to Oracle for it (node-oracledb, Thin mode).
             sqlStore: v === 'next' ? await sqlStore() : undefined,
+            aiStore: v === 'next' ? await aiStore() : undefined,
             backendOverrides: backendOverridesFromEnv(process.env),
             onLog: pushLog,
             onProblem: backendProblem,

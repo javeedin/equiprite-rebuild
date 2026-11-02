@@ -8,6 +8,8 @@ define(['resources/js/exportKit', 'resources/js/sqlWorksheet'], (exportKit, W) =
     window.__eqrSqlKeys = true;
     document.addEventListener('keydown', function (e) {
       var t = e.target;
+      // Enter in the Ask AI box asks.
+      if (t && t.id === 'sqlAiAsk' && e.key === 'Enter') { e.preventDefault(); var go = document.getElementById('sqlAiGo'); if (go && !go.disabled) go.click(); return; }
       if (!t || t.id !== 'sqlEditor') return;
       var id = (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) ? 'sqlRun' : (e.key === 'F5' ? 'sqlRunScript' : '');
       if (!id) return;
@@ -35,6 +37,12 @@ define(['resources/js/exportKit', 'resources/js/sqlWorksheet'], (exportKit, W) =
     lines(list) { return (list || []).join('\n'); }
 
     historyRows(list) { return W.historyRows(list); }
+
+    /** What the chosen LLM needs, in a line. */
+    provNote(catalog, id) { var c = (catalog || []).filter(function (p) { return p.id === id; })[0]; return c ? c.note : ''; }
+
+    /** A field's value in the Ask AI settings form. */
+    fieldVal(form, key) { return form && form[key] != null ? form[key] : ''; }
   }
 
   return PageModule;
