@@ -332,7 +332,8 @@ async function waitIdle(page) {
     T.check('the result names each line', (await env.text('#apResult')).includes('Line 1 (CAT 320 Excavator): assign EX-2203 (Houston Yard). It has all its units.'), await env.text('#apResult'));
     T.check('read back: the lines have their units, the request is ready for picking', (await env.text('.nx-ap-line[data-line="9031"]')).includes('Unit assigned')
       && (await env.text('#apVerdict')).includes('Every line has its units'), await env.text('#apVerdict'));
-    T.eq('picking is a Fusion step: it links to New EquipRite', await page.getAttribute('#apPickingLink', 'href'), env.newUrl + '/vp/shell/logistics/picking');
+    T.check('the next step is offered here: Confirm for picking (no link to New)', /^Confirm \d+ pieces? for picking$/.test(await env.text('#apConfirm')) && !(await page.$('#apPickingLink')),
+      await env.text('#apConfirm'));
     T.check('nothing left to assign: REQ-503 leaves the queue, its panel stays', !(await page.$('.nx-ap-q[data-number="REQ-503"]')) && (await env.text('#apRecTitle')).startsWith('REQ-503'));
     await env.shot('next-approvals-auto.png');
 

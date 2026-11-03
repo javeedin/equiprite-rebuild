@@ -1,4 +1,5 @@
-define(['resources/js/exportKit', 'resources/js/fmt', 'resources/js/nav', 'resources/js/unitPicker', 'resources/js/approvalQueue', 'resources/js/shellBus'], (exportKit, fmt, nav, unitPicker, queue, bus) => {
+define(['resources/js/exportKit', 'resources/js/fmt', 'resources/js/nav', 'resources/js/unitPicker', 'resources/js/approvalQueue', 'resources/js/shellBus',
+  'resources/js/confirmPicking'], (exportKit, fmt, nav, unitPicker, queue, bus, confirmPicking) => {
   'use strict';
 
   // Approve & allocate: binding helpers, and the unit pickers kept between chains (as New EquipRite's page module
@@ -62,8 +63,20 @@ define(['resources/js/exportKit', 'resources/js/fmt', 'resources/js/nav', 'resou
       const b = base.slice(-1) === '/' ? base : base + '/';
       return b + 'vp/shell/workbench/approve-allocate?requestId=' + encodeURIComponent(head.number || '') + '&requestNumericId=' + encodeURIComponent(head.id);
     }
-    /** New EquipRite's Initiate picking (the Transfer Order goes to Fusion; not in Next yet). */
+    /** New EquipRite's picking screen: for lines with no unit to assign (no serial, lot or stock), which Next cannot confirm. */
     pickingUrl(base) { return nav.newUrl(base, 'picking'); }
+
+    /** The pieces Confirm for picking takes here: unit assigned, no transfer order yet (confirmPicking.confirmable). */
+    confirmCount(lines) { return confirmPicking.confirmable(lines).length; }
+
+    /** The bar over one request: why only it is shown, or that it has nothing waiting. */
+    focusNote(focus, total) {
+      const f = focus || {};
+      const others = Math.max(0, (Number(total) || 0) - (f.missing ? 0 : 1));
+      if (f.missing) return 'It has nothing waiting to approve or assign now.';
+      const where = !f.label ? 'for it' : (f.label === f.number ? 'from its tab' : 'from ' + f.label);
+      return 'Opened ' + where + '. ' + (others ? fmt.count(others, 'other request') + (others === 1 ? ' waits' : ' wait') + ' in the queue, hidden while you work on this one.' : 'Nothing else waits in the queue.');
+    }
     /** The quote page in Old EquipRite, where quotes are generated (New's oldQuoteLink). */
     quoteUrl(oldBase, head) {
       if (!oldBase || !head || !head.id) return '';

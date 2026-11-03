@@ -26,6 +26,7 @@
     "bulk": { "type": "any", "defaultValue": { "mode": "", "reason": "", "error": "" }, "description": "mode reject: the send-back confirmation with its reason." },
     "bulkResult": { "type": "any", "defaultValue": null },
     "current": { "type": "any", "defaultValue": { "key": "" }, "description": "The queue item open in the panel." },
+    "focus": { "type": "any", "defaultValue": { "number": "" }, "description": "focusChain: the one request another screen opened here ({ key, number, label, open, missing }): only it is shown, with Back to the screen it came from, until Show the whole queue." },
     "rec": { "type": "any", "defaultValue": { "loading": false, "error": "", "head": {}, "rows": [], "verdict": { "tone": "", "text": "", "next": "" } } },
     "lines": { "type": "any[]", "defaultValue": [], "description": "The open request's lines (approveAllocate.loadLines), what the writes act on." },
     "ticks": { "type": "any[]", "defaultValue": [], "description": "Ticked line ids, in the order ticked: a decision acts on these, or on every line." },
@@ -71,7 +72,10 @@
     "onLotQty": { "chains": [{ "chain": "stageChain", "parameters": { "action": "qty", "id": "{{ $event.target.dataset.id }}", "qty": "{{ $event.target.value }}" } }] },
     "onSaveUnits": { "chains": [{ "chain": "saveUnitsChain" }] },
     "onOpenRecord": { "chains": [{ "chain": "openRecordChain", "parameters": { "id": "{{ $event.currentTarget.dataset.id }}", "number": "{{ $event.currentTarget.dataset.number }}" } }] },
-    "onDismissResult": { "chains": [{ "chain": "setChain", "parameters": { "field": "result", "value": "" } }] }
+    "onDismissResult": { "chains": [{ "chain": "setChain", "parameters": { "field": "result", "value": "" } }] },
+    "onFocusAll": { "chains": [{ "chain": "setChain", "parameters": { "field": "focusAll", "value": "" } }] },
+    "onFocusBack": { "chains": [{ "chain": "setChain", "parameters": { "field": "focusBack", "value": "" } }] },
+    "onConfirmPicking": { "chains": [{ "chain": "confirmChain" }] }
   },
   "imports": {
     "components": {

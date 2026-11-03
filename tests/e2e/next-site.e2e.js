@@ -16,6 +16,7 @@ const REQ = {
   3002: { requestNumber: 'REQ-3002', status: 'IN_PROCESS', projectName: 'Plant C', requestorName: 'Dana Cole' },
   3003: { requestNumber: 'REQ-3003', status: 'IN_PROCESS', projectName: 'Gas Line', requestorName: 'User Rite' },
   3004: { requestNumber: 'REQ-3004', status: 'IN_PROCESS', projectName: 'Dock', requestorName: 'User Rite' },
+  3005: { requestNumber: 'REQ-3005', status: 'SUBMITTED', projectName: 'Process Design Package', requestorName: 'Rite.User' },
 };
 const LINES = [
   { id: 11, req: 3001, name: 'Volvo A30 Dump Truck', status: 'ALLOCATED' },
@@ -27,11 +28,12 @@ const LINES = [
   { id: 32, req: 3003, name: 'Water Pump', status: 'SHIP_TO_SITE' },
   { id: 41, req: 3004, name: 'Mobile Crane', status: 'SCHEDULED_FOR_PICKING' },
   { id: 42, req: 3004, name: 'Skid Steer', status: 'ALLOCATED' },
+  { id: 51, req: 3005, name: 'Flexifloat Deck Barge', status: 'SUBMITTED' },
 ];
 const QUEUE = [3001, 3004];
 
 const viewRow = (l) => ({ requestNumber: REQ[l.req].requestNumber, requestId: l.req, lineId: l.id, lineNumber: l.id, equipmentName: l.name, className: 'Plant',
-  qty: l.qty || 1, quantity: l.qty || 1, allocatedQty: l.status === 'IN_PROCESS' ? 0 : (l.qty || 1), lineStatus: l.status,
+  qty: l.qty || 1, quantity: l.qty || 1, allocatedQty: l.status === 'IN_PROCESS' || l.status === 'SUBMITTED' ? 0 : (l.qty || 1), lineStatus: l.status,
   allocationStatus: 'ALLOCATED', consumableFlag: l.consumable ? 'Y' : 'N', fulfilmentClass: 'S_AND_T', requestStatus: REQ[l.req].status,
   projectName: REQ[l.req].projectName, requestedStartDate: day(2), requestedEndDate: day(30), requestorName: REQ[l.req].requestorName, equipmentMasterId: 900 + l.id });
 
@@ -173,6 +175,25 @@ const settle = (page, ms) => page.waitForTimeout(ms || 400);
     T.eq('accepted from the tab; a piece still to come, so the request stays as it is', W(env, b3).join(' > '), 'PATCH /equipment-requests/3003/lines/batch');
     T.check('Accept is done', !(await page.$('#recAccept')));
     await env.shot('next-site-record.png');
+
+    T.section('Approve… on a request\'s tab: Approve & allocate shows only that request, with the way back');
+    await page.click('.nx-tab[data-tab-id="requests"] .nx-tab-btn');
+    await page.waitForSelector('.nx-row--click[data-number="REQ-3005"] .nx-req-num', { timeout: 20000 });
+    await page.click('.nx-row--click[data-number="REQ-3005"] .nx-req-num');
+    await page.waitForSelector('#recApprove', { timeout: 20000 });
+    await page.click('#recApprove');
+    await page.waitForSelector('#apFocus', { timeout: 20000 });
+    await page.waitForFunction(() => /REQ-3005/.test((document.querySelector('#apRecTitle') || {}).innerText || ''), null, { timeout: 20000 });
+    await settle(page);
+    T.eq('Approve & allocate', await page.$eval('.nx-tab--on', (t) => t.dataset.tabId), 'approvals');
+    T.check('only REQ-3005: no queue beside it, no chips, no bulk', (await env.text('#apFocus')).startsWith('Only REQ-3005')
+      && !(await page.isVisible('.nx-ap-queue')) && !(await page.$('.nx-approvals .nx-toolbar')) && !(await page.$('#apBulk')), await env.text('#apFocus'));
+    T.check('the request takes the width, ready to decide', !!(await page.$('#apDecide')) && await page.$eval('#apPanel', (p) => p.getBoundingClientRect().width > 900));
+    T.eq('the way back is to its tab', await env.text('#apFocusBack'), 'Back to REQ-3005');
+    await env.shot('next-site-approve-focus.png');
+    await page.click('#apFocusBack');
+    await page.waitForFunction(() => (document.querySelector('.nx-tab--on') || {}).dataset.tabId === 'request:3005', null, { timeout: 10000 });
+    T.eq('Back: the request\'s tab again', await page.$eval('.nx-tab--on', (t) => t.dataset.tabId), 'request:3005');
 
     T.section('Picking & shipping: a piece not confirmed yet, confirmed from the dialog');
     await page.click('[data-nav-id="picking"]');

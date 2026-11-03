@@ -19,7 +19,11 @@ define([
       const v = context.$page.variables;
       const head = v.head || {};
       const what = { id: head.id ? Number(head.id) : undefined, number: head.requestNumber || '' };
-      if (act === 'approve' || act === 'assign') { bus.focus('approvals', what); return; }
+      // Approve & allocate shows only this request, with Back to this tab.
+      if (act === 'approve' || act === 'assign') {
+        bus.focus('approvals', Object.assign({ from: { label: what.number || 'the request', open: { record: 'request', params: { id: what.id, number: what.number } } } }, what));
+        return;
+      }
       if (act === 'pick') {
         bus.focus('picking', Object.assign({ confirm: (v.acts && v.acts.confirm) || 0, end: head.end || '',
           from: { label: what.number || 'the request', open: { record: 'request', params: { id: what.id, number: what.number } } } }, what));

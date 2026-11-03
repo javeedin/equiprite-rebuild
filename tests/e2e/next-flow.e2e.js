@@ -139,6 +139,15 @@ const sideways = (page) => page.evaluate(() => document.documentElement.scrollWi
     T.eq('Approve & allocate opens on it', await page.$eval('.nx-tab--on', (t) => t.dataset.tabId), 'approvals');
     const panel = await env.text('#apPanel');
     T.check('with the request open in its panel', panel.includes('REQ-2001'), panel.slice(0, 200));
+    await page.waitForSelector('#apFocus', { timeout: 10000 });
+    T.check('only that request: the queue and its chips step aside', (await env.text('#apFocus')).startsWith('Only REQ-2001')
+      && !(await page.isVisible('.nx-ap-queue')) && !(await page.$('.nx-approvals .nx-toolbar')), await env.text('#apFocus'));
+    T.eq('the way back, and the way to the queue', [await env.text('#apFocusBack'), /^Show the whole queue \(\d+\)$/.test(await env.text('#apFocusAll'))].join(' | '), 'Back to Requests | true');
+    await env.shot('next-flow-approvals-focus.png');
+    await page.click('#apFocusAll');
+    await settle(page, 300);
+    T.check('Show the whole queue: the queue is back, the request still open', await page.isVisible('.nx-ap-queue') && !(await page.$('#apFocus'))
+      && (await env.text('#apRecTitle')).startsWith('REQ-2001'));
 
     T.section('send back from the row: a reason first');
     await page.click('.nx-tab[data-tab-id="requests"] .nx-tab-btn');

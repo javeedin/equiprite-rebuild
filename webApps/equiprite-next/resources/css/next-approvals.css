@@ -9,6 +9,19 @@
 .nx-ap-queue .nx-card-head { flex: none; flex-wrap: wrap; }
 .nx-ap-panel { min-width: 0; min-height: 320px; }
 .nx-ap-back { display: none; align-items: center; gap: 6px; margin-bottom: 4px; }
+/* One request in front (focus): the queue steps aside, the request takes the width; a bar says why, and the way back. */
+.nx-ap-layout--focus { grid-template-columns: minmax(0, 1fr); }
+.nx-ap-layout--focus .nx-ap-queue { display: none !important; }
+.nx-ap-layout--focus .nx-ap-panel { display: block !important; }
+.nx-ap-layout--focus .nx-ap-back { display: none !important; }
+.nx-ap-focus {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 10px 14px; border-radius: 10px;
+  background: var(--nx-accent-soft); border: 1px solid #c4dcf6; border-left: 4px solid var(--nx-accent); color: #0b3d75;
+}
+.nx-ap-focus > span[class^="oj-ux-ico"] { font-size: 20px; }
+.nx-ap-focus--missing { background: #fffbeb; border-color: #f5d68a; border-left-color: #b45309; color: #7a4a00; }
+.nx-ap-focus-text { flex: 1 1 320px; display: flex; flex-wrap: wrap; gap: 4px 8px; font-size: 14px; }
+.nx-ap-focus-acts { display: flex; flex-wrap: wrap; gap: 8px; }
 @media (max-width: 1099px) {
   .nx-ap-layout { grid-template-columns: minmax(0, 1fr); }
   .nx-ap-queue { position: static; max-height: none; }

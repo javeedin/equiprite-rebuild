@@ -291,7 +291,7 @@ const day = (n) => new Date(NOW + n * 86400000).toISOString().slice(0, 10);
     T.eq('the verdict: what still needs units', queue.verdict({ status: 'IN_PROCESS' }, inLines, false).text,
       '1 of 2 lines has its units. Line 2 (Eq 2) still needs units: assign them here, or leave it for the yard to pick on the Oracle mobile app.');
     T.eq('the verdict: all assigned, next is picking (in New)', json(queue.verdict({ status: 'IN_PROCESS' }, [inLines[0], inLines[2]], false)),
-      '{"tone":"ok","text":"Every line has its units (1 of 1). Next: Initiate picking, in New EquipRite.","next":"picking"}');
+      '{"tone":"ok","text":"Every line has its units (1 of 1). Next: confirm it for picking (its transfer order).","next":"picking"}');
     T.eq('the verdict: a quote owed', queue.verdict({ status: 'IN_PROCESS' }, inLines, true).next, 'quote');
     T.eq('nothing left to assign: how many lines take no unit', json([queue.settledCount({ status: 'IN_PROCESS' }, [inLines[0], inLines[2]], false),
       queue.settledCount({ status: 'IN_PROCESS' }, inLines, false), queue.settledCount({ status: 'SUBMITTED' }, [inLines[0]], false)]), '[1,null,null]');

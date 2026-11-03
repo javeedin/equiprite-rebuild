@@ -18,7 +18,7 @@ define(['vb/action/actionChain', 'vb/action/actions', 'resources/js/shellBus'], 
         return;
       }
       if (act === 'assign') {
-        bus.focus('approvals', { id: id ? Number(id) : undefined, number: number || '' });
+        bus.focus('approvals', { id: id ? Number(id) : undefined, number: number || '', from: { label: 'Requests', open: { navId: 'requests' } } });
         return;
       }
       bus.open({ record: 'request', params: { id: id ? Number(id) : undefined, number: number || '' } });

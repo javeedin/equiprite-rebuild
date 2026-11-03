@@ -1,10 +1,13 @@
 define([
   'vb/action/actionChain',
   'vb/action/actions',
-], (ActionChain, Actions) => {
+  'resources/js/shellBus',
+], (ActionChain, Actions, bus) => {
   'use strict';
 
-  // A filter, "show more", the export menu, a reason being typed, or a result dismissed.
+  // A filter, "show more", the export menu, a reason being typed, or a result dismissed. One request in front (focus):
+  // focusAll shows the whole queue again, the request staying open; focusBack brings the screen that opened it here to
+  // the front again.
   const PAGE = 60;
 
   class setChain extends ActionChain {
@@ -16,6 +19,13 @@ define([
       if (field === 'bulkReason') { v.bulk = Object.assign({}, v.bulk, { reason: String(value || ''), error: '' }); return; }
       if (field === 'result') { v.result = null; return; }
       if (field === 'bulkResult') { v.bulkResult = null; return; }
+      if (field === 'focusAll' || field === 'focusBack') {
+        // A plain copy: the page variable is reset next, and a reference to it would read the reset value.
+        const to = v.focus && v.focus.open ? JSON.parse(JSON.stringify(v.focus.open)) : null;
+        v.focus = { number: '' };
+        if (field === 'focusBack' && to) bus.open(to);
+        return;
+      }
       if (field === 'text') v.text = String(value || '');
       if (field === 'stage') v.stage = value || 'all';
       if (field === 'source') v.source = v.source === value ? '' : (value || '');

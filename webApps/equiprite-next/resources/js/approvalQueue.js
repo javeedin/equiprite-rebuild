@@ -431,7 +431,7 @@ define(['resources/js/requestProgress', 'resources/js/fmt', 'resources/js/rules'
     if (ALLOCATION_OPEN.indexOf(status) !== -1) {
       if (quoteOwed) return { tone: 'warn', text: 'A quote is owed for this request: generate it in Old EquipRite, then assign units here.' + availText, next: 'quote' };
       if (!pickable.length) return { tone: 'ok', text: 'No line takes serials, lots or stock: no unit to assign. Next: the yard picks it (Initiate picking, in New EquipRite).', next: 'picking' };
-      if (!missing.length) return { tone: 'ok', text: 'Every line has its units (' + pickable.length + ' of ' + pickable.length + '). Next: Initiate picking, in New EquipRite.', next: 'picking' };
+      if (!missing.length) return { tone: 'ok', text: 'Every line has its units (' + pickable.length + ' of ' + pickable.length + '). Next: confirm it for picking (its transfer order).', next: 'picking' };
       return {
         tone: unavailable.length ? 'warn' : 'info',
         text: (pickable.length - missing.length) + ' of ' + plural(pickable.length, 'line') + ' ' + (pickable.length - missing.length === 1 ? 'has its' : 'have their') + ' units. '
