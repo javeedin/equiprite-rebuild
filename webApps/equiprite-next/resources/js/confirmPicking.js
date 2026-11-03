@@ -60,12 +60,19 @@ define([
   function up(s) { return String(s == null ? '' : s).toUpperCase(); }
   function plural(n, one, many) { return n + ' ' + (n === 1 ? one : (many || one + 's')); }
 
-  /** The pieces that can be confirmed: unit assigned (a fixed asset: allocated), no transfer order yet. */
+  /**
+   * The pieces that can be confirmed: the unit assigned and no transfer order yet. A line ALLOCATED; or, as Old's
+   * CONFIRMABLE_LINE_STATUSES allow, an approved line (IN_PROCESS, QUOTE_ACCEPTED) whose units are all allocated but
+   * whose status never moved on. A fixed asset must be allocated. The plan has the last word (NO_YARD, NEEDS_QUOTE…).
+   */
   function confirmable(lines) {
     return (Array.isArray(lines) ? lines : []).filter(function (l) {
-      if (!l || up(l.line_status) !== 'ALLOCATED') return false;
+      if (!l) return false;
+      var st = up(l.line_status);
+      var allocated = up(l.alloc_status) === 'ALLOCATED';
+      if (!(st === 'ALLOCATED' || ((st === 'IN_PROCESS' || st === 'QUOTE_ACCEPTED') && allocated))) return false;
       if (l.to_number && String(l.to_number).trim() !== '') return false;
-      return !rdl.isFAndM(l) || up(l.alloc_status) === 'ALLOCATED';
+      return !rdl.isFAndM(l) || allocated;
     });
   }
 

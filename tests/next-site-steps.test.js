@@ -54,6 +54,7 @@ const ctx = { $application: { variables: {} } };
   const mapped = [row(1, 'ALLOCATED'), row(2, 'SCHEDULED_FOR_PICKING'), row(3, 'IN_PROCESS', { allocatedQty: 0 }), row(4, 'ALLOCATED', { toNumber: 'TO-1' }),
     row(5, 'ALLOCATED', { fulfilmentClass: 'F_AND_M' }), row(6, 'ALLOCATED', { fulfilmentClass: 'F_AND_M', quantity: 2, allocatedQty: 1 })].map(rdl.mapRow);
   T.eq('unit assigned, no transfer order yet (a fixed asset: allocated)', C.confirmable(mapped).map((l) => l.line_id).join(), '1,5');
+  T.eq('as Old: an approved line whose units are all allocated but whose status never moved, too', C.confirmable([row(7, 'IN_PROCESS'), row(8, 'QUOTE_ACCEPTED'), row(9, 'IN_PROCESS', { allocatedQty: 0 })].map(rdl.mapRow)).map((l) => l.line_id).join(), '7,8');
   const k1 = C.idempotencyKey({ requestId: 9, lineIds: [3, 1, 2], leg: 'OUTBOUND', sourceCode: 'HOU' });
   T.eq('the same intent, the same key (order of lines does not matter)', k1 === C.idempotencyKey({ requestId: 9, lineIds: [1, 2, 3], leg: 'OUTBOUND', sourceCode: 'HOU' }) && k1.length, 16);
   T.check('another yard or a retry: another key', k1 !== C.idempotencyKey({ requestId: 9, lineIds: [1, 2, 3], leg: 'OUTBOUND', sourceCode: 'ATL' })

@@ -246,13 +246,19 @@
               <oj-bind-if test="[[ $variables.rec.verdict.next === 'quote' && !!$functions.quoteUrl($application.variables.appUrls.old, $variables.rec.head) ]]">
                 <a class="nx-link" id="apQuoteLink" :href="[[ $functions.quoteUrl($application.variables.appUrls.old, $variables.rec.head) ]]">Generate the quote in Old EquipRite</a>
               </oj-bind-if>
-              <!-- Every line has its units: Confirm for picking, here (confirmChain). Lines with no unit to assign go to New's picking. -->
-              <oj-bind-if test="[[ $variables.rec.verdict.next === 'picking' && $variables.canAct && $functions.confirmCount($variables.lines) > 0 ]]">
+              <!-- Every line has its units: Confirm for picking, here (confirmChain); once confirmed, the yard's Picking & shipping.
+                   Lines with no unit to assign go to New's picking. -->
+              <oj-bind-if test="[[ $variables.rec.verdict.next === 'confirm' && $variables.canAct && $functions.confirmCount($variables.lines) > 0 ]]">
                 <button type="button" class="nx-btn nx-btn--sm nx-btn--primary" id="apConfirm" on-click="[[ $listeners.onConfirmPicking ]]" :disabled="[[ $variables.busy ]]"
                   title="Fusion is asked for the transfer order (one per yard it ships from); the pieces are then scheduled for picking">
                   <span class="oj-ux-ico-check-square" aria-hidden="true"></span><oj-bind-text value="[[ 'Confirm ' + $functions.count($functions.confirmCount($variables.lines), 'piece') + ' for picking' ]]"></oj-bind-text></button>
               </oj-bind-if>
-              <oj-bind-if test="[[ $variables.rec.verdict.next === 'picking' && $functions.confirmCount($variables.lines) === 0 && !!$functions.pickingUrl($application.variables.appUrls.new) ]]">
+              <oj-bind-if test="[[ $variables.rec.verdict.next === 'yard' ]]">
+                <button type="button" class="nx-btn nx-btn--sm nx-btn--primary" id="apToYard" data-field="toYard" on-click="[[ $listeners.onPick ]]"
+                  title="The request opens in Picking & shipping, in front, with Back to Approve & allocate">
+                  <span class="oj-ux-ico-fullfilment-box" aria-hidden="true"></span>Open in Picking &amp; shipping</button>
+              </oj-bind-if>
+              <oj-bind-if test="[[ $variables.rec.verdict.next === 'picking' && !!$functions.pickingUrl($application.variables.appUrls.new) ]]">
                 <a class="nx-link" id="apPickingLink" :href="[[ $functions.pickingUrl($application.variables.appUrls.new) ]]"
                   title="Lines with no unit to assign are picked from New EquipRite's picking screen">Initiate picking in New EquipRite</a>
               </oj-bind-if>

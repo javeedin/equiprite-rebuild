@@ -137,7 +137,7 @@
             <a class="mb-approve-link" id="apQuoteLink" :href="[[ $functions.quoteUrl($application.variables.appUrls.old, $variables.rec.head) ]]">
               Generate the quote in Old EquipRite<span class="oj-ux-ico-external-link" aria-hidden="true"></span></a>
           </oj-bind-if>
-          <oj-bind-if test="[[ $variables.rec.verdict.next === 'picking' && !!$functions.pickingUrl($application.variables.appUrls.new) ]]">
+          <oj-bind-if test="[[ ($variables.rec.verdict.next === 'picking' || $variables.rec.verdict.next === 'confirm') && !!$functions.pickingUrl($application.variables.appUrls.new) ]]">
             <a class="mb-approve-link" id="apPickingLink" :href="[[ $functions.pickingUrl($application.variables.appUrls.new) ]]">
               Initiate picking in New EquipRite (Fusion)<span class="oj-ux-ico-external-link" aria-hidden="true"></span></a>
           </oj-bind-if>

@@ -29,13 +29,14 @@ define([
         v.busyText = '';
         v.busyWhere = '';
       }
-      v.result = { tone: out.tone === 'warn' ? 'warn' : out.tone, text: (out.title ? out.title + ': ' : '') + out.text, items: [] };
+      // A plain object, kept here: reading it back from the page variable after the reload (which resets it) would not work.
+      const said = { tone: out.tone || 'info', text: (out.title ? out.title + ': ' : '') + out.text, items: [] };
+      v.result = said;
       bus.toast(head.number + ': ' + out.text, out.tone === 'error' ? 'error' : (out.tone === 'warn' ? 'warning' : 'info'));
       if (out.changed) {
         requestData.invalidate();
-        const keep = v.result;
         await Actions.callChain(context, { chain: 'loadChain', params: { refresh: true, reopen: true } });
-        v.result = keep;
+        v.result = { tone: said.tone, text: said.text, items: [] };
       }
     }
   }

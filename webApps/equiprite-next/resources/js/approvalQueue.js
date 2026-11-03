@@ -25,6 +25,9 @@ define(['resources/js/requestProgress', 'resources/js/fmt', 'resources/js/rules'
   var REJECT_TERMINAL = ['REJECTED', 'CANCELLED', 'CLOSED', 'CONSUMED'];
   var HEADER_READY = ['IN_PROCESS', 'ALLOCATED', 'REJECTED'];
   var ALLOCATION_OPEN = ['IN_PROCESS', 'QUOTE_GENERATED', 'QUOTE_ACCEPTED'];
+  // A line with its units, before Confirm for picking (no transfer order yet), and once it is with the yard.
+  var NOT_CONFIRMED = ['IN_PROCESS', 'QUOTE_ACCEPTED', 'ALLOCATED'];
+  var WITH_YARD = ['SCHEDULED_FOR_PICKING', 'PICK_INITIATED', 'PICK_RELEASED', 'EQP_INSPECTION_COMPLETE'];
 
   var CHIPS = [
     { key: 'all', label: 'All' },
@@ -401,7 +404,8 @@ define(['resources/js/requestProgress', 'resources/js/fmt', 'resources/js/rules'
   /**
    * The one sentence above the lines (New: verdict): is the request ready, what will happen next, what is in the way.
    *   head: { status, external, headline }; lines: loadLines lines
-   * { tone: 'ok' | 'warn' | 'info', text, next: '' | 'picking' | 'quote' | 'record' }
+   * { tone: 'ok' | 'warn' | 'info', text, next: '' | 'confirm' (Confirm for picking) | 'yard' (with the yard: Picking & shipping)
+   *   | 'picking' (no line takes a unit: New's picking) | 'quote' | 'record' }
    */
   function verdict(head, lines, quotingAllowed) {
     var h = head || {};
@@ -431,7 +435,22 @@ define(['resources/js/requestProgress', 'resources/js/fmt', 'resources/js/rules'
     if (ALLOCATION_OPEN.indexOf(status) !== -1) {
       if (quoteOwed) return { tone: 'warn', text: 'A quote is owed for this request: generate it in Old EquipRite, then assign units here.' + availText, next: 'quote' };
       if (!pickable.length) return { tone: 'ok', text: 'No line takes serials, lots or stock: no unit to assign. Next: the yard picks it (Initiate picking, in New EquipRite).', next: 'picking' };
-      if (!missing.length) return { tone: 'ok', text: 'Every line has its units (' + pickable.length + ' of ' + pickable.length + '). Next: confirm it for picking (its transfer order).', next: 'picking' };
+      if (!missing.length) {
+        // Every line has its units: confirmed for picking yet (its transfer order), with the yard, or gone from it?
+        var n = pickable.length;
+        var onTO = function (l) { return !!(l.to_number && String(l.to_number).trim()); };
+        var toConfirm = pickable.filter(function (l) { return NOT_CONFIRMED.indexOf(up(l.line_status)) !== -1 && !onTO(l); });
+        var atYard = pickable.filter(function (l) { return WITH_YARD.indexOf(up(l.line_status)) !== -1 || (NOT_CONFIRMED.indexOf(up(l.line_status)) !== -1 && onTO(l)); });
+        if (toConfirm.length) {
+          return { tone: 'ok', next: 'confirm', text: 'Every line has its units (' + n + ' of ' + n + '). Next: confirm '
+            + (toConfirm.length === n ? (n === 1 ? 'it' : 'them') : plural(toConfirm.length, 'line')) + ' for picking (the transfer order).' };
+        }
+        if (atYard.length) {
+          return { tone: 'ok', next: 'yard', text: 'Every line has its units and is confirmed for picking (' + plural(atYard.length, 'line') + ' with the yard). '
+            + 'Next: the yard picks and ships ' + (atYard.length === 1 ? 'it' : 'them') + '.' };
+        }
+        return { tone: 'ok', next: '', text: 'Every line has its units and has left the yard: nothing more to do here.' };
+      }
       return {
         tone: unavailable.length ? 'warn' : 'info',
         text: (pickable.length - missing.length) + ' of ' + plural(pickable.length, 'line') + ' ' + (pickable.length - missing.length === 1 ? 'has its' : 'have their') + ' units. '

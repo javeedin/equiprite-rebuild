@@ -152,6 +152,18 @@ function backend(W) {
       return res.json({ id: Number(m[1]), availableToReserve: lot.atr });
     }
     if (p === '/notifications' && req.method === 'POST') return res.json({ id: 1 }, 201);
+    // Confirm for picking (confirmPicking): one bucket from Houston; record schedules the lines for picking.
+    if (/\/transfer-orders\/plan$/.test(p)) {
+      const ids = req.json().lineIds;
+      return res.json({ blocks: [], fAndMLineIds: [], buckets: [{ sourceOrgId: 300, sourceOrgCode: 'HOU', sourceOrgName: 'Houston Yard', destOrgId: 900, destOrgCode: 'VPJ', destOrgName: 'Virtual project',
+        lines: ids.map((id) => ({ requestLineId: id, lineNumber: id, equipmentName: (W.LINES.find((l) => l.lineId === id) || {}).equipmentName, itemNumber: 'IT-' + id, qty: 1 })) }] });
+    }
+    if (/\/transfer-orders\/reserve$/.test(p)) return res.json({ reservedLineIds: req.json().lineIds, rejectedLineIds: [], replayed: false });
+    if (p.endsWith('/transferorders/create')) return res.json({ status: 'ACCEPTED' }, 202);
+    if (/\/transfer-orders\/record$/.test(p)) {
+      req.json().lineIds.forEach((id) => { const l = W.LINES.find((x) => x.lineId === id); if (l) l.lineStatus = 'SCHEDULED_FOR_PICKING'; });
+      return res.json({});
+    }
     return undefined;
   };
 }
@@ -336,6 +348,24 @@ async function waitIdle(page) {
       await env.text('#apConfirm'));
     T.check('nothing left to assign: REQ-503 leaves the queue, its panel stays', !(await page.$('.nx-ap-q[data-number="REQ-503"]')) && (await env.text('#apRecTitle')).startsWith('REQ-503'));
     await env.shot('next-approvals-auto.png');
+
+    T.section('Confirm for picking, here; then the next step is the yard\'s');
+    const cb = env.writes.length;
+    await page.click('#apConfirm');
+    await page.waitForFunction(() => /Confirmed for picking/.test((document.querySelector('#apResult') || {}).innerText || ''), null, { timeout: 30000 });
+    await waitIdle(page);
+    T.eq('the calls: plan, reserve, Fusion (OIC), record', env.writes.slice(cb).filter((w) => !/\/transfer-orders\/failed$/.test(w.path))
+      .map((w) => w.method + ' ' + w.path.replace('/equiprite/v1', '').replace(/^\/ic\/api\/.*\/transferorders\/create$/, 'OIC create')).join(' > '),
+      'POST /requests/503/transfer-orders/plan > POST /requests/503/transfer-orders/reserve > POST OIC create > POST /requests/503/transfer-orders/record');
+    const verdict = await env.text('#apVerdict');
+    T.check('already confirmed: it does not offer Confirm again, nor New; it says the yard is next', /is confirmed for picking/.test(verdict) && /the yard picks and ships them/.test(verdict)
+      && !(await page.$('#apConfirm')) && !(await page.$('#apPickingLink')) && (await env.text('#apToYard')) === 'Open in Picking & shipping', verdict);
+    await env.shot('next-approvals-confirmed.png');
+    await page.click('#apToYard');
+    await page.waitForFunction(() => (document.querySelector('.nx-tab--on') || {}).dataset.tabId === 'picking', null, { timeout: 20000 });
+    T.eq('Open in Picking & shipping: the yard\'s screen, on it', await page.$eval('.nx-tab--on', (t) => t.dataset.tabId), 'picking');
+    await page.click('.nx-tab-btn[data-id="approvals"]');
+    await waitIdle(page);
 
     T.section('units by hand: the picker under a line');
     await page.click('.nx-ap-q[data-number="REQ-501"] .nx-ap-q-main');

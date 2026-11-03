@@ -290,8 +290,15 @@ const day = (n) => new Date(NOW + n * 86400000).toISOString().slice(0, 10);
     const inLines = [L(1, 'IN_PROCESS', { alloc_status: 'ALLOCATED' }), L(2, 'IN_PROCESS'), L(3, 'IN_PROCESS', { is_serial_controlled: false })];
     T.eq('the verdict: what still needs units', queue.verdict({ status: 'IN_PROCESS' }, inLines, false).text,
       '1 of 2 lines has its units. Line 2 (Eq 2) still needs units: assign them here, or leave it for the yard to pick on the Oracle mobile app.');
-    T.eq('the verdict: all assigned, next is picking (in New)', json(queue.verdict({ status: 'IN_PROCESS' }, [inLines[0], inLines[2]], false)),
-      '{"tone":"ok","text":"Every line has its units (1 of 1). Next: confirm it for picking (its transfer order).","next":"picking"}');
+    T.eq('the verdict: all assigned, not confirmed yet: Confirm for picking is next', json(queue.verdict({ status: 'IN_PROCESS' }, [inLines[0], inLines[2]], false)),
+      '{"tone":"ok","next":"confirm","text":"Every line has its units (1 of 1). Next: confirm it for picking (the transfer order)."}');
+    const sched = L(1, 'SCHEDULED_FOR_PICKING', { alloc_status: 'ALLOCATED' });
+    T.eq('… already confirmed: with the yard (Picking & shipping), not Confirm again', json(queue.verdict({ status: 'IN_PROCESS' }, [sched, inLines[2]], false)),
+      '{"tone":"ok","next":"yard","text":"Every line has its units and is confirmed for picking (1 line with the yard). Next: the yard picks and ships it."}');
+    T.eq('… a transfer order already requested counts as confirmed', queue.verdict({ status: 'IN_PROCESS' }, [L(1, 'ALLOCATED', { alloc_status: 'ALLOCATED', to_number: 'TO-9' })], false).next, 'yard');
+    T.eq('… one confirmed, one not: confirm the one', queue.verdict({ status: 'IN_PROCESS' }, [sched, L(2, 'ALLOCATED', { alloc_status: 'ALLOCATED' })], false).text,
+      'Every line has its units (2 of 2). Next: confirm 1 line for picking (the transfer order).');
+    T.eq('… gone from the yard: nothing more here', queue.verdict({ status: 'IN_PROCESS' }, [L(1, 'SHIP_TO_SITE', { alloc_status: 'ALLOCATED' })], false).next, '');
     T.eq('the verdict: a quote owed', queue.verdict({ status: 'IN_PROCESS' }, inLines, true).next, 'quote');
     T.eq('nothing left to assign: how many lines take no unit', json([queue.settledCount({ status: 'IN_PROCESS' }, [inLines[0], inLines[2]], false),
       queue.settledCount({ status: 'IN_PROCESS' }, inLines, false), queue.settledCount({ status: 'SUBMITTED' }, [inLines[0]], false)]), '[1,null,null]');
