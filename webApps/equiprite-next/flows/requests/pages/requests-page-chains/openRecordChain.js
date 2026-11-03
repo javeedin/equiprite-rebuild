@@ -8,11 +8,12 @@ define(['vb/action/actionChain', 'vb/action/actions', 'resources/js/shellBus'], 
   //   assign    Approve & allocate, opened on it (units to assign)
   //   confirm   getting it to site, in a popup (popChain road): pieces with their unit, waiting for Confirm
   //   pick      the same popup: pieces in the yard's queue, and Picking & shipping from there
+  //   accept    the same popup: pieces on their way to site, accepted there
   class openRecordChain extends ActionChain {
     async run(context, { id, number, act }) {
       if (!id && !number) return;
-      if (act === 'approve' || act === 'history' || act === 'confirm' || act === 'pick') {
-        const action = act === 'confirm' || act === 'pick' ? 'road' : act;
+      if (act === 'approve' || act === 'history' || act === 'confirm' || act === 'pick' || act === 'accept') {
+        const action = act === 'confirm' || act === 'pick' || act === 'accept' ? 'road' : act;
         await Actions.callChain(context, { chain: 'popChain', params: { action, id: String(id || ''), number: number || '' } });
         return;
       }

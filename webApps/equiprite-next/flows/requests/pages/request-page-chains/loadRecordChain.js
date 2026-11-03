@@ -73,7 +73,10 @@ define([
         const picking = rules.pageAccess(app.pageAccessMap, app.pageAccessLoaded, 'EQR_INITIATE_PICKING');
         const row = { requestNumber: head.requestNumber, status, eqrEquipmentRequestId: id, requestOrigin: external ? 'External' : 'Internal' };
         const kind = (queue.build([row], { [head.requestNumber]: lines }, {})[0] || {}).kind || '';
-        v.acts = list.actions(row, lines, kind, { decide: workbench === 'FULL', assign: workbench !== 'HIDDEN', pick: picking !== 'HIDDEN' });
+        const requests = rules.pageAccess(app.pageAccessMap, app.pageAccessLoaded, 'EQR_EQUIPMENT_REQUESTS');
+        const mayAccept = requests === 'FULL' || workbench === 'FULL';
+        v.acts = Object.assign(list.actions(row, lines, kind, { decide: workbench === 'FULL', assign: workbench !== 'HIDDEN', pick: picking !== 'HIDDEN', accept: true }),
+          { mayConfirm: workbench === 'FULL', mayAccept });
         v.history = { loading: true };
         history.load(context, Actions, { id, head: { status, external, number: head.requestNumber, requestor: head.requestor, start: head.start, end: head.end,
           createdDate: header.createdDate || '' }, lines })

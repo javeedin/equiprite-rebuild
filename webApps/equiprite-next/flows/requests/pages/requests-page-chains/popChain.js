@@ -9,7 +9,9 @@ define([
   'resources/js/requestProgress',
   'resources/js/exportKit',
   'resources/js/shellBus',
-], (ActionChain, Actions, aa, queue, requestData, history, list, Progress, exportKit, bus) => {
+  'resources/js/confirmPicking',
+  'resources/js/acceptDelivery',
+], (ActionChain, Actions, aa, queue, requestData, history, list, Progress, exportKit, bus, confirmPicking, acceptDelivery) => {
   'use strict';
 
   // The popup on a request, from its row:
@@ -22,10 +24,11 @@ define([
   //             and everything recorded; exportable.
   //   road      getting it to site, from the row's Confirm or Pick: the five steps from "unit to assign" to "on the way
   //             to site" with how many pieces sit at each (requestList.yardJourney), each piece with its unit, and the
-  //             step to take for each: Assign units (Approve & allocate), Confirm (Old EquipRite's request detail:
-  //             Confirm Request creates the transfer order in Fusion) and Pick (Picking & shipping, opened on it).
+  //             step to take for each: Assign units (Approve & allocate), Confirm for picking (here: confirmPicking asks
+  //             Fusion for the transfer order through OIC), Pick (Picking & shipping, opened on it) and Accept delivery
+  //             (here: acceptDelivery). After Confirm or Accept the list is read again and the steps move on in place.
   //   action: approve | history | road | close | askReject | back | doApprove | doReject | reasonText | assign | pick
-  //           | record | timeline | tab | export
+  //           | record | timeline | tab | export | doConfirm | doAccept
   class popChain extends ActionChain {
     async run(context, { action, id, number, value }) {
       const v = context.$page.variables;
@@ -43,7 +46,7 @@ define([
         const base = action === 'road' && !id && !number ? summaryOf(v, pop.id, pop.number) : summaryOf(v, id, number);
         if (!base) return;
         if (action === 'road') {
-          v.pop = Object.assign(base, { kind: 'road' });
+          v.pop = Object.assign(base, { kind: 'road', busy: false, busyStep: '', result: null });
           return;
         }
         if (action === 'approve') {
@@ -67,7 +70,7 @@ define([
         // Picking & shipping is told what else waits, to say so when the request is not in the yard's queue yet.
         const road = pop.road || {};
         bus.focus(action === 'assign' ? 'approvals' : 'picking', { id: Number(pop.id) || undefined, number: pop.number,
-          confirm: road.confirm || 0, pick: road.pick || 0, from: { label: 'Requests', open: { navId: 'requests' } } });
+          confirm: road.confirm || 0, pick: road.pick || 0, end: pop.end || '', from: { label: 'Requests', open: { navId: 'requests' } } });
         v.pop = { kind: '' };
         return;
       }
@@ -84,6 +87,37 @@ define([
           ],
         });
         bus.toast(res.message, res.ok ? 'info' : 'error');
+        return;
+      }
+
+      if (action === 'doConfirm' || action === 'doAccept') {
+        if (pop.kind !== 'road' || pop.busy) return;
+        const isConfirm = action === 'doConfirm';
+        const may = isConfirm ? v.can && v.can.decide : v.can && v.can.accept;
+        if (!may) {
+          set({ result: { tone: 'error', title: 'Not allowed', text: isConfirm
+            ? 'Your role cannot confirm for picking: that needs full access to Approve & allocate.'
+            : 'Your role cannot accept a delivery: that needs full access to Requests.' } });
+          return;
+        }
+        set({ busy: true, busyStep: isConfirm ? 'confirm' : 'accept', result: null });
+        let out;
+        try {
+          out = isConfirm
+            ? await confirmPicking.confirm(context, Actions, { requestId: Number(pop.id), requestNumber: pop.number, endDate: pop.end })
+            : await acceptDelivery.accept(context, Actions, { requestId: Number(pop.id) });
+        } catch (e) {
+          console.error('[popChain] ' + action + ' failed', e);
+          out = { tone: 'error', title: isConfirm ? 'Not confirmed' : 'Not accepted', text: 'Something went wrong (' + ((e && e.message) || e) + '). '
+            + pop.number + ' is read again to show where it stands.', changed: true };
+        }
+        bus.toast(pop.number + ': ' + out.text, out.tone === 'error' ? 'error' : (out.tone === 'warn' ? 'warning' : 'info'));
+        if (out.changed) {
+          requestData.invalidate();
+          await Actions.callChain(context, { chain: 'loadChain', params: { refresh: true } });
+        }
+        const after = summaryOf(v, pop.id, pop.number) || {};
+        v.pop = Object.assign({}, v.pop, after, { kind: 'road', busy: false, busyStep: '', result: out });
         return;
       }
 
@@ -143,6 +177,7 @@ define([
       party: item.party,
       task: row.taskName || '',
       dates: item.dates,
+      end: String(row.endDate || row.requestedEndDate || '').slice(0, 10),
       requestor: row.requestorName || row.contactName || '',
       external: item.external,
       status: String(row.status || row.requestStatus || '').toUpperCase(),

@@ -44,12 +44,28 @@ define(['resources/js/exportKit', 'resources/js/fmt', 'resources/js/requestProgr
       return [e.when || 'Date not recorded', e.who || '', e.recorded ? 'recorded' : 'from its dates'].filter((t) => !!t).join(' · ');
     }
 
-    /** This request on Old EquipRite's request detail, where Confirm Request is (it creates the transfer order), or ''. */
-    oldRequestUrl(oldBase, head) {
-      if (!oldBase || !head || !head.id) return '';
-      const base = oldBase.slice(-1) === '/' ? oldBase : oldBase + '/';
-      return base + 'vp/shell/equipment-foundation/request-detail?requestId=' + encodeURIComponent(head.id) + '&requestNumber=' + encodeURIComponent(head.requestNumber || '');
+    /** What Confirm or Accept will do, asked before it is done. */
+    askText(ask, acts) {
+      const a = acts || {};
+      const n = (k) => { const v = Number(a[k]) || 0; return v + (v === 1 ? ' piece' : ' pieces'); };
+      if (ask === 'confirm') {
+        return 'Confirm ' + n('confirm') + ' for picking? Fusion is asked for the transfer order (one per yard it ships from, through OIC) and the pieces '
+          + 'are scheduled for picking; a fixed asset is confirmed without one. The yard then sees them in Picking & shipping.';
+      }
+      if (ask === 'accept') {
+        return 'Accept ' + n('accept') + ' on site? Each piece on its way is accepted: a rental is then on site (Deployed), a consumable delivered, or '
+          + 'consumed when its class issues it from stock. When everything is on site, the request is marked Deployed.';
+      }
+      return '';
     }
+
+    /** The button that does it. */
+    askGo(ask, acts, busy) {
+      if (busy) return busy === 'confirm' ? 'Asking Fusion for the transfer order…' : 'Accepting…';
+      const a = acts || {};
+      return ask === 'confirm' ? 'Confirm ' + (a.confirm || 0) + ' for picking' : 'Accept ' + (a.accept || 0) + ' on site';
+    }
+
 
     /** This request in New EquipRite (where it can be approved, allocated, delivered, returned today), or ''. */
     newUrl(newBase, head) {

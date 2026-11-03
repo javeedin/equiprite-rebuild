@@ -209,6 +209,8 @@ define(['resources/js/requestProgress', 'resources/js/fmt', 'resources/js/rules'
   var CONFIRMABLE = ['ALLOCATED'];
   var PICKABLE = ['SCHEDULED_FOR_PICKING', 'PICK_INITIATED', 'PICK_RELEASED', 'EQP_INSPECTION_COMPLETE'];
   var APPROVED_HEADERS = ['IN_PROCESS', 'APPROVED', 'ALLOCATED', 'QUOTE_ACCEPTED'];
+  // On its way to site: the site accepts the delivery (acceptDelivery).
+  var ACCEPTABLE = ['SHIP_TO_SITE'];
 
   // The road from approval to site, as the "Get it to site" popup draws it: each step, who takes it, its statuses.
   var YARD_STEPS = [
@@ -216,7 +218,7 @@ define(['resources/js/requestProgress', 'resources/js/fmt', 'resources/js/rules'
     { key: 'confirm', label: 'Unit assigned', who: 'Equipment Manager confirms it for picking: the transfer order is created in Fusion', statuses: CONFIRMABLE },
     { key: 'pick', label: 'Waiting to be picked', who: 'Yard releases it for picking (Picking & shipping)', statuses: ['SCHEDULED_FOR_PICKING'] },
     { key: 'picking', label: 'Being picked', who: 'Yard picks and ships it (Picking & shipping)', statuses: ['PICK_INITIATED', 'PICK_RELEASED', 'EQP_INSPECTION_COMPLETE'] },
-    { key: 'shipped', label: 'On the way to site', who: 'Site accepts the delivery', statuses: ['SHIP_TO_SITE', 'SHIPPED'] }
+    { key: 'shipped', label: 'On the way to site', who: 'Site accepts the delivery', statuses: ['SHIP_TO_SITE'] }
   ];
 
   /**
@@ -258,18 +260,21 @@ define(['resources/js/requestProgress', 'resources/js/fmt', 'resources/js/rules'
    *   confirm  pieces with their unit assigned, waiting for the Equipment Manager to confirm them for picking (creates
    *            the transfer order in Fusion), how many; can.assign: EQR_WORKBENCH not hidden
    *   pick     pieces in the yard's queue (confirmed, or being picked), how many; can.pick: EQR_INITIATE_PICKING not hidden
+   *   accept   pieces on their way to site, for the site to accept, how many; can.accept: may accept a delivery
    *   item: a decorated request; lines: its lines; queueKind: approvalQueue.build's kind for it ('' when not queued).
    */
   function actions(item, lines, queueKind, can) {
     var c = can || {};
     var status = up(item && (item.status || item.requestStatus));
     var approved = APPROVED_HEADERS.indexOf(status) !== -1;
-    var count = function (set) { return approved ? (lines || []).filter(function (l) { return set.indexOf(up(l.lineStatus)) !== -1; }).length : 0; };
+    var count = function (set, ok) { return ok ? (lines || []).filter(function (l) { return set.indexOf(up(l.lineStatus)) !== -1; }).length : 0; };
     return {
       approve: queueKind === 'decide' && !!c.decide,
       assign: queueKind === 'allocate' && !!c.assign,
-      confirm: c.assign ? count(CONFIRMABLE) : 0,
-      pick: c.pick ? count(PICKABLE) : 0
+      confirm: c.assign ? count(CONFIRMABLE, approved) : 0,
+      pick: c.pick ? count(PICKABLE, approved) : 0,
+      // A request already marked Deployed can still have a piece on its way (one shipped later).
+      accept: c.accept ? count(ACCEPTABLE, approved || status === 'DEPLOYED') : 0
     };
   }
 
@@ -284,6 +289,6 @@ define(['resources/js/requestProgress', 'resources/js/fmt', 'resources/js/rules'
   return {
     CHIPS: CHIPS, LANES: LANES, decorate: decorate, keysOf: keysOf, laneOf: laneOf, requestChips: requestChips, filter: filter, sort: sort,
     board: board, equipmentRows: equipmentRows, equipmentChips: equipmentChips, filterEquipment: filterEquipment, exportColumns: exportColumns,
-    summary: summary, unitText: unitText, actions: actions, yardJourney: yardJourney, PICKABLE: PICKABLE, CONFIRMABLE: CONFIRMABLE
+    summary: summary, unitText: unitText, actions: actions, yardJourney: yardJourney, PICKABLE: PICKABLE, CONFIRMABLE: CONFIRMABLE, ACCEPTABLE: ACCEPTABLE
   };
 });

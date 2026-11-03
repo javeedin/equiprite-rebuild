@@ -56,13 +56,9 @@ define([
       return 'nx-yd-row' + (String(openId) === String(it.id) ? ' nx-yd-row--open' : '') + (flashId && String(flashId) === String(it.id) ? ' nx-yd-row--flash' : '');
     }
 
-    /** A request on Old EquipRite's request detail, where Confirm Request is ({ id, number }); '' while Old's address is unknown. */
-    oldRequestUrl(oldBase, req) {
-      const id = req && (req.id || req.eqrEquipmentRequestId);
-      if (!oldBase || !id) return '';
-      const b = oldBase.slice(-1) === '/' ? oldBase : oldBase + '/';
-      return b + 'vp/shell/equipment-foundation/request-detail?requestId=' + encodeURIComponent(id) + '&requestNumber=' + encodeURIComponent(req.number || req.requestNumber || '');
-    }
+    /** Confirm for picking is the Equipment Manager's: full access to Approve & allocate (EQR_WORKBENCH). */
+    canConfirm(map, loaded) { return rules.pageAccess(map, loaded, 'EQR_WORKBENCH') === 'FULL'; }
+
 
     /** How many of a request's other pieces wait for Confirm (unit assigned, no transfer order yet). */
     toConfirm(others) { return (Array.isArray(others) ? others : []).filter((o) => String(o.status).toUpperCase() === 'ALLOCATED').length; }

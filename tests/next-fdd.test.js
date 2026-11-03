@@ -102,15 +102,19 @@ const DEVICE_TESTS = ['tests/desktop-devserver.test.js', 'tests/desktop-phone.te
 T.eq('tests are Next\'s or Mobile\'s (the desktop client\'s only for the desktop client)', MAP.flatMap(([k, m]) => m.tests.filter((f) => !/^tests\/(e2e\/)?(next|mobile)-[\w-]+\.(test|e2e)\.js$/.test(f)
   && !(DEVICE_TESTS.includes(f) && m.device.includes('desktop'))).map((f) => k + ':' + f)).join(), '');
 const K = M.kpis();
-T.check('the page says the numbers are Next\'s, with its phone app, as checked on 31 Oct 2026', /^Judged on EquipRite Next only, as its code stood on 31 Oct 2026/.test(K.judged)
+T.check('the page says the numbers are Next\'s, with its phone app, as checked on 3 Nov 2026', /^Judged on EquipRite Next only, as its code stood on 3 Nov 2026/.test(K.judged)
   && /EquipRite Mobile and EquipRite for Android count as Next's phone app/.test(K.judged) && /Old and New EquipRite are not counted/.test(K.judged));
 T.check('… and EquipRite Mobile does run on Next\'s resources/js', ['approvalQueue', 'yardWork', 'requestProgress', 'unitPicker'].every((f) =>
   read('webApps/equiprite-mobile/resources/js/' + f + '.js') === read('webApps/equiprite-next/resources/js/' + f + '.js')));
-T.check('Next makes no transfer order call (createSupplyRequest, releaseTO, reserveConfirm)', !/ics\/createSupplyRequest|ics\/releaseTO|eqp-v1\/reserveConfirm|eqp-v1\/planConfirm/.test(NEXT_CODE));
-T.eq('… so the transfer order integrations are not started in Next', ['INT-04', 'INT-05', 'INT-06'].map((k) => C.MAPPING[k].status).join(), 'none,none,none');
+const CONFIRM = fs.readFileSync(path.join(JS, 'confirmPicking.js'), 'utf8');
+T.check('Next creates the outbound transfer order in one place (confirmPicking: plan, reserve, OIC createSupplyRequest, record), and releases none (no releaseTO)',
+  /eqp-v1\/planConfirm[^]*eqp-v1\/reserveConfirm[^]*ics\/createSupplyRequest[^]*eqp-v1\/recordConfirm/.test(CONFIRM)
+  && !/ics\/createSupplyRequest|eqp-v1\/reserveConfirm|eqp-v1\/planConfirm/.test(NEXT_CODE.split(CONFIRM).join('')) && !/ics\/releaseTO/.test(NEXT_CODE));
+T.eq('… so creating it is partly done (out to site, not back), reserving and releasing in Fusion are not started', ['INT-04', 'INT-05', 'INT-06'].map((k) => C.MAPPING[k].status).join(), 'partly,none,none');
 T.eq('… and picking, its scenario and the reservation exception are partly done', ['BR-007', '7.16', 'S13', 'S14', 'DP-02'].map((k) => C.MAPPING[k].status).join(), 'partly,partly,partly,partly,partly');
 T.check('Next\'s picking says so (stock goes through Fusion, not here)', /Lines on a transfer order are released through OIC in Fusion[^]*not done here/.test(read('webApps/equiprite-next/flows/yard/pages/picking-page-chains/releaseChain.js')));
-T.check('Next never reads the failed transfer-order lines (failedLines): no screen calls requestDetailLines.fetchAndBuild', !/\.fetchAndBuild\(|eqp-v1\/failedLines/.test(NEXT_CODE_BUT_RDL));
+T.check('Next reads the failed transfer-order lines (failedLines) only through Confirm (to key a retry): no screen calls requestDetailLines.fetchAndBuild',
+  !/\.fetchAndBuild\(|eqp-v1\/failedLines/.test(NEXT_CODE_BUT_RDL.split(CONFIRM).join('')) && /rdl\.fetchAndBuild\(/.test(CONFIRM));
 T.eq('nothing in Next cancels a request, or uses kit templates', [C.MAPPING.S08.status, C.MAPPING.S05.status].join(), 'none,none');
 T.eq('the integrations without a call in services/ are not started', ['INT-13', 'INT-18'].map((k) => C.MAPPING[k].status).join(), 'none,none');
 T.check('… and Next\'s code says so (INT-13, INT-18)', /INT-13\) is Fusion and has no endpoint in services/.test(read('webApps/equiprite-next/flows/checks/pages/inspection-page-chains/completeInspectionChain.js'))
@@ -118,7 +122,9 @@ T.check('… and Next\'s code says so (INT-13, INT-18)', /INT-13\) is Fusion and
 T.check('posting costs to PPM (INT-08) is done from Next', C.MAPPING['INT-08'].status === 'done' && /ics\/postCostToFusion/.test(fs.readFileSync(path.join(JS, 'postCostToFusion.js'), 'utf8')));
 T.check('a Post costs charge is the direct cost Next posts (INT-17 partly; 7.9 partly)', C.MAPPING['INT-17'].status === 'partly' && C.MAPPING['7.9'].status === 'partly'
   && /createMiscTransaction/.test(read('webApps/equiprite-next/flows/usage/pages/cost-page-chains/miscChain.js')) && /postMiscTransactions/.test(fs.readFileSync(path.join(JS, 'costPosting.js'), 'utf8')));
-T.check('… while Next records no consumption (INT-09, INT-16 not started)', ['INT-09', 'INT-16'].every((k) => C.MAPPING[k].status === 'none') && !/eqp-v1\/createInventoryConsumption/.test(NEXT_CODE));
+const ACCEPT = fs.readFileSync(path.join(JS, 'acceptDelivery.js'), 'utf8');
+T.check('… a consumption is recorded only when a delivery is accepted (INT-16 partly; INT-09 not started)', C.MAPPING['INT-16'].status === 'partly' && C.MAPPING['INT-09'].status === 'none'
+  && /eqp-v1\/createInventoryConsumption/.test(ACCEPT) && !/eqp-v1\/createInventoryConsumption/.test(NEXT_CODE.split(ACCEPT).join('')));
 T.eq('BR-011 names the integrations not built in Next', C.MAPPING['BR-011'].missing.match(/\(INT-[^)]*\)/)[0],
   '(' + INT.filter((k) => C.MAPPING[k].status === 'none').map((k, i) => (i ? k.slice(4) : k)).join(', ') + ')');
 
@@ -167,7 +173,7 @@ T.eq('% complete: done counts 1, partly ½, n/a left out', K.req.pct, Math.round
 T.eq('… 62%', K.req.pct + '%', '62%');
 T.eq('the tiles say the same', K.tiles.map((t) => t.key + '=' + t.value).join(), ['total=34', 'done=8', 'partly=25', 'none=0', 'na=1', 'pct=62%', 'reach=+37.9'].join());
 T.eq('the second row: in Next, on the phone, integrations, scenarios, decision points', K.tiles2.map((t) => t.key + '=' + t.value).join(' | '),
-  'next=33 of 34 | phone=6 of 34 | ints=5 + 4 of 20 | scen=5 + 24 of 34 | dps=0 + 7 of 10');
+  'next=33 of 34 | phone=6 of 34 | ints=5 + 6 of 20 | scen=5 + 24 of 34 | dps=0 + 7 of 10');
 T.check('no tile for New or Old', !K.tiles.concat(K.tiles2).some((t) => /New|Old/.test(t.label)));
 T.eq('in Next: a requirement counts where it has a Next screen', K.inNext, REQ.filter((r) => C.MAPPING[r.id].next.length > 0).length);
 T.eq('on the phone: a Mobile tab or the Android app', K.phone, REQ.filter((r) => C.MAPPING[r.id].mobile.length > 0 || C.MAPPING[r.id].device.includes('android')).length);
@@ -197,11 +203,11 @@ T.eq('Done: exactly the done requirements', dDone.rows.map((r) => r.id).join(), 
 T.check('… each row: id, title, status, what Next has, its Next screens (open or not), tests, its own entry', dDone.rows.every((r) => r.label && r.title && r.statusLabel === 'Done' && r.has
   && Array.isArray(r.screens) && r.reqLinks.length === 1 && r.reqLinks[0].id === r.id && r.self));
 const r7 = M.drill({ source: 'req:partly' }, names).rows.filter((r) => r.id === 'BR-007')[0];
-T.eq('a row\'s screens open only where the user may', JSON.stringify(r7.screens), '[{"id":"picking","label":"Picking & shipping","open":true}]');
-T.eq('… its phone and its tests by name', r7.phoneText + ' | ' + r7.tests.join(), 'Pick, Android app | next-yard.test.js,next-yard.e2e.js,mobile-pick.test.js,mobile-pick.e2e.js');
+T.eq('a row\'s screens open only where the user may', JSON.stringify(r7.screens), '[{"id":"picking","label":"Picking & shipping","open":true},{"id":"requests","label":"Requests","open":false}]');
+T.eq('… its phone and its tests by name', r7.phoneText + ' | ' + r7.tests.join(), 'Pick, Android app | next-yard.test.js,next-yard.e2e.js,mobile-pick.test.js,mobile-pick.e2e.js,next-site-steps.test.js,next-site.e2e.js');
 const di = M.drill({ source: 'ints' }, names);
-T.eq('Integrations: all twenty, the status chips with counts', di.chips.map((c) => c.key + '=' + c.count).join(' '), 'all=20 done=5 partly=4 none=11');
-T.eq('… a chip narrows the list', M.drill({ source: 'ints', status: 'partly' }, names).rows.map((r) => r.id).join(), 'INT-03,INT-07,INT-11,INT-17');
+T.eq('Integrations: all twenty, the status chips with counts', di.chips.map((c) => c.key + '=' + c.count).join(' '), 'all=20 done=5 partly=6 none=9');
+T.eq('… a chip narrows the list', M.drill({ source: 'ints', status: 'partly' }, names).rows.map((r) => r.id).join(), 'INT-03,INT-04,INT-07,INT-11,INT-16,INT-17');
 T.eq('… an integration links to the requirements that name it', di.rows.filter((r) => r.id === 'INT-06')[0].reqLinks.map((q) => q.id).join(), 'BR-007,BR-011,7.16');
 T.eq('a decision point links through its scenario', M.drill({ source: 'dps' }, names).rows.filter((r) => r.id === 'DP-03')[0].reqLinks.map((q) => q.id).join(), 'BR-006,7.12');
 T.eq('search: every word must match', M.drill({ source: 'req', text: 'transfer order' }, names).rows.map((r) => r.id).join(), 'BR-007,BR-009,BR-013,7.16');
@@ -236,7 +242,7 @@ T.check('… the rule is stated on the page', /adds ½ × 1\/33 × 100 = 1\.52 p
 T.eq('… the top five', reach.rows.slice(0, 5).map((r) => r.label + ' ' + r.figure).join(' | '), 'BR-011 +1.52 pts | BR-007 +1.52 pts | §7.16 +1.52 pts | BR-006 +1.52 pts | BR-012 +1.52 pts');
 T.check('… the shares shown (two decimals) add up to Complete % within their rounding', Math.abs(dPct.rows.reduce((a, r) => a + parseFloat(r.figure), 0) - K.req.exact) < dPct.rows.length * 0.005);
 T.eq('… each with the scenarios and integrations it touches that are not done', reach.rows.filter((r) => r.id === '7.16')[0].touches.map((x) => x.id + ':' + x.status).join(),
-  'S13:partly,S14:partly,S15:none,INT-04:none,INT-05:none,INT-06:none');
+  'S13:partly,S14:partly,S15:none,INT-04:partly,INT-05:none,INT-06:none');
 T.check('… none of them done', reach.rows.every((r) => r.touches.every((x) => x.status === 'partly' || x.status === 'none')));
 T.eq('then the integrations and decision points not done, with what each needs', reach.extra.map((r) => r.id).join(),
   INT.concat(C.DECISIONS.map((d) => d.id)).filter((id) => ['partly', 'none'].includes(C.MAPPING[id].status)).join());
@@ -279,15 +285,15 @@ const mapReq = M.mappingRows('requirements', names);
 T.eq('one row per requirement', mapReq.length, 34);
 const r716 = mapReq.filter((r) => r.id === '7.16')[0];
 T.eq('a row: status, Next, the phone, tests', [r716.statusLabel, r716.nextText, r716.phoneText, r716.testCount].join(' | '), 'Partly done | Picking & shipping | Pick, Android app | 4');
-T.check('… the evidence is Next\'s, and it says what Next lacks', r716.evidenceText.includes('webApps/equiprite-next/flows/yard/pages/picking-page-chains/releaseChain.js') && /creates, reserves and releases no transfer order/.test(r716.missing));
+T.check('… the evidence is Next\'s, and it says what Next lacks', r716.evidenceText.includes('webApps/equiprite-next/flows/yard/pages/picking-page-chains/releaseChain.js') && /reserves and releases none in Fusion/.test(r716.missing));
 const mv = M.mapView('integrations', 'none', '', names);
-T.eq('integrations not started', mv.rows.map((r) => r.id).join(), 'INT-04,INT-05,INT-06,INT-09,INT-10,INT-13,INT-14,INT-16,INT-18,INT-19,INT-20');
-T.eq('… the status chips', mv.chips.map((c) => c.key + '=' + c.count).join(' '), 'all=20 done=5 partly=4 none=11 na=0');
+T.eq('integrations not started', mv.rows.map((r) => r.id).join(), 'INT-05,INT-06,INT-09,INT-10,INT-13,INT-14,INT-18,INT-19,INT-20');
+T.eq('… the status chips', mv.chips.map((c) => c.key + '=' + c.count).join(' '), 'all=20 done=5 partly=6 none=9 na=0');
 T.eq('… the kinds with their sizes', mv.kinds.map((k) => k.key + '=' + k.count).join(' '), 'requirements=34 integrations=20 scenarios=35 decisions=10 beyond=6 all=105');
-T.eq('search across screens, tests and files', M.mapView('all', 'all', 'releaseChain', names).rows.map((r) => r.id).join(), 'BR-007,7.16,INT-04,INT-05,INT-06,S13,S19');
+T.eq('search across screens, tests and files', M.mapView('all', 'all', 'releaseChain', names).rows.map((r) => r.id).join(), 'BR-007,7.16,INT-05,INT-06,S13,S19');
 T.eq('pending: every item not started, FDD order', M.pending(names).map((r) => r.id).join(),
-  'INT-04,INT-05,INT-06,INT-09,INT-10,INT-13,INT-14,INT-16,INT-18,INT-19,INT-20,S05,S08,S15,S22,S33,DP-01,DP-04,DP-06');
-T.eq('partly done, by kind', M.partlyChips(names).map((c) => c.key + '=' + c.count).join(' '), 'requirements=25 integrations=4 scenarios=24 decisions=7');
+  'INT-05,INT-06,INT-09,INT-10,INT-13,INT-14,INT-18,INT-19,INT-20,S05,S08,S15,S22,S33,DP-01,DP-04,DP-06');
+T.eq('partly done, by kind', M.partlyChips(names).map((c) => c.key + '=' + c.count).join(' '), 'requirements=25 integrations=6 scenarios=24 decisions=7');
 T.check('partly done rows say what is missing', M.partly('requirements', names).every((r) => !!r.missing));
 
 T.section('exports');
@@ -303,7 +309,7 @@ T.eq('mapping: the columns, Next only', M.exportColumns('mapping').map((c) => c.
 // ═════════════════════════════════════════════════════════════════════════════════════════════════════════════════
 T.section('flows: list, steps, the diagram');
 const list = M.flowList();
-T.eq('the list says steps, integrations and how much is built', list.filter((f) => f.id === 'picking')[0].sub, '14 steps · 4 integrations · 29% built');
+T.eq('the list says steps, integrations and how much is built', list.filter((f) => f.id === 'picking')[0].sub, '14 steps · 4 integrations · 32% built');
 const info = M.flowInfo('picking');
 T.eq('a flow\'s head: what it covers', info.covers, 'S13, S15, S17 · DP-02, DP-03, DP-04 · INT-04, INT-05, INT-06, INT-13');
 T.check('… its lanes in words', info.lanes.startsWith('Scheduled job · Equipment · EquipRite · OIC · Fusion Inventory'));

@@ -132,7 +132,7 @@
                 </span>
                 <span role="cell" class="nx-cell-next">
                   <oj-bind-text value="[[ r.data.p.next ? r.data.p.next.text : '' ]]"></oj-bind-text>
-                  <oj-bind-if test="[[ r.data.acts.approve || r.data.acts.assign || r.data.acts.confirm > 0 || r.data.acts.pick > 0 ]]">
+                  <oj-bind-if test="[[ r.data.acts.approve || r.data.acts.assign || r.data.acts.confirm > 0 || r.data.acts.pick > 0 || r.data.acts.accept > 0 ]]">
                     <span class="nx-rowacts">
                       <oj-bind-if test="[[ r.data.acts.approve ]]">
                         <button type="button" class="nx-rowact nx-rowact--approve" data-act="approve" :aria-label="[[ 'Approve ' + r.data.requestNumber ]]"
@@ -152,6 +152,11 @@
                         <button type="button" class="nx-rowact nx-rowact--pick" data-act="pick" :aria-label="[[ 'Pick ' + r.data.requestNumber ]]"
                           :title="[[ $functions.pickTitle(r.data.acts.pick) ]]">
                           <span class="oj-ux-ico-fullfilment-box" aria-hidden="true"></span><oj-bind-text value="[[ 'Pick ' + r.data.acts.pick ]]"></oj-bind-text></button>
+                      </oj-bind-if>
+                      <oj-bind-if test="[[ r.data.acts.accept > 0 ]]">
+                        <button type="button" class="nx-rowact nx-rowact--accept" data-act="accept" :aria-label="[[ 'Accept the delivery on ' + r.data.requestNumber ]]"
+                          :title="[[ $functions.acceptTitle(r.data.acts.accept) ]]">
+                          <span class="oj-ux-ico-check-circle" aria-hidden="true"></span><oj-bind-text value="[[ 'Accept ' + r.data.acts.accept ]]"></oj-bind-text></button>
                       </oj-bind-if>
                     </span>
                   </oj-bind-if>
@@ -321,7 +326,7 @@
                 <button type="button" class="nx-btn nx-btn--primary" id="popAssign" data-action="assign" on-click="[[ $listeners.onPop ]]">
                   <span class="oj-ux-ico-assign-to-me" aria-hidden="true"></span>Assign units</button>
               </oj-bind-if>
-              <oj-bind-if test="[[ $variables.pop.acts && ($variables.pop.acts.confirm > 0 || $variables.pop.acts.pick > 0) ]]">
+              <oj-bind-if test="[[ $variables.pop.acts && ($variables.pop.acts.confirm > 0 || $variables.pop.acts.pick > 0 || $variables.pop.acts.accept > 0) ]]">
                 <button type="button" class="nx-btn nx-btn--primary" id="popRoad" data-action="road" on-click="[[ $listeners.onPop ]]">
                   <span class="oj-ux-ico-fullfilment-box" aria-hidden="true"></span>Get it to site…</button>
               </oj-bind-if>
@@ -348,6 +353,12 @@
               </oj-bind-for-each>
             </ol>
 
+            <oj-bind-if test="[[ !!$variables.pop.result ]]">
+              <div :class="[[ 'nx-pop-result nx-pop-result--' + ($variables.pop.result ? $variables.pop.result.tone : '') ]]" id="roadResult" role="status">
+                <strong><oj-bind-text value="[[ $variables.pop.result ? $variables.pop.result.title : '' ]]"></oj-bind-text></strong>
+                <oj-bind-text value="[[ $variables.pop.result ? ' ' + $variables.pop.result.text : '' ]]"></oj-bind-text></div>
+            </oj-bind-if>
+
             <div class="nx-road-todo" aria-label="What to do">
               <oj-bind-if test="[[ $variables.pop.road.assign > 0 ]]">
                 <div class="nx-road-card nx-road--assign" id="roadAssign">
@@ -364,14 +375,17 @@
                 <div class="nx-road-card nx-road--confirm" id="roadConfirm">
                   <div class="nx-road-card-head"><span class="oj-ux-ico-check-square" aria-hidden="true"></span>
                     <strong><oj-bind-text value="[[ 'Confirm ' + $functions.pieces($variables.pop.road.confirm) + ' for picking' ]]"></oj-bind-text></strong><span class="nx-note">Equipment Manager</span></div>
-                  <p>The unit is assigned, but the yard cannot pick it yet. <strong>Confirm Request</strong> creates its transfer order in Fusion and
-                    schedules it for picking; then it shows in Picking &amp; shipping. Confirm writes to Fusion, so it is done in Old EquipRite's request detail.</p>
-                  <oj-bind-if test="[[ !!$functions.oldRequestUrl($application.variables.appUrls.old, $variables.pop) ]]">
-                    <a class="nx-btn nx-btn--sm" id="roadConfirmOld" :href="[[ $functions.oldRequestUrl($application.variables.appUrls.old, $variables.pop) ]]">
-                      <span class="oj-ux-ico-external-link" aria-hidden="true"></span><oj-bind-text value="[[ 'Confirm ' + $variables.pop.number + ' in Old EquipRite' ]]"></oj-bind-text></a>
+                  <p>The unit is assigned, but the yard cannot pick it yet. Confirming asks Fusion for its <strong>transfer order</strong> (one per yard it
+                    ships from) and schedules it for picking; then the yard sees it in Picking &amp; shipping. A fixed asset is confirmed without one.</p>
+                  <oj-bind-if test="[[ $variables.can.decide ]]">
+                    <button type="button" class="nx-btn nx-btn--sm nx-btn--primary nx-road-go" id="roadConfirmBtn" data-action="doConfirm" on-click="[[ $listeners.onPop ]]"
+                      :disabled="[[ !!$variables.pop.busy ]]">
+                      <oj-bind-if test="[[ $variables.pop.busyStep === 'confirm' ]]"><span class="nx-spin" aria-hidden="true"></span></oj-bind-if>
+                      <oj-bind-if test="[[ $variables.pop.busyStep !== 'confirm' ]]"><span class="oj-ux-ico-check-square" aria-hidden="true"></span></oj-bind-if>
+                      <oj-bind-text value="[[ $variables.pop.busyStep === 'confirm' ? 'Asking Fusion for the transfer order…' : 'Confirm ' + $functions.pieces($variables.pop.road.confirm) + ' for picking' ]]"></oj-bind-text></button>
                   </oj-bind-if>
-                  <oj-bind-if test="[[ !$functions.oldRequestUrl($application.variables.appUrls.old, $variables.pop) ]]">
-                    <p class="nx-note"><oj-bind-text value="[[ 'In Old EquipRite: open ' + $variables.pop.number + ', then Confirm Request.' ]]"></oj-bind-text></p>
+                  <oj-bind-if test="[[ !$variables.can.decide ]]">
+                    <p class="nx-note">The Equipment Manager confirms it: that needs full access to Approve &amp; allocate.</p>
                   </oj-bind-if>
                 </div>
               </oj-bind-if>
@@ -386,8 +400,26 @@
                   </oj-bind-if>
                 </div>
               </oj-bind-if>
-              <oj-bind-if test="[[ !$variables.pop.road.assign && !$variables.pop.road.confirm && !$variables.pop.road.pick ]]">
-                <p class="nx-note" id="roadNothing"><oj-bind-text value="[[ $variables.pop.road.shipped ? 'Everything on the way is with the carrier: the site accepts the delivery.' : 'Nothing on this request is on its way to site now.' ]]"></oj-bind-text></p>
+              <oj-bind-if test="[[ $variables.pop.road.shipped > 0 ]]">
+                <div class="nx-road-card nx-road--shipped" id="roadAccept">
+                  <div class="nx-road-card-head"><span class="oj-ux-ico-check-circle" aria-hidden="true"></span>
+                    <strong><oj-bind-text value="[[ 'Accept ' + $functions.pieces($variables.pop.road.shipped) + ' on site' ]]"></oj-bind-text></strong><span class="nx-note">Site</span></div>
+                  <p>On its way to site. When it arrives, accept the delivery: a rental piece is then <strong>on site</strong> (Deployed); a consumable is
+                    delivered, or consumed when its class issues it from stock on delivery. When everything is on site, the request is marked Deployed.</p>
+                  <oj-bind-if test="[[ $variables.can.accept ]]">
+                    <button type="button" class="nx-btn nx-btn--sm nx-btn--primary nx-road-go" id="roadAcceptBtn" data-action="doAccept" on-click="[[ $listeners.onPop ]]"
+                      :disabled="[[ !!$variables.pop.busy ]]">
+                      <oj-bind-if test="[[ $variables.pop.busyStep === 'accept' ]]"><span class="nx-spin" aria-hidden="true"></span></oj-bind-if>
+                      <oj-bind-if test="[[ $variables.pop.busyStep !== 'accept' ]]"><span class="oj-ux-ico-check-circle" aria-hidden="true"></span></oj-bind-if>
+                      <oj-bind-text value="[[ $variables.pop.busyStep === 'accept' ? 'Accepting…' : 'Accept the delivery of ' + $functions.pieces($variables.pop.road.shipped) ]]"></oj-bind-text></button>
+                  </oj-bind-if>
+                  <oj-bind-if test="[[ !$variables.can.accept ]]">
+                    <p class="nx-note">The site accepts it: that needs full access to Requests.</p>
+                  </oj-bind-if>
+                </div>
+              </oj-bind-if>
+              <oj-bind-if test="[[ !$variables.pop.road.assign && !$variables.pop.road.confirm && !$variables.pop.road.pick && !$variables.pop.road.shipped ]]">
+                <p class="nx-note" id="roadNothing">Nothing on this request is on its way to site now.</p>
               </oj-bind-if>
             </div>
 

@@ -153,7 +153,11 @@ T.section('history: load (reads only, a failed read named)');
   T.eq('no access: nothing (fail closed)', rows.map((r) => acts(r, {})).join(' | '), 'none | none | none | none');
   T.eq('a request still waiting is never confirmed or picked', JSON.stringify(['confirm', 'pick'].map((k) => list.actions({ status: 'SUBMITTED' }, [{ lineStatus: 'ALLOCATED' }], 'decide', can)[k])), '[0,0]');
   T.eq('a unit assigned is not at the yard yet: confirm, not pick', JSON.stringify(list.actions({ status: 'IN_PROCESS' }, [{ lineStatus: 'ALLOCATED' }, { lineStatus: 'ALLOCATED' }], 'allocate', can)),
-    '{"approve":false,"assign":true,"confirm":2,"pick":0}');
+    '{"approve":false,"assign":true,"confirm":2,"pick":0,"accept":0}');
+  T.eq('on its way to site: the site accepts it (also on a request already Deployed); not without the right', JSON.stringify([
+    list.actions({ status: 'IN_PROCESS' }, [{ lineStatus: 'SHIP_TO_SITE' }, { lineStatus: 'DEPLOYED' }], '', Object.assign({ accept: true }, can)).accept,
+    list.actions({ status: 'DEPLOYED' }, [{ lineStatus: 'SHIP_TO_SITE' }], '', { accept: true }).accept,
+    list.actions({ status: 'IN_PROCESS' }, [{ lineStatus: 'SHIP_TO_SITE' }], '', can).accept]), '[1,1,0]');
   T.eq('being picked still counts for the yard', list.actions({ status: 'IN_PROCESS' }, [{ lineStatus: 'PICK_INITIATED' }, { lineStatus: 'SHIP_TO_SITE' }], '', can).pick, 1);
 
   T.section('Requests: getting it to site (the road popup)');

@@ -9,8 +9,8 @@ define([
   // list has loaded: its dialog opens in front, with the yard's steps and its pieces, and Back to the screen it came
   // from. Behind it the stage, yard and search are cleared and its section unfolded, so when the dialog closes the list
   // shows the request (scrolled to, flashing). A request that is not in the yard's queue yet (its pieces have their unit
-  // but are not confirmed, so there is no transfer order) gets a note above the list that says so, and where to
-  // confirm it, instead of a toast that is easily missed.
+  // but are not confirmed, so there is no transfer order) gets a note above the list that says so, with Confirm for
+  // picking (confirmChain) for the Equipment Manager, instead of a toast that is easily missed.
   class focusChain extends ActionChain {
     async run(context) {
       const v = context.$page.variables;
@@ -26,11 +26,11 @@ define([
         || (number && r.requestNumber === number))[0];
       if (!rec) {
         v.handed = {
-          tone: 'wait', id: String(what.id || ''), number, confirm,
+          tone: 'wait', id: String(what.id || ''), number, confirm, end: what.end || '',
           title: (number || 'That request') + ' is not in the yard\'s queue yet',
           text: confirm
-            ? 'Its ' + pieces(confirm) + ' with the unit assigned ' + (confirm === 1 ? 'waits' : 'wait') + ' for the Equipment Manager to confirm for picking: '
-              + 'Confirm Request, in Old EquipRite\'s request detail, creates the transfer order in Fusion. Then ' + (confirm === 1 ? 'it shows' : 'they show') + ' here, to release and pick.'
+            ? 'Its ' + pieces(confirm) + ' with the unit assigned ' + (confirm === 1 ? 'waits' : 'wait') + ' to be confirmed for picking: confirming asks Fusion for '
+              + 'the transfer order. Then ' + (confirm === 1 ? 'it shows' : 'they show') + ' here, to release and pick.'
             : 'Nothing on it waits at the yard now. Open the request to see where each piece is.',
         };
         return;

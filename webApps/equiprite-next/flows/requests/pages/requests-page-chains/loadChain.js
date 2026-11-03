@@ -33,7 +33,10 @@ define([
       }
       const workbench = rules.pageAccess(app.pageAccessMap, app.pageAccessLoaded, 'EQR_WORKBENCH');
       const picking = rules.pageAccess(app.pageAccessMap, app.pageAccessLoaded, 'EQR_INITIATE_PICKING');
-      $page.variables.can = { decide: workbench === 'FULL', assign: workbench !== 'HIDDEN', pick: picking !== 'HIDDEN' };
+      const requests = rules.pageAccess(app.pageAccessMap, app.pageAccessLoaded, 'EQR_EQUIPMENT_REQUESTS');
+      // accept: the site accepts a delivery (full access to Requests, or the Equipment Manager's full Approve & allocate).
+      $page.variables.can = { decide: workbench === 'FULL', assign: workbench !== 'HIDDEN', pick: picking !== 'HIDDEN',
+        accept: requests === 'FULL' || workbench === 'FULL' };
       await Actions.callChain(context, { chain: 'applyChain' });
       await Actions.callChain(context, { chain: 'focusChain' });
     }

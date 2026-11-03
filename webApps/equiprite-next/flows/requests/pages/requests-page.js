@@ -54,9 +54,12 @@ define(['resources/js/exportKit', 'resources/js/fmt', 'resources/js/shellBus'], 
 
     /** The row's Confirm N: what it is and who does it. */
     confirmTitle(n) {
-      return this.pieces(n) + ' with the unit assigned, waiting for the Equipment Manager to confirm for picking (it creates the transfer order). '
-        + 'Opens where each piece is, and what to do.';
+      return this.pieces(n) + ' with the unit assigned, waiting for the Equipment Manager to confirm for picking (it asks Fusion for the transfer order). '
+        + 'Opens where each piece is, and confirms it there.';
     }
+
+    /** The row's Accept N. */
+    acceptTitle(n) { return this.pieces(n) + ' on the way to site, for the site to accept on arrival. Opens where each piece is, and accepts it there.'; }
 
     /** The row's Pick N. */
     pickTitle(n) { return this.pieces(n) + ' in the yard\'s queue, to release, pick and ship. Opens where each piece is, and what to do.'; }
@@ -77,13 +80,6 @@ define(['resources/js/exportKit', 'resources/js/fmt', 'resources/js/shellBus'], 
       if (road && road.before) out.push(this.pieces(road.before) + ' still before approval');
       if (road && road.beyond) out.push(this.pieces(road.beyond) + ' already past this (on site or on the way back)');
       return 'Not shown: ' + out.join(', and ') + '.';
-    }
-
-    /** This request on Old EquipRite's request detail, where Confirm Request is; '' while Old's address is unknown. */
-    oldRequestUrl(oldBase, pop) {
-      if (!oldBase || !pop || !pop.id) return '';
-      const b = oldBase.slice(-1) === '/' ? oldBase : oldBase + '/';
-      return b + 'vp/shell/equipment-foundation/request-detail?requestId=' + encodeURIComponent(pop.id) + '&requestNumber=' + encodeURIComponent(pop.number || '');
     }
 
     /** A step's state in words, beside its label. */

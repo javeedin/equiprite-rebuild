@@ -87,9 +87,9 @@
         <p><oj-bind-text value="[[ $variables.handed.text ]]"></oj-bind-text></p>
         <oj-bind-if test="[[ $variables.handed.confirm > 0 || $variables.handed.tone === 'wait' ]]">
           <div class="nx-yd-handed-acts">
-            <oj-bind-if test="[[ $variables.handed.confirm > 0 && !!$functions.oldRequestUrl($application.variables.appUrls.old, $variables.handed) ]]">
-              <a class="nx-btn nx-btn--sm" id="ydHandedConfirm" :href="[[ $functions.oldRequestUrl($application.variables.appUrls.old, $variables.handed) ]]">
-                <span class="oj-ux-ico-external-link" aria-hidden="true"></span><oj-bind-text value="[[ 'Confirm ' + $variables.handed.number + ' in Old EquipRite' ]]"></oj-bind-text></a>
+            <oj-bind-if test="[[ $variables.handed.confirm > 0 && $functions.canConfirm($application.variables.pageAccessMap, $application.variables.pageAccessLoaded) ]]">
+              <button type="button" class="nx-btn nx-btn--sm nx-btn--primary" id="ydHandedConfirm" data-where="handed" on-click="[[ $listeners.onConfirm ]]" :disabled="[[ !!$variables.busy ]]">
+                <oj-bind-text value="[[ $variables.busy === 'confirm' ? 'Asking Fusion for the transfer order…' : 'Confirm ' + $functions.plural($variables.handed.confirm, 'piece') + ' for picking' ]]"></oj-bind-text></button>
             </oj-bind-if>
             <oj-bind-if test="[[ $variables.handed.tone === 'wait' && !!$variables.handed.id ]]">
               <button type="button" class="nx-btn nx-btn--sm" id="ydHandedOpen" :data-id="[[ $variables.handed.id ]]" :data-number="[[ $variables.handed.number ]]"
@@ -374,10 +374,17 @@
                 </template>
               </oj-bind-for-each>
               <oj-bind-if test="[[ $functions.toConfirm($functions.otherLines($variables.linesBy, $variables.openId, $variables.work.lines, $variables.work.req.isCustomer)) > 0 ]]">
-                <p class="nx-note" id="ydOtherConfirm">Unit assigned is not in the yard's queue yet: Confirm Request, in Old EquipRite's request detail, creates its transfer order in Fusion; then it shows here.
-                  <oj-bind-if test="[[ !!$functions.oldRequestUrl($application.variables.appUrls.old, $variables.work.req) ]]">
-                    <a class="nx-link" :href="[[ $functions.oldRequestUrl($application.variables.appUrls.old, $variables.work.req) ]]">Confirm it in Old EquipRite</a>
-                  </oj-bind-if></p>
+                <div class="nx-yd-otherconfirm" id="ydOtherConfirm">
+                  <p class="nx-note">Unit assigned is not in the yard's queue yet: confirming asks Fusion for its transfer order and schedules it for picking; then it shows here.</p>
+                  <oj-bind-if test="[[ $functions.canConfirm($application.variables.pageAccessMap, $application.variables.pageAccessLoaded) ]]">
+                    <button type="button" class="nx-btn nx-btn--sm" id="ydConfirm" data-where="work" on-click="[[ $listeners.onConfirm ]]" :disabled="[[ !!$variables.busy ]]">
+                      <span class="oj-ux-ico-check-square" aria-hidden="true"></span>
+                      <oj-bind-text value="[[ $variables.busy === 'confirm' ? 'Asking Fusion for the transfer order…' : 'Confirm ' + $functions.plural($functions.toConfirm($functions.otherLines($variables.linesBy, $variables.openId, $variables.work.lines, $variables.work.req.isCustomer)), 'piece') + ' for picking' ]]"></oj-bind-text></button>
+                  </oj-bind-if>
+                  <oj-bind-if test="[[ !$functions.canConfirm($application.variables.pageAccessMap, $application.variables.pageAccessLoaded) ]]">
+                    <p class="nx-note">The Equipment Manager confirms it (full access to Approve &amp; allocate).</p>
+                  </oj-bind-if>
+                </div>
               </oj-bind-if>
             </div>
           </oj-bind-if>

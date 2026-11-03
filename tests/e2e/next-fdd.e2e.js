@@ -127,16 +127,16 @@ const sideways = (page) => page.evaluate(() => document.documentElement.scrollWi
     T.eq('the KPIs: requirements, done, partly, not started, n/a, complete, to reach 100%', [await kpi('total'), await kpi('done'), await kpi('partly'), await kpi('none'), await kpi('na'),
       await kpi('pct'), await kpi('reach')].join(' '), '34 8 25 0 1 62% +37.9');
     T.eq('… in Next, on the phone, integrations, scenarios, decision points', [await kpi('next'), await kpi('phone'), await kpi('ints'), await kpi('scen'), await kpi('dps')].join(' | '),
-      '33 of 34 | 6 of 34 | 5 + 4 of 20 | 5 + 24 of 34 | 0 + 7 of 10');
+      '33 of 34 | 6 of 34 | 5 + 6 of 20 | 5 + 24 of 34 | 0 + 7 of 10');
     T.eq('no New or Old card', [await page.$$eval('[data-kpi="newApp"], [data-kpi="oldApp"], [data-kpi="mobile"]', (x) => x.length),
       /\b(New|Old)\b/.test(await env.text('#fddKpis2'))].join(), '0,false');
     T.check('the headline says it in words', (await env.text('#fddHeadline')).startsWith('EquipRite Next (with its phone app) has built 62% of the FDD\'s requirements'));
-    T.check('it says, once, that it is judged on Next with its phone app, as checked on 31 Oct 2026', /Judged on EquipRite Next only, as its code stood on 31 Oct 2026/.test(await env.text('#fddJudged'))
+    T.check('it says, once, that it is judged on Next with its phone app, as checked on 3 Nov 2026', /Judged on EquipRite Next only, as its code stood on 3 Nov 2026/.test(await env.text('#fddJudged'))
       && /EquipRite Mobile and EquipRite for Android count as Next's phone app/.test(await env.text('#fddJudged')));
     T.eq('bars by module and phase', [await page.$$eval('#fddByModule ~ .fdd-bars .fdd-bar-row', (r) => r.length), await page.$$eval('#fddByPhase ~ .fdd-bars .fdd-bar-row', (r) => r.length)].join(), '4,7');
     T.check('… each bar labelled for a screen reader', (await page.$eval('.fdd-bar-row[data-group="projects"] .fdd-bar-label', (b) => b.getAttribute('aria-label'))).startsWith('Equipment for Projects: 16 requirements'));
     T.eq('pending: not started', await page.$$eval('#fddPending .fdd-item', (r) => r.map((x) => x.dataset.id).join()),
-      'INT-04,INT-05,INT-06,INT-09,INT-10,INT-13,INT-14,INT-16,INT-18,INT-19,INT-20,S05,S08,S15,S22,S33,DP-01,DP-04,DP-06');
+      'INT-05,INT-06,INT-09,INT-10,INT-13,INT-14,INT-18,INT-19,INT-20,S05,S08,S15,S22,S33,DP-01,DP-04,DP-06');
     T.eq('partly done, with what is missing', await page.$$eval('#fddPartly .fdd-item', (r) => r.length), 25);
     T.eq('the table: Next and the phone, no New or Old column', await page.$$eval('.fdd-grid-map .nx-row--head [role="columnheader"]', (h) => h.map((x) => x.textContent.trim()).filter(Boolean).join()),
       'ID,Item,Status,EquipRite Next,On the phone,Tests');
@@ -174,10 +174,10 @@ const sideways = (page) => page.evaluate(() => document.documentElement.scrollWi
     await page.click('[data-kpi="ints"]');
     await waitDrill('ints');
     T.eq('Integrations: the status chips with counts', await page.$$eval('#fddDrillChips .nx-chip', (c) => c.map((x) => x.innerText.replace(/\s+/g, ' ').trim()).join(' | ')),
-      'All 20 | Done 5 | Partly done 4 | Not started 11');
+      'All 20 | Done 5 | Partly done 6 | Not started 9');
     await page.click('#fddDrillChips [data-value="partly"]');
-    await waitDrill('ints', 'Partly done · 4');
-    T.eq('a status chip narrows the list', await drillIds(), 'INT-03,INT-07,INT-11,INT-17');
+    await waitDrill('ints', 'Partly done · 6');
+    T.eq('a status chip narrows the list', await drillIds(), 'INT-03,INT-04,INT-07,INT-11,INT-16,INT-17');
     T.check('… every row: a status pill, what Next has, what is missing, its tests', await page.$$eval('#fddDrillRows .fdd-drow', (r) => r.every((x) => x.querySelector('.fdd-st--partly')
       && /What Next has/.test(x.textContent) && /What is missing/.test(x.textContent) && x.querySelectorAll('.fdd-code').length > 0)));
     await page.click('[data-kpi="partly"]');
@@ -215,7 +215,7 @@ const sideways = (page) => page.evaluate(() => document.documentElement.scrollWi
       await page.getAttribute('.fdd-req[data-req="7.16"] .fdd-req-row', 'aria-expanded')].join(), 'true,true');
     T.check('… scrolled to and focused', await page.evaluate(() => { const el = document.querySelector('.fdd-req[data-req="7.16"]'); const r = el.getBoundingClientRect();
       return r.top >= 0 && r.top < window.innerHeight && document.activeElement === el.querySelector('.fdd-req-row'); }));
-    T.check('… what Next has and lacks, there too', /In EquipRite Next[\s\S]*creates, reserves and releases no transfer order/i.test(await env.text('#fddReqDetail-7\\.16')));
+    T.check('… what Next has and lacks, there too', /In EquipRite Next[\s\S]*reserves and releases none in Fusion/i.test(await env.text('#fddReqDetail-7\\.16')));
     await page.click('#fddTab-mapping');
     await page.waitForSelector('#fddDrill', { timeout: 10000 });
     T.check('Mapping again: the drill is kept', (await crumbs()).startsWith('Mapping › Requirements · 34'));
@@ -235,9 +235,9 @@ const sideways = (page) => page.evaluate(() => document.documentElement.scrollWi
     T.eq('… every partly or not started requirement, biggest gain first', [await drillCount(), (await drillIds()).split(',').slice(0, 5).join()].join(' | '), '25 | BR-011,BR-007,7.16,BR-006,BR-012');
     T.eq('… each with its gain', await page.$eval('#fddDrillRows .fdd-drow[data-id="BR-007"] .fdd-fig', (x) => x.innerText.trim()), '+1.52 pts');
     T.eq('… and what it touches that is not done', await page.$eval('#fddDrillRows .fdd-drow[data-id="7.16"] .fdd-drow-touch', (x) => Array.from(x.querySelectorAll('.fdd-mini')).map((m) => m.textContent.trim()).join(' | ')),
-      'S13, partly done | S14, partly done | S15, not started | INT-04, not started | INT-05, not started | INT-06, not started');
+      'S13, partly done | S14, partly done | S15, not started | INT-04, partly done | INT-05, not started | INT-06, not started');
     T.eq('then the integrations and decision points not done, with what each needs', [await page.$$eval('#fddReachExtra .fdd-drow', (r) => r.length),
-      await page.$eval('#fddReachExtra .fdd-drow[data-id="INT-04"] .fdd-drow-needs', (x) => x.innerText.replace(/\s+/g, ' ').trim().slice(0, 37))].join(' | '), '25 | Needs: Next creates no transfer order');
+      await page.$eval('#fddReachExtra .fdd-drow[data-id="INT-04"] .fdd-drow-needs', (x) => x.innerText.replace(/\s+/g, ' ').trim().slice(0, 32))].join(' | '), '25 | Needs: The return transfer order');
     T.eq('the page itself does not grow: the drill scrolls inside the shell', await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight + 1), true);
     await page.$eval('#fddDrill', (d) => d.scrollIntoView({ block: 'start' }));
     await shot('next-fdd-reach.png');
@@ -302,7 +302,7 @@ const sideways = (page) => page.evaluate(() => document.documentElement.scrollWi
     await settle(page);
     await page.click('[data-field="mapStatus"][data-value="none"]');
     await settle(page);
-    T.eq('the table: integrations not started', await page.$$eval('.fdd-map-row', (r) => r.map((x) => x.dataset.id).join()), 'INT-04,INT-05,INT-06,INT-09,INT-10,INT-13,INT-14,INT-16,INT-18,INT-19,INT-20');
+    T.eq('the table: integrations not started', await page.$$eval('.fdd-map-row', (r) => r.map((x) => x.dataset.id).join()), 'INT-05,INT-06,INT-09,INT-10,INT-13,INT-14,INT-18,INT-19,INT-20');
     await page.click('.fdd-map-row[data-id="INT-18"]');
     await page.waitForSelector('#fddMapDetail-INT-18');
     T.check('a row opened: what is missing and Next\'s evidence', (await env.text('#fddMapDetail-INT-18')).includes('No call in services/') && (await env.text('#fddMapDetail-INT-18')).includes('equiprite-next/flows/checks/pages/transfer-page.html'));

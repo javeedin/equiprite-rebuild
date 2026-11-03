@@ -84,9 +84,10 @@
       "defaultValue": {
         "decide": false,
         "assign": false,
-        "pick": false
+        "pick": false,
+        "accept": false
       },
-      "description": "Which row steps this user may take: decide (EQR_WORKBENCH FULL), assign (EQR_WORKBENCH seen), pick (EQR_INITIATE_PICKING seen)."
+      "description": "Which row steps this user may take: decide (EQR_WORKBENCH FULL; also confirms for picking), assign (EQR_WORKBENCH seen), pick (EQR_INITIATE_PICKING seen), accept a delivery (EQR_EQUIPMENT_REQUESTS or EQR_WORKBENCH FULL)."
     },
     "pop": {
       "type": "any",

@@ -107,9 +107,9 @@ const sideways = (page) => page.evaluate(() => document.documentElement.scrollWi
     T.eq('New request stays the one bright button on it', await page.$eval('.nx-requests .nx-pagehead .nx-btn--primary', (b) => getComputedStyle(b).backgroundColor), 'rgb(255, 255, 255)');
 
     T.section('the steps on each row');
-    const acts = async (n) => page.$$eval(`.nx-row--click[data-number="${n}"] [data-act]`, (b) => b.map((x) => x.dataset.act + (/^(pick|confirm)$/.test(x.dataset.act) ? ':' + x.innerText.trim() : '')).join(','));
+    const acts = async (n) => page.$$eval(`.nx-row--click[data-number="${n}"] [data-act]`, (b) => b.map((x) => x.dataset.act + (/^(pick|confirm|accept)$/.test(x.dataset.act) ? ':' + x.innerText.trim() : '')).join(','));
     T.eq('waiting: Approve', await acts('REQ-2001'), 'history,approve');
-    T.eq('approved, a unit to assign: Assign units', await acts('REQ-2002'), 'history,assign');
+    T.eq('approved, a unit to assign: Assign units; and a piece on its way: Accept', await acts('REQ-2002'), 'history,assign,accept:Accept 1');
     T.eq('a unit assigned: Confirm; in the yard\'s queue: Pick; each with how many', await acts('REQ-2003'), 'history,confirm:Confirm 1,pick:Pick 1');
     T.check('each beside what is next', (await env.text('.nx-row--click[data-number="REQ-2001"] .nx-cell-next')).startsWith('Equipment Manager to approve it'));
     await env.shot('next-flow-rows.png');
@@ -174,9 +174,8 @@ const sideways = (page) => page.evaluate(() => document.documentElement.scrollWi
     T.eq('five steps, the pieces on each, the one most behind now', road, 'assign:past: confirm:now:1 pick:also:1 picking:todo: shipped:todo:');
     const confirmCard = await env.text('#roadConfirm');
     T.check('a card per step with pieces: Confirm, who, and what it does', confirmCard.includes('Confirm 1 piece for picking') && confirmCard.includes('Equipment Manager')
-      && confirmCard.includes('transfer order in Fusion'), confirmCard);
-    T.eq('Confirm opens Old EquipRite\'s request detail on it', (await page.$eval('#roadConfirmOld', (a) => a.getAttribute('href'))).replace(/^http:\/\/localhost:\d+\//, ''),
-      'vp/shell/equipment-foundation/request-detail?requestId=2003&requestNumber=REQ-2003');
+      && confirmCard.includes('asks Fusion for its transfer order'), confirmCard);
+    T.eq('Confirm is done here, in Next', await env.text('#roadConfirmBtn'), 'Confirm 1 piece for picking');
     const pickCard = await env.text('#roadPick');
     T.check('and Pick: the yard, how many wait for release', pickCard.includes('Pick 1 piece at the yard') && pickCard.includes('Yard') && pickCard.includes('1 piece is confirmed and waiting to be released'), pickCard);
     T.eq('each piece, its unit and where it is', await page.$$eval('#reqPop .nx-road-pieces li', (l) => l.map((x) => x.innerText.replace(/\s+/g, ' ').trim()).join(' | ')),
@@ -196,7 +195,8 @@ const sideways = (page) => page.evaluate(() => document.documentElement.scrollWi
       'picking & shipping · step 1 of 3 | Release for picking');
     T.check('its actions are in it: the yard\'s steps and its piece in picking', !!(await page.$('#ydWork .nx-yd-steps [data-step="release"]'))
       && (await page.$$eval('#ydWork .nx-yd-line[data-line]', (l) => l.map((x) => x.dataset.line).join())) === '6');
-    T.check('the piece not in the queue says why, with where to confirm', (await env.text('#ydOtherConfirm')).includes('Confirm Request, in Old EquipRite'));
+    T.check('the piece not in the queue says why, and it can be confirmed from here', (await env.text('#ydOtherConfirm')).includes('confirming asks Fusion for its transfer order')
+      && (await env.text('#ydConfirm')) === 'Confirm 1 piece for picking');
     T.eq('and the way back', await env.text('#ydBack'), 'Back to Requests');
     T.check('no note above the list: the dialog says it', !(await page.$('#ydHanded')));
     T.check('fits a phone too: nothing sideways', !(await sideways(page)));
@@ -269,7 +269,7 @@ const sideways = (page) => page.evaluate(() => document.documentElement.scrollWi
     T.eq('it opened in its own tab', await page.$eval('.nx-tab--on', (t) => t.dataset.tabId), 'request:2003');
     T.eq('the same milestones', await page.$$eval('.nx-record-history .nx-hist-step', (s) => s.length), 9);
     T.check('everything that happened beside them', /everything that happened \(6\)/i.test(await env.text('.nx-record-history')));
-    T.eq('its steps for this user: Confirm (in Old), then Pick', [await env.text('#recConfirm'), await env.text('#recPick')].join(' | '), 'Confirm 1 for picking in Old | Pick 1 at the yard');
+    T.eq('its steps for this user: Confirm, then Pick', [await env.text('#recConfirm'), await env.text('#recPick')].join(' | '), 'Confirm 1 for picking | Pick 1 at the yard');
     await env.shot('next-flow-record.png');
     await page.click('#recPick');
     await page.waitForSelector('#ydWork', { timeout: 20000 });

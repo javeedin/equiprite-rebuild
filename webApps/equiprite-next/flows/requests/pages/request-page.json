@@ -48,13 +48,19 @@
       "type": "boolean",
       "defaultValue": false
     },
+    "ask": { "type": "string", "defaultValue": "", "description": "'' | 'confirm' | 'accept': the step asked about before it is done (stepChain)." },
+    "stepBusy": { "type": "string", "defaultValue": "", "description": "The step in flight: 'confirm' | 'accept' | ''." },
+    "stepResult": { "type": "any", "defaultValue": { "tone": "", "title": "", "text": "" }, "description": "What the last Confirm or Accept did." },
     "acts": {
       "type": "any",
       "defaultValue": {
         "approve": false,
         "assign": false,
         "confirm": 0,
-        "pick": 0
+        "pick": 0,
+        "accept": 0,
+        "mayConfirm": false,
+        "mayAccept": false
       },
       "description": "The steps this request offers this user (requestList.actions), as on its row in Requests."
     },

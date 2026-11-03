@@ -49,30 +49,52 @@
           <button type="button" class="nx-btn nx-btn--primary" id="recAssign" data-act="assign" on-click="[[ $listeners.onStep ]]">
             <span class="oj-ux-ico-assign-to-me" aria-hidden="true"></span>Assign units</button>
         </oj-bind-if>
-        <!-- Unit assigned, not confirmed: Confirm Request (Old EquipRite) creates the transfer order; only then can the yard pick it. -->
+        <!-- Unit assigned, not confirmed: Confirm for picking asks Fusion for the transfer order (confirmPicking); then the yard picks it. -->
         <oj-bind-if test="[[ $variables.acts.confirm > 0 ]]">
-          <oj-bind-if test="[[ !!$functions.oldRequestUrl($application.variables.appUrls.old, $variables.head) ]]">
-            <a class="nx-btn" id="recConfirm" :href="[[ $functions.oldRequestUrl($application.variables.appUrls.old, $variables.head) ]]"
-              title="The unit is assigned; Confirm Request creates the transfer order in Fusion and schedules it for picking. Done in Old EquipRite's request detail.">
-              <span class="oj-ux-ico-check-square" aria-hidden="true"></span><oj-bind-text value="[[ 'Confirm ' + $variables.acts.confirm + ' for picking in Old' ]]"></oj-bind-text></a>
-          </oj-bind-if>
-          <oj-bind-if test="[[ !$functions.oldRequestUrl($application.variables.appUrls.old, $variables.head) ]]">
-            <span class="nx-pill nx-stage--ready" id="recConfirm" title="Confirm Request, in Old EquipRite's request detail, creates the transfer order in Fusion">
-              <oj-bind-text value="[[ $variables.acts.confirm + ' to confirm for picking, in Old EquipRite' ]]"></oj-bind-text></span>
-          </oj-bind-if>
+          <button type="button" class="nx-btn nx-btn--primary" id="recConfirm" data-act="ask" data-value="confirm" on-click="[[ $listeners.onStep ]]"
+            :disabled="[[ !$variables.acts.mayConfirm || !!$variables.stepBusy ]]"
+            :title="[[ $variables.acts.mayConfirm ? 'Ask Fusion for the transfer order and schedule the pieces for picking' : 'The Equipment Manager confirms: it needs full access to Approve & allocate' ]]">
+            <span class="oj-ux-ico-check-square" aria-hidden="true"></span><oj-bind-text value="[[ 'Confirm ' + $variables.acts.confirm + ' for picking' ]]"></oj-bind-text></button>
         </oj-bind-if>
         <oj-bind-if test="[[ $variables.acts.pick > 0 ]]">
           <button type="button" class="nx-btn nx-btn--primary" id="recPick" data-act="pick" on-click="[[ $listeners.onStep ]]"
             title="In the yard's queue: Picking & shipping opens on this request, highlighted">
             <span class="oj-ux-ico-fullfilment-box" aria-hidden="true"></span><oj-bind-text value="[[ 'Pick ' + $variables.acts.pick + ' at the yard' ]]"></oj-bind-text></button>
         </oj-bind-if>
+        <!-- On its way to site: the site accepts the delivery here (acceptDelivery). -->
+        <oj-bind-if test="[[ $variables.acts.accept > 0 ]]">
+          <button type="button" class="nx-btn nx-btn--primary nx-btn--ok" id="recAccept" data-act="ask" data-value="accept" on-click="[[ $listeners.onStep ]]"
+            :disabled="[[ !$variables.acts.mayAccept || !!$variables.stepBusy ]]"
+            :title="[[ $variables.acts.mayAccept ? 'The pieces have arrived: accept them on site' : 'The site accepts it: that needs full access to Requests' ]]">
+            <span class="oj-ux-ico-check-circle" aria-hidden="true"></span><oj-bind-text value="[[ 'Accept ' + $variables.acts.accept + ' on site' ]]"></oj-bind-text></button>
+        </oj-bind-if>
         <oj-bind-if test="[[ $variables.head.status !== 'DRAFT' && !!$functions.newUrl($application.variables.appUrls.new, $variables.head) ]]">
           <a class="nx-btn" id="recInNew" :href="[[ $functions.newUrl($application.variables.appUrls.new, $variables.head) ]]"
-            title="Approve, allocate, accept delivery or start a return there, until Next has those steps">
+            title="Allocate units or start a return there, until Next has those steps">
             <span class="oj-ux-ico-external-link" aria-hidden="true"></span>Act on it in New</a>
         </oj-bind-if>
       </div>
     </div>
+
+    <!-- Confirm or Accept: what it will do, asked once before it is done; then what happened. -->
+    <oj-bind-if test="[[ !!$variables.ask ]]">
+      <div :class="[[ 'nx-rec-ask nx-road--' + ($variables.ask === 'confirm' ? 'confirm' : 'shipped') ]]" id="recAsk" role="group" aria-label="Before it is done">
+        <span :class="[[ $variables.ask === 'confirm' ? 'oj-ux-ico-check-square' : 'oj-ux-ico-check-circle' ]]" aria-hidden="true"></span>
+        <p><oj-bind-text value="[[ $functions.askText($variables.ask, $variables.acts) ]]"></oj-bind-text></p>
+        <span class="nx-rec-ask-acts">
+          <button type="button" class="nx-btn nx-btn--sm nx-btn--primary nx-road-go" id="recAskYes" data-act="do" :data-value="[[ $variables.ask ]]" on-click="[[ $listeners.onStep ]]"
+            :disabled="[[ !!$variables.stepBusy ]]">
+            <oj-bind-if test="[[ !!$variables.stepBusy ]]"><span class="nx-spin" aria-hidden="true"></span></oj-bind-if>
+            <oj-bind-text value="[[ $functions.askGo($variables.ask, $variables.acts, $variables.stepBusy) ]]"></oj-bind-text></button>
+          <button type="button" class="nx-btn nx-btn--sm" id="recAskNo" data-act="ask" data-value="" on-click="[[ $listeners.onStep ]]" :disabled="[[ !!$variables.stepBusy ]]">Cancel</button>
+        </span>
+      </div>
+    </oj-bind-if>
+    <oj-bind-if test="[[ !!$variables.stepResult.text ]]">
+      <div :class="[[ 'nx-pop-result nx-pop-result--' + $variables.stepResult.tone ]]" id="recResult" role="status">
+        <strong><oj-bind-text value="[[ $variables.stepResult.title ]]"></oj-bind-text></strong>
+        <oj-bind-text value="[[ ' ' + $variables.stepResult.text ]]"></oj-bind-text></div>
+    </oj-bind-if>
 
     <section class="nx-card nx-card-pad nx-journey" aria-labelledby="recJourney">
       <div class="nx-journey-head">
