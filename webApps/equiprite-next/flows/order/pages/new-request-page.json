@@ -130,6 +130,13 @@
       "type": "boolean",
       "defaultValue": false
     },
+    "extCustomerQuery": { "type": "string", "defaultValue": "" },
+    "extCustomerResults": { "type": "any[]", "defaultValue": [], "description": "An external customer's project: EquipRite's customers (searchChain extCustomer)." },
+    "extCustomerSearching": { "type": "boolean", "defaultValue": false },
+    "contactQuery": { "type": "string", "defaultValue": "" },
+    "contactResults": { "type": "any[]", "defaultValue": [], "description": "An external customer's contacts (portal users; searchChain contact)." },
+    "contactSearching": { "type": "boolean", "defaultValue": false },
+    "termsAccepted": { "type": "boolean", "defaultValue": false, "description": "The rental terms ticked, for an external customer's request (send only; not posted)." },
     "taskOptions": {
       "type": "any[]",
       "defaultValue": []
@@ -276,6 +283,9 @@
           }
         }
       ]
+    },
+    "onTerms": {
+      "chains": [{ "chain": "setFieldChain", "parameters": { "field": "termsAccepted", "value": "{{ $event.target.checked }}" } }]
     },
     "onFieldButton": {
       "chains": [

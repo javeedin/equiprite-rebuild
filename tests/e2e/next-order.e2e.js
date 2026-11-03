@@ -160,8 +160,8 @@ async function shot(env, name) {
     await page.waitForSelector(vis('#orProject'));
     T.eq('step 2: the project', await page.$eval(vis('.nx-or-stepbtn--current'), (b) => b.dataset.step), '2');
     T.eq('step 1 is marked done', await page.$eval(vis('.nx-or-stepbtn[data-step="1"]'), (b) => b.className.includes('--done')), true);
-    T.eq('the customer comes first, then the project', await page.$$eval(vis('.nx-or-main .nx-or-title'), (h) => h.map((x) => x.innerText.trim()).join(', ')),
-      'Customer, Project, Delivery, Details');
+    T.eq('who the project is for comes first, then the project', await page.$$eval(vis('.nx-or-main .nx-or-title'), (h) => h.map((x) => x.innerText.trim()).join(', ')),
+      'Who the project is for, Project, Delivery, Details');
     await page.waitForSelector(vis('.nx-or-option[data-kind="customer"]'));
     T.eq('customers listed from the BIP report before anything is typed', await page.$$eval(vis('.nx-or-option[data-kind="customer"] strong'), (o) => o.map((x) => x.innerText).join()), 'Acme Utilities');
     T.eq('and projects', await page.$$eval(vis('.nx-or-option[data-kind="project"] strong'), (o) => o.map((x) => x.innerText).join()), 'Pipeline North');

@@ -20,6 +20,10 @@ define([
   //              new header, so nothing half-saved is left (a held draft's lines are replaced, or left as they were)
   //   4 status   PATCH the header to SUBMITTED (submit only). SUBMITTED, not IN_PROCESS: a project request waits
   //              for its approver (FDD 7.6).
+  // A project for an EXTERNAL customer (Old's Customer Type) is the old cart's EXTERNAL path on the same steps: the
+  // rental terms are accepted first (send only), the header and lines go IN_PROCESS (no project approver: straight to
+  // the Equipment Manager), unpriced when customer quotes are on. With customer quotes off, sending creates the
+  // customer's Fusion sell contract, which Next does not do: Next says so and keeps it as a draft (Save draft works).
   // Then the shared requests are refreshed (requestData.invalidate) so every list shows it. A submitted request opens
   // in its own tab and this page starts a new one; a saved draft stays here, and the next save updates it in place.
   // A failure stays on the page in words. Customer requests are not raised here (see the page), so the old
@@ -60,13 +64,27 @@ define([
         $page.variables.missing = missing;
         return;
       }
+      const external = order.isExternal(form);
+      if (external && !isDraft) {
+        if (!rules.isQuotingAllowed($application.variables.globalSettings, $application.variables.flagsLoaded, 'CUSTOMER')) {
+          this.fail(context, 'Not sent: sending an external customer\'s request creates their rental contract in Oracle Fusion (customer quotes are off), '
+            + 'which EquipRite Next does not do yet. Save it as a draft; it is sent from Old EquipRite.');
+          return;
+        }
+        if (!$page.variables.termsAccepted) {
+          $page.variables.missing = ['Accept the rental terms'];
+          return;
+        }
+        // The tick is used up by this send (the old cart's terms gate).
+        $page.variables.termsAccepted = false;
+      }
 
       const detail = order.buildDetail(form);
       const hd = hdr.derive({
         request: form,
         ActiveRequestDetail: detail,
         CartItemsArray: cart,
-        requestOrigin: 'project',
+        requestOrigin: external ? 'customer' : 'project',
         fromAgreementId: $page.variables.agreementId,
       });
       const reqNum = 'REQ-' + Date.now();
@@ -92,8 +110,9 @@ define([
         if (made != null) siteId = made;
       }
 
-      const status = isDraft ? 'DRAFT' : 'SUBMITTED';
-      const quotePending = !!rules.isQuotingAllowed($application.variables.globalSettings, $application.variables.flagsLoaded, 'INTERNAL');
+      // An external customer's request has no project approver: IN_PROCESS (the old cart's submittedStatus).
+      const status = isDraft ? 'DRAFT' : (external ? 'IN_PROCESS' : 'SUBMITTED');
+      const quotePending = !!rules.isQuotingAllowed($application.variables.globalSettings, $application.variables.flagsLoaded, external ? 'CUSTOMER' : 'INTERNAL');
       const linesResult = await lineBody.saveLines(context, Actions, {
         resume,
         items: cart,
@@ -119,7 +138,7 @@ define([
         const patch = await Actions.callRest(context, {
           endpoint: 'eqp-v1/patchEquipmentRequest',
           uriParams: { id: requestId },
-          body: { status: 'SUBMITTED' },
+          body: { status },
         });
         if (!patch || !patch.ok) {
           console.warn('[submitChain] status PATCH failed', patch && patch.status, patch && patch.body);
@@ -138,7 +157,7 @@ define([
         return;
       }
 
-      bus.toast('Request ' + number + ' was sent for approval.', 'info');
+      bus.toast('Request ' + number + (external ? ' was sent to the Equipment Manager.' : ' was sent for approval.'), 'info');
       bus.open({ record: 'request', params: { id: Number(requestId), number } });
       if (tabKey) {
         // This draft is a request now: its tab has done its job.

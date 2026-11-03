@@ -115,7 +115,10 @@ define([
           return false;
         }
         const h = loaded.header;
-        if (String(h.requestType || '').toUpperCase() === 'EXTERNAL') {
+        // An external customer's request WITH a project is a project request for an external customer: it reopens here.
+        // Without a project it is a customer request, edited in New EquipRite.
+        const externalProject = String(h.requestType || '').toUpperCase() === 'EXTERNAL' && h.projectRefId != null;
+        if (String(h.requestType || '').toUpperCase() === 'EXTERNAL' && !externalProject) {
           $page.variables.loadError = 'Draft ' + (h.requestNumber || draftId) + ' is a customer request. Customer requests are edited in '
             + 'New EquipRite, which also creates their Fusion contract.';
           $page.variables.externalDraftId = Number(h.id) || draftId;
@@ -128,8 +131,17 @@ define([
         }
         const state = hdr.toFlowState(h);
         const form = Object.assign(order.emptyForm(name, actor || ''), state.request);
-        form.requestorName = state.request.requestorName || name;
-        form.requestorUsername = state.request.requestorUsername || actor || '';
+        if (externalProject) {
+          // The contact stands in the requestor's columns on an external request; the requestor is whoever edits it.
+          form.contactId = state.request.requestorId != null ? Number(state.request.requestorId) : null;
+          form.contactName = state.request.requestorName || '';
+          form.requestorId = null;
+          form.requestorName = name;
+          form.requestorUsername = actor || '';
+        } else {
+          form.requestorName = state.request.requestorName || name;
+          form.requestorUsername = state.request.requestorUsername || actor || '';
+        }
         form.locationType = form.locationType || 'DELIVERY_LOCATION';
         form.startDate = form.startDate || '';
         form.endDate = form.endDate || '';

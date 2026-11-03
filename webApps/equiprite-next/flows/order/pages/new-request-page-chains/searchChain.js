@@ -27,7 +27,18 @@ define([
         .map((r) => ({ id: r.CUSTOMERID, label: r.CUSTOMER, sub: r.CUSTOMERNUMBER })),
     },
   };
-  const seq = { project: 0, customer: 0 };
+  const seq = { project: 0, customer: 0, extCustomer: 0, contact: 0 };
+
+  // An external customer's project (Old's Customer Type EXTERNAL): the customer from EquipRite's customer list
+  // (EQR_CUSTOMER_REF) and their contact (EQR_CUSTOMER_PORTAL_USER), as Old's pickers and Next's customer order read
+  // them. Each list is read once (kept a few minutes) and narrowed here, by name, number, e-mail or user name.
+  const LOCAL = {
+    extCustomer: { endpoint: 'eqp-v1/getCustomerRefs',
+      row: (c) => (c && c.id != null ? { id: Number(c.id), label: c.customerName || ('Customer ' + c.id), sub: c.customerNumber || c.accountNumber || '' } : null) },
+    contact: { endpoint: 'eqp-v1/getCustomerPortalUsers',
+      row: (u) => (u && u.id != null ? { id: Number(u.id), label: u.contactName || u.username || ('User ' + u.id), sub: [u.email, u.username].filter((x) => !!x).join(' · ') } : null) },
+  };
+  const local = { extCustomer: null, contact: null };
 
   // buildSoapBody puts values straight into XML, so a typed & or < would break the envelope.
   const xmlEscape = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -35,6 +46,10 @@ define([
   class searchChain extends ActionChain {
     async run(context, { kind, text }) {
       const { $page } = context;
+      if (LOCAL[kind]) {
+        await this.local(context, kind, text);
+        return;
+      }
       const rep = REPORTS[kind];
       if (!rep) {
         return;
@@ -75,6 +90,35 @@ define([
       }
       $page.variables[kind + 'Results'] = rows;
       $page.variables[kind + 'Searching'] = false;
+    }
+
+    /** An EquipRite list (external customers, contacts): read once, narrowed here. */
+    async local(context, kind, text) {
+      const v = context.$page.variables;
+      const q = String(text || '').trim();
+      v[kind + 'Query'] = q;
+      const mine = ++seq[kind];
+      if (!local[kind] || Date.now() - local[kind].at > KEEP_MS) {
+        v[kind + 'Searching'] = true;
+        let rows = [];
+        try {
+          const res = await Actions.callRest(context, { endpoint: LOCAL[kind].endpoint });
+          rows = ((res && res.ok && res.body && Array.isArray(res.body.data)) ? res.body.data : []).map(LOCAL[kind].row).filter((r) => !!r)
+            .sort((a, b) => a.label.localeCompare(b.label));
+          if (res && res.ok) local[kind] = { rows, at: Date.now() };
+        } catch (e) {
+          console.error('[searchChain]', kind, e);
+        }
+        if (mine !== seq[kind]) return;
+        if (!local[kind]) {
+          v[kind + 'Results'] = [];
+          v[kind + 'Searching'] = false;
+          return;
+        }
+      }
+      const low = q.toLowerCase();
+      v[kind + 'Results'] = local[kind].rows.filter((r) => !low || (r.label + ' ' + r.sub).toLowerCase().indexOf(low) !== -1).slice(0, MAX_ROWS);
+      v[kind + 'Searching'] = false;
     }
   }
 

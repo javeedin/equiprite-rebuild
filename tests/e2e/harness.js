@@ -93,7 +93,8 @@ async function start(o) {
       const p = u.pathname;
       if (p.endsWith('/conf-global-settings')) {
         const rows = flags.map((k) => ({ settingKey: k, settingValue: 'true', settingCategory: 'FEATURE_FLAG', isActiveFlag: 'Y' }));
-        Object.entries(o.settings || {}).forEach(([k, v]) => rows.push({ settingKey: k, settingValue: String(v), isActiveFlag: 'Y' }));
+        // SYSTEM: the category the apps' loadFeatureFlagsChain reads settings from (without it they were dropped).
+        Object.entries(o.settings || {}).forEach(([k, v]) => rows.push({ settingKey: k, settingValue: String(v), settingCategory: 'SYSTEM', isActiveFlag: 'Y' }));
         return res.json({ data: rows });
       }
       if (p.endsWith('/rbac/session-roles')) return res.json({ data: [{ sessionRole: o.sessionRole || 'EQUIP_MGR', priority: 40 }] });

@@ -36,6 +36,8 @@ define(['resources/js/requestLineBody', 'resources/js/fmt'], function (lineBody,
       projectId: null, projectNumber: '', projectName: '', projectBuId: null, projectBuName: '',
       taskId: null, taskNumber: '', taskName: '',
       customerId: null, customerName: '',
+      // EXTERNAL (Old's Customer Type): the customer from EquipRite's customer list and their contact (a portal user).
+      customerRefId: null, customerRefName: '', contactId: null, contactName: '',
       contractId: null, contractNumber: '',
       locationType: 'DELIVERY_LOCATION', location: '', deliveryInvOrgId: null, deliveryLocationId: null,
       locationLatitude: null, locationLongitude: null,
@@ -207,7 +209,10 @@ define(['resources/js/requestLineBody', 'resources/js/fmt'], function (lineBody,
     if (step === 2 || both) {
       if (!f.projectId) out.push('Project');
       if (!f.taskId) out.push('Task');
-      if (f.customerId == null || f.customerId === '') out.push('Customer');
+      if (isExternal(f)) {
+        if (f.customerRefId == null || f.customerRefId === '') out.push('Customer');
+        if (f.contactId == null || f.contactId === '') out.push('Customer contact');
+      } else if (f.customerId == null || f.customerId === '') out.push('Customer');
       if (!String(f.location || '').trim()) out.push('Delivery location');
     }
     if (all) {
@@ -226,9 +231,12 @@ define(['resources/js/requestLineBody', 'resources/js/fmt'], function (lineBody,
    */
   function buildDetail(form) {
     var f = form || {};
+    // EXTERNAL: the customer contact stands in the requestor's columns (requestHeaderBody posts it as the portal user
+    // and contact name), and the customer is EquipRite's (customerRefId), not a Fusion one.
+    var ext = isExternal(f);
     return {
-      requestorId: f.requestorId != null ? f.requestorId : null,
-      requestorName: f.requestorName || '',
+      requestorId: ext ? num(f.contactId) : (f.requestorId != null ? f.requestorId : null),
+      requestorName: ext ? (f.contactName || '') : (f.requestorName || ''),
       location: f.location || '',
       locationType: f.locationType || null,
       deliveryInvOrgId: num(f.deliveryInvOrgId),
@@ -244,16 +252,19 @@ define(['resources/js/requestLineBody', 'resources/js/fmt'], function (lineBody,
       taskId: f.taskId,
       taskNumber: f.taskNumber || '',
       taskName: f.taskName || '',
-      customerRefId: null,
-      customerName: '',
-      internalCustomerId: f.customerId != null && f.customerId !== '' ? f.customerId : null,
-      internalCustomerName: f.customerName || '',
+      customerRefId: ext ? num(f.customerRefId) : null,
+      customerName: ext ? (f.customerRefName || '') : '',
+      internalCustomerId: !ext && f.customerId != null && f.customerId !== '' ? f.customerId : null,
+      internalCustomerName: ext ? '' : (f.customerName || ''),
       contractId: f.contractId != null && f.contractId !== '' ? f.contractId : null,
       contractNumber: f.contractNumber || '',
       notes: f.notes || '',
       isSoftReservation: false
     };
   }
+
+  /** The project is for an external customer (Old's Customer Type EXTERNAL), not an internal one. */
+  function isExternal(form) { return String((form && form.requestType) || '').toUpperCase() === 'EXTERNAL'; }
 
   /** "2 Nov – 27 Nov 2026 · 26 days", or a prompt while a date is missing. */
   function windowText(start, end) {
@@ -310,7 +321,7 @@ define(['resources/js/requestLineBody', 'resources/js/fmt'], function (lineBody,
 
   // The order the screen asks for things in (the customer comes first on the Project step), for saying what is missing.
   // The labels themselves are missingFor's, New EquipRite's rule.
-  var SCREEN_ORDER = ['Start date', 'End date', 'End date on or after the start date', 'At least one piece of equipment', 'Customer', 'Project', 'Task',
+  var SCREEN_ORDER = ['Start date', 'End date', 'End date on or after the start date', 'At least one piece of equipment', 'Customer', 'Customer contact', 'Project', 'Task',
     'Delivery location'];
 
   /** Missing labels in the order the screen asks for them (others after, as they came). */
@@ -327,9 +338,13 @@ define(['resources/js/requestLineBody', 'resources/js/fmt'], function (lineBody,
   }
 
   /** What Submit for approval will do, said before it is pressed. */
-  function submitWords(cart, resume) {
+  function submitWords(cart, resume, form) {
     var n = (Array.isArray(cart) ? cart : []).length;
     var what = resume && resume.requestNumber ? 'Draft ' + resume.requestNumber : 'A new request';
+    if (isExternal(form)) {
+      return what + ' with ' + plural(n, 'line') + ' goes straight to the Equipment Manager (an external customer\'s request has no project approver); '
+        + 'it then opens in a tab of its own.';
+    }
     return what + ' with ' + plural(n, 'line') + ' goes to the project\'s approver; it then opens in a tab of its own.';
   }
 
@@ -355,6 +370,7 @@ define(['resources/js/requestLineBody', 'resources/js/fmt'], function (lineBody,
   }
 
   return {
+    isExternal: isExternal,
     LENGTHS: LENGTHS,
     emptyForm: emptyForm,
     days: days,

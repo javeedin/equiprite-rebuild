@@ -9,6 +9,7 @@ define([
   //   project   writes id, number and name and clears the task, contract and contract site, then loads the
   //             project's tasks, contracts and business unit (CaptureProjectNameChain)
   //   customer  the Fusion CustomerId and name of the project's customer (CaptureFallbackCustomerChain)
+  //   extCustomer, contact  an external customer's project: EquipRite's customer and their contact (Old's EXTERNAL pair)
   // Next also asks the catalog again when the project changes, so the list and the cart show this project's rates
   // straight away rather than only on Review; and Change shows the list from the report again.
   class pickChain extends ActionChain {
@@ -31,6 +32,18 @@ define([
         $page.variables.customerQuery = '';
         // Change: the list again, to pick another.
         if (!row) await Actions.callChain(context, { chain: 'searchChain', params: { kind: 'customer', text: '' } });
+        return;
+      }
+      // An external customer's project: the customer (EquipRite's list) and their contact (a portal user).
+      if (kind === 'extCustomer' || kind === 'contact') {
+        const idKey = kind === 'extCustomer' ? 'customerRefId' : 'contactId';
+        const nameKey = kind === 'extCustomer' ? 'customerRefName' : 'contactName';
+        form[idKey] = row ? row.id : null;
+        form[nameKey] = row ? (row.label || '') : '';
+        $page.variables.form = form;
+        $page.variables[kind + 'Results'] = [];
+        $page.variables[kind + 'Query'] = '';
+        if (!row) await Actions.callChain(context, { chain: 'searchChain', params: { kind, text: '' } });
         return;
       }
       if (kind !== 'project') {

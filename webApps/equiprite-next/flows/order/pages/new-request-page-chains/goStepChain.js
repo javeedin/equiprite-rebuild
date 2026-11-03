@@ -34,7 +34,10 @@ define([
       // first); not awaited, so the step shows at once.
       if (to === 2) {
         const f = v.form || {};
-        if (f.customerId == null || f.customerId === '') {
+        if (String(f.requestType || '').toUpperCase() === 'EXTERNAL') {
+          if (f.customerRefId == null) Actions.callChain(context, { chain: 'searchChain', params: { kind: 'extCustomer', text: '' } });
+          if (f.contactId == null) Actions.callChain(context, { chain: 'searchChain', params: { kind: 'contact', text: '' } });
+        } else if (f.customerId == null || f.customerId === '') {
           Actions.callChain(context, { chain: 'searchChain', params: { kind: 'customer', text: '' } });
         }
         if (!f.projectId) {

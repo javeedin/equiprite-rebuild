@@ -14,6 +14,8 @@ define([
   //   site      the picked site's address is the delivery location (CaptureShipToSiteChain)
   //   locationType  switching between a contract site and a typed address clears the address
   //   requestFor    project, or customer (raised in New EquipRite)
+  //   requestType   the project is for an INTERNAL or an EXTERNAL customer
+  //   termsAccepted the rental terms ticked (an external customer's request; not posted)
   const NUMERIC = { hours: true };
 
   class setFieldChain extends ActionChain {
@@ -26,6 +28,28 @@ define([
       if (field === 'requestFor') {
         $page.variables.requestFor = value === 'customer' ? 'customer' : 'project';
         $page.variables.missing = [];
+        return;
+      }
+      // Who the project is for (Old's Customer Type): INTERNAL (a Fusion customer) or EXTERNAL (EquipRite's customer and
+      // their contact; sent straight to the Equipment Manager, with the rental terms). The other side's choice is kept,
+      // so switching back and forth loses nothing; only the chosen side is posted.
+      if (field === 'requestType') {
+        if (!$page.variables.canCustomer && value === 'EXTERNAL') return;
+        const f = Object.assign({}, $page.variables.form || {}, { requestType: value === 'EXTERNAL' ? 'EXTERNAL' : 'INTERNAL' });
+        $page.variables.form = f;
+        $page.variables.missing = [];
+        $page.variables.termsAccepted = false;
+        if (f.requestType === 'EXTERNAL') {
+          if (f.customerRefId == null) Actions.callChain(context, { chain: 'searchChain', params: { kind: 'extCustomer', text: '' } });
+          if (f.contactId == null) Actions.callChain(context, { chain: 'searchChain', params: { kind: 'contact', text: '' } });
+        } else if (f.customerId == null || f.customerId === '') {
+          Actions.callChain(context, { chain: 'searchChain', params: { kind: 'customer', text: '' } });
+        }
+        return;
+      }
+      if (field === 'termsAccepted') {
+        $page.variables.termsAccepted = value === true || value === 'true';
+        if ($page.variables.termsAccepted && ($page.variables.missing || []).indexOf('Accept the rental terms') !== -1) $page.variables.missing = [];
         return;
       }
       if (field === 'taskQuery') {

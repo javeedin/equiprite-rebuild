@@ -235,10 +235,29 @@
         <!-- ── Step 2: Project ─────────────────────────────────────────────────────────────────────────────── -->
         <oj-bind-if test="[[ $variables.step === 2 ]]">
           <section class="nx-card nx-card-pad nx-or-form" aria-labelledby="orCustT2" id="orFor">
-            <h2 class="nx-or-title" id="orCustT2">Customer</h2>
-            <p class="nx-note nx-or-lead">Who the project work is for. The list comes from Oracle Fusion; type a name or number to narrow it.</p>
+            <h2 class="nx-or-title" id="orCustT2">Who the project is for</h2>
+            <!-- Old's Customer Type: a project's work is for an INTERNAL customer (a Fusion customer of the group) or an
+                 EXTERNAL one (EquipRite's customer and their contact). Project, task and contract are asked the same way for
+                 both. The choice is a manager's, on a tenant with both modules (canCustomer); otherwise it is Internal. -->
+            <oj-bind-if test="[[ $variables.canCustomer ]]">
+              <div class="nx-or-kind" role="group" aria-label="Who the project is for">
+                <button type="button" id="orKindInternal" data-field="requestType" data-value="INTERNAL" on-click="[[ $listeners.onFieldButton ]]"
+                  :aria-pressed="[[ $variables.form.requestType !== 'EXTERNAL' ? 'true' : 'false' ]]"
+                  :class="[[ 'nx-or-kind-btn' + ($variables.form.requestType !== 'EXTERNAL' ? ' nx-or-kind-btn--on' : '') ]]">
+                  <span class="oj-ux-ico-building" aria-hidden="true"></span><span><strong>Internal</strong><span class="nx-note">for the group itself: an internal customer</span></span></button>
+                <button type="button" id="orKindExternal" data-field="requestType" data-value="EXTERNAL" on-click="[[ $listeners.onFieldButton ]]"
+                  :aria-pressed="[[ $variables.form.requestType === 'EXTERNAL' ? 'true' : 'false' ]]"
+                  :class="[[ 'nx-or-kind-btn' + ($variables.form.requestType === 'EXTERNAL' ? ' nx-or-kind-btn--on' : '') ]]">
+                  <span class="oj-ux-ico-contact-group" aria-hidden="true"></span><span><strong>External</strong><span class="nx-note">for an external customer, with their contact</span></span></button>
+              </div>
+              <p class="nx-note nx-or-lead" id="orKindNote"><oj-bind-text value="[[ $functions.kindNote($variables.form, $functions.customerQuotes($application.variables.globalSettings, $application.variables.flagsLoaded)) ]]"></oj-bind-text></p>
+            </oj-bind-if>
+            <oj-bind-if test="[[ !$variables.canCustomer ]]">
+              <p class="nx-note nx-or-lead">Who the project work is for. The list comes from Oracle Fusion; type a name or number to narrow it.</p>
+            </oj-bind-if>
+            <oj-bind-if test="[[ $variables.form.requestType !== 'EXTERNAL' ]]">
             <div class="nx-or-field" id="orCustomerField">
-              <span class="nx-or-label">Customer <span class="nx-note">who the project work is for</span></span>
+              <span class="nx-or-label"><oj-bind-text value="[[ $variables.canCustomer ? 'Internal customer' : 'Customer' ]]"></oj-bind-text> <span class="nx-note">who the project work is for (Oracle Fusion)</span></span>
               <oj-bind-if test="[[ $functions.picked($variables.form.customerId) ]]">
                 <div class="nx-or-picked">
                   <span class="nx-or-picked-text"><strong><oj-bind-text value="[[ $variables.form.customerName ]]"></oj-bind-text></strong></span>
@@ -263,7 +282,59 @@
                 <span class="nx-note" id="orCustomerNote"><oj-bind-text value="[[ $functions.listNote('customer', $variables.customerResults, $variables.customerQuery, $variables.customerSearching) ]]"></oj-bind-text></span>
               </oj-bind-if>
             </div>
-
+            </oj-bind-if>
+            <oj-bind-if test="[[ $variables.form.requestType === 'EXTERNAL' ]]">
+            <div class="nx-or-field" id="orExtCustomer">
+              <span class="nx-or-label">Customer <span class="nx-note">the external customer the project work is for (EquipRite's customer list)</span></span>
+              <oj-bind-if test="[[ $functions.picked($variables.form.customerRefId) ]]">
+                <div class="nx-or-picked">
+                  <span class="nx-or-picked-text"><strong><oj-bind-text value="[[ $variables.form.customerRefName ]]"></oj-bind-text></strong></span>
+                  <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" data-kind="extCustomer" data-index="-1" on-click="[[ $listeners.onPick ]]">Change</button>
+                </div>
+              </oj-bind-if>
+              <oj-bind-if test="[[ !$functions.picked($variables.form.customerRefId) ]]">
+                <input type="search" class="nx-or-input" data-kind="extCustomer" placeholder="Type a customer name or number" on-input="[[ $listeners.onSearch ]]" aria-label="Find an external customer">
+                <oj-bind-if test="[[ $variables.extCustomerResults.length > 0 ]]">
+                  <div class="nx-or-options" role="listbox" aria-label="External customers">
+                    <oj-bind-for-each data="[[ $variables.extCustomerResults ]]">
+                      <template data-oj-as="r">
+                        <button type="button" role="option" class="nx-or-option" data-kind="extCustomer" :data-index="[[ r.index ]]" on-click="[[ $listeners.onPick ]]">
+                          <strong><oj-bind-text value="[[ r.data.label ]]"></oj-bind-text></strong>
+                          <span class="nx-note"><oj-bind-text value="[[ r.data.sub ]]"></oj-bind-text></span>
+                        </button>
+                      </template>
+                    </oj-bind-for-each>
+                  </div>
+                </oj-bind-if>
+                <span class="nx-note" id="orExtCustomerNote"><oj-bind-text value="[[ $functions.listNote('extCustomer', $variables.extCustomerResults, $variables.extCustomerQuery, $variables.extCustomerSearching) ]]"></oj-bind-text></span>
+              </oj-bind-if>
+            </div>
+            <div class="nx-or-field" id="orContact">
+              <span class="nx-or-label">Customer contact <span class="nx-note">who to deal with at the customer (a customer portal user)</span></span>
+              <oj-bind-if test="[[ $functions.picked($variables.form.contactId) ]]">
+                <div class="nx-or-picked">
+                  <span class="nx-or-picked-text"><strong><oj-bind-text value="[[ $variables.form.contactName ]]"></oj-bind-text></strong></span>
+                  <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" data-kind="contact" data-index="-1" on-click="[[ $listeners.onPick ]]">Change</button>
+                </div>
+              </oj-bind-if>
+              <oj-bind-if test="[[ !$functions.picked($variables.form.contactId) ]]">
+                <input type="search" class="nx-or-input" data-kind="contact" placeholder="Type a contact name or e-mail" on-input="[[ $listeners.onSearch ]]" aria-label="Find the customer contact">
+                <oj-bind-if test="[[ $variables.contactResults.length > 0 ]]">
+                  <div class="nx-or-options" role="listbox" aria-label="Customer contacts">
+                    <oj-bind-for-each data="[[ $variables.contactResults ]]">
+                      <template data-oj-as="r">
+                        <button type="button" role="option" class="nx-or-option" data-kind="contact" :data-index="[[ r.index ]]" on-click="[[ $listeners.onPick ]]">
+                          <strong><oj-bind-text value="[[ r.data.label ]]"></oj-bind-text></strong>
+                          <span class="nx-note"><oj-bind-text value="[[ r.data.sub ]]"></oj-bind-text></span>
+                        </button>
+                      </template>
+                    </oj-bind-for-each>
+                  </div>
+                </oj-bind-if>
+                <span class="nx-note" id="orContactNote"><oj-bind-text value="[[ $functions.listNote('contact', $variables.contactResults, $variables.contactQuery, $variables.contactSearching) ]]"></oj-bind-text></span>
+              </oj-bind-if>
+            </div>
+            </oj-bind-if>
           </section>
 
           <section class="nx-card nx-card-pad nx-or-form" aria-labelledby="orPrjT">
@@ -446,7 +517,10 @@
             </div>
             <dl class="nx-or-facts" id="orFacts">
               <div><dt>Dates</dt><dd><oj-bind-text value="[[ $functions.windowText($variables.form.startDate, $variables.form.endDate) ]]"></oj-bind-text></dd></div>
-              <div><dt>Customer</dt><dd><oj-bind-text value="[[ $variables.form.customerName || '—' ]]"></oj-bind-text></dd></div>
+              <div><dt>Customer</dt><dd><oj-bind-text value="[[ $functions.customerText($variables.form) ]]"></oj-bind-text></dd></div>
+              <oj-bind-if test="[[ $variables.form.requestType === 'EXTERNAL' ]]">
+                <div><dt>Customer contact</dt><dd><oj-bind-text value="[[ $variables.form.contactName || '—' ]]"></oj-bind-text></dd></div>
+              </oj-bind-if>
               <div><dt>Project</dt><dd><oj-bind-text value="[[ $functions.projectText($variables.form) ]]"></oj-bind-text></dd></div>
               <div><dt>Task</dt><dd><oj-bind-text value="[[ $functions.taskText($variables.form) ]]"></oj-bind-text></dd></div>
               <div><dt>Contract</dt><dd><oj-bind-text value="[[ $variables.form.contractNumber || 'None' ]]"></oj-bind-text></dd></div>
@@ -457,6 +531,35 @@
               <p class="nx-or-notes"><strong>Notes:</strong> <oj-bind-text value="[[ $variables.form.notes ]]"></oj-bind-text></p>
             </oj-bind-if>
           </section>
+
+          <!-- An external customer's request: the rental terms, accepted before it is sent (the old cart's terms gate). -->
+          <oj-bind-if test="[[ $variables.form.requestType === 'EXTERNAL' ]]">
+            <section class="nx-card nx-card-pad" aria-labelledby="orTermsT" id="orTerms">
+              <h2 class="nx-or-title" id="orTermsT">Rental terms and conditions</h2>
+              <p class="nx-note"><oj-bind-text value="[[ $functions.customerQuotes($application.variables.globalSettings, $application.variables.flagsLoaded)
+                ? 'The customer rents under these terms: sending the request means you accept them on their behalf.'
+                : 'Customer quotes are off, so sending creates the customer\'s rental contract in Oracle Fusion: that is not done in EquipRite Next yet. Save it as a draft and send it from Old EquipRite.' ]]"></oj-bind-text></p>
+              <div class="nx-or-terms" tabindex="0" aria-label="Rental terms and conditions">
+                <oj-bind-for-each data="[[ $functions.termsIntro() ]]">
+                  <template data-oj-as="para"><p><oj-bind-text value="[[ para.data ]]"></oj-bind-text></p></template>
+                </oj-bind-for-each>
+                <oj-bind-for-each data="[[ $functions.termsSections() ]]">
+                  <template data-oj-as="sec">
+                    <h3><oj-bind-text value="[[ sec.data.title ]]"></oj-bind-text></h3>
+                    <oj-bind-for-each data="[[ sec.data.paras ]]">
+                      <template data-oj-as="pa">
+                        <p :class="[[ pa.data.bullet ? 'nx-or-terms-bullet' : '' ]]"><oj-bind-if test="[[ !!pa.data.lead ]]"><strong><oj-bind-text value="[[ pa.data.lead + ' ' ]]"></oj-bind-text></strong></oj-bind-if><oj-bind-text value="[[ pa.data.text ]]"></oj-bind-text></p>
+                      </template>
+                    </oj-bind-for-each>
+                  </template>
+                </oj-bind-for-each>
+              </div>
+              <oj-bind-if test="[[ $functions.customerQuotes($application.variables.globalSettings, $application.variables.flagsLoaded) ]]">
+                <label class="nx-or-agree"><input type="checkbox" id="orTermsChk" on-change="[[ $listeners.onTerms ]]" :checked="[[ $variables.termsAccepted ]]">
+                  <span><oj-bind-text value="[[ $functions.agreeLabel() ]]"></oj-bind-text></span></label>
+              </oj-bind-if>
+            </section>
+          </oj-bind-if>
 
           <section class="nx-card nx-or-sec" aria-labelledby="orLinesT" id="orLines">
             <div class="nx-card-head">
@@ -570,8 +673,8 @@
             <oj-bind-if test="[[ $variables.step === 3 ]]">
               <button type="button" class="nx-btn nx-or-go" id="orSubmit" on-click="[[ $listeners.onSubmit ]]"
                 :disabled="[[ $variables.isSubmitting || $variables.catalogLoading ]]">
-                <oj-bind-text value="[[ $variables.isSubmitting && $variables.submitMode === 'submit' ? 'Submitting…' : 'Submit for approval' ]]"></oj-bind-text></button>
-              <p class="nx-note"><oj-bind-text value="[[ $functions.submitWords($variables.cart, $variables.resume) ]]"></oj-bind-text></p>
+                <oj-bind-text value="[[ $variables.isSubmitting && $variables.submitMode === 'submit' ? 'Submitting…' : ($variables.form.requestType === 'EXTERNAL' ? 'Send to the Equipment Manager' : 'Submit for approval') ]]"></oj-bind-text></button>
+              <p class="nx-note"><oj-bind-text value="[[ $functions.submitWords($variables.cart, $variables.resume, $variables.form) ]]"></oj-bind-text></p>
             </oj-bind-if>
             <button type="button" class="nx-btn" id="orSaveDraft" on-click="[[ $listeners.onSaveDraft ]]" :disabled="[[ $variables.isSubmitting ]]">
               <oj-bind-text value="[[ $variables.isSubmitting && $variables.submitMode === 'draft' ? 'Saving…' : 'Save draft' ]]"></oj-bind-text></button>

@@ -101,7 +101,11 @@ const FORM = Object.assign({}, blank, {
   locationType: 'PROJECT_SITE', location: '1200 Pipeline Rd, Odessa TX', hours: 8, notes: 'Gate 3',
 });
 const same = (name, a, b) => T.eq(name, JSON.stringify(a), JSON.stringify(b));
-same('emptyForm', order.emptyForm('Pat Lee', 'pat.lee'), newPage.emptyForm('Pat Lee', 'pat.lee'));
+// Next adds Old's EXTERNAL pair (customer and contact, from EquipRite) that New's form lacks: compared without them.
+const EXT_KEYS = ['customerRefId', 'customerRefName', 'contactId', 'contactName'];
+const withoutExt = (f) => Object.keys(f).filter((k) => EXT_KEYS.indexOf(k) === -1).reduce((o, k) => { o[k] = f[k]; return o; }, {});
+same('emptyForm', withoutExt(order.emptyForm('Pat Lee', 'pat.lee')), newPage.emptyForm('Pat Lee', 'pat.lee'));
+T.eq('… plus the external customer and contact, empty', JSON.stringify(EXT_KEYS.map((k) => order.emptyForm('Pat Lee', 'pat.lee')[k])), '[null,"",null,""]');
 same('buildDetail', order.buildDetail(FORM), newPage.buildDetail(FORM));
 same('lineCost of each line', cart.map((it) => order.lineCost(it, START, END, false)), cart.map((it) => newPage.lineCost(it, START, END, false)));
 same('cartSummary', order.cartSummary(cart, START, END, false), newPage.cartSummary(cart, START, END, false));
@@ -159,6 +163,19 @@ T.eq('the catalog note', [pg.catalogNote(4, 4, 4, FORM), pg.catalogNote(1, 1, 4,
   '4 items · free and priced for 2 Nov – 27 Nov 2026 · 26 days | 1 of 4 items · pick the dates to see what is free');
 
 T.section('the header and lines posted');
+T.section('a project for an external customer (Old\'s Customer Type EXTERNAL)');
+const EXT = Object.assign({}, FORM, { requestType: 'EXTERNAL', customerRefId: 41, customerRefName: 'Lone Star Paving LLC', contactId: 7, contactName: 'Maria Lopez' });
+T.eq('it needs the external customer and their contact, not a Fusion one', order.missingFor(2, Object.assign({}, EXT, { customerRefId: null, contactId: null, customerId: null }), []).join('|'),
+  'Customer|Customer contact');
+T.eq('… and not the internal customer', order.missingFor(2, Object.assign({}, EXT, { customerId: null }), []).join('|'), '');
+T.eq('in the order the screen asks', order.stillNeeded(Object.assign({}, EXT, { customerRefId: null, contactId: null, taskId: null }), [{ id: 1 }]),
+  'Still needed: Customer, Customer contact and Task.');
+const xd = order.buildDetail(EXT);
+T.eq('the detail: the contact in the requestor columns, EquipRite\'s customer, no Fusion customer', JSON.stringify([xd.requestorId, xd.requestorName, xd.customerRefId, xd.customerName,
+  xd.internalCustomerId, xd.internalCustomerName]), '[7,"Maria Lopez",41,"Lone Star Paving LLC",null,""]');
+T.check('… Internal unchanged: the Fusion customer and the signed-in requestor', order.buildDetail(FORM).customerRefId === null && order.buildDetail(FORM).internalCustomerId === FORM.customerId);
+T.check('what Submit does, in words', /straight to the Equipment Manager/.test(order.submitWords([{ id: 1 }], null, EXT)) && /project's approver/.test(order.submitWords([{ id: 1 }], null, FORM)));
+
 const detail = order.buildDetail(FORM);
 const d = hdr.derive({ request: FORM, ActiveRequestDetail: detail, CartItemsArray: cart, requestOrigin: 'project', fromAgreementId: null });
 const body = hdr.build(d, 'REQ-1');
@@ -547,10 +564,18 @@ const ends = (calls) => calls.filter((x) => x.endpoint).map((x) => x.endpoint.re
       'loadProjectListsChain{"withBusinessUnit":false},reviewChain{"to":"review"}');
     T.check('read only', calls.every((x) => !x.endpoint || /^eqp-v1\/get/.test(x.endpoint)));
 
-    const ext = backend(Object.assign({}, DRAFT, { id: 889, requestNumber: 'EQR-000889', requestType: 'EXTERNAL' }));
+    const ext = backend(Object.assign({}, DRAFT, { id: 889, requestNumber: 'EQR-000889', requestType: 'EXTERNAL', projectRefId: null }));
     const ce = context({}, [], { id: '889' });
     await new (chain('initChain', ext.Actions))().run(ce);
-    T.check('a customer draft: says where it is edited', ce.$page.variables.externalDraftId === 889 && /customer request.*New EquipRite/.test(ce.$page.variables.loadError));
+    T.check('a customer draft (no project): says where it is edited', ce.$page.variables.externalDraftId === 889 && /customer request.*New EquipRite/.test(ce.$page.variables.loadError));
+    const extPrj = backend(Object.assign({}, DRAFT, { id: 890, requestNumber: 'EQR-000890', requestType: 'EXTERNAL', projectInternalCustomerId: null, projectInternalCustomer: null,
+      eqrCustomerRefId: 41, customerName: 'Lone Star Paving LLC', eqrCustomerPortalUserId: 7, contactName: 'Maria Lopez' }));
+    const cx = context({}, [], { id: '890' });
+    await new (chain('initChain', extPrj.Actions))().run(cx);
+    const xf = cx.$page.variables.form;
+    T.eq('a project draft for an external customer reopens here, as External, with its customer and contact',
+      [cx.$page.variables.loadError, xf.requestType, xf.customerRefId, xf.customerRefName, xf.contactId, xf.contactName, xf.projectId].join(' | '),
+      ' | EXTERNAL | 41 | Lone Star Paving LLC | 7 | Maria Lopez | 300000123');
 
     const sub = backend(Object.assign({}, DRAFT, { status: 'SUBMITTED' }));
     const cs = context({}, [], { id: '888' });

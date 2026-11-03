@@ -1,4 +1,4 @@
-define(['require', 'resources/js/orderForm', 'resources/js/fmt', 'resources/js/mapPicker'], (require, order, fmt, mapPicker) => {
+define(['require', 'resources/js/orderForm', 'resources/js/fmt', 'resources/js/mapPicker', 'resources/js/rentalTerms', 'resources/js/rules'], (require, order, fmt, mapPicker, terms, rules) => {
   'use strict';
 
   // New request: binding helpers. The rules are resources/js/orderForm.js; the chains are new-request-page-chains.
@@ -90,7 +90,29 @@ define(['require', 'resources/js/orderForm', 'resources/js/fmt', 'resources/js/m
     line(cart, id, form, hideRates) { return order.cartLine(cart, id, form, hideRates); }
     taskMatches(tasks, text) { return order.taskMatches(tasks, text); }
     stillNeeded(form, cart) { return order.stillNeeded(form, cart); }
-    submitWords(cart, resume) { return order.submitWords(cart, resume); }
+    submitWords(cart, resume, form) { return order.submitWords(cart, resume, form); }
+
+    // ── Who the project is for: Internal or External (Old's Customer Type) ──────────────────────────────────────
+    /** What the choice means, under it. */
+    kindNote(form, customerQuotes) {
+      if (!order.isExternal(form)) return 'Internal: the work is for the group itself. The internal customer comes from Oracle Fusion; the request goes to the project\'s approver.';
+      return 'External: the work is for an external customer. Pick them and their contact from EquipRite; the request goes straight to the Equipment Manager, '
+        + 'and the customer rents under the rental terms' + (customerQuotes ? ', priced on a quote.' : '.');
+    }
+
+    /** The customer on Review: the internal one, or the external one, said as such. */
+    customerText(form) {
+      const f = form || {};
+      if (order.isExternal(f)) return f.customerRefName ? f.customerRefName + ' (external)' : '—';
+      return f.customerName || '—';
+    }
+
+    /** Customer quotes on (the contract comes with the accepted quote), read as the settings stand now. */
+    customerQuotes(settings, loaded) { return !!rules.isQuotingAllowed(settings, loaded, 'CUSTOMER'); }
+
+    termsIntro() { return terms.INTRO; }
+    termsSections() { return terms.SECTIONS; }
+    agreeLabel() { return terms.AGREE_LABEL; }
     draftWords(resume) { return order.draftWords(resume); }
     agreementText(a) { return order.agreementText(a); }
     customerUrl(newBase, draftId) { return order.customerRequestUrl(newBase, draftId); }
@@ -112,9 +134,11 @@ define(['require', 'resources/js/orderForm', 'resources/js/fmt', 'resources/js/m
     listNote(kind, results, query, searching) {
       if (searching) return 'Searching…';
       const n = Array.isArray(results) ? results.length : 0;
-      const what = (count) => count + ' ' + kind + (count === 1 ? '' : 's');
-      if (query) return n ? what(n) + (n === 1 ? ' matches' : ' match') + ' “' + query + '”.' : 'No ' + kind + ' matches “' + query + '”.';
-      return n ? what(n) + ' from Oracle Fusion · type a name or number to narrow' : '';
+      const noun = { extCustomer: 'customer', contact: 'contact' }[kind] || kind;
+      const source = kind === 'extCustomer' || kind === 'contact' ? 'in EquipRite' : 'from Oracle Fusion';
+      const what = (count) => count + ' ' + noun + (count === 1 ? '' : 's');
+      if (query) return n ? what(n) + (n === 1 ? ' matches' : ' match') + ' “' + query + '”.' : 'No ' + noun + ' matches “' + query + '”.';
+      return n ? what(n) + ' ' + source + ' · type a name' + (source === 'in EquipRite' ? '' : ' or number') + ' to narrow' : '';
     }
 
     /** "3 items · 4 pieces" ("0 items" when empty). */
