@@ -68,7 +68,7 @@ define(['resources/js/exportKit', 'resources/js/fmt', 'resources/js/shellBus'], 
       const parts = [];
       if (at('pick')) parts.push(this.pieces(at('pick')) + (at('pick') === 1 ? ' is' : ' are') + ' confirmed and waiting to be released for picking');
       if (at('picking')) parts.push(this.pieces(at('picking')) + (at('picking') === 1 ? ' is' : ' are') + ' being picked, to ship');
-      return parts.join('; ') + '. Picking & shipping opens on this request, highlighted, with these pieces beside the list.';
+      return parts.join('; ') + '. Picking & shipping opens with this request in front: release, pick and ship there, then Back to Requests.';
     }
 
     /** Pieces not on the road now: still before approval, or past it (on site, on the way back). */

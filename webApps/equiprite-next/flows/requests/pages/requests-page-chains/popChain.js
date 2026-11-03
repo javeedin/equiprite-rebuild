@@ -67,7 +67,7 @@ define([
         // Picking & shipping is told what else waits, to say so when the request is not in the yard's queue yet.
         const road = pop.road || {};
         bus.focus(action === 'assign' ? 'approvals' : 'picking', { id: Number(pop.id) || undefined, number: pop.number,
-          confirm: road.confirm || 0, pick: road.pick || 0 });
+          confirm: road.confirm || 0, pick: road.pick || 0, from: { label: 'Requests', open: { navId: 'requests' } } });
         v.pop = { kind: '' };
         return;
       }

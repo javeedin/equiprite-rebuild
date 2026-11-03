@@ -14,7 +14,11 @@ define([
       const head = v.head || {};
       const what = { id: head.id ? Number(head.id) : undefined, number: head.requestNumber || '' };
       if (act === 'approve' || act === 'assign') { bus.focus('approvals', what); return; }
-      if (act === 'pick') { bus.focus('picking', Object.assign({ confirm: (v.acts && v.acts.confirm) || 0 }, what)); return; }
+      if (act === 'pick') {
+        bus.focus('picking', Object.assign({ confirm: (v.acts && v.acts.confirm) || 0,
+          from: { label: what.number || 'the request', open: { record: 'request', params: { id: what.id, number: what.number } } } }, what));
+        return;
+      }
       if (act === 'help') { bus.open({ navId: 'help' }); return; }
       if (act === 'tab') { v.histTab = value === 'activity' ? 'activity' : 'steps'; return; }
       if (act === 'export') {

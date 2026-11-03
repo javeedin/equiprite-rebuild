@@ -15,6 +15,18 @@ define([
       // Another screen may hand over a request to open (shellBus.focus): focusChain takes it.
       const helper = context && typeof context.getEventHelper === 'function' ? context.getEventHelper() : null;
       bus.onFocus('picking', () => { if (helper) helper.fireCustomEvent('focusRequest', {}); });
+      // Escape closes the request's dialog (the pick slip first, when it is open), as its Close button does. One listener
+      // for the module; it acts on the dialog on screen (a hidden tab's is not).
+      if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !PageModule.keysBound) {
+        PageModule.keysBound = true;
+        document.addEventListener('keydown', (e) => {
+          if (e.key !== 'Escape') return;
+          const open = (sel) => [...document.querySelectorAll(sel)].filter((n) => n.offsetParent !== null)[0];
+          const slipClose = open('#ydSlip [data-action="close"]');
+          const close = slipClose || open('#ydWorkClose');
+          if (close && !close.disabled) { e.stopPropagation(); close.click(); }
+        });
+      }
     }
 
     formats() { return exportKit.FORMATS; }
@@ -95,6 +107,18 @@ define([
         shipped: list.filter((l) => l.lineStatus === 'SHIP_TO_SITE').length,
         total: list.length,
       };
+    }
+
+    /** The dialog's kicker: where the request is among the yard's three steps. */
+    workKicker(lines, loading) {
+      if (loading) return 'Picking & shipping';
+      const at = { release: 'step 1 of 3', ship: 'step 2 of 3', shipped: 'step 3 of 3' }[this.current(lines)];
+      return 'Picking & shipping' + (at ? ' · ' + at : '');
+    }
+
+    /** The pill beside the request number: its step in words. */
+    stepPill(lines) {
+      return { release: 'Release for picking', ship: 'Pick, then ship', shipped: 'On the way to site' }[this.current(lines)] || 'Nothing to pick';
     }
 
     /** The step the request is on: release while anything waits for it, then picking, then shipped. */

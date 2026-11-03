@@ -6,7 +6,7 @@ define([
 ], (ActionChain, Actions, rdl, yw) => {
   'use strict';
 
-  // Opens a request beside the list for the yard's work. New EquipRite's openPickingDrawerChain, with the same calls in
+  // Opens a request in its dialog, for the yard's work. New EquipRite's openPickingDrawerChain, with the same calls in
   // the same order and the same rules; only where the result goes is Next's (work, ticks, selectedTOId):
   //   1. transfer-orders?equipmentRequestId                 its transfer orders, newest first
   //   2. transfer-order-lines?transferOrderId (each)        which line is on which order
@@ -68,6 +68,11 @@ define([
     return seen.join(', ');
   }
 
+  // Each open is numbered: only the newest may write. An older read that answers late (a Refresh, the re-read after a
+  // step, or another request opened meanwhile) is dropped, so the dialog never shows one request's work under another
+  // request's number.
+  let latest = 0;
+
   class openWorkChain extends ActionChain {
     async run(context, { id, keepBanner }) {
       const v = context.$page.variables;
@@ -75,7 +80,10 @@ define([
       if (!key) return;
       const rowData = (v.records || []).filter((r) => String(r.id) === key)[0] || (String(v.openId) === key ? v.work.req : null);
       if (!rowData) return;
-      const first = String(v.openId) !== key;
+      const mine = ++latest;
+      const stale = () => mine !== latest || String(v.openId) !== key;
+      // A new request, or one whose work on screen is another's: start clean.
+      const first = String(v.openId) !== key || String((v.work && v.work.req && (v.work.req.id || v.work.req.eqrEquipmentRequestId)) || '') !== key;
       v.openId = key;
       v.exportOpen = '';
       v.workError = '';
@@ -135,7 +143,7 @@ define([
         const linesResp = await Actions.callRest(context, {
           endpoint: 'eqp-v1/getEquipriteV1EquipmentRequestsRequestIdLines2', uriParams: { requestId: Number(requestId), size: 2000 },
         }).catch((e) => { console.warn('[openWorkChain] lines fetch failed:', e); return null; });
-        if (String(v.openId) !== key) return;
+        if (stale()) return;
         if (!linesResp || !linesResp.ok) {
           v.workError = 'The lines of ' + (rowData.requestNumber || 'this request') + ' could not be loaded (HTTP ' + (linesResp && linesResp.status) + '). Try Refresh.';
           return;
@@ -229,7 +237,7 @@ define([
           return Object.assign({}, t, { released: isReleased, label: statusLabel(t.orderNumber, t.label, isReleased) });
         });
         // Another request was opened meanwhile: this answer is not for the workspace any more.
-        if (String(v.openId) !== key) return;
+        if (stale()) return;
         const firstUnreleased = tos.filter((t) => !t.released)[0];
         const selectedTOId = firstUnreleased ? firstUnreleased.value : (tos.length ? tos[0].value : '');
         const sel = tos.filter((t) => t.value === selectedTOId)[0];
@@ -246,9 +254,9 @@ define([
         v.ticks = yw.ticksForOrder(lines, sel ? sel.orderNumber : '');
       } catch (e) {
         console.error('[openWorkChain] failed', e);
-        if (String(v.openId) === key) v.workError = 'The request could not be opened: ' + ((e && e.message) || e);
+        if (!stale()) v.workError = 'The request could not be opened: ' + ((e && e.message) || e);
       } finally {
-        if (String(v.openId) === key) v.workLoading = false;
+        if (!stale()) v.workLoading = false;
       }
     }
   }

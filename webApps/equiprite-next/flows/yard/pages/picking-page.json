@@ -35,6 +35,7 @@
     "selectedTOId": { "type": "string", "defaultValue": "", "description": "The single ticked transfer order, or ''." },
     "banner": { "type": "any", "defaultValue": { "type": "", "text": "" } },
     "handed": { "type": "any", "defaultValue": { "tone": "" }, "description": "focusChain: the request another screen opened here, and what it says about it ('ok' opened, 'wait' not in the yard's queue yet)." },
+    "from": { "type": "any", "defaultValue": { "label": "" }, "description": "focusChain: the screen that opened the request here ({ label, open: shellBus.open's argument }), for the dialog's Back to." },
     "flashId": { "type": "string", "defaultValue": "", "description": "The row that flashes for a moment after another screen opened it here." },
     "busy": { "type": "string", "defaultValue": "", "description": "'' | 'release' | 'ship' | 'slip': a step in flight (its buttons are disabled)." },
     "slip": { "type": "any", "defaultValue": { "url": "", "fileName": "", "docNumber": "", "rows": 0 } }
@@ -70,6 +71,7 @@
       "chains": [{ "chain": "openRequestChain", "parameters": { "id": "{{ $event.currentTarget.dataset.id }}", "number": "{{ $event.currentTarget.dataset.number }}" } }]
     },
     "onCloseWork": { "chains": [{ "chain": "closeWorkChain" }] },
+    "onBack": { "chains": [{ "chain": "closeWorkChain", "parameters": { "back": true } }] },
     "onRefreshWork": { "chains": [{ "chain": "openWorkChain", "parameters": { "id": "{{ $variables.openId }}", "keepBanner": false } }] },
     "onTick": {
       "chains": [{ "chain": "tickChain", "parameters": { "lineId": "{{ $event.target.dataset.lineId }}", "checked": "{{ $event.target.checked }}" } }]

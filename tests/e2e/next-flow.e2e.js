@@ -186,28 +186,42 @@ const sideways = (page) => page.evaluate(() => document.documentElement.scrollWi
     T.check('fits a phone too: nothing sideways', !(await sideways(page)));
     await env.shot('next-flow-road.png');
 
-    T.section('from the popup, Picking & shipping opens on it, plain to see');
+    T.section('from the popup, Picking & shipping opens with the request in front, in a dialog');
     await page.click('#roadPickBtn');
-    await page.waitForSelector('#ydWork', { timeout: 20000 });
-    await page.waitForSelector('#ydHanded', { timeout: 10000 });
+    await page.waitForSelector('#ydWork[role="dialog"] .nx-yd-line[data-line], #ydWork[role="dialog"] .nx-yd-steps', { timeout: 20000 });
     await settle(page);
     T.eq('Picking & shipping', await page.$eval('.nx-tab--on', (t) => t.dataset.tabId), 'picking');
-    T.check('open beside the list', (await env.text('#ydWork')).includes('REQ-2003'));
-    T.check('its row marked open, and flashing', await page.$eval('.nx-yd-row[data-id="2003"]', (r) => r.classList.contains('nx-yd-row--open') && r.classList.contains('nx-yd-row--flash')));
-    const handed = await env.text('#ydHanded');
-    T.check('a note says where it came from, and what is not here yet', handed.includes('REQ-2003, from Requests') && handed.includes('Highlighted in the list and open beside it')
-      && handed.includes('Not here yet: 1 more piece on it') && !!(await page.$('#ydHandedConfirm')), handed);
-    T.check('the pieces not in the queue say why, with where to confirm', (await env.text('#ydOtherConfirm')).includes('Confirm Request, in Old EquipRite'));
-    await env.shot('next-flow-picking-handed.png');
-    await settle(page, 2600);
-    T.check('the flash ends; it stays open', await page.$eval('.nx-yd-row[data-id="2003"]', (r) => r.classList.contains('nx-yd-row--open') && !r.classList.contains('nx-yd-row--flash')));
+    T.eq('a dialog, over the list, on the request', [await page.$eval('#ydWork', (d) => d.getAttribute('aria-modal')), await env.text('#ydOpenRequest')].join(' '), 'true REQ-2003');
+    T.eq('its step, in the band', [(await env.text('#ydWorkKicker')).toLowerCase(), await env.text('#ydWorkTitle .nx-yd-steppill')].join(' | '),
+      'picking & shipping · step 1 of 3 | Release for picking');
+    T.check('its actions are in it: the yard\'s steps and its piece in picking', !!(await page.$('#ydWork .nx-yd-steps [data-step="release"]'))
+      && (await page.$$eval('#ydWork .nx-yd-line[data-line]', (l) => l.map((x) => x.dataset.line).join())) === '6');
+    T.check('the piece not in the queue says why, with where to confirm', (await env.text('#ydOtherConfirm')).includes('Confirm Request, in Old EquipRite'));
+    T.eq('and the way back', await env.text('#ydBack'), 'Back to Requests');
+    T.check('no note above the list: the dialog says it', !(await page.$('#ydHanded')));
+    T.check('fits a phone too: nothing sideways', !(await sideways(page)));
+    await env.shot('next-flow-picking-dialog.png');
+
+    T.section('closing it shows where it sits in the list');
+    await page.keyboard.press('Escape');
+    await settle(page, 300);
+    T.check('Escape closes it', !(await page.$('#ydWork')));
+    T.check('its row flashes, in view', await page.$eval('#ydPicking .nx-yd-row[data-id="2003"]', (r) => {
+      const b = r.getBoundingClientRect();
+      return r.classList.contains('nx-yd-row--flash') && b.top >= 0 && b.bottom <= window.innerHeight;
+    }));
+    await page.click('#ydPicking .nx-yd-row[data-id="2003"] .nx-yd-c-pieces');
+    await page.waitForSelector('#ydWork', { timeout: 20000 });
+    await settle(page);
+    T.check('a row opens it again; opened from the list, there is no Back to', (await env.text('#ydOpenRequest')) === 'REQ-2003' && !(await page.$('#ydBack')));
+    await page.click('#ydWorkDone');
+    await settle(page, 300);
+    T.check('Close closes it', !(await page.$('#ydWork')));
 
     T.section('a search that hid it is cleared when it is handed over again');
-    await page.click('#ydWorkClose');
-    await settle(page);
     await page.fill('#ydSearch', 'nothing like it');
     await settle(page);
-    T.check('hidden by the search, closed', !(await page.$('.nx-yd-row[data-id="2003"]')) && !(await page.$('#ydWork')));
+    T.check('hidden by the search', !(await page.$('.nx-yd-row[data-id="2003"]')));
     await page.click('.nx-tab[data-tab-id="requests"] .nx-tab-btn');
     await page.waitForSelector('.nx-row--click[data-number="REQ-2003"] [data-act="confirm"]');
     await page.click('.nx-row--click[data-number="REQ-2003"] [data-act="confirm"]');
@@ -215,13 +229,13 @@ const sideways = (page) => page.evaluate(() => document.documentElement.scrollWi
     await page.click('#roadPickBtn');
     await page.waitForSelector('#ydWork', { timeout: 20000 });
     await settle(page);
-    T.eq('the search is empty again', await page.$eval('#ydSearch', (i) => i.value), '');
-    T.check('the row is back, open', await page.$eval('.nx-yd-row[data-id="2003"]', (r) => r.classList.contains('nx-yd-row--open')));
-    await page.click('#ydHanded [aria-label="Dismiss"]');
-    await settle(page, 200);
-    T.check('the note can be dismissed', !(await page.$('#ydHanded')));
-    await page.click('.nx-tab[data-tab-id="requests"] .nx-tab-btn');
+    T.eq('the search is empty again, the request in front', [await page.$eval('#ydSearch', (i) => i.value), await env.text('#ydOpenRequest')].join('|'), '|REQ-2003');
+    T.check('and behind the dialog, in the list', !!(await page.$('#ydPicking .nx-yd-row[data-id="2003"]')));
+    await page.click('#ydBack');
     await page.waitForSelector('.nx-row--click[data-number="REQ-2003"] [data-act="history"]');
+    await settle(page);
+    T.eq('Back to Requests: Requests in front again', await page.$eval('.nx-tab--on', (t) => t.dataset.tabId), 'requests');
+    T.check('the dialog on Picking & shipping is closed', await page.$eval('#ydWork', () => false).catch(() => true));
 
     T.section('the timeline of a request');
     await page.click('.nx-row--click[data-number="REQ-2003"] [data-act="history"]');
@@ -261,7 +275,10 @@ const sideways = (page) => page.evaluate(() => document.documentElement.scrollWi
     await page.waitForSelector('#ydWork', { timeout: 20000 });
     await settle(page);
     T.eq('Picking & shipping opens on it', await page.$eval('.nx-tab--on', (t) => t.dataset.tabId), 'picking');
-    T.check('with the request open beside the list', (await env.text('#ydWork')).includes('REQ-2003'));
+    T.eq('in its dialog, with the way back to the request', [await env.text('#ydOpenRequest'), await env.text('#ydBack')].join(' | '), 'REQ-2003 | Back to REQ-2003');
+    await page.click('#ydBack');
+    await page.waitForFunction(() => (document.querySelector('.nx-tab--on') || {}).dataset.tabId === 'request:2003', null, { timeout: 10000 });
+    T.eq('Back to the request\'s tab', await page.$eval('.nx-tab--on', (t) => t.dataset.tabId), 'request:2003');
 
     T.section('Help: the flow, live');
     await page.click('#nxHelp');

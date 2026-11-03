@@ -5,12 +5,12 @@ define([
 ], (ActionChain, Actions, bus) => {
   'use strict';
 
-  // Opens the request another screen handed over (Requests: "Open in Picking & shipping"), once the list has loaded,
-  // so it is plain to see: the stage, yard and search are cleared and its section unfolded (whatever was chosen
-  // before would hide it), it opens beside the list, and its row is scrolled to and flashes. A note above the list
-  // says it came from there, and what else on it waits for Confirm. A request that is not in the yard's queue yet
-  // (its pieces have their unit but are not confirmed, so there is no transfer order) gets a note that says so, and
-  // where to confirm it, instead of a toast that is easily missed.
+  // Opens the request another screen handed over (Requests' "Open in Picking & shipping", the request's tab), once the
+  // list has loaded: its dialog opens in front, with the yard's steps and its pieces, and Back to the screen it came
+  // from. Behind it the stage, yard and search are cleared and its section unfolded, so when the dialog closes the list
+  // shows the request (scrolled to, flashing). A request that is not in the yard's queue yet (its pieces have their unit
+  // but are not confirmed, so there is no transfer order) gets a note above the list that says so, and where to
+  // confirm it, instead of a toast that is easily missed.
   class focusChain extends ActionChain {
     async run(context) {
       const v = context.$page.variables;
@@ -35,7 +35,8 @@ define([
         };
         return;
       }
-      const id = String(rec.eqrEquipmentRequestId);
+      const id = String(rec.id || rec.eqrEquipmentRequestId);
+      v.handed = { tone: '' };
       v.stage = 'all';
       v.yard = 'all';
       v.text = '';
@@ -44,22 +45,9 @@ define([
       const item = (v.items || []).filter((it) => String(it.id) === id)[0];
       if (item && v.collapsed && v.collapsed[item.section]) v.collapsed = Object.assign({}, v.collapsed, { [item.section]: false });
       await Actions.callChain(context, { chain: 'applyChain' });
-      if (String(v.openId) !== id) {
-        await Actions.callChain(context, { chain: 'openWorkChain', params: { id, keepBanner: false } });
-      }
-      v.handed = {
-        tone: 'ok', id, number: rec.requestNumber, confirm,
-        title: rec.requestNumber + ', from Requests',
-        text: 'Highlighted in the list and open beside it.'
-          + (confirm ? ' Not here yet: ' + confirm + ' more ' + (confirm === 1 ? 'piece' : 'pieces') + ' on it, with the unit assigned, waiting for Confirm (the transfer order).' : ''),
-      };
-      v.flashId = id;
-      setTimeout(() => {
-        const row = document.querySelector('.nx-yd-row[data-id="' + id + '"]');
-        if (row && row.scrollIntoView) row.scrollIntoView({ block: 'center', behavior: 'smooth' });
-      }, 60);
-      await new Promise((r) => setTimeout(r, 2600));
-      if (v.flashId === id) v.flashId = '';
+      v.from = what.from && what.from.label ? { label: String(what.from.label), open: what.from.open || null } : { label: '' };
+      // Always read afresh, even when it is the one already open: what is on screen is then this request, as it is now.
+      await Actions.callChain(context, { chain: 'openWorkChain', params: { id, keepBanner: false } });
     }
   }
 

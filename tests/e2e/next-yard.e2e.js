@@ -255,7 +255,7 @@ function readXlsx(file, script) {
         "9 | ('Needed by', 'Days late', 'Request', 'Type') | ['REQ-10505', 'REQ-10527', 'REQ-10530'] | Atlanta Yard");
     }
 
-    T.section('Picking & shipping: a request beside the list');
+    T.section('Picking & shipping: a request in its dialog');
     env.writes.length = 0;
     await page.click('#ydPicking .nx-yd-row[data-number="REQ-10527"] .nx-yd-c-pieces');
     await page.waitForSelector('#ydWork .nx-yd-line[data-line]', { timeout: 20000 });
@@ -273,6 +273,8 @@ function readXlsx(file, script) {
     T.check('fixed-asset release waits for a fixed-asset tick', await page.$eval('#ydReleaseFm', (b) => b.disabled && /Tick the fixed-asset/.test(b.textContent)));
     T.eq('opening reads only', env.writes.length, 0);
     T.check('no sideways scroll with the request open', await noSideways(page));
+    T.eq('it is a dialog over the list, on the request, at its step', [await page.$eval('#ydWork', (d) => d.getAttribute('role')), await env.text('#ydOpenRequest'),
+      await env.text('#ydWorkTitle .nx-yd-steppill')].join(' | '), 'dialog | REQ-10527 | Release for picking');
     await env.shot('next-yard-picking-open.png');
 
     T.section('Picking & shipping: release a fixed-asset piece (EquipRite only)');
@@ -330,13 +332,21 @@ function readXlsx(file, script) {
     T.eq('the drone is still being picked', pickStatus[7004], 'PICK_INITIATED');
 
     T.section('Picking & shipping: the request in its own tab');
-    await page.click('#ydPicking .nx-yd-row[data-number="REQ-10530"] .nx-yd-num');
+    await page.click('#ydOpenRequest');
     await page.waitForSelector('.nx-record-title', { timeout: 20000 });
     await page.waitForTimeout(400);
-    T.eq('the request number opens the request in a tab of its own', await page.$eval('.nx-tab--on', (t) => t.dataset.tabId), 'request:502');
+    T.eq('the request number in the dialog opens the request in a tab of its own', await page.$eval('.nx-tab--on', (t) => t.dataset.tabId), 'request:501');
     await page.click('.nx-tab-btn[data-id="picking"]');
     await page.waitForTimeout(300);
     T.check('back on Picking & shipping, as it was left', await page.isVisible('#ydWork'));
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
+    T.check('Escape closes the dialog', !(await page.$('#ydWork')));
+    await page.click('#ydPicking .nx-yd-row[data-number="REQ-10530"] .nx-yd-num');
+    await page.waitForSelector('.nx-tab--on[data-tab-id="request:502"]', { timeout: 20000 }).catch(() => {});
+    T.eq('a row\'s number opens its request in a tab of its own', await page.$eval('.nx-tab--on', (t) => t.dataset.tabId), 'request:502');
+    await page.click('.nx-tab-btn[data-id="picking"]');
+    await page.waitForTimeout(300);
     flags = flags.filter((f) => f !== 'MAINT_ASSET_LOCATION_SYNC_ENABLED');
 
     // ── Receiving & returns ───────────────────────────────────────────────────────────────────────────────────

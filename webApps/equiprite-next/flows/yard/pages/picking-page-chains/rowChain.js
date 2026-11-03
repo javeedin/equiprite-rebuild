@@ -6,7 +6,8 @@ define([
   'use strict';
 
   // A row of the list (one handler for the whole row): its request number opens the request in its own tab; anywhere
-  // else opens the request beside the list, or closes it when it is the one open. Not while a step is in flight.
+  // else opens the request in its dialog. Not while a step is in flight. (The dialog's Close closes it: a row never
+  // toggles it shut.)
   class rowChain extends ActionChain {
     async run(context, { id, number, act }) {
       const v = context.$page.variables;
@@ -16,11 +17,8 @@ define([
         return;
       }
       if (v.busy) return;
-      if (String(v.openId) === String(id)) {
-        await Actions.callChain(context, { chain: 'closeWorkChain' });
-        return;
-      }
-      await Actions.callChain(context, { chain: 'openWorkChain', params: { id: String(id), keepBanner: false } });
+      v.from = { label: '' };
+      await Actions.callChain(context, { chain: 'openWorkChain', params: { id: String(id), keepBanner: String(v.openId) === String(id) } });
     }
   }
 
