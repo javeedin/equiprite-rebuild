@@ -1,4 +1,4 @@
-define(['resources/js/exportKit', 'resources/js/equipment360'], (exportKit, e3) => {
+define(['resources/js/exportKit', 'resources/js/equipment360', 'resources/js/equipmentRedwood'], (exportKit, e3, rw) => {
   'use strict';
 
   // Everything about a piece of equipment: binding helpers. The logic is resources/js/equipment360.js.
@@ -51,6 +51,37 @@ define(['resources/js/exportKit', 'resources/js/equipment360'], (exportKit, e3) 
         if (el && el.value !== (value || '')) el.value = value || '';
       });
     }
+
+    // ── Redwood (your menu): Oracle's general overview page as the header ─────────────────────────────────────
+    /**
+     * Its subtitle: what the current look's head says under the name, in one line (a unit: its equipment and class,
+     * its yard; an item: its class, its units and where, what they are doing), then its facts. Oracle's header keeps
+     * it to one line, so a unit's "now" is left to its badge and the units below.
+     */
+    rwSub(head, isLoading) {
+      const h = head || {};
+      if (!h.title) return isLoading ? 'Reading the equipment, its units and its bookings…' : '';
+      const lead = h.mode === 'unit' ? ['Unit', h.sub, h.where] : [h.kicker, h.sub, h.where];
+      return lead.concat(this.arr(h.facts)).filter((x) => !!x).join(' · ');
+    }
+
+    /** Its badge: what a unit is doing today (the pill beside the current look's title). */
+    rwBadge(now) { return rw.nowBadge(now); }
+
+    /** Its primary action: Open in Availability, once the equipment is read (the same object while it reads the same). */
+    rwPrimary(title) { return rw.kept({ label: 'Open in Availability', icon: 'oj-ux-ico-calendar', display: title ? 'on' : 'disabled' }); }
+
+    /** Its other actions (rwActionChain): Refresh, and the history or the units as Excel (as the Export menu). */
+    rwActions() {
+      return rw.kept([
+        { id: 'refresh', label: 'Refresh', icon: 'oj-ux-ico-refresh', display: 'on' },
+        { id: 'history', label: 'Export the history', icon: 'oj-ux-ico-download', display: 'on' },
+        { id: 'units', label: 'Export the units', icon: 'oj-ux-ico-download', display: 'on' }
+      ]);
+    }
+
+    /** In-flow back: from a unit to every unit of its equipment (the current look's "All units of this equipment"). */
+    rwBack(head) { return !!(head && head.mode === 'unit' && head.equipmentId); }
   }
 
   return PageModule;

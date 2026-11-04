@@ -2,7 +2,8 @@ define([
   'resources/js/equipmentMaster',
   'resources/js/exportKit',
   'resources/js/fmt',
-], (em, exportKit, fmt) => {
+  'resources/js/equipmentRedwood',
+], (em, exportKit, fmt, rw) => {
   'use strict';
 
   // An equipment item's tab (FDD 7.2.5): what it is, its units, its certificates and documents, its Fusion work orders
@@ -120,6 +121,37 @@ define([
     assetText(master, units) {
       const n = this.assetNumbers(master, units).length;
       return n ? n + (n === 1 ? ' maintenance asset' : ' maintenance assets') + ' on this item and its units' : 'No maintenance asset on this item or its units';
+    }
+
+    // ── Redwood (your menu): Oracle's general overview page as the header ─────────────────────────────────────
+    /** Its title: the item's name, or what the tab was opened with while it loads. */
+    rwTitle(m, number) { return (m && (m.equipmentName || m.equipmentNumber)) || number || 'Equipment'; }
+
+    /** Its subtitle: the current look's kicker and the line under the name. */
+    rwSub(m, controlType, isLoading) {
+      if (!m || !m.id) return isLoading ? 'Loading the equipment…' : '';
+      return [this.kicker(controlType), this.subline(m)].filter((x) => !!x).join(' · ');
+    }
+
+    /** Its badge: the item's status (Oracle's statuses), as the pill beside the current look's title. */
+    rwBadge(code) { return rw.itemBadge(code ? em.statusLabel(code) : '', em.statusTone(code)); }
+
+    /**
+     * Its primary action: Change class, with FULL access once the item is read (as the current look). The same object
+     * while it reads the same (Oracle's header redraws for every new one).
+     */
+    rwPrimary(canWrite, loaded, panelOpen) {
+      return rw.kept({ label: 'Change class', icon: 'oj-ux-ico-edit', display: canWrite && loaded ? (panelOpen ? 'disabled' : 'on') : 'off' });
+    }
+
+    /** Its other actions (rwActionChain): Refresh, and Export of each of the item's lists, as Excel. */
+    rwActions() {
+      return rw.kept([
+        { id: 'refresh', label: 'Refresh', icon: 'oj-ux-ico-refresh', display: 'on' },
+        { id: 'units', label: 'Export the units', icon: 'oj-ux-ico-download', display: 'on' },
+        { id: 'docs', label: 'Export the documents', icon: 'oj-ux-ico-download', display: 'on' },
+        { id: 'wos', label: 'Export the work orders', icon: 'oj-ux-ico-download', display: 'on' }
+      ]);
     }
 
     // ── New EquipRite's Equipment detail (equipment-detail-page.js), unchanged ──────────────────────────────────

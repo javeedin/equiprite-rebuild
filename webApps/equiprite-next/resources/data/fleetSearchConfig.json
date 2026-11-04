@@ -1,0 +1,85 @@
+{
+  "description": "Fleet (Redwood view): the Smart Search filters, one per column in the table's order (Unit, Equipment and its Class, Status, Request and its Project or customer, Next booking, Yard). Class, Status and Yard are the page's own class chip, lane tile and yard chip; the others narrow the Redwood table only (equipmentRedwood.fleetByColumns). Every filter here needs its entry in fleet-page.json's rwSearchContext (the widget evaluates every filter in this file, and one without context throws and blanks the table).",
+  "filters": {
+    "UnitFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Unit",
+      "options": {
+        "field": "unit",
+        "optionsData": "[[ $search.filters.UnitFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.UnitFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "EquipmentFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Equipment",
+      "options": {
+        "field": "name",
+        "optionsData": "[[ $search.filters.EquipmentFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.EquipmentFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "ClassFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Class",
+      "options": {
+        "field": "cls",
+        "optionsData": "[[ $search.filters.ClassFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.ClassFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "StatusFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Status",
+      "options": {
+        "field": "status",
+        "optionsData": "[[ $search.filters.StatusFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.StatusFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "RequestFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Request",
+      "options": {
+        "field": "request",
+        "optionsData": "[[ $search.filters.RequestFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.RequestFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "PartyFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Project or customer",
+      "options": {
+        "field": "party",
+        "optionsData": "[[ $search.filters.PartyFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.PartyFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "NextFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Next booking",
+      "options": {
+        "field": "next",
+        "optionsData": "[[ $search.filters.NextFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.NextFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "YardFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Yard",
+      "options": {
+        "field": "yard",
+        "optionsData": "[[ $search.filters.YardFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.YardFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    }
+  }
+}

@@ -1,6 +1,21 @@
 <!-- An equipment item in its own tab (FDD 7.2.5): what it is, its units at a glance and in full, certificates and documents,
      Fusion work orders, expenditure types; Change class (FULL). Data: loadRecordChain (New's detailInitChain). -->
 <div class="nx-page nx-record nx-eqi">
+  <!-- Redwood (your menu): Oracle's general overview page as the header, as Old's equipment detail page: the item's name,
+       its status as a badge, Change class, Refresh and Export (rwActionChain), back to the Equipment master; over this
+       screen's own body below. Put on the page the first time Redwood is shown, then kept, hidden under Current. -->
+  <oj-bind-if test="[[ $application.variables.lookSeen ]]">
+    <div class="nx-rw nx-rw--head" id="eqiRedwood" :hidden="[[ $application.variables.look !== 'redwood' ]]">
+      <oj-sp-general-overview-page page-title="[[ $functions.rwTitle($variables.masterRecord, $variables.number) ]]" display-mode="mixed"
+        page-subtitle="[[ $functions.rwSub($variables.masterRecord, $variables.controlType, $variables.isLoading) ]]"
+        badge="[[ $functions.rwBadge($variables.masterRecord.catalogStatus) ]]"
+        primary-action="[[ $functions.rwPrimary($variables.canWrite, !!$variables.masterRecord.id && !$variables.loadError, $variables.classPanelOpen) ]]"
+        on-sp-primary-action="[[ $listeners.onChangeClass ]]"
+        secondary-actions="[[ $functions.rwActions() ]]" on-sp-secondary-action="[[ $listeners.onRwAction ]]"
+        display-options.in-flow-back="true" on-sp-in-flow-back="[[ $listeners.onOpenList ]]">
+      </oj-sp-general-overview-page>
+    </div>
+  </oj-bind-if>
   <oj-bind-if test="[[ $variables.isLoading && !$variables.masterRecord.id ]]">
     <div class="nx-card nx-empty">Loading the equipment…</div>
   </oj-bind-if>
@@ -10,6 +25,7 @@
   </oj-bind-if>
 
   <oj-bind-if test="[[ !!$variables.masterRecord.id && !$variables.loadError ]]">
+    <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
     <div class="nx-pagehead">
       <div>
         <div class="nx-kicker"><oj-bind-text value="[[ $functions.kicker($variables.controlType) ]]"></oj-bind-text></div>
@@ -53,6 +69,7 @@
         </oj-bind-if>
       </div>
     </div>
+    </oj-bind-if>
 
     <oj-bind-if test="[[ $variables.classPanelOpen ]]">
       <section class="nx-card nx-card-pad nx-eqi-classpanel" aria-labelledby="eqiClassTitle" id="eqiClassPanel">

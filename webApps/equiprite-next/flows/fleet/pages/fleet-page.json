@@ -1,5 +1,5 @@
 {
-  "description": "Fleet: every unit read from yard stock, units out and bookings (equipmentBoard.js): lanes from in the yard to overdue, tight turnarounds, a unit's bookings; board or list; export.",
+  "description": "Fleet: every unit read from yard stock, units out and bookings (equipmentBoard.js): lanes from in the yard to overdue, tight turnarounds, a unit's bookings; board or list; export. Redwood (your menu): Oracle's Smart Search page over the same units, a table row per unit and a filter per column; a row opens everything about the unit (equipment-360).",
   "navigation": {
     "embeddable": "enabled"
   },
@@ -78,6 +78,233 @@
     "exportOpen": {
       "type": "boolean",
       "defaultValue": false
+    },
+    "rwRows": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood view: one row per unit shown (rwApplyChain, from shown and rwCols), for the oj-table."
+    },
+    "rwADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "key",
+        "data": "{{ $page.variables.rwRows }}"
+      }
+    },
+    "rwCriterion": {
+      "type": "any",
+      "description": "Redwood view: the Smart Search criterion (text and filters); rwFilterChain turns it into the page's text, lane, tight, cls and yard, and rwCols."
+    },
+    "rwCols": {
+      "type": "object",
+      "defaultValue": {
+        "unit": "",
+        "name": "",
+        "request": "",
+        "party": "",
+        "next": ""
+      },
+      "description": "Redwood view: the column filters the current look does not have (equipmentRedwood.fleetByColumns); Class, Status and Yard are cls, lane and yard."
+    },
+    "rwSearchConfig": {
+      "type": "oj-sp/smart-search/strategies/JsonSearchConfigProviderFactory",
+      "defaultValue": {
+        "url": "[[ $application.path + 'resources/data/fleetSearchConfig.json' ]]"
+      }
+    },
+    "rwUnits": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood view: the Unit filter's options with their counts (rwApplyChain, equipmentRedwood.fleetOptions)."
+    },
+    "rwUnitsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwUnits }}"
+      }
+    },
+    "rwNames": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood view: the Equipment filter's options with their counts (rwApplyChain, equipmentRedwood.fleetOptions)."
+    },
+    "rwNamesADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwNames }}"
+      }
+    },
+    "rwClasses": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood view: the Class filter's options with their counts (rwApplyChain, equipmentRedwood.fleetOptions)."
+    },
+    "rwClassesADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwClasses }}"
+      }
+    },
+    "rwStatuses": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood view: the Status filter's options with their counts (rwApplyChain, equipmentRedwood.fleetOptions)."
+    },
+    "rwStatusesADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwStatuses }}"
+      }
+    },
+    "rwRequests": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood view: the Request filter's options with their counts (rwApplyChain, equipmentRedwood.fleetOptions)."
+    },
+    "rwRequestsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwRequests }}"
+      }
+    },
+    "rwParties": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood view: the Project or customer filter's options with their counts (rwApplyChain, equipmentRedwood.fleetOptions)."
+    },
+    "rwPartiesADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwParties }}"
+      }
+    },
+    "rwNext": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood view: the Next booking filter's options with their counts (rwApplyChain, equipmentRedwood.fleetOptions)."
+    },
+    "rwNextADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwNext }}"
+      }
+    },
+    "rwYards": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood view: the Yard filter's options with their counts (rwApplyChain, equipmentRedwood.fleetOptions)."
+    },
+    "rwYardsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwYards }}"
+      }
+    },
+    "rwSearchContext": {
+      "type": "object",
+      "defaultValue": {
+        "$search": {
+          "filters": {
+            "UnitFilter": {
+              "label": "Unit",
+              "options": {
+                "optionsData": "[[ $page.variables.rwUnitsADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "EquipmentFilter": {
+              "label": "Equipment",
+              "options": {
+                "optionsData": "[[ $page.variables.rwNamesADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "ClassFilter": {
+              "label": "Class",
+              "options": {
+                "optionsData": "[[ $page.variables.rwClassesADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "StatusFilter": {
+              "label": "Status",
+              "options": {
+                "optionsData": "[[ $page.variables.rwStatusesADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "RequestFilter": {
+              "label": "Request",
+              "options": {
+                "optionsData": "[[ $page.variables.rwRequestsADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "PartyFilter": {
+              "label": "Project or customer",
+              "options": {
+                "optionsData": "[[ $page.variables.rwPartiesADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "NextFilter": {
+              "label": "Next booking",
+              "options": {
+                "optionsData": "[[ $page.variables.rwNextADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "YardFilter": {
+              "label": "Yard",
+              "options": {
+                "optionsData": "[[ $page.variables.rwYardsADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "eventListeners": {
@@ -181,6 +408,46 @@
           }
         }
       ]
+    },
+    "onRwFilter": {
+      "chains": [
+        {
+          "chain": "rwFilterChain"
+        }
+      ]
+    },
+    "onRwRow": {
+      "chains": [
+        {
+          "chain": "rwOpenChain",
+          "parameters": {
+            "key": "{{ $event.detail.context.key }}"
+          }
+        }
+      ]
+    },
+    "onRwStep": {
+      "chains": [
+        {
+          "chain": "openChain",
+          "parameters": {
+            "id": "",
+            "number": "",
+            "navId": "{{ $event.currentTarget.dataset.nav }}"
+          }
+        }
+      ]
+    },
+    "onRwExport": {
+      "chains": [
+        {
+          "chain": "exportChain",
+          "parameters": {
+            "format": "xlsx",
+            "redwood": true
+          }
+        }
+      ]
     }
   },
   "imports": {
@@ -193,6 +460,21 @@
       },
       "oj-bind-text": {
         "path": "ojs/ojknockout"
+      },
+      "oj-sp-smart-search-page": {
+        "path": "oj-sp/smart-search-page/loader"
+      },
+      "oj-sp-smart-search": {
+        "path": "oj-sp/smart-search/loader"
+      },
+      "oj-sp-collection-container": {
+        "path": "oj-sp/collection-container/loader"
+      },
+      "oj-table": {
+        "path": "ojs/ojtable"
+      },
+      "oj-c-button": {
+        "path": "oj-c/button"
       }
     }
   }

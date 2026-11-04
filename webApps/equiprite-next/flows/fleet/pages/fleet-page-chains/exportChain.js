@@ -3,22 +3,24 @@ define([
   'resources/js/exportKit',
   'resources/js/equipmentBoard',
   'resources/js/shellBus',
-], (ActionChain, exportKit, board, bus) => {
+  'resources/js/equipmentRedwood',
+], (ActionChain, exportKit, board, bus, rw) => {
   'use strict';
 
-  // Exports the units shown: what, where, the request it is on, when it is back, the next booking.
+  // Exports the units shown: what, where, the request it is on, when it is back, the next booking. From the Redwood
+  // view (redwood), the units its table shows: its column filters applied too.
   const LANE_LABEL = {};
   board.LANES.forEach((l) => { LANE_LABEL[l.key] = l.label; });
 
   class exportChain extends ActionChain {
-    async run(context, { format }) {
+    async run(context, { format, redwood }) {
       const v = context.$page.variables;
       v.exportOpen = false;
       const res = await exportKit.run(format, {
         name: 'fleet',
         title: 'Fleet',
         subtitle: [v.tight ? 'Tight turnarounds' : (v.lane !== 'all' ? LANE_LABEL[v.lane] : 'All units'), v.cls, v.text ? '"' + v.text + '"' : ''].filter((x) => !!x).join(' · '),
-        rows: v.shown,
+        rows: redwood ? rw.fleetByColumns(v.shown, v.rwCols) : v.shown,
         columns: [
           { key: 'unit', label: 'Unit' }, { key: 'type', label: 'Type' }, { key: 'asset', label: 'Asset' }, { key: 'name', label: 'Equipment' },
           { key: 'cls', label: 'Class' }, { key: 'lane', label: 'Where', value: (u) => LANE_LABEL[u.lane] || u.lane },

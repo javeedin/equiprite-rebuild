@@ -1,13 +1,15 @@
 define([
   'vb/action/actionChain',
+  'vb/action/actions',
   'resources/js/equipmentMaster',
-], (ActionChain, em) => {
+], (ActionChain, Actions, em) => {
   'use strict';
 
   // What the list and the map show: the items (the rows, plus any only the server's search found), what the search
   // finds, the chips (each counting what it would show with the other filters as they are), the filters and the map's
   // location, sorted; the map's bubbles; the summary. Everything is worked out first and the view switched last, so
-  // a view's template never meets the other view's rows.
+  // a view's template never meets the other view's rows. The Redwood view's table follows from the same items
+  // (rwApplyChain).
   class applyChain extends ActionChain {
     async run(context, params) {
       const v = context.$page.variables;
@@ -30,6 +32,7 @@ define([
       v.chips = chips;
       v.map = map;
       v.shown = shown;
+      await Actions.callChain(context, { chain: 'rwApplyChain', params: { items } });
     }
   }
 

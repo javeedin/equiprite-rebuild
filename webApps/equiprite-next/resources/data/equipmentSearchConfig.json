@@ -1,0 +1,95 @@
+{
+  "description": "Equipment master (Redwood view): the Smart Search filters, one per column in the table's order (Equipment, Class and its Subclass, Tracked by, Units, Location, Status and its Source), then Asset group. All but Equipment and Units are the page's own filters (classId, subclassId, tracking, location, status, source, assetGroupId), so both looks filter alike. Every filter here needs its entry in equipment-page.json's rwSearchContext (the widget evaluates every filter in this file, and one without context throws and blanks the table).",
+  "filters": {
+    "EquipmentFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Equipment",
+      "options": {
+        "field": "item",
+        "optionsData": "[[ $search.filters.EquipmentFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.EquipmentFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "ClassFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Class",
+      "options": {
+        "field": "cls",
+        "optionsData": "[[ $search.filters.ClassFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.ClassFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "SubclassFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Subclass",
+      "options": {
+        "field": "sub",
+        "optionsData": "[[ $search.filters.SubclassFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.SubclassFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "TrackingFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Tracked by",
+      "options": {
+        "field": "tracking",
+        "optionsData": "[[ $search.filters.TrackingFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.TrackingFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "UnitsFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Units",
+      "options": {
+        "field": "units",
+        "optionsData": "[[ $search.filters.UnitsFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.UnitsFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "LocationFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Location",
+      "options": {
+        "field": "location",
+        "optionsData": "[[ $search.filters.LocationFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.LocationFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "StatusFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Status",
+      "options": {
+        "field": "status",
+        "optionsData": "[[ $search.filters.StatusFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.StatusFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "SourceFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Source",
+      "options": {
+        "field": "source",
+        "optionsData": "[[ $search.filters.SourceFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.SourceFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "AssetGroupFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Asset group",
+      "options": {
+        "field": "group",
+        "optionsData": "[[ $search.filters.AssetGroupFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.AssetGroupFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    }
+  }
+}
