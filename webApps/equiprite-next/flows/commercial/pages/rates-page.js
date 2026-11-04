@@ -1,4 +1,4 @@
-define(['resources/js/rateRules', 'resources/js/exportKit', 'resources/js/fmt'], (R, exportKit, fmt) => {
+define(['resources/js/rateRules', 'resources/js/exportKit', 'resources/js/fmt', 'resources/js/commercialRedwood'], (R, exportKit, fmt, RW) => {
   'use strict';
 
   // Rates: binding helpers. The rules are resources/js/rateRules.js (New EquipRite's, unchanged); the chains are
@@ -92,6 +92,46 @@ define(['resources/js/rateRules', 'resources/js/exportKit', 'resources/js/fmt'],
         t += ' · ' + r.periods + ' ' + R.periodNoun(r.period) + (r.periods === 1 ? '' : 's') + ' at ' + money(r.periodTotal, currency) + ' a ' + R.periodNoun(r.period);
       }
       return t;
+    }
+
+    // ── the Redwood look (your menu, Look): the list as Oracle's Smart Search page, the open schedule as its record
+    //    under Oracle's general overview header (rwView; rwChain), over this screen's own detail body ──
+    /** Under Redwood the open schedule's body shows with its record only, not under the list of schedules. */
+    rwListShown(look, view) { return look === 'redwood' && view !== 'record'; }
+    /** The header's title: the schedule's name (the list's while it loads), or New schedule. */
+    rwTitle(f, id, loading, rows) {
+      if (id === 'new') return (f && f.scheduleName) || 'New schedule';
+      const row = (rows || []).filter((r) => String(r.id) === String(id))[0];
+      if (loading) return (row && row.scheduleName) || 'Loading the schedule…';
+      return (f && f.scheduleName) || (row && row.scheduleName) || 'Rate schedule';
+    }
+    /** The kicker (Rate schedule) and what it is: who uses it, when, its currency. */
+    rwSubtitle(f, id) {
+      const d = f || {};
+      if (id === 'new') return 'Rate schedule · not saved yet: fill in its details and rates, then Save';
+      const tagged = d.customerId != null || d.projectId != null || d.taskId != null || d.yardOrgId != null;
+      return ['Rate schedule', tagged ? 'Used by ' + R.taggedTo(d) : 'The fallback schedule (no tags)', R.windowText(d), d.currency]
+        .filter((x) => !!x).join(' · ');
+    }
+    /** Its status as the header's badge (Active, Inactive). */
+    rwBadge(f, id) { return id ? RW.rateBadge(f) : { text: '' }; }
+    /** Save schedule: the white button on the header's band (FULL access), as Current's save bar. */
+    rwPrimary(canWrite, saving) {
+      if (!canWrite) return { label: 'Save schedule', display: 'off' };
+      return { label: saving ? 'Saving…' : 'Save schedule', icon: 'oj-ux-ico-save', display: saving ? 'disabled' : 'on' };
+    }
+    /** The header's other actions, as Current's buttons on the schedule (rwChain routes each id to that button's chain). */
+    rwActions(canWrite, id, headerOpen, dirty, lineCount) {
+      const out = [];
+      if (canWrite) {
+        out.push({ id: 'details', label: headerOpen ? 'Done with the details' : 'Edit details', icon: 'oj-ux-ico-edit', display: 'on' });
+        out.push({ id: 'add', label: 'Add equipment', icon: 'oj-ux-ico-plus', display: 'on' });
+      }
+      if (lineCount > 0) out.push({ id: 'export', label: 'Export the rates', icon: 'oj-ux-ico-download', display: 'on' });
+      if (canWrite && dirty) out.push({ id: 'discard', label: 'Discard changes', icon: 'oj-ux-ico-undo', display: 'on' });
+      if (canWrite && id && id !== 'new') out.push({ id: 'delete', label: 'Delete', icon: 'oj-ux-ico-trash', display: 'on' });
+      out.push({ id: 'refresh', label: 'Refresh', icon: 'oj-ux-ico-refresh', display: 'on' });
+      return out;
     }
   }
 

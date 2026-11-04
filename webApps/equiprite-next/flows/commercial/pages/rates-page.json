@@ -1,5 +1,5 @@
 {
-  "description": "Rates: every rate schedule (who uses it: customer, project, task, yard; when; whether the rate engine can use it) on the left, the open one on the right as one grid of the six rate periods per class, the margin check and Try a rate. Calls and rules are New EquipRite's rates page (FDD 7.3): GET /rate-schedules, /bu-org-mappings, /rate-schedules/{id}, /rate-period-lines; Save writes the header and then every line (saveScheduleChain); a saved line is deleted at once; Delete schedule. Export on both lists.",
+  "description": "Rates: every rate schedule (who uses it: customer, project, task, yard; when; whether the rate engine can use it) on the left, the open one on the right as one grid of the six rate periods per class, the margin check and Try a rate. Calls and rules are New EquipRite's rates page (FDD 7.3): GET /rate-schedules, /bu-org-mappings, /rate-schedules/{id}, /rate-period-lines; Save writes the header and then every line (saveScheduleChain); a saved line is deleted at once; Delete schedule. Export on both lists. Redwood (your menu, Look), as Old's Rate Management: Oracle's Smart Search page of the schedules (a filter per column), and the one opened under Oracle's general overview header over the same detail body (rwView, rwChain).",
   "navigation": {
     "embeddable": "enabled"
   },
@@ -40,7 +40,38 @@
     "sim": { "type": "any", "defaultValue": { "hours": 80, "daysWorked": 10, "daysOnRent": 14, "qty": 1 } },
     "simGroup": { "type": "string", "defaultValue": "", "description": "The row Try a rate prices ('' for every Usage row)." },
     "ask": { "type": "any", "defaultValue": null },
-    "exportOpen": { "type": "string", "defaultValue": "", "description": "'list' or 'lines': which export menu is open." }
+    "exportOpen": { "type": "string", "defaultValue": "", "description": "'list' or 'lines': which export menu is open." },
+
+    "rwView": { "type": "string", "defaultValue": "list", "description": "Redwood view (your menu, Look): 'list', Oracle's Smart Search page of the schedules, or 'record', the open schedule (selectedId, as on Current) under Oracle's general overview header (rwChain)." },
+    "rwRows": { "type": "any[]", "defaultValue": [], "description": "Redwood view: one row per schedule shown, for the oj-table (applyChain, commercialRedwood.rateRows)." },
+    "rwADP": { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "key", "data": "{{ $page.variables.rwRows }}" } },
+    "rwCriterion": { "type": "any", "description": "Redwood view: the Smart Search criterion; rwFilterChain turns it into the list's search and chip, and the column filters." },
+    "rwCols": { "type": "object", "defaultValue": { "name": "", "usedBy": "", "dates": "", "currency": "" }, "description": "Redwood view: the column filters picked in Smart Search, which only the Redwood table applies (commercialRedwood.rateByColumns); Status is the list's chip." },
+    "rwSearchConfig": { "type": "oj-sp/smart-search/strategies/JsonSearchConfigProviderFactory", "defaultValue": { "url": "[[ $application.path + 'resources/data/ratesSearchConfig.json' ]]" } },
+    "rwNames": { "type": "any[]", "defaultValue": [], "description": "Redwood view: the Schedule filter's options with their counts (applyChain, commercialRedwood.rateOptions); and likewise below." },
+    "rwNamesADP": { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.rwNames }}" } },
+    "rwUsedBy": { "type": "any[]", "defaultValue": [] },
+    "rwUsedByADP": { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.rwUsedBy }}" } },
+    "rwDates": { "type": "any[]", "defaultValue": [] },
+    "rwDatesADP": { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.rwDates }}" } },
+    "rwCurrencies": { "type": "any[]", "defaultValue": [] },
+    "rwCurrenciesADP": { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.rwCurrencies }}" } },
+    "rwStatuses": { "type": "any[]", "defaultValue": [], "description": "Redwood view: the Status filter's options, the list's chips that are a status, with their counts." },
+    "rwStatusesADP": { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.rwStatuses }}" } },
+    "rwSearchContext": {
+      "type": "object",
+      "defaultValue": {
+        "$search": {
+          "filters": {
+          "ScheduleFilter": { "label": "Schedule", "options": { "optionsData": "[[ $page.variables.rwNamesADP ]]", "optionsKeys": { "label": "label", "value": "value" } } },
+          "UsedByFilter": { "label": "Used by", "options": { "optionsData": "[[ $page.variables.rwUsedByADP ]]", "optionsKeys": { "label": "label", "value": "value" } } },
+          "EffectiveFilter": { "label": "Effective", "options": { "optionsData": "[[ $page.variables.rwDatesADP ]]", "optionsKeys": { "label": "label", "value": "value" } } },
+          "CurrencyFilter": { "label": "Currency", "options": { "optionsData": "[[ $page.variables.rwCurrenciesADP ]]", "optionsKeys": { "label": "label", "value": "value" } } },
+          "StatusFilter": { "label": "Status", "options": { "optionsData": "[[ $page.variables.rwStatusesADP ]]", "optionsKeys": { "label": "label", "value": "value" } } }
+          }
+        }
+      }
+    }
   },
   "eventListeners": {
     "vbEnter": { "chains": [{ "chain": "initChain" }] },
@@ -108,13 +139,25 @@
     "onDelete": { "chains": [{ "chain": "deleteScheduleChain", "parameters": {} }] },
     "onAnswer": {
       "chains": [{ "chain": "answerChain", "parameters": { "answer": "{{ $event.currentTarget.dataset.answer }}" } }]
-    }
+    },
+    "onRwFilter": { "chains": [{ "chain": "rwFilterChain" }] },
+    "onRwRow": { "chains": [{ "chain": "rwChain", "parameters": { "action": "open", "value": "{{ $event.detail.context.key }}" } }] },
+    "onRwNew": { "chains": [{ "chain": "rwChain", "parameters": { "action": "new" } }] },
+    "onRwBack": { "chains": [{ "chain": "rwChain", "parameters": { "action": "back" } }] },
+    "onRwAction": { "chains": [{ "chain": "rwChain", "parameters": { "action": "act", "value": "{{ $event.detail.secondaryItem }}" } }] },
+    "onRwExport": { "chains": [{ "chain": "exportChain", "parameters": { "what": "list", "format": "xlsx" } }] }
   },
   "imports": {
     "components": {
       "oj-bind-for-each": { "path": "ojs/ojknockout" },
       "oj-bind-if": { "path": "ojs/ojknockout" },
-      "oj-bind-text": { "path": "ojs/ojknockout" }
+      "oj-bind-text": { "path": "ojs/ojknockout" },
+      "oj-sp-smart-search-page": { "path": "oj-sp/smart-search-page/loader" },
+      "oj-sp-smart-search": { "path": "oj-sp/smart-search/loader" },
+      "oj-sp-collection-container": { "path": "oj-sp/collection-container/loader" },
+      "oj-sp-general-overview-page": { "path": "oj-sp/general-overview-page/loader" },
+      "oj-table": { "path": "ojs/ojtable" },
+      "oj-c-button": { "path": "oj-c/button" }
     }
   }
 }

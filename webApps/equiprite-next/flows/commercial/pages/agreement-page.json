@@ -1,5 +1,5 @@
 {
-  "description": "One rental agreement in its own tab (record kind 'agreement', keyed by its number; 'new' for a new one): what it is and what is next, its lines and their rates, Approve / Reject, Create request from the ticked lines (the draftStorage hand-off to New request), and Edit in place (header and lines; Save as New EquipRite's saveAgreementChain). Calls: New EquipRite's agreement-lines and agreement-edit chains, call for call.",
+  "description": "One rental agreement in its own tab (record kind 'agreement', keyed by its number; 'new' for a new one): what it is and what is next, its lines and their rates, Approve / Reject, Create request from the ticked lines (the draftStorage hand-off to New request), and Edit in place (header and lines; Save as New EquipRite's saveAgreementChain). Calls: New EquipRite's agreement-lines and agreement-edit chains, call for call. Redwood (your menu, Look): Oracle's general overview header over the same body, its actions Current's (rwChain).",
   "navigation": {
     "embeddable": "enabled"
   },
@@ -103,13 +103,17 @@
         "parameters": { "action": "{{ $event.target.dataset.action }}", "value": "{{ $event.target.value }}" }
       }]
     },
-    "onSave": { "chains": [{ "chain": "saveChain" }] }
+    "onSave": { "chains": [{ "chain": "saveChain" }] },
+    "onRwPrimary": { "chains": [{ "chain": "rwChain", "parameters": { "action": "primary" } }] },
+    "onRwAction": { "chains": [{ "chain": "rwChain", "parameters": { "action": "act", "value": "{{ $event.detail.secondaryItem }}" } }] },
+    "onRwBack": { "chains": [{ "chain": "rwChain", "parameters": { "action": "back" } }] }
   },
   "imports": {
     "components": {
       "oj-bind-for-each": { "path": "ojs/ojknockout" },
       "oj-bind-if": { "path": "ojs/ojknockout" },
-      "oj-bind-text": { "path": "ojs/ojknockout" }
+      "oj-bind-text": { "path": "ojs/ojknockout" },
+      "oj-sp-general-overview-page": { "path": "oj-sp/general-overview-page/loader" }
     }
   }
 }

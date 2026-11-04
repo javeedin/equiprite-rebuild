@@ -1,7 +1,77 @@
 <!-- Agreements. Every rental agreement: what is active, what ends soon (within 60 days), what waits for approval,
      and the next step for each. Chips, search, sort, export; a row opens the agreement in its own tab. Rules:
-     resources/js/agreementRules.js (New EquipRite's, unchanged); calls: agreements-page-chains. -->
+     resources/js/agreementRules.js (New EquipRite's, unchanged); calls: agreements-page-chains. Redwood: Oracle's Smart
+     Search page over an oj-table (resources/js/commercialRedwood.js). -->
 <div class="nx-page nx-cm nx-agreements">
+  <!-- ── Redwood (your menu, Look), as Old's Rental Agreements: Oracle's Smart Search page (Smart Search, a filter per
+       column, oj-table, oj-badge, oj-c buttons) on the same agreements, search and chip as Current (applyChain,
+       rwFilterChain); a row opens the agreement in its tab, as on Current. Put on the page the first time Redwood is
+       shown, then kept, hidden under Current. ── -->
+  <oj-bind-if test="[[ $application.variables.lookSeen ]]">
+    <div class="nx-rw" id="agrRwList" :hidden="[[ $application.variables.look !== 'redwood' ]]">
+      <oj-sp-smart-search-page page-title="Agreements" display-mode="mixed"
+        page-subtitle="[[ $variables.unavailable ? 'Not available' : ($variables.isLoading && !$variables.rows.length ? 'Loading the agreements…' : $variables.summary) ]]"
+        primary-action.display="[[ $variables.canWrite && !$variables.unavailable ? 'on' : 'off' ]]" primary-action.label="New agreement" on-sp-primary-action="[[ $listeners.onNew ]]">
+        <oj-sp-smart-search slot="search" filter-criterion="{{ $variables.rwCriterion }}" on-filter-criterion-changed="[[ $listeners.onRwFilter ]]"
+          search-context="[[ $variables.rwSearchContext ]]" search-config="[[ $variables.rwSearchConfig.provider ]]"
+          suggestion-filters='["AgreementFilter", "CustomerFilter", "TypeFilter", "StatusFilter", "ValidFilter", "LinesFilter", "NextFilter"]' placeholder="Agreement, name, customer or type"></oj-sp-smart-search>
+        <oj-sp-collection-container>
+          <div class="nx-rw-tools">
+            <oj-c-button id="agrRwRefresh" label="Refresh" chroming="borderless" size="sm" disabled="[[ $variables.isLoading || !!$variables.unavailable ]]" on-oj-action="[[ $listeners.onRefresh ]]">
+              <span slot="startIcon" class="oj-ux-ico-refresh"></span></oj-c-button>
+            <oj-c-button id="agrRwExport" label="Export to Excel" chroming="borderless" size="sm" disabled="[[ !!$variables.unavailable ]]" on-oj-action="[[ $listeners.onRwExport ]]">
+              <span slot="startIcon" class="oj-ux-ico-download"></span></oj-c-button>
+          </div>
+          <oj-bind-if test="[[ !!$variables.error ]]">
+            <div class="oj-sm-padding-4x-bottom" role="alert"><span class="oj-text-color-danger"><oj-bind-text value="[[ $variables.error ]]"></oj-bind-text></span></div>
+          </oj-bind-if>
+          <oj-table id="agrRwTable" data="[[ $variables.rwADP ]]" class="oj-sm-width-full nx-rw-table" aria-label="Agreements"
+            scroll-policy="loadMoreOnScroll" scroll-policy-options.fetch-size="50" display="list" horizontal-grid-visible="enabled"
+            layout="fixed" on-oj-row-action="[[ $listeners.onRwRow ]]"
+            columns='[
+              {"headerText": "Agreement", "field": "number", "template": "numTpl", "sortable": "enabled", "style": "width:15%;"},
+              {"headerText": "Customer", "field": "customer", "template": "customerTpl", "sortable": "enabled", "style": "width:14%;"},
+              {"headerText": "Type", "field": "type", "template": "typeTpl", "sortable": "enabled", "style": "width:11%;"},
+              {"headerText": "Status", "field": "status", "template": "statusTpl", "sortable": "enabled", "style": "width:10%;"},
+              {"headerText": "Valid", "field": "dates", "template": "validTpl", "sortable": "disabled", "style": "width:19%;"},
+              {"headerText": "Lines", "field": "lines", "template": "linesTpl", "sortable": "disabled", "style": "width:8%;"},
+              {"headerText": "Next step", "field": "next", "template": "nextTpl", "sortable": "disabled", "style": "width:23%;"}
+            ]'>
+            <template slot="numTpl" data-oj-as="cell">
+              <div class="nx-rw-cell"><span class="oj-typography-body-md oj-typography-bold oj-link-standalone nx-rw-num"><oj-bind-text value="[[ cell.row.number ]]"></oj-bind-text></span>
+                <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.name || '—' ]]"></oj-bind-text></span></div>
+            </template>
+            <template slot="customerTpl" data-oj-as="cell">
+              <span class="oj-typography-body-md"><oj-bind-text value="[[ cell.row.customer ]]"></oj-bind-text></span>
+            </template>
+            <template slot="typeTpl" data-oj-as="cell">
+              <span class="oj-typography-body-md"><oj-bind-text value="[[ cell.row.type ]]"></oj-bind-text></span>
+            </template>
+            <template slot="statusTpl" data-oj-as="cell">
+              <span :class="[[ cell.row.badge ]]" :title="[[ 'Stored status: ' + cell.row.stored ]]"><oj-bind-text value="[[ cell.row.status ]]"></oj-bind-text></span>
+            </template>
+            <template slot="validTpl" data-oj-as="cell">
+              <div class="nx-rw-cell"><span class="oj-typography-body-md"><oj-bind-text value="[[ cell.row.dates ]]"></oj-bind-text></span>
+                <oj-bind-if test="[[ !!cell.row.ends ]]"><span class="oj-badge oj-badge-warning oj-badge-subtle"><oj-bind-text value="[[ cell.row.ends ]]"></oj-bind-text></span></oj-bind-if></div>
+            </template>
+            <template slot="linesTpl" data-oj-as="cell">
+              <span class="oj-typography-body-md"><oj-bind-text value="[[ cell.row.lines ]]"></oj-bind-text></span>
+            </template>
+            <template slot="nextTpl" data-oj-as="cell">
+              <span class="oj-typography-body-sm"><oj-bind-text value="[[ cell.row.next ]]"></oj-bind-text></span>
+            </template>
+            <template slot="noData">
+              <div class="oj-sm-padding-6x oj-typography-body-md oj-text-color-secondary"><oj-bind-text value="[[ $variables.unavailable ? $variables.unavailable
+                : ($variables.isLoading ? 'Loading the agreements…' : ($variables.rows.length ? 'Nothing matches. Try another filter or clear the search.' : 'No rental agreements yet.')) ]]"></oj-bind-text></div>
+            </template>
+          </oj-table>
+        </oj-sp-collection-container>
+      </oj-sp-smart-search-page>
+    </div>
+  </oj-bind-if>
+
+  <!-- ── Current ── -->
+  <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
   <div class="nx-pagehead">
     <div>
       <div class="nx-kicker">Commercial</div>
@@ -112,5 +182,6 @@
         </div>
       </section>
     </oj-bind-if>
+  </oj-bind-if>
   </oj-bind-if>
 </div>
