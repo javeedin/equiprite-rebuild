@@ -35,7 +35,21 @@
     "plan": {
       "type": "any[]",
       "defaultValue": [],
-      "description": "What will be posted: New's postingPlan over what is ticked (over everything ready for a role that may only look)."
+      "description": "What will be posted: New's postingPlan over what is ticked (over everything ready for a role that may only look).",
+      "onValueChanged": { "chains": [{ "chain": "rwApplyChain" }] }
+    },
+    "rwPlan": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood look (your menu): what will be posted, as Oracle's table's rows (rwApplyChain: the same plan the current look lists)."
+    },
+    "rwPlanADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "key",
+        "data": "{{ $page.variables.rwPlan }}"
+      }
     },
     "table": {
       "type": "any[]",
@@ -234,13 +248,24 @@
     },
     "onReverseCancel": {
       "chains": [{ "chain": "reverseLineChain", "parameters": { "confirm": "cancel" } }]
+    },
+    "onRwPost": {
+      "chains": [{ "chain": "panelChain", "parameters": { "panel": "post" } }]
+    },
+    "onRwAction": {
+      "chains": [{ "chain": "rwActionChain", "parameters": { "id": "{{ $event.detail.secondaryItem }}" } }]
+    },
+    "onRwBack": {
+      "chains": [{ "chain": "openListChain" }]
     }
   },
   "imports": {
     "components": {
       "oj-bind-for-each": { "path": "ojs/ojknockout" },
       "oj-bind-if": { "path": "ojs/ojknockout" },
-      "oj-bind-text": { "path": "ojs/ojknockout" }
+      "oj-bind-text": { "path": "ojs/ojknockout" },
+      "oj-sp-general-overview-page": { "path": "oj-sp/general-overview-page/loader" },
+      "oj-table": { "path": "ojs/ojtable" }
     }
   }
 }

@@ -3,6 +3,112 @@
      rules. A request opens in its own tab, where it is posted to Fusion PPM (who may post) or looked at (who may only
      look). After a post there, this list reads again. -->
 <div class="nx-page nx-pc">
+  <!-- ── Redwood (your menu, Look): Oracle's Smart Search page over the requests with cost (oj-table, oj-badge, oj-c buttons),
+       as Old's Post Costs. A row, or its Review & post, opens the request's costs in its own tab (openRecordChain), as on
+       the current look; the header's action is its "Post REQ-…". Smart Search's text and Status are the page's own search
+       and chip. Put on the page the first time Redwood is shown, then kept, hidden under Current. -->
+  <oj-bind-if test="[[ $application.variables.lookSeen ]]">
+    <div class="nx-rw" id="pcRedwood" :hidden="[[ $application.variables.look !== 'redwood' ]]">
+      <oj-sp-smart-search-page page-title="Post costs" display-mode="mixed"
+        page-subtitle="[[ $functions.summary($variables.list, $variables.breakdown, $variables.progress, $variables.isLoading) ]]"
+        primary-action="[[ $functions.rwPrimary($variables.rwNext, $variables.readOnly, $variables.closed) ]]" on-sp-primary-action="[[ $listeners.onRwPostNext ]]">
+        <oj-sp-smart-search slot="search" filter-criterion="{{ $variables.rwCriterion }}" on-filter-criterion-changed="[[ $listeners.onRwFilter ]]"
+          search-context="[[ $variables.rwSearchContext ]]" search-config="[[ $variables.rwSearchConfig.provider ]]"
+          suggestion-filters='["RequestFilter", "ProjectFilter", "RentalFilter", "StatusFilter", "CostFilter", "ReadyFilter", "PostedFilter", "TaskFilter"]'
+          placeholder="Request, project, task, agreement or PPM number"></oj-sp-smart-search>
+        <oj-sp-collection-container>
+          <!-- One element that is always there: the collection container takes its children in once, so what comes and goes
+               (the figures, once the screen is open) lives inside it. -->
+          <div class="nx-pc-rwtop">
+          <oj-bind-if test="[[ !$variables.closed ]]">
+            <section class="nx-kpis nx-u-kpis nx-pc-rwkpis" aria-label="Across the requests">
+              <div class="nx-kpi nx-u-kpi--ready" id="pcRwKpiReady">
+                <span class="nx-kpi-label">Ready to post</span>
+                <span class="nx-kpi-value"><oj-bind-text value="[[ $functions.money($functions.totals($variables.list, $variables.breakdown).ready) ]]"></oj-bind-text></span>
+                <span class="nx-kpi-note"><oj-bind-text value="[[ $functions.plural($functions.totals($variables.list, $variables.breakdown).readyRequests, 'request') + ' with weeks ended or charges not posted' ]]"></oj-bind-text></span>
+              </div>
+              <div class="nx-kpi nx-u-kpi--done" id="pcRwKpiPosted">
+                <span class="nx-kpi-label">Posted</span>
+                <span class="nx-kpi-value"><oj-bind-text value="[[ $functions.money($functions.totals($variables.list, $variables.breakdown).posted) ]]"></oj-bind-text></span>
+                <span class="nx-kpi-note">Recorded as posted in the posting ledger</span>
+              </div>
+              <div class="nx-kpi nx-u-kpi--run" id="pcRwKpiRunning">
+                <span class="nx-kpi-label">Running, not ended</span>
+                <span class="nx-kpi-value"><oj-bind-text value="[[ $functions.money($functions.totals($variables.list, $variables.breakdown).running) ]]"></oj-bind-text></span>
+                <span class="nx-kpi-note">This week's cost; ready to post once the week ends</span>
+              </div>
+              <div class="nx-kpi nx-u-kpi--muted" id="pcRwKpiCost">
+                <span class="nx-kpi-label">Cost to date</span>
+                <span class="nx-kpi-value"><oj-bind-text value="[[ $functions.money($functions.totals($variables.list, $variables.breakdown).cost) ]]"></oj-bind-text></span>
+                <span class="nx-kpi-note"><oj-bind-text value="[[ $functions.plural($functions.totals($variables.list, $variables.breakdown).requests, 'request') + ', weeks not started left out' ]]"></oj-bind-text></span>
+              </div>
+            </section>
+          </oj-bind-if>
+          <div class="nx-rw-tools nx-pc-rwtools">
+            <span class="oj-typography-body-sm oj-text-color-secondary nx-pc-rwnote" id="pcRwNote"><oj-bind-text value="[[ $functions.rwNote($variables.readOnly) ]]"></oj-bind-text></span>
+            <oj-c-button id="pcRwRefresh" label="Refresh" chroming="borderless" size="sm" disabled="[[ $variables.isLoading || !!$variables.closed ]]"
+              on-oj-action="[[ $listeners.onRefresh ]]"><span slot="startIcon" class="oj-ux-ico-refresh"></span></oj-c-button>
+            <oj-c-button id="pcRwExport" label="Export to Excel" chroming="borderless" size="sm" disabled="[[ !!$variables.closed ]]"
+              on-oj-action="[[ $listeners.onRwExport ]]"><span slot="startIcon" class="oj-ux-ico-download"></span></oj-c-button>
+          </div>
+          </div>
+          <oj-table id="pcRwTable" data="[[ $variables.rwADP ]]" class="oj-sm-width-full nx-rw-table" aria-label="Requests with cost"
+            scroll-policy="loadMoreOnScroll" scroll-policy-options.fetch-size="50" display="list" horizontal-grid-visible="enabled"
+            layout="fixed" on-oj-row-action="[[ $listeners.onRwRow ]]"
+            columns='[
+              {"headerText": "Request", "field": "id", "template": "numTpl", "sortable": "enabled", "weight": 12},
+              {"headerText": "Project", "field": "project", "template": "projTpl", "sortable": "enabled", "weight": 17},
+              {"headerText": "Rental", "field": "end", "template": "rentalTpl", "sortable": "enabled", "weight": 16},
+              {"headerText": "Status", "field": "kind", "template": "statusTpl", "sortable": "enabled", "weight": 15},
+              {"headerText": "Cost to date", "field": "costValue", "template": "costTpl", "sortable": "enabled", "weight": 12},
+              {"headerText": "Ready to post", "field": "readyValue", "template": "readyTpl", "sortable": "enabled", "weight": 15},
+              {"headerText": "Posted", "field": "postedValue", "template": "postedTpl", "sortable": "enabled", "weight": 13}
+            ]'>
+            <template slot="numTpl" data-oj-as="cell">
+              <div class="nx-rw-cell"><span class="oj-typography-body-md oj-typography-bold oj-link-standalone nx-rw-num"><oj-bind-text value="[[ cell.row.number ]]"></oj-bind-text></span>
+                <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.sub ]]"></oj-bind-text></span></div>
+            </template>
+            <template slot="projTpl" data-oj-as="cell">
+              <div class="nx-rw-cell"><span class="oj-typography-body-md"><oj-bind-text value="[[ cell.row.project ]]"></oj-bind-text></span>
+                <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.task ]]"></oj-bind-text></span></div>
+            </template>
+            <template slot="rentalTpl" data-oj-as="cell">
+              <div class="nx-rw-cell"><span class="oj-typography-body-md"><oj-bind-text value="[[ cell.row.rental ]]"></oj-bind-text></span>
+                <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.state ]]"></oj-bind-text></span>
+                <oj-bind-if test="[[ !!cell.row.running ]]"><span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.running ]]"></oj-bind-text></span></oj-bind-if></div>
+            </template>
+            <template slot="statusTpl" data-oj-as="cell">
+              <span :class="[[ cell.row.kindBadge ]]"><oj-bind-text value="[[ cell.row.kind ]]"></oj-bind-text></span>
+            </template>
+            <template slot="costTpl" data-oj-as="cell">
+              <div class="nx-rw-cell"><span class="oj-typography-body-md"><oj-bind-text value="[[ cell.row.cost ]]"></oj-bind-text></span>
+                <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.hours ]]"></oj-bind-text></span></div>
+            </template>
+            <template slot="readyTpl" data-oj-as="cell">
+              <div class="nx-rw-cell"><span class="oj-typography-body-md oj-typography-bold"><oj-bind-text value="[[ cell.row.ready ]]"></oj-bind-text></span>
+                <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.readyNote ]]"></oj-bind-text></span>
+                <oj-bind-if test="[[ cell.row.canPost ]]">
+                  <div class="nx-rw-steps" data-oj-clickthrough="disabled">
+                    <oj-c-button size="sm" label="Review &amp; post" chroming="callToAction" :data-number="[[ cell.row.number ]]" on-oj-action="[[ $listeners.onOpen ]]"></oj-c-button>
+                  </div>
+                </oj-bind-if></div>
+            </template>
+            <template slot="postedTpl" data-oj-as="cell">
+              <div class="nx-rw-cell"><span class="oj-typography-body-md"><oj-bind-text value="[[ cell.row.posted ]]"></oj-bind-text></span>
+                <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.lastPosted ]]"></oj-bind-text></span></div>
+            </template>
+            <template slot="noData">
+              <div class="oj-sm-padding-6x oj-typography-body-md oj-text-color-secondary"><oj-bind-text value="[[ $variables.isLoading ? 'Loading the requests with cost…'
+                : ($variables.closed ? $variables.closed : ($variables.list.length ? 'Nothing matches. Try another filter or clear the search.' : 'No request has cost to post.')) ]]"></oj-bind-text></div>
+            </template>
+          </oj-table>
+        </oj-sp-collection-container>
+      </oj-sp-smart-search-page>
+    </div>
+  </oj-bind-if>
+
+  <!-- ── The current look ────────────────────────────────────────────────────────────────────────────────── -->
+  <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
   <div class="nx-pagehead">
     <div>
       <h1>Post costs</h1>
@@ -34,6 +140,7 @@
       </oj-bind-if>
     </div>
   </div>
+  </oj-bind-if>
 
   <oj-bind-if test="[[ !!$variables.closed ]]">
     <div class="nx-card nx-empty" role="alert"><oj-bind-text value="[[ $variables.closed ]]"></oj-bind-text></div>
@@ -42,7 +149,7 @@
     <div class="nx-error" role="alert"><oj-bind-text value="[[ $variables.loadError ]]"></oj-bind-text></div>
   </oj-bind-if>
 
-  <oj-bind-if test="[[ !$variables.closed ]]">
+  <oj-bind-if test="[[ !$variables.closed && $application.variables.look !== 'redwood' ]]">
     <div class="nx-u-fusion" id="pcFusion">
       <oj-bind-if test="[[ !$variables.readOnly ]]">
         <p><strong>Post to Fusion PPM from here, request by request.</strong> Open a request to choose its ended weeks and charges, split

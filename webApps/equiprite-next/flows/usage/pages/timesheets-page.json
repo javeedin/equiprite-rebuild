@@ -12,16 +12,19 @@
     "queue": {
       "type": "any[]",
       "defaultValue": [],
-      "description": "views/timesheets: one row per request on site, with its current week."
+      "description": "views/timesheets: one row per request on site, with its current week.",
+      "onValueChanged": { "chains": [{ "chain": "rwApplyChain" }] }
     },
     "queueText": {
       "type": "string",
-      "defaultValue": ""
+      "defaultValue": "",
+      "onValueChanged": { "chains": [{ "chain": "rwApplyChain" }] }
     },
     "queueKind": {
       "type": "string",
       "defaultValue": "all",
-      "description": "all | todo | waiting | approved"
+      "description": "all | todo | waiting | approved",
+      "onValueChanged": { "chains": [{ "chain": "rwApplyChain" }] }
     },
     "queueLoading": {
       "type": "boolean",
@@ -29,7 +32,8 @@
     },
     "requestNumber": {
       "type": "string",
-      "defaultValue": ""
+      "defaultValue": "",
+      "onValueChanged": { "chains": [{ "chain": "rwApplyChain" }] }
     },
     "projectName": {
       "type": "string",
@@ -130,6 +134,222 @@
     "exportOpen": {
       "type": "boolean",
       "defaultValue": false
+    },
+    "rwRows": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood look (your menu): one oj-table row per request on site shown (rwApplyChain: the current look's queueShown, narrowed by rwCols)."
+    },
+    "rwADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "key",
+        "data": "{{ $page.variables.rwRows }}"
+      }
+    },
+    "rwShown": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood look: the requests its table shows, as loaded (for its export)."
+    },
+    "rwPage": {
+      "type": "object",
+      "defaultValue": { "text": "", "status": "" },
+      "description": "Redwood look: what Smart Search last said for the page's own search and chip (rwFilterChain passes on only a change)."
+    },
+    "rwCriterion": {
+      "type": "any",
+      "description": "Redwood look: the Smart Search criterion (text and filters); rwFilterChain reads it."
+    },
+    "rwCols": {
+      "type": "object",
+      "defaultValue": {
+        "number": "",
+        "project": "",
+        "task": "",
+        "equipment": "",
+        "week": "",
+        "hours": ""
+      },
+      "description": "Redwood look: the column filters picked in Smart Search (rwFilterChain); they narrow the Redwood table only."
+    },
+    "rwSearchConfig": {
+      "type": "oj-sp/smart-search/strategies/JsonSearchConfigProviderFactory",
+      "defaultValue": {
+        "url": "[[ $application.path + 'resources/data/timesheetsSearchConfig.json' ]]"
+      }
+    },
+    "rwNumbers": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood look: the Request filter's options (rwApplyChain, usageRedwood.tsOptions)."
+    },
+    "rwNumbersADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwNumbers }}"
+      }
+    },
+    "rwProjects": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood look: the Project filter's options with their counts."
+    },
+    "rwProjectsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwProjects }}"
+      }
+    },
+    "rwTasks": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood look: the Task filter's options with their counts."
+    },
+    "rwTasksADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwTasks }}"
+      }
+    },
+    "rwEquipment": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood look: the Equipment filter's options (how many pieces) with their counts."
+    },
+    "rwEquipmentADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwEquipment }}"
+      }
+    },
+    "rwWeeks": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood look: the Week filter's options (each request's current week) with their counts."
+    },
+    "rwWeeksADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwWeeks }}"
+      }
+    },
+    "rwHours": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood look: the Hours filter's options (no hours yet, with hours) with their counts."
+    },
+    "rwHoursADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwHours }}"
+      }
+    },
+    "rwStatuses": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood look: the Status filter's options: the current look's chips (queueKind) with their counts."
+    },
+    "rwStatusesADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwStatuses }}"
+      }
+    },
+    "rwSearchContext": {
+      "type": "object",
+      "defaultValue": {
+        "$search": {
+          "filters": {
+            "RequestFilter": {
+              "label": "Request",
+              "options": {
+                "optionsData": "[[ $page.variables.rwNumbersADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "ProjectFilter": {
+              "label": "Project",
+              "options": {
+                "optionsData": "[[ $page.variables.rwProjectsADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "TaskFilter": {
+              "label": "Task",
+              "options": {
+                "optionsData": "[[ $page.variables.rwTasksADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "EquipmentFilter": {
+              "label": "Equipment",
+              "options": {
+                "optionsData": "[[ $page.variables.rwEquipmentADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "WeekFilter": {
+              "label": "Week",
+              "options": {
+                "optionsData": "[[ $page.variables.rwWeeksADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "HoursFilter": {
+              "label": "Hours",
+              "options": {
+                "optionsData": "[[ $page.variables.rwHoursADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "StatusFilter": {
+              "label": "Status",
+              "options": {
+                "optionsData": "[[ $page.variables.rwStatusesADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            }
+          }
+        }
+      },
+      "description": "Redwood look: every filter in the search config has its entry here (one without throws and blanks the table)."
     }
   },
   "eventListeners": {
@@ -221,13 +441,21 @@
     },
     "onOpenApprove": {
       "chains": [{ "chain": "openScreenChain", "parameters": { "navId": "approve-time" } }]
-    }
+    },
+    "onRwFilter": { "chains": [{ "chain": "rwFilterChain" }] },
+    "onRwRow": { "chains": [{ "chain": "moveChain", "parameters": { "requestNumber": "{{ $event.detail.context.key }}" } }] },
+    "onRwExport": { "chains": [{ "chain": "exportChain", "parameters": { "format": "xlsx", "what": "rwqueue" } }] }
   },
   "imports": {
     "components": {
       "oj-bind-for-each": { "path": "ojs/ojknockout" },
       "oj-bind-if": { "path": "ojs/ojknockout" },
-      "oj-bind-text": { "path": "ojs/ojknockout" }
+      "oj-bind-text": { "path": "ojs/ojknockout" },
+      "oj-sp-smart-search-page": { "path": "oj-sp/smart-search-page/loader" },
+      "oj-sp-smart-search": { "path": "oj-sp/smart-search/loader" },
+      "oj-sp-collection-container": { "path": "oj-sp/collection-container/loader" },
+      "oj-table": { "path": "ojs/ojtable" },
+      "oj-c-button": { "path": "oj-c/button" }
     }
   }
 }

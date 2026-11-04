@@ -258,3 +258,42 @@
 .nx-grid--dch { min-width: 560px; }
 .nx-grid--dch .nx-row { grid-template-columns: 104px minmax(200px, 1fr) 90px 110px 120px; }
 @media (min-width: 1500px) { .nx-dc-split { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); } }
+
+/* ── Redwood (your menu, Look): the screens' Redwood views. Oracle's templates and components draw themselves (next-redwood.css
+   sets them out); these say only what a usage screen needs on top. Every rule speaks for the Redwood look alone. ─────── */
+/* Timesheets: Oracle's Smart Search page is as tall as its table (oj-sp sizes it to the window), so the week entry that a row
+   opens follows it at once, as one page; a long list of requests scrolls inside the table. */
+html[data-nx-look="redwood"] .nx-ts .nx-rw { margin-bottom: 16px; }
+html[data-nx-look="redwood"] .nx-ts .nx-rw .oj-sp-public-primary-content-container { min-height: 0 !important; }
+html[data-nx-look="redwood"] #tsRwTable { max-height: 440px; }
+
+/* Approve time: the week's figures and the bulk steps over Oracle's table, the adjustment above it; a line's tick is Oracle's
+   checkbox icon (a click on the line ticks it). */
+html[data-nx-look="redwood"] .nx-ta .nx-rw .nx-ta-rwppm, html[data-nx-look="redwood"] .nx-ta-rwkpis { margin-bottom: 16px; }
+html[data-nx-look="redwood"] .nx-ta-rwtools { justify-content: flex-start; flex-wrap: wrap; align-items: center; row-gap: 8px; }
+html[data-nx-look="redwood"] .nx-ta-rwbulk { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-right: auto; }
+html[data-nx-look="redwood"] .nx-ta .nx-rw .nx-u-msg { margin: 0 0 12px; }
+html[data-nx-look="redwood"] .nx-ta-rwadjust {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 12px; margin: 0 0 16px; padding: 16px; border: 1px solid var(--nx-line);
+  border-radius: 6px; background: var(--nx-surface-2);
+}
+html[data-nx-look="redwood"] .nx-ta-rwadjust .nx-ta-reason { align-self: stretch; flex: none; max-width: 640px; }
+html[data-nx-look="redwood"] .nx-ta-rwdays { display: flex; flex-wrap: wrap; gap: 8px; }
+html[data-nx-look="redwood"] .nx-ta-rwday { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--nx-muted); }
+html[data-nx-look="redwood"] .nx-ta-rwday .nx-ts-hours { width: 64px; height: 36px; border-radius: 4px; }
+html[data-nx-look="redwood"] .nx-ta-rwtick { font-size: 20px; color: var(--nx-faint); cursor: pointer; }
+html[data-nx-look="redwood"] .nx-ta-rwtick--on { color: var(--rw-brand); }
+
+/* Post costs: the figures across the requests over Oracle's table, and what a row leads to beside the table's tools. */
+html[data-nx-look="redwood"] .nx-pc-rwkpis { margin-bottom: 16px; }
+html[data-nx-look="redwood"] .nx-pc-rwtools { align-items: center; }
+html[data-nx-look="redwood"] .nx-pc-rwnote { margin-right: auto; }
+
+/* A request's costs (and Direct cost & inventory): Oracle's general overview page as the header over the screen's own body; the
+   plan to post as Oracle's table inside its card. */
+html[data-nx-look="redwood"] .nx-pr .nx-rw--head, html[data-nx-look="redwood"] .nx-dc .nx-rw--head { margin-bottom: 16px; }
+html[data-nx-look="redwood"] .nx-pr-rwplan { padding: 0 8px 8px; }
+html[data-nx-look="redwood"] .nx-dc-rwlines { padding: 0 8px 8px; }
+/* What comes and goes over a Redwood table sits in one element that is always there (oj-sp-collection-container takes its
+   children in once). */
+html[data-nx-look="redwood"] .nx-ta-rwtop, html[data-nx-look="redwood"] .nx-pc-rwtop { display: block; min-width: 0; }

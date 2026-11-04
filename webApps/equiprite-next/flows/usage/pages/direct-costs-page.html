@@ -2,6 +2,20 @@
      recorded, its direct costs and its cost history. Recording a material issue or a direct cost posts to Fusion, so it
      is done in New EquipRite (a link on the request). Reads only. -->
 <div class="nx-page nx-dc">
+  <!-- ── Redwood (your menu, Look): Oracle's general overview page as the header (the request open, Record in New EquipRite,
+       Refresh), over this screen's own body below, whose equipment and consumables are Oracle's table. The screen is mainly
+       the record of the request picked (its figures, lines, issues, costs and history), so it takes the record pattern.
+       Put on the page the first time Redwood is shown, then kept, hidden under Current. -->
+  <oj-bind-if test="[[ $application.variables.lookSeen ]]">
+    <div class="nx-rw nx-rw--head" id="dcRedwood" :hidden="[[ $application.variables.look !== 'redwood' ]]">
+      <oj-sp-general-overview-page page-title="Direct cost &amp; inventory" display-mode="mixed"
+        page-subtitle="[[ $functions.rwSubtitle($variables.requests, $variables.isLoading, $variables.current) ]]"
+        primary-action="[[ $functions.rwPrimary($application.variables.appUrls.new, $variables.current) ]]" on-sp-primary-action="[[ $listeners.onRwRecord ]]"
+        secondary-actions="[[ $functions.rwActions($variables.isLoading, $variables.detailLoading, $variables.closed) ]]" on-sp-secondary-action="[[ $listeners.onRwAction ]]">
+      </oj-sp-general-overview-page>
+    </div>
+  </oj-bind-if>
+  <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
   <div class="nx-pagehead">
     <div>
       <h1>Direct cost &amp; inventory</h1>
@@ -21,6 +35,7 @@
       </oj-bind-if>
     </div>
   </div>
+  </oj-bind-if>
 
   <oj-bind-if test="[[ !!$variables.closed ]]">
     <div class="nx-card nx-empty" role="alert"><oj-bind-text value="[[ $variables.closed ]]"></oj-bind-text></div>
@@ -130,6 +145,36 @@
           <div class="nx-empty"><oj-bind-text value="[[ $variables.detailLoading ? 'Loading the lines…' : 'This request has no line to record against.' ]]"></oj-bind-text></div>
         </oj-bind-if>
         <oj-bind-if test="[[ $variables.lines.length > 0 ]]">
+          <!-- Redwood: the same lines as Oracle's table, where each is as Oracle's badge. -->
+          <oj-bind-if test="[[ $application.variables.lookSeen ]]">
+            <div class="nx-dc-rwlines" :hidden="[[ $application.variables.look !== 'redwood' ]]">
+              <oj-table id="dcRwLines" data="[[ $variables.rwLinesADP ]]" class="oj-sm-width-full" display="list" horizontal-grid-visible="enabled" layout="fixed"
+                aria-label="Equipment and consumables"
+                columns='[
+                  {"headerText": "Equipment", "field": "name", "template": "nameTpl", "sortable": "disabled", "weight": 30},
+                  {"headerText": "Requested", "field": "requested", "template": "numTpl", "sortable": "disabled", "weight": 11, "headerClassName": "oj-helper-text-align-end", "className": "oj-helper-text-align-end"},
+                  {"headerText": "Delivered", "field": "delivered", "template": "numTpl", "sortable": "disabled", "weight": 11, "headerClassName": "oj-helper-text-align-end", "className": "oj-helper-text-align-end"},
+                  {"headerText": "Used", "field": "used", "template": "numTpl", "sortable": "disabled", "weight": 10, "headerClassName": "oj-helper-text-align-end", "className": "oj-helper-text-align-end"},
+                  {"headerText": "Left", "field": "left", "template": "leftTpl", "sortable": "disabled", "weight": 10, "headerClassName": "oj-helper-text-align-end", "className": "oj-helper-text-align-end"},
+                  {"headerText": "Where it is", "field": "word", "template": "whereTpl", "sortable": "disabled", "weight": 28}
+                ]'>
+                <template slot="nameTpl" data-oj-as="cell">
+                  <div class="nx-rw-cell"><span class="oj-typography-body-md"><oj-bind-text value="[[ cell.row.name ]]"></oj-bind-text></span>
+                    <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.kind ]]"></oj-bind-text></span></div>
+                </template>
+                <template slot="numTpl" data-oj-as="cell">
+                  <span class="oj-typography-body-md"><oj-bind-text value="[[ cell.data ]]"></oj-bind-text></span>
+                </template>
+                <template slot="leftTpl" data-oj-as="cell">
+                  <span :class="[[ cell.row.none ? 'oj-typography-body-md oj-typography-bold oj-text-color-secondary' : 'oj-typography-body-md oj-typography-bold' ]]"><oj-bind-text value="[[ cell.data ]]"></oj-bind-text></span>
+                </template>
+                <template slot="whereTpl" data-oj-as="cell">
+                  <span :class="[[ cell.row.badge ]]"><oj-bind-text value="[[ cell.row.word ]]"></oj-bind-text></span>
+                </template>
+              </oj-table>
+            </div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
           <div class="nx-table">
             <div class="nx-grid nx-grid--dcl" role="table" aria-label="Equipment and consumables">
               <div class="nx-row nx-row--head" role="row">
@@ -152,6 +197,7 @@
               </oj-bind-for-each>
             </div>
           </div>
+          </oj-bind-if>
         </oj-bind-if>
       </section>
 

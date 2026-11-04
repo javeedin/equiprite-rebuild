@@ -10,23 +10,28 @@
     },
     "rowsAll": {
       "type": "any[]",
-      "defaultValue": []
+      "defaultValue": [],
+      "onValueChanged": { "chains": [{ "chain": "rwApplyChain" }] }
     },
     "weekKey": {
       "type": "string",
-      "defaultValue": ""
+      "defaultValue": "",
+      "onValueChanged": { "chains": [{ "chain": "rwApplyChain" }] }
     },
     "weekDays": {
       "type": "any[]",
-      "defaultValue": []
+      "defaultValue": [],
+      "onValueChanged": { "chains": [{ "chain": "rwApplyChain" }] }
     },
     "statusKey": {
       "type": "string",
-      "defaultValue": "SUBMITTED"
+      "defaultValue": "SUBMITTED",
+      "onValueChanged": { "chains": [{ "chain": "rwApplyChain" }] }
     },
     "searchText": {
       "type": "string",
-      "defaultValue": ""
+      "defaultValue": "",
+      "onValueChanged": { "chains": [{ "chain": "rwApplyChain" }] }
     },
     "compare": {
       "type": "boolean",
@@ -35,7 +40,8 @@
     "onlyLook": {
       "type": "boolean",
       "defaultValue": false,
-      "description": "Show only the lines that need a look."
+      "description": "Show only the lines that need a look.",
+      "onValueChanged": { "chains": [{ "chain": "rwApplyChain" }] }
     },
     "picked": {
       "type": "any",
@@ -48,7 +54,8 @@
     },
     "auditByEntry": {
       "type": "any",
-      "defaultValue": {}
+      "defaultValue": {},
+      "onValueChanged": { "chains": [{ "chain": "rwApplyChain" }] }
     },
     "costByRequest": {
       "type": "any",
@@ -66,7 +73,8 @@
     },
     "readOnly": {
       "type": "boolean",
-      "defaultValue": false
+      "defaultValue": false,
+      "onValueChanged": { "chains": [{ "chain": "rwApplyChain" }] }
     },
     "isLoading": {
       "type": "boolean",
@@ -91,6 +99,274 @@
     "exportOpen": {
       "type": "boolean",
       "defaultValue": false
+    },
+    "rwRows": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood look (your menu): one oj-table row per line shown (rwApplyChain: the current look's shown(), narrowed by rwCols)."
+    },
+    "rwADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "key",
+        "data": "{{ $page.variables.rwRows }}"
+      }
+    },
+    "rwKeys": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood look: the keys of the lines its table shows (for its export)."
+    },
+    "rwPage": {
+      "type": "object",
+      "defaultValue": {
+        "text": "",
+        "week": "",
+        "status": "",
+        "hours": ""
+      },
+      "description": "Redwood look: what Smart Search last said for the page's own week, status, search and needs-a-look (rwFilterChain passes on only a change)."
+    },
+    "rwCriterion": {
+      "type": "any",
+      "description": "Redwood look: the Smart Search criterion (text and filters); rwFilterChain reads it."
+    },
+    "rwCols": {
+      "type": "object",
+      "defaultValue": {
+        "number": "",
+        "project": "",
+        "type": "",
+        "hours": "",
+        "change": "",
+        "equipment": "",
+        "submitter": ""
+      },
+      "description": "Redwood look: the column filters picked in Smart Search (rwFilterChain); they narrow the Redwood table only."
+    },
+    "rwSearchConfig": {
+      "type": "oj-sp/smart-search/strategies/JsonSearchConfigProviderFactory",
+      "defaultValue": {
+        "url": "[[ $application.path + 'resources/data/approveTimeSearchConfig.json' ]]"
+      }
+    },
+    "rwNumbers": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood look: the Request filter's options with their counts (rwApplyChain, usageRedwood.taOptions)."
+    },
+    "rwNumbersADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwNumbers }}"
+      }
+    },
+    "rwProjects": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood look: the Project filter's options with their counts."
+    },
+    "rwProjectsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwProjects }}"
+      }
+    },
+    "rwTypes": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood look: the Rate type filter's options with their counts."
+    },
+    "rwTypesADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwTypes }}"
+      }
+    },
+    "rwHours": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood look: the Hours filter's options (needs a look: the page's own onlyLook; looks right) with their counts."
+    },
+    "rwHoursADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwHours }}"
+      }
+    },
+    "rwChanges": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood look: the On last week filter's options with their counts."
+    },
+    "rwChangesADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwChanges }}"
+      }
+    },
+    "rwStatuses": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood look: the Status filter's options: the page's own status buttons (statusKey) with their counts."
+    },
+    "rwStatusesADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwStatuses }}"
+      }
+    },
+    "rwWeeks": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood look: the Week filter's options: the page's own week chips (weekKey) with how many lines each holds."
+    },
+    "rwWeeksADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwWeeks }}"
+      }
+    },
+    "rwEquipment": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood look: the Equipment filter's options with their counts."
+    },
+    "rwEquipmentADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwEquipment }}"
+      }
+    },
+    "rwSubmitters": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood look: the Submitted by filter's options with their counts."
+    },
+    "rwSubmittersADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwSubmitters }}"
+      }
+    },
+    "rwSearchContext": {
+      "type": "object",
+      "defaultValue": {
+        "$search": {
+          "filters": {
+            "RequestFilter": {
+              "label": "Request",
+              "options": {
+                "optionsData": "[[ $page.variables.rwNumbersADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "ProjectFilter": {
+              "label": "Project",
+              "options": {
+                "optionsData": "[[ $page.variables.rwProjectsADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "TypeFilter": {
+              "label": "Rate type",
+              "options": {
+                "optionsData": "[[ $page.variables.rwTypesADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "HoursFilter": {
+              "label": "Hours",
+              "options": {
+                "optionsData": "[[ $page.variables.rwHoursADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "ChangeFilter": {
+              "label": "On last week",
+              "options": {
+                "optionsData": "[[ $page.variables.rwChangesADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "StatusFilter": {
+              "label": "Status",
+              "options": {
+                "optionsData": "[[ $page.variables.rwStatusesADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "WeekFilter": {
+              "label": "Week",
+              "options": {
+                "optionsData": "[[ $page.variables.rwWeeksADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "EquipmentFilter": {
+              "label": "Equipment",
+              "options": {
+                "optionsData": "[[ $page.variables.rwEquipmentADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "SubmitterFilter": {
+              "label": "Submitted by",
+              "options": {
+                "optionsData": "[[ $page.variables.rwSubmittersADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            }
+          }
+        }
+      },
+      "description": "Redwood look: every filter in the search config has its entry here (one without throws and blanks the table)."
     }
   },
   "eventListeners": {
@@ -165,13 +441,23 @@
     },
     "onOpenTimesheets": {
       "chains": [{ "chain": "openScreenChain", "parameters": { "navId": "timesheets" } }]
-    }
+    },
+    "onRwFilter": { "chains": [{ "chain": "rwFilterChain" }] },
+    "onRwRow": { "chains": [{ "chain": "rwPickChain", "parameters": { "key": "{{ $event.detail.context.key }}" } }] },
+    "onRwExport": { "chains": [{ "chain": "exportChain", "parameters": { "format": "xlsx", "redwood": true } }] },
+    "onRwPickAll": { "chains": [{ "chain": "filterChain", "parameters": { "action": "pickAll", "value": "true", "redwood": true } }] },
+    "onRwPickClean": { "chains": [{ "chain": "filterChain", "parameters": { "action": "pickClean", "redwood": true } }] }
   },
   "imports": {
     "components": {
       "oj-bind-for-each": { "path": "ojs/ojknockout" },
       "oj-bind-if": { "path": "ojs/ojknockout" },
-      "oj-bind-text": { "path": "ojs/ojknockout" }
+      "oj-bind-text": { "path": "ojs/ojknockout" },
+      "oj-sp-smart-search-page": { "path": "oj-sp/smart-search-page/loader" },
+      "oj-sp-smart-search": { "path": "oj-sp/smart-search/loader" },
+      "oj-sp-collection-container": { "path": "oj-sp/collection-container/loader" },
+      "oj-table": { "path": "ojs/ojtable" },
+      "oj-c-button": { "path": "oj-c/button" }
     }
   }
 }

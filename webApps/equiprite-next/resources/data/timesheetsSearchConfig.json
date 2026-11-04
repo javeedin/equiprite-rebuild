@@ -1,0 +1,75 @@
+{
+  "description": "Timesheets (Redwood view): the Smart Search filters, one per column as the table shows them (Request, Project, Task, Equipment, Week, Hours, Status). Status is the page's own chip; the others narrow the Redwood table only. Every filter here needs its entry in timesheets-page.json's rwSearchContext (the widget evaluates every filter in this file, and one without context throws and blanks the table).",
+  "filters": {
+    "RequestFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Request",
+      "options": {
+        "field": "number",
+        "optionsData": "[[ $search.filters.RequestFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.RequestFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "ProjectFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Project",
+      "options": {
+        "field": "project",
+        "optionsData": "[[ $search.filters.ProjectFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.ProjectFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "TaskFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Task",
+      "options": {
+        "field": "task",
+        "optionsData": "[[ $search.filters.TaskFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.TaskFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "EquipmentFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Equipment",
+      "options": {
+        "field": "equipment",
+        "optionsData": "[[ $search.filters.EquipmentFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.EquipmentFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "WeekFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Week",
+      "options": {
+        "field": "week",
+        "optionsData": "[[ $search.filters.WeekFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.WeekFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "HoursFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Hours",
+      "options": {
+        "field": "hours",
+        "optionsData": "[[ $search.filters.HoursFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.HoursFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "StatusFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Status",
+      "options": {
+        "field": "status",
+        "optionsData": "[[ $search.filters.StatusFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.StatusFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    }
+  }
+}

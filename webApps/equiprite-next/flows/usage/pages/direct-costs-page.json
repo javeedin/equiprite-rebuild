@@ -32,11 +32,26 @@
     "lines": {
       "type": "any[]",
       "defaultValue": [],
-      "description": "New's issuableLines of views/request-detail-lines."
+      "description": "New's issuableLines of views/request-detail-lines.",
+      "onValueChanged": { "chains": [{ "chain": "rwApplyChain" }] }
     },
     "consumptions": {
       "type": "any[]",
-      "defaultValue": []
+      "defaultValue": [],
+      "onValueChanged": { "chains": [{ "chain": "rwApplyChain" }] }
+    },
+    "rwLines": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood look (your menu): the request's equipment and consumables as Oracle's table rows (rwApplyChain, from lineRows)."
+    },
+    "rwLinesADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "key",
+        "data": "{{ $page.variables.rwLines }}"
+      }
     },
     "directCosts": {
       "type": "any[]",
@@ -83,13 +98,21 @@
           "parameters": { "format": "{{ $event.currentTarget.dataset.format }}", "what": "{{ $event.currentTarget.dataset.what }}" }
         }
       ]
+    },
+    "onRwRecord": {
+      "chains": [{ "chain": "rwActionChain", "parameters": { "id": "record" } }]
+    },
+    "onRwAction": {
+      "chains": [{ "chain": "rwActionChain", "parameters": { "id": "{{ $event.detail.secondaryItem }}" } }]
     }
   },
   "imports": {
     "components": {
       "oj-bind-for-each": { "path": "ojs/ojknockout" },
       "oj-bind-if": { "path": "ojs/ojknockout" },
-      "oj-bind-text": { "path": "ojs/ojknockout" }
+      "oj-bind-text": { "path": "ojs/ojknockout" },
+      "oj-sp-general-overview-page": { "path": "oj-sp/general-overview-page/loader" },
+      "oj-table": { "path": "ojs/ojtable" }
     }
   }
 }
