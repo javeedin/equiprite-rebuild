@@ -1,8 +1,22 @@
 <div class="nx-page nx-soon">
+  <!-- Redwood (your menu, Look): Oracle's general overview page as the header: the screen, and its two links as the header's
+       actions (Open it in New EquipRite the primary). Over the card below. Put on the page the first time Redwood is shown,
+       then kept, hidden under Current. -->
+  <oj-bind-if test="[[ $application.variables.lookSeen ]]">
+    <div class="nx-rw nx-rw--head" id="soonRedwood" :hidden="[[ $application.variables.look !== 'redwood' ]]">
+      <oj-sp-general-overview-page display-mode="mixed" page-title="[[ $functions.item($variables.navId).label ]]" page-subtitle="Being built for EquipRite Next"
+        primary-action="[[ $functions.rwPrimary($application.variables.appUrls.new, $variables.navId) ]]" on-sp-primary-action="[[ $listeners.onRwPrimary ]]"
+        secondary-actions="[[ $functions.rwActions($application.variables.appUrls.old) ]]" on-sp-secondary-action="[[ $listeners.onRwAction ]]">
+      </oj-sp-general-overview-page>
+    </div>
+  </oj-bind-if>
   <div class="nx-card nx-card-pad nx-soon-card">
     <span :class="[[ $functions.item($variables.navId).icon + ' nx-soon-icon' ]]" aria-hidden="true"></span>
-    <h1><oj-bind-text value="[[ $functions.item($variables.navId).label ]]"></oj-bind-text></h1>
+    <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
+      <h1><oj-bind-text value="[[ $functions.item($variables.navId).label ]]"></oj-bind-text></h1>
+    </oj-bind-if>
     <p class="nx-muted">This screen is being designed and built for EquipRite Next. Meanwhile it works in New EquipRite, with the same data.</p>
+    <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
     <div class="nx-actions">
       <oj-bind-if test="[[ !!$functions.newUrl($application.variables.appUrls.new, $variables.navId) ]]">
         <a class="nx-btn nx-btn--primary" id="soonOpenNew" :href="[[ $functions.newUrl($application.variables.appUrls.new, $variables.navId) ]]">
@@ -12,5 +26,6 @@
         <a class="nx-btn" :href="[[ $application.variables.appUrls.old ]]">Open Old EquipRite</a>
       </oj-bind-if>
     </div>
+    </oj-bind-if>
   </div>
 </div>

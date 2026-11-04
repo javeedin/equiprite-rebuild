@@ -839,3 +839,17 @@ a.nx-version:focus-visible { outline: 2px solid var(--nx-accent); outline-offset
 .nx-rw-table .oj-table-data-cell { white-space: normal; }
 .nx-rw-num { cursor: pointer; }
 .nx-rw-steps { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+
+/* ── REDWOOD ONLY: My work, a request's tab and a screen being built, in the Redwood look (your menu). Their Redwood view
+   is Oracle's general overview header (#workRedwood, #recRedwood, #soonRedwood) over their own body; Oracle's components
+   carry the type and colours, these rules only place these screens' own parts among them. Every rule here starts with
+   html[data-nx-look="redwood"], so the Current look is untouched. ─────────────────────────────────────────────────── */
+/* My work: "open a request" in the header's search slot, as Old puts its fields there. */
+html[data-nx-look="redwood"] .nx-work .nx-work-rwsearch { width: 100%; max-width: 440px; padding-top: 4px; }
+html[data-nx-look="redwood"] .nx-work .nx-work-rwfind { width: 100%; }
+/* A request's tab: its equipment as Oracle's table (figures to the end, as the current look sets them). */
+html[data-nx-look="redwood"] .nx-record .nx-rec-rwlines { border-top: 1px solid var(--nx-line); }
+html[data-nx-look="redwood"] .nx-record .nx-rec-rwnum { text-align: end; font-variant-numeric: tabular-nums; }
+html[data-nx-look="redwood"] .nx-record .nx-rec-rwlines .oj-badge { white-space: normal; height: auto; max-width: 100%; line-height: 18px; padding-top: 3px; padding-bottom: 3px; }
+/* A screen being built: the card under the header. */
+html[data-nx-look="redwood"] .nx-soon .nx-soon-card { margin-top: 8px; }

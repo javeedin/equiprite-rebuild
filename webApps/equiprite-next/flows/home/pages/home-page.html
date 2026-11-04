@@ -1,5 +1,21 @@
 <!-- My work: what needs this persona now, their counts, their latest requests, where they start. (myWork.js) -->
 <div class="nx-page nx-work" id="page-home">
+  <!-- Redwood (your menu, Look): Oracle's general overview page as the header, as Old's home: the greeting, the role and
+       today, Refresh; "open a request" sits in the header's own search slot, as Old puts its fields there. Over this
+       screen's own body below. Put on the page the first time Redwood is shown, then kept, hidden under Current. -->
+  <oj-bind-if test="[[ $application.variables.lookSeen ]]">
+    <div class="nx-rw nx-rw--head" id="workRedwood" :hidden="[[ $application.variables.look !== 'redwood' ]]">
+      <oj-sp-general-overview-page display-mode="mixed" page-title="[[ $functions.greeting($application.user, $application.functions) ]]"
+        page-subtitle="[[ $functions.rwSub($variables.persona, $application.functions) ]]"
+        secondary-actions="[[ $functions.rwActions($variables.isLoading) ]]" on-sp-secondary-action="[[ $listeners.onRefresh ]]">
+        <div slot="search" class="nx-work-rwsearch">
+          <oj-c-input-text id="workRwFind" class="nx-work-rwfind" label-hint="Open a request by number" label-edge="none" clear-icon="conditional"
+            placeholder="Open a request: type its number, Enter" on-keyup="[[ $listeners.onFind ]]"></oj-c-input-text>
+        </div>
+      </oj-sp-general-overview-page>
+    </div>
+  </oj-bind-if>
+  <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
   <div class="nx-pagehead">
     <div>
       <div class="nx-kicker"><oj-bind-text value="[[ $functions.today() ]]"></oj-bind-text></div>
@@ -16,6 +32,7 @@
         <span class="oj-ux-ico-refresh" aria-hidden="true"></span>Refresh</button>
     </div>
   </div>
+  </oj-bind-if>
 
   <oj-bind-if test="[[ $variables.personas.length > 1 ]]">
     <div class="nx-chips" role="group" aria-label="View work as">

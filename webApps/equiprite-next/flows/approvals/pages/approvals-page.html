@@ -2,6 +2,150 @@
      lines, what is free, the suggested units; approve or send back, auto-allocate or pick units. Every action says
      what it will do before it does it, and what it did after. Logic: approvalQueue.js; calls: approveAllocate.js. -->
 <div class="nx-page nx-approvals">
+  <!-- ── The Redwood look (your menu): Oracle's own templates, as Old's Equipment Manager Workbench. The queue is a Smart
+       Search page (a filter per column, oj-table, oj-badge, oj-c buttons) on the same queue, filters, ticks and bulk
+       decision (applyChain, rwFilterChain, tickChain, bulkChain). A request chosen, or handed over by another screen
+       (focus), shows Oracle's general overview header with the way back over this screen's own panel below (rwActionChain).
+       Put on the page the first time Redwood is shown, then kept, hidden under Current. ── -->
+  <oj-bind-if test="[[ $application.variables.lookSeen ]]">
+    <div class="nx-rw" id="apRedwood" :hidden="[[ $functions.rwMode($application.variables.look, $variables.current.key, $variables.focus.number) !== 'list' ]]">
+      <oj-sp-smart-search-page page-title="Approve &amp; allocate" display-mode="mixed"
+        page-subtitle="[[ $variables.isLoading && !$variables.rows.length ? 'Loading the requests and their equipment…' : $variables.summary ]]">
+        <oj-sp-smart-search slot="search" filter-criterion="{{ $variables.rwCriterion }}" on-filter-criterion-changed="[[ $listeners.onRwFilter ]]"
+          search-context="[[ $variables.rwSearchContext ]]" search-config="[[ $variables.rwSearchConfig.provider ]]"
+          suggestion-filters='["RequestFilter", "PartyFilter", "NeedsFilter", "EquipmentFilter", "DatesFilter", "TypeFilter", "RequesterFilter"]'
+          placeholder="Request, project, customer, requester or equipment"></oj-sp-smart-search>
+        <oj-sp-collection-container>
+          <!-- One element round what comes and goes over the table: the container takes its children as they are when it
+               starts, so a message or the bulk bar shown later must sit inside an element that is already there. -->
+          <div class="nx-ap-rw-top">
+          <oj-bind-if test="[[ $variables.access === 'READ_ONLY' ]]">
+            <div class="nx-ap-rw-msg" role="note"><span class="oj-ux-ico-information" aria-hidden="true"></span>
+              You can follow the queue. Approving, sending back and assigning units need full access to Approve &amp; allocate.</div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ !!$variables.error ]]">
+            <div class="nx-ap-rw-msg nx-ap-rw-msg--error" role="alert"><oj-bind-text value="[[ $variables.error ]]"></oj-bind-text></div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ !$variables.isLoading && !$variables.linesLoaded && !$variables.error ]]">
+            <div class="nx-ap-rw-msg nx-ap-rw-msg--error" role="alert">The equipment on the requests could not be read, so approved lines still needing a unit cannot be listed. Refresh to try again.</div>
+          </oj-bind-if>
+          <div class="nx-rw-tools nx-ap-rw-tools">
+            <oj-bind-if test="[[ $variables.canAct && $functions.decideCount($variables.rwRows) > 0 ]]">
+              <label class="nx-ap-tickall"><input type="checkbox" id="apRwTickAll" data-id="rwall" on-change="[[ $listeners.onTick ]]"
+                :checked="[[ $functions.allTicked($variables.selectedIds, $variables.rwRows) ]]">Tick every request to decide</label>
+            </oj-bind-if>
+            <span class="nx-ap-rw-fill"></span>
+            <oj-c-button id="apRwRefresh" label="Refresh" chroming="borderless" size="sm" disabled="[[ $variables.isLoading || $variables.busy ]]" on-oj-action="[[ $listeners.onRefresh ]]">
+              <span slot="startIcon" class="oj-ux-ico-refresh"></span></oj-c-button>
+            <oj-c-button id="apRwExport" label="Export to Excel" chroming="borderless" size="sm" on-oj-action="[[ $listeners.onRwExport ]]">
+              <span slot="startIcon" class="oj-ux-ico-download"></span></oj-c-button>
+          </div>
+
+          <!-- Bulk: the ticked requests to decide (bulkChain), as on the current look -->
+          <oj-bind-if test="[[ $variables.canAct && $variables.selection.count > 0 ]]">
+            <div class="nx-ap-rw-bulk" id="apRwBulk" role="group" aria-label="The ticked requests">
+              <div class="nx-ap-bulk-row">
+                <span class="nx-ap-bulk-text"><oj-bind-text value="[[ $variables.selection.text ]]"></oj-bind-text></span>
+                <div class="nx-ap-rw-acts">
+                  <oj-c-button id="apRwBulkClear" label="Clear" chroming="borderless" disabled="[[ $variables.busy ]]" on-oj-action="[[ $listeners.onRwTickNone ]]"></oj-c-button>
+                  <oj-c-button id="apRwBulkAskReject" :label="[[ 'Send back ' + $functions.count($variables.selection.count, 'request') + '…' ]]" chroming="outlined"
+                    data-action="askReject" disabled="[[ $variables.busy ]]" on-oj-action="[[ $listeners.onBulk ]]"></oj-c-button>
+                  <oj-c-button id="apRwBulkApprove" :label="[[ 'Approve ' + $functions.count($variables.selection.count, 'request') ]]" chroming="callToAction"
+                    data-action="approve" disabled="[[ $variables.busy ]]" on-oj-action="[[ $listeners.onBulk ]]"></oj-c-button>
+                </div>
+              </div>
+              <p class="nx-note nx-ap-bulk-note">Approve: every open line of each request is approved and the request moves on to unit assignment. Done one request after another: one that fails does not stop the others.</p>
+              <oj-bind-if test="[[ $variables.bulk.mode === 'reject' ]]">
+                <div class="nx-ap-confirm nx-ap-confirm--danger" id="apRwBulkReject" role="group" aria-label="Send back the ticked requests">
+                  <p><oj-bind-text value="[[ 'Every open line of the ' + $functions.count($variables.selection.count, 'ticked request') + ' goes back to its requester with your reason, and each request is sent back. A line sent back cannot be approved later.' ]]"></oj-bind-text></p>
+                  <label class="nx-ap-label" for="apRwBulkReason">Reason (each requester gets it)</label>
+                  <textarea id="apRwBulkReason" class="nx-ap-textarea" rows="2" :value="[[ $variables.bulk.reason ]]" on-input="[[ $listeners.onBulkReason ]]"
+                    placeholder="For example: dates clash with the shutdown; resubmit for December"></textarea>
+                  <oj-bind-if test="[[ !!$variables.bulk.error ]]"><p class="nx-ap-formerror" role="alert"><oj-bind-text value="[[ $variables.bulk.error ]]"></oj-bind-text></p></oj-bind-if>
+                  <div class="nx-ap-rw-acts">
+                    <oj-c-button label="Cancel" chroming="borderless" data-action="cancel" disabled="[[ $variables.busy ]]" on-oj-action="[[ $listeners.onBulk ]]"></oj-c-button>
+                    <oj-c-button id="apRwBulkConfirmReject" :label="[[ 'Send back ' + $functions.count($variables.selection.count, 'request') ]]" chroming="danger"
+                      data-action="reject" disabled="[[ $variables.busy ]]" on-oj-action="[[ $listeners.onBulk ]]"></oj-c-button>
+                  </div>
+                </div>
+              </oj-bind-if>
+              <oj-bind-if test="[[ $variables.busy && !!$variables.busyText && $variables.busyWhere === 'bulk' ]]">
+                <p class="nx-ap-busy" role="status"><span class="nx-ap-spin" aria-hidden="true"></span><oj-bind-text value="[[ $variables.busyText ]]"></oj-bind-text></p>
+              </oj-bind-if>
+            </div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ !!$variables.bulkResult ]]">
+            <div :class="[[ 'nx-ap-rw-msg nx-ap-rw-result nx-ap-tone--' + ($variables.bulkResult ? $variables.bulkResult.tone : 'ok') ]]" id="apRwBulkResult" role="status">
+              <div class="nx-ap-result-head">
+                <strong><oj-bind-text value="[[ $variables.bulkResult ? $variables.bulkResult.title : '' ]]"></oj-bind-text></strong>
+                <oj-c-button label="Dismiss" display="icons" chroming="borderless" size="sm" on-oj-action="[[ $listeners.onDismissBulk ]]">
+                  <span slot="startIcon" class="oj-ux-ico-close"></span></oj-c-button>
+              </div>
+              <ul class="nx-ap-result-list">
+                <oj-bind-for-each data="[[ $functions.bulkLines($variables.bulkResult) ]]">
+                  <template data-oj-as="d"><li><strong><oj-bind-text value="[[ d.data.number ]]"></oj-bind-text></strong> <oj-bind-text value="[[ d.data.text ]]"></oj-bind-text></li></template>
+                </oj-bind-for-each>
+              </ul>
+            </div>
+          </oj-bind-if>
+          </div>
+
+          <oj-table id="apRwTable" data="[[ $variables.rwADP ]]" class="oj-sm-width-full nx-rw-table" aria-label="Requests waiting on you, most urgent first"
+            scroll-policy="loadMoreOnScroll" scroll-policy-options.fetch-size="50" display="list" horizontal-grid-visible="enabled"
+            layout="fixed" on-oj-row-action="[[ $listeners.onRwRow ]]"
+            columns='[
+              {"headerText": "Request", "field": "number", "template": "numTpl", "sortable": "enabled", "style": "width:18%;"},
+              {"headerText": "Project or customer", "field": "party", "template": "partyTpl", "sortable": "enabled", "style": "width:20%;"},
+              {"headerText": "Waiting for", "field": "needs", "template": "needsTpl", "sortable": "enabled", "style": "width:23%;"},
+              {"headerText": "Equipment", "field": "equipment", "template": "eqTpl", "sortable": "disabled", "style": "width:21%;"},
+              {"headerText": "Dates", "field": "start", "template": "datesTpl", "sortable": "enabled", "style": "width:18%;"}
+            ]'>
+            <template slot="numTpl" data-oj-as="cell">
+              <div class="nx-ap-rw-req">
+                <oj-bind-if test="[[ cell.row.tickable ]]">
+                  <span class="nx-ap-rw-tick" data-oj-clickthrough="disabled"><input type="checkbox" :data-id="[[ cell.row.key ]]" on-change="[[ $listeners.onTick ]]"
+                    :checked="[[ cell.row.ticked ]]" :aria-label="[[ 'Tick ' + cell.row.number ]]"></span>
+                </oj-bind-if>
+                <div class="nx-rw-cell"><span class="oj-typography-body-md oj-typography-bold oj-link-standalone nx-rw-num"><oj-bind-text value="[[ cell.row.number ]]"></oj-bind-text></span>
+                  <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.type + ' · ' + cell.row.requester ]]"></oj-bind-text></span></div>
+              </div>
+            </template>
+            <template slot="partyTpl" data-oj-as="cell">
+              <div class="nx-rw-cell"><span class="oj-typography-body-md"><oj-bind-text value="[[ cell.row.party ]]"></oj-bind-text></span>
+                <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.task ]]"></oj-bind-text></span></div>
+            </template>
+            <template slot="needsTpl" data-oj-as="cell">
+              <div class="nx-rw-cell"><span :class="[[ cell.row.badge ]]"><oj-bind-text value="[[ cell.row.needs ]]"></oj-bind-text></span>
+                <span class="oj-typography-body-sm"><oj-bind-text value="[[ cell.row.detail ]]"></oj-bind-text></span>
+                <oj-bind-if test="[[ !!cell.row.lateWhy ]]"><span class="oj-typography-body-sm oj-text-color-danger"><oj-bind-text value="[[ cell.row.lateWhy ]]"></oj-bind-text></span></oj-bind-if></div>
+            </template>
+            <template slot="eqTpl" data-oj-as="cell">
+              <span class="oj-typography-body-sm"><oj-bind-text value="[[ cell.row.equipment ]]"></oj-bind-text></span>
+            </template>
+            <template slot="datesTpl" data-oj-as="cell">
+              <div class="nx-rw-cell"><span class="oj-typography-body-md"><oj-bind-text value="[[ cell.row.dates ]]"></oj-bind-text></span>
+                <span :class="[[ 'oj-typography-body-sm ' + (cell.row.late ? 'oj-text-color-danger' : 'oj-text-color-secondary') ]]"><oj-bind-text value="[[ cell.row.when ]]"></oj-bind-text></span></div>
+            </template>
+            <template slot="noData">
+              <div class="oj-sm-padding-6x oj-typography-body-md oj-text-color-secondary"><oj-bind-text value="[[ $variables.isLoading ? 'Loading the queue…'
+                : ($variables.items.length ? 'Nothing matches. Try another filter or clear the search.' : 'Nothing is waiting on you. New requests to decide, and approved lines with no unit yet, appear here.') ]]"></oj-bind-text></div>
+            </template>
+          </oj-table>
+        </oj-sp-collection-container>
+      </oj-sp-smart-search-page>
+    </div>
+    <div class="nx-rw nx-rw--head" id="apRwRecord" :hidden="[[ $functions.rwMode($application.variables.look, $variables.current.key, $variables.focus.number) !== 'record' ]]">
+      <oj-sp-general-overview-page display-mode="mixed" page-title="[[ $functions.rwRecTitle($variables.rec.head, $variables.current, $variables.focus) ]]"
+        page-subtitle="[[ $functions.rwRecSub($variables.rec.head, $variables.current, $variables.focus) ]]" badge="[[ $functions.rwBadge($variables.rec.head) ]]"
+        display-options.in-flow-back="true" on-sp-in-flow-back="[[ $listeners.onRwBack ]]"
+        secondary-actions="[[ $functions.rwRecActions($variables.focus, $variables.items.length, $variables.rec.head, $application.variables.appUrls.new, $variables.isLoading) ]]"
+        on-sp-secondary-action="[[ $listeners.onRwAction ]]">
+      </oj-sp-general-overview-page>
+    </div>
+  </oj-bind-if>
+
+  <!-- ── The current look ───────────────────────────────────────────────────────────────────────────────── -->
+  <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
   <div class="nx-pagehead">
     <div>
       <h1>Approve &amp; allocate</h1>
@@ -28,15 +172,17 @@
       </div>
     </div>
   </div>
+  </oj-bind-if>
 
-  <oj-bind-if test="[[ $variables.access === 'READ_ONLY' ]]">
+  <!-- Notes and errors: the Redwood queue says them in its own table's container; over a request they show here. -->
+  <oj-bind-if test="[[ $variables.access === 'READ_ONLY' && $functions.rwMode($application.variables.look, $variables.current.key, $variables.focus.number) !== 'list' ]]">
     <div class="nx-ap-note" role="note"><span class="oj-ux-ico-information" aria-hidden="true"></span>
       You can follow the queue. Approving, sending back and assigning units need full access to Approve &amp; allocate.</div>
   </oj-bind-if>
-  <oj-bind-if test="[[ !!$variables.error ]]">
+  <oj-bind-if test="[[ !!$variables.error && $functions.rwMode($application.variables.look, $variables.current.key, $variables.focus.number) !== 'list' ]]">
     <div class="nx-error" role="alert"><oj-bind-text value="[[ $variables.error ]]"></oj-bind-text></div>
   </oj-bind-if>
-  <oj-bind-if test="[[ !$variables.isLoading && !$variables.linesLoaded && !$variables.error ]]">
+  <oj-bind-if test="[[ !$variables.isLoading && !$variables.linesLoaded && !$variables.error && $functions.rwMode($application.variables.look, $variables.current.key, $variables.focus.number) !== 'list' ]]">
     <div class="nx-error" role="alert">The equipment on the requests could not be read, so approved lines still needing a unit cannot be listed. Refresh to try again.</div>
   </oj-bind-if>
 
@@ -46,6 +192,8 @@
       <span :class="[[ $variables.focus.missing ? 'oj-ux-ico-information' : 'oj-ux-ico-file-text' ]]" aria-hidden="true"></span>
       <span class="nx-ap-focus-text"><strong><oj-bind-text value="[[ 'Only ' + $variables.focus.number ]]"></oj-bind-text></strong>
         <span><oj-bind-text value="[[ $functions.focusNote($variables.focus, $variables.items.length) ]]"></oj-bind-text></span></span>
+      <!-- Under Redwood these two are the header's: its back arrow and "Show the whole queue". -->
+      <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
       <span class="nx-ap-focus-acts">
         <button type="button" class="nx-btn nx-btn--sm" id="apFocusAll" on-click="[[ $listeners.onFocusAll ]]" :disabled="[[ $variables.busy ]]">
           <span class="oj-ux-ico-list" aria-hidden="true"></span><oj-bind-text value="[[ 'Show the whole queue (' + $variables.items.length + ')' ]]"></oj-bind-text></button>
@@ -54,9 +202,10 @@
             <span class="oj-ux-ico-arrow-left" aria-hidden="true"></span><oj-bind-text value="[[ 'Back to ' + $variables.focus.label ]]"></oj-bind-text></button>
         </oj-bind-if>
       </span>
+      </oj-bind-if>
     </div>
   </oj-bind-if>
-  <oj-bind-if test="[[ !$variables.focus.number ]]">
+  <oj-bind-if test="[[ !$variables.focus.number && $application.variables.look !== 'redwood' ]]">
   <div class="nx-toolbar">
     <div class="nx-chips" role="group" aria-label="Waiting for">
       <oj-bind-for-each data="[[ $variables.chips ]]">
@@ -85,8 +234,8 @@
   </div>
   </oj-bind-if>
 
-  <!-- ── Bulk: the ticked requests to decide ─────────────────────────────────────────────────────────── -->
-  <oj-bind-if test="[[ $variables.canAct && $variables.selection.count > 0 && !$variables.focus.number ]]">
+  <!-- ── Bulk: the ticked requests to decide (the Redwood queue has its own, over its table) ──────────── -->
+  <oj-bind-if test="[[ $variables.canAct && $variables.selection.count > 0 && !$variables.focus.number && $application.variables.look !== 'redwood' ]]">
     <section class="nx-card nx-card-pad nx-ap-bulk" id="apBulk" aria-label="The ticked requests">
       <div class="nx-ap-bulk-row">
         <span class="nx-ap-bulk-text"><oj-bind-text value="[[ $variables.selection.text ]]"></oj-bind-text></span>
@@ -120,7 +269,7 @@
     </section>
   </oj-bind-if>
 
-  <oj-bind-if test="[[ !!$variables.bulkResult ]]">
+  <oj-bind-if test="[[ !!$variables.bulkResult && $application.variables.look !== 'redwood' ]]">
     <section :class="[[ 'nx-card nx-card-pad nx-ap-result nx-ap-tone--' + ($variables.bulkResult ? $variables.bulkResult.tone : 'ok') ]]" id="apBulkResult" role="status">
       <div class="nx-ap-result-head">
         <strong><oj-bind-text value="[[ $variables.bulkResult ? $variables.bulkResult.title : '' ]]"></oj-bind-text></strong>
@@ -134,8 +283,11 @@
     </section>
   </oj-bind-if>
 
-  <div :class="[[ 'nx-ap-layout' + ($variables.current.key ? ' nx-ap-layout--open' : '') + ($variables.focus.number ? ' nx-ap-layout--focus' : '') ]]">
+  <!-- Under Redwood: only the open request's panel, under Oracle's header (the queue is the Smart Search page above). -->
+  <div :class="[[ 'nx-ap-layout' + ($variables.current.key ? ' nx-ap-layout--open' : '') + ($variables.focus.number ? ' nx-ap-layout--focus' : '') ]]"
+    :hidden="[[ $functions.rwPanelHidden($application.variables.look, $variables.current.key) ]]">
     <!-- ── The queue ───────────────────────────────────────────────────────────────────────────────── -->
+    <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
     <section class="nx-card nx-ap-queue" aria-labelledby="apQueueTitle">
       <div class="nx-card-head">
         <h2 id="apQueueTitle"><oj-bind-text value="[[ 'Waiting on you (' + $variables.shown.length + ')' ]]"></oj-bind-text></h2>
@@ -191,6 +343,7 @@
           <oj-bind-text value="[[ 'Show more (' + ($variables.shown.length - $variables.limit) + ' left)' ]]"></oj-bind-text></button></div>
       </oj-bind-if>
     </section>
+    </oj-bind-if>
 
     <!-- ── The open request ────────────────────────────────────────────────────────────────────────── -->
     <section class="nx-card nx-ap-panel" id="apPanel" aria-labelledby="apRecTitle">
@@ -204,7 +357,10 @@
 
       <oj-bind-if test="[[ !!$variables.current.key ]]">
         <div class="nx-ap-panel-in">
+          <!-- Under Redwood the way back, the request's title, status and its buttons are Oracle's header's (above). -->
+          <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
           <button type="button" class="nx-link nx-ap-back" on-click="[[ $listeners.onBack ]]"><span class="oj-ux-ico-arrow-left" aria-hidden="true"></span>Back to the queue</button>
+          </oj-bind-if>
           <oj-bind-if test="[[ $variables.rec.loading && !$variables.rec.head.number ]]">
             <div class="nx-empty"><oj-bind-text value="[[ 'Reading ' + $variables.current.number + '…' ]]"></oj-bind-text></div>
           </oj-bind-if>
@@ -213,6 +369,7 @@
           </oj-bind-if>
 
           <oj-bind-if test="[[ !!$variables.rec.head.number && !$variables.rec.error ]]">
+            <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
             <div class="nx-ap-rec-head">
               <div class="nx-ap-rec-title">
                 <div class="nx-kicker"><oj-bind-text value="[[ $variables.rec.head.external ? 'Customer request' : 'Project request' ]]"></oj-bind-text></div>
@@ -232,6 +389,7 @@
                 </oj-bind-if>
               </div>
             </div>
+            </oj-bind-if>
 
             <dl class="nx-ap-facts">
               <div><dt>Dates</dt><dd><oj-bind-text value="[[ $variables.rec.head.dates || '—' ]]"></oj-bind-text>

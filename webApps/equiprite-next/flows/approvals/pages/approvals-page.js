@@ -77,6 +77,41 @@ define(['resources/js/exportKit', 'resources/js/fmt', 'resources/js/nav', 'resou
       const where = !f.label ? 'for it' : (f.label === f.number ? 'from its tab' : 'from ' + f.label);
       return 'Opened ' + where + '. ' + (others ? fmt.count(others, 'other request') + (others === 1 ? ' waits' : ' wait') + ' in the queue, hidden while you work on this one.' : 'Nothing else waits in the queue.');
     }
+    // ── The Redwood look (your menu): the queue as Oracle's Smart Search page; a request under Oracle's header ─────
+    /** What the Redwood look shows: 'list' (the queue), 'record' (a request, or one handed over: focus), '' (Current). */
+    rwMode(look, key, focusNumber) {
+      if (look !== 'redwood') return '';
+      return key || focusNumber ? 'record' : 'list';
+    }
+    /** The panel steps aside under Redwood while no request is open (the queue's table shows instead). */
+    rwPanelHidden(look, key) { return look === 'redwood' && !key; }
+    /** The header's title: the request. */
+    rwRecTitle(head, current, focus) {
+      return (head && head.number) || (current && current.number) || (focus && focus.number) || 'Approve & allocate';
+    }
+    /** The header's subtitle: what kind of request, for whom (the kicker and the line under the Current title). */
+    rwRecSub(head, current, focus) {
+      if (focus && focus.number && focus.missing) return 'Nothing waiting to approve or assign now';
+      const h = head && head.number ? head : (current || {});
+      return [h.external ? 'Customer request' : 'Project request', h.party || '', h.task || ''].filter((t) => !!t).join(' · ');
+    }
+    /** The header's badge: the request's state in words, in Oracle's badge colours. */
+    rwBadge(head) {
+      const tone = { draft: 'neutral', approval: 'info', ready: 'warning', out: 'info', onsite: 'success', back: 'info', done: 'neutral', stopped: 'danger' };
+      return head && head.headline ? { text: head.headline, status: tone[head.tone] || 'neutral' } : { text: '', status: 'neutral' };
+    }
+    /** The bulk result's requests: done, then skipped, then failed (no array literals in bindings). */
+    bulkLines(res) { return res ? [].concat(res.done || [], res.skipped || [], res.failed || []) : []; }
+    /** The header's actions, as the current look's buttons (rwActionChain does each). */
+    rwRecActions(focus, total, head, newBase, loading) {
+      const out = [];
+      if (focus && focus.number) out.push({ id: 'queue', label: 'Show the whole queue (' + (Number(total) || 0) + ')', icon: 'oj-ux-ico-list', display: 'on' });
+      if (head && head.number) out.push({ id: 'tab', label: 'Open in a tab', icon: 'oj-ux-ico-open-new-tab', display: 'on' });
+      if (this.newUrl(newBase, head)) out.push({ id: 'new', label: 'In New', icon: 'oj-ux-ico-external-link', display: 'on' });
+      out.push({ id: 'refresh', label: loading ? 'Refreshing…' : 'Refresh', icon: 'oj-ux-ico-refresh', display: 'on' });
+      return out;
+    }
+
     /** The quote page in Old EquipRite, where quotes are generated (New's oldQuoteLink). */
     quoteUrl(oldBase, head) {
       if (!oldBase || !head || !head.id) return '';

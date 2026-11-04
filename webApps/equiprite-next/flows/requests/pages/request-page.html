@@ -1,5 +1,20 @@
 <!-- One request in its own tab: where its equipment is (the journey), what is next and late, the equipment, the facts. -->
 <div class="nx-page nx-record">
+  <!-- Redwood (your menu, Look): Oracle's general overview page as the header, as Old's request detail: the request, where its
+       equipment is (badge), the way back to Requests; its actions are the Current head's buttons, its next step the primary
+       (rwActionChain). Over this tab's own body below. Put on the page the first time Redwood is shown, then kept. -->
+  <oj-bind-if test="[[ $application.variables.lookSeen ]]">
+    <div class="nx-rw nx-rw--head" id="recRedwood" :hidden="[[ $application.variables.look !== 'redwood' || !!$variables.error ]]">
+      <oj-sp-general-overview-page display-mode="mixed" page-title="[[ $variables.head.requestNumber || $variables.number || 'Request' ]]"
+        page-subtitle="[[ $functions.rwSub($variables.head, $variables.isLoading) ]]" badge="[[ $functions.rwBadge($variables.p) ]]"
+        display-options.in-flow-back="true" on-sp-in-flow-back="[[ $listeners.onOpenList ]]"
+        primary-action="[[ $functions.rwPrimary($variables.head, $variables.acts, $variables.stepBusy) ]]" on-sp-primary-action="[[ $listeners.onRwPrimary ]]"
+        secondary-actions="[[ $functions.rwActions($variables.head, $variables.acts, $variables.stepBusy, $variables.isLoading, $application.variables.appUrls.new) ]]"
+        on-sp-secondary-action="[[ $listeners.onRwAction ]]">
+      </oj-sp-general-overview-page>
+    </div>
+  </oj-bind-if>
+
   <oj-bind-if test="[[ $variables.isLoading && !$variables.head.requestNumber ]]">
     <div class="nx-card nx-empty">Loading the request…</div>
   </oj-bind-if>
@@ -9,6 +24,7 @@
   </oj-bind-if>
 
   <oj-bind-if test="[[ !!$variables.head.requestNumber && !$variables.error ]]">
+    <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
     <div class="nx-pagehead">
       <div>
         <div class="nx-kicker"><oj-bind-text value="[[ $variables.head.external ? 'Customer request' : 'Project request' ]]"></oj-bind-text></div>
@@ -75,6 +91,7 @@
         </oj-bind-if>
       </div>
     </div>
+    </oj-bind-if>
 
     <!-- Confirm or Accept: what it will do, asked once before it is done; then what happened. -->
     <oj-bind-if test="[[ !!$variables.ask ]]">
@@ -126,6 +143,48 @@
     <div class="nx-record-body">
       <section class="nx-card" aria-labelledby="recLines">
         <div class="nx-card-head"><h2 id="recLines"><oj-bind-text value="[[ 'Equipment (' + $variables.lines.length + ')' ]]"></oj-bind-text></h2></div>
+        <!-- Redwood: the same lines as Oracle's table (oj-table, oj-badge), hidden under Current. Put on the page once the
+             request and its history are read: a tab just opened settles first (an oj-table started while its new tab is
+             still being put in front fetches twice, and the first fetch's abort reaches the browser as an error). -->
+        <oj-bind-if test="[[ $application.variables.lookSeen && !$variables.isLoading && !$variables.history.loading ]]">
+          <div class="nx-rec-rwlines" :hidden="[[ $application.variables.look !== 'redwood' ]]">
+            <oj-table id="recRwLines" data="[[ $variables.rwLinesADP ]]" class="oj-sm-width-full nx-rw-table" aria-labelledby="recLines"
+              display="list" horizontal-grid-visible="enabled" layout="fixed" scroll-policy="loadMoreOnScroll" scroll-policy-options.fetch-size="100"
+              columns='[
+                {"headerText": "Equipment", "field": "name", "template": "eqTpl", "sortable": "disabled", "style": "width:24%;"},
+                {"headerText": "Qty", "field": "qty", "template": "qtyTpl", "sortable": "disabled", "style": "width:7%;", "headerClassName": "oj-helper-text-align-end"},
+                {"headerText": "Unit", "field": "unit", "template": "unitTpl", "sortable": "disabled", "style": "width:15%;"},
+                {"headerText": "Where it is", "field": "lineStatus", "template": "whereTpl", "sortable": "disabled", "style": "width:24%;"},
+                {"headerText": "Dates", "field": "start", "template": "datesTpl", "sortable": "disabled", "style": "width:16%;"},
+                {"headerText": "Rate", "field": "billRate", "template": "rateTpl", "sortable": "disabled", "style": "width:14%;", "headerClassName": "oj-helper-text-align-end"}
+              ]'>
+              <template slot="eqTpl" data-oj-as="cell">
+                <div class="nx-rw-cell"><span class="oj-typography-body-md oj-typography-semi-bold"><oj-bind-text value="[[ cell.row.name ]]"></oj-bind-text></span>
+                  <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.cls + (cell.row.agreementNumber ? ' · agreement ' + cell.row.agreementNumber : '') ]]"></oj-bind-text></span></div>
+              </template>
+              <template slot="qtyTpl" data-oj-as="cell">
+                <div class="nx-rec-rwnum"><oj-bind-text value="[[ cell.row.qty ]]"></oj-bind-text></div>
+              </template>
+              <template slot="unitTpl" data-oj-as="cell">
+                <span class="oj-typography-body-sm"><oj-bind-text value="[[ cell.row.unit ]]"></oj-bind-text></span>
+              </template>
+              <template slot="whereTpl" data-oj-as="cell">
+                <span :class="[[ $functions.rwLineBadge(cell.row.lineStatus, $variables.head.external) ]]" :title="[[ 'Stored line status: ' + cell.row.lineStatus ]]">
+                  <oj-bind-text value="[[ $functions.lineLabel(cell.row.lineStatus, $variables.head.external) ]]"></oj-bind-text></span>
+              </template>
+              <template slot="datesTpl" data-oj-as="cell">
+                <span class="oj-typography-body-sm"><oj-bind-text value="[[ $functions.range(cell.row.start || $variables.head.start, cell.row.end || $variables.head.end) ]]"></oj-bind-text></span>
+              </template>
+              <template slot="rateTpl" data-oj-as="cell">
+                <div class="nx-rec-rwnum"><oj-bind-text value="[[ $functions.rate(cell.row) ]]"></oj-bind-text></div>
+              </template>
+              <template slot="noData">
+                <div class="oj-sm-padding-6x oj-typography-body-md oj-text-color-secondary">No equipment on this request.</div>
+              </template>
+            </oj-table>
+          </div>
+        </oj-bind-if>
+        <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
         <div class="nx-table">
           <div class="nx-grid nx-grid--lines" role="table" aria-labelledby="recLines">
             <div class="nx-row nx-row--head" role="row">
@@ -148,6 +207,7 @@
             </oj-bind-for-each>
           </div>
         </div>
+        </oj-bind-if>
       </section>
 
       <aside class="nx-card nx-card-pad nx-facts" aria-label="About this request">

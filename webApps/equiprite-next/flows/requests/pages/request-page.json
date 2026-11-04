@@ -1,5 +1,5 @@
 {
-  "description": "One request in its own tab: what it is, where each piece of equipment is (the journey), what is next and late, the equipment, the facts; export of its equipment.",
+  "description": "One request in its own tab: what it is, where each piece of equipment is (the journey), what is next and late, the equipment, the facts; export of its equipment. Under the Redwood look (your menu): Oracle's general overview header (its actions are the page head's buttons) and the equipment as an oj-table.",
   "navigation": {
     "embeddable": "enabled"
   },
@@ -75,6 +75,15 @@
       "type": "string",
       "defaultValue": "steps",
       "description": "steps | activity, on a narrow screen."
+    },
+    "rwLinesADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "key",
+        "data": "{{ $page.variables.lines }}"
+      },
+      "description": "Redwood view: the equipment as an oj-table (the same lines)."
     }
   },
   "eventListeners": {
@@ -133,6 +142,26 @@
           }
         }
       ]
+    },
+    "onRwPrimary": {
+      "chains": [
+        {
+          "chain": "rwActionChain",
+          "parameters": {
+            "id": "primary"
+          }
+        }
+      ]
+    },
+    "onRwAction": {
+      "chains": [
+        {
+          "chain": "rwActionChain",
+          "parameters": {
+            "id": "{{ $event.detail.secondaryItem }}"
+          }
+        }
+      ]
     }
   },
   "imports": {
@@ -145,6 +174,12 @@
       },
       "oj-bind-text": {
         "path": "ojs/ojknockout"
+      },
+      "oj-sp-general-overview-page": {
+        "path": "oj-sp/general-overview-page/loader"
+      },
+      "oj-table": {
+        "path": "ojs/ojtable"
       }
     }
   }

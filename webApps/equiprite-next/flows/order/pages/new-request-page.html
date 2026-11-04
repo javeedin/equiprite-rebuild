@@ -5,6 +5,18 @@
      Rules: resources/js/orderForm.js. Chains: new-request-page-chains (goStepChain moves between the steps).
      Styles: resources/css/next-order.css. -->
 <div class="nx-page nx-order">
+  <!-- Redwood (your menu, Look): Oracle's general overview page as the header (the title, who it is for and the dates, and
+       the current head's one button, Start another request, when it shows), over the three steps below, unchanged.
+       Put on the page the first time Redwood is shown, then kept, hidden under Current. -->
+  <oj-bind-if test="[[ $application.variables.lookSeen ]]">
+    <div class="nx-rw nx-rw--head" id="orRedwood" :hidden="[[ $application.variables.look !== 'redwood' ]]">
+      <oj-sp-general-overview-page display-mode="mixed" page-title="[[ $functions.rwTitle($variables.resume) ]]"
+        page-subtitle="[[ $functions.rwSub($variables.form, $variables.requestFor) ]]"
+        secondary-actions="[[ $functions.rwActions($variables.resume, $variables.loadError) ]]" on-sp-secondary-action="[[ $listeners.onReset ]]">
+      </oj-sp-general-overview-page>
+    </div>
+  </oj-bind-if>
+  <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
   <div class="nx-pagehead">
     <div>
       <div class="nx-kicker"><oj-bind-text value="[[ $variables.requestFor === 'customer' ? 'Customer request' : 'Project request' ]]"></oj-bind-text></div>
@@ -19,6 +31,7 @@
       </oj-bind-if>
     </div>
   </div>
+  </oj-bind-if>
 
   <oj-bind-if test="[[ $variables.isLoading ]]">
     <div class="nx-card nx-empty">Opening the request…</div>

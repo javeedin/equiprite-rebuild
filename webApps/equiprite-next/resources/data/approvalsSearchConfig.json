@@ -1,0 +1,75 @@
+{
+  "description": "Approve & allocate (Redwood view): the Smart Search filters, one per column as the queue's table shows them (Request, Project or customer, Waiting for, Equipment, Dates), then Type and Requester. Every filter here needs its entry in approvals-page.json's rwSearchContext (the widget evaluates every filter in this file, and one without context throws and blanks the table).",
+  "filters": {
+    "RequestFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Request",
+      "options": {
+        "field": "number",
+        "optionsData": "[[ $search.filters.RequestFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.RequestFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "PartyFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Project or customer",
+      "options": {
+        "field": "party",
+        "optionsData": "[[ $search.filters.PartyFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.PartyFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "NeedsFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Waiting for",
+      "options": {
+        "field": "stage",
+        "optionsData": "[[ $search.filters.NeedsFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.NeedsFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "EquipmentFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Equipment",
+      "options": {
+        "field": "equipment",
+        "optionsData": "[[ $search.filters.EquipmentFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.EquipmentFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "DatesFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Dates",
+      "options": {
+        "field": "dates",
+        "optionsData": "[[ $search.filters.DatesFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.DatesFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "TypeFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Type",
+      "options": {
+        "field": "source",
+        "optionsData": "[[ $search.filters.TypeFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.TypeFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "RequesterFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Requester",
+      "options": {
+        "field": "requester",
+        "optionsData": "[[ $search.filters.RequesterFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.RequesterFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    }
+  }
+}

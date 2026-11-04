@@ -67,6 +67,67 @@ define(['resources/js/exportKit', 'resources/js/fmt', 'resources/js/requestProgr
     }
 
 
+    // ── The Redwood look (your menu): Oracle's general overview header over this tab's own body ───────────────────
+    /** The header's subtitle: the kicker and the line under the Current title ("Project request · Pier B · 1.3 Foundations"). */
+    rwSub(head, loading) {
+      if (!head || !head.requestNumber) return loading ? 'Loading the request…' : '';
+      return [head.external ? 'Customer request' : 'Project request', this.subline(head)].filter((x) => !!x).join(' · ');
+    }
+
+    /** The header's badge: where the equipment is, in Oracle's badge colours. */
+    rwBadge(p) {
+      const status = { draft: 'neutral', approval: 'info', ready: 'warning', out: 'info', onsite: 'success', back: 'info', done: 'neutral', stopped: 'danger' };
+      return p && p.headline ? { text: p.headline, status: status[p.tone] || 'neutral' } : { text: '', status: 'neutral' };
+    }
+
+    /**
+     * The steps this request offers, in the current look's order, as header actions: { id, label, icon, display }
+     * ('disabled' where the current look's button is disabled).
+     */
+    rwSteps(head, acts, busy) {
+      const h = head || {};
+      const a = acts || {};
+      const out = [];
+      if (h.status === 'DRAFT' && !h.external) out.push({ id: 'finish', label: 'Finish this draft', icon: 'oj-ux-ico-edit-box' });
+      if (a.approve) out.push({ id: 'approve', label: 'Approve…', icon: 'oj-ux-ico-check-circle' });
+      if (a.assign) out.push({ id: 'assign', label: 'Assign units', icon: 'oj-ux-ico-assign-to-me' });
+      if (a.confirm > 0) out.push({ id: 'confirm', label: 'Confirm ' + a.confirm + ' for picking', icon: 'oj-ux-ico-check-square', off: !a.mayConfirm || !!busy });
+      if (a.pick > 0) out.push({ id: 'pick', label: 'Pick ' + a.pick + ' at the yard', icon: 'oj-ux-ico-fullfilment-box' });
+      if (a.accept > 0) out.push({ id: 'accept', label: 'Accept ' + a.accept + ' on site', icon: 'oj-ux-ico-check-circle', off: !a.mayAccept || !!busy });
+      return out;
+    }
+
+    /** The step the header's primary action takes (the first the request offers), or ''. */
+    rwPrimaryId(head, acts, busy) { return (this.rwSteps(head, acts, busy)[0] || {}).id || ''; }
+
+    /** The header's primary action: the request's next step, as the current look's first highlighted button. */
+    rwPrimary(head, acts, busy) {
+      const s = this.rwSteps(head, acts, busy)[0];
+      return s ? { label: s.label, display: s.off ? 'disabled' : 'on' } : { label: '', display: 'off' };
+    }
+
+    /** The header's other actions: Refresh, Export, the request's other steps, and Act on it in New. */
+    rwActions(head, acts, busy, loading, newBase) {
+      const out = [{ id: 'refresh', label: 'Refresh', icon: 'oj-ux-ico-refresh', display: loading ? 'disabled' : 'on' },
+        { id: 'export', label: 'Export to Excel', icon: 'oj-ux-ico-download', display: 'on' }];
+      this.rwSteps(head, acts, busy).slice(1).forEach((s) => out.push({ id: s.id, label: s.label, icon: s.icon, display: s.off ? 'disabled' : 'on' }));
+      if (head && head.status !== 'DRAFT' && this.newUrl(newBase, head)) out.push({ id: 'new', label: 'Act on it in New', icon: 'oj-ux-ico-external-link', display: 'on' });
+      return out;
+    }
+
+    /** A line's stage as Oracle's oj-badge (the Redwood equipment table), as the Requests table colours its statuses. */
+    rwLineBadge(status, external) {
+      const badge = {
+        draft: 'oj-badge oj-badge-subtle', approval: 'oj-badge oj-badge-info oj-badge-subtle', ready: 'oj-badge oj-badge-warning oj-badge-subtle',
+        out: 'oj-badge oj-badge-info', onsite: 'oj-badge oj-badge-success oj-badge-subtle', back: 'oj-badge oj-badge-info oj-badge-subtle',
+        done: 'oj-badge oj-badge-subtle', stopped: 'oj-badge oj-badge-danger oj-badge-subtle',
+      };
+      return badge[this.lineStage(status, external)] || badge.draft;
+    }
+
+    /** A line's rate: "$1,400.00 / DAY", or a dash. */
+    rate(l) { return l && l.billRate != null && l.billRate !== '' ? this.money(l.billRate) + (l.priceUom ? ' / ' + l.priceUom : '') : '—'; }
+
     /** This request in New EquipRite (where it can be approved, allocated, delivered, returned today), or ''. */
     newUrl(newBase, head) {
       if (!newBase || !head || !head.id) return '';

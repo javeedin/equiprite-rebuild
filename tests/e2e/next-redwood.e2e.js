@@ -142,15 +142,16 @@ const rwRows = (page) => page.$$eval('#reqRwTable tbody tr, #reqRwTable .oj-tabl
     T.check('Oracle Sans', /Oracle Sans/.test(await css('.nx-app', 'font-family')) && await page.evaluate(() => document.fonts.check('16px "Oracle Sans"')));
     await page.click('.nx-tab[data-tab-id="home"] .nx-tab-btn');
     await page.waitForFunction(() => (document.querySelector('.nx-tab--on') || {}).dataset.tabId === 'home', null, { timeout: 10000 });
+    // My work's Redwood view is Oracle's own header (its general overview page; tests/e2e/next-redwood-work.e2e.js).
+    await page.waitForSelector('#workRedwood oj-sp-general-overview-page.oj-complete', { timeout: 20000 });
     await settle(page, 800);
-    const homeHead = await page.$$eval('.nx-pagehead', (hs) => {
-      const h = hs.filter((x) => x.offsetParent !== null)[0];
-      if (!h) return null;
-      const st = getComputedStyle(h);
-      return { bg: st.backgroundColor, strip: getComputedStyle(h, '::after').backgroundImage, h1: getComputedStyle(h.querySelector('h1')).fontSize };
+    const homeHead = await page.$eval('#workRedwood', (r) => {
+      const c = r.querySelector('.oj-sp-header-general-overview-header-content');
+      const h1 = r.querySelector('h1');
+      return c && h1 ? { bg: getComputedStyle(c).backgroundColor, title: h1.innerText.trim() } : null;
     });
-    T.check('My work\'s head: Oracle\'s Redwood header, its colour strip, a 28px title', !!homeHead && homeHead.bg === 'rgb(44, 82, 102)'
-      && /colorstrip_redwood/.test(homeHead.strip) && homeHead.h1 === '28px', JSON.stringify(homeHead));
+    T.check('My work\'s head: Oracle\'s Redwood header, the greeting its title', !!homeHead && homeHead.bg === 'rgb(44, 82, 102)' && /^Good /.test(homeHead.title)
+      && !(await page.isVisible('.nx-work .nx-pagehead')), JSON.stringify(homeHead));
     await env.shot('next-redwood-mywork.png');
 
     const errs = () => env.errors.filter((e) => !/404|Failed to load resource/.test(e));

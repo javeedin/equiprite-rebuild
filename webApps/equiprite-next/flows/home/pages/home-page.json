@@ -1,5 +1,5 @@
 {
-  "description": "My work: for each persona, what needs them now (late, approvals, units to assign, deliveries, sent back), their counts, their latest requests read from the equipment, and the screens they start from. An administrator can view any persona's work.",
+  "description": "My work: for each persona, what needs them now (late, approvals, units to assign, deliveries, sent back), their counts, their latest requests read from the equipment, and the screens they start from. An administrator can view any persona's work. Under the Redwood look (your menu): Oracle's general overview header (the greeting, the role and today, Refresh, open a request).",
   "navigation": {
     "embeddable": "enabled"
   },
@@ -102,6 +102,12 @@
       },
       "oj-bind-text": {
         "path": "ojs/ojknockout"
+      },
+      "oj-sp-general-overview-page": {
+        "path": "oj-sp/general-overview-page/loader"
+      },
+      "oj-c-input-text": {
+        "path": "oj-c/input-text"
       }
     }
   }

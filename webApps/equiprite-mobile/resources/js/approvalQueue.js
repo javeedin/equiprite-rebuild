@@ -50,6 +50,12 @@ define(['resources/js/requestProgress', 'resources/js/fmt', 'resources/js/rules'
     return l.slice(0, -1).join(', ') + ' and ' + l[l.length - 1];
   }
   function cap(t) { return t ? t.charAt(0).toUpperCase() + t.slice(1) : ''; }
+  /** The lines' equipment names, each once, in line order. */
+  function uniqueNames(lines) {
+    var seen = {};
+    return (lines || []).map(function (l) { return String((l && l.name) || '').trim(); })
+      .filter(function (n) { if (!n || seen[n]) return false; seen[n] = true; return true; });
+  }
 
   /** Is a quote owed (quoting is on for this origin and none exists yet)? New: isQuoteOwed. */
   function isQuoteOwed(status, quotingAllowed) {
@@ -66,7 +72,7 @@ define(['resources/js/requestProgress', 'resources/js/fmt', 'resources/js/rules'
    *                     settled: { key: n } requests read with nothing left to assign, n lines then taking no unit }
    * Each item: { key, id, number, kind, status, external, party, task, requestor, start, end, dates, startMs,
    *   when, late (text), lateDays, p (requestProgress), waiting (lines in question), lineCount, needs, detail,
-   *   quoteOwed, est, equipment, hay }
+   *   quoteOwed, est, equipment, names (the waiting lines' equipment, each once), hay }
    */
   function build(rows, linesByRequest, o) {
     var opts = o || {};
@@ -121,6 +127,7 @@ define(['resources/js/requestProgress', 'resources/js/fmt', 'resources/js/rules'
         quoteOwed: quoteOwed,
         est: num(r.totalEstCost != null ? r.totalEstCost : r.estimatedCost),
         equipment: join(waiting.map(function (l) { return l.name; }).slice(0, 3)) + (waiting.length > 3 ? ' and ' + (waiting.length - 3) + ' more' : ''),
+        names: uniqueNames(waiting),
         stored: status
       };
       item.needs = kind === 'decide' ? 'To decide' : (quoteOwed ? 'Quote owed' : 'Units to assign');
@@ -238,6 +245,100 @@ define(['resources/js/requestProgress', 'resources/js/fmt', 'resources/js/rules'
       { key: 'late', label: 'Late' }, { key: 'requestor', label: 'Requested by' },
       { key: 'stored', label: 'Stored status' }
     ];
+  }
+
+  // ── The Redwood look (Approve & allocate's Smart Search page: an oj-table and a filter per column) ─────────
+
+  // What a request waits for, as Oracle's own oj-badge classes (Redwood theme), not Next's colours.
+  var BADGE = {
+    decide: 'oj-badge oj-badge-info oj-badge-subtle',
+    allocate: 'oj-badge oj-badge-warning oj-badge-subtle',
+    quote: 'oj-badge oj-badge-subtle'
+  };
+  // The Dates filter: where the request's start date stands today.
+  var DATE_WINDOWS = [
+    { key: 'started', label: 'Start date passed' },
+    { key: 'week', label: 'Starting in the next 7 days' },
+    { key: 'later', label: 'Starting later' },
+    { key: 'none', label: 'No dates' }
+  ];
+
+  /** Which DATE_WINDOWS key a queue item's start date falls in. */
+  function dateKey(it, now) {
+    var s = it ? it.startMs : null;
+    if (s == null) return 'none';
+    var t = fmt.today(now);
+    if (s < t) return 'started';
+    return s - t <= 7 * DAY ? 'week' : 'later';
+  }
+
+  /**
+   * The Redwood look's table: one flat row per queue item shown, with what each cell says, so the template binds plain
+   * values only: { key, number, kind, type, requester, party, task, needs, badge, detail, lateWhy, equipment, dates, start,
+   * when, late }.
+   */
+  function redwoodRows(items) {
+    return (Array.isArray(items) ? items : []).map(function (it) {
+      return {
+        key: it.key,
+        number: it.number,
+        kind: it.kind,
+        type: it.external ? 'Customer' : 'Project',
+        requester: it.requestor || '—',
+        party: it.party || '—',
+        task: it.task || '',
+        needs: it.needs,
+        badge: BADGE[it.quoteOwed && it.kind === 'allocate' ? 'quote' : it.kind] || BADGE.quote,
+        detail: it.detail || '',
+        lateWhy: it.lateWhy || '',
+        equipment: it.equipment || '—',
+        dates: it.dates || 'No dates',
+        start: it.start || '',
+        when: it.lateDays ? it.late : (it.when || ''),
+        late: !!it.lateDays
+      };
+    });
+  }
+
+  // Options with their counts, by label: [{ value, label: 'Pier B (3)' }].
+  function tally(items, valuesOf) {
+    var counts = {};
+    (items || []).forEach(function (it) { valuesOf(it).forEach(function (v) { if (v) counts[v] = (counts[v] || 0) + 1; }); });
+    return Object.keys(counts).sort(function (a, b) { return a.localeCompare(b); })
+      .map(function (v) { return { value: v, label: v + ' (' + counts[v] + ')' }; });
+  }
+
+  /**
+   * Every column filter's options, from the whole queue (not just the rows shown, so a filter can be changed):
+   * { number, party, equipment, dates, type, requester }. Waiting for is the page's own chip (chips()).
+   */
+  function columnOptions(items, now) {
+    var list = items || [];
+    var inWindow = {};
+    list.forEach(function (it) { var k = dateKey(it, now); inWindow[k] = (inWindow[k] || 0) + 1; });
+    var external = list.filter(function (it) { return it.external; }).length;
+    return {
+      number: list.slice().sort(function (a, b) { return (b.id || 0) - (a.id || 0); })
+        .map(function (it) { return { value: it.number, label: it.number + (it.party ? ' · ' + it.party : '') }; }),
+      party: tally(list, function (it) { return [it.party]; }),
+      equipment: tally(list, function (it) { return it.names || []; }),
+      dates: DATE_WINDOWS.map(function (w) { return { value: w.key, label: w.label + ' (' + (inWindow[w.key] || 0) + ')' }; }),
+      type: [{ value: 'INTERNAL', label: 'Project (' + (list.length - external) + ')' }, { value: 'EXTERNAL', label: 'Customer (' + external + ')' }],
+      requester: tally(list, function (it) { return [String(it.requestor || '').trim()]; })
+    };
+  }
+
+  /** The queue items that match every column filter set: { number, party, equipment, dates, requester } ('' = any). */
+  function byColumns(items, f, now) {
+    var c = f || {};
+    return (items || []).filter(function (it) {
+      if (c.number && it.number !== c.number) return false;
+      if (c.party && it.party !== c.party) return false;
+      if (c.equipment && (it.names || []).indexOf(c.equipment) === -1) return false;
+      if (c.dates && dateKey(it, now) !== c.dates) return false;
+      if (c.requester && String(it.requestor || '').trim() !== c.requester) return false;
+      return true;
+    });
   }
 
   // ── A request's lines (New EquipRite's gates) ─────────────────────────────────────────────────────────
@@ -577,6 +678,7 @@ define(['resources/js/requestProgress', 'resources/js/fmt', 'resources/js/rules'
     whenText: whenText, isQuoteOwed: isQuoteOwed, isPickable: isPickable, tracking: tracking, lineAction: lineAction, availTone: availTone,
     availLabel: availLabel, lineRows: lineRows, lineName: lineName, pool: pool, decisionPlan: decisionPlan, verdict: verdict, settledCount: settledCount,
     approveWords: approveWords, rejectWords: rejectWords, reasonWords: reasonWords, saveWords: saveWords, suggestionWords: suggestionWords,
-    autoPlan: autoPlan, bulkWords: bulkWords
+    autoPlan: autoPlan, bulkWords: bulkWords,
+    BADGE: BADGE, DATE_WINDOWS: DATE_WINDOWS, dateKey: dateKey, redwoodRows: redwoodRows, columnOptions: columnOptions, byColumns: byColumns
   };
 });
