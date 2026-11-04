@@ -163,6 +163,29 @@ const rwRows = (page) => page.$$eval('#reqRwTable tbody tr, #reqRwTable .oj-tabl
     const from = errs().length;
     await page.waitForSelector('#reqRedwood oj-sp-smart-search-page', { timeout: 30000 });
     T.eq('reopened: Redwood, as left', await look(), 'redwood');
+
+    T.section('a filter per column, as Redwood (and Old) show them');
+    await page.waitForFunction(() => /REQ-4001/.test((document.querySelector('#reqRwTable') || {}).innerText || ''), null, { timeout: 30000 });
+    // Smart Search lays its chips out after it has measured them (they show one by one): wait for all eight.
+    await page.waitForFunction(() => Array.from(document.querySelectorAll('#reqRedwood oj-sp-smart-search .oj-sp-filter-chip-container'))
+      .filter((x) => x.innerText.trim()).length === 8, null, { timeout: 15000 }).catch(() => {});
+    await settle(page, 800);
+    T.eq('the filters are the columns, then Type and Requester', (await page.$$eval('#reqRedwood oj-sp-smart-search .oj-sp-filter-chip-container',
+      (b) => b.map((x) => x.innerText.trim()))).join(','), 'Request,Project or customer,Status,Equipment,Dates,Next step,Type,Requester');
+    await page.click('#reqRedwood oj-sp-smart-search .oj-sp-filter-chip-container:has-text("Equipment")');
+    await page.waitForSelector('text=CAT 320 Excavator (1)', { timeout: 10000 });
+    T.eq('Equipment offers what the requests hold, with how many', await page.$$eval('[role=option], li', (o) => o.filter((x) => x.offsetParent !== null)
+      .map((x) => x.innerText.trim()).filter((t) => /^(CAT|Komatsu|Roller).*\(\d+\)$/.test(t)).join(',')), 'CAT 320 Excavator (1),Komatsu D65EX-18 Dozer (1),Roller 10t (1)');
+    await page.click('text=CAT 320 Excavator (1)');
+    await settle(page, 600);
+    await page.click('#reqRedwood oj-sp-smart-search-page h1');
+    await page.waitForFunction(() => !/REQ-4001/.test((document.querySelector('#reqRwTable') || {}).innerText || ''), null, { timeout: 10000 }).catch(() => {});
+    await settle(page, 600);
+    T.eq('picked (Smart Search applies it as its list closes): the requests with that equipment', (await rwRows(page)).map((r) => r.match(/REQ-\d+/)[0]).join(), 'REQ-4002');
+    T.check('the header\'s colour runs on behind the top of the table, as in Old', /linear-gradient\(rgb\(44, 82, 102\)/.test(await css('.nx-requests', 'background-image')),
+      await css('.nx-requests', 'background-image'));
+    await env.shot('next-redwood-filters.png');
+
     await page.click('#nxUser');
     await page.waitForSelector('#nxLook-current');
     await page.click('#nxLook-current');

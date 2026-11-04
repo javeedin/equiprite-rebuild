@@ -13,6 +13,9 @@ define([
     async run(context, params) {
       const v = context.$page.variables;
       const target = (params && params.view) || v.view;
+      // The look the rows are for (setChain ui works the rows out before it swaps the look): the Redwood look also
+      // filters by its column filters (Smart Search; rwFilterChain), which the current look does not show.
+      const ui = (params && params.ui) || v.ui;
       const now = Date.now();
       const kinds = {};
       queue.build(v.rows, v.linesByRequest, { now }).forEach((q) => { kinds[q.number] = q.kind; });
@@ -29,6 +32,7 @@ define([
       } else {
         chips = list.requestChips(items);
         shown = list.sort(list.filter(items, v.text, v.stage, v.source, v.linesByRequest), v.sortKey, v.sortDir);
+        if (ui === 'redwood') shown = list.byColumns(shown, v.rwCols, v.linesByRequest, now);
         lanes = target === 'board' ? list.board(shown, 40) : [];
       }
       if (target !== v.view) {
@@ -39,11 +43,17 @@ define([
       v.chips = chips;
       v.lanes = lanes;
       v.shown = shown;
-      // The Redwood look: the same requests as rows of an oj-table, and the stage filter's options with their counts.
+      // The Redwood look: the same requests as rows of an oj-table, and every column filter's options with their counts.
       if (target !== 'equipment') {
         v.rwRows = list.redwoodRows(shown, now);
         v.rwStages = [{ value: 'all', label: 'All (' + items.length + ')' }]
           .concat(chips.map((c) => ({ value: c.key, label: c.label + ' (' + c.count + ')' })));
+        const opts = list.columnOptions(items, v.linesByRequest, now);
+        const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+        [['rwNumbers', 'number'], ['rwParties', 'party'], ['rwEquipment', 'equipment'], ['rwDates', 'dates'], ['rwNext', 'next'],
+          ['rwTypes', 'type'], ['rwRequesters', 'requester']].forEach(([name, key]) => {
+          if (!same(v[name], opts[key])) v[name] = opts[key];
+        });
       }
     }
   }

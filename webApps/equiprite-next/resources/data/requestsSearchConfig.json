@@ -1,13 +1,63 @@
 {
-  "description": "Requests (Redwood view): the Smart Search filters. Every filter here needs its entry in requests-page.json's rwSearchContext (the widget evaluates every filter in this file, and one without context throws and blanks the table).",
+  "description": "Requests (Redwood view): the Smart Search filters, one per column as Redwood shows them (Request, Project or customer, Status, Equipment, Dates, Next step), then Type and Requester. Every filter here needs its entry in requests-page.json's rwSearchContext (the widget evaluates every filter in this file, and one without context throws and blanks the table).",
   "filters": {
+    "RequestFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Request",
+      "options": {
+        "field": "number",
+        "optionsData": "[[ $search.filters.RequestFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.RequestFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "PartyFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Project or customer",
+      "options": {
+        "field": "party",
+        "optionsData": "[[ $search.filters.PartyFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.PartyFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
     "StageFilter": {
       "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
-      "label": "Where the equipment is",
+      "label": "Status",
       "options": {
         "field": "stage",
         "optionsData": "[[ $search.filters.StageFilter.options.optionsData ]]",
         "optionsKeys": "[[ $search.filters.StageFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "EquipmentFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Equipment",
+      "options": {
+        "field": "equipment",
+        "optionsData": "[[ $search.filters.EquipmentFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.EquipmentFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "DatesFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Dates",
+      "options": {
+        "field": "dates",
+        "optionsData": "[[ $search.filters.DatesFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.DatesFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "NextFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Next step",
+      "options": {
+        "field": "next",
+        "optionsData": "[[ $search.filters.NextFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.NextFilter.options.optionsKeys ]]"
       },
       "data": {}
     },
@@ -18,6 +68,16 @@
         "field": "source",
         "optionsData": "[[ $search.filters.TypeFilter.options.optionsData ]]",
         "optionsKeys": "[[ $search.filters.TypeFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "RequesterFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Requester",
+      "options": {
+        "field": "requester",
+        "optionsData": "[[ $search.filters.RequesterFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.RequesterFilter.options.optionsKeys ]]"
       },
       "data": {}
     }

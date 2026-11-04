@@ -329,6 +329,82 @@ define(['resources/js/requestProgress', 'resources/js/fmt', 'resources/js/rules'
     });
   }
 
+  // The Redwood look's Smart Search filters, one per column as Redwood shows them (Request, Project or customer,
+  // Status, Equipment, Dates, Next step) and the request's Type and Requester: each offers what the requests hold, with
+  // how many requests have it. Status and Type are the page's own stage and source; the rest are byColumns'.
+  var DATE_WINDOWS = [
+    { key: 'now', label: 'On rent now' },
+    { key: 'starting', label: 'Starting in the next 7 days' },
+    { key: 'later', label: 'Starting later' },
+    { key: 'ending', label: 'Ending in the next 7 days' },
+    { key: 'ended', label: 'Ended' }
+  ];
+  var NOBODY = 'Nothing to do';
+  var WEEK_MS = 7 * 86400000;
+
+  /** Which date windows a request's rental falls in (DATE_WINDOWS keys). */
+  function dateKeys(r, now) {
+    var t = fmt.today(now);
+    var s = fmt.dayMs(r && r.startDate);
+    var e = fmt.dayMs(r && r.endDate);
+    var keys = [];
+    if (s != null && t < s) keys.push(s - t <= WEEK_MS ? 'starting' : 'later');
+    if ((s == null || s <= t) && e != null && t <= e) {
+      keys.push('now');
+      if (e - t <= WEEK_MS) keys.push('ending');
+    }
+    if (e != null && e < t) keys.push('ended');
+    return keys;
+  }
+  function equipmentNames(r, linesByRequest) {
+    var seen = {};
+    return ((linesByRequest || {})[r.requestNumber] || []).map(function (l) { return String(l.name || '').trim(); })
+      .filter(function (n) { if (!n || seen[n]) return false; seen[n] = true; return true; });
+  }
+  function nextWho(r) { return r && r.p && r.p.next && r.p.next.who ? r.p.next.who : NOBODY; }
+  function requesterOf(r) { return String((r && (r.requestorName || r.contactName)) || '').trim(); }
+
+  // Options with their counts, by label: [{ value, label: 'Pier B (3)' }].
+  function tally(items, valuesOf) {
+    var counts = {};
+    (items || []).forEach(function (r) { valuesOf(r).forEach(function (v) { if (v) counts[v] = (counts[v] || 0) + 1; }); });
+    return Object.keys(counts).sort(function (a, b) { return a.localeCompare(b); })
+      .map(function (v) { return { value: v, label: v + ' (' + counts[v] + ')' }; });
+  }
+
+  /** Every column filter's options, from all the requests (not just the ones shown, so a filter can be changed). */
+  function columnOptions(items, linesByRequest, now) {
+    var list = items || [];
+    var inWindow = {};
+    list.forEach(function (r) { dateKeys(r, now).forEach(function (k) { inWindow[k] = (inWindow[k] || 0) + 1; }); });
+    var external = list.filter(function (r) { return r.external; }).length;
+    return {
+      number: list.slice().sort(function (a, b) { return (Number(b.eqrEquipmentRequestId) || 0) - (Number(a.eqrEquipmentRequestId) || 0); })
+        .filter(function (r) { return r.requestNumber; })
+        .map(function (r) { return { value: String(r.requestNumber), label: r.requestNumber + (r.party ? ' · ' + r.party : '') }; }),
+      party: tally(list, function (r) { return [r.party]; }),
+      equipment: tally(list, function (r) { return equipmentNames(r, linesByRequest); }),
+      dates: DATE_WINDOWS.map(function (w) { return { value: w.key, label: w.label + ' (' + (inWindow[w.key] || 0) + ')' }; }),
+      next: tally(list, function (r) { return [nextWho(r)]; }),
+      type: [{ value: 'INTERNAL', label: 'Project (' + (list.length - external) + ')' }, { value: 'EXTERNAL', label: 'Customer (' + external + ')' }],
+      requester: tally(list, function (r) { return [requesterOf(r)]; })
+    };
+  }
+
+  /** The requests that match every column filter set: { number, party, equipment, dates, next, requester } ('' = any). */
+  function byColumns(items, f, linesByRequest, now) {
+    var c = f || {};
+    return (items || []).filter(function (r) {
+      if (c.number && String(r.requestNumber) !== c.number) return false;
+      if (c.party && r.party !== c.party) return false;
+      if (c.equipment && equipmentNames(r, linesByRequest).indexOf(c.equipment) === -1) return false;
+      if (c.dates && dateKeys(r, now).indexOf(c.dates) === -1) return false;
+      if (c.next && nextWho(r) !== c.next) return false;
+      if (c.requester && requesterOf(r) !== c.requester) return false;
+      return true;
+    });
+  }
+
   /** The band under the title: "100 requests · 176 pieces · 3 late". */
   function summary(items) {
     var list = items || [];
@@ -340,6 +416,7 @@ define(['resources/js/requestProgress', 'resources/js/fmt', 'resources/js/rules'
   return {
     CHIPS: CHIPS, LANES: LANES, decorate: decorate, keysOf: keysOf, laneOf: laneOf, requestChips: requestChips, filter: filter, sort: sort,
     board: board, equipmentRows: equipmentRows, equipmentChips: equipmentChips, filterEquipment: filterEquipment, exportColumns: exportColumns,
-    summary: summary, unitText: unitText, actions: actions, redwoodRows: redwoodRows, yardJourney: yardJourney, PICKABLE: PICKABLE, CONFIRMABLE: CONFIRMABLE, ACCEPTABLE: ACCEPTABLE
+    summary: summary, unitText: unitText, actions: actions, redwoodRows: redwoodRows, columnOptions: columnOptions, byColumns: byColumns,
+    dateKeys: dateKeys, DATE_WINDOWS: DATE_WINDOWS, yardJourney: yardJourney, PICKABLE: PICKABLE, CONFIRMABLE: CONFIRMABLE, ACCEPTABLE: ACCEPTABLE
   };
 });

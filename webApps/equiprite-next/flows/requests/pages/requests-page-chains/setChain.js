@@ -16,7 +16,7 @@ define([
       if (field === 'ui') {
         const ui = value === 'redwood' ? 'redwood' : 'current';
         if (ui === v.ui) return;
-        await Actions.callChain(context, { chain: 'applyChain', params: ui === 'redwood' ? { view: 'list' } : {} });
+        await Actions.callChain(context, { chain: 'applyChain', params: ui === 'redwood' ? { view: 'list', ui } : { ui } });
         await new Promise((r) => setTimeout(r, 0));
         if (ui === 'redwood') v.rwMounted = true;
         v.ui = ui;

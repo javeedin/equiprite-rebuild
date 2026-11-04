@@ -11,7 +11,7 @@
         primary-action.display="on" primary-action.label="New request" on-sp-primary-action="[[ $listeners.onNew ]]" display-mode="mixed">
         <oj-sp-smart-search slot="search" filter-criterion="{{ $variables.rwCriterion }}" on-filter-criterion-changed="[[ $listeners.onRwFilter ]]"
           search-context="[[ $variables.rwSearchContext ]]" search-config="[[ $variables.rwSearchConfig.provider ]]"
-          suggestion-filters='["StageFilter", "TypeFilter"]' placeholder="Request, project, customer, requester or equipment"></oj-sp-smart-search>
+          suggestion-filters='["RequestFilter", "PartyFilter", "StageFilter", "EquipmentFilter", "DatesFilter", "NextFilter", "TypeFilter", "RequesterFilter"]' placeholder="Request, project, customer, requester or equipment"></oj-sp-smart-search>
         <oj-sp-collection-container>
           <div class="nx-rw-tools">
             <oj-c-button id="reqRwRefresh" label="Refresh" chroming="borderless" size="sm" disabled="[[ $variables.isLoading ]]" on-oj-action="[[ $listeners.onRefresh ]]">

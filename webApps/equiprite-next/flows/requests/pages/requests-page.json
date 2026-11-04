@@ -118,6 +118,18 @@
       "type": "any",
       "description": "Redwood view: the Smart Search criterion (text and filters); rwFilterChain turns it into text, stage and source."
     },
+    "rwCols": {
+      "type": "object",
+      "defaultValue": {
+        "number": "",
+        "party": "",
+        "equipment": "",
+        "dates": "",
+        "next": "",
+        "requester": ""
+      },
+      "description": "Redwood view: the column filters picked in Smart Search (rwFilterChain), as requestList.byColumns reads them; Status and Type are stage and source."
+    },
     "rwSearchConfig": {
       "type": "oj-sp/smart-search/strategies/JsonSearchConfigProviderFactory",
       "defaultValue": {
@@ -139,16 +151,8 @@
     },
     "rwTypes": {
       "type": "any[]",
-      "defaultValue": [
-        {
-          "value": "INTERNAL",
-          "label": "Project"
-        },
-        {
-          "value": "EXTERNAL",
-          "label": "Customer"
-        }
-      ]
+      "defaultValue": [],
+      "description": "Redwood view: the Type filter's options (Project, Customer) with their counts (applyChain)."
     },
     "rwTypesADP": {
       "type": "vb/ArrayDataProvider2",
@@ -158,15 +162,143 @@
         "data": "{{ $page.variables.rwTypes }}"
       }
     },
+    "rwNumbers": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood view: the Request filter's options with their counts (applyChain, requestList.columnOptions)."
+    },
+    "rwNumbersADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwNumbers }}"
+      }
+    },
+    "rwParties": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood view: the Project or customer filter's options with their counts (applyChain, requestList.columnOptions)."
+    },
+    "rwPartiesADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwParties }}"
+      }
+    },
+    "rwEquipment": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood view: the Equipment filter's options with their counts (applyChain, requestList.columnOptions)."
+    },
+    "rwEquipmentADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwEquipment }}"
+      }
+    },
+    "rwDates": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood view: the Dates filter's options with their counts (applyChain, requestList.columnOptions)."
+    },
+    "rwDatesADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwDates }}"
+      }
+    },
+    "rwNext": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood view: the Next step filter's options with their counts (applyChain, requestList.columnOptions)."
+    },
+    "rwNextADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwNext }}"
+      }
+    },
+    "rwRequesters": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood view: the Requester filter's options with their counts (applyChain, requestList.columnOptions)."
+    },
+    "rwRequestersADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwRequesters }}"
+      }
+    },
     "rwSearchContext": {
       "type": "object",
       "defaultValue": {
         "$search": {
           "filters": {
+            "RequestFilter": {
+              "label": "Request",
+              "options": {
+                "optionsData": "[[ $page.variables.rwNumbersADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "PartyFilter": {
+              "label": "Project or customer",
+              "options": {
+                "optionsData": "[[ $page.variables.rwPartiesADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
             "StageFilter": {
-              "label": "Where the equipment is",
+              "label": "Status",
               "options": {
                 "optionsData": "[[ $page.variables.rwStagesADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "EquipmentFilter": {
+              "label": "Equipment",
+              "options": {
+                "optionsData": "[[ $page.variables.rwEquipmentADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "DatesFilter": {
+              "label": "Dates",
+              "options": {
+                "optionsData": "[[ $page.variables.rwDatesADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "NextFilter": {
+              "label": "Next step",
+              "options": {
+                "optionsData": "[[ $page.variables.rwNextADP ]]",
                 "optionsKeys": {
                   "label": "label",
                   "value": "value"
@@ -177,6 +309,16 @@
               "label": "Type",
               "options": {
                 "optionsData": "[[ $page.variables.rwTypesADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "RequesterFilter": {
+              "label": "Requester",
+              "options": {
+                "optionsData": "[[ $page.variables.rwRequestersADP ]]",
                 "optionsKeys": {
                   "label": "label",
                   "value": "value"
