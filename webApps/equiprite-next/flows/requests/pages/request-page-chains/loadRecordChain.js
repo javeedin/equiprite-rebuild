@@ -8,7 +8,8 @@ define([
   'resources/js/approvalQueue',
   'resources/js/rules',
   'resources/js/shellBus',
-], (ActionChain, Actions, requestData, Progress, history, list, queue, rules, bus) => {
+  'resources/js/requestEdit',
+], (ActionChain, Actions, requestData, Progress, history, list, queue, rules, bus, requestEdit) => {
   'use strict';
 
   // Loads one request: its id from the tab (or, given only a number, from the requests list), then its lines
@@ -63,6 +64,7 @@ define([
           start: String(first.requestedStartDate || header.requestedStartDate || '').slice(0, 10),
           end: String(first.requestedEndDate || header.requestedEndDate || '').slice(0, 10),
           estCost: first.totalEstCost != null ? Number(first.totalEstCost) : null,
+          projectRefId: header.projectRefId != null ? header.projectRefId : null,
         };
         v.head = head;
         v.lines = lines.map((l) => Object.assign({}, l, { unit: l.serial || ({ ALLOCATED: 'Unit assigned', PENDING: 'No unit assigned yet', UNALLOCATED: 'No unit assigned yet' }[l.allocation] || '—') }));
@@ -71,6 +73,10 @@ define([
         const app = context.$application.variables;
         const workbench = rules.pageAccess(app.pageAccessMap, app.pageAccessLoaded, 'EQR_WORKBENCH');
         const picking = rules.pageAccess(app.pageAccessMap, app.pageAccessLoaded, 'EQR_INITIATE_PICKING');
+        // Edit request: until anyone decides it, whoever may raise requests (or decide them) may add or remove equipment.
+        const mayEdit = rules.pageAccess(app.pageAccessMap, app.pageAccessLoaded, 'EQR_PROJ_CREATE_REQUEST') === 'FULL' || workbench === 'FULL';
+        v.editCan = requestEdit.canEdit(head, lines, mayEdit).ok;
+        if (!v.editCan && v.edit && v.edit.on) v.edit = Object.assign({}, JSON.parse(JSON.stringify(v.edit)), { on: false, ask: '' });
         const row = { requestNumber: head.requestNumber, status, eqrEquipmentRequestId: id, requestOrigin: external ? 'External' : 'Internal' };
         const kind = (queue.build([row], { [head.requestNumber]: lines }, {})[0] || {}).kind || '';
         const requests = rules.pageAccess(app.pageAccessMap, app.pageAccessLoaded, 'EQR_EQUIPMENT_REQUESTS');

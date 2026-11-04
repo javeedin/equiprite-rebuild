@@ -115,7 +115,7 @@ T.section('history: load (reads only, a failed read named)');
     return Promise.resolve({ ok: true, body: { data: [] } });
   } };
   const h = await history.load({}, Actions, { id: 9, head: {} });
-  T.eq('reads in parallel, every one a GET', calls.sort().join(), ['eqp-v1/getEquipriteV1EquipmentRequestById', 'eqp-v1/getEquipriteV1ViewsRequestDetailLines',
+  T.eq('reads in parallel, every one a GET (the audit trail: the request\'s edits)', calls.sort().join(), ['eqp-v1/getAuditTrail', 'eqp-v1/getEquipriteV1EquipmentRequestById', 'eqp-v1/getEquipriteV1ViewsRequestDetailLines',
     'eqp-v1/getPurchaseRequisitions', 'eqp-v1/getRequestStatusHistory', 'eqp-v1/getTransferHistory', 'eqp-v1/getTransferOrders'].join());
   T.eq('the header gives created and by whom', h.events.filter((e) => e.kind === 'created')[0].who, 'User Rite');
   T.check('the failed read is named', /Not read: the transfer orders/.test(h.note));

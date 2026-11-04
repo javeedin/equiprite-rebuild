@@ -1,4 +1,4 @@
-define(['resources/js/exportKit', 'resources/js/fmt', 'resources/js/requestProgress'], (exportKit, fmt, Progress) => {
+define(['resources/js/exportKit', 'resources/js/fmt', 'resources/js/requestProgress', 'resources/js/requestEdit'], (exportKit, fmt, Progress, requestEdit) => {
   'use strict';
 
   // A request's tab: binding helpers.
@@ -117,15 +117,35 @@ define(['resources/js/exportKit', 'resources/js/fmt', 'resources/js/requestProgr
       return this.rwSame('primary', s ? { label: s.label, display: s.off ? 'disabled' : 'on' } : { label: '', display: 'off' });
     }
 
-    /** The header's other actions: Refresh, Export, the request's other steps, and Act on it in New. Refresh stays on
-     *  while the request reloads (a second click only reloads again), so the list does not change twice in a moment. */
-    rwActions(head, acts, busy, loading, newBase) {
-      const out = [{ id: 'refresh', label: 'Refresh', icon: 'oj-ux-ico-refresh', display: 'on' },
-        { id: 'export', label: 'Export to Excel', icon: 'oj-ux-ico-download', display: 'on' }];
+    /** The header's other actions: Edit request (until anyone decides it), Refresh, Export, the request's other steps,
+     *  and Act on it in New. Refresh stays on while the request reloads (a second click only reloads again), so the list
+     *  does not change twice in a moment. */
+    rwActions(head, acts, busy, loading, newBase, editCan) {
+      const out = [];
+      if (editCan) out.push({ id: 'edit', label: 'Edit request', icon: 'oj-ux-ico-edit', display: 'on' });
+      out.push({ id: 'refresh', label: 'Refresh', icon: 'oj-ux-ico-refresh', display: 'on' },
+        { id: 'export', label: 'Export to Excel', icon: 'oj-ux-ico-download', display: 'on' });
       this.rwSteps(head, acts, busy).slice(1).forEach((s) => out.push({ id: s.id, label: s.label, icon: s.icon, display: s.off ? 'disabled' : 'on' }));
       if (head && head.status !== 'DRAFT' && this.newUrl(newBase, head)) out.push({ id: 'new', label: 'Act on it in New', icon: 'oj-ux-ico-external-link', display: 'on' });
       return this.rwSame('actions', out);
     }
+
+    // ── Edit request ────────────────────────────────────────────────────────────────────────────────────────
+    /** The equipment Add equipment offers for what is typed (requestEdit.matches): { id, name, cls, price, free }. */
+    editMatches(catalog, query) { return requestEdit.matches(catalog, query, 8); }
+
+    /** Under a piece of equipment Add equipment offers: its class, its list price, how many are free. */
+    editSub(m) { return [m && m.cls, m && m.price, m && m.free].filter((x) => !!x).join(' · '); }
+
+    /** "Equipment (3)", or with lines removed by Edit request "Equipment (1 · 2 removed)". */
+    linesTitle(lines) {
+      const all = (lines || []).length;
+      const on = requestEdit.live(lines).length;
+      return 'Equipment (' + on + (all > on ? ' · ' + (all - on) + ' removed' : '') + ')';
+    }
+
+    /** The lines still on the request, for the panel's list (a removed line is gone from it). */
+    editLines(lines) { return requestEdit.live(lines); }
 
     /** A line's stage as Oracle's oj-badge (the Redwood equipment table), as the Requests table colours its statuses. */
     rwLineBadge(status, external) {

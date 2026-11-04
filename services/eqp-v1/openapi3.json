@@ -11270,6 +11270,20 @@
       "get": {
         "operationId": "getAuditTrail",
         "summary": "Get configuration audit trail entries",
+        "parameters": [
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Page size. Declared so VB passes it (an undeclared query parameter is stripped and the server falls back to Spring's default of 20). A request's History reads the request's edits (entity EQR_EQUIPMENT_REQUEST) from here.",
+            "schema": { "type": "integer" }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Zero-based page index.",
+            "schema": { "type": "integer" }
+          }
+        ],
         "responses": {
           "200": {
             "description": "List of audit trail entries",

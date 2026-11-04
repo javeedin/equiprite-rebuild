@@ -40,6 +40,21 @@
       "type": "boolean",
       "defaultValue": true
     },
+    "editCan": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "Edit request: this request can be changed now (a project request sent for approval, nothing on it decided, and a user who may; requestEdit.canEdit)."
+    },
+    "edit": {
+      "type": "object",
+      "defaultValue": { "on": false, "busy": false, "query": "", "pick": "", "qty": 1, "ask": "", "note": "", "tone": "" },
+      "description": "Edit request's panel: open, busy, what is typed and picked in Add equipment and how many, the line asked to be removed, and what the last change said (editChain)."
+    },
+    "editCatalog": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Edit request: the equipment catalog for the request's dates (views/equipment-catalog), read when the panel first opens."
+    },
     "rwReady": {
       "type": "boolean",
       "defaultValue": false,
@@ -157,6 +172,12 @@
           }
         }
       ]
+    },
+    "onEdit": {
+      "chains": [{ "chain": "editChain", "parameters": { "act": "{{ $event.currentTarget.dataset.act }}", "value": "{{ $event.currentTarget.dataset.value }}" } }]
+    },
+    "onEditInput": {
+      "chains": [{ "chain": "editChain", "parameters": { "act": "{{ $event.target.dataset.act }}", "value": "{{ $event.target.value }}" } }]
     },
     "onRwAction": {
       "chains": [

@@ -42,7 +42,9 @@ define(['resources/js/requestProgress', 'resources/js/fmt', 'resources/js/rules'
         external: external,
         party: r.projectName || r.customerName || r.projectInternalCustomer || '',
         partyFor: r.projectName ? (r.customerName || r.projectInternalCustomer || '') : '',
-        pieces: lines.reduce(function (s, l) { return s + (Number(l.qty) || 1); }, 0) || Number(r.lines) || 0,
+        // A line removed before anyone decided it (CANCELLED, Edit request) is no longer a piece of the request.
+        pieces: lines.filter(function (l) { return up(l.lineStatus || l.status) !== 'CANCELLED'; })
+          .reduce(function (s, l) { return s + (Number(l.qty) || 1); }, 0) || (lines.length ? 0 : Number(r.lines) || 0),
         lineCount: lines.length,
         segs: lines.map(function (l) { var i = Progress.line(l.lineStatus || l.status || r.status, external); return { stage: i.stage || 'ready', title: (l.name || 'Equipment') + ': ' + i.label }; }),
         lane: laneOf(p),

@@ -853,3 +853,30 @@ html[data-nx-look="redwood"] .nx-record .nx-rec-rwnum { text-align: end; font-va
 html[data-nx-look="redwood"] .nx-record .nx-rec-rwlines .oj-badge { white-space: normal; height: auto; max-width: 100%; line-height: 18px; padding-top: 3px; padding-bottom: 3px; }
 /* A screen being built: the card under the header. */
 html[data-nx-look="redwood"] .nx-soon .nx-soon-card { margin-top: 8px; }
+
+/* ── A request's record: Edit request's panel (both looks; requestEdit, editChain) ─────────────────────────────────── */
+.nx-rec-edit { margin: 0 16px 12px; padding: 14px 16px; border: 1px solid var(--nx-line); border-radius: var(--nx-radius); background: var(--nx-surface-2);
+  display: flex; flex-direction: column; gap: 12px; }
+.nx-rec-edit-lead { margin: 0; font-size: 13px; }
+.nx-rec-edit-cols { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 900px) { .nx-rec-edit-cols { grid-template-columns: minmax(0, 1fr); } }
+.nx-rec-edit-h { margin: 0 0 8px; font-size: 14px; font-weight: 700; }
+.nx-rec-edit-add .nx-search { max-width: none; }
+.nx-rec-edit-results, .nx-rec-edit-lines { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.nx-rec-edit-opt { width: 100%; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 8px 10px; border: 1px solid var(--nx-line);
+  border-radius: 8px; background: #fff; font: inherit; color: var(--nx-ink); text-align: left; cursor: pointer; }
+.nx-rec-edit-opt:hover { border-color: var(--nx-line-strong); }
+.nx-rec-edit-opt--on { border-color: var(--nx-accent); box-shadow: inset 0 0 0 1px var(--nx-accent); background: var(--nx-accent-soft); }
+.nx-rec-edit-go { display: flex; align-items: flex-end; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+.nx-rec-edit-qty { display: flex; flex-direction: column; gap: 4px; }
+.nx-rec-edit-qty input { width: 90px; height: 36px; box-sizing: border-box; padding: 0 8px; border: 1px solid var(--nx-line-strong); border-radius: 8px; font: inherit; }
+.nx-rec-edit-line { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 8px 10px; border: 1px solid var(--nx-line);
+  border-radius: 8px; background: #fff; }
+.nx-rec-edit-name { display: flex; flex-direction: column; min-width: 0; }
+.nx-rec-edit-ask { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; color: var(--nx-danger); }
+.nx-rec-edit-note { margin: 0; padding: 8px 12px; border-radius: 8px; font-size: 13px; }
+.nx-rec-edit-note--ok { background: #e8f5ec; color: #14532d; }
+.nx-rec-edit-note--error { background: var(--nx-danger-soft); color: #7a1a12; }
+html[data-nx-look="redwood"] .nx-rec-edit { border-radius: 6px; }
+html[data-nx-look="redwood"] .nx-rec-edit-opt, html[data-nx-look="redwood"] .nx-rec-edit-line { border-radius: 6px; }
+html[data-nx-look="redwood"] .nx-rec-edit-qty input { border-radius: 4px; }

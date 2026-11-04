@@ -171,6 +171,20 @@ define(['resources/js/requestProgress', 'resources/js/fmt'], function (Progress,
     }).sort(byTime);
   }
 
+  /**
+   * The request's edits (Edit request on its record: equipment added or removed before anyone decided it), from the
+   * audit trail: rows of entity EQR_EQUIPMENT_REQUEST for this request -> events, with who did it and what changed.
+   */
+  var EDITS = { ADD_LINE: 'Equipment added', REMOVE_LINE: 'Equipment removed' };
+  function fromEdits(rows, requestId) {
+    return listOf(rows).filter(function (r) {
+      return up(r && r.entityName) === 'EQR_EQUIPMENT_REQUEST' && String(r.entityId) === String(requestId) && EDITS[up(r.action)];
+    }).map(function (r) {
+      return event({ at: pick(r, ['changedDate', 'createdDate']) || '', kind: 'edit', stage: 'approval', title: EDITS[up(r.action)],
+        text: r.changeSummary || '', who: pick(r, ['changedBy', 'createdBy']) || '', recorded: true, code: up(r.action) });
+    }).filter(function (e) { return e.ms != null; });
+  }
+
   /** transfer-orders rows -> events: raised, shipped, received; out to site or back to the yard. */
   function fromTransferOrders(rows) {
     var out = [];
@@ -266,7 +280,8 @@ define(['resources/js/requestProgress', 'resources/js/fmt'], function (Progress,
       events.push(event({ at: head.createdDate, kind: 'created', stage: 'draft', milestone: 'created', title: 'Request created',
         text: head.number || '', who: head.requestor || '' }));
     }
-    events = events.concat(fromTransferOrders(o.transferOrders), fromTransfers(o.transfers), fromQuotes(o.quotes), fromRequisitions(o.requisitions));
+    events = events.concat(fromTransferOrders(o.transferOrders), fromTransfers(o.transfers), fromQuotes(o.quotes), fromRequisitions(o.requisitions),
+      fromEdits(o.edits, head.id));
     events.sort(byTime);
 
     // How far each piece has come. A piece sent back or cancelled is left out of the counts (as requestProgress does).
@@ -355,8 +370,10 @@ define(['resources/js/requestProgress', 'resources/js/fmt'], function (Progress,
       get('eqp-v1/getTransferOrders', { equipmentRequestId: id }),
       get('eqp-v1/getTransferHistory', { equipmentRequestId: id }),
       head.external ? get('eqp-v1/getQuoteHistory', { requestId: id }) : Promise.resolve({ ok: true, body: [] }),
-      get('eqp-v1/getPurchaseRequisitions', { requestId: id, page: 0, size: 200 })
+      get('eqp-v1/getPurchaseRequisitions', { requestId: id, page: 0, size: 200 }),
+      get('eqp-v1/getAuditTrail', { size: 2000 })
     ]);
+    head.id = head.id || id;
     var header = res[1].ok && res[1].body ? res[1].body : {};
     var lines = res[2].lines || listOf(res[2].body);
     var first = lines[0] || {};
@@ -380,6 +397,7 @@ define(['resources/js/requestProgress', 'resources/js/fmt'], function (Progress,
       transfers: res[4].ok ? res[4].body : [],
       quotes: res[5].ok ? res[5].body : [],
       requisitions: res[6].ok ? res[6].body : [],
+      edits: res[7].ok ? res[7].body : [],
       failed: failed,
       now: o && o.now
     });
@@ -391,6 +409,7 @@ define(['resources/js/requestProgress', 'resources/js/fmt'], function (Progress,
     load: load,
     fromStatusHistory: fromStatusHistory,
     fromTransferOrders: fromTransferOrders,
+    fromEdits: fromEdits,
     msOf: msOf
   };
 });

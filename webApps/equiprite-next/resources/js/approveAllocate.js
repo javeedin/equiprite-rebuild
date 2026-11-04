@@ -26,7 +26,8 @@ define([
 
   // confirmRequestChain
   var APPROVE_TARGET = 'IN_PROCESS';
-  var HEADER_READY_STATES = ['IN_PROCESS', 'ALLOCATED', 'REJECTED'];
+  // CANCELLED: a line removed on the request's record (Edit request) before anyone decided it; it holds nothing up.
+  var HEADER_READY_STATES = ['IN_PROCESS', 'ALLOCATED', 'REJECTED', 'CANCELLED'];
   var CASCADABLE = [null, '', 'DRAFT', 'SUBMITTED', 'IN_PROCESS'];
   // rejectRequestChain
   var REJECT_TARGET = 'REJECTED';

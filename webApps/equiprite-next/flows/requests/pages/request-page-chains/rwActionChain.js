@@ -10,6 +10,7 @@ define([
   //   finish    Finish this draft (finishDraftChain)
   //   approve | assign | pick   Approve & allocate, or Picking & shipping, opened on this request (stepChain)
   //   confirm | accept          asked once below the header, then done here (stepChain ask)
+  //   edit      Edit request: its panel, to add or remove equipment before anyone decides it (editChain)
   //   refresh   Refresh (loadRecordChain)
   //   export    Export the equipment, as Excel (exportLinesChain)
   //   new       Act on it in New: this request in New EquipRite
@@ -27,6 +28,7 @@ define([
         await Actions.callChain(context, { chain: 'stepChain', params: { act: 'ask', value: act } });
         return;
       }
+      if (act === 'edit') { await Actions.callChain(context, { chain: 'editChain', params: { act: v.edit && v.edit.on ? 'close' : 'open', value: '' } }); return; }
       if (act === 'refresh') { await Actions.callChain(context, { chain: 'loadRecordChain' }); return; }
       if (act === 'export') { await Actions.callChain(context, { chain: 'exportLinesChain', params: { format: 'xlsx' } }); return; }
       if (act === 'new') {

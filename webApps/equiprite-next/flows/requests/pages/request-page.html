@@ -12,7 +12,7 @@
         page-subtitle="[[ $functions.rwSub($variables.head, $variables.isLoading) ]]" badge="[[ $functions.rwBadge($variables.p) ]]"
         display-options.in-flow-back="true" on-sp-in-flow-back="[[ $listeners.onOpenList ]]"
         primary-action="[[ $functions.rwPrimary($variables.head, $variables.acts, $variables.stepBusy) ]]" on-sp-primary-action="[[ $listeners.onRwPrimary ]]"
-        secondary-actions="[[ $functions.rwActions($variables.head, $variables.acts, $variables.stepBusy, $variables.isLoading, $application.variables.appUrls.new) ]]"
+        secondary-actions="[[ $functions.rwActions($variables.head, $variables.acts, $variables.stepBusy, $variables.isLoading, $application.variables.appUrls.new, $variables.editCan) ]]"
         on-sp-secondary-action="[[ $listeners.onRwAction ]]">
       </oj-sp-general-overview-page>
       </oj-bind-if>
@@ -57,6 +57,12 @@
             </div>
           </oj-bind-if>
         </div>
+        <!-- Edit request: until anyone decides it, add equipment or remove a line (editChain; requestEdit). -->
+        <oj-bind-if test="[[ $variables.editCan ]]">
+          <button type="button" class="nx-btn" id="recEdit" :data-act="[[ $variables.edit.on ? 'close' : 'open' ]]" data-value="" on-click="[[ $listeners.onEdit ]]"
+            :aria-expanded="[[ $variables.edit.on ? 'true' : 'false' ]]" aria-controls="recEditPanel">
+            <span class="oj-ux-ico-edit" aria-hidden="true"></span><oj-bind-text value="[[ $variables.edit.on ? 'Done editing' : 'Edit request' ]]"></oj-bind-text></button>
+        </oj-bind-if>
         <oj-bind-if test="[[ $variables.head.status === 'DRAFT' && !$variables.head.external ]]">
           <button type="button" class="nx-btn nx-btn--primary" id="recFinishDraft" on-click="[[ $listeners.onFinishDraft ]]">
             <span class="oj-ux-ico-edit-box" aria-hidden="true"></span>Finish this draft</button>
@@ -146,7 +152,69 @@
 
     <div class="nx-record-body">
       <section class="nx-card" aria-labelledby="recLines">
-        <div class="nx-card-head"><h2 id="recLines"><oj-bind-text value="[[ 'Equipment (' + $variables.lines.length + ')' ]]"></oj-bind-text></h2></div>
+        <div class="nx-card-head"><h2 id="recLines"><oj-bind-text value="[[ $functions.linesTitle($variables.lines) ]]"></oj-bind-text></h2></div>
+        <!-- Edit request's panel (both looks): add equipment from the catalog for the request's dates, or remove a line (asked
+             first). Each change is saved at once and kept in the History (requestEdit, editChain). -->
+        <oj-bind-if test="[[ $variables.edit.on ]]">
+          <div class="nx-rec-edit" id="recEditPanel" role="region" aria-label="Edit request">
+            <p class="nx-note nx-rec-edit-lead"><oj-bind-text value="[[ 'Until anyone decides it, you can add equipment to ' + $variables.head.requestNumber
+              + ' or remove a line. Each change is saved at once and kept in its History; the Equipment Manager decides the request as it is.' ]]"></oj-bind-text></p>
+            <div class="nx-rec-edit-cols">
+              <div class="nx-rec-edit-add">
+                <h3 class="nx-rec-edit-h">Add equipment</h3>
+                <label class="nx-search"><span class="oj-ux-ico-search" aria-hidden="true"></span>
+                  <input type="search" id="recEditSearch" data-act="query" autocomplete="off" placeholder="Type its name or class"
+                    aria-label="Equipment to add: type its name or class" :value="[[ $variables.edit.query ]]" on-input="[[ $listeners.onEditInput ]]"></label>
+                <ul class="nx-rec-edit-results" aria-label="Equipment to add">
+                  <oj-bind-for-each data="[[ $functions.editMatches($variables.editCatalog, $variables.edit.query) ]]">
+                    <template data-oj-as="m">
+                      <li><button type="button" :class="[[ 'nx-rec-edit-opt' + ($variables.edit.pick === m.data.id ? ' nx-rec-edit-opt--on' : '') ]]"
+                        data-act="pick" :data-value="[[ m.data.id ]]" on-click="[[ $listeners.onEdit ]]" :aria-pressed="[[ $variables.edit.pick === m.data.id ? 'true' : 'false' ]]">
+                        <strong><oj-bind-text value="[[ m.data.name ]]"></oj-bind-text></strong>
+                        <span class="nx-cell-sub"><oj-bind-text value="[[ $functions.editSub(m.data) ]]"></oj-bind-text></span>
+                      </button></li>
+                    </template>
+                  </oj-bind-for-each>
+                </ul>
+                <oj-bind-if test="[[ !!$variables.edit.query && $functions.editMatches($variables.editCatalog, $variables.edit.query).length === 0 ]]">
+                  <p class="nx-note" id="recEditNone">No equipment matches. Try another word.</p>
+                </oj-bind-if>
+                <div class="nx-rec-edit-go">
+                  <label class="nx-rec-edit-qty"><span class="nx-note">How many</span>
+                    <input type="number" min="1" step="1" id="recEditQty" data-act="qty" :value="[[ $variables.edit.qty ]]" on-change="[[ $listeners.onEditInput ]]"></label>
+                  <button type="button" class="nx-btn nx-btn--primary" id="recEditAdd" data-act="add" data-value="" on-click="[[ $listeners.onEdit ]]"
+                    :disabled="[[ !$variables.edit.pick || $variables.edit.busy ]]"><span class="oj-ux-ico-plus" aria-hidden="true"></span>Add to the request</button>
+                </div>
+              </div>
+              <div class="nx-rec-edit-on">
+                <h3 class="nx-rec-edit-h">On the request</h3>
+                <ul class="nx-rec-edit-lines" aria-label="Equipment on the request">
+                  <oj-bind-for-each data="[[ $functions.editLines($variables.lines) ]]">
+                    <template data-oj-as="l">
+                      <li class="nx-rec-edit-line" :data-line="[[ l.data.lineId ]]">
+                        <span class="nx-rec-edit-name"><strong><oj-bind-text value="[[ l.data.name ]]"></oj-bind-text></strong>
+                          <span class="nx-cell-sub"><oj-bind-text value="[[ '× ' + l.data.qty + (l.data.cls ? ' · ' + l.data.cls : '') ]]"></oj-bind-text></span></span>
+                        <oj-bind-if test="[[ $variables.edit.ask != l.data.lineId ]]">
+                          <button type="button" class="nx-btn nx-btn--sm" data-act="ask" :data-value="[[ l.data.lineId ]]" on-click="[[ $listeners.onEdit ]]"
+                            :disabled="[[ $variables.edit.busy ]]" :aria-label="[[ 'Remove ' + l.data.name ]]"><span class="oj-ux-ico-trash" aria-hidden="true"></span>Remove</button>
+                        </oj-bind-if>
+                        <oj-bind-if test="[[ $variables.edit.ask == l.data.lineId ]]">
+                          <span class="nx-rec-edit-ask" role="alert">Remove it? It stays in the History as removed.
+                            <button type="button" class="nx-btn nx-btn--sm nx-btn--danger" data-act="remove" :data-value="[[ l.data.lineId ]]" on-click="[[ $listeners.onEdit ]]"
+                              :disabled="[[ $variables.edit.busy ]]">Remove it</button>
+                            <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" data-act="keep" data-value="" on-click="[[ $listeners.onEdit ]]">Keep</button></span>
+                        </oj-bind-if>
+                      </li>
+                    </template>
+                  </oj-bind-for-each>
+                </ul>
+              </div>
+            </div>
+            <oj-bind-if test="[[ !!$variables.edit.note ]]">
+              <p :class="[[ 'nx-rec-edit-note nx-rec-edit-note--' + $variables.edit.tone ]]" id="recEditNote" role="status"><oj-bind-text value="[[ $variables.edit.note ]]"></oj-bind-text></p>
+            </oj-bind-if>
+          </div>
+        </oj-bind-if>
         <!-- Redwood: the same lines as Oracle's table (oj-table, oj-badge), hidden under Current. Put on the page once the
              request and its history are read: a tab just opened settles first (an oj-table started while its new tab is
              still being put in front fetches twice, and the first fetch's abort reaches the browser as an error). -->
