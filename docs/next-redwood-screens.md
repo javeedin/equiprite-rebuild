@@ -64,6 +64,7 @@ Build it like this:
   - Each filter's options are an `any[]` page variable plus an `ArrayDataProvider2` (`keyAttributes: 'value'`).
 - **Reading the criterion.** It is a tree: a `text` node, plus `$eq` nodes. A `$eq` node holds its value either as `{ attribute, value }` or as `{ value: { field: v } }`; read both, as `rwFilterChain` does.
   - Smart Search applies a picked filter **when its dropdown closes** (Oracle's own behaviour, the same in Old), and can take more than a second after that. Tests should click the page title after picking, then wait for the rows to change rather than pausing for a fixed time.
+- **Anything inside `oj-sp-collection-container` that an `oj-bind-if` adds later** (a message, a bar) must sit in an element that is there from the start, such as `<div class="…"><oj-bind-if …>…</oj-bind-if></div>`. Added straight inside the container, it never shows.
 - **Body.** `oj-sp-collection-container` with:
   - A small tools row (`oj-c-button` Refresh and Export, `chroming="borderless"`).
   - An `oj-table` with:

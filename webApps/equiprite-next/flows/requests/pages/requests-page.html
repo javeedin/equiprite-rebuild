@@ -19,9 +19,13 @@
             <oj-c-button id="reqRwExport" label="Export to Excel" chroming="borderless" size="sm" on-oj-action="[[ $listeners.onRwExport ]]">
               <span slot="startIcon" class="oj-ux-ico-download"></span></oj-c-button>
           </div>
-          <oj-bind-if test="[[ !!$variables.error ]]">
-            <div class="oj-sm-padding-4x-bottom" role="alert"><span class="oj-text-color-danger"><oj-bind-text value="[[ $variables.error ]]"></oj-bind-text></span></div>
-          </oj-bind-if>
+          <!-- Inside an element that is there from the start: what an oj-bind-if adds later straight inside Oracle's collection
+               container never shows. -->
+          <div class="nx-rw-msg">
+            <oj-bind-if test="[[ !!$variables.error ]]">
+              <div class="oj-sm-padding-4x-bottom" role="alert"><span class="oj-text-color-danger"><oj-bind-text value="[[ $variables.error ]]"></oj-bind-text></span></div>
+            </oj-bind-if>
+          </div>
           <oj-table id="reqRwTable" data="[[ $variables.rwADP ]]" class="oj-sm-width-full nx-rw-table" aria-label="Requests"
             scroll-policy="loadMoreOnScroll" scroll-policy-options.fetch-size="50" display="list" horizontal-grid-visible="enabled"
             layout="fixed" on-oj-row-action="[[ $listeners.onRwRow ]]"
