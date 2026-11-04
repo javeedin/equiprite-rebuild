@@ -1,0 +1,65 @@
+{
+  "description": "Customer portal (Redwood view): the Smart Search filters over the customer's requests, one per column as the table shows them (Request, Dates, Where your equipment is, Next, Contract), then Show (the portal's own Needs you, Open, Finished, All). Every filter here needs its entry in portal-page.json's rwSearchContext (the widget evaluates every filter in this file, and one without context throws and blanks the table).",
+  "filters": {
+    "RequestFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Request",
+      "options": {
+        "field": "number",
+        "optionsData": "[[ $search.filters.RequestFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.RequestFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "DatesFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Dates",
+      "options": {
+        "field": "dates",
+        "optionsData": "[[ $search.filters.DatesFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.DatesFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "StatusFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Where your equipment is",
+      "options": {
+        "field": "status",
+        "optionsData": "[[ $search.filters.StatusFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.StatusFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "NextFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Next",
+      "options": {
+        "field": "next",
+        "optionsData": "[[ $search.filters.NextFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.NextFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "ContractFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Contract",
+      "options": {
+        "field": "contract",
+        "optionsData": "[[ $search.filters.ContractFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.ContractFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "GroupFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Show",
+      "options": {
+        "field": "group",
+        "optionsData": "[[ $search.filters.GroupFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.GroupFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    }
+  }
+}

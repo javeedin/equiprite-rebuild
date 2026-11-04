@@ -22,6 +22,14 @@ define(['resources/js/customerOrder', 'resources/js/rentalTerms', 'resources/js/
       return [f.customerName, f.startDate && f.endDate ? O.windowText(f.startDate, f.endDate) : ''].filter(Boolean).join(' · ') || 'Pick the dates, the equipment and where it goes';
     }
 
+    /**
+     * Redwood view (your menu, Look): the general overview page's button, the current look's Start another request
+     * (shown as it is there: a draft reopened or a request just sent, not a draft opened in its own tab).
+     */
+    rwActions(resume, sent, draft) {
+      return [{ id: 'reset', label: 'Start another request', icon: 'oj-ux-ico-plus', display: (!!resume || !!sent) && !draft ? 'on' : 'off' }];
+    }
+
     /** What Submit does, in words, before it is pressed. */
     submitWords(hideRates, resume) {
       return (resume ? 'Sends draft ' + (resume.requestNumber || '') + ' to your equipment manager' : 'Sends it to your equipment manager')

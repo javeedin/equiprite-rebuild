@@ -3,6 +3,18 @@
      resources/js/fddCatalog.js (from the FDD summary, FDD section numbers kept); logic, the drills and the swimlane SVG:
      resources/js/fddModel.js. Nothing is read from the server or written. -->
 <div class="nx-page nx-fdd">
+  <!-- Redwood (your menu, Look): Oracle's general overview page as the header (the FDD, its version, Export of the open
+       tab), over this screen's own tabs below. Put on the page the first time Redwood is shown, then kept, hidden under
+       Current. -->
+  <oj-bind-if test="[[ $application.variables.lookSeen ]]">
+    <div class="nx-rw nx-rw--head" id="fddRedwood" :hidden="[[ $application.variables.look !== 'redwood' ]]">
+      <oj-sp-general-overview-page page-title="EquipRite FDD" display-mode="mixed"
+        page-subtitle="Functional design, FDD v1.7: what the FDD asks for, how its flows run across Fusion Inventory, PPM, Procurement, Maintenance and AR, and how much of it EquipRite Next has built (with its phone app)."
+        secondary-actions="[[ $functions.rwActions($variables.tab, $variables.drill.open) ]]" on-sp-secondary-action="[[ $listeners.onRwAction ]]">
+      </oj-sp-general-overview-page>
+    </div>
+  </oj-bind-if>
+  <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
   <div class="nx-pagehead">
     <div>
       <div class="nx-kicker">Functional design · FDD v1.7</div>
@@ -29,6 +41,7 @@
       </div>
     </div>
   </div>
+  </oj-bind-if>
 
   <div class="fdd-tabs" role="tablist" aria-label="EquipRite FDD">
     <button type="button" role="tab" id="fddTab-requirements" aria-controls="fddPanel-requirements" data-value="requirements" on-click="[[ $listeners.onTab ]]"

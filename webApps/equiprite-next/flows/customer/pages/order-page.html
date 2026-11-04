@@ -3,6 +3,18 @@
      customer New request, EquipRite only). With customer quoting off, submitting also creates the Fusion sell contract:
      the draft is saved here and sent from New EquipRite. Rules: resources/js/customerOrder.js. Chains: order-page-chains. -->
 <div class="nx-page nx-cu nx-cu-order">
+  <!-- Redwood (your menu, Look): Oracle's general overview page as the header (the request being made, its line, Start
+       another request), as Old's customer create request, over this screen's own steps below. Put on the page the first
+       time Redwood is shown, then kept, hidden under Current. -->
+  <oj-bind-if test="[[ $application.variables.lookSeen ]]">
+    <div class="nx-rw nx-rw--head" id="coRedwood" :hidden="[[ $application.variables.look !== 'redwood' ]]">
+      <oj-sp-general-overview-page page-title="[[ $variables.resume ? 'Draft ' + $variables.resume.requestNumber : 'Request equipment' ]]" display-mode="mixed"
+        page-subtitle="[[ $functions.subline($variables.form) ]]"
+        secondary-actions="[[ $functions.rwActions($variables.resume, $variables.sent, $variables.draft) ]]" on-sp-secondary-action="[[ $listeners.onReset ]]">
+      </oj-sp-general-overview-page>
+    </div>
+  </oj-bind-if>
+  <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
   <div class="nx-pagehead">
     <div>
       <div class="nx-kicker">Customer request</div>
@@ -17,6 +29,7 @@
       </oj-bind-if>
     </div>
   </div>
+  </oj-bind-if>
 
   <oj-bind-if test="[[ $variables.isLoading ]]">
     <div class="nx-card nx-empty">Opening the request…</div>

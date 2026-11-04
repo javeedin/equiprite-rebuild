@@ -1,4 +1,4 @@
-define(['resources/js/exportKit', 'resources/js/fmt', 'resources/js/portalSignal'], (exportKit, fmt, signal) => {
+define(['resources/js/exportKit', 'resources/js/fmt', 'resources/js/portalSignal', 'resources/js/look'], (exportKit, fmt, signal, look) => {
   'use strict';
 
   // The customer portal's home: binding helpers. The logic is resources/js/portalView.js (and New's customerPortal.js).
@@ -20,6 +20,11 @@ define(['resources/js/exportKit', 'resources/js/fmt', 'resources/js/portalSignal
     constructor(context) {
       const helper = context && typeof context.getEventHelper === 'function' ? context.getEventHelper() : null;
       if (helper) signal.listen(() => helper.fireCustomEvent('portalChanged', {}));
+      // The look chosen in your menu (resources/js/look.js): under Redwood the Requests view is Smart Search's list
+      // (rwShowChain). One portal at a time listens: a new one takes over from the last.
+      if (PageModule.stopLook) PageModule.stopLook();
+      PageModule.stopLook = look && typeof look.onChange === 'function'
+        ? look.onChange((l) => { if (helper) helper.fireCustomEvent('lookChanged', { look: l }); }) : null;
     }
 
     formats() { return exportKit.FORMATS; }
@@ -53,6 +58,27 @@ define(['resources/js/exportKit', 'resources/js/fmt', 'resources/js/portalSignal
       if (view === 'requests') return reqs + (reqs === 1 ? ' request' : ' requests') + ', as shown';
       return 'All ' + all + (all === 1 ? ' request' : ' requests');
     }
+
+    // ── The Redwood view (your menu, Look): Oracle's general overview page as the header, the Requests view as Smart
+    //    Search over an oj-table. Arrays and objects for its bindings come from here (none are written in bindings). An
+    //    action's display is on, off or disabled (oj-sp reads only that). ──
+
+    /** The header's primary action: New request, for a sign-in that may raise one (as the current look's button). */
+    rwPrimary(canCreate) { return { label: 'New request', icon: 'oj-ux-ico-plus', display: canCreate ? 'on' : 'off' }; }
+
+    /** The header's secondary actions: the current look's Refresh and Export. */
+    rwActions(loading) {
+      return [
+        { id: 'refresh', label: 'Refresh', icon: 'oj-ux-ico-refresh', display: loading ? 'disabled' : 'on' },
+        { id: 'export', label: 'Export to Excel', icon: 'oj-ux-ico-download', display: 'on' },
+      ];
+    }
+
+    /** The header's subtitle: the current look's summary line. */
+    rwSubtitle(loading, rows, summary) { return loading && !rows ? 'Loading your requests…' : (summary || ''); }
+
+    /** The Redwood Requests list shows in the Requests view, under Redwood only. */
+    rwListHidden(look, view) { return look !== 'redwood' || view !== 'requests'; }
 
     /** The empty-list sentence for a view and its chip. */
     emptyText(view, chip, text) {

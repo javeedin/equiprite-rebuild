@@ -1,6 +1,21 @@
 <!-- The invoices of one customer request in its own tab: the figures, then each piece of equipment with its invoices.
      Reads only (New's invoice page reads). Logic: resources/js/portalView.js. Styles: resources/css/next-customer.css. -->
 <div class="nx-page nx-record nx-cu">
+  <!-- Redwood (your menu, Look): Oracle's general overview page as the header (the request's invoices, Refresh, Export,
+       Track the request; back to the portal), as Old's customer billing detail, over this screen's own body below. Put
+       on the page the first time Redwood is shown with the invoices read (its buttons then settled, as on the request),
+       then kept, hidden under Current. -->
+
+  <oj-bind-if test="[[ $application.variables.lookSeen && !!$variables.head.requestNumber ]]">
+    <div class="nx-rw nx-rw--head" id="ciRedwood" :hidden="[[ $application.variables.look !== 'redwood' ]]">
+      <oj-sp-general-overview-page page-title="[[ $variables.head.requestNumber || $variables.number || 'Invoices' ]]" display-mode="mixed"
+        page-subtitle="[[ $functions.rwSubtitle($variables.head, $variables.isLoading) ]]"
+        secondary-actions="[[ $functions.rwActions($variables.head.requestNumber, $variables.isLoading) ]]" on-sp-secondary-action="[[ $listeners.onRwAction ]]"
+        display-options.in-flow-back="true" on-sp-in-flow-back="[[ $listeners.onRwBack ]]">
+      </oj-sp-general-overview-page>
+    </div>
+  </oj-bind-if>
+
   <oj-bind-if test="[[ $variables.isLoading && !$variables.head.requestNumber ]]">
     <div class="nx-card nx-empty">Loading the invoices…</div>
   </oj-bind-if>
@@ -10,6 +25,7 @@
   </oj-bind-if>
 
   <oj-bind-if test="[[ !!$variables.head.requestNumber && !$variables.error ]]">
+    <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
     <div class="nx-pagehead">
       <div>
         <div class="nx-kicker">Invoices</div>
@@ -39,6 +55,7 @@
           <span class="oj-ux-ico-customer-request" aria-hidden="true"></span>Track the request</button>
       </div>
     </div>
+    </oj-bind-if>
 
     <div class="nx-kpis nx-cu-tiles" role="group" aria-label="This request's figures" id="ciTiles">
       <div :class="[[ 'nx-kpi nx-cu-kpi-static ' + ($variables.totals.overdueCount ? 'nx-stage--stopped' : 'nx-stage--approval') ]]">
@@ -71,7 +88,30 @@
           <oj-bind-if test="[[ !g.data.invoices.length ]]">
             <p class="nx-note nx-cu-foot">Not invoiced yet. A period is billed once the equipment is on your site.</p>
           </oj-bind-if>
-          <oj-bind-if test="[[ g.data.invoices.length > 0 ]]">
+          <!-- Redwood: the piece's invoices as Oracle's oj-table, each status an oj-badge (the same rows; kept once put
+               on the page, hidden under Current). -->
+          <oj-bind-if test="[[ g.data.invoices.length > 0 && $application.variables.lookSeen ]]">
+            <div class="nx-cu-rwinv" :hidden="[[ $application.variables.look !== 'redwood' ]]">
+              <oj-table :id="[[ 'ciRwInv' + g.data.lineId ]]" data="[[ $functions.rwInvoices(g.data.invoices) ]]" class="oj-sm-width-full nx-rw-table nx-cu-rwinv-table"
+                :aria-label="[[ 'Invoices for ' + g.data.equipmentName ]]" display="list" horizontal-grid-visible="enabled" layout="fixed"
+                columns='[
+                  {"headerText": "Invoice", "field": "number", "template": "invTpl", "sortable": "disabled", "style": "width:30%;"},
+                  {"headerText": "Period", "field": "period", "sortable": "disabled", "style": "width:24%;"},
+                  {"headerText": "Due", "field": "due", "sortable": "disabled", "style": "width:16%;"},
+                  {"headerText": "Amount", "field": "amount", "headerClassName": "oj-helper-text-align-end", "className": "oj-helper-text-align-end", "sortable": "disabled", "style": "width:14%;"},
+                  {"headerText": "Status", "field": "words", "template": "stateTpl", "sortable": "disabled", "style": "width:16%;"}
+                ]'>
+                <template slot="invTpl" data-oj-as="cell">
+                  <div class="nx-rw-cell"><span class="oj-typography-body-md oj-typography-semi-bold"><oj-bind-text value="[[ cell.row.number ]]"></oj-bind-text></span>
+                    <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.note ]]"></oj-bind-text></span></div>
+                </template>
+                <template slot="stateTpl" data-oj-as="cell">
+                  <span :class="[[ cell.row.badge ]]" :title="[[ 'Stored status: ' + cell.row.status ]]"><oj-bind-text value="[[ cell.row.words ]]"></oj-bind-text></span>
+                </template>
+              </oj-table>
+            </div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ g.data.invoices.length > 0 && $application.variables.look !== 'redwood' ]]">
             <div class="nx-table">
               <div class="nx-grid nx-grid--cuinvl" role="table" :aria-label="[[ 'Invoices for ' + g.data.equipmentName ]]">
                 <div class="nx-row nx-row--head" role="row">

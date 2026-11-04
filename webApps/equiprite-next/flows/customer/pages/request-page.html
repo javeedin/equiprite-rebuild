@@ -2,6 +2,22 @@
      refuse a delivery, start a return: New's customer chains), the rental contract and its terms. Nothing is written on
      entry. Logic: resources/js/portalView.js. Styles: resources/css/next-customer.css. -->
 <div class="nx-page nx-record nx-cu">
+  <!-- Redwood (your menu, Look): Oracle's general overview page as the header (the request, where it stands as Oracle's
+       badge, its Refresh, Export, Quote, Invoices and New EquipRite; back to the portal), as Old's customer request detail,
+       over this screen's own body below. Put on the page the first time Redwood is shown with the request read (its buttons
+       then settled: Oracle's header refreshes its toolbar as they change, and fails while it is still starting), then kept,
+       hidden under Current. -->
+  <oj-bind-if test="[[ $application.variables.lookSeen && !!$variables.head.requestNumber ]]">
+    <div class="nx-rw nx-rw--head" id="crRedwood" :hidden="[[ $application.variables.look !== 'redwood' ]]">
+      <oj-sp-general-overview-page page-title="[[ $variables.head.requestNumber || $variables.number || 'Your request' ]]" display-mode="mixed"
+        page-subtitle="[[ $functions.rwSubtitle($variables.head, $variables.isLoading) ]]" badge="[[ $functions.rwBadge($variables.head.headline, $variables.p.tone) ]]"
+        secondary-actions="[[ $functions.rwActions($variables.head, $variables.billingShown, $application.variables.appUrls.new, $variables.isLoading || !!$variables.busy) ]]"
+        on-sp-secondary-action="[[ $listeners.onRwAction ]]"
+        display-options.in-flow-back="true" on-sp-in-flow-back="[[ $listeners.onRwBack ]]">
+      </oj-sp-general-overview-page>
+    </div>
+  </oj-bind-if>
+
   <oj-bind-if test="[[ $variables.isLoading && !$variables.head.requestNumber ]]">
     <div class="nx-card nx-empty">Finding your request…</div>
   </oj-bind-if>
@@ -11,6 +27,7 @@
   </oj-bind-if>
 
   <oj-bind-if test="[[ !!$variables.head.requestNumber && !$variables.error ]]">
+    <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
     <div class="nx-pagehead">
       <div>
         <div class="nx-kicker">Your request</div>
@@ -55,6 +72,7 @@
         </oj-bind-if>
       </div>
     </div>
+    </oj-bind-if>
 
     <oj-bind-if test="[[ !!$variables.banner.text ]]">
       <div :class="[[ 'nx-cu-banner nx-cu-banner--' + $variables.banner.type ]]" role="status" id="crBanner">

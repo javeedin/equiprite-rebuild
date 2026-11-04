@@ -19,6 +19,8 @@ define([
         v.exportOpen = false;
         v.limit = PAGE;
         v.view = value;
+        // Under Redwood, the Requests view is Smart Search's list: its criterion filters it (rwShowChain; nothing under Current).
+        if (value === 'requests') await Actions.callChain(context, { chain: 'rwShowChain' });
         return;
       }
       if (field === 'sort') {

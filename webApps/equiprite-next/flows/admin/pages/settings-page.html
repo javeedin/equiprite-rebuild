@@ -2,6 +2,19 @@
      the bar says what Save will do (values, and what the menu shows and hides) before it is pressed. Writes are New
      EquipRite's Configuration chains. Logic: resources/js/settingsKit.js and configurationInventory.js. -->
 <div class="nx-page nx-st">
+  <!-- Redwood (your menu, Look): Oracle's general overview page as the header (Save, Discard, Export), as Old's
+       Application Configurations, over this screen's own body below. Put on the page the first time Redwood is shown,
+       then kept, hidden under Current. -->
+  <oj-bind-if test="[[ $application.variables.lookSeen ]]">
+    <div class="nx-rw nx-rw--head" id="stRedwood" :hidden="[[ $application.variables.look !== 'redwood' ]]">
+      <oj-sp-general-overview-page page-title="Settings" display-mode="mixed"
+        page-subtitle="What EquipRite does for everyone. Each setting says what it does and what changes when it is saved; nothing is written until you save."
+        primary-action="[[ $functions.rwPrimary($variables.vm.pending.count, $variables.isSaving, $variables.readOnly) ]]" on-sp-primary-action="[[ $listeners.onSave ]]"
+        secondary-actions="[[ $functions.rwActions($variables.vm.pending.count, $variables.isSaving) ]]" on-sp-secondary-action="[[ $listeners.onRwAction ]]">
+      </oj-sp-general-overview-page>
+    </div>
+  </oj-bind-if>
+  <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
   <div class="nx-pagehead">
     <div>
       <div class="nx-kicker">Admin</div>
@@ -33,6 +46,7 @@
         <oj-bind-text value="[[ $functions.saveLabel($variables.vm.pending.count, $variables.isSaving) ]]"></oj-bind-text></button>
     </div>
   </div>
+  </oj-bind-if>
 
   <oj-bind-if test="[[ $variables.readOnly && !$variables.isLoading ]]">
     <div class="nx-st-readonly" role="status" id="stReadOnly"><span class="oj-ux-ico-lock" aria-hidden="true"></span>Your role can see the settings but not change them (read only).</div>

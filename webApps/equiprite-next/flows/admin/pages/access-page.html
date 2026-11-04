@@ -2,6 +2,19 @@
      Before Save, the bar says what each changed role gains and loses in the menu. Saved as New EquipRite saves Page
      access, one PUT per changed role. Logic: resources/js/accessMatrix.js. -->
 <div class="nx-page nx-ac">
+  <!-- Redwood (your menu, Look): Oracle's general overview page as the header (Save, Discard, Export), as Old's Page
+       Access, over this screen's own matrix below. Put on the page the first time Redwood is shown, then kept, hidden
+       under Current. -->
+  <oj-bind-if test="[[ $application.variables.lookSeen ]]">
+    <div class="nx-rw nx-rw--head" id="acRedwood" :hidden="[[ $application.variables.look !== 'redwood' ]]">
+      <oj-sp-general-overview-page page-title="Access" display-mode="mixed"
+        page-subtitle="Which screens each role can open, in Old, New and Next EquipRite. A change reaches people the next time they sign in."
+        primary-action="[[ $functions.rwPrimary($variables.dirtyCount, $variables.isSaving, $variables.canEdit) ]]" on-sp-primary-action="[[ $listeners.onSave ]]"
+        secondary-actions="[[ $functions.rwActions($variables.dirtyCount, $variables.isSaving, $variables.rows.length) ]]" on-sp-secondary-action="[[ $listeners.onRwAction ]]">
+      </oj-sp-general-overview-page>
+    </div>
+  </oj-bind-if>
+  <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
   <div class="nx-pagehead">
     <div>
       <div class="nx-kicker">Admin</div>
@@ -33,6 +46,7 @@
         <oj-bind-text value="[[ $functions.saveLabel($variables.dirtyCount, $variables.isSaving) ]]"></oj-bind-text></button>
     </div>
   </div>
+  </oj-bind-if>
 
   <oj-bind-if test="[[ !!$variables.loadError ]]">
     <div class="nx-error" role="alert" id="acLoadError"><oj-bind-text value="[[ $variables.loadError ]]"></oj-bind-text></div>

@@ -41,6 +41,24 @@ define([
     }
 
     pressed(on) { return on ? 'true' : 'false'; }
+
+    // ── The Redwood view (your menu, Look): Oracle's general overview page as the header, its buttons the current
+    //    look's (Save, Discard, Export). Arrays and objects for its bindings come from here; an action's display is on,
+    //    off or disabled (oj-sp reads only that). ──
+
+    /** Save N changes: disabled until something is staged, as the current look's button. */
+    rwPrimary(n, saving, readOnly) {
+      const label = saving ? 'Saving…' : (n ? 'Save ' + n + (n === 1 ? ' change' : ' changes') : 'Save');
+      return { label, icon: 'oj-ux-ico-save', display: readOnly || !n || saving ? 'disabled' : 'on' };
+    }
+
+    /** Discard (while something is staged) and Export to Excel (every setting shown). */
+    rwActions(n, saving) {
+      return [
+        { id: 'discard', label: 'Discard', icon: 'oj-ux-ico-undo', display: n > 0 ? (saving ? 'disabled' : 'on') : 'off' },
+        { id: 'export', label: 'Export to Excel', icon: 'oj-ux-ico-download', display: 'on' },
+      ];
+    }
   }
 
   return PageModule;

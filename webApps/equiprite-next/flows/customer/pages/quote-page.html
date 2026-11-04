@@ -2,6 +2,21 @@
      Accepting creates the Fusion rental contract (New's acceptQuoteChain), so it is done in New EquipRite.
      Logic: resources/js/portalView.js. Styles: resources/css/next-customer.css. -->
 <div class="nx-page nx-record nx-cu">
+  <!-- Redwood (your menu, Look): Oracle's general overview page as the header (the quote, where it stands as Oracle's
+       badge, its Refresh, Export, PDF, Download and request; back to the portal), as Old's customer quote, over this
+       screen's own body below. Put on the page the first time Redwood is shown with the quote read (its buttons then
+       settled, as on the request), then kept, hidden under Current. -->
+  <oj-bind-if test="[[ $application.variables.lookSeen && !!$variables.quote.requestNumber ]]">
+    <div class="nx-rw nx-rw--head" id="cqRedwood" :hidden="[[ $application.variables.look !== 'redwood' ]]">
+      <oj-sp-general-overview-page page-title="Your quote" display-mode="mixed"
+        page-subtitle="[[ $functions.rwSubtitle($variables.quote, $variables.isLoading) ]]" badge="[[ $functions.rwBadge($variables.quote.requestNumber ? $variables.state.pill : '', $variables.state.tone) ]]"
+        secondary-actions="[[ $functions.rwActions($variables.quote.requestNumber, $variables.hasQuoteDoc, $variables.isLoading) ]]"
+        on-sp-secondary-action="[[ $listeners.onRwAction ]]"
+        display-options.in-flow-back="true" on-sp-in-flow-back="[[ $listeners.onRwBack ]]">
+      </oj-sp-general-overview-page>
+    </div>
+  </oj-bind-if>
+
   <oj-bind-if test="[[ $variables.isLoading && !$variables.quote.requestNumber ]]">
     <div class="nx-card nx-empty">Loading your quote…</div>
   </oj-bind-if>
@@ -11,6 +26,7 @@
   </oj-bind-if>
 
   <oj-bind-if test="[[ !!$variables.quote.requestNumber && !$variables.error ]]">
+    <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
     <div class="nx-pagehead">
       <div>
         <div class="nx-kicker"><oj-bind-text value="[[ 'Quote for ' + $variables.quote.requestNumber ]]"></oj-bind-text></div>
@@ -48,6 +64,7 @@
           <span class="oj-ux-ico-customer-request" aria-hidden="true"></span>The request</button>
       </div>
     </div>
+    </oj-bind-if>
 
     <!-- The decision, with what it does, before anything is clicked. -->
     <section :class="[[ 'nx-card nx-cu-step nx-cu-step--' + ($variables.state.key === 'ready' ? 'action' : ($variables.state.key === 'accepted' ? 'done' : 'wait')) ]]"

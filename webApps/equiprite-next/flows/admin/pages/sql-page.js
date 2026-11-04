@@ -43,6 +43,9 @@ define(['resources/js/exportKit', 'resources/js/sqlWorksheet'], (exportKit, W) =
 
     /** A field's value in the Ask AI settings form. */
     fieldVal(form, key) { return form && form[key] != null ? form[key] : ''; }
+
+    /** Redwood view (your menu, Look): the general overview page's primary action, the current look's New connection. */
+    rwPrimary(available) { return { label: 'New connection', icon: 'oj-ux-ico-plus', display: available ? 'on' : 'off' }; }
   }
 
   return PageModule;

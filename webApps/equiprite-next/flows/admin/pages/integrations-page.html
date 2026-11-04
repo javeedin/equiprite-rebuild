@@ -2,6 +2,17 @@
      rules. Read only: running a sync again or reprocessing happens in New EquipRite (linked, with what it would do).
      Logic: resources/js/integrationsView.js. -->
 <div class="nx-page nx-ih">
+  <!-- Redwood (your menu, Look): Oracle's general overview page as the header (Check again, Run syncs in New EquipRite),
+       over this screen's own body below. Put on the page the first time Redwood is shown, then kept, hidden under Current. -->
+  <oj-bind-if test="[[ $application.variables.lookSeen ]]">
+    <div class="nx-rw nx-rw--head" id="ihRedwood" :hidden="[[ $application.variables.look !== 'redwood' ]]">
+      <oj-sp-general-overview-page page-title="Integrations" display-mode="mixed"
+        page-subtitle="[[ 'Every call between EquipRite and Fusion: what is down, since when, what failed and what to do.' + ($variables.checkedAt ? ' Checked ' + $variables.checkedAt + '.' : '') ]]"
+        secondary-actions="[[ $functions.rwActions($variables.isLoading, $application.variables.appUrls) ]]" on-sp-secondary-action="[[ $listeners.onRwAction ]]">
+      </oj-sp-general-overview-page>
+    </div>
+  </oj-bind-if>
+  <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
   <div class="nx-pagehead">
     <div>
       <div class="nx-kicker">Admin</div>
@@ -16,6 +27,7 @@
       </oj-bind-if>
     </div>
   </div>
+  </oj-bind-if>
 
   <oj-bind-if test="[[ !!$variables.loadNote ]]">
     <div class="nx-error" role="alert" id="ihLoadNote"><oj-bind-text value="[[ $variables.loadNote ]]"></oj-bind-text></div>

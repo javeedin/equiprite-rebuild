@@ -205,6 +205,26 @@
           }
         }
       ]
+    },
+    "onRwAction": {
+      "chains": [
+        {
+          "chain": "rwActChain",
+          "parameters": {
+            "id": "{{ $event.detail.secondaryItem }}"
+          }
+        }
+      ]
+    },
+    "onRwBack": {
+      "chains": [
+        {
+          "chain": "rwActChain",
+          "parameters": {
+            "id": "back"
+          }
+        }
+      ]
     }
   },
   "imports": {
@@ -217,6 +237,9 @@
       },
       "oj-bind-text": {
         "path": "ojs/ojknockout"
+      },
+      "oj-sp-general-overview-page": {
+        "path": "oj-sp/general-overview-page/loader"
       }
     }
   }

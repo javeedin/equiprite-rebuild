@@ -289,3 +289,8 @@
   .fdd-drill-acts { width: 100%; }
   .fdd-drill-acts .nx-export .fdd-drill-menu { left: 0; right: auto; }
 }
+
+/* ── Redwood (your menu, Look): the header is Oracle's general overview page. Its tabs, intro and filters are not on
+   cards, so the header's colour stops at the header (next-redwood.css runs it on 340px by default) and they sit on the
+   page, as an Old page's tabs sit below its header. ─────────────────────────────────────────────────────────────── */
+html[data-nx-look="redwood"] .nx-fdd { --rw-banner-h: 132px; }
