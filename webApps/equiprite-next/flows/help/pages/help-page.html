@@ -1,6 +1,17 @@
 <!-- Help: how a request moves. The flow as a live diagram (helpGuide.svg: the numbers are pieces at each step now),
      the step clicked below it, the two stored statuses explained, every status and how it shows, quick answers. -->
 <div class="nx-page nx-help">
+  <!-- Redwood (your menu, Look): Oracle's general overview page as the header (its title, subtitle and actions), over this
+       screen's own body below. Put on the page the first time Redwood is shown, then kept, hidden under Current. -->
+  <oj-bind-if test="[[ $application.variables.lookSeen ]]">
+    <div class="nx-rw nx-rw--head" id="helpRedwood" :hidden="[[ $application.variables.look !== 'redwood' ]]">
+      <oj-sp-general-overview-page page-title="How a request moves" display-mode="mixed"
+        page-subtitle="From the request to the equipment back at the yard: who does what, on which screen, and what each status means."
+        secondary-actions="[[ $functions.rwActions($variables.isLoading) ]]" on-sp-secondary-action="[[ $listeners.onRwAction ]]">
+      </oj-sp-general-overview-page>
+    </div>
+  </oj-bind-if>
+  <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
   <div class="nx-pagehead">
     <div>
       <div class="nx-kicker">Help</div>
@@ -12,6 +23,7 @@
         <span class="oj-ux-ico-refresh" aria-hidden="true"></span>Refresh the numbers</button>
     </div>
   </div>
+  </oj-bind-if>
 
   <section class="nx-card nx-card-pad nx-help-flow" aria-labelledby="helpFlowTitle">
     <div class="nx-journey-head">

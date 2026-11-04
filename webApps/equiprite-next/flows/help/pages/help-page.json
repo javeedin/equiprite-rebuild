@@ -11,6 +11,7 @@
   "eventListeners": {
     "vbEnter": { "chains": [{ "chain": "loadChain", "parameters": { "refresh": false } }] },
     "onRefresh": { "chains": [{ "chain": "loadChain", "parameters": { "refresh": true } }] },
+    "onRwAction": { "chains": [{ "chain": "loadChain", "parameters": { "refresh": true } }] },
     "onDiagram": { "chains": [{ "chain": "stepChain", "parameters": { "act": "select", "key": "{{ $event.target && $event.target.closest && $event.target.closest('[data-step]') ? $event.target.closest('[data-step]').getAttribute('data-step') : '' }}" } }] },
     "onDiagramKey": { "chains": [{ "chain": "stepChain", "parameters": { "act": "{{ $event.key === 'Enter' || $event.key === ' ' ? 'select' : '' }}", "key": "{{ $event.target && $event.target.closest && $event.target.closest('[data-step]') ? $event.target.closest('[data-step]').getAttribute('data-step') : '' }}" } }] },
     "onStep": { "chains": [{ "chain": "stepChain", "parameters": { "act": "{{ $event.currentTarget.dataset.act }}", "key": "{{ $event.currentTarget.dataset.key }}" } }] },
@@ -20,7 +21,8 @@
     "components": {
       "oj-bind-for-each": { "path": "ojs/ojknockout" },
       "oj-bind-if": { "path": "ojs/ojknockout" },
-      "oj-bind-text": { "path": "ojs/ojknockout" }
+      "oj-bind-text": { "path": "ojs/ojknockout" },
+      "oj-sp-general-overview-page": { "path": "oj-sp/general-overview-page/loader" }
     }
   }
 }

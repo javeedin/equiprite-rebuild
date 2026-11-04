@@ -807,6 +807,16 @@
       },
       "description": "Where Old, New, Next, Mobile and Future EquipRite live, for the profile menu's versions. Set by loadVersionsChain: from the desktop app's /__versions locally, or under VBCS by swapping webApps/equiprite-next for the others in this page's address. Empty until known; the menu then shows only Next."
     },
+    "look": {
+      "type": "string",
+      "defaultValue": "current",
+      "description": "Your look on every screen: 'redwood' (Oracle's own templates and components) or 'current' (Next's own). Set by the shell's lookChain (resources/js/look.js); a screen shows its Redwood view while this is 'redwood'."
+    },
+    "lookSeen": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "True once the Redwood look has been shown in this visit: a screen's Redwood view is put on the page then and kept (hidden under Current), as Oracle's Smart Search throws if it is taken off the page while it settles."
+    },
     "viewAs": {
       "type": "string",
       "defaultValue": "",

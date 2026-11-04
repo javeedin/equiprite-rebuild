@@ -178,6 +178,19 @@ async function start(o) {
       await page.waitForSelector({ next: '.nx-nav-item', future: '.nx-nav-item', mobile: '.mb-tabbtn', new: '.er-nav-item' }[app], { state: 'attached', timeout: 60000 });
       await page.waitForTimeout(1200);
     },
+    /**
+     * EquipRite Next: chooses the look in your menu, as a user does ('redwood' or 'current'), and waits until every screen
+     * shows it (html[data-nx-look]). The choice is kept for the user, so a reload keeps it.
+     */
+    async setLook(look) {
+      await page.click('#nxUser');
+      await page.waitForSelector('#nxLook-' + look, { timeout: 15000 });
+      await page.click('#nxLook-' + look);
+      await page.waitForFunction((l) => document.documentElement.getAttribute('data-nx-look') === l, look, { timeout: 10000 });
+      await page.keyboard.press('Escape');
+      await page.waitForSelector('#nxProfilePanel', { state: 'detached', timeout: 5000 }).catch(() => {});
+      await page.waitForTimeout(600);
+    },
     /** Visible text of a selector, whitespace collapsed. */
     async text(sel) { return (await page.innerText(sel)).replace(/\s+/g, ' ').trim(); },
     async shot(name) { const f = path.join(out, name); await page.screenshot({ path: f, fullPage: true }); return f; },

@@ -268,17 +268,25 @@ html[data-nx-look="redwood"] .nx-stage--back     { --st: rgb(35, 112, 115);  --s
 html[data-nx-look="redwood"] .nx-stage--done     { --st: rgb(101, 95, 91);   --st-bg: rgba(22, 21, 19, 0.08); }
 html[data-nx-look="redwood"] .nx-stage--stopped  { --st: rgb(179, 49, 31);   --st-bg: rgba(255, 157, 144, 0.4); }
 
-/* ── Requests, Oracle's own Smart Search page, set as Old sets it: the header's colour behind the top of the page, to the
-   tab's edges and on down behind the top of the table (Old: the body's banner background, 300px there,
-   --oj-sp-theme-global-bkgd-banner-height; here 340px, the header with Smart Search being taller in a tab). Should the header
-   grow taller than that (a narrow window), a shadow in its colour still fills its sides (kept off its bottom edge, which is
-   the colour strip's; oj-sp 2601's header class). ───────────────────────────────────────────────────────────────── */
+/* ── A screen's Redwood view (.nx-rw): Oracle's own page template (Smart Search page, general overview page), set out
+   as Old sets it. The header's colour runs to the tab's edges and on down behind the top of the content (Old: the body's
+   banner background, --oj-sp-theme-global-bkgd-banner-height, 300px there; 340px here by default, a screen may set its
+   own --rw-banner-h); the template 40px in from each side with rounded corners (Old's app.css). Should the header grow
+   taller than the banner (a narrow window), a shadow in its colour fills its sides (kept off its bottom edge, the colour
+   strip's; oj-sp 2601's header class). A screen whose Redwood view is only the header (.nx-rw--head: the general overview
+   page's header over the screen's own body, its cards sitting on the banner as Old's do). ───────────────────────── */
 html[data-nx-look="redwood"] .nx-rw { background: transparent; }
-html[data-nx-look="redwood"] .nx-requests:has(.nx-rw:not([hidden])) {
-  --nx-pad-x: 40px; --rw-banner-h: 340px; background: linear-gradient(var(--nx-band) 0, var(--nx-band) var(--rw-banner-h), transparent var(--rw-banner-h));
+html[data-nx-look="redwood"] .nx-page:has(.nx-rw:not([hidden])) {
+  --nx-pad-x: 40px; padding-top: 24px; background: linear-gradient(var(--nx-band) 0, var(--nx-band) var(--rw-banner-h, 340px), transparent var(--rw-banner-h, 340px));
 }
-/* Old's page template: 40px in from each side, its corners rounded 12px (app.css oj-sp-smart-search-page). */
-html[data-nx-look="redwood"] #reqRedwood oj-sp-smart-search-page { border-radius: 12px; overflow: hidden; }
-html[data-nx-look="redwood"] #reqRedwood .oj-sp-header-general-overview-header-content {
+html[data-nx-look="redwood"] .nx-rw .oj-sp-header-general-overview-header-content {
   box-shadow: 0 0 0 48px var(--nx-band); clip-path: inset(-48px -48px 0 -48px);
 }
+html[data-nx-look="redwood"] .nx-rw > oj-sp-smart-search-page, html[data-nx-look="redwood"] .nx-rw > oj-sp-general-overview-page,
+html[data-nx-look="redwood"] .nx-rw > oj-sp-dashboard-landing-page { display: block; width: 100%; border-radius: 12px; overflow: hidden; }
+html[data-nx-look="redwood"] .nx-rw--head > oj-sp-general-overview-page { border-radius: 12px 12px 0 0; }
+/* Header only: the template's content slot is empty (the screen's own body follows it), so it takes no room (oj-sp sets
+   its height inline from the window's). */
+html[data-nx-look="redwood"] .nx-rw--head .oj-sp-general-overview-page-slots { min-height: 0 !important; height: auto !important; }
+html[data-nx-look="redwood"] .nx-rw--head .oj-sp-general-overview-page-slot-top-padding { padding-top: 0 !important; padding-bottom: 0 !important; }
+html[data-nx-look="redwood"] .nx-rw--head .oj-sp-public-primary-content-container { background: transparent; }
