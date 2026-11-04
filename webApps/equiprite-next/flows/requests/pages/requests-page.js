@@ -9,6 +9,9 @@ define(['resources/js/exportKit', 'resources/js/fmt', 'resources/js/shellBus'], 
       bus.onFocus('requests', () => { if (helper) helper.fireCustomEvent('focusRequest', {}); });
     }
 
+    /** The look switch's two choices (Redwood view: oj-c-buttonset-single). */
+    uiItems() { return [{ value: 'redwood', label: 'Redwood' }, { value: 'current', label: 'Current' }]; }
+
     /** The export menu's formats. */
     formats() { return exportKit.FORMATS; }
 

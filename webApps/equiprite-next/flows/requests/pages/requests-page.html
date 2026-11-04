@@ -1,12 +1,96 @@
 <!-- Requests. Each request reads from its equipment (requestProgress): "Partly shipped · 1 of 3", the next step and who
      takes it, what is late. List, Board (a column per stage) or Equipment (a row per piece). Logic: requestList.js. -->
 <div class="nx-page nx-requests">
+  <!-- ── The Redwood look: Oracle's own page template and components (oj-sp smart search page, Smart Search, oj-table,
+       oj-c buttons, oj-badge), on the same requests, filters and steps as the current look (applyChain, requestList). ── -->
+  <!-- Once opened it stays on the page, hidden while the current look shows: Oracle's Smart Search settles
+       asynchronously, and taking it off the page mid-way throws inside the oj-sp bundle; switching is instant too. -->
+  <oj-bind-if test="[[ $variables.rwMounted ]]">
+    <div class="nx-rw" id="reqRedwood" :hidden="[[ $variables.ui !== 'redwood' ]]">
+      <div class="nx-rw-switch">
+        <span class="oj-typography-body-sm oj-text-color-secondary">Look</span>
+        <oj-c-buttonset-single id="reqUiSet" value="[[ $variables.ui ]]" items="[[ $functions.uiItems() ]]" size="sm" chroming="outlined"
+          label-hint="Look" on-value-changed="[[ $listeners.onUiSet ]]"></oj-c-buttonset-single>
+      </div>
+      <oj-sp-smart-search-page page-title="Requests" page-subtitle="[[ $variables.isLoading && !$variables.rows.length ? 'Loading requests and their equipment…' : $variables.summary ]]"
+        primary-action.display="on" primary-action.label="New request" on-sp-primary-action="[[ $listeners.onNew ]]" display-mode="mixed">
+        <oj-sp-smart-search slot="search" filter-criterion="{{ $variables.rwCriterion }}" on-filter-criterion-changed="[[ $listeners.onRwFilter ]]"
+          search-context="[[ $variables.rwSearchContext ]]" search-config="[[ $variables.rwSearchConfig.provider ]]"
+          suggestion-filters='["StageFilter", "TypeFilter"]' placeholder="Request, project, customer, requester or equipment"></oj-sp-smart-search>
+        <oj-sp-collection-container>
+          <div class="nx-rw-tools">
+            <oj-c-button id="reqRwRefresh" label="Refresh" chroming="borderless" size="sm" disabled="[[ $variables.isLoading ]]" on-oj-action="[[ $listeners.onRefresh ]]">
+              <span slot="startIcon" class="oj-ux-ico-refresh"></span></oj-c-button>
+            <oj-c-button id="reqRwExport" label="Export to Excel" chroming="borderless" size="sm" on-oj-action="[[ $listeners.onRwExport ]]">
+              <span slot="startIcon" class="oj-ux-ico-download"></span></oj-c-button>
+          </div>
+          <oj-bind-if test="[[ !!$variables.error ]]">
+            <div class="oj-sm-padding-4x-bottom" role="alert"><span class="oj-text-color-danger"><oj-bind-text value="[[ $variables.error ]]"></oj-bind-text></span></div>
+          </oj-bind-if>
+          <oj-table id="reqRwTable" data="[[ $variables.rwADP ]]" class="oj-sm-width-full nx-rw-table" aria-label="Requests"
+            scroll-policy="loadMoreOnScroll" scroll-policy-options.fetch-size="50" display="list" horizontal-grid-visible="enabled"
+            layout="fixed" on-oj-row-action="[[ $listeners.onRwRow ]]"
+            columns='[
+              {"headerText": "Request", "field": "number", "template": "numTpl", "sortable": "enabled", "style": "width:16%;"},
+              {"headerText": "Project or customer", "field": "party", "template": "partyTpl", "sortable": "enabled", "style": "width:17%;"},
+              {"headerText": "Status", "field": "status", "template": "statusTpl", "sortable": "enabled", "style": "width:16%;"},
+              {"headerText": "Equipment", "field": "pieces", "template": "piecesTpl", "sortable": "disabled", "style": "width:16%;"},
+              {"headerText": "Dates", "field": "dates", "template": "datesTpl", "sortable": "enabled", "style": "width:15%;"},
+              {"headerText": "Next step", "field": "next", "template": "nextTpl", "sortable": "disabled", "style": "width:20%;"}
+            ]'>
+            <template slot="numTpl" data-oj-as="cell">
+              <div class="nx-rw-cell"><span class="oj-typography-body-md oj-typography-bold oj-link-standalone nx-rw-num"><oj-bind-text value="[[ cell.row.number ]]"></oj-bind-text></span>
+                <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.type + ' · ' + cell.row.requester ]]"></oj-bind-text></span></div>
+            </template>
+            <template slot="partyTpl" data-oj-as="cell">
+              <div class="nx-rw-cell"><span class="oj-typography-body-md"><oj-bind-text value="[[ cell.row.party ]]"></oj-bind-text></span>
+                <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.task ]]"></oj-bind-text></span></div>
+            </template>
+            <template slot="statusTpl" data-oj-as="cell">
+              <div class="nx-rw-cell"><span :class="[[ cell.row.badge ]]"><oj-bind-text value="[[ cell.row.status ]]"></oj-bind-text></span>
+                <oj-bind-if test="[[ !!cell.row.late ]]"><span class="oj-typography-body-sm oj-text-color-danger"><oj-bind-text value="[[ cell.row.late ]]"></oj-bind-text></span></oj-bind-if></div>
+            </template>
+            <template slot="piecesTpl" data-oj-as="cell">
+              <span class="oj-typography-body-sm"><oj-bind-text value="[[ cell.row.pieces || 'Open to see the equipment' ]]"></oj-bind-text></span>
+            </template>
+            <template slot="datesTpl" data-oj-as="cell">
+              <div class="nx-rw-cell"><span class="oj-typography-body-md"><oj-bind-text value="[[ cell.row.dates || '—' ]]"></oj-bind-text></span>
+                <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.when ]]"></oj-bind-text></span></div>
+            </template>
+            <template slot="nextTpl" data-oj-as="cell">
+              <div class="nx-rw-cell"><span class="oj-typography-body-sm"><oj-bind-text value="[[ cell.row.next ]]"></oj-bind-text></span>
+                <oj-bind-if test="[[ cell.row.steps.length > 0 ]]">
+                  <div class="nx-rw-steps" data-oj-clickthrough="disabled">
+                    <oj-bind-for-each data="[[ cell.row.steps ]]">
+                      <template data-oj-as="st">
+                        <oj-c-button size="sm" :label="[[ st.data.label ]]" :chroming="[[ st.data.chroming ]]" :data-act="[[ st.data.act ]]" :data-id="[[ cell.row.key ]]"
+                          :data-number="[[ cell.row.number ]]" on-oj-action="[[ $listeners.onRwAct ]]"></oj-c-button>
+                      </template>
+                    </oj-bind-for-each>
+                  </div>
+                </oj-bind-if></div>
+            </template>
+            <template slot="noData">
+              <div class="oj-sm-padding-6x oj-typography-body-md oj-text-color-secondary"><oj-bind-text value="[[ $variables.isLoading ? 'Loading requests…' : 'Nothing matches. Try another filter or clear the search.' ]]"></oj-bind-text></div>
+            </template>
+          </oj-table>
+        </oj-sp-collection-container>
+      </oj-sp-smart-search-page>
+    </div>
+  </oj-bind-if>
+
+  <!-- ── The current look ───────────────────────────────────────────────────────────────────────────────── -->
+  <oj-bind-if test="[[ $variables.ui !== 'redwood' ]]">
   <div class="nx-pagehead">
     <div>
       <h1>Requests</h1>
       <div class="nx-sub" id="reqSummary"><oj-bind-text value="[[ $variables.isLoading && !$variables.rows.length ? 'Loading requests and their equipment…' : $variables.summary ]]"></oj-bind-text></div>
     </div>
     <div class="nx-actions">
+      <div class="nx-seg nx-uiswitch" role="group" aria-label="Look">
+        <button type="button" id="reqUiRedwood" data-value="redwood" on-click="[[ $listeners.onUi ]]" aria-pressed="false" class="nx-seg-btn">Redwood</button>
+        <button type="button" id="reqUiCurrent" data-value="current" on-click="[[ $listeners.onUi ]]" aria-pressed="true" class="nx-seg-btn nx-seg-btn--on">Current</button>
+      </div>
       <button type="button" class="nx-btn nx-btn--plain" on-click="[[ $listeners.onRefresh ]]" :disabled="[[ $variables.isLoading ]]">
         <span class="oj-ux-ico-refresh" aria-hidden="true"></span>Refresh</button>
       <div class="nx-export">
@@ -250,6 +334,8 @@
     <div><button type="button" class="nx-btn" on-click="[[ $listeners.onMore ]]">
       <oj-bind-text value="[[ 'Show more (' + ($variables.shown.length - $variables.limit) + ' left)' ]]"></oj-bind-text></button></div>
   </oj-bind-if>
+  </oj-bind-if>
+
   <!-- ── A request's popup, from its row: approve it here, or its timeline (popChain) ─────────────────────── -->
   <oj-bind-if test="[[ !!$variables.pop.kind ]]">
     <div class="nx-modal">

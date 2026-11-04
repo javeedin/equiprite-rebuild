@@ -278,6 +278,57 @@ define(['resources/js/requestProgress', 'resources/js/fmt', 'resources/js/rules'
     };
   }
 
+  // The Redwood look's status badge per stage: Oracle's own oj-badge classes (Redwood theme), not Next's colours.
+  var BADGE = {
+    draft: 'oj-badge oj-badge-subtle', approval: 'oj-badge oj-badge-info oj-badge-subtle', ready: 'oj-badge oj-badge-warning oj-badge-subtle',
+    out: 'oj-badge oj-badge-info', onsite: 'oj-badge oj-badge-success oj-badge-subtle', back: 'oj-badge oj-badge-info oj-badge-subtle',
+    done: 'oj-badge oj-badge-subtle', stopped: 'oj-badge oj-badge-danger oj-badge-subtle'
+  };
+
+  /** Where today is in the rental: "Starts in 5 days", "Ends today", "Ended 3 days ago". */
+  function whenText(start, end, now) {
+    var t = fmt.today(now);
+    var s = fmt.dayMs(start);
+    var e = fmt.dayMs(end);
+    if (s != null && t < s) return 'Starts ' + fmt.relative(start, now);
+    if (e != null && t <= e) return 'Ends ' + fmt.relative(end, now);
+    if (e != null) return 'Ended ' + fmt.relative(end, now);
+    return '';
+  }
+
+  /**
+   * The Redwood look (requests page, oj-table): one flat row per request shown, with what each cell says and the steps
+   * the row offers (actions, as on the current look), so the template binds plain values only.
+   */
+  function redwoodRows(shown, now) {
+    return (Array.isArray(shown) ? shown : []).map(function (r) {
+      var p = r.p || {};
+      var a = r.acts || {};
+      var steps = [];
+      if (a.approve) steps.push({ act: 'approve', label: 'Approve', chroming: 'callToAction' });
+      if (a.assign) steps.push({ act: 'assign', label: 'Assign units', chroming: 'outlined' });
+      if (a.confirm > 0) steps.push({ act: 'confirm', label: 'Confirm ' + a.confirm, chroming: 'outlined' });
+      if (a.pick > 0) steps.push({ act: 'pick', label: 'Pick ' + a.pick, chroming: 'outlined' });
+      if (a.accept > 0) steps.push({ act: 'accept', label: 'Accept ' + a.accept, chroming: 'outlined' });
+      return {
+        key: String(r.eqrEquipmentRequestId != null ? r.eqrEquipmentRequestId : r.requestNumber),
+        number: String(r.requestNumber || ''),
+        type: r.external ? 'Customer' : 'Project',
+        party: r.party || '—',
+        task: r.taskName || (r.partyFor ? 'for ' + r.partyFor : ''),
+        status: p.headline || '',
+        badge: BADGE[p.tone] || BADGE.draft,
+        late: p.late && p.late.length ? p.late[0].text : '',
+        pieces: r.pieces ? fmt.count(r.pieces, 'piece') + (p.detail ? ' · ' + p.detail : '') : '',
+        dates: r.dates || '',
+        when: whenText(r.startDate, r.endDate, now),
+        next: p.next ? p.next.text : '',
+        requester: r.requestorName || r.contactName || '—',
+        steps: steps
+      };
+    });
+  }
+
   /** The band under the title: "100 requests · 176 pieces · 3 late". */
   function summary(items) {
     var list = items || [];
@@ -289,6 +340,6 @@ define(['resources/js/requestProgress', 'resources/js/fmt', 'resources/js/rules'
   return {
     CHIPS: CHIPS, LANES: LANES, decorate: decorate, keysOf: keysOf, laneOf: laneOf, requestChips: requestChips, filter: filter, sort: sort,
     board: board, equipmentRows: equipmentRows, equipmentChips: equipmentChips, filterEquipment: filterEquipment, exportColumns: exportColumns,
-    summary: summary, unitText: unitText, actions: actions, yardJourney: yardJourney, PICKABLE: PICKABLE, CONFIRMABLE: CONFIRMABLE, ACCEPTABLE: ACCEPTABLE
+    summary: summary, unitText: unitText, actions: actions, redwoodRows: redwoodRows, yardJourney: yardJourney, PICKABLE: PICKABLE, CONFIRMABLE: CONFIRMABLE, ACCEPTABLE: ACCEPTABLE
   };
 });

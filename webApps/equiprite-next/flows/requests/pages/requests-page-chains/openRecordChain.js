@@ -12,6 +12,11 @@ define(['vb/action/actionChain', 'vb/action/actions', 'resources/js/shellBus'], 
   class openRecordChain extends ActionChain {
     async run(context, { id, number, act }) {
       if (!id && !number) return;
+      // The Redwood table's row action gives the row's key only: its number from the list.
+      if (id && !number) {
+        const row = (context.$page.variables.rows || []).filter((r) => String(r.eqrEquipmentRequestId) === String(id))[0];
+        number = row ? row.requestNumber : '';
+      }
       if (act === 'approve' || act === 'history' || act === 'confirm' || act === 'pick' || act === 'accept') {
         const action = act === 'confirm' || act === 'pick' || act === 'accept' ? 'road' : act;
         await Actions.callChain(context, { chain: 'popChain', params: { action, id: String(id || ''), number: number || '' } });

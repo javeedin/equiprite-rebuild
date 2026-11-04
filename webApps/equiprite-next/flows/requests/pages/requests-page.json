@@ -95,6 +95,102 @@
         "kind": ""
       },
       "description": "The open popup on a request: approve (decide it here) or history (its timeline); see popChain."
+    },
+    "ui": {
+      "type": "string",
+      "defaultValue": "current",
+      "description": "The look of this page: 'current' (Next's own) or 'redwood' (Oracle's Redwood page template and components). The user's choice, kept in this browser (setChain ui)."
+    },
+    "rwRows": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood view: one row per request shown (applyChain, from shown), for the oj-table."
+    },
+    "rwADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "key",
+        "data": "{{ $page.variables.rwRows }}"
+      }
+    },
+    "rwCriterion": {
+      "type": "any",
+      "description": "Redwood view: the Smart Search criterion (text and filters); rwFilterChain turns it into text, stage and source."
+    },
+    "rwSearchConfig": {
+      "type": "oj-sp/smart-search/strategies/JsonSearchConfigProviderFactory",
+      "defaultValue": {
+        "url": "[[ $application.path + 'resources/data/requestsSearchConfig.json' ]]"
+      }
+    },
+    "rwStages": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood view: the stage filter's options, with their counts (applyChain, from chips)."
+    },
+    "rwStagesADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwStages }}"
+      }
+    },
+    "rwTypes": {
+      "type": "any[]",
+      "defaultValue": [
+        {
+          "value": "INTERNAL",
+          "label": "Project"
+        },
+        {
+          "value": "EXTERNAL",
+          "label": "Customer"
+        }
+      ]
+    },
+    "rwTypesADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwTypes }}"
+      }
+    },
+    "rwSearchContext": {
+      "type": "object",
+      "defaultValue": {
+        "$search": {
+          "filters": {
+            "StageFilter": {
+              "label": "Where the equipment is",
+              "options": {
+                "optionsData": "[[ $page.variables.rwStagesADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "TypeFilter": {
+              "label": "Type",
+              "options": {
+                "optionsData": "[[ $page.variables.rwTypesADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "rwMounted": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "The Redwood look has been opened on this page: it stays mounted (hidden when the current look shows)."
     }
   },
   "events": {
@@ -250,6 +346,69 @@
           "chain": "focusChain"
         }
       ]
+    },
+    "onUi": {
+      "chains": [
+        {
+          "chain": "setChain",
+          "parameters": {
+            "field": "ui",
+            "value": "{{ $event.currentTarget.dataset.value || ($event.detail && $event.detail.value) }}"
+          }
+        }
+      ]
+    },
+    "onUiSet": {
+      "chains": [
+        {
+          "chain": "setChain",
+          "parameters": {
+            "field": "ui",
+            "value": "{{ $event.detail.value }}"
+          }
+        }
+      ]
+    },
+    "onRwFilter": {
+      "chains": [
+        {
+          "chain": "rwFilterChain"
+        }
+      ]
+    },
+    "onRwRow": {
+      "chains": [
+        {
+          "chain": "openRecordChain",
+          "parameters": {
+            "id": "{{ $event.detail.context.key }}",
+            "number": "{{ $event.detail.context.item && $event.detail.context.item.data ? $event.detail.context.item.data.number : '' }}",
+            "act": "open"
+          }
+        }
+      ]
+    },
+    "onRwAct": {
+      "chains": [
+        {
+          "chain": "openRecordChain",
+          "parameters": {
+            "id": "{{ $event.currentTarget.dataset.id }}",
+            "number": "{{ $event.currentTarget.dataset.number }}",
+            "act": "{{ $event.currentTarget.dataset.act }}"
+          }
+        }
+      ]
+    },
+    "onRwExport": {
+      "chains": [
+        {
+          "chain": "exportChain",
+          "parameters": {
+            "format": "xlsx"
+          }
+        }
+      ]
     }
   },
   "imports": {
@@ -262,6 +421,24 @@
       },
       "oj-bind-text": {
         "path": "ojs/ojknockout"
+      },
+      "oj-sp-smart-search-page": {
+        "path": "oj-sp/smart-search-page/loader"
+      },
+      "oj-sp-smart-search": {
+        "path": "oj-sp/smart-search/loader"
+      },
+      "oj-sp-collection-container": {
+        "path": "oj-sp/collection-container/loader"
+      },
+      "oj-table": {
+        "path": "ojs/ojtable"
+      },
+      "oj-c-button": {
+        "path": "oj-c/button"
+      },
+      "oj-c-buttonset-single": {
+        "path": "oj-c/buttonset-single"
       }
     }
   }

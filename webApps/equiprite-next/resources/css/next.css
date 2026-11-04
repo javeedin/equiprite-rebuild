@@ -791,3 +791,19 @@ a.nx-version:focus-visible { outline: 2px solid var(--nx-accent); outline-offset
   .nx-hist-cols--steps .nx-hist-col--activity, .nx-hist-cols--activity .nx-hist-col--steps { display: none; }
   .nx-hist-cols .nx-h3 { display: none; }
 }
+
+/* ── The Redwood look of a page (Requests first): Oracle's page template and components carry the type, colours and
+   spacing; these rules only place the look switch, the table's tools and the two-line cells. ───────────────────────── */
+.nx-rw { display: block; width: 100%; min-width: 0; background: var(--oj-core-bg-color-content, #fff); }
+.nx-rw[hidden] { display: none !important; }
+.nx-rw > oj-sp-smart-search-page { display: block; width: 100%; }
+.nx-rw oj-sp-collection-container, .nx-rw oj-table { display: block; width: 100%; }
+/* The table grows with its rows (the page scrolls, as the current look); never a box of one row. */
+.nx-rw-table { min-height: 240px; }
+.nx-rw-switch { display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding: 8px 16px 0; }
+.nx-rw-tools { display: flex; justify-content: flex-end; gap: 4px; padding-bottom: 8px; }
+.nx-rw-cell { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+.nx-rw-table .oj-table-data-cell { white-space: normal; }
+.nx-rw-num { cursor: pointer; }
+.nx-rw-steps { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+.nx-uiswitch .nx-seg-btn { min-width: 0; }

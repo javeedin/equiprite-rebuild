@@ -39,6 +39,12 @@ define([
       v.chips = chips;
       v.lanes = lanes;
       v.shown = shown;
+      // The Redwood look: the same requests as rows of an oj-table, and the stage filter's options with their counts.
+      if (target !== 'equipment') {
+        v.rwRows = list.redwoodRows(shown, now);
+        v.rwStages = [{ value: 'all', label: 'All (' + items.length + ')' }]
+          .concat(chips.map((c) => ({ value: c.key, label: c.label + ' (' + c.count + ')' })));
+      }
     }
   }
 

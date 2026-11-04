@@ -1,0 +1,25 @@
+{
+  "description": "Requests (Redwood view): the Smart Search filters. Every filter here needs its entry in requests-page.json's rwSearchContext (the widget evaluates every filter in this file, and one without context throws and blanks the table).",
+  "filters": {
+    "StageFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Where the equipment is",
+      "options": {
+        "field": "stage",
+        "optionsData": "[[ $search.filters.StageFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.StageFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "TypeFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Type",
+      "options": {
+        "field": "source",
+        "optionsData": "[[ $search.filters.TypeFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.TypeFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    }
+  }
+}

@@ -17,6 +17,12 @@ define([
     async run(context, { refresh }) {
       const { $page, $application } = context;
       const app = $application.variables;
+      // The look the user chose last time (setChain ui).
+      try {
+        const ui = window.localStorage.getItem('equiprite-next:ui:requests');
+        if (ui === 'redwood' || ui === 'current') $page.variables.ui = ui;
+        if (ui === 'redwood') $page.variables.rwMounted = true;
+      } catch (e) { /* no storage */ }
       $page.variables.isLoading = true;
       try {
         const data = await requestData.load(context, Actions, { refresh: !!refresh });
