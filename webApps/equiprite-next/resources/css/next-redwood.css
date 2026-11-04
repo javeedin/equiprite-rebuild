@@ -1,0 +1,277 @@
+/* EquipRite Next, the Redwood look (chosen in your menu, under your name: resources/js/look.js sets
+   html[data-nx-look="redwood"]). Every screen is drawn as Oracle draws Redwood: the values below are Oracle's own,
+   read from Oracle's Redwood theme and page templates (JET and oj-sp 2601) as they render, not guessed:
+     - the page header: rgb(44, 82, 102) with Redwood's colour strip (oj-sp's own image) under it, the title 28px bold;
+     - type: Oracle Sans; text rgb(22, 21, 19), secondary at 70%; dividers at 12%; the page rgb(245, 244, 242);
+     - buttons 36px, corners 4px, 0.859rem semibold: the call to action rgb(49, 45, 42), outlined at 50%, borderless;
+     - fields: a 50% border, 4px corners, the brand rgb(14, 114, 151) when focused; links rgb(0, 104, 140);
+     - badges: 24px pills, Oracle's subtle tints with dark text (info, success, warning, danger, neutral);
+     - selection rgb(228, 241, 247); popups 6px corners with Oracle's medium shadow.
+   The screens themselves are unchanged: every one already draws with the shared parts (next.css), so turning them
+   Redwood here turns every screen Redwood. Requests goes further and is Oracle's own Smart Search page. Loaded after
+   every other stylesheet (app-flow.json), so it wins where it says something. Current is next.css untouched. */
+
+html[data-nx-look="redwood"] {
+  --nx-bg: rgb(245, 244, 242);
+  --nx-surface: #fff;
+  --nx-surface-2: rgb(251, 249, 248);
+  --nx-hover: rgba(22, 21, 19, 0.06);
+  --nx-line: rgba(22, 21, 19, 0.12);
+  --nx-line-strong: rgba(22, 21, 19, 0.5);
+  --nx-ink: rgb(22, 21, 19);
+  --nx-muted: rgba(22, 21, 19, 0.7);
+  --nx-faint: rgba(22, 21, 19, 0.55);
+  --nx-accent: rgb(0, 104, 140);
+  --nx-accent-hover: rgb(0, 86, 116);
+  --nx-accent-soft: rgb(228, 241, 247);
+  --nx-danger: rgb(179, 49, 31);
+  --nx-danger-soft: rgba(255, 157, 144, 0.22);
+  --nx-warn: rgb(143, 82, 10);
+  --nx-ok: rgb(67, 107, 29);
+  --nx-band: rgb(44, 82, 102);
+  --nx-band-ink: rgba(255, 255, 255, 0.86);
+  --nx-nav-bg: #fff;
+  --nx-nav-edge: rgba(22, 21, 19, 0.12);
+  --nx-radius: 6px;
+  --nx-shadow: none;
+  --nx-shadow-pop: 0 6px 12px rgba(0, 0, 0, 0.2);
+  --nx-tab-h: 44px;
+  --nx-font: "Oracle Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --rw-cta: rgb(49, 45, 42);
+  --rw-cta-hover: rgb(31, 28, 26);
+  --rw-brand: rgb(14, 114, 151);
+  --rw-selected: rgb(228, 241, 247);
+  --rw-strip: url("https://static.oracle.com/cdn/spectra-ui/oj-sp/2601.0.3/header-general-overview/resources/img/colorstrip_redwood_2x.webp");
+}
+
+/* ── The shell: a white header, a white menu, Redwood tabs ──────────────────────────────────────────────── */
+html[data-nx-look="redwood"] .nx-top { background: #fff; border-bottom: 1px solid var(--nx-line); }
+html[data-nx-look="redwood"] .nx-logo { background: var(--nx-band); border-radius: 4px; }
+html[data-nx-look="redwood"] .nx-brand, html[data-nx-look="redwood"] .nx-iconbtn, html[data-nx-look="redwood"] .nx-user { border-radius: 4px; }
+html[data-nx-look="redwood"] .nx-brand-name { font-size: 16px; }
+html[data-nx-look="redwood"] .nx-badge { background: rgba(22, 21, 19, 0.08); color: var(--nx-ink); text-transform: none; letter-spacing: 0; font-weight: 400; font-size: 12px; border-radius: 12px; }
+html[data-nx-look="redwood"] .nx-iconbtn { color: var(--nx-ink); }
+html[data-nx-look="redwood"] .nx-iconbtn:hover { background: rgba(22, 21, 19, 0.08); }
+html[data-nx-look="redwood"] .nx-command { background: #fff; border: 1px solid var(--nx-line-strong); border-radius: 4px; height: 36px; }
+html[data-nx-look="redwood"] .nx-command:focus-within { border-color: var(--rw-brand); box-shadow: inset 0 0 0 1px var(--rw-brand); }
+html[data-nx-look="redwood"] .nx-kbd { border-radius: 2px; background: transparent; }
+html[data-nx-look="redwood"] .nx-newreq { border-radius: 4px; height: 36px; }
+html[data-nx-look="redwood"] .nx-avatar { background: var(--nx-band); }
+html[data-nx-look="redwood"] .nx-user:hover, html[data-nx-look="redwood"] .nx-user[aria-expanded="true"] { background: rgba(22, 21, 19, 0.06); border-color: transparent; }
+
+html[data-nx-look="redwood"] .nx-nav { background: #fff; color: var(--nx-ink); border-right: 1px solid var(--nx-line); }
+html[data-nx-look="redwood"] .nx-nav-label { color: var(--nx-faint); text-transform: none; letter-spacing: 0; font-size: 12.5px; font-weight: 600; }
+html[data-nx-look="redwood"] .nx-nav-item { color: var(--nx-muted); border-radius: 4px; }
+html[data-nx-look="redwood"] .nx-nav-icon { opacity: 1; }
+html[data-nx-look="redwood"] .nx-nav-item:hover { background: rgba(22, 21, 19, 0.06); color: var(--nx-ink); }
+html[data-nx-look="redwood"] .nx-nav-item--on, html[data-nx-look="redwood"] .nx-nav-item--on:hover { background: var(--rw-selected); color: var(--nx-ink); font-weight: 600; }
+html[data-nx-look="redwood"] .nx-nav-item--on::before { background: var(--nx-ink); width: 4px; left: -8px; }
+html[data-nx-look="redwood"] .nx-nav-item:focus-visible, html[data-nx-look="redwood"] .nx-nav-foot:focus-visible { outline-color: var(--nx-ink); }
+html[data-nx-look="redwood"] .nx-nav-soon { background: rgba(22, 21, 19, 0.3); }
+html[data-nx-look="redwood"] .nx-nav-loading, html[data-nx-look="redwood"] .nx-nav-foot { color: var(--nx-muted); }
+html[data-nx-look="redwood"] .nx-nav-foot:hover { background: rgba(22, 21, 19, 0.06); color: var(--nx-ink); }
+html[data-nx-look="redwood"] .nx-app--rail .nx-nav-group { border-top-color: var(--nx-line); }
+html[data-nx-look="redwood"] .nx-nav-scroll { scrollbar-color: rgba(22, 21, 19, 0.25) transparent; }
+html[data-nx-look="redwood"] .nx-nav-scroll::-webkit-scrollbar-thumb { background: rgba(22, 21, 19, 0.25); }
+
+html[data-nx-look="redwood"] .nx-tabbar { background: #fff; align-items: stretch; gap: 0; }
+html[data-nx-look="redwood"] .nx-tabs { align-items: stretch; gap: 0; }
+html[data-nx-look="redwood"] .nx-tab { height: auto; border: 0; border-radius: 0; margin-bottom: 0; color: var(--nx-muted); background: transparent; }
+html[data-nx-look="redwood"] .nx-tab:hover { background: transparent; color: var(--nx-ink); }
+html[data-nx-look="redwood"] .nx-tab--on { background: transparent; color: var(--nx-ink); }
+html[data-nx-look="redwood"] .nx-tab--on::before { top: auto; bottom: 0; left: 12px; right: 12px; height: 4px; border-radius: 2px 2px 0 0; background: var(--nx-ink); }
+html[data-nx-look="redwood"] .nx-tab-title { font-size: 14px; }
+html[data-nx-look="redwood"] .nx-tabbar-end { align-self: center; }
+html[data-nx-look="redwood"] .nx-tab-close { border-radius: 4px; }
+html[data-nx-look="redwood"] .nx-tab-close:hover { background: rgba(22, 21, 19, 0.08); }
+html[data-nx-look="redwood"] .nx-tab-btn:focus-visible { outline-offset: -2px; }
+
+/* Popups, menus, panels, toasts: Oracle's 6px corners and medium shadow */
+html[data-nx-look="redwood"] .nx-panel, html[data-nx-look="redwood"] .nx-menu, html[data-nx-look="redwood"] .nx-results {
+  border-radius: 6px; border-color: rgba(22, 21, 19, 0.1); box-shadow: var(--nx-shadow-pop);
+}
+html[data-nx-look="redwood"] .nx-menu-item, html[data-nx-look="redwood"] .nx-result, html[data-nx-look="redwood"] .nx-alert,
+html[data-nx-look="redwood"] .nx-profile-link, html[data-nx-look="redwood"] .nx-linkbtn { border-radius: 4px; }
+html[data-nx-look="redwood"] .nx-result:hover, html[data-nx-look="redwood"] .nx-result--on { background: var(--rw-selected); }
+html[data-nx-look="redwood"] .nx-version, html[data-nx-look="redwood"] .nx-cart-item, html[data-nx-look="redwood"] .nx-theme { border-radius: 6px; }
+html[data-nx-look="redwood"] .nx-version--on, html[data-nx-look="redwood"] a.nx-version:hover { border-color: var(--rw-brand); background: var(--rw-selected); }
+html[data-nx-look="redwood"] .nx-version--on .nx-version-name { color: var(--nx-ink); }
+html[data-nx-look="redwood"] .nx-profile-label, html[data-nx-look="redwood"] .nx-kicker { text-transform: none; letter-spacing: 0; }
+html[data-nx-look="redwood"] .nx-profile-label { font-size: 12.5px; font-weight: 600; color: var(--nx-muted); }
+html[data-nx-look="redwood"] .nx-toast { background: var(--rw-cta); border-radius: 6px; }
+html[data-nx-look="redwood"] .nx-toast--error { background: var(--nx-danger); }
+html[data-nx-look="redwood"] .nx-toast--warning { background: var(--nx-warn); }
+
+/* ── Every page's head: Oracle's Redwood page header, with its own colour strip ─────────────────────────── */
+html[data-nx-look="redwood"] .nx-pagehead { background: var(--nx-band); padding-top: 24px; padding-bottom: 32px; }
+html[data-nx-look="redwood"] .nx-pagehead::after {
+  height: 12px; border-radius: 6px 6px 0 0; background: var(--rw-strip) 0 100% / 720px auto repeat-x;
+}
+html[data-nx-look="redwood"] .nx-pagehead h1 { font-size: 28px; line-height: 36px; font-weight: 700; }
+html[data-nx-look="redwood"] .nx-pagehead .nx-kicker { color: rgba(255, 255, 255, 0.8); font-size: 13.75px; font-weight: 400; }
+html[data-nx-look="redwood"] .nx-pagehead .nx-sub, html[data-nx-look="redwood"] .nx-pagehead .nx-note { color: var(--nx-band-ink); }
+html[data-nx-look="redwood"] .nx-pagehead .nx-btn { background: transparent; border-color: rgba(255, 255, 255, 0.5); color: #fff; }
+html[data-nx-look="redwood"] .nx-pagehead .nx-btn:hover { background: rgba(255, 255, 255, 0.12); }
+html[data-nx-look="redwood"] .nx-pagehead .nx-btn--plain { border-color: transparent; }
+html[data-nx-look="redwood"] .nx-pagehead .nx-btn--primary { background: #fff; border-color: #fff; color: rgb(10, 10, 9); }
+html[data-nx-look="redwood"] .nx-pagehead .nx-btn--primary:hover { background: rgba(255, 255, 255, 0.88); }
+html[data-nx-look="redwood"] .nx-pagehead .nx-seg { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.5); }
+html[data-nx-look="redwood"] .nx-pagehead .nx-seg-btn { color: #fff; border-color: rgba(255, 255, 255, 0.5); }
+html[data-nx-look="redwood"] .nx-pagehead .nx-seg-btn--on { background: #fff; color: var(--nx-ink); }
+html[data-nx-look="redwood"] .nx-pagehead .nx-chip { background: rgba(255, 255, 255, 0.08); border-color: transparent; color: #fff; }
+html[data-nx-look="redwood"] .nx-pagehead .nx-chip:hover { background: rgba(255, 255, 255, 0.16); }
+html[data-nx-look="redwood"] .nx-pagehead .nx-chip--on { background: #fff; color: var(--nx-ink); }
+html[data-nx-look="redwood"] .nx-pagehead .nx-search { border-color: rgba(255, 255, 255, 0.6); }
+html[data-nx-look="redwood"] .nx-pagehead .nx-menu .nx-seg { background: transparent; border-color: var(--nx-line-strong); }
+html[data-nx-look="redwood"] .nx-pagehead .nx-menu .nx-seg-btn { color: var(--nx-ink); border-color: var(--nx-line-strong); }
+html[data-nx-look="redwood"] .nx-pagehead .nx-menu .nx-seg-btn--on { background: var(--rw-selected); }
+
+/* ── Buttons: Oracle's call to action, outlined and borderless ──────────────────────────────────────────── */
+html[data-nx-look="redwood"] .nx-btn {
+  height: 36px; padding: 0 16px; border-radius: 4px; border: 1px solid var(--nx-line-strong); background: transparent;
+  color: var(--nx-ink); font-size: 13.75px; font-weight: 600;
+}
+html[data-nx-look="redwood"] .nx-btn:hover { background: rgba(22, 21, 19, 0.08); }
+html[data-nx-look="redwood"] .nx-btn--primary, html[data-nx-look="redwood"] .nx-btn--ok { background: var(--rw-cta); border-color: transparent; color: #fff; }
+html[data-nx-look="redwood"] .nx-btn--primary:hover, html[data-nx-look="redwood"] .nx-btn--ok:hover { background: var(--rw-cta-hover); }
+html[data-nx-look="redwood"] .nx-btn--danger { background: var(--nx-danger); border-color: transparent; color: #fff; }
+html[data-nx-look="redwood"] .nx-btn--danger:hover { background: rgb(150, 40, 25); }
+html[data-nx-look="redwood"] .nx-btn--plain { border-color: transparent; background: transparent; }
+html[data-nx-look="redwood"] .nx-btn--plain:hover { background: rgba(22, 21, 19, 0.08); }
+html[data-nx-look="redwood"] .nx-btn--sm { height: 32px; padding: 0 12px; font-size: 13px; }
+html[data-nx-look="redwood"] .nx-btn:disabled { opacity: 1; color: rgba(22, 21, 19, 0.4); border-color: rgba(22, 21, 19, 0.12); background: rgba(22, 21, 19, 0.04); }
+html[data-nx-look="redwood"] .nx-pagehead .nx-btn:disabled { color: rgba(255, 255, 255, 0.45); border-color: rgba(255, 255, 255, 0.2); background: transparent; }
+html[data-nx-look="redwood"] .nx-link { color: var(--nx-accent); }
+html[data-nx-look="redwood"] .nx-pagehead .nx-link { color: #fff; }
+/* The steps on a row (Approve, Assign, Confirm, Pick, Accept): Oracle's buttons, Approve the call to action. */
+html[data-nx-look="redwood"] .nx-rowact { height: 28px; padding: 0 10px; border-radius: 4px; border: 1px solid var(--nx-line-strong); background: transparent;
+  color: var(--nx-ink); font-weight: 600; }
+html[data-nx-look="redwood"] .nx-rowact:hover { background: rgba(22, 21, 19, 0.08); }
+html[data-nx-look="redwood"] .nx-rowact--approve { background: var(--rw-cta); border-color: transparent; color: #fff; }
+html[data-nx-look="redwood"] .nx-rowact--approve:hover { background: var(--rw-cta-hover); }
+html[data-nx-look="redwood"] .nx-rowicon { border-radius: 4px; }
+html[data-nx-look="redwood"] .nx-rowicon:hover { background: rgba(22, 21, 19, 0.08); color: var(--nx-ink); border-color: transparent; }
+
+/* ── Fields: Oracle's text field ────────────────────────────────────────────────────────────────────────── */
+html[data-nx-look="redwood"] .nx-search { border-radius: 4px; border-color: var(--nx-line-strong); background: #fff; }
+html[data-nx-look="redwood"] .nx-search:focus-within,
+html[data-nx-look="redwood"] .nx-qa-field:focus-within { border-color: var(--rw-brand); box-shadow: inset 0 0 0 1px var(--rw-brand); }
+html[data-nx-look="redwood"] .nx-cm-input, html[data-nx-look="redwood"] .nx-or-input, html[data-nx-look="redwood"] .nx-qa-field,
+html[data-nx-look="redwood"] .nx-pp-input, html[data-nx-look="redwood"] .nx-st-input, html[data-nx-look="redwood"] .nx-insp-input,
+html[data-nx-look="redwood"] .nx-ts-select, html[data-nx-look="redwood"] .nx-ts-exp, html[data-nx-look="redwood"] .nx-ac-select,
+html[data-nx-look="redwood"] .nx-ta-input, html[data-nx-look="redwood"] .nx-cu-oinput, html[data-nx-look="redwood"] .nx-ap-textarea,
+html[data-nx-look="redwood"] .nx-cm-rfield input { border-radius: 4px; border-color: var(--nx-line-strong); }
+html[data-nx-look="redwood"] .nx-cm-input:focus, html[data-nx-look="redwood"] .nx-or-input:focus, html[data-nx-look="redwood"] .nx-pp-input:focus,
+html[data-nx-look="redwood"] .nx-st-input:focus, html[data-nx-look="redwood"] .nx-insp-input:focus, html[data-nx-look="redwood"] .nx-ts-select:focus,
+html[data-nx-look="redwood"] .nx-ac-select:focus, html[data-nx-look="redwood"] .nx-ta-input:focus, html[data-nx-look="redwood"] .nx-cu-oinput:focus,
+html[data-nx-look="redwood"] .nx-ap-textarea:focus, html[data-nx-look="redwood"] .nx-cm-rfield input:focus {
+  border-color: var(--rw-brand); box-shadow: inset 0 0 0 1px var(--rw-brand); outline: none;
+}
+
+/* ── Filters: Oracle's filter chips and button sets ─────────────────────────────────────────────────────── */
+html[data-nx-look="redwood"] .nx-chip { border-radius: 6px; background: #fff; border-color: rgba(22, 21, 19, 0.3); font-weight: 400; font-size: 13.75px; }
+html[data-nx-look="redwood"] .nx-chip:hover { background: rgba(22, 21, 19, 0.06); }
+html[data-nx-look="redwood"] .nx-chip--on, html[data-nx-look="redwood"] .nx-chip--on:hover { background: var(--rw-selected); border-color: var(--rw-brand); color: var(--nx-ink); font-weight: 600; }
+html[data-nx-look="redwood"] .nx-chip--late { border-color: rgba(179, 49, 31, 0.5); color: var(--nx-danger); }
+html[data-nx-look="redwood"] .nx-chip--late.nx-chip--on, html[data-nx-look="redwood"] .nx-chip--late.nx-chip--on:hover { background: rgba(255, 157, 144, 0.4); border-color: var(--nx-danger); color: var(--nx-ink); }
+html[data-nx-look="redwood"] .nx-seg { padding: 0; gap: 0; background: transparent; border: 1px solid var(--nx-line-strong); border-radius: 4px; overflow: hidden; }
+html[data-nx-look="redwood"] .nx-seg-btn { border-radius: 0; height: 34px; padding: 0 14px; color: var(--nx-ink); font-size: 13.75px; border-right: 1px solid var(--nx-line-strong); }
+html[data-nx-look="redwood"] .nx-seg-btn:last-child { border-right: 0; }
+html[data-nx-look="redwood"] .nx-seg-btn:hover { background: rgba(22, 21, 19, 0.06); }
+html[data-nx-look="redwood"] .nx-seg-btn--on, html[data-nx-look="redwood"] .nx-seg-btn--on:hover { background: var(--rw-selected); color: var(--nx-ink); box-shadow: none; }
+
+/* ── Cards, metrics, tables: Oracle's panels and table ──────────────────────────────────────────────────── */
+html[data-nx-look="redwood"] .nx-card { border-radius: 6px; border-color: var(--nx-line); box-shadow: none; }
+html[data-nx-look="redwood"] .nx-card-head { padding: 16px; }
+html[data-nx-look="redwood"] .nx-card-head h2, html[data-nx-look="redwood"] .nx-h2 { font-size: 16px; font-weight: 700; }
+html[data-nx-look="redwood"] .nx-kpi { border-radius: 6px; box-shadow: none; padding: 16px; }
+html[data-nx-look="redwood"] .nx-kpi:hover { border-color: var(--nx-line-strong); }
+html[data-nx-look="redwood"] .nx-kpi-label { font-weight: 400; font-size: 13.75px; }
+html[data-nx-look="redwood"] .nx-kpi-value { font-size: 28px; font-weight: 700; }
+
+html[data-nx-look="redwood"] .nx-row { padding: 12px 16px; }
+html[data-nx-look="redwood"] .nx-row--head {
+  background: #fff; color: var(--nx-ink); font-size: 14px; font-weight: 600; text-transform: none; letter-spacing: 0; padding-top: 12px; padding-bottom: 12px;
+}
+html[data-nx-look="redwood"] .nx-row--click:hover { background: rgba(22, 21, 19, 0.04); }
+html[data-nx-look="redwood"] .nx-sort { text-transform: none; letter-spacing: 0; }
+html[data-nx-look="redwood"] .nx-cell-sub { font-size: 13px; }
+
+/* Status: Oracle's badges (the same tints as the Redwood Requests table, resources/js/requestList.js BADGE). */
+html[data-nx-look="redwood"] .nx-pill {
+  padding: 3px 12px; line-height: 18px; border-radius: 12px; font-size: 13.75px; font-weight: 400; color: var(--nx-ink);
+  background: var(--rw-badge, rgba(22, 21, 19, 0.08));
+}
+html[data-nx-look="redwood"] .nx-pill::before { display: none; }
+html[data-nx-look="redwood"] .nx-pill--plain { background: rgba(22, 21, 19, 0.08); color: var(--nx-ink); }
+html[data-nx-look="redwood"] .nx-stage--draft, html[data-nx-look="redwood"] .nx-stage--done { --rw-badge: rgba(22, 21, 19, 0.08); }
+html[data-nx-look="redwood"] .nx-stage--approval, html[data-nx-look="redwood"] .nx-stage--back { --rw-badge: rgba(143, 191, 208, 0.4); }
+html[data-nx-look="redwood"] .nx-stage--ready { --rw-badge: rgba(240, 169, 87, 0.4); }
+html[data-nx-look="redwood"] .nx-stage--onsite { --rw-badge: rgba(138, 201, 79, 0.4); }
+html[data-nx-look="redwood"] .nx-stage--stopped { --rw-badge: rgba(255, 157, 144, 0.4); }
+html[data-nx-look="redwood"] .nx-stage--out { --rw-badge: rgb(0, 104, 140); }
+html[data-nx-look="redwood"] .nx-pill.nx-stage--out { color: #fff; }
+
+/* Messages and dialogs: Oracle's (a white dialog with its title in dark type) */
+html[data-nx-look="redwood"] .nx-error { border-radius: 6px; background: rgba(255, 157, 144, 0.22); border-color: rgba(179, 49, 31, 0.35); color: var(--nx-ink); }
+html[data-nx-look="redwood"] .nx-modal-scrim { background: rgba(0, 0, 0, 0.4); }
+html[data-nx-look="redwood"] .nx-dialog { border-radius: 6px; }
+html[data-nx-look="redwood"] .nx-dialog-head { background: #fff; color: var(--nx-ink); padding: 20px 24px 12px; }
+html[data-nx-look="redwood"] .nx-dialog-head::after { display: none; }
+html[data-nx-look="redwood"] .nx-dialog-title { color: var(--nx-ink); font-size: 20px; }
+html[data-nx-look="redwood"] .nx-dialog-head .nx-kicker { color: var(--nx-muted); }
+html[data-nx-look="redwood"] .nx-dialog-head .nx-sub { color: var(--nx-muted); }
+html[data-nx-look="redwood"] .nx-dialog-head .nx-iconbtn { color: var(--nx-ink); }
+html[data-nx-look="redwood"] .nx-dialog-head .nx-iconbtn:hover { background: rgba(22, 21, 19, 0.08); color: var(--nx-ink); }
+html[data-nx-look="redwood"] .nx-dialog-body { padding: 12px 24px 16px; }
+html[data-nx-look="redwood"] .nx-dialog-foot { background: #fff; border-top: 0; padding: 12px 24px 20px; justify-content: flex-end; }
+html[data-nx-look="redwood"] .nx-yd-dialog-head { border-bottom: 1px solid var(--nx-line); }
+html[data-nx-look="redwood"] .nx-yd-dialog-head .nx-btn { background: transparent; border-color: var(--nx-line-strong); color: var(--nx-ink); }
+html[data-nx-look="redwood"] .nx-yd-dialog-head .nx-btn:hover { background: rgba(22, 21, 19, 0.08); }
+html[data-nx-look="redwood"] .nx-yd-dialog-head .nx-btn--primary { background: var(--rw-cta); border-color: transparent; color: #fff; }
+html[data-nx-look="redwood"] .nx-yd-dialog-head .nx-btn--plain { border-color: transparent; }
+
+/* The look picker in your menu, drawn in Redwood itself */
+html[data-nx-look="redwood"] .nx-look { border-radius: 6px; }
+html[data-nx-look="redwood"] .nx-look--on { border-color: var(--rw-brand); background: var(--rw-selected); }
+
+/* ── Sentence case, as Redwood writes: every label, heading and table head the screens set in capitals ───────── */
+html[data-nx-look="redwood"] .nx-ap-facts dt, html[data-nx-look="redwood"] .nx-ap-unit--head, html[data-nx-look="redwood"] .nx-av-unit--head,
+html[data-nx-look="redwood"] .nx-insp-tag, html[data-nx-look="redwood"] .nx-insp-facts dt, html[data-nx-look="redwood"] .nx-trf-leg-label,
+html[data-nx-look="redwood"] .nx-cm-facts dt, html[data-nx-look="redwood"] .nx-cu-facts dt, html[data-nx-look="redwood"] .nx-e3-menuhead,
+html[data-nx-look="redwood"] .nx-e3-lbl, html[data-nx-look="redwood"] .nx-e3-hkind, html[data-nx-look="redwood"] .nx-eqm-label,
+html[data-nx-look="redwood"] .fdd-filter-label, html[data-nx-look="redwood"] .fdd-req-detail h3, html[data-nx-look="redwood"] .fdd-facts dt,
+html[data-nx-look="redwood"] .fdd-drill-sub, html[data-nx-look="redwood"] .fdd-drow-body h4, html[data-nx-look="redwood"] .fdd-map-detail h3,
+html[data-nx-look="redwood"] .nx-help-yours, html[data-nx-look="redwood"] .nx-help-facts dt, html[data-nx-look="redwood"] .nx-ac-rolecode,
+html[data-nx-look="redwood"] .nx-ac-module, html[data-nx-look="redwood"] .nx-or-facts dt, html[data-nx-look="redwood"] .nx-or-av-unit-state,
+html[data-nx-look="redwood"] .nx-pv-row--head > .nx-pv-first, html[data-nx-look="redwood"] .nx-pv-row--head > .nx-pv-num, html[data-nx-look="redwood"] .nx-gs-head,
+html[data-nx-look="redwood"] .nx-qa-label, html[data-nx-look="redwood"] .nx-u-menu-head, html[data-nx-look="redwood"] .nx-yd-row--head,
+html[data-nx-look="redwood"] .nx-yd-facts dt, html[data-nx-look="redwood"] .nx-yd-line--head, html[data-nx-look="redwood"] .nx-yd-h3,
+html[data-nx-look="redwood"] .nx-facts dt, html[data-nx-look="redwood"] .nx-unit-facts dt, html[data-nx-look="redwood"] .nx-h3,
+html[data-nx-look="redwood"] .nx-hist-state {
+  text-transform: none; letter-spacing: 0;
+}
+/* The screens' own table heads read as Oracle's table head: dark, semibold. */
+html[data-nx-look="redwood"] .nx-ap-unit--head, html[data-nx-look="redwood"] .nx-av-unit--head, html[data-nx-look="redwood"] .nx-yd-row--head,
+html[data-nx-look="redwood"] .nx-yd-line--head, html[data-nx-look="redwood"] .nx-pv-row--head > .nx-pv-first, html[data-nx-look="redwood"] .nx-pv-row--head > .nx-pv-num {
+  color: var(--nx-ink); font-size: 13.75px; font-weight: 600;
+}
+
+/* ── Numbers and stage colours: Redwood keeps figures dark and colour for status only ─────────────────────── */
+html[data-nx-look="redwood"] .nx-kpi-value, html[data-nx-look="redwood"] .nx-yd-tile-label { color: var(--nx-ink); }
+html[data-nx-look="redwood"] .nx-stage--draft    { --st: rgb(123, 117, 112); --st-bg: rgba(22, 21, 19, 0.08); }
+html[data-nx-look="redwood"] .nx-stage--approval { --st: rgb(110, 84, 148);  --st-bg: rgba(110, 84, 148, 0.14); }
+html[data-nx-look="redwood"] .nx-stage--ready    { --st: rgb(156, 89, 11);   --st-bg: rgba(240, 169, 87, 0.4); }
+html[data-nx-look="redwood"] .nx-stage--out      { --st: rgb(0, 104, 140);   --st-bg: rgba(143, 191, 208, 0.4); }
+html[data-nx-look="redwood"] .nx-stage--onsite   { --st: rgb(73, 118, 32);   --st-bg: rgba(138, 201, 79, 0.4); }
+html[data-nx-look="redwood"] .nx-stage--back     { --st: rgb(35, 112, 115);  --st-bg: rgba(143, 191, 208, 0.4); }
+html[data-nx-look="redwood"] .nx-stage--done     { --st: rgb(101, 95, 91);   --st-bg: rgba(22, 21, 19, 0.08); }
+html[data-nx-look="redwood"] .nx-stage--stopped  { --st: rgb(179, 49, 31);   --st-bg: rgba(255, 157, 144, 0.4); }
+
+/* ── Requests, Oracle's own Smart Search page: its header colour runs to the tab's edges, as on every other screen
+   (in Fusion the page behind it is that colour: here a shadow of the header's own colour, kept off its bottom edge so the
+   colour strip and the table stay as Oracle draws them; oj-sp 2601's header class). ───────────────────────────── */
+html[data-nx-look="redwood"] .nx-rw { background: var(--nx-bg); }
+html[data-nx-look="redwood"] #reqRedwood .oj-sp-header-general-overview-header-content {
+  box-shadow: 0 0 0 48px var(--nx-band); clip-path: inset(-48px -48px 0 -48px);
+}

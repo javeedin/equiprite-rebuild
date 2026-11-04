@@ -4,10 +4,9 @@ define([
 ], (ActionChain, Actions) => {
   'use strict';
 
-  // A filter, the view, the source, "show more", the export menu, or the look (ui: Redwood or Current, kept in this
-  // browser; the Redwood look is the list, so it shows the list).
+  // A filter, the view, the source, "show more", the export menu, or the look (ui: Redwood or Current, as chosen in
+  // your menu, resources/js/look.js; the Redwood look is the list, so it shows the list).
   const PAGE = 100;
-  const UI_KEY = 'equiprite-next:ui:requests';
 
   class setChain extends ActionChain {
     async run(context, { field, value }) {
@@ -16,10 +15,8 @@ define([
       if (field === 'limit') { v.limit += PAGE; return; }
       if (field === 'ui') {
         const ui = value === 'redwood' ? 'redwood' : 'current';
-        try { window.localStorage.setItem(UI_KEY, ui); } catch (e) { /* no storage: this visit only */ }
         if (ui === v.ui) return;
         await Actions.callChain(context, { chain: 'applyChain', params: ui === 'redwood' ? { view: 'list' } : {} });
-        // The switch that asked is inside the look being hidden: let it finish its own event first.
         await new Promise((r) => setTimeout(r, 0));
         if (ui === 'redwood') v.rwMounted = true;
         v.ui = ui;

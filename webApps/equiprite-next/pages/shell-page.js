@@ -1,4 +1,4 @@
-define(['resources/js/shellBus', 'resources/js/cartDrafts', 'resources/js/requestData', 'resources/js/theme'], (bus, cartDrafts, requestData, theme) => {
+define(['resources/js/shellBus', 'resources/js/cartDrafts', 'resources/js/requestData', 'resources/js/theme', 'resources/js/look'], (bus, cartDrafts, requestData, theme, look) => {
   'use strict';
 
   // The shell's page module: the line from the screens in the tabs (shellBus) to the shell's chains, the keyboard
@@ -10,6 +10,8 @@ define(['resources/js/shellBus', 'resources/js/cartDrafts', 'resources/js/reques
     constructor(context) {
       // The colours chosen on this computer, before anything is drawn (theme.js; your menu, Colours).
       theme.apply(theme.load());
+      // The look (Redwood or Current) last chosen on this computer, until the shell knows whose it is (lookChain).
+      look.apply(look.load(''));
       const helper = context && typeof context.getEventHelper === 'function' ? context.getEventHelper() : null;
       const fire = (name, payload) => { if (helper) helper.fireCustomEvent(name, payload || {}); };
       bus.register((req) => fire('shellRequest', {
@@ -66,6 +68,9 @@ define(['resources/js/shellBus', 'resources/js/cartDrafts', 'resources/js/reques
 
     /** The menu's two looks. */
     menus() { return theme.MENUS; }
+
+    /** The looks in your menu: Redwood, Current (resources/js/look.js). */
+    looks() { return look.LOOKS; }
   }
 
   return PageModule;

@@ -1,4 +1,4 @@
-define(['resources/js/exportKit', 'resources/js/fmt', 'resources/js/shellBus'], (exportKit, fmt, bus) => {
+define(['resources/js/exportKit', 'resources/js/fmt', 'resources/js/shellBus', 'resources/js/look'], (exportKit, fmt, bus, look) => {
   'use strict';
 
   // Requests: binding helpers. The logic is resources/js/requestList.js.
@@ -7,10 +7,11 @@ define(['resources/js/exportKit', 'resources/js/fmt', 'resources/js/shellBus'], 
       // Another screen may hand over a stage to show (shellBus.focus, from Help): focusChain takes it.
       const helper = context && typeof context.getEventHelper === 'function' ? context.getEventHelper() : null;
       bus.onFocus('requests', () => { if (helper) helper.fireCustomEvent('focusRequest', {}); });
+      // The look chosen in your menu (resources/js/look.js): Redwood shows Oracle's Smart Search page, Current Next's
+      // own list. One Requests screen at a time: a new one takes over from the last one's listening.
+      if (PageModule.stopLook) PageModule.stopLook();
+      PageModule.stopLook = look.onChange((l) => { if (helper) helper.fireCustomEvent('lookChanged', { look: l }); });
     }
-
-    /** The look switch's two choices (Redwood view: oj-c-buttonset-single). */
-    uiItems() { return [{ value: 'redwood', label: 'Redwood' }, { value: 'current', label: 'Current' }]; }
 
     /** The export menu's formats. */
     formats() { return exportKit.FORMATS; }

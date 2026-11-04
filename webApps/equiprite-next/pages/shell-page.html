@@ -510,6 +510,35 @@
         </nav>
         <p class="nx-profile-note">Old, New, Next and Mobile work on the same data; Future plays a demo group of its own.</p>
       </div>
+      <!-- Your look, on every screen: Redwood (Oracle's own) or Current (Next's own); resources/js/look.js, lookChain. -->
+      <div class="nx-profile-sec">
+        <span class="nx-profile-label" id="nxLookLabel">Look</span>
+        <div class="nx-looks" role="radiogroup" aria-labelledby="nxLookLabel" id="nxLooks">
+          <oj-bind-for-each data="[[ $functions.looks() ]]">
+            <template data-oj-as="l">
+              <button type="button" role="radio" :id="[[ 'nxLook-' + l.data.id ]]" :data-look="[[ l.data.id ]]" on-click="[[ $listeners.onLook ]]"
+                :class="[[ 'nx-look nx-look--' + l.data.id + ($variables.look === l.data.id ? ' nx-look--on' : '') ]]"
+                :aria-checked="[[ $variables.look === l.data.id ? 'true' : 'false' ]]">
+                <span class="nx-look-pic" aria-hidden="true">
+                  <span class="nx-look-pic-nav"></span><span class="nx-look-pic-head"></span><span class="nx-look-pic-btn"></span>
+                  <span class="nx-look-pic-row"></span><span class="nx-look-pic-row nx-look-pic-row--2"></span>
+                </span>
+                <span class="nx-look-name"><oj-bind-text value="[[ l.data.label ]]"></oj-bind-text>
+                  <span class="oj-ux-ico-check nx-look-tick" aria-hidden="true"></span></span>
+                <span class="nx-look-note"><oj-bind-text value="[[ l.data.note ]]"></oj-bind-text></span>
+              </button>
+            </template>
+          </oj-bind-for-each>
+        </div>
+        <p class="nx-profile-note" id="nxLookNote">On every screen, kept for you on this computer.</p>
+      </div>
+      <oj-bind-if test="[[ $variables.look === 'redwood' ]]">
+        <div class="nx-profile-sec">
+          <span class="nx-profile-label">Colours</span>
+          <p class="nx-profile-note nx-profile-note--flush" id="nxColoursRedwood">Redwood uses Oracle's own colours. Your colours come back with Current.</p>
+        </div>
+      </oj-bind-if>
+      <oj-bind-if test="[[ $variables.look !== 'redwood' ]]">
       <div class="nx-profile-sec">
         <span class="nx-profile-label" id="nxColoursLabel">Colours</span>
         <div class="nx-themes" role="radiogroup" aria-labelledby="nxColoursLabel" id="nxThemes">
@@ -535,6 +564,7 @@
         </div>
         <p class="nx-profile-note">Kept on this computer.</p>
       </div>
+      </oj-bind-if>
       <div class="nx-profile-sec nx-profile-links">
         <button type="button" class="nx-profile-link" data-nav-id="help" on-click="[[ $listeners.onNav ]]">
           <span class="oj-ux-ico-help" aria-hidden="true"></span>Help: how a request moves</button>

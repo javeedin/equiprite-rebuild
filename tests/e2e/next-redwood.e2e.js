@@ -1,9 +1,10 @@
 'use strict';
 /*
- * EquipRite Next, the Redwood look of Requests, in a real browser: the Redwood | Current switch; the Redwood look is
- * Oracle's own page template (oj-sp-smart-search-page) with Smart Search, an oj-table, oj-c buttons and oj-badge, on the
- * same requests, filters and steps as the current look; a row opens its request; a step button takes its step; the
- * choice is kept for the next visit; the current look is unchanged.
+ * EquipRite Next, the Redwood look, in a real browser: chosen in your menu (under your name, with the EquipRite
+ * version), Redwood or Current, for every screen; kept for you after a reload. Redwood draws the shell and every
+ * screen as Oracle's Redwood (the page header and its colour strip, the call-to-action button, white menu, tabs);
+ * Requests is Oracle's own Smart Search page (oj-sp-smart-search-page, Smart Search, oj-table, oj-c buttons,
+ * oj-badge) on the same requests, filters and steps; Current is the look as it was.
  * Needs `npm run build`. Run: node tests/e2e/next-redwood.e2e.js
  */
 const E = require('./harness');
@@ -53,20 +54,44 @@ const rwRows = (page) => page.$$eval('#reqRwTable tbody tr, #reqRwTable .oj-tabl
     await page.waitForSelector('.nx-grid--req .nx-row--click', { timeout: 30000 });
     await settle(page, 500);
 
-    T.section('the switch, on the current look');
-    T.eq('Redwood | Current, Current on', await page.$$eval('.nx-uiswitch .nx-seg-btn', (b) => b.map((x) => x.innerText.trim() + ':' + x.getAttribute('aria-pressed')).join(' ')),
-      'Redwood:false Current:true');
-    T.check('the current look as it was', !!(await page.$('.nx-requests .nx-pagehead')) && !(await page.$('#reqRedwood')));
+    const look = () => page.getAttribute('html', 'data-nx-look');
+    const css = (sel, prop, pseudo) => page.$eval(sel, (el, a) => getComputedStyle(el, a[1] || null).getPropertyValue(a[0]), [prop, pseudo || '']);
+    const headBg = () => css('.nx-requests .nx-pagehead', 'background-color');
 
-    T.section('the Redwood look: Oracle\'s page template and components');
-    await page.click('#reqUiRedwood');
+    T.section('Current, to start: the look as it was, no switch on the page');
+    T.eq('Current on every screen', await look(), 'current');
+    T.check('the current Requests list, its head in Next\'s teal', !!(await page.$('.nx-requests .nx-pagehead')) && !(await page.$('#reqRedwood'))
+      && (await headBg()) === 'rgb(46, 84, 104)', await headBg());
+    T.check('no look switch on the page any more: it is in your menu', !(await page.$('.nx-uiswitch')) && !(await page.$('#reqUiSet')));
+
+    T.section('your menu: the look, beside the version');
+    await page.click('#nxUser');
+    await page.waitForSelector('#nxLooks');
+    T.eq('Look: Redwood and Current, Current chosen', await page.$$eval('#nxLooks .nx-look', (b) => b.map((x) => x.querySelector('.nx-look-name').innerText.trim()
+      + ':' + x.getAttribute('aria-checked')).join(' ')), 'Redwood:false Current:true');
+    T.check('…after the EquipRite version, before Colours', await page.evaluate(() => {
+      const secs = Array.from(document.querySelectorAll('#nxProfilePanel .nx-profile-sec'));
+      const at = (sel) => secs.findIndex((x) => !!x.querySelector(sel));
+      return at('.nx-versions') < at('#nxLooks') && at('#nxLooks') < at('#nxThemes');
+    }));
+    await env.shot('next-look-menu.png');
+    await page.click('#nxLook-redwood');
+    await page.waitForFunction(() => document.documentElement.getAttribute('data-nx-look') === 'redwood', null, { timeout: 10000 });
+    T.eq('Redwood: chosen, marked', [await look(), await page.getAttribute('#nxLook-redwood', 'aria-checked'), await page.getAttribute('#nxLook-current', 'aria-checked')].join(),
+      'redwood,true,false');
+    T.check('Colours step aside: Redwood is Oracle\'s colours', !(await page.$('#nxThemes')) && (await env.text('#nxColoursRedwood')).includes('Oracle'));
+    await env.shot('next-look-menu-redwood.png');
+    await page.keyboard.press('Escape');
+    await page.waitForSelector('#nxProfilePanel', { state: 'detached', timeout: 5000 });
+
+    T.section('Requests: Oracle\'s page template and components');
     await page.waitForSelector('#reqRedwood oj-sp-smart-search-page', { timeout: 20000 });
     await page.waitForFunction(() => /REQ-4001/.test((document.querySelector('#reqRwTable') || {}).innerText || ''), null, { timeout: 30000 });
     await settle(page, 800);
     T.check('Oracle\'s components, upgraded: smart search page, Smart Search, collection container, oj-table, oj-c buttons',
-      await page.evaluate(() => ['oj-sp-smart-search-page', 'oj-sp-smart-search', 'oj-sp-collection-container', 'oj-table', 'oj-c-button', 'oj-c-buttonset-single']
+      await page.evaluate(() => ['oj-sp-smart-search-page', 'oj-sp-smart-search', 'oj-sp-collection-container', 'oj-table', 'oj-c-button']
         .every((t) => { const el = document.querySelector('#reqRedwood ' + t); return el && el.classList.contains('oj-complete'); })),
-      await page.evaluate(() => ['oj-sp-smart-search-page', 'oj-sp-smart-search', 'oj-sp-collection-container', 'oj-table', 'oj-c-button', 'oj-c-buttonset-single']
+      await page.evaluate(() => ['oj-sp-smart-search-page', 'oj-sp-smart-search', 'oj-sp-collection-container', 'oj-table', 'oj-c-button']
         .map((t) => { const el = document.querySelector('#reqRedwood ' + t); return t + ':' + (el ? el.className : 'missing'); }).join(' | ')));
     T.check('the template\'s own header: the title and the summary', (await env.text('#reqRedwood oj-sp-smart-search-page')).includes('Requests')
       && (await env.text('#reqRedwood oj-sp-smart-search-page')).includes('3 requests'));
@@ -99,6 +124,9 @@ const rwRows = (page) => page.$$eval('#reqRwTable tbody tr, #reqRwTable .oj-tabl
     await page.click('#reqRwTable oj-c-button[data-act="pick"]');
     await page.waitForSelector('#reqPop .nx-road-step', { timeout: 10000 });
     T.check('Pick: the "Getting it to site" popup, as from the current look', (await env.text('#reqPop')).includes('REQ-4003'));
+    T.eq('the popup is Oracle\'s dialog: a white head, its title dark', [await css('#reqPop .nx-dialog-head', 'background-color'), await css('#reqPop .nx-dialog-title', 'color')].join(' | '),
+      'rgb(255, 255, 255) | rgb(22, 21, 19)');
+    await env.shot('next-redwood-dialog.png');
     await page.click('#reqPop .nx-dialog-head .nx-iconbtn');
     await settle(page, 300);
     T.check('the step did not also open the request', (await page.$eval('.nx-tab--on', (t) => t.dataset.tabId)) === 'requests');
@@ -106,21 +134,45 @@ const rwRows = (page) => page.$$eval('#reqRwTable tbody tr, #reqRwTable .oj-tabl
     await page.waitForFunction(() => (document.querySelector('.nx-tab--on') || {}).dataset.tabId === 'request:4003', null, { timeout: 15000 });
     T.eq('a row opens the request in its tab', await page.$eval('.nx-tab--on', (t) => t.dataset.tabId), 'request:4003');
 
+    T.section('every screen: the shell and My work in Redwood');
+    T.eq('the call to action in the toolbar: Oracle\'s dark button, 4px corners', [await css('#nxNewRequest', 'background-color'), await css('#nxNewRequest', 'border-radius')].join(),
+      'rgb(49, 45, 42),4px');
+    T.eq('the menu: white, the open screen in Redwood\'s selection', [await css('#nxNav', 'background-color'), await css('.nx-nav-item--on', 'background-color')].join(' | '),
+      'rgb(255, 255, 255) | rgb(228, 241, 247)');
+    T.check('Oracle Sans', /Oracle Sans/.test(await css('.nx-app', 'font-family')) && await page.evaluate(() => document.fonts.check('16px "Oracle Sans"')));
+    await page.click('.nx-tab[data-tab-id="home"] .nx-tab-btn');
+    await page.waitForFunction(() => (document.querySelector('.nx-tab--on') || {}).dataset.tabId === 'home', null, { timeout: 10000 });
+    await settle(page, 800);
+    const homeHead = await page.$$eval('.nx-pagehead', (hs) => {
+      const h = hs.filter((x) => x.offsetParent !== null)[0];
+      if (!h) return null;
+      const st = getComputedStyle(h);
+      return { bg: st.backgroundColor, strip: getComputedStyle(h, '::after').backgroundImage, h1: getComputedStyle(h.querySelector('h1')).fontSize };
+    });
+    T.check('My work\'s head: Oracle\'s Redwood header, its colour strip, a 28px title', !!homeHead && homeHead.bg === 'rgb(44, 82, 102)'
+      && /colorstrip_redwood/.test(homeHead.strip) && homeHead.h1 === '28px', JSON.stringify(homeHead));
+    await env.shot('next-redwood-mywork.png');
+
     const errs = () => env.errors.filter((e) => !/404|Failed to load resource/.test(e));
     T.eq('no browser errors while working in it', errs().join(' | ').slice(0, 1500), '');
 
-    T.section('the choice is kept; Current brings the current look back');
+    T.section('kept for you; Current brings the current look back everywhere');
     // A reload tears the whole page down mid-flight (Smart Search's own timers can fire on the gone page): errors are
     // counted again from the reloaded page on.
     await env.open('/?open=requests');
     const from = errs().length;
     await page.waitForSelector('#reqRedwood oj-sp-smart-search-page', { timeout: 30000 });
-    T.check('reopened: Redwood, as left', !!(await page.$('#reqRedwood')));
-    await page.waitForSelector('#reqUiSet.oj-complete', { timeout: 15000 });
-    await page.click('#reqUiSet >> text=Current');
+    T.eq('reopened: Redwood, as left', await look(), 'redwood');
+    await page.click('#nxUser');
+    await page.waitForSelector('#nxLook-current');
+    await page.click('#nxLook-current');
     await page.waitForSelector('.nx-grid--req .nx-row--click', { timeout: 15000 });
-    T.check('Current: the current look again (the Redwood look kept, hidden)', !(await page.isVisible('#reqRedwood')) && await page.isVisible('.nx-requests .nx-pagehead'));
-    await page.click('#reqUiRedwood');
+    T.check('Current: the current Requests again (the Redwood look kept, hidden)', (await look()) === 'current' && !(await page.isVisible('#reqRedwood'))
+      && await page.isVisible('.nx-requests .nx-pagehead'));
+    T.eq('…and Next\'s own colours everywhere', [await headBg(), await css('#nxNewRequest', 'background-color'), await css('#nxNav', 'background-color')].join(' | '),
+      'rgb(46, 84, 104) | rgb(10, 102, 201) | rgb(29, 56, 70)');
+    T.check('your colours are back in the menu', !!(await page.$('#nxThemes')));
+    await page.click('#nxLook-redwood');
     await page.waitForFunction(() => { const r = document.querySelector('#reqRedwood'); return r && !r.hidden; }, null, { timeout: 10000 });
     T.check('and back to Redwood at once, as it was', await page.isVisible('#reqRwTable') && !(await page.isVisible('.nx-requests .nx-pagehead')));
     T.eq('no browser errors after the reload, switching back included', errs().slice(from).join(' | ').slice(0, 1500), '');

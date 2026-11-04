@@ -99,7 +99,7 @@
     "ui": {
       "type": "string",
       "defaultValue": "current",
-      "description": "The look of this page: 'current' (Next's own) or 'redwood' (Oracle's Redwood page template and components). The user's choice, kept in this browser (setChain ui)."
+      "description": "The look of this page: 'current' (Next's own) or 'redwood' (Oracle's Redwood page template and components), as chosen in your menu (resources/js/look.js; setChain ui)."
     },
     "rwRows": {
       "type": "any[]",
@@ -196,6 +196,10 @@
   "events": {
     "focusRequest": {
       "description": "From resources/js/shellBus.js focus(): another screen handed this one a filter (Help: where some pieces are).",
+      "payloadType": "object"
+    },
+    "lookChanged": {
+      "description": "From the page module: the look chosen in your menu changed (resources/js/look.js): Redwood or Current.",
       "payloadType": "object"
     }
   },
@@ -347,28 +351,6 @@
         }
       ]
     },
-    "onUi": {
-      "chains": [
-        {
-          "chain": "setChain",
-          "parameters": {
-            "field": "ui",
-            "value": "{{ $event.currentTarget.dataset.value || ($event.detail && $event.detail.value) }}"
-          }
-        }
-      ]
-    },
-    "onUiSet": {
-      "chains": [
-        {
-          "chain": "setChain",
-          "parameters": {
-            "field": "ui",
-            "value": "{{ $event.detail.value }}"
-          }
-        }
-      ]
-    },
     "onRwFilter": {
       "chains": [
         {
@@ -409,6 +391,17 @@
           }
         }
       ]
+    },
+    "lookChanged": {
+      "chains": [
+        {
+          "chain": "setChain",
+          "parameters": {
+            "field": "ui",
+            "value": "{{ $event.look }}"
+          }
+        }
+      ]
     }
   },
   "imports": {
@@ -436,9 +429,6 @@
       },
       "oj-c-button": {
         "path": "oj-c/button"
-      },
-      "oj-c-buttonset-single": {
-        "path": "oj-c/buttonset-single"
       }
     }
   }

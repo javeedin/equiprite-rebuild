@@ -155,6 +155,11 @@
       },
       "description": "Your colours: the theme and the menu dark or light (resources/js/theme.js), kept on this computer."
     },
+    "look": {
+      "type": "string",
+      "defaultValue": "current",
+      "description": "Your look: 'redwood' (Oracle's own) or 'current' (Next's own), on every screen (resources/js/look.js), kept for you on this computer."
+    },
     "profileOpen": {
       "type": "boolean",
       "defaultValue": false,
@@ -267,6 +272,9 @@
       "chains": [
         {
           "chain": "themeChain"
+        },
+        {
+          "chain": "lookChain"
         },
         {
           "chain": "shellEnterChain"
@@ -520,6 +528,16 @@
           "parameters": {
             "theme": "{{ $event.currentTarget.dataset.theme }}",
             "menu": "{{ $event.currentTarget.dataset.menu }}"
+          }
+        }
+      ]
+    },
+    "onLook": {
+      "chains": [
+        {
+          "chain": "lookChain",
+          "parameters": {
+            "look": "{{ $event.currentTarget.dataset.look }}"
           }
         }
       ]

@@ -179,6 +179,39 @@ html[data-nx-menu="light"] .nx-nav-scroll::-webkit-scrollbar-thumb { background:
 .nx-menu-modes { display: flex; gap: 4px; margin-top: 10px; padding: 2px; background: var(--nx-surface-2); border: 1px solid var(--nx-line); border-radius: 8px; }
 .nx-menu-mode { flex: 1; padding: 6px 8px; border: 0; border-radius: 6px; background: transparent; font: inherit; font-size: 12.5px; color: var(--nx-muted); cursor: pointer; }
 .nx-menu-mode--on { background: #fff; color: var(--nx-ink); font-weight: 700; box-shadow: 0 1px 2px rgba(16, 24, 40, 0.08); }
+/* The look picker in your menu (resources/js/look.js): Redwood or Current, each with a small picture of itself. */
+.nx-looks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.nx-look {
+  display: flex; flex-direction: column; align-items: stretch; gap: 3px; padding: 6px 6px 8px; border: 1px solid var(--nx-line); border-radius: 8px;
+  background: #fff; color: var(--nx-ink); font: inherit; text-align: left; cursor: pointer;
+}
+.nx-look:hover { border-color: var(--nx-line-strong); }
+.nx-look--on { border: 2px solid var(--nx-accent); padding: 5px 5px 7px; background: var(--nx-accent-soft); }
+.nx-look-pic {
+  position: relative; display: block; height: 52px; margin-bottom: 4px; border-radius: 5px; overflow: hidden; border: 1px solid rgba(22, 21, 19, 0.12);
+  background: #f5f4f2;
+}
+.nx-look-pic > span { position: absolute; display: block; }
+.nx-look-pic-nav { left: 0; top: 0; bottom: 0; width: 16px; }
+.nx-look-pic-head { left: 16px; right: 0; top: 0; height: 20px; }
+.nx-look-pic-head::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 3px; }
+.nx-look-pic-btn { right: 6px; top: 6px; width: 16px; height: 7px; border-radius: 2px; }
+.nx-look-pic-row { left: 22px; right: 6px; top: 27px; height: 8px; border-radius: 2px; background: #fff; border: 1px solid rgba(22, 21, 19, 0.1); }
+.nx-look-pic-row--2 { top: 39px; }
+.nx-look--redwood .nx-look-pic-nav { background: #fff; border-right: 1px solid rgba(22, 21, 19, 0.12); }
+.nx-look--redwood .nx-look-pic-head { background: rgb(44, 82, 102); }
+.nx-look--redwood .nx-look-pic-head::after { background: linear-gradient(90deg, #e8a87c 0 22%, #f2d6a2 22% 40%, #7aa9a5 40% 62%, #c4a185 62% 80%, #e7c08e 80%); }
+.nx-look--redwood .nx-look-pic-btn { background: #fff; }
+.nx-look--current .nx-look-pic { background: #f3f5f8; }
+.nx-look--current .nx-look-pic-nav { background: #1d3846; }
+.nx-look--current .nx-look-pic-head { background: #2e5468; }
+.nx-look--current .nx-look-pic-head::after { background: linear-gradient(90deg, #c74634 0 20%, #e5a22f 20% 40%, #6f9a3a 40% 60%, #2b8cbe 60% 80%, #6b4fa3 80% 100%); }
+.nx-look--current .nx-look-pic-btn { background: #0a66c9; }
+.nx-look-name { display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 13.5px; }
+.nx-look-tick { font-size: 15px; color: var(--nx-accent); visibility: hidden; }
+.nx-look--on .nx-look-tick { visibility: visible; }
+.nx-look-note { font-size: 11.5px; color: var(--nx-muted); line-height: 1.3; }
+.nx-profile-note--flush { margin-top: 0; }
 .nx-scrim { display: none; }
 
 .nx-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
@@ -257,7 +290,8 @@ html[data-nx-menu="light"] .nx-nav-scroll::-webkit-scrollbar-thumb { background:
 .nx-cart-foot .nx-btn { width: 100%; }
 
 /* The menu under your name: who you are, the EquipRite version */
-.nx-profile-panel { top: calc(var(--nx-top-h) - 4px); right: 12px; width: min(320px, calc(100vw - 24px)); padding-bottom: 6px; }
+.nx-profile-panel { top: calc(var(--nx-top-h) - 4px); right: 12px; width: min(320px, calc(100vw - 24px)); padding-bottom: 6px;
+  max-height: calc(100vh - var(--nx-top-h) - 12px); overflow-y: auto; }
 .nx-profile-head { display: flex; align-items: center; gap: 12px; padding: 14px 10px 12px 16px; border-bottom: 1px solid var(--nx-line); }
 .nx-avatar--lg { width: 44px; height: 44px; font-size: 15px; flex: none; }
 .nx-profile-who { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
@@ -800,10 +834,8 @@ a.nx-version:focus-visible { outline: 2px solid var(--nx-accent); outline-offset
 .nx-rw oj-sp-collection-container, .nx-rw oj-table { display: block; width: 100%; }
 /* The table grows with its rows (the page scrolls, as the current look); never a box of one row. */
 .nx-rw-table { min-height: 240px; }
-.nx-rw-switch { display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding: 8px 16px 0; }
 .nx-rw-tools { display: flex; justify-content: flex-end; gap: 4px; padding-bottom: 8px; }
 .nx-rw-cell { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; min-width: 0; white-space: normal; overflow-wrap: anywhere; }
 .nx-rw-table .oj-table-data-cell { white-space: normal; }
 .nx-rw-num { cursor: pointer; }
 .nx-rw-steps { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
-.nx-uiswitch .nx-seg-btn { min-width: 0; }

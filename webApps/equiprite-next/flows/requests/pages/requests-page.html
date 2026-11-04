@@ -7,11 +7,6 @@
        asynchronously, and taking it off the page mid-way throws inside the oj-sp bundle; switching is instant too. -->
   <oj-bind-if test="[[ $variables.rwMounted ]]">
     <div class="nx-rw" id="reqRedwood" :hidden="[[ $variables.ui !== 'redwood' ]]">
-      <div class="nx-rw-switch">
-        <span class="oj-typography-body-sm oj-text-color-secondary">Look</span>
-        <oj-c-buttonset-single id="reqUiSet" value="[[ $variables.ui ]]" items="[[ $functions.uiItems() ]]" size="sm" chroming="outlined"
-          label-hint="Look" on-value-changed="[[ $listeners.onUiSet ]]"></oj-c-buttonset-single>
-      </div>
       <oj-sp-smart-search-page page-title="Requests" page-subtitle="[[ $variables.isLoading && !$variables.rows.length ? 'Loading requests and their equipment…' : $variables.summary ]]"
         primary-action.display="on" primary-action.label="New request" on-sp-primary-action="[[ $listeners.onNew ]]" display-mode="mixed">
         <oj-sp-smart-search slot="search" filter-criterion="{{ $variables.rwCriterion }}" on-filter-criterion-changed="[[ $listeners.onRwFilter ]]"
@@ -87,10 +82,6 @@
       <div class="nx-sub" id="reqSummary"><oj-bind-text value="[[ $variables.isLoading && !$variables.rows.length ? 'Loading requests and their equipment…' : $variables.summary ]]"></oj-bind-text></div>
     </div>
     <div class="nx-actions">
-      <div class="nx-seg nx-uiswitch" role="group" aria-label="Look">
-        <button type="button" id="reqUiRedwood" data-value="redwood" on-click="[[ $listeners.onUi ]]" aria-pressed="false" class="nx-seg-btn">Redwood</button>
-        <button type="button" id="reqUiCurrent" data-value="current" on-click="[[ $listeners.onUi ]]" aria-pressed="true" class="nx-seg-btn nx-seg-btn--on">Current</button>
-      </div>
       <button type="button" class="nx-btn nx-btn--plain" on-click="[[ $listeners.onRefresh ]]" :disabled="[[ $variables.isLoading ]]">
         <span class="oj-ux-ico-refresh" aria-hidden="true"></span>Refresh</button>
       <div class="nx-export">

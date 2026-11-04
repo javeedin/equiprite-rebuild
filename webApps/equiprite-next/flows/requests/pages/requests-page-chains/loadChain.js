@@ -3,7 +3,8 @@ define([
   'vb/action/actions',
   'resources/js/requestData',
   'resources/js/rules',
-], (ActionChain, Actions, requestData, rules) => {
+  'resources/js/look',
+], (ActionChain, Actions, requestData, rules, look) => {
   'use strict';
 
   // Loads the requests and their equipment (shared with the bell and My work for half a minute; Refresh loads anew).
@@ -17,12 +18,11 @@ define([
     async run(context, { refresh }) {
       const { $page, $application } = context;
       const app = $application.variables;
-      // The look the user chose last time (setChain ui).
-      try {
-        const ui = window.localStorage.getItem('equiprite-next:ui:requests');
-        if (ui === 'redwood' || ui === 'current') $page.variables.ui = ui;
-        if (ui === 'redwood') $page.variables.rwMounted = true;
-      } catch (e) { /* no storage */ }
+      // The look chosen in your menu (resources/js/look.js; a change later comes as lookChanged, to setChain ui).
+      if (look.current() === 'redwood') {
+        $page.variables.ui = 'redwood';
+        $page.variables.rwMounted = true;
+      }
       $page.variables.isLoading = true;
       try {
         const data = await requestData.load(context, Actions, { refresh: !!refresh });
