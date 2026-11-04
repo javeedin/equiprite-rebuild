@@ -156,8 +156,9 @@ T.eq('a saved line from the server', JSON.stringify(plain(R.lineFromRecord({ id:
 T.section('rates: what the lists export');
 const lc = R.linesExportColumns();
 const val = (cols, row) => cols.map((c) => (typeof c.value === 'function' ? c.value(row) : row[c.key]));
-T.eq('a rate line, exported', JSON.stringify(val(lc, lines[2])), JSON.stringify(['Excavators', 'Crawler', 'CAT 320 Excavator', undefined, 'Usage', 'Complete period · calendar days',
-  'Monthly', 30, 'days', 12800, 426.6667, 12000, '-6.7%']));
+T.eq('a rate line, exported with Old\'s columns (no bill, no margin)', JSON.stringify(val(lc, lines[2])), JSON.stringify(['Excavators', 'Crawler', 'CAT 320 Excavator', undefined, 'Usage',
+  'Monthly', 'Complete period · calendar days', 30, 'days', 12800, 426.6667]));
+T.eq('…under Old\'s names', lc.slice(5).map((c) => c.label).join(' | '), 'Tier | Calc method | Threshold | Unit | Period total | Rate / day (or hour)');
 T.eq('a schedule, exported', JSON.stringify(val(R.listExportColumns(), rows[3]).slice(0, 7)), JSON.stringify(['Odessa', 'Active', '', '', '', 'Odessa Yard', 'Yard Odessa Yard']));
 
 // ── Agreements ───────────────────────────────────────────────────────────────────────────────────────────

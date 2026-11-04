@@ -1,16 +1,6 @@
 {
-  "description": "Rates (Redwood view), a schedule's record: Smart Search over its rates table, in Oracle's header (as Old's Equipment Schedule page puts Smart Search in its general overview header). A filter per thing a rates row is, the periods it has a rate in, and its margin. Every filter here needs its entry in rates-page.json's rwRateSearchContext.",
+  "description": "Rates (Redwood view), a schedule's record: Smart Search over its rates table, in Oracle's header (as Old's Equipment Schedule page puts Smart Search in its general overview header). A filter per column of Old's rate grid (Class, Subclass, Equipment, Rate type, Tier, Calc method) and the location. Every filter here needs its entry in rates-page.json's rwRateSearchContext.",
   "filters": {
-    "RateEquipmentFilter": {
-      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
-      "label": "Equipment",
-      "options": {
-        "field": "equipment",
-        "optionsData": "[[ $search.filters.RateEquipmentFilter.options.optionsData ]]",
-        "optionsKeys": "[[ $search.filters.RateEquipmentFilter.options.optionsKeys ]]"
-      },
-      "data": {}
-    },
     "RateClassFilter": {
       "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
       "label": "Class",
@@ -21,33 +11,23 @@
       },
       "data": {}
     },
-    "RateLocationFilter": {
+    "RateSubclassFilter": {
       "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
-      "label": "Location",
+      "label": "Subclass",
       "options": {
-        "field": "location",
-        "optionsData": "[[ $search.filters.RateLocationFilter.options.optionsData ]]",
-        "optionsKeys": "[[ $search.filters.RateLocationFilter.options.optionsKeys ]]"
+        "field": "subclass",
+        "optionsData": "[[ $search.filters.RateSubclassFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.RateSubclassFilter.options.optionsKeys ]]"
       },
       "data": {}
     },
-    "RatePeriodFilter": {
+    "RateEquipmentFilter": {
       "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
-      "label": "Period",
+      "label": "Equipment",
       "options": {
-        "field": "period",
-        "optionsData": "[[ $search.filters.RatePeriodFilter.options.optionsData ]]",
-        "optionsKeys": "[[ $search.filters.RatePeriodFilter.options.optionsKeys ]]"
-      },
-      "data": {}
-    },
-    "RateMarginFilter": {
-      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
-      "label": "Margin",
-      "options": {
-        "field": "margin",
-        "optionsData": "[[ $search.filters.RateMarginFilter.options.optionsData ]]",
-        "optionsKeys": "[[ $search.filters.RateMarginFilter.options.optionsKeys ]]"
+        "field": "equipment",
+        "optionsData": "[[ $search.filters.RateEquipmentFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.RateEquipmentFilter.options.optionsKeys ]]"
       },
       "data": {}
     },
@@ -61,13 +41,33 @@
       },
       "data": {}
     },
+    "RatePeriodFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Tier",
+      "options": {
+        "field": "period",
+        "optionsData": "[[ $search.filters.RatePeriodFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.RatePeriodFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
     "RateMethodFilter": {
       "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
-      "label": "Counted by",
+      "label": "Calc method",
       "options": {
         "field": "method",
         "optionsData": "[[ $search.filters.RateMethodFilter.options.optionsData ]]",
         "optionsKeys": "[[ $search.filters.RateMethodFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "RateLocationFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Location",
+      "options": {
+        "field": "location",
+        "optionsData": "[[ $search.filters.RateLocationFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.RateLocationFilter.options.optionsKeys ]]"
       },
       "data": {}
     }

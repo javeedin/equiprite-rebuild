@@ -251,56 +251,53 @@ async function headerMenu(page, head) {
 
     T.section('Rates: the rates as Oracle\'s table; a row opens Oracle\'s drawer to change them');
     const rateRows = () => page.$$eval('#ratesRwRates .oj-table-body-row', (r) => r.map((x) => x.innerText.replace(/\s+/g, ' ').trim()));
-    const banner = () => page.$eval('#ratesRwMargin', (e) => e.innerText.replace(/\s+/g, ' ').trim()).catch(() => '');
+    const labels = (sel) => page.$$eval(sel, (e) => e.map((x) => x.innerText.trim()).join(' | '));
     await page.waitForFunction(() => document.querySelectorAll('#ratesRwRates .oj-table-body-row').length > 0, null, { timeout: 15000 });
     T.eq('Oracle\'s table, upgraded', await complete(page, '.nx-rt-rw', ['oj-table']), 'oj-table:true');
     const firstRate = (await rateRows())[0] || '';
-    T.check('a row per equipment, a column per period: its tier, cost, bill and margin as Oracle\'s badge', firstRate.includes('Excavators · Crawler · CAT 320 Excavator')
-      && firstRate.includes('1 day or more') && firstRate.includes('Cost $820') && firstRate.includes('Bill $1,150') && firstRate.includes('+28.7%')
-      && await page.$$eval('#ratesRwRates .oj-badge', (b) => b.length) >= 1, firstRate);
-    T.eq('no rate below cost: no warning', await banner(), '');
+    T.check('a row per equipment, a column per period: each tier as Old\'s rate grid (Threshold, Period total, Rate / day)',
+      firstRate.includes('Excavators · Crawler · CAT 320 Excavator') && firstRate.includes('1 day or more')
+      && /Threshold 0 Period total \$820 Rate \/ day \$820/.test(firstRate), firstRate);
+    T.check('no Cost, no Bill, no below-cost banner, badge or Show only (Old has none of them)', !/\bCost\b|\bBill\b|below cost/i.test(firstRate)
+      && !(await page.$('#ratesRwMargin')) && !(await page.$('#ratesRwOnlyLow')) && (await page.$$eval('#ratesRwRates .oj-badge', (b) => b.length)) === 0);
     await page.click('#ratesRwRates oj-c-button[data-act="edit"]');
-    await page.waitForSelector('#ratesRwEdit input[data-field="billRate"]', { state: 'visible', timeout: 10000 });
+    await page.waitForSelector('#ratesRwEdit input[data-field="costRate"]', { state: 'visible', timeout: 10000 });
     await settle(page, 500);
     T.check('Edit rates: Oracle\'s drawer, the equipment and each period with its tiers', await page.isVisible('#ratesRwDrawer oj-sp-general-drawer-template')
-      && (await env.text('#ratesRwDrawer')).includes('Excavators · Crawler · CAT 320 Excavator') && (await env.text('#ratesRwEdit')).includes('Daily per day')
-      && (await page.inputValue('#ratesRwEdit input[data-field="billRate"]')) === '1150');
-    await page.fill('#ratesRwEdit input[data-field="billRate"]', '700');
-    await page.dispatchEvent('#ratesRwEdit input[data-field="billRate"]', 'change');
-    await page.waitForFunction(() => /below its cost/.test((document.querySelector('#ratesRwMargin') || {}).innerText || ''), null, { timeout: 10000 }).catch(() => {});
-    await settle(page, 600);
-    T.check('a bill below cost: Oracle\'s warning banner, one line, not a list', (await banner()).includes('One rate bills below its cost')
-      && (await banner()).includes('On 1 piece of equipment') && !(await page.$('#ratesMargin')), await banner());
-    T.check('…the row marked, and the drawer says it', ((await rateRows())[0] || '').includes('1 rate below cost') && (await env.text('#ratesRwEdit')).includes('Below cost'));
+      && (await env.text('#ratesRwDrawer')).includes('Excavators · Crawler · CAT 320 Excavator') && (await env.text('#ratesRwEdit')).includes('Daily per day'));
+    T.eq('…each tier\'s fields named as Old names them', await labels('#ratesRwEdit .nx-rt-drfield > span'), 'Threshold (days) | Period total (per day) | Rate / day');
+    T.eq('…and their values', (await Promise.all(['threshold', 'periodAmount', 'costRate'].map((f) => page.inputValue(`#ratesRwEdit input[data-field="${f}"]`)))).join(' · '), '0 · 820 · 820');
+    T.check('…no bill field', !(await page.$('#ratesRwEdit input[data-field="billRate"]')));
+    await page.fill('#ratesRwEdit input[data-field="periodAmount"]', '900');
+    await page.dispatchEvent('#ratesRwEdit input[data-field="periodAmount"]', 'change');
+    await page.waitForFunction(() => /Period total \$900/.test(((document.querySelector('#ratesRwRates .oj-table-body-row') || {}).innerText || '').replace(/\s+/g, ' ')), null, { timeout: 10000 }).catch(() => {});
+    await settle(page, 400);
+    T.eq('a new Period total restates the Rate / day, as in Old', await page.inputValue('#ratesRwEdit input[data-field="costRate"]'), '900');
+    T.check('…and the table shows it', /Period total \$900 Rate \/ day \$900/.test((await rateRows())[0] || ''), (await rateRows())[0]);
     await env.shot('rw-commercial-rates-drawer.png');
-    await page.press('#ratesRwEdit input[data-field="billRate"]', 'Escape');
+    await page.press('#ratesRwEdit input[data-field="periodAmount"]', 'Escape');
     await page.waitForSelector('#ratesRwEdit', { state: 'hidden', timeout: 5000 }).catch(() => {});
     T.check('Escape closes the drawer', !(await page.isVisible('#ratesRwEdit')));
-    await page.click('#ratesRwOnlyLow');
-    await settle(page, 500);
-    T.check('Show only the ones below cost', (await rateRows()).length === 1 && (await env.text('#ratesRwCount')).includes('with a rate below cost'));
-    await page.click('#ratesRwOnlyLow');
-    await settle(page, 500);
     await env.shot('rw-commercial-rates-table.png');
     await page.click('#ratesRwRates .nx-rt-rweq span');
-    await page.waitForSelector('#ratesRwEdit input[data-field="billRate"]', { state: 'visible', timeout: 10000 });
+    await page.waitForSelector('#ratesRwEdit input[data-field="periodAmount"]', { state: 'visible', timeout: 10000 });
     T.check('a click on the row opens it too', await page.isVisible('#ratesRwEdit'));
-    await page.fill('#ratesRwEdit input[data-field="billRate"]', '1150');
-    await page.dispatchEvent('#ratesRwEdit input[data-field="billRate"]', 'change');
+    await page.fill('#ratesRwEdit input[data-field="periodAmount"]', '820');
+    await page.dispatchEvent('#ratesRwEdit input[data-field="periodAmount"]', 'change');
     await settle(page, 500);
     await page.locator('#ratesRwDrawer button[aria-label^="Close"]').first().click();
     await page.waitForSelector('#ratesRwEdit', { state: 'hidden', timeout: 5000 }).catch(() => {});
-    T.check('its Close (×) closes it; the bill back at its cost-plus, the warning gone', !(await page.isVisible('#ratesRwEdit')) && (await banner()) === ''
-      && ((await rateRows())[0] || '').includes('+28.7%'));
+    T.check('its Close (×) closes it; the rate back at $820', !(await page.isVisible('#ratesRwEdit'))
+      && /Period total \$820 Rate \/ day \$820/.test((await rateRows())[0] || ''));
 
     T.section('Rates: search the schedule\'s rates, Oracle\'s Smart Search in its header');
     await page.waitForFunction(() => Array.from(document.querySelectorAll('#ratesRwRateSearch .oj-sp-filter-chip-container'))
       .filter((x) => x.innerText.trim()).length === 7, null, { timeout: 15000 }).catch(() => {});
-    T.eq('a filter per thing a rate row is, its periods and its margin', (await page.$$eval('#ratesRwRateSearch .oj-sp-filter-chip-container',
-      (b) => b.map((x) => x.innerText.trim()))).join(','), 'Equipment,Class,Location,Period,Margin,Rate type,Counted by');
-    await page.click('#ratesRwRateSearch .oj-sp-filter-chip-container:has-text("Period")');
+    T.eq('a filter per column of Old\'s rate grid, and the location', (await page.$$eval('#ratesRwRateSearch .oj-sp-filter-chip-container',
+      (b) => b.map((x) => x.innerText.trim()))).join(','), 'Class,Subclass,Equipment,Rate type,Tier,Calc method,Location');
+    await page.click('#ratesRwRateSearch .oj-sp-filter-chip-container:has-text("Tier")');
     await page.waitForSelector('text=Daily (1)', { timeout: 10000 }).catch(() => {});
-    T.check('…each offers what the rates hold, with how many (Period: Daily)', await page.isVisible('text=Daily (1)'));
+    T.check('…each offers what the rates hold, with how many (Tier: Daily)', await page.isVisible('text=Daily (1)'));
     await page.keyboard.press('Escape');
     await settle(page, 400);
     const rateBox = await page.$('#ratesRwRateSearch input');

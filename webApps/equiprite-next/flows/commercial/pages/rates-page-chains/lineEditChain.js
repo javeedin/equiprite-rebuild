@@ -4,7 +4,7 @@ define([
 ], (ActionChain, R) => {
   'use strict';
 
-  // One typed value in the grid (from, cost per period, bill): New EquipRite's lineEditChain, unchanged. The arithmetic
+  // One typed value in the grid (threshold, period total, rate per day): New EquipRite's lineEditChain, unchanged. The arithmetic
   // is the old grid's handleEditEnd (rateRules.applyLineEdit): the total and the rate restate each other, a refused
   // value is put back. Nothing is saved until Save; a NEW lines array each time, so the bindings and Save see it.
   class lineEditChain extends ActionChain {

@@ -1,5 +1,5 @@
 {
-  "description": "Rates: every rate schedule (who uses it: customer, project, task, yard; when; whether the rate engine can use it) on the left, the open one on the right as one grid of the six rate periods per class, the margin check and Try a rate. Calls and rules are New EquipRite's rates page (FDD 7.3): GET /rate-schedules, /bu-org-mappings, /rate-schedules/{id}, /rate-period-lines; Save writes the header and then every line (saveScheduleChain); a saved line is deleted at once; Delete schedule. Export on both lists. Redwood (your menu, Look), as Old's Rate Management: Oracle's Smart Search page of the schedules (a filter per column), and the one opened under Oracle's general overview header over the same detail body (rwView, rwChain).",
+  "description": "Rates: every rate schedule (who uses it: customer, project, task, yard; when; whether the rate engine can use it) on the left, the open one on the right as one grid of the six rate periods per class (each tier's Threshold, Period total and Rate / day, as Old's rate grid) and Try a rate. Calls and rules are New EquipRite's rates page (FDD 7.3): GET /rate-schedules, /bu-org-mappings, /rate-schedules/{id}, /rate-period-lines; Save writes the header and then every line (saveScheduleChain); a saved line is deleted at once; Delete schedule. Export on both lists. Redwood (your menu, Look), as Old's Rate Management: Oracle's Smart Search page of the schedules (a filter per column), and the one opened under Oracle's general overview header over the same detail body (rwView, rwChain).",
   "navigation": {
     "embeddable": "enabled"
   },
@@ -44,7 +44,7 @@
     "exportOpen": { "type": "string", "defaultValue": "", "description": "'list' or 'lines': which export menu is open." },
 
     "rwRateCriterion": { "type": "any", "description": "Redwood view, a schedule's record: Smart Search's criterion over its rates (rwRateFilterChain)." },
-    "rwRateCols": { "type": "object", "defaultValue": { "text": "", "equipment": "", "cls": "", "location": "", "period": "", "margin": "", "rateType": "", "method": "" }, "description": "Redwood view: what the rates table is narrowed to (commercialRedwood.rateLineKeys)." },
+    "rwRateCols": { "type": "object", "defaultValue": { "text": "", "equipment": "", "cls": "", "location": "", "period": "", "subclass": "", "rateType": "", "method": "" }, "description": "Redwood view: what the rates table is narrowed to (commercialRedwood.rateLineKeys)." },
     "rwRateSearchConfig": { "type": "oj-sp/smart-search/strategies/JsonSearchConfigProviderFactory", "defaultValue": { "url": "[[ $application.path + 'resources/data/rateLinesSearchConfig.json' ]]" } },
     "rwRtEquipment": { "type": "any[]", "defaultValue": [], "description": "Redwood view: the Equipment filter's options over the schedule's rates, with counts (rwRateOptsChain)." },
     "rwRtEquipmentADP": { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.rwRtEquipment }}" } },
@@ -52,13 +52,13 @@
     "rwRtClassesADP": { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.rwRtClasses }}" } },
     "rwRtLocations": { "type": "any[]", "defaultValue": [], "description": "Redwood view: the Location filter's options over the schedule's rates, with counts (rwRateOptsChain)." },
     "rwRtLocationsADP": { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.rwRtLocations }}" } },
-    "rwRtPeriods": { "type": "any[]", "defaultValue": [], "description": "Redwood view: the Period filter's options over the schedule's rates, with counts (rwRateOptsChain)." },
+    "rwRtPeriods": { "type": "any[]", "defaultValue": [], "description": "Redwood view: the Tier filter's options over the schedule's rates, with counts (rwRateOptsChain)." },
     "rwRtPeriodsADP": { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.rwRtPeriods }}" } },
-    "rwRtMargins": { "type": "any[]", "defaultValue": [], "description": "Redwood view: the Margin filter's options over the schedule's rates, with counts (rwRateOptsChain)." },
-    "rwRtMarginsADP": { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.rwRtMargins }}" } },
+    "rwRtSubclasses": { "type": "any[]", "defaultValue": [], "description": "Redwood view: the Subclass filter's options over the schedule's rates, with counts (rwRateOptsChain)." },
+    "rwRtSubclassesADP": { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.rwRtSubclasses }}" } },
     "rwRtTypes": { "type": "any[]", "defaultValue": [], "description": "Redwood view: the Rate type filter's options over the schedule's rates, with counts (rwRateOptsChain)." },
     "rwRtTypesADP": { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.rwRtTypes }}" } },
-    "rwRtMethods": { "type": "any[]", "defaultValue": [], "description": "Redwood view: the Counted by filter's options over the schedule's rates, with counts (rwRateOptsChain)." },
+    "rwRtMethods": { "type": "any[]", "defaultValue": [], "description": "Redwood view: the Calc method filter's options over the schedule's rates, with counts (rwRateOptsChain)." },
     "rwRtMethodsADP": { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.rwRtMethods }}" } },
     "rwRateSearchContext": {
       "type": "object",
@@ -68,17 +68,15 @@
           "RateEquipmentFilter": { "label": "Equipment", "options": { "optionsData": "[[ $page.variables.rwRtEquipmentADP ]]", "optionsKeys": { "label": "label", "value": "value" } } },
           "RateClassFilter": { "label": "Class", "options": { "optionsData": "[[ $page.variables.rwRtClassesADP ]]", "optionsKeys": { "label": "label", "value": "value" } } },
           "RateLocationFilter": { "label": "Location", "options": { "optionsData": "[[ $page.variables.rwRtLocationsADP ]]", "optionsKeys": { "label": "label", "value": "value" } } },
-          "RatePeriodFilter": { "label": "Period", "options": { "optionsData": "[[ $page.variables.rwRtPeriodsADP ]]", "optionsKeys": { "label": "label", "value": "value" } } },
-          "RateMarginFilter": { "label": "Margin", "options": { "optionsData": "[[ $page.variables.rwRtMarginsADP ]]", "optionsKeys": { "label": "label", "value": "value" } } },
+          "RatePeriodFilter": { "label": "Tier", "options": { "optionsData": "[[ $page.variables.rwRtPeriodsADP ]]", "optionsKeys": { "label": "label", "value": "value" } } },
+          "RateSubclassFilter": { "label": "Subclass", "options": { "optionsData": "[[ $page.variables.rwRtSubclassesADP ]]", "optionsKeys": { "label": "label", "value": "value" } } },
           "RateTypeFilter": { "label": "Rate type", "options": { "optionsData": "[[ $page.variables.rwRtTypesADP ]]", "optionsKeys": { "label": "label", "value": "value" } } },
-          "RateMethodFilter": { "label": "Counted by", "options": { "optionsData": "[[ $page.variables.rwRtMethodsADP ]]", "optionsKeys": { "label": "label", "value": "value" } } }
+          "RateMethodFilter": { "label": "Calc method", "options": { "optionsData": "[[ $page.variables.rwRtMethodsADP ]]", "optionsKeys": { "label": "label", "value": "value" } } }
           }
         }
       }
     },
     "rwEditKey": { "type": "string", "defaultValue": "", "description": "Redwood view: the equipment row (rateRules.groupKey) open in Oracle's drawer to change its rates; '' when closed (rwRatesChain)." },
-    "rwOnlyLow": { "type": "boolean", "defaultValue": false, "description": "Redwood view: the rates table shows only the equipment with a rate below cost (rwRatesChain)." },
-    "rwBannerOff": { "type": "string", "defaultValue": "", "description": "Redwood view: the schedule whose margin banner was closed (it stays closed for that schedule)." },
     "rwView": { "type": "string", "defaultValue": "list", "description": "Redwood view (your menu, Look): 'list', Oracle's Smart Search page of the schedules, or 'record', the open schedule (selectedId, as on Current) under Oracle's general overview header (rwChain)." },
     "rwRows": { "type": "any[]", "defaultValue": [], "description": "Redwood view: one row per schedule shown, for the oj-table (applyChain, commercialRedwood.rateRows)." },
     "rwADP": { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "key", "data": "{{ $page.variables.rwRows }}" } },
@@ -189,7 +187,6 @@
     "onRwRateFilter": { "chains": [{ "chain": "rwRateFilterChain" }] },
     "onRwDrawerKey": { "chains": [{ "chain": "rwRatesChain", "parameters": { "act": "{{ $event.key === 'Escape' ? 'close' : '' }}" } }] },
     "onRwEditClose": { "chains": [{ "chain": "rwRatesChain", "parameters": { "act": "close" } }] },
-    "onRwBannerClose": { "chains": [{ "chain": "rwRatesChain", "parameters": { "act": "banner" } }] },
     "onRwAddLine": { "chains": [{ "chain": "addLineChain", "parameters": { "groupKey": "{{ $event.currentTarget.dataset.group }}", "period": "{{ $event.currentTarget.dataset.period }}" } }] },
     "onRwRemoveLine": { "chains": [{ "chain": "removeLineChain", "parameters": { "key": "{{ $event.currentTarget.dataset.key }}" } }] }
   },

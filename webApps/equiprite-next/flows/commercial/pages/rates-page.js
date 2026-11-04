@@ -25,37 +25,36 @@ define(['resources/js/rateRules', 'resources/js/exportKit', 'resources/js/fmt', 
     return groupKey ? (lines || []).filter((l) => R.groupKey(l) === groupKey) : (lines || []);
   }
 
-  // ── The Redwood look's schedule detail (as Old's Rate Management): the rates as Oracle's table, one row per equipment
-  //    and a column per period; a row opens Oracle's drawer to change its rates; the margin check as Oracle's banner. ──
-  const MARGIN_BADGE = { low: 'oj-badge oj-badge-danger oj-badge-subtle', ok: 'oj-badge oj-badge-success oj-badge-subtle', none: 'oj-badge oj-badge-subtle' };
+  /** "Rate / day", or "Rate / hour" on a line counted in logged hours: Old's Rate / Day column (COST_RATE). */
+  function rateLabel(line) { return R.unitWord(line) === 'hours' ? 'Rate / hour' : 'Rate / day'; }
 
+  // ── The Redwood look's schedule detail (as Old's Rate Management): the rates as Oracle's table, one row per equipment
+  //    and a column per period, each tier as Old's grid reads it (Threshold, Period total, Rate / day); a row opens
+  //    Oracle's drawer to change its rates. ──
   /** One rate line as the Redwood table and drawer show it. */
   function rwTier(line, ranges, currency) {
-    const m = R.margin(line);
     const total = R.shownTotal(line);
+    const inferred = line.periodAmount == null;
     return {
-      key: R.lineKey(line), tier: (ranges || {})[R.lineKey(line)] || '', state: m.state,
-      margin: m.state === 'low' ? 'Below cost · ' + m.text : m.text, badge: MARGIN_BADGE[m.state] || MARGIN_BADGE.none,
-      cost: money(total, currency), bill: money(line.billRate, currency),
-      costValue: total == null ? '' : total, billValue: line.billRate == null ? '' : line.billRate,
-      threshold: line.threshold == null ? '' : line.threshold, inferred: line.periodAmount == null, unit: R.unitWord(line),
-      rate: rate(line.costRate, currency) + (R.unitWord(line) === 'hours' ? ' an hour' : ' a day'),
+      key: R.lineKey(line), tier: (ranges || {})[R.lineKey(line)] || '',
+      threshold: line.threshold == null ? '' : line.threshold, unit: R.unitWord(line),
+      total: money(total, currency), totalValue: total == null ? '' : total, inferred,
+      totalNote: inferred ? 'Worked out from the rate: no period total is stored' : '',
+      rate: rate(line.costRate, currency), rateValue: line.costRate == null ? '' : line.costRate, rateLabel: rateLabel(line),
     };
   }
 
-  /** The rows of the Redwood rates table: { key, title, sub, method, low, lowText, HOURLY…YEARLY: [tiers] }. */
+  /** The rows of the Redwood rates table: { key, title, sub, method, HOURLY…YEARLY: [tiers] }. */
   function rwRateRows(lines, currency) {
     return R.groupLines(lines || []).map((g) => {
       const ranges = R.tierRanges(g.lines);
-      const low = g.lines.filter((l) => R.margin(l).state === 'low').length;
-      const row = { key: g.key, title: g.title, sub: (g.location || 'All locations') + ' · ' + g.rateTypeLabel, method: g.method, low,
-        lowText: low === 1 ? '1 rate below cost' : low + ' rates below cost' };
+      const row = { key: g.key, title: g.title, sub: (g.location || 'All locations') + ' · ' + g.rateTypeLabel, method: g.method };
       g.cells.forEach((c) => { row[c.period] = c.lines.map((l) => rwTier(l, ranges, currency)); });
       return row;
     });
   }
 
-  // The same provider (or object) for the same content: the table and Oracle's banner redraw only when it changes.
+  // The same provider (or object) for the same content: the table redraws only when it changes.
   const kept = {};
   function same(key, content, make) {
     const json = JSON.stringify(content);
@@ -66,44 +65,24 @@ define(['resources/js/rateRules', 'resources/js/exportKit', 'resources/js/fmt', 
   class PageModule {
     formats() { return exportKit.FORMATS; }
 
-    /** Redwood: the rates table's data (only the rows with a rate below cost, when asked). */
-    rwRateADP(lines, currency, onlyLow, cols) {
+    /** Redwood: the rates table's data (the rows the search keeps). */
+    rwRateADP(lines, currency, cols) {
       const keep = RW.rateLineKeys(lines, cols);
-      const rows = rwRateRows(lines, currency).filter((r) => keep.indexOf(r.key) !== -1 && (!onlyLow || r.low > 0));
+      const rows = rwRateRows(lines, currency).filter((r) => keep.indexOf(r.key) !== -1);
       return same('rates', rows, (r) => new ArrayDataProvider(r, { keyAttributes: 'key' }));
     }
 
     /** Redwood: something is typed or picked in the rates' Smart Search. */
     rwFiltered(cols) { return !!cols && Object.keys(cols).some((k) => !!cols[k]); }
 
-    /** Redwood: "38 pieces of equipment · 128 rates" over the table, or how many the search and Show only keep. */
-    rwCountText(lines, onlyLow, cols) {
+    /** Redwood: "38 pieces of equipment · 128 rates" over the table, or how many the search keeps. */
+    rwCountText(lines, cols) {
       const keep = RW.rateLineKeys(lines, cols);
       const all = rwRateRows(lines, 'USD');
-      const shown = all.filter((r) => keep.indexOf(r.key) !== -1 && (!onlyLow || r.low > 0));
+      const shown = all.filter((r) => keep.indexOf(r.key) !== -1);
       const rates = (lines || []).length;
-      const narrowed = this.rwFiltered(cols) || onlyLow;
-      return narrowed ? shown.length + ' of ' + all.length + (all.length === 1 ? ' piece of equipment' : ' pieces of equipment')
-        + (onlyLow ? ' with a rate below cost' : '')
+      return this.rwFiltered(cols) ? shown.length + ' of ' + all.length + (all.length === 1 ? ' piece of equipment' : ' pieces of equipment')
         : all.length + (all.length === 1 ? ' piece of equipment' : ' pieces of equipment') + ' · ' + rates + (rates === 1 ? ' rate' : ' rates');
-    }
-
-    /**
-     * Redwood: the margin check as Oracle's messages banner, one line: how many rates bill below their cost, on how many
-     * pieces of equipment (they are marked in the table, which can show only them). Closed, it stays closed for this
-     * schedule.
-     */
-    rwBanner(lines, closedFor, selectedId) {
-      const issues = R.marginIssues(lines);
-      const groups = rwRateRows(lines, 'USD').filter((r) => r.low > 0).length;
-      const msgs = !issues.length || (closedFor && String(closedFor) === String(selectedId)) ? [] : [{
-        // Oracle's banner reads primaryText and secondaryText (oj-sp 2601), not summary and detail.
-        id: 'margin', messageType: 'general-warning',
-        primaryText: issues.length === 1 ? 'One rate bills below its cost' : issues.length + ' rates bill below their cost',
-        secondaryText: 'On ' + groups + (groups === 1 ? ' piece of equipment' : ' pieces of equipment')
-          + '. They are marked in the table below; "Show only" lists just them. Open one to change its bill rate.',
-      }];
-      return same('banner', msgs, (m) => new ArrayDataProvider(m, { keyAttributes: 'id' }));
     }
 
     /** Redwood: the equipment open in the drawer, with each period's tiers worded for it. */
@@ -155,11 +134,11 @@ define(['resources/js/rateRules', 'resources/js/exportKit', 'resources/js/fmt', 
     lineKey(line) { return R.lineKey(line); }
     shownTotal(line) { return R.shownTotal(line); }
     isInferred(line) { return !!line && line.periodAmount == null; }
-    margin(line) { return R.margin(line); }
-    marginIssues(lines) { return R.marginIssues(lines); }
     unitWord(line) { return R.unitWord(line); }
-    /** "$557.1429 a day" / "$120 an hour": the rate the engine bills. */
-    rateText(line, currency) { return rate(line && line.costRate, currency) + (R.unitWord(line) === 'hours' ? ' an hour' : ' a day'); }
+    /** "Rate / day" or "Rate / hour": Old's Rate / Day column, the rate the engine bills. */
+    rateLabel(line) { return rateLabel(line); }
+    /** "$557.1429": a rate to its 4 decimals, as Old's grid shows it. */
+    rate(n, currency) { return rate(n, currency); }
     periodShort(p) { return NOUN_SHORT[p] || ''; }
     periodNoun(p) { return R.periodNoun(p); }
     money(n, currency) { return money(n, currency); }

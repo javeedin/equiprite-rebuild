@@ -761,14 +761,12 @@ define(['resources/js/rules', 'resources/js/fmt'], function (rules, fmt) {
       { key: 'className', label: 'Class' }, { key: 'subclassName', label: 'Subclass' }, { key: 'equipmentName', label: 'Equipment' },
       { key: 'location', label: 'Location' },
       { key: 'rateType', label: 'Rate type', value: function (l) { return label(RATE_TYPES, l.rateType || 'USAGE'); } },
-      { key: 'method', label: 'Counted by', value: function (l) { return methodText(l); } },
-      { key: 'period', label: 'Period', value: function (l) { return label(PERIODS, l.period); } },
-      { key: 'threshold', label: 'From', type: 'number', value: function (l) { return num(l.threshold); } },
+      { key: 'period', label: 'Tier', value: function (l) { return label(PERIODS, l.period); } },
+      { key: 'method', label: 'Calc method', value: function (l) { return methodText(l); } },
+      { key: 'threshold', label: 'Threshold', type: 'number', value: function (l) { return num(l.threshold); } },
       { key: 'unit', label: 'Unit', value: function (l) { return unitWord(l); } },
-      { key: 'cost', label: 'Cost per period', type: 'number', value: function (l) { return num(shownTotal(l)); } },
-      { key: 'costRate', label: 'Cost rate per day or hour', type: 'number', value: function (l) { return num(l.costRate); } },
-      { key: 'billRate', label: 'Bill per period', type: 'number', value: function (l) { return num(l.billRate); } },
-      { key: 'margin', label: 'Margin', value: function (l) { return margin(l).text; } }
+      { key: 'periodAmount', label: 'Period total', type: 'number', value: function (l) { return num(shownTotal(l)); } },
+      { key: 'costRate', label: 'Rate / day (or hour)', type: 'number', value: function (l) { return num(l.costRate); } }
     ];
   }
 

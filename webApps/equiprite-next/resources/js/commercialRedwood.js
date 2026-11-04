@@ -234,28 +234,26 @@ define(['resources/js/rateRules', 'resources/js/agreementRules', 'resources/js/f
   }
 
   // ── A schedule's rates (its record under Redwood): Smart Search over the rates table ───────────────────────────
-  // One filter per thing a rates row is (its equipment, class, location, rate type, how it is counted), the periods it
-  // has a rate in, and its margin; each offers what the schedule's rows hold, with how many rows hold it. A row is
+  // One filter per column of Old's rate grid (Class, Subclass, Equipment, Rate type, Tier: the periods a row has a rate in,
+  // Calc method) and the location; each offers what the schedule's rows hold, with how many rows hold it. A row is
   // rateRules.groupLines' group (one equipment's lines).
-  var RATE_LINE_FIELDS = ['equipment', 'cls', 'location', 'period', 'margin', 'rateType', 'method'];
-  var MARGIN_WORDS = { low: 'Below cost', ok: 'At or above cost', none: 'No bill rate' };
+  var RATE_LINE_FIELDS = ['cls', 'subclass', 'equipment', 'rateType', 'period', 'method', 'location'];
   var PERIOD_ORDER = R.PERIODS.map(function (p) { return p.label; });
 
   function rateGroupValues(g) {
     var first = (g && g.first) || {};
-    var seen = {};
     return {
       equipment: [g.title],
       cls: [txt(first.className) || 'No class'],
+      subclass: [txt(first.subclassName) || 'No subclass'],
       location: [g.location || 'All locations'],
       period: arr(g.cells).filter(function (c) { return arr(c.lines).length > 0; }).map(function (c) { return c.label; }),
-      margin: arr(g.lines).map(function (l) { return MARGIN_WORDS[R.margin(l).state]; }).filter(function (w) { if (!w || seen[w]) return false; seen[w] = true; return true; }),
       rateType: [g.rateTypeLabel],
       method: [g.method]
     };
   }
 
-  /** Every rate filter's options, from the schedule's lines: { equipment, cls, location, period, margin, rateType, method }. */
+  /** Every rate filter's options, from the schedule's lines: { cls, subclass, equipment, rateType, period, method, location }. */
   function rateLineOptions(lines) {
     var groups = R.groupLines(arr(lines));
     var out = {};
@@ -274,7 +272,7 @@ define(['resources/js/rateRules', 'resources/js/agreementRules', 'resources/js/f
       var v = rateGroupValues(g);
       var ok = RATE_LINE_FIELDS.every(function (f) { return !c[f] || v[f].indexOf(c[f]) !== -1; });
       if (!ok || !q) return ok;
-      return [g.title, v.cls[0], v.location[0], g.rateTypeLabel, g.method].join(' ').toLowerCase().indexOf(q) !== -1;
+      return [g.title, v.cls[0], v.subclass[0], v.location[0], g.rateTypeLabel, g.method].join(' ').toLowerCase().indexOf(q) !== -1;
     }).map(function (g) { return g.key; });
   }
 

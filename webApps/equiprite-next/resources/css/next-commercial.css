@@ -1,5 +1,5 @@
 /* EquipRite Next, Commercial: Rates and Agreements (flows/commercial). Builds on next.css; nothing shared is restyled.
-   Colour only where it means something: a status, a rate billing below cost, something ending soon. */
+   Colour only where it means something: a status, something ending soon. */
 
 /* Status tones (the pill reads --st and --st-bg from next.css's .nx-pill). */
 .nx-cm-st--draft    { --st: #64748b; --st-bg: #f1f5f9; }
@@ -84,9 +84,6 @@ p.nx-cm-warn { margin: 8px 0 0; display: block; }
 .nx-cm-fact--wide { grid-column: 1 / -1; }
 .nx-cm-desc { margin: 10px 0 0; color: var(--nx-muted); }
 
-.nx-cm-alert { display: flex; gap: 10px; padding: 12px 14px; border-radius: 8px; background: #fff4e5; border: 1px solid #f3d19e; color: #7a3d06; }
-.nx-cm-alert > span { font-size: 18px; color: var(--nx-warn); }
-.nx-cm-alert ul { margin: 4px 0 0; padding-left: 18px; font-size: 13px; }
 
 .nx-cm-gridhead { align-items: flex-start; flex-wrap: wrap; }
 .nx-cm-gridnote { margin: 4px 0 0; max-width: 620px; }
@@ -101,9 +98,9 @@ p.nx-cm-warn { margin: 8px 0 0; display: block; }
 .nx-cm-rcell { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .nx-cm-rcell--empty { align-items: center; justify-content: center; border: 1px dashed var(--nx-line); border-radius: 8px; min-height: 60px; }
 .nx-cm-rline { display: flex; flex-direction: column; gap: 4px; padding: 6px; border: 1px solid var(--nx-line); border-radius: 8px; background: #fff; min-width: 0; }
-.nx-cm-rline--low { border-color: #f1b8b2; background: #fff6f5; }
 .nx-cm-tier { font-size: 11px; font-weight: 700; color: var(--nx-muted); }
-.nx-cm-rfield { display: grid; grid-template-columns: 28px minmax(0, 1fr); align-items: center; gap: 4px; font-size: 11px; color: var(--nx-muted); }
+/* Old's grid's three values, labelled as Old labels them (Threshold, Period total, Rate / day), each over its box */
+.nx-cm-rfield { display: flex; flex-direction: column; gap: 2px; font-size: 11px; color: var(--nx-muted); }
 .nx-cm-rfield input { width: 100%; min-width: 0; box-sizing: border-box; height: 26px; padding: 0 5px; border: 1px solid var(--nx-line-strong); border-radius: 6px;
   font-size: 13px; font-variant-numeric: tabular-nums; color: var(--nx-ink); background: #fff; -moz-appearance: textfield; appearance: textfield; }
 .nx-cm-rfield input::-webkit-inner-spin-button, .nx-cm-rfield input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
@@ -111,12 +108,8 @@ p.nx-cm-warn { margin: 8px 0 0; display: block; }
 .nx-cm-rfield input.nx-cm-inferred { color: var(--nx-faint); font-style: italic; }
 .nx-cm-rval { display: flex; justify-content: space-between; gap: 6px; font-size: 12px; color: var(--nx-muted); }
 .nx-cm-rval strong { color: var(--nx-ink); font-variant-numeric: tabular-nums; }
+.nx-cm-rval strong.nx-cm-inferred { color: var(--nx-faint); font-style: italic; font-weight: 600; }
 .nx-cm-rfoot { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; font-size: 11px; }
-.nx-cm-rate { color: var(--nx-muted); font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
-.nx-cm-margin { font-weight: 700; }
-.nx-cm-margin--ok { color: var(--nx-ok); }
-.nx-cm-margin--low { color: var(--nx-danger); }
-.nx-cm-margin--none { color: var(--nx-faint); font-weight: 500; }
 .nx-cm-x { margin-left: auto; width: 22px; height: 22px; border: 0; border-radius: 6px; background: transparent; color: var(--nx-faint); cursor: pointer; font-size: 16px; line-height: 1; }
 .nx-cm-x:hover { background: var(--nx-danger-soft); color: var(--nx-danger); }
 .nx-cm-radd { border: 0; background: transparent; color: var(--nx-accent); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; padding: 6px; border-radius: 6px; }
@@ -171,12 +164,10 @@ html[data-nx-look="redwood"] .nx-rates .nx-cm-detail[hidden] { display: none; }
 html[data-nx-look="redwood"] .nx-cm-seg--sm .nx-seg-btn { height: 26px; padding: 0 8px; font-size: 12px; }
 
 /* ── Rates under Redwood, the schedule (as Old's Rate Management): Oracle's header names it and holds its buttons, so the
-   card under it keeps only its facts; the margin check is Oracle's banner; the rates are Oracle's table, a row opening
-   Oracle's drawer to change them. ─────────────────────────────────────────────────────────────────────────────────── */
+   card under it keeps only its facts; the rates are Oracle's table, each tier as Old's grid reads it (Threshold, Period
+   total, Rate / day), a row opening Oracle's drawer to change them. ─────────────────────────────────────────────────────────────────────────────────── */
 html[data-nx-look="redwood"] .nx-rates .nx-cm-head .nx-cm-head-top { display: none; }
 html[data-nx-look="redwood"] .nx-rates .nx-cm-head .nx-cm-facts { margin-top: 0; }
-html[data-nx-look="redwood"] .nx-rt-rwbanner { display: block; }
-html[data-nx-look="redwood"] .nx-rt-rwbanner[hidden] { display: none; }
 html[data-nx-look="redwood"] .nx-rt-rw { display: block; }
 html[data-nx-look="redwood"] .nx-rt-rw[hidden] { display: none; }
 html[data-nx-look="redwood"] .nx-rt-rwtools { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 10px 16px; }
@@ -185,19 +176,19 @@ html[data-nx-look="redwood"] .nx-rt-rwtable .oj-table-data-cell { vertical-align
 html[data-nx-look="redwood"] .nx-rt-rweq { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-width: 0; overflow-wrap: anywhere; }
 html[data-nx-look="redwood"] .nx-rt-rwedit { margin-top: 4px; }
 html[data-nx-look="redwood"] .nx-rt-rwcell { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
-html[data-nx-look="redwood"] .nx-rt-rwtier { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding-left: 8px; border-left: 3px solid transparent; }
-html[data-nx-look="redwood"] .nx-rt-rwtier--low { border-left-color: var(--nx-danger); }
-html[data-nx-look="redwood"] .nx-rt-rwtier .oj-badge, html[data-nx-look="redwood"] .nx-rt-drtier .oj-badge {
-  white-space: normal; height: auto; min-height: 22px; line-height: 16px; padding: 3px 10px; max-width: 100%;
-}
-/* the drawer: a section per period, each tier's From, Cost and Bill side by side */
+html[data-nx-look="redwood"] .nx-rt-rwtier { display: flex; flex-direction: column; align-items: stretch; gap: 2px; min-width: 0; }
+html[data-nx-look="redwood"] .nx-rt-rwtier + .nx-rt-rwtier { padding-top: 8px; border-top: 1px solid var(--nx-line); }
+html[data-nx-look="redwood"] .nx-rt-rwvals { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1px 8px; margin: 0; font-size: 12px; line-height: 17px; }
+html[data-nx-look="redwood"] .nx-rt-rwvals dt { color: var(--nx-muted); }
+html[data-nx-look="redwood"] .nx-rt-rwvals dd { margin: 0; font-weight: 700; color: var(--nx-ink); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+html[data-nx-look="redwood"] .nx-rt-rwvals dd.nx-rt-inferred { color: var(--nx-faint); font-style: italic; font-weight: 600; }
+/* the drawer: a section per period, each tier's Threshold, Period total and Rate / day side by side */
 html[data-nx-look="redwood"] .nx-rt-dr { display: flex; flex-direction: column; gap: 4px; padding: 0 4px 24px; }
 html[data-nx-look="redwood"] .nx-rt-drnote { margin: 0 0 8px; }
 html[data-nx-look="redwood"] .nx-rt-drp { padding: 12px 0 16px; border-top: 1px solid var(--nx-line); }
 html[data-nx-look="redwood"] .nx-rt-drh { margin: 0 0 10px; display: flex; align-items: baseline; gap: 8px; }
 html[data-nx-look="redwood"] .nx-rt-drtier { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 12px; padding: 10px 12px; margin-bottom: 8px;
   border: 1px solid var(--nx-line); border-radius: 6px; background: #fff; }
-html[data-nx-look="redwood"] .nx-rt-drtier--low { border-color: rgba(179, 49, 31, 0.45); box-shadow: inset 3px 0 0 var(--nx-danger); }
 html[data-nx-look="redwood"] .nx-rt-drtiername, html[data-nx-look="redwood"] .nx-rt-drfoot { grid-column: 1 / -1; }
 html[data-nx-look="redwood"] .nx-rt-drfield { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 html[data-nx-look="redwood"] .nx-rt-drfield .nx-cm-input { width: 100%; height: 36px; }

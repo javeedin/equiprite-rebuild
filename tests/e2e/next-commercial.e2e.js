@@ -190,12 +190,14 @@ async function settle(page, ms) { await page.waitForTimeout(ms || 400); }
       'Excavators · Crawler · CAT 320 Excavator | Generators · Generator 100 kVA');
     const exc = '.nx-cm-rrow[data-group="Excavators · Crawler · CAT 320 Excavator"]';
     T.eq('where each tier applies', (await allText(page, exc + ' .nx-cm-tier')).join(' | '), '1–4 days | 5–29 days | 30 days or more');
-    T.eq('the rate the engine bills, and the margin', (await allText(page, exc + ' .nx-cm-rfoot')).join(' | '),
-      '$880 a day +29% × | $557.1429 a day +17% × | $426.6667 a day -6.7% ×');
+    T.eq('each tier as Old\'s rate grid: Threshold, Period total, Rate / day', (await allText(page, exc + ' .nx-cm-rline[data-key="id:2"] .nx-cm-rfield > span')).join(' | '),
+      'Threshold | Period total | Rate / day');
+    T.eq('…5 · 3,900 · 557.1429', (await Promise.all(['threshold', 'periodAmount', 'costRate'].map((f) => page.inputValue(`input[data-key="id:2"][data-field="${f}"]`)))).join(' · '),
+      '5 · 3900 · 557.1429');
+    T.eq('an hourly row: Rate / hour', (await allText(page, '.nx-cm-rline[data-key="id:4"] .nx-cm-rfield > span')).join(' | '), 'Threshold | Period total | Rate / hour');
     T.check('an hourly row cannot take a daily rate', (await page.$eval('.nx-cm-rrow[data-group="Generators · Generator 100 kVA"] .nx-cm-rcell[data-period="DAILY"]', (c) => c.innerText.trim())) === '—');
-    T.eq('the margin check names the rate below cost', await env.text('#ratesMargin'),
-      'One rate bills below its cost Excavators · Crawler · CAT 320 Excavator · Monthly: bill $12,000 is below cost $12,800.');
-    T.check('that rate is marked in the grid', !!(await page.$('.nx-cm-rline--low[data-key="id:3"]')));
+    T.check('no Cost and Bill, no below-cost warning (Old has neither)', !(await page.$('#ratesMargin')) && !(await page.$('input[data-field="billRate"]'))
+      && !/below (its )?cost|\bBill\b|\bCost\b/.test(await env.text('.nx-cm-rgrid')));
 
     T.check('every rate shows its whole value in its box', await page.$$eval('.nx-cm-rfield input', (i) => i.length > 0 && i.every((x) => x.scrollWidth <= x.clientWidth)));
     await page.evaluate(() => { const c = document.querySelector('.nx-content'); if (c) c.scrollTop = 0; });
@@ -209,7 +211,7 @@ async function settle(page, ms) { await page.waitForTimeout(ms || 400); }
     await settle(page, 300);
     T.eq('the answer, and why', await env.text('.nx-cm-sim-out li'),
       'Excavators · Crawler · CAT 320 Excavator $9,471.43 17 days on rent reach the Weekly tier (from 5 days) '
-      + '17 × $557.1429 a day = $9,471.43 · 2.43 weeks at $3,900 a week At the bill rate ≈ $11,414.29');
+      + '17 × $557.1429 a day = $9,471.43 · 2.43 weeks at $3,900 a week');
     await page.fill('.nx-cm-sim input[data-field="qty"]', '2');
     await settle(page, 300);
     T.check('two of them', (await env.text('.nx-cm-sim-out li')).includes('2 × 17 × $557.1429 a day = $18,942.86'));
@@ -223,10 +225,10 @@ async function settle(page, ms) { await page.waitForTimeout(ms || 400); }
 
     T.section('Rates: edit a rate, add a period, Save (New\'s calls and bodies)');
     T.eq('nothing written yet', env.writes.length, 0);
-    await page.fill('input[data-key="id:3"][data-field="billRate"]', '13500');
-    await page.dispatchEvent('input[data-key="id:3"][data-field="billRate"]', 'change');
+    await page.fill('input[data-key="id:3"][data-field="costRate"]', '450');
+    await page.dispatchEvent('input[data-key="id:3"][data-field="costRate"]', 'change');
     await settle(page, 300);
-    T.check('the margin check clears', !(await page.$('#ratesMargin')));
+    T.eq('a new Rate / day restates the Period total, as in Old (450 × 30 days)', await page.inputValue('input[data-key="id:3"][data-field="periodAmount"]'), '13500');
     T.check('the save bar says it is not saved', (await env.text('.nx-cm-savebar')).startsWith('Not saved yet'));
     await page.click(exc + ' .nx-cm-rcell[data-period="QUARTERLY"] .nx-cm-radd');
     await settle(page, 300);
@@ -235,7 +237,7 @@ async function settle(page, ms) { await page.waitForTimeout(ms || 400); }
     await page.fill(`input[data-key="${q}"][data-field="periodAmount"]`, '30000');
     await page.dispatchEvent(`input[data-key="${q}"][data-field="periodAmount"]`, 'change');
     await settle(page, 300);
-    T.check('the cost per period makes the rate per day', (await env.text(exc + ' .nx-cm-rcell[data-period="QUARTERLY"]')).includes('$333.3333 a day'));
+    T.eq('the Period total makes the Rate / day (30,000 over 90 days)', await page.inputValue(`input[data-key="${q}"][data-field="costRate"]`), '333.3333');
     await page.click('#ratesSave');
     await page.waitForSelector('#ratesSaveNote', { timeout: 20000 });
     T.eq('header PUT, then every line in turn (sorted by class): PUT the saved ones, POST the new one',
@@ -244,8 +246,8 @@ async function settle(page, ms) { await page.waitForTimeout(ms || 400); }
     T.eq('the header body', [head.scheduleCode, head.isActiveFlag, head.yardOrgId, head.rateType, head.effectiveFrom, 'calcBasis' in head].join('|'),
       'RS-US-EXC-2026|Y|300|STANDARD|2026-01-01T00:00:00Z|false');
     const l3 = env.writes[3].body;
-    T.eq('the edited line: bill 13,500, total and rate kept, the full body', [l3.billRate, l3.rateAmount, l3.periodAmount, l3.costRate, l3.periodType, l3.rateUom,
-      l3.calcBasis, l3.fromUnit, l3.periodSeq, String(l3.periodDivisor), l3.equipmentSubclassId].join('|'), '13500|13500|12800|426.6667|MONTHLY|MONTH|MONTHLY|30|3|null|11');
+    T.eq('the edited line: rate 450 and total 13,500, its stored bill kept, the full body', [l3.billRate, l3.rateAmount, l3.periodAmount, l3.costRate, l3.periodType, l3.rateUom,
+      l3.calcBasis, l3.fromUnit, l3.periodSeq, String(l3.periodDivisor), l3.equipmentSubclassId].join('|'), '12000|12000|13500|450|MONTHLY|MONTH|MONTHLY|30|3|null|11');
     const nl = env.writes[4].body;
     // New's UOM_MAP has no QUARTERLY (so HOUR) and the complete-period basis map no QUARTERLY (so DAILY): sent as New sends them.
     T.eq('the new line: numbered above the highest periodSeq', [nl.rateScheduleId, nl.periodType, nl.rateUom, nl.fromUnit, nl.periodAmount, nl.costRate, nl.periodSeq,
@@ -273,7 +275,7 @@ async function settle(page, ms) { await page.waitForTimeout(ms || 400); }
     const xl = await download(page, '#ratesLinesExport', 'xlsx');
     let read = '';
     try {
-      read = execFileSync('python3', ['-I', '-c', 'import sys, openpyxl\nws = openpyxl.load_workbook(sys.argv[1]).active\nrows = list(ws.iter_rows(values_only=True))\nprint(len(rows)); print(rows[0][:4]); print([r[6] for r in rows[1:]])', xl.file], { encoding: 'utf8' }).trim();
+      read = execFileSync('python3', ['-I', '-c', 'import sys, openpyxl\nws = openpyxl.load_workbook(sys.argv[1]).active\nrows = list(ws.iter_rows(values_only=True))\nprint(len(rows)); print(rows[0][:4]); print([r[5] for r in rows[1:]])', xl.file], { encoding: 'utf8' }).trim();
     } catch (e) { read = 'unavailable'; }
     if (read !== 'unavailable') T.eq('Excel: the rates of the open schedule', read.split('\n').join(' | '), "4 | ('Class', 'Subclass', 'Equipment', 'Location') | ['Daily', 'Weekly', 'Monthly']");
     T.check('no sideways scroll (1440)', await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth));
@@ -577,7 +579,8 @@ async function settle(page, ms) { await page.waitForTimeout(ms || 400); }
     await page.waitForSelector('.nx-cm-rgrid .nx-cm-rrow', { timeout: 30000 });
     await settle(page);
     T.check('no inputs, no New schedule, no Save', !(await page.$('.nx-cm-rgrid input')) && !(await page.$('#ratesNew')) && !(await page.$('#ratesSave')) && !(await page.$('.nx-cm-radd')));
-    T.check('the rates as text', (await env.text('.nx-cm-rcell[data-period="WEEKLY"]')).includes('Cost $3,900') && (await env.text('.nx-cm-rcell[data-period="WEEKLY"]')).includes('Bill $4,700'));
+    const wkText = await env.text('.nx-cm-rcell[data-period="WEEKLY"]');
+    T.check('the rates as text, as Old labels them', /Threshold\s*5/.test(wkText) && /Period total\s*\$3,900/.test(wkText) && /Rate \/ day\s*\$557\.1429/.test(wkText) && !/Bill|Cost/.test(wkText), wkText);
     T.check('Try a rate still works', (await env.text('.nx-cm-sim')).includes('$7,800'));
     await env.shot('next-rates-readonly.png');
     await env.open('/?open=agreement&number=ST-0001');
