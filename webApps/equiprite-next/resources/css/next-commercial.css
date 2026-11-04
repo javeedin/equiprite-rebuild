@@ -160,3 +160,12 @@ p.nx-cm-warn { margin: 8px 0 0; display: block; }
   .nx-cm-md { grid-template-columns: 1fr; }
   .nx-cm-list { position: static; max-height: 360px; }
 }
+
+/* ── Redwood (your menu, Look): Oracle's own templates (rates-page, agreements-page and agreement-page .nx-rw); the
+   shared parts are next-redwood.css's. Rates lists its schedules on Oracle's Smart Search page, so Current's left-hand
+   list is not there: the open schedule takes the whole width, and shows only under its record's header. ─────────── */
+html[data-nx-look="redwood"] .nx-rates .nx-cm-md { grid-template-columns: minmax(0, 1fr); }
+html[data-nx-look="redwood"] .nx-rates .nx-cm-detail[hidden] { display: none; }
+/* An agreement's form: the small Per buttons on each line stay small (Redwood's full-size ones overrun the line's
+   Description). */
+html[data-nx-look="redwood"] .nx-cm-seg--sm .nx-seg-btn { height: 26px; padding: 0 8px; font-size: 12px; }

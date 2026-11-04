@@ -1,7 +1,29 @@
 <!-- One rental agreement in its own tab: what it is, where it stands and what is next; its lines and their rates;
      Approve / Reject; tick lines and Create request (the hand-off to New request); Edit in place. Rules:
-     resources/js/agreementRules.js (New EquipRite's, unchanged); calls: agreement-page-chains (New's, call for call). -->
+     resources/js/agreementRules.js (New EquipRite's, unchanged); calls: agreement-page-chains (New's, call for call).
+     Redwood: Oracle's general overview header over the same body (rwChain). -->
 <div class="nx-page nx-cm nx-record nx-agreement">
+  <!-- ── Redwood (your menu, Look), as Old's rental-agreement-lines and rental-agreement-create pages: Oracle's general
+       overview header (the agreement's name, its status badge, in-flow back to Agreements, Approve on the band, Reject,
+       Edit, Export, Refresh; on the form Save or Create, and Cancel) in place of Current's head, over this tab's own
+       body below, unchanged. Put on the page the first time Redwood is shown, then kept, hidden under Current. ── -->
+  <oj-bind-if test="[[ $application.variables.lookSeen ]]">
+    <div class="nx-rw nx-rw--head" id="agrRwHead"
+      :hidden="[[ $functions.rwHidden($application.variables.look, $variables.mode, $variables.agreementHeaderId, $variables.loadError, $variables.unavailable) ]]">
+      <oj-sp-general-overview-page display-mode="mixed"
+        page-title="[[ $functions.rwTitle($variables.mode, $variables.agreementName, $variables.agreementNumber, $variables.form, $variables.loadedHeader) ]]"
+        page-subtitle="[[ $functions.rwSubtitle($variables.mode, $variables.agreementType, $variables.agreementNumber, $variables.customerName,
+          $variables.effectiveFrom, $variables.effectiveTo, $variables.agreementStatus, $variables.loadedHeader) ]]"
+        badge="[[ $functions.rwBadge($variables.mode, $variables.agreementStatus) ]]"
+        primary-action="[[ $functions.rwPrimary($variables.mode, $variables.canWrite, $variables.agreementStatus, $variables.busy, $variables.linesArray.length,
+          $variables.saving, $variables.loadedHeader) ]]" on-sp-primary-action="[[ $listeners.onRwPrimary ]]"
+        secondary-actions="[[ $functions.rwActions($variables.mode, $variables.canWrite, $variables.agreementStatus, $variables.busy || $variables.isLoading,
+          $variables.loadedHeader) ]]" on-sp-secondary-action="[[ $listeners.onRwAction ]]"
+        display-options.in-flow-back="[[ $variables.mode !== 'edit' ]]" on-sp-in-flow-back="[[ $listeners.onRwBack ]]">
+      </oj-sp-general-overview-page>
+    </div>
+  </oj-bind-if>
+
   <oj-bind-if test="[[ !!$variables.unavailable ]]">
     <div class="nx-card nx-empty" role="status"><oj-bind-text value="[[ $variables.unavailable ]]"></oj-bind-text></div>
   </oj-bind-if>
@@ -29,6 +51,7 @@
     </oj-bind-if>
 
     <oj-bind-if test="[[ !!$variables.agreementHeaderId && !$variables.loadError ]]">
+      <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
       <div class="nx-pagehead">
         <div>
           <div class="nx-kicker"><oj-bind-text value="[[ 'Rental agreement' + ($variables.agreementType ? ' · ' + $variables.agreementType : '') ]]"></oj-bind-text></div>
@@ -73,6 +96,7 @@
           </oj-bind-if>
         </div>
       </div>
+      </oj-bind-if>
 
       <oj-bind-if test="[[ !!$variables.note ]]">
         <div :class="[[ $variables.noteTone === 'error' ? 'nx-error' : 'nx-cm-note' ]]" role="status" id="agrNote"><oj-bind-text value="[[ $variables.note ]]"></oj-bind-text></div>
@@ -173,6 +197,7 @@
 
   <!-- ══ Edit (or new) ══════════════════════════════════════════════════════════════════════════════════ -->
   <oj-bind-if test="[[ $variables.mode === 'edit' && !$variables.unavailable ]]">
+    <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
     <div class="nx-pagehead">
       <div>
         <div class="nx-kicker"><oj-bind-text value="[[ $variables.loadedHeader ? 'Edit agreement · ' + $variables.loadedHeader.agreementNumber : 'New agreement' ]]"></oj-bind-text></div>
@@ -180,6 +205,7 @@
         <div class="nx-sub"><oj-bind-text value="[[ $variables.loadedHeader ? 'Changes are kept here until you save.' : 'Saved as a draft; it is used once approved.' ]]"></oj-bind-text></div>
       </div>
     </div>
+    </oj-bind-if>
     <oj-bind-if test="[[ $variables.editLoading ]]">
       <div class="nx-card nx-empty">Loading the agreement…</div>
     </oj-bind-if>

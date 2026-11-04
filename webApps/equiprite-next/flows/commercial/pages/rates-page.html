@@ -1,8 +1,84 @@
 <!-- Rates. Every schedule on the left, with who uses it (customer, project, task, yard) and when; the open one on the
      right: who uses it, its rates as one grid of the six periods per class (where each tier applies, cost, bill, the
      rate the engine bills, the margin), the margin check and Try a rate. Rules: resources/js/rateRules.js (New
-     EquipRite's, unchanged); calls: rates-page-chains (New's chains, call for call). -->
+     EquipRite's, unchanged); calls: rates-page-chains (New's chains, call for call). Redwood: Oracle's Smart Search page
+     of the schedules, then the open one under Oracle's header (resources/js/commercialRedwood.js, rwChain). -->
 <div class="nx-page nx-cm nx-rates">
+  <!-- ── Redwood (your menu, Look), as Old's Rate Management: the schedules as Oracle's Smart Search page (Smart Search,
+       a filter per column, oj-table, oj-badge, oj-c buttons); a row opens the schedule as its record, under Oracle's
+       general overview header (its name, in-flow back to the list, its actions), over this screen's own detail body
+       below. The same state as Current (selectedId, the search and chip, the chains); rwView says which one shows.
+       Put on the page the first time Redwood is shown, then kept, hidden under Current. ── -->
+  <oj-bind-if test="[[ $application.variables.lookSeen ]]">
+    <div class="nx-rw" id="ratesRwList" :hidden="[[ $application.variables.look !== 'redwood' || $variables.rwView === 'record' ]]">
+      <oj-sp-smart-search-page page-title="Rates" display-mode="mixed"
+        page-subtitle="[[ $variables.hidden ? 'Not used while Fusion PPM prices every business unit'
+          : ($variables.isLoading && !$variables.schedules.length ? 'Loading the rate schedules…' : $variables.summary + ' · they price every cost the rate engine calculates') ]]"
+        primary-action.display="[[ $variables.canWrite && !$variables.hidden ? 'on' : 'off' ]]" primary-action.label="New schedule" on-sp-primary-action="[[ $listeners.onRwNew ]]">
+        <oj-sp-smart-search slot="search" filter-criterion="{{ $variables.rwCriterion }}" on-filter-criterion-changed="[[ $listeners.onRwFilter ]]"
+          search-context="[[ $variables.rwSearchContext ]]" search-config="[[ $variables.rwSearchConfig.provider ]]"
+          suggestion-filters='["ScheduleFilter", "UsedByFilter", "EffectiveFilter", "CurrencyFilter", "StatusFilter"]' placeholder="Name, customer, project or yard"></oj-sp-smart-search>
+        <oj-sp-collection-container>
+          <div class="nx-rw-tools">
+            <oj-c-button id="ratesRwRefresh" label="Refresh" chroming="borderless" size="sm" disabled="[[ $variables.isLoading || $variables.saving || !!$variables.hidden ]]"
+              on-oj-action="[[ $listeners.onRefresh ]]"><span slot="startIcon" class="oj-ux-ico-refresh"></span></oj-c-button>
+            <oj-c-button id="ratesRwExport" label="Export to Excel" chroming="borderless" size="sm" disabled="[[ !!$variables.hidden ]]" on-oj-action="[[ $listeners.onRwExport ]]">
+              <span slot="startIcon" class="oj-ux-ico-download"></span></oj-c-button>
+          </div>
+          <oj-bind-if test="[[ !!$variables.listError ]]">
+            <div class="oj-sm-padding-4x-bottom" role="alert"><span class="oj-text-color-danger"><oj-bind-text value="[[ $variables.listError ]]"></oj-bind-text></span></div>
+          </oj-bind-if>
+          <oj-table id="ratesRwTable" data="[[ $variables.rwADP ]]" class="oj-sm-width-full nx-rw-table" aria-label="Rate schedules"
+            scroll-policy="loadMoreOnScroll" scroll-policy-options.fetch-size="50" display="list" horizontal-grid-visible="enabled"
+            layout="fixed" on-oj-row-action="[[ $listeners.onRwRow ]]"
+            columns='[
+              {"headerText": "Schedule", "field": "name", "template": "nameTpl", "sortable": "enabled", "style": "width:24%;"},
+              {"headerText": "Used by", "field": "usedBy", "template": "usedTpl", "sortable": "enabled", "style": "width:26%;"},
+              {"headerText": "Effective", "field": "dates", "template": "datesTpl", "sortable": "disabled", "style": "width:18%;"},
+              {"headerText": "Currency", "field": "currency", "template": "curTpl", "sortable": "enabled", "style": "width:10%;"},
+              {"headerText": "Status", "field": "status", "template": "statusTpl", "sortable": "enabled", "style": "width:22%;"}
+            ]'>
+            <template slot="nameTpl" data-oj-as="cell">
+              <div class="nx-rw-cell"><span class="oj-typography-body-md oj-typography-bold oj-link-standalone nx-rw-num"><oj-bind-text value="[[ cell.row.name ]]"></oj-bind-text></span>
+                <oj-bind-if test="[[ !!cell.row.description ]]"><span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.description ]]"></oj-bind-text></span></oj-bind-if></div>
+            </template>
+            <template slot="usedTpl" data-oj-as="cell">
+              <span class="oj-typography-body-md"><oj-bind-text value="[[ cell.row.usedBy ]]"></oj-bind-text></span>
+            </template>
+            <template slot="datesTpl" data-oj-as="cell">
+              <span class="oj-typography-body-md"><oj-bind-text value="[[ cell.row.dates ]]"></oj-bind-text></span>
+            </template>
+            <template slot="curTpl" data-oj-as="cell">
+              <span class="oj-typography-body-md"><oj-bind-text value="[[ cell.row.currency ]]"></oj-bind-text></span>
+            </template>
+            <template slot="statusTpl" data-oj-as="cell">
+              <div class="nx-rw-cell"><span :class="[[ cell.row.badge ]]"><oj-bind-text value="[[ cell.row.status ]]"></oj-bind-text></span>
+                <oj-bind-if test="[[ !!cell.row.ends ]]"><span class="oj-badge oj-badge-warning oj-badge-subtle"><oj-bind-text value="[[ cell.row.ends ]]"></oj-bind-text></span></oj-bind-if>
+                <oj-bind-if test="[[ !!cell.row.note ]]"><span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.note ]]"></oj-bind-text></span></oj-bind-if></div>
+            </template>
+            <template slot="noData">
+              <div class="oj-sm-padding-6x oj-typography-body-md oj-text-color-secondary"><oj-bind-text value="[[ $variables.hidden ? $variables.hidden
+                : ($variables.isLoading ? 'Loading the rate schedules…' : ($variables.schedules.length ? 'No schedule matches. Try another filter or clear the search.' : 'No rate schedules yet.')) ]]"></oj-bind-text></div>
+            </template>
+          </oj-table>
+        </oj-sp-collection-container>
+      </oj-sp-smart-search-page>
+    </div>
+    <div class="nx-rw nx-rw--head" id="ratesRwHead" :hidden="[[ $application.variables.look !== 'redwood' || $variables.rwView !== 'record' ]]">
+      <oj-sp-general-overview-page display-mode="mixed"
+        page-title="[[ $functions.rwTitle($variables.formData, $variables.selectedId, $variables.detailLoading, $variables.schedules) ]]"
+        page-subtitle="[[ $functions.rwSubtitle($variables.formData, $variables.selectedId) ]]"
+        badge="[[ $functions.rwBadge($variables.formData, $variables.selectedId) ]]"
+        primary-action="[[ $functions.rwPrimary($variables.canWrite, $variables.saving) ]]" on-sp-primary-action="[[ $listeners.onSave ]]"
+        secondary-actions="[[ $functions.rwActions($variables.canWrite, $variables.selectedId, $variables.headerOpen, $variables.dirty, $variables.lines.length) ]]"
+        on-sp-secondary-action="[[ $listeners.onRwAction ]]"
+        display-options.in-flow-back="true" on-sp-in-flow-back="[[ $listeners.onRwBack ]]">
+      </oj-sp-general-overview-page>
+    </div>
+  </oj-bind-if>
+
+  <!-- ── Current ── -->
+  <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
   <div class="nx-pagehead">
     <div>
       <div class="nx-kicker">Commercial</div>
@@ -40,6 +116,7 @@
   <oj-bind-if test="[[ !!$variables.hidden ]]">
     <div class="nx-card nx-empty" id="ratesHidden" role="status"><oj-bind-text value="[[ $variables.hidden ]]"></oj-bind-text></div>
   </oj-bind-if>
+  </oj-bind-if>
 
   <oj-bind-if test="[[ !!$variables.ask ]]">
     <section class="nx-card nx-card-pad nx-cm-ask" role="alertdialog" aria-labelledby="ratesAskTitle">
@@ -52,13 +129,16 @@
       </div>
     </section>
   </oj-bind-if>
+  <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
   <oj-bind-if test="[[ !!$variables.listError ]]">
     <div class="nx-error" role="alert"><oj-bind-text value="[[ $variables.listError ]]"></oj-bind-text></div>
+  </oj-bind-if>
   </oj-bind-if>
 
   <oj-bind-if test="[[ !$variables.hidden ]]">
     <div class="nx-cm-md">
-      <!-- ── the schedules ─────────────────────────────────────────────────────────────────────────────── -->
+      <!-- ── the schedules (Current; Redwood lists them on its Smart Search page) ─────────────────────── -->
+      <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
       <section class="nx-card nx-cm-list" aria-label="Rate schedules">
         <div class="nx-cm-list-head">
           <label class="nx-search">
@@ -107,9 +187,10 @@
           <p class="nx-cm-pad nx-muted"><oj-bind-text value="[[ $variables.schedules.length ? 'No schedule matches. Try another chip or clear the search.' : 'No rate schedules yet.' ]]"></oj-bind-text></p>
         </oj-bind-if>
       </section>
+      </oj-bind-if>
 
-      <!-- ── the open schedule ────────────────────────────────────────────────────────────────────────── -->
-      <div class="nx-cm-detail">
+      <!-- ── the open schedule (Redwood: under its record's header only) ─────────────────────────────── -->
+      <div class="nx-cm-detail" :hidden="[[ $functions.rwListShown($application.variables.look, $variables.rwView) ]]">
         <oj-bind-if test="[[ !$variables.selectedId && !$variables.isLoading ]]">
           <div class="nx-card nx-empty"><oj-bind-text value="[[ $variables.canWrite ? 'Pick a schedule on the left, or start a new one.' : 'Pick a schedule on the left.' ]]"></oj-bind-text></div>
         </oj-bind-if>

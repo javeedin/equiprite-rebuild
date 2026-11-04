@@ -6,7 +6,8 @@ define([
   'use strict';
 
   // Delete schedule: New EquipRite's deleteScheduleChain (the old one's DELETE /rate-schedules/{id}). FULL access; it
-  // asks first; afterwards the list is read again and the first schedule opens. A failure is said and nothing changes.
+  // asks first; afterwards the list is read again and the first schedule opens (the Redwood look shows its list of
+  // schedules). A failure is said and nothing changes.
   class deleteScheduleChain extends ActionChain {
     async run(context, params) {
       const { $page, $application } = context;
@@ -49,6 +50,8 @@ define([
             await Actions.callChain(context, { chain: 'selectScheduleChain', params: { id: first.id, confirmed: true } });
           }
           v.saveNote = '';
+          // The Redwood look shows the list of schedules again (its record is gone); Current keeps the first one open.
+          v.rwView = 'list';
           bus.toast(name + ' was deleted.', 'info');
         } else {
           v.saveNote = name + ' could not be deleted (HTTP ' + (deleteResponse && deleteResponse.status) + ').';

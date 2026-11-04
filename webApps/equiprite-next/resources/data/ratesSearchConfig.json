@@ -1,0 +1,55 @@
+{
+  "description": "Rates (Redwood view): the Smart Search filters, one per column of the schedules table (Schedule, Used by, Effective, Currency, Status). Status is the list's own chip (listChip); the others are the Redwood table's column filters (rwCols, commercialRedwood.rateByColumns). Every filter here needs its entry in rates-page.json's rwSearchContext (the widget evaluates every filter in this file, and one without context throws and blanks the table).",
+  "filters": {
+    "ScheduleFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Schedule",
+      "options": {
+        "field": "name",
+        "optionsData": "[[ $search.filters.ScheduleFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.ScheduleFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "UsedByFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Used by",
+      "options": {
+        "field": "usedBy",
+        "optionsData": "[[ $search.filters.UsedByFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.UsedByFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "EffectiveFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Effective",
+      "options": {
+        "field": "dates",
+        "optionsData": "[[ $search.filters.EffectiveFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.EffectiveFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "CurrencyFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Currency",
+      "options": {
+        "field": "currency",
+        "optionsData": "[[ $search.filters.CurrencyFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.CurrencyFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "StatusFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Status",
+      "options": {
+        "field": "chip",
+        "optionsData": "[[ $search.filters.StatusFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.StatusFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    }
+  }
+}

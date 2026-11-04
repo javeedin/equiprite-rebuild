@@ -1,5 +1,5 @@
 {
-  "description": "Agreements: every rental agreement (views/rental-agreements, as New EquipRite's list reads it): what is active, what ends soon, what waits for approval; chips, search, sort, export. An agreement opens in its own tab; New agreement opens an empty one (FULL access).",
+  "description": "Agreements: every rental agreement (views/rental-agreements, as New EquipRite's list reads it): what is active, what ends soon, what waits for approval; chips, search, sort, export. An agreement opens in its own tab; New agreement opens an empty one (FULL access). Redwood (your menu, Look): Oracle's Smart Search page over an oj-table of the same agreements, a filter per column.",
   "navigation": {
     "embeddable": "enabled"
   },
@@ -16,7 +16,43 @@
     "sortDir": { "type": "string", "defaultValue": "asc" },
     "isLoading": { "type": "boolean", "defaultValue": true },
     "error": { "type": "string", "defaultValue": "" },
-    "exportOpen": { "type": "boolean", "defaultValue": false }
+    "exportOpen": { "type": "boolean", "defaultValue": false },
+
+    "rwRows": { "type": "any[]", "defaultValue": [], "description": "Redwood view (your menu, Look): one row per agreement shown, for the oj-table (applyChain, commercialRedwood.agreementRows)." },
+    "rwADP": { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "key", "data": "{{ $page.variables.rwRows }}" } },
+    "rwCriterion": { "type": "any", "description": "Redwood view: the Smart Search criterion; rwFilterChain turns it into the list's search and chip, and the column filters." },
+    "rwCols": { "type": "object", "defaultValue": { "number": "", "customer": "", "type": "", "dates": "", "lines": "", "next": "" }, "description": "Redwood view: the column filters picked in Smart Search, which only the Redwood table applies (commercialRedwood.agreementByColumns); Status is the list's chip." },
+    "rwSearchConfig": { "type": "oj-sp/smart-search/strategies/JsonSearchConfigProviderFactory", "defaultValue": { "url": "[[ $application.path + 'resources/data/agreementsSearchConfig.json' ]]" } },
+    "rwNumbers": { "type": "any[]", "defaultValue": [], "description": "Redwood view: the Agreement filter's options, newest first, with their names (applyChain, commercialRedwood.agreementOptions); and likewise below." },
+    "rwNumbersADP": { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.rwNumbers }}" } },
+    "rwCustomers": { "type": "any[]", "defaultValue": [] },
+    "rwCustomersADP": { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.rwCustomers }}" } },
+    "rwTypes": { "type": "any[]", "defaultValue": [] },
+    "rwTypesADP": { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.rwTypes }}" } },
+    "rwStatuses": { "type": "any[]", "defaultValue": [], "description": "Redwood view: the Status filter's options: the list's chips, with their counts." },
+    "rwStatusesADP": { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.rwStatuses }}" } },
+    "rwDates": { "type": "any[]", "defaultValue": [] },
+    "rwDatesADP": { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.rwDates }}" } },
+    "rwLines": { "type": "any[]", "defaultValue": [] },
+    "rwLinesADP": { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.rwLines }}" } },
+    "rwNext": { "type": "any[]", "defaultValue": [] },
+    "rwNextADP": { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.rwNext }}" } },
+    "rwSearchContext": {
+      "type": "object",
+      "defaultValue": {
+        "$search": {
+          "filters": {
+          "AgreementFilter": { "label": "Agreement", "options": { "optionsData": "[[ $page.variables.rwNumbersADP ]]", "optionsKeys": { "label": "label", "value": "value" } } },
+          "CustomerFilter": { "label": "Customer", "options": { "optionsData": "[[ $page.variables.rwCustomersADP ]]", "optionsKeys": { "label": "label", "value": "value" } } },
+          "TypeFilter": { "label": "Type", "options": { "optionsData": "[[ $page.variables.rwTypesADP ]]", "optionsKeys": { "label": "label", "value": "value" } } },
+          "StatusFilter": { "label": "Status", "options": { "optionsData": "[[ $page.variables.rwStatusesADP ]]", "optionsKeys": { "label": "label", "value": "value" } } },
+          "ValidFilter": { "label": "Valid", "options": { "optionsData": "[[ $page.variables.rwDatesADP ]]", "optionsKeys": { "label": "label", "value": "value" } } },
+          "LinesFilter": { "label": "Lines", "options": { "optionsData": "[[ $page.variables.rwLinesADP ]]", "optionsKeys": { "label": "label", "value": "value" } } },
+          "NextFilter": { "label": "Next step", "options": { "optionsData": "[[ $page.variables.rwNextADP ]]", "optionsKeys": { "label": "label", "value": "value" } } }
+          }
+        }
+      }
+    }
   },
   "eventListeners": {
     "vbEnter": { "chains": [{ "chain": "loadChain" }] },
@@ -27,13 +63,23 @@
     "onExportMenu": { "chains": [{ "chain": "setChain", "parameters": { "field": "exportOpen", "value": "toggle" } }] },
     "onExport": { "chains": [{ "chain": "exportChain", "parameters": { "format": "{{ $event.currentTarget.dataset.format }}" } }] },
     "onOpen": { "chains": [{ "chain": "openChain", "parameters": { "number": "{{ $event.currentTarget.dataset.number }}" } }] },
-    "onNew": { "chains": [{ "chain": "openChain", "parameters": { "number": "", "isNew": true } }] }
+    "onNew": { "chains": [{ "chain": "openChain", "parameters": { "number": "", "isNew": true } }] },
+    "onRwFilter": { "chains": [{ "chain": "rwFilterChain" }] },
+    "onRwRow": {
+      "chains": [{ "chain": "openChain", "parameters": { "number": "{{ $event.detail.context.key && $event.detail.context.key.indexOf('id:') !== 0 ? $event.detail.context.key : '' }}" } }]
+    },
+    "onRwExport": { "chains": [{ "chain": "exportChain", "parameters": { "format": "xlsx" } }] }
   },
   "imports": {
     "components": {
       "oj-bind-for-each": { "path": "ojs/ojknockout" },
       "oj-bind-if": { "path": "ojs/ojknockout" },
-      "oj-bind-text": { "path": "ojs/ojknockout" }
+      "oj-bind-text": { "path": "ojs/ojknockout" },
+      "oj-sp-smart-search-page": { "path": "oj-sp/smart-search-page/loader" },
+      "oj-sp-smart-search": { "path": "oj-sp/smart-search/loader" },
+      "oj-sp-collection-container": { "path": "oj-sp/collection-container/loader" },
+      "oj-table": { "path": "ojs/ojtable" },
+      "oj-c-button": { "path": "oj-c/button" }
     }
   }
 }

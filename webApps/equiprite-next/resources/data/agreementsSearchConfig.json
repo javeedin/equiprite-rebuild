@@ -1,0 +1,75 @@
+{
+  "description": "Agreements (Redwood view): the Smart Search filters, one per column of the agreements table (Agreement, Customer, Type, Status, Valid, Lines, Next step), as Old's rental agreements page offers Status, Customer and Agreement Type. Status is the list's own chip (chip); the others are the Redwood table's column filters (rwCols, commercialRedwood.agreementByColumns). Every filter here needs its entry in agreements-page.json's rwSearchContext (the widget evaluates every filter in this file, and one without context throws and blanks the table).",
+  "filters": {
+    "AgreementFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Agreement",
+      "options": {
+        "field": "number",
+        "optionsData": "[[ $search.filters.AgreementFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.AgreementFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "CustomerFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Customer",
+      "options": {
+        "field": "customer",
+        "optionsData": "[[ $search.filters.CustomerFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.CustomerFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "TypeFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Type",
+      "options": {
+        "field": "type",
+        "optionsData": "[[ $search.filters.TypeFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.TypeFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "StatusFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Status",
+      "options": {
+        "field": "chip",
+        "optionsData": "[[ $search.filters.StatusFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.StatusFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "ValidFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Valid",
+      "options": {
+        "field": "dates",
+        "optionsData": "[[ $search.filters.ValidFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.ValidFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "LinesFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Lines",
+      "options": {
+        "field": "lines",
+        "optionsData": "[[ $search.filters.LinesFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.LinesFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "NextFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Next step",
+      "options": {
+        "field": "next",
+        "optionsData": "[[ $search.filters.NextFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.NextFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    }
+  }
+}
