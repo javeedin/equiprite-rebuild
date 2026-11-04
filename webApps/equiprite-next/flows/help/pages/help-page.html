@@ -7,7 +7,7 @@
     <div class="nx-rw nx-rw--head" id="helpRedwood" :hidden="[[ $application.variables.look !== 'redwood' ]]">
       <oj-sp-general-overview-page page-title="How a request moves" display-mode="mixed"
         page-subtitle="From the request to the equipment back at the yard: who does what, on which screen, and what each status means."
-        secondary-actions="[[ $functions.rwActions($variables.isLoading) ]]" on-sp-secondary-action="[[ $listeners.onRwAction ]]">
+        secondary-actions="[[ $functions.rwActions() ]]" on-sp-secondary-action="[[ $listeners.onRwAction ]]">
       </oj-sp-general-overview-page>
     </div>
   </oj-bind-if>

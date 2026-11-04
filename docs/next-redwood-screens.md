@@ -109,6 +109,7 @@ How the header's parts work:
 - **Primary action** (`primary-action`): `{ label, icon, display: 'on' }`. It is the white button on the dark band.
 - **Secondary actions** (`secondary-actions`): an array of `{ id, label, icon, display: 'on' }`. Your listener reads the clicked item's id from `$event.detail.secondaryItem`, and should route each id to the chain that the Current look's button calls.
 - **Arrays and objects in bindings come from page-module functions.** Next does not write array literals in bindings.
+- **Return the same array (or object) for the same content.** Oracle's header rebuilds its toolbar whenever the action list changes, and throws "oj-toolbar … Cannot access methods before element is upgraded" if it changes again before the toolbar is ready. So keep labels steady: no "Refreshing…" swap.
 - **Back.** Use in-flow back where the Current look has one, for example a record that came from a list.
 - **The kicker** that sits over a Current title ("Commercial", "Project request") goes into the subtitle or is dropped. Oracle's header has no kicker.
 - **Header-only views** (`.nx-rw--head`) have the template's empty content slot collapsed by `next-redwood.css`.

@@ -86,7 +86,7 @@ const em = js('equipmentMaster');
   const row = rw.fleetRows(units.filter((u) => u.unit === 'EX-2202'), fns)[0];
   T.eq('what the cells say', [row.unit, row.name, row.cls, row.status, row.badge, row.when, row.tight, row.request, row.party, row.next, row.yard].join(' | '),
     'EX-2202 | CAT 320 Excavator | Excavators | Due back this week | oj-badge oj-badge-warning oj-badge-subtle | Back in 3 days | 1-day turnaround | REQ-2 | Lone Star Paving | REQ-9 · ' + day(4) + ' | Houston Yard');
-  T.eq('its step: the unit panel\'s, as an oj-c button', JSON.stringify(row.steps), '[{"nav":"returns","label":"Receiving & returns","chroming":"callToAction"}]');
+  T.eq('its step: the unit panel\'s, as an oj-c button', JSON.stringify(row.steps), '[{"nav":"returns","label":"Receiving & returns","chroming":"outlined"}]');
   T.eq('a serial unit opens as itself; a lot, its equipment', JSON.stringify([rw.fleetRecord(units[0]), rw.fleetRecord(units.filter((u) => u.unit === 'LOT-77')[0])]),
     '[{"record":"equipment-360","params":{"serial":"EX-2201"}},{"record":"equipment-360","params":{"name":"Trench shoring panels"}}]');
 

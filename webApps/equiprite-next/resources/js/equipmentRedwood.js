@@ -82,8 +82,8 @@ define([], function () {
     var f = fns || {};
     return (Array.isArray(shown) ? shown : []).map(function (u) {
       var steps = [];
-      if (u.lane === 'due' || u.lane === 'overdue') steps.push({ nav: 'returns', label: 'Receiving & returns', chroming: 'callToAction' });
-      if (u.lane === 'going') steps.push({ nav: 'picking', label: 'Picking & shipping', chroming: 'callToAction' });
+      if (u.lane === 'due' || u.lane === 'overdue') steps.push({ nav: 'returns', label: 'Receiving & returns', chroming: 'outlined' });
+      if (u.lane === 'going') steps.push({ nav: 'picking', label: 'Picking & shipping', chroming: 'outlined' });
       var type = f.typeLabel ? f.typeLabel(u.type) : txt(u.type);
       return {
         key: txt(u.key),
