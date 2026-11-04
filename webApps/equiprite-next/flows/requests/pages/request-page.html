@@ -5,6 +5,9 @@
        (rwActionChain). Over this tab's own body below. Put on the page the first time Redwood is shown, then kept. -->
   <oj-bind-if test="[[ $application.variables.lookSeen ]]">
     <div class="nx-rw nx-rw--head" id="recRedwood" :hidden="[[ $application.variables.look !== 'redwood' || !!$variables.error ]]">
+      <!-- Once the request has loaded (rwReady), then kept: Oracle's header throws if its actions change again before its
+           toolbar is ready, as they would while the request loads. -->
+      <oj-bind-if test="[[ $variables.rwReady ]]">
       <oj-sp-general-overview-page display-mode="mixed" page-title="[[ $variables.head.requestNumber || $variables.number || 'Request' ]]"
         page-subtitle="[[ $functions.rwSub($variables.head, $variables.isLoading) ]]" badge="[[ $functions.rwBadge($variables.p) ]]"
         display-options.in-flow-back="true" on-sp-in-flow-back="[[ $listeners.onOpenList ]]"
@@ -12,6 +15,7 @@
         secondary-actions="[[ $functions.rwActions($variables.head, $variables.acts, $variables.stepBusy, $variables.isLoading, $application.variables.appUrls.new) ]]"
         on-sp-secondary-action="[[ $listeners.onRwAction ]]">
       </oj-sp-general-overview-page>
+      </oj-bind-if>
     </div>
   </oj-bind-if>
 

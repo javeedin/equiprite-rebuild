@@ -40,6 +40,11 @@
       "type": "boolean",
       "defaultValue": true
     },
+    "rwReady": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "Redwood look: the request has loaded once, so Oracle's header can go on the page (and stays)."
+    },
     "error": {
       "type": "string",
       "defaultValue": ""

@@ -100,19 +100,31 @@ define(['resources/js/exportKit', 'resources/js/fmt', 'resources/js/requestProgr
     /** The step the header's primary action takes (the first the request offers), or ''. */
     rwPrimaryId(head, acts, busy) { return (this.rwSteps(head, acts, busy)[0] || {}).id || ''; }
 
+    /**
+     * The same object for the same content: Oracle's header rebuilds its toolbar whenever its actions change, and throws
+     * if they change again before the toolbar is ready.
+     */
+    rwSame(key, value) {
+      const json = JSON.stringify(value);
+      this.rwKept = this.rwKept || {};
+      if (!this.rwKept[key] || this.rwKept[key].json !== json) this.rwKept[key] = { json, value };
+      return this.rwKept[key].value;
+    }
+
     /** The header's primary action: the request's next step, as the current look's first highlighted button. */
     rwPrimary(head, acts, busy) {
       const s = this.rwSteps(head, acts, busy)[0];
-      return s ? { label: s.label, display: s.off ? 'disabled' : 'on' } : { label: '', display: 'off' };
+      return this.rwSame('primary', s ? { label: s.label, display: s.off ? 'disabled' : 'on' } : { label: '', display: 'off' });
     }
 
-    /** The header's other actions: Refresh, Export, the request's other steps, and Act on it in New. */
+    /** The header's other actions: Refresh, Export, the request's other steps, and Act on it in New. Refresh stays on
+     *  while the request reloads (a second click only reloads again), so the list does not change twice in a moment. */
     rwActions(head, acts, busy, loading, newBase) {
-      const out = [{ id: 'refresh', label: 'Refresh', icon: 'oj-ux-ico-refresh', display: loading ? 'disabled' : 'on' },
+      const out = [{ id: 'refresh', label: 'Refresh', icon: 'oj-ux-ico-refresh', display: 'on' },
         { id: 'export', label: 'Export to Excel', icon: 'oj-ux-ico-download', display: 'on' }];
       this.rwSteps(head, acts, busy).slice(1).forEach((s) => out.push({ id: s.id, label: s.label, icon: s.icon, display: s.off ? 'disabled' : 'on' }));
       if (head && head.status !== 'DRAFT' && this.newUrl(newBase, head)) out.push({ id: 'new', label: 'Act on it in New', icon: 'oj-ux-ico-external-link', display: 'on' });
-      return out;
+      return this.rwSame('actions', out);
     }
 
     /** A line's stage as Oracle's oj-badge (the Redwood equipment table), as the Requests table colours its statuses. */

@@ -87,6 +87,8 @@ define([
         v.error = 'The request could not be loaded.';
       } finally {
         v.isLoading = false;
+        // The Redwood header goes on the page now, with the request known (and stays: rwReady never goes back).
+        if (!v.error) v.rwReady = true;
       }
     }
   }
