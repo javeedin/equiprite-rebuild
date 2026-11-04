@@ -29,13 +29,13 @@
             scroll-policy="loadMoreOnScroll" scroll-policy-options.fetch-size="50" display="list" horizontal-grid-visible="enabled"
             layout="fixed" on-oj-row-action="[[ $listeners.onRwRow ]]"
             columns='[
-              {"headerText": "Agreement", "field": "number", "template": "numTpl", "sortable": "enabled", "style": "width:15%;"},
-              {"headerText": "Customer", "field": "customer", "template": "customerTpl", "sortable": "enabled", "style": "width:14%;"},
-              {"headerText": "Type", "field": "type", "template": "typeTpl", "sortable": "enabled", "style": "width:11%;"},
-              {"headerText": "Status", "field": "status", "template": "statusTpl", "sortable": "enabled", "style": "width:10%;"},
-              {"headerText": "Valid", "field": "dates", "template": "validTpl", "sortable": "disabled", "style": "width:19%;"},
-              {"headerText": "Lines", "field": "lines", "template": "linesTpl", "sortable": "disabled", "style": "width:8%;"},
-              {"headerText": "Next step", "field": "next", "template": "nextTpl", "sortable": "disabled", "style": "width:23%;"}
+              {"headerText": "Agreement", "field": "number", "template": "numTpl", "sortable": "enabled", "style": "width:15%", "weight": 15},
+              {"headerText": "Customer", "field": "customer", "template": "customerTpl", "sortable": "enabled", "style": "width:14%", "weight": 14},
+              {"headerText": "Type", "field": "type", "template": "typeTpl", "sortable": "enabled", "style": "width:11%", "weight": 11},
+              {"headerText": "Status", "field": "status", "template": "statusTpl", "sortable": "enabled", "style": "width:10%", "weight": 10},
+              {"headerText": "Valid", "field": "dates", "template": "validTpl", "sortable": "disabled", "style": "width:19%", "weight": 19},
+              {"headerText": "Lines", "field": "lines", "template": "linesTpl", "sortable": "disabled", "style": "width:8%", "weight": 8},
+              {"headerText": "Next step", "field": "next", "template": "nextTpl", "sortable": "disabled", "style": "width:23%", "weight": 23}
             ]'>
             <template slot="numTpl" data-oj-as="cell">
               <div class="nx-rw-cell"><span class="oj-typography-body-md oj-typography-bold oj-link-standalone nx-rw-num"><oj-bind-text value="[[ cell.row.number ]]"></oj-bind-text></span>

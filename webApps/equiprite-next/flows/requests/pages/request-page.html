@@ -151,12 +151,12 @@
             <oj-table id="recRwLines" data="[[ $variables.rwLinesADP ]]" class="oj-sm-width-full nx-rw-table" aria-labelledby="recLines"
               display="list" horizontal-grid-visible="enabled" layout="fixed" scroll-policy="loadMoreOnScroll" scroll-policy-options.fetch-size="100"
               columns='[
-                {"headerText": "Equipment", "field": "name", "template": "eqTpl", "sortable": "disabled", "style": "width:24%;"},
-                {"headerText": "Qty", "field": "qty", "template": "qtyTpl", "sortable": "disabled", "style": "width:7%;", "headerClassName": "oj-helper-text-align-end"},
-                {"headerText": "Unit", "field": "unit", "template": "unitTpl", "sortable": "disabled", "style": "width:15%;"},
-                {"headerText": "Where it is", "field": "lineStatus", "template": "whereTpl", "sortable": "disabled", "style": "width:24%;"},
-                {"headerText": "Dates", "field": "start", "template": "datesTpl", "sortable": "disabled", "style": "width:16%;"},
-                {"headerText": "Rate", "field": "billRate", "template": "rateTpl", "sortable": "disabled", "style": "width:14%;", "headerClassName": "oj-helper-text-align-end"}
+                {"headerText": "Equipment", "field": "name", "template": "eqTpl", "sortable": "disabled", "style": "width:24%", "weight": 24},
+                {"headerText": "Qty", "field": "qty", "template": "qtyTpl", "sortable": "disabled", "style": "width:7%", "weight": 7, "headerClassName": "oj-helper-text-align-end"},
+                {"headerText": "Unit", "field": "unit", "template": "unitTpl", "sortable": "disabled", "style": "width:15%", "weight": 15},
+                {"headerText": "Where it is", "field": "lineStatus", "template": "whereTpl", "sortable": "disabled", "style": "width:24%", "weight": 24},
+                {"headerText": "Dates", "field": "start", "template": "datesTpl", "sortable": "disabled", "style": "width:16%", "weight": 16},
+                {"headerText": "Rate", "field": "billRate", "template": "rateTpl", "sortable": "disabled", "style": "width:14%", "weight": 14, "headerClassName": "oj-helper-text-align-end"}
               ]'>
               <template slot="eqTpl" data-oj-as="cell">
                 <div class="nx-rw-cell"><span class="oj-typography-body-md oj-typography-semi-bold"><oj-bind-text value="[[ cell.row.name ]]"></oj-bind-text></span>

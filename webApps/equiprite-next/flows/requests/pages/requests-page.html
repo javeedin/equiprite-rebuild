@@ -30,12 +30,12 @@
             scroll-policy="loadMoreOnScroll" scroll-policy-options.fetch-size="50" display="list" horizontal-grid-visible="enabled"
             layout="fixed" on-oj-row-action="[[ $listeners.onRwRow ]]"
             columns='[
-              {"headerText": "Request", "field": "number", "template": "numTpl", "sortable": "enabled", "style": "width:16%;"},
-              {"headerText": "Project or customer", "field": "party", "template": "partyTpl", "sortable": "enabled", "style": "width:17%;"},
-              {"headerText": "Status", "field": "status", "template": "statusTpl", "sortable": "enabled", "style": "width:16%;"},
-              {"headerText": "Equipment", "field": "pieces", "template": "piecesTpl", "sortable": "disabled", "style": "width:16%;"},
-              {"headerText": "Dates", "field": "dates", "template": "datesTpl", "sortable": "enabled", "style": "width:15%;"},
-              {"headerText": "Next step", "field": "next", "template": "nextTpl", "sortable": "disabled", "style": "width:20%;"}
+              {"headerText": "Request", "field": "number", "template": "numTpl", "sortable": "enabled", "style": "width:16%", "weight": 16},
+              {"headerText": "Project or customer", "field": "party", "template": "partyTpl", "sortable": "enabled", "style": "width:17%", "weight": 17},
+              {"headerText": "Status", "field": "status", "template": "statusTpl", "sortable": "enabled", "style": "width:16%", "weight": 16},
+              {"headerText": "Equipment", "field": "pieces", "template": "piecesTpl", "sortable": "disabled", "style": "width:16%", "weight": 16},
+              {"headerText": "Dates", "field": "dates", "template": "datesTpl", "sortable": "enabled", "style": "width:15%", "weight": 15},
+              {"headerText": "Next step", "field": "next", "template": "nextTpl", "sortable": "disabled", "style": "width:20%", "weight": 20}
             ]'>
             <template slot="numTpl" data-oj-as="cell">
               <div class="nx-rw-cell"><span class="oj-typography-body-md oj-typography-bold oj-link-standalone nx-rw-num"><oj-bind-text value="[[ cell.row.number ]]"></oj-bind-text></span>

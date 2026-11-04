@@ -25,12 +25,12 @@
             scroll-policy="loadMoreOnScroll" scroll-policy-options.fetch-size="50" display="list" horizontal-grid-visible="enabled"
             layout="fixed" on-oj-row-action="[[ $listeners.onRwRow ]]"
             columns='[
-              {"headerText": "Unit", "field": "unit", "template": "unitTpl", "sortable": "enabled", "style": "width:14%;"},
-              {"headerText": "Equipment", "field": "name", "template": "nameTpl", "sortable": "enabled", "style": "width:19%;"},
-              {"headerText": "Status", "field": "status", "template": "statusTpl", "sortable": "enabled", "style": "width:22%;"},
-              {"headerText": "Request", "field": "request", "template": "requestTpl", "sortable": "enabled", "style": "width:15%;"},
-              {"headerText": "Next booking", "field": "next", "template": "nextTpl", "sortable": "enabled", "style": "width:16%;"},
-              {"headerText": "Yard", "field": "yard", "template": "yardTpl", "sortable": "enabled", "style": "width:14%;"}
+              {"headerText": "Unit", "field": "unit", "template": "unitTpl", "sortable": "enabled", "style": "width:14%", "weight": 14},
+              {"headerText": "Equipment", "field": "name", "template": "nameTpl", "sortable": "enabled", "style": "width:19%", "weight": 19},
+              {"headerText": "Status", "field": "status", "template": "statusTpl", "sortable": "enabled", "style": "width:22%", "weight": 22},
+              {"headerText": "Request", "field": "request", "template": "requestTpl", "sortable": "enabled", "style": "width:15%", "weight": 15},
+              {"headerText": "Next booking", "field": "next", "template": "nextTpl", "sortable": "enabled", "style": "width:16%", "weight": 16},
+              {"headerText": "Yard", "field": "yard", "template": "yardTpl", "sortable": "enabled", "style": "width:14%", "weight": 14}
             ]'>
             <template slot="unitTpl" data-oj-as="cell">
               <div class="nx-rw-cell"><span class="oj-typography-body-md oj-typography-bold oj-link-standalone nx-rw-num"><oj-bind-text value="[[ cell.row.unit ]]"></oj-bind-text></span>

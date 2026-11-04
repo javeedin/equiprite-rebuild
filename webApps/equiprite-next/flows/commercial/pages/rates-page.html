@@ -32,11 +32,11 @@
             scroll-policy="loadMoreOnScroll" scroll-policy-options.fetch-size="50" display="list" horizontal-grid-visible="enabled"
             layout="fixed" on-oj-row-action="[[ $listeners.onRwRow ]]"
             columns='[
-              {"headerText": "Schedule", "field": "name", "template": "nameTpl", "sortable": "enabled", "style": "width:24%;"},
-              {"headerText": "Used by", "field": "usedBy", "template": "usedTpl", "sortable": "enabled", "style": "width:26%;"},
-              {"headerText": "Effective", "field": "dates", "template": "datesTpl", "sortable": "disabled", "style": "width:18%;"},
-              {"headerText": "Currency", "field": "currency", "template": "curTpl", "sortable": "enabled", "style": "width:10%;"},
-              {"headerText": "Status", "field": "status", "template": "statusTpl", "sortable": "enabled", "style": "width:22%;"}
+              {"headerText": "Schedule", "field": "name", "template": "nameTpl", "sortable": "enabled", "style": "width:24%", "weight": 24},
+              {"headerText": "Used by", "field": "usedBy", "template": "usedTpl", "sortable": "enabled", "style": "width:26%", "weight": 26},
+              {"headerText": "Effective", "field": "dates", "template": "datesTpl", "sortable": "disabled", "style": "width:18%", "weight": 18},
+              {"headerText": "Currency", "field": "currency", "template": "curTpl", "sortable": "enabled", "style": "width:10%", "weight": 10},
+              {"headerText": "Status", "field": "status", "template": "statusTpl", "sortable": "enabled", "style": "width:22%", "weight": 22}
             ]'>
             <template slot="nameTpl" data-oj-as="cell">
               <div class="nx-rw-cell"><span class="oj-typography-body-md oj-typography-bold oj-link-standalone nx-rw-num"><oj-bind-text value="[[ cell.row.name ]]"></oj-bind-text></span>

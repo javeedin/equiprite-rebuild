@@ -33,11 +33,11 @@
             scroll-policy="loadMoreOnScroll" scroll-policy-options.fetch-size="50" display="list" horizontal-grid-visible="enabled"
             layout="fixed" on-oj-row-action="[[ $listeners.onRwRow ]]"
             columns='[
-              {"headerText": "Equipment", "field": "unit", "template": "unitTpl", "sortable": "enabled", "style": "width:25%;"},
-              {"headerText": "Request", "field": "request", "template": "reqTpl", "sortable": "enabled", "style": "width:19%;"},
-              {"headerText": "Inspection", "field": "point", "template": "pointTpl", "sortable": "enabled", "style": "width:20%;"},
-              {"headerText": "When", "field": "when", "template": "whenTpl", "sortable": "disabled", "style": "width:21%;"},
-              {"headerText": "Asked for", "field": "asked", "template": "askedTpl", "sortable": "enabled", "style": "width:15%;"}
+              {"headerText": "Equipment", "field": "unit", "template": "unitTpl", "sortable": "enabled", "style": "width:25%", "weight": 25},
+              {"headerText": "Request", "field": "request", "template": "reqTpl", "sortable": "enabled", "style": "width:19%", "weight": 19},
+              {"headerText": "Inspection", "field": "point", "template": "pointTpl", "sortable": "enabled", "style": "width:20%", "weight": 20},
+              {"headerText": "When", "field": "when", "template": "whenTpl", "sortable": "disabled", "style": "width:21%", "weight": 21},
+              {"headerText": "Asked for", "field": "asked", "template": "askedTpl", "sortable": "enabled", "style": "width:15%", "weight": 15}
             ]'>
             <template slot="unitTpl" data-oj-as="cell">
               <div class="nx-rw-cell"><span class="oj-typography-body-md oj-typography-bold"><oj-bind-text value="[[ cell.row.unit ]]"></oj-bind-text></span>

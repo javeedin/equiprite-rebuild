@@ -37,12 +37,12 @@
             scroll-policy="loadMoreOnScroll" scroll-policy-options.fetch-size="50" display="list" horizontal-grid-visible="enabled"
             layout="fixed" on-oj-row-action="[[ $listeners.onRwRow ]]"
             columns='[
-              {"headerText": "Transfer", "field": "number", "template": "numTpl", "sortable": "enabled", "style": "width:16%;"},
-              {"headerText": "Request", "field": "request", "template": "reqTpl", "sortable": "enabled", "style": "width:15%;"},
-              {"headerText": "From → to", "field": "from", "template": "routeTpl", "sortable": "enabled", "style": "width:19%;"},
-              {"headerText": "What is moving", "field": "what", "template": "whatTpl", "sortable": "enabled", "style": "width:18%;"},
-              {"headerText": "Where it is", "field": "status", "template": "statusTpl", "sortable": "enabled", "style": "width:17%;"},
-              {"headerText": "Due", "field": "due", "template": "dueTpl", "sortable": "disabled", "style": "width:15%;"}
+              {"headerText": "Transfer", "field": "number", "template": "numTpl", "sortable": "enabled", "style": "width:16%", "weight": 16},
+              {"headerText": "Request", "field": "request", "template": "reqTpl", "sortable": "enabled", "style": "width:15%", "weight": 15},
+              {"headerText": "From → to", "field": "from", "template": "routeTpl", "sortable": "enabled", "style": "width:19%", "weight": 19},
+              {"headerText": "What is moving", "field": "what", "template": "whatTpl", "sortable": "enabled", "style": "width:18%", "weight": 18},
+              {"headerText": "Where it is", "field": "status", "template": "statusTpl", "sortable": "enabled", "style": "width:17%", "weight": 17},
+              {"headerText": "Due", "field": "due", "template": "dueTpl", "sortable": "disabled", "style": "width:15%", "weight": 15}
             ]'>
             <template slot="numTpl" data-oj-as="cell">
               <div class="nx-rw-cell"><span class="oj-typography-body-md oj-typography-bold nx-rw-num"><oj-bind-text value="[[ cell.row.number ]]"></oj-bind-text></span>

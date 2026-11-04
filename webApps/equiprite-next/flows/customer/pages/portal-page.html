@@ -221,11 +221,11 @@
           scroll-policy="loadMoreOnScroll" scroll-policy-options.fetch-size="50" display="list" horizontal-grid-visible="enabled"
           layout="fixed" on-oj-row-action="[[ $listeners.onRwRow ]]"
           columns='[
-            {"headerText": "Request", "field": "number", "template": "numTpl", "sortable": "enabled", "style": "width:17%;"},
-            {"headerText": "Dates", "field": "dates", "template": "datesTpl", "sortable": "enabled", "style": "width:19%;"},
-            {"headerText": "Where your equipment is", "field": "status", "template": "statusTpl", "sortable": "enabled", "style": "width:26%;"},
-            {"headerText": "Next", "field": "next", "template": "nextTpl", "sortable": "disabled", "style": "width:24%;"},
-            {"headerText": "Contract", "field": "contract", "template": "contractTpl", "sortable": "enabled", "style": "width:14%;"}
+            {"headerText": "Request", "field": "number", "template": "numTpl", "sortable": "enabled", "style": "width:17%", "weight": 17},
+            {"headerText": "Dates", "field": "dates", "template": "datesTpl", "sortable": "enabled", "style": "width:19%", "weight": 19},
+            {"headerText": "Where your equipment is", "field": "status", "template": "statusTpl", "sortable": "enabled", "style": "width:26%", "weight": 26},
+            {"headerText": "Next", "field": "next", "template": "nextTpl", "sortable": "disabled", "style": "width:24%", "weight": 24},
+            {"headerText": "Contract", "field": "contract", "template": "contractTpl", "sortable": "enabled", "style": "width:14%", "weight": 14}
           ]'>
           <template slot="numTpl" data-oj-as="cell">
             <div class="nx-rw-cell"><span class="oj-typography-body-md oj-typography-bold oj-link-standalone nx-rw-num"><oj-bind-text value="[[ cell.row.number ]]"></oj-bind-text></span>

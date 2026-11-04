@@ -94,11 +94,11 @@
             scroll-policy="loadMoreOnScroll" scroll-policy-options.fetch-size="50" display="list" horizontal-grid-visible="enabled"
             layout="fixed" on-oj-row-action="[[ $listeners.onRwRow ]]"
             columns='[
-              {"headerText": "Request", "field": "number", "template": "numTpl", "sortable": "enabled", "style": "width:18%;"},
-              {"headerText": "Project or customer", "field": "party", "template": "partyTpl", "sortable": "enabled", "style": "width:20%;"},
-              {"headerText": "Waiting for", "field": "needs", "template": "needsTpl", "sortable": "enabled", "style": "width:23%;"},
-              {"headerText": "Equipment", "field": "equipment", "template": "eqTpl", "sortable": "disabled", "style": "width:21%;"},
-              {"headerText": "Dates", "field": "start", "template": "datesTpl", "sortable": "enabled", "style": "width:18%;"}
+              {"headerText": "Request", "field": "number", "template": "numTpl", "sortable": "enabled", "style": "width:18%", "weight": 18},
+              {"headerText": "Project or customer", "field": "party", "template": "partyTpl", "sortable": "enabled", "style": "width:20%", "weight": 20},
+              {"headerText": "Waiting for", "field": "needs", "template": "needsTpl", "sortable": "enabled", "style": "width:23%", "weight": 23},
+              {"headerText": "Equipment", "field": "equipment", "template": "eqTpl", "sortable": "disabled", "style": "width:21%", "weight": 21},
+              {"headerText": "Dates", "field": "start", "template": "datesTpl", "sortable": "enabled", "style": "width:18%", "weight": 18}
             ]'>
             <template slot="numTpl" data-oj-as="cell">
               <div class="nx-ap-rw-req">

@@ -69,7 +69,8 @@ Build it like this:
   - A small tools row (`oj-c-button` Refresh and Export, `chroming="borderless"`).
   - An `oj-table` with:
     - `data` from an `ArrayDataProvider2` of plain rows (`keyAttributes: 'key'`).
-    - A static `columns` JSON attribute with percentage widths, and `layout="fixed"`.
+    - A static `columns` JSON attribute, and `layout="fixed"`. Size the columns with `"weight": N`; with fixed layout the table ignores a `"style": "width:N%"`.
+    - If its rows are replaced while it is still drawing them (data streaming in), `oj-table` throws "Aborting stale fetch". Coalesce updates that arrive close together (see `usageRedwood.js`).
     - Cell `<template slot="…">` blocks that use `cell.row`.
     - `on-oj-row-action`.
 - **Statuses** use Oracle's `oj-badge` classes, as in `requestList.BADGE`:

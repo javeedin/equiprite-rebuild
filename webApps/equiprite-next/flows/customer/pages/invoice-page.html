@@ -95,11 +95,11 @@
               <oj-table :id="[[ 'ciRwInv' + g.data.lineId ]]" data="[[ $functions.rwInvoices(g.data.invoices) ]]" class="oj-sm-width-full nx-rw-table nx-cu-rwinv-table"
                 :aria-label="[[ 'Invoices for ' + g.data.equipmentName ]]" display="list" horizontal-grid-visible="enabled" layout="fixed"
                 columns='[
-                  {"headerText": "Invoice", "field": "number", "template": "invTpl", "sortable": "disabled", "style": "width:30%;"},
-                  {"headerText": "Period", "field": "period", "sortable": "disabled", "style": "width:24%;"},
-                  {"headerText": "Due", "field": "due", "sortable": "disabled", "style": "width:16%;"},
-                  {"headerText": "Amount", "field": "amount", "headerClassName": "oj-helper-text-align-end", "className": "oj-helper-text-align-end", "sortable": "disabled", "style": "width:14%;"},
-                  {"headerText": "Status", "field": "words", "template": "stateTpl", "sortable": "disabled", "style": "width:16%;"}
+                  {"headerText": "Invoice", "field": "number", "template": "invTpl", "sortable": "disabled", "style": "width:30%", "weight": 30},
+                  {"headerText": "Period", "field": "period", "sortable": "disabled", "style": "width:24%", "weight": 24},
+                  {"headerText": "Due", "field": "due", "sortable": "disabled", "style": "width:16%", "weight": 16},
+                  {"headerText": "Amount", "field": "amount", "headerClassName": "oj-helper-text-align-end", "className": "oj-helper-text-align-end", "sortable": "disabled", "style": "width:14%", "weight": 14},
+                  {"headerText": "Status", "field": "words", "template": "stateTpl", "sortable": "disabled", "style": "width:16%", "weight": 16}
                 ]'>
                 <template slot="invTpl" data-oj-as="cell">
                   <div class="nx-rw-cell"><span class="oj-typography-body-md oj-typography-semi-bold"><oj-bind-text value="[[ cell.row.number ]]"></oj-bind-text></span>

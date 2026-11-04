@@ -35,12 +35,12 @@
             scroll-policy="loadMoreOnScroll" scroll-policy-options.fetch-size="50" display="list" horizontal-grid-visible="enabled"
             layout="fixed" on-oj-row-action="[[ $listeners.onRwRow ]]"
             columns='[
-              {"headerText": "Due back", "field": "when", "template": "whenTpl", "sortable": "disabled", "style": "width:13%;"},
-              {"headerText": "Request", "field": "number", "template": "numTpl", "sortable": "enabled", "style": "width:13%;"},
-              {"headerText": "Project or customer", "field": "party", "template": "partyTpl", "sortable": "enabled", "style": "width:18%;"},
-              {"headerText": "Step", "field": "step", "template": "stepTpl", "sortable": "enabled", "style": "width:18%;"},
-              {"headerText": "Back to yard", "field": "yard", "template": "yardTpl", "sortable": "enabled", "style": "width:14%;"},
-              {"headerText": "Next step", "field": "next", "template": "nextTpl", "sortable": "disabled", "style": "width:24%;"}
+              {"headerText": "Due back", "field": "when", "template": "whenTpl", "sortable": "disabled", "style": "width:13%", "weight": 13},
+              {"headerText": "Request", "field": "number", "template": "numTpl", "sortable": "enabled", "style": "width:13%", "weight": 13},
+              {"headerText": "Project or customer", "field": "party", "template": "partyTpl", "sortable": "enabled", "style": "width:18%", "weight": 18},
+              {"headerText": "Step", "field": "step", "template": "stepTpl", "sortable": "enabled", "style": "width:18%", "weight": 18},
+              {"headerText": "Back to yard", "field": "yard", "template": "yardTpl", "sortable": "enabled", "style": "width:14%", "weight": 14},
+              {"headerText": "Next step", "field": "next", "template": "nextTpl", "sortable": "disabled", "style": "width:24%", "weight": 24}
             ]'>
             <template slot="whenTpl" data-oj-as="cell">
               <div class="nx-rw-cell"><span :class="[[ 'oj-typography-body-md' + (cell.row.late ? ' oj-text-color-danger oj-typography-bold' : '') ]]"><oj-bind-text value="[[ cell.row.when ]]"></oj-bind-text></span>

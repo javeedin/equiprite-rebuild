@@ -60,12 +60,12 @@
             scroll-policy="loadMoreOnScroll" scroll-policy-options.fetch-size="50" display="list" horizontal-grid-visible="enabled"
             layout="fixed" on-oj-row-action="[[ $listeners.onRwRow ]]"
             columns='[
-              {"headerText": "Equipment", "field": "title", "template": "itemTpl", "sortable": "enabled", "style": "width:25%;"},
-              {"headerText": "Class", "field": "cls", "template": "classTpl", "sortable": "enabled", "style": "width:16%;"},
-              {"headerText": "Tracked by", "field": "tracking", "template": "trackTpl", "sortable": "enabled", "style": "width:11%;"},
-              {"headerText": "Units", "field": "units", "template": "unitsTpl", "sortable": "enabled", "style": "width:16%;"},
-              {"headerText": "Location", "field": "where", "template": "whereTpl", "sortable": "enabled", "style": "width:15%;"},
-              {"headerText": "Status", "field": "status", "template": "statusTpl", "sortable": "enabled", "style": "width:17%;"}
+              {"headerText": "Equipment", "field": "title", "template": "itemTpl", "sortable": "enabled", "style": "width:25%", "weight": 25},
+              {"headerText": "Class", "field": "cls", "template": "classTpl", "sortable": "enabled", "style": "width:16%", "weight": 16},
+              {"headerText": "Tracked by", "field": "tracking", "template": "trackTpl", "sortable": "enabled", "style": "width:11%", "weight": 11},
+              {"headerText": "Units", "field": "units", "template": "unitsTpl", "sortable": "enabled", "style": "width:16%", "weight": 16},
+              {"headerText": "Location", "field": "where", "template": "whereTpl", "sortable": "enabled", "style": "width:15%", "weight": 15},
+              {"headerText": "Status", "field": "status", "template": "statusTpl", "sortable": "enabled", "style": "width:17%", "weight": 17}
             ]'>
             <template slot="itemTpl" data-oj-as="cell">
               <div class="nx-rw-cell"><span class="oj-typography-body-md oj-typography-bold oj-link-standalone nx-rw-num"><oj-bind-text value="[[ cell.row.title ]]"></oj-bind-text></span>
