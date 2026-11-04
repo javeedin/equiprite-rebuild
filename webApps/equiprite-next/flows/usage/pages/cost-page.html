@@ -15,6 +15,20 @@
   </oj-bind-if>
 
   <oj-bind-if test="[[ !$variables.closed && !!$variables.row.requestNumber ]]">
+    <!-- Redwood (your menu, Look): Oracle's general overview page as the header, as Old's Post Cost Detail: the request, its
+         state as Oracle's badge, Post (the current look's Post, panelChain), Refresh and the exports, and back to Post costs;
+         over this record's own body below. Put on the page the first time Redwood is shown, then kept, hidden under Current. -->
+    <oj-bind-if test="[[ $application.variables.lookSeen ]]">
+      <div class="nx-rw nx-rw--head" id="prRedwood" :hidden="[[ $application.variables.look !== 'redwood' ]]">
+        <oj-sp-general-overview-page page-title="[[ $variables.row.requestNumber ]]" page-subtitle="[[ $functions.rwSubtitle($variables.row) ]]" display-mode="mixed"
+          badge="[[ $functions.rwBadge($variables.facts) ]]"
+          primary-action="[[ $functions.rwPrimary($variables.rowsAll, $variables.readOnly, $variables.isPosting, $variables.isLoading) ]]" on-sp-primary-action="[[ $listeners.onRwPost ]]"
+          secondary-actions="[[ $functions.rwActions($variables.readOnly, $variables.isLoading, $variables.isPosting) ]]" on-sp-secondary-action="[[ $listeners.onRwAction ]]"
+          display-options.in-flow-back="true" on-sp-in-flow-back="[[ $listeners.onRwBack ]]">
+        </oj-sp-general-overview-page>
+      </div>
+    </oj-bind-if>
+    <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
     <div class="nx-pagehead">
       <div>
         <div class="nx-kicker">Request costs</div>
@@ -60,6 +74,7 @@
         </oj-bind-if>
       </div>
     </div>
+    </oj-bind-if>
 
     <section class="nx-kpis nx-u-kpis" aria-label="This request">
       <div class="nx-kpi nx-u-kpi--ready" id="prKpiReady">
@@ -165,6 +180,32 @@
           ? 'Nothing is ticked. Tick the weeks and charges to post, or Select all ready.' : 'Nothing is ready to post: no week has ended that is not posted, and no charge is waiting.') ]]"></oj-bind-text></div>
       </oj-bind-if>
       <oj-bind-if test="[[ $variables.plan.length > 0 ]]">
+        <!-- Redwood: the same plan as Oracle's table. -->
+        <oj-bind-if test="[[ $application.variables.lookSeen ]]">
+          <div class="nx-pr-rwplan" :hidden="[[ $application.variables.look !== 'redwood' ]]">
+            <oj-table id="prRwPlan" data="[[ $variables.rwPlanADP ]]" class="oj-sm-width-full" display="list" horizontal-grid-visible="enabled" layout="fixed"
+              :aria-label="[[ $variables.readOnly ? 'What would be posted' : 'What will be posted' ]]"
+              columns='[
+                {"headerText": "What", "field": "what", "template": "whatTpl", "sortable": "disabled", "weight": 30},
+                {"headerText": "Quantity", "field": "quantity", "template": "textTpl", "sortable": "disabled", "weight": 15},
+                {"headerText": "Expenditure type", "field": "expType", "template": "textTpl", "sortable": "disabled", "weight": 17},
+                {"headerText": "Posts to", "field": "destination", "template": "textTpl", "sortable": "disabled", "weight": 24},
+                {"headerText": "Amount", "field": "amount", "template": "amountTpl", "sortable": "disabled", "weight": 14, "headerClassName": "oj-helper-text-align-end", "className": "oj-helper-text-align-end"}
+              ]'>
+              <template slot="whatTpl" data-oj-as="cell">
+                <div class="nx-rw-cell"><span class="oj-typography-body-md"><oj-bind-text value="[[ cell.row.what ]]"></oj-bind-text></span>
+                  <oj-bind-if test="[[ !!cell.row.note ]]"><span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.note ]]"></oj-bind-text></span></oj-bind-if></div>
+              </template>
+              <template slot="textTpl" data-oj-as="cell">
+                <span class="oj-typography-body-sm"><oj-bind-text value="[[ cell.data ]]"></oj-bind-text></span>
+              </template>
+              <template slot="amountTpl" data-oj-as="cell">
+                <span class="oj-typography-body-md oj-typography-bold"><oj-bind-text value="[[ $functions.money(cell.data) ]]"></oj-bind-text></span>
+              </template>
+            </oj-table>
+          </div>
+        </oj-bind-if>
+        <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
         <div class="nx-table">
           <div class="nx-grid nx-grid--plan" role="table" :aria-label="[[ $variables.readOnly ? 'What would be posted' : 'What will be posted' ]]">
             <div class="nx-row nx-row--head" role="row">
@@ -185,6 +226,7 @@
             </oj-bind-for-each>
           </div>
         </div>
+        </oj-bind-if>
         <oj-bind-if test="[[ !$variables.readOnly ]]">
           <div class="nx-pp-foot">
             <details class="nx-pp-calls" id="prCalls">

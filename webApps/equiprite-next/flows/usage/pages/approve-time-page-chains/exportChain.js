@@ -6,13 +6,15 @@ define([
   'use strict';
 
   // Exports the lines as shown (week, status, search, "needs a look only"), with what needs a look and any adjustment.
+  // The Redwood look's table (redwood) exports what it shows, its column filters included (rwApplyChain's rwKeys).
   class exportChain extends ActionChain {
-    async run(context, { format }) {
+    async run(context, { format, redwood }) {
       const { $page } = context;
       const v = $page.variables;
       const fns = $page.functions;
       v.exportOpen = false;
-      const shown = fns.shown(v.rowsAll, v.weekKey, v.statusKey, v.searchText, v.onlyLook, v.weekDays);
+      const keys = redwood ? (v.rwKeys || []).slice() : null;
+      const shown = fns.shown(v.rowsAll, v.weekKey, v.statusKey, v.searchText, v.onlyLook, v.weekDays).filter((r) => !keys || keys.indexOf(r.key) !== -1);
       const chip = fns.statusChips(v.rowsAll, v.weekKey).filter((c) => c.key === v.statusKey)[0];
       const res = await exportKit.run(format, {
         name: 'approve-time-' + (v.weekKey || 'week'),

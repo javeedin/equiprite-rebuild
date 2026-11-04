@@ -40,6 +40,37 @@ define(['resources/js/costPreview', 'resources/js/costPosting', 'resources/js/ex
       return parts.join(' · ');
     }
 
+    // ── Redwood look (your menu, Look): Oracle's general overview page as the header ──
+
+    /** The header's subtitle: the current look's kicker and its line under the title. */
+    rwSubtitle(row) {
+      const line = this.subline(row);
+      return 'Request costs' + (line ? ' · ' + line : '');
+    }
+
+    /** The heading's pill as Oracle's header badge. */
+    rwBadge(f) {
+      const text = this.headWord(f);
+      if (!text) return null;
+      return { text, status: { ready: 'warning', out: 'info', onsite: 'success' }[this.headTone(f)] || 'neutral' };
+    }
+
+    /** The header's primary action: the current look's Post button (panelChain post), shut as it is; none for a role that
+     * may only look. */
+    rwPrimary(all, readOnly, isPosting, isLoading) {
+      if (readOnly) return { label: 'Post', display: 'off' };
+      return { label: this.postLabel(all), display: isPosting || isLoading || this.selection(all).items === 0 ? 'disabled' : 'on' };
+    }
+
+    /** The header's other actions (rwActionChain routes each id to the current look's chain). */
+    rwActions(readOnly, isLoading, isPosting) {
+      return [
+        { id: 'refresh', label: 'Refresh', icon: 'oj-ux-ico-refresh', display: isLoading || isPosting ? 'disabled' : 'on' },
+        { id: 'exportPlan', label: readOnly ? 'Export what would be posted' : 'Export what will be posted', icon: 'oj-ux-ico-download', display: 'on' },
+        { id: 'exportWeeks', label: 'Export the cost week by week', icon: 'oj-ux-ico-download', display: 'on' },
+      ];
+    }
+
     readyNote(f) {
       if (!f) return '';
       const parts = [];

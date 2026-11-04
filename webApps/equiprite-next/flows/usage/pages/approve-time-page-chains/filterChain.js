@@ -9,12 +9,18 @@ define([
   // by "needs a look only" when it is on).
   //
   // Week, status, search, compare and the ticks. A week change clears the ticks and any adjustment (they belong to
-  // the week on screen) and reads the new week's cost so far.
+  // the week on screen) and reads the new week's cost so far. From the Redwood look's table (redwood), tick-all and
+  // "select the lines that look right" take only the lines that table shows (its column filters narrow it further).
   class filterChain extends ActionChain {
-    async run(context, { action, key, value }) {
+    async run(context, { action, key, value, redwood }) {
       const { $page } = context;
       const v = $page.variables;
       const fns = $page.functions;
+      const onScreen = () => {
+        const list = fns.shown(v.rowsAll, v.weekKey, v.statusKey, v.searchText, v.onlyLook, v.weekDays);
+        const keys = redwood ? (v.rwKeys || []).slice() : null;
+        return keys ? list.filter((r) => keys.indexOf(r.key) !== -1) : list;
+      };
       if (action === 'exportOpen') {
         v.exportOpen = !v.exportOpen;
         return;
@@ -49,14 +55,13 @@ define([
         v.picked = picked;
       } else if (action === 'pickClean') {
         // Next: tick the lines on screen that can be approved and need no look.
-        v.picked = fns.cleanKeys(v.rowsAll, fns.shown(v.rowsAll, v.weekKey, v.statusKey, v.searchText, v.onlyLook, v.weekDays), v.readOnly, v.weekDays);
+        v.picked = fns.cleanKeys(v.rowsAll, onScreen(), v.readOnly, v.weekDays);
         v.confirm = '';
         v.rowsAll = (v.rowsAll || []).map((r) => Object.assign({}, r));
       } else if (action === 'pickAll') {
         const picked = {};
         if (value === true || value === 'true') {
-          fns.shown(v.rowsAll, v.weekKey, v.statusKey, v.searchText, v.onlyLook, v.weekDays)
-            .filter((r) => fns.canAct(r, v.readOnly)).forEach((r) => { picked[r.key] = true; });
+          onScreen().filter((r) => fns.canAct(r, v.readOnly)).forEach((r) => { picked[r.key] = true; });
         }
         v.picked = picked;
         v.confirm = '';

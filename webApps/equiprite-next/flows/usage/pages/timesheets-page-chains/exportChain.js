@@ -6,7 +6,8 @@ define([
   'use strict';
 
   // Exports the week as shown (typed values included, before they are saved) or the requests on site as shown, as
-  // Excel, CSV, PDF or rows to paste.
+  // Excel, CSV, PDF or rows to paste. The Redwood look's table (rwqueue) exports what it shows, its column filters
+  // included (rwApplyChain).
   class exportChain extends ActionChain {
     async run(context, { format, what }) {
       const { $page } = context;
@@ -14,13 +15,13 @@ define([
       const fns = $page.functions;
       v.exportOpen = false;
       let res;
-      if (what === 'queue') {
+      if (what === 'queue' || what === 'rwqueue') {
         const kind = fns.queueChips(v.queue).filter((c) => c.key === v.queueKind)[0];
         res = await exportKit.run(format, {
           name: 'timesheets-requests',
           title: 'Requests on site',
           subtitle: [kind && kind.key !== 'all' ? kind.label : 'All', v.queueText ? '"' + v.queueText + '"' : ''].filter(Boolean).join(' · '),
-          rows: fns.queueShown(v.queue, v.queueText, v.queueKind),
+          rows: what === 'rwqueue' ? JSON.parse(JSON.stringify(v.rwShown || [])) : fns.queueShown(v.queue, v.queueText, v.queueKind),
           columns: fns.queueColumns(),
         });
       } else {

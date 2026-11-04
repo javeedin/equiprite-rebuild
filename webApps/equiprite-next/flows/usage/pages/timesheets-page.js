@@ -67,6 +67,16 @@ define(['resources/js/timeEntry', 'resources/js/exportKit', 'resources/js/nav', 
 
     weekTitle(weekStart) { return weekStart ? 'Week of ' + this.weekLabel(weekStart) : ''; }
 
+    /** Redwood look: the Smart Search page's subtitle, the current look's summary line with how many requests are on site. */
+    rwSubtitle(queue, isLoading, requestNumber, weekStart, projectName, closed) {
+      if (closed) return '';
+      const n = (queue || []).length;
+      if (isLoading && !requestNumber && !n) return 'Loading the requests on site…';
+      const head = this.plural(n, 'request') + ' on site';
+      if (requestNumber) return head + ' · ' + this.weekTitle(weekStart) + ' · ' + requestNumber + (projectName ? ' · ' + projectName : '');
+      return isLoading ? head : (n ? head : 'No request has equipment on site to enter time against.');
+    }
+
     stepOk(list, current, dir) { return !!this.stepWeek(list, current, dir); }
   }
 

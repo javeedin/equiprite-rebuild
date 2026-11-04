@@ -2,6 +2,208 @@
      last week) is marked and can be shown alone; "Select the lines that look right" ticks the rest for one approval.
      Approve, Send back and Adjust are New EquipRite's chains; under Fusion PPM rates approving is done in New. -->
 <div class="nx-page nx-ta">
+  <!-- ── Redwood (your menu, Look): Oracle's Smart Search page over the week's lines (oj-table, oj-badge, oj-c buttons), as
+       Old's Timesheet Approvals. Approve (the header's action), Send back, Adjust and the ticks are the current look's chains
+       on the same state; Week, Status, the search and Hours' "Needs a look" are the page's own filters. A click on a line
+       ticks it, as its tick box does. Put on the page the first time Redwood is shown, then kept, hidden under Current. -->
+  <oj-bind-if test="[[ $application.variables.lookSeen ]]">
+    <div class="nx-rw" id="taRedwood" :hidden="[[ $application.variables.look !== 'redwood' ]]">
+      <oj-sp-smart-search-page page-title="Approve time" display-mode="mixed"
+        page-subtitle="[[ $functions.summary($variables.rowsAll, $variables.weekKey, $variables.weekDays, $variables.isLoading) ]]"
+        primary-action="[[ $functions.rwPrimary($variables.rowsAll, $variables.picked, $variables.ppmOn, $variables.readOnly, $variables.isWorking, $variables.closed) ]]"
+        on-sp-primary-action="[[ $listeners.onAskApprove ]]">
+        <oj-sp-smart-search slot="search" filter-criterion="{{ $variables.rwCriterion }}" on-filter-criterion-changed="[[ $listeners.onRwFilter ]]"
+          search-context="[[ $variables.rwSearchContext ]]" search-config="[[ $variables.rwSearchConfig.provider ]]"
+          suggestion-filters='["RequestFilter", "ProjectFilter", "TypeFilter", "HoursFilter", "ChangeFilter", "StatusFilter", "WeekFilter", "EquipmentFilter", "SubmitterFilter"]'
+          placeholder="Request, equipment, project or submitter"></oj-sp-smart-search>
+        <oj-sp-collection-container>
+          <!-- One element that is always there: the collection container takes its children in once, so what comes and goes
+               (the Fusion note, the figures, a confirmation, a message, the adjustment) lives inside it. -->
+          <div class="nx-ta-rwtop">
+          <oj-bind-if test="[[ $variables.ppmOn && !$variables.closed ]]">
+            <div class="nx-u-fusion nx-ta-rwppm" id="taRwPpm">
+              <p><strong>Approve these in New EquipRite.</strong> Rates come from Fusion PPM, so approving a line also sends its hours to
+                Fusion PPM. EquipRite Next does not send anything to Fusion yet. You can look, adjust hours and send lines back here.</p>
+              <oj-bind-if test="[[ !!$functions.newApproveUrl($application.variables.appUrls.new, $variables.weekKey) ]]">
+                <a class="oj-link-standalone" id="taRwInNew" :href="[[ $functions.newApproveUrl($application.variables.appUrls.new, $variables.weekKey) ]]">Approve in New EquipRite</a>
+              </oj-bind-if>
+            </div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ !$variables.closed ]]">
+            <section class="nx-kpis nx-u-kpis nx-ta-rwkpis" aria-label="This week">
+              <div class="nx-kpi nx-u-kpi--wait" id="taRwKpiWaiting">
+                <span class="nx-kpi-label">Waiting for approval</span>
+                <span class="nx-kpi-value"><oj-bind-text value="[[ $functions.waiting($variables.rowsAll, $variables.weekKey, $variables.weekDays).lines ]]"></oj-bind-text></span>
+                <span class="nx-kpi-note"><oj-bind-text value="[[ $functions.waiting($variables.rowsAll, $variables.weekKey, $variables.weekDays).hours + ' h · '
+                  + $functions.money($functions.waiting($variables.rowsAll, $variables.weekKey, $variables.weekDays).cost) ]]"></oj-bind-text></span>
+              </div>
+              <div class="nx-kpi nx-u-kpi--muted" id="taRwKpiLook">
+                <span class="nx-kpi-label">Need a look</span>
+                <span class="nx-kpi-value"><oj-bind-text value="[[ $functions.waiting($variables.rowsAll, $variables.weekKey, $variables.weekDays).look ]]"></oj-bind-text></span>
+                <span class="nx-kpi-note">Over 10 h in a day, or 8 h more or less than last week</span>
+              </div>
+              <div class="nx-kpi nx-u-kpi--ready" id="taRwKpiSelected">
+                <span class="nx-kpi-label">Selected</span>
+                <span class="nx-kpi-value"><oj-bind-text value="[[ $functions.money($functions.selection($variables.rowsAll, $variables.picked).cost) ]]"></oj-bind-text></span>
+                <span class="nx-kpi-note"><oj-bind-text value="[[ $functions.plural($functions.selection($variables.rowsAll, $variables.picked).lines, 'line') + ' · '
+                  + $functions.selection($variables.rowsAll, $variables.picked).hours + ' h' ]]"></oj-bind-text></span>
+              </div>
+              <div class="nx-kpi nx-u-kpi--muted" id="taRwKpiAfter">
+                <span class="nx-kpi-label"><oj-bind-text value="[[ $functions.selection($variables.rowsAll, $variables.picked).lines ? 'Cost so far, after approval' : 'Cost so far on these requests' ]]"></oj-bind-text></span>
+                <span class="nx-kpi-value"><oj-bind-text value="[[ $functions.money($functions.afterApproval($variables.costByRequest, $variables.rowsAll, $variables.picked, $variables.weekKey)) ]]"></oj-bind-text></span>
+                <span class="nx-kpi-note"><oj-bind-text value="[[ $functions.afterNote($variables.rowsAll, $variables.picked, $variables.weekKey) ]]"></oj-bind-text></span>
+              </div>
+            </section>
+          </oj-bind-if>
+          <div class="nx-rw-tools nx-ta-rwtools">
+            <div class="nx-ta-rwbulk">
+              <oj-c-button id="taRwPickClean" chroming="outlined" size="sm" on-oj-action="[[ $listeners.onRwPickClean ]]"
+                label="[[ 'Select the lines that look right (' + $functions.cleanCount($variables.rowsAll, $functions.rwShownRows($variables.rowsAll, $variables.rwKeys), $variables.readOnly, $variables.weekDays) + ')' ]]"
+                disabled="[[ $variables.readOnly || $variables.isWorking || $functions.cleanCount($variables.rowsAll, $functions.rwShownRows($variables.rowsAll, $variables.rwKeys), $variables.readOnly, $variables.weekDays) === 0 ]]">
+                <span slot="startIcon" class="oj-ux-ico-check"></span></oj-c-button>
+              <oj-c-button id="taRwPickAll" chroming="borderless" size="sm" on-oj-action="[[ $listeners.onRwPickAll ]]"
+                label="[[ 'Select all (' + $functions.rwAllCount($variables.rowsAll, $variables.rwKeys, $variables.readOnly) + ')' ]]"
+                disabled="[[ $variables.readOnly || $variables.isWorking || $functions.rwAllCount($variables.rowsAll, $variables.rwKeys, $variables.readOnly) === 0 ]]"></oj-c-button>
+              <oj-c-button id="taRwPickNone" label="Clear" chroming="borderless" size="sm" on-oj-action="[[ $listeners.onPickNone ]]"
+                disabled="[[ $functions.selection($variables.rowsAll, $variables.picked).lines === 0 ]]"></oj-c-button>
+              <span class="oj-typography-body-sm oj-text-color-secondary" id="taRwSelection"><oj-bind-text value="[[ $functions.selectionText($variables.rowsAll, $variables.picked) ]]"></oj-bind-text></span>
+            </div>
+            <oj-c-button id="taRwReject" chroming="outlined" size="sm" on-oj-action="[[ $listeners.onAskReject ]]"
+              label="[[ $functions.rejectLabel($variables.rowsAll, $variables.picked) ]]"
+              disabled="[[ $variables.isWorking || $variables.readOnly || $functions.selection($variables.rowsAll, $variables.picked).lines === 0 ]]"></oj-c-button>
+            <oj-c-button id="taRwRefresh" label="Refresh" chroming="borderless" size="sm" disabled="[[ $variables.isLoading || $variables.isWorking || !!$variables.closed ]]"
+              on-oj-action="[[ $listeners.onRefresh ]]"><span slot="startIcon" class="oj-ux-ico-refresh"></span></oj-c-button>
+            <oj-c-button id="taRwExport" label="Export to Excel" chroming="borderless" size="sm" disabled="[[ !!$variables.closed ]]"
+              on-oj-action="[[ $listeners.onRwExport ]]"><span slot="startIcon" class="oj-ux-ico-download"></span></oj-c-button>
+          </div>
+
+          <oj-bind-if test="[[ $variables.confirm === 'approve' ]]">
+            <div class="nx-u-confirm nx-u-msg" role="alertdialog" aria-labelledby="taRwApproveTitle" id="taRwConfirm">
+              <span id="taRwApproveTitle">
+                <strong><oj-bind-text value="[[ 'Approve ' + $functions.plural($functions.selection($variables.rowsAll, $variables.picked).lines, 'line') + ', '
+                  + $functions.selection($variables.rowsAll, $variables.picked).hours + ' h, ' + $functions.money($functions.selection($variables.rowsAll, $variables.picked).cost) + '?' ]]"></oj-bind-text></strong>
+                <oj-bind-text value="[[ ' Requests: ' + $functions.selection($variables.rowsAll, $variables.picked).requests.join(', ') + '. The rate engine works out their cost; Finance posts it later from Post costs.' ]]"></oj-bind-text>
+              </span>
+              <span class="nx-actions">
+                <oj-c-button label="Cancel" chroming="outlined" on-oj-action="[[ $listeners.onCancelConfirm ]]"></oj-c-button>
+                <oj-c-button id="taRwApproveGo" label="Approve" chroming="callToAction" on-oj-action="[[ $listeners.onApprove ]]" disabled="[[ $variables.isWorking ]]"></oj-c-button>
+              </span>
+            </div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.confirm === 'reject' ]]">
+            <div class="nx-u-confirm nx-u-msg" role="alertdialog" aria-labelledby="taRwRejectTitle" id="taRwConfirm">
+              <span id="taRwRejectTitle">
+                <strong><oj-bind-text value="[[ 'Send back ' + $functions.plural($functions.selection($variables.rowsAll, $variables.picked).lines, 'line') + '?' ]]"></oj-bind-text></strong>
+                They go back to the timekeeper to correct and submit again.
+              </span>
+              <span class="nx-actions">
+                <oj-c-button label="Cancel" chroming="outlined" on-oj-action="[[ $listeners.onCancelConfirm ]]"></oj-c-button>
+                <oj-c-button id="taRwRejectGo" label="Send back" chroming="danger" on-oj-action="[[ $listeners.onReject ]]" disabled="[[ $variables.isWorking ]]"></oj-c-button>
+              </span>
+            </div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ !!$variables.actionError ]]">
+            <div class="nx-error nx-u-msg" role="alert" id="taRwError"><oj-bind-text value="[[ $variables.actionError ]]"></oj-bind-text></div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ !!$variables.actionNote && !$variables.actionError ]]">
+            <div class="nx-u-ok nx-u-msg" role="status" id="taRwNote"><oj-bind-text value="[[ $variables.actionNote ]]"></oj-bind-text></div>
+          </oj-bind-if>
+
+          <!-- Adjust a line's hours (adjustChain): the submitted hours are kept in the audit trail, the line stays waiting. -->
+          <oj-bind-if test="[[ !!$functions.rwAdjustRow($variables.rowsAll, $variables.adjust) ]]">
+            <div class="nx-ta-rwadjust" id="taRwAdjust">
+              <strong class="oj-typography-body-md oj-typography-bold"><oj-bind-text value="[[ $functions.rwAdjustTitle($variables.rowsAll, $variables.adjust) ]]"></oj-bind-text></strong>
+              <div class="nx-ta-rwdays">
+                <oj-bind-for-each data="[[ $variables.weekDays ]]">
+                  <template data-oj-as="day">
+                    <label class="nx-ta-rwday"><span><oj-bind-text value="[[ day.data.dow + ' ' + day.data.num ]]"></oj-bind-text></span>
+                      <input class="nx-ts-hours" type="text" inputmode="decimal" autocomplete="off" :data-d="[[ '' + day.data.i ]]"
+                        :value="[[ $functions.rwAdjustRaw($variables.rowsAll, $variables.adjust, day.data.i) ]]"
+                        :disabled="[[ !$functions.dayOpen($functions.rwAdjustRow($variables.rowsAll, $variables.adjust), day.data) ]]"
+                        :aria-label="[[ 'Adjusted hours, ' + day.data.label ]]" on-change="[[ $listeners.onAdjustDay ]]"></label>
+                  </template>
+                </oj-bind-for-each>
+              </div>
+              <label class="nx-ta-reason">
+                <span class="nx-ta-reason-label">Why are the hours changed? (the timekeeper sees this in the audit trail)</span>
+                <input class="nx-ta-input" type="text" placeholder="e.g. 18 h on Wednesday was a typo for 10"
+                  :value="[[ $variables.adjust ? $variables.adjust.reason : '' ]]" on-input="[[ $listeners.onAdjustReason ]]" aria-label="Why the hours are changed">
+              </label>
+              <span class="oj-typography-body-sm oj-text-color-secondary">The submitted hours are kept in the audit trail and the line stays waiting for approval; nobody has to submit again.</span>
+              <span class="nx-actions">
+                <oj-c-button label="Cancel" chroming="outlined" on-oj-action="[[ $listeners.onAdjustCancel ]]"></oj-c-button>
+                <oj-c-button id="taRwAdjustSave" label="Save the adjustment" chroming="callToAction" on-oj-action="[[ $listeners.onAdjustSave ]]" disabled="[[ $variables.isWorking ]]"></oj-c-button>
+              </span>
+            </div>
+          </oj-bind-if>
+          </div>
+
+          <oj-table id="taRwTable" data="[[ $variables.rwADP ]]" class="oj-sm-width-full nx-rw-table" aria-label="Submitted hours"
+            scroll-policy="loadMoreOnScroll" scroll-policy-options.fetch-size="50" display="list" horizontal-grid-visible="enabled"
+            layout="fixed" on-oj-row-action="[[ $listeners.onRwRow ]]"
+            columns='[
+              {"headerText": "Select", "template": "tickTpl", "sortable": "disabled", "weight": 6},
+              {"headerText": "Request", "field": "number", "template": "numTpl", "sortable": "enabled", "weight": 16},
+              {"headerText": "Project", "field": "project", "template": "projTpl", "sortable": "enabled", "weight": 16},
+              {"headerText": "Rate type", "field": "type", "template": "typeTpl", "sortable": "enabled", "weight": 10},
+              {"headerText": "Hours", "field": "totalHours", "template": "hoursTpl", "sortable": "enabled", "weight": 21},
+              {"headerText": "On last week", "field": "wow", "template": "wowTpl", "sortable": "disabled", "weight": 11},
+              {"headerText": "Status", "field": "status", "template": "statusTpl", "sortable": "enabled", "weight": 20}
+            ]'>
+            <template slot="tickTpl" data-oj-as="cell">
+              <oj-bind-if test="[[ cell.row.act ]]">
+                <span :class="[[ $functions.rwTickClass($variables.picked, cell.row.key) ]]" aria-hidden="true"></span>
+                <span class="oj-helper-hidden-accessible"><oj-bind-text value="[[ $functions.isPicked($variables.picked, cell.row.key) ? 'Selected' : 'Not selected' ]]"></oj-bind-text></span>
+              </oj-bind-if>
+            </template>
+            <template slot="numTpl" data-oj-as="cell">
+              <div class="nx-rw-cell"><span class="oj-typography-body-md oj-typography-bold nx-rw-num"><oj-bind-text value="[[ cell.row.number ]]"></oj-bind-text></span>
+                <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.equipment ]]"></oj-bind-text></span></div>
+            </template>
+            <template slot="projTpl" data-oj-as="cell">
+              <div class="nx-rw-cell"><span class="oj-typography-body-md"><oj-bind-text value="[[ cell.row.project ]]"></oj-bind-text></span>
+                <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.by ]]"></oj-bind-text></span></div>
+            </template>
+            <template slot="typeTpl" data-oj-as="cell">
+              <span class="oj-typography-body-sm"><oj-bind-text value="[[ cell.row.type ]]"></oj-bind-text></span>
+            </template>
+            <template slot="hoursTpl" data-oj-as="cell">
+              <div class="nx-rw-cell"><span class="oj-typography-body-md oj-typography-bold"><oj-bind-text value="[[ cell.row.hours ]]"></oj-bind-text></span>
+                <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.days ]]"></oj-bind-text></span>
+                <oj-bind-if test="[[ cell.row.tags.length > 0 ]]">
+                  <div class="nx-rw-steps">
+                    <oj-bind-for-each data="[[ cell.row.tags ]]">
+                      <template data-oj-as="x"><span :class="[[ x.data.badge ]]"><oj-bind-text value="[[ x.data.text ]]"></oj-bind-text></span></template>
+                    </oj-bind-for-each>
+                  </div>
+                </oj-bind-if></div>
+            </template>
+            <template slot="wowTpl" data-oj-as="cell">
+              <span class="oj-typography-body-sm" :title="[[ cell.row.wowText ]]"><oj-bind-text value="[[ cell.row.wow ]]"></oj-bind-text></span>
+            </template>
+            <template slot="statusTpl" data-oj-as="cell">
+              <div class="nx-rw-cell">
+                <div class="nx-rw-steps"><span :class="[[ cell.row.badge ]]"><oj-bind-text value="[[ cell.row.status ]]"></oj-bind-text></span>
+                  <oj-bind-if test="[[ cell.row.adjusted ]]"><span class="oj-badge oj-badge-subtle">Adjusted</span></oj-bind-if></div>
+                <oj-bind-if test="[[ cell.row.act && !$functions.isAdjusting($variables.adjust, cell.row) ]]">
+                  <div class="nx-rw-steps" data-oj-clickthrough="disabled">
+                    <oj-c-button size="sm" label="Adjust" chroming="outlined" :data-key="[[ cell.row.key ]]" disabled="[[ $variables.isWorking ]]"
+                      on-oj-action="[[ $listeners.onAdjustStart ]]"></oj-c-button>
+                  </div>
+                </oj-bind-if></div>
+            </template>
+            <template slot="noData">
+              <div class="oj-sm-padding-6x oj-typography-body-md oj-text-color-secondary"><oj-bind-text value="[[ $variables.isLoading ? 'Loading the submitted hours…'
+                : ($variables.closed ? $variables.closed : 'Nothing matches this week, status and filters. Try another filter or clear the search.') ]]"></oj-bind-text></div>
+            </template>
+          </oj-table>
+        </oj-sp-collection-container>
+      </oj-sp-smart-search-page>
+    </div>
+  </oj-bind-if>
+
+  <!-- ── The current look ────────────────────────────────────────────────────────────────────────────────── -->
+  <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
   <div class="nx-pagehead">
     <div>
       <h1>Approve time</h1>
@@ -28,6 +230,7 @@
       </div>
     </div>
   </div>
+  </oj-bind-if>
 
   <oj-bind-if test="[[ !!$variables.closed ]]">
     <div class="nx-card nx-empty" role="alert"><oj-bind-text value="[[ $variables.closed ]]"></oj-bind-text></div>
@@ -36,7 +239,7 @@
     <div class="nx-error" role="alert"><oj-bind-text value="[[ $variables.loadError ]]"></oj-bind-text></div>
   </oj-bind-if>
 
-  <oj-bind-if test="[[ $variables.ppmOn && !$variables.closed ]]">
+  <oj-bind-if test="[[ $variables.ppmOn && !$variables.closed && $application.variables.look !== 'redwood' ]]">
     <div class="nx-u-fusion" id="taPpm">
       <p><strong>Approve these in New EquipRite.</strong> Rates come from Fusion PPM, so approving a line also sends its hours to
         Fusion PPM. EquipRite Next does not send anything to Fusion yet. You can look, adjust hours and send lines back here.</p>
@@ -47,7 +250,7 @@
     </div>
   </oj-bind-if>
 
-  <oj-bind-if test="[[ !$variables.closed ]]">
+  <oj-bind-if test="[[ !$variables.closed && $application.variables.look !== 'redwood' ]]">
     <section class="nx-kpis nx-u-kpis" aria-label="This week">
       <div class="nx-kpi nx-u-kpi--wait" id="taKpiWaiting">
         <span class="nx-kpi-label">Waiting for approval</span>

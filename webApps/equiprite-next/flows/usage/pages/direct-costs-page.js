@@ -25,6 +25,24 @@ define(['resources/js/directCost', 'resources/js/exportKit', 'resources/js/nav',
       return 'nx-ts-qitem' + (current && current.id === r.id ? ' nx-ts-qitem--on' : '');
     }
 
+    // ── Redwood look (your menu, Look): Oracle's general overview page as the header ──
+
+    /** The header's subtitle: the current look's line under the title. */
+    rwSubtitle(requests, isLoading, current) {
+      if (isLoading && !(requests || []).length) return 'Loading the active requests…';
+      if (!current) return 'Fuel, parts and consumables used on approved and active requests';
+      return current.requestNumber + ' · ' + (current.projectName || '—') + (current.taskName ? ' / ' + current.taskName : '');
+    }
+
+    /** The header's primary action: the current look's "Record in New EquipRite", on the request that is open. */
+    rwPrimary(newBase, current) {
+      return { label: 'Record in New EquipRite', display: current && this.newUrl(newBase, current.requestNumber) ? 'on' : 'off' };
+    }
+
+    rwActions(isLoading, detailLoading, closed) {
+      return [{ id: 'refresh', label: 'Refresh', icon: 'oj-ux-ico-refresh', display: isLoading || detailLoading || closed ? 'disabled' : 'on' }];
+    }
+
     leftClass(l) {
       return 'nx-num nx-u-cell-r' + (l.consumable && l.left === 0 ? ' nx-dc-none' : '');
     }

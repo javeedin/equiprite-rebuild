@@ -11,7 +11,8 @@
     "list": {
       "type": "any[]",
       "defaultValue": [],
-      "description": "One row per request (New's buildList over views/post-cost and the misc charges)."
+      "description": "One row per request (New's buildList over views/post-cost and the misc charges).",
+      "onValueChanged": { "chains": [{ "chain": "rwApplyChain" }] }
     },
     "misc": {
       "type": "any[]",
@@ -20,7 +21,8 @@
     "breakdown": {
       "type": "any",
       "defaultValue": {},
-      "description": "{ requestNumber: { ready, posted, running, pending, lastPosted, … } } as each request is worked out (costData.breakdown)."
+      "description": "{ requestNumber: { ready, posted, running, pending, lastPosted, … } } as each request is worked out (costData.breakdown).",
+      "onValueChanged": { "chains": [{ "chain": "rwApplyChain" }] }
     },
     "progress": {
       "type": "any",
@@ -33,19 +35,23 @@
     },
     "text": {
       "type": "string",
-      "defaultValue": ""
+      "defaultValue": "",
+      "onValueChanged": { "chains": [{ "chain": "rwApplyChain" }] }
     },
     "chip": {
       "type": "string",
-      "defaultValue": "all"
+      "defaultValue": "all",
+      "onValueChanged": { "chains": [{ "chain": "rwApplyChain" }] }
     },
     "sortKey": {
       "type": "string",
-      "defaultValue": "request"
+      "defaultValue": "request",
+      "onValueChanged": { "chains": [{ "chain": "rwApplyChain" }] }
     },
     "sortDir": {
       "type": "string",
-      "defaultValue": "desc"
+      "defaultValue": "desc",
+      "onValueChanged": { "chains": [{ "chain": "rwApplyChain" }] }
     },
     "limit": {
       "type": "number",
@@ -66,7 +72,256 @@
     "readOnly": {
       "type": "boolean",
       "defaultValue": true,
-      "description": "Post costs is read-only for the role (New's isPageReadOnly on EQR_POST_COST): no Post affordances."
+      "description": "Post costs is read-only for the role (New's isPageReadOnly on EQR_POST_COST): no Post affordances.",
+      "onValueChanged": { "chains": [{ "chain": "rwApplyChain" }] }
+    },
+    "rwRows": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood look (your menu): one oj-table row per request shown (rwApplyChain: the current look's shownRows, narrowed by rwCols)."
+    },
+    "rwADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "key",
+        "data": "{{ $page.variables.rwRows }}"
+      }
+    },
+    "rwKeys": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood look: the request numbers its table shows (for its export)."
+    },
+    "rwNext": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "Redwood look: the newest request with cost ready to post (nextReady), for the header's Post action."
+    },
+    "rwPage": {
+      "type": "object",
+      "defaultValue": {
+        "text": "",
+        "status": ""
+      },
+      "description": "Redwood look: what Smart Search last said for the page's own search and chip (rwFilterChain passes on only a change)."
+    },
+    "rwCriterion": {
+      "type": "any",
+      "description": "Redwood look: the Smart Search criterion (text and filters); rwFilterChain reads it."
+    },
+    "rwCols": {
+      "type": "object",
+      "defaultValue": {
+        "number": "",
+        "project": "",
+        "rental": "",
+        "cost": "",
+        "ready": "",
+        "posted": "",
+        "task": ""
+      },
+      "description": "Redwood look: the column filters picked in Smart Search (rwFilterChain); they narrow the Redwood table only."
+    },
+    "rwSearchConfig": {
+      "type": "oj-sp/smart-search/strategies/JsonSearchConfigProviderFactory",
+      "defaultValue": {
+        "url": "[[ $application.path + 'resources/data/postCostsSearchConfig.json' ]]"
+      }
+    },
+    "rwNumbers": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood look: the Request filter's options (rwApplyChain, usageRedwood.pcOptions)."
+    },
+    "rwNumbersADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwNumbers }}"
+      }
+    },
+    "rwProjects": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood look: the Project filter's options with their counts."
+    },
+    "rwProjectsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwProjects }}"
+      }
+    },
+    "rwRentals": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood look: the Rental filter's options (over, running, not started) with their counts."
+    },
+    "rwRentalsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwRentals }}"
+      }
+    },
+    "rwStatuses": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood look: the Status filter's options: the page's own chips (chip) with their counts."
+    },
+    "rwStatusesADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwStatuses }}"
+      }
+    },
+    "rwCosts": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood look: the Cost to date filter's options with their counts."
+    },
+    "rwCostsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwCosts }}"
+      }
+    },
+    "rwReady": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood look: the Ready to post filter's options (weeks ended, charges, nothing) with their counts."
+    },
+    "rwReadyADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwReady }}"
+      }
+    },
+    "rwPosted": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood look: the Posted filter's options with their counts."
+    },
+    "rwPostedADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwPosted }}"
+      }
+    },
+    "rwTasks": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood look: the Task filter's options with their counts."
+    },
+    "rwTasksADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwTasks }}"
+      }
+    },
+    "rwSearchContext": {
+      "type": "object",
+      "defaultValue": {
+        "$search": {
+          "filters": {
+            "RequestFilter": {
+              "label": "Request",
+              "options": {
+                "optionsData": "[[ $page.variables.rwNumbersADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "ProjectFilter": {
+              "label": "Project",
+              "options": {
+                "optionsData": "[[ $page.variables.rwProjectsADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "RentalFilter": {
+              "label": "Rental",
+              "options": {
+                "optionsData": "[[ $page.variables.rwRentalsADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "StatusFilter": {
+              "label": "Status",
+              "options": {
+                "optionsData": "[[ $page.variables.rwStatusesADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "CostFilter": {
+              "label": "Cost to date",
+              "options": {
+                "optionsData": "[[ $page.variables.rwCostsADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "ReadyFilter": {
+              "label": "Ready to post",
+              "options": {
+                "optionsData": "[[ $page.variables.rwReadyADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "PostedFilter": {
+              "label": "Posted",
+              "options": {
+                "optionsData": "[[ $page.variables.rwPostedADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "TaskFilter": {
+              "label": "Task",
+              "options": {
+                "optionsData": "[[ $page.variables.rwTasksADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            }
+          }
+        }
+      },
+      "description": "Redwood look: every filter in the search config has its entry here (one without throws and blanks the table)."
     }
   },
   "events": {
@@ -102,13 +357,22 @@
     },
     "onExport": {
       "chains": [{ "chain": "exportChain", "parameters": { "format": "{{ $event.currentTarget.dataset.format }}" } }]
-    }
+    },
+    "onRwFilter": { "chains": [{ "chain": "rwFilterChain" }] },
+    "onRwRow": { "chains": [{ "chain": "openRecordChain", "parameters": { "number": "{{ $event.detail.context.key }}" } }] },
+    "onRwPostNext": { "chains": [{ "chain": "openRecordChain", "parameters": { "number": "{{ $variables.rwNext }}" } }] },
+    "onRwExport": { "chains": [{ "chain": "exportChain", "parameters": { "format": "xlsx", "redwood": true } }] }
   },
   "imports": {
     "components": {
       "oj-bind-for-each": { "path": "ojs/ojknockout" },
       "oj-bind-if": { "path": "ojs/ojknockout" },
-      "oj-bind-text": { "path": "ojs/ojknockout" }
+      "oj-bind-text": { "path": "ojs/ojknockout" },
+      "oj-sp-smart-search-page": { "path": "oj-sp/smart-search-page/loader" },
+      "oj-sp-smart-search": { "path": "oj-sp/smart-search/loader" },
+      "oj-sp-collection-container": { "path": "oj-sp/collection-container/loader" },
+      "oj-table": { "path": "ojs/ojtable" },
+      "oj-c-button": { "path": "oj-c/button" }
     }
   }
 }

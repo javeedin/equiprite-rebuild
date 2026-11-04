@@ -1,0 +1,95 @@
+{
+  "description": "Approve time (Redwood view): the Smart Search filters, one per column as the table shows them (Request, Project, Rate type, Hours, On last week, Status), then Week, Equipment and Submitted by. Week, Status and Hours' Needs a look are the page's own week, status and needs-a-look; the others narrow the Redwood table only. Every filter here needs its entry in approve-time-page.json's rwSearchContext (the widget evaluates every filter in this file, and one without context throws and blanks the table).",
+  "filters": {
+    "RequestFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Request",
+      "options": {
+        "field": "number",
+        "optionsData": "[[ $search.filters.RequestFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.RequestFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "ProjectFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Project",
+      "options": {
+        "field": "project",
+        "optionsData": "[[ $search.filters.ProjectFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.ProjectFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "TypeFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Rate type",
+      "options": {
+        "field": "type",
+        "optionsData": "[[ $search.filters.TypeFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.TypeFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "HoursFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Hours",
+      "options": {
+        "field": "hours",
+        "optionsData": "[[ $search.filters.HoursFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.HoursFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "ChangeFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "On last week",
+      "options": {
+        "field": "change",
+        "optionsData": "[[ $search.filters.ChangeFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.ChangeFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "StatusFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Status",
+      "options": {
+        "field": "status",
+        "optionsData": "[[ $search.filters.StatusFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.StatusFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "WeekFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Week",
+      "options": {
+        "field": "week",
+        "optionsData": "[[ $search.filters.WeekFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.WeekFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "EquipmentFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Equipment",
+      "options": {
+        "field": "equipment",
+        "optionsData": "[[ $search.filters.EquipmentFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.EquipmentFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "SubmitterFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Submitted by",
+      "options": {
+        "field": "submitter",
+        "optionsData": "[[ $search.filters.SubmitterFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.SubmitterFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    }
+  }
+}

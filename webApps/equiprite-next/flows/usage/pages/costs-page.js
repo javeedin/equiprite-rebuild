@@ -76,6 +76,17 @@ define(['resources/js/costPreview', 'resources/js/costPosting', 'resources/js/ex
       return this.plural(b.runningWeeks, 'week') + ' not ended';
     }
 
+    /** Redwood look: the header's primary action, the current look's "Post REQ-…" (the newest request with cost ready). */
+    rwPrimary(next, readOnly, closed) {
+      return { label: next ? 'Post ' + next : 'Post', display: next && !readOnly && !closed ? 'on' : 'off' };
+    }
+
+    /** Redwood look: the line over the table, as the current look's Fusion note says it. */
+    rwNote(readOnly) {
+      return readOnly ? 'Your role can see what is ready and what was posted, not post it. Open a request to see what would be posted.'
+        : 'Open a request to choose its ended weeks and charges, see exactly what will be sent, and post it to Fusion PPM.';
+    }
+
     /** The rows shown, each with its breakdown attached (for the template and the export). */
     shownRows(list, text, chip, breakdown, sortKey, sortDir) {
       const b = breakdown || {};

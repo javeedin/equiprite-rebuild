@@ -77,6 +77,48 @@ define(['resources/js/timeApproval', 'resources/js/exportKit', 'resources/js/nav
       return this.costToDate(costByRequest, s.requests) + s.cost;
     }
 
+    // ── Redwood look (your menu, Look): Oracle's Smart Search page ──
+
+    /** The header's primary action: Approve the ticked lines (approveChain), shut as the current look's button is; none
+     * under Fusion PPM rates, where approving is done in New EquipRite. */
+    rwPrimary(rowsAll, picked, ppmOn, readOnly, isWorking, closed) {
+      if (ppmOn || closed) return { label: 'Approve', display: 'off' };
+      const shut = readOnly || isWorking || this.selection(rowsAll, picked).lines === 0;
+      return { label: this.approveLabel(rowsAll, picked), display: shut ? 'disabled' : 'on' };
+    }
+
+    /** The line being adjusted, as loaded (its days and dates), or null. */
+    rwAdjustRow(rowsAll, adjust) {
+      return (adjust && (rowsAll || []).find((r) => r.key === adjust.key)) || null;
+    }
+
+    rwAdjustTitle(rowsAll, adjust) {
+      const r = this.rwAdjustRow(rowsAll, adjust);
+      return r ? 'Adjust ' + r.requestNumber + ' · ' + r.equipmentName : '';
+    }
+
+    /** A day's box in the adjustment: what was typed, else the submitted hours. */
+    rwAdjustRaw(rowsAll, adjust, i) {
+      const r = this.rwAdjustRow(rowsAll, adjust);
+      return r ? this.adjustRaw(adjust, r, i) : '';
+    }
+
+    /** A line's tick in the table: Oracle's checkbox icon, following what is ticked (a click on the line ticks it). */
+    rwTickClass(picked, key) {
+      return 'nx-ta-rwtick ' + (this.isPicked(picked, key) ? 'oj-ux-ico-checkbox-on nx-ta-rwtick--on' : 'oj-ux-ico-checkbox-off');
+    }
+
+    /** The lines the Redwood table shows, as loaded (rwApplyChain's rwKeys). */
+    rwShownRows(rowsAll, rwKeys) {
+      const keys = rwKeys || [];
+      return (rowsAll || []).filter((r) => keys.indexOf(r.key) !== -1);
+    }
+
+    /** "Select all (3)": the lines in the table that can be approved. */
+    rwAllCount(rowsAll, rwKeys, readOnly) {
+      return this.rwShownRows(rowsAll, rwKeys).filter((r) => this.canAct(r, readOnly)).length;
+    }
+
     afterNote(rowsAll, picked, week) {
       const s = this.selection(rowsAll, picked);
       if (s.lines) return 'On ' + s.requests.join(', ') + ', with the selection';

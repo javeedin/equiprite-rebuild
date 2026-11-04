@@ -2,6 +2,71 @@
      between boxes; totals by day, by row and by rate type; what is missing; Copy last week. Save and Submit are New
      EquipRite's (saveTimesheetChain). Typed values live in $variables.edits, so the grid keeps its focus. -->
 <div class="nx-page nx-ts">
+  <!-- ── Redwood (your menu, Look): Oracle's Smart Search page over the requests on site (oj-table, oj-badge, oj-c buttons),
+       as Old's Equipment Timesheets. A row opens its week in the grid below, the same week entry as the current look
+       (moveChain); Smart Search's text and Status are the page's own search and chip. Put on the page the first time
+       Redwood is shown, then kept, hidden under Current (Smart Search throws if taken off the page while it settles). -->
+  <oj-bind-if test="[[ $application.variables.lookSeen ]]">
+    <div class="nx-rw" id="tsRedwood" :hidden="[[ $application.variables.look !== 'redwood' ]]">
+      <oj-sp-smart-search-page page-title="Timesheets" display-mode="mixed" primary-action.display="off"
+        page-subtitle="[[ $functions.rwSubtitle($variables.queue, $variables.isLoading, $variables.requestNumber, $variables.weekStart, $variables.projectName, $variables.closed) ]]">
+        <oj-sp-smart-search slot="search" filter-criterion="{{ $variables.rwCriterion }}" on-filter-criterion-changed="[[ $listeners.onRwFilter ]]"
+          search-context="[[ $variables.rwSearchContext ]]" search-config="[[ $variables.rwSearchConfig.provider ]]"
+          suggestion-filters='["RequestFilter", "ProjectFilter", "TaskFilter", "EquipmentFilter", "WeekFilter", "HoursFilter", "StatusFilter"]' placeholder="Request, project or task"></oj-sp-smart-search>
+        <oj-sp-collection-container>
+          <div class="nx-rw-tools">
+            <oj-c-button id="tsRwRefresh" label="Refresh" chroming="borderless" size="sm" disabled="[[ $variables.isLoading || $variables.isSaving || !!$variables.closed ]]"
+              on-oj-action="[[ $listeners.onRefresh ]]"><span slot="startIcon" class="oj-ux-ico-refresh"></span></oj-c-button>
+            <oj-c-button id="tsRwExport" label="Export to Excel" chroming="borderless" size="sm" disabled="[[ !!$variables.closed ]]"
+              on-oj-action="[[ $listeners.onRwExport ]]"><span slot="startIcon" class="oj-ux-ico-download"></span></oj-c-button>
+          </div>
+          <oj-table id="tsRwTable" data="[[ $variables.rwADP ]]" class="oj-sm-width-full nx-rw-table" aria-label="Requests on site"
+            scroll-policy="loadMoreOnScroll" scroll-policy-options.fetch-size="50" display="list" horizontal-grid-visible="enabled"
+            layout="fixed" on-oj-row-action="[[ $listeners.onRwRow ]]"
+            columns='[
+              {"headerText": "Request", "field": "number", "template": "numTpl", "sortable": "enabled", "weight": 13},
+              {"headerText": "Project", "field": "project", "template": "projTpl", "sortable": "enabled", "weight": 16},
+              {"headerText": "Task", "field": "task", "template": "taskTpl", "sortable": "enabled", "weight": 11},
+              {"headerText": "Equipment", "field": "equipCount", "template": "eqTpl", "sortable": "enabled", "weight": 15},
+              {"headerText": "Week", "field": "weekStart", "template": "weekTpl", "sortable": "enabled", "weight": 11},
+              {"headerText": "Hours", "field": "totalHours", "template": "hoursTpl", "sortable": "enabled", "weight": 11},
+              {"headerText": "Status", "field": "status", "template": "statusTpl", "sortable": "enabled", "weight": 23}
+            ]'>
+            <template slot="numTpl" data-oj-as="cell">
+              <div class="nx-rw-cell"><span class="oj-typography-body-md oj-typography-bold oj-link-standalone nx-rw-num"><oj-bind-text value="[[ cell.row.number ]]"></oj-bind-text></span>
+                <oj-bind-if test="[[ cell.row.open ]]"><span class="oj-badge oj-badge-info">Open below</span></oj-bind-if></div>
+            </template>
+            <template slot="projTpl" data-oj-as="cell">
+              <span class="oj-typography-body-md"><oj-bind-text value="[[ cell.row.project ]]"></oj-bind-text></span>
+            </template>
+            <template slot="taskTpl" data-oj-as="cell">
+              <span class="oj-typography-body-sm"><oj-bind-text value="[[ cell.row.task ]]"></oj-bind-text></span>
+            </template>
+            <template slot="eqTpl" data-oj-as="cell">
+              <span class="oj-typography-body-sm"><oj-bind-text value="[[ cell.row.equipment ]]"></oj-bind-text></span>
+            </template>
+            <template slot="weekTpl" data-oj-as="cell">
+              <span class="oj-typography-body-sm"><oj-bind-text value="[[ cell.row.week ]]"></oj-bind-text></span>
+            </template>
+            <template slot="hoursTpl" data-oj-as="cell">
+              <div class="nx-rw-cell"><span class="oj-typography-body-md"><oj-bind-text value="[[ cell.row.hours ]]"></oj-bind-text></span>
+                <oj-bind-if test="[[ !!cell.row.bill ]]"><span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.bill ]]"></oj-bind-text></span></oj-bind-if></div>
+            </template>
+            <template slot="statusTpl" data-oj-as="cell">
+              <span :class="[[ cell.row.badge ]]"><oj-bind-text value="[[ cell.row.status ]]"></oj-bind-text></span>
+            </template>
+            <template slot="noData">
+              <div class="oj-sm-padding-6x oj-typography-body-md oj-text-color-secondary"><oj-bind-text value="[[ $variables.queueLoading ? 'Loading the requests on site…'
+                : ($variables.queue.length ? 'Nothing matches. Try another filter or clear the search.' : 'No request has a deployed line to enter time against.') ]]"></oj-bind-text></div>
+            </template>
+          </oj-table>
+        </oj-sp-collection-container>
+      </oj-sp-smart-search-page>
+    </div>
+  </oj-bind-if>
+
+  <!-- ── The current look ────────────────────────────────────────────────────────────────────────────────── -->
+  <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
   <div class="nx-pagehead">
     <div>
       <h1>Timesheets</h1>
@@ -41,6 +106,7 @@
       </div>
     </div>
   </div>
+  </oj-bind-if>
 
   <oj-bind-if test="[[ !!$variables.closed ]]">
     <div class="nx-card nx-empty" role="alert" id="tsClosed"><oj-bind-text value="[[ $variables.closed ]]"></oj-bind-text></div>
@@ -49,8 +115,8 @@
     <div class="nx-error" role="alert"><oj-bind-text value="[[ $variables.loadError ]]"></oj-bind-text></div>
   </oj-bind-if>
 
-  <!-- ── The requests on site ─────────────────────────────────────────────────────────────────────────── -->
-  <oj-bind-if test="[[ !$variables.closed ]]">
+  <!-- ── The requests on site (the current look; Redwood shows them as its table, above) ───────────────── -->
+  <oj-bind-if test="[[ !$variables.closed && $application.variables.look !== 'redwood' ]]">
     <section class="nx-card nx-ts-queue" aria-labelledby="tsQueueTitle">
       <div class="nx-u-cardhead">
         <h2 class="nx-u-h2" id="tsQueueTitle"><oj-bind-text value="[[ 'Requests on site (' + $variables.queue.length + ')' ]]"></oj-bind-text></h2>
