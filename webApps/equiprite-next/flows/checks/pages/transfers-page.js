@@ -15,6 +15,12 @@ define(['resources/js/exportKit', 'resources/js/nav', 'resources/js/transferList
     /** Inter-project transfer switched off in Configuration (ENABLE_INTER_PROJECT_TRANSFER explicitly false). */
     interProjectOff(flags, loaded) { return list.interProjectOff(flags, loaded); }
 
+    /** Redwood view: the Smart Search page's primary action, Move equipment between projects (in New), as on the current look. */
+    rwPrimary(base, flags, loaded) {
+      const on = !!this.newUrl(base, 'transfers') && !this.interProjectOff(flags, loaded);
+      return { label: 'Move equipment between projects (in New)', icon: 'oj-ux-ico-external-link', display: on ? 'on' : 'off' };
+    }
+
     /** "3 units" / "Open to see the equipment". */
     unitsText(r) {
       if (!r.read) return r.state === 'cancelled' ? '' : 'Open it to see the equipment';

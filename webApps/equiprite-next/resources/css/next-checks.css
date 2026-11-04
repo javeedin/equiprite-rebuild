@@ -190,3 +190,14 @@ textarea.nx-insp-input { height: auto; padding: 8px 10px; resize: vertical; }
   .nx-trf-legs { grid-template-columns: minmax(0, 1fr); }
   .nx-trf-arrow { transform: rotate(90deg); justify-self: center; }
 }
+
+/* ── Redwood (your menu, Look): Transfers and the Inspections queue are Oracle's Smart Search page over an oj-table, a
+   transfer's tab and a unit being inspected Oracle's general overview page over the screen's own body (next-redwood.css
+   sets them out). Here only what that leaves: the checklist takes the width (the queue is the table, not a column
+   beside it), and the unit's own head card keeps its facts, its title and buttons being the template's header now. ── */
+html[data-nx-look="redwood"] .nx-insp-page .nx-insp { grid-template-columns: minmax(0, 1fr); }
+html[data-nx-look="redwood"] .nx-insp-page .nx-insp-head-top { display: none; }
+html[data-nx-look="redwood"] .nx-insp-page .nx-insp-head .nx-insp-facts { margin-top: 0; }
+html[data-nx-look="redwood"] .nx-trf-rw-note { align-self: center; margin-right: auto; }
+/* Where a transfer is can take a few words ("Waiting for the inter-org transfer in Fusion"): its badge wraps, never clips. */
+html[data-nx-look="redwood"] .nx-trf-page #trfRwTable .oj-badge { white-space: normal; height: auto; max-width: 100%; line-height: 1.35; padding-top: 2px; padding-bottom: 2px; }

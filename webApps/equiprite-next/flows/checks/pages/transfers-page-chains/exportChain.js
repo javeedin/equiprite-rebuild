@@ -17,7 +17,8 @@ define([
         name: 'transfers',
         title: 'Transfers',
         subtitle: [chip ? chip.label : 'All', kind && kind.key !== 'all' ? kind.label : '', v.text ? '"' + v.text + '"' : ''].filter(Boolean).join(' · '),
-        rows: v.shown,
+        // The Redwood view exports what its table shows: the list narrowed by its column filters too.
+        rows: context.$application.variables.look === 'redwood' ? v.rwShown : v.shown,
         columns: list.exportColumns(),
       });
       bus.toast(res.message, res.ok ? 'info' : 'error');

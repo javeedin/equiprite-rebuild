@@ -24,12 +24,14 @@ define([
         });
       } else {
         const tile = (v.tiles || []).filter((t) => t.key === v.stage)[0];
+        // The Redwood view exports what its table shows: the list narrowed by its column filters too.
+        const list = context.$application.variables.look === 'redwood' ? v.rwShown : v.shown;
         res = await exportKit.run(format, {
           name: 'picking',
           title: 'Picking & shipping',
           subtitle: [tile ? tile.label : 'Every stage', v.yard !== 'all' ? v.yard : '', v.text ? '"' + v.text + '"' : ''].filter((x) => !!x).join(' · '),
           // In the list's order (sections, late first), hidden sections included: they are part of what is filtered.
-          rows: yw.shownPieces([].concat(...yw.sections('picking', v.shown, {}).map((s) => s.items)), { stage: v.stage, yard: v.yard }),
+          rows: yw.shownPieces([].concat(...yw.sections('picking', list, {}).map((s) => s.items)), { stage: v.stage, yard: v.yard }),
           columns: yw.exportColumns('picking'),
         });
       }

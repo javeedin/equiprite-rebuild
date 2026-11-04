@@ -160,6 +160,98 @@ define(['resources/js/inspectionRules', 'resources/js/fmt', 'resources/js/reques
     return text + 'The line status does not change here: the ' + (point === 'SHIP_OUT_SITE' ? 'return' : 'receipt') + ' itself is done in Receiving & returns.';
   }
 
+  // ── The Redwood view (your menu, Look) ─────────────────────────────────────────────────────────────────────────
+  // The queue as Oracle's Smart Search page over an oj-table: the same units the current look shows (its scope, chip and
+  // search), each a flat row with its inspection point as an oj-badge; a Smart Search filter per column with what the
+  // rows hold and how many; the column filters only the Redwood view shows. A unit open: the badge on Oracle's header.
+
+  // The point (or Failed inspection), as Oracle's own badge (Redwood theme classes), by its journey colour.
+  var REDWOOD_BADGE = {
+    ready: 'oj-badge oj-badge-warning oj-badge-subtle', out: 'oj-badge oj-badge-info', back: 'oj-badge oj-badge-info oj-badge-subtle',
+    stopped: 'oj-badge oj-badge-danger oj-badge-subtle'
+  };
+  // The same, and a result's colour (tone), on the general overview page's header badge (its status names).
+  var HEADER_STATUS = { ready: 'warning', out: 'info', back: 'info', stopped: 'danger', onsite: 'success', draft: 'neutral' };
+  // The When filter: where the date a unit is needed by (or its rental ends) is.
+  var WHEN_WINDOWS = [
+    { key: 'late', label: 'Late' },
+    { key: 'week', label: 'In the next 7 days' },
+    { key: 'later', label: 'Later' },
+    { key: 'past', label: 'Already past' },
+    { key: 'none', label: 'No date' }
+  ];
+
+  /** The When filter's value of a queue entry (WHEN_WINDOWS keys): leaving or reaching the site by its start, back by its end. */
+  function whenKey(e, now) {
+    if (e.late) return 'late';
+    var out = e.point === 'SHIP_OUT_YARD' || e.point === 'RECEIVE_SITE';
+    var d = fmt.dayMs(out ? iso(e.startDate || e.requestedStartDate) : iso(e.endDate || e.requestedEndDate));
+    if (d == null) return 'none';
+    var n = Math.round((d - fmt.today(now)) / DAY);
+    if (n < 0) return 'past';
+    return n <= 7 ? 'week' : 'later';
+  }
+
+  /** One flat row per unit shown, for the oj-table: what each cell says and its badge. */
+  function redwoodRows(list) {
+    return (Array.isArray(list) ? list : []).map(function (e) {
+      return {
+        key: String(e.lineId),
+        unit: e.unit,
+        cls: e.className || '',
+        request: e.requestNumber || '—',
+        party: e.party,
+        point: e.failed ? 'Failed inspection' : e.pointWords,
+        badge: REDWOOD_BADGE[e.stage] || REDWOOD_BADGE.ready,
+        where: e.statusWords,
+        when: e.late ? e.lateText : (e.when || '—'),
+        late: !!e.late,
+        asked: e.required ? 'Asked for' : 'Optional'
+      };
+    });
+  }
+
+  /** A header badge: { text, status } from a journey colour ('' text: none). */
+  function headerBadge(text, stage) { return text ? { text: text, status: HEADER_STATUS[stage] || 'neutral' } : {}; }
+
+  // Options with their counts, by label: [{ value, label: 'Cranes (3)' }].
+  function tally(list, valueOf) {
+    var counts = {};
+    (list || []).forEach(function (e) { var v = valueOf(e); if (v) counts[v] = (counts[v] || 0) + 1; });
+    return Object.keys(counts).sort(function (a, b) { return a.localeCompare(b, undefined, { numeric: true }); })
+      .map(function (v) { return { value: v, label: v + ' (' + counts[v] + ')' }; });
+  }
+
+  /**
+   * Every filter's options, from the whole queue (not just what is shown, so a filter can be changed), in the columns'
+   * order: unit (the equipment), request, chip (Inspection: the chips), when, then scope (Which units, with how many
+   * each scope lists: { required, all }).
+   */
+  function columnOptions(list, chipList, scopeCounts, now) {
+    var all = Array.isArray(list) ? list : [];
+    var counts = {};
+    all.forEach(function (e) { var k = whenKey(e, now); counts[k] = (counts[k] || 0) + 1; });
+    var s = scopeCounts || {};
+    return {
+      unit: tally(all, function (e) { return String(e.equipmentName || '').trim(); }),
+      request: tally(all, function (e) { return e.requestNumber; }),
+      chip: (chipList || []).map(function (c) { return { value: c.key, label: c.label + ' (' + c.count + ')' }; }),
+      when: WHEN_WINDOWS.filter(function (w) { return counts[w.key]; }).map(function (w) { return { value: w.key, label: w.label + ' (' + counts[w.key] + ')' }; }),
+      scope: [{ value: 'required', label: 'Asked for by the matrix (' + (s.required || 0) + ')' }, { value: 'all', label: 'Everything waiting (' + (s.all || 0) + ')' }]
+    };
+  }
+
+  /** The units that match every column filter set: { unit, request, when } ('' = any). */
+  function byColumns(list, f, now) {
+    var c = f || {};
+    return (Array.isArray(list) ? list : []).filter(function (e) {
+      if (c.unit && String(e.equipmentName || '').trim() !== c.unit) return false;
+      if (c.request && e.requestNumber !== c.request) return false;
+      if (c.when && whenKey(e, now) !== c.when) return false;
+      return true;
+    });
+  }
+
   return {
     POINTS: POINTS,
     ORDER: ORDER,
@@ -172,6 +264,12 @@ define(['resources/js/inspectionRules', 'resources/js/fmt', 'resources/js/reques
     summary: summary,
     exportColumns: exportColumns,
     tone: tone,
-    willDo: willDo
+    willDo: willDo,
+    REDWOOD_BADGE: REDWOOD_BADGE,
+    whenKey: whenKey,
+    redwoodRows: redwoodRows,
+    headerBadge: headerBadge,
+    columnOptions: columnOptions,
+    byColumns: byColumns
   };
 });

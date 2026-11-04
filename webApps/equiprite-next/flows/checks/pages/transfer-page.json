@@ -1,5 +1,5 @@
 {
-  "description": "One transfer in its own tab: what is moving, from where to where, where each unit is (read from its request line), what is late, the dates, the inter-project history; export of its units; act on it in New EquipRite (release, ship, receive and the inter-org transfer write to Fusion). Reads only: transfer-orders/{id}, transfer-order-lines, inv-orgs, request-detail-lines, transfer-history.",
+  "description": "One transfer in its own tab: what is moving, from where to where, where each unit is (read from its request line), what is late, the dates, the inter-project history; export of its units; act on it in New EquipRite (release, ship, receive and the inter-org transfer write to Fusion). Reads only: transfer-orders/{id}, transfer-order-lines, inv-orgs, request-detail-lines, transfer-history. Under Redwood (your menu, Look) its head is Oracle's general overview page (where it is as its badge; Refresh, Export and the work in New as its actions; back to Transfers) over this tab's own body.",
   "navigation": {
     "embeddable": "enabled"
   },
@@ -98,6 +98,23 @@
           "chain": "openListChain"
         }
       ]
+    },
+    "onRwAction": {
+      "chains": [
+        {
+          "chain": "rwActionChain",
+          "parameters": {
+            "item": "{{ $event.detail ? $event.detail.secondaryItem : '' }}"
+          }
+        }
+      ]
+    },
+    "onRwBack": {
+      "chains": [
+        {
+          "chain": "openListChain"
+        }
+      ]
     }
   },
   "imports": {
@@ -110,6 +127,9 @@
       },
       "oj-bind-text": {
         "path": "ojs/ojknockout"
+      },
+      "oj-sp-general-overview-page": {
+        "path": "oj-sp/general-overview-page/loader"
       }
     }
   }

@@ -4,7 +4,8 @@ function (Progress, requestData, rdl, fmt) {
 
   // The yard's work, pure: what has to go out (Picking & shipping) and what is coming back (Receiving & returns),
   // one row per request, in sections by date (late first), filtered by yard, stage and search; the selection rules
-  // of the picking workspace; which steps would write to Fusion; what each list exports.
+  // of the picking workspace; which steps would write to Fusion; what each list exports; each list as the Redwood
+  // view's table rows and Smart Search filters.
   //
   // The business rules are New EquipRite's (webApps/equiprite/flows/logistics), kept as they are:
   //   - the queues: views/workbench-requests?stage=INITIATE | RETURN&size=1000, one row per request, newest first,
@@ -717,6 +718,195 @@ function (Progress, requestData, rdl, fmt) {
     ];
   }
 
+  // ── The Redwood view (your menu, Look) ───────────────────────────────────────────────────────────────────────
+  // Both lists as Oracle's Smart Search page over an oj-table: the same requests the current look shows (filtered by the
+  // same stage, yard and search), each a flat table row with its step as an oj-badge and the steps it offers, every one
+  // of which opens the request as the current look does (the dialog, or the panel beside the list); a Smart Search filter
+  // per column with what the rows hold and how many; and the column filters only the Redwood view shows.
+
+  // Where a request is in the yard's work, as Oracle's own badge (Redwood theme classes).
+  var REDWOOD_BADGE = {
+    picking: {
+      pick: 'oj-badge oj-badge-warning oj-badge-subtle', picking: 'oj-badge oj-badge-info oj-badge-subtle', ship: 'oj-badge oj-badge-info',
+      shipped: 'oj-badge oj-badge-success oj-badge-subtle', other: 'oj-badge oj-badge-subtle'
+    },
+    returns: {
+      overdue: 'oj-badge oj-badge-danger oj-badge-subtle', receive: 'oj-badge oj-badge-info', requested: 'oj-badge oj-badge-warning oj-badge-subtle',
+      transit: 'oj-badge oj-badge-info oj-badge-subtle', site: 'oj-badge oj-badge-success oj-badge-subtle', done: 'oj-badge oj-badge-subtle',
+      other: 'oj-badge oj-badge-subtle'
+    }
+  };
+  // A request's step: the first of the yard's steps it has a piece at, in the order the yard works.
+  var STEP_ORDER = { picking: ['pick', 'picking', 'ship', 'shipped'], returns: ['receive', 'requested', 'transit', 'site', 'done'] };
+  var NO_STEP = { picking: 'Not at a picking step', returns: 'Nothing on its way back' };
+  // Receiving & returns, the Due back filter: where the date a request sorts by is.
+  var DUE_WINDOWS = [
+    { key: 'overdue', label: 'Overdue' },
+    { key: 'week', label: 'Due back in the next 7 days' },
+    { key: 'later', label: 'Due back later' },
+    { key: 'past', label: 'Due date passed' },
+    { key: 'nodate', label: 'No date' }
+  ];
+
+  /** The step a request is at: { key, label }. On the way back, a piece on site past its end date makes it Overdue. */
+  function stepOf(kind, it) {
+    var list = (it && it.pieces) || [];
+    if (kind === 'returns' && list.some(function (p) { return p.stage === 'site' && p.late > 0; })) return { key: 'overdue', label: 'Overdue' };
+    var key = STEP_ORDER[kind].filter(function (k) { return list.some(function (p) { return p.stage === k; }); })[0];
+    if (!key) return { key: 'other', label: it && !it.loaded ? 'Lines not loaded' : NO_STEP[kind] };
+    if (key === 'done') return { key: key, label: 'Closed' };
+    return { key: key, label: STAGES[kind].filter(function (s) { return s.key === key; })[0].label };
+  }
+
+  /** The kind of the yard's next step on a request, in a few words (the Next step filter), in nextStep's order. */
+  function nextKind(kind, it) {
+    if (!it || !it.loaded) return 'Lines not loaded';
+    var list = it.pieces || [];
+    if (!list.length) return (it.next && it.next.text) || NO_STEP[kind];
+    var at = function (st) { return list.some(function (p) { return p.stage === st; }); };
+    var status = function (s) { return list.some(function (p) { return p.status === s; }); };
+    if (kind === 'picking') {
+      if (at('pick')) return 'Release for picking';
+      if (status('PICK_INITIATED')) return 'Pick and ship';
+      if (status('PICK_RELEASED')) return 'Pick in Fusion';
+      if (at('ship')) return 'Ship confirm in Fusion';
+      return 'Nothing left to ship';
+    }
+    if (at('receive')) return 'Receive at the yard';
+    if (at('requested')) return list.some(function (p) { return p.stage === 'requested' && !p.fm; }) ? 'Raise the return transfer order' : 'Record the return';
+    if (at('transit')) return 'Coming back';
+    if (list.some(function (p) { return p.stage === 'site' && p.late > 0; })) return 'Start the return';
+    if (at('site')) return 'Due back';
+    return 'Nothing left to receive';
+  }
+
+  /** The When filter's value of a request: Picking the section it sits in (the day it is needed), Returns a DUE_WINDOWS key. */
+  function whenKey(kind, it, now) {
+    if (kind === 'picking') return it.section;
+    if (it.late > 0) return 'overdue';
+    var d = dayMs(it.date);
+    if (d == null) return 'nodate';
+    var n = Math.round((d - today(now)) / DAY);
+    if (n < 0) return 'past';
+    return n <= 7 ? 'week' : 'later';
+  }
+
+  /** The requests shown, in the current look's order (its sections, late first), none folded away. */
+  function redwoodOrder(kind, shown) {
+    return [].concat.apply([], sections(kind, shown, {}).map(function (s) { return s.items; }));
+  }
+
+  /**
+   * The steps a row offers, each opening the request where the current look takes that step (the first is the main one):
+   *   picking   Release N (scheduled for picking), Ship N (being picked: pick and ship), Confirm N (unit assigned, waiting
+   *             for its transfer order: the Equipment Manager's)
+   *   returns   Receive N (shipped back to the yard)
+   * can: { act: may take the yard's steps, confirm: may confirm for picking }.
+   */
+  function redwoodSteps(kind, it, linesBy, can) {
+    var c = can || {};
+    var list = it.pieces || [];
+    var count = function (fn) { return list.filter(fn).length; };
+    var out = [];
+    if (kind === 'picking') {
+      var raw = (linesBy || {})[it.id];
+      var confirm = Array.isArray(raw) ? raw.filter(function (r) { return up(r && r.lineStatus) === 'ALLOCATED'; }).length : 0;
+      var pick = count(function (p) { return p.stage === 'pick'; });
+      var ship = count(function (p) { return p.status === 'PICK_INITIATED'; });
+      if (c.act && pick) out.push({ act: 'release', label: 'Release ' + pick });
+      if (c.act && ship) out.push({ act: 'ship', label: 'Ship ' + ship });
+      if (c.confirm && confirm) out.push({ act: 'confirm', label: 'Confirm ' + confirm });
+    } else {
+      var receive = count(function (p) { return p.stage === 'receive'; });
+      if (c.act && receive) out.push({ act: 'receive', label: 'Receive ' + receive });
+    }
+    return out.map(function (s, i) { return Object.assign(s, { chroming: i === 0 ? 'callToAction' : 'outlined' }); });
+  }
+
+  /** One flat row per request, for the oj-table: what each cell says, its badge and its steps. */
+  function redwoodRows(kind, list, linesBy, can) {
+    return (Array.isArray(list) ? list : []).map(function (it) {
+      var st = stepOf(kind, it);
+      var when = it.when || {};
+      var next = it.next || {};
+      return {
+        key: String(it.id),
+        number: String(it.requestNumber || ''),
+        type: it.isCustomer ? 'Customer' : 'Project',
+        party: it.party || '—',
+        partySub: kind === 'picking' ? (it.location ? 'to ' + it.location : (it.task || '')) : (it.task || it.requestor || ''),
+        when: when.main || '—',
+        whenSub: when.sub || '',
+        late: it.late > 0,
+        step: st.label,
+        badge: REDWOOD_BADGE[kind][st.key] || REDWOOD_BADGE[kind].other,
+        pieces: it.summary || '',
+        yard: it.yardText || 'Not recorded',
+        next: next.text || '',
+        nextNote: next.note || '',
+        steps: redwoodSteps(kind, it, linesBy, can)
+      };
+    });
+  }
+
+  // Options with their counts, by label: [{ value, label: 'Pier B (3)' }]; a request counted once per value.
+  function tally(list, valuesOf) {
+    var counts = {};
+    (list || []).forEach(function (it) {
+      var seen = {};
+      valuesOf(it).forEach(function (v) {
+        if (!v || seen[v]) return;
+        seen[v] = true;
+        counts[v] = (counts[v] || 0) + 1;
+      });
+    });
+    return Object.keys(counts).sort(function (a, b) { return a.localeCompare(b); })
+      .map(function (v) { return { value: v, label: v + ' (' + counts[v] + ')' }; });
+  }
+
+  /**
+   * Every filter's options, from all the requests (not just those shown, so a filter can be changed), in the columns'
+   * order: when (Needed: its sections; Due back: DUE_WINDOWS), number, party, stage (the step tiles), yard (the yard
+   * chips), next, then type.
+   */
+  function columnOptions(kind, list, tileList, yardChips, now) {
+    var all = Array.isArray(list) ? list : [];
+    var customers = all.filter(function (it) { return it.isCustomer; }).length;
+    var when;
+    if (kind === 'picking') {
+      when = sections(kind, all, {}).map(function (s) { return { value: s.key, label: s.label + ' (' + s.count + ')' }; });
+    } else {
+      var counts = {};
+      all.forEach(function (it) { var k = whenKey(kind, it, now); counts[k] = (counts[k] || 0) + 1; });
+      when = DUE_WINDOWS.filter(function (w) { return counts[w.key]; }).map(function (w) { return { value: w.key, label: w.label + ' (' + counts[w.key] + ')' }; });
+    }
+    return {
+      when: when,
+      number: all.slice().sort(function (a, b) { return (Number(b.eqrEquipmentRequestId) || 0) - (Number(a.eqrEquipmentRequestId) || 0); })
+        .filter(function (it) { return it.requestNumber; })
+        .map(function (it) { return { value: String(it.requestNumber), label: it.requestNumber + (it.party ? ' · ' + it.party : '') }; }),
+      party: tally(all, function (it) { return [it.party]; }),
+      stage: [{ value: 'all', label: 'All (' + all.length + ')' }]
+        .concat((tileList || []).map(function (t) { return { value: t.key, label: t.label + ' (' + t.requests + ')' }; })),
+      yard: (yardChips || []).map(function (y) { return { value: y.key, label: y.label + ' (' + y.count + ')' }; }),
+      next: tally(all, function (it) { return [nextKind(kind, it)]; }),
+      type: [{ value: 'Project', label: 'Project (' + (all.length - customers) + ')' }, { value: 'Customer', label: 'Customer (' + customers + ')' }]
+    };
+  }
+
+  /** The requests that match every column filter set: { when, number, party, next, type } ('' = any). */
+  function byColumns(kind, list, f, now) {
+    var c = f || {};
+    return (Array.isArray(list) ? list : []).filter(function (it) {
+      if (c.when && whenKey(kind, it, now) !== c.when) return false;
+      if (c.number && String(it.requestNumber) !== c.number) return false;
+      if (c.party && it.party !== c.party) return false;
+      if (c.next && nextKind(kind, it) !== c.next) return false;
+      if (c.type && (it.isCustomer ? 'Customer' : 'Project') !== c.type) return false;
+      return true;
+    });
+  }
+
   return {
     QUEUE: QUEUE,
     STAGES: STAGES,
@@ -755,6 +945,14 @@ function (Progress, requestData, rdl, fmt) {
     isReceivable: isReceivable,
     toReceive: toReceive,
     allFixedAssets: allFixedAssets,
-    exportColumns: exportColumns
+    exportColumns: exportColumns,
+    REDWOOD_BADGE: REDWOOD_BADGE,
+    stepOf: stepOf,
+    nextKind: nextKind,
+    whenKey: whenKey,
+    redwoodOrder: redwoodOrder,
+    redwoodRows: redwoodRows,
+    columnOptions: columnOptions,
+    byColumns: byColumns
   };
 });

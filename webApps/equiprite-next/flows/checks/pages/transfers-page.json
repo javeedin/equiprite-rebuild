@@ -1,5 +1,5 @@
 {
-  "description": "Transfers (FDD 7.16, 7.16A, S13, S26, S28): every transfer order (out to site, back to the yard, between projects), from where to where, what is moving, where it is read from the equipment, what is late; chips, kinds, search, sort, export; a transfer opens in its own tab. Reads only: transfer-orders, transfer-history, inv-orgs, views/my-requests (shared), then transfer-order-lines and request-detail-lines of the open orders. Recording a transfer writes transfer orders (Fusion): that is done in New EquipRite.",
+  "description": "Transfers (FDD 7.16, 7.16A, S13, S26, S28): every transfer order (out to site, back to the yard, between projects), from where to where, what is moving, where it is read from the equipment, what is late; chips, kinds, search, sort, export; a transfer opens in its own tab. Reads only: transfer-orders, transfer-history, inv-orgs, views/my-requests (shared), then transfer-order-lines and request-detail-lines of the open orders. Recording a transfer writes transfer orders (Fusion): that is done in New EquipRite. Under Redwood (your menu, Look) the list is Oracle's Smart Search page over an oj-table, a filter per column (the chips are its Where it is filter, the kinds its Kind filter); a row opens the transfer in its tab.",
   "navigation": {
     "embeddable": "enabled"
   },
@@ -100,6 +100,209 @@
     "exportOpen": {
       "type": "boolean",
       "defaultValue": false
+    },
+    "rwShown": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood view: the transfers shown narrowed by its column filters (applyChain); what its export writes."
+    },
+    "rwRows": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood view: one oj-table row per transfer in rwShown (transferList.redwoodRows)."
+    },
+    "rwADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "key",
+        "data": "{{ $page.variables.rwRows }}"
+      }
+    },
+    "rwCriterion": {
+      "type": "any",
+      "description": "Redwood view: the Smart Search criterion (text and filters); rwFilterChain turns it into text, chip, kind and rwCols."
+    },
+    "rwCols": {
+      "type": "object",
+      "defaultValue": {
+        "number": "",
+        "request": "",
+        "route": "",
+        "what": "",
+        "due": ""
+      },
+      "description": "Redwood view: the column filters only it shows (transferList.byColumns); Where it is and Kind are the page's own chip and kind."
+    },
+    "rwSearchConfig": {
+      "type": "oj-sp/smart-search/strategies/JsonSearchConfigProviderFactory",
+      "defaultValue": {
+        "url": "[[ $application.path + 'resources/data/transfersSearchConfig.json' ]]"
+      }
+    },
+    "rwNumbers": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood view: each filter's options with their counts (applyChain, transferList.columnOptions)."
+    },
+    "rwNumbersADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwNumbers }}"
+      }
+    },
+    "rwRequests": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "rwRequestsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwRequests }}"
+      }
+    },
+    "rwRoutes": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "rwRoutesADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwRoutes }}"
+      }
+    },
+    "rwWhat": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "rwWhatADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwWhat }}"
+      }
+    },
+    "rwChips": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "rwChipsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwChips }}"
+      }
+    },
+    "rwDue": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "rwDueADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwDue }}"
+      }
+    },
+    "rwKinds": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "rwKindsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwKinds }}"
+      }
+    },
+    "rwSearchContext": {
+      "type": "object",
+      "defaultValue": {
+        "$search": {
+          "filters": {
+            "TransferFilter": {
+              "label": "Transfer",
+              "options": {
+                "optionsData": "[[ $page.variables.rwNumbersADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "RequestFilter": {
+              "label": "Request",
+              "options": {
+                "optionsData": "[[ $page.variables.rwRequestsADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "RouteFilter": {
+              "label": "From → to",
+              "options": {
+                "optionsData": "[[ $page.variables.rwRoutesADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "WhatFilter": {
+              "label": "What is moving",
+              "options": {
+                "optionsData": "[[ $page.variables.rwWhatADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "StateFilter": {
+              "label": "Where it is",
+              "options": {
+                "optionsData": "[[ $page.variables.rwChipsADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "DueFilter": {
+              "label": "Due",
+              "options": {
+                "optionsData": "[[ $page.variables.rwDueADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "KindFilter": {
+              "label": "Kind",
+              "options": {
+                "optionsData": "[[ $page.variables.rwKindsADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "eventListeners": {
@@ -198,6 +401,43 @@
           }
         }
       ]
+    },
+    "onRwFilter": {
+      "chains": [
+        {
+          "chain": "rwFilterChain"
+        }
+      ]
+    },
+    "onRwRow": {
+      "chains": [
+        {
+          "chain": "openRecordChain",
+          "parameters": {
+            "key": "{{ $event.detail.context.key }}"
+          }
+        }
+      ]
+    },
+    "onRwExport": {
+      "chains": [
+        {
+          "chain": "exportChain",
+          "parameters": {
+            "format": "xlsx"
+          }
+        }
+      ]
+    },
+    "onRwPrimary": {
+      "chains": [
+        {
+          "chain": "rwActionChain",
+          "parameters": {
+            "item": "move"
+          }
+        }
+      ]
     }
   },
   "imports": {
@@ -210,6 +450,21 @@
       },
       "oj-bind-text": {
         "path": "ojs/ojknockout"
+      },
+      "oj-sp-smart-search-page": {
+        "path": "oj-sp/smart-search-page/loader"
+      },
+      "oj-sp-smart-search": {
+        "path": "oj-sp/smart-search/loader"
+      },
+      "oj-sp-collection-container": {
+        "path": "oj-sp/collection-container/loader"
+      },
+      "oj-table": {
+        "path": "ojs/ojtable"
+      },
+      "oj-c-button": {
+        "path": "oj-c/button"
       }
     }
   }

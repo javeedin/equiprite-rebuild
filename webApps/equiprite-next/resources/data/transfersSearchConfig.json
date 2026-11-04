@@ -1,0 +1,75 @@
+{
+  "description": "Transfers (Redwood view): the Smart Search filters, one per column as the table shows them (Transfer, Request, From → to, What is moving, Where it is, Due), then Kind. Where it is and Kind are the page's own chip and kind (the chips and kinds of the current look). Every filter here needs its entry in transfers-page.json's rwSearchContext (the widget evaluates every filter in this file, and one without context throws and blanks the table).",
+  "filters": {
+    "TransferFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Transfer",
+      "options": {
+        "field": "number",
+        "optionsData": "[[ $search.filters.TransferFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.TransferFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "RequestFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Request",
+      "options": {
+        "field": "request",
+        "optionsData": "[[ $search.filters.RequestFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.RequestFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "RouteFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "From → to",
+      "options": {
+        "field": "route",
+        "optionsData": "[[ $search.filters.RouteFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.RouteFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "WhatFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "What is moving",
+      "options": {
+        "field": "what",
+        "optionsData": "[[ $search.filters.WhatFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.WhatFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "StateFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Where it is",
+      "options": {
+        "field": "chip",
+        "optionsData": "[[ $search.filters.StateFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.StateFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "DueFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Due",
+      "options": {
+        "field": "due",
+        "optionsData": "[[ $search.filters.DueFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.DueFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "KindFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Kind",
+      "options": {
+        "field": "kind",
+        "optionsData": "[[ $search.filters.KindFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.KindFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    }
+  }
+}

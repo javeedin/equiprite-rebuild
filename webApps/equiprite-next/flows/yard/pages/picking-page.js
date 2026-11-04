@@ -36,6 +36,11 @@ define([
 
     newUrl(base) { return nav.newUrl(base, 'picking'); }
 
+    /** Redwood view: the Smart Search page's header actions (rwActionChain): Open in New EquipRite, when New is known. */
+    rwActions(base) {
+      return this.newUrl(base) ? [{ id: 'new', label: 'Open in New EquipRite', icon: 'oj-ux-ico-external-link', display: 'on' }] : [];
+    }
+
     flag(flags, loaded, key) { return rules.isFeatureEnabled(flags, loaded, key); }
 
     plural(n, one, many) { const v = Number(n) || 0; return v + ' ' + (v === 1 ? one : (many || one + 's')); }

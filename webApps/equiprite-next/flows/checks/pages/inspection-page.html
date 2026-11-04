@@ -3,6 +3,86 @@
      note and "Log a defect" right under it; then the result, what Complete will write, and what happens to a failed
      unit. Rules: resources/js/inspectionRules.js (New's, unchanged); words: resources/js/inspectionQueue.js. -->
 <div :class="[[ 'nx-page nx-insp-page' + ($variables.current ? ' nx-insp-page--open' : '') ]]">
+  <!-- ── Redwood (your menu, Look). The queue: Oracle's Smart Search page over an oj-table, on the same units, filters and
+       checklist as the current look (applyChain, inspectionQueue.redwoodRows): the chips are its Inspection filter, Asked
+       for / Everything waiting its Which units filter. A unit opened (or just inspected): Oracle's general overview page
+       as the head, with back to the queue, over this screen's own checklist below (as Old's lists open a record). Put on
+       the page the first time Redwood is shown, then kept, hidden under Current. ────────────────────────────────────── -->
+  <oj-bind-if test="[[ $application.variables.lookSeen ]]">
+    <div class="nx-rw" id="inspRwQueue" :hidden="[[ $application.variables.look !== 'redwood' || !!$variables.current || !!$variables.done ]]">
+      <oj-sp-smart-search-page page-title="Inspections" display-mode="mixed"
+        page-subtitle="[[ $variables.isLoading && !$variables.lines.length ? 'Loading the units waiting for inspection…' : $variables.summary ]]">
+        <oj-sp-smart-search slot="search" filter-criterion="{{ $variables.rwCriterion }}" on-filter-criterion-changed="[[ $listeners.onRwFilter ]]"
+          search-context="[[ $variables.rwSearchContext ]]" search-config="[[ $variables.rwSearchConfig.provider ]]"
+          suggestion-filters='["EquipmentFilter", "RequestFilter", "PointFilter", "WhenFilter", "ScopeFilter"]'
+          placeholder="Equipment, serial, class, request or project"></oj-sp-smart-search>
+        <oj-sp-collection-container>
+          <div class="nx-rw-tools">
+            <oj-c-button id="inspRwRefresh" label="Refresh" chroming="borderless" size="sm" disabled="[[ $variables.isLoading || $variables.isSaving ]]"
+              on-oj-action="[[ $listeners.onRefresh ]]"><span slot="startIcon" class="oj-ux-ico-refresh"></span></oj-c-button>
+            <oj-c-button id="inspRwExport" label="Export to Excel" chroming="borderless" size="sm" on-oj-action="[[ $listeners.onRwExport ]]">
+              <span slot="startIcon" class="oj-ux-ico-download"></span></oj-c-button>
+          </div>
+          <oj-bind-if test="[[ !!$variables.loadError ]]">
+            <div class="oj-sm-padding-4x-bottom" role="alert"><span class="oj-text-color-danger"><oj-bind-text value="[[ $variables.loadError ]]"></oj-bind-text></span></div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ !!$variables.matrixNote || !!$variables.truncatedNote ]]">
+            <div class="oj-sm-padding-4x-bottom oj-typography-body-sm oj-text-color-secondary" role="status"><oj-bind-text value="[[ $functions.joinText($variables.matrixNote, $variables.truncatedNote) ]]"></oj-bind-text></div>
+          </oj-bind-if>
+          <oj-table id="inspRwTable" data="[[ $variables.rwADP ]]" class="oj-sm-width-full nx-rw-table" aria-label="Units waiting for inspection"
+            scroll-policy="loadMoreOnScroll" scroll-policy-options.fetch-size="50" display="list" horizontal-grid-visible="enabled"
+            layout="fixed" on-oj-row-action="[[ $listeners.onRwRow ]]"
+            columns='[
+              {"headerText": "Equipment", "field": "unit", "template": "unitTpl", "sortable": "enabled", "style": "width:25%;"},
+              {"headerText": "Request", "field": "request", "template": "reqTpl", "sortable": "enabled", "style": "width:19%;"},
+              {"headerText": "Inspection", "field": "point", "template": "pointTpl", "sortable": "enabled", "style": "width:20%;"},
+              {"headerText": "When", "field": "when", "template": "whenTpl", "sortable": "disabled", "style": "width:21%;"},
+              {"headerText": "Asked for", "field": "asked", "template": "askedTpl", "sortable": "enabled", "style": "width:15%;"}
+            ]'>
+            <template slot="unitTpl" data-oj-as="cell">
+              <div class="nx-rw-cell"><span class="oj-typography-body-md oj-typography-bold"><oj-bind-text value="[[ cell.row.unit ]]"></oj-bind-text></span>
+                <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.cls ]]"></oj-bind-text></span></div>
+            </template>
+            <template slot="reqTpl" data-oj-as="cell">
+              <div class="nx-rw-cell"><span class="oj-typography-body-md"><oj-bind-text value="[[ cell.row.request ]]"></oj-bind-text></span>
+                <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.party ]]"></oj-bind-text></span></div>
+            </template>
+            <template slot="pointTpl" data-oj-as="cell">
+              <div class="nx-rw-cell"><span :class="[[ cell.row.badge ]]"><oj-bind-text value="[[ cell.row.point ]]"></oj-bind-text></span>
+                <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.where ]]"></oj-bind-text></span></div>
+            </template>
+            <template slot="whenTpl" data-oj-as="cell">
+              <span :class="[[ 'oj-typography-body-sm' + (cell.row.late ? ' oj-text-color-danger' : '') ]]"><oj-bind-text value="[[ cell.row.when ]]"></oj-bind-text></span>
+            </template>
+            <template slot="askedTpl" data-oj-as="cell">
+              <div class="nx-rw-cell"><span class="oj-typography-body-sm"><oj-bind-text value="[[ cell.row.asked ]]"></oj-bind-text></span>
+                <!-- Inspect opens the unit's checklist, as a row does (and as the current look's queue does). -->
+                <div class="nx-rw-steps" data-oj-clickthrough="disabled">
+                  <oj-c-button size="sm" label="Inspect" chroming="callToAction" :data-line="[[ cell.row.key ]]" disabled="[[ $variables.isSaving ]]"
+                    on-oj-action="[[ $listeners.onRwInspect ]]"></oj-c-button>
+                </div></div>
+            </template>
+            <template slot="noData">
+              <div class="oj-sm-padding-6x oj-typography-body-md oj-text-color-secondary"><oj-bind-text value="[[ $variables.isLoading ? 'Loading…'
+                : ($variables.entries.length ? 'Nothing here matches. Try another filter or clear the search.'
+                  : ($variables.scope === 'required' ? 'Nothing needs an inspection right now. Which units: Everything waiting lists the rest.' : 'Nothing is waiting at an inspection point.')) ]]"></oj-bind-text></div>
+            </template>
+          </oj-table>
+        </oj-sp-collection-container>
+      </oj-sp-smart-search-page>
+    </div>
+    <div class="nx-rw nx-rw--head" id="inspRwUnit" :hidden="[[ $application.variables.look !== 'redwood' || (!$variables.current && !$variables.done) ]]">
+      <oj-sp-general-overview-page page-title="[[ $functions.rwUnitTitle($variables.current, $variables.done) ]]" display-mode="mixed"
+        page-subtitle="[[ $functions.rwUnitSubtitle($variables.current, $variables.done) ]]" badge="[[ $functions.rwUnitBadge($variables.current, $variables.done) ]]"
+        primary-action="[[ $functions.rwUnitPrimary($variables.done) ]]" on-sp-primary-action="[[ $listeners.onRwNext ]]"
+        secondary-actions="[[ $functions.rwUnitActions($variables.current, $variables.done) ]]" on-sp-secondary-action="[[ $listeners.onRwAction ]]"
+        display-options.in-flow-back="true" on-sp-in-flow-back="[[ $listeners.onRwBack ]]">
+      </oj-sp-general-overview-page>
+    </div>
+  </oj-bind-if>
+
+  <!-- ── The current look ───────────────────────────────────────────────────────────────────────────────────── -->
+  <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
   <div class="nx-pagehead">
     <div>
       <h1>Inspections</h1>
@@ -62,9 +142,11 @@
   <oj-bind-if test="[[ !!$variables.matrixNote || !!$variables.truncatedNote ]]">
     <div class="nx-insp-note" role="status"><oj-bind-text value="[[ $functions.joinText($variables.matrixNote, $variables.truncatedNote) ]]"></oj-bind-text></div>
   </oj-bind-if>
+  </oj-bind-if>
 
   <div :class="[[ 'nx-insp' + ($variables.current ? ' nx-insp--open' : '') + ($variables.done && !$variables.current ? ' nx-insp--done' : '') ]]">
-    <!-- ── The queue ──────────────────────────────────────────────────────────────────────────────────────── -->
+    <!-- ── The queue (the current look; Redwood's is the table above) ─────────────────────────────────────── -->
+    <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
     <aside class="nx-card nx-insp-queue" aria-labelledby="inspQueueTitle">
       <div class="nx-card-head">
         <h2 id="inspQueueTitle"><oj-bind-text value="[[ 'Waiting (' + $variables.shown.length + ')' ]]"></oj-bind-text></h2>
@@ -106,6 +188,7 @@
         </oj-bind-for-each>
       </ul>
     </aside>
+    </oj-bind-if>
 
     <div class="nx-insp-main">
       <!-- ── Just completed ───────────────────────────────────────────────────────────────────────────────── -->
@@ -162,8 +245,8 @@
         </section>
       </oj-bind-if>
 
-      <!-- ── Nothing open ─────────────────────────────────────────────────────────────────────────────────── -->
-      <oj-bind-if test="[[ !$variables.current && !$variables.done ]]">
+      <!-- ── Nothing open (the current look, beside its queue) ────────────────────────────────────────────── -->
+      <oj-bind-if test="[[ !$variables.current && !$variables.done && $application.variables.look !== 'redwood' ]]">
         <section class="nx-card nx-card-pad nx-insp-intro">
           <h2 class="nx-h2">Pick a unit from the queue</h2>
           <p class="nx-muted">Each unit is checked against its class checklist. A failed question gets a note and becomes a defect with its own photo.
