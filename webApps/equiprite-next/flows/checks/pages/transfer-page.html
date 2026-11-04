@@ -1,6 +1,19 @@
 <!-- One transfer in its own tab: from where to where, what is moving and where each unit is, what is late, the dates and,
      between projects, its history. Reads only; release, shipping, receiving and the inter-org transfer are done in New. -->
 <div class="nx-page nx-record nx-trf-record">
+  <!-- Redwood (your menu, Look): Oracle's general overview page as the head (the transfer, where it is as its badge, the
+       kind and request under it; Refresh, Export and the work in New as its actions; back to Transfers), over this tab's
+       own body below. Put on the page once Redwood has been shown and the transfer is known (its actions then stay as
+       they are: Oracle's header must not have them change before its toolbar is up), then kept, hidden under Current. -->
+  <oj-bind-if test="[[ $application.variables.lookSeen && !!$variables.head.number ]]">
+    <div class="nx-rw nx-rw--head" id="trfRwHead" :hidden="[[ $application.variables.look !== 'redwood' || !!$variables.error ]]">
+      <oj-sp-general-overview-page page-title="[[ $variables.head.number ]]" page-subtitle="[[ $functions.rwSubtitle($variables.head) ]]" display-mode="mixed"
+        badge="[[ $functions.rwBadge($variables.head) ]]"
+        secondary-actions="[[ $functions.rwActions($application.variables.appUrls.new, $variables.head) ]]" on-sp-secondary-action="[[ $listeners.onRwAction ]]"
+        display-options.in-flow-back="true" on-sp-in-flow-back="[[ $listeners.onRwBack ]]">
+      </oj-sp-general-overview-page>
+    </div>
+  </oj-bind-if>
   <oj-bind-if test="[[ $variables.isLoading && !$variables.head.number ]]">
     <div class="nx-card nx-empty">Loading the transfer…</div>
   </oj-bind-if>
@@ -10,6 +23,7 @@
   </oj-bind-if>
 
   <oj-bind-if test="[[ !!$variables.head.number && !$variables.error ]]">
+    <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
     <div class="nx-pagehead">
       <div>
         <div class="nx-kicker"><oj-bind-text value="[[ $variables.head.kindLabel ]]"></oj-bind-text></div>
@@ -44,6 +58,7 @@
         </oj-bind-if>
       </div>
     </div>
+    </oj-bind-if>
 
     <section class="nx-card nx-card-pad nx-trf-way" aria-labelledby="trfWayTitle">
       <h2 class="nx-h2" id="trfWayTitle">From where to where</h2>

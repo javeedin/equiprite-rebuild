@@ -215,3 +215,30 @@
   .nx-yd-line > span:last-child { grid-column: 2; }
   .nx-yd-line .nx-pill { justify-self: start; }
 }
+
+/* ── Redwood (your menu, Look): both lists are Oracle's Smart Search page over an oj-table (next-redwood.css sets the page
+   out). Only what Oracle's components do not draw is here: the request number as a link (it opens the request in its
+   own tab; the row opens its dialog or panel), the note on a request another screen opened here, and Receiving's panel
+   (a request, or Back without notice) as a drawer at the window's end edge, over the table, as Redwood's drawers sit. ── */
+html[data-nx-look="redwood"] .nx-yd-rw-num {
+  padding: 0; border: 0; background: none; font: inherit; font-weight: 700; color: var(--nx-accent); cursor: pointer; text-align: left;
+}
+html[data-nx-look="redwood"] .nx-yd-rw-num:hover { text-decoration: underline; color: var(--nx-accent-hover); }
+html[data-nx-look="redwood"] .nx-yd-rw-num:focus-visible { outline: 2px solid var(--nx-ink); outline-offset: 2px; border-radius: 2px; }
+html[data-nx-look="redwood"] .nx-yd-rw-note { align-self: center; margin-right: auto; }
+/* Picking's dialog (the same under both looks): Redwood's dialog head is white, so its request number and plain step pill
+   take the ink. */
+html[data-nx-look="redwood"] .nx-yd-work-num { color: var(--nx-ink); }
+html[data-nx-look="redwood"] .nx-yd-steppill:not(.nx-yd-steppill--release):not(.nx-yd-steppill--ship):not(.nx-yd-steppill--shipped) {
+  background: transparent; border-color: var(--nx-line-strong); color: var(--nx-ink);
+}
+/* Receiving & returns: what is open beside the list (a request to receive, or Back without notice) is a drawer at the
+   window's end edge, under the tabs, over the table (Redwood's end drawer); the row clicked again, or its Close, shuts it. */
+html[data-nx-look="redwood"] #ydReturns .nx-yd-layout > .nx-yd-work {
+  position: fixed; z-index: 35; top: calc(var(--nx-top-h) + var(--nx-tab-h)); right: 0; bottom: 0; width: min(680px, 100vw);
+  overflow-y: auto; border-radius: 0; border-width: 0 0 0 1px; box-shadow: var(--nx-shadow-pop); padding-bottom: 16px;
+}
+html[data-nx-look="redwood"] .nx-yd-rw-handed {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-bottom: 12px; padding: 12px 16px;
+  border: 1px solid var(--nx-line); border-left: 4px solid var(--rw-brand); border-radius: 6px; background: var(--rw-selected);
+}

@@ -1,0 +1,55 @@
+{
+  "description": "Inspections (Redwood view): the Smart Search filters, one per column as the table shows them (Equipment, Request, Inspection, When), then Which units. Inspection and Which units are the page's own chip and scope (the chips and the Asked for / Everything waiting switch of the current look). Every filter here needs its entry in inspection-page.json's rwSearchContext (the widget evaluates every filter in this file, and one without context throws and blanks the table).",
+  "filters": {
+    "EquipmentFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Equipment",
+      "options": {
+        "field": "unit",
+        "optionsData": "[[ $search.filters.EquipmentFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.EquipmentFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "RequestFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Request",
+      "options": {
+        "field": "request",
+        "optionsData": "[[ $search.filters.RequestFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.RequestFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "PointFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Inspection",
+      "options": {
+        "field": "chip",
+        "optionsData": "[[ $search.filters.PointFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.PointFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "WhenFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "When",
+      "options": {
+        "field": "when",
+        "optionsData": "[[ $search.filters.WhenFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.WhenFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "ScopeFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Which units",
+      "options": {
+        "field": "scope",
+        "optionsData": "[[ $search.filters.ScopeFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.ScopeFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    }
+  }
+}

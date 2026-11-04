@@ -21,11 +21,13 @@ define([
         opts = { name: 'units-in-the-field', title: 'Units in the field', subtitle: v.findQuery ? '"' + v.findQuery + '"' : '', rows: v.found, columns: yw.exportColumns('found') };
       } else {
         const tile = (v.tiles || []).filter((t) => t.key === v.stage)[0];
+        // The Redwood view exports what its table shows: the list narrowed by its column filters too.
+        const list = context.$application.variables.look === 'redwood' ? v.rwShown : v.shown;
         opts = {
           name: 'returns',
           title: 'Receiving & returns',
           subtitle: [tile ? tile.label : 'Every stage', v.yard !== 'all' ? v.yard : '', v.text ? '"' + v.text + '"' : ''].filter((x) => !!x).join(' · '),
-          rows: yw.shownPieces([].concat(...yw.sections('returns', v.shown, {}).map((s) => s.items)), { stage: v.stage, yard: v.yard }),
+          rows: yw.shownPieces([].concat(...yw.sections('returns', list, {}).map((s) => s.items)), { stage: v.stage, yard: v.yard }),
           columns: yw.exportColumns('returns'),
         };
       }

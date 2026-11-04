@@ -2,6 +2,94 @@
      first), its pieces by where they are, the yard they go back to and the next step. Beside the list: a request (Receive
      at yard, New's calls), or a unit back without notice (scan or type its serial). Logic: resources/js/yardWork.js. -->
 <div class="nx-page nx-yard" id="ydReturns">
+  <!-- ── Redwood (your menu, Look): Oracle's Smart Search page over an oj-table, on the same requests and filters as the
+       current look (applyChain, yardWork.redwoodRows): the step tiles are its Step filter, the yards its Back to yard
+       filter. A row opens the same panel as the current look does (below, a drawer at the window's edge in Redwood;
+       next-yard.css). Put on the page the first time Redwood is shown, then kept, hidden under Current. ───────────── -->
+  <oj-bind-if test="[[ $application.variables.lookSeen ]]">
+    <div class="nx-rw" id="ydRwReturns" :hidden="[[ $application.variables.look !== 'redwood' ]]">
+      <oj-sp-smart-search-page page-title="Receiving &amp; returns" display-mode="mixed"
+        page-subtitle="[[ $variables.isLoading && !$variables.records.length ? 'Loading what is coming back…' : $variables.summary ]]"
+        primary-action.display="on" primary-action.label="Back without notice" on-sp-primary-action="[[ $listeners.onOpenFind ]]"
+        secondary-actions="[[ $functions.rwActions($application.variables.appUrls.new) ]]" on-sp-secondary-action="[[ $listeners.onRwAction ]]">
+        <oj-sp-smart-search slot="search" filter-criterion="{{ $variables.rwCriterion }}" on-filter-criterion-changed="[[ $listeners.onRwFilter ]]"
+          search-context="[[ $variables.rwSearchContext ]]" search-config="[[ $variables.rwSearchConfig.provider ]]"
+          suggestion-filters='["DueFilter", "RequestFilter", "PartyFilter", "StepFilter", "YardFilter", "NextFilter", "TypeFilter"]'
+          placeholder="Request, project, customer, equipment, serial or transfer order"></oj-sp-smart-search>
+        <oj-sp-collection-container>
+          <div class="nx-rw-tools">
+            <oj-bind-if test="[[ $variables.yardsLoading ]]">
+              <span class="oj-typography-body-sm oj-text-color-secondary nx-yd-rw-note">Finding which yard each piece goes back to…</span></oj-bind-if>
+            <oj-c-button id="ydrRwRefresh" label="Refresh" chroming="borderless" size="sm" disabled="[[ $variables.isLoading ]]" on-oj-action="[[ $listeners.onRefresh ]]">
+              <span slot="startIcon" class="oj-ux-ico-refresh"></span></oj-c-button>
+            <oj-c-button id="ydrRwExport" label="Export to Excel" chroming="borderless" size="sm" on-oj-action="[[ $listeners.onRwExport ]]">
+              <span slot="startIcon" class="oj-ux-ico-download"></span></oj-c-button>
+          </div>
+          <oj-bind-if test="[[ !!$variables.error ]]">
+            <div class="oj-sm-padding-4x-bottom" role="alert"><span class="oj-text-color-danger"><oj-bind-text value="[[ $variables.error ]]"></oj-bind-text></span></div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.linesFailed > 0 ]]">
+            <div class="oj-sm-padding-4x-bottom" role="status"><span class="oj-text-color-danger"><oj-bind-text value="[[ 'The lines of ' + $functions.plural($variables.linesFailed, 'request') + ' could not be loaded: they are listed by their dates; open one to try again.' ]]"></oj-bind-text></span></div>
+          </oj-bind-if>
+          <oj-table id="ydrRwTable" data="[[ $variables.rwADP ]]" class="oj-sm-width-full nx-rw-table" aria-label="What is coming back to the yard"
+            scroll-policy="loadMoreOnScroll" scroll-policy-options.fetch-size="50" display="list" horizontal-grid-visible="enabled"
+            layout="fixed" on-oj-row-action="[[ $listeners.onRwRow ]]"
+            columns='[
+              {"headerText": "Due back", "field": "when", "template": "whenTpl", "sortable": "disabled", "style": "width:13%;"},
+              {"headerText": "Request", "field": "number", "template": "numTpl", "sortable": "enabled", "style": "width:13%;"},
+              {"headerText": "Project or customer", "field": "party", "template": "partyTpl", "sortable": "enabled", "style": "width:18%;"},
+              {"headerText": "Step", "field": "step", "template": "stepTpl", "sortable": "enabled", "style": "width:18%;"},
+              {"headerText": "Back to yard", "field": "yard", "template": "yardTpl", "sortable": "enabled", "style": "width:14%;"},
+              {"headerText": "Next step", "field": "next", "template": "nextTpl", "sortable": "disabled", "style": "width:24%;"}
+            ]'>
+            <template slot="whenTpl" data-oj-as="cell">
+              <div class="nx-rw-cell"><span :class="[[ 'oj-typography-body-md' + (cell.row.late ? ' oj-text-color-danger oj-typography-bold' : '') ]]"><oj-bind-text value="[[ cell.row.when ]]"></oj-bind-text></span>
+                <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.whenSub ]]"></oj-bind-text></span></div>
+            </template>
+            <template slot="numTpl" data-oj-as="cell">
+              <!-- The row opens the request beside the list; its number opens the request in its own tab, as on the current look. -->
+              <div class="nx-rw-cell"><span data-oj-clickthrough="disabled"><button type="button" class="nx-yd-rw-num oj-typography-body-md oj-typography-bold" :data-id="[[ cell.row.key ]]"
+                  :data-number="[[ cell.row.number ]]" on-click="[[ $listeners.onRwNumber ]]" :title="[[ 'Open ' + cell.row.number + ' in its own tab' ]]"><oj-bind-text value="[[ cell.row.number ]]"></oj-bind-text></button></span>
+                <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.type ]]"></oj-bind-text></span></div>
+            </template>
+            <template slot="partyTpl" data-oj-as="cell">
+              <div class="nx-rw-cell"><span class="oj-typography-body-md"><oj-bind-text value="[[ cell.row.party ]]"></oj-bind-text></span>
+                <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.partySub ]]"></oj-bind-text></span></div>
+            </template>
+            <template slot="stepTpl" data-oj-as="cell">
+              <div class="nx-rw-cell"><span :class="[[ cell.row.badge ]]"><oj-bind-text value="[[ cell.row.step ]]"></oj-bind-text></span>
+                <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.pieces ]]"></oj-bind-text></span></div>
+            </template>
+            <template slot="yardTpl" data-oj-as="cell">
+              <span class="oj-typography-body-sm"><oj-bind-text value="[[ cell.row.yard ]]"></oj-bind-text></span>
+            </template>
+            <template slot="nextTpl" data-oj-as="cell">
+              <div class="nx-rw-cell"><span class="oj-typography-body-sm"><oj-bind-text value="[[ cell.row.next ]]"></oj-bind-text></span>
+                <oj-bind-if test="[[ !!cell.row.nextNote ]]"><span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.nextNote ]]"></oj-bind-text></span></oj-bind-if>
+                <oj-bind-if test="[[ cell.row.steps.length > 0 ]]">
+                  <!-- Receive N opens the request beside the list, where it is received (as on the current look). -->
+                  <div class="nx-rw-steps" data-oj-clickthrough="disabled">
+                    <oj-bind-for-each data="[[ cell.row.steps ]]">
+                      <template data-oj-as="st">
+                        <oj-c-button size="sm" :label="[[ st.data.label ]]" :chroming="[[ st.data.chroming ]]" :data-act="[[ st.data.act ]]" :data-id="[[ cell.row.key ]]"
+                          :data-number="[[ cell.row.number ]]" on-oj-action="[[ $listeners.onRwStep ]]"></oj-c-button>
+                      </template>
+                    </oj-bind-for-each>
+                  </div>
+                </oj-bind-if></div>
+            </template>
+            <template slot="noData">
+              <div class="oj-sm-padding-6x oj-typography-body-md oj-text-color-secondary"><oj-bind-text value="[[ $variables.isLoading ? 'Loading the returns queue…'
+                : ($variables.records.length ? 'Nothing matches. Try another filter or clear the search.' : 'Nothing is out on site or on its way back.') ]]"></oj-bind-text></div>
+            </template>
+          </oj-table>
+        </oj-sp-collection-container>
+      </oj-sp-smart-search-page>
+    </div>
+  </oj-bind-if>
+
+  <!-- ── The current look ───────────────────────────────────────────────────────────────────────────────────── -->
+  <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
   <div class="nx-pagehead">
     <div>
       <div class="nx-kicker">Yard &amp; logistics</div>
@@ -80,8 +168,11 @@
   <oj-bind-if test="[[ $variables.linesFailed > 0 ]]">
     <div class="nx-error" role="status"><oj-bind-text value="[[ 'The lines of ' + $functions.plural($variables.linesFailed, 'request') + ' could not be loaded: they are listed by their dates; open one to try again.' ]]"></oj-bind-text></div>
   </oj-bind-if>
+  </oj-bind-if>
 
+  <!-- The list (current look), and what is open beside it under both looks: a request, or a unit back without notice. -->
   <div :class="[[ 'nx-yd-layout' + ($variables.side ? ' nx-yd-layout--open' : '') ]]">
+    <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
     <div class="nx-yd-listcol">
       <oj-bind-if test="[[ $variables.isLoading && !$variables.records.length ]]">
         <div class="nx-card nx-empty">Loading the returns queue…</div>
@@ -153,6 +244,7 @@
         </template>
       </oj-bind-for-each>
     </div>
+    </oj-bind-if>
 
     <!-- ── A request: receive what came back ────────────────────────────────────────────────────────────────── -->
     <oj-bind-if test="[[ $variables.side === 'request' ]]">

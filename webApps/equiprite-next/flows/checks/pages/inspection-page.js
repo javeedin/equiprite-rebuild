@@ -117,6 +117,42 @@ define([
 
     /** The defects summary on the review: "1 defect" / "2 defects". */
     defectCount(defects) { return fmt.count((defects || []).length, 'defect'); }
+
+    // ── Redwood (your menu, Look): a unit being inspected, or just inspected, under Oracle's general overview page ──
+    /** The header's title: the unit, or "… inspected" once it is done. */
+    rwUnitTitle(current, done) {
+      if (current) return this.unitText(current);
+      return done ? done.unit + ' inspected' : '';
+    }
+
+    /** The header's subtitle: the point (the current look's kicker), its class, request and project. */
+    rwUnitSubtitle(current, done) {
+      if (current) {
+        return this.dots(this.pointWords(current.point) + (current.required ? ' · asked for by the matrix' : ' · optional'), current.className,
+          this.dots(current.requestNumber, current.projectName || current.customerName));
+      }
+      return done ? this.dots(this.pointWords(done.point), done.inspectionId ? 'inspection ' + done.inspectionId : '', done.line && done.line.requestNumber) : '';
+    }
+
+    /** The header's badge: the point (or Failed inspection) while inspecting, the result once done. */
+    rwUnitBadge(current, done) {
+      if (current) {
+        return String(current.lineStatus || '').toUpperCase() === 'INSPECTION_FAILED' ? Q.headerBadge('Failed inspection', 'stopped')
+          : Q.headerBadge(this.pointWords(current.point), Q.pointWords(current.point).stage);
+      }
+      return done ? Q.headerBadge(done.text, this.resultTone(done.code)) : {};
+    }
+
+    /** The header's primary action once done: Inspect next (as the done card's button). */
+    rwUnitPrimary(done) {
+      return done && done.nextLineId ? { label: 'Inspect next: ' + done.nextUnit, display: 'on' } : { label: 'Inspect next', display: 'off' };
+    }
+
+    /** The header's actions (rwActionChain): open the unit's request in its own tab. */
+    rwUnitActions(current, done) {
+      const line = current || (done && done.line);
+      return line && line.requestNumber ? [{ id: 'request', label: 'Open ' + line.requestNumber, icon: 'oj-ux-ico-external-link', display: 'on' }] : [];
+    }
   }
 
   return PageModule;

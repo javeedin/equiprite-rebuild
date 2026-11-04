@@ -1,0 +1,75 @@
+{
+  "description": "Picking & shipping (Redwood view): the Smart Search filters, one per column as the table shows them (Needed, Request, Project or customer, Step, From yard, Next step), then Type. Step and From yard are the page's own stage and yard (the step tiles and yard chips of the current look). Every filter here needs its entry in picking-page.json's rwSearchContext (the widget evaluates every filter in this file, and one without context throws and blanks the table).",
+  "filters": {
+    "NeededFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Needed",
+      "options": {
+        "field": "when",
+        "optionsData": "[[ $search.filters.NeededFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.NeededFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "RequestFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Request",
+      "options": {
+        "field": "number",
+        "optionsData": "[[ $search.filters.RequestFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.RequestFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "PartyFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Project or customer",
+      "options": {
+        "field": "party",
+        "optionsData": "[[ $search.filters.PartyFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.PartyFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "StepFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Step",
+      "options": {
+        "field": "stage",
+        "optionsData": "[[ $search.filters.StepFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.StepFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "YardFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "From yard",
+      "options": {
+        "field": "yard",
+        "optionsData": "[[ $search.filters.YardFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.YardFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "NextFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Next step",
+      "options": {
+        "field": "next",
+        "optionsData": "[[ $search.filters.NextFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.NextFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "TypeFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Type",
+      "options": {
+        "field": "type",
+        "optionsData": "[[ $search.filters.TypeFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.TypeFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    }
+  }
+}

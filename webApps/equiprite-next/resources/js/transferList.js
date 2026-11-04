@@ -465,6 +465,126 @@ define(['resources/js/fmt', 'resources/js/requestProgress'], function (fmt, Prog
     ];
   }
 
+  // ── The Redwood view (your menu, Look) ─────────────────────────────────────────────────────────────────────────
+  // The list as Oracle's Smart Search page over an oj-table: the same transfers the current look shows (its chip, kind
+  // and search), each a flat row with where it is as an oj-badge; a Smart Search filter per column with what the rows
+  // hold and how many; the column filters only the Redwood view shows. A transfer's tab: the badge on Oracle's header.
+
+  // Where it is, as Oracle's own badge (Redwood theme classes), by the journey colour (stage) decorate gives it.
+  var REDWOOD_BADGE = {
+    draft: 'oj-badge oj-badge-subtle', ready: 'oj-badge oj-badge-warning oj-badge-subtle', out: 'oj-badge oj-badge-info',
+    onsite: 'oj-badge oj-badge-success oj-badge-subtle', back: 'oj-badge oj-badge-info oj-badge-subtle', done: 'oj-badge oj-badge-subtle',
+    stopped: 'oj-badge oj-badge-danger oj-badge-subtle'
+  };
+  // The same on the general overview page's header badge (its status names).
+  var HEADER_STATUS = { draft: 'neutral', ready: 'warning', out: 'info', onsite: 'success', back: 'info', done: 'neutral', stopped: 'danger' };
+  // The Due filter: where a transfer's due date is.
+  var DUE_WINDOWS = [
+    { key: 'late', label: 'Late' },
+    { key: 'week', label: 'Due in the next 7 days' },
+    { key: 'later', label: 'Due later' },
+    { key: 'past', label: 'Due date passed' },
+    { key: 'none', label: 'No due date' }
+  ];
+
+  /** "3 units", or why it is not known. */
+  function unitsText(r) {
+    if (!r || !r.read) return r && r.state === 'cancelled' ? '' : 'Open it to see the equipment';
+    return fmt.count(r.unitCount, 'unit');
+  }
+
+  /** The Due filter's value of a transfer (DUE_WINDOWS keys). */
+  function dueKey(r, now) {
+    if (r.late) return 'late';
+    var d = fmt.dayMs(r.due);
+    if (d == null) return 'none';
+    var n = Math.round((d - fmt.today(now)) / DAY);
+    if (n < 0) return 'past';
+    return n <= 7 ? 'week' : 'later';
+  }
+
+  function unitNames(r) {
+    var seen = {};
+    return (r.units || []).map(function (u) { return String(u.name || '').trim(); }).filter(function (n) {
+      if (!n || seen[n]) return false;
+      seen[n] = true;
+      return true;
+    });
+  }
+
+  /** One flat row per transfer shown, for the oj-table: what each cell says and its badge. */
+  function redwoodRows(list) {
+    return (Array.isArray(list) ? list : []).map(function (r) {
+      return {
+        key: r.key,
+        number: r.number,
+        kind: r.kindLabel,
+        request: r.requestNumber || '—',
+        requestSub: r.fromRequest ? 'from ' + r.fromRequest : r.party,
+        from: r.from,
+        to: r.to,
+        what: r.what || '—',
+        units: unitsText(r),
+        status: r.label,
+        badge: REDWOOD_BADGE[r.stage] || REDWOOD_BADGE.draft,
+        detail: r.detail || '',
+        late: r.late,
+        due: r.late ? r.lateText : (r.dueText || '—')
+      };
+    });
+  }
+
+  /** The header badge of a transfer's tab: { text, status }. */
+  function headerBadge(r) { return r && r.label ? { text: r.label, status: HEADER_STATUS[r.stage] || 'neutral' } : {}; }
+
+  // Options with their counts, by label: [{ value, label: 'TO-300 (1)' }]; a transfer counted once per value.
+  function tally(list, valuesOf) {
+    var counts = {};
+    (list || []).forEach(function (r) {
+      var seen = {};
+      valuesOf(r).forEach(function (v) {
+        if (!v || seen[v]) return;
+        seen[v] = true;
+        counts[v] = (counts[v] || 0) + 1;
+      });
+    });
+    return Object.keys(counts).sort(function (a, b) { return a.localeCompare(b, undefined, { numeric: true }); })
+      .map(function (v) { return { value: v, label: v + ' (' + counts[v] + ')' }; });
+  }
+
+  /**
+   * Every filter's options, from all the transfers (not just those shown, so a filter can be changed), in the columns'
+   * order: number, request, route, what, chip (Where it is: the chips), due, then kind (the kinds).
+   */
+  function columnOptions(list, chipList, kindList, now) {
+    var all = Array.isArray(list) ? list : [];
+    var counts = {};
+    all.forEach(function (r) { var k = dueKey(r, now); counts[k] = (counts[k] || 0) + 1; });
+    return {
+      number: all.slice().sort(function (a, b) { return String(a.number).localeCompare(String(b.number), undefined, { numeric: true }); })
+        .map(function (r) { return { value: r.number, label: r.number + ' · ' + r.kindLabel }; }),
+      request: tally(all, function (r) { return [r.requestNumber]; }),
+      route: tally(all, function (r) { return [r.route]; }),
+      what: tally(all, unitNames),
+      chip: (chipList || []).map(function (c) { return { value: c.key, label: c.label + ' (' + c.count + ')' }; }),
+      due: DUE_WINDOWS.filter(function (w) { return counts[w.key]; }).map(function (w) { return { value: w.key, label: w.label + ' (' + counts[w.key] + ')' }; }),
+      kind: (kindList || []).map(function (k) { return { value: k.key, label: k.label + ' (' + k.count + ')' }; })
+    };
+  }
+
+  /** The transfers that match every column filter set: { number, request, route, what, due } ('' = any). */
+  function byColumns(list, f, now) {
+    var c = f || {};
+    return (Array.isArray(list) ? list : []).filter(function (r) {
+      if (c.number && r.number !== c.number) return false;
+      if (c.request && r.requestNumber !== c.request) return false;
+      if (c.route && r.route !== c.route) return false;
+      if (c.what && unitNames(r).indexOf(c.what) === -1) return false;
+      if (c.due && dueKey(r, now) !== c.due) return false;
+      return true;
+    });
+  }
+
   return {
     KINDS: KINDS,
     kindOf: kindOf,
@@ -486,6 +606,13 @@ define(['resources/js/fmt', 'resources/js/requestProgress'], function (fmt, Prog
     filter: filter,
     sort: sort,
     summary: summary,
-    exportColumns: exportColumns
+    exportColumns: exportColumns,
+    REDWOOD_BADGE: REDWOOD_BADGE,
+    unitsText: unitsText,
+    dueKey: dueKey,
+    redwoodRows: redwoodRows,
+    headerBadge: headerBadge,
+    columnOptions: columnOptions,
+    byColumns: byColumns
   };
 });

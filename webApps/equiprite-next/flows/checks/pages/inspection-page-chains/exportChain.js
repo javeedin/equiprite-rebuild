@@ -17,7 +17,8 @@ define([
         title: 'Inspections',
         subtitle: [chip ? chip.label : 'Everything waiting', v.scope === 'all' ? 'every unit waiting' : 'asked for by the inspection matrix',
           v.text ? '"' + v.text + '"' : ''].filter(Boolean).join(' · '),
-        rows: v.shown,
+        // The Redwood view exports what its table shows: the queue narrowed by its column filters too.
+        rows: context.$application.variables.look === 'redwood' ? v.rwShown : v.shown,
         columns: Q.exportColumns(),
       });
       bus.toast(res.message, res.ok ? 'info' : 'error');

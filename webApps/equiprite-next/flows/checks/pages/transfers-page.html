@@ -2,6 +2,83 @@
      where to where, where it is (read from the equipment), what is late. A transfer opens in its own tab. Reads only:
      recording a transfer writes transfer orders, and that is done in New EquipRite. Logic: resources/js/transferList.js. -->
 <div class="nx-page nx-trf-page">
+  <!-- ── Redwood (your menu, Look): Oracle's Smart Search page over an oj-table, on the same transfers, filters and tabs as
+       the current look (applyChain, transferList.redwoodRows): the chips are its Where it is filter, the kinds its Kind
+       filter. Put on the page the first time Redwood is shown, then kept, hidden under Current. ──────────────────── -->
+  <oj-bind-if test="[[ $application.variables.lookSeen ]]">
+    <div class="nx-rw" id="trfRwList" :hidden="[[ $application.variables.look !== 'redwood' ]]">
+      <oj-sp-smart-search-page page-title="Transfers" display-mode="mixed"
+        page-subtitle="[[ $variables.isLoading && !$variables.rows.length ? 'Loading the transfers…' : $variables.summary ]]"
+        primary-action="[[ $functions.rwPrimary($application.variables.appUrls.new, $application.variables.featureFlags, $application.variables.flagsLoaded) ]]"
+        on-sp-primary-action="[[ $listeners.onRwPrimary ]]">
+        <oj-sp-smart-search slot="search" filter-criterion="{{ $variables.rwCriterion }}" on-filter-criterion-changed="[[ $listeners.onRwFilter ]]"
+          search-context="[[ $variables.rwSearchContext ]]" search-config="[[ $variables.rwSearchConfig.provider ]]"
+          suggestion-filters='["TransferFilter", "RequestFilter", "RouteFilter", "WhatFilter", "StateFilter", "DueFilter", "KindFilter"]'
+          placeholder="Transfer, request, project, yard, site, equipment or serial"></oj-sp-smart-search>
+        <oj-sp-collection-container>
+          <div class="nx-rw-tools">
+            <oj-bind-if test="[[ $variables.detailLoading ]]">
+              <span class="oj-typography-body-sm oj-text-color-secondary nx-trf-rw-note" id="trfRwReading">Reading what is on each open transfer and where it is…</span></oj-bind-if>
+            <oj-c-button id="trfRwRefresh" label="Refresh" chroming="borderless" size="sm" disabled="[[ $variables.isLoading ]]" on-oj-action="[[ $listeners.onRefresh ]]">
+              <span slot="startIcon" class="oj-ux-ico-refresh"></span></oj-c-button>
+            <oj-c-button id="trfRwExport" label="Export to Excel" chroming="borderless" size="sm" on-oj-action="[[ $listeners.onRwExport ]]">
+              <span slot="startIcon" class="oj-ux-ico-download"></span></oj-c-button>
+          </div>
+          <oj-bind-if test="[[ $functions.interProjectOff($application.variables.featureFlags, $application.variables.flagsLoaded) ]]">
+            <div class="oj-sm-padding-4x-bottom oj-typography-body-sm oj-text-color-secondary" role="status">Inter-project transfer is switched off in Configuration (ENABLE_INTER_PROJECT_TRANSFER): transfers can be looked at here, not made.</div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ !!$variables.error ]]">
+            <div class="oj-sm-padding-4x-bottom" role="alert"><span class="oj-text-color-danger"><oj-bind-text value="[[ $variables.error ]]"></oj-bind-text></span></div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ !!$variables.note ]]">
+            <div class="oj-sm-padding-4x-bottom oj-typography-body-sm oj-text-color-secondary" role="status"><oj-bind-text value="[[ $variables.note ]]"></oj-bind-text></div>
+          </oj-bind-if>
+          <oj-table id="trfRwTable" data="[[ $variables.rwADP ]]" class="oj-sm-width-full nx-rw-table" aria-label="Transfers"
+            scroll-policy="loadMoreOnScroll" scroll-policy-options.fetch-size="50" display="list" horizontal-grid-visible="enabled"
+            layout="fixed" on-oj-row-action="[[ $listeners.onRwRow ]]"
+            columns='[
+              {"headerText": "Transfer", "field": "number", "template": "numTpl", "sortable": "enabled", "style": "width:16%;"},
+              {"headerText": "Request", "field": "request", "template": "reqTpl", "sortable": "enabled", "style": "width:15%;"},
+              {"headerText": "From → to", "field": "from", "template": "routeTpl", "sortable": "enabled", "style": "width:19%;"},
+              {"headerText": "What is moving", "field": "what", "template": "whatTpl", "sortable": "enabled", "style": "width:18%;"},
+              {"headerText": "Where it is", "field": "status", "template": "statusTpl", "sortable": "enabled", "style": "width:17%;"},
+              {"headerText": "Due", "field": "due", "template": "dueTpl", "sortable": "disabled", "style": "width:15%;"}
+            ]'>
+            <template slot="numTpl" data-oj-as="cell">
+              <div class="nx-rw-cell"><span class="oj-typography-body-md oj-typography-bold nx-rw-num"><oj-bind-text value="[[ cell.row.number ]]"></oj-bind-text></span>
+                <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.kind ]]"></oj-bind-text></span></div>
+            </template>
+            <template slot="reqTpl" data-oj-as="cell">
+              <div class="nx-rw-cell"><span class="oj-typography-body-md"><oj-bind-text value="[[ cell.row.request ]]"></oj-bind-text></span>
+                <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.requestSub ]]"></oj-bind-text></span></div>
+            </template>
+            <template slot="routeTpl" data-oj-as="cell">
+              <div class="nx-rw-cell"><span class="oj-typography-body-md"><oj-bind-text value="[[ cell.row.from ]]"></oj-bind-text></span>
+                <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ '→ ' + cell.row.to ]]"></oj-bind-text></span></div>
+            </template>
+            <template slot="whatTpl" data-oj-as="cell">
+              <div class="nx-rw-cell"><span class="oj-typography-body-md"><oj-bind-text value="[[ cell.row.what ]]"></oj-bind-text></span>
+                <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.units ]]"></oj-bind-text></span></div>
+            </template>
+            <template slot="statusTpl" data-oj-as="cell">
+              <div class="nx-rw-cell"><span :class="[[ cell.row.badge ]]"><oj-bind-text value="[[ cell.row.status ]]"></oj-bind-text></span>
+                <oj-bind-if test="[[ !!cell.row.detail ]]"><span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.detail ]]"></oj-bind-text></span></oj-bind-if></div>
+            </template>
+            <template slot="dueTpl" data-oj-as="cell">
+              <span :class="[[ 'oj-typography-body-sm' + (cell.row.late ? ' oj-text-color-danger' : ' oj-text-color-secondary') ]]"><oj-bind-text value="[[ cell.row.due ]]"></oj-bind-text></span>
+            </template>
+            <template slot="noData">
+              <div class="oj-sm-padding-6x oj-typography-body-md oj-text-color-secondary"><oj-bind-text value="[[ $variables.isLoading ? 'Loading the transfers…'
+                : ($variables.rows.length ? 'Nothing matches. Try another filter or clear the search.' : 'No transfers yet.') ]]"></oj-bind-text></div>
+            </template>
+          </oj-table>
+        </oj-sp-collection-container>
+      </oj-sp-smart-search-page>
+    </div>
+  </oj-bind-if>
+
+  <!-- ── The current look ───────────────────────────────────────────────────────────────────────────────────── -->
+  <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
   <div class="nx-pagehead">
     <div>
       <h1>Transfers</h1>
@@ -142,5 +219,6 @@
   <oj-bind-if test="[[ $variables.shown.length > $variables.limit ]]">
     <div><button type="button" class="nx-btn" on-click="[[ $listeners.onMore ]]">
       <oj-bind-text value="[[ 'Show more (' + ($variables.shown.length - $variables.limit) + ' left)' ]]"></oj-bind-text></button></div>
+  </oj-bind-if>
   </oj-bind-if>
 </div>

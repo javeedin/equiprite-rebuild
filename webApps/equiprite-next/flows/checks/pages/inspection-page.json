@@ -1,5 +1,5 @@
 {
-  "description": "Inspections (FDD 7.12, 7.17.3, S16, DP-03): the inspector's queue (units leaving the yard, arriving on site, leaving a site, back at the yard, failed), a unit's whole checklist with pass / fail and notes, defects with photos, the PASS / CONDITIONAL / FAIL result and what happens to a failed unit. Rules and calls are New EquipRite's (resources/js/inspectionRules.js, New's inspection page module unchanged): workbench-requests OUTBOUND + INBOUND, request-detail-lines, conf-inspection-details; inspection-checklists, inspections; POST inspections, POST/PATCH inspection-responses, POST inspection-defects + a commonService photo each, PATCH inspections COMPLETED, PATCH lines/batch at the yard ship-out. The maintenance work order (INT-13) is Fusion and is not raised here.",
+  "description": "Inspections (FDD 7.12, 7.17.3, S16, DP-03): the inspector's queue (units leaving the yard, arriving on site, leaving a site, back at the yard, failed), a unit's whole checklist with pass / fail and notes, defects with photos, the PASS / CONDITIONAL / FAIL result and what happens to a failed unit. Rules and calls are New EquipRite's (resources/js/inspectionRules.js, New's inspection page module unchanged): workbench-requests OUTBOUND + INBOUND, request-detail-lines, conf-inspection-details; inspection-checklists, inspections; POST inspections, POST/PATCH inspection-responses, POST inspection-defects + a commonService photo each, PATCH inspections COMPLETED, PATCH lines/batch at the yard ship-out. The maintenance work order (INT-13) is Fusion and is not raised here. Under Redwood (your menu, Look) the queue is Oracle's Smart Search page over an oj-table, a filter per column (the chips are its Inspection filter, Asked for / Everything waiting its Which units filter); a row opens the unit's checklist under Oracle's general overview page (its point or result as the badge, its request as an action, back to the queue).",
   "navigation": {
     "embeddable": "enabled"
   },
@@ -139,6 +139,163 @@
       "type": "any",
       "defaultValue": null,
       "description": "The inspection just completed: { unit, code, text, point, lineStatus, statusError, line, recorded, nextLineId, nextUnit }."
+    },
+    "rwShown": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood view: the queue shown narrowed by its column filters (applyChain); what its export writes."
+    },
+    "rwRows": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood view: one oj-table row per unit in rwShown (inspectionQueue.redwoodRows)."
+    },
+    "rwADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "key",
+        "data": "{{ $page.variables.rwRows }}"
+      }
+    },
+    "rwCriterion": {
+      "type": "any",
+      "description": "Redwood view: the Smart Search criterion (text and filters); rwFilterChain turns it into text, chip, scope and rwCols."
+    },
+    "rwCols": {
+      "type": "object",
+      "defaultValue": {
+        "unit": "",
+        "request": "",
+        "when": ""
+      },
+      "description": "Redwood view: the column filters only it shows (inspectionQueue.byColumns); Inspection and Which units are the page's own chip and scope."
+    },
+    "rwSearchConfig": {
+      "type": "oj-sp/smart-search/strategies/JsonSearchConfigProviderFactory",
+      "defaultValue": {
+        "url": "[[ $application.path + 'resources/data/inspectionSearchConfig.json' ]]"
+      }
+    },
+    "rwUnits": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood view: each filter's options with their counts (applyChain, inspectionQueue.columnOptions)."
+    },
+    "rwUnitsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwUnits }}"
+      }
+    },
+    "rwRequests": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "rwRequestsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwRequests }}"
+      }
+    },
+    "rwChips": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "rwChipsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwChips }}"
+      }
+    },
+    "rwWhen": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "rwWhenADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwWhen }}"
+      }
+    },
+    "rwScopes": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "rwScopesADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwScopes }}"
+      }
+    },
+    "rwSearchContext": {
+      "type": "object",
+      "defaultValue": {
+        "$search": {
+          "filters": {
+            "EquipmentFilter": {
+              "label": "Equipment",
+              "options": {
+                "optionsData": "[[ $page.variables.rwUnitsADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "RequestFilter": {
+              "label": "Request",
+              "options": {
+                "optionsData": "[[ $page.variables.rwRequestsADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "PointFilter": {
+              "label": "Inspection",
+              "options": {
+                "optionsData": "[[ $page.variables.rwChipsADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "WhenFilter": {
+              "label": "When",
+              "options": {
+                "optionsData": "[[ $page.variables.rwWhenADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "ScopeFilter": {
+              "label": "Which units",
+              "options": {
+                "optionsData": "[[ $page.variables.rwScopesADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "eventListeners": {
@@ -368,6 +525,70 @@
           }
         }
       ]
+    },
+    "onRwFilter": {
+      "chains": [
+        {
+          "chain": "rwFilterChain"
+        }
+      ]
+    },
+    "onRwRow": {
+      "chains": [
+        {
+          "chain": "openLineChain",
+          "parameters": {
+            "lineId": "{{ $event.detail.context.key }}"
+          }
+        }
+      ]
+    },
+    "onRwInspect": {
+      "chains": [
+        {
+          "chain": "openLineChain",
+          "parameters": {
+            "lineId": "{{ $event.currentTarget.dataset.line }}"
+          }
+        }
+      ]
+    },
+    "onRwExport": {
+      "chains": [
+        {
+          "chain": "exportChain",
+          "parameters": {
+            "format": "xlsx"
+          }
+        }
+      ]
+    },
+    "onRwBack": {
+      "chains": [
+        {
+          "chain": "rwBackChain"
+        }
+      ]
+    },
+    "onRwNext": {
+      "chains": [
+        {
+          "chain": "openLineChain",
+          "parameters": {
+            "lineId": "{{ $variables.done && $variables.done.nextLineId ? '' + $variables.done.nextLineId : '' }}"
+          }
+        }
+      ]
+    },
+    "onRwAction": {
+      "chains": [
+        {
+          "chain": "rwActionChain",
+          "parameters": {
+            "item": "{{ $event.detail ? $event.detail.secondaryItem : '' }}"
+          }
+        }
+      ]
     }
   },
   "imports": {
@@ -380,6 +601,24 @@
       },
       "oj-bind-text": {
         "path": "ojs/ojknockout"
+      },
+      "oj-sp-smart-search-page": {
+        "path": "oj-sp/smart-search-page/loader"
+      },
+      "oj-sp-smart-search": {
+        "path": "oj-sp/smart-search/loader"
+      },
+      "oj-sp-collection-container": {
+        "path": "oj-sp/collection-container/loader"
+      },
+      "oj-sp-general-overview-page": {
+        "path": "oj-sp/general-overview-page/loader"
+      },
+      "oj-table": {
+        "path": "ojs/ojtable"
+      },
+      "oj-c-button": {
+        "path": "oj-c/button"
       }
     }
   }

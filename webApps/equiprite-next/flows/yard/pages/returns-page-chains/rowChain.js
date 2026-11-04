@@ -6,7 +6,8 @@ define([
   'use strict';
 
   // A row of the list (one handler for the whole row): its request number opens the request in its own tab; anywhere
-  // else opens the request beside the list (in place of a unit search), or closes it when it is the one open.
+  // else opens the request beside the list (in place of a unit search), or closes it when it is the one open. A step on
+  // a row of the Redwood view (act 'step': Receive N) opens it, and leaves it open when it already is.
   class rowChain extends ActionChain {
     async run(context, { id, number, act }) {
       const v = context.$page.variables;
@@ -17,6 +18,7 @@ define([
       }
       if (v.busy) return;
       if (v.side === 'request' && String(v.openId) === String(id)) {
+        if (act === 'step') return;
         await Actions.callChain(context, { chain: 'closeWorkChain' });
         return;
       }
