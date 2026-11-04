@@ -3,14 +3,15 @@ define([
   'resources/js/exportKit',
   'resources/js/equipmentMaster',
   'resources/js/shellBus',
-], (ActionChain, exportKit, em, bus) => {
+  'resources/js/equipmentRedwood',
+], (ActionChain, exportKit, em, bus, rw) => {
   'use strict';
 
   // Exports what the view shows, as Excel, CSV, PDF or rows to paste: the list or the map's items (their search,
   // filters, location and order), or the Import view's fetched items on this page (with their class and whether
-  // they are ticked).
+  // they are ticked). From the Redwood view (redwood), the items its table shows: its column filters applied too.
   class exportChain extends ActionChain {
-    async run(context, { format }) {
+    async run(context, { format, redwood }) {
       const { $page } = context;
       const v = $page.variables;
       v.exportOpen = false;
@@ -28,7 +29,7 @@ define([
           name: 'equipment-master',
           title: 'Equipment master',
           subtitle: this.filters(v),
-          rows: v.shown,
+          rows: redwood ? rw.masterByColumns(v.shown, v.rwCols) : v.shown,
           columns: em.exportColumns(),
         });
       }

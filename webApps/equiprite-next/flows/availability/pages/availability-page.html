@@ -5,6 +5,18 @@
      The yard grid (Timeline | Yard grid): equipment or units as rows, yards as columns, a tick where each is; logic:
      resources/js/availabilityPivot.js; styles: resources/css/next-pivot.css. A row opens everything about it. -->
 <div class="nx-page nx-av">
+  <!-- Redwood (your menu): Oracle's general overview page as the header, as Old's Equipment Schedule: the title, the
+       summary, Refresh and Export (rwActionChain); over this screen's own window, clashes, timeline and yard grid, as they
+       are. Put on the page the first time Redwood is shown, then kept, hidden under Current. -->
+  <oj-bind-if test="[[ $application.variables.lookSeen ]]">
+    <div class="nx-rw nx-rw--head" id="avRedwood" :hidden="[[ $application.variables.look !== 'redwood' ]]">
+      <oj-sp-general-overview-page page-title="Availability" display-mode="mixed"
+        page-subtitle="[[ $variables.isLoading && !$variables.model ? 'Loading the fleet and its bookings…' : $variables.summary ]]"
+        secondary-actions="[[ $functions.rwActions() ]]" on-sp-secondary-action="[[ $listeners.onRwAction ]]">
+      </oj-sp-general-overview-page>
+    </div>
+  </oj-bind-if>
+  <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
   <div class="nx-pagehead">
     <div>
       <h1>Availability</h1>
@@ -31,6 +43,7 @@
       </div>
     </div>
   </div>
+  </oj-bind-if>
 
   <oj-bind-if test="[[ !!$variables.error ]]">
     <div class="nx-error" role="alert"><oj-bind-text value="[[ $variables.error ]]"></oj-bind-text></div>

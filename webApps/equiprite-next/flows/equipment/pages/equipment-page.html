@@ -2,6 +2,113 @@
      its own tab. List or map; FULL access adds Sync from Fusion and the Import from Fusion view (New's chains).
      Logic: resources/js/equipmentMaster.js; the Sync and Import functions: resources/js/equipmentImport.js. -->
 <div class="nx-page nx-eqm">
+  <!-- ── Redwood (your menu): Oracle's own Smart Search page, Smart Search, oj-table, oj-badge and oj-c buttons on the same
+       items, filters and chains (applyChain; rows and options: rwApplyChain, equipmentRedwood.js), as Old's Equipment
+       Master. Always the list: the map is the current look's. The Import view keeps its own body, under Oracle's general
+       overview header with the way back to the list. Put on the page the first time Redwood is shown, then kept, hidden
+       under Current (Smart Search throws if taken off mid-way). ── -->
+  <oj-bind-if test="[[ $application.variables.lookSeen ]]">
+    <div class="nx-rw" id="eqmRedwood" :hidden="[[ $application.variables.look !== 'redwood' || $variables.view === 'import' ]]">
+      <oj-sp-smart-search-page page-title="Equipment master" page-subtitle="[[ $variables.summary || 'Loading the equipment…' ]]" display-mode="mixed"
+        secondary-actions="[[ $functions.rwActions($variables.canWrite, $variables.isSyncing, $variables.stagingWaiting) ]]"
+        on-sp-secondary-action="[[ $listeners.onRwAction ]]">
+        <oj-sp-smart-search slot="search" filter-criterion="{{ $variables.rwCriterion }}" on-filter-criterion-changed="[[ $listeners.onRwFilter ]]"
+          search-context="[[ $variables.rwSearchContext ]]" search-config="[[ $variables.rwSearchConfig.provider ]]"
+          suggestion-filters='["EquipmentFilter", "ClassFilter", "SubclassFilter", "TrackingFilter", "UnitsFilter", "LocationFilter", "StatusFilter", "SourceFilter", "AssetGroupFilter"]'
+          placeholder="Number, name, class, serial, maker or location"></oj-sp-smart-search>
+        <oj-sp-collection-container>
+          <div class="nx-rw-tools">
+            <oj-c-button id="eqmRwRefresh" label="Refresh" chroming="borderless" size="sm" disabled="[[ $variables.isLoading ]]" on-oj-action="[[ $listeners.onRefresh ]]">
+              <span slot="startIcon" class="oj-ux-ico-refresh"></span></oj-c-button>
+            <oj-c-button id="eqmRwExport" label="Export to Excel" chroming="borderless" size="sm" on-oj-action="[[ $listeners.onRwExport ]]">
+              <span slot="startIcon" class="oj-ux-ico-download"></span></oj-c-button>
+          </div>
+          <oj-bind-if test="[[ !!$functions.fusionLine($variables.lastRuns) ]]">
+            <p class="oj-typography-body-sm oj-text-color-secondary nx-eqm-rwline" id="eqmRwFusion"><oj-bind-text value="[[ $functions.fusionLine($variables.lastRuns) ]]"></oj-bind-text></p>
+          </oj-bind-if>
+          <!-- Sync from Fusion: its question, its progress and how it ended (the current look's cards, in Redwood's parts). -->
+          <oj-bind-if test="[[ !!$variables.ask ]]">
+            <div class="nx-eqm-rwnote" role="alertdialog" id="eqmRwAsk" aria-labelledby="eqmRwAskTitle">
+              <div class="nx-rw-cell"><span class="oj-typography-body-md oj-typography-bold" id="eqmRwAskTitle"><oj-bind-text value="[[ $variables.ask.title ]]"></oj-bind-text></span>
+                <span class="oj-typography-body-sm"><oj-bind-text value="[[ $variables.ask.message ]]"></oj-bind-text></span></div>
+              <div class="nx-rw-steps">
+                <oj-c-button label="Cancel" chroming="outlined" size="sm" data-answer="cancel" on-oj-action="[[ $listeners.onAnswer ]]"></oj-c-button>
+                <oj-c-button :label="[[ $variables.ask.ok ]]" chroming="callToAction" size="sm" data-answer="ok" on-oj-action="[[ $listeners.onAnswer ]]"></oj-c-button>
+              </div>
+            </div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.isSyncing ]]">
+            <div class="nx-eqm-rwnote" role="status" id="eqmRwSyncing">
+              <span class="oj-typography-body-md"><strong><oj-bind-text value="[[ $functions.syncLabel(true, $variables.syncStep) ]]"></oj-bind-text></strong>
+                <oj-bind-text value="[[ ' ' + ($variables.importMessage || 'Items first, then stock, then units.') ]]"></oj-bind-text></span>
+            </div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ !$variables.isSyncing && !!$variables.syncResult ]]">
+            <div class="nx-eqm-rwnote" role="status" id="eqmRwSyncResult">
+              <span class="oj-typography-body-md"><strong><oj-bind-text value="[[ $variables.syncResult.title ]]"></oj-bind-text></strong>
+                <oj-bind-text value="[[ ' ' + $variables.syncResult.message ]]"></oj-bind-text></span>
+              <oj-c-button label="Dismiss" chroming="borderless" size="sm" data-field="syncResult" data-value="" on-oj-action="[[ $listeners.onPick ]]"></oj-c-button>
+            </div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ !!$functions.searchNote($variables.text, $variables.server, $variables.searching) ]]">
+            <p class="oj-typography-body-sm oj-text-color-secondary nx-eqm-rwline" role="status" id="eqmRwSearchNote"><oj-bind-text value="[[ $functions.searchNote($variables.text, $variables.server, $variables.searching) ]]"></oj-bind-text></p>
+          </oj-bind-if>
+          <oj-bind-if test="[[ !!$variables.error ]]">
+            <div class="oj-sm-padding-4x-bottom" role="alert" id="eqmRwError"><span class="oj-text-color-danger"><oj-bind-text value="[[ $variables.error ]]"></oj-bind-text></span></div>
+          </oj-bind-if>
+          <oj-table id="eqmRwTable" data="[[ $variables.rwADP ]]" class="oj-sm-width-full nx-rw-table" aria-label="Equipment"
+            scroll-policy="loadMoreOnScroll" scroll-policy-options.fetch-size="50" display="list" horizontal-grid-visible="enabled"
+            layout="fixed" on-oj-row-action="[[ $listeners.onRwRow ]]"
+            columns='[
+              {"headerText": "Equipment", "field": "title", "template": "itemTpl", "sortable": "enabled", "style": "width:25%;"},
+              {"headerText": "Class", "field": "cls", "template": "classTpl", "sortable": "enabled", "style": "width:16%;"},
+              {"headerText": "Tracked by", "field": "tracking", "template": "trackTpl", "sortable": "enabled", "style": "width:11%;"},
+              {"headerText": "Units", "field": "units", "template": "unitsTpl", "sortable": "enabled", "style": "width:16%;"},
+              {"headerText": "Location", "field": "where", "template": "whereTpl", "sortable": "enabled", "style": "width:15%;"},
+              {"headerText": "Status", "field": "status", "template": "statusTpl", "sortable": "enabled", "style": "width:17%;"}
+            ]'>
+            <template slot="itemTpl" data-oj-as="cell">
+              <div class="nx-rw-cell"><span class="oj-typography-body-md oj-typography-bold oj-link-standalone nx-rw-num"><oj-bind-text value="[[ cell.row.title ]]"></oj-bind-text></span>
+                <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.sub ]]"></oj-bind-text></span>
+                <oj-bind-if test="[[ cell.row.server ]]"><span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ $functions.whyText($variables.text) ]]"></oj-bind-text></span></oj-bind-if></div>
+            </template>
+            <template slot="classTpl" data-oj-as="cell">
+              <div class="nx-rw-cell"><span class="oj-typography-body-md"><oj-bind-text value="[[ cell.row.cls ]]"></oj-bind-text></span>
+                <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.subcls ]]"></oj-bind-text></span></div>
+            </template>
+            <template slot="trackTpl" data-oj-as="cell">
+              <span class="oj-typography-body-md"><oj-bind-text value="[[ cell.row.tracking ]]"></oj-bind-text></span>
+            </template>
+            <template slot="unitsTpl" data-oj-as="cell">
+              <span :class="[[ cell.row.hasUnits ? 'oj-typography-body-md' : 'oj-typography-body-sm oj-text-color-secondary' ]]"><oj-bind-text value="[[ cell.row.units ]]"></oj-bind-text></span>
+            </template>
+            <template slot="whereTpl" data-oj-as="cell">
+              <span class="oj-typography-body-md"><oj-bind-text value="[[ cell.row.where ]]"></oj-bind-text></span>
+            </template>
+            <template slot="statusTpl" data-oj-as="cell">
+              <div class="nx-rw-cell"><span :class="[[ cell.row.badge ]]"><oj-bind-text value="[[ cell.row.status ]]"></oj-bind-text></span>
+                <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.source ]]"></oj-bind-text></span></div>
+            </template>
+            <template slot="noData">
+              <div class="oj-sm-padding-6x oj-typography-body-md oj-text-color-secondary"><oj-bind-text value="[[ $variables.isLoading ? 'Loading the equipment…' : ($variables.itemCount ? 'No equipment matches. Try another filter or clear the search.' : 'There is no equipment in the master yet. Items come in through Import from Fusion.') ]]"></oj-bind-text></div>
+            </template>
+          </oj-table>
+          <p class="oj-typography-body-sm oj-text-color-secondary nx-eqm-rwline">New equipment comes in through Import from Fusion. Fusion syncs run for every item at once; one item
+            cannot be synced on its own.</p>
+        </oj-sp-collection-container>
+      </oj-sp-smart-search-page>
+    </div>
+    <div class="nx-rw nx-rw--head" id="eqmRwImport" :hidden="[[ $application.variables.look !== 'redwood' || $variables.view !== 'import' ]]">
+      <oj-sp-general-overview-page page-title="Import from Fusion" display-mode="mixed"
+        page-subtitle="[[ $variables.stagingLoading ? 'Reading the fetched items…' : ($variables.stagingSummary || 'Fetch from Fusion, review and give a class, then import the ticked rows.') ]]"
+        secondary-actions="[[ $functions.rwImportActions() ]]" on-sp-secondary-action="[[ $listeners.onRwAction ]]"
+        display-options.in-flow-back="true" on-sp-in-flow-back="[[ $listeners.onRwBack ]]">
+      </oj-sp-general-overview-page>
+    </div>
+  </oj-bind-if>
+
+  <!-- ── The current look ───────────────────────────────────────────────────────────────────────────────── -->
+  <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
   <div class="nx-pagehead">
     <div>
       <h1>Equipment master</h1>
@@ -36,7 +143,10 @@
       </oj-bind-if>
     </div>
   </div>
+  </oj-bind-if>
 
+  <!-- The question card and Sync's progress: the current look's, and Redwood's in the Import view (its list view shows its own). -->
+  <oj-bind-if test="[[ $application.variables.look !== 'redwood' || $variables.view === 'import' ]]">
   <oj-bind-if test="[[ !!$variables.ask ]]">
     <section class="nx-card nx-card-pad nx-eqm-ask" role="alertdialog" aria-labelledby="eqmAskTitle" aria-describedby="eqmAskText">
       <h2 class="nx-h2" id="eqmAskTitle"><oj-bind-text value="[[ $variables.ask.title ]]"></oj-bind-text></h2>
@@ -63,7 +173,9 @@
       <button type="button" class="nx-btn nx-btn--plain nx-btn--sm" data-field="syncResult" data-value="" on-click="[[ $listeners.onPick ]]">Dismiss</button>
     </div>
   </oj-bind-if>
+  </oj-bind-if>
 
+  <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
   <div class="nx-toolbar">
     <div class="nx-seg" role="group" aria-label="View">
       <button type="button" data-field="view" data-value="list" on-click="[[ $listeners.onPick ]]" :aria-pressed="[[ $variables.view === 'list' ? 'true' : 'false' ]]"
@@ -293,8 +405,9 @@
     <p class="nx-note nx-eqm-foot">New equipment comes in through Import from Fusion. Fusion syncs run for every item at once; one item
       cannot be synced on its own.</p>
   </oj-bind-if>
+  </oj-bind-if>
 
-  <!-- ── Import from Fusion (FULL): Fetch, review and classify, Import the ticked rows ──────────────────── -->
+  <!-- ── Import from Fusion (FULL): Fetch, review and classify, Import the ticked rows (both looks) ───────── -->
   <oj-bind-if test="[[ $variables.view === 'import' ]]">
     <section class="nx-card nx-card-pad nx-eqm-step" aria-labelledby="impFetchTitle">
       <div class="nx-eqm-stephead">

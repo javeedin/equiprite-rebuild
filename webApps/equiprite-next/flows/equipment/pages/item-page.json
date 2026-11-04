@@ -1,5 +1,5 @@
 {
-  "description": "One equipment item in its own tab (FDD 7.2.5): what it is, its units at a glance and in full, certificates and documents, Fusion work orders, expenditure types; Change class (FULL; PATCH /equipment-master/{id}, read back); export of its units, documents or work orders. Data: loadRecordChain (New's detailInitChain, call for call). The variables are New's Equipment detail's, so its chains run on them.",
+  "description": "One equipment item in its own tab (FDD 7.2.5): what it is, its units at a glance and in full, certificates and documents, Fusion work orders, expenditure types; Change class (FULL; PATCH /equipment-master/{id}, read back); export of its units, documents or work orders. Data: loadRecordChain (New's detailInitChain, call for call). The variables are New's Equipment detail's, so its chains run on them. Redwood (your menu): Oracle's general overview page as the header (the item's name, its status as a badge, Change class, Refresh and Export, back to the Equipment master), over the same body.",
   "navigation": {
     "embeddable": "enabled"
   },
@@ -52,13 +52,15 @@
     "onExportMenu": { "chains": [{ "chain": "menuChain", "parameters": { "what": "" } }] },
     "onExportWhat": { "chains": [{ "chain": "menuChain", "parameters": { "what": "{{ $event.currentTarget.dataset.what }}" } }] },
     "onExport": { "chains": [{ "chain": "exportChain", "parameters": { "format": "{{ $event.currentTarget.dataset.format }}" } }] },
-    "onOpenList": { "chains": [{ "chain": "openListChain" }] }
+    "onOpenList": { "chains": [{ "chain": "openListChain" }] },
+    "onRwAction": { "chains": [{ "chain": "rwActionChain", "parameters": { "id": "{{ $event.detail.secondaryItem }}" } }] }
   },
   "imports": {
     "components": {
       "oj-bind-for-each": { "path": "ojs/ojknockout" },
       "oj-bind-if": { "path": "ojs/ojknockout" },
-      "oj-bind-text": { "path": "ojs/ojknockout" }
+      "oj-bind-text": { "path": "ojs/ojknockout" },
+      "oj-sp-general-overview-page": { "path": "oj-sp/general-overview-page/loader" }
     }
   }
 }

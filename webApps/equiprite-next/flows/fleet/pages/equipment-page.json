@@ -1,5 +1,5 @@
 {
-  "description": "Everything about a piece of equipment (record equipment-360, or unit): an equipment item with all its units, or one unit. The head (name, class, how many units and where, its picture), each unit now (yard, free / booked / on site / coming back / maintenance, next booking, free in the window), its availability ahead on a compact timeline (Availability's rules and colours), and its full history newest first (bookings, units assigned and released, status changes, transfer orders and moves between projects, inspections, Fusion maintenance work orders, certificates and documents), each entry opening its record. Reads only: resources/js/equipment360.js.",
+  "description": "Everything about a piece of equipment (record equipment-360, or unit): an equipment item with all its units, or one unit. The head (name, class, how many units and where, its picture), each unit now (yard, free / booked / on site / coming back / maintenance, next booking, free in the window), its availability ahead on a compact timeline (Availability's rules and colours), and its full history newest first (bookings, units assigned and released, status changes, transfer orders and moves between projects, inspections, Fusion maintenance work orders, certificates and documents), each entry opening its record. Reads only: resources/js/equipment360.js. Redwood (your menu): Oracle's general overview page as the header (the name, what a unit is doing now as a badge, Open in Availability, Refresh and Export, back from a unit to its equipment), over the same body.",
   "navigation": {
     "embeddable": "enabled"
   },
@@ -64,13 +64,21 @@
     },
     "onExport": {
       "chains": [{ "chain": "exportChain", "parameters": { "what": "{{ $event.currentTarget.dataset.what }}", "format": "{{ $event.currentTarget.dataset.format }}" } }]
-    }
+    },
+    "onRwAvailability": {
+      "chains": [{ "chain": "openChain", "parameters": { "kind": "availability", "id": "", "number": "", "source": "", "serial": "" } }]
+    },
+    "onRwBack": {
+      "chains": [{ "chain": "openChain", "parameters": { "kind": "item", "id": "", "number": "", "source": "", "serial": "" } }]
+    },
+    "onRwAction": { "chains": [{ "chain": "rwActionChain", "parameters": { "id": "{{ $event.detail.secondaryItem }}" } }] }
   },
   "imports": {
     "components": {
       "oj-bind-for-each": { "path": "ojs/ojknockout" },
       "oj-bind-if": { "path": "ojs/ojknockout" },
-      "oj-bind-text": { "path": "ojs/ojknockout" }
+      "oj-bind-text": { "path": "ojs/ojknockout" },
+      "oj-sp-general-overview-page": { "path": "oj-sp/general-overview-page/loader" }
     }
   }
 }

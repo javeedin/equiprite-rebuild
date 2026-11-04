@@ -1,5 +1,5 @@
 {
-  "description": "Availability (FDD 7.10): units as rows grouped by class or yard, bookings as bars coloured by the journey stage, planned maintenance, today and your window; free capacity per class for the window; clashes and tight turnarounds; search, filters, week or month view; export of the bookings shown. A yard grid (Timeline | Yard grid): equipment or units as rows, yards as columns, a tick where each is with how many are free in your window; a row opens everything about that equipment. Other screens open it prefilled with shellBus.focus('availability', { text, from, to, view }). A booking opens its request in a tab. Read only, as New and Old EquipRite's schedule: bookings change on the request line. Logic: resources/js/availability.js and availabilityPivot.js (the grid); calls: resources/js/availabilityData.js.",
+  "description": "Availability (FDD 7.10): units as rows grouped by class or yard, bookings as bars coloured by the journey stage, planned maintenance, today and your window; free capacity per class for the window; clashes and tight turnarounds; search, filters, week or month view; export of the bookings shown. A yard grid (Timeline | Yard grid): equipment or units as rows, yards as columns, a tick where each is with how many are free in your window; a row opens everything about that equipment. Other screens open it prefilled with shellBus.focus('availability', { text, from, to, view }). A booking opens its request in a tab. Read only, as New and Old EquipRite's schedule: bookings change on the request line. Logic: resources/js/availability.js and availabilityPivot.js (the grid); calls: resources/js/availabilityData.js. Redwood (your menu): Oracle's general overview page as the header (title, summary, Refresh and Export), over the same window, timeline and yard grid.",
   "navigation": {
     "embeddable": "enabled"
   },
@@ -281,6 +281,16 @@
           }
         }
       ]
+    },
+    "onRwAction": {
+      "chains": [
+        {
+          "chain": "rwActionChain",
+          "parameters": {
+            "id": "{{ $event.detail.secondaryItem }}"
+          }
+        }
+      ]
     }
   },
   "imports": {
@@ -293,6 +303,9 @@
       },
       "oj-bind-text": {
         "path": "ojs/ojknockout"
+      },
+      "oj-sp-general-overview-page": {
+        "path": "oj-sp/general-overview-page/loader"
       }
     }
   }

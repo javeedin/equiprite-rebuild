@@ -8,6 +8,15 @@ define([
 
   // Equipment master: binding helpers. The list's logic is resources/js/equipmentMaster.js; the functions the Sync and
   // Import chains call (New EquipRite's, unchanged) come from resources/js/equipmentImport.js, which this extends.
+
+  // The Redwood header's actions, the same array for the same content (see rwActions).
+  const KEPT = {};
+  const kept = (value) => {
+    const key = JSON.stringify(value);
+    if (!Object.prototype.hasOwnProperty.call(KEPT, key)) KEPT[key] = value;
+    return KEPT[key];
+  };
+
   class PageModule extends EquipmentImport {
     /** The export menu's formats. */
     formats() { return exportKit.FORMATS; }
@@ -101,6 +110,23 @@ define([
 
     /** The Fetch card's line: Fetch's own (Sync's stock step writes the same line while it runs). */
     fetchLine(message, phase) { return phase === 'SYNC' ? '' : (message || ''); }
+
+    // ── Redwood (your menu): Oracle's page templates' header actions, each routed by rwActionChain ───────────────
+    /**
+     * The Smart Search page's actions: Sync from Fusion (not while it runs; its progress shows above the table) and
+     * Import from Fusion with what waits for review, with FULL access (as the current look). The same array while they
+     * read the same: Oracle's header redraws its toolbar for every new one, and two redraws in a row throw.
+     */
+    rwActions(canWrite, isSyncing, waiting) {
+      if (!canWrite) return kept([]);
+      return kept([
+        { id: 'sync', label: 'Sync from Fusion', icon: 'oj-ux-ico-sync', display: isSyncing ? 'disabled' : 'on' },
+        { id: 'import', label: 'Import from Fusion' + (waiting > 0 ? ' (' + waiting.toLocaleString() + ' to review)' : ''), icon: 'oj-ux-ico-download', display: 'on' }
+      ]);
+    }
+
+    /** The Import view's header actions: export the fetched items on this page. */
+    rwImportActions() { return kept([{ id: 'export', label: 'Export to Excel', icon: 'oj-ux-ico-download', display: 'on' }]); }
   }
 
   return PageModule;

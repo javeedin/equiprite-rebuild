@@ -2,6 +2,11 @@ define(['resources/js/exportKit', 'resources/js/availability', 'resources/js/ava
   'use strict';
 
   // Availability: binding helpers. The logic is resources/js/availability.js (the yard grid: availabilityPivot.js).
+  const RW_ACTIONS = [
+    { id: 'refresh', label: 'Refresh', icon: 'oj-ux-ico-refresh', display: 'on' },
+    { id: 'export', label: 'Export to Excel', icon: 'oj-ux-ico-download', display: 'on' }
+  ];
+
   class PageModule {
     constructor(context) {
       // Another screen may hand over a search, a window and a view (shellBus.focus, Check availability): focusChain takes
@@ -46,6 +51,13 @@ define(['resources/js/exportKit', 'resources/js/availability', 'resources/js/ava
       const el = document.getElementById('avTimeline');
       if (el && typeof el.scrollIntoView === 'function') el.scrollIntoView({ block: 'start', behavior: 'smooth' });
     }
+
+    /**
+     * Redwood (your menu): the general overview page's actions (rwActionChain), the current look's head buttons:
+     * Refresh, and Export as Excel (what the timeline or the yard grid shows, as the Export menu). One array, never a
+     * new one: Oracle's header redraws its toolbar for every new array, and two redraws in a row throw.
+     */
+    rwActions() { return RW_ACTIONS; }
   }
 
   return PageModule;

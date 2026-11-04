@@ -1,5 +1,5 @@
 {
-  "description": "Equipment master (FDD 7.2): the catalog of equipment items as a list or a map, found by number, name, class or serial (the list at once, the server's q after a pause), class chips and filters, sort, export; an item opens in its own tab. FULL access: Sync from Fusion (New's chain) and the Import from Fusion view (New's import page and its chains, on the same variables).",
+  "description": "Equipment master (FDD 7.2): the catalog of equipment items as a list or a map, found by number, name, class or serial (the list at once, the server's q after a pause), class chips and filters, sort, export; an item opens in its own tab. FULL access: Sync from Fusion (New's chain) and the Import from Fusion view (New's import page and its chains, on the same variables). Redwood (your menu): Oracle's Smart Search page over the same items, a table row per item and a filter per column; the Import view under Oracle's general overview header.",
   "navigation": {
     "embeddable": "enabled"
   },
@@ -78,7 +78,129 @@
     "stagingSaveMessage": { "type": "string", "defaultValue": "" },
     "stagingClearing": { "type": "boolean", "defaultValue": false },
     "editKey": { "type": "string", "defaultValue": "" },
-    "bulk": { "type": "any", "defaultValue": { "classId": null, "subclassId": null } }
+    "bulk": { "type": "any", "defaultValue": { "classId": null, "subclassId": null } },
+    "rwRows": { "type": "any[]", "defaultValue": [], "description": "Redwood view: one row per item shown (rwApplyChain, from shown and rwCols), for the oj-table." },
+    "rwADP": { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "key", "data": "{{ $page.variables.rwRows }}" } },
+    "rwCriterion": { "type": "any", "description": "Redwood view: the Smart Search criterion (text and filters); rwFilterChain turns it into the page's own filters and rwCols." },
+    "rwCols": { "type": "object", "defaultValue": { "item": "", "units": "" }, "description": "Redwood view: the column filters the current look does not have (equipmentRedwood.masterByColumns)." },
+    "rwSearchConfig": { "type": "oj-sp/smart-search/strategies/JsonSearchConfigProviderFactory", "defaultValue": { "url": "[[ $application.path + 'resources/data/equipmentSearchConfig.json' ]]" } },
+    "rwItems": { "type": "any[]", "defaultValue": [], "description": "Redwood view: the Equipment filter's options (rwApplyChain, equipmentRedwood.masterOptions)." },
+    "rwItemsADP": { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.rwItems }}" } },
+    "rwClasses": { "type": "any[]", "defaultValue": [], "description": "Redwood view: the Class filter's options (rwApplyChain, equipmentRedwood.masterOptions)." },
+    "rwClassesADP": { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.rwClasses }}" } },
+    "rwSubclasses": { "type": "any[]", "defaultValue": [], "description": "Redwood view: the Subclass filter's options (rwApplyChain, equipmentRedwood.masterOptions)." },
+    "rwSubclassesADP": { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.rwSubclasses }}" } },
+    "rwTracking": { "type": "any[]", "defaultValue": [], "description": "Redwood view: the Tracked by filter's options (rwApplyChain, equipmentRedwood.masterOptions)." },
+    "rwTrackingADP": { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.rwTracking }}" } },
+    "rwUnits": { "type": "any[]", "defaultValue": [], "description": "Redwood view: the Units filter's options (rwApplyChain, equipmentRedwood.masterOptions)." },
+    "rwUnitsADP": { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.rwUnits }}" } },
+    "rwLocations": { "type": "any[]", "defaultValue": [], "description": "Redwood view: the Location filter's options (rwApplyChain, equipmentRedwood.masterOptions)." },
+    "rwLocationsADP": { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.rwLocations }}" } },
+    "rwStatuses": { "type": "any[]", "defaultValue": [], "description": "Redwood view: the Status filter's options (rwApplyChain, equipmentRedwood.masterOptions)." },
+    "rwStatusesADP": { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.rwStatuses }}" } },
+    "rwSources": { "type": "any[]", "defaultValue": [], "description": "Redwood view: the Source filter's options (rwApplyChain, equipmentRedwood.masterOptions)." },
+    "rwSourcesADP": { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.rwSources }}" } },
+    "rwGroups": { "type": "any[]", "defaultValue": [], "description": "Redwood view: the Asset group filter's options (rwApplyChain, equipmentRedwood.masterOptions)." },
+    "rwGroupsADP": { "type": "vb/ArrayDataProvider2", "defaultValue": { "itemType": "any", "keyAttributes": "value", "data": "{{ $page.variables.rwGroups }}" } },
+    "rwSearchContext": {
+      "type": "object",
+      "defaultValue": {
+        "$search": {
+          "filters": {
+            "EquipmentFilter": {
+              "label": "Equipment",
+              "options": {
+                "optionsData": "[[ $page.variables.rwItemsADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "ClassFilter": {
+              "label": "Class",
+              "options": {
+                "optionsData": "[[ $page.variables.rwClassesADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "SubclassFilter": {
+              "label": "Subclass",
+              "options": {
+                "optionsData": "[[ $page.variables.rwSubclassesADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "TrackingFilter": {
+              "label": "Tracked by",
+              "options": {
+                "optionsData": "[[ $page.variables.rwTrackingADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "UnitsFilter": {
+              "label": "Units",
+              "options": {
+                "optionsData": "[[ $page.variables.rwUnitsADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "LocationFilter": {
+              "label": "Location",
+              "options": {
+                "optionsData": "[[ $page.variables.rwLocationsADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "StatusFilter": {
+              "label": "Status",
+              "options": {
+                "optionsData": "[[ $page.variables.rwStatusesADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "SourceFilter": {
+              "label": "Source",
+              "options": {
+                "optionsData": "[[ $page.variables.rwSourcesADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "AssetGroupFilter": {
+              "label": "Asset group",
+              "options": {
+                "optionsData": "[[ $page.variables.rwGroupsADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
   },
   "eventListeners": {
     "vbEnter": { "chains": [{ "chain": "loadChain", "parameters": { "refresh": false } }] },
@@ -120,13 +242,24 @@
     },
     "onPrevPage": { "chains": [{ "chain": "StagingPageChangeChain", "parameters": { "direction": "PREV" } }] },
     "onNextPage": { "chains": [{ "chain": "StagingPageChangeChain", "parameters": { "direction": "NEXT" } }] },
-    "onStagingRefresh": { "chains": [{ "chain": "RefreshStagingChain" }] }
+    "onStagingRefresh": { "chains": [{ "chain": "RefreshStagingChain" }] },
+    "onRwFilter": { "chains": [{ "chain": "rwFilterChain" }] },
+    "onRwRow": { "chains": [{ "chain": "openRecordChain", "parameters": { "id": "{{ $event.detail.context.key }}", "number": "" } }] },
+    "onRwAction": { "chains": [{ "chain": "rwActionChain", "parameters": { "id": "{{ $event.detail.secondaryItem }}" } }] },
+    "onRwBack": { "chains": [{ "chain": "setChain", "parameters": { "field": "view", "value": "list" } }] },
+    "onRwExport": { "chains": [{ "chain": "exportChain", "parameters": { "format": "xlsx", "redwood": true } }] }
   },
   "imports": {
     "components": {
       "oj-bind-for-each": { "path": "ojs/ojknockout" },
       "oj-bind-if": { "path": "ojs/ojknockout" },
-      "oj-bind-text": { "path": "ojs/ojknockout" }
+      "oj-bind-text": { "path": "ojs/ojknockout" },
+      "oj-sp-smart-search-page": { "path": "oj-sp/smart-search-page/loader" },
+      "oj-sp-smart-search": { "path": "oj-sp/smart-search/loader" },
+      "oj-sp-collection-container": { "path": "oj-sp/collection-container/loader" },
+      "oj-sp-general-overview-page": { "path": "oj-sp/general-overview-page/loader" },
+      "oj-table": { "path": "ojs/ojtable" },
+      "oj-c-button": { "path": "oj-c/button" }
     }
   }
 }

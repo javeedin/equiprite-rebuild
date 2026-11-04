@@ -48,6 +48,14 @@ define(['resources/js/equipmentBoard', 'resources/js/exportKit'], (board, export
 
     /** The tile a lane filter sits on is "on". */
     tileOn(key, lane, tight) { return key === 'tight' ? !!tight : (!tight && lane === key); }
+
+    /** The Redwood view's subtitle: the current look's summary line, word for word. */
+    rwSummary(isLoading, count, sum) {
+      const s = sum || {};
+      if (isLoading && !count) return 'Loading the fleet…';
+      return s.total + ' units · ' + s.outNow + ' out (' + this.pct(s.utilizationPct) + ')'
+        + (s.overdue ? ' · ' + s.overdue + ' overdue' : '') + (s.tight ? ' · ' + s.tight + ' tight turnarounds' : '');
+    }
   }
 
   return PageModule;

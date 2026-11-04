@@ -6,6 +6,11 @@ define(['vb/action/actionChain', 'resources/js/shellBus'], (ActionChain, bus) =>
   class openRecordChain extends ActionChain {
     async run(context, { id, number }) {
       if (!id) return;
+      // The Redwood table's row action gives the row's key only: its number from the list.
+      if (!number) {
+        const it = ((context.$page.variables || {}).shown || []).filter((x) => String(x.key) === String(id))[0];
+        number = it ? it.num : '';
+      }
       bus.open({ record: 'equipment-item', params: { id: Number(id), number: number || '' } });
     }
   }

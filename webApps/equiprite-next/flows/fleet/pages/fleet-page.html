@@ -1,5 +1,82 @@
 <!-- Fleet: every unit, where it is and what is next for it (equipmentBoard.js joins yard stock, units out, bookings). -->
 <div class="nx-page nx-fleet">
+  <!-- ── Redwood (your menu): Oracle's own Smart Search page, Smart Search, oj-table, oj-badge and oj-c buttons on the same
+       units, filters and steps (applyChain; rows and options: rwApplyChain, equipmentRedwood.js). Always the list: the
+       board is the current look's. A row opens everything about the unit (equipment-360). Put on the page the first time
+       Redwood is shown, then kept, hidden under Current (Smart Search throws if taken off mid-way). ── -->
+  <oj-bind-if test="[[ $application.variables.lookSeen ]]">
+    <div class="nx-rw" id="fleetRedwood" :hidden="[[ $application.variables.look !== 'redwood' ]]">
+      <oj-sp-smart-search-page page-title="Fleet" page-subtitle="[[ $functions.rwSummary($variables.isLoading, $variables.units.length, $variables.sum) ]]" display-mode="mixed">
+        <oj-sp-smart-search slot="search" filter-criterion="{{ $variables.rwCriterion }}" on-filter-criterion-changed="[[ $listeners.onRwFilter ]]"
+          search-context="[[ $variables.rwSearchContext ]]" search-config="[[ $variables.rwSearchConfig.provider ]]"
+          suggestion-filters='["UnitFilter", "EquipmentFilter", "ClassFilter", "StatusFilter", "RequestFilter", "PartyFilter", "NextFilter", "YardFilter"]'
+          placeholder="Unit, serial, asset, equipment, project, customer or request"></oj-sp-smart-search>
+        <oj-sp-collection-container>
+          <div class="nx-rw-tools">
+            <oj-c-button id="fleetRwRefresh" label="Refresh" chroming="borderless" size="sm" disabled="[[ $variables.isLoading ]]" on-oj-action="[[ $listeners.onRefresh ]]">
+              <span slot="startIcon" class="oj-ux-ico-refresh"></span></oj-c-button>
+            <oj-c-button id="fleetRwExport" label="Export to Excel" chroming="borderless" size="sm" on-oj-action="[[ $listeners.onRwExport ]]">
+              <span slot="startIcon" class="oj-ux-ico-download"></span></oj-c-button>
+          </div>
+          <oj-bind-if test="[[ !!$variables.error ]]">
+            <div class="oj-sm-padding-4x-bottom" role="alert" id="fleetRwError"><span class="oj-text-color-danger"><oj-bind-text value="[[ $variables.error ]]"></oj-bind-text></span></div>
+          </oj-bind-if>
+          <oj-table id="fleetRwTable" data="[[ $variables.rwADP ]]" class="oj-sm-width-full nx-rw-table" aria-label="Units"
+            scroll-policy="loadMoreOnScroll" scroll-policy-options.fetch-size="50" display="list" horizontal-grid-visible="enabled"
+            layout="fixed" on-oj-row-action="[[ $listeners.onRwRow ]]"
+            columns='[
+              {"headerText": "Unit", "field": "unit", "template": "unitTpl", "sortable": "enabled", "style": "width:14%;"},
+              {"headerText": "Equipment", "field": "name", "template": "nameTpl", "sortable": "enabled", "style": "width:19%;"},
+              {"headerText": "Status", "field": "status", "template": "statusTpl", "sortable": "enabled", "style": "width:22%;"},
+              {"headerText": "Request", "field": "request", "template": "requestTpl", "sortable": "enabled", "style": "width:15%;"},
+              {"headerText": "Next booking", "field": "next", "template": "nextTpl", "sortable": "enabled", "style": "width:16%;"},
+              {"headerText": "Yard", "field": "yard", "template": "yardTpl", "sortable": "enabled", "style": "width:14%;"}
+            ]'>
+            <template slot="unitTpl" data-oj-as="cell">
+              <div class="nx-rw-cell"><span class="oj-typography-body-md oj-typography-bold oj-link-standalone nx-rw-num"><oj-bind-text value="[[ cell.row.unit ]]"></oj-bind-text></span>
+                <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.unitSub ]]"></oj-bind-text></span></div>
+            </template>
+            <template slot="nameTpl" data-oj-as="cell">
+              <div class="nx-rw-cell"><span class="oj-typography-body-md"><oj-bind-text value="[[ cell.row.name ]]"></oj-bind-text></span>
+                <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.cls ]]"></oj-bind-text></span></div>
+            </template>
+            <template slot="statusTpl" data-oj-as="cell">
+              <div class="nx-rw-cell"><span :class="[[ cell.row.badge ]]"><oj-bind-text value="[[ cell.row.status ]]"></oj-bind-text></span>
+                <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.place ? cell.row.place + ' · ' + cell.row.when : cell.row.when ]]"></oj-bind-text></span>
+                <oj-bind-if test="[[ !!cell.row.tight ]]"><span class="oj-typography-body-sm oj-text-color-danger"><oj-bind-text value="[[ cell.row.tight ]]"></oj-bind-text></span></oj-bind-if>
+                <oj-bind-if test="[[ cell.row.steps.length > 0 ]]">
+                  <div class="nx-rw-steps" data-oj-clickthrough="disabled">
+                    <oj-bind-for-each data="[[ cell.row.steps ]]">
+                      <template data-oj-as="st">
+                        <oj-c-button size="sm" :label="[[ st.data.label ]]" :chroming="[[ st.data.chroming ]]" :data-nav="[[ st.data.nav ]]" :data-key="[[ cell.row.key ]]"
+                          on-oj-action="[[ $listeners.onRwStep ]]"></oj-c-button>
+                      </template>
+                    </oj-bind-for-each>
+                  </div>
+                </oj-bind-if></div>
+            </template>
+            <template slot="requestTpl" data-oj-as="cell">
+              <div class="nx-rw-cell"><span class="oj-typography-body-md"><oj-bind-text value="[[ cell.row.request ]]"></oj-bind-text></span>
+                <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.party ]]"></oj-bind-text></span></div>
+            </template>
+            <template slot="nextTpl" data-oj-as="cell">
+              <div class="nx-rw-cell"><span class="oj-typography-body-md"><oj-bind-text value="[[ cell.row.next ]]"></oj-bind-text></span>
+                <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.nextSub ]]"></oj-bind-text></span></div>
+            </template>
+            <template slot="yardTpl" data-oj-as="cell">
+              <span class="oj-typography-body-md"><oj-bind-text value="[[ cell.row.yard ]]"></oj-bind-text></span>
+            </template>
+            <template slot="noData">
+              <div class="oj-sm-padding-6x oj-typography-body-md oj-text-color-secondary"><oj-bind-text value="[[ $variables.isLoading ? 'Loading the fleet…' : 'No units match. Try another filter or clear the search.' ]]"></oj-bind-text></div>
+            </template>
+          </oj-table>
+        </oj-sp-collection-container>
+      </oj-sp-smart-search-page>
+    </div>
+  </oj-bind-if>
+
+  <!-- ── The current look ───────────────────────────────────────────────────────────────────────────────── -->
+  <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
   <div class="nx-pagehead">
     <div>
       <h1>Fleet</h1>
@@ -135,6 +212,7 @@
       </div>
     </section>
     <oj-bind-if test="[[ $variables.shown.length > 300 ]]"><p class="nx-note"><oj-bind-text value="[[ 'Showing 300 of ' + $variables.shown.length + '. Narrow it down, or export them all.' ]]"></oj-bind-text></p></oj-bind-if>
+  </oj-bind-if>
   </oj-bind-if>
 
   <!-- A unit's panel, over the right edge (every lane stays reachable). -->
