@@ -45,7 +45,8 @@ define([
 
       // The Redwood view's requests (Smart Search over an oj-table): the same requests, then its column filters, which
       // the current look does not show and so never narrow it; and every filter's options with their counts.
-      v.rwShown = R.byColumns(v.reqShown, v.rwCols, now);
+      // Its Show is its own (rwGroup: nothing picked is every request, as in Old), so the current look keeps its own.
+      v.rwShown = R.byColumns(V.sortRequests(V.filterRequests(rows, v.rwGroup, v.reqText), v.reqSort, v.reqDir), v.rwCols, now);
       v.rwRows = R.rows(v.rwShown, now);
       const opts = R.options(rows, v.reqChips, now);
       const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);

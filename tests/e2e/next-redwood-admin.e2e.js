@@ -370,7 +370,7 @@ const noSideways = (page) => page.evaluate(() => { const c = document.querySelec
     await env.setLook('current');
     await page.waitForSelector(visible('.nx-cu .nx-pagehead'), { timeout: 15000 });
     T.check('the portal\'s own head, the Redwood view kept but hidden', await page.isVisible('#cuGreeting') && !(await page.isVisible('#cuRedwood')));
-    T.check('… and its own Requests list (Show: Open, as picked under Redwood)', await (async () => {
+    T.check('… and its own Requests list, its own Show untouched by Redwood\'s (Open, its default)', await (async () => {
       await page.click(visible('.nx-cu-views button[data-value="requests"]'));
       await page.waitForSelector(visible('.nx-grid--cureq .nx-row--click'), { timeout: 10000 });
       return !(await page.isVisible('#cuRwRequests')) && (await page.getAttribute(visible('.nx-chip[data-field="reqGroup"][data-value="open"]'), 'aria-pressed')) === 'true';

@@ -182,6 +182,11 @@
       "type": "any",
       "description": "Redwood view: the Smart Search criterion (text and filters; Oracle's, read only); rwFilterChain turns it into reqText, reqGroup (All when Show is not picked) and rwCols, whenever it changes and whenever the Redwood list is shown (rwShowChain)."
     },
+    "rwGroup": {
+      "type": "string",
+      "defaultValue": "all",
+      "description": "Redwood view: the Show picked in Smart Search (needs, open, finished, all). Nothing picked is every request, as in Old; the current look keeps its own Show (reqGroup)."
+    },
     "rwCols": {
       "type": "object",
       "defaultValue": {

@@ -80,6 +80,7 @@ Build it like this:
   - `oj-badge-danger oj-badge-subtle`
   - `oj-badge-info` (solid)
 - **Row steps.** `oj-c-button`: the one main step uses `chroming="callToAction"`; the others use `chroming="outlined"`. Each carries `data-*` attributes for its listener, inside `<div data-oj-clickthrough="disabled">` so a click doesn't also trigger the row.
+- **Smart Search's criterion can't be set from the page** (it is read-only). A Redwood list's default filter is "nothing picked", as in Old. Give the Redwood view its own state for any filter the Current look also has, such as a default "Open", so Current keeps its own.
 - **Where the rows come from.** Work the Redwood rows out in the same chain that fills the Current list, from the same filtered rows, then apply the column filters to the Redwood rows only. Current must never be filtered by a filter it doesn't show.
 - **Clicks.**
   - A row click (`$event.detail.context.key`; `context.item` is often undefined) does exactly what the Current row click does: the same chain, the same tab, the same dialog.
@@ -112,9 +113,11 @@ How the header's parts work:
 - **Arrays and objects in bindings come from page-module functions.** Next does not write array literals in bindings.
 - **Return the same array (or object) for the same content.** Oracle's header rebuilds its toolbar whenever the action list changes, and throws "oj-toolbar … Cannot access methods before element is upgraded" if it changes again before the toolbar is ready. So keep labels steady: no "Refreshing…" swap.
 - **Back.** Use in-flow back where the Current look has one, for example a record that came from a list.
+- **Disabling an action.** Set `display: 'disabled'` on it. A `disabled: true` flag is ignored by oj-sp 2601.
 - **The kicker** that sits over a Current title ("Commercial", "Project request") goes into the subtitle or is dropped. Oracle's header has no kicker.
 - **Header-only views** (`.nx-rw--head`) have the template's empty content slot collapsed by `next-redwood.css`.
 - **On a record screen, mount the header once the record is known** (`oj-bind-if` on its id). Its title and actions should not change while Oracle's toolbar is still loading.
+- **Text not on a card sits on the band.** The header's colour runs 340px down behind the body. Any text there that is not on a card (a legend, a banner) needs a light colour or a card under it; or set a shorter `--rw-banner-h` for the screen.
 - **The Redwood dialog head is white.** Anything a screen draws in white on Current's dark dialog head needs a dark colour under Redwood.
 
 Where a section of the body is plainly a table of records, you may replace that section's Current markup with an `oj-table`, but only under Redwood (`:hidden` on the Redwood copy, `oj-bind-if` on the Current one), and only if it stays simple. Otherwise leave the body as it is.
