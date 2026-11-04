@@ -290,3 +290,8 @@ html[data-nx-look="redwood"] .nx-rw--head > oj-sp-general-overview-page { border
 html[data-nx-look="redwood"] .nx-rw--head .oj-sp-general-overview-page-slots { min-height: 0 !important; height: auto !important; }
 html[data-nx-look="redwood"] .nx-rw--head .oj-sp-general-overview-page-slot-top-padding { padding-top: 0 !important; padding-bottom: 0 !important; }
 html[data-nx-look="redwood"] .nx-rw--head .oj-sp-public-primary-content-container { background: transparent; }
+/* Oracle's badge in a Redwood view's table: a long status ("On the way back to the yard") wraps rather than being cut. */
+html[data-nx-look="redwood"] .nx-rw oj-table .oj-badge {
+  white-space: normal; height: auto; min-height: 24px; line-height: 18px; padding-top: 3px; padding-bottom: 3px; max-width: 100%; overflow: visible;
+  text-overflow: clip; text-align: left;
+}

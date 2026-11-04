@@ -63,7 +63,7 @@ Build it like this:
   - **Every filter in the config needs its entry in the page's `rwSearchContext`.** A filter without one throws, and the table comes up blank.
   - Each filter's options are an `any[]` page variable plus an `ArrayDataProvider2` (`keyAttributes: 'value'`).
 - **Reading the criterion.** It is a tree: a `text` node, plus `$eq` nodes. A `$eq` node holds its value either as `{ attribute, value }` or as `{ value: { field: v } }`; read both, as `rwFilterChain` does.
-  - Smart Search applies a picked filter **when its dropdown closes** (Oracle's own behaviour, the same in Old). Tests should click the page title after picking.
+  - Smart Search applies a picked filter **when its dropdown closes** (Oracle's own behaviour, the same in Old), and can take more than a second after that. Tests should click the page title after picking, then wait for the rows to change rather than pausing for a fixed time.
 - **Body.** `oj-sp-collection-container` with:
   - A small tools row (`oj-c-button` Refresh and Export, `chroming="borderless"`).
   - An `oj-table` with:
@@ -113,6 +113,8 @@ How the header's parts work:
 - **Back.** Use in-flow back where the Current look has one, for example a record that came from a list.
 - **The kicker** that sits over a Current title ("Commercial", "Project request") goes into the subtitle or is dropped. Oracle's header has no kicker.
 - **Header-only views** (`.nx-rw--head`) have the template's empty content slot collapsed by `next-redwood.css`.
+- **On a record screen, mount the header once the record is known** (`oj-bind-if` on its id). Its title and actions should not change while Oracle's toolbar is still loading.
+- **The Redwood dialog head is white.** Anything a screen draws in white on Current's dark dialog head needs a dark colour under Redwood.
 
 Where a section of the body is plainly a table of records, you may replace that section's Current markup with an `oj-table`, but only under Redwood (`:hidden` on the Redwood copy, `oj-bind-if` on the Current one), and only if it stays simple. Otherwise leave the body as it is.
 
