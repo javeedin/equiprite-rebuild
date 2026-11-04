@@ -93,9 +93,9 @@ const RatesPage = load(path.join(PAGES, 'rates-page.js'), { 'resources/js/rateRu
 const rp = new RatesPage();
 const ids = (a) => plain(a).map((x) => x.id).join();
 T.eq('its actions: Current\'s buttons on the schedule (full access, changed, with rates)', ids(rp.rwActions(true, '9', false, true, 3)),
-  'details,add,export,discard,delete,refresh');
+  'details,add,export,compare,discard,delete,refresh');
 T.eq('…a new one cannot be deleted, nor rates without any exported; read only: export and refresh', [ids(rp.rwActions(true, 'new', true, false, 0)),
-  ids(rp.rwActions(false, '9', false, false, 3))].join(' / '), 'details,add,refresh / export,refresh');
+  ids(rp.rwActions(false, '9', false, false, 3))].join(' / '), 'details,add,refresh / export,compare,refresh');
 T.eq('Edit details says Done once the details are open', plain(rp.rwActions(true, '9', true, false, 0))[0].label, 'Done with the details');
 T.eq('Save schedule on the band (off below full access, held while saving: its label steady, as Oracle\'s toolbar needs)', JSON.stringify([rp.rwPrimary(true, false).display, rp.rwPrimary(true, true).label,
   rp.rwPrimary(true, true).display, rp.rwPrimary(false, false).display]), JSON.stringify(['on', 'Save schedule', 'disabled', 'off']));

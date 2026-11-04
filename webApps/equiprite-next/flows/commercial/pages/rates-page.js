@@ -203,6 +203,7 @@ define(['resources/js/rateRules', 'resources/js/exportKit', 'resources/js/fmt', 
         out.push({ id: 'add', label: 'Add equipment', icon: 'oj-ux-ico-plus', display: 'on' });
       }
       if (lineCount > 0) out.push({ id: 'export', label: 'Export the rates', icon: 'oj-ux-ico-download', display: 'on' });
+      if (id && id !== 'new') out.push({ id: 'compare', label: 'Compare with other schedules', icon: 'oj-ux-ico-split', display: 'on' });
       if (canWrite && dirty) out.push({ id: 'discard', label: 'Discard changes', icon: 'oj-ux-ico-undo', display: 'on' });
       if (canWrite && id && id !== 'new') out.push({ id: 'delete', label: 'Delete', icon: 'oj-ux-ico-trash', display: 'on' });
       out.push({ id: 'refresh', label: 'Refresh', icon: 'oj-ux-ico-refresh', display: 'on' });

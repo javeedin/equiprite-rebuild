@@ -163,8 +163,8 @@ let res = find('rates');
 T.eq('"rates": the Rates screen first', rowsOf(res)[0].label + ' > ' + JSON.stringify(rowsOf(res)[0].open), 'Rates > {"navId":"rates"}');
 T.eq('... and nothing else', heads(res), 'Screens');
 res = find('rate');
-T.eq('"rate": the screen, then the equipment called "Rate Board" (as good a match: screens come first)', heads(res) + ' | ' + rowsOf(res).map((r) => r.label).join(),
-  'Screens,Equipment | Rates,Rate Board');
+T.eq('"rate": the screens, then the equipment called "Rate Board" (as good a match: screens come first)', heads(res) + ' | ' + rowsOf(res).map((r) => r.label).join(),
+  'Screens,Equipment | Rates,Compare rates,Rate Board');
 res = find('work');
 T.eq('"work": My work first, then the screens whose keywords match', rowsOf(res).slice(0, 2).map((r) => r.label).join(), 'My work,Approve & allocate');
 
@@ -259,7 +259,7 @@ T.eq('... opened: all thirty', rowsOf(res).filter((r) => r.group === 'units').le
 res = find('pat', { scope: 'requests' });
 T.eq('Requests scope: requests and transfers only', heads(res), 'Requests');
 res = find('rates', { scope: 'screens' });
-T.eq('Screens scope: screens only', heads(res) + ' ' + rowsOf(res).map((r) => r.label).join(), 'Screens Rates');
+T.eq('Screens scope: screens only', heads(res) + ' ' + rowsOf(res).map((r) => r.label).join(), 'Screens Rates,Compare rates');
 res = find('rates', { scope: 'equipment', access: A_REQ, idx: gs.index(SNAP, A_REQ, NOW), groups: groupsFor(REQUESTOR) });
 T.eq('a scope the role does not have falls back to Everything', res.scope, 'all');
 res = find('zzzz');

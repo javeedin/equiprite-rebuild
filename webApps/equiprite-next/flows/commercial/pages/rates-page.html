@@ -24,6 +24,8 @@
               on-oj-action="[[ $listeners.onRefresh ]]"><span slot="startIcon" class="oj-ux-ico-refresh"></span></oj-c-button>
             <oj-c-button id="ratesRwExport" label="Export to Excel" chroming="borderless" size="sm" disabled="[[ !!$variables.hidden ]]" on-oj-action="[[ $listeners.onRwExport ]]">
               <span slot="startIcon" class="oj-ux-ico-download"></span></oj-c-button>
+            <oj-c-button id="ratesRwCompare" label="Compare schedules" chroming="borderless" size="sm" disabled="[[ !!$variables.hidden ]]" on-oj-action="[[ $listeners.onCompare ]]">
+              <span slot="startIcon" class="oj-ux-ico-split"></span></oj-c-button>
           </div>
           <oj-bind-if test="[[ !!$variables.listError ]]">
             <div class="oj-sm-padding-4x-bottom" role="alert"><span class="oj-text-color-danger"><oj-bind-text value="[[ $variables.listError ]]"></oj-bind-text></span></div>
@@ -114,6 +116,8 @@
             </div>
           </oj-bind-if>
         </div>
+        <button type="button" class="nx-btn nx-btn--plain" id="ratesCompare" on-click="[[ $listeners.onCompare ]]" :disabled="[[ !!$variables.hidden ]]"
+          title="Rate schedules side by side: each tier's Rate / day, or a rental priced by each"><span class="oj-ux-ico-split" aria-hidden="true"></span>Compare schedules</button>
         <oj-bind-if test="[[ $variables.canWrite ]]">
           <button type="button" class="nx-btn nx-btn--primary" id="ratesNew" on-click="[[ $listeners.onNew ]]"><span class="oj-ux-ico-plus" aria-hidden="true"></span>New schedule</button>
         </oj-bind-if>

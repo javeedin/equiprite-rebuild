@@ -1,0 +1,234 @@
+<!-- Compare rates: rate schedules side by side, in Old's rate grid's terms (Threshold, Period total, Rate / day).
+     The schedules picked (the first is the base), how they are compared (each tier's Rate / day, or a rental of N days
+     priced by each schedule), and the comparison: the cheapest and dearest marked, each against the base.
+     Rules: resources/js/rateCompare.js over rateRules.js; reads only. Redwood: Oracle's header, and the comparison as
+     Oracle's table with a column per schedule. -->
+<div class="nx-page nx-cm nx-cm-rc">
+  <oj-bind-if test="[[ $application.variables.lookSeen ]]">
+    <div class="nx-rw nx-rw--head" id="rcRedwood" :hidden="[[ $application.variables.look !== 'redwood' ]]">
+      <oj-sp-general-overview-page page-title="Compare rates" display-mode="mixed"
+        page-subtitle="[[ $functions.rwSub($variables.view, $variables.isLoading) ]]"
+        secondary-actions="[[ $functions.rwActions() ]]" on-sp-secondary-action="[[ $listeners.onRwAction ]]">
+      </oj-sp-general-overview-page>
+    </div>
+  </oj-bind-if>
+  <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
+    <div class="nx-pagehead">
+      <div>
+        <div class="nx-kicker">Commercial</div>
+        <h1>Compare rates</h1>
+        <div class="nx-sub" id="rcSummary"><oj-bind-text value="[[ $functions.rwSub($variables.view, $variables.isLoading) ]]"></oj-bind-text></div>
+      </div>
+      <div class="nx-actions">
+        <button type="button" class="nx-btn nx-btn--plain" id="rcRefresh" on-click="[[ $listeners.onRefresh ]]" :disabled="[[ $variables.isLoading ]]">
+          <span class="oj-ux-ico-refresh" aria-hidden="true"></span>Refresh</button>
+      </div>
+    </div>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ !!$variables.error ]]">
+    <div class="nx-error" role="alert" id="rcError"><oj-bind-text value="[[ $variables.error ]]"></oj-bind-text></div>
+  </oj-bind-if>
+
+  <!-- the schedules compared: a card each (the first is the base), and the others to add -->
+  <section class="nx-card nx-card-pad nx-cm-rc-pick" aria-labelledby="rcPickTitle">
+    <div class="nx-cm-rc-pickhead">
+      <h2 class="nx-h2" id="rcPickTitle">Schedules compared</h2>
+      <span class="nx-note">The first is the base: every other one is measured against it. Up to six.</span>
+    </div>
+    <div class="nx-cm-rc-cards" id="rcCards">
+      <oj-bind-for-each data="[[ $functions.cards($variables.schedules, $variables.picked, $variables.view) ]]">
+        <template data-oj-as="k">
+          <div :class="[[ 'nx-cm-rc-card' + (k.data.base ? ' nx-cm-rc-card--base' : '') ]]" :data-schedule="[[ k.data.id ]]">
+            <div class="nx-cm-rc-cardtop">
+              <strong class="nx-cm-rc-cardname"><oj-bind-text value="[[ k.data.name ]]"></oj-bind-text></strong>
+              <oj-bind-if test="[[ k.data.base ]]"><span class="nx-cm-rc-basetag">Base</span></oj-bind-if>
+              <button type="button" class="nx-cm-rc-x" data-act="remove" :data-id="[[ k.data.id ]]" on-click="[[ $listeners.onPick ]]"
+                :aria-label="[[ 'Stop comparing ' + k.data.name ]]" title="Stop comparing it">×</button>
+            </div>
+            <span class="nx-cm-rc-cardsub"><oj-bind-text value="[[ k.data.sub ]]"></oj-bind-text></span>
+            <span class="nx-cm-rc-cardscore"><oj-bind-text value="[[ k.data.score ]]"></oj-bind-text></span>
+            <oj-bind-if test="[[ !k.data.base ]]">
+              <span class="nx-cm-rc-cardavg"><oj-bind-text value="[[ k.data.avg ]]"></oj-bind-text></span>
+              <button type="button" class="nx-btn nx-btn--sm nx-cm-rc-makebase" data-act="base" :data-id="[[ k.data.id ]]" on-click="[[ $listeners.onPick ]]">Make it the base</button>
+            </oj-bind-if>
+          </div>
+        </template>
+      </oj-bind-for-each>
+    </div>
+    <oj-bind-if test="[[ $functions.unpicked($variables.schedules, $variables.picked).length > 0 ]]">
+      <div class="nx-cm-rc-add">
+        <span class="nx-cm-label">Add a schedule</span>
+        <div class="nx-chips" id="rcAdd">
+          <oj-bind-for-each data="[[ $functions.unpicked($variables.schedules, $variables.picked) ]]">
+            <template data-oj-as="s">
+              <button type="button" class="nx-chip nx-cm-chip--sm" data-act="toggle" :data-id="[[ s.data.id ]]" on-click="[[ $listeners.onPick ]]"
+                :disabled="[[ $variables.picked.length >= 6 ]]" :title="[[ s.data.sub ]]">
+                <span class="oj-ux-ico-plus" aria-hidden="true"></span><oj-bind-text value="[[ s.data.name + (s.data.active ? '' : ' (inactive)') ]]"></oj-bind-text></button>
+            </template>
+          </oj-bind-for-each>
+        </div>
+      </div>
+    </oj-bind-if>
+  </section>
+
+  <!-- how they are compared -->
+  <section class="nx-card nx-cm-rc-board" aria-labelledby="rcBoardTitle">
+    <div class="nx-card-head nx-cm-rc-boardhead">
+      <div>
+        <h2 id="rcBoardTitle">Side by side</h2>
+        <p class="nx-note nx-cm-rc-note"><oj-bind-text value="[[ $functions.boardNote($variables.opts.mode) ]]"></oj-bind-text></p>
+      </div>
+      <div class="nx-actions">
+        <div class="nx-export">
+          <button type="button" class="nx-btn nx-btn--sm" id="rcExport" on-click="[[ $listeners.onExportToggle ]]" aria-haspopup="menu"
+            :aria-expanded="[[ $variables.exportOpen ? 'true' : 'false' ]]" :disabled="[[ $variables.view.rows.length === 0 ]]">
+            <span class="oj-ux-ico-download" aria-hidden="true"></span>Export<span class="oj-ux-ico-chevron-down" aria-hidden="true"></span></button>
+          <oj-bind-if test="[[ $variables.exportOpen ]]">
+            <div class="nx-menu" role="menu" aria-label="Export the comparison">
+              <oj-bind-for-each data="[[ $functions.formats() ]]">
+                <template data-oj-as="f">
+                  <button type="button" role="menuitem" class="nx-menu-item" :data-format="[[ f.data.key ]]" on-click="[[ $listeners.onExport ]]">
+                    <span :class="[[ f.data.icon ]]" aria-hidden="true"></span><oj-bind-text value="[[ f.data.label ]]"></oj-bind-text></button>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </oj-bind-if>
+        </div>
+      </div>
+    </div>
+    <div class="nx-cm-rc-controls">
+      <div class="nx-seg" role="group" aria-label="Compare by">
+        <button type="button" data-field="mode" data-value="tiers" on-click="[[ $listeners.onOpt ]]" id="rcModeTiers"
+          :class="[[ 'nx-seg-btn' + ($variables.opts.mode !== 'rental' ? ' nx-seg-btn--on' : '') ]]">Rate per tier</button>
+        <button type="button" data-field="mode" data-value="rental" on-click="[[ $listeners.onOpt ]]" id="rcModeRental"
+          :class="[[ 'nx-seg-btn' + ($variables.opts.mode === 'rental' ? ' nx-seg-btn--on' : '') ]]">A rental</button>
+      </div>
+      <oj-bind-if test="[[ $variables.opts.mode !== 'rental' ]]">
+        <div class="nx-chips" role="group" aria-label="Tier" id="rcPeriods">
+          <oj-bind-for-each data="[[ $functions.periods($variables.linesBy, $variables.picked) ]]">
+            <template data-oj-as="p">
+              <button type="button" data-field="period" :data-value="[[ p.data.value ]]" on-click="[[ $listeners.onOpt ]]"
+                :aria-pressed="[[ $variables.opts.period === p.data.value ? 'true' : 'false' ]]"
+                :class="[[ 'nx-chip nx-cm-chip--sm' + ($variables.opts.period === p.data.value ? ' nx-chip--on' : '') ]]"><oj-bind-text value="[[ p.data.label ]]"></oj-bind-text></button>
+            </template>
+          </oj-bind-for-each>
+        </div>
+      </oj-bind-if>
+      <oj-bind-if test="[[ $variables.opts.mode === 'rental' ]]">
+        <div class="nx-cm-rc-rental">
+          <label class="nx-cm-field"><span class="nx-cm-label">Days</span>
+            <input class="nx-cm-input nx-cm-input--num" type="number" min="0" id="rcDays" data-field="days" :value="[[ $variables.opts.days ]]" on-change="[[ $listeners.onOptInput ]]"></label>
+          <label class="nx-cm-field"><span class="nx-cm-label">Logged hours <span class="nx-note">(hourly rows)</span></span>
+            <input class="nx-cm-input nx-cm-input--num" type="number" min="0" id="rcHours" data-field="hours" :value="[[ $variables.opts.hours ]]"
+              :placeholder="[[ ($variables.opts.days || 0) * 8 + ' (8 a day)' ]]" on-change="[[ $listeners.onOptInput ]]"></label>
+          <label class="nx-cm-field"><span class="nx-cm-label">Quantity</span>
+            <input class="nx-cm-input nx-cm-input--num" type="number" min="1" id="rcQty" data-field="qty" :value="[[ $variables.opts.qty ]]" on-change="[[ $listeners.onOptInput ]]"></label>
+        </div>
+      </oj-bind-if>
+      <label class="nx-cm-rc-search">
+        <span class="oj-ux-ico-search" aria-hidden="true"></span>
+        <input type="search" class="nx-cm-input" id="rcSearch" data-field="text" placeholder="Equipment, class, location" :value="[[ $variables.opts.text ]]"
+          on-input="[[ $listeners.onOptInput ]]" aria-label="Search the equipment compared"></label>
+      <label class="nx-cm-rc-check"><input type="checkbox" id="rcOnlyDiff" data-field="onlyDiff" :checked="[[ $variables.opts.onlyDiff ]]" on-change="[[ $listeners.onOptCheck ]]">
+        Only where they differ</label>
+    </div>
+    <div class="nx-cm-rc-insight" id="rcInsight" role="status">
+      <strong><oj-bind-text value="[[ $functions.countText($variables.view) ]]"></oj-bind-text></strong>
+      <span><oj-bind-text value="[[ $variables.view.text ]]"></oj-bind-text></span>
+      <oj-bind-if test="[[ $variables.linesLoading ]]"><span class="nx-note">Reading the rates…</span></oj-bind-if>
+    </div>
+
+    <!-- Redwood: Oracle's table, a column per schedule -->
+    <oj-bind-if test="[[ $application.variables.lookSeen ]]">
+      <div class="nx-cm-rc-rw" :hidden="[[ $application.variables.look !== 'redwood' ]]">
+        <oj-table id="rcRwTable" data="[[ $functions.rwADP($variables.view) ]]" columns="[[ $functions.rwColumns($variables.view) ]]"
+          class="oj-sm-width-full nx-cm-rc-rwtable" aria-label="Rates side by side" layout="fixed" display="list" horizontal-grid-visible="enabled"
+          selection-mode.row="none">
+          <template slot="rcEqTpl" data-oj-as="cell">
+            <div class="nx-cm-rc-rweq">
+              <span class="oj-typography-body-md oj-typography-bold"><oj-bind-text value="[[ cell.row.title ]]"></oj-bind-text></span>
+              <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.sub ]]"></oj-bind-text></span>
+              <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.method ]]"></oj-bind-text></span>
+            </div>
+          </template>
+          <template slot="rcTierTpl" data-oj-as="cell">
+            <span class="oj-typography-body-sm oj-typography-semi-bold"><oj-bind-text value="[[ cell.row.periodLabel ]]"></oj-bind-text></span>
+          </template>
+          <template slot="rcCellTpl" data-oj-as="cell">
+            <div :class="[[ $functions.cellClass(cell.data) ]]">
+              <span class="nx-cm-rc-main"><oj-bind-text value="[[ (cell.data && cell.data.main) || '—' ]]"></oj-bind-text></span>
+              <oj-bind-if test="[[ !!(cell.data && (cell.data.note || cell.data.diff)) ]]">
+                <span class="nx-cm-rc-tags">
+                  <oj-bind-if test="[[ !!cell.data.note ]]"><span :class="[[ 'oj-badge oj-badge-subtle ' + (cell.data.tone === 'low' ? 'oj-badge-success' : 'oj-badge-danger') ]]"><oj-bind-text value="[[ cell.data.note ]]"></oj-bind-text></span></oj-bind-if>
+                  <oj-bind-if test="[[ !!cell.data.diff ]]"><span class="nx-cm-rc-diff"><oj-bind-text value="[[ cell.data.diff + ' vs base' ]]"></oj-bind-text></span></oj-bind-if>
+                </span>
+              </oj-bind-if>
+              <oj-bind-for-each data="[[ (cell.data && cell.data.lines) || $functions.cell(null, '').lines ]]">
+                <template data-oj-as="t"><span class="nx-cm-rc-sub"><oj-bind-text value="[[ t.data ]]"></oj-bind-text></span></template>
+              </oj-bind-for-each>
+            </div>
+          </template>
+          <template slot="noData">
+            <div class="oj-sm-padding-6x oj-typography-body-md oj-text-color-secondary"><oj-bind-text value="[[ $variables.view.text || 'Nothing to compare.' ]]"></oj-bind-text></div>
+          </template>
+        </oj-table>
+      </div>
+    </oj-bind-if>
+
+    <!-- Current: the same, as a grid -->
+    <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
+      <div class="nx-table nx-cm-rc-table">
+        <div class="nx-cm-rc-grid" role="table" aria-labelledby="rcBoardTitle" id="rcGrid">
+          <div class="nx-cm-rc-row nx-cm-rc-row--head" role="row" :style="[[ $functions.gridStyle($variables.view.cols.length) ]]">
+            <span role="columnheader">Equipment</span>
+            <span role="columnheader"><oj-bind-text value="[[ $functions.whatHead($variables.view.mode) ]]"></oj-bind-text></span>
+            <oj-bind-for-each data="[[ $variables.view.cols ]]">
+              <template data-oj-as="c">
+                <span role="columnheader" class="nx-cm-rc-colhead" :data-schedule="[[ c.data.id ]]">
+                  <span class="nx-cm-rc-colname"><oj-bind-text value="[[ c.data.name ]]"></oj-bind-text></span>
+                  <span class="nx-cm-rc-colsub"><oj-bind-text value="[[ (c.data.base ? 'Base · ' : '') + c.data.currency ]]"></oj-bind-text></span>
+                </span>
+              </template>
+            </oj-bind-for-each>
+          </div>
+          <oj-bind-for-each data="[[ $variables.view.rows ]]">
+            <template data-oj-as="r">
+              <div :class="[[ 'nx-cm-rc-row' + (r.data.differ ? ' nx-cm-rc-row--differ' : '') ]]" role="row" :data-key="[[ r.data.key ]]" :style="[[ $functions.gridStyle($variables.view.cols.length) ]]">
+                <span role="rowheader" class="nx-cm-rc-eq">
+                  <span class="nx-cell-main"><oj-bind-text value="[[ r.data.title ]]"></oj-bind-text></span>
+                  <span class="nx-cell-sub"><oj-bind-text value="[[ r.data.sub ]]"></oj-bind-text></span>
+                  <span class="nx-cell-sub"><oj-bind-text value="[[ r.data.method ]]"></oj-bind-text></span>
+                </span>
+                <span role="cell" class="nx-cm-rc-tier"><oj-bind-text value="[[ r.data.periodLabel ]]"></oj-bind-text></span>
+                <oj-bind-for-each data="[[ $variables.view.cols ]]">
+                  <template data-oj-as="c">
+                    <span role="cell" :class="[[ $functions.cellClass($functions.cell(r.data, c.data.id)) ]]" :data-schedule="[[ c.data.id ]]">
+                      <span class="nx-cm-rc-main"><oj-bind-text value="[[ $functions.cell(r.data, c.data.id).main ]]"></oj-bind-text></span>
+                      <oj-bind-if test="[[ !!($functions.cell(r.data, c.data.id).note || $functions.cell(r.data, c.data.id).diff) ]]">
+                        <span class="nx-cm-rc-tags">
+                          <oj-bind-if test="[[ !!$functions.cell(r.data, c.data.id).note ]]">
+                            <span :class="[[ 'nx-cm-rc-tag nx-cm-rc-tag--' + $functions.cell(r.data, c.data.id).tone ]]"><oj-bind-text value="[[ $functions.cell(r.data, c.data.id).note ]]"></oj-bind-text></span>
+                          </oj-bind-if>
+                          <oj-bind-if test="[[ !!$functions.cell(r.data, c.data.id).diff ]]">
+                            <span class="nx-cm-rc-diff"><oj-bind-text value="[[ $functions.cell(r.data, c.data.id).diff + ' vs base' ]]"></oj-bind-text></span>
+                          </oj-bind-if>
+                        </span>
+                      </oj-bind-if>
+                      <oj-bind-for-each data="[[ $functions.cell(r.data, c.data.id).lines ]]">
+                        <template data-oj-as="t"><span class="nx-cm-rc-sub"><oj-bind-text value="[[ t.data ]]"></oj-bind-text></span></template>
+                      </oj-bind-for-each>
+                    </span>
+                  </template>
+                </oj-bind-for-each>
+              </div>
+            </template>
+          </oj-bind-for-each>
+        </div>
+        <oj-bind-if test="[[ $variables.view.rows.length === 0 && !$variables.isLoading ]]">
+          <div class="nx-empty" id="rcEmpty"><oj-bind-text value="[[ $variables.view.text || 'Nothing to compare.' ]]"></oj-bind-text></div>
+        </oj-bind-if>
+      </div>
+    </oj-bind-if>
+  </section>
+</div>

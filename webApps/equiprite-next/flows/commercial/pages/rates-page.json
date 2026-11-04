@@ -178,6 +178,7 @@
     "onRwFilter": { "chains": [{ "chain": "rwFilterChain" }] },
     "onRwRow": { "chains": [{ "chain": "rwChain", "parameters": { "action": "open", "value": "{{ $event.detail.context.key }}" } }] },
     "onRwNew": { "chains": [{ "chain": "rwChain", "parameters": { "action": "new" } }] },
+    "onCompare": { "chains": [{ "chain": "compareChain" }], "description": "Compare schedules: Compare rates, with the open schedule as the base." },
     "onRwBack": { "chains": [{ "chain": "rwChain", "parameters": { "action": "back" } }] },
     "onRwAction": { "chains": [{ "chain": "rwChain", "parameters": { "action": "act", "value": "{{ $event.detail.secondaryItem }}" } }] },
     "onRwExport": { "chains": [{ "chain": "exportChain", "parameters": { "what": "list", "format": "xlsx" } }] },

@@ -246,7 +246,7 @@ async function headerMenu(page, head) {
     T.check('the schedule card does not repeat what Oracle\'s header shows (its name, badge and buttons)', !(await page.isVisible('#schedTitle'))
       && !(await page.isVisible('#schedEditHeader')));
     T.check('the list is not shown with it, and Current\'s left-hand list stays away', !(await page.isVisible('#ratesRwList')) && !(await page.$('.nx-cm-list')));
-    T.eq('its actions, as on Current', await headerMenu(page, '#ratesRwHead'), 'Edit details, Add equipment, Export the rates, Delete, Refresh');
+    T.eq('its actions, as on Current', await headerMenu(page, '#ratesRwHead'), 'Edit details, Add equipment, Export the rates, Compare with other schedules, Delete, Refresh');
     await env.shot('rw-commercial-rates-record.png');
 
     T.section('Rates: the rates as Oracle\'s table; a row opens Oracle\'s drawer to change them');

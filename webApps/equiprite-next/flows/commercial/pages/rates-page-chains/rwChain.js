@@ -12,7 +12,7 @@ define([
   //   new     New schedule, the list's primary action: as Current's New schedule
   //   back    the header's in-flow back: the list again (nothing is lost; the open schedule stays open)
   //   act     a header action, by its id: details (Edit details), add (Add equipment), export (the rates, to Excel),
-  //           discard (Discard changes), delete (asks first), refresh
+  //           discard (Discard changes), delete (asks first), compare (Compare rates, this schedule the base), refresh
   class rwChain extends ActionChain {
     async run(context, { action, value }) {
       const v = context.$page.variables;
@@ -42,6 +42,8 @@ define([
             await Actions.callChain(context, { chain: 'discardChain' });
           } else if (id === 'delete') {
             await Actions.callChain(context, { chain: 'deleteScheduleChain', params: {} });
+          } else if (id === 'compare') {
+            await Actions.callChain(context, { chain: 'compareChain' });
           } else if (id === 'refresh') {
             await Actions.callChain(context, { chain: 'refreshChain' });
           }

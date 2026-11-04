@@ -1,0 +1,198 @@
+{
+  "description": "Compare rates: rate schedules side by side, in Old's rate grid's terms (rateCompare.js over rateRules.js). Pick up to six schedules (the first is the base); each equipment's tiers with each schedule's Rate / day, Period total and Threshold, the cheapest and dearest marked, each against the base; or a rental of N days priced by each schedule by the rate engine's rule. Only where they differ, a search, export. Reads GET /rate-schedules, /bu-org-mappings and /rate-period-lines per schedule; writes nothing. Rates hands a schedule over as the base (shellBus.focus). Redwood (your menu, Look): Oracle's general overview header, and the comparison as Oracle's table with a column per schedule.",
+  "navigation": {
+    "embeddable": "enabled"
+  },
+  "variables": {
+    "isLoading": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "linesLoading": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "error": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "scheduleRows": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Every schedule, as Rates lists it (rateRules.scheduleRow)."
+    },
+    "schedules": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "The schedules that can be picked (rateCompare.pickable): { id, name, sub, active, currency }."
+    },
+    "picked": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "The ids compared, in order: the first is the base."
+    },
+    "linesBy": {
+      "type": "object",
+      "defaultValue": {},
+      "description": "Each read schedule's rates by its id (linesChain)."
+    },
+    "opts": {
+      "type": "object",
+      "defaultValue": {
+        "mode": "tiers",
+        "period": "",
+        "text": "",
+        "onlyDiff": false,
+        "days": 14,
+        "hours": "",
+        "qty": 1
+      },
+      "description": "How they are compared (rateCompare.compare): tiers or a rental of days (hours for hourly rows, default 8 a day), a tier, a search, only the differences."
+    },
+    "view": {
+      "type": "any",
+      "defaultValue": {
+        "cols": [],
+        "rows": [],
+        "total": 0,
+        "differ": 0,
+        "mode": "tiers",
+        "text": ""
+      },
+      "description": "The comparison (rateCompare.compare)."
+    },
+    "exportOpen": {
+      "type": "boolean",
+      "defaultValue": false
+    }
+  },
+  "events": {
+    "focusRequest": {
+      "description": "From resources/js/shellBus.js focus(): Rates handed over a schedule to compare (the base).",
+      "payloadType": "object"
+    }
+  },
+  "eventListeners": {
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "loadChain",
+          "parameters": {
+            "refresh": false
+          }
+        }
+      ]
+    },
+    "focusRequest": {
+      "chains": [
+        {
+          "chain": "focusChain"
+        }
+      ]
+    },
+    "onRefresh": {
+      "chains": [
+        {
+          "chain": "loadChain",
+          "parameters": {
+            "refresh": true
+          }
+        }
+      ]
+    },
+    "onPick": {
+      "chains": [
+        {
+          "chain": "pickChain",
+          "parameters": {
+            "act": "{{ $event.currentTarget.dataset.act }}",
+            "field": "",
+            "value": "{{ $event.currentTarget.dataset.id }}"
+          }
+        }
+      ]
+    },
+    "onOpt": {
+      "chains": [
+        {
+          "chain": "pickChain",
+          "parameters": {
+            "act": "opt",
+            "field": "{{ $event.currentTarget.dataset.field }}",
+            "value": "{{ $event.currentTarget.dataset.value }}"
+          }
+        }
+      ]
+    },
+    "onOptInput": {
+      "chains": [
+        {
+          "chain": "pickChain",
+          "parameters": {
+            "act": "opt",
+            "field": "{{ $event.target.dataset.field }}",
+            "value": "{{ $event.target.value }}"
+          }
+        }
+      ]
+    },
+    "onOptCheck": {
+      "chains": [
+        {
+          "chain": "pickChain",
+          "parameters": {
+            "act": "opt",
+            "field": "{{ $event.target.dataset.field }}",
+            "value": "{{ $event.target.checked }}"
+          }
+        }
+      ]
+    },
+    "onExportToggle": {
+      "chains": [
+        {
+          "chain": "toggleExportChain"
+        }
+      ]
+    },
+    "onExport": {
+      "chains": [
+        {
+          "chain": "exportChain",
+          "parameters": {
+            "format": "{{ $event.currentTarget.dataset.format }}"
+          }
+        }
+      ]
+    },
+    "onRwAction": {
+      "chains": [
+        {
+          "chain": "rwChain",
+          "parameters": {
+            "id": "{{ $event.detail.secondaryItem }}"
+          }
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-if": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-text": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-sp-general-overview-page": {
+        "path": "oj-sp/general-overview-page/loader"
+      },
+      "oj-table": {
+        "path": "ojs/ojtable"
+      }
+    }
+  }
+}

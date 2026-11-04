@@ -58,6 +58,9 @@ define(['resources/js/rules'], function (rules) {
     { key: 'commercial', label: 'Commercial', items: [
       { id: 'rates', label: 'Rates', icon: 'oj-ux-ico-tables-basic', pageCodes: ['EQR_RATE_SCHEDULE'], hiddenByRateSource: true,
         route: { flow: 'commercial', page: 'rates' }, built: true, newNav: 'rates', keywords: 'rate schedules pricing' },
+      // Rate schedules side by side (flows/commercial rate-compare): each tier's Rate / day, or a rental priced by each.
+      { id: 'rate-compare', label: 'Compare rates', icon: 'oj-ux-ico-split', pageCodes: ['EQR_RATE_SCHEDULE'], hiddenByRateSource: true,
+        route: { flow: 'commercial', page: 'rate-compare' }, built: true, keywords: 'compare rate schedules side by side cheapest dearest difference price rental' },
       { id: 'agreements', label: 'Agreements', icon: 'oj-ux-ico-file-text', pageCodes: ['EQR_RENTAL_AGREEMENTS'], flags: ['AGREEMENTS_ENABLED', 'PROJECTS_MODULE_ENABLED'],
         route: { flow: 'commercial', page: 'agreements' }, built: true, newNav: 'agreements', keywords: 'rental agreements contracts' }
     ] },
