@@ -127,6 +127,18 @@ define(['require', 'resources/js/orderForm', 'resources/js/fmt', 'resources/js/m
       return [order.windowText(f.startDate, f.endDate), f.projectName].filter((x) => !!x).join(' · ');
     }
 
+    // ── The Redwood look (your menu): Oracle's general overview header over the three steps ────────────────────
+    /** The header's title, as the current look's. */
+    rwTitle(resume) { return resume && resume.requestNumber ? 'Draft ' + resume.requestNumber : 'New request'; }
+
+    /** The header's subtitle: the kicker (who it is for) and the line under the current look's title. */
+    rwSub(form, requestFor) { return (requestFor === 'customer' ? 'Customer request' : 'Project request') + ' · ' + this.subline(form, requestFor); }
+
+    /** The header's actions: the current look's head button, Start another request, when it shows. */
+    rwActions(resume, loadError) {
+      return resume || loadError ? [{ id: 'reset', label: 'Start another request', icon: 'oj-ux-ico-plus', display: 'on' }] : [];
+    }
+
     /**
      * Under the customer or project list: "Searching…", "No project matches “x”.", "12 projects match “x”." or, before
      * anything is typed, "50 customers from Oracle Fusion · type a name or number to narrow".

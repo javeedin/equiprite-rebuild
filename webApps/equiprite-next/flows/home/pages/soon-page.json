@@ -1,9 +1,13 @@
 {
-  "description": "Stands in for a screen not built in Next yet: says so and opens the same screen in New EquipRite (or Old).",
+  "description": "Stands in for a screen not built in Next yet: says so and opens the same screen in New EquipRite (or Old). Under the Redwood look (your menu): Oracle's general overview header, its two links the header's actions.",
   "navigation": { "embeddable": "enabled" },
   "variables": {
     "navId": { "type": "string", "defaultValue": "", "input": "fromCaller" }
   },
-  "eventListeners": {},
-  "imports": { "components": { "oj-bind-if": { "path": "ojs/ojknockout" }, "oj-bind-text": { "path": "ojs/ojknockout" } } }
+  "eventListeners": {
+    "onRwPrimary": { "chains": [{ "chain": "rwOpenChain", "parameters": { "id": "new" } }] },
+    "onRwAction": { "chains": [{ "chain": "rwOpenChain", "parameters": { "id": "{{ $event.detail.secondaryItem }}" } }] }
+  },
+  "imports": { "components": { "oj-bind-if": { "path": "ojs/ojknockout" }, "oj-bind-text": { "path": "ojs/ojknockout" },
+    "oj-sp-general-overview-page": { "path": "oj-sp/general-overview-page/loader" } } }
 }

@@ -172,3 +172,36 @@
   .nx-ap-unit--head .nx-ap-axis, .nx-ap-unit--head > span:last-child { display: none; }
   .nx-ap-unit-act { justify-content: flex-start; }
 }
+
+/* ── The Redwood look (your menu): the queue is Oracle's Smart Search page, a request sits under Oracle's general overview
+   header (#apRedwood, #apRwRecord: .nx-rw, .nx-rw--head). Oracle's components carry the type, colours and spacing; these
+   rules only place this screen's own parts among them, and draw its messages as Oracle's (white, a coloured edge). ── */
+html[data-nx-look="redwood"] .nx-approvals .nx-ap-layout { grid-template-columns: minmax(0, 1fr); }
+html[data-nx-look="redwood"] .nx-approvals .nx-ap-layout[hidden] { display: none !important; }
+html[data-nx-look="redwood"] .nx-approvals .nx-ap-rw-top { display: block; min-width: 0; }
+html[data-nx-look="redwood"] .nx-approvals .nx-ap-rw-tools { justify-content: flex-start; align-items: center; padding-inline-start: 16px; }
+html[data-nx-look="redwood"] .nx-approvals .nx-ap-rw-fill { flex: 1 1 auto; }
+html[data-nx-look="redwood"] .nx-approvals .nx-ap-tickall { color: var(--nx-ink); font-size: 13.75px; }
+html[data-nx-look="redwood"] .nx-approvals .nx-ap-tickall input,
+html[data-nx-look="redwood"] .nx-approvals .nx-ap-rw-tick input { width: 16px; height: 16px; margin: 0; accent-color: var(--rw-cta); cursor: pointer; }
+html[data-nx-look="redwood"] .nx-approvals .nx-ap-rw-req { display: flex; align-items: flex-start; gap: 10px; min-width: 0; }
+html[data-nx-look="redwood"] .nx-approvals .nx-ap-rw-tick { flex: none; display: inline-flex; padding-top: 3px; }
+html[data-nx-look="redwood"] .nx-approvals .nx-ap-rw-acts { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
+html[data-nx-look="redwood"] .nx-approvals .nx-ap-rw-bulk {
+  display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; padding: 12px 16px; border: 1px solid var(--nx-line);
+  border-left: 4px solid var(--rw-brand); border-radius: 6px; background: #fff;
+}
+html[data-nx-look="redwood"] .nx-approvals .nx-ap-rw-msg {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 12px; padding: 10px 14px; border: 1px solid var(--nx-line);
+  border-left: 4px solid var(--rw-brand); border-radius: 6px; background: #fff; color: var(--nx-ink); font-size: 14px;
+}
+html[data-nx-look="redwood"] .nx-approvals .nx-ap-rw-msg--error { border-left-color: var(--nx-danger); }
+html[data-nx-look="redwood"] .nx-approvals .nx-ap-rw-result { display: block; }
+html[data-nx-look="redwood"] .nx-approvals .nx-ap-rw-result.nx-ap-tone--ok { border-left-color: var(--nx-ok); }
+html[data-nx-look="redwood"] .nx-approvals .nx-ap-rw-result.nx-ap-tone--warn { border-left-color: var(--nx-warn); }
+html[data-nx-look="redwood"] .nx-approvals .nx-ap-rw-result.nx-ap-tone--error { border-left-color: var(--nx-danger); }
+/* One request in front (focus), and the notes over a request: Oracle's message, white with a coloured edge. */
+html[data-nx-look="redwood"] .nx-approvals .nx-ap-focus, html[data-nx-look="redwood"] .nx-approvals .nx-ap-note {
+  background: #fff; border: 1px solid var(--nx-line); border-left: 4px solid var(--rw-brand); border-radius: 6px; color: var(--nx-ink);
+}
+html[data-nx-look="redwood"] .nx-approvals .nx-ap-focus--missing { border-left-color: var(--nx-warn); }

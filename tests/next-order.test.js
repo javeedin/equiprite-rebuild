@@ -668,8 +668,10 @@ const ends = (calls) => calls.filter((x) => x.endpoint).map((x) => x.endpoint.re
   const css = fs.readFileSync(path.join(NEXT, 'resources', 'css', 'next-order.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
   const selectors = (css.match(/[^{}]+(?=\{)/g) || []).filter((s) => !/^\s*@media/.test(s))
     .map((s) => s.replace(/^[\s\S]*@media[^{]*$/, '')).join(',').split(',').map((s) => s.trim()).filter(Boolean);
-  T.check('every rule is its own (starts with an .nx-or- class); shared classes are not restyled', selectors.length > 50 && selectors.every((s) => s.startsWith('.nx-or-')),
-    selectors.filter((s) => !s.startsWith('.nx-or-')).join(' '));
+  // Its Redwood rules speak only for the Redwood look, and only on this screen.
+  const own = (s) => s.startsWith('.nx-or-') || /^html\[data-nx-look="redwood"\] \.nx-order\b/.test(s);
+  T.check('every rule is its own (starts with an .nx-or- class, or the Redwood look on .nx-order); shared classes are not restyled', selectors.length > 50 && selectors.every(own),
+    selectors.filter((s) => !own(s)).join(' '));
 
   T.section('every endpoint called exists in services/');
   const ops = {};

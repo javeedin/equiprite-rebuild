@@ -238,6 +238,29 @@ const day = (n) => new Date(NOW + n * 86400000).toISOString().slice(0, 10);
   T.check('the export: the columns a person wants, with the stored status', queue.exportColumns().map((c) => c.label).join() ===
     'Request,Type,Project or customer,Task,Waiting for,What,Equipment,Start,End,When,Late,Requested by,Stored status' && queue.exportColumns()[1].value(by('R11')) === 'Customer');
 
+  // ── The Redwood look: the queue as Oracle's table, a filter per column ────────────────────────────────────────
+  T.section('the Redwood look: the queue as an oj-table, a Smart Search filter per column');
+  const rwRows = queue.redwoodRows(items);
+  T.eq('a row per request, in the queue order; what it waits for as Oracle\'s oj-badge', rwRows.map((r) => r.number + ':' + r.badge.split(' ')[1]).join(' '),
+    'R11:oj-badge-info R12:oj-badge-warning R14:oj-badge-warning R9:oj-badge-info R10:oj-badge-info R17:oj-badge-warning');
+  T.eq('a row says what its cells show', json(rwRows[0]), json({ key: '11', number: 'R11', kind: 'decide', type: 'Customer', requester: 'Dana', party: 'Gulf Coast', task: '',
+    needs: 'To decide', badge: 'oj-badge oj-badge-info oj-badge-subtle', detail: '1 line waiting for your decision', lateWhy: '1 not shipped, due 28 Oct (2 days late)',
+    equipment: 'Generator', dates: by('R11').dates, start: by('R11').start, when: '2 days late', late: true }));
+  T.eq('a quote owed reads neutral', queue.redwoodRows(queue.build([Object.assign({}, ROWS[4], { status: 'IN_PROCESS' })], LINES, { now: NOW, quoting }))[0].badge,
+    'oj-badge oj-badge-subtle');
+  T.eq('the waiting lines\' equipment, each once (what the Equipment filter offers)', json([by('R10').names, by('R12').names]), '[["Excavator","Dump truck"],["Light tower"]]');
+  const colOpts = queue.columnOptions(items, NOW);
+  const labels = (a) => a.map((o) => o.label).join(' | ');
+  T.eq('Request: newest first, with its project or customer', labels(colOpts.number), 'R17 · No dates | R14 · Acme | R12 · Plant B | R11 · Gulf Coast | R10 · Pipeline North | R9 · Older');
+  T.eq('Project or customer, with how many', labels(colOpts.party), 'Acme (1) | Gulf Coast (1) | No dates (1) | Older (1) | Pipeline North (1) | Plant B (1)');
+  T.eq('Equipment: the lines waiting, with how many requests', labels(colOpts.equipment),
+    'Crane (1) | Dump truck (1) | Eq (1) | Excavator (1) | Generator (1) | Light tower (1) | Scaffold (1)');
+  T.eq('Dates: where each start date stands today', labels(colOpts.dates), 'Start date passed (1) | Starting in the next 7 days (2) | Starting later (2) | No dates (1)');
+  T.eq('Type and Requester', [labels(colOpts.type), labels(colOpts.requester)].join(' || '), 'Project (4) | Customer (2) || Dana (1) | Priya (1) | Sam (1)');
+  const pick = (f) => queue.byColumns(items, Object.assign({ number: '', party: '', equipment: '', dates: '', requester: '' }, f), NOW).map((i) => i.number).join();
+  T.eq('a column filter keeps the requests that have it', [pick({ equipment: 'Excavator' }), pick({ dates: 'week' }), pick({ requester: 'Sam' }), pick({ number: 'R9' }),
+    pick({ party: 'Plant B', dates: 'week' }), pick({})].join(' | '), 'R10 | R12,R14 | R12 | R9 | R12 | R11,R12,R14,R9,R10,R17');
+
   // ── The gates are New's ───────────────────────────────────────────────────────────────────────────────────
   T.section('the gates give New EquipRite\'s answers');
   const aaNew = new AaPage();
@@ -632,6 +655,21 @@ const day = (n) => new Date(NOW + n * 86400000).toISOString().slice(0, 10);
   const fns = new Set((html.match(/\$functions\.(\w+)/g) || []).map((m) => m.split('.')[1]));
   fs.readdirSync(CHAINS).forEach((f) => (read(path.join(CHAINS, f)).match(/\$page\.functions\.(\w+)/g) || []).forEach((m) => fns.add(m.split('.').pop())));
   T.check('every page function the HTML and chains call exists', [...fns].every((fn) => typeof mod[fn] === 'function'), [...fns].filter((fn) => typeof mod[fn] !== 'function').join());
+  T.eq('Redwood: the queue, a request (chosen or handed over), or nothing under Current',
+    [mod.rwMode('redwood', '', ''), mod.rwMode('redwood', '509', ''), mod.rwMode('redwood', '', 'REQ-9'), mod.rwMode('current', '509', '')].join(), 'list,record,record,');
+  T.eq('Redwood: the header\'s actions are the current look\'s buttons (focus: the whole queue first)',
+    [mod.rwRecActions({ number: 'REQ-1' }, 4, { id: 1, number: 'REQ-1' }, 'http://new/', false).map((a) => a.id + ':' + a.label).join(),
+      mod.rwRecActions({ number: '' }, 4, { id: 1, number: 'REQ-1' }, '', false).map((a) => a.id).join()].join(' | '),
+    'queue:Show the whole queue (4),tab:Open in a tab,new:In New,refresh:Refresh | tab,refresh');
+  T.eq('Redwood: the request\'s state as Oracle\'s badge', json([mod.rwBadge({ headline: 'Getting ready', tone: 'ready' }), mod.rwBadge({})]),
+    '[{"text":"Getting ready","status":"warning"},{"text":"","status":"neutral"}]');
+  const searchCfg = JSON.parse(read(path.join(NEXT, 'resources', 'data', 'approvalsSearchConfig.json')));
+  const ctxFilters = pageJson.variables.rwSearchContext.defaultValue.$search.filters;
+  const suggested = JSON.parse(/suggestion-filters='([^']+)'/.exec(html)[1]);
+  T.eq('Smart Search: every filter has its context, and the markup suggests them all, the columns first',
+    [Object.keys(searchCfg.filters).join(), Object.keys(ctxFilters).join(), suggested.join(), Object.keys(searchCfg.filters).map((k) => searchCfg.filters[k].options.field).join()].join(' | '),
+    ['RequestFilter,PartyFilter,NeedsFilter,EquipmentFilter,DatesFilter,TypeFilter,RequesterFilter', 'RequestFilter,PartyFilter,NeedsFilter,EquipmentFilter,DatesFilter,TypeFilter,RequesterFilter',
+      'RequestFilter,PartyFilter,NeedsFilter,EquipmentFilter,DatesFilter,TypeFilter,RequesterFilter', 'number,party,stage,equipment,dates,source,requester'].join(' | '));
   const vars = new Set((html.match(/\$variables\.(\w+)/g) || []).map((m) => m.split('.')[1]));
   T.check('every variable the HTML reads is declared', [...vars].every((x) => pageJson.variables[x]), [...vars].filter((x) => !pageJson.variables[x]).join());
   const bindings = (html.match(/\[\[[\s\S]*?\]\]/g) || []).join('\n');
@@ -642,7 +680,9 @@ const day = (n) => new Date(NOW + n * 86400000).toISOString().slice(0, 10);
   T.check('the menu item is built, on its own flow', /id: 'approvals'[^}]+route: \{ flow: 'approvals', page: 'approvals' \}, built: true/.test(navSrc));
   const appFlow = JSON.parse(read(path.join(NEXT, 'app-flow.json')));
   T.check('the stylesheet is imported', appFlow.imports.css.indexOf('resources/css/next-approvals.css') !== -1);
-  const css = read(path.join(NEXT, 'resources', 'css', 'next-approvals.css')) + read(path.join(NEXT, 'resources', 'css', 'next.css'));
+  // The Redwood view's shared parts (.nx-rw, .nx-rw--head) are styled in next-redwood.css, for every screen.
+  const css = read(path.join(NEXT, 'resources', 'css', 'next-approvals.css')) + read(path.join(NEXT, 'resources', 'css', 'next.css'))
+    + read(path.join(NEXT, 'resources', 'css', 'next-redwood.css'));
   const classes = new Set();
   (html.match(/nx-[a-z0-9-]+/g) || []).forEach((c) => classes.add(c));
   // A class is styled itself, or through its --variants (nx-ap-need--decide); nx-approvals is the page's root.
@@ -651,8 +691,10 @@ const day = (n) => new Date(NOW + n * 86400000).toISOString().slice(0, 10);
   const own = read(path.join(NEXT, 'resources', 'css', 'next-approvals.css')).replace(/\/\*[\s\S]*?\*\//g, '');
   const selectors = (own.match(/[^{}]+(?=\{)/g) || []).map((s) => s.trim()).filter((s) => s && !s.startsWith('@') && s !== 'to')
     .reduce((all, s) => all.concat(s.split(',').map((x) => x.trim())), []);
-  const foreign = selectors.filter((s) => !/^\.nx-ap/.test(s));
+  // Its Redwood rules speak only for the Redwood look, and only on this screen.
+  const foreign = selectors.filter((s) => !/^\.nx-ap/.test(s) && !/^html\[data-nx-look="redwood"\] \.nx-approvals /.test(s));
   T.check(`the screen styles only its own classes (${selectors.length} selectors)`, !foreign.length, foreign.join(' | '));
+  T.check('…its Redwood rules are there', selectors.filter((s) => /^html\[data-nx-look="redwood"\]/.test(s)).length > 10);
   const ops = {};
   Object.values(JSON.parse(read(path.join(ROOT, 'services', 'eqp-v1', 'openapi3.json'))).paths)
     .forEach((p) => Object.values(p).forEach((op) => { if (op && op.operationId) ops['eqp-v1/' + op.operationId] = true; }));

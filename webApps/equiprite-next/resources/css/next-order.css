@@ -312,3 +312,7 @@
 .nx-or-terms-bullet::before { content: '•'; position: absolute; left: 6px; }
 .nx-or-agree { display: flex; align-items: flex-start; gap: 8px; margin-top: 10px; font-size: 14px; font-weight: 600; cursor: pointer; }
 .nx-or-agree input { width: 16px; height: 16px; margin-top: 2px; accent-color: var(--nx-band); }
+
+/* ── The Redwood look (your menu): Oracle's general overview header (#orRedwood) over the three steps. The header's colour
+   runs on behind the steps and the top of the first card (Old's 300px banner), and stops before the catalog's search. ── */
+html[data-nx-look="redwood"] .nx-order { --rw-banner-h: 300px; }
