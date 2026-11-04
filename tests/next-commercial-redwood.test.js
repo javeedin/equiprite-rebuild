@@ -97,8 +97,8 @@ T.eq('its actions: Current\'s buttons on the schedule (full access, changed, wit
 T.eq('…a new one cannot be deleted, nor rates without any exported; read only: export and refresh', [ids(rp.rwActions(true, 'new', true, false, 0)),
   ids(rp.rwActions(false, '9', false, false, 3))].join(' / '), 'details,add,refresh / export,refresh');
 T.eq('Edit details says Done once the details are open', plain(rp.rwActions(true, '9', true, false, 0))[0].label, 'Done with the details');
-T.eq('Save schedule on the band (off below full access, held while saving)', JSON.stringify([rp.rwPrimary(true, false).display, rp.rwPrimary(true, true).label,
-  rp.rwPrimary(true, true).display, rp.rwPrimary(false, false).display]), JSON.stringify(['on', 'Saving…', 'disabled', 'off']));
+T.eq('Save schedule on the band (off below full access, held while saving: its label steady, as Oracle\'s toolbar needs)', JSON.stringify([rp.rwPrimary(true, false).display, rp.rwPrimary(true, true).label,
+  rp.rwPrimary(true, true).display, rp.rwPrimary(false, false).display]), JSON.stringify(['on', 'Save schedule', 'disabled', 'off']));
 T.eq('the title: its name, the list\'s while it loads, New schedule', [rp.rwTitle({ scheduleName: 'X' }, '9', false, []),
   rp.rwTitle({ scheduleName: 'Old' }, '11', true, [{ id: 11, scheduleName: 'Pipeline North special' }]), rp.rwTitle({}, 'new', false, [])].join(' | '),
   'X | Pipeline North special | New schedule');

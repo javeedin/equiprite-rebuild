@@ -1,4 +1,5 @@
-define(['resources/js/rateRules', 'resources/js/exportKit', 'resources/js/fmt', 'resources/js/commercialRedwood'], (R, exportKit, fmt, RW) => {
+define(['resources/js/rateRules', 'resources/js/exportKit', 'resources/js/fmt', 'resources/js/commercialRedwood', 'ojs/ojarraydataprovider'],
+  (R, exportKit, fmt, RW, ArrayDataProvider) => {
   'use strict';
 
   // Rates: binding helpers. The rules are resources/js/rateRules.js (New EquipRite's, unchanged); the chains are
@@ -24,8 +25,103 @@ define(['resources/js/rateRules', 'resources/js/exportKit', 'resources/js/fmt', 
     return groupKey ? (lines || []).filter((l) => R.groupKey(l) === groupKey) : (lines || []);
   }
 
+  // ── The Redwood look's schedule detail (as Old's Rate Management): the rates as Oracle's table, one row per equipment
+  //    and a column per period; a row opens Oracle's drawer to change its rates; the margin check as Oracle's banner. ──
+  const MARGIN_BADGE = { low: 'oj-badge oj-badge-danger oj-badge-subtle', ok: 'oj-badge oj-badge-success oj-badge-subtle', none: 'oj-badge oj-badge-subtle' };
+
+  /** One rate line as the Redwood table and drawer show it. */
+  function rwTier(line, ranges, currency) {
+    const m = R.margin(line);
+    const total = R.shownTotal(line);
+    return {
+      key: R.lineKey(line), tier: (ranges || {})[R.lineKey(line)] || '', state: m.state,
+      margin: m.state === 'low' ? 'Below cost · ' + m.text : m.text, badge: MARGIN_BADGE[m.state] || MARGIN_BADGE.none,
+      cost: money(total, currency), bill: money(line.billRate, currency),
+      costValue: total == null ? '' : total, billValue: line.billRate == null ? '' : line.billRate,
+      threshold: line.threshold == null ? '' : line.threshold, inferred: line.periodAmount == null, unit: R.unitWord(line),
+      rate: rate(line.costRate, currency) + (R.unitWord(line) === 'hours' ? ' an hour' : ' a day'),
+    };
+  }
+
+  /** The rows of the Redwood rates table: { key, title, sub, method, low, lowText, HOURLY…YEARLY: [tiers] }. */
+  function rwRateRows(lines, currency) {
+    return R.groupLines(lines || []).map((g) => {
+      const ranges = R.tierRanges(g.lines);
+      const low = g.lines.filter((l) => R.margin(l).state === 'low').length;
+      const row = { key: g.key, title: g.title, sub: (g.location || 'All locations') + ' · ' + g.rateTypeLabel, method: g.method, low,
+        lowText: low === 1 ? '1 rate below cost' : low + ' rates below cost' };
+      g.cells.forEach((c) => { row[c.period] = c.lines.map((l) => rwTier(l, ranges, currency)); });
+      return row;
+    });
+  }
+
+  // The same provider (or object) for the same content: the table and Oracle's banner redraw only when it changes.
+  const kept = {};
+  function same(key, content, make) {
+    const json = JSON.stringify(content);
+    if (!kept[key] || kept[key].json !== json) kept[key] = { json, value: make(content) };
+    return kept[key].value;
+  }
+
   class PageModule {
     formats() { return exportKit.FORMATS; }
+
+    /** Redwood: the rates table's data (only the rows with a rate below cost, when asked). */
+    rwRateADP(lines, currency, onlyLow, cols) {
+      const keep = RW.rateLineKeys(lines, cols);
+      const rows = rwRateRows(lines, currency).filter((r) => keep.indexOf(r.key) !== -1 && (!onlyLow || r.low > 0));
+      return same('rates', rows, (r) => new ArrayDataProvider(r, { keyAttributes: 'key' }));
+    }
+
+    /** Redwood: something is typed or picked in the rates' Smart Search. */
+    rwFiltered(cols) { return !!cols && Object.keys(cols).some((k) => !!cols[k]); }
+
+    /** Redwood: "38 pieces of equipment · 128 rates" over the table, or how many the search and Show only keep. */
+    rwCountText(lines, onlyLow, cols) {
+      const keep = RW.rateLineKeys(lines, cols);
+      const all = rwRateRows(lines, 'USD');
+      const shown = all.filter((r) => keep.indexOf(r.key) !== -1 && (!onlyLow || r.low > 0));
+      const rates = (lines || []).length;
+      const narrowed = this.rwFiltered(cols) || onlyLow;
+      return narrowed ? shown.length + ' of ' + all.length + (all.length === 1 ? ' piece of equipment' : ' pieces of equipment')
+        + (onlyLow ? ' with a rate below cost' : '')
+        : all.length + (all.length === 1 ? ' piece of equipment' : ' pieces of equipment') + ' · ' + rates + (rates === 1 ? ' rate' : ' rates');
+    }
+
+    /**
+     * Redwood: the margin check as Oracle's messages banner, one line: how many rates bill below their cost, on how many
+     * pieces of equipment (they are marked in the table, which can show only them). Closed, it stays closed for this
+     * schedule.
+     */
+    rwBanner(lines, closedFor, selectedId) {
+      const issues = R.marginIssues(lines);
+      const groups = rwRateRows(lines, 'USD').filter((r) => r.low > 0).length;
+      const msgs = !issues.length || (closedFor && String(closedFor) === String(selectedId)) ? [] : [{
+        // Oracle's banner reads primaryText and secondaryText (oj-sp 2601), not summary and detail.
+        id: 'margin', messageType: 'general-warning',
+        primaryText: issues.length === 1 ? 'One rate bills below its cost' : issues.length + ' rates bill below their cost',
+        secondaryText: 'On ' + groups + (groups === 1 ? ' piece of equipment' : ' pieces of equipment')
+          + '. They are marked in the table below; "Show only" lists just them. Open one to change its bill rate.',
+      }];
+      return same('banner', msgs, (m) => new ArrayDataProvider(m, { keyAttributes: 'id' }));
+    }
+
+    /** Redwood: the equipment open in the drawer, with each period's tiers worded for it. */
+    rwEditGroup(lines, key, currency) {
+      const g = key ? R.groupLines(lines || []).filter((x) => x.key === key)[0] : null;
+      if (!g) return { title: '', sub: '', cells: [] };
+      const ranges = R.tierRanges(g.lines);
+      return {
+        title: g.title, sub: (g.location || 'All locations') + ' · ' + g.rateTypeLabel + ' · ' + g.method,
+        cells: g.cells.map((c) => ({ period: c.period, label: c.label, noun: R.periodNoun(c.period), groupKey: c.groupKey, allowed: c.allowed,
+          tiers: c.lines.map((l) => rwTier(l, ranges, currency)) })),
+      };
+    }
+
+    /** Redwood: the drawer is open while an equipment row is picked (and still there). */
+    rwEditOpen(look, lines, key) {
+      return look === 'redwood' && !!key && R.groupLines(lines || []).some((g) => g.key === key);
+    }
     periods() { return R.PERIODS; }
     rateTypes() { return R.RATE_TYPES; }
     currencies() { return R.CURRENCIES; }
@@ -117,8 +213,8 @@ define(['resources/js/rateRules', 'resources/js/exportKit', 'resources/js/fmt', 
     rwBadge(f, id) { return id ? RW.rateBadge(f) : { text: '' }; }
     /** Save schedule: the white button on the header's band (FULL access), as Current's save bar. */
     rwPrimary(canWrite, saving) {
-      if (!canWrite) return { label: 'Save schedule', display: 'off' };
-      return { label: saving ? 'Saving…' : 'Save schedule', icon: 'oj-ux-ico-save', display: saving ? 'disabled' : 'on' };
+      if (!canWrite) return same('primary', { label: 'Save schedule', display: 'off' }, (x) => x);
+      return same('primary', { label: 'Save schedule', icon: 'oj-ux-ico-save', display: saving ? 'disabled' : 'on' }, (x) => x);
     }
     /** The header's other actions, as Current's buttons on the schedule (rwChain routes each id to that button's chain). */
     rwActions(canWrite, id, headerOpen, dirty, lineCount) {
@@ -131,7 +227,7 @@ define(['resources/js/rateRules', 'resources/js/exportKit', 'resources/js/fmt', 
       if (canWrite && dirty) out.push({ id: 'discard', label: 'Discard changes', icon: 'oj-ux-ico-undo', display: 'on' });
       if (canWrite && id && id !== 'new') out.push({ id: 'delete', label: 'Delete', icon: 'oj-ux-ico-trash', display: 'on' });
       out.push({ id: 'refresh', label: 'Refresh', icon: 'oj-ux-ico-refresh', display: 'on' });
-      return out;
+      return same('actions', out, (x) => x);
     }
   }
 

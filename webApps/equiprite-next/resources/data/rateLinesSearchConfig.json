@@ -1,0 +1,75 @@
+{
+  "description": "Rates (Redwood view), a schedule's record: Smart Search over its rates table, in Oracle's header (as Old's Equipment Schedule page puts Smart Search in its general overview header). A filter per thing a rates row is, the periods it has a rate in, and its margin. Every filter here needs its entry in rates-page.json's rwRateSearchContext.",
+  "filters": {
+    "RateEquipmentFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Equipment",
+      "options": {
+        "field": "equipment",
+        "optionsData": "[[ $search.filters.RateEquipmentFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.RateEquipmentFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "RateClassFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Class",
+      "options": {
+        "field": "cls",
+        "optionsData": "[[ $search.filters.RateClassFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.RateClassFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "RateLocationFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Location",
+      "options": {
+        "field": "location",
+        "optionsData": "[[ $search.filters.RateLocationFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.RateLocationFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "RatePeriodFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Period",
+      "options": {
+        "field": "period",
+        "optionsData": "[[ $search.filters.RatePeriodFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.RatePeriodFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "RateMarginFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Margin",
+      "options": {
+        "field": "margin",
+        "optionsData": "[[ $search.filters.RateMarginFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.RateMarginFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "RateTypeFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Rate type",
+      "options": {
+        "field": "rateType",
+        "optionsData": "[[ $search.filters.RateTypeFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.RateTypeFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "RateMethodFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Counted by",
+      "options": {
+        "field": "method",
+        "optionsData": "[[ $search.filters.RateMethodFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.RateMethodFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    }
+  }
+}

@@ -240,12 +240,78 @@ async function headerMenu(page, head) {
     T.check('…what it is (the kicker, who uses it, when, the currency), and Save schedule on the band',
       rec.text.includes('Rate schedule · Used by Pipeline North · Phase 2 · 1 Mar 2026 – 28 Feb 2027 · USD') && rec.text.includes('Save schedule'), rec.text);
     T.check('…and in-flow back to the list', await page.isVisible('#ratesRwHead button[aria-label="Back"]'));
-    T.check('under it, the screen\'s own detail body: the schedule, Rates by period, Try a rate, the save bar', await page.isVisible('#schedUsedBy')
-      && await page.isVisible('#ratesGridTitle') && await page.isVisible('#ratesSim') && await page.isVisible('.nx-cm-savebar')
-      && (await page.$$eval('.nx-cm-rrow', (r) => r.map((x) => x.dataset.group))).join() === 'Excavators · Crawler · CAT 320 Excavator');
+    T.check('under it: the schedule\'s facts, Rates by period as Oracle\'s table, Try a rate, the save bar', await page.isVisible('#schedUsedBy')
+      && await page.isVisible('#ratesGridTitle') && await page.isVisible('#ratesRwRates') && await page.isVisible('#ratesSim') && await page.isVisible('.nx-cm-savebar')
+      && !(await page.$('.nx-cm-rrow')));
+    T.check('the schedule card does not repeat what Oracle\'s header shows (its name, badge and buttons)', !(await page.isVisible('#schedTitle'))
+      && !(await page.isVisible('#schedEditHeader')));
     T.check('the list is not shown with it, and Current\'s left-hand list stays away', !(await page.isVisible('#ratesRwList')) && !(await page.$('.nx-cm-list')));
     T.eq('its actions, as on Current', await headerMenu(page, '#ratesRwHead'), 'Edit details, Add equipment, Export the rates, Delete, Refresh');
     await env.shot('rw-commercial-rates-record.png');
+
+    T.section('Rates: the rates as Oracle\'s table; a row opens Oracle\'s drawer to change them');
+    const rateRows = () => page.$$eval('#ratesRwRates .oj-table-body-row', (r) => r.map((x) => x.innerText.replace(/\s+/g, ' ').trim()));
+    const banner = () => page.$eval('#ratesRwMargin', (e) => e.innerText.replace(/\s+/g, ' ').trim()).catch(() => '');
+    await page.waitForFunction(() => document.querySelectorAll('#ratesRwRates .oj-table-body-row').length > 0, null, { timeout: 15000 });
+    T.eq('Oracle\'s table, upgraded', await complete(page, '.nx-rt-rw', ['oj-table']), 'oj-table:true');
+    const firstRate = (await rateRows())[0] || '';
+    T.check('a row per equipment, a column per period: its tier, cost, bill and margin as Oracle\'s badge', firstRate.includes('Excavators · Crawler · CAT 320 Excavator')
+      && firstRate.includes('1 day or more') && firstRate.includes('Cost $820') && firstRate.includes('Bill $1,150') && firstRate.includes('+28.7%')
+      && await page.$$eval('#ratesRwRates .oj-badge', (b) => b.length) >= 1, firstRate);
+    T.eq('no rate below cost: no warning', await banner(), '');
+    await page.click('#ratesRwRates oj-c-button[data-act="edit"]');
+    await page.waitForSelector('#ratesRwEdit input[data-field="billRate"]', { state: 'visible', timeout: 10000 });
+    await settle(page, 500);
+    T.check('Edit rates: Oracle\'s drawer, the equipment and each period with its tiers', await page.isVisible('#ratesRwDrawer oj-sp-general-drawer-template')
+      && (await env.text('#ratesRwDrawer')).includes('Excavators · Crawler · CAT 320 Excavator') && (await env.text('#ratesRwEdit')).includes('Daily per day')
+      && (await page.inputValue('#ratesRwEdit input[data-field="billRate"]')) === '1150');
+    await page.fill('#ratesRwEdit input[data-field="billRate"]', '700');
+    await page.dispatchEvent('#ratesRwEdit input[data-field="billRate"]', 'change');
+    await page.waitForFunction(() => /below its cost/.test((document.querySelector('#ratesRwMargin') || {}).innerText || ''), null, { timeout: 10000 }).catch(() => {});
+    await settle(page, 600);
+    T.check('a bill below cost: Oracle\'s warning banner, one line, not a list', (await banner()).includes('One rate bills below its cost')
+      && (await banner()).includes('On 1 piece of equipment') && !(await page.$('#ratesMargin')), await banner());
+    T.check('…the row marked, and the drawer says it', ((await rateRows())[0] || '').includes('1 rate below cost') && (await env.text('#ratesRwEdit')).includes('Below cost'));
+    await env.shot('rw-commercial-rates-drawer.png');
+    await page.press('#ratesRwEdit input[data-field="billRate"]', 'Escape');
+    await page.waitForSelector('#ratesRwEdit', { state: 'hidden', timeout: 5000 }).catch(() => {});
+    T.check('Escape closes the drawer', !(await page.isVisible('#ratesRwEdit')));
+    await page.click('#ratesRwOnlyLow');
+    await settle(page, 500);
+    T.check('Show only the ones below cost', (await rateRows()).length === 1 && (await env.text('#ratesRwCount')).includes('with a rate below cost'));
+    await page.click('#ratesRwOnlyLow');
+    await settle(page, 500);
+    await env.shot('rw-commercial-rates-table.png');
+    await page.click('#ratesRwRates .nx-rt-rweq span');
+    await page.waitForSelector('#ratesRwEdit input[data-field="billRate"]', { state: 'visible', timeout: 10000 });
+    T.check('a click on the row opens it too', await page.isVisible('#ratesRwEdit'));
+    await page.fill('#ratesRwEdit input[data-field="billRate"]', '1150');
+    await page.dispatchEvent('#ratesRwEdit input[data-field="billRate"]', 'change');
+    await settle(page, 500);
+    await page.locator('#ratesRwDrawer button[aria-label^="Close"]').first().click();
+    await page.waitForSelector('#ratesRwEdit', { state: 'hidden', timeout: 5000 }).catch(() => {});
+    T.check('its Close (×) closes it; the bill back at its cost-plus, the warning gone', !(await page.isVisible('#ratesRwEdit')) && (await banner()) === ''
+      && ((await rateRows())[0] || '').includes('+28.7%'));
+
+    T.section('Rates: search the schedule\'s rates, Oracle\'s Smart Search in its header');
+    await page.waitForFunction(() => Array.from(document.querySelectorAll('#ratesRwRateSearch .oj-sp-filter-chip-container'))
+      .filter((x) => x.innerText.trim()).length === 7, null, { timeout: 15000 }).catch(() => {});
+    T.eq('a filter per thing a rate row is, its periods and its margin', (await page.$$eval('#ratesRwRateSearch .oj-sp-filter-chip-container',
+      (b) => b.map((x) => x.innerText.trim()))).join(','), 'Equipment,Class,Location,Period,Margin,Rate type,Counted by');
+    await page.click('#ratesRwRateSearch .oj-sp-filter-chip-container:has-text("Period")');
+    await page.waitForSelector('text=Daily (1)', { timeout: 10000 }).catch(() => {});
+    T.check('…each offers what the rates hold, with how many (Period: Daily)', await page.isVisible('text=Daily (1)'));
+    await page.keyboard.press('Escape');
+    await settle(page, 400);
+    const rateBox = await page.$('#ratesRwRateSearch input');
+    await rateBox.click();
+    await rateBox.type('trench', { delay: 20 });
+    await page.keyboard.press('Enter');
+    await page.waitForFunction(() => document.querySelectorAll('#ratesRwRates .oj-table-body-row').length === 0, null, { timeout: 10000 }).catch(() => {});
+    await settle(page, 500);
+    T.check('typed words no rate has: no rows, and the table says why', (await rateRows()).length === 0
+      && (await env.text('#ratesRwCount')).startsWith('0 of 1') && (await env.text('.nx-rt-rw')).includes('No rate matches the search'), await env.text('#ratesRwCount'));
+    await env.shot('rw-commercial-rates-search.png');
 
     T.section('Rates: the header\'s actions call Current\'s chains');
     await headerAction(page, '#ratesRwHead', 'Edit details');

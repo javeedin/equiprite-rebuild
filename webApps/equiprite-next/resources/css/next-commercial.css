@@ -169,3 +169,37 @@ html[data-nx-look="redwood"] .nx-rates .nx-cm-detail[hidden] { display: none; }
 /* An agreement's form: the small Per buttons on each line stay small (Redwood's full-size ones overrun the line's
    Description). */
 html[data-nx-look="redwood"] .nx-cm-seg--sm .nx-seg-btn { height: 26px; padding: 0 8px; font-size: 12px; }
+
+/* ── Rates under Redwood, the schedule (as Old's Rate Management): Oracle's header names it and holds its buttons, so the
+   card under it keeps only its facts; the margin check is Oracle's banner; the rates are Oracle's table, a row opening
+   Oracle's drawer to change them. ─────────────────────────────────────────────────────────────────────────────────── */
+html[data-nx-look="redwood"] .nx-rates .nx-cm-head .nx-cm-head-top { display: none; }
+html[data-nx-look="redwood"] .nx-rates .nx-cm-head .nx-cm-facts { margin-top: 0; }
+html[data-nx-look="redwood"] .nx-rt-rwbanner { display: block; }
+html[data-nx-look="redwood"] .nx-rt-rwbanner[hidden] { display: none; }
+html[data-nx-look="redwood"] .nx-rt-rw { display: block; }
+html[data-nx-look="redwood"] .nx-rt-rw[hidden] { display: none; }
+html[data-nx-look="redwood"] .nx-rt-rwtools { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 10px 16px; }
+html[data-nx-look="redwood"] .nx-rt-rwtable { display: block; width: 100%; }
+html[data-nx-look="redwood"] .nx-rt-rwtable .oj-table-data-cell { vertical-align: top; white-space: normal; }
+html[data-nx-look="redwood"] .nx-rt-rweq { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-width: 0; overflow-wrap: anywhere; }
+html[data-nx-look="redwood"] .nx-rt-rwedit { margin-top: 4px; }
+html[data-nx-look="redwood"] .nx-rt-rwcell { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+html[data-nx-look="redwood"] .nx-rt-rwtier { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding-left: 8px; border-left: 3px solid transparent; }
+html[data-nx-look="redwood"] .nx-rt-rwtier--low { border-left-color: var(--nx-danger); }
+html[data-nx-look="redwood"] .nx-rt-rwtier .oj-badge, html[data-nx-look="redwood"] .nx-rt-drtier .oj-badge {
+  white-space: normal; height: auto; min-height: 22px; line-height: 16px; padding: 3px 10px; max-width: 100%;
+}
+/* the drawer: a section per period, each tier's From, Cost and Bill side by side */
+html[data-nx-look="redwood"] .nx-rt-dr { display: flex; flex-direction: column; gap: 4px; padding: 0 4px 24px; }
+html[data-nx-look="redwood"] .nx-rt-drnote { margin: 0 0 8px; }
+html[data-nx-look="redwood"] .nx-rt-drp { padding: 12px 0 16px; border-top: 1px solid var(--nx-line); }
+html[data-nx-look="redwood"] .nx-rt-drh { margin: 0 0 10px; display: flex; align-items: baseline; gap: 8px; }
+html[data-nx-look="redwood"] .nx-rt-drtier { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 12px; padding: 10px 12px; margin-bottom: 8px;
+  border: 1px solid var(--nx-line); border-radius: 6px; background: #fff; }
+html[data-nx-look="redwood"] .nx-rt-drtier--low { border-color: rgba(179, 49, 31, 0.45); box-shadow: inset 3px 0 0 var(--nx-danger); }
+html[data-nx-look="redwood"] .nx-rt-drtiername, html[data-nx-look="redwood"] .nx-rt-drfoot { grid-column: 1 / -1; }
+html[data-nx-look="redwood"] .nx-rt-drfield { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+html[data-nx-look="redwood"] .nx-rt-drfield .nx-cm-input { width: 100%; height: 36px; }
+html[data-nx-look="redwood"] .nx-rt-drfoot { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+html[data-nx-look="redwood"] .nx-rt-drfoot oj-c-button { margin-left: auto; }

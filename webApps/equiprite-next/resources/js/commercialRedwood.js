@@ -233,6 +233,51 @@ define(['resources/js/rateRules', 'resources/js/agreementRules', 'resources/js/f
     });
   }
 
+  // ── A schedule's rates (its record under Redwood): Smart Search over the rates table ───────────────────────────
+  // One filter per thing a rates row is (its equipment, class, location, rate type, how it is counted), the periods it
+  // has a rate in, and its margin; each offers what the schedule's rows hold, with how many rows hold it. A row is
+  // rateRules.groupLines' group (one equipment's lines).
+  var RATE_LINE_FIELDS = ['equipment', 'cls', 'location', 'period', 'margin', 'rateType', 'method'];
+  var MARGIN_WORDS = { low: 'Below cost', ok: 'At or above cost', none: 'No bill rate' };
+  var PERIOD_ORDER = R.PERIODS.map(function (p) { return p.label; });
+
+  function rateGroupValues(g) {
+    var first = (g && g.first) || {};
+    var seen = {};
+    return {
+      equipment: [g.title],
+      cls: [txt(first.className) || 'No class'],
+      location: [g.location || 'All locations'],
+      period: arr(g.cells).filter(function (c) { return arr(c.lines).length > 0; }).map(function (c) { return c.label; }),
+      margin: arr(g.lines).map(function (l) { return MARGIN_WORDS[R.margin(l).state]; }).filter(function (w) { if (!w || seen[w]) return false; seen[w] = true; return true; }),
+      rateType: [g.rateTypeLabel],
+      method: [g.method]
+    };
+  }
+
+  /** Every rate filter's options, from the schedule's lines: { equipment, cls, location, period, margin, rateType, method }. */
+  function rateLineOptions(lines) {
+    var groups = R.groupLines(arr(lines));
+    var out = {};
+    RATE_LINE_FIELDS.forEach(function (f) {
+      var order = f === 'period' ? function (a, b) { return PERIOD_ORDER.indexOf(a) - PERIOD_ORDER.indexOf(b); } : null;
+      out[f] = tally(groups, function (g) { return rateGroupValues(g)[f]; }, order);
+    });
+    return out;
+  }
+
+  /** The rows (groupLines' keys) a search and a set of rate filters keep: { text, equipment, cls, … } ('' = any). */
+  function rateLineKeys(lines, cols) {
+    var c = cols || {};
+    var q = txt(c.text).trim().toLowerCase();
+    return R.groupLines(arr(lines)).filter(function (g) {
+      var v = rateGroupValues(g);
+      var ok = RATE_LINE_FIELDS.every(function (f) { return !c[f] || v[f].indexOf(c[f]) !== -1; });
+      if (!ok || !q) return ok;
+      return [g.title, v.cls[0], v.location[0], g.rateTypeLabel, g.method].join(' ').toLowerCase().indexOf(q) !== -1;
+    }).map(function (g) { return g.key; });
+  }
+
   /** An agreement's status, as the header's badge. */
   function agreementBadge(code) {
     return { text: A.statusLabel(code), status: STATUS[A.tone(code)] || 'neutral' };
@@ -243,6 +288,6 @@ define(['resources/js/rateRules', 'resources/js/agreementRules', 'resources/js/f
     readCriterion: readCriterion, windowKeys: windowKeys,
     rateRows: rateRows, rateOptions: rateOptions, rateByColumns: rateByColumns, rateBadge: rateBadge,
     agreementRows: agreementRows, agreementOptions: agreementOptions, agreementByColumns: agreementByColumns, agreementBadge: agreementBadge,
-    nextOf: nextOf
+    nextOf: nextOf, RATE_LINE_FIELDS: RATE_LINE_FIELDS, rateLineOptions: rateLineOptions, rateLineKeys: rateLineKeys
   };
 });

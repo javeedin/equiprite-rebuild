@@ -73,6 +73,13 @@
         secondary-actions="[[ $functions.rwActions($variables.canWrite, $variables.selectedId, $variables.headerOpen, $variables.dirty, $variables.lines.length) ]]"
         on-sp-secondary-action="[[ $listeners.onRwAction ]]"
         display-options.in-flow-back="true" on-sp-in-flow-back="[[ $listeners.onRwBack ]]">
+        <!-- Search the schedule's rates, in the header as Old's Equipment Schedule page has it: a filter per thing a rates row
+             is, the periods it has a rate in, its margin. They narrow the rates table below. -->
+        <oj-sp-smart-search slot="search" id="ratesRwRateSearch" filter-criterion="{{ $variables.rwRateCriterion }}"
+          on-filter-criterion-changed="[[ $listeners.onRwRateFilter ]]" search-context="[[ $variables.rwRateSearchContext ]]"
+          search-config="[[ $variables.rwRateSearchConfig.provider ]]"
+          suggestion-filters='["RateEquipmentFilter", "RateClassFilter", "RateLocationFilter", "RatePeriodFilter", "RateMarginFilter", "RateTypeFilter", "RateMethodFilter"]'
+          placeholder="Search the rates: equipment, class, location"></oj-sp-smart-search>
       </oj-sp-general-overview-page>
     </div>
   </oj-bind-if>
@@ -357,8 +364,16 @@
             </oj-bind-if>
           </section>
 
+          <!-- Redwood: the margin check as Oracle's messages banner, one line (the rates below cost are marked in the table,
+               which can show only them); Current: the list. -->
+          <oj-bind-if test="[[ $application.variables.lookSeen ]]">
+            <div class="nx-rt-rwbanner" :hidden="[[ $application.variables.look !== 'redwood' ]]">
+              <oj-sp-messages-banner id="ratesRwMargin" data="[[ $functions.rwBanner($variables.lines, $variables.rwBannerOff, $variables.selectedId) ]]"
+                on-sp-close="[[ $listeners.onRwBannerClose ]]"></oj-sp-messages-banner>
+            </div>
+          </oj-bind-if>
           <!-- the margin check, before the grid: a bill rate below cost is the thing to fix -->
-          <oj-bind-if test="[[ $functions.marginIssues($variables.lines).length > 0 ]]">
+          <oj-bind-if test="[[ $application.variables.look !== 'redwood' && $functions.marginIssues($variables.lines).length > 0 ]]">
             <div class="nx-cm-alert" role="status" id="ratesMargin">
               <span class="oj-ux-ico-warning" aria-hidden="true"></span>
               <div>
@@ -482,6 +497,66 @@
               </div>
             </oj-bind-if>
 
+            <!-- Redwood: the rates as Oracle's table, one row per equipment and a column per period; a row (or its Edit)
+                 opens the row in Oracle's drawer to change it (as Old's Rate Management). -->
+            <oj-bind-if test="[[ $application.variables.lookSeen ]]">
+              <div class="nx-rt-rw" :hidden="[[ $application.variables.look !== 'redwood' ]]">
+                <div class="nx-rt-rwtools">
+                  <span class="oj-typography-body-sm oj-text-color-secondary" id="ratesRwCount"><oj-bind-text value="[[ $functions.rwCountText($variables.lines, $variables.rwOnlyLow, $variables.rwRateCols) ]]"></oj-bind-text></span>
+                  <oj-bind-if test="[[ $functions.marginIssues($variables.lines).length > 0 ]]">
+                    <oj-c-button id="ratesRwOnlyLow" size="sm" chroming="outlined" data-act="only" on-oj-action="[[ $listeners.onRwRates ]]"
+                      label="[[ $variables.rwOnlyLow ? 'Show every rate' : 'Show only the ' + $functions.marginIssues($variables.lines).length + ' below cost' ]]">
+                      <span slot="startIcon" class="oj-ux-ico-filter"></span></oj-c-button>
+                  </oj-bind-if>
+                </div>
+                <oj-table id="ratesRwRates" data="[[ $functions.rwRateADP($variables.lines, $variables.formData.currency, $variables.rwOnlyLow, $variables.rwRateCols) ]]"
+                  class="oj-sm-width-full nx-rt-rwtable" aria-label="Rates by period" layout="fixed" display="list" horizontal-grid-visible="enabled"
+                  selection-mode.row="none" on-oj-row-action="[[ $listeners.onRwRateRow ]]"
+                  columns='[
+                    {"headerText": "Equipment", "field": "title", "template": "rtEqTpl", "weight": 22},
+                    {"headerText": "Hourly", "field": "HOURLY", "template": "rtTierTpl", "weight": 13},
+                    {"headerText": "Daily", "field": "DAILY", "template": "rtTierTpl", "weight": 13},
+                    {"headerText": "Weekly", "field": "WEEKLY", "template": "rtTierTpl", "weight": 13},
+                    {"headerText": "Monthly", "field": "MONTHLY", "template": "rtTierTpl", "weight": 13},
+                    {"headerText": "Quarterly", "field": "QUARTERLY", "template": "rtTierTpl", "weight": 13},
+                    {"headerText": "Yearly", "field": "YEARLY", "template": "rtTierTpl", "weight": 13}]'>
+                  <template slot="rtEqTpl" data-oj-as="cell">
+                    <div class="nx-rt-rweq">
+                      <span class="oj-typography-body-md oj-typography-bold"><oj-bind-text value="[[ cell.row.title ]]"></oj-bind-text></span>
+                      <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.sub ]]"></oj-bind-text></span>
+                      <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.method ]]"></oj-bind-text></span>
+                      <oj-bind-if test="[[ cell.row.low > 0 ]]">
+                        <span class="oj-badge oj-badge-danger oj-badge-subtle"><oj-bind-text value="[[ cell.row.lowText ]]"></oj-bind-text></span>
+                      </oj-bind-if>
+                      <div data-oj-clickthrough="disabled">
+                        <oj-c-button size="sm" chroming="outlined" :data-key="[[ cell.row.key ]]" data-act="edit" on-oj-action="[[ $listeners.onRwRates ]]"
+                          label="[[ $variables.canWrite ? 'Edit rates' : 'View rates' ]]" class="nx-rt-rwedit"></oj-c-button>
+                      </div>
+                    </div>
+                  </template>
+                  <template slot="rtTierTpl" data-oj-as="cell">
+                    <div class="nx-rt-rwcell">
+                      <oj-bind-for-each data="[[ cell.data ]]">
+                        <template data-oj-as="t">
+                          <div :class="[[ 'nx-rt-rwtier nx-rt-rwtier--' + t.data.state ]]">
+                            <span class="oj-typography-body-xs oj-text-color-secondary"><oj-bind-text value="[[ t.data.tier ]]"></oj-bind-text></span>
+                            <span class="oj-typography-body-sm">Cost <strong><oj-bind-text value="[[ t.data.cost ]]"></oj-bind-text></strong></span>
+                            <span class="oj-typography-body-sm">Bill <strong><oj-bind-text value="[[ t.data.bill ]]"></oj-bind-text></strong></span>
+                            <span :class="[[ t.data.badge ]]"><oj-bind-text value="[[ t.data.margin ]]"></oj-bind-text></span>
+                          </div>
+                        </template>
+                      </oj-bind-for-each>
+                      <oj-bind-if test="[[ cell.data.length === 0 ]]"><span class="oj-text-color-secondary" aria-label="No rate">—</span></oj-bind-if>
+                    </div>
+                  </template>
+                  <template slot="noData">
+                    <div class="oj-sm-padding-6x oj-typography-body-md oj-text-color-secondary"><oj-bind-text value="[[ $functions.rwFiltered($variables.rwRateCols) ? 'No rate matches the search. Clear a filter in the search above.' : $variables.rwOnlyLow ? 'No rate bills below its cost.'
+                      : ($variables.canWrite ? 'No rates yet. Add equipment to start.' : 'No rates yet.') ]]"></oj-bind-text></div>
+                  </template>
+                </oj-table>
+              </div>
+            </oj-bind-if>
+            <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
             <div class="nx-table">
               <div class="nx-grid nx-cm-rgrid" role="table" aria-labelledby="ratesGridTitle">
                 <div class="nx-row nx-row--head" role="row">
@@ -550,6 +625,7 @@
             </div>
             <oj-bind-if test="[[ $variables.lines.length === 0 ]]">
               <div class="nx-empty"><oj-bind-text value="[[ $variables.canWrite ? 'No rates yet. Add equipment to start.' : 'No rates yet.' ]]"></oj-bind-text></div>
+            </oj-bind-if>
             </oj-bind-if>
           </section>
 
@@ -637,5 +713,69 @@
         </oj-bind-if>
       </div>
     </div>
+  </oj-bind-if>
+  <!-- Redwood: one equipment's rates in Oracle's drawer, to read or change them (as Old's Rate Management opens a schedule's
+       detail in its drawer): the same fields and chains as the current look's grid (lineEditChain, addLineChain,
+       removeLineChain); Save schedule in the header writes them, as on Current. -->
+  <oj-bind-if test="[[ $application.variables.lookSeen ]]">
+    <oj-drawer-popup id="ratesRwDrawer" edge="end" modality="modal"
+      opened="[[ $functions.rwEditOpen($application.variables.look, $variables.lines, $variables.rwEditKey) ]]" on-opened-changed="[[ $listeners.onRwDrawer ]]">
+      <oj-sp-general-drawer-template drawer-size="lg"
+        drawer-title="[[ $functions.rwEditGroup($variables.lines, $variables.rwEditKey, $variables.formData.currency).title ]]"
+        drawer-subtitle="[[ $functions.rwEditGroup($variables.lines, $variables.rwEditKey, $variables.formData.currency).sub ]]"
+        close-action='{"label": "Close", "display": "on"}' on-sp-close="[[ $listeners.onRwEditClose ]]">
+        <div class="nx-rt-dr" id="ratesRwEdit" on-keydown="[[ $listeners.onRwDrawerKey ]]">
+          <p class="oj-typography-body-sm oj-text-color-secondary nx-rt-drnote">Cost is what one period costs; the engine bills the rate per day (or hour) it
+            makes. "From" is where a tier starts: the highest one the duration reaches applies. Save schedule, at the top, writes the changes.</p>
+          <oj-bind-for-each data="[[ $functions.rwEditGroup($variables.lines, $variables.rwEditKey, $variables.formData.currency).cells ]]">
+            <template data-oj-as="c">
+              <section class="nx-rt-drp" :data-period="[[ c.data.period ]]">
+                <h3 class="oj-typography-heading-xs nx-rt-drh"><oj-bind-text value="[[ c.data.label ]]"></oj-bind-text>
+                  <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ 'per ' + c.data.noun ]]"></oj-bind-text></span></h3>
+                <oj-bind-for-each data="[[ c.data.tiers ]]">
+                  <template data-oj-as="t">
+                    <div :class="[[ 'nx-rt-drtier nx-rt-drtier--' + t.data.state ]]" :data-key="[[ t.data.key ]]">
+                      <span class="oj-typography-body-sm oj-typography-semi-bold nx-rt-drtiername"><oj-bind-text value="[[ t.data.tier ]]"></oj-bind-text></span>
+                      <oj-bind-if test="[[ $variables.canWrite ]]">
+                        <label class="nx-rt-drfield"><span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ 'From (' + t.data.unit + ')' ]]"></oj-bind-text></span>
+                          <input class="nx-cm-input" type="number" min="0" step="1" :data-key="[[ t.data.key ]]" data-field="threshold" :value="[[ t.data.threshold ]]"
+                            on-change="[[ $listeners.onLineEdit ]]" :aria-label="[[ c.data.label + ' from, in ' + t.data.unit ]]"></label>
+                        <label class="nx-rt-drfield"><span class="oj-typography-body-sm oj-text-color-secondary">Cost</span>
+                          <input type="number" min="0" step="any" :data-key="[[ t.data.key ]]" data-field="periodAmount" :value="[[ t.data.costValue ]]"
+                            :class="[[ 'nx-cm-input' + (t.data.inferred ? ' nx-cm-inferred' : '') ]]" on-change="[[ $listeners.onLineEdit ]]"
+                            :aria-label="[[ c.data.label + ' cost per ' + c.data.noun ]]"></label>
+                        <label class="nx-rt-drfield"><span class="oj-typography-body-sm oj-text-color-secondary">Bill</span>
+                          <input class="nx-cm-input" type="number" min="0" step="any" :data-key="[[ t.data.key ]]" data-field="billRate" :value="[[ t.data.billValue ]]"
+                            on-change="[[ $listeners.onLineEdit ]]" :aria-label="[[ c.data.label + ' bill per ' + c.data.noun ]]"></label>
+                      </oj-bind-if>
+                      <oj-bind-if test="[[ !$variables.canWrite ]]">
+                        <span class="oj-typography-body-sm">Cost <strong><oj-bind-text value="[[ t.data.cost ]]"></oj-bind-text></strong></span>
+                        <span class="oj-typography-body-sm">Bill <strong><oj-bind-text value="[[ t.data.bill ]]"></oj-bind-text></strong></span>
+                      </oj-bind-if>
+                      <span class="nx-rt-drfoot">
+                        <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ t.data.rate ]]"></oj-bind-text></span>
+                        <span :class="[[ t.data.badge ]]"><oj-bind-text value="[[ t.data.margin ]]"></oj-bind-text></span>
+                        <oj-bind-if test="[[ $variables.canWrite ]]">
+                          <oj-c-button size="sm" chroming="borderless" display="icons" :data-key="[[ t.data.key ]]" on-oj-action="[[ $listeners.onRwRemoveLine ]]"
+                            :label="[[ 'Remove the ' + c.data.label + ' rate' ]]"><span slot="startIcon" class="oj-ux-ico-trash"></span></oj-c-button>
+                        </oj-bind-if>
+                      </span>
+                    </div>
+                  </template>
+                </oj-bind-for-each>
+                <oj-bind-if test="[[ c.data.tiers.length === 0 && c.data.allowed && $variables.canWrite ]]">
+                  <oj-c-button size="sm" chroming="outlined" :data-group="[[ c.data.groupKey ]]" :data-period="[[ c.data.period ]]" on-oj-action="[[ $listeners.onRwAddLine ]]"
+                    :label="[[ 'Add a ' + c.data.label + ' rate' ]]"><span slot="startIcon" class="oj-ux-ico-plus"></span></oj-c-button>
+                </oj-bind-if>
+                <oj-bind-if test="[[ c.data.tiers.length === 0 && !(c.data.allowed && $variables.canWrite) ]]">
+                  <p class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ c.data.allowed ? 'No ' + c.data.label + ' rate.'
+                    : 'Not billed by the ' + c.data.noun + ': this row is counted in a way that cannot bill this period.' ]]"></oj-bind-text></p>
+                </oj-bind-if>
+              </section>
+            </template>
+          </oj-bind-for-each>
+        </div>
+      </oj-sp-general-drawer-template>
+    </oj-drawer-popup>
   </oj-bind-if>
 </div>

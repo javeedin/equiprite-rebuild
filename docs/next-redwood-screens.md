@@ -119,6 +119,7 @@ How the header's parts work:
 - **Header-only views** (`.nx-rw--head`) have the template's empty content slot collapsed by `next-redwood.css`.
 - **On a record screen, mount the header once the record is known** (`oj-bind-if` on its id). Its title and actions should not change while Oracle's toolbar is still loading.
 - **Text not on a card sits on the band.** The header's colour runs 340px down behind the body. Any text there that is not on a card (a legend, a banner) needs a light colour or a card under it; or set a shorter `--rw-banner-h` for the screen.
+- **Oracle's messages banner** (`oj-sp-messages-banner`) reads `primaryText` and `secondaryText`, with `messageType` such as `general-warning`. It does not read `summary` or `detail`, so a message built with those shows only its icon.
 - **The Redwood dialog head is white.** Anything a screen draws in white on Current's dark dialog head needs a dark colour under Redwood.
 
 Where a section of the body is plainly a table of records, you may replace that section's Current markup with an `oj-table`, but only under Redwood (`:hidden` on the Redwood copy, `oj-bind-if` on the Current one), and only if it stays simple. Otherwise leave the body as it is.
