@@ -159,11 +159,165 @@
     "exportOpen": {
       "type": "boolean",
       "defaultValue": false
+    },
+    "rwShown": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood view: the requests the Requests view shows (reqShown), narrowed by the column filters picked in Smart Search (applyChain, portalRedwood.byColumns). Export takes these under Redwood."
+    },
+    "rwRows": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood view: one plain row per request in rwShown, for the oj-table (portalRedwood.rows)."
+    },
+    "rwADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "key",
+        "data": "{{ $page.variables.rwRows }}"
+      }
+    },
+    "rwCriterion": {
+      "type": "any",
+      "description": "Redwood view: the Smart Search criterion (text and filters; Oracle's, read only); rwFilterChain turns it into reqText, reqGroup (All when Show is not picked) and rwCols, whenever it changes and whenever the Redwood list is shown (rwShowChain)."
+    },
+    "rwCols": {
+      "type": "object",
+      "defaultValue": {
+        "number": "",
+        "dates": "",
+        "status": "",
+        "next": "",
+        "contract": ""
+      },
+      "description": "Redwood view: the column filters picked in Smart Search (rwFilterChain), as portalRedwood.byColumns reads them; Show is the page's own reqGroup."
+    },
+    "rwSearchConfig": {
+      "type": "oj-sp/smart-search/strategies/JsonSearchConfigProviderFactory",
+      "defaultValue": {
+        "url": "[[ $application.path + 'resources/data/portalRequestsSearchConfig.json' ]]"
+      }
+    },
+    "rwNumbers": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood view: the Request filter's options (applyChain, portalRedwood.options)."
+    },
+    "rwNumbersADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwNumbers }}"
+      }
+    },
+    "rwDates": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood view: the Dates filter's options with their counts."
+    },
+    "rwDatesADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwDates }}"
+      }
+    },
+    "rwStatuses": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood view: the Where your equipment is filter's options with their counts."
+    },
+    "rwStatusesADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwStatuses }}"
+      }
+    },
+    "rwNext": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood view: the Next filter's options with their counts."
+    },
+    "rwNextADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwNext }}"
+      }
+    },
+    "rwContracts": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood view: the Contract filter's options with their counts."
+    },
+    "rwContractsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwContracts }}"
+      }
+    },
+    "rwGroups": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Redwood view: the Show filter's options (the portal's chips: Needs you, Open, Finished, All) with their counts."
+    },
+    "rwGroupsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwGroups }}"
+      }
+    },
+    "rwSearchContext": {
+      "type": "object",
+      "defaultValue": {
+        "$search": {
+          "filters": {
+            "RequestFilter": {
+              "label": "Request",
+              "options": { "optionsData": "[[ $page.variables.rwNumbersADP ]]", "optionsKeys": { "label": "label", "value": "value" } }
+            },
+            "DatesFilter": {
+              "label": "Dates",
+              "options": { "optionsData": "[[ $page.variables.rwDatesADP ]]", "optionsKeys": { "label": "label", "value": "value" } }
+            },
+            "StatusFilter": {
+              "label": "Where your equipment is",
+              "options": { "optionsData": "[[ $page.variables.rwStatusesADP ]]", "optionsKeys": { "label": "label", "value": "value" } }
+            },
+            "NextFilter": {
+              "label": "Next",
+              "options": { "optionsData": "[[ $page.variables.rwNextADP ]]", "optionsKeys": { "label": "label", "value": "value" } }
+            },
+            "ContractFilter": {
+              "label": "Contract",
+              "options": { "optionsData": "[[ $page.variables.rwContractsADP ]]", "optionsKeys": { "label": "label", "value": "value" } }
+            },
+            "GroupFilter": {
+              "label": "Show",
+              "options": { "optionsData": "[[ $page.variables.rwGroupsADP ]]", "optionsKeys": { "label": "label", "value": "value" } }
+            }
+          }
+        }
+      }
     }
   },
   "events": {
     "portalChanged": {
       "description": "A tab of the portal changed something (resources/js/portalSignal.js): read the home again.",
+      "payloadType": "object"
+    },
+    "lookChanged": {
+      "description": "From the page module: the look chosen in your menu changed (resources/js/look.js): Redwood or Current.",
       "payloadType": "object"
     }
   },
@@ -288,6 +442,43 @@
           "chain": "loadChain"
         }
       ]
+    },
+    "onRwAction": {
+      "chains": [
+        {
+          "chain": "rwActChain",
+          "parameters": {
+            "id": "{{ $event.detail.secondaryItem }}"
+          }
+        }
+      ]
+    },
+    "onRwFilter": {
+      "chains": [
+        {
+          "chain": "rwFilterChain"
+        }
+      ]
+    },
+    "onRwRow": {
+      "chains": [
+        {
+          "chain": "rwOpenChain",
+          "parameters": {
+            "id": "{{ $event.detail.context.key }}"
+          }
+        }
+      ]
+    },
+    "lookChanged": {
+      "chains": [
+        {
+          "chain": "rwShowChain",
+          "parameters": {
+            "look": "{{ $event.look }}"
+          }
+        }
+      ]
     }
   },
   "imports": {
@@ -300,6 +491,18 @@
       },
       "oj-bind-text": {
         "path": "ojs/ojknockout"
+      },
+      "oj-sp-general-overview-page": {
+        "path": "oj-sp/general-overview-page/loader"
+      },
+      "oj-sp-smart-search": {
+        "path": "oj-sp/smart-search/loader"
+      },
+      "oj-sp-collection-container": {
+        "path": "oj-sp/collection-container/loader"
+      },
+      "oj-table": {
+        "path": "ojs/ojtable"
       }
     }
   }

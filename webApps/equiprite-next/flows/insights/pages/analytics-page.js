@@ -75,6 +75,17 @@ define([
       const r = (reports || []).filter((x) => x.key === key)[0];
       return r ? r.question : '';
     }
+
+    /**
+     * Redwood view (your menu, Look): the general overview page's buttons, the current look's Refresh and Export (Excel,
+     * the table below as shown), off when the current look's are.
+     */
+    rwActions(loading, reports, report) {
+      return [
+        { id: 'refresh', label: 'Refresh', icon: 'oj-ux-ico-refresh', display: loading || !reports ? 'disabled' : 'on' },
+        { id: 'export', label: 'Export to Excel', icon: 'oj-ux-ico-download', display: report ? 'on' : 'disabled' },
+      ];
+    }
   }
 
   return PageModule;

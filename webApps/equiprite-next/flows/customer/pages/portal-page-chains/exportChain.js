@@ -7,9 +7,10 @@ define([
   'use strict';
 
   // Exports what the current view shows (its chip, its search, its order): the requests, the equipment or the
-  // invoices; from the overview, every request. Never a serial number.
+  // invoices; from the overview, every request. Never a serial number. From the Redwood view (look), the Requests view
+  // exports its rows as that view shows them, with its column filters.
   class exportChain extends ActionChain {
-    async run(context, { format }) {
+    async run(context, { format, look }) {
       const v = context.$page.variables;
       v.exportOpen = false;
       const chipLabel = (chips, key) => { const c = (chips || []).filter((x) => x.key === key)[0]; return c && key !== 'all' ? c.label : 'All'; };
@@ -19,7 +20,8 @@ define([
       } else if (v.view === 'invoices') {
         o = { name: 'my-invoices', title: 'Your invoices', subtitle: [chipLabel(v.invChips, v.invChip), v.invText ? '"' + v.invText + '"' : ''], rows: v.invShown, what: 'invoices' };
       } else if (v.view === 'requests') {
-        o = { name: 'my-requests', title: 'Your requests', subtitle: [chipLabel(v.reqChips, v.reqGroup), v.reqText ? '"' + v.reqText + '"' : ''], rows: v.reqShown, what: 'requests' };
+        o = { name: 'my-requests', title: 'Your requests', subtitle: [chipLabel(v.reqChips, v.reqGroup), v.reqText ? '"' + v.reqText + '"' : ''],
+          rows: look === 'redwood' ? v.rwShown : v.reqShown, what: 'requests' };
       } else {
         o = { name: 'my-requests', title: 'Your requests', subtitle: ['All'], rows: v.rows, what: 'requests' };
       }

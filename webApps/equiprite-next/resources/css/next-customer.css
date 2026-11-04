@@ -194,3 +194,12 @@
   .nx-cu-piece { flex-wrap: wrap; }
   .nx-cu-piece-end { align-items: flex-start; text-align: left; max-width: none; }
 }
+
+/* ── Redwood (your menu, Look): the portal's header and its records' headers are Oracle's general overview page; the
+   portal's requests are Oracle's Smart Search over an oj-table, on a white panel as Old's lists sit (next-redwood.css
+   draws the band and the template). ────────────────────────────────────────────────────────────────────────────── */
+html[data-nx-look="redwood"] .nx-cu .nx-cu-rwlist { background: #fff; border: 1px solid var(--nx-line); border-radius: 12px; padding: 12px 16px 16px; }
+html[data-nx-look="redwood"] .nx-cu .nx-cu-rwlist oj-sp-smart-search { display: block; width: 100%; margin-bottom: 8px; }
+/* A request's invoices, per piece: Oracle's oj-table inside the piece's card. */
+html[data-nx-look="redwood"] .nx-cu .nx-cu-rwinv { padding: 0 16px 8px; }
+html[data-nx-look="redwood"] .nx-cu .nx-cu-rwinv-table { display: block; width: 100%; min-height: 0; }

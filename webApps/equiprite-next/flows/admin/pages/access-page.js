@@ -43,6 +43,24 @@ define(['resources/js/exportKit', 'resources/js/accessMatrix'], (exportKit, acce
     countLocked(rows) { return (rows || []).filter((r) => r.cells.some((c) => c.locked)).length; }
 
     pressed(on) { return on ? 'true' : 'false'; }
+
+    // ── The Redwood view (your menu, Look): Oracle's general overview page as the header, its buttons the current
+    //    look's (Save, Discard, Export). Arrays and objects for its bindings come from here; an action's display is on,
+    //    off or disabled (oj-sp reads only that). ──
+
+    /** Save N changes: disabled until a level is changed, or for a role that may not edit. */
+    rwPrimary(n, saving, canEdit) {
+      const label = saving ? 'Saving…' : (n ? 'Save ' + n + ' change' + (n === 1 ? '' : 's') : 'Save');
+      return { label, icon: 'oj-ux-ico-save', display: !canEdit || !n || saving ? 'disabled' : 'on' };
+    }
+
+    /** Discard (while something is changed) and Export to Excel (the matrix as shown). */
+    rwActions(n, saving, rows) {
+      return [
+        { id: 'discard', label: 'Discard', icon: 'oj-ux-ico-undo', display: n > 0 ? (saving ? 'disabled' : 'on') : 'off' },
+        { id: 'export', label: 'Export to Excel', icon: 'oj-ux-ico-download', display: rows ? 'on' : 'disabled' },
+      ];
+    }
   }
 
   return PageModule;

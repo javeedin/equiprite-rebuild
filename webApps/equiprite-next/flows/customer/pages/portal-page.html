@@ -2,6 +2,19 @@
      equipment, every piece of equipment, their invoices. A request, its quote and its invoices open in tabs of their own.
      Logic: resources/js/portalView.js on New's resources/js/customerPortal.js. Styles: resources/css/next-customer.css. -->
 <div class="nx-page nx-cu">
+  <!-- Redwood (your menu, Look): Oracle's general overview page as the header (the greeting, the summary, New request,
+       Refresh and Export), over the portal's own body below, as Old's customer dashboard; the Requests view is Smart Search
+       over an oj-table, as Old's My requests. Put on the page the first time Redwood is shown, then kept, hidden under Current. -->
+  <oj-bind-if test="[[ $application.variables.lookSeen ]]">
+    <div class="nx-rw nx-rw--head" id="cuRedwood" :hidden="[[ $application.variables.look !== 'redwood' ]]">
+      <oj-sp-general-overview-page page-title="[[ $functions.greeting($application.user) ]]" display-mode="mixed"
+        page-subtitle="[[ $functions.rwSubtitle($variables.isLoading, $variables.rows.length, $variables.summary) ]]"
+        primary-action="[[ $functions.rwPrimary($variables.canCreate) ]]" on-sp-primary-action="[[ $listeners.onNew ]]"
+        secondary-actions="[[ $functions.rwActions($variables.isLoading) ]]" on-sp-secondary-action="[[ $listeners.onRwAction ]]">
+      </oj-sp-general-overview-page>
+    </div>
+  </oj-bind-if>
+  <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
   <div class="nx-pagehead">
     <div>
       <div class="nx-kicker">Customer portal</div>
@@ -33,6 +46,7 @@
       </oj-bind-if>
     </div>
   </div>
+  </oj-bind-if>
 
   <oj-bind-if test="[[ $variables.behalf ]]">
     <div class="nx-cu-behalf" role="note" id="cuBehalf">
@@ -193,8 +207,55 @@
     <p class="nx-note">You only ever see your own requests and invoices.</p>
   </oj-bind-if>
 
+  <!-- ── Requests, Redwood: Oracle's Smart Search (a filter per column, then Show) over an oj-table, as Old's customer
+       My requests page; the same requests, search and chip as the current look (rwFilterChain, applyChain). Kept on the
+       page once put there (Smart Search throws if it is taken off while it settles), hidden in the other views. ── -->
+  <oj-bind-if test="[[ $application.variables.lookSeen ]]">
+    <section class="nx-rw nx-cu-rwlist" id="cuRwRequests" aria-label="Your requests" :hidden="[[ $functions.rwListHidden($application.variables.look, $variables.view) ]]">
+      <oj-sp-smart-search filter-criterion="{{ $variables.rwCriterion }}" on-filter-criterion-changed="[[ $listeners.onRwFilter ]]"
+        search-context="[[ $variables.rwSearchContext ]]" search-config="[[ $variables.rwSearchConfig.provider ]]"
+        suggestion-filters='["RequestFilter", "DatesFilter", "StatusFilter", "NextFilter", "ContractFilter", "GroupFilter"]'
+        placeholder="Request, contract, equipment or where it is"></oj-sp-smart-search>
+      <oj-sp-collection-container>
+        <oj-table id="cuRwTable" data="[[ $variables.rwADP ]]" class="oj-sm-width-full nx-rw-table" aria-label="Your requests"
+          scroll-policy="loadMoreOnScroll" scroll-policy-options.fetch-size="50" display="list" horizontal-grid-visible="enabled"
+          layout="fixed" on-oj-row-action="[[ $listeners.onRwRow ]]"
+          columns='[
+            {"headerText": "Request", "field": "number", "template": "numTpl", "sortable": "enabled", "style": "width:17%;"},
+            {"headerText": "Dates", "field": "dates", "template": "datesTpl", "sortable": "enabled", "style": "width:19%;"},
+            {"headerText": "Where your equipment is", "field": "status", "template": "statusTpl", "sortable": "enabled", "style": "width:26%;"},
+            {"headerText": "Next", "field": "next", "template": "nextTpl", "sortable": "disabled", "style": "width:24%;"},
+            {"headerText": "Contract", "field": "contract", "template": "contractTpl", "sortable": "enabled", "style": "width:14%;"}
+          ]'>
+          <template slot="numTpl" data-oj-as="cell">
+            <div class="nx-rw-cell"><span class="oj-typography-body-md oj-typography-bold oj-link-standalone nx-rw-num"><oj-bind-text value="[[ cell.row.number ]]"></oj-bind-text></span>
+              <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.raised ]]"></oj-bind-text></span></div>
+          </template>
+          <template slot="datesTpl" data-oj-as="cell">
+            <div class="nx-rw-cell"><span class="oj-typography-body-md"><oj-bind-text value="[[ cell.row.dates ]]"></oj-bind-text></span>
+              <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.when ]]"></oj-bind-text></span></div>
+          </template>
+          <template slot="statusTpl" data-oj-as="cell">
+            <div class="nx-rw-cell"><span :class="[[ cell.row.badge ]]"><oj-bind-text value="[[ cell.row.status ]]"></oj-bind-text></span>
+              <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.detail ]]"></oj-bind-text></span></div>
+          </template>
+          <template slot="nextTpl" data-oj-as="cell">
+            <div class="nx-rw-cell"><span :class="[[ cell.row.mine ? 'oj-typography-body-md oj-typography-semi-bold' : 'oj-typography-body-md' ]]"><oj-bind-text value="[[ cell.row.next ]]"></oj-bind-text></span>
+              <oj-bind-if test="[[ !!cell.row.late ]]"><span class="oj-typography-body-sm oj-text-color-danger"><oj-bind-text value="[[ cell.row.late ]]"></oj-bind-text></span></oj-bind-if></div>
+          </template>
+          <template slot="contractTpl" data-oj-as="cell">
+            <span class="oj-typography-body-md"><oj-bind-text value="[[ cell.row.contract ]]"></oj-bind-text></span>
+          </template>
+          <template slot="noData">
+            <div class="oj-sm-padding-6x oj-typography-body-md oj-text-color-secondary"><oj-bind-text value="[[ $variables.isLoading ? 'Loading your requests…' : $functions.emptyText('requests', $variables.reqGroup, $variables.reqText) ]]"></oj-bind-text></div>
+          </template>
+        </oj-table>
+      </oj-sp-collection-container>
+    </section>
+  </oj-bind-if>
+
   <!-- ── Requests ─────────────────────────────────────────────────────────────────────────────────────────── -->
-  <oj-bind-if test="[[ $variables.view === 'requests' ]]">
+  <oj-bind-if test="[[ $variables.view === 'requests' && $application.variables.look !== 'redwood' ]]">
     <div class="nx-toolbar">
       <label class="nx-search">
         <span class="oj-ux-ico-search" aria-hidden="true"></span>

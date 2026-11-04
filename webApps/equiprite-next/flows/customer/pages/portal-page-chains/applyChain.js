@@ -2,7 +2,8 @@ define([
   'vb/action/actionChain',
   'resources/js/customerPortal',
   'resources/js/portalView',
-], (ActionChain, portal, V) => {
+  'resources/js/portalRedwood',
+], (ActionChain, portal, V, R) => {
   'use strict';
 
   // What every view shows, worked out from what was read: the requests read from their equipment, what needs the
@@ -41,6 +42,15 @@ define([
       v.eqShown = V.filterEquipment(eq, v.eqChip, v.eqText);
       v.invChips = V.invoiceChips(inv);
       v.invShown = V.filterInvoices(inv, v.invChip, v.invText);
+
+      // The Redwood view's requests (Smart Search over an oj-table): the same requests, then its column filters, which
+      // the current look does not show and so never narrow it; and every filter's options with their counts.
+      v.rwShown = R.byColumns(v.reqShown, v.rwCols, now);
+      v.rwRows = R.rows(v.rwShown, now);
+      const opts = R.options(rows, v.reqChips, now);
+      const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+      [['rwNumbers', 'number'], ['rwDates', 'dates'], ['rwStatuses', 'status'], ['rwNext', 'next'], ['rwContracts', 'contract'], ['rwGroups', 'group']]
+        .forEach(([name, key]) => { if (!same(v[name], opts[key])) v[name] = opts[key]; });
     }
   }
 

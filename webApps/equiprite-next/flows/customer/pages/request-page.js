@@ -1,5 +1,5 @@
-define(['resources/js/exportKit', 'resources/js/fmt', 'resources/js/customerPortal', 'resources/js/portalView', 'resources/js/rentalTerms'],
-  (exportKit, fmt, portal, V, terms) => {
+define(['resources/js/exportKit', 'resources/js/fmt', 'resources/js/customerPortal', 'resources/js/portalView', 'resources/js/rentalTerms',
+  'resources/js/portalRedwood'], (exportKit, fmt, portal, V, terms, R) => {
   'use strict';
 
   // A customer request's tab: binding helpers. The logic is resources/js/portalView.js on New's customerPortal.js.
@@ -45,6 +45,35 @@ define(['resources/js/exportKit', 'resources/js/fmt', 'resources/js/customerPort
 
     /** This request in New EquipRite's customer portal, or ''. */
     newUrl(newBase, head) { return head && head.id ? V.newRequestPage(newBase, 'customer-request', head.requestNumber, head.id) : ''; }
+
+    // ── The Redwood view (your menu, Look): Oracle's general overview page as the header. Arrays and objects for its
+    //    bindings come from here. ──
+
+    /** The header's subtitle: the customer and the contact, as the current look's line under the title. */
+    rwSubtitle(head, loading) {
+      const h = head || {};
+      if (!h.requestNumber) return loading ? 'Finding your request…' : '';
+      return (h.customerName || '') + (h.customerContact ? ' · ' + h.customerContact : '');
+    }
+
+    /** Where the request stands, as Oracle's badge in the header. */
+    rwBadge(text, tone) { return R.headerBadge(text, tone); }
+
+    /**
+     * The header's buttons: the current look's Refresh, Export, Quote, Invoices and In New EquipRite (rwActChain), each
+     * on, off or disabled as there.
+     */
+    rwActions(head, billingShown, newBase, busy) {
+      const h = head || {};
+      const on = (b) => (b ? 'on' : 'off');
+      return [
+        { id: 'refresh', label: 'Refresh', icon: 'oj-ux-ico-refresh', display: busy ? 'disabled' : 'on' },
+        { id: 'export', label: 'Export to Excel', icon: 'oj-ux-ico-download', display: on(!!h.requestNumber) },
+        { id: 'quote', label: 'Quote', icon: 'oj-ux-ico-document-check', display: on(!!h.hasQuote) },
+        { id: 'invoices', label: 'Invoices', icon: 'oj-ux-ico-invoice', display: on(!!billingShown && !!h.contractNumber) },
+        { id: 'inNew', label: 'In New EquipRite', icon: 'oj-ux-ico-external-link', display: on(!!(h.id && V.newRequestPage(newBase, 'customer-request', h.requestNumber, h.id))) },
+      ];
+    }
 
     /** "3 pieces · 1 consumable", for the facts. */
     pieces(lines) {

@@ -20,6 +20,15 @@ define(['resources/js/exportKit'], (exportKit) => {
       return n + (n === 1 ? ' row' : ' rows') + ' of ' + (d.title || 'this drill') + ', as shown';
     }
 
+    /**
+     * Redwood view (your menu, Look): the general overview page's button, the current look's Export (as Excel): what the
+     * open tab shows, or the drill when one is open on Mapping.
+     */
+    rwActions(tab, drillOpen) {
+      const what = tab === 'flows' ? 'this flow' : (tab === 'mapping' ? (drillOpen ? 'the drill' : 'the mapping') : 'the requirements');
+      return [{ id: 'export', label: 'Export ' + what + ' to Excel', icon: 'oj-ux-ico-download', display: 'on' }];
+    }
+
     /** The steps of the open flow, for the export note. */
     flowSteps(flows, id) {
       const f = (flows || []).filter((x) => x.id === id)[0];

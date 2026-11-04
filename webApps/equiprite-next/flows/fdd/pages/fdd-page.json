@@ -40,6 +40,7 @@
     "onMapSearch": { "chains": [{ "chain": "setChain", "parameters": { "field": "mapText", "value": "{{ $event.target.value }}" } }] },
     "onExportMenu": { "chains": [{ "chain": "setChain", "parameters": { "field": "exportOpen", "value": "toggle" } }] },
     "onExport": { "chains": [{ "chain": "exportChain", "parameters": { "format": "{{ $event.currentTarget.dataset.format }}" } }] },
+    "onRwAction": { "chains": [{ "chain": "exportChain", "parameters": { "format": "xlsx" } }] },
     "onDrillAct": { "chains": [{ "chain": "drillChain", "parameters": { "act": "{{ $event.currentTarget.dataset.act }}", "value": "{{ $event.currentTarget.dataset.value }}", "status": "{{ $event.currentTarget.dataset.status }}" } }] },
     "onDrillSearch": { "chains": [{ "chain": "drillChain", "parameters": { "act": "text", "value": "{{ $event.target.value }}" } }] },
     "onFlow": { "chains": [{ "chain": "flowChain", "parameters": { "act": "flow", "key": "{{ $event.currentTarget.dataset.value }}" } }] },
@@ -51,7 +52,8 @@
     "components": {
       "oj-bind-for-each": { "path": "ojs/ojknockout" },
       "oj-bind-if": { "path": "ojs/ojknockout" },
-      "oj-bind-text": { "path": "ojs/ojknockout" }
+      "oj-bind-text": { "path": "ojs/ojknockout" },
+      "oj-sp-general-overview-page": { "path": "oj-sp/general-overview-page/loader" }
     }
   }
 }

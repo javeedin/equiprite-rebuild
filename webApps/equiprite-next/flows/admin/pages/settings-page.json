@@ -93,13 +93,17 @@
     },
     "onExport": {
       "chains": [{ "chain": "exportChain", "parameters": { "list": "{{ $event.currentTarget.dataset.list }}", "format": "{{ $event.currentTarget.dataset.format }}" } }]
+    },
+    "onRwAction": {
+      "chains": [{ "chain": "rwActChain", "parameters": { "id": "{{ $event.detail.secondaryItem }}" } }]
     }
   },
   "imports": {
     "components": {
       "oj-bind-for-each": { "path": "ojs/ojknockout" },
       "oj-bind-if": { "path": "ojs/ojknockout" },
-      "oj-bind-text": { "path": "ojs/ojknockout" }
+      "oj-bind-text": { "path": "ojs/ojknockout" },
+      "oj-sp-general-overview-page": { "path": "oj-sp/general-overview-page/loader" }
     }
   }
 }

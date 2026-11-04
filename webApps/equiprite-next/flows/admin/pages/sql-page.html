@@ -1,6 +1,17 @@
 <!-- SQL worksheet: SQL against an Oracle database from this PC, as in SQL Developer. The desktop app connects for the page
      (desktop/lib/oracleSql.js at /__sql/*); the page's own logic is resources/js/sqlWorksheet.js. -->
 <div class="nx-page nx-sql" id="page-sql">
+  <!-- Redwood (your menu, Look): Oracle's general overview page as the header (New connection), over this screen's own
+       worksheet below. Put on the page the first time Redwood is shown, then kept, hidden under Current. -->
+  <oj-bind-if test="[[ $application.variables.lookSeen ]]">
+    <div class="nx-rw nx-rw--head" id="sqlRedwood" :hidden="[[ $application.variables.look !== 'redwood' ]]">
+      <oj-sp-general-overview-page page-title="SQL worksheet" display-mode="mixed"
+        page-subtitle="Run SQL against an Oracle database from this PC, as in SQL Developer. Connections stay on this PC; saved passwords are encrypted by the operating system."
+        primary-action="[[ $functions.rwPrimary($variables.info.available) ]]" on-sp-primary-action="[[ $listeners.onNewConn ]]">
+      </oj-sp-general-overview-page>
+    </div>
+  </oj-bind-if>
+  <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
   <div class="nx-pagehead">
     <div>
       <div class="nx-kicker">Admin</div>
@@ -13,6 +24,7 @@
       </oj-bind-if>
     </div>
   </div>
+  </oj-bind-if>
 
   <oj-bind-if test="[[ !$variables.info.checked ]]"><div class="nx-card nx-empty" role="status">Looking for the database connections…</div></oj-bind-if>
   <oj-bind-if test="[[ $variables.info.checked && !$variables.info.available ]]">

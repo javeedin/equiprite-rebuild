@@ -332,3 +332,10 @@
   .nx-st-control { justify-content: flex-start; }
   .nx-st-row--d1, .nx-st-row--d2 { padding-left: 24px; }
 }
+
+/* ── Redwood (your menu, Look): Analytics, Settings, Access and Integrations have Oracle's general overview page as their
+   header, its colour running on behind the top of the body (next-redwood.css), the cards sitting on it as in Old. What
+   sits straight on that colour, not on a card, reads light; what is tinted is opaque there. ─────────────────────── */
+html[data-nx-look="redwood"] .nx-ac .nx-ac-legend, html[data-nx-look="redwood"] .nx-ac .nx-ac-legend .nx-muted { color: rgba(255, 255, 255, 0.86); }
+html[data-nx-look="redwood"] .nx-ac .nx-ac-legend strong, html[data-nx-look="redwood"] .nx-ac .nx-ac-lockicon { color: #fff; }
+html[data-nx-look="redwood"] .nx-ih .nx-ih-down { background: rgb(253, 236, 233); }

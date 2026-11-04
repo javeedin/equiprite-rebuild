@@ -2,6 +2,18 @@
      table that exports. A bar in a chart is a filter: click it to narrow the table, click it again to clear. Logic:
      resources/js/insightsModel.js. Reads only. -->
 <div class="nx-page nx-an">
+  <!-- Redwood (your menu, Look): Oracle's general overview page as the header (the question open, Refresh and Export), over
+       this screen's own questions, tiles, charts and table below. Put on the page the first time Redwood is shown, then
+       kept, hidden under Current. -->
+  <oj-bind-if test="[[ $application.variables.lookSeen ]]">
+    <div class="nx-rw nx-rw--head" id="anRedwood" :hidden="[[ $application.variables.look !== 'redwood' ]]">
+      <oj-sp-general-overview-page page-title="Analytics" display-mode="mixed"
+        page-subtitle="[[ $variables.cur.report ? $functions.question($variables.reports, $variables.cur.report) + ($variables.checkedAt ? ' · as of ' + $variables.checkedAt : '') : 'Answers from the same fleet, request and cost data as Old and New EquipRite.' ]]"
+        secondary-actions="[[ $functions.rwActions($variables.isLoading, $variables.reports.length, $variables.cur.report) ]]" on-sp-secondary-action="[[ $listeners.onRwAction ]]">
+      </oj-sp-general-overview-page>
+    </div>
+  </oj-bind-if>
+  <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
   <div class="nx-pagehead">
     <div>
       <div class="nx-kicker">Insights</div>
@@ -29,6 +41,7 @@
       </div>
     </div>
   </div>
+  </oj-bind-if>
 
   <oj-bind-if test="[[ $variables.accessChecked && !$variables.reports.length ]]">
     <div class="nx-card nx-empty" role="status">Your role cannot open any report here. Ask an administrator for access to Analytics or Reports (Admin › Access).</div>
