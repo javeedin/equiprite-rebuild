@@ -182,7 +182,6 @@
     "onRwAction": { "chains": [{ "chain": "rwChain", "parameters": { "action": "act", "value": "{{ $event.detail.secondaryItem }}" } }] },
     "onRwExport": { "chains": [{ "chain": "exportChain", "parameters": { "what": "list", "format": "xlsx" } }] },
     "onRwRates": { "chains": [{ "chain": "rwRatesChain", "parameters": { "act": "{{ $event.currentTarget.dataset.act }}", "key": "{{ $event.currentTarget.dataset.key }}" } }] },
-    "onRwRateRow": { "chains": [{ "chain": "rwRatesChain", "parameters": { "act": "edit", "key": "{{ $event.detail.context.key }}" } }] },
     "onRwDrawer": { "chains": [{ "chain": "rwRatesChain", "parameters": { "act": "{{ $event.detail.value ? '' : 'close' }}" } }] },
     "onRwRateFilter": { "chains": [{ "chain": "rwRateFilterChain" }] },
     "onRwDrawerKey": { "chains": [{ "chain": "rwRatesChain", "parameters": { "act": "{{ $event.key === 'Escape' ? 'close' : '' }}" } }] },

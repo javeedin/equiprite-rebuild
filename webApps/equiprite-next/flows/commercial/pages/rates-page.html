@@ -476,7 +476,7 @@
               </div>
             </oj-bind-if>
 
-            <!-- Redwood: the rates as Oracle's table, one row per equipment and a column per period; a row (or its Edit)
+            <!-- Redwood: the rates as Oracle's table, one row per equipment and a column per period; its Edit rates (only: a click elsewhere on the row does nothing)
                  opens the row in Oracle's drawer to change it (as Old's Rate Management). -->
             <oj-bind-if test="[[ $application.variables.lookSeen ]]">
               <div class="nx-rt-rw" :hidden="[[ $application.variables.look !== 'redwood' ]]">
@@ -485,7 +485,7 @@
                 </div>
                 <oj-table id="ratesRwRates" data="[[ $functions.rwRateADP($variables.lines, $variables.formData.currency, $variables.rwRateCols) ]]"
                   class="oj-sm-width-full nx-rt-rwtable" aria-label="Rates by period" layout="fixed" display="list" horizontal-grid-visible="enabled"
-                  selection-mode.row="none" on-oj-row-action="[[ $listeners.onRwRateRow ]]"
+                  selection-mode.row="none"
                   columns='[
                     {"headerText": "Equipment", "field": "title", "template": "rtEqTpl", "weight": 16},
                     {"headerText": "Hourly", "field": "HOURLY", "template": "rtTierTpl", "weight": 14},

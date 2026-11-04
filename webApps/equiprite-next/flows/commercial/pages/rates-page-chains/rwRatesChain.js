@@ -3,7 +3,7 @@ define([
 ], (ActionChain) => {
   'use strict';
 
-  // The Redwood look's schedule detail: open an equipment's rates in Oracle's drawer (edit, a row or its Edit button),
+  // The Redwood look's schedule detail: open an equipment's rates in Oracle's drawer (edit: its Edit rates button, not a click on the row),
   // close it (Done, Escape, a click outside).
   class rwRatesChain extends ActionChain {
     async run(context, { act, key }) {

@@ -280,8 +280,11 @@ async function headerMenu(page, head) {
     T.check('Escape closes the drawer', !(await page.isVisible('#ratesRwEdit')));
     await env.shot('rw-commercial-rates-table.png');
     await page.click('#ratesRwRates .nx-rt-rweq span');
+    await page.click('#ratesRwRates .nx-rt-rwtier');
+    await settle(page, 1000);
+    T.check('a click on the row (its name, a rate) does not open it: only Edit rates does', !(await page.isVisible('#ratesRwEdit')));
+    await page.click('#ratesRwRates oj-c-button[data-act="edit"]');
     await page.waitForSelector('#ratesRwEdit input[data-field="periodAmount"]', { state: 'visible', timeout: 10000 });
-    T.check('a click on the row opens it too', await page.isVisible('#ratesRwEdit'));
     await page.fill('#ratesRwEdit input[data-field="periodAmount"]', '820');
     await page.dispatchEvent('#ratesRwEdit input[data-field="periodAmount"]', 'change');
     await settle(page, 500);
