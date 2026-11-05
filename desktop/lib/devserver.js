@@ -325,6 +325,8 @@ function createDevServer(o) {
       try {
         rs.traceAdd(TT.callEntry({ t: started, app: APP_NAMES[o.webApp] || o.webApp, method: req.method, service: name, path: `${rest}${search}`, url: target.href, status,
           ms: Date.now() - started, error, reqHeaders: req.headers, reqBody: TT.bodyText(body, req.headers), resHeaders,
+          // the login that actually went to the backend (the proxy adds it): its scheme and, for Basic, the username — never the secret
+          auth: TT.authOf(headers),
           resBody: resHeaders ? TT.bodyText(Buffer.concat(resChunks), resHeaders) : '' }));
       } catch (e) { log(`trace: ${e.message}`); }
     };

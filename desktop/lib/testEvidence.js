@@ -213,7 +213,8 @@ function open(o) {
       if (!p || !VIDEO.test(p)) return null;
       const tr = readTrace(path.join(path.dirname(p), traceName(path.basename(p))));
       if (!tr) return null;
-      return { key, name, folder: path.dirname(p), start: tr.start, ended: tr.ended, video: item(key, path.basename(p)), entries: tr.entries, summary: TT.summary(tr.entries) };
+      return { key, name, folder: path.dirname(p), start: tr.start, ended: tr.ended, video: item(key, path.basename(p)), entries: tr.entries,
+        summary: TT.summary(tr.entries), apis: TT.endpoints(tr.entries) };
     },
     har(key, name) { const tr = this.trace(key, name); return tr ? TT.toHar(tr) : null; },
     report(key, name) { const tr = this.trace(key, name); return tr ? TT.bugReport(tr, tr.folder) : ''; },

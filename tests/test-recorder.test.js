@@ -79,6 +79,27 @@ T.eq('…the older positional form (3 = error), and info left out', [TT.consoleE
 const call = TT.callEntry({ t: 1000, app: 'Old', method: 'post', service: 'eqpt', path: '/equipmentRequests', url: 'http://user:pw@host/equipmentRequests?token=abc&x=1', status: 500, ms: 812 });
 T.eq('a call: no login or token left in its URL; a 500 is a failure', [call.method, call.url, call.failed].join(' | '), 'POST | http://host/equipmentRequests?token=•••&x=1 | true');
 
+T.section('the trace keeps WHETHER a call was authenticated, and AS WHOM — never the secret');
+const basicHdr = 'Basic ' + Buffer.from('priya.raman:S3cret!value').toString('base64');
+T.eq('Basic: the scheme and the username only', JSON.stringify(TT.authOf({ authorization: basicHdr })), '{"sent":true,"scheme":"Basic","user":"priya.raman"}');
+T.eq('Bearer: the scheme, no user', JSON.stringify(TT.authOf({ authorization: 'Bearer ey.jwt.token' })), '{"sent":true,"scheme":"Bearer","user":""}');
+T.eq('none: nothing sent', JSON.stringify(TT.authOf({})), '{"sent":false,"scheme":"","user":""}');
+T.check('the password is never in the auth, however it is stringified', !JSON.stringify(TT.authOf({ authorization: basicHdr })).includes('S3cret'));
+T.eq('in words, for the viewer and the report', [TT.authText(TT.authOf({ authorization: basicHdr })), TT.authText(TT.authOf({ authorization: 'Bearer x' })), TT.authText(TT.authOf({}))].join(' | '),
+  'as priya.raman (Basic) | Bearer token | none');
+const auth = TT.authOf({ authorization: basicHdr });
+const EP = [
+  TT.callEntry({ method: 'GET', service: 'eqpt', path: '/equipment?limit=5', url: 'http://h/__backend/eqpt/equipment?limit=5', status: 200, ms: 40, auth }),
+  TT.callEntry({ method: 'GET', service: 'eqpt', path: '/equipmentRequests/123/lines', url: 'http://h/__backend/eqpt/equipmentRequests/123/lines', status: 200, ms: 12, auth }),
+  TT.callEntry({ method: 'GET', service: 'eqpt', path: '/equipmentRequests/777/lines', url: 'http://h/__backend/eqpt/equipmentRequests/777/lines', status: 200, ms: 9, auth }),
+  TT.callEntry({ method: 'POST', service: 'eqpt', path: '/equipmentRequests', url: 'http://h/__backend/eqpt/equipmentRequests', status: 500, ms: 800 }),
+];
+const eps = TT.endpoints(EP);
+T.eq('the APIs used: one row per service + method + endpoint, ids collapsed, failures first', eps.map((g) => g.method + ' ' + g.endpoint + ' ×' + g.calls + (g.failed ? ' (' + g.failed + ' failed)' : '')).join(' | '),
+  'POST /equipmentRequests ×1 (1 failed) | GET /equipmentRequests/{id}/lines ×2 | GET /equipment ×1');
+T.eq('…each with the statuses seen and the login used (no secret)', [eps[1].statuses.join('/'), eps[1].auth.schemes.join(), eps[1].auth.users.join(), eps[0].auth.sent].join(' | '), '200 | Basic | priya.raman | false');
+T.check('…the endpoints list never holds the secret', !JSON.stringify(eps).includes('S3cret'));
+
 T.section('the technical trace, kept with the recording');
 clock = new Date(2026, 10, 5, 15, 0, 0);
 const tr = store.start('EQP-196', 'webm', { trace: true });
@@ -209,8 +230,14 @@ T.check('removing a recording removes its trace', !fs.existsSync(path.join(dir, 
     const harRes = await req2('GET', fin.trace.har);
     T.check('the HAR file, to download', harRes.headers['content-disposition'] === 'attachment; filename="EQP-12 ' + fin.name.replace(/\.webm$/, '') + '.har"'
       && JSON.parse(harRes.body).log.entries.length === 2);
+    T.check('every call carries its login (none here: the test backend has no credential), never a secret', t2.entries.every((e) => e.auth && e.auth.sent === false)
+      && !JSON.stringify(t2).includes('c2VjcmV0'));
+    T.eq('the trace lists the APIs used: the two eqpt endpoints, the failed one first', (t2.apis || []).map((g) => g.service + ' ' + g.method + ' ' + g.endpoint + (g.failed ? ' (failed)' : '')).join(' | '),
+      'eqpt POST /equipmentRequests (failed) | eqpt GET /equipment');
     const repRes = await req2('GET', '/__rec/report/EQP-12/' + encodeURIComponent(fin.name));
-    T.check('the bug report, as text', repRes.headers['content-type'].startsWith('text/plain') && repRes.body.toString().includes('ORA-01400'));
+    const rep = repRes.body.toString();
+    T.check('the bug report, as text, with the login line and the APIs used', repRes.headers['content-type'].startsWith('text/plain') && rep.includes('ORA-01400')
+      && rep.includes('Login sent: none') && rep.includes('APIs used (2):') && rep.includes('POST eqpt /equipmentRequests'));
     const ix = JSON.parse((await req2('GET', '/__rec/index')).body);
     T.eq('the index: the story\'s recording, and the failure its trace caught', [ix['EQP-12'].videos, ix['EQP-12'].shots, ix['EQP-12'].failed].join(), '1,0,1');
   } finally {

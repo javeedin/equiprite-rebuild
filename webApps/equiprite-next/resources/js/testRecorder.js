@@ -140,6 +140,12 @@ define([], function () {
     '.eqr-tr-at{font:12px ui-monospace,Consolas,monospace;color:#2563eb}.eqr-tr-tag{font-size:11px;font-weight:800;color:#374151}',
     '.eqr-tr-main{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.eqr-tr-st{font-weight:800;font-size:12px}.eqr-tr-st--bad{color:#b91c1c}.eqr-tr-st--ok{color:#15803d}',
     '.eqr-tr-ms{font-size:11px;color:#6b7280;text-align:right}.eqr-tr-none{padding:16px;color:#6b7280}',
+    '.eqr-tr-auth{margin:2px 0 0;font:12px/1.4 system-ui,Segoe UI,sans-serif;color:#4b5563}',
+    '.eqr-tr-apis[aria-pressed=true]{background:#1f2937;color:#fff;border-color:#1f2937}',
+    '.eqr-tr-apilist{flex:1;min-height:0;overflow:auto}',
+    '.eqr-tr-apirow{display:grid;grid-template-columns:62px minmax(0,1fr) 52px;gap:8px;align-items:center;width:100%;padding:8px 12px;border:0;border-bottom:1px solid #f1f5f9;background:#fff;font:inherit;text-align:left;cursor:pointer;color:inherit}',
+    '.eqr-tr-apirow:hover{background:#f8fafc}.eqr-tr-apimain{overflow:hidden;display:flex;flex-direction:column;gap:2px}',
+    '.eqr-tr-apiep{font-weight:700;word-break:break-all}.eqr-tr-apimeta{font-size:11px;color:#6b7280}',
     '@media (max-width:900px){.eqr-tr-body{grid-template-columns:1fr;overflow:auto}.eqr-tr-left{border-right:0}.eqr-tr-left video{max-height:240px}}'
   ].join('');
   function styleOnce() {
@@ -363,6 +369,16 @@ define([], function () {
   // ── a recording's technical trace: the video in step with what happened underneath ──
   var KIND_FILTERS = [['all', 'All'], ['call', 'Calls'], ['failed', 'Failed'], ['console', 'Console'], ['page', 'Pages'], ['shot', 'Screenshots']];
   function plural(n, one, many) { return n + ' ' + (n === 1 ? one : (many || one + 's')); }
+  function authText(a) {
+    if (!a || !a.sent) return 'none';
+    if (a.user) return 'as ' + a.user + (a.scheme ? ' (' + a.scheme + ')' : '');
+    return (a.scheme || 'Authorization') + ' token';
+  }
+  function apiAuthText(au) {
+    if (!au || !au.sent) return 'no login';
+    if (au.users && au.users.length) return 'as ' + au.users.join(', ') + (au.schemes && au.schemes.length ? ' (' + au.schemes.join('/') + ')' : '');
+    return (au.schemes && au.schemes.join('/')) || 'Authorization' + ' token';
+  }
   function traceSummary(s) {
     if (!s) return '';
     return [plural(s.calls, 'web service call'), s.failed ? s.failed + ' failed' : '', s.errors ? plural(s.errors, 'console error') : '',
@@ -462,10 +478,15 @@ define([], function () {
       tools.appendChild(c);
       return c;
     });
+    var apis = tr.apis || [];
+    var apiBtn = el('button', { type: 'button', class: 'eqr-tr-chip eqr-tr-apis', id: 'eqrTrApisBtn', 'aria-pressed': 'false',
+      title: 'The web services and endpoints this test used, grouped' }, '⇄ APIs ' + apis.length);
+    if (apis.length) tools.appendChild(apiBtn);
     var search = el('input', { type: 'search', id: 'eqrTrSearch', placeholder: 'Find in URLs, JSON, errors…', 'aria-label': 'Find in the trace' });
     tools.appendChild(search);
     var list = el('div', { class: 'eqr-tr-list', id: 'eqrTrList', role: 'listbox', 'aria-label': 'What happened, in order' });
-    right.appendChild(tools); right.appendChild(list);
+    var apiList = el('div', { class: 'eqr-tr-list eqr-tr-apilist', id: 'eqrTrApiList', hidden: 'hidden', 'aria-label': 'The APIs and endpoints used' });
+    right.appendChild(tools); right.appendChild(list); right.appendChild(apiList);
     body.appendChild(left); body.appendChild(right);
     box.appendChild(body);
     veil.appendChild(box);
@@ -482,6 +503,29 @@ define([], function () {
       return r;
     });
     if (!rows.length) list.appendChild(el('p', { class: 'eqr-tr-none' }, 'No calls or errors were kept for this recording.'));
+
+    // The APIs view: one row per service + method + endpoint, with how often, failures, statuses and the login used.
+    function endpointOf(c) {
+      var p = String(c.path || '');
+      try { p = new URL(c.url).pathname.replace(new RegExp('^/__backend/' + (c.service || '') + '\\b'), '') || p; } catch (e) { p = p.split('?')[0]; }
+      p = (p.split('?')[0].replace(/\/+$/, '')) || '/';
+      return p.split('/').map(function (seg) { return (/^\d+$/.test(seg) || /^[0-9a-f]{8}-[0-9a-f-]{20,}$/i.test(seg)) ? '{id}' : seg; }).join('/');
+    }
+    apis.forEach(function (g) {
+      var first = -1;
+      for (var k = 0; k < entries.length; k++) { var e = entries[k]; if (e.kind === 'call' && e.service === g.service && e.method === g.method && endpointOf(e) === g.endpoint) { first = k; break; } }
+      var r = el('button', { type: 'button', class: 'eqr-tr-apirow' + (g.failed ? ' eqr-tr-row--bad' : ''), title: 'Show the first ' + g.method + ' ' + g.endpoint });
+      r.appendChild(el('span', { class: 'eqr-tr-tag' }, g.method));
+      var mid = el('span', { class: 'eqr-tr-apimain' });
+      mid.appendChild(el('span', { class: 'eqr-tr-apiep' }, (g.service ? g.service + ' ' : '') + g.endpoint));
+      mid.appendChild(el('span', { class: 'eqr-tr-apimeta' }, g.calls + (g.calls === 1 ? ' call' : ' calls') + (g.failed ? ' · ' + g.failed + ' failed' : '') + ' · ' + g.statuses.join('/') + ' · ' + apiAuthText(g.auth) + ' · up to ' + g.maxMs + ' ms'));
+      r.appendChild(mid);
+      r.appendChild(el('span', { class: 'eqr-tr-st ' + (g.failed ? 'eqr-tr-st--bad' : 'eqr-tr-st--ok') }, g.failed ? g.failed + '✕' : String(g.calls)));
+      r.__text = (g.service + ' ' + g.method + ' ' + g.endpoint + ' ' + apiAuthText(g.auth)).toLowerCase();
+      if (first !== -1) r.addEventListener('click', function () { apiBtn.click(); show(first, true); });
+      apiList.appendChild(r);
+    });
+    if (!apis.length) apiList.appendChild(el('p', { class: 'eqr-tr-none' }, 'No web service calls were kept for this recording.'));
 
     function pre(text) { return el('pre', {}, text || '(nothing)'); }
     function headersBlock(h) {
@@ -502,6 +546,7 @@ define([], function () {
       detail.innerHTML = '';
       if (e.kind === 'call') {
         detail.appendChild(el('div', { class: 'eqr-tr-dhead', id: 'eqrTrDHead' }, e.method + ' ' + e.url + ' → ' + (e.status || 'no answer') + (e.error ? ' (' + e.error + ')' : '') + ' · ' + e.ms + ' ms' + (e.app ? ' · ' + e.app : '')));
+        detail.appendChild(el('div', { class: 'eqr-tr-auth', id: 'eqrTrAuth' }, 'Login sent: ' + authText(e.auth) + (e.note ? ' · ' + e.note.trim() : '')));
         var da = el('div', { class: 'eqr-tr-dacts' });
         var cReq = el('button', { type: 'button', class: 'eqr-rec-btn', id: 'eqrTrCopyReq' }, 'Copy what was sent');
         var cRes = el('button', { type: 'button', class: 'eqr-rec-btn', id: 'eqrTrCopyRes' }, 'Copy the answer');
@@ -532,8 +577,13 @@ define([], function () {
       if (seek && video.readyState >= 1) { try { video.currentTime = (e.offset || 0) / 1000; } catch (err) { /* not seekable yet */ } }
       else if (seek) video.addEventListener('loadedmetadata', function () { try { video.currentTime = (e.offset || 0) / 1000; } catch (err) { /* no */ } }, { once: true });
     }
+    var apiView = false;
     function apply() {
       var q = search.value.trim().toLowerCase();
+      if (apiView) {
+        [].forEach.call(apiList.children, function (r) { if (r.__text !== undefined) r.hidden = !(!q || r.__text.indexOf(q) !== -1); });
+        return;
+      }
       rows.forEach(function (r, i) {
         var e = entries[i];
         var okKind = filter === 'all' || (filter === 'failed' ? bad(e) : e.kind === filter);
@@ -543,6 +593,15 @@ define([], function () {
     list.addEventListener('click', function (ev) {
       var r = ev.target.closest ? ev.target.closest('.eqr-tr-row') : null;
       if (r) show(Number(r.getAttribute('data-i')), true);
+    });
+    apiBtn.addEventListener('click', function () {
+      apiView = !apiView;
+      apiBtn.setAttribute('aria-pressed', apiView ? 'true' : 'false');
+      list.hidden = apiView;
+      apiList.hidden = !apiView;
+      chips.forEach(function (x) { x.style.display = apiView ? 'none' : ''; });
+      search.placeholder = apiView ? 'Find an API or endpoint…' : 'Find in URLs, JSON, errors…';
+      apply();
     });
     chips.forEach(function (c) {
       c.addEventListener('click', function () {

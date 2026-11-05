@@ -338,9 +338,25 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
       && (await text(page, '#eqrTrDHead')).includes('/equipmentRequests → 500') && (await text(page, '#eqrTrDetail')).includes('"requestNumber": "R-9"')
       && (await text(page, '#eqrTrAnswer')).includes('ORA-01400'), await text(page, '#eqrTrDetail'));
     T.check('…and the video moves to that moment', await page.$eval('#eqrTrVideo', (v) => v.currentTime > 0 || v.duration === Infinity));
+    T.check('…the failed call shows its login: none was sent (that is the bug), no password in the trace', (await text(page, '#eqrTrAuth')).includes('Login sent: none')
+      && !(await text(page, '#eqrTrDetail')).includes('ATATT'));
     await page.click('.eqr-tr-chip[data-filter="failed"]');
     T.eq('Failed: only the failed call', (await page.$$eval('#eqrTrList .eqr-tr-row', (r) => r.filter((x) => !x.hidden).length)), 1);
     await page.click('.eqr-tr-chip[data-filter="all"]');
+
+    T.section('the APIs the test used, grouped (what web services and endpoints ran)');
+    await page.click('#eqrTrApisBtn');
+    await page.waitForSelector('#eqrTrApiList:not([hidden])', { timeout: 10000 });
+    T.eq('one row per service + method + endpoint, ids collapsed', (await texts(page, '#eqrTrApiList .eqr-tr-apiep')).join(' | '), 'eqpt /equipmentRequests | eqpt /equipment');
+    T.check('…each says how often, the statuses and the login used (no secret)', /^1 call · 1 failed · 500 · no login · up to \d+ ms$/.test((await texts(page, '#eqrTrApiList .eqr-tr-apimeta'))[0])
+      && !(await text(page, '#eqrTrApiList')).includes('ATATT'), (await texts(page, '#eqrTrApiList .eqr-tr-apimeta'))[0]);
+    await page.fill('#eqrTrSearch', 'equipment');
+    T.check('find narrows the APIs too', (await page.$$eval('#eqrTrApiList .eqr-tr-apirow', (r) => r.filter((x) => !x.hidden).length)) >= 1);
+    await page.fill('#eqrTrSearch', '');
+    await env.shot('next-jira-trace-apis.png');
+    await page.click('#eqrTrApiList .eqr-tr-apirow >> nth=1');
+    await page.waitForSelector('#eqrTrApiList[hidden]', { timeout: 10000 }).catch(() => {});
+    T.check('an API row opens its first call on the timeline', await page.isVisible('#eqrTrList') && (await text(page, '#eqrTrDHead')).includes('/equipment'));
     await page.fill('#eqrTrSearch', 'limit=5');
     T.eq('find: in URLs and JSON', (await page.$$eval('#eqrTrList .eqr-tr-row', (r) => r.filter((x) => !x.hidden).map((x) => x.getAttribute('data-kind')))).join(), 'call');
     await page.fill('#eqrTrSearch', '');
