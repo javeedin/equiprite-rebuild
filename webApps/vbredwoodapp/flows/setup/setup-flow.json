@@ -8,6 +8,9 @@
     },
     "rbac-admin": {
       "path": "pages/rbac-admin-page"
+    },
+    "jira-stories": {
+      "path": "pages/jira-stories-page"
     }
   }
 }

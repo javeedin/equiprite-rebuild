@@ -206,6 +206,8 @@ define([
     // It is still RBAC-gated — via PAGE_ID_TO_PAGE_CODE below, not this map.
     'configurations': 'setup-configurations',
     'rbac-admin': 'setup-rbac-admin',
+    // Jira Stories: gated by its nav item's code, EQR_CONFIGURATIONS (see NAV_GROUPS).
+    'jira-stories': 'setup-jira-stories',
     'project-create-request': 'project-create-request',
     'equipment-requests': 'equipment-requests',
     'equipment-schedule': 'equipment-schedule',
@@ -294,7 +296,11 @@ define([
         // role. Being absent here keeps it out of the menu WITHOUT leaving it
         // ungated — PAGE_ID_TO_PAGE_CODE supplies its EQR_DASHBOARD code.
         { id: 'setup-configurations', label: 'Configuration Settings', icon: 'oj-ux-ico-settings', pageCode: 'EQR_CONFIGURATIONS' },
-        { id: 'setup-rbac-admin', label: 'Page Access', icon: 'oj-ux-ico-contact-permission', pageCode: 'EQR_RBAC_ADMIN' }
+        { id: 'setup-rbac-admin', label: 'Page Access', icon: 'oj-ux-ico-contact-permission', pageCode: 'EQR_RBAC_ADMIN' },
+        // The EquipRite backlog read from Jira (read only). EQR_CONFIGURATIONS on purpose: whoever may open
+        // Configuration Settings sees it, with no new COMMONRITE.RBAC_PAGES row to seed (a new code would hide the
+        // item for everyone until seeded).
+        { id: 'setup-jira-stories', label: 'Jira Stories', icon: 'oj-ux-ico-clipboard-list', pageCode: 'EQR_CONFIGURATIONS' }
       ]
     },
     {
@@ -415,6 +421,7 @@ define([
   const NAV_ID_TO_ROUTE = {
     'setup-configurations': { flow: 'setup', page: 'configurations' },
     'setup-rbac-admin': { flow: 'setup', page: 'rbac-admin' },
+    'setup-jira-stories': { flow: 'setup', page: 'jira-stories' },
     'project-create-request': { flow: 'customer-portal', page: 'project-create-request' },
     'equipment-requests': { flow: 'main', page: 'equipment-requests' },
     'equipment-schedule': { flow: 'main', page: 'equipment-schedule' },

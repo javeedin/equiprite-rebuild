@@ -52,6 +52,9 @@ define([
       } else if (pageId === 'setup-rbac-admin') {
         targetFlow = 'setup';
         targetPage = 'rbac-admin';
+      } else if (pageId === 'setup-jira-stories') {
+        targetFlow = 'setup';
+        targetPage = 'jira-stories';
       } else if (pageId === 'project-create-request') {
         targetFlow = 'customer-portal';
         targetPage = 'project-create-request';
