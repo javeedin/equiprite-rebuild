@@ -8,7 +8,7 @@ define([
     async run(context, { field, value }) {
       const v = context.$page.variables;
       if (field === 'jql') v.jql = String(value || '');
-      else if (field === 'tab') v.tab = String(value || 'epics');
+      else if (field === 'tab') v.tab = String(value || 'sprints');
       else if (field === 'exportOpen') v.exportOpen = value === true || value === 'true';
     }
   }

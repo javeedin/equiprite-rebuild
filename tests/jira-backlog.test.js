@@ -44,6 +44,9 @@ const DONE = { key: 'EQP-20', fields: { summary: 'Rate schedule list', issuetype
 const BARE = { key: 'EQP-30', fields: { summary: 'Notification engine', issuetype: { name: 'Story' }, status: status('FUNC DESIGN', 'indeterminate'),
   priority: { name: 'Medium' }, description: 'Send notifications.', comment: { comments: [] }, updated: '2026-08-01' } };
 const TODAY = '2026-11-05';
+const issue2 = (key, st, cat, sprints, due) => ({ key, fields: { summary: key + ' story', issuetype: { name: 'Story' }, status: status(st, cat), priority: { name: 'Medium' },
+  assignee: { displayName: 'Rahul Kanth Panganamamula' }, fixVersions: [{ name: '27A', releaseDate: '2026-12-31' }], duedate: due,
+  description: 'Do it. Acceptance Criteria: it works. FDD Section: 7.5', comment: { comments: [] }, customfield_10020: sprints, updated: '2026-11-01' } });
 
 T.section('a story, split into its parts');
 const r12 = J.fromIssue(EQP12, { today: TODAY });
@@ -105,6 +108,31 @@ T.section('reading every page of a search');
   T.eq('status options, in the workflow\'s order, with counts', J.options(rows, 'status').map((o) => o.label).join(', '), 'FUNC DESIGN (1), DEVELOPMENT (2), Done (1)');
   T.eq('epic options, named', J.options(rows, 'epic').map((o) => o.label).join(', '), 'EQP-1 Equipment Registry (2), EQP-62 Rate & Pricing (1), No epic (1)');
   T.check('an export column per finding', J.exportColumns().map((c) => c.label).join().includes('Tester gaps'));
+
+  T.section('sprints: dates, progress, spill-over, what is wrong on the board');
+  const SP = (name, state, start, end) => ({ id: name.length, name, state, startDate: start + 'T05:00:00.000Z', endDate: end + 'T05:00:00.000Z' });
+  const sp = [
+    issue2('EQP-50', 'DEVELOPMENT', 'indeterminate', [SP('2026-06', 'closed', '2026-06-01', '2026-06-30'), SP('2026-07', 'active', '2026-07-01', '2026-07-31')], '2026-07-20'),
+    issue2('EQP-51', 'Done', 'done', [SP('2026-07', 'active', '2026-07-01', '2026-07-31')], '2026-07-15'),
+    issue2('EQP-52', 'FUNC DESIGN', 'indeterminate', [SP('2026-10 B', 'future', '2026-10-16', '2026-10-31')], '2026-10-31'),
+    issue2('EQP-53', 'DEVELOPMENT', 'indeterminate', [SP('2026-11 A', 'active', '2026-11-01', '2026-11-14')], '2026-11-30'),
+    issue2('EQP-54', 'Done', 'done', [SP('2026-11 A', 'active', '2026-11-01', '2026-11-14')], '2026-11-10'),
+  ].map((i) => J.fromIssue(i, { today: TODAY }));
+  T.eq('a story\'s sprint, its dates, and the sprints before it', [sp[0].sprint, sp[0].sprintStart, sp[0].sprintEnd, sp[0].sprintPast.join()].join(' / '), '2026-07 / 2026-07-01 / 2026-07-31 / 2026-06');
+  T.eq('…its checks: its sprint ended, carried over', sp[0].checks.filter((c) => /sprint|carried/.test(c.key)).map((c) => c.key).join(), 'sprintEnded,carried');
+  T.eq('an older Jira\'s sprint string', JSON.stringify(plain(J.sprintsOf(['com.atlassian.greenhopper.service.sprint.Sprint@1[id=5,state=ACTIVE,name=2026-07,startDate=2026-07-01T14:56:40.083Z,endDate=2026-07-31T05:00:00.000Z,completeDate=<null>,goal=]']))),
+    JSON.stringify([{ id: '5', name: '2026-07', state: 'active', start: '2026-07-01', end: '2026-07-31', done: '', goal: '' }]));
+  const sa = J.analyse(sp, TODAY);
+  T.eq('the sprints: active first, then future, then closed', sa.sprints.map((x) => x.name + ' ' + x.state + ' ' + x.done + '/' + x.total).join(' | '),
+    '2026-07 active 1/2 | 2026-11 A active 1/2 | 2026-10 B future 0/1');
+  T.eq('…what is wrong with each', sa.sprints.map((x) => x.name + ': ' + (x.flags.join('; ') || 'fine')).join(' | '),
+    '2026-07: Still active, ended 2026-07-31 | 2026-11 A: 1 item due after it ends | 2026-10 B: Future, but its end date (2026-10-31) has passed');
+  T.eq('…days left in the running one', sa.sprints[1].daysLeft, 9);
+  T.eq('the sprint findings', sa.findings.filter((f) => /[Ss]print|carried/.test(f.text)).map((f) => f.tone + ': ' + f.text).join(' | '),
+    'bad: Sprint 2026-07 is still active although it ended on 2026-07-31 (1 item open): close it and move the work on. | '
+    + 'info: Sprint 2026-11 A: 1 of 2 done (50%), 9 days left. | warn: 1 future sprint has an end date already past (2026-10 B): the sprint plan is out of date. | '
+    + 'warn: 1 open item was carried over from an earlier sprint.');
+  T.eq('a sprint finding opens its items', J.filter(sp, sa.findings.filter((f) => /still active/.test(f.text))[0].filter).map((r) => r.key).join(), 'EQP-50,EQP-51');
 
   T.section('Old keeps the same file');
   const old = path.join(ROOT, 'webApps', 'vbredwoodapp', 'resources', 'js', 'jiraBacklog.js');

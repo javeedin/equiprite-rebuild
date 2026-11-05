@@ -142,6 +142,27 @@
           </oj-bind-for-each>
         </div>
         <div class="nx-jira-tabbody" id="jiraTabBody">
+          <oj-bind-if test="[[ $variables.tab === 'sprints' ]]">
+            <div class="nx-jira-tbl" role="table" aria-label="By sprint" id="jiraSprints">
+              <div class="nx-jira-tr nx-jira-tr--head nx-jira-tr--sprint" role="row"><span role="columnheader">Sprint</span><span role="columnheader">Dates</span>
+                <span role="columnheader">Done</span><span role="columnheader">Open</span><span role="columnheader">Overdue</span><span role="columnheader">Carried over</span></div>
+              <oj-bind-for-each data="[[ $variables.analysis.sprints ]]">
+                <template data-oj-as="sp">
+                  <button type="button" class="nx-jira-tr nx-jira-tr--sprint" role="row" data-field="sprint" :data-value="[[ sp.data.name ]]" :data-label="[[ 'Sprint: ' + sp.data.name ]]" on-click="[[ $listeners.onFilterClick ]]">
+                    <span role="cell" class="nx-jira-sprintname"><strong><oj-bind-text value="[[ sp.data.name ]]"></oj-bind-text></strong>
+                      <oj-bind-if test="[[ !!sp.data.state ]]"><span :class="[[ $functions.sprintTag(sp.data.state) ]]"><oj-bind-text value="[[ sp.data.state ]]"></oj-bind-text></span></oj-bind-if>
+                      <oj-bind-if test="[[ !!sp.data.goal ]]"><span class="nx-jira-sprintgoal"><oj-bind-text value="[[ 'Goal: ' + sp.data.goal ]]"></oj-bind-text></span></oj-bind-if>
+                      <oj-bind-for-each data="[[ sp.data.flags ]]"><template data-oj-as="fl"><span class="nx-jira-sprintflag"><oj-bind-text value="[[ fl.data ]]"></oj-bind-text></span></template></oj-bind-for-each></span>
+                    <span role="cell"><oj-bind-text value="[[ $functions.sprintDates(sp.data) ]]"></oj-bind-text></span>
+                    <span role="cell"><span class="nx-jira-mini"><span class="nx-jira-minifill" :style="[[ $functions.barStyle(sp.data.donePct) ]]"></span></span><oj-bind-text value="[[ sp.data.done + ' of ' + sp.data.total ]]"></oj-bind-text></span>
+                    <span role="cell"><oj-bind-text value="[[ sp.data.open ]]"></oj-bind-text></span>
+                    <span role="cell" :class="[[ sp.data.overdue ? 'nx-jira-bad' : '' ]]"><oj-bind-text value="[[ sp.data.overdue ]]"></oj-bind-text></span>
+                    <span role="cell"><oj-bind-text value="[[ sp.data.carried ]]"></oj-bind-text></span>
+                  </button>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </oj-bind-if>
           <oj-bind-if test="[[ $variables.tab === 'epics' ]]">
             <div class="nx-jira-tbl" role="table" aria-label="By epic">
               <div class="nx-jira-tr nx-jira-tr--head nx-jira-tr--epic" role="row"><span role="columnheader">Epic</span><span role="columnheader">Open</span><span role="columnheader">Overdue</span><span role="columnheader">Done</span><span role="columnheader">Gaps</span></div>

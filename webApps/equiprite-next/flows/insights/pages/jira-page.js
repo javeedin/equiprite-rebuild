@@ -62,8 +62,9 @@ define(['resources/js/jiraBacklog', 'resources/js/exportKit'], (J, exportKit) =>
     /** The breakdowns, as tabs, with how many rows each has. */
     tabs(a) {
       const x = a || {};
-      return same('tabs', [(x.epics || []).length, (x.releases || []).length, (x.people || []).length, (x.checks || []).length, (x.fdd || []).length, (x.gaps || []).length], (n) => [
-        { key: 'epics', label: 'By epic', count: n[0] }, { key: 'releases', label: 'By release', count: n[1] }, { key: 'people', label: 'By person', count: n[2] },
+      return same('tabs', [(x.epics || []).length, (x.releases || []).length, (x.people || []).length, (x.checks || []).length, (x.fdd || []).length, (x.gaps || []).length,
+        (x.sprints || []).length], (n) => [
+        { key: 'sprints', label: 'By sprint', count: n[6] }, { key: 'epics', label: 'By epic', count: n[0] }, { key: 'releases', label: 'By release', count: n[1] }, { key: 'people', label: 'By person', count: n[2] },
         { key: 'checks', label: 'Quality checks', count: n[3] }, { key: 'fdd', label: 'By FDD section', count: n[4] }, { key: 'gaps', label: 'Tester gaps', count: n[5] },
       ]);
     }
@@ -83,6 +84,14 @@ define(['resources/js/jiraBacklog', 'resources/js/exportKit'], (J, exportKit) =>
     /** The acceptance criteria as a list of checks. */
     acList(ac) { return J.acChecks(ac); }
 
+    /** A sprint's dates and time left: "1 Jul – 31 Jul · 4 days left". */
+    sprintDates(sp) {
+      if (!sp || (!sp.start && !sp.end)) return '—';
+      return (sp.start || '?') + ' – ' + (sp.end || '?') + (sp.daysLeft != null ? ' · ' + (sp.daysLeft === 0 ? 'ends today' : sp.daysLeft + (sp.daysLeft === 1 ? ' day left' : ' days left')) : '');
+    }
+    /** A sprint's state as a tag. */
+    sprintTag(state) { return 'nx-jira-tag nx-jira-tag--' + (state === 'active' ? 'active' : (state === 'closed' ? 'closed' : 'future')); }
+
     /** "Done 3 of 7 (43%)". */
     epicDone(e) { return e ? e.done + ' of ' + e.total + ' (' + e.donePct + '%)' : ''; }
 
@@ -93,7 +102,8 @@ define(['resources/js/jiraBacklog', 'resources/js/exportKit'], (J, exportKit) =>
         { k: 'Status', v: r.status || '—' }, { k: 'Type', v: r.type || '—' }, { k: 'Priority', v: r.priority || '—' },
         { k: 'Assignee', v: r.assignee || 'Nobody' }, { k: 'Epic', v: r.epicKey ? r.epicKey + ' ' + r.epicName : '—' },
         { k: 'Release', v: r.release ? r.release + (r.releaseDate ? ' (' + r.releaseDate + ')' : '') : '—' },
-        { k: 'Sprint', v: r.sprint ? r.sprint + (r.sprintState ? ' · ' + r.sprintState : '') : '—' },
+        { k: 'Sprint', v: r.sprint ? r.sprint + (r.sprintState ? ' · ' + r.sprintState : '') + (r.sprintEnd ? ' · ends ' + r.sprintEnd : '') : '—' },
+        { k: 'Earlier sprints', v: (r.sprintPast || []).length ? r.sprintPast.join(', ') : 'None' },
         { k: 'Due', v: r.due ? r.due + (r.overdue ? ' · overdue' : '') : '—' }, { k: 'FDD', v: (r.fdd || []).join(', ') || '—' },
         { k: 'Updated', v: r.updated ? r.updated + (r.idleDays != null ? ' (' + r.idleDays + ' days ago)' : '') : '—' },
       ];

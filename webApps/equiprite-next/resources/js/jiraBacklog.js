@@ -46,7 +46,9 @@ define([], function () {
     noAssignee: { label: 'Nobody assigned', weight: 0.5 },
     stale: { label: 'Not updated for ' + STALE_DAYS + ' days', weight: 0.5 },
     dueAfterRelease: { label: 'Due after its release date', weight: 0.5 },
-    releasePassed: { label: 'Its release date has passed', weight: 0.5 }
+    releasePassed: { label: 'Its release date has passed', weight: 0.5 },
+    sprintEnded: { label: 'Its sprint has ended and it is not done', weight: 0.5 },
+    carried: { label: 'Carried over from an earlier sprint', weight: 0.5 }
   };
 
   function txt(v) { return v == null ? '' : String(v); }
@@ -143,17 +145,27 @@ define([], function () {
 
   function nameOf(u) { return u && (u.displayName || u.emailAddress || u.name) ? (u.displayName || u.emailAddress || u.name) : ''; }
 
-  /** The sprint a story is in now: the last of its sprints (Jira lists them oldest first). */
-  function sprintOf(v) {
+  /**
+   * Every sprint a story has been in (Jira's Sprint field, oldest first): [{ id, name, state, start, end, done, goal }].
+   * Jira Cloud sends objects; an older server sends strings like "…[id=5,state=ACTIVE,name=2026-07,startDate=…]".
+   */
+  function sprintsOf(v) {
     var list = Array.isArray(v) ? v : (v ? [v] : []);
-    var s = list[list.length - 1];
-    if (!s) return { name: '', state: '' };
-    if (typeof s === 'string') {
-      var n = /name=([^,\]]+)/.exec(s);
-      var st = /state=([^,\]]+)/.exec(s);
-      return { name: n ? n[1] : s, state: st ? st[1].toLowerCase() : '' };
-    }
-    return { name: s.name || '', state: txt(s.state).toLowerCase() };
+    return list.map(function (s) {
+      if (typeof s === 'string') {
+        var get = function (k) { var m = new RegExp(k + '=([^,\\]]*)').exec(s); return m && m[1] !== '<null>' ? m[1] : ''; };
+        return { id: get('id'), name: get('name') || s, state: get('state').toLowerCase(), start: day(get('startDate')), end: day(get('endDate')),
+          done: day(get('completeDate')), goal: get('goal') };
+      }
+      return { id: s.id != null ? String(s.id) : '', name: s.name || '', state: txt(s.state).toLowerCase(), start: day(s.startDate), end: day(s.endDate),
+        done: day(s.completeDate), goal: txt(s.goal) };
+    }).filter(function (x) { return !!x.name; });
+  }
+
+  /** The sprint a story is in now: the last of its sprints. */
+  function sprintOf(v) {
+    var list = sprintsOf(v);
+    return list[list.length - 1] || { id: '', name: '', state: '', start: '', end: '', done: '', goal: '' };
   }
 
   /**
@@ -187,7 +199,9 @@ define([], function () {
       priority: (f.priority && f.priority.name) || '', epicKey: parent ? parent.key : '', epicName: parent && parent.fields ? txt(parent.fields.summary) : '',
       assignee: nameOf(f.assignee), reporter: nameOf(f.reporter), labels: f.labels || [],
       release: rel ? rel.name : '', releaseDate: rel ? day(rel.releaseDate) : '', releases: versions.map(function (v) { return v.name; }),
-      sprint: sp.name, sprintState: sp.state, due: due, overdue: !!(due && due < today && !done),
+      sprint: sp.name, sprintState: sp.state, sprintStart: sp.start, sprintEnd: sp.end, sprintGoal: sp.goal,
+      sprintPast: sprintsOf(f.customfield_10020).slice(0, -1).map(function (x) { return x.name; }),
+      due: due, overdue: !!(due && due < today && !done),
       created: day(f.created), updated: updated, resolved: day(f.resolutiondate), idleDays: updated ? daysBetween(updated, today) : null,
       fdd: parts.fdd, body: parts.body, ac: parts.ac, acChecks: acChecks(parts.ac).length,
       comments: comments, gaps: gaps, subtasks: (f.subtasks || []).length
@@ -206,6 +220,8 @@ define([], function () {
       if (row.idleDays !== null && row.idleDays >= STALE_DAYS) add('stale');
       if (row.due && row.releaseDate && row.due > row.releaseDate) add('dueAfterRelease');
       if (row.releaseDate && row.releaseDate < today) add('releasePassed');
+      if (row.sprint && row.sprintEnd && row.sprintEnd < today) add('sprintEnded');
+      if (row.sprintPast.length) add('carried');
     }
     row.checks = checks;
     var cost = checks.reduce(function (s, c) { return s + CHECKS[c.key].weight; }, 0);
@@ -276,7 +292,8 @@ define([], function () {
    *   epics     [{ key, name, total, done, open, overdue, gaps, donePct, statuses: { status: n } }] most open first
    *   releases  [{ name, date, total, done, open, overdue, passed }] by date
    *   people    [{ name, total, open, overdue }] most open first
-   *   sprints   [{ name, state, total, open }]
+   *   sprints   [{ name, state, start, end, goal, total, done, open, donePct, overdue, carried, daysLeft, flags }]: active, future,
+   *             then closed (latest first), No sprint last
    *   checks    [{ key, label, count, keys }] most common first
    *   fdd       [{ section, total, open, keys }] by section
    *   gaps      [{ key, summary, status, gaps }] most gaps first
@@ -329,9 +346,33 @@ define([], function () {
       })
       .sort(function (a, b) { return b.open - a.open || b.total - a.total; });
 
-    var sprints = tally(list, function (r) { return r.sprint; }, function (k, r) { return { name: k || 'No sprint', state: k ? r.sprintState : '', rows: [] }; })
-      .map(function (g) { return { name: g.name, state: g.state, total: g.rows.length, open: g.rows.filter(function (r) { return !isDone(r); }).length }; })
-      .sort(function (a, b) { return a.name.localeCompare(b.name); });
+    // Sprints: each with its dates, state and goal (from the stories in it), progress, spill-over, and what is wrong
+    // with it on the board (still active after its end, future with an end date gone, work due after it ends).
+    var SPRINT_ORDER = { active: 0, future: 1, closed: 2 };
+    var sprints = tally(list, function (r) { return r.sprint; }, function (k, r) {
+      return { name: k || 'No sprint', state: k ? r.sprintState : '', start: k ? r.sprintStart : '', end: k ? r.sprintEnd : '', goal: k ? r.sprintGoal : '', rows: [] };
+    }).map(function (g) {
+      var o = g.rows.filter(function (r) { return !isDone(r); });
+      var flags = [];
+      var named = g.name !== 'No sprint';
+      if (named && g.state === 'active' && g.end && g.end < t) flags.push('Still active, ended ' + g.end);
+      if (named && g.state === 'future' && g.end && g.end < t) flags.push('Future, but its end date (' + g.end + ') has passed');
+      if (named && g.state === 'closed' && o.length) flags.push(plural(o.length, 'item') + ' left open when it closed');
+      var lateDue = named && g.end ? o.filter(function (r) { return r.due && r.due > g.end; }).length : 0;
+      if (lateDue) flags.push(plural(lateDue, 'item') + ' due after it ends');
+      var earlyDue = named && g.start ? o.filter(function (r) { return r.due && r.due < g.start; }).length : 0;
+      if (earlyDue) flags.push(plural(earlyDue, 'item') + ' due before it starts');
+      var left = g.state === 'active' && g.end && g.end >= t ? daysBetween(t, g.end) : null;
+      return { name: g.name, state: g.state, start: g.start, end: g.end, goal: g.goal, total: g.rows.length, done: g.rows.length - o.length, open: o.length,
+        donePct: pct(g.rows.length - o.length, g.rows.length), overdue: g.rows.filter(function (r) { return r.overdue; }).length,
+        carried: o.filter(function (r) { return r.sprintPast.length > 0; }).length, daysLeft: left, flags: flags };
+    }).sort(function (a, b) {
+      if ((a.name === 'No sprint') !== (b.name === 'No sprint')) return a.name === 'No sprint' ? 1 : -1;
+      var sa = SPRINT_ORDER[a.state] == null ? 3 : SPRINT_ORDER[a.state];
+      var sb = SPRINT_ORDER[b.state] == null ? 3 : SPRINT_ORDER[b.state];
+      if (sa !== sb) return sa - sb;
+      return sa === 2 ? (b.end || '').localeCompare(a.end || '') : (a.start || a.name).localeCompare(b.start || b.name);
+    });
 
     var checkMap = {};
     list.forEach(function (r) {
@@ -380,6 +421,20 @@ define([], function () {
       if (next) {
         findings.push({ tone: 'warn', filter: { release: next.name }, text: 'Next release: ' + next.name + ' on ' + next.date + ', ' + plural(next.open, 'item') + ' still open of ' + next.total + '.' });
       }
+      sprints.filter(function (sp) { return sp.state === 'active' && sp.end && sp.end < t; }).forEach(function (sp) {
+        findings.push({ tone: 'bad', filter: { sprint: sp.name }, text: 'Sprint ' + sp.name + ' is still active although it ended on ' + sp.end + ' (' + plural(sp.open, 'item') + ' open): close it and move the work on.' });
+      });
+      sprints.filter(function (sp) { return sp.state === 'active' && sp.daysLeft !== null; }).forEach(function (sp) {
+        findings.push({ tone: sp.donePct < 50 && sp.daysLeft <= 3 ? 'warn' : 'info', filter: { sprint: sp.name },
+          text: 'Sprint ' + sp.name + ': ' + sp.done + ' of ' + sp.total + ' done (' + sp.donePct + '%), ' + (sp.daysLeft === 0 ? 'ends today' : plural(sp.daysLeft, 'day') + ' left') + '.' });
+      });
+      var staleFuture = sprints.filter(function (sp) { return sp.state === 'future' && sp.end && sp.end < t; });
+      if (staleFuture.length) {
+        findings.push({ tone: 'warn', filter: { sprint: staleFuture[0].name }, text: plural(staleFuture.length, 'future sprint has', 'future sprints have') + ' an end date already past ('
+          + staleFuture.map(function (sp) { return sp.name; }).slice(0, 4).join(', ') + '): the sprint plan is out of date.' });
+      }
+      var carried = open.filter(function (r) { return r.sprintPast.length > 0; });
+      if (carried.length) findings.push({ tone: 'warn', filter: { check: 'carried' }, text: plural(carried.length, 'open item was', 'open items were') + ' carried over from an earlier sprint.' });
       if (noAc.length) findings.push({ tone: 'warn', filter: { check: 'noAc' }, text: plural(noAc.length, 'story has', 'stories have') + ' no acceptance criteria: they cannot be tested as written.' });
       if (withGaps.length) {
         findings.push({ tone: 'warn', filter: { only: 'gaps' }, text: 'Testers listed ' + plural(kpis.gaps, 'gap') + ' on ' + plural(withGaps.length, 'item') + ': each is unfinished work the status may not show.' });
@@ -488,7 +543,8 @@ define([], function () {
     return [
       { key: 'key', label: 'Key' }, { key: 'summary', label: 'Summary' }, { key: 'type', label: 'Type' }, { key: 'status', label: 'Status' },
       { key: 'priority', label: 'Priority' }, { key: 'epicKey', label: 'Epic' }, { key: 'epicName', label: 'Epic name' }, { key: 'assignee', label: 'Assignee' },
-      { key: 'release', label: 'Release' }, { key: 'releaseDate', label: 'Release date' }, { key: 'sprint', label: 'Sprint' }, { key: 'due', label: 'Due' },
+      { key: 'release', label: 'Release' }, { key: 'releaseDate', label: 'Release date' }, { key: 'sprint', label: 'Sprint' },
+      { key: 'sprintEnd', label: 'Sprint ends' }, { key: 'sprintPast', label: 'Earlier sprints', value: function (r) { return r.sprintPast.join(', '); } }, { key: 'due', label: 'Due' },
       { key: 'overdue', label: 'Overdue', value: function (r) { return r.overdue ? 'Yes' : ''; } },
       { key: 'fdd', label: 'FDD sections', value: function (r) { return r.fdd.join(', '); } },
       { key: 'score', label: 'Quality (1-5)', type: 'number' },
@@ -501,7 +557,7 @@ define([], function () {
   return {
     SITE: SITE, PROJECT: PROJECT, FIELDS: FIELDS, PRESETS: PRESETS, CHECKS: CHECKS, STATUS_ORDER: STATUS_ORDER,
     plain: plain, splitDescription: splitDescription, fddSections: fddSections, gapsFrom: gapsFrom, acChecks: acChecks,
-    fromIssue: fromIssue, load: load, problem: problem, analyse: analyse, filter: filter, options: options, exportColumns: exportColumns,
+    sprintsOf: sprintsOf, fromIssue: fromIssue, load: load, problem: problem, analyse: analyse, filter: filter, options: options, exportColumns: exportColumns,
     desktopSettings: desktopSettings, desktopSave: desktopSave, desktopForget: desktopForget, whoAmI: whoAmI
   };
 });

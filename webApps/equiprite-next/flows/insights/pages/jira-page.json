@@ -138,8 +138,8 @@
     },
     "tab": {
       "type": "string",
-      "defaultValue": "epics",
-      "description": "Which breakdown shows: epics, releases, people, checks, fdd, gaps."
+      "defaultValue": "sprints",
+      "description": "Which breakdown shows: sprints, epics, releases, people, checks, fdd, gaps."
     },
     "rwOpt_status": {
       "type": "any[]",

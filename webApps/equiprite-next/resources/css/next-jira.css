@@ -109,3 +109,12 @@ html[data-nx-look="redwood"] .nx-jira .nx-jira-rwtable .oj-table-data-cell { ver
 html[data-nx-look="redwood"] .nx-jira .nx-jira-rwsum { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 html[data-nx-look="redwood"] .nx-jira .nx-jira-tile { border-radius: 6px; }
 html[data-nx-look="redwood"] .nx-jira .nx-jira-tab--on { border-bottom-color: #2c5266; }
+
+/* By sprint: its state as a tag, its goal, what is wrong with it on the board */
+.nx-jira .nx-jira-tr--sprint { grid-template-columns: minmax(0, 2.2fr) minmax(150px, 1fr) minmax(120px, 0.9fr) 60px 70px 90px; align-items: start; }
+.nx-jira .nx-jira-sprintname { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 4px; white-space: normal; }
+.nx-jira .nx-jira-sprintgoal { flex-basis: 100%; font-size: 12px; color: var(--nx-muted); }
+.nx-jira .nx-jira-sprintflag { flex-basis: 100%; font-size: 12px; font-weight: 700; color: #9b2c1c; }
+.nx-jira .nx-jira-tag--active { background: var(--nx-accent-soft); color: var(--nx-accent); }
+.nx-jira .nx-jira-tag--future { background: #fff1d6; color: #7a4a00; }
+.nx-jira .nx-jira-tag--closed { background: var(--nx-surface-2); color: var(--nx-muted); }
