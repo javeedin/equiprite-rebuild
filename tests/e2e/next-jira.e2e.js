@@ -370,6 +370,27 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     await page.waitForSelector('#jiraItem', { state: 'hidden', timeout: 5000 }).catch(() => {});
     T.check('its Close (×) closes it too', !(await page.isVisible('#jiraItem')));
 
+    T.section('a story with a recording: an icon after its summary');
+    const mark = '#jiraGrid .nx-jira-row[data-key="EQP-12"] .nx-jira-recmark';
+    await page.waitForSelector(mark, { timeout: 10000 }).catch(() => {});
+    T.check('in the list: the icon, red (its trace caught a failure), saying what there is', await page.isVisible(mark) && (await page.getAttribute(mark, 'class')).includes('nx-jira-recmark--bad')
+      && /^1 recording · 3 screenshots · the trace caught 1 failure · latest \d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(await page.getAttribute(mark, 'title')), await page.getAttribute(mark, 'title').catch(() => 'no icon'));
+    T.check('…only on stories that have one', (await page.$$('#jiraGrid .nx-jira-recmark')).length === 1);
+    await page.locator('[role="tab"]', { hasText: 'Sprint 2026-07' }).first().click();
+    const sprintMark = '#jspGrid .nx-jsp-row[data-key="EQP-12"] .nx-jira-recmark';
+    await page.waitForSelector(sprintMark, { state: 'visible', timeout: 10000 }).catch(() => {});
+    T.check('on the sprint\'s tab too, after the summary', await page.isVisible(sprintMark) && (await page.getAttribute(sprintMark, 'title')).endsWith(': open the story'));
+    await env.shot('next-jira-sprint-recmark.png');
+    await page.click(sprintMark);
+    await page.waitForSelector('#jspItem', { state: 'visible', timeout: 10000 }).catch(() => {});
+    await page.waitForSelector('#jspEvidence video', { timeout: 10000 }).catch(() => {});
+    T.check('…it opens the story, with its recording', await page.isVisible('#jspItem') && (await page.$$('#jspEvidence video')).length === 1,
+      (await page.isVisible('#jspItem')) + ' ' + (await text(page, '#jspEvidence')).slice(0, 200));
+    await page.locator('#jspDrawer button[aria-label^="Close"]').first().click();
+    await page.waitForSelector('#jspItem', { state: 'hidden', timeout: 5000 }).catch(() => {});
+    await page.locator('[role="tab"]', { hasText: 'Jira stories' }).first().click();
+    await page.waitForSelector('#jiraGrid', { state: 'visible', timeout: 10000 });
+
     T.section('a preset, export');
     await page.click('#jiraPresets .nx-chip[data-value="bugs"]');
     await page.waitForFunction(() => /EQP-99/.test((document.querySelector('#jiraGrid') || {}).innerText || ''), null, { timeout: 15000 });
@@ -393,6 +414,7 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
       'oj-sp-general-overview-page:true oj-sp-smart-search:true oj-table:true');
     T.eq('the filters are the table\'s columns', (await texts(page, '#jiraRwSearch .oj-sp-filter-chip-container')).join(','), 'Status,Epic,Assignee,Release,Sprint,Priority,Type');
     T.check('the table has a Sprint column', (await texts(page, '#jiraRwTable .oj-table-column-header-text')).includes('Sprint'));
+    T.check('Oracle\'s table shows the recording icon too', (await page.$$('#jiraRwTable .nx-jira-recmark')).length === 1);
     T.check('the table: key, summary and epic, status as Oracle\'s badge', ((await texts(page, '#jiraRwTable .oj-table-body-row'))[0] || '').includes('EQP-12')
       && (await page.$$eval('#jiraRwTable .oj-badge', (b) => b.length)) === 5);
     await page.click('#jiraRwSearch .oj-sp-filter-chip-container:has-text("Status")');

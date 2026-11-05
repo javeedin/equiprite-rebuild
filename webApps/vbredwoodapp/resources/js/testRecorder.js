@@ -9,6 +9,7 @@ define([], function () {
   //   shot()                         a screenshot of what is being recorded (also Ctrl+Alt+S from any app)
   //   stop()                         the recording ends and is saved (also Ctrl+Alt+X, or stopping the share)
   //   list(key), reveal(key)         the story's evidence; its folder opened
+  //   index()                        { KEY: { videos, shots, failed, latest } }: every story with evidence (the lists' icon)
   //   onChange(name, fn)             fn({ key, item }) after something is saved (one listener per name: a page's)
   //   state()                        { recording, key, seconds, shots }
   //   keepFocus(selector)            focus back on the panel after the picker or the bar has gone
@@ -64,6 +65,12 @@ define([], function () {
   async function list(key) {
     var j = await getJson('/__rec/list?key=' + encodeURIComponent(key));
     return j || { key: key, folder: '', items: [], error: 'The desktop app did not answer.' };
+  }
+
+  /** Every story with recordings or screenshots on this PC: { KEY: { videos, shots, failed, latest } } ({} in a browser). */
+  async function index() {
+    if (!desk()) return {};
+    return (await getJson('/__rec/index')) || {};
   }
 
   async function reveal(key) { return post('/__rec/reveal?key=' + encodeURIComponent(key)); }
@@ -586,5 +593,5 @@ define([], function () {
   function clockMs(ms) { return clock(Math.floor((ms || 0) / 1000)); }
 
   return { available: available, list: list, reveal: reveal, begin: begin, shot: shot, stop: stop, onChange: onChange, state: state, keepFocus: keepFocus,
-    openTrace: openTrace, closeTrace: closeTrace, traceSummary: traceSummary, CHUNK_MS: CHUNK_MS };
+    openTrace: openTrace, closeTrace: closeTrace, index: index, traceSummary: traceSummary, CHUNK_MS: CHUNK_MS };
 });

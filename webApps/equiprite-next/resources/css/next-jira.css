@@ -186,3 +186,12 @@ html[data-nx-look="redwood"] .nx-jira .nx-jira-tr--on { box-shadow: inset 3px 0 
 /* A recording's technical trace (its web service calls, JSON and errors): the button under the video */
 .nx-jira-dr .nx-jira-tracebtn { align-self: flex-start; font-weight: 700; }
 .nx-jira-dr .nx-jira-tracebtn--bad { color: #b91c1c; border-color: #fca5a5; background: #fef2f2; }
+
+/* A story with recordings or screenshots on this PC (Record): the icon after its summary in the lists */
+.nx-jira-recmark { display: inline-flex; align-items: center; gap: 2px; margin-left: 8px; padding: 1px 6px; border: 1px solid var(--nx-accent-soft, #dbeafe); border-radius: 999px;
+  background: var(--nx-accent-soft, #eff6ff); color: var(--nx-accent, #1d4ed8); font-size: 11px; font-weight: 800; line-height: 16px; vertical-align: middle; cursor: pointer; }
+.nx-jira-recmark svg { display: block; }
+.nx-jira-recmark--bad { background: #fef2f2; border-color: #fecaca; color: #b91c1c; }
+button.nx-jira-recmark:hover, button.nx-jira-recmark:focus-visible { filter: brightness(0.95); outline: 2px solid currentColor; outline-offset: 1px; }
+.nx-jsp .nx-jsp-sumline { display: flex; align-items: center; flex-wrap: wrap; }
+.nx-jsp .nx-jsp-sumline .nx-jsp-sumbtn { display: inline; }

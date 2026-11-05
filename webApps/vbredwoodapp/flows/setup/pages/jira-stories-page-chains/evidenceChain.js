@@ -16,7 +16,11 @@ define([
     async run(context, { act, name }) {
       const v = context.$page.variables;
       const key = v.selected && v.selected.key;
-      if (!key) return;
+      if (!key) {
+        // no story open: only the lists' icons (which stories have evidence)
+        if (act === 'list') v.evidenceIndex = await R.index();
+        return;
+      }
       try {
         if (act === 'record' || act === 'shot') {
           const ev = JSON.parse(JSON.stringify(v.evidence || {}));
@@ -45,6 +49,7 @@ define([
       const ok = await R.available();
       const got = ok ? await R.list(key) : { items: [], folder: '' };
       if (!v.selected || v.selected.key !== key) return;
+      v.evidenceIndex = await R.index();
       const st = R.state();
       v.evidence = { available: ok, key, items: got.items || [], folder: got.folder || '', error: got.error || '', busy: '', recording: st.recording ? st.key : '' };
       if (ok) R.keepFocus('#jiraShot');

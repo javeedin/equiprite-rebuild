@@ -2,7 +2,8 @@ define([
   'vb/action/actionChain',
   'vb/action/actions',
   'resources/js/jiraBacklog',
-], (ActionChain, Actions, J) => {
+  'resources/js/testRecorder',
+], (ActionChain, Actions, J, R) => {
   'use strict';
 
   // Reads a JQL search from Jira, every page (jiraBacklog.load), makes the rows (fromIssue), the analysis (analyse)
@@ -43,6 +44,8 @@ define([
         const rows = res.issues.map((i) => J.fromIssue(i, { today: today, site: v.conn.site }));
         v.rows = rows;
         v.analysis = J.analyse(rows, today);
+        // which of them have recordings or screenshots on this PC (the icon after a summary)
+        v.evidenceIndex = R && typeof R.index === 'function' ? await R.index() : {};
         OPTS.forEach((f) => { v['rwOpt_' + f] = J.options(rows, f); });
         v.readAt = new Date().toTimeString().slice(0, 5);
         v.notice = res.capped ? res.message : (rows.length ? '' : 'Jira answered with no items for this search (as ' + (v.conn.name || 'the signed-in user') + ').');

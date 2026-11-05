@@ -8,6 +8,7 @@ define(['resources/js/jiraBacklog'], (J) => {
   //
   //   helpers          item, drawerOpen, drawerTitle, drawerSub, facts, scoreText, acList, imageUrl, imageNote,
   //                    imageFiles, otherFiles, videos, shots, evidenceText, traceText, traceClass
+  //                    recText, recClass, recCount (the lists' icon: a story with recordings on this PC)
   //   closeOnEscape()  Escape closes an open item's drawer by its own Close button (once for the app)
 
   const EMPTY = { key: '', summary: '', fdd: [], checks: [], gaps: [], comments: [], labels: [], attachments: [], bodyImages: [] };
@@ -58,6 +59,14 @@ define(['resources/js/jiraBacklog'], (J) => {
         t.errors ? t.errors + (t.errors === 1 ? ' console error' : ' console errors') : '', t.first ? 'broke at ' + t.first.at : ''].filter((x) => !!x).join(' · ');
     },
     traceClass(t) { return 'nx-btn nx-btn--sm nx-jira-tracebtn' + (t && (t.failed || t.errors) ? ' nx-jira-tracebtn--bad' : ''); },
+    /** A list's icon for a story with test evidence on this PC (testRecorder.index): what it says, its look, its count. */
+    recText(x) {
+      if (!x) return '';
+      return [x.videos ? x.videos + (x.videos === 1 ? ' recording' : ' recordings') : '', x.shots ? x.shots + (x.shots === 1 ? ' screenshot' : ' screenshots') : '',
+        x.failed ? 'the trace caught ' + x.failed + (x.failed === 1 ? ' failure' : ' failures') : '', x.latest ? 'latest ' + x.latest : ''].filter((t) => !!t).join(' · ');
+    },
+    recClass(x) { return 'nx-jira-recmark' + (x && x.failed ? ' nx-jira-recmark--bad' : ''); },
+    recCount(x) { return x && x.videos > 1 ? String(x.videos) : ''; },
     /** "2026-11-05 14:03 · 12.4 MB". */
     evidenceText(x) {
       if (!x) return '';

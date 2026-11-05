@@ -30,6 +30,14 @@ define(['resources/js/jiraBacklog', 'resources/js/testRecorder'], function (J, R
     /** The open story's recordings and screenshots, and how each is labelled ("2026-11-05 14:03 · 12.4 MB"). */
     videos(ev) { return ((ev && ev.items) || NONE).filter(function (x) { return x.kind === 'video'; }); }
     shots(ev) { return ((ev && ev.items) || NONE).filter(function (x) { return x.kind === 'image'; }); }
+    /** A list's icon for a story with test evidence on this PC (testRecorder.index): what it says, its look, its count. */
+    recText(x) {
+      if (!x) return '';
+      return [x.videos ? x.videos + (x.videos === 1 ? ' recording' : ' recordings') : '', x.shots ? x.shots + (x.shots === 1 ? ' screenshot' : ' screenshots') : '',
+        x.failed ? 'the trace caught ' + x.failed + (x.failed === 1 ? ' failure' : ' failures') : '', x.latest ? 'latest ' + x.latest : ''].filter(function (t) { return !!t; }).join(' · ');
+    }
+    recClass(x) { return 'jira-recmark' + (x && x.failed ? ' jira-recmark--bad' : ''); }
+    recCount(x) { return x && x.videos > 1 ? String(x.videos) : ''; }
     /** A recording's technical trace, on its button: "Technical trace · 23 calls · 2 failed · broke at 00:42". */
     traceText(t) {
       if (!t) return '';

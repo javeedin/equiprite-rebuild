@@ -309,7 +309,7 @@
                 {"headerText": "Gaps", "field": "gaps", "sortable": "enabled", "weight": 5}]'>
               <template slot="keyTpl" data-oj-as="cell"><span class="oj-typography-body-md oj-typography-bold oj-link-standalone"><oj-bind-text value="[[ cell.row.key ]]"></oj-bind-text></span></template>
               <template slot="sumTpl" data-oj-as="cell">
-                <div class="nx-jira-rwsum"><span class="oj-typography-body-md"><oj-bind-text value="[[ cell.row.summary ]]"></oj-bind-text></span>
+                <div class="nx-jira-rwsum"><span class="oj-typography-body-md"><oj-bind-text value="[[ cell.row.summary ]]"></oj-bind-text><oj-bind-if test="[[ !!$variables.evidenceIndex[cell.row.key] ]]"><span :class="[[ $functions.recClass($variables.evidenceIndex[cell.row.key]) ]]" role="img" :title="[[ $functions.recText($variables.evidenceIndex[cell.row.key]) ]]" :aria-label="[[ $functions.recText($variables.evidenceIndex[cell.row.key]) ]]"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M17 10.5V7a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3.5l4 4v-11l-4 4z"/></svg><oj-bind-text value="[[ $functions.recCount($variables.evidenceIndex[cell.row.key]) ]]"></oj-bind-text></span></oj-bind-if></span>
                   <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.epic ]]"></oj-bind-text></span></div>
               </template>
               <template slot="statusTpl" data-oj-as="cell"><span :class="[[ $functions.badge(cell.row.statusCat) ]]"><oj-bind-text value="[[ cell.row.status ]]"></oj-bind-text></span></template>
@@ -350,7 +350,7 @@
                 <template data-oj-as="r">
                   <button type="button" class="nx-jira-row" role="row" :data-key="[[ r.data.key ]]" on-click="[[ $listeners.onOpen ]]">
                     <span role="cell" class="nx-jira-key"><oj-bind-text value="[[ r.data.key ]]"></oj-bind-text></span>
-                    <span role="cell" class="nx-jira-sum"><span class="nx-cell-main"><oj-bind-text value="[[ r.data.summary ]]"></oj-bind-text></span>
+                    <span role="cell" class="nx-jira-sum"><span class="nx-cell-main"><oj-bind-text value="[[ r.data.summary ]]"></oj-bind-text><oj-bind-if test="[[ !!$variables.evidenceIndex[r.data.key] ]]"><span :class="[[ $functions.recClass($variables.evidenceIndex[r.data.key]) ]]" role="img" :title="[[ $functions.recText($variables.evidenceIndex[r.data.key]) ]]" :aria-label="[[ $functions.recText($variables.evidenceIndex[r.data.key]) ]]"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M17 10.5V7a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3.5l4 4v-11l-4 4z"/></svg><oj-bind-text value="[[ $functions.recCount($variables.evidenceIndex[r.data.key]) ]]"></oj-bind-text></span></oj-bind-if></span>
                       <span class="nx-cell-sub"><oj-bind-text value="[[ r.data.epicKey ? r.data.epicKey + ' ' + r.data.epicName : 'No epic' ]]"></oj-bind-text></span></span>
                     <span role="cell"><span :class="[[ 'nx-jira-status nx-jira-status--' + r.data.statusCat ]]"><oj-bind-text value="[[ r.data.status ]]"></oj-bind-text></span></span>
                     <span role="cell"><oj-bind-text value="[[ r.data.assignee || 'Nobody' ]]"></oj-bind-text></span>

@@ -332,6 +332,11 @@
         "recording": ""
       },
       "description": "The open story's test evidence on this PC (resources/js/testRecorder.js): recordings and screenshots in its folder."
+    },
+    "evidenceIndex": {
+      "type": "object",
+      "defaultValue": {},
+      "description": "Which stories have recordings or screenshots on this PC (resources/js/testRecorder.js index): { KEY: { videos, shots, failed, latest } }, for the icon after a story's summary."
     }
   },
   "chains": {},

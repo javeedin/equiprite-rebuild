@@ -19,6 +19,8 @@
  *   file(key, name)             → absolute path or '' (only a file of that story's folder)
  *   reveal(key)                 → opens the folder (desktop: the file manager)
  *   remove(key, name)           → { ok }
+ *   index()                     → { KEY: { videos, shots, failed, latest } } every story with evidence (the lists' icon;
+ *                                 failed: failures its recordings' traces caught)
  * An item: { name, kind: 'video' | 'image', size, created, url } (url: /__rec/file/<key>/<name>, served to this PC).
  *
  * The technical trace (lib/testTrace.js): a recording begun with { trace: true } also keeps, next to it, what happened
@@ -157,6 +159,32 @@ function open(o) {
       const busy = new Set([...live.values()].filter((r) => r.key === key).map((r) => r.name));
       const items = names.filter((n) => !busy.has(n)).map((n) => item(key, n)).sort((a, b) => b.name.localeCompare(a.name));
       return { key, folder: f, items };
+    },
+    index() {
+      const out = {};
+      if (!fs.existsSync(dir)) return out;
+      const busy = new Set([...live.values()].map((r) => r.file));
+      fs.readdirSync(dir).filter((k) => KEY.test(k)).forEach((k) => {
+        const f = path.join(dir, k);
+        let names = [];
+        try { names = fs.readdirSync(f); } catch (e) { return; }
+        const videos = names.filter((n) => VIDEO.test(n) && !busy.has(path.join(f, n)));
+        const shots = names.filter((n) => IMAGE.test(n));
+        if (!videos.length && !shots.length) return;
+        let failed = 0;
+        videos.forEach((v) => {
+          const t = path.join(f, traceName(v));
+          try {
+            if (!fs.existsSync(t) || fs.statSync(t).size > 8 * 1024 * 1024) return;
+            fs.readFileSync(t, 'utf8').split('\n').forEach((l) => {
+              if ((l.includes('"kind":"call"') && l.includes('"failed":true')) || (l.includes('"kind":"console"') && l.includes('"level":"error"'))) failed++;
+            });
+          } catch (e) { /* a trace being written */ }
+        });
+        const latest = videos.concat(shots).map((n) => (/^(\d{4}-\d{2}-\d{2}) (\d{2})-(\d{2})/.exec(n) || []).slice(1).join(' ')).sort().pop() || '';
+        out[k] = { videos: videos.length, shots: shots.length, failed, latest: latest.replace(/^(\S+) (\d{2}) (\d{2})$/, '$1 $2:$3') };
+      });
+      return out;
     },
     file(key, name) {
       let f;

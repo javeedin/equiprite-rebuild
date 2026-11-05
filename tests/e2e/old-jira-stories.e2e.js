@@ -301,6 +301,9 @@ async function waitKeys(page, n) {
     await page.keyboard.press('Escape');
     await page.waitForSelector('#eqrTrace', { state: 'detached', timeout: 5000 }).catch(() => {});
     T.check('…Escape closes it, the story stays open', !(await page.$('#eqrTrace')) && await page.isVisible('#jiraDrawerBody'));
+    await page.waitForSelector('#jiraStoriesTable .jira-recmark', { timeout: 10000 }).catch(() => {});
+    T.check('in the table: an icon after the summary of the story with a recording', (await page.$$('#jiraStoriesTable .jira-recmark')).length === 1
+      && /^1 recording · 1 screenshot · latest /.test(await page.getAttribute('#jiraStoriesTable .jira-recmark', 'title')), await page.getAttribute('#jiraStoriesTable .jira-recmark', 'title').catch(() => 'no icon'));
     await page.keyboard.press('Escape');
     await page.waitForSelector('#jiraDrawerBody', { state: 'hidden', timeout: 5000 }).catch(() => {});
     T.check('Escape closes it', !(await page.isVisible('#jiraDrawerBody')));

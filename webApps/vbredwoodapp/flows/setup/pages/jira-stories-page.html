@@ -153,6 +153,11 @@
   .jira-ev-vid video { width: 100%; max-height: 320px; background: #111; border-radius: 6px; }
   .jira-ev-vid figcaption, .jira-ev-folder { font-size: 0.6875rem; overflow-wrap: anywhere; }
   .jira-ev-error { color: var(--oj-core-danger-text-color, #b3261e); font-weight: 600; }
+  /* A story with recordings or screenshots on this PC (Record): the icon after its summary */
+  .jira-recmark { display: inline-flex; align-items: center; gap: 2px; margin-left: 6px; padding: 0 6px; border-radius: 999px; vertical-align: middle; font-size: 0.6875rem; font-weight: 700;
+    line-height: 16px; background: var(--oj-core-info-1, #e8f1fb); color: var(--oj-core-brand-color-primary, #005cb1); }
+  .jira-recmark svg { display: block; }
+  .jira-recmark--bad { background: #fdecea; color: var(--oj-core-danger-text-color, #b3261e); }
   .jira-tracebtn { align-self: flex-start; }
   .jira-tracebtn--bad { --oj-button-outlined-chrome-text-color: var(--oj-core-danger-text-color, #b3261e); color: var(--oj-core-danger-text-color, #b3261e); }
   .jira-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px 20px; margin-bottom: 8px; }
@@ -457,7 +462,7 @@
         </template>
         <template slot="summaryTpl" data-oj-as="cell">
           <div class="jira-cell">
-            <span class="jira-ellipsis" :title="[[ cell.data ]]"><oj-bind-text value="[[ cell.data ]]"></oj-bind-text></span>
+            <span class="jira-ellipsis" :title="[[ cell.data ]]"><oj-bind-text value="[[ cell.data ]]"></oj-bind-text><oj-bind-if test="[[ !!$variables.evidenceIndex[cell.row.key] ]]"><span :class="[[ $functions.recClass($variables.evidenceIndex[cell.row.key]) ]]" role="img" :title="[[ $functions.recText($variables.evidenceIndex[cell.row.key]) ]]" :aria-label="[[ $functions.recText($variables.evidenceIndex[cell.row.key]) ]]"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M17 10.5V7a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3.5l4 4v-11l-4 4z"/></svg><oj-bind-text value="[[ $functions.recCount($variables.evidenceIndex[cell.row.key]) ]]"></oj-bind-text></span></oj-bind-if></span>
             <span class="jira-sub jira-ellipsis"><oj-bind-text value="[[ cell.row.epicLine ]]"></oj-bind-text></span>
           </div>
         </template>

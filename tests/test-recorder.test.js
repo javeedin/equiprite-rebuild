@@ -109,6 +109,8 @@ const plain = store.start('EQP-196', 'webm');
 store.chunk(plain.id, Buffer.from('v'));
 T.check('a recording without the trace: no trace file, nothing kept for it', !plain.trace && !store.tracing() && store.traceAdd({ kind: 'page' }) === 0 && !store.finish(plain.id).trace);
 store.remove('EQP-196', done.name);
+T.eq('which stories have evidence, in one read (the lists\' icon): recordings, screenshots, the latest; a story with nothing is left out',
+  JSON.stringify(store.index()), '{"EQP-196":{"videos":2,"shots":3,"failed":0,"latest":"2026-11-05 15:00"}}');
 T.check('removing a recording removes its trace', !fs.existsSync(path.join(dir, 'EQP-196', done.name)) && !fs.existsSync(path.join(dir, 'EQP-196', done.name.replace(/\.webm$/, '.trace.jsonl'))));
 
 (async () => {
@@ -209,6 +211,8 @@ T.check('removing a recording removes its trace', !fs.existsSync(path.join(dir, 
       && JSON.parse(harRes.body).log.entries.length === 2);
     const repRes = await req2('GET', '/__rec/report/EQP-12/' + encodeURIComponent(fin.name));
     T.check('the bug report, as text', repRes.headers['content-type'].startsWith('text/plain') && repRes.body.toString().includes('ORA-01400'));
+    const ix = JSON.parse((await req2('GET', '/__rec/index')).body);
+    T.eq('the index: the story\'s recording, and the failure its trace caught', [ix['EQP-12'].videos, ix['EQP-12'].shots, ix['EQP-12'].failed].join(), '1,0,1');
   } finally {
     await srv2.close();
     fake.close();

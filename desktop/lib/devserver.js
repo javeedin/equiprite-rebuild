@@ -554,6 +554,8 @@ function createDevServer(o) {
         }
         if (req.method === 'GET' && pathname === '/__rec/status') { return json(200, rs.status(q('id')) || { error: 'No recording in progress.' }); }
         if (req.method === 'GET' && pathname === '/__rec/info') return json(200, { available: true, dir: rs.dir });
+        // Which stories have recordings or screenshots (the lists' icon), in one read.
+        if (req.method === 'GET' && pathname === '/__rec/index') return json(200, rs.index());
         if (req.method === 'GET' && pathname === '/__rec/list') {
           try { return json(200, rs.list(q('key'))); } catch (e) { return json(200, { error: e.message }); }
         }

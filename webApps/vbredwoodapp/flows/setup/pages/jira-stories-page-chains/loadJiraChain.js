@@ -1,8 +1,9 @@
 define([
   'vb/action/actionChain',
   'vb/action/actions',
-  'resources/js/jiraBacklog'
-], (ActionChain, Actions, J) => {
+  'resources/js/jiraBacklog',
+  'resources/js/testRecorder'
+], (ActionChain, Actions, J, R) => {
   'use strict';
 
   // Reads the stories from Jira and works out what they say. Runs on vbEnter, on Refresh (the primary action), after a
@@ -60,6 +61,8 @@ define([
       const opts = F.filterOptions(rows);
       v.rows = rows;
       v.analysis = res.ok ? J.analyse(rows, today) : F.emptyAnalysis();
+      // which stories have recordings or screenshots on this PC (the icon after a summary)
+      v.evidenceIndex = R && typeof R.index === 'function' ? await R.index() : {};
       v.statusOptions = opts.status;
       v.epicOptions = opts.epic;
       v.assigneeOptions = opts.assignee;

@@ -13,6 +13,15 @@ define([], function () {
 
   function PageModule() {}
 
+  // A list's icon for an item with test evidence on this PC (testRecorder.index): what it says, its look, its count.
+  PageModule.prototype.recText = function (x) {
+    if (!x) return '';
+    return [x.videos ? x.videos + (x.videos === 1 ? ' recording' : ' recordings') : '', x.shots ? x.shots + (x.shots === 1 ? ' screenshot' : ' screenshots') : '',
+      x.failed ? 'the trace caught ' + x.failed + (x.failed === 1 ? ' failure' : ' failures') : '', x.latest ? 'latest ' + x.latest : ''].filter(function (t) { return !!t; }).join(' · ');
+  };
+  PageModule.prototype.recClass = function (x) { return 'jira-recmark' + (x && x.failed ? ' jira-recmark--bad' : ''); };
+  PageModule.prototype.recCount = function (x) { return x && x.videos > 1 ? String(x.videos) : ''; };
+
   PageModule.prototype.title = function (r, name) { return 'Sprint ' + ((r && r.sprint && r.sprint.name) || name || ''); };
   PageModule.prototype.subtitle = function (r, loading) {
     if (loading) return 'Reading the sprint from Jira…';
