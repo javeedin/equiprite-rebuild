@@ -108,6 +108,18 @@
                     }
                 }
             ]
+        },
+        "jira": {
+            "description": "Jira Cloud, the EquipRite backlog (equiprite.atlassian.net), read only, for the Jira stories page in Old and Next (services/jira). NO credential here on purpose: a dangling credential reference fails every call. Set it in VBCS: Services > Backends > jira > Authentication > Basic, user = a Jira user's email, password = an Atlassian API token (id.atlassian.com > Security > API tokens). Until then the page says Jira is not connected. In the desktop app the person connects on the page itself; the desktop app adds the token (kept encrypted on the PC).",
+            "servers": [
+                {
+                    "url": "https://equiprite.atlassian.net",
+                    "description": "equiprite.atlassian.net",
+                    "x-vb": {
+                        "forceProxy": "always"
+                    }
+                }
+            ]
         }
     }
 }

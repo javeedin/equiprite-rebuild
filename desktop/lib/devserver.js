@@ -246,6 +246,9 @@ function time() {
  *                                        only to the app's own page (the X-EquipRite-SQL header, which no other site can send)
  * @param {object}   [o.aiStore]          Ask AI in the SQL worksheet (lib/aiSql.js): the LLM chosen and its key, kept on this PC; served
  *                                        at /__sql/ai/* behind the same guard as /__sql/*
+ * @param {object}   [o.jiraStore]        Connect Jira (lib/jiraAuth.js): the Jira site, email and API token kept on this PC, for the
+ *                                        Jira stories page (Old and Next): /__jira/settings and /__jira/forget behind the /__sql
+ *                                        guard (this PC, the X-EquipRite-Jira header); the token goes only into /__backend/jira calls
  * @param {Function} [o.pairToken]        () => the pairing key, or null. Given, a request from another device is
  *                                        served only with the key (the QR code's address, then its cookie), never
  *                                        the web services page; this PC's own requests are unaffected
@@ -286,7 +289,9 @@ function createDevServer(o) {
       return send(res, 200, 'application/soap+xml; charset=utf-8', rolesReportResponse(identity.username, identity.roles));
     }
 
-    const base = overrides[name.toLowerCase()] || backend.url;
+    // Connect Jira (lib/jiraAuth.js): the jira backend goes to the site the person connected, with their email and token.
+    const jira = name === 'jira' && o.jiraStore ? o.jiraStore.auth() : null;
+    const base = overrides[name.toLowerCase()] || (jira && jira.site) || backend.url;
     let target;
     try {
       target = new URL(`${base}${rest}${search}`);
@@ -301,6 +306,7 @@ function createDevServer(o) {
     if (usesFusionLogin && fusion && fusion.user && fusion.password) {
       headers.authorization = `Basic ${Buffer.from(`${fusion.user}:${fusion.password}`).toString('base64')}`;
     }
+    if (jira) headers.authorization = jira.header;
 
     await new Promise((resolve) => {
       const mod = target.protocol === 'https:' ? https : http;
@@ -472,6 +478,34 @@ function createDevServer(o) {
           }
           return json(404, { error: 'Not found' });
         })().catch((e) => json(400, { error: e.message }));
+        return undefined;
+      }
+      if (pathname.startsWith('/__jira/') && o.jiraStore) {
+        // Connect Jira, for the Jira stories page: this PC only, by its own name, and only the app's own page (it sends
+        // X-EquipRite-Jira, which a page of another site cannot send without a preflight this server never allows).
+        const host = String(req.headers.host || '').replace(/:\d+$/, '');
+        if (!isLoopback(req.socket.remoteAddress) || !/^(localhost|127\.0\.0\.1|\[::1\])$/.test(host)) {
+          return send(res, 404, 'text/plain; charset=utf-8', 'Not found');
+        }
+        const origin = req.headers.origin;
+        if (req.headers['x-equiprite-jira'] !== '1' || (origin && origin !== `http://${req.headers.host}`)) {
+          return send(res, 403, 'application/json', JSON.stringify({ error: 'Refused: not from EquipRite on this PC.' }));
+        }
+        const js = o.jiraStore;
+        const json = (status, body) => send(res, status, 'application/json', JSON.stringify(body), { 'Cache-Control': 'no-store' });
+        (async () => {
+          if (pathname === '/__jira/settings' && req.method === 'GET') return json(200, js.settings());
+          if (pathname === '/__jira/settings' && req.method === 'POST') {
+            const b = JSON.parse((await readBody(req)).toString('utf8') || '{}');
+            try {
+              const r = js.save(b);
+              log(`Jira connected as ${r.email} on ${r.site}`);
+              return json(200, r);
+            } catch (e) { return json(200, { error: e.message }); }
+          }
+          if (pathname === '/__jira/forget' && req.method === 'POST') { log('Jira disconnected'); return json(200, js.forget()); }
+          return json(404, { error: 'Not found' });
+        })().catch((e) => json(200, { error: e.message }));
         return undefined;
       }
       if (pathname.startsWith('/__sql/') && o.sqlStore) {

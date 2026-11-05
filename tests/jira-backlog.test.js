@@ -1,0 +1,113 @@
+/*
+ * The Jira stories page's rules (resources/js/jiraBacklog.js, identical in Old EquipRite and EquipRite Next): a story
+ * read from Jira split into its parts (body, acceptance criteria, FDD sections) the way the EQP stories are written,
+ * the tester's gaps from a comment, the checks a story fails and its score, reading every page of a search, what a
+ * failed call means, the analysis and its findings, the filters and their options, and Old's copy kept the same.
+ *
+ * Run:  node tests/jira-backlog.test.js
+ */
+'use strict';
+
+const fs = require('fs');
+const path = require('path');
+const vm = require('vm');
+const H = require('./_harness');
+
+const T = H.makeAsserter();
+const ROOT = path.join(__dirname, '..');
+const FILE = path.join(ROOT, 'webApps', 'equiprite-next', 'resources', 'js', 'jiraBacklog.js');
+const sandbox = { console, Date, JSON, Math, Promise };
+let J;
+sandbox.define = (names, factory) => { J = factory(); };
+vm.createContext(sandbox);
+vm.runInContext(fs.readFileSync(FILE, 'utf8'), sandbox, { filename: 'jiraBacklog.js' });
+const plain = (x) => JSON.parse(JSON.stringify(x));
+
+const EPIC = { key: 'EQP-1', fields: { summary: 'Equipment Registry' } };
+const status = (name, key) => ({ name, statusCategory: { key } });
+// As Jira sends EQP-12 and EQP-13 (REST v2: description and comments as text)
+const EQP12 = { key: 'EQP-12', fields: {
+  summary: 'Equipment Master List View - Section 7.2', issuetype: { name: 'Story' }, status: status('DEVELOPMENT', 'indeterminate'), priority: { name: 'Medium' },
+  parent: EPIC, fixVersions: [{ name: '26C', releaseDate: '2026-09-30' }], assignee: { displayName: 'Rahul Kanth Panganamamula' }, duedate: '2026-10-07',
+  description: 'Display master list of all equipment records with smart search, advanced filtering (Class, Subclass, Name, Maintenance Asset No., Location, Status, Type), and data grid with all specified columns.Acceptance Criteria: Grid displays all columns per FDD 7.2.4; smart search returns results with type-ahead; all filter fields functional.FDD Section: 7.2Only Smart search is available by two columns, Class and Sub-Class. Advanced Search is not there.',
+  comment: { comments: [{ author: { displayName: 'Sana Suhana Thehaseen' }, created: '2026-09-29T04:37:34.383-0500',
+    body: '**(FDD-7.2)**\n\n1. Only Class, Subclass search filters are present, remaining needs to be added. (FDD-7.2.3)\n\n2. Type Column is missing.\n\n3. Map view is missing.\n\n4. Edit option to be added.' }] },
+  customfield_10020: [{ name: '2026-07', state: 'active' }], created: '2026-07-16T15:05:30.408-0500', updated: '2026-10-26T18:13:06.146-0500' } };
+const EQP13 = { key: 'EQP-13', fields: {
+  summary: 'Equipment Master Create/Edit - Section 7.2, 7.2.5G', issuetype: { name: 'Story' }, status: status('DEVELOPMENT', 'indeterminate'), priority: { name: 'High' },
+  parent: EPIC, fixVersions: [{ name: '27A', releaseDate: '2026-12-31' }], assignee: { displayName: 'Rahul Kanth Panganamamula' }, duedate: '2026-10-31',
+  description: 'Create new equipment records and edit existing ones.\n\nAcceptance Criteria: Equipment created/edited successfully; unique name validation fires; FA Asset required for Company-Owned type; all fields save correctly; Non-Labor Resource Type and Expenditure Type fields support multiple values per equipment (one-to-many); values saved and retrieved correctly; expenditure types linked to equipment are used to filter LOV on timesheet and post cost pages.\n\nFDD Section: 7.2, 7.2.5G',
+  comment: { comments: [] }, customfield_10020: [{ name: '2026-10 B', state: 'future' }], created: '2026-07-16', updated: '2026-10-27T11:21:37.258-0500' } };
+const DONE = { key: 'EQP-20', fields: { summary: 'Rate schedule list', issuetype: { name: 'Story' }, status: status('Done', 'done'), priority: { name: 'Low' },
+  parent: { key: 'EQP-62', fields: { summary: 'Rate & Pricing' } }, fixVersions: [{ name: '26C', releaseDate: '2026-09-30' }], assignee: { displayName: 'Aditi Rao' },
+  duedate: '2026-09-01', description: 'List schedules. Acceptance Criteria: list shows. FDD Section: 7.3', comment: { comments: [] }, updated: '2026-09-02' } };
+const BARE = { key: 'EQP-30', fields: { summary: 'Notification engine', issuetype: { name: 'Story' }, status: status('FUNC DESIGN', 'indeterminate'),
+  priority: { name: 'Medium' }, description: 'Send notifications.', comment: { comments: [] }, updated: '2026-08-01' } };
+const TODAY = '2026-11-05';
+
+T.section('a story, split into its parts');
+const r12 = J.fromIssue(EQP12, { today: TODAY });
+T.eq('its acceptance criteria, without the label', r12.ac, 'Grid displays all columns per FDD 7.2.4; smart search returns results with type-ahead; all filter fields functional.');
+T.check('…the body keeps the description and the note added after the FDD line', r12.body.startsWith('Display master list') && r12.body.includes('Advanced Search is not there.') && !r12.body.includes('Acceptance'));
+T.eq('its FDD section ("per FDD 7.2.4" in the criteria is a pointer, not its section; "7.2Only…" read as 7.2)', r12.fdd.join(), '7.2');
+T.eq('…several, from the FDD line and the summary', J.fromIssue(EQP13, { today: TODAY }).fdd.join(), '7.2,7.2.5G');
+T.eq('the tester\'s gaps, from the numbered lines', r12.gaps.join(' | '),
+  'Only Class, Subclass search filters are present, remaining needs to be added. | Type Column is missing. | Map view is missing. | Edit option to be added.');
+T.eq('epic, release, sprint, who, link', [r12.epicKey, r12.epicName, r12.release, r12.sprint + ' ' + r12.sprintState, r12.assignee, r12.url].join(' / '),
+  'EQP-1 / Equipment Registry / 26C / 2026-07 active / Rahul Kanth Panganamamula / https://equiprite.atlassian.net/browse/EQP-12');
+T.check('overdue: due 7 Oct, not done (a done one never is)', r12.overdue && !J.fromIssue(DONE, { today: TODAY }).overdue);
+T.eq('Atlassian Document Format flattened (REST v3)', J.plain({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'One' }] },
+  { type: 'paragraph', content: [{ type: 'text', text: 'Two' }] }] }), 'One\nTwo');
+
+T.section('the checks a story fails, and its score');
+T.eq('EQP-12: due after its release (7 Oct, 26C on 30 Sep), and that date has passed', plain(r12.checks).map((c) => c.key).join(), 'dueAfterRelease,releasePassed');
+const r13 = J.fromIssue(EQP13, { today: TODAY });
+T.eq('EQP-13: seven checks in one story: too big', [r13.acChecks, r13.checks.map((c) => c.key).join()].join(' / '), '7 / big');
+const bare = J.fromIssue(BARE, { today: TODAY });
+T.eq('a title and a line: no criteria, no FDD, no due date, release or owner, idle', bare.checks.map((c) => c.key).join(),
+  'noAc,noFdd,noDue,noRelease,noAssignee,stale');
+T.eq('…scores', [r12.score, r13.score, bare.score, J.fromIssue(DONE, { today: TODAY }).score].join(), '4,4,1,5');
+
+T.section('reading every page of a search');
+(async () => {
+  const calls = [];
+  const pages = [{ issues: [EQP12], nextPageToken: 'p2', isLast: false }, { issues: [EQP13], isLast: true }];
+  const Actions = { callRest: async (ctx, o) => { calls.push(o); return { ok: true, status: 200, body: pages[calls.length - 1] }; } };
+  const got = await J.load({}, Actions, 'project = EQP');
+  T.eq('two pages, the second asked with its token', [got.ok, got.issues.length, calls.map((c) => c.endpoint + ' ' + (c.uriParams.nextPageToken || '-')).join(' > ')].join(' / '),
+    'true / 2 / jira/searchJiraIssues - > jira/searchJiraIssues p2');
+  T.check('…the fields the page reads, 100 at a time', calls[0].uriParams.fields.includes('customfield_10020') && calls[0].uriParams.maxResults === 100);
+  const refused = await J.load({}, { callRest: async () => ({ ok: false, status: 401, body: {} }) }, 'x');
+  T.check('a 401: not connected, and how to connect', !refused.ok && /not connected/.test(refused.message) && /Basic authentication/.test(refused.message));
+  T.eq('a bad JQL: Jira\'s words', J.problem({ status: 400, body: { errorMessages: ['Field \'foo\' does not exist.'] } }), 'Jira did not accept the search: Field \'foo\' does not exist..');
+
+  T.section('the analysis');
+  const rows = [EQP12, EQP13, DONE, BARE].map((i) => J.fromIssue(i, { today: TODAY }));
+  const a = J.analyse(rows, TODAY);
+  T.eq('the numbers', JSON.stringify(plain(a.kpis)), JSON.stringify({ total: 4, done: 1, active: 3, onHold: 0, notStarted: 0, overdue: 2, noAc: 1, withGaps: 1, gaps: 4, avgScore: 3.5 }));
+  T.eq('statuses in the workflow\'s order', a.statuses.map((s) => s.status + ' ' + s.count).join(', '), 'FUNC DESIGN 1, DEVELOPMENT 2, Done 1');
+  T.eq('epics, most open first', a.epics.map((e) => (e.key || '-') + ' ' + e.open + '/' + e.total).join(', '), 'EQP-1 2/2, - 1/1, EQP-62 0/1');
+  T.eq('releases by date, a passed one marked', a.releases.map((r) => r.name + (r.passed ? ' passed' : '') + ' ' + r.open + '/' + r.total).join(', '),
+    '26C passed 1/2, 27A 1/1, No release 1/1');
+  T.eq('FDD sections', a.fdd.map((s) => s.section + ' ' + s.total).join(', '), '7.2 2, 7.3 1');
+  T.eq('the findings', a.findings.map((f) => f.tone + ': ' + f.text).join(' | '),
+    'bad: 2 items are past their due date, most of them in DEVELOPMENT (2). | bad: Release 26C was due 2026-09-30 and still has 1 item not done. | '
+    + 'warn: Next release: 27A on 2026-12-31, 1 item still open of 1. | warn: 1 story has no acceptance criteria: they cannot be tested as written. | '
+    + 'warn: Testers listed 4 gaps on 1 item: each is unfinished work the status may not show. | warn: 1 open item has nobody assigned. | '
+    + 'info: Rahul Kanth Panganamamula holds 2 of the 3 open items (67%): a bottleneck risk. | info: Most open work: EQP-1 Equipment Registry (2 open of 2). | '
+    + 'info: 1 story is large (more than 6 checks in the criteria): worth splitting.');
+  T.check('…each opens the rows it is about', JSON.stringify(a.findings[0].filter) === '{"only":"overdue"}' && a.findings[1].filter.release === '26C');
+
+  T.section('filters and their options');
+  T.eq('by a finding (overdue), a check, a person, words', [J.filter(rows, { only: 'overdue' }).map((r) => r.key).join(), J.filter(rows, { check: 'big' }).map((r) => r.key).join(),
+    J.filter(rows, { assignee: 'Nobody' }).map((r) => r.key).join(), J.filter(rows, { text: 'map view' }).map((r) => r.key).join()].join(' / '), 'EQP-12,EQP-13 / EQP-13 / EQP-30 / EQP-12');
+  T.eq('an FDD section and its subsections', J.filter(rows, { fdd: '7.2' }).map((r) => r.key).join(), 'EQP-12,EQP-13');
+  T.eq('status options, in the workflow\'s order, with counts', J.options(rows, 'status').map((o) => o.label).join(', '), 'FUNC DESIGN (1), DEVELOPMENT (2), Done (1)');
+  T.eq('epic options, named', J.options(rows, 'epic').map((o) => o.label).join(', '), 'EQP-1 Equipment Registry (2), EQP-62 Rate & Pricing (1), No epic (1)');
+  T.check('an export column per finding', J.exportColumns().map((c) => c.label).join().includes('Tester gaps'));
+
+  T.section('Old keeps the same file');
+  const old = path.join(ROOT, 'webApps', 'vbredwoodapp', 'resources', 'js', 'jiraBacklog.js');
+  T.check('webApps/vbredwoodapp/resources/js/jiraBacklog.js is identical', fs.existsSync(old) && fs.readFileSync(old, 'utf8') === fs.readFileSync(FILE, 'utf8'));
+  T.report();
+})();

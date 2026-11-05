@@ -1,0 +1,103 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Jira Cloud - EquipRite backlog (read only)",
+    "version": "1.0.0",
+    "description": "Read access to the EquipRite Jira site (equiprite.atlassian.net), for the Jira stories page in Old EquipRite (setup/jira-stories) and EquipRite Next (insights/jira). A hand-trimmed subset of the Jira Cloud REST API v2 (v2 so descriptions and comments come back as text, not Atlassian Document Format): the enhanced JQL search (GET /rest/api/2/search/jql, which replaced /search; it pages with nextPageToken and isLast, not startAt), one issue, the signed-in user, and the projects. Nothing here writes to Jira. AUTHENTICATION is set on the backend, never in this file: in VBCS, Services > Backends > jira > Authentication: Basic, with a Jira user's email as the user name and an Atlassian API token (id.atlassian.com > Security > API tokens) as the password. In the desktop app, the person enters the email and token once on the page (Connect Jira); the desktop app keeps the token encrypted on the PC and adds it to the calls."
+  },
+  "servers": [
+    {
+      "url": "vb-catalog://backends/jira",
+      "description": "Jira Cloud (equiprite.atlassian.net)"
+    }
+  ],
+  "paths": {
+    "/rest/api/2/search/jql": {
+      "get": {
+        "operationId": "searchJiraIssues",
+        "summary": "Search issues with JQL (enhanced search)",
+        "description": "Pages with nextPageToken until isLast is true. fields is a comma-separated list; customfield_10020 is Sprint on this site. maxResults is at most 100 (Jira may return fewer when the fields are large).",
+        "parameters": [
+          { "name": "jql", "in": "query", "required": true, "schema": { "type": "string" }, "example": "project = EQP AND issuetype = Story ORDER BY key ASC" },
+          { "name": "fields", "in": "query", "required": false, "schema": { "type": "string" } },
+          { "name": "maxResults", "in": "query", "required": false, "schema": { "type": "integer" } },
+          { "name": "nextPageToken", "in": "query", "required": false, "schema": { "type": "string" } },
+          { "name": "expand", "in": "query", "required": false, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of issues",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SearchPage" } } }
+          }
+        },
+        "x-vb": { "actionHint": "getMany" }
+      }
+    },
+    "/rest/api/2/issue/{issueIdOrKey}": {
+      "get": {
+        "operationId": "getJiraIssue",
+        "summary": "One issue, with its comments",
+        "parameters": [
+          { "name": "issueIdOrKey", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "fields", "in": "query", "required": false, "schema": { "type": "string" } },
+          { "name": "expand", "in": "query", "required": false, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "The issue", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Issue" } } } }
+        },
+        "x-vb": { "actionHint": "getOne" }
+      }
+    },
+    "/rest/api/2/myself": {
+      "get": {
+        "operationId": "getJiraMyself",
+        "summary": "Who the connection signs in as (to test it)",
+        "responses": {
+          "200": {
+            "description": "The user",
+            "content": { "application/json": { "schema": { "type": "object", "properties": {
+              "accountId": { "type": "string" }, "displayName": { "type": "string" }, "emailAddress": { "type": "string" }, "active": { "type": "boolean" } } } } }
+          }
+        }
+      }
+    },
+    "/rest/api/2/project/search": {
+      "get": {
+        "operationId": "searchJiraProjects",
+        "summary": "The projects the user can see",
+        "parameters": [
+          { "name": "query", "in": "query", "required": false, "schema": { "type": "string" } },
+          { "name": "maxResults", "in": "query", "required": false, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of projects",
+            "content": { "application/json": { "schema": { "type": "object", "properties": {
+              "values": { "type": "array", "items": { "type": "object", "properties": { "id": { "type": "string" }, "key": { "type": "string" }, "name": { "type": "string" } } } },
+              "total": { "type": "integer" }, "isLast": { "type": "boolean" } } } } }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "SearchPage": {
+        "type": "object",
+        "properties": {
+          "issues": { "type": "array", "items": { "$ref": "#/components/schemas/Issue" } },
+          "nextPageToken": { "type": "string" },
+          "isLast": { "type": "boolean" }
+        }
+      },
+      "Issue": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "key": { "type": "string" },
+          "fields": { "type": "object", "additionalProperties": true }
+        }
+      }
+    }
+  }
+}

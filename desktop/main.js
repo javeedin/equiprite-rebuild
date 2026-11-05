@@ -73,6 +73,18 @@ async function aiStore() {
   }
   return aiConnStore;
 }
+// Connect Jira, for the Jira stories page in Old and Next: the site, email and API token (the token in the OS keychain).
+let jiraAuthStore = null;
+function jiraStore() {
+  if (!jiraAuthStore) {
+    jiraAuthStore = require('./lib/jiraAuth').open({
+      file: path.join(app.getPath('userData'), 'jira-connection.json'),
+      encrypt: canEncrypt() ? (t) => safeStorage.encryptString(t) : null,
+      decrypt: canEncrypt() ? (b) => safeStorage.decryptString(b) : null,
+    });
+  }
+  return jiraAuthStore;
+}
 const VERSIONS = {
   old: { webApp: 'vbredwoodapp', label: 'Old EquipRite', port: PORT },
   new: { webApp: 'equiprite', label: 'New EquipRite', port: PORT + 1 },
@@ -917,6 +929,8 @@ if (!app.requestSingleInstanceLock()) {
             // EquipRite Next's SQL worksheet: the desktop app connects to Oracle for it (node-oracledb, Thin mode).
             sqlStore: v === 'next' ? await sqlStore() : undefined,
             aiStore: v === 'next' ? await aiStore() : undefined,
+            // The Jira stories page (Old and Next): Connect Jira keeps the token on this PC; the proxy adds it.
+            jiraStore: v === 'next' || v === 'old' ? jiraStore() : undefined,
             backendOverrides: backendOverridesFromEnv(process.env),
             onLog: pushLog,
             onProblem: backendProblem,
