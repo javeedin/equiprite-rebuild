@@ -47,10 +47,10 @@ function bipReport(rows) {
  * @param {Object}   o
  * @param {number}   o.port         Old EquipRite on this port, New on port + 1, Next on port + 2, Mobile on port + 3, Future on
  *                                  port + 4 (give each script its own)
- * @param {string}   [o.app]        'new' (default), 'next', 'mobile' or 'future': which app open() opens (mobile: a phone's
+ * @param {string}   [o.app]        'new' (default), 'next', 'mobile', 'future' or 'old': which app open() opens (mobile: a phone's
  *                                  viewport). Future calls no backend: its data is simulated in the browser
  * @param {Function} [o.handle]     (req, res) => answer, or undefined to fall through to the defaults.
- *                                  req: { method, path, query (URLSearchParams), body (string), json() }
+ *                                  req: { method, path, query (URLSearchParams), body (string), json(), headers }
  *                                  res: { json(obj, status), xml(text, status), bip(rows) }
  * @param {Object}   [o.access]     page code -> FULL | READ_ONLY | HIDDEN (default: every code FULL)
  * @param {string[]} [o.flags]      feature flags that are on (default: projects, timesheets, customers, agreements)
@@ -64,6 +64,9 @@ function bipReport(rows) {
  * @param {Function} [o.init]       run in the page before the app (addInitScript), e.g. to stand in for window.EquipRiteApp
  * @param {Object}   [o.desktop]    as inside the desktop app: { phone: what /__phone answers } (window.erpDesktop.openPhone
  *                                  counts its calls in window.__openedPhone)
+ * @param {Object}   [o.jiraStore]  Connect Jira as in the desktop app (desktop/lib/jiraAuth.js open()): Old and Next's servers then
+ *                                  answers /__jira/* and adds the saved email and token to its jira backend calls. Every app's
+ *                                  jira backend is the fake server (its calls arrive at the Jira path, /rest/api/2/…)
  */
 async function start(o) {
   const calls = [];
@@ -82,7 +85,7 @@ async function start(o) {
         bip: (rows) => res.xml(bipReport(rows)),
       };
       const r = { method: req.method, path: u.pathname, query: u.searchParams, body, json: () => (body ? JSON.parse(body) : null),
-        auth: req.headers.authorization || '' };
+        headers: req.headers, auth: req.headers.authorization || '' };
       if (req.method !== 'GET') {
         let parsed = body;
         try { parsed = body ? JSON.parse(body) : null; } catch (e) { /* SOAP and other text bodies stay text */ }
@@ -120,7 +123,7 @@ async function start(o) {
   const common = { buildDir: path.join(ROOT, 'build'), getIdentity: () => identity, getVersions: versions, backendOverrides: overrides, onLog: (l) => serverLog.push(l),
     getPhone: () => (o.desktop && o.desktop.phone) || {} };
   const servers = [
-    await DS.createDevServer(Object.assign({ webApp: 'vbredwoodapp', port: ports.old }, common)),
+    await DS.createDevServer(Object.assign({ webApp: 'vbredwoodapp', port: ports.old }, common, o.jiraStore ? { jiraStore: o.jiraStore } : {})),
     await DS.createDevServer(Object.assign({ webApp: 'equiprite', port: ports.new }, common)),
   ];
   if (DS.isBuilt(path.join(ROOT, 'build'), 'equiprite-next')) {
@@ -140,7 +143,7 @@ async function start(o) {
       phoneApp: { apkFile: path.join(ROOT, 'desktop', 'phone-app', 'EquipRite.apk'),
         version: JSON.parse(fs.readFileSync(path.join(ROOT, 'desktop', 'phone-app', 'version.json'), 'utf8')).versionName }, pairToken: () => 'test-pair-key' } : {})));
   }
-  const app = ['next', 'mobile', 'future'].indexOf(o.app) !== -1 ? o.app : 'new';
+  const app = ['next', 'mobile', 'future', 'old'].indexOf(o.app) !== -1 ? o.app : 'new';
   const { chromium } = require('playwright');
   const browser = await chromium.launch();
   const page = await browser.newPage(app === 'mobile'
@@ -174,12 +177,12 @@ async function start(o) {
     versions,
     /**
      * Opens a path of the app under test and waits for its shell: New EquipRite ('/vp/shell/request/my-requests'), or
-     * EquipRite Next ('/', '/?open=requests', '/?open=request&id=1'), EquipRite Mobile ('/', '/?tab=track'), or EquipRite
-     * Future ('/', '/?open=guide', '/?open=request&id=R1001').
+     * EquipRite Next ('/', '/?open=requests', '/?open=request&id=1'), EquipRite Mobile ('/', '/?tab=track'), EquipRite
+     * Future ('/', '/?open=guide', '/?open=request&id=R1001'), or Old EquipRite ('/vp/shell/setup/jira-stories').
      */
     async open(p) {
       await page.goto(`http://localhost:${ports[app]}${p || '/'}`, { waitUntil: 'domcontentloaded' });
-      await page.waitForSelector({ next: '.nx-nav-item', future: '.nx-nav-item', mobile: '.mb-tabbtn', new: '.er-nav-item' }[app], { state: 'attached', timeout: 60000 });
+      await page.waitForSelector({ next: '.nx-nav-item', future: '.nx-nav-item', mobile: '.mb-tabbtn', new: '.er-nav-item', old: '#vbRouterContent' }[app], { state: 'attached', timeout: 60000 });
       await page.waitForTimeout(1200);
     },
     /**

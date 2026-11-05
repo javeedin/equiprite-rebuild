@@ -1,0 +1,540 @@
+<!--
+  Jira Stories (Administrator menu): the EquipRite backlog read from Jira, read only.
+  Template: oj-sp-smart-search-page + oj-sp-smart-search (a filter per column) + oj-sp-collection-container + oj-table,
+  a story's detail in oj-drawer-popup + oj-sp-general-drawer-template, as Old's Rate Management and Equipment Requests.
+  Rules: resources/js/jiraBacklog.js (identical to EquipRite Next's); view helpers: jira-stories-page.js ($functions).
+  Everything inside the collection container sits in #jiraPage, an element that is always there: content an
+  oj-bind-if adds later directly inside oj-sp-collection-container is never shown.
+-->
+<style>
+  .jira-page { display: flex; flex-direction: column; gap: 16px; width: 100%; }
+  .jira-card {
+    border: 1px solid var(--oj-core-divider-color, #e0e0e0);
+    border-radius: 8px;
+    background: var(--oj-core-bg-color-content, #ffffff);
+    padding: 14px 16px;
+  }
+  .jira-h2 { font-size: 0.875rem; font-weight: 700; margin: 0 0 10px 0; color: var(--oj-core-text-color-primary, #161616); }
+  .jira-h3 {
+    font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 8px 0;
+    color: var(--oj-core-text-color-secondary, #565656);
+  }
+  .jira-muted { color: var(--oj-core-text-color-secondary, #565656); font-size: 0.8125rem; }
+  .jira-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .jira-error { color: var(--oj-core-danger-text-color, #b3261e); font-size: 0.8125rem; margin: 6px 0 0 0; }
+
+  /* ── connection ── */
+  .jira-conn-line { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 0.875rem; }
+  .jira-conn-ok { color: var(--oj-core-success-text-color, #1f7a3a); font-size: 1.1rem; }
+  .jira-conn-off { color: var(--oj-core-warning-text-color, #9a5b00); font-size: 1.1rem; }
+  .jira-connect-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px 16px; margin: 8px 0; }
+  .jira-link { color: var(--oj-core-link-text-color, #005cb1); font-size: 0.8125rem; }
+
+  /* ── query ── */
+  .jira-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+  .jira-chip {
+    border: 1px solid var(--oj-core-divider-color, #c9c9c9); background: transparent; border-radius: 999px;
+    padding: 4px 12px; font: inherit; font-size: 0.8125rem; cursor: pointer; color: var(--oj-core-text-color-primary, #161616);
+  }
+  .jira-chip:hover { background: var(--oj-core-neutral-color-1, #f5f5f5); }
+  .jira-chip--on { background: #1f4e6b; border-color: #1f4e6b; color: #ffffff; }
+  .jira-chip--on:hover { background: #173c52; }
+  .jira-jql { display: flex; align-items: flex-end; gap: 10px; }
+  .jira-jql-input { flex: 1; max-width: none; }
+
+  /* ── KPI tiles ── */
+  .jira-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+  .jira-tile { border: 1px solid var(--oj-core-divider-color, #e0e0e0); border-top: 4px solid #c9c9c9; border-radius: 8px; padding: 10px 12px; background: var(--oj-core-bg-color-content, #fff); }
+  .jira-tile--success { border-top-color: var(--oj-core-color-success-90, #2e7d32); }
+  .jira-tile--info { border-top-color: var(--oj-core-color-info-90, #1f6fb2); }
+  .jira-tile--warning { border-top-color: var(--oj-core-color-warning-90, #c77700); }
+  .jira-tile--danger { border-top-color: var(--oj-core-color-danger-90, #b3261e); }
+  .jira-tile-label { font-size: 0.75rem; font-weight: 600; color: var(--oj-core-text-color-secondary, #565656); }
+  .jira-tile-value { font-size: 1.6rem; font-weight: 700; line-height: 1.2; margin: 4px 0 2px; color: var(--oj-core-text-color-primary, #161616); }
+  .jira-tile-hint { font-size: 0.72rem; color: var(--oj-core-text-color-secondary, #6b6b6b); }
+
+  /* ── findings ── */
+  .jira-findings { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+  .jira-finding {
+    display: flex; align-items: flex-start; gap: 10px; width: 100%; text-align: left; font: inherit; font-size: 0.8125rem;
+    border: 1px solid var(--oj-core-divider-color, #e0e0e0); border-left: 4px solid #8a8a8a; border-radius: 6px;
+    background: var(--oj-core-bg-color-content, #fff); padding: 8px 10px; cursor: pointer; color: var(--oj-core-text-color-primary, #161616);
+  }
+  .jira-finding:hover { background: var(--oj-core-neutral-color-1, #f7f7f7); }
+  .jira-finding--bad { border-left-color: #b3261e; }
+  .jira-finding--bad .jira-finding-icon { color: #b3261e; }
+  .jira-finding--warn { border-left-color: #c77700; }
+  .jira-finding--warn .jira-finding-icon { color: #c77700; }
+  .jira-finding--good { border-left-color: #2e7d32; }
+  .jira-finding--good .jira-finding-icon { color: #2e7d32; }
+  .jira-finding--info { border-left-color: #1f6fb2; }
+  .jira-finding--info .jira-finding-icon { color: #1f6fb2; }
+  .jira-finding-icon { font-size: 1rem; margin-top: 1px; }
+
+  /* ── compact tables ── */
+  .jira-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 12px; }
+  .jira-mini-row {
+    display: grid; align-items: center; gap: 8px; padding: 5px 0; font-size: 0.8125rem;
+    border-bottom: 1px solid var(--oj-core-divider-color, #eeeeee);
+  }
+  .jira-mini-row:last-child { border-bottom: 0; }
+  .jira-mini-head { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--oj-core-text-color-secondary, #6b6b6b); }
+  .jira-mini--status .jira-mini-row { grid-template-columns: minmax(110px, 1.2fr) 40px 2fr; }
+  .jira-mini--epic .jira-mini-row { grid-template-columns: 64px 2fr 44px 56px 52px 40px; }
+  .jira-mini--release .jira-mini-row { grid-template-columns: 1fr 90px 96px 100px; }
+  .jira-mini--people .jira-mini-row { grid-template-columns: 2fr 50px 60px; }
+  .jira-mini--sprint { margin-bottom: 12px; }
+  .jira-mini--sprint .jira-mini-row { grid-template-columns: minmax(0, 2.4fr) minmax(150px, 1.2fr) 80px 50px 64px 90px; align-items: start; }
+  .jira-sprint-name { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; min-width: 0; }
+  .jira-sprint-goal { flex-basis: 100%; font-size: 0.75rem; color: var(--oj-core-text-color-secondary, #6b6b6b); }
+  .jira-sprint-flag { flex-basis: 100%; font-size: 0.75rem; font-weight: 700; color: var(--oj-core-danger-text-color, #b3261e); }
+  .jira-mini--checks .jira-mini-row, .jira-mini--fdd .jira-mini-row { grid-template-columns: 1fr 60px 50px; }
+  button.jira-mini-row {
+    width: 100%; background: transparent; border: 0; border-bottom: 1px solid var(--oj-core-divider-color, #eeeeee);
+    font: inherit; font-size: 0.8125rem; text-align: left; cursor: pointer; color: inherit;
+  }
+  button.jira-mini-row:hover { background: var(--oj-core-neutral-color-1, #f7f7f7); }
+  .jira-num { text-align: right; font-variant-numeric: tabular-nums; }
+  .jira-bar { display: block; height: 8px; border-radius: 4px; background: var(--oj-core-neutral-color-2, #eeeeee); overflow: hidden; }
+  .jira-bar-fill { display: block; height: 100%; background: #1f6fb2; }
+  .jira-key { font-weight: 700; color: var(--oj-core-brand-color-primary, #005cb1); }
+  .jira-ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .jira-late { color: var(--oj-core-danger-text-color, #b3261e); font-weight: 600; }
+
+  /* ── the stories ── */
+  .jira-toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .jira-count { font-size: 0.8125rem; font-weight: 600; color: var(--oj-core-text-color-secondary, #565656); }
+  .jira-spacer { flex: 1; }
+  .jira-showing {
+    display: inline-flex; align-items: center; gap: 6px; padding: 3px 4px 3px 12px; border-radius: 999px;
+    background: #e3eef7; color: #1f4e6b; font-size: 0.8125rem; max-width: 100%;
+  }
+  .jira-showing-x { border: 0; background: transparent; cursor: pointer; color: inherit; padding: 2px 6px; border-radius: 50%; font-size: 0.9rem; }
+  .jira-showing-x:hover { background: rgba(31, 78, 107, 0.15); }
+  #jiraStoriesTable .oj-table-column-header-cell { font-weight: 600; font-size: 0.75rem; padding-left: 10px; padding-right: 6px; }
+  #jiraStoriesTable .oj-table-data-cell { font-size: 0.8125rem; vertical-align: middle; padding: 8px 10px; }
+  #jiraStoriesTable .oj-table-body-row:hover { cursor: pointer; }
+  .jira-cell { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .jira-sub { font-size: 0.75rem; color: var(--oj-core-text-color-secondary, #6b6b6b); }
+  .jira-due--late { color: var(--oj-core-danger-text-color, #b3261e); font-weight: 600; }
+  .jira-score { font-weight: 600; }
+  .jira-score--good { color: #1f7a3a; }
+  .jira-score--fair { color: #9a5b00; }
+  .jira-score--poor { color: #b3261e; }
+  .jira-gaps { display: inline-flex; min-width: 22px; height: 22px; align-items: center; justify-content: center; border-radius: 11px; font-size: 0.75rem; font-weight: 700; background: var(--oj-core-neutral-color-2, #eeeeee); }
+  .jira-gaps--some { background: #fdecd8; color: #9a4a00; }
+
+  /* ── drawer ── */
+  .jira-drawer { padding: 4px 4px 24px; display: flex; flex-direction: column; gap: 4px; }
+  .jira-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px 20px; margin-bottom: 8px; }
+  .jira-fact-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--oj-core-text-color-secondary, #565656); }
+  .jira-fact-value { font-size: 0.875rem; }
+  .jira-section {
+    font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin: 14px 0 6px;
+    padding-bottom: 4px; border-bottom: 1px solid var(--oj-core-divider-color, #e0e0e0); color: var(--oj-core-brand-color-primary, #005cb1);
+  }
+  .jira-pre { white-space: pre-wrap; font-size: 0.8125rem; line-height: 1.45; }
+  .jira-list { margin: 0; padding-left: 20px; font-size: 0.8125rem; line-height: 1.5; }
+  .jira-comment { border: 1px solid var(--oj-core-divider-color, #e0e0e0); border-radius: 6px; padding: 8px 10px; margin-bottom: 8px; }
+  .jira-comment-head { font-size: 0.75rem; font-weight: 700; margin-bottom: 4px; }
+</style>
+
+<oj-sp-smart-search-page id="jiraStoriesPage" page-title="Jira Stories" display-mode="mixed"
+  page-subtitle="[[ $functions.subtitle($variables.conn, $variables.loading, $variables.problem, $variables.rows.length, $variables.readAt, $variables.capped) ]]"
+  primary-action.display="on" primary-action.label="Refresh" on-sp-primary-action="[[ $listeners.spPrimaryAction ]]">
+
+  <!-- ── SEARCH: words, and a filter per column of the table (options: what the stories hold, with how many) ── -->
+  <oj-sp-smart-search
+    slot="search"
+    id="jiraSearch"
+    filter-criterion="{{ $variables.filterCriterion }}"
+    on-filter-criterion-changed="[[ $listeners.filterCriterionChanged ]]"
+    search-context="[[ $variables.searchContext ]]"
+    search-config="[[ $variables.searchConfiguration.provider ]]"
+    suggestion-filters='["StatusFilter", "EpicFilter", "AssigneeFilter", "ReleaseFilter", "SprintFilter", "PriorityFilter", "TypeFilter"]'
+    placeholder="Key, summary, criteria, gaps, assignee…">
+  </oj-sp-smart-search>
+
+  <oj-sp-collection-container>
+    <div class="jira-page" id="jiraPage">
+
+      <!-- ── CONNECTION ── -->
+      <section class="jira-card" id="jiraConn" aria-label="Jira connection">
+        <oj-bind-if test="[[ $variables.conn.state === 'checking' ]]">
+          <div class="jira-conn-line jira-muted"><span class="oj-ux-ico-sync" aria-hidden="true"></span>Checking the connection to Jira…</div>
+        </oj-bind-if>
+        <oj-bind-if test="[[ $variables.conn.state === 'connected' ]]">
+          <div class="jira-conn-line" id="jiraConnected">
+            <span class="oj-ux-ico-check-circle jira-conn-ok" aria-hidden="true"></span>
+            <span id="jiraConnectedText"><oj-bind-text value="[[ $functions.connText($variables.conn) ]]"></oj-bind-text></span>
+            <span class="jira-muted"><oj-bind-text value="[[ $functions.hostOf($variables.conn.site) ]]"></oj-bind-text></span>
+            <oj-bind-if test="[[ $variables.conn.desktop ]]">
+              <oj-button id="jiraDisconnect" chroming="borderless" class="oj-button-sm" on-oj-action="[[ $listeners.onDisconnect ]]">
+                <span slot="startIcon" class="oj-ux-ico-close-circle"></span>Disconnect
+              </oj-button>
+            </oj-bind-if>
+          </div>
+        </oj-bind-if>
+        <oj-bind-if test="[[ $variables.conn.state === 'refused' || $variables.conn.state === 'unreachable' ]]">
+          <div class="jira-conn-line">
+            <span class="oj-ux-ico-cloud-off jira-conn-off" aria-hidden="true"></span>
+            <strong><oj-bind-text value="[[ $variables.conn.state === 'refused' ? 'Jira is not connected' : 'Jira could not be reached' ]]"></oj-bind-text></strong>
+          </div>
+          <!-- In the desktop app: connect here. The desktop app keeps the token and adds it to the calls to Jira. -->
+          <oj-bind-if test="[[ $variables.conn.desktop ]]">
+            <div id="jiraConnectForm">
+              <p class="jira-muted" style="margin:6px 0 0 0;">Connect with your Jira email and an Atlassian API token. The desktop app keeps them on this PC (the token in the system keychain) and adds them only to calls to Jira.</p>
+              <div class="jira-connect-fields">
+                <oj-input-text id="jiraSite" label-hint="Site" value="{{ $variables.siteInput }}"></oj-input-text>
+                <oj-input-text id="jiraEmail" label-hint="Email" value="{{ $variables.emailInput }}"></oj-input-text>
+                <oj-input-password id="jiraToken" label-hint="API token" value="{{ $variables.tokenInput }}"></oj-input-password>
+              </div>
+              <div class="jira-row">
+                <oj-button id="jiraConnect" chroming="callToAction" disabled="[[ $variables.connecting ]]" on-oj-action="[[ $listeners.onConnect ]]">Connect</oj-button>
+                <a id="jiraTokenLink" class="jira-link" href="https://id.atlassian.com/manage-profile/security/api-tokens" target="_blank" rel="noopener">Create an API token</a>
+              </div>
+              <oj-bind-if test="[[ !!$variables.connError ]]">
+                <p class="jira-error" id="jiraConnError" role="alert"><oj-bind-text value="[[ $variables.connError ]]"></oj-bind-text></p>
+              </oj-bind-if>
+            </div>
+          </oj-bind-if>
+          <!-- Deployed in VBCS: the administrator sets the jira backend's Basic authentication. -->
+          <oj-bind-if test="[[ !$variables.conn.desktop ]]">
+            <p class="jira-muted" id="jiraNotConnected" style="margin:6px 0 0 0;">Jira is not connected. A VBCS administrator sets it: Services &gt; Backends &gt; jira &gt; Authentication &gt; Basic (a Jira email and an Atlassian API token).</p>
+          </oj-bind-if>
+        </oj-bind-if>
+        <oj-bind-if test="[[ !!$variables.problem ]]">
+          <p class="jira-error" id="jiraProblem" role="alert"><oj-bind-text value="[[ $variables.problem ]]"></oj-bind-text></p>
+        </oj-bind-if>
+      </section>
+
+      <!-- ── QUERY: the saved searches, or a JQL of your own ── -->
+      <section class="jira-card" id="jiraQuery" aria-label="What to read from Jira">
+        <div class="jira-chips" role="group" aria-label="Saved searches">
+          <oj-bind-for-each data="[[ $functions.presets() ]]">
+            <template data-oj-as="p">
+              <button type="button" :id="[[ $functions.presetId(p.data.key) ]]" :class="[[ $functions.presetClass(p.data.key, $variables.preset) ]]"
+                :aria-pressed="[[ $functions.pressed(p.data.key, $variables.preset) ]]" :data-key="[[ p.data.key ]]"
+                :title="[[ p.data.jql ]]" on-click="[[ $listeners.onPreset ]]">
+                <oj-bind-text value="[[ p.data.label ]]"></oj-bind-text>
+              </button>
+            </template>
+          </oj-bind-for-each>
+        </div>
+        <div class="jira-jql">
+          <oj-input-text id="jiraJql" class="jira-jql-input" label-hint="JQL" value="{{ $variables.jql }}"></oj-input-text>
+          <oj-button id="jiraRun" disabled="[[ $variables.loading ]]" on-oj-action="[[ $listeners.onRun ]]">
+            <span slot="startIcon" class="oj-ux-ico-play"></span>Run
+          </oj-button>
+        </div>
+      </section>
+
+      <!-- ── ANALYSIS: the numbers, what they say, and where ── -->
+      <oj-bind-if test="[[ $variables.rows.length > 0 ]]">
+        <section class="jira-page" id="jiraAnalysis" aria-label="Analysis">
+          <div class="jira-tiles" id="jiraKpis">
+            <oj-bind-for-each data="[[ $functions.tiles($variables.analysis.kpis) ]]">
+              <template data-oj-as="t">
+                <div :class="[[ $functions.tileClass(t.data.tone) ]]" :data-kpi="[[ t.data.key ]]">
+                  <div class="jira-tile-label"><oj-bind-text value="[[ t.data.label ]]"></oj-bind-text></div>
+                  <div class="jira-tile-value"><oj-bind-text value="[[ t.data.value ]]"></oj-bind-text></div>
+                  <div class="jira-tile-hint"><oj-bind-text value="[[ t.data.hint ]]"></oj-bind-text></div>
+                </div>
+              </template>
+            </oj-bind-for-each>
+          </div>
+
+          <div class="jira-card">
+            <h2 class="jira-h2">What the backlog says <span class="jira-muted" style="font-weight:400;">(click one to see its items)</span></h2>
+            <ul class="jira-findings" id="jiraFindings">
+              <oj-bind-for-each data="[[ $variables.analysis.findings ]]">
+                <template data-oj-as="f">
+                  <li>
+                    <button type="button" :class="[[ $functions.findingClass(f.data.tone) ]]" :data-index="[[ f.index ]]" on-click="[[ $listeners.onFinding ]]">
+                      <span :class="[[ $functions.findingIcon(f.data.tone) + ' jira-finding-icon' ]]" aria-hidden="true"></span>
+                      <span><oj-bind-text value="[[ f.data.text ]]"></oj-bind-text></span>
+                    </button>
+                  </li>
+                </template>
+              </oj-bind-for-each>
+            </ul>
+          </div>
+
+          <!-- By sprint: each sprint's dates, state and goal, progress, spill-over, and what is wrong with it on the board -->
+          <div class="jira-card jira-mini--sprint" id="jiraBySprint">
+            <h3 class="jira-h3">By sprint</h3>
+            <div class="jira-mini-row jira-mini-head"><span>Sprint</span><span>Dates</span><span class="jira-num">Done</span><span class="jira-num">Open</span>
+              <span class="jira-num">Overdue</span><span class="jira-num">Carried over</span></div>
+            <oj-bind-for-each data="[[ $variables.analysis.sprints ]]">
+              <template data-oj-as="sp">
+                <button type="button" class="jira-mini-row" :data-sprint="[[ sp.data.name ]]" on-click="[[ $listeners.onSprint ]]" title="Show this sprint's items">
+                  <span class="jira-sprint-name"><strong><oj-bind-text value="[[ sp.data.name ]]"></oj-bind-text></strong>
+                    <oj-bind-if test="[[ !!sp.data.state ]]"><span :class="[[ $functions.sprintBadge(sp.data.state) ]]"><oj-bind-text value="[[ sp.data.state ]]"></oj-bind-text></span></oj-bind-if>
+                    <oj-bind-if test="[[ !!sp.data.goal ]]"><span class="jira-sprint-goal"><oj-bind-text value="[[ 'Goal: ' + sp.data.goal ]]"></oj-bind-text></span></oj-bind-if>
+                    <oj-bind-for-each data="[[ sp.data.flags ]]"><template data-oj-as="fl"><span class="jira-sprint-flag"><oj-bind-text value="[[ fl.data ]]"></oj-bind-text></span></template></oj-bind-for-each></span>
+                  <span class="jira-muted"><oj-bind-text value="[[ $functions.sprintDates(sp.data) ]]"></oj-bind-text></span>
+                  <span class="jira-num"><oj-bind-text value="[[ sp.data.done + ' of ' + sp.data.total ]]"></oj-bind-text></span>
+                  <span class="jira-num"><oj-bind-text value="[[ sp.data.open ]]"></oj-bind-text></span>
+                  <span :class="[[ sp.data.overdue ? 'jira-num jira-late' : 'jira-num' ]]"><oj-bind-text value="[[ sp.data.overdue ]]"></oj-bind-text></span>
+                  <span class="jira-num"><oj-bind-text value="[[ sp.data.carried ]]"></oj-bind-text></span>
+                </button>
+              </template>
+            </oj-bind-for-each>
+          </div>
+
+          <div class="jira-grid">
+            <div class="jira-card jira-mini--status" id="jiraByStatus">
+              <h3 class="jira-h3">By status</h3>
+              <oj-bind-for-each data="[[ $variables.analysis.statuses ]]">
+                <template data-oj-as="s">
+                  <div class="jira-mini-row">
+                    <span><span :class="[[ $functions.badge(s.data.status, s.data.cat) ]]"><oj-bind-text value="[[ s.data.status ]]"></oj-bind-text></span></span>
+                    <span class="jira-num"><oj-bind-text value="[[ s.data.count ]]"></oj-bind-text></span>
+                    <span class="jira-bar" :title="[[ s.data.pct + '%' ]]"><span class="jira-bar-fill" :style="[[ $functions.barStyle(s.data.pct) ]]"></span></span>
+                  </div>
+                </template>
+              </oj-bind-for-each>
+            </div>
+
+            <div class="jira-card jira-mini--epic" id="jiraByEpic">
+              <h3 class="jira-h3">By epic</h3>
+              <div class="jira-mini-row jira-mini-head"><span>Epic</span><span>Name</span><span class="jira-num">Open</span><span class="jira-num">Overdue</span><span class="jira-num">Done</span><span class="jira-num">Gaps</span></div>
+              <oj-bind-for-each data="[[ $variables.analysis.epics ]]">
+                <template data-oj-as="e">
+                  <div class="jira-mini-row">
+                    <span class="jira-key"><oj-bind-text value="[[ e.data.key || '—' ]]"></oj-bind-text></span>
+                    <span class="jira-ellipsis" :title="[[ e.data.name ]]"><oj-bind-text value="[[ e.data.name ]]"></oj-bind-text></span>
+                    <span class="jira-num"><oj-bind-text value="[[ e.data.open ]]"></oj-bind-text></span>
+                    <span :class="[[ e.data.overdue ? 'jira-num jira-late' : 'jira-num' ]]"><oj-bind-text value="[[ e.data.overdue ]]"></oj-bind-text></span>
+                    <span class="jira-num"><oj-bind-text value="[[ e.data.donePct + '%' ]]"></oj-bind-text></span>
+                    <span class="jira-num"><oj-bind-text value="[[ e.data.gaps ]]"></oj-bind-text></span>
+                  </div>
+                </template>
+              </oj-bind-for-each>
+            </div>
+
+            <div class="jira-card jira-mini--release" id="jiraByRelease">
+              <h3 class="jira-h3">By release</h3>
+              <oj-bind-for-each data="[[ $variables.analysis.releases ]]">
+                <template data-oj-as="r">
+                  <div class="jira-mini-row">
+                    <span class="jira-ellipsis"><strong><oj-bind-text value="[[ r.data.name ]]"></oj-bind-text></strong></span>
+                    <span class="jira-muted"><oj-bind-text value="[[ r.data.date || 'no date' ]]"></oj-bind-text></span>
+                    <span class="jira-num"><oj-bind-text value="[[ $functions.releaseText(r.data) ]]"></oj-bind-text></span>
+                    <span><oj-bind-if test="[[ r.data.passed ]]"><span class="oj-badge oj-badge-danger oj-badge-subtle">date passed</span></oj-bind-if></span>
+                  </div>
+                </template>
+              </oj-bind-for-each>
+            </div>
+
+            <div class="jira-card jira-mini--people" id="jiraByPerson">
+              <h3 class="jira-h3">By assignee</h3>
+              <div class="jira-mini-row jira-mini-head"><span>Assignee</span><span class="jira-num">Open</span><span class="jira-num">Overdue</span></div>
+              <oj-bind-for-each data="[[ $variables.analysis.people ]]">
+                <template data-oj-as="w">
+                  <div class="jira-mini-row">
+                    <span class="jira-ellipsis"><oj-bind-text value="[[ w.data.name ]]"></oj-bind-text></span>
+                    <span class="jira-num"><oj-bind-text value="[[ w.data.open ]]"></oj-bind-text></span>
+                    <span :class="[[ w.data.overdue ? 'jira-num jira-late' : 'jira-num' ]]"><oj-bind-text value="[[ w.data.overdue ]]"></oj-bind-text></span>
+                  </div>
+                </template>
+              </oj-bind-for-each>
+            </div>
+
+            <div class="jira-card jira-mini--checks" id="jiraChecks">
+              <h3 class="jira-h3">Quality checks failed</h3>
+              <oj-bind-if test="[[ !$variables.analysis.checks.length ]]">
+                <div class="jira-muted">Every item passes every check.</div>
+              </oj-bind-if>
+              <oj-bind-for-each data="[[ $variables.analysis.checks ]]">
+                <template data-oj-as="c">
+                  <button type="button" class="jira-mini-row" :data-key="[[ c.data.key ]]" on-click="[[ $listeners.onCheck ]]" title="Show these items">
+                    <span><oj-bind-text value="[[ c.data.label ]]"></oj-bind-text></span>
+                    <span class="jira-num"><oj-bind-text value="[[ c.data.count ]]"></oj-bind-text></span>
+                    <span class="oj-ux-ico-chevron-right jira-muted" aria-hidden="true"></span>
+                  </button>
+                </template>
+              </oj-bind-for-each>
+            </div>
+
+            <div class="jira-card jira-mini--fdd" id="jiraFdd">
+              <h3 class="jira-h3">FDD sections</h3>
+              <div class="jira-mini-row jira-mini-head"><span>Section</span><span class="jira-num">Stories</span><span class="jira-num">Open</span></div>
+              <oj-bind-for-each data="[[ $variables.analysis.fdd ]]">
+                <template data-oj-as="d">
+                  <button type="button" class="jira-mini-row" :data-section="[[ d.data.section ]]" on-click="[[ $listeners.onFdd ]]" title="Show these stories">
+                    <span><strong><oj-bind-text value="[[ d.data.section ]]"></oj-bind-text></strong></span>
+                    <span class="jira-num"><oj-bind-text value="[[ d.data.total ]]"></oj-bind-text></span>
+                    <span class="jira-num"><oj-bind-text value="[[ d.data.open ]]"></oj-bind-text></span>
+                  </button>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </div>
+        </section>
+      </oj-bind-if>
+
+      <!-- ── THE STORIES ── -->
+      <div class="jira-toolbar" id="jiraToolbar">
+        <span class="jira-count" id="jiraCount"><oj-bind-text value="[[ $functions.countText($variables.shownRows.length, $variables.rows.length) ]]"></oj-bind-text></span>
+        <oj-bind-if test="[[ !!$variables.pickLabel ]]">
+          <span class="jira-showing" id="jiraShowing">
+            <span>Showing: <oj-bind-text value="[[ $variables.pickLabel ]]"></oj-bind-text></span>
+            <button type="button" class="jira-showing-x" id="jiraShowingClear" aria-label="Remove: show every item" title="Remove" on-click="[[ $listeners.onClearPick ]]">
+              <span class="oj-ux-ico-close" aria-hidden="true"></span>
+            </button>
+          </span>
+        </oj-bind-if>
+        <span class="jira-spacer"></span>
+        <oj-button id="jiraExportXls" chroming="borderless" disabled="[[ !$variables.shownRows.length ]]" on-oj-action="[[ $listeners.onExportXls ]]">
+          <span slot="startIcon" class="oj-ux-ico-file-excel"></span>Export to Excel
+        </oj-button>
+        <oj-button id="jiraExportCsv" chroming="borderless" disabled="[[ !$variables.shownRows.length ]]" on-oj-action="[[ $listeners.onExportCsv ]]">
+          <span slot="startIcon" class="oj-ux-ico-file-csv"></span>Export to CSV
+        </oj-button>
+      </div>
+
+      <oj-table
+        id="jiraStoriesTable"
+        data="[[ $variables.tableADP ]]"
+        class="oj-sm-width-full"
+        aria-label="Jira stories"
+        layout="fixed"
+        display="list"
+        horizontal-grid-visible="enabled"
+        scroll-policy="loadMoreOnScroll"
+        scroll-policy-options.fetch-size="100"
+        on-oj-row-action="[[ $listeners.onRowAction ]]"
+        columns='[
+          {"headerText": "Key",      "field": "key",      "template": "keyTpl",     "sortable": "enabled", "style": "width:8%",  "weight": 8,  "minWidth": 72},
+          {"headerText": "Summary",  "field": "summary",  "template": "summaryTpl", "sortable": "enabled", "style": "width:25%", "weight": 25, "minWidth": 160},
+          {"headerText": "Status",   "field": "status",   "template": "statusTpl",  "sortable": "enabled", "style": "width:13%", "weight": 13, "minWidth": 96},
+          {"headerText": "Priority", "field": "priority", "template": "textTpl",    "sortable": "enabled", "style": "width:8%",  "weight": 8,  "minWidth": 64},
+          {"headerText": "Assignee", "field": "assignee", "template": "textTpl",    "sortable": "enabled", "style": "width:13%", "weight": 13, "minWidth": 96},
+          {"headerText": "Release",  "field": "release",  "template": "textTpl",    "sortable": "enabled", "style": "width:8%",  "weight": 8,  "minWidth": 80},
+          {"headerText": "Due",      "field": "due",      "template": "dueTpl",     "sortable": "enabled", "style": "width:9%",  "weight": 9,  "minWidth": 84},
+          {"headerText": "Quality",  "field": "score",    "template": "qualityTpl", "sortable": "enabled", "style": "width:9%",  "weight": 9,  "minWidth": 84},
+          {"headerText": "Gaps",     "field": "gapCount", "template": "gapsTpl",    "sortable": "enabled", "style": "width:7%",  "weight": 7,  "minWidth": 72}
+        ]'
+        style="width:100%; max-height:720px;">
+
+        <template slot="keyTpl" data-oj-as="cell">
+          <span class="jira-key"><oj-bind-text value="[[ cell.data ]]"></oj-bind-text></span>
+        </template>
+        <template slot="summaryTpl" data-oj-as="cell">
+          <div class="jira-cell">
+            <span class="jira-ellipsis" :title="[[ cell.data ]]"><oj-bind-text value="[[ cell.data ]]"></oj-bind-text></span>
+            <span class="jira-sub jira-ellipsis"><oj-bind-text value="[[ cell.row.epicLine ]]"></oj-bind-text></span>
+          </div>
+        </template>
+        <template slot="statusTpl" data-oj-as="cell"><span :class="[[ cell.row.badge ]]"><oj-bind-text value="[[ cell.data ]]"></oj-bind-text></span></template>
+        <template slot="textTpl" data-oj-as="cell">
+          <span class="jira-ellipsis"><oj-bind-text value="[[ cell.data || '—' ]]"></oj-bind-text></span>
+        </template>
+        <template slot="dueTpl" data-oj-as="cell">
+          <span :class="[[ $functions.dueClass(cell.row.overdue) ]]"><oj-bind-text value="[[ cell.data || '—' ]]"></oj-bind-text></span>
+        </template>
+        <template slot="qualityTpl" data-oj-as="cell">
+          <span :class="[[ $functions.qualityClass(cell.data) ]]" :title="[[ cell.row.checkCount ? 'Fails ' + cell.row.quality : 'Passes every check' ]]">
+            <oj-bind-text value="[[ cell.row.quality ]]"></oj-bind-text>
+          </span>
+        </template>
+        <template slot="gapsTpl" data-oj-as="cell">
+          <span :class="[[ cell.data ? 'jira-gaps jira-gaps--some' : 'jira-gaps' ]]"><oj-bind-text value="[[ cell.data ]]"></oj-bind-text></span>
+        </template>
+        <template slot="noData">
+          <div class="oj-sm-padding-6x jira-muted" style="text-align:center;" id="jiraEmpty">
+            <oj-bind-text value="[[ $functions.emptyText($variables.conn, $variables.loading, $variables.problem, $variables.rows.length) ]]"></oj-bind-text>
+          </div>
+        </template>
+      </oj-table>
+    </div>
+  </oj-sp-collection-container>
+</oj-sp-smart-search-page>
+
+<!-- ── A STORY (right edge): its facts, description, acceptance criteria, checks, tester gaps and comments ── -->
+<oj-drawer-popup id="jiraDrawer" opened="{{ $variables.drawerOpen }}" edge="end" modality="modal">
+  <oj-defer>
+    <oj-sp-general-drawer-template
+      id="jiraDrawerTemplate"
+      drawer-title="[[ $functions.drawerTitle($variables.selected) ]]"
+      drawer-subtitle="[[ $functions.drawerSubtitle($variables.selected) ]]"
+      drawer-size="lg"
+      close-action="[[ $functions.closeAction() ]]"
+      on-sp-close="[[ $listeners.onCloseDrawer ]]">
+      <div class="jira-drawer" id="jiraDrawerBody">
+        <div class="jira-row" style="margin-bottom:10px;">
+          <span :class="[[ $functions.badge($variables.selected.status, $variables.selected.statusCat) ]]"><oj-bind-text value="[[ $variables.selected.status ]]"></oj-bind-text></span>
+          <a id="jiraOpenInJira" class="jira-link" :href="[[ $variables.selected.url ]]" target="_blank" rel="noopener">
+            <span class="oj-ux-ico-open-new-tab" aria-hidden="true"></span> Open in Jira
+          </a>
+        </div>
+
+        <div class="jira-facts" id="jiraFacts">
+          <oj-bind-for-each data="[[ $functions.facts($variables.selected) ]]">
+            <template data-oj-as="x">
+              <div :data-fact="[[ x.data.key ]]">
+                <div class="jira-fact-label"><oj-bind-text value="[[ x.data.label ]]"></oj-bind-text></div>
+                <div :class="[[ 'jira-fact-value ' + x.data.cls ]]"><oj-bind-text value="[[ x.data.value ]]"></oj-bind-text></div>
+              </div>
+            </template>
+          </oj-bind-for-each>
+        </div>
+
+        <div class="jira-section">Description</div>
+        <div class="jira-pre" id="jiraBody"><oj-bind-text value="[[ $variables.selected.body || 'No description.' ]]"></oj-bind-text></div>
+
+        <div class="jira-section">Acceptance criteria</div>
+        <oj-bind-if test="[[ !$variables.selected.ac ]]">
+          <div class="jira-muted">None written: the story cannot be tested as written.</div>
+        </oj-bind-if>
+        <ol class="jira-list" id="jiraAc">
+          <oj-bind-for-each data="[[ $functions.acItems($variables.selected.ac) ]]">
+            <template data-oj-as="a">
+              <li><oj-bind-text value="[[ a.data ]]"></oj-bind-text></li>
+            </template>
+          </oj-bind-for-each>
+        </ol>
+
+        <div class="jira-section">Checks failed</div>
+        <oj-bind-if test="[[ !$functions.hasItems($variables.selected.checks) ]]">
+          <div class="jira-muted">None: it passes every check.</div>
+        </oj-bind-if>
+        <ul class="jira-list" id="jiraChecksFailed">
+          <oj-bind-for-each data="[[ $functions.items($variables.selected.checks) ]]">
+            <template data-oj-as="k">
+              <li><oj-bind-text value="[[ k.data.label ]]"></oj-bind-text></li>
+            </template>
+          </oj-bind-for-each>
+        </ul>
+
+        <div class="jira-section">Tester gaps</div>
+        <oj-bind-if test="[[ !$functions.hasItems($variables.selected.gaps) ]]">
+          <div class="jira-muted">No gaps listed by a tester.</div>
+        </oj-bind-if>
+        <ol class="jira-list" id="jiraGaps">
+          <oj-bind-for-each data="[[ $functions.items($variables.selected.gaps) ]]">
+            <template data-oj-as="g">
+              <li><oj-bind-text value="[[ g.data ]]"></oj-bind-text></li>
+            </template>
+          </oj-bind-for-each>
+        </ol>
+
+        <div class="jira-section">Comments</div>
+        <oj-bind-if test="[[ !$functions.hasItems($variables.selected.comments) ]]">
+          <div class="jira-muted">No comments.</div>
+        </oj-bind-if>
+        <div id="jiraComments">
+          <oj-bind-for-each data="[[ $functions.items($variables.selected.comments) ]]">
+            <template data-oj-as="m">
+              <div class="jira-comment">
+                <div class="jira-comment-head"><oj-bind-text value="[[ m.data.author + (m.data.when ? ' · ' + m.data.when : '') ]]"></oj-bind-text></div>
+                <div class="jira-pre"><oj-bind-text value="[[ m.data.text ]]"></oj-bind-text></div>
+              </div>
+            </template>
+          </oj-bind-for-each>
+        </div>
+      </div>
+    </oj-sp-general-drawer-template>
+  </oj-defer>
+</oj-drawer-popup>

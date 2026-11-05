@@ -1,0 +1,535 @@
+{
+  "title": "Jira Stories",
+  "description": "The EquipRite backlog read from Jira (services/jira, read only): the stories, what the analysis finds in them (resources/js/jiraBacklog.js, identical to EquipRite Next's), a filter per column, a story's detail in a drawer, and the export. Gated like Configuration Settings (EQR_CONFIGURATIONS, Administrator menu). Connection: in VBCS the jira backend's Basic authentication, set by the administrator; in the desktop app, Connect Jira on this page (the desktop app keeps the token).",
+  "metadata": {},
+  "variables": {
+    "rows": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Every item the JQL search read (jiraBacklog.fromIssue, decorated by the page module): what the analysis is about."
+    },
+    "shownRows": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "The rows the table shows: rows narrowed by the Smart Search filters (search) and the finding, check or FDD section picked (pick)."
+    },
+    "tableADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "key",
+        "data": "{{ $page.variables.shownRows }}"
+      }
+    },
+    "analysis": {
+      "type": "object",
+      "defaultValue": {
+        "kpis": {
+          "total": 0,
+          "done": 0,
+          "active": 0,
+          "onHold": 0,
+          "notStarted": 0,
+          "overdue": 0,
+          "noAc": 0,
+          "withGaps": 0,
+          "gaps": 0,
+          "avgScore": 0
+        },
+        "statuses": [],
+        "epics": [],
+        "releases": [],
+        "people": [],
+        "sprints": [],
+        "checks": [],
+        "fdd": [],
+        "gaps": [],
+        "findings": []
+      },
+      "description": "jiraBacklog.analyse(rows): the KPIs, the findings (each with the filter it opens), and the tables by status, epic, release, assignee, quality check and FDD section."
+    },
+    "jql": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "The JQL the page reads. Empty until vbEnter, which starts with the first preset (All stories)."
+    },
+    "preset": {
+      "type": "string",
+      "defaultValue": "stories",
+      "description": "The preset chip that is on (jiraBacklog.PRESETS key), '' for a JQL typed by hand."
+    },
+    "filterCriterion": {
+      "type": "any"
+    },
+    "search": {
+      "type": "object",
+      "defaultValue": {},
+      "description": "Smart Search's criterion read as jiraBacklog.filter's filters: { text, status, epic, assignee, release, sprint, priority, type }."
+    },
+    "pick": {
+      "type": "object",
+      "defaultValue": {},
+      "description": "The filter a finding, a quality check or an FDD section applies (only, check, fdd … are not Smart Search columns), shown as the removable 'Showing: …' chip."
+    },
+    "pickLabel": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "searchConfiguration": {
+      "type": "oj-sp/smart-search/strategies/JsonSearchConfigProviderFactory",
+      "defaultValue": {
+        "url": "[[ $application.path + 'resources/data/jiraStoriesSearchConfig.json' ]]"
+      }
+    },
+    "searchContext": {
+      "type": "object",
+      "defaultValue": {
+        "$search": {
+          "filters": {
+            "StatusFilter": {
+              "label": "Status",
+              "options": {
+                "optionsData": "[[ $page.variables.statusOptionsADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "EpicFilter": {
+              "label": "Epic",
+              "options": {
+                "optionsData": "[[ $page.variables.epicOptionsADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "AssigneeFilter": {
+              "label": "Assignee",
+              "options": {
+                "optionsData": "[[ $page.variables.assigneeOptionsADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "ReleaseFilter": {
+              "label": "Release",
+              "options": {
+                "optionsData": "[[ $page.variables.releaseOptionsADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "SprintFilter": {
+              "label": "Sprint",
+              "options": {
+                "optionsData": "[[ $page.variables.sprintOptionsADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "PriorityFilter": {
+              "label": "Priority",
+              "options": {
+                "optionsData": "[[ $page.variables.priorityOptionsADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "TypeFilter": {
+              "label": "Type",
+              "options": {
+                "optionsData": "[[ $page.variables.typeOptionsADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "statusOptions": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "The Status filter's options with how many (jiraBacklog.options); likewise the six below."
+    },
+    "statusOptionsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.statusOptions }}"
+      }
+    },
+    "epicOptions": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "epicOptionsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.epicOptions }}"
+      }
+    },
+    "assigneeOptions": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "assigneeOptionsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.assigneeOptions }}"
+      }
+    },
+    "releaseOptions": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "releaseOptionsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.releaseOptions }}"
+      }
+    },
+    "sprintOptions": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "sprintOptionsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.sprintOptions }}"
+      }
+    },
+    "priorityOptions": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "priorityOptionsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.priorityOptions }}"
+      }
+    },
+    "typeOptions": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "typeOptionsADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.typeOptions }}"
+      }
+    },
+    "conn": {
+      "type": "object",
+      "defaultValue": {
+        "state": "checking",
+        "desktop": false,
+        "site": "https://equiprite.atlassian.net",
+        "email": "",
+        "name": "",
+        "hasToken": false
+      },
+      "description": "The connection: state checking | connected | refused (Jira answered 401/403) | unreachable; desktop = inside the desktop app (jiraBacklog.desktopSettings is null in VBCS); name = who it signs in as (whoAmI)."
+    },
+    "siteInput": {
+      "type": "string",
+      "defaultValue": "https://equiprite.atlassian.net"
+    },
+    "emailInput": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "tokenInput": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "The API token typed in Connect Jira (desktop app). Sent once to the desktop app (desktopSave) and cleared; never stored by the page."
+    },
+    "connecting": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "connError": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "loading": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "problem": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "What went wrong in the last read (jiraBacklog.problem), except a refused connection, which the connection section explains."
+    },
+    "readAt": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "capped": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "drawerOpen": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "selected": {
+      "type": "any",
+      "defaultValue": {
+        "key": "",
+        "summary": "",
+        "status": "",
+        "ac": "",
+        "body": "",
+        "url": "",
+        "fdd": [],
+        "checks": [],
+        "gaps": [],
+        "comments": []
+      },
+      "description": "The story open in the drawer (a copy of its row)."
+    }
+  },
+  "chains": {},
+  "eventListeners": {
+    "vbBeforeEnter": {
+      "chains": [
+        {
+          "chain": "enforcePageAccessChain"
+        }
+      ]
+    },
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "loadJiraChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "spPrimaryAction": {
+      "chains": [
+        {
+          "chain": "loadJiraChain",
+          "parameters": {}
+        }
+      ],
+      "description": "Refresh: read the stories again."
+    },
+    "filterCriterionChanged": {
+      "chains": [
+        {
+          "chain": "filterChain",
+          "parameters": {
+            "criterion": "{{ $event.detail.value }}"
+          }
+        }
+      ]
+    },
+    "onPreset": {
+      "chains": [
+        {
+          "chain": "queryChain",
+          "parameters": {
+            "key": "{{ $event.currentTarget.dataset.key }}"
+          }
+        }
+      ]
+    },
+    "onRun": {
+      "chains": [
+        {
+          "chain": "queryChain",
+          "parameters": {
+            "key": ""
+          }
+        }
+      ]
+    },
+    "onConnect": {
+      "chains": [
+        {
+          "chain": "connectionChain",
+          "parameters": {
+            "act": "connect"
+          }
+        }
+      ]
+    },
+    "onDisconnect": {
+      "chains": [
+        {
+          "chain": "connectionChain",
+          "parameters": {
+            "act": "disconnect"
+          }
+        }
+      ]
+    },
+    "onFinding": {
+      "chains": [
+        {
+          "chain": "pickChain",
+          "parameters": {
+            "what": "finding",
+            "value": "{{ $event.currentTarget.dataset.index }}"
+          }
+        }
+      ]
+    },
+    "onCheck": {
+      "chains": [
+        {
+          "chain": "pickChain",
+          "parameters": {
+            "what": "check",
+            "value": "{{ $event.currentTarget.dataset.key }}"
+          }
+        }
+      ]
+    },
+    "onFdd": {
+      "chains": [
+        {
+          "chain": "pickChain",
+          "parameters": {
+            "what": "fdd",
+            "value": "{{ $event.currentTarget.dataset.section }}"
+          }
+        }
+      ]
+    },
+    "onClearPick": {
+      "chains": [
+        {
+          "chain": "pickChain",
+          "parameters": {
+            "what": "clear",
+            "value": ""
+          }
+        }
+      ]
+    },
+    "onRowAction": {
+      "chains": [
+        {
+          "chain": "openStoryChain",
+          "parameters": {
+            "key": "{{ $event.detail.context.key }}"
+          }
+        }
+      ]
+    },
+    "onCloseDrawer": {
+      "chains": [
+        {
+          "chain": "closeDrawerChain",
+          "parameters": {}
+        }
+      ]
+    },
+    "onExportXls": {
+      "chains": [
+        {
+          "chain": "exportChain",
+          "parameters": {
+            "format": "xls"
+          }
+        }
+      ]
+    },
+    "onExportCsv": {
+      "chains": [
+        {
+          "chain": "exportChain",
+          "parameters": {
+            "format": "csv"
+          }
+        }
+      ]
+    },
+    "onSprint": {
+      "chains": [
+        {
+          "chain": "pickChain",
+          "parameters": {
+            "what": "sprint",
+            "value": "{{ $event.currentTarget.dataset.sprint }}"
+          }
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-sp-smart-search-page": {
+        "path": "oj-sp/smart-search-page/loader"
+      },
+      "oj-sp-smart-search": {
+        "path": "oj-sp/smart-search/loader"
+      },
+      "oj-sp-collection-container": {
+        "path": "oj-sp/collection-container/loader"
+      },
+      "oj-sp-general-drawer-template": {
+        "path": "oj-sp/general-drawer-template/loader"
+      },
+      "oj-table": {
+        "path": "ojs/ojtable"
+      },
+      "oj-button": {
+        "path": "ojs/ojbutton"
+      },
+      "oj-input-text": {
+        "path": "ojs/ojinputtext"
+      },
+      "oj-input-password": {
+        "path": "ojs/ojinputtext"
+      },
+      "oj-form-layout": {
+        "path": "ojs/ojformlayout"
+      },
+      "oj-drawer-popup": {
+        "path": "ojs/ojdrawerpopup"
+      },
+      "oj-defer": {
+        "path": "ojs/ojdefer"
+      },
+      "oj-bind-if": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-for-each": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-text": {
+        "path": "ojs/ojknockout"
+      }
+    }
+  }
+}
