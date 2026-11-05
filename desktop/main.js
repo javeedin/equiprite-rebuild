@@ -1036,3 +1036,16 @@ app.on('will-quit', () => {
   try { globalShortcut.unregisterAll(); } catch (e) { /* not registered */ }
   if (evidenceStoreInst) evidenceStoreInst.closeAll();
 });
+
+// Record, with its technical trace (lib/testTrace.js): while a traced recording runs, every EquipRite window's console
+// errors and warnings, crashes and page changes go on its timeline (the web service calls come from lib/devserver.js).
+app.on('web-contents-created', (event, wc) => {
+  const TT = require('./lib/testTrace');
+  const tracing = () => !!(evidenceStoreInst && evidenceStoreInst.tracing());
+  const add = (entry) => { try { if (entry && tracing()) evidenceStoreInst.traceAdd(entry); } catch (e) { /* the trace is best effort */ } };
+  wc.on('console-message', (...args) => { if (tracing()) add(TT.consoleEntry(args, wc.isDestroyed() ? '' : wc.getURL())); });
+  wc.on('did-navigate', (e, url) => { if (tracing()) add(TT.pageEntry(url)); });
+  wc.on('did-navigate-in-page', (e, url, isMainFrame) => { if (isMainFrame && tracing()) add(TT.pageEntry(url)); });
+  wc.on('render-process-gone', (e, details) => add({ kind: 'console', t: Date.now(), level: 'error', message: 'The page stopped: ' + ((details && details.reason) || 'crashed'), source: '', line: 0, page: '' }));
+  wc.on('unresponsive', () => add({ kind: 'console', t: Date.now(), level: 'warning', message: 'The page stopped responding.', source: '', line: 0, page: '' }));
+});

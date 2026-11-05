@@ -284,7 +284,8 @@ async function waitKeys(page, n) {
     await settle(page, 600);
     const folder = path.join(evidenceDir, 'EQP-12');
     const files = fs.existsSync(folder) ? fs.readdirSync(folder).sort() : [];
-    T.check('Stop recording on the panel: the recording and the screenshot in the story\'s folder', files.length === 2 && files.some((f) => / recording\.(webm|mp4)$/.test(f))
+    T.check('Stop recording on the panel: the recording, its technical trace and the screenshot in the story\'s folder', files.length === 3 && files.some((f) => / recording\.(webm|mp4)$/.test(f))
+      && files.some((f) => / recording\.trace\.jsonl$/.test(f))
       && files.some((f) => / screenshot\.png$/.test(f)), files.join(' | '));
     T.check('the panel lists them, and where they are kept', (await page.$$('#jiraEvidence video')).length === 1 && (await page.$$('#jiraEvidence .jira-img img')).length === 1
       && (await env.text('#jiraEvidence')).includes('Kept in ' + folder) && (await page.evaluate(() => window.__rec)).slice(3).join(', ') === 'state false, window restore',
@@ -292,6 +293,14 @@ async function waitKeys(page, n) {
     await page.waitForFunction(() => { const v = document.querySelector('#jiraEvidence video'); return v && v.readyState >= 1; }, null, { timeout: 10000 }).catch(() => {});
     T.check('…the recording plays', await page.$eval('#jiraEvidence video', (v) => v.readyState >= 1 && v.src.includes('/__rec/file/EQP-12/')));
     await env.shot('old-jira-stories-evidence.png');
+    T.check('under the recording: its technical trace', /Technical trace · 0 calls/.test(await env.text('#jiraEvidence .jira-tracebtn')), await env.text('#jiraEvidence .jira-tracebtn'));
+    await page.click('#jiraEvidence .jira-tracebtn');
+    await page.waitForSelector('#eqrTrace', { timeout: 10000 });
+    T.check('…the viewer, the same as Next\'s: nothing failed, the screenshot on the timeline', (await env.text('#eqrTrOk')).startsWith('Nothing failed')
+      && (await page.$$eval('#eqrTrList .eqr-tr-row', (r) => r.map((x) => x.getAttribute('data-kind')))).join() === 'shot');
+    await page.keyboard.press('Escape');
+    await page.waitForSelector('#eqrTrace', { state: 'detached', timeout: 5000 }).catch(() => {});
+    T.check('…Escape closes it, the story stays open', !(await page.$('#eqrTrace')) && await page.isVisible('#jiraDrawerBody'));
     await page.keyboard.press('Escape');
     await page.waitForSelector('#jiraDrawerBody', { state: 'hidden', timeout: 5000 }).catch(() => {});
     T.check('Escape closes it', !(await page.isVisible('#jiraDrawerBody')));

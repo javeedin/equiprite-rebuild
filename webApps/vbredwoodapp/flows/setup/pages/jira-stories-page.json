@@ -529,7 +529,8 @@
         {
           "chain": "evidenceChain",
           "parameters": {
-            "act": "{{ $event.currentTarget.dataset.act }}"
+            "act": "{{ $event.currentTarget.dataset.act }}",
+            "name": "{{ $event.currentTarget.dataset.name || '' }}"
           }
         }
       ]

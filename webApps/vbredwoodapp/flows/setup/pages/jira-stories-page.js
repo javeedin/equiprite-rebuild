@@ -30,6 +30,13 @@ define(['resources/js/jiraBacklog', 'resources/js/testRecorder'], function (J, R
     /** The open story's recordings and screenshots, and how each is labelled ("2026-11-05 14:03 · 12.4 MB"). */
     videos(ev) { return ((ev && ev.items) || NONE).filter(function (x) { return x.kind === 'video'; }); }
     shots(ev) { return ((ev && ev.items) || NONE).filter(function (x) { return x.kind === 'image'; }); }
+    /** A recording's technical trace, on its button: "Technical trace · 23 calls · 2 failed · broke at 00:42". */
+    traceText(t) {
+      if (!t) return '';
+      return ['Technical trace', t.calls + (t.calls === 1 ? ' call' : ' calls'), t.failed ? t.failed + ' failed' : '',
+        t.errors ? t.errors + (t.errors === 1 ? ' console error' : ' console errors') : '', t.first ? 'broke at ' + t.first.at : ''].filter(function (x) { return !!x; }).join(' · ');
+    }
+    traceClass(t) { return 'jira-tracebtn' + (t && (t.failed || t.errors) ? ' jira-tracebtn--bad' : ''); }
     evidenceText(x) {
       if (!x) return '';
       var m = /(\d{4}-\d{2}-\d{2}) (\d{2})-(\d{2})/.exec(x.name || '');

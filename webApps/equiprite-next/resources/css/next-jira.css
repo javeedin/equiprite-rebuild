@@ -182,3 +182,7 @@ html[data-nx-look="redwood"] .nx-jira .nx-jira-tr--on { box-shadow: inset 3px 0 
 .nx-jsp .nx-jsp-tojira { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 4px; color: var(--nx-muted); text-decoration: none; font-size: 14px; }
 .nx-jsp .nx-jsp-tojira:hover, .nx-jsp .nx-jsp-tojira:focus-visible { background: var(--nx-accent-soft); color: var(--nx-accent); }
 .nx-jsp .nx-jsp-row { grid-template-columns: 104px minmax(0, 3fr) 120px 170px minmax(0, 1.2fr) 96px 96px; }
+
+/* A recording's technical trace (its web service calls, JSON and errors): the button under the video */
+.nx-jira-dr .nx-jira-tracebtn { align-self: flex-start; font-weight: 700; }
+.nx-jira-dr .nx-jira-tracebtn--bad { color: #b91c1c; border-color: #fca5a5; background: #fef2f2; }

@@ -10,8 +10,9 @@ define([
   //   record   the picker, then a recording of the screen or window chosen (the bar: time, Screenshot, Stop)
   //   shot     the picker, then one screenshot (while recording: a screenshot of the recording)
   //   folder   its folder, in the file manager
+  //   trace    a recording's technical trace (name): the video beside its web service calls, JSON and errors
   class evidenceChain extends ActionChain {
-    async run(context, { act }) {
+    async run(context, { act, name }) {
       const v = context.$page.variables;
       const key = v.selKey;
       const ev = JSON.parse(JSON.stringify(v.evidence || {}));
@@ -25,6 +26,9 @@ define([
           await R.stop();
         } else if (act === 'folder') {
           await R.reveal(key);
+          return;
+        } else if (act === 'trace') {
+          await R.openTrace(key, name);
           return;
         }
       } catch (e) {

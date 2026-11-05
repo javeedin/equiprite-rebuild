@@ -30,6 +30,7 @@ const fs = require('fs');
 const http = require('http');
 const https = require('https');
 const path = require('path');
+const TT = require('./testTrace');
 const { buildCatalog } = require('./catalog');
 const { isLoopback, pairCheck, appIntent, NOT_PAIRED_HTML, APK_PATH } = require('./phone');
 
@@ -58,6 +59,9 @@ const TYPES = {
 const HOP_BY_HOP = ['connection', 'keep-alive', 'proxy-connection', 'transfer-encoding', 'upgrade', 'te', 'trailer'];
 const ROLES_REPORT = '/Custom/EquipRite/ROLES_RP.xdo';
 const MAX_BODY = 100 * 1024 * 1024;
+// The technical trace of a recorded test: how much of an answer is kept (lib/testTrace.js cuts what it shows further).
+const TRACE_RAW_MAX = 4 * 1024 * 1024;
+const APP_NAMES = { vbredwoodapp: 'Old', equiprite: 'New', 'equiprite-next': 'Next', 'equiprite-mobile': 'Mobile', 'equiprite-future': 'Future' };
 const BACKEND_TIMEOUT_MS = 120000;
 
 /** The role codes the app knows (app-flow.js persona map), offered when picking roles by hand. */
@@ -310,6 +314,21 @@ function createDevServer(o) {
     }
     if (jira) headers.authorization = jira.header;
 
+    // Record on a Jira story, with its technical trace (lib/testTrace.js): while a traced recording runs, each call is
+    // kept with what was sent and answered (secrets masked). Not Jira's own calls: they are the test tool's, not the app's.
+    const rs = o.recStore;
+    const tracing = !!(rs && rs.tracing && rs.tracing() && name !== 'jira');
+    const resChunks = [];
+    let resSize = 0;
+    const trace = (status, resHeaders, error) => {
+      if (!tracing) return;
+      try {
+        rs.traceAdd(TT.callEntry({ t: started, app: APP_NAMES[o.webApp] || o.webApp, method: req.method, service: name, path: `${rest}${search}`, url: target.href, status,
+          ms: Date.now() - started, error, reqHeaders: req.headers, reqBody: TT.bodyText(body, req.headers), resHeaders,
+          resBody: resHeaders ? TT.bodyText(Buffer.concat(resChunks), resHeaders) : '' }));
+      } catch (e) { log(`trace: ${e.message}`); }
+    };
+
     await new Promise((resolve) => {
       const mod = target.protocol === 'https:' ? https : http;
       const preq = mod.request(target, { method: req.method, headers, timeout: BACKEND_TIMEOUT_MS }, (pres) => {
@@ -318,7 +337,9 @@ function createDevServer(o) {
         ['www-authenticate', 'set-cookie', ...HOP_BY_HOP].forEach((h) => delete out[h]);
         res.writeHead(pres.statusCode || 502, out);
         pres.pipe(res);
+        if (tracing) pres.on('data', (c) => { if (resSize < TRACE_RAW_MAX) { resChunks.push(c); resSize += c.length; } });
         pres.on('end', () => {
+          trace(pres.statusCode, pres.headers);
           const refused = usesFusionLogin && (pres.statusCode === 401 || pres.statusCode === 403);
           let note = '';
           if (refused && !headers.authorization) {
@@ -339,6 +360,7 @@ function createDevServer(o) {
       preq.on('timeout', () => preq.destroy(new Error(`no answer in ${BACKEND_TIMEOUT_MS / 1000}s`)));
       preq.on('error', (e) => {
         log(`${label} -> FAILED: ${e.message} (${target.origin})`);
+        trace(0, null, e.message);
         problem({ kind: 'unreachable', host: target.origin, error: e.message });
         if (!res.headersSent) {
           send(res, 502, 'application/json', JSON.stringify({ error: `EquipRite local server could not reach ${name} at ${target.origin}: ${e.message}` }));
@@ -518,6 +540,19 @@ function createDevServer(o) {
           fs.createReadStream(file).pipe(res);
           return undefined;
         }
+        // The technical trace of a recording: its timeline (the viewer), as a HAR file, and the failure in words.
+        const traceMatch = /^\/__rec\/(trace|har|report)\/([^/]+)\/([^/]+)$/.exec(pathname);
+        if (req.method === 'GET' && traceMatch) {
+          const key = decodeURIComponent(traceMatch[2]);
+          const nm = decodeURIComponent(traceMatch[3]);
+          if (traceMatch[1] === 'trace') { const tr = rs.trace(key, nm); return tr ? json(200, tr) : json(404, { error: 'No trace for this recording.' }); }
+          if (traceMatch[1] === 'report') { const txt = rs.report(key, nm); return txt ? send(res, 200, 'text/plain; charset=utf-8', txt) : send(res, 404, 'text/plain; charset=utf-8', 'No trace'); }
+          const har = rs.har(key, nm);
+          if (!har) return json(404, { error: 'No trace for this recording.' });
+          const file = `${key} ${nm.replace(/\.[a-z0-9]+$/i, '')}.har`.replace(/[^\w .()-]/g, '_');
+          return send(res, 200, 'application/json', JSON.stringify(har, null, 1), { 'Content-Disposition': `attachment; filename="${file}"`, 'Cache-Control': 'no-store' });
+        }
+        if (req.method === 'GET' && pathname === '/__rec/status') { return json(200, rs.status(q('id')) || { error: 'No recording in progress.' }); }
         if (req.method === 'GET' && pathname === '/__rec/info') return json(200, { available: true, dir: rs.dir });
         if (req.method === 'GET' && pathname === '/__rec/list') {
           try { return json(200, rs.list(q('key'))); } catch (e) { return json(200, { error: e.message }); }
@@ -528,7 +563,11 @@ function createDevServer(o) {
         }
         (async () => {
           if (req.method !== 'POST') return json(404, { error: 'Not found' });
-          if (pathname === '/__rec/start') return json(200, rs.start(q('key'), q('ext')));
+          if (pathname === '/__rec/start') {
+            const st = rs.start(q('key'), q('ext'), { trace: q('trace') === '1' });
+            log(`Recording ${q('key')}${st.trace ? ' with its technical trace (web service calls, console errors)' : ''}: ${st.name}`);
+            return json(200, st);
+          }
           if (pathname === '/__rec/chunk') return json(200, rs.chunk(q('id'), await readBody(req)));
           if (pathname === '/__rec/finish') {
             const item = rs.finish(q('id'));

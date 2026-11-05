@@ -153,6 +153,8 @@
   .jira-ev-vid video { width: 100%; max-height: 320px; background: #111; border-radius: 6px; }
   .jira-ev-vid figcaption, .jira-ev-folder { font-size: 0.6875rem; overflow-wrap: anywhere; }
   .jira-ev-error { color: var(--oj-core-danger-text-color, #b3261e); font-weight: 600; }
+  .jira-tracebtn { align-self: flex-start; }
+  .jira-tracebtn--bad { --oj-button-outlined-chrome-text-color: var(--oj-core-danger-text-color, #b3261e); color: var(--oj-core-danger-text-color, #b3261e); }
   .jira-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px 20px; margin-bottom: 8px; }
   .jira-fact-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--oj-core-text-color-secondary, #565656); }
   .jira-fact-value { font-size: 0.875rem; }
@@ -617,7 +619,11 @@
               <oj-bind-for-each data="[[ $functions.videos($variables.evidence) ]]">
                 <template data-oj-as="vd">
                   <figure class="jira-ev-vid"><video controls preload="metadata" :src="[[ vd.data.url ]]" :title="[[ vd.data.name ]]"></video>
-                    <figcaption><oj-bind-text value="[[ 'Recording · ' + $functions.evidenceText(vd.data) ]]"></oj-bind-text></figcaption></figure>
+                    <figcaption><oj-bind-text value="[[ 'Recording · ' + $functions.evidenceText(vd.data) ]]"></oj-bind-text></figcaption>
+                    <oj-bind-if test="[[ !!vd.data.trace ]]">
+                      <oj-button chroming="outlined" :class="[[ $functions.traceClass(vd.data.trace) ]]" data-act="trace" :data-name="[[ vd.data.name ]]" on-oj-action="[[ $listeners.onEvidence ]]"
+                        title="The web service calls, the JSON sent and answered, the console errors: in step with the video"><oj-bind-text value="[[ '🔍 ' + $functions.traceText(vd.data.trace) ]]"></oj-bind-text></oj-button>
+                    </oj-bind-if></figure>
                 </template>
               </oj-bind-for-each>
             </div>

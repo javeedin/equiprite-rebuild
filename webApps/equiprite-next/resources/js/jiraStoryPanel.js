@@ -7,7 +7,7 @@ define(['resources/js/jiraBacklog'], (J) => {
   // None uses `this`: a binding may call a function detached.
   //
   //   helpers          item, drawerOpen, drawerTitle, drawerSub, facts, scoreText, acList, imageUrl, imageNote,
-  //                    imageFiles, otherFiles, videos, shots, evidenceText
+  //                    imageFiles, otherFiles, videos, shots, evidenceText, traceText, traceClass
   //   closeOnEscape()  Escape closes an open item's drawer by its own Close button (once for the app)
 
   const EMPTY = { key: '', summary: '', fdd: [], checks: [], gaps: [], comments: [], labels: [], attachments: [], bodyImages: [] };
@@ -51,6 +51,13 @@ define(['resources/js/jiraBacklog'], (J) => {
     /** The open item's recordings and screenshots (resources/js/testRecorder.js). */
     videos(ev) { return ((ev && ev.items) || []).filter((x) => x.kind === 'video'); },
     shots(ev) { return ((ev && ev.items) || []).filter((x) => x.kind === 'image'); },
+    /** A recording's technical trace, on its button: "Technical trace · 23 calls · 2 failed · broke at 00:42". */
+    traceText(t) {
+      if (!t) return '';
+      return ['Technical trace', t.calls + (t.calls === 1 ? ' call' : ' calls'), t.failed ? t.failed + ' failed' : '',
+        t.errors ? t.errors + (t.errors === 1 ? ' console error' : ' console errors') : '', t.first ? 'broke at ' + t.first.at : ''].filter((x) => !!x).join(' · ');
+    },
+    traceClass(t) { return 'nx-btn nx-btn--sm nx-jira-tracebtn' + (t && (t.failed || t.errors) ? ' nx-jira-tracebtn--bad' : ''); },
     /** "2026-11-05 14:03 · 12.4 MB". */
     evidenceText(x) {
       if (!x) return '';
@@ -69,7 +76,8 @@ define(['resources/js/jiraBacklog'], (J) => {
     escBound = true;
     const sel = DRAWERS.map((d) => d + ' button[aria-label^="Close"]').join(', ');
     document.addEventListener('keydown', (e) => {
-      if (e.key !== 'Escape' || document.getElementById('eqrRecPicker')) return; // the recorder's picker closes first
+      // the recorder's picker or a recording's technical trace closes first
+      if (e.key !== 'Escape' || document.getElementById('eqrRecPicker') || document.getElementById('eqrTrace')) return;
       const close = [...document.querySelectorAll(sel)].filter((n) => n.getClientRects().length)[0];
       if (close) { e.stopPropagation(); e.preventDefault(); close.click(); }
     }, true);

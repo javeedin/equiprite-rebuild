@@ -260,7 +260,11 @@
               <oj-bind-for-each data="[[ $functions.videos($variables.evidence) ]]">
                 <template data-oj-as="vd">
                   <figure class="nx-jira-evvid"><video controls preload="metadata" :src="[[ vd.data.url ]]" :title="[[ vd.data.name ]]"></video>
-                    <figcaption><oj-bind-text value="[[ 'Recording · ' + $functions.evidenceText(vd.data) ]]"></oj-bind-text></figcaption></figure>
+                    <figcaption><oj-bind-text value="[[ 'Recording · ' + $functions.evidenceText(vd.data) ]]"></oj-bind-text></figcaption>
+                    <oj-bind-if test="[[ !!vd.data.trace ]]">
+                      <button type="button" :class="[[ $functions.traceClass(vd.data.trace) ]]" data-act="trace" :data-name="[[ vd.data.name ]]" on-click="[[ $listeners.onEvidence ]]"
+                        title="The web service calls, the JSON sent and answered, the console errors: in step with the video">🔍 <oj-bind-text value="[[ $functions.traceText(vd.data.trace) ]]"></oj-bind-text></button>
+                    </oj-bind-if></figure>
                 </template>
               </oj-bind-for-each>
             </div>

@@ -53,6 +53,8 @@ let searches = [];
 let imageReads = [];
 
 function handle(req, res) {
+  // A save that fails, as the technical trace of a recorded test should show it.
+  if (req.method === 'POST' && req.path === '/equipmentRequests') return res.json({ error: 'ORA-01400: cannot insert NULL into ("EQP"."REQUESTS"."REQUEST_TYPE")' }, 500);
   if (req.path === '/rest/api/2/myself') {
     return req.auth ? res.json({ accountId: '712020:9b82', displayName: 'Javeed Shaik', emailAddress: 'javeed@equiprite.com' }) : res.json({ errorMessages: ['Unauthorized'] }, 401);
   }
@@ -261,6 +263,7 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     T.eq('the picker: screens first, then windows; the screen chosen; minimise EquipRite ticked', [(await texts(page, '#eqrRecPicker .eqr-rec-src')).join(' | '),
       await page.getAttribute('#eqrRecPicker .eqr-rec-src[aria-pressed="true"]', 'data-id'), await page.isChecked('#eqrRecMinimize')].join(' / '),
     'Screen · Entire screen | Fusion - Oracle Applications / screen:1:0 / true');
+    T.check('…and the technical trace ticked (web service calls, JSON, errors)', await page.isChecked('#eqrRecTrace'));
     await env.shot('next-jira-record-picker.png');
     await page.click('#eqrRecPicker .eqr-rec-src[data-id="window:42:0"]');
     await page.click('#eqrRecGo');
@@ -269,6 +272,13 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     T.eq('recording the window chosen; the shortcuts on; EquipRite minimised', (await page.evaluate(() => window.__rec)).join(', '), 'use window:42:0, state true, window minimize');
     T.check('the bar: the time, Screenshot, Stop, the shortcuts; the panel says Stop recording', (await text(page, '#eqrRecBar')).includes('EQP-12')
       && (await text(page, '#eqrRecBar')).includes('Ctrl+Alt+S · Ctrl+Alt+X') && !(await page.$('#jiraRecord')));
+    // the app at work while it records: a list read, then a save the server refuses
+    await page.evaluate(async () => {
+      await fetch('/__backend/eqpt/equipment?limit=5');
+      await fetch('/__backend/eqpt/equipmentRequests', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ requestNumber: 'R-9', requestType: null }) });
+    });
+    await page.waitForFunction(() => /2 calls · ⚠ 1 failed/.test((document.querySelector('#eqrRecCalls') || {}).textContent || ''), null, { timeout: 10000 }).catch(() => {});
+    T.eq('the bar counts the calls as they happen, and the failure', await text(page, '#eqrRecCalls'), '2 calls · ⚠ 1 failed');
     await page.waitForFunction(() => /00:0[2-9]/.test((document.querySelector('#eqrRecTime') || {}).textContent || ''), null, { timeout: 10000 });
     await page.click('#eqrRecShot');
     await page.waitForFunction(() => /Screenshot 1 saved/.test((document.querySelector('#eqrRecBar') || {}).textContent || ''), null, { timeout: 10000 });
@@ -286,8 +296,8 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     await settle(page, 600);
     T.eq('stopped: shortcuts off, EquipRite back', (await page.evaluate(() => window.__rec)).slice(3).join(', '), 'state false, window restore');
     const files = fs.readdirSync(folder).sort();
-    T.check('in the story\'s folder: the recording and the two screenshots', files.length === 3 && files.filter((f) => / screenshot( \(2\))?\.png$/.test(f)).length === 2
-      && files.some((f) => / recording\.(webm|mp4)$/.test(f)), files.join(' | '));
+    T.check('in the story\'s folder: the recording, its technical trace and the two screenshots', files.length === 4 && files.filter((f) => / screenshot( \(2\))?\.png$/.test(f)).length === 2
+      && files.some((f) => / recording\.(webm|mp4)$/.test(f)) && files.some((f) => / recording\.trace\.jsonl$/.test(f)), files.join(' | '));
     T.check('…the screenshots are pictures of the screen', files.filter((f) => f.endsWith('.png')).every((f) => fs.readFileSync(path.join(folder, f)).subarray(1, 4).toString() === 'PNG'));
     T.check('the panel lists them: the recording to play, the screenshots as thumbnails, where they are kept', (await page.$$('#jiraEvidence video')).length === 1
       && (await page.$$('#jiraEvidence .nx-jira-img img')).length === 2 && (await text(page, '#jiraEvidence')).includes('Kept in ' + folder)
@@ -305,8 +315,50 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     T.check('Screenshot alone: the picker, without Minimise', await page.isVisible('#eqrRecGo') && !(await page.$('#eqrRecMinimize')));
     await page.click('#eqrRecGo');
     await page.waitForFunction(() => document.querySelectorAll('#jiraEvidence .nx-jira-img img').length === 3, null, { timeout: 10000 }).catch(() => {});
-    T.check('…saved and listed, the screen let go', (await page.$$('#jiraEvidence .nx-jira-img img')).length === 3 && fs.readdirSync(folder).length === 4);
+    T.check('…saved and listed, the screen let go', (await page.$$('#jiraEvidence .nx-jira-img img')).length === 3 && fs.readdirSync(folder).length === 5);
     await env.shot('next-jira-evidence.png');
+
+    T.section('the recording\'s technical trace: what happened underneath, in step with the video');
+    T.check('under the recording: its trace, where it broke, in red', /^🔍 Technical trace · 2 calls · 1 failed · broke at 00:0\d$/.test(await text(page, '#jiraEvidence .nx-jira-tracebtn'))
+      && (await page.getAttribute('#jiraEvidence .nx-jira-tracebtn', 'class')).includes('nx-jira-tracebtn--bad'), await text(page, '#jiraEvidence .nx-jira-tracebtn'));
+    await page.context().grantPermissions(['clipboard-read', 'clipboard-write'], { origin: env.nextUrl });
+    await page.click('#jiraEvidence .nx-jira-tracebtn');
+    await page.waitForSelector('#eqrTrace', { timeout: 10000 });
+    T.check('the viewer: the video beside the timeline, what it holds', await page.isVisible('#eqrTrVideo') && (await text(page, '#eqrTrSum')).startsWith('2 web service calls · 1 failed')
+      && (await text(page, '#eqrTrSum')).includes('2 screenshots'), await text(page, '#eqrTrSum'));
+    T.eq('the timeline, in order: the list read, the save, the two screenshots taken while recording', (await page.$$eval('#eqrTrList .eqr-tr-row', (r) => r.map((x) => x.getAttribute('data-kind')))).join(),
+      'call,call,shot,shot');
+    T.check('…each call: its moment, method, service and path, status, time', /^00:0\d GET eqpt \/equipment\?limit=5 200 \d+ ms$/.test((await texts(page, '#eqrTrList .eqr-tr-row'))[0]),
+      (await texts(page, '#eqrTrList .eqr-tr-row'))[0]);
+    T.check('where it broke, said at the top', /^⚠ Where it broke · 00:0\d · POST eqpt \/equipmentRequests → 500$/.test(await text(page, '#eqrTrBroke')), await text(page, '#eqrTrBroke'));
+    await page.waitForFunction(() => document.querySelector('#eqrTrVideo').readyState >= 1, null, { timeout: 10000 }).catch(() => {});
+    await page.click('#eqrTrBroke');
+    await settle(page, 400);
+    T.check('…it opens the failed call: the URL, the JSON sent, the server\'s answer', (await text(page, '#eqrTrDHead')).startsWith('POST http://127.0.0.1:')
+      && (await text(page, '#eqrTrDHead')).includes('/equipmentRequests → 500') && (await text(page, '#eqrTrDetail')).includes('"requestNumber": "R-9"')
+      && (await text(page, '#eqrTrAnswer')).includes('ORA-01400'), await text(page, '#eqrTrDetail'));
+    T.check('…and the video moves to that moment', await page.$eval('#eqrTrVideo', (v) => v.currentTime > 0 || v.duration === Infinity));
+    await page.click('.eqr-tr-chip[data-filter="failed"]');
+    T.eq('Failed: only the failed call', (await page.$$eval('#eqrTrList .eqr-tr-row', (r) => r.filter((x) => !x.hidden).length)), 1);
+    await page.click('.eqr-tr-chip[data-filter="all"]');
+    await page.fill('#eqrTrSearch', 'limit=5');
+    T.eq('find: in URLs and JSON', (await page.$$eval('#eqrTrList .eqr-tr-row', (r) => r.filter((x) => !x.hidden).map((x) => x.getAttribute('data-kind')))).join(), 'call');
+    await page.fill('#eqrTrSearch', '');
+    T.check('the HAR file, to download', (await page.getAttribute('#eqrTrHar', 'href')).startsWith('/__rec/har/EQP-12/'));
+    const [harDl] = await Promise.all([page.waitForEvent('download'), page.click('#eqrTrHar')]);
+    const harFile = path.join(dir, harDl.suggestedFilename());
+    await harDl.saveAs(harFile);
+    T.check('…opens in Chrome DevTools (HAR 1.2, the two calls)', /^EQP-12 .* recording\.har$/.test(harDl.suggestedFilename()) && JSON.parse(fs.readFileSync(harFile, 'utf8')).log.entries.length === 2);
+    await page.click('#eqrTrCopy');
+    await page.waitForFunction(() => /Copied/.test((document.querySelector('#eqrTrCopy') || {}).textContent || ''), null, { timeout: 10000 }).catch(() => {});
+    const report = await page.evaluate(() => navigator.clipboard.readText()).catch(() => '');
+    T.check('Copy bug report: what failed, what was sent and answered, ready for Jira', report.startsWith('Tested EQP-12') && report.includes('What failed')
+      && report.includes('POST http://127.0.0.1:') && report.includes('ORA-01400') && report.includes('Calls: 2 (1 failed)'), report.slice(0, 300));
+    await page.click('#eqrTrBroke');
+    await env.shot('next-jira-trace.png');
+    await page.keyboard.press('Escape');
+    await page.waitForSelector('#eqrTrace', { state: 'detached', timeout: 5000 }).catch(() => {});
+    T.check('Escape closes the trace, not the story', !(await page.$('#eqrTrace')) && await page.isVisible('#jiraItem'));
     T.eq('no browser errors while recording', errs().join(' | ').slice(0, 1500), '');
     await page.keyboard.press('Escape');
     await page.waitForSelector('#jiraItem', { state: 'hidden', timeout: 5000 }).catch(() => {});
