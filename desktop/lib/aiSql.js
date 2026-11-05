@@ -299,6 +299,9 @@ async function open(opts) {
       write(d);
       return { saved: p.id, keptIn: o.encrypt ? 'keychain' : 'this run' };
     },
+    // Desktop-internal only (never wired to a page): a stored secret, so another desktop feature can reuse a key the
+    // person already set here — e.g. the OpenAI key for transcribing a recording (lib/transcribe.js).
+    secretFor(id, field) { try { return full(id)[field || 'key'] || ''; } catch (e) { return ''; } },
     forget(id) {
       const d = read();
       delete d.providers[id];

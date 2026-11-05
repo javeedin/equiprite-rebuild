@@ -31,11 +31,18 @@
  *   trace(key, name)            → { key, name, start, folder, video, entries (each with offset, ms into the video), summary }
  *   har(key, name), report(key, name)   the calls as a HAR file; the failure in words
  * A recording's item then also has trace: { calls, failed, errors, first, url, har }.
+ *
+ * The transcript (lib/transcribe.js): the voice in a recording, turned to text with timestamps, kept next to it
+ * ("… recording.transcript.json"), so it reads in step with the video:
+ *   saveTranscript(key, name, data)  → the recording's item (now with transcript)
+ *   transcript(key, name)            → { key, name, video, engine, lang, model, segments: [{ start, end, text }] }
+ * A recording's item then also has transcript: { segments, lang, engine, url, srt, txt }.
  */
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const TT = require('./testTrace');
+const TX = require('./transcribe');
 
 const KEY = /^[A-Z][A-Z0-9_]{0,19}-\d{1,7}$/;
 const VIDEO = /\.(webm|mp4|mkv)$/i;
@@ -43,6 +50,7 @@ const IMAGE = /\.(png|jpe?g|webp)$/i;
 const MAX_CHUNK = 64 * 1024 * 1024;
 const MAX_TRACE = 64 * 1024 * 1024;
 const traceName = (video) => String(video).replace(/\.[a-z0-9]+$/i, '') + '.trace.jsonl';
+const transcriptName = (video) => String(video).replace(/\.[a-z0-9]+$/i, '') + '.transcript.json';
 
 function pad(n) { return (n < 10 ? '0' : '') + n; }
 function stamp(d) {
@@ -73,16 +81,25 @@ function open(o) {
     const entries = all.filter((e) => e.kind !== 'start' && e.kind !== 'end').map((e) => Object.assign(e, { offset: Math.max(0, (e.t || 0) - (head.t || 0)) }));
     return { start: head.t || 0, entries, ended: all.some((e) => e.kind === 'end') };
   };
+  const readTranscript = (file) => {
+    if (!fs.existsSync(file)) return null;
+    try { const t = JSON.parse(fs.readFileSync(file, 'utf8')); return (t && Array.isArray(t.segments)) ? t : null; } catch (e) { return null; }
+  };
   const item = (key, name) => {
     const st = fs.statSync(path.join(folder(key), name));
     const it = { name, kind: VIDEO.test(name) ? 'video' : 'image', size: st.size, created: st.mtime.toISOString(),
       url: `/__rec/file/${encodeURIComponent(key)}/${encodeURIComponent(name)}` };
     if (it.kind === 'video') {
+      const q = `${encodeURIComponent(key)}/${encodeURIComponent(name)}`;
       const tr = readTrace(path.join(folder(key), traceName(name)));
       if (tr) {
         const s = TT.summary(tr.entries);
-        const q = `${encodeURIComponent(key)}/${encodeURIComponent(name)}`;
         it.trace = { calls: s.calls, failed: s.failed, errors: s.errors, console: s.console, pages: s.pages, first: s.first, url: `/__rec/trace/${q}`, har: `/__rec/har/${q}` };
+      }
+      const tx = readTranscript(path.join(folder(key), transcriptName(name)));
+      if (tx) {
+        it.transcript = { segments: (tx.segments || []).length, lang: tx.lang || '', engine: tx.engine || '', url: `/__rec/transcript/${q}`,
+          srt: `/__rec/transcript.srt/${q}`, txt: `/__rec/transcript.txt/${q}` };
       }
     }
     return it;
@@ -204,8 +221,9 @@ function open(o) {
       const p = this.file(key, name);
       if (!p) return { ok: false };
       fs.unlinkSync(p);
-      const t = path.join(path.dirname(p), traceName(path.basename(p)));
-      if (VIDEO.test(p) && fs.existsSync(t)) fs.unlinkSync(t);
+      if (VIDEO.test(p)) {
+        [traceName(path.basename(p)), transcriptName(path.basename(p))].forEach((n) => { const x = path.join(path.dirname(p), n); if (fs.existsSync(x)) fs.unlinkSync(x); });
+      }
       return { ok: true };
     },
     trace(key, name) {
@@ -218,6 +236,25 @@ function open(o) {
     },
     har(key, name) { const tr = this.trace(key, name); return tr ? TT.toHar(tr) : null; },
     report(key, name) { const tr = this.trace(key, name); return tr ? TT.bugReport(tr, tr.folder) : ''; },
+    /** Save a recording's transcript (lib/transcribe.js: engine, lang, segments), next to it; returns its item. */
+    saveTranscript(key, name, data) {
+      const p = this.file(key, name);
+      if (!p || !VIDEO.test(p)) throw new Error('No such recording.');
+      const d = data || {};
+      const body = { engine: d.engine || '', model: d.model || '', lang: d.lang || '', createdAt: now().toISOString(), segments: Array.isArray(d.segments) ? d.segments : [] };
+      fs.writeFileSync(path.join(path.dirname(p), transcriptName(path.basename(p))), JSON.stringify(body));
+      return item(key, path.basename(p));
+    },
+    /** A recording's transcript, for the viewer: its segments, with the video. */
+    transcript(key, name) {
+      const p = this.file(key, name);
+      if (!p || !VIDEO.test(p)) return null;
+      const tx = readTranscript(path.join(path.dirname(p), transcriptName(path.basename(p))));
+      if (!tx) return null;
+      return { key, name, video: item(key, path.basename(p)), engine: tx.engine || '', lang: tx.lang || '', model: tx.model || '', segments: tx.segments || [] };
+    },
+    transcriptText(key, name) { const t = this.transcript(key, name); return t ? TX.toText(t.segments) : ''; },
+    transcriptSrt(key, name) { const t = this.transcript(key, name); return t ? TX.toSrt(t.segments) : ''; },
     /** Recordings still open when the app quits are closed as they are (what was written stays playable). */
     closeAll() {
       for (const [id, r] of live) {

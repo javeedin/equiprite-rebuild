@@ -27,7 +27,7 @@ define([], function () {
   // in a browser there is no folder to keep it in, and available() says so.
 
   var CHUNK_MS = 3000;
-  var MIMES = ['video/mp4;codecs=avc1', 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
+  var MIMES = ['video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4;codecs=avc1', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm;codecs=opus', 'video/webm'];
   var listeners = {};
   var rec = null; // { key, id, stream, recorder, video, queue, started, shots, timer, bar, keys }
 
@@ -146,7 +146,12 @@ define([], function () {
     '.eqr-tr-apirow{display:grid;grid-template-columns:62px minmax(0,1fr) 52px;gap:8px;align-items:center;width:100%;padding:8px 12px;border:0;border-bottom:1px solid #f1f5f9;background:#fff;font:inherit;text-align:left;cursor:pointer;color:inherit}',
     '.eqr-tr-apirow:hover{background:#f8fafc}.eqr-tr-apimain{overflow:hidden;display:flex;flex-direction:column;gap:2px}',
     '.eqr-tr-apiep{font-weight:700;word-break:break-all}.eqr-tr-apimeta{font-size:11px;color:#6b7280}',
-    '@media (max-width:900px){.eqr-tr-body{grid-template-columns:1fr;overflow:auto}.eqr-tr-left{border-right:0}.eqr-tr-left video{max-height:240px}}'
+    // the transcript: the video beside its lines
+    '#eqrTx .eqr-tr-left video{max-height:100%}',
+    '.eqr-tx-row{display:grid;grid-template-columns:52px minmax(0,1fr);gap:8px;align-items:start;width:100%;padding:7px 12px;border:0;border-bottom:1px solid #f1f5f9;background:#fff;font:inherit;text-align:left;cursor:pointer;color:inherit}',
+    '.eqr-tx-row:hover{background:#f8fafc}.eqr-tx-row--now{background:#dbeafe}.eqr-tx-row--now .eqr-tx-text{font-weight:700}',
+    '.eqr-tx-text{white-space:normal;line-height:1.5;word-break:break-word}',
+    '@media (max-width:900px){.eqr-tr-body{grid-template-columns:1fr;overflow:auto}.eqr-tr-left{border-right:0}.eqr-tr-left video{max-height:240px}#eqrTx .eqr-tr-left video{max-height:240px}}'
   ].join('');
   function styleOnce() {
     if (document.getElementById('eqrRecStyle')) return;
@@ -201,8 +206,14 @@ define([], function () {
       tr.checked = true;
       traceLabel.appendChild(tr);
       traceLabel.appendChild(document.createTextNode(' Keep the technical trace (web service calls, JSON, errors)'));
+      var micLabel = el('label', { title: 'Your microphone is recorded with the video, so you can talk through the test. Afterwards you can turn the talking into a written transcript with Whisper.' });
+      var mic = el('input', { type: 'checkbox', id: 'eqrRecMic' });
+      mic.checked = true;
+      micLabel.appendChild(mic);
+      micLabel.appendChild(document.createTextNode(' Record my voice (narration) — you can make a transcript later'));
       var opts = el('div', { class: 'eqr-rec-opts' });
       opts.appendChild(minLabel);
+      opts.appendChild(micLabel);
       opts.appendChild(traceLabel);
       if (mode !== 'shot') row.appendChild(opts); else row.appendChild(el('span', {}));
       var btns = el('div', {});
@@ -220,14 +231,44 @@ define([], function () {
       var esc = function (e) { if (e.key === 'Escape') { e.stopPropagation(); done(null); } };
       document.addEventListener('keydown', esc, true);
       cancel.addEventListener('click', function () { done(null); });
-      go.addEventListener('click', function () { done({ id: chosen, minimize: min.checked, trace: tr.checked }); });
+      go.addEventListener('click', function () { done({ id: chosen, minimize: min.checked, trace: tr.checked, mic: mic.checked }); });
       go.focus();
     });
   }
 
-  async function stream(sourceId) {
+  // The stream recorded: the chosen screen or window, and (for a recording, when asked) the microphone mixed in, so a
+  // test can be talked through. If the OS also hands over system audio, it is mixed too. Everything underlying is kept on
+  // the returned stream (__extra, __ctx) so it can be stopped when the recording ends.
+  async function stream(sourceId, withMic) {
     await desk().recordUse(sourceId);
-    return navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 15 }, audio: false });
+    var disp = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 15 }, audio: true });
+    var mic = null;
+    if (withMic && navigator.mediaDevices.getUserMedia) {
+      try { mic = await navigator.mediaDevices.getUserMedia({ audio: true, video: false }); } catch (e) { mic = null; }
+    }
+    var audioStreams = [disp].concat(mic ? [mic] : []).filter(function (s) { return s.getAudioTracks().length; });
+    var out = new MediaStream();
+    disp.getVideoTracks().forEach(function (t) { out.addTrack(t); });
+    out.__extra = [disp].concat(mic ? [mic] : []);
+    if (audioStreams.length === 1) {
+      audioStreams[0].getAudioTracks().forEach(function (t) { out.addTrack(t); });
+    } else if (audioStreams.length > 1) {
+      // mic + system audio into one track (Web Audio), so the recording holds both
+      var AC = window.AudioContext || window.webkitAudioContext;
+      var ctx = new AC();
+      var dest = ctx.createMediaStreamDestination();
+      audioStreams.forEach(function (s) { try { ctx.createMediaStreamSource(s).connect(dest); } catch (e) { /* skip a stream Web Audio will not take */ } });
+      dest.stream.getAudioTracks().forEach(function (t) { out.addTrack(t); });
+      out.__ctx = ctx;
+    }
+    out.__micOn = !!(mic && mic.getAudioTracks().length);
+    return out;
+  }
+  function stopStream(s) {
+    if (!s) return;
+    s.getTracks().forEach(function (t) { t.stop(); });
+    (s.__extra || []).forEach(function (x) { x.getTracks().forEach(function (t) { t.stop(); }); });
+    if (s.__ctx && s.__ctx.close) { try { s.__ctx.close(); } catch (e) { /* already closed */ } }
   }
 
   /** A frame of a playing stream, as a PNG. */
@@ -299,20 +340,20 @@ define([], function () {
     if (mode === 'shot') {
       var s = await stream(choice.id);
       var v = videoOf(s);
-      try { return await saveShot(key, await frame(v)); } finally { s.getTracks().forEach(function (t) { t.stop(); }); }
+      try { return await saveShot(key, await frame(v)); } finally { stopStream(s); }
     }
     return start(key, choice);
   }
 
   async function start(key, choice) {
-    var s = await stream(choice.id);
+    var s = await stream(choice.id, choice.mic);
     var mime = (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported)
       ? MIMES.filter(function (m) { return MediaRecorder.isTypeSupported(m); })[0] : '';
     var ext = /^video\/mp4/.test(mime || '') ? 'mp4' : 'webm';
     var j = await post('/__rec/start?key=' + encodeURIComponent(key) + '&ext=' + ext + '&trace=' + (choice.trace ? '1' : '0'));
     var recorder = new MediaRecorder(s, mime ? { mimeType: mime, videoBitsPerSecond: 2500000 } : {});
     rec = { key: key, id: j.id, name: j.name, stream: s, recorder: recorder, video: videoOf(s), queue: Promise.resolve(), started: Date.now(), shots: 0,
-      keys: { shot: 'Ctrl+Alt+S', stop: 'Ctrl+Alt+X' }, error: '', trace: !!j.trace };
+      keys: { shot: 'Ctrl+Alt+S', stop: 'Ctrl+Alt+X' }, error: '', trace: !!j.trace, mic: !!s.__micOn };
     recorder.ondataavailable = function (e) {
       if (!e.data || !e.data.size || !rec) return;
       var id = rec.id;
@@ -356,7 +397,7 @@ define([], function () {
     await r.queue;
     var j = null;
     try { j = await post('/__rec/finish?id=' + encodeURIComponent(r.id) + '&key=' + encodeURIComponent(r.key)); } catch (e) { r.error = txt(e && e.message); }
-    r.stream.getTracks().forEach(function (t) { t.stop(); });
+    stopStream(r.stream);
     clearInterval(r.timer);
     if (r.bar) r.bar.el.remove();
     rec = null;
@@ -651,6 +692,98 @@ define([], function () {
   }
   function clockMs(ms) { return clock(Math.floor((ms || 0) / 1000)); }
 
+  // ── transcript: the voice in a recording, turned to text with Whisper, read in step with the video ──
+  /** Which transcription engines are set up on this PC (local Whisper, or OpenAI with the Ask AI key). */
+  async function transcribeInfo() { return (await getJson('/__rec/transcribe-info')) || { engines: [] }; }
+
+  /** Transcribe a recording's voice: { ok, lines, engine } or { ok:false, error, setup }. engine 'local' | 'openai'. */
+  async function transcribe(key, name, opts) {
+    var o = opts || {};
+    return post('/__rec/transcribe?key=' + encodeURIComponent(key) + '&name=' + encodeURIComponent(name) + '&engine=' + encodeURIComponent(o.engine || '') + '&lang=' + encodeURIComponent(o.lang || ''));
+  }
+
+  /** A recording's transcript beside its video: the line being spoken is marked as it plays; a line seeks the video. */
+  async function openTranscript(key, name) {
+    styleOnce();
+    var base = encodeURIComponent(key) + '/' + encodeURIComponent(name);
+    var tx = await getJson('/__rec/transcript/' + base);
+    if (!tx) throw new Error('This recording has no transcript yet.');
+    closeTrace();
+    var opener = document.activeElement;
+    var segs = tx.segments || [];
+    var veil = el('div', { class: 'eqr-tr-veil', id: 'eqrTx', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Transcript of ' + key });
+    var box = el('div', { class: 'eqr-tr-box' });
+    var head = el('div', { class: 'eqr-tr-head' });
+    var titles = el('div', {});
+    var when = /(\d{4}-\d{2}-\d{2}) (\d{2})-(\d{2})/.exec(name);
+    titles.appendChild(el('h2', {}, 'Transcript · ' + key + (when ? ' · ' + when[1] + ' ' + when[2] + ':' + when[3] : '')));
+    titles.appendChild(el('p', {}, segs.length + (segs.length === 1 ? ' line' : ' lines') + (tx.engine ? ' · ' + (tx.engine === 'openai' ? 'OpenAI Whisper' : 'Whisper on this PC') : '') + (tx.lang && tx.lang !== 'auto' ? ' · ' + tx.lang : '')));
+    head.appendChild(titles);
+    var acts = el('div', { class: 'eqr-tr-acts' });
+    var copy = el('button', { type: 'button', class: 'eqr-rec-btn', id: 'eqrTxCopy', title: 'Copy the whole transcript' }, '📋 Copy transcript');
+    var srt = el('a', { class: 'eqr-rec-btn', id: 'eqrTxSrt', href: '/__rec/transcript.srt/' + base, download: '', title: 'Subtitles (SRT), for the video' }, '⬇ .srt');
+    var txt = el('a', { class: 'eqr-rec-btn', id: 'eqrTxTxt', href: '/__rec/transcript.txt/' + base, download: '', title: 'The transcript as plain text' }, '⬇ .txt');
+    var close = el('button', { type: 'button', class: 'eqr-rec-btn', id: 'eqrTxClose', 'aria-label': 'Close the transcript' }, '✕ Close');
+    acts.appendChild(copy); acts.appendChild(srt); acts.appendChild(txt); acts.appendChild(close);
+    head.appendChild(acts);
+    box.appendChild(head);
+    var body = el('div', { class: 'eqr-tr-body' });
+    var left = el('div', { class: 'eqr-tr-left' });
+    var video = el('video', { controls: '', preload: 'metadata', id: 'eqrTxVideo', src: (tx.video && tx.video.url) || '' });
+    left.appendChild(video);
+    var right = el('div', { class: 'eqr-tr-right' });
+    var tools = el('div', { class: 'eqr-tr-tools' });
+    var search = el('input', { type: 'search', id: 'eqrTxSearch', placeholder: 'Find in the transcript…', 'aria-label': 'Find in the transcript' });
+    tools.appendChild(search);
+    var list = el('div', { class: 'eqr-tr-list', id: 'eqrTxList', role: 'listbox', 'aria-label': 'The transcript, line by line' });
+    right.appendChild(tools); right.appendChild(list);
+    body.appendChild(left); body.appendChild(right);
+    box.appendChild(body);
+    veil.appendChild(box);
+    var rows = segs.map(function (s, i) {
+      var r = el('button', { type: 'button', class: 'eqr-tx-row', role: 'option', 'data-i': String(i) });
+      r.appendChild(el('span', { class: 'eqr-tr-at' }, clockMs((s.start || 0) * 1000)));
+      r.appendChild(el('span', { class: 'eqr-tx-text' }, s.text));
+      r.__text = (s.text || '').toLowerCase();
+      r.addEventListener('click', function () {
+        if (video.readyState >= 1) { try { video.currentTime = s.start || 0; video.play().catch(function () {}); } catch (e) { /* not seekable */ } }
+      });
+      list.appendChild(r);
+      return r;
+    });
+    if (!rows.length) list.appendChild(el('p', { class: 'eqr-tr-none' }, 'Nothing was said in this recording (no speech was found).'));
+    search.addEventListener('input', function () {
+      var q = search.value.trim().toLowerCase();
+      rows.forEach(function (r) { r.hidden = !(!q || r.__text.indexOf(q) !== -1); });
+    });
+    var nowRow = null;
+    video.addEventListener('timeupdate', function () {
+      var t = video.currentTime;
+      var at = -1;
+      segs.forEach(function (s, i) { if ((s.start || 0) <= t + 0.15) at = i; });
+      var r = at === -1 ? null : rows[at];
+      if (r === nowRow) return;
+      if (nowRow) nowRow.classList.remove('eqr-tx-row--now');
+      nowRow = r;
+      if (r) { r.classList.add('eqr-tx-row--now'); if (!video.paused) r.scrollIntoView({ block: 'nearest' }); }
+    });
+    copy.addEventListener('click', function () { copyText(segs.map(function (s) { return s.text; }).join('\n'), copy, 'Copied'); });
+    var done = function () {
+      document.removeEventListener('keydown', esc, true);
+      try { video.pause(); } catch (e) { /* gone */ }
+      veil.remove();
+      if (opener && opener.isConnected && opener.focus) { try { opener.focus({ preventScroll: true }); } catch (e) { /* no */ } }
+    };
+    var esc = function (ev) { if (ev.key === 'Escape') { ev.stopPropagation(); ev.preventDefault(); done(); } };
+    veil.__close = done;
+    document.addEventListener('keydown', esc, true);
+    close.addEventListener('click', done);
+    document.body.appendChild(veil);
+    close.focus();
+    return { lines: segs.length };
+  }
+
   return { available: available, list: list, reveal: reveal, begin: begin, shot: shot, stop: stop, onChange: onChange, state: state, keepFocus: keepFocus,
-    openTrace: openTrace, closeTrace: closeTrace, index: index, traceSummary: traceSummary, CHUNK_MS: CHUNK_MS };
+    openTrace: openTrace, closeTrace: closeTrace, index: index, traceSummary: traceSummary,
+    transcribeInfo: transcribeInfo, transcribe: transcribe, openTranscript: openTranscript, CHUNK_MS: CHUNK_MS };
 });

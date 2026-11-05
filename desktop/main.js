@@ -97,6 +97,42 @@ function evidenceStore() {
   }
   return evidenceStoreInst;
 }
+// Transcribe a recording's voice (lib/transcribe.js): local Whisper (whisper.cpp) on this PC, or OpenAI's Whisper with
+// the key the person set for Ask AI. Models for local Whisper live in Documents/EquipRite Test Evidence/.whisper.
+let transcriberInst = null;
+async function transcriber() {
+  if (!transcriberInst) {
+    const { execFile } = require('child_process');
+    const ai = await aiStore();
+    transcriberInst = require('./lib/transcribe').open({
+      modelsDir: path.join(app.getPath('documents'), 'EquipRite Test Evidence', '.whisper'),
+      tmpDir: app.getPath('temp'),
+      which: (cmd) => commandPath(cmd),
+      run: (cmd, args) => new Promise((resolve) => {
+        execFile(cmd, args, { maxBuffer: 64 * 1024 * 1024, windowsHide: true }, (err, stdout, stderr) => {
+          resolve({ code: err ? (err.code || 1) : 0, stdout: String(stdout || ''), stderr: String(stderr || (err && err.message) || '') });
+        });
+      }),
+      fetch: (url, init) => { const { net } = require('electron'); return net.fetch(url, init); },
+      openaiKey: () => ai.secretFor('openai', 'key'),
+    });
+  }
+  return transcriberInst;
+}
+// Find a command on the PATH (and the usual install folders), without a shell. Returns its path, or '' if not found.
+function commandPath(cmd) {
+  const exts = process.platform === 'win32' ? (process.env.PATHEXT || '.EXE;.CMD;.BAT').split(';') : [''];
+  const dirs = String(process.env.PATH || '').split(path.delimiter).concat(
+    process.platform === 'darwin' ? ['/opt/homebrew/bin', '/usr/local/bin'] : (process.platform === 'linux' ? ['/usr/local/bin', '/usr/bin'] : []));
+  for (const d of dirs) {
+    if (!d) continue;
+    for (const e of exts) {
+      const p = path.join(d, cmd + e);
+      try { if (fs.existsSync(p) && fs.statSync(p).isFile()) return p; } catch (err) { /* keep looking */ }
+    }
+  }
+  return '';
+}
 let recSource = '';
 const REC_KEYS = { shot: 'CommandOrControl+Alt+S', stop: 'CommandOrControl+Alt+X' };
 ipcMain.handle('rec:sources', async () => {
@@ -959,6 +995,12 @@ if (!app.requestSingleInstanceLock()) {
         callback(pick ? { video: pick } : {});
       }).catch(() => callback({}));
     });
+    // Record my voice: the page asks for the microphone (getUserMedia). Grant it only to EquipRite's own pages on this PC.
+    const localOnly = (url) => /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?\//.test(String(url || ''));
+    session.defaultSession.setPermissionRequestHandler((wc, permission, done) => {
+      done((permission === 'media' || permission === 'audioCapture') && localOnly(wc && !wc.isDestroyed() ? wc.getURL() : ''));
+    });
+    session.defaultSession.setPermissionCheckHandler((wc, permission, origin) => (permission === 'media' || permission === 'audioCapture') && localOnly(origin || (wc && !wc.isDestroyed() ? wc.getURL() : '')));
     Menu.setApplicationMenu(appMenu());
     createWindow();
     try {
@@ -982,6 +1024,8 @@ if (!app.requestSingleInstanceLock()) {
             jiraStore: v === 'next' || v === 'old' ? jiraStore() : undefined,
             // Record on a Jira story: its recordings and screenshots, kept on this PC.
             recStore: v === 'next' || v === 'old' ? evidenceStore() : undefined,
+            // Transcribe a recording's voice with Whisper (local on this PC, or OpenAI with the Ask AI key).
+            transcribe: v === 'next' || v === 'old' ? await transcriber() : undefined,
             backendOverrides: backendOverridesFromEnv(process.env),
             onLog: pushLog,
             onProblem: backendProblem,

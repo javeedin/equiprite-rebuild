@@ -329,7 +329,9 @@
         "folder": "",
         "error": "",
         "busy": "",
-        "recording": ""
+        "recording": "",
+        "canTranscribe": false,
+        "engines": []
       },
       "description": "The open story's test evidence on this PC (resources/js/testRecorder.js): recordings and screenshots in its folder."
     },

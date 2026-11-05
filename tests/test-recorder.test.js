@@ -20,6 +20,7 @@ const ROOT = path.join(__dirname, '..');
 const TE = require(path.join(ROOT, 'desktop', 'lib', 'testEvidence.js'));
 const DS = require(path.join(ROOT, 'desktop', 'lib', 'devserver.js'));
 const TT = require(path.join(ROOT, 'desktop', 'lib', 'testTrace.js'));
+const TX = require(path.join(ROOT, 'desktop', 'lib', 'transcribe.js'));
 const zlib = require('zlib');
 
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'eqp-evidence-'));
@@ -99,6 +100,69 @@ T.eq('the APIs used: one row per service + method + endpoint, ids collapsed, fai
   'POST /equipmentRequests ×1 (1 failed) | GET /equipmentRequests/{id}/lines ×2 | GET /equipment ×1');
 T.eq('…each with the statuses seen and the login used (no secret)', [eps[1].statuses.join('/'), eps[1].auth.schemes.join(), eps[1].auth.users.join(), eps[0].auth.sent].join(' | '), '200 | Basic | priya.raman | false');
 T.check('…the endpoints list never holds the secret', !JSON.stringify(eps).includes('S3cret'));
+
+T.section('Whisper: the voice in a recording, turned to text (lib/transcribe.js)');
+T.eq('whisper.cpp JSON → segments with seconds', JSON.stringify(TX.parseWhisperJson({ transcription: [{ offsets: { from: 0, to: 2500 }, text: ' The map does not load.' }, { offsets: { from: 2500, to: 5000 }, text: ' I click edit.' }] })),
+  '[{"start":0,"end":2.5,"text":"The map does not load."},{"start":2.5,"end":5,"text":"I click edit."}]');
+T.eq('OpenAI verbose_json → segments', JSON.stringify(TX.parseOpenai({ language: 'english', segments: [{ start: 0, end: 1.2, text: ' Hello' }] })), '[{"start":0,"end":1.2,"text":"Hello"}]');
+T.eq('SRT (fallback) → segments', JSON.stringify(TX.parseSrt('1\n00:00:00,000 --> 00:00:02,500\nThe map\n\n2\n00:00:02,500 --> 00:00:05,000\ndoes not load')),
+  '[{"start":0,"end":2.5,"text":"The map"},{"start":2.5,"end":5,"text":"does not load"}]');
+T.eq('to SRT and to text, for download and Copy', [TX.toSrt([{ start: 0, end: 2.5, text: 'Hi' }]).trim(), TX.toText([{ start: 0, text: 'a' }, { start: 1, text: 'b' }])].join(' | '),
+  '1\n00:00:00,000 --> 00:00:02,500\nHi | a\nb');
+// nothing set up: it says what to install, and never pretends it ran
+const none = TX.open({ which: () => '', modelsDir: path.join(dir, 'no-models') });
+T.eq('with no engine: the engines are empty, and each kind says it is not ready', JSON.stringify(none.info()).replace(path.join(dir, 'no-models'), '<dir>'),
+  '{"local":{"ready":false,"ffmpeg":false,"whisper":false,"models":[]},"openai":{"ready":false},"engines":[],"modelsDir":"<dir>"}');
+(async () => {
+  const r = await none.transcribe('/etc/hostname', { engine: 'local' });
+  T.check('local, not installed: a clear error and how to set it up, not a fake transcript', !r.ok && /ffmpeg/.test(r.error) && !!r.setup && !r.segments);
+})();
+// local, set up: ffmpeg + whisper.cpp present (faked), a model on disk, whisper writes its JSON
+const mdir = fs.mkdirSync(path.join(dir, 'models'), { recursive: true }) || path.join(dir, 'models');
+fs.writeFileSync(path.join(mdir, 'ggml-base.bin'), 'x');
+const ran = [];
+const localEngine = TX.open({
+  which: (c) => (c === 'ffmpeg' || c === 'whisper-cli' ? '/usr/bin/' + c : ''),
+  modelsDir: mdir,
+  tmpDir: dir,
+  run: (cmd, args) => {
+    ran.push(path.basename(cmd));
+    if (/whisper/.test(cmd)) { const of = args[args.indexOf('-of') + 1]; fs.writeFileSync(of + '.json', JSON.stringify({ transcription: [{ offsets: { from: 0, to: 3000 }, text: 'The map does not load here.' }] })); }
+    return Promise.resolve({ code: 0, stdout: '', stderr: '' });
+  },
+});
+T.eq('set up: local Whisper is the engine offered', JSON.stringify(localEngine.info().engines), '["local"]');
+(async () => {
+  const r = await localEngine.transcribe(path.join(dir, 'EQP-196', fs.readdirSync(path.join(dir, 'EQP-196')).find((f) => / recording\.mp4$/.test(f))), { engine: 'local', lang: 'en' });
+  T.eq('it runs ffmpeg then whisper.cpp, and reads the words back', [ran.join(','), r.ok, r.engine, r.segments.map((s) => s.text).join()].join(' | '),
+    'ffmpeg,whisper-cli | true | local | The map does not load here.');
+  T.check('…the temp WAV and JSON are cleaned up', fs.readdirSync(dir).filter((f) => /eqp-whisper/.test(f)).length === 0);
+})();
+// OpenAI engine: the audio is posted with the key; segments come back
+let sent = null;
+const openaiEngine = TX.open({ which: () => '', modelsDir: path.join(dir, 'none'), openaiKey: () => 'sk-test-key',
+  fetch: (url, init) => { sent = { url, auth: init.headers.Authorization, hasBody: !!init.body }; return Promise.resolve({ ok: true, json: () => Promise.resolve({ language: 'english', segments: [{ start: 0, end: 2, text: 'Spoken words.' }] }) }); } });
+T.eq('with an OpenAI key: that engine is offered', JSON.stringify(openaiEngine.info().engines), '["openai"]');
+(async () => {
+  const r = await openaiEngine.transcribe(path.join(dir, 'EQP-196', fs.readdirSync(path.join(dir, 'EQP-196')).find((f) => / recording\.mp4$/.test(f))), { engine: 'openai' });
+  T.eq('it posts the audio to OpenAI with the key, and reads the words', [sent.url, /^Bearer sk-/.test(sent.auth), sent.hasBody, r.ok, r.segments[0].text].join(' | '),
+    'https://api.openai.com/v1/audio/transcriptions | true | true | true | Spoken words.');
+})();
+
+T.section('the store keeps a transcript next to its recording');
+clock = new Date(2026, 10, 5, 16, 0, 0);
+const vrec = store.start('EQP-500', 'webm');
+store.chunk(vrec.id, Buffer.from('voice-video'));
+const vitem = store.finish(vrec.id);
+T.check('a fresh recording has no transcript yet', !vitem.transcript && !store.transcript('EQP-500', vitem.name));
+const saved = store.saveTranscript('EQP-500', vitem.name, { engine: 'local', model: 'ggml-base.bin', lang: 'en', segments: [{ start: 0, end: 2.5, text: 'The map does not load.' }, { start: 2.5, end: 5, text: 'I click edit and nothing happens.' }] });
+T.eq('saved: the recording\'s item now points at its transcript', [saved.transcript.segments, saved.transcript.lang, saved.transcript.engine, saved.transcript.url].join(' | '),
+  '2 | en | local | /__rec/transcript/EQP-500/' + encodeURIComponent(vitem.name));
+const got = store.transcript('EQP-500', vitem.name);
+T.eq('read back for the viewer: the lines, with the video', [got.segments.length, got.segments[0].text, got.video.kind].join(' | '), '2 | The map does not load. | video');
+T.check('as plain text and SRT', store.transcriptText('EQP-500', vitem.name) === 'The map does not load.\nI click edit and nothing happens.' && /00:00:02,500 --> 00:00:05,000/.test(store.transcriptSrt('EQP-500', vitem.name)));
+store.remove('EQP-500', vitem.name);
+T.check('removing the recording removes its transcript too', !fs.existsSync(path.join(dir, 'EQP-500', vitem.name.replace(/\.webm$/, '.transcript.json'))));
 
 T.section('the technical trace, kept with the recording');
 clock = new Date(2026, 10, 5, 15, 0, 0);
@@ -198,7 +262,10 @@ T.check('removing a recording removes its trace', !fs.existsSync(path.join(dir, 
   fs.mkdirSync(path.join(build, 'processed', 'webApps', 'vbredwoodapp'), { recursive: true });
   fs.writeFileSync(path.join(build, 'processed', 'webApps', 'vbredwoodapp', 'index.html'), '<html>old</html>');
   const rs2 = TE.open({ dir: path.join(dir, 'srv2') });
-  const srv2 = await DS.createDevServer({ buildDir: build, webApp: 'vbredwoodapp', repoRoot: ROOT, port: 0, getIdentity: () => ({ username: 'tester' }), recStore: rs2, onLog: () => {} });
+  // a stand-in Whisper engine (the real one needs ffmpeg + whisper.cpp, or an OpenAI key, on the person's PC)
+  const fakeTx = { info: () => ({ engines: ['local'], local: { ready: true }, openai: { ready: false } }),
+    transcribe: (file) => Promise.resolve({ ok: !!file, engine: 'local', lang: 'en', model: 'ggml-base.bin', segments: [{ start: 0, end: 2.5, text: 'The map does not load here.' }, { start: 2.5, end: 5, text: 'I click edit and nothing.' }], ms: 5 }) };
+  const srv2 = await DS.createDevServer({ buildDir: build, webApp: 'vbredwoodapp', repoRoot: ROOT, port: 0, getIdentity: () => ({ username: 'tester' }), recStore: rs2, transcribe: fakeTx, onLog: () => {} });
   const req2 = (method, p, headers, body) => new Promise((resolve, reject) => {
     const q = http.request({ host: 'localhost', port: srv2.port, path: p, method, headers: headers || {} }, (res) => {
       const chunks = []; res.on('data', (c) => chunks.push(c)); res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, body: Buffer.concat(chunks) }));
@@ -240,6 +307,17 @@ T.check('removing a recording removes its trace', !fs.existsSync(path.join(dir, 
       && rep.includes('Login sent: none') && rep.includes('APIs used (2):') && rep.includes('POST eqpt /equipmentRequests'));
     const ix = JSON.parse((await req2('GET', '/__rec/index')).body);
     T.eq('the index: the story\'s recording, and the failure its trace caught', [ix['EQP-12'].videos, ix['EQP-12'].shots, ix['EQP-12'].failed].join(), '1,0,1');
+
+    T.eq('which transcription engines are set up', JSON.parse((await req2('GET', '/__rec/transcribe-info')).body).engines.join(), 'local');
+    T.eq('a write without the page\'s header: transcribe refused', (await req2('POST', '/__rec/transcribe?key=EQP-12&name=' + encodeURIComponent(fin.name))).status, 403);
+    const tr = JSON.parse((await req2('POST', '/__rec/transcribe?key=EQP-12&name=' + encodeURIComponent(fin.name) + '&engine=local', W)).body);
+    T.eq('transcribe: Whisper runs and the transcript is kept', [tr.ok, tr.engine, tr.lines, !!tr.item.transcript].join(' | '), 'true | local | 2 | true');
+    const tx = JSON.parse((await req2('GET', '/__rec/transcript/EQP-12/' + encodeURIComponent(fin.name))).body);
+    T.eq('the transcript, for the viewer: its lines, with the video', [tx.segments.length, tx.segments[0].text, tx.video.kind, tx.engine].join(' | '), '2 | The map does not load here. | video | local');
+    const srt = await req2('GET', '/__rec/transcript.srt/EQP-12/' + encodeURIComponent(fin.name));
+    T.check('a downloadable SRT and TXT', srt.headers['content-disposition'].includes('.srt') && /00:00:02,500 --> 00:00:05,000/.test(srt.body.toString())
+      && (await req2('GET', '/__rec/transcript.txt/EQP-12/' + encodeURIComponent(fin.name))).body.toString() === 'The map does not load here.\nI click edit and nothing.');
+    T.check('the recording\'s item now shows it has a transcript', !!JSON.parse((await req2('GET', '/__rec/list?key=EQP-12')).body).items.find((x) => x.kind === 'video').transcript);
   } finally {
     await srv2.close();
     fake.close();

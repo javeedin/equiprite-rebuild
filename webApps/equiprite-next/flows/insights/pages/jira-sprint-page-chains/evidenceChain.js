@@ -10,7 +10,9 @@ define([
   //   record   the picker, then a recording of the screen or window chosen (the bar: time, Screenshot, Stop)
   //   shot     the picker, then one screenshot (while recording: a screenshot of the recording)
   //   folder   its folder, in the file manager
-  //   trace    a recording's technical trace (name): the video beside its web service calls, JSON and errors
+  //   trace       a recording's technical trace (name): the video beside its web service calls, JSON and errors
+  //   transcript  a recording's transcript (name): the video beside the words, in step
+  //   transcribe  turn a recording's voice into a transcript with Whisper (local on this PC, or OpenAI)
   class evidenceChain extends ActionChain {
     async run(context, { act, name }) {
       const v = context.$page.variables;
@@ -34,6 +36,22 @@ define([
         } else if (act === 'trace') {
           await R.openTrace(key, name);
           return;
+        } else if (act === 'transcript') {
+          await R.openTranscript(key, name);
+          return;
+        } else if (act === 'transcribe') {
+          const ev = JSON.parse(JSON.stringify(v.evidence || {})); ev.busy = 'transcribe'; ev.error = ''; v.evidence = ev;
+          const r = await R.transcribe(key, name, {});
+          if (!(r && r.ok)) {
+            const err = JSON.parse(JSON.stringify(v.evidence || {}));
+            err.error = (r && (r.error + (r.setup ? ' — ' + r.setup : ''))) || 'Could not transcribe.';
+            err.busy = '';
+            v.evidence = err;
+            R.keepFocus('#jspShot');
+            return;
+          }
+          bus.toast('Transcript ready for ' + key + ': ' + r.lines + (r.lines === 1 ? ' line' : ' lines') + '.', 'info');
+          // fall through: re-read the list so the Transcript button appears
         }
       } catch (e) {
         const err = JSON.parse(JSON.stringify(v.evidence || {}));
@@ -47,9 +65,10 @@ define([
       const got = ok ? await R.list(key) : { items: [], folder: '' };
       if (v.selKey !== key) return;
       v.evidenceIndex = await R.index();
+      const ti = await R.transcribeInfo();
       const st = R.state();
       v.evidence = { available: ok, key, items: got.items || [], folder: got.folder || '', error: got.error || '', busy: '',
-        recording: st.recording ? st.key : '' };
+        recording: st.recording ? st.key : '', canTranscribe: !!(ti.engines && ti.engines.length), engines: ti.engines || [] };
       if (ok) R.keepFocus('#jspShot');
     }
   }

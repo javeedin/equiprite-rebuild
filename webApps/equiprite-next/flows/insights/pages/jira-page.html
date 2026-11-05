@@ -475,6 +475,14 @@
                     <oj-bind-if test="[[ !!vd.data.trace ]]">
                       <button type="button" :class="[[ $functions.traceClass(vd.data.trace) ]]" data-act="trace" :data-name="[[ vd.data.name ]]" on-click="[[ $listeners.onEvidence ]]"
                         title="The web service calls, the JSON sent and answered, the console errors: in step with the video">🔍 <oj-bind-text value="[[ $functions.traceText(vd.data.trace) ]]"></oj-bind-text></button>
+                    </oj-bind-if>
+                    <oj-bind-if test="[[ !!vd.data.transcript ]]">
+                      <button type="button" class="nx-btn nx-btn--sm nx-jira-txbtn" data-act="transcript" :data-name="[[ vd.data.name ]]" on-click="[[ $listeners.onEvidence ]]"
+                        title="The voice in the recording, as text, in step with the video">📝 <oj-bind-text value="[[ 'Transcript · ' + vd.data.transcript.segments + ' lines' ]]"></oj-bind-text></button>
+                    </oj-bind-if>
+                    <oj-bind-if test="[[ !vd.data.transcript && $variables.evidence.canTranscribe ]]">
+                      <button type="button" class="nx-btn nx-btn--sm nx-jira-txbtn" data-act="transcribe" :data-name="[[ vd.data.name ]]" on-click="[[ $listeners.onEvidence ]]"
+                        :disabled="[[ !!$variables.evidence.busy ]]" title="Turn the voice in this recording into text with Whisper">📝 Transcribe the voice</button>
                     </oj-bind-if></figure>
                 </template>
               </oj-bind-for-each>

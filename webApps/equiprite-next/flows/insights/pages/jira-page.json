@@ -317,7 +317,9 @@
         "items": [],
         "folder": "",
         "error": "",
-        "busy": ""
+        "busy": "",
+        "canTranscribe": false,
+        "engines": []
       },
       "description": "The open item's test evidence on this PC (resources/js/testRecorder.js): recordings and screenshots in its folder."
     },

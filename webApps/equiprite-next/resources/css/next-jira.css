@@ -195,3 +195,6 @@ html[data-nx-look="redwood"] .nx-jira .nx-jira-tr--on { box-shadow: inset 3px 0 
 button.nx-jira-recmark:hover, button.nx-jira-recmark:focus-visible { filter: brightness(0.95); outline: 2px solid currentColor; outline-offset: 1px; }
 .nx-jsp .nx-jsp-sumline { display: flex; align-items: center; flex-wrap: wrap; }
 .nx-jsp .nx-jsp-sumline .nx-jsp-sumbtn { display: inline; }
+
+/* A recording's transcript (Whisper): the button under the video */
+.nx-jira-dr .nx-jira-txbtn { align-self: flex-start; }

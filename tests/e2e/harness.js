@@ -127,14 +127,14 @@ async function start(o) {
     getPhone: () => (o.desktop && o.desktop.phone) || {} };
   const servers = [
     await DS.createDevServer(Object.assign({ webApp: 'vbredwoodapp', port: ports.old }, common, o.jiraStore ? { jiraStore: o.jiraStore } : {},
-      o.recStore ? { recStore: o.recStore } : {})),
+      o.recStore ? { recStore: o.recStore } : {}, o.transcribe ? { transcribe: o.transcribe } : {})),
     await DS.createDevServer(Object.assign({ webApp: 'equiprite', port: ports.new }, common)),
   ];
   if (DS.isBuilt(path.join(ROOT, 'build'), 'equiprite-next')) {
     // o.sqlStore: the SQL worksheet's store (desktop/lib/oracleSql.js, with a fake driver in tests).
     // o.jiraStore: Connect Jira's store (desktop/lib/jiraAuth.js), as the desktop app gives Old and Next.
     servers.push(await DS.createDevServer(Object.assign({ webApp: 'equiprite-next', port: ports.next }, common, o.sqlStore ? { sqlStore: o.sqlStore } : {}, o.aiStore ? { aiStore: o.aiStore } : {},
-      o.jiraStore ? { jiraStore: o.jiraStore } : {}, o.recStore ? { recStore: o.recStore } : {})));
+      o.jiraStore ? { jiraStore: o.jiraStore } : {}, o.recStore ? { recStore: o.recStore } : {}, o.transcribe ? { transcribe: o.transcribe } : {})));
   }
   let futureStore = null;
   if (DS.isBuilt(path.join(ROOT, 'build'), 'equiprite-future')) {
@@ -240,6 +240,23 @@ function recorderStub() {
     stream.getVideoTracks()[0].addEventListener('ended', () => clearInterval(timer));
     window.__shared = (window.__shared || 0) + 1;
     return Promise.resolve(stream);
+  };
+  // Record my voice: a microphone, stubbed as a silent audio track (a muted oscillator), so the recording has audio.
+  md.getUserMedia = (c) => {
+    window.__micCalls = (window.__micCalls || 0) + 1;
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      const ctx = new AC();
+      const dest = ctx.createMediaStreamDestination();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      gain.gain.value = 0;                 // silent: a track, not a noise
+      osc.connect(gain).connect(dest);
+      osc.start();
+      return Promise.resolve(dest.stream);
+    } catch (e) {
+      return Promise.resolve(new MediaStream());
+    }
   };
 }
 

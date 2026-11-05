@@ -94,7 +94,12 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
   const evidenceDir = path.join(dir, 'EquipRite Test Evidence');
   const recStore = TE.open({ dir: evidenceDir, reveal: (f) => { revealed.push(f); } });
   const revealed = [];
-  const env = await E.start({ port: 19760, handle, app: 'next', jiraStore, recStore, init: E.recorderStub });
+  // a stand-in Whisper engine (the real one needs ffmpeg + whisper.cpp, or an OpenAI key, on the person's PC)
+  const transcribed = [];
+  const transcribe = { info: () => ({ engines: ['local'], local: { ready: true }, openai: { ready: false } }),
+    transcribe: (file, opts) => { transcribed.push({ file, opts }); return Promise.resolve({ ok: true, engine: 'local', lang: 'en', model: 'ggml-base.bin',
+      segments: [{ start: 0, end: 2.6, text: 'The map does not load on this story.' }, { start: 2.6, end: 5.2, text: 'I click Edit and nothing happens.' }], ms: 20 }); } };
+  const env = await E.start({ port: 19760, handle, app: 'next', jiraStore, recStore, transcribe, init: E.recorderStub });
   const page = env.page;
   const errs = () => env.errors.filter((e) => !/404|401|Failed to load resource/.test(e) && !e.startsWith('warning'));
   try {
@@ -264,6 +269,7 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
       await page.getAttribute('#eqrRecPicker .eqr-rec-src[aria-pressed="true"]', 'data-id'), await page.isChecked('#eqrRecMinimize')].join(' / '),
     'Screen · Entire screen | Fusion - Oracle Applications / screen:1:0 / true');
     T.check('…and the technical trace ticked (web service calls, JSON, errors)', await page.isChecked('#eqrRecTrace'));
+    T.check('…and "Record my voice" ticked, for a transcript later', await page.isVisible('#eqrRecMic') && await page.isChecked('#eqrRecMic'));
     await env.shot('next-jira-record-picker.png');
     await page.click('#eqrRecPicker .eqr-rec-src[data-id="window:42:0"]');
     await page.click('#eqrRecGo');
@@ -375,6 +381,34 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     await page.keyboard.press('Escape');
     await page.waitForSelector('#eqrTrace', { state: 'detached', timeout: 5000 }).catch(() => {});
     T.check('Escape closes the trace, not the story', !(await page.$('#eqrTrace')) && await page.isVisible('#jiraItem'));
+
+    T.section('the recording\'s voice, turned to text with Whisper');
+    T.check('the microphone was recorded with the screen (Record my voice)', (await page.evaluate(() => window.__micCalls || 0)) >= 1);
+    await page.waitForSelector('#jiraEvidence .nx-jira-txbtn[data-act="transcribe"]', { timeout: 10000 });
+    T.check('under the recording: Transcribe the voice (a Whisper engine is set up)', await page.isVisible('#jiraEvidence .nx-jira-txbtn[data-act="transcribe"]'));
+    await page.click('#jiraEvidence .nx-jira-txbtn[data-act="transcribe"]');
+    await page.waitForSelector('#jiraEvidence .nx-jira-txbtn[data-act="transcript"]', { timeout: 10000 });
+    T.check('Whisper ran on the recording, and the button becomes Transcript · N lines', transcribed.length === 1 && /recording\.(webm|mp4)$/.test(transcribed[0].file)
+      && /Transcript · 2 lines/.test(await text(page, '#jiraEvidence .nx-jira-txbtn[data-act="transcript"]')), await text(page, '#jiraEvidence .nx-jira-txbtn[data-act="transcript"]'));
+    await page.context().grantPermissions(['clipboard-read', 'clipboard-write'], { origin: env.nextUrl });
+    await page.click('#jiraEvidence .nx-jira-txbtn[data-act="transcript"]');
+    await page.waitForSelector('#eqrTx', { timeout: 10000 });
+    T.check('the viewer: the video beside the words', await page.isVisible('#eqrTxVideo') && (await texts(page, '#eqrTxList .eqr-tx-text')).join(' ') === 'The map does not load on this story. I click Edit and nothing happens.');
+    await page.waitForFunction(() => document.querySelector('#eqrTxVideo').readyState >= 1, null, { timeout: 10000 }).catch(() => {});
+    await page.click('#eqrTxList .eqr-tx-row >> nth=1');
+    await settle(page, 300);
+    T.check('a line seeks the video to that moment', await page.$eval('#eqrTxVideo', (v) => v.currentTime >= 2.5 || v.duration === Infinity));
+    await page.fill('#eqrTxSearch', 'edit');
+    T.eq('find narrows the lines', (await page.$$eval('#eqrTxList .eqr-tx-row', (r) => r.filter((x) => !x.hidden).length)), 1);
+    await page.fill('#eqrTxSearch', '');
+    await env.shot('next-jira-transcript.png');
+    await page.click('#eqrTxCopy');
+    await page.waitForFunction(() => /Copied/.test((document.querySelector('#eqrTxCopy') || {}).textContent || ''), null, { timeout: 10000 }).catch(() => {});
+    const transcript = await page.evaluate(() => navigator.clipboard.readText()).catch(() => '');
+    T.check('Copy transcript: the words, ready to paste', transcript.includes('The map does not load') && transcript.includes('I click Edit'));
+    await page.keyboard.press('Escape');
+    await page.waitForSelector('#eqrTx', { state: 'detached', timeout: 5000 }).catch(() => {});
+    T.check('Escape closes the transcript, not the story', !(await page.$('#eqrTx')) && await page.isVisible('#jiraItem'));
     T.eq('no browser errors while recording', errs().join(' | ').slice(0, 1500), '');
     await page.keyboard.press('Escape');
     await page.waitForSelector('#jiraItem', { state: 'hidden', timeout: 5000 }).catch(() => {});

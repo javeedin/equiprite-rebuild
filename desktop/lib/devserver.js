@@ -554,8 +554,21 @@ function createDevServer(o) {
           const file = `${key} ${nm.replace(/\.[a-z0-9]+$/i, '')}.har`.replace(/[^\w .()-]/g, '_');
           return send(res, 200, 'application/json', JSON.stringify(har, null, 1), { 'Content-Disposition': `attachment; filename="${file}"`, 'Cache-Control': 'no-store' });
         }
+        // A recording's transcript (lib/transcribe.js): the viewer's JSON, or a plain-text / SRT download.
+        const txMatch = /^\/__rec\/(transcript|transcript\.srt|transcript\.txt)\/([^/]+)\/([^/]+)$/.exec(pathname);
+        if (req.method === 'GET' && txMatch) {
+          const key = decodeURIComponent(txMatch[2]);
+          const nm = decodeURIComponent(txMatch[3]);
+          if (txMatch[1] === 'transcript') { const t = rs.transcript(key, nm); return t ? json(200, t) : json(404, { error: 'This recording has no transcript yet.' }); }
+          const body = txMatch[1] === 'transcript.srt' ? rs.transcriptSrt(key, nm) : rs.transcriptText(key, nm);
+          if (!body) return send(res, 404, 'text/plain; charset=utf-8', 'No transcript');
+          const file = `${key} ${nm.replace(/\.[a-z0-9]+$/i, '')}.${txMatch[1] === 'transcript.srt' ? 'srt' : 'txt'}`.replace(/[^\w .()-]/g, '_');
+          return send(res, 200, 'text/plain; charset=utf-8', body, { 'Content-Disposition': `attachment; filename="${file}"`, 'Cache-Control': 'no-store' });
+        }
         if (req.method === 'GET' && pathname === '/__rec/status') { return json(200, rs.status(q('id')) || { error: 'No recording in progress.' }); }
         if (req.method === 'GET' && pathname === '/__rec/info') return json(200, { available: true, dir: rs.dir });
+        // Which transcription engines are set up (local Whisper on this PC, or OpenAI with the Ask AI key).
+        if (req.method === 'GET' && pathname === '/__rec/transcribe-info') return json(200, o.transcribe ? o.transcribe.info() : { engines: [], local: { ready: false }, openai: { ready: false } });
         // Which stories have recordings or screenshots (the lists' icon), in one read.
         if (req.method === 'GET' && pathname === '/__rec/index') return json(200, rs.index());
         if (req.method === 'GET' && pathname === '/__rec/list') {
@@ -585,6 +598,17 @@ function createDevServer(o) {
           }
           if (pathname === '/__rec/reveal') return json(200, rs.reveal(q('key')));
           if (pathname === '/__rec/remove') return json(200, rs.remove(q('key'), q('name')));
+          // Transcribe a recording's voice with Whisper (local on this PC, or OpenAI), then keep the transcript next to it.
+          if (pathname === '/__rec/transcribe') {
+            if (!o.transcribe) return json(200, { ok: false, error: 'Transcription is not available.' });
+            const file = rs.file(q('key'), q('name'));
+            if (!file) return json(200, { ok: false, error: 'The recording was not found.' });
+            const r = await o.transcribe.transcribe(file, { engine: q('engine'), lang: q('lang') });
+            if (!r.ok) return json(200, r);
+            const item = rs.saveTranscript(q('key'), q('name'), r);
+            log(`Transcribed ${q('key')} ${q('name')} with ${r.engine} Whisper: ${(r.segments || []).length} lines (${Math.round((r.ms || 0) / 100) / 10}s)`);
+            return json(200, { ok: true, engine: r.engine, lang: r.lang, lines: (r.segments || []).length, item });
+          }
           return json(404, { error: 'Not found' });
         })().catch((e) => json(200, { error: e.message }));
         return undefined;
