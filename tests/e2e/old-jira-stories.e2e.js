@@ -11,6 +11,8 @@
  *       check and an FDD section do too
  *     - a row opens the drawer: facts, the acceptance criteria as a list, the checks, the tester's gaps, the comments,
  *       Open in Jira; Escape closes it
+ *     - Record a test of the story: the picker, the bar, a screenshot, Stop; the video and screenshot kept in its folder
+ *       on this PC and listed on the panel (in VBCS, without the desktop app: said so)
  *     - Export to CSV and to Excel: the rows shown
  *     - a preset reads its JQL; Smart Search's Status filter narrows the table
  *     - Disconnect: not connected again
@@ -24,6 +26,7 @@ const path = require('path');
 const E = require('./harness');
 const H = require('../_harness');
 const JiraAuth = require('../../desktop/lib/jiraAuth');
+const TestEvidence = require('../../desktop/lib/testEvidence');
 
 const T = H.makeAsserter();
 const day = (n) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
@@ -130,7 +133,8 @@ async function waitKeys(page, n) {
 (async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'eqp-old-jira-'));
   const store = JiraAuth.open({ file: path.join(dir, 'jira-connection.json') }); // no keychain: the token kept for this run only
-  const env = await E.start({ port: 19750, app: 'old', handle, jiraStore: store });
+  const evidenceDir = path.join(dir, 'EquipRite Test Evidence');
+  const env = await E.start({ port: 19750, app: 'old', handle, jiraStore: store, recStore: TestEvidence.open({ dir: evidenceDir, reveal: () => {} }), init: E.recorderStub });
   const { page } = env;
   const errs = () => env.errors.filter((e) => !/Failed to load resource/.test(e));
   try {
@@ -259,6 +263,35 @@ async function waitKeys(page, n) {
     T.check('Open in Jira: the issue, in a new tab', (await page.getAttribute('#jiraOpenInJira', 'href')) === 'https://equiprite.atlassian.net/browse/EQP-12'
       && (await page.getAttribute('#jiraOpenInJira', 'target')) === '_blank' && (await page.getAttribute('#jiraOpenInJira', 'rel')) === 'noopener');
     await env.shot('old-jira-stories-drawer.png');
+
+    T.section('Record a test of the story: kept in its folder on this PC, listed on the panel');
+    await page.waitForSelector('#jiraRecord', { timeout: 10000 });
+    T.check('Test evidence: Record, Screenshot, Open folder; nothing recorded yet', await page.isVisible('#jiraShot') && await page.isVisible('#jiraEvFolder')
+      && (await env.text('#jiraEvidence')).includes('Nothing recorded for this story yet'));
+    await page.click('#jiraRecord');
+    await page.waitForSelector('#eqrRecPicker', { timeout: 10000 });
+    await page.click('#eqrRecGo');
+    await page.waitForSelector('#eqrRecBar', { timeout: 10000 });
+    await page.waitForSelector('#jiraRecStop', { timeout: 10000 });
+    T.eq('recording the screen; the shortcuts on; EquipRite minimised', (await page.evaluate(() => window.__rec)).join(', '), 'use screen:1:0, state true, window minimize');
+    await page.waitForFunction(() => /00:0[2-9]/.test((document.querySelector('#eqrRecTime') || {}).textContent || ''), null, { timeout: 10000 });
+    await page.click('#eqrRecShot');
+    await page.waitForFunction(() => /Screenshot 1 saved/.test((document.querySelector('#eqrRecBar') || {}).textContent || ''), null, { timeout: 10000 });
+    await page.waitForTimeout(1500);
+    await page.click('#jiraRecStop');
+    await page.waitForSelector('#eqrRecBar', { state: 'detached', timeout: 15000 });
+    await page.waitForSelector('#jiraEvidence video', { timeout: 10000 });
+    await settle(page, 600);
+    const folder = path.join(evidenceDir, 'EQP-12');
+    const files = fs.existsSync(folder) ? fs.readdirSync(folder).sort() : [];
+    T.check('Stop recording on the panel: the recording and the screenshot in the story\'s folder', files.length === 2 && files.some((f) => / recording\.(webm|mp4)$/.test(f))
+      && files.some((f) => / screenshot\.png$/.test(f)), files.join(' | '));
+    T.check('the panel lists them, and where they are kept', (await page.$$('#jiraEvidence video')).length === 1 && (await page.$$('#jiraEvidence .jira-img img')).length === 1
+      && (await env.text('#jiraEvidence')).includes('Kept in ' + folder) && (await page.evaluate(() => window.__rec)).slice(3).join(', ') === 'state false, window restore',
+    await env.text('#jiraEvidence'));
+    await page.waitForFunction(() => { const v = document.querySelector('#jiraEvidence video'); return v && v.readyState >= 1; }, null, { timeout: 10000 }).catch(() => {});
+    T.check('…the recording plays', await page.$eval('#jiraEvidence video', (v) => v.readyState >= 1 && v.src.includes('/__rec/file/EQP-12/')));
+    await env.shot('old-jira-stories-evidence.png');
     await page.keyboard.press('Escape');
     await page.waitForSelector('#jiraDrawerBody', { state: 'hidden', timeout: 5000 }).catch(() => {});
     T.check('Escape closes it', !(await page.isVisible('#jiraDrawerBody')));
@@ -355,6 +388,12 @@ async function waitKeys(page, n) {
     await vb.page.waitForSelector('#jiraConnected', { timeout: 15000 });
     T.check('once the administrator has set it: Refresh reads the stories, no Disconnect', (await waitKeys(vb.page, 8)).length === 8 && !(await vb.page.$('#jiraDisconnect'))
       && (await vb.text('#jiraConnectedText')) === 'Connected as Priya Raman');
+    await vb.page.click('#jiraStoriesTable tbody tr:first-child .jira-key');
+    await vb.page.waitForSelector('#jiraEvidence', { state: 'visible', timeout: 10000 });
+    await settle(vb.page, 500);
+    T.check('Record, in VBCS: it says recording works in the desktop app (no buttons)', (await vb.text('#jiraEvidence')).includes('Recording a test works in the EquipRite desktop app')
+      && !(await vb.page.$('#jiraRecord')));
+    await vb.page.keyboard.press('Escape');
     T.eq('no browser errors', vb.errors.filter((e) => !/Failed to load resource/.test(e)).join('\n'), '');
   } catch (e) {
     T.check('VBCS: runs without throwing', false, e.stack);

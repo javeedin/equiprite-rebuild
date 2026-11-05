@@ -13,6 +13,7 @@ define([
       const k = String(key || '');
       if (v.selKey !== k) v.selKey = k;
       if (!k) return;
+      await Actions.callChain(context, { chain: 'evidenceChain', params: { act: 'list' } });
       const row = (v.rows || []).filter((r) => r.key === k)[0];
       if (!row || !row.attachments || !row.attachments.some((a) => a.image)) return;
       const got = await J.loadImages(context, Actions, JSON.parse(JSON.stringify(row)));

@@ -161,3 +161,14 @@ html[data-nx-look="redwood"] .nx-jira .nx-jira-tab--on { border-bottom-color: #2
 .nx-jira .nx-jira-tr--on { background: var(--nx-accent-soft); box-shadow: inset 3px 0 0 var(--nx-accent); }
 .nx-jira .nx-jira-sprintcell { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 html[data-nx-look="redwood"] .nx-jira .nx-jira-tr--on { box-shadow: inset 3px 0 0 #2c5266; }
+
+/* Test evidence (Record, Screenshot): the story's recordings and screenshots kept on this PC */
+.nx-jira-dr .nx-jira-ev { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fbfcfe; }
+.nx-jira-dr .nx-jira-evbtns { display: flex; flex-wrap: wrap; gap: 8px; }
+.nx-jira-dr .nx-jira-recbtn { color: #b91c1c; font-weight: 800; }
+.nx-jira-dr .nx-jira-evvids { display: flex; flex-direction: column; gap: 10px; }
+.nx-jira-dr .nx-jira-evvids:empty { display: none; }
+.nx-jira-dr .nx-jira-evvid { margin: 0; display: flex; flex-direction: column; gap: 4px; }
+.nx-jira-dr .nx-jira-evvid video { width: 100%; max-height: 320px; background: #0f172a; border-radius: 6px; }
+.nx-jira-dr .nx-jira-evvid figcaption { font-size: 11px; color: #64748b; }
+.nx-jira-dr .nx-jira-evfolder { overflow-wrap: anywhere; }

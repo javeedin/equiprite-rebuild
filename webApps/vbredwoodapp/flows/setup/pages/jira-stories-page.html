@@ -144,6 +144,15 @@
   .jira-img-wait { display: flex; align-items: center; justify-content: center; min-width: 160px; min-height: 80px; padding: 8px; font-size: 0.75rem;
     border: 1px dashed var(--oj-core-divider-color, #e0e0e0); border-radius: 6px; color: var(--oj-core-text-color-secondary, #6b6b6b); }
   .jira-files { margin: 4px 0 0 18px; padding: 0; font-size: 0.8125rem; }
+  /* Test evidence (Record, Screenshot): the story's recordings and screenshots kept on this PC */
+  .jira-ev { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border: 1px solid var(--oj-core-divider-color, #e0e0e0); border-radius: 8px; }
+  .jira-ev-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+  .jira-ev-vids { display: flex; flex-direction: column; gap: 10px; }
+  .jira-ev-vids:empty { display: none; }
+  .jira-ev-vid { margin: 0; display: flex; flex-direction: column; gap: 4px; }
+  .jira-ev-vid video { width: 100%; max-height: 320px; background: #111; border-radius: 6px; }
+  .jira-ev-vid figcaption, .jira-ev-folder { font-size: 0.6875rem; overflow-wrap: anywhere; }
+  .jira-ev-error { color: var(--oj-core-danger-text-color, #b3261e); font-weight: 600; }
   .jira-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px 20px; margin-bottom: 8px; }
   .jira-fact-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--oj-core-text-color-secondary, #565656); }
   .jira-fact-value { font-size: 0.875rem; }
@@ -588,6 +597,43 @@
               </div>
             </template>
           </oj-bind-for-each>
+        </div>
+
+        <div class="jira-section">Test evidence</div>
+        <div class="jira-ev" id="jiraEvidence">
+          <oj-bind-if test="[[ $variables.evidence.available ]]">
+            <div class="jira-ev-btns">
+              <oj-bind-if test="[[ $variables.evidence.recording !== $variables.selected.key ]]">
+                <oj-button id="jiraRecord" chroming="outlined" data-act="record" on-oj-action="[[ $listeners.onEvidence ]]"
+                  disabled="[[ !!$variables.evidence.busy || !!$variables.evidence.recording ]]">● Record</oj-button>
+              </oj-bind-if>
+              <oj-bind-if test="[[ $variables.evidence.recording === $variables.selected.key ]]">
+                <oj-button id="jiraRecStop" chroming="danger" data-act="stop" on-oj-action="[[ $listeners.onEvidence ]]">■ Stop recording</oj-button>
+              </oj-bind-if>
+              <oj-button id="jiraShot" chroming="outlined" data-act="shot" on-oj-action="[[ $listeners.onEvidence ]]" disabled="[[ !!$variables.evidence.busy ]]">📷 Screenshot</oj-button>
+              <oj-button id="jiraEvFolder" chroming="borderless" data-act="folder" on-oj-action="[[ $listeners.onEvidence ]]">Open folder</oj-button>
+            </div>
+            <div class="jira-ev-vids">
+              <oj-bind-for-each data="[[ $functions.videos($variables.evidence) ]]">
+                <template data-oj-as="vd">
+                  <figure class="jira-ev-vid"><video controls preload="metadata" :src="[[ vd.data.url ]]" :title="[[ vd.data.name ]]"></video>
+                    <figcaption><oj-bind-text value="[[ 'Recording · ' + $functions.evidenceText(vd.data) ]]"></oj-bind-text></figcaption></figure>
+                </template>
+              </oj-bind-for-each>
+            </div>
+            <div class="jira-imgs jira-imgs--all">
+              <oj-bind-for-each data="[[ $functions.shots($variables.evidence) ]]">
+                <template data-oj-as="sh">
+                  <figure class="jira-img"><a :href="[[ sh.data.url ]]" target="_blank" rel="noopener" :title="[[ 'Open ' + sh.data.name ]]"><img :src="[[ sh.data.url ]]" :alt="[[ sh.data.name ]]" loading="lazy"></a>
+                    <figcaption><oj-bind-text value="[[ 'Screenshot · ' + $functions.evidenceText(sh.data) ]]"></oj-bind-text></figcaption></figure>
+                </template>
+              </oj-bind-for-each>
+            </div>
+            <oj-bind-if test="[[ !$functions.hasItems($variables.evidence.items) ]]"><div class="jira-muted">Nothing recorded for this story yet. Record keeps the video and screenshots in its own folder on this PC.</div></oj-bind-if>
+            <oj-bind-if test="[[ $functions.hasItems($variables.evidence.items) ]]"><div class="jira-muted jira-ev-folder"><oj-bind-text value="[[ 'Kept in ' + $variables.evidence.folder ]]"></oj-bind-text></div></oj-bind-if>
+          </oj-bind-if>
+          <oj-bind-if test="[[ !$variables.evidence.available ]]"><div class="jira-muted">Recording a test works in the EquipRite desktop app, which keeps the video and screenshots on your PC.</div></oj-bind-if>
+          <oj-bind-if test="[[ !!$variables.evidence.error ]]"><div class="jira-ev-error" role="alert" id="jiraEvError"><oj-bind-text value="[[ $variables.evidence.error ]]"></oj-bind-text></div></oj-bind-if>
         </div>
 
         <div class="jira-section">Attachments</div>

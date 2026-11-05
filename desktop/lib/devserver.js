@@ -249,6 +249,8 @@ function time() {
  * @param {object}   [o.jiraStore]        Connect Jira (lib/jiraAuth.js): the Jira site, email and API token kept on this PC, for the
  *                                        Jira stories page (Old and Next): /__jira/settings and /__jira/forget behind the /__sql
  *                                        guard (this PC, the X-EquipRite-Jira header); the token goes only into /__backend/jira calls
+ * @param {object}   [o.recStore]         Test evidence for Jira stories (lib/testEvidence.js: recordings and screenshots kept on this PC,
+ *                                        a folder per story): /__rec/* to this PC only; writes need the X-EquipRite-Rec header
  * @param {Function} [o.pairToken]        () => the pairing key, or null. Given, a request from another device is
  *                                        served only with the key (the QR code's address, then its cookie), never
  *                                        the web services page; this PC's own requests are unaffected
@@ -478,6 +480,70 @@ function createDevServer(o) {
           }
           return json(404, { error: 'Not found' });
         })().catch((e) => json(400, { error: e.message }));
+        return undefined;
+      }
+      if (pathname.startsWith('/__rec/') && o.recStore) {
+        // Test evidence for a Jira story (Record, Screenshot on the story's panel): this PC only, by its own name. Reads
+        // (the list, a file for <video>/<img>, which cannot send a header) need only that; writes also need the page's
+        // X-EquipRite-Rec header and its own origin, which a page of another site cannot send without a preflight.
+        const host = String(req.headers.host || '').replace(/:\d+$/, '');
+        if (!isLoopback(req.socket.remoteAddress) || !/^(localhost|127\.0\.0\.1|\[::1\])$/.test(host)) {
+          return send(res, 404, 'text/plain; charset=utf-8', 'Not found');
+        }
+        const rs = o.recStore;
+        const json = (status, body) => send(res, status, 'application/json', JSON.stringify(body), { 'Cache-Control': 'no-store' });
+        const q = (k) => u.searchParams.get(k) || '';
+        const fileMatch = /^\/__rec\/file\/([^/]+)\/([^/]+)$/.exec(pathname);
+        if (req.method === 'GET' && fileMatch) {
+          const file = rs.file(decodeURIComponent(fileMatch[1]), decodeURIComponent(fileMatch[2]));
+          if (!file) return send(res, 404, 'text/plain; charset=utf-8', 'Not found');
+          const size = fs.statSync(file).size;
+          const type = /\.png$/i.test(file) ? 'image/png' : /\.jpe?g$/i.test(file) ? 'image/jpeg' : /\.webp$/i.test(file) ? 'image/webp'
+            : /\.mp4$/i.test(file) ? 'video/mp4' : 'video/webm';
+          // Ranges, so the video player can seek
+          const range = /^bytes=(\d*)-(\d*)$/.exec(String(req.headers.range || ''));
+          if (range && size) {
+            const start = range[1] ? Number(range[1]) : Math.max(0, size - Number(range[2] || 0));
+            const end = range[1] && range[2] ? Math.min(size - 1, Number(range[2])) : size - 1;
+            if (start > end || start >= size) {
+              res.writeHead(416, { 'Content-Range': `bytes */${size}` });
+              return res.end();
+            }
+            res.writeHead(206, { 'Content-Type': type, 'Content-Length': end - start + 1, 'Content-Range': `bytes ${start}-${end}/${size}`,
+              'Accept-Ranges': 'bytes', 'Cache-Control': 'no-cache' });
+            fs.createReadStream(file, { start, end }).pipe(res);
+            return undefined;
+          }
+          res.writeHead(200, { 'Content-Type': type, 'Content-Length': size, 'Accept-Ranges': 'bytes', 'Cache-Control': 'no-cache' });
+          fs.createReadStream(file).pipe(res);
+          return undefined;
+        }
+        if (req.method === 'GET' && pathname === '/__rec/info') return json(200, { available: true, dir: rs.dir });
+        if (req.method === 'GET' && pathname === '/__rec/list') {
+          try { return json(200, rs.list(q('key'))); } catch (e) { return json(200, { error: e.message }); }
+        }
+        const origin = req.headers.origin;
+        if (req.headers['x-equiprite-rec'] !== '1' || (origin && origin !== `http://${req.headers.host}`)) {
+          return send(res, 403, 'application/json', JSON.stringify({ error: 'Refused: not from EquipRite on this PC.' }));
+        }
+        (async () => {
+          if (req.method !== 'POST') return json(404, { error: 'Not found' });
+          if (pathname === '/__rec/start') return json(200, rs.start(q('key'), q('ext')));
+          if (pathname === '/__rec/chunk') return json(200, rs.chunk(q('id'), await readBody(req)));
+          if (pathname === '/__rec/finish') {
+            const item = rs.finish(q('id'));
+            if (item) log(`Recording saved for ${q('key') || 'a story'}: ${item.name} (${Math.round(item.size / 1024)} KB)`);
+            return json(200, { item });
+          }
+          if (pathname === '/__rec/image') {
+            const item = rs.image(q('key'), await readBody(req), q('ext'));
+            log(`Screenshot saved for ${q('key')}: ${item.name}`);
+            return json(200, { item });
+          }
+          if (pathname === '/__rec/reveal') return json(200, rs.reveal(q('key')));
+          if (pathname === '/__rec/remove') return json(200, rs.remove(q('key'), q('name')));
+          return json(404, { error: 'Not found' });
+        })().catch((e) => json(200, { error: e.message }));
         return undefined;
       }
       if (pathname.startsWith('/__jira/') && o.jiraStore) {

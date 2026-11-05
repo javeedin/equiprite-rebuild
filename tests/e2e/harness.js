@@ -67,6 +67,8 @@ function bipReport(rows) {
  * @param {Object}   [o.jiraStore]  Connect Jira as in the desktop app (desktop/lib/jiraAuth.js open()): Old and Next's servers then
  *                                  answers /__jira/* and adds the saved email and token to its jira backend calls. Every app's
  *                                  jira backend is the fake server (its calls arrive at the Jira path, /rest/api/2/…)
+ * @param {Object}   [o.recStore]   Record on a Jira story, as in the desktop app (desktop/lib/testEvidence.js open()): Old and
+ *                                  Next's servers then answer /__rec/* (the page still needs window.erpDesktop's record calls)
  */
 async function start(o) {
   const calls = [];
@@ -124,14 +126,15 @@ async function start(o) {
   const common = { buildDir: path.join(ROOT, 'build'), getIdentity: () => identity, getVersions: versions, backendOverrides: overrides, onLog: (l) => serverLog.push(l),
     getPhone: () => (o.desktop && o.desktop.phone) || {} };
   const servers = [
-    await DS.createDevServer(Object.assign({ webApp: 'vbredwoodapp', port: ports.old }, common, o.jiraStore ? { jiraStore: o.jiraStore } : {})),
+    await DS.createDevServer(Object.assign({ webApp: 'vbredwoodapp', port: ports.old }, common, o.jiraStore ? { jiraStore: o.jiraStore } : {},
+      o.recStore ? { recStore: o.recStore } : {})),
     await DS.createDevServer(Object.assign({ webApp: 'equiprite', port: ports.new }, common)),
   ];
   if (DS.isBuilt(path.join(ROOT, 'build'), 'equiprite-next')) {
     // o.sqlStore: the SQL worksheet's store (desktop/lib/oracleSql.js, with a fake driver in tests).
     // o.jiraStore: Connect Jira's store (desktop/lib/jiraAuth.js), as the desktop app gives Old and Next.
     servers.push(await DS.createDevServer(Object.assign({ webApp: 'equiprite-next', port: ports.next }, common, o.sqlStore ? { sqlStore: o.sqlStore } : {}, o.aiStore ? { aiStore: o.aiStore } : {},
-      o.jiraStore ? { jiraStore: o.jiraStore } : {})));
+      o.jiraStore ? { jiraStore: o.jiraStore } : {}, o.recStore ? { recStore: o.recStore } : {})));
   }
   let futureStore = null;
   if (DS.isBuilt(path.join(ROOT, 'build'), 'equiprite-future')) {
@@ -211,4 +214,33 @@ async function start(o) {
   };
 }
 
-module.exports = { start, bipReport, ALL_CODES, ALL_FLAGS, ROOT };
+// Record on a Jira story, as in the desktop app (pass as o.init, with o.recStore): window.erpDesktop's record calls
+// (desktop/preload.js; each logged in window.__rec, the shortcut handler kept in window.__recKey) and the screen, a canvas
+// that keeps changing, handed out as getDisplayMedia would (Electron answers it in desktop/main.js).
+function recorderStub() {
+  window.__rec = [];
+  window.erpDesktop = {
+    recordSources: () => Promise.resolve([{ id: 'window:42:0', name: 'Fusion - Oracle Applications', kind: 'window', thumb: '' },
+      { id: 'screen:1:0', name: 'Entire screen', kind: 'screen', thumb: '' }]),
+    recordUse: (id) => { window.__rec.push('use ' + id); return Promise.resolve(true); },
+    recordState: (on) => { window.__rec.push('state ' + on); return Promise.resolve({ shot: 'Ctrl+Alt+S', stop: 'Ctrl+Alt+X' }); },
+    recordWindow: (what) => { window.__rec.push('window ' + what); return Promise.resolve(true); },
+    onRecordKey: (cb) => { window.__recKey = cb; },
+  };
+  const md = navigator.mediaDevices || {};
+  md.getDisplayMedia = () => {
+    const c = document.createElement('canvas');
+    c.width = 640; c.height = 360;
+    const g = c.getContext('2d');
+    let n = 0;
+    const paint = () => { n++; g.fillStyle = 'hsl(' + (n * 7 % 360) + ',70%,50%)'; g.fillRect(0, 0, 640, 360); g.fillStyle = '#fff'; g.font = '40px sans-serif'; g.fillText('Testing · ' + n, 40, 180); };
+    paint();
+    const timer = setInterval(paint, 66);
+    const stream = c.captureStream(15);
+    stream.getVideoTracks()[0].addEventListener('ended', () => clearInterval(timer));
+    window.__shared = (window.__shared || 0) + 1;
+    return Promise.resolve(stream);
+  };
+}
+
+module.exports = { start, bipReport, recorderStub, ALL_CODES, ALL_FLAGS, ROOT };

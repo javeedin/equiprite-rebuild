@@ -16,6 +16,7 @@ define([
       const copy = JSON.parse(JSON.stringify(row));
       v.selected = copy;
       v.drawerOpen = true;
+      await Actions.callChain(context, { chain: 'evidenceChain', params: { act: 'list' } });
       if (!(copy.attachments || []).some((a) => a.image)) return;
       const got = await J.loadImages(context, Actions, copy);
       if (!v.selected || v.selected.key !== key) return;

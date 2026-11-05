@@ -30,7 +30,7 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { app, BrowserWindow, Menu, shell, ipcMain, safeStorage, dialog, clipboard } = require('electron');
+const { app, BrowserWindow, Menu, shell, ipcMain, safeStorage, dialog, clipboard, desktopCapturer, globalShortcut, session } = require('electron');
 const { createDevServer, isBuilt, backendOverridesFromEnv, KNOWN_ROLES } = require('./lib/devserver');
 const identityStore = require('./lib/identity');
 const { navAllowed, opensInOldWindow } = require('./lib/hosts');
@@ -85,6 +85,45 @@ function jiraStore() {
   }
   return jiraAuthStore;
 }
+// Record, on a Jira story's panel (Old and Next): recordings and screenshots kept in Documents/EquipRite Test Evidence, a
+// folder per story (lib/testEvidence.js); the page records the screen or window chosen (getDisplayMedia, answered below).
+let evidenceStoreInst = null;
+function evidenceStore() {
+  if (!evidenceStoreInst) {
+    evidenceStoreInst = require('./lib/testEvidence').open({
+      dir: path.join(app.getPath('documents'), 'EquipRite Test Evidence'),
+      reveal: (folder) => shell.openPath(folder),
+    });
+  }
+  return evidenceStoreInst;
+}
+let recSource = '';
+const REC_KEYS = { shot: 'CommandOrControl+Alt+S', stop: 'CommandOrControl+Alt+X' };
+ipcMain.handle('rec:sources', async () => {
+  const sources = await desktopCapturer.getSources({ types: ['screen', 'window'], thumbnailSize: { width: 320, height: 180 } });
+  return sources.map((x) => ({ id: x.id, name: x.name, kind: x.id.startsWith('screen:') ? 'screen' : 'window',
+    thumb: x.thumbnail && !x.thumbnail.isEmpty() ? x.thumbnail.toDataURL() : '' }));
+});
+ipcMain.handle('rec:use', (event, id) => { recSource = String(id || ''); return true; });
+// While recording: a screenshot and Stop from anywhere (the test usually runs in another window or app).
+ipcMain.handle('rec:state', (event, on) => {
+  Object.values(REC_KEYS).forEach((k) => { if (globalShortcut.isRegistered(k)) globalShortcut.unregister(k); });
+  if (on) {
+    const sender = event.sender;
+    Object.entries(REC_KEYS).forEach(([what, k]) => {
+      globalShortcut.register(k, () => { if (!sender.isDestroyed()) sender.send('rec:key', what); });
+    });
+  }
+  const mac = process.platform === 'darwin';
+  return { shot: mac ? '⌘⌥S' : 'Ctrl+Alt+S', stop: mac ? '⌘⌥X' : 'Ctrl+Alt+X' };
+});
+ipcMain.handle('rec:window', (event, what) => {
+  const w = BrowserWindow.fromWebContents(event.sender);
+  if (!w || w.isDestroyed()) return false;
+  if (what === 'minimize') w.minimize();
+  else if (what === 'restore') { if (w.isMinimized()) w.restore(); w.show(); w.focus(); }
+  return true;
+});
 const VERSIONS = {
   old: { webApp: 'vbredwoodapp', label: 'Old EquipRite', port: PORT },
   new: { webApp: 'equiprite', label: 'New EquipRite', port: PORT + 1 },
@@ -910,6 +949,16 @@ if (!app.requestSingleInstanceLock()) {
   });
 
   app.whenReady().then(async () => {
+    // Record (a Jira story's panel): the page asks for the screen (getDisplayMedia); this answers with the screen or window
+    // the person picked in the page (rec:use), else the main screen. Only EquipRite's own pages on this PC are answered.
+    session.defaultSession.setDisplayMediaRequestHandler((request, callback) => {
+      const from = String((request.frame && request.frame.url) || request.securityOrigin || '');
+      if (!/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?\//.test(from)) { callback({}); return; }
+      desktopCapturer.getSources({ types: ['screen', 'window'] }).then((sources) => {
+        const pick = sources.find((x) => x.id === recSource) || sources.find((x) => x.id.startsWith('screen:'));
+        callback(pick ? { video: pick } : {});
+      }).catch(() => callback({}));
+    });
     Menu.setApplicationMenu(appMenu());
     createWindow();
     try {
@@ -931,6 +980,8 @@ if (!app.requestSingleInstanceLock()) {
             aiStore: v === 'next' ? await aiStore() : undefined,
             // The Jira stories page (Old and Next): Connect Jira keeps the token on this PC; the proxy adds it.
             jiraStore: v === 'next' || v === 'old' ? jiraStore() : undefined,
+            // Record on a Jira story: its recordings and screenshots, kept on this PC.
+            recStore: v === 'next' || v === 'old' ? evidenceStore() : undefined,
             backendOverrides: backendOverridesFromEnv(process.env),
             onLog: pushLog,
             onProblem: backendProblem,
@@ -979,3 +1030,9 @@ if (!app.requestSingleInstanceLock()) {
     }
   });
 }
+
+// Record: shortcuts released and open recordings closed as they are (what was written stays playable).
+app.on('will-quit', () => {
+  try { globalShortcut.unregisterAll(); } catch (e) { /* not registered */ }
+  if (evidenceStoreInst) evidenceStoreInst.closeAll();
+});

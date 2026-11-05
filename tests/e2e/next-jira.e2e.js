@@ -3,7 +3,8 @@
  * EquipRite Next, Jira stories (flows/insights jira-page; rules resources/js/jiraBacklog.js), in a real browser against a
  * fake Jira: Connect in the desktop app (the token goes to the desktop app, which adds it to the jira backend's calls),
  * every page of the search read, the numbers, what they say, a finding opening its items, by status, the breakdowns,
- * the filters, one item in the drawer (criteria, checks, gaps, comments, Open in Jira), a preset, export, Disconnect;
+ * the filters, one item in the drawer (criteria, checks, gaps, comments, Open in Jira), Record a test of it (the picker,
+ * the bar, a screenshot, Stop: the video and screenshots kept in its folder on this PC), a preset, export, Disconnect;
  * then the Redwood look: Oracle's header with Smart Search (a filter per column) and Oracle's table.
  * Needs `npm run build`. Run: node tests/e2e/next-jira.e2e.js
  */
@@ -13,6 +14,8 @@ const path = require('path');
 const E = require('./harness');
 const H = require('../_harness');
 const JA = require('../../desktop/lib/jiraAuth');
+const TE = require('../../desktop/lib/testEvidence');
+
 
 const T = H.makeAsserter();
 const today = new Date().toISOString().slice(0, 10);
@@ -86,7 +89,10 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
   const enc = (t) => Buffer.from('enc:' + Buffer.from(t).toString('base64'));
   const dec = (b) => Buffer.from(String(b).replace(/^enc:/, ''), 'base64').toString();
   const jiraStore = JA.open({ file: path.join(dir, 'jira.json'), encrypt: enc, decrypt: dec });
-  const env = await E.start({ port: 19760, handle, app: 'next', jiraStore });
+  const evidenceDir = path.join(dir, 'EquipRite Test Evidence');
+  const recStore = TE.open({ dir: evidenceDir, reveal: (f) => { revealed.push(f); } });
+  const revealed = [];
+  const env = await E.start({ port: 19760, handle, app: 'next', jiraStore, recStore, init: E.recorderStub });
   const page = env.page;
   const errs = () => env.errors.filter((e) => !/404|401|Failed to load resource/.test(e) && !e.startsWith('warning'));
   try {
@@ -223,6 +229,63 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     T.check('the attachments: the image as a thumbnail, the other file by name and size', (await page.$$('#jiraAttachments img')).length === 1
       && (await text(page, '#jiraFiles')).includes('mapping.xlsx · 12 KB'));
     await env.shot('next-jira-drawer.png');
+
+    T.section('Record a test of it: the screen, screenshots, kept in its folder on this PC');
+    await page.waitForSelector('#jiraRecord', { timeout: 10000 });
+    T.check('Test evidence: Record, Screenshot, Open folder; nothing recorded yet', await page.isVisible('#jiraShot') && await page.isVisible('#jiraEvFolder')
+      && (await text(page, '#jiraEvidence')).includes('Nothing recorded for this story yet'));
+    await page.click('#jiraRecord');
+    await page.waitForSelector('#eqrRecPicker', { timeout: 10000 });
+    T.eq('the picker: screens first, then windows; the screen chosen; minimise EquipRite ticked', [(await texts(page, '#eqrRecPicker .eqr-rec-src')).join(' | '),
+      await page.getAttribute('#eqrRecPicker .eqr-rec-src[aria-pressed="true"]', 'data-id'), await page.isChecked('#eqrRecMinimize')].join(' / '),
+    'Screen · Entire screen | Fusion - Oracle Applications / screen:1:0 / true');
+    await env.shot('next-jira-record-picker.png');
+    await page.click('#eqrRecPicker .eqr-rec-src[data-id="window:42:0"]');
+    await page.click('#eqrRecGo');
+    await page.waitForSelector('#eqrRecBar', { timeout: 10000 });
+    await page.waitForSelector('#jiraRecStop', { timeout: 10000 });
+    T.eq('recording the window chosen; the shortcuts on; EquipRite minimised', (await page.evaluate(() => window.__rec)).join(', '), 'use window:42:0, state true, window minimize');
+    T.check('the bar: the time, Screenshot, Stop, the shortcuts; the panel says Stop recording', (await text(page, '#eqrRecBar')).includes('EQP-12')
+      && (await text(page, '#eqrRecBar')).includes('Ctrl+Alt+S · Ctrl+Alt+X') && !(await page.$('#jiraRecord')));
+    await page.waitForFunction(() => /00:0[2-9]/.test((document.querySelector('#eqrRecTime') || {}).textContent || ''), null, { timeout: 10000 });
+    await page.click('#eqrRecShot');
+    await page.waitForFunction(() => /Screenshot 1 saved/.test((document.querySelector('#eqrRecBar') || {}).textContent || ''), null, { timeout: 10000 });
+    await page.evaluate(() => window.__recKey('shot'));
+    await page.waitForFunction(() => /Screenshot 2 saved/.test((document.querySelector('#eqrRecBar') || {}).textContent || ''), null, { timeout: 10000 });
+    T.check('a screenshot from the bar, and one from the shortcut (from any app)', true);
+    await page.waitForTimeout(3500);
+    const folder = path.join(evidenceDir, 'EQP-12');
+    const writing = fs.readdirSync(folder).find((f) => / recording\.(webm|mp4)$/.test(f));
+    T.check('the video goes to this PC as it is made (every 3 seconds), not held in memory', !!writing && fs.statSync(path.join(folder, writing)).size > 0, String(writing));
+    await env.shot('next-jira-recording.png');
+    await page.click('#eqrRecStop');
+    await page.waitForSelector('#eqrRecBar', { state: 'detached', timeout: 15000 });
+    await page.waitForSelector('#jiraEvidence video', { timeout: 10000 });
+    await settle(page, 600);
+    T.eq('stopped: shortcuts off, EquipRite back', (await page.evaluate(() => window.__rec)).slice(3).join(', '), 'state false, window restore');
+    const files = fs.readdirSync(folder).sort();
+    T.check('in the story\'s folder: the recording and the two screenshots', files.length === 3 && files.filter((f) => / screenshot( \(2\))?\.png$/.test(f)).length === 2
+      && files.some((f) => / recording\.(webm|mp4)$/.test(f)), files.join(' | '));
+    T.check('…the screenshots are pictures of the screen', files.filter((f) => f.endsWith('.png')).every((f) => fs.readFileSync(path.join(folder, f)).subarray(1, 4).toString() === 'PNG'));
+    T.check('the panel lists them: the recording to play, the screenshots as thumbnails, where they are kept', (await page.$$('#jiraEvidence video')).length === 1
+      && (await page.$$('#jiraEvidence .nx-jira-img img')).length === 2 && (await text(page, '#jiraEvidence')).includes('Kept in ' + folder)
+      && /Recording · \d{4}-\d{2}-\d{2} \d{2}:\d{2} · \d+ KB/.test(await text(page, '#jiraEvidence')), await text(page, '#jiraEvidence'));
+    await page.waitForFunction(() => { const v = document.querySelector('#jiraEvidence video'); return v && v.readyState >= 1; }, null, { timeout: 10000 }).catch(() => {});
+    T.check('…the recording plays (from this PC, through the desktop app)', await page.$eval('#jiraEvidence video', (v) => v.readyState >= 1 && v.src.includes('/__rec/file/EQP-12/')));
+    await page.waitForFunction(() => Array.from(document.querySelectorAll('#jiraEvidence .nx-jira-img img')).every((i) => i.complete && i.naturalWidth === 640), null, { timeout: 10000 }).catch(() => {});
+    T.check('…the screenshots show', await page.$$eval('#jiraEvidence .nx-jira-img img', (im) => im.length === 2 && im.every((i) => i.complete && i.naturalWidth === 640)));
+    await page.click('#jiraEvFolder');
+    await page.waitForFunction(() => true);
+    await settle(page, 300);
+    T.eq('Open folder: the story\'s folder, in the file manager', revealed.join(), folder);
+    await page.click('#jiraShot');
+    await page.waitForSelector('#eqrRecPicker', { timeout: 10000 });
+    T.check('Screenshot alone: the picker, without Minimise', await page.isVisible('#eqrRecGo') && !(await page.$('#eqrRecMinimize')));
+    await page.click('#eqrRecGo');
+    await page.waitForFunction(() => document.querySelectorAll('#jiraEvidence .nx-jira-img img').length === 3, null, { timeout: 10000 }).catch(() => {});
+    T.check('…saved and listed, the screen let go', (await page.$$('#jiraEvidence .nx-jira-img img')).length === 3 && fs.readdirSync(folder).length === 4);
+    await env.shot('next-jira-evidence.png');
+    T.eq('no browser errors while recording', errs().join(' | ').slice(0, 1500), '');
     await page.keyboard.press('Escape');
     await page.waitForSelector('#jiraItem', { state: 'hidden', timeout: 5000 }).catch(() => {});
     T.check('Escape closes it', !(await page.isVisible('#jiraItem')));

@@ -1,4 +1,4 @@
-define(['resources/js/jiraBacklog', 'resources/js/exportKit'], (J, exportKit) => {
+define(['resources/js/jiraBacklog', 'resources/js/exportKit', 'resources/js/testRecorder'], (J, exportKit, Recorder) => {
   'use strict';
 
   // Jira stories: binding helpers. The rules are resources/js/jiraBacklog.js (the same file Old EquipRite's Jira
@@ -12,7 +12,11 @@ define(['resources/js/jiraBacklog', 'resources/js/exportKit'], (J, exportKit) =>
   }
 
   class PageModule {
-    constructor() {
+    constructor(context) {
+      // Record: when a recording or screenshot is saved (from the bar or a shortcut, perhaps in another tab), the open
+      // item's evidence is read again (evidenceChain).
+      const helper = context && typeof context.getEventHelper === 'function' ? context.getEventHelper() : null;
+      if (Recorder && typeof Recorder.onChange === 'function') Recorder.onChange('jira-page', () => { if (helper) helper.fireCustomEvent('evidenceChanged', {}); });
       // Escape closes the item's drawer through its own Close button (the drawer hides itself on Escape, but its
       // opened-changed does not reliably reach the page, which would then think the item is still open). Capture phase:
       // before the drawer acts on the key. One listener for the module.
@@ -91,6 +95,17 @@ define(['resources/js/jiraBacklog', 'resources/js/exportKit'], (J, exportKit) =>
     /** The item's images among its attachments, and the other files. */
     imageFiles(r) { return ((r && r.attachments) || []).filter((a) => a.image); }
     otherFiles(r) { return ((r && r.attachments) || []).filter((a) => !a.image); }
+
+    /** The open item's recordings and screenshots. */
+    videos(ev) { return ((ev && ev.items) || []).filter((x) => x.kind === 'video'); }
+    shots(ev) { return ((ev && ev.items) || []).filter((x) => x.kind === 'image'); }
+    /** "5 Nov 14:03 · 12.4 MB". */
+    evidenceText(x) {
+      if (!x) return '';
+      const m = /(\d{4}-\d{2}-\d{2}) (\d{2})-(\d{2})/.exec(x.name || '');
+      const size = x.size >= 1048576 ? (Math.round(x.size / 104857.6) / 10) + ' MB' : Math.max(1, Math.round(x.size / 1024)) + ' KB';
+      return (m ? m[1] + ' ' + m[2] + ':' + m[3] : x.name) + ' · ' + size;
+    }
 
     /** The acceptance criteria as a list of checks. */
     acList(ac) { return J.acChecks(ac); }

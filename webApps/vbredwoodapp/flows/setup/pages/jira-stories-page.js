@@ -1,4 +1,4 @@
-define(['resources/js/jiraBacklog'], function (J) {
+define(['resources/js/jiraBacklog', 'resources/js/testRecorder'], function (J, Recorder) {
   'use strict';
 
   // Jira Stories (setup/jira-stories, Administrator menu): the EquipRite backlog read from Jira, read only. The rules
@@ -19,6 +19,24 @@ define(['resources/js/jiraBacklog'], function (J) {
   }
 
   class PageModule {
+    constructor(context) {
+      // Record: when a recording or screenshot is saved (from the bar or a shortcut), the open story's evidence is read again.
+      var helper = context && typeof context.getEventHelper === 'function' ? context.getEventHelper() : null;
+      if (Recorder && typeof Recorder.onChange === 'function') {
+        Recorder.onChange('jira-stories-page', function () { if (helper) helper.fireCustomEvent('evidenceChanged', {}); });
+      }
+    }
+
+    /** The open story's recordings and screenshots, and how each is labelled ("2026-11-05 14:03 · 12.4 MB"). */
+    videos(ev) { return ((ev && ev.items) || NONE).filter(function (x) { return x.kind === 'video'; }); }
+    shots(ev) { return ((ev && ev.items) || NONE).filter(function (x) { return x.kind === 'image'; }); }
+    evidenceText(x) {
+      if (!x) return '';
+      var m = /(\d{4}-\d{2}-\d{2}) (\d{2})-(\d{2})/.exec(x.name || '');
+      var size = x.size >= 1048576 ? (Math.round(x.size / 104857.6) / 10) + ' MB' : Math.max(1, Math.round(x.size / 1024)) + ' KB';
+      return (m ? m[1] + ' ' + m[2] + ':' + m[3] : x.name) + ' · ' + size;
+    }
+
     /** Today on this PC: 'YYYY-MM-DD' (what "overdue" and "passed" are measured against). */
     today() {
       var d = new Date();

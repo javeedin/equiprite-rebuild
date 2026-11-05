@@ -17,4 +17,14 @@ contextBridge.exposeInMainWorld('erpDesktop', {
   platform: process.platform,
   // Next's toolbar QR code: opens File > EquipRite on your phone, where the phone's address is set up.
   openPhone: () => ipcRenderer.invoke('desktop:phone'),
+  // Record, on a Jira story's panel: the screens and windows to record (with a thumbnail), the one chosen, the shortcuts
+  // while recording (Screenshot and Stop from any app), and the window (minimised while testing, back when done).
+  recordSources: () => ipcRenderer.invoke('rec:sources'),
+  recordUse: (id) => ipcRenderer.invoke('rec:use', String(id || '')),
+  recordState: (on) => ipcRenderer.invoke('rec:state', !!on),
+  recordWindow: (what) => ipcRenderer.invoke('rec:window', String(what || '')),
+  onRecordKey: (cb) => {
+    ipcRenderer.removeAllListeners('rec:key');
+    ipcRenderer.on('rec:key', (event, what) => { if (typeof cb === 'function') cb(String(what)); });
+  },
 });

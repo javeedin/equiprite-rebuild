@@ -30,6 +30,7 @@ const AGREED = [
   { why: 'Jira stories page, asked for in Old and Next on 5 Nov 2026 (reads the EquipRite Jira backlog, read only)',
     paths: [
       'webApps/vbredwoodapp/resources/js/jiraBacklog.js',            // identical to Next's (tests/jira-backlog.test.js)
+      'webApps/vbredwoodapp/resources/js/testRecorder.js',           // Record on a story, identical to Next's (tests/test-recorder.test.js)
       'webApps/vbredwoodapp/flows/setup/pages/jira-stories-page.html',
       'webApps/vbredwoodapp/flows/setup/pages/jira-stories-page.js',
       'webApps/vbredwoodapp/flows/setup/pages/jira-stories-page.json',

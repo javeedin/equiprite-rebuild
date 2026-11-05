@@ -308,6 +308,18 @@
       "type": "object",
       "defaultValue": {},
       "description": "The open item's images, read through the jira connection: { attachment id: object URL } ('' when it could not be read)."
+    },
+    "evidence": {
+      "type": "object",
+      "defaultValue": {
+        "available": false,
+        "key": "",
+        "items": [],
+        "folder": "",
+        "error": "",
+        "busy": ""
+      },
+      "description": "The open item's test evidence on this PC (resources/js/testRecorder.js): recordings and screenshots in its folder."
     }
   },
   "eventListeners": {
@@ -525,6 +537,26 @@
           }
         }
       ]
+    },
+    "evidenceChanged": {
+      "chains": [
+        {
+          "chain": "evidenceChain",
+          "parameters": {
+            "act": "list"
+          }
+        }
+      ]
+    },
+    "onEvidence": {
+      "chains": [
+        {
+          "chain": "evidenceChain",
+          "parameters": {
+            "act": "{{ $event.currentTarget.dataset.act }}"
+          }
+        }
+      ]
     }
   },
   "imports": {
@@ -559,6 +591,12 @@
       "oj-sp-general-drawer-template": {
         "path": "oj-sp/general-drawer-template/loader"
       }
+    }
+  },
+  "events": {
+    "evidenceChanged": {
+      "description": "From resources/js/testRecorder.js: a recording or screenshot was saved (or a recording began or ended).",
+      "payloadType": "object"
     }
   }
 }

@@ -450,6 +450,45 @@
           </template>
         </oj-bind-for-each>
         <oj-bind-if test="[[ $functions.item($variables.rows, $variables.selKey).comments.length === 0 ]]"><p class="nx-note">No comments.</p></oj-bind-if>
+        <h3 class="nx-jira-h3">Test evidence</h3>
+        <div class="nx-jira-ev" id="jiraEvidence">
+          <oj-bind-if test="[[ $variables.evidence.available ]]">
+            <div class="nx-jira-evbtns">
+              <oj-bind-if test="[[ $variables.evidence.recording !== $variables.selKey ]]">
+                <button type="button" class="nx-btn nx-btn--sm nx-jira-recbtn" id="jiraRecord" data-act="record" on-click="[[ $listeners.onEvidence ]]"
+                  :disabled="[[ !!$variables.evidence.busy || !!$variables.evidence.recording ]]" title="Record the screen while you test this story">● Record</button>
+              </oj-bind-if>
+              <oj-bind-if test="[[ $variables.evidence.recording === $variables.selKey ]]">
+                <button type="button" class="nx-btn nx-btn--sm nx-jira-recbtn" id="jiraRecStop" data-act="stop" on-click="[[ $listeners.onEvidence ]]">■ Stop recording</button>
+              </oj-bind-if>
+              <button type="button" class="nx-btn nx-btn--sm" id="jiraShot" data-act="shot" on-click="[[ $listeners.onEvidence ]]" :disabled="[[ !!$variables.evidence.busy ]]">📷 Screenshot</button>
+              <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" id="jiraEvFolder" data-act="folder" on-click="[[ $listeners.onEvidence ]]">Open folder</button>
+            </div>
+            <oj-bind-if test="[[ !!$variables.evidence.recording && $variables.evidence.recording !== $variables.selKey ]]">
+              <p class="nx-note"><oj-bind-text value="[[ 'Recording ' + $variables.evidence.recording + ': stop it (the bar, or Ctrl+Alt+X) before recording this one.' ]]"></oj-bind-text></p>
+            </oj-bind-if>
+            <div class="nx-jira-evvids">
+              <oj-bind-for-each data="[[ $functions.videos($variables.evidence) ]]">
+                <template data-oj-as="vd">
+                  <figure class="nx-jira-evvid"><video controls preload="metadata" :src="[[ vd.data.url ]]" :title="[[ vd.data.name ]]"></video>
+                    <figcaption><oj-bind-text value="[[ 'Recording · ' + $functions.evidenceText(vd.data) ]]"></oj-bind-text></figcaption></figure>
+                </template>
+              </oj-bind-for-each>
+            </div>
+            <div class="nx-jira-imgs nx-jira-imgs--all">
+              <oj-bind-for-each data="[[ $functions.shots($variables.evidence) ]]">
+                <template data-oj-as="sh">
+                  <figure class="nx-jira-img"><a :href="[[ sh.data.url ]]" target="_blank" rel="noopener" :title="[[ 'Open ' + sh.data.name ]]"><img :src="[[ sh.data.url ]]" :alt="[[ sh.data.name ]]" loading="lazy"></a>
+                    <figcaption><oj-bind-text value="[[ 'Screenshot · ' + $functions.evidenceText(sh.data) ]]"></oj-bind-text></figcaption></figure>
+                </template>
+              </oj-bind-for-each>
+            </div>
+            <oj-bind-if test="[[ $variables.evidence.items.length === 0 ]]"><p class="nx-note">Nothing recorded for this story yet. Record keeps the video and screenshots in its own folder on this PC.</p></oj-bind-if>
+            <oj-bind-if test="[[ $variables.evidence.items.length > 0 ]]"><p class="nx-note nx-jira-evfolder"><oj-bind-text value="[[ 'Kept in ' + $variables.evidence.folder ]]"></oj-bind-text></p></oj-bind-if>
+          </oj-bind-if>
+          <oj-bind-if test="[[ !$variables.evidence.available ]]"><p class="nx-note">Recording a test works in the EquipRite desktop app, which keeps the video and screenshots on your PC.</p></oj-bind-if>
+          <oj-bind-if test="[[ !!$variables.evidence.error ]]"><div class="nx-error" role="alert" id="jiraEvError"><oj-bind-text value="[[ $variables.evidence.error ]]"></oj-bind-text></div></oj-bind-if>
+        </div>
         <h3 class="nx-jira-h3">Attachments</h3>
         <div class="nx-jira-imgs nx-jira-imgs--all" id="jiraAttachments">
         <oj-bind-for-each data="[[ $functions.imageFiles($functions.item($variables.rows, $variables.selKey)) ]]">

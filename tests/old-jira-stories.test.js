@@ -315,7 +315,9 @@ T.check('…and its guard sends that user away', !app.canEnterPage({ EQR_CONFIGU
   v.jql = 'project = EQP AND labels = demo';
   await new (loadChain('queryChain', A.Actions))().run({ $page: page }, { key: '' });
   T.eq('…one of your own lights none', v.preset, '');
-  await new (loadChain('openStoryChain', {}))().run({ $page: page }, { key: 'EQP-12' });
+  const opened = [];
+  await new (loadChain('openStoryChain', { callChain: async (ctx, c) => { opened.push(c.chain + ':' + c.params.act); } }))().run({ $page: page }, { key: 'EQP-12' });
+  T.eq('…and asks for its test evidence', opened.join(), 'evidenceChain:list');
   T.check('a row: a copy of the story, in the drawer', v.drawerOpen && v.selected.key === 'EQP-12' && v.selected !== v.rows[0] && v.selected.gaps.length === 2);
   await new (loadChain('closeDrawerChain', {}))().run({ $page: page });
   T.check('…closed', !v.drawerOpen);
