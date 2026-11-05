@@ -73,6 +73,7 @@ define(['resources/js/jiraBacklog'], function (J) {
       r.checkCount = (r.checks || NONE).length;
       r.quality = this.qualityText(r);
       r.epicLine = r.epicKey ? r.epicKey + ' ' + r.epicName : 'No epic';
+      r.sprintText = r.sprint || '—';
       return r;
     }
 
@@ -202,6 +203,9 @@ define(['resources/js/jiraBacklog'], function (J) {
 
     /** A list from a row (an empty one when it has none), for oj-bind-for-each. */
     items(v) { return Array.isArray(v) ? v : NONE; }
+
+    /** The sprint the table is narrowed to (By sprint, a row clicked), or ''. */
+    pickedSprint(pick) { return (pick && pick.sprint) || ''; }
 
     /** An image of the open story: its URL once read, '' until then (or when it could not be read). */
     imageUrl(images, id) { return (images && id && images[id]) || ''; }

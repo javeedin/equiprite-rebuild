@@ -15,7 +15,8 @@ define([
       v.shown = shown;
       v.rwRows = shown.map((r) => ({
         key: r.key, summary: r.summary, epic: r.epicKey ? r.epicKey + ' ' + r.epicName : '', status: r.status, statusCat: r.statusCat,
-        priority: r.priority, assignee: r.assignee || '—', release: r.release || '—', due: r.due || '—', overdue: r.overdue,
+        priority: r.priority, assignee: r.assignee || '—', release: r.release || '—', sprint: r.sprint || '—', sprintState: r.sprintState || '',
+        due: r.due || '—', overdue: r.overdue,
         score: r.score, checks: r.checks.length, gaps: r.gaps.length, type: r.type,
       }));
     }

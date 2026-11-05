@@ -84,7 +84,10 @@
   .jira-mini--release .jira-mini-row { grid-template-columns: 1fr 90px 96px 100px; }
   .jira-mini--people .jira-mini-row { grid-template-columns: 2fr 50px 60px; }
   .jira-mini--sprint { margin-bottom: 12px; }
-  .jira-mini--sprint .jira-mini-row { grid-template-columns: minmax(0, 2.4fr) minmax(150px, 1.2fr) 80px 50px 64px 90px 32px; align-items: start; }
+  .jira-mini--sprint .jira-mini-row { grid-template-columns: minmax(0, 2.4fr) minmax(150px, 1.2fr) 80px 50px 64px 90px; align-items: start; }
+  .jira-sprint-row { cursor: pointer; }
+  .jira-sprint-row:hover { background: var(--oj-core-neutral-color-1, #f7f7f7); }
+  .jira-sprint-row--on { background: rgba(143, 191, 208, 0.25); box-shadow: inset 3px 0 0 #2c5266; }
   .jira-sprint-link { border: 0; background: transparent; padding: 0; font: inherit; font-weight: 700; cursor: pointer; color: var(--oj-core-brand-color-primary, #005cb1);
     text-decoration: underline; text-underline-offset: 2px; }
   .jira-sprint-filter { border: 0; background: transparent; cursor: pointer; color: var(--oj-core-text-color-secondary, #6b6b6b); padding: 2px 4px; border-radius: 4px; }
@@ -282,7 +285,8 @@
               <span class="jira-num">Overdue</span><span class="jira-num">Carried over</span></div>
             <oj-bind-for-each data="[[ $variables.analysis.sprints ]]">
               <template data-oj-as="sp">
-                <div class="jira-mini-row" :data-sprint="[[ sp.data.name ]]">
+                <div :class="[[ 'jira-mini-row jira-sprint-row' + ($functions.pickedSprint($variables.pick) === sp.data.name ? ' jira-sprint-row--on' : '') ]]"
+                  :data-sprint="[[ sp.data.name ]]" on-click="[[ $listeners.onSprint ]]" :title="[[ 'Show the stories of ' + sp.data.name + ' below' ]]">
                   <span class="jira-sprint-name">
                     <oj-bind-if test="[[ sp.data.name !== 'No sprint' ]]"><button type="button" class="jira-sprint-link" :data-id="[[ sp.data.id ]]" :data-name="[[ sp.data.name ]]"
                       on-click="[[ $listeners.onSprintOpen ]]" :title="[[ 'Open sprint ' + sp.data.name ]]"><oj-bind-text value="[[ sp.data.name ]]"></oj-bind-text></button></oj-bind-if>
@@ -295,9 +299,7 @@
                   <span class="jira-num"><oj-bind-text value="[[ sp.data.open ]]"></oj-bind-text></span>
                   <span :class="[[ sp.data.overdue ? 'jira-num jira-late' : 'jira-num' ]]"><oj-bind-text value="[[ sp.data.overdue ]]"></oj-bind-text></span>
                   <span class="jira-num"><oj-bind-text value="[[ sp.data.carried ]]"></oj-bind-text></span>
-                  <button type="button" class="jira-sprint-filter" :data-sprint="[[ sp.data.name ]]" on-click="[[ $listeners.onSprint ]]"
-                    :aria-label="[[ 'Show the stories of ' + sp.data.name + ' below' ]]" title="Show its stories below"><span class="oj-ux-ico-filter" aria-hidden="true"></span></button>
-                </div>
+                                </div>
               </template>
             </oj-bind-for-each>
           </div>
@@ -427,14 +429,15 @@
         on-oj-row-action="[[ $listeners.onRowAction ]]"
         columns='[
           {"headerText": "Key",      "field": "key",      "template": "keyTpl",     "sortable": "enabled", "style": "width:8%",  "weight": 8,  "minWidth": 72},
-          {"headerText": "Summary",  "field": "summary",  "template": "summaryTpl", "sortable": "enabled", "style": "width:25%", "weight": 25, "minWidth": 160},
+          {"headerText": "Summary",  "field": "summary",  "template": "summaryTpl", "sortable": "enabled", "style": "width:22%", "weight": 22, "minWidth": 160},
           {"headerText": "Status",   "field": "status",   "template": "statusTpl",  "sortable": "enabled", "style": "width:13%", "weight": 13, "minWidth": 96},
           {"headerText": "Priority", "field": "priority", "template": "textTpl",    "sortable": "enabled", "style": "width:8%",  "weight": 8,  "minWidth": 64},
-          {"headerText": "Assignee", "field": "assignee", "template": "textTpl",    "sortable": "enabled", "style": "width:13%", "weight": 13, "minWidth": 96},
-          {"headerText": "Release",  "field": "release",  "template": "textTpl",    "sortable": "enabled", "style": "width:8%",  "weight": 8,  "minWidth": 80},
+          {"headerText": "Assignee", "field": "assignee", "template": "textTpl",    "sortable": "enabled", "style": "width:12%", "weight": 12, "minWidth": 96},
+          {"headerText": "Release",  "field": "release",  "template": "textTpl",    "sortable": "enabled", "style": "width:7%",  "weight": 7,  "minWidth": 72},
+          {"headerText": "Sprint",   "field": "sprintText", "template": "textTpl",    "sortable": "enabled", "style": "width:9%",  "weight": 9,  "minWidth": 84},
           {"headerText": "Due",      "field": "due",      "template": "dueTpl",     "sortable": "enabled", "style": "width:9%",  "weight": 9,  "minWidth": 84},
           {"headerText": "Quality",  "field": "score",    "template": "qualityTpl", "sortable": "enabled", "style": "width:9%",  "weight": 9,  "minWidth": 84},
-          {"headerText": "Gaps",     "field": "gapCount", "template": "gapsTpl",    "sortable": "enabled", "style": "width:7%",  "weight": 7,  "minWidth": 72}
+          {"headerText": "Gaps",     "field": "gapCount", "template": "gapsTpl",    "sortable": "enabled", "style": "width:6%",  "weight": 6,  "minWidth": 64}
         ]'
         style="width:100%; max-height:720px;">
 

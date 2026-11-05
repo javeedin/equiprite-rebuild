@@ -203,7 +203,10 @@ async function waitKeys(page, n) {
     await waitKeys(page, 8);
     T.check('by sprint: each sprint with its state, done of total, open', /2026-10 B active .*0 of 2 2/.test(await env.text('#jiraBySprint'))
       && /2026-07 active .*0 of 1 1/.test(await env.text('#jiraBySprint')) && (await env.text('#jiraBySprint')).includes('No sprint'), await env.text('#jiraBySprint'));
-    await page.click('#jiraBySprint .jira-sprint-filter[data-sprint="2026-10 B"]');
+    await page.click('#jiraBySprint .jira-sprint-row[data-sprint="2026-10 B"] .jira-muted');
+    await settle(page, 800);
+    T.check('…the chosen sprint marked; the table has a Sprint column', !!(await page.$('#jiraBySprint .jira-sprint-row--on[data-sprint="2026-10 B"]'))
+      && (await page.$$eval('#jiraStoriesTable .oj-table-column-header-text', (h) => h.map((x) => x.textContent.trim()))).includes('Sprint'));
     T.check('a sprint: its stories', (await waitKeys(page, 2)).join() === 'EQP-13,EQP-14' && (await env.text('#jiraShowing')) === 'Showing: Sprint: 2026-10 B', await env.text('#jiraShowing'));
     await page.click('#jiraShowingClear');
     await waitKeys(page, 8);
@@ -224,12 +227,12 @@ async function waitKeys(page, n) {
 
     T.section('the table\'s columns');
     const row12 = await page.$$eval('#jiraStoriesTable tbody tr', (r) => r.map((x) => x.innerText.replace(/\s+/g, ' ').trim()).filter((t) => t.startsWith('EQP-12'))[0] || '');
-    T.check('Key, Summary (epic under it), Status, Priority, Assignee, Release, Due, Quality, Gaps',
-      row12.startsWith('EQP-12 Equipment Master List View - Section 7.2 EQP-1 Equipment Registry DEVELOPMENT Medium Rahul Kanth Panganamamula 26C ' + day(-29) + ' 4 · 2 checks 4'), row12);
+    T.check('Key, Summary (epic under it), Status, Priority, Assignee, Release, Sprint, Due, Quality, Gaps',
+      row12.startsWith('EQP-12 Equipment Master List View - Section 7.2 EQP-1 Equipment Registry DEVELOPMENT Medium Rahul Kanth Panganamamula 26C 2026-07 ' + day(-29) + ' 4 · 2 checks 4'), row12);
     T.check('the overdue due date in red, status as Oracle\'s badge', await page.$eval('#jiraStoriesTable tbody tr:first-child .jira-due', (e) => e.classList.contains('jira-due--late'))
       && await page.$eval('#jiraStoriesTable tbody tr:first-child .oj-badge', (e) => e.innerText.trim() === 'DEVELOPMENT'));
     T.eq('the column headers', (await page.$$eval('#jiraStoriesTable .oj-table-column-header-text', (h) => h.map((x) => x.innerText.trim()))).join(','),
-      'Key,Summary,Status,Priority,Assignee,Release,Due,Quality,Gaps');
+      'Key,Summary,Status,Priority,Assignee,Release,Sprint,Due,Quality,Gaps');
 
     // ════ The drawer ══════════════════════════════════════════════════════════════════════════════════════════
     T.section('a row opens the story in the drawer');

@@ -142,9 +142,13 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     T.check('the sprint findings: one still active after its end, the running one\'s progress, a stale future one, the spill-over',
       stillActive !== -1 && (await text(page, '#jiraFindings')).includes('Sprint Sprint now: 0 of 1 done (0%), 9 days left.')
       && (await text(page, '#jiraFindings')).includes('1 future sprint has an end date already past (2026-10 B)') && (await text(page, '#jiraFindings')).includes('1 open item was carried over'));
-    await page.click('#jiraSprints .nx-jira-tr--sprint[data-value="2026-07"] .nx-jira-sprintfilter');
+    await page.click('#jiraSprints .nx-jira-tr--sprint[data-value="2026-07"] span[role="cell"]:nth-child(2)');
     await settle(page, 400);
-    T.eq('a sprint opens its items', (await texts(page, '#jiraGrid .nx-jira-row:not(.nx-jira-row--head) .nx-jira-key')).join(','), 'EQP-12');
+    T.eq('a sprint row filters the items below', (await texts(page, '#jiraGrid .nx-jira-row:not(.nx-jira-row--head) .nx-jira-key')).join(','), 'EQP-12');
+    T.check('…the chosen sprint marked, and said over the items', (await page.getAttribute('#jiraSprints .nx-jira-tr--sprint[data-value="2026-07"]', 'aria-selected')) === 'true'
+      && (await text(page, '#jiraShowing')).startsWith('Sprint: 2026-07'));
+    T.check('the items show their sprint, and the sprints before it', (await text(page, '#jiraGrid .nx-jira-row[data-key="EQP-12"] .nx-jira-sprintcell')) === '2026-07 after 2026-06'
+      && (await texts(page, '#jiraGrid .nx-jira-row--head [role="columnheader"]')).some((h) => /^sprint$/i.test(h)));
     await page.click('#jiraShowing .nx-jira-x');
     await page.click('#jiraTabs .nx-jira-tab[data-value="epics"]');
     await settle(page, 300);
@@ -196,6 +200,9 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     await page.locator('[role="tab"]', { hasText: 'Jira stories' }).first().click();
     await page.waitForSelector('#jiraGrid', { state: 'visible', timeout: 10000 });
     await settle(page, 400);
+    T.eq('…and back on Jira stories, the items are that sprint\'s', (await texts(page, '#jiraGrid .nx-jira-row:not(.nx-jira-row--head) .nx-jira-key')).join(','), 'EQP-12');
+    await page.click('#jiraShowing .nx-jira-x');
+    await settle(page, 300);
 
     T.section('one item, in the drawer');
     await page.click('#jiraGrid .nx-jira-row[data-key="EQP-12"]');
@@ -248,6 +255,7 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     T.eq('Oracle\'s templates, upgraded', [await complete(page, '#jiraRwHead', ['oj-sp-general-overview-page', 'oj-sp-smart-search']), await complete(page, '.nx-jira-rw', ['oj-table'])].join(' '),
       'oj-sp-general-overview-page:true oj-sp-smart-search:true oj-table:true');
     T.eq('the filters are the table\'s columns', (await texts(page, '#jiraRwSearch .oj-sp-filter-chip-container')).join(','), 'Status,Epic,Assignee,Release,Sprint,Priority,Type');
+    T.check('the table has a Sprint column', (await texts(page, '#jiraRwTable .oj-table-column-header-text')).includes('Sprint'));
     T.check('the table: key, summary and epic, status as Oracle\'s badge', ((await texts(page, '#jiraRwTable .oj-table-body-row'))[0] || '').includes('EQP-12')
       && (await page.$$eval('#jiraRwTable .oj-badge', (b) => b.length)) === 5);
     await page.click('#jiraRwSearch .oj-sp-filter-chip-container:has-text("Status")');

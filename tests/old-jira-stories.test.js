@@ -166,7 +166,7 @@ T.check('…and its guard sends that user away', !app.canEnterPage({ EQR_CONFIGU
 
   T.section('the table, the collection container, the drawer');
   const cols = JSON.parse(/columns='([\s\S]*?)'\s/.exec(html)[1]);
-  T.eq('the columns', cols.map((c) => c.headerText).join(), 'Key,Summary,Status,Priority,Assignee,Release,Due,Quality,Gaps');
+  T.eq('the columns', cols.map((c) => c.headerText).join(), 'Key,Summary,Status,Priority,Assignee,Release,Sprint,Due,Quality,Gaps');
   T.check('layout="fixed": a weight per column (oj-table sizes them by it)', /layout="fixed"/.test(html) && cols.every((c) => typeof c.weight === 'number' && c.weight > 0));
   T.check('every column template is a slot of the table', cols.filter((c) => c.template).every((c) => html.includes('slot="' + c.template + '"')));
   T.check('a row opens the drawer (ojRowAction, by key)', /on-oj-row-action="\[\[ \$listeners\.onRowAction \]\]"/.test(html)

@@ -148,16 +148,16 @@
                 <span role="columnheader">Done</span><span role="columnheader">Open</span><span role="columnheader">Overdue</span><span role="columnheader">Carried over</span></div>
               <oj-bind-for-each data="[[ $variables.analysis.sprints ]]">
                 <template data-oj-as="sp">
-                  <div class="nx-jira-tr nx-jira-tr--sprint" role="row" :data-value="[[ sp.data.name ]]">
+                  <div :class="[[ 'nx-jira-tr nx-jira-tr--sprint nx-jira-tr--pick' + ($variables.f.sprint === sp.data.name ? ' nx-jira-tr--on' : '') ]]" role="row"
+                    data-field="sprint" :data-value="[[ sp.data.name ]]" :data-label="[[ 'Sprint: ' + sp.data.name ]]" on-click="[[ $listeners.onFilterClick ]]"
+                    :aria-selected="[[ $variables.f.sprint === sp.data.name ? 'true' : 'false' ]]" :title="[[ 'Show the items of ' + sp.data.name + ' below' ]]">
                     <span role="cell" class="nx-jira-sprintname">
                       <oj-bind-if test="[[ sp.data.name !== 'No sprint' ]]">
                         <button type="button" class="nx-jira-sprintlink" :data-id="[[ sp.data.id ]]" :data-name="[[ sp.data.name ]]" on-click="[[ $listeners.onSprintOpen ]]"
-                          :title="[[ 'Open sprint ' + sp.data.name + ' in its own tab' ]]"><oj-bind-text value="[[ sp.data.name ]]"></oj-bind-text></button>
+                          :title="[[ 'Open sprint ' + sp.data.name + ' in its own tab (and show its items below)' ]]"><oj-bind-text value="[[ sp.data.name ]]"></oj-bind-text></button>
                       </oj-bind-if>
                       <oj-bind-if test="[[ sp.data.name === 'No sprint' ]]"><strong>No sprint</strong></oj-bind-if>
                       <oj-bind-if test="[[ !!sp.data.state ]]"><span :class="[[ $functions.sprintTag(sp.data.state) ]]"><oj-bind-text value="[[ sp.data.state ]]"></oj-bind-text></span></oj-bind-if>
-                      <button type="button" class="nx-jira-sprintfilter" data-field="sprint" :data-value="[[ sp.data.name ]]" :data-label="[[ 'Sprint: ' + sp.data.name ]]"
-                        on-click="[[ $listeners.onFilterClick ]]" :aria-label="[[ 'Show the items of ' + sp.data.name + ' below' ]]" title="Show its items below"><span class="oj-ux-ico-filter" aria-hidden="true"></span></button>
                       <oj-bind-if test="[[ !!sp.data.goal ]]"><span class="nx-jira-sprintgoal"><oj-bind-text value="[[ 'Goal: ' + sp.data.goal ]]"></oj-bind-text></span></oj-bind-if>
                       <oj-bind-for-each data="[[ sp.data.flags ]]"><template data-oj-as="fl"><span class="nx-jira-sprintflag"><oj-bind-text value="[[ fl.data ]]"></oj-bind-text></span></template></oj-bind-for-each></span>
                     <span role="cell"><oj-bind-text value="[[ $functions.sprintDates(sp.data) ]]"></oj-bind-text></span>
@@ -298,20 +298,25 @@
               horizontal-grid-visible="enabled" scroll-policy="loadMoreOnScroll" scroll-policy-options.fetch-size="50" on-oj-row-action="[[ $listeners.onRwRow ]]"
               columns='[
                 {"headerText": "Key", "field": "key", "template": "keyTpl", "sortable": "enabled", "weight": 8},
-                {"headerText": "Summary", "field": "summary", "template": "sumTpl", "sortable": "enabled", "weight": 32},
+                {"headerText": "Summary", "field": "summary", "template": "sumTpl", "sortable": "enabled", "weight": 27},
                 {"headerText": "Status", "field": "status", "template": "statusTpl", "sortable": "enabled", "weight": 11},
                 {"headerText": "Priority", "field": "priority", "sortable": "enabled", "weight": 8},
-                {"headerText": "Assignee", "field": "assignee", "sortable": "enabled", "weight": 13},
-                {"headerText": "Release", "field": "release", "sortable": "enabled", "weight": 7},
+                {"headerText": "Assignee", "field": "assignee", "sortable": "enabled", "weight": 12},
+                {"headerText": "Release", "field": "release", "sortable": "enabled", "weight": 6},
+                {"headerText": "Sprint", "field": "sprint", "template": "sprintTpl", "sortable": "enabled", "weight": 9},
                 {"headerText": "Due", "field": "due", "template": "dueTpl", "sortable": "enabled", "weight": 8},
                 {"headerText": "Quality", "field": "score", "template": "scoreTpl", "sortable": "enabled", "weight": 7},
-                {"headerText": "Gaps", "field": "gaps", "sortable": "enabled", "weight": 6}]'>
+                {"headerText": "Gaps", "field": "gaps", "sortable": "enabled", "weight": 5}]'>
               <template slot="keyTpl" data-oj-as="cell"><span class="oj-typography-body-md oj-typography-bold oj-link-standalone"><oj-bind-text value="[[ cell.row.key ]]"></oj-bind-text></span></template>
               <template slot="sumTpl" data-oj-as="cell">
                 <div class="nx-jira-rwsum"><span class="oj-typography-body-md"><oj-bind-text value="[[ cell.row.summary ]]"></oj-bind-text></span>
                   <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.epic ]]"></oj-bind-text></span></div>
               </template>
               <template slot="statusTpl" data-oj-as="cell"><span :class="[[ $functions.badge(cell.row.statusCat) ]]"><oj-bind-text value="[[ cell.row.status ]]"></oj-bind-text></span></template>
+              <template slot="sprintTpl" data-oj-as="cell">
+                <div class="nx-jira-rwsum"><span class="oj-typography-body-md"><oj-bind-text value="[[ cell.row.sprint ]]"></oj-bind-text></span>
+                  <oj-bind-if test="[[ !!cell.row.sprintState ]]"><span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.sprintState ]]"></oj-bind-text></span></oj-bind-if></div>
+              </template>
               <template slot="dueTpl" data-oj-as="cell"><span :class="[[ cell.row.overdue ? 'oj-text-color-danger oj-typography-semi-bold' : '' ]]"><oj-bind-text value="[[ cell.row.due ]]"></oj-bind-text></span></template>
               <template slot="scoreTpl" data-oj-as="cell"><span><oj-bind-text value="[[ cell.row.score + (cell.row.checks ? ' · ' + cell.row.checks : '') ]]"></oj-bind-text></span></template>
               <template slot="noData"><div class="oj-sm-padding-6x oj-typography-body-md oj-text-color-secondary">Nothing matches. Clear a filter.</div></template>
@@ -339,7 +344,7 @@
             <div class="nx-jira-grid" role="table" aria-labelledby="jiraItemsTitle" id="jiraGrid">
               <div class="nx-jira-row nx-jira-row--head" role="row">
                 <span role="columnheader">Key</span><span role="columnheader">Summary</span><span role="columnheader">Status</span><span role="columnheader">Assignee</span>
-                <span role="columnheader">Release</span><span role="columnheader">Due</span><span role="columnheader">Quality</span><span role="columnheader">Gaps</span>
+                <span role="columnheader">Release</span><span role="columnheader">Sprint</span><span role="columnheader">Due</span><span role="columnheader">Quality</span><span role="columnheader">Gaps</span>
               </div>
               <oj-bind-for-each data="[[ $variables.shown ]]">
                 <template data-oj-as="r">
@@ -350,6 +355,8 @@
                     <span role="cell"><span :class="[[ 'nx-jira-status nx-jira-status--' + r.data.statusCat ]]"><oj-bind-text value="[[ r.data.status ]]"></oj-bind-text></span></span>
                     <span role="cell"><oj-bind-text value="[[ r.data.assignee || 'Nobody' ]]"></oj-bind-text></span>
                     <span role="cell"><oj-bind-text value="[[ r.data.release || '—' ]]"></oj-bind-text></span>
+                    <span role="cell" class="nx-jira-sprintcell"><oj-bind-text value="[[ r.data.sprint || '—' ]]"></oj-bind-text>
+                      <oj-bind-if test="[[ (r.data.sprintPast || []).length > 0 ]]"><span class="nx-cell-sub"><oj-bind-text value="[[ 'after ' + r.data.sprintPast.join(', ') ]]"></oj-bind-text></span></oj-bind-if></span>
                     <span role="cell" :class="[[ r.data.overdue ? 'nx-jira-bad' : '' ]]"><oj-bind-text value="[[ r.data.due || '—' ]]"></oj-bind-text></span>
                     <span role="cell"><span :class="[[ 'nx-jira-score nx-jira-score--' + (r.data.score >= 4 ? 'good' : (r.data.score >= 3 ? 'mid' : 'low')) ]]"><oj-bind-text value="[[ r.data.score ]]"></oj-bind-text></span></span>
                     <span role="cell"><oj-bind-text value="[[ r.data.gaps.length || '' ]]"></oj-bind-text></span>
