@@ -1,0 +1,163 @@
+<!-- One Jira sprint, in its own tab (from Jira stories, By sprint): every item ever in it, what is wrong with it on the
+     board, the numbers, a day-by-day burn-up, by status and person, what was carried on and in, the items. Rules:
+     resources/js/jiraBacklog.js sprintReport (the same file Old uses). Redwood: Oracle's header over the same body. -->
+<div class="nx-page nx-jira nx-jsp">
+  <oj-bind-if test="[[ $application.variables.lookSeen ]]">
+    <div class="nx-rw nx-rw--head" id="jspRwHead" :hidden="[[ $application.variables.look !== 'redwood' ]]">
+      <oj-sp-general-overview-page page-title="[[ $functions.title($variables.report, $variables.name) ]]" display-mode="mixed"
+        page-subtitle="[[ $functions.sub($variables.report, $variables.isLoading) ]]" badge="[[ $functions.rwBadge($variables.report) ]]"
+        primary-action="[[ $functions.rwPrimary($variables.isLoading) ]]" on-sp-primary-action="[[ $listeners.onRefresh ]]"
+        secondary-actions="[[ $functions.rwActions() ]]" on-sp-secondary-action="[[ $listeners.onRwAction ]]">
+      </oj-sp-general-overview-page>
+    </div>
+  </oj-bind-if>
+  <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
+    <div class="nx-pagehead">
+      <div>
+        <div class="nx-kicker">Jira sprint</div>
+        <h1 id="jspTitle"><oj-bind-text value="[[ $functions.title($variables.report, $variables.name) ]]"></oj-bind-text></h1>
+        <div class="nx-sub" id="jspSub"><oj-bind-text value="[[ $functions.sub($variables.report, $variables.isLoading) ]]"></oj-bind-text></div>
+      </div>
+      <div class="nx-actions">
+        <a class="nx-btn nx-btn--plain" id="jspOpenJira" target="_blank" rel="noopener" :href="[[ $variables.report.url || '#' ]]">
+          <span class="oj-ux-ico-external-link" aria-hidden="true"></span>Open in Jira</a>
+        <button type="button" class="nx-btn nx-btn--plain" id="jspRefresh" on-click="[[ $listeners.onRefresh ]]" :disabled="[[ $variables.isLoading ]]">
+          <span class="oj-ux-ico-refresh" aria-hidden="true"></span>Refresh</button>
+      </div>
+    </div>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ $variables.notConnected ]]">
+    <section class="nx-card nx-card-pad" id="jspNotConnected">
+      <p>Jira is not connected. Connect it on Jira stories, then refresh this sprint.</p>
+      <button type="button" class="nx-btn nx-btn--primary" on-click="[[ $listeners.onConnect ]]">Open Jira stories</button>
+    </section>
+  </oj-bind-if>
+  <oj-bind-if test="[[ !!$variables.error ]]"><div class="nx-error" role="alert" id="jspError"><oj-bind-text value="[[ $variables.error ]]"></oj-bind-text></div></oj-bind-if>
+
+  <oj-bind-if test="[[ $variables.report.rows.length > 0 ]]">
+    <oj-bind-if test="[[ $variables.report.flags.length > 0 ]]">
+      <section class="nx-card nx-card-pad nx-jsp-flags" id="jspFlags" role="status">
+        <oj-bind-for-each data="[[ $variables.report.flags ]]">
+          <template data-oj-as="fl"><p><span class="oj-ux-ico-warning" aria-hidden="true"></span><oj-bind-text value="[[ fl.data ]]"></oj-bind-text></p></template>
+        </oj-bind-for-each>
+      </section>
+    </oj-bind-if>
+
+    <div class="nx-jira-tiles" id="jspTiles">
+      <oj-bind-for-each data="[[ $functions.tiles($variables.report.kpis) ]]">
+        <template data-oj-as="t">
+          <div :class="[[ 'nx-jira-tile nx-jira-tile--' + (t.data.tone || 'plain') ]]">
+            <span class="nx-jira-tileval"><oj-bind-text value="[[ t.data.value ]]"></oj-bind-text></span>
+            <span class="nx-jira-tilelabel"><oj-bind-text value="[[ t.data.label ]]"></oj-bind-text></span>
+            <oj-bind-if test="[[ !!t.data.note ]]"><span class="nx-jira-tilenote"><oj-bind-text value="[[ t.data.note ]]"></oj-bind-text></span></oj-bind-if>
+          </div>
+        </template>
+      </oj-bind-for-each>
+    </div>
+
+    <div class="nx-jira-two">
+      <section class="nx-card nx-card-pad nx-jsp-burn" aria-labelledby="jspBurnTitle">
+        <h2 class="nx-h2" id="jspBurnTitle">Burn-up</h2>
+        <p class="nx-note">Items done by each day of the sprint (by when Jira resolved them), against all <oj-bind-text value="[[ $variables.report.kpis.total ]]"></oj-bind-text> in it.</p>
+        <oj-bind-if test="[[ $variables.report.burnup.length > 0 ]]">
+          <div class="nx-jsp-burnchart" id="jspBurn" role="img" :aria-label="[[ 'Burn-up: ' + $variables.report.kpis.done + ' of ' + $variables.report.kpis.total + ' done' ]]">
+            <oj-bind-for-each data="[[ $variables.report.burnup ]]">
+              <template data-oj-as="b">
+                <div :class="[[ $functions.burnClass(b.data) ]]" :title="[[ $functions.burnTitle(b.data, $variables.report.kpis.total) ]]">
+                  <span class="nx-jsp-burnbar" :style="[[ $functions.height(b.data.pct) ]]"></span>
+                  <span class="nx-jsp-burnlabel"><oj-bind-text value="[[ $functions.showLabel(b.index, $variables.report.burnup.length) ? b.data.label : '' ]]"></oj-bind-text></span>
+                </div>
+              </template>
+            </oj-bind-for-each>
+          </div>
+        </oj-bind-if>
+        <oj-bind-if test="[[ $variables.report.burnup.length === 0 ]]"><p class="nx-note">The sprint has no start date in Jira.</p></oj-bind-if>
+      </section>
+      <section class="nx-card nx-card-pad nx-jira-findings" aria-labelledby="jspFindTitle">
+        <h2 class="nx-h2" id="jspFindTitle">What it says</h2>
+        <ul class="nx-jira-findlist" id="jspFindings">
+          <oj-bind-for-each data="[[ $variables.report.findings ]]">
+            <template data-oj-as="fd"><li><span :class="[[ 'nx-jira-find nx-jira-find--' + fd.data.tone ]]"><oj-bind-text value="[[ fd.data.text ]]"></oj-bind-text></span></li></template>
+          </oj-bind-for-each>
+        </ul>
+      </section>
+    </div>
+
+    <div class="nx-jira-two">
+      <section class="nx-card nx-card-pad" aria-labelledby="jspStatusTitle">
+        <h2 class="nx-h2" id="jspStatusTitle">By status</h2>
+        <ul class="nx-jira-bars" id="jspStatuses">
+          <oj-bind-for-each data="[[ $variables.report.statuses ]]">
+            <template data-oj-as="s">
+              <li><span class="nx-jira-bar">
+                <span class="nx-jira-barlabel"><oj-bind-text value="[[ s.data.status ]]"></oj-bind-text></span>
+                <span class="nx-jira-bartrack"><span :class="[[ 'nx-jira-barfill nx-jira-barfill--' + s.data.cat ]]" :style="[[ $functions.width(s.data.pct) ]]"></span></span>
+                <span class="nx-jira-barval"><oj-bind-text value="[[ s.data.count + ' · ' + s.data.pct + '%' ]]"></oj-bind-text></span></span></li>
+            </template>
+          </oj-bind-for-each>
+        </ul>
+      </section>
+      <section class="nx-card nx-card-pad" aria-labelledby="jspPeopleTitle">
+        <h2 class="nx-h2" id="jspPeopleTitle">By person</h2>
+        <div class="nx-jira-tbl" role="table" aria-labelledby="jspPeopleTitle" id="jspPeople">
+          <div class="nx-jira-tr nx-jira-tr--head nx-jira-tr--rel" role="row"><span role="columnheader">Assignee</span><span role="columnheader">Items</span><span role="columnheader">Open</span><span role="columnheader">Overdue</span></div>
+          <oj-bind-for-each data="[[ $variables.report.people ]]">
+            <template data-oj-as="pp">
+              <div class="nx-jira-tr nx-jira-tr--rel" role="row"><span role="cell"><strong><oj-bind-text value="[[ pp.data.name ]]"></oj-bind-text></strong></span>
+                <span role="cell"><oj-bind-text value="[[ pp.data.total ]]"></oj-bind-text></span><span role="cell"><oj-bind-text value="[[ pp.data.open ]]"></oj-bind-text></span>
+                <span role="cell" :class="[[ pp.data.overdue ? 'nx-jira-bad' : '' ]]"><oj-bind-text value="[[ pp.data.overdue ]]"></oj-bind-text></span></div>
+            </template>
+          </oj-bind-for-each>
+        </div>
+      </section>
+    </div>
+
+    <section class="nx-card nx-jira-items" aria-labelledby="jspItemsTitle">
+      <div class="nx-card-head">
+        <div><h2 id="jspItemsTitle">Items in the sprint</h2><span class="nx-note"><oj-bind-text value="[[ $variables.report.rows.length + ($variables.report.rows.length === 1 ? ' item' : ' items') + ', read at ' + $variables.readAt ]]"></oj-bind-text></span></div>
+        <div class="nx-actions">
+          <div class="nx-export">
+            <button type="button" class="nx-btn nx-btn--sm" id="jspExport" on-click="[[ $listeners.onExportToggle ]]" aria-haspopup="menu" :aria-expanded="[[ $variables.exportOpen ? 'true' : 'false' ]]">
+              <span class="oj-ux-ico-download" aria-hidden="true"></span>Export<span class="oj-ux-ico-chevron-down" aria-hidden="true"></span></button>
+            <oj-bind-if test="[[ $variables.exportOpen ]]">
+              <div class="nx-menu" role="menu" aria-label="Export the sprint">
+                <oj-bind-for-each data="[[ $functions.formats() ]]">
+                  <template data-oj-as="fm">
+                    <button type="button" role="menuitem" class="nx-menu-item" :data-format="[[ fm.data.key ]]" on-click="[[ $listeners.onExport ]]">
+                      <span :class="[[ fm.data.icon ]]" aria-hidden="true"></span><oj-bind-text value="[[ fm.data.label ]]"></oj-bind-text></button>
+                  </template>
+                </oj-bind-for-each>
+              </div>
+            </oj-bind-if>
+          </div>
+        </div>
+      </div>
+      <div class="nx-table">
+        <div class="nx-jira-grid" role="table" aria-labelledby="jspItemsTitle" id="jspGrid">
+          <div class="nx-jsp-row nx-jira-row--head" role="row">
+            <span role="columnheader">Key</span><span role="columnheader">Summary</span><span role="columnheader">Status</span><span role="columnheader">In this sprint</span>
+            <span role="columnheader">Assignee</span><span role="columnheader">Due</span><span role="columnheader">Resolved</span>
+          </div>
+          <oj-bind-for-each data="[[ $variables.report.rows ]]">
+            <template data-oj-as="r">
+              <div class="nx-jsp-row" role="row" :data-key="[[ r.data.key ]]">
+                <span role="cell"><a class="nx-jira-key" target="_blank" rel="noopener" :href="[[ r.data.url ]]" :title="[[ 'Open ' + r.data.key + ' in Jira' ]]"><oj-bind-text value="[[ r.data.key ]]"></oj-bind-text></a></span>
+                <span role="cell" class="nx-jira-sum"><span class="nx-cell-main"><oj-bind-text value="[[ r.data.summary ]]"></oj-bind-text></span>
+                  <span class="nx-cell-sub"><oj-bind-text value="[[ (r.data.epicKey ? r.data.epicKey + ' ' + r.data.epicName : 'No epic') + (r.data.carriedIn ? ' · came in from an earlier sprint' : '') ]]"></oj-bind-text></span></span>
+                <span role="cell"><span :class="[[ $functions.statusClass(r.data.statusCat) ]]"><oj-bind-text value="[[ r.data.status ]]"></oj-bind-text></span></span>
+                <span role="cell"><span :class="[[ $functions.whereClass(r.data) ]]"><oj-bind-text value="[[ $functions.whereText(r.data) ]]"></oj-bind-text></span></span>
+                <span role="cell"><oj-bind-text value="[[ r.data.assignee || 'Nobody' ]]"></oj-bind-text></span>
+                <span role="cell" :class="[[ r.data.overdue ? 'nx-jira-bad' : '' ]]"><oj-bind-text value="[[ r.data.due || '—' ]]"></oj-bind-text></span>
+                <span role="cell"><oj-bind-text value="[[ r.data.resolved || '—' ]]"></oj-bind-text></span>
+              </div>
+            </template>
+          </oj-bind-for-each>
+        </div>
+      </div>
+    </section>
+  </oj-bind-if>
+  <oj-bind-if test="[[ $variables.report.rows.length === 0 && !$variables.isLoading && !$variables.error && !$variables.notConnected ]]">
+    <div class="nx-empty" id="jspEmpty">Jira has no items in this sprint.</div>
+  </oj-bind-if>
+</div>

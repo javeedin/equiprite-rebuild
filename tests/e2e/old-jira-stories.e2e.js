@@ -45,6 +45,8 @@ const PRIYA = { displayName: 'Priya Raman' };
 const SANA = { displayName: 'Sana Suhana Thehaseen' };
 const story = (key, f) => ({ key, fields: Object.assign({ issuetype: { name: 'Story' }, comment: { comments: [] }, created: stamp(-120) }, f) });
 
+const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+const imageReads = [];
 const STORIES = [
   story('EQP-12', {
     summary: 'Equipment Master List View - Section 7.2', status: status('DEVELOPMENT', 'indeterminate'), priority: { name: 'Medium' }, parent: EPIC1,
@@ -53,7 +55,9 @@ const STORIES = [
       + 'Acceptance Criteria: Grid displays all columns per FDD 7.2.4; smart search returns results with type-ahead; all filter fields functional.'
       + 'FDD Section: 7.2Only Smart search is available by two columns, Class and Sub-Class. Advanced Search is not there.',
     comment: { comments: [{ author: SANA, created: stamp(-12),
-      body: '**(FDD-7.2)**\n\n1. Only Class, Subclass search filters are present, remaining needs to be added. (FDD-7.2.3)\n\n2. Type Column is missing.\n\n3. Map view is missing.\n\n4. Edit option to be added.' }] }
+      body: '**(FDD-7.2)**\n\n1. Only Class, Subclass search filters are present, remaining needs to be added. (FDD-7.2.3)\n\n2. Type Column is missing.\n\n3. Map view is missing.\n\n4. Edit option to be added.\n\n!Screenshot 2026-11-04 135139.png|width=227,alt="Screenshot 2026-11-04 135139.png"!' }] },
+    attachment: [{ id: 10502, filename: 'Screenshot 2026-11-04 135139.png', mimeType: 'image/png', size: 2400, created: '2026-11-04T13:51:39.000-0600', author: SANA },
+      { id: 10504, filename: 'mapping.xlsx', mimeType: 'application/vnd.ms-excel', size: 12000 }]
   }),
   story('EQP-13', {
     summary: 'Equipment Master Create/Edit - Section 7.2, 7.2.5G', status: status('DEVELOPMENT', 'indeterminate'), priority: { name: 'High' }, parent: EPIC1,
@@ -103,6 +107,8 @@ function handle(req, res) {
   if (!vbcsAuth && req.headers.authorization !== AUTH) {
     return res.json({ errorMessages: ['You are not authenticated. Authentication required to perform this operation.'] }, 401);
   }
+  const att = /^\/rest\/api\/2\/attachment\/content\/(\d+)$/.exec(req.path);
+  if (att) { imageReads.push({ id: att[1], redirect: req.query.get('redirect') }); return res.bytes(PNG, 'image/png'); }
   if (req.path === '/rest/api/2/myself') return res.json({ accountId: '712020:1', displayName: 'Priya Raman', emailAddress: EMAIL, active: true });
   if (req.path === '/rest/api/2/search/jql') {
     const jql = req.query.get('jql') || '';
@@ -175,6 +181,7 @@ async function waitKeys(page, n) {
       && findings.some((f) => f === 'warn: 1 open item has nobody assigned.'), findings.join(' | '));
     T.eq('by status, in the workflow\'s order', (await page.$$eval('#jiraByStatus .jira-mini-row', (r) => r.map((x) => x.innerText.replace(/\s+/g, ' ').trim()))).join(' | '),
       'NEW 1 | FUNC DESIGN 1 | DEVELOPMENT 2 | TEST 1 | ONHOLD 1 | Done 2');
+    T.check('by status: each bar sized by its share', await page.$$eval('#jiraByStatus .jira-bar-fill', (f) => new Set(f.map((x) => Math.round(x.getBoundingClientRect().width))).size > 1));
     T.check('by epic: key, name, open, overdue, done %, gaps', (await env.text('#jiraByEpic')).includes('EQP-1 Equipment Registry 3 2 0% 6'), await env.text('#jiraByEpic'));
     T.check('by release: a passed date marked', /26C .* 1 open of 3 date passed/.test(await env.text('#jiraByRelease')), await env.text('#jiraByRelease'));
     T.check('by assignee: open, overdue', (await env.text('#jiraByPerson')).includes('Rahul Kanth Panganamamula 3 2'), await env.text('#jiraByPerson'));
@@ -196,9 +203,23 @@ async function waitKeys(page, n) {
     await waitKeys(page, 8);
     T.check('by sprint: each sprint with its state, done of total, open', /2026-10 B active .*0 of 2 2/.test(await env.text('#jiraBySprint'))
       && /2026-07 active .*0 of 1 1/.test(await env.text('#jiraBySprint')) && (await env.text('#jiraBySprint')).includes('No sprint'), await env.text('#jiraBySprint'));
-    await page.click('#jiraBySprint button[data-sprint="2026-10 B"]');
+    await page.click('#jiraBySprint .jira-sprint-filter[data-sprint="2026-10 B"]');
     T.check('a sprint: its stories', (await waitKeys(page, 2)).join() === 'EQP-13,EQP-14' && (await env.text('#jiraShowing')) === 'Showing: Sprint: 2026-10 B', await env.text('#jiraShowing'));
     await page.click('#jiraShowingClear');
+    await waitKeys(page, 8);
+    T.section('a sprint\'s name: its own page, with in-flow back');
+    T.check('sprint names are links (No sprint is not)', (await page.$$eval('#jiraBySprint .jira-sprint-link', (a) => a.map((x) => x.textContent.trim()))).join() === '2026-07,2026-10 B');
+    await page.click('#jiraBySprint .jira-sprint-link[data-name="2026-10 B"]');
+    await page.waitForSelector('#jspTiles', { timeout: 20000 });
+    await settle(page, 800);
+    T.check('Sprint 2026-10 B: Oracle\'s header, its numbers and its items', (await env.text('#jspHead')).includes('Sprint 2026-10 B')
+      && (await page.$$('#jspTiles .jsp-tile')).length === 7 && (await page.$$('#jspItems .jsp-row--item[data-key]')).length > 0, (await env.text('#jspHead')).slice(0, 200));
+    T.check('its bars sized by their share (not all full)', await page.$$eval('#jspStatuses .jsp-fill', (f) => new Set(f.map((x) => Math.round(x.getBoundingClientRect().width))).size > 1));
+    await env.shot('old-jira-sprint.png');
+    await page.click('#jspHead button[aria-label="Back"]');
+    await page.waitForSelector('#jiraBySprint', { timeout: 20000 });
+    await settle(page, 600);
+    T.check('Back: Jira Stories again', await page.isVisible('#jiraBySprint'));
     await waitKeys(page, 8);
 
     T.section('the table\'s columns');
@@ -220,6 +241,11 @@ async function waitKeys(page, n) {
     const facts = await page.$$eval('#jiraFacts [data-fact]', (f) => f.map((x) => x.textContent.replace(/\s+/g, ' ').trim()));
     T.check('facts: assignee, release, sprint, due (overdue), FDD sections', facts.includes('Assignee Rahul Kanth Panganamamula') && facts.includes('Release 26C (' + day(-36) + ')')
       && facts.includes('Sprint 2026-07 (active)') && facts.includes('Due ' + day(-29) + ' (overdue)') && facts.includes('FDD sections 7.2'), facts.join(' | '));
+    await page.waitForFunction(() => { const i = document.querySelector('#jiraComments img'); return i && i.complete && i.naturalWidth > 0; }, null, { timeout: 10000 }).catch(() => {});
+    T.check('the screenshot in the tester\'s comment shows, read through the jira connection (redirect=false)', await page.$eval('#jiraComments img',
+      (i) => i.complete && i.naturalWidth > 0 && i.src.startsWith('blob:')).catch(() => false) && imageReads.some((x) => x.id === '10502' && x.redirect === 'false'), JSON.stringify(imageReads));
+    T.check('the attachments: the image as a thumbnail, the other file by name and size', (await page.$$('#jiraAttachments img')).length === 1
+      && (await env.text('#jiraFiles')).includes('mapping.xlsx · 12 KB'));
     T.check('the description, with the note added after the FDD line', (await env.text('#jiraBody')).startsWith('Display master list') && (await env.text('#jiraBody')).includes('Advanced Search is not there.'));
     T.eq('the acceptance criteria as a list', (await page.$$eval('#jiraAc li', (l) => l.map((x) => x.innerText.trim()))).join(' | '),
       'Grid displays all columns per FDD 7.2.4 | smart search returns results with type-ahead | all filter fields functional.');

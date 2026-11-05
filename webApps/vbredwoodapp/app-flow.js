@@ -208,6 +208,7 @@ define([
     'rbac-admin': 'setup-rbac-admin',
     // Jira Stories: gated by its nav item's code, EQR_CONFIGURATIONS (see NAV_GROUPS).
     'jira-stories': 'setup-jira-stories',
+    'jira-sprint': 'setup-jira-stories', // one sprint, from Jira Stories: gated, and its menu item lit, as Jira Stories
     'project-create-request': 'project-create-request',
     'equipment-requests': 'equipment-requests',
     'equipment-schedule': 'equipment-schedule',

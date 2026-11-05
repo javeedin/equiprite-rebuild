@@ -1,0 +1,142 @@
+<!--
+  One Jira sprint (Jira Stories > By sprint, a sprint's name): every item ever in it, what is wrong with it on the board,
+  the numbers, a day-by-day burn-up, by status and assignee, carried on and carried in, the items.
+  Template: oj-sp-general-overview-page (its name and state, in-flow back to Jira Stories, Refresh, Open in Jira, CSV).
+  Rules: resources/js/jiraBacklog.js sprintReport (identical to EquipRite Next's sprint tab).
+-->
+<style>
+  .jsp-page { display: flex; flex-direction: column; gap: 16px; padding: 16px 0 32px; }
+  .jsp-card { border: 1px solid var(--oj-core-divider-color, #e0e0e0); border-radius: 8px; background: var(--oj-core-bg-color-content, #fff); padding: 16px; }
+  .jsp-flags { border-left: 4px solid var(--oj-core-danger-text-color, #b3261e); }
+  .jsp-flags p { margin: 2px 0; font-weight: 700; color: var(--oj-core-danger-text-color, #b3261e); }
+  .jsp-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .jsp-tile { border: 1px solid var(--oj-core-divider-color, #e0e0e0); border-top-width: 4px; border-radius: 8px; padding: 10px 12px; background: var(--oj-core-bg-color-content, #fff); }
+  .jsp-tile--success { border-top-color: #508223; } .jsp-tile--danger { border-top-color: #b3261e; } .jsp-tile--warning { border-top-color: #c26a00; }
+  .jsp-tile-value { font-size: 1.5rem; font-weight: 700; } .jsp-tile-label { font-size: 0.8125rem; font-weight: 600; } .jsp-tile-note { font-size: 0.75rem; color: var(--oj-core-text-color-secondary, #6b6b6b); }
+  .jsp-two { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 12px; }
+  @media (max-width: 1100px) { .jsp-two { grid-template-columns: 1fr; } }
+  .jsp-h3 { margin: 0 0 8px; font-size: 0.875rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--oj-core-text-color-secondary, #6b6b6b); }
+  .jsp-burn { display: flex; align-items: flex-end; gap: 2px; height: 170px; padding-bottom: 18px; border-bottom: 1px solid var(--oj-core-divider-color, #e0e0e0); }
+  .jsp-day { position: relative; flex: 1 1 0; min-width: 3px; height: 100%; display: flex; align-items: flex-end; }
+  .jsp-day--weekend { background: var(--oj-core-neutral-color-1, #f7f7f7); }
+  .jsp-day--today { box-shadow: inset 0 0 0 1px #1f6fb2; }
+  .jsp-bar { display: block; width: 100%; background: #508223; border-radius: 2px 2px 0 0; }
+  .jsp-day-label { position: absolute; bottom: -18px; left: 50%; transform: translateX(-50%); font-size: 10px; color: var(--oj-core-text-color-secondary, #6b6b6b); white-space: nowrap; }
+  .jsp-finding { display: block; padding: 6px 10px; margin-bottom: 6px; border: 1px solid var(--oj-core-divider-color, #e0e0e0); border-left-width: 4px; border-radius: 6px; font-size: 0.8125rem; }
+  .jsp-finding--bad { border-left-color: #b3261e; } .jsp-finding--warn { border-left-color: #c26a00; } .jsp-finding--good { border-left-color: #508223; } .jsp-finding--info { border-left-color: #1f6fb2; }
+  .jsp-row { display: grid; align-items: center; gap: 8px; padding: 6px 0; font-size: 0.8125rem; border-bottom: 1px solid var(--oj-core-divider-color, #eeeeee); }
+  .jsp-row--status { grid-template-columns: minmax(110px, 1fr) 2fr 70px; }
+  .jsp-row--people { grid-template-columns: 2fr 50px 50px 60px; }
+  .jsp-row--item { grid-template-columns: 80px minmax(0, 3fr) 120px 170px minmax(0, 1.2fr) 90px 90px; align-items: start; }
+  .jsp-head { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--oj-core-text-color-secondary, #6b6b6b); }
+  .jsp-track { display: block; height: 8px; border-radius: 4px; background: var(--oj-core-neutral-color-2, #eeeeee); overflow: hidden; }
+  .jsp-fill { display: block; height: 100%; background: #1f6fb2; }
+  .jsp-num { text-align: right; font-variant-numeric: tabular-nums; }
+  .jsp-late { color: var(--oj-core-danger-text-color, #b3261e); font-weight: 600; }
+  .jsp-key { font-weight: 700; }
+  .jsp-sub { display: block; font-size: 0.75rem; color: var(--oj-core-text-color-secondary, #6b6b6b); }
+</style>
+<div class="oj-flex-item" id="jspRoot">
+  <oj-sp-general-overview-page id="jspHead" page-title="[[ $functions.title($variables.report, $variables.name) ]]" display-mode="mixed"
+    page-subtitle="[[ $functions.subtitle($variables.report, $variables.loading) ]]" badge="[[ $functions.badge($variables.report) ]]"
+    primary-action="[[ $functions.primary($variables.loading) ]]" on-sp-primary-action="[[ $listeners.onRefresh ]]"
+    secondary-actions="[[ $functions.actions() ]]" on-sp-secondary-action="[[ $listeners.onAction ]]"
+    display-options.in-flow-back="true" on-sp-in-flow-back="[[ $listeners.onBack ]]">
+    <div class="jsp-page" id="jspPage" slot="main">
+      <oj-bind-if test="[[ $variables.notConnected ]]">
+        <div class="jsp-card" id="jspNotConnected">Jira is not connected. Go back to Jira Stories to connect, then refresh this sprint.</div>
+      </oj-bind-if>
+      <oj-bind-if test="[[ !!$variables.problem ]]">
+        <div class="jsp-card jsp-flags" role="alert" id="jspProblem"><p><oj-bind-text value="[[ $variables.problem ]]"></oj-bind-text></p></div>
+      </oj-bind-if>
+      <oj-bind-if test="[[ $variables.report.rows.length > 0 ]]">
+        <oj-bind-if test="[[ $variables.report.flags.length > 0 ]]">
+          <div class="jsp-card jsp-flags" id="jspFlags" role="status">
+            <oj-bind-for-each data="[[ $variables.report.flags ]]"><template data-oj-as="fl"><p><oj-bind-text value="[[ fl.data ]]"></oj-bind-text></p></template></oj-bind-for-each>
+          </div>
+        </oj-bind-if>
+        <div class="jsp-tiles" id="jspTiles">
+          <oj-bind-for-each data="[[ $functions.tiles($variables.report.kpis) ]]">
+            <template data-oj-as="t">
+              <div :class="[[ $functions.tileClass(t.data.tone) ]]"><div class="jsp-tile-label"><oj-bind-text value="[[ t.data.label ]]"></oj-bind-text></div>
+                <div class="jsp-tile-value"><oj-bind-text value="[[ t.data.value ]]"></oj-bind-text></div>
+                <div class="jsp-tile-note"><oj-bind-text value="[[ t.data.note ]]"></oj-bind-text></div></div>
+            </template>
+          </oj-bind-for-each>
+        </div>
+        <div class="jsp-two">
+          <div class="jsp-card">
+            <h3 class="jsp-h3">Burn-up</h3>
+            <div class="jsp-sub">Items done by each day of the sprint (by when Jira resolved them), against all in it.</div>
+            <oj-bind-if test="[[ $variables.report.burnup.length > 0 ]]">
+              <div class="jsp-burn" id="jspBurn" role="img" :aria-label="[[ 'Burn-up: ' + $variables.report.kpis.done + ' of ' + $variables.report.kpis.total + ' done' ]]">
+                <oj-bind-for-each data="[[ $variables.report.burnup ]]">
+                  <template data-oj-as="b">
+                    <div :class="[[ $functions.dayClass(b.data) ]]" :title="[[ $functions.dayTitle(b.data, $variables.report.kpis.total) ]]">
+                      <span class="jsp-bar" :style="[[ $functions.height(b.data.pct) ]]"></span>
+                      <span class="jsp-day-label"><oj-bind-text value="[[ $functions.showLabel(b.index, $variables.report.burnup.length) ? b.data.label : '' ]]"></oj-bind-text></span>
+                    </div>
+                  </template>
+                </oj-bind-for-each>
+              </div>
+            </oj-bind-if>
+            <oj-bind-if test="[[ $variables.report.burnup.length === 0 ]]"><div class="jsp-sub">The sprint has no start date in Jira.</div></oj-bind-if>
+          </div>
+          <div class="jsp-card">
+            <h3 class="jsp-h3">What the sprint says</h3>
+            <div id="jspFindings">
+              <oj-bind-for-each data="[[ $variables.report.findings ]]">
+                <template data-oj-as="fd"><span :class="[[ $functions.findingClass(fd.data.tone) ]]"><oj-bind-text value="[[ fd.data.text ]]"></oj-bind-text></span></template>
+              </oj-bind-for-each>
+            </div>
+          </div>
+        </div>
+        <div class="jsp-two">
+          <div class="jsp-card" id="jspStatuses">
+            <h3 class="jsp-h3">By status</h3>
+            <oj-bind-for-each data="[[ $variables.report.statuses ]]">
+              <template data-oj-as="s">
+                <div class="jsp-row jsp-row--status"><span><span :class="[[ $functions.statusClass(s.data.cat) ]]"><oj-bind-text value="[[ s.data.status ]]"></oj-bind-text></span></span>
+                  <span class="jsp-track"><span class="jsp-fill" :style="[[ $functions.width(s.data.pct) ]]"></span></span>
+                  <span class="jsp-num"><oj-bind-text value="[[ s.data.count + ' · ' + s.data.pct + '%' ]]"></oj-bind-text></span></div>
+              </template>
+            </oj-bind-for-each>
+          </div>
+          <div class="jsp-card" id="jspPeople">
+            <h3 class="jsp-h3">By assignee</h3>
+            <div class="jsp-row jsp-row--people jsp-head"><span>Assignee</span><span class="jsp-num">Items</span><span class="jsp-num">Open</span><span class="jsp-num">Overdue</span></div>
+            <oj-bind-for-each data="[[ $variables.report.people ]]">
+              <template data-oj-as="pp">
+                <div class="jsp-row jsp-row--people"><span><oj-bind-text value="[[ pp.data.name ]]"></oj-bind-text></span>
+                  <span class="jsp-num"><oj-bind-text value="[[ pp.data.total ]]"></oj-bind-text></span><span class="jsp-num"><oj-bind-text value="[[ pp.data.open ]]"></oj-bind-text></span>
+                  <span :class="[[ pp.data.overdue ? 'jsp-num jsp-late' : 'jsp-num' ]]"><oj-bind-text value="[[ pp.data.overdue ]]"></oj-bind-text></span></div>
+              </template>
+            </oj-bind-for-each>
+          </div>
+        </div>
+        <div class="jsp-card" id="jspItems">
+          <h3 class="jsp-h3">Items in the sprint</h3>
+          <div class="jsp-sub" id="jspCount"><oj-bind-text value="[[ $functions.countText($variables.report.rows.length, $variables.readAt) ]]"></oj-bind-text></div>
+          <div class="jsp-row jsp-row--item jsp-head"><span>Key</span><span>Summary</span><span>Status</span><span>In this sprint</span><span>Assignee</span><span>Due</span><span>Resolved</span></div>
+          <oj-bind-for-each data="[[ $variables.report.rows ]]">
+            <template data-oj-as="r">
+              <div class="jsp-row jsp-row--item" :data-key="[[ r.data.key ]]">
+                <span><a class="jsp-key" target="_blank" rel="noopener" :href="[[ r.data.url ]]"><oj-bind-text value="[[ r.data.key ]]"></oj-bind-text></a></span>
+                <span><oj-bind-text value="[[ r.data.summary ]]"></oj-bind-text>
+                  <span class="jsp-sub"><oj-bind-text value="[[ (r.data.epicKey ? r.data.epicKey + ' ' + r.data.epicName : 'No epic') + (r.data.carriedIn ? ' · came in from an earlier sprint' : '') ]]"></oj-bind-text></span></span>
+                <span><span :class="[[ $functions.statusClass(r.data.statusCat) ]]"><oj-bind-text value="[[ r.data.status ]]"></oj-bind-text></span></span>
+                <span><span :class="[[ $functions.whereClass(r.data) ]]"><oj-bind-text value="[[ $functions.where(r.data) ]]"></oj-bind-text></span></span>
+                <span><oj-bind-text value="[[ r.data.assignee || 'Nobody' ]]"></oj-bind-text></span>
+                <span :class="[[ r.data.overdue ? 'jsp-late' : '' ]]"><oj-bind-text value="[[ r.data.due || '—' ]]"></oj-bind-text></span>
+                <span><oj-bind-text value="[[ r.data.resolved || '—' ]]"></oj-bind-text></span>
+              </div>
+            </template>
+          </oj-bind-for-each>
+        </div>
+      </oj-bind-if>
+      <oj-bind-if test="[[ $variables.report.rows.length === 0 && !$variables.loading && !$variables.problem && !$variables.notConnected ]]">
+        <div class="jsp-card" id="jspEmpty">Jira has no items in this sprint.</div>
+      </oj-bind-if>
+    </div>
+  </oj-sp-general-overview-page>
+</div>

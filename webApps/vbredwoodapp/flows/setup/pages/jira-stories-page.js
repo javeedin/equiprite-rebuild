@@ -160,7 +160,8 @@ define(['resources/js/jiraBacklog'], function (J) {
 
     tileClass(tone) { return 'jira-tile jira-tile--' + (tone || 'neutral'); }
 
-    barStyle(pct) { return 'width:' + Math.max(0, Math.min(100, parseInt(pct, 10) || 0)) + '%'; }
+    /** A bar's width, as an object (JET's :style takes an object, not a CSS string). */
+    barStyle(pct) { return { width: Math.max(0, Math.min(100, parseInt(pct, 10) || 0)) + '%' }; }
 
     /** A sprint's dates and time left: "2026-07-01 – 2026-07-31 · 4 days left". */
     sprintDates(sp) {
@@ -201,6 +202,18 @@ define(['resources/js/jiraBacklog'], function (J) {
 
     /** A list from a row (an empty one when it has none), for oj-bind-for-each. */
     items(v) { return Array.isArray(v) ? v : NONE; }
+
+    /** An image of the open story: its URL once read, '' until then (or when it could not be read). */
+    imageUrl(images, id) { return (images && id && images[id]) || ''; }
+    /** What an image's place says before (or instead of) the image. */
+    imageNote(images, id) {
+      if (!id) return 'Not attached to the story';
+      return images && Object.prototype.hasOwnProperty.call(images, id) && !images[id] ? 'Could not be read from Jira' : 'Loading the image…';
+    }
+    /** The story's images among its attachments, and its other files. */
+    imageFiles(r) { return ((r && r.attachments) || NONE).filter(function (a) { return a.image; }); }
+    otherFiles(r) { return ((r && r.attachments) || NONE).filter(function (a) { return !a.image; }); }
+    fileText(a) { return a ? a.name + ' · ' + a.sizeText + (a.author ? ' · ' + a.author : '') : ''; }
 
     hasItems(v) { return Array.isArray(v) && v.length > 0; }
 

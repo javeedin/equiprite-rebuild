@@ -149,6 +149,10 @@ define(['resources/js/rules'], function (rules) {
       title: function (p) { return 'Request · ' + ((p && p.agreement) || 'agreement'); } },
     'equipment-item': { flow: 'equipment', page: 'item', icon: 'oj-ux-ico-box-grid', navId: 'equipment',
       title: function (p) { return (p && (p.number || p.id)) || 'Equipment'; } },
+    // One Jira sprint ({ id: Jira's sprint id, name }), from Jira stories' By sprint: its report in a tab of its own.
+    'jira-sprint': { flow: 'insights', page: 'jira-sprint', icon: 'oj-ux-ico-list', navId: 'jira',
+      key: function (p) { return p ? String(p.id || p.name || '') : ''; },
+      title: function (p) { return 'Sprint ' + ((p && (p.name || p.id)) || ''); } },
     // An agreement is keyed by its number ({ number: 'RNT-0002' }); { id: 'new' } is a new one.
     agreement: { flow: 'commercial', page: 'agreement', icon: 'oj-ux-ico-file-text', navId: 'agreements',
       title: function (p) { return (p && (p.number || (p.id === 'new' ? 'New agreement' : p.id))) || 'Agreement'; } },

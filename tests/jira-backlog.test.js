@@ -16,7 +16,7 @@ const H = require('./_harness');
 const T = H.makeAsserter();
 const ROOT = path.join(__dirname, '..');
 const FILE = path.join(ROOT, 'webApps', 'equiprite-next', 'resources', 'js', 'jiraBacklog.js');
-const sandbox = { console, Date, JSON, Math, Promise };
+const sandbox = { console, Date, JSON, Math, Promise, Blob, URL };
 let J;
 sandbox.define = (names, factory) => { J = factory(); };
 vm.createContext(sandbox);
@@ -135,7 +135,7 @@ T.section('reading every page of a search');
   T.eq('a story\'s sprint, its dates, and the sprints before it', [sp[0].sprint, sp[0].sprintStart, sp[0].sprintEnd, sp[0].sprintPast.join()].join(' / '), '2026-07 / 2026-07-01 / 2026-07-31 / 2026-06');
   T.eq('…its checks: its sprint ended, carried over', sp[0].checks.filter((c) => /sprint|carried/.test(c.key)).map((c) => c.key).join(), 'sprintEnded,carried');
   T.eq('an older Jira\'s sprint string', JSON.stringify(plain(J.sprintsOf(['com.atlassian.greenhopper.service.sprint.Sprint@1[id=5,state=ACTIVE,name=2026-07,startDate=2026-07-01T14:56:40.083Z,endDate=2026-07-31T05:00:00.000Z,completeDate=<null>,goal=]']))),
-    JSON.stringify([{ id: '5', name: '2026-07', state: 'active', start: '2026-07-01', end: '2026-07-31', done: '', goal: '' }]));
+    JSON.stringify([{ id: '5', name: '2026-07', state: 'active', start: '2026-07-01', end: '2026-07-31', done: '', goal: '', board: '' }]));
   const sa = J.analyse(sp, TODAY);
   T.eq('the sprints: active first, then future, then closed', sa.sprints.map((x) => x.name + ' ' + x.state + ' ' + x.done + '/' + x.total).join(' | '),
     '2026-07 active 1/2 | 2026-11 A active 1/2 | 2026-10 B future 0/1');
@@ -147,6 +147,61 @@ T.section('reading every page of a search');
     + 'info: Sprint 2026-11 A: 1 of 2 done (50%), 9 days left. | warn: 1 future sprint has an end date already past (2026-10 B): the sprint plan is out of date. | '
     + 'warn: 1 open item was carried over from an earlier sprint.');
   T.eq('a sprint finding opens its items', J.filter(sp, sa.findings.filter((f) => /still active/.test(f.text))[0].filter).map((r) => r.key).join(), 'EQP-50,EQP-51');
+
+  T.section('one sprint\'s report (its own tab)');
+  const SB = (id, name, state, start, end) => ({ id, name, state, boardId: 3, startDate: start + 'T05:00:00.000Z', endDate: end + 'T05:00:00.000Z' });
+  const s6 = SB(6, '2026-06', 'active', '2026-06-01', '2026-06-30');
+  const s7 = SB(7, '2026-07', 'active', '2026-07-01', '2026-07-31');
+  const s5 = SB(5, '2026-05', 'closed', '2026-05-01', '2026-05-31');
+  const mk = (key, st, cat, sprints, resolved, due, who) => Object.assign(issue2(key, st, cat, sprints, due), {}, { fields: Object.assign(issue2(key, st, cat, sprints, due).fields,
+    { resolutiondate: resolved ? resolved + 'T10:00:00.000-0500' : null, assignee: who === null ? null : { displayName: who || 'Rahul Kanth Panganamamula' } }) });
+  const sr = [
+    mk('EQP-60', 'Done', 'done', [s6], '2026-06-03', '2026-06-20'),
+    mk('EQP-61', 'Done', 'done', [s5, s6], '2026-06-10', '2026-06-25', 'Aditi Rao'),
+    mk('EQP-62', 'DEVELOPMENT', 'indeterminate', [s6, s7], null, '2026-07-20'),
+    mk('EQP-63', 'TEST', 'indeterminate', [s6], null, '2026-07-15', null),
+  ].map((i) => J.fromIssue(i, { today: TODAY }));
+  T.eq('its JQL finds everything ever in it; its link in Jira', [J.sprintJql({ id: '6' }), J.sprintUrl('https://equiprite.atlassian.net', { id: '6', board: '3', state: 'active' })].join(' | '),
+    'project = EQP AND sprint = 6 ORDER BY status ASC, key ASC | https://equiprite.atlassian.net/jira/software/projects/EQP/boards/3?sprint=6');
+  T.eq('…a closed one opens its sprint report', J.sprintUrl('', { id: '5', board: '3', state: 'closed' }), 'https://equiprite.atlassian.net/jira/software/projects/EQP/boards/3/reports/sprint-retrospective?sprint=5');
+  const rep6 = J.sprintReport(sr, { id: '6' }, TODAY);
+  T.eq('the sprint as Jira has it', [rep6.sprint.name, rep6.sprint.state, rep6.sprint.start, rep6.sprint.end, rep6.sprint.board].join(' / '), '2026-06 / active / 2026-06-01 / 2026-06-30 / 3');
+  T.eq('the numbers', JSON.stringify(plain(rep6.kpis)), JSON.stringify({ total: 4, done: 2, open: 2, donePct: 50, overdue: 2, carriedOut: 1, carriedIn: 1, unassigned: 1, days: 30, dayText: 'Ended 128 days ago' }));
+  T.eq('each item: still here, done, or carried on (and to where)', rep6.rows.map((r) => r.key + ' ' + r.in + (r.sprintNow ? ' > ' + r.sprintNow : '') + (r.carriedIn ? ' (in)' : '')).join(' | '),
+    'EQP-60 done | EQP-61 done (in) | EQP-62 moved > 2026-07 | EQP-63 here');
+  T.eq('the burn-up: a day each, done by then', [rep6.burnup.length, rep6.burnup[0].day + ' ' + rep6.burnup[0].done, rep6.burnup[2].day + ' ' + rep6.burnup[2].done + ' ' + rep6.burnup[2].pct + '%',
+    rep6.burnup[29].day + ' ' + rep6.burnup[29].done].join(' | '), '30 | 2026-06-01 0 | 2026-06-03 1 25% | 2026-06-30 2');
+  T.eq('what is wrong with it', rep6.flags.join(' | '), 'Still active, ended 2026-06-30: close it in Jira and move what is open to the next sprint. | 2 open items are due after it ends.');
+  T.eq('what it says', rep6.findings.map((f) => f.tone + ': ' + f.text).join(' | '),
+    'info: 2 of 4 done (50%), ended 128 days ago. | warn: 1 item was carried on to a later sprint (2026-07). | info: 1 item came in from an earlier sprint. | '
+    + 'bad: 2 items are past their due date. | warn: 1 open item has nobody assigned.');
+  T.eq('by person', rep6.people.map((p) => p.name + ' ' + p.open + '/' + p.total).join(', '), 'Rahul Kanth Panganamamula 1/2, Nobody 1/1, Aditi Rao 0/1');
+
+  T.section('images: the screenshots attached to comments and the description');
+  const withImages = J.fromIssue({ key: 'EQP-196', fields: { summary: 'Business Unit & Organization Mapping', issuetype: { name: 'Story' }, status: status('DEVELOPMENT', 'indeterminate'),
+    description: 'Map each BU to its yards.\n\n!bu-map.png|width=400!\n\nAcceptance Criteria: one yard per BU at least. FDD Section: 7.17',
+    attachment: [{ id: 10501, filename: 'image-20261102-213121.png', mimeType: 'image/png', size: 48213, created: '2026-11-02T21:31:21.000-0500', author: { displayName: 'Rahul Kanth Panganamamula' } },
+      { id: 10502, filename: 'Screenshot 2026-11-04 135139.png', mimeType: 'image/png', size: 2400000 }, { id: 10503, filename: 'bu-map.png', mimeType: 'image/png', size: 900 },
+      { id: 10504, filename: 'mapping.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', size: 12000 }],
+    comment: { comments: [
+      { author: { displayName: 'Rahul Kanth Panganamamula' }, created: '2026-11-02', body: 'Sub Inventory column added in the BU 2 Org mapping.\n\n!image-20261102-213121.png|width=650,alt="image-20261102-213121.png"!' },
+      { author: { displayName: 'Sana Suhana Thehaseen' }, created: '2026-11-04', body: 'Sub Inv column is not yet added.\n\n!Screenshot 2026-11-04 135139.png|width=227,alt="Screenshot 2026-11-04 135139.png"!' }] } } },
+  { today: TODAY });
+  T.eq('a comment\'s text without the image markup', withImages.comments.map((c) => c.text).join(' | '), 'Sub Inventory column added in the BU 2 Org mapping. | Sub Inv column is not yet added.');
+  T.eq('…and its images, matched to the attachments', withImages.comments.map((c) => c.images.map((i) => i.id + ' ' + i.name).join()).join(' | '),
+    '10501 image-20261102-213121.png | 10502 Screenshot 2026-11-04 135139.png');
+  T.eq('the description\'s image, and its text without it', [withImages.bodyImages.map((i) => i.id).join(), withImages.body].join(' / '), '10503 / Map each BU to its yards.');
+  T.eq('every attachment, images marked, sizes in words', withImages.attachments.map((a) => a.name + ' ' + (a.image ? 'image' : 'file') + ' ' + a.sizeText).join(' | '),
+    'image-20261102-213121.png image 47 KB | Screenshot 2026-11-04 135139.png image 2.3 MB | bu-map.png image 1 KB | mapping.xlsx file 12 KB');
+  const imgCalls = [];
+  const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+  const imgActions = { callRest: async (ctx, o) => { imgCalls.push(o); return o.uriParams.id === '10502' ? { ok: false, status: 404 } : { ok: true, status: 200, body: new Blob([PNG], { type: 'image/png' }) }; } };
+  const imgs = await J.loadImages({}, imgActions, withImages);
+  T.check('each image read through the jira connection as a file (redirect=false), the others not', imgCalls.length === 3
+    && imgCalls.every((c) => c.endpoint === 'jira/getJiraAttachmentContent' && c.uriParams.redirect === false && c.responseBodyFormat === 'blob'));
+  T.check('…shown from memory; one that could not be read is \'\'', /^blob:/.test(imgs['10501']) && imgs['10502'] === '' && /^blob:/.test(imgs['10503']) && !('10504' in imgs));
+  await J.loadImages({}, imgActions, withImages);
+  T.eq('…read once', imgCalls.length, 4);
 
   T.section('Old keeps the same file');
   const old = path.join(ROOT, 'webApps', 'vbredwoodapp', 'resources', 'js', 'jiraBacklog.js');

@@ -11,6 +11,19 @@
     },
     "jira-stories": {
       "path": "pages/jira-stories-page"
+    },
+    "jira-sprint": {
+      "path": "pages/jira-sprint-page",
+      "parameters": {
+        "id": {
+          "type": "string",
+          "input": "fromUrl"
+        },
+        "name": {
+          "type": "string",
+          "input": "fromUrl"
+        }
+      }
     }
   }
 }

@@ -84,7 +84,11 @@
   .jira-mini--release .jira-mini-row { grid-template-columns: 1fr 90px 96px 100px; }
   .jira-mini--people .jira-mini-row { grid-template-columns: 2fr 50px 60px; }
   .jira-mini--sprint { margin-bottom: 12px; }
-  .jira-mini--sprint .jira-mini-row { grid-template-columns: minmax(0, 2.4fr) minmax(150px, 1.2fr) 80px 50px 64px 90px; align-items: start; }
+  .jira-mini--sprint .jira-mini-row { grid-template-columns: minmax(0, 2.4fr) minmax(150px, 1.2fr) 80px 50px 64px 90px 32px; align-items: start; }
+  .jira-sprint-link { border: 0; background: transparent; padding: 0; font: inherit; font-weight: 700; cursor: pointer; color: var(--oj-core-brand-color-primary, #005cb1);
+    text-decoration: underline; text-underline-offset: 2px; }
+  .jira-sprint-filter { border: 0; background: transparent; cursor: pointer; color: var(--oj-core-text-color-secondary, #6b6b6b); padding: 2px 4px; border-radius: 4px; }
+  .jira-sprint-filter:hover { background: var(--oj-core-neutral-color-1, #f7f7f7); }
   .jira-sprint-name { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; min-width: 0; }
   .jira-sprint-goal { flex-basis: 100%; font-size: 0.75rem; color: var(--oj-core-text-color-secondary, #6b6b6b); }
   .jira-sprint-flag { flex-basis: 100%; font-size: 0.75rem; font-weight: 700; color: var(--oj-core-danger-text-color, #b3261e); }
@@ -126,6 +130,17 @@
 
   /* ── drawer ── */
   .jira-drawer { padding: 4px 4px 24px; display: flex; flex-direction: column; gap: 4px; }
+  /* the story's images: in its comment, under the description, among the attachments; a click opens it full size */
+  .jira-imgs { display: flex; flex-wrap: wrap; gap: 10px; margin: 6px 0; }
+  .jira-imgs:empty { display: none; }
+  .jira-img { margin: 0; display: flex; flex-direction: column; gap: 4px; max-width: 100%; }
+  .jira-img img { display: block; max-width: 100%; max-height: 360px; border: 1px solid var(--oj-core-divider-color, #e0e0e0); border-radius: 6px; cursor: zoom-in; }
+  .jira-imgs--all .jira-img { width: 160px; }
+  .jira-imgs--all .jira-img img { width: 160px; height: 110px; object-fit: cover; }
+  .jira-img figcaption { font-size: 0.6875rem; color: var(--oj-core-text-color-secondary, #6b6b6b); overflow-wrap: anywhere; }
+  .jira-img-wait { display: flex; align-items: center; justify-content: center; min-width: 160px; min-height: 80px; padding: 8px; font-size: 0.75rem;
+    border: 1px dashed var(--oj-core-divider-color, #e0e0e0); border-radius: 6px; color: var(--oj-core-text-color-secondary, #6b6b6b); }
+  .jira-files { margin: 4px 0 0 18px; padding: 0; font-size: 0.8125rem; }
   .jira-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px 20px; margin-bottom: 8px; }
   .jira-fact-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--oj-core-text-color-secondary, #565656); }
   .jira-fact-value { font-size: 0.875rem; }
@@ -267,8 +282,11 @@
               <span class="jira-num">Overdue</span><span class="jira-num">Carried over</span></div>
             <oj-bind-for-each data="[[ $variables.analysis.sprints ]]">
               <template data-oj-as="sp">
-                <button type="button" class="jira-mini-row" :data-sprint="[[ sp.data.name ]]" on-click="[[ $listeners.onSprint ]]" title="Show this sprint's items">
-                  <span class="jira-sprint-name"><strong><oj-bind-text value="[[ sp.data.name ]]"></oj-bind-text></strong>
+                <div class="jira-mini-row" :data-sprint="[[ sp.data.name ]]">
+                  <span class="jira-sprint-name">
+                    <oj-bind-if test="[[ sp.data.name !== 'No sprint' ]]"><button type="button" class="jira-sprint-link" :data-id="[[ sp.data.id ]]" :data-name="[[ sp.data.name ]]"
+                      on-click="[[ $listeners.onSprintOpen ]]" :title="[[ 'Open sprint ' + sp.data.name ]]"><oj-bind-text value="[[ sp.data.name ]]"></oj-bind-text></button></oj-bind-if>
+                    <oj-bind-if test="[[ sp.data.name === 'No sprint' ]]"><strong>No sprint</strong></oj-bind-if>
                     <oj-bind-if test="[[ !!sp.data.state ]]"><span :class="[[ $functions.sprintBadge(sp.data.state) ]]"><oj-bind-text value="[[ sp.data.state ]]"></oj-bind-text></span></oj-bind-if>
                     <oj-bind-if test="[[ !!sp.data.goal ]]"><span class="jira-sprint-goal"><oj-bind-text value="[[ 'Goal: ' + sp.data.goal ]]"></oj-bind-text></span></oj-bind-if>
                     <oj-bind-for-each data="[[ sp.data.flags ]]"><template data-oj-as="fl"><span class="jira-sprint-flag"><oj-bind-text value="[[ fl.data ]]"></oj-bind-text></span></template></oj-bind-for-each></span>
@@ -277,7 +295,9 @@
                   <span class="jira-num"><oj-bind-text value="[[ sp.data.open ]]"></oj-bind-text></span>
                   <span :class="[[ sp.data.overdue ? 'jira-num jira-late' : 'jira-num' ]]"><oj-bind-text value="[[ sp.data.overdue ]]"></oj-bind-text></span>
                   <span class="jira-num"><oj-bind-text value="[[ sp.data.carried ]]"></oj-bind-text></span>
-                </button>
+                  <button type="button" class="jira-sprint-filter" :data-sprint="[[ sp.data.name ]]" on-click="[[ $listeners.onSprint ]]"
+                    :aria-label="[[ 'Show the stories of ' + sp.data.name + ' below' ]]" title="Show its stories below"><span class="oj-ux-ico-filter" aria-hidden="true"></span></button>
+                </div>
               </template>
             </oj-bind-for-each>
           </div>
@@ -483,6 +503,22 @@
 
         <div class="jira-section">Description</div>
         <div class="jira-pre" id="jiraBody"><oj-bind-text value="[[ $variables.selected.body || 'No description.' ]]"></oj-bind-text></div>
+        <div class="jira-imgs" id="jiraBodyImages">
+          <oj-bind-for-each data="[[ $functions.items($variables.selected.bodyImages) ]]">
+            <template data-oj-as="im">
+              <figure class="jira-img">
+                <oj-bind-if test="[[ !!$functions.imageUrl($variables.images, im.data.id) ]]">
+                  <a :href="[[ $functions.imageUrl($variables.images, im.data.id) ]]" target="_blank" rel="noopener" :title="[[ 'Open ' + im.data.name + ' full size' ]]">
+                    <img :src="[[ $functions.imageUrl($variables.images, im.data.id) ]]" :alt="[[ im.data.name ]]" loading="lazy"></a>
+                </oj-bind-if>
+                <oj-bind-if test="[[ !$functions.imageUrl($variables.images, im.data.id) ]]">
+                  <span class="jira-img-wait"><oj-bind-text value="[[ $functions.imageNote($variables.images, im.data.id) ]]"></oj-bind-text></span>
+                </oj-bind-if>
+                <figcaption><oj-bind-text value="[[ im.data.name ]]"></oj-bind-text></figcaption>
+              </figure>
+            </template>
+          </oj-bind-for-each>
+        </div>
 
         <div class="jira-section">Acceptance criteria</div>
         <oj-bind-if test="[[ !$variables.selected.ac ]]">
@@ -530,10 +566,52 @@
               <div class="jira-comment">
                 <div class="jira-comment-head"><oj-bind-text value="[[ m.data.author + (m.data.when ? ' · ' + m.data.when : '') ]]"></oj-bind-text></div>
                 <div class="jira-pre"><oj-bind-text value="[[ m.data.text ]]"></oj-bind-text></div>
+                <div class="jira-imgs">
+          <oj-bind-for-each data="[[ $functions.items(m.data.images) ]]">
+            <template data-oj-as="im">
+              <figure class="jira-img">
+                <oj-bind-if test="[[ !!$functions.imageUrl($variables.images, im.data.id) ]]">
+                  <a :href="[[ $functions.imageUrl($variables.images, im.data.id) ]]" target="_blank" rel="noopener" :title="[[ 'Open ' + im.data.name + ' full size' ]]">
+                    <img :src="[[ $functions.imageUrl($variables.images, im.data.id) ]]" :alt="[[ im.data.name ]]" loading="lazy"></a>
+                </oj-bind-if>
+                <oj-bind-if test="[[ !$functions.imageUrl($variables.images, im.data.id) ]]">
+                  <span class="jira-img-wait"><oj-bind-text value="[[ $functions.imageNote($variables.images, im.data.id) ]]"></oj-bind-text></span>
+                </oj-bind-if>
+                <figcaption><oj-bind-text value="[[ im.data.name ]]"></oj-bind-text></figcaption>
+              </figure>
+            </template>
+          </oj-bind-for-each>
+                </div>
               </div>
             </template>
           </oj-bind-for-each>
         </div>
+
+        <div class="jira-section">Attachments</div>
+        <oj-bind-if test="[[ !$functions.hasItems($variables.selected.attachments) ]]">
+          <div class="jira-muted">No attachments.</div>
+        </oj-bind-if>
+        <div class="jira-imgs jira-imgs--all" id="jiraAttachments">
+          <oj-bind-for-each data="[[ $functions.imageFiles($variables.selected) ]]">
+            <template data-oj-as="im">
+              <figure class="jira-img">
+                <oj-bind-if test="[[ !!$functions.imageUrl($variables.images, im.data.id) ]]">
+                  <a :href="[[ $functions.imageUrl($variables.images, im.data.id) ]]" target="_blank" rel="noopener" :title="[[ 'Open ' + im.data.name + ' full size' ]]">
+                    <img :src="[[ $functions.imageUrl($variables.images, im.data.id) ]]" :alt="[[ im.data.name ]]" loading="lazy"></a>
+                </oj-bind-if>
+                <oj-bind-if test="[[ !$functions.imageUrl($variables.images, im.data.id) ]]">
+                  <span class="jira-img-wait"><oj-bind-text value="[[ $functions.imageNote($variables.images, im.data.id) ]]"></oj-bind-text></span>
+                </oj-bind-if>
+                <figcaption><oj-bind-text value="[[ im.data.name ]]"></oj-bind-text></figcaption>
+              </figure>
+            </template>
+          </oj-bind-for-each>
+        </div>
+        <ul class="jira-files" id="jiraFiles">
+          <oj-bind-for-each data="[[ $functions.otherFiles($variables.selected) ]]">
+            <template data-oj-as="fl"><li><oj-bind-text value="[[ $functions.fileText(fl.data) ]]"></oj-bind-text></li></template>
+          </oj-bind-for-each>
+        </ul>
       </div>
     </oj-sp-general-drawer-template>
   </oj-defer>

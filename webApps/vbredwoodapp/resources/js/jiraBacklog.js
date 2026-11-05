@@ -18,7 +18,7 @@ define([], function () {
   var SITE = 'https://equiprite.atlassian.net';
   var PROJECT = 'EQP';
   var FIELDS = ['summary', 'issuetype', 'status', 'priority', 'parent', 'fixVersions', 'assignee', 'reporter', 'duedate', 'description',
-    'comment', 'customfield_10020', 'labels', 'created', 'updated', 'resolutiondate', 'subtasks'];
+    'comment', 'customfield_10020', 'labels', 'created', 'updated', 'resolutiondate', 'subtasks', 'attachment'];
   var PAGE = 100;
   var MAX_PAGES = 30; // 3,000 issues: a safety stop, said when reached
   var STALE_DAYS = 30;
@@ -135,6 +135,37 @@ define([], function () {
     return txt(ac).split(/;|\n\s*(?:\d+[.)]|[-*•])\s+/).map(function (s) { return s.trim(); }).filter(function (s) { return s.length > 3; });
   }
 
+  /**
+   * The images a text shows, by Jira's wiki markup (!name.png|width=650,alt="…"! or !name.png!), and the text without
+   * them: { text, names }. The names are attachments of the story (the page loads them through the jira connection).
+   */
+  function extractImages(t) {
+    var names = [];
+    var text = txt(t).replace(/!([^!\n|]+?\.(?:png|jpe?g|gif|bmp|webp|svg))(?:\|[^!\n]*)?!/gi, function (m, name) {
+      if (names.indexOf(name) === -1) names.push(name);
+      return '';
+    });
+    return { text: text.replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim(), names: names };
+  }
+
+  /** A story's attachments: [{ id, name, mime, size, sizeText, created, author, image }]. */
+  function attachmentsOf(list) {
+    return (Array.isArray(list) ? list : []).map(function (a) {
+      var size = Number(a.size) || 0;
+      return { id: a.id != null ? String(a.id) : '', name: a.filename || '', mime: a.mimeType || '', size: size,
+        sizeText: size >= 1048576 ? (Math.round(size / 104857.6) / 10) + ' MB' : (Math.max(1, Math.round(size / 1024)) + ' KB'),
+        created: day(a.created), author: nameOf(a.author), image: /^image\//i.test(a.mimeType || '') || /\.(png|jpe?g|gif|bmp|webp)$/i.test(a.filename || '') };
+    });
+  }
+
+  /** The images a text names, matched to the story's attachments: [{ id, name }] (id '' when not attached). */
+  function imagesFor(names, attachments) {
+    return names.map(function (n) {
+      var a = attachments.filter(function (x) { return x.name === n; })[0];
+      return { id: a ? a.id : '', name: n };
+    });
+  }
+
   /** A tester's gaps from a comment: its numbered or bulleted lines ("1. Type column is missing."), else nothing. */
   function gapsFrom(comment) {
     var lines = readable(comment).split(/\n+/).map(function (s) { return s.trim(); });
@@ -155,17 +186,17 @@ define([], function () {
       if (typeof s === 'string') {
         var get = function (k) { var m = new RegExp(k + '=([^,\\]]*)').exec(s); return m && m[1] !== '<null>' ? m[1] : ''; };
         return { id: get('id'), name: get('name') || s, state: get('state').toLowerCase(), start: day(get('startDate')), end: day(get('endDate')),
-          done: day(get('completeDate')), goal: get('goal') };
+          done: day(get('completeDate')), goal: get('goal'), board: get('rapidViewId') };
       }
       return { id: s.id != null ? String(s.id) : '', name: s.name || '', state: txt(s.state).toLowerCase(), start: day(s.startDate), end: day(s.endDate),
-        done: day(s.completeDate), goal: txt(s.goal) };
+        done: day(s.completeDate), goal: txt(s.goal), board: s.boardId != null ? String(s.boardId) : '' };
     }).filter(function (x) { return !!x.name; });
   }
 
   /** The sprint a story is in now: the last of its sprints. */
   function sprintOf(v) {
     var list = sprintsOf(v);
-    return list[list.length - 1] || { id: '', name: '', state: '', start: '', end: '', done: '', goal: '' };
+    return list[list.length - 1] || { id: '', name: '', state: '', start: '', end: '', done: '', goal: '', board: '' };
   }
 
   /**
@@ -183,9 +214,12 @@ define([], function () {
     var versions = (f.fixVersions || []).slice().sort(function (a, b) { return txt(a.releaseDate).localeCompare(txt(b.releaseDate)); });
     var rel = versions[0] || null;
     var sp = sprintOf(f.customfield_10020);
-    var parts = splitDescription(f.summary, f.description);
+    var attachments = attachmentsOf(f.attachment);
+    var desc = extractImages(plain(f.description));
+    var parts = splitDescription(f.summary, desc.text);
     var comments = ((f.comment && f.comment.comments) || []).map(function (c) {
-      return { author: nameOf(c.author), when: day(c.created), text: readable(plain(c.body)) };
+      var ex = extractImages(plain(c.body));
+      return { author: nameOf(c.author), when: day(c.created), text: readable(ex.text), images: imagesFor(ex.names, attachments) };
     });
     var gaps = [];
     comments.forEach(function (c) { gapsFrom(c.text).forEach(function (g) { if (gaps.indexOf(g) === -1) gaps.push(g); }); });
@@ -199,12 +233,14 @@ define([], function () {
       priority: (f.priority && f.priority.name) || '', epicKey: parent ? parent.key : '', epicName: parent && parent.fields ? txt(parent.fields.summary) : '',
       assignee: nameOf(f.assignee), reporter: nameOf(f.reporter), labels: f.labels || [],
       release: rel ? rel.name : '', releaseDate: rel ? day(rel.releaseDate) : '', releases: versions.map(function (v) { return v.name; }),
-      sprint: sp.name, sprintState: sp.state, sprintStart: sp.start, sprintEnd: sp.end, sprintGoal: sp.goal,
+      sprint: sp.name, sprintId: sp.id, sprintBoard: sp.board, sprintState: sp.state, sprintStart: sp.start, sprintEnd: sp.end, sprintGoal: sp.goal,
       sprintPast: sprintsOf(f.customfield_10020).slice(0, -1).map(function (x) { return x.name; }),
+      sprintList: sprintsOf(f.customfield_10020),
       due: due, overdue: !!(due && due < today && !done),
       created: day(f.created), updated: updated, resolved: day(f.resolutiondate), idleDays: updated ? daysBetween(updated, today) : null,
       fdd: parts.fdd, body: parts.body, ac: parts.ac, acChecks: acChecks(parts.ac).length,
-      comments: comments, gaps: gaps, subtasks: (f.subtasks || []).length
+      comments: comments, gaps: gaps, subtasks: (f.subtasks || []).length,
+      attachments: attachments, bodyImages: imagesFor(desc.names, attachments)
     };
     var checks = [];
     var add = function (k) { checks.push({ key: k, label: CHECKS[k].label }); };
@@ -363,7 +399,8 @@ define([], function () {
     // with it on the board (still active after its end, future with an end date gone, work due after it ends).
     var SPRINT_ORDER = { active: 0, future: 1, closed: 2 };
     var sprints = tally(list, function (r) { return r.sprint; }, function (k, r) {
-      return { name: k || 'No sprint', state: k ? r.sprintState : '', start: k ? r.sprintStart : '', end: k ? r.sprintEnd : '', goal: k ? r.sprintGoal : '', rows: [] };
+      return { name: k || 'No sprint', id: k ? r.sprintId : '', board: k ? r.sprintBoard : '', state: k ? r.sprintState : '', start: k ? r.sprintStart : '',
+        end: k ? r.sprintEnd : '', goal: k ? r.sprintGoal : '', rows: [] };
     }).map(function (g) {
       var o = g.rows.filter(function (r) { return !isDone(r); });
       var flags = [];
@@ -376,7 +413,7 @@ define([], function () {
       var earlyDue = named && g.start ? o.filter(function (r) { return r.due && r.due < g.start; }).length : 0;
       if (earlyDue) flags.push(plural(earlyDue, 'item') + ' due before it starts');
       var left = g.state === 'active' && g.end && g.end >= t ? daysBetween(t, g.end) : null;
-      return { name: g.name, state: g.state, start: g.start, end: g.end, goal: g.goal, total: g.rows.length, done: g.rows.length - o.length, open: o.length,
+      return { name: g.name, id: g.id, board: g.board, state: g.state, start: g.start, end: g.end, goal: g.goal, total: g.rows.length, done: g.rows.length - o.length, open: o.length,
         donePct: pct(g.rows.length - o.length, g.rows.length), overdue: g.rows.filter(function (r) { return r.overdue; }).length,
         carried: o.filter(function (r) { return r.sprintPast.length > 0; }).length, daysLeft: left, flags: flags };
     }).sort(function (a, b) {
@@ -515,6 +552,139 @@ define([], function () {
       .map(function (k) { return { value: k, label: (names[k] || k) + ' (' + counts[k] + ')' }; });
   }
 
+  // ── One sprint (its own tab in Next, its own page in Old) ────────────────────────────────────────────────
+  /** Every item that has been in a sprint (Jira's "sprint = id" also finds what moved on to a later sprint). */
+  function sprintJql(sprint) {
+    var s = sprint || {};
+    return 'project = ' + PROJECT + ' AND sprint = ' + (s.id ? s.id : '"' + txt(s.name).replace(/"/g, '\\"') + '"') + ' ORDER BY status ASC, key ASC';
+  }
+
+  /** The sprint in Jira: its board while it runs, its sprint report once closed. */
+  function sprintUrl(site, sprint) {
+    var s = sprint || {};
+    var base = (site || SITE).replace(/\/$/, '');
+    if (!s.board || !s.id) return base + '/issues/?jql=' + encodeURIComponent(sprintJql(s));
+    var board = base + '/jira/software/projects/' + PROJECT + '/boards/' + s.board;
+    return s.state === 'closed' ? board + '/reports/sprint-retrospective?sprint=' + s.id : (s.state === 'future' ? board + '/backlog' : board + '?sprint=' + s.id);
+  }
+
+  /**
+   * The report for one sprint, from the items "sprint = id" finds (rows) and the sprint asked for ({ id, name }):
+   *   sprint   { id, name, board, state, start, end, done, goal } as Jira has it on the items
+   *   kpis     { total, done, open, donePct, overdue, carriedOut, carriedIn, unassigned, days, dayText }
+   *   burnup   [{ day, label, done, pct, today, weekend }] a day each from its start to its end (or today), done by then
+   *   statuses, people [{ name, total, done, open, overdue }], flags [..], findings [{ tone, text }]
+   *   rows     the items, each with in: 'here' (still in this sprint), 'moved' (carried on to sprintNow) or 'done'
+   */
+  function sprintReport(rows, want, today) {
+    var t = todayOf(today);
+    var w = want || {};
+    var list = Array.isArray(rows) ? rows : [];
+    var isDone = function (r) { return r.statusCat === 'done'; };
+    var info = null;
+    list.forEach(function (r) {
+      (r.sprintList || []).forEach(function (x) {
+        if (!info && ((w.id && x.id === String(w.id)) || (!w.id && x.name === w.name))) info = x;
+      });
+    });
+    info = info || { id: w.id || '', name: w.name || '', state: '', start: '', end: '', done: '', goal: '', board: '' };
+    var idx = function (r) {
+      var l = r.sprintList || [];
+      for (var i = 0; i < l.length; i++) if ((info.id && l[i].id === info.id) || (!info.id && l[i].name === info.name)) return i;
+      return -1;
+    };
+    var items = list.map(function (r) {
+      var i = idx(r);
+      var last = (r.sprintList || []).length - 1;
+      var moved = i !== -1 && i < last;
+      return Object.assign({}, r, { in: isDone(r) && !moved ? 'done' : (moved ? 'moved' : 'here'), sprintNow: moved ? r.sprint : '', carriedIn: i > 0 });
+    });
+    var open = items.filter(function (r) { return !isDone(r); });
+    var doneN = items.length - open.length;
+    var carriedOut = items.filter(function (r) { return r.in === 'moved'; });
+    var carriedIn = items.filter(function (r) { return r.carriedIn; });
+    var endOrToday = info.end && info.end < t ? info.end : t;
+    var days = info.start ? daysBetween(info.start, info.end || t) + 1 : null;
+    var left = info.end && info.state !== 'closed' && info.end >= t ? daysBetween(t, info.end) : null;
+    var ago = info.end && info.end < t ? daysBetween(info.end, t) : null;
+    var kpis = {
+      total: items.length, done: doneN, open: open.length, donePct: pct(doneN, items.length),
+      overdue: items.filter(function (r) { return r.overdue; }).length, carriedOut: carriedOut.length, carriedIn: carriedIn.length,
+      unassigned: open.filter(function (r) { return !r.assignee; }).length, days: days,
+      dayText: left !== null ? (left === 0 ? 'Ends today' : plural(left, 'day') + ' left') : (ago !== null ? (info.state === 'closed' ? 'Closed, ended ' : 'Ended ') + plural(ago, 'day') + ' ago' : (info.start && info.start > t ? 'Starts ' + info.start : ''))
+    };
+
+    // Burn-up: how many were done by each day of the sprint (by when each was resolved), against everything in it.
+    var burnup = [];
+    if (info.start) {
+      var stop = endOrToday < info.start ? info.start : endOrToday;
+      var d0 = Date.UTC(+info.start.slice(0, 4), +info.start.slice(5, 7) - 1, +info.start.slice(8, 10));
+      var n = Math.min(92, daysBetween(info.start, stop) + 1);
+      for (var k = 0; k < n; k++) {
+        var dt = new Date(d0 + k * 86400000);
+        var ds = dt.toISOString().slice(0, 10);
+        var by = items.filter(function (r) { return isDone(r) && r.resolved && r.resolved <= ds; }).length;
+        burnup.push({ day: ds, label: ds.slice(8, 10) + '/' + ds.slice(5, 7), done: by, pct: pct(by, items.length), today: ds === t, weekend: dt.getUTCDay() === 0 || dt.getUTCDay() === 6 });
+      }
+    }
+
+    var a = analyse(items, t);
+    var flags = [];
+    if (info.state === 'active' && info.end && info.end < t) flags.push('Still active, ended ' + info.end + ': close it in Jira and move what is open to the next sprint.');
+    if (info.state === 'future' && info.end && info.end < t) flags.push('Future, but its end date (' + info.end + ') has passed: re-plan its dates.');
+    if (info.state === 'closed' && open.filter(function (r) { return r.in === 'here'; }).length) flags.push(plural(open.filter(function (r) { return r.in === 'here'; }).length, 'item') + ' still in it although it closed.');
+    var lateDue = info.end ? open.filter(function (r) { return r.due && r.due > info.end; }).length : 0;
+    if (lateDue) flags.push(plural(lateDue, 'open item is', 'open items are') + ' due after it ends.');
+
+    var findings = [];
+    if (items.length) {
+      findings.push({ tone: kpis.donePct >= 80 ? 'good' : (kpis.donePct >= 50 ? 'info' : 'warn'), text: doneN + ' of ' + items.length + ' done (' + kpis.donePct + '%)' + (kpis.dayText ? ', ' + kpis.dayText.toLowerCase() : '') + '.' });
+      if (carriedOut.length) findings.push({ tone: 'warn', text: plural(carriedOut.length, 'item was', 'items were') + ' carried on to a later sprint (' + carriedOut.map(function (r) { return r.sprintNow; }).filter(function (x, i, l) { return x && l.indexOf(x) === i; }).join(', ') + ').' });
+      if (carriedIn.length) findings.push({ tone: 'info', text: plural(carriedIn.length, 'item came', 'items came') + ' in from an earlier sprint.' });
+      if (kpis.overdue) findings.push({ tone: 'bad', text: plural(kpis.overdue, 'item is', 'items are') + ' past their due date.' });
+      if (kpis.unassigned) findings.push({ tone: 'warn', text: plural(kpis.unassigned, 'open item has', 'open items have') + ' nobody assigned.' });
+      var busiest = a.people.filter(function (p) { return p.name !== 'Nobody'; })[0];
+      if (busiest && open.length > 2 && busiest.open / open.length >= 0.5) findings.push({ tone: 'info', text: busiest.name + ' holds ' + busiest.open + ' of the ' + open.length + ' open items.' });
+      var noResolved = items.filter(function (r) { return isDone(r) && !r.resolved; }).length;
+      if (noResolved) findings.push({ tone: 'info', text: plural(noResolved, 'done item has', 'done items have') + ' no resolution date, so the burn-up leaves them out.' });
+    }
+    return { sprint: info, kpis: kpis, burnup: burnup, statuses: a.statuses, people: a.people, flags: flags, findings: findings, rows: items,
+      url: sprintUrl(SITE, info) };
+  }
+
+  // ── Images (the screenshots attached to a story) ─────────────────────────────────────────────────────────
+  // Each is read through the jira connection (getJiraAttachmentContent, redirect=false) as a file, so the signed-in
+  // connection goes with it, and shown from memory (an object URL). Read once per page visit.
+  var imageCache = {};
+
+  /** One attachment as something an <img> can show: its URL, or '' when it could not be read. */
+  async function loadImage(context, Actions, id) {
+    if (!id) return '';
+    if (imageCache[id]) return imageCache[id];
+    var res;
+    try {
+      res = await Actions.callRest(context, { endpoint: 'jira/getJiraAttachmentContent', uriParams: { id: id, redirect: false }, responseBodyFormat: 'blob' });
+    } catch (e) {
+      return '';
+    }
+    if (!res || !res.ok || !res.body) return '';
+    var b = res.body;
+    var url = '';
+    if (typeof Blob !== 'undefined' && b instanceof Blob && typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function') url = URL.createObjectURL(b);
+    else if (typeof b === 'string' && /^data:image\//.test(b)) url = b;
+    if (url) imageCache[id] = url;
+    return url;
+  }
+
+  /** Every image attached to a story (at most 24), as { id: url } ('' for one that could not be read). */
+  async function loadImages(context, Actions, row) {
+    var ids = ((row && row.attachments) || []).filter(function (a) { return a.image && a.id; }).slice(0, 24).map(function (a) { return a.id; });
+    var urls = await Promise.all(ids.map(function (id) { return loadImage(context, Actions, id); }));
+    var out = {};
+    ids.forEach(function (id, i) { out[id] = urls[i]; });
+    return out;
+  }
+
   // ── The connection ───────────────────────────────────────────────────────────────────────────────────────
   // Deployed in VBCS, the jira backend's Basic authentication (a Jira email and an API token) is set by the VBCS
   // administrator. In the desktop app, the person connects on the page: the desktop app keeps the token on the PC
@@ -580,7 +750,7 @@ define([], function () {
   return {
     SITE: SITE, PROJECT: PROJECT, FIELDS: FIELDS, PRESETS: PRESETS, CHECKS: CHECKS, STATUS_ORDER: STATUS_ORDER,
     plain: plain, splitDescription: splitDescription, fddSections: fddSections, gapsFrom: gapsFrom, acChecks: acChecks,
-    sprintsOf: sprintsOf, fromIssue: fromIssue, load: load, problem: problem, analyse: analyse, filter: filter, options: options, exportColumns: exportColumns,
+    extractImages: extractImages, loadImage: loadImage, loadImages: loadImages, sprintsOf: sprintsOf, sprintJql: sprintJql, sprintUrl: sprintUrl, sprintReport: sprintReport, fromIssue: fromIssue, load: load, problem: problem, analyse: analyse, filter: filter, options: options, exportColumns: exportColumns,
     desktopSettings: desktopSettings, desktopSave: desktopSave, desktopForget: desktopForget, whoAmI: whoAmI
   };
 });

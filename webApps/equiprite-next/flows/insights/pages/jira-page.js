@@ -77,9 +77,20 @@ define(['resources/js/jiraBacklog', 'resources/js/exportKit'], (J, exportKit) =>
 
     /** The item open in the drawer, or an empty one. */
     item(rows, key) {
-      return (rows || []).filter((r) => r.key === key)[0] || { key: '', summary: '', fdd: [], checks: [], gaps: [], comments: [], labels: [] };
+      return (rows || []).filter((r) => r.key === key)[0] || { key: '', summary: '', fdd: [], checks: [], gaps: [], comments: [], labels: [], attachments: [], bodyImages: [] };
     }
     drawerOpen(rows, key) { return !!key && (rows || []).some((r) => r.key === key); }
+
+    /** An image of the open item: its URL once read, '' until then (or when it could not be read). */
+    imageUrl(images, id) { return (images && id && images[id]) || ''; }
+    /** What an image's place says before (or instead of) the image. */
+    imageNote(images, id) {
+      if (!id) return 'Not attached to the story';
+      return images && Object.prototype.hasOwnProperty.call(images, id) && !images[id] ? 'Could not be read from Jira' : 'Loading the image…';
+    }
+    /** The item's images among its attachments, and the other files. */
+    imageFiles(r) { return ((r && r.attachments) || []).filter((a) => a.image); }
+    otherFiles(r) { return ((r && r.attachments) || []).filter((a) => !a.image); }
 
     /** The acceptance criteria as a list of checks. */
     acList(ac) { return J.acChecks(ac); }

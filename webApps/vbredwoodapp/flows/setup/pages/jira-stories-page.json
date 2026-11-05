@@ -314,6 +314,11 @@
         "comments": []
       },
       "description": "The story open in the drawer (a copy of its row)."
+    },
+    "images": {
+      "type": "object",
+      "defaultValue": {},
+      "description": "The open story's images, read through the jira connection: { attachment id: object URL } ('' when it could not be read)."
     }
   },
   "chains": {},
@@ -481,6 +486,17 @@
           "parameters": {
             "what": "sprint",
             "value": "{{ $event.currentTarget.dataset.sprint }}"
+          }
+        }
+      ]
+    },
+    "onSprintOpen": {
+      "chains": [
+        {
+          "chain": "openSprintChain",
+          "parameters": {
+            "id": "{{ $event.currentTarget.dataset.id }}",
+            "name": "{{ $event.currentTarget.dataset.name }}"
           }
         }
       ]

@@ -1,0 +1,106 @@
+{
+  "description": "One Jira sprint (from Jira Stories, By sprint): every item ever in it (JQL sprint = id), its dates, state and goal, what is wrong with it on the board, the numbers, a day-by-day burn-up, by status and assignee, carried on and carried in, the items, export to CSV. Rules: resources/js/jiraBacklog.js sprintReport (identical to EquipRite Next's). Read only.",
+  "variables": {
+    "id": {
+      "type": "string",
+      "defaultValue": "",
+      "input": "fromUrl",
+      "description": "The sprint's Jira id."
+    },
+    "name": {
+      "type": "string",
+      "defaultValue": "",
+      "input": "fromUrl",
+      "description": "The sprint's name."
+    },
+    "loading": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "problem": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "notConnected": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "readAt": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "report": {
+      "type": "any",
+      "defaultValue": {
+        "sprint": {},
+        "kpis": {},
+        "burnup": [],
+        "statuses": [],
+        "people": [],
+        "flags": [],
+        "findings": [],
+        "rows": [],
+        "url": ""
+      }
+    }
+  },
+  "eventListeners": {
+    "vbBeforeEnter": {
+      "chains": [
+        {
+          "chain": "enforcePageAccessChain"
+        }
+      ]
+    },
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "loadSprintChain"
+        }
+      ]
+    },
+    "onRefresh": {
+      "chains": [
+        {
+          "chain": "loadSprintChain"
+        }
+      ]
+    },
+    "onBack": {
+      "chains": [
+        {
+          "chain": "sprintActionChain",
+          "parameters": {
+            "what": "back"
+          }
+        }
+      ]
+    },
+    "onAction": {
+      "chains": [
+        {
+          "chain": "sprintActionChain",
+          "parameters": {
+            "what": "{{ $event.detail.secondaryItem && $event.detail.secondaryItem.id ? $event.detail.secondaryItem.id : '' }}"
+          }
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-sp-general-overview-page": {
+        "path": "oj-sp/general-overview-page/loader"
+      },
+      "oj-bind-if": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-for-each": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-text": {
+        "path": "ojs/ojknockout"
+      }
+    }
+  }
+}

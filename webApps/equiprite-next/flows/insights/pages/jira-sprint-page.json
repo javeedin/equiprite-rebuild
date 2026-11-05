@@ -1,0 +1,133 @@
+{
+  "description": "One Jira sprint, in its own tab (opened from Jira stories, By sprint): every item ever in it (JQL sprint = id), its dates, state and goal, what is wrong with it on the board, the numbers, a day-by-day burn-up, by status and person, carried on and carried in, the items, export. Rules: resources/js/jiraBacklog.js sprintReport (the same file Old uses). Read only.",
+  "navigation": {
+    "embeddable": "enabled"
+  },
+  "variables": {
+    "id": {
+      "type": "string",
+      "defaultValue": "",
+      "input": "fromCaller",
+      "description": "The sprint's Jira id (the tab's key)."
+    },
+    "name": {
+      "type": "string",
+      "defaultValue": "",
+      "input": "fromCaller",
+      "description": "The sprint's name."
+    },
+    "isLoading": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "error": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "notConnected": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "readAt": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "report": {
+      "type": "any",
+      "defaultValue": {
+        "sprint": {},
+        "kpis": {},
+        "burnup": [],
+        "statuses": [],
+        "people": [],
+        "flags": [],
+        "findings": [],
+        "rows": [],
+        "url": ""
+      },
+      "description": "jiraBacklog.sprintReport."
+    },
+    "exportOpen": {
+      "type": "boolean",
+      "defaultValue": false
+    }
+  },
+  "eventListeners": {
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "loadChain",
+          "parameters": {
+            "refresh": false
+          }
+        }
+      ]
+    },
+    "onRefresh": {
+      "chains": [
+        {
+          "chain": "loadChain",
+          "parameters": {
+            "refresh": true
+          }
+        }
+      ]
+    },
+    "onConnect": {
+      "chains": [
+        {
+          "chain": "openChain",
+          "parameters": {
+            "what": "stories"
+          }
+        }
+      ]
+    },
+    "onRwAction": {
+      "chains": [
+        {
+          "chain": "openChain",
+          "parameters": {
+            "what": "{{ $event.detail.secondaryItem && $event.detail.secondaryItem.id ? $event.detail.secondaryItem.id : '' }}"
+          }
+        }
+      ]
+    },
+    "onExportToggle": {
+      "chains": [
+        {
+          "chain": "openChain",
+          "parameters": {
+            "what": "exportMenu"
+          }
+        }
+      ]
+    },
+    "onExport": {
+      "chains": [
+        {
+          "chain": "exportChain",
+          "parameters": {
+            "format": "{{ $event.currentTarget.dataset.format }}"
+          }
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-if": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-text": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-sp-general-overview-page": {
+        "path": "oj-sp/general-overview-page/loader"
+      }
+    }
+  }
+}

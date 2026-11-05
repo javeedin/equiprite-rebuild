@@ -28,7 +28,9 @@ const ISSUES = [
     fixVersions: [{ name: '26C', releaseDate: days(-36) }], assignee: { displayName: 'Rahul Kanth Panganamamula' }, duedate: days(-29),
     description: 'Display master list of all equipment records with smart search.Acceptance Criteria: Grid displays all columns per FDD 7.2.4; smart search returns results with type-ahead; all filter fields functional.FDD Section: 7.2Only Smart search is available.',
     comment: { comments: [{ author: { displayName: 'Sana Suhana Thehaseen' }, created: '2026-09-29T04:37:34.383-0500',
-      body: '**(FDD-7.2)**\n\n1. Only Class, Subclass search filters are present.\n\n2. Type Column is missing.\n\n3. Map view is missing.\n\n4. Edit option to be added.' }] },
+      body: '**(FDD-7.2)**\n\n1. Only Class, Subclass search filters are present.\n\n2. Type Column is missing.\n\n3. Map view is missing.\n\n4. Edit option to be added.\n\n!Screenshot 2026-11-04 135139.png|width=227,alt="Screenshot 2026-11-04 135139.png"!' }] },
+    attachment: [{ id: 10502, filename: 'Screenshot 2026-11-04 135139.png', mimeType: 'image/png', size: 2400, created: '2026-11-04T13:51:39.000-0600', author: { displayName: 'Sana Suhana Thehaseen' } },
+      { id: 10504, filename: 'mapping.xlsx', mimeType: 'application/vnd.ms-excel', size: 12000 }],
     customfield_10020: [{ id: 4, name: '2026-06', state: 'closed', startDate: '2026-06-01T05:00:00.000Z', endDate: '2026-06-30T05:00:00.000Z' },
       { id: 5, name: '2026-07', state: 'active', startDate: '2026-07-01T05:00:00.000Z', endDate: '2026-07-31T05:00:00.000Z' }] }),
   issue('EQP-13', { summary: 'Equipment Master Create/Edit - Section 7.2, 7.2.5G', status: status('DEVELOPMENT', 'indeterminate'), priority: { name: 'High' }, parent: EPIC1,
@@ -43,11 +45,18 @@ const ISSUES = [
     customfield_10020: [{ id: 7, name: '2026-10 B', state: 'future', startDate: days(-20) + 'T05:00:00.000Z', endDate: days(-5) + 'T05:00:00.000Z' }] }),
 ];
 const BUG = issue('EQP-99', { summary: 'Grid scrolls badly', issuetype: { name: 'Bug' }, status: status('Bugs', 'new'), description: 'It jumps.' });
+const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
 let searches = [];
+let imageReads = [];
 
 function handle(req, res) {
   if (req.path === '/rest/api/2/myself') {
     return req.auth ? res.json({ accountId: '712020:9b82', displayName: 'Javeed Shaik', emailAddress: 'javeed@equiprite.com' }) : res.json({ errorMessages: ['Unauthorized'] }, 401);
+  }
+  const att = /^\/rest\/api\/2\/attachment\/content\/(\d+)$/.exec(req.path);
+  if (att) {
+    imageReads.push({ id: att[1], redirect: req.query.get('redirect'), signed: !!req.auth });
+    return req.auth ? res.bytes(PNG, 'image/png') : res.json({ errorMessages: ['Unauthorized'] }, 401);
   }
   if (req.path === '/rest/api/2/search/jql') {
     // as Jira Cloud answers a call that is not signed in: OK, with nothing it may see
@@ -56,6 +65,8 @@ function handle(req, res) {
     const token = req.query.get('nextPageToken') || '';
     searches.push({ jql, token, fields: req.query.get('fields') || '' });
     if (/issuetype = Bug/.test(jql)) return res.json({ issues: [BUG], isLast: true });
+    const sprint = /sprint = (\d+)/.exec(jql);
+    if (sprint) return res.json({ issues: ISSUES.filter((i) => (i.fields.customfield_10020 || []).some((x) => String(x.id) === sprint[1])), isLast: true });
     // two pages, as Jira pages: a token, then isLast
     return token ? res.json({ issues: ISSUES.slice(3), isLast: true }) : res.json({ issues: ISSUES.slice(0, 3), nextPageToken: 'page-2', isLast: false });
   }
@@ -131,7 +142,7 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     T.check('the sprint findings: one still active after its end, the running one\'s progress, a stale future one, the spill-over',
       stillActive !== -1 && (await text(page, '#jiraFindings')).includes('Sprint Sprint now: 0 of 1 done (0%), 9 days left.')
       && (await text(page, '#jiraFindings')).includes('1 future sprint has an end date already past (2026-10 B)') && (await text(page, '#jiraFindings')).includes('1 open item was carried over'));
-    await page.click('#jiraSprints .nx-jira-tr--sprint[data-value="2026-07"]');
+    await page.click('#jiraSprints .nx-jira-tr--sprint[data-value="2026-07"] .nx-jira-sprintfilter');
     await settle(page, 400);
     T.eq('a sprint opens its items', (await texts(page, '#jiraGrid .nx-jira-row:not(.nx-jira-row--head) .nx-jira-key')).join(','), 'EQP-12');
     await page.click('#jiraShowing .nx-jira-x');
@@ -163,6 +174,29 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     await settle(page, 300);
     await env.shot('next-jira.png');
 
+    T.section('a sprint\'s name: its report in a tab of its own');
+    await page.click('#jiraTabs .nx-jira-tab[data-value="sprints"]');
+    await page.waitForSelector('#jiraSprints', { timeout: 10000 });
+    T.check('sprint names are links (No sprint is not)', (await page.$$eval('#jiraSprints .nx-jira-sprintlink', (b) => b.map((x) => x.textContent.trim()))).join() === '2026-07,Sprint now,2026-10 B');
+    await page.click('#jiraSprints .nx-jira-sprintlink[data-name="2026-07"]');
+    await page.waitForFunction(() => /Sprint 2026-07/.test((document.querySelector('#jspTitle') || {}).textContent || ''), null, { timeout: 20000 });
+    await page.waitForSelector('#jspTiles', { timeout: 20000 });
+    await settle(page, 600);
+    T.check('a new tab, named for the sprint', (await page.$$eval('[role="tab"]', (t) => t.map((x) => x.textContent))).some((t) => t.includes('Sprint 2026-07')));
+    T.check('…it asked Jira for everything ever in the sprint', searches.some((x) => x.jql === 'project = EQP AND sprint = 5 ORDER BY status ASC, key ASC'));
+    T.eq('its header: state, dates, how long ago it ended', await text(page, '#jspSub'), 'Active · 2026-07-01 – 2026-07-31 · Ended ' + Math.round((Date.parse(today) - Date.parse('2026-07-31')) / 86400000) + ' days ago');
+    T.check('what is wrong with it', (await text(page, '#jspFlags')).includes('Still active, ended 2026-07-31: close it in Jira and move what is open to the next sprint.'));
+    T.eq('its numbers', (await texts(page, '#jspTiles .nx-jira-tile')).join(' | '),
+      '1 Items 31 days long | 0 Done 0% | 1 Open | 1 Overdue | 0 Carried on to a later sprint | 1 Came in from an earlier sprint | 0 Nobody assigned open items');
+    T.eq('a burn-up bar for each of its 31 days', (await page.$$('#jspBurn .nx-jsp-burnday')).length, 31);
+    T.check('its items, each with where it stands, the key opening it in Jira', (await text(page, '#jspGrid .nx-jsp-row[data-key="EQP-12"]')).includes('Still in this sprint')
+      && (await page.getAttribute('#jspGrid .nx-jsp-row[data-key="EQP-12"] a', 'href')) === 'https://equiprite.atlassian.net/browse/EQP-12');
+    T.eq('Open in Jira: the sprint\'s items in Jira', await page.getAttribute('#jspOpenJira', 'href'), 'https://equiprite.atlassian.net/issues/?jql=' + encodeURIComponent('project = EQP AND sprint = 5 ORDER BY status ASC, key ASC'));
+    await env.shot('next-jira-sprint.png');
+    await page.locator('[role="tab"]', { hasText: 'Jira stories' }).first().click();
+    await page.waitForSelector('#jiraGrid', { state: 'visible', timeout: 10000 });
+    await settle(page, 400);
+
     T.section('one item, in the drawer');
     await page.click('#jiraGrid .nx-jira-row[data-key="EQP-12"]');
     await page.waitForSelector('#jiraItem', { state: 'visible', timeout: 10000 });
@@ -174,6 +208,13 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     T.eq('its criteria as a list', (await texts(page, '#jiraAc li')).join(' | '), 'Grid displays all columns per FDD 7.2.4 | smart search returns results with type-ahead | all filter fields functional.');
     T.eq('its tester gaps', (await texts(page, '#jiraItemGaps li')).length, 4);
     T.eq('Open in Jira', await page.getAttribute('#jiraOpenInJira', 'href'), 'https://equiprite.atlassian.net/browse/EQP-12');
+    await page.waitForFunction(() => { const i = document.querySelector('#jiraItem .nx-jira-comment img'); return i && i.complete && i.naturalWidth > 0; }, null, { timeout: 10000 }).catch(() => {});
+    T.check('the screenshot in the tester\'s comment shows, read through the signed-in connection (redirect=false)', await page.$eval('#jiraItem .nx-jira-comment img',
+      (i) => i.complete && i.naturalWidth > 0 && i.alt === 'Screenshot 2026-11-04 135139.png' && i.src.startsWith('blob:')).catch(() => false)
+      && imageReads.some((x) => x.id === '10502' && x.redirect === 'false' && x.signed), JSON.stringify(imageReads));
+    T.check('…the comment\'s text without the image markup', !(await text(page, '#jiraItem .nx-jira-comment')).includes('!Screenshot'));
+    T.check('the attachments: the image as a thumbnail, the other file by name and size', (await page.$$('#jiraAttachments img')).length === 1
+      && (await text(page, '#jiraFiles')).includes('mapping.xlsx · 12 KB'));
     await env.shot('next-jira-drawer.png');
     await page.keyboard.press('Escape');
     await page.waitForSelector('#jiraItem', { state: 'hidden', timeout: 5000 }).catch(() => {});

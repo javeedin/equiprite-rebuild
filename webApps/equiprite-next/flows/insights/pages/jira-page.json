@@ -303,6 +303,11 @@
           }
         }
       }
+    },
+    "images": {
+      "type": "object",
+      "defaultValue": {},
+      "description": "The open item's images, read through the jira connection: { attachment id: object URL } ('' when it could not be read)."
     }
   },
   "eventListeners": {
@@ -479,7 +484,6 @@
         }
       ]
     },
-    
     "onExportToggle": {
       "chains": [
         {
@@ -507,6 +511,17 @@
           "chain": "exportChain",
           "parameters": {
             "format": "xlsx"
+          }
+        }
+      ]
+    },
+    "onSprintOpen": {
+      "chains": [
+        {
+          "chain": "openSprintChain",
+          "parameters": {
+            "id": "{{ $event.currentTarget.dataset.id }}",
+            "name": "{{ $event.currentTarget.dataset.name }}"
           }
         }
       ]

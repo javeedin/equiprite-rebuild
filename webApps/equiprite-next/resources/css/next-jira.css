@@ -118,3 +118,40 @@ html[data-nx-look="redwood"] .nx-jira .nx-jira-tab--on { border-bottom-color: #2
 .nx-jira .nx-jira-tag--active { background: var(--nx-accent-soft); color: var(--nx-accent); }
 .nx-jira .nx-jira-tag--future { background: #fff1d6; color: #7a4a00; }
 .nx-jira .nx-jira-tag--closed { background: var(--nx-surface-2); color: var(--nx-muted); }
+
+/* One sprint, in its own tab (jira-sprint-page) */
+.nx-jsp .nx-jsp-flags { border-left: 4px solid var(--nx-danger); background: #fdf3f1; }
+.nx-jsp .nx-jsp-flags p { margin: 2px 0; font-weight: 700; color: #9b2c1c; }
+.nx-jsp .nx-jsp-flags .oj-ux-ico-warning { margin-right: 6px; }
+.nx-jsp .nx-jsp-burnchart { display: flex; align-items: flex-end; gap: 2px; height: 180px; margin-top: 10px; padding: 0 0 18px; border-bottom: 1px solid var(--nx-line);
+  background: linear-gradient(to top, transparent calc(100% - 1px), var(--nx-line) calc(100% - 1px)); position: relative; }
+.nx-jsp .nx-jsp-burnday { position: relative; flex: 1 1 0; min-width: 3px; height: 100%; display: flex; align-items: flex-end; }
+.nx-jsp .nx-jsp-burnday--weekend { background: var(--nx-surface-2); }
+.nx-jsp .nx-jsp-burnbar { display: block; width: 100%; background: var(--nx-ok); border-radius: 2px 2px 0 0; }
+.nx-jsp .nx-jsp-burnday--today .nx-jsp-burnbar { background: var(--nx-accent); }
+.nx-jsp .nx-jsp-burnday--today { box-shadow: inset 0 0 0 1px var(--nx-accent); }
+.nx-jsp .nx-jsp-burnlabel { position: absolute; bottom: -18px; left: 50%; transform: translateX(-50%); font-size: 10px; color: var(--nx-muted); white-space: nowrap; }
+.nx-jsp .nx-jsp-row { display: grid; grid-template-columns: 84px minmax(0, 3fr) 120px 170px minmax(0, 1.2fr) 96px 96px; gap: 10px; align-items: start; padding: 9px 16px;
+  border-bottom: 1px solid var(--nx-line); font-size: 13px; }
+.nx-jsp .nx-jsp-row.nx-jira-row--head { font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--nx-muted); }
+.nx-jsp .nx-jsp-where { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+.nx-jsp .nx-jsp-where--done { background: #d6eed9; color: #1d6b2b; }
+.nx-jsp .nx-jsp-where--here { background: var(--nx-accent-soft); color: var(--nx-accent); }
+.nx-jsp .nx-jsp-where--moved { background: #fff1d6; color: #7a4a00; }
+.nx-jira .nx-jira-sprintlink { border: 0; background: transparent; padding: 0; font: inherit; font-weight: 800; color: var(--nx-accent); cursor: pointer; text-decoration: underline;
+  text-underline-offset: 2px; }
+.nx-jira .nx-jira-sprintlink:hover { color: var(--nx-ink); }
+.nx-jira .nx-jira-sprintfilter { border: 0; background: transparent; color: var(--nx-muted); cursor: pointer; padding: 2px 4px; border-radius: 4px; }
+.nx-jira .nx-jira-sprintfilter:hover { background: var(--nx-surface-2); color: var(--nx-ink); }
+.nx-jsp .nx-jira-find { display: block; cursor: default; }
+
+/* the item's images: in its comment, under the description, among the attachments; a click opens it full size */
+.nx-jira-dr .nx-jira-imgs { display: flex; flex-wrap: wrap; gap: 10px; margin: 6px 0; }
+.nx-jira-dr .nx-jira-imgs:empty { display: none; }
+.nx-jira-dr .nx-jira-img { margin: 0; display: flex; flex-direction: column; gap: 4px; max-width: 100%; }
+.nx-jira-dr .nx-jira-img img { display: block; max-width: 100%; max-height: 360px; border: 1px solid #d0d7de; border-radius: 6px; background: #fff; cursor: zoom-in; }
+.nx-jira-dr .nx-jira-imgs--all .nx-jira-img { width: 160px; }
+.nx-jira-dr .nx-jira-imgs--all .nx-jira-img img { width: 160px; height: 110px; object-fit: cover; }
+.nx-jira-dr .nx-jira-img figcaption { font-size: 11px; color: #64748b; overflow-wrap: anywhere; }
+.nx-jira-dr .nx-jira-imgwait { display: flex; align-items: center; justify-content: center; min-width: 160px; min-height: 80px; padding: 8px; border: 1px dashed #d0d7de;
+  border-radius: 6px; font-size: 12px; color: #64748b; background: #f8fafc; }

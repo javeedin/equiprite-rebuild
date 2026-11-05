@@ -34,6 +34,10 @@ const AGREED = [
       'webApps/vbredwoodapp/flows/setup/pages/jira-stories-page.js',
       'webApps/vbredwoodapp/flows/setup/pages/jira-stories-page.json',
       'webApps/vbredwoodapp/flows/setup/pages/jira-stories-page-chains/',
+      'webApps/vbredwoodapp/flows/setup/pages/jira-sprint-page.html',     // one sprint, from Jira Stories' By sprint
+      'webApps/vbredwoodapp/flows/setup/pages/jira-sprint-page.js',
+      'webApps/vbredwoodapp/flows/setup/pages/jira-sprint-page.json',
+      'webApps/vbredwoodapp/flows/setup/pages/jira-sprint-page-chains/',
       'webApps/vbredwoodapp/flows/setup/setup-flow.json',              // the page registered in its flow
       'webApps/vbredwoodapp/app-flow.js',                               // its menu item and route (Administrator)
       'webApps/vbredwoodapp/app-flow.json',
