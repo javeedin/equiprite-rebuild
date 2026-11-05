@@ -45,9 +45,7 @@ define([
         v.analysis = J.analyse(rows, today);
         OPTS.forEach((f) => { v['rwOpt_' + f] = J.options(rows, f); });
         v.readAt = new Date().toTimeString().slice(0, 5);
-        v.notice = res.capped ? res.message : '';
-        const conn = JSON.parse(JSON.stringify(v.conn));
-        if (!conn.connected) { conn.connected = true; conn.checked = true; v.conn = conn; }
+        v.notice = res.capped ? res.message : (rows.length ? '' : 'Jira answered with no items for this search (as ' + (v.conn.name || 'the signed-in user') + ').');
       } finally {
         v.isLoading = false;
       }

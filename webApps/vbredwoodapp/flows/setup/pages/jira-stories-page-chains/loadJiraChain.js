@@ -43,8 +43,11 @@ define([
       if (mine !== latest) return;
 
       const site = (settings && settings.site) || J.SITE;
-      const refused = !res.ok && (res.status === 401 || res.status === 403 || who.status === 401 || who.status === 403);
-      const state = res.ok || who.ok ? 'connected' : (refused ? 'refused' : 'unreachable');
+      // Connected only when Jira names the signed-in account (jiraBacklog.whoAmI): an anonymous call gets answers too,
+      // just empty ones, which must not read as "no stories".
+      const refused = !who.ok && (who.status === 401 || who.status === 403 || res.status === 401 || res.status === 403);
+      const state = who.ok ? 'connected' : (refused ? 'refused' : 'unreachable');
+      if (!who.ok) res = { ok: false, issues: [], status: who.status, message: who.message };
       v.conn = {
         state, desktop: !!settings, site, email: (settings && settings.email) || '', name: who.ok ? who.name : '',
         hasToken: !!(settings && settings.hasToken)

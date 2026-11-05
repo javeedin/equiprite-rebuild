@@ -47,10 +47,11 @@ let searches = [];
 
 function handle(req, res) {
   if (req.path === '/rest/api/2/myself') {
-    return req.auth ? res.json({ displayName: 'Javeed Shaik', emailAddress: 'javeed@equiprite.com' }) : res.json({ errorMessages: ['Unauthorized'] }, 401);
+    return req.auth ? res.json({ accountId: '712020:9b82', displayName: 'Javeed Shaik', emailAddress: 'javeed@equiprite.com' }) : res.json({ errorMessages: ['Unauthorized'] }, 401);
   }
   if (req.path === '/rest/api/2/search/jql') {
-    if (!req.auth) return res.json({ errorMessages: ['Unauthorized'] }, 401);
+    // as Jira Cloud answers a call that is not signed in: OK, with nothing it may see
+    if (!req.auth) { searches.push({ jql: 'anonymous', token: '', fields: '' }); return res.json({ issues: [], isLast: true }); }
     const jql = req.query.get('jql') || '';
     const token = req.query.get('nextPageToken') || '';
     searches.push({ jql, token, fields: req.query.get('fields') || '' });
@@ -86,7 +87,7 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     T.check('the form: site, email, API token (a password box), Connect; and where to make a token', await page.isVisible('#jiraEmail')
       && (await page.getAttribute('#jiraToken', 'type')) === 'password' && (await page.inputValue('#jiraSite')) === 'https://equiprite.atlassian.net'
       && (await text(page, '#jiraConn')).includes('Create an API token'));
-    T.check('nothing searched yet', searches.length === 0);
+    T.check('nothing searched yet, and never "Connected" without a signed-in account', searches.length === 0 && !(await page.$('.nx-jira-conninfo')));
     await page.fill('#jiraEmail', 'javeed@equiprite.com');
     await page.dispatchEvent('#jiraEmail', 'change');
     await page.fill('#jiraToken', 'ATATT-test-token');
@@ -95,7 +96,7 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     await page.waitForSelector('#jiraTiles', { timeout: 20000 });
     await settle(page, 800);
     T.check('connected: the desktop app keeps the token (the page never shows it again)', jiraStore.settings().connected
-      && (await text(page, '.nx-jira-conninfo')).includes('Connected as Javeed Shaik') && !(await page.$('#jiraToken')));
+      && (await text(page, '.nx-jira-conninfo')).includes('Connected as Javeed Shaik (javeed@equiprite.com)') && !(await page.$('#jiraToken')));
     T.eq('every page of the search read, with the fields the page uses', searches.map((x) => (x.token || '-')).join(','), '-,page-2');
     T.check('…the default search: all stories', searches[0].jql === 'project = EQP AND issuetype = Story ORDER BY key ASC' && searches[0].fields.includes('customfield_10020'));
     T.check('the header says what was read', /EquipRite backlog on equiprite\.atlassian\.net · 5 items read at \d\d:\d\d/.test(await text(page, '#jiraSub')), await text(page, '#jiraSub'));

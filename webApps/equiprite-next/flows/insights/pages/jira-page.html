@@ -64,7 +64,7 @@
     <!-- the search -->
     <section class="nx-card nx-card-pad nx-jira-query" aria-label="Search Jira">
       <div class="nx-jira-conninfo">
-        <span><span class="oj-ux-ico-check-circle" aria-hidden="true"></span><oj-bind-text value="[[ 'Connected' + ($variables.conn.name ? ' as ' + $variables.conn.name : '') ]]"></oj-bind-text></span>
+        <span><span class="oj-ux-ico-check-circle" aria-hidden="true"></span><oj-bind-text value="[[ 'Connected as ' + $variables.conn.name + ($variables.conn.email && $variables.conn.email !== $variables.conn.name ? ' (' + $variables.conn.email + ')' : '') ]]"></oj-bind-text></span>
         <oj-bind-if test="[[ $variables.conn.desktop ]]">
           <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" id="jiraDisconnect" data-act="forget" on-click="[[ $listeners.onConnect ]]">Disconnect</button>
         </oj-bind-if>

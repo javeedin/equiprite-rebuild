@@ -49,9 +49,11 @@ define([
       if (d) { conn.site = d.site || conn.site; conn.email = d.email || conn.email; }
       const who = await J.whoAmI(context, Actions);
       conn.checked = true;
-      conn.connected = who.ok;
+      conn.connected = who.ok; // only when Jira names the signed-in account (jiraBacklog.whoAmI)
       conn.name = who.ok ? who.name : '';
-      conn.error = who.ok || who.status === 401 || who.status === 403 ? '' : who.message;
+      conn.email = who.ok && who.email ? who.email : conn.email;
+      // Not signed in: said when it is not the plain "never connected" case (a saved token Jira refuses, or not Jira)
+      conn.error = who.ok ? '' : ((who.status === 401 || who.status === 403) && !(d && d.hasToken) ? '' : who.message);
       v.conn = conn;
     }
   }

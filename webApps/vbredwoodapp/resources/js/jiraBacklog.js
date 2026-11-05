@@ -243,12 +243,25 @@ define([], function () {
         res = { ok: false, status: 0, body: { message: txt(e && e.message) } };
       }
       if (!res || !res.ok) return { ok: false, issues: issues, status: res ? res.status : 0, message: problem(res) };
-      var body = res.body || {};
+      var body = res.body;
+      // A search answers { issues: [...] }. Anything else (a web page, an empty answer) did not come from Jira's search:
+      // said, never read as "no items".
+      if (!body || typeof body !== 'object' || !Array.isArray(body.issues)) {
+        return { ok: false, issues: issues, status: 502, message: notJira(body, 'search') };
+      }
       issues = issues.concat(body.issues || []);
       token = body.nextPageToken || '';
       if (body.isLast !== false || !token) return { ok: true, issues: issues, status: 200, message: '', capped: false };
     }
     return { ok: true, issues: issues, status: 200, message: 'Stopped after ' + issues.length + ' issues: narrow the search.', capped: true };
+  }
+
+  /** A 200 that is not Jira's data, in words: a web page (the call went somewhere else), or nothing. */
+  function notJira(body, what) {
+    if (typeof body === 'string' && /<html|<!doctype/i.test(body)) {
+      return 'The call did not reach Jira: it came back with a web page, not Jira\'s ' + what + '. Check the jira service connection\'s address (Services > Backends > jira).';
+    }
+    return 'Jira\'s answer was not a ' + what + ' result' + (typeof body === 'string' && body ? ' ("' + body.slice(0, 60) + '…")' : '') + '. Check the jira service connection.';
   }
 
   /** What a failed call means, in words. */
@@ -525,7 +538,10 @@ define([], function () {
   /** Disconnect: the email and token removed from this PC. */
   function desktopForget() { return desktop('forget', {}); }
 
-  /** Who the connection signs in as (services/jira getJiraMyself): { ok, name, email, status, message }. */
+  /**
+   * Who the connection signs in as (services/jira getJiraMyself): { ok, name, email, status, message }. ok only when
+   * Jira names the signed-in account; 401 when it answers without one (not signed in), 502 when it was not Jira.
+   */
   async function whoAmI(context, Actions) {
     var res;
     try {
@@ -534,7 +550,14 @@ define([], function () {
       res = { ok: false, status: 0, body: { message: txt(e && e.message) } };
     }
     if (!res || !res.ok) return { ok: false, name: '', email: '', status: res ? res.status : 0, message: problem(res) };
-    var b = res.body || {};
+    var b = res.body;
+    if (typeof b === 'string' && /<html|<!doctype/i.test(b)) return { ok: false, name: '', email: '', status: 502, message: notJira(b, 'account details') };
+    // Signed in, Jira names the account (accountId). An answer without one is not a signed-in user: the email and token
+    // are missing or wrong (Jira then sees nothing, and every search comes back empty).
+    if (!b || typeof b !== 'object' || !b.accountId) {
+      return { ok: false, name: '', email: '', status: 401,
+        message: 'Jira answered, but not for a signed-in user: the email and API token are missing or not accepted. Connect Jira again (desktop app), or ask the VBCS administrator to set the jira backend\'s Basic authentication.' };
+    }
     return { ok: true, name: b.displayName || b.emailAddress || '', email: b.emailAddress || '', status: 200, message: '' };
   }
 

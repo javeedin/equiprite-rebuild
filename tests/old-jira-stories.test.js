@@ -264,7 +264,7 @@ T.check('…and its guard sends that user away', !app.canEnterPage({ EQR_CONFIGU
       }
     };
   }
-  const ok = (o) => (o.endpoint === 'jira/getJiraMyself' ? { ok: true, status: 200, body: { displayName: 'Priya Raman' } } : { ok: true, status: 200, body: { issues: ISSUES, isLast: true } });
+  const ok = (o) => (o.endpoint === 'jira/getJiraMyself' ? { ok: true, status: 200, body: { accountId: '712020:p', displayName: 'Priya Raman' } } : { ok: true, status: 200, body: { issues: ISSUES, isLast: true } });
   let A = fakeActions(ok);
   let page = { variables: defaults(), functions: F };
   await new (loadChain('loadJiraChain', A.Actions))().run({ $page: page });
