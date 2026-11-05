@@ -1,10 +1,11 @@
 {
   "id": "insights",
-  "description": "Insights: Analytics, five questions answered from the fleet, requests and cost data that Old and New EquipRite read (FDD 7.15, RPT-01, 02, 03, 05, 15).",
+  "description": "Insights: Jira stories (the EquipRite backlog read from Jira and analysed), and Analytics, five questions answered from the fleet, requests and cost data that Old and New EquipRite read (FDD 7.15, RPT-01, 02, 03, 05, 15).",
   "defaultPage": "analytics",
   "navigation": { "embeddable": "enabled" },
   "pages": {
-    "analytics": { "path": "pages/analytics-page" }
+    "analytics": { "path": "pages/analytics-page" },
+    "jira": { "path": "pages/jira-page" }
   },
   "chains": {}, "services": {}, "types": {}, "variables": {}
 }

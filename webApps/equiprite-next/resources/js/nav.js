@@ -65,6 +65,10 @@ define(['resources/js/rules'], function (rules) {
         route: { flow: 'commercial', page: 'agreements' }, built: true, newNav: 'agreements', keywords: 'rental agreements contracts' }
     ] },
     { key: 'insights', label: 'Insights', items: [
+      // The EquipRite backlog read from Jira and analysed (flows/insights jira; services/jira, read only). Gated like
+      // Settings for now: an existing page code, so it shows without a new COMMONRITE.RBAC_PAGES row.
+      { id: 'jira', label: 'Jira stories', icon: 'oj-ux-ico-list', pageCodes: ['EQR_CONFIGURATIONS'],
+        route: { flow: 'insights', page: 'jira' }, built: true, keywords: 'jira stories backlog epics sprint release analysis acceptance criteria tester gaps' },
       { id: 'analytics', label: 'Analytics', icon: 'oj-ux-ico-chart-bar', pageCodes: ['EQR_ANALYTICS', 'EQR_REPORTS'],
         route: { flow: 'insights', page: 'analytics' }, built: true, newNav: 'analytics', keywords: 'reports utilization kpi' },
       // The FDD, its flows across the Fusion modules and how much of it is built (flows/fdd). Like Help, for everyone

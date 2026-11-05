@@ -1,0 +1,389 @@
+<!-- Jira stories: the EquipRite backlog read from Jira (services/jira, read only) and analysed: the connection, a JQL
+     search with presets, the numbers, what they say (findings), by status, epic, release, person, quality check, FDD
+     section and the testers' gaps, the items, one item in a drawer, export. Rules: resources/js/jiraBacklog.js (the same
+     file Old EquipRite's Jira Stories page uses). Redwood: Oracle's general overview header with Smart Search (a filter
+     per column of the items table) over the same body, and the items as Oracle's table. -->
+<div class="nx-page nx-jira">
+  <oj-bind-if test="[[ $application.variables.lookSeen ]]">
+    <div class="nx-rw nx-rw--head" id="jiraRwHead" :hidden="[[ $application.variables.look !== 'redwood' ]]">
+      <oj-sp-general-overview-page page-title="Jira stories" display-mode="mixed"
+        page-subtitle="[[ $functions.subtitle($variables.conn, $variables.rows, $variables.readAt, $variables.isLoading) ]]"
+        primary-action="[[ $functions.rwPrimary($variables.isLoading) ]]" on-sp-primary-action="[[ $listeners.onRefresh ]]"
+        secondary-actions="[[ $functions.rwActions($variables.shown.length) ]]" on-sp-secondary-action="[[ $listeners.onRwExport ]]">
+        <oj-sp-smart-search slot="search" id="jiraRwSearch" filter-criterion="{{ $variables.rwCriterion }}" on-filter-criterion-changed="[[ $listeners.onRwFilter ]]"
+          search-context="[[ $variables.rwSearchContext ]]" search-config="[[ $variables.rwSearchConfig.provider ]]"
+          suggestion-filters='["StatusFilter", "EpicFilter", "AssigneeFilter", "ReleaseFilter", "SprintFilter", "PriorityFilter", "TypeFilter"]'
+          placeholder="Search the items: key, summary, criteria, gaps"></oj-sp-smart-search>
+      </oj-sp-general-overview-page>
+    </div>
+  </oj-bind-if>
+  <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
+    <div class="nx-pagehead">
+      <div>
+        <div class="nx-kicker">Insights</div>
+        <h1>Jira stories</h1>
+        <div class="nx-sub" id="jiraSub"><oj-bind-text value="[[ $functions.subtitle($variables.conn, $variables.rows, $variables.readAt, $variables.isLoading) ]]"></oj-bind-text></div>
+      </div>
+      <div class="nx-actions">
+        <button type="button" class="nx-btn nx-btn--plain" id="jiraRefresh" on-click="[[ $listeners.onRefresh ]]" :disabled="[[ $variables.isLoading || !$variables.conn.connected ]]">
+          <span class="oj-ux-ico-refresh" aria-hidden="true"></span>Refresh</button>
+      </div>
+    </div>
+  </oj-bind-if>
+
+  <!-- the connection: Connect in the desktop app (the token stays on this PC); deployed, the VBCS administrator's -->
+  <oj-bind-if test="[[ $variables.conn.checked && !$variables.conn.connected ]]">
+    <section class="nx-card nx-card-pad nx-jira-conn" id="jiraConn" aria-labelledby="jiraConnTitle">
+      <h2 class="nx-h2" id="jiraConnTitle">Connect to Jira</h2>
+      <oj-bind-if test="[[ $variables.conn.desktop ]]">
+        <p class="nx-note">Your Jira email and an Atlassian API token. The desktop app keeps the token on this PC (in the system keychain) and adds it to
+          the calls to Jira; this page never holds it. <a href="https://id.atlassian.com/manage-profile/security/api-tokens" target="_blank" rel="noopener">Create an API token</a></p>
+        <div class="nx-jira-form">
+          <label class="nx-cm-field"><span class="nx-cm-label">Jira site</span>
+            <input class="nx-cm-input" id="jiraSite" data-field="site" :value="[[ $variables.conn.site ]]" on-change="[[ $listeners.onConnField ]]"></label>
+          <label class="nx-cm-field"><span class="nx-cm-label">Email</span>
+            <input class="nx-cm-input" id="jiraEmail" type="email" autocomplete="username" data-field="email" :value="[[ $variables.conn.email ]]" on-change="[[ $listeners.onConnField ]]"></label>
+          <label class="nx-cm-field"><span class="nx-cm-label">API token</span>
+            <input class="nx-cm-input" id="jiraToken" type="password" autocomplete="off" data-field="token" :value="[[ $variables.conn.token ]]" on-change="[[ $listeners.onConnField ]]"
+              placeholder="Pasted here, kept by the desktop app"></label>
+          <button type="button" class="nx-btn nx-btn--primary" id="jiraConnect" data-act="save" on-click="[[ $listeners.onConnect ]]" :disabled="[[ $variables.conn.busy ]]">
+            <oj-bind-text value="[[ $variables.conn.busy ? 'Connecting…' : 'Connect' ]]"></oj-bind-text></button>
+        </div>
+      </oj-bind-if>
+      <oj-bind-if test="[[ !$variables.conn.desktop ]]">
+        <p class="nx-note" id="jiraAdmin">Jira is not connected. A VBCS administrator sets it: Services &gt; Backends &gt; jira &gt; Authentication &gt; Basic, with a Jira user's
+          email and an Atlassian API token.</p>
+      </oj-bind-if>
+      <oj-bind-if test="[[ !!$variables.conn.error ]]">
+        <div class="nx-error" role="alert" id="jiraConnError"><oj-bind-text value="[[ $variables.conn.error ]]"></oj-bind-text></div>
+      </oj-bind-if>
+    </section>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ $variables.conn.connected ]]">
+    <!-- the search -->
+    <section class="nx-card nx-card-pad nx-jira-query" aria-label="Search Jira">
+      <div class="nx-jira-conninfo">
+        <span><span class="oj-ux-ico-check-circle" aria-hidden="true"></span><oj-bind-text value="[[ 'Connected' + ($variables.conn.name ? ' as ' + $variables.conn.name : '') ]]"></oj-bind-text></span>
+        <oj-bind-if test="[[ $variables.conn.desktop ]]">
+          <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" id="jiraDisconnect" data-act="forget" on-click="[[ $listeners.onConnect ]]">Disconnect</button>
+        </oj-bind-if>
+      </div>
+      <div class="nx-chips" role="group" aria-label="Searches" id="jiraPresets">
+        <oj-bind-for-each data="[[ $functions.presets() ]]">
+          <template data-oj-as="p">
+            <button type="button" :class="[[ $functions.presetClass($variables.preset, p.data.key) ]]" :data-value="[[ p.data.key ]]" on-click="[[ $listeners.onPreset ]]"
+              :aria-pressed="[[ $variables.preset === p.data.key ? 'true' : 'false' ]]"><oj-bind-text value="[[ p.data.label ]]"></oj-bind-text></button>
+          </template>
+        </oj-bind-for-each>
+      </div>
+      <div class="nx-jira-jql">
+        <label class="nx-cm-label" for="jiraJql">JQL</label>
+        <input class="nx-cm-input" id="jiraJql" :value="[[ $variables.jql ]]" on-input="[[ $listeners.onJqlInput ]]" on-keydown="[[ $listeners.onJqlKey ]]" spellcheck="false">
+        <button type="button" class="nx-btn" id="jiraRun" on-click="[[ $listeners.onRefresh ]]" :disabled="[[ $variables.isLoading ]]">
+          <oj-bind-text value="[[ $variables.isLoading ? 'Reading…' : 'Run' ]]"></oj-bind-text></button>
+      </div>
+      <oj-bind-if test="[[ !!$variables.error ]]"><div class="nx-error" role="alert" id="jiraError"><oj-bind-text value="[[ $variables.error ]]"></oj-bind-text></div></oj-bind-if>
+      <oj-bind-if test="[[ !!$variables.notice ]]"><p class="nx-note" id="jiraNotice"><oj-bind-text value="[[ $variables.notice ]]"></oj-bind-text></p></oj-bind-if>
+    </section>
+
+    <oj-bind-if test="[[ $variables.rows.length > 0 ]]">
+      <!-- the numbers: each opens what it counts -->
+      <div class="nx-jira-tiles" id="jiraTiles">
+        <oj-bind-for-each data="[[ $functions.tiles($variables.analysis) ]]">
+          <template data-oj-as="t">
+            <button type="button" :class="[[ 'nx-jira-tile nx-jira-tile--' + (t.data.tone || 'plain') ]]" :data-key="[[ t.data.key ]]" :data-field="[[ t.data.field ]]"
+              :data-value="[[ t.data.val ]]" :data-label="[[ $functions.tileLabel(t.data) ]]" on-click="[[ $listeners.onFilterClick ]]" :disabled="[[ !t.data.field ]]">
+              <span class="nx-jira-tileval"><oj-bind-text value="[[ t.data.value ]]"></oj-bind-text></span>
+              <span class="nx-jira-tilelabel"><oj-bind-text value="[[ t.data.label ]]"></oj-bind-text></span>
+              <oj-bind-if test="[[ !!t.data.note ]]"><span class="nx-jira-tilenote"><oj-bind-text value="[[ t.data.note ]]"></oj-bind-text></span></oj-bind-if>
+            </button>
+          </template>
+        </oj-bind-for-each>
+      </div>
+
+      <div class="nx-jira-two">
+        <!-- what the numbers say -->
+        <section class="nx-card nx-card-pad nx-jira-findings" aria-labelledby="jiraFindTitle">
+          <h2 class="nx-h2" id="jiraFindTitle">What it says</h2>
+          <ul class="nx-jira-findlist" id="jiraFindings">
+            <oj-bind-for-each data="[[ $variables.analysis.findings ]]">
+              <template data-oj-as="fd">
+                <li><button type="button" :class="[[ 'nx-jira-find nx-jira-find--' + fd.data.tone ]]" :data-index="[[ fd.index ]]" on-click="[[ $listeners.onFinding ]]">
+                  <oj-bind-text value="[[ fd.data.text ]]"></oj-bind-text></button></li>
+              </template>
+            </oj-bind-for-each>
+          </ul>
+        </section>
+        <!-- by status -->
+        <section class="nx-card nx-card-pad nx-jira-bystatus" aria-labelledby="jiraStatusTitle">
+          <h2 class="nx-h2" id="jiraStatusTitle">By status</h2>
+          <ul class="nx-jira-bars" id="jiraStatuses">
+            <oj-bind-for-each data="[[ $variables.analysis.statuses ]]">
+              <template data-oj-as="s">
+                <li><button type="button" class="nx-jira-bar" data-field="status" :data-value="[[ s.data.status ]]" :data-label="[[ 'Status: ' + s.data.status ]]" on-click="[[ $listeners.onFilterClick ]]">
+                  <span class="nx-jira-barlabel"><oj-bind-text value="[[ s.data.status ]]"></oj-bind-text></span>
+                  <span class="nx-jira-bartrack"><span :class="[[ 'nx-jira-barfill nx-jira-barfill--' + s.data.cat ]]" :style="[[ $functions.barStyle(s.data.pct) ]]"></span></span>
+                  <span class="nx-jira-barval"><oj-bind-text value="[[ s.data.count + ' · ' + s.data.pct + '%' ]]"></oj-bind-text></span></button></li>
+              </template>
+            </oj-bind-for-each>
+          </ul>
+        </section>
+      </div>
+
+      <!-- the breakdowns -->
+      <section class="nx-card nx-jira-break" aria-label="Breakdowns">
+        <div class="nx-jira-tabs" role="tablist" id="jiraTabs">
+          <oj-bind-for-each data="[[ $functions.tabs($variables.analysis) ]]">
+            <template data-oj-as="tb">
+              <button type="button" role="tab" :aria-selected="[[ $variables.tab === tb.data.key ? 'true' : 'false' ]]" :data-value="[[ tb.data.key ]]" on-click="[[ $listeners.onTab ]]"
+                :class="[[ 'nx-jira-tab' + ($variables.tab === tb.data.key ? ' nx-jira-tab--on' : '') ]]"><oj-bind-text value="[[ tb.data.label + ' (' + tb.data.count + ')' ]]"></oj-bind-text></button>
+            </template>
+          </oj-bind-for-each>
+        </div>
+        <div class="nx-jira-tabbody" id="jiraTabBody">
+          <oj-bind-if test="[[ $variables.tab === 'epics' ]]">
+            <div class="nx-jira-tbl" role="table" aria-label="By epic">
+              <div class="nx-jira-tr nx-jira-tr--head nx-jira-tr--epic" role="row"><span role="columnheader">Epic</span><span role="columnheader">Open</span><span role="columnheader">Overdue</span><span role="columnheader">Done</span><span role="columnheader">Gaps</span></div>
+              <oj-bind-for-each data="[[ $variables.analysis.epics ]]">
+                <template data-oj-as="e">
+                  <button type="button" class="nx-jira-tr nx-jira-tr--epic" role="row" data-field="epic" :data-value="[[ e.data.key || 'none' ]]" :data-label="[[ 'Epic: ' + (e.data.key ? e.data.key + ' ' : '') + e.data.name ]]" on-click="[[ $listeners.onFilterClick ]]">
+                    <span role="cell"><strong><oj-bind-text value="[[ e.data.key ]]"></oj-bind-text></strong> <oj-bind-text value="[[ e.data.name ]]"></oj-bind-text></span>
+                    <span role="cell"><oj-bind-text value="[[ e.data.open + ' of ' + e.data.total ]]"></oj-bind-text></span>
+                    <span role="cell" :class="[[ e.data.overdue ? 'nx-jira-bad' : '' ]]"><oj-bind-text value="[[ e.data.overdue ]]"></oj-bind-text></span>
+                    <span role="cell"><span class="nx-jira-mini"><span class="nx-jira-minifill" :style="[[ $functions.barStyle(e.data.donePct) ]]"></span></span><oj-bind-text value="[[ e.data.donePct + '%' ]]"></oj-bind-text></span>
+                    <span role="cell"><oj-bind-text value="[[ e.data.gaps ]]"></oj-bind-text></span>
+                  </button>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.tab === 'releases' ]]">
+            <div class="nx-jira-tbl" role="table" aria-label="By release">
+              <div class="nx-jira-tr nx-jira-tr--head nx-jira-tr--rel" role="row"><span role="columnheader">Release</span><span role="columnheader">Date</span><span role="columnheader">Open</span><span role="columnheader">Overdue</span></div>
+              <oj-bind-for-each data="[[ $variables.analysis.releases ]]">
+                <template data-oj-as="rl">
+                  <button type="button" class="nx-jira-tr nx-jira-tr--rel" role="row" data-field="release" :data-value="[[ rl.data.name ]]" :data-label="[[ 'Release: ' + rl.data.name ]]" on-click="[[ $listeners.onFilterClick ]]">
+                    <span role="cell"><strong><oj-bind-text value="[[ rl.data.name ]]"></oj-bind-text></strong>
+                      <oj-bind-if test="[[ rl.data.passed ]]"><span class="nx-jira-tag nx-jira-tag--bad">Date passed</span></oj-bind-if></span>
+                    <span role="cell"><oj-bind-text value="[[ rl.data.date || '—' ]]"></oj-bind-text></span>
+                    <span role="cell"><oj-bind-text value="[[ rl.data.open + ' of ' + rl.data.total ]]"></oj-bind-text></span>
+                    <span role="cell" :class="[[ rl.data.overdue ? 'nx-jira-bad' : '' ]]"><oj-bind-text value="[[ rl.data.overdue ]]"></oj-bind-text></span>
+                  </button>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.tab === 'people' ]]">
+            <div class="nx-jira-tbl" role="table" aria-label="By person">
+              <div class="nx-jira-tr nx-jira-tr--head nx-jira-tr--rel" role="row"><span role="columnheader">Assignee</span><span role="columnheader">Items</span><span role="columnheader">Open</span><span role="columnheader">Overdue</span></div>
+              <oj-bind-for-each data="[[ $variables.analysis.people ]]">
+                <template data-oj-as="pp">
+                  <button type="button" class="nx-jira-tr nx-jira-tr--rel" role="row" data-field="assignee" :data-value="[[ pp.data.name ]]" :data-label="[[ 'Assignee: ' + pp.data.name ]]" on-click="[[ $listeners.onFilterClick ]]">
+                    <span role="cell"><strong><oj-bind-text value="[[ pp.data.name ]]"></oj-bind-text></strong></span>
+                    <span role="cell"><oj-bind-text value="[[ pp.data.total ]]"></oj-bind-text></span>
+                    <span role="cell"><oj-bind-text value="[[ pp.data.open ]]"></oj-bind-text></span>
+                    <span role="cell" :class="[[ pp.data.overdue ? 'nx-jira-bad' : '' ]]"><oj-bind-text value="[[ pp.data.overdue ]]"></oj-bind-text></span>
+                  </button>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.tab === 'checks' ]]">
+            <div class="nx-jira-tbl" role="table" aria-label="Quality checks">
+              <div class="nx-jira-tr nx-jira-tr--head nx-jira-tr--chk" role="row"><span role="columnheader">Check failed</span><span role="columnheader">Items</span></div>
+              <oj-bind-for-each data="[[ $variables.analysis.checks ]]">
+                <template data-oj-as="ck">
+                  <button type="button" class="nx-jira-tr nx-jira-tr--chk" role="row" data-field="check" :data-value="[[ ck.data.key ]]" :data-label="[[ ck.data.label ]]" on-click="[[ $listeners.onFilterClick ]]">
+                    <span role="cell"><oj-bind-text value="[[ ck.data.label ]]"></oj-bind-text></span><span role="cell"><strong><oj-bind-text value="[[ ck.data.count ]]"></oj-bind-text></strong></span>
+                  </button>
+                </template>
+              </oj-bind-for-each>
+              <oj-bind-if test="[[ $variables.analysis.checks.length === 0 ]]"><p class="nx-note">Every item passes every check.</p></oj-bind-if>
+            </div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.tab === 'fdd' ]]">
+            <div class="nx-jira-tbl" role="table" aria-label="By FDD section">
+              <div class="nx-jira-tr nx-jira-tr--head nx-jira-tr--rel" role="row"><span role="columnheader">FDD section</span><span role="columnheader">Items</span><span role="columnheader">Open</span><span role="columnheader">Keys</span></div>
+              <oj-bind-for-each data="[[ $variables.analysis.fdd ]]">
+                <template data-oj-as="fs">
+                  <button type="button" class="nx-jira-tr nx-jira-tr--rel" role="row" data-field="fdd" :data-value="[[ fs.data.section ]]" :data-label="[[ 'FDD section ' + fs.data.section ]]" on-click="[[ $listeners.onFilterClick ]]">
+                    <span role="cell"><strong><oj-bind-text value="[[ fs.data.section ]]"></oj-bind-text></strong></span>
+                    <span role="cell"><oj-bind-text value="[[ fs.data.total ]]"></oj-bind-text></span><span role="cell"><oj-bind-text value="[[ fs.data.open ]]"></oj-bind-text></span>
+                    <span role="cell" class="nx-jira-keys"><oj-bind-text value="[[ fs.data.keys.join(', ') ]]"></oj-bind-text></span>
+                  </button>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.tab === 'gaps' ]]">
+            <div class="nx-jira-gaps" id="jiraGaps">
+              <oj-bind-for-each data="[[ $variables.analysis.gaps ]]">
+                <template data-oj-as="g">
+                  <div class="nx-jira-gap">
+                    <button type="button" class="nx-jira-gapkey" :data-key="[[ g.data.key ]]" on-click="[[ $listeners.onOpen ]]"><strong><oj-bind-text value="[[ g.data.key ]]"></oj-bind-text></strong>
+                      <oj-bind-text value="[[ g.data.summary ]]"></oj-bind-text> <span class="nx-jira-tag"><oj-bind-text value="[[ g.data.status ]]"></oj-bind-text></span></button>
+                    <ol><oj-bind-for-each data="[[ g.data.gaps ]]"><template data-oj-as="gl"><li><oj-bind-text value="[[ gl.data ]]"></oj-bind-text></li></template></oj-bind-for-each></ol>
+                  </div>
+                </template>
+              </oj-bind-for-each>
+              <oj-bind-if test="[[ $variables.analysis.gaps.length === 0 ]]"><p class="nx-note">No tester has listed gaps on these items.</p></oj-bind-if>
+            </div>
+          </oj-bind-if>
+        </div>
+      </section>
+
+      <!-- the items -->
+      <section class="nx-card nx-jira-items" aria-labelledby="jiraItemsTitle">
+        <div class="nx-card-head nx-jira-itemshead">
+          <div>
+            <h2 id="jiraItemsTitle">Items</h2>
+            <span class="nx-note" id="jiraCount"><oj-bind-text value="[[ $functions.countText($variables.shown, $variables.rows) ]]"></oj-bind-text></span>
+          </div>
+          <div class="nx-actions">
+            <oj-bind-if test="[[ $functions.filtered($variables.f, $variables.rwCols) ]]">
+              <span class="nx-jira-showing" id="jiraShowing"><oj-bind-text value="[[ $variables.fLabel || 'Filtered' ]]"></oj-bind-text>
+                <button type="button" class="nx-jira-x" on-click="[[ $listeners.onClear ]]" aria-label="Clear the filters" title="Clear">×</button></span>
+            </oj-bind-if>
+            <div class="nx-export">
+              <button type="button" class="nx-btn nx-btn--sm" id="jiraExport" on-click="[[ $listeners.onExportToggle ]]" aria-haspopup="menu"
+                :aria-expanded="[[ $variables.exportOpen ? 'true' : 'false' ]]" :disabled="[[ $variables.shown.length === 0 ]]">
+                <span class="oj-ux-ico-download" aria-hidden="true"></span>Export<span class="oj-ux-ico-chevron-down" aria-hidden="true"></span></button>
+              <oj-bind-if test="[[ $variables.exportOpen ]]">
+                <div class="nx-menu" role="menu" aria-label="Export the items">
+                  <oj-bind-for-each data="[[ $functions.formats() ]]">
+                    <template data-oj-as="fm">
+                      <button type="button" role="menuitem" class="nx-menu-item" :data-format="[[ fm.data.key ]]" on-click="[[ $listeners.onExport ]]">
+                        <span :class="[[ fm.data.icon ]]" aria-hidden="true"></span><oj-bind-text value="[[ fm.data.label ]]"></oj-bind-text></button>
+                    </template>
+                  </oj-bind-for-each>
+                </div>
+              </oj-bind-if>
+            </div>
+          </div>
+        </div>
+
+        <!-- Redwood: Oracle's table (Smart Search in the header narrows it) -->
+        <oj-bind-if test="[[ $application.variables.lookSeen ]]">
+          <div class="nx-jira-rw" :hidden="[[ $application.variables.look !== 'redwood' ]]">
+            <oj-table id="jiraRwTable" data="[[ $variables.rwADP ]]" class="oj-sm-width-full nx-jira-rwtable" aria-label="Jira items" layout="fixed" display="list"
+              horizontal-grid-visible="enabled" scroll-policy="loadMoreOnScroll" scroll-policy-options.fetch-size="50" on-oj-row-action="[[ $listeners.onRwRow ]]"
+              columns='[
+                {"headerText": "Key", "field": "key", "template": "keyTpl", "sortable": "enabled", "weight": 8},
+                {"headerText": "Summary", "field": "summary", "template": "sumTpl", "sortable": "enabled", "weight": 32},
+                {"headerText": "Status", "field": "status", "template": "statusTpl", "sortable": "enabled", "weight": 11},
+                {"headerText": "Priority", "field": "priority", "sortable": "enabled", "weight": 8},
+                {"headerText": "Assignee", "field": "assignee", "sortable": "enabled", "weight": 13},
+                {"headerText": "Release", "field": "release", "sortable": "enabled", "weight": 7},
+                {"headerText": "Due", "field": "due", "template": "dueTpl", "sortable": "enabled", "weight": 8},
+                {"headerText": "Quality", "field": "score", "template": "scoreTpl", "sortable": "enabled", "weight": 7},
+                {"headerText": "Gaps", "field": "gaps", "sortable": "enabled", "weight": 6}]'>
+              <template slot="keyTpl" data-oj-as="cell"><span class="oj-typography-body-md oj-typography-bold oj-link-standalone"><oj-bind-text value="[[ cell.row.key ]]"></oj-bind-text></span></template>
+              <template slot="sumTpl" data-oj-as="cell">
+                <div class="nx-jira-rwsum"><span class="oj-typography-body-md"><oj-bind-text value="[[ cell.row.summary ]]"></oj-bind-text></span>
+                  <span class="oj-typography-body-sm oj-text-color-secondary"><oj-bind-text value="[[ cell.row.epic ]]"></oj-bind-text></span></div>
+              </template>
+              <template slot="statusTpl" data-oj-as="cell"><span :class="[[ $functions.badge(cell.row.statusCat) ]]"><oj-bind-text value="[[ cell.row.status ]]"></oj-bind-text></span></template>
+              <template slot="dueTpl" data-oj-as="cell"><span :class="[[ cell.row.overdue ? 'oj-text-color-danger oj-typography-semi-bold' : '' ]]"><oj-bind-text value="[[ cell.row.due ]]"></oj-bind-text></span></template>
+              <template slot="scoreTpl" data-oj-as="cell"><span><oj-bind-text value="[[ cell.row.score + (cell.row.checks ? ' · ' + cell.row.checks : '') ]]"></oj-bind-text></span></template>
+              <template slot="noData"><div class="oj-sm-padding-6x oj-typography-body-md oj-text-color-secondary">Nothing matches. Clear a filter.</div></template>
+            </oj-table>
+          </div>
+        </oj-bind-if>
+
+        <!-- Current: filters and a grid -->
+        <oj-bind-if test="[[ $application.variables.look !== 'redwood' ]]">
+          <div class="nx-jira-filters" id="jiraFilters">
+            <input class="nx-cm-input nx-jira-text" type="search" data-field="text" placeholder="Key, summary, criteria, gaps" :value="[[ $variables.f.text ]]" on-input="[[ $listeners.onFilter ]]" aria-label="Search the items">
+            <div class="nx-chips" role="group" aria-label="Status" id="jiraStatusChips">
+              <button type="button" data-field="status" data-value="" data-label="" on-click="[[ $listeners.onFilterClick ]]"
+                :class="[[ 'nx-chip nx-cm-chip--sm' + (!$variables.f.status ? ' nx-chip--on' : '') ]]">Every status</button>
+              <oj-bind-for-each data="[[ $functions.options($variables.rows, 'status') ]]">
+                <template data-oj-as="o">
+                  <button type="button" data-field="status" :data-value="[[ o.data.value ]]" :data-label="[[ 'Status: ' + o.data.value ]]" on-click="[[ $listeners.onFilterClick ]]"
+                    :class="[[ 'nx-chip nx-cm-chip--sm' + ($variables.f.status === o.data.value ? ' nx-chip--on' : '') ]]"><oj-bind-text value="[[ o.data.label ]]"></oj-bind-text></button>
+                </template>
+              </oj-bind-for-each>
+            </div>
+            <span class="nx-note nx-jira-hint">Epic, release, person, check or FDD section: pick it in the tables above.</span>
+          </div>
+          <div class="nx-table">
+            <div class="nx-jira-grid" role="table" aria-labelledby="jiraItemsTitle" id="jiraGrid">
+              <div class="nx-jira-row nx-jira-row--head" role="row">
+                <span role="columnheader">Key</span><span role="columnheader">Summary</span><span role="columnheader">Status</span><span role="columnheader">Assignee</span>
+                <span role="columnheader">Release</span><span role="columnheader">Due</span><span role="columnheader">Quality</span><span role="columnheader">Gaps</span>
+              </div>
+              <oj-bind-for-each data="[[ $variables.shown ]]">
+                <template data-oj-as="r">
+                  <button type="button" class="nx-jira-row" role="row" :data-key="[[ r.data.key ]]" on-click="[[ $listeners.onOpen ]]">
+                    <span role="cell" class="nx-jira-key"><oj-bind-text value="[[ r.data.key ]]"></oj-bind-text></span>
+                    <span role="cell" class="nx-jira-sum"><span class="nx-cell-main"><oj-bind-text value="[[ r.data.summary ]]"></oj-bind-text></span>
+                      <span class="nx-cell-sub"><oj-bind-text value="[[ r.data.epicKey ? r.data.epicKey + ' ' + r.data.epicName : 'No epic' ]]"></oj-bind-text></span></span>
+                    <span role="cell"><span :class="[[ 'nx-jira-status nx-jira-status--' + r.data.statusCat ]]"><oj-bind-text value="[[ r.data.status ]]"></oj-bind-text></span></span>
+                    <span role="cell"><oj-bind-text value="[[ r.data.assignee || 'Nobody' ]]"></oj-bind-text></span>
+                    <span role="cell"><oj-bind-text value="[[ r.data.release || '—' ]]"></oj-bind-text></span>
+                    <span role="cell" :class="[[ r.data.overdue ? 'nx-jira-bad' : '' ]]"><oj-bind-text value="[[ r.data.due || '—' ]]"></oj-bind-text></span>
+                    <span role="cell"><span :class="[[ 'nx-jira-score nx-jira-score--' + (r.data.score >= 4 ? 'good' : (r.data.score >= 3 ? 'mid' : 'low')) ]]"><oj-bind-text value="[[ r.data.score ]]"></oj-bind-text></span></span>
+                    <span role="cell"><oj-bind-text value="[[ r.data.gaps.length || '' ]]"></oj-bind-text></span>
+                  </button>
+                </template>
+              </oj-bind-for-each>
+            </div>
+            <oj-bind-if test="[[ $variables.shown.length === 0 ]]"><div class="nx-empty">Nothing matches. Clear a filter.</div></oj-bind-if>
+          </div>
+        </oj-bind-if>
+      </section>
+    </oj-bind-if>
+    <oj-bind-if test="[[ $variables.rows.length === 0 && !$variables.isLoading && !$variables.error ]]">
+      <div class="nx-empty" id="jiraNone">Nothing found for this search.</div>
+    </oj-bind-if>
+  </oj-bind-if>
+
+  <!-- one item: everything it says, in Oracle's drawer -->
+  <oj-drawer-popup id="jiraDrawer" edge="end" modality="modal" opened="[[ $functions.drawerOpen($variables.rows, $variables.selKey) ]]" on-opened-changed="[[ $listeners.onDrawer ]]">
+    <oj-sp-general-drawer-template drawer-size="lg" drawer-title="[[ $functions.drawerTitle($functions.item($variables.rows, $variables.selKey)) ]]"
+      drawer-subtitle="[[ $functions.drawerSub($functions.item($variables.rows, $variables.selKey)) ]]"
+      close-action='{"label": "Close", "display": "on"}' on-sp-close="[[ $listeners.onDrawerClose ]]">
+      <div class="nx-jira-dr" id="jiraItem">
+        <a class="nx-btn nx-btn--sm nx-jira-open" id="jiraOpenInJira" target="_blank" rel="noopener" :href="[[ $functions.item($variables.rows, $variables.selKey).url ]]">
+          <span class="oj-ux-ico-external-link" aria-hidden="true"></span>Open in Jira</a>
+        <dl class="nx-jira-facts">
+          <oj-bind-for-each data="[[ $functions.facts($functions.item($variables.rows, $variables.selKey)) ]]">
+            <template data-oj-as="fc"><div><dt><oj-bind-text value="[[ fc.data.k ]]"></oj-bind-text></dt><dd><oj-bind-text value="[[ fc.data.v ]]"></oj-bind-text></dd></div></template>
+          </oj-bind-for-each>
+        </dl>
+        <h3 class="nx-jira-h3">Quality</h3>
+        <p><strong><oj-bind-text value="[[ $functions.scoreText($functions.item($variables.rows, $variables.selKey)) ]]"></oj-bind-text></strong></p>
+        <ul class="nx-jira-list">
+          <oj-bind-for-each data="[[ $functions.item($variables.rows, $variables.selKey).checks ]]">
+            <template data-oj-as="ck"><li class="nx-jira-checkfail"><oj-bind-text value="[[ ck.data.label ]]"></oj-bind-text></li></template>
+          </oj-bind-for-each>
+        </ul>
+        <h3 class="nx-jira-h3">Description</h3>
+        <p class="nx-jira-text"><oj-bind-text value="[[ $functions.item($variables.rows, $variables.selKey).body || 'No description.' ]]"></oj-bind-text></p>
+        <h3 class="nx-jira-h3">Acceptance criteria</h3>
+        <ul class="nx-jira-list" id="jiraAc">
+          <oj-bind-for-each data="[[ $functions.acList($functions.item($variables.rows, $variables.selKey).ac) ]]">
+            <template data-oj-as="a"><li><oj-bind-text value="[[ a.data ]]"></oj-bind-text></li></template>
+          </oj-bind-for-each>
+        </ul>
+        <oj-bind-if test="[[ !$functions.item($variables.rows, $variables.selKey).ac ]]"><p class="nx-note">None written.</p></oj-bind-if>
+        <h3 class="nx-jira-h3">Tester gaps</h3>
+        <ol class="nx-jira-list" id="jiraItemGaps">
+          <oj-bind-for-each data="[[ $functions.item($variables.rows, $variables.selKey).gaps ]]">
+            <template data-oj-as="g"><li><oj-bind-text value="[[ g.data ]]"></oj-bind-text></li></template>
+          </oj-bind-for-each>
+        </ol>
+        <oj-bind-if test="[[ $functions.item($variables.rows, $variables.selKey).gaps.length === 0 ]]"><p class="nx-note">None listed.</p></oj-bind-if>
+        <h3 class="nx-jira-h3">Comments</h3>
+        <oj-bind-for-each data="[[ $functions.item($variables.rows, $variables.selKey).comments ]]">
+          <template data-oj-as="c">
+            <div class="nx-jira-comment"><span class="nx-note"><oj-bind-text value="[[ c.data.author + ' · ' + c.data.when ]]"></oj-bind-text></span>
+              <p class="nx-jira-text"><oj-bind-text value="[[ c.data.text ]]"></oj-bind-text></p></div>
+          </template>
+        </oj-bind-for-each>
+        <oj-bind-if test="[[ $functions.item($variables.rows, $variables.selKey).comments.length === 0 ]]"><p class="nx-note">No comments.</p></oj-bind-if>
+      </div>
+    </oj-sp-general-drawer-template>
+  </oj-drawer-popup>
+</div>

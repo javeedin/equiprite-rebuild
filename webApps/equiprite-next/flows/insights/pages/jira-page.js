@@ -1,0 +1,134 @@
+define(['resources/js/jiraBacklog', 'resources/js/exportKit'], (J, exportKit) => {
+  'use strict';
+
+  // Jira stories: binding helpers. The rules are resources/js/jiraBacklog.js (the same file Old EquipRite's Jira
+  // Stories page uses); the chains are jira-page-chains. None uses `this`: a binding may call a function detached.
+  const BADGE = { new: 'oj-badge oj-badge-subtle', indeterminate: 'oj-badge oj-badge-info oj-badge-subtle', done: 'oj-badge oj-badge-success oj-badge-subtle' };
+  const kept = {};
+  function same(key, content, make) {
+    const json = JSON.stringify(content);
+    if (!kept[key] || kept[key].json !== json) kept[key] = { json, value: make ? make(content) : content };
+    return kept[key].value;
+  }
+
+  class PageModule {
+    constructor() {
+      // Escape closes the item's drawer through its own Close button (the drawer hides itself on Escape, but its
+      // opened-changed does not reliably reach the page, which would then think the item is still open). Capture phase:
+      // before the drawer acts on the key. One listener for the module.
+      if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !PageModule.keysBound) {
+        PageModule.keysBound = true;
+        document.addEventListener('keydown', (e) => {
+          if (e.key !== 'Escape') return;
+          const close = [...document.querySelectorAll('#jiraDrawer button[aria-label^="Close"]')].filter((n) => n.getClientRects().length)[0];
+          if (close) { e.stopPropagation(); e.preventDefault(); close.click(); }
+        }, true);
+      }
+    }
+
+    presets() { return J.PRESETS; }
+    formats() { return exportKit.FORMATS; }
+
+    /** "EQP on equiprite.atlassian.net · 205 items read at 10:42", or what is happening. */
+    subtitle(conn, rows, readAt, isLoading) {
+      const site = String((conn && conn.site) || J.SITE).replace(/^https:\/\//, '');
+      if (isLoading) return 'Reading Jira (' + site + ')…';
+      if (conn && conn.checked && !conn.connected) return 'Not connected to Jira (' + site + ')';
+      const n = (rows || []).length;
+      return 'EquipRite backlog on ' + site + (readAt ? ' · ' + n + (n === 1 ? ' item' : ' items') + ' read at ' + readAt : '');
+    }
+
+    /** The numbers, as tiles; each opens the items it counts. */
+    tiles(a) {
+      const k = (a && a.kpis) || {};
+      return same('tiles', k, () => [
+        { key: 'total', label: 'Items', value: k.total || 0, tone: '', field: 'clear', val: '', note: '' },
+        { key: 'done', label: 'Done', value: k.done || 0, tone: 'good', field: 'status', val: 'Done', note: (k.total ? Math.round((k.done || 0) / k.total * 100) : 0) + '%' },
+        { key: 'active', label: 'In progress', value: k.active || 0, tone: '', field: 'only', val: 'open', note: '' },
+        { key: 'onHold', label: 'On hold', value: k.onHold || 0, tone: k.onHold ? 'warn' : '', field: 'status', val: 'ONHOLD', note: '' },
+        { key: 'overdue', label: 'Overdue', value: k.overdue || 0, tone: k.overdue ? 'bad' : 'good', field: 'only', val: 'overdue', note: '' },
+        { key: 'noAc', label: 'No acceptance criteria', value: k.noAc || 0, tone: k.noAc ? 'warn' : 'good', field: 'check', val: 'noAc', note: '' },
+        { key: 'gaps', label: 'Tester gaps', value: k.gaps || 0, tone: k.gaps ? 'warn' : 'good', field: 'only', val: 'gaps', note: (k.withGaps || 0) + ' items' },
+        { key: 'score', label: 'Average quality', value: (k.avgScore || 0) + ' / 5', tone: (k.avgScore || 0) >= 4 ? 'good' : ((k.avgScore || 0) >= 3 ? '' : 'warn'), field: '', val: '', note: '' },
+      ]);
+    }
+
+    /** What a tile opens, in words (the Showing chip). */
+    tileLabel(t) { return t && t.field && t.field !== 'clear' ? t.label + ': ' + t.value : ''; }
+
+    /** A status as a bar: { width } as an object style. */
+    barStyle(pct) { return { width: Math.max(2, Math.min(100, Number(pct) || 0)) + '%' }; }
+
+    /** The breakdowns, as tabs, with how many rows each has. */
+    tabs(a) {
+      const x = a || {};
+      return same('tabs', [(x.epics || []).length, (x.releases || []).length, (x.people || []).length, (x.checks || []).length, (x.fdd || []).length, (x.gaps || []).length], (n) => [
+        { key: 'epics', label: 'By epic', count: n[0] }, { key: 'releases', label: 'By release', count: n[1] }, { key: 'people', label: 'By person', count: n[2] },
+        { key: 'checks', label: 'Quality checks', count: n[3] }, { key: 'fdd', label: 'By FDD section', count: n[4] }, { key: 'gaps', label: 'Tester gaps', count: n[5] },
+      ]);
+    }
+
+    /** A Current filter's options, with counts. */
+    options(rows, field) { return J.options(rows, field); }
+
+    /** A status as Oracle's badge. */
+    badge(cat) { return BADGE[cat] || BADGE.new; }
+
+    /** The item open in the drawer, or an empty one. */
+    item(rows, key) {
+      return (rows || []).filter((r) => r.key === key)[0] || { key: '', summary: '', fdd: [], checks: [], gaps: [], comments: [], labels: [] };
+    }
+    drawerOpen(rows, key) { return !!key && (rows || []).some((r) => r.key === key); }
+
+    /** The acceptance criteria as a list of checks. */
+    acList(ac) { return J.acChecks(ac); }
+
+    /** "Done 3 of 7 (43%)". */
+    epicDone(e) { return e ? e.done + ' of ' + e.total + ' (' + e.donePct + '%)' : ''; }
+
+    /** The facts under the drawer's title. */
+    facts(r) {
+      if (!r || !r.key) return [];
+      return [
+        { k: 'Status', v: r.status || '—' }, { k: 'Type', v: r.type || '—' }, { k: 'Priority', v: r.priority || '—' },
+        { k: 'Assignee', v: r.assignee || 'Nobody' }, { k: 'Epic', v: r.epicKey ? r.epicKey + ' ' + r.epicName : '—' },
+        { k: 'Release', v: r.release ? r.release + (r.releaseDate ? ' (' + r.releaseDate + ')' : '') : '—' },
+        { k: 'Sprint', v: r.sprint ? r.sprint + (r.sprintState ? ' · ' + r.sprintState : '') : '—' },
+        { k: 'Due', v: r.due ? r.due + (r.overdue ? ' · overdue' : '') : '—' }, { k: 'FDD', v: (r.fdd || []).join(', ') || '—' },
+        { k: 'Updated', v: r.updated ? r.updated + (r.idleDays != null ? ' (' + r.idleDays + ' days ago)' : '') : '—' },
+      ];
+    }
+
+    /** "4.5 / 5 · 1 check failed". */
+    scoreText(r) { return r ? r.score + ' / 5' + (r.checks && r.checks.length ? ' · ' + r.checks.length + (r.checks.length === 1 ? ' check failed' : ' checks failed') : '') : ''; }
+
+    /** The items shown, in words. */
+    countText(shown, rows) {
+      const a = (shown || []).length;
+      const b = (rows || []).length;
+      return a === b ? b + (b === 1 ? ' item' : ' items') : a + ' of ' + b + ' items';
+    }
+
+    /** Something narrows the list (a filter, a finding, a check or Smart Search). */
+    filtered(f, cols) {
+      const has = (o) => !!o && Object.keys(o).some((k) => !!o[k]);
+      return has(f) || has(cols);
+    }
+
+    /** Redwood: the drawer's subtitle. */
+    drawerSub(r) { return r && r.key ? [r.status, r.epicKey ? r.epicKey + ' ' + r.epicName : ''].filter((x) => !!x).join(' · ') : ''; }
+    drawerTitle(r) { return r && r.key ? r.key + ' ' + r.summary : ''; }
+
+    /** Redwood: the header's Refresh (the band's white button) and its other actions. */
+    rwPrimary(isLoading) { return same('primary', { label: 'Refresh', icon: 'oj-ux-ico-refresh', display: isLoading ? 'disabled' : 'on' }); }
+    rwActions(n) {
+      return same('actions', n > 0 ? [{ id: 'export', label: 'Export to Excel', icon: 'oj-ux-ico-download', display: 'on' }]
+        : [{ id: 'export', label: 'Export to Excel', icon: 'oj-ux-ico-download', display: 'disabled' }]);
+    }
+
+    /** The JQL presets' chip class. */
+    presetClass(preset, key) { return 'nx-chip nx-cm-chip--sm' + (preset === key ? ' nx-chip--on' : ''); }
+  }
+
+  return PageModule;
+});

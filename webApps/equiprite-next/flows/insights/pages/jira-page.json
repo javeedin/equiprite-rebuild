@@ -1,0 +1,549 @@
+{
+  "description": "Jira stories: the EquipRite backlog read from Jira (services/jira, read only; rules resources/js/jiraBacklog.js, the same file Old EquipRite's Jira Stories page uses). Connect (in the desktop app the token stays on the PC; deployed, the VBCS administrator sets the jira backend's Basic authentication), a JQL search with presets, the analysis (numbers, findings, by status, epic, release, person, quality check, FDD section, tester gaps), the items, one item in a drawer, export. Redwood (your menu, Look): Oracle's Smart Search page with a filter per column and an oj-table.",
+  "navigation": {
+    "embeddable": "enabled"
+  },
+  "variables": {
+    "isLoading": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "error": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "notice": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "A note on what was read (stopped early, how many)."
+    },
+    "conn": {
+      "type": "object",
+      "defaultValue": {
+        "checked": false,
+        "desktop": false,
+        "connected": false,
+        "site": "https://equiprite.atlassian.net",
+        "email": "",
+        "name": "",
+        "busy": false,
+        "error": "",
+        "token": ""
+      },
+      "description": "The Jira connection: desktop (the page runs in the desktop app, which keeps the token), connected, who it signs in as; the Connect form's fields (the token is sent once to the desktop app, then cleared)."
+    },
+    "jql": {
+      "type": "string",
+      "defaultValue": "project = EQP AND issuetype = Story ORDER BY key ASC"
+    },
+    "preset": {
+      "type": "string",
+      "defaultValue": "stories"
+    },
+    "readAt": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "rows": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "Every item read (jiraBacklog.fromIssue)."
+    },
+    "analysis": {
+      "type": "any",
+      "defaultValue": {
+        "kpis": {},
+        "statuses": [],
+        "epics": [],
+        "releases": [],
+        "people": [],
+        "sprints": [],
+        "checks": [],
+        "fdd": [],
+        "gaps": [],
+        "findings": []
+      },
+      "description": "jiraBacklog.analyse(rows)."
+    },
+    "f": {
+      "type": "object",
+      "defaultValue": {
+        "text": "",
+        "status": "",
+        "epic": "",
+        "assignee": "",
+        "release": "",
+        "sprint": "",
+        "priority": "",
+        "type": "",
+        "check": "",
+        "only": "",
+        "fdd": ""
+      },
+      "description": "The filters both looks apply (Current's own, a finding or a check clicked)."
+    },
+    "fLabel": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "What a finding, check or FDD section clicked shows, in words (the Showing chip)."
+    },
+    "rwCols": {
+      "type": "object",
+      "defaultValue": {
+        "text": "",
+        "status": "",
+        "epic": "",
+        "assignee": "",
+        "release": "",
+        "sprint": "",
+        "priority": "",
+        "type": ""
+      },
+      "description": "Redwood: what Smart Search narrows the table to (rwFilterChain)."
+    },
+    "shown": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "The rows the filters keep (applyChain)."
+    },
+    "rwRows": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "rwADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "key",
+        "data": "{{ $page.variables.rwRows }}"
+      }
+    },
+    "rwCriterion": {
+      "type": "any"
+    },
+    "rwSearchConfig": {
+      "type": "oj-sp/smart-search/strategies/JsonSearchConfigProviderFactory",
+      "defaultValue": {
+        "url": "[[ $application.path + 'resources/data/jiraSearchConfig.json' ]]"
+      }
+    },
+    "selKey": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "The item open in the drawer."
+    },
+    "exportOpen": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "tab": {
+      "type": "string",
+      "defaultValue": "epics",
+      "description": "Which breakdown shows: epics, releases, people, checks, fdd, gaps."
+    },
+    "rwOpt_status": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "rwOpt_statusADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwOpt_status }}"
+      }
+    },
+    "rwOpt_epic": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "rwOpt_epicADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwOpt_epic }}"
+      }
+    },
+    "rwOpt_assignee": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "rwOpt_assigneeADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwOpt_assignee }}"
+      }
+    },
+    "rwOpt_release": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "rwOpt_releaseADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwOpt_release }}"
+      }
+    },
+    "rwOpt_sprint": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "rwOpt_sprintADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwOpt_sprint }}"
+      }
+    },
+    "rwOpt_priority": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "rwOpt_priorityADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwOpt_priority }}"
+      }
+    },
+    "rwOpt_type": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "rwOpt_typeADP": {
+      "type": "vb/ArrayDataProvider2",
+      "defaultValue": {
+        "itemType": "any",
+        "keyAttributes": "value",
+        "data": "{{ $page.variables.rwOpt_type }}"
+      }
+    },
+    "rwSearchContext": {
+      "type": "object",
+      "defaultValue": {
+        "$search": {
+          "filters": {
+            "StatusFilter": {
+              "label": "Status",
+              "options": {
+                "optionsData": "[[ $page.variables.rwOpt_statusADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "EpicFilter": {
+              "label": "Epic",
+              "options": {
+                "optionsData": "[[ $page.variables.rwOpt_epicADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "AssigneeFilter": {
+              "label": "Assignee",
+              "options": {
+                "optionsData": "[[ $page.variables.rwOpt_assigneeADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "ReleaseFilter": {
+              "label": "Release",
+              "options": {
+                "optionsData": "[[ $page.variables.rwOpt_releaseADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "SprintFilter": {
+              "label": "Sprint",
+              "options": {
+                "optionsData": "[[ $page.variables.rwOpt_sprintADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "PriorityFilter": {
+              "label": "Priority",
+              "options": {
+                "optionsData": "[[ $page.variables.rwOpt_priorityADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            },
+            "TypeFilter": {
+              "label": "Type",
+              "options": {
+                "optionsData": "[[ $page.variables.rwOpt_typeADP ]]",
+                "optionsKeys": {
+                  "label": "label",
+                  "value": "value"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "eventListeners": {
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "initChain"
+        }
+      ]
+    },
+    "onRefresh": {
+      "chains": [
+        {
+          "chain": "loadChain",
+          "parameters": {
+            "jql": "{{ $page.variables.jql }}"
+          }
+        }
+      ]
+    },
+    "onPreset": {
+      "chains": [
+        {
+          "chain": "loadChain",
+          "parameters": {
+            "preset": "{{ $event.currentTarget.dataset.value }}"
+          }
+        }
+      ]
+    },
+    "onJqlInput": {
+      "chains": [
+        {
+          "chain": "setChain",
+          "parameters": {
+            "field": "jql",
+            "value": "{{ $event.target.value }}"
+          }
+        }
+      ]
+    },
+    "onJqlKey": {
+      "chains": [
+        {
+          "chain": "loadChain",
+          "parameters": {
+            "jql": "{{ $event.key === 'Enter' ? $event.target.value : '' }}"
+          }
+        }
+      ]
+    },
+    "onConnField": {
+      "chains": [
+        {
+          "chain": "connectChain",
+          "parameters": {
+            "act": "field",
+            "field": "{{ $event.target.dataset.field }}",
+            "value": "{{ $event.target.value }}"
+          }
+        }
+      ]
+    },
+    "onConnect": {
+      "chains": [
+        {
+          "chain": "connectChain",
+          "parameters": {
+            "act": "{{ $event.currentTarget.dataset.act }}"
+          }
+        }
+      ]
+    },
+    "onFilter": {
+      "chains": [
+        {
+          "chain": "filterChain",
+          "parameters": {
+            "field": "{{ $event.target.dataset.field }}",
+            "value": "{{ $event.target.value }}"
+          }
+        }
+      ]
+    },
+    "onFilterClick": {
+      "chains": [
+        {
+          "chain": "filterChain",
+          "parameters": {
+            "field": "{{ $event.currentTarget.dataset.field }}",
+            "value": "{{ $event.currentTarget.dataset.value }}",
+            "label": "{{ $event.currentTarget.dataset.label }}"
+          }
+        }
+      ]
+    },
+    "onFinding": {
+      "chains": [
+        {
+          "chain": "filterChain",
+          "parameters": {
+            "field": "finding",
+            "value": "{{ $event.currentTarget.dataset.index }}"
+          }
+        }
+      ]
+    },
+    "onClear": {
+      "chains": [
+        {
+          "chain": "filterChain",
+          "parameters": {
+            "field": "clear",
+            "value": ""
+          }
+        }
+      ]
+    },
+    "onTab": {
+      "chains": [
+        {
+          "chain": "setChain",
+          "parameters": {
+            "field": "tab",
+            "value": "{{ $event.currentTarget.dataset.value }}"
+          }
+        }
+      ]
+    },
+    "onOpen": {
+      "chains": [
+        {
+          "chain": "selectChain",
+          "parameters": {
+            "key": "{{ $event.currentTarget.dataset.key }}"
+          }
+        }
+      ]
+    },
+    "onRwRow": {
+      "chains": [
+        {
+          "chain": "selectChain",
+          "parameters": {
+            "key": "{{ $event.detail.context.key }}"
+          }
+        }
+      ]
+    },
+    "onRwFilter": {
+      "chains": [
+        {
+          "chain": "rwFilterChain"
+        }
+      ]
+    },
+    "onDrawer": {
+      "chains": [
+        {
+          "chain": "selectChain",
+          "parameters": {
+            "key": "{{ $event.detail.value ? $page.variables.selKey : '' }}"
+          }
+        }
+      ]
+    },
+    "onDrawerClose": {
+      "chains": [
+        {
+          "chain": "selectChain",
+          "parameters": {
+            "key": ""
+          }
+        }
+      ]
+    },
+    
+    "onExportToggle": {
+      "chains": [
+        {
+          "chain": "setChain",
+          "parameters": {
+            "field": "exportOpen",
+            "value": "{{ !$page.variables.exportOpen }}"
+          }
+        }
+      ]
+    },
+    "onExport": {
+      "chains": [
+        {
+          "chain": "exportChain",
+          "parameters": {
+            "format": "{{ $event.currentTarget.dataset.format }}"
+          }
+        }
+      ]
+    },
+    "onRwExport": {
+      "chains": [
+        {
+          "chain": "exportChain",
+          "parameters": {
+            "format": "xlsx"
+          }
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-if": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-text": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-sp-smart-search-page": {
+        "path": "oj-sp/smart-search-page/loader"
+      },
+      "oj-sp-smart-search": {
+        "path": "oj-sp/smart-search/loader"
+      },
+      "oj-sp-collection-container": {
+        "path": "oj-sp/collection-container/loader"
+      },
+      "oj-table": {
+        "path": "ojs/ojtable"
+      },
+      "oj-c-button": {
+        "path": "oj-c/button"
+      },
+      "oj-drawer-popup": {
+        "path": "ojs/ojdrawerpopup"
+      },
+      "oj-sp-general-drawer-template": {
+        "path": "oj-sp/general-drawer-template/loader"
+      }
+    }
+  }
+}

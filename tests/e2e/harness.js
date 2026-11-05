@@ -81,7 +81,8 @@ async function start(o) {
         xml: (t, s) => { raw.writeHead(s || 200, { 'content-type': 'text/xml' }); raw.end(t); return true; },
         bip: (rows) => res.xml(bipReport(rows)),
       };
-      const r = { method: req.method, path: u.pathname, query: u.searchParams, body, json: () => (body ? JSON.parse(body) : null) };
+      const r = { method: req.method, path: u.pathname, query: u.searchParams, body, json: () => (body ? JSON.parse(body) : null),
+        auth: req.headers.authorization || '' };
       if (req.method !== 'GET') {
         let parsed = body;
         try { parsed = body ? JSON.parse(body) : null; } catch (e) { /* SOAP and other text bodies stay text */ }
@@ -107,7 +108,8 @@ async function start(o) {
   await new Promise((r) => backend.listen(0, '127.0.0.1', r));
   const fake = `http://127.0.0.1:${backend.address().port}`;
   const identity = { username: o.username || 'priya.raman', roles: ['RT_EQP_MANAGER'], fusion: null };
-  const overrides = { eqpt: fake, commonservice: fake, fusion: fake, bipservice: fake, callpwpbip: fake, ics: fake };
+  // jira too: a test never reaches the real Jira (its calls land on the fake backend at /rest/api/2/…).
+  const overrides = { eqpt: fake, commonservice: fake, fusion: fake, bipservice: fake, callpwpbip: fake, ics: fake, jira: fake };
   const ports = { old: o.port, new: o.port + 1, next: o.port + 2, mobile: o.port + 3, future: o.port + 4 };
   // Like the desktop app: Next, Mobile and Future are listed when built (and then served, below).
   const built = (w) => DS.isBuilt(path.join(ROOT, 'build'), w);
@@ -123,7 +125,9 @@ async function start(o) {
   ];
   if (DS.isBuilt(path.join(ROOT, 'build'), 'equiprite-next')) {
     // o.sqlStore: the SQL worksheet's store (desktop/lib/oracleSql.js, with a fake driver in tests).
-    servers.push(await DS.createDevServer(Object.assign({ webApp: 'equiprite-next', port: ports.next }, common, o.sqlStore ? { sqlStore: o.sqlStore } : {}, o.aiStore ? { aiStore: o.aiStore } : {})));
+    // o.jiraStore: Connect Jira's store (desktop/lib/jiraAuth.js), as the desktop app gives Old and Next.
+    servers.push(await DS.createDevServer(Object.assign({ webApp: 'equiprite-next', port: ports.next }, common, o.sqlStore ? { sqlStore: o.sqlStore } : {}, o.aiStore ? { aiStore: o.aiStore } : {},
+      o.jiraStore ? { jiraStore: o.jiraStore } : {})));
   }
   let futureStore = null;
   if (DS.isBuilt(path.join(ROOT, 'build'), 'equiprite-future')) {

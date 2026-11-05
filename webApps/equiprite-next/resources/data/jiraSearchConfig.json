@@ -1,0 +1,75 @@
+{
+  "description": "Jira stories (Redwood view): the Smart Search filters, one per column of the stories table (Status, Epic, Assignee, Release, Sprint, Priority, Type), with what the rows hold and how many (jiraBacklog.options). Every filter here needs its entry in jira-page.json's rwSearchContext.",
+  "filters": {
+    "StatusFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Status",
+      "options": {
+        "field": "status",
+        "optionsData": "[[ $search.filters.StatusFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.StatusFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "EpicFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Epic",
+      "options": {
+        "field": "epic",
+        "optionsData": "[[ $search.filters.EpicFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.EpicFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "AssigneeFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Assignee",
+      "options": {
+        "field": "assignee",
+        "optionsData": "[[ $search.filters.AssigneeFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.AssigneeFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "ReleaseFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Release",
+      "options": {
+        "field": "release",
+        "optionsData": "[[ $search.filters.ReleaseFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.ReleaseFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "SprintFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Sprint",
+      "options": {
+        "field": "sprint",
+        "optionsData": "[[ $search.filters.SprintFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.SprintFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "PriorityFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Priority",
+      "options": {
+        "field": "priority",
+        "optionsData": "[[ $search.filters.PriorityFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.PriorityFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    },
+    "TypeFilter": {
+      "type": "oj-sp/smart-search/default-filters/SelectSingleFilter",
+      "label": "Type",
+      "options": {
+        "field": "type",
+        "optionsData": "[[ $search.filters.TypeFilter.options.optionsData ]]",
+        "optionsKeys": "[[ $search.filters.TypeFilter.options.optionsKeys ]]"
+      },
+      "data": {}
+    }
+  }
+}

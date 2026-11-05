@@ -1,0 +1,111 @@
+/* EquipRite Next, Jira stories (flows/insights jira-page): the backlog read from Jira and what it says. Colour only where
+   it means something: red what is late or failing, amber what needs a look, green what is done. Every rule is scoped to
+   .nx-jira (the page) so nothing shared is restyled. */
+.nx-jira .nx-jira-conn { display: flex; flex-direction: column; gap: 10px; }
+.nx-jira .nx-jira-form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
+.nx-jira .nx-jira-form .nx-cm-field { flex: 1 1 220px; }
+.nx-jira .nx-jira-query { display: flex; flex-direction: column; gap: 10px; }
+.nx-jira .nx-jira-conninfo { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 13px; color: var(--nx-muted); }
+.nx-jira .nx-jira-conninfo .oj-ux-ico-check-circle { color: var(--nx-ok); margin-right: 6px; }
+.nx-jira .nx-jira-jql { display: flex; align-items: center; gap: 8px; }
+.nx-jira .nx-jira-jql input { flex: 1 1 auto; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; }
+
+.nx-jira .nx-jira-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.nx-jira .nx-jira-tile { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 12px 14px; border: 1px solid var(--nx-line);
+  border-radius: 10px; background: #fff; text-align: left; cursor: pointer; font: inherit; color: inherit; }
+.nx-jira .nx-jira-tile:hover:not(:disabled) { border-color: var(--nx-accent); }
+.nx-jira .nx-jira-tile:disabled { cursor: default; }
+.nx-jira .nx-jira-tileval { font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--nx-ink); }
+.nx-jira .nx-jira-tilelabel { font-size: 12px; font-weight: 700; color: var(--nx-muted); }
+.nx-jira .nx-jira-tilenote { font-size: 11px; color: var(--nx-faint); }
+.nx-jira .nx-jira-tile--bad { border-color: #f1c4bd; background: #fdf3f1; }
+.nx-jira .nx-jira-tile--bad .nx-jira-tileval { color: var(--nx-danger); }
+.nx-jira .nx-jira-tile--warn { border-color: #f3d19e; background: #fffaf1; }
+.nx-jira .nx-jira-tile--good .nx-jira-tileval { color: var(--nx-ok); }
+
+.nx-jira .nx-jira-two { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 12px; }
+@media (max-width: 1100px) { .nx-jira .nx-jira-two { grid-template-columns: 1fr; } }
+.nx-jira .nx-jira-findlist, .nx-jira .nx-jira-bars { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.nx-jira .nx-jira-find { width: 100%; text-align: left; padding: 8px 10px 8px 12px; border: 1px solid var(--nx-line); border-left-width: 4px; border-radius: 8px;
+  background: #fff; font: inherit; font-size: 13px; color: var(--nx-ink); cursor: pointer; }
+.nx-jira .nx-jira-find:hover { background: var(--nx-surface-2); }
+.nx-jira .nx-jira-find--bad { border-left-color: var(--nx-danger); }
+.nx-jira .nx-jira-find--warn { border-left-color: var(--nx-warn, #c26a00); }
+.nx-jira .nx-jira-find--good { border-left-color: var(--nx-ok); }
+.nx-jira .nx-jira-find--info { border-left-color: var(--nx-accent); }
+.nx-jira .nx-jira-bar { width: 100%; display: grid; grid-template-columns: 110px minmax(0, 1fr) 80px; align-items: center; gap: 8px; padding: 4px 6px;
+  border: 0; border-radius: 6px; background: transparent; font: inherit; font-size: 13px; cursor: pointer; text-align: left; color: var(--nx-ink); }
+.nx-jira .nx-jira-bar:hover { background: var(--nx-surface-2); }
+.nx-jira .nx-jira-bartrack, .nx-jira .nx-jira-mini { display: block; height: 10px; border-radius: 999px; background: var(--nx-surface-2); overflow: hidden; }
+.nx-jira .nx-jira-barfill, .nx-jira .nx-jira-minifill { display: block; height: 100%; border-radius: 999px; background: var(--nx-accent); }
+.nx-jira .nx-jira-barfill--done, .nx-jira .nx-jira-minifill { background: var(--nx-ok); }
+.nx-jira .nx-jira-barfill--new { background: #9aa4b2; }
+.nx-jira .nx-jira-barval { font-variant-numeric: tabular-nums; color: var(--nx-muted); text-align: right; }
+
+.nx-jira .nx-jira-tabs { display: flex; flex-wrap: wrap; gap: 4px; padding: 10px 12px 0; border-bottom: 1px solid var(--nx-line); }
+.nx-jira .nx-jira-tab { border: 0; border-bottom: 2px solid transparent; background: transparent; padding: 8px 10px; font: inherit; font-size: 13px; font-weight: 600;
+  color: var(--nx-muted); cursor: pointer; }
+.nx-jira .nx-jira-tab--on { color: var(--nx-ink); border-bottom-color: var(--nx-accent); }
+.nx-jira .nx-jira-tabbody { padding: 8px 12px 14px; max-height: 420px; overflow: auto; }
+.nx-jira .nx-jira-tbl { display: flex; flex-direction: column; }
+.nx-jira .nx-jira-tr { display: grid; gap: 10px; align-items: center; padding: 7px 6px; border: 0; border-bottom: 1px solid var(--nx-line); background: transparent;
+  font: inherit; font-size: 13px; text-align: left; color: var(--nx-ink); cursor: pointer; width: 100%; }
+.nx-jira .nx-jira-tr:hover:not(.nx-jira-tr--head) { background: var(--nx-surface-2); }
+.nx-jira .nx-jira-tr--head { cursor: default; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--nx-muted); }
+.nx-jira .nx-jira-tr--epic { grid-template-columns: minmax(0, 2.4fr) 90px 70px minmax(110px, 1fr) 50px; }
+.nx-jira .nx-jira-tr--rel { grid-template-columns: minmax(0, 1.4fr) 110px 90px minmax(0, 1fr); }
+.nx-jira .nx-jira-tr--chk { grid-template-columns: minmax(0, 1fr) 80px; }
+.nx-jira .nx-jira-tr span[role="cell"] { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.nx-jira .nx-jira-mini { display: inline-block; width: 70px; vertical-align: middle; margin-right: 6px; }
+.nx-jira .nx-jira-keys { color: var(--nx-muted); white-space: nowrap; }
+.nx-jira .nx-jira-bad { color: var(--nx-danger); font-weight: 700; }
+.nx-jira .nx-jira-tag { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px; font-size: 11px; font-weight: 700; background: var(--nx-surface-2); color: var(--nx-muted); }
+.nx-jira .nx-jira-tag--bad { background: #f8d9d4; color: #9b2c1c; }
+.nx-jira .nx-jira-gaps { display: flex; flex-direction: column; gap: 10px; }
+.nx-jira .nx-jira-gap ol { margin: 4px 0 0 18px; padding: 0; font-size: 13px; }
+.nx-jira .nx-jira-gapkey { border: 0; background: transparent; padding: 0; font: inherit; font-size: 13px; text-align: left; cursor: pointer; color: var(--nx-accent); }
+
+.nx-jira .nx-jira-itemshead .nx-note { margin-left: 8px; }
+.nx-jira .nx-jira-showing { display: inline-flex; align-items: center; gap: 6px; max-width: 520px; padding: 4px 6px 4px 10px; border-radius: 999px;
+  background: var(--nx-accent-soft); color: var(--nx-accent); font-size: 12px; font-weight: 700; }
+.nx-jira .nx-jira-x { border: 0; background: transparent; color: inherit; font-size: 16px; line-height: 1; cursor: pointer; }
+.nx-jira .nx-jira-filters { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 16px; border-bottom: 1px solid var(--nx-line); }
+.nx-jira .nx-jira-filters .nx-cm-input { flex: 0 1 200px; }
+.nx-jira .nx-jira-filters .nx-jira-text { flex: 1 1 240px; }
+.nx-jira .nx-jira-grid { min-width: 900px; }
+.nx-jira .nx-jira-row { display: grid; grid-template-columns: 84px minmax(0, 3fr) 120px minmax(0, 1.2fr) 70px 96px 64px 48px; gap: 10px; align-items: start;
+  width: 100%; padding: 9px 16px; border: 0; border-bottom: 1px solid var(--nx-line); background: transparent; font: inherit; font-size: 13px; text-align: left;
+  color: var(--nx-ink); cursor: pointer; }
+.nx-jira .nx-jira-row:hover:not(.nx-jira-row--head) { background: var(--nx-surface-2); }
+.nx-jira .nx-jira-row--head { cursor: default; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--nx-muted); }
+.nx-jira .nx-jira-key { font-weight: 700; color: var(--nx-accent); }
+.nx-jira .nx-jira-sum { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.nx-jira .nx-jira-sum .nx-cell-main { white-space: normal; }
+.nx-jira .nx-jira-status { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; background: var(--nx-surface-2); color: var(--nx-muted); }
+.nx-jira .nx-jira-status--indeterminate { background: var(--nx-accent-soft); color: var(--nx-accent); }
+.nx-jira .nx-jira-status--done { background: #d6eed9; color: #1d6b2b; }
+.nx-jira .nx-jira-score { display: inline-block; min-width: 30px; padding: 1px 6px; border-radius: 6px; font-weight: 800; text-align: center; font-variant-numeric: tabular-nums; }
+.nx-jira .nx-jira-score--good { background: #d6eed9; color: #1d6b2b; }
+.nx-jira .nx-jira-score--mid { background: #fff1d6; color: #7a4a00; }
+.nx-jira .nx-jira-score--low { background: #f8d9d4; color: #9b2c1c; }
+
+/* the drawer (it sits outside .nx-jira's content flow, so these are scoped by the drawer's own class) */
+.nx-jira-dr { display: flex; flex-direction: column; gap: 6px; padding: 0 4px 24px; font-size: 14px; }
+.nx-jira-dr .nx-jira-open { align-self: flex-start; text-decoration: none; }
+.nx-jira-dr .nx-jira-facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px 16px; margin: 8px 0; }
+.nx-jira-dr .nx-jira-facts dt { font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--nx-muted, #64748b); }
+.nx-jira-dr .nx-jira-facts dd { margin: 2px 0 0; }
+.nx-jira-dr .nx-jira-h3 { margin: 14px 0 2px; font-size: 14px; font-weight: 800; }
+.nx-jira-dr .nx-jira-list { margin: 2px 0 0 18px; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.nx-jira-dr .nx-jira-checkfail { color: #9b2c1c; }
+.nx-jira-dr .nx-jira-text { margin: 2px 0; white-space: pre-wrap; }
+.nx-jira-dr .nx-jira-comment { padding: 8px 10px; border-left: 3px solid #d0d7de; background: #f8fafc; border-radius: 6px; margin-bottom: 6px; }
+
+/* Redwood */
+html[data-nx-look="redwood"] .nx-jira .nx-jira-rw { display: block; }
+html[data-nx-look="redwood"] .nx-jira .nx-jira-rw[hidden] { display: none; }
+html[data-nx-look="redwood"] .nx-jira .nx-jira-rwtable { display: block; width: 100%; }
+html[data-nx-look="redwood"] .nx-jira .nx-jira-rwtable .oj-table-data-cell { vertical-align: top; white-space: normal; }
+html[data-nx-look="redwood"] .nx-jira .nx-jira-rwsum { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+html[data-nx-look="redwood"] .nx-jira .nx-jira-tile { border-radius: 6px; }
+html[data-nx-look="redwood"] .nx-jira .nx-jira-tab--on { border-bottom-color: #2c5266; }
