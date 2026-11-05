@@ -1,4 +1,4 @@
-define(['resources/js/exportKit'], (exportKit) => {
+define(['resources/js/exportKit', 'resources/js/jiraStoryPanel', 'resources/js/testRecorder'], (exportKit, Panel, Recorder) => {
   'use strict';
 
   // One Jira sprint, in its own tab: binding helpers. The report is resources/js/jiraBacklog.js sprintReport.
@@ -11,7 +11,18 @@ define(['resources/js/exportKit'], (exportKit) => {
   const STATE = { active: 'info', future: 'warning', closed: 'neutral' };
   const WHERE = { done: 'Done here', here: 'Still in this sprint', moved: 'Carried on' };
 
+  let tabs = 0;
+
   class PageModule {
+    constructor(context) {
+      // Record (an item's drawer): when a recording or screenshot is saved, the open item's evidence is read again. One
+      // listener per sprint tab; Escape closes the drawer (resources/js/jiraStoryPanel.js).
+      const helper = context && typeof context.getEventHelper === 'function' ? context.getEventHelper() : null;
+      tabs += 1;
+      if (Recorder && typeof Recorder.onChange === 'function') Recorder.onChange('jira-sprint-page-' + tabs, () => { if (helper) helper.fireCustomEvent('evidenceChanged', {}); });
+      Panel.closeOnEscape();
+    }
+
     formats() { return exportKit.FORMATS; }
 
     title(r, name) { return 'Sprint ' + ((r && r.sprint && r.sprint.name) || name || ''); }
@@ -62,6 +73,9 @@ define(['resources/js/exportKit'], (exportKit) => {
     whereClass(r) { return 'nx-jsp-where nx-jsp-where--' + ((r && r.in) || 'here'); }
     statusClass(cat) { return 'nx-jira-status nx-jira-status--' + (cat || 'new'); }
   }
+
+  // An item's drawer: the same helpers as Jira stories (resources/js/jiraStoryPanel.js).
+  Object.keys(Panel.helpers).forEach((k) => { PageModule.prototype[k] = Panel.helpers[k]; });
 
   return PageModule;
 });

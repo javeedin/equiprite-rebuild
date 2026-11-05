@@ -267,6 +267,9 @@ const NEXT_DEPS = {
   'resources/js/insightsModel': model, 'resources/js/integrationsView': ihView, 'resources/js/configurationInventory': inv, 'resources/js/settingsKit': kit,
   'resources/js/accessMatrix': access,
 };
+// Jira stories and a sprint's tab: the rules and the item's drawer (shared by both pages).
+NEXT_DEPS['resources/js/jiraBacklog'] = next('jiraBacklog');
+NEXT_DEPS['resources/js/jiraStoryPanel'] = next('jiraStoryPanel', { 'resources/js/jiraBacklog': NEXT_DEPS['resources/js/jiraBacklog'] });
 const NX_ADMIN = path.join(NEXT, 'flows', 'admin', 'pages');
 const NX_INSIGHTS = path.join(NEXT, 'flows', 'insights', 'pages');
 const NEW_SETTINGS = path.join(NEW, 'flows', 'settings', 'pages');
@@ -642,6 +645,26 @@ T.section('the pages follow the page rules');
   });
   const app = JSON.parse(fs.readFileSync(path.join(NEXT, 'app-flow.json'), 'utf8'));
   T.check('the stylesheet is imported', app.imports.css.includes('resources/css/next-insights-admin.css'));
+}
+
+T.section('a sprint\'s items open in the drawer, as on Jira stories; an icon opens them in Jira');
+{
+  const html = fs.readFileSync(path.join(NX_INSIGHTS, 'jira-sprint-page.html'), 'utf8');
+  const stories = fs.readFileSync(path.join(NX_INSIGHTS, 'jira-page.html'), 'utf8');
+  const row = html.slice(html.indexOf('<div class="nx-jsp-row" role="row"'), html.indexOf('</template>', html.indexOf('<div class="nx-jsp-row" role="row"')));
+  T.check('the key and the summary open the item (buttons), not Jira', /class="nx-jsp-keybtn"[^>]*on-click="\[\[ \$listeners\.onOpenItem \]\]"/.test(row)
+    && /class="nx-jsp-sumbtn[^"]*"[^>]*on-click="\[\[ \$listeners\.onOpenItem \]\]"/.test(row) && !/<a class="nx-jira-key"/.test(row));
+  T.check('…and an icon beside the key opens it in Jira, in a new tab', /<a class="nx-jsp-tojira" target="_blank" rel="noopener" :href="\[\[ r\.data\.url \]\]"[^>]*aria-label=/.test(row)
+    && /oj-ux-ico-external-link/.test(row));
+  const drawerOf = (h) => h.slice(h.indexOf('<oj-drawer-popup'), h.indexOf('</oj-drawer-popup>'));
+  T.eq('the drawer is Jira stories\' (the same sections, its own ids)', drawerOf(html).replace(/id="jsp/g, 'id="jira').replace(/\$variables\.report\.rows/g, '$variables.rows'), drawerOf(stories));
+  const Panel = NEXT_DEPS['resources/js/jiraStoryPanel'];
+  const mods = ['jira', 'jira-sprint'].map((p) => loadAmd(path.join(NX_INSIGHTS, p + '-page.js'), NEXT_DEPS));
+  T.check('both pages take the drawer\'s helpers from resources/js/jiraStoryPanel.js', Object.keys(Panel.helpers).length >= 14
+    && mods.every((M) => Object.keys(Panel.helpers).every((k) => M.prototype[k] === Panel.helpers[k])));
+  const sel = fs.readFileSync(path.join(NX_INSIGHTS, 'jira-sprint-page-chains', 'selectChain.js'), 'utf8');
+  T.check('opening an item reads its evidence and its images from the sprint\'s rows', /evidenceChain/.test(sel) && /v\.report && v\.report\.rows/.test(sel) && /J\.loadImages/.test(sel));
+  T.check('…its evidence focuses back on its own Screenshot button', /R\.keepFocus\('#jspShot'\)/.test(fs.readFileSync(path.join(NX_INSIGHTS, 'jira-sprint-page-chains', 'evidenceChain.js'), 'utf8')));
 }
 
 Promise.all(tests).catch((e) => T.check('tests ran', false, e && e.stack)).then(() => T.report());

@@ -172,3 +172,13 @@ html[data-nx-look="redwood"] .nx-jira .nx-jira-tr--on { box-shadow: inset 3px 0 
 .nx-jira-dr .nx-jira-evvid video { width: 100%; max-height: 320px; background: #0f172a; border-radius: 6px; }
 .nx-jira-dr .nx-jira-evvid figcaption { font-size: 11px; color: #64748b; }
 .nx-jira-dr .nx-jira-evfolder { overflow-wrap: anywhere; }
+
+/* A sprint's items: the key and summary open the item in the drawer; the icon beside the key opens it in Jira */
+.nx-jsp .nx-jsp-keycell { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.nx-jsp .nx-jsp-keybtn, .nx-jsp .nx-jsp-sumbtn { border: 0; padding: 0; background: none; font: inherit; text-align: left; cursor: pointer; }
+.nx-jsp .nx-jsp-keybtn { font-weight: 700; color: var(--nx-accent); }
+.nx-jsp .nx-jsp-sumbtn { color: inherit; display: block; }
+.nx-jsp .nx-jsp-keybtn:hover, .nx-jsp .nx-jsp-sumbtn:hover { text-decoration: underline; }
+.nx-jsp .nx-jsp-tojira { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 4px; color: var(--nx-muted); text-decoration: none; font-size: 14px; }
+.nx-jsp .nx-jsp-tojira:hover, .nx-jsp .nx-jsp-tojira:focus-visible { background: var(--nx-accent-soft); color: var(--nx-accent); }
+.nx-jsp .nx-jsp-row { grid-template-columns: 104px minmax(0, 3fr) 120px 170px minmax(0, 1.2fr) 96px 96px; }

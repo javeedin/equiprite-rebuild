@@ -1,5 +1,5 @@
 {
-  "description": "One Jira sprint, in its own tab (opened from Jira stories, By sprint): every item ever in it (JQL sprint = id), its dates, state and goal, what is wrong with it on the board, the numbers, a day-by-day burn-up, by status and person, carried on and carried in, the items, export. Rules: resources/js/jiraBacklog.js sprintReport (the same file Old uses). Read only.",
+  "description": "One Jira sprint, in its own tab (opened from Jira stories, By sprint): every item ever in it (JQL sprint = id), its dates, state and goal, what is wrong with it on the board, the numbers, a day-by-day burn-up, by status and person, carried on and carried in, the items (each opens in the drawer, as on Jira stories, with its test evidence; an icon opens it in Jira), export. Rules: resources/js/jiraBacklog.js sprintReport (the same file Old uses). Read only.",
   "navigation": {
     "embeddable": "enabled"
   },
@@ -50,6 +50,29 @@
     "exportOpen": {
       "type": "boolean",
       "defaultValue": false
+    },
+    "selKey": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "The item open in the drawer ('' when none)."
+    },
+    "images": {
+      "type": "object",
+      "defaultValue": {},
+      "description": "The open item's images, read through the jira connection: { attachment id: object URL } ('' when it could not be read)."
+    },
+    "evidence": {
+      "type": "object",
+      "defaultValue": {
+        "available": false,
+        "key": "",
+        "items": [],
+        "folder": "",
+        "error": "",
+        "busy": "",
+        "recording": ""
+      },
+      "description": "The open item's test evidence on this PC (resources/js/testRecorder.js): recordings and screenshots in its folder."
     }
   },
   "eventListeners": {
@@ -112,6 +135,56 @@
           }
         }
       ]
+    },
+    "onOpenItem": {
+      "chains": [
+        {
+          "chain": "selectChain",
+          "parameters": {
+            "key": "{{ $event.currentTarget.dataset.key }}"
+          }
+        }
+      ]
+    },
+    "onDrawer": {
+      "chains": [
+        {
+          "chain": "selectChain",
+          "parameters": {
+            "key": "{{ $event.detail.value ? $page.variables.selKey : '' }}"
+          }
+        }
+      ]
+    },
+    "onDrawerClose": {
+      "chains": [
+        {
+          "chain": "selectChain",
+          "parameters": {
+            "key": ""
+          }
+        }
+      ]
+    },
+    "evidenceChanged": {
+      "chains": [
+        {
+          "chain": "evidenceChain",
+          "parameters": {
+            "act": "list"
+          }
+        }
+      ]
+    },
+    "onEvidence": {
+      "chains": [
+        {
+          "chain": "evidenceChain",
+          "parameters": {
+            "act": "{{ $event.currentTarget.dataset.act }}"
+          }
+        }
+      ]
     }
   },
   "imports": {
@@ -127,7 +200,19 @@
       },
       "oj-sp-general-overview-page": {
         "path": "oj-sp/general-overview-page/loader"
+      },
+      "oj-drawer-popup": {
+        "path": "ojs/ojdrawerpopup"
+      },
+      "oj-sp-general-drawer-template": {
+        "path": "oj-sp/general-drawer-template/loader"
       }
+    }
+  },
+  "events": {
+    "evidenceChanged": {
+      "description": "From resources/js/testRecorder.js: a recording or screenshot was saved (or a recording began or ended).",
+      "payloadType": "object"
     }
   }
 }

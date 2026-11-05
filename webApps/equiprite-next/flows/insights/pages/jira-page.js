@@ -1,4 +1,4 @@
-define(['resources/js/jiraBacklog', 'resources/js/exportKit', 'resources/js/testRecorder'], (J, exportKit, Recorder) => {
+define(['resources/js/jiraBacklog', 'resources/js/exportKit', 'resources/js/testRecorder', 'resources/js/jiraStoryPanel'], (J, exportKit, Recorder, Panel) => {
   'use strict';
 
   // Jira stories: binding helpers. The rules are resources/js/jiraBacklog.js (the same file Old EquipRite's Jira
@@ -17,17 +17,8 @@ define(['resources/js/jiraBacklog', 'resources/js/exportKit', 'resources/js/test
       // item's evidence is read again (evidenceChain).
       const helper = context && typeof context.getEventHelper === 'function' ? context.getEventHelper() : null;
       if (Recorder && typeof Recorder.onChange === 'function') Recorder.onChange('jira-page', () => { if (helper) helper.fireCustomEvent('evidenceChanged', {}); });
-      // Escape closes the item's drawer through its own Close button (the drawer hides itself on Escape, but its
-      // opened-changed does not reliably reach the page, which would then think the item is still open). Capture phase:
-      // before the drawer acts on the key. One listener for the module.
-      if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !PageModule.keysBound) {
-        PageModule.keysBound = true;
-        document.addEventListener('keydown', (e) => {
-          if (e.key !== 'Escape') return;
-          const close = [...document.querySelectorAll('#jiraDrawer button[aria-label^="Close"]')].filter((n) => n.getClientRects().length)[0];
-          if (close) { e.stopPropagation(); e.preventDefault(); close.click(); }
-        }, true);
-      }
+      // Escape closes the item's drawer (resources/js/jiraStoryPanel.js).
+      Panel.closeOnEscape();
     }
 
     presets() { return J.PRESETS; }
@@ -79,36 +70,9 @@ define(['resources/js/jiraBacklog', 'resources/js/exportKit', 'resources/js/test
     /** A status as Oracle's badge. */
     badge(cat) { return BADGE[cat] || BADGE.new; }
 
-    /** The item open in the drawer, or an empty one. */
-    item(rows, key) {
-      return (rows || []).filter((r) => r.key === key)[0] || { key: '', summary: '', fdd: [], checks: [], gaps: [], comments: [], labels: [], attachments: [], bodyImages: [] };
-    }
-    drawerOpen(rows, key) { return !!key && (rows || []).some((r) => r.key === key); }
 
-    /** An image of the open item: its URL once read, '' until then (or when it could not be read). */
-    imageUrl(images, id) { return (images && id && images[id]) || ''; }
-    /** What an image's place says before (or instead of) the image. */
-    imageNote(images, id) {
-      if (!id) return 'Not attached to the story';
-      return images && Object.prototype.hasOwnProperty.call(images, id) && !images[id] ? 'Could not be read from Jira' : 'Loading the image…';
-    }
-    /** The item's images among its attachments, and the other files. */
-    imageFiles(r) { return ((r && r.attachments) || []).filter((a) => a.image); }
-    otherFiles(r) { return ((r && r.attachments) || []).filter((a) => !a.image); }
 
-    /** The open item's recordings and screenshots. */
-    videos(ev) { return ((ev && ev.items) || []).filter((x) => x.kind === 'video'); }
-    shots(ev) { return ((ev && ev.items) || []).filter((x) => x.kind === 'image'); }
-    /** "5 Nov 14:03 · 12.4 MB". */
-    evidenceText(x) {
-      if (!x) return '';
-      const m = /(\d{4}-\d{2}-\d{2}) (\d{2})-(\d{2})/.exec(x.name || '');
-      const size = x.size >= 1048576 ? (Math.round(x.size / 104857.6) / 10) + ' MB' : Math.max(1, Math.round(x.size / 1024)) + ' KB';
-      return (m ? m[1] + ' ' + m[2] + ':' + m[3] : x.name) + ' · ' + size;
-    }
 
-    /** The acceptance criteria as a list of checks. */
-    acList(ac) { return J.acChecks(ac); }
 
     /** A sprint's dates and time left: "1 Jul – 31 Jul · 4 days left". */
     sprintDates(sp) {
@@ -121,22 +85,7 @@ define(['resources/js/jiraBacklog', 'resources/js/exportKit', 'resources/js/test
     /** "Done 3 of 7 (43%)". */
     epicDone(e) { return e ? e.done + ' of ' + e.total + ' (' + e.donePct + '%)' : ''; }
 
-    /** The facts under the drawer's title. */
-    facts(r) {
-      if (!r || !r.key) return [];
-      return [
-        { k: 'Status', v: r.status || '—' }, { k: 'Type', v: r.type || '—' }, { k: 'Priority', v: r.priority || '—' },
-        { k: 'Assignee', v: r.assignee || 'Nobody' }, { k: 'Epic', v: r.epicKey ? r.epicKey + ' ' + r.epicName : '—' },
-        { k: 'Release', v: r.release ? r.release + (r.releaseDate ? ' (' + r.releaseDate + ')' : '') : '—' },
-        { k: 'Sprint', v: r.sprint ? r.sprint + (r.sprintState ? ' · ' + r.sprintState : '') + (r.sprintEnd ? ' · ends ' + r.sprintEnd : '') : '—' },
-        { k: 'Earlier sprints', v: (r.sprintPast || []).length ? r.sprintPast.join(', ') : 'None' },
-        { k: 'Due', v: r.due ? r.due + (r.overdue ? ' · overdue' : '') : '—' }, { k: 'FDD', v: (r.fdd || []).join(', ') || '—' },
-        { k: 'Updated', v: r.updated ? r.updated + (r.idleDays != null ? ' (' + r.idleDays + ' days ago)' : '') : '—' },
-      ];
-    }
 
-    /** "4.5 / 5 · 1 check failed". */
-    scoreText(r) { return r ? r.score + ' / 5' + (r.checks && r.checks.length ? ' · ' + r.checks.length + (r.checks.length === 1 ? ' check failed' : ' checks failed') : '') : ''; }
 
     /** The items shown, in words. */
     countText(shown, rows) {
@@ -151,9 +100,6 @@ define(['resources/js/jiraBacklog', 'resources/js/exportKit', 'resources/js/test
       return has(f) || has(cols);
     }
 
-    /** Redwood: the drawer's subtitle. */
-    drawerSub(r) { return r && r.key ? [r.status, r.epicKey ? r.epicKey + ' ' + r.epicName : ''].filter((x) => !!x).join(' · ') : ''; }
-    drawerTitle(r) { return r && r.key ? r.key + ' ' + r.summary : ''; }
 
     /** Redwood: the header's Refresh (the band's white button) and its other actions. */
     rwPrimary(isLoading) { return same('primary', { label: 'Refresh', icon: 'oj-ux-ico-refresh', display: isLoading ? 'disabled' : 'on' }); }
@@ -165,6 +111,9 @@ define(['resources/js/jiraBacklog', 'resources/js/exportKit', 'resources/js/test
     /** The JQL presets' chip class. */
     presetClass(preset, key) { return 'nx-chip nx-cm-chip--sm' + (preset === key ? ' nx-chip--on' : ''); }
   }
+
+  // The item's drawer: the same helpers as a sprint's tab (resources/js/jiraStoryPanel.js).
+  Object.keys(Panel.helpers).forEach((k) => { PageModule.prototype[k] = Panel.helpers[k]; });
 
   return PageModule;
 });

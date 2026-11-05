@@ -203,6 +203,28 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
       && (await page.getAttribute('#jspGrid .nx-jsp-row[data-key="EQP-12"] a', 'href')) === 'https://equiprite.atlassian.net/browse/EQP-12');
     T.eq('Open in Jira: the sprint\'s items in Jira', await page.getAttribute('#jspOpenJira', 'href'), 'https://equiprite.atlassian.net/issues/?jql=' + encodeURIComponent('project = EQP AND sprint = 5 ORDER BY status ASC, key ASC'));
     await env.shot('next-jira-sprint.png');
+    T.check('beside each key, an icon that opens it in Jira (a new tab)', (await page.getAttribute('#jspGrid .nx-jsp-row[data-key="EQP-12"] .nx-jsp-tojira', 'target')) === '_blank'
+      && (await page.getAttribute('#jspGrid .nx-jsp-row[data-key="EQP-12"] .nx-jsp-tojira', 'aria-label')) === 'Open EQP-12 in Jira');
+    const tabsBefore = page.context().pages().length;
+    await page.click('#jspGrid .nx-jsp-row[data-key="EQP-12"] .nx-jsp-keybtn');
+    await page.waitForSelector('#jspItem', { state: 'visible', timeout: 10000 });
+    await settle(page, 500);
+    T.check('the key opens the story in the drawer, here (not Jira)', page.context().pages().length === tabsBefore
+      && (await text(page, '#jspDrawer')).includes('EQP-12 Equipment Master List View - Section 7.2') && (await texts(page, '#jspAc li')).length === 3
+      && (await texts(page, '#jspItemGaps li')).length === 4, (await text(page, '#jspDrawer')).slice(0, 200));
+    T.eq('…its Open in Jira', await page.getAttribute('#jspOpenInJira', 'href'), 'https://equiprite.atlassian.net/browse/EQP-12');
+    await page.waitForFunction(() => { const i = document.querySelector('#jspItem .nx-jira-comment img'); return i && i.complete && i.naturalWidth > 0; }, null, { timeout: 10000 }).catch(() => {});
+    T.check('…the tester\'s screenshot, its attachments, and its test evidence (Record) as on Jira stories', await page.$eval('#jspItem .nx-jira-comment img', (i) => i.naturalWidth > 0).catch(() => false)
+      && (await page.$$('#jspAttachments img')).length === 1 && await page.isVisible('#jspRecord'));
+    await env.shot('next-jira-sprint-drawer.png');
+    await page.keyboard.press('Escape');
+    await page.waitForSelector('#jspItem', { state: 'hidden', timeout: 5000 }).catch(() => {});
+    T.check('Escape closes it', !(await page.isVisible('#jspItem')));
+    await page.click('#jspGrid .nx-jsp-row[data-key="EQP-12"] .nx-jsp-sumbtn');
+    await page.waitForSelector('#jspItem', { state: 'visible', timeout: 10000 }).catch(() => {});
+    T.check('the summary opens it too', await page.isVisible('#jspItem'));
+    await page.locator('#jspDrawer button[aria-label^="Close"]').first().click();
+    await page.waitForSelector('#jspItem', { state: 'hidden', timeout: 5000 }).catch(() => {});
     await page.locator('[role="tab"]', { hasText: 'Jira stories' }).first().click();
     await page.waitForSelector('#jiraGrid', { state: 'visible', timeout: 10000 });
     await settle(page, 400);
