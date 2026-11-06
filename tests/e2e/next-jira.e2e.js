@@ -97,11 +97,14 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
   // a stand-in Whisper engine (the real one needs ffmpeg + whisper.cpp, or an OpenAI key, on the person's PC).
   // It starts without a model (so "Set up transcription" shows); downloading one makes it ready, as on a real PC.
   const transcribed = [];
-  let modelReady = false;
+  const installed = [];
+  let ffmpegReady = false;   // installed via the Install button below
+  let modelReady = false;    // downloaded via Download model
   const transcribe = {
-    info: () => ({ engines: modelReady ? ['local'] : [], local: { ready: modelReady, ffmpeg: true, whisper: true, models: modelReady ? ['ggml-base.bin'] : [] },
-      openai: { ready: false }, platform: 'linux', install: { ffmpeg: 'brew install ffmpeg', whisper: 'brew install whisper-cpp' }, canDownload: true,
+    info: () => ({ engines: (ffmpegReady && modelReady) ? ['local'] : [], local: { ready: ffmpegReady && modelReady, ffmpeg: ffmpegReady, whisper: true, models: modelReady ? ['ggml-base.bin'] : [] },
+      openai: { ready: false }, platform: 'linux', install: { ffmpeg: 'sudo apt-get install -y ffmpeg', whisper: 'brew install whisper-cpp' }, installable: { ffmpeg: !ffmpegReady, whisper: false }, canDownload: true,
       catalog: [{ name: 'ggml-base.bin', label: 'Base — a good balance (recommended)', mb: 142, have: modelReady }] }),
+    install: (what) => { if (what === 'ffmpeg') ffmpegReady = true; installed.push(what); return Promise.resolve({ ok: true, code: 0, output: 'installed ' + what, cmd: 'apt-get install ffmpeg' }); },
     downloadModel: (name) => { modelReady = true; return Promise.resolve({ ok: true, name, size: 142 * 1048576 }); },
     revealModels: () => ({ dir: '/models' }),
     transcribe: (file, opts) => { transcribed.push({ file, opts }); return Promise.resolve({ ok: true, engine: 'local', lang: 'en', model: 'ggml-base.bin',
@@ -116,6 +119,11 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     T.check('on the desktop app, with Whisper not set up, the setup helper opens by itself', await page.isVisible('#eqrSetup')
       && (await text(page, '#eqrSetup')).includes('Set up transcription') && await page.isVisible('#eqrSetSkip'));
     await env.shot('next-jira-whisper-prompt.png');
+    T.check('ffmpeg is missing, with an Install button (not just a command to copy)', await page.isVisible('#eqrSetup button[data-install="ffmpeg"]'));
+    await page.click('#eqrSetup button[data-install="ffmpeg"]');
+    await page.waitForSelector('#eqrSetup button[data-install="ffmpeg"]', { state: 'detached', timeout: 10000 });
+    T.check('Install runs the OS installer and the check updates in place (ffmpeg now found)', installed.indexOf('ffmpeg') !== -1
+      && !(await page.$('#eqrSetup button[data-install="ffmpeg"]')));
     await page.click('#eqrSetClose');
     await page.waitForSelector('#eqrSetup', { state: 'detached', timeout: 5000 }).catch(() => {});
     T.check('it does not block the page: the Connect form is there behind it', await page.isVisible('#jiraConn'));

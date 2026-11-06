@@ -120,19 +120,10 @@ async function transcriber() {
   }
   return transcriberInst;
 }
-// Find a command on the PATH (and the usual install folders), without a shell. Returns its path, or '' if not found.
+// Find a command for transcription (ffmpeg, whisper-cli), looking beyond the app's start-time PATH — in winget, Scoop,
+// Chocolatey and Homebrew folders — so a tool just installed is found without restarting the app (lib/findCommand.js).
 function commandPath(cmd) {
-  const exts = process.platform === 'win32' ? (process.env.PATHEXT || '.EXE;.CMD;.BAT').split(';') : [''];
-  const dirs = String(process.env.PATH || '').split(path.delimiter).concat(
-    process.platform === 'darwin' ? ['/opt/homebrew/bin', '/usr/local/bin'] : (process.platform === 'linux' ? ['/usr/local/bin', '/usr/bin'] : []));
-  for (const d of dirs) {
-    if (!d) continue;
-    for (const e of exts) {
-      const p = path.join(d, cmd + e);
-      try { if (fs.existsSync(p) && fs.statSync(p).isFile()) return p; } catch (err) { /* keep looking */ }
-    }
-  }
-  return '';
+  return require('./lib/findCommand').find(cmd, {});
 }
 let recSource = '';
 const REC_KEYS = { shot: 'CommandOrControl+Alt+S', stop: 'CommandOrControl+Alt+X' };

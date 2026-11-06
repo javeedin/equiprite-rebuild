@@ -36,11 +36,17 @@ const MODELS = [
   { name: 'ggml-base.en.bin', label: 'Base, English only', mb: 142 },
   { name: 'ggml-small.en.bin', label: 'Small, English only', mb: 466 },
 ];
-// What to run to install the missing pieces, per OS (shown in the setup helper; no secrets, no auto-run).
+// What to run to install the missing pieces, per OS (shown in the setup helper; no secrets).
 const INSTALL = {
   darwin: { ffmpeg: 'brew install ffmpeg', whisper: 'brew install whisper-cpp' },
   linux: { ffmpeg: 'sudo apt-get install -y ffmpeg', whisper: 'Build whisper.cpp (github.com/ggerganov/whisper.cpp), then put "whisper-cli" on your PATH.' },
   win32: { ffmpeg: 'winget install Gyan.FFmpeg', whisper: 'Download a whisper.cpp release (github.com/ggerganov/whisper.cpp/releases) and put whisper-cli.exe on your PATH.' },
+};
+// The ones the app can run for the person (the "Install" button), as argv (no shell). Others are install-by-hand.
+const INSTALL_CMD = {
+  darwin: { ffmpeg: ['brew', 'install', 'ffmpeg'], whisper: ['brew', 'install', 'whisper-cpp'] },
+  linux: { ffmpeg: ['sudo', 'apt-get', 'install', '-y', 'ffmpeg'] },
+  win32: { ffmpeg: ['winget', 'install', '-e', '--id', 'Gyan.FFmpeg', '--accept-source-agreements', '--accept-package-agreements'] },
 };
 
 function trim(v) { return v == null ? '' : String(v).trim(); }
@@ -115,8 +121,25 @@ function open(o) {
     if (local.ready) engines.push('local');
     if (openai.ready) engines.push('openai');
     const platform = process.platform;
+    const cmds = INSTALL_CMD[platform] || {};
     return { local, openai, engines, modelsDir, platform, install: INSTALL[platform] || INSTALL.linux,
+      // which missing pieces the "Install" button can run here (others are install-by-hand)
+      installable: { ffmpeg: !ffmpeg && !!cmds.ffmpeg && !!run, whisper: !whisper && !!cmds.whisper && !!run },
       catalog: MODELS.map((m) => ({ name: m.name, label: m.label, mb: m.mb, have: ms.indexOf(m.name) !== -1 })), canDownload: !!doFetch };
+  }
+
+  /** Run the installer for a missing piece (the "Install" button): winget / brew. Returns what it printed. */
+  async function install(what) {
+    const cmd = (INSTALL_CMD[process.platform] || {})[what];
+    if (!cmd) return { ok: false, error: 'There is no one-click install for ' + what + ' on this system — use the command shown.' };
+    if (!run) return { ok: false, error: 'This PC cannot run an installer from the app.' };
+    try {
+      const r = await run(cmd[0], cmd.slice(1), {});
+      const out = ((r.stdout || '') + '\n' + (r.stderr || '')).trim();
+      return { ok: r.code === 0, code: r.code, output: out.slice(-3000), cmd: cmd.join(' ') };
+    } catch (e) {
+      return { ok: false, error: trim(e && e.message) || 'The installer could not be started.', cmd: cmd.join(' ') };
+    }
   }
 
   /** Fetch a Whisper model into modelsDir (the setup helper's "Download model"). */
@@ -209,7 +232,7 @@ function open(o) {
       setup: 'Either build whisper.cpp with a model on this PC (private, offline), or set an OpenAI key in Ask AI (the audio is sent to OpenAI).' });
   }
 
-  return { info, transcribe, downloadModel, revealModels, __localCommands: localCommands };
+  return { info, transcribe, downloadModel, revealModels, install, __localCommands: localCommands };
 }
 
-module.exports = { open, parseWhisperJson, parseOpenai, parseSrt, toText, toSrt, srtTime, MODEL_RX, WHISPER_BINS, MODELS, INSTALL };
+module.exports = { open, parseWhisperJson, parseOpenai, parseSrt, toText, toSrt, srtTime, MODEL_RX, WHISPER_BINS, MODELS, INSTALL, INSTALL_CMD };

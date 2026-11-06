@@ -607,6 +607,13 @@ function createDevServer(o) {
             return json(200, r);
           }
           if (pathname === '/__rec/transcribe-reveal') { return json(200, o.transcribe ? o.transcribe.revealModels() : { error: 'Transcription is not available.' }); }
+          // Run the installer for a missing piece (the setup helper's Install button): winget / brew.
+          if (pathname === '/__rec/transcribe-install') {
+            if (!o.transcribe || !o.transcribe.install) return json(200, { ok: false, error: 'Transcription is not available.' });
+            const r = await o.transcribe.install(q('what'));
+            log(`Install ${q('what')} (${r.cmd || ''}): ${r.ok ? 'done' : 'failed'}`);
+            return json(200, r);
+          }
           if (pathname === '/__rec/transcribe') {
             if (!o.transcribe) return json(200, { ok: false, error: 'Transcription is not available.' });
             const file = rs.file(q('key'), q('name'));

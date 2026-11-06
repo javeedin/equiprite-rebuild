@@ -168,6 +168,20 @@ T.check('the catalog offers several models to download, none here yet', setup.in
 const tooSmall = TX.open({ which: () => '', modelsDir: path.join(dir, 'ws2'), fetch: () => Promise.resolve({ ok: true, status: 200, arrayBuffer: () => Promise.resolve(new Uint8Array(10).buffer) }) });
 (async () => { const r = await tooSmall.downloadModel('ggml-tiny.bin'); T.check('a truncated download is rejected, not kept', !r.ok && !fs.existsSync(path.join(dir, 'ws2', 'ggml-tiny.bin'))); })();
 
+T.section('the Install button runs the installer for a missing piece');
+// no ffmpeg; a fake "run" stands in for winget / brew
+const installRan = [];
+const installer = TX.open({ which: (c) => (c === 'ffmpeg' ? '' : '/usr/bin/' + c), modelsDir: path.join(dir, 'ws3'),
+  run: (cmd, args) => { installRan.push(cmd + ' ' + args.join(' ')); return Promise.resolve({ code: 0, stdout: 'Successfully installed', stderr: '' }); } });
+T.check('info says ffmpeg can be installed here (there is a command for this OS)', installer.info().installable.ffmpeg === true);
+(async () => {
+  const r = await installer.install('ffmpeg');
+  T.check('Install ffmpeg runs the OS installer and reports success', r.ok && /Successfully installed/.test(r.output)
+    && (installRan[0].startsWith('winget ') || installRan[0].startsWith('brew ') || installRan[0].startsWith('sudo ')), JSON.stringify(installRan));
+  const bad = await installer.install('something-else');
+  T.check('a piece with no one-click install says so (not a fake success)', !bad.ok && /no one-click install/.test(bad.error));
+})();
+
 T.section('the store keeps a transcript next to its recording');
 clock = new Date(2026, 10, 5, 16, 0, 0);
 const vrec = store.start('EQP-500', 'webm');
@@ -286,7 +300,8 @@ T.check('removing a recording removes its trace', !fs.existsSync(path.join(dir, 
   const fakeTx = { info: () => ({ engines: ['local'], local: { ready: true }, openai: { ready: false }, catalog: [{ name: 'ggml-base.bin', label: 'Base', mb: 142, have: false }], platform: 'linux', install: { ffmpeg: 'x', whisper: 'y' }, canDownload: true }),
     transcribe: (file) => Promise.resolve({ ok: !!file, engine: 'local', lang: 'en', model: 'ggml-base.bin', segments: [{ start: 0, end: 2.5, text: 'The map does not load here.' }, { start: 2.5, end: 5, text: 'I click edit and nothing.' }], ms: 5 }),
     downloadModel: (name) => Promise.resolve({ ok: true, name, size: 142 * 1048576 }),
-    revealModels: () => { revealedModels.push(1); return { dir: '/models' }; } };
+    revealModels: () => { revealedModels.push(1); return { dir: '/models' }; },
+    install: (what) => Promise.resolve({ ok: true, code: 0, output: 'installed ' + what, cmd: 'winget install ...' }) };
   const srv2 = await DS.createDevServer({ buildDir: build, webApp: 'vbredwoodapp', repoRoot: ROOT, port: 0, getIdentity: () => ({ username: 'tester' }), recStore: rs2, transcribe: fakeTx, onLog: () => {} });
   const req2 = (method, p, headers, body) => new Promise((resolve, reject) => {
     const q = http.request({ host: 'localhost', port: srv2.port, path: p, method, headers: headers || {} }, (res) => {
@@ -334,6 +349,8 @@ T.check('removing a recording removes its trace', !fs.existsSync(path.join(dir, 
     T.eq('the setup helper can download a model (write-guarded)', [(await req2('POST', '/__rec/transcribe-model?name=ggml-base.bin')).status,
       JSON.parse((await req2('POST', '/__rec/transcribe-model?name=ggml-base.bin', W)).body).ok].join(), '403,true');
     T.check('…and open the models folder', JSON.parse((await req2('POST', '/__rec/transcribe-reveal', W)).body).dir === '/models' && revealedModels.length === 1);
+    T.eq('…and run the installer (write-guarded)', [(await req2('POST', '/__rec/transcribe-install?what=ffmpeg')).status,
+      JSON.parse((await req2('POST', '/__rec/transcribe-install?what=ffmpeg', W)).body).ok].join(), '403,true');
     T.eq('a write without the page\'s header: transcribe refused', (await req2('POST', '/__rec/transcribe?key=EQP-12&name=' + encodeURIComponent(fin.name))).status, 403);
     const tr = JSON.parse((await req2('POST', '/__rec/transcribe?key=EQP-12&name=' + encodeURIComponent(fin.name) + '&engine=local', W)).body);
     T.eq('transcribe: Whisper runs and the transcript is kept', [tr.ok, tr.engine, tr.lines, !!tr.item.transcript].join(' | '), 'true | local | 2 | true');

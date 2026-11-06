@@ -709,6 +709,7 @@ define([], function () {
 
   async function downloadModel(name) { return post('/__rec/transcribe-model?name=' + encodeURIComponent(name)); }
   async function revealModels() { return post('/__rec/transcribe-reveal'); }
+  async function transcribeInstall(what) { return post('/__rec/transcribe-install?what=' + encodeURIComponent(what)); }
 
   /** Set up transcription: what is installed (ffmpeg, whisper.cpp, a model), a one-click model download, the commands
    *  for whatever is missing, and the OpenAI alternative. Resolves when it closes. */
@@ -737,13 +738,30 @@ define([], function () {
         if (note) d.appendChild(el('span', { class: 'eqr-rec-hint' }, note));
         return d;
       }
-      function cmd(text) {
+      function cmd(text, what, canInstall) {
+        var wrap = el('div', {});
         var row = el('div', { class: 'eqr-set-cmd' });
         var pre = el('code', {}, text);
         var b = el('button', { type: 'button', class: 'eqr-rec-btn' }, 'Copy');
         b.addEventListener('click', function () { copyText(text, b); });
         row.appendChild(pre);
         row.appendChild(b);
+        if (canInstall) {
+          var go = el('button', { type: 'button', class: 'eqr-rec-btn eqr-rec-btn--go', 'data-install': what }, 'Install');
+          var msg = el('span', { class: 'eqr-rec-hint' });
+          go.addEventListener('click', function () {
+            go.disabled = true; b.disabled = true;
+            msg.textContent = 'Installing ' + what + '… this can take a few minutes. You can keep working.';
+            transcribeInstall(what).then(function (r) {
+              if (r && r.ok) { msg.textContent = 'Installed ' + what + '.'; render(); }
+              else { msg.textContent = (r && (r.error || 'Install failed.')) + ' You can run the command above yourself.'; go.disabled = false; b.disabled = false; }
+            }).catch(function () { msg.textContent = 'Install failed — run the command above yourself.'; go.disabled = false; b.disabled = false; });
+          });
+          row.appendChild(go);
+          wrap.appendChild(row);
+          wrap.appendChild(msg);
+          return wrap;
+        }
         return row;
       }
       async function render() {
@@ -784,8 +802,9 @@ define([], function () {
         }
         if (!L.ffmpeg || !L.whisper) {
           box.appendChild(el('h3', { class: 'eqr-set-h3' }, 'Install what is missing, then "Check again"'));
-          if (!L.ffmpeg && info.install) box.appendChild(cmd(info.install.ffmpeg));
-          if (!L.whisper && info.install) box.appendChild(cmd(info.install.whisper));
+          var inst = info.installable || {};
+          if (!L.ffmpeg && info.install) box.appendChild(cmd(info.install.ffmpeg, 'ffmpeg', !!inst.ffmpeg));
+          if (!L.whisper && info.install) box.appendChild(cmd(info.install.whisper, 'whisper', !!inst.whisper));
         }
         if ((info.openai || {}).ready) box.appendChild(line(true, 'OpenAI Whisper is ready (the key set in Ask AI).'));
         else box.appendChild(el('p', { class: 'eqr-rec-hint' }, 'Or set an OpenAI key in SQL worksheet → Ask AI to transcribe without installing anything (the audio is sent to OpenAI).'));
