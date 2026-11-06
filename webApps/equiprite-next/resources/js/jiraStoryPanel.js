@@ -86,7 +86,7 @@ define(['resources/js/jiraBacklog'], (J) => {
     const sel = DRAWERS.map((d) => d + ' button[aria-label^="Close"]').join(', ');
     document.addEventListener('keydown', (e) => {
       // the recorder's picker, a recording's technical trace, or its transcript closes first
-      if (e.key !== 'Escape' || document.getElementById('eqrRecPicker') || document.getElementById('eqrTrace') || document.getElementById('eqrTx')) return;
+      if (e.key !== 'Escape' || document.getElementById('eqrRecPicker') || document.getElementById('eqrTrace') || document.getElementById('eqrTx') || document.getElementById('eqrSetup')) return;
       const close = [...document.querySelectorAll(sel)].filter((n) => n.getClientRects().length)[0];
       if (close) { e.stopPropagation(); e.preventDefault(); close.click(); }
     }, true);

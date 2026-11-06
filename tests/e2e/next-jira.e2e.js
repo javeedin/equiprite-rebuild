@@ -94,9 +94,16 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
   const evidenceDir = path.join(dir, 'EquipRite Test Evidence');
   const recStore = TE.open({ dir: evidenceDir, reveal: (f) => { revealed.push(f); } });
   const revealed = [];
-  // a stand-in Whisper engine (the real one needs ffmpeg + whisper.cpp, or an OpenAI key, on the person's PC)
+  // a stand-in Whisper engine (the real one needs ffmpeg + whisper.cpp, or an OpenAI key, on the person's PC).
+  // It starts without a model (so "Set up transcription" shows); downloading one makes it ready, as on a real PC.
   const transcribed = [];
-  const transcribe = { info: () => ({ engines: ['local'], local: { ready: true }, openai: { ready: false } }),
+  let modelReady = false;
+  const transcribe = {
+    info: () => ({ engines: modelReady ? ['local'] : [], local: { ready: modelReady, ffmpeg: true, whisper: true, models: modelReady ? ['ggml-base.bin'] : [] },
+      openai: { ready: false }, platform: 'linux', install: { ffmpeg: 'brew install ffmpeg', whisper: 'brew install whisper-cpp' }, canDownload: true,
+      catalog: [{ name: 'ggml-base.bin', label: 'Base — a good balance (recommended)', mb: 142, have: modelReady }] }),
+    downloadModel: (name) => { modelReady = true; return Promise.resolve({ ok: true, name, size: 142 * 1048576 }); },
+    revealModels: () => ({ dir: '/models' }),
     transcribe: (file, opts) => { transcribed.push({ file, opts }); return Promise.resolve({ ok: true, engine: 'local', lang: 'en', model: 'ggml-base.bin',
       segments: [{ start: 0, end: 2.6, text: 'The map does not load on this story.' }, { start: 2.6, end: 5.2, text: 'I click Edit and nothing happens.' }], ms: 20 }); } };
   const env = await E.start({ port: 19760, handle, app: 'next', jiraStore, recStore, transcribe, init: E.recorderStub });
@@ -384,8 +391,24 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
 
     T.section('the recording\'s voice, turned to text with Whisper');
     T.check('the microphone was recorded with the screen (Record my voice)', (await page.evaluate(() => window.__micCalls || 0)) >= 1);
+
+    T.section('set up transcription from the panel when Whisper is not ready');
+    await page.waitForSelector('#jiraTxSetup', { timeout: 10000 });
+    T.check('no engine yet: a "Set up transcription" button, and no Transcribe button', await page.isVisible('#jiraTxSetup')
+      && !(await page.$('#jiraEvidence .nx-jira-txbtn[data-act="transcribe"]')));
+    await page.click('#jiraTxSetup');
+    await page.waitForSelector('#eqrSetup', { timeout: 10000 });
+    T.check('the setup helper: ffmpeg and whisper found, no model yet, a model to download', (await text(page, '#eqrSetup')).includes('ffmpeg')
+      && (await text(page, '#eqrSetup')).includes('whisper.cpp') && await page.isVisible('#eqrSetDownload') && (await text(page, '#eqrSetup')).includes('Not ready yet'));
+    await env.shot('next-jira-transcribe-setup.png');
+    await page.click('#eqrSetDownload');
+    await page.waitForFunction(() => /Ready to transcribe/.test((document.querySelector('#eqrSetup') || {}).textContent || ''), null, { timeout: 10000 });
+    T.check('downloading a model makes it ready, in place', (await text(page, '#eqrSetup')).includes('Ready to transcribe'));
+    await page.click('#eqrSetClose');
+    await page.waitForSelector('#eqrSetup', { state: 'detached', timeout: 5000 }).catch(() => {});
     await page.waitForSelector('#jiraEvidence .nx-jira-txbtn[data-act="transcribe"]', { timeout: 10000 });
-    T.check('under the recording: Transcribe the voice (a Whisper engine is set up)', await page.isVisible('#jiraEvidence .nx-jira-txbtn[data-act="transcribe"]'));
+    T.check('back on the panel: now "Transcribe the voice" appears, and the setup button is gone', await page.isVisible('#jiraEvidence .nx-jira-txbtn[data-act="transcribe"]')
+      && !(await page.$('#jiraTxSetup')));
     await page.click('#jiraEvidence .nx-jira-txbtn[data-act="transcribe"]');
     await page.waitForSelector('#jiraEvidence .nx-jira-txbtn[data-act="transcript"]', { timeout: 10000 });
     T.check('Whisper ran on the recording, and the button becomes Transcript · N lines', transcribed.length === 1 && /recording\.(webm|mp4)$/.test(transcribed[0].file)

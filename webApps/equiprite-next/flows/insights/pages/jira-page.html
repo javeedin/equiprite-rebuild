@@ -463,6 +463,10 @@
               </oj-bind-if>
               <button type="button" class="nx-btn nx-btn--sm" id="jiraShot" data-act="shot" on-click="[[ $listeners.onEvidence ]]" :disabled="[[ !!$variables.evidence.busy ]]">📷 Screenshot</button>
               <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" id="jiraEvFolder" data-act="folder" on-click="[[ $listeners.onEvidence ]]">Open folder</button>
+              <oj-bind-if test="[[ !$variables.evidence.canTranscribe ]]">
+                <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" id="jiraTxSetup" data-act="setup" on-click="[[ $listeners.onEvidence ]]"
+                  title="Set up Whisper so a recording's voice can be turned into text">⚙ Set up transcription</button>
+              </oj-bind-if>
             </div>
             <oj-bind-if test="[[ !!$variables.evidence.recording && $variables.evidence.recording !== $variables.selKey ]]">
               <p class="nx-note"><oj-bind-text value="[[ 'Recording ' + $variables.evidence.recording + ': stop it (the bar, or Ctrl+Alt+X) before recording this one.' ]]"></oj-bind-text></p>

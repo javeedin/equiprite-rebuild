@@ -599,6 +599,14 @@ function createDevServer(o) {
           if (pathname === '/__rec/reveal') return json(200, rs.reveal(q('key')));
           if (pathname === '/__rec/remove') return json(200, rs.remove(q('key'), q('name')));
           // Transcribe a recording's voice with Whisper (local on this PC, or OpenAI), then keep the transcript next to it.
+          // Set up local Whisper: download a model into the models folder, or open that folder.
+          if (pathname === '/__rec/transcribe-model') {
+            if (!o.transcribe) return json(200, { ok: false, error: 'Transcription is not available.' });
+            const r = await o.transcribe.downloadModel(q('name'));
+            if (r.ok) log(`Downloaded Whisper model ${r.name} (${Math.round(r.size / 1048576)} MB)`);
+            return json(200, r);
+          }
+          if (pathname === '/__rec/transcribe-reveal') { return json(200, o.transcribe ? o.transcribe.revealModels() : { error: 'Transcription is not available.' }); }
           if (pathname === '/__rec/transcribe') {
             if (!o.transcribe) return json(200, { ok: false, error: 'Transcription is not available.' });
             const file = rs.file(q('key'), q('name'));

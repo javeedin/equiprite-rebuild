@@ -113,6 +113,11 @@ define([], function () {
     '.eqr-rec-bar button{border:0;border-radius:999px;padding:6px 12px;font:inherit;font-weight:700;cursor:pointer}',
     '.eqr-rec-bar .eqr-rec-shot{background:#374151;color:#fff}.eqr-rec-bar .eqr-rec-stop{background:#ef4444;color:#fff}',
     '.eqr-rec-hint{font-size:11px;color:#9ca3af}.eqr-rec-flash{color:#86efac;font-weight:700}',
+    // set up transcription
+    '.eqr-set-h3{margin:14px 0 4px;font-size:13px;font-weight:800;color:#111827}.eqr-set-row{display:flex;align-items:center;gap:8px;margin:3px 0;font-size:13px}',
+    '.eqr-set-ok{color:#15803d;font-weight:800}.eqr-set-no{color:#b91c1c;font-weight:800}.eqr-set-ready{color:#15803d;font-weight:700;margin:10px 0 0}',
+    '.eqr-set-dl{margin:8px 0;display:flex;flex-direction:column;gap:6px}.eqr-set-sel{flex:1;border:1px solid #d1d5db;border-radius:6px;padding:6px;font:inherit}',
+    '.eqr-set-cmd{display:flex;align-items:center;gap:8px;margin:4px 0}.eqr-set-cmd code{flex:1;background:#0f172a;color:#e2e8f0;border-radius:6px;padding:7px 10px;font:12px/1.4 ui-monospace,Consolas,monospace;overflow-x:auto;white-space:pre-wrap;word-break:break-word}',
     '.eqr-rec-opts{display:flex;flex-direction:column;gap:4px}.eqr-rec-calls{font-size:12px;color:#cbd5e1}.eqr-rec-calls--bad{color:#fca5a5;font-weight:700}',
     // the technical trace: the video beside its timeline
     '.eqr-tr-veil{position:fixed;inset:0;z-index:2147483002;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;font:13px/1.45 system-ui,Segoe UI,sans-serif}',
@@ -702,6 +707,104 @@ define([], function () {
     return post('/__rec/transcribe?key=' + encodeURIComponent(key) + '&name=' + encodeURIComponent(name) + '&engine=' + encodeURIComponent(o.engine || '') + '&lang=' + encodeURIComponent(o.lang || ''));
   }
 
+  async function downloadModel(name) { return post('/__rec/transcribe-model?name=' + encodeURIComponent(name)); }
+  async function revealModels() { return post('/__rec/transcribe-reveal'); }
+
+  /** Set up transcription: what is installed (ffmpeg, whisper.cpp, a model), a one-click model download, the commands
+   *  for whatever is missing, and the OpenAI alternative. Resolves when it closes. */
+  async function openSetup() {
+    styleOnce();
+    var opener = document.activeElement;
+    var veil = el('div', { class: 'eqr-rec-veil', id: 'eqrSetup', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Set up transcription' });
+    var box = el('div', { class: 'eqr-rec-box' });
+    veil.appendChild(box);
+    return new Promise(function (resolve) {
+      var done = function () { veil.remove(); document.removeEventListener('keydown', esc, true); if (opener && opener.isConnected && opener.focus) { try { opener.focus({ preventScroll: true }); } catch (e) { /* no */ } } resolve(true); };
+      var esc = function (e) { if (e.key === 'Escape') { e.stopPropagation(); e.preventDefault(); done(); } };
+      veil.__close = done;
+      document.addEventListener('keydown', esc, true);
+      function line(ok, label, note) {
+        var d = el('div', { class: 'eqr-set-row' });
+        d.appendChild(el('span', { class: ok ? 'eqr-set-ok' : 'eqr-set-no' }, ok ? '✓' : '✗'));
+        d.appendChild(el('span', {}, label));
+        if (note) d.appendChild(el('span', { class: 'eqr-rec-hint' }, note));
+        return d;
+      }
+      function cmd(text) {
+        var row = el('div', { class: 'eqr-set-cmd' });
+        var pre = el('code', {}, text);
+        var b = el('button', { type: 'button', class: 'eqr-rec-btn' }, 'Copy');
+        b.addEventListener('click', function () { copyText(text, b); });
+        row.appendChild(pre);
+        row.appendChild(b);
+        return row;
+      }
+      async function render() {
+        box.innerHTML = '';
+        box.appendChild(el('h2', {}, 'Set up transcription'));
+        box.appendChild(el('p', {}, 'The voice in a recording is turned to text with Whisper. Set up Whisper on this PC (free, private, offline), or use OpenAI with the key from Ask AI.'));
+        var info = await transcribeInfo();
+        var L = info.local || {};
+        box.appendChild(el('h3', { class: 'eqr-set-h3' }, 'Whisper on this PC'));
+        box.appendChild(line(!!L.ffmpeg, 'ffmpeg (reads the recording’s audio)'));
+        box.appendChild(line(!!L.whisper, 'whisper.cpp (the "whisper-cli" command)'));
+        box.appendChild(line(!!(L.models && L.models.length), 'A Whisper model' + (L.models && L.models.length ? ' (' + L.models.join(', ') + ')' : '')));
+        if (info.canDownload) {
+          var dl = el('div', { class: 'eqr-set-dl' });
+          var sel = el('select', { id: 'eqrSetModel', class: 'eqr-set-sel' });
+          (info.catalog || []).forEach(function (m) {
+            var opt = el('option', { value: m.name }, m.label + ' · ' + m.mb + ' MB' + (m.have ? ' · already here' : ''));
+            sel.appendChild(opt);
+          });
+          var go = el('button', { type: 'button', class: 'eqr-rec-btn eqr-rec-btn--go', id: 'eqrSetDownload' }, 'Download model');
+          var msg = el('span', { class: 'eqr-rec-hint', id: 'eqrSetMsg' }, '');
+          go.addEventListener('click', function () {
+            go.disabled = true; sel.disabled = true;
+            var nm = sel.value;
+            msg.textContent = 'Downloading ' + nm + '… this can take a few minutes.';
+            downloadModel(nm).then(function (r) {
+              if (r && r.ok) { msg.textContent = 'Downloaded ' + r.name + ' (' + Math.round(r.size / 1048576) + ' MB).'; render(); }
+              else { msg.textContent = (r && r.error) || 'The download failed.'; go.disabled = false; sel.disabled = false; }
+            }).catch(function () { msg.textContent = 'The download failed.'; go.disabled = false; sel.disabled = false; });
+          });
+          dl.appendChild(el('label', { for: 'eqrSetModel', class: 'eqr-rec-hint' }, 'Download a model into this PC:'));
+          var dlrow = el('div', { class: 'eqr-set-cmd' });
+          dlrow.appendChild(sel);
+          dlrow.appendChild(go);
+          dl.appendChild(dlrow);
+          dl.appendChild(msg);
+          box.appendChild(dl);
+        }
+        if (!L.ffmpeg || !L.whisper) {
+          box.appendChild(el('h3', { class: 'eqr-set-h3' }, 'Install what is missing, then "Check again"'));
+          if (!L.ffmpeg && info.install) box.appendChild(cmd(info.install.ffmpeg));
+          if (!L.whisper && info.install) box.appendChild(cmd(info.install.whisper));
+        }
+        if ((info.openai || {}).ready) box.appendChild(line(true, 'OpenAI Whisper is ready (the key set in Ask AI).'));
+        else box.appendChild(el('p', { class: 'eqr-rec-hint' }, 'Or set an OpenAI key in SQL worksheet → Ask AI to transcribe without installing anything (the audio is sent to OpenAI).'));
+        var ready = (info.engines || []).length > 0;
+        box.appendChild(el('p', { class: ready ? 'eqr-set-ready' : 'eqr-rec-hint' }, ready ? '✓ Ready to transcribe (' + info.engines.join(' and ') + ').' : 'Not ready yet — add one of the above.'));
+        var row = el('div', { class: 'eqr-rec-row' });
+        var left = el('div', {});
+        var folder = el('button', { type: 'button', class: 'eqr-rec-btn' }, 'Open models folder');
+        folder.addEventListener('click', function () { revealModels(); });
+        var again = el('button', { type: 'button', class: 'eqr-rec-btn' }, 'Check again');
+        again.addEventListener('click', function () { render(); });
+        left.appendChild(folder);
+        left.appendChild(document.createTextNode(' '));
+        left.appendChild(again);
+        var close = el('button', { type: 'button', class: 'eqr-rec-btn', id: 'eqrSetClose' }, 'Close');
+        close.addEventListener('click', done);
+        row.appendChild(left);
+        row.appendChild(close);
+        box.appendChild(row);
+        close.focus();
+      }
+      document.body.appendChild(veil);
+      render();
+    });
+  }
+
   /** A recording's transcript beside its video: the line being spoken is marked as it plays; a line seeks the video. */
   async function openTranscript(key, name) {
     styleOnce();
@@ -785,5 +888,5 @@ define([], function () {
 
   return { available: available, list: list, reveal: reveal, begin: begin, shot: shot, stop: stop, onChange: onChange, state: state, keepFocus: keepFocus,
     openTrace: openTrace, closeTrace: closeTrace, index: index, traceSummary: traceSummary,
-    transcribeInfo: transcribeInfo, transcribe: transcribe, openTranscript: openTranscript, CHUNK_MS: CHUNK_MS };
+    transcribeInfo: transcribeInfo, transcribe: transcribe, openTranscript: openTranscript, openSetup: openSetup, downloadModel: downloadModel, revealModels: revealModels, CHUNK_MS: CHUNK_MS };
 });

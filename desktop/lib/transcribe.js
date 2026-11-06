@@ -9,9 +9,11 @@
  *   openai  OpenAI's Whisper API, with the OpenAI key already set for Ask AI. The audio is sent to OpenAI — opt-in,
  *           and said plainly in the app.
  *
- *   open({ run, which, fetch, modelsDir, tmpDir, openaiKey, now }) → engine
- *   info()                         → { local: { ready, ffmpeg, whisper, models }, openai: { ready }, engines: [...] }
+ *   open({ run, which, fetch, modelsDir, tmpDir, openaiKey, reveal, now }) → engine
+ *   info()                         → { local: { ready, ffmpeg, whisper, models }, openai: { ready }, engines: [...], platform, modelsDir, catalog }
  *   transcribe(file, { engine, lang }) → { ok, engine, lang, model, segments: [{ start, end, text }], ms } | { ok:false, error, setup }
+ *   downloadModel(name)            → { ok, name, size } | { ok:false, error }   a Whisper model fetched into modelsDir
+ *   revealModels()                 → opens the models folder (desktop: the file manager)
  *
  * The transcript holds only the words spoken and when; no credential is in it, and the audio stays on this PC unless the
  * person picks the OpenAI engine. Parsing (whisper.cpp JSON, SRT, OpenAI verbose_json) and the commands are pure, so
@@ -25,6 +27,21 @@ const MODEL_RX = /^ggml-.*\.bin$/i;                 // whisper.cpp model files: 
 const WHISPER_BINS = ['whisper-cli', 'whisper-cpp', 'main', 'whisper'];  // whisper.cpp names across versions/installs
 const OPENAI_URL = 'https://api.openai.com/v1/audio/transcriptions';
 const MAX_SECONDS = 60 * 60;
+// Whisper models the setup can download (from whisper.cpp's model repository). Bigger = more accurate, slower.
+const MODEL_BASE = 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/';
+const MODELS = [
+  { name: 'ggml-tiny.bin', label: 'Tiny — fastest, roughest', mb: 75 },
+  { name: 'ggml-base.bin', label: 'Base — a good balance (recommended)', mb: 142 },
+  { name: 'ggml-small.bin', label: 'Small — more accurate, slower', mb: 466 },
+  { name: 'ggml-base.en.bin', label: 'Base, English only', mb: 142 },
+  { name: 'ggml-small.en.bin', label: 'Small, English only', mb: 466 },
+];
+// What to run to install the missing pieces, per OS (shown in the setup helper; no secrets, no auto-run).
+const INSTALL = {
+  darwin: { ffmpeg: 'brew install ffmpeg', whisper: 'brew install whisper-cpp' },
+  linux: { ffmpeg: 'sudo apt-get install -y ffmpeg', whisper: 'Build whisper.cpp (github.com/ggerganov/whisper.cpp), then put "whisper-cli" on your PATH.' },
+  win32: { ffmpeg: 'winget install Gyan.FFmpeg', whisper: 'Download a whisper.cpp release (github.com/ggerganov/whisper.cpp/releases) and put whisper-cli.exe on your PATH.' },
+};
 
 function trim(v) { return v == null ? '' : String(v).trim(); }
 
@@ -97,8 +114,34 @@ function open(o) {
     const engines = [];
     if (local.ready) engines.push('local');
     if (openai.ready) engines.push('openai');
-    return { local, openai, engines, modelsDir };
+    const platform = process.platform;
+    return { local, openai, engines, modelsDir, platform, install: INSTALL[platform] || INSTALL.linux,
+      catalog: MODELS.map((m) => ({ name: m.name, label: m.label, mb: m.mb, have: ms.indexOf(m.name) !== -1 })), canDownload: !!doFetch };
   }
+
+  /** Fetch a Whisper model into modelsDir (the setup helper's "Download model"). */
+  async function downloadModel(name) {
+    const m = MODELS.filter((x) => x.name === name)[0];
+    if (!m) return { ok: false, error: 'Unknown model.' };
+    if (!doFetch) return { ok: false, error: 'This PC cannot download from the desktop app.' };
+    try {
+      fs.mkdirSync(modelsDir, { recursive: true });
+      const dest = path.join(modelsDir, m.name);
+      const tmp = dest + '.part';
+      const res = await doFetch(MODEL_BASE + m.name, {});
+      if (!res || !res.ok) return { ok: false, error: 'Download failed (HTTP ' + ((res && res.status) || '?') + ').' };
+      const buf = Buffer.from(await res.arrayBuffer());
+      if (buf.length < 1024 * 1024) { return { ok: false, error: 'The download was too small to be a model.' }; }
+      fs.writeFileSync(tmp, buf);
+      fs.renameSync(tmp, dest);
+      return { ok: true, name: m.name, size: buf.length };
+    } catch (e) {
+      try { const tmp = path.join(modelsDir, m.name + '.part'); if (fs.existsSync(tmp)) fs.unlinkSync(tmp); } catch (e2) { /* leave it */ }
+      return { ok: false, error: trim(e && e.message) || 'The download failed.' };
+    }
+  }
+
+  function revealModels() { try { fs.mkdirSync(modelsDir, { recursive: true }); } catch (e) { /* exists */ } if (o.reveal) o.reveal(modelsDir); return { dir: modelsDir }; }
 
   /** The commands the local engine runs, as data (so a test can check them without spawning anything). */
   function localCommands(file, wav, model) {
@@ -166,7 +209,7 @@ function open(o) {
       setup: 'Either build whisper.cpp with a model on this PC (private, offline), or set an OpenAI key in Ask AI (the audio is sent to OpenAI).' });
   }
 
-  return { info, transcribe, __localCommands: localCommands };
+  return { info, transcribe, downloadModel, revealModels, __localCommands: localCommands };
 }
 
-module.exports = { open, parseWhisperJson, parseOpenai, parseSrt, toText, toSrt, srtTime, MODEL_RX, WHISPER_BINS };
+module.exports = { open, parseWhisperJson, parseOpenai, parseSrt, toText, toSrt, srtTime, MODEL_RX, WHISPER_BINS, MODELS, INSTALL };

@@ -619,6 +619,10 @@
               </oj-bind-if>
               <oj-button id="jiraShot" chroming="outlined" data-act="shot" on-oj-action="[[ $listeners.onEvidence ]]" disabled="[[ !!$variables.evidence.busy ]]">📷 Screenshot</oj-button>
               <oj-button id="jiraEvFolder" chroming="borderless" data-act="folder" on-oj-action="[[ $listeners.onEvidence ]]">Open folder</oj-button>
+              <oj-bind-if test="[[ !$variables.evidence.canTranscribe ]]">
+                <oj-button id="jiraTxSetup" chroming="borderless" data-act="setup" on-oj-action="[[ $listeners.onEvidence ]]"
+                  title="Set up Whisper so a recording's voice can be turned into text">⚙ Set up transcription</oj-button>
+              </oj-bind-if>
             </div>
             <div class="jira-ev-vids">
               <oj-bind-for-each data="[[ $functions.videos($variables.evidence) ]]">

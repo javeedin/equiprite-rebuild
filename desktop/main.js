@@ -115,6 +115,7 @@ async function transcriber() {
       }),
       fetch: (url, init) => { const { net } = require('electron'); return net.fetch(url, init); },
       openaiKey: () => ai.secretFor('openai', 'key'),
+      reveal: (folder) => shell.openPath(folder),
     });
   }
   return transcriberInst;

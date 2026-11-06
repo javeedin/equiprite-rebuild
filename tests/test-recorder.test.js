@@ -111,8 +111,10 @@ T.eq('to SRT and to text, for download and Copy', [TX.toSrt([{ start: 0, end: 2.
   '1\n00:00:00,000 --> 00:00:02,500\nHi | a\nb');
 // nothing set up: it says what to install, and never pretends it ran
 const none = TX.open({ which: () => '', modelsDir: path.join(dir, 'no-models') });
-T.eq('with no engine: the engines are empty, and each kind says it is not ready', JSON.stringify(none.info()).replace(path.join(dir, 'no-models'), '<dir>'),
-  '{"local":{"ready":false,"ffmpeg":false,"whisper":false,"models":[]},"openai":{"ready":false},"engines":[],"modelsDir":"<dir>"}');
+const noneInfo = none.info();
+T.check('with no engine: nothing is ready, and the setup helper has what it needs (the install commands, the models to offer)',
+  noneInfo.engines.length === 0 && noneInfo.local.ready === false && noneInfo.local.ffmpeg === false && noneInfo.openai.ready === false
+  && !!noneInfo.install.ffmpeg && !!noneInfo.install.whisper && noneInfo.catalog.length >= 3 && noneInfo.catalog.every((m) => m.have === false));
 (async () => {
   const r = await none.transcribe('/etc/hostname', { engine: 'local' });
   T.check('local, not installed: a clear error and how to set it up, not a fake transcript', !r.ok && /ffmpeg/.test(r.error) && !!r.setup && !r.segments);
@@ -148,6 +150,23 @@ T.eq('with an OpenAI key: that engine is offered', JSON.stringify(openaiEngine.i
   T.eq('it posts the audio to OpenAI with the key, and reads the words', [sent.url, /^Bearer sk-/.test(sent.auth), sent.hasBody, r.ok, r.segments[0].text].join(' | '),
     'https://api.openai.com/v1/audio/transcriptions | true | true | true | Spoken words.');
 })();
+
+T.section('set up Whisper: download a model, and what is missing');
+const setupDir = path.join(dir, 'whisper-setup');
+let fetched = '';
+const setup = TX.open({ which: () => '', modelsDir: setupDir, reveal: () => {},
+  fetch: (url) => { fetched = url; return Promise.resolve({ ok: true, status: 200, arrayBuffer: () => Promise.resolve(new Uint8Array(2 * 1024 * 1024).buffer) }); } });
+T.check('the catalog offers several models to download, none here yet', setup.info().catalog.length === 5 && setup.info().catalog.every((m) => !m.have) && setup.info().canDownload);
+(async () => {
+  const bad = await setup.downloadModel('ggml-nonsense.bin');
+  T.check('an unknown model is refused', !bad.ok && /Unknown/.test(bad.error));
+  const r = await setup.downloadModel('ggml-base.bin');
+  T.eq('download: fetched from whisper.cpp\'s model repo, written to the models folder', [r.ok, fetched.endsWith('/ggml-base.bin'), fs.existsSync(path.join(setupDir, 'ggml-base.bin'))].join(), 'true,true,true');
+  const after = setup.info();
+  T.check('…and now local Whisper is a step closer: the model shows as present', after.catalog.find((m) => m.name === 'ggml-base.bin').have === true && after.local.models.indexOf('ggml-base.bin') !== -1);
+})();
+const tooSmall = TX.open({ which: () => '', modelsDir: path.join(dir, 'ws2'), fetch: () => Promise.resolve({ ok: true, status: 200, arrayBuffer: () => Promise.resolve(new Uint8Array(10).buffer) }) });
+(async () => { const r = await tooSmall.downloadModel('ggml-tiny.bin'); T.check('a truncated download is rejected, not kept', !r.ok && !fs.existsSync(path.join(dir, 'ws2', 'ggml-tiny.bin'))); })();
 
 T.section('the store keeps a transcript next to its recording');
 clock = new Date(2026, 10, 5, 16, 0, 0);
@@ -263,8 +282,11 @@ T.check('removing a recording removes its trace', !fs.existsSync(path.join(dir, 
   fs.writeFileSync(path.join(build, 'processed', 'webApps', 'vbredwoodapp', 'index.html'), '<html>old</html>');
   const rs2 = TE.open({ dir: path.join(dir, 'srv2') });
   // a stand-in Whisper engine (the real one needs ffmpeg + whisper.cpp, or an OpenAI key, on the person's PC)
-  const fakeTx = { info: () => ({ engines: ['local'], local: { ready: true }, openai: { ready: false } }),
-    transcribe: (file) => Promise.resolve({ ok: !!file, engine: 'local', lang: 'en', model: 'ggml-base.bin', segments: [{ start: 0, end: 2.5, text: 'The map does not load here.' }, { start: 2.5, end: 5, text: 'I click edit and nothing.' }], ms: 5 }) };
+  const revealedModels = [];
+  const fakeTx = { info: () => ({ engines: ['local'], local: { ready: true }, openai: { ready: false }, catalog: [{ name: 'ggml-base.bin', label: 'Base', mb: 142, have: false }], platform: 'linux', install: { ffmpeg: 'x', whisper: 'y' }, canDownload: true }),
+    transcribe: (file) => Promise.resolve({ ok: !!file, engine: 'local', lang: 'en', model: 'ggml-base.bin', segments: [{ start: 0, end: 2.5, text: 'The map does not load here.' }, { start: 2.5, end: 5, text: 'I click edit and nothing.' }], ms: 5 }),
+    downloadModel: (name) => Promise.resolve({ ok: true, name, size: 142 * 1048576 }),
+    revealModels: () => { revealedModels.push(1); return { dir: '/models' }; } };
   const srv2 = await DS.createDevServer({ buildDir: build, webApp: 'vbredwoodapp', repoRoot: ROOT, port: 0, getIdentity: () => ({ username: 'tester' }), recStore: rs2, transcribe: fakeTx, onLog: () => {} });
   const req2 = (method, p, headers, body) => new Promise((resolve, reject) => {
     const q = http.request({ host: 'localhost', port: srv2.port, path: p, method, headers: headers || {} }, (res) => {
@@ -309,6 +331,9 @@ T.check('removing a recording removes its trace', !fs.existsSync(path.join(dir, 
     T.eq('the index: the story\'s recording, and the failure its trace caught', [ix['EQP-12'].videos, ix['EQP-12'].shots, ix['EQP-12'].failed].join(), '1,0,1');
 
     T.eq('which transcription engines are set up', JSON.parse((await req2('GET', '/__rec/transcribe-info')).body).engines.join(), 'local');
+    T.eq('the setup helper can download a model (write-guarded)', [(await req2('POST', '/__rec/transcribe-model?name=ggml-base.bin')).status,
+      JSON.parse((await req2('POST', '/__rec/transcribe-model?name=ggml-base.bin', W)).body).ok].join(), '403,true');
+    T.check('…and open the models folder', JSON.parse((await req2('POST', '/__rec/transcribe-reveal', W)).body).dir === '/models' && revealedModels.length === 1);
     T.eq('a write without the page\'s header: transcribe refused', (await req2('POST', '/__rec/transcribe?key=EQP-12&name=' + encodeURIComponent(fin.name))).status, 403);
     const tr = JSON.parse((await req2('POST', '/__rec/transcribe?key=EQP-12&name=' + encodeURIComponent(fin.name) + '&engine=local', W)).body);
     T.eq('transcribe: Whisper runs and the transcript is kept', [tr.ok, tr.engine, tr.lines, !!tr.item.transcript].join(' | '), 'true | local | 2 | true');

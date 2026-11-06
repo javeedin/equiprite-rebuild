@@ -13,6 +13,7 @@ define([
   //   trace       a recording's technical trace (name): the video beside its web service calls, JSON and errors
   //   transcript  a recording's transcript (name): the video beside the words, in step
   //   transcribe  turn a recording's voice into a transcript with Whisper (local on this PC, or OpenAI)
+  //   setup       set up transcription (ffmpeg, whisper.cpp, a model) when nothing is ready yet
   class evidenceChain extends ActionChain {
     async run(context, { act, name }) {
       const v = context.$page.variables;
@@ -39,6 +40,9 @@ define([
         } else if (act === 'transcript') {
           await R.openTranscript(key, name);
           return;
+        } else if (act === 'setup') {
+          await R.openSetup();
+          // fall through: re-read so "Transcribe" appears once an engine is set up
         } else if (act === 'transcribe') {
           const ev = JSON.parse(JSON.stringify(v.evidence || {})); ev.busy = 'transcribe'; ev.error = ''; v.evidence = ev;
           const r = await R.transcribe(key, name, {});
