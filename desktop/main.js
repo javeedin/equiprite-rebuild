@@ -102,17 +102,12 @@ function evidenceStore() {
 let transcriberInst = null;
 async function transcriber() {
   if (!transcriberInst) {
-    const { execFile } = require('child_process');
     const ai = await aiStore();
     transcriberInst = require('./lib/transcribe').open({
       modelsDir: path.join(app.getPath('documents'), 'EquipRite Test Evidence', '.whisper'),
       tmpDir: app.getPath('temp'),
       which: (cmd) => commandPath(cmd),
-      run: (cmd, args) => new Promise((resolve) => {
-        execFile(cmd, args, { maxBuffer: 64 * 1024 * 1024, windowsHide: true }, (err, stdout, stderr) => {
-          resolve({ code: err ? (err.code || 1) : 0, stdout: String(stdout || ''), stderr: String(stderr || (err && err.message) || '') });
-        });
-      }),
+      run: runCommand,
       fetch: (url, init) => { const { net } = require('electron'); return net.fetch(url, init); },
       openaiKey: () => ai.secretFor('openai', 'key'),
       reveal: (folder) => shell.openPath(folder),
@@ -124,6 +119,37 @@ async function transcriber() {
 // Chocolatey and Homebrew folders — so a tool just installed is found without restarting the app (lib/findCommand.js).
 function commandPath(cmd) {
   return require('./lib/findCommand').find(cmd, {});
+}
+// Run a command for transcription (ffmpeg, whisper, winget, brew). Never rejects: resolves { code, errno, stdout, stderr,
+// cmd }. On Windows some tools are launched through a shim/alias that Node cannot spawn directly ("spawn … EFTYPE" /
+// EINVAL) — so a spawn-level failure is retried once through the shell, which runs those. errno is the spawn error code
+// (a string) when there was one, so the caller can explain it.
+const SPAWN_ERR = /^(ENOENT|EFTYPE|EINVAL|EACCES|EPERM|UNKNOWN)$/;
+function runCommand(cmd, args) {
+  const { execFile } = require('child_process');
+  const opts = { maxBuffer: 64 * 1024 * 1024, windowsHide: true };
+  const quote = (s) => '"' + String(s).replace(/"/g, '""') + '"';
+  return new Promise((resolve) => {
+    let settled = false;
+    const done = (r) => { if (!settled) { settled = true; resolve(r); } };
+    const pack = (err, stdout, stderr) => ({ code: err ? (typeof err.code === 'number' ? err.code : 1) : 0,
+      errno: err && typeof err.code === 'string' ? err.code : '', stdout: String(stdout || ''), stderr: String(stderr || (err && err.message) || ''), cmd });
+    const viaShell = () => {
+      try {
+        execFile(quote(cmd) + ' ' + (args || []).map(quote).join(' '), Object.assign({ shell: true }, opts),
+          (err, stdout, stderr) => done(pack(err, stdout, stderr)));
+      } catch (e) { done(pack(e, '', '')); }
+    };
+    try {
+      execFile(cmd, args || [], opts, (err, stdout, stderr) => {
+        if (err && typeof err.code === 'string' && SPAWN_ERR.test(err.code)) { viaShell(); return; }
+        done(pack(err, stdout, stderr));
+      });
+    } catch (e) {
+      if (e && typeof e.code === 'string' && SPAWN_ERR.test(e.code)) { viaShell(); return; }
+      done(pack(e, '', ''));
+    }
+  });
 }
 let recSource = '';
 const REC_KEYS = { shot: 'CommandOrControl+Alt+S', stop: 'CommandOrControl+Alt+X' };

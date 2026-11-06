@@ -490,6 +490,18 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     await page.locator('[role="tab"]', { hasText: 'Jira stories' }).first().click();
     await page.waitForSelector('#jiraGrid', { state: 'visible', timeout: 10000 });
 
+    T.section('delete a recording from the panel');
+    await page.click('#jiraGrid .nx-jira-row[data-key="EQP-12"]');
+    await page.waitForSelector('#jiraEvidence .nx-jira-evvid .nx-jira-delbtn', { timeout: 10000 });
+    T.check('a Delete button sits under the recording', await page.isVisible('#jiraEvidence .nx-jira-evvid .nx-jira-delbtn'));
+    page.once('dialog', (d) => d.accept());          // the "Delete …?" confirm
+    await page.click('#jiraEvidence .nx-jira-evvid .nx-jira-delbtn');
+    await page.waitForFunction(() => document.querySelectorAll('#jiraEvidence video').length === 0, null, { timeout: 10000 }).catch(() => {});
+    T.check('the recording is gone from the panel, and off this PC (with its trace and transcript)', (await page.$$('#jiraEvidence video')).length === 0
+      && !fs.readdirSync(folder).some((f) => / recording\.(webm|mp4)$/.test(f)) && !fs.readdirSync(folder).some((f) => /\.trace\.jsonl$|\.transcript\.json$/.test(f)), fs.readdirSync(folder).join(' | '));
+    await page.locator('#jiraDrawer button[aria-label^="Close"]').first().click();
+    await page.waitForSelector('#jiraItem', { state: 'hidden', timeout: 5000 }).catch(() => {});
+
     T.section('a preset, export');
     await page.click('#jiraPresets .nx-chip[data-value="bugs"]');
     await page.waitForFunction(() => /EQP-99/.test((document.querySelector('#jiraGrid') || {}).innerText || ''), null, { timeout: 15000 });

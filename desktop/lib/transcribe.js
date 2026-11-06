@@ -186,9 +186,11 @@ function open(o) {
     const started = Date.now();
     try {
       const f = await run(cmds.ffmpeg.cmd, cmds.ffmpeg.args, {});
-      if (f.code !== 0) return { ok: false, error: 'Could not read the recording\'s audio (ffmpeg).', detail: trim(f.stderr).slice(-500) };
+      if (f.code !== 0) return { ok: false, error: 'Could not read the recording\'s audio with ffmpeg' + (f.errno ? ' (' + f.errno + ')' : '') + '.',
+        detail: ((f.cmd || cmds.ffmpeg.cmd) + '\n' + trim(f.stderr)).slice(-600) };
       const w = await run(cmds.whisper.cmd, cmds.whisper.args, {});
-      if (w.code !== 0) return { ok: false, error: 'Whisper could not transcribe it.', detail: trim(w.stderr).slice(-500) };
+      if (w.code !== 0) return { ok: false, error: 'Whisper could not transcribe it' + (w.errno ? ' (' + w.errno + ')' : '') + '.',
+        detail: ((w.cmd || cmds.whisper.cmd) + '\n' + trim(w.stderr)).slice(-600) };
       let segments = [];
       const json = wav.replace(/\.wav$/, '') + '.json';
       if (fs.existsSync(json)) { try { segments = parseWhisperJson(JSON.parse(fs.readFileSync(json, 'utf8'))); } catch (e) { segments = []; } }

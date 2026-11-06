@@ -13,6 +13,7 @@ define([
   //   trace       a recording's technical trace (name): the video beside its web service calls, JSON and errors
   //   transcript  a recording's transcript (name): the video beside the words, in step
   //   transcribe  turn a recording's voice into a transcript with Whisper (local on this PC, or OpenAI)
+  //   remove      delete a recording (and its trace and transcript) or a screenshot, after a confirm
   //   setup       set up transcription (ffmpeg, whisper.cpp, a model) when nothing is ready yet
   class evidenceChain extends ActionChain {
     async run(context, { act, name }) {
@@ -43,12 +44,17 @@ define([
         } else if (act === 'setup') {
           await R.openSetup();
           // fall through: re-read so "Transcribe" appears once an engine is set up
+        } else if (act === 'remove') {
+          if (typeof window !== 'undefined' && typeof window.confirm === 'function'
+            && !window.confirm('Delete "' + (name || 'this file') + '"? This also removes its trace and transcript, and cannot be undone.')) return;
+          await R.removeEvidence(key, name);
+          // fall through: re-read the list so it disappears
         } else if (act === 'transcribe') {
           const ev = JSON.parse(JSON.stringify(v.evidence || {})); ev.busy = 'transcribe'; ev.error = ''; v.evidence = ev;
           const r = await R.transcribe(key, name, {});
           if (!(r && r.ok)) {
             const err = JSON.parse(JSON.stringify(v.evidence || {}));
-            err.error = (r && (r.error + (r.setup ? ' — ' + r.setup : ''))) || 'Could not transcribe.';
+            err.error = (r && (r.error + (r.setup ? ' — ' + r.setup : '') + (r.detail ? '\n' + r.detail : ''))) || 'Could not transcribe.';
             err.busy = '';
             v.evidence = err;
             R.keepFocus('#jiraShot');

@@ -713,6 +713,7 @@ define([], function () {
   async function downloadModel(name) { return post('/__rec/transcribe-model?name=' + encodeURIComponent(name)); }
   async function revealModels() { return post('/__rec/transcribe-reveal'); }
   async function transcribeInstall(what) { return post('/__rec/transcribe-install?what=' + encodeURIComponent(what)); }
+  async function removeEvidence(key, name) { return post('/__rec/remove?key=' + encodeURIComponent(key) + '&name=' + encodeURIComponent(name)); }
 
   /** Set up transcription: what is installed (ffmpeg, whisper.cpp, a model), a one-click model download, the commands
    *  for whatever is missing, and the OpenAI alternative. Resolves when it closes. */
@@ -939,5 +940,5 @@ define([], function () {
 
   return { available: available, list: list, reveal: reveal, begin: begin, shot: shot, stop: stop, onChange: onChange, state: state, keepFocus: keepFocus,
     openTrace: openTrace, closeTrace: closeTrace, index: index, traceSummary: traceSummary,
-    transcribeInfo: transcribeInfo, transcribe: transcribe, openTranscript: openTranscript, openSetup: openSetup, maybePromptSetup: maybePromptSetup, isDesktop: isDesktop, downloadModel: downloadModel, revealModels: revealModels, CHUNK_MS: CHUNK_MS };
+    transcribeInfo: transcribeInfo, transcribe: transcribe, openTranscript: openTranscript, openSetup: openSetup, maybePromptSetup: maybePromptSetup, isDesktop: isDesktop, downloadModel: downloadModel, revealModels: revealModels, removeEvidence: removeEvidence, CHUNK_MS: CHUNK_MS };
 });

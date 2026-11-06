@@ -140,6 +140,13 @@ T.eq('set up: local Whisper is the engine offered', JSON.stringify(localEngine.i
     'ffmpeg,whisper-cli | true | local | The map does not load here.');
   T.check('…the temp WAV and JSON are cleaned up', fs.readdirSync(dir).filter((f) => /eqp-whisper/.test(f)).length === 0);
 })();
+// a spawn failure (e.g. "spawn EFTYPE" on Windows): the engine names the step, the errno and the command, not a raw message
+const failEngine = TX.open({ which: (c) => (c === 'ffmpeg' || c === 'whisper-cli' ? '/usr/bin/' + c : ''), modelsDir: mdir, tmpDir: dir,
+  run: (cmd) => Promise.resolve({ code: 1, errno: 'EFTYPE', stdout: '', stderr: 'spawn EFTYPE', cmd }) });
+(async () => {
+  const r = await failEngine.transcribe(path.join(dir, 'EQP-196', fs.readdirSync(path.join(dir, 'EQP-196')).find((f) => / recording\.mp4$/.test(f))), { engine: 'local' });
+  T.check('a failed ffmpeg is explained with its errno and command (so the cause is visible)', !r.ok && /ffmpeg \(EFTYPE\)/.test(r.error) && /ffmpeg/.test(r.detail || ''), JSON.stringify(r));
+})();
 // OpenAI engine: the audio is posted with the key; segments come back
 let sent = null;
 const openaiEngine = TX.open({ which: () => '', modelsDir: path.join(dir, 'none'), openaiKey: () => 'sk-test-key',

@@ -278,7 +278,9 @@
                     <oj-bind-if test="[[ !vd.data.transcript && $variables.evidence.canTranscribe ]]">
                       <button type="button" class="nx-btn nx-btn--sm nx-jira-txbtn" data-act="transcribe" :data-name="[[ vd.data.name ]]" on-click="[[ $listeners.onEvidence ]]"
                         :disabled="[[ !!$variables.evidence.busy ]]" title="Turn the voice in this recording into text with Whisper">📝 Transcribe the voice</button>
-                    </oj-bind-if></figure>
+                    </oj-bind-if>
+                    <button type="button" class="nx-btn nx-btn--sm nx-btn--plain nx-jira-delbtn" data-act="remove" :data-name="[[ vd.data.name ]]" on-click="[[ $listeners.onEvidence ]]"
+                      title="Delete this recording">🗑 Delete</button></figure>
                 </template>
               </oj-bind-for-each>
             </div>
@@ -286,7 +288,8 @@
               <oj-bind-for-each data="[[ $functions.shots($variables.evidence) ]]">
                 <template data-oj-as="sh">
                   <figure class="nx-jira-img"><a :href="[[ sh.data.url ]]" target="_blank" rel="noopener" :title="[[ 'Open ' + sh.data.name ]]"><img :src="[[ sh.data.url ]]" :alt="[[ sh.data.name ]]" loading="lazy"></a>
-                    <figcaption><oj-bind-text value="[[ 'Screenshot · ' + $functions.evidenceText(sh.data) ]]"></oj-bind-text></figcaption></figure>
+                    <figcaption><oj-bind-text value="[[ 'Screenshot · ' + $functions.evidenceText(sh.data) ]]"></oj-bind-text></figcaption>
+                    <button type="button" class="nx-btn nx-btn--sm nx-btn--plain nx-jira-delbtn" data-act="remove" :data-name="[[ sh.data.name ]]" on-click="[[ $listeners.onEvidence ]]" title="Delete this screenshot">🗑 Delete</button></figure>
                 </template>
               </oj-bind-for-each>
             </div>

@@ -198,3 +198,6 @@ button.nx-jira-recmark:hover, button.nx-jira-recmark:focus-visible { filter: bri
 
 /* A recording's transcript (Whisper): the button under the video */
 .nx-jira-dr .nx-jira-txbtn { align-self: flex-start; }
+
+/* Delete a recording or screenshot */
+.nx-jira-dr .nx-jira-delbtn { align-self: flex-start; color: #b91c1c; }
