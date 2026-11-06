@@ -979,20 +979,22 @@ if (!app.requestSingleInstanceLock()) {
   app.whenReady().then(async () => {
     // Record (a Jira story's panel): the page asks for the screen (getDisplayMedia); this answers with the screen or window
     // the person picked in the page (rec:use), else the main screen. Only EquipRite's own pages on this PC are answered.
+    // EquipRite's own pages on this PC (lib/localOrigin.js): the origin may arrive with a path or as a bare origin.
+    const localOnly = require('./lib/localOrigin').isLocal;
     session.defaultSession.setDisplayMediaRequestHandler((request, callback) => {
       const from = String((request.frame && request.frame.url) || request.securityOrigin || '');
-      if (!/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?\//.test(from)) { callback({}); return; }
+      if (!localOnly(from)) { callback({}); return; }
       desktopCapturer.getSources({ types: ['screen', 'window'] }).then((sources) => {
         const pick = sources.find((x) => x.id === recSource) || sources.find((x) => x.id.startsWith('screen:'));
         callback(pick ? { video: pick } : {});
       }).catch(() => callback({}));
     });
-    // Record my voice: the page asks for the microphone (getUserMedia). Grant it only to EquipRite's own pages on this PC.
-    const localOnly = (url) => /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?\//.test(String(url || ''));
+    // Record (screen capture) and Record my voice (microphone) ask the session for permission. Grant EquipRite's own
+    // pages on this PC what they ask for (screen, mic, clipboard…); refuse everything from any other origin.
     session.defaultSession.setPermissionRequestHandler((wc, permission, done) => {
-      done((permission === 'media' || permission === 'audioCapture') && localOnly(wc && !wc.isDestroyed() ? wc.getURL() : ''));
+      done(localOnly(wc && !wc.isDestroyed() ? wc.getURL() : ''));
     });
-    session.defaultSession.setPermissionCheckHandler((wc, permission, origin) => (permission === 'media' || permission === 'audioCapture') && localOnly(origin || (wc && !wc.isDestroyed() ? wc.getURL() : '')));
+    session.defaultSession.setPermissionCheckHandler((wc, permission, origin) => localOnly(origin || (wc && !wc.isDestroyed() ? wc.getURL() : '')));
     Menu.setApplicationMenu(appMenu());
     createWindow();
     try {
