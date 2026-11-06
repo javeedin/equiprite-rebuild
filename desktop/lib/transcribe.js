@@ -185,12 +185,11 @@ function open(o) {
     const cmds = open(Object.assign({}, o, { lang })).__localCommands(file, wav, model);
     const started = Date.now();
     try {
+      const shown = (c, r) => (c.cmd + ' ' + c.args.join(' ') + '\n' + (trim(r.stderr) || trim(r.stdout) || '(no output)')).slice(-900);
       const f = await run(cmds.ffmpeg.cmd, cmds.ffmpeg.args, {});
-      if (f.code !== 0) return { ok: false, error: 'Could not read the recording\'s audio with ffmpeg' + (f.errno ? ' (' + f.errno + ')' : '') + '.',
-        detail: ((f.cmd || cmds.ffmpeg.cmd) + '\n' + trim(f.stderr)).slice(-600) };
+      if (f.code !== 0) return { ok: false, error: 'Could not read the recording\'s audio with ffmpeg' + (f.errno ? ' (' + f.errno + ')' : '') + '.', detail: shown(cmds.ffmpeg, f) };
       const w = await run(cmds.whisper.cmd, cmds.whisper.args, {});
-      if (w.code !== 0) return { ok: false, error: 'Whisper could not transcribe it' + (w.errno ? ' (' + w.errno + ')' : '') + '.',
-        detail: ((w.cmd || cmds.whisper.cmd) + '\n' + trim(w.stderr)).slice(-600) };
+      if (w.code !== 0) return { ok: false, error: 'Whisper could not transcribe it' + (w.errno ? ' (' + w.errno + ')' : '') + '.', detail: shown(cmds.whisper, w) };
       let segments = [];
       const json = wav.replace(/\.wav$/, '') + '.json';
       if (fs.existsSync(json)) { try { segments = parseWhisperJson(JSON.parse(fs.readFileSync(json, 'utf8'))); } catch (e) { segments = []; } }

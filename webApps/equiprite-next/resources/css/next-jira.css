@@ -201,3 +201,6 @@ button.nx-jira-recmark:hover, button.nx-jira-recmark:focus-visible { filter: bri
 
 /* Delete a recording or screenshot */
 .nx-jira-dr .nx-jira-delbtn { align-self: flex-start; color: #b91c1c; }
+
+/* Transcription / recording errors can be multi-line (the command and the tool's own output) — keep them readable */
+.nx-jira-dr .nx-error { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 200px; overflow: auto; font: 12px/1.45 ui-monospace, Consolas, monospace; }
