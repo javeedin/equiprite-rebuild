@@ -105,9 +105,11 @@ define(['resources/js/jiraBacklog', 'resources/js/exportKit', 'resources/js/test
 
     /** Redwood: the header's Refresh (the band's white button) and its other actions. */
     rwPrimary(isLoading) { return same('primary', { label: 'Refresh', icon: 'oj-ux-ico-refresh', display: isLoading ? 'disabled' : 'on' }); }
-    rwActions(n) {
-      return same('actions', n > 0 ? [{ id: 'export', label: 'Export to Excel', icon: 'oj-ux-ico-download', display: 'on' }]
-        : [{ id: 'export', label: 'Export to Excel', icon: 'oj-ux-ico-download', display: 'disabled' }]);
+    rwActions(n, showSetup) {
+      const acts = [];
+      if (showSetup) acts.push({ id: 'setup', label: 'Set up transcription', icon: 'oj-ux-ico-settings', display: 'on' });
+      acts.push({ id: 'export', label: 'Export to Excel', icon: 'oj-ux-ico-download', display: n > 0 ? 'on' : 'disabled' });
+      return same('actions', acts);
     }
 
     /** The JQL presets' chip class. */

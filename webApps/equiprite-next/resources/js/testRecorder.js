@@ -75,6 +75,9 @@ define([], function () {
 
   async function reveal(key) { return post('/__rec/reveal?key=' + encodeURIComponent(key)); }
 
+  /** Running inside the EquipRite desktop app (where recording and transcription work)? */
+  function isDesktop() { return !!desk(); }
+
   function onChange(name, fn) { if (typeof fn === 'function') listeners[name] = fn; else delete listeners[name]; }
 
   /** After the picker or the bar is gone (focus with them), focus back in the panel, so Escape still closes it. */
@@ -936,5 +939,5 @@ define([], function () {
 
   return { available: available, list: list, reveal: reveal, begin: begin, shot: shot, stop: stop, onChange: onChange, state: state, keepFocus: keepFocus,
     openTrace: openTrace, closeTrace: closeTrace, index: index, traceSummary: traceSummary,
-    transcribeInfo: transcribeInfo, transcribe: transcribe, openTranscript: openTranscript, openSetup: openSetup, maybePromptSetup: maybePromptSetup, downloadModel: downloadModel, revealModels: revealModels, CHUNK_MS: CHUNK_MS };
+    transcribeInfo: transcribeInfo, transcribe: transcribe, openTranscript: openTranscript, openSetup: openSetup, maybePromptSetup: maybePromptSetup, isDesktop: isDesktop, downloadModel: downloadModel, revealModels: revealModels, CHUNK_MS: CHUNK_MS };
 });

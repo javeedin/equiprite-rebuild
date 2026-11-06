@@ -149,6 +149,15 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     T.check('…the default search: all stories', searches[0].jql === 'project = EQP AND issuetype = Story ORDER BY key ASC' && searches[0].fields.includes('customfield_10020'));
     T.check('the header says what was read', /EquipRite backlog on equiprite\.atlassian\.net · 5 items read at \d\d:\d\d/.test(await text(page, '#jiraSub')), await text(page, '#jiraSub'));
 
+    T.section('Set up transcription from the page header (desktop app, Whisper not ready)');
+    await page.waitForSelector('#jiraSetupTx', { timeout: 10000 });
+    T.check('a "Set up transcription" button sits in the header, by Refresh', await page.isVisible('#jiraSetupTx'));
+    await page.click('#jiraSetupTx');
+    await page.waitForSelector('#eqrSetup', { timeout: 10000 });
+    T.check('…it opens the setup helper straight from the page', await page.isVisible('#eqrSetup'));
+    await page.click('#eqrSetClose');
+    await page.waitForSelector('#eqrSetup', { state: 'detached', timeout: 5000 }).catch(() => {});
+
     T.section('the numbers and what they say');
     T.eq('the tiles', (await texts(page, '#jiraTiles .nx-jira-tile')).join(' | '),
       '5 Items | 1 Done 20% | 3 In progress | 1 On hold | 1 Overdue | 1 No acceptance criteria | 4 Tester gaps 1 items | 3.5 / 5 Average quality');

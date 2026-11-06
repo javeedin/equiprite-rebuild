@@ -327,6 +327,16 @@
       "type": "object",
       "defaultValue": {},
       "description": "Which stories have recordings or screenshots on this PC (resources/js/testRecorder.js index): { KEY: { videos, shots, failed, latest } }, for the icon after a story's summary."
+    },
+    "desktopApp": {
+      "type": "boolean",
+      "defaultValue": false,
+      "description": "Running in the EquipRite desktop app (so recording and transcription work)."
+    },
+    "transcribeReady": {
+      "type": "boolean",
+      "defaultValue": true,
+      "description": "A transcription engine (local Whisper or OpenAI) is set up; when false on the desktop app, the header offers Set up transcription."
     }
   },
   "eventListeners": {
@@ -524,16 +534,6 @@
         }
       ]
     },
-    "onRwExport": {
-      "chains": [
-        {
-          "chain": "exportChain",
-          "parameters": {
-            "format": "xlsx"
-          }
-        }
-      ]
-    },
     "onSprintOpen": {
       "chains": [
         {
@@ -562,6 +562,23 @@
           "parameters": {
             "act": "{{ $event.currentTarget.dataset.act }}",
             "name": "{{ $event.currentTarget.dataset.name || '' }}"
+          }
+        }
+      ]
+    },
+    "onSetupTranscribe": {
+      "chains": [
+        {
+          "chain": "setupChain"
+        }
+      ]
+    },
+    "onRwAction": {
+      "chains": [
+        {
+          "chain": "rwActionChain",
+          "parameters": {
+            "id": "{{ $event.detail.secondaryItem && $event.detail.secondaryItem.id ? $event.detail.secondaryItem.id : '' }}"
           }
         }
       ]

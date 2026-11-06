@@ -9,7 +9,7 @@
       <oj-sp-general-overview-page page-title="Jira stories" display-mode="mixed"
         page-subtitle="[[ $functions.subtitle($variables.conn, $variables.rows, $variables.readAt, $variables.isLoading) ]]"
         primary-action="[[ $functions.rwPrimary($variables.isLoading) ]]" on-sp-primary-action="[[ $listeners.onRefresh ]]"
-        secondary-actions="[[ $functions.rwActions($variables.shown.length) ]]" on-sp-secondary-action="[[ $listeners.onRwExport ]]">
+        secondary-actions="[[ $functions.rwActions($variables.shown.length, $variables.desktopApp && !$variables.transcribeReady) ]]" on-sp-secondary-action="[[ $listeners.onRwAction ]]">
         <oj-sp-smart-search slot="search" id="jiraRwSearch" filter-criterion="{{ $variables.rwCriterion }}" on-filter-criterion-changed="[[ $listeners.onRwFilter ]]"
           search-context="[[ $variables.rwSearchContext ]]" search-config="[[ $variables.rwSearchConfig.provider ]]"
           suggestion-filters='["StatusFilter", "EpicFilter", "AssigneeFilter", "ReleaseFilter", "SprintFilter", "PriorityFilter", "TypeFilter"]'
@@ -27,6 +27,10 @@
       <div class="nx-actions">
         <button type="button" class="nx-btn nx-btn--plain" id="jiraRefresh" on-click="[[ $listeners.onRefresh ]]" :disabled="[[ $variables.isLoading || !$variables.conn.connected ]]">
           <span class="oj-ux-ico-refresh" aria-hidden="true"></span>Refresh</button>
+        <oj-bind-if test="[[ $variables.desktopApp && !$variables.transcribeReady ]]">
+          <button type="button" class="nx-btn nx-btn--plain" id="jiraSetupTx" on-click="[[ $listeners.onSetupTranscribe ]]"
+            title="Set up Whisper so a recording's voice can be turned into text">⚙ Set up transcription</button>
+        </oj-bind-if>
       </div>
     </div>
   </oj-bind-if>
