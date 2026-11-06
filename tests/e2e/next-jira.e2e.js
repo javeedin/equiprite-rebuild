@@ -110,8 +110,17 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
   const page = env.page;
   const errs = () => env.errors.filter((e) => !/404|401|Failed to load resource/.test(e) && !e.startsWith('warning'));
   try {
-    T.section('not connected: Connect, in the desktop app');
+    T.section('opening Jira stories offers to set up Whisper when it is not installed');
     await env.open('/?open=jira');
+    await page.waitForSelector('#eqrSetup', { timeout: 30000 });
+    T.check('on the desktop app, with Whisper not set up, the setup helper opens by itself', await page.isVisible('#eqrSetup')
+      && (await text(page, '#eqrSetup')).includes('Set up transcription') && await page.isVisible('#eqrSetSkip'));
+    await env.shot('next-jira-whisper-prompt.png');
+    await page.click('#eqrSetClose');
+    await page.waitForSelector('#eqrSetup', { state: 'detached', timeout: 5000 }).catch(() => {});
+    T.check('it does not block the page: the Connect form is there behind it', await page.isVisible('#jiraConn'));
+
+    T.section('not connected: Connect, in the desktop app');
     await page.waitForSelector('#jiraConn', { timeout: 30000 });
     await settle(page, 600);
     T.eq('its menu item, under Insights', await text(page, '.nx-nav-item--on'), 'Jira stories');

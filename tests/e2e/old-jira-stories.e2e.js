@@ -134,7 +134,10 @@ async function waitKeys(page, n) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'eqp-old-jira-'));
   const store = JiraAuth.open({ file: path.join(dir, 'jira-connection.json') }); // no keychain: the token kept for this run only
   const evidenceDir = path.join(dir, 'EquipRite Test Evidence');
-  const env = await E.start({ port: 19750, app: 'old', handle, jiraStore: store, recStore: TestEvidence.open({ dir: evidenceDir, reveal: () => {} }), init: E.recorderStub });
+  // a transcription engine that is already set up, so opening the page does not pop the "set up Whisper" helper here
+  const transcribe = { info: () => ({ engines: ['local'], local: { ready: true }, openai: { ready: false }, catalog: [], platform: 'linux', install: {}, canDownload: true }),
+    transcribe: () => Promise.resolve({ ok: true, engine: 'local', lang: 'en', segments: [{ start: 0, end: 2, text: 'Testing the story.' }], ms: 5 }) };
+  const env = await E.start({ port: 19750, app: 'old', handle, jiraStore: store, recStore: TestEvidence.open({ dir: evidenceDir, reveal: () => {} }), transcribe, init: E.recorderStub });
   const { page } = env;
   const errs = () => env.errors.filter((e) => !/Failed to load resource/.test(e));
   try {

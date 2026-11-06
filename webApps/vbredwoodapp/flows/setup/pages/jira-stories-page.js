@@ -25,6 +25,8 @@ define(['resources/js/jiraBacklog', 'resources/js/testRecorder'], function (J, R
       if (Recorder && typeof Recorder.onChange === 'function') {
         Recorder.onChange('jira-stories-page', function () { if (helper) helper.fireCustomEvent('evidenceChanged', {}); });
       }
+      // On the desktop app, when Whisper is not set up yet, offer to set it up once (so a test can be transcribed later).
+      if (Recorder && typeof Recorder.maybePromptSetup === 'function') { Recorder.maybePromptSetup().catch(function () {}); }
     }
 
     /** The open story's recordings and screenshots, and how each is labelled ("2026-11-05 14:03 · 12.4 MB"). */

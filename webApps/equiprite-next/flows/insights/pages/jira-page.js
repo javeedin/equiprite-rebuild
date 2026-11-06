@@ -19,6 +19,8 @@ define(['resources/js/jiraBacklog', 'resources/js/exportKit', 'resources/js/test
       if (Recorder && typeof Recorder.onChange === 'function') Recorder.onChange('jira-page', () => { if (helper) helper.fireCustomEvent('evidenceChanged', {}); });
       // Escape closes the item's drawer (resources/js/jiraStoryPanel.js).
       Panel.closeOnEscape();
+      // On the desktop app, when Whisper is not set up yet, offer to set it up once (so a test can be transcribed later).
+      if (Recorder && typeof Recorder.maybePromptSetup === 'function') { Recorder.maybePromptSetup().catch(() => {}); }
     }
 
     presets() { return J.PRESETS; }

@@ -712,14 +712,21 @@ define([], function () {
 
   /** Set up transcription: what is installed (ffmpeg, whisper.cpp, a model), a one-click model download, the commands
    *  for whatever is missing, and the OpenAI alternative. Resolves when it closes. */
-  async function openSetup() {
+  async function openSetup(opts) {
     styleOnce();
+    var o2 = opts || {};
     var opener = document.activeElement;
+    var skipBox = null;
     var veil = el('div', { class: 'eqr-rec-veil', id: 'eqrSetup', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Set up transcription' });
     var box = el('div', { class: 'eqr-rec-box' });
     veil.appendChild(box);
     return new Promise(function (resolve) {
-      var done = function () { veil.remove(); document.removeEventListener('keydown', esc, true); if (opener && opener.isConnected && opener.focus) { try { opener.focus({ preventScroll: true }); } catch (e) { /* no */ } } resolve(true); };
+      var done = function () {
+        if (o2.auto && skipBox && skipBox.checked) { try { if (window.localStorage) localStorage.setItem('eqrWhisperSkip', '1'); } catch (e) { /* no storage */ } }
+        veil.remove(); document.removeEventListener('keydown', esc, true);
+        if (opener && opener.isConnected && opener.focus) { try { opener.focus({ preventScroll: true }); } catch (e) { /* no */ } }
+        resolve(true);
+      };
       var esc = function (e) { if (e.key === 'Escape') { e.stopPropagation(); e.preventDefault(); done(); } };
       veil.__close = done;
       document.addEventListener('keydown', esc, true);
@@ -784,6 +791,13 @@ define([], function () {
         else box.appendChild(el('p', { class: 'eqr-rec-hint' }, 'Or set an OpenAI key in SQL worksheet → Ask AI to transcribe without installing anything (the audio is sent to OpenAI).'));
         var ready = (info.engines || []).length > 0;
         box.appendChild(el('p', { class: ready ? 'eqr-set-ready' : 'eqr-rec-hint' }, ready ? '✓ Ready to transcribe (' + info.engines.join(' and ') + ').' : 'Not ready yet — add one of the above.'));
+        if (o2.auto) {
+          var skipL = el('label', { class: 'eqr-rec-hint eqr-set-skip' });
+          skipBox = el('input', { type: 'checkbox', id: 'eqrSetSkip' });
+          skipL.appendChild(skipBox);
+          skipL.appendChild(document.createTextNode(' Don’t remind me again when I open Jira stories'));
+          box.appendChild(skipL);
+        }
         var row = el('div', { class: 'eqr-rec-row' });
         var left = el('div', {});
         var folder = el('button', { type: 'button', class: 'eqr-rec-btn' }, 'Open models folder');
@@ -803,6 +817,21 @@ define([], function () {
       document.body.appendChild(veil);
       render();
     });
+  }
+
+  /** When Jira stories opens in the desktop app and no transcription engine is ready, show the setup helper once, so the
+   *  person can install Whisper before they record. Only on this PC; never in a browser; and not again once they tick
+   *  "Don't remind me again" (or this app session has already shown it). */
+  async function maybePromptSetup() {
+    if (!desk()) return false;
+    try { if (window.localStorage && localStorage.getItem('eqrWhisperSkip') === '1') return false; } catch (e) { /* no storage */ }
+    try { if (window.sessionStorage && sessionStorage.getItem('eqrWhisperPrompted') === '1') return false; } catch (e) { /* no storage */ }
+    if (document.getElementById('eqrSetup')) return false;
+    var info = await transcribeInfo();
+    if ((info.engines || []).length > 0) return false; // already set up
+    try { if (window.sessionStorage) sessionStorage.setItem('eqrWhisperPrompted', '1'); } catch (e) { /* no storage */ }
+    openSetup({ auto: true });
+    return true;
   }
 
   /** A recording's transcript beside its video: the line being spoken is marked as it plays; a line seeks the video. */
@@ -888,5 +917,5 @@ define([], function () {
 
   return { available: available, list: list, reveal: reveal, begin: begin, shot: shot, stop: stop, onChange: onChange, state: state, keepFocus: keepFocus,
     openTrace: openTrace, closeTrace: closeTrace, index: index, traceSummary: traceSummary,
-    transcribeInfo: transcribeInfo, transcribe: transcribe, openTranscript: openTranscript, openSetup: openSetup, downloadModel: downloadModel, revealModels: revealModels, CHUNK_MS: CHUNK_MS };
+    transcribeInfo: transcribeInfo, transcribe: transcribe, openTranscript: openTranscript, openSetup: openSetup, maybePromptSetup: maybePromptSetup, downloadModel: downloadModel, revealModels: revealModels, CHUNK_MS: CHUNK_MS };
 });
