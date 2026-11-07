@@ -2,7 +2,7 @@
 
 A practical guide to how real product companies take software **from an idea to a maintained product**, and how to run the same discipline at any size — including as a one‑ or two‑person team.
 
-This folder has six parts. Read them in order the first time; after that use them as reference.
+This folder has seven parts. Read them in order the first time; after that use them as reference.
 
 | # | File | What it covers |
 |---|------|----------------|
@@ -13,6 +13,7 @@ This folder has six parts. Read them in order the first time; after that use the
 | 4 | [04-roles-ceremonies-artifacts.md](04-roles-ceremonies-artifacts.md) | Who does what, the meetings (ceremonies), and the documents each phase produces |
 | 5 | [05-equiprite-playbook.md](05-equiprite-playbook.md) | The concrete SOP for **this** product (EquipRite): its versions, branches, Jira flow, release checklist |
 | 6 | [06-how-oracle-fusion-does-it.md](06-how-oracle-fusion-does-it.md) | How Oracle runs Fusion for thousands of customers — the train, pods, opt-in, upgrade-safe extensibility — and what EquipRite should borrow |
+| 7 | [07-tooling-to-manage-the-lifecycle.md](07-tooling-to-manage-the-lifecycle.md) | Software to run the lifecycle: the tool categories, the "do-most-of-it" platforms, Oracle VB Studio, and a concrete recommendation for EquipRite |
 
 ---
 
