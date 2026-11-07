@@ -12,6 +12,7 @@ This folder has six parts. Read them in order the first time; after that use the
 | 3 | [03-releases-and-environments.md](03-releases-and-environments.md) | Environments, CI/CD, the release process, rollout strategies, feature flags, rollback |
 | 4 | [04-roles-ceremonies-artifacts.md](04-roles-ceremonies-artifacts.md) | Who does what, the meetings (ceremonies), and the documents each phase produces |
 | 5 | [05-equiprite-playbook.md](05-equiprite-playbook.md) | The concrete SOP for **this** product (EquipRite): its versions, branches, Jira flow, release checklist |
+| 6 | [06-how-oracle-fusion-does-it.md](06-how-oracle-fusion-does-it.md) | How Oracle runs Fusion for thousands of customers — the train, pods, opt-in, upgrade-safe extensibility — and what EquipRite should borrow |
 
 ---
 
