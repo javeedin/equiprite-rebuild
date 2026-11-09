@@ -341,6 +341,7 @@ define([], function () {
    *   epics     [{ key, name, total, done, open, overdue, gaps, donePct, statuses: { status: n } }] most open first
    *   releases  [{ name, date, total, done, open, overdue, passed }] by date
    *   people    [{ name, total, open, overdue }] most open first
+   *   customers [{ name, label, total, done, open, overdue, donePct }] by the story labels, most open first, No label last
    *   sprints   [{ name, state, start, end, goal, total, done, open, donePct, overdue, carried, daysLeft, flags }]: active, future,
    *             then closed (latest first), No sprint last
    *   checks    [{ key, label, count, keys }] most common first
@@ -394,6 +395,27 @@ define([], function () {
           overdue: g.rows.filter(function (r) { return r.overdue; }).length };
       })
       .sort(function (a, b) { return b.open - a.open || b.total - a.total; });
+
+    // By customer: a story's labels are its customers (cianbro, oceaneering, …). A story can carry more than one
+    // label, so it is counted under each; stories with none fall into "No label" (last). Because of the shared
+    // stories, the customer totals can add up to more than the item count.
+    var custBy = {};
+    var custOrder = [];
+    list.forEach(function (r) {
+      var labs = (r.labels && r.labels.length) ? r.labels : [''];
+      labs.forEach(function (lab) {
+        if (!custBy[lab]) { custBy[lab] = { name: lab || 'No label', label: lab, rows: [] }; custOrder.push(custBy[lab]); }
+        custBy[lab].rows.push(r);
+      });
+    });
+    var customers = custOrder.map(function (g) {
+      var o = g.rows.filter(function (r) { return !isDone(r); });
+      return { name: g.name, label: g.label, total: g.rows.length, done: g.rows.length - o.length, open: o.length,
+        overdue: g.rows.filter(function (r) { return r.overdue; }).length, donePct: pct(g.rows.length - o.length, g.rows.length) };
+    }).sort(function (a, b) {
+      if ((a.name === 'No label') !== (b.name === 'No label')) return a.name === 'No label' ? 1 : -1;
+      return b.open - a.open || b.total - a.total || a.name.localeCompare(b.name);
+    });
 
     // Sprints: each with its dates, state and goal (from the stories in it), progress, spill-over, and what is wrong
     // with it on the board (still active after its end, future with an end date gone, work due after it ends).
@@ -503,13 +525,13 @@ define([], function () {
       if (kpis.done === total) findings.push({ tone: 'good', filter: {}, text: 'Everything here is done.' });
     }
 
-    return { kpis: kpis, statuses: statuses, epics: epics, releases: releases, people: people, sprints: sprints, checks: checks, fdd: fdd,
+    return { kpis: kpis, statuses: statuses, epics: epics, releases: releases, people: people, customers: customers, sprints: sprints, checks: checks, fdd: fdd,
       gaps: gaps, findings: findings, today: t };
   }
 
   /**
-   * The rows a set of filters keeps: { text, status, epic, assignee, release, sprint, priority, type, check,
-   * only: 'overdue' | 'gaps' | 'open' | '' } ('' = any; assignee 'Nobody', epic '' with noEpic …).
+   * The rows a set of filters keeps: { text, status, epic, assignee, release, sprint, label, priority, type, check,
+   * only: 'overdue' | 'gaps' | 'open' | '' } ('' = any; assignee 'Nobody', epic '' with noEpic, label 'none' = no labels …).
    */
   function filter(rows, f) {
     var c = f || {};
@@ -520,6 +542,10 @@ define([], function () {
       if (c.assignee && (r.assignee || 'Nobody') !== c.assignee) return false;
       if (c.release && (r.release || 'No release') !== c.release) return false;
       if (c.sprint && (r.sprint || 'No sprint') !== c.sprint) return false;
+      if (c.label) {
+        if (c.label === 'none') { if ((r.labels || []).length) return false; }
+        else if (!(r.labels || []).some(function (x) { return x === c.label; })) return false;
+      }
       if (c.priority && r.priority !== c.priority) return false;
       if (c.type && r.type !== c.type) return false;
       if (c.fdd && !r.fdd.some(function (s) { return s === c.fdd || s.indexOf(c.fdd + '.') === 0 || s.indexOf(c.fdd) === 0; })) return false;
@@ -528,7 +554,7 @@ define([], function () {
       if (c.only === 'gaps' && !r.gaps.length) return false;
       if (c.only === 'open' && r.statusCat === 'done') return false;
       if (words.length) {
-        var hay = [r.key, r.summary, r.epicName, r.assignee, r.status, r.body, r.ac, r.fdd.join(' '), r.gaps.join(' ')].join(' ').toLowerCase();
+        var hay = [r.key, r.summary, r.epicName, r.assignee, r.status, r.body, r.ac, r.fdd.join(' '), r.gaps.join(' '), (r.labels || []).join(' ')].join(' ').toLowerCase();
         if (!words.every(function (w) { return hay.indexOf(w) !== -1; })) return false;
       }
       return true;
@@ -736,6 +762,7 @@ define([], function () {
     return [
       { key: 'key', label: 'Key' }, { key: 'summary', label: 'Summary' }, { key: 'type', label: 'Type' }, { key: 'status', label: 'Status' },
       { key: 'priority', label: 'Priority' }, { key: 'epicKey', label: 'Epic' }, { key: 'epicName', label: 'Epic name' }, { key: 'assignee', label: 'Assignee' },
+      { key: 'labels', label: 'Customer', value: function (r) { return (r.labels || []).join(', '); } },
       { key: 'release', label: 'Release' }, { key: 'releaseDate', label: 'Release date' }, { key: 'sprint', label: 'Sprint' },
       { key: 'sprintEnd', label: 'Sprint ends' }, { key: 'sprintPast', label: 'Earlier sprints', value: function (r) { return r.sprintPast.join(', '); } }, { key: 'due', label: 'Due' },
       { key: 'overdue', label: 'Overdue', value: function (r) { return r.overdue ? 'Yes' : ''; } },

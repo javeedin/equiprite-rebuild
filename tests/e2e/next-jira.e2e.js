@@ -29,6 +29,7 @@ const issue = (key, f) => ({ id: key.slice(4), key, fields: Object.assign({ issu
 const ISSUES = [
   issue('EQP-12', { summary: 'Equipment Master List View - Section 7.2', status: status('DEVELOPMENT', 'indeterminate'), parent: EPIC1,
     fixVersions: [{ name: '26C', releaseDate: days(-36) }], assignee: { displayName: 'Rahul Kanth Panganamamula' }, duedate: days(-29),
+    labels: ['cianbro'],
     description: 'Display master list of all equipment records with smart search.Acceptance Criteria: Grid displays all columns per FDD 7.2.4; smart search returns results with type-ahead; all filter fields functional.FDD Section: 7.2Only Smart search is available.',
     comment: { comments: [{ author: { displayName: 'Sana Suhana Thehaseen' }, created: '2026-09-29T04:37:34.383-0500',
       body: '**(FDD-7.2)**\n\n1. Only Class, Subclass search filters are present.\n\n2. Type Column is missing.\n\n3. Map view is missing.\n\n4. Edit option to be added.\n\n!Screenshot 2026-11-04 135139.png|width=227,alt="Screenshot 2026-11-04 135139.png"!' }] },
@@ -37,10 +38,10 @@ const ISSUES = [
     customfield_10020: [{ id: 4, name: '2026-06', state: 'closed', startDate: '2026-06-01T05:00:00.000Z', endDate: '2026-06-30T05:00:00.000Z' },
       { id: 5, name: '2026-07', state: 'active', startDate: '2026-07-01T05:00:00.000Z', endDate: '2026-07-31T05:00:00.000Z' }] }),
   issue('EQP-13', { summary: 'Equipment Master Create/Edit - Section 7.2, 7.2.5G', status: status('DEVELOPMENT', 'indeterminate'), priority: { name: 'High' }, parent: EPIC1,
-    fixVersions: [{ name: '27A', releaseDate: days(56) }], assignee: { displayName: 'Rahul Kanth Panganamamula' }, duedate: days(20),
+    fixVersions: [{ name: '27A', releaseDate: days(56) }], assignee: { displayName: 'Rahul Kanth Panganamamula' }, duedate: days(20), labels: ['cianbro', 'oceaneering'],
     description: 'Create and edit equipment.\n\nAcceptance Criteria: created; unique name; FA asset; fields save; one-to-many types; saved and read; LOV filter.\n\nFDD Section: 7.2, 7.2.5G',
     customfield_10020: [{ id: 9, name: 'Sprint now', state: 'active', startDate: days(-4) + 'T05:00:00.000Z', endDate: days(9) + 'T05:00:00.000Z', goal: 'Equipment master editable' }] }),
-  issue('EQP-20', { summary: 'Rate schedule list', status: status('Done', 'done'), parent: EPIC2, fixVersions: [{ name: '26C', releaseDate: days(-36) }],
+  issue('EQP-20', { summary: 'Rate schedule list', status: status('Done', 'done'), parent: EPIC2, fixVersions: [{ name: '26C', releaseDate: days(-36) }], labels: ['oceaneering'],
     assignee: { displayName: 'Aditi Rao' }, duedate: days(-60), description: 'List schedules. Acceptance Criteria: the list shows. FDD Section: 7.3' }),
   issue('EQP-30', { summary: 'Notification engine', status: status('FUNC DESIGN', 'indeterminate'), description: 'Send notifications.', updated: days(-45) + 'T10:00:00.000-0500' }),
   issue('EQP-40', { summary: 'Inspection checklist', status: status('ONHOLD', 'indeterminate'), parent: EPIC1, assignee: { displayName: 'Aditi Rao' },
@@ -223,6 +224,20 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     await page.click('#jiraShowing .nx-jira-x');
     await settle(page, 300);
     await env.shot('next-jira.png');
+
+    T.section('by customer (the story labels)');
+    await page.click('#jiraTabs .nx-jira-tab[data-value="customers"]');
+    await settle(page, 400);
+    T.eq('by customer, most open first, No label last', (await texts(page, '#jiraTabBody .nx-jira-tr--rel:not(.nx-jira-tr--head)')).map((t) => t.split(' ')[0]).join(','), 'cianbro,oceaneering,No');
+    await env.shot('next-jira-by-customer.png');
+    await page.click('#jiraTabBody .nx-jira-tr--rel[data-value="cianbro"]');
+    await settle(page, 400);
+    T.eq('a customer row filters the items, and says so', [(await texts(page, '#jiraGrid .nx-jira-row:not(.nx-jira-row--head) .nx-jira-key')).join(','), (await text(page, '#jiraShowing')).replace(' ×', '')].join(' / '),
+      'EQP-12,EQP-13 / Customer: cianbro');
+    T.check('the items carry a Customer column with the labels', (await texts(page, '#jiraGrid .nx-jira-row--head [role="columnheader"]')).some((h) => /^customer$/i.test(h))
+      && (await text(page, '#jiraGrid .nx-jira-row[data-key="EQP-13"] .nx-jira-custcell')).includes('oceaneering'));
+    await page.click('#jiraShowing .nx-jira-x');
+    await settle(page, 300);
 
     T.section('a sprint\'s name: its report in a tab of its own');
     await page.click('#jiraTabs .nx-jira-tab[data-value="sprints"]');

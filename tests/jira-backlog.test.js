@@ -123,6 +123,20 @@ T.section('reading every page of a search');
   T.eq('epic options, named', J.options(rows, 'epic').map((o) => o.label).join(', '), 'EQP-1 Equipment Registry (2), EQP-62 Rate & Pricing (1), No epic (1)');
   T.check('an export column per finding', J.exportColumns().map((c) => c.label).join().includes('Tester gaps'));
 
+  T.section('by customer (the story labels)');
+  const lab = (key, labels, cat) => J.fromIssue({ key, fields: { summary: key + ' story', issuetype: { name: 'Story' },
+    status: status(cat === 'done' ? 'Done' : 'DEVELOPMENT', cat), priority: { name: 'Medium' }, assignee: { displayName: 'Aditi Rao' },
+    duedate: '2026-12-31', labels, description: 'Do it. Acceptance Criteria: it works. FDD Section: 7.9', comment: { comments: [] }, updated: '2026-11-01' } }, { today: TODAY });
+  const crows = [lab('EQP-70', ['cianbro'], 'indeterminate'), lab('EQP-71', ['cianbro', 'oceaneering'], 'indeterminate'), lab('EQP-72', ['oceaneering'], 'done'), lab('EQP-73', [], 'indeterminate')];
+  const ca = J.analyse(crows, TODAY);
+  T.eq('customers (labels), most open first, No label last', ca.customers.map((c) => c.name + ' ' + c.open + '/' + c.total).join(', '),
+    'cianbro 2/2, oceaneering 1/2, No label 1/1');
+  T.eq('a story with two labels is counted under each customer', J.filter(crows, { label: 'oceaneering' }).map((r) => r.key).join(), 'EQP-71,EQP-72');
+  T.eq('the No label bucket filters on "none"', J.filter(crows, { label: 'none' }).map((r) => r.key).join(), 'EQP-73');
+  T.eq('a label is searchable as text', J.filter(crows, { text: 'cianbro' }).map((r) => r.key).join(), 'EQP-70,EQP-71');
+  T.check('Customer is an export column', J.exportColumns().map((c) => c.label).join().includes('Customer'));
+  T.check('labels do not disturb the no-label analysis (findings unchanged)', J.analyse([EQP12, EQP13, DONE, BARE].map((i) => J.fromIssue(i, { today: TODAY })), TODAY).customers.map((c) => c.name).join() === 'No label');
+
   T.section('sprints: dates, progress, spill-over, what is wrong on the board');
   const SP = (name, state, start, end) => ({ id: name.length, name, state, startDate: start + 'T05:00:00.000Z', endDate: end + 'T05:00:00.000Z' });
   const sp = [

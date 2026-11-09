@@ -60,8 +60,9 @@ define(['resources/js/jiraBacklog', 'resources/js/exportKit', 'resources/js/test
     tabs(a) {
       const x = a || {};
       return same('tabs', [(x.epics || []).length, (x.releases || []).length, (x.people || []).length, (x.checks || []).length, (x.fdd || []).length, (x.gaps || []).length,
-        (x.sprints || []).length], (n) => [
+        (x.sprints || []).length, (x.customers || []).length], (n) => [
         { key: 'sprints', label: 'By sprint', count: n[6] }, { key: 'epics', label: 'By epic', count: n[0] }, { key: 'releases', label: 'By release', count: n[1] }, { key: 'people', label: 'By person', count: n[2] },
+        { key: 'customers', label: 'By customer', count: n[7] },
         { key: 'checks', label: 'Quality checks', count: n[3] }, { key: 'fdd', label: 'By FDD section', count: n[4] }, { key: 'gaps', label: 'Tester gaps', count: n[5] },
       ]);
     }
