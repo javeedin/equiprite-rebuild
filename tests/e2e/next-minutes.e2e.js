@@ -57,7 +57,18 @@ async function setField(page, sel, val) { await page.fill(sel, val); await page.
   const contactsStub = async () => ({ ok: true, available: true, contacts: [{ name: 'Priya Raman', email: 'priya.raman@rite.digital' }, { name: 'Rahul Kanth', email: 'rahul@rite.digital' }] });
   const outlookOpened = [];
   const outlookStub = async (m) => { outlookOpened.push(m); return { ok: true, available: true }; };
-  const minutesStore = await MIN.open({ file: path.join(dir, 'minutes.duckdb'), encrypt: enc, decrypt: dec, transcribe: txStub, fetch: teamsFetch, contacts: contactsStub, outlookSend: outlookStub });
+  // A stubbed Microsoft 365 / Graph provider (the real OAuth is machine-verified; this exercises the wiring).
+  const gState = { configured: false, signedIn: false, pending: false, account: '', userCode: '', verificationUri: '', tenantId: '', clientId: '' };
+  const graphSent = [];
+  const graphStub = {
+    status: () => Object.assign({}, gState),
+    saveConfig: (b) => { if (b.tenantId !== undefined) gState.tenantId = b.tenantId; if (b.clientId !== undefined) gState.clientId = b.clientId; gState.configured = !!(gState.tenantId && gState.clientId); return gState; },
+    beginSignIn: async () => { gState.pending = true; gState.userCode = 'ABCD-1234'; gState.verificationUri = 'https://microsoft.com/devicelogin'; setTimeout(() => { gState.pending = false; gState.signedIn = true; gState.account = 'javeed@rite.digital'; }, 800); return { ok: true, userCode: gState.userCode, verificationUri: gState.verificationUri, message: 'enter the code' }; },
+    signOut: () => { gState.signedIn = false; gState.account = ''; return gState; },
+    people: async () => ({ ok: true, available: true, contacts: [{ name: 'Sandeep Reddy', email: 'sandeep.reddy@rite.digital' }, { name: 'HR India', email: 'hrindia@rite.digital' }] }),
+    sendMail: async (b) => { graphSent.push(b); return { ok: true }; },
+  };
+  const minutesStore = await MIN.open({ file: path.join(dir, 'minutes.duckdb'), encrypt: enc, decrypt: dec, transcribe: txStub, fetch: teamsFetch, contacts: contactsStub, outlookSend: outlookStub, graph: graphStub });
   const aiStore = await AI.open({ file: path.join(dir, 'ai.json'), encrypt: enc, decrypt: dec, fetch: llmFetch });
   await aiStore.save({ provider: 'openai', key: 'sk-test', model: 'gpt-4o' });
 
@@ -134,7 +145,7 @@ async function setField(page, sel, val) { await page.fill(sel, val); await page.
     const previewHasAction = await page.$eval('#minEmailPreview', (f) => (f.getAttribute('srcdoc') || '').indexOf('Add the map view') !== -1);
     T.check('the preview holds the discussion and the action item', previewHasAction);
     T.check('Send to is pre-filled with the attendee email', /priya\.raman@rite\.digital/.test(await page.$eval('#minEmailDlg input[data-field="to"]', (i) => i.value)));
-    await page.click('#minEmailOutlook');
+    await page.click('#minEmailSend');
     await settle(page, 400);
     T.check('Send via Outlook opens a pre-filled Outlook message', outlookOpened.length === 1 && /priya\.raman@rite\.digital/.test(outlookOpened[0].to) && /Daily standup/.test(outlookOpened[0].subject) && /Add the map view/.test(outlookOpened[0].html));
     await page.click('#minEmailDlg button[data-act="dialog"]');
@@ -150,6 +161,36 @@ async function setField(page, sel, val) { await page.fill(sel, val); await page.
     await page.waitForFunction(() => true, null, { timeout: 5000 });
     await settle(page, 500);
     T.check('a message was posted to the Teams webhook with the minutes', teamsPosts.length === 1 && /outlook\.office\.com/.test(teamsPosts[0].url) && /Daily standup/.test(teamsPosts[0].body));
+
+    T.section('Microsoft 365 (Graph) provider: sign in, directory, send');
+    await page.click('#minSettings');
+    await page.waitForSelector('#minSetDlg', { timeout: 10000 });
+    await page.click('#minSetDlg button[data-act="setProvider"][data-id="o365"]');
+    await settle(page, 300);
+    await setField(page, '#minSetDlg input[data-field="tenantId"]', 'tenant-123');
+    await setField(page, '#minSetDlg input[data-field="clientId"]', 'client-abc');
+    await page.click('#minGraphIn');
+    await page.waitForFunction(() => /Signed in/.test((document.querySelector('#minSetDlg') || {}).innerText || ''), null, { timeout: 15000 }).catch(() => {});
+    T.check('device-code sign-in signs the user in to Microsoft 365', /Signed in/.test(await text(page, '#minSetDlg')) && /javeed@rite\.digital/.test(await text(page, '#minSetDlg')));
+    await page.click('#minSetSave');
+    await settle(page, 400);
+    await page.click('#minNew');
+    await settle(page, 300);
+    await page.fill('.nx-min-attadd', 'San');
+    await settle(page, 300);
+    await page.waitForSelector('.nx-min-suggest-item', { timeout: 5000 });
+    T.check('attendee suggestions now come from the Microsoft 365 directory', /Sandeep Reddy/.test(await text(page, '.nx-min-suggest')));
+    await page.click('.nx-min-suggest-item');
+    await page.click('#minAddLine');
+    await settle(page, 200);
+    await page.evaluate((x) => { const t = document.querySelector('oj-text-area.nx-min-ta'); if (t) t.value = x; }, 'Office 365 send test note');
+    await settle(page, 200);
+    await page.click('#minEmail');
+    await page.waitForSelector('#minEmailDlg', { timeout: 10000 });
+    T.check('the email Send button reads "Send via Office 365"', /Send via Office 365/.test(await text(page, '#minEmailSend')));
+    await page.click('#minEmailSend');
+    await settle(page, 500);
+    T.check('Send via Office 365 sends the minutes through Graph', graphSent.length === 1 && /sandeep\.reddy@rite\.digital/.test(graphSent[0].to) && /Office 365 send test note/.test(graphSent[0].html));
 
     T.eq('no browser errors', errs().join(' | ').slice(0, 1500), '');
   } catch (e) {

@@ -22,8 +22,9 @@
     "jiraReady": { "type": "boolean", "defaultValue": false },
     "recLineId": { "type": "string", "defaultValue": "", "description": "The line whose voice is being recorded." },
     "fmtLineId": { "type": "string", "defaultValue": "", "description": "The line being formatted by AI." },
-    "settings": { "type": "any", "defaultValue": { "teamsWebhookSet": false, "defaultAttendees": [], "orgName": "", "fromName": "", "fromEmail": "" } },
-    "settingsForm": { "type": "any", "defaultValue": { "teamsWebhook": "", "defaultAttendees": "", "orgName": "", "fromName": "", "fromEmail": "", "clearTeamsWebhook": false } },
+    "settings": { "type": "any", "defaultValue": { "teamsWebhookSet": false, "defaultAttendees": [], "orgName": "", "fromName": "", "fromEmail": "", "provider": "local" } },
+    "settingsForm": { "type": "any", "defaultValue": { "teamsWebhook": "", "defaultAttendees": "", "orgName": "", "fromName": "", "fromEmail": "", "clearTeamsWebhook": false, "provider": "local", "tenantId": "", "clientId": "" } },
+    "graph": { "type": "any", "defaultValue": { "configured": false, "signedIn": false, "pending": false, "account": "", "userCode": "", "verificationUri": "", "error": "" }, "description": "Microsoft 365 sign-in status (lib/graph.js)." },
     "ai": { "type": "any", "defaultValue": { "active": "", "providers": {} } },
     "aiReady": { "type": "boolean", "defaultValue": false },
     "aiForm": { "type": "any", "defaultValue": { "provider": "claude", "key": "", "model": "", "baseUrl": "", "region": "", "compartmentId": "", "status": "" } },
@@ -39,7 +40,7 @@
       "lineId": "{{ $event.currentTarget.dataset.line || '' }}" } } ] },
     "onNote": { "chains": [ { "chain": "setChain", "parameters": {
       "scope": "line", "field": "text", "value": "{{ $event.detail.value }}", "lineId": "{{ $event.target.dataset.line || '' }}" } } ] },
-    "onAttendeeInput": { "chains": [ { "chain": "setChain", "parameters": { "scope": "ui", "field": "attendeeDraft", "value": "{{ $event.target.value }}" } } ] },
+    "onAttendeeInput": { "chains": [ { "chain": "actChain", "parameters": { "act": "attendeeSearch", "id": "{{ $event.target.value }}" } } ] },
     "onAttendeeKey": { "chains": [ { "chain": "actChain", "parameters": { "act": "{{ $event.key === 'Enter' ? 'addAttendee' : 'noop' }}", "id": "{{ $event.target.value }}" } } ] }
   },
   "imports": {

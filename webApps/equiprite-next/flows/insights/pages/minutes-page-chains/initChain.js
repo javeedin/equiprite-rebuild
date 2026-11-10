@@ -20,6 +20,8 @@ define([
 
       const st = await C.settings();
       if (st.ok && st.body) v.settings = st.body;
+      const gs = await C.graphStatus();
+      if (gs.ok && gs.body) v.graph = gs.body;
       const ai = await C.aiSettings();
       if (ai.ok && ai.body) { v.ai = { active: ai.body.active || '', providers: ai.body.providers || {} }; v.aiReady = !!ai.body.active; }
 

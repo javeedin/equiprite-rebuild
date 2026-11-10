@@ -115,15 +115,17 @@ async function duckStore(o, file) {
   await con.run('CREATE TABLE IF NOT EXISTS meetings (id VARCHAR PRIMARY KEY, date VARCHAR, time VARCHAR, title VARCHAR, customer VARCHAR, attendees VARCHAR, context VARCHAR, created_at VARCHAR, updated_at VARCHAR)');
   await con.run('CREATE TABLE IF NOT EXISTS minute_lines (id VARCHAR PRIMARY KEY, meeting_id VARCHAR, seq INTEGER, jira_key VARCHAR, generic BOOLEAN, text VARCHAR, raw VARCHAR, action VARCHAR, owner VARCHAR, due VARCHAR, status VARCHAR)');
   await con.run("CREATE TABLE IF NOT EXISTS minute_settings (id VARCHAR PRIMARY KEY, teams_webhook VARCHAR, default_attendees VARCHAR, org_name VARCHAR, from_name VARCHAR, from_email VARCHAR)");
+  await con.run('CREATE TABLE IF NOT EXISTS minute_kv (k VARCHAR PRIMARY KEY, v VARCHAR)');
 
   function seal(t) { if (!t || !encrypt) return null; try { return encrypt(t).toString('base64'); } catch (e) { return null; } }
   function unseal(b) { if (!b || !decrypt) return ''; try { return decrypt(Buffer.from(b, 'base64')); } catch (e) { return ''; } }
   async function settingsRow() { const r = await rows("SELECT * FROM minute_settings WHERE id = 'current'"); return r[0] || {}; }
+  async function kvGet(k) { const r = await rows('SELECT v FROM minute_kv WHERE k = $1', [k]); return r[0] ? r[0].v : ''; }
   async function webhook() { if (memHook) return memHook; const s = await settingsRow(); return unseal(s.teams_webhook); }
   async function settings() {
     const s = await settingsRow();
     return { ok: true, teamsWebhookSet: !!(memHook || (s.teams_webhook && unseal(s.teams_webhook))), defaultAttendees: jarr(s.default_attendees),
-      orgName: str(s.org_name), fromName: str(s.from_name), fromEmail: str(s.from_email), keychain: !!encrypt, engine: 'duckdb' };
+      orgName: str(s.org_name), fromName: str(s.from_name), fromEmail: str(s.from_email), provider: (await kvGet('provider')) || 'local', keychain: !!encrypt, engine: 'duckdb' };
   }
   function lineToObj(r) {
     return { id: r.id, jiraKey: str(r.jira_key), generic: !!r.generic, text: str(r.text), raw: str(r.raw),
@@ -153,6 +155,7 @@ async function duckStore(o, file) {
       const fn = b.fromName !== undefined ? str(b.fromName) : str(s.from_name);
       const fe = b.fromEmail !== undefined ? str(b.fromEmail) : str(s.from_email);
       await con.run("INSERT OR REPLACE INTO minute_settings VALUES ('current', $1, $2, $3, $4, $5)", [hook, def, org, fn, fe]);
+      if (b.provider !== undefined) await con.run("INSERT OR REPLACE INTO minute_kv VALUES ('provider', $1)", [String(b.provider)]);
       return await settings();
     }),
     list: () => serial(async () => {
@@ -228,7 +231,7 @@ function jsonStore(o, file) {
   function settings() {
     const s = data.settings || {};
     return { ok: true, teamsWebhookSet: !!webhook(), defaultAttendees: arr(s.defaultAttendees), orgName: str(s.orgName),
-      fromName: str(s.fromName), fromEmail: str(s.fromEmail), keychain: !!encrypt, engine: 'json' };
+      fromName: str(s.fromName), fromEmail: str(s.fromEmail), provider: str(s.provider) || 'local', keychain: !!encrypt, engine: 'json' };
   }
   return {
     engine: 'json',
@@ -246,6 +249,7 @@ function jsonStore(o, file) {
       if (b.orgName !== undefined) s.orgName = str(b.orgName);
       if (b.fromName !== undefined) s.fromName = str(b.fromName);
       if (b.fromEmail !== undefined) s.fromEmail = str(b.fromEmail);
+      if (b.provider !== undefined) s.provider = str(b.provider);
       write();
       return settings();
     },
@@ -278,9 +282,13 @@ async function open(o) {
     try { store = await duckStore(o, file); }
     catch (e) { console.warn('[minutes] DuckDB could not open', file, e && e.message); store = jsonStore(o, file.replace(/\.duckdb$/, '') + '.json'); }
   }
-  // Attendee suggestions from the user's Outlook contacts (lib/outlookContacts.js), injected as o.contacts; filtered here.
-  const contactsReader = o.contacts || null;
-  store.contacts = async (q) => {
+  const contactsReader = o.contacts || null;   // Outlook contacts (lib/outlookContacts.js read) — local provider
+  const outlookSend = o.outlookSend || null;    // Outlook compose (lib/outlookContacts.js compose) — local provider
+  const graph = o.graph || null;                // Microsoft 365 (lib/graph.js) — o365 provider
+
+  async function provider() { try { return (await store.settings()).provider || 'local'; } catch (e) { return 'local'; } }
+
+  async function localContacts(q) {
     if (!contactsReader) return { ok: false, available: false, contacts: [] };
     let r;
     try { r = await contactsReader(); } catch (e) { return { ok: false, available: true, contacts: [], error: String((e && e.message) || e) }; }
@@ -288,13 +296,31 @@ async function open(o) {
     const qq = str(q).toLowerCase();
     const list = qq ? (r.contacts || []).filter((c) => (str(c.name) + ' ' + str(c.email)).toLowerCase().indexOf(qq) !== -1) : (r.contacts || []);
     return { ok: true, available: true, contacts: list.slice(0, 100) };
+  }
+
+  // Attendee suggestions: from Microsoft 365 (Graph /me/people) when that provider is chosen and signed in, else Outlook.
+  store.contacts = async (q) => {
+    if ((await provider()) === 'o365' && graph && graph.status().signedIn) {
+      const r = await graph.people(q);
+      return { ok: !!(r && r.ok), available: true, contacts: (r && r.contacts) || [], error: r && r.error };
+    }
+    return localContacts(q);
   };
-  // Open the minutes in a pre-filled Outlook message (lib/outlookContacts.js compose), injected as o.outlookSend.
-  const outlookSend = o.outlookSend || null;
+  // Open the minutes in a pre-filled Outlook message (local provider).
   store.sendOutlook = async (b) => {
     if (!outlookSend) return { ok: false, available: false, error: 'Sending via Outlook is not available in this app.' };
     try { return await outlookSend(b || {}); } catch (e) { return { ok: false, available: true, error: String((e && e.message) || e) }; }
   };
+  // Send the minutes: Microsoft 365 (Graph sendMail, actually sends) when chosen, else open a pre-filled Outlook message.
+  store.sendMail = async (b) => {
+    if ((await provider()) === 'o365' && graph && graph.status().signedIn) return graph.sendMail(b || {});
+    return store.sendOutlook(b || {});
+  };
+  // Microsoft 365 account management (lib/graph.js).
+  store.graphStatus = () => (graph ? graph.status() : { configured: false, signedIn: false, available: false });
+  store.graphConfig = async (b) => { if (graph) graph.saveConfig(b || {}); return { ok: true, status: store.graphStatus() }; };
+  store.graphBegin = async () => (graph ? graph.beginSignIn() : { ok: false, error: 'Microsoft 365 is not available in this app.' });
+  store.graphSignOut = async () => { if (graph) graph.signOut(); return { ok: true, status: store.graphStatus() }; };
   return store;
 }
 

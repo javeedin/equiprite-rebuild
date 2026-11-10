@@ -16,6 +16,15 @@ define([
 
       async function refreshList() { const r = await C.list(); if (r.ok && r.body && r.body.meetings) v.meetings = r.body.meetings; }
       function openMeeting(m) { v.meeting = m; v.attendeesText = (m.attendees || []).join(', '); v.dirty = false; }
+      const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+      async function openSettings() {
+        const gs = await C.graphStatus();
+        const g = (gs.ok && gs.body) ? gs.body : (v.graph || {});
+        v.graph = g;
+        const st = v.settings || {};
+        v.settingsForm = { teamsWebhook: '', clearTeamsWebhook: false, defaultAttendees: ((st.defaultAttendees) || []).join(', '), orgName: st.orgName || '', fromName: st.fromName || '', fromEmail: st.fromEmail || '', provider: st.provider || 'local', tenantId: g.tenantId || '', clientId: g.clientId || '' };
+        v.dialog = 'settings';
+      }
 
       switch (act) {
         case 'view': v.view = id || 'edit'; return;
@@ -40,6 +49,22 @@ define([
           v.meeting = m; v.attendeeDraft = ''; v.dirty = true; return;
         }
         case 'removeAttendee': { const m = clone(v.meeting) || {}; m.attendees = (m.attendees || []).filter((a) => a !== id); v.meeting = m; v.dirty = true; return; }
+        case 'attendeeSearch': {
+          // Keep the draft (drives the dropdown) and look the name up live via the active provider (Outlook or
+          // Microsoft 365), merging matches into the people list so the suggestions reflect the real directory.
+          v.attendeeDraft = id;
+          const q = String(id || '').trim();
+          if (q.length < 1) return;
+          const r = await C.contacts(q);
+          if (r.ok && r.body && r.body.contacts && r.body.contacts.length) {
+            const have = {};
+            const merged = (v.people || []).slice();
+            merged.forEach((p) => { have[String((p && (p.email || p.name)) || '').toLowerCase()] = true; });
+            r.body.contacts.forEach((p) => { const k = String((p && (p.email || p.name)) || '').toLowerCase(); if (p && k && !have[k]) { have[k] = true; merged.push({ name: p.name, email: p.email }); } });
+            v.people = merged;
+          }
+          return;
+        }
 
         case 'save': {
           const r = await C.save(clone(v.meeting));
@@ -100,11 +125,13 @@ define([
         case 'emailCopy': { const okc = await C.copyHtml(v.email.html, v.email.text); toast(okc ? 'Email copied.' : 'Copied the text.'); return; }
         case 'emailDownload': { C.download('minutes-' + (v.meeting.date || 'meeting') + '.html', v.email.html, 'text/html'); return; }
         case 'emailMailto': { C.mailto(v.email.to, v.email.subject, v.email.text); return; }
-        case 'emailOutlook': {
-          const r = await C.outlook({ to: v.email.to, subject: v.email.subject, html: v.email.html });
-          if (r.ok && r.body && r.body.ok) { toast('Opening the message in Outlook…'); }
+        case 'emailSend': {
+          const prov = (v.settings && v.settings.provider) || 'local';
+          const r = await C.send({ to: v.email.to, subject: v.email.subject, html: v.email.html });
+          if (r.ok && r.body && r.body.ok) { toast(prov === 'o365' ? 'Sent via Office 365.' : 'Opening the message in Outlook…'); if (prov === 'o365') v.dialog = ''; }
+          else if (prov === 'o365') { toast((r.body && r.body.error) || 'Could not send via Office 365.', 'error'); }
           else {
-            // Outlook COM isn't available (e.g. the new Outlook has none) — open the default mail app instead.
+            // Local Outlook COM isn't available (e.g. the new Outlook has none) — open the default mail app instead.
             C.mailto(v.email.to, v.email.subject, v.email.text);
             toast('Outlook automation is not available here — opened your default mail app instead.' + ((r.body && r.body.error) ? ' (' + r.body.error + ')' : ''), 'error');
           }
@@ -118,23 +145,37 @@ define([
           else {
             const err = (r.body && r.body.error) || 'Could not send to Teams.';
             toast(err, 'error');
-            if (/no teams webhook/i.test(err)) { v.settingsForm = { teamsWebhook: '', clearTeamsWebhook: false, defaultAttendees: ((v.settings && v.settings.defaultAttendees) || []).join(', '), orgName: (v.settings && v.settings.orgName) || '', fromName: (v.settings && v.settings.fromName) || '', fromEmail: (v.settings && v.settings.fromEmail) || '' }; v.dialog = 'settings'; }
+            if (/no teams webhook/i.test(err)) { await openSettings(); }
           }
           return;
         }
 
         case 'dialog': {
+          if (id === 'settings') { await openSettings(); return; }
           v.dialog = id || '';
-          if (id === 'settings') v.settingsForm = { teamsWebhook: '', clearTeamsWebhook: false, defaultAttendees: ((v.settings && v.settings.defaultAttendees) || []).join(', '), orgName: (v.settings && v.settings.orgName) || '', fromName: (v.settings && v.settings.fromName) || '', fromEmail: (v.settings && v.settings.fromEmail) || '' };
           if (id === 'ai') v.aiForm = { provider: (v.ai && v.ai.active) || 'claude', key: '', model: '', baseUrl: '', status: '' };
           return;
         }
         case 'ai': { v.aiForm = { provider: (v.ai && v.ai.active) || 'claude', key: '', model: '', baseUrl: '', status: '' }; v.dialog = 'ai'; return; }
-        case 'settings': { v.settingsForm = { teamsWebhook: '', clearTeamsWebhook: false, defaultAttendees: ((v.settings && v.settings.defaultAttendees) || []).join(', '), orgName: (v.settings && v.settings.orgName) || '', fromName: (v.settings && v.settings.fromName) || '', fromEmail: (v.settings && v.settings.fromEmail) || '' }; v.dialog = 'settings'; return; }
+        case 'settings': { await openSettings(); return; }
+        case 'setProvider': { const f = clone(v.settingsForm) || {}; f.provider = id || 'local'; v.settingsForm = f; return; }
+        case 'graphSignIn': {
+          const f = clone(v.settingsForm) || {};
+          await C.graphConfig({ tenantId: f.tenantId, clientId: f.clientId });
+          const r = await C.graphSignIn();
+          if (!(r.ok && r.body && r.body.ok)) { const g = clone(v.graph) || {}; g.error = (r.body && r.body.error) || 'Could not start sign-in.'; v.graph = g; return; }
+          v.graph = { configured: true, signedIn: false, pending: true, userCode: r.body.userCode, verificationUri: r.body.verificationUri, tenantId: f.tenantId, clientId: f.clientId, account: '', error: '' };
+          for (let i = 0; i < 40; i++) { await sleep(3000); const s = await C.graphStatus(); if (s.ok && s.body) { v.graph = s.body; if (s.body.signedIn || s.body.error || !s.body.pending) break; } }
+          if (v.graph.signedIn) toast('Signed in to Microsoft 365' + (v.graph.account ? ' as ' + v.graph.account : '') + '.');
+          else if (v.graph.error) toast(v.graph.error, 'error');
+          return;
+        }
+        case 'graphSignOut': { const r = await C.graphSignOut(); if (r.ok && r.body && r.body.status) v.graph = r.body.status; toast('Signed out of Microsoft 365.'); return; }
 
         case 'settingsSave': {
           const f = clone(v.settingsForm) || {};
-          const body = { teamsWebhook: f.teamsWebhook || '', defaultAttendees: String(f.defaultAttendees || '').split(',').map((s) => s.trim()).filter(Boolean), orgName: f.orgName || '', fromName: f.fromName || '', fromEmail: f.fromEmail || '' };
+          const body = { teamsWebhook: f.teamsWebhook || '', defaultAttendees: String(f.defaultAttendees || '').split(',').map((s) => s.trim()).filter(Boolean), orgName: f.orgName || '', fromName: f.fromName || '', fromEmail: f.fromEmail || '', provider: f.provider || 'local' };
+          if (f.provider === 'o365') await C.graphConfig({ tenantId: f.tenantId, clientId: f.clientId });
           const r = await C.saveSettings(body);
           if (r.ok && r.body) { v.settings = r.body; v.dialog = ''; toast('Settings saved.'); } else toast((r.body && r.body.error) || 'Could not save settings.', 'error');
           return;

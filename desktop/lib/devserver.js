@@ -694,6 +694,11 @@ function createDevServer(o) {
           if (pathname === '/__minutes/teams' && post) return jsonM(200, await ms.sendTeams(b));
           if (pathname === '/__minutes/contacts' && req.method === 'GET') return jsonM(200, ms.contacts ? await ms.contacts(u.searchParams.get('q') || '') : { ok: false, available: false, contacts: [] });
           if (pathname === '/__minutes/outlook' && post) return jsonM(200, ms.sendOutlook ? await ms.sendOutlook(b) : { ok: false, available: false, error: 'Sending via Outlook is not available.' });
+          if (pathname === '/__minutes/send' && post) return jsonM(200, ms.sendMail ? await ms.sendMail(b) : { ok: false, error: 'Sending is not available.' });
+          if (pathname === '/__minutes/graph/status' && req.method === 'GET') return jsonM(200, ms.graphStatus ? ms.graphStatus() : { configured: false, signedIn: false });
+          if (pathname === '/__minutes/graph/config' && post) return jsonM(200, ms.graphConfig ? await ms.graphConfig(b) : { ok: false });
+          if (pathname === '/__minutes/graph/signin' && post) return jsonM(200, ms.graphBegin ? await ms.graphBegin() : { ok: false, error: 'Microsoft 365 is not available.' });
+          if (pathname === '/__minutes/graph/signout' && post) return jsonM(200, ms.graphSignOut ? await ms.graphSignOut() : { ok: false });
           return jsonM(404, { error: 'Not found' });
         })().catch((e) => jsonM(200, { ok: false, error: e.message }));
         return undefined;

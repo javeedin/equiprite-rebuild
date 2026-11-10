@@ -86,5 +86,9 @@
 .nx-min .nx-min-modal .nx-min-field { margin-bottom: 12px; min-width: 0; }
 .nx-min .nx-min-modalfoot { display: flex; align-items: center; gap: 8px; margin-top: 14px; }
 .nx-min .nx-min-err2 { color: var(--nx-danger, #b3311f); min-height: 16px; }
+.nx-min .nx-min-sec { margin: 16px 0 8px; font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--nx-muted, #5b5a57); border-top: 1px solid var(--nx-line, rgba(22,21,19,.12)); padding-top: 12px; }
+.nx-min .nx-min-prov { display: flex; gap: 6px; margin-bottom: 10px; }
+.nx-min .nx-min-linkbtn { border: 0; background: transparent; color: var(--nx-accent, #00688c); font: inherit; font-weight: 600; cursor: pointer; padding: 0; text-decoration: underline; }
+.nx-min .nx-min-code { background: var(--nx-accent-soft, #e4f1f7); color: var(--nx-accent, #00688c); padding: 1px 8px; border-radius: 6px; font-variant-numeric: tabular-nums; letter-spacing: .08em; }
 .nx-min .nx-min-preview { border: 1px solid var(--nx-line, rgba(22,21,19,.14)); border-radius: 8px; overflow: hidden; height: 46vh; background: #fff; }
 .nx-min .nx-min-preview iframe { width: 100%; height: 100%; border: 0; }

@@ -128,6 +128,13 @@ async function minutesStore() {
       fetch: (url, init) => { const { net } = require('electron'); return net.fetch(url, init); },
       contacts: require('./lib/outlookContacts').read,
       outlookSend: require('./lib/outlookContacts').compose,
+      graph: require('./lib/graph').open({
+        file: path.join(app.getPath('userData'), 'graph.json'),
+        encrypt: canEncrypt() ? (t) => safeStorage.encryptString(t) : null,
+        decrypt: canEncrypt() ? (b) => safeStorage.decryptString(b) : null,
+        fetch: (url, init) => { const { net } = require('electron'); return net.fetch(url, init); },
+        openExternal: (u) => { const { shell } = require('electron'); return shell.openExternal(u); },
+      }),
     });
   }
   return minutesStoreInst;

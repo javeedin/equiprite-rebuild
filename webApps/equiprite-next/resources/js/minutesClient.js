@@ -108,6 +108,11 @@ define([], function () {
     teams: function (payload) { return min('teams', 'POST', payload); },
     contacts: function (q) { return min('contacts?q=' + encodeURIComponent(q || '')); },
     outlook: function (payload) { return min('outlook', 'POST', payload); },
+    send: function (payload) { return min('send', 'POST', payload); },
+    graphStatus: function () { return min('graph/status'); },
+    graphConfig: function (b) { return min('graph/config', 'POST', b); },
+    graphSignIn: function () { return min('graph/signin', 'POST', {}); },
+    graphSignOut: function () { return min('graph/signout', 'POST', {}); },
     // Ask AI (shared with the SQL worksheet): the key stays in the desktop app.
     aiSettings: function () { return sql('ai/settings'); },
     aiSave: function (form) { return sql('ai/settings', 'POST', form); },
