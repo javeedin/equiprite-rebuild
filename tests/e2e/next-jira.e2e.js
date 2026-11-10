@@ -293,6 +293,7 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     T.check('the body carries the sprint header: name, state · dates, and the count with a timestamp',
       (await page.getAttribute('#jspFuPreview', 'srcdoc')).includes('Follow-up — Sprint 2026-07')
       && / item(s)? · /.test(await page.getAttribute('#jspFuPreview', 'srcdoc')));
+    T.check('a gear beside Open in Outlook jumps to Windows default-apps settings', (await page.$('#jspFuDefault')) !== null);
     await page.click('#jspFuModal .nx-fu-tpl >> text=Status update');
     await settle(page, 200);
     T.check('picking a template rewrites the message, greeting kept', (await page.getAttribute('#jspFuPreview', 'srcdoc')).includes('latest status')

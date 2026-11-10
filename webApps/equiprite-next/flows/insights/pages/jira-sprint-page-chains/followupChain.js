@@ -11,7 +11,7 @@ define([
   // copies it for an email, or opens a new mail in Outlook with the message (the table rides the clipboard to paste in).
   const KIND = 'sprint';
 
-  function openMailto(href) {
+  function openLink(href) {
     const a = document.createElement('a');
     a.href = href; a.style.display = 'none';
     document.body.appendChild(a); a.click();
@@ -54,6 +54,12 @@ define([
         return;
       }
       if (act === 'close') { v.fuOpen = false; return; }
+      if (act === 'default') {
+        // Open Windows' Default apps page (an app cannot change the default mail client itself) so Outlook can be set for mailto.
+        openLink('ms-settings:defaultapps');
+        bus.toast('Opening Windows settings — set Outlook as the default for “mailto”, then use Open in Outlook.', 'info');
+        return;
+      }
 
       // copy / outlook both need the composed email
       const opts = { title: v.fuTitle, subtitle: v.fuSubtitle, when: v.fuWhen, message: v.fuMessage, signoff: v.fuSignoff, rows: v.fuRows || [], kind: KIND };
@@ -61,7 +67,7 @@ define([
       const text = F.composeText(opts);
       const ok = await exportKit.copyRich(html, text);
       if (act === 'outlook') {
-        openMailto(F.mailtoHref({ to: v.fuTo, subject: v.fuSubject, message: v.fuMessage, signoff: v.fuSignoff }));
+        openLink(F.mailtoHref({ to: v.fuTo, subject: v.fuSubject, title: v.fuTitle, subtitle: v.fuSubtitle, when: v.fuWhen, message: v.fuMessage, signoff: v.fuSignoff, rows: v.fuRows || [] }));
         bus.toast(ok ? 'Opened a new email in Outlook — click in the body and press Ctrl+V to paste the stories table.'
           : 'Opened a new email in Outlook. (The table could not be copied here — copy it from the preview.)', 'info');
         v.fuOpen = false;

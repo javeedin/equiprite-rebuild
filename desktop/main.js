@@ -560,7 +560,7 @@ function openOldWindow(url) {
     if (allowedNav(next)) {
       return { action: 'allow' };
     }
-    if (/^(https?|mailto|ms-outlook):/i.test(next)) {
+    if (/^(https?|mailto|ms-outlook|ms-settings):/i.test(next)) {
       shell.openExternal(next);
     }
     return { action: 'deny' };
@@ -570,7 +570,7 @@ function openOldWindow(url) {
       return;
     }
     event.preventDefault();
-    if (/^(https?|mailto|ms-outlook):/i.test(next)) {
+    if (/^(https?|mailto|ms-outlook|ms-settings):/i.test(next)) {
       shell.openExternal(next);
     }
   });
@@ -621,7 +621,7 @@ function openMobileWindow(url) {
     if (allowedNav(next)) {
       return { action: 'allow' };
     }
-    if (/^(https?|mailto|ms-outlook):/i.test(next)) {
+    if (/^(https?|mailto|ms-outlook|ms-settings):/i.test(next)) {
       shell.openExternal(next);
     }
     return { action: 'deny' };
@@ -631,7 +631,7 @@ function openMobileWindow(url) {
       return;
     }
     event.preventDefault();
-    if (/^(https?|mailto|ms-outlook):/i.test(next)) {
+    if (/^(https?|mailto|ms-outlook|ms-settings):/i.test(next)) {
       shell.openExternal(next);
     }
   });
@@ -922,7 +922,7 @@ function createWindow() {
     if (allowedNav(url)) {
       return { action: 'allow' };
     }
-    if (/^(https?|mailto|ms-outlook):/i.test(url)) {
+    if (/^(https?|mailto|ms-outlook|ms-settings):/i.test(url)) {
       shell.openExternal(url);
     }
     return { action: 'deny' };
@@ -942,7 +942,7 @@ function createWindow() {
       return;
     }
     event.preventDefault();
-    if (/^(https?|mailto|ms-outlook):/i.test(url)) {
+    if (/^(https?|mailto|ms-outlook|ms-settings):/i.test(url)) {
       shell.openExternal(url);
     }
   });

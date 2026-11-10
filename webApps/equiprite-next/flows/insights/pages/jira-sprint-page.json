@@ -194,6 +194,9 @@
     "onFuOutlook": {
       "chains": [ { "chain": "followupChain", "parameters": { "act": "outlook" } } ]
     },
+    "onFuDefault": {
+      "chains": [ { "chain": "followupChain", "parameters": { "act": "default" } } ]
+    },
     "onFuClose": {
       "chains": [ { "chain": "followupChain", "parameters": { "act": "close" } } ]
     },

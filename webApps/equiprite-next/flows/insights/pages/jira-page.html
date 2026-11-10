@@ -611,6 +611,8 @@
         <div class="nx-dialog-foot">
           <button type="button" class="nx-btn nx-btn--sm" id="jiraFuCancel" on-click="[[ $listeners.onFuClose ]]">Cancel</button>
           <span class="nx-fu-spacer"></span>
+          <button type="button" class="nx-iconbtn nx-fu-deficon" id="jiraFuDefault" on-click="[[ $listeners.onFuDefault ]]"
+            aria-label="Set Outlook as your default mail app" title="Set Outlook as your default mail app (opens Windows settings)"><span class="oj-ux-ico-settings" aria-hidden="true"></span></button>
           <button type="button" class="nx-btn nx-btn--sm" id="jiraFuOutlook" on-click="[[ $listeners.onFuOutlook ]]"><span class="oj-ux-ico-email" aria-hidden="true"></span>Open in Outlook</button>
           <button type="button" class="nx-btn nx-btn--cta" id="jiraFuCopy" on-click="[[ $listeners.onFuCopy ]]"><span class="oj-ux-ico-copy-to-clipboard" aria-hidden="true"></span>Copy for email</button>
         </div>

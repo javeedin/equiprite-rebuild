@@ -216,6 +216,9 @@ html[data-nx-look="redwood"] .nx-jira .nx-jira-tr--on { box-shadow: inset 3px 0 
 .nx-fu-prevwrap > label { font-size: 12px; font-weight: 700; color: var(--nx-muted); letter-spacing: .02em; }
 .nx-fu-preview { width: 100%; min-height: 360px; flex: 1; border: 1px solid var(--nx-line); border-radius: 8px; background: #fff; }
 .nx-fu-spacer { flex: 1 1 auto; }
+.nx-dialog.nx-fu-dialog .nx-fu-deficon { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 6px; border: 1px solid var(--nx-line);
+  background: var(--nx-surface); color: var(--nx-muted); cursor: pointer; }
+.nx-dialog.nx-fu-dialog .nx-fu-deficon:hover { border-color: var(--nx-accent); color: var(--nx-accent); }
 .nx-dialog.nx-fu-dialog .nx-dialog-foot .oj-ux-ico-email, .nx-dialog.nx-fu-dialog .nx-dialog-foot .oj-ux-ico-copy-to-clipboard { margin-right: 4px; }
 @media (max-width: 860px) {
   .nx-fu-body { grid-template-columns: 1fr; }
