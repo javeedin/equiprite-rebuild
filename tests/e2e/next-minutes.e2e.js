@@ -78,9 +78,14 @@ async function setField(page, sel, val) { await page.fill(sel, val); await page.
     await setField(page, '.nx-min-head input[data-field="date"]', '2026-11-10');
     await setField(page, '.nx-min-head input[data-field="title"]', 'Daily standup');
     await setField(page, '.nx-min-head input[data-field="customer"]', 'Cianbro');
-    await setField(page, '.nx-min-attadd', 'Priya Raman <priya.raman@rite.digital>');
+    await page.fill('.nx-min-attadd', 'Priya');
     await settle(page, 300);
-    T.check('an attendee is added as a chip from Outlook (name shown, email kept)', /Priya Raman/.test(await text(page, '.nx-min-att')));
+    await page.waitForSelector('.nx-min-suggest-item', { timeout: 5000 });
+    await env.shot('next-minutes-suggest.png');
+    T.check('typing shows an Outlook-style suggestions dropdown with name + email', /Priya Raman/.test(await text(page, '.nx-min-suggest')) && /priya\.raman@rite\.digital/.test(await text(page, '.nx-min-suggest')));
+    await page.click('.nx-min-suggest-item');
+    await settle(page, 300);
+    T.check('clicking a suggestion adds a chip (name shown, email kept)', /Priya Raman/.test(await text(page, '.nx-min-att')));
     await page.click('#minAddLine');
     await settle(page, 300);
     await setField(page, '.nx-min-line input[data-field="jiraKey"]', 'EQP-12');

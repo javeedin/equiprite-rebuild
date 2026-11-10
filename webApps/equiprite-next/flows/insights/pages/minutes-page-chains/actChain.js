@@ -26,7 +26,19 @@ define([
         case 'addLine': { const m = clone(v.meeting) || { lines: [] }; const l = R.blankLine(); l.id = lid(); m.lines = (m.lines || []).concat(l); v.meeting = m; return; }
         case 'removeLine': { const m = clone(v.meeting) || { lines: [] }; m.lines = (m.lines || []).filter((x) => x.id !== lineId); v.meeting = m; v.dirty = true; return; }
         case 'toggleDone': { const m = clone(v.meeting) || { lines: [] }; const l = (m.lines || []).filter((x) => x.id === lineId)[0]; if (l) l.status = l.status === 'done' ? 'open' : 'done'; v.meeting = m; v.dirty = true; return; }
-        case 'addAttendee': { const name = String(id || '').trim(); if (!name) { v.attendeeDraft = ''; return; } const m = clone(v.meeting) || {}; m.attendees = (m.attendees || []).slice(); if (m.attendees.indexOf(name) === -1) m.attendees.push(name); v.meeting = m; v.attendeeDraft = ''; v.dirty = true; return; }
+        case 'addAttendee': {
+          let val = String(id || '').trim();
+          if (!val) { v.attendeeDraft = ''; return; }
+          // Enter on a typed name resolves to the matching person (with their email) when there is one.
+          if (val.indexOf('<') === -1) {
+            const ql = val.toLowerCase();
+            const hit = (v.people || []).filter((p) => p && (String(p.name || '').toLowerCase().indexOf(ql) !== -1 || String(p.email || '').toLowerCase().indexOf(ql) !== -1))[0];
+            if (hit) val = hit.email ? (hit.name + ' <' + hit.email + '>') : hit.name;
+          }
+          const m = clone(v.meeting) || {}; m.attendees = (m.attendees || []).slice();
+          if (m.attendees.indexOf(val) === -1) m.attendees.push(val);
+          v.meeting = m; v.attendeeDraft = ''; v.dirty = true; return;
+        }
         case 'removeAttendee': { const m = clone(v.meeting) || {}; m.attendees = (m.attendees || []).filter((a) => a !== id); v.meeting = m; v.dirty = true; return; }
 
         case 'save': {

@@ -65,10 +65,23 @@
                     <span class="nx-min-chip"><oj-bind-text value="[[ $functions.chipName(at.data) ]]"></oj-bind-text><button type="button" class="nx-min-chipx" data-act="removeAttendee" :data-id="[[ at.data ]]" on-click="[[ $listeners.onAct ]]" aria-label="Remove attendee">×</button></span>
                   </template>
                 </oj-bind-for-each>
-                <input type="text" class="nx-min-attadd" list="minPeople" :value="[[ $variables.attendeeDraft ]]" on-input="[[ $listeners.onAttendeeInput ]]" on-change="[[ $listeners.onAttendee ]]" :placeholder="[[ $variables.peopleReady ? 'Pick a person, or type a name + Enter' : 'Type a name + Enter' ]]">
+                <div class="nx-min-attbox">
+                  <input type="text" class="nx-min-attadd" autocomplete="off" :value="[[ $variables.attendeeDraft ]]" on-input="[[ $listeners.onAttendeeInput ]]" on-keydown="[[ $listeners.onAttendeeKey ]]" :placeholder="[[ $variables.people.length ? 'Start typing a name…' : 'Type a name, then Enter' ]]">
+                  <oj-bind-if test="[[ !!$variables.attendeeDraft && $functions.suggest($variables.people, $variables.attendeeDraft, $variables.meeting.attendees).length > 0 ]]">
+                    <div class="nx-min-suggest" role="listbox">
+                      <oj-bind-for-each data="[[ $functions.suggest($variables.people, $variables.attendeeDraft, $variables.meeting.attendees) ]]">
+                        <template data-oj-as="s">
+                          <button type="button" class="nx-min-suggest-item" role="option" data-act="addAttendee" :data-id="[[ s.data.value ]]" on-mousedown="[[ $listeners.onAct ]]">
+                            <span class="nx-min-suggest-av"><oj-bind-text value="[[ s.data.initials ]]"></oj-bind-text></span>
+                            <span class="nx-min-suggest-main"><b><oj-bind-text value="[[ s.data.name ]]"></oj-bind-text></b><span class="nx-min-suggest-em"><oj-bind-text value="[[ s.data.email ]]"></oj-bind-text></span></span>
+                          </button>
+                        </template>
+                      </oj-bind-for-each>
+                    </div>
+                  </oj-bind-if>
+                </div>
               </div>
             </div>
-            <datalist id="minPeople"><oj-bind-for-each data="[[ $variables.people ]]"><template data-oj-as="pp"><option :value="[[ pp.data.email ? (pp.data.name + ' <' + pp.data.email + '>') : pp.data.name ]]"><oj-bind-text value="[[ pp.data.email ]]"></oj-bind-text></option></template></oj-bind-for-each></datalist>
             <div class="nx-min-field nx-min-wide"><label>Context (optional)</label><input type="text" data-scope="header" data-field="context" :value="[[ $variables.meeting.context ]]" on-change="[[ $listeners.onField ]]" placeholder="sprint, release, agenda…"></div>
           </div>
 

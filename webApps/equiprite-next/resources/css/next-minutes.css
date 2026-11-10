@@ -31,8 +31,18 @@
 .nx-min .nx-min-chip { display: inline-flex; align-items: center; gap: 5px; padding: 2px 4px 2px 10px; border-radius: 999px; font-size: 13px; font-weight: 600; background: var(--nx-accent-soft, #e4f1f7); color: var(--nx-accent, #00688c); }
 .nx-min .nx-min-chipx { width: 18px; height: 18px; border: 0; border-radius: 999px; background: transparent; color: inherit; cursor: pointer; font-size: 14px; line-height: 1; }
 .nx-min .nx-min-chipx:hover { background: rgba(0,0,0,.12); }
-.nx-min .nx-min-att .nx-min-attadd { flex: 1; min-width: 150px; border: 0; padding: 4px 6px; background: transparent; font: inherit; font-size: 14px; color: var(--nx-ink, #161513); }
+.nx-min .nx-min-attbox { position: relative; flex: 1; min-width: 180px; }
+.nx-min .nx-min-att .nx-min-attadd { width: 100%; border: 0; padding: 4px 6px; background: transparent; font: inherit; font-size: 14px; color: var(--nx-ink, #161513); }
 .nx-min .nx-min-att .nx-min-attadd:focus { outline: none; box-shadow: none; }
+/* Outlook-style suggestions dropdown */
+.nx-min .nx-min-suggest { position: absolute; z-index: 30; top: calc(100% + 4px); left: 0; min-width: 320px; max-width: 460px; max-height: 320px; overflow-y: auto;
+  background: var(--nx-surface, #fff); border: 1px solid var(--nx-line, rgba(22,21,19,.14)); border-radius: 8px; box-shadow: 0 12px 32px rgba(0,0,0,.22); padding: 4px; }
+.nx-min .nx-min-suggest-item { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; border: 0; border-radius: 6px; background: transparent; padding: 7px 9px; cursor: pointer; font: inherit; color: var(--nx-ink, #161513); }
+.nx-min .nx-min-suggest-item:hover { background: var(--nx-accent-soft, #e4f1f7); }
+.nx-min .nx-min-suggest-av { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 999px; display: grid; place-items: center; font-size: 11px; font-weight: 800; color: #fff; background: var(--nx-accent, #00688c); }
+.nx-min .nx-min-suggest-main { display: flex; flex-direction: column; min-width: 0; }
+.nx-min .nx-min-suggest-main b { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nx-min .nx-min-suggest-em { font-size: 12px; color: var(--nx-muted, #5b5a57); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nx-min .nx-min-field label { font-size: 11px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: var(--nx-muted, #5b5a57); }
 .nx-min .nx-min-field input, .nx-min .nx-min-field select, .nx-min textarea { font: inherit; font-size: 14px; padding: 7px 9px; border: 1px solid var(--nx-line-strong, rgba(22,21,19,.4));
   border-radius: 6px; background: var(--nx-surface, #fff); color: var(--nx-ink, #161513); box-sizing: border-box; width: 100%; }

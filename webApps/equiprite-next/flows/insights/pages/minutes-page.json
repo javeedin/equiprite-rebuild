@@ -40,7 +40,7 @@
     "onNote": { "chains": [ { "chain": "setChain", "parameters": {
       "scope": "line", "field": "text", "value": "{{ $event.detail.value }}", "lineId": "{{ $event.target.dataset.line || '' }}" } } ] },
     "onAttendeeInput": { "chains": [ { "chain": "setChain", "parameters": { "scope": "ui", "field": "attendeeDraft", "value": "{{ $event.target.value }}" } } ] },
-    "onAttendee": { "chains": [ { "chain": "actChain", "parameters": { "act": "addAttendee", "id": "{{ $event.target.value }}" } } ] }
+    "onAttendeeKey": { "chains": [ { "chain": "actChain", "parameters": { "act": "{{ $event.key === 'Enter' ? 'addAttendee' : 'noop' }}", "id": "{{ $event.target.value }}" } } ] }
   },
   "imports": {
     "components": {

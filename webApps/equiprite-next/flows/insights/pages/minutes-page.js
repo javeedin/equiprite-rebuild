@@ -12,6 +12,14 @@ define(['resources/js/minutes'], (R) => {
 
   const PROVIDERS = { claude: 'Claude (Anthropic)', openai: 'OpenAI (ChatGPT)', gemini: 'Google Gemini', oci: 'OCI GenAI', custom: 'OpenAI-compatible' };
 
+  function initialsOf(s) {
+    const t = String(s || '').replace(/<[^>]*>/g, '').trim();
+    if (!t) return '?';
+    if (t.indexOf('@') !== -1 && t.indexOf(' ') === -1) return t.slice(0, 2).toUpperCase();
+    const parts = t.split(/\s+/).filter(Boolean);
+    return ((parts[0] || '')[0] + (parts.length > 1 ? (parts[parts.length - 1] || '')[0] : '')).toUpperCase();
+  }
+
   class PageModule {
     /** The line under the title: where the minutes live, and how many are kept. */
     subtitle(available, meetings, jiraReady) {
@@ -53,6 +61,24 @@ define(['resources/js/minutes'], (R) => {
     }
     /** A chip shows the attendee's name (an Outlook pick is kept as "Name <email>"). */
     chipName(a) { return R.attendeeName(a); }
+
+    /** The Outlook-style suggestions for what is typed: people whose name or email matches, not already added. */
+    suggest(people, draft, attendees) {
+      return memo('suggest', { p: people, d: draft, a: attendees }, (x) => {
+        const q = String(x.d || '').trim().toLowerCase();
+        if (!q) return [];
+        const taken = {};
+        (x.a || []).forEach((v) => { taken[R.attendeeEmail(v).toLowerCase()] = true; taken[R.attendeeName(v).toLowerCase()] = true; });
+        return (x.p || []).filter((pp) => {
+          if (!pp) return false;
+          if ((String(pp.name || '') + ' ' + String(pp.email || '')).toLowerCase().indexOf(q) === -1) return false;
+          return !(taken[String(pp.email || '').toLowerCase()] || taken[String(pp.name || '').toLowerCase()]);
+        }).slice(0, 8).map((pp) => ({
+          value: pp.email ? (pp.name + ' <' + pp.email + '>') : pp.name,
+          name: pp.name || pp.email, email: pp.email || '', initials: initialsOf(pp.name || pp.email)
+        }));
+      });
+    }
 
     recActive(line, recLineId) { return !!line && line.id === recLineId; }
     recLabel(line, recLineId) { return (!!line && line.id === recLineId) ? '◼ Stop' : '🎤 Voice'; }
