@@ -245,11 +245,12 @@ define([], function () {
     var n = rows.length + (rows.length === 1 ? ' item' : ' items');
     var countDiv = o.showCount === false ? ''
       : '<div style="font:400 12px/1.4 \'Segoe UI\',Arial,sans-serif;color:#94a3b8;margin:0 0 10px;">' + n + (o.when ? ' · ' + htmlEsc(o.when) : '') + '</div>';
-    // o.intro / o.signoff are raw HTML the caller has already escaped (the greeting, the message, the sign-off).
+    // o.intro / o.signoff are raw HTML the caller has already escaped (the greeting, the message, the sign-off). The
+    // title, subtitle and count form the header block (name, state · dates, N items · when); the message follows it.
     var head = (o.title ? '<div style="font:600 16px/1.3 \'Segoe UI\',Arial,sans-serif;color:#0f172a;margin:0 0 2px;">' + htmlEsc(o.title) + '</div>' : '')
       + (o.subtitle ? '<div style="font:400 13px/1.4 \'Segoe UI\',Arial,sans-serif;color:#475569;margin:0 0 2px;">' + htmlEsc(o.subtitle) + '</div>' : '')
-      + (o.intro || '')
-      + countDiv;
+      + countDiv
+      + (o.intro ? '<div style="margin-top:12px;">' + o.intro + '</div>' : '');
     return '<div style="font-family:\'Segoe UI\',Arial,sans-serif;color:#1f2937;">' + head
       + '<table style="border-collapse:collapse;border:1px solid #cbd5e1;width:100%;max-width:960px;">'
       + '<thead>' + header + '</thead><tbody>' + body + '</tbody></table>'

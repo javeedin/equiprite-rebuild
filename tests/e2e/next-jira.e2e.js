@@ -290,6 +290,9 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     T.check('the preview shows the drafted email: the message and the stories table with the Key linking to Jira',
       (await page.getAttribute('#jspFuPreview', 'srcdoc')).includes('kindly close') && (await page.getAttribute('#jspFuPreview', 'srcdoc')).includes('<table')
       && (await page.getAttribute('#jspFuPreview', 'srcdoc')).includes('href="https://equiprite.atlassian.net/browse/EQP-12"'));
+    T.check('the body carries the sprint header: name, state · dates, and the count with a timestamp',
+      (await page.getAttribute('#jspFuPreview', 'srcdoc')).includes('Follow-up — Sprint 2026-07')
+      && / item(s)? · /.test(await page.getAttribute('#jspFuPreview', 'srcdoc')));
     await page.click('#jspFuModal .nx-fu-tpl >> text=Status update');
     await settle(page, 200);
     T.check('picking a template rewrites the message, greeting kept', (await page.getAttribute('#jspFuPreview', 'srcdoc')).includes('latest status')

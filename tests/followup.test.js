@@ -58,17 +58,22 @@ T.check('a paragraph per blank line, a break for a single newline', (intro.match
 T.check('text is HTML-escaped', F.introHtml('a <b> & "c"').includes('&lt;b&gt;') && !F.introHtml('a <b>').includes('<b>'));
 T.eq('empty message → nothing', F.introHtml('   '), '');
 
-T.section('composeHtml / composeText');
-const html = F.composeHtml({ message: F.message(ROWS, 'close'), signoff: 'Thanks,\nJaveed', rows: ROWS, kind: 'stories' });
-T.check('the email has the greeting, the table, the sign-off', html.includes('Dear Rahul and Nabil,') && html.includes('<table') && html.includes('Thanks,'));
+T.section('headerText / composeHtml / composeText');
+T.eq('headerText: title, subtitle, N items · when', F.headerText({ title: 'T', subtitle: 'S', when: 'W', rows: ROWS }), 'T\nS\n2 items · W');
+const OPTS = { title: 'Follow-up — Sprint 2026-06', subtitle: 'active · 2026-06-01 – 2026-06-30', when: '11/10/2026, 10:43:47 PM',
+  message: F.message(ROWS, 'close'), signoff: 'Thanks,\nJaveed', rows: ROWS, kind: 'stories' };
+const html = F.composeHtml(OPTS);
+T.check('the email header: title, subtitle, and the count with the timestamp', html.includes('Follow-up — Sprint 2026-06')
+  && html.includes('active · 2026-06-01') && html.includes('2 items · 11/10/2026, 10:43:47 PM'));
+T.check('then the greeting, the table and the sign-off', html.includes('Dear Rahul and Nabil,') && html.includes('<table') && html.includes('Thanks,'));
 T.check('the summary is escaped inside the table', html.includes('Picking Exception &lt;Handling&gt;'));
-T.check('no stray item-count line (showCount off)', !/\b2 items\b/.test(html));
-const txt = F.composeText({ message: F.message(ROWS, 'close'), signoff: 'Thanks,', rows: ROWS, kind: 'stories' });
-T.check('the plain text has the message, a tab-separated table, the sign-off', txt.includes('kindly close') && txt.includes('\t') && txt.trim().endsWith('Thanks,'));
+const txt = F.composeText(OPTS);
+T.check('plain text: the header, the message, a tab-separated table, the sign-off', txt.includes('Follow-up — Sprint 2026-06')
+  && txt.includes('2 items · 11/10/2026') && txt.includes('kindly close') && txt.includes('\t') && txt.trim().endsWith('Javeed'));
 
 T.section('mailtoHref');
-const href = F.mailtoHref({ to: 'a@b.com; c@d.com', subject: 'Please close these stories', message: 'Dear all,', signoff: 'Thanks,' });
+const href = F.mailtoHref({ to: 'a@b.com; c@d.com', subject: 'Please close these stories', title: 'Follow-up — Sprint 2026-06', subtitle: 'active', when: 'now', message: 'Dear all,', signoff: 'Thanks,', rows: ROWS });
 T.check('a mailto with the recipients and subject', href.startsWith('mailto:') && href.includes(encodeURIComponent('a@b.com; c@d.com')) && href.includes(encodeURIComponent('Please close these stories')));
-T.check('the body tells them the table is on the clipboard', decodeURIComponent(href).includes('press Ctrl+V'));
+T.check('the body carries the header and the clipboard hint', decodeURIComponent(href).includes('Follow-up — Sprint 2026-06') && decodeURIComponent(href).includes('press Ctrl+V'));
 
 T.report();

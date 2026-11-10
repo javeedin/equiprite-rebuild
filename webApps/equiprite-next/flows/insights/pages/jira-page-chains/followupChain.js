@@ -25,6 +25,9 @@ define([
       if (act === 'open') {
         const picked = JSON.parse(JSON.stringify(v.shown || []));
         if (!picked.length) { bus.toast('There are no items to copy.', 'error'); return; }
+        v.fuTitle = 'Follow-up — Jira stories';
+        v.fuSubtitle = [v.jql, v.fLabel].filter(Boolean).join(' · ');
+        v.fuWhen = new Date().toLocaleString();
         v.fuRows = picked;
         v.fuTpl = 'close';
         v.fuMessage = F.message(picked, 'close');
@@ -49,7 +52,7 @@ define([
       }
       if (act === 'close') { v.fuOpen = false; return; }
 
-      const opts = { message: v.fuMessage, signoff: v.fuSignoff, rows: v.fuRows || [], kind: KIND };
+      const opts = { title: v.fuTitle, subtitle: v.fuSubtitle, when: v.fuWhen, message: v.fuMessage, signoff: v.fuSignoff, rows: v.fuRows || [], kind: KIND };
       const ok = await exportKit.copyRich(F.composeHtml(opts), F.composeText(opts));
       if (act === 'outlook') {
         openMailto(F.mailtoHref({ to: v.fuTo, subject: v.fuSubject, message: v.fuMessage, signoff: v.fuSignoff }));

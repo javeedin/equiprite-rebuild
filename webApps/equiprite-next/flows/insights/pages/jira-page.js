@@ -30,7 +30,7 @@ define(['resources/js/jiraBacklog', 'resources/js/exportKit', 'resources/js/test
     fuTemplates() { return F.TEMPLATES; }
     fuTplClass(key, cur) { return 'nx-fu-tpl' + (key === cur ? ' nx-fu-tpl--on' : ''); }
     fuCountText(rows) { const n = (rows || []).length; return n + (n === 1 ? ' story' : ' stories') + ' will be added as a table'; }
-    fuPreview(message, signoff, rows) { return F.composeHtml({ message, signoff, rows: rows || [], kind: 'stories' }); }
+    fuPreview(title, subtitle, when, message, signoff, rows) { return F.composeHtml({ title, subtitle, when, message, signoff, rows: rows || [], kind: 'stories' }); }
 
     /** "EQP on equiprite.atlassian.net · 205 items read at 10:42", or what is happening. */
     subtitle(conn, rows, readAt, isLoading) {

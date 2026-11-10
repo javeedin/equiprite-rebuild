@@ -27,6 +27,10 @@ define([
         const sel = v.selected || [];
         const picked = sel.length ? rows.filter((r) => sel.indexOf(r.key) >= 0) : rows;
         if (!picked.length) { bus.toast('There are no items to copy.', 'error'); return; }
+        const s = (v.report && v.report.sprint) || {};
+        v.fuTitle = 'Follow-up — Sprint ' + (s.name || v.name || v.id);
+        v.fuSubtitle = [s.state, s.start && s.end ? s.start + ' – ' + s.end : '', s.goal ? 'Goal: ' + s.goal : ''].filter(Boolean).join(' · ');
+        v.fuWhen = new Date().toLocaleString();
         v.fuRows = picked;
         v.fuTpl = 'close';
         v.fuMessage = F.message(picked, 'close');
@@ -52,7 +56,7 @@ define([
       if (act === 'close') { v.fuOpen = false; return; }
 
       // copy / outlook both need the composed email
-      const opts = { message: v.fuMessage, signoff: v.fuSignoff, rows: v.fuRows || [], kind: KIND };
+      const opts = { title: v.fuTitle, subtitle: v.fuSubtitle, when: v.fuWhen, message: v.fuMessage, signoff: v.fuSignoff, rows: v.fuRows || [], kind: KIND };
       const html = F.composeHtml(opts);
       const text = F.composeText(opts);
       const ok = await exportKit.copyRich(html, text);

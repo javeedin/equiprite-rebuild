@@ -381,7 +381,7 @@
           </div>
           <div class="nx-fu-prevwrap">
             <label>Preview (this is what gets copied)</label>
-            <iframe class="nx-fu-preview" title="Email preview" id="jspFuPreview" sandbox="" :srcdoc="[[ $functions.fuPreview($variables.fuMessage, $variables.fuSignoff, $variables.fuRows) ]]"></iframe>
+            <iframe class="nx-fu-preview" title="Email preview" id="jspFuPreview" sandbox="" :srcdoc="[[ $functions.fuPreview($variables.fuTitle, $variables.fuSubtitle, $variables.fuWhen, $variables.fuMessage, $variables.fuSignoff, $variables.fuRows) ]]"></iframe>
           </div>
         </div>
         <div class="nx-dialog-foot">

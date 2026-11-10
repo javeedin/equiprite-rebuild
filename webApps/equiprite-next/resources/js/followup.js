@@ -97,11 +97,21 @@ define(['resources/js/exportKit'], function (exportKit) {
     }).join('');
   }
 
-  // The whole email: the message, then the stories table, then the sign-off. opts { message, signoff, rows, kind }.
+  // The header block as plain text lines: the name, the state · dates, and "N items · when".
+  function headerText(opts) {
+    var o = opts || {};
+    var n = (o.rows || []).length;
+    var count = n + (n === 1 ? ' item' : ' items') + (o.when ? ' · ' + o.when : '');
+    return [o.title || '', o.subtitle || '', count].filter(Boolean).join('\n');
+  }
+
+  // The whole email: the header block (name, state · dates, count · when), the message, the stories table, the sign-off.
+  // opts { title, subtitle, when, message, signoff, rows, kind }.
   function composeHtml(opts) {
     var o = opts || {};
     return exportKit.followupHtml({
-      intro: introHtml(o.message), signoff: introHtml(o.signoff), rows: o.rows || [], columns: columns(o.kind), showCount: false,
+      title: o.title, subtitle: o.subtitle, when: o.when,
+      intro: introHtml(o.message), signoff: introHtml(o.signoff), rows: o.rows || [], columns: columns(o.kind),
     });
   }
 
@@ -109,14 +119,14 @@ define(['resources/js/exportKit'], function (exportKit) {
   function composeText(opts) {
     var o = opts || {};
     var tbl = exportKit.tsv(o.rows || [], columns(o.kind));
-    return [String(o.message || '').trim(), tbl, String(o.signoff || '').trim()].filter(Boolean).join('\n\n');
+    return [headerText(o), String(o.message || '').trim(), tbl, String(o.signoff || '').trim()].filter(Boolean).join('\n\n');
   }
 
-  // mailto for "Open in Outlook": recipients, subject, and the message as plain text. A mail link cannot carry an HTML
-  // table, so the body tells the user the table is on their clipboard — one Ctrl+V in the body drops it in.
+  // mailto for "Open in Outlook": recipients, subject, and the message as plain text (with the header). A mail link
+  // cannot carry an HTML table, so the body tells the user the table is on their clipboard — one Ctrl+V drops it in.
   function mailtoHref(opts) {
     var o = opts || {};
-    var body = [String(o.message || '').trim(),
+    var body = [headerText(o), String(o.message || '').trim(),
       '[ The stories are on your clipboard — click in the message body and press Ctrl+V to paste the table. ]',
       String(o.signoff || '').trim()].filter(Boolean).join('\n\n');
     return 'mailto:' + encodeURIComponent(o.to || '') + '?subject=' + encodeURIComponent(o.subject || '') + '&body=' + encodeURIComponent(body);
@@ -124,6 +134,6 @@ define(['resources/js/exportKit'], function (exportKit) {
 
   return {
     firstName: firstName, names: names, greeting: greeting, TEMPLATES: TEMPLATES, template: template, message: message,
-    columns: columns, introHtml: introHtml, composeHtml: composeHtml, composeText: composeText, mailtoHref: mailtoHref,
+    columns: columns, introHtml: introHtml, headerText: headerText, composeHtml: composeHtml, composeText: composeText, mailtoHref: mailtoHref,
   };
 });
