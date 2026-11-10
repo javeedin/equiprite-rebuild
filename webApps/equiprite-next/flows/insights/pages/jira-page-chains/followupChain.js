@@ -59,13 +59,16 @@ define([
       }
 
       const opts = { title: v.fuTitle, subtitle: v.fuSubtitle, when: v.fuWhen, message: v.fuMessage, signoff: v.fuSignoff, rows: v.fuRows || [], kind: KIND };
-      const ok = await exportKit.copyRich(F.composeHtml(opts), F.composeText(opts));
       if (act === 'outlook') {
+        // The mail opens with the text draft; the clipboard holds only the table, so one Ctrl+V drops it in without repeating the message.
+        const ok = await exportKit.copyRich(F.tableHtml(opts), F.tableText(opts));
         openLink(F.mailtoHref({ to: v.fuTo, subject: v.fuSubject, title: v.fuTitle, subtitle: v.fuSubtitle, when: v.fuWhen, message: v.fuMessage, signoff: v.fuSignoff, rows: v.fuRows || [] }));
-        bus.toast(ok ? 'Opened a new email in Outlook — click in the body and press Ctrl+V to paste the stories table.'
-          : 'Opened a new email in Outlook. (The table could not be copied here — copy it from the preview.)', 'info');
+        bus.toast(ok ? 'Opened a new email in Outlook — click the “paste” line and press Ctrl+V to drop in the stories table.'
+          : 'Opened a new email in Outlook. (The table could not be copied here — use Copy for email.)', 'info');
         v.fuOpen = false;
       } else {
+        // Copy for email: the whole formatted email (header, message, table, sign-off) for pasting into a blank body.
+        const ok = await exportKit.copyRich(F.composeHtml(opts), F.composeText(opts));
         bus.toast(ok ? 'Copied — click in your email body and press Ctrl+V to paste it.' : 'The clipboard is not available here.', ok ? 'info' : 'error');
       }
     }

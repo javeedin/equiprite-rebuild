@@ -71,9 +71,20 @@ const txt = F.composeText(OPTS);
 T.check('plain text: the header, the message, a tab-separated table, the sign-off', txt.includes('Follow-up — Sprint 2026-06')
   && txt.includes('2 items · 11/10/2026') && txt.includes('kindly close') && txt.includes('\t') && txt.trim().endsWith('Javeed'));
 
+T.section('ascii (mailto-safe punctuation)');
+T.eq('folds em/en dash, middot and curly quotes to ASCII', F.ascii('A — B · C – today’s “x”'), 'A -- B - C - today\'s "x"');
+
+T.section('tableHtml / tableText (table only, for Open in Outlook)');
+const tonly = F.tableHtml({ rows: ROWS, kind: 'stories' });
+T.check('just the stories table with its Customer column', tonly.includes('<table') && tonly.includes('Customer'));
+T.check('no greeting or header leaking into the table-only html', !tonly.includes('Dear ') && !/Follow-up/.test(tonly));
+T.check('tableText is a tab-separated table', F.tableText({ rows: ROWS, kind: 'stories' }).split('\n').length === 3);
+
 T.section('mailtoHref');
 const href = F.mailtoHref({ to: 'a@b.com; c@d.com', subject: 'Please close these stories', title: 'Follow-up — Sprint 2026-06', subtitle: 'active', when: 'now', message: 'Dear all,', signoff: 'Thanks,', rows: ROWS });
 T.check('a mailto with the recipients and subject', href.startsWith('mailto:') && href.includes(encodeURIComponent('a@b.com; c@d.com')) && href.includes(encodeURIComponent('Please close these stories')));
-T.check('the body carries the header and the clipboard hint', decodeURIComponent(href).includes('Follow-up — Sprint 2026-06') && decodeURIComponent(href).includes('press Ctrl+V'));
+const decoded = decodeURIComponent(href);
+T.check('the body is plain ASCII (no em dash / middot that Outlook would mojibake)',
+  !/[—–·‘’“”]/.test(decoded) && decoded.includes('Follow-up -- Sprint 2026-06') && decoded.includes('press Ctrl+V'));
 
 T.report();

@@ -105,6 +105,25 @@ define(['resources/js/exportKit'], function (exportKit) {
     return [o.title || '', o.subtitle || '', count].filter(Boolean).join('\n');
   }
 
+  // Just the stories table (no header, message or sign-off) — for the "Open in Outlook" clipboard, so one Ctrl+V drops
+  // the formatted table into the mail's body without repeating the message that is already typed there.
+  function tableHtml(opts) {
+    var o = opts || {};
+    return exportKit.followupHtml({ rows: o.rows || [], columns: columns(o.kind), showCount: false });
+  }
+  function tableText(opts) {
+    var o = opts || {};
+    return exportKit.tsv(o.rows || [], columns(o.kind));
+  }
+
+  // A mail link carries its body in the system codepage, not UTF-8, so Outlook shows fancy punctuation as mojibake
+  // ("—" → "â€""). For the mailto text only, fold the punctuation we add down to plain ASCII.
+  function ascii(s) {
+    return String(s || '')
+      .replace(/—/g, '--').replace(/–/g, '-').replace(/‒/g, '-').replace(/‑/g, '-')
+      .replace(/·|•/g, '-').replace(/‘|’/g, "'").replace(/“|”/g, '"').replace(/…/g, '...');
+  }
+
   // The whole email: the header block (name, state · dates, count · when), the message, the stories table, the sign-off.
   // opts { title, subtitle, when, message, signoff, rows, kind }.
   function composeHtml(opts) {
@@ -127,13 +146,14 @@ define(['resources/js/exportKit'], function (exportKit) {
   function mailtoHref(opts) {
     var o = opts || {};
     var body = [headerText(o), String(o.message || '').trim(),
-      '[ The stories are on your clipboard — click in the message body and press Ctrl+V to paste the table. ]',
+      '[ Click on this line and press Ctrl+V to paste the stories table. ]',
       String(o.signoff || '').trim()].filter(Boolean).join('\n\n');
-    return 'mailto:' + encodeURIComponent(o.to || '') + '?subject=' + encodeURIComponent(o.subject || '') + '&body=' + encodeURIComponent(body);
+    return 'mailto:' + encodeURIComponent(ascii(o.to || '')) + '?subject=' + encodeURIComponent(ascii(o.subject || '')) + '&body=' + encodeURIComponent(ascii(body));
   }
 
   return {
     firstName: firstName, names: names, greeting: greeting, TEMPLATES: TEMPLATES, template: template, message: message,
-    columns: columns, introHtml: introHtml, headerText: headerText, composeHtml: composeHtml, composeText: composeText, mailtoHref: mailtoHref,
+    columns: columns, introHtml: introHtml, headerText: headerText, ascii: ascii, tableHtml: tableHtml, tableText: tableText,
+    composeHtml: composeHtml, composeText: composeText, mailtoHref: mailtoHref,
   };
 });
