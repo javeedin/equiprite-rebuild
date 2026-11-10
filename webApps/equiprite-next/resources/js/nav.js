@@ -76,6 +76,10 @@ define(['resources/js/rules'], function (rules) {
       // by epic and customer, sent as an email or to Teams. Gated like Jira stories (an existing page code).
       { id: 'minutes', label: 'Standup minutes', icon: 'oj-ux-ico-note', pageCodes: ['EQR_CONFIGURATIONS'],
         route: { flow: 'insights', page: 'minutes' }, built: true, keywords: 'minutes standup meeting notes mom action items attendees epic customer daily scrum voice ai teams email' },
+      // Follow-ups drafted on the Jira pages (Copy to follow-up -> Save), kept in DuckDB on this PC (flows/insights
+      // followups page): a header (title, scope, recipients, when) and the stories. Gated like Jira stories.
+      { id: 'followups', label: 'Follow-ups', icon: 'oj-ux-ico-email', pageCodes: ['EQR_CONFIGURATIONS'],
+        route: { flow: 'insights', page: 'followups' }, built: true, keywords: 'follow-ups followup email stories sprint reminder close chase saved' },
       // The FDD, its flows across the Fusion modules and how much of it is built (flows/fdd). Like Help, for everyone
       // signed in (no page code), but not a customer-only role: their menu stays the portal.
       { id: 'fdd', label: 'EquipRite FDD', icon: 'oj-ux-ico-document-check', pageCodes: [], everyone: true, staff: true,

@@ -92,6 +92,7 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
   const enc = (t) => Buffer.from('enc:' + Buffer.from(t).toString('base64'));
   const dec = (b) => Buffer.from(String(b).replace(/^enc:/, ''), 'base64').toString();
   const jiraStore = JA.open({ file: path.join(dir, 'jira.json'), encrypt: enc, decrypt: dec });
+  const fuStore = await require('../../desktop/lib/followups').open({ file: path.join(dir, 'followups.duckdb') });
   const evidenceDir = path.join(dir, 'EquipRite Test Evidence');
   const recStore = TE.open({ dir: evidenceDir, reveal: (f) => { revealed.push(f); } });
   const revealed = [];
@@ -110,7 +111,7 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     revealModels: () => ({ dir: '/models' }),
     transcribe: (file, opts) => { transcribed.push({ file, opts }); return Promise.resolve({ ok: true, engine: 'local', lang: 'en', model: 'ggml-base.bin',
       segments: [{ start: 0, end: 2.6, text: 'The map does not load on this story.' }, { start: 2.6, end: 5.2, text: 'I click Edit and nothing happens.' }], ms: 20 }); } };
-  const env = await E.start({ port: 19760, handle, app: 'next', jiraStore, recStore, transcribe, init: E.recorderStub });
+  const env = await E.start({ port: 19760, handle, app: 'next', jiraStore, recStore, transcribe, followupsStore: fuStore, init: E.recorderStub });
   const page = env.page;
   const errs = () => env.errors.filter((e) => !/404|401|Failed to load resource/.test(e) && !e.startsWith('warning'));
   try {
@@ -310,6 +311,17 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     await page.click('#jspFuOutlook');
     await settle(page, 300);
     T.check('Open in Outlook closes the dialog (a new mail opens; the table waits on the clipboard)', !(await page.isVisible('#jspFuModal')));
+    // Save it to the follow-ups DuckDB on this PC, then confirm it landed in the store (header + line).
+    await page.click('#jspFollowup');
+    await page.waitForSelector('#jspFuModal', { state: 'visible', timeout: 10000 });
+    await page.click('#jspFuSave');
+    await page.waitForSelector('#jspFuModal', { state: 'hidden', timeout: 10000 });
+    const savedList = await fuStore.list();
+    T.check('Save stores the follow-up (header + the ticked story) in DuckDB', savedList.ok && savedList.followups.length === 1
+      && savedList.followups[0].title === 'Follow-up — Sprint 2026-07' && savedList.followups[0].itemCount === 1);
+    const savedOne = await fuStore.get(savedList.followups[0].id);
+    T.check('the stored line is the ticked story, with its sprint and link', savedOne.ok && savedOne.followup.lines.length === 1
+      && savedOne.followup.lines[0].storyKey === 'EQP-12' && savedOne.followup.lines[0].url.indexOf('EQP-12') !== -1);
 
     const tabsBefore = page.context().pages().length;
     await page.click('#jspGrid .nx-jsp-row[data-key="EQP-12"] .nx-jsp-keybtn');

@@ -139,6 +139,17 @@ async function minutesStore() {
   }
   return minutesStoreInst;
 }
+// Saved follow-ups, for EquipRite Next's Follow-ups page: follow-ups drafted on the Jira pages, kept in this app's data
+// folder (followups.duckdb) with a header and detail lines.
+let followupsStoreInst = null;
+async function followupsStore() {
+  if (!followupsStoreInst) {
+    followupsStoreInst = await require('./lib/followups').open({
+      file: path.join(app.getPath('userData'), 'followups.duckdb'),
+    });
+  }
+  return followupsStoreInst;
+}
 // Find a command for transcription (ffmpeg, whisper-cli), looking beyond the app's start-time PATH — in winget, Scoop,
 // Chocolatey and Homebrew folders — so a tool just installed is found without restarting the app (lib/findCommand.js).
 function commandPath(cmd) {
@@ -1072,6 +1083,8 @@ if (!app.requestSingleInstanceLock()) {
             transcribe: v === 'next' || v === 'old' ? await transcriber() : undefined,
             // Standup minutes (EquipRite Next): the daily standup on the Jira backlog, kept on this PC.
             minutesStore: v === 'next' ? await minutesStore() : undefined,
+            // Saved follow-ups (EquipRite Next): follow-ups drafted on the Jira pages, kept on this PC.
+            followupsStore: v === 'next' ? await followupsStore() : undefined,
             backendOverrides: backendOverridesFromEnv(process.env),
             onLog: pushLog,
             onProblem: backendProblem,

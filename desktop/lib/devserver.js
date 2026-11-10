@@ -703,6 +703,39 @@ function createDevServer(o) {
         })().catch((e) => jsonM(200, { ok: false, error: e.message }));
         return undefined;
       }
+      if (pathname.startsWith('/__followups/')) {
+        // Saved follow-ups (lib/followups.js), for EquipRite Next's Follow-ups page: this PC only, by its own name, and
+        // only the app's own page (it sends X-EquipRite-Followups, which a page of another site cannot send without a
+        // preflight this server never allows). The follow-ups stay on this PC in DuckDB.
+        const host = String(req.headers.host || '').replace(/:\d+$/, '');
+        if (!isLoopback(req.socket.remoteAddress) || !/^(localhost|127\.0\.0\.1|\[::1\])$/.test(host)) {
+          return send(res, 404, 'text/plain; charset=utf-8', 'Not found');
+        }
+        const jsonF = (status, body) => send(res, status, 'application/json', JSON.stringify(body), { 'Cache-Control': 'no-store' });
+        if (!o.followupsStore) return jsonF(200, { ok: false, error: 'Follow-ups is not set up in this app.' });
+        const origin = req.headers.origin;
+        if (req.headers['x-equiprite-followups'] !== '1' || (origin && origin !== `http://${req.headers.host}`)) {
+          return send(res, 403, 'application/json', JSON.stringify({ error: 'Refused: not from EquipRite Next on this PC.' }));
+        }
+        const fsStore = o.followupsStore;
+        const bodyOf = () => new Promise((resolve, reject) => {
+          const chunks = [];
+          let size = 0;
+          req.on('data', (c) => { size += c.length; if (size <= 30 * 1024 * 1024) chunks.push(c); });
+          req.on('end', () => (size > 30 * 1024 * 1024 ? reject(new Error('Too large')) : resolve(Buffer.concat(chunks).toString('utf8'))));
+          req.on('error', reject);
+        });
+        const post = req.method === 'POST';
+        (async () => {
+          const b = post ? JSON.parse((await bodyOf()) || '{}') : {};
+          if (pathname === '/__followups/list' && req.method === 'GET') return jsonF(200, await fsStore.list());
+          if (pathname === '/__followups/get' && req.method === 'GET') return jsonF(200, await fsStore.get(u.searchParams.get('id') || ''));
+          if (pathname === '/__followups/save' && post) { try { return jsonF(200, await fsStore.save(b)); } catch (e) { return jsonF(200, { ok: false, error: e.message }); } }
+          if (pathname === '/__followups/remove' && post) return jsonF(200, await fsStore.remove(b.id));
+          return jsonF(404, { error: 'Not found' });
+        })().catch((e) => jsonF(200, { ok: false, error: e.message }));
+        return undefined;
+      }
       if (pathname.startsWith('/__sql/') && (o.sqlStore || o.aiStore)) {
         // EquipRite Next's SQL worksheet (lib/oracleSql.js). This PC only, by its own name; and only the app's own page:
         // it sends X-EquipRite-SQL, which a page of another site cannot send without a preflight this server never allows.

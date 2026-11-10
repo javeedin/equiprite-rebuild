@@ -1,0 +1,25 @@
+{
+  "description": "Saved follow-ups: the follow-ups drafted on the Jira pages (Copy to follow-up → Save), kept in DuckDB on this PC (desktop/lib/followups.js). A list on the left; the chosen one on the right with its header (title, scope, recipients, when) and its stories, shown as the email that was composed. Copy it again or delete it. Runs only in the desktop app.",
+  "navigation": { "embeddable": "enabled" },
+  "variables": {
+    "available": { "type": "boolean", "defaultValue": true, "description": "Follow-ups run only in the desktop app (DuckDB on this PC)." },
+    "checked": { "type": "boolean", "defaultValue": false },
+    "busy": { "type": "boolean", "defaultValue": false },
+    "followups": { "type": "any[]", "defaultValue": [], "description": "The saved follow-ups (summaries), newest first." },
+    "selId": { "type": "string", "defaultValue": "", "description": "The follow-up open on the right ('' when none)." },
+    "detail": { "type": "any", "defaultValue": null, "description": "The open follow-up with its header and lines." }
+  },
+  "eventListeners": {
+    "vbEnter": { "chains": [ { "chain": "initChain" } ] },
+    "onRefresh": { "chains": [ { "chain": "initChain", "parameters": { "refresh": true } } ] },
+    "onSelect": { "chains": [ { "chain": "openChain", "parameters": { "id": "{{ $event.currentTarget.dataset.id }}" } } ] },
+    "onAct": { "chains": [ { "chain": "actChain", "parameters": { "act": "{{ $event.currentTarget.dataset.act }}", "id": "{{ $event.currentTarget.dataset.id || '' }}" } } ] }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}

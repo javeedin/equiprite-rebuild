@@ -1,0 +1,18 @@
+/* Follow-ups page: a list of saved follow-ups on the left, the chosen one on the right as the email that was composed. */
+.nx-followups .nx-followups-two { display: grid; grid-template-columns: minmax(280px, 360px) minmax(0, 1fr); gap: 12px; align-items: start; }
+@media (max-width: 960px) { .nx-followups .nx-followups-two { grid-template-columns: 1fr; } }
+
+.nx-followups .nx-fl-list { display: flex; flex-direction: column; }
+.nx-followups .nx-fl-row { display: grid; grid-template-columns: 1fr; gap: 2px; text-align: left; border: 0; border-bottom: 1px solid var(--nx-line);
+  background: transparent; padding: 10px 14px; cursor: pointer; font: inherit; color: inherit; }
+.nx-followups .nx-fl-row:hover { background: var(--nx-surface-2); }
+.nx-followups .nx-fl-row--on { background: var(--nx-accent-soft); box-shadow: inset 3px 0 0 var(--nx-accent); }
+.nx-followups .nx-fl-when { font-size: 11px; color: var(--nx-muted); }
+.nx-followups .nx-fl-rowtitle { font-weight: 700; color: var(--nx-ink); overflow: hidden; text-overflow: ellipsis; }
+.nx-followups .nx-fl-rowsub { font-size: 12px; color: var(--nx-muted); }
+
+.nx-followups .nx-fl-detailcard { min-height: 320px; }
+.nx-followups .nx-fl-facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px 16px; margin: 10px 0 12px; }
+.nx-followups .nx-fl-facts dt { font-size: 11px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: var(--nx-muted); }
+.nx-followups .nx-fl-facts dd { margin: 2px 0 0; color: var(--nx-ink); overflow-wrap: anywhere; }
+.nx-followups .nx-fl-preview { width: 100%; min-height: 420px; border: 1px solid var(--nx-line); border-radius: 8px; background: #fff; }

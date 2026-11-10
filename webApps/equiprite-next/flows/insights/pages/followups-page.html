@@ -1,0 +1,68 @@
+<!-- Saved follow-ups: the follow-ups drafted on the Jira pages (Copy to follow-up -> Save), kept in DuckDB on this PC
+     (desktop/lib/followups.js). A list on the left; the chosen one on the right as the email that was composed. -->
+<div class="nx-page nx-followups">
+  <div class="nx-pagehead">
+    <div>
+      <div class="nx-kicker">Insights</div>
+      <h1 id="flTitle">Follow-ups</h1>
+      <div class="nx-sub" id="flCount"><oj-bind-text value="[[ $functions.countText($variables.followups) ]]"></oj-bind-text></div>
+    </div>
+    <div class="nx-actions">
+      <button type="button" class="nx-btn nx-btn--plain" id="flRefresh" on-click="[[ $listeners.onRefresh ]]" :disabled="[[ $variables.busy ]]">
+        <span class="oj-ux-ico-refresh" aria-hidden="true"></span>Refresh</button>
+    </div>
+  </div>
+
+  <oj-bind-if test="[[ $variables.checked && !$variables.available ]]">
+    <div class="nx-empty" id="flUnavailable">Saved follow-ups are kept on this PC by the EquipRite desktop app, so this page is not available in the browser.</div>
+  </oj-bind-if>
+
+  <oj-bind-if test="[[ $variables.available ]]">
+    <div class="nx-followups-two">
+      <section class="nx-card nx-fl-listcard" aria-label="Saved follow-ups">
+        <div class="nx-card-head"><h2>Saved</h2></div>
+        <oj-bind-if test="[[ $variables.followups.length === 0 ]]">
+          <div class="nx-empty" id="flEmpty">Nothing saved yet. On a Jira page, tick some stories, choose Copy to follow-up, then Save.</div>
+        </oj-bind-if>
+        <div class="nx-fl-list" role="list">
+          <oj-bind-for-each data="[[ $variables.followups ]]">
+            <template data-oj-as="f">
+              <button type="button" :class="[[ $functions.rowClass(f.data.id, $variables.selId) ]]" :data-id="[[ f.data.id ]]" on-click="[[ $listeners.onSelect ]]" role="listitem">
+                <span class="nx-fl-when"><oj-bind-text value="[[ $functions.whenText(f.data.createdAt) ]]"></oj-bind-text></span>
+                <span class="nx-fl-rowtitle"><oj-bind-text value="[[ f.data.title || f.data.subject || 'Follow-up' ]]"></oj-bind-text></span>
+                <span class="nx-fl-rowsub"><oj-bind-text value="[[ $functions.scopeText(f.data) + ' · ' + $functions.itemsText(f.data) ]]"></oj-bind-text></span>
+              </button>
+            </template>
+          </oj-bind-for-each>
+        </div>
+      </section>
+
+      <section class="nx-card nx-fl-detailcard" aria-label="Follow-up">
+        <oj-bind-if test="[[ !$variables.detail ]]">
+          <div class="nx-empty" id="flNone">Pick a follow-up on the left to see it.</div>
+        </oj-bind-if>
+        <oj-bind-if test="[[ !!$variables.detail ]]">
+          <div class="nx-card-head">
+            <div>
+              <h2 id="flDetailTitle"><oj-bind-text value="[[ $variables.detail.title || 'Follow-up' ]]"></oj-bind-text></h2>
+              <span class="nx-note"><oj-bind-text value="[[ $variables.detail.subject ]]"></oj-bind-text></span>
+            </div>
+            <div class="nx-actions">
+              <button type="button" class="nx-btn nx-btn--sm" id="flCopy" data-act="copy" :data-id="[[ $variables.detail.id ]]" on-click="[[ $listeners.onAct ]]">
+                <span class="oj-ux-ico-copy-to-clipboard" aria-hidden="true"></span>Copy for email</button>
+              <button type="button" class="nx-btn nx-btn--sm" id="flDelete" data-act="delete" :data-id="[[ $variables.detail.id ]]" on-click="[[ $listeners.onAct ]]">
+                <span class="oj-ux-ico-delete" aria-hidden="true"></span>Delete</button>
+            </div>
+          </div>
+          <dl class="nx-fl-facts">
+            <div><dt>To</dt><dd><oj-bind-text value="[[ $variables.detail.to || '—' ]]"></oj-bind-text></dd></div>
+            <div><dt>Scope</dt><dd><oj-bind-text value="[[ $functions.scopeText($variables.detail) ]]"></oj-bind-text></dd></div>
+            <div><dt>Saved</dt><dd><oj-bind-text value="[[ $functions.whenText($variables.detail.createdAt) ]]"></oj-bind-text></dd></div>
+            <div><dt>Items</dt><dd><oj-bind-text value="[[ $functions.itemsText($variables.detail) ]]"></oj-bind-text></dd></div>
+          </dl>
+          <iframe class="nx-fl-preview" title="Follow-up email" id="flPreview" sandbox="" :srcdoc="[[ $functions.detailHtml($variables.detail) ]]"></iframe>
+        </oj-bind-if>
+      </section>
+    </div>
+  </oj-bind-if>
+</div>

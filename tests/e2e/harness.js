@@ -134,7 +134,8 @@ async function start(o) {
     // o.sqlStore: the SQL worksheet's store (desktop/lib/oracleSql.js, with a fake driver in tests).
     // o.jiraStore: Connect Jira's store (desktop/lib/jiraAuth.js), as the desktop app gives Old and Next.
     servers.push(await DS.createDevServer(Object.assign({ webApp: 'equiprite-next', port: ports.next }, common, o.sqlStore ? { sqlStore: o.sqlStore } : {}, o.aiStore ? { aiStore: o.aiStore } : {},
-      o.jiraStore ? { jiraStore: o.jiraStore } : {}, o.recStore ? { recStore: o.recStore } : {}, o.transcribe ? { transcribe: o.transcribe } : {}, o.minutesStore ? { minutesStore: o.minutesStore } : {})));
+      o.jiraStore ? { jiraStore: o.jiraStore } : {}, o.recStore ? { recStore: o.recStore } : {}, o.transcribe ? { transcribe: o.transcribe } : {}, o.minutesStore ? { minutesStore: o.minutesStore } : {},
+      o.followupsStore ? { followupsStore: o.followupsStore } : {})));
   }
   let futureStore = null;
   if (DS.isBuilt(path.join(ROOT, 'build'), 'equiprite-future')) {

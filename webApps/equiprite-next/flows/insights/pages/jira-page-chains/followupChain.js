@@ -2,8 +2,9 @@ define([
   'vb/action/actionChain',
   'resources/js/exportKit',
   'resources/js/followup',
+  'resources/js/followupsClient',
   'resources/js/shellBus',
-], (ActionChain, exportKit, F, bus) => {
+], (ActionChain, exportKit, F, FC, bus) => {
   'use strict';
 
   // Copy to follow-up on Jira stories: opens a dialog that drafts the email in simple English (a greeting that names the
@@ -51,6 +52,18 @@ define([
         return;
       }
       if (act === 'close') { v.fuOpen = false; return; }
+      if (act === 'save') {
+        const rows = v.fuRows || [];
+        if (!rows.length) { bus.toast('There are no items to save.', 'error'); return; }
+        const r = await FC.save({
+          kind: KIND, title: v.fuTitle, subtitle: v.fuSubtitle, subject: v.fuSubject,
+          to: v.fuTo, message: v.fuMessage, signoff: v.fuSignoff, sprintName: '', source: v.jql || v.fLabel || '',
+          lines: rows.map((x) => ({ storyKey: x.key, summary: x.summary, status: x.status, assignee: x.assignee, sprint: x.sprint, due: x.due, overdue: !!x.overdue, customer: (x.labels || []).join(', '), url: x.url })),
+        });
+        if (r.ok && r.body && r.body.ok) { bus.toast('Follow-up saved — open it from the Follow-ups menu.', 'info'); v.fuOpen = false; }
+        else bus.toast((r.body && r.body.error) || 'Could not save (saved follow-ups need the EquipRite desktop app).', 'error');
+        return;
+      }
       if (act === 'default') {
         // Open Windows' Default apps page (an app cannot change the default mail client itself) so Outlook can be set for mailto.
         openLink('ms-settings:defaultapps');

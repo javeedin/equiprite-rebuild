@@ -197,6 +197,9 @@
     "onFuDefault": {
       "chains": [ { "chain": "followupChain", "parameters": { "act": "default" } } ]
     },
+    "onFuSave": {
+      "chains": [ { "chain": "followupChain", "parameters": { "act": "save" } } ]
+    },
     "onFuClose": {
       "chains": [ { "chain": "followupChain", "parameters": { "act": "close" } } ]
     },
