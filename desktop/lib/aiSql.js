@@ -333,6 +333,25 @@ async function open(opts) {
       const answer = await call[id].chat(c, SYSTEM, up.text);
       const parsed = parseAnswer(answer);
       return Object.assign({ ok: !!parsed.sql, provider: p.label, model: c.model, ms: now() - t0, sent: { tables: up.tables, chars: up.text.length } }, parsed);
+    },
+    // A plain chat turn — no schema, no SQL parsing — for features that just need the LLM to rewrite or format text, e.g.
+    // EquipRite Next's Minutes page ("Format by AI"). Same active provider, key and HTTP plumbing as ask().
+    async chat(req) {
+      const id = read().active;
+      const p = BY_ID[id];
+      if (!p) return { ok: false, error: 'Choose the LLM to use (AI settings).' };
+      const t0 = now();
+      try {
+        const c = full(id);
+        if (!trim(c.model)) return { ok: false, error: 'Choose a model for ' + p.label + ' (AI settings, Load models).' };
+        const user = String((req && req.user) || '');
+        if (!trim(user)) return { ok: false, error: 'There is nothing to send.' };
+        const system = trim(req && req.system) || 'You are a helpful assistant.';
+        const text = await call[id].chat(c, system, user);
+        return { ok: true, text: String(text || ''), provider: p.label, model: c.model, ms: now() - t0 };
+      } catch (e) {
+        return { ok: false, error: (e && e.message) || String(e), ms: now() - t0 };
+      }
     }
   };
   return store;

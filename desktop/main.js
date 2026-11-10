@@ -115,6 +115,21 @@ async function transcriber() {
   }
   return transcriberInst;
 }
+// Standup minutes, for EquipRite Next's Minutes page: the daily standup on the Jira backlog, kept in this app's data
+// folder (the Teams webhook in the OS keychain). Voice→text reuses the Whisper engine; "Format by AI" the Ask AI key.
+let minutesStoreInst = null;
+async function minutesStore() {
+  if (!minutesStoreInst) {
+    minutesStoreInst = await require('./lib/minutes').open({
+      file: path.join(app.getPath('userData'), 'minutes.duckdb'),
+      encrypt: canEncrypt() ? (t) => safeStorage.encryptString(t) : null,
+      decrypt: canEncrypt() ? (b) => safeStorage.decryptString(b) : null,
+      transcribe: await transcriber(),
+      fetch: (url, init) => { const { net } = require('electron'); return net.fetch(url, init); },
+    });
+  }
+  return minutesStoreInst;
+}
 // Find a command for transcription (ffmpeg, whisper-cli), looking beyond the app's start-time PATH — in winget, Scoop,
 // Chocolatey and Homebrew folders — so a tool just installed is found without restarting the app (lib/findCommand.js).
 function commandPath(cmd) {
@@ -1046,6 +1061,8 @@ if (!app.requestSingleInstanceLock()) {
             recStore: v === 'next' || v === 'old' ? evidenceStore() : undefined,
             // Transcribe a recording's voice with Whisper (local on this PC, or OpenAI with the Ask AI key).
             transcribe: v === 'next' || v === 'old' ? await transcriber() : undefined,
+            // Standup minutes (EquipRite Next): the daily standup on the Jira backlog, kept on this PC.
+            minutesStore: v === 'next' ? await minutesStore() : undefined,
             backendOverrides: backendOverridesFromEnv(process.env),
             onLog: pushLog,
             onProblem: backendProblem,

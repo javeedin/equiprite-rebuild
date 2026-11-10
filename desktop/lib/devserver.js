@@ -255,6 +255,9 @@ function time() {
  *                                        guard (this PC, the X-EquipRite-Jira header); the token goes only into /__backend/jira calls
  * @param {object}   [o.recStore]         Test evidence for Jira stories (lib/testEvidence.js: recordings and screenshots kept on this PC,
  *                                        a folder per story): /__rec/* to this PC only; writes need the X-EquipRite-Rec header
+ * @param {object}   [o.minutesStore]     Standup minutes (lib/minutes.js): the daily standup on the Jira backlog, kept on this PC, for
+ *                                        EquipRite Next's Minutes page: /__minutes/* to this PC only, behind the X-EquipRite-Minutes
+ *                                        header; voice→text reuses o.transcribe, "Format by AI" reuses o.aiStore (/__sql/ai/chat)
  * @param {Function} [o.pairToken]        () => the pairing key, or null. Given, a request from another device is
  *                                        served only with the key (the QR code's address, then its cookie), never
  *                                        the web services page; this PC's own requests are unaffected
@@ -656,6 +659,43 @@ function createDevServer(o) {
         })().catch((e) => json(200, { error: e.message }));
         return undefined;
       }
+      if (pathname.startsWith('/__minutes/')) {
+        // Standup minutes (lib/minutes.js), for EquipRite Next's Minutes page: this PC only, by its own name, and only the
+        // app's own page (it sends X-EquipRite-Minutes, which a page of another site cannot send without a preflight this
+        // server never allows). The meeting notes stay on this PC; the Teams webhook is the only secret, kept encrypted.
+        const host = String(req.headers.host || '').replace(/:\d+$/, '');
+        if (!isLoopback(req.socket.remoteAddress) || !/^(localhost|127\.0\.0\.1|\[::1\])$/.test(host)) {
+          return send(res, 404, 'text/plain; charset=utf-8', 'Not found');
+        }
+        const jsonM = (status, body) => send(res, status, 'application/json', JSON.stringify(body), { 'Cache-Control': 'no-store' });
+        if (!o.minutesStore) return jsonM(200, { ok: false, error: 'Minutes is not set up in this app.' });
+        const origin = req.headers.origin;
+        if (req.headers['x-equiprite-minutes'] !== '1' || (origin && origin !== `http://${req.headers.host}`)) {
+          return send(res, 403, 'application/json', JSON.stringify({ error: 'Refused: not from EquipRite Next on this PC.' }));
+        }
+        const ms = o.minutesStore;
+        const bodyOf = () => new Promise((resolve, reject) => {
+          const chunks = [];
+          let size = 0;
+          req.on('data', (c) => { size += c.length; if (size <= 30 * 1024 * 1024) chunks.push(c); });
+          req.on('end', () => (size > 30 * 1024 * 1024 ? reject(new Error('Too large')) : resolve(Buffer.concat(chunks).toString('utf8'))));
+          req.on('error', reject);
+        });
+        const post = req.method === 'POST';
+        (async () => {
+          const b = post ? JSON.parse((await bodyOf()) || '{}') : {};
+          if (pathname === '/__minutes/settings' && req.method === 'GET') return jsonM(200, await ms.settings());
+          if (pathname === '/__minutes/settings' && post) { try { return jsonM(200, await ms.saveSettings(b)); } catch (e) { return jsonM(200, { ok: false, error: e.message }); } }
+          if (pathname === '/__minutes/list' && req.method === 'GET') return jsonM(200, await ms.list());
+          if (pathname === '/__minutes/get' && req.method === 'GET') return jsonM(200, await ms.get(u.searchParams.get('id') || ''));
+          if (pathname === '/__minutes/save' && post) { try { return jsonM(200, await ms.save(b)); } catch (e) { return jsonM(200, { ok: false, error: e.message }); } }
+          if (pathname === '/__minutes/remove' && post) return jsonM(200, await ms.remove(b.id));
+          if (pathname === '/__minutes/dictate' && post) return jsonM(200, await ms.dictate(b));
+          if (pathname === '/__minutes/teams' && post) return jsonM(200, await ms.sendTeams(b));
+          return jsonM(404, { error: 'Not found' });
+        })().catch((e) => jsonM(200, { ok: false, error: e.message }));
+        return undefined;
+      }
       if (pathname.startsWith('/__sql/') && o.sqlStore) {
         // EquipRite Next's SQL worksheet (lib/oracleSql.js). This PC only, by its own name; and only the app's own page:
         // it sends X-EquipRite-SQL, which a page of another site cannot send without a preflight this server never allows.
@@ -728,6 +768,17 @@ function createDevServer(o) {
             } catch (e) {
               log(`AI ask -> ${String(e.message).slice(0, 160)}`);
               return json(200, { error: e.message });
+            }
+          }
+          // A plain chat turn (no schema, no SQL parsing): EquipRite Next's Minutes page "Format by AI" posts { system, user }.
+          if (pathname === '/__sql/ai/chat' && post) {
+            try {
+              const r = await ai.chat(b);
+              log(`AI chat ${r.provider || ''} ${r.model || ''} -> ${r.ok ? (r.text || '').length + ' chars' : 'failed'} (${r.ms || 0} ms)`);
+              return json(200, r);
+            } catch (e) {
+              log(`AI chat -> ${String(e.message).slice(0, 160)}`);
+              return json(200, { ok: false, error: e.message });
             }
           }
           if (pathname === '/__sql/more' && post) return json(200, await sq.more(b.session, b.count));
