@@ -18,7 +18,7 @@ let cacheAt = 0;
 const PS = [
   "$ErrorActionPreference='Stop';",
   'try {',
-  "  $ol = New-Object -ComObject Outlook.Application;",
+  '  try { $ol = [Runtime.InteropServices.Marshal]::GetActiveObject(\'Outlook.Application\') } catch { $ol = New-Object -ComObject Outlook.Application };',
   "  $ns = $ol.GetNamespace('MAPI');",
   '  $f = $ns.GetDefaultFolder(10);',
   '  $out = New-Object System.Collections.ArrayList;',
@@ -56,10 +56,12 @@ function read() {
   if (cache && Date.now() - cacheAt < TTL) return Promise.resolve({ ok: true, available: true, contacts: cache, cached: true });
   return new Promise((resolve) => {
     execFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', PS],
-      { timeout: 25000, maxBuffer: 16 * 1024 * 1024, windowsHide: true }, (err, stdout) => {
-        if (err) { resolve({ ok: false, available: true, contacts: [], error: 'Could not read Outlook contacts: ' + (err.message || err) }); return; }
+      { timeout: 25000, maxBuffer: 16 * 1024 * 1024, windowsHide: true }, (err, stdout, stderr) => {
+        const raw = String(stdout || '').trim();
+        if (/^ERR:/.test(raw)) { resolve({ ok: false, available: true, contacts: [], error: raw.replace(/^ERR:/, '').trim() || 'Could not read Outlook contacts.' }); return; }
         let parsed;
-        try { parsed = JSON.parse(String(stdout || '[]').trim() || '[]'); } catch (e) { resolve({ ok: false, available: true, contacts: [], error: 'Outlook returned something unexpected.' }); return; }
+        try { parsed = JSON.parse(raw || '[]'); }
+        catch (e) { resolve({ ok: false, available: true, contacts: [], error: (String(stderr || '').trim() || (err && err.message) || 'Outlook contacts could not be read (classic Outlook is required).') }); return; }
         cache = normalise(parsed);
         cacheAt = Date.now();
         resolve({ ok: true, available: true, contacts: cache });
@@ -74,7 +76,7 @@ function clear() { cache = null; cacheAt = 0; }
 const COMPOSE_PS = [
   "$ErrorActionPreference='Stop';",
   'try {',
-  '  $ol = New-Object -ComObject Outlook.Application;',
+  '  try { $ol = [Runtime.InteropServices.Marshal]::GetActiveObject(\'Outlook.Application\') } catch { $ol = New-Object -ComObject Outlook.Application };',
   '  $m = $ol.CreateItem(0);',
   '  $m.To = $env:ERM_TO;',
   '  $m.Subject = $env:ERM_SUBJECT;',
@@ -90,11 +92,11 @@ function compose(opts) {
   return new Promise((resolve) => {
     execFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', COMPOSE_PS],
       { timeout: 25000, windowsHide: true, env: Object.assign({}, process.env, { ERM_TO: String(o.to || ''), ERM_SUBJECT: String(o.subject || ''), ERM_HTML: String(o.html || '') }) },
-      (err, stdout) => {
-        if (err) { resolve({ ok: false, available: true, error: 'Could not open Outlook: ' + (err.message || err) }); return; }
+      (err, stdout, stderr) => {
         const out = String(stdout || '').trim();
         if (/^OK/.test(out)) { resolve({ ok: true, available: true }); return; }
-        resolve({ ok: false, available: true, error: out.replace(/^ERR:/, '') || 'Outlook did not open the message.' });
+        const msg = out.replace(/^ERR:/, '').trim() || String(stderr || '').trim() || (err && err.message) || 'Outlook did not open the message.';
+        resolve({ ok: false, available: true, error: msg });
       });
   });
 }

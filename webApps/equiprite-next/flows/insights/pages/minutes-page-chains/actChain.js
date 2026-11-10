@@ -90,8 +90,12 @@ define([
         case 'emailMailto': { C.mailto(v.email.to, v.email.subject, v.email.text); return; }
         case 'emailOutlook': {
           const r = await C.outlook({ to: v.email.to, subject: v.email.subject, html: v.email.html });
-          if (r.ok && r.body && r.body.ok) toast('Opening the message in Outlook…');
-          else toast((r.body && r.body.error) || 'Could not open Outlook (Windows + Outlook only).', 'error');
+          if (r.ok && r.body && r.body.ok) { toast('Opening the message in Outlook…'); }
+          else {
+            // Outlook COM isn't available (e.g. the new Outlook has none) — open the default mail app instead.
+            C.mailto(v.email.to, v.email.subject, v.email.text);
+            toast('Outlook automation is not available here — opened your default mail app instead.' + ((r.body && r.body.error) ? ' (' + r.body.error + ')' : ''), 'error');
+          }
           return;
         }
 

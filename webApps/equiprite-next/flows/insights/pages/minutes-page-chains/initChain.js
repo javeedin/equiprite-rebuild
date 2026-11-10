@@ -26,8 +26,18 @@ define([
       const ls = await C.list();
       if (ls.ok && ls.body && ls.body.meetings) v.meetings = ls.body.meetings;
 
+      // The attendee picker: the user's Outlook contacts (when available), plus everyone from past meetings, so it is
+      // never empty even where Outlook automation is not available (the new Outlook has no COM).
       const pc = await C.contacts('');
-      if (pc.ok && pc.body) { v.people = pc.body.contacts || []; v.peopleReady = !!pc.body.available; }
+      const people = (pc.ok && pc.body && pc.body.contacts) ? pc.body.contacts.slice() : [];
+      const seen = {};
+      people.forEach((p) => { seen[String(p.email || p.name).toLowerCase()] = true; });
+      (v.meetings || []).forEach((mm) => { (mm.attendees || []).forEach((a) => {
+        const nm = R.attendeeName(a); const em = R.attendeeEmail(a); const key = String(em || nm).toLowerCase();
+        if (nm && !seen[key]) { seen[key] = true; people.push({ name: nm, email: em }); }
+      }); });
+      v.people = people;
+      v.peopleReady = people.length > 0;
 
       const m = R.blankMeeting();
       m.attendees = ((v.settings && v.settings.defaultAttendees) || []).slice();
