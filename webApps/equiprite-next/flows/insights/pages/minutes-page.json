@@ -1,0 +1,48 @@
+{
+  "description": "Standup minutes: the daily standup on the Jira backlog written down and kept in DuckDB on this PC (desktop/lib/minutes.js). A meeting has a header (date, time, title, customer, attendees) and lines, each tied to a Jira story or generic, with a note, a next action, owner and due date. Voice→text (Whisper) and Format by AI (the shared Ask AI LLM) help write a line. Tracking rolls the minutes up by the story's epic and by customer; the minutes can be sent as a formatted email or to a Teams webhook. Rules: resources/js/minutes.js.",
+  "navigation": { "embeddable": "enabled" },
+  "variables": {
+    "available": { "type": "boolean", "defaultValue": true, "description": "Minutes runs only in the desktop app (DuckDB on this PC)." },
+    "checked": { "type": "boolean", "defaultValue": false },
+    "busy": { "type": "boolean", "defaultValue": false },
+    "busyMsg": { "type": "string", "defaultValue": "" },
+    "error": { "type": "string", "defaultValue": "" },
+    "toast": { "type": "string", "defaultValue": "" },
+    "view": { "type": "string", "defaultValue": "edit", "description": "edit | track" },
+    "trackBy": { "type": "string", "defaultValue": "epic", "description": "epic | story | customer" },
+    "dialog": { "type": "string", "defaultValue": "", "description": "'' | settings | ai | email" },
+    "meetings": { "type": "any[]", "defaultValue": [], "description": "Past meetings (summaries), newest first." },
+    "meeting": { "type": "any", "defaultValue": { "id": "", "date": "", "time": "", "title": "", "customer": "", "attendees": [], "context": "", "lines": [] }, "description": "The meeting being edited." },
+    "attendeesText": { "type": "string", "defaultValue": "", "description": "The attendees as a comma-separated field." },
+    "dirty": { "type": "boolean", "defaultValue": false },
+    "rows": { "type": "any[]", "defaultValue": [], "description": "The Jira backlog read (jiraBacklog.fromIssue), for story links and epic/customer tracking." },
+    "jiraReady": { "type": "boolean", "defaultValue": false },
+    "recLineId": { "type": "string", "defaultValue": "", "description": "The line whose voice is being recorded." },
+    "fmtLineId": { "type": "string", "defaultValue": "", "description": "The line being formatted by AI." },
+    "settings": { "type": "any", "defaultValue": { "teamsWebhookSet": false, "defaultAttendees": [], "orgName": "", "fromName": "", "fromEmail": "" } },
+    "settingsForm": { "type": "any", "defaultValue": { "teamsWebhook": "", "defaultAttendees": "", "orgName": "", "fromName": "", "fromEmail": "", "clearTeamsWebhook": false } },
+    "ai": { "type": "any", "defaultValue": { "active": "", "providers": {} } },
+    "aiReady": { "type": "boolean", "defaultValue": false },
+    "aiForm": { "type": "any", "defaultValue": { "provider": "claude", "key": "", "model": "", "baseUrl": "", "region": "", "compartmentId": "", "status": "" } },
+    "email": { "type": "any", "defaultValue": { "subject": "", "html": "", "text": "", "to": "" } }
+  },
+  "eventListeners": {
+    "vbEnter": { "chains": [ { "chain": "initChain" } ] },
+    "onField": { "chains": [ { "chain": "setChain", "parameters": {
+      "scope": "{{ $event.target.dataset.scope }}", "field": "{{ $event.target.dataset.field }}",
+      "value": "{{ $event.target.value }}", "lineId": "{{ $event.target.dataset.line || '' }}" } } ] },
+    "onAct": { "chains": [ { "chain": "actChain", "parameters": {
+      "act": "{{ $event.currentTarget.dataset.act }}", "id": "{{ $event.currentTarget.dataset.id || '' }}",
+      "lineId": "{{ $event.currentTarget.dataset.line || '' }}" } } ] },
+    "onNote": { "chains": [ { "chain": "setChain", "parameters": {
+      "scope": "line", "field": "text", "value": "{{ $event.detail.value }}", "lineId": "{{ $event.target.dataset.line || '' }}" } } ] }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" },
+      "oj-text-area": { "path": "ojs/ojinputtext" }
+    }
+  }
+}

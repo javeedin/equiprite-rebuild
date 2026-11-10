@@ -6,7 +6,8 @@
   "pages": {
     "analytics": { "path": "pages/analytics-page" },
     "jira": { "path": "pages/jira-page" },
-    "jira-sprint": { "path": "pages/jira-sprint-page" }
+    "jira-sprint": { "path": "pages/jira-sprint-page" },
+    "minutes": { "path": "pages/minutes-page" }
   },
   "chains": {}, "services": {}, "types": {}, "variables": {}
 }

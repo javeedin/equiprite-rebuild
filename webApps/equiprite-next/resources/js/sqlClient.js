@@ -57,6 +57,8 @@ define([], function () {
     aiSave: function (form) { return call('ai/settings', 'POST', form); },
     aiForget: function (provider) { return call('ai/forget', 'POST', { provider: provider }); },
     aiModels: function (provider) { return call('ai/models', 'POST', { provider: provider }); },
-    aiAsk: function (session, question, sql) { return call('ai/ask', 'POST', { session: session, question: question, sql: sql }); }
+    aiAsk: function (session, question, sql) { return call('ai/ask', 'POST', { session: session, question: question, sql: sql }); },
+    // A plain chat turn (no SQL), for features that just need the LLM to rewrite or format text (e.g. Minutes "Format by AI").
+    aiChat: function (system, user) { return call('ai/chat', 'POST', { system: system, user: user }); }
   };
 });

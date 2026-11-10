@@ -696,7 +696,7 @@ function createDevServer(o) {
         })().catch((e) => jsonM(200, { ok: false, error: e.message }));
         return undefined;
       }
-      if (pathname.startsWith('/__sql/') && o.sqlStore) {
+      if (pathname.startsWith('/__sql/') && (o.sqlStore || o.aiStore)) {
         // EquipRite Next's SQL worksheet (lib/oracleSql.js). This PC only, by its own name; and only the app's own page:
         // it sends X-EquipRite-SQL, which a page of another site cannot send without a preflight this server never allows.
         const host = String(req.headers.host || '').replace(/:\d+$/, '');

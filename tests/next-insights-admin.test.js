@@ -604,7 +604,7 @@ tests.push((async () => {
 // ════════════════════════════════════════════════════════════════════════════════════════════════════════
 T.section('the pages follow the page rules');
 {
-  const flows = [['insights', ['analytics', 'jira', 'jira-sprint']], ['admin', ['settings', 'access', 'integrations', 'sql']]];
+  const flows = [['insights', ['analytics', 'jira', 'jira-sprint', 'minutes']], ['admin', ['settings', 'access', 'integrations', 'sql']]];
   flows.forEach(([flow, pages]) => {
     const fj = JSON.parse(fs.readFileSync(path.join(NEXT, 'flows', flow, flow + '-flow.json'), 'utf8'));
     T.eq(flow + ' flow is embeddable and lists its pages', [fj.navigation && fj.navigation.embeddable, Object.keys(fj.pages).join()].join(' | '), 'enabled | ' + pages.join());

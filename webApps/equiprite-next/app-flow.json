@@ -881,6 +881,7 @@
       "resources/css/next-search.css",
       "resources/css/next-sql.css",
       "resources/css/next-jira.css",
+      "resources/css/next-minutes.css",
       "resources/css/next-redwood.css",
       "resources/css/mapbox-gl.css"
     ]

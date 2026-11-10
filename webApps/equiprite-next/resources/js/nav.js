@@ -71,6 +71,11 @@ define(['resources/js/rules'], function (rules) {
         route: { flow: 'insights', page: 'jira' }, built: true, keywords: 'jira stories backlog epics sprint release analysis acceptance criteria tester gaps' },
       { id: 'analytics', label: 'Analytics', icon: 'oj-ux-ico-chart-bar', pageCodes: ['EQR_ANALYTICS', 'EQR_REPORTS'],
         route: { flow: 'insights', page: 'analytics' }, built: true, newNav: 'analytics', keywords: 'reports utilization kpi' },
+      // The daily standup on the Jira backlog, written down and kept in DuckDB on this PC (flows/insights minutes page):
+      // a meeting's header and lines (tied to a story or generic) with a next action, voice→text and Format by AI, tracked
+      // by epic and customer, sent as an email or to Teams. Gated like Jira stories (an existing page code).
+      { id: 'minutes', label: 'Standup minutes', icon: 'oj-ux-ico-note', pageCodes: ['EQR_CONFIGURATIONS'],
+        route: { flow: 'insights', page: 'minutes' }, built: true, keywords: 'minutes standup meeting notes mom action items attendees epic customer daily scrum voice ai teams email' },
       // The FDD, its flows across the Fusion modules and how much of it is built (flows/fdd). Like Help, for everyone
       // signed in (no page code), but not a customer-only role: their menu stays the portal.
       { id: 'fdd', label: 'EquipRite FDD', icon: 'oj-ux-ico-document-check', pageCodes: [], everyone: true, staff: true,

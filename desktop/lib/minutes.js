@@ -157,12 +157,12 @@ async function duckStore(o, file) {
     }),
     list: () => serial(async () => {
       const ms = await rows('SELECT * FROM meetings');
-      const ls = await rows('SELECT meeting_id, jira_key, action, status FROM minute_lines');
+      const ls = await rows('SELECT * FROM minute_lines ORDER BY seq');
       const byM = {};
       ls.forEach((l) => { (byM[l.meeting_id] = byM[l.meeting_id] || []).push(l); });
       const out = ms.map((r) => {
-        const lines = (byM[r.id] || []).map((l) => ({ jiraKey: l.jira_key, action: l.action, status: l.status }));
-        return summaryOf({ id: r.id, date: r.date, time: r.time, title: r.title, customer: r.customer, attendees: jarr(r.attendees), lines: lines, updatedAt: r.updated_at });
+        const m = meetingToObj(r, byM[r.id] || []);
+        return Object.assign(summaryOf(m), { lines: m.lines });
       }).sort(byNewest);
       return { ok: true, meetings: out };
     }),
@@ -249,7 +249,7 @@ function jsonStore(o, file) {
       write();
       return settings();
     },
-    async list() { return { ok: true, meetings: data.meetings.map(summaryOf).sort(byNewest) }; },
+    async list() { return { ok: true, meetings: data.meetings.map((m) => Object.assign(summaryOf(m), { lines: m.lines || [] })).sort(byNewest) }; },
     async get(id) { const m = data.meetings.find((x) => x.id === id); return m ? { ok: true, meeting: m } : { ok: false }; },
     async save(b) {
       const m = cleanMeeting(b);
