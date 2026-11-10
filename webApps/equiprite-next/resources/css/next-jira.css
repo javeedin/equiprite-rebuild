@@ -133,8 +133,9 @@ html[data-nx-look="redwood"] .nx-jira .nx-jira-tab--on { border-bottom-color: #2
 .nx-jsp .nx-jsp-burnday--today .nx-jsp-burnbar { background: var(--nx-accent); }
 .nx-jsp .nx-jsp-burnday--today { box-shadow: inset 0 0 0 1px var(--nx-accent); }
 .nx-jsp .nx-jsp-burnlabel { position: absolute; bottom: -18px; left: 50%; transform: translateX(-50%); font-size: 10px; color: var(--nx-muted); white-space: nowrap; }
-.nx-jsp .nx-jsp-row { display: grid; grid-template-columns: 84px minmax(0, 3fr) 120px 170px minmax(0, 1.2fr) 96px 96px; gap: 10px; align-items: start; padding: 9px 16px;
+.nx-jsp .nx-jsp-row { display: grid; grid-template-columns: 30px 84px minmax(0, 3fr) 120px 170px minmax(0, 1.2fr) 96px 96px; gap: 10px; align-items: start; padding: 9px 16px;
   border-bottom: 1px solid var(--nx-line); font-size: 13px; }
+.nx-jsp .nx-jsp-row.nx-jsp-row--sel { background: var(--nx-accent-soft); box-shadow: inset 3px 0 0 var(--nx-accent); }
 .nx-jsp .nx-jsp-row.nx-jira-row--head { font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--nx-muted); }
 .nx-jsp .nx-jsp-where { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; }
 .nx-jsp .nx-jsp-where--done { background: #d6eed9; color: #1d6b2b; }
@@ -183,7 +184,20 @@ html[data-nx-look="redwood"] .nx-jira .nx-jira-tr--on { box-shadow: inset 3px 0 
 .nx-jsp .nx-jsp-keybtn:hover, .nx-jsp .nx-jsp-sumbtn:hover { text-decoration: underline; }
 .nx-jsp .nx-jsp-tojira { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 4px; color: var(--nx-muted); text-decoration: none; font-size: 14px; }
 .nx-jsp .nx-jsp-tojira:hover, .nx-jsp .nx-jsp-tojira:focus-visible { background: var(--nx-accent-soft); color: var(--nx-accent); }
-.nx-jsp .nx-jsp-row { grid-template-columns: 104px minmax(0, 3fr) 120px 170px minmax(0, 1.2fr) 96px 96px; }
+.nx-jsp .nx-jsp-row { grid-template-columns: 30px 104px minmax(0, 3fr) 120px 170px minmax(0, 1.2fr) 96px 96px; }
+
+/* Copy to follow-up: a checkbox per row (and a select-all in the header), and the toolbar button. The box is drawn with
+   CSS and driven by a class, so it reflects the selection reliably on re-render (an attribute-bound <input> would not). */
+.nx-jira .nx-pickcol { display: flex; align-items: center; justify-content: center; padding-top: 1px; }
+.nx-jira .nx-pick { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border: 1.5px solid var(--nx-line-strong, #b7c0cd); border-radius: 4px;
+  background: var(--nx-surface, #fff); cursor: pointer; position: relative; padding: 0; flex: none; transition: background .12s, border-color .12s; }
+.nx-jira .nx-pick:hover { border-color: var(--nx-accent); }
+.nx-jira .nx-pick:focus-visible { outline: 2px solid var(--nx-accent); outline-offset: 2px; }
+.nx-jira .nx-pick--on, .nx-jira .nx-pick--some { background: var(--nx-accent); border-color: var(--nx-accent); }
+.nx-jira .nx-pick--on::after { content: ""; position: absolute; left: 5px; top: 1px; width: 4px; height: 9px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.nx-jira .nx-pick--some::after { content: ""; position: absolute; left: 3px; top: 7px; width: 10px; height: 0; border-top: 2px solid #fff; }
+.nx-jira .nx-followbtn .oj-ux-ico-copy-to-clipboard { margin-right: 4px; }
+.nx-jira .nx-followbtn[disabled] { opacity: .5; cursor: default; }
 
 /* A recording's technical trace (its web service calls, JSON and errors): the button under the video */
 .nx-jira-dr .nx-jira-tracebtn { align-self: flex-start; font-weight: 700; }

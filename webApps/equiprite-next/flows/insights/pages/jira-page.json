@@ -534,6 +534,13 @@
         }
       ]
     },
+    "onFollowup": {
+      "chains": [
+        {
+          "chain": "followupChain"
+        }
+      ]
+    },
     "onSprintOpen": {
       "chains": [
         {

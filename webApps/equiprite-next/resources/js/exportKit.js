@@ -207,6 +207,88 @@ define([], function () {
     return 'equiprite-' + String(base || 'export').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '-' + day + '.' + ext;
   }
 
+  // ── Follow-up (an email-ready HTML table) ────────────────────────────────────────────────────────────────────
+  // A table you copy and paste straight into an email body. Every style is inline — email clients (Outlook, Gmail)
+  // drop a <style> block, so classes would be lost. A column may add href(row) to turn its cell into a link (the Key
+  // links to Jira), and tone(row) → 'bad' | 'good' | 'warn' to colour a cell (an overdue date goes red).
+  function htmlEsc(v) {
+    return String(v === undefined || v === null ? '' : v).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+
+  var TONE_COLOR = { bad: '#b91c1c', good: '#15803d', warn: '#b45309' };
+
+  /** opts { title, subtitle, when, rows, columns } → the HTML snippet (a heading and the table). */
+  function followupHtml(opts) {
+    var o = opts || {};
+    var cols = o.columns || [];
+    var rows = o.rows || [];
+    var header = '<tr style="background:#0f766e;">' + cols.map(function (c) {
+      return '<th style="padding:8px 10px;text-align:left;font-weight:600;color:#ffffff;border:1px solid #0a5d5d;font-size:13px;">'
+        + htmlEsc(c.label || c.key) + '</th>';
+    }).join('') + '</tr>';
+    var body = rows.map(function (r, i) {
+      var bg = i % 2 ? '#f1f5f9' : '#ffffff';
+      return '<tr style="background:' + bg + ';">' + cols.map(function (c) {
+        var v = value(r, c);
+        var tone = typeof c.tone === 'function' ? (c.tone(r) || '') : '';
+        var color = TONE_COLOR[tone] || '#1f2937';
+        var href = typeof c.href === 'function' ? c.href(r) : '';
+        var inner = htmlEsc(v);
+        if (href) inner = '<a href="' + htmlEsc(href) + '" style="color:#0f766e;text-decoration:none;font-weight:600;">' + inner + '</a>';
+        var align = isNumber(v, c) ? 'right' : 'left';
+        return '<td style="padding:7px 10px;border:1px solid #e2e8f0;font-size:13px;vertical-align:top;text-align:' + align
+          + ';color:' + color + ';font-weight:' + (tone ? '600' : '400') + ';">' + inner + '</td>';
+      }).join('') + '</tr>';
+    }).join('');
+    var n = rows.length + (rows.length === 1 ? ' item' : ' items');
+    var head = (o.title ? '<div style="font:600 16px/1.3 \'Segoe UI\',Arial,sans-serif;color:#0f172a;margin:0 0 2px;">' + htmlEsc(o.title) + '</div>' : '')
+      + (o.subtitle ? '<div style="font:400 13px/1.4 \'Segoe UI\',Arial,sans-serif;color:#475569;margin:0 0 2px;">' + htmlEsc(o.subtitle) + '</div>' : '')
+      + '<div style="font:400 12px/1.4 \'Segoe UI\',Arial,sans-serif;color:#94a3b8;margin:0 0 10px;">' + n + (o.when ? ' · ' + htmlEsc(o.when) : '') + '</div>';
+    return '<div style="font-family:\'Segoe UI\',Arial,sans-serif;color:#1f2937;">' + head
+      + '<table style="border-collapse:collapse;border:1px solid #cbd5e1;width:100%;max-width:960px;">'
+      + '<thead>' + header + '</thead><tbody>' + body + '</tbody></table></div>';
+  }
+
+  /** Puts both the formatted table (text/html) and a tab-separated copy (text/plain) on the clipboard. */
+  function copyRich(html, text) {
+    try {
+      if (navigator.clipboard && typeof window.ClipboardItem === 'function' && navigator.clipboard.write) {
+        var item = new window.ClipboardItem({
+          'text/html': new Blob([html], { type: 'text/html' }),
+          'text/plain': new Blob([text || ''], { type: 'text/plain' })
+        });
+        return navigator.clipboard.write([item]).then(function () { return true; }, function () { return fallbackCopyRich(html, text); });
+      }
+    } catch (e) { /* fall through to the execCommand path */ }
+    return Promise.resolve(fallbackCopyRich(html, text));
+  }
+
+  // Older path: select a hidden rich node and copy it. This keeps the HTML in Outlook's editor (and its Electron host);
+  // where the selection cannot be copied, the plain text is written instead.
+  function fallbackCopyRich(html, text) {
+    try {
+      var div = document.createElement('div');
+      div.setAttribute('contenteditable', 'true');
+      div.setAttribute('aria-hidden', 'true');
+      div.style.cssText = 'position:fixed;left:-9999px;top:0;white-space:pre-wrap;';
+      div.innerHTML = html;
+      document.body.appendChild(div);
+      var range = document.createRange();
+      range.selectNodeContents(div);
+      var sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      var ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      sel.removeAllRanges();
+      div.remove();
+      if (ok) return true;
+    } catch (e) { /* fall through to plain text */ }
+    return fallbackCopy(text || '');
+  }
+
   // ── In the browser ───────────────────────────────────────────────────────────────────────────────────────────
   function download(name, mime, data) {
     var blob = new Blob([data], { type: mime });
@@ -283,6 +365,12 @@ define([], function () {
           return ok ? { ok: true, message: n + ' copied. Paste into Excel or an email.' } : { ok: false, message: 'The clipboard is not available here.' };
         });
       }
+      if (format === 'followup') {
+        var items = rows.length + (rows.length === 1 ? ' item' : ' items');
+        return copyRich(followupHtml(o), tsv(rows, cols)).then(function (ok) {
+          return ok ? { ok: true, message: items + ' copied as a table — paste it into your email.' } : { ok: false, message: 'The clipboard is not available here.' };
+        });
+      }
     } catch (e) {
       return Promise.resolve({ ok: false, message: 'The export failed: ' + (e && e.message ? e.message : e) });
     }
@@ -303,6 +391,8 @@ define([], function () {
     zip: zip,
     crc32: crc32,
     printHtml: printHtml,
+    followupHtml: followupHtml,
+    copyRich: copyRich,
     fileName: fileName,
     run: run
   };

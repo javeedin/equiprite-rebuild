@@ -293,6 +293,9 @@
               <span class="nx-jira-showing" id="jiraShowing"><oj-bind-text value="[[ $variables.fLabel || 'Filtered' ]]"></oj-bind-text>
                 <button type="button" class="nx-jira-x" on-click="[[ $listeners.onClear ]]" aria-label="Clear the filters" title="Clear">×</button></span>
             </oj-bind-if>
+            <button type="button" class="nx-btn nx-btn--sm nx-followbtn" id="jiraFollowup" on-click="[[ $listeners.onFollowup ]]"
+              :disabled="[[ $variables.shown.length === 0 ]]" title="Copy the items shown as a table you can paste into an email">
+              <span class="oj-ux-ico-copy-to-clipboard" aria-hidden="true"></span>Copy to follow-up</button>
             <div class="nx-export">
               <button type="button" class="nx-btn nx-btn--sm" id="jiraExport" on-click="[[ $listeners.onExportToggle ]]" aria-haspopup="menu"
                 :aria-expanded="[[ $variables.exportOpen ? 'true' : 'false' ]]" :disabled="[[ $variables.shown.length === 0 ]]">

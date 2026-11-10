@@ -56,6 +56,11 @@
       "defaultValue": "",
       "description": "The item open in the drawer ('' when none)."
     },
+    "selected": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "The item keys ticked for Copy to follow-up (empty = copy all shown)."
+    },
     "images": {
       "type": "object",
       "defaultValue": {},
@@ -140,6 +145,34 @@
           "parameters": {
             "format": "{{ $event.currentTarget.dataset.format }}"
           }
+        }
+      ]
+    },
+    "onPick": {
+      "chains": [
+        {
+          "chain": "pickChain",
+          "parameters": {
+            "act": "row",
+            "key": "{{ $event.currentTarget.dataset.key }}"
+          }
+        }
+      ]
+    },
+    "onPickAll": {
+      "chains": [
+        {
+          "chain": "pickChain",
+          "parameters": {
+            "act": "all"
+          }
+        }
+      ]
+    },
+    "onFollowup": {
+      "chains": [
+        {
+          "chain": "followupChain"
         }
       ]
     },

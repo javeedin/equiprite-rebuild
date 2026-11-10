@@ -117,6 +117,10 @@
       <div class="nx-card-head">
         <div><h2 id="jspItemsTitle">Items in the sprint</h2><span class="nx-note"><oj-bind-text value="[[ $variables.report.rows.length + ($variables.report.rows.length === 1 ? ' item' : ' items') + ', read at ' + $variables.readAt ]]"></oj-bind-text></span></div>
         <div class="nx-actions">
+          <button type="button" class="nx-btn nx-btn--sm nx-followbtn" id="jspFollowup" on-click="[[ $listeners.onFollowup ]]"
+            :disabled="[[ $variables.report.rows.length === 0 ]]"
+            title="Copy the ticked items (or all of them) as a table you can paste into an email">
+            <span class="oj-ux-ico-copy-to-clipboard" aria-hidden="true"></span><oj-bind-text value="[[ $functions.followLabel($variables.selected) ]]"></oj-bind-text></button>
           <div class="nx-export">
             <button type="button" class="nx-btn nx-btn--sm" id="jspExport" on-click="[[ $listeners.onExportToggle ]]" aria-haspopup="menu" :aria-expanded="[[ $variables.exportOpen ? 'true' : 'false' ]]">
               <span class="oj-ux-ico-download" aria-hidden="true"></span>Export<span class="oj-ux-ico-chevron-down" aria-hidden="true"></span></button>
@@ -136,12 +140,18 @@
       <div class="nx-table">
         <div class="nx-jira-grid" role="table" aria-labelledby="jspItemsTitle" id="jspGrid">
           <div class="nx-jsp-row nx-jira-row--head" role="row">
+            <span role="columnheader" class="nx-pickcol"><button type="button" :class="[[ $functions.selAllClass($variables.report.rows, $variables.selected) ]]"
+              on-click="[[ $listeners.onPickAll ]]" role="checkbox" :aria-checked="[[ $functions.allChecked($variables.report.rows, $variables.selected) ]]"
+              aria-label="Select all items for follow-up" title="Select all"></button></span>
             <span role="columnheader">Key</span><span role="columnheader">Summary</span><span role="columnheader">Status</span><span role="columnheader">In this sprint</span>
             <span role="columnheader">Assignee</span><span role="columnheader">Due</span><span role="columnheader">Resolved</span>
           </div>
           <oj-bind-for-each data="[[ $variables.report.rows ]]">
             <template data-oj-as="r">
-              <div class="nx-jsp-row" role="row" :data-key="[[ r.data.key ]]">
+              <div :class="[[ $functions.rowClass(r.data.key, $variables.selected) ]]" role="row" :data-key="[[ r.data.key ]]">
+                <span role="cell" class="nx-pickcol"><button type="button" :class="[[ $functions.selClass(r.data.key, $variables.selected) ]]"
+                  :data-key="[[ r.data.key ]]" on-click="[[ $listeners.onPick ]]" role="checkbox"
+                  :aria-checked="[[ $functions.isSel(r.data.key, $variables.selected) ? 'true' : 'false' ]]" :aria-label="[[ 'Select ' + r.data.key + ' for follow-up' ]]"></button></span>
                 <span role="cell" class="nx-jsp-keycell"><button type="button" class="nx-jsp-keybtn" :data-key="[[ r.data.key ]]" on-click="[[ $listeners.onOpenItem ]]"
                     :title="[[ 'Show ' + r.data.key ]]"><oj-bind-text value="[[ r.data.key ]]"></oj-bind-text></button>
                   <a class="nx-jsp-tojira" target="_blank" rel="noopener" :href="[[ r.data.url ]]" :title="[[ 'Open ' + r.data.key + ' in Jira' ]]" :aria-label="[[ 'Open ' + r.data.key + ' in Jira' ]]"><span class="oj-ux-ico-external-link" aria-hidden="true"></span></a></span>

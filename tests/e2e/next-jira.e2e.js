@@ -260,6 +260,36 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     await env.shot('next-jira-sprint.png');
     T.check('beside each key, an icon that opens it in Jira (a new tab)', (await page.getAttribute('#jspGrid .nx-jsp-row[data-key="EQP-12"] .nx-jsp-tojira', 'target')) === '_blank'
       && (await page.getAttribute('#jspGrid .nx-jsp-row[data-key="EQP-12"] .nx-jsp-tojira', 'aria-label')) === 'Open EQP-12 in Jira');
+
+    T.section('Copy to follow-up: tick items, a formatted table lands on the clipboard for an email');
+    await page.context().grantPermissions(['clipboard-read', 'clipboard-write'], { origin: env.nextUrl });
+    const readClipHtml = () => page.evaluate(async () => {
+      try { const items = await navigator.clipboard.read();
+        for (const it of items) { if (it.types.includes('text/html')) return await (await it.getType('text/html')).text(); }
+      } catch (e) { /* ignore */ }
+      return '';
+    });
+    const sprintItems = (await page.$$('#jspGrid .nx-jsp-row:not(.nx-jira-row--head)')).length;
+    T.check('each item has a follow-up checkbox, none ticked', (await page.$$('#jspGrid .nx-jsp-row:not(.nx-jira-row--head) .nx-pick')).length === sprintItems
+      && (await page.$$('#jspGrid .nx-pick--on')).length === 0);
+    await page.click('#jspGrid .nx-jira-row--head .nx-pick');
+    await settle(page, 150);
+    T.check('the header checkbox selects all shown', (await page.$$('#jspGrid .nx-jsp-row:not(.nx-jira-row--head) .nx-pick--on')).length === sprintItems && sprintItems >= 1);
+    await page.click('#jspGrid .nx-jira-row--head .nx-pick');
+    await settle(page, 150);
+    T.check('…clicking it again clears them', (await page.$$('#jspGrid .nx-pick--on')).length === 0);
+    await page.click('#jspGrid .nx-jsp-row[data-key="EQP-12"] .nx-pick');
+    await settle(page, 150);
+    T.check('ticking a row marks it and names the count on the button', (await page.getAttribute('#jspGrid .nx-jsp-row[data-key="EQP-12"] .nx-pick', 'aria-checked')) === 'true'
+      && (await page.$$('#jspGrid .nx-jsp-row--sel')).length === 1 && (await text(page, '#jspFollowup')).includes('Copy 1 to follow-up'));
+    await page.click('#jspFollowup');
+    await settle(page, 300);
+    const sprintFollow = await readClipHtml();
+    T.check('a formatted HTML table is copied: the heading, the Key linking to Jira, one item row', sprintFollow.includes('<table')
+      && sprintFollow.includes('Follow-up — Sprint 2026-07') && sprintFollow.includes('href="https://equiprite.atlassian.net/browse/EQP-12"')
+      && (sprintFollow.match(/<tr/g) || []).length === 2, sprintFollow.slice(0, 160));
+    await env.shot('next-jira-sprint-followup.png');
+
     const tabsBefore = page.context().pages().length;
     await page.click('#jspGrid .nx-jsp-row[data-key="EQP-12"] .nx-jsp-keybtn');
     await page.waitForSelector('#jspItem', { state: 'visible', timeout: 10000 });
@@ -284,6 +314,12 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     await page.waitForSelector('#jiraGrid', { state: 'visible', timeout: 10000 });
     await settle(page, 400);
     T.eq('…and back on Jira stories, the items are that sprint\'s', (await texts(page, '#jiraGrid .nx-jira-row:not(.nx-jira-row--head) .nx-jira-key')).join(','), 'EQP-12');
+    await page.click('#jiraFollowup');
+    await settle(page, 300);
+    const storiesFollow = await readClipHtml();
+    T.check('Jira stories: Copy to follow-up copies the items shown, with a Customer column, the Key linking to Jira',
+      storiesFollow.includes('Follow-up — Jira stories') && storiesFollow.includes('>Customer</th>')
+      && storiesFollow.includes('href="https://equiprite.atlassian.net/browse/EQP-12"'), storiesFollow.slice(0, 160));
     await page.click('#jiraShowing .nx-jira-x');
     await settle(page, 300);
 

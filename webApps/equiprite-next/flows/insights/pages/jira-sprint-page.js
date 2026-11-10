@@ -72,6 +72,23 @@ define(['resources/js/exportKit', 'resources/js/jiraStoryPanel', 'resources/js/t
     whereText(r) { return r ? WHERE[r.in] + (r.sprintNow ? ' to ' + r.sprintNow : '') : ''; }
     whereClass(r) { return 'nx-jsp-where nx-jsp-where--' + ((r && r.in) || 'here'); }
     statusClass(cat) { return 'nx-jira-status nx-jira-status--' + (cat || 'new'); }
+
+    /** Copy to follow-up: is this item ticked, the checkbox class, and the header (all / some / none) checkbox. */
+    isSel(key, selected) { return (selected || []).indexOf(key) >= 0; }
+    selClass(key, selected) { return 'nx-pick' + ((selected || []).indexOf(key) >= 0 ? ' nx-pick--on' : ''); }
+    rowClass(key, selected) { return 'nx-jsp-row' + ((selected || []).indexOf(key) >= 0 ? ' nx-jsp-row--sel' : ''); }
+    selAllClass(rows, selected) {
+      const keys = (rows || []).map((r) => r.key);
+      const on = keys.filter((k) => (selected || []).indexOf(k) >= 0).length;
+      return 'nx-pick' + (keys.length && on === keys.length ? ' nx-pick--on' : (on ? ' nx-pick--some' : ''));
+    }
+    allChecked(rows, selected) {
+      const keys = (rows || []).map((r) => r.key);
+      const on = keys.filter((k) => (selected || []).indexOf(k) >= 0).length;
+      return keys.length && on === keys.length ? 'true' : (on ? 'mixed' : 'false');
+    }
+    /** The copy button's label: "Copy 3 to follow-up" once items are ticked, else "Copy to follow-up". */
+    followLabel(selected) { const n = (selected || []).length; return n ? 'Copy ' + n + ' to follow-up' : 'Copy to follow-up'; }
   }
 
   // An item's drawer: the same helpers as Jira stories (resources/js/jiraStoryPanel.js).
