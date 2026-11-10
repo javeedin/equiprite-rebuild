@@ -1,4 +1,4 @@
-define(['resources/js/exportKit', 'resources/js/jiraStoryPanel', 'resources/js/testRecorder'], (exportKit, Panel, Recorder) => {
+define(['resources/js/exportKit', 'resources/js/jiraStoryPanel', 'resources/js/testRecorder', 'resources/js/followup'], (exportKit, Panel, Recorder, F) => {
   'use strict';
 
   // One Jira sprint, in its own tab: binding helpers. The report is resources/js/jiraBacklog.js sprintReport.
@@ -89,6 +89,12 @@ define(['resources/js/exportKit', 'resources/js/jiraStoryPanel', 'resources/js/t
     }
     /** The copy button's label: "Copy 3 to follow-up" once items are ticked, else "Copy to follow-up". */
     followLabel(selected) { const n = (selected || []).length; return n ? 'Copy ' + n + ' to follow-up' : 'Copy to follow-up'; }
+
+    /** The follow-up compose dialog: the body templates, the chosen chip, a live preview of the email. */
+    fuTemplates() { return F.TEMPLATES; }
+    fuTplClass(key, cur) { return 'nx-fu-tpl' + (key === cur ? ' nx-fu-tpl--on' : ''); }
+    fuCountText(rows) { const n = (rows || []).length; return n + (n === 1 ? ' story' : ' stories') + ' will be added as a table'; }
+    fuPreview(message, signoff, rows) { return F.composeHtml({ message, signoff, rows: rows || [], kind: 'sprint' }); }
   }
 
   // An item's drawer: the same helpers as Jira stories (resources/js/jiraStoryPanel.js).

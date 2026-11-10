@@ -1,4 +1,4 @@
-define(['resources/js/jiraBacklog', 'resources/js/exportKit', 'resources/js/testRecorder', 'resources/js/jiraStoryPanel'], (J, exportKit, Recorder, Panel) => {
+define(['resources/js/jiraBacklog', 'resources/js/exportKit', 'resources/js/testRecorder', 'resources/js/jiraStoryPanel', 'resources/js/followup'], (J, exportKit, Recorder, Panel, F) => {
   'use strict';
 
   // Jira stories: binding helpers. The rules are resources/js/jiraBacklog.js (the same file Old EquipRite's Jira
@@ -25,6 +25,12 @@ define(['resources/js/jiraBacklog', 'resources/js/exportKit', 'resources/js/test
 
     presets() { return J.PRESETS; }
     formats() { return exportKit.FORMATS; }
+
+    /** The follow-up compose dialog: the body templates, the chosen chip, a live preview of the email. */
+    fuTemplates() { return F.TEMPLATES; }
+    fuTplClass(key, cur) { return 'nx-fu-tpl' + (key === cur ? ' nx-fu-tpl--on' : ''); }
+    fuCountText(rows) { const n = (rows || []).length; return n + (n === 1 ? ' story' : ' stories') + ' will be added as a table'; }
+    fuPreview(message, signoff, rows) { return F.composeHtml({ message, signoff, rows: rows || [], kind: 'stories' }); }
 
     /** "EQP on equiprite.atlassian.net · 205 items read at 10:42", or what is happening. */
     subtitle(conn, rows, readAt, isLoading) {

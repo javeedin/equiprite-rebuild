@@ -58,6 +58,13 @@ T.check('quotes in a summary are escaped', html.indexOf('&quot;KPIs&quot;') >= 0
 T.check('an empty assignee reads Nobody', html.indexOf('Nobody') >= 0);
 T.check('an overdue date is coloured red', html.indexOf('#b91c1c') >= 0);
 
+T.section('followupHtml — intro, sign-off, count');
+const wrapped = K.followupHtml({ intro: '<p>Dear Rahul,</p>', signoff: '<p>Thanks,</p>', rows: ROWS, columns: COLS, showCount: false });
+T.check('the intro comes before the table', wrapped.indexOf('Dear Rahul,') < wrapped.indexOf('<table') && wrapped.indexOf('<table') > 0);
+T.check('the sign-off comes after the table', wrapped.indexOf('Thanks,') > wrapped.lastIndexOf('</table>'));
+T.check('showCount:false hides the item-count line', !/\b2 items\b/.test(wrapped));
+T.check('showCount default keeps the item-count line', /\b2 items\b/.test(K.followupHtml({ rows: ROWS, columns: COLS })));
+
 T.section("run('followup') — the clipboard");
 let result = null;
 K.run('followup', { title: 'T', rows: ROWS, columns: COLS }).then((r) => { result = r; });

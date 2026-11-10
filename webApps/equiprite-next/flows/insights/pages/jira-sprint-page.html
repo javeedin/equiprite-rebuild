@@ -336,4 +336,61 @@
       </div>
     </oj-sp-general-drawer-template>
   </oj-drawer-popup>
+
+  <!-- Copy to follow-up: draft the email (greeting + a body template + the stories table), then copy it or open Outlook -->
+  <oj-bind-if test="[[ $variables.fuOpen ]]">
+    <div class="nx-modal" id="jspFuModal">
+      <button type="button" class="nx-modal-scrim" aria-label="Close" on-click="[[ $listeners.onFuClose ]]"></button>
+      <div class="nx-dialog nx-fu-dialog" role="dialog" aria-modal="true" aria-label="Copy to follow-up">
+        <div class="nx-dialog-head">
+          <div class="nx-dialog-titles">
+            <div class="nx-kicker">Follow-up</div>
+            <h2 class="nx-dialog-title">Copy to follow-up</h2>
+            <div class="nx-sub"><oj-bind-text value="[[ $functions.fuCountText($variables.fuRows) ]]"></oj-bind-text></div>
+          </div>
+          <button type="button" class="nx-iconbtn" aria-label="Close" on-click="[[ $listeners.onFuClose ]]"><span class="oj-ux-ico-close" aria-hidden="true"></span></button>
+        </div>
+        <div class="nx-dialog-body nx-fu-body">
+          <div class="nx-fu-form">
+            <div class="nx-fu-field">
+              <label>Pick a message</label>
+              <div class="nx-fu-tpls" role="group" aria-label="Email templates">
+                <oj-bind-for-each data="[[ $functions.fuTemplates() ]]">
+                  <template data-oj-as="tp">
+                    <button type="button" :class="[[ $functions.fuTplClass(tp.data.key, $variables.fuTpl) ]]" :data-key="[[ tp.data.key ]]" on-click="[[ $listeners.onFuTemplate ]]"><oj-bind-text value="[[ tp.data.label ]]"></oj-bind-text></button>
+                  </template>
+                </oj-bind-for-each>
+              </div>
+            </div>
+            <div class="nx-fu-field">
+              <label for="jspFuTo">To (optional)</label>
+              <oj-input-text id="jspFuTo" data-field="to" value="[[ $variables.fuTo ]]" on-value-changed="[[ $listeners.onFuField ]]" placeholder="nabil@company.com; rahul@company.com"></oj-input-text>
+            </div>
+            <div class="nx-fu-field">
+              <label for="jspFuSubject">Subject</label>
+              <oj-input-text id="jspFuSubject" data-field="subject" value="[[ $variables.fuSubject ]]" on-value-changed="[[ $listeners.onFuField ]]"></oj-input-text>
+            </div>
+            <div class="nx-fu-field">
+              <label for="jspFuMessage">Message</label>
+              <oj-text-area id="jspFuMessage" data-field="message" rows="6" value="[[ $variables.fuMessage ]]" on-value-changed="[[ $listeners.onFuField ]]"></oj-text-area>
+            </div>
+            <div class="nx-fu-field">
+              <label for="jspFuSignoff">Sign-off</label>
+              <oj-text-area id="jspFuSignoff" data-field="signoff" rows="2" value="[[ $variables.fuSignoff ]]" on-value-changed="[[ $listeners.onFuField ]]"></oj-text-area>
+            </div>
+          </div>
+          <div class="nx-fu-prevwrap">
+            <label>Preview (this is what gets copied)</label>
+            <iframe class="nx-fu-preview" title="Email preview" id="jspFuPreview" sandbox="" :srcdoc="[[ $functions.fuPreview($variables.fuMessage, $variables.fuSignoff, $variables.fuRows) ]]"></iframe>
+          </div>
+        </div>
+        <div class="nx-dialog-foot">
+          <button type="button" class="nx-btn nx-btn--sm" id="jspFuCancel" on-click="[[ $listeners.onFuClose ]]">Cancel</button>
+          <span class="nx-fu-spacer"></span>
+          <button type="button" class="nx-btn nx-btn--sm" id="jspFuOutlook" on-click="[[ $listeners.onFuOutlook ]]"><span class="oj-ux-ico-email" aria-hidden="true"></span>Open in Outlook</button>
+          <button type="button" class="nx-btn nx-btn--cta" id="jspFuCopy" on-click="[[ $listeners.onFuCopy ]]"><span class="oj-ux-ico-copy-to-clipboard" aria-hidden="true"></span>Copy for email</button>
+        </div>
+      </div>
+    </div>
+  </oj-bind-if>
 </div>

@@ -651,7 +651,8 @@ T.section('a sprint\'s items open in the drawer, as on Jira stories; an icon ope
 {
   const html = fs.readFileSync(path.join(NX_INSIGHTS, 'jira-sprint-page.html'), 'utf8');
   const stories = fs.readFileSync(path.join(NX_INSIGHTS, 'jira-page.html'), 'utf8');
-  const row = html.slice(html.indexOf('<div class="nx-jsp-row" role="row"'), html.indexOf('</template>', html.indexOf('<div class="nx-jsp-row" role="row"')));
+  const rowStart = html.indexOf('role="row" :data-key="[[ r.data.key ]]"'); // the data row (the head row has no data-key)
+  const row = html.slice(rowStart, html.indexOf('</template>', rowStart));
   T.check('the key and the summary open the item (buttons), not Jira', /class="nx-jsp-keybtn"[^>]*on-click="\[\[ \$listeners\.onOpenItem \]\]"/.test(row)
     && /class="nx-jsp-sumbtn[^"]*"[^>]*on-click="\[\[ \$listeners\.onOpenItem \]\]"/.test(row) && !/<a class="nx-jira-key"/.test(row));
   T.check('…and an icon beside the key opens it in Jira, in a new tab', /<a class="nx-jsp-tojira" target="_blank" rel="noopener" :href="\[\[ r\.data\.url \]\]"[^>]*aria-label=/.test(row)

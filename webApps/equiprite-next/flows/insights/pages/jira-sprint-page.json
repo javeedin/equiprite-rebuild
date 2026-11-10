@@ -61,6 +61,13 @@
       "defaultValue": [],
       "description": "The item keys ticked for Copy to follow-up (empty = copy all shown)."
     },
+    "fuOpen": { "type": "boolean", "defaultValue": false, "description": "The Copy to follow-up dialog is open." },
+    "fuRows": { "type": "any[]", "defaultValue": [], "description": "The items the follow-up email covers (what was ticked, or all)." },
+    "fuTpl": { "type": "string", "defaultValue": "close", "description": "The chosen body template key (followup.TEMPLATES)." },
+    "fuTo": { "type": "string", "defaultValue": "", "description": "Recipients for Open in Outlook (optional)." },
+    "fuSubject": { "type": "string", "defaultValue": "", "description": "The email subject." },
+    "fuMessage": { "type": "string", "defaultValue": "", "description": "The editable message above the table (greeting + body)." },
+    "fuSignoff": { "type": "string", "defaultValue": "Thanks,", "description": "The editable sign-off below the table." },
     "images": {
       "type": "object",
       "defaultValue": {},
@@ -170,11 +177,22 @@
       ]
     },
     "onFollowup": {
-      "chains": [
-        {
-          "chain": "followupChain"
-        }
-      ]
+      "chains": [ { "chain": "followupChain", "parameters": { "act": "open" } } ]
+    },
+    "onFuTemplate": {
+      "chains": [ { "chain": "followupChain", "parameters": { "act": "template", "key": "{{ $event.currentTarget.dataset.key }}" } } ]
+    },
+    "onFuField": {
+      "chains": [ { "chain": "followupChain", "parameters": { "act": "field", "field": "{{ $event.target.dataset.field }}", "value": "{{ $event.detail.value }}" } } ]
+    },
+    "onFuCopy": {
+      "chains": [ { "chain": "followupChain", "parameters": { "act": "copy" } } ]
+    },
+    "onFuOutlook": {
+      "chains": [ { "chain": "followupChain", "parameters": { "act": "outlook" } } ]
+    },
+    "onFuClose": {
+      "chains": [ { "chain": "followupChain", "parameters": { "act": "close" } } ]
     },
     "onOpenItem": {
       "chains": [
@@ -247,6 +265,12 @@
       },
       "oj-sp-general-drawer-template": {
         "path": "oj-sp/general-drawer-template/loader"
+      },
+      "oj-input-text": {
+        "path": "ojs/ojinputtext"
+      },
+      "oj-text-area": {
+        "path": "ojs/ojinputtext"
       }
     }
   },

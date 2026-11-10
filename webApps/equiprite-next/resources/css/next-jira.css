@@ -199,6 +199,29 @@ html[data-nx-look="redwood"] .nx-jira .nx-jira-tr--on { box-shadow: inset 3px 0 
 .nx-jira .nx-followbtn .oj-ux-ico-copy-to-clipboard { margin-right: 4px; }
 .nx-jira .nx-followbtn[disabled] { opacity: .5; cursor: default; }
 
+/* Copy to follow-up dialog: the message templates and an editable draft on the left, a live email preview on the right.
+   "Copy for email" puts the formatted table on the clipboard; "Open in Outlook" opens a new mail (table via Ctrl+V). */
+.nx-dialog.nx-fu-dialog { width: min(1000px, 100%); max-height: 92vh; }
+.nx-fu-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 18px; }
+.nx-fu-form { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.nx-fu-field { display: flex; flex-direction: column; gap: 5px; }
+.nx-fu-field > label { font-size: 12px; font-weight: 700; color: var(--nx-muted); letter-spacing: .02em; }
+.nx-fu-field oj-input-text, .nx-fu-field oj-text-area { width: 100%; }
+.nx-fu-tpls { display: flex; flex-wrap: wrap; gap: 6px; }
+.nx-fu-tpl { border: 1px solid var(--nx-line); background: var(--nx-surface); color: var(--nx-ink); border-radius: 999px; padding: 5px 12px; font-size: 12.5px; cursor: pointer;
+  transition: background .12s, border-color .12s, color .12s; }
+.nx-fu-tpl:hover { border-color: var(--nx-accent); color: var(--nx-accent); }
+.nx-fu-tpl--on { background: var(--nx-accent); border-color: var(--nx-accent); color: #fff; }
+.nx-fu-prevwrap { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.nx-fu-prevwrap > label { font-size: 12px; font-weight: 700; color: var(--nx-muted); letter-spacing: .02em; }
+.nx-fu-preview { width: 100%; min-height: 360px; flex: 1; border: 1px solid var(--nx-line); border-radius: 8px; background: #fff; }
+.nx-fu-spacer { flex: 1 1 auto; }
+.nx-dialog.nx-fu-dialog .nx-dialog-foot .oj-ux-ico-email, .nx-dialog.nx-fu-dialog .nx-dialog-foot .oj-ux-ico-copy-to-clipboard { margin-right: 4px; }
+@media (max-width: 860px) {
+  .nx-fu-body { grid-template-columns: 1fr; }
+  .nx-fu-preview { min-height: 240px; }
+}
+
 /* A recording's technical trace (its web service calls, JSON and errors): the button under the video */
 .nx-jira-dr .nx-jira-tracebtn { align-self: flex-start; font-weight: 700; }
 .nx-jira-dr .nx-jira-tracebtn--bad { color: #b91c1c; border-color: #fca5a5; background: #fef2f2; }

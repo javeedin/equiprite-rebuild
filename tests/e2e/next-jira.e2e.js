@@ -283,12 +283,27 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     T.check('ticking a row marks it and names the count on the button', (await page.getAttribute('#jspGrid .nx-jsp-row[data-key="EQP-12"] .nx-pick', 'aria-checked')) === 'true'
       && (await page.$$('#jspGrid .nx-jsp-row--sel')).length === 1 && (await text(page, '#jspFollowup')).includes('Copy 1 to follow-up'));
     await page.click('#jspFollowup');
+    await page.waitForSelector('#jspFuModal', { state: 'visible', timeout: 10000 });
+    await settle(page, 300);
+    T.check('the compose dialog opens with message templates and a greeting that names the assignee',
+      (await page.$$('#jspFuModal .nx-fu-tpl')).length >= 6 && (await page.getAttribute('#jspFuPreview', 'srcdoc')).includes('Dear Rahul,'));
+    T.check('the preview shows the drafted email: the message and the stories table with the Key linking to Jira',
+      (await page.getAttribute('#jspFuPreview', 'srcdoc')).includes('kindly close') && (await page.getAttribute('#jspFuPreview', 'srcdoc')).includes('<table')
+      && (await page.getAttribute('#jspFuPreview', 'srcdoc')).includes('href="https://equiprite.atlassian.net/browse/EQP-12"'));
+    await page.click('#jspFuModal .nx-fu-tpl >> text=Status update');
+    await settle(page, 200);
+    T.check('picking a template rewrites the message, greeting kept', (await page.getAttribute('#jspFuPreview', 'srcdoc')).includes('latest status')
+      && (await page.getAttribute('#jspFuPreview', 'srcdoc')).includes('Dear Rahul,'));
+    await env.shot('next-jira-sprint-followup.png');
+    await page.click('#jspFuCopy');
     await settle(page, 300);
     const sprintFollow = await readClipHtml();
-    T.check('a formatted HTML table is copied: the heading, the Key linking to Jira, one item row', sprintFollow.includes('<table')
-      && sprintFollow.includes('Follow-up — Sprint 2026-07') && sprintFollow.includes('href="https://equiprite.atlassian.net/browse/EQP-12"')
-      && (sprintFollow.match(/<tr/g) || []).length === 2, sprintFollow.slice(0, 160));
-    await env.shot('next-jira-sprint-followup.png');
+    T.check('Copy for email puts the whole email on the clipboard: greeting, the chosen message, the table, the linked Key',
+      sprintFollow.includes('Dear Rahul,') && sprintFollow.includes('latest status') && sprintFollow.includes('<table')
+      && sprintFollow.includes('href="https://equiprite.atlassian.net/browse/EQP-12"'), sprintFollow.slice(0, 160));
+    await page.click('#jspFuOutlook');
+    await settle(page, 300);
+    T.check('Open in Outlook closes the dialog (a new mail opens; the table waits on the clipboard)', !(await page.isVisible('#jspFuModal')));
 
     const tabsBefore = page.context().pages().length;
     await page.click('#jspGrid .nx-jsp-row[data-key="EQP-12"] .nx-jsp-keybtn');
@@ -315,11 +330,19 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     await settle(page, 400);
     T.eq('…and back on Jira stories, the items are that sprint\'s', (await texts(page, '#jiraGrid .nx-jira-row:not(.nx-jira-row--head) .nx-jira-key')).join(','), 'EQP-12');
     await page.click('#jiraFollowup');
+    await page.waitForSelector('#jiraFuModal', { state: 'visible', timeout: 10000 });
+    await settle(page, 300);
+    T.check('Jira stories: the compose dialog opens with templates and a drafted message',
+      (await page.$$('#jiraFuModal .nx-fu-tpl')).length >= 6 && (await page.getAttribute('#jiraFuPreview', 'srcdoc')).includes('Dear '));
+    await page.click('#jiraFuCopy');
     await settle(page, 300);
     const storiesFollow = await readClipHtml();
-    T.check('Jira stories: Copy to follow-up copies the items shown, with a Customer column, the Key linking to Jira',
-      storiesFollow.includes('Follow-up — Jira stories') && storiesFollow.includes('>Customer</th>')
+    T.check('Copy for email: the message, the items as a table with a Customer column and the Key linking to Jira',
+      storiesFollow.includes('Dear ') && storiesFollow.includes('>Customer</th>')
       && storiesFollow.includes('href="https://equiprite.atlassian.net/browse/EQP-12"'), storiesFollow.slice(0, 160));
+    await page.click('#jiraFuCancel');
+    await page.waitForSelector('#jiraFuModal', { state: 'hidden', timeout: 10000 });
+    await settle(page, 200);
     await page.click('#jiraShowing .nx-jira-x');
     await settle(page, 300);
 
