@@ -48,7 +48,8 @@ T.check('a blank template to write your own', F.TEMPLATES.some((t) => t.key === 
 T.check('message() is greeting + the chosen body', F.message(ROWS, 'close').startsWith('Dear Rahul and Nabil,') && /kindly close/.test(F.message(ROWS, 'close')));
 
 T.section('columns');
-T.check('sprint columns include where it stands', F.columns('sprint').some((c) => c.key === 'in'));
+T.check('sprint columns lead with Sprint and drop the in-sprint column', F.columns('sprint')[0].key === 'sprint' && !F.columns('sprint').some((c) => c.key === 'in'));
+T.check('the Sprint column shows the item’s sprint', F.columns('sprint')[0].value({ sprint: '2026-07' }) === '2026-07');
 T.check('stories columns include the Customer label', F.columns('stories').some((c) => c.key === 'labels' && c.label === 'Customer'));
 T.check('the Key column links to the story', typeof F.columns('stories')[0].href === 'function' && F.columns('stories')[0].href(ROWS[0]) === 'https://j/EQP-144');
 

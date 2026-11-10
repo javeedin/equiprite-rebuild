@@ -294,6 +294,8 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
       (await page.getAttribute('#jspFuPreview', 'srcdoc')).includes('Follow-up — Sprint 2026-07')
       && / item(s)? · /.test(await page.getAttribute('#jspFuPreview', 'srcdoc')));
     T.check('a gear beside Open in Outlook jumps to Windows default-apps settings', (await page.$('#jspFuDefault')) !== null);
+    T.check('the table leads with a Sprint column and has no "In this sprint" column',
+      (await page.getAttribute('#jspFuPreview', 'srcdoc')).includes('>Sprint</th>') && !(await page.getAttribute('#jspFuPreview', 'srcdoc')).includes('In this sprint'));
     await page.click('#jspFuModal .nx-fu-tpl >> text=Status update');
     await settle(page, 200);
     T.check('picking a template rewrites the message, greeting kept', (await page.getAttribute('#jspFuPreview', 'srcdoc')).includes('latest status')

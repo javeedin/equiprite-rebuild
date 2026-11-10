@@ -68,22 +68,16 @@ define(['resources/js/exportKit'], function (exportKit) {
     return greeting(rows) + (b ? '\n\n' + b : '\n\n');
   }
 
-  var WHERE = { done: 'Done in this sprint', here: 'Still in this sprint', moved: 'Carried on' };
-
-  // The columns the follow-up table shows — short and email-friendly. 'sprint' adds where the item stands in the sprint.
+  // The columns the follow-up table shows — short and email-friendly. 'sprint' leads with the item's sprint; 'stories'
+  // carries the customer label instead.
   function columns(kind) {
-    var base = [
-      { key: 'key', label: 'Key', href: function (r) { return r.url; } },
-      { key: 'summary', label: 'Summary' },
-      { key: 'status', label: 'Status' },
-    ];
-    if (kind === 'sprint') {
-      base.push({ key: 'in', label: 'In this sprint', value: function (r) { return WHERE[r.in] + (r.sprintNow ? ' to ' + r.sprintNow : ''); } });
-      base.push({ key: 'assignee', label: 'Assignee', value: function (r) { return r.assignee || 'Nobody'; } });
-    } else {
-      base.push({ key: 'assignee', label: 'Assignee', value: function (r) { return r.assignee || 'Nobody'; } });
-      base.push({ key: 'labels', label: 'Customer', value: function (r) { return (r.labels || []).join(', '); } });
-    }
+    var base = [];
+    if (kind === 'sprint') base.push({ key: 'sprint', label: 'Sprint', value: function (r) { return r.sprint || '—'; } });
+    base.push({ key: 'key', label: 'Key', href: function (r) { return r.url; } });
+    base.push({ key: 'summary', label: 'Summary' });
+    base.push({ key: 'status', label: 'Status' });
+    base.push({ key: 'assignee', label: 'Assignee', value: function (r) { return r.assignee || 'Nobody'; } });
+    if (kind !== 'sprint') base.push({ key: 'labels', label: 'Customer', value: function (r) { return (r.labels || []).join(', '); } });
     base.push({ key: 'due', label: 'Due', value: function (r) { return r.due || '—'; }, tone: function (r) { return r.overdue ? 'bad' : ''; } });
     return base;
   }
