@@ -106,6 +106,8 @@ define([], function () {
     remove: function (id) { return min('remove', 'POST', { id: id }); },
     dictate: function (base64, m) { return min('dictate', 'POST', { audioBase64: base64, mime: m }); },
     teams: function (payload) { return min('teams', 'POST', payload); },
+    contacts: function (q) { return min('contacts?q=' + encodeURIComponent(q || '')); },
+    outlook: function (payload) { return min('outlook', 'POST', payload); },
     // Ask AI (shared with the SQL worksheet): the key stays in the desktop app.
     aiSettings: function () { return sql('ai/settings'); },
     aiSave: function (form) { return sql('ai/settings', 'POST', form); },

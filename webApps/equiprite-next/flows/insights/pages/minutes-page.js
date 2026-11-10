@@ -42,6 +42,18 @@ define(['resources/js/minutes'], (R) => {
       return r.summary + (r.epicKey ? ' · ' + r.epicKey + ' ' + r.epicName : '') + (r.labels && r.labels.length ? ' · ' + r.labels.join(', ') : '');
     }
 
+    /** The story picker's options, sprint-wise (active sprint first), each showing status · assignee · due · sprint. */
+    pickOptions(rows) {
+      return memo('pick', rows || [], (rs) => {
+        const ord = { active: 0, future: 1, closed: 2 };
+        const rank = (r) => (r.sprint ? (ord[r.sprintState] == null ? 3 : ord[r.sprintState]) : 4);
+        return (rs || []).slice().sort((a, b) => rank(a) - rank(b) || (a.sprint || '~').localeCompare(b.sprint || '~') || String(a.key).localeCompare(String(b.key)))
+          .map((r) => ({ key: r.key, label: [r.summary, r.status, (r.assignee || 'Unassigned'), (r.due ? 'due ' + r.due : ''), (r.sprint ? 'Sprint ' + r.sprint : 'No sprint')].filter(Boolean).join(' · ') }));
+      });
+    }
+    /** A chip shows the attendee's name (an Outlook pick is kept as "Name <email>"). */
+    chipName(a) { return R.attendeeName(a); }
+
     recActive(line, recLineId) { return !!line && line.id === recLineId; }
     recLabel(line, recLineId) { return (!!line && line.id === recLineId) ? '◼ Stop' : '🎤 Voice'; }
     fmtActive(line, fmtLineId) { return !!line && line.id === fmtLineId; }

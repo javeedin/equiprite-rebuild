@@ -58,11 +58,21 @@
             <div class="nx-min-field"><label>Time</label><input type="time" data-scope="header" data-field="time" :value="[[ $variables.meeting.time ]]" on-change="[[ $listeners.onField ]]"></div>
             <div class="nx-min-field nx-min-grow"><label>Title</label><input type="text" data-scope="header" data-field="title" :value="[[ $variables.meeting.title ]]" on-change="[[ $listeners.onField ]]" placeholder="Daily standup"></div>
             <div class="nx-min-field"><label>Customer</label><input type="text" data-scope="header" data-field="customer" :value="[[ $variables.meeting.customer ]]" on-change="[[ $listeners.onField ]]" placeholder="e.g. Cianbro"></div>
-            <div class="nx-min-field nx-min-grow"><label>Attendees</label><input type="text" data-scope="header" data-field="attendees" :value="[[ $variables.attendeesText ]]" on-change="[[ $listeners.onField ]]" placeholder="comma separated"></div>
+            <div class="nx-min-field nx-min-grow"><label>Attendees</label>
+              <div class="nx-min-att">
+                <oj-bind-for-each data="[[ $variables.meeting.attendees ]]">
+                  <template data-oj-as="at">
+                    <span class="nx-min-chip"><oj-bind-text value="[[ $functions.chipName(at.data) ]]"></oj-bind-text><button type="button" class="nx-min-chipx" data-act="removeAttendee" :data-id="[[ at.data ]]" on-click="[[ $listeners.onAct ]]" aria-label="Remove attendee">×</button></span>
+                  </template>
+                </oj-bind-for-each>
+                <input type="text" class="nx-min-attadd" list="minPeople" :value="[[ $variables.attendeeDraft ]]" on-input="[[ $listeners.onAttendeeInput ]]" on-change="[[ $listeners.onAttendee ]]" :placeholder="[[ $variables.peopleReady ? 'Add from Outlook, or type a name' : 'Type a name, then Tab' ]]">
+              </div>
+            </div>
+            <datalist id="minPeople"><oj-bind-for-each data="[[ $variables.people ]]"><template data-oj-as="pp"><option :value="[[ pp.data.name + ' <' + pp.data.email + '>' ]]"><oj-bind-text value="[[ pp.data.email ]]"></oj-bind-text></option></template></oj-bind-for-each></datalist>
             <div class="nx-min-field nx-min-wide"><label>Context (optional)</label><input type="text" data-scope="header" data-field="context" :value="[[ $variables.meeting.context ]]" on-change="[[ $listeners.onField ]]" placeholder="sprint, release, agenda…"></div>
           </div>
 
-          <datalist id="minKeys"><oj-bind-for-each data="[[ $variables.rows ]]"><template data-oj-as="rk"><option :value="[[ rk.data.key ]]"><oj-bind-text value="[[ rk.data.summary ]]"></oj-bind-text></option></template></oj-bind-for-each></datalist>
+          <datalist id="minKeys"><oj-bind-for-each data="[[ $functions.pickOptions($variables.rows) ]]"><template data-oj-as="rk"><option :value="[[ rk.data.key ]]"><oj-bind-text value="[[ rk.data.label ]]"></oj-bind-text></option></template></oj-bind-for-each></datalist>
 
           <div class="nx-min-lines" id="minLines">
             <oj-bind-for-each data="[[ $variables.meeting.lines ]]">
@@ -196,7 +206,8 @@
         <span class="nx-min-flex"></span>
         <button type="button" class="nx-btn nx-btn--sm" data-act="emailDownload" on-click="[[ $listeners.onAct ]]">Download .html</button>
         <button type="button" class="nx-btn nx-btn--sm" id="minEmailCopy" data-act="emailCopy" on-click="[[ $listeners.onAct ]]">Copy</button>
-        <button type="button" class="nx-btn nx-btn--cta" data-act="emailMailto" on-click="[[ $listeners.onAct ]]">Open in email app</button>
+        <button type="button" class="nx-btn nx-btn--sm" data-act="emailMailto" on-click="[[ $listeners.onAct ]]">Open in email app</button>
+        <button type="button" class="nx-btn nx-btn--cta" id="minEmailOutlook" data-act="emailOutlook" on-click="[[ $listeners.onAct ]]">Send via Outlook</button>
       </div>
     </div>
   </oj-bind-if>

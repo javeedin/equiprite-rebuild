@@ -692,6 +692,8 @@ function createDevServer(o) {
           if (pathname === '/__minutes/remove' && post) return jsonM(200, await ms.remove(b.id));
           if (pathname === '/__minutes/dictate' && post) return jsonM(200, await ms.dictate(b));
           if (pathname === '/__minutes/teams' && post) return jsonM(200, await ms.sendTeams(b));
+          if (pathname === '/__minutes/contacts' && req.method === 'GET') return jsonM(200, ms.contacts ? await ms.contacts(u.searchParams.get('q') || '') : { ok: false, available: false, contacts: [] });
+          if (pathname === '/__minutes/outlook' && post) return jsonM(200, ms.sendOutlook ? await ms.sendOutlook(b) : { ok: false, available: false, error: 'Sending via Outlook is not available.' });
           return jsonM(404, { error: 'Not found' });
         })().catch((e) => jsonM(200, { ok: false, error: e.message }));
         return undefined;

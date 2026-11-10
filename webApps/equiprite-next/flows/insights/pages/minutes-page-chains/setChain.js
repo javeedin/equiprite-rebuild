@@ -23,6 +23,7 @@ define(['vb/action/actionChain'], (ActionChain) => {
       } else if (scope === 'settings') { v.settingsForm[field] = value; }
       else if (scope === 'ai') { v.aiForm[field] = value; }
       else if (scope === 'email') { v.email[field] = value; }
+      else if (scope === 'ui') { v[field] = value; }
     }
   }
   return setChain;

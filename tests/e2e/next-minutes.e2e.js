@@ -54,7 +54,10 @@ async function setField(page, sel, val) { await page.fill(sel, val); await page.
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'next-minutes-'));
   const jiraStore = JA.open({ file: path.join(dir, 'jira.json'), encrypt: enc, decrypt: dec });
   jiraStore.save({ site: 'https://equiprite.atlassian.net', email: 'javeed@equiprite.com', token: 'ATATT-test' });
-  const minutesStore = await MIN.open({ file: path.join(dir, 'minutes.duckdb'), encrypt: enc, decrypt: dec, transcribe: txStub, fetch: teamsFetch });
+  const contactsStub = async () => ({ ok: true, available: true, contacts: [{ name: 'Priya Raman', email: 'priya.raman@rite.digital' }, { name: 'Rahul Kanth', email: 'rahul@rite.digital' }] });
+  const outlookOpened = [];
+  const outlookStub = async (m) => { outlookOpened.push(m); return { ok: true, available: true }; };
+  const minutesStore = await MIN.open({ file: path.join(dir, 'minutes.duckdb'), encrypt: enc, decrypt: dec, transcribe: txStub, fetch: teamsFetch, contacts: contactsStub, outlookSend: outlookStub });
   const aiStore = await AI.open({ file: path.join(dir, 'ai.json'), encrypt: enc, decrypt: dec, fetch: llmFetch });
   await aiStore.save({ provider: 'openai', key: 'sk-test', model: 'gpt-4o' });
 
@@ -75,12 +78,15 @@ async function setField(page, sel, val) { await page.fill(sel, val); await page.
     await setField(page, '.nx-min-head input[data-field="date"]', '2026-11-10');
     await setField(page, '.nx-min-head input[data-field="title"]', 'Daily standup');
     await setField(page, '.nx-min-head input[data-field="customer"]', 'Cianbro');
-    await setField(page, '.nx-min-head input[data-field="attendees"]', 'Javeed, Rahul, Aditi');
+    await setField(page, '.nx-min-attadd', 'Priya Raman <priya.raman@rite.digital>');
+    await settle(page, 300);
+    T.check('an attendee is added as a chip from Outlook (name shown, email kept)', /Priya Raman/.test(await text(page, '.nx-min-att')));
     await page.click('#minAddLine');
     await settle(page, 300);
     await setField(page, '.nx-min-line input[data-field="jiraKey"]', 'EQP-12');
     await settle(page, 300);
     T.check('the story key resolves from the backlog (summary + epic + customer)', /Equipment Master List/.test(await text(page, '.nx-min-hint')) && /Equipment Registry/.test(await text(page, '.nx-min-hint')));
+    T.check('the story picker lists sprint-wise with status', await page.$eval('#minKeys', (dl) => { const o = Array.from(dl.querySelectorAll('option')).filter((x) => x.value === 'EQP-12')[0]; return !!o && /DEVELOPMENT/.test(o.textContent); }));
     await page.evaluate((v) => { const t = document.querySelector('oj-text-area.nx-min-ta'); if (t) t.value = v; }, 'map view still missing, type column added');
     await settle(page, 300);
     await setField(page, '.nx-min-line input[data-field="action"]', 'Add the map view');
@@ -122,6 +128,10 @@ async function setField(page, sel, val) { await page.fill(sel, val); await page.
       && await page.isVisible('#minEmailPreview'));
     const previewHasAction = await page.$eval('#minEmailPreview', (f) => (f.getAttribute('srcdoc') || '').indexOf('Add the map view') !== -1);
     T.check('the preview holds the discussion and the action item', previewHasAction);
+    T.check('Send to is pre-filled with the attendee email', /priya\.raman@rite\.digital/.test(await page.$eval('#minEmailDlg input[data-field="to"]', (i) => i.value)));
+    await page.click('#minEmailOutlook');
+    await settle(page, 400);
+    T.check('Send via Outlook opens a pre-filled Outlook message', outlookOpened.length === 1 && /priya\.raman@rite\.digital/.test(outlookOpened[0].to) && /Daily standup/.test(outlookOpened[0].subject) && /Add the map view/.test(outlookOpened[0].html));
     await page.click('#minEmailDlg button[data-act="dialog"]');
     await settle(page, 200);
 

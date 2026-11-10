@@ -26,6 +26,9 @@ define([
       const ls = await C.list();
       if (ls.ok && ls.body && ls.body.meetings) v.meetings = ls.body.meetings;
 
+      const pc = await C.contacts('');
+      if (pc.ok && pc.body) { v.people = pc.body.contacts || []; v.peopleReady = !!pc.body.available; }
+
       const m = R.blankMeeting();
       m.attendees = ((v.settings && v.settings.defaultAttendees) || []).slice();
       v.meeting = m;

@@ -126,6 +126,8 @@ async function minutesStore() {
       decrypt: canEncrypt() ? (b) => safeStorage.decryptString(b) : null,
       transcribe: await transcriber(),
       fetch: (url, init) => { const { net } = require('electron'); return net.fetch(url, init); },
+      contacts: require('./lib/outlookContacts').read,
+      outlookSend: require('./lib/outlookContacts').compose,
     });
   }
   return minutesStoreInst;

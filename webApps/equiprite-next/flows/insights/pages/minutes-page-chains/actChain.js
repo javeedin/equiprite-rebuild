@@ -26,6 +26,8 @@ define([
         case 'addLine': { const m = clone(v.meeting) || { lines: [] }; const l = R.blankLine(); l.id = lid(); m.lines = (m.lines || []).concat(l); v.meeting = m; return; }
         case 'removeLine': { const m = clone(v.meeting) || { lines: [] }; m.lines = (m.lines || []).filter((x) => x.id !== lineId); v.meeting = m; v.dirty = true; return; }
         case 'toggleDone': { const m = clone(v.meeting) || { lines: [] }; const l = (m.lines || []).filter((x) => x.id === lineId)[0]; if (l) l.status = l.status === 'done' ? 'open' : 'done'; v.meeting = m; v.dirty = true; return; }
+        case 'addAttendee': { const name = String(id || '').trim(); if (!name) { v.attendeeDraft = ''; return; } const m = clone(v.meeting) || {}; m.attendees = (m.attendees || []).slice(); if (m.attendees.indexOf(name) === -1) m.attendees.push(name); v.meeting = m; v.attendeeDraft = ''; v.dirty = true; return; }
+        case 'removeAttendee': { const m = clone(v.meeting) || {}; m.attendees = (m.attendees || []).filter((a) => a !== id); v.meeting = m; v.dirty = true; return; }
 
         case 'save': {
           const r = await C.save(clone(v.meeting));
@@ -82,10 +84,16 @@ define([
           return;
         }
 
-        case 'email': { const em = R.emailFor(v.meeting, v.rows); em.to = (v.settings && v.settings.fromEmail) || ''; v.email = em; v.dialog = 'email'; return; }
+        case 'email': { const em = R.emailFor(v.meeting, v.rows); const emails = R.attendeeEmails(v.meeting.attendees || []); em.to = emails.length ? emails.join('; ') : ((v.settings && v.settings.fromEmail) || ''); v.email = em; v.dialog = 'email'; return; }
         case 'emailCopy': { const okc = await C.copyHtml(v.email.html, v.email.text); toast(okc ? 'Email copied.' : 'Copied the text.'); return; }
         case 'emailDownload': { C.download('minutes-' + (v.meeting.date || 'meeting') + '.html', v.email.html, 'text/html'); return; }
         case 'emailMailto': { C.mailto(v.email.to, v.email.subject, v.email.text); return; }
+        case 'emailOutlook': {
+          const r = await C.outlook({ to: v.email.to, subject: v.email.subject, html: v.email.html });
+          if (r.ok && r.body && r.body.ok) toast('Opening the message in Outlook…');
+          else toast((r.body && r.body.error) || 'Could not open Outlook (Windows + Outlook only).', 'error');
+          return;
+        }
 
         case 'teams': {
           const t = R.teamsFor(v.meeting, v.rows);

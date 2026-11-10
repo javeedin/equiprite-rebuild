@@ -272,13 +272,30 @@ function jsonStore(o, file) {
 async function open(o) {
   o = o || {};
   const file = o.file;
-  if (!duck) return jsonStore(o, file.replace(/\.duckdb$/, '') + '.json');
-  try {
-    return await duckStore(o, file);
-  } catch (e) {
-    console.warn('[minutes] DuckDB could not open', file, e && e.message);
-    return jsonStore(o, file.replace(/\.duckdb$/, '') + '.json');
+  let store;
+  if (!duck) store = jsonStore(o, file.replace(/\.duckdb$/, '') + '.json');
+  else {
+    try { store = await duckStore(o, file); }
+    catch (e) { console.warn('[minutes] DuckDB could not open', file, e && e.message); store = jsonStore(o, file.replace(/\.duckdb$/, '') + '.json'); }
   }
+  // Attendee suggestions from the user's Outlook contacts (lib/outlookContacts.js), injected as o.contacts; filtered here.
+  const contactsReader = o.contacts || null;
+  store.contacts = async (q) => {
+    if (!contactsReader) return { ok: false, available: false, contacts: [] };
+    let r;
+    try { r = await contactsReader(); } catch (e) { return { ok: false, available: true, contacts: [], error: String((e && e.message) || e) }; }
+    if (!r || !r.ok) return r || { ok: false, available: false, contacts: [] };
+    const qq = str(q).toLowerCase();
+    const list = qq ? (r.contacts || []).filter((c) => (str(c.name) + ' ' + str(c.email)).toLowerCase().indexOf(qq) !== -1) : (r.contacts || []);
+    return { ok: true, available: true, contacts: list.slice(0, 100) };
+  };
+  // Open the minutes in a pre-filled Outlook message (lib/outlookContacts.js compose), injected as o.outlookSend.
+  const outlookSend = o.outlookSend || null;
+  store.sendOutlook = async (b) => {
+    if (!outlookSend) return { ok: false, available: false, error: 'Sending via Outlook is not available in this app.' };
+    try { return await outlookSend(b || {}); } catch (e) { return { ok: false, available: true, error: String((e && e.message) || e) }; }
+  };
+  return store;
 }
 
 module.exports = { open, available: !!duck };

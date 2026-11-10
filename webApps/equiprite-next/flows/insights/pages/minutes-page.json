@@ -13,7 +13,10 @@
     "dialog": { "type": "string", "defaultValue": "", "description": "'' | settings | ai | email" },
     "meetings": { "type": "any[]", "defaultValue": [], "description": "Past meetings (summaries), newest first." },
     "meeting": { "type": "any", "defaultValue": { "id": "", "date": "", "time": "", "title": "", "customer": "", "attendees": [], "context": "", "lines": [] }, "description": "The meeting being edited." },
-    "attendeesText": { "type": "string", "defaultValue": "", "description": "The attendees as a comma-separated field." },
+    "attendeesText": { "type": "string", "defaultValue": "", "description": "The attendees as a comma-separated field (legacy)." },
+    "attendeeDraft": { "type": "string", "defaultValue": "", "description": "The attendee-picker input (cleared after each add)." },
+    "people": { "type": "any[]", "defaultValue": [], "description": "Outlook contacts read from this PC (name, email), for the attendee picker." },
+    "peopleReady": { "type": "boolean", "defaultValue": false, "description": "Whether Outlook contacts were available on this PC." },
     "dirty": { "type": "boolean", "defaultValue": false },
     "rows": { "type": "any[]", "defaultValue": [], "description": "The Jira backlog read (jiraBacklog.fromIssue), for story links and epic/customer tracking." },
     "jiraReady": { "type": "boolean", "defaultValue": false },
@@ -35,7 +38,9 @@
       "act": "{{ $event.currentTarget.dataset.act }}", "id": "{{ $event.currentTarget.dataset.id || '' }}",
       "lineId": "{{ $event.currentTarget.dataset.line || '' }}" } } ] },
     "onNote": { "chains": [ { "chain": "setChain", "parameters": {
-      "scope": "line", "field": "text", "value": "{{ $event.detail.value }}", "lineId": "{{ $event.target.dataset.line || '' }}" } } ] }
+      "scope": "line", "field": "text", "value": "{{ $event.detail.value }}", "lineId": "{{ $event.target.dataset.line || '' }}" } } ] },
+    "onAttendeeInput": { "chains": [ { "chain": "setChain", "parameters": { "scope": "ui", "field": "attendeeDraft", "value": "{{ $event.target.value }}" } } ] },
+    "onAttendee": { "chains": [ { "chain": "actChain", "parameters": { "act": "addAttendee", "id": "{{ $event.target.value }}" } } ] }
   },
   "imports": {
     "components": {

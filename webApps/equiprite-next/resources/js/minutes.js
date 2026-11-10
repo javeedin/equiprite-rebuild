@@ -25,6 +25,11 @@ define([], function () {
   function blankLine() { return { id: '', jiraKey: '', generic: true, text: '', raw: '', action: '', owner: '', due: '', status: 'open' }; }
   function blankMeeting() { return { id: '', date: todayISO(), time: nowHM(), title: 'Daily standup', customer: '', attendees: [], context: '', lines: [], createdAt: '', updatedAt: '' }; }
 
+  // Attendees are kept as strings: a plain name, a plain email, or "Name <email>" (when picked from Outlook).
+  function attendeeName(a) { var s = txt(a).trim(); var m = /^(.*?)\s*<[^>]+>$/.exec(s); return m ? m[1].trim() : s; }
+  function attendeeEmail(a) { var s = txt(a).trim(); var m = /<([^>]+)>/.exec(s); if (m) return m[1].trim(); return /^[^\s@]+@[^\s@]+$/.test(s) ? s : ''; }
+  function attendeeEmails(list) { return (list || []).map(attendeeEmail).filter(Boolean).filter(function (v, i, a) { return a.indexOf(v) === i; }); }
+
   // The note a line keeps: the formatted text, else the raw dictation/typing.
   function lineText(l) { return txt(l && (l.text || l.raw)).trim(); }
   function isOpen(l) { return l && l.status !== 'done'; }
@@ -259,6 +264,7 @@ define([], function () {
 
   return {
     todayISO: todayISO, nowHM: nowHM, blankMeeting: blankMeeting, blankLine: blankLine,
+    attendeeName: attendeeName, attendeeEmail: attendeeEmail, attendeeEmails: attendeeEmails,
     lineText: lineText, summarise: summarise, formatPrompt: formatPrompt,
     stories: stories, epics: epics, customers: customers, openActions: openActions,
     emailFor: emailFor, teamsFor: teamsFor
