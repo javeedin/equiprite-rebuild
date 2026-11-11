@@ -12,7 +12,8 @@
  *   saveConfig({ tenantId, clientId })
  *   beginSignIn()            starts device-code sign-in: { ok, userCode, verificationUri, message } (poll status())
  *   signOut()
- *   people(q)                { ok, contacts:[{name,email}] } from /me/people (falls back to /me/contacts)
+ *   people(q)                { ok, directory, contacts:[{name,email}] } — /me/people (relevant) + /users (directory,
+ *                            needs User.ReadBasic.All; directory=true only when that call succeeded)
  *   sendMail({to,subject,html}) → { ok } via /me/sendMail
  */
 const fs = require('fs');
@@ -71,7 +72,10 @@ function open(o) {
   }
 
   function status() {
-    return { configured: !!(data.tenantId && data.clientId), signedIn: !!(data.tokens && data.tokens.refresh), account: data.account || '',
+    // Signed in when we hold a refresh token (a durable session) OR an access token that has not yet expired — so a
+    // sign-in that returned no refresh token (offline_access withheld) still counts while the access token is valid.
+    const signedIn = !!(data.tokens && (data.tokens.refresh || (data.tokens.access && data.tokens.expiresAt > Date.now())));
+    return { configured: !!(data.tenantId && data.clientId), signedIn: signedIn, account: data.account || '',
       tenantId: data.tenantId || '', clientId: data.clientId || '', pending: !!(pending && !pending.done),
       userCode: pending ? pending.userCode : '', verificationUri: pending ? pending.verificationUri : '', error: pending ? pending.error || '' : '' };
   }
@@ -123,6 +127,7 @@ function open(o) {
       const seen = {};
       const add = (name, email) => { const k = String(email || '').toLowerCase(); if (email && !seen[k]) { seen[k] = true; out.push({ name: name || email, email: email }); } };
       let err = '';
+      let directory = false; // whether the org-wide directory (/users) could be read — needs User.ReadBasic.All
       // Relevant people (like Outlook's suggested contacts): the people this user works with.
       try {
         const r = term
@@ -138,10 +143,10 @@ function open(o) {
           ? "/users?$filter=" + encodeURIComponent("startswith(displayName,'" + esc + "') or startswith(mail,'" + esc + "') or startswith(userPrincipalName,'" + esc + "')") + "&$top=15&$select=displayName,mail,userPrincipalName"
           : '/users?$top=25&$select=displayName,mail,userPrincipalName';
         const r2 = await graph('GET', dir, t);
-        if (r2.status < 400) ((r2.body && r2.body.value) || []).forEach((p) => add(p.displayName, p.mail || p.userPrincipalName));
+        if (r2.status < 400) { directory = true; ((r2.body && r2.body.value) || []).forEach((p) => add(p.displayName, p.mail || p.userPrincipalName)); }
       } catch (e) { /* no directory permission — relevant people only */ }
-      if (!out.length && err) return { ok: false, available: true, contacts: [], error: err };
-      return { ok: true, available: true, contacts: out };
+      if (!out.length && err) return { ok: false, available: true, directory: directory, contacts: [], error: err };
+      return { ok: true, available: true, directory: directory, contacts: out };
     },
     async sendMail(b) {
       const t = await token();

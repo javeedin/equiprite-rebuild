@@ -67,6 +67,7 @@ const openExternal = (u) => opened.push(u);
     && ppl.contacts.some((c) => c.email === 'tester.one@rite.digital')
     && ppl.contacts.filter((c) => c.email === 'sandeep.reddy@rite.digital').length === 1
     && calls.some((c) => /\/me\/people\?\$search=/.test(c.url)) && calls.some((c) => /\/users\?\$filter=/.test(c.url)));
+  T.check('directory=true when /users could be read (User.ReadBasic.All granted)', ppl.directory === true);
 
   T.section('sending via /me/sendMail');
   const sent = await store.sendMail({ to: 'a@x.com; b@y.com', cc: 'c@z.com', subject: 'Minutes', html: '<b>hi</b>' });
@@ -82,6 +83,21 @@ const openExternal = (u) => opened.push(u);
   const store2 = G.open({ file: path.join(dir, 'graph.json'), encrypt: enc, decrypt: dec, fetch: fakeFetch, openExternal });
   const tok = await store2._token();
   T.check('an expired access token is refreshed with the refresh token', tok === 'AT2' && calls.some((c) => /grant_type=refresh_token/.test(c.body)));
+
+  T.section('directory not granted: relevant people still returned, directory=false');
+  const fetch403 = (url, init) => (/\/users/.test(url) ? Promise.resolve({ status: 403, text: async () => JSON.stringify({ error: { message: 'Authorization_RequestDenied' } }) }) : fakeFetch(url, init));
+  const store403 = G.open({ file: path.join(dir, 'graph.json'), encrypt: enc, decrypt: dec, fetch: fetch403, openExternal });
+  const ppl403 = await store403.people('san');
+  T.check('without User.ReadBasic.All: relevant people (/me/people) still come back, directory=false', ppl403.ok
+    && ppl403.contacts.some((c) => c.email === 'sandeep.reddy@rite.digital') && ppl403.directory === false
+    && !ppl403.contacts.some((c) => c.email === 'tester.one@rite.digital'));
+
+  T.section('signed in on a valid access token even without a refresh token');
+  const accFile = path.join(dir, 'graph-acc.json');
+  fs.writeFileSync(accFile, JSON.stringify({ tenantId: 't', clientId: 'c', account: 'me@x', tokens: { access: 'enc:' + Buffer.from('AX').toString('base64'), refresh: null, expiresAt: Date.now() + 3600000 } }));
+  T.check('a valid access token alone counts as signed in', G.open({ file: accFile, encrypt: enc, decrypt: dec, fetch: fakeFetch }).status().signedIn === true);
+  fs.writeFileSync(accFile, JSON.stringify({ tenantId: 't', clientId: 'c', tokens: { access: 'enc:' + Buffer.from('AX').toString('base64'), refresh: null, expiresAt: Date.now() - 1000 } }));
+  T.check('an expired access token with no refresh is not signed in', G.open({ file: accFile, encrypt: enc, decrypt: dec, fetch: fakeFetch }).status().signedIn === false);
 
   T.section('sign out');
   T.check('sign out clears the session', store2.signOut().signedIn === false);
