@@ -69,9 +69,10 @@ const openExternal = (u) => opened.push(u);
     && calls.some((c) => /\/me\/people\?\$search=/.test(c.url)) && calls.some((c) => /\/users\?\$filter=/.test(c.url)));
 
   T.section('sending via /me/sendMail');
-  const sent = await store.sendMail({ to: 'a@x.com; b@y.com', subject: 'Minutes', html: '<b>hi</b>' });
+  const sent = await store.sendMail({ to: 'a@x.com; b@y.com', cc: 'c@z.com', subject: 'Minutes', html: '<b>hi</b>' });
   const sendCall = calls.filter((c) => /\/me\/sendMail$/.test(c.url))[0];
-  T.check('sendMail posts the HTML message with both recipients', sent.ok && /"contentType":"HTML"/.test(sendCall.body) && /a@x.com/.test(sendCall.body) && /b@y.com/.test(sendCall.body));
+  T.check('sendMail posts the HTML message with both recipients and the Cc', sent.ok && /"contentType":"HTML"/.test(sendCall.body)
+    && /a@x.com/.test(sendCall.body) && /b@y.com/.test(sendCall.body) && /ccRecipients/.test(sendCall.body) && /c@z.com/.test(sendCall.body));
 
   T.section('token refresh when the access token has expired');
   // force expiry

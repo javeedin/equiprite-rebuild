@@ -586,9 +586,29 @@
                 </oj-bind-for-each>
               </div>
             </div>
-            <div class="nx-fu-field">
+            <div class="nx-fu-field nx-fu-recip">
               <label for="jiraFuTo">To (optional)</label>
-              <oj-input-text id="jiraFuTo" data-field="to" value="[[ $variables.fuTo ]]" on-value-changed="[[ $listeners.onFuField ]]" placeholder="nabil@company.com; rahul@company.com"></oj-input-text>
+              <oj-input-text id="jiraFuTo" data-field="to" value="[[ $variables.fuTo ]]" on-value-changed="[[ $listeners.onFuField ]]" on-raw-value-changed="[[ $listeners.onFuRecipInput ]]" placeholder="type a name or email…"></oj-input-text>
+              <oj-bind-if test="[[ $variables.fuSugFor === 'to' && $variables.fuSug.length > 0 ]]">
+                <div class="nx-fu-sug" id="jiraFuSugTo" role="listbox">
+                  <oj-bind-for-each data="[[ $variables.fuSug ]]"><template data-oj-as="c">
+                    <button type="button" class="nx-fu-sugitem" :data-email="[[ c.data.email ]]" data-field="to" on-click="[[ $listeners.onFuRecipPick ]]" role="option">
+                      <span class="nx-fu-sugname"><oj-bind-text value="[[ c.data.name ]]"></oj-bind-text></span><span class="nx-fu-sugemail"><oj-bind-text value="[[ c.data.email ]]"></oj-bind-text></span></button>
+                  </template></oj-bind-for-each>
+                </div>
+              </oj-bind-if>
+            </div>
+            <div class="nx-fu-field nx-fu-recip">
+              <label for="jiraFuCc">Cc (optional)</label>
+              <oj-input-text id="jiraFuCc" data-field="cc" value="[[ $variables.fuCc ]]" on-value-changed="[[ $listeners.onFuField ]]" on-raw-value-changed="[[ $listeners.onFuRecipInput ]]" placeholder="type a name or email…"></oj-input-text>
+              <oj-bind-if test="[[ $variables.fuSugFor === 'cc' && $variables.fuSug.length > 0 ]]">
+                <div class="nx-fu-sug" id="jiraFuSugCc" role="listbox">
+                  <oj-bind-for-each data="[[ $variables.fuSug ]]"><template data-oj-as="c">
+                    <button type="button" class="nx-fu-sugitem" :data-email="[[ c.data.email ]]" data-field="cc" on-click="[[ $listeners.onFuRecipPick ]]" role="option">
+                      <span class="nx-fu-sugname"><oj-bind-text value="[[ c.data.name ]]"></oj-bind-text></span><span class="nx-fu-sugemail"><oj-bind-text value="[[ c.data.email ]]"></oj-bind-text></span></button>
+                  </template></oj-bind-for-each>
+                </div>
+              </oj-bind-if>
             </div>
             <div class="nx-fu-field">
               <label for="jiraFuSubject">Subject</label>

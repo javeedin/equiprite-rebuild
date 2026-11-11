@@ -142,7 +142,9 @@ define(['resources/js/exportKit'], function (exportKit) {
     var body = [headerText(o), String(o.message || '').trim(),
       '[ Click on this line and press Ctrl+V to paste the stories table. ]',
       String(o.signoff || '').trim()].filter(Boolean).join('\n\n');
-    return 'mailto:' + encodeURIComponent(ascii(o.to || '')) + '?subject=' + encodeURIComponent(ascii(o.subject || '')) + '&body=' + encodeURIComponent(ascii(body));
+    return 'mailto:' + encodeURIComponent(ascii(o.to || '')) + '?'
+      + (o.cc ? 'cc=' + encodeURIComponent(ascii(o.cc)) + '&' : '')
+      + 'subject=' + encodeURIComponent(ascii(o.subject || '')) + '&body=' + encodeURIComponent(ascii(body));
   }
 
   return {

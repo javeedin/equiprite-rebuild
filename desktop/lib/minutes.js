@@ -334,7 +334,7 @@ async function open(o) {
     if (!(graph && graph.status().signedIn)) return { ok: false, error: 'Sign in to Microsoft 365 in Minutes settings first.' };
     b = b || {};
     if (!str(b.to).trim()) return { ok: false, error: 'Add recipients (To) before sending.' };
-    return graph.sendMail({ to: b.to, subject: b.subject, html: b.html });
+    return graph.sendMail({ to: b.to, cc: b.cc, subject: b.subject, html: b.html });
   };
   // Microsoft 365 account management (lib/graph.js).
   store.graphStatus = () => (graph ? graph.status() : { configured: false, signedIn: false, available: false });

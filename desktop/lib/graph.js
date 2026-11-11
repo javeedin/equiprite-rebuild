@@ -147,8 +147,12 @@ function open(o) {
       const t = await token();
       if (!t) return { ok: false, error: 'Not signed in to Microsoft 365.' };
       b = b || {};
-      const to = String(b.to || '').split(/[;,]/).map((s) => s.trim()).filter(Boolean).map((a) => ({ emailAddress: { address: a } }));
-      const msg = { message: { subject: String(b.subject || ''), body: { contentType: 'HTML', content: String(b.html || '') }, toRecipients: to }, saveToSentItems: true };
+      const addrs = (v) => String(v || '').split(/[;,]/).map((s) => s.trim()).filter(Boolean).map((a) => ({ emailAddress: { address: a } }));
+      const to = addrs(b.to);
+      const cc = addrs(b.cc);
+      const message = { subject: String(b.subject || ''), body: { contentType: 'HTML', content: String(b.html || '') }, toRecipients: to };
+      if (cc.length) message.ccRecipients = cc;
+      const msg = { message: message, saveToSentItems: true };
       try {
         const r = await graph('POST', '/me/sendMail', t, msg);
         if (r.status >= 200 && r.status < 300) return { ok: true };

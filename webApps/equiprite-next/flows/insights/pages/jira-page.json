@@ -147,6 +147,9 @@
     "fuMessage": { "type": "string", "defaultValue": "", "description": "The editable message above the table (greeting + body)." },
     "fuSignoff": { "type": "string", "defaultValue": "Thanks,", "description": "The editable sign-off below the table." },
     "fuM365": { "type": "any", "defaultValue": { "signedIn": false, "account": "" }, "description": "Microsoft 365 sign-in status (from Minutes settings), for Send via Microsoft 365." },
+    "fuCc": { "type": "string", "defaultValue": "", "description": "CC recipients." },
+    "fuSug": { "type": "any[]", "defaultValue": [], "description": "Contact suggestions for the active recipient field (from the directory)." },
+    "fuSugFor": { "type": "string", "defaultValue": "", "description": "Which recipient field the suggestions are for ('to' | 'cc')." },
     "tab": {
       "type": "string",
       "defaultValue": "sprints",
@@ -568,6 +571,12 @@
     },
     "onFuSend": {
       "chains": [ { "chain": "followupChain", "parameters": { "act": "send" } } ]
+    },
+    "onFuRecipInput": {
+      "chains": [ { "chain": "followupChain", "parameters": { "act": "recipSearch", "field": "{{ $event.target.dataset.field }}", "value": "{{ $event.detail.value }}" } } ]
+    },
+    "onFuRecipPick": {
+      "chains": [ { "chain": "followupChain", "parameters": { "act": "recipPick", "field": "{{ $event.currentTarget.dataset.field }}", "value": "{{ $event.currentTarget.dataset.email }}" } } ]
     },
     "onFuClose": {
       "chains": [ { "chain": "followupChain", "parameters": { "act": "close" } } ]

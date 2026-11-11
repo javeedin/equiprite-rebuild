@@ -98,7 +98,7 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
   const minutesStore = await require('../../desktop/lib/minutes').open({ file: path.join(dir, 'minutes.duckdb'), graph: {
     status: () => ({ configured: true, signedIn: true, account: 'javeed@rite.digital', tenantId: 't', clientId: 'c', pending: false, userCode: '', verificationUri: '', error: '' }),
     sendMail: async (b) => { graphSent.push(b); return { ok: true }; },
-    people: async () => ({ ok: true, available: true, contacts: [] }), saveConfig: () => {}, beginSignIn: async () => ({ ok: true }), signOut: () => {},
+    people: async () => ({ ok: true, available: true, contacts: [{ name: 'Nabil Khan', email: 'nabil.khan@rite.digital' }] }), saveConfig: () => {}, beginSignIn: async () => ({ ok: true }), signOut: () => {},
   } });
   const evidenceDir = path.join(dir, 'EquipRite Test Evidence');
   const recStore = TE.open({ dir: evidenceDir, reveal: (f) => { revealed.push(f); } });
@@ -333,14 +333,23 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     await page.click('#jspFollowup');
     await page.waitForSelector('#jspFuModal', { state: 'visible', timeout: 10000 });
     T.check('with Microsoft 365 signed in, the dialog offers "Send via Microsoft 365"', await page.isVisible('#jspFuSend'));
-    const toInput = page.locator('#jspFuTo input');
-    await toInput.fill('rahul@company.com');
-    await toInput.press('Tab');
+    // Contacts autocomplete in To (from the M365 directory), then pick one.
+    await page.locator('#jspFuTo input').fill('nab');
+    await settle(page, 400);
+    T.check('typing a name shows directory contact suggestions', await page.isVisible('#jspFuSugTo .nx-fu-sugitem'));
+    await page.click('#jspFuSugTo .nx-fu-sugitem');
+    await settle(page, 200);
+    T.check('picking a contact fills To', (await page.evaluate(() => (document.getElementById('jspFuTo') || {}).value || '')).includes('nabil.khan@rite.digital'));
+    // CC a second recipient, then send.
+    const ccInput = page.locator('#jspFuCc input');
+    await ccInput.fill('rahul@company.com');
+    await ccInput.press('Tab');
     await settle(page, 200);
     await page.click('#jspFuSend');
     await page.waitForSelector('#jspFuModal', { state: 'hidden', timeout: 10000 });
-    T.check('Send via Microsoft 365 sends the whole email (table included) through Graph to the recipients', graphSent.some((m) =>
-      /rahul@company\.com/.test(m.to) && /<table/.test(m.html) && /EQP-12/.test(m.html)), JSON.stringify(graphSent[graphSent.length - 1] || {}).slice(0, 160));
+    T.check('Send via Microsoft 365 sends To + Cc with the whole email (table included) through Graph', graphSent.some((m) =>
+      /nabil\.khan@rite\.digital/.test(m.to) && /rahul@company\.com/.test(m.cc || '') && /<table/.test(m.html) && /EQP-12/.test(m.html)),
+      JSON.stringify(graphSent[graphSent.length - 1] || {}).slice(0, 180));
 
     const tabsBefore = page.context().pages().length;
     await page.click('#jspGrid .nx-jsp-row[data-key="EQP-12"] .nx-jsp-keybtn');

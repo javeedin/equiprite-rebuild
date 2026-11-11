@@ -39,6 +39,8 @@ define([
         v.fuSubject = F.template('close').subject;
         v.fuSignoff = v.fuSignoff || 'Thanks,';
         v.fuTo = v.fuTo || '';
+        v.fuCc = v.fuCc || '';
+        v.fuSug = []; v.fuSugFor = '';
         // Is Microsoft 365 signed in (via Minutes settings)? Then offer "Send via Microsoft 365".
         try { const gs = await M.graphStatus(); v.fuM365 = (gs.ok && gs.body) ? { signedIn: !!gs.body.signedIn, account: gs.body.account || '' } : { signedIn: false, account: '' }; }
         catch (e) { v.fuM365 = { signedIn: false, account: '' }; }
@@ -53,9 +55,27 @@ define([
       }
       if (act === 'field') {
         if (field === 'to') v.fuTo = value;
+        else if (field === 'cc') v.fuCc = value;
         else if (field === 'subject') v.fuSubject = value;
         else if (field === 'message') v.fuMessage = value;
         else if (field === 'signoff') v.fuSignoff = value;
+        return;
+      }
+      if (act === 'recipSearch') {
+        // Autocomplete To / CC from the Microsoft 365 directory (the last address being typed).
+        v.fuSugFor = field;
+        const term = String(value || '').split(/[;,]/).pop().trim();
+        if (term.length < 1) { v.fuSug = []; return; }
+        const r = await M.contacts(term);
+        v.fuSug = (r.ok && r.body && r.body.contacts) ? r.body.contacts.slice(0, 8) : [];
+        return;
+      }
+      if (act === 'recipPick') {
+        // Add the chosen contact to the active field (To or CC), keeping any already there.
+        const cur = String((field === 'cc' ? v.fuCc : v.fuTo) || '').split(/[;,]/).map((s) => s.trim()).filter(Boolean);
+        if (cur.indexOf(value) < 0) cur.push(value);
+        if (field === 'cc') v.fuCc = cur.join('; '); else v.fuTo = cur.join('; ');
+        v.fuSug = []; v.fuSugFor = '';
         return;
       }
       if (act === 'close') { v.fuOpen = false; return; }
@@ -83,7 +103,7 @@ define([
       if (act === 'send') {
         // Send the whole formatted email through Microsoft 365 (Graph) — table included, nothing to paste.
         if (!String(v.fuTo || '').trim()) { bus.toast('Add recipients in the To field to send via Microsoft 365.', 'error'); return; }
-        const r = await M.graphSend({ to: v.fuTo, subject: v.fuSubject, html: F.composeHtml(opts) });
+        const r = await M.graphSend({ to: v.fuTo, cc: v.fuCc, subject: v.fuSubject, html: F.composeHtml(opts) });
         if (r.ok && r.body && r.body.ok) { bus.toast('Sent via Microsoft 365 to ' + v.fuTo + '.', 'info'); v.fuOpen = false; }
         else bus.toast((r.body && r.body.error) || 'Could not send via Microsoft 365.', 'error');
         return;
@@ -91,7 +111,7 @@ define([
       if (act === 'outlook') {
         // The mail opens with the text draft; the clipboard holds only the table, so one Ctrl+V drops it in without repeating the message.
         const ok = await exportKit.copyRich(F.tableHtml(opts), F.tableText(opts));
-        openLink(F.mailtoHref({ to: v.fuTo, subject: v.fuSubject, title: v.fuTitle, subtitle: v.fuSubtitle, when: v.fuWhen, message: v.fuMessage, signoff: v.fuSignoff, rows: v.fuRows || [] }));
+        openLink(F.mailtoHref({ to: v.fuTo, cc: v.fuCc, subject: v.fuSubject, title: v.fuTitle, subtitle: v.fuSubtitle, when: v.fuWhen, message: v.fuMessage, signoff: v.fuSignoff, rows: v.fuRows || [] }));
         bus.toast(ok ? 'Opened a new email in Outlook — click the “paste” line and press Ctrl+V to drop in the stories table.'
           : 'Opened a new email in Outlook. (The table could not be copied here — use Copy for email.)', 'info');
         v.fuOpen = false;
