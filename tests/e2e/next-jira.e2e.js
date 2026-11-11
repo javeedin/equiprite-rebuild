@@ -51,6 +51,10 @@ const ISSUES = [
     customfield_10020: [{ id: 7, name: '2026-10 B', state: 'future', startDate: days(-20) + 'T05:00:00.000Z', endDate: days(-5) + 'T05:00:00.000Z' }] }),
 ];
 const BUG = issue('EQP-99', { summary: 'Grid scrolls badly', issuetype: { name: 'Bug' }, status: status('Bugs', 'new'), description: 'It jumps.' });
+// A subtask of EQP-12, fetched by key when its row is expanded in the drawer (full detail: description + criteria).
+const SUB1 = issue('EQP-12-1', { summary: 'Wire the grid to smart search', issuetype: { name: 'Sub-task' }, status: status('DEVELOPMENT', 'indeterminate'),
+  assignee: { displayName: 'Sana Suhana Thehaseen' }, priority: { name: 'High' }, duedate: days(-10),
+  description: 'Bind the equipment grid to the smart-search service.\n\nAcceptance Criteria: grid binds to the service; type-ahead returns results; empty state shown.\n\nFDD Section: 7.2' });
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
 let searches = [];
 let imageReads = [];
@@ -75,6 +79,8 @@ function handle(req, res) {
     if (/issuetype = Bug/.test(jql)) return res.json({ issues: [BUG], isLast: true });
     const sprint = /sprint = (\d+)/.exec(jql);
     if (sprint) return res.json({ issues: ISSUES.filter((i) => (i.fields.customfield_10020 || []).some((x) => String(x.id) === sprint[1])), isLast: true });
+    const keym = /\bkey\s*=\s*([A-Za-z]+-[\w-]+)/.exec(jql); // the drawer fetches a subtask by key when it is expanded
+    if (keym) return res.json({ issues: [...ISSUES, BUG, SUB1].filter((i) => i.key === keym[1]), isLast: true });
     // two pages, as Jira pages: a token, then isLast
     return token ? res.json({ issues: ISSUES.slice(3), isLast: true }) : res.json({ issues: ISSUES.slice(0, 3), nextPageToken: 'page-2', isLast: false });
   }
@@ -424,9 +430,18 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
       && (await text(page, '#jspDrawer')).includes('EQP-12 Equipment Master List View - Section 7.2') && (await texts(page, '#jspAc li')).length === 3
       && (await texts(page, '#jspItemGaps li')).length === 4, (await text(page, '#jspDrawer')).slice(0, 200));
     T.eq('…its Open in Jira', await page.getAttribute('#jspOpenInJira', 'href'), 'https://equiprite.atlassian.net/browse/EQP-12');
-    T.check('…its subtasks, each with its key (link to Jira), status and summary', (await page.$$('#jspSubtasks .nx-jira-sub')).length === 2
-      && (await page.getAttribute('#jspSubtasks .nx-jira-sub:nth-child(1) .nx-jira-subkey', 'href')) === 'https://equiprite.atlassian.net/browse/EQP-12-1'
-      && /Wire the grid to smart search/.test(await text(page, '#jspSubtasks')) && /Done/.test(await text(page, '#jspSubtasks')));
+    T.check('…its subtasks, each with its key, status and summary', (await page.$$('#jspSubtasks .nx-jira-sub')).length === 2
+      && /EQP-12-1/.test(await text(page, '#jspSubtasks')) && /Wire the grid to smart search/.test(await text(page, '#jspSubtasks')) && /Done/.test(await text(page, '#jspSubtasks')));
+    T.check('each subtask has an icon that opens it in Jira (a new tab)', (await page.getAttribute('#jspSubtasks .nx-jira-subjira', 'target')) === '_blank'
+      && (await page.getAttribute('#jspSubtasks .nx-jira-subjira', 'href')) === 'https://equiprite.atlassian.net/browse/EQP-12-1');
+    await page.locator('#jspSubtasks .nx-jira-subrow').first().click();
+    await settle(page, 700);
+    T.check('clicking a subtask expands it and loads its details (description + criteria) from Jira',
+      (await page.$('#jspSubtasks .nx-jira-subdetail')) !== null && /Bind the equipment grid/.test(await text(page, '#jspSubtasks .nx-jira-subdetail'))
+      && (await page.$$('#jspSubtasks .nx-jira-subdetail .nx-jira-list li')).length >= 1);
+    await page.locator('#jspSubtasks .nx-jira-subrow').first().click();
+    await settle(page, 300);
+    T.check('clicking it again collapses the detail', (await page.$('#jspSubtasks .nx-jira-subdetail')) === null);
     await page.waitForFunction(() => { const i = document.querySelector('#jspItem .nx-jira-comment img'); return i && i.complete && i.naturalWidth > 0; }, null, { timeout: 10000 }).catch(() => {});
     T.check('…the tester\'s screenshot, its attachments, and its test evidence (Record) as on Jira stories', await page.$eval('#jspItem .nx-jira-comment img', (i) => i.naturalWidth > 0).catch(() => false)
       && (await page.$$('#jspAttachments img')).length === 1 && await page.isVisible('#jspRecord'));
@@ -472,6 +487,13 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     T.eq('its tester gaps', (await texts(page, '#jiraItemGaps li')).length, 4);
     T.check('its subtasks, each with key, status and summary', (await page.$$('#jiraSubtasks .nx-jira-sub')).length === 2
       && /EQP-12-2/.test(await text(page, '#jiraSubtasks')) && /Add the Type column/.test(await text(page, '#jiraSubtasks')));
+    await page.locator('#jiraSubtasks .nx-jira-subrow').first().click();
+    await settle(page, 700);
+    T.check('a subtask expands inline with its fetched details, and an icon opens it in Jira',
+      (await page.$('#jiraSubtasks .nx-jira-subdetail')) !== null && /Bind the equipment grid/.test(await text(page, '#jiraSubtasks .nx-jira-subdetail'))
+      && (await page.getAttribute('#jiraSubtasks .nx-jira-subjira', 'href')) === 'https://equiprite.atlassian.net/browse/EQP-12-1');
+    await page.locator('#jiraSubtasks .nx-jira-subrow').first().click();
+    await settle(page, 300);
     T.eq('Open in Jira', await page.getAttribute('#jiraOpenInJira', 'href'), 'https://equiprite.atlassian.net/browse/EQP-12');
     await page.waitForFunction(() => { const i = document.querySelector('#jiraItem .nx-jira-comment img'); return i && i.complete && i.naturalWidth > 0; }, null, { timeout: 10000 }).catch(() => {});
     T.check('the screenshot in the tester\'s comment shows, read through the signed-in connection (redirect=false)', await page.$eval('#jiraItem .nx-jira-comment img',

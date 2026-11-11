@@ -444,9 +444,28 @@
         <ul class="nx-jira-list nx-jira-subs" id="jiraSubtasks">
           <oj-bind-for-each data="[[ $functions.item($variables.rows, $variables.selKey).subtaskList ]]">
             <template data-oj-as="st">
-              <li class="nx-jira-sub"><a class="nx-jira-subkey" :href="[[ st.data.url ]]" target="_blank" rel="noopener"><oj-bind-text value="[[ st.data.key ]]"></oj-bind-text></a>
-                <span :class="[[ 'nx-jira-status nx-jira-status--' + st.data.statusCat ]]"><oj-bind-text value="[[ st.data.status ]]"></oj-bind-text></span>
-                <span class="nx-jira-subsum"><oj-bind-text value="[[ st.data.summary + (st.data.assignee ? ' · ' + st.data.assignee : '') ]]"></oj-bind-text></span></li>
+              <li class="nx-jira-sub">
+                <div class="nx-jira-subhead">
+                  <button type="button" class="nx-jira-subrow" :data-key="[[ st.data.key ]]" on-click="[[ $listeners.onSubToggle ]]" :aria-expanded="[[ $variables.openSub === st.data.key ? 'true' : 'false' ]]" :title="[[ 'Show the details of ' + st.data.key ]]">
+                    <span class="nx-jira-subchev" aria-hidden="true"><oj-bind-text value="[[ $variables.openSub === st.data.key ? '▾' : '▸' ]]"></oj-bind-text></span>
+                    <span class="nx-jira-subkey"><oj-bind-text value="[[ st.data.key ]]"></oj-bind-text></span>
+                    <span :class="[[ 'nx-jira-status nx-jira-status--' + st.data.statusCat ]]"><oj-bind-text value="[[ st.data.status ]]"></oj-bind-text></span>
+                    <span class="nx-jira-subsum"><oj-bind-text value="[[ st.data.summary ]]"></oj-bind-text></span>
+                  </button>
+                  <a class="nx-jira-subjira" :href="[[ st.data.url ]]" target="_blank" rel="noopener" :title="[[ 'Open ' + st.data.key + ' in Jira' ]]" :aria-label="[[ 'Open ' + st.data.key + ' in Jira' ]]"><span class="oj-ux-ico-external-link" aria-hidden="true"></span></a>
+                </div>
+                <oj-bind-if test="[[ $variables.openSub === st.data.key ]]">
+                  <div class="nx-jira-subdetail">
+                    <oj-bind-if test="[[ $variables.subBusy === st.data.key ]]"><p class="nx-note">Loading the subtask from Jira…</p></oj-bind-if>
+                    <oj-bind-if test="[[ !!$variables.subDetails[st.data.key] ]]">
+                      <p class="nx-jira-submeta"><span :class="[[ 'nx-jira-status nx-jira-status--' + $variables.subDetails[st.data.key].statusCat ]]"><oj-bind-text value="[[ $variables.subDetails[st.data.key].status ]]"></oj-bind-text></span>
+                        <span class="nx-note"><oj-bind-text value="[[ ($variables.subDetails[st.data.key].assignee || 'Nobody') + ($variables.subDetails[st.data.key].priority ? ' · ' + $variables.subDetails[st.data.key].priority : '') + ($variables.subDetails[st.data.key].due ? ' · due ' + $variables.subDetails[st.data.key].due : '') ]]"></oj-bind-text></span></p>
+                      <oj-bind-if test="[[ !!$variables.subDetails[st.data.key].body ]]"><p class="nx-jira-text nx-jira-subbody"><oj-bind-text value="[[ $variables.subDetails[st.data.key].body ]]"></oj-bind-text></p></oj-bind-if>
+                      <oj-bind-if test="[[ !!$variables.subDetails[st.data.key].ac ]]"><ul class="nx-jira-list"><oj-bind-for-each data="[[ $functions.acList($variables.subDetails[st.data.key].ac) ]]"><template data-oj-as="a"><li><oj-bind-text value="[[ a.data ]]"></oj-bind-text></li></template></oj-bind-for-each></ul></oj-bind-if>
+                    </oj-bind-if>
+                    <oj-bind-if test="[[ $variables.subBusy !== st.data.key && !$variables.subDetails[st.data.key] ]]"><p class="nx-note">Could not load this subtask — open it in Jira with the icon above.</p></oj-bind-if>
+                  </div>
+                </oj-bind-if></li>
             </template>
           </oj-bind-for-each>
         </ul>

@@ -57,6 +57,9 @@
       "defaultValue": "",
       "description": "The item open in the drawer ('' when none)."
     },
+    "openSub": { "type": "string", "defaultValue": "", "description": "The subtask expanded inline in the drawer ('' = none)." },
+    "subDetails": { "type": "object", "defaultValue": {}, "description": "Fetched full detail per subtask key { KEY: jiraBacklog row } (lazy, cached)." },
+    "subBusy": { "type": "string", "defaultValue": "", "description": "The subtask key whose detail is loading from Jira." },
     "selected": {
       "type": "any[]",
       "defaultValue": [],
@@ -235,6 +238,16 @@
       "chains": [
         {
           "chain": "selectChain",
+          "parameters": {
+            "key": "{{ $event.currentTarget.dataset.key }}"
+          }
+        }
+      ]
+    },
+    "onSubToggle": {
+      "chains": [
+        {
+          "chain": "subtaskChain",
           "parameters": {
             "key": "{{ $event.currentTarget.dataset.key }}"
           }
