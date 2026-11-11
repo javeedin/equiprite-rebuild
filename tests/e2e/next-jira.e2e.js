@@ -277,7 +277,7 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
       (await page.$('#jspGrid .nx-jira-row--head [data-col="sprint"]')) !== null
       && (await page.$('#jspGrid .nx-jsp-row[data-key="EQP-12"] .nx-jsp-sprintc')) !== null
       && /2026-07/.test(await text(page, '#jspGrid .nx-jsp-row[data-key="EQP-12"] .nx-jsp-sprintc')));
-    T.check('every column has its own filter box', (await page.$$('#jspGrid .nx-jsp-filterrow .nx-jsp-filter')).length === 8);
+    T.check('every column has its own filter box', (await page.$$('#jspGrid .nx-jsp-filterrow .nx-jsp-filter')).length === 9);
     const dataRows = () => page.$$eval('#jspGrid .nx-jsp-row:not(.nx-jira-row--head):not(.nx-jsp-filterrow)', (r) => r.length);
     await page.fill('#jspGrid .nx-jsp-filterrow input[data-field="key"]', 'ZZZ-999');
     await settle(page, 200);
@@ -293,6 +293,32 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     T.check('clicking the Key header turns on its sort (ascending by story number)',
       (await page.getAttribute('#jspGrid .nx-jira-row--head [data-col="key"]', 'class')).includes('nx-jsp-sortbtn--on')
       && /▴/.test(await text(page, '#jspGrid .nx-jira-row--head [data-col="key"]')));
+    T.check('a "Clear filters" button appears once anything is sorted or filtered', (await page.$('#jspClear')) !== null);
+    await page.click('#jspClear');
+    await settle(page, 150);
+    T.check('Clear filters resets the sort and the boxes, then hides itself', (await page.$('#jspClear')) === null
+      && !(await page.getAttribute('#jspGrid .nx-jira-row--head [data-col="key"]', 'class')).includes('nx-jsp-sortbtn--on'));
+
+    T.section('Items table: a Customer column, and the By status / By person / By customer rows filter it');
+    T.check('a Customer column shows each item\'s labels', (await page.$('#jspGrid .nx-jira-row--head [data-col="customer"]')) !== null
+      && (await text(page, '#jspGrid .nx-jsp-row[data-key="EQP-12"] .nx-jira-custcell')).includes('cianbro'));
+    await page.click('#jspStatuses .nx-jsp-pickbar[data-value="DEVELOPMENT"]');
+    await settle(page, 200);
+    T.check('clicking a By status row filters the items by it (row marked, filter set, Clear shown)',
+      (await page.getAttribute('#jspStatuses .nx-jsp-pickbar[data-value="DEVELOPMENT"]', 'class')).includes('nx-jsp-pick--on')
+      && (await page.inputValue('#jspGrid input[data-field="status"]')) === 'DEVELOPMENT' && (await page.$('#jspClear')) !== null);
+    await page.click('#jspPeople .nx-jsp-pickrow[data-value="Rahul Kanth Panganamamula"]');
+    await settle(page, 200);
+    T.check('clicking a By person row filters the items by assignee', (await page.inputValue('#jspGrid input[data-field="assignee"]')) === 'Rahul Kanth Panganamamula');
+    await page.click('#jspCustomers .nx-jsp-pickrow[data-value="cianbro"]');
+    await settle(page, 200);
+    T.check('clicking a By customer row filters the items by that label', (await page.inputValue('#jspGrid input[data-field="customer"]')) === 'cianbro'
+      && (await page.$$('#jspGrid .nx-jsp-row:not(.nx-jira-row--head):not(.nx-jsp-filterrow)')).length === 1);
+    await page.click('#jspCustomers .nx-jsp-pickrow[data-value="cianbro"]');
+    await settle(page, 200);
+    T.check('clicking the same By customer row again clears that filter', (await page.inputValue('#jspGrid input[data-field="customer"]')) === '');
+    await page.click('#jspClear');
+    await settle(page, 200);
 
     T.section('Copy to follow-up: tick items, a formatted table lands on the clipboard for an email');
     await page.context().grantPermissions(['clipboard-read', 'clipboard-write'], { origin: env.nextUrl });

@@ -40,6 +40,7 @@
         "burnup": [],
         "statuses": [],
         "people": [],
+        "customers": [],
         "flags": [],
         "findings": [],
         "rows": [],
@@ -61,7 +62,7 @@
       "defaultValue": [],
       "description": "The item keys ticked for Copy to follow-up (empty = copy all shown)."
     },
-    "itemF": { "type": "object", "defaultValue": {}, "description": "Per-column filter text for the items table (key, summary, status, in, sprint, assignee, due, resolved)." },
+    "itemF": { "type": "object", "defaultValue": {}, "description": "Per-column filter text for the items table (key, summary, status, in, sprint, assignee, customer, due, resolved)." },
     "itemSort": { "type": "object", "defaultValue": { "col": "", "dir": "asc" }, "description": "The items table's sort column and direction (Key sorts by story number)." },
     "fuOpen": { "type": "boolean", "defaultValue": false, "description": "The Copy to follow-up dialog is open." },
     "fuRows": { "type": "any[]", "defaultValue": [], "description": "The items the follow-up email covers (what was ticked, or all)." },
@@ -223,6 +224,9 @@
     },
     "onItemClear": {
       "chains": [ { "chain": "gridChain", "parameters": { "act": "clear" } } ]
+    },
+    "onItemPickFilter": {
+      "chains": [ { "chain": "gridChain", "parameters": { "act": "pick", "field": "{{ $event.currentTarget.dataset.field }}", "value": "{{ $event.currentTarget.dataset.value }}" } } ]
     },
     "onFuClose": {
       "chains": [ { "chain": "followupChain", "parameters": { "act": "close" } } ]

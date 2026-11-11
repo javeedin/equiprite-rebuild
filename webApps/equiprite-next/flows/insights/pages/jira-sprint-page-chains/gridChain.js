@@ -11,6 +11,13 @@ define(['vb/action/actionChain'], (ActionChain) => {
         v.itemF = f;
         return;
       }
+      // A click on a By-status / By-person / By-customer row: set that column's filter, or clear it if it is already picked.
+      if (act === 'pick') {
+        const f = Object.assign({}, v.itemF || {});
+        f[field] = (f[field] === value) ? '' : value;
+        v.itemF = f;
+        return;
+      }
       if (act === 'sort') {
         const cur = v.itemSort || { col: '', dir: 'asc' };
         v.itemSort = (cur.col === col) ? { col: col, dir: cur.dir === 'asc' ? 'desc' : 'asc' } : { col: col, dir: 'asc' };

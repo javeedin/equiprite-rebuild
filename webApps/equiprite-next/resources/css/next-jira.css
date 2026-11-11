@@ -133,7 +133,7 @@ html[data-nx-look="redwood"] .nx-jira .nx-jira-tab--on { border-bottom-color: #2
 .nx-jsp .nx-jsp-burnday--today .nx-jsp-burnbar { background: var(--nx-accent); }
 .nx-jsp .nx-jsp-burnday--today { box-shadow: inset 0 0 0 1px var(--nx-accent); }
 .nx-jsp .nx-jsp-burnlabel { position: absolute; bottom: -18px; left: 50%; transform: translateX(-50%); font-size: 10px; color: var(--nx-muted); white-space: nowrap; }
-.nx-jsp .nx-jsp-row { display: grid; grid-template-columns: 30px 96px 84px minmax(0, 2.6fr) 110px 150px minmax(0, 1.1fr) 92px 92px; gap: 10px; align-items: start; padding: 9px 16px;
+.nx-jsp .nx-jsp-row { display: grid; grid-template-columns: 30px 96px 84px minmax(0, 2.6fr) 110px 150px minmax(0, 1.1fr) minmax(0, 1fr) 92px 92px; gap: 10px; align-items: start; padding: 9px 16px;
   border-bottom: 1px solid var(--nx-line); font-size: 13px; }
 .nx-jsp .nx-jsp-row.nx-jsp-row--sel { background: var(--nx-accent-soft); box-shadow: inset 3px 0 0 var(--nx-accent); }
 .nx-jsp .nx-jsp-row.nx-jira-row--head { font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--nx-muted); }
@@ -187,7 +187,7 @@ html[data-nx-look="redwood"] .nx-jira .nx-jira-tr--on { box-shadow: inset 3px 0 
 .nx-jsp .nx-jsp-keybtn:hover, .nx-jsp .nx-jsp-sumbtn:hover { text-decoration: underline; }
 .nx-jsp .nx-jsp-tojira { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 4px; color: var(--nx-muted); text-decoration: none; font-size: 14px; }
 .nx-jsp .nx-jsp-tojira:hover, .nx-jsp .nx-jsp-tojira:focus-visible { background: var(--nx-accent-soft); color: var(--nx-accent); }
-.nx-jsp .nx-jsp-row { grid-template-columns: 30px 110px 104px minmax(0, 2.6fr) 110px 150px minmax(0, 1.1fr) 92px 92px; }
+.nx-jsp .nx-jsp-row { grid-template-columns: 30px 110px 104px minmax(0, 2.6fr) 110px 150px minmax(0, 1.1fr) minmax(0, 1fr) 92px 92px; }
 /* Items table: sortable headers + a filter row under them (type to narrow any column), and the Sprint cell. */
 .nx-jsp .nx-jsp-sortbtn { border: 0; background: transparent; padding: 0; font: inherit; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--nx-muted); cursor: pointer; white-space: nowrap; }
 .nx-jsp .nx-jsp-sortbtn:hover { color: var(--nx-ink); }
@@ -197,6 +197,12 @@ html[data-nx-look="redwood"] .nx-jira .nx-jira-tr--on { box-shadow: inset 3px 0 
 .nx-jsp .nx-jsp-filter:focus-visible { outline: 2px solid var(--nx-accent); outline-offset: 1px; }
 .nx-jsp .nx-jsp-sprintc { font-weight: 600; color: var(--nx-ink); white-space: nowrap; }
 .nx-jsp .nx-jsp-nomatch { padding: 18px; }
+
+/* Click a By-status / By-person / By-customer row to filter the items; the chosen one is marked. Clear filters resets. */
+.nx-jsp .nx-jsp-pickbar.nx-jsp-pick--on, .nx-jsp .nx-jsp-pickbar.nx-jsp-pick--on:hover { background: var(--nx-accent-soft); box-shadow: inset 0 0 0 1px var(--nx-accent); }
+.nx-jsp .nx-jsp-pickrow.nx-jsp-pick--on, .nx-jsp .nx-jsp-pickrow.nx-jsp-pick--on:hover { background: var(--nx-accent-soft); box-shadow: inset 3px 0 0 var(--nx-accent); }
+html[data-nx-look="redwood"] .nx-jsp .nx-jsp-pickrow.nx-jsp-pick--on { box-shadow: inset 3px 0 0 #2c5266; }
+.nx-jsp .nx-jsp-clear { color: var(--nx-accent); }
 
 /* Copy to follow-up: a checkbox per row (and a select-all in the header), and the toolbar button. The box is drawn with
    CSS and driven by a class, so it reflects the selection reliably on re-render (an attribute-bound <input> would not). */

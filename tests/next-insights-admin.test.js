@@ -665,13 +665,15 @@ T.section('a sprint\'s items open in the drawer, as on Jira stories; an icon ope
     && mods.every((M) => Object.keys(Panel.helpers).every((k) => M.prototype[k] === Panel.helpers[k])));
   // The sprint items table: filter on any column + sort (Key by story number).
   const SP = mods[1].prototype;
-  const grows = [{ key: 'EQP-9', summary: 'Alpha', status: 'Done', in: 'done', sprint: '2026-07', assignee: 'Zoe', due: '', resolved: '' },
-    { key: 'EQP-100', summary: 'Beta map view', status: 'DEVELOPMENT', in: 'here', sprint: '2026-07', assignee: 'Amy', due: '', resolved: '' },
-    { key: 'EQP-12', summary: 'Gamma', status: 'DEVELOPMENT', in: 'here', sprint: '2026-06', assignee: 'Amy', due: '', resolved: '' }];
+  const grows = [{ key: 'EQP-9', summary: 'Alpha', status: 'Done', in: 'done', sprint: '2026-07', assignee: 'Zoe', labels: ['oceaneering'], due: '', resolved: '' },
+    { key: 'EQP-100', summary: 'Beta map view', status: 'DEVELOPMENT', in: 'here', sprint: '2026-07', assignee: 'Amy', labels: ['cianbro'], due: '', resolved: '' },
+    { key: 'EQP-12', summary: 'Gamma', status: 'DEVELOPMENT', in: 'here', sprint: '2026-06', assignee: 'Amy', labels: ['cianbro', 'oceaneering'], due: '', resolved: '' }];
   T.eq('itemsView sorts Key by story number (not as text)', SP.itemsView(grows, {}, { col: 'key', dir: 'asc' }).map((r) => r.key).join(), 'EQP-9,EQP-12,EQP-100');
   T.eq('…and descending', SP.itemsView(grows, {}, { col: 'key', dir: 'desc' }).map((r) => r.key).join(), 'EQP-100,EQP-12,EQP-9');
   T.eq('itemsView filters any column (summary contains, case-insensitive)', SP.itemsView(grows, { summary: 'MAP' }, {}).map((r) => r.key).join(), 'EQP-100');
   T.eq('…and by status + assignee together', SP.itemsView(grows, { status: 'development', assignee: 'amy' }, {}).map((r) => r.key).join(), 'EQP-100,EQP-12');
+  T.eq('…and by the Customer label (the By-customer row filters on it)', SP.itemsView(grows, { customer: 'cianbro' }, {}).map((r) => r.key).join(), 'EQP-100,EQP-12');
+  T.eq('hasFilters is true once a column filter or a sort is set, false when clear', [SP.hasFilters({}, { col: '' }), SP.hasFilters({ status: 'x' }, {}), SP.hasFilters({}, { col: 'key' })].join(), 'false,true,true');
   const sel = fs.readFileSync(path.join(NX_INSIGHTS, 'jira-sprint-page-chains', 'selectChain.js'), 'utf8');
   T.check('opening an item reads its evidence and its images from the sprint\'s rows', /evidenceChain/.test(sel) && /v\.report && v\.report\.rows/.test(sel) && /J\.loadImages/.test(sel));
   T.check('…its evidence focuses back on its own Screenshot button', /R\.keepFocus\('#jspShot'\)/.test(fs.readFileSync(path.join(NX_INSIGHTS, 'jira-sprint-page-chains', 'evidenceChain.js'), 'utf8')));

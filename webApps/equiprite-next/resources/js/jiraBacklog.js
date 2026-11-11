@@ -601,7 +601,7 @@ define([], function () {
    *   sprint   { id, name, board, state, start, end, done, goal } as Jira has it on the items
    *   kpis     { total, done, open, donePct, overdue, carriedOut, carriedIn, unassigned, days, dayText }
    *   burnup   [{ day, label, done, pct, today, weekend }] a day each from its start to its end (or today), done by then
-   *   statuses, people [{ name, total, done, open, overdue }], flags [..], findings [{ tone, text }]
+   *   statuses, people [{ name, total, done, open, overdue }], customers [{ name, label, total, open, overdue }], flags [..], findings [{ tone, text }]
    *   rows     the items, each with in: 'here' (still in this sprint), 'moved' (carried on to sprintNow) or 'done'
    */
   function sprintReport(rows, want, today) {
@@ -676,7 +676,7 @@ define([], function () {
       var noResolved = items.filter(function (r) { return isDone(r) && !r.resolved; }).length;
       if (noResolved) findings.push({ tone: 'info', text: plural(noResolved, 'done item has', 'done items have') + ' no resolution date, so the burn-up leaves them out.' });
     }
-    return { sprint: info, kpis: kpis, burnup: burnup, statuses: a.statuses, people: a.people, flags: flags, findings: findings, rows: items,
+    return { sprint: info, kpis: kpis, burnup: burnup, statuses: a.statuses, people: a.people, customers: a.customers, flags: flags, findings: findings, rows: items,
       url: sprintUrl(SITE, info) };
   }
 

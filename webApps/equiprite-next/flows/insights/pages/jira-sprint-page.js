@@ -16,9 +16,11 @@ define(['resources/js/exportKit', 'resources/js/jiraStoryPanel', 'resources/js/t
   function has(hay, needle) { return !needle || ci(hay).indexOf(ci(needle)) >= 0; }
   function keyNum(k) { const m = /(\d+)\s*$/.exec(String(k || '')); return m ? parseInt(m[1], 10) : 0; }
   function whereOf(r) { return (WHERE[r && r.in] || '') + (r && r.sprintNow ? ' to ' + r.sprintNow : ''); }
+  function labelsText(r) { const l = (r && r.labels) || []; return l.length ? l.join(', ') : 'No label'; }
   function fieldOf(r, col) {
     if (col === 'in') return whereOf(r);
     if (col === 'assignee') return (r && r.assignee) || 'Nobody';
+    if (col === 'customer') return labelsText(r);
     return (r && r[col]) || '';
   }
 
@@ -89,7 +91,7 @@ define(['resources/js/exportKit', 'resources/js/jiraStoryPanel', 'resources/js/t
       f = f || {}; sort = sort || {};
       let list = (rows || []).filter((r) => has(r.key, f.key) && has(r.summary, f.summary) && has(r.status, f.status)
         && has(whereOf(r), f.in) && has(r.sprint, f.sprint) && has((r.assignee || 'Nobody'), f.assignee)
-        && has(r.due, f.due) && has(r.resolved, f.resolved));
+        && has(labelsText(r), f.customer) && has(r.due, f.due) && has(r.resolved, f.resolved));
       if (sort.col) {
         const dir = sort.dir === 'desc' ? -1 : 1;
         list = list.slice().sort((a, b) => {
@@ -105,6 +107,14 @@ define(['resources/js/exportKit', 'resources/js/jiraStoryPanel', 'resources/js/t
     /** The sort arrow on a header, and its class when active. */
     sortSym(col, sort) { return sort && sort.col === col ? (sort.dir === 'desc' ? ' ▾' : ' ▴') : ''; }
     sortClass(col, sort) { return 'nx-jsp-sortbtn' + (sort && sort.col === col ? ' nx-jsp-sortbtn--on' : ''); }
+
+    /** Each item's customer labels, for the Customer cell ([] renders as "—"). */
+    labelsOf(r) { return (r && r.labels) || []; }
+    /** Any column filter typed, or a sort chosen — so "Clear filters" shows only when there is something to clear. */
+    hasFilters(f, sort) { f = f || {}; sort = sort || {}; return Object.keys(f).some((k) => !!f[k]) || !!(sort && sort.col); }
+    /** A By-status / By-person / By-customer row is "picked" when its value is the current filter on that column. */
+    isPicked(field, value, f) { return !!f && f[field] === value; }
+    pickOn(field, value, f) { return (!!f && f[field] === value) ? ' nx-jsp-pick--on' : ''; }
 
     /** Copy to follow-up: is this item ticked, the checkbox class, and the header (all / some / none) checkbox. */
     isSel(key, selected) { return (selected || []).indexOf(key) >= 0; }
