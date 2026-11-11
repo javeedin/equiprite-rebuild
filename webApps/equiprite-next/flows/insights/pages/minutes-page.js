@@ -13,6 +13,7 @@ define(['resources/js/minutes'], (R) => {
   const PROVIDERS = { claude: 'Claude (Anthropic)', openai: 'OpenAI (ChatGPT)', gemini: 'Google Gemini', oci: 'OCI GenAI', custom: 'OpenAI-compatible' };
 
   function distinct(rows, of) { const seen = {}, out = []; (rows || []).forEach((r) => { const v = String(of(r) || '').trim(); if (v && !seen[v]) { seen[v] = 1; out.push(v); } }); return out; }
+  function rowOf(line, rows) { const k = line && line.jiraKey ? String(line.jiraKey).trim().toUpperCase() : ''; return k ? ((rows || []).filter((x) => x.key === k)[0] || null) : null; }
 
   function initialsOf(s) {
     const t = String(s || '').replace(/<[^>]*>/g, '').trim();
@@ -48,9 +49,13 @@ define(['resources/js/minutes'], (R) => {
       const k = line && line.jiraKey ? String(line.jiraKey).trim().toUpperCase() : '';
       if (!k) return '';
       const r = (rows || []).filter((x) => x.key === k)[0];
-      if (!r) return k + ' — not in the backlog read';
+      if (!r) return 'Not in the backlog read — the status will show once the Jira stories page is refreshed.';
       return r.summary + (r.epicKey ? ' · ' + r.epicKey + ' ' + r.epicName : '') + (r.labels && r.labels.length ? ' · ' + r.labels.join(', ') : '');
     }
+    /** A linked story's current Jira status (the display name), and its category for the badge colour — '' if the key
+     *  isn't in the backlog read yet. Lets the linked-story card on an action item show the live status. */
+    storyStatus(line, rows) { const r = rowOf(line, rows); return r ? String(r.status || '') : ''; }
+    storyStatusCat(line, rows) { const r = rowOf(line, rows); return r ? String(r.statusCat || '') : ''; }
 
     /** The story picker dialog's rows: the backlog filtered by the free-text search and the sprint/status/assignee
      *  filters, sprint-wise (active sprint first). Search matches the number, summary, status, assignee, sprint, epic

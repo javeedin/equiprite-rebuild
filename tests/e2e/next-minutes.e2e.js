@@ -134,9 +134,21 @@ async function setField(page, sel, val) { await page.fill(sel, val); await page.
     T.check('a status filter chip narrows the list (Done only — the DEVELOPMENT story drops out)', !(await page.$('#minPickList .nx-min-pickrow[data-id="EQP-12"]')) && !!(await page.$('#minPickList .nx-min-pickrow[data-id="EQP-20"]')));
     await page.click('#minPickClear');
     await settle(page, 300);
+
+    // Add manually: a key typed in by hand links even when it is not in the backlog read.
+    await page.fill('#minPickManual', 'EQP-777');
+    await page.click('#minPickManualBtn');
+    await page.waitForSelector('#minPickDlg', { state: 'hidden', timeout: 10000 });
+    T.check('a key typed in by hand links even when it is not in the backlog read', /EQP-777/.test(await text(page, '.nx-min-storycard')) && /not in the backlog read/i.test(await text(page, '.nx-min-storycard')));
+
+    // Now pick a real backlog story: the card shows its number, description and current status.
+    await page.click('.nx-min-line button[data-act="pickOpen"]');
+    await page.waitForSelector('#minPickDlg', { timeout: 10000 });
+    await settle(page, 300);
     await page.click('#minPickList .nx-min-pickrow[data-id="EQP-12"]');
     await page.waitForSelector('#minPickDlg', { state: 'hidden', timeout: 10000 });
-    T.check('picking a story links it to the action item and resolves the backlog hint', /EQP-12/.test(await text(page, '.nx-min-storychip')) && /Equipment Master List/.test(await text(page, '.nx-min-hint')) && /Equipment Registry/.test(await text(page, '.nx-min-hint')));
+    const storyCard = () => text(page, '.nx-min-storycard');
+    T.check('the linked story shows its number, description and current status on the action item', /EQP-12/.test(await storyCard()) && /Equipment Master List/.test(await storyCard()) && /DEVELOPMENT/.test(await storyCard()));
     await page.evaluate((v) => { const t = document.querySelector('oj-text-area.nx-min-ta'); if (t) t.value = v; }, 'map view still missing, type column added');
     await settle(page, 300);
     await setField(page, '.nx-min-line input[data-field="action"]', 'Add the map view');
@@ -178,6 +190,7 @@ async function setField(page, sel, val) { await page.fill(sel, val); await page.
       && await page.isVisible('#minEmailPreview'));
     const previewHtml = await page.$eval('#minEmailPreview', (f) => f.getAttribute('srcdoc') || '');
     T.check('the preview holds the Discussion body and the action item', /Discussion/.test(previewHtml) && previewHtml.indexOf('agreed to add it') !== -1 && previewHtml.indexOf('Add the map view') !== -1);
+    T.check('the email action items show the story number, description and current status', /Story &amp; current status/.test(previewHtml) && previewHtml.indexOf('EQP-12') !== -1 && previewHtml.indexOf('Equipment Master List View') !== -1 && previewHtml.indexOf('DEVELOPMENT') !== -1);
     T.check('Send to is pre-filled with the attendee email', /priya\.raman@rite\.digital/.test(await page.$eval('#minEmailDlg input[data-field="to"]', (i) => i.value)));
     await page.click('#minEmailSend');
     await settle(page, 400);

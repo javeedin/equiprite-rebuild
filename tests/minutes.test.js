@@ -22,9 +22,9 @@ vm.runInContext(fs.readFileSync(FILE, 'utf8'), sandbox, { filename: 'minutes.js'
 
 // The Jira backlog rows the page already read (jiraBacklog shape: key, summary, epicKey, epicName, labels, statusCat).
 const ROWS = [
-  { key: 'EQP-12', summary: 'Equipment Master List', epicKey: 'EQP-1', epicName: 'Equipment Registry', labels: ['cianbro'], statusCat: 'indeterminate' },
-  { key: 'EQP-13', summary: 'Equipment Master Edit', epicKey: 'EQP-1', epicName: 'Equipment Registry', labels: ['cianbro', 'oceaneering'], statusCat: 'indeterminate' },
-  { key: 'EQP-20', summary: 'Rate schedule list', epicKey: 'EQP-62', epicName: 'Rate & Pricing', labels: ['oceaneering'], statusCat: 'done' },
+  { key: 'EQP-12', summary: 'Equipment Master List', status: 'DEVELOPMENT', epicKey: 'EQP-1', epicName: 'Equipment Registry', labels: ['cianbro'], statusCat: 'indeterminate' },
+  { key: 'EQP-13', summary: 'Equipment Master Edit', status: 'DEVELOPMENT', epicKey: 'EQP-1', epicName: 'Equipment Registry', labels: ['cianbro', 'oceaneering'], statusCat: 'indeterminate' },
+  { key: 'EQP-20', summary: 'Rate schedule list', status: 'Done', epicKey: 'EQP-62', epicName: 'Rate & Pricing', labels: ['oceaneering'], statusCat: 'done' },
 ];
 const MEETINGS = [
   { id: 'm1', date: '2026-11-09', time: '09:30', title: 'Daily standup', customer: 'Cianbro', attendees: ['Javeed', 'Rahul'],
@@ -76,7 +76,10 @@ T.check('the HTML has the header, the discussion body, a story heading, and an a
   && em.html.indexOf('The team reviewed sprint progress.') !== -1 && em.html.indexOf('<li style="margin-bottom:4px">Release plan agreed for 27A</li>') !== -1
   && em.html.indexOf('EQP-12 — Equipment Master List') !== -1 && em.html.indexOf('Action items') !== -1 && em.html.indexOf('Add the missing filters') !== -1);
 T.check('the action-items table credits "Actioned by" rather than "Owner"', em.html.indexOf('Actioned by') !== -1 && em.html.indexOf('>Owner<') === -1);
-T.check('the plain-text fallback lists the discussion body and the action items', em.text.indexOf('DISCUSSION') !== -1 && em.text.indexOf('The team reviewed sprint progress.') !== -1 && em.text.indexOf('ACTION ITEMS') !== -1 && em.text.indexOf('[EQP-12]') !== -1);
+T.check('the action items show the story number, its description and the current Jira status', em.html.indexOf('Story &amp; current status') !== -1
+  && em.html.indexOf('<b>EQP-12</b>') !== -1 && em.html.indexOf('Equipment Master List') !== -1 && em.html.indexOf('>DEVELOPMENT</span>') !== -1);
+T.check('the plain-text fallback lists the discussion body and the action items with the story and status', em.text.indexOf('DISCUSSION') !== -1 && em.text.indexOf('The team reviewed sprint progress.') !== -1
+  && em.text.indexOf('ACTION ITEMS') !== -1 && em.text.indexOf('[EQP-12 Equipment Master List — DEVELOPMENT]') !== -1);
 
 T.section('a meeting with no discussion body still renders cleanly');
 const emNoBody = M.emailFor({ date: '2026-11-09', title: 'Quick sync', lines: [{ jiraKey: '', text: '', action: 'Ship it', owner: 'JS', due: '', status: 'open' }] }, ROWS);
@@ -84,8 +87,8 @@ T.check('an action-only meeting says "No discussion recorded" and still lists th
 
 T.section('a Teams message');
 const tm = M.teamsFor(MEETINGS[0], ROWS);
-T.check('Markdown with a heading, the discussion body and the action items', tm.text.indexOf('## ') === 0 && tm.text.indexOf('**Discussion**') !== -1
-  && tm.text.indexOf('The team reviewed sprint progress.') !== -1 && tm.text.indexOf('**Action items**') !== -1 && tm.text.indexOf('**EQP-12**') !== -1);
+T.check('Markdown with a heading, the discussion body and the action items (story + status)', tm.text.indexOf('## ') === 0 && tm.text.indexOf('**Discussion**') !== -1
+  && tm.text.indexOf('The team reviewed sprint progress.') !== -1 && tm.text.indexOf('**Action items**') !== -1 && tm.text.indexOf('**EQP-12**') !== -1 && tm.text.indexOf('`EQP-12`') !== -1 && tm.text.indexOf('_(DEVELOPMENT)_') !== -1);
 
 T.section('the AI format prompts clean up text without inventing anything');
 const fp = M.formatPrompt('map not loading n edit btn doesnt work');

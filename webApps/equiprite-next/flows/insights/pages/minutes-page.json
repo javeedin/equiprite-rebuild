@@ -52,6 +52,8 @@
       "scope": "header", "field": "discussion", "value": "{{ $event.detail.value }}" } } ] },
     "onPickField": { "chains": [ { "chain": "actChain", "parameters": {
       "act": "pickSet", "id": "{{ $event.target.dataset.field }}", "value": "{{ $event.target.value }}" } } ] },
+    "onPickManualKey": { "chains": [ { "chain": "actChain", "parameters": {
+      "act": "{{ $event.key === 'Enter' ? 'pickManual' : 'noop' }}" } } ] },
     "onAttendeeInput": { "chains": [ { "chain": "actChain", "parameters": { "act": "attendeeSearch", "id": "{{ $event.target.value }}" } } ] },
     "onAttendeeKey": { "chains": [ { "chain": "actChain", "parameters": { "act": "{{ $event.key === 'Enter' ? 'addAttendee' : 'noop' }}", "id": "{{ $event.target.value }}" } } ] }
   },

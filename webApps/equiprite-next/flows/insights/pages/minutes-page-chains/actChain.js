@@ -78,6 +78,18 @@ define([
           v.meeting = m; v.dirty = true; v.pickOpen = false; v.pickLineId = ''; v.pickCurrent = '';
           return;
         }
+        case 'pickManual': {
+          // Link a story key the user typed in, even if it isn't in the backlog read (its details fill in once Jira is refreshed).
+          let k = '';
+          try { const el = (typeof document !== 'undefined') && document.getElementById('minPickManual'); k = el ? String(el.value || '').trim() : ''; } catch (e) { /* no DOM (tests) */ }
+          if (!k) k = String(v.pickQ || '').trim();
+          k = k.toUpperCase();
+          if (!k) { toast('Type a Jira story key, for example EQP-383.', 'error'); return; }
+          const m = clone(v.meeting) || {}; const l = (m.lines || []).filter((x) => x.id === v.pickLineId)[0];
+          if (l) { l.jiraKey = k; l.generic = false; }
+          v.meeting = m; v.dirty = true; v.pickOpen = false; v.pickLineId = ''; v.pickCurrent = '';
+          return;
+        }
         case 'attendeeSearch': {
           // Keep the draft (drives the dropdown) and look the name up live via the active provider (Outlook or
           // Microsoft 365), merging matches into the people list so the suggestions reflect the real directory.

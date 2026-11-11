@@ -119,12 +119,18 @@
                     <div class="nx-min-field nx-min-key"><label>Link to Jira story (optional)</label>
                       <div class="nx-min-storypick">
                         <oj-bind-if test="[[ ln.data.jiraKey ]]">
-                          <span class="nx-min-storychip"><b><oj-bind-text value="[[ ln.data.jiraKey ]]"></oj-bind-text></b><button type="button" class="nx-min-chipx" data-act="pickStory" data-id="" :data-line="[[ ln.data.id ]]" on-click="[[ $listeners.onAct ]]" aria-label="Unlink the story">×</button></span>
+                          <div class="nx-min-storycard">
+                            <div class="nx-min-storycard-top">
+                              <b class="nx-min-pk-key"><oj-bind-text value="[[ ln.data.jiraKey ]]"></oj-bind-text></b>
+                              <oj-bind-if test="[[ $functions.storyStatus(ln.data, $variables.rows) ]]"><span :class="[[ $functions.pickBadge($functions.storyStatusCat(ln.data, $variables.rows)) ]]"><oj-bind-text value="[[ $functions.storyStatus(ln.data, $variables.rows) ]]"></oj-bind-text></span></oj-bind-if>
+                              <button type="button" class="nx-min-chipx" data-act="pickStory" data-id="" :data-line="[[ ln.data.id ]]" on-click="[[ $listeners.onAct ]]" aria-label="Unlink the story">×</button>
+                            </div>
+                            <div class="nx-min-storycard-sum"><oj-bind-text value="[[ $functions.storyHint(ln.data, $variables.rows) ]]"></oj-bind-text></div>
+                          </div>
                         </oj-bind-if>
                         <button type="button" class="nx-btn nx-btn--sm nx-min-findbtn" data-act="pickOpen" :data-line="[[ ln.data.id ]]" on-click="[[ $listeners.onAct ]]"><span class="oj-ux-ico-search" aria-hidden="true"></span><oj-bind-text value="[[ ln.data.jiraKey ? 'Change story' : 'Find a Jira story' ]]"></oj-bind-text></button>
                       </div>
                     </div>
-                    <span class="nx-min-hint"><oj-bind-text value="[[ $functions.storyHint(ln.data, $variables.rows) ]]"></oj-bind-text></span>
                   </div>
                   <div class="nx-min-note">
                     <oj-text-area class="nx-min-ta" rows="2" :data-line="[[ ln.data.id ]]" value="[[ ln.data.text ]]" on-value-changed="[[ $listeners.onNote ]]" label-edge="none" placeholder="Note or detail for this item (optional)…"></oj-text-area>
@@ -334,7 +340,12 @@
             </button>
           </template>
         </oj-bind-for-each>
-        <oj-bind-if test="[[ $functions.pickList($variables.rows, $variables.pickQ, $variables.pickSprint, $variables.pickStatus, $variables.pickAssignee).length===0 ]]"><p class="nx-note nx-min-pick-empty">No stories match. Try fewer words, or clear the filters.</p></oj-bind-if>
+        <oj-bind-if test="[[ $functions.pickList($variables.rows, $variables.pickQ, $variables.pickSprint, $variables.pickStatus, $variables.pickAssignee).length===0 ]]"><p class="nx-note nx-min-pick-empty">No stories match. Try fewer words, clear the filters, or type the key below to link it anyway.</p></oj-bind-if>
+      </div>
+      <div class="nx-min-pick-manual">
+        <label for="minPickManual">Not in the list? Enter a Jira key</label>
+        <input type="text" id="minPickManual" autocomplete="off" placeholder="e.g. EQP-383" on-keydown="[[ $listeners.onPickManualKey ]]">
+        <button type="button" class="nx-btn nx-btn--sm" id="minPickManualBtn" data-act="pickManual" on-click="[[ $listeners.onAct ]]">Link this key</button>
       </div>
     </div>
   </oj-bind-if>

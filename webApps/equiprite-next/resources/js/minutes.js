@@ -228,15 +228,32 @@ define([], function () {
     });
     if (!body && !storyGroups.length) H.push('<div style="margin:0 22px 12px;color:#555">No discussion recorded.</div>');
 
+    // The Story cell in the action-items table: the number, its description and a coloured current-status badge, from the backlog.
+    function badgeStyle(cat) {
+      if (cat === 'done') return 'background:#d6eed9;color:#1d6b2b';
+      if (cat === 'indeterminate') return 'background:#e4f1f7;color:#00688c';
+      return 'background:#eceae7;color:#5b5a57';
+    }
+    function storyCell(l) {
+      var k = txt(l.jiraKey).trim();
+      if (!k) return '<span style="color:#999">—</span>';
+      var r = idx[k];
+      var out = '<b>' + esc(k) + '</b>';
+      if (r && r.summary) out += '<div style="color:#555;margin-top:2px">' + esc(r.summary) + '</div>';
+      if (r && r.status) out += '<div style="margin-top:3px"><span style="display:inline-block;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:700;' + badgeStyle(r.statusCat) + '">' + esc(r.status) + '</span></div>';
+      else if (!r) out += '<div style="color:#999;margin-top:2px;font-size:12px">status not in this read</div>';
+      return out;
+    }
+
     var actions = lines.filter(hasAction);
     H.push('<h2 style="font-size:16px;margin:22px 22px 8px">Action items</h2>');
     if (actions.length) {
       H.push('<table style="width:calc(100% - 44px);margin:0 22px;border-collapse:collapse;font-size:13px">');
-      H.push('<tr style="background:#eef2f4;text-align:left"><th style="padding:7px 9px;border:1px solid #e0ddd9">Action</th><th style="padding:7px 9px;border:1px solid #e0ddd9">Actioned by</th><th style="padding:7px 9px;border:1px solid #e0ddd9">Due</th><th style="padding:7px 9px;border:1px solid #e0ddd9">Story</th><th style="padding:7px 9px;border:1px solid #e0ddd9">Status</th></tr>');
+      H.push('<tr style="background:#eef2f4;text-align:left"><th style="padding:7px 9px;border:1px solid #e0ddd9">Action</th><th style="padding:7px 9px;border:1px solid #e0ddd9">Actioned by</th><th style="padding:7px 9px;border:1px solid #e0ddd9">Due</th><th style="padding:7px 9px;border:1px solid #e0ddd9">Story &amp; current status</th><th style="padding:7px 9px;border:1px solid #e0ddd9">Progress</th></tr>');
       actions.forEach(function (l) {
-        H.push('<tr><td style="padding:7px 9px;border:1px solid #e0ddd9">' + esc(txt(l.action).trim()) + '</td><td style="padding:7px 9px;border:1px solid #e0ddd9">' + esc(txt(l.owner).trim() || '—')
-          + '</td><td style="padding:7px 9px;border:1px solid #e0ddd9">' + esc(txt(l.due) || '—') + '</td><td style="padding:7px 9px;border:1px solid #e0ddd9">' + (txt(l.jiraKey).trim() ? esc(txt(l.jiraKey).trim()) : '—')
-          + '</td><td style="padding:7px 9px;border:1px solid #e0ddd9">' + (l.status === 'done' ? 'Done' : 'Open') + '</td></tr>');
+        H.push('<tr><td style="padding:7px 9px;border:1px solid #e0ddd9;vertical-align:top">' + esc(txt(l.action).trim()) + '</td><td style="padding:7px 9px;border:1px solid #e0ddd9;vertical-align:top">' + esc(txt(l.owner).trim() || '—')
+          + '</td><td style="padding:7px 9px;border:1px solid #e0ddd9;vertical-align:top">' + esc(txt(l.due) || '—') + '</td><td style="padding:7px 9px;border:1px solid #e0ddd9;vertical-align:top">' + storyCell(l)
+          + '</td><td style="padding:7px 9px;border:1px solid #e0ddd9;vertical-align:top">' + (l.status === 'done' ? 'Done' : 'Open') + '</td></tr>');
       });
       H.push('</table>');
     } else {
@@ -266,8 +283,11 @@ define([], function () {
       L.push('');
       L.push('ACTION ITEMS');
       actions.forEach(function (l) {
+        var k = txt(l.jiraKey).trim();
+        var r = k ? (idx || {})[k] : null;
+        var tag = k ? (' [' + k + (r && r.summary ? ' ' + r.summary : '') + (r && r.status ? ' — ' + r.status : '') + ']') : '';
         L.push('- ' + txt(l.action).trim() + (txt(l.owner).trim() ? ' (' + txt(l.owner).trim() + ')' : '') + (txt(l.due) ? ' by ' + txt(l.due) : '')
-          + (txt(l.jiraKey).trim() ? ' [' + txt(l.jiraKey).trim() + ']' : '') + (l.status === 'done' ? ' — done' : ''));
+          + tag + (l.status === 'done' ? ' — done' : ''));
       });
     }
     return L.join('\n');
@@ -296,8 +316,10 @@ define([], function () {
       L.push('');
       L.push('**Action items**');
       actions.forEach(function (l) {
-        L.push('- ' + txt(l.action).trim() + (txt(l.owner).trim() ? ' — _' + txt(l.owner).trim() + '_' : '') + (txt(l.due) ? ' (by ' + txt(l.due) + ')' : '')
-          + (txt(l.jiraKey).trim() ? ' `' + txt(l.jiraKey).trim() + '`' : ''));
+        var k = txt(l.jiraKey).trim();
+        var r = k ? idx[k] : null;
+        var tag = k ? (' `' + k + '`' + (r && r.summary ? ' ' + r.summary : '') + (r && r.status ? ' _(' + r.status + ')_' : '')) : '';
+        L.push('- ' + txt(l.action).trim() + (txt(l.owner).trim() ? ' — _' + txt(l.owner).trim() + '_' : '') + (txt(l.due) ? ' (by ' + txt(l.due) + ')' : '') + tag);
       });
     }
     return { text: L.join('\n'), idx: !!idx };
