@@ -264,6 +264,9 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     T.eq('a burn-up bar for each of its 31 days', (await page.$$('#jspBurn .nx-jsp-burnday')).length, 31);
     T.check('its items, each with where it stands, the key opening it in Jira', (await text(page, '#jspGrid .nx-jsp-row[data-key="EQP-12"]')).includes('Still in this sprint')
       && (await page.getAttribute('#jspGrid .nx-jsp-row[data-key="EQP-12"] a', 'href')) === 'https://equiprite.atlassian.net/browse/EQP-12');
+    T.check('the latest comment shows under the summary (who last commented), full comment on hover', (await page.$('#jspGrid .nx-jsp-row[data-key="EQP-12"] .nx-jira-lastc')) !== null
+      && /Sana Suhana Thehaseen/.test(await text(page, '#jspGrid .nx-jsp-row[data-key="EQP-12"] .nx-jira-lastc'))
+      && /Type Column is missing/.test(await page.getAttribute('#jspGrid .nx-jsp-row[data-key="EQP-12"] .nx-jira-lastc', 'title')));
     T.eq('Open in Jira: the sprint\'s items in Jira', await page.getAttribute('#jspOpenJira', 'href'), 'https://equiprite.atlassian.net/issues/?jql=' + encodeURIComponent('project = EQP AND sprint = 5 ORDER BY status ASC, key ASC'));
     await env.shot('next-jira-sprint.png');
     T.check('beside each key, an icon that opens it in Jira (a new tab)', (await page.getAttribute('#jspGrid .nx-jsp-row[data-key="EQP-12"] .nx-jsp-tojira', 'target')) === '_blank'

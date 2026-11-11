@@ -56,6 +56,9 @@ T.eq('its FDD section ("per FDD 7.2.4" in the criteria is a pointer, not its sec
 T.eq('…several, from the FDD line and the summary', J.fromIssue(EQP13, { today: TODAY }).fdd.join(), '7.2,7.2.5G');
 T.eq('the tester\'s gaps, from the numbered lines', r12.gaps.join(' | '),
   'Only Class, Subclass search filters are present, remaining needs to be added. | Type Column is missing. | Map view is missing. | Edit option to be added.');
+T.check('the latest comment, who last commented and when (for the list column)', r12.lastCommentBy === 'Sana Suhana Thehaseen'
+  && r12.lastCommentAt === '2026-09-29' && !!r12.lastComment && r12.lastComment.length > 0);
+T.eq('no comments → empty last-comment fields', [J.fromIssue(EQP13, { today: TODAY }).lastComment, J.fromIssue(EQP13, { today: TODAY }).lastCommentBy].join('|'), '|');
 T.eq('epic, release, sprint, who, link', [r12.epicKey, r12.epicName, r12.release, r12.sprint + ' ' + r12.sprintState, r12.assignee, r12.url].join(' / '),
   'EQP-1 / Equipment Registry / 26C / 2026-07 active / Rahul Kanth Panganamamula / https://equiprite.atlassian.net/browse/EQP-12');
 T.check('overdue: due 7 Oct, not done (a done one never is)', r12.overdue && !J.fromIssue(DONE, { today: TODAY }).overdue);

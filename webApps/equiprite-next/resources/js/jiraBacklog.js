@@ -223,6 +223,7 @@ define([], function () {
     });
     var gaps = [];
     comments.forEach(function (c) { gapsFrom(c.text).forEach(function (g) { if (gaps.indexOf(g) === -1) gaps.push(g); }); });
+    var lastComment = comments.length ? comments[comments.length - 1] : null;
     var due = day(f.duedate);
     var done = cat === 'done';
     var updated = day(f.updated);
@@ -239,7 +240,8 @@ define([], function () {
       due: due, overdue: !!(due && due < today && !done),
       created: day(f.created), updated: updated, resolved: day(f.resolutiondate), idleDays: updated ? daysBetween(updated, today) : null,
       fdd: parts.fdd, body: parts.body, ac: parts.ac, acChecks: acChecks(parts.ac).length,
-      comments: comments, gaps: gaps, subtasks: (f.subtasks || []).length,
+      comments: comments, lastComment: lastComment ? lastComment.text : '', lastCommentBy: lastComment ? lastComment.author : '', lastCommentAt: lastComment ? lastComment.when : '',
+      gaps: gaps, subtasks: (f.subtasks || []).length,
       attachments: attachments, bodyImages: imagesFor(desc.names, attachments)
     };
     var checks = [];

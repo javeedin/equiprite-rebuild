@@ -163,6 +163,9 @@ html[data-nx-look="redwood"] .nx-jira .nx-jira-tab--on { border-bottom-color: #2
 .nx-jira .nx-jira-tr--pick { cursor: pointer; }
 .nx-jira .nx-jira-tr--on { background: var(--nx-accent-soft); box-shadow: inset 3px 0 0 var(--nx-accent); }
 .nx-jira .nx-jira-sprintcell { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+/* The latest comment under a story's summary: who last commented + the text, clamped to 2 lines, full on hover (title). */
+.nx-jira .nx-jira-lastc { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-top: 3px; font-size: 12px; line-height: 1.35;
+  color: var(--nx-muted); white-space: normal; overflow-wrap: anywhere; cursor: help; }
 html[data-nx-look="redwood"] .nx-jira .nx-jira-tr--on { box-shadow: inset 3px 0 0 #2c5266; }
 
 /* Test evidence (Record, Screenshot): the story's recordings and screenshots kept on this PC */
