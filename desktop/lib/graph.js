@@ -27,6 +27,9 @@ const GRAPH = 'https://graph.microsoft.com/v1.0';
 const BASE_SCOPE = 'offline_access openid profile User.Read People.Read Contacts.Read Mail.Send';
 const SCOPE = BASE_SCOPE + ' User.ReadBasic.All';
 const SCOPE_ERR = /scope|consent|AADSTS70011|AADSTS65001|AADSTS90008/i;
+// The tenant requires an administrator to approve the app (user consent is disabled), e.g. the "Approval required" page.
+const ADMIN_CONSENT = /AADSTS65004|AADSTS90094|AADSTS9008\d|admin[^.]{0,30}(approv|consent)|consent_required|requires? (admin )?approval/i;
+const ADMIN_CONSENT_MSG = 'Microsoft 365 needs an administrator to approve the Equip_Rite app before you can sign in. Ask an admin to "Grant admin consent" for it in Azure, then sign in again.';
 
 function qs(o) { return Object.keys(o).map((k) => encodeURIComponent(k) + '=' + encodeURIComponent(o[k])).join('&'); }
 
@@ -115,7 +118,7 @@ function open(o) {
       let interval = Math.max(2, Number(dc.interval || 5)) * 1000;
       const poll = async () => {
         if (!pending || pending.done) return;
-        if (Date.now() > deadline) { pending.error = 'Sign-in timed out. Try again.'; pending.done = true; return; }
+        if (Date.now() > deadline) { pending.error = 'Sign-in timed out — if your organisation needs an admin to approve the Equip_Rite app, ask them to grant consent, then try again.'; pending.done = true; return; }
         const r = await httpForm(AUTHORITY + '/' + encodeURIComponent(data.tenantId) + '/oauth2/v2.0/token',
           { grant_type: 'urn:ietf:params:oauth:grant-type:device_code', client_id: data.clientId, device_code: dc.device_code });
         if (r.body.access_token) {
@@ -126,7 +129,7 @@ function open(o) {
         const err = r.body.error;
         if (err === 'authorization_pending') { setTimeout(poll, interval); return; }
         if (err === 'slow_down') { interval += 5000; setTimeout(poll, interval); return; }
-        pending.error = r.body.error_description || err || 'Sign-in failed.'; pending.done = true;
+        pending.error = ADMIN_CONSENT.test(JSON.stringify(r.body || {})) ? ADMIN_CONSENT_MSG : (r.body.error_description || err || 'Sign-in failed.'); pending.done = true;
       };
       setTimeout(poll, interval);
       return { ok: true, userCode: dc.user_code, verificationUri: dc.verification_uri, message: dc.message || ('Open ' + dc.verification_uri + ' and enter code ' + dc.user_code) };

@@ -117,6 +117,20 @@ const openExternal = (u) => opened.push(u);
   store5.signOut();
   try { fs.rmSync(dir2, { recursive: true, force: true }); } catch (e) { /* temp */ }
 
+  T.section('admin approval required: a clear message, not a raw AADSTS code');
+  const dir3 = fs.mkdtempSync(path.join(os.tmpdir(), 'eqp-graph3-'));
+  const acFetch = (url) => {
+    if (/\/devicecode$/.test(url)) return Promise.resolve({ status: 200, text: async () => JSON.stringify({ device_code: 'DC3', user_code: 'AAAA-BBBB', verification_uri: 'https://microsoft.com/devicelogin', interval: 1, expires_in: 900 }) });
+    if (/\/token$/.test(url)) return Promise.resolve({ status: 400, text: async () => JSON.stringify({ error: 'access_denied', error_description: 'AADSTS90094: The grant requires admin permission.' }) });
+    return Promise.resolve({ status: 404, text: async () => '{}' });
+  };
+  const store6 = G.open({ file: path.join(dir3, 'g.json'), encrypt: enc, decrypt: dec, fetch: acFetch, openExternal });
+  store6.saveConfig({ tenantId: 't', clientId: 'c' });
+  await store6.beginSignIn();
+  await new Promise((r) => setTimeout(r, 2600));
+  T.check('when the tenant needs admin approval, the error explains it (not a raw code)', /administrator to approve/i.test(store6.status().error) && store6.status().signedIn === false);
+  try { fs.rmSync(dir3, { recursive: true, force: true }); } catch (e) { /* temp */ }
+
   T.section('sign out');
   T.check('sign out clears the session', store2.signOut().signedIn === false);
 
