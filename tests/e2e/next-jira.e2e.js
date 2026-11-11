@@ -269,7 +269,9 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     T.check('what is wrong with it', (await text(page, '#jspFlags')).includes('Still active, ended 2026-07-31: close it in Jira and move what is open to the next sprint.'));
     T.eq('its numbers', (await texts(page, '#jspTiles .nx-jira-tile')).join(' | '),
       '1 Items 31 days long | 0 Done 0% | 1 Open | 1 Overdue | 0 Carried on to a later sprint | 1 Came in from an earlier sprint | 0 Nobody assigned open items');
-    T.eq('a burn-up bar for each of its 31 days', (await page.$$('#jspBurn .nx-jsp-burnday')).length, 31);
+    T.check('the three breakdowns stand side by side: By status, By customer, By person (no burn-up, no "What it says")',
+      (await page.$$('.nx-jira-three > .nx-card')).length === 3 && (await page.$('#jspStatuses')) !== null && (await page.$('#jspCustomers')) !== null
+      && (await page.$('#jspPeople')) !== null && (await page.$('#jspBurn')) === null && (await page.$('#jspFindings')) === null);
     T.check('its items, each with where it stands, the key opening it in Jira', (await text(page, '#jspGrid .nx-jsp-row[data-key="EQP-12"]')).includes('Still in this sprint')
       && (await page.getAttribute('#jspGrid .nx-jsp-row[data-key="EQP-12"] a', 'href')) === 'https://equiprite.atlassian.net/browse/EQP-12');
     T.check('the latest comment shows under the summary (who last commented), full comment on hover', (await page.$('#jspGrid .nx-jsp-row[data-key="EQP-12"] .nx-jira-lastc')) !== null

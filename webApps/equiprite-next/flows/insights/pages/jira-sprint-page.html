@@ -56,35 +56,7 @@
       </oj-bind-for-each>
     </div>
 
-    <div class="nx-jira-two">
-      <section class="nx-card nx-card-pad nx-jsp-burn" aria-labelledby="jspBurnTitle">
-        <h2 class="nx-h2" id="jspBurnTitle">Burn-up</h2>
-        <p class="nx-note">Items done by each day of the sprint (by when Jira resolved them), against all <oj-bind-text value="[[ $variables.report.kpis.total ]]"></oj-bind-text> in it.</p>
-        <oj-bind-if test="[[ $variables.report.burnup.length > 0 ]]">
-          <div class="nx-jsp-burnchart" id="jspBurn" role="img" :aria-label="[[ 'Burn-up: ' + $variables.report.kpis.done + ' of ' + $variables.report.kpis.total + ' done' ]]">
-            <oj-bind-for-each data="[[ $variables.report.burnup ]]">
-              <template data-oj-as="b">
-                <div :class="[[ $functions.burnClass(b.data) ]]" :title="[[ $functions.burnTitle(b.data, $variables.report.kpis.total) ]]">
-                  <span class="nx-jsp-burnbar" :style="[[ $functions.height(b.data.pct) ]]"></span>
-                  <span class="nx-jsp-burnlabel"><oj-bind-text value="[[ $functions.showLabel(b.index, $variables.report.burnup.length) ? b.data.label : '' ]]"></oj-bind-text></span>
-                </div>
-              </template>
-            </oj-bind-for-each>
-          </div>
-        </oj-bind-if>
-        <oj-bind-if test="[[ $variables.report.burnup.length === 0 ]]"><p class="nx-note">The sprint has no start date in Jira.</p></oj-bind-if>
-      </section>
-      <section class="nx-card nx-card-pad nx-jira-findings" aria-labelledby="jspFindTitle">
-        <h2 class="nx-h2" id="jspFindTitle">What it says</h2>
-        <ul class="nx-jira-findlist" id="jspFindings">
-          <oj-bind-for-each data="[[ $variables.report.findings ]]">
-            <template data-oj-as="fd"><li><span :class="[[ 'nx-jira-find nx-jira-find--' + fd.data.tone ]]"><oj-bind-text value="[[ fd.data.text ]]"></oj-bind-text></span></li></template>
-          </oj-bind-for-each>
-        </ul>
-      </section>
-    </div>
-
-    <div class="nx-jira-two">
+    <div class="nx-jira-three">
       <section class="nx-card nx-card-pad" aria-labelledby="jspStatusTitle">
         <h2 class="nx-h2" id="jspStatusTitle">By status</h2>
         <p class="nx-note">Click a row to filter the items below by it.</p>
@@ -101,6 +73,24 @@
             </template>
           </oj-bind-for-each>
         </ul>
+      </section>
+      <section class="nx-card nx-card-pad" aria-labelledby="jspCustTitle">
+        <h2 class="nx-h2" id="jspCustTitle">By customer</h2>
+        <p class="nx-note">A story's labels are its customers. Click a row to filter the items below by it.</p>
+        <div class="nx-jira-tbl" role="table" aria-labelledby="jspCustTitle" id="jspCustomers">
+          <div class="nx-jira-tr nx-jira-tr--head nx-jira-tr--rel" role="row"><span role="columnheader">Customer (label)</span><span role="columnheader">Items</span><span role="columnheader">Open</span><span role="columnheader">Overdue</span></div>
+          <oj-bind-for-each data="[[ $variables.report.customers ]]">
+            <template data-oj-as="cu">
+              <button type="button" :class="[[ 'nx-jira-tr nx-jira-tr--rel nx-jsp-pickrow' + $functions.pickOn('customer', cu.data.name, $variables.itemF) ]]" role="row"
+                data-field="customer" :data-value="[[ cu.data.name ]]" on-click="[[ $listeners.onItemPickFilter ]]"
+                :aria-pressed="[[ $functions.isPicked('customer', cu.data.name, $variables.itemF) ? 'true' : 'false' ]]"
+                :title="[[ 'Show only ' + cu.data.name + ' items' ]]"><span role="cell"><strong><oj-bind-text value="[[ cu.data.name ]]"></oj-bind-text></strong></span>
+                <span role="cell"><oj-bind-text value="[[ cu.data.total ]]"></oj-bind-text></span><span role="cell"><oj-bind-text value="[[ cu.data.open ]]"></oj-bind-text></span>
+                <span role="cell" :class="[[ cu.data.overdue ? 'nx-jira-bad' : '' ]]"><oj-bind-text value="[[ cu.data.overdue ]]"></oj-bind-text></span></button>
+            </template>
+          </oj-bind-for-each>
+          <oj-bind-if test="[[ ($variables.report.customers || []).length === 0 ]]"><p class="nx-note">No labels on these items. In Jira a story's labels are its customers (e.g. cianbro, oceaneering).</p></oj-bind-if>
+        </div>
       </section>
       <section class="nx-card nx-card-pad" aria-labelledby="jspPeopleTitle">
         <h2 class="nx-h2" id="jspPeopleTitle">By person</h2>
@@ -120,25 +110,6 @@
         </div>
       </section>
     </div>
-
-    <section class="nx-card nx-card-pad" aria-labelledby="jspCustTitle">
-      <h2 class="nx-h2" id="jspCustTitle">By customer</h2>
-      <p class="nx-note">A story's labels are its customers. Click a row to filter the items below by it.</p>
-      <div class="nx-jira-tbl" role="table" aria-labelledby="jspCustTitle" id="jspCustomers">
-        <div class="nx-jira-tr nx-jira-tr--head nx-jira-tr--rel" role="row"><span role="columnheader">Customer (label)</span><span role="columnheader">Items</span><span role="columnheader">Open</span><span role="columnheader">Overdue</span></div>
-        <oj-bind-for-each data="[[ $variables.report.customers ]]">
-          <template data-oj-as="cu">
-            <button type="button" :class="[[ 'nx-jira-tr nx-jira-tr--rel nx-jsp-pickrow' + $functions.pickOn('customer', cu.data.name, $variables.itemF) ]]" role="row"
-              data-field="customer" :data-value="[[ cu.data.name ]]" on-click="[[ $listeners.onItemPickFilter ]]"
-              :aria-pressed="[[ $functions.isPicked('customer', cu.data.name, $variables.itemF) ? 'true' : 'false' ]]"
-              :title="[[ 'Show only ' + cu.data.name + ' items' ]]"><span role="cell"><strong><oj-bind-text value="[[ cu.data.name ]]"></oj-bind-text></strong></span>
-              <span role="cell"><oj-bind-text value="[[ cu.data.total ]]"></oj-bind-text></span><span role="cell"><oj-bind-text value="[[ cu.data.open ]]"></oj-bind-text></span>
-              <span role="cell" :class="[[ cu.data.overdue ? 'nx-jira-bad' : '' ]]"><oj-bind-text value="[[ cu.data.overdue ]]"></oj-bind-text></span></button>
-          </template>
-        </oj-bind-for-each>
-        <oj-bind-if test="[[ ($variables.report.customers || []).length === 0 ]]"><p class="nx-note">No labels on these items. In Jira a story's labels are its customers (e.g. cianbro, oceaneering).</p></oj-bind-if>
-      </div>
-    </section>
 
     <section class="nx-card nx-jira-items" aria-labelledby="jspItemsTitle">
       <div class="nx-card-head">
