@@ -25,8 +25,12 @@ const EPIC2 = { key: 'EQP-62', fields: { summary: 'Rate & Pricing' } };
 const issue = (key, f) => ({ id: key.slice(4), key, fields: Object.assign({ issuetype: { name: 'Story' }, priority: { name: 'Medium' }, comment: { comments: [] }, updated: '2026-11-01T10:00:00.000-0500' }, f) });
 const ISSUES = [
   issue('EQP-12', { summary: 'Equipment Master List View', status: status('DEVELOPMENT', 'indeterminate'), parent: EPIC1, labels: ['cianbro'],
+    assignee: { displayName: 'Rahul Kanth Panganamamula' }, duedate: '2026-10-07',
+    customfield_10020: [{ id: 5, name: '2026-07', state: 'active', startDate: '2026-07-01T05:00:00.000Z', endDate: '2026-07-31T05:00:00.000Z' }],
     description: 'List. Acceptance Criteria: grid shows. FDD Section: 7.2' }),
   issue('EQP-20', { summary: 'Rate schedule list', status: status('Done', 'done'), parent: EPIC2, labels: ['oceaneering'],
+    assignee: { displayName: 'Sana Suhana Thehaseen' }, duedate: '2026-06-30',
+    customfield_10020: [{ id: 4, name: '2026-06', state: 'closed', startDate: '2026-06-01T05:00:00.000Z', endDate: '2026-06-30T05:00:00.000Z' }],
     description: 'Rates. Acceptance Criteria: list. FDD Section: 7.3' }),
 ];
 
@@ -110,10 +114,29 @@ async function setField(page, sel, val) { await page.fill(sel, val); await page.
 
     await page.click('#minAddLine');
     await settle(page, 300);
-    await setField(page, '.nx-min-line input[data-field="jiraKey"]', 'EQP-12');
+
+    T.section('the "Find a Jira story" picker: search by description, status, assignee or sprint');
+    await page.click('.nx-min-line button[data-act="pickOpen"]');
+    await page.waitForSelector('#minPickDlg', { timeout: 10000 });
     await settle(page, 300);
-    T.check('the story key resolves from the backlog (summary + epic + customer)', /Equipment Master List/.test(await text(page, '.nx-min-hint')) && /Equipment Registry/.test(await text(page, '.nx-min-hint')));
-    T.check('the story picker lists sprint-wise with status', await page.$eval('#minKeys', (dl) => { const o = Array.from(dl.querySelectorAll('option')).filter((x) => x.value === 'EQP-12')[0]; return !!o && /DEVELOPMENT/.test(o.textContent); }));
+    const pickRow12 = () => page.$eval('#minPickList .nx-min-pickrow[data-id="EQP-12"]', (el) => el.textContent.replace(/\s+/g, ' ').trim()).catch(() => '');
+    T.check('the dialog lists stories with key, summary, status and assignee', /EQP-12/.test(await pickRow12()) && /Equipment Master List/.test(await pickRow12()) && /DEVELOPMENT/.test(await pickRow12()) && /Rahul/.test(await pickRow12()));
+    await page.fill('#minPickSearch', 'rahul master');
+    await settle(page, 300);
+    T.check('a free-text search across number/description/assignee narrows the list', (await page.$$('#minPickList .nx-min-pickrow:not(.nx-min-pickrow--head):not(.nx-min-pickrow--none)')).length >= 1 && /EQP-12/.test(await pickRow12()));
+    await page.fill('#minPickSearch', 'zzz-nothing-matches');
+    await settle(page, 300);
+    T.check('a search with no match shows the empty note', await page.isVisible('.nx-min-pick-empty') && /0 stories/.test(await text(page, '#minPickCount')));
+    await page.fill('#minPickSearch', '');
+    await settle(page, 300);
+    await page.click('.nx-min-pick-filters button[data-act="pickStatus"][data-id="Done"]');
+    await settle(page, 300);
+    T.check('a status filter chip narrows the list (Done only — the DEVELOPMENT story drops out)', !(await page.$('#minPickList .nx-min-pickrow[data-id="EQP-12"]')) && !!(await page.$('#minPickList .nx-min-pickrow[data-id="EQP-20"]')));
+    await page.click('#minPickClear');
+    await settle(page, 300);
+    await page.click('#minPickList .nx-min-pickrow[data-id="EQP-12"]');
+    await page.waitForSelector('#minPickDlg', { state: 'hidden', timeout: 10000 });
+    T.check('picking a story links it to the action item and resolves the backlog hint', /EQP-12/.test(await text(page, '.nx-min-storychip')) && /Equipment Master List/.test(await text(page, '.nx-min-hint')) && /Equipment Registry/.test(await text(page, '.nx-min-hint')));
     await page.evaluate((v) => { const t = document.querySelector('oj-text-area.nx-min-ta'); if (t) t.value = v; }, 'map view still missing, type column added');
     await settle(page, 300);
     await setField(page, '.nx-min-line input[data-field="action"]', 'Add the map view');

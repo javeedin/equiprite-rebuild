@@ -115,3 +115,43 @@
 .nx-min .nx-min-devicecode .oj-ux-ico-copy-to-clipboard, .nx-min .nx-min-devicecode .oj-ux-ico-external-link { margin-right: 4px; }
 .nx-min .nx-min-preview { border: 1px solid var(--nx-line, rgba(22,21,19,.14)); border-radius: 8px; overflow: hidden; height: 46vh; background: #fff; }
 .nx-min .nx-min-preview iframe { width: 100%; height: 100%; border: 0; }
+
+/* The story link on an action item: a chip for the linked story + a "Find a Jira story" button that opens the picker. */
+.nx-min .nx-min-storypick { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.nx-min .nx-min-storychip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 4px 3px 10px; border-radius: 999px; font-size: 13px; background: var(--nx-accent-soft, #e4f1f7); color: var(--nx-accent, #00688c); }
+.nx-min .nx-min-findbtn { display: inline-flex; align-items: center; gap: 6px; }
+.nx-min .nx-min-findbtn .oj-ux-ico-search { font-size: 14px; }
+
+/* "Find a Jira story" picker dialog: search box, filter dropdowns and a results table. */
+.nx-min .nx-min-pick { display: flex; flex-direction: column; max-height: 86vh; }
+.nx-min .nx-min-pick-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.nx-min .nx-min-pick-head .nx-h2 { margin: 0; }
+.nx-min .nx-min-pick-search { width: 100%; margin: 12px 0 10px; padding: 10px 12px; font: inherit; font-size: 15px; border: 1px solid var(--nx-line-strong, rgba(22,21,19,.4)); border-radius: 8px; background: var(--nx-surface, #fff); color: var(--nx-ink, #161513); box-sizing: border-box; }
+.nx-min .nx-min-pick-search:focus { outline: none; border-color: var(--nx-accent, #00688c); box-shadow: inset 0 0 0 1px var(--nx-accent, #00688c); }
+.nx-min .nx-min-pick-filters { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+.nx-min .nx-min-pick-chiprow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.nx-min .nx-min-pick-lbl { flex: 0 0 64px; font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--nx-muted, #5b5a57); }
+.nx-min .nx-min-fchip { padding: 3px 11px; border: 1px solid var(--nx-line, rgba(22,21,19,.16)); border-radius: 999px; background: var(--nx-surface, #fff); color: var(--nx-ink, #161513); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.nx-min .nx-min-fchip:hover { border-color: var(--nx-accent, #00688c); }
+.nx-min .nx-min-fchip--on { background: var(--nx-accent, #00688c); border-color: var(--nx-accent, #00688c); color: #fff; }
+.nx-min .nx-min-pick-foot { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.nx-min .nx-min-pick-tbl { flex: 1; min-height: 0; overflow-y: auto; border: 1px solid var(--nx-line, rgba(22,21,19,.12)); border-radius: 8px; }
+.nx-min .nx-min-pickrow { display: grid; grid-template-columns: 92px minmax(0, 1fr) 128px 150px 104px 118px; gap: 10px; align-items: center; width: 100%; text-align: left; border: 0; border-bottom: 1px solid var(--nx-line, rgba(22,21,19,.1)); background: transparent; padding: 9px 12px; font: inherit; font-size: 13px; color: var(--nx-ink, #161513); cursor: pointer; }
+.nx-min .nx-min-pickrow:hover { background: var(--nx-accent-soft, #e4f1f7); }
+.nx-min .nx-min-pickrow--head { position: sticky; top: 0; z-index: 1; background: var(--nx-surface-2, #f6f5f3); color: var(--nx-muted, #5b5a57); font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; cursor: default; }
+.nx-min .nx-min-pickrow--head:hover { background: var(--nx-surface-2, #f6f5f3); }
+.nx-min .nx-min-pickrow--on { background: var(--nx-accent-soft, #e4f1f7); box-shadow: inset 3px 0 0 var(--nx-accent, #00688c); }
+.nx-min .nx-min-pickrow--none { grid-template-columns: 1fr; color: var(--nx-muted, #5b5a57); font-style: italic; }
+.nx-min .nx-min-pk-key { font-weight: 700; font-variant-numeric: tabular-nums; }
+.nx-min .nx-min-pk-sum { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nx-min .nx-min-pk-asg, .nx-min .nx-min-pk-spr { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--nx-muted, #5b5a57); }
+.nx-min .nx-min-pk-due { font-variant-numeric: tabular-nums; color: var(--nx-muted, #5b5a57); }
+.nx-min .nx-min-pk-badge { justify-self: start; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.nx-min .nx-min-pk-badge--done { background: #d6eed9; color: #1d6b2b; }
+.nx-min .nx-min-pk-badge--prog { background: #e4f1f7; color: #00688c; }
+.nx-min .nx-min-pk-badge--todo { background: #eceae7; color: #5b5a57; }
+.nx-min .nx-min-pick-empty { padding: 16px; text-align: center; }
+@media (max-width: 720px) {
+  .nx-min .nx-min-pickrow { grid-template-columns: 78px minmax(0, 1fr) 104px; }
+  .nx-min .nx-min-pk-asg, .nx-min .nx-min-pk-due, .nx-min .nx-min-pk-spr { display: none; }
+}

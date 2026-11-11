@@ -101,8 +101,6 @@
             </div>
           </div>
 
-          <datalist id="minKeys"><oj-bind-for-each data="[[ $functions.pickOptions($variables.rows) ]]"><template data-oj-as="rk"><option :value="[[ rk.data.key ]]"><oj-bind-text value="[[ rk.data.label ]]"></oj-bind-text></option></template></oj-bind-for-each></datalist>
-
           <!-- Action items: who does what next. Each row is an action with the person it is actioned by, a due date and a status;
                a Jira story and a note can be attached for the standup tracking. -->
           <div class="nx-min-sec">Action items — who does what next</div>
@@ -119,7 +117,13 @@
                   </div>
                   <div class="nx-min-line-top">
                     <div class="nx-min-field nx-min-key"><label>Link to Jira story (optional)</label>
-                      <input type="text" list="minKeys" data-scope="line" data-field="jiraKey" :data-line="[[ ln.data.id ]]" :value="[[ ln.data.jiraKey ]]" on-change="[[ $listeners.onField ]]" placeholder="EQP-12"></div>
+                      <div class="nx-min-storypick">
+                        <oj-bind-if test="[[ ln.data.jiraKey ]]">
+                          <span class="nx-min-storychip"><b><oj-bind-text value="[[ ln.data.jiraKey ]]"></oj-bind-text></b><button type="button" class="nx-min-chipx" data-act="pickStory" data-id="" :data-line="[[ ln.data.id ]]" on-click="[[ $listeners.onAct ]]" aria-label="Unlink the story">×</button></span>
+                        </oj-bind-if>
+                        <button type="button" class="nx-btn nx-btn--sm nx-min-findbtn" data-act="pickOpen" :data-line="[[ ln.data.id ]]" on-click="[[ $listeners.onAct ]]"><span class="oj-ux-ico-search" aria-hidden="true"></span><oj-bind-text value="[[ ln.data.jiraKey ? 'Change story' : 'Find a Jira story' ]]"></oj-bind-text></button>
+                      </div>
+                    </div>
                     <span class="nx-min-hint"><oj-bind-text value="[[ $functions.storyHint(ln.data, $variables.rows) ]]"></oj-bind-text></span>
                   </div>
                   <div class="nx-min-note">
@@ -279,6 +283,58 @@
         <button type="button" class="nx-btn nx-btn--sm" id="minEmailCopy" data-act="emailCopy" on-click="[[ $listeners.onAct ]]">Copy</button>
         <button type="button" class="nx-btn nx-btn--sm" data-act="emailMailto" on-click="[[ $listeners.onAct ]]">Open in email app</button>
         <button type="button" class="nx-btn nx-btn--cta" id="minEmailSend" data-act="emailSend" on-click="[[ $listeners.onAct ]]"><oj-bind-text value="[[ $variables.graph.signedIn ? 'Send via Office 365' : 'Send via Outlook' ]]"></oj-bind-text></button>
+      </div>
+    </div>
+  </oj-bind-if>
+
+  <!-- Find a Jira story: a search dialog over the backlog read (number, description, status, assignee, sprint), with
+       filter dropdowns and a results table. Picks the story onto the action-item line the picker was opened for. -->
+  <oj-bind-if test="[[ $variables.pickOpen ]]">
+    <div class="nx-min-backdrop" data-act="pickClose" on-click="[[ $listeners.onAct ]]"></div>
+    <div class="nx-min-modal nx-min-modal--wide nx-min-pick" role="dialog" aria-label="Find a Jira story" id="minPickDlg">
+      <div class="nx-min-pick-head">
+        <h2 class="nx-h2">Find a Jira story</h2>
+        <button type="button" class="nx-min-x" data-act="pickClose" on-click="[[ $listeners.onAct ]]" aria-label="Close">×</button>
+      </div>
+      <input type="search" id="minPickSearch" class="nx-min-pick-search" data-field="q" autocomplete="off" :value="[[ $variables.pickQ ]]" on-input="[[ $listeners.onPickField ]]" placeholder="Search by number, description, status, assignee or sprint…">
+      <div class="nx-min-pick-filters">
+        <div class="nx-min-pick-chiprow">
+          <span class="nx-min-pick-lbl">Sprint</span>
+          <button type="button" :class="[[ 'nx-min-fchip' + (!$variables.pickSprint ? ' nx-min-fchip--on' : '') ]]" data-act="pickSprint" data-id="" on-click="[[ $listeners.onAct ]]">All</button>
+          <oj-bind-for-each data="[[ $functions.pickSprints($variables.rows) ]]"><template data-oj-as="s"><button type="button" :class="[[ 'nx-min-fchip' + ($variables.pickSprint===s.data ? ' nx-min-fchip--on' : '') ]]" data-act="pickSprint" :data-id="[[ s.data ]]" on-click="[[ $listeners.onAct ]]"><oj-bind-text value="[[ s.data ]]"></oj-bind-text></button></template></oj-bind-for-each>
+        </div>
+        <div class="nx-min-pick-chiprow">
+          <span class="nx-min-pick-lbl">Status</span>
+          <button type="button" :class="[[ 'nx-min-fchip' + (!$variables.pickStatus ? ' nx-min-fchip--on' : '') ]]" data-act="pickStatus" data-id="" on-click="[[ $listeners.onAct ]]">All</button>
+          <oj-bind-for-each data="[[ $functions.pickStatuses($variables.rows) ]]"><template data-oj-as="s"><button type="button" :class="[[ 'nx-min-fchip' + ($variables.pickStatus===s.data ? ' nx-min-fchip--on' : '') ]]" data-act="pickStatus" :data-id="[[ s.data ]]" on-click="[[ $listeners.onAct ]]"><oj-bind-text value="[[ s.data ]]"></oj-bind-text></button></template></oj-bind-for-each>
+        </div>
+        <div class="nx-min-pick-chiprow">
+          <span class="nx-min-pick-lbl">Assignee</span>
+          <button type="button" :class="[[ 'nx-min-fchip' + (!$variables.pickAssignee ? ' nx-min-fchip--on' : '') ]]" data-act="pickAssignee" data-id="" on-click="[[ $listeners.onAct ]]">All</button>
+          <oj-bind-for-each data="[[ $functions.pickAssignees($variables.rows) ]]"><template data-oj-as="s"><button type="button" :class="[[ 'nx-min-fchip' + ($variables.pickAssignee===s.data ? ' nx-min-fchip--on' : '') ]]" data-act="pickAssignee" :data-id="[[ s.data ]]" on-click="[[ $listeners.onAct ]]"><oj-bind-text value="[[ s.data ]]"></oj-bind-text></button></template></oj-bind-for-each>
+        </div>
+        <div class="nx-min-pick-foot">
+          <button type="button" class="nx-btn nx-btn--sm" id="minPickClear" data-act="pickClear" on-click="[[ $listeners.onAct ]]">Clear filters</button>
+          <span class="nx-min-flex"></span>
+          <span class="nx-note" id="minPickCount"><oj-bind-text value="[[ $functions.pickList($variables.rows, $variables.pickQ, $variables.pickSprint, $variables.pickStatus, $variables.pickAssignee).length ]]"></oj-bind-text> stories</span>
+        </div>
+      </div>
+      <div class="nx-min-pick-tbl" id="minPickList">
+        <div class="nx-min-pickrow nx-min-pickrow--head" role="row"><span>Key</span><span>Summary</span><span>Status</span><span>Assignee</span><span>Due</span><span>Sprint</span></div>
+        <button type="button" class="nx-min-pickrow nx-min-pickrow--none" data-act="pickStory" data-id="" on-click="[[ $listeners.onAct ]]">— No story (general note) —</button>
+        <oj-bind-for-each data="[[ $functions.pickList($variables.rows, $variables.pickQ, $variables.pickSprint, $variables.pickStatus, $variables.pickAssignee) ]]">
+          <template data-oj-as="p">
+            <button type="button" :class="[[ 'nx-min-pickrow' + (p.data.key===$variables.pickCurrent ? ' nx-min-pickrow--on' : '') ]]" :data-id="[[ p.data.key ]]" data-act="pickStory" on-click="[[ $listeners.onAct ]]">
+              <span class="nx-min-pk-key"><oj-bind-text value="[[ p.data.key ]]"></oj-bind-text></span>
+              <span class="nx-min-pk-sum"><oj-bind-text value="[[ p.data.summary ]]"></oj-bind-text></span>
+              <span :class="[[ $functions.pickBadge(p.data.statusCat) ]]"><oj-bind-text value="[[ p.data.status ]]"></oj-bind-text></span>
+              <span class="nx-min-pk-asg"><oj-bind-text value="[[ p.data.assignee ]]"></oj-bind-text></span>
+              <span :class="[[ 'nx-min-pk-due' + (p.data.overdue ? ' nx-jira-bad' : '') ]]"><oj-bind-text value="[[ p.data.due || '—' ]]"></oj-bind-text></span>
+              <span class="nx-min-pk-spr"><oj-bind-text value="[[ p.data.sprint || '—' ]]"></oj-bind-text></span>
+            </button>
+          </template>
+        </oj-bind-for-each>
+        <oj-bind-if test="[[ $functions.pickList($variables.rows, $variables.pickQ, $variables.pickSprint, $variables.pickStatus, $variables.pickAssignee).length===0 ]]"><p class="nx-note nx-min-pick-empty">No stories match. Try fewer words, or clear the filters.</p></oj-bind-if>
       </div>
     </div>
   </oj-bind-if>

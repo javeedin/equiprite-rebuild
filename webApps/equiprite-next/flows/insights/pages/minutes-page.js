@@ -12,6 +12,8 @@ define(['resources/js/minutes'], (R) => {
 
   const PROVIDERS = { claude: 'Claude (Anthropic)', openai: 'OpenAI (ChatGPT)', gemini: 'Google Gemini', oci: 'OCI GenAI', custom: 'OpenAI-compatible' };
 
+  function distinct(rows, of) { const seen = {}, out = []; (rows || []).forEach((r) => { const v = String(of(r) || '').trim(); if (v && !seen[v]) { seen[v] = 1; out.push(v); } }); return out; }
+
   function initialsOf(s) {
     const t = String(s || '').replace(/<[^>]*>/g, '').trim();
     if (!t) return '?';
@@ -50,15 +52,36 @@ define(['resources/js/minutes'], (R) => {
       return r.summary + (r.epicKey ? ' · ' + r.epicKey + ' ' + r.epicName : '') + (r.labels && r.labels.length ? ' · ' + r.labels.join(', ') : '');
     }
 
-    /** The story picker's options, sprint-wise (active sprint first), each showing status · assignee · due · sprint. */
-    pickOptions(rows) {
-      return memo('pick', rows || [], (rs) => {
+    /** The story picker dialog's rows: the backlog filtered by the free-text search and the sprint/status/assignee
+     *  filters, sprint-wise (active sprint first). Search matches the number, summary, status, assignee, sprint, epic
+     *  and labels — every word must match somewhere, so "map rahul" finds Rahul's map story. */
+    pickList(rows, q, sprint, status, assignee) {
+      return memo('picklist', { r: rows, q: q, sprint: sprint, status: status, assignee: assignee }, (x) => {
+        const today = new Date().toISOString().slice(0, 10);
         const ord = { active: 0, future: 1, closed: 2 };
         const rank = (r) => (r.sprint ? (ord[r.sprintState] == null ? 3 : ord[r.sprintState]) : 4);
-        return (rs || []).slice().sort((a, b) => rank(a) - rank(b) || (a.sprint || '~').localeCompare(b.sprint || '~') || String(a.key).localeCompare(String(b.key)))
-          .map((r) => ({ key: r.key, label: [r.summary, r.status, (r.assignee || 'Unassigned'), (r.due ? 'due ' + r.due : ''), (r.sprint ? 'Sprint ' + r.sprint : 'No sprint')].filter(Boolean).join(' · ') }));
+        const terms = String(x.q || '').trim().toLowerCase().split(/\s+/).filter(Boolean);
+        return (x.r || []).filter((r) => {
+          if (x.sprint && String(r.sprint || '') !== x.sprint) return false;
+          if (x.status && String(r.status || '') !== x.status) return false;
+          if (x.assignee && (String(r.assignee || '') || 'Unassigned') !== x.assignee) return false;
+          if (terms.length) {
+            const hay = [r.key, r.summary, r.status, r.assignee, r.sprint, r.epicKey, r.epicName, (r.labels || []).join(' ')].join(' ').toLowerCase();
+            if (!terms.every((t) => hay.indexOf(t) !== -1)) return false;
+          }
+          return true;
+        }).slice().sort((a, b) => rank(a) - rank(b) || String(a.sprint || '~').localeCompare(b.sprint || '~') || String(a.key).localeCompare(String(b.key)))
+          .map((r) => ({ key: r.key, summary: r.summary || '', status: r.status || '', statusCat: r.statusCat || 'new',
+            assignee: r.assignee || 'Unassigned', due: r.due || '', sprint: r.sprint || '',
+            overdue: !!(r.due && r.due < today && r.statusCat !== 'done') }));
       });
     }
+    /** Distinct sprints / statuses / assignees in the backlog, for the picker's filter dropdowns. */
+    pickSprints(rows) { return memo('picksprints', rows || [], (rs) => distinct(rs, (r) => r.sprint).sort((a, b) => b.localeCompare(a))); }
+    pickStatuses(rows) { return memo('pickstatuses', rows || [], (rs) => distinct(rs, (r) => r.status).sort()); }
+    pickAssignees(rows) { return memo('pickassignees', rows || [], (rs) => distinct(rs, (r) => r.assignee || 'Unassigned').sort()); }
+    /** A small coloured status badge for a picker row, from the Jira status category. */
+    pickBadge(cat) { return 'nx-min-pk-badge nx-min-pk-badge--' + (cat === 'done' ? 'done' : (cat === 'indeterminate' ? 'prog' : 'todo')); }
     /** A chip shows the attendee's name (an Outlook pick is kept as "Name <email>"). */
     chipName(a) { return R.attendeeName(a); }
 

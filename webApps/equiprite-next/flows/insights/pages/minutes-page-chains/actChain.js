@@ -11,7 +11,7 @@ define([
   function toast(msg, kind) { try { bus.toast(msg, kind || 'info'); } catch (e) { /* no bus */ } }
 
   class actChain extends ActionChain {
-    async run(context, { act, id, lineId }) {
+    async run(context, { act, id, lineId, value }) {
       const v = context.$page.variables;
 
       async function refreshList() { const r = await C.list(); if (r.ok && r.body && r.body.meetings) v.meetings = r.body.meetings; }
@@ -55,6 +55,29 @@ define([
           v.meeting = m; v.attendeeDraft = ''; v.dirty = true; clearAttInput(); return;
         }
         case 'removeAttendee': { const m = clone(v.meeting) || {}; m.attendees = (m.attendees || []).filter((a) => a !== id); v.meeting = m; v.dirty = true; return; }
+
+        // The "Find a Jira story" picker dialog: search the backlog by number/description/status/assignee/sprint and pick one.
+        case 'pickOpen': {
+          const l = (v.meeting.lines || []).filter((x) => x.id === lineId)[0];
+          v.pickLineId = lineId; v.pickCurrent = l ? String(l.jiraKey || '') : '';
+          v.pickQ = ''; v.pickSprint = ''; v.pickStatus = ''; v.pickAssignee = ''; v.pickOpen = true;
+          // Focus the search box once the dialog is in the DOM.
+          try { setTimeout(() => { const el = (typeof document !== 'undefined') && document.getElementById('minPickSearch'); if (el) el.focus(); }, 0); } catch (e) { /* no DOM (tests) */ }
+          return;
+        }
+        case 'pickClose': { v.pickOpen = false; v.pickLineId = ''; v.pickCurrent = ''; return; }
+        case 'pickClear': { v.pickQ = ''; v.pickSprint = ''; v.pickStatus = ''; v.pickAssignee = ''; return; }
+        case 'pickSet': { v.pickQ = value; return; } // the free-text search box (filters are the chips below)
+        case 'pickSprint': { v.pickSprint = (v.pickSprint === id ? '' : id); return; }
+        case 'pickStatus': { v.pickStatus = (v.pickStatus === id ? '' : id); return; }
+        case 'pickAssignee': { v.pickAssignee = (v.pickAssignee === id ? '' : id); return; }
+        case 'pickStory': {
+          const target = lineId || v.pickLineId;
+          const m = clone(v.meeting) || {}; const l = (m.lines || []).filter((x) => x.id === target)[0];
+          if (l) { const k = String(id || '').trim().toUpperCase(); l.jiraKey = k; l.generic = !k; }
+          v.meeting = m; v.dirty = true; v.pickOpen = false; v.pickLineId = ''; v.pickCurrent = '';
+          return;
+        }
         case 'attendeeSearch': {
           // Keep the draft (drives the dropdown) and look the name up live via the active provider (Outlook or
           // Microsoft 365), merging matches into the people list so the suggestions reflect the real directory.
