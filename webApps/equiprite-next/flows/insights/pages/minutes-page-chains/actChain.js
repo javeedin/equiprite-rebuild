@@ -186,7 +186,9 @@ define([
           return;
         }
         case 'graphRecheck': {
-          const s = await C.graphStatus();
+          // Actively poll Microsoft for the token with the current code (not just read the stored status), so a
+          // just-completed web sign-in is picked up immediately even if the background poll missed it.
+          const s = (await C.graphPoll()) || (await C.graphStatus());
           if (s.ok && s.body) v.graph = s.body;
           if (v.graph && v.graph.signedIn) {
             toast('Signed in to Microsoft 365' + (v.graph.account ? ' as ' + v.graph.account : '') + '.');

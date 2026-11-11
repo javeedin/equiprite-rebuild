@@ -338,6 +338,7 @@ async function open(o) {
   };
   // Microsoft 365 account management (lib/graph.js).
   store.graphStatus = () => (graph ? graph.status() : { configured: false, signedIn: false, available: false });
+  store.graphPoll = async () => (graph && graph.graphPoll ? graph.graphPoll() : store.graphStatus());
   store.graphConfig = async (b) => { if (graph) graph.saveConfig(b || {}); return { ok: true, status: store.graphStatus() }; };
   store.graphBegin = async () => (graph ? graph.beginSignIn() : { ok: false, error: 'Microsoft 365 is not available in this app.' });
   store.graphSignOut = async () => { if (graph) graph.signOut(); return { ok: true, status: store.graphStatus() }; };

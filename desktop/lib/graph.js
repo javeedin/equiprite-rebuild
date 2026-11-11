@@ -123,7 +123,7 @@ function open(o) {
       if ((res.status >= 400 || !res.body.device_code) && SCOPE_ERR.test(JSON.stringify(res.body || {}))) res = await httpForm(dcUrl, { client_id: data.clientId, scope: BASE_SCOPE });
       if (res.status >= 400 || !res.body.device_code) return { ok: false, error: (res.body.error_description || res.body.error || 'Could not start sign-in.') };
       const dc = res.body;
-      pending = { userCode: dc.user_code, verificationUri: dc.verification_uri, error: '', done: false };
+      pending = { userCode: dc.user_code, verificationUri: dc.verification_uri, deviceCode: dc.device_code, error: '', done: false };
       try { openExternal(dc.verification_uri); } catch (e) { /* user can open it manually */ }
       // Poll for the token in the background; status() reports progress.
       const deadline = Date.now() + (Number(dc.expires_in || 900) * 1000);
@@ -145,6 +145,25 @@ function open(o) {
       };
       setTimeout(poll, interval);
       return { ok: true, userCode: dc.user_code, verificationUri: dc.verification_uri, message: dc.message || ('Open ' + dc.verification_uri + ' and enter code ' + dc.user_code) };
+    },
+    // One immediate token poll with the active device-code — for the "check now" button, so a just-completed web sign-in
+    // is picked up at once, even if the background poll loop has stopped or missed it.
+    async graphPoll() {
+      if (status().signedIn) return status();
+      if (!pending || !pending.deviceCode) return status();
+      let r;
+      try {
+        r = await httpForm(AUTHORITY + '/' + encodeURIComponent(data.tenantId) + '/oauth2/v2.0/token',
+          { grant_type: 'urn:ietf:params:oauth:grant-type:device_code', client_id: data.clientId, device_code: pending.deviceCode });
+      } catch (e) { return status(); }
+      if (r.body && r.body.access_token) {
+        storeTokens(r.body);
+        try { const me = await graph('GET', '/me', r.body.access_token); data.account = (me.body && (me.body.userPrincipalName || me.body.mail)) || ''; write(); } catch (e) { /* account optional */ }
+        pending.done = true;
+      } else if (r.body && r.body.error && r.body.error !== 'authorization_pending' && r.body.error !== 'slow_down') {
+        pending.error = ADMIN_CONSENT.test(JSON.stringify(r.body || {})) ? ADMIN_CONSENT_MSG : (r.body.error_description || r.body.error || 'Sign-in failed.'); pending.done = true;
+      }
+      return status();
     },
     async people(q) {
       const t = await token();

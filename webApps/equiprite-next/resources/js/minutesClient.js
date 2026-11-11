@@ -110,6 +110,7 @@ define([], function () {
     outlook: function (payload) { return min('outlook', 'POST', payload); },
     send: function (payload) { return min('send', 'POST', payload); },
     graphStatus: function () { return min('graph/status'); },
+    graphPoll: function () { return min('graph/poll', 'POST', {}); },
     graphConfig: function (b) { return min('graph/config', 'POST', b); },
     graphSignIn: function () { return min('graph/signin', 'POST', {}); },
     graphSignOut: function () { return min('graph/signout', 'POST', {}); },

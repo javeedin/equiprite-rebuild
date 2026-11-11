@@ -152,6 +152,26 @@ const openExternal = (u) => opened.push(u);
   T.check('…and the access token is usable (kept in the 0600 file as a fallback)', (await store7._token()) === 'AT1');
   try { fs.rmSync(dir4, { recursive: true, force: true }); } catch (e) { /* temp */ }
 
+  T.section('"check now" (graphPoll) picks up a completed web sign-in on demand');
+  const dir5 = fs.mkdtempSync(path.join(os.tmpdir(), 'eqp-graph5-'));
+  let completed = false;
+  const pollFetch = (url, init) => {
+    const body = (init && init.body) || '';
+    if (/\/devicecode$/.test(url)) return Promise.resolve({ status: 200, text: async () => JSON.stringify({ device_code: 'DCP', user_code: 'POLL-1', verification_uri: 'https://microsoft.com/devicelogin', interval: 2, expires_in: 900 }) });
+    if (/\/token$/.test(url) && /grant_type=urn/.test(body)) return Promise.resolve(completed ? { status: 200, text: async () => JSON.stringify({ access_token: 'ATP', refresh_token: 'RTP', expires_in: 3600 }) } : { status: 400, text: async () => JSON.stringify({ error: 'authorization_pending' }) });
+    if (/\/me$/.test(url)) return Promise.resolve({ status: 200, text: async () => JSON.stringify({ userPrincipalName: 'poll@rite.digital' }) });
+    return Promise.resolve({ status: 404, text: async () => '{}' });
+  };
+  const store8 = G.open({ file: path.join(dir5, 'g.json'), encrypt: enc, decrypt: dec, fetch: pollFetch, openExternal });
+  store8.saveConfig({ tenantId: 't', clientId: 'c' });
+  await store8.beginSignIn();
+  T.check('check now while still pending stays not signed in', (await store8.graphPoll()).signedIn === false);
+  completed = true;
+  const polled = await store8.graphPoll();
+  T.check('check now after finishing on the web signs the app in', polled.signedIn === true && polled.account === 'poll@rite.digital');
+  store8.signOut();
+  try { fs.rmSync(dir5, { recursive: true, force: true }); } catch (e) { /* temp */ }
+
   T.section('sign out');
   T.check('sign out clears the session', store2.signOut().signedIn === false);
 
