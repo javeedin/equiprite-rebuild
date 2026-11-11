@@ -12,8 +12,9 @@
  *   saveConfig({ tenantId, clientId })
  *   beginSignIn()            starts device-code sign-in: { ok, userCode, verificationUri, message } (poll status())
  *   signOut()
- *   people(q)                { ok, directory, contacts:[{name,email}] } — /me/people (relevant) + /users (directory,
- *                            needs User.ReadBasic.All; directory=true only when that call succeeded)
+ *   people(q)                { ok, directory, contacts:[{name,email}] } — /me/people (relevant) + /me/contacts (saved),
+ *                            both base-scope; plus /users (whole directory) only when the directory option is on
+ *                            (needs User.ReadBasic.All + admin consent); directory=true only when /users succeeded
  *   sendMail({to,subject,html}) → { ok } via /me/sendMail
  */
 const fs = require('fs');
@@ -41,8 +42,11 @@ function open(o) {
   const doFetch = o.fetch || (typeof fetch === 'function' ? fetch : null);
   const openExternal = o.openExternal || (() => {});
 
-  let data = { tenantId: '', clientId: '', account: '', tokens: null };
+  let data = { tenantId: '', clientId: '', account: '', directory: false, tokens: null };
   try { data = Object.assign(data, JSON.parse(fs.readFileSync(file, 'utf8'))); } catch (e) { /* first run */ }
+  // Sign in with only the scopes the app is granted by default (base). The whole-company directory (User.ReadBasic.All)
+  // is opt-in, because asking for it where it is not consented makes the tenant force "admin approval" and blocks sign-in.
+  function scopeNow() { return data.directory ? SCOPE : BASE_SCOPE; }
   let pending = null; // { userCode, verificationUri, error, done } while a device-code sign-in is in progress
 
   function write() { fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, JSON.stringify(data, null, 1), { mode: 0o600 }); }
@@ -75,7 +79,7 @@ function open(o) {
     if (!refresh) return '';
     const url = AUTHORITY + '/' + encodeURIComponent(data.tenantId || 'common') + '/oauth2/v2.0/token';
     const ok = (r) => r.status >= 200 && r.status < 300 && r.body.access_token;
-    let res = await httpForm(url, { grant_type: 'refresh_token', client_id: data.clientId, refresh_token: refresh, scope: SCOPE });
+    let res = await httpForm(url, { grant_type: 'refresh_token', client_id: data.clientId, refresh_token: refresh, scope: scopeNow() });
     // The refresh token was issued for whatever scopes were consented; asking for the directory scope on top can be
     // rejected — fall back to the base scopes so the session keeps working.
     if (!ok(res)) res = await httpForm(url, { grant_type: 'refresh_token', client_id: data.clientId, refresh_token: refresh, scope: BASE_SCOPE });
@@ -87,7 +91,7 @@ function open(o) {
     // Signed in when we hold a refresh token (a durable session) OR an access token that has not yet expired — so a
     // sign-in that returned no refresh token (offline_access withheld) still counts while the access token is valid.
     const signedIn = !!(data.tokens && (data.tokens.refresh || (data.tokens.access && data.tokens.expiresAt > Date.now())));
-    return { configured: !!(data.tenantId && data.clientId), signedIn: signedIn, account: data.account || '',
+    return { configured: !!(data.tenantId && data.clientId), signedIn: signedIn, account: data.account || '', directory: !!data.directory,
       tenantId: data.tenantId || '', clientId: data.clientId || '', pending: !!(pending && !pending.done),
       userCode: pending ? pending.userCode : '', verificationUri: pending ? pending.verificationUri : '', error: pending ? pending.error || '' : '' };
   }
@@ -98,6 +102,7 @@ function open(o) {
       b = b || {};
       if (b.tenantId !== undefined) data.tenantId = String(b.tenantId).trim();
       if (b.clientId !== undefined) data.clientId = String(b.clientId).trim();
+      if (b.directory !== undefined) data.directory = !!b.directory;
       write();
       return status();
     },
@@ -106,7 +111,7 @@ function open(o) {
       if (!data.tenantId || !data.clientId) return { ok: false, error: 'Enter your Microsoft 365 Tenant ID and Client ID first.' };
       if (!doFetch) return { ok: false, error: 'Sign-in is not available in this app.' };
       const dcUrl = AUTHORITY + '/' + encodeURIComponent(data.tenantId) + '/oauth2/v2.0/devicecode';
-      let res = await httpForm(dcUrl, { client_id: data.clientId, scope: SCOPE });
+      let res = await httpForm(dcUrl, { client_id: data.clientId, scope: scopeNow() });
       // If the directory scope isn't on the app registration / can't be consented, retry without it so sign-in works.
       if ((res.status >= 400 || !res.body.device_code) && SCOPE_ERR.test(JSON.stringify(res.body || {}))) res = await httpForm(dcUrl, { client_id: data.clientId, scope: BASE_SCOPE });
       if (res.status >= 400 || !res.body.device_code) return { ok: false, error: (res.body.error_description || res.body.error || 'Could not start sign-in.') };
@@ -148,18 +153,26 @@ function open(o) {
         const r = term
           ? await graph('GET', '/me/people?$search=' + encodeURIComponent('"' + term + '"') + '&$top=15&$select=displayName,scoredEmailAddresses,userPrincipalName', t)
           : await graph('GET', '/me/people?$top=25&$select=displayName,scoredEmailAddresses,userPrincipalName', t);
-        if (r.status < 400) ((r.body && r.body.value) || []).forEach((p) => add(p.displayName, (p.scoredEmailAddresses && p.scoredEmailAddresses[0] && p.scoredEmailAddresses[0].address) || p.userPrincipalName));
+        if (r.status < 400) { err = ''; ((r.body && r.body.value) || []).forEach((p) => add(p.displayName, (p.scoredEmailAddresses && p.scoredEmailAddresses[0] && p.scoredEmailAddresses[0].address) || p.userPrincipalName)); }
         else err = (r.body && r.body.error && r.body.error.message) || ('Graph HTTP ' + r.status);
       } catch (e) { err = String((e && e.message) || e); }
-      // The whole organisation directory (needs User.ReadBasic.All with admin consent; ignored if not granted).
+      // The user's own saved contacts (Contacts.Read — granted with the base scopes, no admin consent needed).
       try {
-        const esc = term.replace(/'/g, "''");
-        const dir = term
-          ? "/users?$filter=" + encodeURIComponent("startswith(displayName,'" + esc + "') or startswith(mail,'" + esc + "') or startswith(userPrincipalName,'" + esc + "')") + "&$top=15&$select=displayName,mail,userPrincipalName"
-          : '/users?$top=25&$select=displayName,mail,userPrincipalName';
-        const r2 = await graph('GET', dir, t);
-        if (r2.status < 400) { directory = true; ((r2.body && r2.body.value) || []).forEach((p) => add(p.displayName, p.mail || p.userPrincipalName)); }
-      } catch (e) { /* no directory permission — relevant people only */ }
+        const r3 = await graph('GET', '/me/contacts?$top=100&$select=displayName,emailAddresses', t);
+        if (r3.status < 400) { err = ''; ((r3.body && r3.body.value) || []).forEach((c) => add(c.displayName, (c.emailAddresses && c.emailAddresses[0] && c.emailAddresses[0].address) || '')); }
+      } catch (e) { /* contacts optional */ }
+      // The whole organisation directory (needs User.ReadBasic.All with admin consent). Only when the option is on, so we
+      // never force the admin-approval prompt on a plain sign-in.
+      if (data.directory) {
+        try {
+          const esc = term.replace(/'/g, "''");
+          const dir = term
+            ? "/users?$filter=" + encodeURIComponent("startswith(displayName,'" + esc + "') or startswith(mail,'" + esc + "') or startswith(userPrincipalName,'" + esc + "')") + "&$top=15&$select=displayName,mail,userPrincipalName"
+            : '/users?$top=25&$select=displayName,mail,userPrincipalName';
+          const r2 = await graph('GET', dir, t);
+          if (r2.status < 400) { directory = true; ((r2.body && r2.body.value) || []).forEach((p) => add(p.displayName, p.mail || p.userPrincipalName)); }
+        } catch (e) { /* no directory permission — relevant people + contacts only */ }
+      }
       if (!out.length && err) return { ok: false, available: true, directory: directory, contacts: [], error: err };
       return { ok: true, available: true, directory: directory, contacts: out };
     },

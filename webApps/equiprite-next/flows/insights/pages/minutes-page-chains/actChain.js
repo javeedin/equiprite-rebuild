@@ -25,7 +25,7 @@ define([
         // Prefill the Microsoft 365 IDs with the RITE app registration by default (not secrets; the user can overwrite
         // them), so when Microsoft 365 is chosen the Tenant/Client fields are already filled — just Sign in and Save.
         const def = (R && R.GRAPH_DEFAULT) || { tenantId: '', clientId: '' };
-        v.settingsForm = { teamsWebhook: '', clearTeamsWebhook: false, defaultAttendees: ((st.defaultAttendees) || []).join(', '), orgName: st.orgName || '', fromName: st.fromName || '', fromEmail: st.fromEmail || '', provider: st.provider || 'local', tenantId: g.tenantId || def.tenantId, clientId: g.clientId || def.clientId };
+        v.settingsForm = { teamsWebhook: '', clearTeamsWebhook: false, defaultAttendees: ((st.defaultAttendees) || []).join(', '), orgName: st.orgName || '', fromName: st.fromName || '', fromEmail: st.fromEmail || '', provider: st.provider || 'local', tenantId: g.tenantId || def.tenantId, clientId: g.clientId || def.clientId, directory: !!g.directory };
         v.dialog = 'settings';
       }
 
@@ -162,9 +162,10 @@ define([
         case 'ai': { v.aiForm = { provider: (v.ai && v.ai.active) || 'claude', key: '', model: '', baseUrl: '', status: '' }; v.dialog = 'ai'; return; }
         case 'settings': { await openSettings(); return; }
         case 'setProvider': { const f = clone(v.settingsForm) || {}; f.provider = id || 'local'; v.settingsForm = f; return; }
+        case 'setDirectory': { const f = clone(v.settingsForm) || {}; f.directory = !f.directory; v.settingsForm = f; return; }
         case 'graphSignIn': {
           const f = clone(v.settingsForm) || {};
-          await C.graphConfig({ tenantId: f.tenantId, clientId: f.clientId });
+          await C.graphConfig({ tenantId: f.tenantId, clientId: f.clientId, directory: !!f.directory });
           const r = await C.graphSignIn();
           if (!(r.ok && r.body && r.body.ok)) { const g = clone(v.graph) || {}; g.error = (r.body && r.body.error) || 'Could not start sign-in.'; v.graph = g; return; }
           v.graph = { configured: true, signedIn: false, pending: true, userCode: r.body.userCode, verificationUri: r.body.verificationUri, tenantId: f.tenantId, clientId: f.clientId, account: '', error: '' };
@@ -186,7 +187,7 @@ define([
         case 'settingsSave': {
           const f = clone(v.settingsForm) || {};
           const body = { teamsWebhook: f.teamsWebhook || '', defaultAttendees: String(f.defaultAttendees || '').split(',').map((s) => s.trim()).filter(Boolean), orgName: f.orgName || '', fromName: f.fromName || '', fromEmail: f.fromEmail || '', provider: f.provider || 'local' };
-          if (f.provider === 'o365') await C.graphConfig({ tenantId: f.tenantId, clientId: f.clientId });
+          if (f.provider === 'o365') await C.graphConfig({ tenantId: f.tenantId, clientId: f.clientId, directory: !!f.directory });
           const r = await C.saveSettings(body);
           if (r.ok && r.body) { v.settings = r.body; v.dialog = ''; toast('Settings saved.'); } else toast((r.body && r.body.error) || 'Could not save settings.', 'error');
           return;

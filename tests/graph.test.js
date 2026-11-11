@@ -32,6 +32,9 @@ function fakeFetch(url, init) {
     { displayName: 'Sandeep Reddy Bommareddy', scoredEmailAddresses: [{ address: 'sandeep.reddy@rite.digital' }] },
     { displayName: 'HR India', scoredEmailAddresses: [{ address: 'hrindia@rite.digital' }] },
   ] });
+  if (/\/me\/contacts/.test(url)) return json(200, { value: [
+    { displayName: 'Nabil Khan', emailAddresses: [{ address: 'nabil.khan@rite.digital' }] },
+  ] });
   if (/\/users/.test(url)) return json(200, { value: [
     { displayName: 'Sandeep Reddy Bommareddy', mail: 'sandeep.reddy@rite.digital' },
     { displayName: 'Tester One', mail: 'tester.one@rite.digital' },
@@ -60,10 +63,17 @@ const openExternal = (u) => opened.push(u);
   T.check('after the user signs in: signed in, the account known, not pending', after.signedIn === true && after.account === 'javeed@rite.digital' && after.pending === false && tokenCalls >= 1);
   T.check('the token file does not hold the tokens in clear text', !fs.readFileSync(path.join(dir, 'graph.json'), 'utf8').includes('RT1'));
 
-  T.section('the directory: relevant people (/me/people) merged with the org directory (/users)');
+  T.section('contacts: relevant people (/me/people) + saved contacts (/me/contacts), no admin needed');
+  const base = await store.people('');
+  T.check('base contacts need no directory option: relevant people and saved contacts, no /users call', base.ok
+    && base.contacts.some((c) => c.email === 'sandeep.reddy@rite.digital') && base.contacts.some((c) => c.email === 'nabil.khan@rite.digital')
+    && base.directory === false && !calls.some((c) => /\/users/.test(c.url)));
+
+  T.section('the whole directory: only when the option is on (/users merged in)');
+  store.saveConfig({ directory: true });
   const ppl = await store.people('san');
-  T.check('people merges suggestions and the directory, deduped by email', ppl.ok
-    && ppl.contacts.some((c) => c.email === 'sandeep.reddy@rite.digital') && ppl.contacts.some((c) => c.email === 'hrindia@rite.digital')
+  T.check('with the directory option on, /me/people + /me/contacts + /users merge, deduped by email', ppl.ok
+    && ppl.contacts.some((c) => c.email === 'sandeep.reddy@rite.digital') && ppl.contacts.some((c) => c.email === 'nabil.khan@rite.digital')
     && ppl.contacts.some((c) => c.email === 'tester.one@rite.digital')
     && ppl.contacts.filter((c) => c.email === 'sandeep.reddy@rite.digital').length === 1
     && calls.some((c) => /\/me\/people\?\$search=/.test(c.url)) && calls.some((c) => /\/users\?\$filter=/.test(c.url)));
@@ -110,7 +120,7 @@ const openExternal = (u) => opened.push(u);
     return Promise.resolve({ status: 400, text: async () => JSON.stringify({ error: 'authorization_pending' }) });
   };
   const store5 = G.open({ file: path.join(dir2, 'g.json'), encrypt: enc, decrypt: dec, fetch: fbFetch, openExternal });
-  store5.saveConfig({ tenantId: 't', clientId: 'c' });
+  store5.saveConfig({ tenantId: 't', clientId: 'c', directory: true });
   const b2 = await store5.beginSignIn();
   T.check('sign-in retries without User.ReadBasic.All and still starts', b2.ok === true && b2.userCode === 'WXYZ-1234'
     && fbCalls.some((b) => /User\.ReadBasic\.All/.test(b)) && fbCalls.some((b) => /scope=/.test(b) && !/User\.ReadBasic\.All/.test(b)));
