@@ -21,7 +21,12 @@ const path = require('path');
 
 const AUTHORITY = 'https://login.microsoftonline.com';
 const GRAPH = 'https://graph.microsoft.com/v1.0';
-const SCOPE = 'offline_access openid profile User.Read People.Read Contacts.Read Mail.Send';
+// BASE_SCOPE always works (sign-in, send, relevant people). SCOPE adds User.ReadBasic.All so the whole-company
+// directory (/users) can be searched; when that permission is not on the app registration / not consented, sign-in and
+// token refresh fall back to BASE_SCOPE so nothing breaks — the directory simply stays unavailable until IT grants it.
+const BASE_SCOPE = 'offline_access openid profile User.Read People.Read Contacts.Read Mail.Send';
+const SCOPE = BASE_SCOPE + ' User.ReadBasic.All';
+const SCOPE_ERR = /scope|consent|AADSTS70011|AADSTS65001|AADSTS90008/i;
 
 function qs(o) { return Object.keys(o).map((k) => encodeURIComponent(k) + '=' + encodeURIComponent(o[k])).join('&'); }
 
@@ -65,9 +70,13 @@ function open(o) {
     if (t.access && t.expiresAt > Date.now()) return unseal(t.access);
     const refresh = unseal(t.refresh);
     if (!refresh) return '';
-    const res = await httpForm(AUTHORITY + '/' + encodeURIComponent(data.tenantId || 'common') + '/oauth2/v2.0/token',
-      { grant_type: 'refresh_token', client_id: data.clientId, refresh_token: refresh, scope: SCOPE });
-    if (res.status >= 200 && res.status < 300 && res.body.access_token) { storeTokens(res.body); return res.body.access_token; }
+    const url = AUTHORITY + '/' + encodeURIComponent(data.tenantId || 'common') + '/oauth2/v2.0/token';
+    const ok = (r) => r.status >= 200 && r.status < 300 && r.body.access_token;
+    let res = await httpForm(url, { grant_type: 'refresh_token', client_id: data.clientId, refresh_token: refresh, scope: SCOPE });
+    // The refresh token was issued for whatever scopes were consented; asking for the directory scope on top can be
+    // rejected — fall back to the base scopes so the session keeps working.
+    if (!ok(res)) res = await httpForm(url, { grant_type: 'refresh_token', client_id: data.clientId, refresh_token: refresh, scope: BASE_SCOPE });
+    if (ok(res)) { storeTokens(res.body); return res.body.access_token; }
     return '';
   }
 
@@ -93,7 +102,10 @@ function open(o) {
     async beginSignIn() {
       if (!data.tenantId || !data.clientId) return { ok: false, error: 'Enter your Microsoft 365 Tenant ID and Client ID first.' };
       if (!doFetch) return { ok: false, error: 'Sign-in is not available in this app.' };
-      const res = await httpForm(AUTHORITY + '/' + encodeURIComponent(data.tenantId) + '/oauth2/v2.0/devicecode', { client_id: data.clientId, scope: SCOPE });
+      const dcUrl = AUTHORITY + '/' + encodeURIComponent(data.tenantId) + '/oauth2/v2.0/devicecode';
+      let res = await httpForm(dcUrl, { client_id: data.clientId, scope: SCOPE });
+      // If the directory scope isn't on the app registration / can't be consented, retry without it so sign-in works.
+      if ((res.status >= 400 || !res.body.device_code) && SCOPE_ERR.test(JSON.stringify(res.body || {}))) res = await httpForm(dcUrl, { client_id: data.clientId, scope: BASE_SCOPE });
       if (res.status >= 400 || !res.body.device_code) return { ok: false, error: (res.body.error_description || res.body.error || 'Could not start sign-in.') };
       const dc = res.body;
       pending = { userCode: dc.user_code, verificationUri: dc.verification_uri, error: '', done: false };

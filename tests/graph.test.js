@@ -99,6 +99,24 @@ const openExternal = (u) => opened.push(u);
   fs.writeFileSync(accFile, JSON.stringify({ tenantId: 't', clientId: 'c', tokens: { access: 'enc:' + Buffer.from('AX').toString('base64'), refresh: null, expiresAt: Date.now() - 1000 } }));
   T.check('an expired access token with no refresh is not signed in', G.open({ file: accFile, encrypt: enc, decrypt: dec, fetch: fakeFetch }).status().signedIn === false);
 
+  T.section('sign-in falls back to base scopes when the directory scope is not available');
+  const dir2 = fs.mkdtempSync(path.join(os.tmpdir(), 'eqp-graph2-'));
+  const fbCalls = [];
+  const fbFetch = (url, init) => {
+    const body = (init && init.body) || '';
+    fbCalls.push(body);
+    if (/\/devicecode$/.test(url) && /User\.ReadBasic\.All/.test(body)) return Promise.resolve({ status: 400, text: async () => JSON.stringify({ error: 'invalid_scope', error_description: 'AADSTS70011 scope User.ReadBasic.All is invalid' }) });
+    if (/\/devicecode$/.test(url)) return Promise.resolve({ status: 200, text: async () => JSON.stringify({ device_code: 'DC2', user_code: 'WXYZ-1234', verification_uri: 'https://microsoft.com/devicelogin', interval: 2, expires_in: 900 }) });
+    return Promise.resolve({ status: 400, text: async () => JSON.stringify({ error: 'authorization_pending' }) });
+  };
+  const store5 = G.open({ file: path.join(dir2, 'g.json'), encrypt: enc, decrypt: dec, fetch: fbFetch, openExternal });
+  store5.saveConfig({ tenantId: 't', clientId: 'c' });
+  const b2 = await store5.beginSignIn();
+  T.check('sign-in retries without User.ReadBasic.All and still starts', b2.ok === true && b2.userCode === 'WXYZ-1234'
+    && fbCalls.some((b) => /User\.ReadBasic\.All/.test(b)) && fbCalls.some((b) => /scope=/.test(b) && !/User\.ReadBasic\.All/.test(b)));
+  store5.signOut();
+  try { fs.rmSync(dir2, { recursive: true, force: true }); } catch (e) { /* temp */ }
+
   T.section('sign out');
   T.check('sign out clears the session', store2.signOut().signedIn === false);
 
