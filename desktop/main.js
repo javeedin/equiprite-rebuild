@@ -155,7 +155,15 @@ async function minutesStore() {
         encrypt: canEncrypt() ? (t) => safeStorage.encryptString(t) : null,
         decrypt: canEncrypt() ? (b) => safeStorage.decryptString(b) : null,
         fetch: (url, init) => { const { net } = require('electron'); return net.fetch(url, init); },
-        openExternal: (u) => { const { shell } = require('electron'); return shell.openExternal(u); },
+        // The device-code verification page opens inside EquipRite (a child window), so sign-in stays in the app.
+        openExternal: (u) => {
+          try {
+            const dcWin = new BrowserWindow({ width: 520, height: 720, parent: win || undefined, show: true, autoHideMenuBar: true,
+              title: 'Sign in to Microsoft 365', webPreferences: { nodeIntegration: false, contextIsolation: true, partition: 'persist:eqr-msauth' } });
+            dcWin.loadURL(u);
+            return dcWin;
+          } catch (e) { const { shell } = require('electron'); return shell.openExternal(u); }
+        },
         interactiveAuth: interactiveAuth,
       }),
     });
