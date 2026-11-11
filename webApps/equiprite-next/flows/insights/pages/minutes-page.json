@@ -12,7 +12,7 @@
     "trackBy": { "type": "string", "defaultValue": "epic", "description": "epic | story | customer" },
     "dialog": { "type": "string", "defaultValue": "", "description": "'' | settings | ai | email" },
     "meetings": { "type": "any[]", "defaultValue": [], "description": "Past meetings (summaries), newest first." },
-    "meeting": { "type": "any", "defaultValue": { "id": "", "date": "", "time": "", "title": "", "customer": "", "attendees": [], "context": "", "lines": [] }, "description": "The meeting being edited." },
+    "meeting": { "type": "any", "defaultValue": { "id": "", "date": "", "time": "", "title": "", "customer": "", "attendees": [], "context": "", "discussion": "", "lines": [] }, "description": "The meeting being edited." },
     "attendeesText": { "type": "string", "defaultValue": "", "description": "The attendees as a comma-separated field (legacy)." },
     "attendeeDraft": { "type": "string", "defaultValue": "", "description": "The attendee-picker input (cleared after each add)." },
     "people": { "type": "any[]", "defaultValue": [], "description": "Outlook contacts read from this PC (name, email), for the attendee picker." },
@@ -20,8 +20,9 @@
     "dirty": { "type": "boolean", "defaultValue": false },
     "rows": { "type": "any[]", "defaultValue": [], "description": "The Jira backlog read (jiraBacklog.fromIssue), for story links and epic/customer tracking." },
     "jiraReady": { "type": "boolean", "defaultValue": false },
-    "recLineId": { "type": "string", "defaultValue": "", "description": "The line whose voice is being recorded." },
+    "recLineId": { "type": "string", "defaultValue": "", "description": "The line whose voice is being recorded ('__body__' = the discussion body)." },
     "fmtLineId": { "type": "string", "defaultValue": "", "description": "The line being formatted by AI." },
+    "fmtBody": { "type": "boolean", "defaultValue": false, "description": "Whether the discussion body is being formatted by AI." },
     "settings": { "type": "any", "defaultValue": { "teamsWebhookSet": false, "defaultAttendees": [], "orgName": "", "fromName": "", "fromEmail": "", "provider": "local" } },
     "settingsForm": { "type": "any", "defaultValue": { "teamsWebhook": "", "defaultAttendees": "", "orgName": "", "fromName": "", "fromEmail": "", "clearTeamsWebhook": false, "provider": "local", "tenantId": "", "clientId": "" } },
     "graph": { "type": "any", "defaultValue": { "configured": false, "signedIn": false, "pending": false, "account": "", "userCode": "", "verificationUri": "", "error": "" }, "description": "Microsoft 365 sign-in status (lib/graph.js)." },
@@ -40,6 +41,8 @@
       "lineId": "{{ $event.currentTarget.dataset.line || '' }}" } } ] },
     "onNote": { "chains": [ { "chain": "setChain", "parameters": {
       "scope": "line", "field": "text", "value": "{{ $event.detail.value }}", "lineId": "{{ $event.target.dataset.line || '' }}" } } ] },
+    "onBody": { "chains": [ { "chain": "setChain", "parameters": {
+      "scope": "header", "field": "discussion", "value": "{{ $event.detail.value }}" } } ] },
     "onAttendeeInput": { "chains": [ { "chain": "actChain", "parameters": { "act": "attendeeSearch", "id": "{{ $event.target.value }}" } } ] },
     "onAttendeeKey": { "chains": [ { "chain": "actChain", "parameters": { "act": "{{ $event.key === 'Enter' ? 'addAttendee' : 'noop' }}", "id": "{{ $event.target.value }}" } } ] }
   },

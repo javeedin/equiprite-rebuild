@@ -99,6 +99,15 @@ async function setField(page, sel, val) { await page.fill(sel, val); await page.
     await settle(page, 300);
     T.check('clicking a suggestion adds a chip (name shown, email kept)', /Priya Raman/.test(await text(page, '.nx-min-att')));
     T.check('the typed text is wiped from the attendee box once the name becomes a chip', (await page.inputValue('.nx-min-attadd')) === '');
+
+    T.section('the Discussion body: type rough notes, then Format with AI tidies them into standard minutes');
+    T.check('the standard-minutes sections and the Format with AI button are on the page', await page.isVisible('#minBody') && await page.isVisible('#minBodyFormat'));
+    await page.evaluate((val) => { const t = document.querySelector('#minBody'); if (t) t.value = val; }, 'map view still missing\nrelease plan for 27a agreed');
+    await settle(page, 300);
+    await page.click('#minBodyFormat');
+    await page.waitForFunction(() => { const t = document.querySelector('#minBody'); return t && /agreed to add it/.test(t.value || ''); }, null, { timeout: 15000 }).catch(() => {});
+    T.check('the discussion body is rewritten by the shared Ask AI', /agreed to add it/.test(await page.$eval('#minBody', (t) => t.value || '')) && llmCalls.some((u) => /chat\/completions/.test(u)));
+
     await page.click('#minAddLine');
     await settle(page, 300);
     await setField(page, '.nx-min-line input[data-field="jiraKey"]', 'EQP-12');
@@ -144,8 +153,8 @@ async function setField(page, sel, val) { await page.fill(sel, val); await page.
     await page.waitForSelector('#minEmailDlg', { timeout: 10000 });
     T.check('the email dialog: the subject and a preview', /\[Standup\] Daily standup — 2026-11-10 · Cianbro/.test(await page.$eval('#minEmailDlg input[readonly]', (i) => i.value))
       && await page.isVisible('#minEmailPreview'));
-    const previewHasAction = await page.$eval('#minEmailPreview', (f) => (f.getAttribute('srcdoc') || '').indexOf('Add the map view') !== -1);
-    T.check('the preview holds the discussion and the action item', previewHasAction);
+    const previewHtml = await page.$eval('#minEmailPreview', (f) => f.getAttribute('srcdoc') || '');
+    T.check('the preview holds the Discussion body and the action item', /Discussion/.test(previewHtml) && previewHtml.indexOf('agreed to add it') !== -1 && previewHtml.indexOf('Add the map view') !== -1);
     T.check('Send to is pre-filled with the attendee email', /priya\.raman@rite\.digital/.test(await page.$eval('#minEmailDlg input[data-field="to"]', (i) => i.value)));
     await page.click('#minEmailSend');
     await settle(page, 400);

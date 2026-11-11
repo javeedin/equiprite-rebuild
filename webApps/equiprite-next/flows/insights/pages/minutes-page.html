@@ -1,7 +1,8 @@
 <!-- Standup minutes: the daily standup on the Jira backlog written down and kept in DuckDB on this PC
-     (desktop/lib/minutes.js). A meeting header + lines (each tied to a Jira story or generic) with a note, a next
-     action, owner and due date. Voice→text (Whisper) and Format by AI help write a line; tracking rolls up by the
-     story's epic and by customer; the minutes send as a formatted email or to a Teams webhook. Rules: resources/js/minutes.js. -->
+     (desktop/lib/minutes.js). Standard-minutes layout — a meeting header, a Discussion body ("what we discussed"), and
+     Action items (each with an "Actioned by" owner, due date and status, optionally tied to a Jira story with a note).
+     Voice→text (Whisper) and Format by AI help write the body and each item; tracking rolls up by the story's epic and by
+     customer; the minutes send as a formatted email or to a Teams webhook. Rules: resources/js/minutes.js. -->
 <div class="nx-page nx-min">
   <div class="nx-pagehead">
     <div>
@@ -90,30 +91,43 @@
             <div class="nx-min-field nx-min-wide"><label>Context (optional)</label><input type="text" data-scope="header" data-field="context" :value="[[ $variables.meeting.context ]]" on-change="[[ $listeners.onField ]]" placeholder="sprint, release, agenda…"></div>
           </div>
 
+          <!-- Discussion body: what was discussed, in standard-minutes style. Type rough notes, then Format with AI tidies them up. -->
+          <div class="nx-min-sec nx-min-sec--body">Discussion — what we discussed</div>
+          <div class="nx-min-body">
+            <oj-text-area class="nx-min-bodyta" id="minBody" rows="5" value="[[ $variables.meeting.discussion ]]" on-value-changed="[[ $listeners.onBody ]]" label-edge="none" placeholder="Summary of what was discussed. Type rough notes in any order, then ✨ Format with AI to turn them into clean minutes."></oj-text-area>
+            <div class="nx-min-body-btns">
+              <button type="button" :class="[[ 'nx-btn nx-btn--sm' + ($variables.recLineId==='__body__' ? ' nx-btn--rec' : '') ]]" id="minBodyVoice" data-act="dictate" data-line="__body__" on-click="[[ $listeners.onAct ]]"><oj-bind-text value="[[ $variables.recLineId==='__body__' ? '◼ Stop' : '🎤 Voice' ]]"></oj-bind-text></button>
+              <button type="button" class="nx-btn nx-btn--sm nx-min-fmt" id="minBodyFormat" data-act="formatBody" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.fmtBody ]]"><oj-bind-text value="[[ $variables.fmtBody ? '…formatting' : '✨ Format with AI' ]]"></oj-bind-text></button>
+            </div>
+          </div>
+
           <datalist id="minKeys"><oj-bind-for-each data="[[ $functions.pickOptions($variables.rows) ]]"><template data-oj-as="rk"><option :value="[[ rk.data.key ]]"><oj-bind-text value="[[ rk.data.label ]]"></oj-bind-text></option></template></oj-bind-for-each></datalist>
 
+          <!-- Action items: who does what next. Each row is an action with the person it is actioned by, a due date and a status;
+               a Jira story and a note can be attached for the standup tracking. -->
+          <div class="nx-min-sec">Action items — who does what next</div>
           <div class="nx-min-lines" id="minLines">
             <oj-bind-for-each data="[[ $variables.meeting.lines ]]">
               <template data-oj-as="ln">
                 <div class="nx-min-line">
+                  <div class="nx-min-action">
+                    <div class="nx-min-field nx-min-grow"><label>Action item</label><input type="text" data-scope="line" data-field="action" :data-line="[[ ln.data.id ]]" :value="[[ ln.data.action ]]" on-change="[[ $listeners.onField ]]" placeholder="what happens next"></div>
+                    <div class="nx-min-field"><label>Actioned by</label><input type="text" data-scope="line" data-field="owner" :data-line="[[ ln.data.id ]]" :value="[[ ln.data.owner ]]" on-change="[[ $listeners.onField ]]" placeholder="who"></div>
+                    <div class="nx-min-field"><label>Due</label><input type="date" data-scope="line" data-field="due" :data-line="[[ ln.data.id ]]" :value="[[ ln.data.due ]]" on-change="[[ $listeners.onField ]]"></div>
+                    <button type="button" :class="[[ $functions.statusClass(ln.data) ]]" data-act="toggleDone" :data-line="[[ ln.data.id ]]" on-click="[[ $listeners.onAct ]]"><oj-bind-text value="[[ ln.data.status==='done' ? 'Done' : 'Open' ]]"></oj-bind-text></button>
+                    <button type="button" class="nx-min-x" data-act="removeLine" :data-line="[[ ln.data.id ]]" on-click="[[ $listeners.onAct ]]" title="Remove this action item">×</button>
+                  </div>
                   <div class="nx-min-line-top">
-                    <div class="nx-min-field nx-min-key"><label>Jira story — or leave blank for a general note</label>
+                    <div class="nx-min-field nx-min-key"><label>Link to Jira story (optional)</label>
                       <input type="text" list="minKeys" data-scope="line" data-field="jiraKey" :data-line="[[ ln.data.id ]]" :value="[[ ln.data.jiraKey ]]" on-change="[[ $listeners.onField ]]" placeholder="EQP-12"></div>
                     <span class="nx-min-hint"><oj-bind-text value="[[ $functions.storyHint(ln.data, $variables.rows) ]]"></oj-bind-text></span>
-                    <button type="button" class="nx-min-x" data-act="removeLine" :data-line="[[ ln.data.id ]]" on-click="[[ $listeners.onAct ]]" title="Remove this line">×</button>
                   </div>
                   <div class="nx-min-note">
-                    <oj-text-area class="nx-min-ta" rows="2" :data-line="[[ ln.data.id ]]" value="[[ ln.data.text ]]" on-value-changed="[[ $listeners.onNote ]]" label-edge="none" placeholder="What was discussed…"></oj-text-area>
+                    <oj-text-area class="nx-min-ta" rows="2" :data-line="[[ ln.data.id ]]" value="[[ ln.data.text ]]" on-value-changed="[[ $listeners.onNote ]]" label-edge="none" placeholder="Note or detail for this item (optional)…"></oj-text-area>
                     <div class="nx-min-note-btns">
                       <button type="button" :class="[[ 'nx-btn nx-btn--sm' + ($functions.recActive(ln.data,$variables.recLineId) ? ' nx-btn--rec' : '') ]]" data-act="dictate" :data-line="[[ ln.data.id ]]" on-click="[[ $listeners.onAct ]]"><oj-bind-text value="[[ $functions.recLabel(ln.data,$variables.recLineId) ]]"></oj-bind-text></button>
                       <button type="button" class="nx-btn nx-btn--sm" data-act="format" :data-line="[[ ln.data.id ]]" on-click="[[ $listeners.onAct ]]" :disabled="[[ $functions.fmtActive(ln.data,$variables.fmtLineId) ]]"><oj-bind-text value="[[ $functions.fmtActive(ln.data,$variables.fmtLineId) ? '…formatting' : '✨ Format by AI' ]]"></oj-bind-text></button>
                     </div>
-                  </div>
-                  <div class="nx-min-action">
-                    <div class="nx-min-field nx-min-grow"><label>Next action</label><input type="text" data-scope="line" data-field="action" :data-line="[[ ln.data.id ]]" :value="[[ ln.data.action ]]" on-change="[[ $listeners.onField ]]" placeholder="what happens next"></div>
-                    <div class="nx-min-field"><label>Owner</label><input type="text" data-scope="line" data-field="owner" :data-line="[[ ln.data.id ]]" :value="[[ ln.data.owner ]]" on-change="[[ $listeners.onField ]]"></div>
-                    <div class="nx-min-field"><label>Action date</label><input type="date" data-scope="line" data-field="due" :data-line="[[ ln.data.id ]]" :value="[[ ln.data.due ]]" on-change="[[ $listeners.onField ]]"></div>
-                    <button type="button" :class="[[ $functions.statusClass(ln.data) ]]" data-act="toggleDone" :data-line="[[ ln.data.id ]]" on-click="[[ $listeners.onAct ]]"><oj-bind-text value="[[ ln.data.status==='done' ? 'Done' : 'Open' ]]"></oj-bind-text></button>
                   </div>
                 </div>
               </template>
@@ -121,7 +135,7 @@
           </div>
 
           <div class="nx-min-editfoot">
-            <button type="button" class="nx-btn nx-btn--sm" id="minAddLine" data-act="addLine" on-click="[[ $listeners.onAct ]]">+ Add line</button>
+            <button type="button" class="nx-btn nx-btn--sm" id="minAddLine" data-act="addLine" on-click="[[ $listeners.onAct ]]">+ Add action item</button>
             <span class="nx-min-flex"></span>
             <button type="button" class="nx-btn nx-btn--sm" id="minEmail" data-act="email" on-click="[[ $listeners.onAct ]]" :disabled="[[ !$functions.canSend($variables.meeting) ]]">✉ Email</button>
             <button type="button" class="nx-btn nx-btn--sm" id="minTeams" data-act="teams" on-click="[[ $listeners.onAct ]]" :disabled="[[ !$functions.canSend($variables.meeting) ]]">Send to Teams</button>

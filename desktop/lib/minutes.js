@@ -6,7 +6,7 @@
  * date). Tracking rolls the lines up by the story's epic and by customer (the page joins to the Jira backlog it read).
  *
  * The data is real DuckDB tables you can query (as EquipRite Future does, lib/futureDb.js):
- *   - meetings        (id, date, time, title, customer, attendees JSON, context, created_at, updated_at)
+ *   - meetings        (id, date, time, title, customer, attendees JSON, context, discussion, created_at, updated_at)
  *   - minute_lines    (id, meeting_id, seq, jira_key, generic, text, raw, action, owner, due, status)
  *   - minute_settings (id='current', teams_webhook sealed, default_attendees JSON, org_name, from_name, from_email)
  * When DuckDB cannot load (no binary for this platform), the same store keeps the data in a JSON file beside it.
@@ -47,7 +47,8 @@ function cleanLine(l) {
 function cleanMeeting(m) {
   m = m || {};
   return { id: str(m.id), date: str(m.date), time: str(m.time), title: str(m.title), customer: str(m.customer),
-    attendees: arr(m.attendees), context: str(m.context), lines: Array.isArray(m.lines) ? m.lines.map(cleanLine) : [],
+    attendees: arr(m.attendees), context: str(m.context), discussion: str(m.discussion),
+    lines: Array.isArray(m.lines) ? m.lines.map(cleanLine) : [],
     createdAt: m.createdAt || null, updatedAt: m.updatedAt || null };
 }
 function summaryOf(m) {
@@ -112,7 +113,8 @@ async function duckStore(o, file) {
   const serial = (fn) => { const p = queue.then(fn, fn); queue = p.catch(() => {}); return p; };
   const rows = async (sql, params) => (await con.runAndReadAll(sql, params || [])).getRowObjectsJson();
 
-  await con.run('CREATE TABLE IF NOT EXISTS meetings (id VARCHAR PRIMARY KEY, date VARCHAR, time VARCHAR, title VARCHAR, customer VARCHAR, attendees VARCHAR, context VARCHAR, created_at VARCHAR, updated_at VARCHAR)');
+  await con.run('CREATE TABLE IF NOT EXISTS meetings (id VARCHAR PRIMARY KEY, date VARCHAR, time VARCHAR, title VARCHAR, customer VARCHAR, attendees VARCHAR, context VARCHAR, discussion VARCHAR, created_at VARCHAR, updated_at VARCHAR)');
+  await con.run('ALTER TABLE meetings ADD COLUMN IF NOT EXISTS discussion VARCHAR').catch(() => {}); // older DBs created before the discussion body
   await con.run('CREATE TABLE IF NOT EXISTS minute_lines (id VARCHAR PRIMARY KEY, meeting_id VARCHAR, seq INTEGER, jira_key VARCHAR, generic BOOLEAN, text VARCHAR, raw VARCHAR, action VARCHAR, owner VARCHAR, due VARCHAR, status VARCHAR)');
   await con.run("CREATE TABLE IF NOT EXISTS minute_settings (id VARCHAR PRIMARY KEY, teams_webhook VARCHAR, default_attendees VARCHAR, org_name VARCHAR, from_name VARCHAR, from_email VARCHAR)");
   await con.run('CREATE TABLE IF NOT EXISTS minute_kv (k VARCHAR PRIMARY KEY, v VARCHAR)');
@@ -133,7 +135,7 @@ async function duckStore(o, file) {
   }
   function meetingToObj(r, lineRows) {
     return { id: r.id, date: str(r.date), time: str(r.time), title: str(r.title), customer: str(r.customer),
-      attendees: jarr(r.attendees), context: str(r.context), lines: (lineRows || []).map(lineToObj),
+      attendees: jarr(r.attendees), context: str(r.context), discussion: str(r.discussion), lines: (lineRows || []).map(lineToObj),
       createdAt: r.created_at || null, updatedAt: r.updated_at || null };
   }
 
@@ -184,8 +186,8 @@ async function duckStore(o, file) {
       m.createdAt = created; m.updatedAt = now;
       await con.run('BEGIN TRANSACTION');
       try {
-        await con.run('INSERT OR REPLACE INTO meetings VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
-          [m.id, m.date, m.time, m.title, m.customer, JSON.stringify(m.attendees), m.context, m.createdAt, m.updatedAt]);
+        await con.run('INSERT OR REPLACE INTO meetings (id, date, time, title, customer, attendees, context, discussion, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
+          [m.id, m.date, m.time, m.title, m.customer, JSON.stringify(m.attendees), m.context, m.discussion, m.createdAt, m.updatedAt]);
         await con.run('DELETE FROM minute_lines WHERE meeting_id = $1', [m.id]);
         for (let i = 0; i < m.lines.length; i++) {
           const l = m.lines[i];

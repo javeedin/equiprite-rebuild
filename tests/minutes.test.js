@@ -27,7 +27,8 @@ const ROWS = [
   { key: 'EQP-20', summary: 'Rate schedule list', epicKey: 'EQP-62', epicName: 'Rate & Pricing', labels: ['oceaneering'], statusCat: 'done' },
 ];
 const MEETINGS = [
-  { id: 'm1', date: '2026-11-09', time: '09:30', title: 'Daily standup', customer: 'Cianbro', attendees: ['Javeed', 'Rahul'], lines: [
+  { id: 'm1', date: '2026-11-09', time: '09:30', title: 'Daily standup', customer: 'Cianbro', attendees: ['Javeed', 'Rahul'],
+    discussion: 'The team reviewed sprint progress.\n- Map view is still pending on EQP-12\n- Release plan agreed for 27A', lines: [
     { jiraKey: 'EQP-12', text: 'Smart search still missing columns.', action: 'Add the missing filters', owner: 'Rahul', due: '2026-01-05', status: 'open' },
     { jiraKey: 'EQP-20', text: 'Rate list looks good.', action: 'Close the story', owner: 'Aditi', due: '2026-11-11', status: 'done' },
     { jiraKey: '', text: 'Agreed the release plan for 27A.', action: 'Circulate the plan', owner: 'Javeed', due: '2030-01-01', status: 'open' },
@@ -39,7 +40,7 @@ const MEETINGS = [
 ];
 
 T.section('a blank meeting and line are dated today and sensible');
-T.check('blankMeeting has today, a title and no lines', /^\d{4}-\d{2}-\d{2}$/.test(M.blankMeeting().date) && M.blankMeeting().title && M.blankMeeting().lines.length === 0);
+T.check('blankMeeting has today, a title, an empty discussion body and no lines', /^\d{4}-\d{2}-\d{2}$/.test(M.blankMeeting().date) && M.blankMeeting().title && M.blankMeeting().discussion === '' && M.blankMeeting().lines.length === 0);
 T.check('blankLine is generic and open', M.blankLine().generic === true && M.blankLine().status === 'open');
 
 T.section('summarise a meeting');
@@ -71,16 +72,25 @@ T.check('the past-due one is flagged overdue, the future one is not', oa[0].over
 T.section('a formatted minutes email');
 const em = M.emailFor(MEETINGS[0], ROWS);
 T.check('the subject names the meeting, date and customer', em.subject === '[Standup] Daily standup — 2026-11-09 · Cianbro');
-T.check('the HTML has the header, a story heading, and an action-items table', em.html.indexOf('Standup minutes') !== -1
-  && em.html.indexOf('EQP-12 — Equipment Master List') !== -1 && em.html.indexOf('Next action items') !== -1 && em.html.indexOf('Add the missing filters') !== -1);
-T.check('the plain-text fallback lists discussion and next actions', em.text.indexOf('DISCUSSION') !== -1 && em.text.indexOf('NEXT ACTIONS') !== -1 && em.text.indexOf('[EQP-12]') !== -1);
+T.check('the HTML has the header, the discussion body, a story heading, and an action-items table', em.html.indexOf('Standup minutes') !== -1
+  && em.html.indexOf('The team reviewed sprint progress.') !== -1 && em.html.indexOf('<li style="margin-bottom:4px">Release plan agreed for 27A</li>') !== -1
+  && em.html.indexOf('EQP-12 — Equipment Master List') !== -1 && em.html.indexOf('Action items') !== -1 && em.html.indexOf('Add the missing filters') !== -1);
+T.check('the action-items table credits "Actioned by" rather than "Owner"', em.html.indexOf('Actioned by') !== -1 && em.html.indexOf('>Owner<') === -1);
+T.check('the plain-text fallback lists the discussion body and the action items', em.text.indexOf('DISCUSSION') !== -1 && em.text.indexOf('The team reviewed sprint progress.') !== -1 && em.text.indexOf('ACTION ITEMS') !== -1 && em.text.indexOf('[EQP-12]') !== -1);
+
+T.section('a meeting with no discussion body still renders cleanly');
+const emNoBody = M.emailFor({ date: '2026-11-09', title: 'Quick sync', lines: [{ jiraKey: '', text: '', action: 'Ship it', owner: 'JS', due: '', status: 'open' }] }, ROWS);
+T.check('an action-only meeting says "No discussion recorded" and still lists the action', emNoBody.html.indexOf('No discussion recorded') !== -1 && emNoBody.html.indexOf('Ship it') !== -1);
 
 T.section('a Teams message');
 const tm = M.teamsFor(MEETINGS[0], ROWS);
-T.check('Markdown with a heading, discussion and next actions', tm.text.indexOf('## ') === 0 && tm.text.indexOf('**Discussion**') !== -1 && tm.text.indexOf('**Next actions**') !== -1 && tm.text.indexOf('**EQP-12**') !== -1);
+T.check('Markdown with a heading, the discussion body and the action items', tm.text.indexOf('## ') === 0 && tm.text.indexOf('**Discussion**') !== -1
+  && tm.text.indexOf('The team reviewed sprint progress.') !== -1 && tm.text.indexOf('**Action items**') !== -1 && tm.text.indexOf('**EQP-12**') !== -1);
 
-T.section('the AI format prompt cleans up a note without inventing anything');
+T.section('the AI format prompts clean up text without inventing anything');
 const fp = M.formatPrompt('map not loading n edit btn doesnt work');
-T.check('a system instruction and the raw note as the user turn', /simple|clear/i.test(fp.system) && fp.user === 'map not loading n edit btn doesnt work');
+T.check('the note prompt: a system instruction and the raw note as the user turn', /simple|clear/i.test(fp.system) && fp.user === 'map not loading n edit btn doesnt work');
+const fb = M.formatBodyPrompt('discussed map view\nagreed 27a plan');
+T.check('the body prompt: tidies into a Discussion section, keeps every fact, invents nothing', /discussion/i.test(fb.system) && /do not add|invent/i.test(fb.system) && fb.user === 'discussed map view\nagreed 27a plan');
 
 T.report();

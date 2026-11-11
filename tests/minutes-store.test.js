@@ -37,6 +37,7 @@ const okFetch = async (url, init) => { posted.push({ url, body: init && init.bod
 
   T.section('a meeting: ids and timestamps filled on save');
   const saved = await store.save({ date: '2026-11-10', time: '09:30', title: 'Daily standup', customer: 'Cianbro', attendees: ['JS', 'RP', ''],
+    discussion: 'Reviewed sprint progress.\n- Map view still pending\n- Release plan agreed for 27A',
     lines: [
       { jiraKey: 'eqp-12', text: 'Smart search still missing columns.', action: 'Add the missing filters', owner: 'RP', due: '2026-11-12', status: 'open' },
       { jiraKey: '', text: 'General: release plan review.', action: '', owner: '', due: '', status: 'open' },
@@ -60,6 +61,7 @@ const okFetch = async (url, init) => { posted.push({ url, body: init && init.bod
   T.section('get, edit and remove');
   const got = await store.get(saved.meeting.id);
   T.eq('get returns the full meeting with its lines in order', got.meeting.title + '/' + got.meeting.lines.map((l) => l.jiraKey || '-').join(','), 'Daily standup/EQP-12,-,EQP-20');
+  T.check('the discussion body round-trips through the store', got.meeting.discussion === 'Reviewed sprint progress.\n- Map view still pending\n- Release plan agreed for 27A');
   T.check('get of an unknown id is not ok', (await store.get('nope')).ok === false);
   const edited = await store.save(Object.assign({}, got.meeting, { title: 'Daily standup (edited)' }));
   T.check('editing keeps the id and createdAt, moves updatedAt', edited.meeting.id === saved.meeting.id && edited.meeting.createdAt === saved.meeting.createdAt);

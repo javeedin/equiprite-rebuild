@@ -95,8 +95,13 @@ define([
             toast('Transcribing…');
             const d = await C.dictate(res.base64, res.mime);
             if (d.ok && d.body && d.body.ok && d.body.text) {
-              const m = clone(v.meeting); const l = (m.lines || []).filter((x) => x.id === lineId)[0];
-              if (l) { l.text = (l.text ? l.text.trim() + ' ' : '') + d.body.text; l.raw = l.text; }
+              const m = clone(v.meeting);
+              if (lineId === '__body__') {
+                m.discussion = (m.discussion ? m.discussion.trim() + ' ' : '') + d.body.text;
+              } else {
+                const l = (m.lines || []).filter((x) => x.id === lineId)[0];
+                if (l) { l.text = (l.text ? l.text.trim() + ' ' : '') + d.body.text; l.raw = l.text; }
+              }
               v.meeting = m; v.dirty = true; toast('Added from voice.');
             } else toast((d.body && d.body.error) || 'Could not transcribe. Set up transcription on the Jira page first.', 'error');
           } else {
@@ -118,6 +123,25 @@ define([
           if (r.ok && r.body && r.body.ok && r.body.text) {
             const m = clone(v.meeting); const l = (m.lines || []).filter((x) => x.id === lineId)[0];
             if (l) l.text = String(r.body.text).trim();
+            v.meeting = m; v.dirty = true; toast('Formatted by ' + (r.body.provider || 'AI') + '.');
+          } else {
+            const err = (r.body && r.body.error) || '';
+            if (/choose the llm|not set up/i.test(err)) { toast('Set up AI first.', 'error'); v.aiForm = { provider: (v.ai && v.ai.active) || 'claude', key: '', model: '', baseUrl: '', status: '' }; v.dialog = 'ai'; }
+            else toast(err || 'AI could not format this.', 'error');
+          }
+          return;
+        }
+
+        case 'formatBody': {
+          // Tidy the whole discussion body into a clean, standard-minutes "Discussion" section via the shared Ask AI.
+          const text = String((v.meeting && v.meeting.discussion) || '').trim();
+          if (!text) { toast('Write what was discussed first, then Format with AI.', 'error'); return; }
+          v.fmtBody = true;
+          const p = R.formatBodyPrompt(text);
+          const r = await C.aiChat(p.system, p.user);
+          v.fmtBody = false;
+          if (r.ok && r.body && r.body.ok && r.body.text) {
+            const m = clone(v.meeting); m.discussion = String(r.body.text).trim();
             v.meeting = m; v.dirty = true; toast('Formatted by ' + (r.body.provider || 'AI') + '.');
           } else {
             const err = (r.body && r.body.error) || '';
