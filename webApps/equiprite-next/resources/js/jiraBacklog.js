@@ -242,6 +242,12 @@ define([], function () {
       fdd: parts.fdd, body: parts.body, ac: parts.ac, acChecks: acChecks(parts.ac).length,
       comments: comments, lastComment: lastComment ? lastComment.text : '', lastCommentBy: lastComment ? lastComment.author : '', lastCommentAt: lastComment ? lastComment.when : '',
       gaps: gaps, subtasks: (f.subtasks || []).length,
+      subtaskList: (f.subtasks || []).map(function (s) {
+        var sf = s.fields || {};
+        return { key: s.key || '', summary: txt(sf.summary), status: (sf.status && sf.status.name) || '',
+          statusCat: (sf.status && sf.status.statusCategory && sf.status.statusCategory.key) || 'new',
+          assignee: nameOf(sf.assignee), url: (opts.site || SITE).replace(/\/$/, '') + '/browse/' + (s.key || '') };
+      }),
       attachments: attachments, bodyImages: imagesFor(desc.names, attachments)
     };
     var checks = [];

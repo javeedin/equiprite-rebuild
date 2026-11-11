@@ -370,6 +370,7 @@
                     <span role="cell" class="nx-jira-key"><oj-bind-text value="[[ r.data.key ]]"></oj-bind-text></span>
                     <span role="cell" class="nx-jira-sum"><span class="nx-cell-main"><oj-bind-text value="[[ r.data.summary ]]"></oj-bind-text><oj-bind-if test="[[ !!$variables.evidenceIndex[r.data.key] ]]"><span :class="[[ $functions.recClass($variables.evidenceIndex[r.data.key]) ]]" role="img" :title="[[ $functions.recText($variables.evidenceIndex[r.data.key]) ]]" :aria-label="[[ $functions.recText($variables.evidenceIndex[r.data.key]) ]]"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M17 10.5V7a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3.5l4 4v-11l-4 4z"/></svg><oj-bind-text value="[[ $functions.recCount($variables.evidenceIndex[r.data.key]) ]]"></oj-bind-text></span></oj-bind-if></span>
                       <span class="nx-cell-sub"><oj-bind-text value="[[ r.data.epicKey ? r.data.epicKey + ' ' + r.data.epicName : 'No epic' ]]"></oj-bind-text></span>
+                      <oj-bind-if test="[[ (r.data.subtaskList || []).length > 0 ]]"><span class="nx-jira-subcount" :title="[[ 'Open the story to see its ' + r.data.subtaskList.length + ' subtasks' ]]"><oj-bind-text value="[[ '⤷ ' + r.data.subtaskList.length + (r.data.subtaskList.length === 1 ? ' subtask' : ' subtasks') ]]"></oj-bind-text></span></oj-bind-if>
                       <oj-bind-if test="[[ !!r.data.lastComment ]]"><span class="nx-jira-lastc" :title="[[ (r.data.lastCommentBy || '') + (r.data.lastCommentAt ? ' · ' + r.data.lastCommentAt : '') + '\n\n' + r.data.lastComment ]]"><oj-bind-text value="[[ '💬 ' + (r.data.lastCommentBy ? r.data.lastCommentBy + ': ' : '') + r.data.lastComment ]]"></oj-bind-text></span></oj-bind-if></span>
                     <span role="cell"><span :class="[[ 'nx-jira-status nx-jira-status--' + r.data.statusCat ]]"><oj-bind-text value="[[ r.data.status ]]"></oj-bind-text></span></span>
                     <span role="cell"><oj-bind-text value="[[ r.data.assignee || 'Nobody' ]]"></oj-bind-text></span>
@@ -439,6 +440,17 @@
           </oj-bind-for-each>
         </ul>
         <oj-bind-if test="[[ !$functions.item($variables.rows, $variables.selKey).ac ]]"><p class="nx-note">None written.</p></oj-bind-if>
+        <h3 class="nx-jira-h3">Subtasks</h3>
+        <ul class="nx-jira-list nx-jira-subs" id="jiraSubtasks">
+          <oj-bind-for-each data="[[ $functions.item($variables.rows, $variables.selKey).subtaskList ]]">
+            <template data-oj-as="st">
+              <li class="nx-jira-sub"><a class="nx-jira-subkey" :href="[[ st.data.url ]]" target="_blank" rel="noopener"><oj-bind-text value="[[ st.data.key ]]"></oj-bind-text></a>
+                <span :class="[[ 'nx-jira-status nx-jira-status--' + st.data.statusCat ]]"><oj-bind-text value="[[ st.data.status ]]"></oj-bind-text></span>
+                <span class="nx-jira-subsum"><oj-bind-text value="[[ st.data.summary + (st.data.assignee ? ' · ' + st.data.assignee : '') ]]"></oj-bind-text></span></li>
+            </template>
+          </oj-bind-for-each>
+        </ul>
+        <oj-bind-if test="[[ ($functions.item($variables.rows, $variables.selKey).subtaskList || []).length === 0 ]]"><p class="nx-note">No subtasks.</p></oj-bind-if>
         <h3 class="nx-jira-h3">Tester gaps</h3>
         <ol class="nx-jira-list" id="jiraItemGaps">
           <oj-bind-for-each data="[[ $functions.item($variables.rows, $variables.selKey).gaps ]]">

@@ -11,7 +11,7 @@ define(['resources/js/jiraBacklog'], (J) => {
   //                    recText, recClass, recCount (the lists' icon: a story with recordings on this PC)
   //   closeOnEscape()  Escape closes an open item's drawer by its own Close button (once for the app)
 
-  const EMPTY = { key: '', summary: '', fdd: [], checks: [], gaps: [], comments: [], labels: [], attachments: [], bodyImages: [] };
+  const EMPTY = { key: '', summary: '', fdd: [], checks: [], gaps: [], comments: [], labels: [], subtaskList: [], attachments: [], bodyImages: [] };
   // The drawers that show an item: Jira stories' and a sprint tab's.
   const DRAWERS = ['#jiraDrawer', '#jspDrawer'];
 

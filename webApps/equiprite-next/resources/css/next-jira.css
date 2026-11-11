@@ -84,6 +84,11 @@
 .nx-jira .nx-jira-key { font-weight: 700; color: var(--nx-accent); }
 .nx-jira .nx-jira-custcell { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
 .nx-jira .nx-jira-cust { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; background: var(--nx-accent-soft); color: var(--nx-accent); white-space: nowrap; }
+.nx-jira .nx-jira-subcount { display: inline-block; margin-top: 3px; font-size: 11px; font-weight: 700; color: var(--nx-accent); }
+.nx-jira-dr .nx-jira-subs .nx-jira-sub { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.nx-jira-dr .nx-jira-subkey { font-weight: 700; color: var(--nx-accent); text-decoration: none; white-space: nowrap; }
+.nx-jira-dr .nx-jira-subkey:hover { text-decoration: underline; }
+.nx-jira-dr .nx-jira-subsum { min-width: 0; overflow-wrap: anywhere; }
 .nx-jira .nx-jira-sum { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .nx-jira .nx-jira-sum .nx-cell-main { white-space: normal; }
 .nx-jira .nx-jira-status { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; background: var(--nx-surface-2); color: var(--nx-muted); }

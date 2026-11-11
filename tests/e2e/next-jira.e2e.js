@@ -30,6 +30,8 @@ const ISSUES = [
   issue('EQP-12', { summary: 'Equipment Master List View - Section 7.2', status: status('DEVELOPMENT', 'indeterminate'), parent: EPIC1,
     fixVersions: [{ name: '26C', releaseDate: days(-36) }], assignee: { displayName: 'Rahul Kanth Panganamamula' }, duedate: days(-29),
     labels: ['cianbro'],
+    subtasks: [{ key: 'EQP-12-1', fields: { summary: 'Wire the grid to smart search', status: { name: 'DEVELOPMENT', statusCategory: { key: 'indeterminate' } }, assignee: { displayName: 'Sana Suhana Thehaseen' } } },
+      { key: 'EQP-12-2', fields: { summary: 'Add the Type column', status: { name: 'Done', statusCategory: { key: 'done' } } } }],
     description: 'Display master list of all equipment records with smart search.Acceptance Criteria: Grid displays all columns per FDD 7.2.4; smart search returns results with type-ahead; all filter fields functional.FDD Section: 7.2Only Smart search is available.',
     comment: { comments: [{ author: { displayName: 'Sana Suhana Thehaseen' }, created: '2026-09-29T04:37:34.383-0500',
       body: '**(FDD-7.2)**\n\n1. Only Class, Subclass search filters are present.\n\n2. Type Column is missing.\n\n3. Map view is missing.\n\n4. Edit option to be added.\n\n!Screenshot 2026-11-04 135139.png|width=227,alt="Screenshot 2026-11-04 135139.png"!' }] },
@@ -312,6 +314,8 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     T.section('Items table: a Customer column, and the By status / By person / By customer rows filter it');
     T.check('a Customer column shows each item\'s labels', (await page.$('#jspGrid .nx-jira-row--head [data-col="customer"]')) !== null
       && (await text(page, '#jspGrid .nx-jsp-row[data-key="EQP-12"] .nx-jira-custcell')).includes('cianbro'));
+    T.check('an item with subtasks shows a subtask count under its summary', (await page.$('#jspGrid .nx-jsp-row[data-key="EQP-12"] .nx-jira-subcount')) !== null
+      && /2 subtasks/.test(await text(page, '#jspGrid .nx-jsp-row[data-key="EQP-12"] .nx-jira-subcount')));
     await page.click('#jspStatuses .nx-jsp-pickbar[data-value="DEVELOPMENT"]');
     await settle(page, 200);
     T.check('clicking a By status row filters the items by it (row marked, filter set, Clear shown)',
@@ -420,6 +424,9 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
       && (await text(page, '#jspDrawer')).includes('EQP-12 Equipment Master List View - Section 7.2') && (await texts(page, '#jspAc li')).length === 3
       && (await texts(page, '#jspItemGaps li')).length === 4, (await text(page, '#jspDrawer')).slice(0, 200));
     T.eq('…its Open in Jira', await page.getAttribute('#jspOpenInJira', 'href'), 'https://equiprite.atlassian.net/browse/EQP-12');
+    T.check('…its subtasks, each with its key (link to Jira), status and summary', (await page.$$('#jspSubtasks .nx-jira-sub')).length === 2
+      && (await page.getAttribute('#jspSubtasks .nx-jira-sub:nth-child(1) .nx-jira-subkey', 'href')) === 'https://equiprite.atlassian.net/browse/EQP-12-1'
+      && /Wire the grid to smart search/.test(await text(page, '#jspSubtasks')) && /Done/.test(await text(page, '#jspSubtasks')));
     await page.waitForFunction(() => { const i = document.querySelector('#jspItem .nx-jira-comment img'); return i && i.complete && i.naturalWidth > 0; }, null, { timeout: 10000 }).catch(() => {});
     T.check('…the tester\'s screenshot, its attachments, and its test evidence (Record) as on Jira stories', await page.$eval('#jspItem .nx-jira-comment img', (i) => i.naturalWidth > 0).catch(() => false)
       && (await page.$$('#jspAttachments img')).length === 1 && await page.isVisible('#jspRecord'));
@@ -463,6 +470,8 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
       && item.includes('Carried over from an earlier sprint'), item.slice(0, 400));
     T.eq('its criteria as a list', (await texts(page, '#jiraAc li')).join(' | '), 'Grid displays all columns per FDD 7.2.4 | smart search returns results with type-ahead | all filter fields functional.');
     T.eq('its tester gaps', (await texts(page, '#jiraItemGaps li')).length, 4);
+    T.check('its subtasks, each with key, status and summary', (await page.$$('#jiraSubtasks .nx-jira-sub')).length === 2
+      && /EQP-12-2/.test(await text(page, '#jiraSubtasks')) && /Add the Type column/.test(await text(page, '#jiraSubtasks')));
     T.eq('Open in Jira', await page.getAttribute('#jiraOpenInJira', 'href'), 'https://equiprite.atlassian.net/browse/EQP-12');
     await page.waitForFunction(() => { const i = document.querySelector('#jiraItem .nx-jira-comment img'); return i && i.complete && i.naturalWidth > 0; }, null, { timeout: 10000 }).catch(() => {});
     T.check('the screenshot in the tester\'s comment shows, read through the signed-in connection (redirect=false)', await page.$eval('#jiraItem .nx-jira-comment img',
