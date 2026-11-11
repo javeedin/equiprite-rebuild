@@ -170,12 +170,18 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     T.section('the numbers and what they say');
     T.eq('the tiles', (await texts(page, '#jiraTiles .nx-jira-tile')).join(' | '),
       '5 Items | 1 Done 20% | 3 In progress | 1 On hold | 1 Overdue | 1 No acceptance criteria | 4 Tester gaps 1 items | 3.5 / 5 Average quality');
+    // "What it says" and "By status" are the last two breakdown tabs now
+    T.eq('the last two tabs are What it says and By status', (await texts(page, '#jiraTabs .nx-jira-tab')).slice(-2).map((t) => t.replace(/\s*\(\d+\)\s*$/, '')).join(' | '), 'What it says | By status');
+    await page.click('#jiraTabs .nx-jira-tab[data-value="findings"]');
+    await settle(page, 300);
     const finds = await texts(page, '#jiraFindings .nx-jira-find');
     T.check('the findings: overdue first, the passed release, the missing criteria, the gaps', finds[0] === '1 item is past its due date, most of them in DEVELOPMENT (1).'
       && finds.some((f) => /^Release 26C was due .* and still has 1 item not done\.$/.test(f)) && finds.some((f) => f.includes('no acceptance criteria'))
       && finds.some((f) => f.startsWith('Testers listed 4 gaps')), finds.join(' | '));
-    T.eq('by status, in the workflow\'s order', (await texts(page, '#jiraStatuses .nx-jira-bar')).join(' | '),
-      'FUNC DESIGN 1 · 20% | DEVELOPMENT 2 · 40% | ONHOLD 1 · 20% | Done 1 · 20%');
+    const stillActive = finds.findIndex((f) => f.startsWith('Sprint 2026-07 is still active'));
+    T.check('the sprint findings: one still active after its end, the running one\'s progress, a stale future one, the spill-over',
+      stillActive !== -1 && (await text(page, '#jiraFindings')).includes('Sprint Sprint now: 0 of 1 done (0%), 9 days left.')
+      && (await text(page, '#jiraFindings')).includes('1 future sprint has an end date already past (2026-10 B)') && (await text(page, '#jiraFindings')).includes('1 open item was carried over'));
     await page.click('#jiraFindings .nx-jira-find >> nth=0');
     await settle(page, 500);
     T.eq('a finding opens its items, and says so', [(await texts(page, '#jiraGrid .nx-jira-row:not(.nx-jira-row--head) .nx-jira-key')).join(','), await text(page, '#jiraShowing')].join(' / '),
@@ -183,20 +189,22 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     await page.click('#jiraShowing .nx-jira-x');
     await settle(page, 400);
     T.eq('cleared: every item', (await texts(page, '#jiraGrid .nx-jira-row:not(.nx-jira-row--head)')).length, 5);
+    await page.click('#jiraTabs .nx-jira-tab[data-value="status"]');
+    await settle(page, 300);
+    T.eq('by status, in the workflow\'s order', (await texts(page, '#jiraStatuses .nx-jira-bar')).join(' | '),
+      'FUNC DESIGN 1 · 20% | DEVELOPMENT 2 · 40% | ONHOLD 1 · 20% | Done 1 · 20%');
     await page.click('#jiraTiles .nx-jira-tile[data-key="noAc"]');
     await settle(page, 400);
     T.eq('a tile opens what it counts', (await texts(page, '#jiraGrid .nx-jira-row:not(.nx-jira-row--head) .nx-jira-key')).join(','), 'EQP-30');
     await page.click('#jiraShowing .nx-jira-x');
 
     T.section('the breakdowns');
+    await page.click('#jiraTabs .nx-jira-tab[data-value="sprints"]');
+    await settle(page, 300);
     T.eq('by sprint first: active, then future, then closed; what is wrong with each', (await texts(page, '#jiraSprints .nx-jira-tr--sprint:not(.nx-jira-tr--head) .nx-jira-sprintname')).join(' | '),
       '2026-07 active Still active, ended 2026-07-31 1 item due after it ends | Sprint now active Goal: Equipment master editable 1 item due after it ends | '
       + '2026-10 B future Future, but its end date (' + days(-5) + ') has passed 1 item due after it ends | No sprint');
     T.check('…its dates and days left, done of total', (await texts(page, '#jiraSprints .nx-jira-tr--sprint[data-value="Sprint now"]'))[0].includes(days(-4) + ' – ' + days(9) + ' · 9 days left'));
-    const stillActive = (await texts(page, '#jiraFindings .nx-jira-find')).findIndex((f) => f.startsWith('Sprint 2026-07 is still active'));
-    T.check('the sprint findings: one still active after its end, the running one\'s progress, a stale future one, the spill-over',
-      stillActive !== -1 && (await text(page, '#jiraFindings')).includes('Sprint Sprint now: 0 of 1 done (0%), 9 days left.')
-      && (await text(page, '#jiraFindings')).includes('1 future sprint has an end date already past (2026-10 B)') && (await text(page, '#jiraFindings')).includes('1 open item was carried over'));
     await page.click('#jiraSprints .nx-jira-tr--sprint[data-value="2026-07"] span[role="cell"]:nth-child(2)');
     await settle(page, 400);
     T.eq('a sprint row filters the items below', (await texts(page, '#jiraGrid .nx-jira-row:not(.nx-jira-row--head) .nx-jira-key')).join(','), 'EQP-12');

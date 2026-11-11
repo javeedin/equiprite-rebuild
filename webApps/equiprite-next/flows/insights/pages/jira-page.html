@@ -106,36 +106,7 @@
         </oj-bind-for-each>
       </div>
 
-      <div class="nx-jira-two">
-        <!-- what the numbers say -->
-        <section class="nx-card nx-card-pad nx-jira-findings" aria-labelledby="jiraFindTitle">
-          <h2 class="nx-h2" id="jiraFindTitle">What it says</h2>
-          <ul class="nx-jira-findlist" id="jiraFindings">
-            <oj-bind-for-each data="[[ $variables.analysis.findings ]]">
-              <template data-oj-as="fd">
-                <li><button type="button" :class="[[ 'nx-jira-find nx-jira-find--' + fd.data.tone ]]" :data-index="[[ fd.index ]]" on-click="[[ $listeners.onFinding ]]">
-                  <oj-bind-text value="[[ fd.data.text ]]"></oj-bind-text></button></li>
-              </template>
-            </oj-bind-for-each>
-          </ul>
-        </section>
-        <!-- by status -->
-        <section class="nx-card nx-card-pad nx-jira-bystatus" aria-labelledby="jiraStatusTitle">
-          <h2 class="nx-h2" id="jiraStatusTitle">By status</h2>
-          <ul class="nx-jira-bars" id="jiraStatuses">
-            <oj-bind-for-each data="[[ $variables.analysis.statuses ]]">
-              <template data-oj-as="s">
-                <li><button type="button" class="nx-jira-bar" data-field="status" :data-value="[[ s.data.status ]]" :data-label="[[ 'Status: ' + s.data.status ]]" on-click="[[ $listeners.onFilterClick ]]">
-                  <span class="nx-jira-barlabel"><oj-bind-text value="[[ s.data.status ]]"></oj-bind-text></span>
-                  <span class="nx-jira-bartrack"><span :class="[[ 'nx-jira-barfill nx-jira-barfill--' + s.data.cat ]]" :style="[[ $functions.barStyle(s.data.pct) ]]"></span></span>
-                  <span class="nx-jira-barval"><oj-bind-text value="[[ s.data.count + ' · ' + s.data.pct + '%' ]]"></oj-bind-text></span></button></li>
-              </template>
-            </oj-bind-for-each>
-          </ul>
-        </section>
-      </div>
-
-      <!-- the breakdowns -->
+      <!-- the breakdowns (What it says and By status are the last two tabs) -->
       <section class="nx-card nx-jira-break" aria-label="Breakdowns">
         <div class="nx-jira-tabs" role="tablist" id="jiraTabs">
           <oj-bind-for-each data="[[ $functions.tabs($variables.analysis) ]]">
@@ -277,6 +248,29 @@
               </oj-bind-for-each>
               <oj-bind-if test="[[ $variables.analysis.gaps.length === 0 ]]"><p class="nx-note">No tester has listed gaps on these items.</p></oj-bind-if>
             </div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.tab === 'findings' ]]">
+            <ul class="nx-jira-findlist" id="jiraFindings" aria-label="What it says">
+              <oj-bind-for-each data="[[ $variables.analysis.findings ]]">
+                <template data-oj-as="fd">
+                  <li><button type="button" :class="[[ 'nx-jira-find nx-jira-find--' + fd.data.tone ]]" :data-index="[[ fd.index ]]" on-click="[[ $listeners.onFinding ]]">
+                    <oj-bind-text value="[[ fd.data.text ]]"></oj-bind-text></button></li>
+                </template>
+              </oj-bind-for-each>
+              <oj-bind-if test="[[ $variables.analysis.findings.length === 0 ]]"><p class="nx-note">Nothing to flag on these items.</p></oj-bind-if>
+            </ul>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.tab === 'status' ]]">
+            <ul class="nx-jira-bars" id="jiraStatuses" aria-label="By status">
+              <oj-bind-for-each data="[[ $variables.analysis.statuses ]]">
+                <template data-oj-as="s">
+                  <li><button type="button" class="nx-jira-bar" data-field="status" :data-value="[[ s.data.status ]]" :data-label="[[ 'Status: ' + s.data.status ]]" on-click="[[ $listeners.onFilterClick ]]">
+                    <span class="nx-jira-barlabel"><oj-bind-text value="[[ s.data.status ]]"></oj-bind-text></span>
+                    <span class="nx-jira-bartrack"><span :class="[[ 'nx-jira-barfill nx-jira-barfill--' + s.data.cat ]]" :style="[[ $functions.barStyle(s.data.pct) ]]"></span></span>
+                    <span class="nx-jira-barval"><oj-bind-text value="[[ s.data.count + ' · ' + s.data.pct + '%' ]]"></oj-bind-text></span></button></li>
+                </template>
+              </oj-bind-for-each>
+            </ul>
           </oj-bind-if>
         </div>
       </section>
