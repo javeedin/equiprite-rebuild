@@ -113,6 +113,7 @@ define([], function () {
     graphPoll: function () { return min('graph/poll', 'POST', {}); },
     graphConfig: function (b) { return min('graph/config', 'POST', b); },
     graphSignIn: function () { return min('graph/signin', 'POST', {}); },
+    graphInteractive: function () { return min('graph/interactive', 'POST', {}); },
     graphSignOut: function () { return min('graph/signout', 'POST', {}); },
     graphTest: function (b) { return min('graph/test', 'POST', b || {}); },
     graphSend: function (b) { return min('graph/send', 'POST', b || {}); },

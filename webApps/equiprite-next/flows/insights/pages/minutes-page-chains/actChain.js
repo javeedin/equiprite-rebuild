@@ -163,6 +163,26 @@ define([
         case 'settings': { await openSettings(); return; }
         case 'setProvider': { const f = clone(v.settingsForm) || {}; f.provider = id || 'local'; v.settingsForm = f; return; }
         case 'setDirectory': { const f = clone(v.settingsForm) || {}; f.directory = !f.directory; v.settingsForm = f; return; }
+        case 'graphInteractive': {
+          const f = clone(v.settingsForm) || {};
+          await C.graphConfig({ tenantId: f.tenantId, clientId: f.clientId, directory: !!f.directory });
+          toast('Opening the Microsoft sign-in window…');
+          const r = await C.graphInteractive();
+          if (r.ok && r.body && r.body.ok) {
+            if (r.body.status) v.graph = r.body.status; else { const s = await C.graphStatus(); if (s.ok && s.body) v.graph = s.body; }
+            toast('Signed in to Microsoft 365' + (v.graph.account ? ' as ' + v.graph.account : '') + '.');
+            try {
+              const pc = await C.contacts('');
+              if (pc.ok && pc.body && pc.body.contacts) {
+                const have = {}; const merged = [];
+                pc.body.contacts.forEach((p) => { const k = String((p.email || p.name) || '').toLowerCase(); if (p && k && !have[k]) { have[k] = true; merged.push({ name: p.name, email: p.email }); } });
+                (v.people || []).forEach((p) => { const k = String((p.email || p.name) || '').toLowerCase(); if (p && k && !have[k]) { have[k] = true; merged.push(p); } });
+                v.people = merged;
+              }
+            } catch (e) { /* keep people */ }
+          } else { const g = clone(v.graph) || {}; g.error = (r.body && r.body.error) || 'Sign-in did not complete.'; v.graph = g; toast(g.error, 'error'); }
+          return;
+        }
         case 'graphSignIn': {
           const f = clone(v.settingsForm) || {};
           await C.graphConfig({ tenantId: f.tenantId, clientId: f.clientId, directory: !!f.directory });

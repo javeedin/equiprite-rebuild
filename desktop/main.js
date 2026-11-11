@@ -117,6 +117,28 @@ async function transcriber() {
 }
 // Standup minutes, for EquipRite Next's Minutes page: the daily standup on the Jira backlog, kept in this app's data
 // folder (the Teams webhook in the OS keychain). Voice→text reuses the Whisper engine; "Format by AI" the Ask AI key.
+// Interactive Microsoft 365 sign-in in a popup window (auth-code + PKCE): open the Microsoft page in a child
+// BrowserWindow and capture the ?code= from the redirect to the native-client URL — far more reliable than device code.
+function interactiveAuth(authUrl, redirectUri) {
+  return new Promise((resolve) => {
+    let done = false;
+    const auth = new BrowserWindow({ width: 520, height: 700, parent: win || undefined, modal: !!win, show: true, autoHideMenuBar: true,
+      title: 'Sign in to Microsoft 365', webPreferences: { nodeIntegration: false, contextIsolation: true, partition: 'persist:eqr-msauth' } });
+    const finish = (r) => { if (done) return; done = true; try { auth.destroy(); } catch (e) { /* already gone */ } resolve(r); };
+    const check = (url) => {
+      if (!url || url.indexOf(redirectUri) !== 0) return false;
+      try { const u = new URL(url); const code = u.searchParams.get('code'); const err = u.searchParams.get('error_description') || u.searchParams.get('error');
+        if (code) { finish({ code: code }); return true; } if (err) { finish({ error: err }); return true; } } catch (e) { /* keep waiting */ }
+      return false;
+    };
+    auth.webContents.on('will-redirect', (e, url) => { if (check(url)) e.preventDefault(); });
+    auth.webContents.on('will-navigate', (e, url) => { if (check(url)) e.preventDefault(); });
+    auth.webContents.on('did-navigate', (e, url) => check(url));
+    auth.on('closed', () => { if (!done) { done = true; resolve({ error: 'Sign-in window was closed before it finished.' }); } });
+    auth.loadURL(authUrl).catch((e) => finish({ error: String((e && e.message) || e) }));
+  });
+}
+
 let minutesStoreInst = null;
 async function minutesStore() {
   if (!minutesStoreInst) {
@@ -134,6 +156,7 @@ async function minutesStore() {
         decrypt: canEncrypt() ? (b) => safeStorage.decryptString(b) : null,
         fetch: (url, init) => { const { net } = require('electron'); return net.fetch(url, init); },
         openExternal: (u) => { const { shell } = require('electron'); return shell.openExternal(u); },
+        interactiveAuth: interactiveAuth,
       }),
     });
   }

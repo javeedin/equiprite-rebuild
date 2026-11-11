@@ -341,6 +341,7 @@ async function open(o) {
   store.graphPoll = async () => (graph && graph.graphPoll ? graph.graphPoll() : store.graphStatus());
   store.graphConfig = async (b) => { if (graph) graph.saveConfig(b || {}); return { ok: true, status: store.graphStatus() }; };
   store.graphBegin = async () => (graph ? graph.beginSignIn() : { ok: false, error: 'Microsoft 365 is not available in this app.' });
+  store.graphInteractive = async () => (graph && graph.signInInteractive ? graph.signInInteractive() : { ok: false, error: 'In-app sign-in is not available in this app.' });
   store.graphSignOut = async () => { if (graph) graph.signOut(); return { ok: true, status: store.graphStatus() }; };
   return store;
 }

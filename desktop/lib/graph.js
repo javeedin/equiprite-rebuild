@@ -19,9 +19,13 @@
  */
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const AUTHORITY = 'https://login.microsoftonline.com';
 const GRAPH = 'https://graph.microsoft.com/v1.0';
+// Redirect for the in-app popup sign-in (auth-code + PKCE). The native-client URL needs no local server: the popup
+// lands on it with ?code=… and we read the code from the URL. Register it on the app (Mobile & desktop applications).
+const REDIRECT = 'https://login.microsoftonline.com/common/oauth2/nativeclient';
 // BASE_SCOPE always works (sign-in, send, relevant people). SCOPE adds User.ReadBasic.All so the whole-company
 // directory (/users) can be searched; when that permission is not on the app registration / not consented, sign-in and
 // token refresh fall back to BASE_SCOPE so nothing breaks — the directory simply stays unavailable until IT grants it.
@@ -41,6 +45,7 @@ function open(o) {
   const decrypt = o.decrypt || null;
   const doFetch = o.fetch || (typeof fetch === 'function' ? fetch : null);
   const openExternal = o.openExternal || (() => {});
+  const interactiveAuth = o.interactiveAuth || null; // (authUrl, redirectUri) -> { code } | { error } (a popup window)
 
   let data = { tenantId: '', clientId: '', account: '', directory: false, tokens: null };
   try { data = Object.assign(data, JSON.parse(fs.readFileSync(file, 'utf8'))); } catch (e) { /* first run */ }
@@ -164,6 +169,30 @@ function open(o) {
         pending.error = ADMIN_CONSENT.test(JSON.stringify(r.body || {})) ? ADMIN_CONSENT_MSG : (r.body.error_description || r.body.error || 'Sign-in failed.'); pending.done = true;
       }
       return status();
+    },
+    // In-app popup sign-in (authorization code + PKCE): opens the Microsoft page in a window and captures the code from
+    // the redirect, then exchanges it for a token. No device code to type, no background polling.
+    async signInInteractive() {
+      if (!data.tenantId || !data.clientId) return { ok: false, error: 'Enter your Microsoft 365 Tenant ID and Client ID first.' };
+      if (!interactiveAuth) return { ok: false, error: 'In-app sign-in is not available in this app.' };
+      const verifier = crypto.randomBytes(32).toString('base64url');
+      const challenge = crypto.createHash('sha256').update(verifier).digest('base64url');
+      const authUrl = AUTHORITY + '/' + encodeURIComponent(data.tenantId) + '/oauth2/v2.0/authorize?' + qs({
+        client_id: data.clientId, response_type: 'code', redirect_uri: REDIRECT, response_mode: 'query', scope: scopeNow(),
+        code_challenge: challenge, code_challenge_method: 'S256', state: crypto.randomBytes(8).toString('hex'), prompt: 'select_account' });
+      let res;
+      try { res = await interactiveAuth(authUrl, REDIRECT); } catch (e) { return { ok: false, error: String((e && e.message) || e) }; }
+      if (!res || !res.code) return { ok: false, error: (res && res.error) || 'Sign-in did not complete.' };
+      const tr = await httpForm(AUTHORITY + '/' + encodeURIComponent(data.tenantId) + '/oauth2/v2.0/token',
+        { grant_type: 'authorization_code', client_id: data.clientId, code: res.code, redirect_uri: REDIRECT, code_verifier: verifier, scope: scopeNow() });
+      if (!(tr.status >= 200 && tr.status < 300 && tr.body && tr.body.access_token)) {
+        const b = tr.body || {};
+        return { ok: false, error: ADMIN_CONSENT.test(JSON.stringify(b)) ? ADMIN_CONSENT_MSG : (b.error_description || b.error || 'Could not get a token.') };
+      }
+      storeTokens(tr.body);
+      try { const me = await graph('GET', '/me', tr.body.access_token); data.account = (me.body && (me.body.userPrincipalName || me.body.mail)) || ''; write(); } catch (e) { /* account optional */ }
+      pending = null;
+      return { ok: true, status: status() };
     },
     async people(q) {
       const t = await token();

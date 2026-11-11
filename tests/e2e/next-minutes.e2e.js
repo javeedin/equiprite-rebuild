@@ -64,6 +64,7 @@ async function setField(page, sel, val) { await page.fill(sel, val); await page.
     status: () => Object.assign({}, gState),
     saveConfig: (b) => { if (b.tenantId !== undefined) gState.tenantId = b.tenantId; if (b.clientId !== undefined) gState.clientId = b.clientId; gState.configured = !!(gState.tenantId && gState.clientId); return gState; },
     beginSignIn: async () => { gState.pending = true; gState.userCode = 'ABCD-1234'; gState.verificationUri = 'https://microsoft.com/devicelogin'; setTimeout(() => { gState.pending = false; gState.signedIn = true; gState.account = 'javeed@rite.digital'; }, 800); return { ok: true, userCode: gState.userCode, verificationUri: gState.verificationUri, message: 'enter the code' }; },
+    signInInteractive: async () => { gState.pending = false; gState.signedIn = true; gState.account = 'javeed@rite.digital'; return { ok: true, status: Object.assign({}, gState) }; },
     signOut: () => { gState.signedIn = false; gState.account = ''; return gState; },
     people: async () => ({ ok: true, available: true, contacts: [{ name: 'Sandeep Reddy', email: 'sandeep.reddy@rite.digital' }, { name: 'HR India', email: 'hrindia@rite.digital' }] }),
     sendMail: async (b) => { graphSent.push(b); return { ok: true }; },
@@ -174,7 +175,7 @@ async function setField(page, sel, val) { await page.fill(sel, val); await page.
     await setField(page, '#minSetDlg input[data-field="clientId"]', 'client-abc');
     await page.click('#minGraphIn');
     await page.waitForFunction(() => /Signed in/.test((document.querySelector('#minSetDlg') || {}).innerText || ''), null, { timeout: 15000 }).catch(() => {});
-    T.check('device-code sign-in signs the user in to Microsoft 365', /Signed in/.test(await text(page, '#minSetDlg')) && /javeed@rite\.digital/.test(await text(page, '#minSetDlg')));
+    T.check('the in-app popup sign-in signs the user in to Microsoft 365', /Signed in/.test(await text(page, '#minSetDlg')) && /javeed@rite\.digital/.test(await text(page, '#minSetDlg')));
     await page.click('#minGraphTest');
     await settle(page, 400);
     T.check('Send a test email to me sends via Microsoft 365 to the signed-in account', graphSent.some((m) => /javeed@rite\.digital/.test(m.to) && /Microsoft 365 test/.test(m.subject)));

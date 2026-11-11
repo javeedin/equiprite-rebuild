@@ -238,9 +238,10 @@
         </oj-bind-if>
         <oj-bind-if test="[[ !$variables.graph.signedIn && !$variables.graph.pending ]]">
           <div class="nx-min-dc-row">
-            <button type="button" class="nx-btn nx-btn--sm" id="minGraphIn" data-act="graphSignIn" on-click="[[ $listeners.onAct ]]">Sign in to Microsoft 365</button>
-            <button type="button" class="nx-btn nx-btn--sm" id="minGraphCheck2" data-act="graphRecheck" on-click="[[ $listeners.onAct ]]">Check sign-in status</button>
+            <button type="button" class="nx-btn nx-btn--sm nx-btn--cta" id="minGraphIn" data-act="graphInteractive" on-click="[[ $listeners.onAct ]]">Sign in to Microsoft 365</button>
+            <button type="button" class="nx-btn nx-btn--sm" id="minGraphCheck2" data-act="graphRecheck" on-click="[[ $listeners.onAct ]]">Check status</button>
           </div>
+          <p class="nx-note">A Microsoft sign-in window opens inside EquipRite — no code to type. <button type="button" class="nx-min-linkbtn" id="minGraphCodeLink" data-act="graphSignIn" on-click="[[ $listeners.onAct ]]">Use a sign-in code instead</button></p>
         </oj-bind-if>
         <oj-bind-if test="[[ $variables.graph.error ]]"><p class="nx-note nx-min-err2"><oj-bind-text value="[[ $variables.graph.error ]]"></oj-bind-text></p></oj-bind-if>
         <oj-bind-if test="[[ $variables.graph.hasToken && !$variables.graph.signedIn ]]"><p class="nx-note nx-min-err2">A token is stored on this PC but could not be used — this is usually a Windows secure-storage issue. Update to the latest EquipRite, then sign out and sign in again.</p></oj-bind-if>

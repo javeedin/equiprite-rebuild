@@ -172,6 +172,28 @@ const openExternal = (u) => opened.push(u);
   store8.signOut();
   try { fs.rmSync(dir5, { recursive: true, force: true }); } catch (e) { /* temp */ }
 
+  T.section('in-app popup sign-in (authorization code + PKCE)');
+  const dir6 = fs.mkdtempSync(path.join(os.tmpdir(), 'eqp-graph6-'));
+  const iaCalls = [];
+  const iaFetch = (url, init) => {
+    const body = (init && init.body) || '';
+    if (/\/token$/.test(url) && /grant_type=authorization_code/.test(body)) { iaCalls.push(body); return Promise.resolve({ status: 200, text: async () => JSON.stringify({ access_token: 'ATI', refresh_token: 'RTI', expires_in: 3600 }) }); }
+    if (/\/me$/.test(url)) return Promise.resolve({ status: 200, text: async () => JSON.stringify({ userPrincipalName: 'popup@rite.digital' }) });
+    return Promise.resolve({ status: 404, text: async () => '{}' });
+  };
+  let authUrlSeen = '';
+  const interactiveAuth = async (authUrl) => { authUrlSeen = authUrl; return { code: 'AUTHCODE1' }; };
+  const store9 = G.open({ file: path.join(dir6, 'g.json'), encrypt: enc, decrypt: dec, fetch: iaFetch, interactiveAuth: interactiveAuth });
+  store9.saveConfig({ tenantId: 't', clientId: 'c' });
+  const ri = await store9.signInInteractive();
+  T.check('popup sign-in exchanges the code for a token and signs in', ri.ok === true && store9.status().signedIn === true && store9.status().account === 'popup@rite.digital');
+  T.check('…it used PKCE and the native-client redirect', /code_challenge=/.test(authUrlSeen) && /code_challenge_method=S256/.test(authUrlSeen) && /nativeclient/.test(authUrlSeen)
+    && iaCalls.some((b) => /code_verifier=/.test(b) && /AUTHCODE1/.test(b)));
+  const iaClosed = G.open({ file: path.join(dir6, 'g2.json'), encrypt: enc, decrypt: dec, fetch: iaFetch, interactiveAuth: async () => ({ error: 'Sign-in window was closed before it finished.' }) });
+  iaClosed.saveConfig({ tenantId: 't', clientId: 'c' });
+  T.check('a closed popup reports an error and stays signed out', !(await iaClosed.signInInteractive()).ok && iaClosed.status().signedIn === false);
+  try { fs.rmSync(dir6, { recursive: true, force: true }); } catch (e) { /* temp */ }
+
   T.section('sign out');
   T.check('sign out clears the session', store2.signOut().signedIn === false);
 
