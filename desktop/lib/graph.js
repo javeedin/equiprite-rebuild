@@ -35,8 +35,19 @@ const SCOPE_ERR = /scope|consent|AADSTS70011|AADSTS65001|AADSTS90008/i;
 // The tenant requires an administrator to approve the app (user consent is disabled), e.g. the "Approval required" page.
 const ADMIN_CONSENT = /AADSTS65004|AADSTS90094|AADSTS9008\d|admin[^.]{0,30}(approv|consent)|consent_required|requires? (admin )?approval/i;
 const ADMIN_CONSENT_MSG = 'Microsoft 365 needs an administrator to approve the Equip_Rite app before you can sign in. Ask an admin to "Grant admin consent" for it in Azure, then sign in again.';
+// Device-code token exchange rejected because the app is not allowed as a public client (the toggle is off).
+const PUBLIC_CLIENT_ERR = /AADSTS7000218|AADSTS700016|AADSTS90002[0-9]|invalid_client|client_assertion|client_secret/i;
+const PUBLIC_CLIENT_MSG = 'Microsoft signed you in, but the Equip_Rite app must have "Allow public client flows" turned ON in Azure (Authentication → Advanced settings) to finish code sign-in. Ask an admin to enable it, then click "check now" — or use the popup sign-in with the native-client redirect URL registered.';
 
 function qs(o) { return Object.keys(o).map((k) => encodeURIComponent(k) + '=' + encodeURIComponent(o[k])).join('&'); }
+
+// Turn a Microsoft token-error body into a message that says what to fix, not a raw AADSTS code.
+function friendlyAuthError(body, fallback) {
+  const s = JSON.stringify(body || {});
+  if (PUBLIC_CLIENT_ERR.test(s)) return PUBLIC_CLIENT_MSG;
+  if (ADMIN_CONSENT.test(s)) return ADMIN_CONSENT_MSG;
+  return (body && body.error_description) || (body && body.error) || fallback || 'Sign-in failed.';
+}
 
 function open(o) {
   o = o || {};
@@ -146,7 +157,7 @@ function open(o) {
         const err = r.body.error;
         if (err === 'authorization_pending') { setTimeout(poll, interval); return; }
         if (err === 'slow_down') { interval += 5000; setTimeout(poll, interval); return; }
-        pending.error = ADMIN_CONSENT.test(JSON.stringify(r.body || {})) ? ADMIN_CONSENT_MSG : (r.body.error_description || err || 'Sign-in failed.'); pending.done = true;
+        pending.error = friendlyAuthError(r.body, err || 'Sign-in failed.'); pending.done = true;
       };
       setTimeout(poll, interval);
       return { ok: true, userCode: dc.user_code, verificationUri: dc.verification_uri, message: dc.message || ('Open ' + dc.verification_uri + ' and enter code ' + dc.user_code) };
@@ -166,7 +177,7 @@ function open(o) {
         try { const me = await graph('GET', '/me', r.body.access_token); data.account = (me.body && (me.body.userPrincipalName || me.body.mail)) || ''; write(); } catch (e) { /* account optional */ }
         pending.done = true;
       } else if (r.body && r.body.error && r.body.error !== 'authorization_pending' && r.body.error !== 'slow_down') {
-        pending.error = ADMIN_CONSENT.test(JSON.stringify(r.body || {})) ? ADMIN_CONSENT_MSG : (r.body.error_description || r.body.error || 'Sign-in failed.'); pending.done = true;
+        pending.error = friendlyAuthError(r.body, r.body.error); pending.done = true;
       }
       return status();
     },
@@ -186,8 +197,7 @@ function open(o) {
       const tr = await httpForm(AUTHORITY + '/' + encodeURIComponent(data.tenantId) + '/oauth2/v2.0/token',
         { grant_type: 'authorization_code', client_id: data.clientId, code: res.code, redirect_uri: REDIRECT, code_verifier: verifier, scope: scopeNow() });
       if (!(tr.status >= 200 && tr.status < 300 && tr.body && tr.body.access_token)) {
-        const b = tr.body || {};
-        return { ok: false, error: ADMIN_CONSENT.test(JSON.stringify(b)) ? ADMIN_CONSENT_MSG : (b.error_description || b.error || 'Could not get a token.') };
+        return { ok: false, error: friendlyAuthError(tr.body, 'Could not get a token.') };
       }
       storeTokens(tr.body);
       try { const me = await graph('GET', '/me', tr.body.access_token); data.account = (me.body && (me.body.userPrincipalName || me.body.mail)) || ''; write(); } catch (e) { /* account optional */ }

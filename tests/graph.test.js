@@ -194,6 +194,21 @@ const openExternal = (u) => opened.push(u);
   T.check('a closed popup reports an error and stays signed out', !(await iaClosed.signInInteractive()).ok && iaClosed.status().signedIn === false);
   try { fs.rmSync(dir6, { recursive: true, force: true }); } catch (e) { /* temp */ }
 
+  T.section('code sign-in rejected as a public client: a clear message, not a raw code');
+  const dir7 = fs.mkdtempSync(path.join(os.tmpdir(), 'eqp-graph7-'));
+  const pcFetch = (url) => {
+    if (/\/devicecode$/.test(url)) return Promise.resolve({ status: 200, text: async () => JSON.stringify({ device_code: 'DCX', user_code: 'PC-1', verification_uri: 'https://microsoft.com/devicelogin', interval: 2, expires_in: 900 }) });
+    if (/\/token$/.test(url)) return Promise.resolve({ status: 400, text: async () => JSON.stringify({ error: 'invalid_client', error_description: 'AADSTS7000218: The request body must contain client_assertion or client_secret.' }) });
+    return Promise.resolve({ status: 404, text: async () => '{}' });
+  };
+  const store10 = G.open({ file: path.join(dir7, 'g.json'), encrypt: enc, decrypt: dec, fetch: pcFetch, openExternal });
+  store10.saveConfig({ tenantId: 't', clientId: 'c' });
+  await store10.beginSignIn();
+  const pcr = await store10.graphPoll();
+  T.check('a public-client rejection explains "Allow public client flows"', /Allow public client flows/i.test(pcr.error || '') && pcr.signedIn === false);
+  store10.signOut();
+  try { fs.rmSync(dir7, { recursive: true, force: true }); } catch (e) { /* temp */ }
+
   T.section('sign out');
   T.check('sign out clears the session', store2.signOut().signedIn === false);
 
