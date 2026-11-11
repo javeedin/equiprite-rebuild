@@ -12,6 +12,10 @@ define(['resources/js/minutes'], (R) => {
 
   const PROVIDERS = { claude: 'Claude (Anthropic)', openai: 'OpenAI (ChatGPT)', gemini: 'Google Gemini', oci: 'OCI GenAI', custom: 'OpenAI-compatible' };
 
+  // Standard action phrases suggested on the "Action item" field (a datalist — you can still type anything).
+  const ACTIONS = ['Development', 'Testing', 'Bug fixing', 'Code review', 'Deployment', 'Analysis', 'Design',
+    'Requirement clarification', 'Documentation', 'Review', 'Follow-up', 'Rework', 'Retest', 'Release', 'On hold'];
+
   function distinct(rows, of) { const seen = {}, out = []; (rows || []).forEach((r) => { const v = String(of(r) || '').trim(); if (v && !seen[v]) { seen[v] = 1; out.push(v); } }); return out; }
   function rowOf(line, rows) { const k = line && line.jiraKey ? String(line.jiraKey).trim().toUpperCase() : ''; return k ? ((rows || []).filter((x) => x.key === k)[0] || null) : null; }
 
@@ -56,6 +60,19 @@ define(['resources/js/minutes'], (R) => {
      *  isn't in the backlog read yet. Lets the linked-story card on an action item show the live status. */
     storyStatus(line, rows) { const r = rowOf(line, rows); return r ? String(r.status || '') : ''; }
     storyStatusCat(line, rows) { const r = rowOf(line, rows); return r ? String(r.statusCat || '') : ''; }
+
+    /** Standard action phrases for the "Action item" datalist. */
+    actionOptions() { return ACTIONS; }
+    /** Contact names for the "Actioned by" datalist: the meeting's attendees first, then the loaded directory contacts. */
+    ownerOptions(people, attendees) {
+      return memo('owners', { p: people, a: attendees }, (x) => {
+        const seen = {}, out = [];
+        const add = (n) => { const v = String(n || '').trim(); const k = v.toLowerCase(); if (v && !seen[k]) { seen[k] = 1; out.push(v); } };
+        (x.a || []).forEach((at) => add(R.attendeeName(at)));
+        (x.p || []).forEach((p) => add(p && p.name));
+        return out;
+      });
+    }
 
     /** The story picker dialog's rows: the backlog filtered by the free-text search and the sprint/status/assignee
      *  filters, sprint-wise (active sprint first). Search matches the number, summary, status, assignee, sprint, epic

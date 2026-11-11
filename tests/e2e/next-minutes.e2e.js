@@ -149,6 +149,12 @@ async function setField(page, sel, val) { await page.fill(sel, val); await page.
     await page.waitForSelector('#minPickDlg', { state: 'hidden', timeout: 10000 });
     const storyCard = () => text(page, '.nx-min-storycard');
     T.check('the linked story shows its number, description and current status on the action item', /EQP-12/.test(await storyCard()) && /Equipment Master List/.test(await storyCard()) && /DEVELOPMENT/.test(await storyCard()));
+
+    const optsOf = (id) => page.$eval(id, (dl) => Array.from(dl.querySelectorAll('option')).map((o) => o.value)).catch(() => []);
+    const actOpts = await optsOf('#minActions');
+    const ownerOpts = await optsOf('#minOwners');
+    T.check('the Action item field suggests standard actions (Development, Testing, Bug fixing…)', actOpts.includes('Development') && actOpts.includes('Testing') && actOpts.includes('Bug fixing'));
+    T.check('the Actioned by field suggests the attendees / directory contacts', ownerOpts.some((v) => /Priya Raman/.test(v)));
     await page.evaluate((v) => { const t = document.querySelector('oj-text-area.nx-min-ta'); if (t) t.value = v; }, 'map view still missing, type column added');
     await settle(page, 300);
     await setField(page, '.nx-min-line input[data-field="action"]', 'Add the map view');

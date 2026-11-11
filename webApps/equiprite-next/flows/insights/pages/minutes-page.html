@@ -104,13 +104,16 @@
           <!-- Action items: who does what next. Each row is an action with the person it is actioned by, a due date and a status;
                a Jira story and a note can be attached for the standup tracking. -->
           <div class="nx-min-sec">Action items — who does what next</div>
+          <!-- Suggestions (datalists): standard action phrases for "Action item", and the attendees + directory contacts for "Actioned by". -->
+          <datalist id="minActions"><oj-bind-for-each data="[[ $functions.actionOptions() ]]"><template data-oj-as="a"><option :value="[[ a.data ]]"></option></template></oj-bind-for-each></datalist>
+          <datalist id="minOwners"><oj-bind-for-each data="[[ $functions.ownerOptions($variables.people, $variables.meeting.attendees) ]]"><template data-oj-as="o"><option :value="[[ o.data ]]"></option></template></oj-bind-for-each></datalist>
           <div class="nx-min-lines" id="minLines">
             <oj-bind-for-each data="[[ $variables.meeting.lines ]]">
               <template data-oj-as="ln">
                 <div class="nx-min-line">
                   <div class="nx-min-action">
-                    <div class="nx-min-field nx-min-grow"><label>Action item</label><input type="text" data-scope="line" data-field="action" :data-line="[[ ln.data.id ]]" :value="[[ ln.data.action ]]" on-change="[[ $listeners.onField ]]" placeholder="what happens next"></div>
-                    <div class="nx-min-field"><label>Actioned by</label><input type="text" data-scope="line" data-field="owner" :data-line="[[ ln.data.id ]]" :value="[[ ln.data.owner ]]" on-change="[[ $listeners.onField ]]" placeholder="who"></div>
+                    <div class="nx-min-field nx-min-grow"><label>Action item</label><input type="text" list="minActions" data-scope="line" data-field="action" :data-line="[[ ln.data.id ]]" :value="[[ ln.data.action ]]" on-change="[[ $listeners.onField ]]" placeholder="what happens next"></div>
+                    <div class="nx-min-field"><label>Actioned by</label><input type="text" list="minOwners" data-scope="line" data-field="owner" :data-line="[[ ln.data.id ]]" :value="[[ ln.data.owner ]]" on-change="[[ $listeners.onField ]]" placeholder="who"></div>
                     <div class="nx-min-field"><label>Due</label><input type="date" data-scope="line" data-field="due" :data-line="[[ ln.data.id ]]" :value="[[ ln.data.due ]]" on-change="[[ $listeners.onField ]]"></div>
                     <button type="button" :class="[[ $functions.statusClass(ln.data) ]]" data-act="toggleDone" :data-line="[[ ln.data.id ]]" on-click="[[ $listeners.onAct ]]"><oj-bind-text value="[[ ln.data.status==='done' ? 'Done' : 'Open' ]]"></oj-bind-text></button>
                     <button type="button" class="nx-min-x" data-act="removeLine" :data-line="[[ ln.data.id ]]" on-click="[[ $listeners.onAct ]]" title="Remove this action item">×</button>
