@@ -115,7 +115,7 @@
 
     <section class="nx-card nx-jira-items" aria-labelledby="jspItemsTitle">
       <div class="nx-card-head">
-        <div><h2 id="jspItemsTitle">Items in the sprint</h2><span class="nx-note"><oj-bind-text value="[[ $variables.report.rows.length + ($variables.report.rows.length === 1 ? ' item' : ' items') + ', read at ' + $variables.readAt ]]"></oj-bind-text></span></div>
+        <div><h2 id="jspItemsTitle">Items in the sprint</h2><span class="nx-note"><oj-bind-text value="[[ $functions.itemsCount($functions.itemsView($variables.report.rows, $variables.itemF, $variables.itemSort), $variables.report.rows) + ', read at ' + $variables.readAt ]]"></oj-bind-text></span></div>
         <div class="nx-actions">
           <button type="button" class="nx-btn nx-btn--sm nx-followbtn" id="jspFollowup" on-click="[[ $listeners.onFollowup ]]"
             :disabled="[[ $variables.report.rows.length === 0 ]]"
@@ -143,15 +143,33 @@
             <span role="columnheader" class="nx-pickcol"><button type="button" :class="[[ $functions.selAllClass($variables.report.rows, $variables.selected) ]]"
               on-click="[[ $listeners.onPickAll ]]" role="checkbox" :aria-checked="[[ $functions.allChecked($variables.report.rows, $variables.selected) ]]"
               aria-label="Select all items for follow-up" title="Select all"></button></span>
-            <span role="columnheader">Key</span><span role="columnheader">Summary</span><span role="columnheader">Status</span><span role="columnheader">In this sprint</span>
-            <span role="columnheader">Assignee</span><span role="columnheader">Due</span><span role="columnheader">Resolved</span>
+            <span role="columnheader"><button type="button" :class="[[ $functions.sortClass('sprint', $variables.itemSort) ]]" data-col="sprint" on-click="[[ $listeners.onItemSort ]]">Sprint<oj-bind-text value="[[ $functions.sortSym('sprint', $variables.itemSort) ]]"></oj-bind-text></button></span>
+            <span role="columnheader"><button type="button" :class="[[ $functions.sortClass('key', $variables.itemSort) ]]" data-col="key" on-click="[[ $listeners.onItemSort ]]">Key<oj-bind-text value="[[ $functions.sortSym('key', $variables.itemSort) ]]"></oj-bind-text></button></span>
+            <span role="columnheader"><button type="button" :class="[[ $functions.sortClass('summary', $variables.itemSort) ]]" data-col="summary" on-click="[[ $listeners.onItemSort ]]">Summary<oj-bind-text value="[[ $functions.sortSym('summary', $variables.itemSort) ]]"></oj-bind-text></button></span>
+            <span role="columnheader"><button type="button" :class="[[ $functions.sortClass('status', $variables.itemSort) ]]" data-col="status" on-click="[[ $listeners.onItemSort ]]">Status<oj-bind-text value="[[ $functions.sortSym('status', $variables.itemSort) ]]"></oj-bind-text></button></span>
+            <span role="columnheader"><button type="button" :class="[[ $functions.sortClass('in', $variables.itemSort) ]]" data-col="in" on-click="[[ $listeners.onItemSort ]]">In this sprint<oj-bind-text value="[[ $functions.sortSym('in', $variables.itemSort) ]]"></oj-bind-text></button></span>
+            <span role="columnheader"><button type="button" :class="[[ $functions.sortClass('assignee', $variables.itemSort) ]]" data-col="assignee" on-click="[[ $listeners.onItemSort ]]">Assignee<oj-bind-text value="[[ $functions.sortSym('assignee', $variables.itemSort) ]]"></oj-bind-text></button></span>
+            <span role="columnheader"><button type="button" :class="[[ $functions.sortClass('due', $variables.itemSort) ]]" data-col="due" on-click="[[ $listeners.onItemSort ]]">Due<oj-bind-text value="[[ $functions.sortSym('due', $variables.itemSort) ]]"></oj-bind-text></button></span>
+            <span role="columnheader"><button type="button" :class="[[ $functions.sortClass('resolved', $variables.itemSort) ]]" data-col="resolved" on-click="[[ $listeners.onItemSort ]]">Resolved<oj-bind-text value="[[ $functions.sortSym('resolved', $variables.itemSort) ]]"></oj-bind-text></button></span>
           </div>
-          <oj-bind-for-each data="[[ $variables.report.rows ]]">
+          <div class="nx-jsp-row nx-jsp-filterrow" role="row">
+            <span role="cell" class="nx-pickcol"></span>
+            <span role="cell"><input type="search" class="nx-jsp-filter" data-field="sprint" :value="[[ $variables.itemF.sprint ]]" on-input="[[ $listeners.onItemFilter ]]" placeholder="Filter" aria-label="Filter by sprint"></span>
+            <span role="cell"><input type="search" class="nx-jsp-filter" data-field="key" :value="[[ $variables.itemF.key ]]" on-input="[[ $listeners.onItemFilter ]]" placeholder="Filter" aria-label="Filter by key"></span>
+            <span role="cell"><input type="search" class="nx-jsp-filter" data-field="summary" :value="[[ $variables.itemF.summary ]]" on-input="[[ $listeners.onItemFilter ]]" placeholder="Filter" aria-label="Filter by summary"></span>
+            <span role="cell"><input type="search" class="nx-jsp-filter" data-field="status" :value="[[ $variables.itemF.status ]]" on-input="[[ $listeners.onItemFilter ]]" placeholder="Filter" aria-label="Filter by status"></span>
+            <span role="cell"><input type="search" class="nx-jsp-filter" data-field="in" :value="[[ $variables.itemF.in ]]" on-input="[[ $listeners.onItemFilter ]]" placeholder="Filter" aria-label="Filter by status in sprint"></span>
+            <span role="cell"><input type="search" class="nx-jsp-filter" data-field="assignee" :value="[[ $variables.itemF.assignee ]]" on-input="[[ $listeners.onItemFilter ]]" placeholder="Filter" aria-label="Filter by assignee"></span>
+            <span role="cell"><input type="search" class="nx-jsp-filter" data-field="due" :value="[[ $variables.itemF.due ]]" on-input="[[ $listeners.onItemFilter ]]" placeholder="Filter" aria-label="Filter by due date"></span>
+            <span role="cell"><input type="search" class="nx-jsp-filter" data-field="resolved" :value="[[ $variables.itemF.resolved ]]" on-input="[[ $listeners.onItemFilter ]]" placeholder="Filter" aria-label="Filter by resolved date"></span>
+          </div>
+          <oj-bind-for-each data="[[ $functions.itemsView($variables.report.rows, $variables.itemF, $variables.itemSort) ]]">
             <template data-oj-as="r">
               <div :class="[[ $functions.rowClass(r.data.key, $variables.selected) ]]" role="row" :data-key="[[ r.data.key ]]">
                 <span role="cell" class="nx-pickcol"><button type="button" :class="[[ $functions.selClass(r.data.key, $variables.selected) ]]"
                   :data-key="[[ r.data.key ]]" on-click="[[ $listeners.onPick ]]" role="checkbox"
                   :aria-checked="[[ $functions.isSel(r.data.key, $variables.selected) ? 'true' : 'false' ]]" :aria-label="[[ 'Select ' + r.data.key + ' for follow-up' ]]"></button></span>
+                <span role="cell" class="nx-jsp-sprintc"><oj-bind-text value="[[ r.data.sprint || '—' ]]"></oj-bind-text></span>
                 <span role="cell" class="nx-jsp-keycell"><button type="button" class="nx-jsp-keybtn" :data-key="[[ r.data.key ]]" on-click="[[ $listeners.onOpenItem ]]"
                     :title="[[ 'Show ' + r.data.key ]]"><oj-bind-text value="[[ r.data.key ]]"></oj-bind-text></button>
                   <a class="nx-jsp-tojira" target="_blank" rel="noopener" :href="[[ r.data.url ]]" :title="[[ 'Open ' + r.data.key + ' in Jira' ]]" :aria-label="[[ 'Open ' + r.data.key + ' in Jira' ]]"><span class="oj-ux-ico-external-link" aria-hidden="true"></span></a></span>
@@ -168,6 +186,9 @@
               </div>
             </template>
           </oj-bind-for-each>
+          <oj-bind-if test="[[ $variables.report.rows.length > 0 && $functions.itemsView($variables.report.rows, $variables.itemF, $variables.itemSort).length === 0 ]]">
+            <div class="nx-empty nx-jsp-nomatch" id="jspNoMatch">No items match the filters — clear a filter box above.</div>
+          </oj-bind-if>
         </div>
       </div>
     </section>

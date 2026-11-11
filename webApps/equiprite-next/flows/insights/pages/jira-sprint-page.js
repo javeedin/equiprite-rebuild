@@ -11,6 +11,17 @@ define(['resources/js/exportKit', 'resources/js/jiraStoryPanel', 'resources/js/t
   const STATE = { active: 'info', future: 'warning', closed: 'neutral' };
   const WHERE = { done: 'Done here', here: 'Still in this sprint', moved: 'Carried on' };
 
+  // Items table: filter on every column (type to narrow) and sort (Key by story number). Pure helpers, no `this`.
+  function ci(s) { return String(s == null ? '' : s).toLowerCase(); }
+  function has(hay, needle) { return !needle || ci(hay).indexOf(ci(needle)) >= 0; }
+  function keyNum(k) { const m = /(\d+)\s*$/.exec(String(k || '')); return m ? parseInt(m[1], 10) : 0; }
+  function whereOf(r) { return (WHERE[r && r.in] || '') + (r && r.sprintNow ? ' to ' + r.sprintNow : ''); }
+  function fieldOf(r, col) {
+    if (col === 'in') return whereOf(r);
+    if (col === 'assignee') return (r && r.assignee) || 'Nobody';
+    return (r && r[col]) || '';
+  }
+
   let tabs = 0;
 
   class PageModule {
@@ -72,6 +83,28 @@ define(['resources/js/exportKit', 'resources/js/jiraStoryPanel', 'resources/js/t
     whereText(r) { return r ? WHERE[r.in] + (r.sprintNow ? ' to ' + r.sprintNow : '') : ''; }
     whereClass(r) { return 'nx-jsp-where nx-jsp-where--' + ((r && r.in) || 'here'); }
     statusClass(cat) { return 'nx-jira-status nx-jira-status--' + (cat || 'new'); }
+
+    /** The items after the column filters and the chosen sort (Key sorts by story number). */
+    itemsView(rows, f, sort) {
+      f = f || {}; sort = sort || {};
+      let list = (rows || []).filter((r) => has(r.key, f.key) && has(r.summary, f.summary) && has(r.status, f.status)
+        && has(whereOf(r), f.in) && has(r.sprint, f.sprint) && has((r.assignee || 'Nobody'), f.assignee)
+        && has(r.due, f.due) && has(r.resolved, f.resolved));
+      if (sort.col) {
+        const dir = sort.dir === 'desc' ? -1 : 1;
+        list = list.slice().sort((a, b) => {
+          let av; let bv;
+          if (sort.col === 'key') { av = keyNum(a.key); bv = keyNum(b.key); } else { av = ci(fieldOf(a, sort.col)); bv = ci(fieldOf(b, sort.col)); }
+          return (av < bv ? -1 : (av > bv ? 1 : 0)) * dir;
+        });
+      }
+      return list;
+    }
+    /** "12 of 77 items" when filtered, else the plain count. */
+    itemsCount(shown, total) { const s = (shown || []).length; const t = (total || []).length; return (s === t ? s : s + ' of ' + t) + (t === 1 ? ' item' : ' items'); }
+    /** The sort arrow on a header, and its class when active. */
+    sortSym(col, sort) { return sort && sort.col === col ? (sort.dir === 'desc' ? ' ▾' : ' ▴') : ''; }
+    sortClass(col, sort) { return 'nx-jsp-sortbtn' + (sort && sort.col === col ? ' nx-jsp-sortbtn--on' : ''); }
 
     /** Copy to follow-up: is this item ticked, the checkbox class, and the header (all / some / none) checkbox. */
     isSel(key, selected) { return (selected || []).indexOf(key) >= 0; }

@@ -12,6 +12,7 @@ define([
     async run(context, { refresh }) {
       const v = context.$page.variables;
       v.selected = []; // a fresh read drops any follow-up selection
+      v.itemF = {}; v.itemSort = { col: '', dir: 'asc' }; // and any column filters / sort
       // which items have recordings or screenshots on this PC (the icon after a summary)
       if (R && typeof R.index === 'function') R.index().then((ix) => { v.evidenceIndex = ix; }).catch(() => {});
       if (!refresh && v.report && v.report.rows && v.report.rows.length) return; // the tab kept its report

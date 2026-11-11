@@ -272,6 +272,28 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     T.check('beside each key, an icon that opens it in Jira (a new tab)', (await page.getAttribute('#jspGrid .nx-jsp-row[data-key="EQP-12"] .nx-jsp-tojira', 'target')) === '_blank'
       && (await page.getAttribute('#jspGrid .nx-jsp-row[data-key="EQP-12"] .nx-jsp-tojira', 'aria-label')) === 'Open EQP-12 in Jira');
 
+    T.section('Items table: Sprint column, a filter box on every column, sort on the Key (story number)');
+    T.check('the table leads with a Sprint column (header + each row names its sprint)',
+      (await page.$('#jspGrid .nx-jira-row--head [data-col="sprint"]')) !== null
+      && (await page.$('#jspGrid .nx-jsp-row[data-key="EQP-12"] .nx-jsp-sprintc')) !== null
+      && /2026-07/.test(await text(page, '#jspGrid .nx-jsp-row[data-key="EQP-12"] .nx-jsp-sprintc')));
+    T.check('every column has its own filter box', (await page.$$('#jspGrid .nx-jsp-filterrow .nx-jsp-filter')).length === 8);
+    const dataRows = () => page.$$eval('#jspGrid .nx-jsp-row:not(.nx-jira-row--head):not(.nx-jsp-filterrow)', (r) => r.length);
+    await page.fill('#jspGrid .nx-jsp-filterrow input[data-field="key"]', 'ZZZ-999');
+    await settle(page, 200);
+    T.check('a filter that matches nothing empties the table and shows the hint', (await dataRows()) === 0
+      && (await page.$('#jspNoMatch')) !== null);
+    await page.fill('#jspGrid .nx-jsp-filterrow input[data-field="key"]', 'EQP-12');
+    await settle(page, 200);
+    T.check('a matching filter brings the row back, hint gone', (await dataRows()) === 1 && (await page.$('#jspNoMatch')) === null);
+    await page.fill('#jspGrid .nx-jsp-filterrow input[data-field="key"]', '');
+    await settle(page, 150);
+    await page.click('#jspGrid .nx-jira-row--head [data-col="key"]');
+    await settle(page, 150);
+    T.check('clicking the Key header turns on its sort (ascending by story number)',
+      (await page.getAttribute('#jspGrid .nx-jira-row--head [data-col="key"]', 'class')).includes('nx-jsp-sortbtn--on')
+      && /▴/.test(await text(page, '#jspGrid .nx-jira-row--head [data-col="key"]')));
+
     T.section('Copy to follow-up: tick items, a formatted table lands on the clipboard for an email');
     await page.context().grantPermissions(['clipboard-read', 'clipboard-write'], { origin: env.nextUrl });
     const readClipHtml = () => page.evaluate(async () => {
@@ -280,12 +302,12 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
       } catch (e) { /* ignore */ }
       return '';
     });
-    const sprintItems = (await page.$$('#jspGrid .nx-jsp-row:not(.nx-jira-row--head)')).length;
-    T.check('each item has a follow-up checkbox, none ticked', (await page.$$('#jspGrid .nx-jsp-row:not(.nx-jira-row--head) .nx-pick')).length === sprintItems
+    const sprintItems = (await page.$$('#jspGrid .nx-jsp-row:not(.nx-jira-row--head):not(.nx-jsp-filterrow)')).length;
+    T.check('each item has a follow-up checkbox, none ticked', (await page.$$('#jspGrid .nx-jsp-row:not(.nx-jira-row--head):not(.nx-jsp-filterrow) .nx-pick')).length === sprintItems
       && (await page.$$('#jspGrid .nx-pick--on')).length === 0);
     await page.click('#jspGrid .nx-jira-row--head .nx-pick');
     await settle(page, 150);
-    T.check('the header checkbox selects all shown', (await page.$$('#jspGrid .nx-jsp-row:not(.nx-jira-row--head) .nx-pick--on')).length === sprintItems && sprintItems >= 1);
+    T.check('the header checkbox selects all shown', (await page.$$('#jspGrid .nx-jsp-row:not(.nx-jira-row--head):not(.nx-jsp-filterrow) .nx-pick--on')).length === sprintItems && sprintItems >= 1);
     await page.click('#jspGrid .nx-jira-row--head .nx-pick');
     await settle(page, 150);
     T.check('…clicking it again clears them', (await page.$$('#jspGrid .nx-pick--on')).length === 0);
