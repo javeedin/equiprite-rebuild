@@ -174,6 +174,13 @@ define([
           return;
         }
         case 'graphSignOut': { const r = await C.graphSignOut(); if (r.ok && r.body && r.body.status) v.graph = r.body.status; toast('Signed out of Microsoft 365.'); return; }
+        case 'graphTest': {
+          toast('Sending a test email…');
+          const r = await C.graphTest();
+          if (r.ok && r.body && r.body.ok) toast('Test email sent to ' + (r.body.to || v.graph.account || 'you') + ' — check your inbox.', 'info');
+          else toast((r.body && r.body.error) || 'Could not send the test email.', 'error');
+          return;
+        }
 
         case 'settingsSave': {
           const f = clone(v.settingsForm) || {};

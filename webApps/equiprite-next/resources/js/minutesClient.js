@@ -113,6 +113,7 @@ define([], function () {
     graphConfig: function (b) { return min('graph/config', 'POST', b); },
     graphSignIn: function () { return min('graph/signin', 'POST', {}); },
     graphSignOut: function () { return min('graph/signout', 'POST', {}); },
+    graphTest: function (b) { return min('graph/test', 'POST', b || {}); },
     // Ask AI (shared with the SQL worksheet): the key stays in the desktop app.
     aiSettings: function () { return sql('ai/settings'); },
     aiSave: function (form) { return sql('ai/settings', 'POST', form); },

@@ -316,6 +316,17 @@ async function open(o) {
     if ((await provider()) === 'o365' && graph && graph.status().signedIn) return graph.sendMail(b || {});
     return store.sendOutlook(b || {});
   };
+  // Send a test email to the signed-in account, to confirm Microsoft 365 sending works (uses Graph directly, whatever
+  // the saved provider is — the user has just signed in and wants to check Mail.Send).
+  store.graphTest = async (b) => {
+    if (!(graph && graph.status().signedIn)) return { ok: false, error: 'Sign in to Microsoft 365 first.' };
+    const to = str((b && b.to) || graph.status().account).trim();
+    if (!to) return { ok: false, error: 'Could not find your account email.' };
+    const html = '<div style="font-family:\'Segoe UI\',Arial,sans-serif;color:#1f2937;"><p>This is a test email from <b>EquipRite</b>.</p>'
+      + '<p>Microsoft 365 sending works ✓ — you can now send standup minutes and follow-ups from EquipRite.</p></div>';
+    const r = await graph.sendMail({ to: to, subject: 'EquipRite — Microsoft 365 test', html: html });
+    return r && r.ok ? { ok: true, to: to } : (r || { ok: false, error: 'Could not send the test email.' });
+  };
   // Microsoft 365 account management (lib/graph.js).
   store.graphStatus = () => (graph ? graph.status() : { configured: false, signedIn: false, available: false });
   store.graphConfig = async (b) => { if (graph) graph.saveConfig(b || {}); return { ok: true, status: store.graphStatus() }; };

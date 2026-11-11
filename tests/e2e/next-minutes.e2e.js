@@ -175,6 +175,9 @@ async function setField(page, sel, val) { await page.fill(sel, val); await page.
     await page.click('#minGraphIn');
     await page.waitForFunction(() => /Signed in/.test((document.querySelector('#minSetDlg') || {}).innerText || ''), null, { timeout: 15000 }).catch(() => {});
     T.check('device-code sign-in signs the user in to Microsoft 365', /Signed in/.test(await text(page, '#minSetDlg')) && /javeed@rite\.digital/.test(await text(page, '#minSetDlg')));
+    await page.click('#minGraphTest');
+    await settle(page, 400);
+    T.check('Send a test email to me sends via Microsoft 365 to the signed-in account', graphSent.some((m) => /javeed@rite\.digital/.test(m.to) && /Microsoft 365 test/.test(m.subject)));
     await page.click('#minSetSave');
     await settle(page, 400);
     await page.click('#minNew');
@@ -193,7 +196,7 @@ async function setField(page, sel, val) { await page.fill(sel, val); await page.
     T.check('the email Send button reads "Send via Office 365"', /Send via Office 365/.test(await text(page, '#minEmailSend')));
     await page.click('#minEmailSend');
     await settle(page, 500);
-    T.check('Send via Office 365 sends the minutes through Graph', graphSent.length === 1 && /sandeep\.reddy@rite\.digital/.test(graphSent[0].to) && /Office 365 send test note/.test(graphSent[0].html));
+    T.check('Send via Office 365 sends the minutes through Graph', graphSent.some((m) => /sandeep\.reddy@rite\.digital/.test(m.to) && /Office 365 send test note/.test(m.html)));
 
     T.eq('no browser errors', errs().join(' | ').slice(0, 1500), '');
   } catch (e) {
