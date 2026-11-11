@@ -141,6 +141,17 @@ const openExternal = (u) => opened.push(u);
   T.check('when the tenant needs admin approval, the error explains it (not a raw code)', /administrator to approve/i.test(store6.status().error) && store6.status().signedIn === false);
   try { fs.rmSync(dir3, { recursive: true, force: true }); } catch (e) { /* temp */ }
 
+  T.section('secure storage unavailable: the token is still kept (not dropped), so sign-in sticks');
+  const dir4 = fs.mkdtempSync(path.join(os.tmpdir(), 'eqp-graph4-'));
+  const throwEnc = () => { throw new Error('no credential store'); };
+  const store7 = G.open({ file: path.join(dir4, 'g.json'), encrypt: throwEnc, decrypt: dec, fetch: fakeFetch, openExternal });
+  store7.saveConfig({ tenantId: 'tenant-123', clientId: 'client-abc' });
+  await store7.beginSignIn();
+  await new Promise((r) => setTimeout(r, 2600));
+  T.check('a completed sign-in still counts as signed in when encryption is unavailable', store7.status().signedIn === true);
+  T.check('…and the access token is usable (kept in the 0600 file as a fallback)', (await store7._token()) === 'AT1');
+  try { fs.rmSync(dir4, { recursive: true, force: true }); } catch (e) { /* temp */ }
+
   T.section('sign out');
   T.check('sign out clears the session', store2.signOut().signedIn === false);
 

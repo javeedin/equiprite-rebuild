@@ -50,7 +50,10 @@ function open(o) {
   let pending = null; // { userCode, verificationUri, error, done } while a device-code sign-in is in progress
 
   function write() { fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, JSON.stringify(data, null, 1), { mode: 0o600 }); }
-  function seal(t) { if (!t || !encrypt) return t || null; try { return 'enc:' + encrypt(t).toString('base64'); } catch (e) { return null; } }
+  // Encrypt the token at rest when the OS secure store is available; if it is not (encrypt throws, e.g. Windows
+  // credential store unavailable) keep the token in the 0600 file rather than dropping it — otherwise a real sign-in
+  // would be stored as null and the app would wrongly show "not signed in".
+  function seal(t) { if (!t || !encrypt) return t || null; try { return 'enc:' + encrypt(t).toString('base64'); } catch (e) { return t; } }
   function unseal(t) { if (!t) return ''; if (!/^enc:/.test(t)) return t; if (!decrypt) return ''; try { return decrypt(Buffer.from(t.slice(4), 'base64')); } catch (e) { return ''; } }
 
   async function httpForm(url, form) {
