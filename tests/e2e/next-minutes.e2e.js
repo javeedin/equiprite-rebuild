@@ -180,6 +180,8 @@ async function setField(page, sel, val) { await page.fill(sel, val); await page.
     T.check('Send a test email to me sends via Microsoft 365 to the signed-in account', graphSent.some((m) => /javeed@rite\.digital/.test(m.to) && /Microsoft 365 test/.test(m.subject)));
     await page.click('#minSetSave');
     await settle(page, 400);
+    T.check('the page header shows you are signed in to Microsoft 365 (with the account)', (await page.$('#minM365')) !== null
+      && /javeed@rite\.digital/.test(await text(page, '#minM365')));
     await page.click('#minNew');
     await settle(page, 300);
     await page.fill('.nx-min-attadd', 'San');

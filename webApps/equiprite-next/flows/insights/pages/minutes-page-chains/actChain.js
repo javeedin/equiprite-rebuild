@@ -170,8 +170,19 @@ define([
           if (!(r.ok && r.body && r.body.ok)) { const g = clone(v.graph) || {}; g.error = (r.body && r.body.error) || 'Could not start sign-in.'; v.graph = g; return; }
           v.graph = { configured: true, signedIn: false, pending: true, userCode: r.body.userCode, verificationUri: r.body.verificationUri, tenantId: f.tenantId, clientId: f.clientId, account: '', error: '' };
           for (let i = 0; i < 40; i++) { await sleep(3000); const s = await C.graphStatus(); if (s.ok && s.body) { v.graph = s.body; if (s.body.signedIn || s.body.error || !s.body.pending) break; } }
-          if (v.graph.signedIn) toast('Signed in to Microsoft 365' + (v.graph.account ? ' as ' + v.graph.account : '') + '.');
-          else if (v.graph.error) toast(v.graph.error, 'error');
+          if (v.graph.signedIn) {
+            toast('Signed in to Microsoft 365' + (v.graph.account ? ' as ' + v.graph.account : '') + '.');
+            // Contacts were loaded at page open (before sign-in, so empty) — reload them now so the attendee box has names.
+            try {
+              const pc = await C.contacts('');
+              if (pc.ok && pc.body && pc.body.contacts) {
+                const have = {}; const merged = [];
+                pc.body.contacts.forEach((p) => { const k = String((p.email || p.name) || '').toLowerCase(); if (p && k && !have[k]) { have[k] = true; merged.push({ name: p.name, email: p.email }); } });
+                (v.people || []).forEach((p) => { const k = String((p.email || p.name) || '').toLowerCase(); if (p && k && !have[k]) { have[k] = true; merged.push(p); } });
+                v.people = merged;
+              }
+            } catch (e) { /* keep the existing people list */ }
+          } else if (v.graph.error) toast(v.graph.error, 'error');
           return;
         }
         case 'graphSignOut': { const r = await C.graphSignOut(); if (r.ok && r.body && r.body.status) v.graph = r.body.status; toast('Signed out of Microsoft 365.'); return; }

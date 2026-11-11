@@ -89,6 +89,12 @@
 .nx-min .nx-min-sec { margin: 16px 0 8px; font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--nx-muted, #5b5a57); border-top: 1px solid var(--nx-line, rgba(22,21,19,.12)); padding-top: 12px; }
 .nx-min .nx-min-prov { display: flex; gap: 6px; margin-bottom: 10px; }
 .nx-min .nx-min-linkbtn { border: 0; background: transparent; color: var(--nx-accent, #00688c); font: inherit; font-weight: 600; cursor: pointer; padding: 0; text-decoration: underline; }
+/* Microsoft 365 status in the page header: a dot + account when signed in, a sign-in link when not. */
+.nx-min .nx-min-m365 { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; }
+.nx-min .nx-min-m365--on { color: var(--nx-ink, #161513); }
+.nx-min .nx-min-dot { width: 8px; height: 8px; border-radius: 999px; background: #9aa4b2; flex: 0 0 auto; }
+.nx-min .nx-min-m365--on .nx-min-dot { background: #1d9d57; }
+.nx-min .nx-min-chint { margin-top: 6px; }
 .nx-min .nx-min-code { background: var(--nx-accent-soft, #e4f1f7); color: var(--nx-accent, #00688c); padding: 1px 8px; border-radius: 6px; font-variant-numeric: tabular-nums; letter-spacing: .08em; }
 /* Device-code sign-in: show the code big so it is impossible to miss (it is generated here, entered on the MS page). */
 .nx-min .nx-min-devicecode { margin: 8px 0; padding: 12px 14px; border: 1px solid var(--nx-accent, #00688c); border-radius: 10px; background: var(--nx-accent-soft, #e4f1f7); }

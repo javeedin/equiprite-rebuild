@@ -10,6 +10,8 @@
       <div class="nx-sub" id="minSub"><oj-bind-text value="[[ $functions.subtitle($variables.available, $variables.meetings, $variables.jiraReady) ]]"></oj-bind-text></div>
     </div>
     <div class="nx-actions">
+      <oj-bind-if test="[[ $variables.graph.signedIn ]]"><span class="nx-min-m365 nx-min-m365--on" id="minM365" :title="[[ 'Signed in to Microsoft 365' + ($variables.graph.account ? ' as ' + $variables.graph.account : '') ]]"><span class="nx-min-dot" aria-hidden="true"></span>Microsoft 365<oj-bind-if test="[[ $variables.graph.account ]]">: <oj-bind-text value="[[ $variables.graph.account ]]"></oj-bind-text></oj-bind-if></span></oj-bind-if>
+      <oj-bind-if test="[[ !$variables.graph.signedIn ]]"><button type="button" class="nx-btn nx-btn--plain nx-min-m365 nx-min-m365--off" id="minM365In" data-act="settings" on-click="[[ $listeners.onAct ]]"><span class="nx-min-dot" aria-hidden="true"></span>Microsoft 365: sign in</button></oj-bind-if>
       <button type="button" class="nx-btn nx-btn--plain" id="minAi" data-act="ai" on-click="[[ $listeners.onAct ]]"><oj-bind-text value="[[ $functions.aiLabel($variables.ai, $variables.aiReady) ]]"></oj-bind-text></button>
       <button type="button" class="nx-btn nx-btn--plain" id="minSettings" data-act="settings" on-click="[[ $listeners.onAct ]]">⚙ Settings</button>
     </div>
