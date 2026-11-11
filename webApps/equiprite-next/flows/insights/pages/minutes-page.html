@@ -80,6 +80,9 @@
                     </div>
                   </oj-bind-if>
                 </div>
+                <oj-bind-if test="[[ !$variables.graph.signedIn && $variables.people.length === 0 ]]">
+                  <p class="nx-note nx-min-chint" id="minContactHint">No contacts loaded — <button type="button" class="nx-min-linkbtn" data-act="settings" on-click="[[ $listeners.onAct ]]">sign in to Microsoft 365</button> in Settings to search your directory, or type a name and press Enter.</p>
+                </oj-bind-if>
               </div>
             </div>
             <div class="nx-min-field nx-min-wide"><label>Context (optional)</label><input type="text" data-scope="header" data-field="context" :value="[[ $variables.meeting.context ]]" on-change="[[ $listeners.onField ]]" placeholder="sprint, release, agenda…"></div>
