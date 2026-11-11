@@ -174,6 +174,7 @@ define([
           return;
         }
         case 'graphSignOut': { const r = await C.graphSignOut(); if (r.ok && r.body && r.body.status) v.graph = r.body.status; toast('Signed out of Microsoft 365.'); return; }
+        case 'graphCopyCode': { const ok = await C.copy((v.graph && v.graph.userCode) || ''); toast(ok ? 'Code copied — paste it on the Microsoft sign-in page.' : 'Could not copy the code; type it from here.', ok ? 'info' : 'error'); return; }
         case 'graphTest': {
           toast('Sending a test email…');
           const r = await C.graphTest();

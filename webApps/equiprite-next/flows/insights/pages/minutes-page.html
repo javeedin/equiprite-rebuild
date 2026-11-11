@@ -215,7 +215,17 @@
         <div class="nx-min-field"><label>App (Client) ID</label><input type="text" data-scope="settings" data-field="clientId" :value="[[ $variables.settingsForm.clientId ]]" on-change="[[ $listeners.onField ]]" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"></div>
         <oj-bind-if test="[[ $variables.graph.signedIn ]]"><p class="nx-note">✓ Signed in<oj-bind-if test="[[ $variables.graph.account ]]"> as <oj-bind-text value="[[ $variables.graph.account ]]"></oj-bind-text></oj-bind-if>. <button type="button" class="nx-min-linkbtn" id="minGraphOut" data-act="graphSignOut" on-click="[[ $listeners.onAct ]]">Sign out</button></p>
           <button type="button" class="nx-btn nx-btn--sm" id="minGraphTest" data-act="graphTest" on-click="[[ $listeners.onAct ]]"><span class="oj-ux-ico-email" aria-hidden="true"></span>Send a test email to me</button></oj-bind-if>
-        <oj-bind-if test="[[ !$variables.graph.signedIn && $variables.graph.pending ]]"><p class="nx-note">Open <a :href="[[ $variables.graph.verificationUri ]]" target="_blank" rel="noopener"><oj-bind-text value="[[ $variables.graph.verificationUri ]]"></oj-bind-text></a> and enter code <b class="nx-min-code"><oj-bind-text value="[[ $variables.graph.userCode ]]"></oj-bind-text></b> — waiting for sign-in…</p></oj-bind-if>
+        <oj-bind-if test="[[ !$variables.graph.signedIn && $variables.graph.pending ]]">
+          <div class="nx-min-devicecode">
+            <div class="nx-min-dc-label">Enter this code at the Microsoft sign-in page:</div>
+            <div class="nx-min-dc-row">
+              <span class="nx-min-dc-code" id="minGraphCode"><oj-bind-text value="[[ $variables.graph.userCode ]]"></oj-bind-text></span>
+              <button type="button" class="nx-btn nx-btn--sm" id="minGraphCopy" data-act="graphCopyCode" on-click="[[ $listeners.onAct ]]"><span class="oj-ux-ico-copy-to-clipboard" aria-hidden="true"></span>Copy code</button>
+              <a class="nx-btn nx-btn--sm" :href="[[ $variables.graph.verificationUri ]]" target="_blank" rel="noopener"><span class="oj-ux-ico-external-link" aria-hidden="true"></span>Open sign-in page</a>
+            </div>
+            <p class="nx-note">The code is shown here in EquipRite — type it on the Microsoft page, then come back. Waiting for you to sign in…</p>
+          </div>
+        </oj-bind-if>
         <oj-bind-if test="[[ !$variables.graph.signedIn && !$variables.graph.pending ]]"><button type="button" class="nx-btn nx-btn--sm" id="minGraphIn" data-act="graphSignIn" on-click="[[ $listeners.onAct ]]">Sign in to Microsoft 365</button></oj-bind-if>
         <oj-bind-if test="[[ $variables.graph.error ]]"><p class="nx-note nx-min-err2"><oj-bind-text value="[[ $variables.graph.error ]]"></oj-bind-text></p></oj-bind-if>
       </oj-bind-if>

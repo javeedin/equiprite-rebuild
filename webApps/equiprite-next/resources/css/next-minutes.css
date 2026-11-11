@@ -90,5 +90,11 @@
 .nx-min .nx-min-prov { display: flex; gap: 6px; margin-bottom: 10px; }
 .nx-min .nx-min-linkbtn { border: 0; background: transparent; color: var(--nx-accent, #00688c); font: inherit; font-weight: 600; cursor: pointer; padding: 0; text-decoration: underline; }
 .nx-min .nx-min-code { background: var(--nx-accent-soft, #e4f1f7); color: var(--nx-accent, #00688c); padding: 1px 8px; border-radius: 6px; font-variant-numeric: tabular-nums; letter-spacing: .08em; }
+/* Device-code sign-in: show the code big so it is impossible to miss (it is generated here, entered on the MS page). */
+.nx-min .nx-min-devicecode { margin: 8px 0; padding: 12px 14px; border: 1px solid var(--nx-accent, #00688c); border-radius: 10px; background: var(--nx-accent-soft, #e4f1f7); }
+.nx-min .nx-min-dc-label { font-size: 12px; font-weight: 700; color: var(--nx-ink); margin-bottom: 6px; }
+.nx-min .nx-min-dc-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.nx-min .nx-min-dc-code { font-size: 26px; font-weight: 800; letter-spacing: .14em; color: var(--nx-accent, #00688c); user-select: all; font-family: 'Segoe UI', 'Consolas', monospace; }
+.nx-min .nx-min-devicecode .oj-ux-ico-copy-to-clipboard, .nx-min .nx-min-devicecode .oj-ux-ico-external-link { margin-right: 4px; }
 .nx-min .nx-min-preview { border: 1px solid var(--nx-line, rgba(22,21,19,.14)); border-radius: 8px; overflow: hidden; height: 46vh; background: #fff; }
 .nx-min .nx-min-preview iframe { width: 100%; height: 100%; border: 0; }
