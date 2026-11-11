@@ -147,9 +147,30 @@ define(['resources/js/exportKit'], function (exportKit) {
       + 'subject=' + encodeURIComponent(ascii(o.subject || '')) + '&body=' + encodeURIComponent(ascii(body));
   }
 
+  /** The recipients in a "a@x; b@y" string, as chips: [{ label, value }] (label is the name part if "Name <email>"). */
+  function recips(str) {
+    return String(str || '').split(/[;,]/).map(function (s) { return s.trim(); }).filter(Boolean).map(function (v) {
+      var m = /^\s*"?([^"<]+?)"?\s*<([^>]+)>\s*$/.exec(v);
+      return m ? { label: m[1].trim(), value: m[2].trim() } : { label: v, value: v };
+    });
+  }
+  /** Add an email/recipient to a "to"/"cc" string (deduped, case-insensitive); returns the new string. */
+  function addRecip(str, value) {
+    var v = String(value || '').trim();
+    if (!v) return String(str || '');
+    var list = recips(str).map(function (r) { return r.value; });
+    if (list.map(function (x) { return x.toLowerCase(); }).indexOf(v.toLowerCase()) < 0) list.push(v);
+    return list.join('; ');
+  }
+  /** Remove a recipient (by its value/email) from a "to"/"cc" string. */
+  function removeRecip(str, value) {
+    var v = String(value || '').trim().toLowerCase();
+    return recips(str).filter(function (r) { return r.value.toLowerCase() !== v; }).map(function (r) { return r.value; }).join('; ');
+  }
+
   return {
     firstName: firstName, names: names, greeting: greeting, TEMPLATES: TEMPLATES, template: template, message: message,
     columns: columns, introHtml: introHtml, headerText: headerText, ascii: ascii, tableHtml: tableHtml, tableText: tableText,
-    composeHtml: composeHtml, composeText: composeText, mailtoHref: mailtoHref,
+    composeHtml: composeHtml, composeText: composeText, mailtoHref: mailtoHref, recips: recips, addRecip: addRecip, removeRecip: removeRecip,
   };
 });

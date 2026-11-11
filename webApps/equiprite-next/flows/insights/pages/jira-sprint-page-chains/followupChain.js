@@ -40,7 +40,7 @@ define([
         v.fuSignoff = v.fuSignoff || 'Thanks,';
         v.fuTo = v.fuTo || '';
         v.fuCc = v.fuCc || '';
-        v.fuSug = []; v.fuSugFor = '';
+        v.fuSug = []; v.fuSugFor = ''; v.fuToDraft = ''; v.fuCcDraft = '';
         // Is Microsoft 365 signed in (via Minutes settings)? Then offer "Send via Microsoft 365".
         try { const gs = await M.graphStatus(); v.fuM365 = (gs.ok && gs.body) ? { signedIn: !!gs.body.signedIn, account: gs.body.account || '' } : { signedIn: false, account: '' }; }
         catch (e) { v.fuM365 = { signedIn: false, account: '' }; }
@@ -62,20 +62,30 @@ define([
         return;
       }
       if (act === 'recipSearch') {
-        // Autocomplete To / CC from the Microsoft 365 directory (the last address being typed).
+        // Autocomplete To / CC from the Microsoft 365 directory (what is being typed in the draft box).
         v.fuSugFor = field;
-        const term = String(value || '').split(/[;,]/).pop().trim();
+        if (field === 'cc') v.fuCcDraft = value; else v.fuToDraft = value;
+        const term = String(value || '').trim();
         if (term.length < 1) { v.fuSug = []; return; }
         const r = await M.contacts(term);
         v.fuSug = (r.ok && r.body && r.body.contacts) ? r.body.contacts.slice(0, 8) : [];
         return;
       }
-      if (act === 'recipPick') {
-        // Add the chosen contact to the active field (To or CC), keeping any already there.
-        const cur = String((field === 'cc' ? v.fuCc : v.fuTo) || '').split(/[;,]/).map((s) => s.trim()).filter(Boolean);
-        if (cur.indexOf(value) < 0) cur.push(value);
-        if (field === 'cc') v.fuCc = cur.join('; '); else v.fuTo = cur.join('; ');
+      if (act === 'recipPick') { // a suggestion was clicked
+        if (field === 'cc') { v.fuCc = F.addRecip(v.fuCc, value); v.fuCcDraft = ''; } else { v.fuTo = F.addRecip(v.fuTo, value); v.fuToDraft = ''; }
         v.fuSug = []; v.fuSugFor = '';
+        return;
+      }
+      if (act === 'recipKey') { // Enter in the draft input adds what was typed (an email or a picked name)
+        if (String(key || '') !== 'Enter') return;
+        const draft = String(value || '').trim();
+        if (!draft) return;
+        if (field === 'cc') { v.fuCc = F.addRecip(v.fuCc, draft); v.fuCcDraft = ''; } else { v.fuTo = F.addRecip(v.fuTo, draft); v.fuToDraft = ''; }
+        v.fuSug = []; v.fuSugFor = '';
+        return;
+      }
+      if (act === 'recipRemove') { // the × on a chip
+        if (field === 'cc') v.fuCc = F.removeRecip(v.fuCc, value); else v.fuTo = F.removeRecip(v.fuTo, value);
         return;
       }
       if (act === 'close') { v.fuOpen = false; return; }

@@ -138,6 +138,8 @@ define(['resources/js/exportKit', 'resources/js/jiraStoryPanel', 'resources/js/t
     fuTplClass(key, cur) { return 'nx-fu-tpl' + (key === cur ? ' nx-fu-tpl--on' : ''); }
     fuCountText(rows) { const n = (rows || []).length; return n + (n === 1 ? ' story' : ' stories') + ' will be added as a table'; }
     fuPreview(title, subtitle, when, message, signoff, rows) { return F.composeHtml({ title, subtitle, when, message, signoff, rows: rows || [], kind: 'sprint' }); }
+    /** The To/Cc recipients as chips (name + email), from the "a@x; b@y" string. */
+    fuRecips(str) { return F.recips(str); }
   }
 
   // An item's drawer: the same helpers as Jira stories (resources/js/jiraStoryPanel.js).

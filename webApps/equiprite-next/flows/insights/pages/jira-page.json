@@ -152,6 +152,8 @@
     "fuM365": { "type": "any", "defaultValue": { "signedIn": false, "account": "" }, "description": "Microsoft 365 sign-in status (from Minutes settings), for Send via Microsoft 365." },
     "fuCc": { "type": "string", "defaultValue": "", "description": "CC recipients." },
     "fuSug": { "type": "any[]", "defaultValue": [], "description": "Contact suggestions for the active recipient field (from the directory)." },
+    "fuToDraft": { "type": "string", "defaultValue": "", "description": "What is being typed in the To box before it becomes a chip." },
+    "fuCcDraft": { "type": "string", "defaultValue": "", "description": "What is being typed in the Cc box before it becomes a chip." },
     "fuSugFor": { "type": "string", "defaultValue": "", "description": "Which recipient field the suggestions are for ('to' | 'cc')." },
     "tab": {
       "type": "string",
@@ -586,10 +588,16 @@
       "chains": [ { "chain": "followupChain", "parameters": { "act": "send" } } ]
     },
     "onFuRecipInput": {
-      "chains": [ { "chain": "followupChain", "parameters": { "act": "recipSearch", "field": "{{ $event.target.dataset.field }}", "value": "{{ $event.detail.value }}" } } ]
+      "chains": [ { "chain": "followupChain", "parameters": { "act": "recipSearch", "field": "{{ $event.target.dataset.field }}", "value": "{{ $event.target.value }}" } } ]
+    },
+    "onFuRecipKey": {
+      "chains": [ { "chain": "followupChain", "parameters": { "act": "recipKey", "key": "{{ $event.key }}", "field": "{{ $event.target.dataset.field }}", "value": "{{ $event.target.value }}" } } ]
     },
     "onFuRecipPick": {
       "chains": [ { "chain": "followupChain", "parameters": { "act": "recipPick", "field": "{{ $event.currentTarget.dataset.field }}", "value": "{{ $event.currentTarget.dataset.email }}" } } ]
+    },
+    "onFuRecipRemove": {
+      "chains": [ { "chain": "followupChain", "parameters": { "act": "recipRemove", "field": "{{ $event.currentTarget.dataset.field }}", "value": "{{ $event.currentTarget.dataset.email }}" } } ]
     },
     "onFuClose": {
       "chains": [ { "chain": "followupChain", "parameters": { "act": "close" } } ]

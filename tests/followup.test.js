@@ -88,4 +88,11 @@ const decoded = decodeURIComponent(href);
 T.check('the body is plain ASCII (no em dash / middot that Outlook would mojibake)',
   !/[—–·‘’“”]/.test(decoded) && decoded.includes('Follow-up -- Sprint 2026-06') && decoded.includes('press Ctrl+V'));
 
+T.section('recipients as chips (recips / addRecip / removeRecip)');
+T.check('recips splits a string into chips, parsing "Name <email>"', JSON.stringify(F.recips('a@b.com; "Nabil Khan" <nabil@x.com>'))
+  === JSON.stringify([{ label: 'a@b.com', value: 'a@b.com' }, { label: 'Nabil Khan', value: 'nabil@x.com' }]));
+T.check('addRecip appends and dedupes case-insensitively', F.addRecip('a@b.com', 'C@D.com') === 'a@b.com; C@D.com'
+  && F.addRecip('a@b.com; c@d.com', 'A@B.com') === 'a@b.com; c@d.com');
+T.check('removeRecip drops the matching recipient', F.removeRecip('a@b.com; c@d.com', 'a@b.com') === 'c@d.com');
+
 T.report();

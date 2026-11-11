@@ -253,6 +253,14 @@ html[data-nx-look="redwood"] .nx-jsp .nx-jsp-pickrow.nx-jsp-pick--on { box-shado
 .nx-fu-sugitem:hover { background: var(--nx-accent-soft); }
 .nx-fu-sugname { font-weight: 600; color: var(--nx-ink); }
 .nx-fu-sugemail { font-size: 12px; color: var(--nx-muted); }
+/* To / Cc as chips (like the Minutes attendees): a bordered box of removable chips + a type-ahead input. */
+.nx-fu-recipbox { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px 8px; border: 1px solid var(--nx-line); border-radius: 8px; background: var(--nx-surface, #fff); min-height: 40px; box-sizing: border-box; }
+.nx-fu-recipbox:focus-within { border-color: var(--nx-accent); box-shadow: 0 0 0 1px var(--nx-accent); }
+.nx-fu-chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 4px 2px 9px; border-radius: 999px; background: var(--nx-accent-soft); color: var(--nx-accent); font-size: 12px; font-weight: 600; white-space: nowrap; }
+.nx-fu-chipx { border: 0; background: transparent; color: inherit; cursor: pointer; font-size: 15px; line-height: 1; padding: 0 3px; border-radius: 999px; }
+.nx-fu-chipx:hover { background: rgba(0, 0, 0, .10); }
+.nx-fu-recipadd { flex: 1 1 160px; min-width: 120px; }
+.nx-fu-recipinput { width: 100%; min-width: 0; box-sizing: border-box; border: 0; background: transparent; font: inherit; padding: 4px 2px; color: var(--nx-ink); outline: none; }
 .nx-fu-prevwrap { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
 .nx-fu-prevwrap > label { font-size: 12px; font-weight: 700; color: var(--nx-muted); letter-spacing: .02em; }
 .nx-fu-preview { width: 100%; min-height: 360px; flex: 1; border: 1px solid var(--nx-line); border-radius: 8px; background: #fff; }

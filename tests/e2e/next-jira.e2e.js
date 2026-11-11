@@ -410,12 +410,15 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     T.check('typing a name shows directory contact suggestions', await page.isVisible('#jspFuSugTo .nx-fu-sugitem'));
     await page.click('#jspFuSugTo .nx-fu-sugitem');
     await settle(page, 200);
-    T.check('picking a contact fills To', (await page.evaluate(() => (document.getElementById('jspFuTo') || {}).value || '')).includes('nabil.khan@rite.digital'));
-    // CC a second recipient, then send.
+    T.check('picking a contact adds it to To as a removable chip', (await page.$$('#jspFuTo .nx-fu-chip')).length === 1
+      && (await text(page, '#jspFuTo')).includes('nabil.khan@rite.digital'));
+    // CC a second recipient by typing an email and pressing Enter (like an email client), then send.
     const ccInput = page.locator('#jspFuCc input');
     await ccInput.fill('rahul@company.com');
-    await ccInput.press('Tab');
+    await ccInput.press('Enter');
     await settle(page, 200);
+    T.check('typing an email and Enter adds a Cc chip', (await page.$$('#jspFuCc .nx-fu-chip')).length === 1
+      && (await text(page, '#jspFuCc')).includes('rahul@company.com'));
     await page.click('#jspFuSend');
     await page.waitForSelector('#jspFuModal', { state: 'hidden', timeout: 10000 });
     T.check('Send via Microsoft 365 sends To + Cc with the whole email (table included) through Graph', graphSent.some((m) =>

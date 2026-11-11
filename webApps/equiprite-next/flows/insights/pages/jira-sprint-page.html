@@ -422,28 +422,42 @@
               </div>
             </div>
             <div class="nx-fu-field nx-fu-recip">
-              <label for="jspFuTo">To (optional)</label>
-              <oj-input-text id="jspFuTo" data-field="to" value="[[ $variables.fuTo ]]" on-value-changed="[[ $listeners.onFuField ]]" on-raw-value-changed="[[ $listeners.onFuRecipInput ]]" placeholder="type a name or email…"></oj-input-text>
-              <oj-bind-if test="[[ $variables.fuSugFor === 'to' && $variables.fuSug.length > 0 ]]">
-                <div class="nx-fu-sug" id="jspFuSugTo" role="listbox">
-                  <oj-bind-for-each data="[[ $variables.fuSug ]]"><template data-oj-as="c">
-                    <button type="button" class="nx-fu-sugitem" :data-email="[[ c.data.email ]]" data-field="to" on-click="[[ $listeners.onFuRecipPick ]]" role="option">
-                      <span class="nx-fu-sugname"><oj-bind-text value="[[ c.data.name ]]"></oj-bind-text></span><span class="nx-fu-sugemail"><oj-bind-text value="[[ c.data.email ]]"></oj-bind-text></span></button>
-                  </template></oj-bind-for-each>
+              <label for="jspFuToInput">To (optional)</label>
+              <div class="nx-fu-recipbox" id="jspFuTo">
+                <oj-bind-for-each data="[[ $functions.fuRecips($variables.fuTo) ]]"><template data-oj-as="rc">
+                  <span class="nx-fu-chip"><oj-bind-text value="[[ rc.data.label ]]"></oj-bind-text><button type="button" class="nx-fu-chipx" :data-email="[[ rc.data.value ]]" data-field="to" on-click="[[ $listeners.onFuRecipRemove ]]" :aria-label="[[ 'Remove ' + rc.data.label ]]">×</button></span>
+                </template></oj-bind-for-each>
+                <div class="nx-fu-recipadd">
+                  <input type="text" id="jspFuToInput" class="nx-fu-recipinput" autocomplete="off" data-field="to" :value="[[ $variables.fuToDraft ]]" on-input="[[ $listeners.onFuRecipInput ]]" on-keydown="[[ $listeners.onFuRecipKey ]]" placeholder="type a name or email, Enter to add…">
+                  <oj-bind-if test="[[ $variables.fuSugFor === 'to' && $variables.fuSug.length > 0 ]]">
+                    <div class="nx-fu-sug" id="jspFuSugTo" role="listbox">
+                      <oj-bind-for-each data="[[ $variables.fuSug ]]"><template data-oj-as="c">
+                        <button type="button" class="nx-fu-sugitem" :data-email="[[ c.data.email ]]" data-field="to" on-mousedown="[[ $listeners.onFuRecipPick ]]" role="option">
+                          <span class="nx-fu-sugname"><oj-bind-text value="[[ c.data.name ]]"></oj-bind-text></span><span class="nx-fu-sugemail"><oj-bind-text value="[[ c.data.email ]]"></oj-bind-text></span></button>
+                      </template></oj-bind-for-each>
+                    </div>
+                  </oj-bind-if>
                 </div>
-              </oj-bind-if>
+              </div>
             </div>
             <div class="nx-fu-field nx-fu-recip">
-              <label for="jspFuCc">Cc (optional)</label>
-              <oj-input-text id="jspFuCc" data-field="cc" value="[[ $variables.fuCc ]]" on-value-changed="[[ $listeners.onFuField ]]" on-raw-value-changed="[[ $listeners.onFuRecipInput ]]" placeholder="type a name or email…"></oj-input-text>
-              <oj-bind-if test="[[ $variables.fuSugFor === 'cc' && $variables.fuSug.length > 0 ]]">
-                <div class="nx-fu-sug" id="jspFuSugCc" role="listbox">
-                  <oj-bind-for-each data="[[ $variables.fuSug ]]"><template data-oj-as="c">
-                    <button type="button" class="nx-fu-sugitem" :data-email="[[ c.data.email ]]" data-field="cc" on-click="[[ $listeners.onFuRecipPick ]]" role="option">
-                      <span class="nx-fu-sugname"><oj-bind-text value="[[ c.data.name ]]"></oj-bind-text></span><span class="nx-fu-sugemail"><oj-bind-text value="[[ c.data.email ]]"></oj-bind-text></span></button>
-                  </template></oj-bind-for-each>
+              <label for="jspFuCcInput">Cc (optional)</label>
+              <div class="nx-fu-recipbox" id="jspFuCc">
+                <oj-bind-for-each data="[[ $functions.fuRecips($variables.fuCc) ]]"><template data-oj-as="rc">
+                  <span class="nx-fu-chip"><oj-bind-text value="[[ rc.data.label ]]"></oj-bind-text><button type="button" class="nx-fu-chipx" :data-email="[[ rc.data.value ]]" data-field="cc" on-click="[[ $listeners.onFuRecipRemove ]]" :aria-label="[[ 'Remove ' + rc.data.label ]]">×</button></span>
+                </template></oj-bind-for-each>
+                <div class="nx-fu-recipadd">
+                  <input type="text" id="jspFuCcInput" class="nx-fu-recipinput" autocomplete="off" data-field="cc" :value="[[ $variables.fuCcDraft ]]" on-input="[[ $listeners.onFuRecipInput ]]" on-keydown="[[ $listeners.onFuRecipKey ]]" placeholder="type a name or email, Enter to add…">
+                  <oj-bind-if test="[[ $variables.fuSugFor === 'cc' && $variables.fuSug.length > 0 ]]">
+                    <div class="nx-fu-sug" id="jspFuSugCc" role="listbox">
+                      <oj-bind-for-each data="[[ $variables.fuSug ]]"><template data-oj-as="c">
+                        <button type="button" class="nx-fu-sugitem" :data-email="[[ c.data.email ]]" data-field="cc" on-mousedown="[[ $listeners.onFuRecipPick ]]" role="option">
+                          <span class="nx-fu-sugname"><oj-bind-text value="[[ c.data.name ]]"></oj-bind-text></span><span class="nx-fu-sugemail"><oj-bind-text value="[[ c.data.email ]]"></oj-bind-text></span></button>
+                      </template></oj-bind-for-each>
+                    </div>
+                  </oj-bind-if>
                 </div>
-              </oj-bind-if>
+              </div>
             </div>
             <div class="nx-fu-field">
               <label for="jspFuSubject">Subject</label>
