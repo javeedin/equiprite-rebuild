@@ -17,6 +17,10 @@ define([], function () {
   //   emailFor(meeting, rows)          { subject, html, text } a formatted minutes email
   //   teamsFor(meeting, rows)          { text } a Markdown message for a Teams incoming webhook
 
+  // Microsoft 365 defaults (the RITE "Equip_Rite" app registration): shown in the settings form so the user only signs
+  // in. Not secrets — a Tenant ID and a public-client App (Client) ID; the user can overwrite them.
+  var GRAPH_DEFAULT = { tenantId: 'f4d4b2b3-ca12-4c29-8cff-136685f7f51d', clientId: '3e139d37-6f21-4165-81ef-a2f126831839' };
+
   function pad(n) { return (n < 10 ? '0' : '') + n; }
   function todayISO() { var d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
   function nowHM() { var d = new Date(); return pad(d.getHours()) + ':' + pad(d.getMinutes()); }
@@ -267,6 +271,6 @@ define([], function () {
     attendeeName: attendeeName, attendeeEmail: attendeeEmail, attendeeEmails: attendeeEmails,
     lineText: lineText, summarise: summarise, formatPrompt: formatPrompt,
     stories: stories, epics: epics, customers: customers, openActions: openActions,
-    emailFor: emailFor, teamsFor: teamsFor
+    emailFor: emailFor, teamsFor: teamsFor, GRAPH_DEFAULT: GRAPH_DEFAULT
   };
 });

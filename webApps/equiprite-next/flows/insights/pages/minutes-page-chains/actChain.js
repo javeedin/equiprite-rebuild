@@ -22,7 +22,10 @@ define([
         const g = (gs.ok && gs.body) ? gs.body : (v.graph || {});
         v.graph = g;
         const st = v.settings || {};
-        v.settingsForm = { teamsWebhook: '', clearTeamsWebhook: false, defaultAttendees: ((st.defaultAttendees) || []).join(', '), orgName: st.orgName || '', fromName: st.fromName || '', fromEmail: st.fromEmail || '', provider: st.provider || 'local', tenantId: g.tenantId || '', clientId: g.clientId || '' };
+        // Prefill the Microsoft 365 IDs with the RITE app registration by default (not secrets; the user can overwrite
+        // them), so when Microsoft 365 is chosen the Tenant/Client fields are already filled — just Sign in and Save.
+        const def = (R && R.GRAPH_DEFAULT) || { tenantId: '', clientId: '' };
+        v.settingsForm = { teamsWebhook: '', clearTeamsWebhook: false, defaultAttendees: ((st.defaultAttendees) || []).join(', '), orgName: st.orgName || '', fromName: st.fromName || '', fromEmail: st.fromEmail || '', provider: st.provider || 'local', tenantId: g.tenantId || def.tenantId, clientId: g.clientId || def.clientId };
         v.dialog = 'settings';
       }
 

@@ -167,6 +167,9 @@ async function setField(page, sel, val) { await page.fill(sel, val); await page.
     await page.waitForSelector('#minSetDlg', { timeout: 10000 });
     await page.click('#minSetDlg button[data-act="setProvider"][data-id="o365"]');
     await settle(page, 300);
+    T.check('the Microsoft 365 Tenant ID and Client ID are prefilled with the RITE app by default',
+      (await page.inputValue('#minSetDlg input[data-field="tenantId"]')) === 'f4d4b2b3-ca12-4c29-8cff-136685f7f51d'
+      && (await page.inputValue('#minSetDlg input[data-field="clientId"]')) === '3e139d37-6f21-4165-81ef-a2f126831839');
     await setField(page, '#minSetDlg input[data-field="tenantId"]', 'tenant-123');
     await setField(page, '#minSetDlg input[data-field="clientId"]', 'client-abc');
     await page.click('#minGraphIn');
