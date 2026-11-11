@@ -98,6 +98,7 @@ async function setField(page, sel, val) { await page.fill(sel, val); await page.
     await page.click('.nx-min-suggest-item');
     await settle(page, 300);
     T.check('clicking a suggestion adds a chip (name shown, email kept)', /Priya Raman/.test(await text(page, '.nx-min-att')));
+    T.check('the typed text is wiped from the attendee box once the name becomes a chip', (await page.inputValue('.nx-min-attadd')) === '');
     await page.click('#minAddLine');
     await settle(page, 300);
     await setField(page, '.nx-min-line input[data-field="jiraKey"]', 'EQP-12');

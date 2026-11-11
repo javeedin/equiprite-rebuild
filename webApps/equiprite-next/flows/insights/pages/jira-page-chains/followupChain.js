@@ -23,6 +23,9 @@ define([
   class followupChain extends ActionChain {
     async run(context, { act, key, field, value }) {
       const v = context.$page.variables;
+      // A plain <input>'s bound value only sets the attribute, so clearing the model doesn't wipe what was already typed:
+      // reset the live value (and refocus) directly once a recipient becomes a chip.
+      const clearRecipInput = (f) => { try { const el = (typeof document !== 'undefined') && document.querySelector('.nx-fu-recipinput[data-field="' + f + '"]'); if (el) { el.value = ''; el.focus(); } } catch (e) { /* no DOM (tests) */ } };
 
       if (act === 'open') {
         const picked = JSON.parse(JSON.stringify(v.shown || []));
@@ -68,7 +71,7 @@ define([
       }
       if (act === 'recipPick') { // a suggestion was clicked
         if (field === 'cc') { v.fuCc = F.addRecip(v.fuCc, value); v.fuCcDraft = ''; } else { v.fuTo = F.addRecip(v.fuTo, value); v.fuToDraft = ''; }
-        v.fuSug = []; v.fuSugFor = '';
+        v.fuSug = []; v.fuSugFor = ''; clearRecipInput(field);
         return;
       }
       if (act === 'recipKey') { // Enter in the draft input adds what was typed (an email or a picked name)
@@ -76,7 +79,7 @@ define([
         const draft = String(value || '').trim();
         if (!draft) return;
         if (field === 'cc') { v.fuCc = F.addRecip(v.fuCc, draft); v.fuCcDraft = ''; } else { v.fuTo = F.addRecip(v.fuTo, draft); v.fuToDraft = ''; }
-        v.fuSug = []; v.fuSugFor = '';
+        v.fuSug = []; v.fuSugFor = ''; clearRecipInput(field);
         return;
       }
       if (act === 'recipRemove') { // the × on a chip

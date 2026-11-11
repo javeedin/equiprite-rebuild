@@ -412,6 +412,7 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     await settle(page, 200);
     T.check('picking a contact adds it to To as a removable chip', (await page.$$('#jspFuTo .nx-fu-chip')).length === 1
       && (await text(page, '#jspFuTo')).includes('nabil.khan@rite.digital'));
+    T.check('the typed text is wiped from the To box once the contact becomes a chip', (await page.inputValue('#jspFuTo input')) === '');
     // CC a second recipient by typing an email and pressing Enter (like an email client), then send.
     const ccInput = page.locator('#jspFuCc input');
     await ccInput.fill('rahul@company.com');
@@ -419,6 +420,7 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     await settle(page, 200);
     T.check('typing an email and Enter adds a Cc chip', (await page.$$('#jspFuCc .nx-fu-chip')).length === 1
       && (await text(page, '#jspFuCc')).includes('rahul@company.com'));
+    T.check('the typed email is wiped from the Cc box once it becomes a chip', (await page.inputValue('#jspFuCc input')) === '');
     await page.click('#jspFuSend');
     await page.waitForSelector('#jspFuModal', { state: 'hidden', timeout: 10000 });
     T.check('Send via Microsoft 365 sends To + Cc with the whole email (table included) through Graph', graphSent.some((m) =>

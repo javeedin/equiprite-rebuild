@@ -15,6 +15,9 @@ define([
       const v = context.$page.variables;
 
       async function refreshList() { const r = await C.list(); if (r.ok && r.body && r.body.meetings) v.meetings = r.body.meetings; }
+      // A plain <input>'s bound value only sets the attribute, so clearing the model doesn't wipe what was already
+      // typed: reset the live value (and refocus) directly once an attendee becomes a chip.
+      const clearAttInput = () => { try { const el = (typeof document !== 'undefined') && document.querySelector('.nx-min-attadd'); if (el) { el.value = ''; el.focus(); } } catch (e) { /* no DOM (tests) */ } };
       function openMeeting(m) { v.meeting = m; v.attendeesText = (m.attendees || []).join(', '); v.dirty = false; }
       const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       async function openSettings() {
@@ -40,7 +43,7 @@ define([
         case 'toggleDone': { const m = clone(v.meeting) || { lines: [] }; const l = (m.lines || []).filter((x) => x.id === lineId)[0]; if (l) l.status = l.status === 'done' ? 'open' : 'done'; v.meeting = m; v.dirty = true; return; }
         case 'addAttendee': {
           let val = String(id || '').trim();
-          if (!val) { v.attendeeDraft = ''; return; }
+          if (!val) { v.attendeeDraft = ''; clearAttInput(); return; }
           // Enter on a typed name resolves to the matching person (with their email) when there is one.
           if (val.indexOf('<') === -1) {
             const ql = val.toLowerCase();
@@ -49,7 +52,7 @@ define([
           }
           const m = clone(v.meeting) || {}; m.attendees = (m.attendees || []).slice();
           if (m.attendees.indexOf(val) === -1) m.attendees.push(val);
-          v.meeting = m; v.attendeeDraft = ''; v.dirty = true; return;
+          v.meeting = m; v.attendeeDraft = ''; v.dirty = true; clearAttInput(); return;
         }
         case 'removeAttendee': { const m = clone(v.meeting) || {}; m.attendees = (m.attendees || []).filter((a) => a !== id); v.meeting = m; v.dirty = true; return; }
         case 'attendeeSearch': {
