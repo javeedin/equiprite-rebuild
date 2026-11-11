@@ -700,6 +700,7 @@ function createDevServer(o) {
           if (pathname === '/__minutes/graph/signin' && post) return jsonM(200, ms.graphBegin ? await ms.graphBegin() : { ok: false, error: 'Microsoft 365 is not available.' });
           if (pathname === '/__minutes/graph/signout' && post) return jsonM(200, ms.graphSignOut ? await ms.graphSignOut() : { ok: false });
           if (pathname === '/__minutes/graph/test' && post) return jsonM(200, ms.graphTest ? await ms.graphTest(b) : { ok: false, error: 'Microsoft 365 is not available.' });
+          if (pathname === '/__minutes/graph/send' && post) return jsonM(200, ms.graphSend ? await ms.graphSend(b) : { ok: false, error: 'Microsoft 365 is not available.' });
           return jsonM(404, { error: 'Not found' });
         })().catch((e) => jsonM(200, { ok: false, error: e.message }));
         return undefined;

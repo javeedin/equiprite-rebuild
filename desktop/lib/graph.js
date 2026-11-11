@@ -119,17 +119,29 @@ function open(o) {
       const t = await token();
       if (!t) return { ok: false, available: !!(data.tenantId && data.clientId), contacts: [], error: 'Not signed in to Microsoft 365.' };
       const term = String(q || '').trim();
+      const out = [];
+      const seen = {};
+      const add = (name, email) => { const k = String(email || '').toLowerCase(); if (email && !seen[k]) { seen[k] = true; out.push({ name: name || email, email: email }); } };
+      let err = '';
+      // Relevant people (like Outlook's suggested contacts): the people this user works with.
       try {
         const r = term
           ? await graph('GET', '/me/people?$search=' + encodeURIComponent('"' + term + '"') + '&$top=15&$select=displayName,scoredEmailAddresses,userPrincipalName', t)
           : await graph('GET', '/me/people?$top=25&$select=displayName,scoredEmailAddresses,userPrincipalName', t);
-        if (r.status >= 400) return { ok: false, available: true, contacts: [], error: (r.body && r.body.error && r.body.error.message) || ('Graph HTTP ' + r.status) };
-        const out = ((r.body && r.body.value) || []).map((p) => {
-          const email = (p.scoredEmailAddresses && p.scoredEmailAddresses[0] && p.scoredEmailAddresses[0].address) || p.userPrincipalName || '';
-          return { name: p.displayName || email, email: email };
-        }).filter((p) => p.email);
-        return { ok: true, available: true, contacts: out };
-      } catch (e) { return { ok: false, available: true, contacts: [], error: String((e && e.message) || e) }; }
+        if (r.status < 400) ((r.body && r.body.value) || []).forEach((p) => add(p.displayName, (p.scoredEmailAddresses && p.scoredEmailAddresses[0] && p.scoredEmailAddresses[0].address) || p.userPrincipalName));
+        else err = (r.body && r.body.error && r.body.error.message) || ('Graph HTTP ' + r.status);
+      } catch (e) { err = String((e && e.message) || e); }
+      // The whole organisation directory (needs User.ReadBasic.All with admin consent; ignored if not granted).
+      try {
+        const esc = term.replace(/'/g, "''");
+        const dir = term
+          ? "/users?$filter=" + encodeURIComponent("startswith(displayName,'" + esc + "') or startswith(mail,'" + esc + "') or startswith(userPrincipalName,'" + esc + "')") + "&$top=15&$select=displayName,mail,userPrincipalName"
+          : '/users?$top=25&$select=displayName,mail,userPrincipalName';
+        const r2 = await graph('GET', dir, t);
+        if (r2.status < 400) ((r2.body && r2.body.value) || []).forEach((p) => add(p.displayName, p.mail || p.userPrincipalName));
+      } catch (e) { /* no directory permission — relevant people only */ }
+      if (!out.length && err) return { ok: false, available: true, contacts: [], error: err };
+      return { ok: true, available: true, contacts: out };
     },
     async sendMail(b) {
       const t = await token();

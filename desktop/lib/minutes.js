@@ -327,6 +327,14 @@ async function open(o) {
     const r = await graph.sendMail({ to: to, subject: 'EquipRite — Microsoft 365 test', html: html });
     return r && r.ok ? { ok: true, to: to } : (r || { ok: false, error: 'Could not send the test email.' });
   };
+  // Send an arbitrary email through Microsoft 365 (Graph) — used by the Jira "Send via Microsoft 365" follow-up, which
+  // reuses the Minutes M365 sign-in. Needs recipients and a signed-in account.
+  store.graphSend = async (b) => {
+    if (!(graph && graph.status().signedIn)) return { ok: false, error: 'Sign in to Microsoft 365 in Minutes settings first.' };
+    b = b || {};
+    if (!str(b.to).trim()) return { ok: false, error: 'Add recipients (To) before sending.' };
+    return graph.sendMail({ to: b.to, subject: b.subject, html: b.html });
+  };
   // Microsoft 365 account management (lib/graph.js).
   store.graphStatus = () => (graph ? graph.status() : { configured: false, signedIn: false, available: false });
   store.graphConfig = async (b) => { if (graph) graph.saveConfig(b || {}); return { ok: true, status: store.graphStatus() }; };

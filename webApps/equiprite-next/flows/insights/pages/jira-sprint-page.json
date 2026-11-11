@@ -71,6 +71,7 @@
     "fuSubject": { "type": "string", "defaultValue": "", "description": "The email subject." },
     "fuMessage": { "type": "string", "defaultValue": "", "description": "The editable message above the table (greeting + body)." },
     "fuSignoff": { "type": "string", "defaultValue": "Thanks,", "description": "The editable sign-off below the table." },
+    "fuM365": { "type": "any", "defaultValue": { "signedIn": false, "account": "" }, "description": "Microsoft 365 sign-in status (from Minutes settings), for Send via Microsoft 365." },
     "images": {
       "type": "object",
       "defaultValue": {},
@@ -199,6 +200,9 @@
     },
     "onFuSave": {
       "chains": [ { "chain": "followupChain", "parameters": { "act": "save" } } ]
+    },
+    "onFuSend": {
+      "chains": [ { "chain": "followupChain", "parameters": { "act": "send" } } ]
     },
     "onFuClose": {
       "chains": [ { "chain": "followupChain", "parameters": { "act": "close" } } ]

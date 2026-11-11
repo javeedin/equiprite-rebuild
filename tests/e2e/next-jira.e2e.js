@@ -93,6 +93,13 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
   const dec = (b) => Buffer.from(String(b).replace(/^enc:/, ''), 'base64').toString();
   const jiraStore = JA.open({ file: path.join(dir, 'jira.json'), encrypt: enc, decrypt: dec });
   const fuStore = await require('../../desktop/lib/followups').open({ file: path.join(dir, 'followups.duckdb') });
+  // A minutes store with Microsoft 365 already signed in (stub Graph), so the follow-up dialog offers "Send via Microsoft 365".
+  const graphSent = [];
+  const minutesStore = await require('../../desktop/lib/minutes').open({ file: path.join(dir, 'minutes.duckdb'), graph: {
+    status: () => ({ configured: true, signedIn: true, account: 'javeed@rite.digital', tenantId: 't', clientId: 'c', pending: false, userCode: '', verificationUri: '', error: '' }),
+    sendMail: async (b) => { graphSent.push(b); return { ok: true }; },
+    people: async () => ({ ok: true, available: true, contacts: [] }), saveConfig: () => {}, beginSignIn: async () => ({ ok: true }), signOut: () => {},
+  } });
   const evidenceDir = path.join(dir, 'EquipRite Test Evidence');
   const recStore = TE.open({ dir: evidenceDir, reveal: (f) => { revealed.push(f); } });
   const revealed = [];
@@ -111,7 +118,7 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     revealModels: () => ({ dir: '/models' }),
     transcribe: (file, opts) => { transcribed.push({ file, opts }); return Promise.resolve({ ok: true, engine: 'local', lang: 'en', model: 'ggml-base.bin',
       segments: [{ start: 0, end: 2.6, text: 'The map does not load on this story.' }, { start: 2.6, end: 5.2, text: 'I click Edit and nothing happens.' }], ms: 20 }); } };
-  const env = await E.start({ port: 19760, handle, app: 'next', jiraStore, recStore, transcribe, followupsStore: fuStore, init: E.recorderStub });
+  const env = await E.start({ port: 19760, handle, app: 'next', jiraStore, recStore, transcribe, followupsStore: fuStore, minutesStore, init: E.recorderStub });
   const page = env.page;
   const errs = () => env.errors.filter((e) => !/404|401|Failed to load resource/.test(e) && !e.startsWith('warning'));
   try {
@@ -322,6 +329,18 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     const savedOne = await fuStore.get(savedList.followups[0].id);
     T.check('the stored line is the ticked story, with its sprint and link', savedOne.ok && savedOne.followup.lines.length === 1
       && savedOne.followup.lines[0].storyKey === 'EQP-12' && savedOne.followup.lines[0].url.indexOf('EQP-12') !== -1);
+    // Send via Microsoft 365 (M365 signed in via the stub minutes store): the whole email, table included, sent through Graph.
+    await page.click('#jspFollowup');
+    await page.waitForSelector('#jspFuModal', { state: 'visible', timeout: 10000 });
+    T.check('with Microsoft 365 signed in, the dialog offers "Send via Microsoft 365"', await page.isVisible('#jspFuSend'));
+    const toInput = page.locator('#jspFuTo input');
+    await toInput.fill('rahul@company.com');
+    await toInput.press('Tab');
+    await settle(page, 200);
+    await page.click('#jspFuSend');
+    await page.waitForSelector('#jspFuModal', { state: 'hidden', timeout: 10000 });
+    T.check('Send via Microsoft 365 sends the whole email (table included) through Graph to the recipients', graphSent.some((m) =>
+      /rahul@company\.com/.test(m.to) && /<table/.test(m.html) && /EQP-12/.test(m.html)), JSON.stringify(graphSent[graphSent.length - 1] || {}).slice(0, 160));
 
     const tabsBefore = page.context().pages().length;
     await page.click('#jspGrid .nx-jsp-row[data-key="EQP-12"] .nx-jsp-keybtn');

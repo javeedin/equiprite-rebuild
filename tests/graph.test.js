@@ -32,6 +32,10 @@ function fakeFetch(url, init) {
     { displayName: 'Sandeep Reddy Bommareddy', scoredEmailAddresses: [{ address: 'sandeep.reddy@rite.digital' }] },
     { displayName: 'HR India', scoredEmailAddresses: [{ address: 'hrindia@rite.digital' }] },
   ] });
+  if (/\/users/.test(url)) return json(200, { value: [
+    { displayName: 'Sandeep Reddy Bommareddy', mail: 'sandeep.reddy@rite.digital' },
+    { displayName: 'Tester One', mail: 'tester.one@rite.digital' },
+  ] });
   if (/\/me\/sendMail$/.test(url)) return Promise.resolve({ status: 202, text: async () => '' });
   return json(404, { error: { message: 'no route ' + url } });
 }
@@ -56,10 +60,13 @@ const openExternal = (u) => opened.push(u);
   T.check('after the user signs in: signed in, the account known, not pending', after.signedIn === true && after.account === 'javeed@rite.digital' && after.pending === false && tokenCalls >= 1);
   T.check('the token file does not hold the tokens in clear text', !fs.readFileSync(path.join(dir, 'graph.json'), 'utf8').includes('RT1'));
 
-  T.section('the directory from /me/people (like Outlook suggestions)');
+  T.section('the directory: relevant people (/me/people) merged with the org directory (/users)');
   const ppl = await store.people('san');
-  T.check('people returns name + email from Graph', ppl.ok && ppl.contacts.length === 2 && ppl.contacts[0].email === 'sandeep.reddy@rite.digital'
-    && calls.some((c) => /\/me\/people\?\$search=/.test(c.url)));
+  T.check('people merges suggestions and the directory, deduped by email', ppl.ok
+    && ppl.contacts.some((c) => c.email === 'sandeep.reddy@rite.digital') && ppl.contacts.some((c) => c.email === 'hrindia@rite.digital')
+    && ppl.contacts.some((c) => c.email === 'tester.one@rite.digital')
+    && ppl.contacts.filter((c) => c.email === 'sandeep.reddy@rite.digital').length === 1
+    && calls.some((c) => /\/me\/people\?\$search=/.test(c.url)) && calls.some((c) => /\/users\?\$filter=/.test(c.url)));
 
   T.section('sending via /me/sendMail');
   const sent = await store.sendMail({ to: 'a@x.com; b@y.com', subject: 'Minutes', html: '<b>hi</b>' });

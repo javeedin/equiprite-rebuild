@@ -615,6 +615,7 @@
             aria-label="Set Outlook as your default mail app" title="Set Outlook as your default mail app (opens Windows settings)"><span class="oj-ux-ico-settings" aria-hidden="true"></span></button>
           <button type="button" class="nx-btn nx-btn--sm" id="jiraFuSave" on-click="[[ $listeners.onFuSave ]]" title="Save this follow-up — find it later in the Follow-ups menu"><span class="oj-ux-ico-save" aria-hidden="true"></span>Save</button>
           <button type="button" class="nx-btn nx-btn--sm" id="jiraFuOutlook" on-click="[[ $listeners.onFuOutlook ]]"><span class="oj-ux-ico-email" aria-hidden="true"></span>Open in Outlook</button>
+          <oj-bind-if test="[[ $variables.fuM365.signedIn ]]"><button type="button" class="nx-btn nx-btn--sm" id="jiraFuSend" on-click="[[ $listeners.onFuSend ]]" title="Send this email now through Microsoft 365 (table included)"><span class="oj-ux-ico-paper-plane" aria-hidden="true"></span>Send via Microsoft 365</button></oj-bind-if>
           <button type="button" class="nx-btn nx-btn--cta" id="jiraFuCopy" on-click="[[ $listeners.onFuCopy ]]"><span class="oj-ux-ico-copy-to-clipboard" aria-hidden="true"></span>Copy for email</button>
         </div>
       </div>
