@@ -96,7 +96,11 @@ function open(o) {
     const signedIn = !!(data.tokens && (data.tokens.refresh || (data.tokens.access && data.tokens.expiresAt > Date.now())));
     return { configured: !!(data.tenantId && data.clientId), signedIn: signedIn, account: data.account || '', directory: !!data.directory,
       tenantId: data.tenantId || '', clientId: data.clientId || '', pending: !!(pending && !pending.done),
-      userCode: pending ? pending.userCode : '', verificationUri: pending ? pending.verificationUri : '', error: pending ? pending.error || '' : '' };
+      userCode: pending ? pending.userCode : '', verificationUri: pending ? pending.verificationUri : '', error: pending ? pending.error || '' : '',
+      // Diagnostics so the UI can explain "signed in on the web but not here": whether a token was stored, whether it
+      // is still valid, and whether the OS secure store is in use for it.
+      hasToken: !!(data.tokens && (data.tokens.access || data.tokens.refresh)), hasRefresh: !!(data.tokens && data.tokens.refresh),
+      tokenValid: !!(data.tokens && data.tokens.access && data.tokens.expiresAt > Date.now()), encrypted: !!encrypt };
   }
 
   return {

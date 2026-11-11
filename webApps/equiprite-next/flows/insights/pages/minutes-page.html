@@ -233,10 +233,18 @@
               <a class="nx-btn nx-btn--sm" :href="[[ $variables.graph.verificationUri ]]" target="_blank" rel="noopener"><span class="oj-ux-ico-external-link" aria-hidden="true"></span>Open sign-in page</a>
             </div>
             <p class="nx-note">The code is shown here in EquipRite — type it on the Microsoft page, then come back. Waiting for you to sign in…</p>
+            <button type="button" class="nx-btn nx-btn--sm" id="minGraphCheck" data-act="graphRecheck" on-click="[[ $listeners.onAct ]]">I've signed in on the web — check now</button>
           </div>
         </oj-bind-if>
-        <oj-bind-if test="[[ !$variables.graph.signedIn && !$variables.graph.pending ]]"><button type="button" class="nx-btn nx-btn--sm" id="minGraphIn" data-act="graphSignIn" on-click="[[ $listeners.onAct ]]">Sign in to Microsoft 365</button></oj-bind-if>
+        <oj-bind-if test="[[ !$variables.graph.signedIn && !$variables.graph.pending ]]">
+          <div class="nx-min-dc-row">
+            <button type="button" class="nx-btn nx-btn--sm" id="minGraphIn" data-act="graphSignIn" on-click="[[ $listeners.onAct ]]">Sign in to Microsoft 365</button>
+            <button type="button" class="nx-btn nx-btn--sm" id="minGraphCheck2" data-act="graphRecheck" on-click="[[ $listeners.onAct ]]">Check sign-in status</button>
+          </div>
+        </oj-bind-if>
         <oj-bind-if test="[[ $variables.graph.error ]]"><p class="nx-note nx-min-err2"><oj-bind-text value="[[ $variables.graph.error ]]"></oj-bind-text></p></oj-bind-if>
+        <oj-bind-if test="[[ $variables.graph.hasToken && !$variables.graph.signedIn ]]"><p class="nx-note nx-min-err2">A token is stored on this PC but could not be used — this is usually a Windows secure-storage issue. Update to the latest EquipRite, then sign out and sign in again.</p></oj-bind-if>
+        <p class="nx-note" id="minGraphDiag">Status: <oj-bind-text value="[[ $variables.graph.signedIn ? ('signed in' + ($variables.graph.account ? ' as ' + $variables.graph.account : '')) : 'not signed in' ]]"></oj-bind-text> · token <oj-bind-text value="[[ $variables.graph.hasToken ? 'yes' : 'no' ]]"></oj-bind-text> · valid <oj-bind-text value="[[ $variables.graph.tokenValid ? 'yes' : 'no' ]]"></oj-bind-text> · refresh <oj-bind-text value="[[ $variables.graph.hasRefresh ? 'yes' : 'no' ]]"></oj-bind-text> · secure-store <oj-bind-text value="[[ $variables.graph.encrypted ? 'on' : 'off' ]]"></oj-bind-text></p>
       </oj-bind-if>
 
       <div class="nx-min-modalfoot"><button type="button" class="nx-btn nx-btn--sm" data-act="dialog" data-id="" on-click="[[ $listeners.onAct ]]">Cancel</button><button type="button" class="nx-btn nx-btn--cta" id="minSetSave" data-act="settingsSave" on-click="[[ $listeners.onAct ]]">Save</button></div>

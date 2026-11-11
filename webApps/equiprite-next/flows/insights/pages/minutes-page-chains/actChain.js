@@ -185,6 +185,15 @@ define([
           } else if (v.graph.error) toast(v.graph.error, 'error');
           return;
         }
+        case 'graphRecheck': {
+          const s = await C.graphStatus();
+          if (s.ok && s.body) v.graph = s.body;
+          if (v.graph && v.graph.signedIn) {
+            toast('Signed in to Microsoft 365' + (v.graph.account ? ' as ' + v.graph.account : '') + '.');
+            try { const pc = await C.contacts(''); if (pc.ok && pc.body && pc.body.contacts) { const have = {}; const merged = []; pc.body.contacts.forEach((p) => { const k = String((p.email || p.name) || '').toLowerCase(); if (p && k && !have[k]) { have[k] = true; merged.push({ name: p.name, email: p.email }); } }); (v.people || []).forEach((p) => { const k = String((p.email || p.name) || '').toLowerCase(); if (p && k && !have[k]) { have[k] = true; merged.push(p); } }); v.people = merged; } } catch (e) { /* keep people */ }
+          } else toast('Not signed in yet. Finish the sign-in on the Microsoft page, then check again.', 'error');
+          return;
+        }
         case 'graphSignOut': { const r = await C.graphSignOut(); if (r.ok && r.body && r.body.status) v.graph = r.body.status; toast('Signed out of Microsoft 365.'); return; }
         case 'graphCopyCode': { const ok = await C.copy((v.graph && v.graph.userCode) || ''); toast(ok ? 'Code copied — paste it on the Microsoft sign-in page.' : 'Could not copy the code; type it from here.', ok ? 'info' : 'error'); return; }
         case 'graphTest': {
