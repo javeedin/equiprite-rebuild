@@ -298,9 +298,10 @@ async function open(o) {
     return { ok: true, available: true, contacts: list.slice(0, 100) };
   }
 
-  // Attendee suggestions: from Microsoft 365 (Graph /me/people) when that provider is chosen and signed in, else Outlook.
+  // Attendee suggestions: from Microsoft 365 (Graph: relevant people + the directory) whenever signed in — being signed
+  // in means the user wants it, so we don't depend on the provider toggle — else from local Outlook.
   store.contacts = async (q) => {
-    if ((await provider()) === 'o365' && graph && graph.status().signedIn) {
+    if (graph && graph.status().signedIn) {
       const r = await graph.people(q);
       return { ok: !!(r && r.ok), available: true, contacts: (r && r.contacts) || [], error: r && r.error };
     }
@@ -311,9 +312,9 @@ async function open(o) {
     if (!outlookSend) return { ok: false, available: false, error: 'Sending via Outlook is not available in this app.' };
     try { return await outlookSend(b || {}); } catch (e) { return { ok: false, available: true, error: String((e && e.message) || e) }; }
   };
-  // Send the minutes: Microsoft 365 (Graph sendMail, actually sends) when chosen, else open a pre-filled Outlook message.
+  // Send the minutes: Microsoft 365 (Graph sendMail, actually sends) whenever signed in, else open a pre-filled Outlook message.
   store.sendMail = async (b) => {
-    if ((await provider()) === 'o365' && graph && graph.status().signedIn) return graph.sendMail(b || {});
+    if (graph && graph.status().signedIn) return graph.sendMail(b || {});
     return store.sendOutlook(b || {});
   };
   // Send a test email to the signed-in account, to confirm Microsoft 365 sending works (uses Graph directly, whatever

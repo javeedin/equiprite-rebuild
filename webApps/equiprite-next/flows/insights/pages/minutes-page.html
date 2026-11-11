@@ -246,7 +246,7 @@
         <button type="button" class="nx-btn nx-btn--sm" data-act="emailDownload" on-click="[[ $listeners.onAct ]]">Download .html</button>
         <button type="button" class="nx-btn nx-btn--sm" id="minEmailCopy" data-act="emailCopy" on-click="[[ $listeners.onAct ]]">Copy</button>
         <button type="button" class="nx-btn nx-btn--sm" data-act="emailMailto" on-click="[[ $listeners.onAct ]]">Open in email app</button>
-        <button type="button" class="nx-btn nx-btn--cta" id="minEmailSend" data-act="emailSend" on-click="[[ $listeners.onAct ]]"><oj-bind-text value="[[ $variables.settings.provider==='o365' ? 'Send via Office 365' : 'Send via Outlook' ]]"></oj-bind-text></button>
+        <button type="button" class="nx-btn nx-btn--cta" id="minEmailSend" data-act="emailSend" on-click="[[ $listeners.onAct ]]"><oj-bind-text value="[[ $variables.graph.signedIn ? 'Send via Office 365' : 'Send via Outlook' ]]"></oj-bind-text></button>
       </div>
     </div>
   </oj-bind-if>

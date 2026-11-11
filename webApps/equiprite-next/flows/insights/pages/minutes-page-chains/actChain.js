@@ -124,7 +124,7 @@ define([
           return;
         }
 
-        case 'email': { const em = R.emailFor(v.meeting, v.rows); const emails = R.attendeeEmails(v.meeting.attendees || []); em.to = emails.length ? emails.join('; ') : ((v.settings && v.settings.fromEmail) || ''); v.email = em; v.dialog = 'email'; return; }
+        case 'email': { try { const gs = await C.graphStatus(); if (gs.ok && gs.body) v.graph = gs.body; } catch (e) { /* keep last */ } const em = R.emailFor(v.meeting, v.rows); const emails = R.attendeeEmails(v.meeting.attendees || []); em.to = emails.length ? emails.join('; ') : ((v.settings && v.settings.fromEmail) || ''); v.email = em; v.dialog = 'email'; return; }
         case 'emailCopy': { const okc = await C.copyHtml(v.email.html, v.email.text); toast(okc ? 'Email copied.' : 'Copied the text.'); return; }
         case 'emailDownload': { C.download('minutes-' + (v.meeting.date || 'meeting') + '.html', v.email.html, 'text/html'); return; }
         case 'emailMailto': { C.mailto(v.email.to, v.email.subject, v.email.text); return; }
