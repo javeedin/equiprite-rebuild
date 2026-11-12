@@ -1,5 +1,5 @@
 {
- "scannedAt": "2026-11-12T14:53:30.304Z",
+ "scannedAt": "2026-11-12T15:09:52.357Z",
  "pages": [
   {
    "id": "equiprite//shell",
@@ -164,7 +164,15 @@
     "needs": ""
    },
    "stories": [],
-   "sheet": null
+   "sheet": {
+    "at": "2026-11-12T15:05:24.589Z",
+    "by": "javeed.shaik",
+    "codeHash": "bf420cfd8bcabdf8",
+    "screenshot": "screens/equiprite.customer.customer-requests.jpg",
+    "ai": true,
+    "rest": 1,
+    "chains": 5
+   }
   },
   {
    "id": "equiprite/fleet/equipment-workbench",
