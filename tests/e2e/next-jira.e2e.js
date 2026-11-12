@@ -906,6 +906,8 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     T.check('…on the last run, saved: no AI call, "Last run … (when) by …", the FDD it read, and the chat kept', llmBodies.length === llmSaved
       && /Last run \d+ \w+ \d{4}, \d\d:\d\d/.test(await text(page, '#anLastRun')) && /What to do next/.test((await page.getAttribute('#anAnalysis', 'srcdoc')) || '')
       && /No FDD/.test(await vis('#anFddName')) && /what should I test first/.test(await vis('#anChat', 'srcdoc')), llmBodies.length + ' vs ' + llmSaved + ' | ' + await vis('#anLastRun'));
+    await page.evaluate(() => { const c = document.querySelector('.nx-content'); if (c) c.scrollTop = 0; });
+    await page.screenshot({ path: require('path').join(require('os').tmpdir(), 'equiprite-e2e', 'next-jira-analysis-saved.png') });
     const before = analysisStore.get('EQP-12').item.at;
     await page.locator('#anReanalyze:visible').click();
     const rerun = await saved('EQP-12', before);
@@ -920,6 +922,9 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     await page.locator('[role="tab"]').filter({ hasText: 'Jira stories' }).first().click().catch(() => {});
     await page.waitForSelector('#jiraGrid .nx-jira-row[data-key="EQP-13"] .nx-ai-ico--done', { timeout: 10000 }).catch(() => {});
     T.check('…and the list marks it at once', (await page.$('#jiraGrid .nx-jira-row[data-key="EQP-13"] .nx-ai-ico--done')) !== null);
+    await page.$eval('#jiraGrid', (g) => g.scrollIntoView({ block: 'start' })).catch(() => {});
+    await settle(page, 300);
+    await page.screenshot({ path: require('path').join(require('os').tmpdir(), 'equiprite-e2e', 'next-jira-ai-icons.png') });
 
     T.section('Analyze several stories with AI: the stories shown, together, in a new tab');
     const setLabel = await text(page, '#jiraAnalyzeSet');

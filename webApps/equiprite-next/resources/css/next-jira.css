@@ -431,3 +431,4 @@ button.nx-jira-recmark:hover, button.nx-jira-recmark:focus-visible { filter: bri
 .nx-ai-ico--done { background: #e4f1f7; border-color: #9ccbdc; }
 .nx-ai-ico:hover { background: #d4ebf5; border-color: #00688c; opacity: 1; filter: none; }
 .nx-jira .nx-jira-keycell { display: flex; align-items: flex-start; gap: 2px; white-space: nowrap; }
+.nx-an .nx-an-storyhead .nx-an-key { flex: none; white-space: nowrap; }
