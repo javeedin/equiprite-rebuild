@@ -19,7 +19,8 @@
   <div class="nx-flib-git" id="pgGit">
     <span class="oj-ux-ico-branch nx-flib-gitico" aria-hidden="true"></span>
     <div class="nx-flib-gittext">
-      <b>Kept in git</b> — <code>resources/pages</code>: every page's technical sheet, screenshots and mapped Jira stories, the same for everyone.
+      <b>Kept in git</b><oj-bind-if test="[[ !!($variables.info.data && $variables.info.data.separate) ]]">, on its own branch <code id="pgDataBranch"><oj-bind-text value="[[ $variables.info.data.branch ]]"></oj-bind-text></code> (apart from the code)</oj-bind-if><oj-bind-if test="[[ !($variables.info.data && $variables.info.data.separate) ]]"> — <code>resources/pages</code></oj-bind-if>: every page's technical sheet, screenshots and mapped Jira stories, the same for everyone.
+      <oj-bind-if test="[[ !!($variables.info.data && $variables.info.data.reason) ]]"><span class="nx-flib-gitstate" id="pgDataReason"><oj-bind-text value="[[ 'No data branch, so saved in the project folder: ' + $variables.info.data.reason ]]"></oj-bind-text></span></oj-bind-if>
       <oj-bind-if test="[[ $variables.git && $variables.git.available ]]"><span class="nx-flib-gitstate" id="pgGitState"><oj-bind-text value="[[ $functions.gitText($variables.git) ]]"></oj-bind-text></span></oj-bind-if>
       <oj-bind-if test="[[ $variables.checked && !$variables.info.canWrite ]]"><span class="nx-flib-gitstate">Read only here: sheets are built and stories mapped in the EquipRite desktop app.</span></oj-bind-if>
     </div>

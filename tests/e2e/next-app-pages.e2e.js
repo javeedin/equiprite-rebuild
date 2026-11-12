@@ -195,6 +195,24 @@ const ID = 'vbredwoodapp/equipment-foundation/equipment-workbench';
     await env.close();
   }
 
+  // The data on its own git branch (desktop/lib/dataBranch.js): the header says which; and why not, when it could not be.
+  for (const [port, info, ok] of [[19845, { separate: true, branch: 'claude/equiprite-data', dir: '.equiprite-data', reason: '' }, true],
+    [19846, { separate: false, branch: 'claude/equiprite-data', dir: '.equiprite-data', reason: 'git is not installed on this PC.' }, false]]) {
+    const env3 = await E.start({ port: port, app: 'next', pagesStore: Object.assign({}, pg.store, { dataInfo: () => info }) });
+    try {
+      T.section(ok ? 'the data on its own branch: the header names it' : 'no data branch: the header says why');
+      await env3.open('/?open=app-pages');
+      await env3.page.waitForSelector('#pgRows .nx-pg-row', { timeout: 30000 });
+      await env3.page.waitForFunction(() => /Kept in git/.test((document.getElementById('pgGit') || {}).textContent || ''), null, { timeout: 5000 }).catch(() => {});
+      if (ok) T.check('"Kept in git, on its own branch claude/equiprite-data (apart from the code)"', /Kept in git, on its own branch claude\/equiprite-data \(apart from the code\): every page/.test(await text(env3.page, '#pgGit')) && !(await env3.page.$('#pgDataReason')), await text(env3.page, '#pgGit'));
+      else T.check('"No data branch, so saved in the project folder: <why>"', /No data branch, so saved in the project folder: git is not installed on this PC\./.test(await text(env3.page, '#pgDataReason')) && !(await env3.page.$('#pgDataBranch')));
+    } catch (e) {
+      T.check('no exception (data branch header): ' + (e && e.message), false);
+    } finally {
+      await env3.close();
+    }
+  }
+
   // Without the local server (as in VBCS): the catalog shipped with the app, read only.
   const env2 = await E.start({ port: 19850, app: 'next' });
   try {

@@ -5,9 +5,14 @@
  * someone has staged stays staged), and they are pushed to the branch the project is on. A refused push (someone
  * pushed first) or a missing git identity is said, with what to do; nothing is rebased, pulled or forced.
  *
- *   create({ root, paths, git, gitPath, message }) →
+ * With `sync` (the app's data branch, lib/dataBranch.js — never the code): before a push, what others pushed is merged
+ * in (git merge, never a rebase or a force), a conflicted data file merged by `sync.resolve` (or the side that has it
+ * kept), and a push refused because someone pushed meanwhile is merged and tried once more.
+ *
+ *   create({ root, paths, git, gitPath, message, sync: { resolve(file, ours, theirs) → text|null, after() } }) →
  *     status()               { available, branch, upstream, pending: [paths], unpushed: [commits], reason }
- *     save({ message, push }) { ok, committed, pushed, nothing, branch, upstream, error, hint }
+ *     save({ message, push }) { ok, committed, pushed, nothing, branch, upstream, merged, error, hint }
+ *     pull()                 { ok, merged, resolved: [files], error }   (sync only: fetch, and merge what came)
  *   runGit(gitPath, cwd, args) → Promise<{ code, stdout, stderr }>
  */
 function str(v) { return v == null ? '' : String(v); }
@@ -41,6 +46,41 @@ function create(o) {
     return { available: true, branch: branch, upstream: upstream, pending: pending, unpushed: unpushed };
   }
 
+  // ── sync: merge what others pushed (the data branch only) ──
+  const LAST = /(^|\/)(catalog|library)\.json$/; // summaries of other files: merged after them
+  async function pull() {
+    if (!o.sync) return { ok: true, merged: false };
+    const up = await git(['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}']);
+    if (up.code !== 0) return { ok: true, merged: false }; // not pushed anywhere yet
+    const upstream = up.stdout.trim();
+    const slash = upstream.indexOf('/');
+    const f = await git(['fetch', '--quiet', upstream.slice(0, slash), upstream.slice(slash + 1)]);
+    if (f.code !== 0) return { ok: false, merged: false, error: 'git fetch failed: ' + (f.stderr || f.stdout).trim() };
+    const behind = (await git(['rev-list', '--count', 'HEAD..' + upstream])).stdout.trim();
+    if (!behind || behind === '0') return { ok: true, merged: false };
+    const m = await git(['merge', '--no-edit', '-m', 'Merge ' + upstream + ' (data from others)', upstream]);
+    if (m.code === 0) { try { if (o.sync.after) o.sync.after(); } catch (e) { /* the next start catches up */ } return { ok: true, merged: true, resolved: [] }; }
+    const u = await git(['diff', '--name-only', '--diff-filter=U']);
+    const files = u.stdout.split('\n').map((x) => x.trim()).filter(Boolean).sort((a, b) => (LAST.test(a) ? 1 : 0) - (LAST.test(b) ? 1 : 0));
+    if (!files.length) { await git(['merge', '--abort']); return { ok: false, merged: false, error: 'git merge failed: ' + (m.stderr || m.stdout).trim() }; }
+    const fs = require('fs'), path = require('path');
+    for (const file of files) {
+      const ours = await git(['show', ':2:' + file]), theirs = await git(['show', ':3:' + file]);
+      let text = null;
+      if (/\.json$/i.test(file) && o.sync.resolve) {
+        try { text = o.sync.resolve(file, ours.code === 0 ? ours.stdout : null, theirs.code === 0 ? theirs.stdout : null); } catch (e) { text = null; }
+      }
+      if (text != null) { fs.mkdirSync(path.dirname(path.join(o.root, file)), { recursive: true }); fs.writeFileSync(path.join(o.root, file), text); await git(['add', '--', file]); }
+      else if (ours.code === 0) { await git(['checkout', '--ours', '--', file]); await git(['add', '--', file]); }
+      else if (theirs.code === 0) { await git(['checkout', '--theirs', '--', file]); await git(['add', '--', file]); }
+      else await git(['rm', '-q', '--cached', '--ignore-unmatch', '--', file]);
+    }
+    const c = await git(['commit', '--no-edit']);
+    if (c.code !== 0) { await git(['merge', '--abort']); return { ok: false, merged: false, error: 'git merge failed: ' + (c.stderr || c.stdout).trim() }; }
+    try { if (o.sync.after) o.sync.after(); } catch (e) { /* the next start catches up */ }
+    return { ok: true, merged: true, resolved: files };
+  }
+
   async function save(b) {
     b = b || {};
     const st = await status();
@@ -61,8 +101,16 @@ function create(o) {
       committed = (await git(['rev-parse', '--short', 'HEAD'])).stdout.trim();
     }
     if (b.push === false) return { ok: true, committed: committed, pushed: false, branch: st.branch, upstream: st.upstream };
-    if (!committed && !st.unpushed.length) return { ok: true, committed: '', pushed: false, nothing: true, branch: st.branch, upstream: st.upstream };
-    const p = st.upstream ? await git(['push']) : await git(['push', '-u', 'origin', 'HEAD']);
+    // (the data branch, never pushed yet: pushed now, with its upstream set)
+    if (!committed && !st.unpushed.length && (st.upstream || !o.sync)) return { ok: true, committed: '', pushed: false, nothing: true, branch: st.branch, upstream: st.upstream };
+    let merged = false;
+    if (o.sync && st.upstream) { const pl = await pull(); if (!pl.ok) return { ok: false, committed: committed, pushed: false, branch: st.branch, upstream: st.upstream, error: pl.error }; merged = pl.merged; }
+    let p = st.upstream ? await git(['push']) : await git(['push', '-u', 'origin', 'HEAD']);
+    if (p.code !== 0 && o.sync && st.upstream && /rejected|fetch first|non-fast-forward/i.test(p.stderr + p.stdout)) {
+      // someone pushed in the meantime: theirs merged in, then once more
+      const pl = await pull();
+      if (pl.ok) { merged = merged || pl.merged; p = await git(['push']); }
+    }
     if (p.code !== 0) {
       const why = (p.stderr || p.stdout).trim();
       return { ok: false, committed: committed, pushed: false, branch: st.branch, upstream: st.upstream, error: 'git push failed: ' + why,
@@ -70,10 +118,10 @@ function create(o) {
           : /could not read|authentication|permission|403|denied/i.test(why) ? 'git could not sign in to the remote. Push once from a terminal (git push) to save your credentials, then try again.' : '' };
     }
     const after = await git(['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}']);
-    return { ok: true, committed: committed, pushed: true, branch: st.branch, upstream: after.code === 0 ? after.stdout.trim() : st.upstream };
+    return { ok: true, committed: committed, pushed: true, merged: merged, branch: st.branch, upstream: after.code === 0 ? after.stdout.trim() : st.upstream };
   }
 
-  return { status: status, save: save };
+  return { status: status, save: save, pull: pull };
 }
 
 module.exports = { create, runGit };

@@ -39,13 +39,67 @@ function str(v) { return v == null ? '' : String(v); }
 const fileOf = (id) => str(id).split('/').map((x) => x || '_root').join('.');
 const keyOf = (k) => { const s = str(k).trim().toUpperCase(); return /^[A-Z][A-Z0-9]*-\d+$/.test(s) ? s : ''; };
 
+/** The sheet's screenshots (a sheet from before several were kept had one, as `screenshot`). */
+function shotsOf(sh) {
+  if (Array.isArray(sh.screenshots)) return sh.screenshots;
+  sh.screenshots = sh.screenshot && sh.screenshot.file ? [Object.assign({ id: 's1' }, sh.screenshot)] : [];
+  delete sh.screenshot;
+  return sh.screenshots;
+}
+function summaryOf(sh) {
+  const shots = shotsOf(sh);
+  return { at: sh.at, by: sh.by || '', codeHash: sh.codeHash, screenshots: shots.length, ai: !!(sh.ai && sh.ai.text),
+    rest: (sh.facts && sh.facts.integrations.rest.length) || 0, chains: (sh.facts && sh.facts.logic.chains.length) || 0 };
+}
+
+// ── Merging what two people saved at once (the data branch, lib/dataBranch.js: a git merge with a conflict) ──────────
+const union = (a, b) => { const out = []; (a || []).concat(b || []).forEach((k) => { if (k && out.indexOf(k) === -1) out.push(k); }); return out; };
+/** One page's sheet changed on both sides: the newer build, both sides' stories and screenshots, the newer AI text. */
+function mergeSheet(oursText, theirsText) {
+  const a = JSON.parse(oursText), b = JSON.parse(theirsText);
+  const newer = str(a.at) >= str(b.at) ? a : b;
+  const out = Object.assign({}, newer);
+  out.stories = union(a.stories, b.stories).sort();
+  const ai = [a.ai, b.ai].filter((x) => x && x.text).sort((x, y) => str(y.at).localeCompare(str(x.at)))[0];
+  if (ai) out.ai = ai;
+  const shots = [];
+  shotsOf(a).concat(shotsOf(b)).forEach((x) => { if (x && x.file && !shots.some((y) => y.file === x.file)) shots.push(x); });
+  shots.sort((x, y) => str(x.at).localeCompare(str(y.at)));
+  out.screenshots = shots.slice(-30);
+  delete out.screenshot;
+  return JSON.stringify(out, null, 1) + '\n';
+}
+/** The catalog changed on both sides: every page of either, its stories and summary from its (merged) sheet. */
+function mergeCatalog(oursText, theirsText, sheetOf) {
+  const a = JSON.parse(oursText), b = JSON.parse(theirsText);
+  const by = {}, order = [];
+  [a, b].forEach((c, side) => (c.pages || []).forEach((p) => { if (!by[p.id]) { by[p.id] = [null, null]; order.push(p.id); } by[p.id][side] = p; }));
+  const pages = order.map((id) => {
+    const x = by[id];
+    const p = Object.assign({}, x[1] || {}, x[0] || {});
+    const sh = sheetOf ? sheetOf(id) : null;
+    if (sh) { p.stories = sh.stories || []; p.sheet = summaryOf(sh); delete p.deleted; } else {
+      p.deleted = !!((x[0] && x[0].deleted) || (x[1] && x[1].deleted)) || undefined;
+      p.stories = p.deleted ? [] : union(x[0] && x[0].stories, x[1] && x[1].stories);
+      p.sheet = p.deleted ? null : (x[0] && x[0].sheet) || (x[1] && x[1].sheet) || null;
+    }
+    return p;
+  });
+  return JSON.stringify({ scannedAt: [str(a.scannedAt), str(b.scannedAt)].sort().pop(), pages: pages }, null, 1) + '\n';
+}
+
 function open(opts) {
   const o = opts || {};
   const root = path.resolve(o.root || path.join(__dirname, '..', '..'));
-  const resDir = path.join(root, RES);
+  // the data (sheets, screenshots, stories, the catalog): on the app's data branch when there is one (lib/dataBranch.js),
+  // else in the project folder itself; the code is always read from root
+  const data = o.data && o.data.ok ? o.data : null;
+  const dataRoot = data ? data.dir : root;
+  const resDir = path.join(dataRoot, RES);
   const now = o.now || (() => new Date());
   let mirror = o.mirror || '';
-  const repo = gitPaths.create({ root: root, paths: [RES], git: o.git, gitPath: o.gitPath, message: 'Application pages: update' });
+  const repo = gitPaths.create({ root: dataRoot, paths: [RES], git: o.git, gitPath: o.gitPath, message: 'Application pages: update',
+    sync: data ? { resolve: data.resolve, after: data.merged } : null });
 
   const readJson = (f, dflt) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch (e) { return dflt; } };
   const mirrorDir = () => { try { return typeof mirror === 'function' ? mirror() : mirror; } catch (e) { return ''; } };
@@ -69,6 +123,7 @@ function open(opts) {
     };
     try { copy(resDir, m); } catch (e) { /* the next build catches up */ }
   }
+  if (data) data.onMerged(sync); // others' sheets merged in: into the build copy at once
 
   const saved = () => readJson(path.join(resDir, 'catalog.json'), { pages: [] });
   const sheetFile = (id) => 'sheets/' + fileOf(id) + '.json';
@@ -90,18 +145,6 @@ function open(opts) {
       route: p.route, next: (p.next || []).length ? p.next : undefined, menu: p.menu || undefined,
       stories: p.stories || [], sheet: p.sheet || null, missing: p.missing || undefined, deleted: p.deleted || undefined })) };
     write('catalog.json', JSON.stringify(slim, null, 1) + '\n');
-  }
-  /** The sheet's screenshots (a sheet from before several were kept had one, as `screenshot`). */
-  function shotsOf(sh) {
-    if (Array.isArray(sh.screenshots)) return sh.screenshots;
-    sh.screenshots = sh.screenshot && sh.screenshot.file ? [Object.assign({ id: 's1' }, sh.screenshot)] : [];
-    delete sh.screenshot;
-    return sh.screenshots;
-  }
-  function summaryOf(sh) {
-    const shots = shotsOf(sh);
-    return { at: sh.at, by: sh.by || '', codeHash: sh.codeHash, screenshots: shots.length, ai: !!(sh.ai && sh.ai.text),
-      rest: (sh.facts && sh.facts.integrations.rest.length) || 0, chains: (sh.facts && sh.facts.logic.chains.length) || 0 };
   }
   function saveSheet(sh) {
     write(sheetFile(sh.id), JSON.stringify(sh, null, 1) + '\n');
@@ -244,10 +287,11 @@ function open(opts) {
     catalog: catalog, rescan: rescan, sheet: sheet, build: build, assign: assign, unassign: unassign, forStory: forStory,
     saveShot: saveShot, capture: capture, saveAi: saveAi, canCapture: () => typeof o.capture === 'function',
     canWrite: () => { try { return fs.statSync(path.join(root, 'webApps', 'equiprite-next')).isDirectory(); } catch (e) { return false; } },
-    gitStatus: () => repo.status(), gitSave: (b) => repo.save(b),
+    gitStatus: () => repo.status(), gitSave: (b) => repo.save(b), gitPull: () => repo.pull(),
+    dataInfo: () => (o.data ? o.data.info() : { separate: false, branch: '', reason: '' }),
     setMirror: (dir) => { mirror = dir || ''; sync(); },
-    RES: RES, root: root,
+    RES: RES, root: root, dataRoot: dataRoot,
   };
 }
 
-module.exports = { open, fileOf, RES };
+module.exports = { open, fileOf, RES, mergeSheet, mergeCatalog, summaryOf, shotsOf };

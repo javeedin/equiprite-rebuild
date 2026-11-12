@@ -32,7 +32,9 @@ function args(argv) {
 
 async function main() {
   const a = args(process.argv.slice(2));
-  const store = F.open({ root: path.join(__dirname, '..') });
+  // the library lives on the app's data branch (desktop/lib/dataBranch.js), as in the desktop app; else in the project
+  const data = await require('../desktop/lib/dataBranch').open({ root: path.join(__dirname, '..'), log: (l) => console.error(l) }).ensure();
+  const store = F.open({ root: path.join(__dirname, '..'), data: data });
   const cmd = a._[0] || 'list';
   const say = (s) => console.log(s);
   const git = async (msg) => {

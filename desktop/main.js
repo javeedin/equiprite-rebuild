@@ -181,18 +181,26 @@ async function followupsStore() {
   }
   return followupsStoreInst;
 }
-// The FDD library, for EquipRite Next's FDD library page and "Analyze with AI": documents saved into the project itself
-// (docs/fdd and webApps/equiprite-next/resources/fdd), committed and pushed to git so every user has the same ones.
+// The app's data — the FDD library and the Application pages catalog — on its own git branch, apart from the code
+// (lib/dataBranch.js: a worktree in <project>/.equiprite-data): the app commits and pushes there, never to the code
+// branch, so code pushes and the app's pushes do not collide. If git cannot set it up, the data stays in the project.
+let dataBranchInst = null;
+function dataBranch() {
+  if (!dataBranchInst) dataBranchInst = require('./lib/dataBranch').open({ root: path.join(__dirname, '..'), gitPath: commandPath('git') || 'git', log: (l) => { try { pushLog(l); } catch (e) { console.log(l); } } }).ensure();
+  return dataBranchInst;
+}
+// The FDD library, for EquipRite Next's FDD library page and "Analyze with AI": documents shared through git (docs/fdd
+// and webApps/equiprite-next/resources/fdd on the data branch), so every user has the same ones.
 let fddStoreInst = null;
-function fddStore() {
-  if (!fddStoreInst) fddStoreInst = require('./lib/fdd').open({ root: path.join(__dirname, '..'), gitPath: commandPath('git') || 'git' });
+async function fddStore() {
+  if (!fddStoreInst) fddStoreInst = require('./lib/fdd').open({ root: path.join(__dirname, '..'), data: await dataBranch(), gitPath: commandPath('git') || 'git' });
   return fddStoreInst;
 }
-// The Application pages catalog (lib/pages.js), kept in the project (git). Its screenshots: the page opened in a hidden
-// window of this app — the same sign-in and the same live data as you see — and captured once it has settled.
+// The Application pages catalog (lib/pages.js), shared through git (the data branch). Its screenshots: the page opened
+// in a hidden window of this app — the same sign-in and the same live data as you see — and captured once it has settled.
 let pagesStoreInst = null;
-function pagesStore() {
-  if (!pagesStoreInst) pagesStoreInst = require('./lib/pages').open({ root: path.join(__dirname, '..'), gitPath: commandPath('git') || 'git', capture: capturePage });
+async function pagesStore() {
+  if (!pagesStoreInst) pagesStoreInst = require('./lib/pages').open({ root: path.join(__dirname, '..'), data: await dataBranch(), gitPath: commandPath('git') || 'git', capture: capturePage });
   return pagesStoreInst;
 }
 async function capturePage(webApp, url) {
@@ -1163,11 +1171,11 @@ if (!app.requestSingleInstanceLock()) {
             // Saved follow-ups (EquipRite Next): follow-ups drafted on the Jira pages, kept on this PC.
             followupsStore: v === 'next' ? await followupsStore() : undefined,
             // The FDD library: FDDs uploaded into the project and committed to git, so every user has them
-            fddStore: v === 'next' ? fddStore() : undefined,
+            fddStore: v === 'next' ? await fddStore() : undefined,
             // Saved AI analyses: each run kept on this PC, so an analysis opens without asking the AI again
             analysisStore: v === 'next' ? analysisStore() : undefined,
             // The Application pages catalog: technical sheets of the VB pages and the Jira stories mapped to them, in git
-            pagesStore: v === 'next' ? pagesStore() : undefined,
+            pagesStore: v === 'next' ? await pagesStore() : undefined,
             backendOverrides: backendOverridesFromEnv(process.env),
             onLog: pushLog,
             onProblem: backendProblem,

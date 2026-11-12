@@ -3,7 +3,7 @@
   "navigation": { "embeddable": "enabled" },
   "variables": {
     "checked": { "type": "boolean", "defaultValue": false },
-    "info": { "type": "object", "defaultValue": { "available": false, "canWrite": false, "canCapture": false }, "description": "The local server: answers, can write into the project, can capture screenshots (desktop app)." },
+    "info": { "type": "object", "defaultValue": { "available": false, "canWrite": false, "canCapture": false, "data": null }, "description": "The local server: answers, can write into the project, can capture screenshots (desktop app); data: the git branch the sheets are kept on ({ separate, branch, reason }, lib/dataBranch.js)." },
     "busy": { "type": "boolean", "defaultValue": false },
     "progress": { "type": "string", "defaultValue": "" },
     "pages": { "type": "any[]", "defaultValue": [], "description": "The catalog: [{ id, app, appName, flow, page, label, route, stories, sheet }]." },
