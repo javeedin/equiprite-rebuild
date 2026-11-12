@@ -22,18 +22,20 @@ let childProcess = null;
 try { childProcess = require('child_process'); } catch (e) { childProcess = null; }
 
 const TIMEOUT_MS = 90 * 1000;
+const LONG_MS = 6 * 60 * 1000; // a long answer (Code Fix: the analysis and the edits)
+const MAX_ASK = 32000; // the most tokens a caller may ask for
 const MAX_TOKENS = 2000;
 
 // Run the locally-installed Claude Code CLI (`claude -p`) for the "Claude Code (your subscription)" provider: the prompt
 // goes in on stdin, the answer comes back on stdout. No API key — it uses the Max/Pro login Claude Code is signed in with.
-function runClaudeCode(args, input) {
+function runClaudeCode(args, input, ms) {
   return new Promise((resolve) => {
     if (!childProcess) { resolve({ code: -1, stdout: '', stderr: 'No child_process in this app.' }); return; }
     let cp;
     try { cp = childProcess.spawn('claude', args, { stdio: ['pipe', 'pipe', 'pipe'] }); }
     catch (e) { resolve({ code: -1, stdout: '', stderr: String((e && e.message) || e) }); return; }
     let out = '', err = '';
-    const timer = setTimeout(() => { try { cp.kill('SIGKILL'); } catch (e) { /* gone */ } }, TIMEOUT_MS);
+    const timer = setTimeout(() => { try { cp.kill('SIGKILL'); } catch (e) { /* gone */ } }, ms || TIMEOUT_MS);
     cp.stdout.on('data', (d) => { out += d; });
     cp.stderr.on('data', (d) => { err += d; });
     cp.on('error', (e) => { clearTimeout(timer); resolve({ code: -1, stdout: '', stderr: String((e && e.message) || e) }); });
@@ -171,15 +173,17 @@ async function open(opts) {
     return c;
   }
 
-  async function http(method, url, headers, body) {
+  // `max` (a long answer asked for, e.g. Code Fix's edits): more time than a short one
+  async function http(method, url, headers, body, max) {
     if (!doFetch) throw new Error('This PC cannot make web calls from the desktop app.');
     const ctrl = typeof AbortController === 'function' ? new AbortController() : null;
-    const timer = ctrl ? setTimeout(() => ctrl.abort(), TIMEOUT_MS) : null;
+    const ms = max && max > MAX_TOKENS ? LONG_MS : TIMEOUT_MS;
+    const timer = ctrl ? setTimeout(() => ctrl.abort(), ms) : null;
     let r;
     try {
       r = await doFetch(url, { method, headers, body, signal: ctrl ? ctrl.signal : undefined });
     } catch (e) {
-      throw new Error(/abort/i.test(String(e && e.name) + String(e && e.message)) ? 'No answer in ' + TIMEOUT_MS / 1000 + ' s.' : 'The call did not go out: ' + ((e && e.message) || e) + ' (check the network or the proxy).');
+      throw new Error(/abort/i.test(String(e && e.name) + String(e && e.message)) ? 'No answer in ' + ms / 1000 + ' s.' : 'The call did not go out: ' + ((e && e.message) || e) + ' (check the network or the proxy).');
     } finally { if (timer) clearTimeout(timer); }
     const text = await r.text();
     let json = null;
@@ -200,9 +204,9 @@ async function open(opts) {
         const j = await http('GET', 'https://api.anthropic.com/v1/models?limit=100', { 'x-api-key': c.key, 'anthropic-version': '2023-06-01' });
         return (j.data || []).map((m) => ({ id: m.id, label: m.display_name ? m.display_name + ' · ' + m.id : m.id }));
       },
-      async chat(c, system, user) {
+      async chat(c, system, user, max) {
         const j = await http('POST', 'https://api.anthropic.com/v1/messages', { 'x-api-key': c.key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-          JSON.stringify({ model: c.model, max_tokens: MAX_TOKENS, system, messages: [{ role: 'user', content: user }] }));
+          JSON.stringify({ model: c.model, max_tokens: max || MAX_TOKENS, system, messages: [{ role: 'user', content: user }] }), max);
         return (j.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('\n');
       }
     },
@@ -212,9 +216,9 @@ async function open(opts) {
         return (j.data || []).filter((m) => /^(gpt|o\d|chatgpt)/i.test(m.id) && !/(audio|realtime|transcribe|tts|image|search|embedding)/i.test(m.id))
           .sort((a, b) => (b.created || 0) - (a.created || 0)).map((m) => ({ id: m.id, label: m.id }));
       },
-      async chat(c, system, user) {
+      async chat(c, system, user, max) {
         const j = await http('POST', 'https://api.openai.com/v1/chat/completions', { authorization: 'Bearer ' + c.key, 'content-type': 'application/json' },
-          JSON.stringify({ model: c.model, messages: [{ role: 'system', content: system }, { role: 'user', content: user }], max_completion_tokens: MAX_TOKENS * 4 }));
+          JSON.stringify({ model: c.model, messages: [{ role: 'system', content: system }, { role: 'user', content: user }], max_completion_tokens: max || MAX_TOKENS * 4 }), max);
         return ((j.choices || [])[0] || {}).message ? j.choices[0].message.content || '' : '';
       }
     },
@@ -224,9 +228,9 @@ async function open(opts) {
         return (j.models || []).filter((m) => (m.supportedGenerationMethods || []).indexOf('generateContent') !== -1)
           .map((m) => ({ id: String(m.name).replace(/^models\//, ''), label: (m.displayName ? m.displayName + ' · ' : '') + String(m.name).replace(/^models\//, '') }));
       },
-      async chat(c, system, user) {
+      async chat(c, system, user, max) {
         const j = await http('POST', 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(c.model) + ':generateContent', { 'x-goog-api-key': c.key, 'content-type': 'application/json' },
-          JSON.stringify({ systemInstruction: { parts: [{ text: system }] }, contents: [{ role: 'user', parts: [{ text: user }] }], generationConfig: { maxOutputTokens: MAX_TOKENS * 4 } }));
+          JSON.stringify({ systemInstruction: { parts: [{ text: system }] }, contents: [{ role: 'user', parts: [{ text: user }] }], generationConfig: { maxOutputTokens: max || MAX_TOKENS * 4 } }), max);
         const cand = (j.candidates || [])[0];
         return cand && cand.content ? (cand.content.parts || []).map((p) => p.text || '').join('\n') : '';
       }
@@ -242,9 +246,9 @@ async function open(opts) {
         const j = await http('GET', this.base(c) + '/models', this.auth(c));
         return ((j && (j.data || j.models)) || []).map((m) => ({ id: m.id || m.name, label: m.id || m.name })).filter((m) => m.id);
       },
-      async chat(c, system, user) {
+      async chat(c, system, user, max) {
         const j = await http('POST', this.base(c) + '/chat/completions', Object.assign({ 'content-type': 'application/json' }, this.auth(c)),
-          JSON.stringify({ model: c.model, messages: [{ role: 'system', content: system }, { role: 'user', content: user }], max_tokens: MAX_TOKENS }));
+          JSON.stringify({ model: c.model, messages: [{ role: 'system', content: system }, { role: 'user', content: user }], max_tokens: max || MAX_TOKENS }), max);
         return ((j.choices || [])[0] || {}).message ? j.choices[0].message.content || '' : '';
       }
     },
@@ -265,7 +269,7 @@ async function open(opts) {
           .map((m) => ({ id: m.displayName || m.id, label: (m.vendor ? m.vendor + ' · ' : '') + (m.displayName || m.id) }))
           .filter((m) => (seen[m.id] ? false : (seen[m.id] = true)));
       },
-      async chat(c, system, user) {
+      async chat(c, system, user, max) {
         this.check(c);
         const url = 'https://inference.generativeai.' + trim(c.region) + '.oci.oraclecloud.com/20231130/actions/chat';
         const cohere = /^cohere\./i.test(c.model);
@@ -273,11 +277,11 @@ async function open(opts) {
           compartmentId: trim(c.compartmentId),
           servingMode: { servingType: 'ON_DEMAND', modelId: c.model },
           chatRequest: cohere
-            ? { apiFormat: 'COHERE', preambleOverride: system, message: user, maxTokens: MAX_TOKENS, temperature: 0 }
-            : { apiFormat: 'GENERIC', messages: [{ role: 'SYSTEM', content: [{ type: 'TEXT', text: system }] }, { role: 'USER', content: [{ type: 'TEXT', text: user }] }], maxTokens: MAX_TOKENS, temperature: 0 }
+            ? { apiFormat: 'COHERE', preambleOverride: system, message: user, maxTokens: max || MAX_TOKENS, temperature: 0 }
+            : { apiFormat: 'GENERIC', messages: [{ role: 'SYSTEM', content: [{ type: 'TEXT', text: system }] }, { role: 'USER', content: [{ type: 'TEXT', text: user }] }], maxTokens: max || MAX_TOKENS, temperature: 0 }
         });
         const s = ociSign(c, 'POST', url, body, now);
-        const j = await http('POST', url, s.headers, body);
+        const j = await http('POST', url, s.headers, body, max);
         const r = (j && j.chatResponse) || {};
         if (cohere) return r.text || '';
         const ch = (r.choices || [])[0];
@@ -290,11 +294,11 @@ async function open(opts) {
         // Claude Code accepts short aliases, so no model id is pinned here; blank = whatever Claude Code is set to.
         return [{ id: '', label: 'Default (your Claude Code setting)' }, { id: 'sonnet', label: 'Sonnet' }, { id: 'opus', label: 'Opus' }, { id: 'haiku', label: 'Haiku' }];
       },
-      async chat(c, system, user) {
+      async chat(c, system, user, max) {
         const args = ['-p', '--output-format', 'text'];
         if (trim(c.model)) { args.push('--model', trim(c.model)); }
         if (trim(system)) { args.push('--append-system-prompt', system); }
-        const r = await run(args, user);
+        const r = await run(args, user, max && max > MAX_TOKENS ? LONG_MS : undefined);
         if (!r || r.code !== 0) {
           const se = String((r && r.stderr) || '').trim();
           const hint = /enoent|not found|not recognized|no such file/i.test(se) || (r && r.code === -1)
@@ -390,7 +394,8 @@ async function open(opts) {
         const user = String((req && req.user) || '');
         if (!trim(user)) return { ok: false, error: 'There is nothing to send.' };
         const system = trim(req && req.system) || 'You are a helpful assistant.';
-        const text = await call[id].chat(c, system, user);
+        const max = Math.min(MAX_ASK, Math.max(0, Number(req && req.maxTokens) || 0)) || undefined;
+        const text = await call[id].chat(c, system, user, max);
         return { ok: true, text: String(text || ''), provider: p.label, model: c.model, ms: now() - t0 };
       } catch (e) {
         return { ok: false, error: (e && e.message) || String(e), ms: now() - t0 };

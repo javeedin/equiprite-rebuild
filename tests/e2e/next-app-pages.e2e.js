@@ -27,7 +27,16 @@ const ID = 'vbredwoodapp/equipment-foundation/equipment-workbench';
   const aiStore = await require('../../desktop/lib/aiSql').open({ file: path.join(dir, 'ai.json'), encrypt: (t) => Buffer.from(t), decrypt: (b) => String(b),
     fetch: async (url, init) => { llm.push(String((init && init.body) || '')); return { ok: true, status: 200, text: async () => JSON.stringify({ choices: [{ message: { content: '## What this page is for\n- The equipment manager works the requests.\n## How people use it\n- Pick a request.\n## Business logic\n- `WorkbenchInitChain` reads the requests.\n## Integrations\n- GET /equiprite/v1/views/workbench-requests on EquipRite REST.\n## Things to watch\n- None.' } }] }) }; } });
   aiStore.save({ provider: 'openai', key: 'sk-test', model: 'gpt-4o' });
-  const env = await E.start({ port: 19840, app: 'next', pagesStore: pg.store, aiStore });
+  // Code Fix (desktop/lib/codeFix.js) on the sandbox project, with a stand-in AI that proposes one comment line
+  const BILL = 'webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-billing-page';
+  const billLines = fs.readFileSync(path.join(pg.root, BILL + '.html'), 'utf8').replace(/\r\n/g, '\n').split('\n');
+  const fixAsked = [];
+  const fixStore = require('../../desktop/lib/codeFix').open({ root: pg.root, file: path.join(dir, 'code-fixes.json'), ai: {
+    settings: () => ({ active: 'x', catalog: [{ id: 'x', label: 'Stand-in AI' }] }),
+    chat: async (req) => { fixAsked.push(req); return { ok: true, provider: 'Stand-in AI', model: 'test', text: ['## Summary', 'Add a note about overdue invoices to the header comment.', '## How it works today', '`BilledRequestInitChain` loads the billed requests.',
+      '## What changes', 'One comment line.', '## The change', '- `' + BILL + '.html` — a comment line', '## After the change', 'The page looks the same.', '## Risks', 'None known', '## How to test', '1. Open My Billing.', '## Questions', 'None', '',
+      'FILE: ' + BILL + '.html', '<<<<<<< SEARCH', billLines.slice(1, 3).join('\n'), '=======', billLines.slice(1, 3).join('\n') + '\n  Overdue invoices are shown first (code fix).', '>>>>>>> REPLACE'].join('\n') }; } } });
+  const env = await E.start({ port: 19840, app: 'next', pagesStore: pg.store, aiStore, fixStore });
   const page = env.page;
   const errs = () => env.errors.filter((e) => !/404|401|Failed to load resource/.test(e) && !e.startsWith('warning'));
   try {
@@ -49,7 +58,7 @@ const ID = 'vbredwoodapp/equipment-foundation/equipment-workbench';
     await page.waitForSelector('#pgSheetTitle', { timeout: 10000 });
     T.check('its name, app, flow/page, where it opens; not saved yet', (await text(page, '#pgSheetTitle')) === 'Equipment Manager Workbench'
       && /No technical sheet saved yet/.test(await text(page, '#pgSheetState')) && /Opens at \/vp\/shell\/equipment-foundation\/equipment-workbench/.test(await text(page, '#pgSheet')));
-    T.check('the page\'s tab: one sheet, Overview, Integrations, Business logic, Features, Links & files all shown (the maps are the other tabs)', (await page.$$('#pgTabs [role="tab"]')).length === 3
+    T.check('the page\'s tab: one sheet, Overview, Integrations, Business logic, Features, Links & files all shown (the maps and Code fix are the other tabs)', (await page.$$('#pgTabs [role="tab"]')).length === 4
       && ['pgOverview', 'pgIntegrations', 'pgLogic', 'pgFeatures', 'pgLinks'].every((x) => !!x) && (await page.$$('#pgSheet .nx-pg-part')).length === 5
       && /Overview\s*Integrations\s*Business logic\s*Features\s*Links & files/.test((await page.$$eval('#pgSheet .nx-pg-part', (h) => h.map((x) => x.textContent).join(' ')))));
     T.check('Integrations: the REST call → GET, its path, EquipRite REST, the chain that makes it', /GET\s*\/equiprite\/v1\/views\/workbench-requests/.test(await text(page, '#pgRest')) && /EquipRite REST \(eqpt\)/.test(await text(page, '#pgRest')) && /WorkbenchInitChain/.test(await text(page, '#pgRest')));
@@ -163,9 +172,47 @@ const ID = 'vbredwoodapp/equipment-foundation/equipment-workbench';
     T.check('…the open page marked, its links highlighted', /My Billing/.test(await text(page, '#pgGlobalMap .nx-pm-node--self')) && (await page.$$('#pgGlobalMap svg path.nx-pm-edge--hot')).length >= 1
       && (await page.$$('#pgGlobalMap svg path.nx-pm-edge')).length > 20);
     await env.shot('next-app-pages-global.png');
+    await page.hover('#pgGlobalMap .nx-pm-node[data-id="vbredwoodapp/customer-portal/customer-dashboard"]');
+    await settle(page, 200);
+    const hov = await page.evaluate(() => { const m = document.getElementById('pgGlobalMap'); return { on: m.classList.contains('nx-pm--hover'), lit: m.querySelectorAll('path.is-hover').length, near: m.querySelectorAll('.nx-pm-node--near').length, all: m.querySelectorAll('path.nx-pm-edge').length }; });
+    T.check('pointing at a page: only its lines bright, the pages at their other ends marked', hov.on && hov.lit >= 3 && hov.lit < hov.all && hov.near >= 3, JSON.stringify(hov));
+    await env.shot('next-app-pages-global-hover.png');
+    await page.mouse.move(5, 5);
+    await settle(page, 150);
+    T.check('…and moving away shows them all again', !(await page.$('#pgGlobalMap.nx-pm--hover')) && (await page.$$('#pgGlobalMap path.is-hover')).length === 0);
     await page.click('#pgTabPage');
     await page.waitForSelector('#pgOverview', { timeout: 5000 }).catch(() => {});
     T.check('back to the page tab: its sheet', await page.isVisible('#pgOverview') && !(await page.$('#pgGlobalMap')));
+
+    T.section('Code fix: ask, the analysis and the exact change, approve (pull, write, test), commit & push');
+    await page.click('#pgTabFix');
+    await page.waitForSelector('#fxRequest', { timeout: 10000 });
+    T.check('the tab: the code folder and its branch, the ask, "nothing is written until you approve"', /pages\/test → origin\/pages\/test/.test(await text(page, '#fxFolder')) && /Nothing is written until you approve it/.test(await text(page, '#fxAsk'))
+      && !(await page.$('#fxProposal')) && !(await page.$('#fxNoAi')), await text(page, '#fxFolder'));
+    await page.click('#fxAsk [data-value="enhance"]');
+    await page.fill('#fxRequest', 'Show overdue invoices first');
+    await page.click('#fxAnalyze');
+    await page.waitForSelector('#fxProposal', { timeout: 20000 });
+    T.check('the proposal: waiting for approval, the request, the AI\'s analysis in its headings', /Proposed — waiting for your approval/.test(await text(page, '#fxStatus')) && /Show overdue invoices first/.test(await text(page, '#fxReq'))
+      && /Summary[\s\S]*How it works today[\s\S]*After the change[\s\S]*How to test/.test((await page.getAttribute('#fxAnalysis', 'srcdoc')) || ''));
+    T.check('…the exact change: the file, +1 −0, the new line marked', /customer-my-billing-page\.html/.test(await text(page, '#fxDiff')) && /The change · 1 file · \+1 −0/.test(await text(page, '#fxDiffHead'))
+      && /Overdue invoices are shown first \(code fix\)/.test(await text(page, '#fxDiff .nx-fx-l--add')) && (await page.$$('#fxDiff .nx-fx-l--ctx')).length >= 3);
+    T.check('…the checks on the proposed code ✓, the AI asked once (an enhancement)', (await page.$$('#fxChecks .nx-fx-check--ok')).length >= 5 && !(await page.$('#fxChecks .nx-fx-check--bad')) && fixAsked.length === 1 && /REQUEST \(Enhance\)/.test(fixAsked[0].user));
+    T.check('…nothing written yet', !/code fix/.test(fs.readFileSync(path.join(pg.root, BILL + '.html'), 'utf8')) && /Approve and apply/.test(await text(page, '#fxApprove')));
+    await env.shot('next-app-pages-codefix.png');
+    page.once('dialog', (d) => d.accept());
+    await page.click('#fxApply');
+    await page.waitForSelector('#fxApplied', { timeout: 30000 }).catch(() => {});
+    T.check('approved: pulled first, written, tested — nothing broke, not committed yet', /Applied — not committed yet/.test(await text(page, '#fxStatus')) && /Pulled origin\/pages\/test: already up to date/.test(await text(page, '#fxApplied'))
+      && /Nothing broke/.test(await text(page, '#fxTests')) && /Overdue invoices are shown first \(code fix\)/.test(fs.readFileSync(path.join(pg.root, BILL + '.html'), 'utf8')), await text(page, '#fxApplied'));
+    await env.shot('next-app-pages-codefix-applied.png');
+    await page.click('#fxPush');
+    await page.waitForSelector('#fxCommitted', { timeout: 20000 }).catch(() => {});
+    T.check('Commit & push: committed with its request, pushed to the branch', /Committed [0-9a-f]+ on pages\/test, pushed to origin\/pages\/test/.test(await text(page, '#fxResult'))
+      && /^Code fix: My Billing — Show overdue invoices first/.test(pg.gitRemote('log', '-1', '--format=%s', 'pages/test')) && /Committed/.test(await text(page, '#fxStatus')));
+    T.check('the fixes asked for on the page are listed', /committed[\s\S]*Show overdue invoices first/.test(await text(page, '#fxList')) && /Code fix\s*1/.test(await text(page, '#pgTabFix')));
+    await page.click('#pgTabPage');
+    await page.waitForSelector('#pgOverview', { timeout: 5000 }).catch(() => {});
     await page.click('#pgApps [data-value="all"]');
 
     T.section('delete a page from the catalog, and restore it');

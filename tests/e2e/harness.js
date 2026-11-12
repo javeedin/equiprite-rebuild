@@ -135,7 +135,7 @@ async function start(o) {
     // o.jiraStore: Connect Jira's store (desktop/lib/jiraAuth.js), as the desktop app gives Old and Next.
     servers.push(await DS.createDevServer(Object.assign({ webApp: 'equiprite-next', port: ports.next }, common, o.sqlStore ? { sqlStore: o.sqlStore } : {}, o.aiStore ? { aiStore: o.aiStore } : {},
       o.jiraStore ? { jiraStore: o.jiraStore } : {}, o.recStore ? { recStore: o.recStore } : {}, o.transcribe ? { transcribe: o.transcribe } : {}, o.minutesStore ? { minutesStore: o.minutesStore } : {},
-      o.followupsStore ? { followupsStore: o.followupsStore } : {}, o.fddStore ? { fddStore: o.fddStore } : {}, o.analysisStore ? { analysisStore: o.analysisStore } : {}, o.pagesStore ? { pagesStore: o.pagesStore } : {})));
+      o.followupsStore ? { followupsStore: o.followupsStore } : {}, o.fddStore ? { fddStore: o.fddStore } : {}, o.analysisStore ? { analysisStore: o.analysisStore } : {}, o.pagesStore ? { pagesStore: o.pagesStore } : {}, o.fixStore ? { fixStore: o.fixStore } : {})));
   }
   let futureStore = null;
   if (DS.isBuilt(path.join(ROOT, 'build'), 'equiprite-future')) {
