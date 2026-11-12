@@ -1,4 +1,4 @@
-define(['resources/js/pagesClient', 'resources/js/storyAnalysis', 'resources/js/shellBus', 'resources/js/pageMap'], (PC, SA, bus, PM) => {
+define(['resources/js/pagesClient', 'resources/js/storyAnalysis', 'resources/js/shellBus', 'resources/js/pageMap', 'resources/js/codeFixClient'], (PC, SA, bus, PM, FX) => {
   'use strict';
 
   // Application pages: binding helpers. The facts come from desktop/lib/pageScan.js (via the catalog, resources/pages);
@@ -18,6 +18,36 @@ define(['resources/js/pagesClient', 'resources/js/storyAnalysis', 'resources/js/
       // the maps' lines follow the boxes: drawn again when the window changes size
       if (typeof window !== 'undefined') { let t = 0; window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(() => PM.redraw(), 120); }); }
     }
+    // ── Code Fix (desktop/lib/codeFix.js) ──
+    fixKinds() { return [{ id: 'fix', label: 'Fix a bug' }, { id: 'enhance', label: 'Enhance' }, { id: 'change', label: 'Change' }]; }
+    fixStatus(s) {
+      return { proposed: 'Proposed — waiting for your approval', 'needs-redo': 'Not usable as it is (see below): ask again', questions: 'The AI has questions first', applied: 'Applied — not committed yet',
+        committed: 'Committed', undone: 'Undone', discarded: 'Discarded', stale: 'Out of date: the code changed' }[s] || s;
+    }
+    fixStatusClass(s) { return 'nx-fx-st nx-fx-st--' + (s || 'none'); }
+    fixFolder(i) { return !i ? '' : (i.branch ? 'branch ' + i.branch + (i.upstream ? ' → ' + i.upstream : ' (not pushed anywhere)') : '') + (i.isDefault ? ' · the project this app runs from' : ''); }
+    fixWhen(at) { return when(at); }
+    fixMeta(f) { return !f ? '' : (f.provider || 'AI') + (f.model ? ' (' + f.model + ')' : '') + ' · ' + when(f.at) + (f.by ? ' · asked by ' + f.by : '') + (f.ms ? ' · ' + Math.round(f.ms / 1000) + ' s' : '') + (f.retried ? ' · asked twice' : ''); }
+    fixSent(f) { return !f || !f.sent ? '' : 'The AI read ' + f.sent.files.length + ' files of this page (' + Math.round(f.sent.chars / 1000) + 'k characters)' + (f.sent.skipped.length ? '; too large to send: ' + f.sent.skipped.join(', ') : '') + '.'; }
+    fixStats(f) {
+      const d = (f && f.diff) || [];
+      return d.length + ' file' + (d.length === 1 ? '' : 's') + ' · +' + d.reduce((n, x) => n + x.added, 0) + ' −' + d.reduce((n, x) => n + x.removed, 0);
+    }
+    fixLine(t) { return 'nx-fx-l nx-fx-l--' + (t === '+' ? 'add' : t === '-' ? 'del' : 'ctx'); }
+    fixSign(t) { return t === ' ' ? '' : (t === '-' ? '−' : t); }
+    fixCheck(c) { return c.ok ? '✓' : (c.already ? '•' : '✗'); }
+    fixCheckClass(c) { return 'nx-fx-check ' + (c.ok ? 'nx-fx-check--ok' : (c.already ? 'nx-fx-check--old' : 'nx-fx-check--bad')); }
+    fixCheckText(c) { return c.name + (c.detail ? ': ' + c.detail : '') + (!c.ok && c.already ? ' (already so before the change)' : ''); }
+    fixChecksOk(list) { return (list || []).every((c) => c.ok || c.already); }
+    fixUnit(u) { return u.ok ? '✓ ' + u.passed + ' passed' : (u.newFailures.length ? '✗ ' + u.newFailures.length + ' new failure' + (u.newFailures.length === 1 ? '' : 's') : '• ' + u.failed + ' failing, as before the fix'); }
+    fixUnitClass(u) { return 'nx-fx-check ' + (u.ok ? 'nx-fx-check--ok' : (u.newFailures.length ? 'nx-fx-check--bad' : 'nx-fx-check--old')); }
+    fixTestsText(t) {
+      if (!t) return '';
+      return (t.ok ? '✓ Nothing broke' : '✗ Something broke') + ' — tested ' + when(t.at) + (t.none ? '. No unit test names this page; the checks ran.' : '.');
+    }
+    fixShot(f, which) { return FX.shotUrl(f, which); }
+    fixCanApply(f) { return !!f && (f.status === 'proposed' || f.status === 'undone'); }
+    fixListText(x) { return (x.status ? ({ proposed: 'proposed', applied: 'applied', committed: 'committed', undone: 'undone', discarded: 'discarded', 'needs-redo': 'not usable', questions: 'questions', stale: 'out of date' }[x.status] || x.status) : '') + ' · ' + when(x.at) + (x.by ? ' · ' + x.by : ''); }
     // ── the navigation maps (resources/js/pageMap.js) ──
     /** One page's map: Comes from → This page → Goes to → Then. */
     pageMap(pages, id, sheet) {

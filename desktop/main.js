@@ -235,6 +235,23 @@ function analysisStore() {
   if (!analysisStoreInst) analysisStoreInst = require('./lib/analyses').open({ file: path.join(app.getPath('userData'), 'ai-analyses.json') });
   return analysisStoreInst;
 }
+// Code Fix (Application pages → a page → Code fix): the AI chosen in AI settings proposes a change to a page; it is
+// written into the project's code only once approved (after git pull), then tested, committed or undone. The fixes are
+// kept in this app's data folder; its screenshots before/after are taken in a hidden window, like the pages' own.
+let fixStoreInst = null;
+async function fixStore() {
+  if (!fixStoreInst) {
+    fixStoreInst = require('./lib/codeFix').open({
+      root: REPO_ROOT, file: path.join(app.getPath('userData'), 'code-fixes.json'), ai: await aiStore(), capture: capturePage, buildDir: BUILD_DIR,
+      gitPath: commandPath('git') || 'git',
+      pickFolder: async (current) => {
+        const r = await dialog.showOpenDialog(win && !win.isDestroyed() ? win : undefined, { title: 'The EquipRite project folder (the code to fix)', defaultPath: current, properties: ['openDirectory'] });
+        return r.canceled ? '' : (r.filePaths[0] || '');
+      },
+    });
+  }
+  return fixStoreInst;
+}
 // Find a command for transcription (ffmpeg, whisper-cli), looking beyond the app's start-time PATH — in winget, Scoop,
 // Chocolatey and Homebrew folders — so a tool just installed is found without restarting the app (lib/findCommand.js).
 function commandPath(cmd) {
@@ -1176,6 +1193,8 @@ if (!app.requestSingleInstanceLock()) {
             analysisStore: v === 'next' ? analysisStore() : undefined,
             // The Application pages catalog: technical sheets of the VB pages and the Jira stories mapped to them, in git
             pagesStore: v === 'next' ? await pagesStore() : undefined,
+            // Code Fix: AI-proposed changes to a page, applied to the code only when approved
+            fixStore: v === 'next' ? await fixStore() : undefined,
             backendOverrides: backendOverridesFromEnv(process.env),
             onLog: pushLog,
             onProblem: backendProblem,

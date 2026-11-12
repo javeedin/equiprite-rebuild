@@ -14,7 +14,7 @@
     "showDeleted": { "type": "boolean", "defaultValue": false, "description": "Also list the pages deleted from the catalog." },
     "deleted": { "type": "boolean", "defaultValue": false, "description": "The open page was deleted from the catalog." },
     "viewer": { "type": "number", "defaultValue": -1, "description": "The screenshot shown full size (its index), -1 when none." },
-    "view": { "type": "string", "defaultValue": "page", "description": "The tab: page (its sheet), map (where it is opened from and where it goes) or global (the whole app's navigation)." },
+    "view": { "type": "string", "defaultValue": "page", "description": "The tab: page (its sheet), map (where it is opened from and where it goes), global (the whole app's navigation) or fix (Code Fix)." },
     "selId": { "type": "string", "defaultValue": "", "description": "The page whose sheet is open." },
     "sheet": { "type": "any", "defaultValue": null, "description": "Its sheet: { id, facts, ai, screenshot, stories, at, by, codeHash }." },
     "saved": { "type": "boolean", "defaultValue": false, "description": "The sheet is saved (else: the facts read now, not yet built)." },
@@ -23,7 +23,17 @@
     "commit": { "type": "boolean", "defaultValue": true, "description": "Commit and push to git after each change." },
     "aiReady": { "type": "boolean", "defaultValue": false },
     "result": { "type": "any", "defaultValue": null, "description": "The last action's result: { ok, text }." },
-    "git": { "type": "any", "defaultValue": null }
+    "git": { "type": "any", "defaultValue": null },
+    "fixInfo": { "type": "any", "defaultValue": null, "description": "Code Fix (desktop/lib/codeFix.js): the code folder, its branch, whether screenshots and folder picking work here." },
+    "fixList": { "type": "any[]", "defaultValue": [], "description": "The fixes asked for on the open page, newest first." },
+    "fixPage": { "type": "string", "defaultValue": "", "description": "The page fixList belongs to." },
+    "fix": { "type": "any", "defaultValue": null, "description": "The fix shown: the AI's analysis, its edits as a diff, the checks, preview, what was applied and tested." },
+    "fixReq": { "type": "string", "defaultValue": "", "description": "What should change on the page (the request typed)." },
+    "fixKind": { "type": "string", "defaultValue": "fix", "description": "fix (a bug), enhance or change." },
+    "fixRefine": { "type": "string", "defaultValue": "", "description": "What to change in the proposal (asked again)." },
+    "fixBusy": { "type": "boolean", "defaultValue": false },
+    "fixProgress": { "type": "string", "defaultValue": "" },
+    "fixResult": { "type": "any", "defaultValue": null, "description": "The last Code Fix action's result: { ok, text, canSkipPull, canForce }." }
   },
   "events": {
     "focusRequest": { "description": "From resources/js/shellBus.js focus(): another screen (a Jira story) handed this one a page to open.", "payloadType": "object" }
@@ -38,6 +48,7 @@
     "onViewerClick": { "chains": [ { "chain": "actChain", "parameters": { "act": "{{ $event.target === $event.currentTarget ? 'unview' : '' }}", "key": "{{ '' }}" } } ] },
     "onAct": { "chains": [ { "chain": "actChain", "parameters": { "act": "{{ $event.currentTarget.dataset.act }}", "key": "{{ $event.currentTarget.dataset.key || '' }}" } } ] },
     "onShotFile": { "chains": [ { "chain": "actChain", "parameters": { "act": "{{ 'upload' }}", "key": "{{ '' }}" } } ] },
+    "onFix": { "chains": [ { "chain": "fixChain", "parameters": { "act": "{{ $event.currentTarget.dataset.act }}", "key": "{{ $event.currentTarget.dataset.key || '' }}" } } ] },
     "onMapKey": { "chains": [ { "chain": "actChain", "parameters": { "act": "{{ $event.key === 'Enter' ? 'map' : '' }}", "key": "{{ '' }}" } } ] }
   },
   "imports": { "components": {

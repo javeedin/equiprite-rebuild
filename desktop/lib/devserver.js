@@ -260,6 +260,7 @@ function time() {
  *                                        header; voice→text reuses o.transcribe, "Format by AI" reuses o.aiStore (/__sql/ai/chat)
  * @param {object}   [o.analysisStore]    Saved AI analyses (lib/analyses.js), for EquipRite Next's Analyze with AI: kept on this PC so
  *                                        an analysis opens without asking the AI again: /__ai/* to this PC only, behind X-EquipRite-AI
+ * @param {object}   [o.fixStore]         Code Fix (lib/codeFix.js): AI-proposed changes to a page, written to the code only when approved (/__fix/*)
  * @param {object}   [o.pagesStore]       The Application pages catalog (lib/pages.js): every VB page's technical sheet and the Jira stories
  *                                        mapped to it, saved into the project (git): /__pages/* to this PC only, behind X-EquipRite-Pages
  * @param {object}   [o.fddStore]         The FDD library (lib/fdd.js): FDDs saved into the project (git) for EquipRite Next's FDD library
@@ -850,6 +851,64 @@ function createDevServer(o) {
           if (pathname === '/__pages/git/save' && post) return jsonP(200, await ps.gitSave({ message: b.message, push: b.push !== false }));
           return jsonP(404, { error: 'Not found' });
         })().catch((e) => jsonP(200, { ok: false, error: e.message }));
+        return undefined;
+      }
+      if (pathname.startsWith('/__fix/')) {
+        // Code Fix (lib/codeFix.js), the Code fix tab of Application pages: the AI proposes a change to a page; it is
+        // written into the project's code only when approved (after git pull), then tested, committed or undone. This PC
+        // only, by its own name, and only the app's own page (X-EquipRite-Fix).
+        const host = String(req.headers.host || '').replace(/:\d+$/, '');
+        if (!isLoopback(req.socket.remoteAddress) || !/^(localhost|127\.0\.0\.1|\[::1\])$/.test(host)) {
+          return send(res, 404, 'text/plain; charset=utf-8', 'Not found');
+        }
+        const jsonF = (status, body) => send(res, status, 'application/json', JSON.stringify(body), { 'Cache-Control': 'no-store' });
+        if (!o.fixStore) return jsonF(200, { ok: false, error: 'Code Fix is not set up in this app (it needs the desktop app or npm run serve).' });
+        const origin = req.headers.origin;
+        if (req.headers['x-equiprite-fix'] !== '1' || (origin && origin !== `http://${req.headers.host}`)) {
+          return send(res, 403, 'application/json', JSON.stringify({ error: 'Refused: not from EquipRite Next on this PC.' }));
+        }
+        const fx = o.fixStore;
+        const post = req.method === 'POST';
+        const bodyOf = () => new Promise((resolve, reject) => {
+          const chunks = [];
+          let size = 0;
+          req.on('data', (c) => { size += c.length; if (size <= 2 * 1024 * 1024) chunks.push(c); });
+          req.on('end', () => (size > 2 * 1024 * 1024 ? reject(new Error('Too large')) : resolve(Buffer.concat(chunks).toString('utf8'))));
+          req.on('error', reject);
+        });
+        const who = () => { try { const id = o.getIdentity && o.getIdentity(); return (id && (id.displayName || id.username)) || ''; } catch (e) { return ''; } };
+        (async () => {
+          const b = post ? JSON.parse((await bodyOf()) || '{}') : {};
+          const q = (k) => u.searchParams.get(k) || '';
+          if (pathname === '/__fix/info' && !post) return jsonF(200, await fx.info());
+          if (pathname === '/__fix/list' && !post) return jsonF(200, fx.list(q('page')));
+          if (pathname === '/__fix/get' && !post) return jsonF(200, fx.get(q('id')));
+          if (pathname === '/__fix/shot' && !post) {
+            const s = fx.shot(q('id'), q('which'));
+            if (!s.ok) return send(res, 404, 'text/plain; charset=utf-8', 'Not found');
+            return send(res, 200, s.mime, fs.readFileSync(s.file), { 'Cache-Control': 'no-store' });
+          }
+          if (pathname === '/__fix/folder' && post) return jsonF(200, await fx.setFolder(b.path));
+          if (pathname === '/__fix/pick' && post) return jsonF(200, await fx.pick());
+          if (pathname === '/__fix/analyze' && post) {
+            log(`Code fix: analyze ${b.id}`);
+            const r = await fx.analyze(Object.assign({}, b, { by: who() }));
+            log(`Code fix: ${b.id} -> ${r.ok ? r.fix.status + ' (' + r.fix.files.length + ' files)' : r.error}`);
+            return jsonF(200, r);
+          }
+          if (pathname === '/__fix/preview' && post) return jsonF(200, await fx.preview(b));
+          if (pathname === '/__fix/apply' && post) {
+            const r = await fx.apply(Object.assign({}, b, { by: who() }));
+            log(`Code fix: apply ${b.fix} -> ${r.ok ? 'applied, tests ' + (r.fix.tests && r.fix.tests.ok ? 'ok' : 'not ok') : r.error}`);
+            return jsonF(200, r);
+          }
+          if (pathname === '/__fix/test' && post) return jsonF(200, await fx.test(b));
+          if (pathname === '/__fix/e2e' && post) return jsonF(200, await fx.e2e(b));
+          if (pathname === '/__fix/undo' && post) return jsonF(200, await fx.undo(b));
+          if (pathname === '/__fix/commit' && post) return jsonF(200, await fx.commit(b));
+          if (pathname === '/__fix/discard' && post) return jsonF(200, fx.discard(b));
+          return jsonF(404, { error: 'Not found' });
+        })().catch((e) => jsonF(200, { ok: false, error: e.message }));
         return undefined;
       }
       if (pathname.startsWith('/__fdd/')) {
