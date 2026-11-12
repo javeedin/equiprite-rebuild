@@ -163,7 +163,9 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
   const fdd = await E.fddSandbox();
   await fdd.store.upload({ fileName: 'fdd-v16.md', base64: Buffer.from('# 7 Equipment registry\nThe registry.\n## 7.2 Equipment master list\nOLD-V16: the master list without smart search.').toString('base64'), name: 'EquipRite FDD', version: '1.6' });
   await fdd.store.upload({ fileName: 'fdd-v17.md', base64: Buffer.from('# 7 Equipment registry\nThe registry.\n## 7.2 Equipment master list\nNEW-V17: the master list shows every record in a grid with smart search and filters.\n### 7.2.5 Map view\nA map shows where each unit is.\n# 9 Timesheets\nHours.').toString('base64'), name: 'EquipRite FDD', version: '1.7' });
-  const env = await E.start({ port: 19760, handle, app: 'next', jiraStore, recStore, transcribe, followupsStore: fuStore, minutesStore, aiStore, fddStore: fdd.store, init: E.recorderStub });
+  // saved AI analyses, as the desktop app keeps them on this PC (desktop/lib/analyses.js)
+  const analysisStore = require('../../desktop/lib/analyses').open({ file: path.join(dir, 'ai-analyses.json') });
+  const env = await E.start({ port: 19760, handle, app: 'next', jiraStore, recStore, transcribe, followupsStore: fuStore, minutesStore, aiStore, fddStore: fdd.store, analysisStore, init: E.recorderStub });
   const page = env.page;
   const errs = () => env.errors.filter((e) => !/404|401|Failed to load resource/.test(e) && !e.startsWith('warning'));
   try {
@@ -488,6 +490,8 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     T.check('…the tester\'s screenshot, its attachments, and its test evidence (Record) as on Jira stories', await page.$eval('#jspActivity .nx-jira-act--comment img', (i) => i.naturalWidth > 0).catch(() => false) && /Work log 1/.test(await text(page, '#jspActTabs'))
       && (await page.$$('#jspAttachments img')).length === 1 && await page.isVisible('#jspRecord'));
     await env.shot('next-jira-sprint-drawer.png');
+    T.check('an AI icon beside each key on a sprint\'s tab (faint: not analysed yet)', (await page.$('#jspGrid .nx-jsp-row[data-key="EQP-12"] .nx-ai-ico--none')) !== null
+      && /Analyze EQP-12 with AI/.test(await page.getAttribute('#jspGrid .nx-jsp-row[data-key="EQP-12"] .nx-ai-ico', 'title')));
     const ticked = (await page.$$('#jspGrid .nx-jsp-row--sel')).length;
     const aiLabel = await text(page, '#jspAnalyze');
     T.check('Analyze with AI on a sprint\'s tab follows the ticks (none: waits; one: that story; more: "Analyze N with AI")',
@@ -881,6 +885,42 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     await env.setLook('current');
     await page.waitForSelector('#jiraGrid', { timeout: 20000 });
 
+    T.section('Saved analyses: the list marks them, the tab opens on the last run, Re-run asks again');
+    // several Analyze tabs live in the page: read the one that is showing
+    const vis = (sel, attr) => page.evaluate(([q, at]) => { const all = Array.prototype.slice.call(document.querySelectorAll(q)); const e = all.filter((x) => x.offsetParent !== null)[0] || all[0];
+      return e ? (at ? e.getAttribute(at) || '' : e.textContent.replace(/\s+/g, ' ').trim()) : ''; }, [sel, attr || '']);
+    const saved = async (key, after) => { for (let i = 0; i < 40; i++) { const g = analysisStore.get(key); if (g.ok && (!after || g.item.at > after)) return g.item; await settle(page, 250); } return null; };
+    await page.waitForSelector('#jiraGrid .nx-jira-row[data-key="EQP-12"] .nx-ai-ico--done', { timeout: 10000 }).catch(() => {});
+    T.check('the list marks the analysed story with a filled AI icon (when it ran, on hover); the others stay faint',
+      (await page.$('#jiraGrid .nx-jira-row[data-key="EQP-12"] .nx-ai-ico--done')) !== null && /last run/.test(await page.getAttribute('#jiraGrid .nx-jira-row[data-key="EQP-12"] .nx-ai-ico', 'title'))
+      && (await page.$('#jiraGrid .nx-jira-row[data-key="EQP-13"] .nx-ai-ico--none')) !== null && !!analysisStore.get('EQP-12').ok);
+    await page.click('.nx-tab[data-tab-id="jira-analysis:EQP-12"] .nx-tab-close').catch(() => {});
+    await settle(page, 400);
+    await page.locator('[role="tab"]').filter({ hasText: 'Jira stories' }).first().click().catch(() => {});
+    await page.waitForSelector('#jiraGrid', { timeout: 10000 });
+    const llmSaved = llmBodies.length;
+    await page.click('#jiraGrid .nx-jira-row[data-key="EQP-12"] .nx-ai-ico');
+    await page.waitForSelector('#anLastRun', { timeout: 20000 }).catch(() => {});
+    await settle(page, 500);
+    T.check('the AI icon opens the analysis without opening the story (no drawer)', !(await page.isVisible('#jiraItem')) && /EQP-12/.test(await vis('#anStory')));
+    T.check('…on the last run, saved: no AI call, "Last run … (when) by …", the FDD it read, and the chat kept', llmBodies.length === llmSaved
+      && /Last run \d+ \w+ \d{4}, \d\d:\d\d/.test(await text(page, '#anLastRun')) && /What to do next/.test((await page.getAttribute('#anAnalysis', 'srcdoc')) || '')
+      && /No FDD/.test(await vis('#anFddName')) && /what should I test first/.test(await vis('#anChat', 'srcdoc')), llmBodies.length + ' vs ' + llmSaved + ' | ' + await vis('#anLastRun'));
+    const before = analysisStore.get('EQP-12').item.at;
+    await page.locator('#anReanalyze:visible').click();
+    const rerun = await saved('EQP-12', before);
+    await page.waitForFunction(() => Array.prototype.some.call(document.querySelectorAll('#anLastRun'), (e) => e.offsetParent !== null && /just now/.test(e.textContent)), null, { timeout: 10000 }).catch(() => {});
+    T.check('Re-run asks the AI again and saves it ("just now")', llmBodies.length === llmSaved + 1 && !!rerun && /just now/.test(await vis('#anLastRun')), llmBodies.length + ' ' + await vis('#anLastRun'));
+    await page.locator('[role="tab"]').filter({ hasText: 'Jira stories' }).first().click().catch(() => {});
+    await page.waitForSelector('#jiraGrid', { timeout: 10000 });
+    const llmNew = llmBodies.length;
+    await page.click('#jiraGrid .nx-jira-row[data-key="EQP-13"] .nx-ai-ico');
+    const first13 = await saved('EQP-13');
+    T.check('a story not analysed yet: its AI icon runs the analysis there and then, and saves it', llmBodies.length === llmNew + 1 && !!first13 && /EQP-13/.test(await vis('#anStory')), llmBodies.length + ' vs ' + llmNew);
+    await page.locator('[role="tab"]').filter({ hasText: 'Jira stories' }).first().click().catch(() => {});
+    await page.waitForSelector('#jiraGrid .nx-jira-row[data-key="EQP-13"] .nx-ai-ico--done', { timeout: 10000 }).catch(() => {});
+    T.check('…and the list marks it at once', (await page.$('#jiraGrid .nx-jira-row[data-key="EQP-13"] .nx-ai-ico--done')) !== null);
+
     T.section('Analyze several stories with AI: the stories shown, together, in a new tab');
     const setLabel = await text(page, '#jiraAnalyzeSet');
     const nShown = Number((/Analyze (\d+) with AI/.exec(setLabel) || [])[1] || 0);
@@ -914,6 +954,17 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     T.check('the chatbot answers about the set', /which story first/.test((await page.getAttribute('#asChat', 'srcdoc')) || '') && llmBodies.slice(chatFrom).some((b) => /set of EquipRite Jira stories/.test(b) && /which story first/.test(b)), llmBodies.slice(chatFrom).map((b) => b.slice(0, 120)).join(' || '));
     await page.evaluate(() => { const c = document.querySelector('.nx-content'); if (c) c.scrollTop = 0; });
     await env.shot('next-jira-analysis-set.png');
+    const setTab = await page.$eval('.nx-tab[data-tab-id^="jira-analysis-set:"]', (t) => t.getAttribute('data-tab-id')).catch(() => '');
+    await page.click('.nx-tab[data-tab-id^="jira-analysis-set:"] .nx-tab-close').catch(() => {});
+    await settle(page, 400);
+    await page.locator('[role="tab"]').filter({ hasText: 'Jira stories' }).first().click().catch(() => {});
+    await page.waitForSelector('#jiraGrid', { timeout: 10000 });
+    const llmSet = llmBodies.length;
+    await page.click('#jiraAnalyzeSet');
+    await page.waitForSelector('#asLastRun', { timeout: 30000 }).catch(() => {});
+    await settle(page, 400);
+    T.check('the same set again: its saved analysis, with when it ran and its chat — no AI call', !!setTab && llmBodies.length === llmSet && /Last run/.test(await text(page, '#asLastRun'))
+      && /which story first/.test((await page.getAttribute('#asChat', 'srcdoc')) || '') && !!analysisStore.get('SET:EQP-12,EQP-13').ok, setTab + ' ' + llmBodies.length + ' vs ' + llmSet);
     await page.click('#asStories .nx-as-story[data-key="EQP-13"] [data-act="alone"]');
     await page.waitForFunction(() => /EQP-13/.test((document.querySelector('#anStory') || {}).textContent || ''), null, { timeout: 20000 }).catch(() => {});
     T.check('"Analyze alone" opens that story\'s own analysis', (await page.$$eval('[role="tab"]', (t) => t.map((x) => x.textContent))).some((t) => t.includes('AI · EQP-13')));

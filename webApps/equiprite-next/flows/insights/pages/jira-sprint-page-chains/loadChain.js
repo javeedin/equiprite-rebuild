@@ -1,9 +1,10 @@
 define([
+  'resources/js/analysisStore',
   'vb/action/actionChain',
   'vb/action/actions',
   'resources/js/jiraBacklog',
   'resources/js/testRecorder',
-], (ActionChain, Actions, J, R) => {
+], (AS, ActionChain, Actions, J, R) => {
   'use strict';
 
   // Reads every item ever in the sprint (jiraBacklog.sprintJql: "sprint = id", which also finds what moved on to a later
@@ -31,6 +32,9 @@ define([
         J.peopleOf(res.issues); // everyone on any item first, so mentions read as names
         const rows = res.issues.map((i) => J.fromIssue(i, { today: today }));
         v.activity = {};
+        // which items have a saved AI analysis (the AI icon), kept current as analyses are run in other tabs
+        AS.on('sprint:' + (v.id || v.name), (idx) => { try { v.aiIndex = Object.assign({}, idx); } catch (e) { /* the page is gone */ } });
+        AS.index().catch(() => {});
         v.report = J.sprintReport(rows, { id: v.id, name: v.name }, today);
         v.readAt = new Date().toTimeString().slice(0, 5);
       } finally {

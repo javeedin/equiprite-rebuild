@@ -192,6 +192,13 @@
               </oj-bind-for-each>
             </div>
           </oj-bind-if>
+          <oj-bind-if test="[[ !!$variables.analysisAt && !!$variables.analysisHtml ]]">
+            <div class="nx-an-lastrun" id="asLastRun"><span class="oj-ux-ico-clock" aria-hidden="true"></span><oj-bind-text value="[[ $functions.lastRunText($variables.analysisAt, $variables.analysisBy) ]]"></oj-bind-text></div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ !!$variables.analysisNote ]]">
+            <div class="nx-an-stale" id="asStale"><oj-bind-text value="[[ $variables.analysisNote ]]"></oj-bind-text>
+              <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" id="asRerunNote" on-click="[[ $listeners.onAnalyze ]]" :disabled="[[ $variables.analyzing ]]">✨ Re-run</button></div>
+          </oj-bind-if>
           <oj-bind-if test="[[ $variables.fddNote ]]"><div class="nx-an-fddnote" id="asFddNote"><oj-bind-text value="[[ $variables.fddNote ]]"></oj-bind-text></div></oj-bind-if>
           <oj-bind-if test="[[ $variables.fddView ]]">
             <div class="nx-an-fddview" id="asFddView">

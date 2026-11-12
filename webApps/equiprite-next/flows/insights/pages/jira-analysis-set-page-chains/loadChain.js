@@ -61,6 +61,7 @@ define([
         return a && a.ok ? Object.assign({}, r, { history: a.history, worklog: a.worklog, spent: a.spent, comments: a.comments.slice().reverse() }) : r;
       });
       v.loading = false; v.progress = '';
+      if (await R.restore(v).catch(() => false)) return; // the last run of this set, shown as it was
       if (v.aiReady) await R.analyzeSet(v, context.$application.path); // a failure leaves the re-run button
     }
   }

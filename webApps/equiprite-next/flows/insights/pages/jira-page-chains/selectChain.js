@@ -2,7 +2,8 @@ define([
   'vb/action/actionChain',
   'vb/action/actions',
   'resources/js/jiraBacklog',
-], (ActionChain, Actions, J) => {
+  'resources/js/shellBus',
+], (ActionChain, Actions, J, bus) => {
   'use strict';
 
   // The item open in the drawer ('' closes it); its whole activity — every comment, change and work log entry — read from
@@ -10,9 +11,11 @@ define([
   // jira connection (jiraBacklog.loadImages), shown in its comment, in the history, under the description and among the
   // attachments.
   class selectChain extends ActionChain {
-    async run(context, { key }) {
+    async run(context, { key, ai }) {
       const v = context.$page.variables;
       const k = String(key || '');
+      // the AI icon in the row: its analysis in a tab of its own (the saved one, or a new run), not the drawer
+      if (k && (ai === true || ai === 'true')) { bus.open({ record: 'jira-analysis', params: { key: k } }); return; }
       if (v.selKey !== k) v.selKey = k;
       if (!k) return;
       await Actions.callChain(context, { chain: 'evidenceChain', params: { act: 'list' } });

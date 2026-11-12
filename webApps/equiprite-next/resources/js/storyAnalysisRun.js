@@ -3,7 +3,8 @@ define([
   'resources/js/minutesClient',
   'resources/js/fddClient',
   'resources/js/fddIndex',
-], function (SA, M, FC, FI) {
+  'resources/js/analysisStore',
+], function (SA, M, FC, FI, AS) {
   'use strict';
 
   // "Analyze with AI" (flows/insights jira-analysis and jira-analysis-set pages), the steps their chains share: the FDD
@@ -19,6 +20,11 @@ define([
   //   analyzeSet(v, base)                      the same for v.stories, analysed together
   //   rerun(v, base)                           whichever of the two this page is
   //   chatSet(v, base, question, history)      a follow-up question about the set → { ok, text, error }
+  //   keyOf(v)                                 where this page's analysis is saved: the story's key, or the set's
+  //   restore(v)                               shows the last saved run (its text, FDD, sections read, chat, when and by
+  //                                            whom) instead of asking the AI → true, or false when there is none
+  //   saveChat(v)                              keeps the conversation with the saved analysis
+  // Every successful run is saved (analysisStore), so the tab opens on it next time and the Jira lists mark the story.
 
   async function library(v, base) {
     const r = await FC.library(base);
@@ -64,6 +70,13 @@ define([
         v.analysisHtml = SA.renderHtml(r.body.text);
         v.analysisProvider = r.body.provider || 'AI';
         v.analysisFdd = f && f.text ? f.name : '';
+        v.analysisAt = new Date().toISOString(); v.analysisBy = ''; v.analysisNote = '';
+        try {
+          const saved = await AS.save({ key: keyOf(v), text: r.body.text, provider: v.analysisProvider, model: r.body.model || '',
+            fddId: v.fddId || '', fddNone: !!(v.fddChosen && !v.fddId), fddLabel: v.analysisFdd, picked: JSON.parse(JSON.stringify(v.fddPicked || [])),
+            chat: (v.chat || []).map((m) => ({ role: m.role, text: m.text })), storyUpdated: updatedOf(v) });
+          if (saved) { v.analysisAt = saved.at; v.analysisBy = saved.by || ''; }
+        } catch (e) { /* shown, just not kept */ }
         return { ok: true };
       }
       const err = (r.body && r.body.error) || '';
@@ -87,6 +100,42 @@ define([
     return run(v, base, merged(list), (f) => SA.promptSet(list, v.pages, f), 40000);
   }
 
+  function keyOf(v) { return Array.isArray(v.stories) ? AS.setKey((v.stories || []).map((x) => x.key)) : ((v.story && v.story.key) || ''); }
+  /** The latest a story (or any story of the set) was updated in Jira: YYYY-MM-DD. */
+  function updatedOf(v) {
+    const list = Array.isArray(v.stories) ? v.stories : (v.story ? [v.story] : []);
+    return list.map((x) => x.updated || '').sort().pop() || '';
+  }
+
+  async function restore(v) {
+    const it = await AS.get(keyOf(v));
+    if (!it || !it.text) return false;
+    v.analysisHtml = SA.renderHtml(it.text);
+    v.analysisProvider = it.provider || 'AI';
+    v.analysisFdd = it.fddLabel || '';
+    v.analysisAt = it.at || ''; v.analysisBy = it.by || '';
+    v.fddPicked = it.picked || [];
+    v.chat = (it.chat || []).map((m) => ({ role: m.role, text: m.text, html: SA.renderHtml(m.text) }));
+    const lib = v.fddLib || { docs: [] };
+    const docs = lib.docs || [];
+    if (it.fddId && docs.some((d) => d.id === it.fddId)) { v.fddId = it.fddId; v.fddChosen = it.fddId !== lib.latest; }
+    else if (it.fddNone) { v.fddId = ''; v.fddChosen = true; } // "No FDD" was picked for it: Re-run keeps that
+    // what changed since: a story updated after it, or another FDD now the latest
+    const notes = [];
+    const day = String(it.at || '').slice(0, 10);
+    const list = Array.isArray(v.stories) ? v.stories : (v.story ? [v.story] : []);
+    const newer = list.filter((x) => x.updated && day && x.updated > day).map((x) => x.key);
+    if (newer.length) notes.push((newer.length === 1 ? newer[0] + ' was' : newer.join(', ') + ' were') + ' updated in Jira after this analysis.');
+    const latest = docs.filter((d) => d.id === lib.latest)[0];
+    if (latest && it.fddId !== latest.id && !it.fddNone) notes.push('The latest FDD is now ' + FI.label(latest) + (it.fddLabel ? '; this analysis read ' + it.fddLabel + '.' : '; this analysis read no FDD.'));
+    v.analysisNote = notes.length ? notes.join(' ') + ' Re-run to bring it up to date.' : '';
+    return true;
+  }
+
+  function saveChat(v) {
+    return AS.saveChat(keyOf(v), (v.chat || []).filter((m) => m.text).map((m) => ({ role: m.role, text: m.text }))).catch(() => false);
+  }
+
   function rerun(v, base) { return Array.isArray(v.stories) ? analyzeSet(v, base) : analyze(v, base); }
 
   async function chatSet(v, base, question, history) {
@@ -98,5 +147,6 @@ define([
     return { ok: false, error: (r.body && r.body.error) || 'AI could not answer.' };
   }
 
-  return { library: library, merged: merged, fddFor: fddFor, analyze: analyze, analyzeSet: analyzeSet, rerun: rerun, chatSet: chatSet };
+  return { library: library, merged: merged, fddFor: fddFor, analyze: analyze, analyzeSet: analyzeSet, rerun: rerun, chatSet: chatSet,
+    keyOf: keyOf, restore: restore, saveChat: saveChat };
 });

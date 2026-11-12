@@ -188,6 +188,12 @@ function fddStore() {
   if (!fddStoreInst) fddStoreInst = require('./lib/fdd').open({ root: path.join(__dirname, '..'), gitPath: commandPath('git') || 'git' });
   return fddStoreInst;
 }
+// Saved AI analyses, for EquipRite Next's Analyze with AI: each run kept in this app's data folder (ai-analyses.json).
+let analysisStoreInst = null;
+function analysisStore() {
+  if (!analysisStoreInst) analysisStoreInst = require('./lib/analyses').open({ file: path.join(app.getPath('userData'), 'ai-analyses.json') });
+  return analysisStoreInst;
+}
 // Find a command for transcription (ffmpeg, whisper-cli), looking beyond the app's start-time PATH — in winget, Scoop,
 // Chocolatey and Homebrew folders — so a tool just installed is found without restarting the app (lib/findCommand.js).
 function commandPath(cmd) {
@@ -1125,6 +1131,8 @@ if (!app.requestSingleInstanceLock()) {
             followupsStore: v === 'next' ? await followupsStore() : undefined,
             // The FDD library: FDDs uploaded into the project and committed to git, so every user has them
             fddStore: v === 'next' ? fddStore() : undefined,
+            // Saved AI analyses: each run kept on this PC, so an analysis opens without asking the AI again
+            analysisStore: v === 'next' ? analysisStore() : undefined,
             backendOverrides: backendOverridesFromEnv(process.env),
             onLog: pushLog,
             onProblem: backendProblem,

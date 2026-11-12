@@ -92,6 +92,9 @@
       "type": "boolean",
       "defaultValue": false
     },
+    "analysisAt": { "type": "string", "defaultValue": "", "description": "When the analysis shown was run (ISO), saved or just now." },
+    "analysisBy": { "type": "string", "defaultValue": "", "description": "Who ran it." },
+    "analysisNote": { "type": "string", "defaultValue": "", "description": "What changed since it ran (a story updated, a newer FDD), with Re-run." },
     "fddLib": {
       "type": "any",
       "defaultValue": {

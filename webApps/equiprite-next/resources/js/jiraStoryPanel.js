@@ -38,6 +38,17 @@ define(['resources/js/jiraBacklog'], (J) => {
     },
     /** "4.5 / 5 · 1 check failed". */
     scoreText(r) { return r ? r.score + ' / 5' + (r.checks && r.checks.length ? ' · ' + r.checks.length + (r.checks.length === 1 ? ' check failed' : ' checks failed') : '') : ''; },
+    // ── The AI icon in a list: filled once the story has a saved analysis, faint until then ────────────────────────────
+    aiClass(index, key) { return 'nx-ai-ico ' + (index && index[key] ? 'nx-ai-ico--done' : 'nx-ai-ico--none'); },
+    aiTitle(index, key) {
+      const it = index && index[key];
+      if (!it) return 'Analyze ' + key + ' with AI';
+      const d = new Date(it.at);
+      const mon = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getMonth()];
+      const p2 = (n) => (n < 10 ? '0' : '') + n;
+      return 'AI analysis of ' + key + ' · last run ' + (isNaN(d.getTime()) ? '' : d.getDate() + ' ' + mon + ' ' + d.getFullYear() + ', ' + p2(d.getHours()) + ':' + p2(d.getMinutes()))
+        + (it.by ? ' by ' + it.by : '') + (it.fddLabel ? ' · against ' + it.fddLabel : '') + ' — open it';
+    },
     // ── Activity (All / Comments / History / Work log), as Jira's Activity shows it ──────────────────────────────────
     /** What the Activity section shows for the open item: { items, counts, tab, loading, error, note } (jiraBacklog.activityView). */
     act(activity, key, tab, row) {

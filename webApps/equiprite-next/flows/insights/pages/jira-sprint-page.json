@@ -54,6 +54,7 @@
     },
     "activity": { "type": "object", "defaultValue": {}, "description": "Each opened item's whole activity, read from Jira (jiraBacklog.loadActivity)." },
     "actTab": { "type": "string", "defaultValue": "all", "description": "The Activity tab: all | comments | history | worklog." },
+    "aiIndex": { "type": "object", "defaultValue": {}, "description": "The saved AI analyses (analysisStore.index): the AI icon beside each key." },
     "selKey": {
       "type": "string",
       "defaultValue": "",
@@ -112,6 +113,7 @@
     }
   },
   "eventListeners": {
+    "onAiOpen": { "chains": [ { "chain": "aiOpenChain", "parameters": { "key": "{{ $event.currentTarget.dataset.key }}" } } ] },
     "onAnalyzeSet": { "chains": [ { "chain": "analyzeSetChain" } ] },
     "onActTab": { "chains": [ { "chain": "actTabChain", "parameters": { "tab": "{{ $event.currentTarget.dataset.tab }}" } } ] },
     "onFile": { "chains": [ { "chain": "fileChain", "parameters": { "id": "{{ $event.currentTarget.dataset.id }}" } } ] },

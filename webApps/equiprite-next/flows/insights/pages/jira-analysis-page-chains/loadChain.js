@@ -49,6 +49,8 @@ define([
         (plain.attachments || []).some((a) => a.image)
           ? J.loadImages(context, Actions, plain).then((got) => { v.images = Object.assign({}, v.images || {}, got); }) : Promise.resolve()
       ]);
+      // the last run, when there is one: shown as it was (with when), without asking the AI again; Re-run asks anew
+      if (await R.restore(v).catch(() => false)) return;
       if (v.aiReady) await R.analyze(v, context.$application.path); // a failure leaves the re-run button
     }
   }

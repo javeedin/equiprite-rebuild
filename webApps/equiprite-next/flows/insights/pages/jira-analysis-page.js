@@ -13,6 +13,17 @@ define(['resources/js/jiraStoryPanel'], (Panel) => {
     count(list) { return (list || []).length; }
     hasText(s) { return !!(s && String(s).trim()); }
 
+    /** "Last run 12 Nov 2026, 19:24 (2 hours ago) by javeed.shaik — saved on this PC; Re-run asks the AI again". */
+    lastRunText(at, by) {
+      const d = new Date(at);
+      if (isNaN(d.getTime())) return '';
+      const mon = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getMonth()];
+      const p2 = (n) => (n < 10 ? '0' : '') + n;
+      const m = Math.max(0, Math.round((Date.now() - d.getTime()) / 60000));
+      const ago = m < 1 ? 'just now' : m < 60 ? m + ' min ago' : m < 1440 ? Math.round(m / 60) + ' h ago' : Math.round(m / 1440) + ' days ago';
+      return 'Last run ' + d.getDate() + ' ' + mon + ' ' + d.getFullYear() + ', ' + p2(d.getHours()) + ':' + p2(d.getMinutes()) + ' (' + ago + ')' + (by ? ' by ' + by : '')
+        + ' · saved, so it opens without running the AI again';
+    }
     /** The chosen FDD's label ("EquipRite FDD · v1.7 (latest)"), or "No FDD" when none is chosen. */
     fddLabel(options, id) {
       if (!id) return 'No FDD — the story only';

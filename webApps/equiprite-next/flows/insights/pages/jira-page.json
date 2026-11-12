@@ -134,6 +134,7 @@
     },
     "activity": { "type": "object", "defaultValue": {}, "description": "Each opened story's whole activity, read from Jira (jiraBacklog.loadActivity): { KEY: { ok, all, comments, history, worklog, counts } | { loading } }." },
     "actTab": { "type": "string", "defaultValue": "all", "description": "The Activity tab: all | comments | history | worklog." },
+    "aiIndex": { "type": "object", "defaultValue": {}, "description": "The saved AI analyses (analysisStore.index): { KEY: { at, by, … } } — the AI icon in each row." },
     "openSub": { "type": "string", "defaultValue": "", "description": "The subtask expanded inline in the drawer ('' = none)." },
     "subDetails": { "type": "object", "defaultValue": {}, "description": "Fetched full detail per subtask key { KEY: jiraBacklog row } (lazy, cached)." },
     "subBusy": { "type": "string", "defaultValue": "", "description": "The subtask key whose detail is loading from Jira." },
@@ -495,7 +496,7 @@
         {
           "chain": "selectChain",
           "parameters": {
-            "key": "{{ $event.currentTarget.dataset.key }}"
+            "key": "{{ $event.currentTarget.dataset.key }}", "ai": "{{ !!($event.target && $event.target.closest && $event.target.closest('[data-ai]')) }}"
           }
         }
       ]

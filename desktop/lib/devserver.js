@@ -258,6 +258,8 @@ function time() {
  * @param {object}   [o.minutesStore]     Standup minutes (lib/minutes.js): the daily standup on the Jira backlog, kept on this PC, for
  *                                        EquipRite Next's Minutes page: /__minutes/* to this PC only, behind the X-EquipRite-Minutes
  *                                        header; voice→text reuses o.transcribe, "Format by AI" reuses o.aiStore (/__sql/ai/chat)
+ * @param {object}   [o.analysisStore]    Saved AI analyses (lib/analyses.js), for EquipRite Next's Analyze with AI: kept on this PC so
+ *                                        an analysis opens without asking the AI again: /__ai/* to this PC only, behind X-EquipRite-AI
  * @param {object}   [o.fddStore]         The FDD library (lib/fdd.js): FDDs saved into the project (git) for EquipRite Next's FDD library
  *                                        page and "Analyze with AI": /__fdd/* to this PC only, behind the X-EquipRite-FDD header.
  *                                        Its JSON files are also written into this server's build copy, so the app sees an upload
@@ -752,6 +754,40 @@ function createDevServer(o) {
         })().catch((e) => jsonF(200, { ok: false, error: e.message }));
         return undefined;
       }
+      if (pathname.startsWith('/__ai/')) {
+        // Saved AI analyses (lib/analyses.js): this PC only, by its own name, and only the app's own page (it sends
+        // X-EquipRite-AI, which a page of another site cannot send without a preflight this server never allows).
+        const host = String(req.headers.host || '').replace(/:\d+$/, '');
+        if (!isLoopback(req.socket.remoteAddress) || !/^(localhost|127\.0\.0\.1|\[::1\])$/.test(host)) {
+          return send(res, 404, 'text/plain; charset=utf-8', 'Not found');
+        }
+        const jsonA = (status, body) => send(res, status, 'application/json', JSON.stringify(body), { 'Cache-Control': 'no-store' });
+        if (!o.analysisStore) return jsonA(200, { ok: false, error: 'Saved analyses are not set up in this app.' });
+        const origin = req.headers.origin;
+        if (req.headers['x-equiprite-ai'] !== '1' || (origin && origin !== `http://${req.headers.host}`)) {
+          return send(res, 403, 'application/json', JSON.stringify({ error: 'Refused: not from EquipRite Next on this PC.' }));
+        }
+        const as = o.analysisStore;
+        const bodyOf = () => new Promise((resolve, reject) => {
+          const chunks = [];
+          let size = 0;
+          req.on('data', (c) => { size += c.length; if (size <= 8 * 1024 * 1024) chunks.push(c); });
+          req.on('end', () => (size > 8 * 1024 * 1024 ? reject(new Error('Too large')) : resolve(Buffer.concat(chunks).toString('utf8'))));
+          req.on('error', reject);
+        });
+        const post = req.method === 'POST';
+        const who = () => { try { const id = o.getIdentity && o.getIdentity(); return (id && (id.displayName || id.username)) || ''; } catch (e) { return ''; } };
+        (async () => {
+          const b = post ? JSON.parse((await bodyOf()) || '{}') : {};
+          if (pathname === '/__ai/index' && req.method === 'GET') return jsonA(200, as.index());
+          if (pathname === '/__ai/get' && req.method === 'GET') return jsonA(200, as.get(u.searchParams.get('key') || ''));
+          if (pathname === '/__ai/save' && post) return jsonA(200, as.save(Object.assign({}, b, { by: b.by || who() })));
+          if (pathname === '/__ai/chat' && post) return jsonA(200, as.chat(b.key, b.chat));
+          if (pathname === '/__ai/remove' && post) return jsonA(200, as.remove(b.key));
+          return jsonA(404, { error: 'Not found' });
+        })().catch((e) => jsonA(200, { ok: false, error: e.message }));
+        return undefined;
+      }
       if (pathname.startsWith('/__fdd/')) {
         // The FDD library (lib/fdd.js), for EquipRite Next's FDD library page: upload an FDD into the project, make one the
         // latest, remove one, and commit + push those files to git. This PC only, by its own name, and only the app's own
@@ -994,6 +1030,8 @@ if (require.main === module) {
     backendOverrides: backendOverridesFromEnv(process.env),
     // the FDD library page uploads into this project (and commits it to git) when served this way too
     fddStore: webApp === 'equiprite-next' ? require('./fdd').open({ root: path.resolve(__dirname, '..', '..') }) : undefined,
+    // saved AI analyses, in your home folder when served this way (the desktop app keeps them in its data folder)
+    analysisStore: webApp === 'equiprite-next' ? require('./analyses').open({ file: path.join(require('os').homedir(), '.equiprite', 'ai-analyses.json') }) : undefined,
     onLog: (line) => console.log(line),
   }).then(({ url }) => {
     console.log(`\n${webApp === 'equiprite' ? 'New EquipRite' : 'EquipRite'} is running at ${url}  (Ctrl+C stops it)`);

@@ -33,6 +33,7 @@ define([
       } finally {
         v.chatBusy = false;
       }
+      R.saveChat(v); // kept with the saved analysis
     }
   }
   return chatChain;

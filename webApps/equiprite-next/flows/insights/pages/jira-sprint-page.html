@@ -181,6 +181,7 @@
                 <span role="cell" class="nx-jsp-sprintc"><oj-bind-text value="[[ r.data.sprint || '—' ]]"></oj-bind-text></span>
                 <span role="cell" class="nx-jsp-keycell"><button type="button" class="nx-jsp-keybtn" :data-key="[[ r.data.key ]]" on-click="[[ $listeners.onOpenItem ]]"
                     :title="[[ 'Show ' + r.data.key ]]"><oj-bind-text value="[[ r.data.key ]]"></oj-bind-text></button>
+                  <button type="button" :class="[[ $functions.aiClass($variables.aiIndex, r.data.key) ]]" :data-key="[[ r.data.key ]]" on-click="[[ $listeners.onAiOpen ]]" :title="[[ $functions.aiTitle($variables.aiIndex, r.data.key) ]]" :aria-label="[[ $functions.aiTitle($variables.aiIndex, r.data.key) ]]">✨</button>
                   <a class="nx-jsp-tojira" target="_blank" rel="noopener" :href="[[ r.data.url ]]" :title="[[ 'Open ' + r.data.key + ' in Jira' ]]" :aria-label="[[ 'Open ' + r.data.key + ' in Jira' ]]"><span class="oj-ux-ico-external-link" aria-hidden="true"></span></a></span>
                 <span role="cell" class="nx-jira-sum"><span class="nx-jsp-sumline"><button type="button" class="nx-jsp-sumbtn nx-cell-main" :data-key="[[ r.data.key ]]" on-click="[[ $listeners.onOpenItem ]]"><oj-bind-text value="[[ r.data.summary ]]"></oj-bind-text></button>
                   <oj-bind-if test="[[ !!$variables.evidenceIndex[r.data.key] ]]"><button type="button" :class="[[ $functions.recClass($variables.evidenceIndex[r.data.key]) ]]" :data-key="[[ r.data.key ]]" on-click="[[ $listeners.onOpenItem ]]"
