@@ -203,7 +203,17 @@ async function setField(page, sel, val) { await page.fill(sel, val); await page.
     await settle(page, 300);
     modelOpts = await optsOf('#minAiModels');
     T.check('switching the provider updates the model list of values', modelOpts.includes('gpt-5') && !modelOpts.includes('claude-opus-5-5'));
-    // Save Claude: the dialog must send the store's provider id ("anthropic"), or Save fails with "Choose the LLM to use."
+    // Claude Code (subscription): no API key field, and it saves with no key.
+    await page.selectOption('#minAiDlg select[data-field="provider"]', 'claudecode');
+    await settle(page, 300);
+    T.check('Claude Code (subscription) needs no API key and offers its models', !(await page.isVisible('#minAiDlg input[data-field="key"]')) && (await optsOf('#minAiModels')).includes('sonnet'));
+    await page.click('#minAiSave');
+    await page.waitForSelector('#minAiDlg', { state: 'hidden', timeout: 10000 });
+    const aiCC = await aiStore.settings();
+    T.check('saving Claude Code persists it as the active provider with no key', aiCC.active === 'claudecode' && !!(aiCC.providers && aiCC.providers.claudecode));
+    // Re-open and save Claude via the API key: the dialog must send the store's id ("anthropic"), or Save fails with "Choose the LLM to use."
+    await page.click('#minAi');
+    await page.waitForSelector('#minAiDlg', { timeout: 10000 });
     await page.selectOption('#minAiDlg select[data-field="provider"]', 'anthropic');
     await settle(page, 200);
     await setField(page, '#minAiDlg input[data-field="key"]', 'sk-ant-test');

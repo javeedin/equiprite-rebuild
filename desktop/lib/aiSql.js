@@ -18,9 +18,29 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+let childProcess = null;
+try { childProcess = require('child_process'); } catch (e) { childProcess = null; }
 
 const TIMEOUT_MS = 90 * 1000;
 const MAX_TOKENS = 2000;
+
+// Run the locally-installed Claude Code CLI (`claude -p`) for the "Claude Code (your subscription)" provider: the prompt
+// goes in on stdin, the answer comes back on stdout. No API key — it uses the Max/Pro login Claude Code is signed in with.
+function runClaudeCode(args, input) {
+  return new Promise((resolve) => {
+    if (!childProcess) { resolve({ code: -1, stdout: '', stderr: 'No child_process in this app.' }); return; }
+    let cp;
+    try { cp = childProcess.spawn('claude', args, { stdio: ['pipe', 'pipe', 'pipe'] }); }
+    catch (e) { resolve({ code: -1, stdout: '', stderr: String((e && e.message) || e) }); return; }
+    let out = '', err = '';
+    const timer = setTimeout(() => { try { cp.kill('SIGKILL'); } catch (e) { /* gone */ } }, TIMEOUT_MS);
+    cp.stdout.on('data', (d) => { out += d; });
+    cp.stderr.on('data', (d) => { err += d; });
+    cp.on('error', (e) => { clearTimeout(timer); resolve({ code: -1, stdout: '', stderr: String((e && e.message) || e) }); });
+    cp.on('close', (code) => { clearTimeout(timer); resolve({ code: code, stdout: out, stderr: err }); });
+    try { if (input != null) cp.stdin.write(String(input)); cp.stdin.end(); } catch (e) { /* stdin closed */ }
+  });
+}
 
 /** The LLMs offered. fields: what the dialog asks for (secret: encrypted, never sent back). */
 const PROVIDERS = [
@@ -35,7 +55,9 @@ const PROVIDERS = [
   { id: 'gemini', label: 'Google Gemini', note: 'A Gemini API key, from Google AI Studio.',
     fields: [{ key: 'key', label: 'API key', secret: true }] },
   { id: 'custom', label: 'Other (OpenAI-compatible)', note: 'Any service that speaks the OpenAI chat API: Azure OpenAI, Mistral, Groq, DeepSeek, or a model on this PC (Ollama, LM Studio).',
-    fields: [{ key: 'baseUrl', label: 'Base URL', hint: 'e.g. http://localhost:11434/v1' }, { key: 'key', label: 'API key (if any)', secret: true }] }
+    fields: [{ key: 'baseUrl', label: 'Base URL', hint: 'e.g. http://localhost:11434/v1' }, { key: 'key', label: 'API key (if any)', secret: true }] },
+  { id: 'claudecode', label: 'Claude Code (your subscription)', note: 'Uses the Claude Code app signed in on this PC with your Claude Max/Pro subscription — no API key, and no per-call API cost. Needs Claude Code installed and signed in.',
+    fields: [] }
 ];
 const BY_ID = {};
 PROVIDERS.forEach((p) => { BY_ID[p.id] = p; });
@@ -131,6 +153,7 @@ async function open(opts) {
   const file = o.file;
   const now = o.now || (() => Date.now());
   const doFetch = o.fetch || (typeof fetch === 'function' ? fetch : null);
+  const run = o.run || runClaudeCode; // the Claude Code CLI runner (injectable for tests)
   const memory = {}; // provider → secrets, when they cannot be encrypted on this PC
 
   function read() { try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch (e) { return { active: '', providers: {} }; } }
@@ -260,6 +283,26 @@ async function open(opts) {
         const ch = (r.choices || [])[0];
         return ch && ch.message ? (ch.message.content || []).map((p) => p.text || '').join('\n') : '';
       }
+    },
+    claudecode: {
+      // No HTTP and no key: shell out to the locally-installed Claude Code CLI, which runs on the user's subscription.
+      async models() {
+        // Claude Code accepts short aliases, so no model id is pinned here; blank = whatever Claude Code is set to.
+        return [{ id: '', label: 'Default (your Claude Code setting)' }, { id: 'sonnet', label: 'Sonnet' }, { id: 'opus', label: 'Opus' }, { id: 'haiku', label: 'Haiku' }];
+      },
+      async chat(c, system, user) {
+        const args = ['-p', '--output-format', 'text'];
+        if (trim(c.model)) { args.push('--model', trim(c.model)); }
+        if (trim(system)) { args.push('--append-system-prompt', system); }
+        const r = await run(args, user);
+        if (!r || r.code !== 0) {
+          const se = String((r && r.stderr) || '').trim();
+          const hint = /enoent|not found|not recognized|no such file/i.test(se) || (r && r.code === -1)
+            ? ' Install Claude Code and run "claude" once to sign in.' : '';
+          throw new Error('Claude Code did not answer' + (se ? ': ' + se.slice(0, 200) : '') + '.' + hint);
+        }
+        return String((r && r.stdout) || '').trim();
+      }
     }
   };
 
@@ -326,7 +369,7 @@ async function open(opts) {
       const p = BY_ID[id];
       if (!p) throw new Error('Choose the LLM to use first (AI settings).');
       const c = full(id);
-      if (!trim(c.model)) throw new Error('Choose a model for ' + p.label + ' (AI settings, Load models).');
+      if (!trim(c.model) && id !== 'claudecode') throw new Error('Choose a model for ' + p.label + ' (AI settings, Load models).');
       if (!trim(q.question)) throw new Error('Write what you want to see, in plain words.');
       const t0 = now();
       const up = userPrompt(q);
@@ -343,7 +386,7 @@ async function open(opts) {
       const t0 = now();
       try {
         const c = full(id);
-        if (!trim(c.model)) return { ok: false, error: 'Choose a model for ' + p.label + ' (AI settings, Load models).' };
+        if (!trim(c.model) && id !== 'claudecode') return { ok: false, error: 'Choose a model for ' + p.label + ' (AI settings, Load models).' };
         const user = String((req && req.user) || '');
         if (!trim(user)) return { ok: false, error: 'There is nothing to send.' };
         const system = trim(req && req.system) || 'You are a helpful assistant.';

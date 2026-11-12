@@ -37,7 +37,7 @@
     "graph": { "type": "any", "defaultValue": { "configured": false, "signedIn": false, "pending": false, "account": "", "userCode": "", "verificationUri": "", "error": "" }, "description": "Microsoft 365 sign-in status (lib/graph.js)." },
     "ai": { "type": "any", "defaultValue": { "active": "", "providers": {} } },
     "aiReady": { "type": "boolean", "defaultValue": false },
-    "aiForm": { "type": "any", "defaultValue": { "provider": "anthropic", "key": "", "model": "", "baseUrl": "", "region": "", "compartmentId": "", "status": "" } },
+    "aiForm": { "type": "any", "defaultValue": { "provider": "claudecode", "key": "", "model": "", "baseUrl": "", "region": "", "compartmentId": "", "status": "" } },
     "email": { "type": "any", "defaultValue": { "subject": "", "html": "", "text": "", "to": "" } }
   },
   "eventListeners": {

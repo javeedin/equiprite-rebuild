@@ -11,10 +11,11 @@ define(['resources/js/minutes'], (R) => {
   }
 
   // Provider ids match the desktop Ask AI store (lib/aiSql.js): Anthropic is "anthropic" (not "claude"), so Save persists.
-  const PROVIDERS = { anthropic: 'Claude (Anthropic)', openai: 'OpenAI (ChatGPT)', gemini: 'Google Gemini', oci: 'OCI GenAI', custom: 'OpenAI-compatible' };
+  const PROVIDERS = { claudecode: 'Claude Code (your subscription)', anthropic: 'Claude (Anthropic)', openai: 'OpenAI (ChatGPT)', gemini: 'Google Gemini', oci: 'OCI GenAI', custom: 'OpenAI-compatible' };
 
   // Model suggestions per provider for the AI-setup "Model" list of values (still a free-text datalist — any model can be typed).
   const MODELS = {
+    claudecode: ['sonnet', 'opus', 'haiku'],
     anthropic: ['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5', 'claude-fable-5-2', 'claude-3-7-sonnet-latest', 'claude-3-5-haiku-latest'],
     openai: ['gpt-5', 'gpt-5-mini', 'gpt-4.1', 'gpt-4.1-mini', 'gpt-4o', 'gpt-4o-mini', 'o4-mini'],
     gemini: ['gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'],

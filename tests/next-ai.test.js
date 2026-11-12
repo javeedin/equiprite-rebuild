@@ -40,7 +40,7 @@ const SCHEMA = { owner: 'EQUIPRITE', tables: [{ name: 'DEPT', kind: 'TABLE', col
 
 (async () => {
   T.section('the LLMs offered, and what each asks for');
-  T.eq('five choices', AI.PROVIDERS.map((p) => p.label).join(' | '), 'Claude (Anthropic) | ChatGPT (OpenAI) | Oracle OCI Generative AI | Google Gemini | Other (OpenAI-compatible)');
+  T.eq('six choices (incl. Claude Code on the subscription)', AI.PROVIDERS.map((p) => p.label).join(' | '), 'Claude (Anthropic) | ChatGPT (OpenAI) | Oracle OCI Generative AI | Google Gemini | Other (OpenAI-compatible) | Claude Code (your subscription)');
   T.eq('OCI asks for its tenancy and signing key', AI.PROVIDERS.filter((p) => p.id === 'oci')[0].fields.map((f) => f.key).join(), 'region,compartmentId,tenancyId,userId,fingerprint,privateKey,passphrase');
   T.check('no model is named in the code: the list comes from the provider', !/claude-|gpt-[0-9]|gemini-[0-9]|llama-[0-9]/i.test(fs.readFileSync(path.join(__dirname, '..', 'desktop', 'lib', 'aiSql.js'), 'utf8')));
 
@@ -183,6 +183,22 @@ const SCHEMA = { owner: 'EQUIPRITE', tables: [{ name: 'DEPT', kind: 'TABLE', col
   T.check('the settings the page reads hold no key', !/sk-ant-SECRET|sk-OPENAI|AIza-GEMINI|ENC:/.test(settingsBody), settingsBody);
   await srv.close();
   await sqlStore.close();
+
+  T.section('Claude Code (your subscription): no key, shells out to the CLI');
+  {
+    const runs = [];
+    const ccStore = await AI.open({ file: path.join(tmp, 'cc.json'), encrypt: enc, decrypt: dec, run: async (args, input) => { runs.push({ args, input }); return { code: 0, stdout: 'Tidied: ' + input, stderr: '' }; } });
+    ccStore.save({ provider: 'claudecode' }); // no key, no model
+    const s = ccStore.settings();
+    T.check('claudecode is the active provider and needs no key', s.active === 'claudecode' && !!s.providers.claudecode && s.providers.claudecode.hasKey === true);
+    const r = await ccStore.chat({ system: 'be brief', user: 'format me' });
+    T.check('chat runs the claude CLI (-p, --append-system-prompt) with the prompt on stdin, returns stdout',
+      r.ok && r.text === 'Tidied: format me' && runs.length === 1 && runs[0].args.indexOf('-p') !== -1 && runs[0].args.indexOf('--append-system-prompt') !== -1 && runs[0].input === 'format me');
+    const bad = await AI.open({ file: path.join(tmp, 'cc2.json'), encrypt: enc, decrypt: dec, run: async () => ({ code: -1, stdout: '', stderr: 'spawn claude ENOENT' }) });
+    bad.save({ provider: 'claudecode' });
+    const rb = await bad.chat({ user: 'x' });
+    T.check('a missing Claude Code CLI gives a helpful error', rb.ok === false && /Install Claude Code/i.test(rb.error));
+  }
 
   T.report();
 })();

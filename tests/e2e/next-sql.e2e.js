@@ -118,7 +118,7 @@ const T = H.makeAsserter();
     await page.waitForSelector('#sqlAiDialog', { timeout: 10000 });
     T.eq('asking first opens the choice, and says why', await text('#sqlAiStatus'), 'Status : Choose the LLM and a model first, then ask again.');
     T.eq('the LLMs to choose from', await page.$$eval('#sqlAiProviders .nx-sql-aiprov-card strong', (c) => c.map((x) => x.innerText.trim()).join(' | ')),
-      'Claude (Anthropic) | ChatGPT (OpenAI) | Oracle OCI Generative AI | Google Gemini | Other (OpenAI-compatible)');
+      'Claude (Anthropic) | ChatGPT (OpenAI) | Oracle OCI Generative AI | Google Gemini | Other (OpenAI-compatible) | Claude Code (your subscription)');
     await page.click('#sqlAiProviders [data-value="oci"]');
     await page.waitForSelector('#sqlAiF-compartmentId');
     T.eq('Oracle OCI asks for its tenancy and signing key', await page.$$eval('#sqlAiDialog .nx-sql-form label', (l) => l.map((x) => x.innerText.trim()).join(' | ')),
