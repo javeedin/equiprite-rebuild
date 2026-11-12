@@ -1,0 +1,363 @@
+{
+ "id": "vbredwoodapp/equipment-foundation/equipment-analytics",
+ "facts": {
+  "id": "vbredwoodapp/equipment-foundation/equipment-analytics",
+  "app": "vbredwoodapp",
+  "appName": "Old EquipRite",
+  "flow": "equipment-foundation",
+  "page": "equipment-analytics",
+  "label": "Equipment Analytics",
+  "description": "",
+  "route": {
+   "url": "/vp/shell/equipment-foundation/equipment-analytics",
+   "menu": "",
+   "needs": ""
+  },
+  "files": [
+   {
+    "path": "webApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-analytics-page.json",
+    "lines": 338
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-analytics-page.html",
+    "lines": 642
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-analytics-page.js",
+    "lines": 686
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-analytics-page-chains/ButtonActionChain.js",
+    "lines": 37
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-analytics-page-chains/ExportChain.js",
+    "lines": 23
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-analytics-page-chains/FiltersChangedChain.js",
+    "lines": 53
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-analytics-page-chains/OnAnalyticsSmartSearchChangedChain.js",
+    "lines": 65
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-analytics-page-chains/TabChangedChain.js",
+    "lines": 69
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-analytics-page-chains/enforcePageAccessChain.js",
+    "lines": 72
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-analytics-page-chains/onSelectedKpiChangedChain.js",
+    "lines": 25
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-analytics-page-chains/vbEnterChain.js",
+    "lines": 49
+   }
+  ],
+  "codeHash": "bf388b6f2700024b",
+  "features": {
+   "sections": [
+    "Equipment Analytics"
+   ],
+   "actions": [
+    {
+     "label": "Export CSV",
+     "listener": "buttonAction",
+     "chains": [
+      "ButtonActionChain"
+     ]
+    },
+    {
+     "label": "oj-sp-smart-search: filter criterion changed",
+     "listener": "onAnalyticsSmartSearchChanged",
+     "chains": [
+      "OnAnalyticsSmartSearchChangedChain"
+     ]
+    },
+    {
+     "label": "oj-select-single: value changed",
+     "listener": "onFilterChanged",
+     "chains": [
+      "FiltersChangedChain"
+     ]
+    },
+    {
+     "label": "oj-tab-bar: selection changed",
+     "listener": "onTabChanged",
+     "chains": [
+      "TabChangedChain"
+     ]
+    }
+   ],
+   "fields": [
+    "Start Date",
+    "End Date",
+    "Period",
+    "From",
+    "To",
+    "Search by equipment, project, yard…"
+   ],
+   "columns": [],
+   "components": [
+    "oj-button",
+    "oj-chart",
+    "oj-data-grid",
+    "oj-input-date",
+    "oj-input-text",
+    "oj-popup",
+    "oj-progress-bar",
+    "oj-select-single",
+    "oj-sp-dashboard-grid",
+    "oj-sp-dashboard-landing-page",
+    "oj-sp-dashboard-panel",
+    "oj-sp-scoreboard",
+    "oj-sp-scoreboard-metric-card",
+    "oj-sp-smart-search",
+    "oj-tab-bar",
+    "oj-table"
+   ],
+   "inputs": [],
+   "lifecycle": [
+    {
+     "when": "before the page opens",
+     "chains": [
+      "enforcePageAccessChain"
+     ]
+    },
+    {
+     "when": "when the page opens",
+     "chains": [
+      "vbEnterChain"
+     ]
+    }
+   ]
+  },
+  "logic": {
+   "chains": [
+    {
+     "name": "ButtonActionChain",
+     "file": "webApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-analytics-page-chains/ButtonActionChain.js",
+     "about": "@param {Object} context @param {Object} params @param {object} params.event @param {any} params.originalEvent",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "buttonAction"
+     ],
+     "lines": 37
+    },
+    {
+     "name": "ExportChain",
+     "file": "webApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-analytics-page-chains/ExportChain.js",
+     "about": "Handles the Export CSV Register secondary action. @param {Object} context",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "onExportAction"
+     ],
+     "lines": 23
+    },
+    {
+     "name": "FiltersChangedChain",
+     "file": "webApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-analytics-page-chains/FiltersChangedChain.js",
+     "about": "Fires when the Utilization Period control changes — the preset select, or either date picker when the preset is Custom. Bound via `on-value-changed=\"[[$listeners.onFilterChanged]]\"` on all three controls. The window is the only page-level filter left: everything else on this page is a smart-search chip, handled by OnAnalyticsSmartSearchChangedChain. fromDate/toDate are REQUIRED by the yard-utilization view and are supplied by the page, never by search (see reportCriterion ENDPOINT_PARAMS), which is why this chain owns them.",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [
+      "resources/js/analyticsData"
+     ],
+     "on": [
+      "onFilterChanged"
+     ],
+     "lines": 53
+    },
+    {
+     "name": "OnAnalyticsSmartSearchChangedChain",
+     "file": "webApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-analytics-page-chains/OnAnalyticsSmartSearchChangedChain.js",
+     "about": "Coalesce keystrokes into one request. filter-criterion-changed fires per keystroke; without this, typing \"excavator\" issues nine round-trips and the last to RETURN — not the last sent — could win and paint stale rows.",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [
+      "resources/js/analyticsData"
+     ],
+     "on": [
+      "onAnalyticsSmartSearchChanged"
+     ],
+     "lines": 65
+    },
+    {
+     "name": "TabChangedChain",
+     "file": "webApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-analytics-page-chains/TabChangedChain.js",
+     "about": "Fires when the analytics tab-bar selection changes. Loads the newly-active tab's live rows (no-op while useMockData=true). KPIs are unchanged by a tab switch, so they aren't refetched here.",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [
+      "resources/js/analyticsData"
+     ],
+     "on": [
+      "onTabChanged"
+     ],
+     "lines": 69
+    },
+    {
+     "name": "enforcePageAccessChain",
+     "file": "webApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-analytics-page-chains/enforcePageAccessChain.js",
+     "about": "Page-level RBAC deep-link guard. GENERATED - every copy is byte-identical; change the template and regenerate rather than editing one copy. Copies exist because a page's eventListeners resolve a bare chain id against that page's OWN <page>-chains folder, so an app-level chain referenced by name 404s. This file holds NO policy: the decision (canEnterPage), the page code (getPageCodeForPage), the redirect target (getRoleHomeTarget) and the same-flow test (isSameFlow) all live in $application.functions. Deriving the page code at runtime is what lets every copy be identical.",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "vbBeforeEnter"
+     ],
+     "lines": 72
+    },
+    {
+     "name": "onSelectedKpiChangedChain",
+     "file": "webApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-analytics-page-chains/onSelectedKpiChangedChain.js",
+     "about": "Fires when a KPI tile is selected on the scoreboard. @param {Object} context @param {Object} params @param {string} params.value — the selected KPI id",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "onKpiSelectionChanged"
+     ],
+     "lines": 25
+    },
+    {
+     "name": "vbEnterChain",
+     "file": "webApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-analytics-page-chains/vbEnterChain.js",
+     "about": "Initial load. The four tab grids bind SDPs and fetch themselves, so this chain only: 1. seeds the Utilization date window (fromDate/toDate are REQUIRED), and 2. fetches the KPI roll-up (yard-stock?groupBy=unitStatus) for the tiles. Static tab definitions live in $page.variables defaults; the old mock KPI/filter/chart seeding is gone (data is live via SDP).",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [
+      "resources/js/analyticsData"
+     ],
+     "on": [
+      "vbEnter"
+     ],
+     "lines": 49
+    }
+   ],
+   "modules": [
+    {
+     "name": "lineStatusLabels",
+     "file": "webApps/vbredwoodapp/resources/js/lineStatusLabels.js",
+     "about": "Single source of truth for line-status display strings. Pages and chains that render lineStatus should import this module instead of defining their own map, so labels stay in sync. Vocabulary matches EQR_EQUIPMENT_REQUEST_LINE.lineStatus values driven by the cascade in saveLineChain.js / confirmRequest path.",
+     "local": [],
+     "calls": [],
+     "reports": [],
+     "lines": 168
+    },
+    {
+     "name": "analyticsData",
+     "file": "webApps/vbredwoodapp/resources/js/analyticsData.js",
+     "about": "Equipment Analytics — shared data helpers for the SDP-backed analytics page. The four tab grids bind their SDPs directly (live, no cache), so this module is NOT a fetch layer for the lists. It only covers the bits the SDPs can't do themselves: the KPI roll-up and the chart series, both from the live `groupBy` aggregate endpoints, plus the date-window math for Utilization. Endpoints (declared in services/eqp-v1/openapi3.json): - eqp-v1/getEquipriteV1ViewsYardStock (list +…",
+     "local": [],
+     "calls": [
+      "eqp-v1/getEquipriteV1ViewsYardStock",
+      "eqp-v1/getInvOrgs",
+      "eqp-v1/getEquipriteV1ViewsYardUtilization"
+     ],
+     "reports": [],
+     "lines": 736
+    },
+    {
+     "name": "reportCriterion",
+     "file": "webApps/vbredwoodapp/resources/js/reportCriterion.js",
+     "about": "Smart-search criterion → per-endpoint query params, for the Analytics and Reports pages. WHY THIS EXISTS Both pages render with oj-data-grid + a custom DataGridProvider, which cannot be driven by a ServiceDataProvider/ListDataProviderView the way oj-table can. So instead of an SDP transform, the criterion is translated here and handed to the same `Actions.callRest` the pages already use — the search is genuinely server-side, it just isn't wearing an SDP. SCOPING IS THE POINT Every endpoint…",
+     "local": [],
+     "calls": [],
+     "reports": [],
+     "lines": 255
+    },
+    {
+     "name": "catalogCriterion",
+     "file": "webApps/vbredwoodapp/resources/js/catalogCriterion.js",
+     "about": "Helpers for merging sidebar selections into the smart-search filterCriterion, so the sidebar and the smart-search chips share one filter state (the DPV applies filterCriterion server-side). Criterion shapes follow oj-smart-search: single chip → { op:'$eq', value:{ field: v } } keyword only → { text, matchBy:'phrase' } combined → { $tag:'_root_', op:'$and', criteria:[...] }",
+     "local": [],
+     "calls": [],
+     "reports": [],
+     "lines": 65
+    }
+   ],
+   "variables": 115
+  },
+  "integrations": {
+   "rest": [
+    {
+     "endpoint": "eqp-v1/getEquipriteV1ViewsYardStock",
+     "service": "eqp-v1",
+     "operation": "getEquipriteV1ViewsYardStock",
+     "method": "GET",
+     "path": "/equiprite/v1/views/yard-stock",
+     "summary": "Yard stock â€” physical units per yard (list) or aggregate (KPIs/charts)",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "analyticsData"
+     ]
+    },
+    {
+     "endpoint": "eqp-v1/getInvOrgs",
+     "service": "eqp-v1",
+     "operation": "getInvOrgs",
+     "method": "GET",
+     "path": "/equiprite/v1/inv-orgs",
+     "summary": "List inventory organisations (paginated, searchable)",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "analyticsData"
+     ]
+    },
+    {
+     "endpoint": "eqp-v1/getEquipriteV1ViewsYardUtilization",
+     "service": "eqp-v1",
+     "operation": "getEquipriteV1ViewsYardUtilization",
+     "method": "GET",
+     "path": "/equiprite/v1/views/yard-utilization",
+     "summary": "Yard Ã— day utilization grid for a date window (Tab 4)",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "analyticsData"
+     ]
+    }
+   ],
+   "reports": [],
+   "local": [],
+   "backends": [
+    "EquipRite REST (eqpt)"
+   ]
+  },
+  "links": []
+ },
+ "ai": null,
+ "screenshots": [],
+ "stories": [],
+ "at": "2026-11-12T15:55:23.782Z",
+ "by": "javeed.shaik",
+ "codeHash": "bf388b6f2700024b"
+}
