@@ -34,7 +34,8 @@ const PAGES_RES = 'webApps/equiprite-next/resources/pages';
 const FDD_RES = 'webApps/equiprite-next/resources/fdd';
 const FDD_DOCS = 'docs/fdd';
 const CODE_HISTORY = 'code-history';
-const DATA_PATHS = [FDD_DOCS, FDD_RES, PAGES_RES, CODE_HISTORY];
+const ISSUES = 'issues';
+const DATA_PATHS = [FDD_DOCS, FDD_RES, PAGES_RES, CODE_HISTORY, ISSUES];
 const README = [
   '# EquipRite data',
   '',
@@ -46,6 +47,7 @@ const README = [
   '- `docs/fdd` and `webApps/equiprite-next/resources/fdd`: the FDD library: the documents and their outlines.',
   '- `code-history`: Code fix: every change made to a page\'s code from the app — what was asked, the AI\'s analysis, the',
   '  diff, who approved and applied it, the tests, the commit (or the undo).',
+  '- `issues`: Issues: each issue logged in Build.Rite, its write-up, the AI\'s verdict, the approval, the branch and pull request.',
   '',
   'The app checks this branch out next to the code, in `<project>/.equiprite-data` (a git worktree), and merges what',
   'others pushed before it pushes. Nothing here is code: do not merge this branch into a code branch.',
@@ -99,7 +101,7 @@ function open(opts) {
       }
       if (file.indexOf(PAGES_RES + '/sheets/') === 0) return pages.mergeSheet(ours, theirs);
       if (file === FDD_RES + '/library.json') return require('./fdd').mergeLibrary(ours, theirs);
-      if (file.indexOf(CODE_HISTORY + '/') === 0) { const a = JSON.parse(ours), b = JSON.parse(theirs); return str(a.updatedAt) >= str(b.updatedAt) ? ours : theirs; } // the later state of a change
+      if (file.indexOf(CODE_HISTORY + '/') === 0 || file.indexOf(ISSUES + '/') === 0) { const a = JSON.parse(ours), b = JSON.parse(theirs); return str(a.updatedAt) >= str(b.updatedAt) ? ours : theirs; } // the later state of a change
     } catch (e) { /* not JSON as expected: keep ours */ }
     return null;
   }

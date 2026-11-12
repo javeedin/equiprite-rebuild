@@ -12,7 +12,7 @@ const H = require('../_harness');
 
 const T = H.makeAsserter();
 const text = (page, sel) => page.$eval(sel, (e) => e.textContent.replace(/\s+/g, ' ').trim()).catch(() => '');
-const BUILD_SCREENS = ['jira', 'analytics', 'minutes', 'followups', 'fdd', 'app-pages', 'fdd-library'];
+const BUILD_SCREENS = ['issues', 'jira', 'analytics', 'minutes', 'followups', 'fdd', 'app-pages', 'fdd-library'];
 
 (async () => {
   // 1. As the desktop app serves Build.Rite: a server of its own, which tells the page
@@ -28,10 +28,10 @@ const BUILD_SCREENS = ['jira', 'analytics', 'minutes', 'followups', 'fdd', 'app-
       && (await page.evaluate(() => document.documentElement.getAttribute('data-nx-product'))) === 'buildrite');
     const items = await page.$$eval('#nxNav [data-nav-id]', (b) => b.map((x) => x.getAttribute('data-nav-id')));
     T.check('no "Help & the flow" (EquipRite\'s request flow) at the foot of the menu', !(await page.$('#nxNavHelp')));
-    T.check('only the Insights screens in the menu: Jira stories, Analytics, Standup minutes, Follow-ups, EquipRite FDD, Application pages, FDD library', items.length >= 5 && items.every((id) => BUILD_SCREENS.indexOf(id) !== -1)
-      && ['jira', 'app-pages', 'fdd-library'].every((id) => items.indexOf(id) !== -1) && items.indexOf('requests') === -1 && items.indexOf('home') === -1, items.join(','));
+    T.check('only the Insights screens in the menu: Issues, Jira stories, Analytics, Standup minutes, Follow-ups, EquipRite FDD, Application pages, FDD library', items.length >= 5 && items.every((id) => BUILD_SCREENS.indexOf(id) !== -1)
+      && ['issues', 'jira', 'app-pages', 'fdd-library'].every((id) => items.indexOf(id) !== -1) && items.indexOf('requests') === -1 && items.indexOf('home') === -1, items.join(','));
     const tabs = await page.$$eval('.nx-tab', (t) => t.map((x) => x.getAttribute('data-tab-id') + (x.classList.contains('nx-tab--pinned') ? '*' : '')));
-    T.check('Jira stories is the first tab, pinned (no My work)', tabs[0] === 'jira*' && tabs.indexOf('home') === -1 && tabs.indexOf('home*') === -1, tabs.join(','));
+    T.check('Issues is the first tab, pinned (no My work)', tabs[0] === 'issues*' && tabs.indexOf('home') === -1 && tabs.indexOf('home*') === -1, tabs.join(','));
     T.check('none of the business actions: New request, Check availability, the cart, Help, the phone QR code, the bell', !(await page.$('#nxNewRequest')) && !(await page.$('#nxQa')) && !(await page.$('#nxCart')) && !(await page.$('#nxHelp')) && !(await page.$('#nxPhone')) && !(await page.$('#nxBell')));
     T.check('the search finds Build.Rite\'s screens', (await page.getAttribute('#nxCommand', 'placeholder')) === 'Search Build.Rite screens…');
     await page.click('#nxUser');

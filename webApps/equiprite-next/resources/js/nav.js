@@ -16,7 +16,7 @@ define(['resources/js/rules'], function (rules) {
   //   keywords    extra words the command bar matches
   // Which product this build is shown as. EquipRite Next is the business app. Build.Rite is the same build shown as the
   // team's own tools, apart from the business product: the Insights screens only (Jira stories, analytics, standup
-  // minutes, follow-ups, the FDD, application pages with code fix, the FDD library), Jira stories first. The desktop
+  // minutes, follow-ups, the FDD, application pages with code fix, the FDD library), Issues first. The desktop
   // app serves it on a port of its own and says so (window.EQP_PRODUCT); elsewhere ?product=buildrite (kept for the
   // session; ?product=next goes back).
   var BUILD_GROUPS = ['insights'];
@@ -31,7 +31,7 @@ define(['resources/js/rules'], function (rules) {
   }
   var PRODUCT_ID = detectProduct();
   var PRODUCT = { id: PRODUCT_ID, isBuild: PRODUCT_ID === 'buildrite', name: PRODUCT_ID === 'buildrite' ? 'Build.Rite' : 'EquipRite',
-    home: PRODUCT_ID === 'buildrite' ? 'jira' : 'home', groups: BUILD_GROUPS };
+    home: PRODUCT_ID === 'buildrite' ? 'issues' : 'home', groups: BUILD_GROUPS };
   var inProduct = function (groupKey) { return !PRODUCT.isBuild || BUILD_GROUPS.indexOf(groupKey) !== -1; };
 
   var GROUPS = [
@@ -85,6 +85,12 @@ define(['resources/js/rules'], function (rules) {
         route: { flow: 'commercial', page: 'agreements' }, built: true, newNav: 'agreements', keywords: 'rental agreements contracts' }
     ] },
     { key: 'insights', label: 'Insights', items: [
+      // Issues (Build.Rite's first screen): an issue logged against a page, written up and analyzed by the AI against the
+      // page's code and the FDD, approved, then applied by the agent on a branch of its own with a pull request; Jira kept
+      // up to date (flows/insights issues; desktop/lib/issues.js, the desktop app). Gated like Jira stories.
+      { id: 'issues', label: 'Issues', icon: 'oj-ux-ico-clipboard-list', pageCodes: ['EQR_CONFIGURATIONS'],
+        route: { flow: 'insights', page: 'issues' }, built: true,
+        keywords: 'issues bugs defects log report fix approve approval ai branch pull request triage out of scope jira' },
       // The EquipRite backlog read from Jira and analysed (flows/insights jira; services/jira, read only). Gated like
       // Settings for now: an existing page code, so it shows without a new COMMONRITE.RBAC_PAGES row.
       { id: 'jira', label: 'Jira stories', icon: 'oj-ux-ico-list', pageCodes: ['EQR_CONFIGURATIONS'],

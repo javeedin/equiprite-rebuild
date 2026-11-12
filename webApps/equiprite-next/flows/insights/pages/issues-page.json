@@ -1,0 +1,49 @@
+{
+  "description": "Issues (Build.Rite): an issue logged against a VB page (with screenshots) is written up by the AI, analyzed against the page's code and the FDD (a verdict: fix on this page, fix elsewhere, works as designed, out of scope, needs information; for a fix, the exact change, checked), sent for approval (in the app, and an approval email from Microsoft 365), and once approved the agent applies it on a branch of its own (fix/<KEY>, the issue's number in the code's comments and the commit), tests it, pushes it and makes the pull request. Jira kept up to date. desktop/lib/issues.js, /__issues/*, the desktop app.",
+  "navigation": { "embeddable": "enabled" },
+  "variables": {
+    "checked": { "type": "boolean", "defaultValue": false },
+    "info": { "type": "any", "defaultValue": null, "description": "{ jira: { connected, project }, mail: { signedIn, account }, fix: { folder, branch, … } } or { ok: false, error }." },
+    "busy": { "type": "boolean", "defaultValue": false },
+    "progress": { "type": "string", "defaultValue": "" },
+    "result": { "type": "any", "defaultValue": null, "description": "The last action's result: { ok, text }." },
+    "issues": { "type": "any[]", "defaultValue": [] },
+    "counts": { "type": "any", "defaultValue": { "all": 0, "open": 0, "approval": 0, "review": 0, "closed": 0 } },
+    "filter": { "type": "string", "defaultValue": "open" },
+    "q": { "type": "string", "defaultValue": "" },
+    "mode": { "type": "string", "defaultValue": "", "description": "new (the form), view (an issue), '' (nothing chosen)." },
+    "selId": { "type": "string", "defaultValue": "" },
+    "issue": { "type": "any", "defaultValue": null, "description": "The issue shown (with its fix: the analysis, the change, the tests)." },
+    "edit": { "type": "any", "defaultValue": null, "description": "Its write-up being edited: { title, summary, steps (one per line), expected, actual, impact }." },
+    "pages": { "type": "any[]", "defaultValue": [], "description": "Every VB page, for the page picker: [{ id, label, appName, flow, page }]." },
+    "pickQ": { "type": "string", "defaultValue": "" },
+    "dPage": { "type": "string", "defaultValue": "" },
+    "dKind": { "type": "string", "defaultValue": "bug" },
+    "dText": { "type": "string", "defaultValue": "" },
+    "dJiraKey": { "type": "string", "defaultValue": "" },
+    "dToJira": { "type": "boolean", "defaultValue": false },
+    "images": { "type": "any[]", "defaultValue": [], "description": "Screenshots for the new issue: [{ name, mime, base64, url, w, h, size }]." },
+    "refine": { "type": "string", "defaultValue": "" },
+    "reason": { "type": "string", "defaultValue": "" },
+    "emailMe": { "type": "boolean", "defaultValue": true },
+    "viewImg": { "type": "string", "defaultValue": "" }
+  },
+  "events": {
+    "issueImages": { "description": "The page module read screenshots pasted, dropped or attached in the new issue form (codeFixClient.queueImages).", "payloadType": "object" },
+    "focusRequest": { "description": "Another screen handed this one an issue to open (shellBus.focus('issues', { id })).", "payloadType": "object" }
+  },
+  "eventListeners": {
+    "vbEnter": { "chains": [ { "chain": "loadChain" } ] },
+    "focusRequest": { "chains": [ { "chain": "loadChain" } ] },
+    "onRefresh": { "chains": [ { "chain": "loadChain", "parameters": { "refresh": true } } ] },
+    "onField": { "chains": [ { "chain": "setChain", "parameters": { "field": "{{ $event.currentTarget.dataset.field }}", "value": "{{ $event.currentTarget.type === 'checkbox' ? $event.currentTarget.checked : ($event.currentTarget.dataset.value !== undefined ? $event.currentTarget.dataset.value : $event.currentTarget.value) }}" } } ] },
+    "onEdit": { "chains": [ { "chain": "setChain", "parameters": { "field": "{{ 'edit.' + $event.currentTarget.dataset.field }}", "value": "{{ $event.currentTarget.value }}" } } ] },
+    "onSelect": { "chains": [ { "chain": "selectChain", "parameters": { "id": "{{ $event.currentTarget.dataset.id }}" } } ] },
+    "onAct": { "chains": [ { "chain": "actChain", "parameters": { "act": "{{ $event.currentTarget.dataset.act }}", "key": "{{ $event.currentTarget.dataset.key || '' }}" } } ] },
+    "issueImages": { "chains": [ { "chain": "actChain", "parameters": { "act": "{{ 'images' }}", "key": "{{ '' }}" } } ] },
+    "onImgClosed": { "chains": [ { "chain": "actChain", "parameters": { "act": "{{ 'imgClosed' }}", "key": "{{ '' }}" } } ] },
+    "onImgClick": { "chains": [ { "chain": "actChain", "parameters": { "act": "{{ $event.target === $event.currentTarget ? 'unviewImg' : '' }}", "key": "{{ '' }}" } } ] }
+  },
+  "imports": { "components": {
+    "oj-bind-for-each": { "path": "ojs/ojknockout" }, "oj-bind-if": { "path": "ojs/ojknockout" }, "oj-bind-text": { "path": "ojs/ojknockout" } } }
+}

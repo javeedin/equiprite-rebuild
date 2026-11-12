@@ -1,0 +1,284 @@
+<!-- Issues (Build.Rite): log → the AI writes it up → analysis against the page's code and the FDD (a verdict, the exact
+     change) → approval (in the app, and an email) → the agent applies it on a branch of its own and makes the pull
+     request → closed. desktop/lib/issues.js, /__issues/*, resources/js/issuesClient.js. -->
+<div class="nx-page nx-is">
+  <div class="nx-pagehead">
+    <div>
+      <div class="nx-kicker">Build.Rite · Issues</div>
+      <h1 id="isTitle">Issues</h1>
+      <div class="nx-sub" id="isSub"><oj-bind-text value="[[ $functions.subText($variables.counts, $variables.info) ]]"></oj-bind-text></div>
+    </div>
+    <div class="nx-actions">
+      <button type="button" class="nx-btn nx-btn--primary" id="isNewBtn" data-act="new" on-click="[[ $listeners.onAct ]]" :disabled="[[ !$variables.info || !$variables.info.ok ]]"><span class="oj-ux-ico-plus" aria-hidden="true"></span>Log an issue</button>
+      <button type="button" class="nx-btn nx-btn--plain" id="isRefresh" on-click="[[ $listeners.onRefresh ]]" :disabled="[[ $variables.busy ]]"><span class="oj-ux-ico-refresh" aria-hidden="true"></span>Refresh</button>
+    </div>
+  </div>
+
+  <oj-bind-if test="[[ $variables.checked && $variables.info && !$variables.info.ok ]]"><div class="nx-flib-result nx-flib-result--err" id="isUnavailable"><oj-bind-text value="[[ $variables.info.error ]]"></oj-bind-text></div></oj-bind-if>
+
+  <div class="nx-is-cols">
+    <!-- the issues -->
+    <section class="nx-card nx-is-list" aria-label="The issues">
+      <div class="nx-pg-chips" id="isFilters">
+        <oj-bind-for-each data="[[ $functions.filters($variables.counts) ]]">
+          <template data-oj-as="f">
+            <button type="button" :class="[[ 'nx-chip nx-chip--sm' + ($variables.filter === f.data.id ? ' nx-chip--on' : '') ]]" data-act="filter" :data-key="[[ f.data.id ]]" on-click="[[ $listeners.onAct ]]">
+              <oj-bind-text value="[[ f.data.label ]]"></oj-bind-text> <span class="nx-chip-count"><oj-bind-text value="[[ f.data.n ]]"></oj-bind-text></span></button>
+          </template>
+        </oj-bind-for-each>
+      </div>
+      <input type="search" class="nx-flib-filter" id="isSearch" data-field="q" :value="[[ $variables.q ]]" on-input="[[ $listeners.onField ]]" placeholder="Find an issue: key, title, page, person…">
+      <div class="nx-is-rows" id="isRows" role="list">
+        <oj-bind-for-each data="[[ $functions.shown($variables.issues, $variables.q) ]]">
+          <template data-oj-as="x">
+            <oj-bind-if test="[[ $functions.inFilter(x.data.status, $variables.filter) ]]">
+              <button type="button" role="listitem" :class="[[ 'nx-is-row' + ($variables.selId === x.data.id ? ' nx-is-row--on' : '') ]]" :data-id="[[ x.data.id ]]" on-click="[[ $listeners.onSelect ]]">
+                <span class="nx-is-rowhead"><code class="nx-is-key"><oj-bind-text value="[[ x.data.key ]]"></oj-bind-text></code><span :class="[[ $functions.statusClass(x.data.status) ]]"><oj-bind-text value="[[ $functions.statusText(x.data.status) ]]"></oj-bind-text></span></span>
+                <span class="nx-is-rowtitle"><oj-bind-text value="[[ x.data.title ]]"></oj-bind-text></span>
+                <span class="nx-is-rowmeta"><oj-bind-text value="[[ $functions.rowMeta(x.data) ]]"></oj-bind-text></span>
+              </button>
+            </oj-bind-if>
+          </template>
+        </oj-bind-for-each>
+        <oj-bind-if test="[[ $variables.checked && $variables.issues.length === 0 ]]"><div class="nx-empty" id="isNone">No issue yet: Log an issue to start.</div></oj-bind-if>
+      </div>
+    </section>
+
+    <section class="nx-card nx-is-main" id="isMain" aria-label="The issue">
+      <oj-bind-if test="[[ !!$variables.progress ]]"><div class="nx-note nx-pg-progress" id="isProgress"><span class="nx-fx-spin" aria-hidden="true"></span><oj-bind-text value="[[ $variables.progress ]]"></oj-bind-text></div></oj-bind-if>
+      <oj-bind-if test="[[ !!$variables.result ]]"><div :class="[[ 'nx-flib-result ' + ($variables.result.ok ? 'nx-flib-result--ok' : 'nx-flib-result--err') ]]" id="isResult"><oj-bind-text value="[[ $variables.result.text ]]"></oj-bind-text></div></oj-bind-if>
+      <oj-bind-if test="[[ !$variables.mode ]]"><div class="nx-empty" id="isPick">Choose an issue, or Log an issue: the AI writes it up, finds where it belongs in the page's code, and proposes the fix for your approval.</div></oj-bind-if>
+
+      <!-- a new issue -->
+      <oj-bind-if test="[[ $variables.mode === 'new' ]]">
+        <div class="nx-is-new" id="isAsk">
+          <h2 class="nx-pg-h2">Log an issue</h2>
+          <label class="nx-is-label">The page</label>
+          <oj-bind-if test="[[ !$variables.dPage ]]">
+            <input type="search" class="nx-flib-filter nx-is-pickq" id="isPageQ" data-field="pickQ" :value="[[ $variables.pickQ ]]" on-input="[[ $listeners.onField ]]" placeholder="Find the page: its name, flow or app (e.g. My Billing)…">
+            <div class="nx-is-picklist" id="isPageList">
+              <oj-bind-for-each data="[[ $functions.pagesShown($variables.pages, $variables.pickQ) ]]">
+                <template data-oj-as="p">
+                  <button type="button" class="nx-is-pickrow" data-act="pick" :data-key="[[ p.data.id ]]" on-click="[[ $listeners.onAct ]]"><b><oj-bind-text value="[[ p.data.label ]]"></oj-bind-text></b><span class="nx-note"><oj-bind-text value="[[ $functions.pageText(p.data) ]]"></oj-bind-text></span></button>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ !!$variables.dPage ]]">
+            <div class="nx-is-picked" id="isPicked"><b><oj-bind-text value="[[ ($functions.pageOf($variables.pages, $variables.dPage) || {}).label || $variables.dPage ]]"></oj-bind-text></b>
+              <span class="nx-note"><oj-bind-text value="[[ $functions.pageText($functions.pageOf($variables.pages, $variables.dPage)) ]]"></oj-bind-text></span>
+              <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" data-act="unpick" on-click="[[ $listeners.onAct ]]">Change</button></div>
+          </oj-bind-if>
+          <label class="nx-is-label">What kind</label>
+          <div class="nx-fx-kinds">
+            <oj-bind-for-each data="[[ $functions.kinds() ]]">
+              <template data-oj-as="k">
+                <button type="button" :class="[[ 'nx-chip nx-chip--sm' + ($variables.dKind === k.data.id ? ' nx-chip--on' : '') ]]" data-field="dKind" :data-value="[[ k.data.id ]]" on-click="[[ $listeners.onField ]]"><oj-bind-text value="[[ k.data.label ]]"></oj-bind-text></button>
+              </template>
+            </oj-bind-for-each>
+          </div>
+          <label class="nx-is-label" for="isText">What is wrong</label>
+          <textarea class="nx-fx-text" id="isText" rows="4" data-field="dText" :value="[[ $variables.dText ]]" on-input="[[ $listeners.onField ]]" placeholder="What you did, what happened, what you expected. Rough is fine: the AI writes it up. Paste screenshots here (Ctrl+V)."></textarea>
+          <div class="nx-fx-imgs" id="isImgs">
+            <oj-bind-for-each data="[[ $functions.indexed($variables.images) ]]">
+              <template data-oj-as="im">
+                <span class="nx-fx-img">
+                  <button type="button" class="nx-fx-imgbtn" data-act="viewImg" :data-key="[[ im.data.url ]]" on-click="[[ $listeners.onAct ]]" :title="[[ im.data.name + ' · ' + $functions.imgSize(im.data) ]]"><img :src="[[ im.data.url ]]" :alt="[[ im.data.name ]]"><span class="nx-fx-imgn"><oj-bind-text value="[[ im.data.n ]]"></oj-bind-text></span></button>
+                  <button type="button" class="nx-fx-imgx" data-act="unimg" :data-key="[[ im.data.i ]]" on-click="[[ $listeners.onAct ]]" :aria-label="[[ 'Take out ' + im.data.name ]]">×</button>
+                </span>
+              </template>
+            </oj-bind-for-each>
+            <label class="nx-btn nx-btn--sm nx-btn--plain nx-pg-upload"><span class="oj-ux-ico-camera" aria-hidden="true"></span>Attach screenshots<input type="file" id="isImgFile" accept="image/png,image/jpeg,image/webp,image/gif" multiple></label>
+          </div>
+          <div class="nx-is-jirarow">
+            <span class="nx-note">Already in Jira?</span>
+            <input type="text" class="nx-flib-filter nx-is-jirakey" id="isJiraKey" data-field="dJiraKey" :value="[[ $variables.dJiraKey ]]" on-input="[[ $listeners.onField ]]" placeholder="EQP-123">
+            <oj-bind-if test="[[ $variables.info && $variables.info.jira && $variables.info.jira.connected ]]">
+              <label class="nx-flib-check"><input type="checkbox" id="isToJira" data-field="dToJira" :checked="[[ $variables.dToJira ]]" on-change="[[ $listeners.onField ]]"><span>Create it in Jira too</span></label>
+            </oj-bind-if>
+          </div>
+          <div class="nx-fx-askbar">
+            <span class="nx-note">The AI writes it up from what you typed and the screenshots. You check it before anything else.</span>
+            <button type="button" class="nx-btn nx-btn--primary nx-aibtn" id="isCreate" data-act="create" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]"><span aria-hidden="true">✨</span>Log it and write it up</button>
+          </div>
+        </div>
+      </oj-bind-if>
+
+      <!-- an issue -->
+      <oj-bind-if test="[[ $variables.mode === 'view' && !!$variables.issue ]]">
+        <div class="nx-is-issue" id="isIssue">
+          <div class="nx-is-head">
+            <code class="nx-is-key nx-is-key--big" id="isKey"><oj-bind-text value="[[ $variables.issue.key ]]"></oj-bind-text></code>
+            <span :class="[[ $functions.statusClass($variables.issue.status) ]]" id="isStatus"><oj-bind-text value="[[ $functions.statusText($variables.issue.status) ]]"></oj-bind-text></span>
+            <oj-bind-if test="[[ !!$variables.issue.verdictLabel ]]"><span :class="[[ $functions.verdictClass($variables.issue.verdict.code) ]]" id="isVerdictChip"><oj-bind-text value="[[ $variables.issue.verdictLabel ]]"></oj-bind-text></span></oj-bind-if>
+            <span class="nx-min-flex"></span>
+            <oj-bind-if test="[[ !!($variables.issue.jira && $variables.issue.jira.url) ]]"><a class="nx-btn nx-btn--sm nx-btn--plain" id="isJiraLink" target="_blank" rel="noopener" :href="[[ $variables.issue.jira.url ]]"><span class="oj-ux-ico-external-link" aria-hidden="true"></span>In Jira</a></oj-bind-if>
+            <oj-bind-if test="[[ !($variables.issue.jira && $variables.issue.jira.key) && $variables.info && $variables.info.jira && $variables.info.jira.connected ]]"><button type="button" class="nx-btn nx-btn--sm nx-btn--plain" id="isToJiraBtn" data-act="jira" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]">Create in Jira</button></oj-bind-if>
+          </div>
+          <h2 class="nx-pg-h2" id="isIssueTitle"><oj-bind-text value="[[ $functions.title($variables.issue) ]]"></oj-bind-text></h2>
+          <div class="nx-note">
+            <button type="button" class="nx-is-pagelink" data-act="openPage" :data-key="[[ $variables.issue.page ]]" on-click="[[ $listeners.onAct ]]" title="Open its page in Application pages"><oj-bind-text value="[[ $variables.issue.label ]]"></oj-bind-text></button>
+            <oj-bind-text value="[[ ' · ' + $variables.issue.page + ' · logged by ' + ($variables.issue.by || 'someone') + ' · ' + $functions.when($variables.issue.at) ]]"></oj-bind-text>
+          </div>
+
+          <!-- where it is in the flow -->
+          <ol class="nx-is-steps" id="isSteps">
+            <oj-bind-for-each data="[[ $variables.issue.steps ]]">
+              <template data-oj-as="s"><li :class="[[ $functions.stepClass(s.data) ]]"><span class="nx-is-stepdot"></span><oj-bind-text value="[[ s.data.label ]]"></oj-bind-text></li></template>
+            </oj-bind-for-each>
+          </ol>
+
+          <!-- the issue, written up -->
+          <div class="nx-is-sec" id="isWriteup">
+            <h3 class="nx-pg-h3">The issue</h3>
+            <oj-bind-if test="[[ !$variables.issue.formatted ]]">
+              <p class="nx-is-raw"><oj-bind-text value="[[ $variables.issue.text ]]"></oj-bind-text></p>
+              <button type="button" class="nx-btn nx-btn--sm nx-aibtn" id="isFormat" data-act="format" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy || !$functions.canEdit($variables.issue) ]]"><span aria-hidden="true">✨</span>Write it up with AI</button>
+            </oj-bind-if>
+            <oj-bind-if test="[[ !!$variables.issue.formatted && !!$variables.edit ]]">
+              <div class="nx-is-form">
+                <label class="nx-is-label">Title</label><input type="text" class="nx-fx-text" id="isEditTitle" data-field="title" :value="[[ $variables.edit.title ]]" on-input="[[ $listeners.onEdit ]]" :disabled="[[ !$functions.canEdit($variables.issue) ]]">
+                <label class="nx-is-label">Summary</label><textarea class="nx-fx-text" rows="2" data-field="summary" :value="[[ $variables.edit.summary ]]" on-input="[[ $listeners.onEdit ]]" :disabled="[[ !$functions.canEdit($variables.issue) ]]"></textarea>
+                <label class="nx-is-label">Steps to reproduce (one per line)</label><textarea class="nx-fx-text" rows="3" id="isEditSteps" data-field="steps" :value="[[ $variables.edit.steps ]]" on-input="[[ $listeners.onEdit ]]" :disabled="[[ !$functions.canEdit($variables.issue) ]]"></textarea>
+                <div class="nx-is-two">
+                  <div><label class="nx-is-label">Expected</label><textarea class="nx-fx-text" rows="2" data-field="expected" :value="[[ $variables.edit.expected ]]" on-input="[[ $listeners.onEdit ]]" :disabled="[[ !$functions.canEdit($variables.issue) ]]"></textarea></div>
+                  <div><label class="nx-is-label">Actual</label><textarea class="nx-fx-text" rows="2" data-field="actual" :value="[[ $variables.edit.actual ]]" on-input="[[ $listeners.onEdit ]]" :disabled="[[ !$functions.canEdit($variables.issue) ]]"></textarea></div>
+                </div>
+                <label class="nx-is-label">Impact</label><input type="text" class="nx-fx-text" data-field="impact" :value="[[ $variables.edit.impact ]]" on-input="[[ $listeners.onEdit ]]" :disabled="[[ !$functions.canEdit($variables.issue) ]]">
+                <oj-bind-if test="[[ ($variables.issue.formatted.questions || []).length > 0 ]]">
+                  <div class="nx-an-stale" id="isQuestions"><b>The AI asks:</b><ul class="nx-pg-ul"><oj-bind-for-each data="[[ $variables.issue.formatted.questions ]]"><template data-oj-as="q"><li><oj-bind-text value="[[ q.data ]]"></oj-bind-text></li></template></oj-bind-for-each></ul></div>
+                </oj-bind-if>
+                <oj-bind-if test="[[ $functions.canEdit($variables.issue) ]]"><div class="nx-fx-row"><button type="button" class="nx-btn nx-btn--sm" id="isSave" data-act="save" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]">Save the write-up</button></div></oj-bind-if>
+              </div>
+            </oj-bind-if>
+            <oj-bind-if test="[[ ($variables.issue.images || []).length > 0 ]]">
+              <div class="nx-fx-imgs"><span class="nx-pg-maplbl">Screenshots</span>
+                <oj-bind-for-each data="[[ $variables.issue.images ]]"><template data-oj-as="im"><button type="button" class="nx-pg-shotbtn" data-act="viewImg" :data-key="[[ $functions.img($variables.issue, im.data.n) ]]" on-click="[[ $listeners.onAct ]]" :title="[[ im.data.name ]]"><span class="oj-ux-ico-camera" aria-hidden="true"></span><oj-bind-text value="[[ im.data.n ]]"></oj-bind-text></button></template></oj-bind-for-each>
+              </div>
+            </oj-bind-if>
+          </div>
+
+          <!-- the analysis: the verdict, the change -->
+          <div class="nx-is-sec" id="isAnalysis">
+            <h3 class="nx-pg-h3">Analysis</h3>
+            <oj-bind-if test="[[ !!$variables.issue.verdict && !!$variables.issue.verdict.code ]]">
+              <div :class="[[ 'nx-is-vbanner nx-is-vbanner--' + $variables.issue.verdict.code ]]" id="isVerdict"><b><oj-bind-text value="[[ $variables.issue.verdictLabel ]]"></oj-bind-text></b>
+                <span><oj-bind-text value="[[ $functions.verdictText($variables.issue.verdict) ]]"></oj-bind-text></span></div>
+            </oj-bind-if>
+            <oj-bind-if test="[[ !!$variables.issue.fix ]]">
+              <iframe class="nx-an-frame nx-pg-frame nx-fx-frame" id="isAi" title="The AI's analysis" sandbox="" :srcdoc="[[ $functions.doc($variables.issue.fix.markdown) ]]"></iframe>
+              <oj-bind-if test="[[ ($variables.issue.fix.diff || []).length > 0 ]]">
+                <h3 class="nx-pg-h3" id="isDiffHead"><oj-bind-text value="[[ 'The change · ' + $functions.stats($variables.issue.fix) ]]"></oj-bind-text></h3>
+                <div class="nx-fx-checks" id="isChecks"><oj-bind-for-each data="[[ $variables.issue.fix.checks ]]"><template data-oj-as="c"><div :class="[[ $functions.checkClass(c.data) ]]"><span class="nx-fx-mark"><oj-bind-text value="[[ $functions.checkMark(c.data) ]]"></oj-bind-text></span><span><oj-bind-text value="[[ c.data.name + (c.data.detail ? ': ' + c.data.detail : '') ]]"></oj-bind-text></span></div></template></oj-bind-for-each></div>
+                <div class="nx-fx-diff" id="isDiff">
+                  <oj-bind-for-each data="[[ $variables.issue.fix.diff ]]">
+                    <template data-oj-as="d">
+                      <div class="nx-fx-file">
+                        <div class="nx-fx-filehead"><code><oj-bind-text value="[[ d.data.file ]]"></oj-bind-text></code><span class="nx-min-flex"></span><span class="nx-fx-add"><oj-bind-text value="[[ '+' + d.data.added ]]"></oj-bind-text></span><span class="nx-fx-del"><oj-bind-text value="[[ '−' + d.data.removed ]]"></oj-bind-text></span></div>
+                        <oj-bind-for-each data="[[ d.data.hunks ]]">
+                          <template data-oj-as="h">
+                            <div class="nx-fx-hunk"><div class="nx-fx-hunkhead"><oj-bind-text value="[[ h.data.head ]]"></oj-bind-text></div>
+                              <oj-bind-for-each data="[[ h.data.rows ]]"><template data-oj-as="r"><div :class="[[ $functions.fixLine(r.data.t) ]]"><span class="nx-fx-ln"><oj-bind-text value="[[ r.data.o ]]"></oj-bind-text></span><span class="nx-fx-ln"><oj-bind-text value="[[ r.data.n ]]"></oj-bind-text></span><span class="nx-fx-sign"><oj-bind-text value="[[ $functions.fixSign(r.data.t) ]]"></oj-bind-text></span><span class="nx-fx-code"><oj-bind-text value="[[ r.data.s ]]"></oj-bind-text></span></div></template></oj-bind-for-each>
+                            </div>
+                          </template>
+                        </oj-bind-for-each>
+                      </div>
+                    </template>
+                  </oj-bind-for-each>
+                </div>
+              </oj-bind-if>
+            </oj-bind-if>
+            <oj-bind-if test="[[ $functions.canAnalyze($variables.issue) ]]">
+              <div class="nx-fx-row">
+                <button type="button" class="nx-btn nx-btn--sm nx-aibtn" id="isAnalyze" data-act="analyze" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]"><span aria-hidden="true">✨</span><oj-bind-text value="[[ $variables.issue.fix ? 'Analyze again' : 'Analyze with AI (the page’s code and the FDD)' ]]"></oj-bind-text></button>
+              </div>
+              <oj-bind-if test="[[ !!$variables.issue.fix ]]">
+                <div class="nx-fx-refine"><textarea class="nx-fx-text" id="isRefine" rows="2" data-field="refine" :value="[[ $variables.refine ]]" on-input="[[ $listeners.onField ]]" placeholder="Not quite? Say what to change (or answer its questions) and ask again."></textarea>
+                  <button type="button" class="nx-btn nx-btn--sm nx-aibtn" id="isRefineBtn" data-act="refine" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]"><span aria-hidden="true">✨</span>Ask again</button></div>
+              </oj-bind-if>
+            </oj-bind-if>
+          </div>
+
+          <!-- approval -->
+          <oj-bind-if test="[[ $functions.approvalShown($variables.issue) ]]">
+            <div class="nx-is-sec" id="isApproval">
+              <h3 class="nx-pg-h3">Approval</h3>
+              <oj-bind-if test="[[ $functions.canAsk($variables.issue) ]]">
+                <div class="nx-fx-approve">
+                  <div class="nx-fx-approvetext"><b>Send it for approval.</b> The approver sees the issue, the AI's verdict, the exact change and the checks.</div>
+                  <label class="nx-flib-check"><input type="checkbox" id="isEmailMe" data-field="emailMe" :checked="[[ $variables.emailMe ]]" on-change="[[ $listeners.onField ]]"><span><oj-bind-text value="[[ $variables.info && $variables.info.mail && $variables.info.mail.signedIn ? 'Email it to ' + $variables.info.mail.account : 'Email it (sign in to Microsoft 365 first, in Standup minutes)' ]]"></oj-bind-text></span></label>
+                  <button type="button" class="nx-btn nx-btn--primary" id="isAsk" data-act="ask" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]"><span class="oj-ux-ico-send" aria-hidden="true"></span>Send for approval</button>
+                </div>
+              </oj-bind-if>
+              <oj-bind-if test="[[ $variables.issue.status === 'awaiting-approval' ]]">
+                <div class="nx-fx-approve" id="isAwaiting">
+                  <div class="nx-fx-approvetext"><b><oj-bind-text value="[[ 'Waiting for approval since ' + $functions.when($variables.issue.approval.requested.at) ]]"></oj-bind-text></b>
+                    <span class="nx-pg-block nx-note" id="isEmailNote"><oj-bind-text value="[[ $functions.emailText($variables.issue) ]]"></oj-bind-text></span></div>
+                  <button type="button" class="nx-btn nx-btn--primary" id="isApprove" data-act="approve" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]"><span class="oj-ux-ico-check" aria-hidden="true"></span>Approve</button>
+                  <input type="text" class="nx-flib-filter nx-is-reason" id="isReason" data-field="reason" :value="[[ $variables.reason ]]" on-input="[[ $listeners.onField ]]" placeholder="Why not (to reject)">
+                  <button type="button" class="nx-btn nx-btn--plain nx-pg-delete" id="isReject" data-act="reject" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]">Reject</button>
+                </div>
+              </oj-bind-if>
+              <oj-bind-if test="[[ !!($variables.issue.approval && $variables.issue.approval.decision) ]]">
+                <div :class="[[ 'nx-is-decision nx-is-decision--' + ($variables.issue.approval.decision.approved ? 'yes' : 'no') ]]" id="isDecision">
+                  <oj-bind-text value="[[ ($variables.issue.approval.decision.approved ? '✓ Approved by ' : '✗ Rejected by ') + ($variables.issue.approval.decision.by || 'someone') + ' · ' + $functions.when($variables.issue.approval.decision.at) + ' · in ' + ($variables.issue.approval.decision.via === 'email' ? 'an email reply' : 'Build.Rite') + ($variables.issue.approval.decision.reason ? ': ' + $variables.issue.approval.decision.reason : '') ]]"></oj-bind-text>
+                </div>
+              </oj-bind-if>
+              <oj-bind-if test="[[ $variables.issue.status === 'approved' ]]">
+                <div class="nx-is-applybox" id="isApplyBox">
+                  <div class="nx-fx-approvetext"><b>Apply change.</b> <oj-bind-text value="[[ 'The agent puts the approved change on a branch of its own (fix/' + $variables.issue.key + '), runs the related tests before and after, commits it with ' + $variables.issue.key + ' and pushes it, then makes the pull request. Your own code folder is not touched.' ]]"></oj-bind-text></div>
+                  <button type="button" class="nx-btn nx-btn--primary" id="isApply" data-act="apply" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]"><span class="oj-ux-ico-wrench" aria-hidden="true"></span>Apply change</button>
+                </div>
+              </oj-bind-if>
+              <oj-bind-if test="[[ $variables.issue.status === 'rejected' ]]"><div class="nx-fx-row"><button type="button" class="nx-btn nx-btn--sm" id="isReopen" data-act="reopen" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]">Reopen</button></div></oj-bind-if>
+            </div>
+          </oj-bind-if>
+
+          <!-- the agent's result -->
+          <oj-bind-if test="[[ !!$variables.issue.branch ]]">
+            <div class="nx-is-sec" id="isBranch">
+              <h3 class="nx-pg-h3">The fix</h3>
+              <div class="nx-fx-applied">
+                <div><b><oj-bind-text value="[[ 'On ' + $variables.issue.branch.name + ' · ' + $variables.issue.branch.sha ]]"></oj-bind-text></b> <oj-bind-text value="[[ $variables.issue.branch.pushed ? '· pushed' : '· not pushed: ' + $variables.issue.branch.pushError ]]"></oj-bind-text></div>
+                <oj-bind-if test="[[ !!($variables.issue.fix && $variables.issue.fix.tests) ]]">
+                  <div :class="[[ 'nx-fx-tests ' + ($variables.issue.fix.tests.ok ? 'nx-fx-tests--ok' : 'nx-fx-tests--bad') ]]" id="isTests">
+                    <b><oj-bind-text value="[[ ($variables.issue.fix.tests.ok ? '✓ Nothing broke' : '✗ Something broke') + ($variables.issue.fix.tests.none ? ' (checks only: no unit test names this page)' : '') ]]"></oj-bind-text></b>
+                    <oj-bind-for-each data="[[ $variables.issue.fix.tests.unit ]]"><template data-oj-as="u"><div class="nx-note"><code><oj-bind-text value="[[ u.data.file ]]"></oj-bind-text></code> <oj-bind-text value="[[ $functions.unitText(u.data) ]]"></oj-bind-text></div></template></oj-bind-for-each>
+                  </div>
+                </oj-bind-if>
+                <div class="nx-fx-row">
+                  <oj-bind-if test="[[ !!$variables.issue.branch.pr ]]"><a class="nx-btn nx-btn--primary" id="isPr" target="_blank" rel="noopener" :href="[[ $variables.issue.branch.pr ]]"><span class="oj-ux-ico-external-link" aria-hidden="true"></span>Open the pull request</a></oj-bind-if>
+                  <span class="nx-min-flex"></span>
+                  <oj-bind-if test="[[ $variables.issue.status === 'in-review' ]]"><button type="button" class="nx-btn nx-btn--sm" id="isClose" data-act="close" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]">Close the issue</button></oj-bind-if>
+                </div>
+              </div>
+            </div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $functions.notHere($variables.issue) ]]">
+            <div class="nx-fx-row"><span class="nx-note">Not a fix on this page: follow the verdict above, ask again with more, or close it.</span><span class="nx-min-flex"></span><button type="button" class="nx-btn nx-btn--sm" id="isCloseTriaged" data-act="close" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]">Close the issue</button></div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.issue.status === 'closed' ]]"><div class="nx-fx-row"><button type="button" class="nx-btn nx-btn--sm" data-act="reopen" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]">Reopen</button></div></oj-bind-if>
+
+          <!-- its history -->
+          <details class="nx-fx-timeline" id="isTimeline" open>
+            <summary><oj-bind-text value="[[ 'History · ' + ($variables.issue.events || []).length + ' steps' ]]"></oj-bind-text></summary>
+            <ol class="nx-fx-steps">
+              <oj-bind-for-each data="[[ $variables.issue.events || [] ]]">
+                <template data-oj-as="e"><li><b class="nx-fx-stepwhat"><oj-bind-text value="[[ e.data.what ]]"></oj-bind-text></b> <span class="nx-note"><oj-bind-text value="[[ $functions.eventText(e.data) ]]"></oj-bind-text></span><oj-bind-if test="[[ !!e.data.detail ]]"><span class="nx-fx-stepdetail"><oj-bind-text value="[[ e.data.detail ]]"></oj-bind-text></span></oj-bind-if></li></template>
+              </oj-bind-for-each>
+            </ol>
+          </details>
+        </div>
+      </oj-bind-if>
+    </section>
+  </div>
+
+  <dialog class="nx-pg-dialog" id="isImgDlg" aria-label="Screenshot" on-close="[[ $listeners.onImgClosed ]]" on-click="[[ $listeners.onImgClick ]]">
+    <oj-bind-if test="[[ !!$variables.viewImg ]]">
+      <div class="nx-pg-dlg">
+        <div class="nx-pg-viewbar"><b>Screenshot</b><span class="nx-min-flex"></span><button type="button" class="nx-pg-dlgx" data-act="unviewImg" on-click="[[ $listeners.onAct ]]" aria-label="Close" title="Close (Esc)">×</button></div>
+        <div class="nx-pg-viewimg"><img id="isImgFull" :src="[[ $variables.viewImg ]]" alt="The screenshot"></div>
+      </div>
+    </oj-bind-if>
+  </dialog>
+</div>

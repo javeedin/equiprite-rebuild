@@ -82,6 +82,30 @@ const SYSTEM = [
   'Several edits to one file: several blocks. A new file: an empty SEARCH. Paths are relative to the project (they start with webApps/) and must be files of this app.',
 ].join('\n');
 
+/** For an issue (Build.Rite's Issues, desktop/lib/issues.js): where it belongs first, and its number in the code. */
+function issueRules(key, title) {
+  return [
+    '',
+    'THIS IS ISSUE ' + key + (title ? ': ' + title : '') + '. Before the other headings, decide where it belongs, under the heading "## Verdict", with exactly one of these on its first line, then one or two lines why:',
+    '- Fix on this page — the cause is in this page\'s code (the only verdict with edits)',
+    '- Fix elsewhere — the cause is outside this page: name where (another page, a shared module, the EquipRite REST backend, an OIC integration, Fusion setup) and what to change there',
+    '- Works as designed — the code (and the FDD, if given) says this is the intended behaviour: quote it',
+    '- Out of scope — it is a new requirement, not a defect: say why, and suggest how to handle it (a new story, a setting, another page)',
+    '- Needs information — something needed is missing: ask for it (also under Questions)',
+    'Only "Fix on this page" has edits. In each edit, at every place you change, add one short comment saying why, with the issue number: in HTML <!-- ' + key + ': why -->, in JavaScript // ' + key + ': why. Never in JSON files (JSON has no comments).',
+  ].join('\n');
+}
+const VERDICTS = [['fix-here', /^fix (it )?on this page|^fix here/i], ['fix-elsewhere', /^fix elsewhere|^elsewhere/i], ['as-designed', /^works as designed|^as designed/i],
+  ['out-of-scope', /^out of scope/i], ['needs-info', /^needs? (more )?information|^needs info/i]];
+/** The verdict of an issue's analysis (its "## Verdict" heading): fix-here, fix-elsewhere, as-designed, out-of-scope, needs-info, or ''. */
+function verdictOf(sections) {
+  const v = (sections || []).filter((x) => /^verdict$/i.test(x.title))[0];
+  if (!v) return { code: '', text: '' };
+  const first = v.text.split('\n').map((l) => l.replace(/^[-*\s]+|\*\*/g, '').trim()).filter(Boolean)[0] || '';
+  const hit = VERDICTS.filter((x) => x[1].test(first))[0];
+  return { code: hit ? hit[0] : '', text: v.text.trim() };
+}
+
 function str(v) { return v == null ? '' : String(v); }
 const lf = (t) => str(t).replace(/\r\n/g, '\n');
 const isDir = (p) => { try { return fs.statSync(p).isDirectory(); } catch (e) { return false; } };
@@ -516,21 +540,27 @@ function open(opts) {
     if (images.length) user += '\nSCREENSHOTS: the person attached ' + images.length + ' image' + (images.length === 1 ? '' : 's') + ' (image 1' + (images.length > 1 ? ' to ' + images.length : '') + ', in the order given): look at ' + (images.length === 1 ? 'it' : 'them') + ' closely — they show what the request means (the screen as it is, the error, or what it should look like).\n';
     user += '\nFACTS\n' + factsText(facts) + '\n\nCODE (complete files; copy SEARCH lines exactly from here)\n' + code.text;
     if (code.skipped.length) user += '\n(Not included, too large: ' + code.skipped.join(', ') + ')\n';
+    if (str(b.context).trim()) user += '\n' + str(b.context).trim().slice(0, 40000) + '\n';
+    // an issue (Build.Rite's Issues): its verdict first, its number in the comments of the code it changes
+    const issue = b.issue && b.issue.key ? { key: str(b.issue.key).slice(0, 40), title: str(b.issue.title).slice(0, 200) } : null;
+    const system = issue ? SYSTEM + '\n' + issueRules(issue.key, issue.title) : SYSTEM;
     const t0 = Date.now();
     const pics = images.map((im) => ({ mime: im.mime, base64: im.base64 }));
-    let r = await o.ai.chat({ system: SYSTEM, user: user, maxTokens: MAX_TOKENS, images: pics });
+    let r = await o.ai.chat({ system: system, user: user, maxTokens: MAX_TOKENS, images: pics });
     if (!r || !r.ok) return no((r && r.error) || 'The AI did not answer.');
     let parsed = parseAnswer(r.text);
     let tried = tryEdits(f, parsed.edits, facts.app);
     let checks = checksFor(f, tried.files);
     let retried = false;
     const newFails = (cs) => cs.filter((c) => !c.ok && !c.already);
-    if (!parsed.questions && (tried.errors.length || newFails(checks).length || !parsed.edits.length)) {
+    // (an issue that does not belong to this page's code has no edits: nothing to ask again)
+    const noFix = () => issue && ['fix-elsewhere', 'as-designed', 'out-of-scope', 'needs-info'].indexOf(verdictOf(parsed.sections).code) !== -1 && !parsed.edits.length;
+    if (!parsed.questions && !noFix() && (tried.errors.length || newFails(checks).length || !parsed.edits.length)) {
       const why = [];
       if (!parsed.edits.length) why.push('There were no edits in the SEARCH/REPLACE format (or the format was wrong).');
       tried.errors.forEach((e) => why.push('Edit ' + e.n + ' (' + e.file + '): ' + e.why + (e.search ? '\nIts SEARCH was:\n' + e.search.slice(0, 1500) : '')));
       newFails(checks).forEach((c) => why.push('Check failed after your edits — ' + c.name + ' (' + c.file + ')' + (c.detail ? ': ' + c.detail : '')));
-      const again = await o.ai.chat({ system: SYSTEM, user: user + '\n\nYOUR PREVIOUS ANSWER:\n' + r.text.slice(0, 30000) + '\n\nIT COULD NOT BE USED:\n' + why.join('\n\n')
+      const again = await o.ai.chat({ system: system, user: user + '\n\nYOUR PREVIOUS ANSWER:\n' + r.text.slice(0, 30000) + '\n\nIT COULD NOT BE USED:\n' + why.join('\n\n')
         + '\n\nGive the whole answer again, in the format, with every SEARCH copied exactly from the CODE above.', maxTokens: MAX_TOKENS, images: pics });
       if (again && again.ok) {
         const p2 = parseAnswer(again.text), t2 = tryEdits(f, p2.edits, facts.app), c2 = checksFor(f, t2.files);
@@ -553,10 +583,11 @@ function open(opts) {
       markdown: parsed.markdown || r.text, questions: parsed.questions, edits: parsed.edits, problems: tried.errors, checks: checks.concat(oldAppWarnings(f, facts.app, files)),
       files: files, hashes: files.reduce((m, k) => { m[k] = sha(tried.files[k].old); return m; }, {}),
       diff: files.map((k) => diffOf(k, tried.files[k].old, tried.files[k].neu)),
-      status: parsed.questions && !files.length ? 'questions' : (tried.errors.length || !files.length || newFails(checks).length ? 'needs-redo' : 'proposed'),
+      status: noFix() ? 'triaged' : parsed.questions && !files.length ? 'questions' : (tried.errors.length || !files.length || newFails(checks).length ? 'needs-redo' : 'proposed'),
     };
+    if (issue) { fix.issue = issue; fix.verdict = verdictOf(parsed.sections); }
     fix.events = [{ at: fix.at, what: parent ? 'asked again' : 'asked', by: fix.by, detail: parent ? fix.refine : request }];
-    ev(fix, { proposed: 'proposed', 'needs-redo': 'proposal not usable', questions: 'asked questions' }[fix.status] || fix.status, fix.provider || 'AI',
+    ev(fix, { proposed: 'proposed', 'needs-redo': 'proposal not usable', questions: 'asked questions', triaged: 'triaged: ' + ((fix.verdict && fix.verdict.code) || '') }[fix.status] || fix.status, fix.provider || 'AI',
       files.length ? files.length + ' file(s), +' + fix.diff.reduce((n, d) => n + d.added, 0) + ' −' + fix.diff.reduce((n, d) => n + d.removed, 0) + (images.length ? ' · ' + images.length + ' screenshot(s) read' : '') : (parsed.questions || '').slice(0, 200));
     put(fix);
     return ok(slim(fix));
@@ -767,6 +798,94 @@ function open(opts) {
     return ok(slim(fix));
   }
 
+  /**
+   * The agent's way: the approved change on a branch of its own — `git worktree add -B <branch>` from what the code
+   * folder's branch has on its remote (fetched), in a folder apart (never the person's checkout, nor the running app);
+   * the edits tried there (the code moved on: out of date), the related tests before and after, the files written, a
+   * commit with the message given (the issue's number), pushed; the pull request's address made (GitHub compare).
+   */
+  async function applyToBranch(b) {
+    b = b || {};
+    const fix = byId(b.fix);
+    if (!fix) return no('No such fix.');
+    if (fix.status !== 'proposed' && fix.status !== 'undone') return no('Only a proposal can be applied (this one is ' + fix.status + ').');
+    const branch = str(b.branch).trim();
+    if (!/^[A-Za-z0-9][A-Za-z0-9._\/-]{1,90}$/.test(branch) || /\.\.|\/\/|\.lock$|\/$/.test(branch)) return no('Not a branch name: ' + branch);
+    const f = fix.folder;
+    const g = await gitState(f);
+    if (!g.git) return no(g.reason);
+    const remote = (g.upstream.split('/')[0]) || 'origin';
+    const baseBranch = g.upstream ? g.upstream.slice(remote.length + 1) : g.branch;
+    const fetched = await git(f, ['fetch', '--quiet', remote, baseBranch]);
+    const start = fetched.code === 0 ? remote + '/' + baseBranch : (g.upstream || 'HEAD');
+    const wtRoot = path.join(dir || require('os').tmpdir(), 'worktrees');
+    const wt = path.join(wtRoot, branch.replace(/[^A-Za-z0-9._-]/g, '-'));
+    fs.mkdirSync(wtRoot, { recursive: true });
+    if (isDir(wt)) await git(f, ['worktree', 'remove', '--force', wt]);
+    await git(f, ['worktree', 'prune']);
+    const add = await git(f, ['worktree', 'add', '-B', branch, wt, start]);
+    if (add.code !== 0) return no('Could not make the branch ' + branch + ': ' + (add.stderr || add.stdout).trim().slice(0, 300));
+    const done = async () => { await git(f, ['worktree', 'remove', '--force', wt]); };
+    try {
+      const tried = tryEdits(wt, fix.edits, fix.app);
+      const moved = (fix.files || []).filter((k) => !tried.files[k] || sha(tried.files[k].old) !== fix.hashes[k]);
+      if (tried.errors.length || moved.length) {
+        fix.status = 'stale'; ev(fix, 'out of date', b.by, 'the code on ' + start + ' is not what the change was made for: ' + (moved.concat(tried.errors.map((e) => e.file)).join(', ') || 'its files'));
+        put(fix); await done();
+        return no('The code on ' + start + ' changed since this was proposed (' + (moved.join(', ') || 'its files') + '): analyze again.', { fix: slim(fix), stale: true });
+      }
+      const base = await runUnits(fix, wt);
+      Object.keys(tried.files).forEach((rel) => {
+        const x = tried.files[rel];
+        fs.mkdirSync(path.dirname(path.join(wt, rel)), { recursive: true });
+        fs.writeFileSync(path.join(wt, rel), x.crlf ? x.neu.replace(/\n/g, '\r\n') : x.neu);
+      });
+      const after = await runUnits(fix, wt);
+      const checks = checksFor(wt, Object.keys(tried.files).reduce((m, k) => { m[k] = { old: tried.files[k].old, neu: tried.files[k].neu }; return m; }, {}));
+      const unit = after.unit.map((t) => {
+        const was = base.unit.filter((x) => x.file === t.file)[0];
+        const newFailures = t.ok ? [] : (was && !was.ok ? t.failures.filter((x) => was.failures.indexOf(x) === -1) : (t.failures.length ? t.failures : ['it failed']));
+        return { file: t.file, ok: t.ok, passed: t.passed, failed: t.failed, failures: t.failures, newFailures: newFailures, before: was ? (was.ok ? 'passed' : was.failed + ' failing before the fix') : '', ms: t.ms, out: '' };
+      });
+      const bad = checks.filter((c) => !c.ok && !c.already).length + unit.filter((u) => u.newFailures.length).length;
+      fix.tests = { at: now().toISOString(), ok: bad === 0, checks: checks, unit: unit, e2eFiles: after.e2eFiles || [], none: !unit.length, where: branch };
+      if (bad && !b.anyway) {
+        ev(fix, 'tested on ' + branch, b.by, 'something broke: ' + bad + ' new failure(s) — not committed');
+        put(fix); await done();
+        return no('The change breaks ' + bad + ' check(s) or test(s) on ' + branch + ': not committed. See the tests below.', { fix: slim(fix), broke: true });
+      }
+      const msg = str(b.message).trim() || ('Code fix: ' + fix.label + ' — ' + fix.request.split('\n')[0].slice(0, 90));
+      await git(wt, ['add', '--'].concat(Object.keys(tried.files)));
+      const c = await git(wt, ['commit', '-m', msg, '--'].concat(Object.keys(tried.files)));
+      if (c.code !== 0) {
+        const why = (c.stderr || c.stdout).trim();
+        put(fix); await done();
+        return no('git commit failed: ' + why.slice(0, 300), { hint: /user\.(name|email)|identity/i.test(why) ? 'Tell git who you are: git config --global user.name "Your Name" and git config --global user.email you@example.com' : '' });
+      }
+      const shaC = (await git(wt, ['rev-parse', '--short', 'HEAD'])).stdout.trim();
+      const pushed = b.push === false ? { code: 1, stderr: 'not pushed (asked)' } : await git(wt, ['push', '-u', remote, branch]);
+      const url = (await git(f, ['remote', 'get-url', remote])).stdout.trim();
+      const gh = /github\.com[/:]([^/]+)\/([^/.\s]+)(\.git)?\/?$/.exec(url) || /\/git\/([^/]+)\/([^/.\s]+)(\.git)?\/?$/.exec(url);
+      const pr = gh && pushed.code === 0 ? 'https://github.com/' + gh[1] + '/' + gh[2] + '/compare/' + encodeURIComponent(baseBranch) + '...' + encodeURIComponent(branch) + '?expand=1'
+        + '&title=' + encodeURIComponent(msg.split('\n')[0]) + '&body=' + encodeURIComponent(str(b.prBody).slice(0, 4000)) : '';
+      fix.branchApply = { branch: branch, base: baseBranch, start: start, sha: shaC, pushed: pushed.code === 0, pushError: pushed.code === 0 ? '' : (pushed.stderr || pushed.stdout).trim().slice(0, 300), pr: pr, at: now().toISOString(), by: str(b.by) };
+      fix.applied = { at: now().toISOString(), by: str(b.by), branch: branch, upstream: pushed.code === 0 ? remote + '/' + branch : '', pull: { done: fetched.code === 0, text: 'From ' + start + ', on a branch of its own: ' + branch + '.' }, live: false };
+      fix.commit = { sha: shaC, at: now().toISOString(), pushed: pushed.code === 0, branch: branch, by: str(b.by), upstream: pushed.code === 0 ? remote + '/' + branch : '', pushError: fix.branchApply.pushError };
+      fix.status = 'committed';
+      ev(fix, 'approved and applied', b.by, 'on its own branch ' + branch + ' (from ' + start + ')');
+      ev(fix, 'tested', b.by, bad ? 'applied anyway with ' + bad + ' new failure(s)' : 'nothing broke' + (unit.length ? ' (' + unit.length + ' related test file(s))' : ' (checks only)'));
+      ev(fix, 'committed', b.by, shaC + ' on ' + branch);
+      ev(fix, pushed.code === 0 ? 'pushed' : 'push failed', b.by, pushed.code === 0 ? 'to ' + remote + '/' + branch + (pr ? ' · pull request ready' : '') : fix.branchApply.pushError);
+      put(fix);
+      publish(fix);
+      await done();
+      return ok(slim(fix));
+    } catch (e) {
+      await done();
+      return no('Applying on ' + branch + ' failed: ' + str(e && e.message));
+    }
+  }
+
   function discard(b) {
     const fix = byId(b && b.fix);
     if (!fix) return no('No such fix.');
@@ -780,9 +899,10 @@ function open(opts) {
     list: (pageId) => ({ ok: true, fixes: data().fixes.filter((x) => !pageId || x.page === str(pageId)).map((x) => ({ id: x.id, request: x.request, status: x.status, at: x.at, by: x.by, files: x.files, provider: x.provider })) }),
     get: (id) => { const x = local(id) || sharedOne(id); return x ? ok(x.shared ? x : slim(x)) : no('No such fix.'); },
     history: history, flush: () => pubChain,
-    shot: shot, img: img, analyze: analyze, preview: preview, apply: apply, test: test, e2e: e2e, undo: undo, commit: commit, discard: discard,
+    shot: shot, img: img, analyze: analyze, applyToBranch: applyToBranch,
+    pageOf: (id) => { const p = scan.analyze(folder(), str(id)); return p ? { id: p.id, label: p.label, app: p.app, flow: p.flow, page: p.page } : null; }, preview: preview, apply: apply, test: test, e2e: e2e, undo: undo, commit: commit, discard: discard,
     folder: folder,
   };
 }
 
-module.exports = { open, parseAnswer, tryEdits, diffOf, checksFor, htmlRules, relatedTests, oldAppWarnings, safeRel, SYSTEM };
+module.exports = { open, parseAnswer, tryEdits, diffOf, checksFor, htmlRules, relatedTests, oldAppWarnings, safeRel, SYSTEM, issueRules, verdictOf };

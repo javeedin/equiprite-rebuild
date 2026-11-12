@@ -139,18 +139,10 @@ function interactiveAuth(authUrl, redirectUri) {
   });
 }
 
-let minutesStoreInst = null;
-async function minutesStore() {
-  if (!minutesStoreInst) {
-    minutesStoreInst = await require('./lib/minutes').open({
-      file: path.join(app.getPath('userData'), 'minutes.duckdb'),
-      encrypt: canEncrypt() ? (t) => safeStorage.encryptString(t) : null,
-      decrypt: canEncrypt() ? (b) => safeStorage.decryptString(b) : null,
-      transcribe: await transcriber(),
-      fetch: (url, init) => { const { net } = require('electron'); return net.fetch(url, init); },
-      contacts: require('./lib/outlookContacts').read,
-      outlookSend: require('./lib/outlookContacts').compose,
-      graph: require('./lib/graph').open({
+// Microsoft 365 (lib/graph.js): one sign-in for the app — Standup minutes sends the minutes, Issues the approval emails.
+let graphStoreInst = null;
+function graphStore() {
+  if (!graphStoreInst) graphStoreInst = require('./lib/graph').open({
         file: path.join(app.getPath('userData'), 'graph.json'),
         encrypt: canEncrypt() ? (t) => safeStorage.encryptString(t) : null,
         decrypt: canEncrypt() ? (b) => safeStorage.decryptString(b) : null,
@@ -165,7 +157,22 @@ async function minutesStore() {
           } catch (e) { const { shell } = require('electron'); return shell.openExternal(u); }
         },
         interactiveAuth: interactiveAuth,
-      }),
+      });
+  return graphStoreInst;
+}
+
+let minutesStoreInst = null;
+async function minutesStore() {
+  if (!minutesStoreInst) {
+    minutesStoreInst = await require('./lib/minutes').open({
+      file: path.join(app.getPath('userData'), 'minutes.duckdb'),
+      encrypt: canEncrypt() ? (t) => safeStorage.encryptString(t) : null,
+      decrypt: canEncrypt() ? (b) => safeStorage.decryptString(b) : null,
+      transcribe: await transcriber(),
+      fetch: (url, init) => { const { net } = require('electron'); return net.fetch(url, init); },
+      contacts: require('./lib/outlookContacts').read,
+      outlookSend: require('./lib/outlookContacts').compose,
+      graph: graphStore(),
     });
   }
   return minutesStoreInst;
@@ -234,6 +241,21 @@ let analysisStoreInst = null;
 function analysisStore() {
   if (!analysisStoreInst) analysisStoreInst = require('./lib/analyses').open({ file: path.join(app.getPath('userData'), 'ai-analyses.json') });
   return analysisStoreInst;
+}
+// Issues (Build.Rite): logged against a page, written up and analyzed by the AI (with the FDD), approved (in the app, and
+// an approval email from Microsoft 365), then applied by the agent on a branch of its own with a pull request; Jira kept
+// up to date (lib/issues.js). Shared with everyone on the data branch.
+let issuesStoreInst = null;
+async function issuesStore() {
+  if (!issuesStoreInst) {
+    issuesStoreInst = require('./lib/issues').open({
+      file: path.join(app.getPath('userData'), 'issues.json'), ai: await aiStore(), fix: await fixStore(), mail: graphStore(), data: await dataBranch(),
+      jira: { auth: () => jiraStore().auth(), fetch: (url, init) => { const { net } = require('electron'); return net.fetch(url, init); } },
+      fdd: require('./lib/issues').fddPicker(() => fddStoreInst, REPO_ROOT), gitPath: commandPath('git') || 'git',
+      log: (l) => { try { pushLog(l); } catch (e) { console.log(l); } },
+    });
+  }
+  return issuesStoreInst;
 }
 // Code Fix (Application pages → a page → Code fix): the AI chosen in AI settings proposes a change to a page; it is
 // written into the project's code only once approved (after git pull), then tested, committed or undone. The fixes are
@@ -1203,6 +1225,8 @@ if (!app.requestSingleInstanceLock()) {
             pagesStore: nextLike(v) ? await pagesStore() : undefined,
             // Code Fix: AI-proposed changes to a page, applied to the code only when approved
             fixStore: nextLike(v) ? await fixStore() : undefined,
+            // Issues (Build.Rite): issue → AI write-up and analysis → approval → the agent's branch and pull request
+            issuesStore: nextLike(v) ? await issuesStore() : undefined,
             backendOverrides: backendOverridesFromEnv(process.env),
             onLog: pushLog,
             onProblem: backendProblem,

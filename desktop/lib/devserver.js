@@ -929,6 +929,62 @@ function createDevServer(o) {
         })().catch((e) => jsonF(200, { ok: false, error: e.message }));
         return undefined;
       }
+      if (pathname.startsWith('/__issues/')) {
+        // Issues (lib/issues.js), Build.Rite's Issues screen: log an issue against a page, the AI writes it up and analyzes
+        // it, approval (in the app, and an email), the agent applies it on a branch and makes the pull request, Jira kept up
+        // to date. This PC only, by its own name, and only the app's own page (X-EquipRite-Issues).
+        const host = String(req.headers.host || '').replace(/:\d+$/, '');
+        if (!isLoopback(req.socket.remoteAddress) || !/^(localhost|127\.0\.0\.1|\[::1\])$/.test(host)) {
+          return send(res, 404, 'text/plain; charset=utf-8', 'Not found');
+        }
+        const jsonI = (status, body) => send(res, status, 'application/json', JSON.stringify(body), { 'Cache-Control': 'no-store' });
+        if (!o.issuesStore) return jsonI(200, { ok: false, error: 'Issues are not set up in this app (they need the desktop app).' });
+        const origin = req.headers.origin;
+        if (req.headers['x-equiprite-issues'] !== '1' || (origin && origin !== `http://${req.headers.host}`)) {
+          return send(res, 403, 'application/json', JSON.stringify({ error: 'Refused: not from EquipRite on this PC.' }));
+        }
+        const is = o.issuesStore;
+        const post = req.method === 'POST';
+        const bodyOf = () => new Promise((resolve, reject) => {
+          const chunks = [];
+          let size = 0;
+          req.on('data', (c) => { size += c.length; if (size <= 48 * 1024 * 1024) chunks.push(c); });
+          req.on('end', () => (size > 48 * 1024 * 1024 ? reject(new Error('Too large (the screenshots together must be under 40 MB)')) : resolve(Buffer.concat(chunks).toString('utf8'))));
+          req.on('error', reject);
+        });
+        const who = () => { try { const id = o.getIdentity && o.getIdentity(); return (id && (id.displayName || id.username)) || ''; } catch (e) { return ''; } };
+        (async () => {
+          const b = post ? JSON.parse((await bodyOf()) || '{}') : {};
+          const q = (k) => u.searchParams.get(k) || '';
+          const by = who();
+          if (pathname === '/__issues/info' && !post) return jsonI(200, await is.info());
+          if (pathname === '/__issues/list' && !post) return jsonI(200, is.list({ q: q('q'), status: q('status') }));
+          if (pathname === '/__issues/get' && !post) return jsonI(200, is.get(q('id')));
+          if (pathname === '/__issues/img' && !post) {
+            const s = is.img(q('id'), q('n'));
+            if (!s.ok) return send(res, 404, 'text/plain; charset=utf-8', 'Not found');
+            return send(res, 200, s.mime, fs.readFileSync(s.file), { 'Cache-Control': 'no-store' });
+          }
+          if (!post) return jsonI(404, { error: 'Not found' });
+          const act = pathname.slice('/__issues/'.length);
+          let r;
+          if (act === 'create') r = await is.create(Object.assign({}, b, { by: by }));
+          else if (act === 'format') r = await is.format(b.id, { by: by });
+          else if (act === 'update') r = is.update(b.id, b.fields || {}, { by: by });
+          else if (act === 'jira') r = await is.toJira(b.id, { by: by });
+          else if (act === 'analyze') r = await is.analyze(b.id, { refine: b.refine, by: by });
+          else if (act === 'ask') r = await is.ask(b.id, { email: b.email !== false, to: b.to, by: by });
+          else if (act === 'approve') r = await is.approve(b.id, { by: by, via: 'app' });
+          else if (act === 'reject') r = await is.reject(b.id, { by: by, reason: b.reason });
+          else if (act === 'apply') r = await is.apply(b.id, { by: by });
+          else if (act === 'close') r = await is.close(b.id, { by: by, note: b.note });
+          else if (act === 'reopen') r = is.reopen(b.id, { by: by });
+          else return jsonI(404, { error: 'Not found' });
+          log(`Issues: ${act} ${b.id || ''} -> ${r.ok ? (r.issue ? r.issue.key + ' ' + r.issue.status : 'ok') : r.error}`);
+          return jsonI(200, r);
+        })().catch((e) => jsonI(200, { ok: false, error: e.message }));
+        return undefined;
+      }
       if (pathname.startsWith('/__fdd/')) {
         // The FDD library (lib/fdd.js), for EquipRite Next's FDD library page: upload an FDD into the project, make one the
         // latest, remove one, and commit + push those files to git. This PC only, by its own name, and only the app's own
