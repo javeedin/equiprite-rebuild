@@ -1,5 +1,5 @@
 {
-  "description": "Analyze with AI, for one Jira story (opened by the AI icon on a story). Reads the story with its sub-tasks and comments from the connected Jira (JQL key = …), and asks the shared Ask AI for an analysis broken into Requirement, Current situation, What to do next, Risks & open questions, and the EquipRite page it lands on. A chatbot answers follow-up questions grounded in the same story. Rules: resources/js/storyAnalysis.js. Read only.",
+  "description": "Analyze with AI, for one Jira story (opened by the AI icon on a story). Reads the story with its sub-tasks and comments from the connected Jira (JQL key = …), and asks the shared Ask AI for an analysis broken into Requirement, Current situation, What to do next, Risks & open questions, an FDD check, and the EquipRite page it lands on. It reads the FDD chosen from the FDD library (the latest unless another is picked): the sections the story names and those that best match it, shown as chips. A chatbot answers follow-up questions grounded in the same story. Rules: resources/js/storyAnalysis.js. Read only.",
   "navigation": { "embeddable": "enabled" },
   "variables": {
     "key": { "type": "string", "defaultValue": "", "input": "fromCaller", "description": "The Jira story key (the tab's key)." },
@@ -14,14 +14,24 @@
     "aiReady": { "type": "boolean", "defaultValue": false },
     "chat": { "type": "any[]", "defaultValue": [], "description": "The chatbot turns: [{ role, text, html }]." },
     "chatDraft": { "type": "string", "defaultValue": "" },
-    "chatBusy": { "type": "boolean", "defaultValue": false }
+    "chatBusy": { "type": "boolean", "defaultValue": false },
+    "fddLib": { "type": "any", "defaultValue": { "latest": "", "docs": [] }, "description": "The FDD library shipped with the app (resources/fdd/library.json)." },
+    "fddOptions": { "type": "any[]", "defaultValue": [], "description": "The FDDs to choose from, the latest first: [{ id, label, latest }]." },
+    "fddId": { "type": "string", "defaultValue": "", "description": "The FDD the analysis reads: the latest, unless another (or none, '') was picked." },
+    "fddChosen": { "type": "boolean", "defaultValue": false, "description": "An FDD was picked on this tab (so a refresh keeps it)." },
+    "fddMenu": { "type": "boolean", "defaultValue": false },
+    "fddPicked": { "type": "any[]", "defaultValue": [], "description": "The FDD sections the AI read for this story: [{ n, t, why, chars, cut }]." },
+    "fddNote": { "type": "string", "defaultValue": "" },
+    "fddView": { "type": "any", "defaultValue": null, "description": "The section open under the chips: { i, n, t, x, parent, why }." },
+    "analysisFdd": { "type": "string", "defaultValue": "", "description": "The FDD the shown analysis read ('' when none)." }
   },
   "eventListeners": {
     "vbEnter": { "chains": [ { "chain": "loadChain" } ] },
     "onAnalyze": { "chains": [ { "chain": "analyzeChain", "parameters": { "force": true } } ] },
     "onChatInput": { "chains": [ { "chain": "setChain", "parameters": { "field": "chatDraft", "value": "{{ $event.target.value }}" } } ] },
     "onChatKey": { "chains": [ { "chain": "chatChain", "parameters": { "key": "{{ $event.key }}" } } ] },
-    "onChatSend": { "chains": [ { "chain": "chatChain", "parameters": { "key": "{{ 'Enter' }}" } } ] }
+    "onChatSend": { "chains": [ { "chain": "chatChain", "parameters": { "key": "{{ 'Enter' }}" } } ] },
+    "onFdd": { "chains": [ { "chain": "fddChain", "parameters": { "act": "{{ $event.currentTarget.dataset.act }}", "id": "{{ $event.currentTarget.dataset.id || '' }}", "i": "{{ $event.currentTarget.dataset.i || '' }}" } } ] }
   },
   "imports": {
     "components": {

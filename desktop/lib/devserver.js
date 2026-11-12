@@ -258,6 +258,10 @@ function time() {
  * @param {object}   [o.minutesStore]     Standup minutes (lib/minutes.js): the daily standup on the Jira backlog, kept on this PC, for
  *                                        EquipRite Next's Minutes page: /__minutes/* to this PC only, behind the X-EquipRite-Minutes
  *                                        header; voice→text reuses o.transcribe, "Format by AI" reuses o.aiStore (/__sql/ai/chat)
+ * @param {object}   [o.fddStore]         The FDD library (lib/fdd.js): FDDs saved into the project (git) for EquipRite Next's FDD library
+ *                                        page and "Analyze with AI": /__fdd/* to this PC only, behind the X-EquipRite-FDD header.
+ *                                        Its JSON files are also written into this server's build copy, so the app sees an upload
+ *                                        without a rebuild
  * @param {Function} [o.pairToken]        () => the pairing key, or null. Given, a request from another device is
  *                                        served only with the key (the QR code's address, then its cookie), never
  *                                        the web services page; this PC's own requests are unaffected
@@ -267,6 +271,14 @@ function createDevServer(o) {
   const webRoot = path.join(processed, 'webApps', o.webApp || 'vbredwoodapp');
   const catalogFile = path.join(processed, 'services', 'catalog.json');
   const repoRoot = o.repoRoot || path.dirname(o.buildDir);
+  // The FDD library writes into the project; the app reads the built copy (webApps/<app>/version_<n>/resources/fdd), so an
+  // upload is also written there — the newest version folder, looked up at write time since every build makes a new one.
+  if (o.fddStore && o.fddStore.setMirror && (o.webApp || '') === 'equiprite-next') {
+    o.fddStore.setMirror(() => {
+      const v = fs.readdirSync(webRoot).filter((n) => /^version_/.test(n)).sort().pop();
+      return path.join(webRoot, v || '', 'resources', 'fdd');
+    });
+  }
   const overrides = o.backendOverrides || {};
   const log = (line) => (o.onLog ? o.onLog(`${time()} ${line}`) : undefined);
   let backends = {};
@@ -740,6 +752,69 @@ function createDevServer(o) {
         })().catch((e) => jsonF(200, { ok: false, error: e.message }));
         return undefined;
       }
+      if (pathname.startsWith('/__fdd/')) {
+        // The FDD library (lib/fdd.js), for EquipRite Next's FDD library page: upload an FDD into the project, make one the
+        // latest, remove one, and commit + push those files to git. This PC only, by its own name, and only the app's own
+        // page (it sends X-EquipRite-FDD, which a page of another site cannot send without a preflight this server never
+        // allows). Reading the library needs none of this: it ships with the app (resources/fdd).
+        const host = String(req.headers.host || '').replace(/:\d+$/, '');
+        if (!isLoopback(req.socket.remoteAddress) || !/^(localhost|127\.0\.0\.1|\[::1\])$/.test(host)) {
+          return send(res, 404, 'text/plain; charset=utf-8', 'Not found');
+        }
+        const jsonD = (status, body) => send(res, status, 'application/json', JSON.stringify(body), { 'Cache-Control': 'no-store' });
+        if (!o.fddStore) return jsonD(200, { ok: false, error: 'The FDD library is not set up in this app.' });
+        const origin = req.headers.origin;
+        if (req.headers['x-equiprite-fdd'] !== '1' || (origin && origin !== `http://${req.headers.host}`)) {
+          return send(res, 403, 'application/json', JSON.stringify({ error: 'Refused: not from EquipRite Next on this PC.' }));
+        }
+        const fd = o.fddStore;
+        const bodyOf = () => new Promise((resolve, reject) => {
+          const chunks = [];
+          let size = 0;
+          req.on('data', (c) => { size += c.length; if (size <= 90 * 1024 * 1024) chunks.push(c); });
+          req.on('end', () => (size > 90 * 1024 * 1024 ? reject(new Error('The file is too large to upload.')) : resolve(Buffer.concat(chunks).toString('utf8'))));
+          req.on('error', reject);
+        });
+        const post = req.method === 'POST';
+        const who = () => { try { const id = o.getIdentity && o.getIdentity(); return (id && (id.displayName || id.username)) || ''; } catch (e) { return ''; } };
+        (async () => {
+          const b = post ? JSON.parse((await bodyOf()) || '{}') : {};
+          if (pathname === '/__fdd/info' && req.method === 'GET') return jsonD(200, fd.info());
+          if (pathname === '/__fdd/outline' && req.method === 'GET') return jsonD(200, fd.outline(u.searchParams.get('id') || ''));
+          if (pathname === '/__fdd/git/status' && req.method === 'GET') return jsonD(200, Object.assign({ ok: true }, await fd.gitStatus()));
+          if (pathname === '/__fdd/original' && req.method === 'GET') {
+            const f = fd.original(u.searchParams.get('id') || '');
+            if (!f.ok) return jsonD(404, f);
+            return send(res, 200, f.mime, fs.readFileSync(f.file), { 'Cache-Control': 'no-store', 'Content-Disposition': `attachment; filename="${encodeURIComponent(f.name)}"` });
+          }
+          if (pathname === '/__fdd/upload' && post) {
+            const r = await fd.upload(Object.assign({}, b, { by: b.by || who() }));
+            log(`FDD upload ${b.fileName || ''} -> ${r.ok ? r.doc.id + ', ' + r.doc.sections + ' sections' : r.error}`);
+            if (r.ok && b.commit) {
+              r.git = await fd.gitSave({ message: `FDD library: add ${r.doc.name}${r.doc.version ? ' v' + r.doc.version : ''}${r.latest === r.doc.id ? ' (latest)' : ''}`, push: b.push !== false });
+              log(`FDD git -> ${r.git.ok ? (r.git.committed || 'nothing to commit') + (r.git.pushed ? ', pushed to ' + r.git.upstream : '') : r.git.error}`);
+            }
+            return jsonD(200, r);
+          }
+          if (pathname === '/__fdd/latest' && post) {
+            const r = fd.setLatest(b.id);
+            if (r.ok && b.commit) r.git = await fd.gitSave({ message: `FDD library: ${b.id} is the latest`, push: b.push !== false });
+            return jsonD(200, r);
+          }
+          if (pathname === '/__fdd/remove' && post) {
+            const r = fd.remove(b.id);
+            if (r.ok && b.commit) r.git = await fd.gitSave({ message: `FDD library: remove ${b.id}`, push: b.push !== false });
+            return jsonD(200, r);
+          }
+          if (pathname === '/__fdd/git/save' && post) {
+            const r = await fd.gitSave({ message: b.message, push: b.push !== false });
+            log(`FDD git -> ${r.ok ? (r.committed || 'nothing to commit') + (r.pushed ? ', pushed to ' + r.upstream : '') : r.error}`);
+            return jsonD(200, r);
+          }
+          return jsonD(404, { error: 'Not found' });
+        })().catch((e) => jsonD(200, { ok: false, error: e.message }));
+        return undefined;
+      }
       if (pathname.startsWith('/__sql/') && (o.sqlStore || o.aiStore)) {
         // EquipRite Next's SQL worksheet (lib/oracleSql.js). This PC only, by its own name; and only the app's own page:
         // it sends X-EquipRite-SQL, which a page of another site cannot send without a preflight this server never allows.
@@ -917,6 +992,8 @@ if (require.main === module) {
     port,
     getIdentity: () => identity,
     backendOverrides: backendOverridesFromEnv(process.env),
+    // the FDD library page uploads into this project (and commits it to git) when served this way too
+    fddStore: webApp === 'equiprite-next' ? require('./fdd').open({ root: path.resolve(__dirname, '..', '..') }) : undefined,
     onLog: (line) => console.log(line),
   }).then(({ url }) => {
     console.log(`\n${webApp === 'equiprite' ? 'New EquipRite' : 'EquipRite'} is running at ${url}  (Ctrl+C stops it)`);

@@ -135,7 +135,7 @@ async function start(o) {
     // o.jiraStore: Connect Jira's store (desktop/lib/jiraAuth.js), as the desktop app gives Old and Next.
     servers.push(await DS.createDevServer(Object.assign({ webApp: 'equiprite-next', port: ports.next }, common, o.sqlStore ? { sqlStore: o.sqlStore } : {}, o.aiStore ? { aiStore: o.aiStore } : {},
       o.jiraStore ? { jiraStore: o.jiraStore } : {}, o.recStore ? { recStore: o.recStore } : {}, o.transcribe ? { transcribe: o.transcribe } : {}, o.minutesStore ? { minutesStore: o.minutesStore } : {},
-      o.followupsStore ? { followupsStore: o.followupsStore } : {})));
+      o.followupsStore ? { followupsStore: o.followupsStore } : {}, o.fddStore ? { fddStore: o.fddStore } : {})));
   }
   let futureStore = null;
   if (DS.isBuilt(path.join(ROOT, 'build'), 'equiprite-future')) {
@@ -261,4 +261,45 @@ function recorderStub() {
   };
 }
 
-module.exports = { start, bipReport, recorderStub, ALL_CODES, ALL_FLAGS, ROOT };
+/**
+ * A throwaway project for the FDD library (desktop/lib/fdd.js), to pass as o.fddStore: uploads go into it (and, as in the
+ * desktop app, into the build's copy of resources/fdd, which restore() puts back). With { git: true } it is a git
+ * repository on branch fdd/test whose origin is a bare repository beside it, so Commit & push really pushes.
+ *
+ *   const fdd = await fddSandbox({ git: true });  →  { root, remote, store, git(args…), restore() }
+ */
+async function fddSandbox(opts) {
+  const o = opts || {};
+  const os = require('os');
+  const { execFileSync } = require('child_process');
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'eqp-fdd-e2e-'));
+  fs.mkdirSync(path.join(root, 'webApps', 'equiprite-next', 'resources'), { recursive: true });
+  const git = (cwd, ...args) => execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+  let remote = '';
+  if (o.git) {
+    remote = fs.mkdtempSync(path.join(os.tmpdir(), 'eqp-fdd-e2e-remote-'));
+    git(remote, 'init', '--bare', '-q');
+    git(root, 'init', '-q', '-b', 'fdd/test');
+    git(root, 'config', 'user.email', 'test@example.com'); git(root, 'config', 'user.name', 'Test'); git(root, 'config', 'commit.gpgsign', 'false');
+    fs.writeFileSync(path.join(root, 'webApps', 'equiprite-next', 'app.txt'), 'app\n');
+    git(root, 'add', '-A'); git(root, 'commit', '-q', '-m', 'start');
+    git(root, 'remote', 'add', 'origin', remote); git(root, 'push', '-q', '-u', 'origin', 'fdd/test');
+  }
+  const store = require(path.join(ROOT, 'desktop', 'lib', 'fdd.js')).open({ root });
+  // the build's copy, as it is now, to put back afterwards
+  const web = path.join(ROOT, 'build', 'processed', 'webApps', 'equiprite-next');
+  const ver = fs.existsSync(web) ? fs.readdirSync(web).filter((n) => /^version_/.test(n)).sort().pop() : '';
+  const res = ver ? path.join(web, ver, 'resources', 'fdd') : '';
+  const saved = {};
+  if (res && fs.existsSync(res)) fs.readdirSync(res).forEach((f) => { saved[f] = fs.readFileSync(path.join(res, f)); });
+  function restore() {
+    if (res && fs.existsSync(res)) {
+      fs.readdirSync(res).forEach((f) => { if (!saved[f]) fs.unlinkSync(path.join(res, f)); });
+      Object.keys(saved).forEach((f) => fs.writeFileSync(path.join(res, f), saved[f]));
+    }
+    [root, remote].filter(Boolean).forEach((d) => { try { fs.rmSync(d, { recursive: true, force: true }); } catch (e) { /* tmp */ } });
+  }
+  return { root, remote, store, git: (...args) => git(root, ...args), gitRemote: (...args) => git(remote, ...args), restore };
+}
+
+module.exports = { start, bipReport, recorderStub, fddSandbox, ALL_CODES, ALL_FLAGS, ROOT };

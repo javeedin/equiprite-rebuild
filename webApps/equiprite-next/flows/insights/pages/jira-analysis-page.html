@@ -1,6 +1,7 @@
 <!-- Analyze with AI, for one Jira story (opened by the AI icon on a story). Left: the story with its sub-tasks and
      comments. Right: the AI analysis (Requirement / Current situation / What to do next / Risks / Suggested page) and a
-     chatbot for follow-up questions. Rules: resources/js/storyAnalysis.js. Read only. -->
+     chatbot for follow-up questions. The FDD it reads is picked from the FDD library (latest first); the chips show the
+     sections it read. Rules: resources/js/storyAnalysis.js, fddIndex.js, storyAnalysisRun.js. Read only. -->
 <div class="nx-page nx-an">
   <div class="nx-pagehead">
     <div>
@@ -71,12 +72,66 @@
       <!-- AI analysis + chatbot -->
       <section class="nx-an-ai">
         <div class="nx-card nx-an-analysis">
-          <div class="nx-card-head"><h2 class="nx-h2">AI analysis</h2><span class="nx-min-flex"></span><oj-bind-if test="[[ $variables.analysisProvider ]]"><span class="nx-note">by <oj-bind-text value="[[ $variables.analysisProvider ]]"></oj-bind-text></span></oj-bind-if></div>
+          <div class="nx-card-head"><h2 class="nx-h2">AI analysis</h2><span class="nx-min-flex"></span><oj-bind-if test="[[ $variables.analysisProvider ]]"><span class="nx-note" id="anBy"><oj-bind-text value="[[ 'by ' + $variables.analysisProvider + ($variables.analysisFdd ? ' · against ' + $variables.analysisFdd : '') ]]"></oj-bind-text></span></oj-bind-if></div>
+          <!-- The FDD it reads: the latest from the FDD library, or another picked here (or none) -->
+          <div class="nx-an-fddbar" id="anFddBar">
+            <span class="oj-ux-ico-document-check nx-an-fddico" aria-hidden="true"></span>
+            <span class="nx-an-fddlbl">FDD</span>
+            <oj-bind-if test="[[ $variables.fddOptions.length ]]">
+              <div class="nx-an-fddpick">
+                <button type="button" class="nx-an-fddbtn" id="anFddBtn" data-act="menu" on-click="[[ $listeners.onFdd ]]" :disabled="[[ $variables.analyzing ]]" aria-haspopup="listbox" :aria-expanded="[[ $variables.fddMenu ? 'true' : 'false' ]]">
+                  <span id="anFddName"><oj-bind-text value="[[ $functions.fddLabel($variables.fddOptions, $variables.fddId) ]]"></oj-bind-text></span>
+                  <span class="oj-ux-ico-caret-down" aria-hidden="true"></span>
+                </button>
+                <oj-bind-if test="[[ $variables.fddMenu ]]">
+                  <div class="nx-an-fddmenu" id="anFddMenu" role="listbox">
+                    <oj-bind-for-each data="[[ $variables.fddOptions ]]">
+                      <template data-oj-as="o">
+                        <button type="button" role="option" :class="[[ 'nx-an-fddopt' + (o.data.id === $variables.fddId ? ' nx-an-fddopt--on' : '') ]]" data-act="pick" :data-id="[[ o.data.id ]]" on-click="[[ $listeners.onFdd ]]" :aria-selected="[[ o.data.id === $variables.fddId ? 'true' : 'false' ]]">
+                          <oj-bind-text value="[[ o.data.label ]]"></oj-bind-text>
+                        </button>
+                      </template>
+                    </oj-bind-for-each>
+                    <button type="button" role="option" :class="[[ 'nx-an-fddopt nx-an-fddopt--none' + ($variables.fddId === '' ? ' nx-an-fddopt--on' : '') ]]" data-act="pick" data-id="" on-click="[[ $listeners.onFdd ]]">No FDD — the story only</button>
+                    <button type="button" class="nx-an-fddopt nx-an-fddopt--lib" data-act="library" on-click="[[ $listeners.onFdd ]]"><span class="oj-ux-ico-upload" aria-hidden="true"></span> FDD library…</button>
+                  </div>
+                </oj-bind-if>
+              </div>
+            </oj-bind-if>
+            <oj-bind-if test="[[ !$variables.fddOptions.length ]]">
+              <span class="nx-note" id="anFddNone">None in the library yet, so the analysis reads only the story.</span>
+              <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" id="anFddUpload" data-act="library" on-click="[[ $listeners.onFdd ]]"><span class="oj-ux-ico-upload" aria-hidden="true"></span>Upload an FDD</button>
+            </oj-bind-if>
+          </div>
+          <oj-bind-if test="[[ $variables.fddPicked.length ]]">
+            <div class="nx-an-fddread" id="anFddRead">
+              <span class="nx-an-fddreadlbl">Read from the FDD:</span>
+              <oj-bind-for-each data="[[ $functions.indexed($variables.fddPicked) ]]">
+                <template data-oj-as="p">
+                  <button type="button" :class="[[ $functions.chipClass(p.data, $variables.fddView) ]]" data-act="view" :data-i="[[ p.data.i ]]" on-click="[[ $listeners.onFdd ]]" :title="[[ p.data.t + ' — ' + p.data.why ]]">
+                    <oj-bind-text value="[[ $functions.chipText(p.data) ]]"></oj-bind-text>
+                  </button>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.fddNote ]]"><div class="nx-an-fddnote" id="anFddNote"><oj-bind-text value="[[ $variables.fddNote ]]"></oj-bind-text></div></oj-bind-if>
+          <oj-bind-if test="[[ $variables.fddView ]]">
+            <div class="nx-an-fddview" id="anFddView">
+              <div class="nx-an-fddviewhead">
+                <b><oj-bind-text value="[[ ($variables.fddView.n ? 'FDD ' + $variables.fddView.n + ' · ' : '') + $variables.fddView.t ]]"></oj-bind-text></b>
+                <span class="nx-note"><oj-bind-text value="[[ ($variables.fddView.parent ? 'in ' + $variables.fddView.parent + ' · ' : '') + $variables.fddView.why ]]"></oj-bind-text></span>
+                <span class="nx-min-flex"></span>
+                <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" data-act="close" on-click="[[ $listeners.onFdd ]]" title="Close"><span class="oj-ux-ico-close" aria-hidden="true"></span></button>
+              </div>
+              <pre class="nx-an-fddtext"><oj-bind-text value="[[ $variables.fddView.x || '(no text under this heading)' ]]"></oj-bind-text></pre>
+            </div>
+          </oj-bind-if>
           <oj-bind-if test="[[ !$variables.aiReady ]]">
             <div class="nx-empty" id="anSetup">Set up AI to analyse this story — open <b>Standup minutes</b> (or the SQL worksheet) and choose a provider under <b>Set up AI</b>. The cheapest option is <b>Claude Code (your subscription)</b>.</div>
           </oj-bind-if>
           <oj-bind-if test="[[ $variables.aiReady ]]">
-            <oj-bind-if test="[[ $variables.analyzing && !$variables.analysisHtml ]]"><div class="nx-empty" id="anBusy">Analysing the story, its sub-tasks and comments…</div></oj-bind-if>
+            <oj-bind-if test="[[ $variables.analyzing ]]"><div class="nx-empty" id="anBusy"><oj-bind-text value="[[ $variables.fddId ? 'Analysing the story, its sub-tasks and comments against ' + $functions.fddLabel($variables.fddOptions, $variables.fddId) + '…' : 'Analysing the story, its sub-tasks and comments…' ]]"></oj-bind-text></div></oj-bind-if>
             <iframe class="nx-an-frame" id="anAnalysis" title="AI analysis" sandbox="" :srcdoc="[[ $functions.doc($variables.analysisHtml) ]]"></iframe>
           </oj-bind-if>
         </div>

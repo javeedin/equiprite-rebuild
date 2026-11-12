@@ -4,13 +4,14 @@ define([
   'resources/js/jiraBacklog',
   'resources/js/nav',
   'resources/js/minutesClient',
-  'resources/js/storyAnalysis',
-], (ActionChain, Actions, J, N, M, SA) => {
+  'resources/js/storyAnalysisRun',
+], (ActionChain, Actions, J, N, M, R) => {
   'use strict';
 
   // Reads the one story (JQL "key = …") with its sub-tasks and comments from the connected Jira, builds the EquipRite
-  // screen list (for the "which page" suggestion), checks whether the shared Ask AI is set up, and — once the story is in
-  // — asks the AI for the analysis. A 401/403 means Jira is not connected (Jira stories is where to connect).
+  // screen list (for the "which page" suggestion), reads the FDD library (the latest FDD is chosen), checks whether the
+  // shared Ask AI is set up, and — once the story is in — asks the AI for the analysis. A 401/403 means Jira is not
+  // connected (Jira stories is where to connect).
   class loadChain extends ActionChain {
     async run(context) {
       const v = context.$page.variables;
@@ -20,6 +21,7 @@ define([
       v.loading = true; v.error = ''; v.notConnected = false;
       try { v.pages = Object.keys(N.ITEMS).map((id) => N.ITEMS[id]).filter((it) => it && it.label).map((it) => ({ label: it.label, keywords: it.keywords || '' })); } catch (e) { /* no nav */ }
       try { const a = await M.aiSettings(); v.aiReady = !!(a.ok && a.body && a.body.active); } catch (e) { v.aiReady = false; }
+      try { await R.library(v, context.$application.path); } catch (e) { /* no library: the analysis reads only the story */ }
       try {
         const today = new Date().toISOString().slice(0, 10);
         const res = await J.load(context, Actions, 'key = ' + key);
@@ -33,15 +35,7 @@ define([
         v.loading = false;
       }
       // The story is in: ask the AI for the analysis (if it is set up; else the page shows a "set up AI" hint).
-      if (v.story && v.aiReady) {
-        v.analyzing = true;
-        try {
-          const p = SA.prompt(v.story, v.pages, '');
-          const r = await M.aiChat(p.system, p.user);
-          if (r.ok && r.body && r.body.ok && r.body.text) { v.analysisHtml = SA.renderHtml(r.body.text); v.analysisProvider = r.body.provider || 'AI'; }
-          else if (/choose the llm|not set up/i.test((r.body && r.body.error) || '')) v.aiReady = false;
-        } catch (e) { /* leave the empty analysis; the re-run button is there */ } finally { v.analyzing = false; }
-      }
+      if (v.story && v.aiReady) await R.analyze(v, context.$application.path); // a failure leaves the re-run button
     }
   }
 

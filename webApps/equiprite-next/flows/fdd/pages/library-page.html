@@ -1,0 +1,142 @@
+<!-- FDD library: the functional design documents "Analyze with AI" reads, kept in git so every user has them. Upload
+     (saved into the project, committed and pushed), the library with its latest, and an outline viewer. Rules:
+     desktop/lib/fdd.js (writing), resources/js/fddClient.js + fddIndex.js (reading). -->
+<div class="nx-page nx-flib">
+  <div class="nx-pagehead">
+    <div>
+      <div class="nx-kicker">Insights · FDD</div>
+      <h1 id="flibTitle">FDD library</h1>
+      <div class="nx-sub" id="flibSub"><oj-bind-text value="[[ $functions.subText($variables.lib) ]]"></oj-bind-text></div>
+    </div>
+    <div class="nx-actions">
+      <button type="button" class="nx-btn nx-btn--plain" id="flibRefresh" on-click="[[ $listeners.onRefresh ]]" :disabled="[[ $variables.busy ]]">
+        <span class="oj-ux-ico-refresh" aria-hidden="true"></span>Refresh</button>
+    </div>
+  </div>
+
+  <!-- Where it lives, and whether git is up to date -->
+  <div class="nx-flib-git" id="flibGit">
+    <span class="oj-ux-ico-branch nx-flib-gitico" aria-hidden="true"></span>
+    <div class="nx-flib-gittext">
+      <b>Kept in git</b> — <code>docs/fdd</code> and <code>resources/fdd</code>, so everyone gets it with <code>git pull</code> and VBCS with the next deploy.
+      <oj-bind-if test="[[ $variables.git && $variables.git.available ]]">
+        <span class="nx-flib-gitstate" id="flibGitState"><oj-bind-text value="[[ $functions.gitText($variables.git) ]]"></oj-bind-text></span>
+      </oj-bind-if>
+      <oj-bind-if test="[[ $variables.git && !$variables.git.available && $variables.canUpload ]]">
+        <span class="nx-flib-gitstate nx-flib-warn"><oj-bind-text value="[[ $variables.git.reason ]]"></oj-bind-text></span>
+      </oj-bind-if>
+    </div>
+    <oj-bind-if test="[[ $functions.needsPush($variables.git) ]]">
+      <button type="button" class="nx-btn nx-btn--primary nx-btn--sm" id="flibPush" data-act="push" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]">
+        <span class="oj-ux-ico-upload" aria-hidden="true"></span>Commit &amp; push</button>
+    </oj-bind-if>
+  </div>
+
+  <div class="nx-flib-grid">
+    <!-- Upload -->
+    <section class="nx-card nx-flib-upload" aria-label="Upload an FDD">
+      <div class="nx-card-head"><h2>Upload an FDD</h2></div>
+      <div class="nx-card-pad">
+        <oj-bind-if test="[[ $variables.checked && !$variables.canUpload ]]">
+          <div class="nx-empty" id="flibNoUpload">Uploading saves the FDD into the project and commits it to git, so it is done from the EquipRite desktop app (or <code>npm run serve</code>) running from the project folder. Here you can read every FDD in the library.</div>
+        </oj-bind-if>
+        <oj-bind-if test="[[ $variables.canUpload ]]">
+          <label class="nx-flib-drop" for="flibFile" id="flibDrop">
+            <span class="oj-ux-ico-file-text nx-flib-dropico" aria-hidden="true"></span>
+            <span class="nx-flib-dropmain"><oj-bind-text value="[[ $variables.upFile || 'Choose the FDD file' ]]"></oj-bind-text></span>
+            <span class="nx-note">Word (.docx) is best — its headings give the sections exactly. PDF, HTML, Markdown and text work too.</span>
+            <input type="file" id="flibFile" class="nx-flib-file" accept=".docx,.pdf,.html,.htm,.md,.markdown,.txt" on-change="[[ $listeners.onFile ]]">
+          </label>
+          <div class="nx-flib-fields">
+            <div class="nx-flib-field nx-flib-grow"><label for="flibName">Name</label><input type="text" id="flibName" data-field="upName" :value="[[ $variables.upName ]]" on-change="[[ $listeners.onField ]]" placeholder="EquipRite FDD"></div>
+            <div class="nx-flib-field"><label for="flibVersion">Version</label><input type="text" id="flibVersion" data-field="upVersion" :value="[[ $variables.upVersion ]]" on-change="[[ $listeners.onField ]]" placeholder="1.7"></div>
+          </div>
+          <div class="nx-flib-field"><label for="flibNote">Note (optional)</label><input type="text" id="flibNote" data-field="upNote" :value="[[ $variables.upNote ]]" on-change="[[ $listeners.onField ]]" placeholder="What changed in this version"></div>
+          <label class="nx-flib-check"><input type="checkbox" id="flibLatest" data-field="upLatest" :checked="[[ $variables.upLatest ]]" on-change="[[ $listeners.onField ]]"><span>Make it the <b>latest</b> — the FDD Analyze with AI starts on</span></label>
+          <label class="nx-flib-check"><input type="checkbox" id="flibCommit" data-field="upCommit" :checked="[[ $variables.upCommit ]]" on-change="[[ $listeners.onField ]]"><span><b>Commit &amp; push to git</b><oj-bind-if test="[[ $variables.git && $variables.git.branch ]]"> (branch <oj-bind-text value="[[ $variables.git.branch ]]"></oj-bind-text>)</oj-bind-if> — also when making one the latest or removing one</span></label>
+          <div class="nx-flib-go">
+            <button type="button" class="nx-btn nx-btn--primary" id="flibUpload" on-click="[[ $listeners.onUpload ]]" :disabled="[[ $variables.busy || !$variables.upFile ]]">
+              <span class="oj-ux-ico-upload" aria-hidden="true"></span><oj-bind-text value="[[ $variables.upCommit ? 'Upload to git' : 'Upload' ]]"></oj-bind-text></button>
+            <oj-bind-if test="[[ $variables.progress ]]"><span class="nx-note" id="flibProgress"><oj-bind-text value="[[ $variables.progress ]]"></oj-bind-text></span></oj-bind-if>
+          </div>
+        </oj-bind-if>
+        <oj-bind-if test="[[ $variables.result ]]">
+          <div :class="[[ 'nx-flib-result ' + ($variables.result.ok ? 'nx-flib-result--ok' : 'nx-flib-result--err') ]]" id="flibResult">
+            <b><oj-bind-text value="[[ $variables.result.title ]]"></oj-bind-text></b>
+            <oj-bind-for-each data="[[ $variables.result.lines || [] ]]"><template data-oj-as="l"><div><oj-bind-text value="[[ l.data ]]"></oj-bind-text></div></template></oj-bind-for-each>
+            <oj-bind-for-each data="[[ $variables.result.warnings || [] ]]"><template data-oj-as="w"><div class="nx-flib-warn"><oj-bind-text value="[[ w.data ]]"></oj-bind-text></div></template></oj-bind-for-each>
+            <oj-bind-if test="[[ $variables.result.hint ]]"><div class="nx-flib-hint"><oj-bind-text value="[[ $variables.result.hint ]]"></oj-bind-text></div></oj-bind-if>
+          </div>
+        </oj-bind-if>
+      </div>
+    </section>
+
+    <!-- The library -->
+    <section class="nx-card nx-flib-list" aria-label="The FDD library">
+      <div class="nx-card-head"><h2>Library</h2><span class="nx-note"><oj-bind-text value="[[ $variables.lib.docs.length + ($variables.lib.docs.length === 1 ? ' document' : ' documents') ]]"></oj-bind-text></span></div>
+      <oj-bind-if test="[[ $variables.lib.docs.length === 0 ]]">
+        <div class="nx-empty" id="flibEmpty">No FDD yet. Upload one — Analyze with AI will then read it for every story.</div>
+      </oj-bind-if>
+      <div class="nx-flib-rows" id="flibRows">
+        <oj-bind-for-each data="[[ $variables.lib.docs ]]">
+          <template data-oj-as="d">
+            <div :class="[[ 'nx-flib-row' + (d.data.id === $variables.lib.latest ? ' nx-flib-row--latest' : '') + (d.data.id === $variables.viewId ? ' nx-flib-row--open' : '') ]]" :data-id="[[ d.data.id ]]">
+              <div class="nx-flib-rowmain">
+                <div class="nx-flib-rowtitle">
+                  <oj-bind-text value="[[ d.data.name ]]"></oj-bind-text>
+                  <oj-bind-if test="[[ d.data.version ]]"><span class="nx-flib-ver"><oj-bind-text value="[[ $functions.ver(d.data.version) ]]"></oj-bind-text></span></oj-bind-if>
+                  <oj-bind-if test="[[ d.data.id === $variables.lib.latest ]]"><span class="nx-badge nx-flib-latest">Latest</span></oj-bind-if>
+                </div>
+                <div class="nx-flib-rowsub"><oj-bind-text value="[[ $functions.docSub(d.data) ]]"></oj-bind-text></div>
+                <oj-bind-if test="[[ d.data.note ]]"><div class="nx-flib-rownote"><oj-bind-text value="[[ d.data.note ]]"></oj-bind-text></div></oj-bind-if>
+              </div>
+              <div class="nx-flib-rowacts">
+                <button type="button" class="nx-btn nx-btn--sm" data-act="view" :data-id="[[ d.data.id ]]" on-click="[[ $listeners.onAct ]]"><span class="oj-ux-ico-list" aria-hidden="true"></span>Outline</button>
+                <oj-bind-if test="[[ $variables.canUpload && d.data.id !== $variables.lib.latest ]]">
+                  <button type="button" class="nx-btn nx-btn--sm" data-act="latest" :data-id="[[ d.data.id ]]" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]"><span class="oj-ux-ico-star" aria-hidden="true"></span>Make latest</button>
+                </oj-bind-if>
+                <oj-bind-if test="[[ $variables.canUpload ]]">
+                  <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" data-act="download" :data-id="[[ d.data.id ]]" on-click="[[ $listeners.onAct ]]" title="Download the document as uploaded"><span class="oj-ux-ico-download" aria-hidden="true"></span></button>
+                  <button type="button" class="nx-btn nx-btn--sm nx-btn--plain nx-flib-del" data-act="remove" :data-id="[[ d.data.id ]]" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]" title="Remove from the library"><span class="oj-ux-ico-trash" aria-hidden="true"></span></button>
+                </oj-bind-if>
+              </div>
+            </div>
+          </template>
+        </oj-bind-for-each>
+      </div>
+    </section>
+  </div>
+
+  <!-- The outline of one FDD, and the text of a section -->
+  <oj-bind-if test="[[ $variables.viewId ]]">
+    <section class="nx-card nx-flib-outline" id="flibOutline" aria-label="Outline">
+      <div class="nx-card-head">
+        <h2><oj-bind-text value="[[ 'Outline · ' + $functions.docLabel($variables.lib, $variables.viewId) ]]"></oj-bind-text></h2>
+        <span class="nx-min-flex"></span>
+        <input type="search" class="nx-flib-filter" id="flibFilter" data-field="outlineFilter" :value="[[ $variables.outlineFilter ]]" on-input="[[ $listeners.onField ]]" placeholder="Find a section (7.2, rates…)">
+        <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" data-act="close" on-click="[[ $listeners.onAct ]]" title="Close"><span class="oj-ux-ico-close" aria-hidden="true"></span></button>
+      </div>
+      <div class="nx-flib-outcols">
+        <div class="nx-flib-tree" id="flibTree">
+          <oj-bind-for-each data="[[ $functions.filtered($variables.outline, $variables.outlineFilter) ]]">
+            <template data-oj-as="s">
+              <button type="button" :class="[[ $functions.nodeClass(s.data, $variables.section) ]]" data-act="section" :data-n="[[ s.data.key ]]" on-click="[[ $listeners.onAct ]]">
+                <span class="nx-flib-num"><oj-bind-text value="[[ s.data.n ]]"></oj-bind-text></span>
+                <span class="nx-flib-nodet"><oj-bind-text value="[[ s.data.t ]]"></oj-bind-text></span>
+                <span class="nx-flib-chars"><oj-bind-text value="[[ $functions.size(s.data.chars) ]]"></oj-bind-text></span>
+              </button>
+            </template>
+          </oj-bind-for-each>
+        </div>
+        <div class="nx-flib-text" id="flibText">
+          <oj-bind-if test="[[ !$variables.section ]]"><p class="nx-note">Choose a section to read what the AI reads.</p></oj-bind-if>
+          <oj-bind-if test="[[ $variables.section ]]">
+            <oj-bind-if test="[[ $variables.section.parent ]]"><div class="nx-flib-crumb"><oj-bind-text value="[[ 'in ' + $variables.section.parent ]]"></oj-bind-text></div></oj-bind-if>
+            <h3 class="nx-flib-sechead"><oj-bind-text value="[[ ($variables.section.n ? $variables.section.n + '  ' : '') + $variables.section.t ]]"></oj-bind-text></h3>
+            <pre class="nx-flib-pre"><oj-bind-text value="[[ $variables.section.x || '(no text under this heading)' ]]"></oj-bind-text></pre>
+          </oj-bind-if>
+        </div>
+      </div>
+    </section>
+  </oj-bind-if>
+</div>

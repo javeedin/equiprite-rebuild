@@ -181,6 +181,13 @@ async function followupsStore() {
   }
   return followupsStoreInst;
 }
+// The FDD library, for EquipRite Next's FDD library page and "Analyze with AI": documents saved into the project itself
+// (docs/fdd and webApps/equiprite-next/resources/fdd), committed and pushed to git so every user has the same ones.
+let fddStoreInst = null;
+function fddStore() {
+  if (!fddStoreInst) fddStoreInst = require('./lib/fdd').open({ root: path.join(__dirname, '..'), gitPath: commandPath('git') || 'git' });
+  return fddStoreInst;
+}
 // Find a command for transcription (ffmpeg, whisper-cli), looking beyond the app's start-time PATH — in winget, Scoop,
 // Chocolatey and Homebrew folders — so a tool just installed is found without restarting the app (lib/findCommand.js).
 function commandPath(cmd) {
@@ -1116,6 +1123,8 @@ if (!app.requestSingleInstanceLock()) {
             minutesStore: v === 'next' ? await minutesStore() : undefined,
             // Saved follow-ups (EquipRite Next): follow-ups drafted on the Jira pages, kept on this PC.
             followupsStore: v === 'next' ? await followupsStore() : undefined,
+            // The FDD library: FDDs uploaded into the project and committed to git, so every user has them
+            fddStore: v === 'next' ? fddStore() : undefined,
             backendOverrides: backendOverridesFromEnv(process.env),
             onLog: pushLog,
             onProblem: backendProblem,

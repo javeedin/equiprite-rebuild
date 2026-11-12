@@ -13,6 +13,20 @@ define([], () => {
     count(list) { return (list || []).length; }
     hasText(s) { return !!(s && String(s).trim()); }
 
+    /** The chosen FDD's label ("EquipRite FDD · v1.7 (latest)"), or "No FDD" when none is chosen. */
+    fddLabel(options, id) {
+      if (!id) return 'No FDD — the story only';
+      const o = (options || []).filter(function (x) { return x.id === id; })[0];
+      return o ? o.label : id;
+    }
+    /** The sections read, each with its index (the chip's data-i). */
+    indexed(list) { return (list || []).map(function (p, i) { return Object.assign({ i: String(i) }, p); }); }
+    chipText(p) { return (p.n ? p.n + ' ' : '') + (String(p.t || '').length > 34 ? String(p.t).slice(0, 32) + '…' : p.t); }
+    chipClass(p, open) {
+      var kind = /^named|^closest|^part of|^mentions/.test(p.why || '') ? 'named' : 'match';
+      return 'nx-an-fddchip nx-an-fddchip--' + kind + (open && open.i === p.i ? ' nx-an-fddchip--on' : '');
+    }
+
     /** The analysis HTML wrapped in a small styled document for its sandboxed iframe. */
     doc(html) {
       var body = String(html || '') || '<p style="color:#888">The analysis will appear here.</p>';
@@ -21,6 +35,7 @@ define([], () => {
         + 'h2,h3,h4{color:#00688c;margin:16px 0 6px;font-size:15px;font-weight:700}h2:first-child,h3:first-child{margin-top:0}'
         + 'ul{margin:0 0 12px;padding-left:20px}li{margin-bottom:5px}p{margin:0 0 10px}strong{font-weight:700}'
         + 'code{background:#eef2f4;padding:1px 5px;border-radius:4px;font-size:12px}.nx-an-err{color:#b3311f}'
+        + '.fdd{background:#e4f1f7;color:#0b4b61;border-radius:4px;padding:0 5px;font-size:12px;font-weight:600;white-space:nowrap}'
         + '</style>' + body;
     }
     /** The whole chat transcript as one styled document for its sandboxed iframe. */
@@ -35,6 +50,7 @@ define([], () => {
         + '.u{background:#e4f1f7;color:#0b4b61;margin-left:auto}.a{background:#f1efec}'
         + '.b p{margin:0 0 6px}.b p:last-child{margin:0}.b ul{margin:0;padding-left:18px}.b h3,.b h4{margin:4px 0;font-size:14px}'
         + '.e{color:#8a8a8a}.nx-an-err{color:#b3311f}'
+        + '.fdd{background:#d8ebf3;color:#0b4b61;border-radius:4px;padding:0 4px;font-size:12px;font-weight:600;white-space:nowrap}'
         + '</style>' + inner;
     }
   }

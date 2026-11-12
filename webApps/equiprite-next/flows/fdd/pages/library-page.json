@@ -1,0 +1,38 @@
+{
+  "description": "FDD library: the functional design documents Analyze with AI reads, kept in git (docs/fdd and resources/fdd) so every user has the same ones. Upload an FDD (Word, PDF, HTML, Markdown or text): it is split into its numbered sections, saved into the project and committed and pushed to git. One is the latest, the one the analysis starts on. View any FDD's outline and the text of a section. Reading works everywhere; uploading needs the desktop app or npm run serve (desktop/lib/fdd.js, /__fdd/*).",
+  "navigation": { "embeddable": "enabled" },
+  "variables": {
+    "checked": { "type": "boolean", "defaultValue": false },
+    "canUpload": { "type": "boolean", "defaultValue": false, "description": "The local server runs from the project folder, so uploads can be saved into git." },
+    "busy": { "type": "boolean", "defaultValue": false },
+    "progress": { "type": "string", "defaultValue": "", "description": "What the upload is doing (reading, saving, pushing)." },
+    "lib": { "type": "any", "defaultValue": { "latest": "", "docs": [] }, "description": "The library: { latest, docs }." },
+    "git": { "type": "any", "defaultValue": null, "description": "Git status of the FDD files: { available, branch, upstream, pending, unpushed, reason }." },
+    "upName": { "type": "string", "defaultValue": "" },
+    "upVersion": { "type": "string", "defaultValue": "" },
+    "upNote": { "type": "string", "defaultValue": "" },
+    "upFile": { "type": "string", "defaultValue": "", "description": "The chosen file's name." },
+    "upLatest": { "type": "boolean", "defaultValue": true },
+    "upCommit": { "type": "boolean", "defaultValue": true, "description": "Commit and push to git after an upload, making one the latest or removing one." },
+    "result": { "type": "any", "defaultValue": null, "description": "The last action's result, shown under the form: { ok, title, lines, warnings, error, hint }." },
+    "viewId": { "type": "string", "defaultValue": "", "description": "The FDD whose outline is open." },
+    "outline": { "type": "any[]", "defaultValue": [] },
+    "outlineFilter": { "type": "string", "defaultValue": "" },
+    "section": { "type": "any", "defaultValue": null, "description": "The section open in the viewer: { n, t, x, parent }." }
+  },
+  "eventListeners": {
+    "vbEnter": { "chains": [ { "chain": "loadChain" } ] },
+    "onRefresh": { "chains": [ { "chain": "loadChain" } ] },
+    "onFile": { "chains": [ { "chain": "fileChain" } ] },
+    "onField": { "chains": [ { "chain": "setChain", "parameters": { "field": "{{ $event.currentTarget.dataset.field }}", "value": "{{ $event.currentTarget.type === 'checkbox' ? $event.currentTarget.checked : $event.currentTarget.value }}" } } ] },
+    "onUpload": { "chains": [ { "chain": "uploadChain" } ] },
+    "onAct": { "chains": [ { "chain": "actChain", "parameters": { "act": "{{ $event.currentTarget.dataset.act }}", "id": "{{ $event.currentTarget.dataset.id || '' }}", "n": "{{ $event.currentTarget.dataset.n || '' }}" } } ] }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}

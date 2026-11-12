@@ -110,8 +110,10 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
   } });
   // A shared Ask AI store (for "Analyze with AI") with a stub LLM, pre-set to OpenAI so analysis/chat run.
   const llmCalls = [];
-  const llmFetch = async (url) => {
+  const llmBodies = []; // what each call sent (the prompt), to see which FDD it carried
+  const llmFetch = async (url, init) => {
     llmCalls.push(url);
+    llmBodies.push(String((init && init.body) || ''));
     if (/chat\/completions/.test(url)) return { ok: true, status: 200, text: async () => JSON.stringify({ choices: [{ message: { content: '## Requirement\n- Equipment master list with smart search.\n## Current situation\n- DEVELOPMENT; map view still missing per the comments.\n## What to do next\n- Add the map view and the Edit option.\n## Risks & open questions\n- None noted.\n## Suggested EquipRite page\n- Equipment master — this is the catalog list.' } }] }) };
     return { ok: false, status: 404, text: async () => '{}' };
   };
@@ -135,7 +137,11 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     revealModels: () => ({ dir: '/models' }),
     transcribe: (file, opts) => { transcribed.push({ file, opts }); return Promise.resolve({ ok: true, engine: 'local', lang: 'en', model: 'ggml-base.bin',
       segments: [{ start: 0, end: 2.6, text: 'The map does not load on this story.' }, { start: 2.6, end: 5.2, text: 'I click Edit and nothing happens.' }], ms: 20 }); } };
-  const env = await E.start({ port: 19760, handle, app: 'next', jiraStore, recStore, transcribe, followupsStore: fuStore, minutesStore, aiStore, init: E.recorderStub });
+  // The FDD library with two FDDs: v1.6, then v1.7 (the latest). The analysis starts on the latest; v1.6 can be picked.
+  const fdd = await E.fddSandbox();
+  await fdd.store.upload({ fileName: 'fdd-v16.md', base64: Buffer.from('# 7 Equipment registry\nThe registry.\n## 7.2 Equipment master list\nOLD-V16: the master list without smart search.').toString('base64'), name: 'EquipRite FDD', version: '1.6' });
+  await fdd.store.upload({ fileName: 'fdd-v17.md', base64: Buffer.from('# 7 Equipment registry\nThe registry.\n## 7.2 Equipment master list\nNEW-V17: the master list shows every record in a grid with smart search and filters.\n### 7.2.5 Map view\nA map shows where each unit is.\n# 9 Timesheets\nHours.').toString('base64'), name: 'EquipRite FDD', version: '1.7' });
+  const env = await E.start({ port: 19760, handle, app: 'next', jiraStore, recStore, transcribe, followupsStore: fuStore, minutesStore, aiStore, fddStore: fdd.store, init: E.recorderStub });
   const page = env.page;
   const errs = () => env.errors.filter((e) => !/404|401|Failed to load resource/.test(e) && !e.startsWith('warning'));
   try {
@@ -777,11 +783,40 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     const anDoc = (await page.getAttribute('#anAnalysis', 'srcdoc')) || '';
     T.check('the AI analysis is broken into the fixed headings and suggests the page, via the shared Ask AI',
       /Requirement/.test(anDoc) && /What to do next/.test(anDoc) && /Suggested EquipRite page/.test(anDoc) && /Equipment master/i.test(anDoc) && llmCalls.some((u) => /chat\/completions/.test(u)));
+
+    T.section('Analyze with AI reads the FDD: the latest first, the sections the story names, another FDD on demand');
+    const lastPrompt = () => llmBodies[llmBodies.length - 1] || '';
+    T.check('the FDD picker shows the latest FDD', /EquipRite FDD · v1\.7 \(latest\)/.test(await text(page, '#anFddName')), await text(page, '#anFddBar'));
+    T.check('the AI was given the latest FDD\'s section 7.2 (the story\'s "FDD Section: 7.2"), with its subsection, and asked for an FDD check',
+      /NEW-V17/.test(lastPrompt()) && /FDD 7\.2\.5 Map view/.test(lastPrompt()) && /## FDD check/.test(lastPrompt()) && !/OLD-V16/.test(lastPrompt()), lastPrompt().slice(0, 300));
+    T.check('the chips say what was read: 7.2 named by the story, 7.2.5 a part of it',
+      /7\.2 Equipment master list/.test(await text(page, '#anFddRead')) && /7\.2\.5 Map view/.test(await text(page, '#anFddRead')));
+    await page.click('#anFddRead .nx-an-fddchip >> nth=0');
+    await page.waitForSelector('#anFddView', { timeout: 10000 }).catch(() => {});
+    await page.evaluate(() => { const b = document.getElementById('anFddBar'); if (b) b.scrollIntoView({ block: 'start' }); });
+    await settle(page, 300);
+    await page.screenshot({ path: require('path').join(require('os').tmpdir(), 'equiprite-e2e', 'next-jira-analysis-fdd.png') });
+    T.check('a chip opens the section\'s text, and why it was read', /NEW-V17: the master list shows every record/.test(await text(page, '#anFddView')) && /named by the story/.test(await text(page, '#anFddView')));
     await page.evaluate(() => { const i = document.getElementById('anChatInput'); i.value = 'what should I test first?'; i.dispatchEvent(new Event('input', { bubbles: true })); document.getElementById('anChatSend').click(); });
     await page.waitForFunction(() => { const f = document.getElementById('anChat'); return f && /class="b a"/.test(f.getAttribute('srcdoc') || ''); }, null, { timeout: 20000 }).catch(() => {});
     const chDoc = (await page.getAttribute('#anChat', 'srcdoc')) || '';
     T.check('the chatbot answers a follow-up question, grounded in the story', /what should I test first/i.test(chDoc) && chDoc.indexOf('class="b a"') !== -1, 'chatDoc=' + chDoc.slice(0, 200) + ' | llm=' + llmCalls.length);
+    T.check('…and in the FDD: the chat turn carried the FDD excerpts for the question', /FDD excerpts from \\"EquipRite FDD · v1\.7\\" for this question/.test(lastPrompt()) && /NEW-V17/.test(lastPrompt()), lastPrompt().slice(0, 200));
     await env.shot('next-jira-analysis.png');
+    const calls = llmBodies.length;
+    await page.click('#anFddBtn');
+    await page.waitForSelector('#anFddMenu', { timeout: 10000 });
+    T.check('the menu lists every FDD (latest first), "No FDD", and the FDD library', /v1\.7 \(latest\)[\s\S]*v1\.6[\s\S]*No FDD[\s\S]*FDD library/.test(await text(page, '#anFddMenu')), await text(page, '#anFddMenu'));
+    await page.click('#anFddMenu .nx-an-fddopt:has-text("v1.6")');
+    await page.waitForFunction((n) => !document.getElementById('anBusy') && /v1\.6/.test((document.getElementById('anFddName') || {}).textContent || ''), calls, { timeout: 20000 }).catch(() => {});
+    await settle(page, 400);
+    T.check('the analysis says which FDD it read', /against EquipRite FDD · v1\.6/.test(await text(page, '#anBy')), await text(page, '#anBy'));
+    T.check('picking v1.6 re-runs the analysis on v1.6', llmBodies.length === calls + 1 && /OLD-V16/.test(lastPrompt()) && !/NEW-V17/.test(lastPrompt()) && /v1\.6/.test(await text(page, '#anFddName')), llmBodies.length + ' ' + lastPrompt().slice(0, 200));
+    await page.click('#anFddBtn');
+    await page.click('#anFddMenu .nx-an-fddopt--none');
+    await page.waitForFunction(() => /No FDD/.test((document.getElementById('anFddName') || {}).textContent || '') && !document.getElementById('anBusy'), null, { timeout: 20000 }).catch(() => {});
+    await settle(page, 400);
+    T.check('"No FDD" re-runs it on the story alone: no excerpts, no FDD check, no chips', llmBodies.length === calls + 2 && !/FDD excerpts/.test(lastPrompt()) && !/## FDD check/.test(lastPrompt()) && !(await page.$('#anFddRead')));
     // back to the Jira stories tab for the remaining steps
     await page.locator('[role="tab"]').filter({ hasText: 'Jira' }).first().click().catch(() => {});
     await page.waitForSelector('#jiraGrid', { timeout: 20000 }).catch(() => {});
@@ -799,6 +834,7 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     T.check('no exception: ' + (e && e.message), false);
   } finally {
     await env.close();
+    fdd.restore();
   }
   T.report();
 })();

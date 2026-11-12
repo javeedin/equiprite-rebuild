@@ -1,8 +1,8 @@
 {
   "id": "fdd",
-  "description": "EquipRite FDD: the FDD's requirements, its flows across the Fusion modules as swimlane diagrams, and how much of it EquipRite Next has built (with its phone app: EquipRite Mobile and EquipRite for Android), with a drill-down behind every number.",
+  "description": "EquipRite FDD: the FDD's requirements, its flows across the Fusion modules as swimlane diagrams, and how much of it EquipRite Next has built (with its phone app: EquipRite Mobile and EquipRite for Android), with a drill-down behind every number. And the FDD library (library page): the FDD documents Analyze with AI reads, uploaded into git.",
   "defaultPage": "fdd",
   "navigation": { "embeddable": "enabled" },
-  "pages": { "fdd": { "path": "pages/fdd-page" } },
+  "pages": { "fdd": { "path": "pages/fdd-page" }, "library": { "path": "pages/library-page" } },
   "chains": {}, "services": {}, "types": {}, "variables": {}
 }

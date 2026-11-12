@@ -294,3 +294,69 @@
    cards, so the header's colour stops at the header (next-redwood.css runs it on 340px by default) and they sit on the
    page, as an Old page's tabs sit below its header. ─────────────────────────────────────────────────────────────── */
 html[data-nx-look="redwood"] .nx-fdd { --rw-banner-h: 132px; }
+
+/* ── FDD library (flows/fdd library page) ──────────────────────────────────────────────────────────────────────── */
+.nx-flib-git { display: flex; align-items: center; gap: 12px; margin: 0 0 16px; padding: 10px 14px; border: 1px solid var(--nx-line); border-radius: var(--nx-radius); background: var(--nx-surface); font-size: 13px; color: var(--nx-muted); }
+.nx-flib-git code, .nx-flib-upload code { font-size: 12px; background: var(--nx-hover); padding: 1px 5px; border-radius: 4px; color: var(--nx-ink); }
+.nx-flib-gitico { font-size: 20px; color: var(--nx-accent); flex: none; }
+.nx-flib-gittext { flex: 1; min-width: 0; line-height: 1.5; }
+.nx-flib-gittext b { color: var(--nx-ink); }
+.nx-flib-gitstate { display: block; color: var(--nx-ink); font-weight: 600; }
+.nx-flib-warn { color: var(--nx-warn); }
+.nx-flib-grid { display: grid; grid-template-columns: minmax(300px, 420px) 1fr; gap: 16px; align-items: start; }
+@media (max-width: 960px) { .nx-flib-grid { grid-template-columns: 1fr; } }
+.nx-flib-drop { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 20px 14px; border: 2px dashed var(--nx-line); border-radius: var(--nx-radius); text-align: center; cursor: pointer; background: #fafbfc; transition: border-color .15s, background .15s; }
+.nx-flib-drop:hover, .nx-flib-drop:focus-within { border-color: var(--nx-accent); background: #f2f7fd; }
+.nx-flib-dropico { font-size: 28px; color: var(--nx-accent); }
+.nx-flib-dropmain { font-weight: 600; color: var(--nx-ink); word-break: break-all; }
+.nx-flib-file { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+.nx-flib-fields { display: flex; gap: 10px; margin-top: 14px; }
+.nx-flib-field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; min-width: 0; }
+.nx-flib-field label { font-size: 12px; font-weight: 600; color: var(--nx-muted); }
+.nx-flib-field input { height: 34px; padding: 0 10px; border: 1px solid var(--nx-line); border-radius: 8px; font: inherit; font-size: 14px; color: var(--nx-ink); background: #fff; min-width: 0; }
+.nx-flib-field input:focus, .nx-flib-filter:focus { outline: 2px solid rgba(10, 102, 201, .25); border-color: var(--nx-accent); }
+.nx-flib-fields .nx-flib-field { margin-bottom: 0; }
+.nx-flib-fields + .nx-flib-field { margin-top: 10px; }
+.nx-flib-grow { flex: 1; }
+.nx-flib-fields .nx-flib-field:not(.nx-flib-grow) { width: 96px; flex: none; }
+.nx-flib-check { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; color: var(--nx-muted); margin: 6px 0; line-height: 1.4; cursor: pointer; }
+.nx-flib-check input { margin-top: 2px; }
+.nx-flib-check b { color: var(--nx-ink); }
+.nx-flib-go { display: flex; align-items: center; gap: 12px; margin-top: 14px; }
+.nx-flib-result { margin-top: 14px; padding: 10px 12px; border-radius: 8px; font-size: 13px; line-height: 1.5; }
+.nx-flib-result--ok { background: #ecf8f0; border: 1px solid #bfe5cc; color: #134e2a; }
+.nx-flib-result--err { background: #fdf1f0; border: 1px solid #f1c4bf; color: #7a1d14; }
+.nx-flib-result b { display: block; margin-bottom: 2px; }
+.nx-flib-hint { margin-top: 4px; font-style: italic; }
+.nx-flib-rows { display: flex; flex-direction: column; }
+.nx-flib-row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--nx-line); border-left: 3px solid transparent; }
+.nx-flib-row:last-child { border-bottom: 0; }
+.nx-flib-row--latest { border-left-color: var(--nx-ok); background: linear-gradient(90deg, #f1faf4, transparent 40%); }
+.nx-flib-row--open { background: var(--nx-hover); }
+.nx-flib-rowmain { flex: 1; min-width: 0; }
+.nx-flib-rowtitle { display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--nx-ink); flex-wrap: wrap; }
+.nx-flib-ver { font-size: 12px; font-weight: 600; color: var(--nx-muted); background: var(--nx-hover); border-radius: 999px; padding: 1px 8px; }
+.nx-flib-latest { background: #dcf3e4; color: var(--nx-ok); }
+.nx-flib-rowsub { font-size: 12px; color: var(--nx-muted); margin-top: 2px; }
+.nx-flib-rownote { font-size: 13px; color: var(--nx-ink); margin-top: 4px; }
+.nx-flib-rowacts { display: flex; gap: 6px; flex: none; flex-wrap: wrap; justify-content: flex-end; }
+.nx-flib-del:hover { color: var(--nx-danger); }
+.nx-flib-outline { margin-top: 16px; }
+.nx-flib-filter { height: 30px; width: 240px; max-width: 40vw; padding: 0 10px; border: 1px solid var(--nx-line); border-radius: 8px; font: inherit; font-size: 13px; }
+.nx-flib-outcols { display: grid; grid-template-columns: minmax(260px, 380px) 1fr; min-height: 420px; }
+@media (max-width: 860px) { .nx-flib-outcols { grid-template-columns: 1fr; } }
+.nx-flib-tree { border-right: 1px solid var(--nx-line); max-height: 560px; overflow: auto; padding: 6px 0; }
+.nx-flib-node { display: flex; align-items: baseline; gap: 8px; width: 100%; border: 0; background: none; text-align: left; padding: 5px 14px; font: inherit; font-size: 13px; color: var(--nx-ink); cursor: pointer; }
+.nx-flib-node:hover { background: var(--nx-hover); }
+.nx-flib-node--on { background: #e4eefa; box-shadow: inset 3px 0 0 var(--nx-accent); }
+.nx-flib-l1 { font-weight: 700; }
+.nx-flib-l2 { padding-left: 26px; }
+.nx-flib-l3 { padding-left: 38px; color: var(--nx-muted); }
+.nx-flib-l4 { padding-left: 50px; color: var(--nx-muted); font-size: 12px; }
+.nx-flib-num { font-variant-numeric: tabular-nums; color: var(--nx-accent); font-weight: 700; min-width: 0; flex: none; }
+.nx-flib-nodet { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nx-flib-chars { flex: none; font-size: 11px; color: var(--nx-faint); }
+.nx-flib-text { padding: 14px 18px; max-height: 560px; overflow: auto; }
+.nx-flib-crumb { font-size: 12px; color: var(--nx-muted); margin-bottom: 2px; }
+.nx-flib-sechead { margin: 0 0 10px; font-size: 16px; color: var(--nx-ink); }
+.nx-flib-pre { white-space: pre-wrap; word-wrap: break-word; font: 13px/1.6 var(--nx-font); color: var(--nx-ink); margin: 0; }

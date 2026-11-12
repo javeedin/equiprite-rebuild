@@ -332,3 +332,28 @@ button.nx-jira-recmark:hover, button.nx-jira-recmark:focus-visible { filter: bri
 .nx-an .nx-an-chatinput { flex: 1; min-width: 0; font: inherit; font-size: 14px; padding: 9px 11px; border: 1px solid var(--nx-line-strong, rgba(22,21,19,.4)); border-radius: 8px; background: var(--nx-surface, #fff); color: var(--nx-ink, #161513); }
 .nx-an .nx-an-chatinput:focus { outline: none; border-color: var(--nx-accent, #00688c); box-shadow: inset 0 0 0 1px var(--nx-accent, #00688c); }
 .nx-an .nx-an-err { color: var(--nx-danger, #b3311f); }
+
+/* Analyze with AI: the FDD it reads (picker, the sections read as chips, and one section's text) */
+.nx-an-fddbar { display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-bottom: 1px solid var(--nx-line, #e2e7ed); background: #fafbfc; flex-wrap: wrap; font-size: 13px; }
+.nx-an-fddico { color: #00688c; font-size: 16px; }
+.nx-an-fddlbl { font-weight: 700; color: #5a6876; text-transform: uppercase; font-size: 11px; letter-spacing: .05em; }
+.nx-an-fddpick { position: relative; }
+.nx-an-fddbtn { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border: 1px solid var(--nx-line, #e2e7ed); border-radius: 8px; background: #fff; font: inherit; font-size: 13px; font-weight: 600; color: #16212c; cursor: pointer; }
+.nx-an-fddbtn:hover { border-color: #00688c; }
+.nx-an-fddbtn:disabled { opacity: .6; cursor: progress; }
+.nx-an-fddmenu { position: absolute; z-index: 20; top: 34px; left: 0; min-width: 280px; background: #fff; border: 1px solid var(--nx-line, #e2e7ed); border-radius: 10px; box-shadow: 0 8px 24px rgba(16, 24, 40, .14); padding: 4px; display: flex; flex-direction: column; }
+.nx-an-fddopt { display: block; width: 100%; text-align: left; border: 0; background: none; padding: 8px 10px; border-radius: 6px; font: inherit; font-size: 13px; color: #16212c; cursor: pointer; }
+.nx-an-fddopt:hover { background: #eef2f6; }
+.nx-an-fddopt--on { background: #e4f1f7; font-weight: 700; color: #0b4b61; }
+.nx-an-fddopt--none { color: #5a6876; }
+.nx-an-fddopt--lib { border-top: 1px solid var(--nx-line, #e2e7ed); border-radius: 0 0 6px 6px; color: #0a66c9; margin-top: 2px; }
+.nx-an-fddread { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 8px 16px 0; font-size: 12px; }
+.nx-an-fddreadlbl { color: #5a6876; font-weight: 600; }
+.nx-an-fddchip { border: 1px solid; border-radius: 999px; padding: 2px 10px; font: inherit; font-size: 12px; cursor: pointer; background: #fff; max-width: 280px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nx-an-fddchip--named { border-color: #8cc5d8; color: #0b4b61; background: #eef8fb; }
+.nx-an-fddchip--match { border-color: #d6dbe1; color: #3d4b59; border-style: dashed; }
+.nx-an-fddchip--on { background: #00688c; border-color: #00688c; color: #fff; border-style: solid; }
+.nx-an-fddnote { padding: 6px 16px 0; font-size: 12px; color: #b45309; }
+.nx-an-fddview { margin: 8px 16px 0; border: 1px solid #cfe3ea; border-radius: 8px; background: #f6fbfd; }
+.nx-an-fddviewhead { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-bottom: 1px solid #cfe3ea; font-size: 13px; flex-wrap: wrap; }
+.nx-an-fddtext { margin: 0; padding: 10px 12px; max-height: 240px; overflow: auto; white-space: pre-wrap; word-wrap: break-word; font: 12.5px/1.55 -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: #16212c; }

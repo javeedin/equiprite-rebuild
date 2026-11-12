@@ -45,9 +45,11 @@ EquipRite. See [`desktop/README.md`](desktop/README.md) for how it works and wha
 | `webApps/vbredwoodapp/` | Old EquipRite: `app-flow.*`, `flows/`, `pages/`, `fragments/`, `resources/` (not changed) |
 | `webApps/equiprite/` | New EquipRite, the redesign: same layout; the menu (`NAV_GROUPS` in `app-flow.js`) says which screens are built |
 | `docs/redesign/` | FDD summary and wireframes (PDF and HTML) the redesign is built from |
+| `docs/fdd/` | the FDD library: the FDDs Analyze with AI reads, uploaded from Insights → FDD library (or `npm run fdd`) and kept in git; see [`docs/fdd/README.md`](docs/fdd/README.md) |
 | `services/` | backend service definitions and `catalog.json` (backend base URLs + proxy settings) |
 | `tools/check-tools.js` | build preflight (the installed `grunt-vb-build` must match the app's `source.version`; no `node_modules` inside a copied folder) |
 | `tools/get-electron.js` | fetches Electron's binary with resume and checksum before `desktop` / `desktop:fresh` start it |
+| `tools/fdd.js` | the FDD library from a terminal: `npm run fdd -- upload <file> --name … --version … --push`, `list`, `latest`, `remove`, `outline`, `push` |
 | `desktop/` | the Electron desktop shell (not part of the VB app) |
 | `tests/` | dependency-free `node` test suites (`npm test`) |
 

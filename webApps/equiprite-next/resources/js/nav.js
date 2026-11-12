@@ -84,7 +84,12 @@ define(['resources/js/rules'], function (rules) {
       // signed in (no page code), but not a customer-only role: their menu stays the portal.
       { id: 'fdd', label: 'EquipRite FDD', icon: 'oj-ux-ico-document-check', pageCodes: [], everyone: true, staff: true,
         route: { flow: 'fdd', page: 'fdd' }, built: true,
-        keywords: 'fdd functional design document requirements business mapping development status progress swimlane diagrams scenarios integrations' }
+        keywords: 'fdd functional design document requirements business mapping development status progress swimlane diagrams scenarios integrations' },
+      // The FDD documents "Analyze with AI" reads (flows/fdd library page): uploaded into the project and committed and
+      // pushed to git, so every user has them; one is the latest. Gated like Jira stories (an existing page code).
+      { id: 'fdd-library', label: 'FDD library', icon: 'oj-ux-ico-upload', pageCodes: ['EQR_CONFIGURATIONS'],
+        route: { flow: 'fdd', page: 'library' }, built: true,
+        keywords: 'fdd library upload document word pdf version latest git analyze ai sections outline functional design' }
     ] },
     { key: 'admin', label: 'Admin', items: [
       { id: 'settings', label: 'Settings', icon: 'oj-ux-ico-settings', pageCodes: ['EQR_CONFIGURATIONS'],

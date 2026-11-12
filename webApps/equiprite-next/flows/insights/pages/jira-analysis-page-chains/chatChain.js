@@ -3,11 +3,13 @@ define([
   'resources/js/storyAnalysis',
   'resources/js/minutesClient',
   'resources/js/shellBus',
-], (ActionChain, SA, M, bus) => {
+  'resources/js/storyAnalysisRun',
+], (ActionChain, SA, M, bus, R) => {
   'use strict';
 
   // The chatbot on the analysis page: a follow-up question (Enter in the box, or the Send button), answered by the shared
-  // Ask AI grounded in the same story, its sub-tasks and comments. Keeps the conversation in v.chat.
+  // Ask AI grounded in the same story, its sub-tasks and comments, and the chosen FDD's sections for that question.
+  // Keeps the conversation in v.chat.
   const clearInput = () => { try { if (typeof document !== 'undefined') { const el = document.getElementById('anChatInput'); if (el) { el.value = ''; el.focus(); } } } catch (e) { /* no DOM (tests) */ } };
 
   class chatChain extends ActionChain {
@@ -25,7 +27,9 @@ define([
       v.chat = chat; v.chatDraft = ''; clearInput(); v.chatBusy = true;
       try {
         const history = chat.filter((m) => m.role === 'user' || m.role === 'assistant').map((m) => ({ role: m.role, text: m.text })).slice(0, -1);
-        const p = SA.chatPrompt(v.story, history, q, '');
+        let f = null;
+        try { f = await R.fddFor(v, context.$application.path, q); } catch (e) { f = null; }
+        const p = SA.chatPrompt(v.story, history, q, f && f.text ? { name: f.name, text: f.text } : '');
         const r = await M.aiChat(p.system, p.user);
         const out = (v.chat || []).slice();
         if (r.ok && r.body && r.body.ok && r.body.text) out.push({ role: 'assistant', text: r.body.text, html: SA.renderHtml(r.body.text) });
