@@ -287,6 +287,9 @@
               <span class="nx-jira-showing" id="jiraShowing"><oj-bind-text value="[[ $variables.fLabel || 'Filtered' ]]"></oj-bind-text>
                 <button type="button" class="nx-jira-x" on-click="[[ $listeners.onClear ]]" aria-label="Clear the filters" title="Clear">×</button></span>
             </oj-bind-if>
+            <button type="button" class="nx-btn nx-btn--sm nx-aibtn" id="jiraAnalyzeSet" on-click="[[ $listeners.onAnalyzeSet ]]"
+              :disabled="[[ $variables.shown.length === 0 ]]" title="Analyse the stories shown (filter to 25 or fewer) together with AI, in a new tab">
+              <span aria-hidden="true">✨</span><oj-bind-text value="[[ $variables.shown.length > 1 && $variables.shown.length <= 25 ? 'Analyze ' + $variables.shown.length + ' with AI' : 'Analyze with AI' ]]"></oj-bind-text></button>
             <button type="button" class="nx-btn nx-btn--sm nx-followbtn" id="jiraFollowup" on-click="[[ $listeners.onFollowup ]]"
               :disabled="[[ $variables.shown.length === 0 ]]" title="Copy the items shown as a table you can paste into an email">
               <span class="oj-ux-ico-copy-to-clipboard" aria-hidden="true"></span>Copy to follow-up</button>

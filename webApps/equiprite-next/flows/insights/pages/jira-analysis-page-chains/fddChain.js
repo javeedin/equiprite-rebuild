@@ -21,8 +21,8 @@ define([
         const next = String(id || '');
         if (next === v.fddId && v.analysisHtml) return;
         v.fddId = next; v.fddChosen = true; v.fddView = null;
-        if (!v.aiReady || !v.story) return;
-        const r = await R.analyze(v, base);
+        if (!v.aiReady || !(v.story || (v.stories || []).length)) return;
+        const r = await R.rerun(v, base);
         if (!r.ok && r.error) bus.toast(r.error, 'error');
         return;
       }

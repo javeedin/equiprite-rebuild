@@ -10,7 +10,9 @@ define([
   // The chatbot on the analysis page: a follow-up question (Enter in the box, or the Send button), answered by the shared
   // Ask AI grounded in the same story, its sub-tasks and comments, and the chosen FDD's sections for that question.
   // Keeps the conversation in v.chat.
-  const clearInput = () => { try { if (typeof document !== 'undefined') { const el = document.getElementById('anChatInput'); if (el) { el.value = ''; el.focus(); } } } catch (e) { /* no DOM (tests) */ } };
+  // the box in the tab that is showing: several Analyze tabs can be open, each with its own
+  const box = (id) => { try { if (typeof document === 'undefined') return null; const all = Array.prototype.slice.call(document.querySelectorAll('[id="' + id + '"]')); return all.filter((e) => e.offsetParent !== null)[0] || all[0] || null; } catch (e) { return null; } };
+  const clearInput = () => { try { const el = box('anChatInput'); if (el) { el.value = ''; el.focus(); } } catch (e) { /* no DOM (tests) */ } };
 
   class chatChain extends ActionChain {
     async run(context, { key }) {
@@ -18,7 +20,7 @@ define([
       const v = context.$page.variables;
       // Read the box directly (the on-input handler that fills v.chatDraft may not have run yet on a Send click).
       let q = '';
-      try { if (typeof document !== 'undefined') { const el = document.getElementById('anChatInput'); if (el) q = String(el.value || '').trim(); } } catch (e) { /* no DOM (tests) */ }
+      try { const el = box('anChatInput'); if (el) q = String(el.value || '').trim(); } catch (e) { /* no DOM (tests) */ }
       if (!q) q = String(v.chatDraft || '').trim();
       if (!q || v.chatBusy) return;
       if (!v.aiReady) { bus.toast('Set up AI first (Minutes → Set up AI).', 'error'); return; }

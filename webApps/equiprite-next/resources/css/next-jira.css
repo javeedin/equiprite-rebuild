@@ -395,3 +395,25 @@ button.nx-jira-recmark:hover, button.nx-jira-recmark:focus-visible { filter: bri
 .nx-an .nx-jira-img figcaption { font-size: 11px; color: #64748b; overflow-wrap: anywhere; }
 .nx-an .nx-jira-list { margin: 4px 0; padding-left: 18px; font-size: 13px; }
 .nx-an .nx-jira-imgwait { display: flex; align-items: center; justify-content: center; min-height: 60px; font-size: 12px; color: #8a97a5; }
+
+/* Analyze with AI for several stories (jira-analysis-set): the stories on the left, each opening to its details */
+.nx-as .nx-as-list { padding: 0 0 6px; }
+.nx-as .nx-as-list > .nx-card-head { padding: 12px 16px; }
+.nx-as-story { padding: 10px 16px; border-bottom: 1px solid var(--nx-line, #e2e7ed); }
+.nx-as-story:last-child { border-bottom: 0; }
+.nx-as-story--open { background: #fafcfd; box-shadow: inset 3px 0 0 #00688c; }
+.nx-as-row { display: flex; align-items: flex-start; gap: 8px; }
+.nx-as-toggle { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 8px; border: 0; background: none; padding: 0; font: inherit; text-align: left; cursor: pointer; color: inherit; }
+.nx-as-toggle:hover .nx-as-sum { text-decoration: underline; }
+.nx-as-toggle span[class^="oj-ux-ico"] { font-size: 14px; color: #5a6876; flex: none; align-self: center; }
+.nx-as-sum { font-size: 14px; color: #16212c; }
+.nx-as-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin: 4px 0 0 22px; font-size: 12.5px; color: #5a6876; }
+.nx-as-links { display: flex; gap: 14px; margin: 4px 0 0 22px; }
+.nx-as-link { display: inline-flex; align-items: center; gap: 4px; border: 0; background: none; padding: 0; font: inherit; font-size: 12.5px; color: #0a66c9; cursor: pointer; text-decoration: none; }
+.nx-as-link:hover { text-decoration: underline; }
+.nx-as-detail { margin: 6px 0 4px 22px; }
+.nx-as .nx-an-cols { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.3fr); }
+@media (max-width: 1000px) { .nx-as .nx-an-cols { grid-template-columns: 1fr; } }
+.nx-aibtn { border-color: #b9dbe8; color: #0b4b61; background: #f2f9fc; }
+.nx-aibtn:hover:not(:disabled) { background: #e4f1f7; }
+.nx-as-toggle .nx-an-key { flex: none; white-space: nowrap; }

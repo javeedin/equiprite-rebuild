@@ -120,6 +120,10 @@
               title="Clear every column filter and the sort">
               <span class="oj-ux-ico-close" aria-hidden="true"></span>Clear filters</button>
           </oj-bind-if>
+          <button type="button" class="nx-btn nx-btn--sm nx-aibtn" id="jspAnalyze" on-click="[[ $listeners.onAnalyzeSet ]]"
+            :disabled="[[ ($variables.selected || []).length === 0 ]]"
+            :title="[[ ($variables.selected || []).length ? 'Analyse the ticked stories together with AI, in a new tab' : 'Tick the stories to analyse together with AI' ]]">
+            <span aria-hidden="true">✨</span><oj-bind-text value="[[ $functions.analyzeLabel($variables.selected) ]]"></oj-bind-text></button>
           <button type="button" class="nx-btn nx-btn--sm nx-followbtn" id="jspFollowup" on-click="[[ $listeners.onFollowup ]]"
             :disabled="[[ $variables.report.rows.length === 0 ]]"
             title="Copy the ticked items (or all of them) as a table you can paste into an email">

@@ -131,6 +131,7 @@ define(['resources/js/exportKit', 'resources/js/jiraStoryPanel', 'resources/js/t
       return keys.length && on === keys.length ? 'true' : (on ? 'mixed' : 'false');
     }
     /** The copy button's label: "Copy 3 to follow-up" once items are ticked, else "Copy to follow-up". */
+    analyzeLabel(selected) { const n = (selected || []).length; return n > 1 ? 'Analyze ' + n + ' with AI' : 'Analyze with AI'; }
     followLabel(selected) { const n = (selected || []).length; return n ? 'Copy ' + n + ' to follow-up' : 'Copy to follow-up'; }
 
     /** The follow-up compose dialog: the body templates, the chosen chip, a live preview of the email. */

@@ -1,0 +1,238 @@
+{
+  "description": "Analyze with AI for several Jira stories at once (ticked on a sprint's tab, or the stories shown on Jira stories). Reads them from the connected Jira (JQL key in (…)) with each one's whole activity (comments, history, work log) and attachments, and asks the shared Ask AI for one analysis across them: overview, story by story, overlaps and dependencies, risks, an FDD check, the order of work and the pages they land on. It reads the FDD chosen from the FDD library (the latest unless another is picked). A chatbot answers follow-up questions about the set. Rules: resources/js/storyAnalysis.js, storyAnalysisRun.js. Read only.",
+  "navigation": {
+    "embeddable": "enabled"
+  },
+  "variables": {
+    "keys": {
+      "type": "string",
+      "defaultValue": "",
+      "input": "fromCaller",
+      "description": "The Jira story keys, comma-separated (the tab's key)."
+    },
+    "loading": {
+      "type": "boolean",
+      "defaultValue": true
+    },
+    "progress": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "error": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "missing": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "Keys Jira did not find, said."
+    },
+    "notConnected": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "stories": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "The stories (jiraBacklog.fromIssue), in the order given, each with its history, work log and comments once read."
+    },
+    "open": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "The story whose details are open on the left."
+    },
+    "activity": {
+      "type": "object",
+      "defaultValue": {},
+      "description": "Each story's whole activity (jiraBacklog.loadActivity): { KEY: … }."
+    },
+    "actTab": {
+      "type": "string",
+      "defaultValue": "all"
+    },
+    "images": {
+      "type": "object",
+      "defaultValue": {},
+      "description": "The open stories' images: { attachmentId: url }."
+    },
+    "pages": {
+      "type": "any[]",
+      "defaultValue": [],
+      "description": "The EquipRite screens, for the 'which page' suggestion."
+    },
+    "analyzing": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "analysisHtml": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "analysisProvider": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "analysisFdd": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "aiReady": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "chat": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "chatDraft": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "chatBusy": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "fddLib": {
+      "type": "any",
+      "defaultValue": {
+        "latest": "",
+        "docs": []
+      }
+    },
+    "fddOptions": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "fddId": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "fddChosen": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "fddMenu": {
+      "type": "boolean",
+      "defaultValue": false
+    },
+    "fddPicked": {
+      "type": "any[]",
+      "defaultValue": []
+    },
+    "fddNote": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "fddView": {
+      "type": "any",
+      "defaultValue": null
+    }
+  },
+  "eventListeners": {
+    "vbEnter": {
+      "chains": [
+        {
+          "chain": "loadChain"
+        }
+      ]
+    },
+    "onAnalyze": {
+      "chains": [
+        {
+          "chain": "analyzeChain",
+          "parameters": {
+            "force": true
+          }
+        }
+      ]
+    },
+    "onStory": {
+      "chains": [
+        {
+          "chain": "storyChain",
+          "parameters": {
+            "act": "{{ $event.currentTarget.dataset.act }}",
+            "key": "{{ $event.currentTarget.dataset.key }}"
+          }
+        }
+      ]
+    },
+    "onActTab": {
+      "chains": [
+        {
+          "chain": "actTabChain",
+          "parameters": {
+            "tab": "{{ $event.currentTarget.dataset.tab }}"
+          }
+        }
+      ]
+    },
+    "onFile": {
+      "chains": [
+        {
+          "chain": "fileChain",
+          "parameters": {
+            "id": "{{ $event.currentTarget.dataset.id }}",
+            "key": "{{ $event.currentTarget.dataset.key }}"
+          }
+        }
+      ]
+    },
+    "onChatInput": {
+      "chains": [
+        {
+          "chain": "setChain",
+          "parameters": {
+            "field": "chatDraft",
+            "value": "{{ $event.target.value }}"
+          }
+        }
+      ]
+    },
+    "onChatKey": {
+      "chains": [
+        {
+          "chain": "chatChain",
+          "parameters": {
+            "key": "{{ $event.key }}"
+          }
+        }
+      ]
+    },
+    "onChatSend": {
+      "chains": [
+        {
+          "chain": "chatChain",
+          "parameters": {
+            "key": "{{ 'Enter' }}"
+          }
+        }
+      ]
+    },
+    "onFdd": {
+      "chains": [
+        {
+          "chain": "fddChain",
+          "parameters": {
+            "act": "{{ $event.currentTarget.dataset.act }}",
+            "id": "{{ $event.currentTarget.dataset.id || '' }}",
+            "i": "{{ $event.currentTarget.dataset.i || '' }}"
+          }
+        }
+      ]
+    }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-if": {
+        "path": "ojs/ojknockout"
+      },
+      "oj-bind-text": {
+        "path": "ojs/ojknockout"
+      }
+    }
+  }
+}

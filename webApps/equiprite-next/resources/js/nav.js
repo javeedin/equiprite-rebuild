@@ -172,6 +172,15 @@ define(['resources/js/rules'], function (rules) {
     'jira-analysis': { flow: 'insights', page: 'jira-analysis', icon: 'oj-ux-ico-magic-wand', navId: 'jira',
       key: function (p) { return p ? String(p.key || '') : ''; },
       title: function (p) { return 'AI · ' + ((p && p.key) || 'Story'); } },
+    // "Analyze with AI" for several stories at once ({ keys: 'EQP-23,EQP-36' }): the stories, their activity, one AI
+    // analysis across them and a chatbot (flows/insights jira-analysis-set). Opened from a sprint's ticked items or the
+    // stories shown on Jira stories; the same set opens the same tab.
+    'jira-analysis-set': { flow: 'insights', page: 'jira-analysis-set', icon: 'oj-ux-ico-magic-wand', navId: 'jira',
+      key: function (p) { return p ? String(p.keys || '').toUpperCase().split(/[\s,]+/).filter(Boolean).sort().join(',') : ''; },
+      title: function (p) {
+        var k = p ? String(p.keys || '').split(/[\s,]+/).filter(Boolean) : [];
+        return 'AI · ' + (k.length <= 2 ? k.join(', ') : k.length + ' stories');
+      } },
     // An agreement is keyed by its number ({ number: 'RNT-0002' }); { id: 'new' } is a new one.
     agreement: { flow: 'commercial', page: 'agreement', icon: 'oj-ux-ico-file-text', navId: 'agreements',
       title: function (p) { return (p && (p.number || (p.id === 'new' ? 'New agreement' : p.id))) || 'Agreement'; } },

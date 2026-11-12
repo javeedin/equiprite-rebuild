@@ -99,6 +99,8 @@ function handle(req, res) {
     if (/issuetype = Bug/.test(jql)) return res.json({ issues: [BUG], isLast: true });
     const sprint = /sprint = (\d+)/.exec(jql);
     if (sprint) return res.json({ issues: ISSUES.filter((i) => (i.fields.customfield_10020 || []).some((x) => String(x.id) === sprint[1])), isLast: true });
+    const keyin = /\bkey\s+in\s*\(([^)]*)\)/i.exec(jql); // Analyze N with AI reads its stories at once
+    if (keyin) { const want = keyin[1].split(',').map((k) => k.trim().toUpperCase()); return res.json({ issues: [...ISSUES, BUG, SUB1].filter((i) => want.indexOf(i.key) !== -1), isLast: true }); }
     const keym = /\bkey\s*=\s*([A-Za-z]+-[\w-]+)/.exec(jql); // the drawer fetches a subtask by key when it is expanded
     if (keym) return res.json({ issues: [...ISSUES, BUG, SUB1].filter((i) => i.key === keym[1]), isLast: true });
     // two pages, as Jira pages: a token, then isLast
@@ -486,6 +488,10 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     T.check('…the tester\'s screenshot, its attachments, and its test evidence (Record) as on Jira stories', await page.$eval('#jspActivity .nx-jira-act--comment img', (i) => i.naturalWidth > 0).catch(() => false) && /Work log 1/.test(await text(page, '#jspActTabs'))
       && (await page.$$('#jspAttachments img')).length === 1 && await page.isVisible('#jspRecord'));
     await env.shot('next-jira-sprint-drawer.png');
+    const ticked = (await page.$$('#jspGrid .nx-jsp-row--sel')).length;
+    const aiLabel = await text(page, '#jspAnalyze');
+    T.check('Analyze with AI on a sprint\'s tab follows the ticks (none: waits; one: that story; more: "Analyze N with AI")',
+      (await page.isDisabled('#jspAnalyze')) === (ticked === 0) && (ticked > 1 ? aiLabel.indexOf('Analyze ' + ticked + ' with AI') !== -1 : /Analyze with AI$/.test(aiLabel)), ticked + ' ' + aiLabel);
     await page.keyboard.press('Escape');
     await page.waitForSelector('#jspItem', { state: 'hidden', timeout: 5000 }).catch(() => {});
     T.check('Escape closes it', !(await page.isVisible('#jspItem')));
@@ -873,6 +879,45 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     await page.keyboard.press('Escape');
     T.eq('no browser errors in Redwood', errs().join(' | ').slice(0, 1500), '');
     await env.setLook('current');
+    await page.waitForSelector('#jiraGrid', { timeout: 20000 });
+
+    T.section('Analyze several stories with AI: the stories shown, together, in a new tab');
+    const setLabel = await text(page, '#jiraAnalyzeSet');
+    const nShown = Number((/Analyze (\d+) with AI/.exec(setLabel) || [])[1] || 0);
+    T.check('the button counts the stories shown', nShown >= 2, setLabel);
+    const llmBefore = llmBodies.length;
+    await page.click('#jiraAnalyzeSet');
+    await page.waitForSelector('#asStories .nx-as-story', { timeout: 30000 }).catch(() => {});
+    await page.waitForFunction((n) => document.querySelectorAll('#asStories .nx-as-story').length === n && /Requirement/.test((document.getElementById('asAnalysis') || { getAttribute: () => '' }).getAttribute('srcdoc') || '')
+      && !!document.getElementById('asFddRead'), nShown, { timeout: 30000 }).catch(() => {});
+    await settle(page, 500);
+    T.check('a new tab, "AI · N stories", listing each story with its status and counts', (await page.$$eval('[role="tab"]', (t) => t.map((x) => x.textContent))).some((t) => t.includes(nShown > 2 ? 'AI · ' + nShown + ' stories' : 'AI · EQP-12, EQP-13'))
+      && (await page.$$('#asStories .nx-as-story')).length === nShown && /EQP-12[\s\S]*Equipment Master List View/.test(await text(page, '#asStories'))
+      && /2 comments · 2 changes · 4h logged · 2 files/.test(await text(page, '#asStories .nx-as-story[data-key="EQP-12"]')), (await text(page, '#asStories')).slice(0, 300));
+    T.check('…it read them in one search, and each one\'s whole activity', searches.some((x) => /^key in \(EQP-/.test(x.jql)) && activityReads.filter((r) => / comment@0/.test(r)).length >= nShown);
+    const setPrompt = llmBodies.slice(llmBefore).filter((b) => /STORIES \(/.test(b))[0] || '';
+    T.check('one AI analysis across them: every story, overview → story by story → overlaps → risks → FDD check → order of work',
+      new RegExp('STORIES \\(' + nShown + '\\)').test(setPrompt) && /===== Story 1 of /.test(setPrompt) && /## Overview/.test(setPrompt) && /## Story by story/.test(setPrompt)
+      && /## Overlaps & dependencies/.test(setPrompt) && /## FDD check/.test(setPrompt) && /## Suggested order of work/.test(setPrompt), setPrompt.slice(0, 300));
+    T.check('…with the FDD sections the stories name (7.2 and its parts, from the latest FDD) and each story\'s history and work log',
+      /FDD 7\.2 Equipment master list/.test(setPrompt) && /NEW-V17/.test(setPrompt) && /logged 4h: grid wiring/.test(setPrompt) && /Status FUNC DESIGN → DEVELOPMENT/.test(setPrompt));
+    T.check('the analysis shows, with the FDD picker on the latest and the sections read', /What to do next|Requirement/.test((await page.getAttribute('#asAnalysis', 'srcdoc')) || '')
+      && /v1\.7 \(latest\)/.test(await text(page, '#asFddName')) && /7\.2 Equipment master list/.test(await text(page, '#asFddRead')));
+    await page.click('#asStories .nx-as-story[data-key="EQP-12"] .nx-as-toggle');
+    await page.waitForSelector('#asDetail', { timeout: 10000 }).catch(() => {});
+    await settle(page, 400);
+    T.check('a story opens to its details: description, criteria, sub-tasks, its whole activity and attachments', /Display master list/.test(await text(page, '#asDetail'))
+      && /All 5/.test(await text(page, '#asActTabs')) && /logged 4h/.test(await text(page, '#asActivity')) && (await page.$$('#asAttachments img')).length === 1 && /mapping\.xlsx/.test(await text(page, '#asFiles')));
+    const chatFrom = llmBodies.length;
+    await page.evaluate(() => { const i = document.getElementById('asChatInput'); i.value = 'which story first?'; i.dispatchEvent(new Event('input', { bubbles: true })); document.getElementById('asChatSend').click(); });
+    await page.waitForFunction(() => { const f = document.getElementById('asChat'); return f && /class="b a"/.test(f.getAttribute('srcdoc') || ''); }, null, { timeout: 20000 }).catch(() => {});
+    T.check('the chatbot answers about the set', /which story first/.test((await page.getAttribute('#asChat', 'srcdoc')) || '') && llmBodies.slice(chatFrom).some((b) => /set of EquipRite Jira stories/.test(b) && /which story first/.test(b)), llmBodies.slice(chatFrom).map((b) => b.slice(0, 120)).join(' || '));
+    await page.evaluate(() => { const c = document.querySelector('.nx-content'); if (c) c.scrollTop = 0; });
+    await env.shot('next-jira-analysis-set.png');
+    await page.click('#asStories .nx-as-story[data-key="EQP-13"] [data-act="alone"]');
+    await page.waitForFunction(() => /EQP-13/.test((document.querySelector('#anStory') || {}).textContent || ''), null, { timeout: 20000 }).catch(() => {});
+    T.check('"Analyze alone" opens that story\'s own analysis', (await page.$$eval('[role="tab"]', (t) => t.map((x) => x.textContent))).some((t) => t.includes('AI · EQP-13')));
+    await page.locator('[role="tab"]').filter({ hasText: 'Jira stories' }).first().click().catch(() => {});
     await page.waitForSelector('#jiraGrid', { timeout: 20000 });
 
     T.section('Disconnect');

@@ -361,6 +361,7 @@
     }
   },
   "eventListeners": {
+    "onAnalyzeSet": { "chains": [ { "chain": "analyzeSetChain" } ] },
     "onActTab": { "chains": [ { "chain": "setChain", "parameters": { "field": "{{ 'actTab' }}", "value": "{{ $event.currentTarget.dataset.tab }}" } } ] },
     "onFile": { "chains": [ { "chain": "fileChain", "parameters": { "id": "{{ $event.currentTarget.dataset.id }}" } } ] },
     "vbEnter": {

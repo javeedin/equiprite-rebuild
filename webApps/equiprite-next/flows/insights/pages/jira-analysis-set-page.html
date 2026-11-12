@@ -1,0 +1,227 @@
+<!-- Analyze with AI, for several Jira stories at once (ticked on a sprint's tab, or shown on Jira stories). Left: the
+     stories, each with its facts, and — opened — its description, criteria, sub-tasks, whole activity (comments with
+     screenshots, history, work log) and attachments. Right: one AI analysis across them (overview, story by story,
+     overlaps and dependencies, risks, FDD check, order of work, pages) and a chatbot about the set. The FDD it reads is
+     picked from the FDD library (latest first). Rules: resources/js/storyAnalysis.js, storyAnalysisRun.js, fddIndex.js.
+     Read only. -->
+<div class="nx-page nx-an nx-as">
+  <div class="nx-pagehead">
+    <div>
+      <div class="nx-kicker">Insights · Jira</div>
+      <h1>Analyze with AI</h1>
+      <div class="nx-sub" id="asSub"><oj-bind-text value="[[ $functions.subText($variables.stories, $variables.keys) ]]"></oj-bind-text></div>
+    </div>
+    <div class="nx-actions">
+      <oj-bind-if test="[[ $variables.stories.length > 0 && $variables.aiReady ]]"><button type="button" class="nx-btn nx-btn--plain" id="asReanalyze" on-click="[[ $listeners.onAnalyze ]]" :disabled="[[ $variables.analyzing ]]"><oj-bind-text value="[[ $variables.analyzing ? '…analysing' : '✨ Re-run analysis' ]]"></oj-bind-text></button></oj-bind-if>
+    </div>
+  </div>
+
+  <oj-bind-if test="[[ $variables.loading ]]"><div class="nx-empty" id="asLoading"><oj-bind-text value="[[ $variables.progress || 'Reading the stories from Jira…' ]]"></oj-bind-text></div></oj-bind-if>
+  <oj-bind-if test="[[ !$variables.loading && $variables.notConnected ]]"><div class="nx-empty" id="asNC">Not connected to Jira. Open the <b>Jira stories</b> page and connect, then try again.</div></oj-bind-if>
+  <oj-bind-if test="[[ !$variables.loading && !$variables.notConnected && $variables.error ]]"><div class="nx-empty nx-an-err" id="asErr"><oj-bind-text value="[[ $variables.error ]]"></oj-bind-text></div></oj-bind-if>
+
+  <oj-bind-if test="[[ !$variables.loading && $variables.stories.length > 0 ]]">
+    <div class="nx-an-cols">
+      <!-- The stories -->
+      <section class="nx-card nx-as-list" id="asStories" aria-label="The stories">
+        <div class="nx-card-head"><h2 class="nx-h2"><oj-bind-text value="[[ 'Stories (' + $variables.stories.length + ')' ]]"></oj-bind-text></h2><span class="nx-min-flex"></span>
+          <oj-bind-if test="[[ !!$variables.missing ]]"><span class="nx-note nx-an-err" id="asMissing"><oj-bind-text value="[[ $variables.missing ]]"></oj-bind-text></span></oj-bind-if></div>
+        <oj-bind-for-each data="[[ $variables.stories ]]">
+          <template data-oj-as="s">
+            <div :class="[[ 'nx-as-story' + ($variables.open === s.data.key ? ' nx-as-story--open' : '') ]]" :data-key="[[ s.data.key ]]">
+              <div class="nx-as-row">
+                <button type="button" class="nx-as-toggle" data-act="open" :data-key="[[ s.data.key ]]" on-click="[[ $listeners.onStory ]]" :aria-expanded="[[ $variables.open === s.data.key ? 'true' : 'false' ]]">
+                  <span :class="[[ $variables.open === s.data.key ? 'oj-ux-ico-chevron-down' : 'oj-ux-ico-chevron-right' ]]" aria-hidden="true"></span>
+                  <b class="nx-an-key"><oj-bind-text value="[[ s.data.key ]]"></oj-bind-text></b>
+                  <span class="nx-as-sum"><oj-bind-text value="[[ s.data.summary ]]"></oj-bind-text></span>
+                </button>
+                <span :class="[[ $functions.badge(s.data.statusCat) ]]"><oj-bind-text value="[[ s.data.status ]]"></oj-bind-text></span>
+              </div>
+              <div class="nx-as-meta">
+                <span><oj-bind-text value="[[ s.data.assignee || 'Unassigned' ]]"></oj-bind-text></span>
+                <oj-bind-if test="[[ s.data.sprint ]]"><span><oj-bind-text value="[[ s.data.sprint ]]"></oj-bind-text></span></oj-bind-if>
+                <oj-bind-if test="[[ s.data.due ]]"><span :class="[[ s.data.overdue ? 'nx-an-err' : '' ]]"><oj-bind-text value="[[ 'Due ' + s.data.due ]]"></oj-bind-text></span></oj-bind-if>
+                <oj-bind-for-each data="[[ s.data.fdd || [] ]]"><template data-oj-as="f"><span class="nx-an-fdd">FDD <oj-bind-text value="[[ f.data ]]"></oj-bind-text></span></template></oj-bind-for-each>
+                <span class="nx-note"><oj-bind-text value="[[ $functions.countsText($variables.activity, s.data) ]]"></oj-bind-text></span>
+              </div>
+              <div class="nx-as-links">
+                <a class="nx-as-link" :href="[[ s.data.url ]]" target="_blank" rel="noopener"><span class="oj-ux-ico-external-link" aria-hidden="true"></span> Jira</a>
+                <button type="button" class="nx-as-link" data-act="alone" :data-key="[[ s.data.key ]]" on-click="[[ $listeners.onStory ]]"><span class="oj-ux-ico-magic-wand" aria-hidden="true"></span> Analyze alone</button>
+              </div>
+              <oj-bind-if test="[[ $variables.open === s.data.key ]]">
+                <div class="nx-as-detail" id="asDetail">
+                  <oj-bind-if test="[[ s.data.body ]]"><div class="nx-an-sec">Description</div><p class="nx-an-body"><oj-bind-text value="[[ s.data.body ]]"></oj-bind-text></p></oj-bind-if>
+                  <oj-bind-if test="[[ s.data.ac ]]"><div class="nx-an-sec">Acceptance criteria</div><p class="nx-an-body"><oj-bind-text value="[[ s.data.ac ]]"></oj-bind-text></p></oj-bind-if>
+                  <oj-bind-if test="[[ (s.data.subtaskList || []).length > 0 ]]">
+                    <div class="nx-an-sec"><oj-bind-text value="[[ 'Sub-tasks (' + s.data.subtaskList.length + ')' ]]"></oj-bind-text></div>
+                    <oj-bind-for-each data="[[ s.data.subtaskList ]]">
+                      <template data-oj-as="t">
+                        <div class="nx-an-subrow">
+                          <a class="nx-an-subkey" :href="[[ t.data.url ]]" target="_blank" rel="noopener"><oj-bind-text value="[[ t.data.key ]]"></oj-bind-text></a>
+                          <span class="nx-an-subsum"><oj-bind-text value="[[ t.data.summary ]]"></oj-bind-text></span>
+                          <span :class="[[ $functions.badge(t.data.statusCat) ]]"><oj-bind-text value="[[ t.data.status ]]"></oj-bind-text></span>
+                        </div>
+                      </template>
+                    </oj-bind-for-each>
+                  </oj-bind-if>
+                  <div class="nx-an-sec" id="asActHead">Activity</div>
+        <div class="nx-jira-acttabs" role="tablist" id="asActTabs">
+          <button type="button" role="tab" :class="[[ $functions.actTabClass($functions.act($variables.activity, s.data.key, $variables.actTab, s.data), 'all') ]]" data-tab="all" on-click="[[ $listeners.onActTab ]]"><oj-bind-text value="[[ $functions.actLabel($functions.act($variables.activity, s.data.key, $variables.actTab, s.data), 'all') ]]"></oj-bind-text></button>
+          <button type="button" role="tab" :class="[[ $functions.actTabClass($functions.act($variables.activity, s.data.key, $variables.actTab, s.data), 'comments') ]]" data-tab="comments" on-click="[[ $listeners.onActTab ]]"><oj-bind-text value="[[ $functions.actLabel($functions.act($variables.activity, s.data.key, $variables.actTab, s.data), 'comments') ]]"></oj-bind-text></button>
+          <button type="button" role="tab" :class="[[ $functions.actTabClass($functions.act($variables.activity, s.data.key, $variables.actTab, s.data), 'history') ]]" data-tab="history" on-click="[[ $listeners.onActTab ]]"><oj-bind-text value="[[ $functions.actLabel($functions.act($variables.activity, s.data.key, $variables.actTab, s.data), 'history') ]]"></oj-bind-text></button>
+          <button type="button" role="tab" :class="[[ $functions.actTabClass($functions.act($variables.activity, s.data.key, $variables.actTab, s.data), 'worklog') ]]" data-tab="worklog" on-click="[[ $listeners.onActTab ]]"><oj-bind-text value="[[ $functions.actLabel($functions.act($variables.activity, s.data.key, $variables.actTab, s.data), 'worklog') ]]"></oj-bind-text></button>
+        </div>
+        <div class="nx-jira-acts" id="asActivity">
+          <oj-bind-if test="[[ $functions.act($variables.activity, s.data.key, $variables.actTab, s.data).loading ]]"><p class="nx-note nx-jira-actwait">Reading every comment, change and work log entry from Jira…</p></oj-bind-if>
+          <oj-bind-if test="[[ !!$functions.act($variables.activity, s.data.key, $variables.actTab, s.data).error ]]"><p class="nx-note nx-jira-acterr"><oj-bind-text value="[[ $functions.act($variables.activity, s.data.key, $variables.actTab, s.data).error + ' The comments from the list are shown.' ]]"></oj-bind-text></p></oj-bind-if>
+          <oj-bind-if test="[[ !!$functions.act($variables.activity, s.data.key, $variables.actTab, s.data).note ]]"><p class="nx-note"><oj-bind-text value="[[ $functions.act($variables.activity, s.data.key, $variables.actTab, s.data).note ]]"></oj-bind-text></p></oj-bind-if>
+          <oj-bind-for-each data="[[ $functions.act($variables.activity, s.data.key, $variables.actTab, s.data).items ]]">
+            <template data-oj-as="a">
+              <div :class="[[ 'nx-jira-act nx-jira-act--' + a.data.kind ]]">
+                <span class="nx-jira-actav" aria-hidden="true"><oj-bind-text value="[[ $functions.initials(a.data.author) ]]"></oj-bind-text></span>
+                <div class="nx-jira-actmain">
+                  <div class="nx-jira-acttop"><b><oj-bind-text value="[[ a.data.author ]]"></oj-bind-text></b> <span class="nx-jira-actverb"><oj-bind-text value="[[ $functions.actVerb(a.data) ]]"></oj-bind-text></span> <span class="nx-note"><oj-bind-text value="[[ $functions.actWhen(a.data) ]]"></oj-bind-text></span></div>
+                  <oj-bind-if test="[[ a.data.kind === 'comment' || (a.data.kind === 'worklog' && !!a.data.text) ]]"><p class="nx-jira-text"><oj-bind-text value="[[ a.data.text ]]"></oj-bind-text></p></oj-bind-if>
+                  <oj-bind-if test="[[ a.data.kind === 'comment' && (a.data.images || []).length > 0 ]]">
+                    <div class="nx-jira-imgs">
+                      <oj-bind-for-each data="[[ a.data.images ]]">
+                        <template data-oj-as="im">
+                          <figure class="nx-jira-img">
+                            <oj-bind-if test="[[ !!$functions.imageUrl($variables.images, im.data.id) ]]">
+                              <a :href="[[ $functions.imageUrl($variables.images, im.data.id) ]]" target="_blank" rel="noopener" :title="[[ 'Open ' + im.data.name + ' full size' ]]"><img :src="[[ $functions.imageUrl($variables.images, im.data.id) ]]" :alt="[[ im.data.name ]]" loading="lazy"></a>
+                            </oj-bind-if>
+                            <oj-bind-if test="[[ !$functions.imageUrl($variables.images, im.data.id) ]]"><span class="nx-jira-imgwait"><oj-bind-text value="[[ $functions.imageNote($variables.images, im.data.id) ]]"></oj-bind-text></span></oj-bind-if>
+                            <figcaption><oj-bind-text value="[[ im.data.name ]]"></oj-bind-text></figcaption>
+                          </figure>
+                        </template>
+                      </oj-bind-for-each>
+                    </div>
+                  </oj-bind-if>
+                  <oj-bind-if test="[[ a.data.kind === 'history' ]]">
+                    <ul class="nx-jira-actchg">
+                      <oj-bind-for-each data="[[ a.data.items ]]">
+                        <template data-oj-as="it">
+                          <li>
+                            <span class="nx-jira-actfield"><oj-bind-text value="[[ it.data.field ]]"></oj-bind-text></span>
+                            <oj-bind-if test="[[ !it.data.file ]]"><span class="nx-jira-actfrom"><oj-bind-text value="[[ $functions.actFrom(it.data) ]]"></oj-bind-text></span> <span aria-hidden="true">→</span> <span class="nx-jira-actto"><oj-bind-text value="[[ $functions.actTo(it.data) ]]"></oj-bind-text></span></oj-bind-if>
+                            <oj-bind-if test="[[ !!it.data.file ]]">
+                              <span class="nx-jira-actto"><oj-bind-text value="[[ (it.data.file.removed ? 'removed ' : 'added ') + it.data.file.name + (it.data.file.sizeText ? ' · ' + it.data.file.sizeText : '') ]]"></oj-bind-text></span>
+                              <oj-bind-if test="[[ it.data.file.image && !it.data.file.removed && !!$functions.imageUrl($variables.images, it.data.file.id) ]]">
+                                <a class="nx-jira-actthumb" :href="[[ $functions.imageUrl($variables.images, it.data.file.id) ]]" target="_blank" rel="noopener"><img :src="[[ $functions.imageUrl($variables.images, it.data.file.id) ]]" :alt="[[ it.data.file.name ]]" loading="lazy"></a>
+                              </oj-bind-if>
+                            </oj-bind-if>
+                          </li>
+                        </template>
+                      </oj-bind-for-each>
+                    </ul>
+                  </oj-bind-if>
+                </div>
+              </div>
+            </template>
+          </oj-bind-for-each>
+          <oj-bind-if test="[[ !$functions.act($variables.activity, s.data.key, $variables.actTab, s.data).loading && $functions.act($variables.activity, s.data.key, $variables.actTab, s.data).items.length === 0 ]]"><p class="nx-note"><oj-bind-text value="[[ $functions.actEmpty($functions.act($variables.activity, s.data.key, $variables.actTab, s.data).tab) ]]"></oj-bind-text></p></oj-bind-if>
+        </div>
+                  <div class="nx-an-sec"><oj-bind-text value="[[ 'Attachments (' + (s.data.attachments || []).length + ')' ]]"></oj-bind-text></div>
+                  <div class="nx-jira-imgs nx-jira-imgs--all" id="asAttachments">
+                    <oj-bind-for-each data="[[ $functions.imageFiles(s.data) ]]">
+                      <template data-oj-as="im">
+                        <figure class="nx-jira-img">
+                          <oj-bind-if test="[[ !!$functions.imageUrl($variables.images, im.data.id) ]]"><a :href="[[ $functions.imageUrl($variables.images, im.data.id) ]]" target="_blank" rel="noopener"><img :src="[[ $functions.imageUrl($variables.images, im.data.id) ]]" :alt="[[ im.data.name ]]" loading="lazy"></a></oj-bind-if>
+                          <oj-bind-if test="[[ !$functions.imageUrl($variables.images, im.data.id) ]]"><span class="nx-jira-imgwait"><oj-bind-text value="[[ $functions.imageNote($variables.images, im.data.id) ]]"></oj-bind-text></span></oj-bind-if>
+                          <figcaption><oj-bind-text value="[[ im.data.name ]]"></oj-bind-text></figcaption>
+                        </figure>
+                      </template>
+                    </oj-bind-for-each>
+                  </div>
+                  <ul class="nx-jira-list" id="asFiles">
+                    <oj-bind-for-each data="[[ $functions.otherFiles(s.data) ]]">
+                      <template data-oj-as="fl"><li><button type="button" class="nx-jira-filebtn" :data-id="[[ fl.data.id ]]" :data-key="[[ s.data.key ]]" on-click="[[ $listeners.onFile ]]"><span class="oj-ux-ico-download" aria-hidden="true"></span><oj-bind-text value="[[ fl.data.name ]]"></oj-bind-text></button> <span class="nx-note"><oj-bind-text value="[[ fl.data.sizeText + (fl.data.author ? ' · ' + fl.data.author : '') ]]"></oj-bind-text></span></li></template>
+                    </oj-bind-for-each>
+                  </ul>
+                  <oj-bind-if test="[[ (s.data.attachments || []).length === 0 ]]"><p class="nx-note">No attachments.</p></oj-bind-if>
+                </div>
+              </oj-bind-if>
+            </div>
+          </template>
+        </oj-bind-for-each>
+      </section>
+
+      <!-- One AI analysis across the stories + a chatbot about the set (the same as Analyze with AI for one story) -->
+      <section class="nx-an-ai">
+        <div class="nx-card nx-an-analysis">
+          <div class="nx-card-head"><h2 class="nx-h2">AI analysis</h2><span class="nx-min-flex"></span><oj-bind-if test="[[ $variables.analysisProvider ]]"><span class="nx-note" id="asBy"><oj-bind-text value="[[ 'by ' + $variables.analysisProvider + ($variables.analysisFdd ? ' · against ' + $variables.analysisFdd : '') ]]"></oj-bind-text></span></oj-bind-if></div>
+          <!-- The FDD it reads: the latest from the FDD library, or another picked here (or none) -->
+          <div class="nx-an-fddbar" id="asFddBar">
+            <span class="oj-ux-ico-document-check nx-an-fddico" aria-hidden="true"></span>
+            <span class="nx-an-fddlbl">FDD</span>
+            <oj-bind-if test="[[ $variables.fddOptions.length ]]">
+              <div class="nx-an-fddpick">
+                <button type="button" class="nx-an-fddbtn" id="asFddBtn" data-act="menu" on-click="[[ $listeners.onFdd ]]" :disabled="[[ $variables.analyzing ]]" aria-haspopup="listbox" :aria-expanded="[[ $variables.fddMenu ? 'true' : 'false' ]]">
+                  <span id="asFddName"><oj-bind-text value="[[ $functions.fddLabel($variables.fddOptions, $variables.fddId) ]]"></oj-bind-text></span>
+                  <span class="oj-ux-ico-caret-down" aria-hidden="true"></span>
+                </button>
+                <oj-bind-if test="[[ $variables.fddMenu ]]">
+                  <div class="nx-an-fddmenu" id="asFddMenu" role="listbox">
+                    <oj-bind-for-each data="[[ $variables.fddOptions ]]">
+                      <template data-oj-as="o">
+                        <button type="button" role="option" :class="[[ 'nx-an-fddopt' + (o.data.id === $variables.fddId ? ' nx-an-fddopt--on' : '') ]]" data-act="pick" :data-id="[[ o.data.id ]]" on-click="[[ $listeners.onFdd ]]" :aria-selected="[[ o.data.id === $variables.fddId ? 'true' : 'false' ]]">
+                          <oj-bind-text value="[[ o.data.label ]]"></oj-bind-text>
+                        </button>
+                      </template>
+                    </oj-bind-for-each>
+                    <button type="button" role="option" :class="[[ 'nx-an-fddopt nx-an-fddopt--none' + ($variables.fddId === '' ? ' nx-an-fddopt--on' : '') ]]" data-act="pick" data-id="" on-click="[[ $listeners.onFdd ]]">No FDD — the story only</button>
+                    <button type="button" class="nx-an-fddopt nx-an-fddopt--lib" data-act="library" on-click="[[ $listeners.onFdd ]]"><span class="oj-ux-ico-upload" aria-hidden="true"></span> FDD library…</button>
+                  </div>
+                </oj-bind-if>
+              </div>
+            </oj-bind-if>
+            <oj-bind-if test="[[ !$variables.fddOptions.length ]]">
+              <span class="nx-note" id="asFddNone">None in the library yet, so the analysis reads only the story.</span>
+              <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" id="asFddUpload" data-act="library" on-click="[[ $listeners.onFdd ]]"><span class="oj-ux-ico-upload" aria-hidden="true"></span>Upload an FDD</button>
+            </oj-bind-if>
+          </div>
+          <oj-bind-if test="[[ $variables.fddPicked.length ]]">
+            <div class="nx-an-fddread" id="asFddRead">
+              <span class="nx-an-fddreadlbl">Read from the FDD:</span>
+              <oj-bind-for-each data="[[ $functions.indexed($variables.fddPicked) ]]">
+                <template data-oj-as="p">
+                  <button type="button" :class="[[ $functions.chipClass(p.data, $variables.fddView) ]]" data-act="view" :data-i="[[ p.data.i ]]" on-click="[[ $listeners.onFdd ]]" :title="[[ p.data.t + ' — ' + p.data.why ]]">
+                    <oj-bind-text value="[[ $functions.chipText(p.data) ]]"></oj-bind-text>
+                  </button>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.fddNote ]]"><div class="nx-an-fddnote" id="asFddNote"><oj-bind-text value="[[ $variables.fddNote ]]"></oj-bind-text></div></oj-bind-if>
+          <oj-bind-if test="[[ $variables.fddView ]]">
+            <div class="nx-an-fddview" id="asFddView">
+              <div class="nx-an-fddviewhead">
+                <b><oj-bind-text value="[[ ($variables.fddView.n ? 'FDD ' + $variables.fddView.n + ' · ' : '') + $variables.fddView.t ]]"></oj-bind-text></b>
+                <span class="nx-note"><oj-bind-text value="[[ ($variables.fddView.parent ? 'in ' + $variables.fddView.parent + ' · ' : '') + $variables.fddView.why ]]"></oj-bind-text></span>
+                <span class="nx-min-flex"></span>
+                <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" data-act="close" on-click="[[ $listeners.onFdd ]]" title="Close"><span class="oj-ux-ico-close" aria-hidden="true"></span></button>
+              </div>
+              <pre class="nx-an-fddtext"><oj-bind-text value="[[ $variables.fddView.x || '(no text under this heading)' ]]"></oj-bind-text></pre>
+            </div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ !$variables.aiReady ]]">
+            <div class="nx-empty" id="asSetup">Set up AI to analyse these stories — open <b>Standup minutes</b> (or the SQL worksheet) and choose a provider under <b>Set up AI</b>. The cheapest option is <b>Claude Code (your subscription)</b>.</div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.aiReady ]]">
+            <oj-bind-if test="[[ $variables.analyzing ]]"><div class="nx-empty" id="asBusy"><oj-bind-text value="[[ $variables.fddId ? 'Analysing ' + $variables.stories.length + ' stories together against ' + $functions.fddLabel($variables.fddOptions, $variables.fddId) + '…' : 'Analysing ' + $variables.stories.length + ' stories together…' ]]"></oj-bind-text></div></oj-bind-if>
+            <iframe class="nx-an-frame" id="asAnalysis" title="AI analysis" sandbox="" :srcdoc="[[ $functions.doc($variables.analysisHtml) ]]"></iframe>
+          </oj-bind-if>
+        </div>
+
+        <div class="nx-card nx-an-chat">
+          <div class="nx-card-head"><h2 class="nx-h2">Ask about these stories</h2><span class="nx-min-flex"></span><oj-bind-if test="[[ $variables.chatBusy ]]"><span class="nx-note">…thinking</span></oj-bind-if></div>
+          <iframe class="nx-an-chatframe" id="asChat" title="Chat" sandbox="" :srcdoc="[[ $functions.chatDoc($variables.chat) ]]"></iframe>
+          <div class="nx-an-chatbar">
+            <input type="text" id="asChatInput" class="nx-an-chatinput" autocomplete="off" :value="[[ $variables.chatDraft ]]" on-input="[[ $listeners.onChatInput ]]" on-keydown="[[ $listeners.onChatKey ]]" :placeholder="[[ $variables.aiReady ? 'Ask about these stories…' : 'Set up AI first to ask questions' ]]" :disabled="[[ !$variables.aiReady ]]">
+            <button type="button" class="nx-btn nx-btn--cta nx-an-send" id="asChatSend" on-click="[[ $listeners.onChatSend ]]" :disabled="[[ !$variables.aiReady || $variables.chatBusy ]]">Send</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </oj-bind-if>
+</div>
