@@ -1,5 +1,5 @@
 {
- "scannedAt": "2026-11-12T15:09:52.357Z",
+ "scannedAt": "2026-11-12T15:55:23.903Z",
  "pages": [
   {
    "id": "equiprite//shell",
@@ -1642,7 +1642,15 @@
     "needs": ""
    },
    "stories": [],
-   "sheet": null
+   "sheet": {
+    "at": "2026-11-12T15:50:28.817Z",
+    "by": "javeed.shaik",
+    "codeHash": "ee90b12026635ffb",
+    "screenshots": 1,
+    "ai": false,
+    "rest": 9,
+    "chains": 11
+   }
   },
   {
    "id": "vbredwoodapp/customer-portal/customer-dashboard",
@@ -1807,7 +1815,15 @@
     "needs": ""
    },
    "stories": [],
-   "sheet": null
+   "sheet": {
+    "at": "2026-11-12T15:55:23.782Z",
+    "by": "javeed.shaik",
+    "codeHash": "bf388b6f2700024b",
+    "screenshots": 0,
+    "ai": false,
+    "rest": 3,
+    "chains": 8
+   }
   },
   {
    "id": "vbredwoodapp/equipment-foundation/equipment-create",
@@ -1822,7 +1838,15 @@
     "needs": ""
    },
    "stories": [],
-   "sheet": null
+   "sheet": {
+    "at": "2026-11-12T15:53:51.913Z",
+    "by": "javeed.shaik",
+    "codeHash": "0fd0426df6973a9d",
+    "screenshots": 0,
+    "ai": false,
+    "rest": 0,
+    "chains": 3
+   }
   },
   {
    "id": "vbredwoodapp/equipment-foundation/equipment-detail",

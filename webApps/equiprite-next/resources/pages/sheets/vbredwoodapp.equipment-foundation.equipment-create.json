@@ -1,0 +1,211 @@
+{
+ "id": "vbredwoodapp/equipment-foundation/equipment-create",
+ "facts": {
+  "id": "vbredwoodapp/equipment-foundation/equipment-create",
+  "app": "vbredwoodapp",
+  "appName": "Old EquipRite",
+  "flow": "equipment-foundation",
+  "page": "equipment-create",
+  "label": "Equipment Master",
+  "description": "",
+  "route": {
+   "url": "/vp/shell/equipment-foundation/equipment-create",
+   "menu": "",
+   "needs": ""
+  },
+  "files": [
+   {
+    "path": "webApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-create-page.json",
+    "lines": 123
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-create-page.html",
+    "lines": 289
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-create-page.js",
+    "lines": 134
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-create-page-chains/cancelChain.js",
+    "lines": 17
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-create-page-chains/requireFullAccessChain.js",
+    "lines": 41
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-create-page-chains/saveChain.js",
+    "lines": 26
+   }
+  ],
+  "codeHash": "0fd0426df6973a9d",
+  "features": {
+   "sections": [
+    "Equipment Master"
+   ],
+   "actions": [
+    {
+     "label": "Equipment Master: sp primary action",
+     "listener": "onSpSave",
+     "chains": [
+      "saveChain"
+     ]
+    },
+    {
+     "label": "Equipment Master: sp secondary action",
+     "listener": "onSpCancel",
+     "chains": [
+      "cancelChain"
+     ]
+    }
+   ],
+   "fields": [
+    "Organization Name",
+    "Equipment Type",
+    "Equipment Class",
+    "Equipment Sub-Class",
+    "Equipment Name",
+    "Equipment Number",
+    "Inventory Item",
+    "Sub Inventory",
+    "FA Asset Number",
+    "Maintenance Asset",
+    "Serial Number",
+    "Equipment Description",
+    "Non Labor Resource",
+    "Equipment Status",
+    "Status",
+    "Is Fixed Asset Track?",
+    "Is Inventory Track?",
+    "Is Maintenance Asset Track?",
+    "Surplus",
+    "Purchase Order",
+    "Purchase Order Line",
+    "Project",
+    "Task",
+    "Person",
+    "Insured By",
+    "Insured Policy",
+    "Date In Service",
+    "Retired Date",
+    "Maintenance Asset Number",
+    "Operating Organization",
+    "Maintenance Organization",
+    "Location Type",
+    "Location Organization",
+    "Work Center",
+    "Work Area",
+    "Asset Group",
+    "Manufacturer",
+    "Model Year",
+    "Model Number",
+    "Color",
+    "License State",
+    "License Number",
+    "Fuel Type",
+    "License Expiry",
+    "Weight",
+    "Warranty Code",
+    "Default Location",
+    "Address Line1",
+    "Address Line2",
+    "City",
+    "Country",
+    "Zip"
+   ],
+   "columns": [],
+   "components": [
+    "oj-button",
+    "oj-form-layout",
+    "oj-input-date",
+    "oj-input-number",
+    "oj-input-text",
+    "oj-select-single",
+    "oj-sp-general-overview-page",
+    "oj-sp-messages-banner",
+    "oj-switch",
+    "oj-tab-bar",
+    "oj-text-area"
+   ],
+   "inputs": [],
+   "lifecycle": [
+    {
+     "when": "before the page opens",
+     "chains": [
+      "requireFullAccessChain"
+     ]
+    }
+   ]
+  },
+  "logic": {
+   "chains": [
+    {
+     "name": "cancelChain",
+     "file": "webApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-create-page-chains/cancelChain.js",
+     "about": "",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [
+      "page equipment-master"
+     ],
+     "modules": [],
+     "on": [
+      "onSpCancel"
+     ],
+     "lines": 17
+    },
+    {
+     "name": "requireFullAccessChain",
+     "file": "webApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-create-page-chains/requireFullAccessChain.js",
+     "about": "Page-entry guard for Create: creating an equipment definition needs FULL access to EQR_EQUIPMENT_MASTER, not just the READ_ONLY that lets someone browse the list. (The generic enforcePageAccessChain accepts READ_ONLY.) Before 2026-10-05 this page had no guard at all, so a read-only user -- or anyone with the URL -- could open it. The master page also hides its Create action below FULL; this closes the direct-URL path. Access not loaded yet -> let the page open, as every guard here does (canEnterPage): the map resolves moments after app start, and blocking on it would bounce real users. Save…",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [
+      "page equipment-master"
+     ],
+     "modules": [],
+     "on": [
+      "vbBeforeEnter"
+     ],
+     "lines": 41
+    },
+    {
+     "name": "saveChain",
+     "file": "webApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-create-page-chains/saveChain.js",
+     "about": "In a real app, we'd call a REST API here. For this demo, we simulate success and return to the list.",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [
+      "page equipment-master"
+     ],
+     "modules": [],
+     "on": [
+      "onSpSave"
+     ],
+     "lines": 26
+    }
+   ],
+   "modules": [],
+   "variables": 12
+  },
+  "integrations": {
+   "rest": [],
+   "reports": [],
+   "local": [],
+   "backends": []
+  },
+  "links": [
+   "page equipment-master"
+  ]
+ },
+ "ai": null,
+ "screenshots": [],
+ "stories": [],
+ "at": "2026-11-12T15:53:51.913Z",
+ "by": "javeed.shaik",
+ "codeHash": "0fd0426df6973a9d"
+}
