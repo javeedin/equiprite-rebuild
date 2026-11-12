@@ -1,5 +1,5 @@
 {
- "scannedAt": "2026-11-12T15:51:19.262Z",
+ "scannedAt": "2026-11-12T15:53:52.049Z",
  "pages": [
   {
    "id": "equiprite//shell",
@@ -1830,7 +1830,15 @@
     "needs": ""
    },
    "stories": [],
-   "sheet": null
+   "sheet": {
+    "at": "2026-11-12T15:53:51.913Z",
+    "by": "javeed.shaik",
+    "codeHash": "0fd0426df6973a9d",
+    "screenshots": 0,
+    "ai": false,
+    "rest": 0,
+    "chains": 3
+   }
   },
   {
    "id": "vbredwoodapp/equipment-foundation/equipment-detail",
