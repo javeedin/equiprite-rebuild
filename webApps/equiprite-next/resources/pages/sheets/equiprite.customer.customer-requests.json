@@ -261,7 +261,13 @@
   "links": []
  },
  "ai": null,
- "screenshot": null,
+ "screenshot": {
+  "file": "screens/equiprite.customer.customer-requests.jpg",
+  "at": "2026-11-12T15:05:53.389Z",
+  "by": "javeed.shaik",
+  "source": "capture",
+  "bytes": 103262
+ },
  "stories": [],
  "at": "2026-11-12T15:05:24.589Z",
  "by": "javeed.shaik",
