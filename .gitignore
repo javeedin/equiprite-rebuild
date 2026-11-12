@@ -9,3 +9,6 @@ desktop/app/
 
 # Temporary working copies made by Claude Code helper agents
 .claude/worktrees/
+
+# The app's data branch, checked out next to the code (desktop/lib/dataBranch.js)
+/.equiprite-data/

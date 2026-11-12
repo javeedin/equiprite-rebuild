@@ -13,8 +13,12 @@
  *   links         the other screens it opens
  *   codeHash      a hash of its files, so a sheet can say "the code changed since"
  *
- *   list(root)            [{ id, app, appName, flow, page, label, description, files }]  — every page, quickly
- *   analyze(root, id)     the facts of one page (above), or null
+ *   list(root)            [{ id, app, appName, flow, page, label, description, route, next: [ids], menu }]  — every page,
+ *                         with where it goes (next: the pages its code opens) and its menu entry, if any
+ *   analyze(root, id)     the facts of one page (above, with next: [{ id, label, via }] and unresolved links), or null
+ *   links(root)           { edges: [{ from, to, via }], menus: { app: [{ label, group, to }] }, unresolved: { id: [raw] } }
+ *                         — the navigation between every page: navigateToPage / navigateToFlow (through the flow's page
+ *                         list), EquipRite Next's records and menu items, and each app's menu (app-flow.js NAV_GROUPS)
  *
  * Pure reading: nothing is written. An id is "<app>/<flow>/<page>" ("vbredwoodapp/main/workbench"); an app's root
  * pages (its shell) are "<app>//<page>".
@@ -105,8 +109,19 @@ function nextNav(root) {
     vm.runInContext(src, sb, { timeout: 2000 });
   } catch (e) { N = null; }
   const byRoute = {};
-  if (N && N.GROUPS) N.GROUPS.forEach((g) => (g.items || []).forEach((it) => { if (it.route) byRoute[it.route.flow + '/' + it.route.page] = { navId: it.id, label: it.label, group: g.label || '' }; }));
-  if (N && N.RECORDS) Object.keys(N.RECORDS).forEach((k) => { const r = N.RECORDS[k]; const key = r.flow + '/' + r.page; if (!byRoute[key]) byRoute[key] = { record: k, label: '', group: '' }; });
+  const items = {}, records = {};
+  if (N && N.GROUPS) N.GROUPS.forEach((g) => (g.items || []).forEach((it) => {
+    if (!it.route) return;
+    byRoute[it.route.flow + '/' + it.route.page] = { navId: it.id, label: it.label, group: g.label || '' };
+    items[it.id] = { flow: it.route.flow, page: it.route.page, label: it.label, group: g.label || '' };
+  }));
+  if (N && N.RECORDS) Object.keys(N.RECORDS).forEach((k) => {
+    const r = N.RECORDS[k]; const key = r.flow + '/' + r.page;
+    records[k] = { flow: r.flow, page: r.page };
+    if (!byRoute[key]) byRoute[key] = { record: k, label: '', group: '' };
+  });
+  Object.defineProperty(byRoute, '_items', { value: items, enumerable: false });
+  Object.defineProperty(byRoute, '_records', { value: records, enumerable: false });
   navCache.src = src; navCache.value = byRoute;
   return byRoute;
 }
@@ -174,13 +189,137 @@ function scanCode(src) {
   };
 }
 
+// ── Navigation: where a page's code goes, as page ids ──────────────────────────────────────────────────────────────
+/** An app's flows: { flowId: { pages: { pageKey: fileBase }, defaultPage } } (from <flow>-flow.json); '' is its root. */
+function appFlows(root, app) {
+  const out = {};
+  const appDir = path.join(root, 'webApps', app);
+  const flowsDir = path.join(appDir, 'flows');
+  const pagesOfJson = (f) => {
+    let d = {};
+    try { d = JSON.parse(read(f)); } catch (e) { d = {}; }
+    const pages = {};
+    Object.keys(d.pages || {}).forEach((k) => { const pth = String((d.pages[k] && d.pages[k].path) || ''); const m = /([^/]+)-page$/.exec(pth); pages[k] = m ? m[1] : k; });
+    return { pages: pages, defaultPage: d.defaultPage || '' };
+  };
+  out[''] = pagesOfJson(path.join(appDir, 'app-flow.json'));
+  (isDir(flowsDir) ? fs.readdirSync(flowsDir) : []).forEach((flow) => { out[flow] = pagesOfJson(path.join(flowsDir, flow, flow + '-flow.json')); });
+  return out;
+}
+
+/** One raw link ("page x", "flow y", "record z", "menu w") from a page → the page id it opens, or ''. */
+function resolveLink(root, from, raw, flowsByApp, ids) {
+  const app = from.app;
+  const flows = flowsByApp[app] || (flowsByApp[app] = appFlows(root, app));
+  const has = (id) => ids.has(id);
+  const inFlow = (flow, key) => {
+    const f = flows[flow];
+    if (!f) return '';
+    const file = f.pages[key] || key;
+    const id = app + '/' + flow + '/' + file;
+    return has(id) ? id : '';
+  };
+  const m = /^(page|flow|record|menu) (.+)$/.exec(raw);
+  if (!m) return '';
+  const kind = m[1], target = m[2];
+  if (kind === 'page') {
+    const parts = target.split('/').filter(Boolean);
+    if (parts.length >= 2) { const r = inFlow(parts[parts.length - 2], parts[parts.length - 1]); if (r) return r; }
+    const key = parts[parts.length - 1];
+    const here = inFlow(from.flow, key);
+    if (here) return here;
+    const other = Object.keys(flows).filter((f) => f && flows[f].pages[key]);
+    if (other.length) return inFlow(other[0], key);
+    const byFile = Array.from(ids).filter((id) => id.indexOf(app + '/') === 0 && id.split('/')[2] === key);
+    return byFile[0] || '';
+  }
+  if (kind === 'flow') {
+    const f = flows[target];
+    return f ? inFlow(target, f.defaultPage) : '';
+  }
+  if (app === 'equiprite-next') {
+    const nav = nextNav(root);
+    const r = kind === 'record' ? nav._records[target] : nav._items[target];
+    if (r) { const id = app + '/' + r.flow + '/' + r.page; if (has(id)) return id; const viaFlow = inFlow(r.flow, r.page); if (viaFlow) return viaFlow; }
+  }
+  return '';
+}
+
+/** Each app's menu (app-flow.js NAV_GROUPS; EquipRite Next: resources/js/nav.js): [{ label, group, to }]. */
+function menusOf(root, ids) {
+  const out = {};
+  const apps = Array.from(new Set(Array.from(ids).map((id) => id.split('/')[0])));
+  apps.forEach((app) => {
+    const list = [];
+    if (app === 'equiprite-next') {
+      const items = nextNav(root)._items || {};
+      Object.keys(items).forEach((k) => { const it = items[k]; const id = app + '/' + it.flow + '/' + it.page; if (ids.has(id)) list.push({ label: it.label, group: it.group, to: id }); });
+    } else {
+      const src = read(path.join(root, 'webApps', app, 'app-flow.js'));
+      const flows = appFlows(root, app);
+      // an item: { id: …, label: '…', … flow: 'x', page: 'y' } or { … label: '…', … route: { flow: 'x', page: 'y' } }
+      const re = /label:\s*'([^']{1,60})'((?:(?!label:)[\s\S]){0,400}?)\bflow:\s*'([a-z0-9-]+)'\s*,\s*page:\s*'([a-z0-9-]+)'/g;
+      const add = (label, flow, page) => {
+        const f = flows[flow];
+        const file = f ? (f.pages[page] || page) : page;
+        const id = app + '/' + flow + '/' + file;
+        if (ids.has(id) && !list.some((x) => x.to === id)) list.push({ label: label, group: '', to: id });
+      };
+      let m;
+      while ((m = re.exec(src))) add(m[1], m[3], m[4]);
+      // Old EquipRite: items { id, label } in NAV_GROUPS, their routes in a map ('nav-id': { flow, page })
+      const routes = {};
+      const rr = /'([a-z0-9-]+)'\s*:\s*\{\s*flow:\s*'([a-z0-9-]+)'\s*,\s*page:\s*'([a-z0-9-]+)'\s*\}/g;
+      while ((m = rr.exec(src))) routes[m[1]] = { flow: m[2], page: m[3] };
+      const ri = /\{\s*id:\s*'([a-z0-9-]+)'\s*,\s*label:\s*'([^']{1,60})'/g;
+      while ((m = ri.exec(src))) { const r = routes[m[1]]; if (r) add(m[2], r.flow, r.page); }
+    }
+    out[app] = list;
+  });
+  return out;
+}
+
+/** What a page's own files open (its page module and its chains). */
+function opensOf(p) {
+  const out = [];
+  const add = (raw, via) => { const e = out.filter((x) => x.raw === raw)[0]; if (e) { if (via && e.via.indexOf(via) === -1) e.via.push(via); } else out.push({ raw: raw, via: via ? [via] : [] }); };
+  scanCode(read(p.js)).opens.forEach((r) => add(r, ''));
+  if (isDir(p.chainsDir)) fs.readdirSync(p.chainsDir).filter((f) => /\.js$/.test(f)).forEach((f) => scanCode(read(path.join(p.chainsDir, f))).opens.forEach((r) => add(r, f.replace(/\.js$/, ''))));
+  return out;
+}
+
+const linkCache = { key: '', value: null };
+function links(root) {
+  const pages = pagesOf(root);
+  // cheap freshness check: the chain folders' and page modules' sizes and times
+  const key = root + '|' + pages.map((p) => { try { const a = fs.statSync(p.js); return p.id + a.mtimeMs + (isDir(p.chainsDir) ? fs.statSync(p.chainsDir).mtimeMs : 0); } catch (e) { return p.id; } }).join(',');
+  if (linkCache.key === key) return linkCache.value;
+  const ids = new Set(pages.map((p) => p.id));
+  const flowsByApp = {};
+  const edges = [], unresolved = {};
+  pages.forEach((p) => {
+    opensOf(p).forEach((o) => {
+      const to = resolveLink(root, p, o.raw, flowsByApp, ids);
+      if (to && to !== p.id) { if (!edges.some((e) => e.from === p.id && e.to === to)) edges.push({ from: p.id, to: to, via: o.via }); }
+      else if (!to) (unresolved[p.id] = unresolved[p.id] || []).push(o.raw);
+    });
+  });
+  const value = { edges: edges, menus: menusOf(root, ids), unresolved: unresolved };
+  linkCache.key = key; linkCache.value = value;
+  return value;
+}
+
 function list(root) {
+  const L = links(root);
+  const menuOf = {};
+  Object.keys(L.menus).forEach((app) => L.menus[app].forEach((mi) => { if (!menuOf[mi.to]) menuOf[mi.to] = (mi.group ? mi.group + ' › ' : '') + mi.label; }));
   return pagesOf(root).map((p) => {
     const html = read(p.html);
     let json = {};
     try { json = JSON.parse(read(p.json)); } catch (e) { json = {}; }
     return { id: p.id, app: p.app, appName: p.appName, flow: p.flow, page: p.page, label: labelOf(root, p, html, json),
-      description: String(json.description || '').slice(0, 400), route: routeOf(root, p) };
+      description: String(json.description || '').slice(0, 400), route: routeOf(root, p),
+      next: L.edges.filter((e) => e.from === p.id).map((e) => e.to), menu: menuOf[p.id] || '' };
   });
 }
 
@@ -284,7 +423,10 @@ function analyze(root, id) {
     logic: { chains: chains, modules: modules, variables: Object.keys(vars).length },
     integrations: { rest: rest, reports: reports, local: local, backends: backends },
     links: uniq(pageCode.opens.concat(...chains.map((c) => c.opens))),
+    next: (() => { const L = links(root); const byId = {}; pagesOf(root).forEach((x) => { byId[x.id] = x; });
+      return L.edges.filter((e) => e.from === p.id).map((e) => ({ id: e.to, label: byId[e.to] ? labelOf(root, byId[e.to], read(byId[e.to].html), (() => { try { return JSON.parse(read(byId[e.to].json)); } catch (x) { return {}; } })()) : e.to, via: e.via })); })(),
+    unresolvedLinks: links(root).unresolved[p.id] || [],
   };
 }
 
-module.exports = { list, analyze, pagesOf, headerComment, scanCode, serviceOps, APPS, BACKENDS };
+module.exports = { list, analyze, links, appFlows, pagesOf, headerComment, scanCode, serviceOps, APPS, BACKENDS };

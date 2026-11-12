@@ -1,7 +1,15 @@
 # FDD library
 
 The functional design documents that **Analyze with AI** reads (Jira stories → a story → ✨ Analyze with AI). They are
-kept in git so every user, and the app deployed to VBCS, has the same ones.
+kept in git so every user has the same ones — on the app's **data branch**, `claude/equiprite-data`, not on a code branch.
+
+**The data branch.** What the desktop app saves for everyone (this library, and the Application pages: sheets,
+screenshots, AI explanations, Jira stories mapped) is committed and pushed to `claude/equiprite-data`, which holds only
+that data (no code). The app checks it out next to the code in `<project>/.equiprite-data` (a git worktree, ignored by
+the code branch), merges what others pushed before it pushes, and never commits to the code branch — so `git pull` of
+the code stays clean. Same paths as below, on that branch. If git cannot set it up (no git, offline at the very first
+start), the app says why and saves into the project folder as before; the next start moves that data onto the branch.
+See `desktop/lib/dataBranch.js`.
 
 | Path | What |
 |---|---|
@@ -19,8 +27,8 @@ into this project, so it needs the desktop app or `npm run serve` running from a
 - **From a terminal:** `npm run fdd -- upload "EquipRite_FDD_v1.7.docx" --name "EquipRite FDD" --version 1.7 --push`
   (`npm run fdd -- list`, `latest <id>`, `remove <id>`, `outline <id>`, `push`).
 
-Only these FDD paths are committed, and they are pushed to the branch the project is on. Teammates get the FDD with
-`git pull` (and a rebuild); VBCS gets it with the next deploy.
+Only these FDD paths are committed, on the data branch, and pushed there. Teammates' apps get the FDD at their next
+start (or next save); the copies on the code branch are a frozen snapshot from before the data branch.
 
 **Word (.docx) is best:** its Heading 1/2/3 styles give the sections exactly, numbers included. A PDF is read as text
 and its headings are found by their numbers (7.2, 7.2.5G), so check the outline on the FDD library page after upload.

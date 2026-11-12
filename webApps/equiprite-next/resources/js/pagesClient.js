@@ -32,7 +32,7 @@ define([], function () {
   function info() {
     return call('info').then(function (r) {
       local = r.status === 200 && !!r.body.ok;
-      return { available: local, canWrite: !!(local && r.body.canWrite), canCapture: !!(local && r.body.canCapture) };
+      return { available: local, canWrite: !!(local && r.body.canWrite), canCapture: !!(local && r.body.canCapture), data: (local && r.body.data) || null };
     });
   }
   function hasLocal() { return local === null ? info().then(function (i) { return i.available; }) : Promise.resolve(local); }
@@ -80,6 +80,7 @@ define([], function () {
     saveAi: function (id, text, provider, commit) { return call('ai', 'POST', { id: id, text: text, provider: provider, commit: !!commit }); },
     rescan: function (commit) { return call('rescan', 'POST', { commit: !!commit }); },
     gitStatus: function () { return call('git/status'); },
+    gitPull: function () { return call('git/pull', 'POST', {}); },
     gitSave: function (message) { return call('git/save', 'POST', { message: message || 'Application pages: update' }); }
   };
 });

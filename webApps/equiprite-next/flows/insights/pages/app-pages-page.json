@@ -3,7 +3,7 @@
   "navigation": { "embeddable": "enabled" },
   "variables": {
     "checked": { "type": "boolean", "defaultValue": false },
-    "info": { "type": "object", "defaultValue": { "available": false, "canWrite": false, "canCapture": false }, "description": "The local server: answers, can write into the project, can capture screenshots (desktop app)." },
+    "info": { "type": "object", "defaultValue": { "available": false, "canWrite": false, "canCapture": false, "data": null }, "description": "The local server: answers, can write into the project, can capture screenshots (desktop app); data: the git branch the sheets are kept on ({ separate, branch, reason }, lib/dataBranch.js)." },
     "busy": { "type": "boolean", "defaultValue": false },
     "progress": { "type": "string", "defaultValue": "" },
     "pages": { "type": "any[]", "defaultValue": [], "description": "The catalog: [{ id, app, appName, flow, page, label, route, stories, sheet }]." },
@@ -14,6 +14,7 @@
     "showDeleted": { "type": "boolean", "defaultValue": false, "description": "Also list the pages deleted from the catalog." },
     "deleted": { "type": "boolean", "defaultValue": false, "description": "The open page was deleted from the catalog." },
     "viewer": { "type": "number", "defaultValue": -1, "description": "The screenshot shown full size (its index), -1 when none." },
+    "view": { "type": "string", "defaultValue": "page", "description": "The tab: page (its sheet), map (where it is opened from and where it goes) or global (the whole app's navigation)." },
     "selId": { "type": "string", "defaultValue": "", "description": "The page whose sheet is open." },
     "sheet": { "type": "any", "defaultValue": null, "description": "Its sheet: { id, facts, ai, screenshot, stories, at, by, codeHash }." },
     "saved": { "type": "boolean", "defaultValue": false, "description": "The sheet is saved (else: the facts read now, not yet built)." },
@@ -33,6 +34,8 @@
     "onRefresh": { "chains": [ { "chain": "loadChain", "parameters": { "refresh": true } } ] },
     "onField": { "chains": [ { "chain": "setChain", "parameters": { "field": "{{ $event.currentTarget.dataset.field }}", "value": "{{ $event.currentTarget.type === 'checkbox' ? $event.currentTarget.checked : ($event.currentTarget.dataset.value !== undefined ? $event.currentTarget.dataset.value : $event.currentTarget.value) }}" } } ] },
     "onSelect": { "chains": [ { "chain": "selectChain", "parameters": { "id": "{{ $event.currentTarget.dataset.id }}" } } ] },
+    "onViewerClosed": { "chains": [ { "chain": "actChain", "parameters": { "act": "{{ 'closed' }}", "key": "{{ '' }}" } } ] },
+    "onViewerClick": { "chains": [ { "chain": "actChain", "parameters": { "act": "{{ $event.target === $event.currentTarget ? 'unview' : '' }}", "key": "{{ '' }}" } } ] },
     "onAct": { "chains": [ { "chain": "actChain", "parameters": { "act": "{{ $event.currentTarget.dataset.act }}", "key": "{{ $event.currentTarget.dataset.key || '' }}" } } ] },
     "onShotFile": { "chains": [ { "chain": "actChain", "parameters": { "act": "{{ 'upload' }}", "key": "{{ '' }}" } } ] },
     "onMapKey": { "chains": [ { "chain": "actChain", "parameters": { "act": "{{ $event.key === 'Enter' ? 'map' : '' }}", "key": "{{ '' }}" } } ] }

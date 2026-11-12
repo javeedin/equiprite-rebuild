@@ -15,6 +15,8 @@ define([
       const v = context.$page.variables;
       v.busy = true;
       try {
+        // Refresh: what others pushed to the data branch first (a no-op without the local server or a data branch)
+        if (refresh && v.info.canWrite) { try { await PC.gitPull(); } catch (e) { /* the catalog as it is */ } }
         const [info, cat] = await Promise.all([PC.info(), PC.catalog(context.$application.path)]);
         v.info = info;
         v.pages = cat.body.pages;

@@ -548,3 +548,63 @@ button.nx-jira-recmark:hover, button.nx-jira-recmark:focus-visible { filter: bri
 .nx-pg-facts > button:hover { border-color: #00688c; background: #f2f9fc; }
 .nx-pg-facts b { font-size: 16px; color: #16212c; margin-right: 2px; }
 .nx-pg-h3 { scroll-margin-top: 12px; }
+
+/* The screenshot viewer as a native dialog (top layer): always above the app, always closable */
+.nx-pg-dialog { padding: 0; border: 0; border-radius: 12px; width: min(1480px, 96vw); max-width: 96vw; max-height: 94vh; background: #fff; box-shadow: 0 20px 60px rgba(0, 0, 0, .45); overflow: hidden; }
+.nx-pg-dialog::backdrop { background: rgba(12, 18, 24, .82); }
+.nx-pg-dlg { display: flex; flex-direction: column; max-height: 94vh; }
+.nx-pg-dlg .nx-pg-viewbar { position: sticky; top: 0; z-index: 1; }
+.nx-pg-dlg .nx-pg-viewimg { flex: 1; min-height: 0; overflow: auto; background: #2a323b; padding: 12px; display: flex; justify-content: center; align-items: flex-start; }
+.nx-pg-dlg .nx-pg-viewimg img { max-width: 100%; height: auto; box-shadow: 0 8px 30px rgba(0, 0, 0, .4); background: #fff; }
+.nx-pg-dlgx { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--nx-line, #e2e7ed); background: #fff; font-size: 22px; line-height: 1; cursor: pointer; color: #16212c; }
+.nx-pg-dlgx:hover { background: #fdecea; color: #b42318; border-color: #f1b8b2; }
+.nx-pg-viewfoot { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 16px; border-top: 1px solid var(--nx-line, #e2e7ed); background: #fafbfc; }
+
+/* ── Application pages: tabs, and the navigation maps (resources/js/pageMap.js draws the lines) ── */
+.nx-pg-tabs { display: flex; gap: 2px; flex-wrap: wrap; margin: 12px 0 4px; border-bottom: 2px solid #e2e7ed; }
+.nx-pg-tab { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 8px 14px; margin-bottom: -2px; border: 0; border-bottom: 3px solid transparent; background: none; font: inherit; font-size: 13.5px; font-weight: 700; color: #5a6876; cursor: pointer; border-radius: 8px 8px 0 0; }
+.nx-pg-tab:hover { background: #f2f9fc; color: #16212c; }
+.nx-pg-tab--on { color: #00688c; border-bottom-color: #00688c; background: #f2f9fc; }
+.nx-pg-tab .nx-chip-count { margin-left: 2px; }
+.nx-pg-mapview { padding-top: 6px; }
+.nx-pm { position: relative; display: flex; align-items: stretch; gap: 46px; overflow-x: auto; padding: 10px 6px 18px; min-height: 160px; }
+.nx-pm-svg { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; z-index: 0; }
+.nx-pm-col { position: relative; z-index: 1; flex: 1 1 150px; min-width: 138px; max-width: 230px; display: flex; flex-direction: column; gap: 8px; }
+.nx-pm--global .nx-pm-col { flex: 0 0 172px; max-width: 172px; }
+.nx-pm-colhead { font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #6b7886; padding: 0 2px 4px; border-bottom: 1px solid #e2e7ed; }
+.nx-pm-nodes { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+.nx-pm--page .nx-pm-nodes { justify-content: center; }
+.nx-pm-node { display: flex; flex-direction: column; gap: 1px; width: 100%; text-align: left; padding: 7px 10px; border: 1px solid #d4dce4; border-left: 4px solid #9aa8b5; border-radius: 8px; background: #fff; font: inherit; color: #16212c; cursor: pointer; box-shadow: 0 1px 2px rgba(16, 24, 32, .05); transition: border-color .12s, box-shadow .12s, transform .12s; }
+.nx-pm-node:hover { border-color: #00688c; box-shadow: 0 3px 10px rgba(0, 104, 140, .16); transform: translateY(-1px); }
+.nx-pm-label { font-size: 13px; font-weight: 700; line-height: 1.25; overflow-wrap: anywhere; }
+.nx-pm-sub { font-size: 11px; color: #6b7886; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; overflow-wrap: anywhere; }
+.nx-pm-via { font-size: 11px; color: #7a5a00; overflow-wrap: anywhere; }
+.nx-pm-node--self { border: 2px solid #00688c; border-left-width: 6px; background: #e8f3f8; box-shadow: 0 4px 14px rgba(0, 104, 140, .18); cursor: default; }
+.nx-pm-node--self .nx-pm-label { color: #00506c; font-size: 14px; }
+.nx-pm-node--menu { border-style: dashed; border-left: 4px solid #7b61c4; background: #f7f4fd; cursor: default; }
+.nx-pm-node--menu:hover { transform: none; box-shadow: none; border-color: #7b61c4; }
+.nx-pm-node--in { border-left-color: #2f7d4f; }
+.nx-pm-node--out { border-left-color: #00688c; }
+.nx-pm-node--then { border-left-color: #b8892b; background: #fffdf6; }
+.nx-pm-node--page { border-left-color: #9aa8b5; }
+.nx-pm-node--sel { outline: 2px solid #00688c; outline-offset: 1px; }
+.nx-pm-col--loose .nx-pm-node { opacity: .78; border-style: dashed; }
+.nx-pm-empty { font-size: 12.5px; color: #8a97a5; font-style: italic; padding: 6px 2px; }
+.nx-pm-edge { fill: none; stroke: #a9b6c2; stroke-width: 1.6; opacity: .85; }
+.nx-pm--global .nx-pm-edge { stroke-width: 1.2; opacity: .45; }
+.nx-pm-edge--back { stroke-dasharray: 5 4; }
+.nx-pm-edge--hot, .nx-pm--global .nx-pm-edge--hot { stroke: #00688c; stroke-width: 2.4; opacity: 1; }
+.nx-pm-head--a { fill: #a9b6c2; }
+.nx-pm-head--h { fill: #00688c; }
+.nx-pm-raw { margin-right: 4px; }
+.nx-pm-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin-top: 6px; font-size: 12px; color: #5a6876; }
+.nx-pm-key { display: inline-flex; align-items: center; gap: 6px; }
+.nx-pm-key::before { content: ''; width: 14px; height: 10px; border-radius: 3px; border: 1px solid #9aa8b5; border-left-width: 4px; background: #fff; }
+.nx-pm-key--menu::before { border-style: dashed; border-color: #7b61c4; background: #f7f4fd; }
+.nx-pm-key--in::before { border-left-color: #2f7d4f; }
+.nx-pm-key--self::before { border: 2px solid #00688c; background: #e8f3f8; }
+.nx-pm-key--out::before { border-left-color: #00688c; }
+.nx-pm-key--then::before { border-left-color: #b8892b; background: #fffdf6; }
+.nx-pm-key--hot::before { height: 0; border: 0; border-top: 3px solid #00688c; border-radius: 0; }
+.nx-pm-key--back::before { height: 0; border: 0; border-top: 2px dashed #8a97a5; border-radius: 0; }
+@media (max-width: 720px) { .nx-pm { gap: 34px; } }

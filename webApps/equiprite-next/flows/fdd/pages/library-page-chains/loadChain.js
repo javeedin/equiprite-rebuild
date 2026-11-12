@@ -14,6 +14,7 @@ define([
         const [lib, info] = await Promise.all([FC.library(context.$application.path), FC.info()]);
         v.lib = lib.body;
         v.canUpload = !!info.canUpload;
+        v.data = (info.body && info.body.data) || null;
         v.git = info.canUpload ? ((await FC.gitStatus()).body || null) : null;
       } finally {
         v.checked = true;

@@ -18,7 +18,9 @@
   <div class="nx-flib-git" id="flibGit">
     <span class="oj-ux-ico-branch nx-flib-gitico" aria-hidden="true"></span>
     <div class="nx-flib-gittext">
-      <b>Kept in git</b> — <code>docs/fdd</code> and <code>resources/fdd</code>, so everyone gets it with <code>git pull</code> and VBCS with the next deploy.
+      <oj-bind-if test="[[ !!($variables.data && $variables.data.separate) ]]"><b>Kept in git</b>, on its own branch <code id="flibDataBranch"><oj-bind-text value="[[ $variables.data.branch ]]"></oj-bind-text></code> (apart from the code): every EquipRite desktop app gets the same library.</oj-bind-if>
+      <oj-bind-if test="[[ !($variables.data && $variables.data.separate) ]]"><b>Kept in git</b> — <code>docs/fdd</code> and <code>resources/fdd</code>, so everyone gets it with <code>git pull</code> and VBCS with the next deploy.</oj-bind-if>
+      <oj-bind-if test="[[ !!($variables.data && $variables.data.reason) ]]"><span class="nx-flib-gitstate" id="flibDataReason"><oj-bind-text value="[[ 'No data branch, so saved in the project folder: ' + $variables.data.reason ]]"></oj-bind-text></span></oj-bind-if>
       <oj-bind-if test="[[ $variables.git && $variables.git.available ]]">
         <span class="nx-flib-gitstate" id="flibGitState"><oj-bind-text value="[[ $functions.gitText($variables.git) ]]"></oj-bind-text></span>
       </oj-bind-if>

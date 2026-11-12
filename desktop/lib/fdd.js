@@ -346,12 +346,15 @@ const gitPaths = require('./gitPaths');
 // ── The library ─────────────────────────────────────────────────────────────────────────────────────────────────────
 function open(opts) {
   const o = opts || {};
-  const root = path.resolve(o.root || path.join(__dirname, '..', '..'));
+  // the library: on the app's data branch when there is one (lib/dataBranch.js), else in the project folder itself
+  const data = o.data && o.data.ok ? o.data : null;
+  const root = data ? data.dir : path.resolve(o.root || path.join(__dirname, '..', '..'));
   const docsDir = path.join(root, DOCS_DIR);
   const resDir = path.join(root, RES_DIR);
   const libFile = path.join(resDir, 'library.json');
   const now = o.now || (() => new Date());
-  const repo = gitPaths.create({ root: root, paths: [DOCS_DIR, RES_DIR], git: o.git, gitPath: o.gitPath, message: 'FDD library: update' });
+  const repo = gitPaths.create({ root: root, paths: [DOCS_DIR, RES_DIR], git: o.git, gitPath: o.gitPath, message: 'FDD library: update',
+    sync: data ? { resolve: data.resolve, after: data.merged } : null });
   let mirror = o.mirror || '';
 
   const canUpload = () => { try { return fs.statSync(path.join(root, 'webApps', 'equiprite-next')).isDirectory(); } catch (e) { return false; } };
@@ -385,6 +388,7 @@ function open(opts) {
       src.forEach((f) => fs.copyFileSync(path.join(resDir, f), path.join(m, f)));
     } catch (e) { /* the build copy catches up on the next build */ }
   }
+  if (data) data.onMerged(sync); // FDDs others uploaded, merged in: into the build copy at once
   function writeLib(lib) {
     lib.docs.sort((a, b) => str(b.uploadedAt).localeCompare(str(a.uploadedAt)));
     if (lib.latest && !lib.docs.some((d) => d.id === lib.latest)) lib.latest = '';
@@ -478,10 +482,23 @@ function open(opts) {
   return {
     info: () => { const lib = readLib(); return { ok: true, canUpload: canUpload(), latest: lib.latest, docs: lib.docs, paths: { docs: DOCS_DIR, resources: RES_DIR } }; },
     upload: upload, setLatest: setLatest, remove: remove, outline: outline, original: original,
-    gitStatus: gitStatus, gitSave: gitSave,
+    gitStatus: gitStatus, gitSave: gitSave, gitPull: () => repo.pull(),
+    dataInfo: () => (o.data ? o.data.info() : { separate: false, branch: '', reason: '' }),
     setMirror: (dir) => { mirror = dir || ''; sync(); },
     root: root,
   };
 }
 
-module.exports = { open, parse, parseDocx, parseHtml, parseText, parsePdf, unzip, headingNumber, canFollow, sectionsFrom, DOCS_DIR, RES_DIR, KINDS };
+/** The library changed on both sides (the data branch: a git merge with a conflict): every FDD of either, ours kept
+ *  as "latest" if we set one. */
+function mergeLibrary(oursText, theirsText) {
+  const a = JSON.parse(oursText), b = JSON.parse(theirsText);
+  const docs = [];
+  (a.docs || []).concat(b.docs || []).forEach((d) => { if (d && d.id && !docs.some((x) => x.id === d.id)) docs.push(d); });
+  docs.sort((x, y) => str(y.uploadedAt).localeCompare(str(x.uploadedAt)));
+  let latest = str(a.latest) || str(b.latest);
+  if (!docs.some((d) => d.id === latest)) latest = docs.length ? docs[0].id : '';
+  return JSON.stringify({ latest: latest, docs: docs }, null, 2) + '\n';
+}
+
+module.exports = { open, mergeLibrary, parse, parseDocx, parseHtml, parseText, parsePdf, unzip, headingNumber, canFollow, sectionsFrom, DOCS_DIR, RES_DIR, KINDS };

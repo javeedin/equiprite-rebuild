@@ -41,6 +41,31 @@ T.check('an Old EquipRite page takes its page title, and opens at /vp/shell/<flo
 const rec = all.filter((p) => p.id === 'equiprite-next/insights/jira-analysis')[0];
 T.check('a screen opened from another (a record) says how to get its screenshot', rec && rec.route.url === '' && /record "jira-analysis"/.test(rec.route.needs));
 
+T.section('navigation: where each page goes, the menus, the maps');
+const L = S.links(ROOT);
+const edge = (a, b) => L.edges.some((e) => e.from === a && e.to === b);
+const DASH = 'vbredwoodapp/customer-portal/customer-dashboard';
+T.check('links resolved from the chains (navigateToPage, the shell\'s tabs): Old, New and Next each have some', edge(DASH, 'vbredwoodapp/customer-portal/customer-my-billing')
+  && ['vbredwoodapp/', 'equiprite/', 'equiprite-next/'].every((a) => L.edges.filter((e) => e.from.indexOf(a) === 0).length >= 10), L.edges.length + ' edges');
+T.check('…with the chain that opens it', (L.edges.filter((e) => e.from === DASH && e.to === 'vbredwoodapp/customer-portal/customer-my-billing')[0].via || []).some((v) => /Chain$/.test(v)));
+T.check('the menus: Old (its nav groups), New and Next', ['vbredwoodapp', 'equiprite', 'equiprite-next'].every((a) => (L.menus[a] || []).length >= 15), JSON.stringify(Object.keys(L.menus).map((a) => a + ' ' + L.menus[a].length)));
+const dash = all.filter((p) => p.id === DASH)[0];
+T.check('list(): each page with next and its menu entry', dash.next.indexOf('vbredwoodapp/customer-portal/customer-my-billing') !== -1 && /Customer Dashboard/.test(dash.menu));
+T.check('analyze(): next with labels and chains', S.analyze(ROOT, DASH).next.some((n) => n.label === 'My Billing' && n.via.length));
+const PMAP = load('pageMap.js');
+const pm = PMAP.pageMap(all, DASH, S.analyze(ROOT, DASH).next);
+T.check('pageMap: Comes from (the menu first) → This page → Goes to (by its chain) → Then', pm.cols.map((c) => c.title).join('|') === 'Comes from|This page|Goes to|Then'
+  && pm.cols[0].nodes[0].kind === 'menu' && pm.cols[1].nodes[0].label === 'Customer Dashboard' && pm.cols[2].nodes.some((n) => n.label === 'My Billing' && /^by /.test(n.via)), JSON.stringify(pm.cols.map((c) => c.nodes.map((n) => n.label))));
+T.check('…an edge into this page for each "comes from", out of it for each "goes to"', pm.cols[0].nodes.every((n) => pm.edges.some((e) => e[0] === n.key && e[1] === 'self')) && pm.cols[2].nodes.every((n) => pm.edges.some((e) => e[0] === 'self' && e[1] === n.key)));
+T.check('…"Then" holds only pages not already shown', pm.cols[3].nodes.every((n) => n.id !== DASH && !pm.cols[2].nodes.some((x) => x.id === n.id)));
+const am = PMAP.appMap(all, 'vbredwoodapp', DASH);
+T.check('appMap: every page of the app once — from the menu, steps on, not reached', am.cols.reduce((s, c) => s + c.nodes.length, 0) === all.filter((p) => p.app === 'vbredwoodapp').length
+  && am.cols[0].title === 'From the menu' && am.cols[0].nodes.length === am.counts.menu && am.cols[am.cols.length - 1].title === 'Not reached', am.cols.map((c) => c.title + ' ' + c.nodes.length).join(' · '));
+T.check('…the open page marked, edges only between pages shown', am.cols[0].nodes.some((n) => n.id === DASH && n.kind === 'self') && am.edges.length === am.counts.links && am.edges.every((e) => e[0].indexOf('vbredwoodapp/') === 0 && e[1].indexOf('vbredwoodapp/') === 0));
+const tiny = [{ id: 'a/f/x', app: 'a', flow: 'f', page: 'x', label: 'X', next: ['a/f/y'] }, { id: 'a/f/y', app: 'a', flow: 'f', page: 'y', label: 'Y', next: ['a/f/x', 'a/f/z'] }, { id: 'a/f/z', app: 'a', flow: 'f', page: 'z', label: 'Z', next: [], deleted: true }];
+const tm = PMAP.pageMap(tiny, 'a/f/x', []);
+T.check('a page that comes back: the edge back to "This page"; deleted pages left out', tm.edges.some((e) => e[0] === 't:a/f/y' && e[1] === 'self') && tm.cols[3].nodes.length === 0 && PMAP.appMap(tiny, 'a', '').counts.pages === 2);
+
 T.section('one page\'s facts, from its files');
 const wb = S.analyze(ROOT, 'vbredwoodapp/equipment-foundation/equipment-workbench');
 T.check('features: its title, table columns, what reacts (row picked, tab changed, filter), when it runs', wb.features.sections[0] === 'Equipment Manager Workbench'

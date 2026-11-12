@@ -19,7 +19,8 @@
   <div class="nx-flib-git" id="pgGit">
     <span class="oj-ux-ico-branch nx-flib-gitico" aria-hidden="true"></span>
     <div class="nx-flib-gittext">
-      <b>Kept in git</b> — <code>resources/pages</code>: every page's technical sheet, screenshots and mapped Jira stories, the same for everyone.
+      <b>Kept in git</b><oj-bind-if test="[[ !!($variables.info.data && $variables.info.data.separate) ]]">, on its own branch <code id="pgDataBranch"><oj-bind-text value="[[ $variables.info.data.branch ]]"></oj-bind-text></code> (apart from the code)</oj-bind-if><oj-bind-if test="[[ !($variables.info.data && $variables.info.data.separate) ]]"> — <code>resources/pages</code></oj-bind-if>: every page's technical sheet, screenshots and mapped Jira stories, the same for everyone.
+      <oj-bind-if test="[[ !!($variables.info.data && $variables.info.data.reason) ]]"><span class="nx-flib-gitstate" id="pgDataReason"><oj-bind-text value="[[ 'No data branch, so saved in the project folder: ' + $variables.info.data.reason ]]"></oj-bind-text></span></oj-bind-if>
       <oj-bind-if test="[[ $variables.git && $variables.git.available ]]"><span class="nx-flib-gitstate" id="pgGitState"><oj-bind-text value="[[ $functions.gitText($variables.git) ]]"></oj-bind-text></span></oj-bind-if>
       <oj-bind-if test="[[ $variables.checked && !$variables.info.canWrite ]]"><span class="nx-flib-gitstate">Read only here: sheets are built and stories mapped in the EquipRite desktop app.</span></oj-bind-if>
     </div>
@@ -100,6 +101,73 @@
         <oj-bind-if test="[[ !!$variables.progress ]]"><div class="nx-note nx-pg-progress" id="pgProgress"><oj-bind-text value="[[ $variables.progress ]]"></oj-bind-text></div></oj-bind-if>
         <oj-bind-if test="[[ !!$variables.result ]]"><div :class="[[ 'nx-flib-result ' + ($variables.result.ok ? 'nx-flib-result--ok' : 'nx-flib-result--err') ]]" id="pgResult"><oj-bind-text value="[[ $variables.result.text ]]"></oj-bind-text></div></oj-bind-if>
 
+        <!-- Tabs: the page (its sheet), its map (where it is opened from, where it goes), the whole app's map -->
+        <div class="nx-pg-tabs" role="tablist" id="pgTabs">
+          <button type="button" role="tab" id="pgTabPage" :class="[[ 'nx-pg-tab' + ($variables.view === 'page' ? ' nx-pg-tab--on' : '') ]]" :aria-selected="[[ $variables.view === 'page' ? 'true' : 'false' ]]" data-field="view" data-value="page" on-click="[[ $listeners.onField ]]"><span class="oj-ux-ico-file-text" aria-hidden="true"></span><oj-bind-text value="[[ $variables.sheet.facts.label ]]"></oj-bind-text></button>
+          <button type="button" role="tab" id="pgTabMap" :class="[[ 'nx-pg-tab' + ($variables.view === 'map' ? ' nx-pg-tab--on' : '') ]]" :aria-selected="[[ $variables.view === 'map' ? 'true' : 'false' ]]" data-field="view" data-value="map" on-click="[[ $listeners.onField ]]"><span class="oj-ux-ico-link" aria-hidden="true"></span>Page map <span class="nx-chip-count"><oj-bind-text value="[[ $functions.mapLinks($functions.pageMap($variables.pages, $variables.selId, $variables.sheet)) ]]"></oj-bind-text></span></button>
+          <button type="button" role="tab" id="pgTabGlobal" :class="[[ 'nx-pg-tab' + ($variables.view === 'global' ? ' nx-pg-tab--on' : '') ]]" :aria-selected="[[ $variables.view === 'global' ? 'true' : 'false' ]]" data-field="view" data-value="global" on-click="[[ $listeners.onField ]]"><span class="oj-ux-ico-network-flow-diagram" aria-hidden="true"></span><oj-bind-text value="[[ 'Global map · ' + $variables.sheet.facts.appName ]]"></oj-bind-text></button>
+        </div>
+
+        <!-- Page map: where this page is opened from, and where it goes — then where those go -->
+        <oj-bind-if test="[[ $variables.view === 'map' ]]">
+          <div class="nx-pg-mapview" id="pgPageMapView">
+            <p class="nx-note">Read from the code: a page <b>goes to</b> the pages its action chains open (navigateToPage, navigateToFlow, the shell's tabs). Click a page to walk on to it.</p>
+            <div class="nx-pm nx-pm--page" id="pgPageMap" :data-edges="[[ $functions.edges($functions.pageMap($variables.pages, $variables.selId, $variables.sheet)) ]]" data-hot="self">
+              <oj-bind-for-each data="[[ $functions.pageMap($variables.pages, $variables.selId, $variables.sheet).cols ]]">
+                <template data-oj-as="col">
+                  <div class="nx-pm-col">
+                    <div class="nx-pm-colhead"><oj-bind-text value="[[ col.data.title ]]"></oj-bind-text><oj-bind-if test="[[ col.data.title !== 'This page' ]]"> <span class="nx-chip-count"><oj-bind-text value="[[ col.data.nodes.length ]]"></oj-bind-text></span></oj-bind-if></div>
+                    <div class="nx-pm-nodes">
+                      <oj-bind-for-each data="[[ col.data.nodes ]]">
+                        <template data-oj-as="n">
+                          <button type="button" :class="[[ $functions.nodeClass(n.data, $variables.selId) ]]" :data-key="[[ n.data.key ]]" :data-id="[[ n.data.id ]]" :title="[[ $functions.nodeTitle(n.data) ]]" on-click="[[ $listeners.onSelect ]]">
+                            <span class="nx-pm-label"><oj-bind-text value="[[ n.data.label ]]"></oj-bind-text></span>
+                            <span class="nx-pm-sub"><oj-bind-text value="[[ n.data.sub ]]"></oj-bind-text></span>
+                            <oj-bind-if test="[[ !!n.data.via ]]"><span class="nx-pm-via"><oj-bind-text value="[[ n.data.via ]]"></oj-bind-text></span></oj-bind-if>
+                          </button>
+                        </template>
+                      </oj-bind-for-each>
+                      <oj-bind-if test="[[ col.data.nodes.length === 0 && !!col.data.empty ]]"><span class="nx-pm-empty"><oj-bind-text value="[[ col.data.empty ]]"></oj-bind-text></span></oj-bind-if>
+                    </div>
+                  </div>
+                </template>
+              </oj-bind-for-each>
+            </div>
+            <oj-bind-if test="[[ ($variables.sheet.facts.unresolvedLinks || []).length > 0 ]]">
+              <p class="nx-note" id="pgUnresolved">Also opens, not matched to a page in the project: <oj-bind-for-each data="[[ $variables.sheet.facts.unresolvedLinks ]]"><template data-oj-as="x"><code class="nx-pm-raw"><oj-bind-text value="[[ x.data ]]"></oj-bind-text></code> </template></oj-bind-for-each></p>
+            </oj-bind-if>
+            <div class="nx-pm-legend"><span class="nx-pm-key nx-pm-key--menu">Menu entry</span><span class="nx-pm-key nx-pm-key--in">Opens this page</span><span class="nx-pm-key nx-pm-key--self">This page</span><span class="nx-pm-key nx-pm-key--out">Opened from it</span><span class="nx-pm-key nx-pm-key--then">One step further</span><span class="nx-pm-key nx-pm-key--back">Dashed: goes back</span></div>
+          </div>
+        </oj-bind-if>
+
+        <!-- Global map: the whole app — from the menu, then one step on, two steps on…, and the pages nothing reaches -->
+        <oj-bind-if test="[[ $variables.view === 'global' ]]">
+          <div class="nx-pg-mapview" id="pgGlobalMapView">
+            <p class="nx-note" id="pgGlobalText"><oj-bind-text value="[[ $functions.appMapText($functions.appMap($variables.pages, $variables.selId), $variables.sheet.facts.appName) ]]"></oj-bind-text>. This page's links are highlighted; click any page to open it.</p>
+            <div class="nx-pm nx-pm--global" id="pgGlobalMap" :data-edges="[[ $functions.edges($functions.appMap($variables.pages, $variables.selId)) ]]" :data-hot="[[ $variables.selId ]]">
+              <oj-bind-for-each data="[[ $functions.appMap($variables.pages, $variables.selId).cols ]]">
+                <template data-oj-as="col">
+                  <div :class="[[ 'nx-pm-col' + (col.data.loose ? ' nx-pm-col--loose' : '') ]]">
+                    <div class="nx-pm-colhead"><oj-bind-text value="[[ col.data.title ]]"></oj-bind-text> <span class="nx-chip-count"><oj-bind-text value="[[ col.data.nodes.length ]]"></oj-bind-text></span></div>
+                    <div class="nx-pm-nodes">
+                      <oj-bind-for-each data="[[ col.data.nodes ]]">
+                        <template data-oj-as="n">
+                          <button type="button" :class="[[ $functions.nodeClass(n.data, $variables.selId) ]]" :data-key="[[ n.data.key ]]" :data-id="[[ n.data.id ]]" :title="[[ $functions.nodeTitle(n.data) + (n.data.via ? ' · menu: ' + n.data.via : '') ]]" on-click="[[ $listeners.onSelect ]]">
+                            <span class="nx-pm-label"><oj-bind-text value="[[ n.data.label ]]"></oj-bind-text></span>
+                            <span class="nx-pm-sub"><oj-bind-text value="[[ n.data.sub ]]"></oj-bind-text></span>
+                          </button>
+                        </template>
+                      </oj-bind-for-each>
+                    </div>
+                  </div>
+                </template>
+              </oj-bind-for-each>
+            </div>
+            <div class="nx-pm-legend"><span class="nx-pm-key nx-pm-key--self">This page</span><span class="nx-pm-key nx-pm-key--hot">Its links</span><span class="nx-pm-key nx-pm-key--back">Dashed: back to an earlier step</span><span class="nx-note">"Not reached": no menu entry and no page opens it (a detail page opened another way, or unused).</span></div>
+          </div>
+        </oj-bind-if>
+
+        <oj-bind-if test="[[ $variables.view === 'page' ]]">
         <!-- Jira stories mapped to the page -->
         <div class="nx-pg-map" id="pgMap">
           <span class="nx-pg-maplbl">Jira stories</span>
@@ -127,21 +195,6 @@
           </oj-bind-for-each>
           <oj-bind-if test="[[ ($variables.sheet.screenshots || []).length === 0 ]]"><span class="nx-note"><oj-bind-text value="[[ $variables.info.canWrite ? 'None yet: Capture or Upload some (a page keeps several).' : 'None yet.' ]]"></oj-bind-text></span></oj-bind-if>
         </div>
-        <oj-bind-if test="[[ !!$functions.shotAt($variables.sheet, $variables.viewer) ]]">
-          <div class="nx-pg-viewer" id="pgViewer" role="dialog" aria-modal="true" aria-label="Screenshot">
-            <div class="nx-pg-viewbar">
-              <b id="pgViewerTitle"><oj-bind-text value="[[ 'Screenshot ' + ($variables.viewer + 1) + ' of ' + $variables.sheet.screenshots.length ]]"></oj-bind-text></b>
-              <span class="nx-note" id="pgViewerText"><oj-bind-text value="[[ $functions.shotText($functions.shotAt($variables.sheet, $variables.viewer)) ]]"></oj-bind-text></span>
-              <span class="nx-min-flex"></span>
-              <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" id="pgViewerPrev" data-act="prev" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.viewer <= 0 ]]">‹ Previous</button>
-              <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" id="pgViewerNext" data-act="next" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.viewer >= $variables.sheet.screenshots.length - 1 ]]">Next ›</button>
-              <a class="nx-btn nx-btn--sm nx-btn--plain" target="_blank" rel="noopener" :href="[[ $functions.shot($application.path, $functions.shotAt($variables.sheet, $variables.viewer)) ]]"><span class="oj-ux-ico-external-link" aria-hidden="true"></span>Full size</a>
-              <oj-bind-if test="[[ $variables.info.canWrite ]]"><button type="button" class="nx-btn nx-btn--sm nx-btn--plain nx-pg-delete" id="pgShotDelete" data-act="unshot" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]"><span class="oj-ux-ico-trash" aria-hidden="true"></span>Delete</button></oj-bind-if>
-              <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" id="pgViewerClose" data-act="unview" on-click="[[ $listeners.onAct ]]" aria-label="Close">×</button>
-            </div>
-            <div class="nx-pg-viewimg"><img id="pgViewerImg" :src="[[ $functions.shot($application.path, $functions.shotAt($variables.sheet, $variables.viewer)) ]]" :alt="[[ 'Screenshot of ' + $variables.sheet.facts.label ]]"></div>
-          </div>
-        </oj-bind-if>
 
         <!-- Overview: the AI explanation and the counts (each a link to its part below) -->
         <div class="nx-pg-pane" id="pgOverview">
@@ -238,7 +291,29 @@
           <h3 class="nx-pg-h3"><oj-bind-text value="[[ 'Files (' + $variables.sheet.facts.files.length + ')' ]]"></oj-bind-text></h3>
           <ul class="nx-pg-ul nx-pg-files"><oj-bind-for-each data="[[ $variables.sheet.facts.files ]]"><template data-oj-as="x"><li><code><oj-bind-text value="[[ x.data.path ]]"></oj-bind-text></code> <span class="nx-note"><oj-bind-text value="[[ x.data.lines + ' lines' ]]"></oj-bind-text></span></li></template></oj-bind-for-each></ul>
         </div>
+        </oj-bind-if>
       </oj-bind-if>
     </section>
   </div>
+
+  <!-- The screenshot viewer: a real dialog (the browser's top layer, above everything), one screenshot at a time, full
+       size. Close: its × or Close button, Escape, or a click outside the picture. -->
+  <dialog class="nx-pg-dialog" id="pgViewer" aria-label="Screenshot" on-close="[[ $listeners.onViewerClosed ]]" on-click="[[ $listeners.onViewerClick ]]">
+    <oj-bind-if test="[[ !!$functions.shotAt($variables.sheet, $variables.viewer) ]]">
+      <div class="nx-pg-dlg">
+        <div class="nx-pg-viewbar">
+          <b id="pgViewerTitle"><oj-bind-text value="[[ 'Screenshot ' + ($variables.viewer + 1) + ' of ' + $variables.sheet.screenshots.length + ' · ' + $variables.sheet.facts.label ]]"></oj-bind-text></b>
+          <span class="nx-note" id="pgViewerText"><oj-bind-text value="[[ $functions.shotText($functions.shotAt($variables.sheet, $variables.viewer)) ]]"></oj-bind-text></span>
+          <span class="nx-min-flex"></span>
+          <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" id="pgViewerPrev" data-act="prev" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.viewer <= 0 ]]">‹ Previous</button>
+          <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" id="pgViewerNext" data-act="next" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.viewer >= $variables.sheet.screenshots.length - 1 ]]">Next ›</button>
+          <a class="nx-btn nx-btn--sm nx-btn--plain" target="_blank" rel="noopener" :href="[[ $functions.shot($application.path, $functions.shotAt($variables.sheet, $variables.viewer)) ]]"><span class="oj-ux-ico-external-link" aria-hidden="true"></span>Full size</a>
+          <oj-bind-if test="[[ $variables.info.canWrite ]]"><button type="button" class="nx-btn nx-btn--sm nx-btn--plain nx-pg-delete" id="pgShotDelete" data-act="unshot" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]"><span class="oj-ux-ico-trash" aria-hidden="true"></span>Delete</button></oj-bind-if>
+          <button type="button" class="nx-pg-dlgx" id="pgViewerClose" data-act="unview" on-click="[[ $listeners.onAct ]]" aria-label="Close" title="Close (Esc)">×</button>
+        </div>
+        <div class="nx-pg-viewimg"><img id="pgViewerImg" :src="[[ $functions.shot($application.path, $functions.shotAt($variables.sheet, $variables.viewer)) ]]" :alt="[[ 'Screenshot of ' + $variables.sheet.facts.label ]]"></div>
+        <div class="nx-pg-viewfoot"><span class="nx-note">Esc or a click outside the picture closes it.</span><button type="button" class="nx-btn nx-btn--sm" id="pgViewerDone" data-act="unview" on-click="[[ $listeners.onAct ]]">Close</button></div>
+      </div>
+    </oj-bind-if>
+  </dialog>
 </div>

@@ -824,7 +824,8 @@ function createDevServer(o) {
         (async () => {
           const b = post ? JSON.parse((await bodyOf()) || '{}') : {};
           const by = who();
-          if (pathname === '/__pages/info' && req.method === 'GET') return jsonP(200, { ok: true, canWrite: ps.canWrite(), canCapture: ps.canCapture() });
+          if (pathname === '/__pages/info' && req.method === 'GET') return jsonP(200, { ok: true, canWrite: ps.canWrite(), canCapture: ps.canCapture(), data: ps.dataInfo ? ps.dataInfo() : null });
+          if (pathname === '/__pages/git/pull' && post) return jsonP(200, ps.gitPull ? await ps.gitPull() : { ok: true, merged: false });
           if (pathname === '/__pages/catalog' && req.method === 'GET') return jsonP(200, Object.assign({ ok: true }, ps.catalog()));
           if (pathname === '/__pages/sheet' && req.method === 'GET') return jsonP(200, ps.sheet(u.searchParams.get('id') || ''));
           if (pathname === '/__pages/git/status' && req.method === 'GET') return jsonP(200, Object.assign({ ok: true }, await ps.gitStatus()));
@@ -878,7 +879,8 @@ function createDevServer(o) {
         const who = () => { try { const id = o.getIdentity && o.getIdentity(); return (id && (id.displayName || id.username)) || ''; } catch (e) { return ''; } };
         (async () => {
           const b = post ? JSON.parse((await bodyOf()) || '{}') : {};
-          if (pathname === '/__fdd/info' && req.method === 'GET') return jsonD(200, fd.info());
+          if (pathname === '/__fdd/info' && req.method === 'GET') return jsonD(200, Object.assign(fd.info(), { data: fd.dataInfo ? fd.dataInfo() : null }));
+          if (pathname === '/__fdd/git/pull' && post) return jsonD(200, fd.gitPull ? await fd.gitPull() : { ok: true, merged: false });
           if (pathname === '/__fdd/outline' && req.method === 'GET') return jsonD(200, fd.outline(u.searchParams.get('id') || ''));
           if (pathname === '/__fdd/git/status' && req.method === 'GET') return jsonD(200, Object.assign({ ok: true }, await fd.gitStatus()));
           if (pathname === '/__fdd/original' && req.method === 'GET') {
@@ -1085,20 +1087,22 @@ if (require.main === module) {
   // EQP_WEBAPP=equiprite serves New EquipRite; the default is the old app. Its links to the old app stay disabled
   // here (no /__versions), since only one app runs.
   const webApp = process.env.EQP_WEBAPP || 'vbredwoodapp';
-  createDevServer({
+  const projectRoot = path.resolve(__dirname, '..', '..');
+  // the app's data (FDD library, Application pages) on its own git branch, as in the desktop app (lib/dataBranch.js)
+  (webApp === 'equiprite-next' ? require('./dataBranch').open({ root: projectRoot, log: (l) => console.log(l) }).ensure() : Promise.resolve(null)).then((data) => createDevServer({
     buildDir: path.resolve(__dirname, '..', '..', 'build'),
     webApp,
     port,
     getIdentity: () => identity,
     backendOverrides: backendOverridesFromEnv(process.env),
-    // the FDD library page uploads into this project (and commits it to git) when served this way too
-    fddStore: webApp === 'equiprite-next' ? require('./fdd').open({ root: path.resolve(__dirname, '..', '..') }) : undefined,
+    // the FDD library page uploads into git (the data branch) when served this way too
+    fddStore: webApp === 'equiprite-next' ? require('./fdd').open({ root: projectRoot, data: data }) : undefined,
     // the Application pages catalog (no screenshots captured this way: upload them, or use the desktop app)
-    pagesStore: webApp === 'equiprite-next' ? require('./pages').open({ root: path.resolve(__dirname, '..', '..') }) : undefined,
+    pagesStore: webApp === 'equiprite-next' ? require('./pages').open({ root: projectRoot, data: data }) : undefined,
     // saved AI analyses, in your home folder when served this way (the desktop app keeps them in its data folder)
     analysisStore: webApp === 'equiprite-next' ? require('./analyses').open({ file: path.join(require('os').homedir(), '.equiprite', 'ai-analyses.json') }) : undefined,
     onLog: (line) => console.log(line),
-  }).then(({ url }) => {
+  })).then(({ url }) => {
     console.log(`\n${webApp === 'equiprite' ? 'New EquipRite' : 'EquipRite'} is running at ${url}  (Ctrl+C stops it)`);
     if (!identity.username) {
       console.log('Signed in as nobody, so the app shows "No Access". Set EQP_USER and EQP_ROLES (or EQP_FUSION_PASSWORD), e.g.');

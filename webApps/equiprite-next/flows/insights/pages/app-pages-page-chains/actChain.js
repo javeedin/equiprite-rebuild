@@ -20,10 +20,16 @@ define([
       const base = context.$application.path;
       if (!act) return;
       if (act === 'story') { if (key) bus.open({ record: 'jira-analysis', params: { key: key } }); return; }
-      // the screenshot viewer: one at a time, full size
+      // the screenshot viewer: a native dialog (showModal: the browser's top layer, above everything; Esc closes it)
       const shots = (v.sheet && v.sheet.screenshots) || [];
-      if (act === 'view') { v.viewer = Math.max(0, Math.min(shots.length - 1, Number(key) || 0)); return; }
-      if (act === 'unview') { v.viewer = -1; return; }
+      const dlg = () => { try { return document.getElementById('pgViewer'); } catch (e) { return null; } };
+      if (act === 'view') {
+        v.viewer = Math.max(0, Math.min(shots.length - 1, Number(key) || 0));
+        setTimeout(() => { const d = dlg(); try { if (d && !d.open) { if (d.showModal) d.showModal(); else d.setAttribute('open', ''); } } catch (e) { /* already open */ } }, 0);
+        return;
+      }
+      if (act === 'unview') { const d = dlg(); try { if (d && d.open) d.close(); } catch (e) { /* closed */ } v.viewer = -1; return; }
+      if (act === 'closed') { v.viewer = -1; return; } // Esc, or closed by the browser
       if (act === 'prev') { if (v.viewer > 0) v.viewer = v.viewer - 1; return; }
       if (act === 'next') { if (v.viewer < shots.length - 1) v.viewer = v.viewer + 1; return; }
       // a count in the Overview: its part of the sheet
@@ -72,6 +78,7 @@ define([
           const r = await PC.removeShot(id, s1.id, v.commit);
           await done(r, 'Screenshot deleted.');
           v.viewer = ((v.sheet && v.sheet.screenshots) || []).length ? Math.min(v.viewer, v.sheet.screenshots.length - 1) : -1;
+          if (v.viewer < 0) { const d = dlg(); try { if (d && d.open) d.close(); } catch (e) { /* closed */ } }
           return;
         }
         if (act === 'delete') {
