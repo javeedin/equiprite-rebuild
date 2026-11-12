@@ -49,7 +49,7 @@ const ID = 'vbredwoodapp/equipment-foundation/equipment-workbench';
     await page.waitForSelector('#pgSheetTitle', { timeout: 10000 });
     T.check('its name, app, flow/page, where it opens; not saved yet', (await text(page, '#pgSheetTitle')) === 'Equipment Manager Workbench'
       && /No technical sheet saved yet/.test(await text(page, '#pgSheetState')) && /Opens at \/vp\/shell\/equipment-foundation\/equipment-workbench/.test(await text(page, '#pgSheet')));
-    T.check('one sheet, no tabs: Overview, Integrations, Business logic, Features, Links & files all shown', !(await page.$('#pgTabs'))
+    T.check('the page\'s tab: one sheet, Overview, Integrations, Business logic, Features, Links & files all shown (the maps are the other tabs)', (await page.$$('#pgTabs [role="tab"]')).length === 3
       && ['pgOverview', 'pgIntegrations', 'pgLogic', 'pgFeatures', 'pgLinks'].every((x) => !!x) && (await page.$$('#pgSheet .nx-pg-part')).length === 5
       && /Overview\s*Integrations\s*Business logic\s*Features\s*Links & files/.test((await page.$$eval('#pgSheet .nx-pg-part', (h) => h.map((x) => x.textContent).join(' ')))));
     T.check('Integrations: the REST call → GET, its path, EquipRite REST, the chain that makes it', /GET\s*\/equiprite\/v1\/views\/workbench-requests/.test(await text(page, '#pgRest')) && /EquipRite REST \(eqpt\)/.test(await text(page, '#pgRest')) && /WorkbenchInitChain/.test(await text(page, '#pgRest')));
@@ -130,6 +130,43 @@ const ID = 'vbredwoodapp/equipment-foundation/equipment-workbench';
     await page.click('#pgOnlyMapped');
     await page.evaluate(() => { const c = document.querySelector('.nx-content'); if (c) c.scrollTop = 0; });
     await env.shot('next-app-pages.png');
+
+    T.section('tabs: the page, its map (where it is opened from, where it goes), the whole app\'s map');
+    const DASH = 'vbredwoodapp/customer-portal/customer-dashboard';
+    await page.fill('#pgSearch', '');
+    await page.click('#pgApps [data-value="vbredwoodapp"]');
+    await settle(page, 300);
+    await page.click('#pgRows .nx-pg-row[data-id="' + DASH + '"]');
+    await page.waitForFunction(() => /Customer Dashboard/.test((document.getElementById('pgSheetTitle') || {}).textContent || ''), null, { timeout: 10000 });
+    T.check('three tabs: the page (by its name, open), Page map (with its link count), Global map · its app',
+      /Customer Dashboard/.test(await text(page, '#pgTabPage')) && (await page.getAttribute('#pgTabPage', 'aria-selected')) === 'true'
+      && /Page map\s*\d+/.test(await text(page, '#pgTabMap')) && /Global map · Old EquipRite/.test(await text(page, '#pgTabGlobal')) && await page.isVisible('#pgOverview'));
+    await page.click('#pgTabMap');
+    await page.waitForSelector('#pgPageMap .nx-pm-node--self', { timeout: 10000 });
+    await page.waitForFunction(() => document.querySelectorAll('#pgPageMap svg path.nx-pm-edge').length > 3, null, { timeout: 5000 }).catch(() => {});
+    const cols = await page.$$eval('#pgPageMap .nx-pm-col', (cs) => cs.map((c) => c.textContent.replace(/\s+/g, ' ').trim()));
+    T.check('Page map: Comes from (the menu, the pages that open it) → This page → Goes to → Then', cols.length === 4 && /^Comes from \d+ Menu/.test(cols[0]) && /^This page Customer Dashboard/.test(cols[1])
+      && /^Goes to \d+/.test(cols[2]) && /My Billing/.test(cols[2]) && /^Then/.test(cols[3]) && !(await page.$('#pgOverview')), cols.join(' || ').slice(0, 400));
+    T.check('…how it gets there (the chain), and lines drawn between the boxes, this page\'s highlighted', /by \w+Chain/.test(cols[2]) && (await page.$$('#pgPageMap svg path.nx-pm-edge')).length > 3
+      && (await page.$$('#pgPageMap svg path.nx-pm-edge--hot')).length > 1);
+    await env.shot('next-app-pages-map.png');
+    await page.click('#pgPageMap .nx-pm-node--out[data-id="vbredwoodapp/customer-portal/customer-my-billing"]');
+    await page.waitForFunction(() => /My Billing/.test((document.querySelector('#pgPageMap .nx-pm-node--self') || {}).textContent || ''), null, { timeout: 10000 }).catch(() => {});
+    T.check('a click walks on: that page is open, its map shown (Customer Dashboard now among where it comes from)', /My Billing/.test(await text(page, '#pgSheetTitle'))
+      && /Customer Dashboard/.test(await text(page, '#pgPageMap div.nx-pm-col:first-of-type')) && (await page.getAttribute('#pgTabMap', 'aria-selected')) === 'true');
+    await page.click('#pgTabGlobal');
+    await page.waitForSelector('#pgGlobalMap .nx-pm-node', { timeout: 10000 });
+    await page.waitForFunction(() => document.querySelectorAll('#pgGlobalMap svg path.nx-pm-edge').length > 20, null, { timeout: 5000 }).catch(() => {});
+    const gcols = await page.$$eval('#pgGlobalMap .nx-pm-colhead', (cs) => cs.map((c) => c.textContent.replace(/\s+/g, ' ').trim()));
+    T.check('Global map: the whole app — from the menu, one step on…, not reached; counted', /^Old EquipRite: 50 pages · \d+ in the menu · \d+ links between pages/.test(await text(page, '#pgGlobalText'))
+      && /^From the menu \d+$/.test(gcols[0]) && /^One step on \d+$/.test(gcols[1]) && /^Not reached \d+$/.test(gcols[gcols.length - 1]) && (await page.$$('#pgGlobalMap .nx-pm-node')).length === 50, gcols.join(' | '));
+    T.check('…the open page marked, its links highlighted', /My Billing/.test(await text(page, '#pgGlobalMap .nx-pm-node--self')) && (await page.$$('#pgGlobalMap svg path.nx-pm-edge--hot')).length >= 1
+      && (await page.$$('#pgGlobalMap svg path.nx-pm-edge')).length > 20);
+    await env.shot('next-app-pages-global.png');
+    await page.click('#pgTabPage');
+    await page.waitForSelector('#pgOverview', { timeout: 5000 }).catch(() => {});
+    T.check('back to the page tab: its sheet', await page.isVisible('#pgOverview') && !(await page.$('#pgGlobalMap')));
+    await page.click('#pgApps [data-value="all"]');
 
     T.section('delete a page from the catalog, and restore it');
     const DEL = 'vbredwoodapp//shell';

@@ -259,13 +259,20 @@ function menusOf(root, ids) {
       const flows = appFlows(root, app);
       // an item: { id: …, label: '…', … flow: 'x', page: 'y' } or { … label: '…', … route: { flow: 'x', page: 'y' } }
       const re = /label:\s*'([^']{1,60})'((?:(?!label:)[\s\S]){0,400}?)\bflow:\s*'([a-z0-9-]+)'\s*,\s*page:\s*'([a-z0-9-]+)'/g;
+      const add = (label, flow, page) => {
+        const f = flows[flow];
+        const file = f ? (f.pages[page] || page) : page;
+        const id = app + '/' + flow + '/' + file;
+        if (ids.has(id) && !list.some((x) => x.to === id)) list.push({ label: label, group: '', to: id });
+      };
       let m;
-      while ((m = re.exec(src))) {
-        const f = flows[m[3]];
-        const file = f ? (f.pages[m[4]] || m[4]) : m[4];
-        const id = app + '/' + m[3] + '/' + file;
-        if (ids.has(id) && !list.some((x) => x.to === id)) list.push({ label: m[1], group: '', to: id });
-      }
+      while ((m = re.exec(src))) add(m[1], m[3], m[4]);
+      // Old EquipRite: items { id, label } in NAV_GROUPS, their routes in a map ('nav-id': { flow, page })
+      const routes = {};
+      const rr = /'([a-z0-9-]+)'\s*:\s*\{\s*flow:\s*'([a-z0-9-]+)'\s*,\s*page:\s*'([a-z0-9-]+)'\s*\}/g;
+      while ((m = rr.exec(src))) routes[m[1]] = { flow: m[2], page: m[3] };
+      const ri = /\{\s*id:\s*'([a-z0-9-]+)'\s*,\s*label:\s*'([^']{1,60})'/g;
+      while ((m = ri.exec(src))) { const r = routes[m[1]]; if (r) add(m[2], r.flow, r.page); }
     }
     out[app] = list;
   });

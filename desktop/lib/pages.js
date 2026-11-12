@@ -87,7 +87,8 @@ function open(opts) {
   }
   function writeCatalog(cat) {
     const slim = { scannedAt: cat.scannedAt, pages: cat.pages.map((p) => ({ id: p.id, app: p.app, appName: p.appName, flow: p.flow, page: p.page, label: p.label,
-      route: p.route, stories: p.stories || [], sheet: p.sheet || null, missing: p.missing || undefined, deleted: p.deleted || undefined })) };
+      route: p.route, next: (p.next || []).length ? p.next : undefined, menu: p.menu || undefined,
+      stories: p.stories || [], sheet: p.sheet || null, missing: p.missing || undefined, deleted: p.deleted || undefined })) };
     write('catalog.json', JSON.stringify(slim, null, 1) + '\n');
   }
   /** The sheet's screenshots (a sheet from before several were kept had one, as `screenshot`). */

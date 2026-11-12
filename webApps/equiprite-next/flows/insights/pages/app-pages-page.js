@@ -1,4 +1,4 @@
-define(['resources/js/pagesClient', 'resources/js/storyAnalysis', 'resources/js/shellBus'], (PC, SA, bus) => {
+define(['resources/js/pagesClient', 'resources/js/storyAnalysis', 'resources/js/shellBus', 'resources/js/pageMap'], (PC, SA, bus, PM) => {
   'use strict';
 
   // Application pages: binding helpers. The facts come from desktop/lib/pageScan.js (via the catalog, resources/pages);
@@ -8,12 +8,43 @@ define(['resources/js/pagesClient', 'resources/js/storyAnalysis', 'resources/js/
   const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const when = (at) => { const d = new Date(at); if (isNaN(d.getTime())) return ''; const p2 = (n) => (n < 10 ? '0' : '') + n; return d.getDate() + ' ' + MON[d.getMonth()] + ' ' + d.getFullYear() + ', ' + p2(d.getHours()) + ':' + p2(d.getMinutes()); };
   let shownKept = { k: '', v: [] };
+  const mapKept = { page: { k: '', v: null }, app: { k: '', v: null } };
 
   class PageModule {
     constructor(context) {
       // a Jira story hands this screen a page to open (bus.focus('app-pages', { id })): the focusRequest event takes it
       const helper = context && typeof context.getEventHelper === 'function' ? context.getEventHelper() : null;
       bus.onFocus('app-pages', () => { if (helper) helper.fireCustomEvent('focusRequest', {}); });
+      // the maps' lines follow the boxes: drawn again when the window changes size
+      if (typeof window !== 'undefined') { let t = 0; window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(() => PM.redraw(), 120); }); }
+    }
+    // ── the navigation maps (resources/js/pageMap.js) ──
+    /** One page's map: Comes from → This page → Goes to → Then. */
+    pageMap(pages, id, sheet) {
+      const via = (sheet && sheet.facts && sheet.facts.next) || [];
+      const k = (pages || []).length + '|' + id + '|' + JSON.stringify(via);
+      if (mapKept.page.k === k && mapKept.page.pages === pages) return mapKept.page.v;
+      const v = PM.pageMap(pages, id, via);
+      mapKept.page = { k: k, v: v, pages: pages };
+      return v;
+    }
+    /** The whole app's map (the open page's app), the open page marked. */
+    appMap(pages, id) {
+      const p = (pages || []).filter((x) => x.id === id)[0];
+      const app = p ? p.app : '';
+      const k = (pages || []).length + '|' + app + '|' + id;
+      if (mapKept.app.k === k && mapKept.app.pages === pages) return mapKept.app.v;
+      const v = app ? PM.appMap(pages, app, id) : { cols: [], edges: [], counts: { pages: 0, links: 0, linked: 0, menu: 0 } };
+      mapKept.app = { k: k, v: v, pages: pages };
+      return v;
+    }
+    edges(map) { return JSON.stringify((map && map.edges) || []); }
+    mapLinks(map) { const c = map && map.cols ? map.cols : []; const n = (i) => (c[i] ? c[i].nodes.length : 0); return n(0) + n(2); }
+    nodeClass(n, selId) { return 'nx-pm-node nx-pm-node--' + n.kind + (n.id && n.id === selId && n.kind !== 'self' ? ' nx-pm-node--sel' : ''); }
+    nodeTitle(n) { return n.kind === 'menu' ? 'In the menu: ' + n.sub : n.kind === 'self' ? 'The page open now' : 'Open ' + n.label + ' (' + n.sub + ')'; }
+    appMapText(m, appName) {
+      const c = (m && m.counts) || { pages: 0, links: 0, linked: 0, menu: 0 };
+      return (appName || 'This app') + ': ' + c.pages + ' pages · ' + c.menu + ' in the menu · ' + c.links + ' links between pages · ' + (c.pages - c.linked) + ' with no link either way';
     }
     subText(pages) {
       const ps = pages || [];

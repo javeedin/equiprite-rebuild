@@ -14,6 +14,7 @@
     "showDeleted": { "type": "boolean", "defaultValue": false, "description": "Also list the pages deleted from the catalog." },
     "deleted": { "type": "boolean", "defaultValue": false, "description": "The open page was deleted from the catalog." },
     "viewer": { "type": "number", "defaultValue": -1, "description": "The screenshot shown full size (its index), -1 when none." },
+    "view": { "type": "string", "defaultValue": "page", "description": "The tab: page (its sheet), map (where it is opened from and where it goes) or global (the whole app's navigation)." },
     "selId": { "type": "string", "defaultValue": "", "description": "The page whose sheet is open." },
     "sheet": { "type": "any", "defaultValue": null, "description": "Its sheet: { id, facts, ai, screenshot, stories, at, by, codeHash }." },
     "saved": { "type": "boolean", "defaultValue": false, "description": "The sheet is saved (else: the facts read now, not yet built)." },
