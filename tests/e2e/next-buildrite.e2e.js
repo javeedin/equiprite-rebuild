@@ -43,6 +43,22 @@ const BUILD_SCREENS = ['jira', 'analytics', 'minutes', 'followups', 'fdd', 'app-
     await page.click('#nxNav [data-nav-id="app-pages"]');
     await page.waitForSelector('#pgRows .nx-pg-row', { timeout: 30000 }).catch(() => {});
     T.check('its screens work as in Next (Application pages opens)', (await page.$$('#pgRows .nx-pg-row')).length > 100);
+    const look = await page.evaluate(() => {
+      const head = document.querySelector('.nx-pagehead');
+      const after = head ? getComputedStyle(head, '::after') : null;
+      return { strip: after ? after.backgroundImage : '', band: head ? getComputedStyle(head).backgroundColor : '', nav: getComputedStyle(document.getElementById('nxNav')).backgroundColor };
+    });
+    T.check('every page\'s header: Redwood\'s teal with Oracle\'s colour strip (no five-colour line); the menu the same teal', /colorstrip_redwood/.test(look.strip) && !/linear-gradient/.test(look.strip)
+      && look.band === 'rgb(44, 82, 102)' && look.nav === look.band, JSON.stringify(look));
+    for (const id of ['jira', 'fdd', 'minutes']) {
+      await page.click('#nxNav [data-nav-id="' + id + '"]');
+      await page.waitForTimeout(1500);
+    }
+    const heads = await page.evaluate(() => Array.prototype.map.call(document.querySelectorAll('.nx-pagehead'), (h) => getComputedStyle(h, '::after').backgroundImage));
+    T.check('…on the other pages too (Jira stories, the FDD, standup minutes)', heads.length >= 3 && heads.every((b) => /colorstrip_redwood/.test(b)), heads.length + ' ' + heads.map((b) => b.slice(0, 40)).join(' | '));
+    await page.click('#nxNav [data-nav-id="jira"]');
+    await page.waitForTimeout(800);
+    await env.shot('buildrite-jira.png');
     await env.shot('buildrite.png');
     T.eq('no browser errors', errs().join(' | ').slice(0, 1500), '');
   } catch (e) {

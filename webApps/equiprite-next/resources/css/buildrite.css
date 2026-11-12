@@ -1,0 +1,36 @@
+/* Build.Rite: EquipRite Next's build shown as the team's own tools (resources/js/nav.js product; app-flow.js sets
+   html[data-nx-product="buildrite"]). Every page as Oracle Visual Builder draws a Redwood page: the page header in
+   Redwood's teal, rgb(44, 82, 102), with Oracle's own colour strip (oj-sp's image, as on a Fusion page such as
+   Interorganization Transfer) instead of Next's five-colour line, and the menu in that same teal, so the menu and every
+   page's header are one colour. Whichever look is chosen (Current or Redwood). Loaded last (app-flow.json). */
+
+html[data-nx-product="buildrite"] {
+  --nx-band: rgb(44, 82, 102);
+  --nx-band-ink: rgba(255, 255, 255, 0.86);
+  --nx-nav-bg: rgb(44, 82, 102);
+  --nx-nav-edge: rgb(34, 66, 83);
+  --rw-strip: url("https://static.oracle.com/cdn/spectra-ui/oj-sp/2601.0.3/header-general-overview/resources/img/colorstrip_redwood_2x.webp");
+}
+
+/* ── every page's header: the Redwood band and its strip, no five-colour line ── */
+html[data-nx-product="buildrite"] .nx-pagehead { background: var(--nx-band); padding-top: 24px; padding-bottom: 34px; }
+html[data-nx-product="buildrite"] .nx-pagehead::after {
+  height: 14px; border-radius: 6px 6px 0 0; background: var(--rw-strip) 0 100% / 720px auto repeat-x;
+}
+html[data-nx-product="buildrite"] .nx-pagehead h1 { font-size: 28px; line-height: 36px; font-weight: 700; }
+html[data-nx-product="buildrite"] .nx-pagehead .nx-kicker { color: rgba(255, 255, 255, 0.8); }
+html[data-nx-product="buildrite"] .nx-dialog-head::after { height: 8px; background: var(--rw-strip) 0 100% / 480px auto repeat-x; }
+
+/* ── the menu: the same teal as the headers, white type (also in the Redwood look, whose menu is otherwise white) ── */
+html[data-nx-product="buildrite"] .nx-nav { background: var(--nx-nav-bg); color: #fff; border-right: 1px solid var(--nx-nav-edge); }
+html[data-nx-product="buildrite"] .nx-nav-label { color: rgba(255, 255, 255, 0.7); }
+html[data-nx-product="buildrite"] .nx-nav-item { color: #fff; }
+html[data-nx-product="buildrite"] .nx-nav-icon { opacity: 0.92; }
+html[data-nx-product="buildrite"] .nx-nav-item:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+html[data-nx-product="buildrite"] .nx-nav-item--on, html[data-nx-product="buildrite"] .nx-nav-item--on:hover { background: rgba(255, 255, 255, 0.18); color: #fff; font-weight: 700; }
+html[data-nx-product="buildrite"] .nx-nav-item--on::before { background: #fff; }
+html[data-nx-product="buildrite"] .nx-nav-item:focus-visible, html[data-nx-product="buildrite"] .nx-nav-foot:focus-visible { outline-color: #fff; }
+html[data-nx-product="buildrite"] .nx-nav-loading, html[data-nx-product="buildrite"] .nx-nav-foot { color: var(--nx-band-ink); }
+html[data-nx-product="buildrite"] .nx-nav-foot:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+html[data-nx-product="buildrite"] .nx-app--rail .nx-nav-group { border-top-color: rgba(255, 255, 255, 0.16); }
+html[data-nx-product="buildrite"] .nx-nav-scroll { scrollbar-color: rgba(255, 255, 255, 0.35) transparent; }

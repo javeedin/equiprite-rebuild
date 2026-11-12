@@ -107,7 +107,7 @@ define(['resources/js/rules'], function (rules) {
         keywords: 'fdd functional design document requirements business mapping development status progress swimlane diagrams scenarios integrations' },
       // Every VB page of the project with its technical sheet — screenshot, features, business logic, integrations — and
       // the Jira stories mapped to it, kept in git (flows/insights app-pages). Gated like Jira stories.
-      { id: 'app-pages', label: 'Application pages', icon: 'oj-ux-ico-layout-1', pageCodes: ['EQR_CONFIGURATIONS'],
+      { id: 'app-pages', label: 'Application pages', icon: 'oj-ux-ico-layers', pageCodes: ['EQR_CONFIGURATIONS'],
         route: { flow: 'insights', page: 'app-pages' }, built: true,
         keywords: 'application pages vb page code technical sheet screenshot business logic integrations rest fusion oic bip chains jira map story developer' },
       // The FDD documents "Analyze with AI" reads (flows/fdd library page): uploaded into the project and committed and

@@ -885,6 +885,7 @@
       "resources/css/next-minutes.css",
       "resources/css/next-followups.css",
       "resources/css/next-redwood.css",
+      "resources/css/buildrite.css",
       "resources/css/mapbox-gl.css"
     ]
   }
