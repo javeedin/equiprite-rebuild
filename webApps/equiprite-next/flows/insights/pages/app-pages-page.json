@@ -1,0 +1,40 @@
+{
+  "description": "Application pages: every Visual Builder page in the project (Old, New and Next EquipRite, Mobile, Future), each with a technical sheet read from its code — screenshot, features (sections, fields, actions, columns), business logic (action chains and rules modules), integrations (REST calls to EquipRite REST, Fusion, OIC, BI Publisher, Jira; reports; desktop services) and links — plus an AI explanation, and the Jira stories mapped to it. Kept in git (resources/pages), so everyone has the same sheets and mappings; a page mapped to another story keeps its sheet. Building a sheet, mapping, screenshots and AI text need the desktop app or npm run serve (desktop/lib/pages.js, /__pages/*).",
+  "navigation": { "embeddable": "enabled" },
+  "variables": {
+    "checked": { "type": "boolean", "defaultValue": false },
+    "info": { "type": "object", "defaultValue": { "available": false, "canWrite": false, "canCapture": false }, "description": "The local server: answers, can write into the project, can capture screenshots (desktop app)." },
+    "busy": { "type": "boolean", "defaultValue": false },
+    "progress": { "type": "string", "defaultValue": "" },
+    "pages": { "type": "any[]", "defaultValue": [], "description": "The catalog: [{ id, app, appName, flow, page, label, route, stories, sheet }]." },
+    "q": { "type": "string", "defaultValue": "" },
+    "appF": { "type": "string", "defaultValue": "all", "description": "The app shown: all, or an app id (vbredwoodapp, equiprite, equiprite-next, …)." },
+    "onlyMapped": { "type": "boolean", "defaultValue": false },
+    "onlySheet": { "type": "boolean", "defaultValue": false },
+    "selId": { "type": "string", "defaultValue": "", "description": "The page whose sheet is open." },
+    "sheet": { "type": "any", "defaultValue": null, "description": "Its sheet: { id, facts, ai, screenshot, stories, at, by, codeHash }." },
+    "saved": { "type": "boolean", "defaultValue": false, "description": "The sheet is saved (else: the facts read now, not yet built)." },
+    "codeChanged": { "type": "boolean", "defaultValue": false },
+    "tab": { "type": "string", "defaultValue": "overview", "description": "overview | features | logic | integrations | links" },
+    "mapKey": { "type": "string", "defaultValue": "" },
+    "commit": { "type": "boolean", "defaultValue": true, "description": "Commit and push to git after each change." },
+    "aiReady": { "type": "boolean", "defaultValue": false },
+    "result": { "type": "any", "defaultValue": null, "description": "The last action's result: { ok, text }." },
+    "git": { "type": "any", "defaultValue": null }
+  },
+  "events": {
+    "focusRequest": { "description": "From resources/js/shellBus.js focus(): another screen (a Jira story) handed this one a page to open.", "payloadType": "object" }
+  },
+  "eventListeners": {
+    "vbEnter": { "chains": [ { "chain": "loadChain" } ] },
+    "focusRequest": { "chains": [ { "chain": "focusChain" } ] },
+    "onRefresh": { "chains": [ { "chain": "loadChain", "parameters": { "refresh": true } } ] },
+    "onField": { "chains": [ { "chain": "setChain", "parameters": { "field": "{{ $event.currentTarget.dataset.field }}", "value": "{{ $event.currentTarget.type === 'checkbox' ? $event.currentTarget.checked : ($event.currentTarget.dataset.value !== undefined ? $event.currentTarget.dataset.value : $event.currentTarget.value) }}" } } ] },
+    "onSelect": { "chains": [ { "chain": "selectChain", "parameters": { "id": "{{ $event.currentTarget.dataset.id }}" } } ] },
+    "onAct": { "chains": [ { "chain": "actChain", "parameters": { "act": "{{ $event.currentTarget.dataset.act }}", "key": "{{ $event.currentTarget.dataset.key || '' }}" } } ] },
+    "onShotFile": { "chains": [ { "chain": "actChain", "parameters": { "act": "{{ 'upload' }}", "key": "{{ '' }}" } } ] },
+    "onMapKey": { "chains": [ { "chain": "actChain", "parameters": { "act": "{{ $event.key === 'Enter' ? 'map' : '' }}", "key": "{{ '' }}" } } ] }
+  },
+  "imports": { "components": {
+    "oj-bind-for-each": { "path": "ojs/ojknockout" }, "oj-bind-if": { "path": "ojs/ojknockout" }, "oj-bind-text": { "path": "ojs/ojknockout" } } }
+}

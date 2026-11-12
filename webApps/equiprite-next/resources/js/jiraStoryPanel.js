@@ -16,6 +16,8 @@ define(['resources/js/jiraBacklog'], (J) => {
   const DRAWERS = ['#jiraDrawer', '#jspDrawer'];
 
   let actKept = { k: '', v: null };
+  let pagesKept = { k: '', v: [] };
+  let choicesKept = { k: '', v: [] };
   const helpers = {
     /** The item open in the drawer, or an empty one. */
     item(rows, key) { return (rows || []).filter((r) => r.key === key)[0] || EMPTY; },
@@ -38,6 +40,45 @@ define(['resources/js/jiraBacklog'], (J) => {
     },
     /** "4.5 / 5 · 1 check failed". */
     scoreText(r) { return r ? r.score + ' / 5' + (r.checks && r.checks.length ? ' · ' + r.checks.length + (r.checks.length === 1 ? ' check failed' : ' checks failed') : '') : ''; },
+    // ── Application pages mapped to a story (resources/pages, kept in git) ──────────────────────────────────────────────
+    /** The pages a story is mapped to (catalog entries whose stories hold the key). */
+    pagesFor(cat, key) {
+      const k = String(key || '').toUpperCase();
+      const ck = JSON.stringify([k, (cat || []).length, (cat || []).map((p) => (p.stories || []).indexOf(k) !== -1 ? p.id + (p.sheet ? p.sheet.at : '') : '').join('')]);
+      if (pagesKept.k === ck) return pagesKept.v;
+      pagesKept = { k: ck, v: k ? (cat || []).filter((p) => (p.stories || []).indexOf(k) !== -1) : [] };
+      return pagesKept.v;
+    },
+    /** The pages to choose from (not mapped yet), the best matches for what is typed, a sheet first. */
+    pageChoices(cat, q, key) {
+      const k = String(key || '').toUpperCase();
+      const s = String(q || '').trim().toLowerCase();
+      const ck = JSON.stringify([k, s, (cat || []).length]);
+      if (choicesKept.k === ck) return choicesKept.v;
+      const ORDER = { vbredwoodapp: 0, equiprite: 1, 'equiprite-next': 2, 'equiprite-mobile': 3, 'equiprite-future': 4 };
+      const words = s.split(/\s+/).filter(Boolean);
+      const v = (cat || []).filter((p) => (p.stories || []).indexOf(k) === -1 && !p.missing
+        && words.every((w) => [p.label, p.id, p.appName].join(' ').toLowerCase().indexOf(w) !== -1))
+        .sort((a, b) => (b.sheet ? 1 : 0) - (a.sheet ? 1 : 0) || (ORDER[a.app] - ORDER[b.app]) || String(a.label).localeCompare(String(b.label)))
+        .slice(0, 80);
+      choicesKept = { k: ck, v: v };
+      return v;
+    },
+    pageThumb(base, p) {
+      if (!p || !p.sheet || !p.sheet.screenshot) return '';
+      let b = base || ''; if (b && b.charAt(b.length - 1) !== '/') b += '/';
+      return b + 'resources/pages/' + p.sheet.screenshot + '?t=' + encodeURIComponent(p.sheet.at || '');
+    },
+    pageApp(app) { return { vbredwoodapp: 'OLD', equiprite: 'NEW', 'equiprite-next': 'NEXT', 'equiprite-mobile': 'MOB', 'equiprite-future': 'FUT' }[app] || 'VB'; },
+    pageMeta(p) {
+      if (!p) return '';
+      const sh = p.sheet;
+      return [p.appName + ' · ' + (p.flow ? p.flow + '/' : '') + p.page, sh ? sh.rest + ' REST · ' + sh.chains + ' chains' + (sh.ai ? ' · explained' : '') : 'no sheet yet',
+        (p.stories || []).length > 1 ? 'also ' + (p.stories.length - 1) + ' other ' + ((p.stories.length - 1) === 1 ? 'story' : 'stories') : ''].filter(Boolean).join(' · ');
+    },
+    pageChoiceMeta(p) {
+      return p.appName + ' · ' + (p.flow ? p.flow + '/' : '') + p.page + (p.sheet ? ' · sheet ready' : '') + ((p.stories || []).length ? ' · ' + p.stories.join(', ') : '');
+    },
     // ── The AI icon in a list: filled once the story has a saved analysis, faint until then ────────────────────────────
     aiClass(index, key) { return 'nx-ai-ico ' + (index && index[key] ? 'nx-ai-ico--done' : 'nx-ai-ico--none'); },
     aiTitle(index, key) {

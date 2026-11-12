@@ -260,6 +260,8 @@ function time() {
  *                                        header; voice→text reuses o.transcribe, "Format by AI" reuses o.aiStore (/__sql/ai/chat)
  * @param {object}   [o.analysisStore]    Saved AI analyses (lib/analyses.js), for EquipRite Next's Analyze with AI: kept on this PC so
  *                                        an analysis opens without asking the AI again: /__ai/* to this PC only, behind X-EquipRite-AI
+ * @param {object}   [o.pagesStore]       The Application pages catalog (lib/pages.js): every VB page's technical sheet and the Jira stories
+ *                                        mapped to it, saved into the project (git): /__pages/* to this PC only, behind X-EquipRite-Pages
  * @param {object}   [o.fddStore]         The FDD library (lib/fdd.js): FDDs saved into the project (git) for EquipRite Next's FDD library
  *                                        page and "Analyze with AI": /__fdd/* to this PC only, behind the X-EquipRite-FDD header.
  *                                        Its JSON files are also written into this server's build copy, so the app sees an upload
@@ -275,6 +277,12 @@ function createDevServer(o) {
   const repoRoot = o.repoRoot || path.dirname(o.buildDir);
   // The FDD library writes into the project; the app reads the built copy (webApps/<app>/version_<n>/resources/fdd), so an
   // upload is also written there — the newest version folder, looked up at write time since every build makes a new one.
+  if (o.pagesStore && o.pagesStore.setMirror && (o.webApp || '') === 'equiprite-next') {
+    o.pagesStore.setMirror(() => {
+      const v = fs.readdirSync(webRoot).filter((n) => /^version_/.test(n)).sort().pop();
+      return path.join(webRoot, v || '', 'resources', 'pages');
+    });
+  }
   if (o.fddStore && o.fddStore.setMirror && (o.webApp || '') === 'equiprite-next') {
     o.fddStore.setMirror(() => {
       const v = fs.readdirSync(webRoot).filter((n) => /^version_/.test(n)).sort().pop();
@@ -788,6 +796,58 @@ function createDevServer(o) {
         })().catch((e) => jsonA(200, { ok: false, error: e.message }));
         return undefined;
       }
+      if (pathname.startsWith('/__pages/')) {
+        // The Application pages catalog (lib/pages.js): build a page's technical sheet, map Jira stories to it, its
+        // screenshot (captured by the desktop app, or uploaded), its AI explanation, and commit + push those files. This PC
+        // only, and only the app's own page (X-EquipRite-Pages). Reading the catalog needs none of this: it ships with the app.
+        const host = String(req.headers.host || '').replace(/:\d+$/, '');
+        if (!isLoopback(req.socket.remoteAddress) || !/^(localhost|127\.0\.0\.1|\[::1\])$/.test(host)) {
+          return send(res, 404, 'text/plain; charset=utf-8', 'Not found');
+        }
+        const jsonP = (status, body) => send(res, status, 'application/json', JSON.stringify(body), { 'Cache-Control': 'no-store' });
+        if (!o.pagesStore) return jsonP(200, { ok: false, error: 'The Application pages catalog is not set up in this app.' });
+        const origin = req.headers.origin;
+        if (req.headers['x-equiprite-pages'] !== '1' || (origin && origin !== `http://${req.headers.host}`)) {
+          return send(res, 403, 'application/json', JSON.stringify({ error: 'Refused: not from EquipRite Next on this PC.' }));
+        }
+        const ps = o.pagesStore;
+        const bodyOf = () => new Promise((resolve, reject) => {
+          const chunks = [];
+          let size = 0;
+          req.on('data', (c) => { size += c.length; if (size <= 16 * 1024 * 1024) chunks.push(c); });
+          req.on('end', () => (size > 16 * 1024 * 1024 ? reject(new Error('Too large')) : resolve(Buffer.concat(chunks).toString('utf8'))));
+          req.on('error', reject);
+        });
+        const post = req.method === 'POST';
+        const who = () => { try { const id = o.getIdentity && o.getIdentity(); return (id && (id.displayName || id.username)) || ''; } catch (e) { return ''; } };
+        const commit = async (r, b, msg) => { if (r && r.ok && b.commit) r.git = await ps.gitSave({ message: msg, push: b.push !== false }); return r; };
+        (async () => {
+          const b = post ? JSON.parse((await bodyOf()) || '{}') : {};
+          const by = who();
+          if (pathname === '/__pages/info' && req.method === 'GET') return jsonP(200, { ok: true, canWrite: ps.canWrite(), canCapture: ps.canCapture() });
+          if (pathname === '/__pages/catalog' && req.method === 'GET') return jsonP(200, Object.assign({ ok: true }, ps.catalog()));
+          if (pathname === '/__pages/sheet' && req.method === 'GET') return jsonP(200, ps.sheet(u.searchParams.get('id') || ''));
+          if (pathname === '/__pages/git/status' && req.method === 'GET') return jsonP(200, Object.assign({ ok: true }, await ps.gitStatus()));
+          if (pathname === '/__pages/rescan' && post) return jsonP(200, await commit(ps.rescan(), b, 'Application pages: rescan'));
+          if (pathname === '/__pages/build' && post) return jsonP(200, await commit(ps.build(b.id, { by }), b, 'Application pages: sheet of ' + b.id));
+          if (pathname === '/__pages/assign' && post) {
+            const r = ps.assign(b.id, b.key, { by });
+            log(`Pages: ${b.key} -> ${b.id} ${r.ok ? (r.built ? '(sheet built)' : '(sheet reused)') : r.error}`);
+            return jsonP(200, await commit(r, b, 'Application pages: map ' + String(b.key || '').toUpperCase() + ' to ' + b.id));
+          }
+          if (pathname === '/__pages/unassign' && post) return jsonP(200, await commit(ps.unassign(b.id, b.key), b, 'Application pages: unmap ' + String(b.key || '').toUpperCase() + ' from ' + b.id));
+          if (pathname === '/__pages/shot' && post) return jsonP(200, await commit(ps.saveShot(b.id, Object.assign({}, b, { by, source: 'upload' })), b, 'Application pages: screenshot of ' + b.id));
+          if (pathname === '/__pages/capture' && post) {
+            const r = await ps.capture(b.id, { by });
+            log(`Pages: capture ${b.id} -> ${r.ok ? r.file : r.error}`);
+            return jsonP(200, await commit(r, b, 'Application pages: screenshot of ' + b.id));
+          }
+          if (pathname === '/__pages/ai' && post) return jsonP(200, await commit(ps.saveAi(b.id, Object.assign({}, b, { by })), b, 'Application pages: AI explanation of ' + b.id));
+          if (pathname === '/__pages/git/save' && post) return jsonP(200, await ps.gitSave({ message: b.message, push: b.push !== false }));
+          return jsonP(404, { error: 'Not found' });
+        })().catch((e) => jsonP(200, { ok: false, error: e.message }));
+        return undefined;
+      }
       if (pathname.startsWith('/__fdd/')) {
         // The FDD library (lib/fdd.js), for EquipRite Next's FDD library page: upload an FDD into the project, make one the
         // latest, remove one, and commit + push those files to git. This PC only, by its own name, and only the app's own
@@ -1030,6 +1090,8 @@ if (require.main === module) {
     backendOverrides: backendOverridesFromEnv(process.env),
     // the FDD library page uploads into this project (and commits it to git) when served this way too
     fddStore: webApp === 'equiprite-next' ? require('./fdd').open({ root: path.resolve(__dirname, '..', '..') }) : undefined,
+    // the Application pages catalog (no screenshots captured this way: upload them, or use the desktop app)
+    pagesStore: webApp === 'equiprite-next' ? require('./pages').open({ root: path.resolve(__dirname, '..', '..') }) : undefined,
     // saved AI analyses, in your home folder when served this way (the desktop app keeps them in its data folder)
     analysisStore: webApp === 'equiprite-next' ? require('./analyses').open({ file: path.join(require('os').homedir(), '.equiprite', 'ai-analyses.json') }) : undefined,
     onLog: (line) => console.log(line),

@@ -294,6 +294,45 @@
           </oj-bind-for-each>
         </ol>
         <oj-bind-if test="[[ $functions.item($variables.report.rows, $variables.selKey).gaps.length === 0 ]]"><p class="nx-note">None listed.</p></oj-bind-if>
+        <h3 class="nx-jira-h3" id="jspPagesHead">Application pages</h3>
+        <div class="nx-sp" id="jspPages">
+          <oj-bind-for-each data="[[ $functions.pagesFor($variables.pgCat, $variables.selKey) ]]">
+            <template data-oj-as="pp">
+              <div class="nx-sp-row" :data-id="[[ pp.data.id ]]">
+                <span class="nx-pg-thumb">
+                  <oj-bind-if test="[[ !!(pp.data.sheet && pp.data.sheet.screenshot) ]]"><img :src="[[ $functions.pageThumb($application.path, pp.data) ]]" alt="" loading="lazy"></oj-bind-if>
+                  <oj-bind-if test="[[ !(pp.data.sheet && pp.data.sheet.screenshot) ]]"><span class="nx-pg-noshot"><oj-bind-text value="[[ $functions.pageApp(pp.data.app) ]]"></oj-bind-text></span></oj-bind-if>
+                </span>
+                <span class="nx-sp-main"><b><oj-bind-text value="[[ pp.data.label ]]"></oj-bind-text></b><span class="nx-note"><oj-bind-text value="[[ $functions.pageMeta(pp.data) ]]"></oj-bind-text></span></span>
+                <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" data-act="open" :data-id="[[ pp.data.id ]]" on-click="[[ $listeners.onPages ]]" title="Its technical sheet: screenshot, features, business logic, integrations"><span class="oj-ux-ico-layout-1" aria-hidden="true"></span>Technical sheet</button>
+                <oj-bind-if test="[[ $variables.pgInfo.canWrite ]]"><button type="button" class="nx-pg-mapx" data-act="unmap" :data-id="[[ pp.data.id ]]" on-click="[[ $listeners.onPages ]]" title="Unmap this page" aria-label="Unmap this page">×</button></oj-bind-if>
+              </div>
+            </template>
+          </oj-bind-for-each>
+          <oj-bind-if test="[[ $functions.pagesFor($variables.pgCat, $variables.selKey).length === 0 ]]"><p class="nx-note" id="jspPagesNone">No application page mapped to this story yet.</p></oj-bind-if>
+          <div class="nx-sp-bar">
+            <button type="button" class="nx-btn nx-btn--sm" id="jspAssignPage" data-act="pick" on-click="[[ $listeners.onPages ]]" :disabled="[[ !$variables.pgInfo.canWrite || $variables.pgBusy ]]"><span class="oj-ux-ico-plus" aria-hidden="true"></span>Assign page</button>
+            <oj-bind-if test="[[ $variables.pgBusy ]]"><span class="nx-note nx-sp-busy"><oj-bind-text value="[[ $variables.pgBusyText || 'Working…' ]]"></oj-bind-text></span></oj-bind-if>
+            <oj-bind-if test="[[ !$variables.pgInfo.canWrite ]]"><span class="nx-note">Pages are assigned in the EquipRite desktop app (they are saved to git).</span></oj-bind-if>
+          </div>
+          <oj-bind-if test="[[ $variables.pgPick ]]">
+            <div class="nx-sp-picker" id="jspPagePicker">
+              <div class="nx-sp-pickhead"><b>Choose the VB page for <oj-bind-text value="[[ $variables.selKey ]]"></oj-bind-text></b><span class="nx-min-flex"></span><button type="button" class="nx-btn nx-btn--sm nx-btn--plain" data-act="close" on-click="[[ $listeners.onPages ]]" aria-label="Close">×</button></div>
+              <input type="search" class="nx-flib-filter nx-sp-q" id="jspPageQ" :value="[[ $variables.pgQ ]]" on-input="[[ $listeners.onPagesQ ]]" placeholder="Find a page: its name, app, flow (workbench, cart, rates…)">
+              <div class="nx-sp-list" id="jspPageList">
+                <oj-bind-for-each data="[[ $functions.pageChoices($variables.pgCat, $variables.pgQ, $variables.selKey) ]]">
+                  <template data-oj-as="c">
+                    <button type="button" class="nx-sp-choice" data-act="assign" :data-id="[[ c.data.id ]]" on-click="[[ $listeners.onPages ]]">
+                      <span class="nx-sp-chname"><oj-bind-text value="[[ c.data.label ]]"></oj-bind-text></span>
+                      <span class="nx-note"><oj-bind-text value="[[ $functions.pageChoiceMeta(c.data) ]]"></oj-bind-text></span>
+                    </button>
+                  </template>
+                </oj-bind-for-each>
+                <oj-bind-if test="[[ $functions.pageChoices($variables.pgCat, $variables.pgQ, $variables.selKey).length === 0 ]]"><p class="nx-note">No page matches.</p></oj-bind-if>
+              </div>
+            </div>
+          </oj-bind-if>
+        </div>
         <h3 class="nx-jira-h3" id="jspActHead">Activity</h3>
         <div class="nx-jira-acttabs" role="tablist" id="jspActTabs">
           <button type="button" role="tab" :class="[[ $functions.actTabClass($functions.act($variables.activity, $variables.selKey, $variables.actTab, $functions.item($variables.report.rows, $variables.selKey)), 'all') ]]" data-tab="all" on-click="[[ $listeners.onActTab ]]"><oj-bind-text value="[[ $functions.actLabel($functions.act($variables.activity, $variables.selKey, $variables.actTab, $functions.item($variables.report.rows, $variables.selKey)), 'all') ]]"></oj-bind-text></button>

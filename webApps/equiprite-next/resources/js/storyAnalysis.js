@@ -113,17 +113,28 @@ define([], function () {
     }).join('\n');
   }
 
-  /** { system, user } for the analysis. `fdd`: the FDD sections chosen for this story (text, or { name, text }). */
-  function prompt(story, pages, fdd) {
+  // When the story is mapped to application pages (their technical sheets, read from the code), the analysis is grounded
+  // in them.
+  var MAPPED_NOTE = 'This work is mapped to EquipRite application pages, whose technical sheets (read from the code: sections, fields, action chains, rules modules, REST calls and their backends, BI Publisher reports) are given. Ground "Current situation", "What to do next" and the page suggestion in them: name the chains and endpoints concerned in `code`, and start the page suggestion with the mapped page(s).';
+  function mappedSection(mapped) {
+    var m = txt(mapped).trim();
+    return m ? '\nEQUIPRITE PAGES MAPPED TO THIS (technical sheets from the code):\n' + m : '';
+  }
+
+  /** { system, user } for the analysis. `fdd`: the FDD sections chosen for this story (text, or { name, text });
+   *  `mapped`: the technical sheets of the pages it is mapped to (pageSheet.storyPagesText). */
+  function prompt(story, pages, fdd, mapped) {
     var f = fddOf(fdd);
     var parts = [storyText(story)];
     if (f.text.trim()) {
       parts.push(''); parts.push('FDD excerpts' + (f.name ? ' from "' + f.name + '"' : '') + ' (section numbers as in the document):');
       parts.push(f.text.trim());
     }
+    var ms = mappedSection(mapped);
+    if (ms) parts.push(ms);
     var pt = pagesText(pages);
     if (pt) { parts.push(''); parts.push(pt); }
-    return { system: f.text.trim() ? SYSTEM_FDD : SYSTEM, user: parts.join('\n') };
+    return { system: (f.text.trim() ? SYSTEM_FDD : SYSTEM) + (ms ? '\n' + MAPPED_NOTE : ''), user: parts.join('\n') };
   }
 
   var CHAT_SYSTEM = 'You are helping with one EquipRite Jira story. Answer the user\'s question using the story, its sub-tasks, comments and FDD section below, plus general EquipRite/Oracle knowledge. Be concise and practical. Do not invent facts about this story that are not given.';
@@ -173,14 +184,16 @@ define([], function () {
     return parts.join('\n');
   }
 
-  /** { system, user } for several stories analysed together. */
-  function promptSet(stories, pages, fdd) {
+  /** { system, user } for several stories analysed together (`mapped`: the sheets of the pages any of them is mapped to). */
+  function promptSet(stories, pages, fdd, mapped) {
     var f = fddOf(fdd);
     var parts = [storiesText(stories, 70000)];
     if (f.text.trim()) { parts.push(''); parts.push('FDD excerpts' + (f.name ? ' from "' + f.name + '"' : '') + ' (section numbers as in the document):'); parts.push(f.text.trim()); }
+    var ms = mappedSection(mapped);
+    if (ms) parts.push(ms);
     var pt = pagesText(pages);
     if (pt) { parts.push(''); parts.push(pt); }
-    return { system: systemSet(!!f.text.trim()), user: parts.join('\n') };
+    return { system: systemSet(!!f.text.trim()) + (ms ? '\n' + MAPPED_NOTE : ''), user: parts.join('\n') };
   }
 
   /** { system, user } for a follow-up question about the set. */
@@ -226,6 +239,6 @@ define([], function () {
     return out.join('');
   }
 
-  return { HEADINGS: HEADINGS, HEADINGS_FDD: HEADINGS_FDD, HEADINGS_SET: HEADINGS_SET, SYSTEM: SYSTEM, SYSTEM_FDD: SYSTEM_FDD, prompt: prompt,
+  return { MAPPED_NOTE: MAPPED_NOTE, HEADINGS: HEADINGS, HEADINGS_FDD: HEADINGS_FDD, HEADINGS_SET: HEADINGS_SET, SYSTEM: SYSTEM, SYSTEM_FDD: SYSTEM_FDD, prompt: prompt,
     promptSet: promptSet, chatPromptSet: chatPromptSet, chatPrompt: chatPrompt, storyText: storyText, renderHtml: renderHtml };
 });

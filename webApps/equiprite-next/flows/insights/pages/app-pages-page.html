@@ -1,0 +1,223 @@
+<!-- Application pages: every VB page in the project with its technical sheet (screenshot, features, business logic,
+     integrations, links, an AI explanation) and the Jira stories mapped to it. Kept in git (resources/pages). Rules:
+     desktop/lib/pageScan.js (the facts), desktop/lib/pages.js (the catalog), resources/js/pagesClient.js, pageSheet.js. -->
+<div class="nx-page nx-pg">
+  <div class="nx-pagehead">
+    <div>
+      <div class="nx-kicker">Insights · Code</div>
+      <h1 id="pgTitle">Application pages</h1>
+      <div class="nx-sub" id="pgSub"><oj-bind-text value="[[ $functions.subText($variables.pages) ]]"></oj-bind-text></div>
+    </div>
+    <div class="nx-actions">
+      <oj-bind-if test="[[ $variables.info.canWrite ]]">
+        <button type="button" class="nx-btn nx-btn--plain" id="pgRescan" data-act="rescan" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]" title="Read the project's pages again (new pages, current names) and save the list to git"><span class="oj-ux-ico-refresh" aria-hidden="true"></span>Rescan the code</button>
+      </oj-bind-if>
+      <button type="button" class="nx-btn nx-btn--plain" id="pgRefresh" on-click="[[ $listeners.onRefresh ]]" :disabled="[[ $variables.busy ]]"><span class="oj-ux-ico-refresh" aria-hidden="true"></span>Refresh</button>
+    </div>
+  </div>
+
+  <div class="nx-flib-git" id="pgGit">
+    <span class="oj-ux-ico-branch nx-flib-gitico" aria-hidden="true"></span>
+    <div class="nx-flib-gittext">
+      <b>Kept in git</b> — <code>resources/pages</code>: every page's technical sheet, screenshot and mapped Jira stories, the same for everyone.
+      <oj-bind-if test="[[ $variables.git && $variables.git.available ]]"><span class="nx-flib-gitstate" id="pgGitState"><oj-bind-text value="[[ $functions.gitText($variables.git) ]]"></oj-bind-text></span></oj-bind-if>
+      <oj-bind-if test="[[ $variables.checked && !$variables.info.canWrite ]]"><span class="nx-flib-gitstate">Read only here: sheets are built and stories mapped in the EquipRite desktop app.</span></oj-bind-if>
+    </div>
+    <oj-bind-if test="[[ $variables.info.canWrite ]]">
+      <label class="nx-flib-check nx-pg-commit"><input type="checkbox" id="pgCommit" data-field="commit" :checked="[[ $variables.commit ]]" on-change="[[ $listeners.onField ]]"><span><b>Commit &amp; push</b> each change</span></label>
+    </oj-bind-if>
+    <oj-bind-if test="[[ $functions.needsPush($variables.git) ]]">
+      <button type="button" class="nx-btn nx-btn--primary nx-btn--sm" id="pgPush" data-act="push" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]"><span class="oj-ux-ico-upload" aria-hidden="true"></span>Commit &amp; push</button>
+    </oj-bind-if>
+  </div>
+
+  <div class="nx-pg-cols">
+    <!-- The pages -->
+    <section class="nx-card nx-pg-list" aria-label="The pages">
+      <div class="nx-pg-filters">
+        <input type="search" class="nx-flib-filter nx-pg-search" id="pgSearch" data-field="q" :value="[[ $variables.q ]]" on-input="[[ $listeners.onField ]]" placeholder="Find a page, a flow, a story (EQP-12)…">
+        <div class="nx-pg-chips" id="pgApps">
+          <oj-bind-for-each data="[[ $functions.appChips($variables.pages) ]]">
+            <template data-oj-as="c">
+              <button type="button" :class="[[ 'nx-chip nx-chip--sm' + ($variables.appF === c.data.id ? ' nx-chip--on' : '') ]]" data-field="appF" :data-value="[[ c.data.id ]]" on-click="[[ $listeners.onField ]]">
+                <oj-bind-text value="[[ c.data.label ]]"></oj-bind-text> <span class="nx-chip-count"><oj-bind-text value="[[ c.data.n ]]"></oj-bind-text></span></button>
+            </template>
+          </oj-bind-for-each>
+        </div>
+        <div class="nx-pg-toggles">
+          <label class="nx-flib-check"><input type="checkbox" id="pgOnlyMapped" data-field="onlyMapped" :checked="[[ $variables.onlyMapped ]]" on-change="[[ $listeners.onField ]]"><span>Mapped to stories</span></label>
+          <label class="nx-flib-check"><input type="checkbox" id="pgOnlySheet" data-field="onlySheet" :checked="[[ $variables.onlySheet ]]" on-change="[[ $listeners.onField ]]"><span>With a sheet</span></label>
+        </div>
+      </div>
+      <div class="nx-pg-rows" id="pgRows" role="list">
+        <oj-bind-for-each data="[[ $functions.shown($variables.pages, $variables.q, $variables.appF, $variables.onlyMapped, $variables.onlySheet) ]]">
+          <template data-oj-as="p">
+            <button type="button" role="listitem" :class="[[ 'nx-pg-row' + ($variables.selId === p.data.id ? ' nx-pg-row--on' : '') ]]" :data-id="[[ p.data.id ]]" on-click="[[ $listeners.onSelect ]]">
+              <span class="nx-pg-thumb">
+                <oj-bind-if test="[[ !!(p.data.sheet && p.data.sheet.screenshot) ]]"><img :src="[[ $functions.thumb($application.path, p.data) ]]" alt="" loading="lazy"></oj-bind-if>
+                <oj-bind-if test="[[ !(p.data.sheet && p.data.sheet.screenshot) ]]"><span class="nx-pg-noshot"><oj-bind-text value="[[ $functions.appShort(p.data.app) ]]"></oj-bind-text></span></oj-bind-if>
+              </span>
+              <span class="nx-pg-rowmain">
+                <span class="nx-pg-rowtitle"><oj-bind-text value="[[ p.data.label ]]"></oj-bind-text><oj-bind-if test="[[ !!p.data.sheet ]]"><span class="nx-pg-sheetmark" title="Has a technical sheet">●</span></oj-bind-if></span>
+                <span class="nx-pg-rowsub"><oj-bind-text value="[[ p.data.appName + ' · ' + (p.data.flow ? p.data.flow + '/' : '') + p.data.page ]]"></oj-bind-text></span>
+                <oj-bind-if test="[[ (p.data.stories || []).length > 0 ]]">
+                  <span class="nx-pg-stories"><oj-bind-for-each data="[[ $functions.firstStories(p.data.stories) ]]"><template data-oj-as="k"><span class="nx-pg-story"><oj-bind-text value="[[ k.data ]]"></oj-bind-text></span></template></oj-bind-for-each></span>
+                </oj-bind-if>
+              </span>
+            </button>
+          </template>
+        </oj-bind-for-each>
+        <oj-bind-if test="[[ $functions.shown($variables.pages, $variables.q, $variables.appF, $variables.onlyMapped, $variables.onlySheet).length === 0 && $variables.checked ]]"><div class="nx-empty" id="pgNone">No page matches.</div></oj-bind-if>
+      </div>
+    </section>
+
+    <!-- The technical sheet -->
+    <section class="nx-card nx-pg-sheet" id="pgSheet" aria-label="Technical sheet">
+      <oj-bind-if test="[[ !$variables.sheet ]]"><div class="nx-empty" id="pgPick">Choose a page to see its technical sheet: screenshot, features, business logic, integrations — and the Jira stories mapped to it.</div></oj-bind-if>
+      <oj-bind-if test="[[ !!$variables.sheet ]]">
+        <div class="nx-pg-head">
+          <div class="nx-pg-headmain">
+            <div class="nx-kicker"><oj-bind-text value="[[ $variables.sheet.facts.appName + ' · ' + ($variables.sheet.facts.flow ? $variables.sheet.facts.flow + ' / ' : '') + $variables.sheet.facts.page ]]"></oj-bind-text></div>
+            <h2 class="nx-pg-h2" id="pgSheetTitle"><oj-bind-text value="[[ $variables.sheet.facts.label ]]"></oj-bind-text></h2>
+            <div class="nx-note" id="pgSheetState"><oj-bind-text value="[[ $functions.stateText($variables.sheet, $variables.saved) ]]"></oj-bind-text></div>
+            <oj-bind-if test="[[ !!($variables.sheet.facts.route && ($variables.sheet.facts.route.menu || $variables.sheet.facts.route.url)) ]]"><div class="nx-note"><oj-bind-text value="[[ $functions.routeText($variables.sheet.facts.route) ]]"></oj-bind-text></div></oj-bind-if>
+          </div>
+          <oj-bind-if test="[[ $variables.info.canWrite ]]">
+            <div class="nx-pg-acts">
+              <button type="button" class="nx-btn nx-btn--sm nx-btn--primary" id="pgBuild" data-act="build" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]"><span class="oj-ux-ico-refresh" aria-hidden="true"></span><oj-bind-text value="[[ $variables.saved ? 'Refresh the sheet' : 'Build the sheet' ]]"></oj-bind-text></button>
+              <oj-bind-if test="[[ $variables.info.canCapture ]]"><button type="button" class="nx-btn nx-btn--sm" id="pgCapture" data-act="capture" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]" :title="[[ $variables.sheet.facts.route.url ? 'Open the page in a hidden window (your sign-in, live data) and capture it' : $variables.sheet.facts.route.needs ]]"><span class="oj-ux-ico-camera" aria-hidden="true"></span>Capture screenshot</button></oj-bind-if>
+              <label class="nx-btn nx-btn--sm nx-pg-upload" id="pgUploadBtn"><span class="oj-ux-ico-upload" aria-hidden="true"></span>Upload screenshot<input type="file" id="pgShotFile" accept="image/png,image/jpeg,image/webp" on-change="[[ $listeners.onShotFile ]]"></label>
+              <button type="button" class="nx-btn nx-btn--sm nx-aibtn" id="pgExplain" data-act="explain" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]"><span aria-hidden="true">✨</span><oj-bind-text value="[[ $variables.sheet.ai ? 'Explain again with AI' : 'Explain with AI' ]]"></oj-bind-text></button>
+            </div>
+          </oj-bind-if>
+        </div>
+        <oj-bind-if test="[[ $variables.codeChanged ]]"><div class="nx-an-stale" id="pgChanged">The page's code changed since this sheet was built. <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" data-act="build" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy || !$variables.info.canWrite ]]">Refresh the sheet</button></div></oj-bind-if>
+        <oj-bind-if test="[[ !!$variables.progress ]]"><div class="nx-note nx-pg-progress" id="pgProgress"><oj-bind-text value="[[ $variables.progress ]]"></oj-bind-text></div></oj-bind-if>
+        <oj-bind-if test="[[ !!$variables.result ]]"><div :class="[[ 'nx-flib-result ' + ($variables.result.ok ? 'nx-flib-result--ok' : 'nx-flib-result--err') ]]" id="pgResult"><oj-bind-text value="[[ $variables.result.text ]]"></oj-bind-text></div></oj-bind-if>
+
+        <!-- Jira stories mapped to the page -->
+        <div class="nx-pg-map" id="pgMap">
+          <span class="nx-pg-maplbl">Jira stories</span>
+          <oj-bind-for-each data="[[ $variables.sheet.stories || [] ]]">
+            <template data-oj-as="k">
+              <span class="nx-pg-mapchip">
+                <button type="button" class="nx-pg-mapkey" data-act="story" :data-key="[[ k.data ]]" on-click="[[ $listeners.onAct ]]" :title="[[ 'Analyze ' + k.data + ' with AI' ]]"><oj-bind-text value="[[ k.data ]]"></oj-bind-text></button>
+                <oj-bind-if test="[[ $variables.info.canWrite ]]"><button type="button" class="nx-pg-mapx" data-act="unmap" :data-key="[[ k.data ]]" on-click="[[ $listeners.onAct ]]" :aria-label="[[ 'Unmap ' + k.data ]]" title="Unmap">×</button></oj-bind-if>
+              </span>
+            </template>
+          </oj-bind-for-each>
+          <oj-bind-if test="[[ ($variables.sheet.stories || []).length === 0 ]]"><span class="nx-note">None mapped yet.</span></oj-bind-if>
+          <oj-bind-if test="[[ $variables.info.canWrite ]]">
+            <span class="nx-pg-mapadd"><input type="text" id="pgMapKey" data-field="mapKey" :value="[[ $variables.mapKey ]]" on-input="[[ $listeners.onField ]]" on-keydown="[[ $listeners.onMapKey ]]" placeholder="EQP-123"><button type="button" class="nx-btn nx-btn--sm" id="pgMapBtn" data-act="map" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]">Map story</button></span>
+          </oj-bind-if>
+        </div>
+
+        <oj-bind-if test="[[ !!$variables.sheet.screenshot ]]">
+          <figure class="nx-pg-shot" id="pgShot">
+            <a :href="[[ $functions.shot($application.path, $variables.sheet.screenshot) ]]" target="_blank" rel="noopener"><img :src="[[ $functions.shot($application.path, $variables.sheet.screenshot) ]]" :alt="[[ 'Screenshot of ' + $variables.sheet.facts.label ]]"></a>
+            <figcaption class="nx-note"><oj-bind-text value="[[ $functions.shotText($variables.sheet.screenshot) ]]"></oj-bind-text></figcaption>
+          </figure>
+        </oj-bind-if>
+
+        <div class="nx-jira-acttabs nx-pg-tabs" role="tablist" id="pgTabs">
+          <oj-bind-for-each data="[[ $functions.tabs($variables.sheet) ]]">
+            <template data-oj-as="t">
+              <button type="button" role="tab" :class="[[ 'nx-jira-acttab' + ($variables.tab === t.data.id ? ' nx-jira-acttab--on' : '') ]]" data-field="tab" :data-value="[[ t.data.id ]]" on-click="[[ $listeners.onField ]]"><oj-bind-text value="[[ t.data.label ]]"></oj-bind-text></button>
+            </template>
+          </oj-bind-for-each>
+        </div>
+
+        <!-- Overview: the AI explanation -->
+        <oj-bind-if test="[[ $variables.tab === 'overview' ]]">
+          <div class="nx-pg-pane" id="pgOverview">
+            <oj-bind-if test="[[ !!$variables.sheet.ai ]]">
+              <div class="nx-note"><oj-bind-text value="[[ $functions.aiText($variables.sheet.ai) ]]"></oj-bind-text></div>
+              <iframe class="nx-an-frame nx-pg-frame" id="pgAi" title="AI explanation" sandbox="" :srcdoc="[[ $functions.doc($variables.sheet.ai.text) ]]"></iframe>
+            </oj-bind-if>
+            <oj-bind-if test="[[ !$variables.sheet.ai ]]"><p class="nx-note" id="pgNoAi"><oj-bind-text value="[[ $variables.info.canWrite ? 'No AI explanation yet: ✨ Explain with AI writes one from the facts below, saved with the sheet.' : 'No AI explanation yet.' ]]"></oj-bind-text></p></oj-bind-if>
+            <div class="nx-pg-facts">
+              <div><b><oj-bind-text value="[[ $variables.sheet.facts.integrations.rest.length ]]"></oj-bind-text></b> REST calls</div>
+              <div><b><oj-bind-text value="[[ $variables.sheet.facts.logic.chains.length ]]"></oj-bind-text></b> action chains</div>
+              <div><b><oj-bind-text value="[[ $variables.sheet.facts.logic.modules.length ]]"></oj-bind-text></b> rules modules</div>
+              <div><b><oj-bind-text value="[[ $variables.sheet.facts.integrations.reports.length ]]"></oj-bind-text></b> BI reports</div>
+              <div><b><oj-bind-text value="[[ $variables.sheet.facts.features.actions.length ]]"></oj-bind-text></b> actions</div>
+            </div>
+            <oj-bind-if test="[[ $variables.sheet.facts.integrations.backends.length > 0 ]]"><div class="nx-pg-backends" id="pgBackends"><oj-bind-for-each data="[[ $variables.sheet.facts.integrations.backends ]]"><template data-oj-as="b"><span class="nx-pg-backend"><oj-bind-text value="[[ b.data ]]"></oj-bind-text></span></template></oj-bind-for-each></div></oj-bind-if>
+            <oj-bind-if test="[[ !!$variables.sheet.facts.description ]]"><p class="nx-pg-desc"><oj-bind-text value="[[ $variables.sheet.facts.description ]]"></oj-bind-text></p></oj-bind-if>
+          </div>
+        </oj-bind-if>
+
+        <!-- Features -->
+        <oj-bind-if test="[[ $variables.tab === 'features' ]]">
+          <div class="nx-pg-pane" id="pgFeatures">
+            <oj-bind-if test="[[ $variables.sheet.facts.features.sections.length > 0 ]]"><h3 class="nx-pg-h3">Sections</h3><ul class="nx-pg-ul"><oj-bind-for-each data="[[ $variables.sheet.facts.features.sections ]]"><template data-oj-as="x"><li><oj-bind-text value="[[ x.data ]]"></oj-bind-text></li></template></oj-bind-for-each></ul></oj-bind-if>
+            <oj-bind-if test="[[ $variables.sheet.facts.features.lifecycle.length > 0 ]]"><h3 class="nx-pg-h3">When it runs</h3><ul class="nx-pg-ul"><oj-bind-for-each data="[[ $variables.sheet.facts.features.lifecycle ]]"><template data-oj-as="x"><li><oj-bind-text value="[[ x.data.when + ': ' ]]"></oj-bind-text><code><oj-bind-text value="[[ x.data.chains.join(', ') ]]"></oj-bind-text></code></li></template></oj-bind-for-each></ul></oj-bind-if>
+            <oj-bind-if test="[[ $variables.sheet.facts.features.actions.length > 0 ]]"><h3 class="nx-pg-h3">Actions</h3>
+              <div class="nx-pg-grid nx-pg-grid--2" role="table" id="pgActions">
+                <div class="nx-pg-gr nx-pg-gr--head" role="row"><span role="columnheader">Action</span><span role="columnheader">Runs</span></div>
+                <oj-bind-for-each data="[[ $variables.sheet.facts.features.actions ]]"><template data-oj-as="x"><div class="nx-pg-gr" role="row"><span role="cell"><oj-bind-text value="[[ x.data.label ]]"></oj-bind-text></span><span role="cell"><code><oj-bind-text value="[[ x.data.chains.join(' + ') || x.data.listener ]]"></oj-bind-text></code></span></div></template></oj-bind-for-each>
+              </div></oj-bind-if>
+            <oj-bind-if test="[[ $variables.sheet.facts.features.columns.length > 0 ]]"><h3 class="nx-pg-h3">Table columns</h3><div class="nx-pg-tags"><oj-bind-for-each data="[[ $variables.sheet.facts.features.columns ]]"><template data-oj-as="x"><span class="nx-pg-tag"><oj-bind-text value="[[ x.data ]]"></oj-bind-text></span></template></oj-bind-for-each></div></oj-bind-if>
+            <oj-bind-if test="[[ $variables.sheet.facts.features.fields.length > 0 ]]"><h3 class="nx-pg-h3">Fields</h3><div class="nx-pg-tags"><oj-bind-for-each data="[[ $variables.sheet.facts.features.fields ]]"><template data-oj-as="x"><span class="nx-pg-tag"><oj-bind-text value="[[ x.data ]]"></oj-bind-text></span></template></oj-bind-for-each></div></oj-bind-if>
+            <oj-bind-if test="[[ $variables.sheet.facts.features.inputs.length > 0 ]]"><h3 class="nx-pg-h3">Opened with</h3><ul class="nx-pg-ul"><oj-bind-for-each data="[[ $variables.sheet.facts.features.inputs ]]"><template data-oj-as="x"><li><code><oj-bind-text value="[[ x.data.name ]]"></oj-bind-text></code> <span class="nx-note"><oj-bind-text value="[[ x.data.about ]]"></oj-bind-text></span></li></template></oj-bind-for-each></ul></oj-bind-if>
+            <h3 class="nx-pg-h3">Components</h3><div class="nx-pg-tags"><oj-bind-for-each data="[[ $variables.sheet.facts.features.components ]]"><template data-oj-as="x"><span class="nx-pg-tag nx-pg-tag--code"><oj-bind-text value="[[ x.data ]]"></oj-bind-text></span></template></oj-bind-for-each></div>
+          </div>
+        </oj-bind-if>
+
+        <!-- Business logic -->
+        <oj-bind-if test="[[ $variables.tab === 'logic' ]]">
+          <div class="nx-pg-pane" id="pgLogic">
+            <h3 class="nx-pg-h3"><oj-bind-text value="[[ 'Action chains (' + $variables.sheet.facts.logic.chains.length + ')' ]]"></oj-bind-text></h3>
+            <oj-bind-for-each data="[[ $variables.sheet.facts.logic.chains ]]">
+              <template data-oj-as="c">
+                <div class="nx-pg-chain">
+                  <div class="nx-pg-chainhead"><code class="nx-pg-chainname"><oj-bind-text value="[[ c.data.name ]]"></oj-bind-text></code><oj-bind-if test="[[ c.data.on.length > 0 ]]"><span class="nx-note"><oj-bind-text value="[[ 'on ' + c.data.on.join(', ') ]]"></oj-bind-text></span></oj-bind-if><span class="nx-min-flex"></span><span class="nx-note"><oj-bind-text value="[[ c.data.lines + ' lines' ]]"></oj-bind-text></span></div>
+                  <p class="nx-pg-about"><oj-bind-text value="[[ c.data.about || 'No description in its code.' ]]"></oj-bind-text></p>
+                  <oj-bind-if test="[[ c.data.calls.length + c.data.reports.length + c.data.opens.length > 0 ]]"><div class="nx-pg-uses"><oj-bind-text value="[[ $functions.usesText(c.data) ]]"></oj-bind-text></div></oj-bind-if>
+                </div>
+              </template>
+            </oj-bind-for-each>
+            <oj-bind-if test="[[ $variables.sheet.facts.logic.modules.length > 0 ]]">
+              <h3 class="nx-pg-h3"><oj-bind-text value="[[ 'Rules modules (' + $variables.sheet.facts.logic.modules.length + ')' ]]"></oj-bind-text></h3>
+              <oj-bind-for-each data="[[ $variables.sheet.facts.logic.modules ]]">
+                <template data-oj-as="m"><div class="nx-pg-chain"><div class="nx-pg-chainhead"><code class="nx-pg-chainname"><oj-bind-text value="[[ m.data.name ]]"></oj-bind-text></code><span class="nx-min-flex"></span><span class="nx-note"><oj-bind-text value="[[ m.data.lines + ' lines' ]]"></oj-bind-text></span></div><p class="nx-pg-about"><oj-bind-text value="[[ m.data.about || '—' ]]"></oj-bind-text></p></div></template>
+              </oj-bind-for-each>
+            </oj-bind-if>
+          </div>
+        </oj-bind-if>
+
+        <!-- Integrations -->
+        <oj-bind-if test="[[ $variables.tab === 'integrations' ]]">
+          <div class="nx-pg-pane" id="pgIntegrations">
+            <h3 class="nx-pg-h3"><oj-bind-text value="[[ 'REST calls (' + $variables.sheet.facts.integrations.rest.length + ')' ]]"></oj-bind-text></h3>
+            <oj-bind-if test="[[ $variables.sheet.facts.integrations.rest.length === 0 ]]"><p class="nx-note">None.</p></oj-bind-if>
+            <oj-bind-if test="[[ $variables.sheet.facts.integrations.rest.length > 0 ]]">
+              <div class="nx-pg-grid nx-pg-grid--4" role="table" id="pgRest">
+                <div class="nx-pg-gr nx-pg-gr--head" role="row"><span role="columnheader">Method</span><span role="columnheader">Path</span><span role="columnheader">Backend</span><span role="columnheader">Endpoint · used by</span></div>
+                <oj-bind-for-each data="[[ $variables.sheet.facts.integrations.rest ]]"><template data-oj-as="r"><div class="nx-pg-gr" role="row">
+                  <span role="cell"><span :class="[[ 'nx-pg-method nx-pg-method--' + $functions.method(r.data.method) ]]"><oj-bind-text value="[[ r.data.method || '?' ]]"></oj-bind-text></span></span>
+                  <span role="cell"><code><oj-bind-text value="[[ r.data.path ]]"></oj-bind-text></code><oj-bind-if test="[[ !!r.data.summary ]]"><span class="nx-note nx-pg-block"><oj-bind-text value="[[ r.data.summary ]]"></oj-bind-text></span></oj-bind-if></span>
+                  <span role="cell"><oj-bind-text value="[[ r.data.backendLabel ]]"></oj-bind-text></span>
+                  <span role="cell"><code><oj-bind-text value="[[ r.data.endpoint ]]"></oj-bind-text></code><span class="nx-note nx-pg-block"><oj-bind-text value="[[ r.data.usedBy.join(', ') ]]"></oj-bind-text></span></span>
+                </div></template></oj-bind-for-each>
+              </div>
+            </oj-bind-if>
+            <oj-bind-if test="[[ $variables.sheet.facts.integrations.reports.length > 0 ]]"><h3 class="nx-pg-h3">BI Publisher reports</h3><div class="nx-pg-tags"><oj-bind-for-each data="[[ $variables.sheet.facts.integrations.reports ]]"><template data-oj-as="x"><span class="nx-pg-tag nx-pg-tag--code"><oj-bind-text value="[[ x.data ]]"></oj-bind-text></span></template></oj-bind-for-each></div></oj-bind-if>
+            <oj-bind-if test="[[ $variables.sheet.facts.integrations.local.length > 0 ]]"><h3 class="nx-pg-h3">Desktop app services</h3><ul class="nx-pg-ul"><oj-bind-for-each data="[[ $variables.sheet.facts.integrations.local ]]"><template data-oj-as="x"><li><code><oj-bind-text value="[[ x.data.route ]]"></oj-bind-text></code> <oj-bind-text value="[[ x.data.what ]]"></oj-bind-text></li></template></oj-bind-for-each></ul></oj-bind-if>
+          </div>
+        </oj-bind-if>
+
+        <!-- Links and files -->
+        <oj-bind-if test="[[ $variables.tab === 'links' ]]">
+          <div class="nx-pg-pane" id="pgLinks">
+            <h3 class="nx-pg-h3">Opens</h3>
+            <oj-bind-if test="[[ $variables.sheet.facts.links.length === 0 ]]"><p class="nx-note">No other screen.</p></oj-bind-if>
+            <ul class="nx-pg-ul"><oj-bind-for-each data="[[ $variables.sheet.facts.links ]]"><template data-oj-as="x"><li><code><oj-bind-text value="[[ x.data ]]"></oj-bind-text></code></li></template></oj-bind-for-each></ul>
+            <h3 class="nx-pg-h3"><oj-bind-text value="[[ 'Files (' + $variables.sheet.facts.files.length + ')' ]]"></oj-bind-text></h3>
+            <ul class="nx-pg-ul nx-pg-files"><oj-bind-for-each data="[[ $variables.sheet.facts.files ]]"><template data-oj-as="x"><li><code><oj-bind-text value="[[ x.data.path ]]"></oj-bind-text></code> <span class="nx-note"><oj-bind-text value="[[ x.data.lines + ' lines' ]]"></oj-bind-text></span></li></template></oj-bind-for-each></ul>
+          </div>
+        </oj-bind-if>
+      </oj-bind-if>
+    </section>
+  </div>
+</div>

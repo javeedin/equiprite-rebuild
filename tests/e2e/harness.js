@@ -135,7 +135,7 @@ async function start(o) {
     // o.jiraStore: Connect Jira's store (desktop/lib/jiraAuth.js), as the desktop app gives Old and Next.
     servers.push(await DS.createDevServer(Object.assign({ webApp: 'equiprite-next', port: ports.next }, common, o.sqlStore ? { sqlStore: o.sqlStore } : {}, o.aiStore ? { aiStore: o.aiStore } : {},
       o.jiraStore ? { jiraStore: o.jiraStore } : {}, o.recStore ? { recStore: o.recStore } : {}, o.transcribe ? { transcribe: o.transcribe } : {}, o.minutesStore ? { minutesStore: o.minutesStore } : {},
-      o.followupsStore ? { followupsStore: o.followupsStore } : {}, o.fddStore ? { fddStore: o.fddStore } : {}, o.analysisStore ? { analysisStore: o.analysisStore } : {})));
+      o.followupsStore ? { followupsStore: o.followupsStore } : {}, o.fddStore ? { fddStore: o.fddStore } : {}, o.analysisStore ? { analysisStore: o.analysisStore } : {}, o.pagesStore ? { pagesStore: o.pagesStore } : {})));
   }
   let futureStore = null;
   if (DS.isBuilt(path.join(ROOT, 'build'), 'equiprite-future')) {
@@ -273,7 +273,9 @@ async function fddSandbox(opts) {
   const os = require('os');
   const { execFileSync } = require('child_process');
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'eqp-fdd-e2e-'));
-  fs.mkdirSync(path.join(root, 'webApps', 'equiprite-next', 'resources'), { recursive: true });
+  fs.mkdirSync(path.join(root, 'webApps', 'equiprite-next', 'resources', 'fdd'), { recursive: true });
+  // its own (empty) library, so the app shows this project's, whatever FDDs the real project holds
+  fs.writeFileSync(path.join(root, 'webApps', 'equiprite-next', 'resources', 'fdd', 'library.json'), JSON.stringify({ latest: '', docs: [] }, null, 2) + '\n');
   const git = (cwd, ...args) => execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
   let remote = '';
   if (o.git) {
@@ -302,4 +304,39 @@ async function fddSandbox(opts) {
   return { root, remote, store, git: (...args) => git(root, ...args), gitRemote: (...args) => git(remote, ...args), restore };
 }
 
-module.exports = { start, bipReport, recorderStub, fddSandbox, ALL_CODES, ALL_FLAGS, ROOT };
+/**
+ * A throwaway copy of the project's code (webApps' JSON/HTML/JS and services/) for the Application pages catalog
+ * (desktop/lib/pages.js), to pass as o.pagesStore: a git repository on branch pages/test whose origin is a bare one beside
+ * it, so Commit & push really pushes. Its catalog is also written into the build's copy of resources/pages (as in the
+ * desktop app), which restore() puts back. `capture` stands in for the desktop app's hidden-window screenshot.
+ *
+ *   const pg = await pagesSandbox({ capture });  →  { root, remote, store, gitRemote(args…), restore() }
+ */
+async function pagesSandbox(opts) {
+  const o = opts || {};
+  const os = require('os');
+  const { execFileSync } = require('child_process');
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'eqp-pages-e2e-'));
+  const remote = fs.mkdtempSync(path.join(os.tmpdir(), 'eqp-pages-e2e-remote-'));
+  fs.cpSync(path.join(ROOT, 'webApps'), path.join(root, 'webApps'), { recursive: true,
+    filter: (src) => { try { return fs.statSync(src).isDirectory() || /\.(json|html|js)$/.test(src); } catch (e) { return false; } } });
+  fs.cpSync(path.join(ROOT, 'services'), path.join(root, 'services'), { recursive: true });
+  const git = (cwd, ...args) => execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+  git(remote, 'init', '--bare', '-q');
+  git(root, 'init', '-q', '-b', 'pages/test'); git(root, 'config', 'user.email', 'test@example.com'); git(root, 'config', 'user.name', 'Test'); git(root, 'config', 'commit.gpgsign', 'false');
+  git(root, 'add', '-A'); git(root, 'commit', '-q', '-m', 'start'); git(root, 'remote', 'add', 'origin', remote); git(root, 'push', '-q', '-u', 'origin', 'pages/test');
+  const store = require(path.join(ROOT, 'desktop', 'lib', 'pages.js')).open({ root, capture: o.capture });
+  // the build's copy of resources/pages, as it is now, to put back afterwards
+  const web = path.join(ROOT, 'build', 'processed', 'webApps', 'equiprite-next');
+  const ver = fs.existsSync(web) ? fs.readdirSync(web).filter((n) => /^version_/.test(n)).sort().pop() : '';
+  const res = ver ? path.join(web, ver, 'resources', 'pages') : '';
+  const saved = res && fs.existsSync(res) ? fs.mkdtempSync(path.join(os.tmpdir(), 'eqp-pages-build-')) : '';
+  if (saved) fs.cpSync(res, saved, { recursive: true });
+  function restore() {
+    if (res) { try { fs.rmSync(res, { recursive: true, force: true }); if (saved) fs.cpSync(saved, res, { recursive: true }); } catch (e) { /* the next build puts it back */ } }
+    [root, remote, saved].filter(Boolean).forEach((d) => { try { fs.rmSync(d, { recursive: true, force: true }); } catch (e) { /* tmp */ } });
+  }
+  return { root, remote, store, gitRemote: (...args) => git(remote, ...args), restore };
+}
+
+module.exports = { start, bipReport, recorderStub, fddSandbox, pagesSandbox, ALL_CODES, ALL_FLAGS, ROOT };

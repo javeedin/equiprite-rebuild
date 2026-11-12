@@ -4,7 +4,9 @@ define([
   'resources/js/fddClient',
   'resources/js/fddIndex',
   'resources/js/analysisStore',
-], function (SA, M, FC, FI, AS) {
+  'resources/js/pagesClient',
+  'resources/js/pageSheet',
+], function (SA, M, FC, FI, AS, PC, PS) {
   'use strict';
 
   // "Analyze with AI" (flows/insights jira-analysis and jira-analysis-set pages), the steps their chains share: the FDD
@@ -55,16 +57,29 @@ define([
     return { name: FI.label(d), text: p.text, picked: p.picked };
   }
 
-  // One analysis: the FDD sections for `story`, the prompt `build` makes with them, the shared Ask AI, the HTML.
+  /** The technical sheets of the pages the story (or any story of the set) is mapped to, as the prompt carries them. */
+  async function mappedText(v, base) {
+    const keys = Array.isArray(v.stories) ? v.stories.map((x) => String(x.key).toUpperCase()) : (v.story ? [String(v.story.key).toUpperCase()] : []);
+    const pages = (v.pgCat || []).filter((p) => p.sheet && (p.stories || []).some((k) => keys.indexOf(k) !== -1)).slice(0, 8);
+    if (!pages.length) return '';
+    const sheets = (await Promise.all(pages.map((p) => PC.sheet(base, p.id).catch(() => null))))
+      .map((r) => (r && r.ok && r.body && r.body.sheet) || null).filter((sh) => sh && sh.facts);
+    return PS.storyPagesText(sheets, Array.isArray(v.stories) ? 30000 : 24000);
+  }
+
+  // One analysis: the FDD sections for `story`, the mapped pages' sheets, the prompt `build` makes with them, the shared
+  // Ask AI, the HTML.
   async function run(v, base, story, build, budget) {
     if (!story || v.analyzing) return { ok: false };
     v.analyzing = true;
     try {
+      let mapped = '';
+      try { mapped = await mappedText(v, base); } catch (e) { mapped = ''; }
       const f = await fddFor(v, base, '', story, budget);
       v.fddPicked = f ? f.picked : [];
       v.fddNote = !f ? '' : f.error ? f.error : (f.picked.length ? '' : 'Nothing in this FDD matched, so the analysis reads only the Jira stories.');
       v.fddView = null;
-      const p = build(f && f.text ? { name: f.name, text: f.text } : '');
+      const p = build(f && f.text ? { name: f.name, text: f.text } : '', mapped);
       const r = await M.aiChat(p.system, p.user);
       if (r.ok && r.body && r.body.ok && r.body.text) {
         v.analysisHtml = SA.renderHtml(r.body.text);
@@ -91,13 +106,13 @@ define([
 
   function analyze(v, base) {
     if (!v.story || !v.story.key) return Promise.resolve({ ok: false });
-    return run(v, base, v.story, (f) => SA.prompt(v.story, v.pages, f));
+    return run(v, base, v.story, (f, mapped) => SA.prompt(v.story, v.pages, f, mapped));
   }
 
   function analyzeSet(v, base) {
     const list = v.stories || [];
     if (!list.length) return Promise.resolve({ ok: false });
-    return run(v, base, merged(list), (f) => SA.promptSet(list, v.pages, f), 40000);
+    return run(v, base, merged(list), (f, mapped) => SA.promptSet(list, v.pages, f, mapped), 40000);
   }
 
   function keyOf(v) { return Array.isArray(v.stories) ? AS.setKey((v.stories || []).map((x) => x.key)) : ((v.story && v.story.key) || ''); }
@@ -147,6 +162,6 @@ define([
     return { ok: false, error: (r.body && r.body.error) || 'AI could not answer.' };
   }
 
-  return { library: library, merged: merged, fddFor: fddFor, analyze: analyze, analyzeSet: analyzeSet, rerun: rerun, chatSet: chatSet,
+  return { mappedText: mappedText, library: library, merged: merged, fddFor: fddFor, analyze: analyze, analyzeSet: analyzeSet, rerun: rerun, chatSet: chatSet,
     keyOf: keyOf, restore: restore, saveChat: saveChat };
 });

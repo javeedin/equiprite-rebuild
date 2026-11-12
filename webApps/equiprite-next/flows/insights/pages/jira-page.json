@@ -4,6 +4,12 @@
     "embeddable": "enabled"
   },
   "variables": {
+    "pgCat": { "type": "any[]", "defaultValue": [], "description": "The Application pages catalog (resources/pages): which pages each story is mapped to." },
+    "pgInfo": { "type": "object", "defaultValue": { "available": false, "canWrite": false, "canCapture": false } },
+    "pgPick": { "type": "boolean", "defaultValue": false, "description": "The Assign page picker is open." },
+    "pgQ": { "type": "string", "defaultValue": "" },
+    "pgBusy": { "type": "boolean", "defaultValue": false },
+    "pgBusyText": { "type": "string", "defaultValue": "" },
     "isLoading": {
       "type": "boolean",
       "defaultValue": false
@@ -362,6 +368,8 @@
     }
   },
   "eventListeners": {
+    "onPages": { "chains": [ { "chain": "pagesChain", "parameters": { "act": "{{ $event.currentTarget.dataset.act }}", "id": "{{ $event.currentTarget.dataset.id || '' }}" } } ] },
+    "onPagesQ": { "chains": [ { "chain": "pagesChain", "parameters": { "act": "{{ 'q' }}", "id": "{{ $event.target.value }}" } } ] },
     "onAnalyzeSet": { "chains": [ { "chain": "analyzeSetChain" } ] },
     "onActTab": { "chains": [ { "chain": "setChain", "parameters": { "field": "{{ 'actTab' }}", "value": "{{ $event.currentTarget.dataset.tab }}" } } ] },
     "onFile": { "chains": [ { "chain": "fileChain", "parameters": { "id": "{{ $event.currentTarget.dataset.id }}" } } ] },

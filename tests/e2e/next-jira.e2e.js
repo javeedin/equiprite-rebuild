@@ -165,7 +165,10 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
   await fdd.store.upload({ fileName: 'fdd-v17.md', base64: Buffer.from('# 7 Equipment registry\nThe registry.\n## 7.2 Equipment master list\nNEW-V17: the master list shows every record in a grid with smart search and filters.\n### 7.2.5 Map view\nA map shows where each unit is.\n# 9 Timesheets\nHours.').toString('base64'), name: 'EquipRite FDD', version: '1.7' });
   // saved AI analyses, as the desktop app keeps them on this PC (desktop/lib/analyses.js)
   const analysisStore = require('../../desktop/lib/analyses').open({ file: path.join(dir, 'ai-analyses.json') });
-  const env = await E.start({ port: 19760, handle, app: 'next', jiraStore, recStore, transcribe, followupsStore: fuStore, minutesStore, aiStore, fddStore: fdd.store, analysisStore, init: E.recorderStub });
+  // the Application pages catalog, on a throwaway copy of the code (a git repository with its own origin)
+  const pg = await E.pagesSandbox();
+  const WB = 'vbredwoodapp/equipment-foundation/equipment-workbench';
+  const env = await E.start({ port: 19760, handle, app: 'next', jiraStore, recStore, transcribe, followupsStore: fuStore, minutesStore, aiStore, fddStore: fdd.store, analysisStore, pagesStore: pg.store, init: E.recorderStub });
   const page = env.page;
   const errs = () => env.errors.filter((e) => !/404|401|Failed to load resource/.test(e) && !e.startsWith('warning'));
   try {
@@ -576,6 +579,23 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     T.check('a file that is not an image is read through the connection and saved under its name', !!fileDl && fileDl.suggestedFilename() === 'mapping.xlsx' && imageReads.slice(readsBefore).some((x) => x.id === '10504' && x.signed), (fileDl ? fileDl.suggestedFilename() : 'no download') + ' ' + JSON.stringify(imageReads.slice(readsBefore)));
     await env.shot('next-jira-drawer.png');
 
+    T.section('Application pages on the story: assign the VB page (its technical sheet built once)');
+    await page.waitForSelector('#jiraPagesNone', { timeout: 10000 }).catch(() => {});
+    T.check('none mapped yet; Assign page offered', await page.isVisible('#jiraPagesNone') && !(await page.isDisabled('#jiraAssignPage')));
+    await page.click('#jiraAssignPage');
+    await page.waitForSelector('#jiraPagePicker', { timeout: 10000 });
+    T.check('the picker lists the pages from git', (await page.$$('#jiraPageList .nx-sp-choice')).length >= 50);
+    await page.fill('#jiraPageQ', 'manager workbench');
+    await page.dispatchEvent('#jiraPageQ', 'input');
+    await settle(page, 300);
+    T.check('…and finds one by its words', /Equipment Manager Workbench/.test(await text(page, '#jiraPageList')) && (await page.$$('#jiraPageList .nx-sp-choice')).length <= 6, await text(page, '#jiraPageList'));
+    await page.click('#jiraPageList .nx-sp-choice[data-id="' + WB + '"]');
+    await page.waitForSelector('#jiraPages .nx-sp-row[data-id="' + WB + '"]', { timeout: 20000 }).catch(() => {});
+    await settle(page, 300);
+    T.check('assigned: the page shows on the story with its counts (its sheet was built), saved in git with EQP-12 in its page table',
+      /Equipment Manager Workbench/.test(await text(page, '#jiraPages')) && /\d+ REST · \d+ chains/.test(await text(page, '#jiraPages .nx-sp-row'))
+      && pg.store.forStory('EQP-12').map((x) => x.id).join() === WB && pg.gitRemote('log', '-1', '--format=%s', 'pages/test') === 'Application pages: map EQP-12 to ' + WB, await text(page, '#jiraPages'));
+
     T.section('Record a test of it: the screen, screenshots, kept in its folder on this PC');
     await page.waitForSelector('#jiraRecord', { timeout: 10000 });
     T.check('Test evidence: Record, Screenshot, Open folder; nothing recorded yet', await page.isVisible('#jiraShot') && await page.isVisible('#jiraEvFolder')
@@ -843,6 +863,10 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     const lastPrompt = () => llmBodies[llmBodies.length - 1] || '';
     T.check('the FDD picker shows the latest FDD', /EquipRite FDD · v1\.7 \(latest\)/.test(await text(page, '#anFddName')), await text(page, '#anFddBar'));
     const firstPrompt = llmBodies.filter((b) => /## Requirement/.test(b))[0] || '';
+    T.check('the AI was given the mapped page\'s technical sheet (its chains and REST calls) and told to name them',
+      /EQUIPRITE PAGES MAPPED TO THIS/.test(firstPrompt) && /PAGE Equipment Manager Workbench \(Old EquipRite/.test(firstPrompt) && /GET \/equiprite\/v1\/views\/workbench-requests/.test(firstPrompt)
+      && /name the chains and endpoints/.test(firstPrompt), firstPrompt.slice(0, 200));
+    T.check('the analysis tab lists the story\'s application page', /Equipment Manager Workbench/.test(await text(page, '#anPages')));
     T.check('the AI was given the whole activity: the history, the work log, the attachments, the mention named',
       /History \(2 changes, oldest first\)/.test(firstPrompt) && /Status FUNC DESIGN → DEVELOPMENT/.test(firstPrompt) && /logged 4h: grid wiring/.test(firstPrompt)
       && /Attachments \(2\)/.test(firstPrompt) && /@Sana Suhana Thehaseen the Type column/.test(firstPrompt), firstPrompt.slice(0, 300));
@@ -876,6 +900,11 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     await page.waitForFunction(() => /No FDD/.test((document.getElementById('anFddName') || {}).textContent || '') && !document.getElementById('anBusy'), null, { timeout: 20000 }).catch(() => {});
     await settle(page, 400);
     T.check('"No FDD" re-runs it on the story alone: no excerpts, no FDD check, no chips', llmBodies.length === calls + 2 && !/FDD excerpts/.test(lastPrompt()) && !/## FDD check/.test(lastPrompt()) && !(await page.$('#anFddRead')));
+    await page.click('#anPages .nx-sp-row[data-id="' + WB + '"] [data-act="open"]');
+    await page.waitForFunction(() => /Equipment Manager Workbench/.test((document.getElementById('pgSheetTitle') || {}).textContent || ''), null, { timeout: 20000 }).catch(() => {});
+    T.check('"Technical sheet" opens Application pages on that page, with the story mapped on it', /Equipment Manager Workbench/.test(await text(page, '#pgSheetTitle')) && /EQP-12/.test(await text(page, '#pgMap'))
+      && (await page.$$eval('[role="tab"]', (t) => t.map((x) => x.textContent))).some((t) => t.includes('Application pages')));
+    await page.locator('[role="tab"]').filter({ hasText: 'AI · EQP-12' }).first().click().catch(() => {});
     // back to the Jira stories tab for the remaining steps
     await page.locator('[role="tab"]').filter({ hasText: 'Jira' }).first().click().catch(() => {});
     await page.waitForSelector('#jiraGrid', { timeout: 20000 }).catch(() => {});
@@ -985,6 +1014,7 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
   } finally {
     await env.close();
     fdd.restore();
+    pg.restore();
   }
   T.report();
 })();

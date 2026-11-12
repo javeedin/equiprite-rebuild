@@ -14,6 +14,7 @@ define([
       if (v.selKey !== k) v.selKey = k;
       if (!k) return;
       await Actions.callChain(context, { chain: 'evidenceChain', params: { act: 'list' } });
+      if (!(v.pgCat || []).length) Actions.callChain(context, { chain: 'pagesChain', params: { act: 'load', id: '' } }); // the story's Application pages
       const row = ((v.report && v.report.rows) || []).filter((r) => r.key === k)[0];
       if (!row) return;
       const plain = JSON.parse(JSON.stringify(row));

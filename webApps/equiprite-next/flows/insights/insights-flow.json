@@ -9,6 +9,7 @@
     "jira-sprint": { "path": "pages/jira-sprint-page" },
     "jira-analysis": { "path": "pages/jira-analysis-page" },
     "jira-analysis-set": { "path": "pages/jira-analysis-set-page" },
+    "app-pages": { "path": "pages/app-pages-page" },
     "minutes": { "path": "pages/minutes-page" },
     "followups": { "path": "pages/followups-page" }
   },

@@ -188,6 +188,39 @@ function fddStore() {
   if (!fddStoreInst) fddStoreInst = require('./lib/fdd').open({ root: path.join(__dirname, '..'), gitPath: commandPath('git') || 'git' });
   return fddStoreInst;
 }
+// The Application pages catalog (lib/pages.js), kept in the project (git). Its screenshots: the page opened in a hidden
+// window of this app — the same sign-in and the same live data as you see — and captured once it has settled.
+let pagesStoreInst = null;
+function pagesStore() {
+  if (!pagesStoreInst) pagesStoreInst = require('./lib/pages').open({ root: path.join(__dirname, '..'), gitPath: commandPath('git') || 'git', capture: capturePage });
+  return pagesStoreInst;
+}
+async function capturePage(webApp, url) {
+  const v = Object.keys(VERSIONS).filter((k) => VERSIONS[k].webApp === webApp)[0];
+  const srv = v ? servers[v] : null;
+  if (!srv || !srv.url) return { ok: false, error: ((v && VERSIONS[v].label) || webApp) + ' is not running in this app: build it (npm run build), then try again.' };
+  const shotWin = new BrowserWindow({ width: 1440, height: 900, show: false, paintWhenInitiallyHidden: true,
+    webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, sandbox: true, nodeIntegration: false, backgroundThrottling: false } });
+  try {
+    await shotWin.loadURL(String(srv.url).replace(/\/$/, '') + url);
+    // settled: nothing busy, and the text on the page the same for two seconds in a row (at most 30 s)
+    const deadline = Date.now() + 30000;
+    let last = '', same = 0;
+    while (Date.now() < deadline && same < 2) {
+      await new Promise((r) => setTimeout(r, 1000));
+      const sig = await shotWin.webContents.executeJavaScript(
+        "(function(){var b=document.body;if(!b)return '';var busy=document.querySelector('oj-progress-circle,.oj-progress-circle,[aria-busy=\"true\"],.nx-loading');return (busy?'busy:':'')+b.innerText.length;})()", true).catch(() => '');
+      same = sig && sig === last && sig.indexOf('busy:') !== 0 && Number(sig) > 40 ? same + 1 : 0;
+      last = sig;
+    }
+    const img = await shotWin.webContents.capturePage();
+    return { ok: true, base64: img.toJPEG(75).toString('base64'), mime: 'image/jpeg' };
+  } catch (e) {
+    return { ok: false, error: 'Could not capture the page: ' + String((e && e.message) || e) };
+  } finally {
+    try { shotWin.destroy(); } catch (e) { /* closed */ }
+  }
+}
 // Saved AI analyses, for EquipRite Next's Analyze with AI: each run kept in this app's data folder (ai-analyses.json).
 let analysisStoreInst = null;
 function analysisStore() {
@@ -1133,6 +1166,8 @@ if (!app.requestSingleInstanceLock()) {
             fddStore: v === 'next' ? fddStore() : undefined,
             // Saved AI analyses: each run kept on this PC, so an analysis opens without asking the AI again
             analysisStore: v === 'next' ? analysisStore() : undefined,
+            // The Application pages catalog: technical sheets of the VB pages and the Jira stories mapped to them, in git
+            pagesStore: v === 'next' ? pagesStore() : undefined,
             backendOverrides: backendOverridesFromEnv(process.env),
             onLog: pushLog,
             onProblem: backendProblem,

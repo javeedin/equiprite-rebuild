@@ -85,6 +85,11 @@ define(['resources/js/rules'], function (rules) {
       { id: 'fdd', label: 'EquipRite FDD', icon: 'oj-ux-ico-document-check', pageCodes: [], everyone: true, staff: true,
         route: { flow: 'fdd', page: 'fdd' }, built: true,
         keywords: 'fdd functional design document requirements business mapping development status progress swimlane diagrams scenarios integrations' },
+      // Every VB page of the project with its technical sheet — screenshot, features, business logic, integrations — and
+      // the Jira stories mapped to it, kept in git (flows/insights app-pages). Gated like Jira stories.
+      { id: 'app-pages', label: 'Application pages', icon: 'oj-ux-ico-layout-1', pageCodes: ['EQR_CONFIGURATIONS'],
+        route: { flow: 'insights', page: 'app-pages' }, built: true,
+        keywords: 'application pages vb page code technical sheet screenshot business logic integrations rest fusion oic bip chains jira map story developer' },
       // The FDD documents "Analyze with AI" reads (flows/fdd library page): uploaded into the project and committed and
       // pushed to git, so every user has them; one is the latest. Gated like Jira stories (an existing page code).
       { id: 'fdd-library', label: 'FDD library', icon: 'oj-ux-ico-upload', pageCodes: ['EQR_CONFIGURATIONS'],

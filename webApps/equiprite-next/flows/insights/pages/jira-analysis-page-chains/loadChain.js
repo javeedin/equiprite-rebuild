@@ -22,6 +22,7 @@ define([
       try { v.pages = Object.keys(N.ITEMS).map((id) => N.ITEMS[id]).filter((it) => it && it.label).map((it) => ({ label: it.label, keywords: it.keywords || '' })); } catch (e) { /* no nav */ }
       try { const a = await M.aiSettings(); v.aiReady = !!(a.ok && a.body && a.body.active); } catch (e) { v.aiReady = false; }
       try { await R.library(v, context.$application.path); } catch (e) { /* no library: the analysis reads only the story */ }
+      try { await Actions.callChain(context, { chain: 'pagesChain', params: { act: 'load', id: '' } }); } catch (e) { /* no catalog */ }
       try {
         const today = new Date().toISOString().slice(0, 10);
         const res = await J.load(context, Actions, 'key = ' + key);

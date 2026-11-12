@@ -1,0 +1,2345 @@
+{
+ "scannedAt": "2026-11-12T14:53:30.304Z",
+ "pages": [
+  {
+   "id": "equiprite//shell",
+   "app": "equiprite",
+   "appName": "New EquipRite",
+   "flow": "",
+   "page": "shell",
+   "label": "New EquipRite shell",
+   "route": {
+    "url": "/",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite/admin/integration-health",
+   "app": "equiprite",
+   "appName": "New EquipRite",
+   "flow": "admin",
+   "page": "integration-health",
+   "label": "Integration health",
+   "route": {
+    "url": "/vp/shell/admin/integration-health",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite/admin/page-access",
+   "app": "equiprite",
+   "appName": "New EquipRite",
+   "flow": "admin",
+   "page": "page-access",
+   "label": "Page access",
+   "route": {
+    "url": "/vp/shell/admin/page-access",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite/customer/customer-billing",
+   "app": "equiprite",
+   "appName": "New EquipRite",
+   "flow": "customer",
+   "page": "customer-billing",
+   "label": "Billing",
+   "route": {
+    "url": "/vp/shell/customer/customer-billing",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite/customer/customer-contract",
+   "app": "equiprite",
+   "appName": "New EquipRite",
+   "flow": "customer",
+   "page": "customer-contract",
+   "label": "The rental contract of a customer request",
+   "route": {
+    "url": "/vp/shell/customer/customer-contract",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite/customer/customer-home",
+   "app": "equiprite",
+   "appName": "New EquipRite",
+   "flow": "customer",
+   "page": "customer-home",
+   "label": "Customer home",
+   "route": {
+    "url": "/vp/shell/customer/customer-home",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite/customer/customer-invoice",
+   "app": "equiprite",
+   "appName": "New EquipRite",
+   "flow": "customer",
+   "page": "customer-invoice",
+   "label": "The invoices of one billed customer request",
+   "route": {
+    "url": "/vp/shell/customer/customer-invoice",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite/customer/customer-new-request",
+   "app": "equiprite",
+   "appName": "New EquipRite",
+   "flow": "customer",
+   "page": "customer-new-request",
+   "label": "A customer equipment request in three steps",
+   "route": {
+    "url": "/vp/shell/customer/customer-new-request",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite/customer/customer-quote",
+   "app": "equiprite",
+   "appName": "New EquipRite",
+   "flow": "customer",
+   "page": "customer-quote",
+   "label": "Your quote",
+   "route": {
+    "url": "/vp/shell/customer/customer-quote",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite/customer/customer-request",
+   "app": "equiprite",
+   "appName": "New EquipRite",
+   "flow": "customer",
+   "page": "customer-request",
+   "label": "One customer request tracked like a parcel",
+   "route": {
+    "url": "/vp/shell/customer/customer-request",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite/customer/customer-requests",
+   "app": "equiprite",
+   "appName": "New EquipRite",
+   "flow": "customer",
+   "page": "customer-requests",
+   "label": "My requests",
+   "route": {
+    "url": "/vp/shell/customer/customer-requests",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite/fleet/equipment-workbench",
+   "app": "equiprite",
+   "appName": "New EquipRite",
+   "flow": "fleet",
+   "page": "equipment-workbench",
+   "label": "Equipment workbench",
+   "route": {
+    "url": "/vp/shell/fleet/equipment-workbench",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite/home/home",
+   "app": "equiprite",
+   "appName": "New EquipRite",
+   "flow": "home",
+   "page": "home",
+   "label": "New EquipRite Home",
+   "route": {
+    "url": "/vp/shell/home/home",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite/home/later",
+   "app": "equiprite",
+   "appName": "New EquipRite",
+   "flow": "home",
+   "page": "later",
+   "label": "Stands in for every menu item not rebuilt yet",
+   "route": {
+    "url": "/vp/shell/home/later",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite/home/no-access",
+   "app": "equiprite",
+   "appName": "New EquipRite",
+   "flow": "home",
+   "page": "no-access",
+   "label": "You don't have access to EquipRite",
+   "route": {
+    "url": "/vp/shell/home/no-access",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite/insights/analytics",
+   "app": "equiprite",
+   "appName": "New EquipRite",
+   "flow": "insights",
+   "page": "analytics",
+   "label": "Analytics",
+   "route": {
+    "url": "/vp/shell/insights/analytics",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite/logistics/picking",
+   "app": "equiprite",
+   "appName": "New EquipRite",
+   "flow": "logistics",
+   "page": "picking",
+   "label": "Initiate picking",
+   "route": {
+    "url": "/vp/shell/logistics/picking",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite/logistics/receipt",
+   "app": "equiprite",
+   "appName": "New EquipRite",
+   "flow": "logistics",
+   "page": "receipt",
+   "label": "Receipt & returns",
+   "route": {
+    "url": "/vp/shell/logistics/receipt",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite/master/agreement-edit",
+   "app": "equiprite",
+   "appName": "New EquipRite",
+   "flow": "master",
+   "page": "agreement-edit",
+   "label": "New or edit rental agreement",
+   "route": {
+    "url": "/vp/shell/master/agreement-edit",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite/master/agreement-lines",
+   "app": "equiprite",
+   "appName": "New EquipRite",
+   "flow": "master",
+   "page": "agreement-lines",
+   "label": "One rental agreement and its lines",
+   "route": {
+    "url": "/vp/shell/master/agreement-lines",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite/master/agreements",
+   "app": "equiprite",
+   "appName": "New EquipRite",
+   "flow": "master",
+   "page": "agreements",
+   "label": "Rental agreements",
+   "route": {
+    "url": "/vp/shell/master/agreements",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite/master/equipment-detail",
+   "app": "equiprite",
+   "appName": "New EquipRite",
+   "flow": "master",
+   "page": "equipment-detail",
+   "label": "·",
+   "route": {
+    "url": "/vp/shell/master/equipment-detail",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite/master/equipment-import",
+   "app": "equiprite",
+   "appName": "New EquipRite",
+   "flow": "master",
+   "page": "equipment-import",
+   "label": "Import from Fusion",
+   "route": {
+    "url": "/vp/shell/master/equipment-import",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite/master/equipment",
+   "app": "equiprite",
+   "appName": "New EquipRite",
+   "flow": "master",
+   "page": "equipment",
+   "label": "Equipment",
+   "route": {
+    "url": "/vp/shell/master/equipment",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite/master/rates",
+   "app": "equiprite",
+   "appName": "New EquipRite",
+   "flow": "master",
+   "page": "rates",
+   "label": "Rate schedules",
+   "route": {
+    "url": "/vp/shell/master/rates",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite/operations/inspection",
+   "app": "equiprite",
+   "appName": "New EquipRite",
+   "flow": "operations",
+   "page": "inspection",
+   "label": "Inspection",
+   "route": {
+    "url": "/vp/shell/operations/inspection",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite/operations/transfers",
+   "app": "equiprite",
+   "appName": "New EquipRite",
+   "flow": "operations",
+   "page": "transfers",
+   "label": "Inter-project transfer",
+   "route": {
+    "url": "/vp/shell/operations/transfers",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite/request/my-requests",
+   "app": "equiprite",
+   "appName": "New EquipRite",
+   "flow": "request",
+   "page": "my-requests",
+   "label": "My requests",
+   "route": {
+    "url": "/vp/shell/request/my-requests",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite/request/new-request",
+   "app": "equiprite",
+   "appName": "New EquipRite",
+   "flow": "request",
+   "page": "new-request",
+   "label": "New equipment request in three steps",
+   "route": {
+    "url": "/vp/shell/request/new-request",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite/request/request-detail",
+   "app": "equiprite",
+   "appName": "New EquipRite",
+   "flow": "request",
+   "page": "request-detail",
+   "label": "One request page for project and customer requests",
+   "route": {
+    "url": "/vp/shell/request/request-detail",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite/schedule/schedule",
+   "app": "equiprite",
+   "appName": "New EquipRite",
+   "flow": "schedule",
+   "page": "schedule",
+   "label": "Equipment schedule",
+   "route": {
+    "url": "/vp/shell/schedule/schedule",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite/settings/configuration",
+   "app": "equiprite",
+   "appName": "New EquipRite",
+   "flow": "settings",
+   "page": "configuration",
+   "label": "Configuration",
+   "route": {
+    "url": "/vp/shell/settings/configuration",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite/usage/post-costs",
+   "app": "equiprite",
+   "appName": "New EquipRite",
+   "flow": "usage",
+   "page": "post-costs",
+   "label": "Post costs",
+   "route": {
+    "url": "/vp/shell/usage/post-costs",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite/usage/project-costs",
+   "app": "equiprite",
+   "appName": "New EquipRite",
+   "flow": "usage",
+   "page": "project-costs",
+   "label": "Direct cost & inventory use",
+   "route": {
+    "url": "/vp/shell/usage/project-costs",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite/usage/time-entry",
+   "app": "equiprite",
+   "appName": "New EquipRite",
+   "flow": "usage",
+   "page": "time-entry",
+   "label": "Time entry",
+   "route": {
+    "url": "/vp/shell/usage/time-entry",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite/usage/timesheet-approval",
+   "app": "equiprite",
+   "appName": "New EquipRite",
+   "flow": "usage",
+   "page": "timesheet-approval",
+   "label": "Timesheet approval",
+   "route": {
+    "url": "/vp/shell/usage/timesheet-approval",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite/workbench/approve-allocate",
+   "app": "equiprite",
+   "appName": "New EquipRite",
+   "flow": "workbench",
+   "page": "approve-allocate",
+   "label": "Approve Allocate",
+   "route": {
+    "url": "/vp/shell/workbench/approve-allocate",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite/workbench/workbench",
+   "app": "equiprite",
+   "appName": "New EquipRite",
+   "flow": "workbench",
+   "page": "workbench",
+   "label": "Workbench",
+   "route": {
+    "url": "/vp/shell/workbench/workbench",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-future//shell",
+   "app": "equiprite-future",
+   "appName": "EquipRite Future",
+   "flow": "",
+   "page": "shell",
+   "label": "EquipRite Future shell",
+   "route": {
+    "url": "/",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-future/fdd2/fdd2",
+   "app": "equiprite-future",
+   "appName": "EquipRite Future",
+   "flow": "fdd2",
+   "page": "fdd2",
+   "label": "EquipRite FDD 2.0: many companies, many countries",
+   "route": {
+    "url": "/vp/shell/fdd2/fdd2",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-future/finance/accounting",
+   "app": "equiprite-future",
+   "appName": "EquipRite Future",
+   "flow": "finance",
+   "page": "accounting",
+   "label": "Accounting",
+   "route": {
+    "url": "/vp/shell/finance/accounting",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-future/finance/reports",
+   "app": "equiprite-future",
+   "appName": "EquipRite Future",
+   "flow": "finance",
+   "page": "reports",
+   "label": "Reports",
+   "route": {
+    "url": "/vp/shell/finance/reports",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-future/guide/guide",
+   "app": "equiprite-future",
+   "appName": "EquipRite Future",
+   "flow": "guide",
+   "page": "guide",
+   "label": "Guide: the end-to-end story",
+   "route": {
+    "url": "/vp/shell/guide/guide",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-future/money/billing",
+   "app": "equiprite-future",
+   "appName": "EquipRite Future",
+   "flow": "money",
+   "page": "billing",
+   "label": "Customer billing",
+   "route": {
+    "url": "/vp/shell/money/billing",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-future/money/charges",
+   "app": "equiprite-future",
+   "appName": "EquipRite Future",
+   "flow": "money",
+   "page": "charges",
+   "label": "Charges & statements",
+   "route": {
+    "url": "/vp/shell/money/charges",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-future/money/ic-workbench",
+   "app": "equiprite-future",
+   "appName": "EquipRite Future",
+   "flow": "money",
+   "page": "ic-workbench",
+   "label": "Intercompany workbench",
+   "route": {
+    "url": "/vp/shell/money/ic-workbench",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-future/order/new-request",
+   "app": "equiprite-future",
+   "appName": "EquipRite Future",
+   "flow": "order",
+   "page": "new-request",
+   "label": "New request",
+   "route": {
+    "url": "/vp/shell/order/new-request",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-future/owner/approvals",
+   "app": "equiprite-future",
+   "appName": "EquipRite Future",
+   "flow": "owner",
+   "page": "approvals",
+   "label": "Approve & allocate",
+   "route": {
+    "url": "/vp/shell/owner/approvals",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-future/owner/yard",
+   "app": "equiprite-future",
+   "appName": "EquipRite Future",
+   "flow": "owner",
+   "page": "yard",
+   "label": "Yard",
+   "route": {
+    "url": "/vp/shell/owner/yard",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-future/requests/request",
+   "app": "equiprite-future",
+   "appName": "EquipRite Future",
+   "flow": "requests",
+   "page": "request",
+   "label": "A request in its own tab",
+   "route": {
+    "url": "/vp/shell/requests/request",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-future/requests/requests",
+   "app": "equiprite-future",
+   "appName": "EquipRite Future",
+   "flow": "requests",
+   "page": "requests",
+   "label": "My requests",
+   "route": {
+    "url": "/vp/shell/requests/requests",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-future/setup/setup",
+   "app": "equiprite-future",
+   "appName": "EquipRite Future",
+   "flow": "setup",
+   "page": "setup",
+   "label": "Companies & agreements",
+   "route": {
+    "url": "/vp/shell/setup/setup",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-future/site/site",
+   "app": "equiprite-future",
+   "appName": "EquipRite Future",
+   "flow": "site",
+   "page": "site",
+   "label": "Receive, hours, moves",
+   "route": {
+    "url": "/vp/shell/site/site",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-future/work/work",
+   "app": "equiprite-future",
+   "appName": "EquipRite Future",
+   "flow": "work",
+   "page": "work",
+   "label": "My work",
+   "route": {
+    "url": "/vp/shell/work/work",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-mobile//shell",
+   "app": "equiprite-mobile",
+   "appName": "EquipRite Mobile",
+   "flow": "",
+   "page": "shell",
+   "label": "EquipRite",
+   "route": {
+    "url": "/",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-mobile/approve/approve",
+   "app": "equiprite-mobile",
+   "appName": "EquipRite Mobile",
+   "flow": "approve",
+   "page": "approve",
+   "label": "Approve on a phone",
+   "route": {
+    "url": "/vp/shell/approve/approve",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-mobile/me/me",
+   "app": "equiprite-mobile",
+   "appName": "EquipRite Mobile",
+   "flow": "me",
+   "page": "me",
+   "label": "Me",
+   "route": {
+    "url": "/vp/shell/me/me",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-mobile/pick/pick",
+   "app": "equiprite-mobile",
+   "appName": "EquipRite Mobile",
+   "flow": "pick",
+   "page": "pick",
+   "label": "Pick & ship on a phone",
+   "route": {
+    "url": "/vp/shell/pick/pick",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-mobile/request/request",
+   "app": "equiprite-mobile",
+   "appName": "EquipRite Mobile",
+   "flow": "request",
+   "page": "request",
+   "label": "Raise a request on a phone, in Next's three steps",
+   "route": {
+    "url": "/vp/shell/request/request",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-mobile/track/track",
+   "app": "equiprite-mobile",
+   "appName": "EquipRite Mobile",
+   "flow": "track",
+   "page": "track",
+   "label": "My requests on a phone",
+   "route": {
+    "url": "/vp/shell/track/track",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-next//shell",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "",
+   "page": "shell",
+   "label": "EquipRite Next shell",
+   "route": {
+    "url": "",
+    "menu": "",
+    "needs": "Not in the menu: upload a screenshot."
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-next/admin/access",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "admin",
+   "page": "access",
+   "label": "Access",
+   "route": {
+    "url": "/?open=access",
+    "menu": "Admin › Access",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-next/admin/integrations",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "admin",
+   "page": "integrations",
+   "label": "Integrations",
+   "route": {
+    "url": "/?open=integrations",
+    "menu": "Admin › Integrations",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-next/admin/settings",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "admin",
+   "page": "settings",
+   "label": "Settings",
+   "route": {
+    "url": "/?open=settings",
+    "menu": "Admin › Settings",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-next/admin/sql",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "admin",
+   "page": "sql",
+   "label": "SQL",
+   "route": {
+    "url": "/?open=sql",
+    "menu": "Admin › SQL",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-next/approvals/approvals",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "approvals",
+   "page": "approvals",
+   "label": "Approve & allocate",
+   "route": {
+    "url": "/?open=approvals",
+    "menu": "Requests › Approve & allocate",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-next/availability/availability",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "availability",
+   "page": "availability",
+   "label": "Availability",
+   "route": {
+    "url": "/?open=availability",
+    "menu": "Equipment › Availability",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-next/checks/inspection",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "checks",
+   "page": "inspection",
+   "label": "Inspections",
+   "route": {
+    "url": "/?open=inspection",
+    "menu": "Yard & logistics › Inspections",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-next/checks/transfer",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "checks",
+   "page": "transfer",
+   "label": "One transfer in its own tab",
+   "route": {
+    "url": "",
+    "menu": "",
+    "needs": "Opened from another screen (record \"transfer\"): capture it there, or upload a screenshot."
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-next/checks/transfers",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "checks",
+   "page": "transfers",
+   "label": "Transfers",
+   "route": {
+    "url": "/?open=transfers",
+    "menu": "Yard & logistics › Transfers",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-next/commercial/agreement",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "commercial",
+   "page": "agreement",
+   "label": "One rental agreement in its own tab",
+   "route": {
+    "url": "",
+    "menu": "",
+    "needs": "Opened from another screen (record \"agreement\"): capture it there, or upload a screenshot."
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-next/commercial/agreements",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "commercial",
+   "page": "agreements",
+   "label": "Agreements",
+   "route": {
+    "url": "/?open=agreements",
+    "menu": "Commercial › Agreements",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-next/commercial/rate-compare",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "commercial",
+   "page": "rate-compare",
+   "label": "Compare rates",
+   "route": {
+    "url": "/?open=rate-compare",
+    "menu": "Commercial › Compare rates",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-next/commercial/rates",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "commercial",
+   "page": "rates",
+   "label": "Rates",
+   "route": {
+    "url": "/?open=rates",
+    "menu": "Commercial › Rates",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-next/customer/invoice",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "customer",
+   "page": "invoice",
+   "label": "The invoices of one customer request in its own tab",
+   "route": {
+    "url": "",
+    "menu": "",
+    "needs": "Opened from another screen (record \"invoice\"): capture it there, or upload a screenshot."
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-next/customer/order",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "customer",
+   "page": "order",
+   "label": "A customer's new request",
+   "route": {
+    "url": "",
+    "menu": "",
+    "needs": "Opened from another screen (record \"customer-order\"): capture it there, or upload a screenshot."
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-next/customer/portal",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "customer",
+   "page": "portal",
+   "label": "Customer portal",
+   "route": {
+    "url": "/?open=customer-portal",
+    "menu": "Customers › Customer portal",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-next/customer/quote",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "customer",
+   "page": "quote",
+   "label": "Your quote",
+   "route": {
+    "url": "",
+    "menu": "",
+    "needs": "Opened from another screen (record \"quote\"): capture it there, or upload a screenshot."
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-next/customer/request",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "customer",
+   "page": "request",
+   "label": "One customer request in its own tab, tracked like a parcel",
+   "route": {
+    "url": "",
+    "menu": "",
+    "needs": "Opened from another screen (record \"customer-request\"): capture it there, or upload a screenshot."
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-next/equipment/equipment",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "equipment",
+   "page": "equipment",
+   "label": "Equipment master",
+   "route": {
+    "url": "/?open=equipment",
+    "menu": "Equipment › Equipment master",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-next/equipment/item",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "equipment",
+   "page": "item",
+   "label": "One equipment item in its own tab",
+   "route": {
+    "url": "",
+    "menu": "",
+    "needs": "Opened from another screen (record \"equipment-item\"): capture it there, or upload a screenshot."
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-next/fdd/fdd",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "fdd",
+   "page": "fdd",
+   "label": "EquipRite FDD",
+   "route": {
+    "url": "/?open=fdd",
+    "menu": "Insights › EquipRite FDD",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-next/fdd/library",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "fdd",
+   "page": "library",
+   "label": "FDD library",
+   "route": {
+    "url": "/?open=fdd-library",
+    "menu": "Insights › FDD library",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-next/fleet/equipment",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "fleet",
+   "page": "equipment",
+   "label": "Everything about a piece of equipment",
+   "route": {
+    "url": "",
+    "menu": "",
+    "needs": "Opened from another screen (record \"equipment-360\"): capture it there, or upload a screenshot."
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-next/fleet/fleet",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "fleet",
+   "page": "fleet",
+   "label": "Fleet",
+   "route": {
+    "url": "/?open=fleet",
+    "menu": "Equipment › Fleet",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-next/help/help",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "help",
+   "page": "help",
+   "label": "Help",
+   "route": {
+    "url": "/?open=help",
+    "menu": "Help › Help",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-next/home/home",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "home",
+   "page": "home",
+   "label": "My work",
+   "route": {
+    "url": "/?open=home",
+    "menu": "My work",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-next/home/soon",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "home",
+   "page": "soon",
+   "label": "Stands in for a screen not built in Next yet",
+   "route": {
+    "url": "",
+    "menu": "",
+    "needs": "Not in the menu: upload a screenshot."
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-next/insights/analytics",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "insights",
+   "page": "analytics",
+   "label": "Analytics",
+   "route": {
+    "url": "/?open=analytics",
+    "menu": "Insights › Analytics",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-next/insights/app-pages",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "insights",
+   "page": "app-pages",
+   "label": "Application pages",
+   "route": {
+    "url": "/?open=app-pages",
+    "menu": "Insights › Application pages",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-next/insights/followups",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "insights",
+   "page": "followups",
+   "label": "Follow-ups",
+   "route": {
+    "url": "/?open=followups",
+    "menu": "Insights › Follow-ups",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-next/insights/jira-analysis",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "insights",
+   "page": "jira-analysis",
+   "label": "Analyze with AI",
+   "route": {
+    "url": "",
+    "menu": "",
+    "needs": "Opened from another screen (record \"jira-analysis\"): capture it there, or upload a screenshot."
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-next/insights/jira-analysis-set",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "insights",
+   "page": "jira-analysis-set",
+   "label": "Analyze with AI",
+   "route": {
+    "url": "",
+    "menu": "",
+    "needs": "Opened from another screen (record \"jira-analysis-set\"): capture it there, or upload a screenshot."
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-next/insights/jira",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "insights",
+   "page": "jira",
+   "label": "Jira stories",
+   "route": {
+    "url": "/?open=jira",
+    "menu": "Insights › Jira stories",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-next/insights/jira-sprint",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "insights",
+   "page": "jira-sprint",
+   "label": "One Jira sprint, in its own tab",
+   "route": {
+    "url": "",
+    "menu": "",
+    "needs": "Opened from another screen (record \"jira-sprint\"): capture it there, or upload a screenshot."
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-next/insights/minutes",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "insights",
+   "page": "minutes",
+   "label": "Standup minutes",
+   "route": {
+    "url": "/?open=minutes",
+    "menu": "Insights › Standup minutes",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-next/order/new-request",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "order",
+   "page": "new-request",
+   "label": "New request",
+   "route": {
+    "url": "/?open=new-request",
+    "menu": "Requests › New request",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-next/requests/request",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "requests",
+   "page": "request",
+   "label": "One request in its own tab",
+   "route": {
+    "url": "",
+    "menu": "",
+    "needs": "Opened from another screen (record \"request\"): capture it there, or upload a screenshot."
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-next/requests/requests",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "requests",
+   "page": "requests",
+   "label": "Requests",
+   "route": {
+    "url": "/?open=requests",
+    "menu": "Requests › Requests",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-next/usage/approve-time",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "usage",
+   "page": "approve-time",
+   "label": "Approve time",
+   "route": {
+    "url": "/?open=approve-time",
+    "menu": "Usage & billing › Approve time",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-next/usage/cost",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "usage",
+   "page": "cost",
+   "label": "One request's costs in its own tab",
+   "route": {
+    "url": "",
+    "menu": "",
+    "needs": "Opened from another screen (record \"cost\"): capture it there, or upload a screenshot."
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-next/usage/costs",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "usage",
+   "page": "costs",
+   "label": "Post costs",
+   "route": {
+    "url": "/?open=costs",
+    "menu": "Usage & billing › Post costs",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-next/usage/direct-costs",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "usage",
+   "page": "direct-costs",
+   "label": "Direct cost & inventory",
+   "route": {
+    "url": "/?open=direct-costs",
+    "menu": "Usage & billing › Direct cost & inventory",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-next/usage/timesheets",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "usage",
+   "page": "timesheets",
+   "label": "Timesheets",
+   "route": {
+    "url": "/?open=timesheets",
+    "menu": "Usage & billing › Timesheets",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-next/yard/picking",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "yard",
+   "page": "picking",
+   "label": "Picking & shipping",
+   "route": {
+    "url": "/?open=picking",
+    "menu": "Yard & logistics › Picking & shipping",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-next/yard/returns",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "yard",
+   "page": "returns",
+   "label": "Receiving & returns",
+   "route": {
+    "url": "/?open=returns",
+    "menu": "Yard & logistics › Receiving & returns",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp//shell",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "",
+   "page": "shell",
+   "label": "Shell",
+   "route": {
+    "url": "/",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/customer-portal/customer-billing-detail",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "customer-portal",
+   "page": "customer-billing-detail",
+   "label": "Customer Billing Detail",
+   "route": {
+    "url": "/vp/shell/customer-portal/customer-billing-detail",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/customer-portal/customer-create-req",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "customer-portal",
+   "page": "customer-create-req",
+   "label": "Create Equipment Request",
+   "route": {
+    "url": "/vp/shell/customer-portal/customer-create-req",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/customer-portal/customer-dashboard",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "customer-portal",
+   "page": "customer-dashboard",
+   "label": "Customer Dashboard",
+   "route": {
+    "url": "/vp/shell/customer-portal/customer-dashboard",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/customer-portal/customer-my-billing",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "customer-portal",
+   "page": "customer-my-billing",
+   "label": "My Billing",
+   "route": {
+    "url": "/vp/shell/customer-portal/customer-my-billing",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/customer-portal/customer-my-requests",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "customer-portal",
+   "page": "customer-my-requests",
+   "label": "My Requests",
+   "route": {
+    "url": "/vp/shell/customer-portal/customer-my-requests",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/customer-portal/customer-quote",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "customer-portal",
+   "page": "customer-quote",
+   "label": "Customer Quote",
+   "route": {
+    "url": "/vp/shell/customer-portal/customer-quote",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/customer-portal/customer-rental-contract",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "customer-portal",
+   "page": "customer-rental-contract",
+   "label": "Rental Contract",
+   "route": {
+    "url": "/vp/shell/customer-portal/customer-rental-contract",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/customer-portal/customer-request-detail",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "customer-portal",
+   "page": "customer-request-detail",
+   "label": "Customer Request Detail",
+   "route": {
+    "url": "/vp/shell/customer-portal/customer-request-detail",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/customer-portal/project-create-request",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "customer-portal",
+   "page": "project-create-request",
+   "label": "Create Equipment Request",
+   "route": {
+    "url": "/vp/shell/customer-portal/project-create-request",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/customer-portal/request-cart",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "customer-portal",
+   "page": "request-cart",
+   "label": "Cart",
+   "route": {
+    "url": "/vp/shell/customer-portal/request-cart",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/customer-portal/request-catalog-detail",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "customer-portal",
+   "page": "request-catalog-detail",
+   "label": "Request Catalog Detail",
+   "route": {
+    "url": "/vp/shell/customer-portal/request-catalog-detail",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/customer-portal/request-catalog",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "customer-portal",
+   "page": "request-catalog",
+   "label": "Request Catalog",
+   "route": {
+    "url": "/vp/shell/customer-portal/request-catalog",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/equipment-analytics",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "equipment-foundation",
+   "page": "equipment-analytics",
+   "label": "Equipment Analytics",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/equipment-analytics",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/equipment-create",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "equipment-foundation",
+   "page": "equipment-create",
+   "label": "Equipment Master",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/equipment-create",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/equipment-detail",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "equipment-foundation",
+   "page": "equipment-detail",
+   "label": "Equipment Detail",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/equipment-detail",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/equipment-master",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "equipment-foundation",
+   "page": "equipment-master",
+   "label": "Equipment Master",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/equipment-master",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/equipment-record-cost",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "equipment-foundation",
+   "page": "equipment-record-cost",
+   "label": "Record Cost",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/equipment-record-cost",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/equipment-reports",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "equipment-foundation",
+   "page": "equipment-reports",
+   "label": "Equipment Reports",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/equipment-reports",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/equipment-returns",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "equipment-foundation",
+   "page": "equipment-returns",
+   "label": "Equipment Returns",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/equipment-returns",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/equipment-timesheets",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "equipment-foundation",
+   "page": "equipment-timesheets",
+   "label": "Equipment Timesheets",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/equipment-timesheets",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/equipment-unit-detail",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "equipment-foundation",
+   "page": "equipment-unit-detail",
+   "label": "Equipment Unit Detail",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/equipment-unit-detail",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/equipment-units",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "equipment-foundation",
+   "page": "equipment-units",
+   "label": "Equipment Units",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/equipment-units",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/equipment-workbench",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "equipment-foundation",
+   "page": "equipment-workbench",
+   "label": "Equipment Manager Workbench",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/equipment-workbench",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/initiate-picking",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "equipment-foundation",
+   "page": "initiate-picking",
+   "label": "Initiate Picking",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/initiate-picking",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/line-detail",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "equipment-foundation",
+   "page": "line-detail",
+   "label": "Line Detail",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/line-detail",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/post-cost-detail",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "equipment-foundation",
+   "page": "post-cost-detail",
+   "label": "Post Cost Detail",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/post-cost-detail",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/post-cost",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "equipment-foundation",
+   "page": "post-cost",
+   "label": "Post Costs",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/post-cost",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/post-cost-test-detail",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "equipment-foundation",
+   "page": "post-cost-test-detail",
+   "label": "Post Cost Test Detail",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/post-cost-test-detail",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/post-cost-test",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "equipment-foundation",
+   "page": "post-cost-test",
+   "label": "Post Cost",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/post-cost-test",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/rental-agreement-create",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "equipment-foundation",
+   "page": "rental-agreement-create",
+   "label": "New Rental Agreement",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/rental-agreement-create",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/rental-agreement-lines",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "equipment-foundation",
+   "page": "rental-agreement-lines",
+   "label": "Rental Agreement Lines",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/rental-agreement-lines",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/rental-agreements",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "equipment-foundation",
+   "page": "rental-agreements",
+   "label": "Rental Agreements",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/rental-agreements",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/request-detail",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "equipment-foundation",
+   "page": "request-detail",
+   "label": "Request Detail",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/request-detail",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/request-quote",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "equipment-foundation",
+   "page": "request-quote",
+   "label": "Request Quote",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/request-quote",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/timesheet-approval-detail",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "equipment-foundation",
+   "page": "timesheet-approval-detail",
+   "label": "Timesheet Approval Detail",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/timesheet-approval-detail",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/timesheet-approvals",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "equipment-foundation",
+   "page": "timesheet-approvals",
+   "label": "Timesheet Approvals",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/timesheet-approvals",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/timesheet-detail",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "equipment-foundation",
+   "page": "timesheet-detail",
+   "label": "Timesheet Detail",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/timesheet-detail",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/main/create-rate-schedule",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "main",
+   "page": "create-rate-schedule",
+   "label": "Create Rate Schedule",
+   "route": {
+    "url": "/vp/shell/main/create-rate-schedule",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/main/equipment-request-detail",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "main",
+   "page": "equipment-request-detail",
+   "label": "Equipment Request Detail",
+   "route": {
+    "url": "/vp/shell/main/equipment-request-detail",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/main/equipment-requests",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "main",
+   "page": "equipment-requests",
+   "label": "My Requests",
+   "route": {
+    "url": "/vp/shell/main/equipment-requests",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/main/equipment-schedule",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "main",
+   "page": "equipment-schedule",
+   "label": "Equipment Schedule",
+   "route": {
+    "url": "/vp/shell/main/equipment-schedule",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/main/main-equiprite",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "main",
+   "page": "main-equiprite",
+   "label": "Main Equiprite",
+   "route": {
+    "url": "/vp/shell/main/main-equiprite",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/main/no-access",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "main",
+   "page": "no-access",
+   "label": "You don't have access to EquipRite",
+   "route": {
+    "url": "/vp/shell/main/no-access",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/main/project-quote",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "main",
+   "page": "project-quote",
+   "label": "Project Quote",
+   "route": {
+    "url": "/vp/shell/main/project-quote",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/main/rate-schedule",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "main",
+   "page": "rate-schedule",
+   "label": "Rate Management",
+   "route": {
+    "url": "/vp/shell/main/rate-schedule",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/setup/configurations",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "setup",
+   "page": "configurations",
+   "label": "Application Configurations",
+   "route": {
+    "url": "/vp/shell/setup/configurations",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/setup/jira-sprint",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "setup",
+   "page": "jira-sprint",
+   "label": "One Jira sprint",
+   "route": {
+    "url": "/vp/shell/setup/jira-sprint",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/setup/jira-stories",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "setup",
+   "page": "jira-stories",
+   "label": "Jira Stories",
+   "route": {
+    "url": "/vp/shell/setup/jira-stories",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/setup/rbac-admin",
+   "app": "vbredwoodapp",
+   "appName": "Old EquipRite",
+   "flow": "setup",
+   "page": "rbac-admin",
+   "label": "Page Access",
+   "route": {
+    "url": "/vp/shell/setup/rbac-admin",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  }
+ ]
+}
