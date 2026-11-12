@@ -72,13 +72,13 @@ const ID = 'vbredwoodapp/equipment-foundation/equipment-workbench';
     await page.click('#pgCapture');
     await page.waitForSelector('#pgShots .nx-pg-shotbtn', { timeout: 20000 });
     T.check('Capture screenshot: the page opened at its address; a numbered button, no thumbnail on the sheet', shots[0] === 'vbredwoodapp /vp/shell/equipment-foundation/equipment-workbench'
-      && (await page.$$('#pgShots .nx-pg-shotbtn')).length === 1 && !(await page.$('#pgSheet > img, #pgShot')) && !(await page.$('#pgViewer')));
+      && (await page.$$('#pgShots .nx-pg-shotbtn')).length === 1 && !(await page.$('#pgSheet img')) && !(await page.$eval('#pgViewer', (d) => d.open)));
     await page.setInputFiles('#pgShotFile', [{ name: 'Filters open.png', mimeType: 'image/png', buffer: Buffer.from(PNG, 'base64') }, { name: 'Row picked.png', mimeType: 'image/png', buffer: Buffer.from(PNG, 'base64') }]);
     await page.waitForFunction(() => document.querySelectorAll('#pgShots .nx-pg-shotbtn').length === 3, null, { timeout: 20000 }).catch(() => {});
     T.check('Upload several at once: added to the capture (3 now), one commit', (await page.$$('#pgShots .nx-pg-shotbtn')).length === 3 && /2 screenshots saved/.test(await text(page, '#pgResult'))
       && pg.gitRemote('log', '-1', '--format=%s', 'pages/test') === 'Application pages: a screenshot of ' + ID);
     await page.click('#pgShots .nx-pg-shotbtn[data-key="1"]');
-    await page.waitForSelector('#pgViewer', { timeout: 10000 });
+    await page.waitForFunction(() => { const d = document.getElementById('pgViewer'); return d && d.open; }, null, { timeout: 10000 });
     await page.waitForFunction(() => { const i = document.getElementById('pgViewerImg'); return i && i.complete && i.naturalWidth > 0; }, null, { timeout: 10000 }).catch(() => {});
     T.check('a button opens the viewer: that screenshot full size, its caption, who and when', /Screenshot 2 of 3/.test(await text(page, '#pgViewerTitle')) && /Filters open · Uploaded \d+ \w+ \d{4}/.test(await text(page, '#pgViewerText'))
       && await page.$eval('#pgViewerImg', (i) => i.naturalWidth > 0).catch(() => false));
@@ -92,8 +92,26 @@ const ID = 'vbredwoodapp/equipment-foundation/equipment-workbench';
     await page.waitForFunction(() => document.querySelectorAll('#pgShots .nx-pg-shotbtn').length === 2, null, { timeout: 20000 }).catch(() => {});
     T.check('Delete in the viewer removes that one (and is pushed)', (await page.$$('#pgShots .nx-pg-shotbtn')).length === 2 && !/Filters open/.test(await text(page, '#pgViewerText'))
       && pg.gitRemote('log', '-1', '--format=%s', 'pages/test') === 'Application pages: a screenshot of ' + ID + ' deleted');
+    T.check('the viewer is a dialog in the top layer (modal), its Close button in view', await page.$eval('#pgViewer', (d) => d.open && d.matches(':modal')).catch(() => false)
+      && await page.isVisible('#pgViewerClose') && await page.$eval('#pgViewerClose', (b) => { const r = b.getBoundingClientRect(); return r.top >= 0 && r.bottom <= window.innerHeight && r.right <= window.innerWidth; }));
     await page.click('#pgViewerClose');
-    T.check('the viewer closes', !(await page.$('#pgViewer')));
+    await settle(page, 200);
+    T.check('× closes it', !(await page.$eval('#pgViewer', (d) => d.open)));
+    await page.click('#pgShots .nx-pg-shotbtn[data-key="0"]');
+    await page.waitForFunction(() => document.getElementById('pgViewer').open, null, { timeout: 5000 }).catch(() => {});
+    await page.keyboard.press('Escape');
+    await settle(page, 200);
+    T.check('Escape closes it', !(await page.$eval('#pgViewer', (d) => d.open)));
+    await page.click('#pgShots .nx-pg-shotbtn[data-key="0"]');
+    await page.waitForFunction(() => document.getElementById('pgViewer').open, null, { timeout: 5000 }).catch(() => {});
+    await page.mouse.click(5, 5);
+    await settle(page, 200);
+    T.check('a click outside the picture closes it', !(await page.$eval('#pgViewer', (d) => d.open)));
+    await page.click('#pgShots .nx-pg-shotbtn[data-key="0"]');
+    await page.waitForFunction(() => document.getElementById('pgViewer').open, null, { timeout: 5000 }).catch(() => {});
+    await page.click('#pgViewerDone');
+    await settle(page, 200);
+    T.check('…and so does the Close button at the bottom', !(await page.$eval('#pgViewer', (d) => d.open)));
     await page.click('#pgExplain');
     await page.waitForFunction(() => { const f = document.getElementById('pgAi'); return f && /What this page is for/.test(f.getAttribute('srcdoc') || ''); }, null, { timeout: 20000 }).catch(() => {});
     await page.click('#pgOverview .nx-pg-facts [data-key="pgIntegrations"]');

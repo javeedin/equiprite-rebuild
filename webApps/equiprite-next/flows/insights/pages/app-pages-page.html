@@ -127,21 +127,6 @@
           </oj-bind-for-each>
           <oj-bind-if test="[[ ($variables.sheet.screenshots || []).length === 0 ]]"><span class="nx-note"><oj-bind-text value="[[ $variables.info.canWrite ? 'None yet: Capture or Upload some (a page keeps several).' : 'None yet.' ]]"></oj-bind-text></span></oj-bind-if>
         </div>
-        <oj-bind-if test="[[ !!$functions.shotAt($variables.sheet, $variables.viewer) ]]">
-          <div class="nx-pg-viewer" id="pgViewer" role="dialog" aria-modal="true" aria-label="Screenshot">
-            <div class="nx-pg-viewbar">
-              <b id="pgViewerTitle"><oj-bind-text value="[[ 'Screenshot ' + ($variables.viewer + 1) + ' of ' + $variables.sheet.screenshots.length ]]"></oj-bind-text></b>
-              <span class="nx-note" id="pgViewerText"><oj-bind-text value="[[ $functions.shotText($functions.shotAt($variables.sheet, $variables.viewer)) ]]"></oj-bind-text></span>
-              <span class="nx-min-flex"></span>
-              <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" id="pgViewerPrev" data-act="prev" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.viewer <= 0 ]]">‹ Previous</button>
-              <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" id="pgViewerNext" data-act="next" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.viewer >= $variables.sheet.screenshots.length - 1 ]]">Next ›</button>
-              <a class="nx-btn nx-btn--sm nx-btn--plain" target="_blank" rel="noopener" :href="[[ $functions.shot($application.path, $functions.shotAt($variables.sheet, $variables.viewer)) ]]"><span class="oj-ux-ico-external-link" aria-hidden="true"></span>Full size</a>
-              <oj-bind-if test="[[ $variables.info.canWrite ]]"><button type="button" class="nx-btn nx-btn--sm nx-btn--plain nx-pg-delete" id="pgShotDelete" data-act="unshot" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]"><span class="oj-ux-ico-trash" aria-hidden="true"></span>Delete</button></oj-bind-if>
-              <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" id="pgViewerClose" data-act="unview" on-click="[[ $listeners.onAct ]]" aria-label="Close">×</button>
-            </div>
-            <div class="nx-pg-viewimg"><img id="pgViewerImg" :src="[[ $functions.shot($application.path, $functions.shotAt($variables.sheet, $variables.viewer)) ]]" :alt="[[ 'Screenshot of ' + $variables.sheet.facts.label ]]"></div>
-          </div>
-        </oj-bind-if>
 
         <!-- Overview: the AI explanation and the counts (each a link to its part below) -->
         <div class="nx-pg-pane" id="pgOverview">
@@ -241,4 +226,25 @@
       </oj-bind-if>
     </section>
   </div>
+
+  <!-- The screenshot viewer: a real dialog (the browser's top layer, above everything), one screenshot at a time, full
+       size. Close: its × or Close button, Escape, or a click outside the picture. -->
+  <dialog class="nx-pg-dialog" id="pgViewer" aria-label="Screenshot" on-close="[[ $listeners.onViewerClosed ]]" on-click="[[ $listeners.onViewerClick ]]">
+    <oj-bind-if test="[[ !!$functions.shotAt($variables.sheet, $variables.viewer) ]]">
+      <div class="nx-pg-dlg">
+        <div class="nx-pg-viewbar">
+          <b id="pgViewerTitle"><oj-bind-text value="[[ 'Screenshot ' + ($variables.viewer + 1) + ' of ' + $variables.sheet.screenshots.length + ' · ' + $variables.sheet.facts.label ]]"></oj-bind-text></b>
+          <span class="nx-note" id="pgViewerText"><oj-bind-text value="[[ $functions.shotText($functions.shotAt($variables.sheet, $variables.viewer)) ]]"></oj-bind-text></span>
+          <span class="nx-min-flex"></span>
+          <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" id="pgViewerPrev" data-act="prev" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.viewer <= 0 ]]">‹ Previous</button>
+          <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" id="pgViewerNext" data-act="next" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.viewer >= $variables.sheet.screenshots.length - 1 ]]">Next ›</button>
+          <a class="nx-btn nx-btn--sm nx-btn--plain" target="_blank" rel="noopener" :href="[[ $functions.shot($application.path, $functions.shotAt($variables.sheet, $variables.viewer)) ]]"><span class="oj-ux-ico-external-link" aria-hidden="true"></span>Full size</a>
+          <oj-bind-if test="[[ $variables.info.canWrite ]]"><button type="button" class="nx-btn nx-btn--sm nx-btn--plain nx-pg-delete" id="pgShotDelete" data-act="unshot" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]"><span class="oj-ux-ico-trash" aria-hidden="true"></span>Delete</button></oj-bind-if>
+          <button type="button" class="nx-pg-dlgx" id="pgViewerClose" data-act="unview" on-click="[[ $listeners.onAct ]]" aria-label="Close" title="Close (Esc)">×</button>
+        </div>
+        <div class="nx-pg-viewimg"><img id="pgViewerImg" :src="[[ $functions.shot($application.path, $functions.shotAt($variables.sheet, $variables.viewer)) ]]" :alt="[[ 'Screenshot of ' + $variables.sheet.facts.label ]]"></div>
+        <div class="nx-pg-viewfoot"><span class="nx-note">Esc or a click outside the picture closes it.</span><button type="button" class="nx-btn nx-btn--sm" id="pgViewerDone" data-act="unview" on-click="[[ $listeners.onAct ]]">Close</button></div>
+      </div>
+    </oj-bind-if>
+  </dialog>
 </div>

@@ -33,6 +33,8 @@
     "onRefresh": { "chains": [ { "chain": "loadChain", "parameters": { "refresh": true } } ] },
     "onField": { "chains": [ { "chain": "setChain", "parameters": { "field": "{{ $event.currentTarget.dataset.field }}", "value": "{{ $event.currentTarget.type === 'checkbox' ? $event.currentTarget.checked : ($event.currentTarget.dataset.value !== undefined ? $event.currentTarget.dataset.value : $event.currentTarget.value) }}" } } ] },
     "onSelect": { "chains": [ { "chain": "selectChain", "parameters": { "id": "{{ $event.currentTarget.dataset.id }}" } } ] },
+    "onViewerClosed": { "chains": [ { "chain": "actChain", "parameters": { "act": "{{ 'closed' }}", "key": "{{ '' }}" } } ] },
+    "onViewerClick": { "chains": [ { "chain": "actChain", "parameters": { "act": "{{ $event.target === $event.currentTarget ? 'unview' : '' }}", "key": "{{ '' }}" } } ] },
     "onAct": { "chains": [ { "chain": "actChain", "parameters": { "act": "{{ $event.currentTarget.dataset.act }}", "key": "{{ $event.currentTarget.dataset.key || '' }}" } } ] },
     "onShotFile": { "chains": [ { "chain": "actChain", "parameters": { "act": "{{ 'upload' }}", "key": "{{ '' }}" } } ] },
     "onMapKey": { "chains": [ { "chain": "actChain", "parameters": { "act": "{{ $event.key === 'Enter' ? 'map' : '' }}", "key": "{{ '' }}" } } ] }

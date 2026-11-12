@@ -318,9 +318,12 @@ async function pagesSandbox(opts) {
   const { execFileSync } = require('child_process');
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'eqp-pages-e2e-'));
   const remote = fs.mkdtempSync(path.join(os.tmpdir(), 'eqp-pages-e2e-remote-'));
+  // the code, but not the real project's catalog (resources/pages): the test starts from an empty one of its own
+  const PAGES_RES = path.join('equiprite-next', 'resources', 'pages');
   fs.cpSync(path.join(ROOT, 'webApps'), path.join(root, 'webApps'), { recursive: true,
-    filter: (src) => { try { return fs.statSync(src).isDirectory() || /\.(json|html|js)$/.test(src); } catch (e) { return false; } } });
+    filter: (src) => { try { return src.indexOf(PAGES_RES) === -1 && (fs.statSync(src).isDirectory() || /\.(json|html|js)$/.test(src)); } catch (e) { return false; } } });
   fs.cpSync(path.join(ROOT, 'services'), path.join(root, 'services'), { recursive: true });
+  require(path.join(ROOT, 'desktop', 'lib', 'pages.js')).open({ root }).rescan();
   const git = (cwd, ...args) => execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
   git(remote, 'init', '--bare', '-q');
   git(root, 'init', '-q', '-b', 'pages/test'); git(root, 'config', 'user.email', 'test@example.com'); git(root, 'config', 'user.name', 'Test'); git(root, 'config', 'commit.gpgsign', 'false');

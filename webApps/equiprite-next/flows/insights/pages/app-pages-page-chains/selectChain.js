@@ -8,6 +8,7 @@ define(['vb/action/actionChain', 'resources/js/pagesClient', 'resources/js/shell
       const pid = String(id || '');
       if (!pid) return;
       v.selId = pid; v.result = null; v.progress = ''; v.viewer = -1;
+      try { const d = document.getElementById('pgViewer'); if (d && d.open) d.close(); } catch (e) { /* no DOM */ }
       const r = await PC.sheet(context.$application.path, pid);
       if (v.selId !== pid) return; // another was picked meanwhile
       if (!r.ok) { v.sheet = null; v.result = { ok: false, text: (r.body && r.body.error) || 'Could not read this page.' }; return; }

@@ -548,3 +548,14 @@ button.nx-jira-recmark:hover, button.nx-jira-recmark:focus-visible { filter: bri
 .nx-pg-facts > button:hover { border-color: #00688c; background: #f2f9fc; }
 .nx-pg-facts b { font-size: 16px; color: #16212c; margin-right: 2px; }
 .nx-pg-h3 { scroll-margin-top: 12px; }
+
+/* The screenshot viewer as a native dialog (top layer): always above the app, always closable */
+.nx-pg-dialog { padding: 0; border: 0; border-radius: 12px; width: min(1480px, 96vw); max-width: 96vw; max-height: 94vh; background: #fff; box-shadow: 0 20px 60px rgba(0, 0, 0, .45); overflow: hidden; }
+.nx-pg-dialog::backdrop { background: rgba(12, 18, 24, .82); }
+.nx-pg-dlg { display: flex; flex-direction: column; max-height: 94vh; }
+.nx-pg-dlg .nx-pg-viewbar { position: sticky; top: 0; z-index: 1; }
+.nx-pg-dlg .nx-pg-viewimg { flex: 1; min-height: 0; overflow: auto; background: #2a323b; padding: 12px; display: flex; justify-content: center; align-items: flex-start; }
+.nx-pg-dlg .nx-pg-viewimg img { max-width: 100%; height: auto; box-shadow: 0 8px 30px rgba(0, 0, 0, .4); background: #fff; }
+.nx-pg-dlgx { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--nx-line, #e2e7ed); background: #fff; font-size: 22px; line-height: 1; cursor: pointer; color: #16212c; }
+.nx-pg-dlgx:hover { background: #fdecea; color: #b42318; border-color: #f1b8b2; }
+.nx-pg-viewfoot { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 16px; border-top: 1px solid var(--nx-line, #e2e7ed); background: #fafbfc; }
