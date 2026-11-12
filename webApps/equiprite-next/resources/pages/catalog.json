@@ -1,5 +1,5 @@
 {
- "scannedAt": "2026-11-12T15:55:23.903Z",
+ "scannedAt": "2026-11-12T16:06:28.697Z",
  "pages": [
   {
    "id": "equiprite//shell",
@@ -1695,7 +1695,15 @@
     "needs": ""
    },
    "stories": [],
-   "sheet": null
+   "sheet": {
+    "at": "2026-11-12T16:06:28.427Z",
+    "by": "javeed.shaik",
+    "codeHash": "f16864abe8901222",
+    "screenshots": 0,
+    "ai": true,
+    "rest": 1,
+    "chains": 8
+   }
   },
   {
    "id": "vbredwoodapp/customer-portal/customer-quote",
@@ -1754,8 +1762,18 @@
     "menu": "",
     "needs": ""
    },
-   "stories": [],
-   "sheet": null
+   "stories": [
+    "EQP-455"
+   ],
+   "sheet": {
+    "at": "2026-11-12T16:03:12.570Z",
+    "by": "javeed.shaik",
+    "codeHash": "bb00aa2b15701e27",
+    "screenshots": 0,
+    "ai": false,
+    "rest": 27,
+    "chains": 29
+   }
   },
   {
    "id": "vbredwoodapp/customer-portal/request-cart",
@@ -1820,7 +1838,7 @@
     "by": "javeed.shaik",
     "codeHash": "bf388b6f2700024b",
     "screenshots": 0,
-    "ai": false,
+    "ai": true,
     "rest": 3,
     "chains": 8
    }
