@@ -1,0 +1,572 @@
+{
+ "id": "vbredwoodapp/customer-portal/customer-create-req",
+ "facts": {
+  "id": "vbredwoodapp/customer-portal/customer-create-req",
+  "app": "vbredwoodapp",
+  "appName": "Old EquipRite",
+  "flow": "customer-portal",
+  "page": "customer-create-req",
+  "label": "Create Equipment Request",
+  "description": "",
+  "route": {
+   "url": "/vp/shell/customer-portal/customer-create-req",
+   "menu": "",
+   "needs": ""
+  },
+  "files": [
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-create-req-page.json",
+    "lines": 256
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-create-req-page.html",
+    "lines": 155
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-create-req-page.js",
+    "lines": 255
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-create-req-page-chains/AddressSuggestionSelectedChain.js",
+    "lines": 22
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-create-req-page-chains/ContactSelectedChain.js",
+    "lines": 24
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-create-req-page-chains/CreateRequestBackChain.js",
+    "lines": 19
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-create-req-page-chains/CreateRequestInitChain.js",
+    "lines": 96
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-create-req-page-chains/CreateRequestNextChain.js",
+    "lines": 136
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-create-req-page-chains/CustomerSelectedChain.js",
+    "lines": 30
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-create-req-page-chains/LocationDrawerToggleChain.js",
+    "lines": 24
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-create-req-page-chains/LocationResolvedChain.js",
+    "lines": 29
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-create-req-page-chains/UseLocationChain.js",
+    "lines": 36
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-create-req-page-chains/customersModuleGuardChain.js",
+    "lines": 64
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-create-req-page-chains/enforcePageAccessChain.js",
+    "lines": 72
+   }
+  ],
+  "codeHash": "ee90b12026635ffb",
+  "features": {
+   "sections": [
+    "Create Equipment Request"
+   ],
+   "actions": [
+    {
+     "label": "Use this location",
+     "listener": "useLocation",
+     "chains": [
+      "UseLocationChain"
+     ]
+    },
+    {
+     "label": "Create Equipment Request: sp go to parent",
+     "listener": "spGoToParent",
+     "chains": [
+      "CreateRequestBackChain"
+     ]
+    },
+    {
+     "label": "Create Equipment Request: sp primary action",
+     "listener": "spPrimaryAction",
+     "chains": [
+      "CreateRequestNextChain"
+     ]
+    },
+    {
+     "label": "oj-select-single: value item changed",
+     "listener": "customerSelected",
+     "chains": [
+      "CustomerSelectedChain"
+     ]
+    },
+    {
+     "label": "oj-select-single: value item changed",
+     "listener": "contactSelected",
+     "chains": [
+      "ContactSelectedChain"
+     ]
+    },
+    {
+     "label": "oj-drawer-popup: opened changed",
+     "listener": "locationDrawerOpenedChanged",
+     "chains": [
+      "LocationDrawerToggleChain"
+     ]
+    },
+    {
+     "label": "Search address: oj value action",
+     "listener": "addressSuggestionSelected",
+     "chains": [
+      "AddressSuggestionSelectedChain"
+     ]
+    }
+   ],
+   "fields": [
+    "Customer Name",
+    "Customer Contact",
+    "Start Date",
+    "End Date",
+    "Delivery Location",
+    "Notes / Special Instructions",
+    "Address Line 1",
+    "Address Line 2",
+    "City",
+    "County",
+    "State / Province",
+    "Postal Code",
+    "Country",
+    "Select a contact...",
+    "Click to pick on map",
+    "Start typing an address…"
+   ],
+   "columns": [],
+   "components": [
+    "oj-button",
+    "oj-drawer-popup",
+    "oj-form-layout",
+    "oj-input-date",
+    "oj-input-search",
+    "oj-input-text",
+    "oj-option",
+    "oj-select-single",
+    "oj-sp-general-overview-page",
+    "oj-text-area"
+   ],
+   "inputs": [],
+   "lifecycle": [
+    {
+     "when": "before the page opens",
+     "chains": [
+      "enforcePageAccessChain"
+     ]
+    },
+    {
+     "when": "when the page opens",
+     "chains": [
+      "customersModuleGuardChain",
+      "CreateRequestInitChain"
+     ]
+    }
+   ]
+  },
+  "logic": {
+   "chains": [
+    {
+     "name": "AddressSuggestionSelectedChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-create-req-page-chains/AddressSuggestionSelectedChain.js",
+     "about": "A typeahead suggestion was picked (oj-input-search on-oj-value-action). The chosen candidate's parsed components + coords ride along on the item, so we hand the whole object to the module's applySuggestion — it moves the map pin and fires locationResolved, which fills the drawer's address fields. No second geocode / top-result guessing.",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "addressSuggestionSelected"
+     ],
+     "lines": 22
+    },
+    {
+     "name": "ContactSelectedChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-create-req-page-chains/ContactSelectedChain.js",
+     "about": "",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "contactSelected"
+     ],
+     "lines": 24
+    },
+    {
+     "name": "CreateRequestBackChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-create-req-page-chains/CreateRequestBackChain.js",
+     "about": "Go back to the dashboard or my requests",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [
+      "page customer-dashboard"
+     ],
+     "modules": [],
+     "on": [
+      "spGoToParent"
+     ],
+     "lines": 19
+    },
+    {
+     "name": "CreateRequestInitChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-create-req-page-chains/CreateRequestInitChain.js",
+     "about": "Same-trip return from the catalog/cart back-button: the catalog chains (goToParentChain, DiscardAndGoBackChain) set this flag right before navigating here. Consume it immediately so any SUBSEQUENT fresh entry (e.g. user abandons and re-enters from the dashboard) wipes state as normal. Reopened DRAFT (Edit Draft): copy the staged draft into the flow and restore the form from it exactly like a same-trip return.",
+     "calls": [
+      "eqp-v1/getCustomerRefs",
+      "eqp-v1/getCustomerPortalUsers"
+     ],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [
+      "resources/js/draftStorage",
+      "resources/js/draftResume"
+     ],
+     "on": [
+      "vbEnter"
+     ],
+     "lines": 96
+    },
+    {
+     "name": "CreateRequestNextChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-create-req-page-chains/CreateRequestNextChain.js",
+     "about": "Snapshot the form into ActiveRequestDetail (used by SubmitRequestChain as a defensive fallback) and also onto $flow.variables.request, which is the primary shape the cart submit chain reads from.",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [
+      "page request-catalog"
+     ],
+     "modules": [
+      "resources/js/draftStorage",
+      "resources/js/requestModel",
+      "resources/js/deliveryCoords"
+     ],
+     "on": [
+      "spPrimaryAction"
+     ],
+     "lines": 136
+    },
+    {
+     "name": "CustomerSelectedChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-create-req-page-chains/CustomerSelectedChain.js",
+     "about": "Customer Name picker → captures the chosen customer ref only. Customer Contact is an INDEPENDENT LOV (no DB relationship between a customer and a contact), so picking a customer does NOT load, filter, or clear the contact list. The full contact list is loaded once up front in CreateRequestInitChain.",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "customerSelected"
+     ],
+     "lines": 30
+    },
+    {
+     "name": "LocationDrawerToggleChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-create-req-page-chains/LocationDrawerToggleChain.js",
+     "about": "Fired on the location drawer's on-opened-changed. When it opens, build the Mapbox map into #ccr-map (page module owns the imperative widget); when it closes, tear the map down so it can't leak across opens.",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "locationDrawerOpenedChanged"
+     ],
+     "lines": 24
+    },
+    {
+     "name": "LocationResolvedChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-create-req-page-chains/LocationResolvedChain.js",
+     "about": "Fired (via the locationResolved page event) after the map module parses a geocode result into Oracle-style address components. The module can't write $page.variables, so it hands the parsed object here and this chain writes the drawer's bound fields. `data` = { addr1, addr2, city, county, state, postalCode, country, lat, lng, formatted }.",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "locationResolved"
+     ],
+     "lines": 29
+    },
+    {
+     "name": "UseLocationChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-create-req-page-chains/UseLocationChain.js",
+     "about": "\"Use this location\" in the drawer. Composes the (possibly user-edited) Oracle-style address components into a single readable line and shows it in the Delivery Location field ($page.variables.formData.location), then closes. \"<Address1>, <Address2>, <City>, <County>, <State> <ZIP>, <Country>\" The structured components + coords still live on the page variables (addr1/addr2/city/county/addrState/postalCode/country/pickedLat/pickedLng) for a later persistence step — this only sets the visible label.",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "useLocation"
+     ],
+     "lines": 36
+    },
+    {
+     "name": "customersModuleGuardChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-create-req-page-chains/customersModuleGuardChain.js",
+     "about": "Page guard for the CUSTOMERS_MODULE_ENABLED module licence. Mirror of projectsModuleGuardChain — see that file for the shared rationale. Runs FIRST on vbEnter (before the page's own init). If the Customers module is off, redirects home and returns so the page never renders. This catches deep-links, bookmarks and browser history that bypass the hidden nav — hiding a menu item removes the affordance, not the route. Destination is owned by getHomeTarget(), never re-derived here. Under the one-module-off invariant, Customers being off means Projects is on, so home is the project dashboard. FAILS…",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "vbEnter"
+     ],
+     "lines": 64
+    },
+    {
+     "name": "enforcePageAccessChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-create-req-page-chains/enforcePageAccessChain.js",
+     "about": "Page-level RBAC deep-link guard. GENERATED - every copy is byte-identical; change the template and regenerate rather than editing one copy. Copies exist because a page's eventListeners resolve a bare chain id against that page's OWN <page>-chains folder, so an app-level chain referenced by name 404s. This file holds NO policy: the decision (canEnterPage), the page code (getPageCodeForPage), the redirect target (getRoleHomeTarget) and the same-flow test (isSameFlow) all live in $application.functions. Deriving the page code at runtime is what lets every copy be identical.",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "vbBeforeEnter"
+     ],
+     "lines": 72
+    }
+   ],
+   "modules": [
+    {
+     "name": "draftStorage",
+     "file": "webApps/vbredwoodapp/resources/js/draftStorage.js",
+     "about": "Returns true if localStorage has a non-empty draft for this key. On resume pages (catalog, cart) we always prefer the persisted draft over whatever VBCS initialized the flow variable to — otherwise default values on the variable (e.g. request.creditLimit) make the variable look \"non-empty\" and would silently block hydration, dropping user-typed fields like `location` after a refresh.",
+     "local": [],
+     "calls": [],
+     "reports": [],
+     "lines": 59
+    },
+    {
+     "name": "draftResume",
+     "file": "webApps/vbredwoodapp/resources/js/draftResume.js",
+     "about": "Reopen a saved DRAFT request into the create-request flow (Edit Draft / Submit Draft on the request detail pages), and delete one (Delete Draft). The hand-off reuses the cart's own refresh-resume: InitCartChain already restores request / ActiveRequestDetail / requestOrigin / CartItemsArray from draftStorage, so writing those keys and navigating is all the cart needs. The create-request form picks the same keys up in HydrateDraftChain (case d) / CreateRequestInitChain when the tab-scoped…",
+     "local": [],
+     "calls": [
+      "eqp-v1/getEquipriteV1EquipmentRequestById",
+      "eqp-v1/getEquipriteV1EquipmentRequestsRequestIdLines2",
+      "eqp-v1/getEquipriteV1ViewsEquipmentCatalog",
+      "eqp-v1/deleteEquipmentRequest"
+     ],
+     "reports": [],
+     "lines": 237
+    },
+    {
+     "name": "requestModel",
+     "file": "webApps/vbredwoodapp/resources/js/requestModel.js",
+     "about": "Single source of truth for the in-flight `request` object shape used by the create-request flow ($flow.variables.request). Chains that build a fresh request, reset it, or hydrate it from a draft/agreement should call defaultRequest() instead of hand-writing the object literal, so the shape can never drift between call sites (add a field here once, not in 5 files). Consumed by HydrateDraftChain, ClearAgreementContextChain, SecondaryActionChain (post-submit reset) and CreateRequestNextChain.",
+     "local": [],
+     "calls": [],
+     "reports": [],
+     "lines": 86
+    },
+    {
+     "name": "deliveryCoords",
+     "file": "webApps/vbredwoodapp/resources/js/deliveryCoords.js",
+     "about": "Resolves the coordinates of the request's DELIVERY ADDRESS, so the catalog can price equipment from the yard nearest to where it is being delivered. There are two ways a delivery address gets onto a request, and this covers both so nearest-yard pricing doesn't silently depend on which one was used: 1. MAP DRAWER (\"Enter Delivery location\") — the user dropped a pin or picked a geocoder suggestion, so exact coordinates already exist on the page ($page.variables.pickedLat / pickedLng). Preferred…",
+     "local": [],
+     "calls": [],
+     "reports": [],
+     "lines": 66
+    },
+    {
+     "name": "requestHeaderBody",
+     "file": "webApps/vbredwoodapp/resources/js/requestHeaderBody.js",
+     "about": "ONE builder for the createEquipmentRequest body, shared by the cart's Submit (SubmitRequestChain) and Save as Draft (SecondaryActionChain), so a draft stores everything a submitted request stores: customer, project contract, delivery mode/ids, default hours, dates, agreement. Before this, Save as Draft had its own hand-written body that dropped 11 of those fields — every draft on paasdev had no customer (2026-10-11). Both buttons create the header as DRAFT. Submit moves it to SUBMITTED /…",
+     "local": [],
+     "calls": [
+      "eqp-v1/patchEquipmentRequest",
+      "eqp-v1/createEquipmentRequest",
+      "eqp-v1/createShipToSite"
+     ],
+     "reports": [],
+     "lines": 360
+    },
+    {
+     "name": "catalogCart",
+     "file": "webApps/vbredwoodapp/resources/js/catalogCart.js",
+     "about": "Cart helpers, shared by the catalog's add-to-cart pathways. IMPORTANT — staging vs cart are SEPARATE: • STAGING: selectedEquipmentKeys (checkbox highlight) + pendingQtyById ({id: qty}) + pendingRowById ({id: rawRow}). Set by checking a card / changing its stepper. NOT yet in the cart. • CART: CartItemsArray — the real cart, changed ONLY by an explicit Add to Cart / Add Checked / Select-All+Add action, which consumes staging. Under SDP+DPV the equipment rows live in the data provider (not a…",
+     "local": [],
+     "calls": [],
+     "reports": [],
+     "lines": 302
+    },
+    {
+     "name": "geocoder",
+     "file": "webApps/vbredwoodapp/resources/js/geocoder.js",
+     "about": "Mapbox public geocoding token — the app's own token, identical to the one in equipment-schedule-page.js, line-detail-page.js and the two create-request pages. It's a \"pk.\" public token; safe in client code. WAS a leftover Bryntum DEMO token ('matsbryntse'), copied in with their sample map code. That token is not ours and Mapbox rejects it with 401 Unauthorized, so every lookup() silently returned null (the function is best-effort and swallows !resp.ok). Symptom: addresses resolved but…",
+     "local": [],
+     "calls": [],
+     "reports": [],
+     "lines": 60
+    }
+   ],
+   "variables": 18
+  },
+  "integrations": {
+   "rest": [
+    {
+     "endpoint": "eqp-v1/getCustomerRefs",
+     "service": "eqp-v1",
+     "operation": "getCustomerRefs",
+     "method": "GET",
+     "path": "/equiprite/v1/customer-refs",
+     "summary": "List customer refs",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "CreateRequestInitChain"
+     ]
+    },
+    {
+     "endpoint": "eqp-v1/getCustomerPortalUsers",
+     "service": "eqp-v1",
+     "operation": "getCustomerPortalUsers",
+     "method": "GET",
+     "path": "/equiprite/v1/customer-portal-users",
+     "summary": "List customer portal users",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "CreateRequestInitChain"
+     ]
+    },
+    {
+     "endpoint": "eqp-v1/getEquipriteV1EquipmentRequestById",
+     "service": "eqp-v1",
+     "operation": "getEquipriteV1EquipmentRequestById",
+     "method": "GET",
+     "path": "/equiprite/v1/equipment-requests/{id}",
+     "summary": "Get equipment request by ID",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "draftResume"
+     ]
+    },
+    {
+     "endpoint": "eqp-v1/getEquipriteV1EquipmentRequestsRequestIdLines2",
+     "service": "eqp-v1",
+     "operation": "getEquipriteV1EquipmentRequestsRequestIdLines2",
+     "method": "GET",
+     "path": "/equiprite/v1/equipment-requests/{requestId}/lines",
+     "summary": "List all lines for a request",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "draftResume"
+     ]
+    },
+    {
+     "endpoint": "eqp-v1/getEquipriteV1ViewsEquipmentCatalog",
+     "service": "eqp-v1",
+     "operation": "getEquipriteV1ViewsEquipmentCatalog",
+     "method": "GET",
+     "path": "/equiprite/v1/views/equipment-catalog",
+     "summary": "",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "draftResume"
+     ]
+    },
+    {
+     "endpoint": "eqp-v1/deleteEquipmentRequest",
+     "service": "eqp-v1",
+     "operation": "deleteEquipmentRequest",
+     "method": "DELETE",
+     "path": "/equiprite/v1/equipment-requests/{id}",
+     "summary": "Delete a DRAFT equipment request",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "draftResume"
+     ]
+    },
+    {
+     "endpoint": "eqp-v1/patchEquipmentRequest",
+     "service": "eqp-v1",
+     "operation": "patchEquipmentRequest",
+     "method": "PATCH",
+     "path": "/equiprite/v1/equipment-requests/{id}",
+     "summary": "Partial update equipment request (status transitions)",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "requestHeaderBody"
+     ]
+    },
+    {
+     "endpoint": "eqp-v1/createEquipmentRequest",
+     "service": "eqp-v1",
+     "operation": "createEquipmentRequest",
+     "method": "POST",
+     "path": "/equiprite/v1/equipment-requests",
+     "summary": "Create equipment request",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "requestHeaderBody"
+     ]
+    },
+    {
+     "endpoint": "eqp-v1/createShipToSite",
+     "service": "eqp-v1",
+     "operation": "createShipToSite",
+     "method": "POST",
+     "path": "/equiprite/v1/ship-to-sites",
+     "summary": "Create ship-to site",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "requestHeaderBody"
+     ]
+    }
+   ],
+   "reports": [],
+   "local": [],
+   "backends": [
+    "EquipRite REST (eqpt)"
+   ]
+  },
+  "links": [
+   "page customer-dashboard",
+   "page request-catalog"
+  ]
+ },
+ "ai": null,
+ "screenshots": [
+  {
+   "id": "s1",
+   "file": "screens/vbredwoodapp.customer-portal.customer-create-req.1.jpg",
+   "at": "2026-11-12T15:51:19.153Z",
+   "by": "javeed.shaik",
+   "source": "capture",
+   "caption": "",
+   "bytes": 111172
+  }
+ ],
+ "stories": [],
+ "at": "2026-11-12T15:50:28.817Z",
+ "by": "javeed.shaik",
+ "codeHash": "ee90b12026635ffb"
+}

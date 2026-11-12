@@ -1,0 +1,19 @@
+{
+  "latest": "equiprite-fdd-v1-7",
+  "docs": [
+    {
+      "id": "equiprite-fdd-v1-7",
+      "name": "EquipRite FDD",
+      "version": "1.7",
+      "note": "",
+      "file": "docs/fdd/equiprite-fdd-v1-7.docx",
+      "originalName": "EquipRite_FDD_v1.7.docx",
+      "kind": "docx",
+      "sections": 271,
+      "numbered": 261,
+      "chars": 245551,
+      "uploadedAt": "2026-11-12T13:53:26.927Z",
+      "uploadedBy": "javeed.shaik"
+    }
+  ]
+}
