@@ -12,6 +12,15 @@ define(['resources/js/minutes'], (R) => {
 
   const PROVIDERS = { claude: 'Claude (Anthropic)', openai: 'OpenAI (ChatGPT)', gemini: 'Google Gemini', oci: 'OCI GenAI', custom: 'OpenAI-compatible' };
 
+  // Model suggestions per provider for the AI-setup "Model" list of values (still a free-text datalist — any model can be typed).
+  const MODELS = {
+    claude: ['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5', 'claude-fable-5-2', 'claude-3-7-sonnet-latest', 'claude-3-5-haiku-latest'],
+    openai: ['gpt-5', 'gpt-5-mini', 'gpt-4.1', 'gpt-4.1-mini', 'gpt-4o', 'gpt-4o-mini', 'o4-mini'],
+    gemini: ['gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'],
+    oci: ['cohere.command-r-plus-08-2024', 'cohere.command-r-08-2024', 'meta.llama-3.3-70b-instruct', 'meta.llama-3.1-405b-instruct'],
+    custom: [],
+  };
+
   // Standard action phrases suggested on the "Action item" field (a datalist — you can still type anything).
   const ACTIONS = ['Development', 'Testing', 'Bug fixing', 'Code review', 'Deployment', 'Analysis', 'Design',
     'Requirement clarification', 'Documentation', 'Review', 'Follow-up', 'Rework', 'Retest', 'Release', 'On hold'];
@@ -135,6 +144,8 @@ define(['resources/js/minutes'], (R) => {
       return 'Set up AI';
     }
     providerName(id) { return PROVIDERS[id] || id; }
+    /** The model list of values for the chosen AI provider (a datalist — a custom model can still be typed). */
+    modelOptions(provider) { return MODELS[provider] || []; }
 
     lineText(line) { return R.lineText(line); }
     hasText(line) { return !!R.lineText(line); }

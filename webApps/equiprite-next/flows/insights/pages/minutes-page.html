@@ -221,7 +221,10 @@
           <option value="claude">Claude (Anthropic)</option><option value="openai">OpenAI (ChatGPT)</option><option value="gemini">Google Gemini</option><option value="oci">OCI GenAI</option><option value="custom">OpenAI-compatible</option>
         </select></div>
       <div class="nx-min-field"><label>API key</label><input type="password" data-scope="ai" data-field="key" :value="[[ $variables.aiForm.key ]]" on-change="[[ $listeners.onField ]]" placeholder="paste your key — stored on this PC"></div>
-      <div class="nx-min-field"><label>Model (optional)</label><input type="text" data-scope="ai" data-field="model" :value="[[ $variables.aiForm.model ]]" on-change="[[ $listeners.onField ]]" placeholder="e.g. claude-3-5-sonnet-latest"></div>
+      <div class="nx-min-field"><label>Model (optional)</label>
+        <input type="text" list="minAiModels" data-scope="ai" data-field="model" :value="[[ $variables.aiForm.model ]]" on-change="[[ $listeners.onField ]]" placeholder="Pick a model or leave blank for the default">
+        <datalist id="minAiModels"><oj-bind-for-each data="[[ $functions.modelOptions($variables.aiForm.provider) ]]"><template data-oj-as="m"><option :value="[[ m.data ]]"></option></template></oj-bind-for-each></datalist>
+      </div>
       <oj-bind-if test="[[ $variables.aiForm.provider==='custom' ]]"><div class="nx-min-field"><label>Base URL</label><input type="text" data-scope="ai" data-field="baseUrl" :value="[[ $variables.aiForm.baseUrl ]]" on-change="[[ $listeners.onField ]]" placeholder="https://host/v1"></div></oj-bind-if>
       <div class="nx-note nx-min-err2"><oj-bind-text value="[[ $variables.aiForm.status ]]"></oj-bind-text></div>
       <div class="nx-min-modalfoot"><button type="button" class="nx-btn nx-btn--sm" data-act="dialog" data-id="" on-click="[[ $listeners.onAct ]]">Cancel</button><button type="button" class="nx-btn nx-btn--cta" id="minAiSave" data-act="aiSave" on-click="[[ $listeners.onAct ]]">Save</button></div>

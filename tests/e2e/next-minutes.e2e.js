@@ -166,6 +166,20 @@ async function setField(page, sel, val) { await page.fill(sel, val); await page.
     await page.waitForFunction(() => { const t = document.querySelector('oj-text-area.nx-min-ta'); return t && /agreed to add it/.test(t.value || ''); }, null, { timeout: 15000 }).catch(() => {});
     T.check('the note is replaced by the formatted text, via the shared Ask AI', /agreed to add it/.test(await page.$eval('oj-text-area.nx-min-ta', (t) => t.value || '')) && llmCalls.some((u) => /chat\/completions/.test(u)));
 
+    T.section('AI setup: the Model field is a list of values that follows the provider');
+    await page.click('#minAi');
+    await page.waitForSelector('#minAiDlg', { timeout: 10000 });
+    await page.selectOption('#minAiDlg select[data-field="provider"]', 'claude');
+    await settle(page, 300);
+    let modelOpts = await optsOf('#minAiModels');
+    T.check('Claude shows its models in the list of values', modelOpts.includes('claude-opus-5-5') && modelOpts.includes('claude-sonnet-5-5'));
+    await page.selectOption('#minAiDlg select[data-field="provider"]', 'openai');
+    await settle(page, 300);
+    modelOpts = await optsOf('#minAiModels');
+    T.check('switching the provider updates the model list of values', modelOpts.includes('gpt-5') && !modelOpts.includes('claude-opus-5-5'));
+    await page.click('#minAiDlg button[data-act="dialog"]');
+    await settle(page, 200);
+
     T.section('Save keeps it in DuckDB and lists it');
     await page.click('#minSave');
     await page.waitForFunction(() => document.querySelectorAll('#minList .nx-min-item').length === 1, null, { timeout: 15000 });
