@@ -554,7 +554,17 @@
   ]
  },
  "ai": null,
- "screenshots": [],
+ "screenshots": [
+  {
+   "id": "s1",
+   "file": "screens/vbredwoodapp.customer-portal.customer-create-req.1.jpg",
+   "at": "2026-11-12T15:51:19.153Z",
+   "by": "javeed.shaik",
+   "source": "capture",
+   "caption": "",
+   "bytes": 111172
+  }
+ ],
  "stories": [],
  "at": "2026-11-12T15:50:28.817Z",
  "by": "javeed.shaik",
