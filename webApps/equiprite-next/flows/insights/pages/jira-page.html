@@ -480,30 +480,63 @@
           </oj-bind-for-each>
         </ol>
         <oj-bind-if test="[[ $functions.item($variables.rows, $variables.selKey).gaps.length === 0 ]]"><p class="nx-note">None listed.</p></oj-bind-if>
-        <h3 class="nx-jira-h3">Comments</h3>
-        <oj-bind-for-each data="[[ $functions.item($variables.rows, $variables.selKey).comments ]]">
-          <template data-oj-as="c">
-            <div class="nx-jira-comment"><span class="nx-note"><oj-bind-text value="[[ c.data.author + ' · ' + c.data.when ]]"></oj-bind-text></span>
-              <p class="nx-jira-text"><oj-bind-text value="[[ c.data.text ]]"></oj-bind-text></p>
-              <div class="nx-jira-imgs">
-        <oj-bind-for-each data="[[ c.data.images ]]">
-          <template data-oj-as="im">
-            <figure class="nx-jira-img">
-              <oj-bind-if test="[[ !!$functions.imageUrl($variables.images, im.data.id) ]]">
-                <a :href="[[ $functions.imageUrl($variables.images, im.data.id) ]]" target="_blank" rel="noopener" :title="[[ 'Open ' + im.data.name + ' full size' ]]">
-                  <img :src="[[ $functions.imageUrl($variables.images, im.data.id) ]]" :alt="[[ im.data.name ]]" loading="lazy"></a>
-              </oj-bind-if>
-              <oj-bind-if test="[[ !$functions.imageUrl($variables.images, im.data.id) ]]">
-                <span class="nx-jira-imgwait"><oj-bind-text value="[[ $functions.imageNote($variables.images, im.data.id) ]]"></oj-bind-text></span>
-              </oj-bind-if>
-              <figcaption><oj-bind-text value="[[ im.data.name ]]"></oj-bind-text></figcaption>
-            </figure>
-          </template>
-        </oj-bind-for-each>
-              </div></div>
-          </template>
-        </oj-bind-for-each>
-        <oj-bind-if test="[[ $functions.item($variables.rows, $variables.selKey).comments.length === 0 ]]"><p class="nx-note">No comments.</p></oj-bind-if>
+        <h3 class="nx-jira-h3" id="jiraActHead">Activity</h3>
+        <div class="nx-jira-acttabs" role="tablist" id="jiraActTabs">
+          <button type="button" role="tab" :class="[[ $functions.actTabClass($functions.act($variables.activity, $variables.selKey, $variables.actTab, $functions.item($variables.rows, $variables.selKey)), 'all') ]]" data-tab="all" on-click="[[ $listeners.onActTab ]]"><oj-bind-text value="[[ $functions.actLabel($functions.act($variables.activity, $variables.selKey, $variables.actTab, $functions.item($variables.rows, $variables.selKey)), 'all') ]]"></oj-bind-text></button>
+          <button type="button" role="tab" :class="[[ $functions.actTabClass($functions.act($variables.activity, $variables.selKey, $variables.actTab, $functions.item($variables.rows, $variables.selKey)), 'comments') ]]" data-tab="comments" on-click="[[ $listeners.onActTab ]]"><oj-bind-text value="[[ $functions.actLabel($functions.act($variables.activity, $variables.selKey, $variables.actTab, $functions.item($variables.rows, $variables.selKey)), 'comments') ]]"></oj-bind-text></button>
+          <button type="button" role="tab" :class="[[ $functions.actTabClass($functions.act($variables.activity, $variables.selKey, $variables.actTab, $functions.item($variables.rows, $variables.selKey)), 'history') ]]" data-tab="history" on-click="[[ $listeners.onActTab ]]"><oj-bind-text value="[[ $functions.actLabel($functions.act($variables.activity, $variables.selKey, $variables.actTab, $functions.item($variables.rows, $variables.selKey)), 'history') ]]"></oj-bind-text></button>
+          <button type="button" role="tab" :class="[[ $functions.actTabClass($functions.act($variables.activity, $variables.selKey, $variables.actTab, $functions.item($variables.rows, $variables.selKey)), 'worklog') ]]" data-tab="worklog" on-click="[[ $listeners.onActTab ]]"><oj-bind-text value="[[ $functions.actLabel($functions.act($variables.activity, $variables.selKey, $variables.actTab, $functions.item($variables.rows, $variables.selKey)), 'worklog') ]]"></oj-bind-text></button>
+        </div>
+        <div class="nx-jira-acts" id="jiraActivity">
+          <oj-bind-if test="[[ $functions.act($variables.activity, $variables.selKey, $variables.actTab, $functions.item($variables.rows, $variables.selKey)).loading ]]"><p class="nx-note nx-jira-actwait">Reading every comment, change and work log entry from Jira…</p></oj-bind-if>
+          <oj-bind-if test="[[ !!$functions.act($variables.activity, $variables.selKey, $variables.actTab, $functions.item($variables.rows, $variables.selKey)).error ]]"><p class="nx-note nx-jira-acterr"><oj-bind-text value="[[ $functions.act($variables.activity, $variables.selKey, $variables.actTab, $functions.item($variables.rows, $variables.selKey)).error + ' The comments from the list are shown.' ]]"></oj-bind-text></p></oj-bind-if>
+          <oj-bind-if test="[[ !!$functions.act($variables.activity, $variables.selKey, $variables.actTab, $functions.item($variables.rows, $variables.selKey)).note ]]"><p class="nx-note"><oj-bind-text value="[[ $functions.act($variables.activity, $variables.selKey, $variables.actTab, $functions.item($variables.rows, $variables.selKey)).note ]]"></oj-bind-text></p></oj-bind-if>
+          <oj-bind-for-each data="[[ $functions.act($variables.activity, $variables.selKey, $variables.actTab, $functions.item($variables.rows, $variables.selKey)).items ]]">
+            <template data-oj-as="a">
+              <div :class="[[ 'nx-jira-act nx-jira-act--' + a.data.kind ]]">
+                <span class="nx-jira-actav" aria-hidden="true"><oj-bind-text value="[[ $functions.initials(a.data.author) ]]"></oj-bind-text></span>
+                <div class="nx-jira-actmain">
+                  <div class="nx-jira-acttop"><b><oj-bind-text value="[[ a.data.author ]]"></oj-bind-text></b> <span class="nx-jira-actverb"><oj-bind-text value="[[ $functions.actVerb(a.data) ]]"></oj-bind-text></span> <span class="nx-note"><oj-bind-text value="[[ $functions.actWhen(a.data) ]]"></oj-bind-text></span></div>
+                  <oj-bind-if test="[[ a.data.kind === 'comment' || (a.data.kind === 'worklog' && !!a.data.text) ]]"><p class="nx-jira-text"><oj-bind-text value="[[ a.data.text ]]"></oj-bind-text></p></oj-bind-if>
+                  <oj-bind-if test="[[ a.data.kind === 'comment' && (a.data.images || []).length > 0 ]]">
+                    <div class="nx-jira-imgs">
+                      <oj-bind-for-each data="[[ a.data.images ]]">
+                        <template data-oj-as="im">
+                          <figure class="nx-jira-img">
+                            <oj-bind-if test="[[ !!$functions.imageUrl($variables.images, im.data.id) ]]">
+                              <a :href="[[ $functions.imageUrl($variables.images, im.data.id) ]]" target="_blank" rel="noopener" :title="[[ 'Open ' + im.data.name + ' full size' ]]"><img :src="[[ $functions.imageUrl($variables.images, im.data.id) ]]" :alt="[[ im.data.name ]]" loading="lazy"></a>
+                            </oj-bind-if>
+                            <oj-bind-if test="[[ !$functions.imageUrl($variables.images, im.data.id) ]]"><span class="nx-jira-imgwait"><oj-bind-text value="[[ $functions.imageNote($variables.images, im.data.id) ]]"></oj-bind-text></span></oj-bind-if>
+                            <figcaption><oj-bind-text value="[[ im.data.name ]]"></oj-bind-text></figcaption>
+                          </figure>
+                        </template>
+                      </oj-bind-for-each>
+                    </div>
+                  </oj-bind-if>
+                  <oj-bind-if test="[[ a.data.kind === 'history' ]]">
+                    <ul class="nx-jira-actchg">
+                      <oj-bind-for-each data="[[ a.data.items ]]">
+                        <template data-oj-as="it">
+                          <li>
+                            <span class="nx-jira-actfield"><oj-bind-text value="[[ it.data.field ]]"></oj-bind-text></span>
+                            <oj-bind-if test="[[ !it.data.file ]]"><span class="nx-jira-actfrom"><oj-bind-text value="[[ $functions.actFrom(it.data) ]]"></oj-bind-text></span> <span aria-hidden="true">→</span> <span class="nx-jira-actto"><oj-bind-text value="[[ $functions.actTo(it.data) ]]"></oj-bind-text></span></oj-bind-if>
+                            <oj-bind-if test="[[ !!it.data.file ]]">
+                              <span class="nx-jira-actto"><oj-bind-text value="[[ (it.data.file.removed ? 'removed ' : 'added ') + it.data.file.name + (it.data.file.sizeText ? ' · ' + it.data.file.sizeText : '') ]]"></oj-bind-text></span>
+                              <oj-bind-if test="[[ it.data.file.image && !it.data.file.removed && !!$functions.imageUrl($variables.images, it.data.file.id) ]]">
+                                <a class="nx-jira-actthumb" :href="[[ $functions.imageUrl($variables.images, it.data.file.id) ]]" target="_blank" rel="noopener"><img :src="[[ $functions.imageUrl($variables.images, it.data.file.id) ]]" :alt="[[ it.data.file.name ]]" loading="lazy"></a>
+                              </oj-bind-if>
+                            </oj-bind-if>
+                          </li>
+                        </template>
+                      </oj-bind-for-each>
+                    </ul>
+                  </oj-bind-if>
+                </div>
+              </div>
+            </template>
+          </oj-bind-for-each>
+          <oj-bind-if test="[[ !$functions.act($variables.activity, $variables.selKey, $variables.actTab, $functions.item($variables.rows, $variables.selKey)).loading && $functions.act($variables.activity, $variables.selKey, $variables.actTab, $functions.item($variables.rows, $variables.selKey)).items.length === 0 ]]"><p class="nx-note"><oj-bind-text value="[[ $functions.actEmpty($functions.act($variables.activity, $variables.selKey, $variables.actTab, $functions.item($variables.rows, $variables.selKey)).tab) ]]"></oj-bind-text></p></oj-bind-if>
+        </div>
         <h3 class="nx-jira-h3">Test evidence</h3>
         <div class="nx-jira-ev" id="jiraEvidence">
           <oj-bind-if test="[[ $variables.evidence.available ]]">
@@ -581,11 +614,11 @@
         </div>
         <ul class="nx-jira-list" id="jiraFiles">
           <oj-bind-for-each data="[[ $functions.otherFiles($functions.item($variables.rows, $variables.selKey)) ]]">
-            <template data-oj-as="fl"><li><oj-bind-text value="[[ fl.data.name + ' · ' + fl.data.sizeText + (fl.data.author ? ' · ' + fl.data.author : '') ]]"></oj-bind-text></li></template>
+            <template data-oj-as="fl"><li><button type="button" class="nx-jira-filebtn" :data-id="[[ fl.data.id ]]" on-click="[[ $listeners.onFile ]]" :title="[[ 'Open ' + fl.data.name ]]"><span class="oj-ux-ico-download" aria-hidden="true"></span><oj-bind-text value="[[ fl.data.name ]]"></oj-bind-text></button> <span class="nx-note"><oj-bind-text value="[[ fl.data.sizeText + (fl.data.author ? ' · ' + fl.data.author : '') + (fl.data.created ? ' · ' + fl.data.created : '') ]]"></oj-bind-text></span></li></template>
           </oj-bind-for-each>
         </ul>
         <oj-bind-if test="[[ $functions.item($variables.rows, $variables.selKey).attachments.length === 0 ]]"><p class="nx-note">No attachments.</p></oj-bind-if>
-        <oj-bind-if test="[[ $functions.otherFiles($functions.item($variables.rows, $variables.selKey)).length > 0 ]]"><p class="nx-note">Other files open from the story in Jira.</p></oj-bind-if>
+        <oj-bind-if test="[[ $functions.otherFiles($functions.item($variables.rows, $variables.selKey)).length > 0 ]]"><p class="nx-note">A file opens (a PDF, an image) or is saved, read through the Jira connection.</p></oj-bind-if>
       </div>
     </oj-sp-general-drawer-template>
   </oj-drawer-popup>

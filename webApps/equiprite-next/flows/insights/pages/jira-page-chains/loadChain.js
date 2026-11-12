@@ -41,8 +41,10 @@ define([
           }
           return;
         }
+        J.peopleOf(res.issues); // everyone on any story first, so a mention on one names someone seen on another
         const rows = res.issues.map((i) => J.fromIssue(i, { today: today, site: v.conn.site }));
         v.rows = rows;
+        v.activity = {}; // read again when a story is opened
         v.analysis = J.analyse(rows, today);
         // which of them have recordings or screenshots on this PC (the icon after a summary)
         v.evidenceIndex = R && typeof R.index === 'function' ? await R.index() : {};

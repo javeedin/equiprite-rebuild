@@ -357,3 +357,41 @@ button.nx-jira-recmark:hover, button.nx-jira-recmark:focus-visible { filter: bri
 .nx-an-fddview { margin: 8px 16px 0; border: 1px solid #cfe3ea; border-radius: 8px; background: #f6fbfd; }
 .nx-an-fddviewhead { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-bottom: 1px solid #cfe3ea; font-size: 13px; flex-wrap: wrap; }
 .nx-an-fddtext { margin: 0; padding: 10px 12px; max-height: 240px; overflow: auto; white-space: pre-wrap; word-wrap: break-word; font: 12.5px/1.55 -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: #16212c; }
+
+/* Activity in a story's drawer and on Analyze with AI: All / Comments / History / Work log, newest first (as in Jira) */
+.nx-jira-acttabs { display: flex; gap: 4px; flex-wrap: wrap; margin: 4px 0 10px; }
+.nx-jira-acttab { border: 1px solid var(--nx-line, #e2e7ed); background: #fff; border-radius: 999px; padding: 3px 12px; font: inherit; font-size: 12.5px; color: #3d4b59; cursor: pointer; }
+.nx-jira-acttab:hover { background: #eef2f6; }
+.nx-jira-acttab--on { background: #16212c; border-color: #16212c; color: #fff; }
+.nx-jira-acts { display: flex; flex-direction: column; gap: 2px; }
+.nx-jira-act { display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid #eef1f4; }
+.nx-jira-act:last-child { border-bottom: 0; }
+.nx-jira-actav { flex: none; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #fff; background: #5b6b7c; }
+.nx-jira-act--comment .nx-jira-actav { background: #0a66c9; }
+.nx-jira-act--history .nx-jira-actav { background: #8a5a00; }
+.nx-jira-act--worklog .nx-jira-actav { background: #15803d; }
+.nx-jira-actmain { flex: 1; min-width: 0; }
+.nx-jira-acttop { font-size: 13px; line-height: 1.4; }
+.nx-jira-actverb { color: #5a6876; }
+.nx-jira-act .nx-jira-text { margin: 4px 0 0; white-space: pre-wrap; }
+.nx-jira-actchg { list-style: none; margin: 4px 0 0; padding: 0; font-size: 13px; }
+.nx-jira-actchg li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 2px 0; }
+.nx-jira-actfield { font-weight: 600; color: #16212c; min-width: 90px; }
+.nx-jira-actfrom { color: #8a97a5; text-decoration: line-through; text-decoration-color: rgba(138, 151, 165, .5); }
+.nx-jira-actto { color: #16212c; }
+.nx-jira-actthumb img { display: block; max-width: 220px; max-height: 140px; border: 1px solid var(--nx-line, #e2e7ed); border-radius: 6px; margin-top: 4px; }
+.nx-jira-actwait { font-style: italic; }
+.nx-jira-acterr { color: #b45309; }
+.nx-jira-filebtn { display: inline-flex; align-items: center; gap: 6px; border: 0; background: none; padding: 0; font: inherit; color: #0a66c9; cursor: pointer; text-align: left; }
+.nx-jira-filebtn:hover { text-decoration: underline; }
+.nx-jira-actthumb img { width: 160px; height: 100px; object-fit: cover; background: #fff; }
+/* the same screenshots and attachments on Analyze with AI (outside the drawer) */
+.nx-an .nx-jira-imgs { display: flex; flex-wrap: wrap; gap: 10px; margin: 6px 0; }
+.nx-an .nx-jira-imgs:empty { display: none; }
+.nx-an .nx-jira-img { margin: 0; display: flex; flex-direction: column; gap: 4px; max-width: 100%; }
+.nx-an .nx-jira-img img { display: block; max-width: 100%; max-height: 300px; border: 1px solid #d0d7de; border-radius: 6px; background: #fff; cursor: zoom-in; }
+.nx-an .nx-jira-imgs--all .nx-jira-img { width: 140px; }
+.nx-an .nx-jira-imgs--all .nx-jira-img img { width: 140px; height: 96px; object-fit: cover; }
+.nx-an .nx-jira-img figcaption { font-size: 11px; color: #64748b; overflow-wrap: anywhere; }
+.nx-an .nx-jira-list { margin: 4px 0; padding-left: 18px; font-size: 13px; }
+.nx-an .nx-jira-imgwait { display: flex; align-items: center; justify-content: center; min-height: 60px; font-size: 12px; color: #8a97a5; }

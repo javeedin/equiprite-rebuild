@@ -23,6 +23,9 @@
     "fddPicked": { "type": "any[]", "defaultValue": [], "description": "The FDD sections the AI read for this story: [{ n, t, why, chars, cut }]." },
     "fddNote": { "type": "string", "defaultValue": "" },
     "fddView": { "type": "any", "defaultValue": null, "description": "The section open under the chips: { i, n, t, x, parent, why }." },
+    "activity": { "type": "any", "defaultValue": null, "description": "The story's whole activity, read from Jira (jiraBacklog.loadActivity): every comment, change and work log entry." },
+    "actTab": { "type": "string", "defaultValue": "all", "description": "The Activity tab: all | comments | history | worklog." },
+    "images": { "type": "object", "defaultValue": {}, "description": "The story's images (screenshots in comments, attached images): { attachmentId: url }." },
     "analysisFdd": { "type": "string", "defaultValue": "", "description": "The FDD the shown analysis read ('' when none)." }
   },
   "eventListeners": {
@@ -31,6 +34,8 @@
     "onChatInput": { "chains": [ { "chain": "setChain", "parameters": { "field": "chatDraft", "value": "{{ $event.target.value }}" } } ] },
     "onChatKey": { "chains": [ { "chain": "chatChain", "parameters": { "key": "{{ $event.key }}" } } ] },
     "onChatSend": { "chains": [ { "chain": "chatChain", "parameters": { "key": "{{ 'Enter' }}" } } ] },
+    "onActTab": { "chains": [ { "chain": "actTabChain", "parameters": { "tab": "{{ $event.currentTarget.dataset.tab }}" } } ] },
+    "onFile": { "chains": [ { "chain": "fileChain", "parameters": { "id": "{{ $event.currentTarget.dataset.id }}" } } ] },
     "onFdd": { "chains": [ { "chain": "fddChain", "parameters": { "act": "{{ $event.currentTarget.dataset.act }}", "id": "{{ $event.currentTarget.dataset.id || '' }}", "i": "{{ $event.currentTarget.dataset.i || '' }}" } } ] }
   },
   "imports": {

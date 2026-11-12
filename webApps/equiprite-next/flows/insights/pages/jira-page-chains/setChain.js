@@ -10,6 +10,7 @@ define([
       if (field === 'jql') v.jql = String(value || '');
       else if (field === 'tab') v.tab = String(value || 'sprints');
       else if (field === 'exportOpen') v.exportOpen = value === true || value === 'true';
+      else if (field === 'actTab') v.actTab = /^(all|comments|history|worklog)$/.test(String(value)) ? String(value) : 'all';
     }
   }
 

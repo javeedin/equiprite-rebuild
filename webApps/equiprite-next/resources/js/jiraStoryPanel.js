@@ -2,8 +2,8 @@ define(['resources/js/jiraBacklog'], (J) => {
   'use strict';
 
   // One Jira item in Oracle's drawer, as Jira stories (jira-page) and a sprint's tab (jira-sprint-page) both show it: its
-  // facts, quality, description, criteria, tester gaps, comments with their images, test evidence (Record) and
-  // attachments. These are the drawer's binding helpers; each page module takes them as its own ($functions.facts …).
+  // facts, quality, description, criteria, tester gaps, its whole activity (comments with their screenshots, history and
+  // work log, as Jira's Activity shows them), test evidence (Record) and attachments. These are the drawer's binding helpers; each page module takes them as its own ($functions.facts …).
   // None uses `this`: a binding may call a function detached.
   //
   //   helpers          item, drawerOpen, drawerTitle, drawerSub, facts, scoreText, acList, imageUrl, imageNote,
@@ -15,6 +15,7 @@ define(['resources/js/jiraBacklog'], (J) => {
   // The drawers that show an item: Jira stories' and a sprint tab's.
   const DRAWERS = ['#jiraDrawer', '#jspDrawer'];
 
+  let actKept = { k: '', v: null };
   const helpers = {
     /** The item open in the drawer, or an empty one. */
     item(rows, key) { return (rows || []).filter((r) => r.key === key)[0] || EMPTY; },
@@ -37,6 +38,34 @@ define(['resources/js/jiraBacklog'], (J) => {
     },
     /** "4.5 / 5 · 1 check failed". */
     scoreText(r) { return r ? r.score + ' / 5' + (r.checks && r.checks.length ? ' · ' + r.checks.length + (r.checks.length === 1 ? ' check failed' : ' checks failed') : '') : ''; },
+    // ── Activity (All / Comments / History / Work log), as Jira's Activity shows it ──────────────────────────────────
+    /** What the Activity section shows for the open item: { items, counts, tab, loading, error, note } (jiraBacklog.activityView). */
+    act(activity, key, tab, row) {
+      const a = activity && key ? activity[key] : activity;
+      const k = JSON.stringify([key, tab, a ? (a.ok ? 'ok' + a.all.length + ':' + (a.loadedAt || '') : (a.loading ? 'loading' : 'failed')) : 'none',
+        row ? row.key + ':' + (row.comments || []).length : '']);
+      if (actKept.k !== k) actKept = { k: k, v: J.activityView(a, row, tab) };
+      return actKept.v;
+    },
+    actTabClass(view, t) { return 'nx-jira-acttab' + ((view && view.tab) === t ? ' nx-jira-acttab--on' : ''); },
+    /** "Comments 3" (the count once the activity is read). */
+    actLabel(view, t) {
+      const name = { all: 'All', comments: 'Comments', history: 'History', worklog: 'Work log' }[t];
+      const c = view && view.counts ? (t === 'all' ? (view.counts.history == null ? null : view.counts.comments + view.counts.history + view.counts.worklog) : view.counts[t]) : null;
+      return c == null ? name : name + ' ' + c;
+    },
+    initials(name) { return String(name || '?').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w.charAt(0).toUpperCase()).join('') || '?'; },
+    /** What the entry is: "commented", "changed 2 fields", "logged 3h". */
+    actVerb(a) {
+      if (!a) return '';
+      if (a.kind === 'history') return a.items.length === 1 ? 'changed ' + a.items[0].field : 'made ' + a.items.length + ' changes';
+      if (a.kind === 'worklog') return 'logged ' + a.spent;
+      return a.edited ? 'commented (edited)' : 'commented';
+    },
+    actWhen(a) { return a ? [a.ago, a.when].filter(Boolean).join(' · ') : ''; },
+    actEmpty(tab) { return { comments: 'No comments.', history: 'No changes recorded.', worklog: 'No work logged.' }[tab] || 'No activity.'; },
+    actFrom(it) { return it && it.from ? it.from : 'None'; },
+    actTo(it) { return it && it.to ? it.to : 'None'; },
     /** The acceptance criteria as a list of checks. */
     acList(ac) { return J.acChecks(ac); },
     /** An image of the open item: its URL once read, '' until then (or when it could not be read). */

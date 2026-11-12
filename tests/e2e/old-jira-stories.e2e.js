@@ -324,7 +324,7 @@ async function waitKeys(page, n) {
     const [csvDl] = await Promise.all([page.waitForEvent('download', { timeout: 10000 }), page.click('#jiraExportCsv')]);
     const csv = fs.readFileSync(await csvDl.path(), 'utf8');
     T.check('CSV: a header and a row per item, with what the page found', csvDl.suggestedFilename() === 'Jira_Stories_' + day(0) + '.csv'
-      && csv.replace(/^\ufeff/, '').startsWith('Key,Summary,Type,Status,Priority,Epic,Epic name,Assignee,Release,Release date,Sprint,Sprint ends,Earlier sprints,Due,Overdue,FDD sections,Quality (1-5),Checks failed,Tester gaps')
+      && csv.replace(/^\ufeff/, '').startsWith('Key,Summary,Type,Status,Priority,Epic,Epic name,Assignee,Customer,Release,Release date,Sprint,Sprint ends,Earlier sprints,Due,Overdue,FDD sections,Quality (1-5),Checks failed,Tester gaps')
       && STORIES.every((s) => csv.includes('\r\n' + s.key + ',')) && csv.includes('Type Column is missing.'), csv.slice(0, 200));
     const [xlsDl] = await Promise.all([page.waitForEvent('download', { timeout: 10000 }), page.click('#jiraExportXls')]);
     const xls = fs.readFileSync(await xlsDl.path(), 'utf8');

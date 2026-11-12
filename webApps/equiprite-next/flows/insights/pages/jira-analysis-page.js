@@ -1,4 +1,4 @@
-define([], () => {
+define(['resources/js/jiraStoryPanel'], (Panel) => {
   'use strict';
 
   // Analyze with AI (jira-analysis page): binding helpers. The prompt/render rules are resources/js/storyAnalysis.js; the
@@ -54,5 +54,8 @@ define([], () => {
         + '</style>' + inner;
     }
   }
+  // The activity, images and attachments: the same helpers as the Jira drawers (resources/js/jiraStoryPanel.js), where
+  // this page has none of its own.
+  Object.keys(Panel.helpers).forEach((k) => { if (!PageModule.prototype[k]) PageModule.prototype[k] = Panel.helpers[k]; });
   return PageModule;
 });

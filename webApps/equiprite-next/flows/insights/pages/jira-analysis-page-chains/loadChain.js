@@ -26,6 +26,7 @@ define([
         const today = new Date().toISOString().slice(0, 10);
         const res = await J.load(context, Actions, 'key = ' + key);
         if (!res.ok) { if (res.status === 401 || res.status === 403) v.notConnected = true; else v.error = res.message || 'Could not read the story from Jira.'; return; }
+        J.peopleOf(res.issues || []);
         const rows = (res.issues || []).map((i) => J.fromIssue(i, { today: today }));
         v.story = rows.filter((r) => String(r.key).toUpperCase() === key)[0] || rows[0] || null;
         if (!v.story) { v.error = key + ' was not found in Jira.'; return; }
@@ -34,8 +35,21 @@ define([
       } finally {
         v.loading = false;
       }
-      // The story is in: ask the AI for the analysis (if it is set up; else the page shows a "set up AI" hint).
-      if (v.story && v.aiReady) await R.analyze(v, context.$application.path); // a failure leaves the re-run button
+      // The story is in: its whole activity (every comment, change and work log entry) and its images, so the analysis
+      // reads all of it; then the AI (if it is set up; else the page shows a "set up AI" hint).
+      if (!v.story) return;
+      const plain = JSON.parse(JSON.stringify(v.story));
+      v.activity = { loading: true };
+      await Promise.all([
+        J.loadActivity(context, Actions, plain.key, plain.attachments || []).then((act) => {
+          act.loadedAt = Date.now();
+          v.activity = act.ok ? act : { ok: false, message: act.message };
+          if (act.ok) v.story = Object.assign({}, v.story, { history: act.history, worklog: act.worklog, spent: act.spent, comments: act.comments.slice().reverse() });
+        }),
+        (plain.attachments || []).some((a) => a.image)
+          ? J.loadImages(context, Actions, plain).then((got) => { v.images = Object.assign({}, v.images || {}, got); }) : Promise.resolve()
+      ]);
+      if (v.aiReady) await R.analyze(v, context.$application.path); // a failure leaves the re-run button
     }
   }
 

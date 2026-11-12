@@ -58,12 +58,32 @@ const SUB1 = issue('EQP-12-1', { summary: 'Wire the grid to smart search', issue
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
 let searches = [];
 let imageReads = [];
+// EQP-12's whole activity, as Jira's issue/{key}/comment, /changelog and /worklog give it (a page at a time)
+const SANA = { accountId: 'sana-1', displayName: 'Sana Suhana Thehaseen' };
+const RAHUL = { accountId: 'rahul-1', displayName: 'Rahul Kanth Panganamamula' };
+const ACTIVITY = { 'EQP-12': {
+  comment: [Object.assign({}, ISSUES[0].fields.comment.comments[0], { id: '1', author: SANA }),
+    { id: '2', author: RAHUL, created: days(-3) + 'T09:00:00.000-0500', body: '[~accountid:sana-1] the Type column is in, please validate',
+      renderedBody: '<p><a class="user-hover" href="https://equiprite.atlassian.net/secure/ViewProfile.jspa?accountId=sana-1">Sana Suhana Thehaseen</a> the Type column is in, please validate</p>' }],
+  changelog: [{ author: RAHUL, created: days(-20) + 'T10:00:00.000-0500', items: [{ field: 'status', fromString: 'FUNC DESIGN', toString: 'DEVELOPMENT' }] },
+    { author: SANA, created: '2026-11-04T13:51:39.000-0600', items: [{ field: 'Attachment', to: '10502', toString: 'Screenshot 2026-11-04 135139.png' }] }],
+  worklog: [{ author: RAHUL, started: days(-15) + 'T09:00:00.000-0500', timeSpent: '4h', timeSpentSeconds: 14400, comment: 'grid wiring' }],
+} };
+let activityReads = [];
 
 function handle(req, res) {
   // A save that fails, as the technical trace of a recorded test should show it.
   if (req.method === 'POST' && req.path === '/equipmentRequests') return res.json({ error: 'ORA-01400: cannot insert NULL into ("EQP"."REQUESTS"."REQUEST_TYPE")' }, 500);
   if (req.path === '/rest/api/2/myself') {
     return req.auth ? res.json({ accountId: '712020:9b82', displayName: 'Javeed Shaik', emailAddress: 'javeed@equiprite.com' }) : res.json({ errorMessages: ['Unauthorized'] }, 401);
+  }
+  const act = /^\/rest\/api\/2\/issue\/([A-Z]+-\d+(?:-\d+)?)\/(comment|changelog|worklog)$/.exec(req.path);
+  if (act) {
+    activityReads.push(act[1] + ' ' + act[2] + '@' + req.query.get('startAt') + (req.query.get('expand') ? '?' + req.query.get('expand') : ''));
+    const list = (ACTIVITY[act[1]] || {})[act[2]] || [];
+    const st = Number(req.query.get('startAt') || 0), n = Number(req.query.get('maxResults') || 50);
+    const listKey = { comment: 'comments', changelog: 'values', worklog: 'worklogs' }[act[2]];
+    return res.json({ startAt: st, maxResults: n, total: list.length, isLast: st + n >= list.length, [listKey]: list.slice(st, st + n) });
   }
   const att = /^\/rest\/api\/2\/attachment\/content\/(\d+)$/.exec(req.path);
   if (att) {
@@ -462,8 +482,8 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     await page.locator('#jspSubtasks .nx-jira-subrow').first().click();
     await settle(page, 300);
     T.check('clicking it again collapses the detail', (await page.$('#jspSubtasks .nx-jira-subdetail')) === null);
-    await page.waitForFunction(() => { const i = document.querySelector('#jspItem .nx-jira-comment img'); return i && i.complete && i.naturalWidth > 0; }, null, { timeout: 10000 }).catch(() => {});
-    T.check('…the tester\'s screenshot, its attachments, and its test evidence (Record) as on Jira stories', await page.$eval('#jspItem .nx-jira-comment img', (i) => i.naturalWidth > 0).catch(() => false)
+    await page.waitForFunction(() => { const i = document.querySelector('#jspActivity .nx-jira-act--comment img'); return i && i.complete && i.naturalWidth > 0; }, null, { timeout: 10000 }).catch(() => {});
+    T.check('…the tester\'s screenshot, its attachments, and its test evidence (Record) as on Jira stories', await page.$eval('#jspActivity .nx-jira-act--comment img', (i) => i.naturalWidth > 0).catch(() => false) && /Work log 1/.test(await text(page, '#jspActTabs'))
       && (await page.$$('#jspAttachments img')).length === 1 && await page.isVisible('#jspRecord'));
     await env.shot('next-jira-sprint-drawer.png');
     await page.keyboard.press('Escape');
@@ -515,13 +535,35 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     await page.locator('#jiraSubtasks .nx-jira-subrow').first().click();
     await settle(page, 300);
     T.eq('Open in Jira', await page.getAttribute('#jiraOpenInJira', 'href'), 'https://equiprite.atlassian.net/browse/EQP-12');
-    await page.waitForFunction(() => { const i = document.querySelector('#jiraItem .nx-jira-comment img'); return i && i.complete && i.naturalWidth > 0; }, null, { timeout: 10000 }).catch(() => {});
-    T.check('the screenshot in the tester\'s comment shows, read through the signed-in connection (redirect=false)', await page.$eval('#jiraItem .nx-jira-comment img',
+    await page.waitForFunction(() => /Work log 1/.test((document.getElementById('jiraActTabs') || {}).textContent || ''), null, { timeout: 15000 }).catch(() => {});
+    const tabs = await text(page, '#jiraActTabs');
+    T.check('its whole activity is read from Jira: every comment, change and work log entry', /All 5/.test(tabs) && /Comments 2/.test(tabs) && /History 2/.test(tabs) && /Work log 1/.test(tabs)
+      && ['comment', 'changelog', 'worklog'].every((k) => activityReads.some((r) => r.indexOf('EQP-12 ' + k + '@0') === 0)) && activityReads.some((r) => /comment@0\?renderedBody/.test(r)), tabs + ' | ' + activityReads.join(' '));
+    const actAll = await text(page, '#jiraActivity');
+    T.check('All, newest first: the latest comment (the mention named, not [~accountid:...]) above the older entries', actAll.indexOf('@Sana Suhana Thehaseen the Type column is in') !== -1
+      && !actAll.includes('accountid') && actAll.indexOf('the Type column is in') < actAll.indexOf('Only Class, Subclass'), actAll.slice(0, 300));
+    T.check('a change: who moved it, from -> to; the screenshot added shows in the history', /changed Status/.test(actAll) && /FUNC DESIGN\s*→\s*DEVELOPMENT/.test(actAll) && /added Screenshot 2026-11-04 135139\.png/.test(actAll), actAll);
+    T.check('a work log entry: who, how long, what for', /logged 4h/.test(actAll) && /grid wiring/.test(actAll));
+    await page.waitForFunction(() => { const i = document.querySelector('#jiraActivity .nx-jira-act--comment img'); return i && i.complete && i.naturalWidth > 0; }, null, { timeout: 10000 }).catch(() => {});
+    T.check('the screenshot in the tester\'s comment shows, read through the signed-in connection (redirect=false)', await page.$eval('#jiraActivity .nx-jira-act--comment img',
       (i) => i.complete && i.naturalWidth > 0 && i.alt === 'Screenshot 2026-11-04 135139.png' && i.src.startsWith('blob:')).catch(() => false)
       && imageReads.some((x) => x.id === '10502' && x.redirect === 'false' && x.signed), JSON.stringify(imageReads));
-    T.check('…the comment\'s text without the image markup', !(await text(page, '#jiraItem .nx-jira-comment')).includes('!Screenshot'));
-    T.check('the attachments: the image as a thumbnail, the other file by name and size', (await page.$$('#jiraAttachments img')).length === 1
-      && (await text(page, '#jiraFiles')).includes('mapping.xlsx · 12 KB'));
+    T.check('...the comment\'s text without the image markup', !actAll.includes('!Screenshot'));
+    await page.$eval('#jiraActHead', (el) => el.scrollIntoView({ block: 'start' })).catch(() => {});
+    await settle(page, 300);
+    await page.screenshot({ path: require('path').join(require('os').tmpdir(), 'equiprite-e2e', 'next-jira-activity.png') });
+    await page.click('#jiraActTabs [data-tab="history"]');
+    await settle(page, 200);
+    T.check('the History tab shows only the changes', (await page.$$('#jiraActivity .nx-jira-act--history')).length === 2 && (await page.$$('#jiraActivity .nx-jira-act--comment')).length === 0);
+    await page.click('#jiraActTabs [data-tab="worklog"]');
+    await settle(page, 200);
+    T.check('the Work log tab: the entry and the total', (await page.$$('#jiraActivity .nx-jira-act--worklog')).length === 1 && /Logged in all: 4h/.test(await text(page, '#jiraActivity')));
+    await page.click('#jiraActTabs [data-tab="all"]');
+    T.check('the attachments: the image as a thumbnail, the other file by name and size, to open', (await page.$$('#jiraAttachments img')).length === 1
+      && /mapping\.xlsx\s*12 KB/.test(await text(page, '#jiraFiles')) && (await page.$$('#jiraFiles .nx-jira-filebtn')).length === 1, await text(page, '#jiraFiles'));
+    const readsBefore = imageReads.length;
+    const [fileDl] = await Promise.all([page.waitForEvent('download', { timeout: 10000 }).catch(() => null), page.click('#jiraFiles .nx-jira-filebtn')]);
+    T.check('a file that is not an image is read through the connection and saved under its name', !!fileDl && fileDl.suggestedFilename() === 'mapping.xlsx' && imageReads.slice(readsBefore).some((x) => x.id === '10504' && x.signed), (fileDl ? fileDl.suggestedFilename() : 'no download') + ' ' + JSON.stringify(imageReads.slice(readsBefore)));
     await env.shot('next-jira-drawer.png');
 
     T.section('Record a test of it: the screen, screenshots, kept in its folder on this PC');
@@ -778,7 +820,10 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     await settle(page, 700);
     T.check('the analysis tab shows the story, its sub-tasks and comments',
       /EQP-12/.test(await text(page, '#anStory')) && /Equipment Master List View/.test(await text(page, '#anStory'))
-      && /EQP-12-2/.test(await text(page, '#anSubs')) && /missing/i.test(await text(page, '#anComments')));
+      && /EQP-12-2/.test(await text(page, '#anSubs')) && /missing/i.test(await text(page, '#anActivity')));
+    await page.waitForFunction(() => /Work log 1/.test((document.getElementById('anActTabs') || {}).textContent || ''), null, { timeout: 15000 }).catch(() => {});
+    T.check('...its whole activity (comments, history, work log) and its attachments', /All 5/.test(await text(page, '#anActTabs')) && /logged 4h/.test(await text(page, '#anActivity'))
+      && (await page.$$('#anAttachments img')).length === 1 && /mapping\.xlsx/.test(await text(page, '#anFiles')), await text(page, '#anActTabs'));
     await page.waitForFunction(() => { const f = document.getElementById('anAnalysis'); return f && /What to do next/.test(f.getAttribute('srcdoc') || ''); }, null, { timeout: 20000 }).catch(() => {});
     const anDoc = (await page.getAttribute('#anAnalysis', 'srcdoc')) || '';
     T.check('the AI analysis is broken into the fixed headings and suggests the page, via the shared Ask AI',
@@ -787,6 +832,10 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     T.section('Analyze with AI reads the FDD: the latest first, the sections the story names, another FDD on demand');
     const lastPrompt = () => llmBodies[llmBodies.length - 1] || '';
     T.check('the FDD picker shows the latest FDD', /EquipRite FDD · v1\.7 \(latest\)/.test(await text(page, '#anFddName')), await text(page, '#anFddBar'));
+    const firstPrompt = llmBodies.filter((b) => /## Requirement/.test(b))[0] || '';
+    T.check('the AI was given the whole activity: the history, the work log, the attachments, the mention named',
+      /History \(2 changes, oldest first\)/.test(firstPrompt) && /Status FUNC DESIGN → DEVELOPMENT/.test(firstPrompt) && /logged 4h: grid wiring/.test(firstPrompt)
+      && /Attachments \(2\)/.test(firstPrompt) && /@Sana Suhana Thehaseen the Type column/.test(firstPrompt), firstPrompt.slice(0, 300));
     T.check('the AI was given the latest FDD\'s section 7.2 (the story\'s "FDD Section: 7.2"), with its subsection, and asked for an FDD check',
       /NEW-V17/.test(lastPrompt()) && /FDD 7\.2\.5 Map view/.test(lastPrompt()) && /## FDD check/.test(lastPrompt()) && !/OLD-V16/.test(lastPrompt()), lastPrompt().slice(0, 300));
     T.check('the chips say what was read: 7.2 named by the story, 7.2.5 a part of it',

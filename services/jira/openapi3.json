@@ -124,6 +124,154 @@
         }
       }
     },
+    "/rest/api/2/issue/{issueIdOrKey}/comment": {
+      "get": {
+        "operationId": "getJiraIssueComments",
+        "summary": "Every comment on an issue, a page at a time (renderedBody names whom a comment mentions)",
+        "parameters": [
+          {
+            "name": "issueIdOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "startAt",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "maxResults",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orderBy",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "expand",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Every comment on an issue, a page at a time (renderedBody names whom a comment mentions)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rest/api/2/issue/{issueIdOrKey}/changelog": {
+      "get": {
+        "operationId": "getJiraIssueChangelog",
+        "summary": "Every change made to an issue (status, assignee, sprint, attachments…), a page at a time",
+        "parameters": [
+          {
+            "name": "issueIdOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "startAt",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "maxResults",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Every change made to an issue (status, assignee, sprint, attachments…), a page at a time",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rest/api/2/issue/{issueIdOrKey}/worklog": {
+      "get": {
+        "operationId": "getJiraIssueWorklog",
+        "summary": "Every work log entry on an issue, a page at a time",
+        "parameters": [
+          {
+            "name": "issueIdOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "startAt",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "maxResults",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Every work log entry on an issue, a page at a time",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/rest/api/2/myself": {
       "get": {
         "operationId": "getJiraMyself",

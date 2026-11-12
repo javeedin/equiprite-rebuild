@@ -6,6 +6,12 @@ define([], function () {
   // DOM; the one call it makes goes through the Actions it is handed. Old and Next keep identical copies of this file.
   //
   //   load(context, Actions, jql)      every page of a JQL search: { ok, issues, status, message }
+  //   peopleOf(issues)                 remembers who is who (accountId → name), so "[~accountid:…]" mentions read as names
+  //   activityOf(issue, o)             a story's whole activity, as Jira's Activity shows it: comments, history (each
+  //                                    change: status, assignee, sprint…) and work log, one list newest first
+  //   loadActivity(context, Actions, key, attachments)   that, read from Jira for one story: every comment, change and
+  //                                    work log entry, page after page (issue/{key}/comment, /changelog, /worklog)
+  //   activityView(act, row, tab)      what the Activity section shows for a tab (all | comments | history | worklog)
   //   fromIssue(issue, o)              a story as the page shows it (the description split into its parts, the tester's
   //                                    gaps from the comments, the checks it fails)
   //   analyse(rows, today)             the numbers and the findings: by status, epic, release, assignee, sprint, quality,
@@ -59,6 +65,34 @@ define([], function () {
   }
   function todayOf(t) { return day(t) || new Date().toISOString().slice(0, 10); }
 
+  // ── People and mentions ────────────────────────────────────────────────────────────────────────────────────────
+  // REST v2 writes a mention as "[~accountid:5b10…]", with no name. Everyone seen on any issue (assignee, reporter,
+  // comment authors, whoever changed or logged work) is remembered here, so a mention reads "@Rahul Kanth …".
+  var KNOWN = {};
+  function remember(u) { if (u && u.accountId && u.displayName) KNOWN[u.accountId] = u.displayName; }
+  function peopleOf(issues) {
+    (issues || []).forEach(function (i) {
+      var f = (i && i.fields) || {};
+      [f.assignee, f.reporter, f.creator].forEach(remember);
+      ((f.comment && f.comment.comments) || []).forEach(function (c) { remember(c.author); remember(c.updateAuthor); });
+      ((f.worklog && f.worklog.worklogs) || []).forEach(function (w) { remember(w.author); });
+      (f.subtasks || []).forEach(function (st) { remember(st.fields && st.fields.assignee); });
+      ((i && i.changelog && i.changelog.histories) || []).forEach(function (h) { remember(h.author); });
+      // a rendered comment names whom it mentions: <a … accountId=5b10…" …>Rahul Kanth</a>
+      var rc = (i && i.renderedFields && i.renderedFields.comment && i.renderedFields.comment.comments) || [];
+      rc.forEach(function (c) {
+        var re = /accountId=([^"&']+)[^>]*>@?([^<]+)</g, m;
+        while ((m = re.exec(txt(c.body)))) if (!KNOWN[m[1]]) KNOWN[decodeURIComponent(m[1])] = m[2].trim();
+      });
+    });
+    return KNOWN;
+  }
+  /** "[~accountid:5b10…]" → "@Rahul Kanth Panganamamula" ("@someone" when nobody has seen that person yet). */
+  function mentions(s) {
+    return txt(s).replace(/\[~accountid:([^\]]+)\]/gi, function (m, id) { return '@' + (KNOWN[id] || 'someone'); })
+      .replace(/\[~([^\]:|]+)\]/g, function (m, u) { return '@' + u; });
+  }
+
   /** Text from a Jira field: a string (REST v2), or Atlassian Document Format (REST v3), flattened. */
   function plain(v) {
     if (v == null) return '';
@@ -68,6 +102,9 @@ define([], function () {
       if (!n) return;
       if (n.type === 'text' && n.text) out.push(n.text);
       if (n.type === 'hardBreak') out.push('\n');
+      if (n.type === 'mention' && n.attrs) out.push(n.attrs.text || ('@' + (KNOWN[n.attrs.id] || 'someone')));
+      if (n.type === 'emoji' && n.attrs) out.push(n.attrs.text || n.attrs.shortName || '');
+      if ((n.type === 'inlineCard' || n.type === 'blockCard') && n.attrs && n.attrs.url) out.push(n.attrs.url);
       (n.content || []).forEach(walk);
       if (/^(paragraph|heading|listItem|codeBlock|blockquote)$/.test(n.type || '')) out.push('\n');
     })(v);
@@ -215,10 +252,11 @@ define([], function () {
     var rel = versions[0] || null;
     var sp = sprintOf(f.customfield_10020);
     var attachments = attachmentsOf(f.attachment);
-    var desc = extractImages(plain(f.description));
+    peopleOf([issue]);
+    var desc = extractImages(mentions(plain(f.description)));
     var parts = splitDescription(f.summary, desc.text);
     var comments = ((f.comment && f.comment.comments) || []).map(function (c) {
-      var ex = extractImages(plain(c.body));
+      var ex = extractImages(mentions(plain(c.body)));
       return { author: nameOf(c.author), when: day(c.created), text: readable(ex.text), images: imagesFor(ex.names, attachments) };
     });
     var gaps = [];
@@ -271,6 +309,155 @@ define([], function () {
     var cost = checks.reduce(function (s, c) { return s + CHECKS[c.key].weight; }, 0);
     row.score = Math.max(1, Math.round((5 - cost) * 2) / 2);
     return row;
+  }
+
+  // ── Activity: comments, history and work log, as Jira's Activity shows them ───────────────────────────────────────
+  var FIELD_LABEL = { status: 'Status', assignee: 'Assignee', reporter: 'Reporter', summary: 'Summary', description: 'Description',
+    duedate: 'Due date', priority: 'Priority', labels: 'Labels', resolution: 'Resolution', 'Fix Version': 'Release', Sprint: 'Sprint',
+    issuetype: 'Type', Attachment: 'Attachment', Link: 'Link', 'Story Points': 'Story points', timeestimate: 'Remaining estimate',
+    timespent: 'Time spent', timeoriginalestimate: 'Original estimate', WorklogId: 'Work log', IssueParentAssociation: 'Parent',
+    'Epic Link': 'Epic', Rank: 'Rank', 'Parent Link': 'Parent', components: 'Components' };
+  function cut(s, n) { s = txt(s).replace(/\s+/g, ' ').trim(); return s.length > n ? s.slice(0, n - 1).replace(/\s+\S*$/, '') + '…' : s; }
+  function stamp(v) { var m = /^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/.exec(txt(v)); return m ? m[1] + ' ' + m[2] : day(v); }
+  /** "3 days ago", "1 week ago", "2 months ago" — as Jira says it. */
+  function ago(at, now) {
+    var t = Date.parse(txt(at)), n = now ? Date.parse(now) : Date.now();
+    if (isNaN(t) || isNaN(n)) return '';
+    var m = Math.max(0, Math.round((n - t) / 60000));
+    var say = function (k, unit) { return k + ' ' + unit + (k === 1 ? '' : 's') + ' ago'; };
+    if (m < 1) return 'just now';
+    if (m < 60) return say(m, 'minute');
+    if (m < 1440) return say(Math.round(m / 60), 'hour');
+    var d = Math.round(m / 1440);
+    if (d < 7) return say(d, 'day');
+    if (d < 30) return say(Math.round(d / 7), 'week');
+    if (d < 365) return say(Math.round(d / 30), 'month');
+    return say(Math.round(d / 365), 'year');
+  }
+  function seconds(sec) {
+    var s = Number(sec) || 0, h = Math.floor(s / 3600), mm = Math.round((s % 3600) / 60);
+    return (h ? h + 'h' : '') + (mm ? (h ? ' ' : '') + mm + 'm' : '') || '0m';
+  }
+
+  /**
+   * A story's activity from an issue-shaped object (fields.comment, fields.worklog, changelog, renderedFields), as
+   * loadActivity assembles it from the three lists or as GET issue/{key}?expand=changelog,renderedFields returns it.
+   * o: { attachments (the row's, for images in comments), now }. →
+   *   { comments: [{ kind:'comment', at, when, ago, author, text, edited, images }],
+   *     history:  [{ kind:'history', at, when, ago, author, items: [{ field, from, to }] }],
+   *     worklog:  [{ kind:'worklog', at, when, ago, author, spent, seconds, text }],
+   *     all: the three, newest first; counts { comments, history, worklog }; spent (total logged);
+   *     more { history, worklog }: Jira has more than it sent (the issue call sends the latest 100 changes, 20 logs) }
+   */
+  function activityOf(issue, o) {
+    var opts = o || {};
+    var f = (issue && issue.fields) || {};
+    peopleOf([issue]);
+    var atts = opts.attachments || attachmentsOf(f.attachment);
+    var row = function (kind, at, author, extra) {
+      return Object.assign({ kind: kind, at: txt(at), when: stamp(at), ago: ago(at, opts.now), author: nameOf(author) || 'Someone' }, extra);
+    };
+    var comments = ((f.comment && f.comment.comments) || []).map(function (c) {
+      var ex = extractImages(mentions(plain(c.body)));
+      return row('comment', c.created, c.author, { id: txt(c.id), text: readable(ex.text), images: imagesFor(ex.names, atts),
+        edited: !!(c.updated && c.created && day(c.updated) !== day(c.created)) });
+    });
+    var cl = (issue && issue.changelog) || {};
+    var history = (cl.histories || []).map(function (h) {
+      var items = (h.items || []).map(function (it) {
+        var field = FIELD_LABEL[it.field] || it.field || 'Field';
+        var long = /^(description|summary|Description)$/.test(it.field) || field === 'Description';
+        var from = it.fromString != null ? it.fromString : (it.from || '');
+        var to = it.toString != null ? it.toString : (it.to || '');
+        var item = { field: field, from: cut(mentions(from), long ? 140 : 120), to: cut(mentions(to), long ? 140 : 120) };
+        if (it.field === 'Attachment') {
+          // the file added (or removed): its attachment, so a screenshot shows as a thumbnail and anything else as a link
+          var name = to || from;
+          var att = atts.filter(function (x) { return x.id === txt(it.to) || x.name === name; })[0];
+          item.file = att ? { id: att.id, name: att.name, image: att.image, sizeText: att.sizeText, removed: !to } : { id: '', name: name, image: false, sizeText: '', removed: !to };
+        }
+        return item;
+      }).filter(function (it) { return it.field !== 'Rank' && it.field !== 'Work log'; });
+      return row('history', h.created, h.author, { items: items });
+    }).filter(function (h) { return h.items.length; });
+    var wl = (f.worklog && f.worklog.worklogs) || [];
+    var worklog = wl.map(function (w) {
+      return row('worklog', w.started || w.created, w.author, { spent: w.timeSpent || seconds(w.timeSpentSeconds),
+        seconds: Number(w.timeSpentSeconds) || 0, text: readable(mentions(plain(w.comment))) });
+    });
+    var all = comments.concat(history, worklog).sort(function (a, b) { return b.at.localeCompare(a.at); });
+    var newest = function (a, b) { return b.at.localeCompare(a.at); };
+    return {
+      comments: comments.slice().sort(newest), history: history.slice().sort(newest), worklog: worklog.slice().sort(newest), all: all,
+      counts: { comments: comments.length, history: history.length, worklog: worklog.length },
+      spent: seconds(worklog.reduce(function (t, w) { return t + w.seconds; }, 0)),
+      more: { history: (cl.total || 0) > (cl.histories || []).length, worklog: ((f.worklog && f.worklog.total) || 0) > wl.length }
+    };
+  }
+
+  /** Every page of one of an issue's lists (comments, changelog, worklog): { ok, items, total, res }. */
+  async function allPages(context, Actions, endpoint, params, listKey) {
+    var items = [];
+    for (var i = 0; i < 100; i++) { // 100 pages of 100: a safety stop no real story reaches
+      var res;
+      try {
+        res = await Actions.callRest(context, { endpoint: endpoint, uriParams: Object.assign({}, params, { startAt: items.length, maxResults: 100 }) });
+      } catch (e) {
+        res = { ok: false, status: 0, body: { message: txt(e && e.message) } };
+      }
+      if (!res || !res.ok) return { ok: false, items: items, res: res };
+      var b = res.body;
+      if (!b || typeof b !== 'object') return { ok: false, items: items, res: { ok: false, status: 502, body: b } };
+      var list = b[listKey] || b.values || [];
+      items = items.concat(list);
+      var total = typeof b.total === 'number' ? b.total : null;
+      if (b.isLast === true || !list.length || (total !== null && items.length >= total)) return { ok: true, items: items, total: total === null ? items.length : total };
+    }
+    return { ok: true, items: items, total: items.length };
+  }
+
+  /**
+   * One story's whole activity, read from Jira — every comment, every change and every work log entry, page after page
+   * (the issue call alone stops at 100 changes and 20 logs): { ok, …activityOf } or { ok:false, status, message }.
+   * `attachments`: the row's (the search reads them all), so screenshots in comments and attachments added show.
+   */
+  async function loadActivity(context, Actions, key, attachments) {
+    var k = { issueIdOrKey: key };
+    var got = await Promise.all([
+      allPages(context, Actions, 'jira/getJiraIssueComments', Object.assign({ expand: 'renderedBody', orderBy: 'created' }, k), 'comments'),
+      allPages(context, Actions, 'jira/getJiraIssueChangelog', k, 'values'),
+      allPages(context, Actions, 'jira/getJiraIssueWorklog', k, 'worklogs')
+    ]);
+    if (!got[0].ok) return { ok: false, status: got[0].res ? got[0].res.status : 0, message: problem(got[0].res) };
+    var issue = {
+      key: key,
+      fields: { comment: { comments: got[0].items }, worklog: { worklogs: got[2].items, total: got[2].items.length } },
+      changelog: { histories: got[1].items, total: got[1].items.length },
+      renderedFields: { comment: { comments: got[0].items.map(function (c) { return { body: c.renderedBody || '' }; }) } }
+    };
+    var act = activityOf(issue, { attachments: attachments || [] });
+    // a list Jira would not give (an older server without /changelog, say) is said, not shown as "nothing happened"
+    act.missing = [got[1].ok ? '' : 'history', got[2].ok ? '' : 'work log'].filter(Boolean);
+    return Object.assign({ ok: true, key: key }, act);
+  }
+
+  /**
+   * What the Activity section shows: { items, counts, tab, loading, error, note }. Until the activity is read, the
+   * row's own comments (from the search) stand in, so the section is never empty while it loads.
+   */
+  function activityView(act, row, tab) {
+    var t = /^(all|comments|history|worklog)$/.test(tab || '') ? tab : 'all';
+    var r = row || {};
+    if (!act || !act.ok) {
+      var cs = (r.comments || []).slice().reverse().map(function (c) { return Object.assign({ kind: 'comment', ago: '', at: c.when }, c); });
+      return { items: t === 'history' || t === 'worklog' ? [] : cs, counts: { comments: cs.length, history: null, worklog: null }, tab: t,
+        loading: !!(act && act.loading), error: act && act.ok === false && !act.loading ? act.message || 'Could not read the activity.' : '', note: '' };
+    }
+    var items = t === 'all' ? act.all : act[t];
+    var note = t === 'worklog' && act.counts.worklog ? 'Logged in all: ' + act.spent + (act.more.worklog ? ' (Jira sent the latest 20 entries)' : '') :
+      t === 'history' && act.more.history ? 'Jira sent the latest 100 changes.' : '';
+    if (act.missing && act.missing.length) note = (note ? note + ' ' : '') + 'Jira did not give the ' + act.missing.join(' or the ') + '.';
+    return { items: items, counts: act.counts, tab: t, loading: false, error: '', note: note };
   }
 
   /** Every page of a JQL search (services/jira searchJiraIssues): { ok, issues, status, message, capped }. */
@@ -711,12 +898,30 @@ define([], function () {
   }
 
   /** Every image attached to a story (at most 24), as { id: url } ('' for one that could not be read). */
+  /** Every image the story has (screenshots in comments and attached), read six at a time: { id: url | '' }. */
   async function loadImages(context, Actions, row) {
-    var ids = ((row && row.attachments) || []).filter(function (a) { return a.image && a.id; }).slice(0, 24).map(function (a) { return a.id; });
-    var urls = await Promise.all(ids.map(function (id) { return loadImage(context, Actions, id); }));
+    var ids = ((row && row.attachments) || []).filter(function (a) { return a.image && a.id; }).map(function (a) { return a.id; });
     var out = {};
-    ids.forEach(function (id, i) { out[id] = urls[i]; });
+    for (var i = 0; i < ids.length; i += 6) {
+      var batch = ids.slice(i, i + 6);
+      var urls = await Promise.all(batch.map(function (id) { return loadImage(context, Actions, id); }));
+      batch.forEach(function (id, j) { out[id] = urls[j]; });
+    }
     return out;
+  }
+  /**
+   * Any attachment (a PDF, a spreadsheet, a video…), read through the jira connection and handed to the browser: an image
+   * or a PDF opens in a new tab, anything else is saved under its own name. → true, or false when Jira did not give it.
+   */
+  async function openAttachment(context, Actions, att) {
+    var a = att || {};
+    var url = await loadImage(context, Actions, a.id);
+    if (!url || typeof document === 'undefined') return false;
+    if (a.image || /pdf/i.test(a.mime || '') || /\.pdf$/i.test(a.name || '')) { try { window.open(url, '_blank', 'noopener'); return true; } catch (e) { /* save instead */ } }
+    var el = document.createElement('a');
+    el.href = url; el.download = a.name || 'attachment'; document.body.appendChild(el); el.click();
+    setTimeout(function () { document.body.removeChild(el); }, 0);
+    return true;
   }
 
   // ── The connection ───────────────────────────────────────────────────────────────────────────────────────
@@ -784,8 +989,9 @@ define([], function () {
 
   return {
     SITE: SITE, PROJECT: PROJECT, FIELDS: FIELDS, PRESETS: PRESETS, CHECKS: CHECKS, STATUS_ORDER: STATUS_ORDER,
-    plain: plain, splitDescription: splitDescription, fddSections: fddSections, gapsFrom: gapsFrom, acChecks: acChecks,
-    extractImages: extractImages, loadImage: loadImage, loadImages: loadImages, sprintsOf: sprintsOf, sprintJql: sprintJql, sprintUrl: sprintUrl, sprintReport: sprintReport, fromIssue: fromIssue, load: load, problem: problem, analyse: analyse, filter: filter, options: options, exportColumns: exportColumns,
+    plain: plain, mentions: mentions, peopleOf: peopleOf, activityOf: activityOf, loadActivity: loadActivity, activityView: activityView, ago: ago,
+    splitDescription: splitDescription, fddSections: fddSections, gapsFrom: gapsFrom, acChecks: acChecks,
+    extractImages: extractImages, loadImage: loadImage, loadImages: loadImages, openAttachment: openAttachment, sprintsOf: sprintsOf, sprintJql: sprintJql, sprintUrl: sprintUrl, sprintReport: sprintReport, fromIssue: fromIssue, load: load, problem: problem, analyse: analyse, filter: filter, options: options, exportColumns: exportColumns,
     desktopSettings: desktopSettings, desktopSave: desktopSave, desktopForget: desktopForget, whoAmI: whoAmI
   };
 });

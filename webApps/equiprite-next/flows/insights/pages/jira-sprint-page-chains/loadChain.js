@@ -28,7 +28,9 @@ define([
           else v.error = res.message;
           return;
         }
+        J.peopleOf(res.issues); // everyone on any item first, so mentions read as names
         const rows = res.issues.map((i) => J.fromIssue(i, { today: today }));
+        v.activity = {};
         v.report = J.sprintReport(rows, { id: v.id, name: v.name }, today);
         v.readAt = new Date().toTimeString().slice(0, 5);
       } finally {

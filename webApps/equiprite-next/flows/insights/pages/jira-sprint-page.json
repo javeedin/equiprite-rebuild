@@ -52,6 +52,8 @@
       "type": "boolean",
       "defaultValue": false
     },
+    "activity": { "type": "object", "defaultValue": {}, "description": "Each opened item's whole activity, read from Jira (jiraBacklog.loadActivity)." },
+    "actTab": { "type": "string", "defaultValue": "all", "description": "The Activity tab: all | comments | history | worklog." },
     "selKey": {
       "type": "string",
       "defaultValue": "",
@@ -110,6 +112,8 @@
     }
   },
   "eventListeners": {
+    "onActTab": { "chains": [ { "chain": "actTabChain", "parameters": { "tab": "{{ $event.currentTarget.dataset.tab }}" } } ] },
+    "onFile": { "chains": [ { "chain": "fileChain", "parameters": { "id": "{{ $event.currentTarget.dataset.id }}" } } ] },
     "vbEnter": {
       "chains": [
         {

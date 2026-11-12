@@ -22,26 +22,26 @@ define([], function () {
 
   var SYSTEM = [
     'You are a senior business analyst and developer on EquipRite, an equipment-rental and project application built on Oracle (Oracle JET / VBCS front end, Oracle Fusion and OIC behind it).',
-    'You are given one Jira story with its sub-tasks and comments, the FDD (functional design) section it references when available, and the list of EquipRite screens.',
+    'You are given one Jira story with its sub-tasks, comments, history of changes, work log and attachments, the FDD (functional design) section it references when available, and the list of EquipRite screens.',
     'Write a short, practical analysis using EXACTLY these Markdown headings, in this order, each on its own line starting with "## ":',
     '## Requirement', '## Current situation', '## What to do next', '## Risks & open questions', '## Suggested EquipRite page',
     'Under each heading use short "- " bullet points. Be concrete and specific to this story.',
     'Base everything ONLY on the information given — do not invent requirements, names, dates, numbers or decisions.',
-    'For "Current situation", use the story status, its sub-tasks and the testers\' comments (what works, what is failing).',
+    'For "Current situation", use the story status, its sub-tasks, the testers\' comments (what works, what is failing), its history (who moved it where, and when) and the work logged.',
     'For "What to do next", give clear next steps a developer/tester can act on.',
     'For "Suggested EquipRite page", pick the most relevant screen(s) from the list given and say in one line why; if none fits, say so.'
   ].join('\n');
 
   var SYSTEM_FDD = [
     'You are a senior business analyst and developer on EquipRite, an equipment-rental and project application built on Oracle (Oracle JET / VBCS front end, Oracle Fusion and OIC behind it).',
-    'You are given one Jira story with its sub-tasks and comments, excerpts of the FDD (the functional design document) chosen for this story — the sections it names and the ones that best match it — and the list of EquipRite screens.',
+    'You are given one Jira story with its sub-tasks, comments, history of changes, work log and attachments, excerpts of the FDD (the functional design document) chosen for this story — the sections it names and the ones that best match it — and the list of EquipRite screens.',
     'Write a short, practical analysis using EXACTLY these Markdown headings, in this order, each on its own line starting with "## ":',
     '## Requirement', '## Current situation', '## What to do next', '## Risks & open questions', '## FDD check', '## Suggested EquipRite page',
     'Under each heading use short "- " bullet points. Be concrete and specific to this story.',
     'Base everything ONLY on the information given — do not invent requirements, names, dates, numbers or decisions.',
     'When a point comes from the FDD, cite the section in square brackets, e.g. [FDD 7.2.5]. Never cite a section that is not in the excerpts.',
     'For "Requirement", combine the story with what the FDD sections say about it.',
-    'For "Current situation", use the story status, its sub-tasks and the testers\' comments (what works, what is failing).',
+    'For "Current situation", use the story status, its sub-tasks, the testers\' comments (what works, what is failing), its history (who moved it where, and when) and the work logged.',
     'For "What to do next", give clear next steps a developer/tester can act on.',
     'For "FDD check", list what the FDD requires that the story or its acceptance criteria miss, and anything in the story that contradicts the FDD, each with its [FDD n] citation. If they agree, say "No gaps found against the FDD excerpts." If the excerpts do not cover this story, say so.',
     'For "Suggested EquipRite page", pick the most relevant screen(s) from the list given and say in one line why; if none fits, say so.'
@@ -71,8 +71,32 @@ define([], function () {
     }
     var comments = Array.isArray(s.comments) ? s.comments : ((s.comments && s.comments.list) || s.commentList || []);
     if (comments.length) {
-      L.push(''); L.push('Comments (' + comments.length + '):');
-      comments.forEach(function (c) { L.push('- ' + (txt(c.author) ? txt(c.author) + ': ' : '') + txt(c.text || c.body).replace(/\s+/g, ' ').trim()); });
+      L.push(''); L.push('Comments (' + comments.length + ', oldest first):');
+      comments.forEach(function (c) {
+        var imgs = (c.images || []).map(function (im) { return im.name; });
+        L.push('- ' + (txt(c.when) ? txt(c.when) + ' ' : '') + (txt(c.author) ? txt(c.author) + ': ' : '') + txt(c.text || c.body).replace(/\s+/g, ' ').trim()
+          + (imgs.length ? ' [screenshot' + (imgs.length > 1 ? 's' : '') + ': ' + imgs.join(', ') + ']' : ''));
+      });
+    }
+    // what happened to it (Jira's History), oldest first: status moves, reassignments, sprints, attachments…
+    var hist = (s.history || []).slice().reverse();
+    if (hist.length) {
+      L.push(''); L.push('History (' + hist.length + ' changes, oldest first):');
+      hist.slice(-60).forEach(function (h) {
+        L.push('- ' + txt(h.when) + ' ' + txt(h.author) + ': ' + (h.items || []).map(function (it) {
+          return it.file ? it.field + ' ' + (it.file.removed ? 'removed ' : 'added ') + it.file.name : it.field + ' ' + (txt(it.from) || 'None') + ' → ' + (txt(it.to) || 'None');
+        }).join('; '));
+      });
+    }
+    var wl = (s.worklog || []).slice().reverse();
+    if (wl.length) {
+      L.push(''); L.push('Work log (' + wl.length + ' entries' + (s.spent ? ', ' + s.spent + ' in all' : '') + '):');
+      wl.forEach(function (w) { L.push('- ' + txt(w.when) + ' ' + txt(w.author) + ' logged ' + txt(w.spent) + (txt(w.text) ? ': ' + txt(w.text).replace(/\s+/g, ' ') : '')); });
+    }
+    var files = s.attachments || [];
+    if (files.length) {
+      L.push(''); L.push('Attachments (' + files.length + '):');
+      files.forEach(function (a) { L.push('- ' + txt(a.name) + (a.sizeText ? ' (' + a.sizeText + ')' : '') + (a.author ? ', by ' + a.author : '') + (a.created ? ', ' + a.created : '')); });
     }
     return L.join('\n');
   }
