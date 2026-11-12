@@ -97,20 +97,49 @@ const ID = 'vbredwoodapp/equipment-foundation/equipment-workbench';
   T.check('a story\'s pages', store.forStory('eqp-285').map((p) => p.id).join() === ID && store.forStory('EQP-1').length === 0);
   const cap = await store.capture(ID, { by: 'javeed' });
   T.check('a screenshot captured at the page\'s address, saved beside the sheet', cap.ok && shots[0] === 'vbredwoodapp /vp/shell/equipment-foundation/equipment-workbench'
-    && fs.existsSync(path.join(tmp, P.RES, 'screens', P.fileOf(ID) + '.jpg')) && store.sheet(ID).sheet.screenshot.source === 'capture');
+    && fs.existsSync(path.join(tmp, P.RES, cap.file)) && store.sheet(ID).sheet.screenshots[0].source === 'capture');
   const recap = await store.capture('equiprite-next/insights/jira-analysis', {});
   T.check('a screen with no address of its own: not captured, says to upload', !recap.ok && /upload/i.test(recap.error));
-  const up = store.saveShot(ID, { base64: Buffer.from('png').toString('base64'), mime: 'image/png', by: 'j' });
-  T.check('an uploaded one replaces it (the old file removed)', up.ok && up.file.endsWith('.png') && !fs.existsSync(path.join(tmp, P.RES, 'screens', P.fileOf(ID) + '.jpg')) && store.sheet(ID).sheet.screenshot.source === 'upload');
+  const up = store.saveShot(ID, { base64: Buffer.from('png').toString('base64'), mime: 'image/png', by: 'j', caption: 'Filters open' });
+  const up2 = store.saveShot(ID, { base64: Buffer.from('jpg2').toString('base64'), mime: 'image/jpeg', by: 'j' });
+  const list = store.sheet(ID).sheet.screenshots;
+  T.check('several screenshots: an upload is added (the capture kept), each its own file and caption', up.ok && up2.ok && list.length === 3 && list.map((x) => x.id).join() === 's1,s2,s3'
+    && list[1].caption === 'Filters open' && list[1].file.endsWith('.2.png') && list.every((x) => fs.existsSync(path.join(tmp, P.RES, x.file))));
+  T.check('the page table counts them', JSON.parse(fs.readFileSync(path.join(tmp, P.RES, 'catalog.json'), 'utf8')).pages.filter((x) => x.id === ID)[0].sheet.screenshots === 3);
+  const delShot = store.removeShot(ID, 's2');
+  T.check('one deleted: its file gone, the others kept', delShot.ok && store.sheet(ID).sheet.screenshots.map((x) => x.id).join() === 's1,s3' && !fs.existsSync(path.join(tmp, P.RES, up.file)) && !store.removeShot(ID, 's9').ok);
+  const s4 = store.saveShot(ID, { base64: Buffer.from('x').toString('base64'), mime: 'image/jpeg' });
+  T.check('a new one after a delete gets a new number (a number never names two images)', s4.ok && s4.shot.id === 's4' && store.sheet(ID).sheet.screenshots.map((x) => x.id).join() === 's1,s3,s4');
   T.check('the AI explanation is kept with the sheet', store.saveAi(ID, { text: '## What this page is for\n- the workbench', provider: 'Claude', by: 'j' }).ok && store.sheet(ID).sheet.ai.provider === 'Claude');
   const rb = store.build(ID, { by: 'j' });
-  T.check('refreshing the sheet keeps its stories, screenshot and AI text', rb.ok && rb.sheet.stories.length === 2 && rb.sheet.screenshot && rb.sheet.ai && rb.sheet.at > builtAt);
+  T.check('refreshing the sheet keeps its stories, screenshots and AI text', rb.ok && rb.sheet.stories.length === 2 && rb.sheet.screenshots.length === 3 && rb.sheet.ai && rb.sheet.at > builtAt);
   T.check('unmapping a story', store.unassign(ID, 'EQP-285').ok && store.sheet(ID).sheet.stories.join() === 'EQP-93');
   // the code changes: the sheet says so
   const chain = path.join(tmp, 'webApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-workbench-page-chains/RowClickChain.js');
   fs.appendFileSync(chain, '\n// changed\n');
   T.check('when the page\'s code changes, its sheet says so', store.sheet(ID).codeChanged === true);
   T.check('rescan writes every page into the catalog', store.rescan().pages === all.length);
+  // a sheet saved before several screenshots were kept had one, as "screenshot": read as the first of a list
+  const OLDID = 'vbredwoodapp/main/rate-schedule';
+  store.build(OLDID, {});
+  const oldFile = path.join(tmp, P.RES, 'sheets', P.fileOf(OLDID) + '.json');
+  const oj = JSON.parse(fs.readFileSync(oldFile, 'utf8')); delete oj.screenshots; oj.screenshot = { file: 'screens/old.jpg', at: '2026-11-01T00:00:00Z', source: 'upload' };
+  fs.writeFileSync(oldFile, JSON.stringify(oj));
+  T.check('an older sheet\'s single screenshot reads as a list of one', store.sheet(OLDID).sheet.screenshots.length === 1 && store.sheet(OLDID).sheet.screenshots[0].id === 's1');
+
+  T.section('delete a page from the catalog, and restore it');
+  store.assign(OLDID, 'EQP-7', {});
+  const del = store.remove(OLDID);
+  const cat2 = JSON.parse(fs.readFileSync(path.join(tmp, P.RES, 'catalog.json'), 'utf8')).pages.filter((x) => x.id === OLDID)[0];
+  T.check('deleted: its sheet and screenshots gone, its stories unmapped, marked deleted (the code still has it)', del.ok && del.removed.stories.join() === 'EQP-7'
+    && !fs.existsSync(oldFile) && cat2.deleted === true && cat2.stories.length === 0 && cat2.sheet === null && store.forStory('EQP-7').length === 0);
+  T.check('…and stays deleted after a rescan', store.rescan() && JSON.parse(fs.readFileSync(path.join(tmp, P.RES, 'catalog.json'), 'utf8')).pages.filter((x) => x.id === OLDID)[0].deleted === true);
+  T.check('opening it says it was deleted', store.sheet(OLDID).deleted === true && store.sheet(OLDID).saved === false);
+  T.check('restored: back in the lists', store.restore(OLDID).ok && !JSON.parse(fs.readFileSync(path.join(tmp, P.RES, 'catalog.json'), 'utf8')).pages.filter((x) => x.id === OLDID)[0].deleted);
+  store.remove(OLDID);
+  T.check('mapping a story to a deleted page brings it back, with a new sheet', store.assign(OLDID, 'EQP-8', {}).built === true
+    && !JSON.parse(fs.readFileSync(path.join(tmp, P.RES, 'catalog.json'), 'utf8')).pages.filter((x) => x.id === OLDID)[0].deleted);
+  T.check('an unknown page cannot be deleted', !store.remove('nope/x/y').ok);
 
   if (haveGit) {
     fs.writeFileSync(path.join(tmp, 'other.txt'), 'staged'); git(tmp, 'add', 'other.txt');

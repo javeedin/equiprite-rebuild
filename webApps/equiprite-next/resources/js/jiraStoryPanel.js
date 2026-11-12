@@ -46,7 +46,7 @@ define(['resources/js/jiraBacklog'], (J) => {
       const k = String(key || '').toUpperCase();
       const ck = JSON.stringify([k, (cat || []).length, (cat || []).map((p) => (p.stories || []).indexOf(k) !== -1 ? p.id + (p.sheet ? p.sheet.at : '') : '').join('')]);
       if (pagesKept.k === ck) return pagesKept.v;
-      pagesKept = { k: ck, v: k ? (cat || []).filter((p) => (p.stories || []).indexOf(k) !== -1) : [] };
+      pagesKept = { k: ck, v: k ? (cat || []).filter((p) => !p.deleted && (p.stories || []).indexOf(k) !== -1) : [] };
       return pagesKept.v;
     },
     /** The pages to choose from (not mapped yet), the best matches for what is typed, a sheet first. */
@@ -57,7 +57,7 @@ define(['resources/js/jiraBacklog'], (J) => {
       if (choicesKept.k === ck) return choicesKept.v;
       const ORDER = { vbredwoodapp: 0, equiprite: 1, 'equiprite-next': 2, 'equiprite-mobile': 3, 'equiprite-future': 4 };
       const words = s.split(/\s+/).filter(Boolean);
-      const v = (cat || []).filter((p) => (p.stories || []).indexOf(k) === -1 && !p.missing
+      const v = (cat || []).filter((p) => (p.stories || []).indexOf(k) === -1 && !p.missing && !p.deleted
         && words.every((w) => [p.label, p.id, p.appName].join(' ').toLowerCase().indexOf(w) !== -1))
         .sort((a, b) => (b.sheet ? 1 : 0) - (a.sheet ? 1 : 0) || (ORDER[a.app] - ORDER[b.app]) || String(a.label).localeCompare(String(b.label)))
         .slice(0, 80);
@@ -73,7 +73,8 @@ define(['resources/js/jiraBacklog'], (J) => {
     pageMeta(p) {
       if (!p) return '';
       const sh = p.sheet;
-      return [p.appName + ' · ' + (p.flow ? p.flow + '/' : '') + p.page, sh ? sh.rest + ' REST · ' + sh.chains + ' chains' + (sh.ai ? ' · explained' : '') : 'no sheet yet',
+      const shots = !sh ? 0 : (typeof sh.screenshots === 'number' ? sh.screenshots : (sh.screenshot ? 1 : 0));
+      return [p.appName + ' · ' + (p.flow ? p.flow + '/' : '') + p.page, sh ? sh.rest + ' REST · ' + sh.chains + ' chains' + (shots ? ' · ' + shots + ' screenshot' + (shots === 1 ? '' : 's') : '') + (sh.ai ? ' · explained' : '') : 'no sheet yet',
         (p.stories || []).length > 1 ? 'also ' + (p.stories.length - 1) + ' other ' + ((p.stories.length - 1) === 1 ? 'story' : 'stories') : ''].filter(Boolean).join(' · ');
     },
     pageChoiceMeta(p) {

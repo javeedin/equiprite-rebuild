@@ -6,7 +6,7 @@ define(['vb/action/actionChain'], (ActionChain) => {
     async run(context, { field, value }) {
       const v = context.$page.variables;
       if (!field) return;
-      if (field === 'onlyMapped' || field === 'onlySheet' || field === 'commit') v[field] = value === true || value === 'true';
+      if (field === 'onlyMapped' || field === 'onlySheet' || field === 'commit' || field === 'showDeleted') v[field] = value === true || value === 'true';
       else v[field] = value == null ? '' : String(value);
     }
   }

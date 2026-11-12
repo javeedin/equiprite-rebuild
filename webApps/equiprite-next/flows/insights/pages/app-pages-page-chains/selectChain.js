@@ -7,12 +7,12 @@ define(['vb/action/actionChain', 'resources/js/pagesClient', 'resources/js/shell
       const v = context.$page.variables;
       const pid = String(id || '');
       if (!pid) return;
-      v.selId = pid; v.result = null; v.progress = '';
+      v.selId = pid; v.result = null; v.progress = ''; v.viewer = -1;
       const r = await PC.sheet(context.$application.path, pid);
       if (v.selId !== pid) return; // another was picked meanwhile
       if (!r.ok) { v.sheet = null; v.result = { ok: false, text: (r.body && r.body.error) || 'Could not read this page.' }; return; }
       v.sheet = r.body.sheet; v.saved = !!r.body.saved; v.codeChanged = !!r.body.codeChanged;
-      if (v.tab !== 'overview' && v.tab !== 'features' && v.tab !== 'logic' && v.tab !== 'integrations' && v.tab !== 'links') v.tab = 'overview';
+      v.deleted = !!r.body.deleted || (v.pages || []).some((p) => p.id === pid && p.deleted);
       try { setTimeout(() => { const el = document.getElementById('pgSheet'); if (el && el.scrollIntoView && window.innerWidth < 1100) el.scrollIntoView({ behavior: 'smooth' }); }, 30); } catch (e) { /* no DOM */ }
     }
   }

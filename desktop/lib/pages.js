@@ -10,7 +10,7 @@
  *                                                               route, stories: [KEY], sheet: { at, by, codeHash,
  *                                                               screenshot, ai } | null }] }
  *   webApps/equiprite-next/resources/pages/sheets/<file>.json  the sheet: { id, facts, ai, screenshot, stories, at, by, codeHash }
- *   webApps/equiprite-next/resources/pages/screens/<file>.jpg  its screenshot
+ *   webApps/equiprite-next/resources/pages/screens/<file>.<n>.jpg  its screenshots (several)
  *
  *   open({ root, git, gitPath, now, capture, mirror }) → store
  *     catalog()                       the catalog, with any page added to the code since (a fresh scan)
@@ -20,7 +20,10 @@
  *     assign(id, key, { by })         maps a Jira story to the page (building the sheet first when it has none) → { ok, sheet, built }
  *     unassign(id, key)               → { ok }
  *     forStory(key)                   [{ id, label, appName, sheet }] the pages a story is mapped to
- *     saveShot(id, { base64, mime, source, by })   → { ok, file }
+ *     saveShot(id, { base64, mime, source, caption, by })   adds a screenshot (a page keeps several) → { ok, file, shot }
+ *     removeShot(id, shotId)          → { ok }
+ *     remove(id) / restore(id)        deletes a page from the catalog (its sheet, screenshots, mappings; hidden from the
+ *                                     lists) / brings it back
  *     capture(id, { by })             opens the page in the desktop app (o.capture) and saves what it shows → { ok, file }
  *     saveAi(id, { text, provider, by })            → { ok }
  *     gitStatus() / gitSave({ message, push })      only these files, to the branch the project is on (lib/gitPaths.js)
@@ -77,17 +80,26 @@ function open(opts) {
     const old = {};
     (saved().pages || []).forEach((p) => { old[p.id] = p; });
     const live = scan.list(root);
-    const pages = live.map((p) => Object.assign({}, p, { stories: (old[p.id] && old[p.id].stories) || [], sheet: (old[p.id] && old[p.id].sheet) || null }));
+    const pages = live.map((p) => Object.assign({}, p, { stories: (old[p.id] && old[p.id].stories) || [], sheet: (old[p.id] && old[p.id].sheet) || null,
+      deleted: !!(old[p.id] && old[p.id].deleted) }));
     Object.keys(old).forEach((id) => { if (!pages.some((p) => p.id === id) && (old[id].stories || []).length) pages.push(Object.assign({}, old[id], { missing: true })); });
     return { scannedAt: now().toISOString(), pages: pages };
   }
   function writeCatalog(cat) {
     const slim = { scannedAt: cat.scannedAt, pages: cat.pages.map((p) => ({ id: p.id, app: p.app, appName: p.appName, flow: p.flow, page: p.page, label: p.label,
-      route: p.route, stories: p.stories || [], sheet: p.sheet || null, missing: p.missing || undefined })) };
+      route: p.route, stories: p.stories || [], sheet: p.sheet || null, missing: p.missing || undefined, deleted: p.deleted || undefined })) };
     write('catalog.json', JSON.stringify(slim, null, 1) + '\n');
   }
+  /** The sheet's screenshots (a sheet from before several were kept had one, as `screenshot`). */
+  function shotsOf(sh) {
+    if (Array.isArray(sh.screenshots)) return sh.screenshots;
+    sh.screenshots = sh.screenshot && sh.screenshot.file ? [Object.assign({ id: 's1' }, sh.screenshot)] : [];
+    delete sh.screenshot;
+    return sh.screenshots;
+  }
   function summaryOf(sh) {
-    return { at: sh.at, by: sh.by || '', codeHash: sh.codeHash, screenshot: sh.screenshot ? sh.screenshot.file : '', ai: !!(sh.ai && sh.ai.text),
+    const shots = shotsOf(sh);
+    return { at: sh.at, by: sh.by || '', codeHash: sh.codeHash, screenshots: shots.length, ai: !!(sh.ai && sh.ai.text),
       rest: (sh.facts && sh.facts.integrations.rest.length) || 0, chains: (sh.facts && sh.facts.logic.chains.length) || 0 };
   }
   function saveSheet(sh) {
@@ -101,12 +113,13 @@ function open(opts) {
     const sh = readSheet(id);
     if (sh) {
       const facts = scan.analyze(root, id);
+      shotsOf(sh);
       return { ok: true, sheet: sh, codeChanged: !!(facts && facts.codeHash !== sh.codeHash), saved: true };
     }
     const facts = scan.analyze(root, id);
     if (!facts) return { ok: false, error: 'There is no page "' + id + '" in the project.' };
     const entry = (saved().pages || []).filter((p) => p.id === id)[0];
-    return { ok: true, sheet: { id: id, facts: facts, ai: null, screenshot: null, stories: (entry && entry.stories) || [], at: '', by: '', codeHash: facts.codeHash }, codeChanged: false, saved: false };
+    return { ok: true, sheet: { id: id, facts: facts, ai: null, screenshots: [], stories: (entry && entry.stories) || [], at: '', by: '', codeHash: facts.codeHash }, codeChanged: false, saved: false, deleted: !!(entry && entry.deleted) };
   }
 
   function build(id, b) {
@@ -114,8 +127,9 @@ function open(opts) {
     if (!facts) return { ok: false, error: 'There is no page "' + id + '" in the project.' };
     const old = readSheet(id) || {};
     const entry = (saved().pages || []).filter((p) => p.id === id)[0];
-    const sh = { id: id, facts: facts, ai: old.ai || null, screenshot: old.screenshot || null,
+    const sh = { id: id, facts: facts, ai: old.ai || null, screenshots: old.id ? shotsOf(old) : [],
       stories: old.stories || (entry && entry.stories) || [], at: now().toISOString(), by: str((b && b.by) || ''), codeHash: facts.codeHash };
+    if (entry && entry.deleted) restore(id);
     saveSheet(sh);
     return { ok: true, sheet: sh };
   }
@@ -152,13 +166,53 @@ function open(opts) {
     const buf = Buffer.from(str(b.base64).replace(/^data:[^,]*,/, ''), 'base64');
     if (!buf.length) return { ok: false, error: 'There is no image.' };
     if (buf.length > 8 * 1024 * 1024) return { ok: false, error: 'The image is larger than 8 MB.' };
+    const shots = shotsOf(sh);
+    if (shots.length >= 30) return { ok: false, error: 'A page keeps up to 30 screenshots: delete one first.' };
     const ext = /png/i.test(str(b.mime)) ? '.png' : /webp/i.test(str(b.mime)) ? '.webp' : '.jpg';
-    if (sh.screenshot && sh.screenshot.file && sh.screenshot.file !== 'screens/' + fileOf(id) + ext) removeFile(sh.screenshot.file);
-    const file = 'screens/' + fileOf(id) + ext;
+    let n = shots.length + 1;
+    while (shots.some((x) => x.id === 's' + n)) n++;
+    const file = 'screens/' + fileOf(id) + '.' + n + ext;
     write(file, buf);
-    sh.screenshot = { file: file, at: now().toISOString(), by: str(b.by), source: b.source === 'capture' ? 'capture' : 'upload', bytes: buf.length };
+    const shot = { id: 's' + n, file: file, at: now().toISOString(), by: str(b.by), source: b.source === 'capture' ? 'capture' : 'upload',
+      caption: str(b.caption).slice(0, 120), bytes: buf.length };
+    shots.push(shot);
     saveSheet(sh);
-    return { ok: true, file: file, sheet: sh };
+    return { ok: true, file: file, shot: shot, sheet: sh };
+  }
+
+  function removeShot(id, shotId) {
+    const sh = readSheet(id);
+    if (!sh) return { ok: false, error: 'This page has no sheet.' };
+    const shots = shotsOf(sh);
+    const s1 = shots.filter((x) => x.id === shotId)[0];
+    if (!s1) return { ok: false, error: 'There is no such screenshot.' };
+    removeFile(s1.file);
+    sh.screenshots = shots.filter((x) => x.id !== shotId);
+    saveSheet(sh);
+    return { ok: true, sheet: sh };
+  }
+
+  /** Deletes a page from the catalog: its sheet, screenshots and story mappings go, and it is hidden from the lists
+   *  (the code still has it: restore brings it back, without a sheet). */
+  function remove(id) {
+    const entry = (saved().pages || []).filter((p) => p.id === id)[0];
+    const live = scan.list(root).some((p) => p.id === id);
+    if (!entry && !live) return { ok: false, error: 'There is no page "' + id + '".' };
+    const sh = readSheet(id);
+    if (sh) { shotsOf(sh).forEach((x) => removeFile(x.file)); removeFile(sheetFile(id)); }
+    const cat = catalog();
+    cat.pages = cat.pages.filter((p) => !(p.id === id && p.missing));
+    cat.pages.forEach((p) => { if (p.id === id) { p.stories = []; p.sheet = null; p.deleted = true; } });
+    writeCatalog(cat);
+    return { ok: true, removed: { stories: (entry && entry.stories) || [], screenshots: sh ? shotsOf(sh).length : 0 } };
+  }
+  function restore(id) {
+    const cat = catalog();
+    let found = false;
+    cat.pages.forEach((p) => { if (p.id === id) { p.deleted = false; found = true; } });
+    if (!found) return { ok: false, error: 'There is no page "' + id + '".' };
+    writeCatalog(cat);
+    return { ok: true };
   }
 
   async function capture(id, b) {
@@ -185,6 +239,7 @@ function open(opts) {
   function rescan() { const cat = catalog(); writeCatalog(cat); return { ok: true, pages: cat.pages.length }; }
 
   return {
+    remove: remove, restore: restore, removeShot: removeShot,
     catalog: catalog, rescan: rescan, sheet: sheet, build: build, assign: assign, unassign: unassign, forStory: forStory,
     saveShot: saveShot, capture: capture, saveAi: saveAi, canCapture: () => typeof o.capture === 'function',
     canWrite: () => { try { return fs.statSync(path.join(root, 'webApps', 'equiprite-next')).isDirectory(); } catch (e) { return false; } },

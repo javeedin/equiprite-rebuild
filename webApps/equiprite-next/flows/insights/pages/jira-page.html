@@ -488,10 +488,7 @@
           <oj-bind-for-each data="[[ $functions.pagesFor($variables.pgCat, $variables.selKey) ]]">
             <template data-oj-as="pp">
               <div class="nx-sp-row" :data-id="[[ pp.data.id ]]">
-                <span class="nx-pg-thumb">
-                  <oj-bind-if test="[[ !!(pp.data.sheet && pp.data.sheet.screenshot) ]]"><img :src="[[ $functions.pageThumb($application.path, pp.data) ]]" alt="" loading="lazy"></oj-bind-if>
-                  <oj-bind-if test="[[ !(pp.data.sheet && pp.data.sheet.screenshot) ]]"><span class="nx-pg-noshot"><oj-bind-text value="[[ $functions.pageApp(pp.data.app) ]]"></oj-bind-text></span></oj-bind-if>
-                </span>
+                <span :class="[[ 'nx-pg-appmark nx-pg-appmark--' + pp.data.app ]]"><oj-bind-text value="[[ $functions.pageApp(pp.data.app) ]]"></oj-bind-text></span>
                 <span class="nx-sp-main"><b><oj-bind-text value="[[ pp.data.label ]]"></oj-bind-text></b><span class="nx-note"><oj-bind-text value="[[ $functions.pageMeta(pp.data) ]]"></oj-bind-text></span></span>
                 <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" data-act="open" :data-id="[[ pp.data.id ]]" on-click="[[ $listeners.onPages ]]" title="Its technical sheet: screenshot, features, business logic, integrations"><span class="oj-ux-ico-layout-1" aria-hidden="true"></span>Technical sheet</button>
                 <oj-bind-if test="[[ $variables.pgInfo.canWrite ]]"><button type="button" class="nx-pg-mapx" data-act="unmap" :data-id="[[ pp.data.id ]]" on-click="[[ $listeners.onPages ]]" title="Unmap this page" aria-label="Unmap this page">×</button></oj-bind-if>

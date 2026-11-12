@@ -17,10 +17,11 @@ define(['resources/js/pagesClient', 'resources/js/storyAnalysis', 'resources/js/
     }
     subText(pages) {
       const ps = pages || [];
+      const deleted = ps.filter((p) => p.deleted).length;
       const sheets = ps.filter((p) => p.sheet).length;
       const stories = [];
       ps.forEach((p) => (p.stories || []).forEach((k) => { if (stories.indexOf(k) === -1) stories.push(k); }));
-      return ps.length + ' pages in the code · ' + sheets + ' with a technical sheet · ' + stories.length + ' Jira stories mapped';
+      return (ps.length - deleted) + ' pages in the code · ' + sheets + ' with a technical sheet · ' + stories.length + ' Jira stories mapped' + (deleted ? ' · ' + deleted + ' deleted' : '');
     }
     gitText(g) {
       if (!g || !g.available) return '';
@@ -30,22 +31,26 @@ define(['resources/js/pagesClient', 'resources/js/storyAnalysis', 'resources/js/
       return 'Branch ' + where + ' · everything is in git ✓';
     }
     needsPush(g) { return !!(g && g.available && ((g.pending && g.pending.length) || (g.unpushed && g.unpushed.length))); }
-    appChips(pages) {
-      const ps = pages || [];
+    appChips(pages, showDeleted) {
+      const ps = (pages || []).filter((p) => showDeleted || !p.deleted);
       return APPS.map((a) => ({ id: a[0], label: a[1], n: a[0] === 'all' ? ps.length : ps.filter((p) => p.app === a[0]).length })).filter((c) => c.id === 'all' || c.n > 0);
     }
-    shown(pages, q, appF, onlyMapped, onlySheet) {
-      const k = JSON.stringify([(pages || []).length, (pages || []).map((p) => (p.stories || []).length + (p.sheet ? 's' : '')).join(''), q, appF, onlyMapped, onlySheet]);
+    shown(pages, q, appF, onlyMapped, onlySheet, showDeleted) {
+      const k = JSON.stringify([(pages || []).length, (pages || []).map((p) => (p.stories || []).length + (p.sheet ? 's' + (p.sheet.screenshots || 0) : '') + (p.deleted ? 'd' : '')).join(''), q, appF, onlyMapped, onlySheet, showDeleted]);
       if (shownKept.k === k && shownKept.pages === pages) return shownKept.v;
       const s = String(q || '').trim().toLowerCase();
-      const v = (pages || []).filter((p) => (appF === 'all' || !appF || p.app === appF) && (!onlyMapped || (p.stories || []).length) && (!onlySheet || p.sheet)
+      const v = (pages || []).filter((p) => (showDeleted || !p.deleted) && (appF === 'all' || !appF || p.app === appF) && (!onlyMapped || (p.stories || []).length) && (!onlySheet || p.sheet)
         && (!s || [p.label, p.id, p.appName, (p.stories || []).join(' ')].join(' ').toLowerCase().indexOf(s) !== -1));
       shownKept = { k: k, v: v, pages: pages };
       return v;
     }
-    thumb(base, p) { return p && p.sheet && p.sheet.screenshot ? PC.shotUrl(base, { file: p.sheet.screenshot, at: p.sheet.at }) : ''; }
+    /** How many screenshots a page has (a catalog entry from before several were kept may have one, as `screenshot`). */
+    shotCount(p) { const sh = p && p.sheet; return !sh ? 0 : (typeof sh.screenshots === 'number' ? sh.screenshots : (sh.screenshot ? 1 : 0)); }
+    /** The screenshots, each with its index (the button's data-key) and its number. */
+    indexed(list) { return (list || []).map((x, i) => Object.assign({ i: String(i), n: String(i + 1) }, x)); }
+    shotAt(sheet, i) { const l = (sheet && sheet.screenshots) || []; const k = Number(i); return k >= 0 && k < l.length ? l[k] : null; }
     shot(base, s) { return PC.shotUrl(base, s); }
-    shotText(s) { return s ? (s.source === 'capture' ? 'Captured' : 'Uploaded') + ' ' + when(s.at) + (s.by ? ' by ' + s.by : '') : ''; }
+    shotText(s) { return s ? (s.caption ? s.caption + ' · ' : '') + (s.source === 'capture' ? 'Captured' : 'Uploaded') + ' ' + when(s.at) + (s.by ? ' by ' + s.by : '') : ''; }
     appShort(app) { return SHORT[app] || 'VB'; }
     firstStories(list) { const l = list || []; return l.length > 4 ? l.slice(0, 4).concat(['+' + (l.length - 4)]) : l; }
     stateText(sh, saved) {
@@ -54,13 +59,6 @@ define(['resources/js/pagesClient', 'resources/js/storyAnalysis', 'resources/js/
       return 'Sheet built ' + when(sh.at) + (sh.by ? ' by ' + sh.by : '') + ' · code ' + sh.codeHash;
     }
     routeText(r) { return r ? (r.menu ? 'Menu: ' + r.menu + ' · ' : '') + (r.url ? 'Opens at ' + r.url : '') : ''; }
-    tabs(sh) {
-      const f = (sh && sh.facts) || { features: {}, logic: {}, integrations: {}, links: [] };
-      return [{ id: 'overview', label: 'Overview' }, { id: 'features', label: 'Features ' + ((f.features.actions || []).length + (f.features.fields || []).length) },
-        { id: 'logic', label: 'Business logic ' + ((f.logic.chains || []).length + (f.logic.modules || []).length) },
-        { id: 'integrations', label: 'Integrations ' + ((f.integrations.rest || []).length + (f.integrations.reports || []).length) },
-        { id: 'links', label: 'Links & files' }];
-    }
     aiText(ai) { return ai ? 'Explained by ' + (ai.provider || 'AI') + ' · ' + when(ai.at) + (ai.by ? ' by ' + ai.by : '') : ''; }
     usesText(c) {
       return [c.calls.length ? 'calls ' + c.calls.join(', ') : '', c.reports.length ? 'reports ' + c.reports.join(', ') : '', c.opens.length ? 'opens ' + c.opens.join(', ') : ''].filter(Boolean).join(' · ');

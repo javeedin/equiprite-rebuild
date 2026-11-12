@@ -836,13 +836,16 @@ function createDevServer(o) {
             return jsonP(200, await commit(r, b, 'Application pages: map ' + String(b.key || '').toUpperCase() + ' to ' + b.id));
           }
           if (pathname === '/__pages/unassign' && post) return jsonP(200, await commit(ps.unassign(b.id, b.key), b, 'Application pages: unmap ' + String(b.key || '').toUpperCase() + ' from ' + b.id));
-          if (pathname === '/__pages/shot' && post) return jsonP(200, await commit(ps.saveShot(b.id, Object.assign({}, b, { by, source: 'upload' })), b, 'Application pages: screenshot of ' + b.id));
+          if (pathname === '/__pages/shot' && post) return jsonP(200, await commit(ps.saveShot(b.id, Object.assign({}, b, { by, source: 'upload' })), b, 'Application pages: a screenshot of ' + b.id));
           if (pathname === '/__pages/capture' && post) {
             const r = await ps.capture(b.id, { by });
             log(`Pages: capture ${b.id} -> ${r.ok ? r.file : r.error}`);
             return jsonP(200, await commit(r, b, 'Application pages: screenshot of ' + b.id));
           }
           if (pathname === '/__pages/ai' && post) return jsonP(200, await commit(ps.saveAi(b.id, Object.assign({}, b, { by })), b, 'Application pages: AI explanation of ' + b.id));
+          if (pathname === '/__pages/shot/remove' && post) return jsonP(200, await commit(ps.removeShot(b.id, b.shot), b, 'Application pages: a screenshot of ' + b.id + ' deleted'));
+          if (pathname === '/__pages/delete' && post) { const r = ps.remove(b.id); log(`Pages: delete ${b.id} -> ${r.ok ? 'done' : r.error}`); return jsonP(200, await commit(r, b, 'Application pages: delete ' + b.id)); }
+          if (pathname === '/__pages/restore' && post) return jsonP(200, await commit(ps.restore(b.id), b, 'Application pages: restore ' + b.id));
           if (pathname === '/__pages/git/save' && post) return jsonP(200, await ps.gitSave({ message: b.message, push: b.push !== false }));
           return jsonP(404, { error: 'Not found' });
         })().catch((e) => jsonP(200, { ok: false, error: e.message }));

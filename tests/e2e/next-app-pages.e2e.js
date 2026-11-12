@@ -49,14 +49,11 @@ const ID = 'vbredwoodapp/equipment-foundation/equipment-workbench';
     await page.waitForSelector('#pgSheetTitle', { timeout: 10000 });
     T.check('its name, app, flow/page, where it opens; not saved yet', (await text(page, '#pgSheetTitle')) === 'Equipment Manager Workbench'
       && /No technical sheet saved yet/.test(await text(page, '#pgSheetState')) && /Opens at \/vp\/shell\/equipment-foundation\/equipment-workbench/.test(await text(page, '#pgSheet')));
-    await page.click('#pgTabs [data-value="integrations"]');
-    await settle(page, 200);
+    T.check('one sheet, no tabs: Overview, Integrations, Business logic, Features, Links & files all shown', !(await page.$('#pgTabs'))
+      && ['pgOverview', 'pgIntegrations', 'pgLogic', 'pgFeatures', 'pgLinks'].every((x) => !!x) && (await page.$$('#pgSheet .nx-pg-part')).length === 5
+      && /Overview\s*Integrations\s*Business logic\s*Features\s*Links & files/.test((await page.$$eval('#pgSheet .nx-pg-part', (h) => h.map((x) => x.textContent).join(' ')))));
     T.check('Integrations: the REST call → GET, its path, EquipRite REST, the chain that makes it', /GET\s*\/equiprite\/v1\/views\/workbench-requests/.test(await text(page, '#pgRest')) && /EquipRite REST \(eqpt\)/.test(await text(page, '#pgRest')) && /WorkbenchInitChain/.test(await text(page, '#pgRest')));
-    await page.click('#pgTabs [data-value="logic"]');
-    await settle(page, 200);
     T.check('Business logic: each chain with what its comment says', /WorkbenchInitChain/.test(await text(page, '#pgLogic')) && /RowClickChain/.test(await text(page, '#pgLogic')) && /enforcePageAccessChain/.test(await text(page, '#pgLogic')));
-    await page.click('#pgTabs [data-value="features"]');
-    await settle(page, 200);
     T.check('Features: what reacts and runs what, the table\'s columns, when it runs, its components', /first selected row changed/.test(await text(page, '#pgFeatures')) && /Request #/.test(await text(page, '#pgFeatures'))
       && /when the page opens/.test(await text(page, '#pgFeatures')) && /oj-table/.test(await text(page, '#pgFeatures')));
 
@@ -71,13 +68,37 @@ const ID = 'vbredwoodapp/equipment-foundation/equipment-workbench';
     T.check('a story mapped: its chip on the sheet, its number in the page table, the sheet reused, pushed', /its sheet was already there/.test(await text(page, '#pgResult'))
       && JSON.parse(fs.readFileSync(path.join(pg.root, 'webApps/equiprite-next/resources/pages/catalog.json'), 'utf8')).pages.filter((p) => p.id === ID)[0].stories.join() === 'EQP-93'
       && pg.gitRemote('log', '-1', '--format=%s', 'pages/test') === 'Application pages: map EQP-93 to ' + ID);
+    T.check('no screenshot yet', /None yet/.test(await text(page, '#pgShots')));
     await page.click('#pgCapture');
-    await page.waitForSelector('#pgShot img', { timeout: 20000 });
-    await page.waitForFunction(() => { const i = document.querySelector('#pgShot img'); return i && i.complete && i.naturalWidth > 0; }, null, { timeout: 10000 }).catch(() => {});
-    T.check('Capture screenshot: the page opened at its address, the image shown, said who and when', shots[0] === 'vbredwoodapp /vp/shell/equipment-foundation/equipment-workbench'
-      && await page.$eval('#pgShot img', (i) => i.naturalWidth > 0).catch(() => false) && /Captured \d+ \w+ \d{4}/.test(await text(page, '#pgShot')));
+    await page.waitForSelector('#pgShots .nx-pg-shotbtn', { timeout: 20000 });
+    T.check('Capture screenshot: the page opened at its address; a numbered button, no thumbnail on the sheet', shots[0] === 'vbredwoodapp /vp/shell/equipment-foundation/equipment-workbench'
+      && (await page.$$('#pgShots .nx-pg-shotbtn')).length === 1 && !(await page.$('#pgSheet > img, #pgShot')) && !(await page.$('#pgViewer')));
+    await page.setInputFiles('#pgShotFile', [{ name: 'Filters open.png', mimeType: 'image/png', buffer: Buffer.from(PNG, 'base64') }, { name: 'Row picked.png', mimeType: 'image/png', buffer: Buffer.from(PNG, 'base64') }]);
+    await page.waitForFunction(() => document.querySelectorAll('#pgShots .nx-pg-shotbtn').length === 3, null, { timeout: 20000 }).catch(() => {});
+    T.check('Upload several at once: added to the capture (3 now), one commit', (await page.$$('#pgShots .nx-pg-shotbtn')).length === 3 && /2 screenshots saved/.test(await text(page, '#pgResult'))
+      && pg.gitRemote('log', '-1', '--format=%s', 'pages/test') === 'Application pages: a screenshot of ' + ID);
+    await page.click('#pgShots .nx-pg-shotbtn[data-key="1"]');
+    await page.waitForSelector('#pgViewer', { timeout: 10000 });
+    await page.waitForFunction(() => { const i = document.getElementById('pgViewerImg'); return i && i.complete && i.naturalWidth > 0; }, null, { timeout: 10000 }).catch(() => {});
+    T.check('a button opens the viewer: that screenshot full size, its caption, who and when', /Screenshot 2 of 3/.test(await text(page, '#pgViewerTitle')) && /Filters open · Uploaded \d+ \w+ \d{4}/.test(await text(page, '#pgViewerText'))
+      && await page.$eval('#pgViewerImg', (i) => i.naturalWidth > 0).catch(() => false));
+    await page.click('#pgViewerNext');
+    T.check('Next / Previous move through them', /Screenshot 3 of 3/.test(await text(page, '#pgViewerTitle')) && /Row picked/.test(await text(page, '#pgViewerText')) && await page.isDisabled('#pgViewerNext'));
+    await page.click('#pgViewerPrev'); await page.click('#pgViewerPrev');
+    T.check('…to the capture', /Screenshot 1 of 3/.test(await text(page, '#pgViewerTitle')) && /^Captured/.test(await text(page, '#pgViewerText')));
+    await page.click('#pgViewerNext');
+    page.once('dialog', (d) => d.accept());
+    await page.click('#pgShotDelete');
+    await page.waitForFunction(() => document.querySelectorAll('#pgShots .nx-pg-shotbtn').length === 2, null, { timeout: 20000 }).catch(() => {});
+    T.check('Delete in the viewer removes that one (and is pushed)', (await page.$$('#pgShots .nx-pg-shotbtn')).length === 2 && !/Filters open/.test(await text(page, '#pgViewerText'))
+      && pg.gitRemote('log', '-1', '--format=%s', 'pages/test') === 'Application pages: a screenshot of ' + ID + ' deleted');
+    await page.click('#pgViewerClose');
+    T.check('the viewer closes', !(await page.$('#pgViewer')));
     await page.click('#pgExplain');
     await page.waitForFunction(() => { const f = document.getElementById('pgAi'); return f && /What this page is for/.test(f.getAttribute('srcdoc') || ''); }, null, { timeout: 20000 }).catch(() => {});
+    await page.click('#pgOverview .nx-pg-facts [data-key="pgIntegrations"]');
+    await settle(page, 600);
+    T.check('a count in the Overview scrolls to its part', await page.$eval('#pgIntegrations', (e) => { const r = e.getBoundingClientRect(); return r.top < 200 && r.top > -50; }).catch(() => false));
     T.check('Explain with AI: from the code facts (the page, its chains and REST calls), saved with the sheet', /What this page is for/.test((await page.getAttribute('#pgAi', 'srcdoc')) || '')
       && llm.some((b) => /PAGE Equipment Manager Workbench/.test(b) && /GET \/equiprite\/v1\/views\/workbench-requests/.test(b)) && /Explained by ChatGPT/.test(await text(page, '#pgOverview')));
     await page.fill('#pgSearch', '');
@@ -85,11 +106,33 @@ const ID = 'vbredwoodapp/equipment-foundation/equipment-workbench';
     await page.click('#pgApps [data-value="all"]');
     await page.click('#pgOnlyMapped');
     await settle(page, 300);
-    T.check('"Mapped to stories" shows the one page, with its story and screenshot', (await page.$$('#pgRows .nx-pg-row')).length === 1 && /EQP-93/.test(await text(page, '#pgRows')) && (await page.$('#pgRows .nx-pg-thumb img')) !== null);
+    T.check('"Mapped to stories" shows the one page: its story, its screenshot count — no thumbnail', (await page.$$('#pgRows .nx-pg-row')).length === 1 && /EQP-93/.test(await text(page, '#pgRows'))
+      && /Equipment Manager Workbench\s*●\s*2/.test(await text(page, '#pgRows .nx-pg-row')) && !(await page.$('#pgRows img')));
     T.check('…and the subtitle counts it', /1 with a technical sheet · 1 Jira stories mapped/.test(await text(page, '#pgSub')));
     await page.click('#pgOnlyMapped');
     await page.evaluate(() => { const c = document.querySelector('.nx-content'); if (c) c.scrollTop = 0; });
     await env.shot('next-app-pages.png');
+
+    T.section('delete a page from the catalog, and restore it');
+    const DEL = 'vbredwoodapp//shell';
+    await page.click('#pgRows .nx-pg-row[data-id="' + DEL + '"]');
+    await page.waitForFunction((d) => /Shell/.test((document.getElementById('pgSheetTitle') || {}).textContent || ''), DEL, { timeout: 10000 });
+    await page.click('#pgBuild');
+    await page.waitForFunction(() => /Sheet built/.test((document.getElementById('pgSheetState') || {}).textContent || ''), null, { timeout: 20000 });
+    page.once('dialog', (d) => d.accept());
+    await page.click('#pgDelete');
+    await page.waitForSelector('#pgDeletedNote', { timeout: 20000 }).catch(() => {});
+    T.check('Delete (after a confirm): its sheet gone, said so, hidden from the list, pushed', await page.isVisible('#pgDeletedNote') && !(await page.$('#pgRows .nx-pg-row[data-id="' + DEL + '"]'))
+      && /1 deleted/.test(await text(page, '#pgSub')) && pg.gitRemote('log', '-1', '--format=%s', 'pages/test') === 'Application pages: delete ' + DEL
+      && !fs.existsSync(path.join(pg.root, 'webApps/equiprite-next/resources/pages/sheets/vbredwoodapp._root.shell.json')));
+    await page.click('#pgShowDeleted');
+    await settle(page, 300);
+    T.check('"Show deleted" lists it, marked Deleted', /Shell\s*Deleted/.test(await text(page, '#pgRows .nx-pg-row[data-id="' + DEL + '"]')));
+    await page.click('#pgRestore');
+    await page.waitForFunction(() => !document.getElementById('pgDeletedNote'), null, { timeout: 20000 }).catch(() => {});
+    await page.click('#pgShowDeleted');
+    await settle(page, 300);
+    T.check('Restore brings it back into the list', !!(await page.$('#pgRows .nx-pg-row[data-id="' + DEL + '"]')) && !/deleted/.test(await text(page, '#pgSub')));
     T.eq('no browser errors', errs().join(' | ').slice(0, 1500), '');
   } catch (e) {
     T.check('no exception: ' + (e && e.message), false);
