@@ -108,6 +108,15 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     sendMail: async (b) => { graphSent.push(b); return { ok: true }; },
     people: async () => ({ ok: true, available: true, contacts: [{ name: 'Nabil Khan', email: 'nabil.khan@rite.digital' }] }), saveConfig: () => {}, beginSignIn: async () => ({ ok: true }), signOut: () => {},
   } });
+  // A shared Ask AI store (for "Analyze with AI") with a stub LLM, pre-set to OpenAI so analysis/chat run.
+  const llmCalls = [];
+  const llmFetch = async (url) => {
+    llmCalls.push(url);
+    if (/chat\/completions/.test(url)) return { ok: true, status: 200, text: async () => JSON.stringify({ choices: [{ message: { content: '## Requirement\n- Equipment master list with smart search.\n## Current situation\n- DEVELOPMENT; map view still missing per the comments.\n## What to do next\n- Add the map view and the Edit option.\n## Risks & open questions\n- None noted.\n## Suggested EquipRite page\n- Equipment master — this is the catalog list.' } }] }) };
+    return { ok: false, status: 404, text: async () => '{}' };
+  };
+  const aiStore = await require('../../desktop/lib/aiSql').open({ file: path.join(dir, 'ai.json'), encrypt: enc, decrypt: dec, fetch: llmFetch });
+  aiStore.save({ provider: 'openai', key: 'sk-test', model: 'gpt-4o' });
   const evidenceDir = path.join(dir, 'EquipRite Test Evidence');
   const recStore = TE.open({ dir: evidenceDir, reveal: (f) => { revealed.push(f); } });
   const revealed = [];
@@ -126,7 +135,7 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     revealModels: () => ({ dir: '/models' }),
     transcribe: (file, opts) => { transcribed.push({ file, opts }); return Promise.resolve({ ok: true, engine: 'local', lang: 'en', model: 'ggml-base.bin',
       segments: [{ start: 0, end: 2.6, text: 'The map does not load on this story.' }, { start: 2.6, end: 5.2, text: 'I click Edit and nothing happens.' }], ms: 20 }); } };
-  const env = await E.start({ port: 19760, handle, app: 'next', jiraStore, recStore, transcribe, followupsStore: fuStore, minutesStore, init: E.recorderStub });
+  const env = await E.start({ port: 19760, handle, app: 'next', jiraStore, recStore, transcribe, followupsStore: fuStore, minutesStore, aiStore, init: E.recorderStub });
   const page = env.page;
   const errs = () => env.errors.filter((e) => !/404|401|Failed to load resource/.test(e) && !e.startsWith('warning'));
   try {
@@ -756,6 +765,27 @@ const complete = (page, scope, tags) => page.evaluate((a) => a[1].map((t) => {
     await page.click('#jiraRwTable .oj-table-body-row >> nth=0');
     await page.waitForSelector('#jiraItem', { state: 'visible', timeout: 10000 }).catch(() => {});
     T.check('a row opens the drawer', await page.isVisible('#jiraItem'));
+
+    T.section('Analyze with AI: a new tab with the story, an AI analysis and a chatbot');
+    await page.click('#jiraAnalyze');
+    await page.waitForSelector('#anStory', { timeout: 20000 });
+    await settle(page, 700);
+    T.check('the analysis tab shows the story, its sub-tasks and comments',
+      /EQP-12/.test(await text(page, '#anStory')) && /Equipment Master List View/.test(await text(page, '#anStory'))
+      && /EQP-12-2/.test(await text(page, '#anSubs')) && /missing/i.test(await text(page, '#anComments')));
+    await page.waitForFunction(() => { const f = document.getElementById('anAnalysis'); return f && /What to do next/.test(f.getAttribute('srcdoc') || ''); }, null, { timeout: 20000 }).catch(() => {});
+    const anDoc = (await page.getAttribute('#anAnalysis', 'srcdoc')) || '';
+    T.check('the AI analysis is broken into the fixed headings and suggests the page, via the shared Ask AI',
+      /Requirement/.test(anDoc) && /What to do next/.test(anDoc) && /Suggested EquipRite page/.test(anDoc) && /Equipment master/i.test(anDoc) && llmCalls.some((u) => /chat\/completions/.test(u)));
+    await page.evaluate(() => { const i = document.getElementById('anChatInput'); i.value = 'what should I test first?'; i.dispatchEvent(new Event('input', { bubbles: true })); document.getElementById('anChatSend').click(); });
+    await page.waitForFunction(() => { const f = document.getElementById('anChat'); return f && /class="b a"/.test(f.getAttribute('srcdoc') || ''); }, null, { timeout: 20000 }).catch(() => {});
+    const chDoc = (await page.getAttribute('#anChat', 'srcdoc')) || '';
+    T.check('the chatbot answers a follow-up question, grounded in the story', /what should I test first/i.test(chDoc) && chDoc.indexOf('class="b a"') !== -1, 'chatDoc=' + chDoc.slice(0, 200) + ' | llm=' + llmCalls.length);
+    await env.shot('next-jira-analysis.png');
+    // back to the Jira stories tab for the remaining steps
+    await page.locator('[role="tab"]').filter({ hasText: 'Jira' }).first().click().catch(() => {});
+    await page.waitForSelector('#jiraGrid', { timeout: 20000 }).catch(() => {});
+
     await page.keyboard.press('Escape');
     T.eq('no browser errors in Redwood', errs().join(' | ').slice(0, 1500), '');
     await env.setLook('current');

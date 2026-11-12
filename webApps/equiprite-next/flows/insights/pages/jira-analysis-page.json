@@ -1,0 +1,33 @@
+{
+  "description": "Analyze with AI, for one Jira story (opened by the AI icon on a story). Reads the story with its sub-tasks and comments from the connected Jira (JQL key = …), and asks the shared Ask AI for an analysis broken into Requirement, Current situation, What to do next, Risks & open questions, and the EquipRite page it lands on. A chatbot answers follow-up questions grounded in the same story. Rules: resources/js/storyAnalysis.js. Read only.",
+  "navigation": { "embeddable": "enabled" },
+  "variables": {
+    "key": { "type": "string", "defaultValue": "", "input": "fromCaller", "description": "The Jira story key (the tab's key)." },
+    "loading": { "type": "boolean", "defaultValue": true },
+    "error": { "type": "string", "defaultValue": "" },
+    "notConnected": { "type": "boolean", "defaultValue": false },
+    "story": { "type": "any", "defaultValue": null, "description": "The story (jiraBacklog.fromIssue) with subtasks and comments." },
+    "pages": { "type": "any[]", "defaultValue": [], "description": "The EquipRite screens, for the 'which page' suggestion." },
+    "analyzing": { "type": "boolean", "defaultValue": false },
+    "analysisHtml": { "type": "string", "defaultValue": "", "description": "The AI analysis rendered to HTML." },
+    "analysisProvider": { "type": "string", "defaultValue": "" },
+    "aiReady": { "type": "boolean", "defaultValue": false },
+    "chat": { "type": "any[]", "defaultValue": [], "description": "The chatbot turns: [{ role, text, html }]." },
+    "chatDraft": { "type": "string", "defaultValue": "" },
+    "chatBusy": { "type": "boolean", "defaultValue": false }
+  },
+  "eventListeners": {
+    "vbEnter": { "chains": [ { "chain": "loadChain" } ] },
+    "onAnalyze": { "chains": [ { "chain": "analyzeChain", "parameters": { "force": true } } ] },
+    "onChatInput": { "chains": [ { "chain": "setChain", "parameters": { "field": "chatDraft", "value": "{{ $event.target.value }}" } } ] },
+    "onChatKey": { "chains": [ { "chain": "chatChain", "parameters": { "key": "{{ $event.key }}" } } ] },
+    "onChatSend": { "chains": [ { "chain": "chatChain", "parameters": { "key": "{{ 'Enter' }}" } } ] }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}

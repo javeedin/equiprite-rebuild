@@ -162,6 +162,11 @@ define(['resources/js/rules'], function (rules) {
     'jira-sprint': { flow: 'insights', page: 'jira-sprint', icon: 'oj-ux-ico-list', navId: 'jira',
       key: function (p) { return p ? String(p.id || p.name || '') : ''; },
       title: function (p) { return 'Sprint ' + ((p && (p.name || p.id)) || ''); } },
+    // "Analyze with AI" for one Jira story ({ key }): the story + its sub-tasks and comments, an AI analysis and a chatbot,
+    // in a tab of its own (flows/insights jira-analysis). Opened by the AI icon on a story.
+    'jira-analysis': { flow: 'insights', page: 'jira-analysis', icon: 'oj-ux-ico-magic-wand', navId: 'jira',
+      key: function (p) { return p ? String(p.key || '') : ''; },
+      title: function (p) { return 'AI · ' + ((p && p.key) || 'Story'); } },
     // An agreement is keyed by its number ({ number: 'RNT-0002' }); { id: 'new' } is a new one.
     agreement: { flow: 'commercial', page: 'agreement', icon: 'oj-ux-ico-file-text', navId: 'agreements',
       title: function (p) { return (p && (p.number || (p.id === 'new' ? 'New agreement' : p.id))) || 'Agreement'; } },

@@ -1,0 +1,95 @@
+<!-- Analyze with AI, for one Jira story (opened by the AI icon on a story). Left: the story with its sub-tasks and
+     comments. Right: the AI analysis (Requirement / Current situation / What to do next / Risks / Suggested page) and a
+     chatbot for follow-up questions. Rules: resources/js/storyAnalysis.js. Read only. -->
+<div class="nx-page nx-an">
+  <div class="nx-pagehead">
+    <div>
+      <div class="nx-kicker">Insights · Jira</div>
+      <h1>Analyze with AI</h1>
+      <div class="nx-sub"><b><oj-bind-text value="[[ $variables.key ]]"></oj-bind-text></b><oj-bind-if test="[[ $variables.story ]]"> · <oj-bind-text value="[[ $variables.story.summary ]]"></oj-bind-text></oj-bind-if></div>
+    </div>
+    <div class="nx-actions">
+      <oj-bind-if test="[[ $variables.story && $variables.story.url ]]"><a class="nx-btn nx-btn--plain" :href="[[ $variables.story.url ]]" target="_blank" rel="noopener"><span class="oj-ux-ico-external-link" aria-hidden="true"></span> Open in Jira</a></oj-bind-if>
+      <oj-bind-if test="[[ $variables.story && $variables.aiReady ]]"><button type="button" class="nx-btn nx-btn--plain" id="anReanalyze" on-click="[[ $listeners.onAnalyze ]]" :disabled="[[ $variables.analyzing ]]"><oj-bind-text value="[[ $variables.analyzing ? '…analysing' : '✨ Re-run analysis' ]]"></oj-bind-text></button></oj-bind-if>
+    </div>
+  </div>
+
+  <oj-bind-if test="[[ $variables.loading ]]"><div class="nx-empty" id="anLoading">Reading the story from Jira…</div></oj-bind-if>
+  <oj-bind-if test="[[ !$variables.loading && $variables.notConnected ]]"><div class="nx-empty" id="anNC">Not connected to Jira. Open the <b>Jira stories</b> page and connect, then re-open this story.</div></oj-bind-if>
+  <oj-bind-if test="[[ !$variables.loading && !$variables.notConnected && $variables.error ]]"><div class="nx-empty nx-an-err" id="anErr"><oj-bind-text value="[[ $variables.error ]]"></oj-bind-text></div></oj-bind-if>
+
+  <oj-bind-if test="[[ !$variables.loading && $variables.story ]]">
+    <div class="nx-an-cols">
+      <!-- The story -->
+      <section class="nx-card nx-an-story" id="anStory">
+        <div class="nx-an-storyhead">
+          <b class="nx-an-key"><oj-bind-text value="[[ $variables.story.key ]]"></oj-bind-text></b>
+          <span :class="[[ $functions.badge($variables.story.statusCat) ]]"><oj-bind-text value="[[ $variables.story.status ]]"></oj-bind-text></span>
+        </div>
+        <h2 class="nx-an-sum"><oj-bind-text value="[[ $variables.story.summary ]]"></oj-bind-text></h2>
+        <div class="nx-an-meta">
+          <span><b>Assignee:</b> <oj-bind-text value="[[ $variables.story.assignee || 'Unassigned' ]]"></oj-bind-text></span>
+          <oj-bind-if test="[[ $variables.story.sprint ]]"><span><b>Sprint:</b> <oj-bind-text value="[[ $variables.story.sprint ]]"></oj-bind-text></span></oj-bind-if>
+          <oj-bind-if test="[[ $variables.story.epicKey ]]"><span><b>Epic:</b> <oj-bind-text value="[[ $variables.story.epicKey + ' ' + $variables.story.epicName ]]"></oj-bind-text></span></oj-bind-if>
+          <oj-bind-if test="[[ $variables.story.due ]]"><span><b>Due:</b> <oj-bind-text value="[[ $variables.story.due ]]"></oj-bind-text></span></oj-bind-if>
+        </div>
+        <div class="nx-an-chips">
+          <oj-bind-for-each data="[[ $functions.labels($variables.story) ]]"><template data-oj-as="l"><span class="nx-an-lab"><oj-bind-text value="[[ l.data ]]"></oj-bind-text></span></template></oj-bind-for-each>
+          <oj-bind-for-each data="[[ $functions.fddRefs($variables.story) ]]"><template data-oj-as="f"><span class="nx-an-fdd">FDD <oj-bind-text value="[[ f.data ]]"></oj-bind-text></span></template></oj-bind-for-each>
+        </div>
+        <oj-bind-if test="[[ $variables.story.body ]]"><div class="nx-an-sec">Description</div><p class="nx-an-body"><oj-bind-text value="[[ $variables.story.body ]]"></oj-bind-text></p></oj-bind-if>
+        <oj-bind-if test="[[ $variables.story.ac ]]"><div class="nx-an-sec">Acceptance criteria</div><p class="nx-an-body"><oj-bind-text value="[[ $variables.story.ac ]]"></oj-bind-text></p></oj-bind-if>
+
+        <div class="nx-an-sec">Sub-tasks (<oj-bind-text value="[[ $functions.count($functions.sub($variables.story)) ]]"></oj-bind-text>)</div>
+        <div class="nx-an-subs" id="anSubs">
+          <oj-bind-for-each data="[[ $functions.sub($variables.story) ]]">
+            <template data-oj-as="t">
+              <div class="nx-an-subrow">
+                <a class="nx-an-subkey" :href="[[ t.data.url ]]" target="_blank" rel="noopener"><oj-bind-text value="[[ t.data.key ]]"></oj-bind-text></a>
+                <span class="nx-an-subsum"><oj-bind-text value="[[ t.data.summary ]]"></oj-bind-text></span>
+                <span :class="[[ $functions.badge(t.data.statusCat) ]]"><oj-bind-text value="[[ t.data.status ]]"></oj-bind-text></span>
+              </div>
+            </template>
+          </oj-bind-for-each>
+          <oj-bind-if test="[[ $functions.count($functions.sub($variables.story))===0 ]]"><p class="nx-note">No sub-tasks.</p></oj-bind-if>
+        </div>
+
+        <div class="nx-an-sec">Comments (<oj-bind-text value="[[ $functions.count($functions.comments($variables.story)) ]]"></oj-bind-text>)</div>
+        <div class="nx-an-comments" id="anComments">
+          <oj-bind-for-each data="[[ $functions.comments($variables.story) ]]">
+            <template data-oj-as="c">
+              <div class="nx-an-comment">
+                <div class="nx-an-ctop"><b><oj-bind-text value="[[ c.data.author ]]"></oj-bind-text></b><span class="nx-note"><oj-bind-text value="[[ c.data.when ]]"></oj-bind-text></span></div>
+                <div class="nx-an-cbody"><oj-bind-text value="[[ c.data.text ]]"></oj-bind-text></div>
+              </div>
+            </template>
+          </oj-bind-for-each>
+          <oj-bind-if test="[[ $functions.count($functions.comments($variables.story))===0 ]]"><p class="nx-note">No comments.</p></oj-bind-if>
+        </div>
+      </section>
+
+      <!-- AI analysis + chatbot -->
+      <section class="nx-an-ai">
+        <div class="nx-card nx-an-analysis">
+          <div class="nx-card-head"><h2 class="nx-h2">AI analysis</h2><span class="nx-min-flex"></span><oj-bind-if test="[[ $variables.analysisProvider ]]"><span class="nx-note">by <oj-bind-text value="[[ $variables.analysisProvider ]]"></oj-bind-text></span></oj-bind-if></div>
+          <oj-bind-if test="[[ !$variables.aiReady ]]">
+            <div class="nx-empty" id="anSetup">Set up AI to analyse this story — open <b>Standup minutes</b> (or the SQL worksheet) and choose a provider under <b>Set up AI</b>. The cheapest option is <b>Claude Code (your subscription)</b>.</div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.aiReady ]]">
+            <oj-bind-if test="[[ $variables.analyzing && !$variables.analysisHtml ]]"><div class="nx-empty" id="anBusy">Analysing the story, its sub-tasks and comments…</div></oj-bind-if>
+            <iframe class="nx-an-frame" id="anAnalysis" title="AI analysis" sandbox="" :srcdoc="[[ $functions.doc($variables.analysisHtml) ]]"></iframe>
+          </oj-bind-if>
+        </div>
+
+        <div class="nx-card nx-an-chat">
+          <div class="nx-card-head"><h2 class="nx-h2">Ask about this story</h2><span class="nx-min-flex"></span><oj-bind-if test="[[ $variables.chatBusy ]]"><span class="nx-note">…thinking</span></oj-bind-if></div>
+          <iframe class="nx-an-chatframe" id="anChat" title="Chat" sandbox="" :srcdoc="[[ $functions.chatDoc($variables.chat) ]]"></iframe>
+          <div class="nx-an-chatbar">
+            <input type="text" id="anChatInput" class="nx-an-chatinput" autocomplete="off" :value="[[ $variables.chatDraft ]]" on-input="[[ $listeners.onChatInput ]]" on-keydown="[[ $listeners.onChatKey ]]" :placeholder="[[ $variables.aiReady ? 'Ask a follow-up question…' : 'Set up AI first to ask questions' ]]" :disabled="[[ !$variables.aiReady ]]">
+            <button type="button" class="nx-btn nx-btn--cta nx-an-send" id="anChatSend" on-click="[[ $listeners.onChatSend ]]" :disabled="[[ !$variables.aiReady || $variables.chatBusy ]]">Send</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </oj-bind-if>
+</div>

@@ -532,6 +532,9 @@
         }
       ]
     },
+    "onOpenAnalysis": {
+      "chains": [ { "chain": "openAnalysisChain" } ]
+    },
     "onDrawerClose": {
       "chains": [
         {
