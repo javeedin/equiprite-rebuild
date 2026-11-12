@@ -114,7 +114,7 @@ define([], function () {
     var box = el.getBoundingClientRect();
     svg.setAttribute('width', String(el.scrollWidth)); svg.setAttribute('height', String(el.scrollHeight));
     var defs = document.createElementNS(NS, 'defs');
-    ['a', 'h'].forEach(function (k) {
+    ['a', 'h', 'o'].forEach(function (k) {
       var mk = document.createElementNS(NS, 'marker');
       mk.setAttribute('id', 'nx-pm-arrow-' + k + '-' + (el.id || 'm')); mk.setAttribute('viewBox', '0 0 10 10'); mk.setAttribute('refX', '9'); mk.setAttribute('refY', '5');
       mk.setAttribute('markerWidth', '7'); mk.setAttribute('markerHeight', '7'); mk.setAttribute('orient', 'auto-start-reverse');
@@ -129,28 +129,86 @@ define([], function () {
       pos[n.getAttribute('data-key')] = { l: l, r: l + r.width, t: t, b: t + r.height, cy: t + r.height / 2 };
     });
     var hot = el.getAttribute('data-hot') || '';
+    // Each line gets its own point on a box's side (spread along it, in the order of the boxes at the other end), so
+    // lines into or out of a busy page fan out instead of meeting in one spot. Forward: right side → left side; back
+    // to an earlier column: left → right; within a column: right → right (a loop in the gap).
+    var lines = [];
     edges.forEach(function (e) {
       var A = pos[e[0]], B = pos[e[1]];
       if (!A || !B) return;
-      var d, back = false;
-      if (B.l > A.r + 4) { // on to a later column
-        var dx = Math.max(24, (B.l - A.r) / 2);
-        d = 'M ' + A.r + ' ' + A.cy + ' C ' + (A.r + dx) + ' ' + A.cy + ', ' + (B.l - dx) + ' ' + B.cy + ', ' + (B.l - 2) + ' ' + B.cy;
-      } else if (B.r < A.l - 4) { // back to an earlier column
-        back = true;
-        var bx = Math.max(24, (A.l - B.r) / 2);
-        d = 'M ' + A.l + ' ' + A.cy + ' C ' + (A.l - bx) + ' ' + A.cy + ', ' + (B.r + bx) + ' ' + B.cy + ', ' + (B.r + 2) + ' ' + B.cy;
-      } else { // within one column: a loop on the right
-        back = true;
-        var bulge = 26 + Math.min(50, Math.abs(B.cy - A.cy) / 5);
-        d = 'M ' + A.r + ' ' + A.cy + ' C ' + (A.r + bulge) + ' ' + A.cy + ', ' + (B.r + bulge) + ' ' + B.cy + ', ' + (B.r + 2) + ' ' + B.cy;
+      var kind = B.l > A.r + 4 ? 'fwd' : (B.r < A.l - 4 ? 'back' : 'loop');
+      lines.push({ a: e[0], b: e[1], A: A, B: B, kind: kind, sa: kind === 'back' ? 'l' : 'r', sb: kind === 'fwd' ? 'l' : 'r' });
+    });
+    var ports = {};
+    lines.forEach(function (ln) {
+      (ports[ln.a + '|' + ln.sa] = ports[ln.a + '|' + ln.sa] || []).push({ ln: ln, end: 'a', other: ln.B.cy });
+      (ports[ln.b + '|' + ln.sb] = ports[ln.b + '|' + ln.sb] || []).push({ ln: ln, end: 'b', other: ln.A.cy });
+    });
+    Object.keys(ports).forEach(function (k) {
+      var list = ports[k].sort(function (x, y) { return x.other - y.other; });
+      list.forEach(function (pt, i) {
+        var N = pt.end === 'a' ? pt.ln.A : pt.ln.B;
+        var h = N.b - N.t, pad = Math.min(10, h / 4);
+        pt.ln[pt.end === 'a' ? 'ya' : 'yb'] = list.length === 1 ? N.cy : N.t + pad + (h - 2 * pad) * (i + 0.5) / list.length;
+      });
+    });
+    lines.forEach(function (ln, i) {
+      var A = ln.A, B = ln.B, ya = ln.ya, yb = ln.yb, d;
+      if (ln.kind === 'fwd') {
+        var dx = Math.max(30, (B.l - A.r) * 0.55);
+        d = 'M ' + A.r + ' ' + ya + ' C ' + (A.r + dx) + ' ' + ya + ', ' + (B.l - dx) + ' ' + yb + ', ' + (B.l - 2) + ' ' + yb;
+      } else if (ln.kind === 'back') {
+        var bx = Math.max(30, (A.l - B.r) * 0.55);
+        d = 'M ' + A.l + ' ' + ya + ' C ' + (A.l - bx) + ' ' + ya + ', ' + (B.r + bx) + ' ' + yb + ', ' + (B.r + 2) + ' ' + yb;
+      } else {
+        var bulge = 22 + (i % 4) * 9 + Math.min(40, Math.abs(yb - ya) / 6);
+        d = 'M ' + A.r + ' ' + ya + ' C ' + (A.r + bulge) + ' ' + ya + ', ' + (B.r + bulge) + ' ' + yb + ', ' + (B.r + 2) + ' ' + yb;
       }
-      var isHot = hot && (e[0] === hot || e[1] === hot);
+      var isHot = hot && (ln.a === hot || ln.b === hot);
       var p = document.createElementNS(NS, 'path');
       p.setAttribute('d', d);
-      p.setAttribute('class', 'nx-pm-edge' + (back ? ' nx-pm-edge--back' : '') + (isHot ? ' nx-pm-edge--hot' : ''));
+      p.setAttribute('data-a', ln.a); p.setAttribute('data-b', ln.b);
+      p.setAttribute('class', 'nx-pm-edge' + (ln.kind !== 'fwd' ? ' nx-pm-edge--back' : '') + (isHot ? ' nx-pm-edge--hot' : ''));
       p.setAttribute('marker-end', 'url(#nx-pm-arrow-' + (isHot ? 'h' : 'a') + '-' + (el.id || 'm') + ')');
       svg.appendChild(p);
+    });
+    hoverable(el);
+    if (el.classList.contains('nx-pm--hover') && el.getAttribute('data-hover') && el.__nxApply) el.__nxApply(el.getAttribute('data-hover'));
+  }
+  // Pointing at a page: only its lines stay bright (the others fade), and the pages at their other ends are marked.
+  function hoverable(el) {
+    if (el.__nxHover) return;
+    el.__nxHover = true;
+    var orange = 'url(#nx-pm-arrow-o-' + (el.id || 'm') + ')';
+    var clear = function () {
+      el.classList.remove('nx-pm--hover');
+      Array.prototype.forEach.call(el.querySelectorAll('.is-hover'), function (x) { x.classList.remove('is-hover'); if (x.getAttribute('data-m')) x.setAttribute('marker-end', x.getAttribute('data-m')); });
+      Array.prototype.forEach.call(el.querySelectorAll('.nx-pm-node--near'), function (x) { x.classList.remove('nx-pm-node--near'); });
+    };
+    // (also after a redraw while pointing: the new lines lit again)
+    el.__nxApply = function (key) { apply(key); };
+    el.addEventListener('mouseover', function (ev) {
+      var n = ev.target && ev.target.closest ? ev.target.closest('[data-key]') : null;
+      if (!n || !el.contains(n)) return;
+      var key = n.getAttribute('data-key');
+      if (el.getAttribute('data-hover') === key && el.classList.contains('nx-pm--hover')) return;
+      apply(key);
+    });
+    function apply(key) {
+      clear();
+      el.setAttribute('data-hover', key);
+      var near = {};
+      Array.prototype.forEach.call(el.querySelectorAll('path.nx-pm-edge'), function (p) {
+        var a = p.getAttribute('data-a'), b = p.getAttribute('data-b');
+        if (a === key || b === key) { p.classList.add('is-hover'); p.setAttribute('data-m', p.getAttribute('marker-end')); p.setAttribute('marker-end', orange); near[a === key ? b : a] = true; }
+      });
+      Array.prototype.forEach.call(el.querySelectorAll('[data-key]'), function (x) { if (near[x.getAttribute('data-key')]) x.classList.add('nx-pm-node--near'); });
+      el.classList.add('nx-pm--hover');
+    }
+    el.addEventListener('mouseout', function (ev) {
+      var to = ev.relatedTarget;
+      var n = to && to.closest ? to.closest('[data-key]') : null;
+      if (!n || !el.contains(n)) { el.removeAttribute('data-hover'); clear(); }
     });
   }
   function redraw() {

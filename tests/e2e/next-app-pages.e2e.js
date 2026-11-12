@@ -163,6 +163,14 @@ const ID = 'vbredwoodapp/equipment-foundation/equipment-workbench';
     T.check('…the open page marked, its links highlighted', /My Billing/.test(await text(page, '#pgGlobalMap .nx-pm-node--self')) && (await page.$$('#pgGlobalMap svg path.nx-pm-edge--hot')).length >= 1
       && (await page.$$('#pgGlobalMap svg path.nx-pm-edge')).length > 20);
     await env.shot('next-app-pages-global.png');
+    await page.hover('#pgGlobalMap .nx-pm-node[data-id="vbredwoodapp/customer-portal/customer-dashboard"]');
+    await settle(page, 200);
+    const hov = await page.evaluate(() => { const m = document.getElementById('pgGlobalMap'); return { on: m.classList.contains('nx-pm--hover'), lit: m.querySelectorAll('path.is-hover').length, near: m.querySelectorAll('.nx-pm-node--near').length, all: m.querySelectorAll('path.nx-pm-edge').length }; });
+    T.check('pointing at a page: only its lines bright, the pages at their other ends marked', hov.on && hov.lit >= 3 && hov.lit < hov.all && hov.near >= 3, JSON.stringify(hov));
+    await env.shot('next-app-pages-global-hover.png');
+    await page.mouse.move(5, 5);
+    await settle(page, 150);
+    T.check('…and moving away shows them all again', !(await page.$('#pgGlobalMap.nx-pm--hover')) && (await page.$$('#pgGlobalMap path.is-hover')).length === 0);
     await page.click('#pgTabPage');
     await page.waitForSelector('#pgOverview', { timeout: 5000 }).catch(() => {});
     T.check('back to the page tab: its sheet', await page.isVisible('#pgOverview') && !(await page.$('#pgGlobalMap')));

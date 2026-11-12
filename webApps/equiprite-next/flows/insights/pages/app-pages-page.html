@@ -136,7 +136,7 @@
             <oj-bind-if test="[[ ($variables.sheet.facts.unresolvedLinks || []).length > 0 ]]">
               <p class="nx-note" id="pgUnresolved">Also opens, not matched to a page in the project: <oj-bind-for-each data="[[ $variables.sheet.facts.unresolvedLinks ]]"><template data-oj-as="x"><code class="nx-pm-raw"><oj-bind-text value="[[ x.data ]]"></oj-bind-text></code> </template></oj-bind-for-each></p>
             </oj-bind-if>
-            <div class="nx-pm-legend"><span class="nx-pm-key nx-pm-key--menu">Menu entry</span><span class="nx-pm-key nx-pm-key--in">Opens this page</span><span class="nx-pm-key nx-pm-key--self">This page</span><span class="nx-pm-key nx-pm-key--out">Opened from it</span><span class="nx-pm-key nx-pm-key--then">One step further</span><span class="nx-pm-key nx-pm-key--back">Dashed: goes back</span></div>
+            <div class="nx-pm-legend"><span class="nx-pm-key nx-pm-key--menu">Menu entry</span><span class="nx-pm-key nx-pm-key--in">Opens this page</span><span class="nx-pm-key nx-pm-key--self">This page</span><span class="nx-pm-key nx-pm-key--out">Opened from it</span><span class="nx-pm-key nx-pm-key--then">One step further</span><span class="nx-pm-key nx-pm-key--back">Dashed: goes back</span><span class="nx-note">Point at a page to see only its links.</span></div>
           </div>
         </oj-bind-if>
 
@@ -163,7 +163,7 @@
                 </template>
               </oj-bind-for-each>
             </div>
-            <div class="nx-pm-legend"><span class="nx-pm-key nx-pm-key--self">This page</span><span class="nx-pm-key nx-pm-key--hot">Its links</span><span class="nx-pm-key nx-pm-key--back">Dashed: back to an earlier step</span><span class="nx-note">"Not reached": no menu entry and no page opens it (a detail page opened another way, or unused).</span></div>
+            <div class="nx-pm-legend"><span class="nx-pm-key nx-pm-key--self">This page</span><span class="nx-pm-key nx-pm-key--hot">Its links</span><span class="nx-pm-key nx-pm-key--back">Dashed: back to an earlier step</span><span class="nx-note">Point at a page to see only its links.</span><span class="nx-note">"Not reached": no menu entry and no page opens it (a detail page opened another way, or unused).</span></div>
           </div>
         </oj-bind-if>
 
