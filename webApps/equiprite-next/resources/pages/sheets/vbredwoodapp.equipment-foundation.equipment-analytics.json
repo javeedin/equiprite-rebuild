@@ -354,7 +354,13 @@
   },
   "links": []
  },
- "ai": null,
+ "ai": {
+  "text": "## What this page is for\n- Equipment Analytics is a read-only analytics view over yard stock and yard utilization in the \"Old EquipRite\" app (flow `equipment-foundation`, page `equipment-analytics`).\n- It shows KPI tiles (a roll-up of yard stock grouped by unit status), a tab bar with four tab grids, and chart series built from aggregate endpoints.\n- Tab 4 is the yard × day utilization grid for a date window. The facts do not name the other three tabs.\n- The page does not create or update anything: every REST call in the facts is a GET.\n\n## How people use it\n- Open the page. The KPI tiles load and the active tab's grid fetches its own rows.\n- Pick a Utilization Period preset in the Period select, or choose Custom and set the dates. The field list has both Start Date/End Date and From/To; the facts do not say which pair drives the window.\n- Type in the smart search (\"Search by equipment, project, yard…\") to filter. Every filter other than the date window is a smart-search chip.\n- Switch tabs on the tab bar to see a different grid. The KPI tiles do not change on a tab switch.\n- Select a KPI tile on the scoreboard. A chain handles the selection, but the facts do not say what it does.\n- Click Export CSV to export. The output content and format are not described in the facts.\n\n## Business logic\n- **Access guard:** `enforcePageAccessChain` runs on vbBeforeEnter as a deep-link RBAC guard.\n  - It holds no policy of its own. The decision (`canEnterPage`), page code (`getPageCodeForPage`), redirect target (`getRoleHomeTarget`) and same-flow test (`isSameFlow`) all live in `$application.functions`.\n  - It is a generated, byte-identical copy per page. Change the template and regenerate rather than editing this copy.\n- **Page open:** `vbEnterChain` does two things.\n  - It seeds the Utilization date window, because fromDate/toDate are required by the yard-utilization view.\n  - It fetches the KPI roll-up (`yard-stock?groupBy=unitStatus`) for the tiles.\n  - The four tab grids are described as binding SDPs and fetching themselves, and tab definitions are static defaults in `$page.variables`.\n- **Date window:** `FiltersChangedChain` fires when the Period preset changes, or when either date picker changes while the preset is Custom.\n  - It owns fromDate/toDate. These are always supplied by the page, never by search (see ENDPOINT_PARAMS in `reportCriterion`).\n  - The date-window math lives in the `analyticsData` module.\n- **Smart search:** `OnAnalyticsSmartSearchChang",
+  "provider": "Claude (Anthropic)",
+  "at": "2026-11-12T16:00:38.510Z",
+  "by": "javeed.shaik",
+  "codeHash": "bf388b6f2700024b"
+ },
  "screenshots": [],
  "stories": [],
  "at": "2026-11-12T15:55:23.782Z",

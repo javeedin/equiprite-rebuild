@@ -1,5 +1,5 @@
 {
- "scannedAt": "2026-11-12T15:55:23.903Z",
+ "scannedAt": "2026-11-12T16:00:38.644Z",
  "pages": [
   {
    "id": "equiprite//shell",
@@ -1820,7 +1820,7 @@
     "by": "javeed.shaik",
     "codeHash": "bf388b6f2700024b",
     "screenshots": 0,
-    "ai": false,
+    "ai": true,
     "rest": 3,
     "chains": 8
    }
