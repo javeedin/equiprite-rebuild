@@ -45,6 +45,8 @@ define([
       m.attendees = ((v.settings && v.settings.defaultAttendees) || []).slice();
       v.meeting = m;
       v.attendeesText = (m.attendees || []).join(', ');
+      // Seed the rich-text discussion editor (it lives outside the binding) once it is in the DOM.
+      try { if (typeof document !== 'undefined') setTimeout(() => { const el = document.getElementById('minBody'); if (el) el.innerHTML = R.toEditorHtml(m.discussion || ''); }, 0); } catch (e) { /* no DOM */ }
 
       try {
         const res = await J.load(context, Actions, 'project = EQP AND issuetype = Story ORDER BY key ASC');

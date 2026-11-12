@@ -61,26 +61,75 @@ define([], function () {
     };
   }
 
-  /** A body of free text → email HTML: runs of "- " lines become a bullet list, other runs of lines become paragraphs. */
-  function bodyHtml(text) {
+  // ── The discussion body ──────────────────────────────────────────────────────────────────────────────────────────
+  // The body is rich text (HTML) edited in the page, but older minutes (and AI/voice output) are plain text. These helpers
+  // treat both: plain text's "- " line runs become bullet lists and blank lines split paragraphs; HTML is kept (sanitised).
+
+  /** Does this body already carry HTML markup (a rich-text body), or is it plain text? */
+  function isHtml(s) { return /<\/?(p|div|ul|ol|li|h[1-6]|br|b|strong|i|em|u|a|span|blockquote)\b/i.test(txt(s)); }
+
+  // Split plain text into blocks: a run of "- " lines is a bullet list; other runs are paragraphs (single newlines → <br>).
+  function blockify(text) {
     var lines = txt(text).replace(/\r/g, '').split(/\n/);
-    var out = [], para = [], bullets = [];
-    function flushPara() { if (para.length) { out.push('<p style="margin:0 0 10px;line-height:1.5">' + para.map(esc).join('<br>') + '</p>'); para = []; } }
-    function flushBullets() { if (bullets.length) { out.push('<ul style="margin:0 0 10px;padding-left:20px">' + bullets.map(function (x) { return '<li style="margin-bottom:4px">' + esc(x) + '</li>'; }).join('') + '</ul>'); bullets = []; } }
+    var out = [], para = [], bul = [];
+    function fp() { if (para.length) { out.push({ t: 'p', lines: para }); para = []; } }
+    function fb() { if (bul.length) { out.push({ t: 'ul', lines: bul }); bul = []; } }
     lines.forEach(function (raw) {
       var line = raw.trim();
-      if (!line) { flushBullets(); flushPara(); return; }
+      if (!line) { fb(); fp(); return; }
       var m = /^[-•*]\s+(.*)$/.exec(line);
-      if (m) { flushPara(); bullets.push(m[1]); } else { flushBullets(); para.push(line); }
+      if (m) { fp(); bul.push(m[1]); } else { fb(); para.push(line); }
     });
-    flushBullets(); flushPara();
-    return out.join('');
+    fb(); fp();
+    return out;
   }
 
-  /** A body of free text → plain-text lines (for the email fallback and the Teams message). */
-  function bodyLines(text) {
-    return txt(text).split(/\n/).map(function (x) { return x.trim(); }).filter(Boolean);
+  /** Plain text → email HTML (inline-styled paragraphs and bullet lists). */
+  function bodyHtml(text) {
+    return blockify(text).map(function (b) {
+      if (b.t === 'ul') return '<ul style="margin:0 0 10px;padding-left:20px">' + b.lines.map(function (x) { return '<li style="margin-bottom:4px">' + esc(x) + '</li>'; }).join('') + '</ul>';
+      return '<p style="margin:0 0 10px;line-height:1.5">' + b.lines.map(esc).join('<br>') + '</p>';
+    }).join('');
   }
+
+  /** Plain text → clean HTML for the rich-text editor (no inline styles). */
+  function plainToHtml(text) {
+    var html = blockify(text).map(function (b) {
+      if (b.t === 'ul') return '<ul>' + b.lines.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>';
+      return '<p>' + b.lines.map(esc).join('<br>') + '</p>';
+    }).join('');
+    return html || '<p></p>';
+  }
+
+  /** The body as the rich-text editor should show it: empty stays empty (shows the placeholder), existing HTML as-is,
+   *  plain text converted to HTML. */
+  function toEditorHtml(s) { if (!txt(s).trim()) return ''; return isHtml(s) ? txt(s) : plainToHtml(s); }
+
+  /** Remove anything unsafe from editor HTML before it goes into an email (scripts, event handlers, javascript: links). */
+  function sanitizeHtml(s) {
+    return txt(s)
+      .replace(/<\/?(script|style|iframe|object|embed|link|meta|form|input|button)\b[^>]*>/gi, '')
+      .replace(/\son[a-z]+\s*=\s*"[^"]*"/gi, '').replace(/\son[a-z]+\s*=\s*'[^']*'/gi, '').replace(/\son[a-z]+\s*=\s*[^\s>]+/gi, '')
+      .replace(/(href\s*=\s*")\s*javascript:[^"]*(")/gi, '$1#$2').replace(/(href\s*=\s*')\s*javascript:[^']*(')/gi, "$1#$2");
+  }
+
+  /** Rich HTML → plain-text lines (for the email fallback, the Teams message and the AI prompt source). */
+  function htmlToText(s) {
+    var t = txt(s)
+      .replace(/<\s*br\s*\/?>/gi, '\n')
+      .replace(/<\/(p|div|h[1-6]|li|ul|ol|blockquote)>/gi, '\n')
+      .replace(/<li[^>]*>/gi, '- ')
+      .replace(/<[^>]+>/g, '')
+      .replace(/&nbsp;/gi, ' ').replace(/&amp;/gi, '&').replace(/&lt;/gi, '<').replace(/&gt;/gi, '>').replace(/&quot;/gi, '"').replace(/&#39;|&apos;/gi, "'");
+    return t.split(/\n/).map(function (x) { return x.trim(); }).filter(Boolean);
+  }
+
+  /** The discussion as email HTML — rich body sanitised, plain body converted. */
+  function discussionHtml(s) { return isHtml(s) ? sanitizeHtml(s) : bodyHtml(s); }
+  /** The discussion as plain-text lines — from rich HTML or plain text. */
+  function discussionLines(s) { return isHtml(s) ? htmlToText(s) : txt(s).split(/\n/).map(function (x) { return x.trim(); }).filter(Boolean); }
+  /** The discussion as one plain-text string (the source the AI format is given). */
+  function plainText(s) { return isHtml(s) ? htmlToText(s).join('\n') : txt(s); }
 
   function summarise(m) {
     var lines = (m && m.lines) || [];
@@ -217,7 +266,7 @@ define([], function () {
     H.push('</table>');
 
     H.push('<h2 style="font-size:16px;margin:22px 22px 8px">Discussion</h2>');
-    var body = bodyHtml(m.discussion);
+    var body = discussionHtml(m.discussion);
     var storyGroups = groups.filter(function (g) { return g.lines.some(function (l) { return lineText(l); }); });
     if (body) H.push('<div style="margin:0 22px 12px;color:#161513">' + body + '</div>');
     storyGroups.forEach(function (g) {
@@ -273,7 +322,7 @@ define([], function () {
     if (att.length) L.push('Attendees: ' + att.join(', '));
     L.push('');
     L.push('DISCUSSION');
-    bodyLines(m.discussion).forEach(function (x) { L.push(/^[-•*]\s+/.test(x) ? x.replace(/^[-•*]\s+/, '- ') : x); });
+    discussionLines(m.discussion).forEach(function (x) { L.push(/^[-•*]\s+/.test(x) ? x.replace(/^[-•*]\s+/, '- ') : x); });
     (m.lines || []).forEach(function (l) {
       if (!lineText(l)) return;
       L.push('- ' + (txt(l.jiraKey).trim() ? '[' + txt(l.jiraKey).trim() + '] ' : '') + lineText(l));
@@ -306,7 +355,7 @@ define([], function () {
     if (bits.length) L.push(bits.join('  ·  '));
     L.push('');
     L.push('**Discussion**');
-    bodyLines(m.discussion).forEach(function (x) { L.push(/^[-•*]\s+/.test(x) ? x.replace(/^[-•*]\s+/, '- ') : x); });
+    discussionLines(m.discussion).forEach(function (x) { L.push(/^[-•*]\s+/.test(x) ? x.replace(/^[-•*]\s+/, '- ') : x); });
     (m.lines || []).forEach(function (l) {
       if (!lineText(l)) return;
       L.push('- ' + (txt(l.jiraKey).trim() ? '**' + txt(l.jiraKey).trim() + '** ' : '') + lineText(l));
@@ -329,6 +378,7 @@ define([], function () {
     todayISO: todayISO, nowHM: nowHM, blankMeeting: blankMeeting, blankLine: blankLine,
     attendeeName: attendeeName, attendeeEmail: attendeeEmail, attendeeEmails: attendeeEmails,
     lineText: lineText, summarise: summarise, formatPrompt: formatPrompt, formatBodyPrompt: formatBodyPrompt,
+    isHtml: isHtml, toEditorHtml: toEditorHtml, plainText: plainText, discussionHtml: discussionHtml, discussionLines: discussionLines,
     stories: stories, epics: epics, customers: customers, openActions: openActions,
     emailFor: emailFor, teamsFor: teamsFor, GRAPH_DEFAULT: GRAPH_DEFAULT
   };

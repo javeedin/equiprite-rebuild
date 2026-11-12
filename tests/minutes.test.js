@@ -96,4 +96,14 @@ T.check('the note prompt: a system instruction and the raw note as the user turn
 const fb = M.formatBodyPrompt('discussed map view\nagreed 27a plan');
 T.check('the body prompt: tidies into a Discussion section, keeps every fact, invents nothing', /discussion/i.test(fb.system) && /do not add|invent/i.test(fb.system) && fb.user === 'discussed map view\nagreed 27a plan');
 
+T.section('the discussion body is rich text (HTML) with a plain-text fallback');
+T.check('isHtml tells rich HTML from plain text', M.isHtml('<p>hi</p>') === true && M.isHtml('plain\n- bullet') === false);
+T.check('toEditorHtml keeps HTML, converts plain to HTML, and leaves empty empty',
+  M.toEditorHtml('<ul><li>a</li></ul>') === '<ul><li>a</li></ul>' && /<ul><li>one<\/li><\/ul>/.test(M.toEditorHtml('- one')) && M.toEditorHtml('   ') === '');
+T.check('plainText strips HTML back to text for the AI prompt', M.plainText('<p>Alpha</p><ul><li>Beta</li></ul>') === 'Alpha\n- Beta');
+const emRich = M.emailFor({ date: '2026-11-09', title: 'T', discussion: '<h2>Topic</h2><p>Body</p><script>evil()</script><ul><li>x</li></ul>', lines: [] }, ROWS);
+T.check('a rich-text discussion is sanitised into the email: headings/lists kept, <script> stripped',
+  emRich.html.indexOf('<h2>Topic</h2>') !== -1 && emRich.html.indexOf('<li>x</li>') !== -1 && emRich.html.toLowerCase().indexOf('<script') === -1);
+T.check('a rich-text discussion becomes plain lines in the text/Teams output', emRich.text.indexOf('Topic') !== -1 && emRich.text.indexOf('Body') !== -1 && emRich.text.indexOf('- x') !== -1);
+
 T.report();

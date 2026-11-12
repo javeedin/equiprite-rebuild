@@ -18,7 +18,10 @@ define([
       // A plain <input>'s bound value only sets the attribute, so clearing the model doesn't wipe what was already
       // typed: reset the live value (and refocus) directly once an attendee becomes a chip.
       const clearAttInput = () => { try { const el = (typeof document !== 'undefined') && document.querySelector('.nx-min-attadd'); if (el) { el.value = ''; el.focus(); } } catch (e) { /* no DOM (tests) */ } };
-      function openMeeting(m) { v.meeting = m; v.attendeesText = (m.attendees || []).join(', '); v.dirty = false; }
+      // The discussion is a rich-text (contenteditable) editor kept outside the binding, so push the model's HTML into it
+      // whenever a meeting opens or the body is changed programmatically (open/new, Format by AI, voice, returning to Edit).
+      const syncBody = () => { try { if (typeof document === 'undefined') return; setTimeout(() => { const el = document.getElementById('minBody'); if (!el) return; const want = R.toEditorHtml((v.meeting && v.meeting.discussion) || ''); if (el.innerHTML !== want) el.innerHTML = want; }, 0); } catch (e) { /* no DOM (tests) */ } };
+      function openMeeting(m) { v.meeting = m; v.attendeesText = (m.attendees || []).join(', '); v.dirty = false; syncBody(); }
       const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       async function openSettings() {
         const gs = await C.graphStatus();
@@ -33,8 +36,26 @@ define([
       }
 
       switch (act) {
-        case 'view': v.view = id || 'edit'; return;
+        case 'view': v.view = id || 'edit'; if ((id || 'edit') === 'edit') syncBody(); return;
         case 'trackBy': v.trackBy = id || 'epic'; return;
+
+        case 'rte': {
+          // Rich-text toolbar for the discussion body (headings, bold, bullets…) via the browser's editing commands.
+          try {
+            if (typeof document === 'undefined') return;
+            const el = document.getElementById('minBody'); if (!el) return;
+            el.focus();
+            const cmd = {
+              h2: ['formatBlock', 'H2'], h3: ['formatBlock', 'H3'], p: ['formatBlock', 'P'],
+              bold: ['bold'], italic: ['italic'], underline: ['underline'],
+              ul: ['insertUnorderedList'], ol: ['insertOrderedList'], clear: ['removeFormat'],
+            }[id];
+            if (cmd) document.execCommand(cmd[0], false, cmd[1]);
+            if (id === 'clear') { document.execCommand('formatBlock', false, 'P'); }
+            v.meeting.discussion = el.innerHTML; v.dirty = true; // mutate in place: don't re-render (keeps the caret)
+          } catch (e) { /* no DOM (tests) */ }
+          return;
+        }
 
         case 'new': { const m = R.blankMeeting(); m.attendees = ((v.settings && v.settings.defaultAttendees) || []).slice(); openMeeting(m); v.view = 'edit'; return; }
         case 'open': { const r = await C.get(id); if (r.ok && r.body && r.body.meeting) { openMeeting(r.body.meeting); v.view = 'edit'; } else toast('Could not open that meeting.', 'error'); return; }
@@ -154,12 +175,13 @@ define([
             if (d.ok && d.body && d.body.ok && d.body.text) {
               const m = clone(v.meeting);
               if (lineId === '__body__') {
-                m.discussion = (m.discussion ? m.discussion.trim() + ' ' : '') + d.body.text;
+                const cur = R.plainText(m.discussion);
+                m.discussion = R.toEditorHtml((cur ? cur.trim() + '\n' : '') + d.body.text);
               } else {
                 const l = (m.lines || []).filter((x) => x.id === lineId)[0];
                 if (l) { l.text = (l.text ? l.text.trim() + ' ' : '') + d.body.text; l.raw = l.text; }
               }
-              v.meeting = m; v.dirty = true; toast('Added from voice.');
+              v.meeting = m; v.dirty = true; if (lineId === '__body__') syncBody(); toast('Added from voice.');
             } else toast((d.body && d.body.error) || 'Could not transcribe. Set up transcription on the Jira page first.', 'error');
           } else {
             if (v.recLineId) { try { await C.stopRec(); } catch (e) { /* drop */ } }
@@ -191,14 +213,14 @@ define([
 
         case 'formatBody': {
           // Tidy the whole discussion body into a clean, standard-minutes "Discussion" section via the shared Ask AI.
-          const text = String((v.meeting && v.meeting.discussion) || '').trim();
+          const text = R.plainText(v.meeting && v.meeting.discussion).trim();
           if (!text) { toast('Write what was discussed first, then Format with AI.', 'error'); return; }
           v.fmtBody = true;
           const p = R.formatBodyPrompt(text);
           const r = await C.aiChat(p.system, p.user);
           v.fmtBody = false;
           if (r.ok && r.body && r.body.ok && r.body.text) {
-            const m = clone(v.meeting); m.discussion = String(r.body.text).trim();
+            const m = clone(v.meeting); m.discussion = R.toEditorHtml(String(r.body.text).trim()); syncBody();
             v.meeting = m; v.dirty = true; toast('Formatted by ' + (r.body.provider || 'AI') + '.');
           } else {
             const err = (r.body && r.body.error) || '';
@@ -212,7 +234,7 @@ define([
           // One click: tidy the whole minutes — the discussion body, then every action-item note — with the shared Ask AI.
           const m = clone(v.meeting) || {};
           const jobs = [];
-          if (String(m.discussion || '').trim()) jobs.push({ body: true });
+          if (R.plainText(m.discussion).trim()) jobs.push({ body: true });
           (m.lines || []).forEach((l) => { if (String((l.text || l.raw) || '').trim()) jobs.push({ id: l.id }); });
           if (!jobs.length) { toast('Nothing to format yet — write the discussion or some notes first.', 'error'); return; }
           v.fmtAll = true;
@@ -220,13 +242,13 @@ define([
           for (let i = 0; i < jobs.length; i++) {
             const job = jobs[i];
             let src, p;
-            if (job.body) { src = String(m.discussion || '').trim(); p = R.formatBodyPrompt(src); }
+            if (job.body) { src = R.plainText(m.discussion).trim(); p = R.formatBodyPrompt(src); }
             else { const l = (m.lines || []).filter((x) => x.id === job.id)[0]; src = l ? String((l.text || l.raw) || '').trim() : ''; p = R.formatPrompt(src); }
             if (!src) continue;
             const r = await C.aiChat(p.system, p.user);
             if (r.ok && r.body && r.body.ok && r.body.text) {
               provider = r.body.provider || provider;
-              if (job.body) m.discussion = String(r.body.text).trim();
+              if (job.body) m.discussion = R.toEditorHtml(String(r.body.text).trim());
               else { const l = (m.lines || []).filter((x) => x.id === job.id)[0]; if (l) l.text = String(r.body.text).trim(); }
               done++;
               v.meeting = clone(m); // show each section as it is tidied
@@ -237,7 +259,7 @@ define([
             }
           }
           v.fmtAll = false;
-          v.meeting = m; v.dirty = true;
+          v.meeting = m; v.dirty = true; syncBody();
           if (aiMissing) { toast('Set up AI first.', 'error'); v.aiForm = { provider: (v.ai && v.ai.active) || 'anthropic', key: '', model: '', baseUrl: '', status: '' }; v.dialog = 'ai'; return; }
           if (!done && failed) { toast('AI could not format the minutes.', 'error'); return; }
           toast('Formatted ' + done + ' section' + (done === 1 ? '' : 's') + ' by ' + (provider || 'AI') + (failed ? ' · ' + failed + ' could not be formatted' : '') + '.');

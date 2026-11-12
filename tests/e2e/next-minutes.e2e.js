@@ -104,13 +104,23 @@ async function setField(page, sel, val) { await page.fill(sel, val); await page.
     T.check('clicking a suggestion adds a chip (name shown, email kept)', /Priya Raman/.test(await text(page, '.nx-min-att')));
     T.check('the typed text is wiped from the attendee box once the name becomes a chip', (await page.inputValue('.nx-min-attadd')) === '');
 
-    T.section('the Discussion body: type rough notes, then Format with AI tidies them into standard minutes');
-    T.check('the standard-minutes sections and the Format with AI button are on the page', await page.isVisible('#minBody') && await page.isVisible('#minBodyFormat'));
-    await page.evaluate((val) => { const t = document.querySelector('#minBody'); if (t) t.value = val; }, 'map view still missing\nrelease plan for 27a agreed');
+    T.section('the Discussion body: a rich-text editor — type notes, format, then Format with AI tidies them');
+    const setBody = (html) => page.evaluate((h) => { const el = document.getElementById('minBody'); if (el) { el.innerHTML = h; el.dispatchEvent(new Event('input', { bubbles: true })); } }, html);
+    const bodyText = () => page.$eval('#minBody', (el) => (el.textContent || '').trim());
+    const bodyHtml = () => page.$eval('#minBody', (el) => el.innerHTML || '');
+    T.check('the discussion is a rich-text editor with a toolbar and Format with AI', await page.isVisible('#minBody') && await page.isVisible('.nx-min-rtebar') && await page.isVisible('#minBodyFormat') && (await page.$eval('#minBody', (el) => el.getAttribute('contenteditable'))) === 'true');
+    // Toolbar: type a line, select it, click the bullet-list button → the body becomes a <ul>.
+    await setBody('discuss the map view');
+    await settle(page, 200);
+    await page.evaluate(() => { const el = document.getElementById('minBody'); el.focus(); const r = document.createRange(); r.selectNodeContents(el); const s = window.getSelection(); s.removeAllRanges(); s.addRange(r); });
+    await page.click('.nx-min-rtebtn[data-id="ul"]');
+    await settle(page, 200);
+    T.check('the bullet-list toolbar button turns the body into a list', /<li[\s>]/i.test(await bodyHtml()));
+    await setBody('map view still missing\nrelease plan for 27a agreed');
     await settle(page, 300);
     await page.click('#minBodyFormat');
-    await page.waitForFunction(() => { const t = document.querySelector('#minBody'); return t && /agreed to add it/.test(t.value || ''); }, null, { timeout: 15000 }).catch(() => {});
-    T.check('the discussion body is rewritten by the shared Ask AI', /agreed to add it/.test(await page.$eval('#minBody', (t) => t.value || '')) && llmCalls.some((u) => /chat\/completions/.test(u)));
+    await page.waitForFunction(() => { const t = document.querySelector('#minBody'); return t && /agreed to add it/.test(t.textContent || ''); }, null, { timeout: 15000 }).catch(() => {});
+    T.check('the discussion body is rewritten by the shared Ask AI (and kept as HTML)', /agreed to add it/.test(await bodyText()) && /<(p|ul|li)[\s>]/i.test(await bodyHtml()) && llmCalls.some((u) => /chat\/completions/.test(u)));
 
     await page.click('#minAddLine');
     await settle(page, 300);
@@ -171,16 +181,16 @@ async function setField(page, sel, val) { await page.fill(sel, val); await page.
     T.check('the note is replaced by the formatted text, via the shared Ask AI', /agreed to add it/.test(await page.$eval('oj-text-area.nx-min-ta', (t) => t.value || '')) && llmCalls.some((u) => /chat\/completions/.test(u)));
 
     T.section('Format all with AI (header button) tidies the whole minutes in one click');
-    await page.evaluate(() => { const t = document.querySelector('#minBody'); if (t) t.value = 'rough body notes to clean up'; });
+    await setBody('rough body notes to clean up');
     await page.evaluate(() => { const t = document.querySelector('oj-text-area.nx-min-ta'); if (t) t.value = 'rough note to clean up'; });
     await settle(page, 300);
     T.check('the header has a "Format all with AI" button', await page.isVisible('#minFormatAll'));
     await page.click('#minFormatAll');
     await page.waitForFunction(() => {
       const b = document.querySelector('#minBody'); const n = document.querySelector('oj-text-area.nx-min-ta');
-      return b && n && /agreed to add it/.test(b.value || '') && /agreed to add it/.test(n.value || '');
+      return b && n && /agreed to add it/.test(b.textContent || '') && /agreed to add it/.test(n.value || '');
     }, null, { timeout: 15000 }).catch(() => {});
-    T.check('one click formats both the discussion body and the action-item note', /agreed to add it/.test(await page.$eval('#minBody', (t) => t.value || '')) && /agreed to add it/.test(await page.$eval('oj-text-area.nx-min-ta', (t) => t.value || '')));
+    T.check('one click formats both the discussion body and the action-item note', /agreed to add it/.test(await bodyText()) && /agreed to add it/.test(await page.$eval('oj-text-area.nx-min-ta', (t) => t.value || '')));
 
     T.section('AI setup: the Model field is a list of values, and Claude actually saves');
     await page.click('#minAi');

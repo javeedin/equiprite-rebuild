@@ -92,10 +92,27 @@
             <div class="nx-min-field nx-min-wide"><label>Context (optional)</label><input type="text" data-scope="header" data-field="context" :value="[[ $variables.meeting.context ]]" on-change="[[ $listeners.onField ]]" placeholder="sprint, release, agenda…"></div>
           </div>
 
-          <!-- Discussion body: what was discussed, in standard-minutes style. Type rough notes, then Format with AI tidies them up. -->
+          <!-- Discussion body: a rich-text editor (headings, bold, bullets, numbered lists). Stores HTML in meeting.discussion.
+               Type rough notes, then Format with AI tidies them up. The editor content is kept in sync by the chain (syncBody). -->
           <div class="nx-min-sec nx-min-sec--body">Discussion — what we discussed</div>
           <div class="nx-min-body">
-            <oj-text-area class="nx-min-bodyta" id="minBody" rows="5" value="[[ $variables.meeting.discussion ]]" on-value-changed="[[ $listeners.onBody ]]" label-edge="none" placeholder="Summary of what was discussed. Type rough notes in any order, then ✨ Format with AI to turn them into clean minutes."></oj-text-area>
+            <div class="nx-min-rtewrap">
+              <div class="nx-min-rtebar" role="toolbar" aria-label="Formatting">
+                <button type="button" class="nx-min-rtebtn" data-act="rte" data-id="h2" on-mousedown="[[ $listeners.onAct ]]" title="Heading">H2</button>
+                <button type="button" class="nx-min-rtebtn" data-act="rte" data-id="h3" on-mousedown="[[ $listeners.onAct ]]" title="Subheading">H3</button>
+                <button type="button" class="nx-min-rtebtn" data-act="rte" data-id="p" on-mousedown="[[ $listeners.onAct ]]" title="Normal text">¶</button>
+                <span class="nx-min-rtesep"></span>
+                <button type="button" class="nx-min-rtebtn" data-act="rte" data-id="bold" on-mousedown="[[ $listeners.onAct ]]" title="Bold"><b>B</b></button>
+                <button type="button" class="nx-min-rtebtn" data-act="rte" data-id="italic" on-mousedown="[[ $listeners.onAct ]]" title="Italic"><i>I</i></button>
+                <button type="button" class="nx-min-rtebtn" data-act="rte" data-id="underline" on-mousedown="[[ $listeners.onAct ]]" title="Underline"><u>U</u></button>
+                <span class="nx-min-rtesep"></span>
+                <button type="button" class="nx-min-rtebtn" data-act="rte" data-id="ul" on-mousedown="[[ $listeners.onAct ]]" title="Bulleted list">• List</button>
+                <button type="button" class="nx-min-rtebtn" data-act="rte" data-id="ol" on-mousedown="[[ $listeners.onAct ]]" title="Numbered list">1. List</button>
+                <span class="nx-min-rtesep"></span>
+                <button type="button" class="nx-min-rtebtn" data-act="rte" data-id="clear" on-mousedown="[[ $listeners.onAct ]]" title="Clear formatting">Clear</button>
+              </div>
+              <div id="minBody" class="nx-min-rte" contenteditable="true" role="textbox" aria-multiline="true" on-input="[[ $listeners.onBodyHtml ]]" on-blur="[[ $listeners.onBodyHtml ]]" data-placeholder="Summary of what was discussed. Use the toolbar for headings and bullets, or ✨ Format with AI to tidy rough notes."></div>
+            </div>
             <div class="nx-min-body-btns">
               <button type="button" :class="[[ 'nx-btn nx-btn--sm' + ($variables.recLineId==='__body__' ? ' nx-btn--rec' : '') ]]" id="minBodyVoice" data-act="dictate" data-line="__body__" on-click="[[ $listeners.onAct ]]"><oj-bind-text value="[[ $variables.recLineId==='__body__' ? '◼ Stop' : '🎤 Voice' ]]"></oj-bind-text></button>
               <button type="button" class="nx-btn nx-btn--sm nx-min-fmt" id="minBodyFormat" data-act="formatBody" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.fmtBody ]]"><oj-bind-text value="[[ $variables.fmtBody ? '…formatting' : '✨ Format with AI' ]]"></oj-bind-text></button>

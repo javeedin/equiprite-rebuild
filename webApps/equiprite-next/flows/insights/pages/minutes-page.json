@@ -50,8 +50,8 @@
       "lineId": "{{ $event.currentTarget.dataset.line || '' }}" } } ] },
     "onNote": { "chains": [ { "chain": "setChain", "parameters": {
       "scope": "line", "field": "text", "value": "{{ $event.detail.value }}", "lineId": "{{ $event.target.dataset.line || '' }}" } } ] },
-    "onBody": { "chains": [ { "chain": "setChain", "parameters": {
-      "scope": "header", "field": "discussion", "value": "{{ $event.detail.value }}" } } ] },
+    "onBodyHtml": { "chains": [ { "chain": "setChain", "parameters": {
+      "scope": "header", "field": "discussion", "value": "{{ $event.target.innerHTML }}" } } ] },
     "onPickField": { "chains": [ { "chain": "actChain", "parameters": {
       "act": "pickSet", "id": "{{ $event.target.dataset.field }}", "value": "{{ $event.target.value }}" } } ] },
     "onPickManualKey": { "chains": [ { "chain": "actChain", "parameters": {
