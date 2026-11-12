@@ -1,0 +1,269 @@
+{
+ "id": "equiprite/customer/customer-requests",
+ "facts": {
+  "id": "equiprite/customer/customer-requests",
+  "app": "equiprite",
+  "appName": "New EquipRite",
+  "flow": "customer",
+  "page": "customer-requests",
+  "label": "My requests",
+  "description": "The customer's requests (FDD 7.18.4; wireframe Portal requests; replaces customer-my-requests). Chips by what needs the customer, search, a tracker per row; a row opens its tracking page, a ready quote opens the quote. Data: loadRequestsChain (views/customer-my-requests, as the old list).",
+  "route": {
+   "url": "/vp/shell/customer/customer-requests",
+   "menu": "",
+   "needs": ""
+  },
+  "files": [
+   {
+    "path": "webApps/equiprite/flows/customer/pages/customer-requests-page.json",
+    "lines": 90
+   },
+   {
+    "path": "webApps/equiprite/flows/customer/pages/customer-requests-page.html",
+    "lines": 114
+   },
+   {
+    "path": "webApps/equiprite/flows/customer/pages/customer-requests-page.js",
+    "lines": 39
+   },
+   {
+    "path": "webApps/equiprite/flows/customer/pages/customer-requests-page-chains/customersModuleGuardChain.js",
+    "lines": 59
+   },
+   {
+    "path": "webApps/equiprite/flows/customer/pages/customer-requests-page-chains/enforcePageAccessChain.js",
+    "lines": 72
+   },
+   {
+    "path": "webApps/equiprite/flows/customer/pages/customer-requests-page-chains/filterChain.js",
+    "lines": 28
+   },
+   {
+    "path": "webApps/equiprite/flows/customer/pages/customer-requests-page-chains/goChain.js",
+    "lines": 41
+   },
+   {
+    "path": "webApps/equiprite/flows/customer/pages/customer-requests-page-chains/loadRequestsChain.js",
+    "lines": 57
+   }
+  ],
+  "codeHash": "bf420cfd8bcabdf8",
+  "features": {
+   "sections": [
+    "My requests"
+   ],
+   "actions": [
+    {
+     "label": "Customer portal",
+     "listener": "onGo",
+     "chains": [
+      "goChain"
+     ]
+    },
+    {
+     "label": "New request",
+     "listener": "onGo",
+     "chains": [
+      "goChain"
+     ]
+    },
+    {
+     "label": "Chip",
+     "listener": "onChip",
+     "chains": [
+      "filterChain"
+     ]
+    },
+    {
+     "label": "Go",
+     "listener": "onGo",
+     "chains": [
+      "goChain"
+     ]
+    },
+    {
+     "label": "Accept quote",
+     "listener": "onGo",
+     "chains": [
+      "goChain"
+     ]
+    },
+    {
+     "label": "Quote",
+     "listener": "onGo",
+     "chains": [
+      "goChain"
+     ]
+    },
+    {
+     "label": "Track",
+     "listener": "onGo",
+     "chains": [
+      "goChain"
+     ]
+    },
+    {
+     "label": "Show more",
+     "listener": "onMore",
+     "chains": [
+      "filterChain"
+     ]
+    },
+    {
+     "label": "input",
+     "listener": "onSearch",
+     "chains": [
+      "filterChain"
+     ]
+    }
+   ],
+   "fields": [
+    "Search your requests",
+    "Request number, customer, contact or contract"
+   ],
+   "columns": [
+    "Request",
+    "Dates",
+    "Where it is",
+    "Contract",
+    "Actions"
+   ],
+   "components": [],
+   "inputs": [],
+   "lifecycle": [
+    {
+     "when": "before the page opens",
+     "chains": [
+      "enforcePageAccessChain"
+     ]
+    },
+    {
+     "when": "when the page opens",
+     "chains": [
+      "customersModuleGuardChain",
+      "loadRequestsChain"
+     ]
+    }
+   ]
+  },
+  "logic": {
+   "chains": [
+    {
+     "name": "customersModuleGuardChain",
+     "file": "webApps/equiprite/flows/customer/pages/customer-requests-page-chains/customersModuleGuardChain.js",
+     "about": "Page guard for the CUSTOMERS_MODULE_ENABLED module licence, from Old EquipRite's customer-portal/pages/*-page-chains/customersModuleGuardChain.js. Every customer page runs it first on vbEnter: with the Customers module off it says so and sends the user home, so a bookmark or deep link cannot open a portal page the menu hides. Same copy in every customer page's chains folder. One change: it waits briefly for the flags to load before deciding. The old copy decided at once and, flags still loading on a cold start, sent a licensed user home; it still fails closed if they never arrive. UX layer…",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "vbEnter"
+     ],
+     "lines": 59
+    },
+    {
+     "name": "enforcePageAccessChain",
+     "file": "webApps/equiprite/flows/customer/pages/customer-requests-page-chains/enforcePageAccessChain.js",
+     "about": "Page-level RBAC deep-link guard. GENERATED - every copy is byte-identical; change the template and regenerate rather than editing one copy. Copies exist because a page's eventListeners resolve a bare chain id against that page's OWN <page>-chains folder, so an app-level chain referenced by name 404s. This file holds NO policy: the decision (canEnterPage), the page code (getPageCodeForPage), the redirect target (getRoleHomeTarget) and the same-flow test (isSameFlow) all live in $application.functions. Deriving the page code at runtime is what lets every copy be identical.",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "vbBeforeEnter"
+     ],
+     "lines": 72
+    },
+    {
+     "name": "filterChain",
+     "file": "webApps/equiprite/flows/customer/pages/customer-requests-page-chains/filterChain.js",
+     "about": "Chip, search text and \"Show more\". The filtering itself is customer-requests-page.js filterRows.",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "onChip",
+      "onSearch",
+      "onMore"
+     ],
+     "lines": 28
+    },
+    {
+     "name": "goChain",
+     "file": "webApps/equiprite/flows/customer/pages/customer-requests-page-chains/goChain.js",
+     "about": "Opens another customer portal page, with the request when one is given (requestId = number, requestNumericId = id, the old customer pages' parameters). Buttons carry data-page / data-id / data-number. Only the portal's own pages; the billing pages only while EXTERNAL_PROJECT_ASSIGN_ENABLED is off (the old nav's hiddenWhenFlags and navigateToMyBillingChain rule). Same copy in every customer page that links to another.",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "onGo"
+     ],
+     "lines": 41
+    },
+    {
+     "name": "loadRequestsChain",
+     "file": "webApps/equiprite/flows/customer/pages/customer-requests-page-chains/loadRequestsChain.js",
+     "about": "The customer's requests: Old EquipRite's customer-my-requests-page-chains/EquipmentRequestInitChain.js, same endpoint and parameters (views/customer-my-requests, page 0, size 200) and the same row mapping. Newest first. The view is scoped to the signed-in customer server-side.",
+     "calls": [
+      "eqp-v1/getEquipriteV1ViewsCustomerMyRequests"
+     ],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "vbEnter"
+     ],
+     "lines": 57
+    }
+   ],
+   "modules": [
+    {
+     "name": "customerPortal",
+     "file": "webApps/equiprite/resources/js/customerPortal.js",
+     "about": "The customer portal's shared logic (New EquipRite, flows/customer): the words a customer sees for each status, the parcel-style tracker, \"what needs you next\", and the invoice maths. Pure functions, no calls: the chains read and write through the old endpoints and hand the rows here. The invoice part (parseDate … invoiceTotals) is carried over unchanged from Old EquipRite's flows/customer-portal/pages/customer-billing-detail-page-chains/BillingDetailInitChain.js, so a customer sees the same…",
+     "local": [],
+     "calls": [],
+     "reports": [],
+     "lines": 494
+    }
+   ],
+   "variables": 7
+  },
+  "integrations": {
+   "rest": [
+    {
+     "endpoint": "eqp-v1/getEquipriteV1ViewsCustomerMyRequests",
+     "service": "eqp-v1",
+     "operation": "getEquipriteV1ViewsCustomerMyRequests",
+     "method": "GET",
+     "path": "/equiprite/v1/views/customer-my-requests",
+     "summary": "",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "loadRequestsChain"
+     ]
+    }
+   ],
+   "reports": [],
+   "local": [],
+   "backends": [
+    "EquipRite REST (eqpt)"
+   ]
+  },
+  "links": []
+ },
+ "ai": null,
+ "screenshot": null,
+ "stories": [],
+ "at": "2026-11-12T15:05:24.589Z",
+ "by": "javeed.shaik",
+ "codeHash": "bf420cfd8bcabdf8"
+}
