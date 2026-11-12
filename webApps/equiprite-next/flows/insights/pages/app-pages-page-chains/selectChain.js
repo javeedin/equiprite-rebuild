@@ -16,6 +16,7 @@ define(['vb/action/actionChain', 'vb/action/actions', 'resources/js/pagesClient'
       v.deleted = !!r.body.deleted || (v.pages || []).some((p) => p.id === pid && p.deleted);
       if (v.view === 'map' || v.view === 'global') PM.redraw(); // picked on a map: the lines for the new page
       if (v.view === 'fix') await Actions.callChain(context, { chain: 'fixChain', params: { act: 'open', key: '' } }); // its fixes
+      if (v.view === 'code') await Actions.callChain(context, { chain: 'codeChain', params: { act: 'open', key: '' } }); // its files
       try { setTimeout(() => { const row = document.querySelector('#pgRows [data-id="' + pid.replace(/"/g, '') + '"]'); if (row && row.scrollIntoView) row.scrollIntoView({ block: 'nearest' }); }, 40); } catch (e) { /* no DOM */ }
       try { setTimeout(() => { const el = document.getElementById('pgSheet'); if (el && el.scrollIntoView && window.innerWidth < 1100) el.scrollIntoView({ behavior: 'smooth' }); }, 30); } catch (e) { /* no DOM */ }
     }

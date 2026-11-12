@@ -197,6 +197,11 @@ async function open(opts) {
     return json;
   }
 
+  /** OpenAI-style content: the text, then each image as a data URL (vision models). */
+  function withImagesOpenAI(user, images) {
+    return (images || []).length ? [{ type: 'text', text: user }].concat(images.map((im) => ({ type: 'image_url', image_url: { url: 'data:' + im.mime + ';base64,' + im.base64 } }))) : user;
+  }
+
   // ── Each provider: its models, and one chat call ────────────────────────────────────────────────────────────
   const call = {
     anthropic: {
@@ -204,9 +209,10 @@ async function open(opts) {
         const j = await http('GET', 'https://api.anthropic.com/v1/models?limit=100', { 'x-api-key': c.key, 'anthropic-version': '2023-06-01' });
         return (j.data || []).map((m) => ({ id: m.id, label: m.display_name ? m.display_name + ' · ' + m.id : m.id }));
       },
-      async chat(c, system, user, max) {
+      async chat(c, system, user, max, images) {
         const j = await http('POST', 'https://api.anthropic.com/v1/messages', { 'x-api-key': c.key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-          JSON.stringify({ model: c.model, max_tokens: max || MAX_TOKENS, system, messages: [{ role: 'user', content: user }] }), max);
+          JSON.stringify({ model: c.model, max_tokens: max || MAX_TOKENS, system, messages: [{ role: 'user', content: (images || []).length
+            ? images.map((im) => ({ type: 'image', source: { type: 'base64', media_type: im.mime, data: im.base64 } })).concat([{ type: 'text', text: user }]) : user }] }), max);
         return (j.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('\n');
       }
     },
@@ -216,9 +222,9 @@ async function open(opts) {
         return (j.data || []).filter((m) => /^(gpt|o\d|chatgpt)/i.test(m.id) && !/(audio|realtime|transcribe|tts|image|search|embedding)/i.test(m.id))
           .sort((a, b) => (b.created || 0) - (a.created || 0)).map((m) => ({ id: m.id, label: m.id }));
       },
-      async chat(c, system, user, max) {
+      async chat(c, system, user, max, images) {
         const j = await http('POST', 'https://api.openai.com/v1/chat/completions', { authorization: 'Bearer ' + c.key, 'content-type': 'application/json' },
-          JSON.stringify({ model: c.model, messages: [{ role: 'system', content: system }, { role: 'user', content: user }], max_completion_tokens: max || MAX_TOKENS * 4 }), max);
+          JSON.stringify({ model: c.model, messages: [{ role: 'system', content: system }, { role: 'user', content: withImagesOpenAI(user, images) }], max_completion_tokens: max || MAX_TOKENS * 4 }), max);
         return ((j.choices || [])[0] || {}).message ? j.choices[0].message.content || '' : '';
       }
     },
@@ -228,9 +234,9 @@ async function open(opts) {
         return (j.models || []).filter((m) => (m.supportedGenerationMethods || []).indexOf('generateContent') !== -1)
           .map((m) => ({ id: String(m.name).replace(/^models\//, ''), label: (m.displayName ? m.displayName + ' · ' : '') + String(m.name).replace(/^models\//, '') }));
       },
-      async chat(c, system, user, max) {
+      async chat(c, system, user, max, images) {
         const j = await http('POST', 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(c.model) + ':generateContent', { 'x-goog-api-key': c.key, 'content-type': 'application/json' },
-          JSON.stringify({ systemInstruction: { parts: [{ text: system }] }, contents: [{ role: 'user', parts: [{ text: user }] }], generationConfig: { maxOutputTokens: max || MAX_TOKENS * 4 } }), max);
+          JSON.stringify({ systemInstruction: { parts: [{ text: system }] }, contents: [{ role: 'user', parts: (images || []).map((im) => ({ inline_data: { mime_type: im.mime, data: im.base64 } })).concat([{ text: user }]) }], generationConfig: { maxOutputTokens: max || MAX_TOKENS * 4 } }), max);
         const cand = (j.candidates || [])[0];
         return cand && cand.content ? (cand.content.parts || []).map((p) => p.text || '').join('\n') : '';
       }
@@ -246,9 +252,9 @@ async function open(opts) {
         const j = await http('GET', this.base(c) + '/models', this.auth(c));
         return ((j && (j.data || j.models)) || []).map((m) => ({ id: m.id || m.name, label: m.id || m.name })).filter((m) => m.id);
       },
-      async chat(c, system, user, max) {
+      async chat(c, system, user, max, images) {
         const j = await http('POST', this.base(c) + '/chat/completions', Object.assign({ 'content-type': 'application/json' }, this.auth(c)),
-          JSON.stringify({ model: c.model, messages: [{ role: 'system', content: system }, { role: 'user', content: user }], max_tokens: max || MAX_TOKENS }), max);
+          JSON.stringify({ model: c.model, messages: [{ role: 'system', content: system }, { role: 'user', content: withImagesOpenAI(user, images) }], max_tokens: max || MAX_TOKENS }), max);
         return ((j.choices || [])[0] || {}).message ? j.choices[0].message.content || '' : '';
       }
     },
@@ -269,7 +275,7 @@ async function open(opts) {
           .map((m) => ({ id: m.displayName || m.id, label: (m.vendor ? m.vendor + ' · ' : '') + (m.displayName || m.id) }))
           .filter((m) => (seen[m.id] ? false : (seen[m.id] = true)));
       },
-      async chat(c, system, user, max) {
+      async chat(c, system, user, max, images) {
         this.check(c);
         const url = 'https://inference.generativeai.' + trim(c.region) + '.oci.oraclecloud.com/20231130/actions/chat';
         const cohere = /^cohere\./i.test(c.model);
@@ -278,7 +284,7 @@ async function open(opts) {
           servingMode: { servingType: 'ON_DEMAND', modelId: c.model },
           chatRequest: cohere
             ? { apiFormat: 'COHERE', preambleOverride: system, message: user, maxTokens: max || MAX_TOKENS, temperature: 0 }
-            : { apiFormat: 'GENERIC', messages: [{ role: 'SYSTEM', content: [{ type: 'TEXT', text: system }] }, { role: 'USER', content: [{ type: 'TEXT', text: user }] }], maxTokens: max || MAX_TOKENS, temperature: 0 }
+            : { apiFormat: 'GENERIC', messages: [{ role: 'SYSTEM', content: [{ type: 'TEXT', text: system }] }, { role: 'USER', content: [{ type: 'TEXT', text: user }].concat((images || []).map((im) => ({ type: 'IMAGE', imageUrl: { url: 'data:' + im.mime + ';base64,' + im.base64 } }))) }], maxTokens: max || MAX_TOKENS, temperature: 0 }
         });
         const s = ociSign(c, 'POST', url, body, now);
         const j = await http('POST', url, s.headers, body, max);
@@ -294,11 +300,21 @@ async function open(opts) {
         // Claude Code accepts short aliases, so no model id is pinned here; blank = whatever Claude Code is set to.
         return [{ id: '', label: 'Default (your Claude Code setting)' }, { id: 'sonnet', label: 'Sonnet' }, { id: 'opus', label: 'Opus' }, { id: 'haiku', label: 'Haiku' }];
       },
-      async chat(c, system, user, max) {
-        const args = ['-p', '--output-format', 'text'];
+      async chat(c, system, user, max, images) {
+        // with images (Code Fix's screenshots): the message as stream-json, its image blocks inline; the answer is the
+        // "result" line of the stream
+        const withImages = (images || []).length > 0;
+        const args = withImages ? ['-p', '--input-format', 'stream-json', '--output-format', 'stream-json', '--verbose'] : ['-p', '--output-format', 'text'];
         if (trim(c.model)) { args.push('--model', trim(c.model)); }
         if (trim(system)) { args.push('--append-system-prompt', system); }
-        const r = await run(args, user, max && max > MAX_TOKENS ? LONG_MS : undefined);
+        const input = withImages ? JSON.stringify({ type: 'user', message: { role: 'user', content: images.map((im) => ({ type: 'image', source: { type: 'base64', media_type: im.mime, data: im.base64 } })).concat([{ type: 'text', text: user }]) } }) + '\n' : user;
+        const r = await run(args, input, max && max > MAX_TOKENS ? LONG_MS : undefined);
+        if (withImages && r && r.code === 0) {
+          const res = String(r.stdout || '').split('\n').map((l) => { try { return JSON.parse(l); } catch (e) { return null; } }).filter((x) => x && x.type === 'result').pop();
+          if (!res) throw new Error('Claude Code gave no answer.');
+          if (res.is_error) throw new Error('Claude Code: ' + String(res.result || res.subtype || 'an error').slice(0, 300));
+          return String(res.result || '').trim();
+        }
         if (!r || r.code !== 0) {
           const se = String((r && r.stderr) || '').trim();
           const hint = /enoent|not found|not recognized|no such file/i.test(se) || (r && r.code === -1)
@@ -395,7 +411,9 @@ async function open(opts) {
         if (!trim(user)) return { ok: false, error: 'There is nothing to send.' };
         const system = trim(req && req.system) || 'You are a helpful assistant.';
         const max = Math.min(MAX_ASK, Math.max(0, Number(req && req.maxTokens) || 0)) || undefined;
-        const text = await call[id].chat(c, system, user, max);
+        // images (Code Fix's screenshots): [{ mime, base64 }], png/jpeg/webp/gif only
+        const images = (Array.isArray(req && req.images) ? req.images : []).filter((im) => im && /^image\/(png|jpeg|webp|gif)$/.test(im.mime) && im.base64).slice(0, 8);
+        const text = await call[id].chat(c, system, user, max, images);
         return { ok: true, text: String(text || ''), provider: p.label, model: c.model, ms: now() - t0 };
       } catch (e) {
         return { ok: false, error: (e && e.message) || String(e), ms: now() - t0 };

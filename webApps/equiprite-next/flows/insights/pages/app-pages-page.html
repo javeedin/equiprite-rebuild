@@ -106,6 +106,7 @@
           <button type="button" role="tab" id="pgTabPage" :class="[[ 'nx-pg-tab' + ($variables.view === 'page' ? ' nx-pg-tab--on' : '') ]]" :aria-selected="[[ $variables.view === 'page' ? 'true' : 'false' ]]" data-field="view" data-value="page" on-click="[[ $listeners.onField ]]"><span class="oj-ux-ico-file-text" aria-hidden="true"></span><oj-bind-text value="[[ $variables.sheet.facts.label ]]"></oj-bind-text></button>
           <button type="button" role="tab" id="pgTabMap" :class="[[ 'nx-pg-tab' + ($variables.view === 'map' ? ' nx-pg-tab--on' : '') ]]" :aria-selected="[[ $variables.view === 'map' ? 'true' : 'false' ]]" data-field="view" data-value="map" on-click="[[ $listeners.onField ]]"><span class="oj-ux-ico-link" aria-hidden="true"></span>Page map <span class="nx-chip-count"><oj-bind-text value="[[ $functions.mapLinks($functions.pageMap($variables.pages, $variables.selId, $variables.sheet)) ]]"></oj-bind-text></span></button>
           <button type="button" role="tab" id="pgTabGlobal" :class="[[ 'nx-pg-tab' + ($variables.view === 'global' ? ' nx-pg-tab--on' : '') ]]" :aria-selected="[[ $variables.view === 'global' ? 'true' : 'false' ]]" data-field="view" data-value="global" on-click="[[ $listeners.onField ]]"><span class="oj-ux-ico-network-flow-diagram" aria-hidden="true"></span><oj-bind-text value="[[ 'Global map · ' + $variables.sheet.facts.appName ]]"></oj-bind-text></button>
+          <oj-bind-if test="[[ $variables.info.available ]]"><button type="button" role="tab" id="pgTabCode" :class="[[ 'nx-pg-tab nx-pg-tab--code' + ($variables.view === 'code' ? ' nx-pg-tab--on' : '') ]]" :aria-selected="[[ $variables.view === 'code' ? 'true' : 'false' ]]" data-field="view" data-value="code" on-click="[[ $listeners.onField ]]"><span class="oj-ux-ico-file-text" aria-hidden="true"></span>Page code</button></oj-bind-if>
           <oj-bind-if test="[[ $variables.info.canWrite ]]"><button type="button" role="tab" id="pgTabFix" :class="[[ 'nx-pg-tab nx-pg-tab--fix' + ($variables.view === 'fix' ? ' nx-pg-tab--on' : '') ]]" :aria-selected="[[ $variables.view === 'fix' ? 'true' : 'false' ]]" data-field="view" data-value="fix" on-click="[[ $listeners.onField ]]"><span class="oj-ux-ico-wrench" aria-hidden="true"></span>Code fix<oj-bind-if test="[[ $variables.fixPage === $variables.selId && $variables.fixList.length > 0 ]]"> <span class="nx-chip-count"><oj-bind-text value="[[ $variables.fixList.length ]]"></oj-bind-text></span></oj-bind-if></button></oj-bind-if>
         </div>
 
@@ -170,10 +171,54 @@
 
         <!-- Code fix: ask the AI for a fix, an enhancement or a change; its analysis, the exact change and checks; a
              preview; approve (pull, write, test), then commit or undo (desktop/lib/codeFix.js, /__fix/*) -->
-        <oj-bind-if test="[[ $variables.view === 'fix' ]]">
+        <!-- Page code: the page's files as they are in the project, read only (desktop/lib/pages.js code(), codeView.js) -->
+        <oj-bind-if test="[[ $variables.view === 'code' ]]">
+          <div class="nx-cv" id="pgCodeView">
+            <div class="nx-cv-bar">
+              <span class="nx-cv-ro"><span class="oj-ux-ico-lock" aria-hidden="true"></span>Read only</span>
+              <span class="nx-note nx-cv-where"><oj-bind-text value="[[ $variables.codeInfo && $variables.codeInfo.folder ? 'As it is in ' + $variables.codeInfo.folder + ' now' : '' ]]"></oj-bind-text></span>
+              <span class="nx-min-flex"></span>
+              <input type="search" class="nx-flib-filter nx-cv-find" id="pgCodeFind" data-field="codeFind" :value="[[ $variables.codeFind ]]" on-input="[[ $listeners.onField ]]" placeholder="Find in this file…">
+              <span class="nx-note nx-cv-hits" id="pgCodeHits"><oj-bind-text value="[[ $functions.codeHits($variables.codeText, $variables.codeFind) ]]"></oj-bind-text></span>
+              <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" id="pgCodeCopy" data-act="copy" on-click="[[ $listeners.onCode ]]" :disabled="[[ !$variables.codeText ]]"><span class="oj-ux-ico-copy" aria-hidden="true"></span>Copy</button>
+            </div>
+            <oj-bind-if test="[[ !!($variables.codeInfo && $variables.codeInfo.error) ]]"><div class="nx-flib-result nx-flib-result--err"><oj-bind-text value="[[ $variables.codeInfo.error ]]"></oj-bind-text></div></oj-bind-if>
+            <div class="nx-cv-cols">
+              <div class="nx-cv-files" id="pgCodeFiles" role="list">
+                <oj-bind-for-each data="[[ $functions.codeGroups($variables.codeInfo) ]]">
+                  <template data-oj-as="g">
+                    <div class="nx-cv-group"><oj-bind-text value="[[ g.data.title + ' (' + g.data.files.length + ')' ]]"></oj-bind-text></div>
+                    <oj-bind-for-each data="[[ g.data.files ]]">
+                      <template data-oj-as="f">
+                        <button type="button" role="listitem" :class="[[ $functions.codeFileClass(f.data, $variables.codeSel) ]]" data-act="file" :data-key="[[ f.data.path ]]" on-click="[[ $listeners.onCode ]]" :title="[[ f.data.path + (f.data.about ? ' — ' + f.data.about : '') ]]">
+                          <span class="nx-cv-fname"><oj-bind-text value="[[ f.data.name ]]"></oj-bind-text></span><span class="nx-cv-flines"><oj-bind-text value="[[ f.data.lines ]]"></oj-bind-text></span>
+                        </button>
+                      </template>
+                    </oj-bind-for-each>
+                  </template>
+                </oj-bind-for-each>
+              </div>
+              <div class="nx-cv-main">
+                <div class="nx-cv-head"><code id="pgCodePath"><oj-bind-text value="[[ $variables.codeSel ]]"></oj-bind-text></code><span class="nx-min-flex"></span><span class="nx-note"><oj-bind-text value="[[ $variables.codeBusy ? 'Reading…' : $functions.codeLines($variables.codeText) ]]"></oj-bind-text></span></div>
+                <iframe class="nx-cv-frame" id="pgCodeFrame" title="The file's code, read only" sandbox="allow-same-origin" :srcdoc="[[ $functions.codeDoc($variables.codeText, $variables.codeSel, $variables.codeFind) ]]"></iframe>
+              </div>
+            </div>
+          </div>
+        </oj-bind-if>
+
+        <!-- (kept, only hidden, on the other tabs: what is typed and pasted stays) -->
+        <div id="pgFixPane" :hidden="[[ $variables.view !== 'fix' ]]">
           <div class="nx-fx" id="pgFix">
             <oj-bind-if test="[[ !!$variables.fixInfo && !$variables.fixInfo.ok ]]"><div class="nx-flib-result nx-flib-result--err" id="fxUnavailable"><oj-bind-text value="[[ $variables.fixInfo.error ]]"></oj-bind-text></div></oj-bind-if>
             <oj-bind-if test="[[ !!$variables.fixInfo && $variables.fixInfo.ok ]]">
+              <!-- the page being changed -->
+              <div class="nx-fx-page" id="fxPage">
+                <span class="nx-fx-pagelbl">Page</span>
+                <b id="fxPageName"><oj-bind-text value="[[ $variables.sheet.facts.label ]]"></oj-bind-text></b>
+                <code class="nx-fx-pagepath"><oj-bind-text value="[[ $variables.sheet.facts.appName + ' · ' + ($variables.sheet.facts.flow ? $variables.sheet.facts.flow + '/' : '') + $variables.sheet.facts.page ]]"></oj-bind-text></code>
+                <span class="nx-min-flex"></span>
+                <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" id="fxSeeCode" data-field="view" data-value="code" on-click="[[ $listeners.onField ]]"><span class="oj-ux-ico-file-text" aria-hidden="true"></span>See its code</button>
+              </div>
               <!-- where the code is -->
               <div class="nx-fx-folder" id="fxFolder">
                 <span class="oj-ux-ico-folder nx-fx-folderico" aria-hidden="true"></span>
@@ -196,6 +241,18 @@
                   </oj-bind-for-each>
                 </div>
                 <textarea class="nx-fx-text" id="fxRequest" rows="3" data-field="fixReq" :value="[[ $variables.fixReq ]]" on-input="[[ $listeners.onField ]]" :placeholder="[[ 'What should change on ' + $variables.sheet.facts.label + '? e.g. “The Save button should stay disabled until a date is picked”, “Add a Customer column to the table”.' ]]"></textarea>
+                <div class="nx-fx-imgs" id="fxImgs">
+                  <oj-bind-for-each data="[[ $functions.indexed($variables.fixImages) ]]">
+                    <template data-oj-as="im">
+                      <span class="nx-fx-img">
+                        <button type="button" class="nx-fx-imgbtn" data-act="viewImg" :data-key="[[ im.data.url ]]" on-click="[[ $listeners.onFix ]]" :title="[[ im.data.name + ' · ' + $functions.fixImgSize(im.data) + ' — click to see it' ]]"><img :src="[[ im.data.url ]]" :alt="[[ im.data.name ]]"><span class="nx-fx-imgn"><oj-bind-text value="[[ im.data.n ]]"></oj-bind-text></span></button>
+                        <button type="button" class="nx-fx-imgx" data-act="unimg" :data-key="[[ im.data.i ]]" on-click="[[ $listeners.onFix ]]" :aria-label="[[ 'Take out ' + im.data.name ]]" title="Take it out">×</button>
+                      </span>
+                    </template>
+                  </oj-bind-for-each>
+                  <label class="nx-btn nx-btn--sm nx-btn--plain nx-pg-upload" id="fxImgBtn"><span class="oj-ux-ico-camera" aria-hidden="true"></span>Attach screenshots<input type="file" id="fxImgFile" accept="image/png,image/jpeg,image/webp,image/gif" multiple></label>
+                  <span class="nx-note"><oj-bind-text value="[[ $variables.fixImages.length ? $variables.fixImages.length + ' screenshot' + ($variables.fixImages.length === 1 ? '' : 's') + ' go with the request — the AI looks at them.' : 'Paste a screenshot here (Ctrl+V), drop one, or attach: the AI looks at it too.' ]]"></oj-bind-text></span>
+                </div>
                 <div class="nx-fx-askbar">
                   <span class="nx-note">The AI reads this page's code and proposes the change. <b>Nothing is written until you approve it.</b></span>
                   <button type="button" class="nx-btn nx-btn--primary nx-aibtn" id="fxAnalyze" data-act="analyze" on-click="[[ $listeners.onFix ]]" :disabled="[[ $variables.fixBusy || !$variables.fixInfo.valid ]]"><span aria-hidden="true">✨</span>Analyze</button>
@@ -223,6 +280,11 @@
                 </div>
                 <blockquote class="nx-fx-req" id="fxReq"><oj-bind-text value="[[ $variables.fix.request ]]"></oj-bind-text><oj-bind-if test="[[ !!$variables.fix.refine ]]"><span class="nx-pg-block nx-note"><oj-bind-text value="[[ 'Then: ' + $variables.fix.refine ]]"></oj-bind-text></span></oj-bind-if></blockquote>
                 <div class="nx-note"><oj-bind-text value="[[ $functions.fixMeta($variables.fix) ]]"></oj-bind-text> · <oj-bind-text value="[[ $functions.fixSent($variables.fix) ]]"></oj-bind-text></div>
+                <oj-bind-if test="[[ ($variables.fix.images || []).length > 0 ]]">
+                  <div class="nx-fx-imgs" id="fxFixImgs"><span class="nx-pg-maplbl">Screenshots sent</span>
+                    <oj-bind-for-each data="[[ $variables.fix.images ]]"><template data-oj-as="im"><button type="button" class="nx-pg-shotbtn" data-act="viewImg" :data-key="[[ $functions.fixImgUrl($variables.fix, im.data.n) ]]" on-click="[[ $listeners.onFix ]]" :title="[[ im.data.name ]]"><span class="oj-ux-ico-camera" aria-hidden="true"></span><oj-bind-text value="[[ im.data.n ]]"></oj-bind-text></button></template></oj-bind-for-each>
+                  </div>
+                </oj-bind-if>
                 <iframe class="nx-an-frame nx-pg-frame nx-fx-frame" id="fxAnalysis" title="The AI's analysis" sandbox="" :srcdoc="[[ $functions.doc($variables.fix.markdown) ]]"></iframe>
 
                 <oj-bind-if test="[[ ($variables.fix.problems || []).length > 0 ]]">
@@ -342,7 +404,7 @@
               </div>
             </oj-bind-if>
           </div>
-        </oj-bind-if>
+        </div>
 
         <oj-bind-if test="[[ $variables.view === 'page' ]]">
         <!-- Jira stories mapped to the page -->
@@ -472,6 +534,16 @@
       </oj-bind-if>
     </section>
   </div>
+
+  <!-- A Code fix screenshot, full size (a pasted one, or one sent with a fix) -->
+  <dialog class="nx-pg-dialog" id="fxImgDlg" aria-label="Screenshot" on-close="[[ $listeners.onFixImgClosed ]]" on-click="[[ $listeners.onFixImgClick ]]">
+    <oj-bind-if test="[[ !!$variables.fixView ]]">
+      <div class="nx-pg-dlg">
+        <div class="nx-pg-viewbar"><b>Screenshot for Code fix</b><span class="nx-min-flex"></span><button type="button" class="nx-pg-dlgx" id="fxImgClose" data-act="unviewImg" on-click="[[ $listeners.onFix ]]" aria-label="Close" title="Close (Esc)">×</button></div>
+        <div class="nx-pg-viewimg"><img id="fxImgFull" :src="[[ $variables.fixView ]]" alt="The screenshot"></div>
+      </div>
+    </oj-bind-if>
+  </dialog>
 
   <!-- The screenshot viewer: a real dialog (the browser's top layer, above everything), one screenshot at a time, full
        size. Close: its × or Close button, Escape, or a click outside the picture. -->

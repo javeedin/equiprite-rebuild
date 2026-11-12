@@ -829,6 +829,8 @@ function createDevServer(o) {
           if (pathname === '/__pages/git/pull' && post) return jsonP(200, ps.gitPull ? await ps.gitPull() : { ok: true, merged: false });
           if (pathname === '/__pages/catalog' && req.method === 'GET') return jsonP(200, Object.assign({ ok: true }, ps.catalog()));
           if (pathname === '/__pages/sheet' && req.method === 'GET') return jsonP(200, ps.sheet(u.searchParams.get('id') || ''));
+          if (pathname === '/__pages/code' && req.method === 'GET') return jsonP(200, ps.code ? ps.code(u.searchParams.get('id') || '') : { ok: false, error: 'Not here.' });
+          if (pathname === '/__pages/code/file' && req.method === 'GET') return jsonP(200, ps.codeFile ? ps.codeFile(u.searchParams.get('id') || '', u.searchParams.get('path') || '') : { ok: false, error: 'Not here.' });
           if (pathname === '/__pages/git/status' && req.method === 'GET') return jsonP(200, Object.assign({ ok: true }, await ps.gitStatus()));
           if (pathname === '/__pages/rescan' && post) return jsonP(200, await commit(ps.rescan(), b, 'Application pages: rescan'));
           if (pathname === '/__pages/build' && post) return jsonP(200, await commit(ps.build(b.id, { by }), b, 'Application pages: sheet of ' + b.id));
@@ -872,14 +874,19 @@ function createDevServer(o) {
         const bodyOf = () => new Promise((resolve, reject) => {
           const chunks = [];
           let size = 0;
-          req.on('data', (c) => { size += c.length; if (size <= 2 * 1024 * 1024) chunks.push(c); });
-          req.on('end', () => (size > 2 * 1024 * 1024 ? reject(new Error('Too large')) : resolve(Buffer.concat(chunks).toString('utf8'))));
+          req.on('data', (c) => { size += c.length; if (size <= 48 * 1024 * 1024) chunks.push(c); });
+          req.on('end', () => (size > 48 * 1024 * 1024 ? reject(new Error('Too large (the screenshots together must be under 40 MB)')) : resolve(Buffer.concat(chunks).toString('utf8'))));
           req.on('error', reject);
         });
         const who = () => { try { const id = o.getIdentity && o.getIdentity(); return (id && (id.displayName || id.username)) || ''; } catch (e) { return ''; } };
         (async () => {
           const b = post ? JSON.parse((await bodyOf()) || '{}') : {};
           const q = (k) => u.searchParams.get(k) || '';
+          if (pathname === '/__fix/img' && !post) {
+            const s = fx.img(q('id'), q('n'));
+            if (!s.ok) return send(res, 404, 'text/plain; charset=utf-8', 'Not found');
+            return send(res, 200, s.mime, fs.readFileSync(s.file), { 'Cache-Control': 'no-store' });
+          }
           if (pathname === '/__fix/info' && !post) return jsonF(200, await fx.info());
           if (pathname === '/__fix/list' && !post) return jsonF(200, fx.list(q('page')));
           if (pathname === '/__fix/get' && !post) return jsonF(200, fx.get(q('id')));

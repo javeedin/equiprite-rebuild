@@ -147,6 +147,45 @@ const copyDir = (from, to) => { fs.mkdirSync(to, { recursive: true }); fs.readdi
     const v3 = await store.apply({ fix: v1.id, skipPull: true });
     T.check('…which works', v3.ok && v3.fix.applied.pull.text === 'Not pulled (asked to skip).');
 
+    T.section('screenshots with the request: sent to the AI, kept with the fix, and with a refinement');
+    const PNG1 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==';
+    git(A, 'checkout', '-q', '--', '.');
+    git(A, 'reset', '-q', '--hard', 'HEAD');
+    const anchor2 = fs.readFileSync(path.join(A, PAGE + '.html'), 'utf8').replace(/\r\n/g, '\n').split('\n').slice(1, 3).join('\n');
+    replies.push(answer(anchor2, anchor2 + '\n  As in the screenshot.'));
+    const i1 = await store.analyze({ id: ID, request: 'Make it look like the screenshot', images: [{ name: 'Pasted image 1', mime: 'image/png', base64: PNG1 }, { name: 'bad', mime: 'text/html', base64: 'PGI+' }] });
+    const asked = sent[sent.length - 1];
+    T.check('the image goes to the AI (only an image type), and the prompt says to look at it', i1.ok && (asked.images || []).length === 1 && asked.images[0].mime === 'image/png' && asked.images[0].base64 === PNG1 && /SCREENSHOTS: the person attached 1 image/.test(asked.user), JSON.stringify([i1.error, (asked.images || []).length]));
+    const im = store.img(i1.fix.id, 1);
+    T.check('kept with the fix (its file), listed on it', i1.fix.images.length === 1 && i1.fix.images[0].name === 'Pasted image 1' && im.ok && fs.readFileSync(im.file).toString('base64') === PNG1 && !store.img(i1.fix.id, 2).ok);
+    replies.push(answer(anchor2, anchor2 + '\n  As in the screenshot, smaller.'));
+    const i2 = await store.analyze({ id: ID, request: i1.fix.request, refine: 'Smaller', parent: i1.fix.id });
+    T.check('asked again without new screenshots: the earlier ones go with it', i2.ok && (sent[sent.length - 1].images || []).length === 1 && i2.fix.images.length === 1);
+
+    T.section('each AI is given the images its own way');
+    const AS = require('../desktop/lib/aiSql');
+    const bodies = [];
+    const fetchStub = async (url, init) => { bodies.push({ url: url, body: JSON.parse(String(init.body || '{}')) }); return { ok: true, status: 200, text: async () => JSON.stringify(/anthropic/.test(url) ? { content: [{ type: 'text', text: 'ok' }] } : { choices: [{ message: { content: 'ok' } }] }) }; };
+    const sA = await AS.open({ file: path.join(tmp, 'ai1.json'), encrypt: (t) => Buffer.from(t), decrypt: (x) => String(x), fetch: fetchStub });
+    sA.save({ provider: 'anthropic', key: 'k', model: 'claude-test' });
+    await sA.chat({ system: 's', user: 'u', images: [{ mime: 'image/png', base64: PNG1 }], maxTokens: 16000 });
+    const ab = bodies[bodies.length - 1].body;
+    T.check('Claude (API key): an image block, then the text; a long answer allowed', Array.isArray(ab.messages[0].content) && ab.messages[0].content[0].type === 'image' && ab.messages[0].content[0].source.data === PNG1 && ab.messages[0].content[1].text === 'u' && ab.max_tokens === 16000);
+    sA.save({ provider: 'openai', key: 'k', model: 'gpt-test' });
+    await sA.chat({ system: 's', user: 'u', images: [{ mime: 'image/png', base64: PNG1 }] });
+    const ob = bodies[bodies.length - 1].body;
+    T.check('OpenAI: the text, then the image as a data URL', ob.messages[1].content[0].text === 'u' && ob.messages[1].content[1].image_url.url === 'data:image/png;base64,' + PNG1);
+    await sA.chat({ system: 's', user: 'u' });
+    T.check('…and without images, plain text as before', bodies[bodies.length - 1].body.messages[1].content === 'u');
+    const runs = [];
+    const sC = await AS.open({ file: path.join(tmp, 'ai2.json'), encrypt: (t) => Buffer.from(t), decrypt: (x) => String(x),
+      run: async (args, input) => { runs.push({ args: args, input: input }); return { code: 0, stdout: '{"type":"system"}\n{"type":"result","subtype":"success","is_error":false,"result":"Red"}\n', stderr: '' }; } });
+    sC.save({ provider: 'claudecode', model: '' });
+    const cr = await sC.chat({ system: 's', user: 'What colour?', images: [{ mime: 'image/png', base64: PNG1 }] });
+    const msg = JSON.parse(runs[0].input);
+    T.check('Claude Code (subscription): the message as stream-json with the image inline; the answer read from its result line', cr.ok && cr.text === 'Red' && runs[0].args.indexOf('stream-json') !== -1 && runs[0].args.indexOf('--verbose') !== -1
+      && msg.type === 'user' && msg.message.content[0].type === 'image' && msg.message.content[0].source.data === PNG1 && msg.message.content[1].text === 'What colour?', JSON.stringify([cr.error, runs[0].args]));
+
     T.section('the code folder');
     const bad = await store.setFolder(tmp);
     T.check('a folder without webApps is refused', !bad.ok && /no webApps/.test(bad.error));

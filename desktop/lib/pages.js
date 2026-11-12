@@ -279,12 +279,32 @@ function open(opts) {
     return { ok: true, sheet: sh };
   }
 
+  /** The page's code, as it is in the project now (the Page code tab, read only): its files — the page, its action
+   *  chains, the rules modules it uses — and one file's text (only a file of that page). */
+  function code(id) {
+    const facts = scan.analyze(root, id);
+    if (!facts) return { ok: false, error: 'This page is not in the code.' };
+    const group = (p) => (/-page-chains\//.test(p) ? 'chain' : 'page');
+    const files = facts.files.map((f) => ({ path: f.path, lines: f.lines, group: group(f.path), name: path.basename(f.path) }))
+      .concat((facts.logic.modules || []).filter((m) => m.file).map((m) => ({ path: m.file, lines: m.lines || 0, group: 'module', name: path.basename(m.file), about: m.about || '' })));
+    return { ok: true, id: facts.id, label: facts.label, folder: root, codeHash: facts.codeHash, files: files.filter((f, i) => files.findIndex((x) => x.path === f.path) === i) };
+  }
+  function codeFile(id, rel) {
+    const c = code(id);
+    if (!c.ok) return c;
+    const f = c.files.filter((x) => x.path === str(rel))[0];
+    if (!f) return { ok: false, error: 'Not a file of this page.' };
+    let text;
+    try { text = fs.readFileSync(path.join(root, f.path), 'utf8'); } catch (e) { return { ok: false, error: 'Could not read ' + f.path + '.' }; }
+    return { ok: true, path: f.path, abs: path.join(root, f.path), text: text, lines: text.split('\n').length, size: Buffer.byteLength(text) };
+  }
+
   /** Writes the catalog as the code is now (new pages listed, labels current): what the Rescan button does. */
   function rescan() { const cat = catalog(); writeCatalog(cat); return { ok: true, pages: cat.pages.length }; }
 
   return {
     remove: remove, restore: restore, removeShot: removeShot,
-    catalog: catalog, rescan: rescan, sheet: sheet, build: build, assign: assign, unassign: unassign, forStory: forStory,
+    catalog: catalog, rescan: rescan, sheet: sheet, code: code, codeFile: codeFile, build: build, assign: assign, unassign: unassign, forStory: forStory,
     saveShot: saveShot, capture: capture, saveAi: saveAi, canCapture: () => typeof o.capture === 'function',
     canWrite: () => { try { return fs.statSync(path.join(root, 'webApps', 'equiprite-next')).isDirectory(); } catch (e) { return false; } },
     gitStatus: () => repo.status(), gitSave: (b) => repo.save(b), gitPull: () => repo.pull(),

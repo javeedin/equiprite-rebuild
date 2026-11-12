@@ -1,4 +1,4 @@
-define(['resources/js/pagesClient', 'resources/js/storyAnalysis', 'resources/js/shellBus', 'resources/js/pageMap', 'resources/js/codeFixClient'], (PC, SA, bus, PM, FX) => {
+define(['resources/js/pagesClient', 'resources/js/storyAnalysis', 'resources/js/shellBus', 'resources/js/pageMap', 'resources/js/codeFixClient', 'resources/js/codeView'], (PC, SA, bus, PM, FX, CV) => {
   'use strict';
 
   // Application pages: binding helpers. The facts come from desktop/lib/pageScan.js (via the catalog, resources/pages);
@@ -9,15 +9,58 @@ define(['resources/js/pagesClient', 'resources/js/storyAnalysis', 'resources/js/
   const when = (at) => { const d = new Date(at); if (isNaN(d.getTime())) return ''; const p2 = (n) => (n < 10 ? '0' : '') + n; return d.getDate() + ' ' + MON[d.getMonth()] + ' ' + d.getFullYear() + ', ' + p2(d.getHours()) + ':' + p2(d.getMinutes()); };
   let shownKept = { k: '', v: [] };
   const mapKept = { page: { k: '', v: null }, app: { k: '', v: null } };
+  const codeKept = { k: '', v: '' };
+  // Screenshots for a Code fix request: pasted (Ctrl+V), dropped or picked in its box. The clipboard can only be read
+  // during the paste, so this module reads it (one set of listeners, whichever page instance is live) and hands the
+  // images to the chain through codeFixClient's queue and the fixImages event.
+  let fireImages = null;
+  function listenForImages() {
+    if (typeof document === 'undefined' || window.__nxFixImages) return;
+    window.__nxFixImages = true;
+    const inAsk = (t) => !!(t && t.closest && t.closest('#fxAsk'));
+    const filesOf = (dt) => {
+      if (!dt) return [];
+      const fromItems = Array.prototype.filter.call(dt.items || [], (i) => i.kind === 'file' && /^image\//.test(i.type)).map((i) => i.getAsFile()).filter(Boolean);
+      return fromItems.length ? fromItems : Array.prototype.filter.call(dt.files || [], (f) => /^image\//.test(f.type));
+    };
+    const take = (files) => {
+      if (!files.length) return false;
+      Promise.all(files.map((f) => FX.prepImage(f))).then((imgs) => { FX.queueImages(imgs.filter(Boolean)); if (fireImages) fireImages(); });
+      return true;
+    };
+    document.addEventListener('paste', (ev) => { if (inAsk(ev.target) && take(filesOf(ev.clipboardData))) ev.preventDefault(); });
+    document.addEventListener('dragover', (ev) => { if (inAsk(ev.target)) { ev.preventDefault(); const a = ev.target.closest('#fxAsk'); if (a) a.classList.add('nx-fx-ask--drop'); } });
+    document.addEventListener('dragleave', (ev) => { const a = ev.target && ev.target.closest && ev.target.closest('#fxAsk'); if (a && !a.contains(ev.relatedTarget)) a.classList.remove('nx-fx-ask--drop'); });
+    document.addEventListener('drop', (ev) => { if (!inAsk(ev.target)) return; ev.preventDefault(); const a = ev.target.closest('#fxAsk'); if (a) a.classList.remove('nx-fx-ask--drop'); take(filesOf(ev.dataTransfer)); });
+    document.addEventListener('change', (ev) => { if (ev.target && ev.target.id === 'fxImgFile') { take(Array.prototype.slice.call(ev.target.files || [])); ev.target.value = ''; } });
+  }
 
   class PageModule {
     constructor(context) {
       // a Jira story hands this screen a page to open (bus.focus('app-pages', { id })): the focusRequest event takes it
       const helper = context && typeof context.getEventHelper === 'function' ? context.getEventHelper() : null;
       bus.onFocus('app-pages', () => { if (helper) helper.fireCustomEvent('focusRequest', {}); });
+      fireImages = () => { if (helper) helper.fireCustomEvent('fixImages', {}); };
+      listenForImages();
       // the maps' lines follow the boxes: drawn again when the window changes size
       if (typeof window !== 'undefined') { let t = 0; window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(() => PM.redraw(), 120); }); }
     }
+    // ── Page code (read only; resources/js/codeView.js) ──
+    codeGroups(info) {
+      const files = (info && info.files) || [];
+      return [['page', 'The page'], ['chain', 'Action chains'], ['module', 'Rules modules it uses']]
+        .map((g) => ({ id: g[0], title: g[1], files: files.filter((f) => f.group === g[0]) })).filter((g) => g.files.length);
+    }
+    codeDoc(text, path, find) {
+      const k = path + '|' + find + '|' + (text || '').length + '|' + (text || '').slice(0, 64);
+      if (codeKept.k !== k) { codeKept.k = k; codeKept.v = CV.doc(text, path, find); }
+      return codeKept.v;
+    }
+    codeHits(text, find) { const n = CV.hits(text, find); return String(find || '').trim().length < 2 ? '' : (n ? n + ' match' + (n === 1 ? '' : 'es') : 'Not in this file'); }
+    codeLines(text) { const n = String(text || '').split('\n').length; return text ? n + ' lines' : ''; }
+    codeFileClass(f, sel) { return 'nx-cv-file' + (f.path === sel ? ' nx-cv-file--on' : ''); }
+    fixImgUrl(f, n) { return FX.imgUrl(f, n); }
+    fixImgSize(x) { return (x.w ? x.w + '×' + x.h + ' · ' : '') + Math.max(1, Math.round((x.size || 0) / 1024)) + ' KB'; }
     // ── Code Fix (desktop/lib/codeFix.js) ──
     fixKinds() { return [{ id: 'fix', label: 'Fix a bug' }, { id: 'enhance', label: 'Enhance' }, { id: 'change', label: 'Change' }]; }
     fixStatus(s) {

@@ -81,6 +81,8 @@ define([], function () {
     rescan: function (commit) { return call('rescan', 'POST', { commit: !!commit }); },
     gitStatus: function () { return call('git/status'); },
     gitPull: function () { return call('git/pull', 'POST', {}); },
+    code: function (id) { return call('code?id=' + encodeURIComponent(id)); },
+    codeFile: function (id, path) { return call('code/file?id=' + encodeURIComponent(id) + '&path=' + encodeURIComponent(path)); },
     gitSave: function (message) { return call('git/save', 'POST', { message: message || 'Application pages: update' }); }
   };
 });

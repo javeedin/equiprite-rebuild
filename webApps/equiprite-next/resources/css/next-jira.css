@@ -688,3 +688,40 @@ button.nx-jira-recmark:hover, button.nx-jira-recmark:focus-visible { filter: bri
 .nx-fx-item:hover { border-color: #00688c; background: #f2f9fc; }
 .nx-fx-item--on { border-color: #00688c; box-shadow: inset 3px 0 0 #00688c; }
 .nx-fx-itemtext { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ── Code fix: the page, screenshots; Page code (read only) ── */
+.nx-pg-tab--code { margin-left: auto; }
+.nx-pg-tab--code ~ .nx-pg-tab--fix { margin-left: 0; }
+.nx-fx-page { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 12px; border-radius: 10px; background: #00688c; color: #fff; }
+.nx-fx-pagelbl { font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; opacity: .8; }
+.nx-fx-page b { font-size: 16px; }
+.nx-fx-pagepath { background: rgba(255, 255, 255, .16); color: #fff; padding: 2px 8px; border-radius: 6px; font-size: 12px; overflow-wrap: anywhere; }
+.nx-fx-page .nx-btn { color: #fff; border-color: rgba(255, 255, 255, .5); }
+.nx-fx-page .nx-btn:hover { background: rgba(255, 255, 255, .14); }
+.nx-fx-ask--drop { outline: 3px dashed #00688c; outline-offset: 2px; background: #e8f3f8; }
+.nx-fx-imgs { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.nx-fx-img { position: relative; display: inline-flex; }
+.nx-fx-imgbtn { position: relative; padding: 0; width: 76px; height: 52px; border: 1px solid #c7d3dc; border-radius: 8px; overflow: hidden; background: #f3f5f8; cursor: zoom-in; }
+.nx-fx-imgbtn img { width: 100%; height: 100%; object-fit: cover; object-position: top left; display: block; }
+.nx-fx-imgbtn:hover { border-color: #00688c; box-shadow: 0 2px 8px rgba(0, 104, 140, .2); }
+.nx-fx-imgn { position: absolute; left: 4px; bottom: 4px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: rgba(22, 33, 44, .78); color: #fff; font-size: 10.5px; font-weight: 800; line-height: 16px; text-align: center; }
+.nx-fx-imgx { position: absolute; top: -7px; right: -7px; width: 20px; height: 20px; border-radius: 50%; border: 0; background: #b3311f; color: #fff; font-size: 14px; line-height: 20px; padding: 0; cursor: pointer; box-shadow: 0 1px 3px rgba(0, 0, 0, .3); }
+.nx-cv { display: flex; flex-direction: column; gap: 8px; padding-top: 6px; }
+.nx-cv-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.nx-cv-ro { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 999px; background: #eef1f4; color: #4b5866; font-size: 12px; font-weight: 800; }
+.nx-cv-where { overflow-wrap: anywhere; }
+.nx-cv-find { width: 220px; max-width: 100%; }
+.nx-cv-hits { min-width: 80px; }
+.nx-cv-cols { display: grid; grid-template-columns: minmax(180px, 250px) minmax(0, 1fr); gap: 10px; min-height: 420px; }
+.nx-cv-files { display: flex; flex-direction: column; gap: 2px; max-height: 70vh; overflow: auto; border: 1px solid #e2e7ed; border-radius: 8px; padding: 6px; background: #fafbfc; }
+.nx-cv-group { font-size: 10.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #6b7886; padding: 8px 6px 4px; }
+.nx-cv-file { display: flex; align-items: baseline; gap: 6px; width: 100%; text-align: left; padding: 5px 8px; border: 0; border-radius: 6px; background: none; font: inherit; font-size: 12.5px; color: #16212c; cursor: pointer; }
+.nx-cv-file:hover { background: #eef4f8; }
+.nx-cv-file--on { background: #e4f1f7; box-shadow: inset 3px 0 0 #00688c; font-weight: 700; }
+.nx-cv-fname { flex: 1; min-width: 0; overflow-wrap: anywhere; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
+.nx-cv-flines { color: #8a97a5; font-size: 11px; }
+.nx-cv-main { display: flex; flex-direction: column; min-width: 0; border: 1px solid #d4dce4; border-radius: 8px; overflow: hidden; }
+.nx-cv-head { display: flex; align-items: center; gap: 8px; padding: 7px 10px; background: #f3f5f8; border-bottom: 1px solid #d4dce4; font-size: 12.5px; }
+.nx-cv-head code { overflow-wrap: anywhere; font-weight: 700; }
+.nx-cv-frame { flex: 1; width: 100%; min-height: 70vh; border: 0; background: #fff; }
+@media (max-width: 860px) { .nx-cv-cols { grid-template-columns: 1fr; } .nx-cv-files { max-height: 220px; } .nx-pg-tab--code { margin-left: 0; } }

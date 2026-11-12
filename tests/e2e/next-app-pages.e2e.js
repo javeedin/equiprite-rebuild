@@ -58,7 +58,7 @@ const ID = 'vbredwoodapp/equipment-foundation/equipment-workbench';
     await page.waitForSelector('#pgSheetTitle', { timeout: 10000 });
     T.check('its name, app, flow/page, where it opens; not saved yet', (await text(page, '#pgSheetTitle')) === 'Equipment Manager Workbench'
       && /No technical sheet saved yet/.test(await text(page, '#pgSheetState')) && /Opens at \/vp\/shell\/equipment-foundation\/equipment-workbench/.test(await text(page, '#pgSheet')));
-    T.check('the page\'s tab: one sheet, Overview, Integrations, Business logic, Features, Links & files all shown (the maps and Code fix are the other tabs)', (await page.$$('#pgTabs [role="tab"]')).length === 4
+    T.check('the page\'s tab: one sheet, Overview, Integrations, Business logic, Features, Links & files all shown (the maps, Page code and Code fix are the other tabs)', (await page.$$('#pgTabs [role="tab"]')).length === 5
       && ['pgOverview', 'pgIntegrations', 'pgLogic', 'pgFeatures', 'pgLinks'].every((x) => !!x) && (await page.$$('#pgSheet .nx-pg-part')).length === 5
       && /Overview\s*Integrations\s*Business logic\s*Features\s*Links & files/.test((await page.$$eval('#pgSheet .nx-pg-part', (h) => h.map((x) => x.textContent).join(' ')))));
     T.check('Integrations: the REST call → GET, its path, EquipRite REST, the chain that makes it', /GET\s*\/equiprite\/v1\/views\/workbench-requests/.test(await text(page, '#pgRest')) && /EquipRite REST \(eqpt\)/.test(await text(page, '#pgRest')) && /WorkbenchInitChain/.test(await text(page, '#pgRest')));
@@ -190,7 +190,26 @@ const ID = 'vbredwoodapp/equipment-foundation/equipment-workbench';
     T.check('the tab: the code folder and its branch, the ask, "nothing is written until you approve"', /pages\/test → origin\/pages\/test/.test(await text(page, '#fxFolder')) && /Nothing is written until you approve it/.test(await text(page, '#fxAsk'))
       && !(await page.$('#fxProposal')) && !(await page.$('#fxNoAi')), await text(page, '#fxFolder'));
     await page.click('#fxAsk [data-value="enhance"]');
+    T.check('the page being changed is named, with its app and path', /Page\s*My Billing\s*Old EquipRite · customer-portal\/customer-my-billing/.test(await text(page, '#fxPage')));
     await page.fill('#fxRequest', 'Show overdue invoices first');
+    await page.click('#pgTabMap');
+    await page.waitForSelector('#pgPageMap', { timeout: 5000 });
+    await page.click('#pgTabFix');
+    await page.waitForSelector('#fxRequest', { timeout: 5000 });
+    T.check('what was typed is still there after another tab (the Code fix tab is kept, only hidden)', (await page.inputValue('#fxRequest')) === 'Show overdue invoices first' && (await page.getAttribute('#fxAsk [data-value="enhance"]', 'class')).indexOf('nx-chip--on') !== -1);
+    // a screenshot pasted into the request (Ctrl+V): read from the clipboard, shown, sent with it
+    await page.evaluate((b64) => {
+      const bin = atob(b64); const bytes = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      const dt = new DataTransfer(); dt.items.add(new File([bytes], 'image.png', { type: 'image/png' }));
+      document.getElementById('fxRequest').dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }));
+    }, PNG);
+    await page.waitForSelector('#fxImgs .nx-fx-img', { timeout: 5000 }).catch(() => {});
+    T.check('a pasted screenshot: shown in the request (1), "the AI looks at them"', (await page.$$('#fxImgs .nx-fx-img')).length === 1 && /1 screenshot go(es)? with the request/.test(await text(page, '#fxImgs'))
+      && /Pasted image 1/.test((await page.getAttribute('#fxImgs .nx-fx-imgbtn', 'title')) || ''), await text(page, '#fxImgs'));
+    await page.click('#fxImgs .nx-fx-imgbtn');
+    await page.waitForFunction(() => { const d = document.getElementById('fxImgDlg'); return d && d.open; }, null, { timeout: 5000 }).catch(() => {});
+    T.check('clicked: full size in a dialog, closed with Escape', await page.evaluate(() => document.getElementById('fxImgDlg').open) && !!(await page.$('#fxImgFull')));
+    await page.keyboard.press('Escape');
     await page.click('#fxAnalyze');
     await page.waitForSelector('#fxProposal', { timeout: 20000 });
     T.check('the proposal: waiting for approval, the request, the AI\'s analysis in its headings', /Proposed — waiting for your approval/.test(await text(page, '#fxStatus')) && /Show overdue invoices first/.test(await text(page, '#fxReq'))
@@ -199,6 +218,8 @@ const ID = 'vbredwoodapp/equipment-foundation/equipment-workbench';
       && /Overdue invoices are shown first \(code fix\)/.test(await text(page, '#fxDiff .nx-fx-l--add')) && (await page.$$('#fxDiff .nx-fx-l--ctx')).length >= 3);
     T.check('…the checks on the proposed code ✓, the AI asked once (an enhancement)', (await page.$$('#fxChecks .nx-fx-check--ok')).length >= 5 && !(await page.$('#fxChecks .nx-fx-check--bad')) && fixAsked.length === 1 && /REQUEST \(Enhance\)/.test(fixAsked[0].user));
     T.check('…nothing written yet', !/code fix/.test(fs.readFileSync(path.join(pg.root, BILL + '.html'), 'utf8')) && /Approve and apply/.test(await text(page, '#fxApprove')));
+    T.check('…the screenshot went to the AI, and is kept with the fix (shown as sent)', (fixAsked[0].images || []).length === 1 && fixAsked[0].images[0].mime === 'image/png' && /SCREENSHOTS: the person attached 1 image/.test(fixAsked[0].user)
+      && (await page.$$('#fxFixImgs .nx-pg-shotbtn')).length === 1);
     await env.shot('next-app-pages-codefix.png');
     page.once('dialog', (d) => d.accept());
     await page.click('#fxApply');
@@ -211,6 +232,23 @@ const ID = 'vbredwoodapp/equipment-foundation/equipment-workbench';
     T.check('Commit & push: committed with its request, pushed to the branch', /Committed [0-9a-f]+ on pages\/test, pushed to origin\/pages\/test/.test(await text(page, '#fxResult'))
       && /^Code fix: My Billing — Show overdue invoices first/.test(pg.gitRemote('log', '-1', '--format=%s', 'pages/test')) && /Committed/.test(await text(page, '#fxStatus')));
     T.check('the fixes asked for on the page are listed', /committed[\s\S]*Show overdue invoices first/.test(await text(page, '#fxList')) && /Code fix\s*1/.test(await text(page, '#pgTabFix')));
+
+    T.section('Page code: the page\'s files, read only');
+    await page.click('#pgTabCode');
+    await page.waitForFunction(() => /customer-my-billing-page\.html/.test((document.getElementById('pgCodePath') || {}).textContent || ''), null, { timeout: 10000 }).catch(() => {});
+    T.check('its files by group: the page, its action chains; the HTML shown first, with its line count', /The page \(3\)/.test(await text(page, '#pgCodeFiles')) && /Action chains \(\d+\)/.test(await text(page, '#pgCodeFiles'))
+      && /customer-my-billing-page\.html/.test(await text(page, '#pgCodePath')) && /\d+ lines/.test(await text(page, '#pgCodeView .nx-cv-head')), await text(page, '#pgCodeFiles'));
+    const src = (await page.getAttribute('#pgCodeFrame', 'srcdoc')) || '';
+    T.check('…the code with line numbers and colours (tags, bindings), read only (the code fix just made is there)', /class="l" id="L1"/.test(src) && /class="g"/.test(src) && /class="b"/.test(src) && /Overdue invoices are shown first/.test(src)
+      && /Read only/.test(await text(page, '#pgCodeView')) && (await page.getAttribute('#pgCodeFrame', 'sandbox')) === 'allow-same-origin');
+    await page.fill('#pgCodeFind', 'oj-bind');
+    await settle(page, 300);
+    T.check('find: the matches counted and marked', /^\d+ match(es)?$/.test(await text(page, '#pgCodeHits')) && /<mark id="hit" class="first">/.test((await page.getAttribute('#pgCodeFrame', 'srcdoc')) || ''), await text(page, '#pgCodeHits'));
+    await page.click('#pgCodeFiles .nx-cv-file:has-text("BilledRequestInitChain.js")');
+    await page.waitForFunction(() => /BilledRequestInitChain\.js/.test((document.getElementById('pgCodePath') || {}).textContent || ''), null, { timeout: 5000 }).catch(() => {});
+    T.check('another file: an action chain, its JavaScript coloured', /BilledRequestInitChain\.js/.test(await text(page, '#pgCodePath')) && /class="k">define</.test((await page.getAttribute('#pgCodeFrame', 'srcdoc')) || ''));
+    await env.shot('next-app-pages-code.png');
+    await page.fill('#pgCodeFind', '');
     await page.click('#pgTabPage');
     await page.waitForSelector('#pgOverview', { timeout: 5000 }).catch(() => {});
     await page.click('#pgApps [data-value="all"]');

@@ -28,6 +28,22 @@ define(['vb/action/actionChain', 'resources/js/codeFixClient'], (ActionChain, FX
         if (!v.fix && last && /^(proposed|applied|needs-redo|questions)$/.test(last.status)) { const g = await FX.get(last.id); if (g.ok) v.fix = g.body.fix; }
         return;
       }
+      // screenshots for the request (the page module read them from a paste, a drop or the file picker)
+      if (act === 'images') {
+        const got = FX.takeImages();
+        const room = Math.max(0, 6 - v.fixImages.length);
+        if (got.length) v.fixImages = v.fixImages.concat(got.slice(0, room).map((x, i) => Object.assign({}, x, { name: /^image\.(png|jpe?g)$/i.test(x.name) || !x.name ? 'Pasted image ' + (v.fixImages.length + i + 1) : x.name })));
+        v.fixResult = got.length > room ? { ok: false, text: 'Up to 6 screenshots per request.' } : null;
+        return;
+      }
+      if (act === 'unimg') { v.fixImages = v.fixImages.filter((x, i) => String(i) !== String(key)); return; }
+      if (act === 'viewImg') {
+        v.fixView = key;
+        setTimeout(() => { try { const d = document.getElementById('fxImgDlg'); if (d && !d.open && d.showModal) d.showModal(); } catch (e) { /* no DOM */ } }, 30);
+        return;
+      }
+      if (act === 'unviewImg') { try { const d = document.getElementById('fxImgDlg'); if (d && d.open) d.close(); } catch (e) { /* closed */ } v.fixView = ''; return; }
+      if (act === 'imgClosed') { v.fixView = ''; return; }
       if (act === 'openFix') { const g = await FX.get(key); if (g.ok) { v.fix = g.body.fix; v.fixResult = null; } else fail(g); return; }
       if (act === 'new') { v.fix = null; v.fixResult = null; v.fixRefine = ''; return; }
       if (v.fixBusy) return;
@@ -42,7 +58,10 @@ define(['vb/action/actionChain', 'resources/js/codeFixClient'], (ActionChain, FX
           if (!refine && !v.fixReq.trim()) { v.fixResult = { ok: false, text: 'Say what should change on this page.' }; return; }
           if (refine && (!v.fix || !v.fixRefine.trim())) { v.fixResult = { ok: false, text: 'Say what to change in the proposal.' }; return; }
           v.fixProgress = (refine ? 'Asking ' + ai + ' again with what you said' : 'Reading the page\'s code and asking ' + ai) + ' — a careful answer takes a minute or two. Nothing is changed in the code.';
-          const r = await FX.analyze(refine ? { id: id, request: v.fix.request, kind: v.fix.kind, refine: v.fixRefine.trim(), parent: v.fix.id } : { id: id, request: v.fixReq.trim(), kind: v.fixKind });
+          const pics = v.fixImages.map((x) => ({ name: x.name, mime: x.mime, base64: x.base64 }));
+          if (pics.length) v.fixProgress += ' The AI looks at your ' + pics.length + ' screenshot' + (pics.length === 1 ? '' : 's') + ' too.';
+          // (asked again: the earlier proposal's screenshots go with it, or the ones attached now)
+          const r = await FX.analyze(refine ? { id: id, request: v.fix.request, kind: v.fix.kind, refine: v.fixRefine.trim(), parent: v.fix.id, images: pics } : { id: id, request: v.fixReq.trim(), kind: v.fixKind, images: pics });
           // the request stays in its box (to tweak and ask again); what was asked of the proposal is cleared, box too
           if (r.ok) { v.fix = r.body.fix; if (refine) { v.fixRefine = ''; try { const el = document.getElementById('fxRefine'); if (el) el.value = ''; } catch (e) { /* no DOM */ } } } else fail(r);
           await list();

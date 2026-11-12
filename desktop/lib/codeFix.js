@@ -38,6 +38,8 @@ const { runGit } = require('./gitPaths');
 const MAX_CODE = 170000;    // characters of code sent to the AI
 const MAX_TOKENS = 16000;   // the answer: the analysis and the edits
 const KEEP = 150;           // fixes kept in the history
+const MAX_IMAGES = 6;       // screenshots attached to a request
+const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
 
 const SYSTEM = [
   'You are a senior Oracle Visual Builder (VBCS) and Oracle JET developer on the EquipRite project. Someone asks you to fix, enhance or change ONE page. You get the request, the page\'s facts and its code (every file, complete). Propose the smallest correct change.',
@@ -418,16 +420,26 @@ function open(opts) {
     if (!facts) return no('This page is not in ' + f + ' (pick the right code folder).');
     const parent = b.parent ? byId(b.parent) : null;
     const code = codeOf(f, facts);
+    // screenshots the person pasted (or, asked again without new ones, the earlier proposal's)
+    const MIME = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/gif': 'gif' };
+    let images = (Array.isArray(b.images) ? b.images : []).filter((im) => im && MIME[im.mime] && im.base64).slice(0, MAX_IMAGES)
+      .map((im) => ({ name: str(im.name).slice(0, 80) || 'image', mime: im.mime, base64: str(im.base64).replace(/^data:[^,]*,/, '') }))
+      .filter((im) => im.base64.length * 0.75 <= MAX_IMAGE_BYTES);
+    if (!images.length && parent && (parent.images || []).length) {
+      images = parent.images.map((im) => { try { return { name: im.name, mime: im.mime, base64: fs.readFileSync(path.join(fixDir(parent.id), im.file)).toString('base64') }; } catch (e) { return null; } }).filter(Boolean);
+    }
     const kind = { fix: 'Fix a bug', enhance: 'Enhance', change: 'Change' }[str(b.kind)] || '';
     let user = 'REQUEST' + (kind ? ' (' + kind + ')' : '') + ':\n' + request + '\n';
     if (parent && str(b.refine).trim()) {
       user += '\nYOUR EARLIER PROPOSAL for this request:\n' + str(parent.markdown).slice(0, 12000) + '\n\nIts edits touched: ' + (parent.files || []).join(', ')
         + '\n\nTHE PERSON NOW ASKS:\n' + str(b.refine).trim() + '\n\nGive the whole answer again (all headings, all edits against the code as it is below).\n';
     }
+    if (images.length) user += '\nSCREENSHOTS: the person attached ' + images.length + ' image' + (images.length === 1 ? '' : 's') + ' (image 1' + (images.length > 1 ? ' to ' + images.length : '') + ', in the order given): look at ' + (images.length === 1 ? 'it' : 'them') + ' closely — they show what the request means (the screen as it is, the error, or what it should look like).\n';
     user += '\nFACTS\n' + factsText(facts) + '\n\nCODE (complete files; copy SEARCH lines exactly from here)\n' + code.text;
     if (code.skipped.length) user += '\n(Not included, too large: ' + code.skipped.join(', ') + ')\n';
     const t0 = Date.now();
-    let r = await o.ai.chat({ system: SYSTEM, user: user, maxTokens: MAX_TOKENS });
+    const pics = images.map((im) => ({ mime: im.mime, base64: im.base64 }));
+    let r = await o.ai.chat({ system: SYSTEM, user: user, maxTokens: MAX_TOKENS, images: pics });
     if (!r || !r.ok) return no((r && r.error) || 'The AI did not answer.');
     let parsed = parseAnswer(r.text);
     let tried = tryEdits(f, parsed.edits, facts.app);
@@ -440,15 +452,22 @@ function open(opts) {
       tried.errors.forEach((e) => why.push('Edit ' + e.n + ' (' + e.file + '): ' + e.why + (e.search ? '\nIts SEARCH was:\n' + e.search.slice(0, 1500) : '')));
       newFails(checks).forEach((c) => why.push('Check failed after your edits — ' + c.name + ' (' + c.file + ')' + (c.detail ? ': ' + c.detail : '')));
       const again = await o.ai.chat({ system: SYSTEM, user: user + '\n\nYOUR PREVIOUS ANSWER:\n' + r.text.slice(0, 30000) + '\n\nIT COULD NOT BE USED:\n' + why.join('\n\n')
-        + '\n\nGive the whole answer again, in the format, with every SEARCH copied exactly from the CODE above.', maxTokens: MAX_TOKENS });
+        + '\n\nGive the whole answer again, in the format, with every SEARCH copied exactly from the CODE above.', maxTokens: MAX_TOKENS, images: pics });
       if (again && again.ok) {
         const p2 = parseAnswer(again.text), t2 = tryEdits(f, p2.edits, facts.app), c2 = checksFor(f, t2.files);
         if (p2.questions || (t2.errors.length + newFails(c2).length) <= (tried.errors.length + newFails(checks).length)) { r = again; parsed = p2; tried = t2; checks = c2; retried = true; }
       }
     }
     const files = Object.keys(tried.files);
+    const fixId = 'fx' + now().getTime().toString(36) + crypto.randomBytes(3).toString('hex');
+    const saved = images.map((im, i) => {
+      if (!dir) return null; // (a store without a data folder: sent, not kept)
+      const file = 'img-' + (i + 1) + '.' + MIME[im.mime];
+      try { fs.mkdirSync(fixDir(fixId), { recursive: true }); fs.writeFileSync(path.join(fixDir(fixId), file), Buffer.from(im.base64, 'base64')); } catch (e) { return null; }
+      return { n: i + 1, name: im.name, mime: im.mime, file: file, size: Math.round(im.base64.length * 0.75) };
+    }).filter(Boolean);
     const fix = {
-      id: 'fx' + now().getTime().toString(36) + crypto.randomBytes(3).toString('hex'),
+      id: fixId, images: saved,
       page: facts.id, app: facts.app, label: facts.label, request: request, kind: str(b.kind), refine: str(b.refine).trim(), parent: parent ? parent.id : '',
       at: now().toISOString(), by: str(b.by), provider: r.provider || '', model: r.model || '', ms: Date.now() - t0, retried: retried,
       folder: f, sent: { files: code.files, skipped: code.skipped, chars: code.chars },
@@ -502,6 +521,13 @@ function open(opts) {
     } finally {
       Object.keys(kept).forEach((bf) => { try { if (kept[bf] == null) fs.unlinkSync(bf); else fs.writeFileSync(bf, kept[bf]); } catch (e) { /* the next build */ } });
     }
+  }
+  /** An image the person attached to a fix (its number, from 1). */
+  function img(id, n) {
+    const fix = byId(id);
+    const im = fix && (fix.images || []).filter((x) => String(x.n) === String(n))[0];
+    const p = im ? path.join(fixDir(fix.id), im.file) : '';
+    return p && isFile(p) ? { ok: true, file: p, mime: im.mime } : no('No such image.');
   }
   function shot(id, which) {
     const fix = byId(id);
@@ -660,7 +686,7 @@ function open(opts) {
     info: info, setFolder: setFolder, pick: pick,
     list: (pageId) => ({ ok: true, fixes: data().fixes.filter((x) => !pageId || x.page === str(pageId)).map((x) => ({ id: x.id, request: x.request, status: x.status, at: x.at, by: x.by, files: x.files, provider: x.provider })) }),
     get: (id) => { const x = byId(id); return x ? ok(slim(x)) : no('No such fix.'); },
-    shot: shot, analyze: analyze, preview: preview, apply: apply, test: test, e2e: e2e, undo: undo, commit: commit, discard: discard,
+    shot: shot, img: img, analyze: analyze, preview: preview, apply: apply, test: test, e2e: e2e, undo: undo, commit: commit, discard: discard,
     folder: folder,
   };
 }
