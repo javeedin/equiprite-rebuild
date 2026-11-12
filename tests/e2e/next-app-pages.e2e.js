@@ -204,7 +204,7 @@ const ID = 'vbredwoodapp/equipment-foundation/equipment-workbench';
       document.getElementById('fxRequest').dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }));
     }, PNG);
     await page.waitForSelector('#fxImgs .nx-fx-img', { timeout: 5000 }).catch(() => {});
-    T.check('a pasted screenshot: shown in the request (1), "the AI looks at them"', (await page.$$('#fxImgs .nx-fx-img')).length === 1 && /1 screenshot go(es)? with the request/.test(await text(page, '#fxImgs'))
+    T.check('a pasted screenshot: shown in the request (1), "the AI looks at them"', (await page.$$('#fxImgs .nx-fx-img')).length === 1 && /1 screenshot goes with the request/.test(await text(page, '#fxImgs'))
       && /Pasted image 1/.test((await page.getAttribute('#fxImgs .nx-fx-imgbtn', 'title')) || ''), await text(page, '#fxImgs'));
     await page.click('#fxImgs .nx-fx-imgbtn');
     await page.waitForFunction(() => { const d = document.getElementById('fxImgDlg'); return d && d.open; }, null, { timeout: 5000 }).catch(() => {});
@@ -232,6 +232,19 @@ const ID = 'vbredwoodapp/equipment-foundation/equipment-workbench';
     T.check('Commit & push: committed with its request, pushed to the branch', /Committed [0-9a-f]+ on pages\/test, pushed to origin\/pages\/test/.test(await text(page, '#fxResult'))
       && /^Code fix: My Billing — Show overdue invoices first/.test(pg.gitRemote('log', '-1', '--format=%s', 'pages/test')) && /Committed/.test(await text(page, '#fxStatus')));
     T.check('the fixes asked for on the page are listed', /committed[\s\S]*Show overdue invoices first/.test(await text(page, '#fxList')) && /Code fix\s*1/.test(await text(page, '#pgTabFix')));
+    await page.click('#fxScopeAll');
+    await page.waitForSelector('#fxHistRows .nx-fx-hrow', { timeout: 10000 }).catch(() => {});
+    T.check('Change history (all pages): the change, its page, who asked and who approved, the tests, its commit', /committed[\s\S]*My Billing[\s\S]*Show overdue invoices first/.test(await text(page, '#fxHistRows'))
+      && /asked by priya\.raman · [\s\S]*approved by priya\.raman · [\s\S]*tests ✓ · committed [0-9a-f]+, pushed/.test(await text(page, '#fxHistRows .nx-fx-hrow')) && /1 change · on this PC/.test(await text(page, '#fxHistCount'))
+      && !(await page.isVisible('#fxRequest')), await text(page, '#fxHistRows'));
+    await page.fill('#fxHistQ', 'nothing like this');
+    T.check('…searched: no match, said so', /No change yet/.test(await text(page, '#fxHist')) && /0 of 1 changes/.test(await text(page, '#fxHistCount')));
+    await page.fill('#fxHistQ', 'overdue');
+    await page.click('#fxHistRows .nx-fx-hrow');
+    await page.waitForSelector('#fxTimeline', { timeout: 10000 }).catch(() => {});
+    T.check('a change opened: its page, and its history step by step (asked, proposed, approved and applied, tested, committed, pushed)', await page.isVisible('#fxRequest') && /History of this change · \d+ steps · approved by priya\.raman/.test(await text(page, '#fxTimeline summary'))
+      && /asked[\s\S]*proposed[\s\S]*approved and applied[\s\S]*tested[\s\S]*committed[\s\S]*pushed/.test(await page.$eval('#fxTimeline', (d) => d.textContent)), await text(page, '#fxTimeline summary'));
+    await env.shot('next-app-pages-history.png');
 
     T.section('Page code: the page\'s files, read only');
     await page.click('#pgTabCode');

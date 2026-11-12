@@ -209,6 +209,11 @@
         <!-- (kept, only hidden, on the other tabs: what is typed and pasted stays) -->
         <div id="pgFixPane" :hidden="[[ $variables.view !== 'fix' ]]">
           <div class="nx-fx" id="pgFix">
+            <div class="nx-fx-scope" id="fxScope" role="tablist">
+              <button type="button" role="tab" id="fxScopePage" :class="[[ 'nx-fx-scopebtn' + ($variables.fixScope === 'page' ? ' nx-fx-scopebtn--on' : '') ]]" data-act="scope" data-key="page" on-click="[[ $listeners.onFix ]]"><span class="oj-ux-ico-wrench" aria-hidden="true"></span>This page</button>
+              <button type="button" role="tab" id="fxScopeAll" :class="[[ 'nx-fx-scopebtn' + ($variables.fixScope === 'all' ? ' nx-fx-scopebtn--on' : '') ]]" data-act="scope" data-key="all" on-click="[[ $listeners.onFix ]]"><span class="oj-ux-ico-clock-history" aria-hidden="true"></span>Change history · all pages</button>
+            </div>
+            <div id="fxPagePart" :hidden="[[ $variables.fixScope !== 'page' ]]">
             <oj-bind-if test="[[ !!$variables.fixInfo && !$variables.fixInfo.ok ]]"><div class="nx-flib-result nx-flib-result--err" id="fxUnavailable"><oj-bind-text value="[[ $variables.fixInfo.error ]]"></oj-bind-text></div></oj-bind-if>
             <oj-bind-if test="[[ !!$variables.fixInfo && $variables.fixInfo.ok ]]">
               <!-- the page being changed -->
@@ -251,7 +256,7 @@
                     </template>
                   </oj-bind-for-each>
                   <label class="nx-btn nx-btn--sm nx-btn--plain nx-pg-upload" id="fxImgBtn"><span class="oj-ux-ico-camera" aria-hidden="true"></span>Attach screenshots<input type="file" id="fxImgFile" accept="image/png,image/jpeg,image/webp,image/gif" multiple></label>
-                  <span class="nx-note"><oj-bind-text value="[[ $variables.fixImages.length ? $variables.fixImages.length + ' screenshot' + ($variables.fixImages.length === 1 ? '' : 's') + ' go with the request — the AI looks at them.' : 'Paste a screenshot here (Ctrl+V), drop one, or attach: the AI looks at it too.' ]]"></oj-bind-text></span>
+                  <span class="nx-note"><oj-bind-text value="[[ $variables.fixImages.length ? ($variables.fixImages.length === 1 ? '1 screenshot goes with the request — the AI looks at it.' : $variables.fixImages.length + ' screenshots go with the request — the AI looks at them.') : 'Paste a screenshot here (Ctrl+V), drop one, or attach: the AI looks at it too.' ]]"></oj-bind-text></span>
                 </div>
                 <div class="nx-fx-askbar">
                   <span class="nx-note">The AI reads this page's code and proposes the change. <b>Nothing is written until you approve it.</b></span>
@@ -284,6 +289,19 @@
                   <div class="nx-fx-imgs" id="fxFixImgs"><span class="nx-pg-maplbl">Screenshots sent</span>
                     <oj-bind-for-each data="[[ $variables.fix.images ]]"><template data-oj-as="im"><button type="button" class="nx-pg-shotbtn" data-act="viewImg" :data-key="[[ $functions.fixImgUrl($variables.fix, im.data.n) ]]" on-click="[[ $listeners.onFix ]]" :title="[[ im.data.name ]]"><span class="oj-ux-ico-camera" aria-hidden="true"></span><oj-bind-text value="[[ im.data.n ]]"></oj-bind-text></button></template></oj-bind-for-each>
                   </div>
+                </oj-bind-if>
+                <oj-bind-if test="[[ !!$variables.fix.shared ]]"><div class="nx-an-stale" id="fxShared"><oj-bind-text value="[[ 'Made on another PC' + ($variables.fix.by ? ' (asked by ' + $variables.fix.by + ')' : '') + ': shown from the change history, read only here.' ]]"></oj-bind-text></div></oj-bind-if>
+                <oj-bind-if test="[[ ($variables.fix.events || []).length > 0 ]]">
+                  <details class="nx-fx-timeline" id="fxTimeline">
+                    <summary><oj-bind-text value="[[ 'History of this change · ' + $variables.fix.events.length + ' steps' + ($variables.fix.applied ? ' · approved by ' + ($variables.fix.applied.by || 'someone') : '') ]]"></oj-bind-text></summary>
+                    <ol class="nx-fx-steps">
+                      <oj-bind-for-each data="[[ $variables.fix.events ]]">
+                        <template data-oj-as="e">
+                          <li><b class="nx-fx-stepwhat"><oj-bind-text value="[[ e.data.what ]]"></oj-bind-text></b> <span class="nx-note"><oj-bind-text value="[[ $functions.stepText(e.data) ]]"></oj-bind-text></span><oj-bind-if test="[[ !!e.data.detail ]]"><span class="nx-fx-stepdetail"><oj-bind-text value="[[ e.data.detail ]]"></oj-bind-text></span></oj-bind-if></li>
+                        </template>
+                      </oj-bind-for-each>
+                    </ol>
+                  </details>
                 </oj-bind-if>
                 <iframe class="nx-an-frame nx-pg-frame nx-fx-frame" id="fxAnalysis" title="The AI's analysis" sandbox="" :srcdoc="[[ $functions.doc($variables.fix.markdown) ]]"></iframe>
 
@@ -337,7 +355,7 @@
                 </oj-bind-if>
 
                 <!-- ask again, approve -->
-                <oj-bind-if test="[[ $variables.fix.status === 'proposed' || $variables.fix.status === 'needs-redo' || $variables.fix.status === 'questions' || $variables.fix.status === 'stale' ]]">
+                <oj-bind-if test="[[ !$variables.fix.shared && ($variables.fix.status === 'proposed' || $variables.fix.status === 'needs-redo' || $variables.fix.status === 'questions' || $variables.fix.status === 'stale') ]]">
                   <div class="nx-fx-refine">
                     <textarea class="nx-fx-text" id="fxRefine" rows="2" data-field="fixRefine" :value="[[ $variables.fixRefine ]]" on-input="[[ $listeners.onField ]]" placeholder="Not quite? Say what to change (or answer its questions) and ask again."></textarea>
                     <button type="button" class="nx-btn nx-btn--sm nx-aibtn" id="fxRefineBtn" data-act="refine" on-click="[[ $listeners.onFix ]]" :disabled="[[ $variables.fixBusy ]]"><span aria-hidden="true">✨</span>Ask again</button>
@@ -373,7 +391,7 @@
                         <oj-bind-for-each data="[[ $variables.fix.e2e.runs ]]"><template data-oj-as="u"><div class="nx-note"><code><oj-bind-text value="[[ u.data.file ]]"></oj-bind-text></code> <oj-bind-text value="[[ u.data.passed + ' passed, ' + u.data.failed + ' failed' + (u.data.note ? ' — ' + u.data.note : '') ]]"></oj-bind-text></div></template></oj-bind-for-each>
                       </div>
                     </oj-bind-if>
-                    <oj-bind-if test="[[ $variables.fix.status === 'applied' ]]">
+                    <oj-bind-if test="[[ $variables.fix.status === 'applied' && !$variables.fix.shared ]]">
                       <div class="nx-fx-row">
                         <button type="button" class="nx-btn nx-btn--sm" id="fxTest" data-act="test" on-click="[[ $listeners.onFix ]]" :disabled="[[ $variables.fixBusy ]]"><span class="oj-ux-ico-refresh" aria-hidden="true"></span>Test again</button>
                         <oj-bind-if test="[[ $variables.fix.tests && $variables.fix.tests.e2eFiles.length > 0 ]]"><button type="button" class="nx-btn nx-btn--sm" id="fxE2eBtn" data-act="e2e" on-click="[[ $listeners.onFix ]]" :disabled="[[ $variables.fixBusy ]]"><oj-bind-text value="[[ 'Run the browser tests (' + $variables.fix.tests.e2eFiles.length + ')' ]]"></oj-bind-text></button></oj-bind-if>
@@ -401,6 +419,37 @@
                     </button>
                   </template>
                 </oj-bind-for-each>
+              </div>
+            </oj-bind-if>
+            </div>
+
+            <!-- the change history: every change made to a page's code from the app, with who approved it -->
+            <oj-bind-if test="[[ $variables.fixScope === 'all' ]]">
+              <div class="nx-fx-hist" id="fxHist">
+                <div class="nx-fx-histbar">
+                  <input type="search" class="nx-flib-filter nx-fx-histq" id="fxHistQ" data-field="fixHistQ" :value="[[ $variables.fixHistQ ]]" on-input="[[ $listeners.onField ]]" placeholder="Find a change: page, request, person, commit…">
+                  <span class="nx-note" id="fxHistCount"><oj-bind-text value="[[ $functions.histCount($variables.fixHist, $variables.fixHistQ, $variables.fixHistInfo) ]]"></oj-bind-text></span>
+                  <span class="nx-min-flex"></span>
+                  <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" id="fxHistRefresh" data-act="scope" data-key="all" on-click="[[ $listeners.onFix ]]"><span class="oj-ux-ico-refresh" aria-hidden="true"></span>Refresh</button>
+                </div>
+                <oj-bind-if test="[[ $functions.histShown($variables.fixHist, $variables.fixHistQ).length === 0 ]]"><div class="nx-empty" id="fxHistNone">No change yet. Every change asked for in Code fix is listed here, with who approved it, its tests and its commit.</div></oj-bind-if>
+                <div class="nx-fx-hrows" id="fxHistRows">
+                  <oj-bind-for-each data="[[ $functions.histShown($variables.fixHist, $variables.fixHistQ) ]]">
+                    <template data-oj-as="r">
+                      <button type="button" class="nx-fx-hrow" data-act="openHist" :data-key="[[ r.data.id ]]" on-click="[[ $listeners.onFix ]]">
+                        <span class="nx-fx-hhead">
+                          <span :class="[[ $functions.fixStatusClass(r.data.status) ]]"><oj-bind-text value="[[ $functions.histStatus(r.data.status) ]]"></oj-bind-text></span>
+                          <b><oj-bind-text value="[[ r.data.label ]]"></oj-bind-text></b>
+                          <code class="nx-note"><oj-bind-text value="[[ r.data.page ]]"></oj-bind-text></code>
+                          <span class="nx-min-flex"></span>
+                          <oj-bind-if test="[[ !!r.data.commit ]]"><code class="nx-fx-sha"><oj-bind-text value="[[ r.data.commit ? r.data.commit.sha : '' ]]"></oj-bind-text></code></oj-bind-if>
+                        </span>
+                        <span class="nx-fx-hreq"><oj-bind-text value="[[ r.data.request ]]"></oj-bind-text></span>
+                        <span class="nx-fx-hmeta"><oj-bind-text value="[[ $functions.histMeta(r.data) ]]"></oj-bind-text></span>
+                      </button>
+                    </template>
+                  </oj-bind-for-each>
+                </div>
               </div>
             </oj-bind-if>
           </div>

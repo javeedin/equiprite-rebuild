@@ -68,6 +68,11 @@ const copyDir = (from, to) => { fs.mkdirSync(to, { recursive: true }); fs.readdi
     T.check('questions are kept when there are some', CF.parseAnswer('## Summary\nx\n## Questions\nWhich date field?').questions === 'Which date field?');
     T.check('a path outside the app (or the project) is refused', !CF.safeRel(A, '../evil.js', 'vbredwoodapp') && !CF.safeRel(A, 'desktop/main.js', 'vbredwoodapp') && !CF.safeRel(A, 'webApps/equiprite/x.js', 'vbredwoodapp') && CF.safeRel(A, PAGE + '.html', 'vbredwoodapp') === PAGE + '.html');
 
+    const warn = CF.oldAppWarnings(ROOT, 'vbredwoodapp', ['webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page.html']);
+    T.check('Old EquipRite: a change outside the files its guard agrees to is warned (⚠, not blocking); its guard test runs with the fix', warn.length === 1 && warn[0].warn && /AGREED list/.test(warn[0].detail)
+      && CF.oldAppWarnings(ROOT, 'vbredwoodapp', ['webApps/vbredwoodapp/flows/setup/pages/jira-stories-page.html']).length === 0 && CF.oldAppWarnings(ROOT, 'equiprite', ['webApps/equiprite/x.html']).length === 0
+      && CF.relatedTests(ROOT, { app: 'vbredwoodapp', flow: 'customer-portal', page: 'project-create-request' }).unit[0] === 'tests/old-app-unchanged.test.js');
+
     T.section('analyze: nothing written; an edit that does not fit is asked again');
     const info = await store.info();
     T.check('info: the folder, its branch and upstream, the AI', info.ok && info.valid && info.isDefault && info.branch === 'main' && info.upstream === 'origin/main' && info.ai.ready && info.ai.provider === 'Stand-in AI', JSON.stringify(info));
@@ -190,6 +195,32 @@ const copyDir = (from, to) => { fs.mkdirSync(to, { recursive: true }); fs.readdi
     const bad = await store.setFolder(tmp);
     T.check('a folder without webApps is refused', !bad.ok && /no webApps/.test(bad.error));
     T.check('the project itself is fine', (await store.setFolder(A)).ok);
+
+    T.section('the change history: every step with who did it, shared on the data branch');
+    const ev1 = store.get(f1.id).fix.events.map((e) => e.what + (e.by ? ' by ' + e.by : ''));
+    T.check('a fix\'s steps: asked, proposed, approved and applied (by whom), tested, undone…', ev1[0] === 'asked by Asha' && ev1[1] === 'proposed by Stand-in AI' && ev1.indexOf('approved and applied by Asha') !== -1 && ev1.some((x) => /^tested/.test(x)) && ev1.some((x) => /^undone/.test(x)), ev1.join(' | '));
+    fs.writeFileSync(path.join(A, '.gitignore'), '/.equiprite-data/\n'); git(A, 'add', '.gitignore'); git(A, 'commit', '-q', '-m', 'ignore the data branch folder');
+    const DBR = require('../desktop/lib/dataBranch');
+    const dA = await DBR.open({ root: A }).ensure();
+    const hs = CF.open({ root: A, file: path.join(tmp, 'data2', 'code-fixes.json'), ai: ai, data: dA, now: () => new Date(clock += 1000) });
+    const a5 = fs.readFileSync(path.join(A, PAGE + '.html'), 'utf8').replace(/\r\n/g, '\n').split('\n').slice(1, 3).join('\n');
+    replies.push(answer(a5, a5 + '\n  Shared history note.'));
+    const h1 = (await hs.analyze({ id: ID, request: 'A change everyone can see', by: 'Asha' })).fix;
+    await hs.apply({ fix: h1.id, skipPull: true, by: 'Ben' });
+    const hc = await hs.commit({ fix: h1.id, by: 'Ben' });
+    await hs.flush();
+    const onData = (() => { try { return JSON.parse(git(remote, 'show', 'claude/equiprite-data:code-history/' + h1.id + '.json')); } catch (e) { return null; } })();
+    T.check('applied and committed: the change, its steps and approval pushed to the data branch', hc.ok && onData && onData.status === 'committed' && onData.applied.by === 'Ben' && onData.commit.sha === hc.fix.commit.sha
+      && onData.events.some((e) => e.what === 'approved and applied' && e.by === 'Ben') && onData.events.some((e) => e.what === 'committed' && e.by === 'Ben'), JSON.stringify(onData && onData.events));
+    T.check('…without this PC\'s paths, backups or screenshots', onData && !onData.folder && !onData.edits && !onData.preview && !onData.hashes);
+    // a change made on another PC, shared through the data branch
+    fs.writeFileSync(path.join(dA.dir, 'code-history', 'fxother1.json'), JSON.stringify({ id: 'fxother1', page: 'vbredwoodapp/customer-portal/customer-quote', label: 'Your quote', request: 'Bigger total', status: 'committed', at: '2026-11-12T08:00:00.000Z', updatedAt: '2026-11-12T08:05:00.000Z', by: 'Chen', applied: { by: 'Dana', at: '2026-11-12T08:03:00.000Z', branch: 'main' }, commit: { sha: 'abc1234', pushed: true, branch: 'main' }, events: [{ at: '2026-11-12T08:00:00.000Z', what: 'asked', by: 'Chen' }] }));
+    const hh = await hs.history('');
+    const mineRow = hh.changes.filter((c) => c.id === h1.id)[0], other = hh.changes.filter((c) => c.id === 'fxother1')[0];
+    T.check('the history: this PC\'s changes and the shared ones, with who approved and the commit', hh.shared && hh.branch === 'claude/equiprite-data' && mineRow && mineRow.approvedBy === 'Ben' && mineRow.commit.sha === hc.fix.commit.sha && other && other.shared && other.approvedBy === 'Dana' && other.commit.sha === 'abc1234', JSON.stringify(hh.changes.map((c) => c.id + ':' + c.approvedBy)));
+    T.check('…found by a word (a person, a page, a commit)', (await hs.history('dana')).changes.length === 1 && (await hs.history('abc1234')).changes[0].id === 'fxother1' && (await hs.history('quote bigger')).changes.length === 1);
+    const og = hs.get('fxother1');
+    T.check('a change from another PC opens read only (shared)', og.ok && og.fix.shared === true && og.fix.label === 'Your quote' && !(await hs.apply({ fix: 'fxother1' })).ok);
   } catch (e) {
     T.check('no exception: ' + (e && e.stack), false);
   } finally {

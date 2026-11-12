@@ -56,6 +56,7 @@ define([], function () {
   return {
     info: function () { return call('info'); },
     list: function (page) { return call('list?page=' + encodeURIComponent(page || '')); },
+    history: function (q) { return call('history?q=' + encodeURIComponent(q || '')); },
     get: function (id) { return call('get?id=' + encodeURIComponent(id || '')); },
     prepImage: prepImage, queueImages: queueImages, takeImages: takeImages,
     imgUrl: function (fix, n) { return fix ? '/__fix/img?id=' + encodeURIComponent(fix.id) + '&n=' + n : ''; },

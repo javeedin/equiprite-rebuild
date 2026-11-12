@@ -92,7 +92,8 @@ T.eq('the analyzer reads, never writes: an unknown page is null', S.analyze(ROOT
 T.section('the catalog in git: map a story (the sheet built once), reuse it for another, unmap');
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'eqp-pages-'));
 const remote = fs.mkdtempSync(path.join(os.tmpdir(), 'eqp-pages-remote-'));
-fs.cpSync(path.join(ROOT, 'webApps'), path.join(tmp, 'webApps'), { recursive: true, filter: (src) => { try { return fs.statSync(src).isDirectory() || /\.(json|html|js)$/.test(src); } catch (e) { return false; } } });
+// (not the real catalog's sheets and story mappings: this test starts from none)
+fs.cpSync(path.join(ROOT, 'webApps'), path.join(tmp, 'webApps'), { recursive: true, filter: (src) => { try { return !/equiprite-next[\\/]resources[\\/]pages([\\/]|$)/.test(src) && (fs.statSync(src).isDirectory() || /\.(json|html|js)$/.test(src)); } catch (e) { return false; } } });
 fs.cpSync(path.join(ROOT, 'services'), path.join(tmp, 'services'), { recursive: true });
 let clock = Date.parse('2026-11-12T10:00:00Z');
 let haveGit = true;

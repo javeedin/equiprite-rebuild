@@ -1,4 +1,4 @@
-define(['vb/action/actionChain', 'resources/js/codeFixClient'], (ActionChain, FX) => {
+define(['vb/action/actionChain', 'vb/action/actions', 'resources/js/codeFixClient'], (ActionChain, Actions, FX) => {
   'use strict';
 
   // The Code fix tab (desktop/lib/codeFix.js does the work): open it, ask the AI for a change to the open page, ask
@@ -44,6 +44,24 @@ define(['vb/action/actionChain', 'resources/js/codeFixClient'], (ActionChain, FX
       }
       if (act === 'unviewImg') { try { const d = document.getElementById('fxImgDlg'); if (d && d.open) d.close(); } catch (e) { /* closed */ } v.fixView = ''; return; }
       if (act === 'imgClosed') { v.fixView = ''; return; }
+      // the change history: every change to a page's code (here, and shared from other PCs), with its approvals
+      if (act === 'scope') {
+        v.fixScope = key === 'all' ? 'all' : 'page';
+        if (v.fixScope === 'all') {
+          const h = await FX.history('');
+          v.fixHist = (h.body && h.body.changes) || [];
+          v.fixHistInfo = { shared: !!(h.body && h.body.shared), branch: (h.body && h.body.branch) || '' };
+          if (!h.ok) fail(h);
+        }
+        return;
+      }
+      if (act === 'openHist' && key) {
+        const row = v.fixHist.filter((x) => x.id === key)[0];
+        if (row && row.page && row.page !== v.selId) await Actions.callChain(context, { chain: 'selectChain', params: { id: row.page } }); // its page
+        const g = await FX.get(key);
+        if (g.ok) { v.fix = g.body.fix; v.fixResult = null; v.fixScope = 'page'; } else fail(g);
+        return;
+      }
       if (act === 'openFix') { const g = await FX.get(key); if (g.ok) { v.fix = g.body.fix; v.fixResult = null; } else fail(g); return; }
       if (act === 'new') { v.fix = null; v.fixResult = null; v.fixRefine = ''; return; }
       if (v.fixBusy) return;

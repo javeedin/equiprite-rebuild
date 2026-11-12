@@ -243,6 +243,7 @@ async function fixStore() {
   if (!fixStoreInst) {
     fixStoreInst = require('./lib/codeFix').open({
       root: REPO_ROOT, file: path.join(app.getPath('userData'), 'code-fixes.json'), ai: await aiStore(), capture: capturePage, buildDir: BUILD_DIR,
+      data: await dataBranch(), log: (l) => { try { pushLog(l); } catch (e) { console.log(l); } }, // the change history, shared on the data branch
       gitPath: commandPath('git') || 'git',
       pickFolder: async (current) => {
         const r = await dialog.showOpenDialog(win && !win.isDestroyed() ? win : undefined, { title: 'The EquipRite project folder (the code to fix)', defaultPath: current, properties: ['openDirectory'] });

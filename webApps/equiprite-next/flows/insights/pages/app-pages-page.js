@@ -78,8 +78,8 @@ define(['resources/js/pagesClient', 'resources/js/storyAnalysis', 'resources/js/
     }
     fixLine(t) { return 'nx-fx-l nx-fx-l--' + (t === '+' ? 'add' : t === '-' ? 'del' : 'ctx'); }
     fixSign(t) { return t === ' ' ? '' : (t === '-' ? '−' : t); }
-    fixCheck(c) { return c.ok ? '✓' : (c.already ? '•' : '✗'); }
-    fixCheckClass(c) { return 'nx-fx-check ' + (c.ok ? 'nx-fx-check--ok' : (c.already ? 'nx-fx-check--old' : 'nx-fx-check--bad')); }
+    fixCheck(c) { return c.ok ? '✓' : (c.warn ? '⚠' : (c.already ? '•' : '✗')); }
+    fixCheckClass(c) { return 'nx-fx-check ' + (c.ok ? 'nx-fx-check--ok' : (c.warn ? 'nx-fx-check--warn' : (c.already ? 'nx-fx-check--old' : 'nx-fx-check--bad'))); }
     fixCheckText(c) { return c.name + (c.detail ? ': ' + c.detail : '') + (!c.ok && c.already ? ' (already so before the change)' : ''); }
     fixChecksOk(list) { return (list || []).every((c) => c.ok || c.already); }
     fixUnit(u) { return u.ok ? '✓ ' + u.passed + ' passed' : (u.newFailures.length ? '✗ ' + u.newFailures.length + ' new failure' + (u.newFailures.length === 1 ? '' : 's') : '• ' + u.failed + ' failing, as before the fix'); }
@@ -89,7 +89,28 @@ define(['resources/js/pagesClient', 'resources/js/storyAnalysis', 'resources/js/
       return (t.ok ? '✓ Nothing broke' : '✗ Something broke') + ' — tested ' + when(t.at) + (t.none ? '. No unit test names this page; the checks ran.' : '.');
     }
     fixShot(f, which) { return FX.shotUrl(f, which); }
-    fixCanApply(f) { return !!f && (f.status === 'proposed' || f.status === 'undone'); }
+    fixCanApply(f) { return !!f && !f.shared && (f.status === 'proposed' || f.status === 'undone'); }
+    // ── the change history ──
+    histShown(list, q) {
+      const words = String(q || '').toLowerCase().split(/\s+/).filter(Boolean);
+      return (list || []).filter((r) => !words.length || words.every((w) => [r.label, r.page, r.request, r.by, r.approvedBy, r.status, r.commit && r.commit.sha].join(' ').toLowerCase().indexOf(w) !== -1));
+    }
+    histMeta(r) {
+      const parts = ['asked by ' + (r.by || 'someone') + ' · ' + when(r.at)];
+      if (r.approvedBy || r.approvedAt) parts.push('approved by ' + (r.approvedBy || 'someone') + ' · ' + when(r.approvedAt) + (r.branch ? ' on ' + r.branch : ''));
+      if (r.tests) parts.push(r.tests.ok ? 'tests ✓' : 'tests ✗');
+      if (r.commit) parts.push('committed ' + r.commit.sha + (r.commit.pushed ? ', pushed' : ''));
+      if (r.undone) parts.push('undone');
+      if (r.shared) parts.push('from another PC');
+      return parts.join(' · ');
+    }
+    histCount(list, q, info) {
+      const n = (list || []).length;
+      const shown = (list || []).filter((r) => !String(q || '').trim() || [r.label, r.page, r.request, r.by, r.approvedBy, r.status, r.commit && r.commit.sha].join(' ').toLowerCase().indexOf(String(q).toLowerCase().trim()) !== -1).length;
+      return (shown === n ? n + ' change' + (n === 1 ? '' : 's') : shown + ' of ' + n + ' changes') + (info && info.shared ? ' · shared with everyone on ' + info.branch : ' · on this PC (no data branch)');
+    }
+    histStatus(st) { return { proposed: 'waiting for approval', applied: 'applied', committed: 'committed', undone: 'undone', discarded: 'discarded', 'needs-redo': 'not usable', questions: 'questions', stale: 'out of date' }[st] || st; }
+    stepText(e) { return (e.by ? e.by + ' · ' : '') + when(e.at); }
     fixListText(x) { return (x.status ? ({ proposed: 'proposed', applied: 'applied', committed: 'committed', undone: 'undone', discarded: 'discarded', 'needs-redo': 'not usable', questions: 'questions', stale: 'out of date' }[x.status] || x.status) : '') + ' · ' + when(x.at) + (x.by ? ' · ' + x.by : ''); }
     // ── the navigation maps (resources/js/pageMap.js) ──
     /** One page's map: Comes from → This page → Goes to → Then. */

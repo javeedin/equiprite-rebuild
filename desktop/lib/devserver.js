@@ -889,6 +889,7 @@ function createDevServer(o) {
           }
           if (pathname === '/__fix/info' && !post) return jsonF(200, await fx.info());
           if (pathname === '/__fix/list' && !post) return jsonF(200, fx.list(q('page')));
+          if (pathname === '/__fix/history' && !post) return jsonF(200, fx.history ? await fx.history(q('q')) : { ok: true, changes: [] });
           if (pathname === '/__fix/get' && !post) return jsonF(200, fx.get(q('id')));
           if (pathname === '/__fix/shot' && !post) {
             const s = fx.shot(q('id'), q('which'));
@@ -903,17 +904,19 @@ function createDevServer(o) {
             log(`Code fix: ${b.id} -> ${r.ok ? r.fix.status + ' (' + r.fix.files.length + ' files)' : r.error}`);
             return jsonF(200, r);
           }
-          if (pathname === '/__fix/preview' && post) return jsonF(200, await fx.preview(b));
+          if (pathname === '/__fix/preview' && post) return jsonF(200, await fx.preview(Object.assign({}, b, { by: who() })));
           if (pathname === '/__fix/apply' && post) {
             const r = await fx.apply(Object.assign({}, b, { by: who() }));
             log(`Code fix: apply ${b.fix} -> ${r.ok ? 'applied, tests ' + (r.fix.tests && r.fix.tests.ok ? 'ok' : 'not ok') : r.error}`);
             return jsonF(200, r);
           }
-          if (pathname === '/__fix/test' && post) return jsonF(200, await fx.test(b));
-          if (pathname === '/__fix/e2e' && post) return jsonF(200, await fx.e2e(b));
-          if (pathname === '/__fix/undo' && post) return jsonF(200, await fx.undo(b));
-          if (pathname === '/__fix/commit' && post) return jsonF(200, await fx.commit(b));
-          if (pathname === '/__fix/discard' && post) return jsonF(200, fx.discard(b));
+          // who did it goes into the change's history
+          const withBy = Object.assign({}, b, { by: who() });
+          if (pathname === '/__fix/test' && post) return jsonF(200, await fx.test(withBy));
+          if (pathname === '/__fix/e2e' && post) return jsonF(200, await fx.e2e(withBy));
+          if (pathname === '/__fix/undo' && post) { const r = await fx.undo(withBy); log(`Code fix: undo ${b.fix} -> ${r.ok ? 'undone' : r.error}`); return jsonF(200, r); }
+          if (pathname === '/__fix/commit' && post) { const r = await fx.commit(withBy); log(`Code fix: commit ${b.fix} -> ${r.ok ? r.fix.commit.sha : r.error}`); return jsonF(200, r); }
+          if (pathname === '/__fix/discard' && post) return jsonF(200, fx.discard(withBy));
           return jsonF(404, { error: 'Not found' });
         })().catch((e) => jsonF(200, { ok: false, error: e.message }));
         return undefined;

@@ -33,7 +33,8 @@ const path = require('path');
 const vm = require('vm');
 const crypto = require('crypto');
 const scan = require('./pageScan');
-const { runGit } = require('./gitPaths');
+const gitPaths = require('./gitPaths');
+const { runGit } = gitPaths;
 
 const MAX_CODE = 170000;    // characters of code sent to the AI
 const MAX_TOKENS = 16000;   // the answer: the analysis and the edits
@@ -287,6 +288,20 @@ function checksFor(folder, files) {
   return out;
 }
 
+/** A warning (not a failed check): a change to Old EquipRite outside the files its guard test agrees to
+ *  (tests/old-app-unchanged.test.js, AGREED) — that test will fail unless the change is agreed there. */
+const OLD_GUARD = 'tests/old-app-unchanged.test.js';
+function oldAppWarnings(folder, app, files) {
+  if (app !== 'vbredwoodapp') return [];
+  const t = readText(path.join(folder, OLD_GUARD));
+  if (t == null) return [];
+  const listed = (t.match(/'webApps\/vbredwoodapp\/[^']+'/g) || []).map((x) => x.slice(1, -1));
+  const agreed = (rel) => listed.some((p) => (p.endsWith('/') ? rel.indexOf(p) === 0 : rel === p));
+  const outside = files.filter((rel) => !agreed(rel));
+  return outside.length ? [{ file: outside[0], name: 'Old EquipRite is kept unchanged by agreement (' + OLD_GUARD + ')', ok: false, warn: true,
+    detail: 'this change will fail that test unless ' + (outside.length === 1 ? 'the file is' : 'the files are') + ' added to its AGREED list with the reason: ' + outside.join(', ') }] : [];
+}
+
 // ── The related tests ──────────────────────────────────────────────────────────────────────────────────────────────
 function relatedTests(folder, p) {
   const keys = [p.page + '-page', (p.flow ? p.flow + '/' : '') + p.page + '-page', "'" + p.flow + "/" + p.page + "'"].filter((k) => k.length > 6);
@@ -297,7 +312,10 @@ function relatedTests(folder, p) {
       return keys.some((k) => t.indexOf(k) !== -1) || (t.indexOf("'" + p.page + "'") !== -1 && t.indexOf(p.flow) !== -1 && t.indexOf(p.app) !== -1);
     }).sort();
   };
-  return { unit: find(path.join(folder, 'tests'), /\.test\.js$/).slice(0, 8).map((f) => 'tests/' + f), e2e: find(path.join(folder, 'tests', 'e2e'), /\.e2e\.js$/).slice(0, 4).map((f) => 'tests/e2e/' + f) };
+  const unit = find(path.join(folder, 'tests'), /\.test\.js$/).slice(0, 8).map((f) => 'tests/' + f);
+  // Old EquipRite is kept unchanged by agreement: its guard runs with every fix of its pages
+  if (p.app === 'vbredwoodapp' && isFile(path.join(folder, OLD_GUARD)) && unit.indexOf(OLD_GUARD) === -1) unit.unshift(OLD_GUARD);
+  return { unit: unit, e2e: find(path.join(folder, 'tests', 'e2e'), /\.e2e\.js$/).slice(0, 4).map((f) => 'tests/' + f) };
 }
 /** One test file run with node (in the desktop app: its own runtime, as node): { ok, passed, failed, failures, ms, out }. */
 function runNode(folder, rel, ms) {
@@ -342,7 +360,68 @@ function open(opts) {
     save(d);
     return fix;
   }
-  const byId = (id) => data().fixes.filter((x) => x.id === str(id))[0] || null;
+  const local = (id) => data().fixes.filter((x) => x.id === str(id))[0] || null;
+  const byId = local;
+
+  // ── The history of each change: who asked, what was proposed, who approved and applied it, the tests, the commit ──
+  /** One step in a fix's history (fix.events): when, what, who, a detail. */
+  function ev(fix, what, by, detail) {
+    fix.events = (fix.events || []).concat([{ at: now().toISOString(), what: what, by: str(by), detail: str(detail).slice(0, 400) }]);
+    fix.updatedAt = now().toISOString();
+  }
+  // Shared with everyone: each change that reached the code (applied, tested, committed, undone) is written to the
+  // app's data branch (code-history/<id>.json, lib/dataBranch.js) and pushed — never the local paths, backups or
+  // screenshots. A change made on another PC is read from there (read only here).
+  const shared = o.data && o.data.ok ? o.data : null;
+  const HIST = 'code-history';
+  const histRepo = shared ? gitPaths.create({ root: shared.dir, paths: [HIST], git: o.git ? (args) => o.git(shared.dir, args) : undefined, gitPath: o.gitPath,
+    message: 'Code change history: update', sync: { resolve: shared.resolve, after: shared.merged } }) : null;
+  let pubChain = Promise.resolve();
+  function publicOf(fix) {
+    const x = slim(fix);
+    delete x.folder; delete x.preview; delete x.written; delete x.hashes;
+    x.images = (fix.images || []).map((im) => ({ n: im.n, name: im.name }));
+    if (x.sent) x.sent = { files: x.sent.files, chars: x.sent.chars };
+    if (x.tests) x.tests = Object.assign({}, x.tests, { unit: (x.tests.unit || []).map((u) => Object.assign({}, u, { out: '' })) });
+    return x;
+  }
+  function publish(fix) {
+    if (!histRepo) return pubChain;
+    const rec = publicOf(fix);
+    pubChain = pubChain.then(async () => {
+      try {
+        fs.mkdirSync(path.join(shared.dir, HIST), { recursive: true });
+        fs.writeFileSync(path.join(shared.dir, HIST, fix.id + '.json'), JSON.stringify(rec, null, 1) + '\n');
+        const r = await histRepo.save({ message: 'Code change history: ' + fix.label + ' — ' + fix.status + ' (' + fix.request.split('\n')[0].slice(0, 60) + ')' });
+        if (!r.ok && o.log) o.log('code history: not pushed (' + r.error + ')');
+      } catch (e) { if (o.log) o.log('code history: ' + e.message); }
+    });
+    return pubChain;
+  }
+  function sharedOne(id) {
+    if (!shared || !/^fx[a-z0-9]+$/.test(str(id))) return null;
+    try { return Object.assign(JSON.parse(fs.readFileSync(path.join(shared.dir, HIST, id + '.json'), 'utf8')), { shared: true }); } catch (e) { return null; }
+  }
+  function sharedAll() {
+    if (!shared) return [];
+    let names = [];
+    try { names = fs.readdirSync(path.join(shared.dir, HIST)).filter((n) => /^fx[a-z0-9]+\.json$/.test(n)); } catch (e) { return []; }
+    return names.map((n) => sharedOne(n.replace(/\.json$/, ''))).filter(Boolean);
+  }
+  /** Every change — made here, and shared from other PCs — newest first; q: words to find (page, request, people, commit). */
+  async function history(q) {
+    if (histRepo) { try { await histRepo.pull(); } catch (e) { /* what is here */ } }
+    const mine = data().fixes;
+    const all = mine.concat(sharedAll().filter((x) => !mine.some((m) => m.id === x.id)));
+    const words = str(q).toLowerCase().split(/\s+/).filter(Boolean);
+    const row = (x) => ({ id: x.id, page: x.page, label: x.label, app: x.app, request: x.request, status: x.status, at: x.at, by: x.by, provider: x.provider, files: x.files || [],
+      approvedBy: x.applied ? x.applied.by : '', approvedAt: x.applied ? x.applied.at : '', branch: x.applied ? x.applied.branch : '',
+      commit: x.commit ? { sha: x.commit.sha, pushed: !!x.commit.pushed, branch: x.commit.branch, by: x.commit.by || '' } : null,
+      tests: x.tests ? { ok: !!x.tests.ok } : null, undone: !!x.undone, shared: !!x.shared, updatedAt: x.updatedAt || x.at, steps: (x.events || []).length });
+    const list = all.map(row).filter((r) => !words.length || words.every((w) => [r.label, r.page, r.request, r.by, r.approvedBy, r.status, r.commit && r.commit.sha].join(' ').toLowerCase().indexOf(w) !== -1));
+    list.sort((a, b) => str(b.updatedAt).localeCompare(str(a.updatedAt)));
+    return { ok: true, changes: list.slice(0, 300), shared: !!shared, branch: shared ? shared.branch : '' };
+  }
   const ok = (fix, extra) => Object.assign({ ok: true, fix: fix }, extra || {});
   const no = (error, extra) => Object.assign({ ok: false, error: error }, extra || {});
 
@@ -471,11 +550,14 @@ function open(opts) {
       page: facts.id, app: facts.app, label: facts.label, request: request, kind: str(b.kind), refine: str(b.refine).trim(), parent: parent ? parent.id : '',
       at: now().toISOString(), by: str(b.by), provider: r.provider || '', model: r.model || '', ms: Date.now() - t0, retried: retried,
       folder: f, sent: { files: code.files, skipped: code.skipped, chars: code.chars },
-      markdown: parsed.markdown || r.text, questions: parsed.questions, edits: parsed.edits, problems: tried.errors, checks: checks,
+      markdown: parsed.markdown || r.text, questions: parsed.questions, edits: parsed.edits, problems: tried.errors, checks: checks.concat(oldAppWarnings(f, facts.app, files)),
       files: files, hashes: files.reduce((m, k) => { m[k] = sha(tried.files[k].old); return m; }, {}),
       diff: files.map((k) => diffOf(k, tried.files[k].old, tried.files[k].neu)),
       status: parsed.questions && !files.length ? 'questions' : (tried.errors.length || !files.length || newFails(checks).length ? 'needs-redo' : 'proposed'),
     };
+    fix.events = [{ at: fix.at, what: parent ? 'asked again' : 'asked', by: fix.by, detail: parent ? fix.refine : request }];
+    ev(fix, { proposed: 'proposed', 'needs-redo': 'proposal not usable', questions: 'asked questions' }[fix.status] || fix.status, fix.provider || 'AI',
+      files.length ? files.length + ' file(s), +' + fix.diff.reduce((n, d) => n + d.added, 0) + ' −' + fix.diff.reduce((n, d) => n + d.removed, 0) + (images.length ? ' · ' + images.length + ' screenshot(s) read' : '') : (parsed.questions || '').slice(0, 200));
     put(fix);
     return ok(slim(fix));
   }
@@ -514,6 +596,7 @@ function open(opts) {
       Object.keys(r.tried.files).forEach((rel) => { const bf = builtFile(fix.app, rel); if (!bf) return; kept[bf] = readText(bf); fs.mkdirSync(path.dirname(bf), { recursive: true }); fs.writeFileSync(bf, r.tried.files[rel].neu); });
       const after = await shot('after');
       fix.preview = { before: before, after: after, at: now().toISOString() };
+      ev(fix, 'previewed', b.by, 'before and after screenshots');
       put(fix);
       return ok(slim(fix));
     } catch (e) {
@@ -570,7 +653,7 @@ function open(opts) {
       }
     }
     const r = retry(fix);
-    if (r.error) { fix.status = 'stale'; put(fix); return no(r.error, { fix: slim(fix) }); }
+    if (r.error) { fix.status = 'stale'; ev(fix, 'out of date', b.by, r.error); put(fix); return no(r.error, { fix: slim(fix) }); }
     const base = await runUnits(fix, f); // the related tests on the code as it was
     const backup = {};
     Object.keys(r.tried.files).forEach((rel) => {
@@ -588,8 +671,9 @@ function open(opts) {
     fix.applied = { at: now().toISOString(), by: str(b.by), branch: g.branch, upstream: g.upstream, pull: pull, live: !!builtDir(fix.app) };
     fix.baseline = base.unit.map((t) => ({ file: t.file, ok: t.ok, failed: t.failed, failures: t.failures }));
     fix.status = 'applied';
+    ev(fix, 'approved and applied', b.by, 'on ' + g.branch + ' · ' + pull.text);
     put(fix);
-    const t = await test({ fix: fix.id });
+    const t = await test({ fix: fix.id, by: b.by });
     return ok(t.fix || slim(fix));
   }
 
@@ -610,7 +694,9 @@ function open(opts) {
     });
     const bad = checks.filter((c) => !c.ok && !c.already).length + unit.filter((u) => u.newFailures.length).length;
     fix.tests = { at: now().toISOString(), ok: bad === 0, checks: checks, unit: unit, e2eFiles: run.e2eFiles || [], none: !unit.length };
+    ev(fix, 'tested', (b && b.by) || '', bad === 0 ? 'nothing broke' + (unit.length ? ' (' + unit.length + ' related test file(s))' : ' (checks only)') : 'something broke: ' + bad + ' new failure(s)');
     put(fix);
+    publish(fix);
     return ok(slim(fix));
   }
 
@@ -624,7 +710,9 @@ function open(opts) {
     for (const t of files) res.push(await runTest(fix.folder, t, 600000));
     fix.e2e = { at: now().toISOString(), ok: res.every((x) => x.ok), runs: res.map((x) => ({ file: x.file, ok: x.ok, passed: x.passed, failed: x.failed, failures: x.failures,
       note: /Cannot find module 'playwright'/.test(x.out) ? 'Browser tests need Playwright on this PC (npm install in the project).' : (x.ok ? '' : x.out.slice(-1200)) })) };
+    ev(fix, 'browser tests', b && b.by, fix.e2e.ok ? 'passed' : 'not passed');
     put(fix);
+    publish(fix);
     return ok(slim(fix));
   }
 
@@ -643,8 +731,10 @@ function open(opts) {
       fs.writeFileSync(abs, backup[rel]);
       if (bf) { try { fs.writeFileSync(bf, backup[rel]); } catch (e) { /* the next build */ } }
     });
-    fix.status = 'undone'; fix.undone = { at: now().toISOString() };
+    fix.status = 'undone'; fix.undone = { at: now().toISOString(), by: str(b.by) };
+    ev(fix, 'undone', b.by, b.force ? 'forced (the files had changed since)' : 'the files as they were before');
     put(fix);
+    publish(fix);
     return ok(slim(fix));
   }
 
@@ -663,14 +753,17 @@ function open(opts) {
       return no('git commit failed: ' + why.slice(0, 400), { hint: /user\.(name|email)|identity/i.test(why) ? 'Tell git who you are: git config --global user.name "Your Name" and git config --global user.email you@example.com' : '' });
     }
     const shaC = (await git(f, ['rev-parse', '--short', 'HEAD'])).stdout.trim();
-    fix.commit = { sha: shaC, at: now().toISOString(), pushed: false, branch: (await gitState(f)).branch };
+    fix.commit = { sha: shaC, at: now().toISOString(), pushed: false, branch: (await gitState(f)).branch, by: str(b.by) };
     fix.status = 'committed';
+    ev(fix, 'committed', b.by, shaC + ' on ' + fix.commit.branch);
     if (b.push) {
       const g = await gitState(f);
       const p = g.upstream ? await git(f, ['push']) : await git(f, ['push', '-u', 'origin', 'HEAD']);
-      if (p.code === 0) { fix.commit.pushed = true; fix.commit.upstream = g.upstream || 'origin/' + g.branch; } else fix.commit.pushError = (p.stderr || p.stdout).trim().slice(0, 400);
+      if (p.code === 0) { fix.commit.pushed = true; fix.commit.upstream = g.upstream || 'origin/' + g.branch; ev(fix, 'pushed', b.by, 'to ' + fix.commit.upstream); }
+      else { fix.commit.pushError = (p.stderr || p.stdout).trim().slice(0, 400); ev(fix, 'push failed', b.by, fix.commit.pushError); }
     }
     put(fix);
+    publish(fix);
     return ok(slim(fix));
   }
 
@@ -678,17 +771,18 @@ function open(opts) {
     const fix = byId(b && b.fix);
     if (!fix) return no('No such fix.');
     if (fix.status === 'applied' || fix.status === 'committed') return no('It is applied: undo it instead.');
-    fix.status = 'discarded'; put(fix);
+    fix.status = 'discarded'; ev(fix, 'discarded', b && b.by, ''); put(fix);
     return ok(slim(fix));
   }
 
   return {
     info: info, setFolder: setFolder, pick: pick,
     list: (pageId) => ({ ok: true, fixes: data().fixes.filter((x) => !pageId || x.page === str(pageId)).map((x) => ({ id: x.id, request: x.request, status: x.status, at: x.at, by: x.by, files: x.files, provider: x.provider })) }),
-    get: (id) => { const x = byId(id); return x ? ok(slim(x)) : no('No such fix.'); },
+    get: (id) => { const x = local(id) || sharedOne(id); return x ? ok(x.shared ? x : slim(x)) : no('No such fix.'); },
+    history: history, flush: () => pubChain,
     shot: shot, img: img, analyze: analyze, preview: preview, apply: apply, test: test, e2e: e2e, undo: undo, commit: commit, discard: discard,
     folder: folder,
   };
 }
 
-module.exports = { open, parseAnswer, tryEdits, diffOf, checksFor, htmlRules, relatedTests, safeRel, SYSTEM };
+module.exports = { open, parseAnswer, tryEdits, diffOf, checksFor, htmlRules, relatedTests, oldAppWarnings, safeRel, SYSTEM };
