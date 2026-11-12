@@ -16,16 +16,20 @@ define([
       const here = String(window.location.href);
       const m = /^(.*\/webApps\/)equiprite-next\//.exec(here);
       if (m) {
-        $application.variables.appUrls = { old: m[1] + 'vbredwoodapp/', new: m[1] + 'equiprite/', next: m[1] + 'equiprite-next/',
-          mobile: m[1] + 'equiprite-mobile/', future: m[1] + 'equiprite-future/' };
+        // Build.Rite is this same web app shown as the team's tools (?product=buildrite; ?product=next comes back)
+        $application.variables.appUrls = { old: m[1] + 'vbredwoodapp/', new: m[1] + 'equiprite/', next: m[1] + 'equiprite-next/?product=next',
+          mobile: m[1] + 'equiprite-mobile/', future: m[1] + 'equiprite-future/', build: m[1] + 'equiprite-next/?product=buildrite' };
         return;
       }
       try {
         const res = await fetch('/__versions', { credentials: 'same-origin' });
         if (res.ok) {
           const v = await res.json();
-          $application.variables.appUrls = { old: (v && v.old) || '', new: (v && v.new) || '', next: (v && v.next) || '', mobile: (v && v.mobile) || '',
-            future: (v && v.future) || '' };
+          // Build.Rite on Next's own address (?product=buildrite): going back to Next says so (?product=next)
+          const sameApp = (a, b) => { try { return !!a && !!b && new URL(a).origin === new URL(b).origin; } catch (e) { return false; } };
+          const next = (v && v.next) || '';
+          $application.variables.appUrls = { old: (v && v.old) || '', new: (v && v.new) || '', next: next && sameApp(next, v.build) && next.indexOf('product=') === -1 ? next + (next.indexOf('?') === -1 ? '?' : '&') + 'product=next' : next,
+            mobile: (v && v.mobile) || '', future: (v && v.future) || '', build: (v && v.build) || '' };
         }
       } catch (e) {
         console.warn('[loadVersionsChain] no /__versions here; the Old/New switch is hidden', e);

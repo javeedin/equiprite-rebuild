@@ -260,6 +260,8 @@ function time() {
  *                                        header; voice→text reuses o.transcribe, "Format by AI" reuses o.aiStore (/__sql/ai/chat)
  * @param {object}   [o.analysisStore]    Saved AI analyses (lib/analyses.js), for EquipRite Next's Analyze with AI: kept on this PC so
  *                                        an analysis opens without asking the AI again: /__ai/* to this PC only, behind X-EquipRite-AI
+ * @param {string}   [o.product]          The product this build is shown as (Build.Rite: 'buildrite' on EquipRite Next's build), told
+ *                                        to the app's page (window.EQP_PRODUCT)
  * @param {object}   [o.fixStore]         Code Fix (lib/codeFix.js): AI-proposed changes to a page, written to the code only when approved (/__fix/*)
  * @param {object}   [o.pagesStore]       The Application pages catalog (lib/pages.js): every VB page's technical sheet and the Jira stories
  *                                        mapped to it, saved into the project (git): /__pages/* to this PC only, behind X-EquipRite-Pages
@@ -415,6 +417,12 @@ function createDevServer(o) {
         return send(res, 404, 'text/plain; charset=utf-8', 'Not found');
       }
       const type = TYPES[path.extname(file).toLowerCase()] || 'application/octet-stream';
+      // A product shown by this server (o.product, e.g. Build.Rite on EquipRite Next's build): the app's page says so
+      // before anything loads (window.EQP_PRODUCT, read by resources/js/nav.js)
+      if (o.product && path.basename(file) === 'index.html' && path.dirname(file) === webRoot) {
+        const html = fs.readFileSync(file, 'utf8').replace(/<head([^>]*)>/i, (m) => m + '<script>window.EQP_PRODUCT=' + JSON.stringify(String(o.product)) + ';</script>');
+        return send(res, 200, 'text/html; charset=utf-8', html, { 'Cache-Control': 'no-store' });
+      }
       if (/[\\/]version_[^\\/]+[\\/]app-flow\.json$/.test(file)) {
         return send(res, 200, type, fillAppFlow(fs.readFileSync(file, 'utf8')));
       }

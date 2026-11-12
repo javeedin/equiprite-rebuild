@@ -402,7 +402,8 @@ const bad = bindings.filter((b) => /=>|\bfunction\s*\(|\b(String|Number|Boolean)
 T.eq('bindings: no arrow functions, String/Number/Boolean or array literals', bad.join(' | '), '');
 T.check('no oj-bind-for-each inside table, tbody or select', !/<(table|tbody|select)[^>]*>\s*<oj-bind-for-each/.test(html));
 ['search', 'qa', 'qaOpen', 'results', 'resultIndex', 'showResults'].forEach((k) => T.check('variable ' + k + ' is declared', !!json.variables[k]));
-T.eq('the placeholder says what it searches', (/id="nxCommand"[^>]*placeholder="([^"]+)"/.exec(html) || [])[1], 'Search screens, requests, equipment, units…');
+T.eq('the placeholder says what it searches (in Build.Rite, its screens)', (/id="nxCommand"[^>]*placeholder="([^"]+)"/.exec(html) || [])[1],
+  "[[ $application.functions.isBuild() ? 'Search Build.Rite screens…' : 'Search screens, requests, equipment, units…' ]]");
 T.check('Check availability sits next to the QR code button, for roles that may open Availability',
   /canOpen\('availability'[\s\S]{0,400}id="nxQa"[\s\S]{0,900}id="nxPhone"/.test(html));
 // Checked against the Redwood icon font Next loads (app-flow.json: ojuxIconFont 2507.0.3): every one of these has a glyph.

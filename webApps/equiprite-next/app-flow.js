@@ -8,7 +8,16 @@ define([
   // EquipRite Next's app module: what bindings and the app loaders call ($application.functions.x). The rules live in
   // resources/js (rules.js, nav.js) so they are tested on their own; these only pass through. None uses `this`: a
   // binding may call a function detached from the module.
+  // Build.Rite (the same build, shown as the team's own tools: nav.product): its name in the window's title.
+  if (nav.product && nav.product.isBuild && typeof document !== 'undefined') {
+    try { document.title = 'Build.Rite'; document.documentElement.setAttribute('data-nx-product', 'buildrite'); } catch (e) { /* no DOM */ }
+  }
+
   class AppModule {
+    // ── which product: EquipRite Next (the business app) or Build.Rite (the team's tools) ──
+    isBuild() { return !!(nav.product && nav.product.isBuild); }
+    productName() { return nav.product ? nav.product.name : 'EquipRite'; }
+
     // ── loaders (chains/) ──
     isFeatureEnabled(flags, loaded, key) { return rules.isFeatureEnabled(flags, loaded, key); }
     buRateSourceMap(rows) { return rules.buRateSourceMap(rows); }

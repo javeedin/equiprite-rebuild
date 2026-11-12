@@ -880,3 +880,10 @@ html[data-nx-look="redwood"] .nx-soon .nx-soon-card { margin-top: 8px; }
 html[data-nx-look="redwood"] .nx-rec-edit { border-radius: 6px; }
 html[data-nx-look="redwood"] .nx-rec-edit-opt, html[data-nx-look="redwood"] .nx-rec-edit-line { border-radius: 6px; }
 html[data-nx-look="redwood"] .nx-rec-edit-qty input { border-radius: 4px; }
+
+/* Build.Rite: the same build shown as the team's own tools (resources/js/nav.js product) */
+.nx-logo--build { background: linear-gradient(135deg, #5b3fd0, #00688c); }
+.nx-brand--build .nx-brand-name { letter-spacing: -.01em; }
+.nx-brand-dot { color: #7c5cff; }
+.nx-badge--build { background: #efeaff; color: #4b2fb8; }
+.nx-version--build .nx-version-name { color: #4b2fb8; }

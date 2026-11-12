@@ -8,17 +8,27 @@
       :aria-expanded="[[ $variables.navCollapsed ? 'false' : 'true' ]]" aria-controls="nxNav">
       <span :class="[[ $variables.navCollapsed ? 'oj-ux-ico-panel-expand-left' : 'oj-ux-ico-panel-collapse-left' ]]" aria-hidden="true"></span>
     </button>
-    <button type="button" class="nx-brand" data-nav-id="home" on-click="[[ $listeners.onNav ]]" aria-label="EquipRite Next, My work">
-      <span class="nx-logo" aria-hidden="true">ER</span>
-      <span class="nx-brand-name">EquipRite</span>
-      <span class="nx-badge">Next</span>
-    </button>
+    <oj-bind-if test="[[ !$application.functions.isBuild() ]]">
+      <button type="button" class="nx-brand" data-nav-id="home" on-click="[[ $listeners.onNav ]]" aria-label="EquipRite Next, My work">
+        <span class="nx-logo" aria-hidden="true">ER</span>
+        <span class="nx-brand-name">EquipRite</span>
+        <span class="nx-badge">Next</span>
+      </button>
+    </oj-bind-if>
+    <!-- Build.Rite: the same build shown as the team's own tools (resources/js/nav.js product) -->
+    <oj-bind-if test="[[ $application.functions.isBuild() ]]">
+      <button type="button" class="nx-brand nx-brand--build" id="nxBrandBuild" data-nav-id="jira" on-click="[[ $listeners.onNav ]]" aria-label="Build.Rite, Jira stories">
+        <span class="nx-logo nx-logo--build" aria-hidden="true">BR</span>
+        <span class="nx-brand-name">Build<span class="nx-brand-dot">.</span>Rite</span>
+        <span class="nx-badge nx-badge--build">for the team</span>
+      </button>
+    </oj-bind-if>
 
     <!-- The global search: screens, requests, equipment, units, transfers and yards this role may see, grouped, best first
          (searchChain; resources/js/globalSearch.js, data read once on first focus: resources/js/searchData.js). -->
     <div class="nx-command">
       <span class="oj-ux-ico-search" aria-hidden="true"></span>
-      <input id="nxCommand" type="search" autocomplete="off" placeholder="Search screens, requests, equipment, units…"
+      <input id="nxCommand" type="search" autocomplete="off" :placeholder="[[ $application.functions.isBuild() ? 'Search Build.Rite screens…' : 'Search screens, requests, equipment, units…' ]]"
         aria-label="Search screens, requests, equipment, units and transfers" role="combobox" aria-autocomplete="list" aria-controls="nxResultList"
         :aria-expanded="[[ $variables.showResults ? 'true' : 'false' ]]"
         :aria-activedescendant="[[ $variables.showResults && $variables.search.count > 0 ? 'nxRes-' + $variables.resultIndex : '' ]]"
@@ -79,7 +89,7 @@
       </oj-bind-if>
     </div>
 
-    <oj-bind-if test="[[ $application.functions.canOpen('new-request', $application.variables.pageAccessMap, $application.variables.pageAccessLoaded,
+    <oj-bind-if test="[[ !$application.functions.isBuild() && $application.functions.canOpen('new-request', $application.variables.pageAccessMap, $application.variables.pageAccessLoaded,
                            $application.variables.featureFlags, $application.variables.flagsLoaded, $application.variables.buRateSources) ]]">
       <button type="button" class="nx-btn nx-btn--primary nx-newreq" id="nxNewRequest" data-nav-id="new-request" on-click="[[ $listeners.onNav ]]"
         title="Start a new equipment request" aria-label="New request">
@@ -87,7 +97,7 @@
     </oj-bind-if>
 
     <div class="nx-top-end">
-      <oj-bind-if test="[[ $application.functions.canOpen('availability', $application.variables.pageAccessMap, $application.variables.pageAccessLoaded,
+      <oj-bind-if test="[[ !$application.functions.isBuild() && $application.functions.canOpen('availability', $application.variables.pageAccessMap, $application.variables.pageAccessLoaded,
                              $application.variables.featureFlags, $application.variables.flagsLoaded, $application.variables.buRateSources) ]]">
         <button type="button" class="nx-iconbtn nx-qa-btn" id="nxQa" on-click="[[ $listeners.onQa ]]" data-action="toggle" aria-controls="nxQaPanel"
           :aria-expanded="[[ $variables.qaOpen ? 'true' : 'false' ]]" aria-label="Check availability: what is free, and where"
@@ -95,11 +105,13 @@
           <span class="oj-ux-ico-event-available" aria-hidden="true"></span><span class="nx-qa-btn-text">Check availability</span>
         </button>
       </oj-bind-if>
+      <oj-bind-if test="[[ !$application.functions.isBuild() ]]">
       <button type="button" class="nx-iconbtn" id="nxPhone" on-click="[[ $listeners.onPhone ]]" data-action="toggle" aria-controls="nxPhonePanel"
         :aria-expanded="[[ $variables.phoneOpen ? 'true' : 'false' ]]" aria-label="EquipRite on your phone: QR code" title="EquipRite on your phone (QR code)">
         <span class="oj-ux-ico-qr-code" aria-hidden="true"></span>
       </button>
-      <oj-bind-if test="[[ $application.functions.canOpen('new-request', $application.variables.pageAccessMap, $application.variables.pageAccessLoaded,
+      </oj-bind-if>
+      <oj-bind-if test="[[ !$application.functions.isBuild() && $application.functions.canOpen('new-request', $application.variables.pageAccessMap, $application.variables.pageAccessLoaded,
                              $application.variables.featureFlags, $application.variables.flagsLoaded, $application.variables.buRateSources) ]]">
         <button type="button" class="nx-iconbtn nx-cart" id="nxCart" on-click="[[ $listeners.onCart ]]" data-action="toggle" aria-controls="nxCartPanel"
           :aria-expanded="[[ $variables.cartOpen ? 'true' : 'false' ]]"
@@ -110,10 +122,13 @@
           </oj-bind-if>
         </button>
       </oj-bind-if>
+      <oj-bind-if test="[[ !$application.functions.isBuild() ]]">
       <button type="button" class="nx-iconbtn" id="nxHelp" data-nav-id="help" on-click="[[ $listeners.onNav ]]"
         aria-label="Help: how EquipRite works, the flow of a request" title="Help: how a request moves, step by step">
         <span class="oj-ux-ico-help" aria-hidden="true"></span>
       </button>
+      </oj-bind-if>
+      <oj-bind-if test="[[ !$application.functions.isBuild() ]]">
       <button type="button" class="nx-iconbtn nx-bell" id="nxBell" on-click="[[ $listeners.onBell ]]" aria-controls="nxBellPanel"
         :aria-expanded="[[ $variables.bellOpen ? 'true' : 'false' ]]"
         :aria-label="[[ 'Notifications' + ($variables.unread ? ', ' + $variables.unread + ' unread' : '') ]]">
@@ -122,6 +137,7 @@
           <span class="nx-bell-count" aria-hidden="true"><oj-bind-text value="[[ $variables.unread > 99 ? '99+' : $variables.unread ]]"></oj-bind-text></span>
         </oj-bind-if>
       </button>
+      </oj-bind-if>
       <!-- You: the menu with your name and role, and the EquipRite version (Old / New / Next / Mobile / Future). -->
       <button type="button" class="nx-user" id="nxUser" on-click="[[ $listeners.onProfile ]]" aria-controls="nxProfilePanel"
         :aria-expanded="[[ $variables.profileOpen ? 'true' : 'false' ]]" aria-label="You, and the EquipRite version" title="You, and the EquipRite version">
@@ -166,10 +182,13 @@
           <span class="nx-nav-loading">Loading your menu…</span>
         </oj-bind-if>
       </div>
+      <!-- (EquipRite's request flow: not in Build.Rite) -->
+      <oj-bind-if test="[[ !$application.functions.isBuild() ]]">
       <button type="button" class="nx-nav-foot" id="nxNavHelp" data-nav-id="help" on-click="[[ $listeners.onNav ]]" title="Help: how EquipRite works">
         <span class="oj-ux-ico-network-flow-diagram" aria-hidden="true"></span>
         <span class="nx-nav-text">Help &amp; the flow</span>
       </button>
+      </oj-bind-if>
       <button type="button" class="nx-nav-foot" on-click="[[ $listeners.toggleNav ]]"
         :aria-label="[[ $variables.navCollapsed ? 'Show the full menu' : 'Collapse the menu to icons' ]]">
         <span :class="[[ $variables.navCollapsed ? 'oj-ux-ico-chevron-double-right' : 'oj-ux-ico-chevron-double-left' ]]" aria-hidden="true"></span>
@@ -496,9 +515,15 @@
             <a class="nx-version" id="nxGoNew" :href="[[ $application.variables.appUrls.new ]]">
               <span class="nx-version-name">New</span><span class="nx-version-note">The Redwood redesign</span></a>
           </oj-bind-if>
-          <span class="nx-version nx-version--on" aria-current="page">
-            <span class="nx-version-name">Next<span class="oj-ux-ico-check nx-version-tick" aria-hidden="true"></span></span>
-            <span class="nx-version-note">This one: tabs, live status, Help</span></span>
+          <oj-bind-if test="[[ !$application.functions.isBuild() ]]">
+            <span class="nx-version nx-version--on" aria-current="page">
+              <span class="nx-version-name">Next<span class="oj-ux-ico-check nx-version-tick" aria-hidden="true"></span></span>
+              <span class="nx-version-note">This one: tabs, live status, Help</span></span>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $application.functions.isBuild() && !!$application.variables.appUrls.next ]]">
+            <a class="nx-version" id="nxGoNext" :href="[[ $application.variables.appUrls.next ]]">
+              <span class="nx-version-name">Next</span><span class="nx-version-note">Tabs, live status, Help</span></a>
+          </oj-bind-if>
           <oj-bind-if test="[[ !!$application.variables.appUrls.mobile ]]">
             <a class="nx-version" id="nxGoMobile" :href="[[ $application.variables.appUrls.mobile ]]" target="_blank" rel="noopener">
               <span class="nx-version-name">Mobile</span><span class="nx-version-note">On your phone: approve, pick, request</span></a>
@@ -509,6 +534,21 @@
           </oj-bind-if>
         </nav>
         <p class="nx-profile-note">Old, New, Next and Mobile work on the same data; Future plays a demo group of its own.</p>
+      </div>
+      <!-- Build.Rite: the team's own tools, a product apart from the business one -->
+      <div class="nx-profile-sec">
+        <span class="nx-profile-label" id="nxBuildLabel">For the team building EquipRite</span>
+        <nav class="nx-versions" aria-labelledby="nxBuildLabel">
+          <oj-bind-if test="[[ $application.functions.isBuild() ]]">
+            <span class="nx-version nx-version--on nx-version--build" aria-current="page">
+              <span class="nx-version-name">Build.Rite<span class="oj-ux-ico-check nx-version-tick" aria-hidden="true"></span></span>
+              <span class="nx-version-note">This one: Jira stories, standups, follow-ups, the FDD, application pages and code fix</span></span>
+          </oj-bind-if>
+          <oj-bind-if test="[[ !$application.functions.isBuild() && !!$application.variables.appUrls.build ]]">
+            <a class="nx-version nx-version--build" id="nxGoBuild" :href="[[ $application.variables.appUrls.build ]]">
+              <span class="nx-version-name">Build.Rite</span><span class="nx-version-note">Jira stories, standups, follow-ups, the FDD, application pages and code fix</span></a>
+          </oj-bind-if>
+        </nav>
       </div>
       <!-- Your look, on every screen: Redwood (Oracle's own) or Current (Next's own); resources/js/look.js, lookChain. -->
       <div class="nx-profile-sec">
@@ -565,10 +605,12 @@
         <p class="nx-profile-note">Kept on this computer.</p>
       </div>
       </oj-bind-if>
+      <oj-bind-if test="[[ !$application.functions.isBuild() ]]">
       <div class="nx-profile-sec nx-profile-links">
         <button type="button" class="nx-profile-link" data-nav-id="help" on-click="[[ $listeners.onNav ]]">
           <span class="oj-ux-ico-help" aria-hidden="true"></span>Help: how a request moves</button>
       </div>
+      </oj-bind-if>
     </aside>
   </oj-bind-if>
 

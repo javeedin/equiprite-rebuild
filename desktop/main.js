@@ -324,8 +324,13 @@ const VERSIONS = {
   mobile: { webApp: 'equiprite-mobile', label: 'EquipRite Mobile', port: PORT + 3 },
   // Served like Next (only when built); its data is simulated in the browser, so it calls no backend.
   future: { webApp: 'equiprite-future', label: 'EquipRite Future', port: PORT + 4 },
+  // Build.Rite: EquipRite Next's build shown as the team's own tools (the Insights screens only: Jira, standups,
+  // follow-ups, the FDD, application pages, code fix), a product apart from the business one, on a port of its own.
+  build: { webApp: 'equiprite-next', label: 'Build.Rite', port: PORT + 5, product: 'buildrite' },
 };
 const originOf = (v) => `http://localhost:${VERSIONS[v].port}`;
+/** Next, or Build.Rite (Next's build shown as the team's tools): the same screens, given the same stores. */
+const nextLike = (v) => v === 'next' || v === 'build';
 const urlOf = (v) => `${originOf(v)}/`;
 
 process.env.EQP_DESKTOP_VERSION = app.getVersion();
@@ -1095,6 +1100,7 @@ function appMenu() {
         { label: 'Open EquipRite Next', accelerator: 'CmdOrCtrl+Shift+3', click: () => openVersion('next') },
         { label: 'Open EquipRite Mobile (phone size)', accelerator: 'CmdOrCtrl+Shift+4', click: () => openVersion('mobile') },
         { label: 'Open EquipRite Future', accelerator: 'CmdOrCtrl+Shift+5', click: () => openVersion('future') },
+        { label: 'Open Build.Rite (the team\'s tools)', accelerator: 'CmdOrCtrl+Shift+7', click: () => openVersion('build') },
         { label: 'EquipRite on your phone (QR code)…', accelerator: 'CmdOrCtrl+Shift+6', click: () => openPhoneWindow() },
         { label: 'Switch this window to Old EquipRite', click: () => openVersion('old') },
         { type: 'separator' },
@@ -1171,31 +1177,32 @@ if (!app.requestSingleInstanceLock()) {
             port: VERSIONS[v].port,
             getIdentity: () => identity,
             getVersions: () => ({ old: urlOf('old'), new: servers.new ? urlOf('new') : '', next: servers.next ? urlOf('next') : '',
-              mobile: servers.mobile ? urlOf('mobile') : '', future: servers.future ? urlOf('future') : '' }),
+              mobile: servers.mobile ? urlOf('mobile') : '', future: servers.future ? urlOf('future') : '', build: servers.build ? urlOf('build') : '' }),
+            product: VERSIONS[v].product,
             getPhone: phoneLinks,
             // EquipRite Future keeps its demo story in DuckDB in this app's data folder (survives restarts and rebuilds).
             futureStore: v === 'future' ? await futureStore() : undefined,
             // EquipRite Next's SQL worksheet: the desktop app connects to Oracle for it (node-oracledb, Thin mode).
-            sqlStore: v === 'next' ? await sqlStore() : undefined,
-            aiStore: v === 'next' ? await aiStore() : undefined,
+            sqlStore: nextLike(v) ? await sqlStore() : undefined,
+            aiStore: nextLike(v) ? await aiStore() : undefined,
             // The Jira stories page (Old and Next): Connect Jira keeps the token on this PC; the proxy adds it.
-            jiraStore: v === 'next' || v === 'old' ? jiraStore() : undefined,
+            jiraStore: nextLike(v) || v === 'old' ? jiraStore() : undefined,
             // Record on a Jira story: its recordings and screenshots, kept on this PC.
-            recStore: v === 'next' || v === 'old' ? evidenceStore() : undefined,
+            recStore: nextLike(v) || v === 'old' ? evidenceStore() : undefined,
             // Transcribe a recording's voice with Whisper (local on this PC, or OpenAI with the Ask AI key).
-            transcribe: v === 'next' || v === 'old' ? await transcriber() : undefined,
+            transcribe: nextLike(v) || v === 'old' ? await transcriber() : undefined,
             // Standup minutes (EquipRite Next): the daily standup on the Jira backlog, kept on this PC.
-            minutesStore: v === 'next' ? await minutesStore() : undefined,
+            minutesStore: nextLike(v) ? await minutesStore() : undefined,
             // Saved follow-ups (EquipRite Next): follow-ups drafted on the Jira pages, kept on this PC.
-            followupsStore: v === 'next' ? await followupsStore() : undefined,
+            followupsStore: nextLike(v) ? await followupsStore() : undefined,
             // The FDD library: FDDs uploaded into the project and committed to git, so every user has them
-            fddStore: v === 'next' ? await fddStore() : undefined,
+            fddStore: nextLike(v) ? await fddStore() : undefined,
             // Saved AI analyses: each run kept on this PC, so an analysis opens without asking the AI again
-            analysisStore: v === 'next' ? analysisStore() : undefined,
+            analysisStore: nextLike(v) ? analysisStore() : undefined,
             // The Application pages catalog: technical sheets of the VB pages and the Jira stories mapped to them, in git
-            pagesStore: v === 'next' ? await pagesStore() : undefined,
+            pagesStore: nextLike(v) ? await pagesStore() : undefined,
             // Code Fix: AI-proposed changes to a page, applied to the code only when approved
-            fixStore: v === 'next' ? await fixStore() : undefined,
+            fixStore: nextLike(v) ? await fixStore() : undefined,
             backendOverrides: backendOverridesFromEnv(process.env),
             onLog: pushLog,
             onProblem: backendProblem,

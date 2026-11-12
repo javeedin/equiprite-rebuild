@@ -10,8 +10,10 @@ define(['resources/js/nav'], function (nav) {
   //   pinned  My work, which cannot be closed
   //   used    when it was last shown, to choose which tab to close when there are too many
   var MAX_TABS = 12;
-  var STORE_KEY = 'eqr.next.tabs';
-  var HOME = 'home';
+  // Build.Rite (nav.product): its own tabs, Jira stories first and pinned
+  var PRODUCT = nav.product || { isBuild: false, home: 'home' };
+  var STORE_KEY = PRODUCT.isBuild ? 'eqr.build.tabs' : 'eqr.next.tabs';
+  var HOME = PRODUCT.home || 'home';
 
   function now(t) { return t != null ? t : Date.now(); }
 

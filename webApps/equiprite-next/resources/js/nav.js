@@ -14,6 +14,26 @@ define(['resources/js/rules'], function (rules) {
   //   built       false: the screen is being built for Next; the tab says so and links to New and Old EquipRite
   //   newNav      the same screen's menu id in New EquipRite (for that link)
   //   keywords    extra words the command bar matches
+  // Which product this build is shown as. EquipRite Next is the business app. Build.Rite is the same build shown as the
+  // team's own tools, apart from the business product: the Insights screens only (Jira stories, analytics, standup
+  // minutes, follow-ups, the FDD, application pages with code fix, the FDD library), Jira stories first. The desktop
+  // app serves it on a port of its own and says so (window.EQP_PRODUCT); elsewhere ?product=buildrite (kept for the
+  // session; ?product=next goes back).
+  var BUILD_GROUPS = ['insights'];
+  function detectProduct() {
+    try {
+      var w = typeof window !== 'undefined' ? window : {};
+      var q = w.location && w.location.search && typeof URLSearchParams !== 'undefined' ? new URLSearchParams(w.location.search).get('product') : '';
+      if (q && w.sessionStorage) w.sessionStorage.setItem('eqp.product', q);
+      var s = w.EQP_PRODUCT || q || (w.sessionStorage ? w.sessionStorage.getItem('eqp.product') : '') || '';
+      return /^build/i.test(String(s)) ? 'buildrite' : 'next';
+    } catch (e) { return 'next'; }
+  }
+  var PRODUCT_ID = detectProduct();
+  var PRODUCT = { id: PRODUCT_ID, isBuild: PRODUCT_ID === 'buildrite', name: PRODUCT_ID === 'buildrite' ? 'Build.Rite' : 'EquipRite',
+    home: PRODUCT_ID === 'buildrite' ? 'jira' : 'home', groups: BUILD_GROUPS };
+  var inProduct = function (groupKey) { return !PRODUCT.isBuild || BUILD_GROUPS.indexOf(groupKey) !== -1; };
+
   var GROUPS = [
     { key: 'work', label: '', items: [
       { id: 'home', label: 'My work', icon: 'oj-ux-ico-inbox', pageCodes: ['EQR_DASHBOARD'], route: { flow: 'home', page: 'home' },
@@ -214,7 +234,7 @@ define(['resources/js/rules'], function (rules) {
   function visibleGroups(map, loaded, flags, flagsLoaded, buRateSources) {
     var out = [];
     GROUPS.forEach(function (g) {
-      if (g.foot) return;
+      if (g.foot || !inProduct(g.key)) return;
       if (!(g.flags || []).every(function (f) { return rules.isFeatureEnabled(flags, flagsLoaded, f); })) return;
       var items = g.items.filter(function (it) { return itemVisible(it, map, loaded, flags, flagsLoaded, buRateSources); });
       if (items.length) out.push({ key: g.key, label: g.label, items: items });
@@ -252,6 +272,7 @@ define(['resources/js/rules'], function (rules) {
   }
 
   function itemVisible(it, map, loaded, flags, flagsLoaded, buRateSources) {
+    if (it && !inProduct(it.group)) return false;
     if (!it) return false;
     if (it.everyone) return !!loaded && (!it.staff || staffScreens(map, loaded));
     if (it.id === 'home' && customerOnly(map, loaded)) return false;
@@ -269,7 +290,7 @@ define(['resources/js/rules'], function (rules) {
     if (!q) return [];
     var out = [];
     // Help (the menu's foot) is found too, for anyone with a menu.
-    var all = (groups || []).length ? groups.concat(GROUPS.filter(function (g) { return g.foot; })) : [];
+    var all = (groups || []).length ? groups.concat(GROUPS.filter(function (g) { return g.foot && inProduct(g.key); })) : [];
     all.forEach(function (g) {
       g.items.forEach(function (it) {
         var label = it.label.toLowerCase();
@@ -286,6 +307,7 @@ define(['resources/js/rules'], function (rules) {
     ITEMS: ITEMS,
     RECORDS: RECORDS,
     item: function (id) { return ITEMS[id] || null; },
+    product: PRODUCT,
     routeOf: routeOf,
     newUrl: newUrl,
     visibleGroups: visibleGroups,
