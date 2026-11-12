@@ -1,0 +1,1319 @@
+{
+ "id": "vbredwoodapp/customer-portal/project-create-request",
+ "facts": {
+  "id": "vbredwoodapp/customer-portal/project-create-request",
+  "app": "vbredwoodapp",
+  "appName": "Old EquipRite",
+  "flow": "customer-portal",
+  "page": "project-create-request",
+  "label": "Create Equipment Request",
+  "description": "",
+  "route": {
+   "url": "/vp/shell/customer-portal/project-create-request",
+   "menu": "",
+   "needs": ""
+  },
+  "files": [
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page.json",
+    "lines": 628
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page.html",
+    "lines": 778
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page.js",
+    "lines": 521
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/AddressSuggestionSelectedChain.js",
+    "lines": 22
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/AgreementSelectedChain.js",
+    "lines": 231
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/CaptureContractChain.js",
+    "lines": 70
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/CaptureExternalContactChain.js",
+    "lines": 43
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/CaptureExternalCustomerChain.js",
+    "lines": 42
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/CaptureFallbackCustomerChain.js",
+    "lines": 54
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/CaptureInvOrgLocationChain.js",
+    "lines": 106
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/CaptureProjectNameChain.js",
+    "lines": 121
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/CaptureShipToSiteChain.js",
+    "lines": 28
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/ClearAgreementContextChain.js",
+    "lines": 56
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/CustomerSelectedChain.js",
+    "lines": 58
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/CustomerTypeaheadChain.js",
+    "lines": 75
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/HydrateDraftChain.js",
+    "lines": 221
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/LoadAgreementsChain.js",
+    "lines": 138
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/LoadContractsChain.js",
+    "lines": 63
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/LoadExternalPartyLovsChain.js",
+    "lines": 71
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/LoadShipToSitesChain.js",
+    "lines": 92
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/LoadTaskTreeChain.js",
+    "lines": 75
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/LocationDrawerToggleChain.js",
+    "lines": 24
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/LocationResolvedChain.js",
+    "lines": 29
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/NavigateToCatalogChain.js",
+    "lines": 333
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/ProjectTypeaheadChain.js",
+    "lines": 75
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/RequestTypeChangedChain.js",
+    "lines": 181
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/SeedCustomerTypeChain.js",
+    "lines": 152
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/SeedRequestorChain.js",
+    "lines": 50
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/TaskSelectedChain.js",
+    "lines": 48
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/UseLocationChain.js",
+    "lines": 36
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/eitherModuleGuardChain.js",
+    "lines": 78
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/enforcePageAccessChain.js",
+    "lines": 72
+   }
+  ],
+  "codeHash": "bb00aa2b15701e27",
+  "features": {
+   "sections": [
+    "Create Equipment Request",
+    "Clear agreement?"
+   ],
+   "actions": [
+    {
+     "label": "Use this location",
+     "listener": "useLocation",
+     "chains": [
+      "UseLocationChain"
+     ]
+    },
+    {
+     "label": "Clear agreement",
+     "listener": "onClearAgreementContext",
+     "chains": [
+      "ClearAgreementContextChain"
+     ]
+    },
+    {
+     "label": "Create Equipment Request: sp primary action",
+     "listener": "nextToCatalog",
+     "chains": [
+      "NavigateToCatalogChain"
+     ]
+    },
+    {
+     "label": "oj-select-single: value changed",
+     "listener": "requestTypeChanged",
+     "chains": [
+      "RequestTypeChangedChain"
+     ]
+    },
+    {
+     "label": "oj-select-single: value item changed",
+     "listener": "externalCustomerSelected",
+     "chains": [
+      "CaptureExternalCustomerChain"
+     ]
+    },
+    {
+     "label": "oj-select-single: value item changed",
+     "listener": "externalContactSelected",
+     "chains": [
+      "CaptureExternalContactChain"
+     ]
+    },
+    {
+     "label": "Customer: value item changed",
+     "listener": "customerSelectedFromSDP",
+     "chains": [
+      "CaptureFallbackCustomerChain"
+     ]
+    },
+    {
+     "label": "Project: value item changed",
+     "listener": "projectSelected",
+     "chains": [
+      "CaptureProjectNameChain"
+     ]
+    },
+    {
+     "label": "Task: oj value action",
+     "listener": "taskSelectedFromSearch",
+     "chains": [
+      "TaskSelectedChain"
+     ]
+    },
+    {
+     "label": "oj-select-single: value item changed",
+     "listener": "contractSelected",
+     "chains": [
+      "CaptureContractChain"
+     ]
+    },
+    {
+     "label": "oj-select-single: value changed",
+     "listener": "agreementSelected",
+     "chains": [
+      "AgreementSelectedChain"
+     ]
+    },
+    {
+     "label": "oj-select-single: value item changed",
+     "listener": "shipToSiteSelected",
+     "chains": [
+      "CaptureShipToSiteChain"
+     ]
+    },
+    {
+     "label": "oj-drawer-popup: opened changed",
+     "listener": "locationDrawerOpenedChanged",
+     "chains": [
+      "LocationDrawerToggleChain"
+     ]
+    },
+    {
+     "label": "Search address: oj value action",
+     "listener": "addressSuggestionSelected",
+     "chains": [
+      "AddressSuggestionSelectedChain"
+     ]
+    }
+   ],
+   "fields": [
+    "Customer Type",
+    "Customer",
+    "Customer Contact",
+    "Requestor Contact",
+    "Contract",
+    "Rental Agreement (optional)",
+    "Start Date",
+    "End Date",
+    "Planned Hours",
+    "Location Type",
+    "Delivery Location",
+    "Notes / Special Instructions",
+    "Address Line 1",
+    "Address Line 2",
+    "City",
+    "County",
+    "State / Province",
+    "Postal Code",
+    "Country",
+    "— Select Customer Type —",
+    "— Select Customer —",
+    "Select a contact...",
+    "Project",
+    "Task",
+    "Search internal locations",
+    "Start typing an address…"
+   ],
+   "columns": [],
+   "components": [
+    "oj-button",
+    "oj-dialog",
+    "oj-drawer-popup",
+    "oj-form-layout",
+    "oj-input-date",
+    "oj-input-number",
+    "oj-input-search",
+    "oj-input-text",
+    "oj-select-single",
+    "oj-sp-collection-container",
+    "oj-sp-general-overview-page",
+    "oj-switch",
+    "oj-text-area"
+   ],
+   "inputs": [],
+   "lifecycle": [
+    {
+     "when": "before the page opens",
+     "chains": [
+      "enforcePageAccessChain"
+     ]
+    },
+    {
+     "when": "when the page opens",
+     "chains": [
+      "eitherModuleGuardChain",
+      "HydrateDraftChain",
+      "SeedCustomerTypeChain",
+      "SeedRequestorChain",
+      "LoadAgreementsChain",
+      "LoadTaskTreeChain"
+     ]
+    }
+   ]
+  },
+  "logic": {
+   "chains": [
+    {
+     "name": "AddressSuggestionSelectedChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/AddressSuggestionSelectedChain.js",
+     "about": "A typeahead suggestion was picked (oj-input-search on-oj-value-action). The chosen candidate's parsed components + coords ride along on the item, so we hand the whole object to the module's applySuggestion — it moves the map pin and fires locationResolved, which fills the drawer's address fields. No second geocode / top-result guessing.",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "addressSuggestionSelected"
+     ],
+     "lines": 22
+    },
+    {
+     "name": "AgreementSelectedChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/AgreementSelectedChain.js",
+     "about": "Path B — the user picked (or cleared) a rental agreement from the optional dropdown on the create-request page. GOAL: produce the EXACT same agreement context that Path A (rental-agreement-lines -> CreateRequestFromAgreementChain) produces, so the downstream catalog/cart/submit pages don't care which path was used. That context is: draftStorage + $flow vars holding fromAgreement*, CartItemsArray, agreementLineIdByEquipmentId, agreementClassIds, plus an agreementRateByEquipmentId map the catalog uses to override rates. Path B does NOT pre-load the cart. Unlike Path A (where the user…",
+     "calls": [
+      "eqp-v1/getAgreementLines",
+      "eqp-v1/getEquipriteV1ViewsRentalAgreementLines",
+      "eqp-v1/getEquipriteV1EquipmentMaster"
+     ],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [
+      "resources/js/draftStorage"
+     ],
+     "on": [
+      "agreementSelected"
+     ],
+     "lines": 231
+    },
+    {
+     "name": "CaptureContractChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/CaptureContractChain.js",
+     "about": "Fired by the plain Contract oj-select-single's on-value-item-changed — a REAL, reliably-firing native component event (unlike the bipReportLov fragment's custom valueChanged event, which never reached a host-page listener in this app; see project_contracts_bip_lov.md). Clears the dependent Ship-to-Site state, then reloads the sites for the newly selected contract — this ALSO fixes the earlier A→B gap (re-picking a different contract), which the fragment version could never reliably detect. The contract now drives SITES DIRECTLY. It used to drive a Customer LOV (LoadCustomersChain), and the…",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "contractSelected"
+     ],
+     "lines": 70
+    },
+    {
+     "name": "CaptureExternalContactChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/CaptureExternalContactChain.js",
+     "about": "Capture the contact picked in the EXTERNAL Customer Contact LOV. Mirrors customer-create-req-page ContactSelectedChain, writing to $flow.variables.request so it survives the catalog round-trip. Reuses request.requestorId / requestorName — the SAME fields the INTERNAL Requestor Contact picker uses — because SubmitRequestChain already routes that one id to the correct column based on the flow's mode: requestorUserId (EQR_USER) when internal eqrCustomerPortalUserId (EQR_CUSTOMER_PORTAL_USER) when external Both pickers are mutually exclusive on screen (one per request type), so sharing the field…",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "externalContactSelected"
+     ],
+     "lines": 43
+    },
+    {
+     "name": "CaptureExternalCustomerChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/CaptureExternalCustomerChain.js",
+     "about": "Capture the customer picked in the EXTERNAL Customer Name LOV. Mirrors customer-create-req-page CustomerSelectedChain, but writes to $flow.variables.request (this page's model lives on the flow so it survives the catalog round-trip) instead of that page's $page.variables.formData. customerRefId is an EQR_CUSTOMER_REF id — a DIFFERENT id space from request.customerId, which the INTERNAL flow fills from the Fusion ShippingCustomersLOV. They are kept as separate fields rather than shared, so a user who fills one, switches type, and fills the other can't end up with a Fusion party id being…",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "externalCustomerSelected"
+     ],
+     "lines": 42
+    },
+    {
+     "name": "CaptureFallbackCustomerChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/CaptureFallbackCustomerChain.js",
+     "about": "Fired by the Internal Customer oj-select-single's on-value-item-changed. Named \"Fallback\" for historical reasons: this used to be the second of two customer pickers, shown only until a contract was chosen, at which point a contract-scoped BIP picker took over. That BIP picker is gone (its only purpose was parameterising the old per-customer ship-to-sites report, which is now contract-scoped), so this is the ONLY customer path on the page and the name is a misnomer — kept to avoid a rename with no behavioural gain. Writes request.customerId, then re-runs CustomerSelectedChain (agreement…",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "customerSelectedFromSDP"
+     ],
+     "lines": 54
+    },
+    {
+     "name": "CaptureInvOrgLocationChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/CaptureInvOrgLocationChain.js",
+     "about": "Owns everything that happens when a row is picked in the Internal Location LOV (Location Type = 'Internal Location', locationType === 'INV_ORG'). Two jobs: 1. Write the display address into $flow.variables.request.location, exactly as the inline handler this chain replaced did — via the same $page.functions.formatInvOrgAddress, so the value stored and the value the field renders still cannot drift. 2. Resolve and store the two FUSION IDS behind that row: deliveryInvOrgId (the org) and deliveryLocationId (its hr_locations LocationId), which SubmitRequestChain persists onto the request header.…",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [
+      "resources/js/maintAssetLocation"
+     ],
+     "on": [
+      "invOrgLocationSelected"
+     ],
+     "lines": 106
+    },
+    {
+     "name": "CaptureProjectNameChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/CaptureProjectNameChain.js",
+     "about": "The Project oj-select-single's value-item is bound ONE-WAY from the request's project fields, so any chain writing them fires value-item-changed with updatedFrom 'external'. Only a user pick or clear ('internal') is a new selection — re-running here would wipe the task and re-fetch the BU for a project that did not change.",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [
+      "resources/js/projectBusinessUnit"
+     ],
+     "on": [
+      "projectSelected"
+     ],
+     "lines": 121
+    },
+    {
+     "name": "CaptureShipToSiteChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/CaptureShipToSiteChain.js",
+     "about": "Fired by the plain Ship-to-Site oj-select-single's on-value-item-changed. The row's .id/.label are both SITE_ADDRESS (see LoadShipToSitesChain) — the selected item IS the delivery address string, so it writes straight into request.location, the field every downstream consumer (geocoder, NavigateToCatalogChain validation, SubmitRequestChain) already reads.",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "shipToSiteSelected"
+     ],
+     "lines": 28
+    },
+    {
+     "name": "ClearAgreementContextChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/ClearAgreementContextChain.js",
+     "about": "Confirmed clear: invoked by the \"Clear agreement\" button inside the clearAgreementDialog. Discards all agreement-driven state and resets the page to a fresh standalone request — same effect as opening project-create-request directly from the dashboard.",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [
+      "resources/js/draftStorage",
+      "resources/js/requestModel"
+     ],
+     "on": [
+      "onClearAgreementContext"
+     ],
+     "lines": 56
+    },
+    {
+     "name": "CustomerSelectedChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/CustomerSelectedChain.js",
+     "about": "Fired when the Customer dropdown value changes (select or clear). Filters the Rental Agreement LOV to only show agreements whose fusionCustomerId matches the selected Fusion CustomerId. On clear (fusionCustomerId == null), restores the full list. Also clears any selected agreement if it no longer belongs to the newly selected customer (avoids a mismatched customer+agreement pair).",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "customerSelected"
+     ],
+     "lines": 58
+    },
+    {
+     "name": "CustomerTypeaheadChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/CustomerTypeaheadChain.js",
+     "about": "Runs the BIP report EQP_CUSTOMERS_LOV_RP for the text the Customer oj-select-single asked about, and delivers the rows back to the page module's customer provider via $page.functions.deliverCustomers(text, rows). Triggered by the page event customerSearchRequested, which the PROVIDER fires from fetchFirst — the same provider-driven design as ProjectTypeaheadChain (see there for why: it removes the race that left the dropdown empty). No debounce here; oj-input-search debounces typing itself. Why a report and not Fusion REST shippingCustomersLOV: its `Customer LIKE` is case-sensitive, rejects…",
+     "calls": [
+      "bipService/runBIPReport"
+     ],
+     "reports": [
+      "EQP_CUSTOMERS_LOV_RP"
+     ],
+     "local": [],
+     "opens": [],
+     "modules": [
+      "resources/js/bipLov"
+     ],
+     "on": [
+      "customerSearchRequested"
+     ],
+     "lines": 75
+    },
+    {
+     "name": "HydrateDraftChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/HydrateDraftChain.js",
+     "about": "Tab-scoped flag set by CreateRequestFromAgreementChain just before the cross-flow navigate. sessionStorage is per-tab and dies when the tab closes, so stale localStorage from an abandoned previous session won't be misread as a fresh handoff.",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [
+      "resources/js/draftStorage",
+      "resources/js/requestModel",
+      "resources/js/draftResume"
+     ],
+     "on": [
+      "vbEnter"
+     ],
+     "lines": 221
+    },
+    {
+     "name": "LoadAgreementsChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/LoadAgreementsChain.js",
+     "about": "Populates the optional \"Rental Agreement\" dropdown on the create-request page (Path B — selecting an agreement directly when raising a request). The agreement header carries only customerRefId (not the customer name), so we fetch getCustomerRefs and join id -> name to build a readable label like \"AGR-2026-012 — Cianbro Corporation (ACTIVE)\". STATUS FILTER: getAgreementHeaders has no status query param, so we filter client-side. Only ACTIVE (approved) agreements are selectable when raising a request — a request must release against an approved blanket contract, not a draft. Agreements are…",
+     "calls": [
+      "eqp-v1/getAgreementHeaders",
+      "eqp-v1/getCustomerRefs"
+     ],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "vbEnter"
+     ],
+     "lines": 138
+    },
+    {
+     "name": "LoadContractsChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/LoadContractsChain.js",
+     "about": "Loads EQP_CONTRACTS_BY_PROJECT_LOV_RP for the current request.projectId and updates $page.variables.contractsAdp.data by REASSIGNING it to a new array (never $page.variables.contractsAdp itself). Bound to a plain oj-select-single directly on the page (no oj-vb-fragment) — this is what lets the Contract field reload silently on project change with no visible flicker, since the component's data-provider reference (contractsAdp) never changes, only the array it points to. NOTE: an EARLIER version mutated .data in place via `.data.length = 0; .data.push(...)`. That threw `RangeError: Invalid…",
+     "calls": [
+      "bipService/runBIPReport"
+     ],
+     "reports": [
+      "EQP_CONTRACTS_BY_PROJECT_LOV_RP"
+     ],
+     "local": [],
+     "opens": [],
+     "modules": [
+      "resources/js/bipLov"
+     ],
+     "on": [],
+     "lines": 63
+    },
+    {
+     "name": "LoadExternalPartyLovsChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/LoadExternalPartyLovsChain.js",
+     "about": "Load the two EXTERNAL-flow party LOVs: Customer Name (EQR_CUSTOMER_REF) and Customer Contact (EQR_CUSTOMER_PORTAL_USER). Deliberately a copy of customer-create-req-page CreateRequestInitChain's LOV block — same endpoints, same row shapes — so an EXTERNAL request raised from THIS page resolves its customer and contact from exactly the same source as one raised in the customer flow, and lands in the same DB columns (eqrCustomerRefId / eqrCustomerPortalUserId). The two pickers are INDEPENDENT: there is no DB relationship between a customer and a portal user, so picking a customer neither…",
+     "calls": [
+      "eqp-v1/getCustomerRefs",
+      "eqp-v1/getCustomerPortalUsers"
+     ],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [],
+     "lines": 71
+    },
+    {
+     "name": "LoadShipToSitesChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/LoadShipToSitesChain.js",
+     "about": "Loads EQP_SHIP_TO_SITES_BY_CONTRACT_LOV_RP for the current project+contract and updates $page.variables.shipToSitesAdp.data by REASSIGNING it to a new array (never shipToSitesAdp itself) — same pattern/rationale as LoadContractsChain. CONTRACT-SCOPED, not customer-scoped. This used to call EQP_SHIP_TO_SITES_BY_CUSTOMER_LOV_RP with P_PROJECT_ID + P_CUSTOMER_ID, which forced the user through a Customer picker whose only real job was to supply that second parameter. The Delivery Location LOV now shows the sites of EVERY customer on the chosen contract, so the customer hop is gone from the UI —…",
+     "calls": [
+      "bipService/runBIPReport"
+     ],
+     "reports": [
+      "EQP_SHIP_TO_SITES_BY_CONTRACT_LOV_RP",
+      "EQP_SHIP_TO_SITES_BY_CUSTOMER_LOV_RP"
+     ],
+     "local": [],
+     "opens": [],
+     "modules": [
+      "resources/js/bipLov"
+     ],
+     "on": [],
+     "lines": 92
+    },
+    {
+     "name": "LoadTaskTreeChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/LoadTaskTreeChain.js",
+     "about": "Point the Task dropdown at the selected project's CHARGEABLE LEAVES. Mirror of request-detail-page-chains/LoadTaskTreeChain.js — see that file for why the picker is not an SDP, why the provider is assigned BEFORE the rows exist (so the dropdown skeletons in place instead of being disabled shut), and how it degrades. The only difference is where the project id lives: here it is the flow-level request.projectId (the draft being built), there it is a page-level staged assignProjectId. Called by CaptureProjectNameChain after the project changes, and by HydrateDraftChain so a restored draft gets…",
+     "calls": [
+      "ProjectLOV/getFscmRestApiResources11_13_18_05ProjectTasks"
+     ],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [
+      "resources/js/projectTaskTree",
+      "resources/js/taskDataProvider"
+     ],
+     "on": [
+      "vbEnter"
+     ],
+     "lines": 75
+    },
+    {
+     "name": "LocationDrawerToggleChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/LocationDrawerToggleChain.js",
+     "about": "Fired on the location drawer's on-opened-changed. When it opens, build the Mapbox map into #pcr-map (page module owns the imperative widget); when it closes, tear the map down so it can't leak across opens.",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "locationDrawerOpenedChanged"
+     ],
+     "lines": 24
+    },
+    {
+     "name": "LocationResolvedChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/LocationResolvedChain.js",
+     "about": "Fired (via the locationResolved page event) after the map module parses a geocode result into Oracle-style address components. The module can't write $page.variables, so it hands the parsed object here and this chain writes the drawer's bound fields. `data` = { addr1, addr2, city, county, state, postalCode, country, lat, lng, formatted }.",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "locationResolved"
+     ],
+     "lines": 29
+    },
+    {
+     "name": "NavigateToCatalogChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/NavigateToCatalogChain.js",
+     "about": "Start/End dates are ALWAYS required to advance — a reservation (soft or hard) needs a date window to hold against. A soft reservation relaxes EVERYTHING ELSE (party, contact, location, project/task): it is a provisional hold on the dates, and the rest is settled when it is firmed up. The party field differs by request type, so validate whichever one is actually on screen: INTERNAL → Fusion party → request.customerId EXTERNAL → EQR_CUSTOMER_REF → request.customerRefId Validating customerId unconditionally would block EXTERNAL requests on a field that is hidden and never populated for them,…",
+     "calls": [
+      "ProjectLOV/getFscmRestApiResources11_13_18_05ProjectsLOV",
+      "ProjectLOV/getFscmRestApiResources11_13_18_05ProjectTasksLOV",
+      "eqp-v1/getEquipriteV1Users2"
+     ],
+     "reports": [],
+     "local": [],
+     "opens": [
+      "page request-catalog"
+     ],
+     "modules": [
+      "resources/js/draftStorage",
+      "resources/js/deliveryCoords",
+      "resources/js/projectBusinessUnit"
+     ],
+     "on": [
+      "nextToCatalog"
+     ],
+     "lines": 333
+    },
+    {
+     "name": "ProjectTypeaheadChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/ProjectTypeaheadChain.js",
+     "about": "Runs the BIP report EQP_PROJECTS_LOV_RP for the text the Project oj-select-single asked about, and delivers the rows back to the page module's ProjectSuggestProvider via $page.functions.deliverProjects(text, rows). Triggered by the page event projectSearchRequested, which the PROVIDER fires from fetchFirst — so the component is already awaiting this exact text, and oj-input-search does its own typing debounce. No debounce here. Why a report and not Fusion REST projectsLOV: its `LIKE` is case-sensitive, rejects UPPER()/finder and honours only the first term of an OR, so no REST query can…",
+     "calls": [
+      "bipService/runBIPReport"
+     ],
+     "reports": [
+      "EQP_PROJECTS_LOV_RP"
+     ],
+     "local": [],
+     "opens": [],
+     "modules": [
+      "resources/js/bipLov"
+     ],
+     "on": [
+      "projectSearchRequested"
+     ],
+     "lines": 75
+    },
+    {
+     "name": "RequestTypeChangedChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/RequestTypeChangedChain.js",
+     "about": "Request Type changed — mirror the picker onto the flow model, clear any now-inapplicable state, and load the External party LOVs. WHY A MIRROR AT ALL: the picker binds to the PAGE variable requestTypeSel, not straight to $flow.variables.request.requestType, because writing a nested property of a $flow OBJECT variable does not re-evaluate the oj-bind-if tests that show/hide the Internal vs External fields — the flow variable's own reference never changes, so the binding dependency never fires. (Same reason the Location Type picker on this page keeps its value on a page scalar and mirrors into…",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "requestTypeChanged"
+     ],
+     "lines": 181
+    },
+    {
+     "name": "SeedCustomerTypeChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/SeedCustomerTypeChain.js",
+     "about": "Forces Customer Type when the user has no real choice about it. TWO INDEPENDENT REASONS the choice can be taken away, matching the markup: LICENCE - each module flag owns one request type (PROJECTS->INTERNAL, CUSTOMERS->EXTERNAL), so a single-module tenant has exactly one legal type. forcedCustomerType() returns it, or '' when both modules are licensed. This applies to EVERY user, managers included - a licence is not something a role overrides. ROLE - a plain equipment requestor cannot raise an external request, so with both modules licensed they still get INTERNAL. Licence wins when both…",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "vbEnter"
+     ],
+     "lines": 152
+    },
+    {
+     "name": "SeedRequestorChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/SeedRequestorChain.js",
+     "about": "Locks the INTERNAL Requestor Contact to the signed-in user. The requestor IS the logged-in user — captured from the session identity, not looked up in any table. currentUser.auditActor resolves the username by the same identity walk as the RBAC roles and the X-User-Id audit stamp (JWT `sub` first, then $application.user), so the three can never name different people; displayName gives the person's name for the field. Both are posted on the request header as requestorName / requestorUsername. requestorUserId (the EQR_USER FK) is no longer set for INTERNAL: EQR_USER is a seed list, not the…",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [
+      "resources/js/currentUser"
+     ],
+     "on": [
+      "vbEnter"
+     ],
+     "lines": 50
+    },
+    {
+     "name": "TaskSelectedChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/TaskSelectedChain.js",
+     "about": "Fired by the Task oj-select-single's on-oj-value-action, with the picked row from $event.detail.itemContext.data (NOT .value, which is the scalar key). value=\"{{ request.taskId }}\" already two-way-binds the id; this chain exists for TaskName/TaskNumber, which the component's value never carries and which NavigateToCatalogChain/the submit payload both need. taskId is re-asserted here too so the three stay written as one unit. ALSO rejects a summary (non-chargeable) task — see the fuller note on request-detail-page-chains/AssignTaskSelectedChain.js. The dropdown greys those rows, but…",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [
+      "resources/js/projectTaskTree"
+     ],
+     "on": [
+      "taskSelectedFromSearch"
+     ],
+     "lines": 48
+    },
+    {
+     "name": "UseLocationChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/UseLocationChain.js",
+     "about": "\"Use this location\" in the drawer. Composes the (possibly user-edited) Oracle-style address components into a single readable line and shows it in the Delivery Location field ($flow.variables.request.location), then closes. \"<Address1>, <Address2>, <City>, <County>, <State> <ZIP>, <Country>\" NOTE: the structured components + coords still live on the page variables (addr1/addr2/city/county/addrState/postalCode/country/pickedLat/pickedLng) for the persistence step — this only sets the visible label.",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "useLocation"
+     ],
+     "lines": 36
+    },
+    {
+     "name": "eitherModuleGuardChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/eitherModuleGuardChain.js",
+     "about": "Page guard for this page's module licence. DELIBERATELY NOT projectsModuleGuardChain, which the other pages use. Do not \"restore\" it to match them - this page is genuinely different: Create Request serves BOTH request types. Each module flag owns one (PROJECTS->INTERNAL, CUSTOMERS->EXTERNAL), so the page is licensed when EITHER module is on, and the Customer Type field narrows to whichever type the licence allows (see forcedCustomerType() in app-flow.js). The old Projects-only test broke the Customers-only tenant outright: RBAC routes an equipment manager HERE (app role EQUIP_MGR holds FULL…",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "vbEnter"
+     ],
+     "lines": 78
+    },
+    {
+     "name": "enforcePageAccessChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page-chains/enforcePageAccessChain.js",
+     "about": "Page-level RBAC deep-link guard. GENERATED - every copy is byte-identical; change the template and regenerate rather than editing one copy. Copies exist because a page's eventListeners resolve a bare chain id against that page's OWN <page>-chains folder, so an app-level chain referenced by name 404s. This file holds NO policy: the decision (canEnterPage), the page code (getPageCodeForPage), the redirect target (getRoleHomeTarget) and the same-flow test (isSameFlow) all live in $application.functions. Deriving the page code at runtime is what lets every copy be identical.",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "vbBeforeEnter"
+     ],
+     "lines": 72
+    }
+   ],
+   "modules": [
+    {
+     "name": "draftStorage",
+     "file": "webApps/vbredwoodapp/resources/js/draftStorage.js",
+     "about": "Returns true if localStorage has a non-empty draft for this key. On resume pages (catalog, cart) we always prefer the persisted draft over whatever VBCS initialized the flow variable to — otherwise default values on the variable (e.g. request.creditLimit) make the variable look \"non-empty\" and would silently block hydration, dropping user-typed fields like `location` after a refresh.",
+     "local": [],
+     "calls": [],
+     "reports": [],
+     "lines": 59
+    },
+    {
+     "name": "maintAssetLocation",
+     "file": "webApps/vbredwoodapp/resources/js/maintAssetLocation.js",
+     "about": "════════════════════════════════════════════════════════════════════════ Relocate the maintenance asset in Fusion when equipment ships. ════════════════════════════════════════════════════════════════════════ WHAT IT DOES When a request's delivery location is an internal inventory location (deliveryLocationType === 'INV_ORG') and a line ships, tell Fusion the equipment's maintenance asset now lives at that location: PATCH installedBaseAssets/{AssetId} { CurrentLocationContextCode:…",
+     "local": [],
+     "calls": [
+      "eqp-v1/getInvOrgs",
+      "ProjectLOV/getFscmRestApiResources11_13_18_05InventoryOrganizations",
+      "eqp-v1/getEquipriteV1EquipmentRequestById",
+      "eqp-v1/patchEquipmentRequest",
+      "eqp-v1/getAllocations",
+      "eqp-v1/getSerialRefById",
+      "eqp-v1/patchSerialRef",
+      "ProjectLOV/getInstalledBaseAssets",
+      "ProjectLOV/patchInstalledBaseAsset",
+      "ProjectLOV/getInstalledBaseAssetRelationships"
+     ],
+     "reports": [],
+     "lines": 755
+    },
+    {
+     "name": "projectBusinessUnit",
+     "file": "webApps/vbredwoodapp/resources/js/projectBusinessUnit.js",
+     "about": "════════════════════════════════════════════════════════════════════════ The project's Fusion BUSINESS UNIT, captured when the project is picked. ════════════════════════════════════════════════════════════════════════ WHY THIS EXISTS When equipment cost posts to Fusion PPM, the OIC field map sends `BusinessUnit` as a HARDCODED literal, 'US1 Business Unit'. That happens to be right on our dev pod only by luck -- every project we have ever posted to (10011, 4488, 100122, 100133,…",
+     "local": [],
+     "calls": [
+      "ProjectLOV/getFscmRestApiResources11_13_18_05ProjectsById"
+     ],
+     "reports": [],
+     "lines": 98
+    },
+    {
+     "name": "requestModel",
+     "file": "webApps/vbredwoodapp/resources/js/requestModel.js",
+     "about": "Single source of truth for the in-flight `request` object shape used by the create-request flow ($flow.variables.request). Chains that build a fresh request, reset it, or hydrate it from a draft/agreement should call defaultRequest() instead of hand-writing the object literal, so the shape can never drift between call sites (add a field here once, not in 5 files). Consumed by HydrateDraftChain, ClearAgreementContextChain, SecondaryActionChain (post-submit reset) and CreateRequestNextChain.",
+     "local": [],
+     "calls": [],
+     "reports": [],
+     "lines": 86
+    },
+    {
+     "name": "bipLov",
+     "file": "webApps/vbredwoodapp/resources/js/bipLov.js",
+     "about": "",
+     "local": [],
+     "calls": [
+      "bipService/runBIPReport"
+     ],
+     "reports": [],
+     "lines": 132
+    },
+    {
+     "name": "draftResume",
+     "file": "webApps/vbredwoodapp/resources/js/draftResume.js",
+     "about": "Reopen a saved DRAFT request into the create-request flow (Edit Draft / Submit Draft on the request detail pages), and delete one (Delete Draft). The hand-off reuses the cart's own refresh-resume: InitCartChain already restores request / ActiveRequestDetail / requestOrigin / CartItemsArray from draftStorage, so writing those keys and navigating is all the cart needs. The create-request form picks the same keys up in HydrateDraftChain (case d) / CreateRequestInitChain when the tab-scoped…",
+     "local": [],
+     "calls": [
+      "eqp-v1/getEquipriteV1EquipmentRequestById",
+      "eqp-v1/getEquipriteV1EquipmentRequestsRequestIdLines2",
+      "eqp-v1/getEquipriteV1ViewsEquipmentCatalog",
+      "eqp-v1/deleteEquipmentRequest"
+     ],
+     "reports": [],
+     "lines": 237
+    },
+    {
+     "name": "projectTaskTree",
+     "file": "webApps/vbredwoodapp/resources/js/projectTaskTree.js",
+     "about": "Project task hierarchy — shared by the two Task LOVs. Fusion's projects/{ProjectId}/child/Tasks returns a FLAT list. A WBS like 1 Project Management & Engineering <- summary 1.1 Project Management <- summary 1.1.1 Planning & Scheduling <- summary 1.1.1.1 Baseline Schedule Development <- LEAF, chargeable arrives as four sibling rows with nothing in the payload saying which are selectable. That matters well beyond cosmetics: the task the user picks is stamped on…",
+     "local": [],
+     "calls": [],
+     "reports": [],
+     "lines": 159
+    },
+    {
+     "name": "taskDataProvider",
+     "file": "webApps/vbredwoodapp/resources/js/taskDataProvider.js",
+     "about": "Data providers for the Task LOVs. The Task list cannot be a ServiceDataProvider — it shows only the CHARGEABLE LEAVES of the WBS, and \"no other row names me as parent\" is a property of the whole set that no Fusion q predicate can express (see projectTaskTree.js). So the rows have to be fetched, classified, and only then handed to the picker. The naive way to do that is to fetch into an ArrayDataProvider and keep the field disabled until it fills. That is what this module exists to avoid: a…",
+     "local": [],
+     "calls": [],
+     "reports": [],
+     "lines": 97
+    },
+    {
+     "name": "deliveryCoords",
+     "file": "webApps/vbredwoodapp/resources/js/deliveryCoords.js",
+     "about": "Resolves the coordinates of the request's DELIVERY ADDRESS, so the catalog can price equipment from the yard nearest to where it is being delivered. There are two ways a delivery address gets onto a request, and this covers both so nearest-yard pricing doesn't silently depend on which one was used: 1. MAP DRAWER (\"Enter Delivery location\") — the user dropped a pin or picked a geocoder suggestion, so exact coordinates already exist on the page ($page.variables.pickedLat / pickedLng). Preferred…",
+     "local": [],
+     "calls": [],
+     "reports": [],
+     "lines": 66
+    },
+    {
+     "name": "currentUser",
+     "file": "webApps/vbredwoodapp/resources/js/currentUser.js",
+     "about": "Who is the signed-in user? Resolved from BOTH identity sources, because the app is reached two ways and only one of them is populated in each: published inside Fusion -> ?jwt=... on the URL, decoded for its `sub` dev / Designer preview -> $application.user, populated by VB Neither alone is sufficient. $application.user comes back with empty `login` and `userName` in this environment even while VB logs \"User john.dunbar is authenticated\"; the JWT is absent on a direct nav, a bookmark or in…",
+     "local": [],
+     "calls": [],
+     "reports": [],
+     "lines": 198
+    },
+    {
+     "name": "requestHeaderBody",
+     "file": "webApps/vbredwoodapp/resources/js/requestHeaderBody.js",
+     "about": "ONE builder for the createEquipmentRequest body, shared by the cart's Submit (SubmitRequestChain) and Save as Draft (SecondaryActionChain), so a draft stores everything a submitted request stores: customer, project contract, delivery mode/ids, default hours, dates, agreement. Before this, Save as Draft had its own hand-written body that dropped 11 of those fields — every draft on paasdev had no customer (2026-10-11). Both buttons create the header as DRAFT. Submit moves it to SUBMITTED /…",
+     "local": [],
+     "calls": [
+      "eqp-v1/patchEquipmentRequest",
+      "eqp-v1/createEquipmentRequest",
+      "eqp-v1/createShipToSite"
+     ],
+     "reports": [],
+     "lines": 360
+    },
+    {
+     "name": "catalogCart",
+     "file": "webApps/vbredwoodapp/resources/js/catalogCart.js",
+     "about": "Cart helpers, shared by the catalog's add-to-cart pathways. IMPORTANT — staging vs cart are SEPARATE: • STAGING: selectedEquipmentKeys (checkbox highlight) + pendingQtyById ({id: qty}) + pendingRowById ({id: rawRow}). Set by checking a card / changing its stepper. NOT yet in the cart. • CART: CartItemsArray — the real cart, changed ONLY by an explicit Add to Cart / Add Checked / Select-All+Add action, which consumes staging. Under SDP+DPV the equipment rows live in the data provider (not a…",
+     "local": [],
+     "calls": [],
+     "reports": [],
+     "lines": 302
+    },
+    {
+     "name": "geocoder",
+     "file": "webApps/vbredwoodapp/resources/js/geocoder.js",
+     "about": "Mapbox public geocoding token — the app's own token, identical to the one in equipment-schedule-page.js, line-detail-page.js and the two create-request pages. It's a \"pk.\" public token; safe in client code. WAS a leftover Bryntum DEMO token ('matsbryntse'), copied in with their sample map code. That token is not ours and Mapbox rejects it with 401 Unauthorized, so every lookup() silently returned null (the function is best-effort and swallows !resp.ok). Symptom: addresses resolved but…",
+     "local": [],
+     "calls": [],
+     "reports": [],
+     "lines": 60
+    }
+   ],
+   "variables": 52
+  },
+  "integrations": {
+   "rest": [
+    {
+     "endpoint": "eqp-v1/getAgreementLines",
+     "service": "eqp-v1",
+     "operation": "getAgreementLines",
+     "method": "GET",
+     "path": "/equiprite/v1/agreement-lines",
+     "summary": "List agreement lines",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "AgreementSelectedChain"
+     ]
+    },
+    {
+     "endpoint": "eqp-v1/getEquipriteV1ViewsRentalAgreementLines",
+     "service": "eqp-v1",
+     "operation": "getEquipriteV1ViewsRentalAgreementLines",
+     "method": "GET",
+     "path": "/equiprite/v1/views/rental-agreement-lines",
+     "summary": "Get equipment lines for a rental agreement",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "AgreementSelectedChain"
+     ]
+    },
+    {
+     "endpoint": "eqp-v1/getEquipriteV1EquipmentMaster",
+     "service": "eqp-v1",
+     "operation": "getEquipriteV1EquipmentMaster",
+     "method": "GET",
+     "path": "/equiprite/v1/equipment-master",
+     "summary": "Search / list equipment (paginated, filterable, sortable)",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "AgreementSelectedChain"
+     ]
+    },
+    {
+     "endpoint": "bipService/runBIPReport",
+     "service": "bipService",
+     "operation": "runBIPReport",
+     "method": "POST",
+     "path": "/xmlpserver/services/ExternalReportWSSService",
+     "summary": "Run any BIP report via SOAP and return base64-encoded XML data",
+     "backend": "bipService",
+     "backendLabel": "Oracle BI Publisher (SOAP)",
+     "usedBy": [
+      "CustomerTypeaheadChain",
+      "LoadContractsChain",
+      "LoadShipToSitesChain",
+      "ProjectTypeaheadChain",
+      "bipLov"
+     ]
+    },
+    {
+     "endpoint": "eqp-v1/getAgreementHeaders",
+     "service": "eqp-v1",
+     "operation": "getAgreementHeaders",
+     "method": "GET",
+     "path": "/equiprite/v1/agreement-headers",
+     "summary": "List agreement headers",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "LoadAgreementsChain"
+     ]
+    },
+    {
+     "endpoint": "eqp-v1/getCustomerRefs",
+     "service": "eqp-v1",
+     "operation": "getCustomerRefs",
+     "method": "GET",
+     "path": "/equiprite/v1/customer-refs",
+     "summary": "List customer refs",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "LoadAgreementsChain",
+      "LoadExternalPartyLovsChain"
+     ]
+    },
+    {
+     "endpoint": "eqp-v1/getCustomerPortalUsers",
+     "service": "eqp-v1",
+     "operation": "getCustomerPortalUsers",
+     "method": "GET",
+     "path": "/equiprite/v1/customer-portal-users",
+     "summary": "List customer portal users",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "LoadExternalPartyLovsChain"
+     ]
+    },
+    {
+     "endpoint": "ProjectLOV/getFscmRestApiResources11_13_18_05ProjectTasks",
+     "service": "ProjectLOV",
+     "operation": "getFscmRestApiResources11_13_18_05ProjectTasks",
+     "method": "GET",
+     "path": "/fscmRestApi/resources/11.13.18.05/projects/{ProjectId}/child/Tasks",
+     "summary": "",
+     "backend": "fusion",
+     "backendLabel": "Oracle Fusion REST",
+     "usedBy": [
+      "LoadTaskTreeChain"
+     ]
+    },
+    {
+     "endpoint": "ProjectLOV/getFscmRestApiResources11_13_18_05ProjectsLOV",
+     "service": "ProjectLOV",
+     "operation": "getFscmRestApiResources11_13_18_05ProjectsLOV",
+     "method": "GET",
+     "path": "/fscmRestApi/resources/11.13.18.05/projectsLOV",
+     "summary": "",
+     "backend": "fusion",
+     "backendLabel": "Oracle Fusion REST",
+     "usedBy": [
+      "NavigateToCatalogChain"
+     ]
+    },
+    {
+     "endpoint": "ProjectLOV/getFscmRestApiResources11_13_18_05ProjectTasksLOV",
+     "service": "ProjectLOV",
+     "operation": "getFscmRestApiResources11_13_18_05ProjectTasksLOV",
+     "method": "GET",
+     "path": "/fscmRestApi/resources/11.13.18.05/projectTasksLOV",
+     "summary": "",
+     "backend": "fusion",
+     "backendLabel": "Oracle Fusion REST",
+     "usedBy": [
+      "NavigateToCatalogChain"
+     ]
+    },
+    {
+     "endpoint": "eqp-v1/getEquipriteV1Users2",
+     "service": "eqp-v1",
+     "operation": "getEquipriteV1Users2",
+     "method": "GET",
+     "path": "/equiprite/v1/users",
+     "summary": "List all users",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "NavigateToCatalogChain"
+     ]
+    },
+    {
+     "endpoint": "eqp-v1/getInvOrgs",
+     "service": "eqp-v1",
+     "operation": "getInvOrgs",
+     "method": "GET",
+     "path": "/equiprite/v1/inv-orgs",
+     "summary": "List inventory organisations (paginated, searchable)",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "maintAssetLocation"
+     ]
+    },
+    {
+     "endpoint": "ProjectLOV/getFscmRestApiResources11_13_18_05InventoryOrganizations",
+     "service": "ProjectLOV",
+     "operation": "getFscmRestApiResources11_13_18_05InventoryOrganizations",
+     "method": "GET",
+     "path": "/fscmRestApi/resources/11.13.18.05/inventoryOrganizations",
+     "summary": "",
+     "backend": "fusion",
+     "backendLabel": "Oracle Fusion REST",
+     "usedBy": [
+      "maintAssetLocation"
+     ]
+    },
+    {
+     "endpoint": "eqp-v1/getEquipriteV1EquipmentRequestById",
+     "service": "eqp-v1",
+     "operation": "getEquipriteV1EquipmentRequestById",
+     "method": "GET",
+     "path": "/equiprite/v1/equipment-requests/{id}",
+     "summary": "Get equipment request by ID",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "maintAssetLocation",
+      "draftResume"
+     ]
+    },
+    {
+     "endpoint": "eqp-v1/patchEquipmentRequest",
+     "service": "eqp-v1",
+     "operation": "patchEquipmentRequest",
+     "method": "PATCH",
+     "path": "/equiprite/v1/equipment-requests/{id}",
+     "summary": "Partial update equipment request (status transitions)",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "maintAssetLocation",
+      "requestHeaderBody"
+     ]
+    },
+    {
+     "endpoint": "eqp-v1/getAllocations",
+     "service": "eqp-v1",
+     "operation": "getAllocations",
+     "method": "GET",
+     "path": "/equiprite/v1/allocations",
+     "summary": "List allocations",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "maintAssetLocation"
+     ]
+    },
+    {
+     "endpoint": "eqp-v1/getSerialRefById",
+     "service": "eqp-v1",
+     "operation": "getSerialRefById",
+     "method": "GET",
+     "path": "/equiprite/v1/serial-refs/{id}",
+     "summary": "Get serial ref by ID",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "maintAssetLocation"
+     ]
+    },
+    {
+     "endpoint": "eqp-v1/patchSerialRef",
+     "service": "eqp-v1",
+     "operation": "patchSerialRef",
+     "method": "PATCH",
+     "path": "/equiprite/v1/serial-refs/{id}",
+     "summary": "Partial update serial ref",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "maintAssetLocation"
+     ]
+    },
+    {
+     "endpoint": "ProjectLOV/getInstalledBaseAssets",
+     "service": "ProjectLOV",
+     "operation": "getInstalledBaseAssets",
+     "method": "GET",
+     "path": "/fscmRestApi/resources/11.13.18.05/installedBaseAssets",
+     "summary": "",
+     "backend": "fusion",
+     "backendLabel": "Oracle Fusion REST",
+     "usedBy": [
+      "maintAssetLocation"
+     ]
+    },
+    {
+     "endpoint": "ProjectLOV/patchInstalledBaseAsset",
+     "service": "ProjectLOV",
+     "operation": "patchInstalledBaseAsset",
+     "method": "PATCH",
+     "path": "/fscmRestApi/resources/11.13.18.05/installedBaseAssets/{AssetId}",
+     "summary": "",
+     "backend": "fusion",
+     "backendLabel": "Oracle Fusion REST",
+     "usedBy": [
+      "maintAssetLocation"
+     ]
+    },
+    {
+     "endpoint": "ProjectLOV/getInstalledBaseAssetRelationships",
+     "service": "ProjectLOV",
+     "operation": "getInstalledBaseAssetRelationships",
+     "method": "GET",
+     "path": "/fscmRestApi/resources/11.13.18.05/installedBaseAssets/{AssetId}/child/relationships",
+     "summary": "",
+     "backend": "fusion",
+     "backendLabel": "Oracle Fusion REST",
+     "usedBy": [
+      "maintAssetLocation"
+     ]
+    },
+    {
+     "endpoint": "ProjectLOV/getFscmRestApiResources11_13_18_05ProjectsById",
+     "service": "ProjectLOV",
+     "operation": "getFscmRestApiResources11_13_18_05ProjectsById",
+     "method": "GET",
+     "path": "/fscmRestApi/resources/11.13.18.05/projects/{ProjectId}",
+     "summary": "",
+     "backend": "fusion",
+     "backendLabel": "Oracle Fusion REST",
+     "usedBy": [
+      "projectBusinessUnit"
+     ]
+    },
+    {
+     "endpoint": "eqp-v1/getEquipriteV1EquipmentRequestsRequestIdLines2",
+     "service": "eqp-v1",
+     "operation": "getEquipriteV1EquipmentRequestsRequestIdLines2",
+     "method": "GET",
+     "path": "/equiprite/v1/equipment-requests/{requestId}/lines",
+     "summary": "List all lines for a request",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "draftResume"
+     ]
+    },
+    {
+     "endpoint": "eqp-v1/getEquipriteV1ViewsEquipmentCatalog",
+     "service": "eqp-v1",
+     "operation": "getEquipriteV1ViewsEquipmentCatalog",
+     "method": "GET",
+     "path": "/equiprite/v1/views/equipment-catalog",
+     "summary": "",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "draftResume"
+     ]
+    },
+    {
+     "endpoint": "eqp-v1/deleteEquipmentRequest",
+     "service": "eqp-v1",
+     "operation": "deleteEquipmentRequest",
+     "method": "DELETE",
+     "path": "/equiprite/v1/equipment-requests/{id}",
+     "summary": "Delete a DRAFT equipment request",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "draftResume"
+     ]
+    },
+    {
+     "endpoint": "eqp-v1/createEquipmentRequest",
+     "service": "eqp-v1",
+     "operation": "createEquipmentRequest",
+     "method": "POST",
+     "path": "/equiprite/v1/equipment-requests",
+     "summary": "Create equipment request",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "requestHeaderBody"
+     ]
+    },
+    {
+     "endpoint": "eqp-v1/createShipToSite",
+     "service": "eqp-v1",
+     "operation": "createShipToSite",
+     "method": "POST",
+     "path": "/equiprite/v1/ship-to-sites",
+     "summary": "Create ship-to site",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "requestHeaderBody"
+     ]
+    }
+   ],
+   "reports": [
+    "EQP_CONTRACTS_BY_PROJECT_LOV_RP",
+    "EQP_CUSTOMERS_LOV_RP",
+    "EQP_PROJECTS_LOV_RP",
+    "EQP_SHIP_TO_SITES_BY_CONTRACT_LOV_RP",
+    "EQP_SHIP_TO_SITES_BY_CUSTOMER_LOV_RP"
+   ],
+   "local": [],
+   "backends": [
+    "EquipRite REST (eqpt)",
+    "Oracle BI Publisher (SOAP)",
+    "Oracle Fusion REST"
+   ]
+  },
+  "links": [
+   "page request-catalog"
+  ]
+ },
+ "ai": null,
+ "screenshots": [],
+ "stories": [
+  "EQP-455"
+ ],
+ "at": "2026-11-12T16:03:12.570Z",
+ "by": "javeed.shaik",
+ "codeHash": "bb00aa2b15701e27"
+}

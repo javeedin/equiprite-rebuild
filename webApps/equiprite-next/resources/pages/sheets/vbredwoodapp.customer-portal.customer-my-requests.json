@@ -1,0 +1,304 @@
+{
+ "id": "vbredwoodapp/customer-portal/customer-my-requests",
+ "facts": {
+  "id": "vbredwoodapp/customer-portal/customer-my-requests",
+  "app": "vbredwoodapp",
+  "appName": "Old EquipRite",
+  "flow": "customer-portal",
+  "page": "customer-my-requests",
+  "label": "My Requests",
+  "description": "",
+  "route": {
+   "url": "/vp/shell/customer-portal/customer-my-requests",
+   "menu": "",
+   "needs": ""
+  },
+  "files": [
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-requests-page.json",
+    "lines": 229
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-requests-page.html",
+    "lines": 337
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-requests-page.js",
+    "lines": 23
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-requests-page-chains/EquipmentRequestFilterChain.js",
+    "lines": 110
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-requests-page-chains/EquipmentRequestInitChain.js",
+    "lines": 44
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-requests-page-chains/NavigateToDetailChain.js",
+    "lines": 28
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-requests-page-chains/QuoteChain.js",
+    "lines": 28
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-requests-page-chains/closeRequestDrawerChain.js",
+    "lines": 16
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-requests-page-chains/customersModuleGuardChain.js",
+    "lines": 64
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-requests-page-chains/enforcePageAccessChain.js",
+    "lines": 72
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-requests-page-chains/navigateToCatalogChain.js",
+    "lines": 16
+   }
+  ],
+  "codeHash": "f16864abe8901222",
+  "features": {
+   "sections": [
+    "My Requests"
+   ],
+   "actions": [
+    {
+     "label": "My Requests: sp primary action",
+     "listener": "spPrimaryAction",
+     "chains": [
+      "navigateToCatalogChain"
+     ]
+    },
+    {
+     "label": "oj-sp-smart-search: filter criterion changed",
+     "listener": "filterCriterionChanged",
+     "chains": [
+      "EquipmentRequestFilterChain"
+     ]
+    },
+    {
+     "label": "My Equipment Requests: first selected row changed",
+     "listener": "onNavigateToDetail",
+     "chains": [
+      "NavigateToDetailChain"
+     ]
+    },
+    {
+     "label": "oj-sp-general-drawer-template: sp close",
+     "listener": "closeRequestDrawer",
+     "chains": [
+      "closeRequestDrawerChain"
+     ]
+    }
+   ],
+   "fields": [
+    "Search by request #, project, or task..."
+   ],
+   "columns": [
+    "Request #",
+    "Customer Name",
+    "Start Date",
+    "End Date",
+    "Customer Contact",
+    "Status",
+    "Lines",
+    "Contract Number",
+    "Quote"
+   ],
+   "components": [
+    "oj-button",
+    "oj-defer",
+    "oj-drawer-popup",
+    "oj-sp-collection-container",
+    "oj-sp-general-drawer-template",
+    "oj-sp-smart-search",
+    "oj-sp-smart-search-page",
+    "oj-table"
+   ],
+   "inputs": [],
+   "lifecycle": [
+    {
+     "when": "before the page opens",
+     "chains": [
+      "enforcePageAccessChain"
+     ]
+    },
+    {
+     "when": "when the page opens",
+     "chains": [
+      "customersModuleGuardChain",
+      "EquipmentRequestInitChain"
+     ]
+    }
+   ]
+  },
+  "logic": {
+   "chains": [
+    {
+     "name": "EquipmentRequestFilterChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-requests-page-chains/EquipmentRequestFilterChain.js",
+     "about": "KEYWORD: { text: 'word', matchBy: 'phrase' }",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "filterCriterionChanged"
+     ],
+     "lines": 110
+    },
+    {
+     "name": "EquipmentRequestInitChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-requests-page-chains/EquipmentRequestInitChain.js",
+     "about": "Query params under uriParams (NOT `parameters`) — see memory feedback_vb_callrest_uriparams.md. `parameters` is silently dropped so the view falls back to its size=20 default.",
+     "calls": [
+      "eqp-v1/getEquipriteV1ViewsCustomerMyRequests"
+     ],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "vbEnter"
+     ],
+     "lines": 44
+    },
+    {
+     "name": "NavigateToDetailChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-requests-page-chains/NavigateToDetailChain.js",
+     "about": "",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [
+      "page customer-request-detail"
+     ],
+     "modules": [],
+     "on": [
+      "onNavigateToDetail"
+     ],
+     "lines": 28
+    },
+    {
+     "name": "QuoteChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-requests-page-chains/QuoteChain.js",
+     "about": "",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [
+      "page customer-quote"
+     ],
+     "modules": [],
+     "on": [
+      "onQuoteAction"
+     ],
+     "lines": 28
+    },
+    {
+     "name": "closeRequestDrawerChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-requests-page-chains/closeRequestDrawerChain.js",
+     "about": "",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "closeRequestDrawer"
+     ],
+     "lines": 16
+    },
+    {
+     "name": "customersModuleGuardChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-requests-page-chains/customersModuleGuardChain.js",
+     "about": "Page guard for the CUSTOMERS_MODULE_ENABLED module licence. Mirror of projectsModuleGuardChain — see that file for the shared rationale. Runs FIRST on vbEnter (before the page's own init). If the Customers module is off, redirects home and returns so the page never renders. This catches deep-links, bookmarks and browser history that bypass the hidden nav — hiding a menu item removes the affordance, not the route. Destination is owned by getHomeTarget(), never re-derived here. Under the one-module-off invariant, Customers being off means Projects is on, so home is the project dashboard. FAILS…",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "vbEnter"
+     ],
+     "lines": 64
+    },
+    {
+     "name": "enforcePageAccessChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-requests-page-chains/enforcePageAccessChain.js",
+     "about": "Page-level RBAC deep-link guard. GENERATED - every copy is byte-identical; change the template and regenerate rather than editing one copy. Copies exist because a page's eventListeners resolve a bare chain id against that page's OWN <page>-chains folder, so an app-level chain referenced by name 404s. This file holds NO policy: the decision (canEnterPage), the page code (getPageCodeForPage), the redirect target (getRoleHomeTarget) and the same-flow test (isSameFlow) all live in $application.functions. Deriving the page code at runtime is what lets every copy be identical.",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "vbBeforeEnter"
+     ],
+     "lines": 72
+    },
+    {
+     "name": "navigateToCatalogChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-requests-page-chains/navigateToCatalogChain.js",
+     "about": "",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [
+      "page customer-create-req"
+     ],
+     "modules": [],
+     "on": [
+      "spPrimaryAction"
+     ],
+     "lines": 16
+    }
+   ],
+   "modules": [],
+   "variables": 12
+  },
+  "integrations": {
+   "rest": [
+    {
+     "endpoint": "eqp-v1/getEquipriteV1ViewsCustomerMyRequests",
+     "service": "eqp-v1",
+     "operation": "getEquipriteV1ViewsCustomerMyRequests",
+     "method": "GET",
+     "path": "/equiprite/v1/views/customer-my-requests",
+     "summary": "",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "EquipmentRequestInitChain"
+     ]
+    }
+   ],
+   "reports": [],
+   "local": [],
+   "backends": [
+    "EquipRite REST (eqpt)"
+   ]
+  },
+  "links": [
+   "page customer-request-detail",
+   "page customer-quote",
+   "page customer-create-req"
+  ]
+ },
+ "ai": {
+  "text": "## What this page is for\n- A customer-portal list page (\"My Requests\") showing the customer's equipment rental requests, in the Old EquipRite app (`customer-portal/customer-my-requests`).\n- Each row shows Request #, Customer Name, Start Date, End Date, Customer Contact, Status, Lines, Contract Number and Quote.\n- It is the starting point for three onward journeys: create a new request, open a request's detail, and open a quote.\n- The page is read-only: the facts show no create, update or delete calls from it.\n\n## How people use it\n- Open the page; the request list loads automatically.\n- Type in the search box (\"Search by request #, project, or task...\") to narrow the list.\n- Click a row in the \"My Equipment Requests\" table to go to the `customer-request-detail` page.\n- Use the page's primary action to start a new request; it opens `customer-create-req`.\n- A quote action opens the `customer-quote` page. It is presumably triggered from the Quote column, but the facts do not show which control fires `onQuoteAction`.\n- A general drawer template is on the page with a close handler. What the drawer shows, and what opens it, cannot be told from the facts.\n\n## Business logic\n- **Before the page opens:** `enforcePageAccessChain` (vbBeforeEnter) is the role-based deep-link guard.\n  - It holds no policy itself. The decision (`canEnterPage`), the page code (`getPageCodeForPage`), the redirect target (`getRoleHomeTarget`) and the same-flow test (`isSameFlow`) all live in `$application.functions`.\n  - It is a generated chain, byte-identical on every page.\n- **On open (vbEnter), first:** `customersModuleGuardChain` checks the `CUSTOMERS_MODULE_ENABLED` module licence.\n  - If Customers is off, it redirects home (destination from `getHomeTarget()`) and returns so the page never renders.\n  - Its purpose is to catch deep-links, bookmarks and browser history that bypass the hidden navigation.\n  - Under the stated \"one-module-off\" invariant, home in that case is the project dashboard.\n- **On open (vbEnter), then:** `EquipmentRequestInitChain` loads the list via `eqp-v1/getEquipriteV1ViewsCustomerMyRequests`.\n  - Query parameters must be passed under `uriParams`, not `parameters`. Otherwise they are silently dropped and the view falls back to its default page size of 20.\n- **Search:** `EquipmentRequestFilterChain` runs when the smart-search filter criterion changes.\n  - It handles a KEYWORD criterion of shape `{ text: 'word', matchBy: 'phrase' }`.\n  - No REST call is listed for this chain, so filtering appears to happen on already-loaded data. The exact mechanism cannot be confirmed from the facts.\n- **Row selection:** `NavigateToDetailChain` (first selected row changed) navigates to `customer-request-detail`.\n- **Quote:** `QuoteChain` (on `onQuoteAction`) navigates to `customer-quote`.\n- **New request:** `navigateToCatalogChain` (primary action) navigates to `customer-create-req`.\n- **Drawer close:** `closeRequestDrawerChain` handles the drawer's close event; it has no description.\n- **Validations and statuses:** no validations are evident. A Status column is shown, but the status values and any rules tied to them are not in the facts.\n\n## Integrations\n- **EquipRite REST (eqpt):** `GET /equiprite/v1/views/customer-my-requests` (`eqp-v1/getEquipriteV1ViewsCustomerMyRequests`),",
+  "provider": "Claude (Anthropic)",
+  "at": "2026-11-12T16:06:28.583Z",
+  "by": "javeed.shaik",
+  "codeHash": "f16864abe8901222"
+ },
+ "screenshots": [],
+ "stories": [],
+ "at": "2026-11-12T16:06:28.427Z",
+ "by": "javeed.shaik",
+ "codeHash": "f16864abe8901222"
+}
