@@ -1,0 +1,942 @@
+{
+ "id": "equiprite/request/new-request",
+ "facts": {
+  "id": "equiprite/request/new-request",
+  "app": "equiprite",
+  "appName": "New EquipRite",
+  "flow": "request",
+  "page": "new-request",
+  "label": "New equipment request in three steps",
+  "description": "New equipment request in three steps: equipment (with dates), project, review and submit (FDD 7.5; replaces project-create-request, request-catalog and request-cart for project requests). Posts what the old cart's INTERNAL submit posts, through the same requestHeaderBody / requestLineBody builders. ?draftId= reopens a saved project draft.",
+  "route": {
+   "url": "/vp/shell/request/new-request",
+   "menu": "",
+   "needs": ""
+  },
+  "files": [
+   {
+    "path": "webApps/equiprite/flows/request/pages/new-request-page.json",
+    "lines": 357
+   },
+   {
+    "path": "webApps/equiprite/flows/request/pages/new-request-page.html",
+    "lines": 525
+   },
+   {
+    "path": "webApps/equiprite/flows/request/pages/new-request-page.js",
+    "lines": 312
+   },
+   {
+    "path": "webApps/equiprite/flows/request/pages/new-request-page-chains/backToListChain.js",
+    "lines": 15
+   },
+   {
+    "path": "webApps/equiprite/flows/request/pages/new-request-page-chains/cartChain.js",
+    "lines": 71
+   },
+   {
+    "path": "webApps/equiprite/flows/request/pages/new-request-page-chains/enforcePageAccessChain.js",
+    "lines": 72
+   },
+   {
+    "path": "webApps/equiprite/flows/request/pages/new-request-page-chains/filterCatalogChain.js",
+    "lines": 32
+   },
+   {
+    "path": "webApps/equiprite/flows/request/pages/new-request-page-chains/goStepChain.js",
+    "lines": 55
+   },
+   {
+    "path": "webApps/equiprite/flows/request/pages/new-request-page-chains/loadCatalogChain.js",
+    "lines": 106
+   },
+   {
+    "path": "webApps/equiprite/flows/request/pages/new-request-page-chains/loadProjectListsChain.js",
+    "lines": 62
+   },
+   {
+    "path": "webApps/equiprite/flows/request/pages/new-request-page-chains/loadSitesChain.js",
+    "lines": 43
+   },
+   {
+    "path": "webApps/equiprite/flows/request/pages/new-request-page-chains/newRequestInitChain.js",
+    "lines": 137
+   },
+   {
+    "path": "webApps/equiprite/flows/request/pages/new-request-page-chains/pickChain.js",
+    "lines": 64
+   },
+   {
+    "path": "webApps/equiprite/flows/request/pages/new-request-page-chains/searchChain.js",
+    "lines": 73
+   },
+   {
+    "path": "webApps/equiprite/flows/request/pages/new-request-page-chains/setFieldChain.js",
+    "lines": 87
+   },
+   {
+    "path": "webApps/equiprite/flows/request/pages/new-request-page-chains/submitChain.js",
+    "lines": 140
+   }
+  ],
+  "codeHash": "04cee3eb766b0924",
+  "features": {
+   "sections": [
+    "Customer requests open in Old EquipRite for now",
+    "Project",
+    "Customer",
+    "Delivery",
+    "Details",
+    "Who it's for",
+    "Lines"
+   ],
+   "actions": [
+    {
+     "label": "My requests",
+     "listener": "onCancel",
+     "chains": [
+      "backToListChain"
+     ]
+    },
+    {
+     "label": "Cancel",
+     "listener": "onCancel",
+     "chains": [
+      "backToListChain"
+     ]
+    },
+    {
+     "label": "done",
+     "listener": "onStep",
+     "chains": [
+      "goStepChain"
+     ]
+    },
+    {
+     "label": "Project request",
+     "listener": "onRequestFor",
+     "chains": [
+      "setFieldChain"
+     ]
+    },
+    {
+     "label": "Customer request",
+     "listener": "onRequestFor",
+     "chains": [
+      "setFieldChain"
+     ]
+    },
+    {
+     "label": "Back to a project request",
+     "listener": "onRequestFor",
+     "chains": [
+      "setFieldChain"
+     ]
+    },
+    {
+     "label": "ClassChip",
+     "listener": "onClassChip",
+     "chains": [
+      "filterCatalogChain"
+     ]
+    },
+    {
+     "label": "−",
+     "listener": "onCart",
+     "chains": [
+      "cartChain"
+     ]
+    },
+    {
+     "label": "+",
+     "listener": "onCart",
+     "chains": [
+      "cartChain"
+     ]
+    },
+    {
+     "label": "Not free on these dates",
+     "listener": "onCart",
+     "chains": [
+      "cartChain"
+     ]
+    },
+    {
+     "label": "Show more",
+     "listener": "onShowMore",
+     "chains": [
+      "filterCatalogChain"
+     ]
+    },
+    {
+     "label": "Change",
+     "listener": "onPick",
+     "chains": [
+      "pickChain"
+     ]
+    },
+    {
+     "label": "Pick",
+     "listener": "onPick",
+     "chains": [
+      "pickChain"
+     ]
+    },
+    {
+     "label": "Change",
+     "listener": "onFieldButton",
+     "chains": [
+      "setFieldChain"
+     ]
+    },
+    {
+     "label": "FieldButton",
+     "listener": "onFieldButton",
+     "chains": [
+      "setFieldChain"
+     ]
+    },
+    {
+     "label": "No contract",
+     "listener": "onFieldButton",
+     "chains": [
+      "setFieldChain"
+     ]
+    },
+    {
+     "label": "Project site from the contract",
+     "listener": "onFieldButton",
+     "chains": [
+      "setFieldChain"
+     ]
+    },
+    {
+     "label": "Type an address",
+     "listener": "onFieldButton",
+     "chains": [
+      "setFieldChain"
+     ]
+    },
+    {
+     "label": "Edit",
+     "listener": "onStep",
+     "chains": [
+      "goStepChain"
+     ]
+    },
+    {
+     "label": "Add more equipment",
+     "listener": "onStep",
+     "chains": [
+      "goStepChain"
+     ]
+    },
+    {
+     "label": "Remove",
+     "listener": "onCart",
+     "chains": [
+      "cartChain"
+     ]
+    },
+    {
+     "label": "Continue to project",
+     "listener": "onStep",
+     "chains": [
+      "goStepChain"
+     ]
+    },
+    {
+     "label": "Submit for approval",
+     "listener": "onSubmit",
+     "chains": [
+      "submitChain"
+     ]
+    },
+    {
+     "label": "Save draft",
+     "listener": "onSaveDraft",
+     "chains": [
+      "submitChain"
+     ]
+    },
+    {
+     "label": "change",
+     "listener": "onField",
+     "chains": [
+      "setFieldChain"
+     ]
+    },
+    {
+     "label": "input",
+     "listener": "onCatalogSearch",
+     "chains": [
+      "filterCatalogChain"
+     ]
+    },
+    {
+     "label": "change",
+     "listener": "onAvailToggle",
+     "chains": [
+      "filterCatalogChain"
+     ]
+    },
+    {
+     "label": "Find a project: input",
+     "listener": "onSearch",
+     "chains": [
+      "searchChain"
+     ]
+    },
+    {
+     "label": "oj-text-area: value changed",
+     "listener": "onNotes",
+     "chains": [
+      "setFieldChain"
+     ]
+    },
+    {
+     "label": "change",
+     "listener": "onLineQty",
+     "chains": [
+      "cartChain"
+     ]
+    },
+    {
+     "label": "change",
+     "listener": "onLineField",
+     "chains": [
+      "cartChain"
+     ]
+    }
+   ],
+   "fields": [
+    "Needed from *",
+    "Until *",
+    "Search the catalog",
+    "Free on these dates only",
+    "*",
+    "Planned hours a day",
+    "Qty",
+    "From",
+    "Until",
+    "Notes",
+    "Search equipment by name or class",
+    "Type a project name or number",
+    "Filter tasks by number or name",
+    "Type a customer name or number",
+    "Street, city, country",
+    "Optional, e.g. with operator"
+   ],
+   "columns": [],
+   "components": [
+    "oj-text-area"
+   ],
+   "inputs": [
+    {
+     "name": "draftId",
+     "about": "A DRAFT request to reopen (EQR_EQUIPMENT_REQUEST id). Empty for a new request."
+    },
+    {
+     "name": "startStep",
+     "about": "Step to open a reopened draft on: 1 to edit it, 3 to go straight to Review and submit."
+    }
+   ],
+   "lifecycle": [
+    {
+     "when": "before the page opens",
+     "chains": [
+      "enforcePageAccessChain"
+     ]
+    },
+    {
+     "when": "when the page opens",
+     "chains": [
+      "newRequestInitChain"
+     ]
+    }
+   ]
+  },
+  "logic": {
+   "chains": [
+    {
+     "name": "backToListChain",
+     "file": "webApps/equiprite/flows/request/pages/new-request-page-chains/backToListChain.js",
+     "about": "",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [
+      "page my-requests"
+     ],
+     "modules": [],
+     "on": [
+      "onCancel"
+     ],
+     "lines": 15
+    },
+    {
+     "name": "cartChain",
+     "file": "webApps/equiprite/flows/request/pages/new-request-page-chains/cartChain.js",
+     "about": "The cart. One line per equipment, as the old cart keys it; items are built by catalogCart.itemFromRow, the old catalog's own builder, so a line carries the same rate, unit and period fields into requestLineBody. add from a card (quantity 1, or one more when already in the cart) inc / dec the stepper; down to 0 removes the line set a typed quantity on Review (at least 1) remove the line line a line's own start date, end date or notes; empty falls back to the request's",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [
+      "resources/js/catalogCart"
+     ],
+     "on": [
+      "onCart",
+      "onLineQty",
+      "onLineField"
+     ],
+     "lines": 71
+    },
+    {
+     "name": "enforcePageAccessChain",
+     "file": "webApps/equiprite/flows/request/pages/new-request-page-chains/enforcePageAccessChain.js",
+     "about": "Page-level RBAC deep-link guard. GENERATED - every copy is byte-identical; change the template and regenerate rather than editing one copy. Copies exist because a page's eventListeners resolve a bare chain id against that page's OWN <page>-chains folder, so an app-level chain referenced by name 404s. This file holds NO policy: the decision (canEnterPage), the page code (getPageCodeForPage), the redirect target (getRoleHomeTarget) and the same-flow test (isSameFlow) all live in $application.functions. Deriving the page code at runtime is what lets every copy be identical.",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "vbBeforeEnter"
+     ],
+     "lines": 72
+    },
+    {
+     "name": "filterCatalogChain",
+     "file": "webApps/equiprite/flows/request/pages/new-request-page-chains/filterCatalogChain.js",
+     "about": "Catalog search, class chip, \"free on these dates only\" and \"Show more\". Filtering itself is new-request-page.js filterCatalog; this only holds the choices.",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "onCatalogSearch",
+      "onClassChip",
+      "onAvailToggle",
+      "onShowMore"
+     ],
+     "lines": 32
+    },
+    {
+     "name": "goStepChain",
+     "file": "webApps/equiprite/flows/request/pages/new-request-page-chains/goStepChain.js",
+     "about": "Moves between the three steps. Back is always allowed; forward checks every step on the way (new-request-page.js missingFor) and lists what is missing instead of moving. Arriving at Review resolves the delivery point (deliveryCoords, as NavigateToCatalogChain does before the old catalog) and reloads the catalog with the project and that point, so every line shows the price this project and the nearest yard give before anything is submitted.",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [
+      "resources/js/deliveryCoords"
+     ],
+     "on": [
+      "onStep"
+     ],
+     "lines": 55
+    },
+    {
+     "name": "loadCatalogChain",
+     "file": "webApps/equiprite/flows/request/pages/new-request-page-chains/loadCatalogChain.js",
+     "about": "The catalog for the chosen dates: the old catalog's endpoint and parameters (views/equipment-catalog with startDate, endDate and requestedQty=1 for availability; projectRefId for the project's rate schedule; the delivery point for nearest-yard rates). Each parameter is sent only when known, as the old CatalogInitChain does, because an undefined value goes out as the text \"undefined\". Then every cart line is priced again from the new rows with catalogCart.itemFromRow, keeping its quantity and its own dates and notes, so the cart never shows a price the dates or project no longer give.",
+     "calls": [
+      "eqp-v1/getEquipriteV1ViewsEquipmentCatalog"
+     ],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [
+      "resources/js/catalogCart"
+     ],
+     "on": [],
+     "lines": 106
+    },
+    {
+     "name": "loadProjectListsChain",
+     "file": "webApps/equiprite/flows/request/pages/new-request-page-chains/loadProjectListsChain.js",
+     "about": "The lists that hang off the chosen project, fetched together as the old CaptureProjectNameChain does: tasks Fusion projects/{id}/child/Tasks, chargeable leaves only (projectTaskTree; a summary task cannot take cost) contracts BIP EQP_CONTRACTS_BY_PROJECT_LOV_RP business unit projects/{id} (projectBusinessUnit), posted as PROJECT_BU_ID / PROJECT_BU_NAME A reopened draft that already has a contract also gets that contract's sites.",
+     "calls": [
+      "ProjectLOV/getFscmRestApiResources11_13_18_05ProjectTasks",
+      "bipService/runBIPReport"
+     ],
+     "reports": [
+      "EQP_CONTRACTS_BY_PROJECT_LOV_RP"
+     ],
+     "local": [],
+     "opens": [],
+     "modules": [
+      "resources/js/bipLov",
+      "resources/js/projectTaskTree",
+      "resources/js/projectBusinessUnit"
+     ],
+     "on": [],
+     "lines": 62
+    },
+    {
+     "name": "loadSitesChain",
+     "file": "webApps/equiprite/flows/request/pages/new-request-page-chains/loadSitesChain.js",
+     "about": "Ship-to sites of the chosen contract on this project (BIP EQP_SHIP_TO_SITES_BY_CONTRACT_LOV_RP, as the old LoadShipToSitesChain). The site's address is its id, so picking one sets the delivery location directly; CUSTOMER_NAME (label2) says whose site it is.",
+     "calls": [
+      "bipService/runBIPReport"
+     ],
+     "reports": [
+      "EQP_SHIP_TO_SITES_BY_CONTRACT_LOV_RP"
+     ],
+     "local": [],
+     "opens": [],
+     "modules": [
+      "resources/js/bipLov"
+     ],
+     "on": [],
+     "lines": 43
+    },
+    {
+     "name": "newRequestInitChain",
+     "file": "webApps/equiprite/flows/request/pages/new-request-page-chains/newRequestInitChain.js",
+     "about": "Opens New request. The requestor is the signed-in user, as the old SeedRequestorChain sets it (requestorName and requestorUsername; no EQR_USER id for INTERNAL). The rate, hours and customer switches use the same app functions as the old create page and cart, once the settings and roles have loaded. With ?draftId= it reopens a saved DRAFT instead: draftResume loads the header and lines and prices them from today's catalog, and requestHeaderBody.toFlowState turns the header back into the form. Submit and Save draft then update that request in place (resume), so it keeps its number, as the old…",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [
+      "resources/js/currentUser",
+      "resources/js/draftResume",
+      "resources/js/draftStorage",
+      "resources/js/requestHeaderBody"
+     ],
+     "on": [
+      "vbEnter"
+     ],
+     "lines": 137
+    },
+    {
+     "name": "pickChain",
+     "file": "webApps/equiprite/flows/request/pages/new-request-page-chains/pickChain.js",
+     "about": "A search result was picked (index into projectResults / customerResults), or cleared (index -1). project writes id, number and name and clears the task, contract and contract site, then loads the project's tasks, contracts and business unit (CaptureProjectNameChain) customer the Fusion CustomerId and name of the project's customer (CaptureFallbackCustomerChain)",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "onPick"
+     ],
+     "lines": 64
+    },
+    {
+     "name": "searchChain",
+     "file": "webApps/equiprite/flows/request/pages/new-request-page-chains/searchChain.js",
+     "about": "Search as you type for Project and Customer, with the old pickers' BIP reports (ProjectTypeaheadChain, CustomerTypeaheadChain): case-insensitive over name and number, P_SEARCH_BY=ALL. A short pause lets typing settle, and an answer for text the user has already changed is dropped.",
+     "calls": [
+      "bipService/runBIPReport"
+     ],
+     "reports": [
+      "EQP_PROJECTS_LOV_RP",
+      "EQP_CUSTOMERS_LOV_RP"
+     ],
+     "local": [],
+     "opens": [],
+     "modules": [
+      "resources/js/bipLov"
+     ],
+     "on": [
+      "onSearch"
+     ],
+     "lines": 73
+    },
+    {
+     "name": "setFieldChain",
+     "file": "webApps/equiprite/flows/request/pages/new-request-page-chains/setFieldChain.js",
+     "about": "One field of the form changed (inputs carry data-field). The side effects are the old create page's: dates reload the catalog, so availability, estimates and cart prices follow the new window task keeps number and name with the id (TaskSelectedChain) contract clears a contract site and loads that contract's ship-to sites (CaptureContractChain) site the picked site's address is the delivery location (CaptureShipToSiteChain) locationType switching between a contract site and a typed address clears the address",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "onField",
+      "onNotes",
+      "onFieldButton",
+      "onRequestFor"
+     ],
+     "lines": 87
+    },
+    {
+     "name": "submitChain",
+     "file": "webApps/equiprite/flows/request/pages/new-request-page-chains/submitChain.js",
+     "about": "Submit for approval, or Save draft. The old cart's INTERNAL path, step for step (SubmitRequestChain and SecondaryActionChain), with the same shared builders: 1 header requestHeaderBody.saveHeader: POST createEquipmentRequest as DRAFT (PATCH for a reopened draft) 2 site geocode the address, then createShipToSite and PATCH shipToSiteId (best effort) 3 lines requestLineBody.saveLines: one batch, each line SUBMITTED (or DRAFT); a failed batch deletes a new header, so nothing half-saved is left 4 status PATCH the header to SUBMITTED (submit only). SUBMITTED, not IN_PROCESS: a project request…",
+     "calls": [
+      "eqp-v1/patchEquipmentRequest"
+     ],
+     "reports": [],
+     "local": [],
+     "opens": [
+      "page request-detail"
+     ],
+     "modules": [
+      "resources/js/currentUser",
+      "resources/js/requestLineBody",
+      "resources/js/requestHeaderBody"
+     ],
+     "on": [
+      "onSubmit",
+      "onSaveDraft"
+     ],
+     "lines": 140
+    }
+   ],
+   "modules": [
+    {
+     "name": "requestLineBody",
+     "file": "webApps/equiprite/resources/js/requestLineBody.js",
+     "about": "ONE builder for the createRequestLine body, shared by the cart's Submit (SubmitRequestChain) and Save as Draft (SecondaryActionChain), so a draft line stores exactly what a submitted line stores. Only lineStatus differs: Save as Draft → DRAFT (INTERNAL and EXTERNAL) Submit, INTERNAL project → SUBMITTED (an approver still has to confirm) Submit, EXTERNAL customer→ IN_PROCESS (no customer-side approver) lineStatus is set ON CREATE. Submit used to create lines with no status and then PATCH every…",
+     "local": [],
+     "calls": [
+      "eqp-v1/createRequestLinesBatch",
+      "eqp-v1/deleteEquipmentRequest",
+      "eqp-v1/replaceRequestLinesBatch",
+      "eqp-v1/patchRequestLinesBatch"
+     ],
+     "reports": [],
+     "lines": 316
+    },
+    {
+     "name": "catalogCart",
+     "file": "webApps/equiprite/resources/js/catalogCart.js",
+     "about": "Cart helpers, shared by the catalog's add-to-cart pathways. IMPORTANT — staging vs cart are SEPARATE: • STAGING: selectedEquipmentKeys (checkbox highlight) + pendingQtyById ({id: qty}) + pendingRowById ({id: rawRow}). Set by checking a card / changing its stepper. NOT yet in the cart. • CART: CartItemsArray — the real cart, changed ONLY by an explicit Add to Cart / Add Checked / Select-All+Add action, which consumes staging. Under SDP+DPV the equipment rows live in the data provider (not a…",
+     "local": [],
+     "calls": [],
+     "reports": [],
+     "lines": 302
+    },
+    {
+     "name": "deliveryCoords",
+     "file": "webApps/equiprite/resources/js/deliveryCoords.js",
+     "about": "Resolves the coordinates of the request's DELIVERY ADDRESS, so the catalog can price equipment from the yard nearest to where it is being delivered. There are two ways a delivery address gets onto a request, and this covers both so nearest-yard pricing doesn't silently depend on which one was used: 1. MAP DRAWER (\"Enter Delivery location\") — the user dropped a pin or picked a geocoder suggestion, so exact coordinates already exist on the page ($page.variables.pickedLat / pickedLng). Preferred…",
+     "local": [],
+     "calls": [],
+     "reports": [],
+     "lines": 66
+    },
+    {
+     "name": "bipLov",
+     "file": "webApps/equiprite/resources/js/bipLov.js",
+     "about": "",
+     "local": [],
+     "calls": [
+      "bipService/runBIPReport"
+     ],
+     "reports": [],
+     "lines": 132
+    },
+    {
+     "name": "projectTaskTree",
+     "file": "webApps/equiprite/resources/js/projectTaskTree.js",
+     "about": "Project task hierarchy — shared by the two Task LOVs. Fusion's projects/{ProjectId}/child/Tasks returns a FLAT list. A WBS like 1 Project Management & Engineering <- summary 1.1 Project Management <- summary 1.1.1 Planning & Scheduling <- summary 1.1.1.1 Baseline Schedule Development <- LEAF, chargeable arrives as four sibling rows with nothing in the payload saying which are selectable. That matters well beyond cosmetics: the task the user picks is stamped on…",
+     "local": [],
+     "calls": [],
+     "reports": [],
+     "lines": 159
+    },
+    {
+     "name": "projectBusinessUnit",
+     "file": "webApps/equiprite/resources/js/projectBusinessUnit.js",
+     "about": "════════════════════════════════════════════════════════════════════════ The project's Fusion BUSINESS UNIT, captured when the project is picked. ════════════════════════════════════════════════════════════════════════ WHY THIS EXISTS When equipment cost posts to Fusion PPM, the OIC field map sends `BusinessUnit` as a HARDCODED literal, 'US1 Business Unit'. That happens to be right on our dev pod only by luck -- every project we have ever posted to (10011, 4488, 100122, 100133,…",
+     "local": [],
+     "calls": [
+      "ProjectLOV/getFscmRestApiResources11_13_18_05ProjectsById"
+     ],
+     "reports": [],
+     "lines": 98
+    },
+    {
+     "name": "currentUser",
+     "file": "webApps/equiprite/resources/js/currentUser.js",
+     "about": "Who is the signed-in user? Resolved from BOTH identity sources, because the app is reached two ways and only one of them is populated in each: published inside Fusion -> ?jwt=... on the URL, decoded for its `sub` dev / Designer preview -> $application.user, populated by VB Neither alone is sufficient. $application.user comes back with empty `login` and `userName` in this environment even while VB logs \"User john.dunbar is authenticated\"; the JWT is absent on a direct nav, a bookmark or in…",
+     "local": [],
+     "calls": [],
+     "reports": [],
+     "lines": 198
+    },
+    {
+     "name": "draftResume",
+     "file": "webApps/equiprite/resources/js/draftResume.js",
+     "about": "Reopen a saved DRAFT request into the create-request flow (Edit Draft / Submit Draft on the request detail pages), and delete one (Delete Draft). The hand-off reuses the cart's own refresh-resume: InitCartChain already restores request / ActiveRequestDetail / requestOrigin / CartItemsArray from draftStorage, so writing those keys and navigating is all the cart needs. The create-request form picks the same keys up in HydrateDraftChain (case d) / CreateRequestInitChain when the tab-scoped…",
+     "local": [],
+     "calls": [
+      "eqp-v1/getEquipriteV1EquipmentRequestById",
+      "eqp-v1/getEquipriteV1EquipmentRequestsRequestIdLines2",
+      "eqp-v1/getEquipriteV1ViewsEquipmentCatalog",
+      "eqp-v1/deleteEquipmentRequest"
+     ],
+     "reports": [],
+     "lines": 237
+    },
+    {
+     "name": "draftStorage",
+     "file": "webApps/equiprite/resources/js/draftStorage.js",
+     "about": "Returns true if localStorage has a non-empty draft for this key. On resume pages (catalog, cart) we always prefer the persisted draft over whatever VBCS initialized the flow variable to — otherwise default values on the variable (e.g. request.creditLimit) make the variable look \"non-empty\" and would silently block hydration, dropping user-typed fields like `location` after a refresh.",
+     "local": [],
+     "calls": [],
+     "reports": [],
+     "lines": 59
+    },
+    {
+     "name": "requestHeaderBody",
+     "file": "webApps/equiprite/resources/js/requestHeaderBody.js",
+     "about": "ONE builder for the createEquipmentRequest body, shared by the cart's Submit (SubmitRequestChain) and Save as Draft (SecondaryActionChain), so a draft stores everything a submitted request stores: customer, project contract, delivery mode/ids, default hours, dates, agreement. Before this, Save as Draft had its own hand-written body that dropped 11 of those fields — every draft on paasdev had no customer (2026-10-11). Both buttons create the header as DRAFT. Submit moves it to SUBMITTED /…",
+     "local": [],
+     "calls": [
+      "eqp-v1/patchEquipmentRequest",
+      "eqp-v1/createEquipmentRequest",
+      "eqp-v1/createShipToSite"
+     ],
+     "reports": [],
+     "lines": 360
+    },
+    {
+     "name": "geocoder",
+     "file": "webApps/equiprite/resources/js/geocoder.js",
+     "about": "Mapbox public geocoding token — the app's own token, identical to the one in equipment-schedule-page.js, line-detail-page.js and the two create-request pages. It's a \"pk.\" public token; safe in client code. WAS a leftover Bryntum DEMO token ('matsbryntse'), copied in with their sample map code. That token is not ours and Mapbox rejects it with 401 Unauthorized, so every lookup() silently returned null (the function is best-effort and swallows !resp.ok). Symptom: addresses resolved but…",
+     "local": [],
+     "calls": [],
+     "reports": [],
+     "lines": 60
+    }
+   ],
+   "variables": 41
+  },
+  "integrations": {
+   "rest": [
+    {
+     "endpoint": "eqp-v1/getEquipriteV1ViewsEquipmentCatalog",
+     "service": "eqp-v1",
+     "operation": "getEquipriteV1ViewsEquipmentCatalog",
+     "method": "GET",
+     "path": "/equiprite/v1/views/equipment-catalog",
+     "summary": "",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "loadCatalogChain",
+      "draftResume"
+     ]
+    },
+    {
+     "endpoint": "ProjectLOV/getFscmRestApiResources11_13_18_05ProjectTasks",
+     "service": "ProjectLOV",
+     "operation": "getFscmRestApiResources11_13_18_05ProjectTasks",
+     "method": "GET",
+     "path": "/fscmRestApi/resources/11.13.18.05/projects/{ProjectId}/child/Tasks",
+     "summary": "",
+     "backend": "fusion",
+     "backendLabel": "Oracle Fusion REST",
+     "usedBy": [
+      "loadProjectListsChain"
+     ]
+    },
+    {
+     "endpoint": "bipService/runBIPReport",
+     "service": "bipService",
+     "operation": "runBIPReport",
+     "method": "POST",
+     "path": "/xmlpserver/services/ExternalReportWSSService",
+     "summary": "Run any BIP report via SOAP and return base64-encoded XML data",
+     "backend": "bipService",
+     "backendLabel": "Oracle BI Publisher (SOAP)",
+     "usedBy": [
+      "loadProjectListsChain",
+      "loadSitesChain",
+      "searchChain",
+      "bipLov"
+     ]
+    },
+    {
+     "endpoint": "eqp-v1/patchEquipmentRequest",
+     "service": "eqp-v1",
+     "operation": "patchEquipmentRequest",
+     "method": "PATCH",
+     "path": "/equiprite/v1/equipment-requests/{id}",
+     "summary": "Partial update equipment request (status transitions)",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "submitChain",
+      "requestHeaderBody"
+     ]
+    },
+    {
+     "endpoint": "eqp-v1/createRequestLinesBatch",
+     "service": "eqp-v1",
+     "operation": "createRequestLinesBatch",
+     "method": "POST",
+     "path": "/equiprite/v1/equipment-requests/{requestId}/lines/batch",
+     "summary": "Create ALL of a request's lines in one call and one transaction",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "requestLineBody"
+     ]
+    },
+    {
+     "endpoint": "eqp-v1/deleteEquipmentRequest",
+     "service": "eqp-v1",
+     "operation": "deleteEquipmentRequest",
+     "method": "DELETE",
+     "path": "/equiprite/v1/equipment-requests/{id}",
+     "summary": "Delete a DRAFT equipment request",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "requestLineBody",
+      "draftResume"
+     ]
+    },
+    {
+     "endpoint": "eqp-v1/replaceRequestLinesBatch",
+     "service": "eqp-v1",
+     "operation": "replaceRequestLinesBatch",
+     "method": "PUT",
+     "path": "/equiprite/v1/equipment-requests/{requestId}/lines/batch",
+     "summary": "Replace ALL lines of a DRAFT request in one transaction",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "requestLineBody"
+     ]
+    },
+    {
+     "endpoint": "eqp-v1/patchRequestLinesBatch",
+     "service": "eqp-v1",
+     "operation": "patchRequestLinesBatch",
+     "method": "PATCH",
+     "path": "/equiprite/v1/equipment-requests/{requestId}/lines/batch",
+     "summary": "Update many of a request's lines in one call and one transaction",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "requestLineBody"
+     ]
+    },
+    {
+     "endpoint": "ProjectLOV/getFscmRestApiResources11_13_18_05ProjectsById",
+     "service": "ProjectLOV",
+     "operation": "getFscmRestApiResources11_13_18_05ProjectsById",
+     "method": "GET",
+     "path": "/fscmRestApi/resources/11.13.18.05/projects/{ProjectId}",
+     "summary": "",
+     "backend": "fusion",
+     "backendLabel": "Oracle Fusion REST",
+     "usedBy": [
+      "projectBusinessUnit"
+     ]
+    },
+    {
+     "endpoint": "eqp-v1/getEquipriteV1EquipmentRequestById",
+     "service": "eqp-v1",
+     "operation": "getEquipriteV1EquipmentRequestById",
+     "method": "GET",
+     "path": "/equiprite/v1/equipment-requests/{id}",
+     "summary": "Get equipment request by ID",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "draftResume"
+     ]
+    },
+    {
+     "endpoint": "eqp-v1/getEquipriteV1EquipmentRequestsRequestIdLines2",
+     "service": "eqp-v1",
+     "operation": "getEquipriteV1EquipmentRequestsRequestIdLines2",
+     "method": "GET",
+     "path": "/equiprite/v1/equipment-requests/{requestId}/lines",
+     "summary": "List all lines for a request",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "draftResume"
+     ]
+    },
+    {
+     "endpoint": "eqp-v1/createEquipmentRequest",
+     "service": "eqp-v1",
+     "operation": "createEquipmentRequest",
+     "method": "POST",
+     "path": "/equiprite/v1/equipment-requests",
+     "summary": "Create equipment request",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "requestHeaderBody"
+     ]
+    },
+    {
+     "endpoint": "eqp-v1/createShipToSite",
+     "service": "eqp-v1",
+     "operation": "createShipToSite",
+     "method": "POST",
+     "path": "/equiprite/v1/ship-to-sites",
+     "summary": "Create ship-to site",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "requestHeaderBody"
+     ]
+    }
+   ],
+   "reports": [
+    "EQP_CONTRACTS_BY_PROJECT_LOV_RP",
+    "EQP_CUSTOMERS_LOV_RP",
+    "EQP_PROJECTS_LOV_RP",
+    "EQP_SHIP_TO_SITES_BY_CONTRACT_LOV_RP"
+   ],
+   "local": [],
+   "backends": [
+    "EquipRite REST (eqpt)",
+    "Oracle Fusion REST",
+    "Oracle BI Publisher (SOAP)"
+   ]
+  },
+  "links": [
+   "page my-requests",
+   "page request-detail"
+  ],
+  "next": [
+   {
+    "id": "equiprite/request/my-requests",
+    "label": "My requests",
+    "via": [
+     "backToListChain"
+    ]
+   },
+   {
+    "id": "equiprite/request/request-detail",
+    "label": "One request page for project and customer requests",
+    "via": [
+     "submitChain"
+    ]
+   }
+  ],
+  "unresolvedLinks": []
+ },
+ "ai": null,
+ "screenshots": [
+  {
+   "id": "s1",
+   "file": "screens/equiprite.request.new-request.1.jpg",
+   "at": "2026-11-12T17:40:01.744Z",
+   "by": "javeed.shaik",
+   "source": "capture",
+   "caption": "",
+   "bytes": 186013
+  }
+ ],
+ "stories": [],
+ "at": "2026-11-12T17:40:01.679Z",
+ "by": "javeed.shaik",
+ "codeHash": "04cee3eb766b0924"
+}

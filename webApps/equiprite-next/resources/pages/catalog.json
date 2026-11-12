@@ -1,5 +1,5 @@
 {
- "scannedAt": "2026-11-12T16:06:28.697Z",
+ "scannedAt": "2026-11-12T17:40:01.796Z",
  "pages": [
   {
    "id": "equiprite//shell",
@@ -28,6 +28,7 @@
     "menu": "",
     "needs": ""
    },
+   "menu": "Integration health",
    "stories": [],
    "sheet": null
   },
@@ -43,6 +44,7 @@
     "menu": "",
     "needs": ""
    },
+   "menu": "Page access",
    "stories": [],
    "sheet": null
   },
@@ -58,6 +60,9 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "equiprite/customer/customer-home"
+   ],
    "stories": [],
    "sheet": null
   },
@@ -88,6 +93,7 @@
     "menu": "",
     "needs": ""
    },
+   "menu": "Customer portal",
    "stories": [],
    "sheet": null
   },
@@ -103,6 +109,9 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "equiprite/customer/customer-home"
+   ],
    "stories": [],
    "sheet": null
   },
@@ -118,6 +127,9 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "equiprite/customer/customer-request"
+   ],
    "stories": [],
    "sheet": null
   },
@@ -133,6 +145,9 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "equiprite/customer/customer-request"
+   ],
    "stories": [],
    "sheet": null
   },
@@ -148,6 +163,10 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "equiprite/customer/customer-requests",
+    "equiprite/customer/customer-new-request"
+   ],
    "stories": [],
    "sheet": null
   },
@@ -186,6 +205,10 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "equiprite/request/my-requests"
+   ],
+   "menu": "Equipment workbench",
    "stories": [],
    "sheet": null
   },
@@ -201,6 +224,10 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "equiprite/request/my-requests"
+   ],
+   "menu": "Home",
    "stories": [],
    "sheet": null
   },
@@ -216,6 +243,9 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "equiprite/home/home"
+   ],
    "stories": [],
    "sheet": null
   },
@@ -246,6 +276,7 @@
     "menu": "",
     "needs": ""
    },
+   "menu": "Analytics",
    "stories": [],
    "sheet": null
   },
@@ -261,6 +292,7 @@
     "menu": "",
     "needs": ""
    },
+   "menu": "Initiate picking",
    "stories": [],
    "sheet": null
   },
@@ -276,6 +308,7 @@
     "menu": "",
     "needs": ""
    },
+   "menu": "Receipt & returns",
    "stories": [],
    "sheet": null
   },
@@ -291,6 +324,10 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "equiprite/master/agreements",
+    "equiprite/master/agreement-lines"
+   ],
    "stories": [],
    "sheet": null
   },
@@ -306,6 +343,10 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "equiprite/master/agreements",
+    "equiprite/master/agreement-edit"
+   ],
    "stories": [],
    "sheet": null
   },
@@ -321,6 +362,11 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "equiprite/master/agreement-edit",
+    "equiprite/master/agreement-lines"
+   ],
+   "menu": "Rental agreements",
    "stories": [],
    "sheet": null
   },
@@ -336,6 +382,9 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "equiprite/master/equipment"
+   ],
    "stories": [],
    "sheet": null
   },
@@ -351,6 +400,9 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "equiprite/master/equipment"
+   ],
    "stories": [],
    "sheet": null
   },
@@ -366,6 +418,11 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "equiprite/master/equipment-detail",
+    "equiprite/master/equipment-import"
+   ],
+   "menu": "Equipment",
    "stories": [],
    "sheet": null
   },
@@ -381,6 +438,7 @@
     "menu": "",
     "needs": ""
    },
+   "menu": "Rate schedules",
    "stories": [],
    "sheet": null
   },
@@ -396,6 +454,7 @@
     "menu": "",
     "needs": ""
    },
+   "menu": "Inspection",
    "stories": [],
    "sheet": null
   },
@@ -411,6 +470,7 @@
     "menu": "",
     "needs": ""
    },
+   "menu": "Transfers",
    "stories": [],
    "sheet": null
   },
@@ -426,6 +486,10 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "equiprite/request/request-detail"
+   ],
+   "menu": "My requests",
    "stories": [],
    "sheet": null
   },
@@ -441,8 +505,21 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "equiprite/request/my-requests",
+    "equiprite/request/request-detail"
+   ],
+   "menu": "New request",
    "stories": [],
-   "sheet": null
+   "sheet": {
+    "at": "2026-11-12T17:40:01.679Z",
+    "by": "javeed.shaik",
+    "codeHash": "04cee3eb766b0924",
+    "screenshots": 1,
+    "ai": false,
+    "rest": 13,
+    "chains": 13
+   }
   },
   {
    "id": "equiprite/request/request-detail",
@@ -456,6 +533,11 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "equiprite/request/my-requests",
+    "equiprite/request/new-request",
+    "equiprite/customer/customer-home"
+   ],
    "stories": [],
    "sheet": null
   },
@@ -471,6 +553,10 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "equiprite/request/my-requests"
+   ],
+   "menu": "Equipment schedule",
    "stories": [],
    "sheet": null
   },
@@ -486,6 +572,7 @@
     "menu": "",
     "needs": ""
    },
+   "menu": "Configuration",
    "stories": [],
    "sheet": null
   },
@@ -501,6 +588,7 @@
     "menu": "",
     "needs": ""
    },
+   "menu": "Post costs",
    "stories": [],
    "sheet": null
   },
@@ -516,6 +604,7 @@
     "menu": "",
     "needs": ""
    },
+   "menu": "Direct cost & inventory",
    "stories": [],
    "sheet": null
   },
@@ -531,6 +620,7 @@
     "menu": "",
     "needs": ""
    },
+   "menu": "Time entry",
    "stories": [],
    "sheet": null
   },
@@ -546,6 +636,7 @@
     "menu": "",
     "needs": ""
    },
+   "menu": "Timesheet approval",
    "stories": [],
    "sheet": null
   },
@@ -561,6 +652,10 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "equiprite/workbench/workbench",
+    "equiprite/request/my-requests"
+   ],
    "stories": [],
    "sheet": null
   },
@@ -576,6 +671,11 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "equiprite/workbench/approve-allocate",
+    "equiprite/request/my-requests"
+   ],
+   "menu": "Request workbench",
    "stories": [],
    "sheet": null
   },
@@ -921,6 +1021,11 @@
     "menu": "",
     "needs": "Not in the menu: upload a screenshot."
    },
+   "next": [
+    "equiprite-next/order/new-request",
+    "equiprite-next/fleet/equipment",
+    "equiprite-next/availability/availability"
+   ],
    "stories": [],
    "sheet": null
   },
@@ -936,6 +1041,7 @@
     "menu": "Admin › Access",
     "needs": ""
    },
+   "menu": "Admin › Access",
    "stories": [],
    "sheet": null
   },
@@ -951,6 +1057,7 @@
     "menu": "Admin › Integrations",
     "needs": ""
    },
+   "menu": "Admin › Integrations",
    "stories": [],
    "sheet": null
   },
@@ -966,6 +1073,7 @@
     "menu": "Admin › Settings",
     "needs": ""
    },
+   "menu": "Admin › Settings",
    "stories": [],
    "sheet": null
   },
@@ -981,6 +1089,7 @@
     "menu": "Admin › SQL",
     "needs": ""
    },
+   "menu": "Admin › SQL",
    "stories": [],
    "sheet": null
   },
@@ -996,6 +1105,10 @@
     "menu": "Requests › Approve & allocate",
     "needs": ""
    },
+   "next": [
+    "equiprite-next/requests/request"
+   ],
+   "menu": "Requests › Approve & allocate",
    "stories": [],
    "sheet": null
   },
@@ -1011,6 +1124,11 @@
     "menu": "Equipment › Availability",
     "needs": ""
    },
+   "next": [
+    "equiprite-next/fleet/equipment",
+    "equiprite-next/requests/request"
+   ],
+   "menu": "Equipment › Availability",
    "stories": [],
    "sheet": null
   },
@@ -1026,6 +1144,10 @@
     "menu": "Yard & logistics › Inspections",
     "needs": ""
    },
+   "next": [
+    "equiprite-next/requests/request"
+   ],
+   "menu": "Yard & logistics › Inspections",
    "stories": [],
    "sheet": null
   },
@@ -1041,6 +1163,10 @@
     "menu": "",
     "needs": "Opened from another screen (record \"transfer\"): capture it there, or upload a screenshot."
    },
+   "next": [
+    "equiprite-next/checks/transfers",
+    "equiprite-next/requests/request"
+   ],
    "stories": [],
    "sheet": null
   },
@@ -1056,6 +1182,10 @@
     "menu": "Yard & logistics › Transfers",
     "needs": ""
    },
+   "next": [
+    "equiprite-next/checks/transfer"
+   ],
+   "menu": "Yard & logistics › Transfers",
    "stories": [],
    "sheet": null
   },
@@ -1071,6 +1201,10 @@
     "menu": "",
     "needs": "Opened from another screen (record \"agreement\"): capture it there, or upload a screenshot."
    },
+   "next": [
+    "equiprite-next/order/new-request",
+    "equiprite-next/commercial/agreements"
+   ],
    "stories": [],
    "sheet": null
   },
@@ -1086,6 +1220,10 @@
     "menu": "Commercial › Agreements",
     "needs": ""
    },
+   "next": [
+    "equiprite-next/commercial/agreement"
+   ],
+   "menu": "Commercial › Agreements",
    "stories": [],
    "sheet": null
   },
@@ -1101,6 +1239,7 @@
     "menu": "Commercial › Compare rates",
     "needs": ""
    },
+   "menu": "Commercial › Compare rates",
    "stories": [],
    "sheet": null
   },
@@ -1116,6 +1255,7 @@
     "menu": "Commercial › Rates",
     "needs": ""
    },
+   "menu": "Commercial › Rates",
    "stories": [],
    "sheet": null
   },
@@ -1131,6 +1271,10 @@
     "menu": "",
     "needs": "Opened from another screen (record \"invoice\"): capture it there, or upload a screenshot."
    },
+   "next": [
+    "equiprite-next/customer/portal",
+    "equiprite-next/customer/request"
+   ],
    "stories": [],
    "sheet": null
   },
@@ -1146,6 +1290,9 @@
     "menu": "",
     "needs": "Opened from another screen (record \"customer-order\"): capture it there, or upload a screenshot."
    },
+   "next": [
+    "equiprite-next/customer/request"
+   ],
    "stories": [],
    "sheet": null
   },
@@ -1161,6 +1308,10 @@
     "menu": "Customers › Customer portal",
     "needs": ""
    },
+   "next": [
+    "equiprite-next/customer/request"
+   ],
+   "menu": "Customers › Customer portal",
    "stories": [],
    "sheet": null
   },
@@ -1176,6 +1327,10 @@
     "menu": "",
     "needs": "Opened from another screen (record \"quote\"): capture it there, or upload a screenshot."
    },
+   "next": [
+    "equiprite-next/customer/portal",
+    "equiprite-next/customer/request"
+   ],
    "stories": [],
    "sheet": null
   },
@@ -1191,6 +1346,11 @@
     "menu": "",
     "needs": "Opened from another screen (record \"customer-request\"): capture it there, or upload a screenshot."
    },
+   "next": [
+    "equiprite-next/customer/portal",
+    "equiprite-next/customer/quote",
+    "equiprite-next/customer/invoice"
+   ],
    "stories": [],
    "sheet": null
   },
@@ -1206,6 +1366,10 @@
     "menu": "Equipment › Equipment master",
     "needs": ""
    },
+   "next": [
+    "equiprite-next/equipment/item"
+   ],
+   "menu": "Equipment › Equipment master",
    "stories": [],
    "sheet": null
   },
@@ -1221,6 +1385,9 @@
     "menu": "",
     "needs": "Opened from another screen (record \"equipment-item\"): capture it there, or upload a screenshot."
    },
+   "next": [
+    "equiprite-next/equipment/equipment"
+   ],
    "stories": [],
    "sheet": null
   },
@@ -1236,6 +1403,7 @@
     "menu": "Insights › EquipRite FDD",
     "needs": ""
    },
+   "menu": "Insights › EquipRite FDD",
    "stories": [],
    "sheet": null
   },
@@ -1251,6 +1419,7 @@
     "menu": "Insights › FDD library",
     "needs": ""
    },
+   "menu": "Insights › FDD library",
    "stories": [],
    "sheet": null
   },
@@ -1266,6 +1435,11 @@
     "menu": "",
     "needs": "Opened from another screen (record \"equipment-360\"): capture it there, or upload a screenshot."
    },
+   "next": [
+    "equiprite-next/requests/request",
+    "equiprite-next/checks/transfer",
+    "equiprite-next/availability/availability"
+   ],
    "stories": [],
    "sheet": null
   },
@@ -1281,6 +1455,10 @@
     "menu": "Equipment › Fleet",
     "needs": ""
    },
+   "next": [
+    "equiprite-next/requests/request"
+   ],
+   "menu": "Equipment › Fleet",
    "stories": [],
    "sheet": null
   },
@@ -1296,6 +1474,7 @@
     "menu": "Help › Help",
     "needs": ""
    },
+   "menu": "Help › Help",
    "stories": [],
    "sheet": null
   },
@@ -1311,6 +1490,10 @@
     "menu": "My work",
     "needs": ""
    },
+   "next": [
+    "equiprite-next/requests/request"
+   ],
+   "menu": "My work",
    "stories": [],
    "sheet": null
   },
@@ -1341,6 +1524,10 @@
     "menu": "Insights › Analytics",
     "needs": ""
    },
+   "next": [
+    "equiprite-next/requests/request"
+   ],
+   "menu": "Insights › Analytics",
    "stories": [],
    "sheet": null
   },
@@ -1356,6 +1543,10 @@
     "menu": "Insights › Application pages",
     "needs": ""
    },
+   "next": [
+    "equiprite-next/insights/jira-analysis"
+   ],
+   "menu": "Insights › Application pages",
    "stories": [],
    "sheet": null
   },
@@ -1371,6 +1562,7 @@
     "menu": "Insights › Follow-ups",
     "needs": ""
    },
+   "menu": "Insights › Follow-ups",
    "stories": [],
    "sheet": null
   },
@@ -1386,6 +1578,9 @@
     "menu": "",
     "needs": "Opened from another screen (record \"jira-analysis\"): capture it there, or upload a screenshot."
    },
+   "next": [
+    "equiprite-next/fdd/library"
+   ],
    "stories": [],
    "sheet": null
   },
@@ -1401,6 +1596,10 @@
     "menu": "",
     "needs": "Opened from another screen (record \"jira-analysis-set\"): capture it there, or upload a screenshot."
    },
+   "next": [
+    "equiprite-next/fdd/library",
+    "equiprite-next/insights/jira-analysis"
+   ],
    "stories": [],
    "sheet": null
   },
@@ -1416,6 +1615,12 @@
     "menu": "Insights › Jira stories",
     "needs": ""
    },
+   "next": [
+    "equiprite-next/insights/jira-analysis",
+    "equiprite-next/insights/jira-analysis-set",
+    "equiprite-next/insights/jira-sprint"
+   ],
+   "menu": "Insights › Jira stories",
    "stories": [],
    "sheet": null
   },
@@ -1431,6 +1636,11 @@
     "menu": "",
     "needs": "Opened from another screen (record \"jira-sprint\"): capture it there, or upload a screenshot."
    },
+   "next": [
+    "equiprite-next/insights/jira-analysis",
+    "equiprite-next/insights/jira-analysis-set",
+    "equiprite-next/insights/jira"
+   ],
    "stories": [],
    "sheet": null
   },
@@ -1446,6 +1656,7 @@
     "menu": "Insights › Standup minutes",
     "needs": ""
    },
+   "menu": "Insights › Standup minutes",
    "stories": [],
    "sheet": null
   },
@@ -1461,6 +1672,11 @@
     "menu": "Requests › New request",
     "needs": ""
    },
+   "next": [
+    "equiprite-next/fleet/equipment",
+    "equiprite-next/requests/request"
+   ],
+   "menu": "Requests › New request",
    "stories": [],
    "sheet": null
   },
@@ -1476,6 +1692,11 @@
     "menu": "",
     "needs": "Opened from another screen (record \"request\"): capture it there, or upload a screenshot."
    },
+   "next": [
+    "equiprite-next/order/new-request",
+    "equiprite-next/requests/requests",
+    "equiprite-next/help/help"
+   ],
    "stories": [],
    "sheet": null
   },
@@ -1491,6 +1712,10 @@
     "menu": "Requests › Requests",
     "needs": ""
    },
+   "next": [
+    "equiprite-next/requests/request"
+   ],
+   "menu": "Requests › Requests",
    "stories": [],
    "sheet": null
   },
@@ -1506,6 +1731,7 @@
     "menu": "Usage & billing › Approve time",
     "needs": ""
    },
+   "menu": "Usage & billing › Approve time",
    "stories": [],
    "sheet": null
   },
@@ -1521,6 +1747,9 @@
     "menu": "",
     "needs": "Opened from another screen (record \"cost\"): capture it there, or upload a screenshot."
    },
+   "next": [
+    "equiprite-next/usage/costs"
+   ],
    "stories": [],
    "sheet": null
   },
@@ -1536,6 +1765,10 @@
     "menu": "Usage & billing › Post costs",
     "needs": ""
    },
+   "next": [
+    "equiprite-next/usage/cost"
+   ],
+   "menu": "Usage & billing › Post costs",
    "stories": [],
    "sheet": null
   },
@@ -1551,6 +1784,7 @@
     "menu": "Usage & billing › Direct cost & inventory",
     "needs": ""
    },
+   "menu": "Usage & billing › Direct cost & inventory",
    "stories": [],
    "sheet": null
   },
@@ -1566,6 +1800,7 @@
     "menu": "Usage & billing › Timesheets",
     "needs": ""
    },
+   "menu": "Usage & billing › Timesheets",
    "stories": [],
    "sheet": null
   },
@@ -1581,6 +1816,10 @@
     "menu": "Yard & logistics › Picking & shipping",
     "needs": ""
    },
+   "next": [
+    "equiprite-next/requests/request"
+   ],
+   "menu": "Yard & logistics › Picking & shipping",
    "stories": [],
    "sheet": null
   },
@@ -1596,6 +1835,10 @@
     "menu": "Yard & logistics › Receiving & returns",
     "needs": ""
    },
+   "next": [
+    "equiprite-next/requests/request"
+   ],
+   "menu": "Yard & logistics › Receiving & returns",
    "stories": [],
    "sheet": null
   },
@@ -1626,6 +1869,9 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "vbredwoodapp/customer-portal/customer-my-billing"
+   ],
    "stories": [],
    "sheet": null
   },
@@ -1641,6 +1887,11 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "vbredwoodapp/customer-portal/customer-dashboard",
+    "vbredwoodapp/customer-portal/request-catalog"
+   ],
+   "menu": "Create Request",
    "stories": [],
    "sheet": {
     "at": "2026-11-12T15:50:28.817Z",
@@ -1664,6 +1915,14 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "vbredwoodapp/customer-portal/request-catalog",
+    "vbredwoodapp/customer-portal/customer-create-req",
+    "vbredwoodapp/customer-portal/customer-my-billing",
+    "vbredwoodapp/customer-portal/customer-my-requests",
+    "vbredwoodapp/customer-portal/customer-request-detail"
+   ],
+   "menu": "Customer Dashboard",
    "stories": [],
    "sheet": null
   },
@@ -1679,6 +1938,11 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "vbredwoodapp/customer-portal/customer-dashboard",
+    "vbredwoodapp/customer-portal/customer-billing-detail"
+   ],
+   "menu": "My Billing",
    "stories": [],
    "sheet": null
   },
@@ -1694,6 +1958,12 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "vbredwoodapp/customer-portal/customer-create-req",
+    "vbredwoodapp/customer-portal/customer-request-detail",
+    "vbredwoodapp/customer-portal/customer-quote"
+   ],
+   "menu": "My Requests",
    "stories": [],
    "sheet": {
     "at": "2026-11-12T16:06:28.427Z",
@@ -1717,6 +1987,9 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "vbredwoodapp/customer-portal/customer-my-requests"
+   ],
    "stories": [],
    "sheet": null
   },
@@ -1747,6 +2020,10 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "vbredwoodapp/customer-portal/customer-my-requests",
+    "vbredwoodapp/customer-portal/customer-quote"
+   ],
    "stories": [],
    "sheet": null
   },
@@ -1762,6 +2039,10 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "vbredwoodapp/customer-portal/request-catalog"
+   ],
+   "menu": "Create Request",
    "stories": [
     "EQP-455"
    ],
@@ -1787,6 +2068,13 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "vbredwoodapp/customer-portal/project-create-request",
+    "vbredwoodapp/customer-portal/request-catalog",
+    "vbredwoodapp/main/main-equiprite",
+    "vbredwoodapp/customer-portal/customer-dashboard",
+    "vbredwoodapp/customer-portal/customer-my-requests"
+   ],
    "stories": [],
    "sheet": null
   },
@@ -1802,6 +2090,9 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "vbredwoodapp/customer-portal/request-catalog"
+   ],
    "stories": [],
    "sheet": null
   },
@@ -1817,6 +2108,11 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "vbredwoodapp/customer-portal/request-catalog-detail",
+    "vbredwoodapp/customer-portal/request-cart"
+   ],
+   "menu": "Equipment Catalog",
    "stories": [],
    "sheet": null
   },
@@ -1832,6 +2128,7 @@
     "menu": "",
     "needs": ""
    },
+   "menu": "Equipment Analytics",
    "stories": [],
    "sheet": {
     "at": "2026-11-12T15:55:23.782Z",
@@ -1855,6 +2152,9 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "vbredwoodapp/equipment-foundation/equipment-master"
+   ],
    "stories": [],
    "sheet": {
     "at": "2026-11-12T15:53:51.913Z",
@@ -1878,6 +2178,9 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "vbredwoodapp/equipment-foundation/equipment-master"
+   ],
    "stories": [],
    "sheet": null
   },
@@ -1893,6 +2196,11 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "vbredwoodapp/equipment-foundation/equipment-create",
+    "vbredwoodapp/equipment-foundation/equipment-units"
+   ],
+   "menu": "Equipment Master",
    "stories": [],
    "sheet": null
   },
@@ -1908,6 +2216,10 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "vbredwoodapp/equipment-foundation/equipment-master",
+    "vbredwoodapp/equipment-foundation/equipment-unit-detail"
+   ],
    "stories": [],
    "sheet": null
   },
@@ -1923,6 +2235,7 @@
     "menu": "",
     "needs": ""
    },
+   "menu": "Equipment Reports",
    "stories": [],
    "sheet": null
   },
@@ -1938,6 +2251,7 @@
     "menu": "",
     "needs": ""
    },
+   "menu": "Equipment Return",
    "stories": [],
    "sheet": null
   },
@@ -1953,6 +2267,10 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "vbredwoodapp/equipment-foundation/timesheet-detail"
+   ],
+   "menu": "Equipment Timesheet",
    "stories": [],
    "sheet": null
   },
@@ -1968,6 +2286,11 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "vbredwoodapp/equipment-foundation/equipment-master",
+    "vbredwoodapp/equipment-foundation/equipment-units",
+    "vbredwoodapp/equipment-foundation/equipment-record-cost"
+   ],
    "stories": [],
    "sheet": null
   },
@@ -1983,6 +2306,10 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "vbredwoodapp/equipment-foundation/equipment-master",
+    "vbredwoodapp/equipment-foundation/equipment-unit-detail"
+   ],
    "stories": [],
    "sheet": null
   },
@@ -1998,6 +2325,10 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "vbredwoodapp/equipment-foundation/request-detail"
+   ],
+   "menu": "Equipment Manager Workbench",
    "stories": [],
    "sheet": null
   },
@@ -2013,6 +2344,7 @@
     "menu": "",
     "needs": ""
    },
+   "menu": "Initiate Picking",
    "stories": [],
    "sheet": null
   },
@@ -2028,6 +2360,9 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "vbredwoodapp/equipment-foundation/request-detail"
+   ],
    "stories": [],
    "sheet": null
   },
@@ -2043,6 +2378,9 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "vbredwoodapp/equipment-foundation/post-cost"
+   ],
    "stories": [],
    "sheet": null
   },
@@ -2058,6 +2396,9 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "vbredwoodapp/equipment-foundation/post-cost-detail"
+   ],
    "stories": [],
    "sheet": null
   },
@@ -2073,6 +2414,9 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "vbredwoodapp/equipment-foundation/post-cost-test"
+   ],
    "stories": [],
    "sheet": null
   },
@@ -2088,6 +2432,10 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "vbredwoodapp/equipment-foundation/post-cost-test-detail"
+   ],
+   "menu": "Post Cost",
    "stories": [],
    "sheet": null
   },
@@ -2103,6 +2451,10 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "vbredwoodapp/equipment-foundation/rental-agreements"
+   ],
+   "menu": "Create Rental Agreement",
    "stories": [],
    "sheet": null
   },
@@ -2118,6 +2470,10 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "vbredwoodapp/equipment-foundation/rental-agreements",
+    "vbredwoodapp/customer-portal/project-create-request"
+   ],
    "stories": [],
    "sheet": null
   },
@@ -2133,6 +2489,11 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "vbredwoodapp/equipment-foundation/rental-agreement-create",
+    "vbredwoodapp/equipment-foundation/rental-agreement-lines"
+   ],
+   "menu": "Rental Agreements",
    "stories": [],
    "sheet": null
   },
@@ -2148,6 +2509,11 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "vbredwoodapp/equipment-foundation/request-quote",
+    "vbredwoodapp/equipment-foundation/equipment-workbench",
+    "vbredwoodapp/equipment-foundation/line-detail"
+   ],
    "stories": [],
    "sheet": null
   },
@@ -2178,6 +2544,10 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "vbredwoodapp/equipment-foundation/timesheet-approvals",
+    "vbredwoodapp/equipment-foundation/equipment-timesheets"
+   ],
    "stories": [],
    "sheet": null
   },
@@ -2193,6 +2563,10 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "vbredwoodapp/equipment-foundation/timesheet-approval-detail"
+   ],
+   "menu": "Timesheet Approvals",
    "stories": [],
    "sheet": null
   },
@@ -2208,6 +2582,9 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "vbredwoodapp/equipment-foundation/equipment-timesheets"
+   ],
    "stories": [],
    "sheet": null
   },
@@ -2223,6 +2600,9 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "vbredwoodapp/main/rate-schedule"
+   ],
    "stories": [],
    "sheet": null
   },
@@ -2238,6 +2618,11 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "vbredwoodapp/main/equipment-requests",
+    "vbredwoodapp/customer-portal/project-create-request",
+    "vbredwoodapp/main/project-quote"
+   ],
    "stories": [],
    "sheet": null
   },
@@ -2253,6 +2638,12 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "vbredwoodapp/customer-portal/project-create-request",
+    "vbredwoodapp/main/equipment-request-detail",
+    "vbredwoodapp/main/project-quote"
+   ],
+   "menu": "Equipment Requests",
    "stories": [],
    "sheet": null
   },
@@ -2268,6 +2659,7 @@
     "menu": "",
     "needs": ""
    },
+   "menu": "Equipment Schedule",
    "stories": [],
    "sheet": null
   },
@@ -2283,6 +2675,12 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "vbredwoodapp/customer-portal/project-create-request",
+    "vbredwoodapp/equipment-foundation/equipment-master",
+    "vbredwoodapp/main/equipment-requests",
+    "vbredwoodapp/main/equipment-request-detail"
+   ],
    "stories": [],
    "sheet": null
   },
@@ -2313,6 +2711,9 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "vbredwoodapp/main/equipment-requests"
+   ],
    "stories": [],
    "sheet": null
   },
@@ -2328,6 +2729,10 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "vbredwoodapp/main/create-rate-schedule"
+   ],
+   "menu": "Rate Management",
    "stories": [],
    "sheet": null
   },
@@ -2343,6 +2748,7 @@
     "menu": "",
     "needs": ""
    },
+   "menu": "Configuration Settings",
    "stories": [],
    "sheet": null
   },
@@ -2358,6 +2764,9 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "vbredwoodapp/setup/jira-stories"
+   ],
    "stories": [],
    "sheet": null
   },
@@ -2373,6 +2782,10 @@
     "menu": "",
     "needs": ""
    },
+   "next": [
+    "vbredwoodapp/setup/jira-sprint"
+   ],
+   "menu": "Jira Stories",
    "stories": [],
    "sheet": null
   },
@@ -2388,6 +2801,7 @@
     "menu": "",
     "needs": ""
    },
+   "menu": "Page Access",
    "stories": [],
    "sheet": null
   }
