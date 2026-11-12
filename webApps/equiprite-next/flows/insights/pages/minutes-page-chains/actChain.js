@@ -161,7 +161,7 @@ define([
             v.meeting = m; v.dirty = true; toast('Formatted by ' + (r.body.provider || 'AI') + '.');
           } else {
             const err = (r.body && r.body.error) || '';
-            if (/choose the llm|not set up/i.test(err)) { toast('Set up AI first.', 'error'); v.aiForm = { provider: (v.ai && v.ai.active) || 'claude', key: '', model: '', baseUrl: '', status: '' }; v.dialog = 'ai'; }
+            if (/choose the llm|not set up/i.test(err)) { toast('Set up AI first.', 'error'); v.aiForm = { provider: (v.ai && v.ai.active) || 'anthropic', key: '', model: '', baseUrl: '', status: '' }; v.dialog = 'ai'; }
             else toast(err || 'AI could not format this.', 'error');
           }
           return;
@@ -180,7 +180,7 @@ define([
             v.meeting = m; v.dirty = true; toast('Formatted by ' + (r.body.provider || 'AI') + '.');
           } else {
             const err = (r.body && r.body.error) || '';
-            if (/choose the llm|not set up/i.test(err)) { toast('Set up AI first.', 'error'); v.aiForm = { provider: (v.ai && v.ai.active) || 'claude', key: '', model: '', baseUrl: '', status: '' }; v.dialog = 'ai'; }
+            if (/choose the llm|not set up/i.test(err)) { toast('Set up AI first.', 'error'); v.aiForm = { provider: (v.ai && v.ai.active) || 'anthropic', key: '', model: '', baseUrl: '', status: '' }; v.dialog = 'ai'; }
             else toast(err || 'AI could not format this.', 'error');
           }
           return;
@@ -218,10 +218,10 @@ define([
         case 'dialog': {
           if (id === 'settings') { await openSettings(); return; }
           v.dialog = id || '';
-          if (id === 'ai') v.aiForm = { provider: (v.ai && v.ai.active) || 'claude', key: '', model: '', baseUrl: '', status: '' };
+          if (id === 'ai') v.aiForm = { provider: (v.ai && v.ai.active) || 'anthropic', key: '', model: '', baseUrl: '', status: '' };
           return;
         }
-        case 'ai': { v.aiForm = { provider: (v.ai && v.ai.active) || 'claude', key: '', model: '', baseUrl: '', status: '' }; v.dialog = 'ai'; return; }
+        case 'ai': { v.aiForm = { provider: (v.ai && v.ai.active) || 'anthropic', key: '', model: '', baseUrl: '', status: '' }; v.dialog = 'ai'; return; }
         case 'settings': { await openSettings(); return; }
         case 'setProvider': { const f = clone(v.settingsForm) || {}; f.provider = id || 'local'; v.settingsForm = f; return; }
         case 'setDirectory': { const f = clone(v.settingsForm) || {}; f.directory = !f.directory; v.settingsForm = f; return; }

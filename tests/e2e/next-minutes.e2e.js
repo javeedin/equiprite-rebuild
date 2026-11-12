@@ -166,10 +166,10 @@ async function setField(page, sel, val) { await page.fill(sel, val); await page.
     await page.waitForFunction(() => { const t = document.querySelector('oj-text-area.nx-min-ta'); return t && /agreed to add it/.test(t.value || ''); }, null, { timeout: 15000 }).catch(() => {});
     T.check('the note is replaced by the formatted text, via the shared Ask AI', /agreed to add it/.test(await page.$eval('oj-text-area.nx-min-ta', (t) => t.value || '')) && llmCalls.some((u) => /chat\/completions/.test(u)));
 
-    T.section('AI setup: the Model field is a list of values that follows the provider');
+    T.section('AI setup: the Model field is a list of values, and Claude actually saves');
     await page.click('#minAi');
     await page.waitForSelector('#minAiDlg', { timeout: 10000 });
-    await page.selectOption('#minAiDlg select[data-field="provider"]', 'claude');
+    await page.selectOption('#minAiDlg select[data-field="provider"]', 'anthropic');
     await settle(page, 300);
     let modelOpts = await optsOf('#minAiModels');
     T.check('Claude shows its models in the list of values', modelOpts.includes('claude-opus-5-5') && modelOpts.includes('claude-sonnet-5-5'));
@@ -177,8 +177,16 @@ async function setField(page, sel, val) { await page.fill(sel, val); await page.
     await settle(page, 300);
     modelOpts = await optsOf('#minAiModels');
     T.check('switching the provider updates the model list of values', modelOpts.includes('gpt-5') && !modelOpts.includes('claude-opus-5-5'));
-    await page.click('#minAiDlg button[data-act="dialog"]');
+    // Save Claude: the dialog must send the store's provider id ("anthropic"), or Save fails with "Choose the LLM to use."
+    await page.selectOption('#minAiDlg select[data-field="provider"]', 'anthropic');
     await settle(page, 200);
+    await setField(page, '#minAiDlg input[data-field="key"]', 'sk-ant-test');
+    await setField(page, '#minAiDlg input[data-field="model"]', 'claude-sonnet-5-5');
+    await page.click('#minAiSave');
+    await page.waitForSelector('#minAiDlg', { state: 'hidden', timeout: 10000 });
+    const aiNow = await aiStore.settings();
+    T.check('saving Claude persists it as the active provider (not a dead "claude" id)',
+      aiNow.active === 'anthropic' && !!(aiNow.providers && aiNow.providers.anthropic && aiNow.providers.anthropic.model === 'claude-sonnet-5-5'));
 
     T.section('Save keeps it in DuckDB and lists it');
     await page.click('#minSave');

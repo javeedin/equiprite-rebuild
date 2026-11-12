@@ -218,7 +218,7 @@
       <p class="nx-note">Shared with the SQL worksheet's Ask AI. The key stays on this PC in the desktop app and is used to Format by AI.</p>
       <div class="nx-min-field"><label>Provider</label>
         <select data-scope="ai" data-field="provider" :value="[[ $variables.aiForm.provider ]]" on-change="[[ $listeners.onField ]]">
-          <option value="claude">Claude (Anthropic)</option><option value="openai">OpenAI (ChatGPT)</option><option value="gemini">Google Gemini</option><option value="oci">OCI GenAI</option><option value="custom">OpenAI-compatible</option>
+          <option value="anthropic">Claude (Anthropic)</option><option value="openai">OpenAI (ChatGPT)</option><option value="gemini">Google Gemini</option><option value="oci">OCI GenAI</option><option value="custom">OpenAI-compatible</option>
         </select></div>
       <div class="nx-min-field"><label>API key</label><input type="password" data-scope="ai" data-field="key" :value="[[ $variables.aiForm.key ]]" on-change="[[ $listeners.onField ]]" placeholder="paste your key — stored on this PC"></div>
       <div class="nx-min-field"><label>Model (optional)</label>

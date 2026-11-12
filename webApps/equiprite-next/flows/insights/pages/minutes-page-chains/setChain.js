@@ -21,7 +21,7 @@ define(['vb/action/actionChain'], (ActionChain) => {
         }
         v.dirty = true;
       } else if (scope === 'settings') { v.settingsForm[field] = value; }
-      else if (scope === 'ai') { const f = Object.assign({}, v.aiForm); f[field] = value; v.aiForm = f; } // reassign so the model list of values follows the provider
+      else if (scope === 'ai') { const f = Object.assign({}, v.aiForm); f[field] = value; f.status = ''; v.aiForm = f; } // reassign so the model list follows the provider; clear the stale error as the form is filled
       else if (scope === 'email') { v.email[field] = value; }
       else if (scope === 'ui') { v[field] = value; }
     }
