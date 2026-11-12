@@ -56,26 +56,48 @@ define([
         }
         case 'removeAttendee': { const m = clone(v.meeting) || {}; m.attendees = (m.attendees || []).filter((a) => a !== id); v.meeting = m; v.dirty = true; return; }
 
-        // The "Find a Jira story" picker dialog: search the backlog by number/description/status/assignee/sprint and pick one.
+        // The "Find a Jira story" picker dialog: search the backlog by number/description/status/assignee/sprint, tick one or
+        // more stories (each becomes an action item), or pick "No story" / type a key by hand.
         case 'pickOpen': {
           const l = (v.meeting.lines || []).filter((x) => x.id === lineId)[0];
           v.pickLineId = lineId; v.pickCurrent = l ? String(l.jiraKey || '') : '';
-          v.pickQ = ''; v.pickSprint = ''; v.pickStatus = ''; v.pickAssignee = ''; v.pickOpen = true;
+          v.pickQ = ''; v.pickSprint = ''; v.pickStatus = ''; v.pickAssignee = ''; v.pickSel = []; v.pickOpen = true;
           // Focus the search box once the dialog is in the DOM.
           try { setTimeout(() => { const el = (typeof document !== 'undefined') && document.getElementById('minPickSearch'); if (el) el.focus(); }, 0); } catch (e) { /* no DOM (tests) */ }
           return;
         }
-        case 'pickClose': { v.pickOpen = false; v.pickLineId = ''; v.pickCurrent = ''; return; }
+        case 'pickClose': { v.pickOpen = false; v.pickLineId = ''; v.pickCurrent = ''; v.pickSel = []; return; }
         case 'pickClear': { v.pickQ = ''; v.pickSprint = ''; v.pickStatus = ''; v.pickAssignee = ''; return; }
         case 'pickSet': { v.pickQ = value; return; } // the free-text search box (filters are the chips below)
         case 'pickSprint': { v.pickSprint = (v.pickSprint === id ? '' : id); return; }
         case 'pickStatus': { v.pickStatus = (v.pickStatus === id ? '' : id); return; }
         case 'pickAssignee': { v.pickAssignee = (v.pickAssignee === id ? '' : id); return; }
+        case 'pickToggle': { // tick / untick a story for multi-select
+          const k = String(id || '').trim().toUpperCase();
+          if (!k) return;
+          const sel = (v.pickSel || []).slice();
+          const at = sel.indexOf(k);
+          if (at >= 0) sel.splice(at, 1); else sel.push(k);
+          v.pickSel = sel;
+          return;
+        }
+        case 'pickLinkSel': { // link every ticked story: the first goes on the current action item, each other becomes a new one
+          const sel = (v.pickSel || []).slice();
+          if (!sel.length) { toast('Tick at least one story, or use "No story".', 'error'); return; }
+          const m = clone(v.meeting) || {}; m.lines = m.lines || [];
+          let l0 = m.lines.filter((x) => x.id === v.pickLineId)[0];
+          if (!l0) { l0 = R.blankLine(); l0.id = lid(); m.lines.push(l0); }
+          l0.jiraKey = sel[0]; l0.generic = false;
+          for (let i = 1; i < sel.length; i++) { const nl = R.blankLine(); nl.id = lid(); nl.jiraKey = sel[i]; nl.generic = false; m.lines.push(nl); }
+          v.meeting = m; v.dirty = true; v.pickOpen = false; v.pickLineId = ''; v.pickCurrent = ''; v.pickSel = [];
+          toast(sel.length === 1 ? 'Linked ' + sel[0] + '.' : 'Added ' + sel.length + ' action items.');
+          return;
+        }
         case 'pickStory': {
           const target = lineId || v.pickLineId;
           const m = clone(v.meeting) || {}; const l = (m.lines || []).filter((x) => x.id === target)[0];
           if (l) { const k = String(id || '').trim().toUpperCase(); l.jiraKey = k; l.generic = !k; }
-          v.meeting = m; v.dirty = true; v.pickOpen = false; v.pickLineId = ''; v.pickCurrent = '';
+          v.meeting = m; v.dirty = true; v.pickOpen = false; v.pickLineId = ''; v.pickCurrent = ''; v.pickSel = [];
           return;
         }
         case 'pickManual': {
@@ -183,6 +205,42 @@ define([
             if (/choose the llm|not set up/i.test(err)) { toast('Set up AI first.', 'error'); v.aiForm = { provider: (v.ai && v.ai.active) || 'anthropic', key: '', model: '', baseUrl: '', status: '' }; v.dialog = 'ai'; }
             else toast(err || 'AI could not format this.', 'error');
           }
+          return;
+        }
+
+        case 'formatAll': {
+          // One click: tidy the whole minutes — the discussion body, then every action-item note — with the shared Ask AI.
+          const m = clone(v.meeting) || {};
+          const jobs = [];
+          if (String(m.discussion || '').trim()) jobs.push({ body: true });
+          (m.lines || []).forEach((l) => { if (String((l.text || l.raw) || '').trim()) jobs.push({ id: l.id }); });
+          if (!jobs.length) { toast('Nothing to format yet — write the discussion or some notes first.', 'error'); return; }
+          v.fmtAll = true;
+          let done = 0, failed = 0, aiMissing = false, provider = '';
+          for (let i = 0; i < jobs.length; i++) {
+            const job = jobs[i];
+            let src, p;
+            if (job.body) { src = String(m.discussion || '').trim(); p = R.formatBodyPrompt(src); }
+            else { const l = (m.lines || []).filter((x) => x.id === job.id)[0]; src = l ? String((l.text || l.raw) || '').trim() : ''; p = R.formatPrompt(src); }
+            if (!src) continue;
+            const r = await C.aiChat(p.system, p.user);
+            if (r.ok && r.body && r.body.ok && r.body.text) {
+              provider = r.body.provider || provider;
+              if (job.body) m.discussion = String(r.body.text).trim();
+              else { const l = (m.lines || []).filter((x) => x.id === job.id)[0]; if (l) l.text = String(r.body.text).trim(); }
+              done++;
+              v.meeting = clone(m); // show each section as it is tidied
+            } else {
+              const err = (r.body && r.body.error) || '';
+              if (/choose the llm|not set up/i.test(err)) { aiMissing = true; break; }
+              failed++;
+            }
+          }
+          v.fmtAll = false;
+          v.meeting = m; v.dirty = true;
+          if (aiMissing) { toast('Set up AI first.', 'error'); v.aiForm = { provider: (v.ai && v.ai.active) || 'anthropic', key: '', model: '', baseUrl: '', status: '' }; v.dialog = 'ai'; return; }
+          if (!done && failed) { toast('AI could not format the minutes.', 'error'); return; }
+          toast('Formatted ' + done + ' section' + (done === 1 ? '' : 's') + ' by ' + (provider || 'AI') + (failed ? ' · ' + failed + ' could not be formatted' : '') + '.');
           return;
         }
 

@@ -141,14 +141,18 @@ async function setField(page, sel, val) { await page.fill(sel, val); await page.
     await page.waitForSelector('#minPickDlg', { state: 'hidden', timeout: 10000 });
     T.check('a key typed in by hand links even when it is not in the backlog read', /EQP-777/.test(await text(page, '.nx-min-storycard')) && /not in the backlog read/i.test(await text(page, '.nx-min-storycard')));
 
-    // Now pick a real backlog story: the card shows its number, description and current status.
+    // Now pick a real backlog story: tick it, then Link. The card shows its number, description and current status.
     await page.click('.nx-min-line button[data-act="pickOpen"]');
     await page.waitForSelector('#minPickDlg', { timeout: 10000 });
     await settle(page, 300);
     await page.click('#minPickList .nx-min-pickrow[data-id="EQP-12"]');
+    await settle(page, 200);
+    T.check('ticking a story updates the selected count and enables Link', /1 selected/.test(await text(page, '#minPickSelCount')) && /Link 1 story/.test(await text(page, '#minPickLink')));
+    await page.click('#minPickLink');
     await page.waitForSelector('#minPickDlg', { state: 'hidden', timeout: 10000 });
     const storyCard = () => text(page, '.nx-min-storycard');
     T.check('the linked story shows its number, description and current status on the action item', /EQP-12/.test(await storyCard()) && /Equipment Master List/.test(await storyCard()) && /DEVELOPMENT/.test(await storyCard()));
+    T.check('the linked story has an "open in Jira" link to its browse URL', await page.$eval('.nx-min-storycard a.nx-min-jira', (a) => /\/browse\/EQP-12$/.test(a.getAttribute('href') || '')).catch(() => false));
 
     const optsOf = (id) => page.$eval(id, (dl) => Array.from(dl.querySelectorAll('option')).map((o) => o.value)).catch(() => []);
     const actOpts = await optsOf('#minActions');
@@ -165,6 +169,18 @@ async function setField(page, sel, val) { await page.fill(sel, val); await page.
     await page.click('.nx-min-line button[data-act="format"]');
     await page.waitForFunction(() => { const t = document.querySelector('oj-text-area.nx-min-ta'); return t && /agreed to add it/.test(t.value || ''); }, null, { timeout: 15000 }).catch(() => {});
     T.check('the note is replaced by the formatted text, via the shared Ask AI', /agreed to add it/.test(await page.$eval('oj-text-area.nx-min-ta', (t) => t.value || '')) && llmCalls.some((u) => /chat\/completions/.test(u)));
+
+    T.section('Format all with AI (header button) tidies the whole minutes in one click');
+    await page.evaluate(() => { const t = document.querySelector('#minBody'); if (t) t.value = 'rough body notes to clean up'; });
+    await page.evaluate(() => { const t = document.querySelector('oj-text-area.nx-min-ta'); if (t) t.value = 'rough note to clean up'; });
+    await settle(page, 300);
+    T.check('the header has a "Format all with AI" button', await page.isVisible('#minFormatAll'));
+    await page.click('#minFormatAll');
+    await page.waitForFunction(() => {
+      const b = document.querySelector('#minBody'); const n = document.querySelector('oj-text-area.nx-min-ta');
+      return b && n && /agreed to add it/.test(b.value || '') && /agreed to add it/.test(n.value || '');
+    }, null, { timeout: 15000 }).catch(() => {});
+    T.check('one click formats both the discussion body and the action-item note', /agreed to add it/.test(await page.$eval('#minBody', (t) => t.value || '')) && /agreed to add it/.test(await page.$eval('oj-text-area.nx-min-ta', (t) => t.value || '')));
 
     T.section('AI setup: the Model field is a list of values, and Claude actually saves');
     await page.click('#minAi');
@@ -274,6 +290,24 @@ async function setField(page, sel, val) { await page.fill(sel, val); await page.
     await page.click('#minEmailSend');
     await settle(page, 500);
     T.check('Send via Office 365 sends the minutes through Graph', graphSent.some((m) => /sandeep\.reddy@rite\.digital/.test(m.to) && /Office 365 send test note/.test(m.html)));
+
+    T.section('the picker links several stories at once (multi-select → one action item each)');
+    await page.click('#minNew');
+    await settle(page, 300);
+    await page.click('#minAddLine');
+    await settle(page, 200);
+    await page.click('.nx-min-line button[data-act="pickOpen"]');
+    await page.waitForSelector('#minPickDlg', { timeout: 10000 });
+    await settle(page, 300);
+    await page.click('#minPickList .nx-min-pickrow[data-id="EQP-12"]');
+    await page.click('#minPickList .nx-min-pickrow[data-id="EQP-20"]');
+    await settle(page, 200);
+    T.check('two stories can be ticked at once', /2 selected/.test(await text(page, '#minPickSelCount')) && /Link 2 stories/.test(await text(page, '#minPickLink')));
+    await page.click('#minPickLink');
+    await page.waitForSelector('#minPickDlg', { state: 'hidden', timeout: 10000 });
+    await settle(page, 300);
+    const multiKeys = await page.$$eval('.nx-min-line .nx-min-storycard .nx-min-pk-key', (els) => els.map((e) => e.textContent.trim()));
+    T.check('linking 2 stories creates one action item per story', (await page.$$('.nx-min-line')).length === 2 && multiKeys.indexOf('EQP-12') !== -1 && multiKeys.indexOf('EQP-20') !== -1);
 
     T.eq('no browser errors', errs().join(' | ').slice(0, 1500), '');
   } catch (e) {

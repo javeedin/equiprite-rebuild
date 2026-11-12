@@ -70,6 +70,8 @@ define(['resources/js/minutes'], (R) => {
      *  isn't in the backlog read yet. Lets the linked-story card on an action item show the live status. */
     storyStatus(line, rows) { const r = rowOf(line, rows); return r ? String(r.status || '') : ''; }
     storyStatusCat(line, rows) { const r = rowOf(line, rows); return r ? String(r.statusCat || '') : ''; }
+    /** The linked story's Jira URL (to open it in Jira) — from the backlog read, else '' (no icon shown). */
+    storyUrl(line, rows) { const r = rowOf(line, rows); return r ? String(r.url || '') : ''; }
 
     /** Standard action phrases for the "Action item" datalist. */
     actionOptions() { return ACTIONS; }
