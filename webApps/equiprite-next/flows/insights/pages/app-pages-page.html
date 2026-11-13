@@ -509,15 +509,29 @@
           <h3 class="nx-pg-h3"><oj-bind-text value="[[ 'REST calls (' + $variables.sheet.facts.integrations.rest.length + ')' ]]"></oj-bind-text></h3>
           <oj-bind-if test="[[ $variables.sheet.facts.integrations.rest.length === 0 ]]"><p class="nx-note">None.</p></oj-bind-if>
           <oj-bind-if test="[[ $variables.sheet.facts.integrations.rest.length > 0 ]]">
-            <div class="nx-pg-grid nx-pg-grid--4" role="table" id="pgRest">
-              <div class="nx-pg-gr nx-pg-gr--head" role="row"><span role="columnheader">Method</span><span role="columnheader">Path</span><span role="columnheader">Backend</span><span role="columnheader">Endpoint · used by</span></div>
+            <!-- the API tester (desktop/lib/apiTest.js): each call tried against the real backend; Check all runs every call that only reads -->
+            <div class="nx-api-bar" id="apiBar">
+              <span class="nx-note">Try each call against the real backend, with the app's own login: <b>Test</b> sends one, <b>Check all reads</b> runs every call that only reads (an id one answers fills the next).</span>
+              <span class="nx-min-flex"></span>
+              <oj-bind-if test="[[ !!$variables.apiCheck ]]"><span :class="[[ $functions.apiCheckClassAll($variables.apiCheck) ]]" id="apiCheckSum"><oj-bind-text value="[[ $functions.apiCheckText($variables.apiCheck) ]]"></oj-bind-text></span></oj-bind-if>
+              <button type="button" class="nx-btn nx-btn--sm" id="apiCheckAll" data-act="checkAll" on-click="[[ $listeners.onApi ]]" :disabled="[[ $variables.apiChecking || !$variables.info.available ]]">
+                <span :class="[[ $variables.apiChecking ? 'nx-spin' : 'oj-ux-ico-check-circle' ]]" aria-hidden="true"></span><oj-bind-text value="[[ $variables.apiChecking ? 'Checking…' : 'Check all reads' ]]"></oj-bind-text></button>
+            </div>
+            <div class="nx-pg-grid nx-pg-grid--5" role="table" id="pgRest">
+              <div class="nx-pg-gr nx-pg-gr--head" role="row"><span role="columnheader">Method</span><span role="columnheader">Path</span><span role="columnheader">Backend</span><span role="columnheader">Endpoint · used by</span><span role="columnheader">Test</span></div>
               <oj-bind-for-each data="[[ $variables.sheet.facts.integrations.rest ]]">
                 <template data-oj-as="r">
-                  <div class="nx-pg-gr" role="row">
+                  <div class="nx-pg-gr" role="row" :data-endpoint="[[ r.data.endpoint ]]">
                     <span role="cell"><span :class="[[ 'nx-pg-method nx-pg-method--' + $functions.method(r.data.method) ]]"><oj-bind-text value="[[ r.data.method || '?' ]]"></oj-bind-text></span></span>
                     <span role="cell"><code><oj-bind-text value="[[ r.data.path ]]"></oj-bind-text></code><oj-bind-if test="[[ !!r.data.summary ]]"><span class="nx-note nx-pg-block"><oj-bind-text value="[[ r.data.summary ]]"></oj-bind-text></span></oj-bind-if></span>
                     <span role="cell"><oj-bind-text value="[[ r.data.backendLabel ]]"></oj-bind-text></span>
                     <span role="cell"><code><oj-bind-text value="[[ r.data.endpoint ]]"></oj-bind-text></code><span class="nx-note nx-pg-block"><oj-bind-text value="[[ r.data.usedBy.join(', ') ]]"></oj-bind-text></span></span>
+                    <span role="cell" class="nx-api-cell">
+                      <button type="button" class="nx-api-test" data-act="open" :data-key="[[ r.data.endpoint ]]" on-click="[[ $listeners.onApi ]]" :disabled="[[ !$variables.info.available || !r.data.method ]]"
+                        :title="[[ r.data.method ? 'Send ' + r.data.method + ' ' + r.data.path + ' to ' + r.data.backendLabel : 'Not in services/: nothing to send' ]]"><span class="nx-api-play" aria-hidden="true">▶</span>Test</button>
+                      <oj-bind-if test="[[ !!$variables.apiLast[r.data.endpoint] ]]"><span :class="[[ $functions.apiLastClass($variables.apiLast, r.data.endpoint) ]]"><oj-bind-text value="[[ $functions.apiLastText($variables.apiLast, r.data.endpoint) ]]"></oj-bind-text></span></oj-bind-if>
+                      <oj-bind-if test="[[ !!$functions.apiCheckNote($variables.apiCheck, r.data.endpoint) ]]"><span :class="[[ $functions.apiCheckClass($variables.apiCheck, r.data.endpoint) ]]"><oj-bind-text value="[[ $functions.apiCheckNote($variables.apiCheck, r.data.endpoint) ]]"></oj-bind-text></span></oj-bind-if>
+                    </span>
                   </div>
                 </template>
               </oj-bind-for-each>
@@ -525,7 +539,26 @@
           </oj-bind-if>
           <h3 class="nx-pg-h3" id="pgReports"><oj-bind-text value="[[ 'BI Publisher reports (' + $variables.sheet.facts.integrations.reports.length + ')' ]]"></oj-bind-text></h3>
           <oj-bind-if test="[[ $variables.sheet.facts.integrations.reports.length === 0 ]]"><p class="nx-note">None.</p></oj-bind-if>
-          <div class="nx-pg-tags"><oj-bind-for-each data="[[ $variables.sheet.facts.integrations.reports ]]"><template data-oj-as="x"><span class="nx-pg-tag nx-pg-tag--code"><oj-bind-text value="[[ x.data ]]"></oj-bind-text></span></template></oj-bind-for-each></div>
+          <oj-bind-if test="[[ $variables.apiReports.length === 0 ]]">
+            <div class="nx-pg-tags"><oj-bind-for-each data="[[ $variables.sheet.facts.integrations.reports ]]"><template data-oj-as="x"><span class="nx-pg-tag nx-pg-tag--code"><oj-bind-text value="[[ x.data ]]"></oj-bind-text></span></template></oj-bind-for-each></div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $variables.apiReports.length > 0 ]]">
+            <div class="nx-api-reports" id="apiReports">
+              <oj-bind-for-each data="[[ $variables.apiReports ]]">
+                <template data-oj-as="x">
+                  <div class="nx-api-rep" :data-report="[[ x.data.name ]]">
+                    <div class="nx-api-repmain"><code class="nx-api-repname"><oj-bind-text value="[[ x.data.name ]]"></oj-bind-text></code>
+                      <span class="nx-note nx-pg-block"><oj-bind-text value="[[ x.data.path ]]"></oj-bind-text></span>
+                      <span class="nx-note nx-pg-block"><oj-bind-text value="[[ $functions.apiReportMeta(x.data) ]]"></oj-bind-text></span></div>
+                    <span class="nx-api-cell">
+                      <button type="button" class="nx-api-test" data-act="report" :data-key="[[ x.data.key ]]" on-click="[[ $listeners.onApi ]]" :title="[[ 'Run ' + x.data.path + ' on BI Publisher' ]]"><span class="nx-api-play" aria-hidden="true">▶</span>Run</button>
+                      <oj-bind-if test="[[ !!$variables.apiLast[x.data.key] ]]"><span :class="[[ $functions.apiLastClass($variables.apiLast, x.data.key) ]]"><oj-bind-text value="[[ $functions.apiLastText($variables.apiLast, x.data.key) ]]"></oj-bind-text></span></oj-bind-if>
+                    </span>
+                  </div>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </oj-bind-if>
           <oj-bind-if test="[[ $variables.sheet.facts.integrations.local.length > 0 ]]"><h3 class="nx-pg-h3">Desktop app services</h3><ul class="nx-pg-ul"><oj-bind-for-each data="[[ $variables.sheet.facts.integrations.local ]]"><template data-oj-as="x"><li><code><oj-bind-text value="[[ x.data.route ]]"></oj-bind-text></code> <oj-bind-text value="[[ x.data.what ]]"></oj-bind-text></li></template></oj-bind-for-each></ul></oj-bind-if>
         </div>
 
@@ -614,4 +647,140 @@
       </div>
     </oj-bind-if>
   </dialog>
+  <!-- The API tester (desktop/lib/apiTest.js; apiChain): one call or report of the page, sent to the real backend through
+       the local server's proxy (the app's own login). Left: what it sends; right: the answer. Ctrl+Enter sends; Esc closes. -->
+  <dialog class="nx-api" id="apiDlg" aria-label="Test the API" on-close="[[ $listeners.onApiClosed ]]" on-click="[[ $listeners.onApiClick ]]" on-keydown="[[ $listeners.onApiKey ]]">
+    <oj-bind-if test="[[ !!$variables.apiOpen ]]">
+      <div class="nx-api-box">
+        <header class="nx-api-head">
+          <oj-bind-if test="[[ !!$variables.apiDesc ]]"><span :class="[[ 'nx-pg-method nx-api-method nx-pg-method--' + $functions.method($variables.apiDesc.op.method) ]]"><oj-bind-text value="[[ $variables.apiDesc.op.report ? 'REPORT' : $variables.apiDesc.op.method ]]"></oj-bind-text></span></oj-bind-if>
+          <div class="nx-api-titles">
+            <div class="nx-api-kicker">Test the API · <oj-bind-text value="[[ $variables.sheet ? $variables.sheet.facts.label : '' ]]"></oj-bind-text></div>
+            <h2 class="nx-api-title" id="apiTitle"><oj-bind-text value="[[ $variables.apiDesc ? $functions.apiTitle($variables.apiDesc) : $variables.apiOpen ]]"></oj-bind-text></h2>
+            <div class="nx-api-sub"><oj-bind-text value="[[ $functions.apiSub($variables.apiDesc) ]]"></oj-bind-text></div>
+          </div>
+          <button type="button" class="nx-api-x" id="apiClose" data-act="close" on-click="[[ $listeners.onApi ]]" aria-label="Close" title="Close (Esc)">×</button>
+        </header>
+        <oj-bind-if test="[[ !!$variables.apiMsg ]]"><div :class="[[ $variables.apiMsg.ok ? 'nx-api-msg nx-api-msg--ok' : 'nx-api-msg' ]]" id="apiMsg" role="status">
+          <oj-bind-text value="[[ $variables.apiMsg.text ]]"></oj-bind-text>
+          <oj-bind-if test="[[ $variables.apiConfirm ]]"><span class="nx-api-confirm">
+            <button type="button" class="nx-btn nx-btn--sm nx-api-danger" id="apiConfirm" data-act="confirm" on-click="[[ $listeners.onApi ]]" :disabled="[[ $variables.apiBusy ]]">Send it — it changes data</button>
+            <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" data-act="cancel" on-click="[[ $listeners.onApi ]]">Cancel</button></span></oj-bind-if>
+        </div></oj-bind-if>
+        <oj-bind-if test="[[ !$variables.apiDesc && !$variables.apiMsg ]]"><div class="nx-api-loading"><span class="nx-spin" aria-hidden="true"></span>Reading the call from its service connection…</div></oj-bind-if>
+        <oj-bind-if test="[[ !!$variables.apiDesc ]]">
+          <div class="nx-api-cols">
+            <!-- what it sends -->
+            <section class="nx-api-req" aria-label="The request">
+              <div class="nx-api-target">
+                <div><span class="nx-api-lbl">Goes to</span><code id="apiTarget"><oj-bind-text value="[[ ($variables.apiDesc.backend.url || $variables.apiDesc.backend.name) + $functions.apiPath($variables.apiDesc) ]]"></oj-bind-text></code></div>
+                <oj-bind-if test="[[ $variables.apiDesc.op.report ]]"><div><span class="nx-api-lbl">Report</span><code id="apiReportPath"><oj-bind-text value="[[ $variables.apiDesc.op.reportPath ]]"></oj-bind-text></code></div></oj-bind-if>
+                <div><span class="nx-api-lbl">Login</span><span :class="[[ $functions.apiLoginClass($variables.apiDesc) ]]" id="apiLogin"><oj-bind-text value="[[ $variables.apiDesc.backend.login ]]"></oj-bind-text></span></div>
+                <div><span class="nx-api-lbl">Kind</span><span :class="[[ $variables.apiDesc.op.reads ? 'nx-api-kind' : 'nx-api-kind nx-api-kind--write' ]]" id="apiKind"><oj-bind-text value="[[ $functions.apiReads($variables.apiDesc) ]]"></oj-bind-text></span></div>
+              </div>
+              <h3 class="nx-api-h"><oj-bind-text value="[[ $variables.apiDesc.op.params.length ? 'Parameters (' + $variables.apiDesc.op.params.length + ')' : 'Parameters' ]]"></oj-bind-text></h3>
+              <div class="nx-api-params" id="apiParams">
+                <oj-bind-if test="[[ $variables.apiDesc.op.params.length === 0 ]]"><p class="nx-note">None described. Add any below.</p></oj-bind-if>
+                <oj-bind-for-each data="[[ $variables.apiDesc.op.params ]]">
+                  <template data-oj-as="p">
+                    <div class="nx-api-param">
+                      <label class="nx-api-pname"><b><oj-bind-text value="[[ p.data.name ]]"></oj-bind-text></b><span class="nx-api-pmeta"><oj-bind-text value="[[ $functions.apiPMeta(p.data) ]]"></oj-bind-text></span>
+                        <input type="text" class="nx-input nx-api-input" autocomplete="off" spellcheck="false" :data-param="[[ p.data.name ]]" :placeholder="[[ $functions.apiPlaceholder(p.data) ]]" :aria-required="[[ p.data.required ? 'true' : 'false' ]]"></label>
+                      <oj-bind-if test="[[ !!p.data.description ]]"><span class="nx-note nx-pg-block"><oj-bind-text value="[[ p.data.description ]]"></oj-bind-text></span></oj-bind-if>
+                      <oj-bind-if test="[[ $functions.apiChips($variables.apiDesc, p.data).length > 0 ]]">
+                        <div class="nx-api-chips"><oj-bind-for-each data="[[ $functions.apiChips($variables.apiDesc, p.data) ]]"><template data-oj-as="c">
+                          <button type="button" :class="[[ $functions.apiChipClass(c.data) ]]" data-act="suggest" :data-key="[[ c.data.key ]]" :title="[[ c.data.title ]]" on-click="[[ $listeners.onApi ]]"><oj-bind-text value="[[ c.data.label ]]"></oj-bind-text></button>
+                        </template></oj-bind-for-each><span class="nx-note"><oj-bind-text value="[[ $functions.apiSeenText($variables.apiDesc, p.data) ]]"></oj-bind-text></span></div>
+                      </oj-bind-if>
+                    </div>
+                  </template>
+                </oj-bind-for-each>
+              </div>
+              <label class="nx-api-pname nx-api-more"><b>More parameters</b><span class="nx-api-pmeta"><oj-bind-text value="[[ $variables.apiDesc.op.report ? 'report parameters, as P_NAME=value&P_OTHER=value' : 'added to the query, as name=value&other=value' ]]"></oj-bind-text></span>
+                <input type="text" class="nx-input nx-api-input" id="apiExtra" autocomplete="off" spellcheck="false" placeholder="name=value&amp;other=value"></label>
+              <oj-bind-if test="[[ !!$variables.apiDesc.op.body ]]">
+                <div class="nx-api-bodyhead"><h3 class="nx-api-h"><oj-bind-text value="[[ 'Body · ' + $variables.apiDesc.op.body.contentType ]]"></oj-bind-text></h3><span class="nx-min-flex"></span>
+                  <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" data-act="template" on-click="[[ $listeners.onApi ]]" title="Put back the body it starts from">Reset</button></div>
+                <textarea class="nx-api-body" id="apiBody" spellcheck="false" aria-label="Body"></textarea>
+              </oj-bind-if>
+              <div class="nx-api-send">
+                <button type="button" class="nx-btn nx-btn--primary" id="apiSend" data-act="send" on-click="[[ $listeners.onApi ]]" :disabled="[[ $variables.apiBusy ]]">
+                  <span :class="[[ $variables.apiBusy ? 'nx-spin' : 'nx-api-play' ]]" aria-hidden="true"><oj-bind-text value="[[ $variables.apiBusy ? '' : '▶' ]]"></oj-bind-text></span><oj-bind-text value="[[ $variables.apiBusy ? 'Sending…' : ($variables.apiDesc.op.report ? 'Run the report' : 'Send') ]]"></oj-bind-text></button>
+                <span class="nx-note">Ctrl+Enter sends · Esc closes</span>
+              </div>
+              <oj-bind-if test="[[ $variables.apiHist.length > 0 ]]">
+                <h3 class="nx-api-h">Its last runs</h3>
+                <ul class="nx-api-hists" id="apiHist"><oj-bind-for-each data="[[ $variables.apiHist ]]"><template data-oj-as="h">
+                  <li :class="[[ $functions.apiHistClass(h.data) ]]" :title="[[ h.data.method + ' ' + h.data.url ]]"><oj-bind-text value="[[ $functions.apiHistText(h.data) ]]"></oj-bind-text></li>
+                </template></oj-bind-for-each></ul>
+              </oj-bind-if>
+            </section>
+
+            <!-- the answer -->
+            <section class="nx-api-res" aria-label="The answer" id="apiRes">
+              <oj-bind-if test="[[ !$variables.apiRes && !$variables.apiBusy ]]">
+                <div class="nx-api-empty"><span class="nx-api-emptyico" aria-hidden="true">⇄</span>
+                  <b>Send it to see the answer here</b>
+                  <span>Its status and time, its rows as a table, the body, the headers — and whether it is still shaped like the example the page was built with.</span></div>
+              </oj-bind-if>
+              <oj-bind-if test="[[ $variables.apiBusy && !$variables.apiRes ]]"><div class="nx-api-empty"><span class="nx-spin" aria-hidden="true"></span><b>Waiting for the backend…</b></div></oj-bind-if>
+              <oj-bind-if test="[[ !!$variables.apiRes ]]">
+                <div class="nx-api-resbar">
+                  <span :class="[[ $functions.apiStatusClass($variables.apiRes) ]]" id="apiStatus"><oj-bind-text value="[[ $functions.apiStatusText($variables.apiRes) ]]"></oj-bind-text></span>
+                  <span class="nx-api-facts" id="apiFacts"><oj-bind-text value="[[ $functions.apiFacts($variables.apiRes) ]]"></oj-bind-text></span>
+                  <span class="nx-min-flex"></span>
+                  <oj-bind-if test="[[ !!$variables.apiRes.shape ]]"><button type="button" :class="[[ $functions.apiShapeClass($variables.apiRes) ]]" id="apiShapeBadge" data-act="tab" data-key="shape" on-click="[[ $listeners.onApi ]]"><oj-bind-text value="[[ $functions.apiShapeText($variables.apiRes) ]]"></oj-bind-text></button></oj-bind-if>
+                </div>
+                <div class="nx-api-url"><code><oj-bind-text value="[[ $variables.apiRes.method + ' ' + $variables.apiRes.url ]]"></oj-bind-text></code></div>
+                <oj-bind-if test="[[ !!($variables.apiRes.fault || $variables.apiRes.error) ]]"><div class="nx-api-err" id="apiErr"><oj-bind-text value="[[ $variables.apiRes.fault || $variables.apiRes.error ]]"></oj-bind-text></div></oj-bind-if>
+                <div class="nx-api-tabs" role="tablist">
+                  <button type="button" role="tab" :class="[[ $functions.apiTabClass('data', $variables.apiTab) ]]" data-act="tab" data-key="data" on-click="[[ $listeners.onApi ]]" :disabled="[[ !$variables.apiRes.table ]]"><oj-bind-text value="[[ $variables.apiRes.table ? 'Data (' + $variables.apiRes.table.total + ')' : 'Data' ]]"></oj-bind-text></button>
+                  <button type="button" role="tab" :class="[[ $functions.apiTabClass('body', $variables.apiTab) ]]" data-act="tab" data-key="body" on-click="[[ $listeners.onApi ]]"><oj-bind-text value="[[ $variables.apiRes.report ? 'Report XML' : 'Body' ]]"></oj-bind-text></button>
+                  <button type="button" role="tab" :class="[[ $functions.apiTabClass('headers', $variables.apiTab) ]]" data-act="tab" data-key="headers" on-click="[[ $listeners.onApi ]]">Headers</button>
+                  <button type="button" role="tab" :class="[[ $functions.apiTabClass('shape', $variables.apiTab) ]]" data-act="tab" data-key="shape" on-click="[[ $listeners.onApi ]]">Shape</button>
+                  <button type="button" role="tab" :class="[[ $functions.apiTabClass('curl', $variables.apiTab) ]]" data-act="tab" data-key="curl" on-click="[[ $listeners.onApi ]]">curl</button>
+                </div>
+                <div class="nx-api-view">
+                  <oj-bind-if test="[[ $variables.apiTab === 'data' && !!$variables.apiRes.table ]]">
+                    <div class="nx-note nx-api-meta" id="apiTableMeta"><oj-bind-text value="[[ $functions.apiTableMeta($variables.apiRes.table) ]]"></oj-bind-text></div>
+                    <div class="nx-api-tablewrap"><div class="nx-api-table" id="apiTable" role="table">
+                      <div class="nx-api-tr nx-api-tr--head" role="row"><oj-bind-for-each data="[[ $variables.apiRes.table.columns ]]"><template data-oj-as="col"><span class="nx-api-td" role="columnheader"><oj-bind-text value="[[ col.data ]]"></oj-bind-text></span></template></oj-bind-for-each></div>
+                      <oj-bind-for-each data="[[ $variables.apiRes.table.rows ]]"><template data-oj-as="row">
+                        <div class="nx-api-tr" role="row"><oj-bind-for-each data="[[ row.data ]]"><template data-oj-as="c"><span class="nx-api-td" role="cell"><oj-bind-text value="[[ c.data ]]"></oj-bind-text></span></template></oj-bind-for-each></div>
+                      </template></oj-bind-for-each>
+                    </div></div>
+                  </oj-bind-if>
+                  <oj-bind-if test="[[ $variables.apiTab === 'body' ]]">
+                    <div class="nx-api-viewbar"><span class="nx-note"><oj-bind-text value="[[ ($variables.apiRes.contentType || 'no content type') + ($variables.apiRes.truncated ? ' · shown cut at 400 KB' : '') ]]"></oj-bind-text></span><span class="nx-min-flex"></span>
+                      <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" data-act="copy" data-key="body" on-click="[[ $listeners.onApi ]]"><span class="oj-ux-ico-copy" aria-hidden="true"></span>Copy</button></div>
+                    <pre class="nx-api-pre" id="apiBodyOut"><oj-bind-text value="[[ $variables.apiRes.pretty || '(empty)' ]]"></oj-bind-text></pre>
+                  </oj-bind-if>
+                  <oj-bind-if test="[[ $variables.apiTab === 'headers' ]]">
+                    <dl class="nx-api-headers" id="apiHeaders"><oj-bind-for-each data="[[ $variables.apiRes.headers ]]"><template data-oj-as="hd"><dt><oj-bind-text value="[[ hd.data.k ]]"></oj-bind-text></dt><dd><oj-bind-text value="[[ hd.data.v ]]"></oj-bind-text></dd></template></oj-bind-for-each></dl>
+                  </oj-bind-if>
+                  <oj-bind-if test="[[ $variables.apiTab === 'shape' ]]">
+                    <div class="nx-api-shapeview" id="apiShape">
+                      <p><oj-bind-text value="[[ $functions.apiShapeIntro($variables.apiRes) ]]"></oj-bind-text></p>
+                      <oj-bind-if test="[[ !!$variables.apiRes.shape && $variables.apiRes.shape.missing.length > 0 ]]"><h4 class="nx-api-h nx-api-h--bad"><oj-bind-text value="[[ 'Gone from the answer (' + $variables.apiRes.shape.counts.missing + ')' ]]"></oj-bind-text></h4>
+                        <ul class="nx-api-paths"><oj-bind-for-each data="[[ $variables.apiRes.shape.missing ]]"><template data-oj-as="x"><li><code><oj-bind-text value="[[ x.data ]]"></oj-bind-text></code></li></template></oj-bind-for-each></ul></oj-bind-if>
+                      <oj-bind-if test="[[ !!$variables.apiRes.shape && $variables.apiRes.shape.changed.length > 0 ]]"><h4 class="nx-api-h nx-api-h--bad"><oj-bind-text value="[[ 'Another type now (' + $variables.apiRes.shape.counts.changed + ')' ]]"></oj-bind-text></h4>
+                        <ul class="nx-api-paths"><oj-bind-for-each data="[[ $variables.apiRes.shape.changed ]]"><template data-oj-as="x"><li><code><oj-bind-text value="[[ x.data ]]"></oj-bind-text></code></li></template></oj-bind-for-each></ul></oj-bind-if>
+                      <oj-bind-if test="[[ !!$variables.apiRes.shape && $variables.apiRes.shape.extra.length > 0 ]]"><h4 class="nx-api-h"><oj-bind-text value="[[ 'New in the answer (' + $variables.apiRes.shape.counts.extra + '): fine, the page does not read them yet' ]]"></oj-bind-text></h4>
+                        <ul class="nx-api-paths"><oj-bind-for-each data="[[ $variables.apiRes.shape.extra ]]"><template data-oj-as="x"><li><code><oj-bind-text value="[[ x.data ]]"></oj-bind-text></code></li></template></oj-bind-for-each></ul></oj-bind-if>
+                    </div>
+                  </oj-bind-if>
+                  <oj-bind-if test="[[ $variables.apiTab === 'curl' ]]">
+                    <div class="nx-api-viewbar"><span class="nx-note">The same call from a terminal (the password left out: curl asks for it).</span><span class="nx-min-flex"></span>
+                      <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" data-act="copy" data-key="curl" on-click="[[ $listeners.onApi ]]"><span class="oj-ux-ico-copy" aria-hidden="true"></span>Copy</button></div>
+                    <pre class="nx-api-pre" id="apiCurl"><oj-bind-text value="[[ $variables.apiRes.curl ]]"></oj-bind-text></pre>
+                  </oj-bind-if>
+                </div>
+              </oj-bind-if>
+            </section>
+          </div>
+        </oj-bind-if>
+      </div>
+    </oj-bind-if>
+  </dialog>
+
 </div>

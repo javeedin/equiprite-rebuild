@@ -403,6 +403,41 @@ function createDevServer(o) {
     });
   }
 
+  /** The API tester's send (lib/apiTest.js): through this server's own /__backend proxy, so a test goes where the app's
+   *  calls go, with the same login, and shows in the log like them. Resolves { status, statusText, headers, body, ms }. */
+  function sendBackend(name, rel, init) {
+    const started = Date.now();
+    const body = Buffer.from(init.body === undefined || init.body === null ? '' : String(init.body), 'utf8');
+    return new Promise((resolve) => {
+      const r = http.request({ host: '127.0.0.1', port: server.address().port, path: `/__backend/${encodeURIComponent(name)}${rel}`, method: init.method,
+        headers: Object.assign({}, init.headers, { 'content-length': String(body.length) }), timeout: BACKEND_TIMEOUT_MS + 5000 }, (pres) => {
+        const chunks = [];
+        let size = 0;
+        pres.on('data', (c) => { size += c.length; if (size <= 8 * 1024 * 1024) chunks.push(c); });
+        pres.on('end', () => resolve({ status: pres.statusCode, statusText: pres.statusMessage, headers: pres.headers, body: Buffer.concat(chunks), ms: Date.now() - started }));
+        pres.on('error', (e) => resolve({ status: 0, error: e.message, headers: {}, body: Buffer.alloc(0), ms: Date.now() - started }));
+      });
+      r.on('timeout', () => r.destroy(new Error(`no answer in ${Math.round((BACKEND_TIMEOUT_MS + 5000) / 1000)}s`)));
+      r.on('error', (e) => resolve({ status: 0, error: e.message, headers: {}, body: Buffer.alloc(0), ms: Date.now() - started }));
+      r.end(body);
+    });
+  }
+  /** Where a backend goes and with which login (the API tester shows it before anything is sent). */
+  function backendInfo(name) {
+    if (!backends[name]) loadCatalog(`http://127.0.0.1:${server.address().port}`);
+    const b = backends[name];
+    if (!b) return null;
+    const identity = o.getIdentity() || {};
+    const fusion = b.basic && b.credentials === fusionCredential(backends);
+    const jira = name === 'jira' && o.jiraStore ? o.jiraStore.auth() : null;
+    const url = overrides[name.toLowerCase()] || (jira && jira.site) || b.url;
+    const user = fusion && identity.fusion && identity.fusion.user && identity.fusion.password ? identity.fusion.user : '';
+    if (name === 'jira') return { url, login: jira ? 'Your Jira connection' : 'Jira is not connected (Jira stories → Connect Jira)', loginOk: !!jira, user: '' };
+    if (fusion) return { url, login: user ? `Your Fusion login (${user})` : 'No Fusion login yet: File → Sign in as… (Fusion will answer 401)', loginOk: !!user, user };
+    if (b.basic) return { url, login: 'Its VBCS credential, which is not on this PC (it may answer 401)', loginOk: false, user: '' };
+    return { url, login: 'None needed', loginOk: true, user: '' };
+  }
+
   function serveFile(req, res, pathname) {
     const file = safeFile(webRoot, pathname === '/' ? '/index.html' : pathname);
     if (!file) {
@@ -929,6 +964,51 @@ function createDevServer(o) {
         })().catch((e) => jsonF(200, { ok: false, error: e.message }));
         return undefined;
       }
+      if (pathname.startsWith('/__api/')) {
+        // The API tester (lib/apiTest.js), Application pages → a page → Integrations → Test: one of the page's REST calls or
+        // BI Publisher reports, sent through this server's own /__backend proxy (the app's backend, the same login). This
+        // PC only, by its own name, and only the app's own page (X-EquipRite-Api).
+        const host = String(req.headers.host || '').replace(/:\d+$/, '');
+        if (!isLoopback(req.socket.remoteAddress) || !/^(localhost|127\.0\.0\.1|\[::1\])$/.test(host)) {
+          return send(res, 404, 'text/plain; charset=utf-8', 'Not found');
+        }
+        const jsonA = (status, body) => send(res, status, 'application/json', JSON.stringify(body), { 'Cache-Control': 'no-store' });
+        if (!o.apiStore) return jsonA(200, { ok: false, error: 'The API tester needs the desktop app (or npm run serve).' });
+        const origin = req.headers.origin;
+        if (req.headers['x-equiprite-api'] !== '1' || (origin && origin !== `http://${req.headers.host}`)) {
+          return send(res, 403, 'application/json', JSON.stringify({ error: 'Refused: not from EquipRite on this PC.' }));
+        }
+        const api = o.apiStore;
+        const post = req.method === 'POST';
+        const env = { send: sendBackend, backend: backendInfo };
+        (async () => {
+          const b = post ? JSON.parse(((await readBody(req)) || '').toString('utf8') || '{}') : {};
+          const q = (k) => u.searchParams.get(k) || '';
+          if (pathname === '/__api/op' && !post) {
+            return jsonA(200, q('report') ? api.report({ path: q('report'), name: q('name'), params: q('params'), rowTag: q('rowTag') }, env) : api.op(q('endpoint'), env));
+          }
+          if (pathname === '/__api/run' && post) {
+            const r = await api.run(b, env);
+            log(`API test ${b.report ? 'report ' + (b.report.path || '') : b.endpoint} -> ${r.status !== undefined ? r.status + ' (' + r.ms + ' ms)' : (r.needsConfirm ? 'waits for confirmation' : r.error)}`);
+            return jsonA(200, r);
+          }
+          if (pathname === '/__api/check' && post) {
+            const r = await api.check(b.endpoints, env);
+            log(`API check: ${r.passed} ok, ${r.warned} differ, ${r.failed} failed, ${r.skipped} skipped`);
+            return jsonA(200, r);
+          }
+          if (pathname === '/__api/last' && post) return jsonA(200, api.last(b.keys));
+          if (pathname === '/__api/reports' && !post) {
+            const ps = o.pagesStore;
+            const c = ps && ps.code ? ps.code(q('page')) : { ok: false, error: 'The page catalog is not set up here.' };
+            if (!c.ok) return jsonA(200, c);
+            const files = c.files.map((f) => { const t = ps.codeFile(q('page'), f.path); return { path: f.path, text: t.ok ? t.text : '' }; });
+            return jsonA(200, api.reports(files, q('names').split(',').filter(Boolean), q('page').split('/')[0]));
+          }
+          return jsonA(404, { ok: false, error: 'Not found' });
+        })().catch((e) => jsonA(200, { ok: false, error: e.message }));
+        return undefined;
+      }
       if (pathname.startsWith('/__issues/')) {
         // Issues (lib/issues.js), Build.Rite's Issues screen: log an issue against a page, the AI writes it up and analyzes
         // it, approval (in the app, and an email), the agent applies it on a branch and makes the pull request, Jira kept up
@@ -1234,6 +1314,8 @@ if (require.main === module) {
     pagesStore: webApp === 'equiprite-next' ? require('./pages').open({ root: projectRoot, data: data }) : undefined,
     // saved AI analyses, in your home folder when served this way (the desktop app keeps them in its data folder)
     analysisStore: webApp === 'equiprite-next' ? require('./analyses').open({ file: path.join(require('os').homedir(), '.equiprite', 'ai-analyses.json') }) : undefined,
+    // the API tester (Application pages → Test): values and runs in your home folder, as the analyses
+    apiStore: webApp === 'equiprite-next' ? require('./apiTest').open({ root: projectRoot, file: path.join(require('os').homedir(), '.equiprite', 'api-tests.json') }) : undefined,
     onLog: (line) => console.log(line),
   })).then(({ url }) => {
     console.log(`\n${webApp === 'equiprite' ? 'New EquipRite' : 'EquipRite'} is running at ${url}  (Ctrl+C stops it)`);

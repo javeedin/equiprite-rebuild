@@ -14,6 +14,9 @@ define(['vb/action/actionChain', 'vb/action/actions', 'resources/js/pagesClient'
       if (!r.ok) { v.sheet = null; v.result = { ok: false, text: (r.body && r.body.error) || 'Could not read this page.' }; return; }
       v.sheet = r.body.sheet; v.saved = !!r.body.saved; v.codeChanged = !!r.body.codeChanged;
       v.deleted = !!r.body.deleted || (v.pages || []).some((p) => p.id === pid && p.deleted);
+      // the API tester: its calls' last runs and its reports (not waited for: the sheet shows at once)
+      v.apiLast = {}; v.apiReports = []; v.apiCheck = null;
+      Actions.callChain(context, { chain: 'apiChain', params: { act: 'load', key: '' } });
       if (v.view === 'map' || v.view === 'global') PM.redraw(); // picked on a map: the lines for the new page
       if (v.view === 'fix') await Actions.callChain(context, { chain: 'fixChain', params: { act: 'open', key: '' } }); // its fixes
       if (v.view === 'code') await Actions.callChain(context, { chain: 'codeChain', params: { act: 'open', key: '' } }); // its files

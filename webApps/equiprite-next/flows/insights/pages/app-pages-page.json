@@ -1,5 +1,5 @@
 {
-  "description": "Application pages: every Visual Builder page in the project (Old, New and Next EquipRite, Mobile, Future), each with a technical sheet read from its code — screenshot, features (sections, fields, actions, columns), business logic (action chains and rules modules), integrations (REST calls to EquipRite REST, Fusion, OIC, BI Publisher, Jira; reports; desktop services) and links — plus an AI explanation, and the Jira stories mapped to it. Kept in git (resources/pages), so everyone has the same sheets and mappings; a page mapped to another story keeps its sheet. Building a sheet, mapping, screenshots and AI text need the desktop app or npm run serve (desktop/lib/pages.js, /__pages/*).",
+  "description": "Application pages: every Visual Builder page in the project (Old, New and Next EquipRite, Mobile, Future), each with a technical sheet read from its code — screenshot, features (sections, fields, actions, columns), business logic (action chains and rules modules), integrations (REST calls to EquipRite REST, Fusion, OIC, BI Publisher, Jira; reports; desktop services) and links — plus an AI explanation, and the Jira stories mapped to it. Kept in git (resources/pages), so everyone has the same sheets and mappings; a page mapped to another story keeps its sheet. Building a sheet, mapping, screenshots and AI text need the desktop app or npm run serve (desktop/lib/pages.js, /__pages/*). Each REST call and BI Publisher report can be tested against the real backend from here (Test, Check all reads; desktop/lib/apiTest.js, /__api/*).",
   "navigation": { "embeddable": "enabled" },
   "variables": {
     "checked": { "type": "boolean", "defaultValue": false },
@@ -45,7 +45,20 @@
     "codeSel": { "type": "string", "defaultValue": "", "description": "The file shown (its path)." },
     "codeText": { "type": "string", "defaultValue": "", "description": "Its text, read only." },
     "codeFind": { "type": "string", "defaultValue": "", "description": "What is searched for in it." },
-    "codeBusy": { "type": "boolean", "defaultValue": false }
+    "codeBusy": { "type": "boolean", "defaultValue": false },
+    "apiPage": { "type": "string", "defaultValue": "", "description": "API tester (desktop/lib/apiTest.js): the page apiLast and apiReports belong to." },
+    "apiLast": { "type": "any", "defaultValue": {}, "description": "The last run of each of its calls and reports ({ key: { status, ms, ok, rows, shape, at } }), shown beside each." },
+    "apiReports": { "type": "any[]", "defaultValue": [], "description": "Its BI Publisher reports read from its code: [{ name, path, params, rowTag, key, guessed }]." },
+    "apiOpen": { "type": "string", "defaultValue": "", "description": "The call open in the tester (its endpoint, or report:<path>); '' when none." },
+    "apiDesc": { "type": "any", "defaultValue": null, "description": "What it sends: { op (parameters, body, reads), backend (address, login), saved (the values last used), suggest (values seen in answers) }." },
+    "apiHist": { "type": "any[]", "defaultValue": [], "description": "Its last runs, newest first." },
+    "apiRes": { "type": "any", "defaultValue": null, "description": "The answer: status, time, size, rows (table), pretty body, headers, shape against the example, curl." },
+    "apiTab": { "type": "string", "defaultValue": "data", "description": "The answer shown as: data (its rows), body, headers, shape, curl." },
+    "apiBusy": { "type": "boolean", "defaultValue": false },
+    "apiConfirm": { "type": "boolean", "defaultValue": false, "description": "A call that changes data waits for 'Send it'." },
+    "apiMsg": { "type": "any", "defaultValue": null, "description": "{ ok, text }: what the tester says (not sent, copied, …)." },
+    "apiCheck": { "type": "any", "defaultValue": null, "description": "Check all: { results: [{ endpoint, state: ok | warn | fail | skip, status, ms, rows, note }], passed, warned, failed, skipped }." },
+    "apiChecking": { "type": "boolean", "defaultValue": false }
   },
   "events": {
     "focusRequest": { "description": "From resources/js/shellBus.js focus(): another screen (a Jira story) handed this one a page to open.", "payloadType": "object" },
@@ -66,6 +79,10 @@
     "onFixImgClosed": { "chains": [ { "chain": "fixChain", "parameters": { "act": "{{ 'imgClosed' }}", "key": "{{ '' }}" } } ] },
     "onFixImgClick": { "chains": [ { "chain": "fixChain", "parameters": { "act": "{{ $event.target === $event.currentTarget ? 'unviewImg' : '' }}", "key": "{{ '' }}" } } ] },
     "onCode": { "chains": [ { "chain": "codeChain", "parameters": { "act": "{{ $event.currentTarget.dataset.act }}", "key": "{{ $event.currentTarget.dataset.key || '' }}" } } ] },
+    "onApi": { "chains": [ { "chain": "apiChain", "parameters": { "act": "{{ $event.currentTarget.dataset.act }}", "key": "{{ $event.currentTarget.dataset.key || '' }}" } } ] },
+    "onApiClosed": { "chains": [ { "chain": "apiChain", "parameters": { "act": "{{ 'closed' }}", "key": "{{ '' }}" } } ] },
+    "onApiClick": { "chains": [ { "chain": "apiChain", "parameters": { "act": "{{ $event.target === $event.currentTarget ? 'close' : '' }}", "key": "{{ '' }}" } } ] },
+    "onApiKey": { "chains": [ { "chain": "apiChain", "parameters": { "act": "{{ $event.key === 'Enter' && ($event.ctrlKey || $event.metaKey) ? 'send' : '' }}", "key": "{{ '' }}" } } ] },
     "onMapKey": { "chains": [ { "chain": "actChain", "parameters": { "act": "{{ $event.key === 'Enter' ? 'map' : '' }}", "key": "{{ '' }}" } } ] }
   },
   "imports": { "components": {

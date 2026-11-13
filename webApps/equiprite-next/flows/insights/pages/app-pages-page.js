@@ -7,6 +7,10 @@ define(['resources/js/pagesClient', 'resources/js/storyAnalysis', 'resources/js/
   const SHORT = { vbredwoodapp: 'OLD', equiprite: 'NEW', 'equiprite-next': 'NEXT', 'equiprite-mobile': 'MOB', 'equiprite-future': 'FUT' };
   const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const when = (at) => { const d = new Date(at); if (isNaN(d.getTime())) return ''; const p2 = (n) => (n < 10 ? '0' : '') + n; return d.getDate() + ' ' + MON[d.getMonth()] + ' ' + d.getFullYear() + ', ' + p2(d.getHours()) + ':' + p2(d.getMinutes()); };
+  /** Check all's result for one call (the API tester). */
+  /** A run's time: just the time today, else its day too. */
+  const shortWhen = (at) => { const d = new Date(at); if (isNaN(d.getTime())) return ''; const p2 = (n) => (n < 10 ? '0' : '') + n; const t = p2(d.getHours()) + ':' + p2(d.getMinutes()); return d.toDateString() === new Date().toDateString() ? t : d.getDate() + ' ' + MON[d.getMonth()] + ', ' + t; };
+  const checkOf = (check, key) => ((check && check.results) || []).filter((r) => r.endpoint === key)[0] || null;
   let shownKept = { k: '', v: [] };
   const mapKept = { page: { k: '', v: null }, app: { k: '', v: null } };
   const codeKept = { k: '', v: '' };
@@ -189,6 +193,62 @@ define(['resources/js/pagesClient', 'resources/js/storyAnalysis', 'resources/js/
       return [c.calls.length ? 'calls ' + c.calls.join(', ') : '', c.reports.length ? 'reports ' + c.reports.join(', ') : '', c.opens.length ? 'opens ' + c.opens.join(', ') : ''].filter(Boolean).join(' · ');
     }
     method(m) { const k = String(m || '').toLowerCase(); return /^(get|post|patch|put|delete)$/.test(k) ? k : 'other'; }
+
+    // ── the API tester (desktop/lib/apiTest.js; apiChain does the work) ──
+    /** A call's last run, beside it: "200 · 84 ms · 25 rows". */
+    apiLastText(last, key) {
+      const h = last && last[key];
+      return !h ? '' : (h.status ? h.status + ' · ' + h.ms + ' ms' + (h.rows !== null && h.rows !== undefined ? ' · ' + h.rows + (h.rows === 1 ? ' row' : ' rows') : '') : 'no answer') + ' · ' + shortWhen(h.at);
+    }
+    apiLastClass(last, key) { const h = last && last[key]; return 'nx-api-last nx-api-last--' + (!h ? 'none' : !h.ok ? 'fail' : (h.shape === 'differs' ? 'warn' : 'ok')); }
+    /** What Check all adds beside the last run: why a call was not run, what failed or differs, the value it used. */
+    apiCheckNote(check, key) {
+      const r = checkOf(check, key);
+      if (!r) return '';
+      if (r.state === 'skip') return '— ' + r.note;
+      const used = /^with /.test(r.note || '') ? r.note.split(' · ')[0] : '';
+      if (r.state === 'ok') return used ? '✓ ' + used : '';
+      return (r.state === 'warn' ? '⚠ ' : '✗ ') + (r.note || '');
+    }
+    apiCheckClass(check, key) { const r = checkOf(check, key); return 'nx-api-chk nx-api-chk--' + (r ? r.state : 'none'); }
+    apiCheckText(check) {
+      if (!check) return '';
+      if (check.error) return check.error;
+      return [check.passed + ' ok', check.warned ? check.warned + ' differ from the example' : '', check.failed ? check.failed + ' failed' : '', check.skipped ? check.skipped + ' not run' : ''].filter(Boolean).join(' · ');
+    }
+    apiCheckClassAll(check) { return 'nx-api-sum' + (!check ? '' : check.error || check.failed ? ' nx-api-sum--fail' : check.warned ? ' nx-api-sum--warn' : ' nx-api-sum--ok'); }
+    apiTitle(d) { return !d ? '' : (d.op.report ? d.op.reportName : d.op.operation); }
+    apiSub(d) { return !d ? '' : (d.op.report ? 'BI Publisher report · runs through bipService/runBIPReport' : (d.op.summary ? d.op.summary + ' · ' : '') + d.op.service); }
+    apiPath(d) { return !d ? '' : d.op.path; }
+    apiReads(d) { return !d ? '' : (d.op.reads ? 'Only reads' : 'Changes data: it asks you before sending'); }
+    apiPMeta(p) { return (p.in === 'report' ? 'report parameter' : p.in) + ' · ' + p.type + (p.format ? ' (' + p.format + ')' : '') + (p.required ? ' · required' : ''); }
+    apiPlaceholder(p) { return p.example ? 'e.g. ' + p.example : p.enum && p.enum.length ? 'one of the values below' : p.in === 'report' ? 'its value (empty: left out)' : (p.required ? 'required' : 'optional'); }
+    /** What can go in a box: its choices, and values seen in other answers (an id from a list → its detail). */
+    apiChips(d, p) {
+      const out = (p.enum || []).slice(0, 8).map((x) => ({ key: p.name + '=' + x, label: x, title: 'One of its values' }));
+      const s = d && d.suggest && d.suggest[p.name];
+      (s || []).forEach((x) => { if (out.length < 10) out.push({ key: p.name + '=' + x.value, label: x.value, title: 'Seen in ' + x.from }); });
+      return out;
+    }
+    apiChipClass(c) { return 'nx-api-chip' + (/^Seen/.test(c.title) ? ' nx-api-chip--seen' : ''); }
+    apiSeenText(d, p) { const s = d && d.suggest && d.suggest[p.name]; return s && s.length ? 'from ' + s[0].from.split(' · ')[0] : ''; }
+    apiStatusText(r) { return !r ? '' : (r.status ? r.status + ' ' + (r.statusText || '') : 'No answer'); }
+    apiStatusClass(r) { return 'nx-api-status nx-api-status--' + (!r || !r.status ? 'fail' : r.status < 300 && !r.fault ? 'ok' : r.status < 400 ? 'warn' : 'fail'); }
+    apiFacts(r) { return !r ? '' : [r.ms + ' ms', r.sizeText, r.table ? r.table.total + (r.table.total === 1 ? ' row' : ' rows') : '', r.report ? 'report rows <' + (r.report.rowTag || '?') + '>' : ''].filter(Boolean).join(' · '); }
+    apiShapeText(r) { return !r || !r.shape ? '' : (r.shape.status === 'same' ? '✓ Same shape as the example' : '⚠ Differs from the example'); }
+    apiShapeClass(r) { return 'nx-api-shape nx-api-shape--' + (r && r.shape ? r.shape.status : 'none'); }
+    apiShapeIntro(r) {
+      const s = r && r.shape;
+      if (!s) return 'This call has no example response saved with its service connection, so there is nothing to compare with.';
+      return (s.status === 'same' ? 'Every field of the example the page was built with is still in the answer, with the same type.' : 'The answer is not shaped like the example the page was built with: the page may show blanks or break where it reads a field that is gone.')
+        + (s.empty ? ' Its list came back empty, so the fields inside it could not be compared.' : '') + ' Compared with ' + s.basis + '.';
+    }
+    apiTabClass(tab, cur) { return 'nx-api-tab' + (tab === cur ? ' nx-api-tab--on' : ''); }
+    apiTableMeta(t) { return !t ? '' : 'Rows from ' + t.from + ' · ' + (t.shown < t.total ? 'the first ' + t.shown + ' of ' + t.total : t.total + (t.total === 1 ? ' row' : ' rows')) + (t.meta ? ' · ' + t.meta : ''); }
+    apiHistText(h) { return (h.status ? h.status : 'no answer') + ' · ' + h.ms + ' ms' + (h.rows !== null && h.rows !== undefined ? ' · ' + h.rows + ' rows' : '') + (h.shape === 'differs' ? ' · differs' : '') + ' · ' + when(h.at); }
+    apiHistClass(h) { return 'nx-api-hist nx-api-hist--' + (!h.ok ? 'fail' : h.shape === 'differs' ? 'warn' : 'ok'); }
+    apiReportMeta(r) { return (r.params.length ? 'Parameters: ' + r.params.join(', ') : 'No parameters found in its code') + (r.rowTag ? ' · rows <' + r.rowTag + '>' : '') + (r.guessed ? ' · its path is a guess (not found in the code)' : (r.file ? ' · ' + r.file.split('/').pop() : '')); }
+    apiLoginClass(d) { return 'nx-api-login' + (d && d.backend && !d.backend.loginOk ? ' nx-api-login--warn' : ''); }
     /** The AI explanation in a small styled document for its sandboxed iframe. */
     doc(text) {
       return '<!doctype html><meta charset="utf-8"><style>'

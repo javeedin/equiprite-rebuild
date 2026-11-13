@@ -237,6 +237,13 @@ async function capturePage(webApp, url) {
   }
 }
 // Saved AI analyses, for EquipRite Next's Analyze with AI: each run kept in this app's data folder (ai-analyses.json).
+// The API tester (Application pages → a page → Integrations → Test): a page's REST calls and BI Publisher reports sent
+// to the real backend through the local server's proxy; the values last used and the runs kept on this PC (lib/apiTest.js).
+let apiStoreInst = null;
+function apiStore() {
+  if (!apiStoreInst) apiStoreInst = require('./lib/apiTest').open({ root: REPO_ROOT, file: path.join(app.getPath('userData'), 'api-tests.json'), log: (l) => { try { pushLog(l); } catch (e) { console.log(l); } } });
+  return apiStoreInst;
+}
 let analysisStoreInst = null;
 function analysisStore() {
   if (!analysisStoreInst) analysisStoreInst = require('./lib/analyses').open({ file: path.join(app.getPath('userData'), 'ai-analyses.json') });
@@ -1227,6 +1234,8 @@ if (!app.requestSingleInstanceLock()) {
             fixStore: nextLike(v) ? await fixStore() : undefined,
             // Issues (Build.Rite): issue → AI write-up and analysis → approval → the agent's branch and pull request
             issuesStore: nextLike(v) ? await issuesStore() : undefined,
+            // The API tester: a page's REST calls and reports, tried against the real backend
+            apiStore: nextLike(v) ? apiStore() : undefined,
             backendOverrides: backendOverridesFromEnv(process.env),
             onLog: pushLog,
             onProblem: backendProblem,
