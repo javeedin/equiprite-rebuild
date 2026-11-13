@@ -12,11 +12,27 @@ const H = require('../_harness');
 
 const T = H.makeAsserter();
 const text = (page, sel) => page.$eval(sel, (e) => e.textContent.replace(/\s+/g, ' ').trim()).catch(() => '');
-const BUILD_SCREENS = ['issues', 'jira', 'analytics', 'minutes', 'followups', 'fdd', 'app-pages', 'fdd-library', 'flows', 'sql'];
+const BUILD_SCREENS = ['issues', 'jira', 'minutes', 'followups', 'fdd', 'app-pages', 'fdd-library', 'flows', 'sql']; // not Analytics: EquipRite's own
 
 (async () => {
   // 1. As the desktop app serves Build.Rite: a server of its own, which tells the page
-  const env = await E.start({ port: 19880, app: 'next', product: 'buildrite' });
+  // Jira (the fake backend): one story changed lately — created, moved, assigned to me, commented — and one older story
+  const H0 = Date.now();
+  const ago = (h) => new Date(H0 - h * 3600000).toISOString().replace('Z', '+0000');
+  const ME = { accountId: 'me-1', displayName: 'Priya Raman' };
+  const BEN = { accountId: 'u-2', displayName: 'Ben Ortiz' };
+  const feedIssues = [
+    { key: 'EQP-41', fields: { summary: 'Rental rates by branch', issuetype: { name: 'Story' }, status: { name: 'In Progress' }, priority: { name: 'High' }, assignee: ME, reporter: BEN, created: ago(5), updated: ago(1),
+      comment: { comments: [{ created: ago(1), author: BEN, body: 'Can we show the FDD rates too?' }] } },
+      changelog: { histories: [{ created: ago(4), author: BEN, items: [{ field: 'status', fromString: 'To Do', toString: 'In Progress' }, { field: 'assignee', to: 'me-1', toString: 'Priya Raman' }] }] } },
+    { key: 'EQP-12', fields: { summary: 'Billing totals', issuetype: { name: 'Bug' }, status: { name: 'Done' }, assignee: BEN, created: ago(300), updated: ago(30) },
+      changelog: { histories: [{ created: ago(30), author: ME, items: [{ field: 'status', fromString: 'In Review', toString: 'Done' }] }] } },
+  ];
+  const env = await E.start({ port: 19880, app: 'next', product: 'buildrite', handle: (r, res) => {
+    if (r.path === '/rest/api/2/myself') return res.json(ME);
+    if (r.path === '/rest/api/2/search/jql' && r.query.get('expand') === 'changelog') return res.json({ issues: feedIssues, isLast: true });
+    return false;
+  } });
   const page = env.page;
   const errs = () => env.errors.filter((e) => !/404|401|Failed to load resource/.test(e) && !e.startsWith('warning'));
   try {
@@ -34,6 +50,27 @@ const BUILD_SCREENS = ['issues', 'jira', 'analytics', 'minutes', 'followups', 'f
     await page.click('#nxNav [data-nav-id="sql"]');
     await page.waitForSelector('#sqlSub', { timeout: 15000 }).catch(() => {});
     T.check('…and opens the SQL worksheet (as in Next)', !!(await page.$('#sqlSub')) && !!(await page.$('.nx-tab[data-tab-id="sql"]')));
+    // the Jira updates bell: what changed in Jira lately, counted until it is opened
+    await page.waitForSelector('#nxJiraCount', { timeout: 10000 }).catch(() => {});
+    T.check('the Jira updates bell: what changed lately, counted (never opened: all 5)', (await text(page, '#nxJiraCount')) === '5', await text(page, '#nxJiraCount'));
+    await page.click('#nxJiraBell');
+    await page.waitForSelector('#nxJiraList .nx-jfeed-item', { timeout: 10000 });
+    const feed = await text(page, '#nxJiraList');
+    T.check('…opened: by day, newest first — the comment, the status change and the assignment to me (one edit, in Jira\'s order), the new story; the older story\'s change',
+      /^Today\s*EQP-41\s*Rental rates by branch\s*Can we show the FDD rates too\?\s*Ben Ortiz · \d\d:\d\d · Story · yours[\s\S]*To Do → In Progress[\s\S]*Assigned to Priya Raman[\s\S]*New story · High · for Priya Raman/.test(feed)
+      && /EQP-12\s*Billing totals\s*In Review → Done/.test(feed), feed.slice(0, 400));
+    T.check('…its kinds, with how many', /All 5\s*Mine 4\s*New 1\s*Status 2\s*Assigned 1\s*Comments 1/.test(await text(page, '#nxJiraKinds')), await text(page, '#nxJiraKinds'));
+    await page.click('#nxJiraKinds [data-key="status"]');
+    T.check('…one kind: only the status changes', (await page.$$('#nxJiraList .nx-jfeed-item')).length === 2 && !/Can we show/.test(await text(page, '#nxJiraList')));
+    await env.shot('buildrite-jira-bell.png');
+    await page.click('#nxJiraKinds [data-key="all"]');
+    await page.click('#nxJiraList .nx-jfeed-item--status:has-text("EQP-12")');
+    await page.waitForSelector('.nx-tab--on[data-tab-id="jira"]', { timeout: 10000 }).catch(() => {});
+    T.check('…an update opened: the story in Jira stories', !!(await page.$('.nx-tab--on[data-tab-id="jira"]')));
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
+    T.check('…closed: all seen, no count; kept for next time', !(await page.$('#nxJiraPanel')) && !(await page.$('#nxJiraCount')) && !!(await page.evaluate(() => localStorage.getItem('eqr.build.jiraSeen'))));
+    await page.click('.nx-tab[data-tab-id="issues"] .nx-tab-btn').catch(() => page.click('.nx-tab[data-tab-id="issues"]'));
     const tabs = await page.$$eval('.nx-tab', (t) => t.map((x) => x.getAttribute('data-tab-id') + (x.classList.contains('nx-tab--pinned') ? '*' : '')));
     T.check('Issues is the first tab, pinned (no My work)', tabs[0] === 'issues*' && tabs.indexOf('home') === -1 && tabs.indexOf('home*') === -1, tabs.join(','));
     T.check('none of the business actions: New request, Check availability, the cart, Help, the phone QR code, the bell', !(await page.$('#nxNewRequest')) && !(await page.$('#nxQa')) && !(await page.$('#nxCart')) && !(await page.$('#nxHelp')) && !(await page.$('#nxPhone')) && !(await page.$('#nxBell')));
@@ -141,7 +178,8 @@ const BUILD_SCREENS = ['issues', 'jira', 'analytics', 'minutes', 'followups', 'f
     await env2.open('/');
     await p2.waitForSelector('#nxNav [data-nav-id]', { timeout: 30000 });
     const nextItems = await p2.$$eval('#nxNav [data-nav-id]', (b) => b.map((x) => x.getAttribute('data-nav-id')));
-    T.check('Next keeps everything: the business screens and the Insights ones; its own name', nextItems.indexOf('requests') !== -1 && nextItems.indexOf('jira') !== -1 && nextItems.indexOf('app-pages') !== -1
+    T.check('Next keeps everything: the business screens and the Insights ones (Analytics too); its own name', nextItems.indexOf('requests') !== -1 && nextItems.indexOf('jira') !== -1 && nextItems.indexOf('app-pages') !== -1
+      && nextItems.indexOf('analytics') !== -1
       && !(await p2.$('#nxBrandBuild')) && /EquipRite\s*Next/.test(await text(p2, '.nx-brand')));
     await p2.click('#nxUser');
     await p2.waitForSelector('#nxGoBuild', { timeout: 10000 });

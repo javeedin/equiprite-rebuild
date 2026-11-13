@@ -1210,3 +1210,35 @@ button.nx-jira-recmark:hover, button.nx-jira-recmark:focus-visible { filter: bri
 .nx-is-builds { margin-bottom: 4px; }
 .nx-is-buildchip b { font-size: 10.5px; letter-spacing: .04em; margin-right: 2px; }
 .nx-is-picklist { max-height: 340px; overflow: auto; }
+
+/* ── Build.Rite: the Jira updates bell (resources/js/jiraFeed.js) ── */
+.nx-jfeed { width: min(520px, calc(100vw - 24px)); max-height: min(78vh, 760px); display: flex; flex-direction: column; }
+.nx-jfeed .nx-panel-head { gap: 8px; }
+.nx-jfeed-days { display: inline-flex; margin-left: auto; border: 1px solid #d7dfe6; border-radius: 999px; overflow: hidden; }
+.nx-jfeed-day { font: inherit; font-size: 12px; font-weight: 700; padding: 3px 10px; border: 0; background: #fff; color: #4b5866; cursor: pointer; }
+.nx-jfeed-day + .nx-jfeed-day { border-left: 1px solid #d7dfe6; }
+.nx-jfeed-day--on { background: #2c5266; color: #fff; }
+.nx-jfeed-kinds { display: flex; flex-wrap: wrap; gap: 5px; padding: 4px 14px 10px; border-bottom: 1px solid #eef1f4; }
+.nx-jfeed-kind { font: inherit; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; border: 1px solid #d7dfe6; background: #fff; color: #33424f; cursor: pointer; }
+.nx-jfeed-kind--on { background: #1f2d3a; border-color: #1f2d3a; color: #fff; }
+.nx-jfeed-n { font-weight: 600; opacity: .7; margin-left: 2px; }
+.nx-jfeed-list { overflow: auto; flex: 1; min-height: 0; padding: 0 6px 6px; }
+.nx-jfeed-day-h { position: sticky; top: 0; z-index: 1; background: #fff; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #6b7886; padding: 10px 8px 4px; }
+.nx-jfeed-item { display: flex; gap: 10px; width: 100%; text-align: left; font: inherit; color: #16212c; background: none; border: 0; border-radius: 10px; padding: 8px; cursor: pointer; position: relative; }
+.nx-jfeed-item:hover { background: #f2f7fa; }
+/* not seen yet (came after the bell was last opened): a tint and a dot */
+.nx-jfeed-item--unseen { background: #f3f8fd; padding-right: 24px; }
+.nx-jfeed-item--unseen::after { content: ''; position: absolute; right: 10px; top: 14px; width: 8px; height: 8px; border-radius: 50%; background: #0a7bb6; }
+.nx-jfeed-ico { flex: 0 0 28px; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-size: 15px; color: #fff; background: #5a6876; transition: transform .15s; }
+.nx-jfeed-item:hover .nx-jfeed-ico { transform: scale(1.06); }
+/* each kind its colour */
+.nx-jfeed-item--new .nx-jfeed-ico { background: #2f7d4f; } .nx-jfeed-item--status .nx-jfeed-ico { background: #0a66c9; } .nx-jfeed-item--assign .nx-jfeed-ico { background: #6d28d9; }
+.nx-jfeed-item--comment .nx-jfeed-ico { background: #0f766e; } .nx-jfeed-item--priority .nx-jfeed-ico { background: #c2410c; } .nx-jfeed-item--sprint .nx-jfeed-ico { background: #2c5266; }
+.nx-jfeed-item--attach .nx-jfeed-ico { background: #64748b; } .nx-jfeed-item--edit .nx-jfeed-ico { background: #8a5a00; }
+.nx-jfeed-body { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
+.nx-jfeed-top { display: flex; gap: 6px; align-items: baseline; min-width: 0; }
+.nx-jfeed-key { font-size: 11.5px; font-weight: 700; color: #0a5c86; flex: 0 0 auto; }
+.nx-jfeed-sum { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nx-jfeed-text { font-size: 13px; color: #1f2d3a; overflow-wrap: anywhere; }
+.nx-jfeed-meta { font-size: 11.5px; color: #6b7886; }
+.nx-jbell .nx-bell-count { background: #0a7bb6; }

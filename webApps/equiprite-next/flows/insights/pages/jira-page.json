@@ -373,6 +373,13 @@
     "onAnalyzeSet": { "chains": [ { "chain": "analyzeSetChain" } ] },
     "onActTab": { "chains": [ { "chain": "setChain", "parameters": { "field": "{{ 'actTab' }}", "value": "{{ $event.currentTarget.dataset.tab }}" } } ] },
     "onFile": { "chains": [ { "chain": "fileChain", "parameters": { "id": "{{ $event.currentTarget.dataset.id }}" } } ] },
+    "focusRequest": {
+      "chains": [
+        {
+          "chain": "focusChain"
+        }
+      ]
+    },
     "vbEnter": {
       "chains": [
         {
@@ -710,6 +717,10 @@
     }
   },
   "events": {
+    "focusRequest": {
+      "description": "Build.Rite's Jira updates bell handed this screen a story to open (shellBus.focus('jira', { key })).",
+      "payloadType": "object"
+    },
     "evidenceChanged": {
       "description": "From resources/js/testRecorder.js: a recording or screenshot was saved (or a recording began or ended).",
       "payloadType": "object"

@@ -35,7 +35,12 @@ define(['resources/js/rules'], function (rules) {
   var inProduct = function (groupKey) { return !PRODUCT.isBuild || BUILD_GROUPS.indexOf(groupKey) !== -1; };
   // an item of another group that is also one of the team's tools (buildRite: true, e.g. SQL): in Build.Rite too, listed
   // with them (after Flows explained); in EquipRite it stays where it is
-  var itemInProduct = function (it) { return !!it && (inProduct(it.group) || (PRODUCT.isBuild && !!it.buildRite)); };
+  // and an item of EquipRite's own in the Insights group (buildRite: false, e.g. Analytics) is left out of Build.Rite
+  var itemInProduct = function (it) {
+    if (!it) return false;
+    if (PRODUCT.isBuild && it.buildRite === false) return false;
+    return inProduct(it.group) || (PRODUCT.isBuild && !!it.buildRite);
+  };
 
   var GROUPS = [
     { key: 'work', label: '', items: [
@@ -98,7 +103,8 @@ define(['resources/js/rules'], function (rules) {
       // Settings for now: an existing page code, so it shows without a new COMMONRITE.RBAC_PAGES row.
       { id: 'jira', label: 'Jira stories', icon: 'oj-ux-ico-list', pageCodes: ['EQR_CONFIGURATIONS'],
         route: { flow: 'insights', page: 'jira' }, built: true, keywords: 'jira stories backlog epics sprint release analysis acceptance criteria tester gaps' },
-      { id: 'analytics', label: 'Analytics', icon: 'oj-ux-ico-chart-bar', pageCodes: ['EQR_ANALYTICS', 'EQR_REPORTS'],
+      // EquipRite's own (the business's reports), not one of the team's tools: not in Build.Rite (buildRite: false)
+      { id: 'analytics', label: 'Analytics', icon: 'oj-ux-ico-chart-bar', pageCodes: ['EQR_ANALYTICS', 'EQR_REPORTS'], buildRite: false,
         route: { flow: 'insights', page: 'analytics' }, built: true, newNav: 'analytics', keywords: 'reports utilization kpi' },
       // The daily standup on the Jira backlog, written down and kept in DuckDB on this PC (flows/insights minutes page):
       // a meeting's header and lines (tied to a story or generic) with a next action, voice→text and Format by AI, tracked

@@ -1,4 +1,4 @@
-define(['resources/js/shellBus', 'resources/js/cartDrafts', 'resources/js/requestData', 'resources/js/theme', 'resources/js/look', 'resources/js/warmup', 'resources/js/nav'], (bus, cartDrafts, requestData, theme, look, warmup, nav) => {
+define(['resources/js/shellBus', 'resources/js/cartDrafts', 'resources/js/requestData', 'resources/js/theme', 'resources/js/look', 'resources/js/warmup', 'resources/js/nav', 'resources/js/jiraFeed'], (bus, cartDrafts, requestData, theme, look, warmup, nav, jiraFeed) => {
   'use strict';
 
   // The shell's page module: the line from the screens in the tabs (shellBus) to the shell's chains, the keyboard
@@ -10,7 +10,19 @@ define(['resources/js/shellBus', 'resources/js/cartDrafts', 'resources/js/reques
   const SCOPES = [['', 'All', 'all', 'Every build'], ['vbredwoodapp', 'Old', 'old', 'Old EquipRite'], ['equiprite', 'New', 'new', 'New EquipRite'],
     ['equiprite-next', 'Next', 'next', 'EquipRite Next'], ['equiprite-mobile', 'Mobile', 'mob', 'EquipRite Mobile'], ['equiprite-future', 'Future', 'fut', 'EquipRite Future']];
 
+  const JICON = { new: 'oj-ux-ico-plus-circle', status: 'oj-ux-ico-arrow-right', assign: 'oj-ux-ico-contact', comment: 'oj-ux-ico-chat', priority: 'oj-ux-ico-flag', sprint: 'oj-ux-ico-calendar', attach: 'oj-ux-ico-attach', edit: 'oj-ux-ico-edit' };
+  let jiraKept = { k: '', v: [] };
+
   class PageModule {
+    // ── Build.Rite's Jira updates bell (resources/js/jiraFeed.js) ──
+    jiraGroups(events, kind) {
+      const k = (events || []).length + '|' + ((events || [])[0] || {}).id + '|' + kind;
+      if (jiraKept.k !== k) jiraKept = { k: k, v: jiraFeed.grouped(events, kind) };
+      return jiraKept.v;
+    }
+    jiraChips(events) { return jiraFeed.chips(events); }
+    jiraIcon(kind) { return JICON[kind] || 'oj-ux-ico-notification'; }
+    jiraItemClass(e, seen) { return 'nx-jfeed-item nx-jfeed-item--' + e.kind + (Date.parse(e.at) > (Date.parse(seen) || 0) ? ' nx-jfeed-item--unseen' : ''); }
     scopes() { return SCOPES.map((s) => ({ id: s[0], label: s[1], short: s[2], title: s[3] === 'Every build' ? 'Every build: issues and pages of all the apps' : 'Only ' + s[3] + ': its issues and pages' })); }
     constructor(context) {
       // The colours chosen on this computer, before anything is drawn (theme.js; your menu, Colours).

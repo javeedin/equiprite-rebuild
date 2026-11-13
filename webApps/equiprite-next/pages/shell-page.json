@@ -18,6 +18,15 @@
       "type": "string",
       "defaultValue": ""
     },
+    "jiraOpen": { "type": "boolean", "defaultValue": false, "description": "Build.Rite: the Jira updates panel is open." },
+    "jiraEvents": { "type": "any[]", "defaultValue": [], "description": "What changed in Jira lately (resources/js/jiraFeed.js): new stories, status changes, assignments, comments…" },
+    "jiraBusy": { "type": "boolean", "defaultValue": false },
+    "jiraError": { "type": "string", "defaultValue": "" },
+    "jiraAt": { "type": "string", "defaultValue": "", "description": "When Jira was last read (HH:MM)." },
+    "jiraDays": { "type": "number", "defaultValue": 2, "description": "How many days back: 1, 2 or 7." },
+    "jiraKind": { "type": "string", "defaultValue": "all", "description": "Which updates: all, mine, new, status, assign, comment, priority, sprint, attach, edit." },
+    "jiraSeen": { "type": "string", "defaultValue": "", "description": "When the panel was last opened (kept on this PC): what came after is new." },
+    "jiraNew": { "type": "number", "defaultValue": 0, "description": "How many updates came since it was last opened (the bell's count)." },
     "scope": {
       "type": "string",
       "defaultValue": "",
@@ -283,6 +292,10 @@
           "parameters": { "app": "{{ '?' }}" }
         },
         {
+          "chain": "jiraFeedChain",
+          "parameters": { "act": "{{ 'init' }}", "key": "{{ '' }}" }
+        },
+        {
           "chain": "lookChain"
         },
         {
@@ -304,6 +317,18 @@
       "chains": [
         {
           "chain": "loadAlertsChain"
+        },
+        {
+          "chain": "jiraFeedChain",
+          "parameters": { "act": "{{ 'refresh' }}", "key": "{{ '' }}" }
+        }
+      ]
+    },
+    "onJira": {
+      "chains": [
+        {
+          "chain": "jiraFeedChain",
+          "parameters": { "act": "{{ $event.currentTarget.dataset.act }}", "key": "{{ $event.currentTarget.dataset.key || '' }}" }
         }
       ]
     },
