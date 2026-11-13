@@ -30,9 +30,24 @@
    "what": "analyzed",
    "by": "Claude (Anthropic)",
    "detail": "Needs information"
+  },
+  {
+   "at": "2026-11-13T06:09:47.980Z",
+   "what": "commented",
+   "by": "javeed.shaik",
+   "detail": "hi , we can only change the titel"
   }
  ],
- "comments": [],
+ "comments": [
+  {
+   "id": "cmwekuj0s66f3",
+   "at": "2026-11-13T06:09:47.980Z",
+   "by": "javeed.shaik",
+   "kind": "comment",
+   "text": "hi , we can only change the titel",
+   "stage": "Analyzed"
+  }
+ ],
  "details": {
   "ai": [],
   "severity": "minor",
@@ -49,7 +64,7 @@
   "dueDate": "",
   "aiWhy": ""
  },
- "updatedAt": "2026-11-13T06:03:07.322Z",
+ "updatedAt": "2026-11-13T06:09:47.980Z",
  "formatted": {
   "title": "Change the title of the application",
   "summary": "The reporter asks for the title of the application to be changed. The request was raised from the New request page (equiprite-future/order/new-request). The new title, and exactly which title is meant, were not given.",
