@@ -11,6 +11,7 @@ define(['resources/js/jiraProgress'], (JP) => {
   const shownDays = (prog, workOnly) => ((prog && prog.days) || []).filter((d) => !workOnly || !d.weekend);
   /** A round top for the axis: 1, 2, 5, 10, 20… at or above the highest value. */
   const niceTop = (max) => { if (max <= 4) return Math.max(1, max); const p = Math.pow(10, Math.floor(Math.log10(max))); const s = [1, 2, 2.5, 5, 10].map((k) => k * p).filter((v) => v >= max)[0]; return Math.ceil(s); };
+  const this_moveRows = (g) => ((g && g.stories) || []).slice(0, 80).map((r) => ({ key: r.key, summary: r.summary, meta: [r.by, r.day + ' ' + r.time, r.type, r.status ? 'now ' + r.status : ''].filter(Boolean).join(' · ') }));
   const dayOf = (prog, sel) => { const l = (prog && prog.days) || []; return l.filter((d) => d.key === sel)[0] || l[l.length - 1] || null; };
 
   class PageModule {
@@ -38,7 +39,7 @@ define(['resources/js/jiraProgress'], (JP) => {
         { id: 'created', label: 'New', value: String(t.created), note: 'stories created' },
         { id: 'net', label: 'Net', value: net, note: t.net > 0 ? 'more closed than new' : t.net < 0 ? 'more new than closed' : 'as many closed as new' },
         { id: 'reopened', label: 'Reopened', value: String(t.reopened), note: 'moved back out of done' },
-        { id: 'touched', label: 'Stories touched', value: String(t.touched), note: plural(t.moved, 'status change') + ' · ' + plural(t.comments, 'comment') },
+        { id: 'touched', label: 'Stories touched', value: String(t.touched), note: plural(t.changes, 'status change') + ' · ' + plural(t.comments, 'comment') },
         { id: 'stuck', label: 'Stuck', value: stuckRead ? String((stuck || []).length) + (stuckMore ? '+' : '') : '—', note: 'open, no change for ' + JP.STUCK_DAYS + '+ days' + (stuckMore ? ' (the first 300)' : '') },
       ];
     }
@@ -64,7 +65,7 @@ define(['resources/js/jiraProgress'], (JP) => {
         vClosed: few && d.closed > 0 ? String(d.closed) : '', vNew: few && d.created > 0 ? String(d.created) : '',
         yClosed: pct(d.closedSoFar, topSoFar) + '%', yNew: pct(d.createdSoFar, topSoFar) + '%',
         cell: 'nx-jp-cell nx-jp-cell--' + (d.touched === 0 ? 0 : Math.min(4, 1 + Math.floor((d.touched / Math.max(1, prog.maxTouched)) * 3.999))),
-        tip: d.long + (d.today ? ' (today)' : ''), tip2: plural(d.closed, 'closed', 'closed') + ' · ' + plural(d.created, 'new', 'new') + ' · ' + plural(d.moved, 'moved', 'moved') + ' · ' + plural(d.touched, 'story', 'stories') + ' touched · ' + plural(d.comments, 'comment'),
+        tip: d.long + (d.today ? ' (today)' : ''), tip2: plural(d.closed, 'closed', 'closed') + ' · ' + plural(d.created, 'new', 'new') + ' · ' + plural(d.changes, 'status change') + ' · ' + plural(d.touched, 'story', 'stories') + ' touched · ' + plural(d.comments, 'comment'),
         tip3: 'So far: ' + d.closedSoFar + ' closed, ' + d.createdSoFar + ' new',
         aria: d.long + ': ' + d.closed + ' closed, ' + d.created + ' new, ' + d.touched + ' touched. Show the day.',
         };
@@ -96,7 +97,27 @@ define(['resources/js/jiraProgress'], (JP) => {
     /** The day shown in detail (the one chosen, else the latest). */
     day(prog, sel) { return dayOf(prog, sel); }
     dayTitle(prog, sel) { const d = dayOf(prog, sel); return d ? d.long + (d.today ? ' · today' : '') : ''; }
-    dayHead(d) { return !d ? '' : plural(d.closed, 'closed', 'closed') + ' · ' + plural(d.created, 'new', 'new') + ' · ' + plural(d.reopened, 'reopened', 'reopened') + ' · ' + plural(d.moved, 'move') + ' · ' + plural(d.touched, 'story', 'stories') + ' touched · ' + plural(d.comments, 'comment'); }
+    dayHead(d) { return !d ? '' : plural(d.closed, 'closed', 'closed') + ' · ' + plural(d.created, 'new', 'new') + ' · ' + plural(d.reopened, 'reopened', 'reopened') + ' · ' + plural(d.changes, 'status change') + ' · ' + plural(d.touched, 'story', 'stories') + ' touched · ' + plural(d.comments, 'comment'); }
+
+    // ── status movements: each change of status, counted by from → to (the day's, and the window's), with its stories ──
+    movesHead(d) { return !d ? '' : 'Status changes · ' + d.changes + ' (' + plural(d.movedStories, 'story', 'stories') + ')'; }
+    /** The day's movements as chips: from → to, how many; the one chosen marked. */
+    dayMoves(d, move) { return ((d && d.moves) || []).map((g) => ({ id: g.id, from: g.from, to: g.to, n: String(g.n), cls: 'nx-jp-mchip nx-jp-mchip--' + g.kind + (g.id === move ? ' nx-jp-mchip--on' : ''), pressed: g.id === move ? 'true' : 'false',
+      title: g.id + ': ' + plural(g.n, 'change') + ' of ' + plural(g.storyCount, 'story', 'stories') + (g.kind === 'closed' ? ' (closing)' : g.kind === 'reopened' ? ' (reopening)' : '') + ' — show them' })); }
+    into(list) { return (list || []).map((x) => ({ status: x.status, n: String(x.n) })); }
+    moveSel(d, move) { return ((d && d.moves) || []).filter((g) => g.id === move)[0] || null; }
+    moveTitle(g) { return !g ? '' : g.id + ' · ' + plural(g.n, 'change') + ' · ' + plural(g.storyCount, 'story', 'stories') + (g.kind === 'closed' ? ' · closing' : g.kind === 'reopened' ? ' · reopening' : ''); }
+    moveBy(g) { return !g ? '' : 'By ' + g.people.map((x) => x.name + ' (' + x.n + ')').join(', '); }
+    moveRows(g, withDay) { return ((g && g.stories) || []).slice(0, 80).map((r) => ({ key: r.key, summary: r.summary, meta: [r.by, withDay ? r.day + ' ' + r.time : r.time, r.type, r.status ? 'now ' + r.status : ''].filter(Boolean).join(' · ') })); }
+    /** The window's movements, a row each: its count as a bar (of the most), its stories, who moved them most. */
+    windowMoves(prog) {
+      const l = (prog && prog.moves) || [];
+      const top = l.reduce((m, g) => Math.max(m, g.n), 0);
+      return l.map((g) => ({ id: g.id, from: g.from, to: g.to, n: String(g.n), stories: plural(g.storyCount, 'story', 'stories'), pct: pct(g.n, top) + '%',
+        tag: g.kind === 'closed' ? 'closing' : g.kind === 'reopened' ? 'reopening' : '', who: g.people.slice(0, 2).map((x) => x.name + ' (' + x.n + ')').join(', ') + (g.people.length > 2 ? ' +' + (g.people.length - 2) : ''),
+        rows: this_moveRows(g) }));
+    }
+    windowMovesHead(prog) { return !prog ? '' : 'Status movements · ' + prog.totals.changes + ' changes of ' + plural(prog.totals.movedStories, 'story', 'stories'); }
     sections(d) {
       if (!d) return [];
       return SECT.map((s) => ({ id: s[0], title: s[1], n: d.stories[s[0]].length, cls: 'nx-jp-sec nx-jp-sec--' + s[0],

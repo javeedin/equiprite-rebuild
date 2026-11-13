@@ -58,12 +58,14 @@ define([
         if (l.length && !l.some((d) => d.key === v.sel)) v.sel = l[l.length - 1].key;
         return;
       }
-      if (act === 'day') { v.sel = String(key || ''); return; }
+      if (act === 'day') { if (v.sel !== String(key || '')) v.move = ''; v.sel = String(key || ''); return; }
+      // a status movement of the day: its stories shown (again: hidden)
+      if (act === 'move') { v.move = !key || v.move === key ? '' : String(key); return; }
       if (act === 'prev' || act === 'next') {
         const l = shown();
         const i = l.findIndex((d) => d.key === v.sel);
         const j = i === -1 ? l.length - 1 : i + (act === 'prev' ? -1 : 1);
-        if (l[j]) v.sel = l[j].key;
+        if (l[j]) { v.sel = l[j].key; v.move = ''; }
         return;
       }
       if (act === 'open' && key) { bus.focus('jira', { key: String(key) }); return; }

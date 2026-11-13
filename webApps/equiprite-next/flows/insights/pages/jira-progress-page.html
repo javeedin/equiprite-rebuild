@@ -143,6 +143,41 @@
       </section>
     </div>
 
+    <!-- the window's status movements: every change of status, by from → to, counted; open one for its stories -->
+    <section class="nx-card nx-jp-card" id="jpMovesAll" aria-labelledby="jpMovesAllTitle">
+      <div class="nx-card-head"><h2 id="jpMovesAllTitle"><oj-bind-text value="[[ $functions.windowMovesHead($variables.prog) ]]"></oj-bind-text></h2><span class="nx-note">every change of status in these days, by from → to — open one for its stories</span></div>
+      <oj-bind-if test="[[ $functions.windowMoves($variables.prog).length === 0 ]]"><div class="nx-empty">No story changed status in these days.</div></oj-bind-if>
+      <oj-bind-if test="[[ $functions.windowMoves($variables.prog).length > 0 ]]">
+        <div class="nx-jp-into nx-jp-into--all" id="jpIntoAll"><span class="nx-jp-intolbl">Into</span><oj-bind-for-each data="[[ $functions.into($variables.prog.into) ]]"><template data-oj-as="x"><span class="nx-jp-intochip"><oj-bind-text value="[[ x.data.status ]]"></oj-bind-text> <b><oj-bind-text value="[[ x.data.n ]]"></oj-bind-text></b></span></template></oj-bind-for-each></div>
+        <div class="nx-jp-mlist" id="jpMoveRows">
+          <div class="nx-jp-mtr nx-jp-mth" aria-hidden="true"><span>From → to</span><span>Changes</span><span>Stories</span><span>Moved most by</span></div>
+          <oj-bind-for-each data="[[ $functions.windowMoves($variables.prog) ]]">
+            <template data-oj-as="m">
+              <details class="nx-jp-mrow" :data-move="[[ m.data.id ]]">
+                <summary class="nx-jp-mtr">
+                  <span class="nx-jp-mlabel"><span class="nx-jp-mfrom"><oj-bind-text value="[[ m.data.from ]]"></oj-bind-text></span><span class="nx-jp-marrow" aria-hidden="true">→</span><span class="nx-jp-mto"><oj-bind-text value="[[ m.data.to ]]"></oj-bind-text></span>
+                    <oj-bind-if test="[[ !!m.data.tag ]]"><span class="nx-jp-mtag"><oj-bind-text value="[[ m.data.tag ]]"></oj-bind-text></span></oj-bind-if></span>
+                  <span class="nx-jp-mbarcell"><span class="nx-jp-mbar" :style.width="[[ m.data.pct ]]"></span><b class="nx-jp-mcount"><oj-bind-text value="[[ m.data.n ]]"></oj-bind-text></b></span>
+                  <span class="nx-note"><oj-bind-text value="[[ m.data.stories ]]"></oj-bind-text></span>
+                  <span class="nx-note nx-jp-mwho"><oj-bind-text value="[[ m.data.who ]]"></oj-bind-text></span>
+                </summary>
+                <div class="nx-jp-mstories">
+                  <oj-bind-for-each data="[[ m.data.rows ]]">
+                    <template data-oj-as="r">
+                      <button type="button" class="nx-jp-row" data-act="open" :data-key="[[ r.data.key ]]" on-click="[[ $listeners.onAct ]]" :title="[[ 'Open ' + r.data.key + ' in Jira stories' ]]">
+                        <code class="nx-jp-key"><oj-bind-text value="[[ r.data.key ]]"></oj-bind-text></code>
+                        <span class="nx-jp-rowbody"><span class="nx-jp-sum"><oj-bind-text value="[[ r.data.summary ]]"></oj-bind-text></span><span class="nx-jp-meta"><oj-bind-text value="[[ r.data.meta ]]"></oj-bind-text></span></span>
+                      </button>
+                    </template>
+                  </oj-bind-for-each>
+                </div>
+              </details>
+            </template>
+          </oj-bind-for-each>
+        </div>
+      </oj-bind-if>
+    </section>
+
     <!-- the day, in detail -->
     <section class="nx-card nx-jp-card nx-jp-daycard" id="jpDay" aria-labelledby="jpDayTitle">
       <div class="nx-card-head">
@@ -154,6 +189,36 @@
         <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" id="jpCopyDay" data-act="copyDay" on-click="[[ $listeners.onAct ]]"><span class="oj-ux-ico-copy" aria-hidden="true"></span>Copy the day</button>
       </div>
       <p class="nx-jp-lede" id="jpDayCounts"><oj-bind-text value="[[ $functions.dayHead($functions.day($variables.prog, $variables.sel)) ]]"></oj-bind-text></p>
+      <!-- the day's status changes, counted by from → to; one chosen: its stories, who, when -->
+      <oj-bind-if test="[[ $functions.dayMoves($functions.day($variables.prog, $variables.sel), $variables.move).length > 0 ]]">
+        <div class="nx-jp-moves" id="jpMoves">
+          <div class="nx-jp-moveshead"><b id="jpMovesHead"><oj-bind-text value="[[ $functions.movesHead($functions.day($variables.prog, $variables.sel)) ]]"></oj-bind-text></b>
+            <span class="nx-jp-into" id="jpInto"><span class="nx-jp-intolbl">Into</span><oj-bind-for-each data="[[ $functions.into($functions.day($variables.prog, $variables.sel).into) ]]"><template data-oj-as="x"><span class="nx-jp-intochip"><oj-bind-text value="[[ x.data.status ]]"></oj-bind-text> <b><oj-bind-text value="[[ x.data.n ]]"></oj-bind-text></b></span></template></oj-bind-for-each></span></div>
+          <div class="nx-jp-mchips" id="jpMoveChips" role="group" aria-label="Status changes by from and to">
+            <oj-bind-for-each data="[[ $functions.dayMoves($functions.day($variables.prog, $variables.sel), $variables.move) ]]">
+              <template data-oj-as="m">
+                <button type="button" :class="[[ m.data.cls ]]" data-act="move" :data-key="[[ m.data.id ]]" on-click="[[ $listeners.onAct ]]" :aria-pressed="[[ m.data.pressed ]]" :title="[[ m.data.title ]]">
+                  <span class="nx-jp-mfrom"><oj-bind-text value="[[ m.data.from ]]"></oj-bind-text></span><span class="nx-jp-marrow" aria-hidden="true">→</span><span class="nx-jp-mto"><oj-bind-text value="[[ m.data.to ]]"></oj-bind-text></span><span class="nx-jp-mn"><oj-bind-text value="[[ m.data.n ]]"></oj-bind-text></span></button>
+              </template>
+            </oj-bind-for-each>
+          </div>
+          <oj-bind-if test="[[ !!$functions.moveSel($functions.day($variables.prog, $variables.sel), $variables.move) ]]">
+            <div class="nx-jp-movelist" id="jpMoveList">
+              <div class="nx-jp-movelisthead"><b><oj-bind-text value="[[ $functions.moveTitle($functions.moveSel($functions.day($variables.prog, $variables.sel), $variables.move)) ]]"></oj-bind-text></b>
+                <span class="nx-note"><oj-bind-text value="[[ $functions.moveBy($functions.moveSel($functions.day($variables.prog, $variables.sel), $variables.move)) ]]"></oj-bind-text></span>
+                <button type="button" class="nx-iconbtn nx-iconbtn--sm" id="jpMoveClose" data-act="move" data-key="" on-click="[[ $listeners.onAct ]]" aria-label="Close"><span class="oj-ux-ico-close" aria-hidden="true"></span></button></div>
+              <oj-bind-for-each data="[[ $functions.moveRows($functions.moveSel($functions.day($variables.prog, $variables.sel), $variables.move), false) ]]">
+                <template data-oj-as="r">
+                  <button type="button" class="nx-jp-row" data-act="open" :data-key="[[ r.data.key ]]" on-click="[[ $listeners.onAct ]]" :title="[[ 'Open ' + r.data.key + ' in Jira stories' ]]">
+                    <code class="nx-jp-key"><oj-bind-text value="[[ r.data.key ]]"></oj-bind-text></code>
+                    <span class="nx-jp-rowbody"><span class="nx-jp-sum"><oj-bind-text value="[[ r.data.summary ]]"></oj-bind-text></span><span class="nx-jp-meta"><oj-bind-text value="[[ r.data.meta ]]"></oj-bind-text></span></span>
+                  </button>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </oj-bind-if>
+        </div>
+      </oj-bind-if>
       <oj-bind-if test="[[ $functions.sections($functions.day($variables.prog, $variables.sel)).length === 0 ]]"><div class="nx-empty" id="jpDayNone">Nothing moved in Jira on this day.</div></oj-bind-if>
       <div class="nx-jp-secs" id="jpSecs">
         <oj-bind-for-each data="[[ $functions.sections($functions.day($variables.prog, $variables.sel)) ]]">
@@ -197,12 +262,12 @@
     <details class="nx-card nx-jp-card nx-jp-numbers" id="jpNumbers">
       <summary class="nx-card-head"><h2>The numbers, day by day</h2><span class="nx-note">newest first</span></summary>
       <div class="nx-jp-table nx-jp-table--days" role="table" aria-label="The numbers, day by day">
-        <div class="nx-jp-tr nx-jp-th" role="row"><span role="columnheader">Day</span><span role="columnheader">Closed</span><span role="columnheader">New</span><span role="columnheader">Reopened</span><span role="columnheader">Moves</span><span role="columnheader">Touched</span><span role="columnheader">Comments</span><span role="columnheader">Closed so far</span></div>
+        <div class="nx-jp-tr nx-jp-th" role="row"><span role="columnheader">Day</span><span role="columnheader">Closed</span><span role="columnheader">New</span><span role="columnheader">Reopened</span><span role="columnheader">Status changes</span><span role="columnheader">Touched</span><span role="columnheader">Comments</span><span role="columnheader">Closed so far</span></div>
         <oj-bind-for-each data="[[ $functions.numbers($variables.prog, $variables.workOnly) ]]">
           <template data-oj-as="d">
             <div class="nx-jp-tr" role="row"><span role="cell"><oj-bind-text value="[[ d.data.long ]]"></oj-bind-text></span><span role="cell" class="nx-jp-num"><oj-bind-text value="[[ d.data.closed ]]"></oj-bind-text></span>
               <span role="cell" class="nx-jp-num"><oj-bind-text value="[[ d.data.created ]]"></oj-bind-text></span><span role="cell" class="nx-jp-num"><oj-bind-text value="[[ d.data.reopened ]]"></oj-bind-text></span>
-              <span role="cell" class="nx-jp-num"><oj-bind-text value="[[ d.data.moved ]]"></oj-bind-text></span><span role="cell" class="nx-jp-num"><oj-bind-text value="[[ d.data.touched ]]"></oj-bind-text></span>
+              <span role="cell" class="nx-jp-num"><oj-bind-text value="[[ d.data.changes ]]"></oj-bind-text></span><span role="cell" class="nx-jp-num"><oj-bind-text value="[[ d.data.touched ]]"></oj-bind-text></span>
               <span role="cell" class="nx-jp-num"><oj-bind-text value="[[ d.data.comments ]]"></oj-bind-text></span><span role="cell" class="nx-jp-num"><oj-bind-text value="[[ d.data.closedSoFar ]]"></oj-bind-text></span></div>
           </template>
         </oj-bind-for-each>

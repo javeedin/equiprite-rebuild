@@ -53,6 +53,37 @@ define([], function () {
     return function (status) { var k = txt(status).trim().toLowerCase(); return Object.prototype.hasOwnProperty.call(m, k) ? m[k] : DONE_NAME.test(k); };
   }
 
+  var isMove = function (e) { return e.kind === 'closed' || e.kind === 'moved' || e.kind === 'reopened'; };
+  /**
+   * Status movements, by from → to, most first: [{ id: 'TEST → Done', from, to, kind (closed | reopened | moved), n (changes),
+   * storyCount, people: [{ name, n }], stories: [{ key, summary, type, status, by, time, day, at }] (newest first) }].
+   */
+  function movesOf(events) {
+    var m = {};
+    (events || []).forEach(function (e) {
+      var id = (e.from || '—') + ' → ' + (e.to || '—');
+      var g = m[id] || (m[id] = { id: id, from: e.from || '—', to: e.to || '—', kind: e.kind, n: 0, keys: {}, who: {}, stories: [] });
+      g.n++;
+      g.keys[e.key] = true;
+      if (e.by) g.who[e.by] = (g.who[e.by] || 0) + 1;
+      g.stories.push({ key: e.key, summary: e.summary || '', type: e.type || '', status: e.status || '', by: e.by || '', time: e.time || '', day: e.day || '', at: e.at });
+    });
+    return Object.keys(m).map(function (k) {
+      var g = m[k];
+      g.storyCount = Object.keys(g.keys).length;
+      g.people = Object.keys(g.who).map(function (w) { return { name: w, n: g.who[w] }; }).sort(function (a, b) { return b.n - a.n || (a.name < b.name ? -1 : 1); });
+      delete g.keys; delete g.who;
+      g.stories.sort(function (a, b) { return b.at - a.at; });
+      return g;
+    }).sort(function (a, b) { return b.n - a.n || (a.id < b.id ? -1 : 1); });
+  }
+  /** How many changes went into each status, most first: [{ status, n }]. */
+  function intoOf(moves) {
+    var m = {};
+    (moves || []).forEach(function (g) { m[g.to] = (m[g.to] || 0) + g.n; });
+    return Object.keys(m).map(function (k) { return { status: k, n: m[k] }; }).sort(function (a, b) { return b.n - a.n || (a.status < b.status ? -1 : 1); });
+  }
+
   /** The window's days, oldest first: { key, at (its midnight), label, weekend, today } — the last n days to `end` (today). */
   function daysOf(n, now, end) {
     var out = [];
@@ -135,7 +166,8 @@ define([], function () {
     });
     var soFarClosed = 0, soFarCreated = 0;
     var touchedAll = {};
-    var tot = { closed: 0, created: 0, reopened: 0, moved: 0, comments: 0, assigned: 0 };
+    var tot = { closed: 0, created: 0, reopened: 0, moved: 0, changes: 0, comments: 0, assigned: 0 };
+    var allMoves = [];
     days.forEach(function (d) {
       var stories = Object.keys(d.byStory).map(function (k) { var s = d.byStory[k]; s.what.sort(function (a, b) { return a.at - b.at; }); return s; });
       var has = function (s, kind) { return s.what.some(function (w) { return w.kind === kind; }); };
@@ -163,6 +195,14 @@ define([], function () {
       soFarClosed += d.closed; soFarCreated += d.created;
       d.closedSoFar = soFarClosed; d.createdSoFar = soFarCreated;
       stories.forEach(function (s) { touchedAll[s.key] = true; });
+      // its status movements: every change of status (closing, reopening, the rest), by from → to, with the stories
+      var mv = d.events.filter(isMove).map(function (e) { var s = d.byStory[e.key] || {}; return Object.assign({}, e, { summary: s.summary, type: s.type, status: s.status, day: d.label }); });
+      d.changes = mv.length;
+      d.moves = movesOf(mv);
+      d.into = intoOf(d.moves);
+      d.movedStories = Object.keys(mv.reduce(function (o, e) { o[e.key] = true; return o; }, {})).length;
+      allMoves = allMoves.concat(mv);
+      tot.changes += d.changes;
       tot.closed += d.closed; tot.created += d.created; tot.reopened += d.reopened; tot.moved += d.moved; tot.comments += d.comments; tot.assigned += d.assigned;
       delete d.byStory;
     });
@@ -178,7 +218,10 @@ define([], function () {
     var max = days.reduce(function (m, d) { return Math.max(m, d.closed, d.created); }, 0);
     var maxTouched = days.reduce(function (m, d) { return Math.max(m, d.touched); }, 0);
     var maxSoFar = Math.max(soFarClosed, soFarCreated);
+    var moves = movesOf(allMoves);
+    tot.movedStories = Object.keys(allMoves.reduce(function (o, e) { o[e.key] = true; return o; }, {})).length;
     return { days: days, totals: tot, people: list, max: max, maxTouched: maxTouched, maxSoFar: maxSoFar, from: days[0].key, to: days[days.length - 1].key, n: n, read: (issues || []).length,
+      moves: moves, into: intoOf(moves),
       custom: w.custom, endsToday: days[days.length - 1].today };
   }
 
@@ -204,7 +247,8 @@ define([], function () {
     if (!d) return '';
     var row = function (s) { return '  ' + s.key + ' ' + s.summary + (s.text ? ' — ' + s.text : '') + (s.by ? ' (' + s.by + ')' : ''); };
     var part = function (title, l) { return l.length ? [title + ' (' + l.length + '):'].concat(l.map(row)) : []; };
-    return [d.long + ' — Jira ' + (project || PROJECT) + ': ' + d.closed + ' closed · ' + d.created + ' new · ' + d.moved + ' moved · ' + d.touched + ' stories touched · ' + d.comments + ' comment' + (d.comments === 1 ? '' : 's')]
+    return [d.long + ' — Jira ' + (project || PROJECT) + ': ' + d.closed + ' closed · ' + d.created + ' new · ' + d.changes + ' status change' + (d.changes === 1 ? '' : 's') + ' · ' + d.touched + ' stories touched · ' + d.comments + ' comment' + (d.comments === 1 ? '' : 's')]
+      .concat(d.moves.length ? ['Status changes (' + d.changes + '): ' + d.moves.map(function (g) { return g.id + ' ' + g.n; }).join(', ')] : [])
       .concat(part('Closed', d.stories.closed), part('New', d.stories.created), part('Reopened', d.stories.reopened), part('Moved', d.stories.moved),
         d.stories.updated.length ? ['Updated: ' + d.stories.updated.map(function (s) { return s.key; }).join(', ')] : []).join('\n');
   }
@@ -217,13 +261,14 @@ define([], function () {
       + (tt.net > 0 ? '+' : '') + tt.net + '), ' + tt.reopened + ' reopened, ' + tt.touched + ' stories touched; ' + tt.perDay + ' closed a working day.';
     var lines = [head];
     if (tt.best) lines.push('Best day: ' + tt.best.label + ' (' + tt.best.closed + ' closed).');
+    if (p.moves && p.moves.length) lines.push('Status changes: ' + tt.changes + ' (' + tt.movedStories + ' stories) — ' + p.moves.slice(0, 6).map(function (g) { return g.id + ' ' + g.n; }).join(', ') + (p.moves.length > 6 ? '…' : '') + '.');
     var top = p.people.filter(function (x) { return x.closed > 0; }).slice(0, 3);
     if (top.length) lines.push('Closed most: ' + top.map(function (x) { return x.name + ' (' + x.closed + ')'; }).join(', ') + '.');
     if (stuck && stuck.length) lines.push('Stuck (open, no change for ' + STUCK_DAYS + '+ days): ' + stuck.length + (stuck.more ? '+' : '') + ' — ' + stuck.slice(0, 5).map(function (s) { return s.key + ' (' + s.quiet + ' d)'; }).join(', ') + (stuck.length > 5 ? '…' : '') + '.');
     lines.push('');
     p.days.slice().reverse().forEach(function (d) {
       if (!d.touched && d.weekend) return;
-      lines.push(d.label + ': ' + d.closed + ' closed · ' + d.created + ' new · ' + d.moved + ' moved · ' + d.touched + ' touched' + (d.closed ? ' — ' + d.stories.closed.map(function (s) { return s.key; }).join(', ') : ''));
+      lines.push(d.label + ': ' + d.closed + ' closed · ' + d.created + ' new · ' + d.changes + ' status change' + (d.changes === 1 ? '' : 's') + ' · ' + d.touched + ' touched' + (d.closed ? ' — ' + d.stories.closed.map(function (s) { return s.key; }).join(', ') : ''));
     });
     return lines.join('\n');
   }
@@ -281,6 +326,6 @@ define([], function () {
     return { ok: true, progress: progressOf(issues, { days: days, now: now, from: range && range.from, to: range && range.to }), stuck: stuck, stuckRead: stuckOk, stuckMore: stuckMore, message: '', more: !!token };
   }
 
-  return { progressOf: progressOf, stuckOf: stuckOf, dayText: dayText, periodText: periodText, windowText: windowText, jql: jql, stuckJql: stuckJql, load: load, daysOf: daysOf, dayKey: dayKey,
+  return { progressOf: progressOf, stuckOf: stuckOf, movesOf: movesOf, dayText: dayText, periodText: periodText, windowText: windowText, jql: jql, stuckJql: stuckJql, load: load, daysOf: daysOf, dayKey: dayKey,
     parseDay: parseDay, plain: plain, RANGES: RANGES, STUCK_DAYS: STUCK_DAYS, MAX_SPAN: MAX_SPAN, PROJECT: PROJECT };
 });

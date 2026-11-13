@@ -94,16 +94,37 @@ const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     T.check('…the legend names both; the stories touched under each day', /Closed\s*New/.test(await text(page, '#jpChart .nx-jp-legend')) && (await page.$$('#jpStrip .nx-jp-cell')).length === 14 && (await text(page, '#jpStrip .nx-jp-cell:last-child')) === '4');
     await page.hover('#jpCols .nx-jp-col:nth-child(9)');
     await page.waitForTimeout(200);
-    T.check('a column\'s tooltip: the day, closed, new, moved, touched, comments; so far', /^.+ \d{4}\s*4 closed · 1 new · \d+ moved · \d+ stories touched · \d+ comments?\s*So far: \d+ closed, \d+ new$/.test(await text(page, '#jpCols .nx-jp-col:nth-child(9) .nx-jp-tip'))
+    T.check('a column\'s tooltip: the day, closed, new, moved, touched, comments; so far', /^.+ \d{4}\s*4 closed · 1 new · \d+ status changes? · \d+ stories touched · \d+ comments?\s*So far: \d+ closed, \d+ new$/.test(await text(page, '#jpCols .nx-jp-col:nth-child(9) .nx-jp-tip'))
       && await page.isVisible('#jpCols .nx-jp-col:nth-child(9) .nx-jp-tip'), await text(page, '#jpCols .nx-jp-col:nth-child(9) .nx-jp-tip'));
     await env.shot('jira-progress-hover.png');
 
     T.section('the day in detail');
     T.check('today first: its counts; closed, new, moved — each story with what happened, who, when', (await text(page, '#jpDayTitle')) === long(0) + ' · today'
-      && /^2 closed · 1 new · 0 reopened · \d+ moves? · \d+ stories touched · \d+ comments?$/.test(await text(page, '#jpDayCounts'))
+      && /^2 closed · 1 new · 0 reopened · 3 status changes · \d+ stories touched · \d+ comments?$/.test(await text(page, '#jpDayCounts'))
       && (await page.$$('#jpSecs [data-sec="closed"] .nx-jp-row')).length === 2 && /In Review → Done/.test(await text(page, '#jpSecs [data-sec="closed"]'))
       && /Rental rates by branch\s*To Do → In Progress\s*Priya Raman · 11:00 · Story · now In Progress/.test(await text(page, '#jpSecs [data-sec="moved"]')) && (await page.$$('#jpSecs [data-sec="created"] .nx-jp-row')).length === 1,
       await text(page, '#jpDayCounts') + ' | ' + await text(page, '#jpSecs'));
+    const chips = await page.$$eval('#jpMoveChips .nx-jp-mchip', (l) => l.map((x) => x.textContent.replace(/\s+/g, ' ').trim()));
+    T.check('today\'s status changes, counted by from → to (most first; closing ones marked), and into each status', (await text(page, '#jpMovesHead')) === 'Status changes · 3 (3 stories)'
+      && chips.map((c) => c.replace(/\s+/g, '')).join('|') === 'InReview→Done2|ToDo→InProgress1' && !!(await page.$('#jpMoveChips .nx-jp-mchip--closed')) && /^Into\s*Done 2\s*In Progress 1$/.test(await text(page, '#jpInto')), chips.join(' | ') + ' / ' + await text(page, '#jpInto'));
+    await page.click('#jpMoveChips .nx-jp-mchip');
+    await page.waitForSelector('#jpMoveList', { timeout: 3000 }).catch(() => {});
+    T.check('…a count clicked: its stories — who moved each, when, where it is now', /^In Review → Done · 2 changes · 2 stories · closing/.test(await text(page, '#jpMoveList .nx-jp-movelisthead'))
+      && /By \w+ \w+ \(1\), \w+ \w+ \(1\)/.test(await text(page, '#jpMoveList .nx-jp-movelisthead')) && (await page.$$('#jpMoveList .nx-jp-row')).length === 2
+      && /Closed story \d+\s*\w+ \w+ · 1[01]:00 · (Story|Bug) · now Done/.test(await text(page, '#jpMoveList')) && (await page.getAttribute('#jpMoveChips .nx-jp-mchip', 'aria-pressed')) === 'true', await text(page, '#jpMoveList'));
+    await env.shot('jira-progress-moves.png');
+    await page.click('#jpMoveChips .nx-jp-mchip');
+    await page.waitForTimeout(150);
+    T.check('…clicked again: closed', !(await page.$('#jpMoveList')));
+    const mrows = await page.$$eval('#jpMoveRows .nx-jp-mrow > summary', (l) => l.map((x) => x.textContent.replace(/\s+/g, ' ').trim()));
+    T.check('these days\' status movements: 44 changes of 23 stories, most first — a count and a bar each, how many stories, who moved most', (await text(page, '#jpMovesAllTitle')) === 'Status movements · 44 changes of 23 stories'
+      && /^In Review\s*→\s*Done\s*closing\s*22\s*22 stories\s*\S/.test(mrows[0]) && /^In Progress\s*→\s*In Review\s*21\s*21 stories/.test(mrows[1]) && /^To Do\s*→\s*In Progress\s*1\s*1 story\s*Priya Raman \(1\)$/.test(mrows[2]) && mrows.length === 3
+      && /^Into\s*Done 22\s*In Review 21\s*In Progress 1$/.test(await text(page, '#jpIntoAll')) && (await page.$eval('#jpMoveRows .nx-jp-mrow .nx-jp-mbar', (e) => e.style.width)) === '100%', mrows.join(' | '));
+    await page.click('#jpMoveRows .nx-jp-mrow:nth-of-type(1) > summary');
+    await page.waitForTimeout(150);
+    T.check('…opened: its 22 stories, each with its day, who and when', (await page.$$('#jpMoveRows .nx-jp-mrow[open] .nx-jp-row')).length === 22
+      && new RegExp(long(0).replace(/ \d{4}$/, '') + ' 1[01]:00').test(await text(page, '#jpMoveRows .nx-jp-mrow[open] .nx-jp-row .nx-jp-meta')), await text(page, '#jpMoveRows .nx-jp-mrow[open] .nx-jp-row .nx-jp-meta'));
+    await page.click('#jpMoveRows .nx-jp-mrow:nth-of-type(1) > summary');
     await page.click('#jpCols .nx-jp-col:nth-child(9)');
     await page.waitForTimeout(200);
     T.check('a column clicked: its day — 4 closed, each by who closed it', (await text(page, '#jpDayTitle')) === long(5) && (await page.$$('#jpSecs [data-sec="closed"] .nx-jp-row')).length === 4
@@ -120,7 +141,7 @@ const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     T.check('stuck: 3, quietest first (21, 12, 6 days)', /^Stuck · 3/.test(await text(page, '#jpStuckTitle')) && /EQP-61.*21 days.*EQP-62.*Not assigned.*12 days.*EQP-63.*6 days/.test(await text(page, '#jpStuck')), await text(page, '#jpStuck'));
     await page.click('#jpNumbers > summary');
     const row1 = await page.$$eval('#jpNumbers .nx-jp-tr:nth-child(2) [role="cell"]', (l) => l.map((x) => x.textContent.trim()).join('|'));
-    T.check('the numbers as a table, a row a day (newest first)', (await page.$$('#jpNumbers .nx-jp-tr:not(.nx-jp-th)')).length === 14 && row1.indexOf(long(0) + '|2|1|0|') === 0, row1);
+    T.check('the numbers as a table, a row a day (newest first): its status changes too', (await page.$$('#jpNumbers .nx-jp-tr:not(.nx-jp-th)')).length === 14 && row1.indexOf(long(0) + '|2|1|0|3|') === 0, row1);
     await page.click('#jpNumbers > summary');
     await page.evaluate(() => window.scrollTo(0, 0));
     await env.shot('jira-progress.png');

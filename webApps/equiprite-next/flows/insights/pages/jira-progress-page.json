@@ -17,6 +17,7 @@
     "from": { "type": "string", "defaultValue": "", "description": "The window's first day (YYYY-MM-DD): chosen, or the last days' first." },
     "to": { "type": "string", "defaultValue": "", "description": "The window's last day (YYYY-MM-DD): chosen, or today." },
     "custom": { "type": "boolean", "defaultValue": false, "description": "From – To chosen (else the last 7, 14, 30 or 60 days)." },
+    "move": { "type": "string", "defaultValue": "", "description": "The day's status movement shown with its stories ('TEST → Done'; '' = none)." },
     "stuckMore": { "type": "boolean", "defaultValue": false, "description": "More stuck stories than were read (the first 300)." }
   },
   "eventListeners": {
