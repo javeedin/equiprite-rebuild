@@ -25,10 +25,11 @@ define(['vb/action/actionChain', 'vb/action/actions', 'resources/js/issuesClient
       };
 
       if (act === 'filter') { v.filter = key; return; }
+      if (act === 'scope') { v.scope = bus.scope(); if (v.mode === 'new' && !v.dPage) v.dApp = v.scope; return; }
       if (act === 'layout') { v.layout = key === 'table' ? 'table' : 'split'; return; }
       if (act === 'sort') { v.sortKey = key; return; }
       if (act === 'stage' || act === 'go') { const n = Number(key); v.stageView = isNaN(n) ? -1 : n; v.result = null; IC.fillBoxes(v); return; }
-      if (act === 'new') { v.mode = 'new'; v.layout = 'split'; v.selId = ''; v.issue = null; v.result = null; v.dPage = ''; v.pickQ = ''; v.dText = ''; v.dJiraKey = ''; v.images = []; v.dKind = 'bug';
+      if (act === 'new') { v.mode = 'new'; v.layout = 'split'; v.selId = ''; v.issue = null; v.result = null; v.dPage = ''; v.pickQ = ''; v.dApp = bus.scope() || ''; v.dText = ''; v.dJiraKey = ''; v.images = []; v.dKind = 'bug';
         v.det = DET0(); v.dToJira = !!(v.info && v.info.jira && v.info.jira.connected); return; }
       if (act === 'pick') { v.dPage = key; v.pickQ = ''; return; }
       if (act === 'unpick') { v.dPage = ''; return; }
@@ -46,10 +47,11 @@ define(['vb/action/actionChain', 'vb/action/actions', 'resources/js/issuesClient
       const x = v.issue;
       try {
         if (act === 'create') {
+          if (!v.dApp) { v.result = { ok: false, text: 'Choose the build first (Old, New, Next, Mobile or Future), then its page.' }; return; }
           if (!v.dPage) { v.result = { ok: false, text: 'Choose the page the issue is on.' }; return; }
           if (!v.dText.trim() && !v.dJiraKey.trim()) { v.result = { ok: false, text: 'Say what is wrong (or give its Jira key).' }; return; }
           v.progress = 'Logging it…';
-          const c = await IC.create({ page: v.dPage, text: v.dText, kind: v.dKind, jiraKey: v.dJiraKey.trim(), details: v.det || {}, images: v.images.map((i) => ({ name: i.name, mime: i.mime, base64: i.base64 })) });
+          const c = await IC.create({ app: v.dApp, page: v.dPage, text: v.dText, kind: v.dKind, jiraKey: v.dJiraKey.trim(), details: v.det || {}, images: v.images.map((i) => ({ name: i.name, mime: i.mime, base64: i.base64 })) });
           if (!c.ok) { fail(c); return; }
           const id = c.body.issue.id;
           v.progress = 'The AI is writing it up…';

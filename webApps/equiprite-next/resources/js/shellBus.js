@@ -14,6 +14,11 @@ define([], function () {
   var guards = {};
   var focusFns = {};
   var focusWaiting = {};
+  // Build.Rite: the build in scope (an app: vbredwoodapp, equiprite, equiprite-next, equiprite-mobile, equiprite-future;
+  // '' for all), chosen in the top bar; Issues and Application pages follow it. Kept on this PC.
+  var SCOPE_KEY = 'eqr.build.scope';
+  var scope = (function () { try { return (typeof localStorage !== 'undefined' && localStorage.getItem(SCOPE_KEY)) || ''; } catch (e) { return ''; } }());
+  var scopeFns = {};
 
   function send(req) {
     if (handler) handler(req);
@@ -53,6 +58,16 @@ define([], function () {
     },
     /** A screen that can be opened on one thing: fn() runs when something is handed to it while it is open. */
     onFocus: function (navId, fn) { focusFns[navId] = fn; },
+    /** The build in scope ('' for all builds). */
+    scope: function () { return scope; },
+    /** Chooses the build in scope: every screen that follows it is told. */
+    setScope: function (app) {
+      scope = String(app || '');
+      try { if (typeof localStorage !== 'undefined') localStorage.setItem(SCOPE_KEY, scope); } catch (e) { /* private mode */ }
+      Object.keys(scopeFns).forEach(function (k) { try { scopeFns[k](scope); } catch (e) { /* a closed tab's page */ } });
+    },
+    /** A screen that follows the build in scope: fn(app) runs when it changes (one per screen: a new page replaces it). */
+    onScope: function (screen, fn) { scopeFns[screen] = fn; },
     /** What was handed to a screen, once; null when nothing waits. */
     takeFocus: function (navId) {
       var w = focusWaiting[navId] || null;

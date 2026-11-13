@@ -62,6 +62,7 @@
   },
   "events": {
     "focusRequest": { "description": "From resources/js/shellBus.js focus(): another screen (a Jira story) handed this one a page to open.", "payloadType": "object" },
+    "scopeChanged": { "description": "The build in scope was changed in Build.Rite's top bar (shellBus.onScope): the list shows that build.", "payloadType": "object" },
     "fixImages": { "description": "The page module read screenshots pasted, dropped or attached in the Code fix request (codeFixClient.queueImages): the chain takes them.", "payloadType": "object" }
   },
   "eventListeners": {
@@ -75,6 +76,7 @@
     "onAct": { "chains": [ { "chain": "actChain", "parameters": { "act": "{{ $event.currentTarget.dataset.act }}", "key": "{{ $event.currentTarget.dataset.key || '' }}" } } ] },
     "onShotFile": { "chains": [ { "chain": "actChain", "parameters": { "act": "{{ 'upload' }}", "key": "{{ '' }}" } } ] },
     "onFix": { "chains": [ { "chain": "fixChain", "parameters": { "act": "{{ $event.currentTarget.dataset.act }}", "key": "{{ $event.currentTarget.dataset.key || '' }}" } } ] },
+    "scopeChanged": { "chains": [ { "chain": "actChain", "parameters": { "act": "{{ 'scope' }}", "key": "{{ '' }}" } } ] },
     "fixImages": { "chains": [ { "chain": "fixChain", "parameters": { "act": "{{ 'images' }}", "key": "{{ '' }}" } } ] },
     "onFixImgClosed": { "chains": [ { "chain": "fixChain", "parameters": { "act": "{{ 'imgClosed' }}", "key": "{{ '' }}" } } ] },
     "onFixImgClick": { "chains": [ { "chain": "fixChain", "parameters": { "act": "{{ $event.target === $event.currentTarget ? 'unviewImg' : '' }}", "key": "{{ '' }}" } } ] },

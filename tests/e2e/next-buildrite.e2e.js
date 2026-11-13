@@ -113,9 +113,18 @@ const BUILD_SCREENS = ['issues', 'jira', 'analytics', 'minutes', 'followups', 'f
     await page.keyboard.press('Escape');
     await page.waitForTimeout(300);
     T.check('Escape closes it (and it stops)', !(await page.evaluate(() => document.getElementById('hwPlay').open)));
-    await page.click('#hw-codefix [data-act="open"]');
+    await page.click('#hw-codefix .nx-hw-openbtn');
     await page.waitForSelector('#pgRows .nx-pg-row', { timeout: 20000 }).catch(() => {});
-    T.check('…and each one opens its screen (Code fix → Application pages)', (await page.$$('#pgRows .nx-pg-row')).length > 100);
+    T.check('…and each one opens its screen (Code fix → Application pages)', (await page.$$('#pgRows .nx-pg-row')).length > 100 && !!(await page.$('.nx-tab--on[data-tab-id="app-pages"]'))
+      && !(await page.evaluate(() => document.getElementById('hwPlay').open)));
+    await page.click('#nxScope [data-scope="equiprite-next"]');
+    await page.waitForTimeout(400);
+    const nextRows = await page.$$eval('#pgRows .nx-pg-row', (r) => r.map((x) => x.textContent));
+    T.check('the build in scope (top bar: Next): Application pages shows that build\'s pages', /EquipRite Next/.test(await text(page, '#pgApps .nx-chip--on')) && nextRows.length > 10
+      && nextRows.every((t) => /EquipRite Next/.test(t)), (await text(page, '#pgApps .nx-chip--on')) + ' ' + nextRows.length);
+    await page.click('#nxScope [data-scope=""]');
+    await page.waitForTimeout(400);
+    T.check('…All builds: every page again', (await page.$$('#pgRows .nx-pg-row')).length > 100 && /^All/.test(await text(page, '#pgApps .nx-chip--on')));
     await env.shot('buildrite.png');
     T.eq('no browser errors', errs().join(' | ').slice(0, 1500), '');
   } catch (e) {

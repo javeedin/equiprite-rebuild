@@ -6,7 +6,12 @@ define(['resources/js/shellBus', 'resources/js/cartDrafts', 'resources/js/reques
   // check.
   const ALERT_EVERY_MS = 5 * 60 * 1000;
 
+  // Build.Rite's builds (the top bar's chooser): all, or one app
+  const SCOPES = [['', 'All', 'all', 'Every build'], ['vbredwoodapp', 'Old', 'old', 'Old EquipRite'], ['equiprite', 'New', 'new', 'New EquipRite'],
+    ['equiprite-next', 'Next', 'next', 'EquipRite Next'], ['equiprite-mobile', 'Mobile', 'mob', 'EquipRite Mobile'], ['equiprite-future', 'Future', 'fut', 'EquipRite Future']];
+
   class PageModule {
+    scopes() { return SCOPES.map((s) => ({ id: s[0], label: s[1], short: s[2], title: s[3] === 'Every build' ? 'Every build: issues and pages of all the apps' : 'Only ' + s[3] + ': its issues and pages' })); }
     constructor(context) {
       // The colours chosen on this computer, before anything is drawn (theme.js; your menu, Colours).
       theme.apply(theme.load());

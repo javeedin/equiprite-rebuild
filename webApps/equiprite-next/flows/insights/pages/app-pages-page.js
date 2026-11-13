@@ -45,6 +45,8 @@ define(['resources/js/pagesClient', 'resources/js/storyAnalysis', 'resources/js/
       const helper = context && typeof context.getEventHelper === 'function' ? context.getEventHelper() : null;
       bus.onFocus('app-pages', () => { if (helper) helper.fireCustomEvent('focusRequest', {}); });
       fireImages = () => { if (helper) helper.fireCustomEvent('fixImages', {}); };
+      // Build.Rite: the build in scope changed in the top bar: the list shows that build
+      bus.onScope('app-pages', () => { if (helper) helper.fireCustomEvent('scopeChanged', {}); });
       listenForImages();
       // the maps' lines follow the boxes: drawn again when the window changes size
       if (typeof window !== 'undefined') { let t = 0; window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(() => PM.redraw(), 120); }); }

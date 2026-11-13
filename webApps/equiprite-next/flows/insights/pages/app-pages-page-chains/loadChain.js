@@ -13,6 +13,8 @@ define([
   class loadChain extends ActionChain {
     async run(context, { refresh }) {
       const v = context.$page.variables;
+      // the build in scope (Build.Rite's top bar): its pages first; All builds: every app
+      if (!refresh && bus.scope()) v.appF = bus.scope();
       v.busy = true;
       try {
         // Refresh: what others pushed to the data branch first (a no-op without the local server or a data branch)

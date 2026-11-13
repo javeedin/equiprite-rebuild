@@ -50,7 +50,7 @@
           </div>
           <div class="nx-hw-headacts">
             <button type="button" class="nx-btn nx-btn--sm nx-btn--primary nx-hw-watchbtn" data-act="open" :data-key="[[ f.data.id ]]" on-click="[[ $listeners.onPlay ]]"><span aria-hidden="true">▶</span>Watch the flow</button>
-            <oj-bind-if test="[[ !!f.data.open ]]"><button type="button" class="nx-btn nx-btn--sm" data-act="open" :data-key="[[ f.data.open ]]" on-click="[[ $listeners.onAct ]]"><span class="oj-ux-ico-arrow-right" aria-hidden="true"></span><oj-bind-text value="[[ $functions.openText(f.data) ]]"></oj-bind-text></button></oj-bind-if>
+            <oj-bind-if test="[[ !!f.data.open ]]"><button type="button" class="nx-btn nx-btn--sm nx-hw-openbtn" data-act="open" :data-key="[[ f.data.open ]]" on-click="[[ $listeners.onAct ]]"><span class="oj-ux-ico-arrow-right" aria-hidden="true"></span><oj-bind-text value="[[ $functions.openText(f.data) ]]"></oj-bind-text></button></oj-bind-if>
           </div>
         </div>
         <ol class="nx-hw-steps">

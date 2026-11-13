@@ -77,7 +77,9 @@ const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwA
 
     const c3dummy = () => 'nope';
     T.section('log, the AI writes it up, into Jira');
-    const c1 = await store.create({ page: ID, text: 'overdue invoices are all mixed up on my billing, please fix', kind: 'bug', images: [{ name: 'Pasted image 1', mime: 'image/png', base64: PNG }], by: 'Asha' });
+    T.check('the build first: none chosen, or a page of another build, refused', /Choose the build first/.test((await store.create({ app: '', page: ID, text: 'x' })).error)
+      && /not in the build chosen/.test((await store.create({ app: 'equiprite-future', page: ID, text: 'x' })).error));
+    const c1 = await store.create({ app: 'vbredwoodapp', page: ID, text: 'overdue invoices are all mixed up on my billing, please fix', kind: 'bug', images: [{ name: 'Pasted image 1', mime: 'image/png', base64: PNG }], by: 'Asha' });
     const is1 = c1.issue;
     T.check('logged against the page, a key of its own, its screenshot kept', c1.ok && /^BR-[A-Z0-9]{5}$/.test(is1.key) && is1.label === 'My Billing' && is1.status === 'new' && is1.images.length === 1 && store.img(is1.id, 1).ok
       && is1.steps.length === 8 && is1.steps[0].state === 'now', JSON.stringify([c1.error, is1 && is1.key]));

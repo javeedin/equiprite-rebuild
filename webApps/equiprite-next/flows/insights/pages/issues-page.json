@@ -46,15 +46,19 @@
     "pageSheet": { "type": "any", "defaultValue": null, "description": "The issue's page in Application pages: its technical sheet (facts, screenshots, AI text; saved, codeChanged) — shown in the Analyzed step." },
     "cTo": { "type": "string", "defaultValue": "", "description": "An email's To (default: the Notify list and the reporter)." },
     "cCc": { "type": "string", "defaultValue": "" },
-    "cSubject": { "type": "string", "defaultValue": "" }
+    "cSubject": { "type": "string", "defaultValue": "" },
+    "scope": { "type": "string", "defaultValue": "", "description": "The build in scope, from the top bar ('' for all; an app id): the list shows its issues, a new issue is logged in it." },
+    "dApp": { "type": "string", "defaultValue": "", "description": "The new issue's build (an app id): chosen first; then one of its pages." }
   },
   "events": {
     "issueImages": { "description": "The page module read screenshots pasted, dropped or attached in the new issue form (codeFixClient.queueImages).", "payloadType": "object" },
-    "focusRequest": { "description": "Another screen handed this one an issue to open (shellBus.focus('issues', { id })).", "payloadType": "object" }
+    "focusRequest": { "description": "Another screen handed this one an issue to open (shellBus.focus('issues', { id })).", "payloadType": "object" },
+    "scopeChanged": { "description": "The build in scope was changed in the top bar (shellBus.onScope).", "payloadType": "object" }
   },
   "eventListeners": {
     "vbEnter": { "chains": [ { "chain": "loadChain" } ] },
     "focusRequest": { "chains": [ { "chain": "loadChain" } ] },
+    "scopeChanged": { "chains": [ { "chain": "actChain", "parameters": { "act": "{{ 'scope' }}", "key": "{{ '' }}" } } ] },
     "onRefresh": { "chains": [ { "chain": "loadChain", "parameters": { "refresh": true } } ] },
     "onField": { "chains": [ { "chain": "setChain", "parameters": { "field": "{{ $event.currentTarget.dataset.field }}", "value": "{{ $event.currentTarget.type === 'checkbox' ? $event.currentTarget.checked : ($event.currentTarget.dataset.value !== undefined ? $event.currentTarget.dataset.value : $event.currentTarget.value) }}" } } ] },
     "onDet": { "chains": [ { "chain": "setChain", "parameters": { "field": "{{ 'det.' + $event.currentTarget.dataset.field }}", "value": "{{ $event.currentTarget.dataset.value !== undefined ? $event.currentTarget.dataset.value : $event.currentTarget.value }}" } } ] },

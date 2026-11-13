@@ -6,6 +6,7 @@ define(['vb/action/actionChain', 'vb/action/actions', 'resources/js/issuesClient
   class loadChain extends ActionChain {
     async run(context, { refresh }) {
       const v = context.$page.variables;
+      v.scope = bus.scope(); // the build in scope (the top bar)
       v.busy = true;
       try {
         const [i, l] = await Promise.all([IC.info(), IC.list('', 'all')]);
@@ -14,7 +15,7 @@ define(['vb/action/actionChain', 'vb/action/actions', 'resources/js/issuesClient
         v.counts = (l.body && l.body.counts) || v.counts;
         if (!v.pages.length || refresh) {
           const cat = await PC.catalog(context.$application.path);
-          v.pages = ((cat.body && cat.body.pages) || []).filter((p) => !p.deleted && !p.missing).map((p) => ({ id: p.id, label: p.label, appName: p.appName, flow: p.flow, page: p.page }));
+          v.pages = ((cat.body && cat.body.pages) || []).filter((p) => !p.deleted && !p.missing).map((p) => ({ id: p.id, app: p.app, label: p.label, appName: p.appName, flow: p.flow, page: p.page }));
         }
       } finally {
         v.checked = true;

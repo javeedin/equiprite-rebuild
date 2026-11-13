@@ -20,6 +20,7 @@ define([
       const base = context.$application.path;
       if (!act) return;
       if (act === 'story') { if (key) bus.open({ record: 'jira-analysis', params: { key: key } }); return; }
+      if (act === 'scope') { v.appF = bus.scope() || 'all'; return; } // the build in scope changed in the top bar
       // the screenshot viewer: a native dialog (showModal: the browser's top layer, above everything; Esc closes it)
       const shots = (v.sheet && v.sheet.screenshots) || [];
       const dlg = () => { try { return document.getElementById('pgViewer'); } catch (e) { return null; } };

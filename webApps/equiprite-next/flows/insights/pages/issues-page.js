@@ -18,6 +18,11 @@ define(['resources/js/issuesClient', 'resources/js/codeFixClient', 'resources/js
   const EMAIL_RE = /^[^\s@<>,;]+@[^\s@<>,;]+\.[^\s@<>,;]+$/;
   const RANK = { critical: 0, major: 1, minor: 2, trivial: 3, p1: 0, p2: 1, p3: 2, p4: 3 };
   const dateText = (d) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(d || '')); return m ? Number(m[3]) + ' ' + MON[Number(m[2]) - 1] + ' ' + m[1] : ''; };
+  // the builds (apps): their short names and colours, as in Application pages
+  const APPS = [['vbredwoodapp', 'Old EquipRite', 'OLD'], ['equiprite', 'New EquipRite', 'NEW'], ['equiprite-next', 'EquipRite Next', 'NEXT'], ['equiprite-mobile', 'Mobile', 'MOB'], ['equiprite-future', 'Future', 'FUT']];
+  const appOf = (x) => (x && (x.app || String(x.page || '').split('/')[0])) || '';
+  const inScope = (x, scope) => !scope || appOf(x) === scope;
+  const GROUPS = { open: ['new', 'written', 'analyzed', 'triaged', 'needs-info', 'awaiting-approval', 'approved', 'rejected'], approval: ['awaiting-approval'], review: ['approved', 'in-review', 'verified'], closed: ['closed'] };
   const panelOf = (x, sv) => (Number(sv) >= 0 ? Number(sv) : (x ? x.stage || 0 : 0));
   let shownKept = { k: '', v: [] };
   let tableKept = { k: '', v: [] };
@@ -45,31 +50,45 @@ define(['resources/js/issuesClient', 'resources/js/codeFixClient', 'resources/js
     constructor(context) {
       const helper = context && typeof context.getEventHelper === 'function' ? context.getEventHelper() : null;
       fire = () => { if (helper) helper.fireCustomEvent('issueImages', {}); };
+      // the build in scope changed in the top bar: the list follows it
+      bus.onScope('issues', () => { if (helper) helper.fireCustomEvent('scopeChanged', {}); });
       bus.onFocus('issues', () => { if (helper) helper.fireCustomEvent('focusRequest', {}); });
       listen();
     }
-    subText(c, info) {
+    subText(c, info, scope) {
       const n = c || {};
-      return n.open + ' open · ' + n.approval + ' waiting for approval · ' + n.review + ' in review · ' + n.closed + ' closed' + (info && info.shared ? ' · shared with everyone' : '');
+      const b = APPS.filter((a) => a[0] === scope)[0];
+      return (b ? b[1] + ': ' : 'All builds: ') + n.open + ' open · ' + n.approval + ' waiting for approval · ' + n.review + ' in review · ' + n.closed + ' closed' + (info && info.shared ? ' · shared with everyone' : '');
     }
+    /** The counts of the issues of the build in scope (the filters, the subtitle). */
+    countsIn(list, scope) {
+      const l = (list || []).filter((x) => inScope(x, scope));
+      const n = (g) => l.filter((x) => GROUPS[g].indexOf(x.status) !== -1).length;
+      return { all: l.length, open: n('open'), approval: n('approval'), review: n('review'), closed: n('closed') };
+    }
+    builds() { return APPS.map((a) => ({ id: a[0], label: a[1], short: a[2] })); }
+    appShort(x) { const a = APPS.filter((p) => p[0] === appOf(x))[0]; return a ? a[2] : 'VB'; }
+    appName(x) { const a = APPS.filter((p) => p[0] === appOf(x))[0]; return a ? a[1] : appOf(x); }
+    appClass(x) { return 'nx-is-app nx-is-app--' + (appOf(x) || 'none'); }
+    buildName(id) { const a = APPS.filter((p) => p[0] === id)[0]; return a ? a[1] : ''; }
     filters(c) { const n = c || {}; return [['open', 'Open'], ['approval', 'Waiting for approval'], ['review', 'In review'], ['closed', 'Closed'], ['all', 'All']].map((f) => ({ id: f[0], label: f[1], n: n[f[0]] || 0 })); }
-    shown(list, q) {
-      const k = (list || []).length + '|' + q + '|' + (list || []).map((x) => x.id + x.status + x.updatedAt).join(',');
+    shown(list, q, scope) {
+      const k = (list || []).length + '|' + q + '|' + scope + '|' + (list || []).map((x) => x.id + x.status + x.updatedAt).join(',');
       if (shownKept.k === k) return shownKept.v;
       const s = String(q || '').trim().toLowerCase();
-      shownKept = { k: k, v: (list || []).filter((x) => !s || [x.key, x.title, x.label, x.page, x.by, x.status, x.customer, x.customerRef, x.foundIn, x.fixVersion, x.assignee, x.severityLabel, x.priorityLabel].join(' ').toLowerCase().indexOf(s) !== -1) };
+      shownKept = { k: k, v: (list || []).filter((x) => inScope(x, scope)).filter((x) => !s || [x.key, x.title, x.label, x.page, x.by, x.status, x.customer, x.customerRef, x.foundIn, x.fixVersion, x.assignee, x.severityLabel, x.priorityLabel].join(' ').toLowerCase().indexOf(s) !== -1) };
       return shownKept.v;
     }
     // ── the table: every issue with its columns, in an order ──
-    tableRows(list, q, f, sortKey) {
-      const k = (list || []).map((x) => x.id + x.status + x.updatedAt).join(',') + '|' + q + '|' + f + '|' + sortKey;
+    tableRows(list, q, f, sortKey, scope) {
+      const k = (list || []).map((x) => x.id + x.status + x.updatedAt).join(',') + '|' + q + '|' + f + '|' + sortKey + '|' + scope;
       if (tableKept.k === k) return tableKept.v;
       const g = { open: ['new', 'written', 'analyzed', 'triaged', 'needs-info', 'awaiting-approval', 'approved', 'rejected'], approval: ['awaiting-approval'], review: ['approved', 'in-review', 'verified'], closed: ['closed'] };
       const s = String(q || '').trim().toLowerCase();
       const rank = (v) => (RANK[v] !== undefined ? RANK[v] : 9);
       const by = { severity: (a, b) => rank(a.severity) - rank(b.severity), priority: (a, b) => rank(a.priority) - rank(b.priority), raised: (a, b) => String(b.raisedOn).localeCompare(String(a.raisedOn)),
         due: (a, b) => (a.dueDate || '9999').localeCompare(b.dueDate || '9999'), updated: (a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)) }[sortKey] || ((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)));
-      tableKept = { k: k, v: (list || []).filter((x) => (f === 'all' || !f || (g[f] || []).indexOf(x.status) !== -1)
+      tableKept = { k: k, v: (list || []).filter((x) => inScope(x, scope)).filter((x) => (f === 'all' || !f || (g[f] || []).indexOf(x.status) !== -1)
         && (!s || [x.key, x.title, x.label, x.customer, x.customerRef, x.foundIn, x.fixVersion, x.assignee, x.reportedBy, x.severityLabel, x.priorityLabel, x.environment].join(' ').toLowerCase().indexOf(s) !== -1)).slice().sort(by) };
       return tableKept.v;
     }
@@ -177,12 +196,15 @@ define(['resources/js/issuesClient', 'resources/js/codeFixClient', 'resources/js
     when(at) { return when(at); }
     rowMeta(x) { return [x.label, x.customer, x.foundIn ? 'in ' + x.foundIn : '', x.assignee ? '→ ' + x.assignee : '', when(x.updatedAt)].filter(Boolean).join(' · ') + (x.comments ? ' · 💬 ' + x.comments : '') + (x.shared ? ' · from another PC' : ''); }
     stepClass(s) { return 'nx-is-step nx-is-step--' + s.state; }
-    // the page picker
-    pagesShown(pages, q) {
+    // the page picker: only the pages of the build chosen; with nothing typed, its pages to browse (by flow, then name)
+    pagesShown(pages, q, app) {
+      if (!app) return [];
       const s = String(q || '').trim().toLowerCase();
-      if (!s) return [];
-      return (pages || []).filter((p) => [p.label, p.id, p.appName].join(' ').toLowerCase().indexOf(s) !== -1).slice(0, 12);
+      const mine = (pages || []).filter((p) => p.app === app || String(p.id).split('/')[0] === app);
+      const hit = s ? mine.filter((p) => [p.label, p.id, p.flow, p.page].join(' ').toLowerCase().indexOf(s) !== -1) : mine.slice().sort((a, b) => (a.flow + a.label).localeCompare(b.flow + b.label));
+      return hit.slice(0, s ? 20 : 60);
     }
+    pagesCount(pages, app) { return (pages || []).filter((p) => p.app === app || String(p.id).split('/')[0] === app).length; }
     pageOf(pages, id) { return (pages || []).filter((p) => p.id === id)[0] || null; }
     pageText(p) { return p ? p.appName + ' · ' + (p.flow ? p.flow + '/' : '') + p.page : ''; }
     kinds() { return [{ id: 'bug', label: 'Bug' }, { id: 'enhancement', label: 'Enhancement' }, { id: 'change', label: 'Change' }]; }

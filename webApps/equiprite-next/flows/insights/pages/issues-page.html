@@ -8,7 +8,7 @@
     <div>
       <div class="nx-kicker">Build.Rite · Issues</div>
       <h1 id="isTitle">Issues</h1>
-      <div class="nx-sub" id="isSub"><oj-bind-text value="[[ $functions.subText($variables.counts, $variables.info) ]]"></oj-bind-text></div>
+      <div class="nx-sub" id="isSub"><oj-bind-text value="[[ $functions.subText($functions.countsIn($variables.issues, $variables.scope), $variables.info, $variables.scope) ]]"></oj-bind-text></div>
     </div>
     <div class="nx-actions">
       <div class="nx-is-lays" role="group" aria-label="Show as">
@@ -27,7 +27,7 @@
     <section class="nx-card nx-is-tablecard" aria-label="Every issue">
       <div class="nx-is-tabletools">
         <div class="nx-pg-chips" id="isTFilters">
-          <oj-bind-for-each data="[[ $functions.filters($variables.counts) ]]">
+          <oj-bind-for-each data="[[ $functions.filters($functions.countsIn($variables.issues, $variables.scope)) ]]">
             <template data-oj-as="f">
               <button type="button" :class="[[ 'nx-chip nx-chip--sm' + ($variables.filter === f.data.id ? ' nx-chip--on' : '') ]]" data-act="filter" :data-key="[[ f.data.id ]]" on-click="[[ $listeners.onAct ]]">
                 <oj-bind-text value="[[ f.data.label ]]"></oj-bind-text> <span class="nx-chip-count"><oj-bind-text value="[[ f.data.n ]]"></oj-bind-text></span></button>
@@ -46,13 +46,14 @@
       <div class="nx-is-tablewrap">
         <div class="nx-is-table" role="table" id="isTable">
           <div class="nx-is-tr nx-is-tr--head" role="row">
-            <span role="columnheader">Key</span><span role="columnheader">Title · page</span><span role="columnheader">Type</span><span role="columnheader">Severity</span><span role="columnheader">Priority</span>
+            <span role="columnheader">Build</span><span role="columnheader">Key</span><span role="columnheader">Title · page</span><span role="columnheader">Type</span><span role="columnheader">Severity</span><span role="columnheader">Priority</span>
             <span role="columnheader">Status</span><span role="columnheader">Env</span><span role="columnheader">Found in</span><span role="columnheader">Fix version</span><span role="columnheader">Customer</span>
             <span role="columnheader">Raised by</span><span role="columnheader">Raised on</span><span role="columnheader">Assignee</span><span role="columnheader">Due</span><span role="columnheader">💬</span><span role="columnheader">Resolution</span>
           </div>
-          <oj-bind-for-each data="[[ $functions.tableRows($variables.issues, $variables.q, $variables.filter, $variables.sortKey) ]]">
+          <oj-bind-for-each data="[[ $functions.tableRows($variables.issues, $variables.q, $variables.filter, $variables.sortKey, $variables.scope) ]]">
             <template data-oj-as="x">
               <button type="button" class="nx-is-tr" role="row" :data-id="[[ x.data.id ]]" on-click="[[ $listeners.onSelect ]]" :title="[[ 'Open ' + x.data.key ]]">
+                <span><span :class="[[ $functions.appClass(x.data) ]]"><oj-bind-text value="[[ $functions.appShort(x.data) ]]"></oj-bind-text></span></span>
                 <span><code class="nx-is-key"><oj-bind-text value="[[ x.data.key ]]"></oj-bind-text></code></span>
                 <span class="nx-is-tdtitle"><b><oj-bind-text value="[[ x.data.title ]]"></oj-bind-text></b><span class="nx-note nx-pg-block"><oj-bind-text value="[[ x.data.label ]]"></oj-bind-text></span></span>
                 <span><oj-bind-text value="[[ x.data.kind ]]"></oj-bind-text></span>
@@ -73,7 +74,7 @@
             </template>
           </oj-bind-for-each>
         </div>
-        <oj-bind-if test="[[ $variables.checked && $functions.tableRows($variables.issues, $variables.q, $variables.filter, $variables.sortKey).length === 0 ]]"><div class="nx-empty">No issue here.</div></oj-bind-if>
+        <oj-bind-if test="[[ $variables.checked && $functions.tableRows($variables.issues, $variables.q, $variables.filter, $variables.sortKey, $variables.scope).length === 0 ]]"><div class="nx-empty">No issue here.</div></oj-bind-if>
       </div>
     </section>
   </oj-bind-if>
@@ -83,7 +84,7 @@
     <!-- the issues -->
     <section class="nx-card nx-is-list" aria-label="The issues">
       <div class="nx-pg-chips" id="isFilters">
-        <oj-bind-for-each data="[[ $functions.filters($variables.counts) ]]">
+        <oj-bind-for-each data="[[ $functions.filters($functions.countsIn($variables.issues, $variables.scope)) ]]">
           <template data-oj-as="f">
             <button type="button" :class="[[ 'nx-chip nx-chip--sm' + ($variables.filter === f.data.id ? ' nx-chip--on' : '') ]]" data-act="filter" :data-key="[[ f.data.id ]]" on-click="[[ $listeners.onAct ]]">
               <oj-bind-text value="[[ f.data.label ]]"></oj-bind-text> <span class="nx-chip-count"><oj-bind-text value="[[ f.data.n ]]"></oj-bind-text></span></button>
@@ -92,11 +93,11 @@
       </div>
       <input type="search" class="nx-flib-filter" id="isSearch" data-field="q" :value="[[ $variables.q ]]" on-input="[[ $listeners.onField ]]" placeholder="Find an issue: key, title, customer, release, person…">
       <div class="nx-is-rows" id="isRows" role="list">
-        <oj-bind-for-each data="[[ $functions.shown($variables.issues, $variables.q) ]]">
+        <oj-bind-for-each data="[[ $functions.shown($variables.issues, $variables.q, $variables.scope) ]]">
           <template data-oj-as="x">
             <oj-bind-if test="[[ $functions.inFilter(x.data.status, $variables.filter) ]]">
               <button type="button" role="listitem" :class="[[ 'nx-is-row' + ($variables.selId === x.data.id ? ' nx-is-row--on' : '') ]]" :data-id="[[ x.data.id ]]" on-click="[[ $listeners.onSelect ]]">
-                <span class="nx-is-rowhead"><code class="nx-is-key"><oj-bind-text value="[[ x.data.key ]]"></oj-bind-text></code>
+                <span class="nx-is-rowhead"><span :class="[[ $functions.appClass(x.data) ]]"><oj-bind-text value="[[ $functions.appShort(x.data) ]]"></oj-bind-text></span><code class="nx-is-key"><oj-bind-text value="[[ x.data.key ]]"></oj-bind-text></code>
                   <oj-bind-if test="[[ !!x.data.severity ]]"><span :class="[[ $functions.sevClass(x.data.severity) ]]"><oj-bind-text value="[[ $functions.sevShort(x.data.severity) ]]"></oj-bind-text></span></oj-bind-if>
                   <oj-bind-if test="[[ !!x.data.priority ]]"><span :class="[[ $functions.priClass(x.data.priority) ]]"><oj-bind-text value="[[ $functions.priShort(x.data.priority) ]]"></oj-bind-text></span></oj-bind-if>
                   <span :class="[[ $functions.statusClass(x.data.status) ]]"><oj-bind-text value="[[ $functions.statusText(x.data.status) ]]"></oj-bind-text></span></span>
@@ -119,11 +120,21 @@
       <oj-bind-if test="[[ $variables.mode === 'new' ]]">
         <div class="nx-is-new" id="isAsk">
           <h2 class="nx-pg-h2">Log an issue</h2>
-          <label class="nx-is-label">The page</label>
-          <oj-bind-if test="[[ !$variables.dPage ]]">
-            <input type="search" class="nx-flib-filter nx-is-pickq" id="isPageQ" data-field="pickQ" :value="[[ $variables.pickQ ]]" on-input="[[ $listeners.onField ]]" placeholder="Find the page: its name, flow or app (e.g. My Billing)…">
+          <label class="nx-is-label">1 · The build <span class="nx-is-req">required</span></label>
+          <div class="nx-pg-chips nx-is-builds" id="isBuilds" role="radiogroup" aria-label="The build">
+            <oj-bind-for-each data="[[ $functions.builds() ]]">
+              <template data-oj-as="b">
+                <button type="button" role="radio" :class="[[ 'nx-chip nx-chip--sm nx-is-buildchip nx-is-buildchip--' + b.data.id + ($variables.dApp === b.data.id ? ' nx-chip--on' : '') ]]" data-field="dApp" :data-value="[[ b.data.id ]]"
+                  :aria-checked="[[ $variables.dApp === b.data.id ? 'true' : 'false' ]]" on-click="[[ $listeners.onField ]]"><b><oj-bind-text value="[[ b.data.short ]]"></oj-bind-text></b> <oj-bind-text value="[[ b.data.label ]]"></oj-bind-text></button>
+              </template>
+            </oj-bind-for-each>
+          </div>
+          <label class="nx-is-label">2 · Its page <span class="nx-is-req">required</span></label>
+          <oj-bind-if test="[[ !$variables.dApp ]]"><p class="nx-note" id="isPickBuildFirst">Choose the build first: then its pages are listed here (or set the build in the top bar, and new issues start in it).</p></oj-bind-if>
+          <oj-bind-if test="[[ !!$variables.dApp && !$variables.dPage ]]">
+            <input type="search" class="nx-flib-filter nx-is-pickq" id="isPageQ" data-field="pickQ" :value="[[ $variables.pickQ ]]" on-input="[[ $listeners.onField ]]" :placeholder="[[ 'Find one of the ' + $functions.pagesCount($variables.pages, $variables.dApp) + ' pages of ' + $functions.buildName($variables.dApp) + ': its name or flow…' ]]">
             <div class="nx-is-picklist" id="isPageList">
-              <oj-bind-for-each data="[[ $functions.pagesShown($variables.pages, $variables.pickQ) ]]">
+              <oj-bind-for-each data="[[ $functions.pagesShown($variables.pages, $variables.pickQ, $variables.dApp) ]]">
                 <template data-oj-as="p">
                   <button type="button" class="nx-is-pickrow" data-act="pick" :data-key="[[ p.data.id ]]" on-click="[[ $listeners.onAct ]]"><b><oj-bind-text value="[[ p.data.label ]]"></oj-bind-text></b><span class="nx-note"><oj-bind-text value="[[ $functions.pageText(p.data) ]]"></oj-bind-text></span></button>
                 </template>
@@ -200,6 +211,7 @@
       <oj-bind-if test="[[ $variables.mode === 'view' && !!$variables.issue ]]">
         <div class="nx-is-issue" id="isIssue">
           <div class="nx-is-head">
+            <span :class="[[ $functions.appClass($variables.issue) + ' nx-is-app--big' ]]" id="isApp" :title="[[ 'Build: ' + $functions.appName($variables.issue) ]]"><oj-bind-text value="[[ $functions.appName($variables.issue) ]]"></oj-bind-text></span>
             <code class="nx-is-key nx-is-key--big" id="isKey"><oj-bind-text value="[[ $variables.issue.key ]]"></oj-bind-text></code>
             <span :class="[[ $functions.statusClass($variables.issue.status) ]]" id="isStatus"><oj-bind-text value="[[ $functions.statusText($variables.issue.status) ]]"></oj-bind-text></span>
             <oj-bind-if test="[[ !!$variables.issue.details.severity ]]"><span :class="[[ $functions.sevClass($variables.issue.details.severity) ]]" id="isSev" :title="[[ 'Severity' + ($functions.aiChose($variables.issue.details, 'severity') ? ' (suggested by the AI)' : '') ]]"><oj-bind-text value="[[ $variables.issue.details.severityLabel ]]"></oj-bind-text></span></oj-bind-if>

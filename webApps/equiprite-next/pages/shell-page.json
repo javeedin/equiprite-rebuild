@@ -18,6 +18,11 @@
       "type": "string",
       "defaultValue": ""
     },
+    "scope": {
+      "type": "string",
+      "defaultValue": "",
+      "description": "Build.Rite: the build in scope ('' for all; an app id), chosen in the top bar (resources/js/shellBus.js)."
+    },
     "navCollapsed": {
       "type": "boolean",
       "defaultValue": false,
@@ -274,6 +279,10 @@
           "chain": "themeChain"
         },
         {
+          "chain": "scopeChain",
+          "parameters": { "app": "{{ '?' }}" }
+        },
+        {
           "chain": "lookChain"
         },
         {
@@ -312,6 +321,14 @@
           "parameters": {
             "navId": "{{ $event.currentTarget.dataset.navId }}"
           }
+        }
+      ]
+    },
+    "onScope": {
+      "chains": [
+        {
+          "chain": "scopeChain",
+          "parameters": { "app": "{{ $event.currentTarget.dataset.scope }}" }
         }
       ]
     },

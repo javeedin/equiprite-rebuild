@@ -61,6 +61,13 @@ const BILL = 'webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-billi
     const first = await page.$eval('.nx-tab', (t) => t.getAttribute('data-tab-id')).catch(() => '');
     T.check('Issues is Build.Rite\'s first screen; nothing chosen yet', first === 'issues' && /Choose an issue, or Log an issue/.test(await text(page, '#isMain')), first);
     await page.click('#isNewBtn');
+    await page.waitForSelector('#isBuilds .nx-chip', { timeout: 5000 }).catch(() => {});
+    T.check('Log an issue: the build first — its pages only once it is chosen', !!(await page.$('#isPickBuildFirst')) && !(await page.$('#isPageQ')) && (await page.$$('#isBuilds .nx-chip')).length === 5,
+      JSON.stringify([!!(await page.$('#isPickBuildFirst')), !!(await page.$('#isPageQ')), (await page.$$('#isBuilds .nx-chip')).length]));
+    await page.click('#isBuilds [data-value="vbredwoodapp"]');
+    await page.waitForSelector('#isPageList .nx-is-pickrow', { timeout: 5000 });
+    const browse = await page.$$eval('#isPageList .nx-is-pickrow', (r) => r.map((x) => x.textContent));
+    T.check('…Old EquipRite chosen: its pages listed to browse (nothing typed), only its own', browse.length > 10 && browse.every((t) => /Old EquipRite/.test(t)), browse.length + ' ' + browse.slice(0, 2).join(' | '));
     await page.fill('#isPageQ', 'My Billing');
     await page.waitForSelector('#isPageList .nx-is-pickrow', { timeout: 5000 });
     await page.click('#isPageList .nx-is-pickrow:has-text("customer-portal/customer-my-billing")');
@@ -91,6 +98,7 @@ const BILL = 'webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-billi
       && (await page.inputValue('#isEditTitle')) === 'Overdue invoices are not shown first on My Billing' && /Which customer saw it/.test(await text(page, '#isQuestions'))
       && (await page.inputValue('#isEditSteps')) === 'Open My Billing\nLook at the list' && jiraCalls.some((c) => /\/issue$/.test(c.url)) && (asked[0].images || []).length === 1,
       JSON.stringify([await page.inputValue('#isEditTitle').catch(() => '?'), await text(page, '#isQuestions'), await page.inputValue('#isEditSteps').catch(() => '?'), jiraCalls.length, (asked[0].images || []).length, await text(page, '#isStatus')]));
+    T.check('its build, first in its head: Old EquipRite', (await text(page, '#isApp')) === 'Old EquipRite');
     T.check('its severity (S2, as chosen), the AI\'s priority (P2: Asha left it empty); customer and release under the title', (await text(page, '#isSev')) === 'S2 · Major' && (await text(page, '#isPri')) === 'P2 · High'
       && /customer Acme Rentals \(INC-1042\) · found in 26C on UAT/.test(await text(page, '.nx-is-meta')), await text(page, '.nx-is-meta'));
     T.check('its train: Logged ✓, Written up now — through Verified and Closed', /Logged\s*Written up\s*Analyzed\s*Approval\s*Applied\s*Pull request\s*Verified\s*Closed/.test(await text(page, '#isSteps'))
@@ -211,11 +219,24 @@ const BILL = 'webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-billi
     await page.waitForSelector('#isTable .nx-is-tr:not(.nx-is-tr--head)', { timeout: 5000 });
     const row = await text(page, '#isTable .nx-is-tr:not(.nx-is-tr--head)');
     T.check('its row: key, title, type, severity, priority, status, env, found in, fix version, customer and ticket, raised by and on, assignee, comments, resolution',
-      /EQP-901[\s\S]*Overdue invoices are not shown first[\s\S]*bug\s*S2\s*P2\s*Closed\s*UAT\s*26C\s*26D\s*Acme Rentals · INC-1042\s*priya\.raman\s*\d+ \w+ \d{4}\s*Ben\s*—\s*3\s*Fixed/.test(row), row);
+      /OLD\s*EQP-901[\s\S]*Overdue invoices are not shown first[\s\S]*bug\s*S2\s*P2\s*Closed\s*UAT\s*26C\s*26D\s*Acme Rentals · INC-1042\s*priya\.raman\s*\d+ \w+ \d{4}\s*Ben\s*—\s*3\s*Fixed/.test(row), row);
     await env.shot('issues-table.png');
     await page.click('#isTable .nx-is-tr:not(.nx-is-tr--head)');
     await page.waitForSelector('#isIssue', { timeout: 5000 });
     T.check('a row opens its issue (back beside the list)', /EQP-901/.test(await text(page, '#isKey')) && !(await page.$('#isTable')));
+
+    T.section('the build in scope (the top bar)');
+    T.check('the top bar: All, Old, New, Next, Mobile, Future — All chosen', (await page.$$('#nxScope .nx-scope-btn')).length === 6 && /All/.test(await text(page, '#nxScope .nx-scope-btn--on')));
+    await page.click('#nxScope [data-scope="equiprite-future"]');
+    await page.waitForFunction(() => /^Future:/.test((document.getElementById('isSub') || {}).textContent || ''), null, { timeout: 5000 }).catch(() => {});
+    T.check('Future: only its issues (none here); the subtitle says so', /^Future: 0 open · 0 waiting for approval · 0 in review · 0 closed/.test(await text(page, '#isSub')) && !/EQP-901/.test(await text(page, '#isRows')), await text(page, '#isSub'));
+    await page.click('#isNewBtn');
+    T.check('…a new issue starts in the build in scope (Future), its pages to pick', /Future/.test(await text(page, '#isBuilds .nx-chip--on')) && /pages of Future/.test((await page.getAttribute('#isPageQ', 'placeholder')) || ''));
+    await page.click('#nxScope [data-scope="vbredwoodapp"]');
+    await page.waitForFunction(() => /^Old EquipRite:/.test((document.getElementById('isSub') || {}).textContent || ''), null, { timeout: 5000 }).catch(() => {});
+    T.check('Old EquipRite: its issue; kept for next time', /^Old EquipRite: 0 open · 0 waiting for approval · 0 in review · 1 closed/.test(await text(page, '#isSub'))
+      && (await page.evaluate(() => localStorage.getItem('eqr.build.scope'))) === 'vbredwoodapp', await text(page, '#isSub'));
+    await page.click('#nxScope [data-scope=""]');
     T.eq('no browser errors', errs().join(' | ').slice(0, 1500), '');
   } catch (e) {
     T.check('no exception: ' + (e && e.message), false);

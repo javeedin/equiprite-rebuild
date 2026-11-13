@@ -89,6 +89,19 @@
       </oj-bind-if>
     </div>
 
+    <!-- Build.Rite: the build in scope — which app the issues and pages are about (resources/js/shellBus.js scope) -->
+    <oj-bind-if test="[[ $application.functions.isBuild() ]]">
+      <div class="nx-scope" id="nxScope" role="radiogroup" aria-label="The build in scope">
+        <span class="nx-scope-lbl">Build</span>
+        <oj-bind-for-each data="[[ $functions.scopes() ]]">
+          <template data-oj-as="b">
+            <button type="button" role="radio" :class="[[ 'nx-scope-btn nx-scope-btn--' + b.data.short + ($variables.scope === b.data.id ? ' nx-scope-btn--on' : '') ]]" :data-scope="[[ b.data.id ]]"
+              :aria-checked="[[ $variables.scope === b.data.id ? 'true' : 'false' ]]" :title="[[ b.data.title ]]" on-click="[[ $listeners.onScope ]]"><oj-bind-text value="[[ b.data.label ]]"></oj-bind-text></button>
+          </template>
+        </oj-bind-for-each>
+      </div>
+    </oj-bind-if>
+
     <oj-bind-if test="[[ !$application.functions.isBuild() && $application.functions.canOpen('new-request', $application.variables.pageAccessMap, $application.variables.pageAccessLoaded,
                            $application.variables.featureFlags, $application.variables.flagsLoaded, $application.variables.buRateSources) ]]">
       <button type="button" class="nx-btn nx-btn--primary nx-newreq" id="nxNewRequest" data-nav-id="new-request" on-click="[[ $listeners.onNav ]]"

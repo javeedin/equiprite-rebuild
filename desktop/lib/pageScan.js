@@ -98,13 +98,15 @@ function pagesOf(root) {
 
 // EquipRite Next's menu (resources/js/nav.js): which screen a flow/page is, and how it is opened.
 const navCache = {};
-function nextNav(root) {
-  const f = path.join(root, 'webApps', 'equiprite-next', 'resources', 'js', 'nav.js');
+/** A tab-shell app's menu (EquipRite Next, Future: resources/js/nav.js), by route: { 'flow/page': { navId, label, group } }. */
+function navOf(root, app) {
+  const f = path.join(root, 'webApps', app, 'resources', 'js', 'nav.js');
   const src = read(f);
-  if (navCache.src === src) return navCache.value;
+  const c = navCache[app] || (navCache[app] = {});
+  if (c.src === src) return c.value;
   let N = null;
   try {
-    const sb = { console: { log() {}, warn() {} }, define: (deps, factory) => { N = factory({ isFeatureEnabled: () => true }); } };
+    const sb = { console: { log() {}, warn() {} }, define: (deps, factory) => { N = factory({ isFeatureEnabled: () => true }, {}, {}); } };
     vm.createContext(sb);
     vm.runInContext(src, sb, { timeout: 2000 });
   } catch (e) { N = null; }
@@ -122,9 +124,10 @@ function nextNav(root) {
   });
   Object.defineProperty(byRoute, '_items', { value: items, enumerable: false });
   Object.defineProperty(byRoute, '_records', { value: records, enumerable: false });
-  navCache.src = src; navCache.value = byRoute;
+  c.src = src; c.value = byRoute;
   return byRoute;
 }
+function nextNav(root) { return navOf(root, 'equiprite-next'); }
 
 /** A page's name, as people know it: its menu label, else its page title, its first heading, its description. */
 function labelOf(root, p, html, json) {
@@ -139,8 +142,9 @@ function labelOf(root, p, html, json) {
 
 /** How the page is opened in its app (what a screenshot loads). */
 function routeOf(root, p) {
-  if (p.app === 'equiprite-next') {
-    const n = nextNav(root)[p.flow + '/' + p.page];
+  // a tab shell (Next, Future): a screen opens in a tab from the menu (?open=<item>); its own address only shows the home tab
+  if (p.app === 'equiprite-next' || p.app === 'equiprite-future') {
+    const n = navOf(root, p.app)[p.flow + '/' + p.page];
     if (n && n.navId) return { url: '/?open=' + n.navId, menu: (n.group ? n.group + ' › ' : '') + n.label, needs: '' };
     if (n && n.record) return { url: '', menu: '', needs: 'Opened from another screen (record "' + n.record + '"): capture it there, or upload a screenshot.' };
     return { url: '', menu: '', needs: 'Not in the menu: upload a screenshot.' };

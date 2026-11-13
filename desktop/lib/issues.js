@@ -317,7 +317,7 @@ function open(opts) {
     const out = rows.filter((x) => (!b.status || b.status === 'all' || (groups[b.status] || [b.status]).indexOf(x.status) !== -1)
       && (!words.length || words.every((w) => { const d = x.details || {}; return [x.key, x.jira && x.jira.key, x.title, x.formatted && x.formatted.title, x.label, x.page, x.by, x.status,
         d.customer, d.customerRef, d.foundIn, d.fixVersion, d.assignee, d.reportedBy, d.environment, SEVERITY[d.severity], PRIORITY[d.priority]].join(' ').toLowerCase().indexOf(w) !== -1; })))
-      .map((x) => { const d = x.details || {}; return { id: x.id, key: keyOf(x), title: (x.formatted && x.formatted.title) || x.title, label: x.label, page: x.page, status: x.status, kind: x.kind,
+      .map((x) => { const d = x.details || {}; return { id: x.id, key: keyOf(x), title: (x.formatted && x.formatted.title) || x.title, label: x.label, page: x.page, app: x.app || str(x.page).split('/')[0], status: x.status, kind: x.kind,
         verdict: x.verdict ? x.verdict.code : '', verdictLabel: x.verdict ? VERDICT_LABEL[x.verdict.code] || '' : '', by: x.by, at: x.at, updatedAt: x.updatedAt || x.at, jira: x.jira || null, shared: !!x.shared,
         severity: d.severity || '', severityLabel: SEVERITY[d.severity] || '', priority: d.priority || '', priorityLabel: PRIORITY[d.priority] || '', environment: d.environment || '',
         foundIn: d.foundIn || '', fixVersion: d.fixVersion || '', customer: d.customer || '', customerRef: d.customerRef || '', reportedBy: d.reportedBy || x.by || '',
@@ -342,7 +342,9 @@ function open(opts) {
       jiraRef = { key: k, url: r.site + '/browse/' + k, from: true };
     }
     if (!text) return no('Say what is wrong (or give its Jira key).');
+    if (b.app !== undefined && !str(b.app)) return no('Choose the build first (Old, New, Next, Mobile or Future), then its page.');
     if (!b.page) return no('Choose the page the issue is on.');
+    if (b.app && str(b.page).split('/')[0] !== str(b.app)) return no('That page is not in the build chosen: choose one of its own pages.');
     const facts = o.fix && o.fix.pageOf ? o.fix.pageOf(b.page) : null;
     const id = 'is' + now().getTime().toString(36) + crypto.randomBytes(2).toString('hex');
     const x = { id: id, key: jiraRef ? jiraRef.key : 'BR-' + now().getTime().toString(36).slice(-5).toUpperCase(), page: str(b.page), label: (facts && facts.label) || str(b.page),
