@@ -16,7 +16,9 @@
     "oPass": { "type": "string", "defaultValue": "", "description": "Typed, sent once when saved, then cleared: never read back." },
     "pRepo": { "type": "string", "defaultValue": "" },
     "pName": { "type": "string", "defaultValue": "" },
-    "result": { "type": "any", "defaultValue": null, "description": "{ ok, text } of the last action." }
+    "result": { "type": "any", "defaultValue": null, "description": "{ ok, text } of the last action." },
+    "found": { "type": "any", "defaultValue": null, "description": "Find in VB Studio: the organizations, projects (their Git addresses) and workspaces read from VB Studio's pages (desktop/lib/vbsLearn.js)." },
+    "watching": { "type": "boolean", "defaultValue": false, "description": "The VB Studio window is open: what it finds is read again every few seconds." }
   },
   "eventListeners": {
     "vbEnter": { "chains": [ { "chain": "loadChain" } ] },

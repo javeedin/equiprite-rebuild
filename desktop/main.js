@@ -248,6 +248,7 @@ async function appServerOptions(v) {
     apiStore: nextLike(v) ? apiStore() : undefined,
     // Setup → Organizations & projects (Build.Rite): VB Studio organizations and projects
     vbsStore: v === 'build' ? vbsStore() : undefined,
+    vbsFind: v === 'build' ? openVbsFinder : undefined,
     backendOverrides: backendOverridesFromEnv(process.env),
     onLog: pushLog,
     onProblem: backendProblem,
@@ -351,6 +352,62 @@ function vbsStore() {
     });
   }
   return vbsStoreInst;
+}
+// Find in VB Studio (Setup → Organizations & projects): VB Studio in a window of its own — signed in there as usual (its
+// own session, kept between runs) — and what its pages load read as they load (the window's DevTools network events):
+// its organizations, projects (their Git addresses) and workspaces (lib/vbsLearn.js). Only VB Studio's own host, never a
+// sign-in call; read, never changed. VB Studio has no documented API that lists them.
+let vbsFinderWin = null;
+async function openVbsFinder(url) {
+  const store = vbsStore();
+  let target = String(url || '').trim();
+  if (!target) { const o = store.state().orgs[0]; target = o ? o.url : ''; }
+  if (!/^https:\/\/[^/]+\.oraclecloud\.com\/[^/]+/i.test(target)) return { ok: false, error: 'Give the VB Studio address first (https://<host>/<organization>/): add the organization, or paste it here.' };
+  if (vbsFinderWin && !vbsFinderWin.isDestroyed()) { vbsFinderWin.loadURL(target).catch(() => {}); vbsFinderWin.show(); vbsFinderWin.focus(); store.setFinder(true, target); return { ok: true, url: target, again: true }; }
+  const L = require('./lib/vbsLearn');
+  const learner = L.learner();
+  const w = new BrowserWindow({ width: 1320, height: 900, title: 'VB Studio — Build.Rite reads its organizations, projects and workspaces as you browse', backgroundColor: '#ffffff',
+    webPreferences: { partition: 'persist:vbstudio', contextIsolation: true, sandbox: true, nodeIntegration: false } });
+  vbsFinderWin = w;
+  w.on('page-title-updated', (e) => e.preventDefault());
+  // Oracle's sign-in may open a window of its own: allowed for Oracle's hosts only (same session); anything else in the browser
+  w.webContents.setWindowOpenHandler(({ url: next }) => {
+    if (/^https:\/\/[^/]+\.(oraclecloud|oracle)\.com\//i.test(next)) return { action: 'allow', overrideBrowserWindowOptions: { webPreferences: { partition: 'persist:vbstudio', contextIsolation: true, sandbox: true, nodeIntegration: false } } };
+    if (/^https?:/i.test(next)) shell.openExternal(next);
+    return { action: 'deny' };
+  });
+  const keepNow = () => { try { store.learn(Object.assign(learner.found(), { calls: learner.calls() })); } catch (e) { /* closed */ } };
+  let flush = null;
+  const keep = () => { if (flush) return; flush = setTimeout(() => { flush = null; keepNow(); }, 800); };
+  const pending = {};
+  const dbg = w.webContents.debugger;
+  try { dbg.attach('1.3'); } catch (e) { pushLog(`${new Date().toTimeString().slice(0, 8)} Find in VB Studio: could not watch the window (${e.message})`); }
+  dbg.on('message', async (event, method, params) => {
+    if (method === 'Network.responseReceived') {
+      const r = params.response || {};
+      if (params.type === 'Document') { if (learner.see({ url: r.url, status: r.status })) keep(); return; }
+      if (/json/i.test(r.mimeType || '') || /\/rest\//.test(r.url || '')) pending[params.requestId] = { url: r.url, status: r.status };
+    } else if (method === 'Network.loadingFinished' && pending[params.requestId]) {
+      const p = pending[params.requestId];
+      delete pending[params.requestId];
+      let u;
+      try { u = new URL(p.url); } catch (e) { return; }
+      if (!L.isVbsHost(u.hostname) || L.SIGNIN.test(u.pathname + u.search)) return; // never a sign-in call, never another site
+      try {
+        const b = await dbg.sendCommand('Network.getResponseBody', { requestId: params.requestId });
+        const text = b.base64Encoded ? Buffer.from(b.body, 'base64').toString('utf8') : b.body;
+        let json = null;
+        try { json = JSON.parse(text); } catch (e) { json = null; }
+        if (json !== null && learner.see({ url: p.url, status: p.status, json: json })) keep();
+      } catch (e) { /* the page moved on */ }
+    } else if (method === 'Network.loadingFailed') delete pending[params.requestId];
+  });
+  try { await dbg.sendCommand('Network.enable'); } catch (e) { /* not watched */ }
+  w.on('closed', () => { keepNow(); store.setFinder(false, target); if (vbsFinderWin === w) vbsFinderWin = null; });
+  store.setFinder(true, target);
+  w.loadURL(target).catch(() => {});
+  pushLog(`${new Date().toTimeString().slice(0, 8)} Find in VB Studio: opened ${target}`);
+  return { ok: true, url: target };
 }
 // Code Fix (Application pages → a page → Code fix): the AI chosen in AI settings proposes a change to a page; it is
 // written into the project's code only once approved (after git pull), then tested, committed or undone. The fixes are

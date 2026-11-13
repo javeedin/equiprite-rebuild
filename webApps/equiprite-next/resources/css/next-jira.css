@@ -1500,3 +1500,14 @@ button.nx-jira-recmark:hover, button.nx-jira-recmark:focus-visible { filter: bri
 .nx-vbs-chip--head { border-color: var(--nx-accent); color: var(--nx-accent); font-weight: 700; }
 .nx-vbs-chip--job { font-family: inherit; }
 .nx-vbs-addproj { margin-top: 6px; }
+
+/* Find in VB Studio */
+.nx-vbs-found { margin-top: 14px; }
+.nx-vbs-foundnote { margin: 0; padding: 12px 16px 0; font-size: 13px; color: var(--nx-muted); }
+.nx-vbs-foundlist { display: flex; flex-direction: column; gap: 8px; padding: 0 16px; }
+.nx-vbs-foundrow { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 1px solid var(--nx-line); border-radius: 12px; background: var(--nx-surface); }
+.nx-vbs-repo { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+.nx-vbs-wtable { padding: 0 16px; }
+.nx-vbs-wtr { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, .8fr) minmax(0, .9fr); gap: 10px; padding: 7px 4px; border-bottom: 1px solid var(--nx-line); font-size: 13px; }
+.nx-vbs-wth { font-size: 11px; font-weight: 700; color: var(--nx-muted); text-transform: uppercase; letter-spacing: .03em; }
+.nx-vbs-foundacts { padding: 12px 16px 16px; }

@@ -264,6 +264,7 @@ function time() {
  *                                        to the app's page (window.EQP_PRODUCT)
  * @param {object}   [o.vbsStore]         Setup → Organizations & projects (lib/vbs.js, Build.Rite): VB Studio organizations and projects,
  *                                        their sign-in kept on this PC: /__vbs/* to this PC only, behind the X-EquipRite-Vbs header
+ * @param {Function} [o.vbsFind]          (url) => opens VB Studio in a window of the desktop app, read as its pages load (Find in VB Studio)
  * @param {object}   [o.fixStore]         Code Fix (lib/codeFix.js): AI-proposed changes to a page, written to the code only when approved (/__fix/*)
  * @param {object}   [o.pagesStore]       The Application pages catalog (lib/pages.js): every VB page's technical sheet and the Jira stories
  *                                        mapped to it, saved into the project (git): /__pages/* to this PC only, behind X-EquipRite-Pages
@@ -991,6 +992,8 @@ function createDevServer(o) {
         (async () => {
           const b = post ? JSON.parse(((await readBody(req)) || '').toString('utf8') || '{}') : {};
           if (pathname === '/__vbs/state' && !post) return jsonV(200, vs.state());
+          if (pathname === '/__vbs/discovered' && !post) return jsonV(200, vs.discovered ? vs.discovered() : { ok: false, error: 'Not here.' });
+          if (pathname === '/__vbs/diagnostic' && !post) return jsonV(200, { ok: true, text: vs.diagnostic ? vs.diagnostic() : '' });
           if (!post) return jsonV(404, { error: 'Not found' });
           let r;
           if (pathname === '/__vbs/org') { try { r = vs.saveOrg(b); } catch (e) { r = { ok: false, error: e.message }; } }
@@ -998,6 +1001,9 @@ function createDevServer(o) {
           else if (pathname === '/__vbs/project') r = await vs.addProject(b);
           else if (pathname === '/__vbs/project/check') r = await vs.checkProject(b.id);
           else if (pathname === '/__vbs/project/remove') r = vs.removeProject(b.id);
+          // Find in VB Studio: VB Studio in a window of the desktop app (its pages read as they load)
+          else if (pathname === '/__vbs/find') r = typeof o.vbsFind === 'function' ? await o.vbsFind(String(b.url || '')) : { ok: false, error: 'Find in VB Studio needs the desktop app.' };
+          else if (pathname === '/__vbs/discovered/clear') r = vs.clearDiscovered();
           else return jsonV(404, { error: 'Not found' });
           log(`Setup: ${pathname.slice(7)} -> ${r && r.ok === false ? r.error : 'done'}`);
           return jsonV(200, r);

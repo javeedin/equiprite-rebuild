@@ -24,5 +24,10 @@ define([], function () {
     addProject: function (b) { return post('project', b); },
     checkProject: function (id) { return post('project/check', { id: id }); },
     removeProject: function (id) { return post('project/remove', { id: id }); },
+    /** Find in VB Studio: VB Studio opened in a window of the desktop app; what its pages load, read as you browse. */
+    find: function (url) { return post('find', { url: url || '' }); },
+    discovered: function () { return call('discovered'); },
+    diagnostic: function () { return call('diagnostic'); },
+    clearDiscovered: function () { return post('discovered/clear', {}); },
   };
 });

@@ -32,6 +32,21 @@ define([], () => {
         checked: p.checkedAt ? 'Checked ' + when(p.checkedAt) : '', error: p.error || '',
       }));
     }
+    // ── Find in VB Studio ──
+    hasFound(f) { return !!f && ((f.orgs || []).length + (f.projects || []).length + (f.workspaces || []).length > 0 || !!(f.finder && f.finder.open)); }
+    foundNote(f, watching) {
+      if (!f) return '';
+      if ((f.finder && f.finder.open) || watching) return 'The VB Studio window is open: sign in as usual, open the organization\'s page, then a project\'s Repositories and Workspaces — what VB Studio shows appears here.';
+      return f.at ? 'Read from VB Studio\'s pages, last on ' + when(f.at) + '. Open VB Studio again to find more.' : '';
+    }
+    foundCounts(f) { return !f ? '' : plural((f.orgs || []).length, 'organization') + ' · ' + plural((f.projects || []).length, 'project') + ' · ' + plural((f.projects || []).reduce((n, p) => n + (p.repos || []).length, 0), 'repository', 'repositories') + ' · ' + plural((f.workspaces || []).length, 'workspace'); }
+    foundOrgs(f) { return ((f && f.orgs) || []).map((o) => ({ url: o.url, org: o.org, host: o.host, setUp: !!o.orgId })); }
+    foundProjects(f) {
+      return ((f && f.projects) || []).map((p) => ({ key: p.host + '/' + p.org + '/' + p.project, name: p.name || p.project, project: p.project, org: p.org, description: p.description || '', orgSetUp: !!p.orgId,
+        guess: 'https://' + p.host + '/' + p.org + '/s/' + p.org + '_' + p.project + '/scm/' + p.project + '.git', noRepo: !(p.repos || []).length,
+        repos: (p.repos || []).map((r) => ({ repo: r.repo, url: r.url, added: !!r.added })) }));
+    }
+    foundWorkspaces(f) { return ((f && f.workspaces) || []).map((w) => ({ name: w.name, project: w.project || '—', branch: w.branch || '—', repo: w.repo || '—', owner: w.owner || '—' })); }
     repoHint(o) { return o ? 'https://' + o.host + '/' + o.org + '/s/' + o.org + '_<project>/scm/<repository>.git' : ''; }
   }
 

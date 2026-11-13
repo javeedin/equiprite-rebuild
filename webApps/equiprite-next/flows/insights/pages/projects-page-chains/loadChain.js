@@ -13,6 +13,8 @@ define(['vb/action/actionChain', 'resources/js/vbsClient'], (ActionChain, VC) =>
       v.projects = r.body.projects || [];
       if (!v.orgs.some((o) => o.id === v.selOrg)) v.selOrg = v.orgs.length ? v.orgs[0].id : '';
       if (!v.orgs.length) v.formOrg = true;
+      const f = await VC.discovered();
+      if (f.ok) v.found = f.body;
     }
   }
   return loadChain;

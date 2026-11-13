@@ -19,6 +19,9 @@
  *     saveOrg({ id, name, url, user, password }) an empty password keeps the saved one
  *     removeOrg(id)   addProject({ orgId, repoUrl, name })   checkProject(id)   removeProject(id)
  *     auth(orgId)                              { host, org, user, header } for Build.Rite's own calls, or null
+ *     learn(found)  discovered()  clearDiscovered()  diagnostic()  setFinder(open, url)
+ *                                              Find in VB Studio: organizations, projects (their Git addresses) and
+ *                                              workspaces read from VB Studio's own pages in a window of Build.Rite
  */
 const fs = require('fs');
 const path = require('path');
@@ -210,7 +213,35 @@ function open(opts) {
   }
   function auth(orgId) { const org = orgOf(orgId); const h = header(org); return h ? { host: org.host, org: org.org, user: org.user, header: h } : null; }
 
-  return { state: state, saveOrg: saveOrg, removeOrg: removeOrg, addProject: addProject, checkProject: checkProject, removeProject: removeProject, auth: auth, git: git };
+  // ── Find in VB Studio: what VB Studio's own pages loaded (desktop/lib/vbsLearn.js), kept and merged across visits ──
+  const L = require('./vbsLearn');
+  let finder = { open: false, url: '', at: '' };
+  function learn(found) {
+    data.discovered = Object.assign(L.merge(data.discovered || {}, found || {}), { at: now().toISOString() });
+    save();
+    return discovered();
+  }
+  /** What was found: each organization (set up here or not), project (its repositories; added here or not), workspace. */
+  function discovered() {
+    const d = data.discovered || { orgs: [], projects: [], workspaces: [], calls: [] };
+    const orgIdOf = (host, o) => (data.orgs.filter((x) => x.host === host && x.org === o)[0] || {}).id || '';
+    const added = (url) => data.projects.some((p) => p.repoUrl === url);
+    return { ok: true, at: d.at || '', finder: finder,
+      orgs: (d.orgs || []).map((o) => Object.assign({}, o, { orgId: orgIdOf(o.host, o.org) })),
+      projects: (d.projects || []).map((p) => Object.assign({}, p, { orgId: orgIdOf(p.host, p.org), repos: (p.repos || []).map((r) => Object.assign({}, r, { added: added(r.url) })) })),
+      workspaces: (d.workspaces || []).slice(), calls: (d.calls || []).length };
+  }
+  function clearDiscovered() { data.discovered = null; save(); return discovered(); }
+  /** "Copy what Build.Rite saw": the calls VB Studio's pages made, as paths and field names only (no value), and counts. */
+  function diagnostic() {
+    const d = data.discovered || {};
+    return JSON.stringify({ seen: d.at || '', organizations: (d.orgs || []).length, projects: (d.projects || []).length, repositories: (d.projects || []).reduce((n, p) => n + (p.repos || []).length, 0),
+      workspaces: (d.workspaces || []).length, calls: (d.calls || []).map((c) => ({ path: c.path, status: c.status, shape: c.shape })) }, null, 1);
+  }
+  function setFinder(open, url) { finder = { open: !!open, url: str(url), at: now().toISOString() }; }
+
+  return { state: state, saveOrg: saveOrg, removeOrg: removeOrg, addProject: addProject, checkProject: checkProject, removeProject: removeProject, auth: auth, git: git,
+    learn: learn, discovered: discovered, clearDiscovered: clearDiscovered, diagnostic: diagnostic, setFinder: setFinder };
 }
 
 module.exports = { open, parseOrgUrl, parseRepoUrl, branchesOf, jobsOf, why };

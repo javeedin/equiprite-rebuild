@@ -72,6 +72,25 @@ const REPO = 'https://acme-dev1-demo-phx.developer.ocp.oraclecloud.com/acme-dev1
     const ck = await store.checkProject(ap.project.id);
     T.check('checked again: its branches now; the jobs not readable (said), the branches still fine', ck.ok && ck.project.branches.join() === 'main' && ck.project.head === 'main' && /may not open/.test(ck.project.jobsError), JSON.stringify(ck.project));
 
+    T.section('Find in VB Studio: what its pages showed, kept; set up or added marked; no values copied');
+    const Ln = require('../desktop/lib/vbsLearn');
+    const lr = Ln.learner();
+    const B = 'https://acme-dev1-demo-phx.developer.ocp.oraclecloud.com/acme-dev1-demo-phx';
+    lr.see({ url: B + '/rest/acme-dev1-demo-phx/projects', json: { items: [{ identifier: 'equiprite_1234', displayName: 'EquipRite', description: 'Rentals' }, { identifier: 'billing', displayName: 'Billing portal' }] } });
+    lr.see({ url: B + '/rest/acme-dev1-demo-phx_billing/scm/v2/repositories', json: [{ httpUrl: B + '/s/acme-dev1-demo-phx_billing/scm/billing-ui.git' }, { httpUrl: REPO }] });
+    lr.see({ url: B + '/rest/acme-dev1-demo-phx_equiprite_1234/workspaces/v1/workspaces', json: { items: [{ id: 'w1', name: 'javeed-26c', branch: 'ws-javeed', owner: 'javeed.shaik' }] } });
+    const dsc = store.learn(Object.assign(lr.found(), { calls: lr.calls() }));
+    const eqp = dsc.projects.filter((x) => x.project === 'equiprite_1234')[0], bil = dsc.projects.filter((x) => x.project === 'billing')[0];
+    T.check('kept: its organization (set up here), its projects (EquipRite\'s repository added here, Billing\'s not), its workspace', dsc.orgs.length === 1 && dsc.orgs[0].orgId === so.org.id
+      && eqp.name === 'EquipRite' && eqp.repos[0].added && bil.name === 'Billing portal' && bil.repos.length === 1 && !bil.repos[0].added && bil.orgId === so.org.id
+      && dsc.workspaces.length === 1 && dsc.workspaces[0].branch === 'ws-javeed' && dsc.calls === 3 && !!dsc.at, JSON.stringify(dsc).slice(0, 500));
+    const dg = store.diagnostic();
+    T.check('"Copy what Build.Rite saw": the calls as paths and field names, counts — no name, id or value', /"calls"/.test(dg) && /\/<org>\/rest\/<org>_<project>\/workspaces\/v1\/workspaces/.test(dg) && /"projects": 2/.test(dg)
+      && dg.indexOf('EquipRite') === -1 && dg.indexOf('billing') === -1 && dg.indexOf('javeed') === -1 && dg.indexOf('acme') === -1, dg.slice(0, 400));
+    store.setFinder(true, ORG_URL);
+    T.check('the VB Studio window open: said', store.discovered().finder.open && store.discovered().finder.url === ORG_URL);
+    T.check('cleared', store.clearDiscovered().projects.length === 0 && store.discovered().calls === 0);
+
     T.section('read again; removed');
     const st2 = V.open({ file: path.join(tmp, 'vbs.json'), encrypt: enc, decrypt: dec, git: () => gitAnswer, fetch: async () => ({ ok: true, status: 200, text: async () => '[]' }) });
     T.check('another start of the app: the organization and its project, the sign-in still there (decrypted)', st2.state().orgs.length === 1 && st2.state().projects.length === 1 && st2.state().orgs[0].hasPassword && !!st2.auth(so.org.id));

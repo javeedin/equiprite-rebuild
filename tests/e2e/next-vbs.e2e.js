@@ -32,7 +32,29 @@ const SECRET = 'Pa55-w0rd#e2e';
   const vbs = V.open({ file: path.join(dir, 'vbs.json'), encrypt: enc, decrypt: dec,
     git: (args, auth) => { gitSeen.push({ args: args, auth: auth }); return /other\.git/.test(args.join(' ')) ? { code: 128, stdout: '', stderr: 'fatal: Authentication failed' } : { code: 0, stdout: branches, stderr: '' }; },
     fetch: async () => ({ ok: true, status: 200, text: async () => JSON.stringify({ items: [{ name: 'Package' }, { name: 'Deploy to DEV' }] }) }) });
-  const env = await E.start({ port: 19960, app: 'next', product: 'buildrite', vbsStore: vbs });
+  // Find in VB Studio: the desktop app's VB Studio window, here a stand-in that "browses" — the organization's projects,
+  // a project's repositories and workspaces, another organization — fed to the real learner, then closes
+  const L = require('../../desktop/lib/vbsLearn');
+  const opened = [];
+  const B = 'https://' + HOST + '/' + ORG;
+  const vbsFind = async (url) => {
+    opened.push(url);
+    vbs.setFinder(true, url);
+    const lr = L.learner();
+    setTimeout(() => {
+      lr.see({ url: url, status: 200 });
+      lr.see({ url: B + '/rest/' + ORG + '/projects', status: 200, json: { items: [{ identifier: 'equiprite_1234', displayName: 'EquipRite', description: 'Rentals' }, { identifier: 'billing', displayName: 'Billing portal' }, { identifier: 'reports', displayName: 'Reports' }] } });
+      lr.see({ url: B + '/rest/' + ORG + '_billing/scm/v2/repositories', status: 200, json: [{ name: 'billing-ui', httpUrl: B + '/s/' + ORG + '_billing/scm/billing-ui.git' }] });
+      lr.see({ url: B + '/rest/' + ORG + '_equiprite_1234/scm/v2/repositories', status: 200, json: [{ name: 'equiprite', httpUrl: REPO }] });
+      lr.see({ url: B + '/rest/' + ORG + '_equiprite_1234/workspaces/v1/workspaces', status: 200, json: { items: [{ id: 'w1', name: 'javeed-26c-titles', branch: 'ws-javeed', repository: { name: 'equiprite' }, owner: { username: 'javeed.shaik' } },
+        { id: 'w2', name: 'Release 26D', branch: 'release-26d', repository: { name: 'equiprite' }, owner: { username: 'rite.user' } }] } });
+      lr.see({ url: B + '/rest/me/organizations', status: 200, json: { items: [{ url: 'https://other-dev2-demo-iad.developer.ocp.oraclecloud.com/other-dev2-demo-iad/' }] } });
+      vbs.learn(Object.assign(lr.found(), { calls: lr.calls() }));
+    }, 400);
+    setTimeout(() => vbs.setFinder(false, url), 5000);
+    return { ok: true, url: url };
+  };
+  const env = await E.start({ port: 19960, app: 'next', product: 'buildrite', vbsStore: vbs, vbsFind: vbsFind });
   const page = env.page;
   const errs = () => env.errors.filter((e) => !/404|401|Failed to load resource/.test(e) && !e.startsWith('warning'));
   try {
@@ -97,6 +119,37 @@ const SECRET = 'Pa55-w0rd#e2e';
     await page.click('#vbsProjects [data-act="removeProject"]');
     await page.waitForFunction(() => !document.querySelector('#vbsProjects .nx-vbs-project'), null, { timeout: 5000 }).catch(() => {});
     T.check('the project removed (nothing changes in VB Studio)', !(await page.$('#vbsProjects .nx-vbs-project')) && /^Removed: EquipRite\.$/.test(await text(page, '#vbsResult')) && vbs.state().projects.length === 0);
+
+    T.section('Find in VB Studio: its organizations, projects and workspaces read as you browse');
+    await page.click('#vbsFind');
+    await page.waitForSelector('#vbsFoundProjects .nx-vbs-foundrow', { timeout: 10000 }).catch(() => {});
+    T.check('VB Studio opened in a window of Build.Rite, at the organization chosen; watched (a spinner) while it is open', opened[0] === ORG_URL && /^VB Studio is open in a window of Build\.Rite \(/.test(await text(page, '#vbsResult'))
+      && /The VB Studio window is open: sign in as usual/.test(await text(page, '#vbsFoundNote')) && !!(await page.$('#vbsFoundNote .nx-spin')), await text(page, '#vbsResult'));
+    T.check('found: 2 organizations · 3 projects · 2 repositories · 2 workspaces', (await text(page, '#vbsFoundCounts')) === '2 organizations · 3 projects · 2 repositories · 2 workspaces', await text(page, '#vbsFoundCounts'));
+    const forg = await page.$$eval('#vbsFoundOrgs .nx-vbs-foundrow', (l) => l.map((x) => Array.from(x.querySelectorAll('b, code, .nx-vbs-st, button')).map((y) => y.textContent.trim()).join('|')));
+    T.check('its organizations: this one set up; another one, with Set up', forg.length === 2 && forg[0] === ORG + '|' + ORG_URL + '|✓ Set up' && forg[1] === 'other-dev2-demo-iad|https://other-dev2-demo-iad.developer.ocp.oraclecloud.com/other-dev2-demo-iad/|Set up', forg.join(' || '));
+    const fpr = await text(page, '#vbsFoundProjects');
+    T.check('its projects: name, id, description; their repositories with Add; one not seen yet (try its default repository)', /EquipRite\s*Project equiprite_1234 · acme-dev1-demo-phx · Rentals\s*equiprite\s*Add/.test(fpr) && /Billing portal\s*Project billing · acme-dev1-demo-phx\s*billing-ui\s*Add/.test(fpr)
+      && /Reports\s*Project reports · acme-dev1-demo-phx\s*Its Git address not seen yet: open its Repositories page in the VB Studio window\.\s*Try its default repository/.test(fpr), fpr);
+    const fws = await page.$$eval('#vbsFoundWorkspaces .nx-vbs-wtr:not(.nx-vbs-wth)', (l) => l.map((x) => Array.from(x.querySelectorAll('[role="cell"]')).map((y) => y.textContent.trim()).join('|')));
+    T.check('its workspaces: name, project, branch, repository, owner', fws.join(' || ') === 'javeed-26c-titles|equiprite_1234|ws-javeed|equiprite|javeed.shaik || Release 26D|equiprite_1234|release-26d|equiprite|rite.user', fws.join(' || '));
+    await page.click('#vbsFoundProjects [data-found="' + HOST + '/' + ORG + '/billing"] [data-act="addFound"]');
+    await page.waitForFunction(() => /^Added and checked: Billing portal/.test((document.getElementById('vbsResult') || {}).textContent || ''), null, { timeout: 8000 }).catch(() => {});
+    T.check('Add: the project added with one click (checked: signed in, its branches) — marked added', /^Added and checked: Billing portal — signed in; 2 branches, 2 build jobs\.$/.test(await text(page, '#vbsResult'))
+      && /billing-ui\s*✓ Added/.test(await text(page, '#vbsFoundProjects')) && vbs.state().projects.some((x) => x.repoUrl === B + '/s/' + ORG + '_billing/scm/billing-ui.git') && (await page.$$('#vbsProjects .nx-vbs-project')).length === 1, await text(page, '#vbsResult'));
+    await page.click('#vbsFoundOrgs [data-act="setupOrg"]');
+    await page.waitForSelector('#vbsOrgForm', { timeout: 3000 }).catch(() => {});
+    T.check('Set up another organization: its form with its address and name; its sign-in asked', (await page.inputValue('#vbsOUrl')) === 'https://other-dev2-demo-iad.developer.ocp.oraclecloud.com/other-dev2-demo-iad/'
+      && (await page.inputValue('#vbsOName')) === 'other-dev2-demo-iad' && (await page.inputValue('#vbsOUser')) === '' && /Enter how you sign in to other-dev2-demo-iad/.test(await text(page, '#vbsResult')));
+    await page.click('#vbsCancelOrg');
+    await page.context().grantPermissions(['clipboard-read', 'clipboard-write']).catch(() => {});
+    await page.click('#vbsDiag');
+    await page.waitForFunction(() => /^Copied: the calls/.test((document.getElementById('vbsResult') || {}).textContent || ''), null, { timeout: 3000 }).catch(() => {});
+    const clip = await page.evaluate(() => navigator.clipboard.readText()).catch(() => '');
+    T.check('Copy what Build.Rite saw: the calls as paths and field names — no name, id or value', /"calls"/.test(clip) && /<org>_<project>\/workspaces\/v1\/workspaces/.test(clip) && clip.indexOf('Billing') === -1 && clip.indexOf('javeed') === -1 && clip.indexOf(ORG) === -1, clip.slice(0, 300));
+    await page.waitForFunction(() => !document.querySelector('#vbsFoundNote .nx-spin'), null, { timeout: 12000 }).catch(() => {});
+    T.check('the VB Studio window closed: no longer watched; what was found kept', !(await page.$('#vbsFoundNote .nx-spin')) && /^Read from VB Studio's pages, last on /.test(await text(page, '#vbsFoundNote')), await text(page, '#vbsFoundNote'));
+    await env.shot('buildrite-find-vbs.png');
     T.check('no errors in the browser console', errs().length === 0, errs().join(' | '));
   } catch (e) {
     T.check('no exception: ' + (e && e.stack), false);
