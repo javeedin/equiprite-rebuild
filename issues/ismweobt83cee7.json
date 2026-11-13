@@ -96,6 +96,18 @@
    "what": "tests broke",
    "by": "agent",
    "detail": "The change breaks 1 check(s) or test(s) on fix/BR-OBT84: not committed. See the tests below."
+  },
+  {
+   "at": "2026-11-13T19:11:58.890Z",
+   "what": "agent started",
+   "by": "javeed.shaik",
+   "detail": "branch fix/BR-OBT84"
+  },
+  {
+   "at": "2026-11-13T19:15:42.789Z",
+   "what": "tests broke",
+   "by": "agent",
+   "detail": "The change breaks 2 check(s) or test(s) on fix/BR-OBT84: not committed. See the tests below."
   }
  ],
  "comments": [],
@@ -116,7 +128,7 @@
   "notify": [],
   "aiWhy": ""
  },
- "updatedAt": "2026-11-13T18:38:52.835Z",
+ "updatedAt": "2026-11-13T19:15:42.789Z",
  "formatted": {
   "title": "Equipment Manager Workbench: append the 26c version number",
   "summary": "The reporter asks for the 26c version number to be appended on the Equipment Manager Workbench page. The note does not say where it should be appended or what is shown today.",
@@ -160,165 +172,165 @@
    "via": "app"
   }
  },
- "lastError": "The change breaks 1 check(s) or test(s) on fix/BR-OBT84: not committed. See the tests below.",
+ "lastError": "The change breaks 2 check(s) or test(s) on fix/BR-OBT84: not committed. See the tests below.",
  "agentRun": {
   "ok": true,
   "running": false,
   "done": true,
   "okRun": false,
-  "error": "The change breaks 1 check(s) or test(s) on fix/BR-OBT84: not committed. See the tests below.",
-  "started": "2026-11-13T18:35:13.112Z",
-  "seconds": 218,
+  "error": "The change breaks 2 check(s) or test(s) on fix/BR-OBT84: not committed. See the tests below.",
+  "started": "2026-11-13T19:11:58.890Z",
+  "seconds": 222,
   "log": [
    {
-    "t": 387,
+    "t": 529,
     "key": "fetch",
     "state": "running",
     "text": "git fetch origin claude/equiprite-future"
    },
    {
-    "t": 2097,
+    "t": 2408,
     "key": "fetch",
     "state": "done",
     "text": "from origin/claude/equiprite-future"
    },
    {
-    "t": 2097,
+    "t": 2408,
     "key": "branch",
     "state": "running",
     "text": "fix/BR-OBT84 from origin/claude/equiprite-future, in a folder apart"
    },
    {
-    "t": 46432,
+    "t": 11507,
     "key": "branch",
     "state": "done",
     "text": "fix/BR-OBT84 from origin/claude/equiprite-future"
    },
    {
-    "t": 46432,
+    "t": 11507,
     "key": "check",
     "state": "running",
     "text": "1 file(s): webApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-workbench-page.html"
    },
    {
-    "t": 46433,
+    "t": 11509,
     "key": "check",
     "state": "done",
     "text": "it fits the code on origin/claude/equiprite-future"
    },
    {
-    "t": 46433,
+    "t": 11509,
     "key": "before",
     "state": "running",
     "text": "finding the tests that name this page…"
    },
    {
-    "t": 46478,
+    "t": 11561,
     "key": "before",
     "state": "running",
     "text": "test 1 of 3: tests/old-app-unchanged.test.js"
    },
    {
-    "t": 48463,
+    "t": 13029,
     "key": "before",
     "state": "log",
-    "text": "tests/old-app-unchanged.test.js: ✗ 2 passed, 1 failed (2.0 s) — no tracked file differs from the baseline, beyond the agreed changes - M\twebApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page.html"
+    "text": "tests/old-app-unchanged.test.js: ✗ 2 passed, 1 failed (1.5 s) — no tracked file differs from the baseline, beyond the agreed changes - M\twebApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page.html"
    },
    {
-    "t": 48463,
+    "t": 13029,
     "key": "before",
     "state": "running",
     "text": "test 2 of 3: tests/app-pages.test.js"
    },
    {
-    "t": 128097,
+    "t": 128569,
     "key": "before",
     "state": "log",
-    "text": "tests/app-pages.test.js: ✓ 55 passed, 0 failed (79.6 s)"
+    "text": "tests/app-pages.test.js: ✓ 55 passed, 0 failed (115.5 s)"
    },
    {
-    "t": 128097,
+    "t": 128569,
     "key": "before",
     "state": "running",
     "text": "test 3 of 3: tests/equipment-workbench.test.js"
    },
    {
-    "t": 133572,
+    "t": 134098,
     "key": "before",
     "state": "log",
     "text": "tests/equipment-workbench.test.js: ✓ 26 passed, 0 failed (5.5 s)"
    },
    {
-    "t": 133572,
+    "t": 134099,
     "key": "before",
     "state": "done",
     "text": "2 of 3 passing before the change"
    },
    {
-    "t": 133572,
+    "t": 134099,
     "key": "write",
     "state": "running",
     "text": "webApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-workbench-page.html"
    },
    {
-    "t": 133575,
+    "t": 134101,
     "key": "write",
     "state": "done",
     "text": "1 file(s) written on fix/BR-OBT84"
    },
    {
-    "t": 133575,
+    "t": 134101,
     "key": "after",
     "state": "running",
     "text": "the same tests, with the change…"
    },
    {
-    "t": 133671,
+    "t": 134189,
     "key": "after",
     "state": "running",
     "text": "test 1 of 3: tests/old-app-unchanged.test.js"
    },
    {
-    "t": 134770,
+    "t": 135132,
     "key": "after",
     "state": "log",
-    "text": "tests/old-app-unchanged.test.js: ✗ 2 passed, 1 failed (1.1 s) — no tracked file differs from the baseline, beyond the agreed changes - M\twebApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page.html"
+    "text": "tests/old-app-unchanged.test.js: ✗ 2 passed, 1 failed (0.9 s) — no tracked file differs from the baseline, beyond the agreed changes - M\twebApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page.html | M\twebApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-workbench-page.html"
    },
    {
-    "t": 134770,
+    "t": 135132,
     "key": "after",
     "state": "running",
     "text": "test 2 of 3: tests/app-pages.test.js"
    },
    {
-    "t": 212670,
+    "t": 216391,
     "key": "after",
     "state": "log",
-    "text": "tests/app-pages.test.js: ✗ 52 passed, 3 failed (77.9 s) — an Old EquipRite page takes its page title, and opens at /vp/shell/<flow>/<page> | features: its title, table columns, what reacts (row picked, tab changed, filter), when it runs | \"explain this page\": its five headings, only the facts"
+    "text": "tests/app-pages.test.js: ✗ 52 passed, 3 failed (81.3 s) — an Old EquipRite page takes its page title, and opens at /vp/shell/<flow>/<page> | features: its title, table columns, what reacts (row picked, tab changed, filter), when it runs | \"explain this page\": its five headings, only the facts"
    },
    {
-    "t": 212670,
+    "t": 216391,
     "key": "after",
     "state": "running",
     "text": "test 3 of 3: tests/equipment-workbench.test.js"
    },
    {
-    "t": 218155,
+    "t": 221928,
     "key": "after",
     "state": "log",
     "text": "tests/equipment-workbench.test.js: ✓ 26 passed, 0 failed (5.5 s)"
    },
    {
-    "t": 218161,
+    "t": 221933,
     "key": "after",
     "state": "failed",
-    "text": "1 new failure(s): not committed — tests/app-pages.test.js: an Old EquipRite page takes its page title, and opens at /vp/shell/<flow>/<page>"
+    "text": "2 new failure(s): not committed — tests/old-app-unchanged.test.js: no tracked file differs from the baseline, beyond the agreed changes - M\twebApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page.html | M\twebApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-workbench-page.html · tests/app-pages.test.j"
    },
    {
-    "t": 218161,
+    "t": 221933,
     "key": "end",
     "state": "failed",
-    "text": "the change breaks 1 check(s) or test(s): not committed"
+    "text": "the change breaks 2 check(s) or test(s): not committed"
    }
   ],
   "steps": [
@@ -334,7 +346,7 @@
     "label": "Make its own branch",
     "state": "done",
     "detail": "fix/BR-OBT84 from origin/claude/equiprite-future",
-    "seconds": 44
+    "seconds": 9
    },
    {
     "key": "check",
@@ -348,7 +360,7 @@
     "label": "Run the related tests, before the change",
     "state": "done",
     "detail": "2 of 3 passing before the change",
-    "seconds": 87
+    "seconds": 123
    },
    {
     "key": "write",
@@ -361,8 +373,8 @@
     "key": "after",
     "label": "Run the tests again, with the change",
     "state": "failed",
-    "detail": "1 new failure(s): not committed — tests/app-pages.test.js: an Old EquipRite page takes its page title, and opens at /vp/shell/<flow>/<page>",
-    "seconds": 85
+    "detail": "2 new failure(s): not committed — tests/old-app-unchanged.test.js: no tracked file differs from the baseline, beyond the agreed changes - M\twebApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page.html | M\twebApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-workbench-page.html · tests/app-pages.test.j",
+    "seconds": 88
    },
    {
     "key": "commit",
@@ -388,11 +400,11 @@
   ]
  },
  "lastRun": {
-  "at": "2026-11-13T18:38:52.835Z",
+  "at": "2026-11-13T19:15:42.789Z",
   "broke": true,
   "stale": false,
   "tests": {
-   "at": "2026-11-13T18:38:51.273Z",
+   "at": "2026-11-13T19:15:40.823Z",
    "ok": false,
    "checks": [
     {
@@ -445,12 +457,14 @@
      "passed": 2,
      "failed": 1,
      "failures": [
-      "no tracked file differs from the baseline, beyond the agreed changes - M\twebApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page.html"
+      "no tracked file differs from the baseline, beyond the agreed changes - M\twebApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page.html | M\twebApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-workbench-page.html"
      ],
-     "newFailures": [],
+     "newFailures": [
+      "no tracked file differs from the baseline, beyond the agreed changes - M\twebApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page.html | M\twebApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-workbench-page.html"
+     ],
      "before": "1 failing before the fix",
-     "ms": 1099,
-     "out": "",
+     "ms": 943,
+     "out": "\n=== Old EquipRite (webApps/vbredwoodapp) unchanged since the redesign started ===\n  FAIL no tracked file differs from the baseline, beyond the agreed changes - M\twebApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page.html\nM\twebApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-workbench-page.html\n  ok   no new files added, beyond the agreed changes\n  ok   every agreed change says why\n\n============================================================\npassed: 2   failed: 1\n\nFAILURES:\n  - no tracked file differs from the baseline, beyond the agreed changes - M\twebApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page.html\nM\twebApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-workbench-page.html\n",
      "guard": true
     },
     {
@@ -469,7 +483,7 @@
       "\"explain this page\": its five headings, only the facts"
      ],
      "before": "passed",
-     "ms": 77899,
+     "ms": 81259,
      "out": "vp/shell/<flow>/<page>\n  ok   a screen opened from another (a record) says how to get its screenshot\n\n=== navigation: where each page goes, the menus, the maps ===\n  ok   links resolved from the chains (navigateToPage, the shell's tabs): Old, New and Next each have some\n  ok   …with the chain that opens it\n  ok   the menus: Old (its nav groups), New and Next\n  ok   list(): each page with next and its menu entry\n  ok   analyze(): next with labels and chains\n  ok   pageMap: Comes from (the menu first) → This page → Goes to (by its chain) → Then\n  ok   …an edge into this page for each \"comes from\", out of it for each \"goes to\"\n  ok   …\"Then\" holds only pages not already shown\n  ok   appMap: every page of the app once — from the menu, steps on, not reached\n  ok   …the open page marked, edges only between pages shown\n  ok   a page that comes back: the edge back to \"This page\"; deleted pages left out\n\n=== one page's facts, from its files ===\n  FAIL features: its title, table columns, what reacts (row picked, tab changed, filter), when it runs\n  ok   business logic: each chain with what its own comment says, and what it calls\n  ok   integrations: the endpoint → GET and its path → EquipRite REST (eqpt), used by its chain\n  ok   links: the screen it opens; files and a code hash\n  ok   a Next page: rules modules (two levels deep) and the desktop services they use; buttons by the words they show\n  ok   BI Publisher reports are named (…_RP)\n  ok   every REST endpoint any page calls is in services/\n  ok   a header comment\n  ok   the analyzer reads, never writes: an unknown page is null\n\n=== the catalog in git: map a story (the sheet built once), reuse it for another, unmap ===\n  ok   the catalog lists every page, none mapped yet\n  ok   before a sheet is built: the facts read now, not saved\n  ok   mapping the first story builds and saves the sheet\n  ok   a second story reuses the sheet: only its number is added (not rebuilt)\n  ok   the same story twice is kept once; a key that is not a key is refused\n  ok   the page table (catalog.json) holds the story numbers and the sheet's summary\n  ok   a story's pages\n  ok   a screenshot captured at the page's address, saved beside the sheet\n  ok   a screen with no address of its own: not captured, says to upload\n  ok   several screenshots: an upload is added (the capture kept), each its own file and caption\n  ok   the page table counts them\n  ok   one deleted: its file gone, the others kept\n  ok   a new one after a delete gets a new number (a number never names two images)\n  ok   the AI explanation is kept with the sheet\n  ok   refreshing the sheet keeps its stories, screenshots and AI text\n  ok   unmapping a story\n  ok   when the page's code changes, its sheet says so\n  ok   rescan writes every page into the catalog\n  ok   an older sheet's single screenshot reads as a list of one\n\n=== delete a page from the catalog, and restore it ===\n  ok   deleted: its sheet and screenshots gone, its stories unmapped, marked deleted (the code still has it)\n  ok   …and stays deleted after a rescan\n  ok   opening it says it was deleted\n  ok   restored: back in the lists\n  ok   mapping a story to a deleted page brings it back, with a new sheet\n  ok   an unknown page cannot be deleted\n  ok   git: only resources/pages is committed, then pushed; other staged work stays staged\n\n=== what the AI is given ===\n  FAIL \"explain this page\": its five headings, only the facts\n  ok   a story's mapped pages: the essentials and the saved AI explanation\n  ok   the story's analysis carries them, and is told to name chains and endpoints\n  ok   …and without mapped pages, nothing changes\n  ok   a set too\n\n============================================================\npassed: 52   failed: 3\n\nFAILURES:\n  - an Old EquipRite page takes its page title, and opens at /vp/shell/<flow>/<page>\n  - features: its title, table columns, what reacts (row picked, tab changed, filter), when it runs\n  - \"explain this page\": its five headings, only the facts\n",
      "guard": false
     },
@@ -481,7 +495,7 @@
      "failures": [],
      "newFailures": [],
      "before": "passed",
-     "ms": 5485,
+     "ms": 5537,
      "out": "",
      "guard": false
     }
