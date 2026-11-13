@@ -1,0 +1,42 @@
+{
+ "id": "ismweobt83cee7",
+ "key": "BR-OBT84",
+ "page": "vbredwoodapp/equipment-foundation/equipment-workbench",
+ "label": "Equipment Manager Workbench",
+ "app": "vbredwoodapp",
+ "kind": "bug",
+ "text": "append the 26c version number",
+ "title": "append the 26c version number",
+ "by": "javeed.shaik",
+ "at": "2026-11-13T07:47:13.204Z",
+ "status": "new",
+ "images": [],
+ "jira": null,
+ "events": [
+  {
+   "at": "2026-11-13T07:47:13.204Z",
+   "what": "logged",
+   "by": "javeed.shaik",
+   "detail": "append the 26c version number"
+  }
+ ],
+ "comments": [],
+ "details": {
+  "severity": "critical",
+  "priority": "p1",
+  "environment": "DEV",
+  "foundIn": "",
+  "fixVersion": "",
+  "customer": "",
+  "customerRef": "",
+  "reportedBy": "javeed.shaik",
+  "reporterEmail": "",
+  "raisedOn": "2026-11-13",
+  "assignee": "",
+  "dueDate": "",
+  "notify": [],
+  "ai": [],
+  "aiWhy": ""
+ },
+ "updatedAt": "2026-11-13T07:47:13.204Z"
+}
