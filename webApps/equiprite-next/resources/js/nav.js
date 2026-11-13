@@ -33,6 +33,9 @@ define(['resources/js/rules'], function (rules) {
   var PRODUCT = { id: PRODUCT_ID, isBuild: PRODUCT_ID === 'buildrite', name: PRODUCT_ID === 'buildrite' ? 'Build.Rite' : 'EquipRite',
     home: PRODUCT_ID === 'buildrite' ? 'issues' : 'home', groups: BUILD_GROUPS };
   var inProduct = function (groupKey) { return !PRODUCT.isBuild || BUILD_GROUPS.indexOf(groupKey) !== -1; };
+  // an item of another group that is also one of the team's tools (buildRite: true, e.g. SQL): in Build.Rite too, listed
+  // with them (after Flows explained); in EquipRite it stays where it is
+  var itemInProduct = function (it) { return !!it && (inProduct(it.group) || (PRODUCT.isBuild && !!it.buildRite)); };
 
   var GROUPS = [
     { key: 'work', label: '', items: [
@@ -136,8 +139,9 @@ define(['resources/js/rules'], function (rules) {
         route: { flow: 'admin', page: 'integrations' }, built: true, newNav: 'integration-health', keywords: 'fusion sync health errors' },
       // SQL against an Oracle database from this PC, as in SQL Developer (flows/admin sql page): the desktop app connects
       // for it (desktop/lib/oracleSql.js), so it works in the desktop app only. For admins (the Settings page code).
-      { id: 'sql', label: 'SQL', icon: 'oj-ux-ico-database', pageCodes: ['EQR_CONFIGURATIONS'],
-        route: { flow: 'admin', page: 'sql' }, built: true, keywords: 'query database oracle developer tns select statement' }
+      // Also one of the team's tools: in Build.Rite's menu too (buildRite), after Flows explained.
+      { id: 'sql', label: 'SQL', icon: 'oj-ux-ico-database', pageCodes: ['EQR_CONFIGURATIONS'], buildRite: true,
+        route: { flow: 'admin', page: 'sql' }, built: true, keywords: 'query database oracle developer tns select statement worksheet' }
     ] },
     // Help is for everyone, once their access has loaded. It sits at the foot of the menu and in the top bar, not in a
     // group of its own (foot).
@@ -250,6 +254,13 @@ define(['resources/js/rules'], function (rules) {
       var items = g.items.filter(function (it) { return itemVisible(it, map, loaded, flags, flagsLoaded, buRateSources); });
       if (items.length) out.push({ key: g.key, label: g.label, items: items });
     });
+    // Build.Rite: the team's tools kept in other groups (SQL) join its own list, after Flows explained
+    if (PRODUCT.isBuild && out.length) {
+      GROUPS.forEach(function (g) {
+        if (g.foot || inProduct(g.key)) return;
+        g.items.forEach(function (it) { if (it.buildRite && itemVisible(it, map, loaded, flags, flagsLoaded, buRateSources)) out[out.length - 1].items.push(it); });
+      });
+    }
     return out;
   }
 
@@ -283,7 +294,7 @@ define(['resources/js/rules'], function (rules) {
   }
 
   function itemVisible(it, map, loaded, flags, flagsLoaded, buRateSources) {
-    if (it && !inProduct(it.group)) return false;
+    if (it && !itemInProduct(it)) return false;
     if (!it) return false;
     if (it.everyone) return !!loaded && (!it.staff || staffScreens(map, loaded));
     if (it.id === 'home' && customerOnly(map, loaded)) return false;
