@@ -9,7 +9,7 @@
  "title": "append the 26c version number",
  "by": "javeed.shaik",
  "at": "2026-11-13T07:47:13.204Z",
- "status": "new",
+ "status": "written",
  "images": [],
  "jira": null,
  "events": [
@@ -18,10 +18,17 @@
    "what": "logged",
    "by": "javeed.shaik",
    "detail": "append the 26c version number"
+  },
+  {
+   "at": "2026-11-13T07:47:26.759Z",
+   "what": "written up",
+   "by": "Claude (Anthropic)",
+   "detail": "Equipment Manager Workbench: append the 26c version number"
   }
  ],
  "comments": [],
  "details": {
+  "ai": [],
   "severity": "critical",
   "priority": "p1",
   "environment": "DEV",
@@ -35,8 +42,25 @@
   "assignee": "",
   "dueDate": "",
   "notify": [],
-  "ai": [],
   "aiWhy": ""
  },
- "updatedAt": "2026-11-13T07:47:13.204Z"
+ "updatedAt": "2026-11-13T07:47:26.759Z",
+ "formatted": {
+  "title": "Equipment Manager Workbench: append the 26c version number",
+  "summary": "The reporter asks for the 26c version number to be appended on the Equipment Manager Workbench page. The note does not say where it should be appended or what is shown today.",
+  "steps": [
+   "Open the Equipment Manager Workbench page (vbredwoodapp/equipment-foundation/equipment-workbench)"
+  ],
+  "expected": "The 26c version number is appended (the exact place and format are not stated).",
+  "actual": "",
+  "impact": "",
+  "questions": [
+   "Where should the 26c version number be appended (page title, header, footer, app name, something else)?",
+   "What exact text or format is expected (for example \"26c\", \"26C\" or a full version number)?",
+   "What is shown there today? A screenshot would help.",
+   "Is this a defect (the version was there before or is wrong) or a new change request?",
+   "Is this needed for a specific release or date?",
+   "Who is affected by the missing version number, and how?"
+  ]
+ }
 }
