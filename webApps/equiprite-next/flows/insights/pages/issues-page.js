@@ -5,8 +5,20 @@ define(['resources/js/issuesClient', 'resources/js/codeFixClient', 'resources/js
   const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const when = (at) => { const d = new Date(at); if (isNaN(d.getTime())) return ''; const p2 = (n) => (n < 10 ? '0' : '') + n; return d.getDate() + ' ' + MON[d.getMonth()] + ' ' + d.getFullYear() + ', ' + p2(d.getHours()) + ':' + p2(d.getMinutes()); };
   const STATUS = { new: 'Logged', written: 'Written up', analyzed: 'Analyzed', triaged: 'Triaged', 'needs-info': 'Needs information', 'awaiting-approval': 'Waiting for approval',
-    approved: 'Approved', rejected: 'Rejected', 'in-review': 'Pull request', closed: 'Closed' };
+    approved: 'Approved', rejected: 'Rejected', 'in-review': 'Pull request', verified: 'Verified', closed: 'Closed' };
+  // the defect record's choices (desktop/lib/issues.js keeps the same)
+  const SEV = [['critical', 'S1', 'Critical', 'The system or a main flow is down, data lost or wrong, no workaround'], ['major', 'S2', 'Major', 'A main function does not work; the workaround is hard'],
+    ['minor', 'S3', 'Minor', 'Works with a workaround, or affects few'], ['trivial', 'S4', 'Trivial', 'Cosmetic: a label, a colour, a typo']];
+  const PRI = [['p1', 'P1', 'Urgent', 'Now: it blocks production or a release'], ['p2', 'P2', 'High', 'In the next build'], ['p3', 'P3', 'Medium', 'Planned'], ['p4', 'P4', 'Low', 'When there is time']];
+  const ENVS = ['DEV', 'SIT', 'UAT', 'PROD'];
+  const RES = [['fixed', 'Fixed'], ['done', 'Done'], ['as-designed', 'Works as designed'], ['out-of-scope', 'Out of scope'], ['moved', 'Fixed elsewhere'], ['duplicate', 'Duplicate'], ['cannot-reproduce', 'Cannot reproduce'], ['wont-fix', 'Won\'t fix']];
+  const CAUSE = [['code', 'Code defect'], ['config', 'Configuration'], ['data', 'Data'], ['requirement', 'Requirement gap'], ['environment', 'Environment'], ['integration', 'Integration'], ['user', 'User error / training'], ['none', 'None']];
+  const CKIND = [['comment', 'Comment', 'Everyone sees it; in Jira too'], ['response', 'Response to the customer', 'Can be emailed to the reporter'], ['internal', 'Internal note', 'The team only: not in Jira']];
+  const RANK = { critical: 0, major: 1, minor: 2, trivial: 3, p1: 0, p2: 1, p3: 2, p4: 3 };
+  const dateText = (d) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(d || '')); return m ? Number(m[3]) + ' ' + MON[Number(m[2]) - 1] + ' ' + m[1] : ''; };
+  const panelOf = (x, sv) => (Number(sv) >= 0 ? Number(sv) : (x ? x.stage || 0 : 0));
   let shownKept = { k: '', v: [] };
+  let tableKept = { k: '', v: [] };
 
   // Screenshots for a new issue: pasted (Ctrl+V), dropped or picked in its form (#isAsk). Read here during the paste (the
   // clipboard is gone after), handed to the chain through codeFixClient's queue and the issueImages event.
@@ -40,17 +52,97 @@ define(['resources/js/issuesClient', 'resources/js/codeFixClient', 'resources/js
     }
     filters(c) { const n = c || {}; return [['open', 'Open'], ['approval', 'Waiting for approval'], ['review', 'In review'], ['closed', 'Closed'], ['all', 'All']].map((f) => ({ id: f[0], label: f[1], n: n[f[0]] || 0 })); }
     shown(list, q) {
-      const k = (list || []).length + '|' + q + '|' + (list || []).map((x) => x.id + x.status).join(',');
+      const k = (list || []).length + '|' + q + '|' + (list || []).map((x) => x.id + x.status + x.updatedAt).join(',');
       if (shownKept.k === k) return shownKept.v;
       const s = String(q || '').trim().toLowerCase();
-      shownKept = { k: k, v: (list || []).filter((x) => !s || [x.key, x.title, x.label, x.page, x.by, x.status].join(' ').toLowerCase().indexOf(s) !== -1) };
+      shownKept = { k: k, v: (list || []).filter((x) => !s || [x.key, x.title, x.label, x.page, x.by, x.status, x.customer, x.customerRef, x.foundIn, x.fixVersion, x.assignee, x.severityLabel, x.priorityLabel].join(' ').toLowerCase().indexOf(s) !== -1) };
       return shownKept.v;
     }
+    // ── the table: every issue with its columns, in an order ──
+    tableRows(list, q, f, sortKey) {
+      const k = (list || []).map((x) => x.id + x.status + x.updatedAt).join(',') + '|' + q + '|' + f + '|' + sortKey;
+      if (tableKept.k === k) return tableKept.v;
+      const g = { open: ['new', 'written', 'analyzed', 'triaged', 'needs-info', 'awaiting-approval', 'approved', 'rejected'], approval: ['awaiting-approval'], review: ['approved', 'in-review', 'verified'], closed: ['closed'] };
+      const s = String(q || '').trim().toLowerCase();
+      const rank = (v) => (RANK[v] !== undefined ? RANK[v] : 9);
+      const by = { severity: (a, b) => rank(a.severity) - rank(b.severity), priority: (a, b) => rank(a.priority) - rank(b.priority), raised: (a, b) => String(b.raisedOn).localeCompare(String(a.raisedOn)),
+        due: (a, b) => (a.dueDate || '9999').localeCompare(b.dueDate || '9999'), updated: (a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)) }[sortKey] || ((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)));
+      tableKept = { k: k, v: (list || []).filter((x) => (f === 'all' || !f || (g[f] || []).indexOf(x.status) !== -1)
+        && (!s || [x.key, x.title, x.label, x.customer, x.customerRef, x.foundIn, x.fixVersion, x.assignee, x.reportedBy, x.severityLabel, x.priorityLabel, x.environment].join(' ').toLowerCase().indexOf(s) !== -1)).slice().sort(by) };
+      return tableKept.v;
+    }
+    sorts() { return [['updated', 'Updated'], ['severity', 'Severity'], ['priority', 'Priority'], ['raised', 'Raised on'], ['due', 'Due date']].map((x) => ({ id: x[0], label: x[1] })); }
+    layoutClass(cur, id) { return 'nx-is-lay' + (cur === id ? ' nx-is-lay--on' : ''); }
+    // ── the defect record ──
+    severities() { return SEV.map((x) => ({ id: x[0], short: x[1], label: x[1] + ' · ' + x[2], hint: x[3] })); }
+    priorities() { return PRI.map((x) => ({ id: x[0], short: x[1], label: x[1] + ' · ' + x[2], hint: x[3] })); }
+    envs() { return ENVS.map((e) => ({ id: e, label: e })); }
+    resolutions() { return RES.map((x) => ({ id: x[0], label: x[1] })); }
+    rootCauses() { return CAUSE.map((x) => ({ id: x[0], label: x[1] })); }
+    commentKinds() { return CKIND.map((x) => ({ id: x[0], label: x[1], hint: x[2] })); }
+    chipClass(cur, id) { return 'nx-chip nx-chip--sm' + (cur === id ? ' nx-chip--on' : ''); }
+    sevClass(code) { return 'nx-is-sev nx-is-sev--' + (code || 'none'); }
+    priClass(code) { return 'nx-is-pri nx-is-pri--' + (code || 'none'); }
+    sevShort(code) { const s = SEV.filter((x) => x[0] === code)[0]; return s ? s[1] : '—'; }
+    priShort(code) { const s = PRI.filter((x) => x[0] === code)[0]; return s ? s[1] : '—'; }
+    aiChose(d, k) { return !!d && Array.isArray(d.ai) && d.ai.indexOf(k) !== -1; }
+    dateText(d) { return dateText(d); }
+    metaLine(x) {
+      const d = (x && x.details) || {};
+      return [x.page, 'raised by ' + (d.reportedBy || x.by || 'someone') + (d.raisedOn ? ' on ' + dateText(d.raisedOn) : ''), d.customer ? 'customer ' + d.customer + (d.customerRef ? ' (' + d.customerRef + ')' : '') : '',
+        d.foundIn ? 'found in ' + d.foundIn + (d.environment ? ' on ' + d.environment : '') : (d.environment ? 'on ' + d.environment : '')].filter(Boolean).join(' · ');
+    }
+    // ── the train: each step clickable, its own fields ──
+    trainClass(s, x, sv) { return 'nx-is-step nx-is-step--' + s.state + (panelOf(x, sv) === s.n || (s.n === 4 && panelOf(x, sv) === 5) || (s.n === 5 && panelOf(x, sv) === 4) ? ' nx-is-step--sel' : ''); }
+    isPanel(x, sv, n) { const p = panelOf(x, sv); return n === 4 ? (p === 4 || p === 5) : p === n; }
+    panelTitle(x, sv) { return ['Logged: the issue as raised, and its details', 'Written up: the issue, clearly', 'Analyzed: where it belongs, and the change', 'Approval', 'The fix: its branch, its tests, the pull request',
+      'The fix: its branch, its tests, the pull request', 'Verified: the fix tried in SIT or UAT', 'Closed: its resolution'][panelOf(x, sv)] || ''; }
+    notCurrent(x, sv) { return Number(sv) >= 0 && !!x && Number(sv) !== x.stage && !(Number(sv) === 4 && x.stage === 5); }
+    /** What to do next, and the button that does it: after logging, the write-up; then the analysis; the approval (email);
+     *  the agent; verifying; closing with its resolution. */
+    nextOf(x, info, approver) {
+      if (!x) return null;
+      const st = x.status;
+      const to = approver || (info && info.mail && info.mail.signedIn ? info.mail.account : '');
+      const shared = !!x.shared;
+      const N = (text, act, label, key, alt, altAct, altKey) => ({ text: text, act: act, label: label, key: key || '', alt: alt || '', altAct: altAct || '', altKey: altKey || '' });
+      if (shared) return N('Logged on another PC: you can comment and change its details here; its steps are done on that PC.', 'go', 'Its details', '0');
+      if (st === 'new') return N('Next: the AI writes it up — a title, the steps, expected and actual, and a severity and priority if you left them empty.', 'format', 'Write it up with AI');
+      if (st === 'written') return N('Next: check the write-up (and its details), then the AI reads the page\'s code and the FDD and says where it belongs — with the exact change if it is a fix on this page.', 'analyze', 'Analyze with AI', '', 'Check the write-up', 'go', '1');
+      if (st === 'analyzed' && x.verdict && x.verdict.code === 'fix-here' && x.fix && x.fix.status === 'proposed') {
+        return N('Next: send the proposed change for approval' + (to ? ' — emailed to ' + to : '') + '. The approver sees the issue, the verdict, the exact change and its checks.', 'ask', 'Send for approval', '', 'See the change', 'go', '2');
+      }
+      if (st === 'analyzed') return N('Next: analyze it again (the proposal is not ready to approve).', 'analyze', 'Analyze again', '', 'See the analysis', 'go', '2');
+      if (st === 'triaged') return N('The AI says: ' + (x.verdictLabel || 'not a fix on this page') + '. Close it with that resolution, or answer and analyze again.', 'go', 'Close it…', '7', 'See why', 'go', '2');
+      if (st === 'needs-info') return N('The AI needs more: answer its questions (in the write-up or the discussion), then analyze again.', 'go', 'Answer and analyze again', '2');
+      if (st === 'awaiting-approval') return N('Waiting for approval' + (x.approval && x.approval.requested && x.approval.requested.email && x.approval.requested.email.sent ? ' — emailed to ' + x.approval.requested.email.to : '') + '. Approve it, or reject it with why.', 'approve', 'Approve', '', 'Reject…', 'go', '3');
+      if (st === 'approved') return N('Approved. Next: the agent applies it on its own branch (fix/' + x.key + '), runs the tests, commits, pushes and makes the pull request.', 'apply', 'Apply change');
+      if (st === 'in-review') return N('Next: review and merge the pull request, deploy the build, then verify the fix in SIT or UAT.', 'go', 'Verify the fix', '6', x.branch && x.branch.pr ? 'The fix and its pull request' : '', 'go', '4');
+      if (st === 'verified') return N('Verified' + (x.verification && x.verification.env ? ' in ' + x.verification.env : '') + '. Next: close it with its resolution and the release it is fixed in.', 'go', 'Close it…', '7');
+      if (st === 'rejected') return N('Rejected' + (x.approval && x.approval.decision && x.approval.decision.reason ? ': ' + x.approval.decision.reason : '') + '. Reopen it to rework it.', 'reopen', 'Reopen');
+      if (st === 'closed') return N('Closed as ' + (x.resolutionLabel || 'done') + (x.resolution && x.resolution.fixedIn ? ' · fixed in ' + x.resolution.fixedIn : '') + (x.resolution && x.resolution.by ? ' · by ' + x.resolution.by : '') + '.', 'reopen', 'Reopen');
+      return null;
+    }
+    nextClass(x) { return 'nx-is-next nx-is-next--' + (!x ? 'none' : x.status === 'closed' ? 'done' : x.status === 'rejected' || x.status === 'needs-info' ? 'warn' : 'go'); }
+    resDefault(x) {
+      if (!x) return 'fixed';
+      if (['in-review', 'verified'].indexOf(x.status) !== -1) return x.kind === 'bug' ? 'fixed' : 'done';
+      const v = x.verdict && x.verdict.code;
+      return v === 'as-designed' ? 'as-designed' : v === 'out-of-scope' ? 'out-of-scope' : v === 'fix-elsewhere' ? 'moved' : v === 'needs-info' ? 'cannot-reproduce' : 'wont-fix';
+    }
+    verificationText(v) { return !v ? '' : (v.passed ? '✓ Verified' : '✗ Verification failed') + (v.env ? ' in ' + v.env : '') + (v.build ? ' on ' + v.build : '') + ' by ' + (v.by || 'someone') + ' · ' + when(v.at); }
+    rootText(r) { const c = CAUSE.filter((x) => x[0] === (r && r.rootCause))[0]; return c ? c[1] + (r.rootNotes ? ' — ' + r.rootNotes : '') : '—'; }
+    // ── the discussion ──
+    initials(n) { const p = String(n || '?').replace(/[._@-]+/g, ' ').trim().split(/\s+/); return ((p[0] || '?')[0] + (p[1] ? p[1][0] : '')).toUpperCase(); }
+    commentClass(c) { return 'nx-is-cmt nx-is-cmt--' + (c.kind || 'comment'); }
+    commentMeta(c) { return (c.kindLabel || 'Comment') + (c.stage ? ' · at ' + c.stage : '') + ' · ' + when(c.at); }
+    commentEmail(c) { return !c.email ? '' : (c.email.sent ? '✉ Emailed to ' + c.email.to : '✉ Not emailed: ' + c.email.error); }
+    composerHint(k) { const c = CKIND.filter((x) => x[0] === k)[0]; return c ? c[2] : ''; }
     statusText(s) { return STATUS[s] || s; }
     statusClass(s) { return 'nx-is-st nx-is-st--' + (s || 'new'); }
     verdictClass(v) { return 'nx-is-verdict nx-is-verdict--' + (v || 'none'); }
     when(at) { return when(at); }
-    rowMeta(x) { return x.label + (x.verdictLabel ? ' · ' + x.verdictLabel : '') + ' · ' + when(x.updatedAt) + (x.shared ? ' · from another PC' : ''); }
+    rowMeta(x) { return [x.label, x.customer, x.foundIn ? 'in ' + x.foundIn : '', x.assignee ? '→ ' + x.assignee : '', when(x.updatedAt)].filter(Boolean).join(' · ') + (x.comments ? ' · 💬 ' + x.comments : '') + (x.shared ? ' · from another PC' : ''); }
     stepClass(s) { return 'nx-is-step nx-is-step--' + s.state; }
     // the page picker
     pagesShown(pages, q) {
@@ -64,9 +156,10 @@ define(['resources/js/issuesClient', 'resources/js/codeFixClient', 'resources/js
     // the issue
     title(x) { return x ? (x.formatted && x.formatted.title) || x.title : ''; }
     canEdit(x) { return !!x && !x.shared && ['new', 'written', 'analyzed', 'triaged', 'needs-info', 'rejected'].indexOf(x.status) !== -1; }
+    canDetails(x) { return !!x; }
     canAnalyze(x) { return !!x && !x.shared && ['new', 'written', 'analyzed', 'triaged', 'needs-info', 'rejected'].indexOf(x.status) !== -1; }
     inFilter(st, f) {
-      const g = { open: ['new', 'written', 'analyzed', 'triaged', 'needs-info', 'awaiting-approval', 'approved', 'rejected'], approval: ['awaiting-approval'], review: ['approved', 'in-review'], closed: ['closed'] };
+      const g = { open: ['new', 'written', 'analyzed', 'triaged', 'needs-info', 'awaiting-approval', 'approved', 'rejected'], approval: ['awaiting-approval'], review: ['approved', 'in-review', 'verified'], closed: ['closed'] };
       return f === 'all' || !f || (g[f] || []).indexOf(st) !== -1;
     }
     approvalShown(x) { return !!x && (['awaiting-approval', 'approved', 'rejected', 'in-review', 'closed'].indexOf(x.status) !== -1 || (x.status === 'analyzed' && !!x.verdict && x.verdict.code === 'fix-here' && !!x.fix && x.fix.status === 'proposed')); }

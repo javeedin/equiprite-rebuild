@@ -28,23 +28,26 @@ define([], function () {
       id: 'issues', title: 'Issues', kicker: 'From a bug report to a reviewed fix', open: 'issues',
       who: 'Anyone logs an issue; an approver approves it (you, for now).',
       steps: [
-        { label: 'Log it', actor: 'you', makes: 'The issue, with its key', note: 'its page, bug / enhancement / change, what is wrong, screenshots — or its Jira key' },
-        { label: 'Write it up', actor: 'ai', makes: 'Its write-up', note: 'title, summary, steps, expected, actual, impact, its questions — you can edit it' },
+        { label: 'Log it', actor: 'you', makes: 'The issue, with its key', note: 'its page, bug / enhancement / change, what is wrong, screenshots — or its Jira key; its details: severity, priority, environment, found in, customer and ticket, raised by and on' },
+        { label: 'Write it up', actor: 'ai', makes: 'Its write-up', note: 'title, summary, steps, expected, actual, impact, its questions — and a severity and priority where you left them empty; you can edit it' },
         { label: 'Analyze', actor: 'ai', makes: 'A verdict · the exact change', note: 'reads the page\'s code and the FDD: a verdict; for a fix on the page, the exact change, checked, the issue\'s number in a comment at each change' },
         { label: 'Send for approval', actor: 'you', makes: 'The approval email', note: 'in the app, and an approval email with the change' },
         { label: 'Approve', actor: 'you', makes: 'The approval', note: 'or reject with a reason; a change altered after it was sent cannot be approved' },
         { label: 'Apply change', actor: 'agent', makes: 'Branch fix/<KEY> · a commit', note: 'branch fix/<KEY> in a folder apart: the related tests before and after, a commit with the key, pushed' },
         { label: 'Pull request', actor: 'git', makes: 'The pull request', note: 'open it, review it, merge it' },
-        { label: 'Close', actor: 'you', makes: 'Closed, in Jira too', note: 'once merged' }
+        { label: 'Verify', actor: 'you', makes: 'Verified in SIT / UAT', note: 'QA tries the fix on the build it is in: it works, or back to be fixed with what still goes wrong' },
+        { label: 'Close', actor: 'you', makes: 'Its resolution, in Jira too', note: 'Fixed (or works as designed, duplicate, …), its root cause, the release it is fixed in' }
       ],
       branches: [
         { label: 'Not a fix on this page', steps: [{ label: 'Fix elsewhere · Works as designed · Out of scope', actor: 'ai', note: 'with where, the FDD it quotes, or how to handle it' }, { label: 'Triaged', actor: 'app' }, { label: 'Close', actor: 'you' }] },
         { label: 'Needs information', steps: [{ label: 'Answer its questions', actor: 'you' }, { label: 'Ask again', actor: 'ai' }] },
         { label: 'Rejected', steps: [{ label: 'Reject, with why', actor: 'you' }, { label: 'Reopen', actor: 'you' }] },
+        { label: 'Verification fails', steps: [{ label: 'It still fails, with what goes wrong', actor: 'you' }, { label: 'Analyze again', actor: 'ai' }] },
         { label: 'The code moved on, or a test breaks', steps: [{ label: 'Not committed, said why', actor: 'agent' }, { label: 'Analyze again', actor: 'ai' }] }
       ],
       kept: ['On this PC: issues.json and the screenshots', 'Shared with everyone: the data branch (issues/)', 'Jira: the issue, and a comment at each step', 'Code: the branch fix/<KEY> and its pull request'],
-      notes: ['Your own code folder and the running app are never changed by the agent.', 'Approving by replying to the email comes once your admin grants Mail.Read; approve in the app meanwhile.', 'Every step is on the issue\'s History: what, who, when.']
+      notes: ['Your own code folder and the running app are never changed by the agent.', 'Approving by replying to the email comes once your admin grants Mail.Read; approve in the app meanwhile.',
+        'At any step anyone can add to its discussion: a comment, a response to the customer (emailed to them), an internal note.', 'Click a step of its train to see that step\'s fields; the Next step bar says what to do.', 'Every step is on the issue\'s History: what, who, when.']
     },
     {
       id: 'codefix', title: 'Code fix', kicker: 'A quick change to one page, in your own folder', open: 'app-pages', openLabel: 'Application pages → a page → Code fix',

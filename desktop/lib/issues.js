@@ -5,8 +5,14 @@
  *   logged → written up (the AI) → analyzed (against the page's code and the FDD: a verdict, and for a fix on this page
  *   the exact change, checked) → awaiting approval (in the app, and an approval email from Microsoft 365) → approved →
  *   the agent applies it on a branch of its own (fix/<KEY>: the issue's number in the code's comments and the commit),
- *   tests it, pushes it and makes the pull request → closed. Not a fix on this page: triaged (fix elsewhere, works as
- *   designed, out of scope) or needs information, with what to do instead.
+ *   tests it, pushes it and makes the pull request → verified (tested in SIT/UAT: passed, or back to be fixed again) →
+ *   closed with its resolution (fixed, works as designed, duplicate, …), root cause and the release it is fixed in. Not a
+ *   fix on this page: triaged (fix elsewhere, works as designed, out of scope) or needs information.
+ *
+ * Like a software company's defect record, each issue has its details — type, severity, priority, the environment and
+ * build/release it was found in, the fix version, the customer and their ticket, who raised it and when, the reporter's
+ * email, the assignee, a due date — and a discussion: comments, responses to the customer (emailed to them when asked)
+ * and internal notes, by anyone; the copies of an issue on several PCs are merged (mergeIssue), never overwritten.
  *
  * Jira stays the record: an issue logged here can be created there (and one there brought here), and each step is a
  * comment on it. Each issue is kept here (issues.json) and, when there is one, on the app's data branch
@@ -17,7 +23,9 @@
  *     info()  list({ q, status })  get(id)
  *     create({ page, text, kind, images, by, toJira, jiraKey })   format(id, { by })   update(id, fields, { by })
  *     toJira(id, { by })   analyze(id, { refine, by })   ask(id, { email, to, by })   approve(id, { by, via })
- *     reject(id, { by, reason })   apply(id, { by })   close(id, { by, note })   reopen(id, { by })   img(id, n)
+ *     reject(id, { by, reason })   apply(id, { by })   verify(id, { by, passed, env, build, notes })
+ *     close(id, { by, note, resolution, rootCause, rootNotes, fixedIn })   reopen(id, { by })   img(id, n)
+ *     details(id, fields, { by })   comment(id, { text, kind, email, to, by })   settings()   setSettings({ project })
  */
 const fs = require('fs');
 const path = require('path');
@@ -25,8 +33,19 @@ const crypto = require('crypto');
 const gitPaths = require('./gitPaths');
 
 const KEEP = 500;
-const STEPS = ['Logged', 'Written up', 'Analyzed', 'Approval', 'Applied', 'Pull request', 'Closed'];
-const STAGE = { new: 0, written: 1, analyzed: 2, triaged: 2, 'needs-info': 2, 'awaiting-approval': 3, approved: 3, rejected: 3, 'in-review': 5, closed: 6 };
+const STEPS = ['Logged', 'Written up', 'Analyzed', 'Approval', 'Applied', 'Pull request', 'Verified', 'Closed'];
+const STAGE = { new: 0, written: 1, analyzed: 2, triaged: 2, 'needs-info': 2, 'awaiting-approval': 3, approved: 3, rejected: 3, 'in-review': 5, verified: 6, closed: 7 };
+// the defect record's choices (the screen shows the same: resources/js/issueFields.js)
+const SEVERITY = { critical: 'S1 · Critical', major: 'S2 · Major', minor: 'S3 · Minor', trivial: 'S4 · Trivial' };
+const PRIORITY = { p1: 'P1 · Urgent', p2: 'P2 · High', p3: 'P3 · Medium', p4: 'P4 · Low' };
+const ENVS = ['DEV', 'SIT', 'UAT', 'PROD'];
+const RESOLUTION = { fixed: 'Fixed', done: 'Done', 'as-designed': 'Works as designed', 'out-of-scope': 'Out of scope', moved: 'Fixed elsewhere', duplicate: 'Duplicate',
+  'cannot-reproduce': 'Cannot reproduce', 'wont-fix': 'Won\'t fix' };
+const ROOT_CAUSE = { code: 'Code defect', config: 'Configuration', data: 'Data', requirement: 'Requirement gap', environment: 'Environment', integration: 'Integration (Fusion, OIC, BI Publisher)',
+  user: 'User error / training', none: 'None' };
+const COMMENT_KIND = { comment: 'Comment', response: 'Response to the customer', internal: 'Internal note' };
+const DETAIL_LABEL = { severity: 'Severity', priority: 'Priority', environment: 'Environment', foundIn: 'Found in', fixVersion: 'Fix version', customer: 'Customer', customerRef: 'Customer ticket',
+  reportedBy: 'Raised by', reporterEmail: 'Reporter email', raisedOn: 'Raised on', assignee: 'Assignee', dueDate: 'Due date' };
 const VERDICT_LABEL = { 'fix-here': 'Fix on this page', 'fix-elsewhere': 'Fix elsewhere', 'as-designed': 'Works as designed', 'out-of-scope': 'Out of scope', 'needs-info': 'Needs information' };
 
 const FORMAT_SYSTEM = [
@@ -36,7 +55,11 @@ const FORMAT_SYSTEM = [
   'Answer ONLY with JSON, nothing else:',
   '{"title": "a one-line title (max 90 characters)", "summary": "two or three sentences", "steps": ["step to reproduce", "…"],',
   ' "expected": "what should happen", "actual": "what happens", "impact": "who is affected and how badly",',
-  ' "kind": "bug | enhancement | change", "questions": ["what is missing", "…"]}',
+  ' "kind": "bug | enhancement | change", "questions": ["what is missing", "…"],',
+  ' "severity": "critical | major | minor | trivial", "priority": "p1 | p2 | p3 | p4", "why": "one sentence: why that severity and priority"}',
+  'Severity is how bad it is: critical = the system or a main flow is down, data is lost or wrong, no workaround; major = a main',
+  'function does not work and the workaround is hard; minor = it works with a workaround or affects few; trivial = cosmetic, text.',
+  'Priority is how soon to fix it: p1 = now (blocks production or a release); p2 = in the next build; p3 = planned; p4 = when there is time.',
 ].join('\n');
 
 function str(v) { return v == null ? '' : String(v); }
@@ -70,11 +93,50 @@ function jiraWiki(x) {
   if (f.expected) L.push('*Expected:* ' + f.expected);
   if (f.actual) L.push('*Actual:* ' + f.actual);
   if (f.impact) L.push('*Impact:* ' + f.impact);
+  const d = x.details || {};
+  const rows = [['Type', x.kind], ['Severity', SEVERITY[d.severity]], ['Priority', PRIORITY[d.priority]], ['Environment', d.environment], ['Found in', d.foundIn], ['Fix version', d.fixVersion],
+    ['Customer', d.customer], ['Customer ticket', d.customerRef], ['Raised by', d.reportedBy], ['Raised on', d.raisedOn], ['Assignee', d.assignee], ['Due date', d.dueDate]].filter((r) => r[1]);
+  if (rows.length) L.push('', rows.map((r) => '||' + r[0] + '|' + str(r[1]).replace(/\|/g, '/') + '|').join('\n'));
   L.push('', '*Page:* ' + x.label + ' ({{' + x.page + '}})', '_Logged in Build.Rite by ' + (x.by || 'someone') + '._');
   if (x.text) L.push('', '{quote}' + x.text.slice(0, 4000) + '{quote}');
   return L.join('\n');
 }
 const esc = (s) => str(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const isDate = (v) => /^\d{4}-\d{2}-\d{2}$/.test(str(v));
+const isEmail = (v) => /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(str(v));
+
+/** An issue's details, cleaned: each choice one of its list, texts trimmed and capped, dates YYYY-MM-DD, an email an email.
+ *  What is not given keeps its value (prev); what is changed is listed ("Severity: S3 · Minor → S2 · Major"). */
+function cleanDetails(d, prev) {
+  const p = prev || {};
+  const g = d || {};
+  const text = (k, max) => (g[k] === undefined ? str(p[k]) : str(g[k]).trim().slice(0, max));
+  const pick = (k, ok) => (g[k] === undefined ? str(p[k]) : (ok(str(g[k]).trim()) ? str(g[k]).trim() : ''));
+  const out = {
+    severity: pick('severity', (v) => !!SEVERITY[v]), priority: pick('priority', (v) => !!PRIORITY[v]), environment: pick('environment', (v) => ENVS.indexOf(v) !== -1),
+    foundIn: text('foundIn', 60), fixVersion: text('fixVersion', 60), customer: text('customer', 120), customerRef: text('customerRef', 60), reportedBy: text('reportedBy', 120),
+    reporterEmail: pick('reporterEmail', isEmail), raisedOn: pick('raisedOn', isDate), assignee: text('assignee', 120), dueDate: pick('dueDate', isDate),
+    ai: (Array.isArray(p.ai) ? p.ai : []).filter((k) => g[k] === undefined), // the fields the AI chose (until someone sets them)
+  };
+  out.aiWhy = out.ai.length ? str(p.aiWhy).slice(0, 300) : '';
+  const show = (k, v) => (k === 'severity' ? SEVERITY[v] : k === 'priority' ? PRIORITY[v] : v) || '—';
+  const changed = Object.keys(DETAIL_LABEL).filter((k) => str(out[k]) !== str(p[k])).map((k) => DETAIL_LABEL[k] + ': ' + show(k, p[k]) + ' → ' + show(k, out[k]));
+  return { details: out, changed };
+}
+
+/** Two copies of one issue (this PC's, and another's from the data branch) as one: the later one's state, and every comment
+ *  and step of both — so two people answering at once both keep their words. */
+function mergeIssue(a, b) {
+  if (!a) return b;
+  if (!b) return a;
+  const out = Object.assign({}, str(a.updatedAt) >= str(b.updatedAt) ? a : b);
+  const seen = {};
+  out.comments = (a.comments || []).concat(b.comments || []).filter((c) => c && c.id && !seen[c.id] && (seen[c.id] = true)).sort((x, y) => str(x.at).localeCompare(str(y.at)));
+  const evs = {};
+  out.events = (a.events || []).concat(b.events || []).filter((e) => { const k = str(e.at) + '|' + str(e.what) + '|' + str(e.by); if (evs[k]) return false; evs[k] = true; return true; })
+    .sort((x, y) => str(x.at).localeCompare(str(y.at)));
+  return out;
+}
 
 function open(opts) {
   const o = opts || {};
@@ -82,11 +144,21 @@ function open(opts) {
   const dir = o.dir || (file ? path.join(path.dirname(file), 'issues') : '');
   const now = o.now || (() => new Date());
   const log = typeof o.log === 'function' ? o.log : () => {};
-  let mem = { issues: [] };
-  const load = () => { if (!file) return mem; try { const j = JSON.parse(fs.readFileSync(file, 'utf8')); return { issues: Array.isArray(j.issues) ? j.issues : [] }; } catch (e) { return { issues: [] }; } };
+  let mem = { issues: [], settings: {} };
+  const load = () => { if (!file) return mem; try { const j = JSON.parse(fs.readFileSync(file, 'utf8')); return { issues: Array.isArray(j.issues) ? j.issues : [], settings: j.settings || {} }; } catch (e) { return { issues: [], settings: {} }; } };
   const save = (d) => { mem = d; if (!file) return; fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, JSON.stringify(d, null, 1)); };
   const all = () => load().issues;
-  const byId = (id) => all().filter((x) => x.id === str(id))[0] || null;
+  /** An issue as everyone has it: this PC's copy merged with the data branch's (another PC's comments and steps kept). */
+  const byId = (id) => {
+    const mine = all().filter((x) => x.id === str(id))[0] || null;
+    const theirs = sharedAll().filter((x) => x.id === str(id))[0] || null;
+    if (!mine && !theirs) return null;
+    const m = mergeIssue(mine, theirs);
+    const x = Object.assign({}, m);
+    delete x.shared;
+    return x;
+  };
+  const project = () => load().settings.project || o.project || 'EQP';
   const ok = (issue, extra) => Object.assign({ ok: true, issue: view(issue) }, extra || {});
   const no = (error, extra) => Object.assign({ ok: false, error: error }, extra || {});
 
@@ -107,6 +179,9 @@ function open(opts) {
     v.stage = STAGE[x.status] != null ? STAGE[x.status] : 0;
     v.steps = STEPS.map((t, i) => ({ n: i, label: t, state: i < v.stage ? 'done' : (i === v.stage ? (x.status === 'closed' ? 'done' : 'now') : 'next') }));
     v.verdictLabel = x.verdict ? VERDICT_LABEL[x.verdict.code] || '' : '';
+    v.details = Object.assign(cleanDetails({}, x.details).details, { severityLabel: SEVERITY[(x.details || {}).severity] || '', priorityLabel: PRIORITY[(x.details || {}).priority] || '' });
+    v.comments = (x.comments || []).map((c) => Object.assign({}, c, { kindLabel: COMMENT_KIND[c.kind] || 'Comment' }));
+    v.resolutionLabel = x.resolution ? RESOLUTION[x.resolution.code] || '' : '';
     if (x.fixId && o.fix) { const g = o.fix.get(x.fixId); v.fix = g && g.ok ? g.fix : null; }
     return v;
   }
@@ -146,10 +221,13 @@ function open(opts) {
       try { j = t ? JSON.parse(t) : null; } catch (e) { j = null; }
       if (r.ok) return { ok: true, body: j, site: String(a.site).replace(/\/+$/, '') };
       const why = j ? [].concat(j.errorMessages || [], Object.keys(j.errors || {}).map((k) => k + ': ' + j.errors[k])).join('; ') : '';
-      return { ok: false, status: r.status, error: why || ('Jira answered HTTP ' + r.status) };
+      const plain = { 401: 'Jira did not accept the login (HTTP 401): connect Jira again with a new API token (Jira stories → Connect Jira).',
+        403: 'Jira refused (HTTP 403): the connected account (' + str(a.email || 'its email') + ') may not do this in project ' + project() + '. Ask the Jira admin for the "Create issues" (and "Add comments") permission there, or set the right project key below.',
+        404: 'Jira has no such thing (HTTP 404): check the project key (' + project() + ') or the issue key.' }[r.status];
+      return { ok: false, status: r.status, error: [plain, why].filter(Boolean).join(' ') || ('Jira answered HTTP ' + r.status) };
     } catch (e) { return { ok: false, error: 'Jira did not answer: ' + str(e && e.message) }; }
   }
-  async function comment(x, text) {
+  async function jiraComment(x, text) {
     if (!x.jira || !x.jira.key) return;
     const r = await jira('POST', '/rest/api/2/issue/' + encodeURIComponent(x.jira.key) + '/comment', { body: text + '\n\n_— Build.Rite_' });
     if (!r.ok) ev(x, 'Jira comment failed', 'Build.Rite', r.error);
@@ -170,19 +248,26 @@ function open(opts) {
   async function info() {
     const mail = o.mail && typeof o.mail.status === 'function' ? (() => { try { const s = o.mail.status(); return { signedIn: !!s.signedIn, account: s.account || '' }; } catch (e) { return { signedIn: false, account: '' }; } })() : { signedIn: false, account: '' };
     const ja = o.jira && typeof o.jira.auth === 'function' ? o.jira.auth() : null;
-    return { ok: true, jira: { connected: !!(ja && ja.header), site: ja ? ja.site : '', project: o.project || 'EQP' }, mail: mail, shared: !!shared, branch: shared ? shared.branch : '',
-      fix: o.fix ? await o.fix.info() : null, steps: STEPS };
+    return { ok: true, jira: { connected: !!(ja && ja.header), site: ja ? ja.site : '', project: project() }, mail: mail, shared: !!shared, branch: shared ? shared.branch : '',
+      fix: o.fix ? await o.fix.info() : null, steps: STEPS, choices: { severity: SEVERITY, priority: PRIORITY, environments: ENVS, resolution: RESOLUTION, rootCause: ROOT_CAUSE, commentKind: COMMENT_KIND } };
   }
   function list(b) {
     b = b || {};
     const mine = all();
-    const rows = mine.concat(sharedAll().filter((x) => !mine.some((m) => m.id === x.id)));
+    const theirs = sharedAll();
+    const rows = mine.map((m) => mergeIssue(m, theirs.filter((t) => t.id === m.id)[0] || null)).map((m) => Object.assign({}, m, { shared: false }))
+      .concat(theirs.filter((x) => !mine.some((m) => m.id === x.id)));
     const words = str(b.q).toLowerCase().split(/\s+/).filter(Boolean);
-    const groups = { open: ['new', 'written', 'analyzed', 'triaged', 'needs-info', 'awaiting-approval', 'approved', 'rejected'], approval: ['awaiting-approval'], review: ['approved', 'in-review'], closed: ['closed'] };
+    const groups = { open: ['new', 'written', 'analyzed', 'triaged', 'needs-info', 'awaiting-approval', 'approved', 'rejected'], approval: ['awaiting-approval'], review: ['approved', 'in-review', 'verified'], closed: ['closed'] };
     const out = rows.filter((x) => (!b.status || b.status === 'all' || (groups[b.status] || [b.status]).indexOf(x.status) !== -1)
-      && (!words.length || words.every((w) => [x.key, x.jira && x.jira.key, x.title, x.formatted && x.formatted.title, x.label, x.page, x.by, x.status].join(' ').toLowerCase().indexOf(w) !== -1)))
-      .map((x) => ({ id: x.id, key: keyOf(x), title: (x.formatted && x.formatted.title) || x.title, label: x.label, page: x.page, status: x.status, kind: x.kind,
-        verdict: x.verdict ? x.verdict.code : '', verdictLabel: x.verdict ? VERDICT_LABEL[x.verdict.code] || '' : '', by: x.by, at: x.at, updatedAt: x.updatedAt || x.at, jira: x.jira || null, shared: !!x.shared }));
+      && (!words.length || words.every((w) => { const d = x.details || {}; return [x.key, x.jira && x.jira.key, x.title, x.formatted && x.formatted.title, x.label, x.page, x.by, x.status,
+        d.customer, d.customerRef, d.foundIn, d.fixVersion, d.assignee, d.reportedBy, d.environment, SEVERITY[d.severity], PRIORITY[d.priority]].join(' ').toLowerCase().indexOf(w) !== -1; })))
+      .map((x) => { const d = x.details || {}; return { id: x.id, key: keyOf(x), title: (x.formatted && x.formatted.title) || x.title, label: x.label, page: x.page, status: x.status, kind: x.kind,
+        verdict: x.verdict ? x.verdict.code : '', verdictLabel: x.verdict ? VERDICT_LABEL[x.verdict.code] || '' : '', by: x.by, at: x.at, updatedAt: x.updatedAt || x.at, jira: x.jira || null, shared: !!x.shared,
+        severity: d.severity || '', severityLabel: SEVERITY[d.severity] || '', priority: d.priority || '', priorityLabel: PRIORITY[d.priority] || '', environment: d.environment || '',
+        foundIn: d.foundIn || '', fixVersion: d.fixVersion || '', customer: d.customer || '', customerRef: d.customerRef || '', reportedBy: d.reportedBy || x.by || '',
+        raisedOn: d.raisedOn || str(x.at).slice(0, 10), assignee: d.assignee || '', dueDate: d.dueDate || '', comments: (x.comments || []).length,
+        resolution: x.resolution ? x.resolution.code : '', resolutionLabel: x.resolution ? RESOLUTION[x.resolution.code] || '' : '' }; });
     out.sort((a, c) => str(c.updatedAt).localeCompare(str(a.updatedAt)));
     const count = (st) => rows.filter((x) => (groups[st] || [st]).indexOf(x.status) !== -1).length;
     return { ok: true, issues: out, counts: { all: rows.length, open: count('open'), approval: count('approval'), review: count('review'), closed: count('closed') } };
@@ -207,7 +292,10 @@ function open(opts) {
     const id = 'is' + now().getTime().toString(36) + crypto.randomBytes(2).toString('hex');
     const x = { id: id, key: jiraRef ? jiraRef.key : 'BR-' + now().getTime().toString(36).slice(-5).toUpperCase(), page: str(b.page), label: (facts && facts.label) || str(b.page),
       app: (facts && facts.app) || str(b.page).split('/')[0], kind: ['bug', 'enhancement', 'change'].indexOf(b.kind) !== -1 ? b.kind : 'bug', text: text, title: text.split('\n')[0].slice(0, 90),
-      by: str(b.by), at: now().toISOString(), status: 'new', images: [], jira: jiraRef, events: [] };
+      by: str(b.by), at: now().toISOString(), status: 'new', images: [], jira: jiraRef, events: [], comments: [],
+      // what the form left empty takes its default: raised by the person logging it, today
+      details: cleanDetails(Object.assign({ reportedBy: str(b.by), raisedOn: now().toISOString().slice(0, 10) },
+        Object.keys(b.details || {}).reduce((g, k) => { if (str(b.details[k]).trim() !== '') g[k] = b.details[k]; return g; }, {})), {}).details };
     (Array.isArray(b.images) ? b.images : []).filter((im) => im && /^image\/(png|jpeg|webp|gif)$/.test(im.mime) && im.base64).slice(0, 6).forEach((im, i) => {
       if (!dir) return;
       const ext = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/gif': 'gif' }[im.mime];
@@ -240,8 +328,16 @@ function open(opts) {
     x.formatted = { title: str(j.title).slice(0, 120), summary: str(j.summary), steps: (Array.isArray(j.steps) ? j.steps : []).map(str).filter(Boolean).slice(0, 20),
       expected: str(j.expected), actual: str(j.actual), impact: str(j.impact), questions: (Array.isArray(j.questions) ? j.questions : []).map(str).filter(Boolean).slice(0, 8) };
     if (['bug', 'enhancement', 'change'].indexOf(j.kind) !== -1) x.kind = j.kind;
+    // severity and priority: the AI's, where nobody set them (marked as the AI's until someone does)
+    const d = Object.assign({ ai: [] }, x.details || {});
+    const chose = [];
+    if (!d.severity && SEVERITY[j.severity]) { d.severity = j.severity; chose.push('severity'); }
+    if (!d.priority && PRIORITY[j.priority]) { d.priority = j.priority; chose.push('priority'); }
+    d.ai = (d.ai || []).concat(chose).filter((k, i, a) => a.indexOf(k) === i);
+    if (chose.length) d.aiWhy = str(j.why).slice(0, 300);
+    x.details = d;
     x.status = x.status === 'new' ? 'written' : x.status;
-    ev(x, 'written up', r.provider || 'AI', x.formatted.title);
+    ev(x, 'written up', r.provider || 'AI', x.formatted.title + (chose.length ? ' · suggests ' + chose.map((k) => (k === 'severity' ? SEVERITY : PRIORITY)[d[k]]).join(', ') : ''));
     put(x);
     return ok(x);
   }
@@ -265,7 +361,7 @@ function open(opts) {
     const x = byId(id);
     if (!x) return no('No such issue.');
     if (x.jira && x.jira.key) return ok(x, { already: true });
-    const fields = { project: { key: o.project || 'EQP' }, summary: str((x.formatted && x.formatted.title) || x.title).slice(0, 250), description: jiraWiki(x) };
+    const fields = { project: { key: project() }, summary: str((x.formatted && x.formatted.title) || x.title).slice(0, 250), description: jiraWiki(x) };
     let r = await jira('POST', '/rest/api/2/issue', { fields: Object.assign({}, fields, { issuetype: { name: x.kind === 'bug' ? 'Bug' : 'Task' } }) });
     if (!r.ok && /issuetype|issue type/i.test(r.error) && x.kind === 'bug') r = await jira('POST', '/rest/api/2/issue', { fields: Object.assign({}, fields, { issuetype: { name: 'Task' } }) });
     if (!r.ok) return no('Could not create it in Jira: ' + r.error);
@@ -293,7 +389,7 @@ function open(opts) {
     if (!x.verdict.code && fx.files.length) x.verdict.code = 'fix-here';
     x.status = x.verdict.code === 'needs-info' || fx.status === 'questions' ? 'needs-info' : (x.verdict.code && x.verdict.code !== 'fix-here' ? 'triaged' : 'analyzed');
     ev(x, b.refine ? 'analyzed again' : 'analyzed', fx.provider || 'AI', (VERDICT_LABEL[x.verdict.code] || 'no verdict') + (fx.files.length ? ' · ' + fx.files.length + ' file(s) to change' : ''));
-    await comment(x, 'h4. Build.Rite analysis\n*Verdict:* ' + (VERDICT_LABEL[x.verdict.code] || '—') + '\n' + str(x.verdict.text).split('\n').slice(1).join('\n').trim()
+    await jiraComment(x, 'h4. Build.Rite analysis\n*Verdict:* ' + (VERDICT_LABEL[x.verdict.code] || '—') + '\n' + str(x.verdict.text).split('\n').slice(1).join('\n').trim()
       + (fx.files.length ? '\n*Change proposed:* ' + fx.files.map((f) => '{{' + f + '}}').join(', ') : ''));
     put(x);
     return ok(x);
@@ -344,7 +440,7 @@ function open(opts) {
       }
     }
     ev(x, 'sent for approval', b.by, x.approval.requested.email.sent ? 'email to ' + x.approval.requested.email.to + ' (' + code + ')' : 'in the app' + (x.approval.requested.email.error ? ' — ' + x.approval.requested.email.error : ''));
-    await comment(x, 'Sent for approval (' + code + ').');
+    await jiraComment(x, 'Sent for approval (' + code + ').');
     put(x);
     return ok(x);
   }
@@ -358,7 +454,7 @@ function open(opts) {
     x.approval.decision = { approved: true, by: str(b.by), at: now().toISOString(), via: b.via === 'email' ? 'email' : 'app' };
     x.status = 'approved';
     ev(x, 'approved', b.by, 'in ' + (x.approval.decision.via === 'email' ? 'an email reply' : 'Build.Rite'));
-    await comment(x, 'Approved by ' + (b.by || 'someone') + ' (' + x.approval.decision.via + ').');
+    await jiraComment(x, 'Approved by ' + (b.by || 'someone') + ' (' + x.approval.decision.via + ').');
     put(x);
     return ok(x);
   }
@@ -370,7 +466,7 @@ function open(opts) {
     x.approval.decision = { approved: false, by: str(b.by), at: now().toISOString(), via: 'app', reason: str(b.reason) };
     x.status = 'rejected';
     ev(x, 'rejected', b.by, str(b.reason));
-    await comment(x, 'Rejected by ' + (b.by || 'someone') + (b.reason ? ': ' + b.reason : '.'));
+    await jiraComment(x, 'Rejected by ' + (b.by || 'someone') + (b.reason ? ': ' + b.reason : '.'));
     put(x);
     return ok(x);
   }
@@ -403,18 +499,52 @@ function open(opts) {
     x.lastError = '';
     ev(x, 'applied on a branch', 'agent', ba.branch + ' · ' + ba.sha + (ba.pushed ? ' · pushed' : ' · not pushed: ' + ba.pushError));
     if (ba.pr) ev(x, 'pull request ready', 'agent', ba.pr.split('?')[0]);
-    await comment(x, 'Fixed on branch {{' + ba.branch + '}} (' + ba.sha + ')' + (r.fix.tests && r.fix.tests.ok ? ', tests passing' : '') + '.' + (ba.pr ? '\nPull request: ' + ba.pr.split('?')[0] : ''));
+    await jiraComment(x, 'Fixed on branch {{' + ba.branch + '}} (' + ba.sha + ')' + (r.fix.tests && r.fix.tests.ok ? ', tests passing' : '') + '.' + (ba.pr ? '\nPull request: ' + ba.pr.split('?')[0] : ''));
     put(x);
     return ok(x);
+  }
+  /** QA: the fix tried in an environment (SIT, UAT…) on a build. Passed: verified, ready to close. Failed: back to be fixed. */
+  async function verify(id, b) {
+    b = b || {};
+    const x = byId(id);
+    if (!x) return no('No such issue.');
+    if (x.status !== 'in-review') return no('Verify a fix once it is applied and its pull request made.');
+    const passed = b.passed !== false && b.passed !== 'false';
+    const env = ENVS.indexOf(str(b.env)) !== -1 ? str(b.env) : '';
+    x.verification = { passed, by: str(b.by), at: now().toISOString(), env, build: str(b.build).trim().slice(0, 60), notes: str(b.notes).trim().slice(0, 2000) };
+    if (passed) {
+      x.status = 'verified';
+      ev(x, 'verified', b.by, [env, x.verification.build, x.verification.notes].filter(Boolean).join(' · '));
+    } else {
+      if (!x.verification.notes) return no('Say what still goes wrong, so it can be fixed again.');
+      x.status = 'written';
+      x.approval = null;
+      ev(x, 'verification failed', b.by, [env, x.verification.build, x.verification.notes].filter(Boolean).join(' · '));
+    }
+    await jiraComment(x, (passed ? 'Verified' : 'Verification failed') + (env ? ' in ' + env : '') + (x.verification.build ? ' on ' + x.verification.build : '') + ' by ' + (b.by || 'someone') + (x.verification.notes ? ':\n' + x.verification.notes : '.'));
+    put(x);
+    return ok(x);
+  }
+  /** What a closed issue says by default: Fixed once applied; for a verdict, its own (works as designed, out of scope…). */
+  function defaultResolution(x) {
+    if (['in-review', 'verified'].indexOf(x.status) !== -1) return x.kind === 'bug' ? 'fixed' : 'done';
+    const v = x.verdict && x.verdict.code;
+    return v === 'as-designed' ? 'as-designed' : v === 'out-of-scope' ? 'out-of-scope' : v === 'fix-elsewhere' ? 'moved' : v === 'needs-info' ? 'cannot-reproduce' : 'wont-fix';
   }
   async function close(id, b) {
     b = b || {};
     const x = byId(id);
     if (!x) return no('No such issue.');
+    if (x.status === 'closed') return no('It is closed already.');
+    const code = RESOLUTION[str(b.resolution)] ? str(b.resolution) : defaultResolution(x);
+    const cause = ROOT_CAUSE[str(b.rootCause)] ? str(b.rootCause) : '';
+    x.resolution = { code, rootCause: cause, rootNotes: str(b.rootNotes).trim().slice(0, 2000), fixedIn: str(b.fixedIn).trim().slice(0, 60) || (code === 'fixed' || code === 'done' ? str((x.details || {}).fixVersion || (x.verification || {}).build) : ''),
+      note: str(b.note).trim().slice(0, 2000), by: str(b.by), at: now().toISOString() };
     x.status = 'closed';
-    x.closed = { at: now().toISOString(), by: str(b.by), note: str(b.note) };
-    ev(x, 'closed', b.by, str(b.note));
-    await comment(x, 'Closed in Build.Rite' + (b.note ? ': ' + b.note : '.'));
+    x.closed = { at: x.resolution.at, by: str(b.by), note: x.resolution.note };
+    ev(x, 'closed', b.by, RESOLUTION[code] + (x.resolution.fixedIn ? ' · fixed in ' + x.resolution.fixedIn : '') + (cause ? ' · root cause: ' + ROOT_CAUSE[cause] : '') + (x.resolution.note ? ' · ' + x.resolution.note : ''));
+    await jiraComment(x, 'Closed in Build.Rite as *' + RESOLUTION[code] + '*' + (x.resolution.fixedIn ? ' (fixed in ' + x.resolution.fixedIn + ')' : '') + '.'
+      + (cause ? '\n*Root cause:* ' + ROOT_CAUSE[cause] + (x.resolution.rootNotes ? ' — ' + x.resolution.rootNotes : '') : '') + (x.resolution.note ? '\n' + x.resolution.note : ''));
     put(x);
     return ok(x);
   }
@@ -423,15 +553,70 @@ function open(opts) {
     if (!x) return no('No such issue.');
     x.status = x.formatted ? 'written' : 'new';
     x.approval = null;
+    x.resolution = null;
+    x.verification = null;
     ev(x, 'reopened', (b && b.by) || '', '');
     put(x);
     return ok(x);
   }
 
+  /** Its details (severity, priority, environment, releases, customer, who and when, assignee, due date): at any stage. */
+  function details(id, f, b) {
+    const x = byId(id);
+    if (!x) return no('No such issue.');
+    const c = cleanDetails(f || {}, x.details || {});
+    if (f && f.kind && ['bug', 'enhancement', 'change'].indexOf(f.kind) !== -1 && f.kind !== x.kind) { c.changed.unshift('Type: ' + x.kind + ' → ' + f.kind); x.kind = f.kind; }
+    if (!c.changed.length) return ok(x, { unchanged: true });
+    x.details = c.details;
+    ev(x, 'details changed', (b && b.by) || '', c.changed.join('; '));
+    put(x);
+    return ok(x);
+  }
+  /** A word in its discussion — a comment, a response to the customer (emailed to them when asked), an internal note — by
+   *  anyone, at any stage. In Jira too (not an internal note). */
+  async function comment(id, b) {
+    b = b || {};
+    const x = byId(id);
+    if (!x) return no('No such issue.');
+    const text = str(b.text).trim();
+    if (!text) return no('Write something first.');
+    const kind = COMMENT_KIND[b.kind] ? b.kind : 'comment';
+    const c = { id: 'c' + now().getTime().toString(36) + crypto.randomBytes(2).toString('hex'), at: now().toISOString(), by: str(b.by), kind, text: text.slice(0, 8000), stage: STEPS[STAGE[x.status] || 0] };
+    if (b.email) {
+      const to = str(b.to).trim() || str((x.details || {}).reporterEmail);
+      const st = o.mail && typeof o.mail.status === 'function' ? (() => { try { return o.mail.status(); } catch (e) { return {}; } })() : {};
+      if (!isEmail(to)) c.email = { sent: false, to, error: 'No email address to send it to (the reporter\'s email, in its details).' };
+      else if (!o.mail || !st.signedIn) c.email = { sent: false, to, error: 'Not signed in to Microsoft 365 (Standup minutes → email settings): not emailed.' };
+      else {
+        const f = x.formatted || {};
+        const html = '<div style="font:14px/1.5 Segoe UI,Arial,sans-serif;color:#16212c;max-width:760px"><div style="background:#2c5266;color:#fff;padding:12px 16px;border-radius:8px 8px 0 0">'
+          + '<div style="font-size:12px;opacity:.8">' + esc(keyOf(x)) + ' · ' + esc(x.label) + '</div><div style="font-size:18px;font-weight:700">' + esc(f.title || x.title) + '</div></div>'
+          + '<div style="border:1px solid #d4dce4;border-top:0;padding:14px 16px;border-radius:0 0 8px 8px">' + esc(text).replace(/\n/g, '<br>')
+          + '<p style="color:#6b7886;font-size:12px;margin-top:16px">' + esc(b.by || 'The EquipRite team') + ' · reply to this email to answer.</p></div></div>';
+        const r = await o.mail.sendMail({ to, subject: '[' + keyOf(x) + '] ' + (f.title || x.title), html });
+        c.email = { sent: !!(r && r.ok), to, error: r && r.ok ? '' : (r && r.error) || 'Not sent.' };
+      }
+    }
+    x.comments = (x.comments || []).concat([c]);
+    ev(x, kind === 'response' ? 'responded to the customer' : kind === 'internal' ? 'internal note' : 'commented', b.by, text.slice(0, 160) + (c.email ? (c.email.sent ? ' · emailed to ' + c.email.to : ' · not emailed: ' + c.email.error) : ''));
+    if (kind !== 'internal') await jiraComment(x, (kind === 'response' ? '*Response to the customer* by ' : '*Comment* by ') + (b.by || 'someone') + ':\n' + text);
+    put(x);
+    return ok(x, c.email && !c.email.sent ? { warning: c.email.error } : {});
+  }
+  function settings() { return { ok: true, project: project() }; }
+  function setSettings(b) {
+    const k = str(b && b.project).trim().toUpperCase();
+    if (!/^[A-Z][A-Z0-9_]{1,19}$/.test(k)) return no('A Jira project key is letters and digits, like EQP.');
+    const d = load();
+    d.settings = Object.assign({}, d.settings, { project: k });
+    save(d);
+    return { ok: true, project: k };
+  }
+
   return {
-    info: info, list: list, get: (id) => { const x = byId(id) || sharedAll().filter((y) => y.id === str(id))[0]; return x ? ok(x) : no('No such issue.'); },
-    create: create, format: format, update: update, toJira: toJira, analyze: analyze, ask: ask, approve: approve, reject: reject, apply: apply, close: close, reopen: reopen,
-    img: img, flush: () => pub,
+    info: info, list: list, get: (id) => { const x = byId(id); return x ? ok(x) : no('No such issue.'); },
+    create: create, format: format, update: update, toJira: toJira, analyze: analyze, ask: ask, approve: approve, reject: reject, apply: apply, verify: verify, close: close, reopen: reopen,
+    details: details, comment: comment, settings: settings, setSettings: setSettings, img: img, flush: () => pub,
   };
 }
 
@@ -459,4 +644,4 @@ function fddPicker(fddStore, root) {
   };
 }
 
-module.exports = { open, issueText, jiraWiki, jsonOf, fddPicker, STEPS, VERDICT_LABEL };
+module.exports = { open, issueText, jiraWiki, jsonOf, fddPicker, mergeIssue, cleanDetails, STEPS, VERDICT_LABEL, SEVERITY, PRIORITY, ENVS, RESOLUTION, ROOT_CAUSE, COMMENT_KIND };

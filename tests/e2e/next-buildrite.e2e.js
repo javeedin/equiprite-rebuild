@@ -64,8 +64,8 @@ const BUILD_SCREENS = ['issues', 'jira', 'analytics', 'minutes', 'followups', 'f
     await page.click('#nxNav [data-nav-id="flows"]');
     await page.waitForSelector('.nx-hw-flow', { timeout: 15000 });
     const flows = await page.$$eval('.nx-hw-flow', (s) => s.map((x) => x.id + ':' + x.querySelectorAll(':scope > .nx-hw-steps > .nx-hw-step').length));
-    T.check('Flows explained: the nine flows, each step by step (Issues: 8 steps, its side paths)', flows.length === 9 && flows[0] === 'hw-issues:8'
-      && (await page.$$('#hw-issues .nx-hw-branch')).length === 4 && /Log it[\s\S]*Write it up[\s\S]*Analyze[\s\S]*Send for approval[\s\S]*Approve[\s\S]*Apply change[\s\S]*Pull request[\s\S]*Close/.test(await text(page, '#hw-issues .nx-hw-steps')), flows.join(','));
+    T.check('Flows explained: the nine flows, each step by step (Issues: 9 steps, its side paths)', flows.length === 9 && flows[0] === 'hw-issues:9'
+      && (await page.$$('#hw-issues .nx-hw-branch')).length === 5 && /Log it[\s\S]*Write it up[\s\S]*Analyze[\s\S]*Send for approval[\s\S]*Approve[\s\S]*Apply change[\s\S]*Pull request[\s\S]*Verify[\s\S]*Close/.test(await text(page, '#hw-issues .nx-hw-steps')), flows.join(','));
     T.check('…who does each step (You, AI, Agent, The app, Git, Jira), where it is kept, what Build.Rite works with', (await page.$$('#hwLegend .nx-hw-key')).length === 6 && /Agent/.test(await text(page, '#hw-issues .nx-hw-step--agent'))
       && /Where it is kept[\s\S]*issues\.json/.test(await text(page, '#hw-issues')) && /Jira[\s\S]*The AI[\s\S]*Microsoft 365[\s\S]*Git/.test(await text(page, '#hwLinks')));
     await env.shot('buildrite-flows.png');
@@ -75,28 +75,28 @@ const BUILD_SCREENS = ['issues', 'jira', 'analytics', 'minutes', 'followups', 'f
     await page.waitForFunction(() => { const d = document.getElementById('hwPlay'); return d && d.open && !!document.getElementById('hwPlayCard'); }, null, { timeout: 10000 });
     const p0 = await page.evaluate(() => ({ card: document.getElementById('hwPlayCard').textContent.replace(/\s+/g, ' ').trim(), prog: document.getElementById('hwPlayProgress').textContent.trim(),
       made: document.querySelectorAll('#hwPlayMade .nx-play-made').length, now: document.querySelectorAll('.nx-play-node--now').length, nodes: document.querySelectorAll('.nx-play-node').length, dot: getComputedStyle(document.getElementById('hwPlayDot')).left }));
-    T.check('a tile plays its flow: a dialog, step 1 of 8 on show (who, what), the path of 8 with the first lit, the first thing it makes', p0.prog === 'Step 1 of 8' && /^You Step 1 Log it/.test(p0.card) && /Makes The issue, with its key/.test(p0.card)
-      && p0.nodes === 8 && p0.now === 1 && p0.made === 1 && /Pause/.test(await text(page, '#hwPlayToggle')), JSON.stringify(p0));
-    await page.waitForFunction(() => /Step 2 of 8/.test((document.getElementById('hwPlayProgress') || {}).textContent || ''), null, { timeout: 6000 }).catch(() => {});
+    T.check('a tile plays its flow: a dialog, step 1 of 9 on show (who, what), the path of 9 with the first lit, the first thing it makes', p0.prog === 'Step 1 of 9' && /^You Step 1 Log it/.test(p0.card) && /Makes The issue, with its key/.test(p0.card)
+      && p0.nodes === 9 && p0.now === 1 && p0.made === 1 && /Pause/.test(await text(page, '#hwPlayToggle')), JSON.stringify(p0));
+    await page.waitForFunction(() => /Step 2 of 9/.test((document.getElementById('hwPlayProgress') || {}).textContent || ''), null, { timeout: 6000 }).catch(() => {});
     await page.waitForTimeout(1000);
     const p1 = await page.evaluate(() => ({ prog: document.getElementById('hwPlayProgress').textContent.trim(), card: document.getElementById('hwPlayCard').textContent, done: document.querySelectorAll('.nx-play-node--done').length,
       made: Array.prototype.map.call(document.querySelectorAll('#hwPlayMade .nx-play-made'), (m) => m.textContent.trim() + (m.classList.contains('nx-play-made--fresh') ? '*' : '')), dot: getComputedStyle(document.getElementById('hwPlayDot')).left }));
-    T.check('…it moves on by itself: step 2 (the AI writes it up), the dot further along, what it made so far (the newest marked)', p1.prog === 'Step 2 of 8' && /Write it up/.test(p1.card) && p1.done === 1
+    T.check('…it moves on by itself: step 2 (the AI writes it up), the dot further along, what it made so far (the newest marked)', p1.prog === 'Step 2 of 9' && /Write it up/.test(p1.card) && p1.done === 1
       && p1.made.join('|') === 'The issue, with its key|Its write-up*' && parseFloat(p1.dot) > parseFloat(p0.dot), JSON.stringify([p1, p0.dot]));
     await page.click('#hwPlayToggle');
     await page.click('#hwPlayNext');
     await page.keyboard.press('ArrowRight');
     await page.waitForTimeout(300);
-    T.check('paused; Next and → move on by hand (step 4: Send for approval)', /Play/.test(await text(page, '#hwPlayToggle')) && (await text(page, '#hwPlayProgress')) === 'Step 4 of 8' && /Send for approval/.test(await text(page, '#hwPlayCard')));
-    for (let k = 0; k < 5; k++) await page.click('#hwPlayNext');
+    T.check('paused; Next and → move on by hand (step 4: Send for approval)', /Play/.test(await text(page, '#hwPlayToggle')) && (await text(page, '#hwPlayProgress')) === 'Step 4 of 9' && /Send for approval/.test(await text(page, '#hwPlayCard')));
+    for (let k = 0; k < 6; k++) await page.click('#hwPlayNext');
     await page.waitForSelector('#hwPlayEnd', { timeout: 5000 }).catch(() => {});
-    T.check('its end: done, the other ways it can go, where it is kept; all 8 things it made', /That is the flow: Issues/.test(await text(page, '#hwPlayEnd')) && (await page.$$('#hwPlayEnd .nx-play-branch')).length === 4
-      && /Where it is kept[\s\S]*issues\.json/.test(await text(page, '#hwPlayEnd')) && (await page.$$('#hwPlayMade .nx-play-made')).length === 8 && (await text(page, '#hwPlayProgress')) === 'Done · 8 steps' && await page.isDisabled('#hwPlayNext'));
+    T.check('its end: done, the other ways it can go, where it is kept; all 9 things it made', /That is the flow: Issues/.test(await text(page, '#hwPlayEnd')) && (await page.$$('#hwPlayEnd .nx-play-branch')).length === 5
+      && /Where it is kept[\s\S]*issues\.json/.test(await text(page, '#hwPlayEnd')) && (await page.$$('#hwPlayMade .nx-play-made')).length === 9 && (await text(page, '#hwPlayProgress')) === 'Done · 9 steps' && await page.isDisabled('#hwPlayNext'));
     await page.waitForTimeout(1500); // its end slides in, and the dot finishes its run, before the picture
     await env.shot('buildrite-watch-end.png');
     await page.click('#hwPlayRestart');
     await page.waitForTimeout(300);
-    T.check('from the start again, playing', (await text(page, '#hwPlayProgress')) === 'Step 1 of 8' && /Pause/.test(await text(page, '#hwPlayToggle')));
+    T.check('from the start again, playing', (await text(page, '#hwPlayProgress')) === 'Step 1 of 9' && /Pause/.test(await text(page, '#hwPlayToggle')));
     await page.waitForTimeout(3300);
     await env.shot('buildrite-watch.png');
     await page.click('#hwPlayDetails');

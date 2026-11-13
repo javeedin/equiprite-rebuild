@@ -1,5 +1,5 @@
 {
-  "description": "Issues (Build.Rite): an issue logged against a VB page (with screenshots) is written up by the AI, analyzed against the page's code and the FDD (a verdict: fix on this page, fix elsewhere, works as designed, out of scope, needs information; for a fix, the exact change, checked), sent for approval (in the app, and an approval email from Microsoft 365), and once approved the agent applies it on a branch of its own (fix/<KEY>, the issue's number in the code's comments and the commit), tests it, pushes it and makes the pull request. Jira kept up to date. desktop/lib/issues.js, /__issues/*, the desktop app.",
+  "description": "Issues (Build.Rite): an issue logged against a VB page (with screenshots) is written up by the AI, analyzed against the page's code and the FDD (a verdict: fix on this page, fix elsewhere, works as designed, out of scope, needs information; for a fix, the exact change, checked), sent for approval (in the app, and an approval email from Microsoft 365), and once approved the agent applies it on a branch of its own (fix/<KEY>, the issue's number in the code's comments and the commit), tests it, pushes it and makes the pull request. Jira kept up to date. Like a software company's defect record: its details (type, severity, priority, environment, found in, fix version, customer and ticket, raised by and on, reporter email, assignee, due date), a discussion by anyone (comments, responses to the customer emailed to them, internal notes), verification in SIT/UAT, and a resolution with its root cause when closed. Its train is clickable (each step's own fields), a Next step bar says what to do; a table view shows every issue with its columns. desktop/lib/issues.js, /__issues/*, the desktop app.",
   "navigation": { "embeddable": "enabled" },
   "variables": {
     "checked": { "type": "boolean", "defaultValue": false },
@@ -26,7 +26,23 @@
     "refine": { "type": "string", "defaultValue": "" },
     "reason": { "type": "string", "defaultValue": "" },
     "emailMe": { "type": "boolean", "defaultValue": true },
-    "viewImg": { "type": "string", "defaultValue": "" }
+    "viewImg": { "type": "string", "defaultValue": "" },
+    "layout": { "type": "string", "defaultValue": "split", "description": "split (the list beside the issue) or table (every issue with its columns)." },
+    "sortKey": { "type": "string", "defaultValue": "updated", "description": "The table's order: updated, severity, priority, raised, due." },
+    "stageView": { "type": "number", "defaultValue": -1, "description": "The step of the train shown (0 Logged … 7 Closed); -1: the issue's own step." },
+    "det": { "type": "any", "defaultValue": {}, "description": "The details being entered or changed: { kind, severity, priority, environment, foundIn, fixVersion, customer, customerRef, reportedBy, reporterEmail, raisedOn, assignee, dueDate }." },
+    "cKind": { "type": "string", "defaultValue": "comment", "description": "The discussion's next word: comment, response (to the customer) or internal (note)." },
+    "cText": { "type": "string", "defaultValue": "" },
+    "cEmail": { "type": "boolean", "defaultValue": false, "description": "Email the response to the reporter." },
+    "approver": { "type": "string", "defaultValue": "", "description": "Who the approval email goes to (default: you)." },
+    "vEnv": { "type": "string", "defaultValue": "SIT", "description": "Verify: where the fix was tried." },
+    "vBuild": { "type": "string", "defaultValue": "" },
+    "vNotes": { "type": "string", "defaultValue": "" },
+    "rRes": { "type": "string", "defaultValue": "", "description": "Close: the resolution (fixed, done, as-designed, out-of-scope, moved, duplicate, cannot-reproduce, wont-fix)." },
+    "rCause": { "type": "string", "defaultValue": "", "description": "Close: the root cause." },
+    "rFixed": { "type": "string", "defaultValue": "", "description": "Close: the release it is fixed in." },
+    "rNotes": { "type": "string", "defaultValue": "" },
+    "project": { "type": "string", "defaultValue": "", "description": "The Jira project issues are created in." }
   },
   "events": {
     "issueImages": { "description": "The page module read screenshots pasted, dropped or attached in the new issue form (codeFixClient.queueImages).", "payloadType": "object" },
@@ -37,6 +53,7 @@
     "focusRequest": { "chains": [ { "chain": "loadChain" } ] },
     "onRefresh": { "chains": [ { "chain": "loadChain", "parameters": { "refresh": true } } ] },
     "onField": { "chains": [ { "chain": "setChain", "parameters": { "field": "{{ $event.currentTarget.dataset.field }}", "value": "{{ $event.currentTarget.type === 'checkbox' ? $event.currentTarget.checked : ($event.currentTarget.dataset.value !== undefined ? $event.currentTarget.dataset.value : $event.currentTarget.value) }}" } } ] },
+    "onDet": { "chains": [ { "chain": "setChain", "parameters": { "field": "{{ 'det.' + $event.currentTarget.dataset.field }}", "value": "{{ $event.currentTarget.dataset.value !== undefined ? $event.currentTarget.dataset.value : $event.currentTarget.value }}" } } ] },
     "onEdit": { "chains": [ { "chain": "setChain", "parameters": { "field": "{{ 'edit.' + $event.currentTarget.dataset.field }}", "value": "{{ $event.currentTarget.value }}" } } ] },
     "onSelect": { "chains": [ { "chain": "selectChain", "parameters": { "id": "{{ $event.currentTarget.dataset.id }}" } } ] },
     "onAct": { "chains": [ { "chain": "actChain", "parameters": { "act": "{{ $event.currentTarget.dataset.act }}", "key": "{{ $event.currentTarget.dataset.key || '' }}" } } ] },

@@ -1045,6 +1045,7 @@ function createDevServer(o) {
             if (!s.ok) return send(res, 404, 'text/plain; charset=utf-8', 'Not found');
             return send(res, 200, s.mime, fs.readFileSync(s.file), { 'Cache-Control': 'no-store' });
           }
+          if (pathname === '/__issues/settings' && !post) return jsonI(200, is.settings ? is.settings() : { ok: false, error: 'Not here.' });
           if (!post) return jsonI(404, { error: 'Not found' });
           const act = pathname.slice('/__issues/'.length);
           let r;
@@ -1057,7 +1058,11 @@ function createDevServer(o) {
           else if (act === 'approve') r = await is.approve(b.id, { by: by, via: 'app' });
           else if (act === 'reject') r = await is.reject(b.id, { by: by, reason: b.reason });
           else if (act === 'apply') r = await is.apply(b.id, { by: by });
-          else if (act === 'close') r = await is.close(b.id, { by: by, note: b.note });
+          else if (act === 'verify') r = await is.verify(b.id, { by: by, passed: b.passed, env: b.env, build: b.build, notes: b.notes });
+          else if (act === 'close') r = await is.close(b.id, { by: by, note: b.note, resolution: b.resolution, rootCause: b.rootCause, rootNotes: b.rootNotes, fixedIn: b.fixedIn });
+          else if (act === 'details') r = is.details(b.id, b.fields || {}, { by: by });
+          else if (act === 'comment') r = await is.comment(b.id, { text: b.text, kind: b.kind, email: !!b.email, to: b.to, by: by });
+          else if (act === 'settings') r = is.setSettings(b);
           else if (act === 'reopen') r = is.reopen(b.id, { by: by });
           else return jsonI(404, { error: 'Not found' });
           log(`Issues: ${act} ${b.id || ''} -> ${r.ok ? (r.issue ? r.issue.key + ' ' + r.issue.status : 'ok') : r.error}`);

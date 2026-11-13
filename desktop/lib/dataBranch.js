@@ -101,7 +101,9 @@ function open(opts) {
       }
       if (file.indexOf(PAGES_RES + '/sheets/') === 0) return pages.mergeSheet(ours, theirs);
       if (file === FDD_RES + '/library.json') return require('./fdd').mergeLibrary(ours, theirs);
-      if (file.indexOf(CODE_HISTORY + '/') === 0 || file.indexOf(ISSUES + '/') === 0) { const a = JSON.parse(ours), b = JSON.parse(theirs); return str(a.updatedAt) >= str(b.updatedAt) ? ours : theirs; } // the later state of a change
+      // an issue: the later state, and every comment and step of both (two people answering at once both keep their words)
+      if (file.indexOf(ISSUES + '/') === 0) return JSON.stringify(require('./issues').mergeIssue(JSON.parse(ours), JSON.parse(theirs)), null, 1) + '\n';
+      if (file.indexOf(CODE_HISTORY + '/') === 0) { const a = JSON.parse(ours), b = JSON.parse(theirs); return str(a.updatedAt) >= str(b.updatedAt) ? ours : theirs; } // the later state of a change
     } catch (e) { /* not JSON as expected: keep ours */ }
     return null;
   }

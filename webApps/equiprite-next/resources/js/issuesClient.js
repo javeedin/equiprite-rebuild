@@ -17,7 +17,26 @@ define([], function () {
     }, function (e) { return { ok: false, status: 0, body: { error: 'The local server did not answer: ' + ((e && e.message) || e) } }; });
   }
   var post = function (p, b) { return call(p, 'POST', b || {}); };
+  /** A native <textarea> shows its text, not a bound value: each step's boxes filled from the page's variables once drawn
+   *  (the write-up, the refine box, the verify and close notes, the discussion), never the one being typed in. */
+  function fillBoxes(v) {
+    var put = function () {
+      try {
+        var edit = v.edit || {};
+        Array.prototype.forEach.call(document.querySelectorAll('#isWriteup textarea[data-field], #isWriteup input[data-field]'), function (el) {
+          var k = el.getAttribute('data-field');
+          if (Object.prototype.hasOwnProperty.call(edit, k) && document.activeElement !== el) el.value = edit[k];
+        });
+        [['isRefine', v.refine], ['isVNotes', v.vNotes], ['isRNotes', v.rNotes], ['isCText', v.cText]].forEach(function (p) {
+          var el = document.getElementById(p[0]);
+          if (el && document.activeElement !== el) el.value = p[1] || '';
+        });
+      } catch (e) { /* no DOM */ }
+    };
+    [0, 60, 250].forEach(function (ms) { setTimeout(put, ms); });
+  }
   return {
+    fillBoxes: fillBoxes,
     info: function () { return call('info'); },
     list: function (q, status) { return call('list?q=' + encodeURIComponent(q || '') + '&status=' + encodeURIComponent(status || '')); },
     get: function (id) { return call('get?id=' + encodeURIComponent(id || '')); },
@@ -27,11 +46,16 @@ define([], function () {
     update: function (id, fields) { return post('update', { id: id, fields: fields }); },
     toJira: function (id) { return post('jira', { id: id }); },
     analyze: function (id, refine) { return post('analyze', { id: id, refine: refine || '' }); },
-    ask: function (id, email) { return post('ask', { id: id, email: !!email }); },
+    ask: function (id, email, to) { return post('ask', { id: id, email: !!email, to: to || '' }); },
     approve: function (id) { return post('approve', { id: id }); },
     reject: function (id, reason) { return post('reject', { id: id, reason: reason || '' }); },
     apply: function (id) { return post('apply', { id: id }); },
-    close: function (id, note) { return post('close', { id: id, note: note || '' }); },
+    close: function (id, b) { return post('close', Object.assign({ id: id }, typeof b === 'string' ? { note: b } : (b || {}))); },
+    verify: function (id, b) { return post('verify', Object.assign({ id: id }, b || {})); },
+    details: function (id, fields) { return post('details', { id: id, fields: fields || {} }); },
+    comment: function (id, b) { return post('comment', Object.assign({ id: id }, b || {})); },
+    settings: function () { return call('settings'); },
+    setProject: function (project) { return post('settings', { project: project || '' }); },
     reopen: function (id) { return post('reopen', { id: id }); }
   };
 });

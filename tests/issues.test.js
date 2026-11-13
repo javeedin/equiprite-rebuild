@@ -75,11 +75,12 @@ const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwA
     const store = IS.open({ file: path.join(tmp, 'data', 'issues.json'), ai: ai, fix: fix, mail: mail, jira: jira, now: now,
       fdd: { pick: (story) => 'FDD 7.4 Billing — overdue invoices are listed first (' + story.summary + ')' } });
 
+    const c3dummy = () => 'nope';
     T.section('log, the AI writes it up, into Jira');
     const c1 = await store.create({ page: ID, text: 'overdue invoices are all mixed up on my billing, please fix', kind: 'bug', images: [{ name: 'Pasted image 1', mime: 'image/png', base64: PNG }], by: 'Asha' });
     const is1 = c1.issue;
     T.check('logged against the page, a key of its own, its screenshot kept', c1.ok && /^BR-[A-Z0-9]{5}$/.test(is1.key) && is1.label === 'My Billing' && is1.status === 'new' && is1.images.length === 1 && store.img(is1.id, 1).ok
-      && is1.steps.length === 7 && is1.steps[0].state === 'now', JSON.stringify([c1.error, is1 && is1.key]));
+      && is1.steps.length === 8 && is1.steps[0].state === 'now', JSON.stringify([c1.error, is1 && is1.key]));
     const f1 = await store.format(is1.id, { by: 'Asha' });
     T.check('written up by the AI (title, steps, expected, actual), with the screenshot', f1.ok && f1.issue.status === 'written' && /Overdue invoices/.test(f1.issue.formatted.title) && f1.issue.formatted.steps.length === 2
       && (asked[0].images || []).length === 1, JSON.stringify(f1.error));
@@ -120,9 +121,15 @@ const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwA
       && git(A, 'status', '--porcelain') === '' && git(A, 'worktree', 'list').split('\n').length === 1);
     T.check('the change history: applied on its branch, tested, committed, pushed (by whom)', ['approved and applied', 'tested', 'committed', 'pushed'].every((w) => ap.issue.fix.events.some((e) => e.what === w && (w === 'tested' || e.by === 'Asha'))));
     T.check('…and Jira told: the branch and the pull request', jiraCalls.some((c) => /fix\/EQP-901/.test((c.body || {}).body || '') && /Pull request: https:\/\/github\.com\/acme/.test(c.body.body)));
-    const cl = await store.close(is1.id, { by: 'Asha', note: 'merged' });
+    T.check('verifying: refused before it is applied elsewhere; a failed one must say what still goes wrong', !(await store.verify(c3dummy(), {})).ok && !(await store.verify(is1.id, { by: 'Ben', passed: false })).ok);
+    const vf = await store.verify(is1.id, { by: 'Ben', passed: true, env: 'UAT', build: '26C.2', notes: 'Overdue invoices first now.' });
+    T.check('verified in UAT on build 26C.2 (QA): the Verified step reached, Jira told', vf.ok && vf.issue.status === 'verified' && vf.issue.steps[6].state === 'now' && vf.issue.verification.env === 'UAT'
+      && jiraCalls.some((c) => /Verified in UAT on 26C\.2 by Ben/.test((c.body || {}).body || '')));
+    const cl = await store.close(is1.id, { by: 'Asha', note: 'merged', rootCause: 'code', rootNotes: 'the sort ignored the due date' });
     T.check('closed: the last step done, its timeline from logged to closed', cl.ok && cl.issue.status === 'closed' && cl.issue.steps.every((x) => x.state === 'done')
-      && ['logged', 'written up', 'created in Jira', 'analyzed', 'sent for approval', 'approved', 'agent started', 'applied on a branch', 'pull request ready', 'closed'].every((w) => cl.issue.events.some((e) => e.what === w)), JSON.stringify(cl.issue.events.map((e) => e.what)));
+      && ['logged', 'written up', 'created in Jira', 'analyzed', 'sent for approval', 'approved', 'agent started', 'applied on a branch', 'pull request ready', 'verified', 'closed'].every((w) => cl.issue.events.some((e) => e.what === w)), JSON.stringify(cl.issue.events.map((e) => e.what)));
+    T.check('…with its resolution: Fixed (a verified bug), fixed in the build it was verified on, its root cause; in Jira', cl.issue.resolution.code === 'fixed' && cl.issue.resolutionLabel === 'Fixed' && cl.issue.resolution.fixedIn === '26C.2'
+      && cl.issue.resolution.rootCause === 'code' && jiraCalls.some((c) => /Closed in Build\.Rite as \*Fixed\* \(fixed in 26C\.2\)[\s\S]*Root cause:\* Code defect — the sort ignored the due date/.test((c.body || {}).body || '')));
 
     T.section('not a fix on this page: triaged, with what to do; from Jira; rejected');
     const c2 = (await store.create({ page: ID, jiraKey: 'eqp-50', kind: 'change', by: 'Ben' })).issue;
@@ -141,6 +148,61 @@ const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwA
     const L = store.list({ status: 'all' });
     T.check('the list: newest first, counted by state; found by a word', L.issues.length === 3 && L.counts.closed === 1 && L.counts.open === 2 && store.list({ q: 'credit' }).issues.length === 0 && store.list({ q: 'EQP-50' }).issues[0].key === 'EQP-50');
     T.check('the write-up\'s text for the analysis, and the Jira description', /Steps to reproduce:\n1\. Open My Billing/.test(IS.issueText(cl.issue)) && /\*Page:\* My Billing/.test(IS.jiraWiki(cl.issue)));
+    // ── the defect record: details, the AI's severity, the discussion, Jira refusing, the project key, two PCs merged ──
+    T.section('details, discussion, resolution');
+    const sent = [];
+    const jira403 = { auth: () => ({ site: 'https://example.atlassian.net', header: 'Basic abc', email: 'javeed@example.com' }),
+      fetch: async (url, init) => { sent.push({ url, body: init.body ? JSON.parse(init.body) : null }); return /\/comment$/.test(url) ? { ok: true, status: 201, text: async () => '{}' } : { ok: false, status: 403, text: async () => '' }; } };
+    const ai2 = { chat: async () => ({ ok: true, provider: 'Stand-in AI', text: '{"title": "Totals wrong", "summary": "x", "steps": [], "kind": "bug", "severity": "critical", "priority": "p1", "why": "Billing is wrong for every customer."}' }) };
+    const st2 = IS.open({ file: path.join(tmp, 'data2', 'issues.json'), ai: ai2, mail: { status: () => ({ signedIn: true, account: 'me@example.com' }), sendMail: async (m) => { sent.push(m); return { ok: true }; } }, jira: jira403, now: now });
+    const d1 = await st2.create({ page: ID, text: 'totals wrong', kind: 'bug', by: 'Asha',
+      details: { severity: 'major', environment: 'UAT', foundIn: '26C', customer: 'Acme Rentals', customerRef: 'INC-1042', reporterEmail: 'not an email', raisedOn: '2026-11-10', priority: 'p9' } });
+    const dd = d1.issue.details;
+    T.check('logged with its details: severity, environment, the release it was found in, the customer and their ticket, raised on; who raised it (by default the person); a bad email or choice left out',
+      d1.ok && dd.severity === 'major' && dd.severityLabel === 'S2 · Major' && dd.environment === 'UAT' && dd.foundIn === '26C' && dd.customer === 'Acme Rentals' && dd.customerRef === 'INC-1042'
+      && dd.raisedOn === '2026-11-10' && dd.reportedBy === 'Asha' && dd.reporterEmail === '' && dd.priority === '', JSON.stringify(dd));
+    const w2 = await st2.format(d1.issue.id, { by: 'Asha' });
+    T.check('written up: the AI suggests severity and priority only where nobody chose (priority P1; the severity Asha chose kept), marked as the AI\'s, with why',
+      w2.ok && w2.issue.details.severity === 'major' && w2.issue.details.priority === 'p1' && w2.issue.details.ai.join() === 'priority' && /every customer/.test(w2.issue.details.aiWhy)
+      && /suggests P1 · Urgent/.test(w2.issue.events[w2.issue.events.length - 1].detail), JSON.stringify(w2.issue.details));
+    const dc = st2.details(d1.issue.id, { priority: 'p2', assignee: 'Ben', reporterEmail: 'pat@acme.example', fixVersion: '26D', dueDate: '2026-11-30', kind: 'change' }, { by: 'Ben' });
+    T.check('its details changed at any stage: each change in its history (P1 → P2, the type), no longer the AI\'s once set', dc.ok && dc.issue.details.priority === 'p2' && dc.issue.details.ai.length === 0 && dc.issue.kind === 'change'
+      && /Type: bug → change; Priority: P1 · Urgent → P2 · High;[\s\S]*Assignee: — → Ben/.test(dc.issue.events[dc.issue.events.length - 1].detail), dc.issue.events[dc.issue.events.length - 1].detail);
+    T.check('…nothing changed: nothing recorded', st2.details(d1.issue.id, { priority: 'p2' }, { by: 'Ben' }).unchanged === true);
+    T.check('a comment with no words: refused', !(await st2.comment(d1.issue.id, { text: '  ', by: 'Ben' })).ok);
+    await st2.comment(d1.issue.id, { text: 'I can reproduce it on UAT.', by: 'Ben' });
+    const rsp = await st2.comment(d1.issue.id, { text: 'We found it: a fix comes in 26D.', kind: 'response', email: true, by: 'Asha' });
+    const mailTo = sent.filter((m) => m.to)[0];
+    const note = await st2.comment(d1.issue.id, { text: 'Credit notes come from the AR feed.', kind: 'internal', by: 'Chen' });
+    T.check('its discussion: several people, each word with who and when, at which stage; a response to the customer emailed to the reporter', note.ok && note.issue.comments.length === 3
+      && note.issue.comments.map((c) => c.by + ':' + c.kind).join() === 'Ben:comment,Asha:response,Chen:internal' && note.issue.comments[1].kindLabel === 'Response to the customer'
+      && rsp.issue.comments[1].email.sent && mailTo.to === 'pat@acme.example' && /\[BR-[A-Z0-9]+\] Totals wrong/.test(mailTo.subject) && /a fix comes in 26D/.test(mailTo.html) && note.issue.comments[0].stage === 'Written up');
+    const L2 = st2.list({ q: 'acme' });
+    T.check('the list: found by its customer; its columns (severity, priority, environment, releases, customer, raised by/on, assignee, comments)', L2.issues.length === 1 && L2.issues[0].severityLabel === 'S2 · Major'
+      && L2.issues[0].priorityLabel === 'P2 · High' && L2.issues[0].foundIn === '26C' && L2.issues[0].fixVersion === '26D' && L2.issues[0].customerRef === 'INC-1042' && L2.issues[0].raisedOn === '2026-11-10'
+      && L2.issues[0].assignee === 'Ben' && L2.issues[0].comments === 3 && st2.list({ q: 'INC-1042' }).issues.length === 1, JSON.stringify(L2.issues[0]));
+    const j403 = await st2.toJira(d1.issue.id, { by: 'Asha' });
+    T.check('Jira refusing (403) says why and what to do: the account, the project, the permission', !j403.ok && /Jira refused \(HTTP 403\): the connected account \(javeed@example\.com\) may not do this in project EQP[\s\S]*Create issues/.test(j403.error), j403.error);
+    T.check('…the project key set here (checked)', !st2.setSettings({ project: 'bad key!' }).ok && st2.setSettings({ project: 'rite' }).project === 'RITE' && st2.settings().project === 'RITE');
+    await st2.toJira(d1.issue.id, { by: 'Asha' });
+    const made = sent.filter((x) => x.url && /\/rest\/api\/2\/issue$/.test(x.url)).pop();
+    T.check('…and the issue for Jira goes to that project, its details as a table in its description', made.body.fields.project.key === 'RITE' && /\|\|Severity\|S2 · Major\|/.test(made.body.fields.description)
+      && /\|\|Customer ticket\|INC-1042\|/.test(made.body.fields.description));
+    const tri = await st2.close(d1.issue.id, { by: 'Asha', resolution: 'duplicate', note: 'Same as BR-1' });
+    T.check('closed as a duplicate (a resolution chosen), the reason kept; closing twice refused', tri.ok && tri.issue.resolution.code === 'duplicate' && tri.issue.resolutionLabel === 'Duplicate' && tri.issue.resolution.fixedIn === ''
+      && !(await st2.close(d1.issue.id, { by: 'Asha' })).ok);
+    const ro = st2.reopen(d1.issue.id, { by: 'Ben' });
+    T.check('reopened: no resolution any more; its discussion kept', ro.ok && !ro.issue.resolution && ro.issue.comments.length === 3);
+
+    T.section('two PCs answering at once');
+    const base = { id: 'isx', status: 'written', updatedAt: '2026-11-13T10:00:00Z', comments: [{ id: 'c1', at: '2026-11-13T09:00:00Z', by: 'Asha', text: 'a' }], events: [{ at: '1', what: 'logged', by: 'Asha' }] };
+    const pcA = Object.assign({}, base, { updatedAt: '2026-11-13T10:05:00Z', comments: base.comments.concat([{ id: 'c2', at: '2026-11-13T10:05:00Z', by: 'Ben', text: 'b' }]), events: base.events.concat([{ at: '2', what: 'commented', by: 'Ben' }]) });
+    const pcB = Object.assign({}, base, { status: 'analyzed', updatedAt: '2026-11-13T10:06:00Z', comments: base.comments.concat([{ id: 'c3', at: '2026-11-13T10:06:00Z', by: 'Chen', text: 'c' }]), events: base.events.concat([{ at: '3', what: 'analyzed', by: 'AI' }]) });
+    const mg = IS.mergeIssue(pcA, pcB);
+    T.check('merged: the later state, and both people\'s comments and steps (none lost, none twice)', mg.status === 'analyzed' && mg.comments.map((c) => c.id).join() === 'c1,c2,c3' && mg.events.map((e) => e.what).join() === 'logged,commented,analyzed');
+    const DB = require('../desktop/lib/dataBranch');
+    const merged = JSON.parse(DB.open({ root: tmp }).resolve('issues/isx.json', JSON.stringify(pcA), JSON.stringify(pcB)));
+    T.check('…and so on the data branch: a conflicted issue file keeps both comments', merged.comments.length === 3 && merged.status === 'analyzed');
   } catch (e) {
     T.check('no exception: ' + (e && e.stack), false);
   } finally {

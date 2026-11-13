@@ -5,7 +5,9 @@
  * bare one; its address GitHub's, so the pull request's address is made), with stand-ins for the AI, Microsoft 365 and
  * Jira: log an issue (its page picked, a screenshot pasted, into Jira) → the AI's write-up → Analyze (the verdict, the
  * exact change with the issue's number) → Send for approval (the email) → Approve → Apply change (the agent's branch,
- * tested, pushed, the pull request) → Close. The project's own checkout is never touched. Needs npm run build.
+ * tested, pushed, the pull request) → Verify (in UAT) → Close with its resolution. Its details (severity, customer, the
+ * release it was found in…), the AI's priority, the clickable train, the Next step bar, the discussion (a comment, a
+ * response emailed to the customer), the table of every issue. The project's own checkout is never touched. Needs npm run build.
  */
 const path = require('path');
 const os = require('os');
@@ -31,7 +33,7 @@ const BILL = 'webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-billi
     settings: () => ({ active: 'x', catalog: [{ id: 'x', label: 'Stand-in AI' }] }),
     chat: async (req) => {
       asked.push(req);
-      if (/^You write up software issues/.test(req.system)) return { ok: true, provider: 'Stand-in AI', text: '{"title": "Overdue invoices are not shown first on My Billing", "summary": "Overdue invoices are mixed with the others.", "steps": ["Open My Billing", "Look at the list"], "expected": "Overdue first", "actual": "Mixed", "impact": "Customers miss overdue invoices", "kind": "bug", "questions": ["Which customer saw it?"]}' };
+      if (/^You write up software issues/.test(req.system)) return { ok: true, provider: 'Stand-in AI', text: '{"title": "Overdue invoices are not shown first on My Billing", "summary": "Overdue invoices are mixed with the others.", "steps": ["Open My Billing", "Look at the list"], "expected": "Overdue first", "actual": "Mixed", "impact": "Customers miss overdue invoices", "kind": "bug", "questions": ["Which customer saw it?"], "severity": "critical", "priority": "p2", "why": "Customers see wrong overdue amounts."}' };
       return { ok: true, provider: 'Stand-in AI', text: ['## Verdict', 'Fix on this page — the list is not sorted by due date.', '## Summary', 'Sort overdue invoices first.', '## How it works today', '`BilledRequestInitChain` loads them.',
         '## What is wrong', 'No sort.', '## The change', '- the page', '## After the change', 'Overdue first.', '## Risks', 'None known', '## How to test', '1. Open My Billing.', '## Questions', 'None', '',
         'FILE: ' + BILL + '.html', '<<<<<<< SEARCH', lines.slice(1, 3).join('\n'), '=======', lines.slice(1, 3).join('\n') + '\n  <!-- EQP-901: overdue invoices first -->', '>>>>>>> REPLACE'].join('\n') };
@@ -68,6 +70,14 @@ const BILL = 'webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-billi
     }, PNG);
     await page.waitForSelector('#isImgs .nx-fx-img', { timeout: 5000 }).catch(() => {});
     T.check('a screenshot pasted into it; "Create it in Jira too" offered (Jira connected) and ticked', (await page.$$('#isImgs .nx-fx-img')).length === 1 && await page.isChecked('#isToJira'));
+    // its details, as any defect record: severity chosen, priority left to the AI; the customer, its ticket, the release
+    await page.click('#isNewDetails [data-field="severity"][data-value="major"]');
+    await page.click('#isNewDetails [data-field="environment"][data-value="UAT"]');
+    await page.fill('#isDFoundIn', '26C');
+    await page.fill('#isDCustomer', 'Acme Rentals');
+    await page.fill('#isDCustRef', 'INC-1042');
+    await page.fill('#isDEmail', 'pat@acme.example');
+    T.check('its details in the form: severity S2 chosen, UAT, raised on today by default', /S2 · Major/.test(await text(page, '#isNewDetails .nx-chip--on')) && (await page.inputValue('#isDRaisedOn')).length === 10);
     await page.click('#isCreate');
     await page.waitForSelector('#isIssue', { timeout: 20000 });
     await page.waitForFunction(() => /EQP-901/.test((document.getElementById('isKey') || {}).textContent || ''), null, { timeout: 10000 }).catch(() => {});
@@ -75,28 +85,62 @@ const BILL = 'webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-billi
       && (await page.inputValue('#isEditTitle')) === 'Overdue invoices are not shown first on My Billing' && /Which customer saw it/.test(await text(page, '#isQuestions'))
       && (await page.inputValue('#isEditSteps')) === 'Open My Billing\nLook at the list' && jiraCalls.some((c) => /\/issue$/.test(c.url)) && (asked[0].images || []).length === 1,
       JSON.stringify([await page.inputValue('#isEditTitle').catch(() => '?'), await text(page, '#isQuestions'), await page.inputValue('#isEditSteps').catch(() => '?'), jiraCalls.length, (asked[0].images || []).length, await text(page, '#isStatus')]));
-    T.check('its flow: Logged ✓, Written up now', /Logged\s*Written up\s*Analyzed\s*Approval\s*Applied\s*Pull request\s*Closed/.test(await text(page, '#isSteps'))
+    T.check('its severity (S2, as chosen), the AI\'s priority (P2: Asha left it empty); customer and release under the title', (await text(page, '#isSev')) === 'S2 · Major' && (await text(page, '#isPri')) === 'P2 · High'
+      && /customer Acme Rentals \(INC-1042\) · found in 26C on UAT/.test(await text(page, '.nx-is-meta')), await text(page, '.nx-is-meta'));
+    T.check('its train: Logged ✓, Written up now — through Verified and Closed', /Logged\s*Written up\s*Analyzed\s*Approval\s*Applied\s*Pull request\s*Verified\s*Closed/.test(await text(page, '#isSteps'))
       && (await page.$$('#isSteps .nx-is-step--done')).length === 1 && /Written up/.test(await text(page, '#isSteps .nx-is-step--now')));
+    T.check('the Next step bar says what comes after the write-up, with its button', /Next: check the write-up[\s\S]*the AI reads the page's code and the FDD/.test(await text(page, '#isNextText')) && (await text(page, '#isNextBtn')) === 'Analyze with AI');
     await env.shot('issues-written.png');
 
+    T.section('the train: each step its own fields');
+    await page.click('#isSteps [data-key="0"]');
+    await page.waitForSelector('#isDetails', { timeout: 5000 });
+    T.check('Logged: as raised, and every detail (the AI\'s priority marked, with why)', /overdue invoices are all mixed up/.test(await text(page, '#isRaw')) && (await page.inputValue('#isCustomer')) === 'Acme Rentals'
+      && /P2 · High/.test(await text(page, '#isDetPri .nx-chip--on')) && /AI/.test(await text(page, '#isDetails .nx-is-aimark')) && /Customers see wrong overdue amounts/.test(await text(page, '#isAiWhy'))
+      && /Back to where it is \(Written up\)/.test(await text(page, '#isBackToNow')));
+    await page.fill('#isAssignee', 'Ben');
+    await page.fill('#isFixVersion', '26D');
+    await page.click('#isSaveDetails');
+    await page.waitForFunction(() => /Details saved/.test((document.getElementById('isResult') || {}).textContent || ''), null, { timeout: 8000 }).catch(() => {});
+    T.check('…changed and saved: the same step stays; the change in its history', /Details saved/.test(await text(page, '#isResult')) && !!(await page.$('#isDetails')) && /details changed[\s\S]*Assignee: — → Ben/.test(await text(page, '#isTimeline')));
+    await page.click('#isSteps [data-key="3"]');
+    T.check('Approval, before the analysis: says when it comes', /Approval comes once the analysis proposes a change/.test(await text(page, '#isNoApproval')));
+    await env.shot('issues-train.png');
+
+    T.section('the discussion');
+    await page.fill('#isCText', 'Seen by Acme on their October invoices.');
+    await page.click('#isPost');
+    await page.waitForFunction(() => document.querySelectorAll('#isComments .nx-is-cmt').length === 1, null, { timeout: 8000 }).catch(() => {});
+    await page.click('#isCKinds [data-value="response"]');
+    await page.fill('#isCText', 'Thanks, we found it: a fix is on its way in 26D.');
+    await page.check('#isCEmail');
+    await page.click('#isPost');
+    await page.waitForFunction(() => document.querySelectorAll('#isComments .nx-is-cmt').length === 2, null, { timeout: 8000 }).catch(() => {});
+    const mailR = mails.filter((m) => m.to === 'pat@acme.example')[0];
+    T.check('a comment, then a response to the customer emailed to the reporter; each with who, which kind, at which step', /priya\.raman\s*Comment · at Written up[\s\S]*Seen by Acme[\s\S]*Response to the customer · at Written up[\s\S]*a fix is on its way[\s\S]*Emailed to pat@acme\.example/.test(await text(page, '#isComments'))
+      && !!mailR && /\[EQP-901\]/.test(mailR.subject) && (await page.inputValue('#isCText')) === '' && jiraCalls.some((c) => /Response to the customer/.test((c.body || {}).body || '')), await text(page, '#isComments'));
+    await page.click('#isBackToNow');
+
     T.section('analyze: the verdict and the exact change');
-    await page.click('#isAnalyze');
+    await page.click('#isNextBtn');
     await page.waitForSelector('#isVerdict', { timeout: 20000 });
     T.check('the verdict: Fix on this page, why; the change with the EQP-901 comment; checks ✓', /Fix on this page\s*the list is not sorted/.test(await text(page, '#isVerdict')) && /<!-- EQP-901: overdue invoices first -->/.test(await text(page, '#isDiff .nx-fx-l--add'))
       && (await page.$$('#isChecks .nx-fx-check--ok')).length >= 5 && /FDD 7\.4/.test(asked[asked.length - 1].user) && /THIS IS ISSUE EQP-901/.test(asked[asked.length - 1].system),
       JSON.stringify([await text(page, '#isVerdict'), (await text(page, '#isDiff .nx-fx-l--add')).slice(0, 80), (await page.$$('#isChecks .nx-fx-check--ok')).length, /FDD 7\.4/.test(asked[asked.length - 1].user), /THIS IS ISSUE EQP-901/.test(asked[asked.length - 1].system)]));
+    T.check('…and the Next step: Send for approval, emailed to me', /send the proposed change for approval — emailed to priya@example\.com/.test(await text(page, '#isNextText')) && (await text(page, '#isNextBtn')) === 'Send for approval');
 
     T.section('approval: sent (an email), approved');
-    T.check('Send for approval, by email to me', await page.isChecked('#isEmailMe') && /Email it to priya@example\.com/.test(await text(page, '#isApproval')));
-    await page.click('#isAsk');
+    await page.click('#isSteps [data-key="3"]');
+    T.check('the Approval step: the approver (me by default), by email', await page.isChecked('#isEmailMe') && (await page.inputValue('#isApprover')) === 'priya@example.com' && /Email it to priya@example\.com/.test(await text(page, '#isApproval')));
+    await page.click('#isAskBtn');
     await page.waitForSelector('#isAwaiting', { timeout: 10000 });
     T.check('waiting for approval; the email sent (its subject with the key and code)', /Waiting for approval/.test(await text(page, '#isStatus')) && /Approval email sent to priya@example\.com \(code BR-/.test(await text(page, '#isEmailNote'))
-      && /^\[Build\.Rite\] Approve EQP-901 · My Billing \(BR-/.test((mails[0] || {}).subject || '') && !(await page.$('#isApply')));
+      && /^\[Build\.Rite\] Approve EQP-901 · My Billing \(BR-/.test((mails.filter((m) => /Approve/.test(m.subject))[0] || {}).subject || '') && !(await page.$('#isApply')));
     await env.shot('issues-awaiting.png');
     page.once('dialog', (d) => d.accept());
-    await page.click('#isApprove');
+    await page.click('#isNextBtn');
     await page.waitForSelector('#isApply', { timeout: 10000 }).catch(() => {});
-    T.check('approved (by me, in Build.Rite): Apply change is on', /Approved by priya\.raman · .* in Build\.Rite/.test(await text(page, '#isDecision')) && await page.isEnabled('#isApply'), await text(page, '#isDecision'));
+    T.check('approved from the Next step bar (by me, in Build.Rite): Apply change is on', /Approved by priya\.raman · .* in Build\.Rite/.test(await text(page, '#isDecision')) && await page.isEnabled('#isApply') && (await text(page, '#isNextBtn')) === 'Apply change', await text(page, '#isDecision'));
 
     T.section('the agent applies it: its own branch, tested, pushed, the pull request');
     page.once('dialog', (d) => d.accept());
@@ -106,13 +150,41 @@ const BILL = 'webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-billi
       && /^https:\/\/github\.com\/acme\/equiprite\/compare\/pages%2Ftest\.\.\.fix%2FEQP-901\?expand=1/.test((await page.getAttribute('#isPr', 'href')) || ''), await text(page, '#isBranch'));
     T.check('the branch on the remote has the change; the project\'s checkout is untouched', /EQP-901: overdue invoices first/.test(pg.gitRemote('show', 'fix/EQP-901:' + BILL + '.html'))
       && fs.readFileSync(path.join(pg.root, BILL + '.html'), 'utf8') === html0 && /^EQP-901: Overdue invoices/.test(pg.gitRemote('log', '-1', '--format=%s', 'fix/EQP-901')));
-    T.check('its flow: at Pull request', /Pull request/.test(await text(page, '#isSteps .nx-is-step--now')) && /Pull request/.test(await text(page, '#isStatus')));
+    T.check('its train: at Pull request; Next: verify the fix in SIT or UAT', /Pull request/.test(await text(page, '#isSteps .nx-is-step--now')) && /Pull request/.test(await text(page, '#isStatus')) && (await text(page, '#isNextBtn')) === 'Verify the fix');
     await env.shot('issues-applied.png');
+
+    T.section('verified, then closed with its resolution');
+    await page.click('#isNextBtn');
+    await page.waitForSelector('#isVerifyPass', { timeout: 5000 });
+    await page.click('#isVEnvs [data-value="UAT"]');
+    await page.fill('#isVBuild', '26D.1');
+    await page.fill('#isVNotes', 'Overdue invoices come first now.');
+    await page.click('#isVerifyPass');
+    await page.waitForFunction(() => /Verified/.test((document.getElementById('isStatus') || {}).textContent || ''), null, { timeout: 10000 }).catch(() => {});
+    T.check('verified in UAT on 26D.1 (QA); Next: close it', /Verified/.test(await text(page, '#isStatus')) && (await text(page, '#isNextBtn')) === 'Close it…' && jiraCalls.some((c) => /Verified in UAT on 26D\.1/.test((c.body || {}).body || '')));
+    await page.click('#isNextBtn');
+    await page.waitForSelector('#isResChips', { timeout: 5000 });
+    T.check('the close step: Fixed chosen (a verified bug), fixed in the fix version', /^Fixed$/.test(await text(page, '#isResChips .nx-chip--on')) && (await page.inputValue('#isRFixed')) === '26D');
+    await page.click('#isCauseChips [data-value="code"]');
     await page.click('#isClose');
     await page.waitForFunction(() => /Closed/.test((document.getElementById('isStatus') || {}).textContent || ''), null, { timeout: 10000 }).catch(() => {});
-    T.check('closed; its history from logged to closed; Jira told at each step', /Closed/.test(await text(page, '#isStatus')) && /logged[\s\S]*written up[\s\S]*created in Jira[\s\S]*analyzed[\s\S]*sent for approval[\s\S]*approved[\s\S]*applied on a branch[\s\S]*pull request ready[\s\S]*closed/.test(await text(page, '#isTimeline'))
-      && jiraCalls.filter((c) => /\/comment$/.test(c.url)).length >= 4);
+    T.check('closed as Fixed in 26D, root cause Code defect; its history from logged to closed; Jira told at each step', /Closed/.test(await text(page, '#isStatus')) && /Fixed\s*Fixed in\s*26D\s*Root cause\s*Code defect/.test(await text(page, '#isResolution'))
+      && /logged[\s\S]*written up[\s\S]*created in Jira[\s\S]*analyzed[\s\S]*sent for approval[\s\S]*approved[\s\S]*applied on a branch[\s\S]*pull request ready[\s\S]*verified[\s\S]*closed/.test(await text(page, '#isTimeline'))
+      && jiraCalls.filter((c) => /\/comment$/.test(c.url)).length >= 6, await text(page, '#isResolution'));
+    await env.shot('issues-closed.png');
     T.check('the list: the issue, closed', /EQP-901[\s\S]*Closed/.test(await text(page, '#isRows')) || (await page.click('#isFilters [data-key="all"]'), /EQP-901[\s\S]*Closed/.test(await text(page, '#isRows'))));
+
+    T.section('the table: every issue with its columns');
+    await page.click('#isLayTable');
+    await page.click('#isTFilters [data-key="all"]');
+    await page.waitForSelector('#isTable .nx-is-tr:not(.nx-is-tr--head)', { timeout: 5000 });
+    const row = await text(page, '#isTable .nx-is-tr:not(.nx-is-tr--head)');
+    T.check('its row: key, title, type, severity, priority, status, env, found in, fix version, customer and ticket, raised by and on, assignee, comments, resolution',
+      /EQP-901[\s\S]*Overdue invoices are not shown first[\s\S]*bug\s*S2\s*P2\s*Closed\s*UAT\s*26C\s*26D\s*Acme Rentals · INC-1042\s*priya\.raman\s*\d+ \w+ \d{4}\s*Ben\s*—\s*2\s*Fixed/.test(row), row);
+    await env.shot('issues-table.png');
+    await page.click('#isTable .nx-is-tr:not(.nx-is-tr--head)');
+    await page.waitForSelector('#isIssue', { timeout: 5000 });
+    T.check('a row opens its issue (back beside the list)', /EQP-901/.test(await text(page, '#isKey')) && !(await page.$('#isTable')));
     T.eq('no browser errors', errs().join(' | ').slice(0, 1500), '');
   } catch (e) {
     T.check('no exception: ' + (e && e.message), false);
