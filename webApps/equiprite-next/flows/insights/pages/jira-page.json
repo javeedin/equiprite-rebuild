@@ -387,6 +387,13 @@
         }
       ]
     },
+    "onProgress": {
+      "chains": [
+        {
+          "chain": "openProgressChain"
+        }
+      ]
+    },
     "onRefresh": {
       "chains": [
         {

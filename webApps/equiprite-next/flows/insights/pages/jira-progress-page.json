@@ -1,0 +1,30 @@
+{
+  "description": "Jira · Daily progress, in a tab of its own (opened from Jira stories and the Jira updates bell): what moved in Jira day by day — stories closed, new, reopened, moved, touched, by whom — over the last 7, 14, 30 or 60 days, the stuck ones, copied as text (resources/js/jiraProgress.js).",
+  "navigation": { "embeddable": "enabled" },
+  "variables": {
+    "days": { "type": "number", "defaultValue": 14, "description": "How many days back (7, 14, 30 or 60)." },
+    "isLoading": { "type": "boolean", "defaultValue": true },
+    "error": { "type": "string", "defaultValue": "" },
+    "notConnected": { "type": "boolean", "defaultValue": false },
+    "readAt": { "type": "string", "defaultValue": "", "description": "When Jira was read (HH:MM)." },
+    "prog": { "type": "any", "defaultValue": null, "description": "The days, their numbers and stories, the totals, the people (jiraProgress.progressOf)." },
+    "stuck": { "type": "any[]", "defaultValue": [], "description": "Open stories with no change for 5+ days, quietest first." },
+    "stuckRead": { "type": "boolean", "defaultValue": false, "description": "The stuck stories could be read." },
+    "more": { "type": "boolean", "defaultValue": false, "description": "More stories changed than were read (the first 1,000)." },
+    "sel": { "type": "string", "defaultValue": "", "description": "The day shown in detail (YYYY-MM-DD; '' = the latest)." },
+    "workOnly": { "type": "boolean", "defaultValue": false, "description": "Working days only (weekends left out of the charts)." },
+    "copied": { "type": "string", "defaultValue": "", "description": "Said once a summary is copied." }
+  },
+  "eventListeners": {
+    "vbEnter": { "chains": [ { "chain": "loadChain" } ] },
+    "onRefresh": { "chains": [ { "chain": "loadChain" } ] },
+    "onAct": { "chains": [ { "chain": "actChain", "parameters": { "act": "{{ $event.currentTarget.dataset.act }}", "key": "{{ $event.currentTarget.dataset.key || '' }}" } } ] }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}

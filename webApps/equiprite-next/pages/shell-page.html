@@ -721,6 +721,7 @@
           </template>
         </oj-bind-for-each>
       </div>
+      <button type="button" class="nx-jfeed-progress" id="nxJiraProgress" data-act="progress" on-click="[[ $listeners.onJira ]]"><span class="oj-ux-ico-chart-bar" aria-hidden="true"></span><span><b>Daily progress</b> — closed, new and moved, day by day</span><span class="oj-ux-ico-chevron-right" aria-hidden="true"></span></button>
       <p class="nx-panel-foot"><oj-bind-text value="[[ $variables.jiraBusy ? 'Reading Jira…' : ($variables.jiraAt ? $variables.jiraEvents.length + ' updates · read at ' + $variables.jiraAt + ' · again every 5 minutes' : '') ]]"></oj-bind-text></p>
     </aside>
   </oj-bind-if>

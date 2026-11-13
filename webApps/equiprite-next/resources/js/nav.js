@@ -213,6 +213,11 @@ define(['resources/js/rules'], function (rules) {
     'jira-sprint': { flow: 'insights', page: 'jira-sprint', icon: 'oj-ux-ico-list', navId: 'jira',
       key: function (p) { return p ? String(p.id || p.name || '') : ''; },
       title: function (p) { return 'Sprint ' + ((p && (p.name || p.id)) || ''); } },
+    // Jira · Daily progress (Jira stories → Daily progress, the Jira updates bell): what moved in Jira day by day — closed,
+    // new, reopened, moved, touched, by whom — in a tab of its own (flows/insights jira-progress). One tab.
+    'jira-progress': { flow: 'insights', page: 'jira-progress', icon: 'oj-ux-ico-chart-bar', navId: 'jira',
+      key: function () { return 'daily'; },
+      title: function () { return 'Jira · Daily progress'; } },
     // "Analyze with AI" for one Jira story ({ key }): the story + its sub-tasks and comments, an AI analysis and a chatbot,
     // in a tab of its own (flows/insights jira-analysis). Opened by the AI icon on a story.
     'jira-analysis': { flow: 'insights', page: 'jira-analysis', icon: 'oj-ux-ico-brain', navId: 'jira',

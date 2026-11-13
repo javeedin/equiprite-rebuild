@@ -1,0 +1,205 @@
+<!-- Jira · Daily progress: what moved in Jira day by day (resources/js/jiraProgress.js) — stories closed, new, reopened,
+     moved, touched, by whom; the headline numbers, closed and new a day (a column a day: hover for the day, click to see
+     it), the stories touched a day, "so far" (closed and new since the first day), the day in detail (each story, what
+     happened, who, when: open it in Jira stories), who moved things, the stuck ones, the numbers as a table; copy as text. -->
+<div class="nx-page nx-jprog">
+  <div class="nx-pagehead">
+    <div>
+      <div class="nx-kicker">Insights · Jira</div>
+      <h1 id="jpTitle">Daily progress</h1>
+      <div class="nx-sub" id="jpSub"><oj-bind-text value="[[ $functions.subtitle($variables.prog, $variables.readAt, $variables.isLoading, $variables.more) ]]"></oj-bind-text></div>
+    </div>
+    <div class="nx-actions nx-jp-actions">
+      <div class="nx-jp-ranges" id="jpRanges" role="group" aria-label="How many days">
+        <oj-bind-for-each data="[[ $functions.ranges() ]]">
+          <template data-oj-as="r">
+            <button type="button" :class="[[ $functions.rangeClass($variables.days, r.data.n) ]]" data-act="days" :data-key="[[ r.data.n ]]" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.isLoading ]]"
+              :aria-pressed="[[ $variables.days === r.data.n ? 'true' : 'false' ]]"><oj-bind-text value="[[ r.data.label ]]"></oj-bind-text></button>
+          </template>
+        </oj-bind-for-each>
+      </div>
+      <label class="nx-flib-check nx-jp-work"><input type="checkbox" id="jpWorkOnly" data-act="work" :checked="[[ $variables.workOnly ]]" on-change="[[ $listeners.onAct ]]"><span>Working days only</span></label>
+      <button type="button" class="nx-btn nx-btn--plain" id="jpCopy" data-act="copyAll" on-click="[[ $listeners.onAct ]]" :disabled="[[ !$variables.prog ]]"><span class="oj-ux-ico-copy" aria-hidden="true"></span>Copy summary</button>
+      <button type="button" class="nx-btn nx-btn--plain" id="jpRefresh" on-click="[[ $listeners.onRefresh ]]" :disabled="[[ $variables.isLoading ]]"><span class="oj-ux-ico-refresh" aria-hidden="true"></span>Refresh</button>
+    </div>
+  </div>
+
+  <oj-bind-if test="[[ !!$variables.copied ]]"><div class="nx-flib-result nx-flib-result--ok" id="jpCopied"><oj-bind-text value="[[ $variables.copied ]]"></oj-bind-text></div></oj-bind-if>
+  <oj-bind-if test="[[ !!$variables.error ]]"><div class="nx-flib-result nx-flib-result--err" id="jpError"><oj-bind-text value="[[ $variables.error ]]"></oj-bind-text></div></oj-bind-if>
+  <oj-bind-if test="[[ $variables.isLoading && !$variables.prog ]]"><div class="nx-empty" id="jpLoading"><span class="nx-spin" aria-hidden="true"></span> Reading the stories changed in Jira, with their history…</div></oj-bind-if>
+
+  <oj-bind-if test="[[ !!$variables.prog ]]">
+    <!-- the headline numbers -->
+    <div class="nx-kpis nx-jp-tiles" id="jpTiles">
+      <oj-bind-for-each data="[[ $functions.tiles($variables.prog, $variables.stuck, $variables.stuckRead) ]]">
+        <template data-oj-as="k">
+          <div :class="[[ 'nx-kpi nx-jp-tile nx-jp-tile--' + k.data.id ]]" :data-tile="[[ k.data.id ]]">
+            <span class="nx-kpi-label"><oj-bind-text value="[[ k.data.label ]]"></oj-bind-text></span>
+            <span class="nx-kpi-value"><oj-bind-text value="[[ k.data.value ]]"></oj-bind-text></span>
+            <span class="nx-kpi-note"><oj-bind-text value="[[ k.data.note ]]"></oj-bind-text></span>
+          </div>
+        </template>
+      </oj-bind-for-each>
+    </div>
+
+    <!-- closed and new, a column a day; the stories touched under it -->
+    <section class="nx-card nx-jp-card" id="jpChart" aria-labelledby="jpChartTitle">
+      <div class="nx-card-head">
+        <h2 id="jpChartTitle">Closed and new, day by day</h2>
+        <div class="nx-jp-legend" aria-label="Legend"><span class="nx-jp-swatch nx-jp-swatch--closed" aria-hidden="true"></span>Closed<span class="nx-jp-swatch nx-jp-swatch--new" aria-hidden="true"></span>New</div>
+      </div>
+      <div class="nx-jp-chart">
+        <div class="nx-jp-axis" aria-hidden="true">
+          <oj-bind-for-each data="[[ $functions.grid($variables.prog) ]]"><template data-oj-as="g"><span class="nx-jp-tick" :style.bottom="[[ g.data.y ]]"><oj-bind-text value="[[ g.data.v ]]"></oj-bind-text></span></template></oj-bind-for-each>
+        </div>
+        <div class="nx-jp-plotwrap">
+          <div class="nx-jp-gridlines" aria-hidden="true">
+            <oj-bind-for-each data="[[ $functions.grid($variables.prog) ]]"><template data-oj-as="g"><span class="nx-jp-gridline" :style.bottom="[[ g.data.y ]]"></span></template></oj-bind-for-each>
+          </div>
+          <div class="nx-jp-cols" id="jpCols" role="list">
+            <oj-bind-for-each data="[[ $functions.cols($variables.prog, $variables.workOnly, $variables.sel) ]]">
+              <template data-oj-as="c">
+                <button type="button" :class="[[ c.data.cls ]]" role="listitem" data-act="day" :data-key="[[ c.data.key ]]" on-click="[[ $listeners.onAct ]]" :aria-label="[[ c.data.aria ]]">
+                  <span class="nx-jp-bars">
+                    <span class="nx-jp-bar nx-jp-bar--closed" :style.height="[[ c.data.hClosed ]]"><span class="nx-jp-val"><oj-bind-text value="[[ c.data.vClosed ]]"></oj-bind-text></span></span>
+                    <span class="nx-jp-bar nx-jp-bar--new" :style.height="[[ c.data.hNew ]]"><span class="nx-jp-val"><oj-bind-text value="[[ c.data.vNew ]]"></oj-bind-text></span></span>
+                  </span>
+                  <span class="nx-jp-tip" role="tooltip"><b><oj-bind-text value="[[ c.data.tip ]]"></oj-bind-text></b><span><oj-bind-text value="[[ c.data.tip2 ]]"></oj-bind-text></span><span class="nx-jp-tipmuted"><oj-bind-text value="[[ c.data.tip3 ]]"></oj-bind-text></span></span>
+                </button>
+              </template>
+            </oj-bind-for-each>
+          </div>
+        </div>
+      </div>
+      <div class="nx-jp-xrow" aria-hidden="true">
+        <span class="nx-jp-xlbl"></span>
+        <div class="nx-jp-xs">
+          <oj-bind-for-each data="[[ $functions.cols($variables.prog, $variables.workOnly, $variables.sel) ]]"><template data-oj-as="c"><span class="nx-jp-x"><b><oj-bind-text value="[[ c.data.x ]]"></oj-bind-text></b><oj-bind-text value="[[ c.data.x2 ]]"></oj-bind-text></span></template></oj-bind-for-each>
+        </div>
+      </div>
+      <div class="nx-jp-striprow" id="jpStrip">
+        <span class="nx-jp-xlbl">Stories touched</span>
+        <div class="nx-jp-xs">
+          <oj-bind-for-each data="[[ $functions.cols($variables.prog, $variables.workOnly, $variables.sel) ]]"><template data-oj-as="c"><span :class="[[ c.data.cell ]]" :title="[[ c.data.tip + ': ' + c.data.touched + ' touched' ]]"><oj-bind-text value="[[ c.data.touched ]]"></oj-bind-text></span></template></oj-bind-for-each>
+        </div>
+      </div>
+    </section>
+
+    <div class="nx-jp-two">
+      <!-- so far: closed and new since the first day -->
+      <section class="nx-card nx-jp-card" id="jpSoFar" aria-labelledby="jpSoFarTitle">
+        <div class="nx-card-head">
+          <h2 id="jpSoFarTitle">Progress so far</h2>
+          <div class="nx-jp-legend"><span class="nx-jp-swatch nx-jp-swatch--closed" aria-hidden="true"></span>Closed<span class="nx-jp-swatch nx-jp-swatch--new" aria-hidden="true"></span>New</div>
+        </div>
+        <p class="nx-jp-lede" id="jpSoFarText"><b><oj-bind-text value="[[ $functions.soFarText($variables.prog) ]]"></oj-bind-text></b> <span class="nx-note"><oj-bind-text value="[[ $functions.soFarEnd($variables.prog) ]]"></oj-bind-text></span></p>
+        <div class="nx-jp-chart nx-jp-chart--sofar">
+          <div class="nx-jp-axis" aria-hidden="true">
+            <oj-bind-for-each data="[[ $functions.gridSoFar($variables.prog) ]]"><template data-oj-as="g"><span class="nx-jp-tick" :style.bottom="[[ g.data.y ]]"><oj-bind-text value="[[ g.data.v ]]"></oj-bind-text></span></template></oj-bind-for-each>
+          </div>
+          <div class="nx-jp-plotwrap">
+            <div class="nx-jp-gridlines" aria-hidden="true">
+              <oj-bind-for-each data="[[ $functions.gridSoFar($variables.prog) ]]"><template data-oj-as="g"><span class="nx-jp-gridline" :style.bottom="[[ g.data.y ]]"></span></template></oj-bind-for-each>
+            </div>
+            <img class="nx-jp-lines" id="jpLines" :src="[[ $functions.linesSrc($variables.prog, $variables.workOnly) ]]" alt="">
+            <div class="nx-jp-cols nx-jp-cols--dots" role="list">
+              <oj-bind-for-each data="[[ $functions.cols($variables.prog, $variables.workOnly, $variables.sel) ]]">
+                <template data-oj-as="c">
+                  <button type="button" :class="[[ c.data.cls ]]" role="listitem" data-act="day" :data-key="[[ c.data.key ]]" on-click="[[ $listeners.onAct ]]" :aria-label="[[ c.data.tip3 + ' by ' + c.data.tip ]]">
+                    <span class="nx-jp-dot nx-jp-dot--new" :style.bottom="[[ c.data.yNew ]]"></span>
+                    <span class="nx-jp-dot nx-jp-dot--closed" :style.bottom="[[ c.data.yClosed ]]"></span>
+                    <span class="nx-jp-tip" role="tooltip"><b><oj-bind-text value="[[ c.data.tip ]]"></oj-bind-text></b><span><oj-bind-text value="[[ c.data.tip3 ]]"></oj-bind-text></span></span>
+                  </button>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- who moved things -->
+      <section class="nx-card nx-jp-card" id="jpPeople" aria-labelledby="jpPeopleTitle">
+        <div class="nx-card-head"><h2 id="jpPeopleTitle">Who moved things</h2><span class="nx-note">these days</span></div>
+        <oj-bind-if test="[[ $functions.people($variables.prog).length === 0 ]]"><div class="nx-empty">Nobody changed anything in these days.</div></oj-bind-if>
+        <oj-bind-if test="[[ $functions.people($variables.prog).length > 0 ]]">
+          <div class="nx-jp-table nx-jp-table--people" role="table" aria-label="Who moved things">
+            <div class="nx-jp-tr nx-jp-th" role="row"><span role="columnheader">Person</span><span role="columnheader">Closed</span><span role="columnheader">Moved</span><span role="columnheader">New</span><span role="columnheader">Comments</span><span role="columnheader">Other</span></div>
+            <oj-bind-for-each data="[[ $functions.people($variables.prog) ]]">
+              <template data-oj-as="p">
+                <div class="nx-jp-tr" role="row"><span role="cell"><oj-bind-text value="[[ p.data.name ]]"></oj-bind-text></span><span role="cell" class="nx-jp-num nx-jp-num--strong"><oj-bind-text value="[[ p.data.closed ]]"></oj-bind-text></span>
+                  <span role="cell" class="nx-jp-num"><oj-bind-text value="[[ p.data.moved ]]"></oj-bind-text></span><span role="cell" class="nx-jp-num"><oj-bind-text value="[[ p.data.created ]]"></oj-bind-text></span>
+                  <span role="cell" class="nx-jp-num"><oj-bind-text value="[[ p.data.comments ]]"></oj-bind-text></span><span role="cell" class="nx-jp-num"><oj-bind-text value="[[ p.data.other ]]"></oj-bind-text></span></div>
+              </template>
+            </oj-bind-for-each>
+          </div>
+        </oj-bind-if>
+      </section>
+    </div>
+
+    <!-- the day, in detail -->
+    <section class="nx-card nx-jp-card nx-jp-daycard" id="jpDay" aria-labelledby="jpDayTitle">
+      <div class="nx-card-head">
+        <div class="nx-jp-dayhead">
+          <button type="button" class="nx-iconbtn nx-iconbtn--sm" id="jpPrev" data-act="prev" on-click="[[ $listeners.onAct ]]" :disabled="[[ !$functions.canPrev($variables.prog, $variables.sel, $variables.workOnly) ]]" aria-label="The day before"><span class="oj-ux-ico-chevron-left" aria-hidden="true"></span></button>
+          <h2 id="jpDayTitle"><oj-bind-text value="[[ $functions.dayTitle($variables.prog, $variables.sel) ]]"></oj-bind-text></h2>
+          <button type="button" class="nx-iconbtn nx-iconbtn--sm" id="jpNext" data-act="next" on-click="[[ $listeners.onAct ]]" :disabled="[[ !$functions.canNext($variables.prog, $variables.sel, $variables.workOnly) ]]" aria-label="The day after"><span class="oj-ux-ico-chevron-right" aria-hidden="true"></span></button>
+        </div>
+        <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" id="jpCopyDay" data-act="copyDay" on-click="[[ $listeners.onAct ]]"><span class="oj-ux-ico-copy" aria-hidden="true"></span>Copy the day</button>
+      </div>
+      <p class="nx-jp-lede" id="jpDayCounts"><oj-bind-text value="[[ $functions.dayHead($functions.day($variables.prog, $variables.sel)) ]]"></oj-bind-text></p>
+      <oj-bind-if test="[[ $functions.sections($functions.day($variables.prog, $variables.sel)).length === 0 ]]"><div class="nx-empty" id="jpDayNone">Nothing moved in Jira on this day.</div></oj-bind-if>
+      <div class="nx-jp-secs" id="jpSecs">
+        <oj-bind-for-each data="[[ $functions.sections($functions.day($variables.prog, $variables.sel)) ]]">
+          <template data-oj-as="s">
+            <div :class="[[ s.data.cls ]]" :data-sec="[[ s.data.id ]]">
+              <h3 class="nx-jp-sech"><oj-bind-text value="[[ s.data.title + ' · ' + s.data.n ]]"></oj-bind-text></h3>
+              <oj-bind-for-each data="[[ s.data.rows ]]">
+                <template data-oj-as="r">
+                  <button type="button" class="nx-jp-row" data-act="open" :data-key="[[ r.data.key ]]" on-click="[[ $listeners.onAct ]]" :title="[[ 'Open ' + r.data.key + ' in Jira stories' ]]">
+                    <code class="nx-jp-key"><oj-bind-text value="[[ r.data.key ]]"></oj-bind-text></code>
+                    <span class="nx-jp-rowbody"><span class="nx-jp-sum"><oj-bind-text value="[[ r.data.summary ]]"></oj-bind-text></span><span class="nx-jp-what"><oj-bind-text value="[[ r.data.text ]]"></oj-bind-text></span>
+                      <span class="nx-jp-meta"><oj-bind-text value="[[ r.data.meta ]]"></oj-bind-text></span></span>
+                  </button>
+                </template>
+              </oj-bind-for-each>
+            </div>
+          </template>
+        </oj-bind-for-each>
+      </div>
+    </section>
+
+    <!-- stuck: open, no change for days -->
+    <section class="nx-card nx-jp-card" id="jpStuck" aria-labelledby="jpStuckTitle">
+      <div class="nx-card-head"><h2 id="jpStuckTitle"><oj-bind-text value="[[ 'Stuck · ' + $variables.stuck.length ]]"></oj-bind-text></h2><span class="nx-note">open, no change for 5 days or more — quietest first</span></div>
+      <oj-bind-if test="[[ !$variables.stuckRead ]]"><div class="nx-empty">The stuck stories could not be read from Jira.</div></oj-bind-if>
+      <oj-bind-if test="[[ $variables.stuckRead && $variables.stuck.length === 0 ]]"><div class="nx-empty" id="jpStuckNone">Nothing stuck: every open story changed in the last 5 days.</div></oj-bind-if>
+      <div class="nx-jp-stuck">
+        <oj-bind-for-each data="[[ $functions.stuckRows($variables.stuck) ]]">
+          <template data-oj-as="r">
+            <button type="button" class="nx-jp-row" data-act="open" :data-key="[[ r.data.key ]]" on-click="[[ $listeners.onAct ]]">
+              <code class="nx-jp-key"><oj-bind-text value="[[ r.data.key ]]"></oj-bind-text></code>
+              <span class="nx-jp-rowbody"><span class="nx-jp-sum"><oj-bind-text value="[[ r.data.summary ]]"></oj-bind-text></span><span class="nx-jp-meta"><oj-bind-text value="[[ r.data.meta ]]"></oj-bind-text></span></span>
+              <span class="nx-jp-quiet"><oj-bind-text value="[[ r.data.quiet ]]"></oj-bind-text></span>
+            </button>
+          </template>
+        </oj-bind-for-each>
+      </div>
+    </section>
+
+    <!-- the numbers as a table (the chart's table view) -->
+    <details class="nx-card nx-jp-card nx-jp-numbers" id="jpNumbers">
+      <summary class="nx-card-head"><h2>The numbers, day by day</h2><span class="nx-note">newest first</span></summary>
+      <div class="nx-jp-table nx-jp-table--days" role="table" aria-label="The numbers, day by day">
+        <div class="nx-jp-tr nx-jp-th" role="row"><span role="columnheader">Day</span><span role="columnheader">Closed</span><span role="columnheader">New</span><span role="columnheader">Reopened</span><span role="columnheader">Moves</span><span role="columnheader">Touched</span><span role="columnheader">Comments</span><span role="columnheader">Closed so far</span></div>
+        <oj-bind-for-each data="[[ $functions.numbers($variables.prog, $variables.workOnly) ]]">
+          <template data-oj-as="d">
+            <div class="nx-jp-tr" role="row"><span role="cell"><oj-bind-text value="[[ d.data.long ]]"></oj-bind-text></span><span role="cell" class="nx-jp-num"><oj-bind-text value="[[ d.data.closed ]]"></oj-bind-text></span>
+              <span role="cell" class="nx-jp-num"><oj-bind-text value="[[ d.data.created ]]"></oj-bind-text></span><span role="cell" class="nx-jp-num"><oj-bind-text value="[[ d.data.reopened ]]"></oj-bind-text></span>
+              <span role="cell" class="nx-jp-num"><oj-bind-text value="[[ d.data.moved ]]"></oj-bind-text></span><span role="cell" class="nx-jp-num"><oj-bind-text value="[[ d.data.touched ]]"></oj-bind-text></span>
+              <span role="cell" class="nx-jp-num"><oj-bind-text value="[[ d.data.comments ]]"></oj-bind-text></span><span role="cell" class="nx-jp-num"><oj-bind-text value="[[ d.data.closedSoFar ]]"></oj-bind-text></span></div>
+          </template>
+        </oj-bind-for-each>
+      </div>
+    </details>
+  </oj-bind-if>
+</div>

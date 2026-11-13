@@ -44,6 +44,8 @@ define(['vb/action/actionChain', 'vb/action/actions', 'resources/js/jiraFeed', '
       }
       if (act === 'kind') { v.jiraKind = key || 'all'; return; }
       if (act === 'days') { v.jiraDays = Number(key) || 2; v.jiraEvents = []; await read(false); return; }
+      // day by day: Daily progress in a tab of its own (the panel closes)
+      if (act === 'progress') { await this.run(context, { act: 'close' }); bus.open({ record: 'jira-progress', params: {} }); return; }
       // the story, in Jira stories (its drawer: the whole activity); the panel stays open, as it was
       if (act === 'open' && key) bus.focus('jira', { key: key });
     }

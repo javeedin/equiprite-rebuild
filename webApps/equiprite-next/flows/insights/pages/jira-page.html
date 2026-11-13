@@ -25,6 +25,8 @@
         <div class="nx-sub" id="jiraSub"><oj-bind-text value="[[ $functions.subtitle($variables.conn, $variables.rows, $variables.readAt, $variables.isLoading) ]]"></oj-bind-text></div>
       </div>
       <div class="nx-actions">
+        <button type="button" class="nx-btn nx-btn--plain" id="jiraProgress" on-click="[[ $listeners.onProgress ]]" title="What moved in Jira day by day: closed, new, moved, touched">
+          <span class="oj-ux-ico-chart-bar" aria-hidden="true"></span>Daily progress</button>
         <button type="button" class="nx-btn nx-btn--plain" id="jiraRefresh" on-click="[[ $listeners.onRefresh ]]" :disabled="[[ $variables.isLoading || !$variables.conn.connected ]]">
           <span class="oj-ux-ico-refresh" aria-hidden="true"></span>Refresh</button>
         <oj-bind-if test="[[ $variables.desktopApp && !$variables.transcribeReady ]]">
