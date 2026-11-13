@@ -1,0 +1,442 @@
+{
+ "id": "equiprite-future/order/new-request",
+ "facts": {
+  "id": "equiprite-future/order/new-request",
+  "app": "equiprite-future",
+  "appName": "EquipRite Future",
+  "flow": "order",
+  "page": "new-request",
+  "label": "New request",
+  "description": "New request in three steps (For with Source from, Equipment, Review) on the Future page pattern: v = fxRequests.form(state, form), set by loadChain on vbEnter and on every fxRefresh, and by formChain on every change of the form (it only reads the store); Submit runs createRequest through actChain, which opens the new request's tab; the units offered export through exportChain (docs/redesign/BUILDING-FUTURE-SCREENS.md).",
+  "route": {
+   "url": "/vp/shell/order/new-request",
+   "menu": "",
+   "needs": ""
+  },
+  "files": [
+   {
+    "path": "webApps/equiprite-future/flows/order/pages/new-request-page.json",
+    "lines": 94
+   },
+   {
+    "path": "webApps/equiprite-future/flows/order/pages/new-request-page.html",
+    "lines": 403
+   },
+   {
+    "path": "webApps/equiprite-future/flows/order/pages/new-request-page.js",
+    "lines": 17
+   },
+   {
+    "path": "webApps/equiprite-future/flows/order/pages/new-request-page-chains/actChain.js",
+    "lines": 27
+   },
+   {
+    "path": "webApps/equiprite-future/flows/order/pages/new-request-page-chains/exportChain.js",
+    "lines": 16
+   },
+   {
+    "path": "webApps/equiprite-future/flows/order/pages/new-request-page-chains/exportMenuChain.js",
+    "lines": 13
+   },
+   {
+    "path": "webApps/equiprite-future/flows/order/pages/new-request-page-chains/formChain.js",
+    "lines": 29
+   },
+   {
+    "path": "webApps/equiprite-future/flows/order/pages/new-request-page-chains/loadChain.js",
+    "lines": 21
+   },
+   {
+    "path": "webApps/equiprite-future/flows/order/pages/new-request-page-chains/openChain.js",
+    "lines": 13
+   }
+  ],
+  "codeHash": "265cfe2a079f1c4d",
+  "features": {
+   "sections": [
+    "New request",
+    "1 · Who and what it is for",
+    "Sourcing business unit: who lends the equipment",
+    "On this request",
+    "3 · Review: what will happen"
+   ],
+   "actions": [
+    {
+     "label": "Start again",
+     "listener": "onPick",
+     "chains": [
+      "formChain"
+     ]
+    },
+    {
+     "label": "My requests",
+     "listener": "onOpen",
+     "chains": [
+      "openChain"
+     ]
+    },
+    {
+     "label": "Open it",
+     "listener": "onOpen",
+     "chains": [
+      "openChain"
+     ]
+    },
+    {
+     "label": "done",
+     "listener": "onPick",
+     "chains": [
+      "formChain"
+     ]
+    },
+    {
+     "label": "Pick",
+     "listener": "onPick",
+     "chains": [
+      "formChain"
+     ]
+    },
+    {
+     "label": "fx-chip fx-chip--",
+     "listener": "onPick",
+     "chains": [
+      "formChain"
+     ]
+    },
+    {
+     "label": "fx-nr-option-credit--hold",
+     "listener": "onPick",
+     "chains": [
+      "formChain"
+     ]
+    },
+    {
+     "label": "Next: equipment",
+     "listener": "onPick",
+     "chains": [
+      "formChain"
+     ]
+    },
+    {
+     "label": "Export",
+     "listener": "onExportMenu",
+     "chains": [
+      "exportMenuChain"
+     ]
+    },
+    {
+     "label": "Export",
+     "listener": "onExport",
+     "chains": [
+      "exportChain"
+     ]
+    },
+    {
+     "label": "Show every company",
+     "listener": "onPick",
+     "chains": [
+      "formChain"
+     ]
+    },
+    {
+     "label": "usable",
+     "listener": "onPick",
+     "chains": [
+      "formChain"
+     ]
+    },
+    {
+     "label": "Add to the request",
+     "listener": "onPick",
+     "chains": [
+      "formChain"
+     ]
+    },
+    {
+     "label": "Remove",
+     "listener": "onPick",
+     "chains": [
+      "formChain"
+     ]
+    },
+    {
+     "label": "Back",
+     "listener": "onPick",
+     "chains": [
+      "formChain"
+     ]
+    },
+    {
+     "label": "Next: review",
+     "listener": "onPick",
+     "chains": [
+      "formChain"
+     ]
+    },
+    {
+     "label": "Submit request",
+     "listener": "onAct",
+     "chains": [
+      "actChain"
+     ]
+    },
+    {
+     "label": "change",
+     "listener": "onField",
+     "chains": [
+      "formChain"
+     ]
+    }
+   ],
+   "fields": [
+    "The customer's site",
+    "Needed from",
+    "Until",
+    "Note for the owners (optional)",
+    "e.g. Al Barsha plot 12 (optional)",
+    "e.g. with an operator, or access from the north gate"
+   ],
+   "columns": [],
+   "components": [],
+   "inputs": [],
+   "lifecycle": [
+    {
+     "when": "when the page opens",
+     "chains": [
+      "loadChain"
+     ]
+    }
+   ]
+  },
+  "logic": {
+   "chains": [
+    {
+     "name": "actChain",
+     "file": "webApps/equiprite-future/flows/order/pages/new-request-page-chains/actChain.js",
+     "about": "Every action on this page through fxPage.act. Submit (data-act=\"createRequest\") sends the form as fxRequests.payload builds it; fxPage.act toasts what happened and opens the new request's tab (its result names it). Then the form starts again for the same BU. When the engine refuses, its words stay on the page (failure) and nothing changes.",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [
+      "resources/js/future/fxPage",
+      "resources/js/future/fxRequests"
+     ],
+     "on": [
+      "onAct"
+     ],
+     "lines": 27
+    },
+    {
+     "name": "exportChain",
+     "file": "webApps/equiprite-future/flows/order/pages/new-request-page-chains/exportChain.js",
+     "about": "Exports the units offered for the class and dates, as shown (owner, relationship, price, estimate, why not).",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [
+      "resources/js/exportKit",
+      "resources/js/future/fxRequests",
+      "resources/js/shellBus"
+     ],
+     "on": [
+      "onExport"
+     ],
+     "lines": 16
+    },
+    {
+     "name": "exportMenuChain",
+     "file": "webApps/equiprite-future/flows/order/pages/new-request-page-chains/exportMenuChain.js",
+     "about": "Opens or closes the export menu.",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "onExportMenu"
+     ],
+     "lines": 13
+    },
+    {
+     "name": "formChain",
+     "file": "webApps/equiprite-future/flows/order/pages/new-request-page-chains/formChain.js",
+     "about": "A choice on the form (the BU, the sourcing BU of Source from or \"Show every company\", what it is for, the task, the dates, the class, a unit added or removed, a step): the form changes and the steps are shown again. Reads the store only; Submit (actChain) is what raises the request.",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [
+      "resources/js/future/fxPage",
+      "resources/js/future/fxRequests"
+     ],
+     "on": [
+      "onPick",
+      "onField"
+     ],
+     "lines": 29
+    },
+    {
+     "name": "loadChain",
+     "file": "webApps/equiprite-future/flows/order/pages/new-request-page-chains/loadChain.js",
+     "about": "New request's view model: fxRequests.form(state, form), the three steps for the persona played (their BUs, the sourcing BUs they may borrow from, projects or customers, the units sourcing offers). Runs on vbEnter and on every fxRefresh (another persona, the demo clock, another booking); replaces v, never mutates it. Writes nothing to the store.",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [
+      "resources/js/future/fxPage",
+      "resources/js/future/fxRequests"
+     ],
+     "on": [
+      "vbEnter",
+      "fxRefresh"
+     ],
+     "lines": 21
+    },
+    {
+     "name": "openChain",
+     "file": "webApps/equiprite-future/flows/order/pages/new-request-page-chains/openChain.js",
+     "about": "Open what a clicked element names in its tab: data-nav=\"<navId>\", or data-record=\"request\" data-id data-number.",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [
+      "resources/js/future/fxPage"
+     ],
+     "on": [
+      "onOpen"
+     ],
+     "lines": 13
+    }
+   ],
+   "modules": [
+    {
+     "name": "future/fxPage",
+     "file": "webApps/equiprite-future/resources/js/future/fxPage.js",
+     "about": "What every EquipRite Future screen shares (docs/redesign/BUILDING-FUTURE-SCREENS.md): watch(context) in the page module's constructor: the page hears every change to the store (this tab, another tab, the shell's persona switch and demo clock) as its 'fxRefresh' event, whose listener runs loadChain again. Stops by itself when VB disposes the page (its tab closed). view(name, ...args) for loadChain: the screen's view model (fxViews), with ready: true (or error/missing). act(request) for…",
+     "local": [],
+     "calls": [],
+     "reports": [],
+     "lines": 197
+    },
+    {
+     "name": "exportKit",
+     "file": "webApps/equiprite-future/resources/js/exportKit.js",
+     "about": "Export for every list in EquipRite Next: CSV, Excel (.xlsx), PDF (the print dialog, Save as PDF) and Copy (tab-separated, pastes into Excel or an email). Exactly what the list shows: its filter, its columns, its order. No library: the .xlsx is written here (a zip of the Office Open XML parts, stored, with CRC-32). Columns: [{ key, label, value?: (row) => any, type?: 'text' | 'number' }]. A column's value is value(row) when given, else row[key]. Numbers stay numbers in Excel; everything else is…",
+     "local": [],
+     "calls": [],
+     "reports": [],
+     "lines": 310
+    },
+    {
+     "name": "future/fxRequests",
+     "file": "webApps/equiprite-future/resources/js/future/fxRequests.js",
+     "about": "EquipRite Future · Requests: what My requests, New request and a request's tab show, computed from the state for the person played (FDD v2.0: requests by the requesting BU, approvals by the sourcing BU, financial clarity per request). Pure functions on top of fxViews and fxEngine; nothing here changes the state. list(s, { chip, text }) My requests: fxViews.requests() with relationship chips, owners, money progress form(s, form) New request: the three steps (For with Source from, Equipment,…",
+     "local": [],
+     "calls": [],
+     "reports": [],
+     "lines": 1423
+    },
+    {
+     "name": "shellBus",
+     "file": "webApps/equiprite-future/resources/js/shellBus.js",
+     "about": "How a screen inside a tab talks to the shell around it: open a screen or a record in a tab, name its own tab, show a toast. Each tab is its own flow under oj-vb-switcher, so this one module (loaded once) is the line between them: the shell registers itself; requests made before it has are queued. bus.open({ navId: 'requests' }) bus.open({ record: 'request', params: { id: 10482, number: 'REQ-10482' } }) bus.rename('request:10482', 'REQ-10482') bus.toast('3 rows copied', 'info')",
+     "local": [],
+     "calls": [],
+     "reports": [],
+     "lines": 64
+    },
+    {
+     "name": "future/fxStore",
+     "file": "webApps/equiprite-future/resources/js/future/fxStore.js",
+     "about": "EquipRite Future's store: the simulated backend's state. One state, changed only by act(), read by view(). Screens subscribe and refresh when anything changes (in this tab, another tab, or a restored snapshot). Where the story is kept: - in the desktop app: DuckDB in the app's data folder (desktop/lib/futureDb.js, /__future/*): every change is saved there, with the last 50 saves and named snapshots, and the story as SQL tables; - always also in this browser (localStorage), so it opens at once…",
+     "local": [
+      "__future"
+     ],
+     "calls": [],
+     "reports": [],
+     "lines": 227
+    },
+    {
+     "name": "nav",
+     "file": "webApps/equiprite-future/resources/js/nav.js",
+     "about": "EquipRite Future's menu (FDD v2.0: many companies, intercompany hire). Who sees what comes from the persona being played (resources/js/future/fxSeed.js PERSONAS): each item lists the roles that see it, and Admin sees everything. No page codes and no feature flags: Future runs on the simulated store (resources/js/future/fxStore.js) alone. Item: id the tab id of the screen (also the navId of fxViews.work() items and of notification links) roles persona roles that see it (any one is enough);…",
+     "local": [],
+     "calls": [],
+     "reports": [],
+     "lines": 150
+    },
+    {
+     "name": "future/fxSeed",
+     "file": "webApps/equiprite-future/resources/js/future/fxSeed.js",
+     "about": "EquipRite Future: the demo group (FDD v2.0). Three legal entities in two countries: FleetCo (UAE) holds the fleet (Company 2) and rents to its own customers; ProjectCo (UAE) does projects (Company 1), with a second BU (Facilities) in the same legal entity that owns a few units of its own, so own-fleet (SAME_BU) and cross-charge (SAME_LE) cases exist too; ProjectCo Arabia (KSA) does projects across the border (IC_CROSS_BORDER). Everything is example data: rates, tax and exchange rates are…",
+     "local": [],
+     "calls": [],
+     "reports": [],
+     "lines": 169
+    },
+    {
+     "name": "future/fxEngine",
+     "file": "webApps/equiprite-future/resources/js/future/fxEngine.js",
+     "about": "EquipRite Future: the simulated backend (FDD v2.0). Pure functions on a plain state object; the store (fxStore.js) keeps the state and calls apply(). Nothing here talks to Fusion: the Fusion transactions EquipRite would create (intercompany AR and AP, project cost, customer invoices, transfer orders, netting) are recorded as `tx` with the accounting Fusion would make for them, shown and never posted (FDD v2.0 GR-1..7). apply(state, type, payload) → { ok, state, error, result }: a new state…",
+     "local": [],
+     "calls": [],
+     "reports": [],
+     "lines": 1396
+    },
+    {
+     "name": "future/fxViews",
+     "file": "webApps/equiprite-future/resources/js/future/fxViews.js",
+     "about": "EquipRite Future: what each screen shows, computed from the state for the person being played (MC-BR-12: requests by the requesting BU, approvals by the sourcing BU, finance by legal entity). Pure functions.",
+     "local": [],
+     "calls": [],
+     "reports": [],
+     "lines": 625
+    },
+    {
+     "name": "future/fxReturn",
+     "file": "webApps/equiprite-future/resources/js/future/fxReturn.js",
+     "about": "EquipRite Future · the return on a date, the final timesheet and the final bill (Receive, hours, moves and a request's Money tab). The engine stops a hire on a date (offHire { date }: today or earlier stops it that day, a later day is a planned return that happens by itself) and takes the final timesheet in one go (logHoursBulk). This module says what a person sees around them. Pure functions of the state (store.get()); nothing here changes it. The dialog follows the request's dates. The…",
+     "local": [],
+     "calls": [],
+     "reports": [],
+     "lines": 602
+    }
+   ],
+   "variables": 5
+  },
+  "integrations": {
+   "rest": [],
+   "reports": [],
+   "local": [
+    {
+     "route": "/__future/",
+     "what": "EquipRite Future store (on this PC)"
+    }
+   ],
+   "backends": []
+  },
+  "links": [],
+  "next": [],
+  "unresolvedLinks": []
+ },
+ "ai": null,
+ "screenshots": [
+  {
+   "id": "s1",
+   "file": "screens/equiprite-future.order.new-request.1.jpg",
+   "at": "2026-11-13T07:05:49.624Z",
+   "by": "javeed.shaik",
+   "source": "capture",
+   "caption": "",
+   "bytes": 127835
+  }
+ ],
+ "stories": [],
+ "at": "2026-11-13T07:05:49.547Z",
+ "by": "javeed.shaik",
+ "codeHash": "265cfe2a079f1c4d"
+}

@@ -1,5 +1,5 @@
 {
- "scannedAt": "2026-11-12T17:53:32.388Z",
+ "scannedAt": "2026-11-13T07:05:49.626Z",
  "pages": [
   {
    "id": "equiprite//shell",
@@ -812,7 +812,15 @@
     "needs": ""
    },
    "stories": [],
-   "sheet": null
+   "sheet": {
+    "at": "2026-11-13T07:05:49.547Z",
+    "by": "javeed.shaik",
+    "codeHash": "265cfe2a079f1c4d",
+    "screenshots": 1,
+    "ai": false,
+    "rest": 0,
+    "chains": 6
+   }
   },
   {
    "id": "equiprite-future/owner/approvals",
@@ -1551,6 +1559,22 @@
    "sheet": null
   },
   {
+   "id": "equiprite-next/insights/flows",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "insights",
+   "page": "flows",
+   "label": "Flows explained",
+   "route": {
+    "url": "/?open=flows",
+    "menu": "Insights › Flows explained",
+    "needs": ""
+   },
+   "menu": "Insights › Flows explained",
+   "stories": [],
+   "sheet": null
+  },
+  {
    "id": "equiprite-next/insights/followups",
    "app": "equiprite-next",
    "appName": "EquipRite Next",
@@ -1563,6 +1587,25 @@
     "needs": ""
    },
    "menu": "Insights › Follow-ups",
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-next/insights/issues",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "insights",
+   "page": "issues",
+   "label": "Issues",
+   "route": {
+    "url": "/?open=issues",
+    "menu": "Insights › Issues",
+    "needs": ""
+   },
+   "next": [
+    "equiprite-next/insights/app-pages"
+   ],
+   "menu": "Insights › Issues",
    "stories": [],
    "sheet": null
   },
