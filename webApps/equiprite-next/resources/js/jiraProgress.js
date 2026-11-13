@@ -13,6 +13,7 @@ define([], function () {
   var PROJECT = 'EQP';
   var RANGES = [7, 14, 30, 60];
   var STUCK_DAYS = 5;
+  var MAX_SPAN = 92; // a chosen From–To: at most about three months, a column a day
   var NOISE = /^(rank|worklogid|timespent|timeestimate|timeoriginalestimate|remoteissuelink|workflow|aggregate.*)$/i;
   var FIELDS = ['summary', 'issuetype', 'status', 'priority', 'assignee', 'reporter', 'creator', 'created', 'updated', 'resolutiondate', 'comment'];
   var DONE_NAME = /^(done|closed|resolved|complete|completed|released|deployed|cancel+ed|won'?t (do|fix)|rejected|duplicate)$/i;
@@ -24,6 +25,8 @@ define([], function () {
   var t = function (s) { var n = Date.parse(s); return isNaN(n) ? 0 : n; };
   var p2 = function (x) { return (x < 10 ? '0' : '') + x; };
   var clampDays = function (d) { var n = Math.round(Number(d) || 14); return Math.max(1, Math.min(60, n)); };
+  /** 'YYYY-MM-DD' → that day's midnight on this PC (0 when it is not a date). */
+  function parseDay(s) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(txt(s)); if (!m) return 0; var d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])); return d.getMonth() === Number(m[2]) - 1 ? d.getTime() : 0; }
   /** 'YYYY-MM-DD' of a moment, in this PC's time. */
   function dayKey(ms) { var d = new Date(ms); return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()); }
   function midnight(ms) { var d = new Date(ms); d.setHours(0, 0, 0, 0); return d.getTime(); }
@@ -50,16 +53,30 @@ define([], function () {
     return function (status) { var k = txt(status).trim().toLowerCase(); return Object.prototype.hasOwnProperty.call(m, k) ? m[k] : DONE_NAME.test(k); };
   }
 
-  /** The window's days, oldest first: { key, at (its midnight), label, weekend, today }. */
-  function daysOf(n, now) {
+  /** The window's days, oldest first: { key, at (its midnight), label, weekend, today } — the last n days to `end` (today). */
+  function daysOf(n, now, end) {
     var out = [];
-    var m0 = midnight(now);
+    var m0 = midnight(end || now);
+    var today = dayKey(now);
     for (var i = n - 1; i >= 0; i--) {
       var at = midnight(m0 - i * DAY + 3 * 3600000); // a day back, whatever the clocks did
       var d = new Date(at);
-      out.push({ key: dayKey(at), at: at, label: dayLabel(at), long: dayLabel(at, true), weekend: d.getDay() === 0 || d.getDay() === 6, today: i === 0 });
+      out.push({ key: dayKey(at), at: at, label: dayLabel(at), long: dayLabel(at, true), weekend: d.getDay() === 0 || d.getDay() === 6, today: dayKey(at) === today });
     }
     return out;
+  }
+  /**
+   * The window asked for: { from, to } (YYYY-MM-DD, this PC's days; To no later than today, at most MAX_SPAN days, From
+   * before To) or the last `days` days. → { n, end (To's midnight), custom }.
+   */
+  function windowOf(o, now) {
+    var a = parseDay(o.from), b = parseDay(o.to);
+    if (!a || !b) return { n: clampDays(o.days), end: 0, custom: false };
+    var today = midnight(now);
+    if (b > today) b = today;
+    if (a > b) { var x = a; a = b; b = x; }
+    var n = Math.round((b - a) / DAY) + 1;
+    return { n: Math.max(1, Math.min(MAX_SPAN, n)), end: b, custom: true };
   }
 
   /**
@@ -71,9 +88,11 @@ define([], function () {
   function progressOf(issues, opts) {
     var o = opts || {};
     var now = o.now || Date.now();
-    var n = clampDays(o.days);
-    var days = daysOf(n, now);
+    var w = windowOf(o, now);
+    var n = w.n;
+    var days = daysOf(n, now, w.end);
     var since = days[0].at;
+    var until = days[days.length - 1].at + DAY + 2 * 3600000; // To's end (a clock change is no matter: the day's key decides)
     var isDone = doneTest(issues);
     var at = {};
     days.forEach(function (d) {
@@ -90,7 +109,7 @@ define([], function () {
       base.done = isDone(base.status);
       var add = function (when, e) {
         var ms = t(when);
-        if (ms < since || ms > now + 60000) return;
+        if (ms < since || ms > now + 60000 || ms > until) return;
         var d = at[dayKey(ms)];
         if (!d) return;
         var ev = { kind: e.kind, at: ms, time: hhmm(ms), by: e.by || '', text: e.text || '', from: e.from || '', to: e.to || '' };
@@ -159,7 +178,8 @@ define([], function () {
     var max = days.reduce(function (m, d) { return Math.max(m, d.closed, d.created); }, 0);
     var maxTouched = days.reduce(function (m, d) { return Math.max(m, d.touched); }, 0);
     var maxSoFar = Math.max(soFarClosed, soFarCreated);
-    return { days: days, totals: tot, people: list, max: max, maxTouched: maxTouched, maxSoFar: maxSoFar, from: days[0].key, to: days[days.length - 1].key, n: n, read: (issues || []).length };
+    return { days: days, totals: tot, people: list, max: max, maxTouched: maxTouched, maxSoFar: maxSoFar, from: days[0].key, to: days[days.length - 1].key, n: n, read: (issues || []).length,
+      custom: w.custom, endsToday: days[days.length - 1].today };
   }
 
   /** Open stories with no change for `quiet` days or more, quietest first: [{ key, summary, type, status, assignee, quiet }]. */
@@ -174,6 +194,11 @@ define([], function () {
     }).filter(function (s) { return !s.done && s.quiet >= q; }).sort(function (a, b) { return b.quiet - a.quiet || (a.key < b.key ? -1 : 1); });
   }
 
+  /** The window in words: "the last 14 days" (ending today), else "Mon 2 Nov – Fri 13 Nov 2026". */
+  function windowText(p) {
+    if (!p) return '';
+    return !p.custom && p.endsToday ? 'the last ' + p.n + ' days' : p.days[0].long + ' – ' + p.days[p.days.length - 1].long + ' (' + p.n + ' day' + (p.n === 1 ? '' : 's') + ')';
+  }
   /** One day as text, for a standup or a chat: the closed, new, reopened and moved stories, and how many were touched. */
   function dayText(d, project) {
     if (!d) return '';
@@ -188,13 +213,13 @@ define([], function () {
   function periodText(p, project, stuck) {
     if (!p) return '';
     var tt = p.totals;
-    var head = 'Jira ' + (project || PROJECT) + ' · the last ' + p.n + ' days (' + p.days[0].long + ' – ' + p.days[p.days.length - 1].long + '): ' + tt.closed + ' closed, ' + tt.created + ' new (net '
+    var head = 'Jira ' + (project || PROJECT) + ' · ' + (!p.custom && p.endsToday ? 'the last ' + p.n + ' days (' + p.days[0].long + ' – ' + p.days[p.days.length - 1].long + ')' : windowText(p)) + ': ' + tt.closed + ' closed, ' + tt.created + ' new (net '
       + (tt.net > 0 ? '+' : '') + tt.net + '), ' + tt.reopened + ' reopened, ' + tt.touched + ' stories touched; ' + tt.perDay + ' closed a working day.';
     var lines = [head];
     if (tt.best) lines.push('Best day: ' + tt.best.label + ' (' + tt.best.closed + ' closed).');
     var top = p.people.filter(function (x) { return x.closed > 0; }).slice(0, 3);
     if (top.length) lines.push('Closed most: ' + top.map(function (x) { return x.name + ' (' + x.closed + ')'; }).join(', ') + '.');
-    if (stuck && stuck.length) lines.push('Stuck (open, no change for ' + STUCK_DAYS + '+ days): ' + stuck.length + ' — ' + stuck.slice(0, 5).map(function (s) { return s.key + ' (' + s.quiet + ' d)'; }).join(', ') + (stuck.length > 5 ? '…' : '') + '.');
+    if (stuck && stuck.length) lines.push('Stuck (open, no change for ' + STUCK_DAYS + '+ days): ' + stuck.length + (stuck.more ? '+' : '') + ' — ' + stuck.slice(0, 5).map(function (s) { return s.key + ' (' + s.quiet + ' d)'; }).join(', ') + (stuck.length > 5 ? '…' : '') + '.');
     lines.push('');
     p.days.slice().reverse().forEach(function (d) {
       if (!d.touched && d.weekend) return;
@@ -203,7 +228,18 @@ define([], function () {
     return lines.join('\n');
   }
 
-  function jql(days, project) { return 'project = ' + (project || PROJECT) + ' AND updated >= -' + clampDays(days) + 'd ORDER BY updated DESC'; }
+  /**
+   * The search: the stories changed in the window. The last N days: updated in them. From–To: updated since From (a story
+   * changed in the window may have changed since) and created by To (one created later cannot have changed in it).
+   */
+  function jql(days, project, range) {
+    var p = 'project = ' + (project || PROJECT);
+    if (range && parseDay(range.from) && parseDay(range.to)) {
+      var a = range.from < range.to ? range.from : range.to, b = range.from < range.to ? range.to : range.from;
+      return p + ' AND updated >= "' + a + '" AND created <= "' + b + ' 23:59" ORDER BY updated DESC';
+    }
+    return p + ' AND updated >= -' + clampDays(days) + 'd ORDER BY updated DESC';
+  }
   function stuckJql(project, quiet) { return 'project = ' + (project || PROJECT) + ' AND statusCategory != Done AND updated <= -' + (quiet || STUCK_DAYS) + 'd ORDER BY updated ASC'; }
 
   /** Reads the window from Jira: { ok, progress, stuck, message }. The stuck search failing leaves the progress. */
@@ -211,11 +247,12 @@ define([], function () {
     var o = opts || {};
     var days = clampDays(o.days);
     var now = o.now || Date.now();
+    var range = parseDay(o.from) && parseDay(o.to) ? { from: o.from, to: o.to } : null;
     var issues = [];
     var token = '';
     var call = async function (params) { try { return await Actions.callRest(context, { endpoint: 'jira/searchJiraIssues', uriParams: params }); } catch (e) { return { ok: false, status: 0, body: { message: txt(e && e.message) } }; } };
     for (var i = 0; i < 10; i++) {
-      var params = { jql: jql(days, o.project), fields: FIELDS.join(','), maxResults: 100, expand: 'changelog' };
+      var params = { jql: jql(days, o.project, range), fields: FIELDS.join(','), maxResults: 100, expand: 'changelog' };
       if (token) params.nextPageToken = token;
       var res = await call(params);
       if (!res || !res.ok || !res.body || !Array.isArray(res.body.issues)) {
@@ -226,11 +263,24 @@ define([], function () {
       token = res.body.nextPageToken || '';
       if (res.body.isLast !== false || !token) break;
     }
-    var st = await call({ jql: stuckJql(o.project), fields: 'summary,issuetype,status,assignee,updated', maxResults: 100 });
-    var stuck = st && st.ok && st.body && Array.isArray(st.body.issues) ? stuckOf(st.body.issues, now) : [];
-    return { ok: true, progress: progressOf(issues, { days: days, now: now }), stuck: stuck, stuckRead: !!(st && st.ok), message: '', more: !!token };
+    // the stuck ones (open, quiet): up to 3 pages of 100; more than that is said (300+)
+    var stuckIssues = [], stuckOk = false, stuckToken = '', stuckMore = false;
+    for (var j = 0; j < 3; j++) {
+      var sp = { jql: stuckJql(o.project), fields: 'summary,issuetype,status,assignee,updated', maxResults: 100 };
+      if (stuckToken) sp.nextPageToken = stuckToken;
+      var st = await call(sp);
+      if (!st || !st.ok || !st.body || !Array.isArray(st.body.issues)) break;
+      stuckOk = true;
+      stuckIssues = stuckIssues.concat(st.body.issues);
+      stuckToken = st.body.nextPageToken || '';
+      stuckMore = !!stuckToken && st.body.isLast === false;
+      if (!stuckMore) break;
+    }
+    var stuck = stuckOf(stuckIssues, now);
+    stuck.more = stuckMore;
+    return { ok: true, progress: progressOf(issues, { days: days, now: now, from: range && range.from, to: range && range.to }), stuck: stuck, stuckRead: stuckOk, stuckMore: stuckMore, message: '', more: !!token };
   }
 
-  return { progressOf: progressOf, stuckOf: stuckOf, dayText: dayText, periodText: periodText, jql: jql, stuckJql: stuckJql, load: load, daysOf: daysOf, dayKey: dayKey, plain: plain,
-    RANGES: RANGES, STUCK_DAYS: STUCK_DAYS, PROJECT: PROJECT };
+  return { progressOf: progressOf, stuckOf: stuckOf, dayText: dayText, periodText: periodText, windowText: windowText, jql: jql, stuckJql: stuckJql, load: load, daysOf: daysOf, dayKey: dayKey,
+    parseDay: parseDay, plain: plain, RANGES: RANGES, STUCK_DAYS: STUCK_DAYS, MAX_SPAN: MAX_SPAN, PROJECT: PROJECT };
 });

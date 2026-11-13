@@ -15,17 +15,21 @@ define(['resources/js/jiraProgress'], (JP) => {
 
   class PageModule {
     ranges() { return JP.RANGES.map((n) => ({ n: n, label: n + ' days' })); }
-    rangeClass(days, n) { return 'nx-jp-range' + (Number(days) === n ? ' nx-jp-range--on' : ''); }
+    rangeClass(days, n, custom) { return 'nx-jp-range' + (!custom && Number(days) === n ? ' nx-jp-range--on' : ''); }
+    /** Today, for the date boxes' upper limit (YYYY-MM-DD, this PC's day). */
+    today() { return JP.dayKey(Date.now()); }
+    datesClass(custom) { return 'nx-jp-dates' + (custom ? ' nx-jp-dates--on' : ''); }
 
     subtitle(prog, readAt, isLoading, more) {
       if (isLoading && !prog) return 'Reading Jira…';
       if (!prog) return '';
-      return JP.PROJECT + ' · the stories changed in the last ' + prog.n + ' days (' + prog.days[0].label + ' – ' + prog.days[prog.days.length - 1].label + ') · ' + plural(prog.read, 'story', 'stories') + ' read'
+      const when = !prog.custom && prog.endsToday ? 'in the last ' + prog.n + ' days (' + prog.days[0].label + ' – ' + prog.days[prog.days.length - 1].label + ')' : 'from ' + JP.windowText(prog);
+      return JP.PROJECT + ' · the stories changed ' + when + ' · ' + plural(prog.read, 'story', 'stories') + ' read'
         + (more ? ' (the first 1,000)' : '') + (readAt ? ' · at ' + readAt : '');
     }
 
     /** The headline numbers: closed, new, net, reopened, touched, stuck. */
-    tiles(prog, stuck, stuckRead) {
+    tiles(prog, stuck, stuckRead, stuckMore) {
       if (!prog) return [];
       const t = prog.totals;
       const net = t.net > 0 ? '+' + t.net : String(t.net).replace('-', '−');
@@ -35,7 +39,7 @@ define(['resources/js/jiraProgress'], (JP) => {
         { id: 'net', label: 'Net', value: net, note: t.net > 0 ? 'more closed than new' : t.net < 0 ? 'more new than closed' : 'as many closed as new' },
         { id: 'reopened', label: 'Reopened', value: String(t.reopened), note: 'moved back out of done' },
         { id: 'touched', label: 'Stories touched', value: String(t.touched), note: plural(t.moved, 'status change') + ' · ' + plural(t.comments, 'comment') },
-        { id: 'stuck', label: 'Stuck', value: stuckRead ? String((stuck || []).length) : '—', note: 'open, no change for ' + JP.STUCK_DAYS + '+ days' },
+        { id: 'stuck', label: 'Stuck', value: stuckRead ? String((stuck || []).length) + (stuckMore ? '+' : '') : '—', note: 'open, no change for ' + JP.STUCK_DAYS + '+ days' + (stuckMore ? ' (the first 300)' : '') },
       ];
     }
 
@@ -80,7 +84,8 @@ define(['resources/js/jiraProgress'], (JP) => {
       const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none">' + line('createdSoFar', '#eb6834') + line('closedSoFar', '#2a78d6') + '</svg>';
       return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
     }
-    soFarEnd(prog) { if (!prog) return ''; const d = prog.days[prog.days.length - 1]; return d.closedSoFar + ' closed · ' + d.createdSoFar + ' new, since ' + prog.days[0].label; }
+    soFarEnd(prog) { if (!prog) return ''; const d = prog.days[prog.days.length - 1]; return d.closedSoFar + ' closed · ' + d.createdSoFar + ' new, ' + prog.days[0].label + ' to ' + d.label; }
+    stuckTitle(stuck, more) { return 'Stuck · ' + (stuck || []).length + (more ? '+' : ''); }
     soFarText(prog) {
       if (!prog) return '';
       const t = prog.totals;

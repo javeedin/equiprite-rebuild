@@ -14,12 +14,17 @@ define([
       v.isLoading = true;
       v.error = '';
       try {
-        const r = await JP.load(context, Actions, { days: v.days });
+        const r = await JP.load(context, Actions, v.custom ? { days: v.days, from: v.from, to: v.to } : { days: v.days });
         if (!r.ok) { v.error = r.message; v.notConnected = !!r.notConnected; return; }
         v.notConnected = false;
         v.prog = r.progress;
         v.stuck = r.stuck;
         v.stuckRead = !!r.stuckRead;
+        v.stuckMore = !!r.stuckMore;
+        v.from = r.progress.from;
+        v.to = r.progress.to;
+        // a date box someone typed in shows its own value, not the bound one: the window read put into both
+        setTimeout(() => { try { const a = document.getElementById('jpFrom'), b = document.getElementById('jpTo'); if (a) a.value = v.from; if (b) b.value = v.to; } catch (e) { /* not drawn */ } }, 0);
         v.more = !!r.more;
         v.readAt = clock();
         const days = r.progress.days;

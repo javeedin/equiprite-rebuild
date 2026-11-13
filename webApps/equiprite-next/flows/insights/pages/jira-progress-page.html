@@ -13,10 +13,17 @@
       <div class="nx-jp-ranges" id="jpRanges" role="group" aria-label="How many days">
         <oj-bind-for-each data="[[ $functions.ranges() ]]">
           <template data-oj-as="r">
-            <button type="button" :class="[[ $functions.rangeClass($variables.days, r.data.n) ]]" data-act="days" :data-key="[[ r.data.n ]]" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.isLoading ]]"
-              :aria-pressed="[[ $variables.days === r.data.n ? 'true' : 'false' ]]"><oj-bind-text value="[[ r.data.label ]]"></oj-bind-text></button>
+            <button type="button" :class="[[ $functions.rangeClass($variables.days, r.data.n, $variables.custom) ]]" data-act="days" :data-key="[[ r.data.n ]]" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.isLoading ]]"
+              :aria-pressed="[[ !$variables.custom && $variables.days === r.data.n ? 'true' : 'false' ]]"><oj-bind-text value="[[ r.data.label ]]"></oj-bind-text></button>
           </template>
         </oj-bind-for-each>
+      </div>
+      <!-- or the days chosen: From – To (to today at the latest, about three months at most) -->
+      <div :class="[[ $functions.datesClass($variables.custom) ]]" id="jpDates" role="group" aria-label="From and to dates">
+        <label class="nx-jp-date"><span>From</span><input type="date" id="jpFrom" data-field="from" :value="[[ $variables.from ]]" :max="[[ $functions.today() ]]" on-change="[[ $listeners.onDate ]]" :disabled="[[ $variables.isLoading ]]"></label>
+        <span class="nx-jp-dash" aria-hidden="true">–</span>
+        <label class="nx-jp-date"><span>To</span><input type="date" id="jpTo" data-field="to" :value="[[ $variables.to ]]" :max="[[ $functions.today() ]]" on-change="[[ $listeners.onDate ]]" :disabled="[[ $variables.isLoading ]]"></label>
+        <oj-bind-if test="[[ $variables.custom ]]"><button type="button" class="nx-iconbtn nx-iconbtn--sm nx-jp-datesclear" id="jpClearDates" data-act="clearDates" on-click="[[ $listeners.onAct ]]" aria-label="Back to the last days" title="Back to the last days"><span class="oj-ux-ico-close" aria-hidden="true"></span></button></oj-bind-if>
       </div>
       <label class="nx-flib-check nx-jp-work"><input type="checkbox" id="jpWorkOnly" data-act="work" :checked="[[ $variables.workOnly ]]" on-change="[[ $listeners.onAct ]]"><span>Working days only</span></label>
       <button type="button" class="nx-btn nx-btn--plain" id="jpCopy" data-act="copyAll" on-click="[[ $listeners.onAct ]]" :disabled="[[ !$variables.prog ]]"><span class="oj-ux-ico-copy" aria-hidden="true"></span>Copy summary</button>
@@ -31,7 +38,7 @@
   <oj-bind-if test="[[ !!$variables.prog ]]">
     <!-- the headline numbers -->
     <div class="nx-kpis nx-jp-tiles" id="jpTiles">
-      <oj-bind-for-each data="[[ $functions.tiles($variables.prog, $variables.stuck, $variables.stuckRead) ]]">
+      <oj-bind-for-each data="[[ $functions.tiles($variables.prog, $variables.stuck, $variables.stuckRead, $variables.stuckMore) ]]">
         <template data-oj-as="k">
           <div :class="[[ 'nx-kpi nx-jp-tile nx-jp-tile--' + k.data.id ]]" :data-tile="[[ k.data.id ]]">
             <span class="nx-kpi-label"><oj-bind-text value="[[ k.data.label ]]"></oj-bind-text></span>
@@ -170,7 +177,7 @@
 
     <!-- stuck: open, no change for days -->
     <section class="nx-card nx-jp-card" id="jpStuck" aria-labelledby="jpStuckTitle">
-      <div class="nx-card-head"><h2 id="jpStuckTitle"><oj-bind-text value="[[ 'Stuck · ' + $variables.stuck.length ]]"></oj-bind-text></h2><span class="nx-note">open, no change for 5 days or more — quietest first</span></div>
+      <div class="nx-card-head"><h2 id="jpStuckTitle"><oj-bind-text value="[[ $functions.stuckTitle($variables.stuck, $variables.stuckMore) ]]"></oj-bind-text></h2><span class="nx-note">open, no change for 5 days or more — quietest first</span></div>
       <oj-bind-if test="[[ !$variables.stuckRead ]]"><div class="nx-empty">The stuck stories could not be read from Jira.</div></oj-bind-if>
       <oj-bind-if test="[[ $variables.stuckRead && $variables.stuck.length === 0 ]]"><div class="nx-empty" id="jpStuckNone">Nothing stuck: every open story changed in the last 5 days.</div></oj-bind-if>
       <div class="nx-jp-stuck">

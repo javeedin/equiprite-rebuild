@@ -13,11 +13,16 @@
     "more": { "type": "boolean", "defaultValue": false, "description": "More stories changed than were read (the first 1,000)." },
     "sel": { "type": "string", "defaultValue": "", "description": "The day shown in detail (YYYY-MM-DD; '' = the latest)." },
     "workOnly": { "type": "boolean", "defaultValue": false, "description": "Working days only (weekends left out of the charts)." },
-    "copied": { "type": "string", "defaultValue": "", "description": "Said once a summary is copied." }
+    "copied": { "type": "string", "defaultValue": "", "description": "Said once a summary is copied." },
+    "from": { "type": "string", "defaultValue": "", "description": "The window's first day (YYYY-MM-DD): chosen, or the last days' first." },
+    "to": { "type": "string", "defaultValue": "", "description": "The window's last day (YYYY-MM-DD): chosen, or today." },
+    "custom": { "type": "boolean", "defaultValue": false, "description": "From – To chosen (else the last 7, 14, 30 or 60 days)." },
+    "stuckMore": { "type": "boolean", "defaultValue": false, "description": "More stuck stories than were read (the first 300)." }
   },
   "eventListeners": {
     "vbEnter": { "chains": [ { "chain": "loadChain" } ] },
     "onRefresh": { "chains": [ { "chain": "loadChain" } ] },
+    "onDate": { "chains": [ { "chain": "actChain", "parameters": { "act": "date", "key": "{{ $event.currentTarget.dataset.field }}", "value": "{{ $event.target.value }}" } } ] },
     "onAct": { "chains": [ { "chain": "actChain", "parameters": { "act": "{{ $event.currentTarget.dataset.act }}", "key": "{{ $event.currentTarget.dataset.key || '' }}" } } ] }
   },
   "imports": {

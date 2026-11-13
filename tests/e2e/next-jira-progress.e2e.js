@@ -24,6 +24,7 @@ const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const dayAt = (back) => new Date(m0.getTime() - back * DAY + 3 * 3600000);
   const on = (back, h, min) => new Date(new Date(dayAt(back)).setHours(h, min || 0, 0, 0)).toISOString().replace('Z', '+0000');
   const long = (back) => { const d = dayAt(back); return DOW[d.getDay()] + ' ' + d.getDate() + ' ' + MON[d.getMonth()] + ' ' + d.getFullYear(); };
+  const iso = (back) => { const d = dayAt(back); const p2 = (x) => (x < 10 ? '0' : '') + x; return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()); };
   const PEOPLE = [{ accountId: 'me-1', displayName: 'Priya Raman' }, { accountId: 'u-2', displayName: 'Ben Ortiz' }, { accountId: 'u-3', displayName: 'Cara Lim' }, { accountId: 'u-4', displayName: 'Dev Shah' }];
   const CLOSES = [2, 3, 1, 0, 0, 4, 2, 3, 1, 2, 0, 0, 3, 1];
   const NEWS = [1, 2, 2, 0, 0, 1, 3, 1, 2, 1, 0, 0, 2, 2];
@@ -112,7 +113,7 @@ const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     T.check('…the day after (→), the day before (←)', (await text(page, '#jpDayTitle')) === long(4) && await (async () => { await page.click('#jpPrev'); await page.click('#jpPrev'); await page.waitForTimeout(150); return (await text(page, '#jpDayTitle')) === long(6); })());
 
     T.section('so far, who moved things, stuck, the numbers');
-    T.check('so far: closing faster than new arrives (+5); 22 closed · 17 new since the first day; its lines and a dot a day', /^Closing faster than new work arrives: 5 more closed than new\. 22 closed · 17 new, since /.test(await text(page, '#jpSoFarText'))
+    T.check('so far: closing faster than new arrives (+5); 22 closed · 17 new since the first day; its lines and a dot a day', /^Closing faster than new work arrives: 5 more closed than new\. 22 closed · 17 new, \w+ \d+ \w+ to \w+ \d+ \w+$/.test(await text(page, '#jpSoFarText'))
       && /^data:image\/svg\+xml/.test(await page.getAttribute('#jpLines', 'src') || '') && (await page.$$('#jpSoFar .nx-jp-dot--closed')).length === 14, await text(page, '#jpSoFarText'));
     const ppl = await page.$$eval('#jpPeople .nx-jp-tr:not(.nx-jp-th)', (rows) => rows.map((r) => r.textContent.replace(/\s+/g, ' ').trim()));
     T.check('who moved things: four people, the most closed first', ppl.length === 4 && /^\S+ \S+ (\d+)/.test(ppl[0]) && Number(/^\S+ \S+ (\d+)/.exec(ppl[0])[1]) >= Number(/^\S+ \S+ (\d+)/.exec(ppl[3])[1]), ppl.join(' | '));
@@ -135,6 +136,25 @@ const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     await page.waitForTimeout(200);
     T.check('working days only: the weekends left out of the charts', (await page.$$('#jpCols .nx-jp-col')).length === workdays && !(await page.$('#jpCols .nx-jp-col--wknd')), String(workdays));
     await page.click('#jpWorkOnly');
+
+    T.section('From – To: the days chosen');
+    T.check('the date boxes show the window read (the last 14 days: 13 days back to today, no later than today)', (await page.inputValue('#jpFrom')) === iso(13) && (await page.inputValue('#jpTo')) === iso(0)
+      && (await page.getAttribute('#jpTo', 'max')) === iso(0) && !(await page.$('#jpClearDates')), (await page.inputValue('#jpFrom')) + ' ' + (await page.inputValue('#jpTo')));
+    await page.fill('#jpFrom', iso(9));
+    await page.waitForFunction(() => document.querySelectorAll('#jpCols .nx-jp-col').length === 10, null, { timeout: 15000 }).catch(() => {});
+    T.check('From 9 days back (To stays today): 10 columns; Jira asked for what changed since From and was created by To; no range button on; said as dates', (await page.$$('#jpCols .nx-jp-col')).length === 10
+      && searches.some((q) => q === 'project = EQP AND updated >= "' + iso(9) + '" AND created <= "' + iso(0) + ' 23:59" ORDER BY updated DESC') && !(await page.$('#jpRanges .nx-jp-range--on'))
+      && (await text(page, '#jpSub')).indexOf('the stories changed from ' + long(9) + ' – ' + long(0) + ' (10 days)') !== -1 && !!(await page.$('#jpDates.nx-jp-dates--on')), await text(page, '#jpSub'));
+    await page.fill('#jpTo', iso(3));
+    await page.waitForFunction(() => document.querySelectorAll('#jpCols .nx-jp-col').length === 7, null, { timeout: 15000 }).catch(() => {});
+    T.check('…To 3 days back: 7 columns (none today), 12 closed in them; the day shown is the latest busy one in the window', (await page.$$('#jpCols .nx-jp-col')).length === 7 && !(await page.$('#jpCols .nx-jp-col--today'))
+      && (await tile('closed')) === '12' && (await text(page, '#jpDayTitle')) === long(3), (await tile('closed')) + ' ' + await text(page, '#jpDayTitle'));
+    await env.shot('jira-progress-dates.png');
+    await page.click('#jpClearDates');
+    await page.waitForFunction(() => document.querySelectorAll('#jpCols .nx-jp-col').length === 14, null, { timeout: 15000 }).catch(() => {});
+    T.check('× : back to the last 14 days (its button on; the boxes show its days)', (await page.$$('#jpCols .nx-jp-col')).length === 14 && /14 days/.test(await text(page, '#jpRanges .nx-jp-range--on'))
+      && (await page.inputValue('#jpFrom')) === iso(13) && (await page.inputValue('#jpTo')) === iso(0),
+      JSON.stringify([(await page.$$('#jpCols .nx-jp-col')).length, await text(page, '#jpRanges .nx-jp-range--on'), await page.inputValue('#jpFrom'), await page.inputValue('#jpTo'), iso(13), iso(0)]));
 
     T.section('copied as text; a story opened; from the bell');
     await page.context().grantPermissions(['clipboard-read', 'clipboard-write']).catch(() => {});

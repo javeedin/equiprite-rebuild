@@ -1419,3 +1419,13 @@ button.nx-jira-recmark:hover, button.nx-jira-recmark:focus-visible { filter: bri
 .nx-pagehead .nx-jp-work { color: inherit; margin: 0; align-items: center; font-weight: 600; }
 .nx-pagehead .nx-jp-work input { accent-color: #fff; }
 .nx-jp-tiles { grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr)); }
+/* Daily progress: From – To on the page head's band */
+.nx-jp-dates { display: inline-flex; align-items: center; gap: 6px; padding: 3px 4px 3px 8px; border-radius: 9px; border: 1px solid rgba(255, 255, 255, .35); }
+.nx-jp-dates--on { background: rgba(255, 255, 255, .16); border-color: #fff; }
+.nx-jp-date { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; }
+.nx-jp-date input { font: inherit; font-size: 12.5px; font-weight: 500; padding: 4px 6px; border-radius: 6px; border: 1px solid var(--nx-line-strong); background: #fff; color: var(--nx-ink); color-scheme: light; }
+.nx-jp-date input:disabled { opacity: .7; }
+.nx-jp-dash { opacity: .8; }
+.nx-pagehead .nx-jp-datesclear { color: #fff; }
+.nx-pagehead .nx-jp-datesclear { background: rgba(255, 255, 255, .14); border-color: transparent; color: #fff; }
+.nx-pagehead .nx-jp-datesclear:hover { background: rgba(255, 255, 255, .28); }

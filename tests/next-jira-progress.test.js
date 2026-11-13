@@ -86,6 +86,19 @@ T.check('the window: totals (net +2), best day, who closed most, stuck, then a l
   && /Best day: Fri 13 Nov \(1 closed\)\./.test(pt) && /Closed most: Ana \(2\), Dev \(1\)\./.test(pt) && /Stuck \(open, no change for 5\+ days\): 2 — EQP-8 \(20 d\), EQP-7 \(9 d\)\./.test(pt)
   && /\n\nFri 13 Nov: 1 closed · 0 new · 0 moved · 2 touched — EQP-2\nThu 12 Nov: 1 closed/.test(pt) && /Sun 8 Nov: 0 closed · 0 new · 1 moved/.test(pt) && !/Sat 7 Nov/.test(pt), pt);
 
+T.section('a chosen window: From – To');
+const key = (back) => P.dayKey(new Date(m0.getTime() - back * DAY + 3 * 3600000).getTime());
+const pr = P.progressOf(issues, { from: key(6), to: key(2), now: NOW });
+T.check('From 6 days back To 2 days back: 5 days, none of them today; what happened after To left out (yesterday\'s close, today\'s)', pr.custom && pr.n === 5 && pr.days[0].key === key(6) && pr.days[4].key === key(2)
+  && !pr.days.some((x) => x.today) && !pr.endsToday && pr.totals.closed === 1 && pr.days[2].stories.closed[0].key === 'EQP-5' && pr.totals.created === 1 && pr.totals.touched === 3, JSON.stringify(pr.totals));
+T.check('…said as dates: the window, and the summary', P.windowText(pr) === 'Sat 7 Nov 2026 – Wed 11 Nov 2026 (5 days)' && /^Jira EQP · Sat 7 Nov 2026 – Wed 11 Nov 2026 \(5 days\): 1 closed, 1 new/.test(P.periodText(pr, 'EQP', [])), P.windowText(pr));
+T.check('…To before From: turned round; To in the future: today', P.progressOf(issues, { from: key(2), to: key(6), now: NOW }).days[0].key === key(6)
+  && (() => { const f = P.progressOf(issues, { from: key(3), to: '2027-01-30', now: NOW }); return f.n === 4 && f.endsToday && f.custom && f.totals.closed === 2; })());
+T.check('…at most ' + P.MAX_SPAN + ' days (ending at To); not dates: the last days instead', P.progressOf([], { from: '2025-01-01', to: key(0), now: NOW }).n === 92 && P.progressOf([], { from: '2025-01-01', to: key(0), now: NOW }).days[91].key === key(0)
+  && !P.progressOf([], { from: 'soon', to: key(0), days: 7, now: NOW }).custom && P.progressOf([], { from: '2026-02-30', to: key(0), days: 7, now: NOW }).n === 7);
+T.check('…the search: changed since From, created by To', P.jql(14, 'EQP', { from: '2026-11-07', to: '2026-11-11' }) === 'project = EQP AND updated >= "2026-11-07" AND created <= "2026-11-11 23:59" ORDER BY updated DESC'
+  && P.jql(14, 'EQP', { from: '2026-11-11', to: '2026-11-07' }) === 'project = EQP AND updated >= "2026-11-07" AND created <= "2026-11-11 23:59" ORDER BY updated DESC');
+
 T.section('reading Jira');
 T.check('the JQL: the window (1 to 60 days); the stuck search', P.jql(14) === 'project = EQP AND updated >= -14d ORDER BY updated DESC' && P.jql(90, 'ABC') === 'project = ABC AND updated >= -60d ORDER BY updated DESC'
   && P.stuckJql() === 'project = EQP AND statusCategory != Done AND updated <= -5d ORDER BY updated ASC');
@@ -104,5 +117,15 @@ T.check('the JQL: the window (1 to 60 days); the stuck search', P.jql(14) === 'p
   T.check('Jira not connected: said so', !no.ok && no.notConnected && /Jira is not connected/.test(no.message));
   const half = await P.load({}, { callRest: async (c, req) => (/statusCategory/.test(req.uriParams.jql) ? { ok: false, status: 500, body: {} } : { ok: true, status: 200, body: { issues: issues, isLast: true } }) }, { days: 7, now: NOW });
   T.check('the stuck search failing: the progress still shown', half.ok && half.progress.totals.closed === 3 && half.stuck.length === 0 && half.stuckRead === false);
+  const asked = [];
+  const quiet = (i) => ({ key: 'EQP-' + (500 + i), fields: { summary: 'Quiet ' + i, status: { name: 'To Do', statusCategory: cat('new') }, updated: on(9 + (i % 5), 9) } });
+  const many = await P.load({}, { callRest: async (c, req) => {
+    asked.push(req.uriParams);
+    if (/statusCategory/.test(req.uriParams.jql)) { const pg = Number(req.uriParams.nextPageToken || 0); return { ok: true, status: 200, body: { issues: [...Array(100).keys()].map((i) => quiet(pg * 100 + i)), nextPageToken: String(pg + 1), isLast: false } }; }
+    return { ok: true, status: 200, body: { issues: issues, isLast: true } };
+  } }, { from: key(6), to: key(2), now: NOW });
+  T.check('From – To asked of Jira; the window\'s days', many.ok && asked[0].jql === P.jql(14, 'EQP', { from: key(6), to: key(2) }) && many.progress.custom && many.progress.n === 5, asked[0].jql);
+  T.check('more than 300 stuck: 3 pages read, said as more (300+)', many.stuck.length === 300 && many.stuckMore && many.stuck.more && asked.filter((a) => /statusCategory/.test(a.jql)).length === 3
+    && /Stuck \(open, no change for 5\+ days\): 300\+ — /.test(P.periodText(many.progress, 'EQP', many.stuck)));
   T.report();
 })();
