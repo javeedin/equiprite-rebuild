@@ -1,5 +1,5 @@
 {
- "scannedAt": "2026-11-13T19:20:34.324Z",
+ "scannedAt": "2026-11-13T19:23:34.639Z",
  "pages": [
   {
    "id": "equiprite//shell",
@@ -1969,7 +1969,7 @@
    "appName": "Old EquipRite",
    "flow": "customer-portal",
    "page": "customer-dashboard",
-   "label": "Customer Dashboard",
+   "label": "Customer Dashboard (26C)",
    "route": {
     "url": "/vp/shell/customer-portal/customer-dashboard",
     "menu": "",
@@ -1988,7 +1988,7 @@
     "at": "2026-11-13T19:20:34.225Z",
     "by": "javeed.shaik",
     "codeHash": "9817dc1243317488",
-    "screenshots": 1,
+    "screenshots": 2,
     "ai": false,
     "rest": 3,
     "chains": 9
