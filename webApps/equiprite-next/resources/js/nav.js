@@ -39,6 +39,8 @@ define(['resources/js/rules'], function (rules) {
   var itemInProduct = function (it) {
     if (!it) return false;
     if (PRODUCT.isBuild && it.buildRite === false) return false;
+    // one of Build.Rite's own (buildRiteOnly, e.g. Setup → Organizations & projects): not in EquipRite
+    if (!PRODUCT.isBuild && it.buildRiteOnly) return false;
     return inProduct(it.group) || (PRODUCT.isBuild && !!it.buildRite);
   };
 
@@ -93,6 +95,11 @@ define(['resources/js/rules'], function (rules) {
         route: { flow: 'commercial', page: 'agreements' }, built: true, newNav: 'agreements', keywords: 'rental agreements contracts' }
     ] },
     { key: 'insights', label: 'Insights', items: [
+      // Setup → Organizations & projects (Build.Rite only): the VB Studio organizations the team works in (their sign-in kept
+      // encrypted on this PC) and their projects, each added by its Git address (flows/insights projects; desktop/lib/vbs.js).
+      { id: 'projects', label: 'Organizations & projects', icon: 'oj-ux-ico-building', pageCodes: ['EQR_CONFIGURATIONS'], buildRiteOnly: true,
+        route: { flow: 'insights', page: 'projects' }, built: true,
+        keywords: 'setup organization project vb studio visual builder studio git repository branches build jobs sign in connect' },
       // Issues (Build.Rite's first screen): an issue logged against a page, written up and analyzed by the AI against the
       // page's code and the FDD, approved, then applied by the agent on a branch of its own with a pull request; Jira kept
       // up to date (flows/insights issues; desktop/lib/issues.js, the desktop app). Gated like Jira stories.

@@ -1,0 +1,216 @@
+'use strict';
+/**
+ * Visual Builder Studio, for Build.Rite (Setup → Organizations & projects): the organizations the team works in and their
+ * projects — the first level of Build.Rite's own structure (organization → project → application → baseline / working /
+ * workspaces → releases), connected to Oracle's.
+ *
+ *   An organization: its VB Studio address (https://<host>/<org>/, the organization's page), a name, and the sign-in
+ *   (username and password, the password encrypted by the OS keychain in this app's data folder — when the keychain
+ *   cannot encrypt, kept for this run only; never sent back to the page).
+ *
+ *   A project: added by its Git repository's address (the project's Repositories tab:
+ *   https://<host>/<org>/s/<org>_<project>/scm/<repo>.git) — VB Studio has no documented API to list projects, and its
+ *   project id is read from that address. Checked: its branches (git ls-remote: the workspaces' pushed branches too) and
+ *   its build jobs (VB Studio's documented builds API, https://<host>/<org>/rest/<org>_<project>/cibuild/v1/jobs).
+ *   The sign-in goes to git as a header in its environment (never in the address, the command line or a file).
+ *
+ *   open({ file, encrypt, decrypt, fetch, gitPath, now }) → store
+ *     state()                                  { orgs: [...], projects: [...] } — never a password
+ *     saveOrg({ id, name, url, user, password }) an empty password keeps the saved one
+ *     removeOrg(id)   addProject({ orgId, repoUrl, name })   checkProject(id)   removeProject(id)
+ *     auth(orgId)                              { host, org, user, header } for Build.Rite's own calls, or null
+ */
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+
+const str = (v) => (v === undefined || v === null ? '' : String(v));
+const idOf = (s) => str(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || crypto.randomBytes(4).toString('hex');
+
+/** The organization's page → { url, host, org } ('' org when the address has no organization in it). */
+function parseOrgUrl(v) {
+  let s = str(v).trim();
+  if (!s) return null;
+  if (!/^https?:\/\//i.test(s)) s = 'https://' + s;
+  let u;
+  try { u = new URL(s); } catch (e) { return null; }
+  if (u.protocol !== 'https:') return null;
+  const org = (u.pathname.split('/').filter(Boolean)[0] || '').toLowerCase();
+  if (!/^[a-z0-9][a-z0-9._-]*$/.test(org)) return { url: 'https://' + u.hostname.toLowerCase() + '/', host: u.hostname.toLowerCase(), org: '' };
+  return { url: 'https://' + u.hostname.toLowerCase() + '/' + org + '/', host: u.hostname.toLowerCase(), org: org };
+}
+
+/** A project's Git address → { repoUrl, host, org, project, repo } (the sign-in in it, if any, left out). */
+function parseRepoUrl(v) {
+  let s = str(v).trim();
+  if (!s) return null;
+  if (!/^https?:\/\//i.test(s)) s = 'https://' + s;
+  let u;
+  try { u = new URL(s); } catch (e) { return null; }
+  const parts = u.pathname.split('/').filter(Boolean);
+  // /<org>/s/<org>_<project>/scm/<repo>.git
+  const si = parts.indexOf('s');
+  const ci = parts.indexOf('scm');
+  if (si < 1 || ci !== si + 2 || !parts[ci + 1]) return null;
+  const org = parts[0].toLowerCase();
+  const full = parts[si + 1];
+  if (full.toLowerCase().indexOf(org + '_') !== 0) return null;
+  const project = full.slice(org.length + 1);
+  const repo = parts[ci + 1].replace(/\.git$/i, '');
+  if (!project || !repo) return null;
+  return { repoUrl: 'https://' + u.hostname.toLowerCase() + '/' + parts[0] + '/s/' + full + '/scm/' + repo + '.git', host: u.hostname.toLowerCase(), org: org, project: project, repo: repo };
+}
+
+/** Git's branches from `git ls-remote --heads --symref`: { branches: [...], head }. */
+function branchesOf(out) {
+  const branches = [];
+  let head = '';
+  str(out).split('\n').forEach((l) => {
+    const sym = /^ref:\s+refs\/heads\/(\S+)\s+HEAD/.exec(l);
+    if (sym) { head = sym[1]; return; }
+    const m = /^[0-9a-f]{7,64}\s+refs\/heads\/(\S+)$/.exec(l.trim());
+    if (m) branches.push(m[1]);
+  });
+  return { branches: branches.filter((b, i, a) => a.indexOf(b) === i).sort(), head: head };
+}
+
+/** VB Studio's builds API answer → the jobs' names. */
+function jobsOf(body) {
+  const l = Array.isArray(body) ? body : body && (body.items || body.jobs || body.data || []);
+  return (Array.isArray(l) ? l : []).map((j) => str(typeof j === 'string' ? j : j && (j.name || j.jobName || j.id))).filter(Boolean);
+}
+
+/** What went wrong reaching VB Studio, in words (git's or the API's). */
+function why(text, status) {
+  const t = str(text);
+  if (status === 401 || /\b401\b|Authentication failed|could not read Username|invalid credentials|not authorized/i.test(t)) return 'The username or password was refused by VB Studio.';
+  if (status === 403 || /\b403\b/.test(t)) return 'Signed in, but this user may not open this project in VB Studio.';
+  if (status === 404 || /\b404\b|not found|does not exist/i.test(t)) return 'VB Studio says there is no such repository (check the address from the project\'s Repositories tab).';
+  if (/Could not resolve host|ENOTFOUND|getaddrinfo/i.test(t)) return 'Could not reach VB Studio from this PC (check the address and the network).';
+  if (/timed out|ETIMEDOUT|timeout/i.test(t)) return 'VB Studio did not answer in time.';
+  return t.trim().split('\n').filter(Boolean).slice(-2).join(' ').slice(0, 300) || 'It did not work.';
+}
+
+function open(opts) {
+  const o = opts || {};
+  const file = o.file || '';
+  const now = o.now || (() => new Date());
+  const encrypt = o.encrypt || null;
+  const decrypt = o.decrypt || null;
+  const fetchFn = o.fetch || (typeof fetch === 'function' ? fetch : null);
+  const mem = {}; // passwords for this run only, when the keychain cannot encrypt
+  let data = { orgs: [], projects: [] };
+  try { if (file) data = Object.assign(data, JSON.parse(fs.readFileSync(file, 'utf8'))); } catch (e) { /* first run */ }
+  const save = () => { if (!file) return; fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, JSON.stringify(data, null, 1), { mode: 0o600 }); };
+  const orgOf = (id) => data.orgs.filter((x) => x.id === str(id))[0] || null;
+  const projOf = (id) => data.projects.filter((x) => x.id === str(id))[0] || null;
+  const password = (org) => {
+    if (!org) return '';
+    if (mem[org.id]) return mem[org.id];
+    if (!org.password || !decrypt) return '';
+    try { return decrypt(Buffer.from(org.password, 'base64')); } catch (e) { return ''; }
+  };
+  const header = (org) => { const p = password(org); return org && org.user && p ? 'Basic ' + Buffer.from(org.user + ':' + p, 'utf8').toString('base64') : ''; };
+  const viewOrg = (x) => ({ id: x.id, name: x.name, url: x.url, host: x.host, org: x.org, user: x.user, hasPassword: !!password(x), keychain: !!encrypt, addedAt: x.addedAt, checked: x.checked || null,
+    projects: data.projects.filter((p) => p.orgId === x.id).length });
+  const state = () => ({ ok: true, orgs: data.orgs.map(viewOrg), projects: data.projects.map((p) => Object.assign({}, p)) });
+
+  /** git, its sign-in in its environment for that host only (a header): never in the address, the command line or a file. */
+  function git(args, org, ms) {
+    return new Promise((resolve) => {
+      if (typeof o.git === 'function') { Promise.resolve(o.git(args, org ? { host: org.host, header: header(org) } : null)).then(resolve, (e) => resolve({ code: 1, stdout: '', stderr: str(e && e.message) })); return; }
+      const env = Object.assign({}, process.env, { GIT_TERMINAL_PROMPT: '0', GCM_INTERACTIVE: 'never' });
+      const h = header(org);
+      if (h) { env.GIT_CONFIG_COUNT = '1'; env.GIT_CONFIG_KEY_0 = 'http.https://' + org.host + '/.extraHeader'; env.GIT_CONFIG_VALUE_0 = 'Authorization: ' + h; }
+      require('child_process').execFile(o.gitPath || 'git', ['-c', 'credential.helper=', '-c', 'core.askPass='].concat(args), { env: env, windowsHide: true, timeout: ms || 60000, maxBuffer: 8 * 1024 * 1024 },
+        (err, stdout, stderr) => resolve({ code: err ? (typeof err.code === 'number' ? err.code : 1) : 0, stdout: str(stdout), stderr: str(stderr) + (err && err.killed ? ' timed out' : '') }));
+    });
+  }
+
+  function saveOrg(b) {
+    b = b || {};
+    const u = parseOrgUrl(b.url);
+    if (!u) throw new Error('That is not a VB Studio address: paste the organization\'s page, like https://<host>/<organization>/');
+    if (!u.org) throw new Error('The address has no organization in it: paste the organization\'s page, like https://' + u.host + '/<organization>/');
+    const user = str(b.user).trim();
+    if (!user) throw new Error('Enter the username you sign in to VB Studio with.');
+    let x = b.id ? orgOf(b.id) : data.orgs.filter((y) => y.url === u.url)[0] || null;
+    const isNew = !x;
+    if (!x) { x = { id: idOf(u.org), addedAt: now().toISOString() }; while (orgOf(x.id)) x.id = idOf(u.org) + '-' + crypto.randomBytes(2).toString('hex'); data.orgs.push(x); }
+    x.name = str(b.name).trim().slice(0, 80) || x.name || u.org;
+    x.url = u.url; x.host = u.host; x.org = u.org; x.user = user;
+    const p = str(b.password);
+    if (p) { if (encrypt) { x.password = encrypt(p).toString('base64'); delete mem[x.id]; } else { x.password = ''; mem[x.id] = p; } }
+    if (isNew && !p) { data.orgs = data.orgs.filter((y) => y !== x); throw new Error('Enter the password (it is kept encrypted on this PC).'); }
+    x.updatedAt = now().toISOString();
+    save();
+    return Object.assign({ ok: true }, { org: viewOrg(x) }, state());
+  }
+  function removeOrg(id) {
+    const x = orgOf(id);
+    if (!x) return { ok: false, error: 'No such organization.' };
+    data.orgs = data.orgs.filter((y) => y !== x);
+    data.projects = data.projects.filter((p) => p.orgId !== x.id);
+    delete mem[x.id];
+    save();
+    return state();
+  }
+
+  /** Its branches (git) and build jobs (VB Studio's builds API): { ok, branches, head, jobs, jobsError } or { ok: false, error }. */
+  async function probe(org, p) {
+    const ls = await git(['ls-remote', '--symref', p.repoUrl], org, 60000);
+    if (ls.code !== 0) return { ok: false, error: why(ls.stderr) };
+    const b = branchesOf(ls.stdout);
+    let jobs = [], jobsError = '';
+    if (fetchFn) {
+      try {
+        const r = await fetchFn('https://' + org.host + '/' + org.org + '/rest/' + org.org + '_' + p.project + '/cibuild/v1/jobs', { headers: { Authorization: header(org), Accept: 'application/json' } });
+        if (r.ok) { try { jobs = jobsOf(JSON.parse(await r.text())); } catch (e) { jobs = []; } } else jobsError = why('', r.status);
+      } catch (e) { jobsError = why(e && e.message); }
+    }
+    return { ok: true, branches: b.branches, head: b.head || (b.branches.indexOf('main') !== -1 ? 'main' : b.branches.indexOf('master') !== -1 ? 'master' : b.branches[0] || ''), jobs: jobs, jobsError: jobsError };
+  }
+  async function addProject(b) {
+    b = b || {};
+    const org = orgOf(b.orgId);
+    if (!org) return { ok: false, error: 'Choose its organization first.' };
+    if (!header(org)) return { ok: false, error: 'The organization has no password saved on this PC: enter it again.' };
+    const r = parseRepoUrl(b.repoUrl);
+    if (!r) return { ok: false, error: 'That is not a VB Studio Git address: copy it from the project\'s Repositories tab, like https://' + org.host + '/' + org.org + '/s/' + org.org + '_<project>/scm/<repo>.git' };
+    if (r.host !== org.host || r.org !== org.org) return { ok: false, error: 'That repository is in another organization (' + r.org + ' on ' + r.host + '), not ' + org.name + '.' };
+    if (data.projects.some((p) => p.repoUrl === r.repoUrl)) return { ok: false, error: 'That repository is added already.' };
+    const p = { id: idOf(r.project + '-' + r.repo), orgId: org.id, name: str(b.name).trim().slice(0, 80) || r.project, project: r.project, repo: r.repo, repoUrl: r.repoUrl, addedAt: now().toISOString() };
+    while (projOf(p.id)) p.id = idOf(r.project + '-' + r.repo) + '-' + crypto.randomBytes(2).toString('hex');
+    const pr = await probe(org, p);
+    org.checked = { at: now().toISOString(), ok: pr.ok, message: pr.ok ? 'signed in' : pr.error };
+    if (!pr.ok) { save(); return { ok: false, error: pr.error, state: state() }; }
+    Object.assign(p, { branches: pr.branches, head: pr.head, jobs: pr.jobs, jobsError: pr.jobsError, checkedAt: now().toISOString() });
+    data.projects.push(p);
+    save();
+    return Object.assign({ ok: true, project: p }, state());
+  }
+  async function checkProject(id) {
+    const p = projOf(id);
+    if (!p) return { ok: false, error: 'No such project.' };
+    const org = orgOf(p.orgId);
+    if (!org || !header(org)) return { ok: false, error: 'The organization has no password saved on this PC: enter it again.' };
+    const pr = await probe(org, p);
+    org.checked = { at: now().toISOString(), ok: pr.ok, message: pr.ok ? 'signed in' : pr.error };
+    if (pr.ok) Object.assign(p, { branches: pr.branches, head: pr.head, jobs: pr.jobs, jobsError: pr.jobsError, checkedAt: now().toISOString(), error: '' });
+    else p.error = pr.error;
+    save();
+    return pr.ok ? Object.assign({ ok: true, project: p }, state()) : Object.assign({ ok: false, error: pr.error }, { state: state() });
+  }
+  function removeProject(id) {
+    const p = projOf(id);
+    if (!p) return { ok: false, error: 'No such project.' };
+    data.projects = data.projects.filter((x) => x !== p);
+    save();
+    return state();
+  }
+  function auth(orgId) { const org = orgOf(orgId); const h = header(org); return h ? { host: org.host, org: org.org, user: org.user, header: h } : null; }
+
+  return { state: state, saveOrg: saveOrg, removeOrg: removeOrg, addProject: addProject, checkProject: checkProject, removeProject: removeProject, auth: auth, git: git };
+}
+
+module.exports = { open, parseOrgUrl, parseRepoUrl, branchesOf, jobsOf, why };

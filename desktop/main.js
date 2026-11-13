@@ -246,6 +246,8 @@ async function appServerOptions(v) {
     issuesStore: nextLike(v) ? await issuesStore() : undefined,
     // The API tester: a page's REST calls and reports, tried against the real backend
     apiStore: nextLike(v) ? apiStore() : undefined,
+    // Setup → Organizations & projects (Build.Rite): VB Studio organizations and projects
+    vbsStore: v === 'build' ? vbsStore() : undefined,
     backendOverrides: backendOverridesFromEnv(process.env),
     onLog: pushLog,
     onProblem: backendProblem,
@@ -334,6 +336,21 @@ async function issuesStore() {
     });
   }
   return issuesStoreInst;
+}
+// Setup → Organizations & projects (Build.Rite): VB Studio organizations and their projects, the password encrypted by the
+// OS keychain in this app's data folder; git and VB Studio's API reached from this PC (electron's net: the system's proxy).
+let vbsStoreInst = null;
+function vbsStore() {
+  if (!vbsStoreInst) {
+    vbsStoreInst = require('./lib/vbs').open({
+      file: path.join(app.getPath('userData'), 'vbs-connections.json'),
+      encrypt: canEncrypt() ? (t) => safeStorage.encryptString(t) : null,
+      decrypt: canEncrypt() ? (b) => safeStorage.decryptString(b) : null,
+      fetch: (url, init) => { const { net } = require('electron'); return net.fetch(url, init); },
+      gitPath: commandPath('git') || 'git',
+    });
+  }
+  return vbsStoreInst;
 }
 // Code Fix (Application pages → a page → Code fix): the AI chosen in AI settings proposes a change to a page; it is
 // written into the project's code only once approved (after git pull), then tested, committed or undone. The fixes are

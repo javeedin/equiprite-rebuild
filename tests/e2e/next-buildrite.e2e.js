@@ -12,7 +12,7 @@ const H = require('../_harness');
 
 const T = H.makeAsserter();
 const text = (page, sel) => page.$eval(sel, (e) => e.textContent.replace(/\s+/g, ' ').trim()).catch(() => '');
-const BUILD_SCREENS = ['issues', 'jira', 'minutes', 'followups', 'fdd', 'app-pages', 'fdd-library', 'flows', 'sql']; // not Analytics: EquipRite's own
+const BUILD_SCREENS = ['projects', 'issues', 'jira', 'minutes', 'followups', 'fdd', 'app-pages', 'fdd-library', 'flows', 'sql']; // not Analytics: EquipRite's own
 
 (async () => {
   // 1. As the desktop app serves Build.Rite: a server of its own, which tells the page

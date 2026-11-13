@@ -262,6 +262,8 @@ function time() {
  *                                        an analysis opens without asking the AI again: /__ai/* to this PC only, behind X-EquipRite-AI
  * @param {string}   [o.product]          The product this build is shown as (Build.Rite: 'buildrite' on EquipRite Next's build), told
  *                                        to the app's page (window.EQP_PRODUCT)
+ * @param {object}   [o.vbsStore]         Setup → Organizations & projects (lib/vbs.js, Build.Rite): VB Studio organizations and projects,
+ *                                        their sign-in kept on this PC: /__vbs/* to this PC only, behind the X-EquipRite-Vbs header
  * @param {object}   [o.fixStore]         Code Fix (lib/codeFix.js): AI-proposed changes to a page, written to the code only when approved (/__fix/*)
  * @param {object}   [o.pagesStore]       The Application pages catalog (lib/pages.js): every VB page's technical sheet and the Jira stories
  *                                        mapped to it, saved into the project (git): /__pages/* to this PC only, behind X-EquipRite-Pages
@@ -969,6 +971,38 @@ function createDevServer(o) {
           return jsonF(404, { error: 'Not found' });
         })().catch((e) => jsonF(200, { ok: false, error: e.message }));
         return undefined;
+      }
+      if (pathname.startsWith('/__vbs/')) {
+        // Setup → Organizations & projects (lib/vbs.js), Build.Rite: the VB Studio organizations and their projects, the
+        // sign-in kept encrypted on this PC (never sent back). This PC only, by its own name, and only the app's own page
+        // (X-EquipRite-Vbs).
+        const host = String(req.headers.host || '').replace(/:\d+$/, '');
+        if (!isLoopback(req.socket.remoteAddress) || !/^(localhost|127\.0\.0\.1|\[::1\])$/.test(host)) {
+          return send(res, 404, 'text/plain; charset=utf-8', 'Not found');
+        }
+        const jsonV = (status, body) => send(res, status, 'application/json', JSON.stringify(body), { 'Cache-Control': 'no-store' });
+        if (!o.vbsStore) return jsonV(200, { ok: false, error: 'Organizations and projects need the desktop app.' });
+        const origin = req.headers.origin;
+        if (req.headers['x-equiprite-vbs'] !== '1' || (origin && origin !== `http://${req.headers.host}`)) {
+          return send(res, 403, 'application/json', JSON.stringify({ error: 'Refused: not from EquipRite on this PC.' }));
+        }
+        const vs = o.vbsStore;
+        const post = req.method === 'POST';
+        (async () => {
+          const b = post ? JSON.parse(((await readBody(req)) || '').toString('utf8') || '{}') : {};
+          if (pathname === '/__vbs/state' && !post) return jsonV(200, vs.state());
+          if (!post) return jsonV(404, { error: 'Not found' });
+          let r;
+          if (pathname === '/__vbs/org') { try { r = vs.saveOrg(b); } catch (e) { r = { ok: false, error: e.message }; } }
+          else if (pathname === '/__vbs/org/remove') r = vs.removeOrg(b.id);
+          else if (pathname === '/__vbs/project') r = await vs.addProject(b);
+          else if (pathname === '/__vbs/project/check') r = await vs.checkProject(b.id);
+          else if (pathname === '/__vbs/project/remove') r = vs.removeProject(b.id);
+          else return jsonV(404, { error: 'Not found' });
+          log(`Setup: ${pathname.slice(7)} -> ${r && r.ok === false ? r.error : 'done'}`);
+          return jsonV(200, r);
+        })().catch((e) => jsonV(500, { ok: false, error: e.message }));
+        return;
       }
       if (pathname.startsWith('/__api/')) {
         // The API tester (lib/apiTest.js), Application pages → a page → Integrations → Test: one of the page's REST calls or

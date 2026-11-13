@@ -1,0 +1,34 @@
+{
+  "description": "Setup → Organizations & projects (Build.Rite): the Visual Builder Studio organizations the team works in (their address and sign-in, kept encrypted on this PC) and their projects, each added by its Git address and checked: its branches and build jobs (desktop/lib/vbs.js).",
+  "navigation": { "embeddable": "enabled" },
+  "variables": {
+    "available": { "type": "boolean", "defaultValue": true, "description": "Organizations and projects run in the desktop app only (the sign-in is kept on this PC)." },
+    "checked": { "type": "boolean", "defaultValue": false },
+    "busy": { "type": "boolean", "defaultValue": false },
+    "orgs": { "type": "any[]", "defaultValue": [], "description": "The organizations (never a password)." },
+    "projects": { "type": "any[]", "defaultValue": [], "description": "Every organization's projects." },
+    "selOrg": { "type": "string", "defaultValue": "", "description": "The organization shown on the right." },
+    "formOrg": { "type": "boolean", "defaultValue": false, "description": "The organization form is open (new, or editing editId)." },
+    "editId": { "type": "string", "defaultValue": "" },
+    "oName": { "type": "string", "defaultValue": "" },
+    "oUrl": { "type": "string", "defaultValue": "" },
+    "oUser": { "type": "string", "defaultValue": "" },
+    "oPass": { "type": "string", "defaultValue": "", "description": "Typed, sent once when saved, then cleared: never read back." },
+    "pRepo": { "type": "string", "defaultValue": "" },
+    "pName": { "type": "string", "defaultValue": "" },
+    "result": { "type": "any", "defaultValue": null, "description": "{ ok, text } of the last action." }
+  },
+  "eventListeners": {
+    "vbEnter": { "chains": [ { "chain": "loadChain" } ] },
+    "onRefresh": { "chains": [ { "chain": "loadChain" } ] },
+    "onAct": { "chains": [ { "chain": "actChain", "parameters": { "act": "{{ $event.currentTarget.dataset.act }}", "key": "{{ $event.currentTarget.dataset.key || '' }}" } } ] },
+    "onField": { "chains": [ { "chain": "setChain", "parameters": { "field": "{{ $event.currentTarget.dataset.field }}", "value": "{{ $event.currentTarget.value }}" } } ] }
+  },
+  "imports": {
+    "components": {
+      "oj-bind-for-each": { "path": "ojs/ojknockout" },
+      "oj-bind-if": { "path": "ojs/ojknockout" },
+      "oj-bind-text": { "path": "ojs/ojknockout" }
+    }
+  }
+}

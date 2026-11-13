@@ -1468,3 +1468,35 @@ button.nx-jira-recmark:hover, button.nx-jira-recmark:focus-visible { filter: bri
 .nx-jp-mstories { padding: 6px 6px 12px 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(380px, 100%), 1fr)); gap: 0 10px; }
 
 .nx-is-guardmore { margin: 8px 0 0; font-size: 12.5px; color: #6b4a00; font-weight: 600; }
+
+/* ── Setup → Organizations & projects (Build.Rite) ── */
+.nx-vbs-two { display: grid; grid-template-columns: minmax(280px, 380px) minmax(0, 1fr); gap: 14px; margin-top: 14px; align-items: start; }
+@media (max-width: 1000px) { .nx-vbs-two { grid-template-columns: minmax(0, 1fr); } }
+.nx-vbs-orglist { display: flex; flex-direction: column; gap: 8px; padding: 12px; }
+.nx-vbs-orglist:empty { display: none; }
+.nx-vbs-org { display: flex; gap: 10px; align-items: flex-start; width: 100%; text-align: left; padding: 10px 12px; border: 1px solid var(--nx-line); border-radius: 12px; background: var(--nx-surface); cursor: pointer; font: inherit; color: inherit; }
+.nx-vbs-org:hover { border-color: var(--nx-line-strong); }
+.nx-vbs-org--on { border-color: var(--nx-accent); box-shadow: inset 0 0 0 1px var(--nx-accent); background: var(--nx-accent-soft); }
+.nx-vbs-ico { flex: none; display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 9px; background: #2e5468; color: #fff; font-size: 16px; }
+.nx-vbs-ico--proj { background: #1f7a4d; }
+.nx-vbs-orgbody, .nx-vbs-pbody { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.nx-vbs-st { font-size: 12px; color: var(--nx-muted); }
+.nx-vbs-st--ok { color: var(--nx-ok); font-weight: 600; } .nx-vbs-st--bad { color: var(--nx-danger); font-weight: 600; }
+.nx-vbs-form { padding: 12px 16px 16px; border-top: 1px solid var(--nx-line); display: flex; flex-direction: column; gap: 10px; }
+.nx-vbs-field { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; font-weight: 700; color: var(--nx-muted); }
+.nx-vbs-field input { font-weight: 400; color: var(--nx-ink); width: 100%; box-sizing: border-box; }
+.nx-vbs-orghead { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.nx-vbs-orghead h2 { margin: 0; }
+.nx-vbs-url { font-size: 11.5px; color: var(--nx-muted); background: var(--nx-surface-2); border-radius: 6px; padding: 2px 8px; overflow-wrap: anywhere; }
+.nx-vbs-orgstatus { display: flex; flex-direction: column; gap: 4px; padding: 12px 16px 0; }
+.nx-vbs-h3 { padding: 0 16px; margin-top: 16px; }
+.nx-vbs-projects { display: flex; flex-direction: column; gap: 10px; padding: 0 16px 8px; }
+.nx-vbs-project { border: 1px solid var(--nx-line); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px; background: var(--nx-surface); }
+.nx-vbs-phead { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.nx-vbs-row { display: flex; gap: 10px; align-items: baseline; font-size: 12.5px; }
+.nx-vbs-lbl { flex: none; width: 110px; font-weight: 700; color: var(--nx-muted); }
+.nx-vbs-chips { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.nx-vbs-chip { font-size: 11.5px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--nx-line-strong); background: var(--nx-surface-2); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.nx-vbs-chip--head { border-color: var(--nx-accent); color: var(--nx-accent); font-weight: 700; }
+.nx-vbs-chip--job { font-family: inherit; }
+.nx-vbs-addproj { margin-top: 6px; }

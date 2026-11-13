@@ -1,0 +1,106 @@
+<!-- Setup → Organizations & projects (Build.Rite): the Visual Builder Studio organizations the team works in — their address
+     and sign-in (kept encrypted on this PC) — and their projects, each added by its Git address and checked: its branches
+     (the workspaces' pushed ones too) and its build jobs. desktop/lib/vbs.js does the work. -->
+<div class="nx-page nx-vbs">
+  <div class="nx-pagehead">
+    <div>
+      <div class="nx-kicker">Setup</div>
+      <h1 id="vbsTitle">Organizations &amp; projects</h1>
+      <div class="nx-sub" id="vbsSub"><oj-bind-text value="[[ $functions.subText($variables.orgs, $variables.projects) ]]"></oj-bind-text></div>
+    </div>
+    <div class="nx-actions">
+      <button type="button" class="nx-btn nx-btn--plain" id="vbsRefresh" on-click="[[ $listeners.onRefresh ]]" :disabled="[[ $variables.busy ]]"><span class="oj-ux-ico-refresh" aria-hidden="true"></span>Refresh</button>
+    </div>
+  </div>
+
+  <oj-bind-if test="[[ !!$variables.result ]]"><div :class="[[ 'nx-flib-result ' + ($variables.result.ok ? 'nx-flib-result--ok' : 'nx-flib-result--err') ]]" id="vbsResult"><oj-bind-text value="[[ $variables.result.text ]]"></oj-bind-text></div></oj-bind-if>
+  <oj-bind-if test="[[ $variables.checked && !$variables.available ]]"><div class="nx-empty" id="vbsUnavailable">Organizations and projects are kept on this PC by the desktop app (the sign-in stays here), so this page is not available in the browser.</div></oj-bind-if>
+
+  <oj-bind-if test="[[ $variables.available ]]">
+    <div class="nx-vbs-two">
+      <!-- the organizations -->
+      <section class="nx-card nx-vbs-orgs" aria-labelledby="vbsOrgsTitle">
+        <div class="nx-card-head"><h2 id="vbsOrgsTitle">Organizations</h2>
+          <button type="button" class="nx-btn nx-btn--sm nx-btn--primary" id="vbsNewOrg" data-act="newOrg" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]"><span class="oj-ux-ico-plus" aria-hidden="true"></span>Add</button></div>
+        <oj-bind-if test="[[ $variables.orgs.length === 0 && !$variables.formOrg ]]"><div class="nx-empty" id="vbsNoOrg">No organization yet. Add your Visual Builder Studio organization: its address and how you sign in.</div></oj-bind-if>
+        <div class="nx-vbs-orglist" id="vbsOrgList">
+          <oj-bind-for-each data="[[ $variables.orgs ]]">
+            <template data-oj-as="o">
+              <button type="button" :class="[[ $functions.orgClass(o.data.id, $variables.selOrg) ]]" data-act="selOrg" :data-key="[[ o.data.id ]]" on-click="[[ $listeners.onAct ]]">
+                <span class="nx-vbs-ico" aria-hidden="true"><span class="oj-ux-ico-building"></span></span>
+                <span class="nx-vbs-orgbody"><b><oj-bind-text value="[[ o.data.name ]]"></oj-bind-text></b><span class="nx-note"><oj-bind-text value="[[ $functions.orgMeta(o.data) ]]"></oj-bind-text></span>
+                  <span :class="[[ $functions.status(o.data).cls ]]"><oj-bind-text value="[[ $functions.status(o.data).text ]]"></oj-bind-text></span></span>
+              </button>
+            </template>
+          </oj-bind-for-each>
+        </div>
+        <!-- add / edit an organization -->
+        <oj-bind-if test="[[ $variables.formOrg ]]">
+          <div class="nx-vbs-form" id="vbsOrgForm">
+            <h3 class="nx-pg-h3"><oj-bind-text value="[[ $functions.formTitle($variables.editId) ]]"></oj-bind-text></h3>
+            <label class="nx-vbs-field"><span>Name</span><input type="text" id="vbsOName" class="nx-flib-filter" data-field="oName" :value="[[ $variables.oName ]]" on-input="[[ $listeners.onField ]]" placeholder="e.g. Rite demo (DEV)" autocomplete="off"></label>
+            <label class="nx-vbs-field"><span>VB Studio address</span><input type="url" id="vbsOUrl" class="nx-flib-filter" data-field="oUrl" :value="[[ $variables.oUrl ]]" on-input="[[ $listeners.onField ]]" placeholder="https://<host>/<organization>/ — the organization's page" autocomplete="off" spellcheck="false"></label>
+            <label class="nx-vbs-field"><span>Username</span><input type="text" id="vbsOUser" class="nx-flib-filter" data-field="oUser" :value="[[ $variables.oUser ]]" on-input="[[ $listeners.onField ]]" placeholder="the user you sign in to VB Studio with" autocomplete="username" spellcheck="false"></label>
+            <label class="nx-vbs-field"><span>Password</span><input type="password" id="vbsOPass" class="nx-flib-filter" data-field="oPass" on-input="[[ $listeners.onField ]]" :placeholder="[[ $functions.passHint($variables.editId) ]]" autocomplete="current-password"></label>
+            <p class="nx-note">The password is kept encrypted on this PC (the system's keychain), used only to reach VB Studio from here, and never shown again.</p>
+            <div class="nx-fx-row">
+              <button type="button" class="nx-btn nx-btn--primary" id="vbsSaveOrg" data-act="saveOrg" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]">Save</button>
+              <button type="button" class="nx-btn nx-btn--plain" id="vbsCancelOrg" data-act="cancelOrg" on-click="[[ $listeners.onAct ]]">Cancel</button>
+            </div>
+          </div>
+        </oj-bind-if>
+      </section>
+
+      <!-- the organization chosen: its projects -->
+      <section class="nx-card nx-vbs-detail" aria-labelledby="vbsOrgTitle">
+        <oj-bind-if test="[[ !$functions.org($variables.orgs, $variables.selOrg) ]]"><div class="nx-empty">Choose an organization, or add one.</div></oj-bind-if>
+        <oj-bind-if test="[[ !!$functions.org($variables.orgs, $variables.selOrg) ]]">
+          <div class="nx-card-head">
+            <div class="nx-vbs-orghead"><h2 id="vbsOrgTitle"><oj-bind-text value="[[ $functions.org($variables.orgs, $variables.selOrg).name ]]"></oj-bind-text></h2>
+              <code class="nx-vbs-url" id="vbsOrgUrl"><oj-bind-text value="[[ $functions.org($variables.orgs, $variables.selOrg).url ]]"></oj-bind-text></code></div>
+            <div class="nx-fx-row">
+              <button type="button" class="nx-btn nx-btn--sm nx-btn--plain" id="vbsEditOrg" data-act="editOrg" :data-key="[[ $variables.selOrg ]]" on-click="[[ $listeners.onAct ]]"><span class="oj-ux-ico-edit" aria-hidden="true"></span>Edit</button>
+              <button type="button" class="nx-btn nx-btn--sm nx-btn--plain nx-pg-delete" id="vbsRemoveOrg" data-act="removeOrg" :data-key="[[ $variables.selOrg ]]" on-click="[[ $listeners.onAct ]]"><span class="oj-ux-ico-trash" aria-hidden="true"></span>Remove</button>
+            </div>
+          </div>
+          <div class="nx-vbs-orgstatus">
+            <span :class="[[ $functions.status($functions.org($variables.orgs, $variables.selOrg)).cls ]]" id="vbsOrgStatus"><oj-bind-text value="[[ $functions.status($functions.org($variables.orgs, $variables.selOrg)).text ]]"></oj-bind-text></span>
+            <span class="nx-note"><oj-bind-text value="[[ 'Signed in as ' + $functions.org($variables.orgs, $variables.selOrg).user + '. ' + $functions.keyNote($functions.org($variables.orgs, $variables.selOrg)) ]]"></oj-bind-text></span>
+          </div>
+
+          <h3 class="nx-pg-h3 nx-vbs-h3">Projects</h3>
+          <oj-bind-if test="[[ $functions.projectsOf($variables.projects, $variables.selOrg).length === 0 ]]"><div class="nx-empty" id="vbsNoProject">No project yet: add one below by its Git address.</div></oj-bind-if>
+          <div class="nx-vbs-projects" id="vbsProjects">
+            <oj-bind-for-each data="[[ $functions.projectsOf($variables.projects, $variables.selOrg) ]]">
+              <template data-oj-as="p">
+                <div class="nx-vbs-project" :data-project="[[ p.data.id ]]">
+                  <div class="nx-vbs-phead"><span class="nx-vbs-ico nx-vbs-ico--proj" aria-hidden="true"><span class="oj-ux-ico-folder"></span></span>
+                    <span class="nx-vbs-pbody"><b><oj-bind-text value="[[ p.data.name ]]"></oj-bind-text></b><span class="nx-note"><oj-bind-text value="[[ 'Project ' + p.data.project + ' · repository ' + p.data.repo + ' · default branch ' + p.data.head ]]"></oj-bind-text></span></span>
+                    <button type="button" class="nx-btn nx-btn--sm" data-act="checkProject" :data-key="[[ p.data.id ]]" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]"><span class="oj-ux-ico-refresh" aria-hidden="true"></span>Check again</button>
+                    <button type="button" class="nx-btn nx-btn--sm nx-btn--plain nx-pg-delete" data-act="removeProject" :data-key="[[ p.data.id ]]" on-click="[[ $listeners.onAct ]]" aria-label="Remove the project"><span class="oj-ux-ico-trash" aria-hidden="true"></span></button></div>
+                  <code class="nx-vbs-url"><oj-bind-text value="[[ p.data.repoUrl ]]"></oj-bind-text></code>
+                  <oj-bind-if test="[[ !!p.data.error ]]"><div class="nx-flib-result nx-flib-result--err"><oj-bind-text value="[[ p.data.error ]]"></oj-bind-text></div></oj-bind-if>
+                  <div class="nx-vbs-row"><span class="nx-vbs-lbl"><oj-bind-text value="[[ p.data.branchCount ]]"></oj-bind-text></span>
+                    <span class="nx-vbs-chips"><oj-bind-for-each data="[[ p.data.branches ]]"><template data-oj-as="b"><span :class="[[ b.data === p.data.head ? 'nx-vbs-chip nx-vbs-chip--head' : 'nx-vbs-chip' ]]"><oj-bind-text value="[[ b.data ]]"></oj-bind-text></span></template></oj-bind-for-each>
+                      <span class="nx-note"><oj-bind-text value="[[ p.data.moreBranches ]]"></oj-bind-text></span></span></div>
+                  <div class="nx-vbs-row"><span class="nx-vbs-lbl"><oj-bind-text value="[[ p.data.jobCount ]]"></oj-bind-text></span>
+                    <span class="nx-vbs-chips"><oj-bind-for-each data="[[ p.data.jobs ]]"><template data-oj-as="j"><span class="nx-vbs-chip nx-vbs-chip--job"><oj-bind-text value="[[ j.data ]]"></oj-bind-text></span></template></oj-bind-for-each>
+                      <span class="nx-note"><oj-bind-text value="[[ p.data.jobsNote ]]"></oj-bind-text></span></span></div>
+                  <div class="nx-note"><oj-bind-text value="[[ p.data.checked ]]"></oj-bind-text></div>
+                </div>
+              </template>
+            </oj-bind-for-each>
+          </div>
+
+          <div class="nx-vbs-form nx-vbs-addproj" id="vbsAddProject">
+            <h3 class="nx-pg-h3">Add a project</h3>
+            <p class="nx-note">In VB Studio: the project → <b>Repositories</b> → its repository → <b>Clone</b> (HTTPS): paste that address. Build.Rite reads the project from it, then checks the sign-in, its branches and its build jobs.</p>
+            <label class="nx-vbs-field"><span>Git address</span><input type="url" id="vbsPRepo" class="nx-flib-filter" data-field="pRepo" :value="[[ $variables.pRepo ]]" on-input="[[ $listeners.onField ]]" :placeholder="[[ $functions.repoHint($functions.org($variables.orgs, $variables.selOrg)) ]]" autocomplete="off" spellcheck="false"></label>
+            <label class="nx-vbs-field"><span>Name (optional)</span><input type="text" id="vbsPName" class="nx-flib-filter" data-field="pName" :value="[[ $variables.pName ]]" on-input="[[ $listeners.onField ]]" placeholder="e.g. EquipRite" autocomplete="off"></label>
+            <div class="nx-fx-row"><button type="button" class="nx-btn nx-btn--primary" id="vbsAddProjectBtn" data-act="addProject" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]"><span class="oj-ux-ico-plus" aria-hidden="true"></span>Add and check</button></div>
+          </div>
+        </oj-bind-if>
+      </section>
+    </div>
+  </oj-bind-if>
+</div>
