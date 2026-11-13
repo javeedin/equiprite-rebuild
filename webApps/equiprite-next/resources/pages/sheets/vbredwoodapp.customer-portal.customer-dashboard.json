@@ -6,7 +6,7 @@
   "appName": "Old EquipRite",
   "flow": "customer-portal",
   "page": "customer-dashboard",
-  "label": "Customer Dashboard",
+  "label": "Customer Dashboard (26C)",
   "description": "",
   "route": {
    "url": "/vp/shell/customer-portal/customer-dashboard",
@@ -63,10 +63,10 @@
     "lines": 43
    }
   ],
-  "codeHash": "9817dc1243317488",
+  "codeHash": "aac9d7d966537cbb",
   "features": {
    "sections": [
-    "Customer Dashboard"
+    "Customer Dashboard (26C)"
    ],
    "actions": [
     {
@@ -77,14 +77,14 @@
      ]
     },
     {
-     "label": "Customer Dashboard: sp primary action",
+     "label": "Customer Dashboard (26C): sp primary action",
      "listener": "spPrimaryAction",
      "chains": [
       "navigateToCatalogChain"
      ]
     },
     {
-     "label": "Customer Dashboard: sp secondary action",
+     "label": "Customer Dashboard (26C): sp secondary action",
      "listener": "spSecondaryAction",
      "chains": [
       "browseCatalogChain"
@@ -400,7 +400,7 @@
   }
  ],
  "stories": [],
- "at": "2026-11-13T19:20:34.225Z",
+ "at": "2026-11-13T19:23:59.219Z",
  "by": "javeed.shaik",
- "codeHash": "9817dc1243317488"
+ "codeHash": "aac9d7d966537cbb"
 }
