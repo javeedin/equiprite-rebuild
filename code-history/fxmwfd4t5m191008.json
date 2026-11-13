@@ -1,0 +1,287 @@
+{
+ "id": "fxmwfd4t5m191008",
+ "images": [],
+ "page": "vbredwoodapp/customer-portal/customer-dashboard",
+ "app": "vbredwoodapp",
+ "label": "Customer Dashboard",
+ "request": "change page title to  Customer Dashboard (26C)",
+ "kind": "change",
+ "refine": "",
+ "parent": "",
+ "at": "2026-11-13T19:21:36.923Z",
+ "by": "javeed.shaik",
+ "provider": "Claude (Anthropic)",
+ "model": "claude-fable-5-2",
+ "ms": 9380,
+ "retried": false,
+ "sent": {
+  "files": [
+   "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.json",
+   "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.html",
+   "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.js",
+   "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page-chains/CustomerDashboardInitChain.js",
+   "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page-chains/browseCatalogChain.js",
+   "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page-chains/customersModuleGuardChain.js",
+   "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page-chains/enforcePageAccessChain.js",
+   "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page-chains/navigateToCatalogChain.js",
+   "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page-chains/navigateToMyBillingChain.js",
+   "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page-chains/navigateToMyRequestsChain.js",
+   "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page-chains/navigateToRequestDetailChain.js",
+   "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page-chains/onSelectedKpiChangedChain.js"
+  ],
+  "chars": 34493
+ },
+ "markdown": "## Summary\nI will change the heading shown at the top of the Customer Dashboard page from \"Customer Dashboard\" to \"Customer Dashboard (26C)\". This is a one-line text change in the page's HTML; nothing else is touched.\n\n## How it works today\nThe page uses the `oj-sp-general-overview-page` template in `customer-dashboard-page.html`. Its `page-title` attribute is hard-coded to \"Customer Dashboard\", and the subtitle below it reads \"Manage your equipment requests and billing in one place.\" The title is fixed text: no variable, chain or REST call supplies it.\n\n## What changes\nThe `page-title` attribute becomes \"Customer Dashboard (26C)\". The subtitle, the buttons, the three tiles and the Recent Activity table stay exactly as they are.\n\n## The change\n- `webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.html` — the `page-title` attribute on `oj-sp-general-overview-page` changes from \"Customer Dashboard\" to \"Customer Dashboard (26C)\".\n\n## After the change\n1. The user opens the Customer Dashboard (/vp/shell/customer-portal/customer-dashboard).\n2. The heading at the top of the page reads \"Customer Dashboard (26C)\".\n3. Everything else looks and behaves as before: the subtitle, New Request and Browse Catalog buttons, the tiles and the Recent Activity table.\n\n## Risks\n- The side-navigation menu label and any browser-tab title are defined outside this page (in the shell or flow), so they will still say whatever they say today. If they should also show \"(26C)\", that is a separate change.\n- Any automated UI test that looks for the exact heading text \"Customer Dashboard\" would need updating.\n- Otherwise none known.\n\n## How to test\n1. Sign in as a customer-portal user who can open the Customer Dashboard.\n2. Go to /vp/shell/customer-portal/customer-dashboard.\n3. Confirm the page heading reads \"Customer Dashboard (26C)\".\n4. Confirm the subtitle is unchanged.\n5. Confirm the tiles show their counts and the Recent Activity table loads.\n6. Click New Request, Browse Catalog and View All to confirm navigation still works.\n\n## Questions\nNone",
+ "questions": "",
+ "problems": [],
+ "checks": [
+  {
+   "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.html",
+   "already": false,
+   "name": "no oj-bind-for-each inside a table or select",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.html",
+   "already": false,
+   "name": "no String()/Number()/Boolean() or inline functions in bindings",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.html",
+   "already": false,
+   "name": "no regex literals in bindings",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.html",
+   "already": false,
+   "name": "every listener the HTML uses is declared in the page JSON",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.html",
+   "already": false,
+   "name": "every oj- component used is imported",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.html",
+   "already": false,
+   "name": "every chain the page runs is in its chains folder",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.html",
+   "name": "Old EquipRite is kept unchanged by agreement (tests/old-app-unchanged.test.js)",
+   "ok": false,
+   "warn": true,
+   "detail": "this change will fail that test unless the file is added to its AGREED list with the reason: webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.html"
+  }
+ ],
+ "files": [
+  "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.html"
+ ],
+ "diff": [
+  {
+   "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.html",
+   "created": false,
+   "added": 1,
+   "removed": 1,
+   "hunks": [
+    {
+     "rows": [
+      {
+       "t": " ",
+       "s": "</style>",
+       "o": "96",
+       "n": "96"
+      },
+      {
+       "t": " ",
+       "s": "",
+       "o": "97",
+       "n": "97"
+      },
+      {
+       "t": " ",
+       "s": "<oj-sp-general-overview-page",
+       "o": "98",
+       "n": "98"
+      },
+      {
+       "t": "-",
+       "s": "  page-title=\"Customer Dashboard\"",
+       "o": "99",
+       "n": ""
+      },
+      {
+       "t": "+",
+       "s": "  page-title=\"Customer Dashboard (26C)\"",
+       "o": "",
+       "n": "99"
+      },
+      {
+       "t": " ",
+       "s": "  page-subtitle=\"Manage your equipment requests and billing in one place.\"",
+       "o": "100",
+       "n": "100"
+      },
+      {
+       "t": " ",
+       "s": "  primary-action='{\"label\":\"New Request\",\"icon\":\"oj-ux-ico-plus\",\"display\":\"on\"}'",
+       "o": "101",
+       "n": "101"
+      },
+      {
+       "t": " ",
+       "s": "  secondary-actions='[{\"id\":\"browse-catalog\",\"label\":\"Browse Catalog\",\"icon\":\"oj-ux-ico-layers\",\"display\":\"on\"}]'",
+       "o": "102",
+       "n": "102"
+      }
+     ],
+     "head": "line 96"
+    }
+   ]
+  }
+ ],
+ "status": "applied",
+ "events": [
+  {
+   "at": "2026-11-13T19:21:36.923Z",
+   "what": "asked",
+   "by": "javeed.shaik",
+   "detail": "change page title to  Customer Dashboard (26C)"
+  },
+  {
+   "at": "2026-11-13T19:21:36.925Z",
+   "what": "proposed",
+   "by": "Claude (Anthropic)",
+   "detail": "1 file(s), +1 −1"
+  },
+  {
+   "at": "2026-11-13T19:22:12.664Z",
+   "what": "approved and applied",
+   "by": "javeed.shaik",
+   "detail": "on claude/equiprite-future · Pulled origin/claude/equiprite-future:  5 files changed, 43 insertions(+), 3 deletions(-)."
+  },
+  {
+   "at": "2026-11-13T19:22:19.086Z",
+   "what": "tested",
+   "by": "javeed.shaik",
+   "detail": "something broke: 1 new failure(s)"
+  }
+ ],
+ "updatedAt": "2026-11-13T19:22:19.086Z",
+ "applied": {
+  "at": "2026-11-13T19:22:12.662Z",
+  "by": "javeed.shaik",
+  "branch": "claude/equiprite-future",
+  "upstream": "origin/claude/equiprite-future",
+  "pull": {
+   "done": true,
+   "text": "Pulled origin/claude/equiprite-future:  5 files changed, 43 insertions(+), 3 deletions(-)."
+  },
+  "live": true
+ },
+ "baseline": [
+  {
+   "file": "tests/old-app-unchanged.test.js",
+   "ok": false,
+   "failed": 1,
+   "failures": [
+    "no tracked file differs from the baseline, beyond the agreed changes - M\twebApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page.html"
+   ]
+  },
+  {
+   "file": "tests/customer.test.js",
+   "ok": true,
+   "failed": 0,
+   "failures": []
+  }
+ ],
+ "tests": {
+  "at": "2026-11-13T19:22:19.086Z",
+  "ok": false,
+  "checks": [
+   {
+    "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.html",
+    "already": false,
+    "name": "no oj-bind-for-each inside a table or select",
+    "ok": true,
+    "detail": ""
+   },
+   {
+    "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.html",
+    "already": false,
+    "name": "no String()/Number()/Boolean() or inline functions in bindings",
+    "ok": true,
+    "detail": ""
+   },
+   {
+    "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.html",
+    "already": false,
+    "name": "no regex literals in bindings",
+    "ok": true,
+    "detail": ""
+   },
+   {
+    "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.html",
+    "already": false,
+    "name": "every listener the HTML uses is declared in the page JSON",
+    "ok": true,
+    "detail": ""
+   },
+   {
+    "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.html",
+    "already": false,
+    "name": "every oj- component used is imported",
+    "ok": true,
+    "detail": ""
+   },
+   {
+    "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.html",
+    "already": false,
+    "name": "every chain the page runs is in its chains folder",
+    "ok": true,
+    "detail": ""
+   }
+  ],
+  "unit": [
+   {
+    "file": "tests/old-app-unchanged.test.js",
+    "ok": false,
+    "passed": 2,
+    "failed": 1,
+    "failures": [
+     "no tracked file differs from the baseline, beyond the agreed changes - M\twebApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.html | M\twebApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page.html"
+    ],
+    "newFailures": [
+     "no tracked file differs from the baseline, beyond the agreed changes - M\twebApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.html | M\twebApps/vbredwoodapp/flows/customer-portal/pages/project-create-request-page.html"
+    ],
+    "before": "1 failing before the fix",
+    "ms": 877,
+    "out": ""
+   },
+   {
+    "file": "tests/customer.test.js",
+    "ok": true,
+    "passed": 257,
+    "failed": 0,
+    "failures": [],
+    "newFailures": [],
+    "before": "passed",
+    "ms": 5457,
+    "out": ""
+   }
+  ],
+  "e2eFiles": [],
+  "none": false
+ }
+}
