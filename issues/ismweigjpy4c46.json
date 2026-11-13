@@ -9,7 +9,7 @@
  "title": "change page title to 26C1",
  "by": "javeed.shaik",
  "at": "2026-11-13T05:02:56.471Z",
- "status": "new",
+ "status": "written",
  "images": [],
  "jira": null,
  "events": [
@@ -18,7 +18,31 @@
    "what": "logged",
    "by": "javeed.shaik",
    "detail": "change page title to 26C1"
+  },
+  {
+   "at": "2026-11-13T05:03:05.969Z",
+   "what": "written up",
+   "by": "Claude (Anthropic)",
+   "detail": "Change the New request page title to 26C1"
   }
  ],
- "updatedAt": "2026-11-13T05:02:56.471Z"
+ "updatedAt": "2026-11-13T05:03:05.969Z",
+ "formatted": {
+  "title": "Change the New request page title to 26C1",
+  "summary": "The page title on the New request page (equiprite-future/order/new-request) should be changed to \"26C1\". The current title and the reason for the change were not given.",
+  "steps": [
+   "Open the New request page (equiprite-future/order/new-request)",
+   "Look at the page title"
+  ],
+  "expected": "The page title reads \"26C1\".",
+  "actual": "",
+  "impact": "",
+  "questions": [
+   "What is the current page title?",
+   "Should \"26C1\" replace the whole title, or be added to the existing title?",
+   "Which title is meant: the heading shown on the page, the browser tab title, or both?",
+   "Does this apply only to the New request page, or to other pages as well?",
+   "What is the reason for the change, and is there a deadline?"
+  ]
+ }
 }
