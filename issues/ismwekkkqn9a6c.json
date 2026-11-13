@@ -9,7 +9,7 @@
  "title": "change the title of the application",
  "by": "javeed.shaik",
  "at": "2026-11-13T06:02:03.647Z",
- "status": "written",
+ "status": "needs-info",
  "images": [],
  "jira": null,
  "events": [
@@ -24,6 +24,12 @@
    "what": "written up",
    "by": "Claude (Anthropic)",
    "detail": "Change the title of the application"
+  },
+  {
+   "at": "2026-11-13T06:03:07.322Z",
+   "what": "analyzed",
+   "by": "Claude (Anthropic)",
+   "detail": "Needs information"
   }
  ],
  "comments": [],
@@ -43,7 +49,7 @@
   "dueDate": "",
   "aiWhy": ""
  },
- "updatedAt": "2026-11-13T06:02:12.418Z",
+ "updatedAt": "2026-11-13T06:03:07.322Z",
  "formatted": {
   "title": "Change the title of the application",
   "summary": "The reporter asks for the title of the application to be changed. The request was raised from the New request page (equiprite-future/order/new-request). The new title, and exactly which title is meant, were not given.",
@@ -61,5 +67,10 @@
    "Should the change apply to the whole application or only to the New request page?",
    "Is there a deadline or release this is needed for?"
   ]
+ },
+ "fixId": "fxmweklxvd5fd54a",
+ "verdict": {
+  "code": "needs-info",
+  "text": "Needs information — the request does not say which title is meant or what the new text should be. The only title in this page's code is the page heading \"New request\"; the application's own name is not set anywhere in the files provided."
  }
 }
