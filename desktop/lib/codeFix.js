@@ -346,6 +346,21 @@ function relatedTests(folder, p) {
   if (p.app === 'vbredwoodapp' && isFile(path.join(folder, OLD_GUARD)) && unit.indexOf(OLD_GUARD) === -1) unit.unshift(OLD_GUARD);
   return { unit: unit, e2e: find(path.join(folder, 'tests', 'e2e'), /\.e2e\.js$/).slice(0, 4).map((f) => 'tests/' + f) };
 }
+/**
+ * A test file's failures (tests/_harness.js: "FAILURES:" then "  - <check> - <detail>"), each whole: a detail on more lines
+ * (the files Old EquipRite's guard found, one a line) is part of it. Only the first line was kept before, so a test failing
+ * before the change and with one more file after it looked the same, and the new failure went unseen.
+ */
+function failuresOf(out) {
+  const fails = [];
+  const fm = /FAILURES:\s*\n([\s\S]*)$/.exec(str(out));
+  if (fm) fm[1].split('\n').forEach((l) => {
+    const x = /^\s*-\s+(.+?)\s*$/.exec(l);
+    if (x) fails.push(x[1]);
+    else if (l.trim() && fails.length) fails[fails.length - 1] += ' | ' + l.trim();
+  });
+  return fails.map((f) => (f.length > 1200 ? f.slice(0, 1197) + '…' : f));
+}
 /** One test file run with node (in the desktop app: its own runtime, as node): { ok, passed, failed, failures, ms, out }. */
 function runNode(folder, rel, ms) {
   return new Promise((resolve) => {
@@ -355,9 +370,7 @@ function runNode(folder, rel, ms) {
       (err, stdout, stderr) => {
         const out = str(stdout) + str(stderr);
         const m = /passed:\s*(\d+)\s+failed:\s*(\d+)/i.exec(out);
-        const fails = [];
-        const fm = /FAILURES:\s*\n([\s\S]*)$/.exec(out);
-        if (fm) fm[1].split('\n').forEach((l) => { const x = /^\s*-\s+(.+?)\s*$/.exec(l); if (x) fails.push(x[1].slice(0, 300)); });
+        const fails = failuresOf(out);
         resolve({ file: rel, ok: !err && (!m || m[2] === '0'), passed: m ? Number(m[1]) : 0, failed: m ? Number(m[2]) : (err ? 1 : 0), failures: fails.slice(0, 40),
           ms: Date.now() - t0, out: out.slice(-4000), timedOut: !!(err && err.killed) });
       });
@@ -1204,4 +1217,4 @@ function open(opts) {
   };
 }
 
-module.exports = { open, parseAnswer, tryEdits, diffOf, checksFor, htmlRules, relatedTests, oldAppWarnings, safeRel, SYSTEM, issueRules, verdictOf };
+module.exports = { open, failuresOf, parseAnswer, tryEdits, diffOf, checksFor, htmlRules, relatedTests, oldAppWarnings, safeRel, SYSTEM, issueRules, verdictOf };

@@ -65,6 +65,11 @@ const copyDir = (from, to) => { fs.mkdirSync(to, { recursive: true }); fs.readdi
     T.section('the answer: headings, edits, questions');
     const p = CF.parseAnswer('## Summary\nDo it.\n## Questions\nNone\n```\n**FILE:** `' + PAGE + '.html`\n<<<<<<< SEARCH\na\n=======\nb\n>>>>>>> REPLACE\n```\n');
     T.check('headings and an edit (in a fence, with a bold FILE)', p.sections.map((s) => s.title).join('|') === 'Summary|Questions' && p.edits.length === 1 && p.edits[0].file === PAGE + '.html' && p.edits[0].search === 'a' && p.edits[0].replace === 'b' && p.questions === '', JSON.stringify(p));
+    // a test's failures read whole: a detail on more lines (the files Old EquipRite's guard found, one a line) is part of it
+    const before = CF.failuresOf('passed: 2   failed: 1\n\nFAILURES:\n  - no tracked file differs - M\twebApps/a.html\n');
+    const after = CF.failuresOf('passed: 2   failed: 2\n\nFAILURES:\n  - no tracked file differs - M\twebApps/a.html\nM\twebApps/b.html\n  - another - x\n');
+    T.check('a failure\'s detail on more lines is part of it: one more file is a new failure (not the same one)', before.length === 1 && after.length === 2
+      && after[0] === 'no tracked file differs - M\twebApps/a.html | M\twebApps/b.html' && after[1] === 'another - x' && before.indexOf(after[0]) === -1, JSON.stringify(after));
     T.check('questions are kept when there are some', CF.parseAnswer('## Summary\nx\n## Questions\nWhich date field?').questions === 'Which date field?');
     T.check('a path outside the app (or the project) is refused', !CF.safeRel(A, '../evil.js', 'vbredwoodapp') && !CF.safeRel(A, 'desktop/main.js', 'vbredwoodapp') && !CF.safeRel(A, 'webApps/equiprite/x.js', 'vbredwoodapp') && CF.safeRel(A, PAGE + '.html', 'vbredwoodapp') === PAGE + '.html');
 

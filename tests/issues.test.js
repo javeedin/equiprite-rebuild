@@ -353,6 +353,29 @@ const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwA
     const x6 = await store.sandbox(c6.issue.id, { act: 'remove', by: 'Ben' });
     T.check('thrown away: its folder and its (unpushed) branch gone; said in the history', x6.ok && !x6.issue.sandbox && !fs.existsSync(d6) && git(A, 'branch', '--list', 'fix/' + c6.issue.key) === ''
       && x6.issue.events.some((e) => e.what === 'sandbox thrown away') && /There is no sandbox/.test((await store.sandbox(c6.issue.id, { act: 'run' })).error || ''), JSON.stringify(x6).slice(0, 300));
+
+    // a test failing before the change, with one more line after it (a guard listing one more file): a new failure
+    T.section('a test failing before, and with one more file after: stopped (its whole message compared)');
+    fs.writeFileSync(path.join(A, 'tests', 'billing-list.test.js'), [
+      "const fs = require('fs'), path = require('path');",
+      "// names customer-my-billing-page: one of its related tests; already failing (another page changed)",
+      "const f = '" + PAGE + ".html';",
+      "const marked = /MULTI-LINE-MARK/.test(fs.readFileSync(path.join(__dirname, '..', f), 'utf8'));",
+      "console.log('passed: 0   failed: 1');",
+      "console.log('FAILURES:');",
+      "console.log('  - files differ from the baseline - M\\twebApps/vbredwoodapp/other-page.html' + (marked ? '\\nM\\t' + f : ''));",
+      "process.exit(1);"].join('\n') + '\n');
+    git(A, 'add', '-A'); git(A, 'commit', '-q', '-m', 'a test already failing'); git(A, 'push', '-q', 'origin', 'main');
+    const c7 = await store.create({ app: 'vbredwoodapp', page: ID, text: 'one more marker', kind: 'change', by: 'Asha' });
+    await store.format(c7.issue.id, { by: 'Asha' });
+    answers.push(ans5('MULTI-LINE-MARK'));
+    await store.analyze(c7.issue.id, { by: 'Ben' });
+    await store.ask(c7.issue.id, { by: 'Ben', email: false });
+    await store.approve(c7.issue.id, { by: 'Asha' });
+    const a7 = await store.apply(c7.issue.id, { by: 'Asha' });
+    const u7 = ((store.get(c7.issue.id).issue.lastRun || {}).tests || { unit: [] }).unit.filter((u) => u.file === 'tests/billing-list.test.js')[0] || {};
+    T.check('the change adds a line to a failure that was there before: a new failure, not committed', !a7.ok && a7.issue.lastRun && a7.issue.lastRun.broke && u7.before === '1 failing before the fix'
+      && (u7.newFailures || []).length === 1 && u7.newFailures[0] === 'files differ from the baseline - M\twebApps/vbredwoodapp/other-page.html | M\t' + PAGE + '.html', JSON.stringify([a7.error, u7]));
   } catch (e) {
     T.check('no exception: ' + (e && e.stack), false);
   } finally {
