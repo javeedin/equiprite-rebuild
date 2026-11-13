@@ -104,6 +104,7 @@ const ident = (cwd) => { git(cwd, 'config', 'user.name', 'Tester'); git(cwd, 'co
     const cp = cat.pages.filter((p) => p.id === ID)[0] || {};
     T.check('the catalog rebuilt from the merged sheet (and the shell page B brought)', JSON.stringify(cp.stories) === JSON.stringify(['EQP-1', 'EQP-2', 'EQP-3']) && !!cp.sheet && cat.pages.length >= 1, JSON.stringify(cp.stories));
     T.check('…pushed: origin has the merge', JSON.stringify((JSON.parse(onRemote(remote, SHEET) || '{}')).stories) === JSON.stringify(['EQP-1', 'EQP-2', 'EQP-3']) && /Merge origin\//.test(git(remote, 'log', '-3', '--format=%s', DB.DEFAULT_BRANCH)));
+    await pA.synced(); // refreshed in the background
     T.check('the build copy refreshed with what came (EQP-3 from B)', /EQP-3/.test(read(mirror, 'sheets/' + P.fileOf(ID) + '.json') || ''));
     const fB = F.open({ root: B, data: dB, now: () => new Date(clock += 60000) });
     await fB.gitPull();

@@ -397,6 +397,18 @@ function showTitle() {
   }
 }
 
+// When the app's own process is held (a long piece of work: nothing it serves can answer meanwhile, so a screen opening
+// waits), the log says for how long — File → Backend calls… (Ctrl+Shift+L).
+(function watchBusy() {
+  let last = Date.now();
+  const t = setInterval(() => {
+    const now = Date.now();
+    const held = now - last - 250;
+    last = now;
+    if (held > 500) { try { pushLog(new Date(now).toLocaleTimeString() + ' busy: the app was held for ' + held + ' ms (screens waited)'); } catch (e) { /* not yet */ } }
+  }, 250);
+  if (t.unref) t.unref();
+}());
 function pushLog(line) {
   serverLog.push(String(line));
   while (serverLog.length > 400) {

@@ -1,4 +1,4 @@
-define(['resources/js/shellBus', 'resources/js/cartDrafts', 'resources/js/requestData', 'resources/js/theme', 'resources/js/look'], (bus, cartDrafts, requestData, theme, look) => {
+define(['resources/js/shellBus', 'resources/js/cartDrafts', 'resources/js/requestData', 'resources/js/theme', 'resources/js/look', 'resources/js/warmup', 'resources/js/nav'], (bus, cartDrafts, requestData, theme, look, warmup, nav) => {
   'use strict';
 
   // The shell's page module: the line from the screens in the tabs (shellBus) to the shell's chains, the keyboard
@@ -10,6 +10,9 @@ define(['resources/js/shellBus', 'resources/js/cartDrafts', 'resources/js/reques
     constructor(context) {
       // The colours chosen on this computer, before anything is drawn (theme.js; your menu, Colours).
       theme.apply(theme.load());
+      // Once the first screen is up, the components the other screens use are loaded while nothing else happens, so a tab
+      // opened later shows at once (resources/js/warmup.js).
+      warmup.start(nav.product && nav.product.isBuild ? 'buildrite' : 'next');
       // The look (Redwood or Current) last chosen on this computer, until the shell knows whose it is (lookChain).
       look.apply(look.load(''));
       const helper = context && typeof context.getEventHelper === 'function' ? context.getEventHelper() : null;

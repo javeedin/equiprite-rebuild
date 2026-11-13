@@ -472,6 +472,12 @@ function createDevServer(o) {
   const server = http.createServer((req, res) => {
     const u = new URL(req.url, 'http://local');
     const pathname = u.pathname;
+    // a slow answer of this server's own (not a backend's: those are logged with their time already) is said in the log,
+    // so a screen that takes long to open can be traced to what held it
+    if (!/^\/__backend\//.test(pathname)) {
+      const t0 = Date.now();
+      res.on('finish', () => { const ms = Date.now() - t0; if (ms > 800) log(`slow: ${req.method} ${pathname} took ${ms} ms`); });
+    }
     Promise.resolve().then(() => {
       // Another device (a phone on the Wi-Fi) acts as the person signed in here: only with the pairing key.
       if (o.pairToken && !isLoopback(req.socket.remoteAddress)) {

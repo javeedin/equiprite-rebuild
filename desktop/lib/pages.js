@@ -111,17 +111,33 @@ function open(opts) {
     if (m) { try { const mm = path.join(m, relPath); fs.mkdirSync(path.dirname(mm), { recursive: true }); fs.writeFileSync(mm, data); } catch (e) { /* the next build catches up */ } }
   }
   function removeFile(relPath) { [resDir, mirrorDir()].filter(Boolean).forEach((d) => { try { fs.unlinkSync(path.join(d, relPath)); } catch (e) { /* gone */ } }); }
+  // The build copy (mirror) refreshed in the background, file by file, and only what changed (a different size, or newer
+  // than the copy): the sheets and every screenshot were copied at once, which held the app (and every screen waiting on
+  // it) for seconds on a PC whose antivirus reads each file. A refresh asked for meanwhile runs once it is done.
+  let syncing = null;
+  let syncAgain = false;
   function sync() {
     const m = mirrorDir();
-    if (!m || !fs.existsSync(resDir)) return;
-    const copy = (from, to) => {
-      fs.mkdirSync(to, { recursive: true });
-      fs.readdirSync(from).forEach((f) => {
+    if (!m || !fs.existsSync(resDir)) return Promise.resolve();
+    if (syncing) { syncAgain = true; return syncing; }
+    const fsp = fs.promises;
+    const copy = async (from, to) => {
+      await fsp.mkdir(to, { recursive: true });
+      for (const f of await fsp.readdir(from)) {
         const a = path.join(from, f), b = path.join(to, f);
-        if (fs.statSync(a).isDirectory()) copy(a, b); else fs.copyFileSync(a, b);
-      });
+        const sa = await fsp.stat(a);
+        if (sa.isDirectory()) { await copy(a, b); continue; }
+        let sb = null;
+        try { sb = await fsp.stat(b); } catch (e) { sb = null; }
+        if (!sb || sb.size !== sa.size || sb.mtimeMs < sa.mtimeMs) await fsp.copyFile(a, b);
+      }
     };
-    try { copy(resDir, m); } catch (e) { /* the next build catches up */ }
+    syncing = copy(resDir, m).catch(() => { /* the next build catches up */ }).then(() => {
+      syncing = null;
+      if (syncAgain) { syncAgain = false; return sync(); }
+      return null;
+    });
+    return syncing;
   }
   if (data) data.onMerged(sync); // others' sheets merged in: into the build copy at once
 
@@ -131,10 +147,17 @@ function open(opts) {
 
   /** The catalog: every page the code has now, with what was saved for it (stories, sheet); pages gone from the code
    *  but still mapped to stories stay, marked missing. */
-  function catalog() {
+  // the pages in the code: read at most every 15 s (each read opens every page's files; Issues, Application pages and each
+  // saved sheet ask for it); Rescan reads them at once
+  let listed = { at: 0, v: null };
+  const livePages = (fresh) => {
+    if (fresh || !listed.v || Date.now() - listed.at > 15000) listed = { at: Date.now(), v: scan.list(root) };
+    return listed.v;
+  };
+  function catalog(fresh) {
     const old = {};
     (saved().pages || []).forEach((p) => { old[p.id] = p; });
-    const live = scan.list(root);
+    const live = livePages(fresh);
     const pages = live.map((p) => Object.assign({}, p, { stories: (old[p.id] && old[p.id].stories) || [], sheet: (old[p.id] && old[p.id].sheet) || null,
       deleted: !!(old[p.id] && old[p.id].deleted) }));
     Object.keys(old).forEach((id) => { if (!pages.some((p) => p.id === id) && (old[id].stories || []).length) pages.push(Object.assign({}, old[id], { missing: true })); });
@@ -310,7 +333,7 @@ function open(opts) {
   }
 
   /** Writes the catalog as the code is now (new pages listed, labels current): what the Rescan button does. */
-  function rescan() { const cat = catalog(); writeCatalog(cat); return { ok: true, pages: cat.pages.length }; }
+  function rescan() { const cat = catalog(true); writeCatalog(cat); return { ok: true, pages: cat.pages.length }; }
 
   return {
     remove: remove, restore: restore, removeShot: removeShot,
@@ -319,7 +342,8 @@ function open(opts) {
     canWrite: () => { try { return fs.statSync(path.join(root, 'webApps', 'equiprite-next')).isDirectory(); } catch (e) { return false; } },
     gitStatus: () => repo.status(), gitSave: (b) => repo.save(b), gitPull: () => repo.pull(),
     dataInfo: () => (o.data ? o.data.info() : { separate: false, branch: '', reason: '' }),
-    setMirror: (dir) => { mirror = dir || ''; sync(); },
+    setMirror: (dir) => { const was = mirrorDir(); mirror = dir || ''; if (mirrorDir() !== was) sync(); },
+    synced: () => syncing || Promise.resolve(), // the build copy's refresh, done
     RES: RES, root: root, dataRoot: dataRoot,
   };
 }
