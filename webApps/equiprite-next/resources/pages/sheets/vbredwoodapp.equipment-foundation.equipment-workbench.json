@@ -1,0 +1,235 @@
+{
+ "id": "vbredwoodapp/equipment-foundation/equipment-workbench",
+ "facts": {
+  "id": "vbredwoodapp/equipment-foundation/equipment-workbench",
+  "app": "vbredwoodapp",
+  "appName": "Old EquipRite",
+  "flow": "equipment-foundation",
+  "page": "equipment-workbench",
+  "label": "Equipment Manager Workbench",
+  "description": "",
+  "route": {
+   "url": "/vp/shell/equipment-foundation/equipment-workbench",
+   "menu": "",
+   "needs": ""
+  },
+  "files": [
+   {
+    "path": "webApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-workbench-page.json",
+    "lines": 140
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-workbench-page.html",
+    "lines": 314
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-workbench-page.js",
+    "lines": 42
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-workbench-page-chains/RowClickChain.js",
+    "lines": 41
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-workbench-page-chains/WorkbenchFilterChain.js",
+    "lines": 136
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-workbench-page-chains/WorkbenchInitChain.js",
+    "lines": 220
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-workbench-page-chains/enforcePageAccessChain.js",
+    "lines": 72
+   }
+  ],
+  "codeHash": "14b680770fe09d7c",
+  "features": {
+   "sections": [
+    "Equipment Manager Workbench"
+   ],
+   "actions": [
+    {
+     "label": "oj-sp-smart-search: filter criterion changed",
+     "listener": "filterCriterionChanged",
+     "chains": [
+      "WorkbenchFilterChain"
+     ]
+    },
+    {
+     "label": "oj-tab-bar: selection changed",
+     "listener": "onTabChanged",
+     "chains": [
+      "WorkbenchInitChain"
+     ]
+    },
+    {
+     "label": "Equipment Workbench Table: first selected row changed",
+     "listener": "onRowAction",
+     "chains": [
+      "RowClickChain"
+     ]
+    }
+   ],
+   "fields": [
+    "Request #, project, task, requestor..."
+   ],
+   "columns": [
+    "Source",
+    "Request #",
+    "Project",
+    "Task",
+    "Internal / External Customer",
+    "Requestor",
+    "Location",
+    "Start Date",
+    "End Date",
+    "Status",
+    "Lines",
+    "Allocation",
+    "Est. Cost"
+   ],
+   "components": [
+    "oj-sp-collection-container",
+    "oj-sp-general-overview-page",
+    "oj-sp-smart-search",
+    "oj-sp-smart-search-page",
+    "oj-tab-bar",
+    "oj-table"
+   ],
+   "inputs": [],
+   "lifecycle": [
+    {
+     "when": "before the page opens",
+     "chains": [
+      "enforcePageAccessChain"
+     ]
+    },
+    {
+     "when": "when the page opens",
+     "chains": [
+      "WorkbenchInitChain"
+     ]
+    }
+   ]
+  },
+  "logic": {
+   "chains": [
+    {
+     "name": "RowClickChain",
+     "file": "webApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-workbench-page-chains/RowClickChain.js",
+     "about": "oj-table fires firstSelectedRowChanged PART WAY THROUGH its own select-and-focus sequence. Navigating synchronously from here tore the page down mid-sequence, and the dying table then tried to resolve the key of a row whose data was already gone: TypeError: Cannot read properties of undefined (reading 'key') at GetKey / _fireBeforeSelectEvent / HandleSelectionOption reported by VB as \"Fatal exception delivering binding updates\", which aborts the rest of that binding-delivery cycle. Yield one macrotask so the table finishes selecting before the route changes. Navigation behaviour is unchanged.",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [
+      "page request-detail"
+     ],
+     "modules": [],
+     "on": [
+      "onRowAction"
+     ],
+     "lines": 41
+    },
+    {
+     "name": "WorkbenchFilterChain",
+     "file": "webApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-workbench-page-chains/WorkbenchFilterChain.js",
+     "about": "No filter active — show everything",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "filterCriterionChanged"
+     ],
+     "lines": 136
+    },
+    {
+     "name": "WorkbenchInitChain",
+     "file": "webApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-workbench-page-chains/WorkbenchInitChain.js",
+     "about": "Coerce a possibly-string/null numeric field to a finite number. The view columns come back as JSON numbers, but null/'' must not become NaN — that is what produced blank and 'NaN%' allocation cells.",
+     "calls": [
+      "eqp-v1/getEquipriteV1ViewsWorkbenchRequests"
+     ],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "vbEnter",
+      "onTabChanged"
+     ],
+     "lines": 220
+    },
+    {
+     "name": "enforcePageAccessChain",
+     "file": "webApps/vbredwoodapp/flows/equipment-foundation/pages/equipment-workbench-page-chains/enforcePageAccessChain.js",
+     "about": "Page-level RBAC deep-link guard. GENERATED - every copy is byte-identical; change the template and regenerate rather than editing one copy. Copies exist because a page's eventListeners resolve a bare chain id against that page's OWN <page>-chains folder, so an app-level chain referenced by name 404s. This file holds NO policy: the decision (canEnterPage), the page code (getPageCodeForPage), the redirect target (getRoleHomeTarget) and the same-flow test (isSameFlow) all live in $application.functions. Deriving the page code at runtime is what lets every copy be identical.",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "vbBeforeEnter"
+     ],
+     "lines": 72
+    }
+   ],
+   "modules": [],
+   "variables": 13
+  },
+  "integrations": {
+   "rest": [
+    {
+     "endpoint": "eqp-v1/getEquipriteV1ViewsWorkbenchRequests",
+     "service": "eqp-v1",
+     "operation": "getEquipriteV1ViewsWorkbenchRequests",
+     "method": "GET",
+     "path": "/equiprite/v1/views/workbench-requests",
+     "summary": "List all workbench requests (manager view)",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "WorkbenchInitChain"
+     ]
+    }
+   ],
+   "reports": [],
+   "local": [],
+   "backends": [
+    "EquipRite REST (eqpt)"
+   ]
+  },
+  "links": [
+   "page request-detail"
+  ],
+  "next": [
+   {
+    "id": "vbredwoodapp/equipment-foundation/request-detail",
+    "label": "Request Detail",
+    "via": [
+     "RowClickChain"
+    ]
+   }
+  ],
+  "unresolvedLinks": []
+ },
+ "ai": null,
+ "screenshots": [
+  {
+   "id": "s1",
+   "file": "screens/vbredwoodapp.equipment-foundation.equipment-workbench.1.jpg",
+   "at": "2026-11-13T07:48:07.656Z",
+   "by": "javeed.shaik",
+   "source": "capture",
+   "caption": "",
+   "bytes": 143994
+  }
+ ],
+ "stories": [],
+ "at": "2026-11-13T07:48:07.555Z",
+ "by": "javeed.shaik",
+ "codeHash": "14b680770fe09d7c"
+}

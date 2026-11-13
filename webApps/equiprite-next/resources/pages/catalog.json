@@ -1,5 +1,5 @@
 {
- "scannedAt": "2026-11-13T07:05:49.626Z",
+ "scannedAt": "2026-11-13T07:48:07.659Z",
  "pages": [
   {
    "id": "equiprite//shell",
@@ -687,9 +687,9 @@
    "page": "shell",
    "label": "EquipRite Future shell",
    "route": {
-    "url": "/",
+    "url": "",
     "menu": "",
-    "needs": ""
+    "needs": "Not in the menu: upload a screenshot."
    },
    "stories": [],
    "sheet": null
@@ -702,8 +702,8 @@
    "page": "fdd2",
    "label": "EquipRite FDD 2.0: many companies, many countries",
    "route": {
-    "url": "/vp/shell/fdd2/fdd2",
-    "menu": "",
+    "url": "/?open=fdd2",
+    "menu": "Help › FDD 2.0",
     "needs": ""
    },
    "stories": [],
@@ -717,8 +717,8 @@
    "page": "accounting",
    "label": "Accounting",
    "route": {
-    "url": "/vp/shell/finance/accounting",
-    "menu": "",
+    "url": "/?open=accounting",
+    "menu": "Finance › Accounting (shown)",
     "needs": ""
    },
    "stories": [],
@@ -732,8 +732,8 @@
    "page": "reports",
    "label": "Reports",
    "route": {
-    "url": "/vp/shell/finance/reports",
-    "menu": "",
+    "url": "/?open=reports",
+    "menu": "Finance › Reports",
     "needs": ""
    },
    "stories": [],
@@ -747,8 +747,8 @@
    "page": "guide",
    "label": "Guide: the end-to-end story",
    "route": {
-    "url": "/vp/shell/guide/guide",
-    "menu": "",
+    "url": "/?open=guide",
+    "menu": "Help › Guide: the end-to-end story",
     "needs": ""
    },
    "stories": [],
@@ -762,8 +762,8 @@
    "page": "billing",
    "label": "Customer billing",
    "route": {
-    "url": "/vp/shell/money/billing",
-    "menu": "",
+    "url": "/?open=billing",
+    "menu": "Money › Customer billing",
     "needs": ""
    },
    "stories": [],
@@ -777,8 +777,8 @@
    "page": "charges",
    "label": "Charges & statements",
    "route": {
-    "url": "/vp/shell/money/charges",
-    "menu": "",
+    "url": "/?open=charges",
+    "menu": "Money › Charges & statements",
     "needs": ""
    },
    "stories": [],
@@ -792,8 +792,8 @@
    "page": "ic-workbench",
    "label": "Intercompany workbench",
    "route": {
-    "url": "/vp/shell/money/ic-workbench",
-    "menu": "",
+    "url": "/?open=ic-workbench",
+    "menu": "Money › Intercompany workbench",
     "needs": ""
    },
    "stories": [],
@@ -807,8 +807,8 @@
    "page": "new-request",
    "label": "New request",
    "route": {
-    "url": "/vp/shell/order/new-request",
-    "menu": "",
+    "url": "/?open=new-request",
+    "menu": "Requests › New request",
     "needs": ""
    },
    "stories": [],
@@ -830,8 +830,8 @@
    "page": "approvals",
    "label": "Approve & allocate",
    "route": {
-    "url": "/vp/shell/owner/approvals",
-    "menu": "",
+    "url": "/?open=approvals",
+    "menu": "Fleet owner › Approve & allocate",
     "needs": ""
    },
    "stories": [],
@@ -845,8 +845,8 @@
    "page": "yard",
    "label": "Yard",
    "route": {
-    "url": "/vp/shell/owner/yard",
-    "menu": "",
+    "url": "/?open=yard",
+    "menu": "Fleet owner › Yard",
     "needs": ""
    },
    "stories": [],
@@ -860,9 +860,9 @@
    "page": "request",
    "label": "A request in its own tab",
    "route": {
-    "url": "/vp/shell/requests/request",
+    "url": "",
     "menu": "",
-    "needs": ""
+    "needs": "Opened from another screen (record \"request\"): capture it there, or upload a screenshot."
    },
    "stories": [],
    "sheet": null
@@ -875,8 +875,8 @@
    "page": "requests",
    "label": "My requests",
    "route": {
-    "url": "/vp/shell/requests/requests",
-    "menu": "",
+    "url": "/?open=requests",
+    "menu": "Requests › My requests",
     "needs": ""
    },
    "stories": [],
@@ -890,8 +890,8 @@
    "page": "setup",
    "label": "Companies & agreements",
    "route": {
-    "url": "/vp/shell/setup/setup",
-    "menu": "",
+    "url": "/?open=setup",
+    "menu": "Setup › Companies & agreements",
     "needs": ""
    },
    "stories": [],
@@ -905,8 +905,8 @@
    "page": "site",
    "label": "Receive, hours, moves",
    "route": {
-    "url": "/vp/shell/site/site",
-    "menu": "",
+    "url": "/?open=site",
+    "menu": "On site › Receive, hours, moves",
     "needs": ""
    },
    "stories": [],
@@ -920,8 +920,8 @@
    "page": "work",
    "label": "My work",
    "route": {
-    "url": "/vp/shell/work/work",
-    "menu": "",
+    "url": "/?open=work",
+    "menu": "Home › My work",
     "needs": ""
    },
    "stories": [],
@@ -2371,7 +2371,15 @@
    ],
    "menu": "Equipment Manager Workbench",
    "stories": [],
-   "sheet": null
+   "sheet": {
+    "at": "2026-11-13T07:48:07.555Z",
+    "by": "javeed.shaik",
+    "codeHash": "14b680770fe09d7c",
+    "screenshots": 1,
+    "ai": false,
+    "rest": 1,
+    "chains": 4
+   }
   },
   {
    "id": "vbredwoodapp/equipment-foundation/initiate-picking",
