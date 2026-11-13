@@ -56,6 +56,7 @@ define([], function () {
     comment: function (id, b) { return post('comment', Object.assign({ id: id }, b || {})); },
     email: function (id, b) { return post('email', Object.assign({ id: id }, b || {})); },
     draft: function (id, purpose) { return post('draft', { id: id, purpose: purpose || 'info' }); },
+    progress: function (id) { return call('progress?id=' + encodeURIComponent(id || '')); },
     settings: function () { return call('settings'); },
     setProject: function (project) { return post('settings', { project: project || '' }); },
     reopen: function (id) { return post('reopen', { id: id }); }

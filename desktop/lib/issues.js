@@ -49,6 +49,9 @@ const RESOLUTION = { fixed: 'Fixed', done: 'Done', 'as-designed': 'Works as desi
   'cannot-reproduce': 'Cannot reproduce', 'wont-fix': 'Won\'t fix' };
 const ROOT_CAUSE = { code: 'Code defect', config: 'Configuration', data: 'Data', requirement: 'Requirement gap', environment: 'Environment', integration: 'Integration (Fusion, OIC, BI Publisher)',
   user: 'User error / training', none: 'None' };
+// what the agent does when Apply change is pressed, in order (codeFix.applyToBranch says each as it goes)
+const AGENT_STEPS = [['fetch', 'Get the latest code'], ['branch', 'Make its own branch'], ['check', 'Check the change still fits the code'], ['before', 'Run the related tests, before the change'],
+  ['write', 'Write the change'], ['after', 'Run the tests again, with the change'], ['commit', 'Commit it'], ['push', 'Push the branch'], ['pr', 'The pull request']];
 const COMMENT_KIND = { comment: 'Comment', response: 'Response to the customer', internal: 'Internal note', email: 'Email' };
 const STATUS_LABEL = { new: 'Logged', written: 'Written up', analyzed: 'Analyzed', triaged: 'Triaged', 'needs-info': 'Needs information', 'awaiting-approval': 'Waiting for approval',
   approved: 'Approved', rejected: 'Rejected', 'in-review': 'Pull request', verified: 'Verified', closed: 'Closed' };
@@ -534,6 +537,15 @@ function open(opts) {
   }
 
   // ── the agent: the approved change on a branch of its own, tested, pushed, a pull request ──
+  // its steps, live: { id: { at, steps: { key: { state, detail, at, ms } }, done, ok, error } } (kept 15 minutes after)
+  const agentRuns = {};
+  function agentView(run) {
+    const t = Date.now();
+    return { ok: true, running: !!run && !run.done, done: !!run && run.done, okRun: !!run && !!run.ok, error: run ? run.error || '' : '', started: run ? new Date(run.at).toISOString() : '',
+      seconds: run ? Math.round(((run.done ? run.end : t) - run.at) / 1000) : 0,
+      steps: AGENT_STEPS.map((s) => { const x = (run && run.steps[s[0]]) || {}; return { key: s[0], label: s[1], state: x.state || 'pending', detail: x.detail || '', seconds: x.at ? Math.round(((x.end || (x.state === 'running' && !(run && run.done) ? t : x.at)) - x.at) / 1000) : 0 }; }) };
+  }
+  function progress(id) { return agentView(agentRuns[str(id)] || null); }
   async function apply(id, b) {
     b = b || {};
     const x = byId(id);
@@ -547,7 +559,16 @@ function open(opts) {
     const prBody = '**' + k + '** · ' + (f.title || x.title) + '\n\n' + (f.summary || '') + '\n\n**Page:** ' + x.label + ' (`' + x.page + '`)\n\n' + str(fx.markdown).slice(0, 2500)
       + '\n\n---\nApproved by ' + (x.approval.decision.by || 'someone') + ' · proposed by ' + (fx.provider || 'AI') + ' in Build.Rite' + (x.jira && x.jira.url ? ' · ' + x.jira.url : '');
     ev(x, 'agent started', b.by, 'branch fix/' + k);
-    const r = await o.fix.applyToBranch({ fix: fx.id, branch: 'fix/' + k, by: b.by, message: message, prBody: prBody });
+    const run = agentRuns[x.id] = { at: Date.now(), steps: {}, done: false, ok: false, error: '' };
+    const onStep = (s) => {
+      const cur = run.steps[s.key] || {};
+      const next = { state: s.state, detail: s.detail, at: cur.at || Date.now(), end: s.state === 'running' ? 0 : Date.now() };
+      run.steps[s.key] = next;
+    };
+    const r = await o.fix.applyToBranch({ fix: fx.id, branch: 'fix/' + k, by: b.by, message: message, prBody: prBody, onStep: onStep });
+    run.done = true; run.end = Date.now(); run.ok = !!r.ok; run.error = r.ok ? '' : str(r.error);
+    const stale = setTimeout(() => { if (agentRuns[x.id] === run) delete agentRuns[x.id]; }, 15 * 60000);
+    if (stale.unref) stale.unref();
     if (!r.ok) {
       x.lastError = r.error;
       ev(x, r.stale ? 'out of date' : (r.broke ? 'tests broke' : 'agent failed'), 'agent', r.error);
@@ -740,7 +761,7 @@ function open(opts) {
   return {
     info: info, list: list, get: (id) => { const x = byId(id); return x ? ok(x) : no('No such issue.'); },
     create: create, format: format, update: update, toJira: toJira, analyze: analyze, ask: ask, approve: approve, reject: reject, apply: apply, verify: verify, close: close, reopen: reopen,
-    details: details, comment: comment, email: email, draft: draft, settings: settings, setSettings: setSettings, img: img, flush: () => Promise.all([pub, notes]).then(() => Promise.all([pub, notes])),
+    details: details, comment: comment, email: email, draft: draft, settings: settings, setSettings: setSettings, progress: progress, img: img, flush: () => Promise.all([pub, notes]).then(() => Promise.all([pub, notes])),
   };
 }
 
@@ -768,4 +789,4 @@ function fddPicker(fddStore, root) {
   };
 }
 
-module.exports = { open, issueText, jiraWiki, jsonOf, fddPicker, mergeIssue, cleanDetails, emailsOf, STEPS, VERDICT_LABEL, SEVERITY, PRIORITY, ENVS, RESOLUTION, ROOT_CAUSE, COMMENT_KIND };
+module.exports = { open, issueText, jiraWiki, jsonOf, fddPicker, mergeIssue, cleanDetails, emailsOf, AGENT_STEPS, STEPS, VERDICT_LABEL, SEVERITY, PRIORITY, ENVS, RESOLUTION, ROOT_CAUSE, COMMENT_KIND };

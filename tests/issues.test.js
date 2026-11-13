@@ -113,7 +113,18 @@ const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwA
     T.check('approved (self-approval, in the app), in Jira too', p1.ok && p1.issue.status === 'approved' && p1.issue.approval.decision.by === 'Asha' && jiraCalls.some((c) => /Approved by Asha/.test((c.body || {}).body || '')));
 
     T.section('the agent: a branch of its own, tested, the commit with the key, pushed, the pull request');
+    T.check('before the agent runs: no steps yet, each waiting', store.progress(is1.id).steps.every((s) => s.state === 'pending') && !store.progress(is1.id).running);
+    const seen = [];
+    const watchAgent = setInterval(() => { const p = store.progress(is1.id); if (p.running) seen.push(p.steps.filter((s) => s.state === 'running').map((s) => s.key).join()); }, 5);
     const ap = await store.apply(is1.id, { by: 'Asha' });
+    clearInterval(watchAgent);
+    const prog = store.progress(is1.id);
+    T.check('the agent said each step as it went (seen running while it worked); done: every step done, the time each took',
+      // (here the fetch address is GitHub's, which a test cannot reach — said, and it starts from what it has; no unit test names this page)
+      prog.done && prog.okRun && !prog.running && prog.steps.map((s) => s.key + ':' + s.state).join() === 'fetch:skipped,branch:done,check:done,before:skipped,write:done,after:done,commit:done,push:done,pr:done'
+      && /could not fetch \(.+\): starting from origin\/main/.test(prog.steps[0].detail) && ['fetch', 'branch', 'commit', 'push'].every((k) => seen.indexOf(k) !== -1)
+      && /^EQP-901: /.test(prog.steps.filter((s) => s.key === 'commit')[0].detail.split(' · ')[1] || '') && /no unit test names this page/.test(prog.steps.filter((s) => s.key === 'before')[0].detail),
+      JSON.stringify([prog.steps.map((s) => s.key + ':' + s.state + ' ' + s.detail), Array.from(new Set(seen))]));
     const onBranch = (() => { try { return git(remote, 'show', 'fix/EQP-901:' + PAGE + '.html'); } catch (e) { return ''; } })();
     T.check('pushed on fix/EQP-901: the change with its EQP-901 comment', ap.ok && ap.issue.status === 'in-review' && ap.issue.branch.name === 'fix/EQP-901' && ap.issue.branch.pushed && /<!-- EQP-901: overdue invoices first -->/.test(onBranch), JSON.stringify(ap.error || (ap.issue && ap.issue.branch)));
     T.check('the commit names the issue, the approval and the page', /^EQP-901: Overdue invoices are not shown first on My Billing/.test(git(remote, 'log', '-1', '--format=%s', 'fix/EQP-901'))
@@ -226,6 +237,11 @@ const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwA
     T.check('…sent to the Notify list and the reporter (cc as asked), kept in its discussion as an email, in its history', em.ok && emMail.to === 'lead@acme.example;qa@rite.example;pat@acme.example' && emMail.cc === 'boss@rite.example'
       && /Which invoices\?/.test(emMail.html) && em.issue.comments.slice(-1)[0].kind === 'email' && em.issue.comments.slice(-1)[0].kindLabel === 'Email' && em.issue.comments.slice(-1)[0].subject === dr.subject
       && em.issue.events.some((e) => e.what === 'emailed' && /to lead@acme\.example, qa@rite\.example, pat@acme\.example · cc boss@rite\.example/.test(e.detail)), JSON.stringify(emMail && [emMail.to, emMail.cc]));
+
+    T.section('git that never finishes (a sign-in window nobody sees): stopped, said');
+    const GP = require('../desktop/lib/gitPaths');
+    const hang = await GP.runGit(process.execPath, tmp, ['-e', 'setTimeout(() => {}, 20000)'], 400);
+    T.check('stopped after its time, and why — so the agent never waits forever', hang.code !== 0 && hang.timedOut && /did not finish in 0 s|did not finish in 1 s/.test(hang.stderr), JSON.stringify(hang));
 
     T.section('two PCs answering at once');
     const base = { id: 'isx', status: 'written', updatedAt: '2026-11-13T10:00:00Z', comments: [{ id: 'c1', at: '2026-11-13T09:00:00Z', by: 'Asha', text: 'a' }], events: [{ at: '1', what: 'logged', by: 'Asha' }] };

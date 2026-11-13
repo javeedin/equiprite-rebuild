@@ -419,6 +419,45 @@
                   <oj-bind-text value="[[ ($variables.issue.approval.decision.approved ? '✓ Approved by ' : '✗ Rejected by ') + ($variables.issue.approval.decision.by || 'someone') + ' · ' + $functions.when($variables.issue.approval.decision.at) + ' · in ' + ($variables.issue.approval.decision.via === 'email' ? 'an email reply' : 'Build.Rite') + ($variables.issue.approval.decision.reason ? ': ' + $variables.issue.approval.decision.reason : '') ]]"></oj-bind-text>
                 </div>
               </oj-bind-if>
+              <!-- the exact change the approver approves, and the agent applies -->
+              <oj-bind-if test="[[ $functions.showChange($variables.issue) ]]">
+                <details class="nx-is-change" id="isApplyChange" open>
+                  <summary><oj-bind-text value="[[ ($variables.issue.status === 'approved' ? 'The change the agent will apply · ' : 'The change to approve · ') + $functions.stats($variables.issue.fix) ]]"></oj-bind-text></summary>
+                  <div class="nx-fx-diff">
+                    <oj-bind-for-each data="[[ $variables.issue.fix.diff ]]">
+                      <template data-oj-as="d">
+                        <div class="nx-fx-file">
+                          <div class="nx-fx-filehead"><code><oj-bind-text value="[[ d.data.file ]]"></oj-bind-text></code><span class="nx-min-flex"></span><span class="nx-fx-add"><oj-bind-text value="[[ '+' + d.data.added ]]"></oj-bind-text></span><span class="nx-fx-del"><oj-bind-text value="[[ '−' + d.data.removed ]]"></oj-bind-text></span></div>
+                          <oj-bind-for-each data="[[ d.data.hunks ]]">
+                            <template data-oj-as="h">
+                              <div class="nx-fx-hunk"><div class="nx-fx-hunkhead"><oj-bind-text value="[[ h.data.head ]]"></oj-bind-text></div>
+                                <oj-bind-for-each data="[[ h.data.rows ]]"><template data-oj-as="r"><div :class="[[ $functions.fixLine(r.data.t) ]]"><span class="nx-fx-ln"><oj-bind-text value="[[ r.data.o ]]"></oj-bind-text></span><span class="nx-fx-ln"><oj-bind-text value="[[ r.data.n ]]"></oj-bind-text></span><span class="nx-fx-sign"><oj-bind-text value="[[ $functions.fixSign(r.data.t) ]]"></oj-bind-text></span><span class="nx-fx-code"><oj-bind-text value="[[ r.data.s ]]"></oj-bind-text></span></div></template></oj-bind-for-each>
+                              </div>
+                            </template>
+                          </oj-bind-for-each>
+                        </div>
+                      </template>
+                    </oj-bind-for-each>
+                  </div>
+                </details>
+              </oj-bind-if>
+              <!-- what the agent does: its plan before, each step as it goes, how it ended -->
+              <oj-bind-if test="[[ $variables.issue.status === 'approved' || !!$variables.agent ]]">
+                <div :class="[[ $functions.agentClass($variables.agent) ]]" id="isAgent" aria-live="polite">
+                  <div class="nx-is-agenthead"><span class="nx-is-agentico" aria-hidden="true"><span class="oj-ux-ico-wrench"></span></span><b>The agent</b><span class="nx-is-agentstate" id="isAgentState"><oj-bind-text value="[[ $functions.agentHead($variables.agent, $variables.issue) ]]"></oj-bind-text></span></div>
+                  <ol class="nx-is-agsteps" id="isAgentSteps">
+                    <oj-bind-for-each data="[[ $functions.agentSteps($variables.agent) ]]">
+                      <template data-oj-as="s">
+                        <li :class="[[ $functions.agentStepClass(s.data) ]]" :data-step="[[ s.data.key ]]">
+                          <span class="nx-is-agmark" aria-hidden="true"><oj-bind-text value="[[ $functions.agentMark(s.data) ]]"></oj-bind-text></span>
+                          <span class="nx-is-agbody"><b><oj-bind-text value="[[ s.data.label ]]"></oj-bind-text></b><oj-bind-if test="[[ !!s.data.detail ]]"><span class="nx-is-agdetail"><oj-bind-text value="[[ s.data.detail ]]"></oj-bind-text></span></oj-bind-if></span>
+                          <span class="nx-is-agtime"><oj-bind-text value="[[ $functions.agentTime(s.data) ]]"></oj-bind-text></span>
+                        </li>
+                      </template>
+                    </oj-bind-for-each>
+                  </ol>
+                </div>
+              </oj-bind-if>
               <oj-bind-if test="[[ $variables.issue.status === 'approved' ]]">
                 <div class="nx-is-applybox" id="isApplyBox">
                   <div class="nx-fx-approvetext"><b>Apply change.</b> <oj-bind-text value="[[ 'The agent puts the approved change on a branch of its own (fix/' + $variables.issue.key + '), runs the related tests before and after, commits it with ' + $variables.issue.key + ' and pushes it, then makes the pull request. Your own code folder is not touched.' ]]"></oj-bind-text></div>
@@ -431,6 +470,23 @@
           <!-- 4/5 · Applied, pull request -->
           <oj-bind-if test="[[ $functions.isPanel($variables.issue, $variables.stageView, 4) ]]">
             <div class="nx-is-sec nx-is-panel" id="isFixPanel">
+              <!-- how the agent's run went, step by step (while this app runs) -->
+              <oj-bind-if test="[[ !!$variables.agent ]]">
+                <div :class="[[ $functions.agentClass($variables.agent) ]]" id="isAgentDone">
+                  <div class="nx-is-agenthead"><span class="nx-is-agentico" aria-hidden="true"><span class="oj-ux-ico-wrench"></span></span><b>The agent</b><span class="nx-is-agentstate"><oj-bind-text value="[[ $functions.agentHead($variables.agent, $variables.issue) ]]"></oj-bind-text></span></div>
+                  <ol class="nx-is-agsteps">
+                    <oj-bind-for-each data="[[ $functions.agentSteps($variables.agent) ]]">
+                      <template data-oj-as="s">
+                        <li :class="[[ $functions.agentStepClass(s.data) ]]" :data-step="[[ s.data.key ]]">
+                          <span class="nx-is-agmark" aria-hidden="true"><oj-bind-text value="[[ $functions.agentMark(s.data) ]]"></oj-bind-text></span>
+                          <span class="nx-is-agbody"><b><oj-bind-text value="[[ s.data.label ]]"></oj-bind-text></b><oj-bind-if test="[[ !!s.data.detail ]]"><span class="nx-is-agdetail"><oj-bind-text value="[[ s.data.detail ]]"></oj-bind-text></span></oj-bind-if></span>
+                          <span class="nx-is-agtime"><oj-bind-text value="[[ $functions.agentTime(s.data) ]]"></oj-bind-text></span>
+                        </li>
+                      </template>
+                    </oj-bind-for-each>
+                  </ol>
+                </div>
+              </oj-bind-if>
               <oj-bind-if test="[[ !$variables.issue.branch ]]"><p class="nx-note" id="isNotApplied">Not applied yet: once approved, Apply change lets the agent put it on its own branch (fix/<oj-bind-text value="[[ $variables.issue.key ]]"></oj-bind-text>), test it, commit and push it, and make the pull request.</p></oj-bind-if>
               <oj-bind-if test="[[ !!$variables.issue.branch ]]">
                 <div class="nx-fx-applied" id="isBranch">

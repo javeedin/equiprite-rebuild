@@ -17,12 +17,23 @@
  */
 function str(v) { return v == null ? '' : String(v); }
 
-function runGit(gitPath, cwd, args) {
+// A git command is given a time to finish: one that talks to the remote (fetch, push, pull…) 2 minutes, others 1 — a push
+// waiting on a sign-in window nobody sees, or a dead network, ends instead of holding the app's work forever.
+const NETWORK = /^(fetch|push|pull|clone|ls-remote)$/;
+// a whole checkout (a worktree for a branch), a merge: many files written — 5 minutes, for a PC whose antivirus reads each
+const SLOW = /^(worktree|checkout|merge|gc|repack)$/;
+function runGit(gitPath, cwd, args, timeoutMs) {
+  const ms = timeoutMs || (SLOW.test(args[0]) ? 300000 : NETWORK.test(args[0]) ? 120000 : 60000);
   return new Promise((resolve) => {
     let cp;
     try { cp = require('child_process'); } catch (e) { resolve({ code: -1, stdout: '', stderr: 'No child_process here.' }); return; }
-    cp.execFile(gitPath || 'git', args, { cwd: cwd, windowsHide: true, maxBuffer: 16 * 1024 * 1024, env: Object.assign({}, process.env, { GIT_TERMINAL_PROMPT: '0' }) },
-      (err, stdout, stderr) => resolve({ code: err ? (typeof err.code === 'number' ? err.code : -1) : 0, stdout: str(stdout), stderr: str(stderr) || (err && err.code === 'ENOENT' ? 'git is not installed (or not on PATH).' : (err ? str(err.message) : '')) }));
+    cp.execFile(gitPath || 'git', args, { cwd: cwd, windowsHide: true, maxBuffer: 16 * 1024 * 1024, timeout: ms, env: Object.assign({}, process.env, { GIT_TERMINAL_PROMPT: '0' }) },
+      (err, stdout, stderr) => {
+        const late = !!(err && err.killed);
+        resolve({ code: err ? (typeof err.code === 'number' ? err.code : -1) : 0, stdout: str(stdout), timedOut: late,
+          stderr: late ? 'git ' + args[0] + ' did not finish in ' + Math.round(ms / 1000) + ' s' + (NETWORK.test(args[0]) ? ': it may be waiting for you to sign in to GitHub (look for a Git window behind this one), or the network is slow' : '') + '.'
+            : (str(stderr) || (err && err.code === 'ENOENT' ? 'git is not installed (or not on PATH).' : (err ? str(err.message) : ''))) });
+      });
   });
 }
 

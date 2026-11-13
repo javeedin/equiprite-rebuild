@@ -45,6 +45,11 @@ define(['vb/action/actionChain', 'resources/js/issuesClient', 'resources/js/page
         v.rFixed = d.fixVersion || (x.verification && x.verification.build) || '';
       }
       IC.fillBoxes(v);
+      if (!same) {
+        v.agent = null;
+        const ag = await IC.progress(id);
+        if (ag.ok && (ag.body.running || ag.body.done) && v.selId === id) v.agent = ag.body;
+      }
       // its page in Application pages: the screenshots and the technical sheet (the Analyzed step shows them)
       if (!same || !v.pageSheet || v.pageSheet.id !== x.page) {
         if (!same) v.pageSheet = null;

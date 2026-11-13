@@ -1052,6 +1052,7 @@ function createDevServer(o) {
             return send(res, 200, s.mime, fs.readFileSync(s.file), { 'Cache-Control': 'no-store' });
           }
           if (pathname === '/__issues/settings' && !post) return jsonI(200, is.settings ? is.settings() : { ok: false, error: 'Not here.' });
+          if (pathname === '/__issues/progress' && !post) return jsonI(200, is.progress ? is.progress(q('id')) : { ok: false, error: 'Not here.' });
           if (!post) return jsonI(404, { error: 'Not found' });
           const act = pathname.slice('/__issues/'.length);
           let r;

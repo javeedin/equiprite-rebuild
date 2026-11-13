@@ -1242,3 +1242,31 @@ button.nx-jira-recmark:hover, button.nx-jira-recmark:focus-visible { filter: bri
 .nx-jfeed-text { font-size: 13px; color: #1f2d3a; overflow-wrap: anywhere; }
 .nx-jfeed-meta { font-size: 11.5px; color: #6b7886; }
 .nx-jbell .nx-bell-count { background: #0a7bb6; }
+
+/* ── a button at work; the working banner; the agent's steps (Issues) ── */
+.nx-btn--working { pointer-events: none; }
+.nx-btn--working::before { content: ''; display: inline-block; width: 13px; height: 13px; margin-right: 7px; vertical-align: -2px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: nx-is-spin .7s linear infinite; }
+.nx-btn--working > [class^='oj-ux-ico'], .nx-btn--working > span[aria-hidden='true']:first-child { display: none; }
+@keyframes nx-is-spin { to { transform: rotate(360deg); } }
+.nx-is-main #isProgress { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 10px; margin: -4px 0 10px; padding: 10px 14px; border-radius: 10px;
+  background: linear-gradient(90deg, #e9f4fb, #fff); border: 1px solid #bfdbe9; color: #12425e; font-weight: 600; box-shadow: 0 4px 14px rgba(16, 60, 90, .12); }
+.nx-is-change { margin: 10px 0; border: 1px solid #d9e2ea; border-radius: 12px; padding: 8px 12px; background: #fbfcfd; }
+.nx-is-change > summary { cursor: pointer; font-weight: 800; font-size: 13px; color: #1f2d3a; padding: 4px 0; }
+.nx-is-agent { margin: 12px 0; border: 1px solid #d9e2ea; border-radius: 14px; padding: 12px 14px; background: #fff; }
+.nx-is-agent--run { border-color: #8cc0dc; box-shadow: 0 0 0 3px rgba(10, 123, 182, .08); }
+.nx-is-agent--ok { border-color: #b7dfc2; background: #f6fbf7; } .nx-is-agent--bad { border-color: #f2b8b2; background: #fff8f7; }
+.nx-is-agenthead { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.nx-is-agentico { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: #b45309; color: #fff; }
+.nx-is-agentstate { font-size: 13px; color: #4b5866; font-weight: 600; }
+.nx-is-agent--run .nx-is-agentstate { color: #0a5c86; } .nx-is-agent--ok .nx-is-agentstate { color: #1f5f33; } .nx-is-agent--bad .nx-is-agentstate { color: #a61b12; }
+.nx-is-agsteps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.nx-is-ag { display: grid; grid-template-columns: 26px 1fr auto; gap: 8px; align-items: start; padding: 5px 6px; border-radius: 8px; font-size: 13px; color: #8a97a5; }
+.nx-is-agmark { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 800; border: 2px solid #d4dce4; color: #fff; margin-top: 1px; }
+.nx-is-agbody { display: flex; flex-direction: column; min-width: 0; } .nx-is-agbody b { font-weight: 700; }
+.nx-is-agdetail { font-size: 12px; color: #5a6876; overflow-wrap: anywhere; }
+.nx-is-agtime { font-size: 11.5px; color: #7a8692; padding-top: 2px; white-space: nowrap; }
+.nx-is-ag--done { color: #1d2b38; } .nx-is-ag--done .nx-is-agmark { background: #2f7d4f; border-color: #2f7d4f; }
+.nx-is-ag--failed { color: #8c1d14; background: #fdecea; } .nx-is-ag--failed .nx-is-agmark { background: #b42318; border-color: #b42318; }
+.nx-is-ag--skipped { color: #5a6876; } .nx-is-ag--skipped .nx-is-agmark { background: #9fb0bf; border-color: #9fb0bf; }
+.nx-is-ag--running { color: #0a3d5c; background: #eef6fb; } .nx-is-ag--running .nx-is-agmark { border-color: #0a7bb6; border-right-color: transparent; animation: nx-is-spin .8s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .nx-btn--working::before, .nx-is-ag--running .nx-is-agmark { animation-duration: 2s; } }

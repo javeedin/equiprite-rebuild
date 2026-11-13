@@ -182,9 +182,22 @@ const BILL = 'webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-billi
     T.check('approved from the Next step bar (by me, in Build.Rite): Apply change is on', /Approved by priya\.raman · .* in Build\.Rite/.test(await text(page, '#isDecision')) && await page.isEnabled('#isApply') && (await text(page, '#isNextBtn')) === 'Apply change', await text(page, '#isDecision'));
 
     T.section('the agent applies it: its own branch, tested, pushed, the pull request');
+    T.check('before Apply: the exact change it will apply, and what the agent will do (its 9 steps, waiting)', /The change the agent will apply · 1 file · \+1 −0/.test(await text(page, '#isApplyChange summary'))
+      && /<!-- EQP-901: overdue invoices first -->/.test(await text(page, '#isApplyChange')) && /What the agent will do on fix\/EQP-901/.test(await text(page, '#isAgentState'))
+      && (await page.$$('#isAgentSteps .nx-is-ag--pending')).length === 9 && /Get the latest code[\s\S]*Run the related tests, before the change[\s\S]*Push the branch[\s\S]*The pull request/.test(await text(page, '#isAgentSteps')),
+      await text(page, '#isApplyChange summary'));
+    await env.shot('issues-before-apply.png');
     page.once('dialog', (d) => d.accept());
     await page.click('#isApply');
+    await page.waitForSelector('#isApply.nx-btn--working', { timeout: 3000 }).catch(() => {});
+    T.check('…pressed: the button turns (working), the banner says what is happening, pinned in view', !!(await page.$('#isApply.nx-btn--working')) && /The agent is applying it on fix\/EQP-901/.test(await text(page, '#isProgress')));
+    await page.waitForSelector('#isAgentSteps .nx-is-ag--done', { timeout: 20000 }).catch(() => {});
+    T.check('…its steps shown as it goes', (await page.$$('#isAgentSteps .nx-is-ag--done, #isAgentSteps .nx-is-ag--skipped')).length >= 1);
     await page.waitForSelector('#isBranch', { timeout: 60000 }).catch(() => {});
+    T.check('done: how the agent\'s run went, step by step — committed, pushed, the pull request; the time it took', /✓ Done in \d+ s/.test(await text(page, '#isAgentDone .nx-is-agentstate'))
+      && /Commit it[\s\S]*EQP-901: Overdue invoices[\s\S]*Push the branch[\s\S]*to origin\/fix\/EQP-901[\s\S]*The pull request[\s\S]*ready to open/.test(await text(page, '#isAgentDone'))
+      && !(await page.$('#isAgentDone .nx-is-ag--failed')) && !(await page.$('#isApply.nx-btn--working')), await text(page, '#isAgentDone'));
+    await env.shot('issues-agent-done.png');
     T.check('on fix/EQP-901, pushed; tested; the pull request to open', /On fix\/EQP-901 · [0-9a-f]+ · pushed/.test(await text(page, '#isBranch')) && /Nothing broke/.test(await text(page, '#isTests'))
       && /^https:\/\/github\.com\/acme\/equiprite\/compare\/pages%2Ftest\.\.\.fix%2FEQP-901\?expand=1/.test((await page.getAttribute('#isPr', 'href')) || ''), await text(page, '#isBranch'));
     T.check('the branch on the remote has the change; the project\'s checkout is untouched', /EQP-901: overdue invoices first/.test(pg.gitRemote('show', 'fix/EQP-901:' + BILL + '.html'))

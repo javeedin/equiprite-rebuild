@@ -650,11 +650,14 @@ function open(opts) {
     return p && isFile(p) ? { ok: true, file: p, mime: /png$/.test(p) ? 'image/png' : 'image/jpeg' } : no('No screenshot.');
   }
 
-  async function runUnits(fix, f) {
+  async function runUnits(fix, f, onTest) {
     const p = scan.pagesOf(f).filter((x) => x.id === fix.page)[0] || { page: '', flow: '', app: fix.app };
     const rel = relatedTests(f, p);
     const out = [];
-    for (const t of rel.unit) out.push(await runTest(f, t));
+    for (let i = 0; i < rel.unit.length; i++) {
+      if (onTest) onTest(i, rel.unit.length, rel.unit[i]);
+      out.push(await runTest(f, rel.unit[i]));
+    }
     return { unit: out, e2eFiles: rel.e2e };
   }
 
@@ -811,36 +814,50 @@ function open(opts) {
     if (fix.status !== 'proposed' && fix.status !== 'undone') return no('Only a proposal can be applied (this one is ' + fix.status + ').');
     const branch = str(b.branch).trim();
     if (!/^[A-Za-z0-9][A-Za-z0-9._\/-]{1,90}$/.test(branch) || /\.\.|\/\/|\.lock$|\/$/.test(branch)) return no('Not a branch name: ' + branch);
+    // each step said as it goes: { key, state: running | done | failed | skipped, detail }
+    const say = (key, state, detail) => { if (typeof b.onStep === 'function') { try { b.onStep({ key: key, state: state, detail: str(detail).slice(0, 400) }); } catch (e) { /* the screen is gone */ } } };
     const f = fix.folder;
     const g = await gitState(f);
-    if (!g.git) return no(g.reason);
+    if (!g.git) { say('fetch', 'failed', g.reason); return no(g.reason); }
     const remote = (g.upstream.split('/')[0]) || 'origin';
     const baseBranch = g.upstream ? g.upstream.slice(remote.length + 1) : g.branch;
+    say('fetch', 'running', 'git fetch ' + remote + ' ' + baseBranch);
     const fetched = await git(f, ['fetch', '--quiet', remote, baseBranch]);
     const start = fetched.code === 0 ? remote + '/' + baseBranch : (g.upstream || 'HEAD');
+    say('fetch', fetched.code === 0 ? 'done' : 'skipped', fetched.code === 0 ? 'from ' + start : 'could not fetch (' + (fetched.stderr || '').trim().slice(0, 200) + '): starting from ' + start);
+    say('branch', 'running', branch + ' from ' + start + ', in a folder apart');
     const wtRoot = path.join(dir || require('os').tmpdir(), 'worktrees');
     const wt = path.join(wtRoot, branch.replace(/[^A-Za-z0-9._-]/g, '-'));
     fs.mkdirSync(wtRoot, { recursive: true });
     if (isDir(wt)) await git(f, ['worktree', 'remove', '--force', wt]);
     await git(f, ['worktree', 'prune']);
     const add = await git(f, ['worktree', 'add', '-B', branch, wt, start]);
-    if (add.code !== 0) return no('Could not make the branch ' + branch + ': ' + (add.stderr || add.stdout).trim().slice(0, 300));
+    if (add.code !== 0) { say('branch', 'failed', (add.stderr || add.stdout).trim().slice(0, 300)); return no('Could not make the branch ' + branch + ': ' + (add.stderr || add.stdout).trim().slice(0, 300)); }
+    say('branch', 'done', branch + ' from ' + start);
     const done = async () => { await git(f, ['worktree', 'remove', '--force', wt]); };
     try {
+      say('check', 'running', (fix.files || []).length + ' file(s): ' + (fix.files || []).join(', '));
       const tried = tryEdits(wt, fix.edits, fix.app);
       const moved = (fix.files || []).filter((k) => !tried.files[k] || sha(tried.files[k].old) !== fix.hashes[k]);
       if (tried.errors.length || moved.length) {
+        say('check', 'failed', 'the code on ' + start + ' changed since it was proposed: ' + (moved.join(', ') || 'its files') + ' — analyze again');
         fix.status = 'stale'; ev(fix, 'out of date', b.by, 'the code on ' + start + ' is not what the change was made for: ' + (moved.concat(tried.errors.map((e) => e.file)).join(', ') || 'its files'));
         put(fix); await done();
         return no('The code on ' + start + ' changed since this was proposed (' + (moved.join(', ') || 'its files') + '): analyze again.', { fix: slim(fix), stale: true });
       }
-      const base = await runUnits(fix, wt);
+      say('check', 'done', 'it fits the code on ' + start);
+      say('before', 'running', 'finding the tests that name this page…');
+      const base = await runUnits(fix, wt, (i, n, file) => say('before', 'running', 'test ' + (i + 1) + ' of ' + n + ': ' + file));
+      say('before', base.unit.length ? 'done' : 'skipped', base.unit.length ? base.unit.filter((u) => u.ok).length + ' of ' + base.unit.length + ' passing before the change' : 'no unit test names this page (the page checks run)');
+      say('write', 'running', Object.keys(tried.files).join(', '));
       Object.keys(tried.files).forEach((rel) => {
         const x = tried.files[rel];
         fs.mkdirSync(path.dirname(path.join(wt, rel)), { recursive: true });
         fs.writeFileSync(path.join(wt, rel), x.crlf ? x.neu.replace(/\n/g, '\r\n') : x.neu);
       });
-      const after = await runUnits(fix, wt);
+      say('write', 'done', Object.keys(tried.files).length + ' file(s) written on ' + branch);
+      say('after', 'running', 'the same tests, with the change…');
+      const after = await runUnits(fix, wt, (i, n, file) => say('after', 'running', 'test ' + (i + 1) + ' of ' + n + ': ' + file));
       const checks = checksFor(wt, Object.keys(tried.files).reduce((m, k) => { m[k] = { old: tried.files[k].old, neu: tried.files[k].neu }; return m; }, {}));
       const unit = after.unit.map((t) => {
         const was = base.unit.filter((x) => x.file === t.file)[0];
@@ -849,25 +866,32 @@ function open(opts) {
       });
       const bad = checks.filter((c) => !c.ok && !c.already).length + unit.filter((u) => u.newFailures.length).length;
       fix.tests = { at: now().toISOString(), ok: bad === 0, checks: checks, unit: unit, e2eFiles: after.e2eFiles || [], none: !unit.length, where: branch };
+      say('after', bad ? 'failed' : 'done', bad ? bad + ' new failure(s): not committed' : 'nothing broke' + (unit.length ? ' (' + unit.length + ' test file(s), the page checks)' : ' (the page checks)'));
       if (bad && !b.anyway) {
         ev(fix, 'tested on ' + branch, b.by, 'something broke: ' + bad + ' new failure(s) — not committed');
         put(fix); await done();
         return no('The change breaks ' + bad + ' check(s) or test(s) on ' + branch + ': not committed. See the tests below.', { fix: slim(fix), broke: true });
       }
       const msg = str(b.message).trim() || ('Code fix: ' + fix.label + ' — ' + fix.request.split('\n')[0].slice(0, 90));
+      say('commit', 'running', msg.split('\n')[0]);
       await git(wt, ['add', '--'].concat(Object.keys(tried.files)));
       const c = await git(wt, ['commit', '-m', msg, '--'].concat(Object.keys(tried.files)));
       if (c.code !== 0) {
         const why = (c.stderr || c.stdout).trim();
+        say('commit', 'failed', why.slice(0, 300));
         put(fix); await done();
         return no('git commit failed: ' + why.slice(0, 300), { hint: /user\.(name|email)|identity/i.test(why) ? 'Tell git who you are: git config --global user.name "Your Name" and git config --global user.email you@example.com' : '' });
       }
       const shaC = (await git(wt, ['rev-parse', '--short', 'HEAD'])).stdout.trim();
+      say('commit', 'done', shaC + ' · ' + msg.split('\n')[0]);
+      say('push', 'running', 'git push ' + remote + ' ' + branch + ' (if Git asks you to sign in, its window may be behind this one)');
       const pushed = b.push === false ? { code: 1, stderr: 'not pushed (asked)' } : await git(wt, ['push', '-u', remote, branch]);
+      say('push', pushed.code === 0 ? 'done' : 'failed', pushed.code === 0 ? 'to ' + remote + '/' + branch : (pushed.stderr || pushed.stdout).trim().slice(0, 300));
       const url = (await git(f, ['remote', 'get-url', remote])).stdout.trim();
       const gh = /github\.com[/:]([^/]+)\/([^/.\s]+)(\.git)?\/?$/.exec(url) || /\/git\/([^/]+)\/([^/.\s]+)(\.git)?\/?$/.exec(url);
       const pr = gh && pushed.code === 0 ? 'https://github.com/' + gh[1] + '/' + gh[2] + '/compare/' + encodeURIComponent(baseBranch) + '...' + encodeURIComponent(branch) + '?expand=1'
         + '&title=' + encodeURIComponent(msg.split('\n')[0]) + '&body=' + encodeURIComponent(str(b.prBody).slice(0, 4000)) : '';
+      say('pr', pr ? 'done' : 'skipped', pr ? 'ready to open' : (pushed.code === 0 ? 'not a GitHub repository: open it on your git site' : 'needs the branch pushed'));
       fix.branchApply = { branch: branch, base: baseBranch, start: start, sha: shaC, pushed: pushed.code === 0, pushError: pushed.code === 0 ? '' : (pushed.stderr || pushed.stdout).trim().slice(0, 300), pr: pr, at: now().toISOString(), by: str(b.by) };
       fix.applied = { at: now().toISOString(), by: str(b.by), branch: branch, upstream: pushed.code === 0 ? remote + '/' + branch : '', pull: { done: fetched.code === 0, text: 'From ' + start + ', on a branch of its own: ' + branch + '.' }, live: false };
       fix.commit = { sha: shaC, at: now().toISOString(), pushed: pushed.code === 0, branch: branch, by: str(b.by), upstream: pushed.code === 0 ? remote + '/' + branch : '', pushError: fix.branchApply.pushError };
@@ -881,6 +905,7 @@ function open(opts) {
       await done();
       return ok(slim(fix));
     } catch (e) {
+      say('write', 'failed', str(e && e.message));
       await done();
       return no('Applying on ' + branch + ' failed: ' + str(e && e.message));
     }

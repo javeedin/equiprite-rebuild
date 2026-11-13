@@ -23,6 +23,10 @@ define(['resources/js/issuesClient', 'resources/js/codeFixClient', 'resources/js
   const appOf = (x) => (x && (x.app || String(x.page || '').split('/')[0])) || '';
   const inScope = (x, scope) => !scope || appOf(x) === scope;
   const GROUPS = { open: ['new', 'written', 'analyzed', 'triaged', 'needs-info', 'awaiting-approval', 'approved', 'rejected'], approval: ['awaiting-approval'], review: ['approved', 'in-review', 'verified'], closed: ['closed'] };
+  // what the agent does when Apply change is pressed (desktop/lib/issues.js AGENT_STEPS)
+  const AGENT = [['fetch', 'Get the latest code'], ['branch', 'Make its own branch'], ['check', 'Check the change still fits the code'], ['before', 'Run the related tests, before the change'],
+    ['write', 'Write the change'], ['after', 'Run the tests again, with the change'], ['commit', 'Commit it'], ['push', 'Push the branch'], ['pr', 'The pull request']];
+  const secs = (n) => (n < 60 ? n + ' s' : Math.floor(n / 60) + ' min ' + (n % 60) + ' s');
   const panelOf = (x, sv) => (Number(sv) >= 0 ? Number(sv) : (x ? x.stage || 0 : 0));
   let shownKept = { k: '', v: [] };
   let tableKept = { k: '', v: [] };
@@ -151,6 +155,18 @@ define(['resources/js/issuesClient', 'resources/js/codeFixClient', 'resources/js
       const v = x.verdict && x.verdict.code;
       return v === 'as-designed' ? 'as-designed' : v === 'out-of-scope' ? 'out-of-scope' : v === 'fix-elsewhere' ? 'moved' : v === 'needs-info' ? 'cannot-reproduce' : 'wont-fix';
     }
+    /** The agent's steps: as it goes (or went), else its plan (each waiting). */
+    agentSteps(agent) { return agent && agent.steps ? agent.steps : AGENT.map((a) => ({ key: a[0], label: a[1], state: 'pending', detail: '', seconds: 0 })); }
+    agentStepClass(s) { return 'nx-is-ag nx-is-ag--' + (s.state || 'pending'); }
+    agentMark(s) { return { done: '✓', failed: '✗', skipped: '–', pending: '' }[s.state] || ''; }
+    agentTime(s) { return s.seconds && s.state !== 'pending' ? secs(s.seconds) : ''; }
+    agentHead(agent, x) {
+      if (!agent) return 'What the agent will do on fix/' + (x ? x.key : '') + ' — your own code folder is not touched';
+      if (agent.running) return 'Working… ' + secs(agent.seconds || 0);
+      return agent.okRun ? '✓ Done in ' + secs(agent.seconds || 0) : '✗ Stopped after ' + secs(agent.seconds || 0) + (agent.error ? ': ' + agent.error : '');
+    }
+    agentClass(agent) { return 'nx-is-agent' + (!agent ? ' nx-is-agent--plan' : agent.running ? ' nx-is-agent--run' : agent.okRun ? ' nx-is-agent--ok' : ' nx-is-agent--bad'); }
+    showChange(x) { return !!x && !!x.fix && (x.fix.diff || []).length > 0 && ['awaiting-approval', 'approved'].indexOf(x.status) !== -1; }
     verificationText(v) { return !v ? '' : (v.passed ? '✓ Verified' : '✗ Verification failed') + (v.env ? ' in ' + v.env : '') + (v.build ? ' on ' + v.build : '') + ' by ' + (v.by || 'someone') + ' · ' + when(v.at); }
     rootText(r) { const c = CAUSE.filter((x) => x[0] === (r && r.rootCause))[0]; return c ? c[1] + (r.rootNotes ? ' — ' + r.rootNotes : '') : '—'; }
     // ── the discussion ──

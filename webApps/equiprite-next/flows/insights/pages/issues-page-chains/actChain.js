@@ -45,6 +45,10 @@ define(['vb/action/actionChain', 'vb/action/actions', 'resources/js/issuesClient
       if (v.busy) return;
       v.busy = true; v.result = null;
       const x = v.issue;
+      // the button pressed shows that it is working (a spinner) until this is done
+      let pressed = null;
+      try { const a = document.activeElement; pressed = a && a.closest ? a.closest('button') : null; if (pressed) pressed.classList.add('nx-btn--working'); } catch (e) { pressed = null; }
+      let watch = null;
       try {
         if (act === 'create') {
           if (!v.dApp) { v.result = { ok: false, text: 'Choose the build first (Old, New, Next, Mobile or Future), then its page.' }; return; }
@@ -131,8 +135,14 @@ define(['vb/action/actionChain', 'vb/action/actions', 'resources/js/issuesClient
         if (act === 'reject') { await show(await IC.reject(x.id, v.reason), 'Rejected.'); v.reason = ''; return; }
         if (act === 'apply') {
           if (!ask('Let the agent apply the approved change?\n\nIt puts it on a branch of its own (fix/' + x.key + '), runs the tests, commits it with ' + x.key + ' and pushes it, then makes the pull request. Your own code folder is not touched.')) return;
-          v.progress = 'The agent is applying it on fix/' + x.key + ': the related tests before and after, the commit, the push…';
+          v.progress = 'The agent is applying it on fix/' + x.key + ': its steps are shown below, as it goes.';
+          v.agent = null;
+          // its steps, live (the local server keeps them while it works)
+          watch = setInterval(async () => { const p = await IC.progress(x.id); if (p.ok && v.selId === x.id) v.agent = p.body; }, 700);
           const r = await IC.apply(x.id);
+          clearInterval(watch); watch = null;
+          const fin = await IC.progress(x.id);
+          if (fin.ok && v.selId === x.id) v.agent = fin.body;
           await show(r, r.ok ? 'Done: on ' + r.body.issue.branch.name + (r.body.issue.branch.pushed ? ', pushed' : '') + '. Review the pull request, then verify the fix.' : '');
           return;
         }
@@ -150,6 +160,8 @@ define(['vb/action/actionChain', 'vb/action/actions', 'resources/js/issuesClient
         }
         if (act === 'reopen') { await show(await IC.reopen(x.id), 'Reopened.'); }
       } finally {
+        if (watch) clearInterval(watch);
+        try { if (pressed) pressed.classList.remove('nx-btn--working'); } catch (e) { /* redrawn */ }
         v.busy = false;
         v.progress = '';
       }
