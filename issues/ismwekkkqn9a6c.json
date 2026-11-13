@@ -1,0 +1,41 @@
+{
+ "id": "ismwekkkqn9a6c",
+ "key": "BR-KKKQN",
+ "page": "equiprite-future/order/new-request",
+ "label": "New request",
+ "app": "equiprite-future",
+ "kind": "enhancement",
+ "text": "change the title of the application",
+ "title": "change the title of the application",
+ "by": "javeed.shaik",
+ "at": "2026-11-13T06:02:03.647Z",
+ "status": "new",
+ "images": [],
+ "jira": null,
+ "events": [
+  {
+   "at": "2026-11-13T06:02:03.647Z",
+   "what": "logged",
+   "by": "javeed.shaik",
+   "detail": "change the title of the application"
+  }
+ ],
+ "comments": [],
+ "details": {
+  "severity": "minor",
+  "priority": "p4",
+  "environment": "DEV",
+  "foundIn": "",
+  "fixVersion": "",
+  "customer": "",
+  "customerRef": "",
+  "reportedBy": "javeed.shaik",
+  "reporterEmail": "",
+  "raisedOn": "2026-11-13",
+  "assignee": "",
+  "dueDate": "",
+  "ai": [],
+  "aiWhy": ""
+ },
+ "updatedAt": "2026-11-13T06:02:03.647Z"
+}
