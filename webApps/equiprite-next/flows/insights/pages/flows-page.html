@@ -1,0 +1,92 @@
+<!-- How it works (Build.Rite): every flow of the team's tools, step by step. The words are in resources/js/flowsGuide.js. -->
+<div class="nx-page nx-hw">
+  <div class="nx-pagehead">
+    <div>
+      <div class="nx-kicker">Build.Rite · How it works</div>
+      <h1 id="hwTitle">How Build.Rite works</h1>
+      <div class="nx-sub">Every flow of the team's tools: who does each step, what happens when it goes another way, and where what it makes is kept.</div>
+    </div>
+  </div>
+
+  <!-- who does a step -->
+  <div class="nx-hw-legend" id="hwLegend" aria-label="Who does a step">
+    <oj-bind-for-each data="[[ $functions.legend() ]]">
+      <template data-oj-as="l"><span :class="[[ $functions.chipClass(l.data.id) ]]"><b><oj-bind-text value="[[ l.data.label ]]"></oj-bind-text></b><oj-bind-text value="[[ ' · ' + l.data.about ]]"></oj-bind-text></span></template>
+    </oj-bind-for-each>
+  </div>
+
+  <!-- the flows at a glance -->
+  <div class="nx-hw-index" id="hwIndex">
+    <oj-bind-for-each data="[[ $functions.flows() ]]">
+      <template data-oj-as="f">
+        <button type="button" class="nx-hw-tile" data-act="jump" :data-key="[[ f.data.id ]]" on-click="[[ $listeners.onAct ]]">
+          <b><oj-bind-text value="[[ f.data.title ]]"></oj-bind-text></b>
+          <span><oj-bind-text value="[[ f.data.kicker ]]"></oj-bind-text></span>
+          <span class="nx-hw-tilen"><oj-bind-text value="[[ f.data.steps.length + ' steps' ]]"></oj-bind-text></span>
+        </button>
+      </template>
+    </oj-bind-for-each>
+  </div>
+
+  <!-- what Build.Rite works with -->
+  <div class="nx-card nx-hw-links" id="hwLinks">
+    <h2 class="nx-pg-h3">What Build.Rite works with</h2>
+    <div class="nx-hw-linkgrid">
+      <oj-bind-for-each data="[[ $functions.links() ]]">
+        <template data-oj-as="k"><div class="nx-hw-link"><b><oj-bind-text value="[[ k.data.name ]]"></oj-bind-text></b><span><oj-bind-text value="[[ k.data.what ]]"></oj-bind-text></span></div></template>
+      </oj-bind-for-each>
+    </div>
+  </div>
+
+  <!-- each flow -->
+  <oj-bind-for-each data="[[ $functions.flows() ]]">
+    <template data-oj-as="f">
+      <section class="nx-card nx-hw-flow" :id="[[ 'hw-' + f.data.id ]]">
+        <div class="nx-hw-head">
+          <div>
+            <div class="nx-kicker"><oj-bind-text value="[[ f.data.kicker ]]"></oj-bind-text></div>
+            <h2 class="nx-hw-title"><oj-bind-text value="[[ f.data.title ]]"></oj-bind-text></h2>
+            <div class="nx-note"><oj-bind-text value="[[ f.data.who ]]"></oj-bind-text></div>
+          </div>
+          <oj-bind-if test="[[ !!f.data.open ]]"><button type="button" class="nx-btn nx-btn--sm" data-act="open" :data-key="[[ f.data.open ]]" on-click="[[ $listeners.onAct ]]"><span class="oj-ux-ico-arrow-right" aria-hidden="true"></span><oj-bind-text value="[[ $functions.openText(f.data) ]]"></oj-bind-text></button></oj-bind-if>
+        </div>
+        <ol class="nx-hw-steps">
+          <oj-bind-for-each data="[[ f.data.steps ]]">
+            <template data-oj-as="s">
+              <li :class="[[ $functions.stepClass(s.data) ]]">
+                <span class="nx-hw-stephead"><span class="nx-hw-n"><oj-bind-text value="[[ s.data.n ]]"></oj-bind-text></span><span class="nx-hw-actor"><oj-bind-text value="[[ s.data.actorLabel ]]"></oj-bind-text></span></span>
+                <b class="nx-hw-label"><oj-bind-text value="[[ s.data.label ]]"></oj-bind-text></b>
+                <oj-bind-if test="[[ !!s.data.note ]]"><span class="nx-hw-note"><oj-bind-text value="[[ s.data.note ]]"></oj-bind-text></span></oj-bind-if>
+              </li>
+            </template>
+          </oj-bind-for-each>
+        </ol>
+        <oj-bind-if test="[[ f.data.branches.length > 0 ]]">
+          <div class="nx-hw-branches">
+            <oj-bind-for-each data="[[ f.data.branches ]]">
+              <template data-oj-as="b">
+                <div class="nx-hw-branch">
+                  <span class="nx-hw-blabel"><oj-bind-text value="[[ b.data.label ]]"></oj-bind-text></span>
+                  <ol class="nx-hw-steps nx-hw-steps--small">
+                    <oj-bind-for-each data="[[ b.data.steps ]]">
+                      <template data-oj-as="s"><li :class="[[ $functions.stepClass(s.data) ]]"><span class="nx-hw-actor"><oj-bind-text value="[[ s.data.actorLabel ]]"></oj-bind-text></span><b class="nx-hw-label"><oj-bind-text value="[[ s.data.label ]]"></oj-bind-text></b><oj-bind-if test="[[ !!s.data.note ]]"><span class="nx-hw-note"><oj-bind-text value="[[ s.data.note ]]"></oj-bind-text></span></oj-bind-if></li></template>
+                    </oj-bind-for-each>
+                  </ol>
+                </div>
+              </template>
+            </oj-bind-for-each>
+          </div>
+        </oj-bind-if>
+        <oj-bind-if test="[[ !!f.data.compare ]]"><p class="nx-hw-compare"><oj-bind-text value="[[ f.data.compare ]]"></oj-bind-text></p></oj-bind-if>
+        <div class="nx-hw-foot">
+          <oj-bind-if test="[[ f.data.kept.length > 0 ]]">
+            <div><h3 class="nx-hw-h3">Where it is kept</h3><ul class="nx-pg-ul"><oj-bind-for-each data="[[ f.data.kept ]]"><template data-oj-as="x"><li><oj-bind-text value="[[ x.data ]]"></oj-bind-text></li></template></oj-bind-for-each></ul></div>
+          </oj-bind-if>
+          <oj-bind-if test="[[ f.data.notes.length > 0 ]]">
+            <div><h3 class="nx-hw-h3">Good to know</h3><ul class="nx-pg-ul"><oj-bind-for-each data="[[ f.data.notes ]]"><template data-oj-as="x"><li><oj-bind-text value="[[ x.data ]]"></oj-bind-text></li></template></oj-bind-for-each></ul></div>
+          </oj-bind-if>
+        </div>
+      </section>
+    </template>
+  </oj-bind-for-each>
+</div>

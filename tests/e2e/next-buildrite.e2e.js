@@ -12,7 +12,7 @@ const H = require('../_harness');
 
 const T = H.makeAsserter();
 const text = (page, sel) => page.$eval(sel, (e) => e.textContent.replace(/\s+/g, ' ').trim()).catch(() => '');
-const BUILD_SCREENS = ['issues', 'jira', 'analytics', 'minutes', 'followups', 'fdd', 'app-pages', 'fdd-library'];
+const BUILD_SCREENS = ['issues', 'jira', 'analytics', 'minutes', 'followups', 'fdd', 'app-pages', 'fdd-library', 'flows'];
 
 (async () => {
   // 1. As the desktop app serves Build.Rite: a server of its own, which tells the page
@@ -59,6 +59,19 @@ const BUILD_SCREENS = ['issues', 'jira', 'analytics', 'minutes', 'followups', 'f
     await page.click('#nxNav [data-nav-id="jira"]');
     await page.waitForTimeout(800);
     await env.shot('buildrite-jira.png');
+
+    // Flows explained: every flow of the team's tools, step by step
+    await page.click('#nxNav [data-nav-id="flows"]');
+    await page.waitForSelector('.nx-hw-flow', { timeout: 15000 });
+    const flows = await page.$$eval('.nx-hw-flow', (s) => s.map((x) => x.id + ':' + x.querySelectorAll(':scope > .nx-hw-steps > .nx-hw-step').length));
+    T.check('Flows explained: the nine flows, each step by step (Issues: 8 steps, its side paths)', flows.length === 9 && flows[0] === 'hw-issues:8'
+      && (await page.$$('#hw-issues .nx-hw-branch')).length === 4 && /Log it[\s\S]*Write it up[\s\S]*Analyze[\s\S]*Send for approval[\s\S]*Approve[\s\S]*Apply change[\s\S]*Pull request[\s\S]*Close/.test(await text(page, '#hw-issues .nx-hw-steps')), flows.join(','));
+    T.check('…who does each step (You, AI, Agent, The app, Git, Jira), where it is kept, what Build.Rite works with', (await page.$$('#hwLegend .nx-hw-key')).length === 6 && /Agent/.test(await text(page, '#hw-issues .nx-hw-step--agent'))
+      && /Where it is kept[\s\S]*issues\.json/.test(await text(page, '#hw-issues')) && /Jira[\s\S]*The AI[\s\S]*Microsoft 365[\s\S]*Git/.test(await text(page, '#hwLinks')));
+    await env.shot('buildrite-flows.png');
+    await page.click('#hw-codefix [data-act="open"]');
+    await page.waitForSelector('#pgRows .nx-pg-row', { timeout: 20000 }).catch(() => {});
+    T.check('…and each one opens its screen (Code fix → Application pages)', (await page.$$('#pgRows .nx-pg-row')).length > 100);
     await env.shot('buildrite.png');
     T.eq('no browser errors', errs().join(' | ').slice(0, 1500), '');
   } catch (e) {

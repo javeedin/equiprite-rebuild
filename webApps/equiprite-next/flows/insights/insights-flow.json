@@ -11,6 +11,7 @@
     "jira-analysis-set": { "path": "pages/jira-analysis-set-page" },
     "app-pages": { "path": "pages/app-pages-page" },
     "issues": { "path": "pages/issues-page" },
+    "flows": { "path": "pages/flows-page" },
     "minutes": { "path": "pages/minutes-page" },
     "followups": { "path": "pages/followups-page" }
   },

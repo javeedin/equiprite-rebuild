@@ -1,0 +1,10 @@
+{
+  "description": "How it works (Build.Rite): every flow of the team's tools — Issues, Code fix, Application pages, Jira stories and AI analysis, the FDD library, standup minutes, follow-ups, the data branch, the AI — step by step: who does each step (you, the AI, the agent, the app, git, Jira), its side paths, where what it makes is kept, and a button to open it. Its words are in resources/js/flowsGuide.js.",
+  "navigation": { "embeddable": "enabled" },
+  "variables": {},
+  "eventListeners": {
+    "onAct": { "chains": [ { "chain": "actChain", "parameters": { "act": "{{ $event.currentTarget.dataset.act }}", "key": "{{ $event.currentTarget.dataset.key || '' }}" } } ] }
+  },
+  "imports": { "components": {
+    "oj-bind-for-each": { "path": "ojs/ojknockout" }, "oj-bind-if": { "path": "ojs/ojknockout" }, "oj-bind-text": { "path": "ojs/ojknockout" } } }
+}

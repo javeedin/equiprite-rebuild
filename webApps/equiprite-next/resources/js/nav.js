@@ -120,7 +120,12 @@ define(['resources/js/rules'], function (rules) {
       // pushed to git, so every user has them; one is the latest. Gated like Jira stories (an existing page code).
       { id: 'fdd-library', label: 'FDD library', icon: 'oj-ux-ico-upload', pageCodes: ['EQR_CONFIGURATIONS'],
         route: { flow: 'fdd', page: 'library' }, built: true,
-        keywords: 'fdd library upload document word pdf version latest git analyze ai sections outline functional design' }
+        keywords: 'fdd library upload document word pdf version latest git analyze ai sections outline functional design' },
+      // Flows explained (Build.Rite): every flow of the team's tools, step by step (flows/insights flows; resources/js/flowsGuide.js).
+      // Gated like Jira stories: the team's, not a business user's.
+      { id: 'flows', label: 'Flows explained', icon: 'oj-ux-ico-network-flow-diagram', pageCodes: ['EQR_CONFIGURATIONS'],
+        route: { flow: 'insights', page: 'flows' }, built: true,
+        keywords: 'flows explained guide steps issues code fix approval branch pull request data branch who does what' }
     ] },
     { key: 'admin', label: 'Admin', items: [
       { id: 'settings', label: 'Settings', icon: 'oj-ux-ico-settings', pageCodes: ['EQR_CONFIGURATIONS'],
