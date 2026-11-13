@@ -9,7 +9,7 @@
  "title": "append the 26c version number",
  "by": "javeed.shaik",
  "at": "2026-11-13T07:47:13.204Z",
- "status": "awaiting-approval",
+ "status": "approved",
  "images": [],
  "jira": null,
  "events": [
@@ -42,6 +42,12 @@
    "what": "sent for approval",
    "by": "javeed.shaik",
    "detail": "in the app — Graph HTTP 500"
+  },
+  {
+   "at": "2026-11-13T07:50:54.019Z",
+   "what": "approved",
+   "by": "javeed.shaik",
+   "detail": "in Build.Rite"
   }
  ],
  "comments": [],
@@ -62,7 +68,7 @@
   "notify": [],
   "aiWhy": ""
  },
- "updatedAt": "2026-11-13T07:50:43.232Z",
+ "updatedAt": "2026-11-13T07:50:54.019Z",
  "formatted": {
   "title": "Equipment Manager Workbench: append the 26c version number",
   "summary": "The reporter asks for the 26c version number to be appended on the Equipment Manager Workbench page. The note does not say where it should be appended or what is shown today.",
@@ -98,6 +104,12 @@
     "to": "imamuddinjaveed.shaik@rite.digital",
     "error": "Graph HTTP 500"
    }
+  },
+  "decision": {
+   "approved": true,
+   "by": "javeed.shaik",
+   "at": "2026-11-13T07:50:54.019Z",
+   "via": "app"
   }
  }
 }
