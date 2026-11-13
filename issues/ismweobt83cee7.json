@@ -9,7 +9,7 @@
  "title": "append the 26c version number",
  "by": "javeed.shaik",
  "at": "2026-11-13T07:47:13.204Z",
- "status": "analyzed",
+ "status": "awaiting-approval",
  "images": [],
  "jira": null,
  "events": [
@@ -36,6 +36,12 @@
    "what": "analyzed again",
    "by": "Claude (Anthropic)",
    "detail": "Fix on this page · 1 file(s) to change"
+  },
+  {
+   "at": "2026-11-13T07:50:43.232Z",
+   "what": "sent for approval",
+   "by": "javeed.shaik",
+   "detail": "in the app — Graph HTTP 500"
   }
  ],
  "comments": [],
@@ -56,7 +62,7 @@
   "notify": [],
   "aiWhy": ""
  },
- "updatedAt": "2026-11-13T07:50:22.724Z",
+ "updatedAt": "2026-11-13T07:50:43.232Z",
  "formatted": {
   "title": "Equipment Manager Workbench: append the 26c version number",
   "summary": "The reporter asks for the 26c version number to be appended on the Equipment Manager Workbench page. The note does not say where it should be appended or what is shown today.",
@@ -79,5 +85,19 @@
  "verdict": {
   "code": "fix-here",
   "text": "Fix on this page — the heading is fixed text in this page's HTML (`page-title=\"Equipment Manager Workbench\"`), and you have now given the exact wording wanted: `Equipment Manager Workbench(26C)`."
+ },
+ "approval": {
+  "requested": {
+   "at": "2026-11-13T07:50:42.506Z",
+   "by": "javeed.shaik",
+   "code": "BR-D5F06",
+   "fingerprint": "8a2039ae5ff5",
+   "email": {
+    "wanted": true,
+    "sent": false,
+    "to": "imamuddinjaveed.shaik@rite.digital",
+    "error": "Graph HTTP 500"
+   }
+  }
  }
 }
