@@ -650,13 +650,15 @@ function open(opts) {
     return p && isFile(p) ? { ok: true, file: p, mime: /png$/.test(p) ? 'image/png' : 'image/jpeg' } : no('No screenshot.');
   }
 
-  async function runUnits(fix, f, onTest) {
+  async function runUnits(fix, f, onTest, onDone) {
     const p = scan.pagesOf(f).filter((x) => x.id === fix.page)[0] || { page: '', flow: '', app: fix.app };
     const rel = relatedTests(f, p);
     const out = [];
     for (let i = 0; i < rel.unit.length; i++) {
       if (onTest) onTest(i, rel.unit.length, rel.unit[i]);
-      out.push(await runTest(f, rel.unit[i]));
+      const t = await runTest(f, rel.unit[i]);
+      out.push(t);
+      if (onDone) onDone(i, rel.unit.length, t);
     }
     return { unit: out, e2eFiles: rel.e2e };
   }
@@ -824,6 +826,7 @@ function open(opts) {
     say('fetch', 'running', 'git fetch ' + remote + ' ' + baseBranch);
     const fetched = await git(f, ['fetch', '--quiet', remote, baseBranch]);
     const start = fetched.code === 0 ? remote + '/' + baseBranch : (g.upstream || 'HEAD');
+    if ((fetched.stderr || '').trim()) say('fetch', 'log', 'git: ' + fetched.stderr.trim().slice(0, 400));
     say('fetch', fetched.code === 0 ? 'done' : 'skipped', fetched.code === 0 ? 'from ' + start : 'could not fetch (' + (fetched.stderr || '').trim().slice(0, 200) + '): starting from ' + start);
     say('branch', 'running', branch + ' from ' + start + ', in a folder apart');
     const wtRoot = path.join(dir || require('os').tmpdir(), 'worktrees');
@@ -847,7 +850,9 @@ function open(opts) {
       }
       say('check', 'done', 'it fits the code on ' + start);
       say('before', 'running', 'finding the tests that name this page…');
-      const base = await runUnits(fix, wt, (i, n, file) => say('before', 'running', 'test ' + (i + 1) + ' of ' + n + ': ' + file));
+      const told = (key) => (i, n, t) => say(key, 'log', t.file + ': ' + (t.timedOut ? 'stopped after ' + Math.round(t.ms / 1000) + ' s (too long)' : (t.ok ? '✓ ' : '✗ ') + t.passed + ' passed, ' + t.failed + ' failed')
+        + ' (' + (t.ms / 1000).toFixed(1) + ' s)' + (t.failures.length ? ' — ' + t.failures.slice(0, 3).join(' | ') : ''));
+      const base = await runUnits(fix, wt, (i, n, file) => say('before', 'running', 'test ' + (i + 1) + ' of ' + n + ': ' + file), told('before'));
       say('before', base.unit.length ? 'done' : 'skipped', base.unit.length ? base.unit.filter((u) => u.ok).length + ' of ' + base.unit.length + ' passing before the change' : 'no unit test names this page (the page checks run)');
       say('write', 'running', Object.keys(tried.files).join(', '));
       Object.keys(tried.files).forEach((rel) => {
@@ -855,19 +860,38 @@ function open(opts) {
         fs.mkdirSync(path.dirname(path.join(wt, rel)), { recursive: true });
         fs.writeFileSync(path.join(wt, rel), x.crlf ? x.neu.replace(/\n/g, '\r\n') : x.neu);
       });
-      say('write', 'done', Object.keys(tried.files).length + ' file(s) written on ' + branch);
+      // Old EquipRite is kept unchanged by agreement (its guard test): a change there approved as agreed is named in the
+      // guard's AGREED list, with the issue and who approved it, in this same commit — the decision visible in review
+      const oldFiles = Object.keys(tried.files).filter((k) => k.indexOf('webApps/vbredwoodapp/') === 0);
+      if (b.allowOld && oldFiles.length && isFile(path.join(wt, OLD_GUARD))) {
+        const g0 = fs.readFileSync(path.join(wt, OLD_GUARD), 'utf8');
+        const q = (s) => "'" + str(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'") + "'";
+        const entry = '  { why: ' + q(str(b.allowOldWhy || ('Code fix approved by ' + (b.by || 'someone'))).slice(0, 240) + ' (' + now().toISOString().slice(0, 10) + ')') + ',\n    paths: [\n'
+          + oldFiles.map((k) => '      ' + q(k)).join(',\n') + '\n    ] },\n';
+        const g1 = g0.replace(/const AGREED = \[\n/, (m) => m + entry);
+        if (g1 !== g0) {
+          fs.writeFileSync(path.join(wt, OLD_GUARD), g1);
+          tried.files[OLD_GUARD] = { old: g0, neu: g1, crlf: false };
+          say('write', 'running', 'and agreed for Old EquipRite: ' + oldFiles.join(', ') + ' named in ' + OLD_GUARD);
+        }
+      }
+      say('write', 'done', Object.keys(tried.files).length + ' file(s) written on ' + branch + (tried.files[OLD_GUARD] && b.allowOld ? ' (with the Old EquipRite agreement)' : ''));
       say('after', 'running', 'the same tests, with the change…');
-      const after = await runUnits(fix, wt, (i, n, file) => say('after', 'running', 'test ' + (i + 1) + ' of ' + n + ': ' + file));
+      const after = await runUnits(fix, wt, (i, n, file) => say('after', 'running', 'test ' + (i + 1) + ' of ' + n + ': ' + file), told('after'));
       const checks = checksFor(wt, Object.keys(tried.files).reduce((m, k) => { m[k] = { old: tried.files[k].old, neu: tried.files[k].neu }; return m; }, {}));
       const unit = after.unit.map((t) => {
         const was = base.unit.filter((x) => x.file === t.file)[0];
         const newFailures = t.ok ? [] : (was && !was.ok ? t.failures.filter((x) => was.failures.indexOf(x) === -1) : (t.failures.length ? t.failures : ['it failed']));
-        return { file: t.file, ok: t.ok, passed: t.passed, failed: t.failed, failures: t.failures, newFailures: newFailures, before: was ? (was.ok ? 'passed' : was.failed + ' failing before the fix') : '', ms: t.ms, out: '' };
+        return { file: t.file, ok: t.ok, passed: t.passed, failed: t.failed, failures: t.failures, newFailures: newFailures, before: was ? (was.ok ? 'passed' : was.failed + ' failing before the fix') : '', ms: t.ms,
+          out: newFailures.length ? str(t.out).slice(-8000) : '', guard: t.file === OLD_GUARD };
       });
       const bad = checks.filter((c) => !c.ok && !c.already).length + unit.filter((u) => u.newFailures.length).length;
       fix.tests = { at: now().toISOString(), ok: bad === 0, checks: checks, unit: unit, e2eFiles: after.e2eFiles || [], none: !unit.length, where: branch };
-      say('after', bad ? 'failed' : 'done', bad ? bad + ' new failure(s): not committed' : 'nothing broke' + (unit.length ? ' (' + unit.length + ' test file(s), the page checks)' : ' (the page checks)'));
+      const broke = unit.filter((u) => u.newFailures.length).map((u) => u.file + ': ' + u.newFailures[0]).concat(checks.filter((c) => !c.ok && !c.already).map((c) => 'check: ' + c.name + (c.detail ? ' — ' + c.detail : '')));
+      say('after', bad ? (b.anyway ? 'skipped' : 'failed') : 'done', bad ? bad + ' new failure(s)' + (b.anyway ? ', applied anyway: ' + str(b.anywayWhy || 'accepted') : ': not committed') + ' — ' + broke.join(' · ').slice(0, 300)
+        : 'nothing broke' + (unit.length ? ' (' + unit.length + ' test file(s), the page checks)' : ' (the page checks)'));
       if (bad && !b.anyway) {
+        say('end', 'failed', 'the change breaks ' + bad + ' check(s) or test(s): not committed');
         ev(fix, 'tested on ' + branch, b.by, 'something broke: ' + bad + ' new failure(s) — not committed');
         put(fix); await done();
         return no('The change breaks ' + bad + ' check(s) or test(s) on ' + branch + ': not committed. See the tests below.', { fix: slim(fix), broke: true });
@@ -886,18 +910,21 @@ function open(opts) {
       say('commit', 'done', shaC + ' · ' + msg.split('\n')[0]);
       say('push', 'running', 'git push ' + remote + ' ' + branch + ' (if Git asks you to sign in, its window may be behind this one)');
       const pushed = b.push === false ? { code: 1, stderr: 'not pushed (asked)' } : await git(wt, ['push', '-u', remote, branch]);
+      if (((pushed.stderr || '') + (pushed.stdout || '')).trim()) say('push', 'log', 'git: ' + ((pushed.stderr || '') + ' ' + (pushed.stdout || '')).trim().slice(0, 600));
       say('push', pushed.code === 0 ? 'done' : 'failed', pushed.code === 0 ? 'to ' + remote + '/' + branch : (pushed.stderr || pushed.stdout).trim().slice(0, 300));
       const url = (await git(f, ['remote', 'get-url', remote])).stdout.trim();
       const gh = /github\.com[/:]([^/]+)\/([^/.\s]+)(\.git)?\/?$/.exec(url) || /\/git\/([^/]+)\/([^/.\s]+)(\.git)?\/?$/.exec(url);
       const pr = gh && pushed.code === 0 ? 'https://github.com/' + gh[1] + '/' + gh[2] + '/compare/' + encodeURIComponent(baseBranch) + '...' + encodeURIComponent(branch) + '?expand=1'
         + '&title=' + encodeURIComponent(msg.split('\n')[0]) + '&body=' + encodeURIComponent(str(b.prBody).slice(0, 4000)) : '';
+      say('end', 'done', shaC);
       say('pr', pr ? 'done' : 'skipped', pr ? 'ready to open' : (pushed.code === 0 ? 'not a GitHub repository: open it on your git site' : 'needs the branch pushed'));
       fix.branchApply = { branch: branch, base: baseBranch, start: start, sha: shaC, pushed: pushed.code === 0, pushError: pushed.code === 0 ? '' : (pushed.stderr || pushed.stdout).trim().slice(0, 300), pr: pr, at: now().toISOString(), by: str(b.by) };
       fix.applied = { at: now().toISOString(), by: str(b.by), branch: branch, upstream: pushed.code === 0 ? remote + '/' + branch : '', pull: { done: fetched.code === 0, text: 'From ' + start + ', on a branch of its own: ' + branch + '.' }, live: false };
       fix.commit = { sha: shaC, at: now().toISOString(), pushed: pushed.code === 0, branch: branch, by: str(b.by), upstream: pushed.code === 0 ? remote + '/' + branch : '', pushError: fix.branchApply.pushError };
       fix.status = 'committed';
       ev(fix, 'approved and applied', b.by, 'on its own branch ' + branch + ' (from ' + start + ')');
-      ev(fix, 'tested', b.by, bad ? 'applied anyway with ' + bad + ' new failure(s)' : 'nothing broke' + (unit.length ? ' (' + unit.length + ' related test file(s))' : ' (checks only)'));
+      ev(fix, 'tested', b.by, bad ? 'applied anyway with ' + bad + ' new failure(s)' + (b.anywayWhy ? ': ' + str(b.anywayWhy) : '') : 'nothing broke' + (unit.length ? ' (' + unit.length + ' related test file(s))' : ' (checks only)'));
+      if (b.allowOld && tried.files[OLD_GUARD]) ev(fix, 'agreed for Old EquipRite', b.by, oldFiles.join(', ') + ' named in ' + OLD_GUARD);
       ev(fix, 'committed', b.by, shaC + ' on ' + branch);
       ev(fix, pushed.code === 0 ? 'pushed' : 'push failed', b.by, pushed.code === 0 ? 'to ' + remote + '/' + branch + (pr ? ' · pull request ready' : '') : fix.branchApply.pushError);
       put(fix);

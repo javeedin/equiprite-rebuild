@@ -252,6 +252,45 @@ const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwA
     const DB = require('../desktop/lib/dataBranch');
     const merged = JSON.parse(DB.open({ root: tmp }).resolve('issues/isx.json', JSON.stringify(pcA), JSON.stringify(pcB)));
     T.check('…and so on the data branch: a conflicted issue file keeps both comments', merged.comments.length === 3 && merged.status === 'analyzed');
+
+    // ── the agent stops on a test the change breaks (Old EquipRite's guard): what broke, the log; agreed; or applied anyway ──
+    T.section('the agent stops on a failing test: why, the log, the ways on');
+    const GUARD = 'tests/old-app-unchanged.test.js';
+    fs.mkdirSync(path.join(A, 'tests'), { recursive: true });
+    fs.writeFileSync(path.join(A, GUARD), [
+      "const fs = require('fs'), path = require('path');",
+      '// a stand-in for Old EquipRite\'s guard: the page may not change unless named here',
+      'const AGREED = [',
+      "  { why: 'start', paths: [] }",
+      '];',
+      "const f = '" + PAGE + ".html';",
+      "const changed = /AGENT-CHANGED/.test(fs.readFileSync(path.join(__dirname, '..', f), 'utf8'));",
+      'const ok = !changed || AGREED.some((a) => a.paths.indexOf(f) !== -1);',
+      "console.log('passed: ' + (ok ? 1 : 0) + '   failed: ' + (ok ? 0 : 1));",
+      "if (!ok) { console.log('FAILURES:'); console.log('  - Old EquipRite changed, not agreed: ' + f); process.exit(1); }"].join('\n') + '\n');
+    git(A, 'add', GUARD); git(A, 'commit', '-q', '-m', 'the guard'); git(A, 'push', '-q', 'origin', 'main');
+    const c4 = await store.create({ app: 'vbredwoodapp', page: ID, text: 'mark the billing page as changed by the agent', kind: 'change', by: 'Asha' });
+    await store.format(c4.issue.id, { by: 'Asha' });
+    answers.push(['## Verdict', 'Fix on this page — a marker comment.', '## Summary', 'x', '## Questions', 'None', '', 'FILE: ' + PAGE + '.html', '<<<<<<< SEARCH', anchor, '=======', anchor + '\n  <!-- AGENT-CHANGED ' + c4.issue.key + ' -->', '>>>>>>> REPLACE'].join('\n'));
+    await store.analyze(c4.issue.id, { by: 'Ben' });
+    await store.ask(c4.issue.id, { by: 'Ben', email: false });
+    await store.approve(c4.issue.id, { by: 'Asha' });
+    const br = await store.apply(c4.issue.id, { by: 'Asha' });
+    const g4 = store.get(c4.issue.id).issue;
+    const unitG = ((g4.lastRun && g4.lastRun.tests && g4.lastRun.tests.unit) || []).filter((u) => u.file === GUARD)[0] || {};
+    T.check('stopped: the guard passed before and fails with the change — nothing committed; which test and why kept with the issue', !br.ok && br.issue && g4.status === 'approved' && g4.lastRun.broke
+      && unitG.guard === true && /Old EquipRite changed, not agreed/.test((unitG.newFailures || []).join(' ')) && /Old EquipRite changed, not agreed/.test(unitG.out || ''), JSON.stringify([br.error, unitG]));
+    const log4 = (g4.agentRun && g4.agentRun.log) || [];
+    T.check('…its full log kept with the issue: each test file\'s result (before ✓, after ✗), how it ended', log4.some((l) => l.key === 'before' && /old-app-unchanged\.test\.js: ✓ 1 passed, 0 failed/.test(l.text))
+      && log4.some((l) => l.key === 'after' && /old-app-unchanged\.test\.js: ✗ 0 passed, 1 failed .* Old EquipRite changed/.test(l.text)) && log4.some((l) => l.key === 'end' && l.state === 'failed')
+      && g4.agentRun.done && !g4.agentRun.okRun && store.progress(c4.issue.id).log.length === log4.length, JSON.stringify(log4.map((l) => l.key + ' ' + l.state + ' ' + l.text)));
+    T.check('applied anyway: refused without a reason', /Say why/.test((await store.apply(c4.issue.id, { by: 'Asha', anyway: true })).error));
+    const ag = await store.apply(c4.issue.id, { by: 'Asha', allowOld: true });
+    const guardOnBranch = (() => { try { return git(remote, 'show', 'fix/' + ag.issue.branch.name.split('/')[1] + ':' + GUARD); } catch (e) { return ''; } })();
+    T.check('agreed for Old EquipRite: its file named in the guard, with the issue and who approved it, in the same commit — the guard passes, committed and pushed', ag.ok && ag.issue.status === 'in-review'
+      && new RegExp("why: '" + c4.issue.key + ": .*approved by Asha").test(guardOnBranch) && guardOnBranch.indexOf("'" + PAGE + ".html'") !== -1
+      && ag.issue.events.some((e) => e.what === 'agreed for Old EquipRite') && /Agreed for Old EquipRite/.test(git(remote, 'log', '-1', '--format=%b', ag.issue.branch.name))
+      && ag.issue.agentRun.okRun && !ag.issue.lastRun, JSON.stringify([ag.error, guardOnBranch.slice(0, 300)]));
   } catch (e) {
     T.check('no exception: ' + (e && e.stack), false);
   } finally {

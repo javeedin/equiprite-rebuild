@@ -48,6 +48,8 @@
     "cCc": { "type": "string", "defaultValue": "" },
     "cSubject": { "type": "string", "defaultValue": "" },
     "scope": { "type": "string", "defaultValue": "", "description": "The build in scope, from the top bar ('' for all; an app id): the list shows its issues, a new issue is logged in it." },
+    "allowOld": { "type": "boolean", "defaultValue": false, "description": "Apply: this change to Old EquipRite is agreed (its files named in its guard test, in the same commit)." },
+    "anyReason": { "type": "string", "defaultValue": "", "description": "Apply anyway: why it may go in with the failing test." },
     "agent": { "type": "any", "defaultValue": null, "description": "The agent's steps while it applies the change, and after (desktop/lib/issues.js progress): { running, done, okRun, error, seconds, steps: [{ key, label, state, detail, seconds }] }." },
     "dApp": { "type": "string", "defaultValue": "", "description": "The new issue's build (an app id): chosen first; then one of its pages." }
   },

@@ -187,13 +187,48 @@ const BILL = 'webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-billi
       && (await page.$$('#isAgentSteps .nx-is-ag--pending')).length === 9 && /Get the latest code[\s\S]*Run the related tests, before the change[\s\S]*Push the branch[\s\S]*The pull request/.test(await text(page, '#isAgentSteps')),
       await text(page, '#isApplyChange summary'));
     await env.shot('issues-before-apply.png');
+    // the project has Old EquipRite's guard (a stand-in): this change to an Old EquipRite page fails it until agreed
+    const GUARD = 'tests/old-app-unchanged.test.js';
+    fs.mkdirSync(path.join(pg.root, 'tests'), { recursive: true });
+    fs.writeFileSync(path.join(pg.root, GUARD), ["const fs = require('fs'), path = require('path');", 'const AGREED = [', "  { why: 'start', paths: [] }", '];',
+      "const f = '" + BILL + ".html';", "const changed = /EQP-901: overdue invoices first/.test(fs.readFileSync(path.join(__dirname, '..', f), 'utf8'));",
+      'const ok = !changed || AGREED.some((a) => a.paths.indexOf(f) !== -1);', "console.log('passed: ' + (ok ? 1 : 0) + '   failed: ' + (ok ? 0 : 1));",
+      "if (!ok) { console.log('FAILURES:'); console.log('  - Old EquipRite changed, not agreed: ' + f); process.exit(1); }"].join('\n') + '\n');
+    gitIn('add', GUARD); gitIn('commit', '-q', '-m', 'the guard'); gitIn('push', '-q', 'origin', 'pages/test');
     page.once('dialog', (d) => d.accept());
     await page.click('#isApply');
     await page.waitForSelector('#isApply.nx-btn--working', { timeout: 3000 }).catch(() => {});
     T.check('…pressed: the button turns (working), the banner says what is happening, pinned in view', !!(await page.$('#isApply.nx-btn--working')) && /The agent is applying it on fix\/EQP-901/.test(await text(page, '#isProgress')));
     await page.waitForSelector('#isAgentSteps .nx-is-ag--done', { timeout: 20000 }).catch(() => {});
     T.check('…its steps shown as it goes', (await page.$$('#isAgentSteps .nx-is-ag--done, #isAgentSteps .nx-is-ag--skipped')).length >= 1);
+
+    T.section('the agent stops on a failing test: why, its full log, the ways on');
+    await page.waitForSelector('#isBroke', { timeout: 60000 }).catch(() => {});
+    T.check('stopped: which test broke (passed before), its failing line, its output; nothing committed; the button stops turning', /The agent stopped: the change breaks what passed before\. Nothing was committed or pushed\./.test(await text(page, '#isBroke'))
+      && /tests\/old-app-unchanged\.test\.js · before the change: passed/.test(await text(page, '#isBroke .nx-is-brokeunit')) && /Old EquipRite changed, not agreed/.test(await text(page, '#isBroke .nx-is-brokelines'))
+      && /FAILURES:/.test(await page.$eval('#isBroke .nx-is-brokeout pre', (e) => e.textContent).catch(() => '')) && !(await page.$('#isApply.nx-btn--working')) && !(await page.$('#isBranch'))
+      && !(() => { try { return pg.gitRemote('rev-parse', '--verify', '-q', 'fix/EQP-901'); } catch (e) { return ''; } })(), await text(page, '#isBroke'));
+    T.check('…the agent\'s header says it stopped, and why (not "Working…")', /^✗ Stopped after \d+ s: The change breaks 1 check\(s\) or test\(s\) on fix\/EQP-901: not committed/.test(await text(page, '#isAgentState')), await text(page, '#isAgentState'));
+    T.check('…its steps: the tests after the change failed (✗), what broke named there', !!(await page.$('#isAgentSteps .nx-is-ag--failed')) && /Run the tests again, with the change[\s\S]*1 new failure[\s\S]*old-app-unchanged/.test(await text(page, '#isAgentSteps')), await text(page, '#isAgentSteps'));
+    const logTxt = await page.$eval('#isAgent .nx-is-aglogtext', (e) => e.textContent).catch(() => '');
+    T.check('…its full log, open when it failed: each line timed, the step, each test file\'s result before (✓) and after (✗), how it ended; scrolled to its newest line', /Its full log · \d+ lines/.test(await text(page, '#isAgent .nx-is-aglog summary'))
+      && (await page.getAttribute('#isAgent .nx-is-aglog', 'open')) !== null && /\+\d+:\d\d\s+tests before\s+tests\/old-app-unchanged\.test\.js: ✓ 1 passed, 0 failed/.test(logTxt)
+      && /tests after\s+tests\/old-app-unchanged\.test\.js: ✗ 0 passed, 1 failed .* Old EquipRite changed, not agreed/.test(logTxt) && /✗ end /.test(logTxt)
+      && await page.$eval('#isAgent .nx-is-aglogtext', (e) => e.scrollHeight <= e.clientHeight + 2 || e.scrollTop + e.clientHeight >= e.scrollHeight - 2), logTxt.slice(0, 1500));
+    T.check('…it is Old EquipRite\'s guard: said so, with the ways on (agree it and apply; analyze again with the failure; apply anyway with a reason)', /This is Old EquipRite's guard/.test(await text(page, '#isGuardNote'))
+      && await page.isEnabled('#isApplyAgreed') && await page.isEnabled('#isRefineFail') && !!(await page.$('#isAnyReason')) && !(await page.$('#isOldAgree')));
+    await page.click('#isApplyAnyway');
+    await page.waitForFunction(() => /Say why it may go in/.test(document.body.textContent), null, { timeout: 3000 }).catch(() => {});
+    T.check('…applied anyway: not without a reason', /Say why it may go in with the failing test/.test(await text(page, 'body')) && !(await page.$('#isBranch')));
+    await env.shot('issues-agent-stopped.png');
+    page.once('dialog', (d) => d.accept());
+    await page.click('#isApplyAgreed');
     await page.waitForSelector('#isBranch', { timeout: 60000 }).catch(() => {});
+    const guardOnBranch = (() => { try { return pg.gitRemote('show', 'fix/EQP-901:' + GUARD); } catch (e) { return ''; } })();
+    T.check('agreed for Old EquipRite: the page named in the guard (the issue, who approved it) in the same commit — the guard passes now', /why: 'EQP-901: Overdue invoices are not shown first on My Billing — approved by priya\.raman \(\d{4}-\d\d-\d\d\)'/.test(guardOnBranch) && guardOnBranch.indexOf("'" + BILL + ".html'") !== -1
+      && /Agreed for Old EquipRite/.test(pg.gitRemote('log', '-1', '--format=%b', 'fix/EQP-901')) && !(await page.$('#isBroke')), guardOnBranch.slice(0, 400));
+    T.check('…its log kept, closed when it went well', /Its full log · \d+ lines/.test(await text(page, '#isAgentDone .nx-is-aglog summary')) && (await page.getAttribute('#isAgentDone .nx-is-aglog', 'open')) === null
+      && /and agreed for Old EquipRite/.test(await page.$eval('#isAgentDone .nx-is-aglogtext', (e) => e.textContent).catch(() => '')));
     T.check('done: how the agent\'s run went, step by step — committed, pushed, the pull request; the time it took', /✓ Done in \d+ s/.test(await text(page, '#isAgentDone .nx-is-agentstate'))
       && /Commit it[\s\S]*EQP-901: Overdue invoices[\s\S]*Push the branch[\s\S]*to origin\/fix\/EQP-901[\s\S]*The pull request[\s\S]*ready to open/.test(await text(page, '#isAgentDone'))
       && !(await page.$('#isAgentDone .nx-is-ag--failed')) && !(await page.$('#isApply.nx-btn--working')), await text(page, '#isAgentDone'));

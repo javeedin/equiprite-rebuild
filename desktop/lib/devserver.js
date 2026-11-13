@@ -1064,7 +1064,7 @@ function createDevServer(o) {
           else if (act === 'ask') r = await is.ask(b.id, { email: b.email !== false, to: b.to, by: by });
           else if (act === 'approve') r = await is.approve(b.id, { by: by, via: 'app' });
           else if (act === 'reject') r = await is.reject(b.id, { by: by, reason: b.reason });
-          else if (act === 'apply') r = await is.apply(b.id, { by: by });
+          else if (act === 'apply') r = await is.apply(b.id, { by: by, anyway: !!b.anyway, reason: b.reason, allowOld: !!b.allowOld });
           else if (act === 'verify') r = await is.verify(b.id, { by: by, passed: b.passed, env: b.env, build: b.build, notes: b.notes });
           else if (act === 'close') r = await is.close(b.id, { by: by, note: b.note, resolution: b.resolution, rootCause: b.rootCause, rootNotes: b.rootNotes, fixedIn: b.fixedIn });
           else if (act === 'details') r = is.details(b.id, b.fields || {}, { by: by });

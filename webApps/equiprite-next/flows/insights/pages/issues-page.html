@@ -456,7 +456,46 @@
                       </template>
                     </oj-bind-for-each>
                   </ol>
+                  <oj-bind-if test="[[ $functions.agentLogCount($variables.agent) > 0 ]]">
+                    <details class="nx-is-aglog" :open="[[ $functions.agentLogOpen($variables.agent) ]]"><summary><oj-bind-text value="[[ 'Its full log · ' + $functions.agentLogCount($variables.agent) + ' lines' ]]"></oj-bind-text></summary>
+                      <pre class="nx-is-aglogtext"><oj-bind-text value="[[ $functions.agentLogText($variables.agent) ]]"></oj-bind-text></pre></details>
+                  </oj-bind-if>
                 </div>
+              </oj-bind-if>
+              <!-- the last run stopped on a failing test: what broke, why, and the ways on -->
+              <oj-bind-if test="[[ $functions.showBroke($variables.issue) ]]">
+                <div class="nx-is-broke" id="isBroke">
+                  <div class="nx-is-brokehead"><span class="nx-is-brokeico" aria-hidden="true">✗</span><b>The agent stopped: the change breaks what passed before. Nothing was committed or pushed.</b></div>
+                  <oj-bind-for-each data="[[ $functions.brokeUnits($variables.issue) ]]">
+                    <template data-oj-as="u">
+                      <div class="nx-is-brokeunit">
+                        <code class="nx-is-brokefile"><oj-bind-text value="[[ u.data.file ]]"></oj-bind-text></code><span class="nx-note"><oj-bind-text value="[[ u.data.before ? ' · before the change: ' + u.data.before : '' ]]"></oj-bind-text></span>
+                        <ul class="nx-is-brokelines"><oj-bind-for-each data="[[ u.data.newFailures ]]"><template data-oj-as="l"><li><oj-bind-text value="[[ l.data ]]"></oj-bind-text></li></template></oj-bind-for-each></ul>
+                        <oj-bind-if test="[[ !!u.data.out ]]"><details class="nx-is-brokeout"><summary>Its output</summary><pre><oj-bind-text value="[[ u.data.out ]]"></oj-bind-text></pre></details></oj-bind-if>
+                      </div>
+                    </template>
+                  </oj-bind-for-each>
+                  <oj-bind-for-each data="[[ $functions.brokeChecks($variables.issue) ]]">
+                    <template data-oj-as="c"><div class="nx-is-brokeunit"><code class="nx-is-brokefile">page check</code> <oj-bind-text value="[[ c.data.name + (c.data.detail ? ': ' + c.data.detail : '') ]]"></oj-bind-text></div></template>
+                  </oj-bind-for-each>
+                  <oj-bind-if test="[[ $functions.brokeGuard($variables.issue) ]]">
+                    <div class="nx-is-guardnote" id="isGuardNote"><b>This is Old EquipRite's guard.</b> Old EquipRite is kept unchanged by agreement (tests/old-app-unchanged.test.js): any change to its files fails it, until the change is agreed. This issue asks to change an Old EquipRite page, so the guard stops it — as it should, until you decide.
+                      <div class="nx-fx-row"><button type="button" class="nx-btn nx-btn--primary" id="isApplyAgreed" data-act="applyAgreed" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]">Agree this change to Old EquipRite, and apply</button>
+                        <span class="nx-note">Its files are named in the guard with this issue and who approved it, in the same commit: the decision shows in the pull request.</span></div></div>
+                  </oj-bind-if>
+                  <div class="nx-is-brokeacts">
+                    <button type="button" class="nx-btn nx-aibtn" id="isRefineFail" data-act="refineFail" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]"><span aria-hidden="true">✨</span>Analyze again with this failure</button>
+                    <span class="nx-note">The AI changes the fix so the tests pass; it comes back for approval.</span>
+                  </div>
+                  <div class="nx-is-brokeacts">
+                    <input type="text" class="nx-flib-filter nx-is-reason" id="isAnyReason" data-field="anyReason" :value="[[ $variables.anyReason ]]" on-input="[[ $listeners.onField ]]" placeholder="Why it may go in with the failing test (e.g. the test expects the old title)">
+                    <button type="button" class="nx-btn nx-btn--plain nx-pg-delete" id="isApplyAnyway" data-act="applyAnyway" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]">Apply anyway</button>
+                  </div>
+                </div>
+              </oj-bind-if>
+              <oj-bind-if test="[[ $variables.issue.status === 'approved' && $functions.isOld($variables.issue) && !$functions.brokeGuard($variables.issue) ]]">
+                <label class="nx-flib-check nx-is-oldagree" id="isOldAgree"><input type="checkbox" id="isAllowOld" data-field="allowOld" :checked="[[ $variables.allowOld ]]" on-change="[[ $listeners.onField ]]">
+                  <span><b>Agree this change to Old EquipRite.</b> Old EquipRite is kept unchanged by agreement: ticked, the agent names this change's files in its guard (tests/old-app-unchanged.test.js) with the issue and who approved it, in the same commit. Unticked, the guard stops it.</span></label>
               </oj-bind-if>
               <oj-bind-if test="[[ $variables.issue.status === 'approved' ]]">
                 <div class="nx-is-applybox" id="isApplyBox">
@@ -485,6 +524,10 @@
                       </template>
                     </oj-bind-for-each>
                   </ol>
+                  <oj-bind-if test="[[ $functions.agentLogCount($variables.agent) > 0 ]]">
+                    <details class="nx-is-aglog" :open="[[ $functions.agentLogOpen($variables.agent) ]]"><summary><oj-bind-text value="[[ 'Its full log · ' + $functions.agentLogCount($variables.agent) + ' lines' ]]"></oj-bind-text></summary>
+                      <pre class="nx-is-aglogtext"><oj-bind-text value="[[ $functions.agentLogText($variables.agent) ]]"></oj-bind-text></pre></details>
+                  </oj-bind-if>
                 </div>
               </oj-bind-if>
               <oj-bind-if test="[[ !$variables.issue.branch ]]"><p class="nx-note" id="isNotApplied">Not applied yet: once approved, Apply change lets the agent put it on its own branch (fix/<oj-bind-text value="[[ $variables.issue.key ]]"></oj-bind-text>), test it, commit and push it, and make the pull request.</p></oj-bind-if>

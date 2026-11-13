@@ -49,14 +49,20 @@ define([], function () {
     ask: function (id, email, to) { return post('ask', { id: id, email: !!email, to: to || '' }); },
     approve: function (id) { return post('approve', { id: id }); },
     reject: function (id, reason) { return post('reject', { id: id, reason: reason || '' }); },
-    apply: function (id) { return post('apply', { id: id }); },
+    apply: function (id, opts) { return post('apply', Object.assign({ id: id }, opts || {})); },
     close: function (id, b) { return post('close', Object.assign({ id: id }, typeof b === 'string' ? { note: b } : (b || {}))); },
     verify: function (id, b) { return post('verify', Object.assign({ id: id }, b || {})); },
     details: function (id, fields) { return post('details', { id: id, fields: fields || {} }); },
     comment: function (id, b) { return post('comment', Object.assign({ id: id }, b || {})); },
     email: function (id, b) { return post('email', Object.assign({ id: id }, b || {})); },
     draft: function (id, purpose) { return post('draft', { id: id, purpose: purpose || 'info' }); },
-    progress: function (id) { return call('progress?id=' + encodeURIComponent(id || '')); },
+    // a run that failed says why in its `error`: still an answer (its steps and log), not a failed call — else the screen
+    // keeps the last step seen while it worked ("Working…") and never shows how it ended
+    progress: function (id) {
+      return call('progress?id=' + encodeURIComponent(id || '')).then(function (r) {
+        return r.status === 200 && r.body && Array.isArray(r.body.steps) ? { ok: true, status: r.status, body: r.body } : r;
+      });
+    },
     settings: function () { return call('settings'); },
     setProject: function (project) { return post('settings', { project: project || '' }); },
     reopen: function (id) { return post('reopen', { id: id }); }

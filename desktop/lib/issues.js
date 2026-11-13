@@ -542,10 +542,16 @@ function open(opts) {
   function agentView(run) {
     const t = Date.now();
     return { ok: true, running: !!run && !run.done, done: !!run && run.done, okRun: !!run && !!run.ok, error: run ? run.error || '' : '', started: run ? new Date(run.at).toISOString() : '',
-      seconds: run ? Math.round(((run.done ? run.end : t) - run.at) / 1000) : 0,
+      seconds: run ? Math.round(((run.done ? run.end : t) - run.at) / 1000) : 0, log: run ? (run.log || []).slice(-300) : [],
       steps: AGENT_STEPS.map((s) => { const x = (run && run.steps[s[0]]) || {}; return { key: s[0], label: s[1], state: x.state || 'pending', detail: x.detail || '', seconds: x.at ? Math.round(((x.end || (x.state === 'running' && !(run && run.done) ? t : x.at)) - x.at) / 1000) : 0 }; }) };
   }
-  function progress(id) { return agentView(agentRuns[str(id)] || null); }
+  /** The agent's steps and log: live while it works (and a while after), else the last run kept with the issue. */
+  function progress(id) {
+    const live = agentRuns[str(id)];
+    if (live) return agentView(live);
+    const x = byId(id);
+    return x && x.agentRun ? Object.assign({}, x.agentRun, { ok: true, running: false, done: true }) : agentView(null);
+  }
   async function apply(id, b) {
     b = b || {};
     const x = byId(id);
@@ -559,18 +565,31 @@ function open(opts) {
     const prBody = '**' + k + '** · ' + (f.title || x.title) + '\n\n' + (f.summary || '') + '\n\n**Page:** ' + x.label + ' (`' + x.page + '`)\n\n' + str(fx.markdown).slice(0, 2500)
       + '\n\n---\nApproved by ' + (x.approval.decision.by || 'someone') + ' · proposed by ' + (fx.provider || 'AI') + ' in Build.Rite' + (x.jira && x.jira.url ? ' · ' + x.jira.url : '');
     ev(x, 'agent started', b.by, 'branch fix/' + k);
-    const run = agentRuns[x.id] = { at: Date.now(), steps: {}, done: false, ok: false, error: '' };
+    const run = agentRuns[x.id] = { at: Date.now(), steps: {}, done: false, ok: false, error: '', log: [] };
     const onStep = (s) => {
+      run.log.push({ t: Date.now() - run.at, key: s.key, state: s.state, text: s.detail });
+      if (run.log.length > 400) run.log.splice(0, run.log.length - 400);
+      if (s.key === 'end') { run.done = true; run.end = Date.now(); run.ok = s.state === 'done'; if (!run.ok) run.error = s.detail; return; }
+      if (s.state === 'log') return; // a line of its log, not a step's state
       const cur = run.steps[s.key] || {};
       const next = { state: s.state, detail: s.detail, at: cur.at || Date.now(), end: s.state === 'running' ? 0 : Date.now() };
       run.steps[s.key] = next;
     };
-    const r = await o.fix.applyToBranch({ fix: fx.id, branch: 'fix/' + k, by: b.by, message: message, prBody: prBody, onStep: onStep });
-    run.done = true; run.end = Date.now(); run.ok = !!r.ok; run.error = r.ok ? '' : str(r.error);
+    const why = str(b.reason).trim().slice(0, 300);
+    if (b.anyway && !why) return no('Say why it may go in with the failing test (it is kept in its history and the pull request).');
+    const agreedWhy = keyOf(x) + ': ' + (f.title || x.title) + ' — approved by ' + (x.approval.decision.by || 'someone') + (why ? ' (' + why + ')' : '');
+    const r = await o.fix.applyToBranch({ fix: fx.id, branch: 'fix/' + k, by: b.by, prBody: prBody + (b.anyway ? '\n\n**Applied with a failing test:** ' + why : '') + (b.allowOld ? '\n\n**Old EquipRite:** this change is agreed (named in tests/old-app-unchanged.test.js).' : ''),
+      message: message + (b.anyway ? '\nApplied with a failing test: ' + why : '') + (b.allowOld ? '\nAgreed for Old EquipRite (tests/old-app-unchanged.test.js).' : ''),
+      onStep: onStep, anyway: !!b.anyway, anywayWhy: why, allowOld: !!b.allowOld, allowOldWhy: agreedWhy });
+    if (!run.done) { run.done = true; run.end = Date.now(); run.ok = !!r.ok; }
+    run.error = r.ok ? '' : str(r.error);
+    // the run's log and steps kept with the issue (shown after a restart, shared with everyone)
+    x.agentRun = Object.assign(agentView(run), { log: run.log.slice(-300) });
     const stale = setTimeout(() => { if (agentRuns[x.id] === run) delete agentRuns[x.id]; }, 15 * 60000);
     if (stale.unref) stale.unref();
     if (!r.ok) {
       x.lastError = r.error;
+      x.lastRun = { at: now().toISOString(), broke: !!r.broke, stale: !!r.stale, tests: r.fix && r.fix.tests ? r.fix.tests : null };
       ev(x, r.stale ? 'out of date' : (r.broke ? 'tests broke' : 'agent failed'), 'agent', r.error);
       if (r.stale) x.status = 'analyzed';
       put(x);
@@ -580,6 +599,9 @@ function open(opts) {
     x.branch = { name: ba.branch, base: ba.base, sha: ba.sha, pushed: ba.pushed, pr: ba.pr, pushError: ba.pushError, at: ba.at };
     x.status = 'in-review';
     x.lastError = '';
+    x.lastRun = null;
+    if (b.anyway) ev(x, 'applied with a failing test', b.by, why);
+    if (b.allowOld) ev(x, 'agreed for Old EquipRite', b.by, 'its files named in tests/old-app-unchanged.test.js, in the same commit');
     ev(x, 'applied on a branch', 'agent', ba.branch + ' · ' + ba.sha + (ba.pushed ? ' · pushed' : ' · not pushed: ' + ba.pushError));
     if (ba.pr) ev(x, 'pull request ready', 'agent', ba.pr.split('?')[0]);
     await jiraComment(x, 'Fixed on branch {{' + ba.branch + '}} (' + ba.sha + ')' + (r.fix.tests && r.fix.tests.ok ? ', tests passing' : '') + '.' + (ba.pr ? '\nPull request: ' + ba.pr.split('?')[0] : ''));

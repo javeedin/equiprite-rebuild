@@ -133,16 +133,36 @@ define(['vb/action/actionChain', 'vb/action/actions', 'resources/js/issuesClient
           return;
         }
         if (act === 'reject') { await show(await IC.reject(x.id, v.reason), 'Rejected.'); v.reason = ''; return; }
-        if (act === 'apply') {
-          if (!ask('Let the agent apply the approved change?\n\nIt puts it on a branch of its own (fix/' + x.key + '), runs the tests, commits it with ' + x.key + ' and pushes it, then makes the pull request. Your own code folder is not touched.')) return;
-          v.progress = 'The agent is applying it on fix/' + x.key + ': its steps are shown below, as it goes.';
+        if (act === 'refineFail') {
+          // what broke, handed to the AI: it is reopened (the approval no longer stands) and analyzed again with it
+          const t = (x.lastRun && x.lastRun.tests) || {};
+          const what = (t.unit || []).filter((u) => (u.newFailures || []).length).map((u) => u.file + ': ' + u.newFailures.join('; ')).concat((t.checks || []).filter((c) => !c.ok && !c.already).map((c) => 'check ' + c.name + (c.detail ? ': ' + c.detail : ''))).join('\n');
+          if (!ask('Analyze it again with what broke?\n\nIt goes back to be analyzed: the approval no longer stands, and the new proposal is sent for approval again.')) return;
+          v.progress = 'Reopening it, and asking the AI again with what broke…';
+          const ro = await IC.reopen(x.id);
+          if (!ro.ok) { fail(ro); return; }
+          const r = await IC.analyze(x.id, 'Applying the change broke this, so it was not committed. Change the fix so these pass (keep what the issue asks):\n' + what);
+          await show(r, r.ok ? 'Analyzed again with what broke: check the new proposal, then send it for approval.' : '');
+          return;
+        }
+        if (act === 'apply' || act === 'applyAnyway' || act === 'applyAgreed') {
+          const anyway = act === 'applyAnyway';
+          const allowOld = act === 'applyAgreed' || (!!v.allowOld && x.app === 'vbredwoodapp');
+          if (anyway && !String(v.anyReason || '').trim()) { v.result = { ok: false, text: 'Say why it may go in with the failing test.' }; return; }
+          if (!ask(anyway ? 'Apply it although a test fails?\n\n"' + v.anyReason + '" is kept in its history, the commit and the pull request.'
+            : allowOld ? 'Apply it, and agree this change to Old EquipRite?\n\nIts files are named in Old EquipRite\'s guard (tests/old-app-unchanged.test.js) with ' + x.key + ' and who approved it, in the same commit — so the decision shows in the review.'
+            : 'Let the agent apply the approved change?\n\nIt puts it on a branch of its own (fix/' + x.key + '), runs the tests, commits it with ' + x.key + ' and pushes it, then makes the pull request. Your own code folder is not touched.')) return;
+          v.progress = 'The agent is applying it on fix/' + x.key + (anyway ? ' (accepting the failing test)' : allowOld ? ' (agreed for Old EquipRite)' : '') + ': its steps are shown below, as it goes.';
           v.agent = null;
           // its steps, live (the local server keeps them while it works)
-          watch = setInterval(async () => { const p = await IC.progress(x.id); if (p.ok && v.selId === x.id) v.agent = p.body; }, 700);
-          const r = await IC.apply(x.id);
+          // its log follows the newest line (where a failure is)
+          const logEnd = () => setTimeout(() => { try { document.querySelectorAll('.nx-is-aglogtext').forEach((e) => { e.scrollTop = e.scrollHeight; }); } catch (e) { /* no DOM */ } }, 80);
+          watch = setInterval(async () => { const p = await IC.progress(x.id); if (watch && p.ok && v.selId === x.id) { v.agent = p.body; logEnd(); } }, 700); // a poll still on its way when it ends is dropped
+          const r = await IC.apply(x.id, { anyway: anyway, reason: anyway ? v.anyReason : '', allowOld: allowOld });
+          if (r.ok) v.anyReason = '';
           clearInterval(watch); watch = null;
           const fin = await IC.progress(x.id);
-          if (fin.ok && v.selId === x.id) v.agent = fin.body;
+          if (fin.ok && v.selId === x.id) { v.agent = fin.body; logEnd(); }
           await show(r, r.ok ? 'Done: on ' + r.body.issue.branch.name + (r.body.issue.branch.pushed ? ', pushed' : '') + '. Review the pull request, then verify the fix.' : '');
           return;
         }

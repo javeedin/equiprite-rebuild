@@ -165,7 +165,22 @@ define(['resources/js/issuesClient', 'resources/js/codeFixClient', 'resources/js
       if (agent.running) return 'Working… ' + secs(agent.seconds || 0);
       return agent.okRun ? '✓ Done in ' + secs(agent.seconds || 0) : '✗ Stopped after ' + secs(agent.seconds || 0) + (agent.error ? ': ' + agent.error : '');
     }
+    /** The agent's whole log, one line each: its time from the start, the step, what it said. */
+    agentLogCount(agent) { return agent && agent.log ? agent.log.length : 0; }
+    agentLogText(agent) {
+      const L = { fetch: 'latest code', branch: 'branch', check: 'fits?', before: 'tests before', write: 'write', after: 'tests after', commit: 'commit', push: 'push', pr: 'pull request', end: 'end' };
+      const m = { done: '✓', failed: '✗', skipped: '–', running: '…', log: ' ' };
+      const at = (ms) => { const sec = Math.round(ms / 1000); return '+' + Math.floor(sec / 60) + ':' + (sec % 60 < 10 ? '0' : '') + (sec % 60); };
+      return ((agent && agent.log) || []).map((l) => at(l.t) + '  ' + (m[l.state] || ' ') + ' ' + ((L[l.key] || l.key) + '              ').slice(0, 13) + ' ' + l.text).join('\n');
+    }
+    agentLogOpen(agent) { return !!agent && !agent.running && !!agent.done && !agent.okRun; }
     agentClass(agent) { return 'nx-is-agent' + (!agent ? ' nx-is-agent--plan' : agent.running ? ' nx-is-agent--run' : agent.okRun ? ' nx-is-agent--ok' : ' nx-is-agent--bad'); }
+    /** The last run stopped on a failing test: which (its new failures, its output), and whether it is Old EquipRite's guard. */
+    brokeUnits(x) { const t = x && x.lastRun && x.lastRun.tests; return ((t && t.unit) || []).filter((u) => (u.newFailures || []).length); }
+    brokeChecks(x) { const t = x && x.lastRun && x.lastRun.tests; return ((t && t.checks) || []).filter((c) => !c.ok && !c.already); }
+    brokeGuard(x) { const t = x && x.lastRun && x.lastRun.tests; return ((t && t.unit) || []).some((u) => u.guard && (u.newFailures || []).length); }
+    isOld(x) { return !!x && (x.app === 'vbredwoodapp' || String(x.page || '').indexOf('vbredwoodapp/') === 0); }
+    showBroke(x) { return !!x && x.status === 'approved' && !!x.lastRun && !!x.lastRun.broke; }
     showChange(x) { return !!x && !!x.fix && (x.fix.diff || []).length > 0 && ['awaiting-approval', 'approved'].indexOf(x.status) !== -1; }
     verificationText(v) { return !v ? '' : (v.passed ? '✓ Verified' : '✗ Verification failed') + (v.env ? ' in ' + v.env : '') + (v.build ? ' on ' + v.build : '') + ' by ' + (v.by || 'someone') + ' · ' + when(v.at); }
     rootText(r) { const c = CAUSE.filter((x) => x[0] === (r && r.rootCause))[0]; return c ? c[1] + (r.rootNotes ? ' — ' + r.rootNotes : '') : '—'; }

@@ -1270,3 +1270,23 @@ button.nx-jira-recmark:hover, button.nx-jira-recmark:focus-visible { filter: bri
 .nx-is-ag--skipped { color: #5a6876; } .nx-is-ag--skipped .nx-is-agmark { background: #9fb0bf; border-color: #9fb0bf; }
 .nx-is-ag--running { color: #0a3d5c; background: #eef6fb; } .nx-is-ag--running .nx-is-agmark { border-color: #0a7bb6; border-right-color: transparent; animation: nx-is-spin .8s linear infinite; }
 @media (prefers-reduced-motion: reduce) { .nx-btn--working::before, .nx-is-ag--running .nx-is-agmark { animation-duration: 2s; } }
+
+/* ── the agent stopped on a failing test: what broke, the ways on (Issues) ── */
+.nx-is-broke { margin: 12px 0; border: 1px solid #f2b8b2; background: #fff8f7; border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+.nx-is-brokehead { display: flex; gap: 10px; align-items: center; color: #8c1d14; }
+.nx-is-brokeico { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: #b42318; color: #fff; font-weight: 800; flex: 0 0 26px; }
+.nx-is-brokeunit { background: #fff; border: 1px solid #f3d3cf; border-radius: 10px; padding: 8px 10px; font-size: 13px; }
+.nx-is-brokefile { font-weight: 700; color: #8c1d14; }
+.nx-is-brokelines { margin: 6px 0 0; padding-left: 18px; font-size: 12.5px; overflow-wrap: anywhere; }
+.nx-is-brokeout summary { cursor: pointer; font-size: 12px; font-weight: 700; color: #5a6876; margin-top: 6px; }
+.nx-is-brokeout pre { margin: 6px 0 0; max-height: 220px; overflow: auto; padding: 8px 10px; border-radius: 8px; background: #0f1d27; color: #d9e8f2; font-size: 11.5px; white-space: pre-wrap; }
+.nx-is-guardnote { background: #fff4e0; border: 1px solid #f2c47a; border-radius: 10px; padding: 10px 12px; font-size: 13px; color: #5c3b00; }
+.nx-is-brokeacts { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.nx-is-brokeacts .nx-is-reason { flex: 1; min-width: 240px; margin: 0; }
+.nx-is-oldagree { align-items: flex-start; margin: 8px 0; padding: 10px 12px; border: 1px dashed #c98a1a; border-radius: 10px; background: #fffaf0; font-size: 13px; }
+.nx-is-oldagree input { margin-top: 3px; }
+
+/* the agent's full log */
+.nx-is-aglog { margin-top: 10px; border-top: 1px solid #e5eaef; padding-top: 8px; }
+.nx-is-aglog > summary { cursor: pointer; font-size: 12.5px; font-weight: 800; color: #3b4a58; }
+.nx-is-aglogtext { margin: 8px 0 0; max-height: 320px; overflow: auto; padding: 10px 12px; border-radius: 8px; background: #0f1d27; color: #d9e8f2; font-size: 11.5px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
