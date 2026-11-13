@@ -151,7 +151,7 @@
    ]
   }
  ],
- "status": "applied",
+ "status": "committed",
  "events": [
   {
    "at": "2026-11-13T19:21:36.923Z",
@@ -176,9 +176,21 @@
    "what": "tested",
    "by": "javeed.shaik",
    "detail": "something broke: 1 new failure(s)"
+  },
+  {
+   "at": "2026-11-13T19:22:42.077Z",
+   "what": "committed",
+   "by": "javeed.shaik",
+   "detail": "89cab4a on claude/equiprite-future"
+  },
+  {
+   "at": "2026-11-13T19:22:46.504Z",
+   "what": "pushed",
+   "by": "javeed.shaik",
+   "detail": "to origin/claude/equiprite-future"
   }
  ],
- "updatedAt": "2026-11-13T19:22:19.086Z",
+ "updatedAt": "2026-11-13T19:22:46.504Z",
  "applied": {
   "at": "2026-11-13T19:22:12.662Z",
   "by": "javeed.shaik",
@@ -283,5 +295,13 @@
   ],
   "e2eFiles": [],
   "none": false
+ },
+ "commit": {
+  "sha": "89cab4a",
+  "at": "2026-11-13T19:22:41.779Z",
+  "pushed": true,
+  "branch": "claude/equiprite-future",
+  "by": "javeed.shaik",
+  "upstream": "origin/claude/equiprite-future"
  }
 }
