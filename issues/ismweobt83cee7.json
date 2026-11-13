@@ -48,6 +48,18 @@
    "what": "approved",
    "by": "javeed.shaik",
    "detail": "in Build.Rite"
+  },
+  {
+   "at": "2026-11-13T07:51:01.549Z",
+   "what": "agent started",
+   "by": "javeed.shaik",
+   "detail": "branch fix/BR-OBT84"
+  },
+  {
+   "at": "2026-11-13T07:54:47.132Z",
+   "what": "tests broke",
+   "by": "agent",
+   "detail": "The change breaks 1 check(s) or test(s) on fix/BR-OBT84: not committed. See the tests below."
   }
  ],
  "comments": [],
@@ -68,7 +80,7 @@
   "notify": [],
   "aiWhy": ""
  },
- "updatedAt": "2026-11-13T07:50:54.019Z",
+ "updatedAt": "2026-11-13T07:54:47.132Z",
  "formatted": {
   "title": "Equipment Manager Workbench: append the 26c version number",
   "summary": "The reporter asks for the 26c version number to be appended on the Equipment Manager Workbench page. The note does not say where it should be appended or what is shown today.",
@@ -111,5 +123,6 @@
    "at": "2026-11-13T07:50:54.019Z",
    "via": "app"
   }
- }
+ },
+ "lastError": "The change breaks 1 check(s) or test(s) on fix/BR-OBT84: not committed. See the tests below."
 }
