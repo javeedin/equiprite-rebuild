@@ -153,7 +153,11 @@ const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwA
     const sent = [];
     const jira403 = { auth: () => ({ site: 'https://example.atlassian.net', header: 'Basic abc', email: 'javeed@example.com' }),
       fetch: async (url, init) => { sent.push({ url, body: init.body ? JSON.parse(init.body) : null }); return /\/comment$/.test(url) ? { ok: true, status: 201, text: async () => '{}' } : { ok: false, status: 403, text: async () => '' }; } };
-    const ai2 = { chat: async () => ({ ok: true, provider: 'Stand-in AI', text: '{"title": "Totals wrong", "summary": "x", "steps": [], "kind": "bug", "severity": "critical", "priority": "p1", "why": "Billing is wrong for every customer."}' }) };
+    const drafts = [];
+    const ai2 = { chat: async (req) => {
+      if (/^You write short, clear, polite emails/.test(req.system)) { drafts.push(req); return { ok: true, provider: 'Stand-in AI', text: '{"subject": "[BR-X] More information on the totals", "body": "Hello Pat,\\n\\n1. Which invoices?\\n\\nThanks, Asha"}' }; }
+      return { ok: true, provider: 'Stand-in AI', text: '{"title": "Totals wrong", "summary": "x", "steps": [], "kind": "bug", "severity": "critical", "priority": "p1", "why": "Billing is wrong for every customer.", "questions": ["Which invoices?"]}' };
+    } };
     const st2 = IS.open({ file: path.join(tmp, 'data2', 'issues.json'), ai: ai2, mail: { status: () => ({ signedIn: true, account: 'me@example.com' }), sendMail: async (m) => { sent.push(m); return { ok: true }; } }, jira: jira403, now: now });
     const d1 = await st2.create({ page: ID, text: 'totals wrong', kind: 'bug', by: 'Asha',
       details: { severity: 'major', environment: 'UAT', foundIn: '26C', customer: 'Acme Rentals', customerRef: 'INC-1042', reporterEmail: 'not an email', raisedOn: '2026-11-10', priority: 'p9' } });
@@ -193,6 +197,33 @@ const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwA
       && !(await st2.close(d1.issue.id, { by: 'Asha' })).ok);
     const ro = st2.reopen(d1.issue.id, { by: 'Ben' });
     T.check('reopened: no resolution any more; its discussion kept', ro.ok && !ro.issue.resolution && ro.issue.comments.length === 3);
+
+    T.section('its Notify list, status emails, follow-up emails');
+    const nl = st2.details(d1.issue.id, { notify: 'Lead@Acme.example, not-an-email; qa@rite.example\nlead@acme.example' }, { by: 'Asha' });
+    T.check('the Notify list: emails typed as a list, checked, once each; a wrong one left out and said', nl.ok && nl.issue.details.notify.join() === 'lead@acme.example,qa@rite.example' && /left out: not-an-email/.test(nl.warning)
+      && /Notify: — → lead@acme\.example, qa@rite\.example/.test(nl.issue.events[nl.issue.events.length - 1].detail), JSON.stringify([nl.issue.details.notify, nl.warning]));
+    const before2 = sent.filter((m) => m.subject).length;
+    await st2.close(d1.issue.id, { by: 'Asha', resolution: 'wont-fix', note: 'not now' });
+    await st2.flush();
+    const stMail = sent.filter((m) => m.subject && /Closed ·/.test(m.subject)).pop();
+    const g2 = st2.get(d1.issue.id).issue;
+    T.check('a change of status: emailed to everyone on the Notify list (its status, resolution, details); in its history', !!stMail && stMail.to === 'lead@acme.example;qa@rite.example'
+      && /^\[BR-[A-Z0-9]+\] Closed · Totals wrong$/.test(stMail.subject) && /Written up → Closed/.test(stMail.html) && /Won&#39;t fix|Won't fix/.test(stMail.html) && /S2 · Major/.test(stMail.html)
+      && g2.events.some((e) => e.what === 'status sent to the Notify list' && /Closed · emailed to lead@acme\.example, qa@rite\.example/.test(e.detail)), JSON.stringify(stMail && [stMail.to, stMail.subject]));
+    T.check('…once (the note in its history sends nothing more)', sent.filter((m) => m.subject).length === before2 + 1);
+    st2.reopen(d1.issue.id, { by: 'Ben' });
+    await st2.flush();
+    T.check('reopened: told too', /\] Written up · Totals wrong$/.test((sent.filter((m) => m.subject).pop() || {}).subject || ''));
+    const dr = await st2.draft(d1.issue.id, { purpose: 'info', by: 'Asha' });
+    T.check('the AI drafts a follow-up asking for what is missing (its questions, the discussion; nothing sent): the key in the subject once, to the Notify list and the reporter', dr.ok && dr.subject === '[' + g2.key + '] More information on the totals'
+      && /Which invoices\?/.test(dr.body) && dr.to === 'lead@acme.example, qa@rite.example, pat@acme.example' && /WHAT IS MISSING OR UNCLEAR[\s\S]*Which invoices\?/.test(drafts[0].user) && /I can reproduce it on UAT/.test(drafts[0].user)
+      && !/Credit notes come from the AR feed/.test(drafts[0].user), JSON.stringify(dr));
+    T.check('an email: refused without words, or to a wrong address', !(await st2.email(d1.issue.id, { body: ' ' })).ok && /Not an email address: nope/.test((await st2.email(d1.issue.id, { to: 'nope', body: 'x' })).error));
+    const em = await st2.email(d1.issue.id, { subject: dr.subject, body: dr.body, cc: 'boss@rite.example', by: 'Asha' });
+    const emMail = sent.filter((m) => m.subject === dr.subject).pop();
+    T.check('…sent to the Notify list and the reporter (cc as asked), kept in its discussion as an email, in its history', em.ok && emMail.to === 'lead@acme.example;qa@rite.example;pat@acme.example' && emMail.cc === 'boss@rite.example'
+      && /Which invoices\?/.test(emMail.html) && em.issue.comments.slice(-1)[0].kind === 'email' && em.issue.comments.slice(-1)[0].kindLabel === 'Email' && em.issue.comments.slice(-1)[0].subject === dr.subject
+      && em.issue.events.some((e) => e.what === 'emailed' && /to lead@acme\.example, qa@rite\.example, pat@acme\.example · cc boss@rite\.example/.test(e.detail)), JSON.stringify(emMail && [emMail.to, emMail.cc]));
 
     T.section('two PCs answering at once');
     const base = { id: 'isx', status: 'written', updatedAt: '2026-11-13T10:00:00Z', comments: [{ id: 'c1', at: '2026-11-13T09:00:00Z', by: 'Asha', text: 'a' }], events: [{ at: '1', what: 'logged', by: 'Asha' }] };

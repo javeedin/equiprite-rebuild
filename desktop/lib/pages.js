@@ -299,12 +299,22 @@ function open(opts) {
     return { ok: true, path: f.path, abs: path.join(root, f.path), text: text, lines: text.split('\n').length, size: Buffer.byteLength(text) };
   }
 
+  /** A page's latest screenshots as images ({ name, mime, base64, caption, at }), newest first: Issues gives the latest to
+   *  the AI with the analysis, so it sees the page as it looks. */
+  function shotImages(id, max) {
+    const sh = readSheet(str(id));
+    if (!sh) return [];
+    return shotsOf(sh).slice().reverse().slice(0, max || 1).map((x) => {
+      try { return { name: 'Application pages screenshot' + (x.caption ? ' — ' + x.caption : ''), mime: /\.png$/i.test(x.file) ? 'image/png' : 'image/jpeg', base64: fs.readFileSync(path.join(resDir, x.file)).toString('base64'), caption: x.caption || '', at: x.at || '' }; } catch (e) { return null; }
+    }).filter(Boolean);
+  }
+
   /** Writes the catalog as the code is now (new pages listed, labels current): what the Rescan button does. */
   function rescan() { const cat = catalog(); writeCatalog(cat); return { ok: true, pages: cat.pages.length }; }
 
   return {
     remove: remove, restore: restore, removeShot: removeShot,
-    catalog: catalog, rescan: rescan, sheet: sheet, code: code, codeFile: codeFile, build: build, assign: assign, unassign: unassign, forStory: forStory,
+    catalog: catalog, rescan: rescan, sheet: sheet, code: code, codeFile: codeFile, shotImages: shotImages, build: build, assign: assign, unassign: unassign, forStory: forStory,
     saveShot: saveShot, capture: capture, saveAi: saveAi, canCapture: () => typeof o.capture === 'function',
     canWrite: () => { try { return fs.statSync(path.join(root, 'webApps', 'equiprite-next')).isDirectory(); } catch (e) { return false; } },
     gitStatus: () => repo.status(), gitSave: (b) => repo.save(b), gitPull: () => repo.pull(),

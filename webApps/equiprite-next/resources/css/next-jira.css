@@ -1156,3 +1156,38 @@ button.nx-jira-recmark:hover, button.nx-jira-recmark:focus-visible { filter: bri
 .nx-is-train .nx-is-stepbtn { padding: 6px 8px 6px 6px; font-size: 12px; white-space: nowrap; }
 .nx-is-composer .nx-fx-row { display: flex; align-items: center; gap: 10px; }
 .nx-is-composer #isPost { margin-left: auto; }
+/* the Notify list: an address per chip, a wrong one in red */
+.nx-is-notify { display: flex; flex-direction: column; gap: 6px; }
+.nx-is-notify label { display: flex; flex-direction: column; gap: 4px; font-size: 11.5px; font-weight: 700; color: #4b5866; }
+.nx-is-notify .nx-fx-text { font-weight: 400; font-size: 13px; }
+.nx-is-mails { display: flex; flex-wrap: wrap; gap: 5px; }
+.nx-is-mail { font-size: 11.5px; padding: 2px 9px; border-radius: 999px; background: #e7f2f8; color: #0a5c86; border: 1px solid #c3dceb; }
+.nx-is-mail::before { content: '✉ '; opacity: .7; }
+.nx-is-mail--bad { background: #fdecea; color: #a61b12; border-color: #f2b8b2; text-decoration: line-through; }
+/* the page in Application pages, in the Analyzed step */
+.nx-is-pagecard { display: grid; grid-template-columns: minmax(220px, 44%) 1fr; gap: 16px; padding: 14px; margin-bottom: 14px; border: 1px solid #dbe6ee; border-radius: 14px; background: linear-gradient(135deg, #f6fafc, #fff 60%); }
+@media (max-width: 900px) { .nx-is-pagecard { grid-template-columns: 1fr; } }
+.nx-is-pageshot { display: flex; flex-wrap: wrap; gap: 6px; align-content: flex-start; }
+.nx-is-shot { padding: 0; border: 1px solid #d4dce4; border-radius: 8px; overflow: hidden; background: #fff; cursor: zoom-in; width: calc(20% - 5px); aspect-ratio: 16 / 10; }
+.nx-is-shot img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
+.nx-is-shot--big { width: 100%; aspect-ratio: 16 / 9.5; box-shadow: 0 6px 18px rgba(16, 40, 60, .12); }
+.nx-is-shot:hover { border-color: #0a7bb6; }
+.nx-is-noshot { width: 100%; min-height: 150px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; border: 2px dashed #cfd9e2; border-radius: 10px; color: #5a6876; font-size: 13px; }
+.nx-is-noshot > span:first-child { font-size: 26px; opacity: .6; }
+.nx-is-pagefacts { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+.nx-is-pagetitle { display: flex; flex-direction: column; } .nx-is-pagetitle b { font-size: 16px; }
+.nx-is-pagebuild { display: flex; gap: 8px; align-items: center; font-size: 13px; font-weight: 700; color: #4b2fb8; background: #f3efff; border-radius: 8px; padding: 5px 10px; }
+.nx-is-counts { display: flex; flex-wrap: wrap; gap: 6px; }
+.nx-is-count { font-size: 12px; padding: 2px 9px; border-radius: 6px; background: #eef3f7; color: #33424f; } .nx-is-count b { color: #0a5c86; }
+.nx-is-plist { display: grid; grid-template-columns: 60px 1fr; gap: 8px; font-size: 12px; overflow-wrap: anywhere; color: #33424f; }
+.nx-is-plbl { font-weight: 800; color: #7a8692; text-transform: uppercase; font-size: 10.5px; letter-spacing: .05em; padding-top: 1px; }
+.nx-is-pageai { font-size: 12.5px; color: #3b4a58; background: #faf8ff; border-left: 3px solid #7c3aed; padding: 6px 10px; border-radius: 0 8px 8px 0; }
+/* an email in the discussion */
+.nx-is-cmt--email .nx-is-avatar { background: #0a5c86; }
+.nx-is-cmt--email .nx-is-cmtbody { background: #f1f8fc; border-color: #c3dceb; }
+.nx-is-cmtsubj { font-weight: 800; font-size: 13px; margin-top: 2px; color: #12425e; }
+.nx-is-mailform { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; }
+.nx-is-mailform label { display: flex; flex-direction: column; gap: 3px; font-size: 11.5px; font-weight: 700; color: #4b5866; }
+.nx-is-mailform .nx-fx-text { font-weight: 400; font-size: 13px; }
+.nx-is-mailsubj { grid-column: 1 / -1; }
+.nx-is-composer #isSendEmail { margin-left: 0; }

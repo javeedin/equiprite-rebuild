@@ -42,7 +42,11 @@
     "rCause": { "type": "string", "defaultValue": "", "description": "Close: the root cause." },
     "rFixed": { "type": "string", "defaultValue": "", "description": "Close: the release it is fixed in." },
     "rNotes": { "type": "string", "defaultValue": "" },
-    "project": { "type": "string", "defaultValue": "", "description": "The Jira project issues are created in." }
+    "project": { "type": "string", "defaultValue": "", "description": "The Jira project issues are created in." },
+    "pageSheet": { "type": "any", "defaultValue": null, "description": "The issue's page in Application pages: its technical sheet (facts, screenshots, AI text; saved, codeChanged) — shown in the Analyzed step." },
+    "cTo": { "type": "string", "defaultValue": "", "description": "An email's To (default: the Notify list and the reporter)." },
+    "cCc": { "type": "string", "defaultValue": "" },
+    "cSubject": { "type": "string", "defaultValue": "" }
   },
   "events": {
     "issueImages": { "description": "The page module read screenshots pasted, dropped or attached in the new issue form (codeFixClient.queueImages).", "payloadType": "object" },

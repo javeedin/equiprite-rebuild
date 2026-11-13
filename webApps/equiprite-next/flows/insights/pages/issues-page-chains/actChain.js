@@ -1,4 +1,4 @@
-define(['vb/action/actionChain', 'vb/action/actions', 'resources/js/issuesClient', 'resources/js/codeFixClient', 'resources/js/shellBus'], (ActionChain, Actions, IC, FX, bus) => {
+define(['vb/action/actionChain', 'vb/action/actions', 'resources/js/issuesClient', 'resources/js/codeFixClient', 'resources/js/shellBus', 'resources/js/pagesClient'], (ActionChain, Actions, IC, FX, bus, PC) => {
   'use strict';
 
   // What the Issues screen does: a new issue (its page, kind, text, screenshots, details; logged, written up by the AI,
@@ -38,6 +38,9 @@ define(['vb/action/actionChain', 'vb/action/actions', 'resources/js/issuesClient
       if (act === 'unviewImg') { try { const d = document.getElementById('isImgDlg'); if (d && d.open) d.close(); } catch (e) { /* closed */ } v.viewImg = ''; return; }
       if (act === 'imgClosed') { v.viewImg = ''; return; }
       if (act === 'openPage' && key) { bus.focus('app-pages', { id: key }); bus.open({ navId: 'app-pages' }); return; }
+      const toComposer = () => setTimeout(() => { try { const c = document.getElementById('isComposer'); if (c && c.scrollIntoView) c.scrollIntoView({ behavior: 'smooth', block: 'center' }); const t = document.getElementById('isCText'); if (t) t.focus(); } catch (e) { /* no DOM */ } }, 60);
+      if (act === 'emailMode') { v.cKind = 'email'; toComposer(); return; }
+      if (act === 'emailInfo') { v.cKind = 'email'; toComposer(); act = 'draft'; }
       if (v.busy) return;
       v.busy = true; v.result = null;
       const x = v.issue;
@@ -84,6 +87,31 @@ define(['vb/action/actionChain', 'vb/action/actions', 'resources/js/issuesClient
           return;
         }
         if (act === 'jira') { v.progress = 'Creating it in Jira…'; await show(await IC.toJira(x.id), 'Created in Jira.', true); return; }
+        if (act === 'draft') {
+          v.progress = 'The AI is drafting the email from its questions and the discussion…';
+          const r = await IC.draft(x.id, 'info');
+          if (!r.ok) { fail(r); return; }
+          v.cSubject = r.body.subject; if (!String(v.cTo || '').trim()) v.cTo = r.body.to; v.cText = r.body.body;
+          try { const t = document.getElementById('isCText'); if (t) t.value = r.body.body; const sj = document.getElementById('isESubject'); if (sj) sj.value = r.body.subject; const to = document.getElementById('isETo'); if (to) to.value = v.cTo; } catch (e) { /* no DOM */ }
+          v.result = { ok: true, text: 'Drafted by ' + (r.body.provider || 'the AI') + ': check it, change what you like, then Send email.' };
+          return;
+        }
+        if (act === 'sendEmail') {
+          v.progress = 'Sending the email…';
+          const r = await IC.email(x.id, { to: v.cTo, cc: v.cCc, subject: v.cSubject, body: v.cText });
+          if (r.ok) { v.cText = ''; v.cKind = 'comment'; try { const t = document.getElementById('isCText'); if (t) t.value = ''; } catch (e) { /* no DOM */ } }
+          await show(r, r.ok ? 'Email sent to ' + ((r.body.issue.comments || []).slice(-1)[0] || { email: {} }).email.to + '.' : '', true);
+          return;
+        }
+        if (act === 'capture') {
+          v.progress = 'Capturing a screenshot of ' + x.label + '…';
+          const c = await PC.capture(x.page, true);
+          if (!c.ok) { fail(c, 'Could not capture it here: open the page in Application pages and capture or upload one there.'); return; }
+          const ps = await PC.sheet(context.$application.path, x.page);
+          if (ps.ok && ps.body.sheet) v.pageSheet = Object.assign({}, ps.body.sheet, { saved: !!ps.body.saved, codeChanged: !!ps.body.codeChanged });
+          v.result = { ok: true, text: 'Captured: the AI sees it with the next analysis.' };
+          return;
+        }
         if (act === 'analyze' || act === 'refine') {
           if (act === 'refine' && !v.refine.trim()) { v.result = { ok: false, text: 'Say what to change (or answer its questions).' }; return; }
           v.progress = 'The AI is reading the page\'s code and the FDD, and deciding where this belongs — a minute or two. Nothing is changed.';

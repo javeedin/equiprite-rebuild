@@ -1,4 +1,4 @@
-define(['resources/js/issuesClient', 'resources/js/codeFixClient', 'resources/js/storyAnalysis', 'resources/js/shellBus'], (IC, FX, SA, bus) => {
+define(['resources/js/issuesClient', 'resources/js/codeFixClient', 'resources/js/storyAnalysis', 'resources/js/shellBus', 'resources/js/pagesClient'], (IC, FX, SA, bus, PC) => {
   'use strict';
 
   // Issues: binding helpers (desktop/lib/issues.js does the work; the chains call it). None uses `this`.
@@ -13,7 +13,9 @@ define(['resources/js/issuesClient', 'resources/js/codeFixClient', 'resources/js
   const ENVS = ['DEV', 'SIT', 'UAT', 'PROD'];
   const RES = [['fixed', 'Fixed'], ['done', 'Done'], ['as-designed', 'Works as designed'], ['out-of-scope', 'Out of scope'], ['moved', 'Fixed elsewhere'], ['duplicate', 'Duplicate'], ['cannot-reproduce', 'Cannot reproduce'], ['wont-fix', 'Won\'t fix']];
   const CAUSE = [['code', 'Code defect'], ['config', 'Configuration'], ['data', 'Data'], ['requirement', 'Requirement gap'], ['environment', 'Environment'], ['integration', 'Integration'], ['user', 'User error / training'], ['none', 'None']];
-  const CKIND = [['comment', 'Comment', 'Everyone sees it; in Jira too'], ['response', 'Response to the customer', 'Can be emailed to the reporter'], ['internal', 'Internal note', 'The team only: not in Jira']];
+  const CKIND = [['comment', 'Comment', 'Everyone sees it; in Jira too'], ['response', 'Response to the customer', 'Can be emailed to the reporter'], ['internal', 'Internal note', 'The team only: not in Jira'],
+    ['email', '✉ Email', 'An email from Microsoft 365 — asking for more information, a status update… — kept here']];
+  const EMAIL_RE = /^[^\s@<>,;]+@[^\s@<>,;]+\.[^\s@<>,;]+$/;
   const RANK = { critical: 0, major: 1, minor: 2, trivial: 3, p1: 0, p2: 1, p3: 2, p4: 3 };
   const dateText = (d) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(d || '')); return m ? Number(m[3]) + ' ' + MON[Number(m[2]) - 1] + ' ' + m[1] : ''; };
   const panelOf = (x, sv) => (Number(sv) >= 0 ? Number(sv) : (x ? x.stage || 0 : 0));
@@ -114,7 +116,7 @@ define(['resources/js/issuesClient', 'resources/js/codeFixClient', 'resources/js
       }
       if (st === 'analyzed') return N('Next: analyze it again (the proposal is not ready to approve).', 'analyze', 'Analyze again', '', 'See the analysis', 'go', '2');
       if (st === 'triaged') return N('The AI says: ' + (x.verdictLabel || 'not a fix on this page') + '. Close it with that resolution, or answer and analyze again.', 'go', 'Close it…', '7', 'See why', 'go', '2');
-      if (st === 'needs-info') return N('The AI needs more: answer its questions (in the write-up or the discussion), then analyze again.', 'go', 'Answer and analyze again', '2');
+      if (st === 'needs-info') return N('The AI needs more: email them for the missing information (the AI drafts it from its questions), or answer here, then analyze again.', 'emailInfo', '✉ Email for more information', '', 'Analyze again', 'go', '2');
       if (st === 'awaiting-approval') return N('Waiting for approval' + (x.approval && x.approval.requested && x.approval.requested.email && x.approval.requested.email.sent ? ' — emailed to ' + x.approval.requested.email.to : '') + '. Approve it, or reject it with why.', 'approve', 'Approve', '', 'Reject…', 'go', '3');
       if (st === 'approved') return N('Approved. Next: the agent applies it on its own branch (fix/' + x.key + '), runs the tests, commits, pushes and makes the pull request.', 'apply', 'Apply change');
       if (st === 'in-review') return N('Next: review and merge the pull request, deploy the build, then verify the fix in SIT or UAT.', 'go', 'Verify the fix', '6', x.branch && x.branch.pr ? 'The fix and its pull request' : '', 'go', '4');
@@ -136,7 +138,38 @@ define(['resources/js/issuesClient', 'resources/js/codeFixClient', 'resources/js
     initials(n) { const p = String(n || '?').replace(/[._@-]+/g, ' ').trim().split(/\s+/); return ((p[0] || '?')[0] + (p[1] ? p[1][0] : '')).toUpperCase(); }
     commentClass(c) { return 'nx-is-cmt nx-is-cmt--' + (c.kind || 'comment'); }
     commentMeta(c) { return (c.kindLabel || 'Comment') + (c.stage ? ' · at ' + c.stage : '') + ' · ' + when(c.at); }
-    commentEmail(c) { return !c.email ? '' : (c.email.sent ? '✉ Emailed to ' + c.email.to : '✉ Not emailed: ' + c.email.error); }
+    commentEmail(c) { return !c.email ? '' : (c.email.sent ? (c.kind === 'email' ? '✉ Sent to ' : '✉ Emailed to ') + c.email.to + (c.email.cc ? ' · cc ' + c.email.cc : '') : '✉ Not emailed: ' + c.email.error); }
+    /** The Notify list as typed, each address checked (a wrong one shown in red). */
+    emailChips(text) { return String(text || '').split(/[\s,;]+/).map((e) => e.trim()).filter(Boolean).slice(0, 30).map((e, i) => ({ key: i + e, e: e, ok: EMAIL_RE.test(e) })); }
+    mailClass(m) { return 'nx-is-mail' + (m.ok ? '' : ' nx-is-mail--bad'); }
+    // ── the page in Application pages: its screenshots and technical sheet (the Analyzed step) ──
+    pageShots(sheet, base) {
+      const l = (sheet && sheet.screenshots) || [];
+      return l.slice().reverse().slice(0, 6).map((x, i) => ({ key: x.file || String(i), url: PC.shotUrl(base, x), caption: (x.caption || (x.source === 'capture' ? 'Captured' : 'Uploaded')) + (x.at ? ' · ' + when(x.at) : ''), first: i === 0 }));
+    }
+    pageFacts(sheet) {
+      const f = sheet && sheet.facts;
+      if (!f) return [];
+      const n = (a) => (a || []).length;
+      return [['REST calls', n(f.integrations && f.integrations.rest)], ['BI reports', n(f.integrations && f.integrations.reports)], ['action chains', n(f.logic && f.logic.chains)], ['rules modules', n(f.logic && f.logic.modules)],
+        ['actions', n(f.features && f.features.actions)], ['fields', n(f.features && f.features.fields)], ['columns', n(f.features && f.features.columns)]].filter((x) => x[1] > 0).map((x) => ({ key: x[0], n: x[1], label: x[0] }));
+    }
+    pageList(sheet, kind) {
+      const f = (sheet && sheet.facts) || {};
+      const l = kind === 'rest' ? ((f.integrations || {}).rest || []).map((r) => (r.method || '?') + ' ' + r.endpoint) : kind === 'reports' ? ((f.integrations || {}).reports || [])
+        : kind === 'chains' ? ((f.logic || {}).chains || []).map((c) => c.name) : kind === 'sections' ? ((f.features || {}).sections || []) : [];
+      return l.length > 8 ? l.slice(0, 8).concat(['+ ' + (l.length - 8) + ' more']) : l;
+    }
+    pageSheetText(sheet) {
+      if (!sheet) return 'No technical sheet could be read for this page.';
+      return (sheet.saved ? 'Its technical sheet: built ' + when(sheet.at) + (sheet.by ? ' by ' + sheet.by : '') : 'Not built into a sheet yet: these facts are read from its code now')
+        + (sheet.codeChanged ? ' · ⚠ its code changed since' : '') + (sheet.facts && sheet.facts.route && sheet.facts.route.url ? ' · opens at ' + sheet.facts.route.url : '');
+    }
+    pageBuildText(x) {
+      const d = (x && x.details) || {};
+      return d.foundIn ? 'Found in ' + d.foundIn + (d.environment ? ' on ' + d.environment : '') + (d.fixVersion ? ' · to be fixed in ' + d.fixVersion : '') : (d.environment ? 'Seen on ' + d.environment : 'Which build or release it was found in is not set (its details, on Logged).');
+    }
+    pageAi(sheet) { const t = sheet && sheet.ai && sheet.ai.text ? String(sheet.ai.text) : ''; return t ? t.replace(/[#*`>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 420) + (t.length > 420 ? '…' : '') : ''; }
     composerHint(k) { const c = CKIND.filter((x) => x[0] === k)[0]; return c ? c[2] : ''; }
     statusText(s) { return STATUS[s] || s; }
     statusClass(s) { return 'nx-is-st nx-is-st--' + (s || 'new'); }

@@ -1,4 +1,4 @@
-define(['vb/action/actionChain', 'resources/js/issuesClient'], (ActionChain, IC) => {
+define(['vb/action/actionChain', 'resources/js/issuesClient', 'resources/js/pagesClient'], (ActionChain, IC, PC) => {
   'use strict';
 
   // An issue picked: it, its fix (analysis, change, tests), its write-up and details to edit, the verify and close forms
@@ -25,7 +25,14 @@ define(['vb/action/actionChain', 'resources/js/issuesClient'], (ActionChain, IC)
       const d = x.details || {};
       v.edit = { title: f.title || x.title || '', summary: f.summary || '', steps: (f.steps || []).join('\n'), expected: f.expected || '', actual: f.actual || '', impact: f.impact || '' };
       v.det = { kind: x.kind || 'bug', severity: d.severity || '', priority: d.priority || '', environment: d.environment || '', foundIn: d.foundIn || '', fixVersion: d.fixVersion || '', customer: d.customer || '',
-        customerRef: d.customerRef || '', reportedBy: d.reportedBy || x.by || '', reporterEmail: d.reporterEmail || '', raisedOn: d.raisedOn || '', assignee: d.assignee || '', dueDate: d.dueDate || '' };
+        customerRef: d.customerRef || '', reportedBy: d.reportedBy || x.by || '', reporterEmail: d.reporterEmail || '', raisedOn: d.raisedOn || '', assignee: d.assignee || '', dueDate: d.dueDate || '',
+        notify: (d.notify || []).join(', ') };
+      // an email about it: to its Notify list and the reporter, its key and title in the subject (until changed)
+      if (!same) {
+        v.cTo = (d.notify || []).concat(d.reporterEmail && (d.notify || []).indexOf(d.reporterEmail) === -1 ? [d.reporterEmail] : []).join(', ');
+        v.cCc = '';
+        v.cSubject = '[' + x.key + '] ' + (f.title || x.title || '');
+      }
       v.emailMe = !!(v.info && v.info.mail && v.info.mail.signedIn);
       if (!same || !v.approver) v.approver = (v.info && v.info.mail && v.info.mail.account) || '';
       v.project = (v.info && v.info.jira && v.info.jira.project) || '';
@@ -38,6 +45,12 @@ define(['vb/action/actionChain', 'resources/js/issuesClient'], (ActionChain, IC)
         v.rFixed = d.fixVersion || (x.verification && x.verification.build) || '';
       }
       IC.fillBoxes(v);
+      // its page in Application pages: the screenshots and the technical sheet (the Analyzed step shows them)
+      if (!same || !v.pageSheet || v.pageSheet.id !== x.page) {
+        if (!same) v.pageSheet = null;
+        const ps = await PC.sheet(context.$application.path, x.page);
+        if (v.selId === id) v.pageSheet = ps.ok && ps.body.sheet ? Object.assign({}, ps.body.sheet, { saved: !!ps.body.saved, codeChanged: !!ps.body.codeChanged }) : null;
+      }
     }
   }
   return selectChain;

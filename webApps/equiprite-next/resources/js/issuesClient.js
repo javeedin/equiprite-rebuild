@@ -54,6 +54,8 @@ define([], function () {
     verify: function (id, b) { return post('verify', Object.assign({ id: id }, b || {})); },
     details: function (id, fields) { return post('details', { id: id, fields: fields || {} }); },
     comment: function (id, b) { return post('comment', Object.assign({ id: id }, b || {})); },
+    email: function (id, b) { return post('email', Object.assign({ id: id }, b || {})); },
+    draft: function (id, purpose) { return post('draft', { id: id, purpose: purpose || 'info' }); },
     settings: function () { return call('settings'); },
     setProject: function (project) { return post('settings', { project: project || '' }); },
     reopen: function (id) { return post('reopen', { id: id }); }

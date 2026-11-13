@@ -19,13 +19,19 @@
  * (issues/<id>.json, lib/dataBranch.js) so everyone sees the same list. Self-approval for now (anyone may approve);
  * approval by email reply comes with Mail.Read.
  *
- *   open({ file, dir, ai, fix, mail, jira, fdd, data, now, log, project }) → store
+ *   open({ file, dir, ai, fix, mail, jira, fdd, data, pages, now, log, project }) → store   (pages: lib/pages.js, for the page's screenshot)
  *     info()  list({ q, status })  get(id)
  *     create({ page, text, kind, images, by, toJira, jiraKey })   format(id, { by })   update(id, fields, { by })
  *     toJira(id, { by })   analyze(id, { refine, by })   ask(id, { email, to, by })   approve(id, { by, via })
  *     reject(id, { by, reason })   apply(id, { by })   verify(id, { by, passed, env, build, notes })
  *     close(id, { by, note, resolution, rootCause, rootNotes, fixedIn })   reopen(id, { by })   img(id, n)
  *     details(id, fields, { by })   comment(id, { text, kind, email, to, by })   settings()   setSettings({ project })
+ *     email(id, { to, cc, subject, body, by })   draft(id, { purpose, by })
+ *
+ * Its Notify list (details.notify: the email of everyone to keep informed) gets an email each time its status changes
+ * (not the AI's write-up straight after logging); a follow-up email (asking for more information, a status update…) can
+ * be written here — or drafted by the AI from its questions and the discussion — and sent to them; it is kept in the
+ * discussion.
  */
 const fs = require('fs');
 const path = require('path');
@@ -43,9 +49,11 @@ const RESOLUTION = { fixed: 'Fixed', done: 'Done', 'as-designed': 'Works as desi
   'cannot-reproduce': 'Cannot reproduce', 'wont-fix': 'Won\'t fix' };
 const ROOT_CAUSE = { code: 'Code defect', config: 'Configuration', data: 'Data', requirement: 'Requirement gap', environment: 'Environment', integration: 'Integration (Fusion, OIC, BI Publisher)',
   user: 'User error / training', none: 'None' };
-const COMMENT_KIND = { comment: 'Comment', response: 'Response to the customer', internal: 'Internal note' };
+const COMMENT_KIND = { comment: 'Comment', response: 'Response to the customer', internal: 'Internal note', email: 'Email' };
+const STATUS_LABEL = { new: 'Logged', written: 'Written up', analyzed: 'Analyzed', triaged: 'Triaged', 'needs-info': 'Needs information', 'awaiting-approval': 'Waiting for approval',
+  approved: 'Approved', rejected: 'Rejected', 'in-review': 'Pull request', verified: 'Verified', closed: 'Closed' };
 const DETAIL_LABEL = { severity: 'Severity', priority: 'Priority', environment: 'Environment', foundIn: 'Found in', fixVersion: 'Fix version', customer: 'Customer', customerRef: 'Customer ticket',
-  reportedBy: 'Raised by', reporterEmail: 'Reporter email', raisedOn: 'Raised on', assignee: 'Assignee', dueDate: 'Due date' };
+  reportedBy: 'Raised by', reporterEmail: 'Reporter email', raisedOn: 'Raised on', assignee: 'Assignee', dueDate: 'Due date', notify: 'Notify' };
 const VERDICT_LABEL = { 'fix-here': 'Fix on this page', 'fix-elsewhere': 'Fix elsewhere', 'as-designed': 'Works as designed', 'out-of-scope': 'Out of scope', 'needs-info': 'Needs information' };
 
 const FORMAT_SYSTEM = [
@@ -103,7 +111,13 @@ function jiraWiki(x) {
 }
 const esc = (s) => str(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const isDate = (v) => /^\d{4}-\d{2}-\d{2}$/.test(str(v));
-const isEmail = (v) => /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(str(v));
+const isEmail = (v) => /^[^\s@<>,;]+@[^\s@<>,;]+\.[^\s@<>,;]+$/.test(str(v));
+/** Email addresses typed as a list ("a@x.com, b@y.com; …" or one per line, or an array): checked, lower-cased, once each. */
+function emailsOf(v) {
+  const all = (Array.isArray(v) ? v : str(v).split(/[\s,;]+/)).map((e) => str(e).trim().replace(/^<|>$/g, '')).filter(Boolean);
+  const ok = all.filter(isEmail).map((e) => e.toLowerCase()).filter((e, i, a) => a.indexOf(e) === i).slice(0, 30);
+  return { ok, bad: all.filter((e) => !isEmail(e)) };
+}
 
 /** An issue's details, cleaned: each choice one of its list, texts trimmed and capped, dates YYYY-MM-DD, an email an email.
  *  What is not given keeps its value (prev); what is changed is listed ("Severity: S3 · Minor → S2 · Major"). */
@@ -116,12 +130,13 @@ function cleanDetails(d, prev) {
     severity: pick('severity', (v) => !!SEVERITY[v]), priority: pick('priority', (v) => !!PRIORITY[v]), environment: pick('environment', (v) => ENVS.indexOf(v) !== -1),
     foundIn: text('foundIn', 60), fixVersion: text('fixVersion', 60), customer: text('customer', 120), customerRef: text('customerRef', 60), reportedBy: text('reportedBy', 120),
     reporterEmail: pick('reporterEmail', isEmail), raisedOn: pick('raisedOn', isDate), assignee: text('assignee', 120), dueDate: pick('dueDate', isDate),
+    notify: g.notify === undefined ? (Array.isArray(p.notify) ? p.notify.slice() : []) : emailsOf(g.notify).ok,
     ai: (Array.isArray(p.ai) ? p.ai : []).filter((k) => g[k] === undefined), // the fields the AI chose (until someone sets them)
   };
   out.aiWhy = out.ai.length ? str(p.aiWhy).slice(0, 300) : '';
-  const show = (k, v) => (k === 'severity' ? SEVERITY[v] : k === 'priority' ? PRIORITY[v] : v) || '—';
-  const changed = Object.keys(DETAIL_LABEL).filter((k) => str(out[k]) !== str(p[k])).map((k) => DETAIL_LABEL[k] + ': ' + show(k, p[k]) + ' → ' + show(k, out[k]));
-  return { details: out, changed };
+  const show = (k, v) => (k === 'severity' ? SEVERITY[v] : k === 'priority' ? PRIORITY[v] : Array.isArray(v) ? v.join(', ') : v) || '—';
+  const changed = Object.keys(DETAIL_LABEL).filter((k) => str(out[k]) !== str(p[k] === undefined && k === 'notify' ? [] : p[k])).map((k) => DETAIL_LABEL[k] + ': ' + show(k, p[k]) + ' → ' + show(k, out[k]));
+  return { details: out, changed, bad: g.notify === undefined ? [] : emailsOf(g.notify).bad };
 }
 
 /** Two copies of one issue (this PC's, and another's from the data branch) as one: the later one's state, and every comment
@@ -166,12 +181,52 @@ function open(opts) {
     x.events = (x.events || []).concat([{ at: now().toISOString(), what: what, by: str(by), detail: str(detail).slice(0, 500) }]);
     x.updatedAt = now().toISOString();
   }
-  function put(x) {
+  function put(x, quiet) {
     const d = load();
+    const before = d.issues.filter((y) => y.id === x.id)[0] || sharedAll().filter((y) => y.id === x.id)[0] || null;
     d.issues = [x].concat(d.issues.filter((y) => y.id !== x.id)).slice(0, KEEP);
     save(d);
     publish(x);
+    const was = before ? before.status : '';
+    // the email says this change, to the list as it is now (taken now: it is sent a moment later)
+    if (!quiet && was !== x.status && !(was === 'new' && x.status === 'written')) notifyStatus(JSON.parse(JSON.stringify(x)), was);
     return x;
+  }
+
+  // ── its Notify list: an email at each change of status ──
+  let notes = Promise.resolve();
+  const mailReady = () => { const st = o.mail && typeof o.mail.status === 'function' ? (() => { try { return o.mail.status(); } catch (e) { return {}; } })() : {}; return !!(o.mail && st.signedIn); };
+  function statusHtml(x, was) {
+    const f = x.formatted || {};
+    const d = x.details || {};
+    const rows = [['Status', (was ? (STATUS_LABEL[was] || was) + ' → ' : '') + (STATUS_LABEL[x.status] || x.status)], ['Verdict', x.verdict ? VERDICT_LABEL[x.verdict.code] : ''],
+      ['Resolution', x.resolution ? RESOLUTION[x.resolution.code] + (x.resolution.fixedIn ? ' · fixed in ' + x.resolution.fixedIn : '') : ''],
+      ['Severity', SEVERITY[d.severity]], ['Priority', PRIORITY[d.priority]], ['Customer', d.customer ? d.customer + (d.customerRef ? ' (' + d.customerRef + ')' : '') : ''],
+      ['Found in', d.foundIn ? d.foundIn + (d.environment ? ' on ' + d.environment : '') : ''], ['Fix version', d.fixVersion], ['Assignee', d.assignee], ['Page', x.label]].filter((r) => r[1]);
+    const last = (x.events || []).slice(-1)[0];
+    return '<div style="font:14px/1.5 Segoe UI,Arial,sans-serif;color:#16212c;max-width:760px"><div style="background:#2c5266;color:#fff;padding:12px 16px;border-radius:8px 8px 0 0">'
+      + '<div style="font-size:12px;opacity:.8">' + esc(keyOf(x)) + ' · STATUS UPDATE</div><div style="font-size:18px;font-weight:700">' + esc(f.title || x.title) + '</div></div>'
+      + '<div style="border:1px solid #d4dce4;border-top:0;padding:14px 16px;border-radius:0 0 8px 8px"><table style="border-collapse:collapse;font-size:13px">'
+      + rows.map((r) => '<tr><td style="padding:3px 14px 3px 0;color:#5a6876;font-weight:600">' + esc(r[0]) + '</td><td style="padding:3px 0">' + esc(r[1]) + '</td></tr>').join('') + '</table>'
+      + (last && last.detail ? '<p style="margin:12px 0 0">' + esc(last.what) + (last.by ? ' by ' + esc(last.by) : '') + ': ' + esc(last.detail) + '</p>' : '')
+      + '<p style="color:#6b7886;font-size:12px;margin-top:16px">You are on the Notify list of ' + esc(keyOf(x)) + ' in Build.Rite. Reply to answer.</p></div></div>';
+  }
+  function notifyStatus(snap, was) {
+    const to = snap.details && Array.isArray(snap.details.notify) ? snap.details.notify : [];
+    if (!to.length) return notes;
+    notes = notes.then(async () => {
+      let what;
+      if (!mailReady()) what = 'not emailed (not signed in to Microsoft 365)';
+      else {
+        const r = await o.mail.sendMail({ to: to.join(';'), subject: '[' + keyOf(snap) + '] ' + (STATUS_LABEL[snap.status] || snap.status) + ' · ' + ((snap.formatted && snap.formatted.title) || snap.title), html: statusHtml(snap, was) });
+        what = r && r.ok ? 'emailed to ' + to.join(', ') : 'not emailed: ' + ((r && r.error) || 'not sent');
+      }
+      const x = byId(snap.id);
+      if (!x) return;
+      ev(x, 'status sent to the Notify list', 'Build.Rite', (STATUS_LABEL[snap.status] || snap.status) + ' · ' + what);
+      put(x, true);
+    }).catch((e) => log('issues: notify: ' + e.message));
+    return notes;
   }
   /** What the screen shows: the issue, its fix (the analysis, the change, the tests), its stage. */
   function view(x) {
@@ -380,7 +435,12 @@ function open(opts) {
     if (!o.fix) return no('Code analysis is not set up here.');
     if (['awaiting-approval', 'approved', 'in-review', 'closed'].indexOf(x.status) !== -1) return no('It is ' + x.status + ': reopen it to analyze it again.');
     const parent = b.refine && x.fixId ? x.fixId : '';
-    const r = await o.fix.analyze({ id: x.page, request: issueText(x), kind: x.kind === 'bug' ? 'fix' : x.kind, images: imagesOf(x), issue: { key: keyOf(x), title: (x.formatted && x.formatted.title) || x.title },
+    // the page as it looks: its latest screenshot from Application pages, after the issue's own (when there is one)
+    let pageShot = [];
+    try { pageShot = o.pages && typeof o.pages.shotImages === 'function' ? o.pages.shotImages(x.page, 1).map((im) => ({ name: im.name, mime: im.mime, base64: im.base64 })) : []; } catch (e) { pageShot = []; }
+    const own = imagesOf(x);
+    const r = await o.fix.analyze({ id: x.page, request: issueText(x) + (pageShot.length ? '\n\n(The last image is the page as it looks now, from Application pages' + (own.length ? '; the others came with the issue' : '') + '.)' : ''),
+      kind: x.kind === 'bug' ? 'fix' : x.kind, images: own.concat(pageShot).slice(0, 7), issue: { key: keyOf(x), title: (x.formatted && x.formatted.title) || x.title },
       context: fddContext(x), refine: str(b.refine), parent: parent, by: b.by });
     if (!r.ok) return no(r.error);
     const fx = r.fix;
@@ -565,12 +625,13 @@ function open(opts) {
     const x = byId(id);
     if (!x) return no('No such issue.');
     const c = cleanDetails(f || {}, x.details || {});
+    const warning = c.bad.length ? 'Not an email address, left out: ' + c.bad.join(', ') + '.' : '';
     if (f && f.kind && ['bug', 'enhancement', 'change'].indexOf(f.kind) !== -1 && f.kind !== x.kind) { c.changed.unshift('Type: ' + x.kind + ' → ' + f.kind); x.kind = f.kind; }
-    if (!c.changed.length) return ok(x, { unchanged: true });
+    if (!c.changed.length) return ok(x, { unchanged: true, warning });
     x.details = c.details;
     ev(x, 'details changed', (b && b.by) || '', c.changed.join('; '));
     put(x);
-    return ok(x);
+    return ok(x, warning ? { warning } : {});
   }
   /** A word in its discussion — a comment, a response to the customer (emailed to them when asked), an internal note — by
    *  anyone, at any stage. In Jira too (not an internal note). */
@@ -603,6 +664,67 @@ function open(opts) {
     put(x);
     return ok(x, c.email && !c.email.sent ? { warning: c.email.error } : {});
   }
+  /** A follow-up email about the issue (more information, a status update, anything): to its Notify list and the reporter
+   *  unless told otherwise; kept in its discussion (and in Jira). */
+  async function email(id, b) {
+    b = b || {};
+    const x = byId(id);
+    if (!x) return no('No such issue.');
+    const d = x.details || {};
+    const given = str(b.to).trim();
+    const to = emailsOf(given || (d.notify || []).concat(d.reporterEmail ? [d.reporterEmail] : []));
+    const cc = emailsOf(b.cc || '');
+    if (to.bad.length || cc.bad.length) return no('Not an email address: ' + to.bad.concat(cc.bad).join(', ') + '.');
+    if (!to.ok.length) return no('Who to? Add their emails (or fill its Notify list).');
+    const body = str(b.body).trim();
+    if (!body) return no('Write the email first (or let the AI draft it).');
+    if (!mailReady()) return no('Not signed in to Microsoft 365 (Standup minutes → email settings): nothing was sent.');
+    const f = x.formatted || {};
+    const subject = str(b.subject).trim() || '[' + keyOf(x) + '] ' + (f.title || x.title);
+    const html = '<div style="font:14px/1.55 Segoe UI,Arial,sans-serif;color:#16212c;max-width:760px">' + esc(body).replace(/\n/g, '<br>')
+      + '<hr style="border:0;border-top:1px solid #d4dce4;margin:16px 0 8px"><div style="font-size:12px;color:#6b7886">' + esc(keyOf(x)) + ' · ' + esc(f.title || x.title) + ' · ' + esc(x.label)
+      + (STATUS_LABEL[x.status] ? ' · ' + esc(STATUS_LABEL[x.status]) : '') + '</div></div>';
+    const r = await o.mail.sendMail({ to: to.ok.join(';'), cc: cc.ok.join(';'), subject, html });
+    if (!r || !r.ok) return no('Not sent: ' + ((r && r.error) || 'Microsoft 365 did not take it.'));
+    const c = { id: 'c' + now().getTime().toString(36) + crypto.randomBytes(2).toString('hex'), at: now().toISOString(), by: str(b.by), kind: 'email', text: body.slice(0, 8000),
+      subject: subject.slice(0, 200), stage: STEPS[STAGE[x.status] || 0], email: { sent: true, to: to.ok.join(', '), cc: cc.ok.join(', '), error: '' } };
+    x.comments = (x.comments || []).concat([c]);
+    ev(x, 'emailed', b.by, subject + ' · to ' + to.ok.join(', ') + (cc.ok.length ? ' · cc ' + cc.ok.join(', ') : ''));
+    await jiraComment(x, '*Email* by ' + (b.by || 'someone') + ' to ' + to.ok.join(', ') + ' — ' + subject + ':\n' + body);
+    put(x);
+    return ok(x);
+  }
+
+  const DRAFT_SYSTEM = [
+    'You write short, clear, polite emails about a software issue for the team building EquipRite (an Oracle Visual Builder app on Oracle Fusion).',
+    'Write as the person sending it, to the people who raised or follow the issue. Plain English, no jargon they would not know, no promises of dates.',
+    'Use only the facts given. When asking for information, ask exactly what is missing, as a short numbered list.',
+    'Answer ONLY with JSON: {"subject": "a short subject (no issue key: it is added)", "body": "the email text, with a greeting and a sign-off line"}',
+  ].join('\n');
+  /** The AI drafts a follow-up email (asking for more information — its questions, what is unclear — or a status update);
+   *  nothing is sent: it is put in the email box to change and send. */
+  async function draft(id, b) {
+    b = b || {};
+    const x = byId(id);
+    if (!x) return no('No such issue.');
+    if (!o.ai || typeof o.ai.chat !== 'function') return no('No AI is set up: choose one in AI settings.');
+    const purpose = { info: 'Ask for the information that is missing or unclear, so the issue can be analyzed and fixed.', status: 'Tell them where the issue is now and what happens next.' }[b.purpose] || str(b.purpose) || 'Ask for the information that is missing or unclear.';
+    const d = x.details || {};
+    const qs = ((x.formatted && x.formatted.questions) || []).concat(x.verdict && x.verdict.code === 'needs-info' ? [str(x.verdict.text)] : []);
+    const talk = (x.comments || []).filter((c) => c.kind !== 'internal').slice(-6).map((c) => '- ' + (c.by || 'someone') + ' (' + (COMMENT_KIND[c.kind] || 'Comment') + '): ' + str(c.text).slice(0, 500)).join('\n');
+    const user = ['PURPOSE: ' + purpose, 'SENDER: ' + (str(b.by) || 'the EquipRite team'), 'STATUS: ' + (STATUS_LABEL[x.status] || x.status) + (x.verdict ? ' · verdict: ' + (VERDICT_LABEL[x.verdict.code] || '') : ''),
+      'DETAILS: ' + [d.customer ? 'customer ' + d.customer : '', d.customerRef ? 'ticket ' + d.customerRef : '', d.foundIn ? 'found in ' + d.foundIn : '', d.environment ? 'on ' + d.environment : '', d.reportedBy ? 'raised by ' + d.reportedBy : ''].filter(Boolean).join(', '),
+      '', 'THE ISSUE:', issueText(x), qs.length ? '\nWHAT IS MISSING OR UNCLEAR (the AI\'s questions):\n' + qs.map((q) => '- ' + q).join('\n') : '', talk ? '\nTHE DISCUSSION SO FAR:\n' + talk : ''].join('\n');
+    const r = await o.ai.chat({ system: DRAFT_SYSTEM, user, maxTokens: 1200 });
+    if (!r || !r.ok) return no((r && r.error) || 'The AI did not answer.');
+    const j = jsonOf(r.text);
+    if (!j || !j.body) return no('The AI did not answer in the expected form: try again.');
+    const k = keyOf(x);
+    const subj = str(j.subject).replace(/^\s*\[[A-Z][A-Z0-9]*-[A-Z0-9]+\]\s*/, '').trim(); // a key it put in (any): the issue's own is added
+    return { ok: true, subject: '[' + k + '] ' + (subj || ((x.formatted && x.formatted.title) || x.title)), body: str(j.body).trim(), provider: r.provider || 'AI',
+      to: (d.notify || []).concat(d.reporterEmail && (d.notify || []).indexOf(d.reporterEmail) === -1 ? [d.reporterEmail] : []).join(', ') };
+  }
+
   function settings() { return { ok: true, project: project() }; }
   function setSettings(b) {
     const k = str(b && b.project).trim().toUpperCase();
@@ -616,7 +738,7 @@ function open(opts) {
   return {
     info: info, list: list, get: (id) => { const x = byId(id); return x ? ok(x) : no('No such issue.'); },
     create: create, format: format, update: update, toJira: toJira, analyze: analyze, ask: ask, approve: approve, reject: reject, apply: apply, verify: verify, close: close, reopen: reopen,
-    details: details, comment: comment, settings: settings, setSettings: setSettings, img: img, flush: () => pub,
+    details: details, comment: comment, email: email, draft: draft, settings: settings, setSettings: setSettings, img: img, flush: () => Promise.all([pub, notes]).then(() => Promise.all([pub, notes])),
   };
 }
 
@@ -644,4 +766,4 @@ function fddPicker(fddStore, root) {
   };
 }
 
-module.exports = { open, issueText, jiraWiki, jsonOf, fddPicker, mergeIssue, cleanDetails, STEPS, VERDICT_LABEL, SEVERITY, PRIORITY, ENVS, RESOLUTION, ROOT_CAUSE, COMMENT_KIND };
+module.exports = { open, issueText, jiraWiki, jsonOf, fddPicker, mergeIssue, cleanDetails, emailsOf, STEPS, VERDICT_LABEL, SEVERITY, PRIORITY, ENVS, RESOLUTION, ROOT_CAUSE, COMMENT_KIND };

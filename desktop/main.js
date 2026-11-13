@@ -256,7 +256,7 @@ let issuesStoreInst = null;
 async function issuesStore() {
   if (!issuesStoreInst) {
     issuesStoreInst = require('./lib/issues').open({
-      file: path.join(app.getPath('userData'), 'issues.json'), ai: await aiStore(), fix: await fixStore(), mail: graphStore(), data: await dataBranch(),
+      file: path.join(app.getPath('userData'), 'issues.json'), ai: await aiStore(), fix: await fixStore(), mail: graphStore(), data: await dataBranch(), pages: await pagesStore(),
       jira: { auth: () => jiraStore().auth(), fetch: (url, init) => { const { net } = require('electron'); return net.fetch(url, init); } },
       fdd: require('./lib/issues').fddPicker(() => fddStoreInst, REPO_ROOT), gitPath: commandPath('git') || 'git',
       log: (l) => { try { pushLog(l); } catch (e) { console.log(l); } },

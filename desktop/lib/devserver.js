@@ -1063,6 +1063,8 @@ function createDevServer(o) {
           else if (act === 'details') r = is.details(b.id, b.fields || {}, { by: by });
           else if (act === 'comment') r = await is.comment(b.id, { text: b.text, kind: b.kind, email: !!b.email, to: b.to, by: by });
           else if (act === 'settings') r = is.setSettings(b);
+          else if (act === 'email') r = await is.email(b.id, { to: b.to, cc: b.cc, subject: b.subject, body: b.body, by: by });
+          else if (act === 'draft') { r = await is.draft(b.id, { purpose: b.purpose, by: by }); log(`Issues: draft ${b.id} -> ${r.ok ? 'drafted' : r.error}`); return jsonI(200, r); }
           else if (act === 'reopen') r = is.reopen(b.id, { by: by });
           else return jsonI(404, { error: 'Not found' });
           log(`Issues: ${act} ${b.id || ''} -> ${r.ok ? (r.issue ? r.issue.key + ' ' + r.issue.status : 'ok') : r.error}`);
