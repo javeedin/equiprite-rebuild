@@ -15,14 +15,14 @@
     </oj-bind-for-each>
   </div>
 
-  <!-- the flows at a glance -->
+  <!-- the flows at a glance: a click plays one (Watch the flow) -->
   <div class="nx-hw-index" id="hwIndex">
     <oj-bind-for-each data="[[ $functions.flows() ]]">
       <template data-oj-as="f">
-        <button type="button" class="nx-hw-tile" data-act="jump" :data-key="[[ f.data.id ]]" on-click="[[ $listeners.onAct ]]">
+        <button type="button" class="nx-hw-tile" data-act="open" :data-key="[[ f.data.id ]]" on-click="[[ $listeners.onPlay ]]" :title="[[ 'Watch the flow: ' + f.data.title ]]">
           <b><oj-bind-text value="[[ f.data.title ]]"></oj-bind-text></b>
           <span><oj-bind-text value="[[ f.data.kicker ]]"></oj-bind-text></span>
-          <span class="nx-hw-tilen"><oj-bind-text value="[[ f.data.steps.length + ' steps' ]]"></oj-bind-text></span>
+          <span class="nx-hw-tilefoot"><span class="nx-hw-tilen"><oj-bind-text value="[[ f.data.steps.length + ' steps' ]]"></oj-bind-text></span><span class="nx-hw-watch"><span class="nx-hw-watchicon" aria-hidden="true">▶</span>Watch</span></span>
         </button>
       </template>
     </oj-bind-for-each>
@@ -48,7 +48,10 @@
             <h2 class="nx-hw-title"><oj-bind-text value="[[ f.data.title ]]"></oj-bind-text></h2>
             <div class="nx-note"><oj-bind-text value="[[ f.data.who ]]"></oj-bind-text></div>
           </div>
-          <oj-bind-if test="[[ !!f.data.open ]]"><button type="button" class="nx-btn nx-btn--sm" data-act="open" :data-key="[[ f.data.open ]]" on-click="[[ $listeners.onAct ]]"><span class="oj-ux-ico-arrow-right" aria-hidden="true"></span><oj-bind-text value="[[ $functions.openText(f.data) ]]"></oj-bind-text></button></oj-bind-if>
+          <div class="nx-hw-headacts">
+            <button type="button" class="nx-btn nx-btn--sm nx-btn--primary nx-hw-watchbtn" data-act="open" :data-key="[[ f.data.id ]]" on-click="[[ $listeners.onPlay ]]"><span aria-hidden="true">▶</span>Watch the flow</button>
+            <oj-bind-if test="[[ !!f.data.open ]]"><button type="button" class="nx-btn nx-btn--sm" data-act="open" :data-key="[[ f.data.open ]]" on-click="[[ $listeners.onAct ]]"><span class="oj-ux-ico-arrow-right" aria-hidden="true"></span><oj-bind-text value="[[ $functions.openText(f.data) ]]"></oj-bind-text></button></oj-bind-if>
+          </div>
         </div>
         <ol class="nx-hw-steps">
           <oj-bind-for-each data="[[ f.data.steps ]]">
@@ -89,4 +92,95 @@
       </section>
     </template>
   </oj-bind-for-each>
+
+  <!-- Watch the flow: the steps on a path, a dot travelling along it, the step shown large, what it makes collecting as it
+       goes; at its end, its other ways and where it is kept (playChain; resources/js/flowPlayer.js ticks while it plays) -->
+  <dialog class="nx-play" id="hwPlay" aria-label="The flow, animated" tabindex="-1" on-close="[[ $listeners.onPlayClosed ]]" on-click="[[ $listeners.onPlayClick ]]" on-keydown="[[ $listeners.onPlayKey ]]">
+    <oj-bind-if test="[[ !!$variables.playId && !!$functions.flow($variables.playId) ]]">
+      <div class="nx-play-box">
+        <div class="nx-play-top">
+          <div class="nx-play-heading">
+            <div class="nx-play-kicker"><oj-bind-text value="[[ $functions.flow($variables.playId).kicker ]]"></oj-bind-text></div>
+            <h2 class="nx-play-title" id="hwPlayTitle"><oj-bind-text value="[[ $functions.flow($variables.playId).title ]]"></oj-bind-text></h2>
+          </div>
+          <span class="nx-play-progress" id="hwPlayProgress"><oj-bind-text value="[[ $functions.progress($variables.playId, $variables.playStep) ]]"></oj-bind-text></span>
+          <button type="button" class="nx-play-x" id="hwPlayClose" data-act="close" on-click="[[ $listeners.onPlay ]]" aria-label="Close" title="Close (Esc)">×</button>
+        </div>
+
+        <div class="nx-play-track" id="hwPlayTrack">
+          <div class="nx-play-rail"></div>
+          <div class="nx-play-fill" :style.width="[[ $functions.fillWidth($variables.playId, $variables.playStep) ]]"></div>
+          <div :class="[[ 'nx-play-dot' + ($functions.atEnd($variables.playId, $variables.playStep) ? ' nx-play-dot--end' : '') ]]" id="hwPlayDot" :style.left="[[ $functions.dotLeft($variables.playId, $variables.playStep) ]]"></div>
+          <ol class="nx-play-nodes">
+            <oj-bind-for-each data="[[ $functions.nodes($variables.playId, $variables.playStep) ]]">
+              <template data-oj-as="nd">
+                <li :class="[[ $functions.nodeClass(nd.data) ]]">
+                  <span class="nx-play-bubble"><span :class="[[ nd.data.icon ]]" aria-hidden="true"></span></span>
+                  <span class="nx-play-nlabel"><oj-bind-text value="[[ nd.data.label ]]"></oj-bind-text></span>
+                </li>
+              </template>
+            </oj-bind-for-each>
+          </ol>
+        </div>
+
+        <div class="nx-play-stage" id="hwPlayStage">
+          <oj-bind-if test="[[ !$functions.atEnd($variables.playId, $variables.playStep) ]]">
+            <oj-bind-for-each data="[[ $functions.current($variables.playId, $variables.playStep) ]]">
+              <template data-oj-as="c">
+                <div :class="[[ $functions.cardClass(c.data) ]]" id="hwPlayCard">
+                  <div class="nx-play-cardhead">
+                    <span class="nx-play-cardicon"><span :class="[[ c.data.icon ]]" aria-hidden="true"></span></span>
+                    <span class="nx-play-who"><oj-bind-text value="[[ c.data.actorLabel ]]"></oj-bind-text></span>
+                    <span class="nx-play-n"><oj-bind-text value="[[ 'Step ' + c.data.n ]]"></oj-bind-text></span>
+                  </div>
+                  <div class="nx-play-label"><oj-bind-text value="[[ c.data.label ]]"></oj-bind-text></div>
+                  <oj-bind-if test="[[ !!c.data.note ]]"><div class="nx-play-note"><oj-bind-text value="[[ c.data.note ]]"></oj-bind-text></div></oj-bind-if>
+                  <oj-bind-if test="[[ !!c.data.makes ]]"><div class="nx-play-makes">Makes <b><oj-bind-text value="[[ c.data.makes ]]"></oj-bind-text></b></div></oj-bind-if>
+                </div>
+              </template>
+            </oj-bind-for-each>
+          </oj-bind-if>
+          <oj-bind-if test="[[ $functions.atEnd($variables.playId, $variables.playStep) ]]">
+            <div class="nx-play-end" id="hwPlayEnd">
+              <div class="nx-play-done"><span class="oj-ux-ico-check-circle" aria-hidden="true"></span><oj-bind-text value="[[ 'That is the flow: ' + $functions.flow($variables.playId).title ]]"></oj-bind-text></div>
+              <oj-bind-if test="[[ $functions.flow($variables.playId).branches.length > 0 ]]">
+                <div class="nx-play-sub">When it goes another way</div>
+                <oj-bind-for-each data="[[ $functions.flow($variables.playId).branches ]]">
+                  <template data-oj-as="b">
+                    <div class="nx-play-branch">
+                      <span class="nx-play-blabel"><oj-bind-text value="[[ b.data.label ]]"></oj-bind-text></span>
+                      <oj-bind-for-each data="[[ b.data.steps ]]">
+                        <template data-oj-as="s"><span :class="[[ 'nx-play-bstep nx-play-bstep--' + s.data.actor ]]"><oj-bind-text value="[[ s.data.actorLabel + ' · ' + s.data.label ]]"></oj-bind-text></span></template>
+                      </oj-bind-for-each>
+                    </div>
+                  </template>
+                </oj-bind-for-each>
+              </oj-bind-if>
+              <oj-bind-if test="[[ $functions.flow($variables.playId).kept.length > 0 ]]">
+                <div class="nx-play-sub">Where it is kept</div>
+                <ul class="nx-play-kept"><oj-bind-for-each data="[[ $functions.flow($variables.playId).kept ]]"><template data-oj-as="x"><li><oj-bind-text value="[[ x.data ]]"></oj-bind-text></li></template></oj-bind-for-each></ul>
+              </oj-bind-if>
+            </div>
+          </oj-bind-if>
+        </div>
+
+        <div class="nx-play-basket" id="hwPlayMade">
+          <span class="nx-play-baskl">Made so far</span>
+          <oj-bind-for-each data="[[ $functions.made($variables.playId, $variables.playStep) ]]">
+            <template data-oj-as="m"><span :class="[[ $functions.madeClass(m.data) ]]"><oj-bind-text value="[[ m.data.makes ]]"></oj-bind-text></span></template>
+          </oj-bind-for-each>
+        </div>
+
+        <div class="nx-play-controls">
+          <button type="button" class="nx-play-btn" id="hwPlayRestart" data-act="restart" on-click="[[ $listeners.onPlay ]]" title="From the start (Home)" aria-label="From the start"><span class="oj-ux-ico-refresh" aria-hidden="true"></span></button>
+          <button type="button" class="nx-play-btn" id="hwPlayPrev" data-act="prev" on-click="[[ $listeners.onPlay ]]" :disabled="[[ $variables.playStep <= 0 ]]" title="Back (←)"><span class="oj-ux-ico-chevron-left" aria-hidden="true"></span>Back</button>
+          <button type="button" class="nx-play-btn nx-play-btn--main" id="hwPlayToggle" data-act="toggle" on-click="[[ $listeners.onPlay ]]" title="Play / pause (space)"><oj-bind-text value="[[ $variables.playing ? '❚❚ Pause' : ($functions.atEnd($variables.playId, $variables.playStep) ? '↻ Play again' : '▶ Play') ]]"></oj-bind-text></button>
+          <button type="button" class="nx-play-btn" id="hwPlayNext" data-act="next" on-click="[[ $listeners.onPlay ]]" :disabled="[[ $functions.atEnd($variables.playId, $variables.playStep) ]]" title="Next (→)">Next<span class="oj-ux-ico-chevron-right" aria-hidden="true"></span></button>
+          <span class="nx-min-flex"></span>
+          <span class="nx-play-keys">← → move · space plays · Esc closes</span>
+          <button type="button" class="nx-play-btn" id="hwPlayDetails" data-act="details" :data-key="[[ $variables.playId ]]" on-click="[[ $listeners.onPlay ]]">See the details</button>
+        </div>
+      </div>
+    </oj-bind-if>
+  </dialog>
 </div>

@@ -298,7 +298,7 @@ button.nx-jira-recmark:hover, button.nx-jira-recmark:focus-visible { filter: bri
 
 /* Analyze with AI (jira-analysis page) + the "Analyze with AI" button in the story drawer. */
 .nx-jira-dractions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
-.nx-jira-analyze .oj-ux-ico-magic-wand { margin-right: 4px; }
+.nx-jira-analyze .oj-ux-ico-brain { margin-right: 4px; }
 .nx-an .nx-an-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 16px; align-items: start; }
 @media (max-width: 1000px) { .nx-an .nx-an-cols { grid-template-columns: 1fr; } }
 .nx-an .nx-an-story { padding: 16px; }
@@ -864,3 +864,101 @@ button.nx-jira-recmark:hover, button.nx-jira-recmark:focus-visible { filter: bri
 .nx-hw-foot { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-top: 12px; }
 .nx-hw-h3 { margin: 0 0 4px; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: #6b7886; }
 @media (max-width: 720px) { .nx-hw-step { width: 100%; } .nx-hw-step:not(:last-child)::after { content: '↓'; right: auto; left: 50%; top: auto; bottom: -19px; transform: none; } }
+
+/* ── Flows explained: Watch the flow (an animated walk through one flow) ── */
+.nx-hw-tilefoot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 4px; }
+.nx-hw-watch { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 999px; background: #efeaff; color: #4b2fb8 !important; font-size: 11.5px !important; font-weight: 800; }
+.nx-hw-watchicon { font-size: 9px; }
+.nx-hw-tile:hover .nx-hw-watch { background: #5b3fd0; color: #fff !important; }
+.nx-hw-headacts { display: flex; gap: 8px; flex-wrap: wrap; }
+.nx-hw-watchbtn span { font-size: 10px; margin-right: 2px; }
+
+.nx-play { --p-you: #4ea3ff; --p-ai: #b38bff; --p-agent: #ff8a4c; --p-app: #3cc8d8; --p-git: #e6edf3; --p-jira: #579dff;
+  padding: 0; border: 0; border-radius: 16px; width: min(1180px, 96vw); max-width: 96vw; max-height: 94vh; overflow: hidden; color: #eaf2f6;
+  background: radial-gradient(1200px 420px at 15% -10%, #22536a 0%, transparent 60%), radial-gradient(900px 400px at 110% 120%, #3a2a78 0%, transparent 55%), #0f2430;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, .55); }
+.nx-play::backdrop { background: rgba(6, 14, 20, .78); backdrop-filter: blur(2px); }
+.nx-play:focus { outline: none; }
+.nx-play-box { display: flex; flex-direction: column; gap: 18px; padding: 22px 26px 18px; max-height: 94vh; overflow: auto; }
+.nx-play-top { display: flex; align-items: flex-start; gap: 14px; }
+.nx-play-heading { flex: 1; min-width: 0; }
+.nx-play-kicker { font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #9fc3d3; }
+.nx-play-title { margin: 2px 0 0; font-size: 26px; color: #fff; }
+.nx-play-progress { padding: 5px 12px; border-radius: 999px; background: rgba(255, 255, 255, .1); font-size: 13px; font-weight: 700; white-space: nowrap; }
+.nx-play-x { width: 34px; height: 34px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, .3); background: transparent; color: #fff; font-size: 20px; line-height: 30px; cursor: pointer; }
+.nx-play-x:hover { background: rgba(255, 255, 255, .14); }
+
+/* the path: a rail, the part done, a dot travelling, the nodes */
+.nx-play-track { position: relative; padding: 18px 0 6px; }
+.nx-play-rail, .nx-play-fill { position: absolute; top: 40px; left: 28px; height: 4px; border-radius: 2px; }
+.nx-play-rail { right: 28px; background: rgba(255, 255, 255, .14); }
+.nx-play-fill { background: linear-gradient(90deg, #3cc8d8, #b38bff, #ff8a4c); box-shadow: 0 0 12px rgba(179, 139, 255, .6); transition: width .9s cubic-bezier(.65, 0, .35, 1); }
+.nx-play-dot { position: absolute; top: 32px; width: 20px; height: 20px; margin-left: -10px; border-radius: 50%; background: #fff; z-index: 3;
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, .25), 0 0 22px 6px rgba(179, 139, 255, .9); transition: left .9s cubic-bezier(.65, 0, .35, 1); animation: nx-play-glow 1.4s ease-in-out infinite; }
+.nx-play-dot--end { background: #7ee2a8; box-shadow: 0 0 0 4px rgba(126, 226, 168, .3), 0 0 22px 6px rgba(126, 226, 168, .9); }
+@keyframes nx-play-glow { 50% { transform: scale(1.18); } }
+.nx-play-nodes { list-style: none; margin: 0; padding: 0; display: flex; justify-content: space-between; position: relative; z-index: 2; }
+.nx-play-node { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 56px; flex: none; }
+.nx-play-bubble { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 19px;
+  background: #13303d; border: 2px solid rgba(255, 255, 255, .22); color: rgba(255, 255, 255, .55); transition: all .5s ease; }
+.nx-play-nlabel { width: 110px; text-align: center; font-size: 12px; line-height: 1.3; color: rgba(255, 255, 255, .55); transition: color .5s; }
+.nx-play-node--you { --pc: var(--p-you); } .nx-play-node--ai { --pc: var(--p-ai); } .nx-play-node--agent { --pc: var(--p-agent); }
+.nx-play-node--app { --pc: var(--p-app); } .nx-play-node--git { --pc: var(--p-git); } .nx-play-node--jira { --pc: var(--p-jira); }
+.nx-play-node--done .nx-play-bubble { background: var(--pc); border-color: var(--pc); color: #0f2430; }
+.nx-play-node--done .nx-play-nlabel { color: rgba(255, 255, 255, .8); }
+.nx-play-node--now .nx-play-bubble { background: #0f2430; border-color: var(--pc); color: var(--pc); transform: scale(1.22); box-shadow: 0 0 0 6px color-mix(in srgb, var(--pc) 25%, transparent), 0 0 24px var(--pc); animation: nx-play-pulse 1.6s ease-in-out infinite; }
+.nx-play-node--now .nx-play-nlabel { color: #fff; font-weight: 800; }
+@keyframes nx-play-pulse { 50% { box-shadow: 0 0 0 12px color-mix(in srgb, var(--pc) 10%, transparent), 0 0 34px var(--pc); } }
+
+/* the step on show */
+.nx-play-stage { min-height: 190px; display: flex; justify-content: center; align-items: center; }
+.nx-play-card { --pc: var(--p-app); width: min(640px, 100%); padding: 20px 24px; border-radius: 14px; background: rgba(255, 255, 255, .07); border: 1px solid rgba(255, 255, 255, .14);
+  border-top: 4px solid var(--pc); box-shadow: 0 16px 40px rgba(0, 0, 0, .35); animation: nx-play-in .55s cubic-bezier(.2, .8, .2, 1) both; }
+.nx-play-card--you { --pc: var(--p-you); } .nx-play-card--ai { --pc: var(--p-ai); } .nx-play-card--agent { --pc: var(--p-agent); }
+.nx-play-card--git { --pc: var(--p-git); } .nx-play-card--jira { --pc: var(--p-jira); }
+@keyframes nx-play-in { from { opacity: 0; transform: translateY(18px) scale(.97); } to { opacity: 1; transform: none; } }
+.nx-play-cardhead { display: flex; align-items: center; gap: 10px; }
+.nx-play-cardicon { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: var(--pc); color: #0f2430; font-size: 17px; }
+.nx-play-who { font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--pc); }
+.nx-play-n { margin-left: auto; font-size: 12px; color: rgba(255, 255, 255, .55); }
+.nx-play-label { margin-top: 10px; font-size: 24px; font-weight: 800; color: #fff; }
+.nx-play-note { margin-top: 6px; font-size: 15px; line-height: 1.5; color: rgba(234, 242, 246, .85); }
+.nx-play-makes { margin-top: 12px; display: inline-flex; gap: 6px; align-items: center; padding: 5px 12px; border-radius: 999px; background: rgba(255, 255, 255, .08); font-size: 13px; color: rgba(234, 242, 246, .8); }
+.nx-play-makes b { color: #fff; }
+
+/* its end: the other ways, where it is kept */
+.nx-play-end { width: min(820px, 100%); display: flex; flex-direction: column; gap: 10px; animation: nx-play-in .55s cubic-bezier(.2, .8, .2, 1) both; }
+.nx-play-done { display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 800; color: #7ee2a8; }
+.nx-play-sub { margin-top: 6px; font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #9fc3d3; }
+.nx-play-branch { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; animation: nx-play-in .5s ease both; }
+.nx-play-branch:nth-child(3) { animation-delay: .15s; } .nx-play-branch:nth-child(4) { animation-delay: .3s; } .nx-play-branch:nth-child(5) { animation-delay: .45s; } .nx-play-branch:nth-child(6) { animation-delay: .6s; }
+.nx-play-blabel { min-width: 200px; font-weight: 700; color: #fff; }
+.nx-play-blabel::after { content: '  →'; color: rgba(255, 255, 255, .45); }
+.nx-play-bstep { padding: 4px 10px; border-radius: 999px; font-size: 12.5px; background: rgba(255, 255, 255, .08); border-left: 3px solid var(--bc, #3cc8d8); }
+.nx-play-bstep--you { --bc: var(--p-you); } .nx-play-bstep--ai { --bc: var(--p-ai); } .nx-play-bstep--agent { --bc: var(--p-agent); }
+.nx-play-bstep--git { --bc: var(--p-git); } .nx-play-bstep--jira { --bc: var(--p-jira); }
+.nx-play-kept { margin: 0; padding-left: 18px; color: rgba(234, 242, 246, .85); font-size: 14px; }
+
+/* what it has made so far */
+.nx-play-basket { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-height: 34px; padding: 10px 14px; border-radius: 12px; background: rgba(0, 0, 0, .22); }
+.nx-play-baskl { font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #9fc3d3; margin-right: 4px; }
+.nx-play-made { --pc: var(--p-app); padding: 4px 11px; border-radius: 8px; font-size: 12.5px; font-weight: 700; color: #fff; background: color-mix(in srgb, var(--pc) 28%, transparent); border: 1px solid color-mix(in srgb, var(--pc) 60%, transparent); }
+.nx-play-made--you { --pc: var(--p-you); } .nx-play-made--ai { --pc: var(--p-ai); } .nx-play-made--agent { --pc: var(--p-agent); }
+.nx-play-made--git { --pc: var(--p-git); } .nx-play-made--jira { --pc: var(--p-jira); }
+.nx-play-made--fresh { animation: nx-play-pop .6s cubic-bezier(.2, 1.4, .4, 1) both; box-shadow: 0 0 16px color-mix(in srgb, var(--pc) 70%, transparent); }
+@keyframes nx-play-pop { from { opacity: 0; transform: translateY(-14px) scale(.6); } to { opacity: 1; transform: none; } }
+
+/* the controls */
+.nx-play-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.nx-play-btn { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, .3); background: transparent; color: #fff; font: inherit; font-size: 13.5px; font-weight: 700; cursor: pointer; }
+.nx-play-btn:hover:not(:disabled) { background: rgba(255, 255, 255, .12); }
+.nx-play-btn:disabled { opacity: .35; cursor: default; }
+.nx-play-btn--main { min-width: 128px; justify-content: center; background: #fff; color: #0f2430; border-color: #fff; }
+.nx-play-btn--main:hover:not(:disabled) { background: #dceff6; }
+.nx-play-keys { font-size: 12px; color: rgba(255, 255, 255, .5); }
+@media (max-width: 860px) { .nx-play-nlabel { display: none; } .nx-play-label { font-size: 20px; } .nx-play-node { width: 40px; } .nx-play-bubble { width: 34px; height: 34px; font-size: 15px; } .nx-play-rail, .nx-play-fill { top: 35px; } .nx-play-dot { top: 27px; } }
+@media (prefers-reduced-motion: reduce) {
+  .nx-play-dot, .nx-play-node--now .nx-play-bubble { animation: none; }
+  .nx-play-fill, .nx-play-dot, .nx-play-bubble { transition-duration: .01s; }
+  .nx-play-card, .nx-play-end, .nx-play-branch, .nx-play-made--fresh { animation: none; }
+}

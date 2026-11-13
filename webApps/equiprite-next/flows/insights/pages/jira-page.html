@@ -405,7 +405,7 @@
       close-action='{"label": "Close", "display": "on"}' on-sp-close="[[ $listeners.onDrawerClose ]]">
       <div class="nx-jira-dr" id="jiraItem">
         <div class="nx-jira-dractions">
-          <button type="button" class="nx-btn nx-btn--sm nx-btn--cta nx-jira-analyze" id="jiraAnalyze" on-click="[[ $listeners.onOpenAnalysis ]]"><span class="oj-ux-ico-magic-wand" aria-hidden="true"></span>✨ Analyze with AI</button>
+          <button type="button" class="nx-btn nx-btn--sm nx-btn--cta nx-jira-analyze" id="jiraAnalyze" on-click="[[ $listeners.onOpenAnalysis ]]"><span class="oj-ux-ico-brain" aria-hidden="true"></span>✨ Analyze with AI</button>
           <a class="nx-btn nx-btn--sm nx-jira-open" id="jiraOpenInJira" target="_blank" rel="noopener" :href="[[ $functions.item($variables.rows, $variables.selKey).url ]]">
             <span class="oj-ux-ico-external-link" aria-hidden="true"></span>Open in Jira</a>
         </div>

@@ -1,9 +1,21 @@
 {
-  "description": "How it works (Build.Rite): every flow of the team's tools — Issues, Code fix, Application pages, Jira stories and AI analysis, the FDD library, standup minutes, follow-ups, the data branch, the AI — step by step: who does each step (you, the AI, the agent, the app, git, Jira), its side paths, where what it makes is kept, and a button to open it. Its words are in resources/js/flowsGuide.js.",
+  "description": "How it works (Build.Rite): every flow of the team's tools — Issues, Code fix, Application pages, Jira stories and AI analysis, the FDD library, standup minutes, follow-ups, the data branch, the AI — step by step: who does each step (you, the AI, the agent, the app, git, Jira), its side paths, where what it makes is kept, and a button to open it. Watch the flow plays it as an animation: the steps on a path, a dot travelling along it, the step shown large, what it makes collecting as it goes, then its other ways and where it is kept. Its words are in resources/js/flowsGuide.js.",
   "navigation": { "embeddable": "enabled" },
-  "variables": {},
+  "variables": {
+    "playId": { "type": "string", "defaultValue": "", "description": "The flow being watched ('' when none)." },
+    "playStep": { "type": "number", "defaultValue": 0, "description": "Its step on show (from 0); its last + 1 is the end (its other ways, where it is kept)." },
+    "playing": { "type": "boolean", "defaultValue": false, "description": "Moving on by itself (resources/js/flowPlayer.js ticks)." }
+  },
+  "events": {
+    "playTick": { "description": "The animated flow's clock (resources/js/flowPlayer.js): the next step.", "payloadType": "object" }
+  },
   "eventListeners": {
-    "onAct": { "chains": [ { "chain": "actChain", "parameters": { "act": "{{ $event.currentTarget.dataset.act }}", "key": "{{ $event.currentTarget.dataset.key || '' }}" } } ] }
+    "onAct": { "chains": [ { "chain": "actChain", "parameters": { "act": "{{ $event.currentTarget.dataset.act }}", "key": "{{ $event.currentTarget.dataset.key || '' }}" } } ] },
+    "onPlay": { "chains": [ { "chain": "playChain", "parameters": { "act": "{{ $event.currentTarget.dataset.act }}", "key": "{{ $event.currentTarget.dataset.key || '' }}" } } ] },
+    "playTick": { "chains": [ { "chain": "playChain", "parameters": { "act": "{{ 'tick' }}", "key": "{{ '' }}" } } ] },
+    "onPlayClosed": { "chains": [ { "chain": "playChain", "parameters": { "act": "{{ 'closed' }}", "key": "{{ '' }}" } } ] },
+    "onPlayClick": { "chains": [ { "chain": "playChain", "parameters": { "act": "{{ $event.target === $event.currentTarget ? 'close' : '' }}", "key": "{{ '' }}" } } ] },
+    "onPlayKey": { "chains": [ { "chain": "playChain", "parameters": { "act": "{{ $event.key === 'ArrowRight' ? 'next' : ($event.key === 'ArrowLeft' ? 'prev' : ($event.key === ' ' && $event.target.tagName !== 'BUTTON' ? 'toggle' : ($event.key === 'Home' ? 'restart' : ($event.key === 'Escape' ? 'close' : '')))) }}", "key": "{{ '' }}" } } ] }
   },
   "imports": { "components": {
     "oj-bind-for-each": { "path": "ojs/ojknockout" }, "oj-bind-if": { "path": "ojs/ojknockout" }, "oj-bind-text": { "path": "ojs/ojknockout" } } }

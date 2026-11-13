@@ -46,7 +46,7 @@
               </div>
               <div class="nx-as-links">
                 <a class="nx-as-link" :href="[[ s.data.url ]]" target="_blank" rel="noopener"><span class="oj-ux-ico-external-link" aria-hidden="true"></span> Jira</a>
-                <button type="button" class="nx-as-link" data-act="alone" :data-key="[[ s.data.key ]]" on-click="[[ $listeners.onStory ]]"><span class="oj-ux-ico-magic-wand" aria-hidden="true"></span> Analyze alone</button>
+                <button type="button" class="nx-as-link" data-act="alone" :data-key="[[ s.data.key ]]" on-click="[[ $listeners.onStory ]]"><span class="oj-ux-ico-brain" aria-hidden="true"></span> Analyze alone</button>
               </div>
               <oj-bind-if test="[[ $variables.open === s.data.key ]]">
                 <div class="nx-as-detail" id="asDetail">

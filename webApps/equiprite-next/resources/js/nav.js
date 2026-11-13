@@ -205,13 +205,13 @@ define(['resources/js/rules'], function (rules) {
       title: function (p) { return 'Sprint ' + ((p && (p.name || p.id)) || ''); } },
     // "Analyze with AI" for one Jira story ({ key }): the story + its sub-tasks and comments, an AI analysis and a chatbot,
     // in a tab of its own (flows/insights jira-analysis). Opened by the AI icon on a story.
-    'jira-analysis': { flow: 'insights', page: 'jira-analysis', icon: 'oj-ux-ico-magic-wand', navId: 'jira',
+    'jira-analysis': { flow: 'insights', page: 'jira-analysis', icon: 'oj-ux-ico-brain', navId: 'jira',
       key: function (p) { return p ? String(p.key || '') : ''; },
       title: function (p) { return 'AI · ' + ((p && p.key) || 'Story'); } },
     // "Analyze with AI" for several stories at once ({ keys: 'EQP-23,EQP-36' }): the stories, their activity, one AI
     // analysis across them and a chatbot (flows/insights jira-analysis-set). Opened from a sprint's ticked items or the
     // stories shown on Jira stories; the same set opens the same tab.
-    'jira-analysis-set': { flow: 'insights', page: 'jira-analysis-set', icon: 'oj-ux-ico-magic-wand', navId: 'jira',
+    'jira-analysis-set': { flow: 'insights', page: 'jira-analysis-set', icon: 'oj-ux-ico-brain', navId: 'jira',
       key: function (p) { return p ? String(p.keys || '').toUpperCase().split(/[\s,]+/).filter(Boolean).sort().join(',') : ''; },
       title: function (p) {
         var k = p ? String(p.keys || '').split(/[\s,]+/).filter(Boolean) : [];
