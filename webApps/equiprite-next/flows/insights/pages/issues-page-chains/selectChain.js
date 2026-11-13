@@ -49,7 +49,14 @@ define(['vb/action/actionChain', 'resources/js/issuesClient', 'resources/js/page
         v.agent = null;
         const ag = await IC.progress(id);
         if (ag.ok && (ag.body.running || ag.body.done) && v.selId === id) v.agent = ag.body;
+        // the sandbox: being made, or why it was not (a made one shows itself)
+        v.sbRun = null;
+        v.sbStatus = null;
+        const sr = await IC.progress(id, 'sandbox');
+        if (sr.ok && (sr.body.running || (sr.body.done && !sr.body.okRun)) && v.selId === id) v.sbRun = sr.body;
       }
+      // the sandbox on this PC: the files it changed, how far behind its base, its diff, where its data comes from
+      if (x.sandbox && x.sandbox.exists) { const ss = await IC.sandbox(id, 'status', { diff: true }); if (v.selId === id) v.sbStatus = ss.ok ? ss.body.status : null; } else if (v.selId === id) v.sbStatus = null;
       // its page in Application pages: the screenshots and the technical sheet (the Analyzed step shows them)
       if (!same || !v.pageSheet || v.pageSheet.id !== x.page) {
         if (!same) v.pageSheet = null;

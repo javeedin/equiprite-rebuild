@@ -26,6 +26,16 @@ const BILL = 'webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-billi
   const gitIn = (...args) => require('child_process').execFileSync('git', args, { cwd: pg.root, encoding: 'utf8' }).trim();
   gitIn('remote', 'set-url', 'origin', 'https://github.com/acme/equiprite.git');
   gitIn('remote', 'set-url', '--push', 'origin', pg.remote);
+  // a real project: it can be built (the sandbox builds it with Oracle's build tool)
+  const ROOT = path.join(__dirname, '..', '..');
+  fs.copyFileSync(path.join(ROOT, 'visual-application.json'), path.join(pg.root, 'visual-application.json'));
+  fs.writeFileSync(path.join(pg.root, '.gitignore'), 'build/\n');
+  gitIn('add', '-A'); gitIn('commit', '-q', '-m', 'buildable'); gitIn('push', '-q', 'origin', 'pages/test');
+  // the app as it is now (this project's own build of Old EquipRite), and each sandbox's own server
+  const { createDevServer } = require('../../desktop/lib/devserver');
+  const current = await createDevServer({ buildDir: path.join(ROOT, 'build'), webApp: 'vbredwoodapp', port: 0, getIdentity: () => ({ username: 'priya.raman' }) });
+  const sbServers = [];
+  let env = null;
   const html0 = fs.readFileSync(path.join(pg.root, BILL + '.html'), 'utf8');
   const lines = html0.replace(/\r\n/g, '\n').split('\n');
   const asked = [];
@@ -42,7 +52,14 @@ const BILL = 'webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-billi
   };
   const mails = [];
   const jiraCalls = [];
-  const fixStore = require('../../desktop/lib/codeFix').open({ root: pg.root, file: path.join(dir, 'code-fixes.json'), ai: ai });
+  const fixStore = require('../../desktop/lib/codeFix').open({ root: pg.root, file: path.join(dir, 'code-fixes.json'), ai: ai,
+    serveSandbox: async (s) => { const srv = await createDevServer({ buildDir: s.buildDir, repoRoot: s.dir, webApp: s.webApp, port: 0, getIdentity: () => ({ username: 'priya.raman' }) }); sbServers.push(srv); return srv; },
+    appUrl: () => current.url,
+    // the desktop app's hidden-window screenshot, here a tab of the test's browser
+    capture: async (webApp, url, base) => {
+      const p2 = await env.page.context().browser().newPage({ viewport: { width: 1440, height: 900 } });
+      try { await p2.goto(String(base || current.url).replace(/\/$/, '') + url, { timeout: 20000 }).catch(() => {}); await p2.waitForTimeout(800); const buf = await p2.screenshot({ type: 'jpeg', quality: 60 }); return { ok: true, base64: buf.toString('base64'), mime: 'image/jpeg' }; } finally { await p2.close(); }
+    } });
   const issuesStore = require('../../desktop/lib/issues').open({ file: path.join(dir, 'issues.json'), ai: ai, fix: fixStore,
     mail: { status: () => ({ signedIn: true, account: 'priya@example.com' }), sendMail: async (m) => { mails.push(m); return { ok: true }; } },
     jira: { auth: () => ({ site: 'https://example.atlassian.net', header: 'Basic x' }), fetch: async (url, init) => { jiraCalls.push({ url: url, body: init.body ? JSON.parse(init.body) : null });
@@ -50,7 +67,7 @@ const BILL = 'webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-billi
     fdd: { pick: () => 'FDD 7.4 Billing: overdue invoices are listed first.' }, pages: pg.store });
   // the page has a screenshot in Application pages already: the Analyzed step shows it, and the AI sees it
   pg.store.saveShot('vbredwoodapp/customer-portal/customer-my-billing', { base64: PNG, mime: 'image/png', source: 'upload', caption: 'The billing list', by: 'priya.raman' });
-  const env = await E.start({ port: 19900, app: 'next', product: 'buildrite', pagesStore: pg.store, fixStore: fixStore, issuesStore: issuesStore });
+  env = await E.start({ port: 19900, app: 'next', product: 'buildrite', pagesStore: pg.store, fixStore: fixStore, issuesStore: issuesStore });
   const page = env.page;
   const errs = () => env.errors.filter((e) => !/404|401|Failed to load resource/.test(e) && !e.startsWith('warning'));
   try {
@@ -168,6 +185,68 @@ const BILL = 'webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-billi
       && /status sent to the Notify list[\s\S]*Analyzed · emailed to lead@acme\.example, qa@rite\.example/.test(await text(page, '#isTimeline')), JSON.stringify(an && an.to));
     T.check('…and the Next step: Send for approval, emailed to me', /send the proposed change for approval — emailed to priya@example\.com/.test(await text(page, '#isNextText')) && (await text(page, '#isNextBtn')) === 'Send for approval');
 
+    T.section('the sandbox: the fix tried first, in a copy of the code, before anyone approves it');
+    T.check('the Analyzed step offers it: what it does, your own folder untouched', /Try it in a sandbox/.test(await text(page, '#isSandbox .nx-is-sbhead')) && /copies Old EquipRite's code .* into a folder of its own on this PC, writes this fix there and builds the app/.test(await text(page, '#isSbIntro'))
+      && /Your own code folder is not touched; nothing is committed or pushed until it is approved/.test(await text(page, '#isSbIntro')) && await page.isEnabled('#isSbMake'), await text(page, '#isSbIntro'));
+    await page.click('#isSbMake');
+    await page.waitForSelector('#isSbSteps .nx-is-ag--done', { timeout: 15000 }).catch(() => {});
+    T.check('…making it: its steps shown as it goes', !!(await page.$('#isSbMake.nx-btn--working')) || (await page.$$('#isSbSteps .nx-is-ag--done')).length >= 1);
+    await page.waitForSelector('#isSbRunBtn', { timeout: 90000 }).catch(() => {});
+    await page.waitForSelector('#isSbDiffText .nx-is-sbd--add', { state: 'attached', timeout: 15000 }).catch(() => {}); // what it changed: read from the sandbox (git)
+    const sbFolder = await text(page, '#isSbFolder');
+    T.check('made: on fix/EQP-901 from origin/pages/test at its commit, built; its folder (sandboxes/fix-EQP-901); the project\'s checkout untouched', /^Sandbox fix\/EQP-901 · from origin\/pages\/test @ [0-9a-f]{7} · made .* by priya\.raman$/.test(await text(page, '#isSbState'))
+      && /^Built in \d+ s: ready to run\.$/.test(await text(page, '#isSbBuilt')) && /sandboxes[\\/]fix-EQP-901$/.test(sbFolder) && fs.existsSync(path.join(sbFolder, BILL + '.html'))
+      && /EQP-901: overdue invoices first/.test(fs.readFileSync(path.join(sbFolder, BILL + '.html'), 'utf8')) && fs.readFileSync(path.join(pg.root, BILL + '.html'), 'utf8') === html0 && !(await page.$('#isSbRun')), await text(page, '#isSbState') + ' | ' + await text(page, '#isSbBuilt') + ' | ' + sbFolder);
+    T.check('…what it changed: the one file; its diff, the added line marked', /What the sandbox changed · 1 file\(s\)/.test(await text(page, '#isSbDiff summary')) && /customer-my-billing-page\.html changed/.test(await text(page, '#isSbFiles'))
+      && /<!-- EQP-901: overdue invoices first -->/.test(await text(page, '#isSbDiffText .nx-is-sbd--add')), await text(page, '#isSbDiff summary'));
+    T.check('…real data, said: the same services as the app (its Fusion: a DEV instance, not PROD)', /Real data\. Its data: fa-etao-dev20-saasfademo1\.ds-fa\.oraclepdemos\.com — the same services and logins as your EquipRite/.test(await text(page, '#isSbData'))
+      && !(await page.$('#isSbData.nx-is-sbdata--prod')), await text(page, '#isSbData'));
+    const [sbPop] = await Promise.all([page.waitForEvent('popup', { timeout: 10000 }).catch(() => null), page.click('#isSbRunBtn')]);
+    const sbUrl = sbPop ? sbPop.url() : '';
+    const sbBase = (/^http:\/\/localhost:\d+/.exec(sbUrl) || [''])[0];
+    const sbVer = fs.readdirSync(path.join(sbFolder, 'build', 'processed', 'webApps', 'vbredwoodapp')).filter((n) => /^version_/.test(n))[0];
+    const sbPage = sbBase ? await (await fetch(sbBase + '/' + sbVer + '/flows/customer-portal/pages/customer-my-billing-page.html')).text().catch(() => '') : '';
+    T.check('Run in sandbox: the app opens from the sandbox (a port of its own), and it serves the page with the fix', !!sbBase && sbBase !== 'http://localhost:19900' && current.url.indexOf(sbBase) !== 0 && /EQP-901: overdue invoices first/.test(sbPage)
+      && /The sandbox is open: http:\/\/localhost:\d+/.test(await text(page, '#isResult')), sbUrl + ' | ' + await text(page, '#isResult'));
+    if (sbPop) await sbPop.close();
+    const [curPop] = await Promise.all([page.waitForEvent('popup', { timeout: 10000 }).catch(() => null), page.click('#isSbRunCur')]);
+    const curUrl = curPop ? curPop.url() : '';
+    T.check('Run as it is now: the same page, from the app as it is (to compare)', !!curUrl && curUrl.indexOf(current.url.replace(/\/$/, '')) === 0 && curUrl.slice(current.url.replace(/\/$/, '').length) === sbUrl.slice(sbBase.length), curUrl + ' vs ' + sbUrl);
+    if (curPop) await curPop.close();
+    await page.click('#isSbShotsBtn');
+    await page.waitForSelector('#isSbShots #isSbAfter img', { timeout: 60000 }).catch(() => {});
+    await page.waitForTimeout(500);
+    T.check('Screenshots: before (as it is now) and after (the sandbox), side by side, kept with the issue', (await page.$$eval('#isSbShots img', (ims) => ims.filter((im) => im.complete && im.naturalWidth > 100).length).catch(() => 0)) === 2
+      && /Before · the app as it is now/.test(await text(page, '#isSbBefore')) && /After · the sandbox, with the fix/.test(await text(page, '#isSbAfter')) && /Taken /.test(await text(page, '#isSbShotNote')));
+    await page.click('#isSbTestsBtn');
+    await page.waitForSelector('#isSbTests', { timeout: 30000 }).catch(() => {});
+    T.check('Run its tests: in the sandbox — nothing broke (no unit test names this page yet; the page checks)', /^✓ Nothing broke in the sandbox — no unit test names this page, \d+ page checks/.test(await text(page, '#isSbTests')), await text(page, '#isSbTests'));
+    const shotUrl = await page.getAttribute('#isSbAfter img', 'src');
+    const otherSite = await fetch(new URL(shotUrl, env.nextUrl).href, { headers: { 'Sec-Fetch-Site': 'cross-site' } }).then((r) => r.status).catch(() => 0);
+    T.check('…the screenshots go only to the app\'s own page (refused to another site)', otherSite === 403, String(otherSite));
+    await env.shot('issues-sandbox.png');
+
+    T.section('origin moves on: the sandbox is behind; made again, its tests catch what breaks — before approval');
+    // the project has Old EquipRite's guard (a stand-in): this change to an Old EquipRite page fails it until agreed
+    const GUARD = 'tests/old-app-unchanged.test.js';
+    fs.mkdirSync(path.join(pg.root, 'tests'), { recursive: true });
+    fs.writeFileSync(path.join(pg.root, GUARD), ["const fs = require('fs'), path = require('path');", 'const AGREED = [', "  { why: 'start', paths: [] }", '];',
+      "const f = '" + BILL + ".html';", "const changed = /EQP-901: overdue invoices first/.test(fs.readFileSync(path.join(__dirname, '..', f), 'utf8'));",
+      'const ok = !changed || AGREED.some((a) => a.paths.indexOf(f) !== -1);', "console.log('passed: ' + (ok ? 1 : 0) + '   failed: ' + (ok ? 0 : 1));",
+      "if (!ok) { console.log('FAILURES:'); console.log('  - Old EquipRite changed, not agreed: ' + f); process.exit(1); }"].join('\n') + '\n');
+    gitIn('add', GUARD); gitIn('commit', '-q', '-m', 'the guard'); gitIn('push', '-q', 'origin', 'pages/test');
+    await page.click('#isSbTestsBtn');
+    await page.waitForSelector('#isSbBehind', { timeout: 15000 }).catch(() => {});
+    T.check('1 commit behind origin/pages/test: said, with what to do', /^1 commit behind origin\/pages\/test since it was made — make it again to try the fix on the latest code\.$/.test(await text(page, '#isSbBehind')), await text(page, '#isSbBehind'));
+    await page.click('#isSbAgain');
+    await page.waitForFunction(() => !document.getElementById('isSbBehind') && !!document.getElementById('isSbRunBtn') && !document.querySelector('#isSbAgain.nx-btn--working'), null, { timeout: 90000 }).catch(() => {});
+    T.check('…made again: on the latest code (not behind), the guard in it', !(await page.$('#isSbBehind')) && fs.existsSync(path.join(sbFolder, GUARD)) && /sandbox made again/i.test(await text(page, '#isTimeline')), await text(page, '#isSbState'));
+    await page.click('#isSbTestsBtn');
+    await page.waitForSelector('#isSbTests.nx-is-sbtests--bad', { timeout: 30000 }).catch(() => {});
+    T.check('…its tests: Old EquipRite\'s guard breaks — caught in the sandbox, before anyone approves', /^✗ 1 new failure in the sandbox — 1 test file \(passing before: 1\)/.test(await text(page, '#isSbTests'))
+      && /tests\/old-app-unchanged\.test\.js: Old EquipRite changed, not agreed/.test(await text(page, '#isSbTests ul')), await text(page, '#isSbTests'));
+    await env.shot('issues-sandbox-caught.png');
+
     T.section('approval: sent (an email), approved');
     await page.click('#isSteps [data-key="3"]');
     T.check('the Approval step: the approver (me by default), by email', await page.isChecked('#isEmailMe') && (await page.inputValue('#isApprover')) === 'priya@example.com' && /Email it to priya@example\.com/.test(await text(page, '#isApproval')));
@@ -179,6 +258,7 @@ const BILL = 'webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-billi
     page.once('dialog', (d) => d.accept());
     await page.click('#isNextBtn');
     await page.waitForSelector('#isApply', { timeout: 10000 }).catch(() => {});
+    await page.waitForFunction(() => { const b = document.getElementById('isApply'); return !!b && !b.disabled; }, null, { timeout: 15000 }).catch(() => {});
     T.check('approved from the Next step bar (by me, in Build.Rite): Apply change is on', /Approved by priya\.raman · .* in Build\.Rite/.test(await text(page, '#isDecision')) && await page.isEnabled('#isApply') && (await text(page, '#isNextBtn')) === 'Apply change', await text(page, '#isDecision'));
 
     T.section('the agent applies it: its own branch, tested, pushed, the pull request');
@@ -187,14 +267,6 @@ const BILL = 'webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-billi
       && (await page.$$('#isAgentSteps .nx-is-ag--pending')).length === 9 && /Get the latest code[\s\S]*Run the related tests, before the change[\s\S]*Push the branch[\s\S]*The pull request/.test(await text(page, '#isAgentSteps')),
       await text(page, '#isApplyChange summary'));
     await env.shot('issues-before-apply.png');
-    // the project has Old EquipRite's guard (a stand-in): this change to an Old EquipRite page fails it until agreed
-    const GUARD = 'tests/old-app-unchanged.test.js';
-    fs.mkdirSync(path.join(pg.root, 'tests'), { recursive: true });
-    fs.writeFileSync(path.join(pg.root, GUARD), ["const fs = require('fs'), path = require('path');", 'const AGREED = [', "  { why: 'start', paths: [] }", '];',
-      "const f = '" + BILL + ".html';", "const changed = /EQP-901: overdue invoices first/.test(fs.readFileSync(path.join(__dirname, '..', f), 'utf8'));",
-      'const ok = !changed || AGREED.some((a) => a.paths.indexOf(f) !== -1);', "console.log('passed: ' + (ok ? 1 : 0) + '   failed: ' + (ok ? 0 : 1));",
-      "if (!ok) { console.log('FAILURES:'); console.log('  - Old EquipRite changed, not agreed: ' + f); process.exit(1); }"].join('\n') + '\n');
-    gitIn('add', GUARD); gitIn('commit', '-q', '-m', 'the guard'); gitIn('push', '-q', 'origin', 'pages/test');
     page.once('dialog', (d) => d.accept());
     await page.click('#isApply');
     await page.waitForSelector('#isApply.nx-btn--working', { timeout: 3000 }).catch(() => {});
@@ -212,7 +284,8 @@ const BILL = 'webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-billi
     T.check('…its steps: the tests after the change failed (✗), what broke named there', !!(await page.$('#isAgentSteps .nx-is-ag--failed')) && /Run the tests again, with the change[\s\S]*1 new failure[\s\S]*old-app-unchanged/.test(await text(page, '#isAgentSteps')), await text(page, '#isAgentSteps'));
     const logTxt = await page.$eval('#isAgent .nx-is-aglogtext', (e) => e.textContent).catch(() => '');
     T.check('…its full log, open when it failed: each line timed, the step, each test file\'s result before (✓) and after (✗), how it ended; scrolled to its newest line', /Its full log · \d+ lines/.test(await text(page, '#isAgent .nx-is-aglog summary'))
-      && (await page.getAttribute('#isAgent .nx-is-aglog', 'open')) !== null && /\+\d+:\d\d\s+tests before\s+tests\/old-app-unchanged\.test\.js: ✓ 1 passed, 0 failed/.test(logTxt)
+      && (await page.getAttribute('#isAgent .nx-is-aglog', 'open')) !== null && /\+\d+:\d\d\s+✓ tests before\s+1 of 1 passing before the change \(when the sandbox was made\)/.test(logTxt)
+      && /✓ latest code\s+the sandbox has the code from origin\/pages\/test/.test(logTxt) && /write\s+already in the sandbox/.test(logTxt)
       && /tests after\s+tests\/old-app-unchanged\.test\.js: ✗ 0 passed, 1 failed .* Old EquipRite changed, not agreed/.test(logTxt) && /✗ end /.test(logTxt)
       && await page.$eval('#isAgent .nx-is-aglogtext', (e) => e.scrollHeight <= e.clientHeight + 2 || e.scrollTop + e.clientHeight >= e.scrollHeight - 2), logTxt.slice(0, 1500));
     T.check('…it is Old EquipRite\'s guard: said so, with the ways on (agree it and apply; analyze again with the failure; apply anyway with a reason)', /This is Old EquipRite's guard/.test(await text(page, '#isGuardNote'))
@@ -227,6 +300,8 @@ const BILL = 'webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-billi
     const guardOnBranch = (() => { try { return pg.gitRemote('show', 'fix/EQP-901:' + GUARD); } catch (e) { return ''; } })();
     T.check('agreed for Old EquipRite: the page named in the guard (the issue, who approved it) in the same commit — the guard passes now', /why: 'EQP-901: Overdue invoices are not shown first on My Billing — approved by priya\.raman \(\d{4}-\d\d-\d\d\)'/.test(guardOnBranch) && guardOnBranch.indexOf("'" + BILL + ".html'") !== -1
       && /Agreed for Old EquipRite/.test(pg.gitRemote('log', '-1', '--format=%b', 'fix/EQP-901')) && !(await page.$('#isBroke')), guardOnBranch.slice(0, 400));
+    T.check('applied from the sandbox it was tried in; the Pull request step says so, to run it again', /Tried in its sandbox\. Sandbox fix\/EQP-901/.test(await text(page, '#isSbLine')) && fs.existsSync(sbFolder)
+      && /EQP-901: overdue invoices first/.test(pg.gitRemote('show', 'fix/EQP-901:' + BILL + '.html')), await text(page, '#isSbLine'));
     T.check('…its log kept, closed when it went well', /Its full log · \d+ lines/.test(await text(page, '#isAgentDone .nx-is-aglog summary')) && (await page.getAttribute('#isAgentDone .nx-is-aglog', 'open')) === null
       && /and agreed for Old EquipRite/.test(await page.$eval('#isAgentDone .nx-is-aglogtext', (e) => e.textContent).catch(() => '')));
     T.check('done: how the agent\'s run went, step by step — committed, pushed, the pull request; the time it took', /✓ Done in \d+ s/.test(await text(page, '#isAgentDone .nx-is-agentstate'))
@@ -255,6 +330,7 @@ const BILL = 'webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-billi
     await page.click('#isCauseChips [data-value="code"]');
     await page.click('#isClose');
     await page.waitForFunction(() => /Closed/.test((document.getElementById('isStatus') || {}).textContent || ''), null, { timeout: 10000 }).catch(() => {});
+    T.check('closed: its sandbox gone (its folder deleted; the branch kept for the pull request)', !fs.existsSync(sbFolder) && /sandbox removed/.test(await text(page, '#isTimeline')) && /fix\/EQP-901/.test(pg.gitRemote('branch', '--list', 'fix/EQP-901')), await text(page, '#isTimeline').then((t) => t.slice(-300)));
     T.check('closed as Fixed in 26D, root cause Code defect; its history from logged to closed; Jira told at each step', /Closed/.test(await text(page, '#isStatus')) && /Fixed\s*Fixed in\s*26D\s*Root cause\s*Code defect/.test(await text(page, '#isResolution'))
       && /logged[\s\S]*written up[\s\S]*created in Jira[\s\S]*analyzed[\s\S]*sent for approval[\s\S]*approved[\s\S]*applied on a branch[\s\S]*pull request ready[\s\S]*verified[\s\S]*closed/.test(await text(page, '#isTimeline'))
       && jiraCalls.filter((c) => /\/comment$/.test(c.url)).length >= 6, await text(page, '#isResolution'));
@@ -289,6 +365,7 @@ const BILL = 'webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-billi
   } catch (e) {
     T.check('no exception: ' + (e && e.message), false);
   } finally {
+    for (const sv of sbServers.concat([current])) { try { await sv.close(); } catch (e) { /* closed */ } }
     await env.close();
     pg.restore();
     try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e) { /* tmp */ }

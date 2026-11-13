@@ -58,8 +58,10 @@ define([], function () {
     draft: function (id, purpose) { return post('draft', { id: id, purpose: purpose || 'info' }); },
     // a run that failed says why in its `error`: still an answer (its steps and log), not a failed call — else the screen
     // keeps the last step seen while it worked ("Working…") and never shows how it ended
-    progress: function (id) {
-      return call('progress?id=' + encodeURIComponent(id || '')).then(function (r) {
+    /** The issue's sandbox (the fix tried first, in a copy of the code on this PC): act make | status | run | shots | tests | remove. */
+    sandbox: function (id, act, extra) { var b = { id: id, act: act }; Object.keys(extra || {}).forEach(function (k) { b[k] = extra[k]; }); return post('sandbox', b); },
+    progress: function (id, kind) {
+      return call('progress?id=' + encodeURIComponent(id || '') + (kind ? '&kind=' + encodeURIComponent(kind) : '')).then(function (r) {
         return r.status === 200 && r.body && Array.isArray(r.body.steps) ? { ok: true, status: r.status, body: r.body } : r;
       });
     },

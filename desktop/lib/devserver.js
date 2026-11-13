@@ -1026,7 +1026,10 @@ function createDevServer(o) {
         const jsonI = (status, body) => send(res, status, 'application/json', JSON.stringify(body), { 'Cache-Control': 'no-store' });
         if (!o.issuesStore) return jsonI(200, { ok: false, error: 'Issues are not set up in this app (they need the desktop app).' });
         const origin = req.headers.origin;
-        if (req.headers['x-equiprite-issues'] !== '1' || (origin && origin !== `http://${req.headers.host}`)) {
+        // an issue's screenshot shown in the page (<img>, which sends no header of ours): only to the app's own page —
+        // the browser says so (Sec-Fetch-Site: same-origin); every other call needs the header
+        const ownImage = req.method === 'GET' && pathname === '/__issues/img' && req.headers['sec-fetch-site'] === 'same-origin';
+        if (!ownImage && (req.headers['x-equiprite-issues'] !== '1' || (origin && origin !== `http://${req.headers.host}`))) {
           return send(res, 403, 'application/json', JSON.stringify({ error: 'Refused: not from EquipRite on this PC.' }));
         }
         const is = o.issuesStore;
@@ -1052,7 +1055,7 @@ function createDevServer(o) {
             return send(res, 200, s.mime, fs.readFileSync(s.file), { 'Cache-Control': 'no-store' });
           }
           if (pathname === '/__issues/settings' && !post) return jsonI(200, is.settings ? is.settings() : { ok: false, error: 'Not here.' });
-          if (pathname === '/__issues/progress' && !post) return jsonI(200, is.progress ? is.progress(q('id')) : { ok: false, error: 'Not here.' });
+          if (pathname === '/__issues/progress' && !post) return jsonI(200, is.progress ? is.progress(q('id'), q('kind')) : { ok: false, error: 'Not here.' });
           if (!post) return jsonI(404, { error: 'Not found' });
           const act = pathname.slice('/__issues/'.length);
           let r;
@@ -1073,6 +1076,8 @@ function createDevServer(o) {
           else if (act === 'email') r = await is.email(b.id, { to: b.to, cc: b.cc, subject: b.subject, body: b.body, by: by });
           else if (act === 'draft') { r = await is.draft(b.id, { purpose: b.purpose, by: by }); log(`Issues: draft ${b.id} -> ${r.ok ? 'drafted' : r.error}`); return jsonI(200, r); }
           else if (act === 'reopen') r = is.reopen(b.id, { by: by });
+          // the sandbox: the fix tried first, in a copy of the code on this PC (make, status, run, shots, tests, remove)
+          else if (act === 'sandbox') { r = is.sandbox ? await is.sandbox(b.id, { act: b.act, which: b.which, diff: !!b.diff, open: b.open, by: by }) : { ok: false, error: 'Not here.' }; if (b.act !== 'status') log(`Issues: sandbox ${b.act} ${b.id} -> ${r.ok ? 'done' : r.error}`); return jsonI(200, r); }
           else return jsonI(404, { error: 'Not found' });
           log(`Issues: ${act} ${b.id || ''} -> ${r.ok ? (r.issue ? r.issue.key + ' ' + r.issue.status : 'ok') : r.error}`);
           return jsonI(200, r);

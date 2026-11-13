@@ -145,6 +145,46 @@ define(['vb/action/actionChain', 'vb/action/actions', 'resources/js/issuesClient
           await show(r, r.ok ? 'Analyzed again with what broke: check the new proposal, then send it for approval.' : '');
           return;
         }
+        // the sandbox: the fix tried first, in a copy of the code on this PC (made, run, screenshots, tests, thrown away)
+        if (act === 'sbMake') {
+          v.progress = 'Making the sandbox for ' + x.key + ': a copy of the code, the fix written in it, the app built. Its steps are shown in the card.';
+          v.sbRun = null;
+          watch = setInterval(async () => { const p = await IC.progress(x.id, 'sandbox'); if (watch && p.ok && v.selId === x.id) v.sbRun = p.body; }, 600);
+          const r = await IC.sandbox(x.id, 'make');
+          clearInterval(watch); watch = null;
+          const fin = await IC.progress(x.id, 'sandbox');
+          if (fin.ok && v.selId === x.id) v.sbRun = fin.body;
+          await show(r, r.ok ? (r.body.warning || 'The sandbox is ready: run it and check the page. Your own code folder is not touched.') : '', true);
+          return;
+        }
+        if (act === 'sbRun') {
+          const cur = key === 'current';
+          const r = await IC.sandbox(x.id, 'run', { which: cur ? 'current' : 'sandbox' });
+          if (!r.ok) { fail(r); return; }
+          if (!r.body.opened) { try { window.open(r.body.url, '_blank'); } catch (e) { /* blocked */ } }
+          v.result = { ok: true, text: (cur ? 'The app as it is now' : 'The sandbox') + (r.body.opened ? ' is open in a window of its own: ' : ' is open: ') + r.body.url + (r.body.route ? '' : ' (this page is opened from ' + r.body.needs + ': go there in it)') };
+          return;
+        }
+        if (act === 'sbShots') {
+          v.progress = 'Taking the screenshots: the page as it is now, then in the sandbox…';
+          const r = await IC.sandbox(x.id, 'shots');
+          await show(r, r.ok ? 'Screenshots taken: before and after, side by side.' : '', true);
+          return;
+        }
+        if (act === 'sbTests') {
+          v.progress = 'Running the related tests in the sandbox…';
+          const r = await IC.sandbox(x.id, 'tests');
+          await show(r, r.ok ? (r.body.issue.sandbox && r.body.issue.sandbox.tests && r.body.issue.sandbox.tests.ok ? 'Nothing broke in the sandbox.' : 'Something broke in the sandbox: see its tests.') : '', true);
+          return;
+        }
+        if (act === 'sbRemove') {
+          const pushed = !!(x.branch && x.branch.pushed);
+          if (!ask('Throw the sandbox away?\n\nIts folder is deleted (' + ((x.sandbox && x.sandbox.folder) || 'on this PC') + ')' + (pushed ? '; its branch stays: it is the pull request\'s.' : ', with its branch fix/' + x.key + ' (never pushed).') + ' The issue and its proposed fix stay.')) return;
+          const r = await IC.sandbox(x.id, 'remove');
+          if (r.ok) { v.sbRun = null; v.sbStatus = null; }
+          await show(r, r.ok ? 'The sandbox is thrown away.' : '', true);
+          return;
+        }
         if (act === 'apply' || act === 'applyAnyway' || act === 'applyAgreed') {
           const anyway = act === 'applyAnyway';
           const allowOld = act === 'applyAgreed' || (!!v.allowOld && x.app === 'vbredwoodapp');

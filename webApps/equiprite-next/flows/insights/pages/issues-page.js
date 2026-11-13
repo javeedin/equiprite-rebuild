@@ -26,6 +26,9 @@ define(['resources/js/issuesClient', 'resources/js/codeFixClient', 'resources/js
   // what the agent does when Apply change is pressed (desktop/lib/issues.js AGENT_STEPS)
   const AGENT = [['fetch', 'Get the latest code'], ['branch', 'Make its own branch'], ['check', 'Check the change still fits the code'], ['before', 'Run the related tests, before the change'],
     ['write', 'Write the change'], ['after', 'Run the tests again, with the change'], ['commit', 'Commit it'], ['push', 'Push the branch'], ['pr', 'The pull request']];
+  // what making the sandbox does (desktop/lib/issues.js SANDBOX_STEPS)
+  const SBX = [['fetch', 'Get the latest code'], ['copy', 'Make the sandbox: a copy of the code'], ['check', 'Check the fix fits the code'], ['before', 'Run the related tests, before the fix'],
+    ['write', 'Write the fix into the sandbox'], ['build', 'Build the app in the sandbox']];
   const secs = (n) => (n < 60 ? n + ' s' : Math.floor(n / 60) + ' min ' + (n % 60) + ' s');
   const panelOf = (x, sv) => (Number(sv) >= 0 ? Number(sv) : (x ? x.stage || 0 : 0));
   let shownKept = { k: '', v: [] };
@@ -168,13 +171,58 @@ define(['resources/js/issuesClient', 'resources/js/codeFixClient', 'resources/js
     /** The agent's whole log, one line each: its time from the start, the step, what it said. */
     agentLogCount(agent) { return agent && agent.log ? agent.log.length : 0; }
     agentLogText(agent) {
-      const L = { fetch: 'latest code', branch: 'branch', check: 'fits?', before: 'tests before', write: 'write', after: 'tests after', commit: 'commit', push: 'push', pr: 'pull request', end: 'end' };
+      const L = { fetch: 'latest code', branch: 'branch', copy: 'copy', check: 'fits?', before: 'tests before', write: 'write', build: 'build', after: 'tests after', commit: 'commit', push: 'push', pr: 'pull request', end: 'end' };
       const m = { done: '✓', failed: '✗', skipped: '–', running: '…', log: ' ' };
       const at = (ms) => { const sec = Math.round(ms / 1000); return '+' + Math.floor(sec / 60) + ':' + (sec % 60 < 10 ? '0' : '') + (sec % 60); };
       return ((agent && agent.log) || []).map((l) => at(l.t) + '  ' + (m[l.state] || ' ') + ' ' + ((L[l.key] || l.key) + '              ').slice(0, 13) + ' ' + l.text).join('\n');
     }
     agentLogOpen(agent) { return !!agent && !agent.running && !!agent.done && !agent.okRun; }
     agentClass(agent) { return 'nx-is-agent' + (!agent ? ' nx-is-agent--plan' : agent.running ? ' nx-is-agent--run' : agent.okRun ? ' nx-is-agent--ok' : ' nx-is-agent--bad'); }
+    // ── the sandbox: the fix tried first, in a copy of the code on this PC, before anyone approves it ──
+    sbShown(x) { return !!x && !!x.fix && (x.fix.diff || []).length > 0 && ['in-review', 'verified', 'closed'].indexOf(x.status) === -1; }
+    sbHas(x) { return !!x && !!x.sandbox && !!x.sandbox.exists; }
+    sbNone(x, run) { return !!x && !(x.sandbox && x.sandbox.exists) && !(run && run.running); }
+    sbIntro(x) {
+      const app = (APPS.filter((a) => a[0] === appOf(x))[0] || [])[1] || 'the app';
+      return 'Try the fix before anyone approves it. Build.Rite copies ' + app + '\'s code (the latest on its branch) into a folder of its own on this PC, writes this fix there and builds the app — '
+        + 'then you run it and check the page. Your own code folder is not touched; nothing is committed or pushed until it is approved.';
+    }
+    sbGoneText(x) { return x && x.sandbox && x.sandbox.branch && !x.sandbox.exists ? 'Its sandbox (' + x.sandbox.branch + ') is not on this PC — made on another one, or its folder deleted. Make it here.' : ''; }
+    sbHead(x) { const s = x && x.sandbox; return s ? 'Sandbox ' + s.branch + ' · from ' + s.start + ' @ ' + s.baseCommit + ' · made ' + when(s.at) + (s.by ? ' by ' + s.by : '') : ''; }
+    sbFolder(x) { return x && x.sandbox ? x.sandbox.folder || '' : ''; }
+    sbBuildText(x) { const b = x && x.sandbox && x.sandbox.built; return !b ? '' : b.ok ? 'Built in ' + Math.max(1, Math.round((b.ms || 0) / 1000)) + ' s: ready to run.' : 'Not built: ' + (b.error || 'the build failed') + '. Its files and tests can still be checked.'; }
+    sbOld(x) { return !!x && !!x.sandbox && !!x.sandbox.exists && !!x.sandbox.old; }
+    sbBehind(x, st) { return st && st.behind ? st.behind + ' commit' + (st.behind === 1 ? '' : 's') + ' behind ' + x.sandbox.start + ' since it was made — make it again to try the fix on the latest code.' : ''; }
+    sbData(st) { const d = st && st.data; return d && d.fusion ? 'Its data: ' + d.host + ' — the same services and logins as your EquipRite (File → Sign in as…). What you save in it is saved there for real.' : 'It uses the same services and logins as your EquipRite: what you save in it is saved for real.'; }
+    sbProd(st) { return !!(st && st.data && st.data.prod); }
+    sbFiles(x, st) { if (st && st.changed) return st.changed.map((c) => ({ file: c.file, state: ({ M: 'changed', A: 'new', D: 'deleted', '??': 'new' })[c.state] || c.state })); return ((x && x.sandbox && x.sandbox.files) || []).map((f) => ({ file: f, state: 'changed' })); }
+    sbDiffRows(st) {
+      return String((st && st.diff) || '').split('\n').slice(0, 800).map((l) => ({ s: l, c: /^(\+\+\+|---) /.test(l) || /^diff --git/.test(l) || /^index /.test(l) ? 'nx-is-sbd nx-is-sbd--file' : l[0] === '+' ? 'nx-is-sbd nx-is-sbd--add' : l[0] === '-' ? 'nx-is-sbd nx-is-sbd--del' : /^@@/.test(l) ? 'nx-is-sbd nx-is-sbd--hunk' : 'nx-is-sbd' }));
+    }
+    sbTestsText(x) {
+      const t = x && x.sandbox && x.sandbox.tests;
+      if (!t) return '';
+      return (t.ok ? '✓ Nothing broke in the sandbox' : '✗ ' + t.bad + ' new failure' + (t.bad === 1 ? '' : 's') + ' in the sandbox') + ' — ' + (t.unit.length ? t.unit.length + ' test file' + (t.unit.length === 1 ? '' : 's') + ' (passing before: ' + t.unit.filter((u) => u.before === 'passed').length + ')' : 'no unit test names this page')
+        + ', ' + (t.checks || []).length + ' page check' + ((t.checks || []).length === 1 ? '' : 's') + ' · ' + when(t.at);
+    }
+    sbTestsOk(x) { const t = x && x.sandbox && x.sandbox.tests; return !!t && !!t.ok; }
+    sbTestsBad(x) {
+      const t = x && x.sandbox && x.sandbox.tests;
+      if (!t) return [];
+      return (t.unit || []).filter((u) => (u.newFailures || []).length).map((u) => u.file + ': ' + u.newFailures.slice(0, 3).join(' | ')).concat((t.checks || []).filter((c) => !c.ok && !c.already && !c.warn).map((c) => 'page check: ' + c.name + (c.detail ? ' — ' + c.detail : '')));
+    }
+    sbShots(x) { const s = x && x.sandbox && x.sandbox.shots; return !!s && (s.after || s.before); }
+    sbShot(x, which) { const s = x && x.sandbox && x.sandbox.shots; return s && s[which] ? IC.imgUrl(x, 'sandbox-' + which) + '&t=' + encodeURIComponent(s.at) : ''; }
+    sbShotNote(x) { const s = x && x.sandbox && x.sandbox.shots; return s ? 'Taken ' + when(s.at) + (s.before ? '' : ' · before: ' + (s.beforeError || 'not taken')) : ''; }
+    sbSteps(run) { return run && run.steps ? run.steps : SBX.map((a) => ({ key: a[0], label: a[1], state: 'pending', detail: '', seconds: 0 })); }
+    sbRunShown(run) { return !!run && (!!run.running || (!!run.done && !run.okRun)); }
+    sbRunHead(run) { return !run ? '' : run.running ? 'Making the sandbox… ' + secs(run.seconds || 0) : run.okRun ? '✓ Made in ' + secs(run.seconds || 0) : '✗ Not made: ' + (run.error || 'it stopped'); }
+    sbRunClass(run) { return 'nx-is-agent nx-is-sbrun' + (!run ? ' nx-is-agent--plan' : run.running ? ' nx-is-agent--run' : run.okRun ? ' nx-is-agent--ok' : ' nx-is-agent--bad'); }
+    sbApplyText(x) {
+      return x && x.sandbox && x.sandbox.exists
+        ? 'The agent commits the approved change from its sandbox (' + x.sandbox.branch + '), where you tried it — it checks the sandbox holds exactly what was approved, runs the related tests, pushes the branch, then makes the pull request. Your own code folder is not touched.'
+        : 'The agent puts the approved change on a branch of its own (fix/' + (x ? x.key : '') + '), runs the related tests before and after, commits it with ' + (x ? x.key : '') + ' and pushes it, then makes the pull request. Your own code folder is not touched.';
+    }
     /** The last run stopped on a failing test: which (its new failures, its output), and whether it is Old EquipRite's guard. */
     brokeUnits(x) { const t = x && x.lastRun && x.lastRun.tests; return ((t && t.unit) || []).filter((u) => (u.newFailures || []).length); }
     brokeChecks(x) { const t = x && x.lastRun && x.lastRun.tests; return ((t && t.checks) || []).filter((c) => !c.ok && !c.already); }

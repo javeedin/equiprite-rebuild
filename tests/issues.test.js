@@ -71,8 +71,12 @@ const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwA
     };
     let clock = Date.parse('2026-11-13T09:00:00Z');
     const now = () => new Date(clock += 1000);
-    const fix = CF.open({ root: A, file: path.join(tmp, 'data', 'code-fixes.json'), ai: ai, now: now });
-    const store = IS.open({ file: path.join(tmp, 'data', 'issues.json'), ai: ai, fix: fix, mail: mail, jira: jira, now: now,
+    // sandboxes: a stand-in build (tests/sandbox.test.js runs Oracle's real one) and local server; windows opened, noted
+    const sbServed = [], opened = [];
+    const fix = CF.open({ root: A, file: path.join(tmp, 'data', 'code-fixes.json'), ai: ai, now: now,
+      buildSandbox: async (sb) => { const w = path.join(sb, 'build', 'processed', 'webApps', 'vbredwoodapp'); fs.mkdirSync(w, { recursive: true }); fs.writeFileSync(path.join(w, 'index.html'), '<html></html>'); return { ok: true, ms: 5 }; },
+      serveSandbox: async (s) => { sbServed.push(s); return { url: 'http://localhost:1234/', close: async () => {} }; }, appUrl: () => 'http://localhost:4321/' });
+    const store = IS.open({ file: path.join(tmp, 'data', 'issues.json'), ai: ai, fix: fix, mail: mail, jira: jira, now: now, openWindow: async (url, title) => { opened.push([url, title]); return true; },
       fdd: { pick: (story) => 'FDD 7.4 Billing — overdue invoices are listed first (' + story.summary + ')' } });
 
     const c3dummy = () => 'nope';
@@ -291,6 +295,64 @@ const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwA
       && new RegExp("why: '" + c4.issue.key + ": .*approved by Asha").test(guardOnBranch) && guardOnBranch.indexOf("'" + PAGE + ".html'") !== -1
       && ag.issue.events.some((e) => e.what === 'agreed for Old EquipRite') && /Agreed for Old EquipRite/.test(git(remote, 'log', '-1', '--format=%b', ag.issue.branch.name))
       && ag.issue.agentRun.okRun && !ag.issue.lastRun, JSON.stringify([ag.error, guardOnBranch.slice(0, 300)]));
+
+    // ── the sandbox: the fix tried first in a copy of the code, before approval; promoted from there; gone when closed ──
+    T.section('the sandbox: tried first, before approval; applied from it; gone when closed');
+    const c5 = await store.create({ app: 'vbredwoodapp', page: ID, text: 'mark the billing list as tried', kind: 'change', by: 'Asha' });
+    const id5 = c5.issue.id;
+    T.check('no proposal yet: nothing to try', /analyze it first/.test((await store.sandbox(id5, { act: 'make', by: 'Asha' })).error || ''));
+    await store.format(id5, { by: 'Asha' });
+    const ans5 = (mark) => ['## Verdict', 'Fix on this page — a marker.', '## Summary', 'x', '## Questions', 'None', '', 'FILE: ' + PAGE + '.html', '<<<<<<< SEARCH', anchor, '=======', anchor + '\n  <!-- ' + mark + ' ' + c5.issue.key + ' -->', '>>>>>>> REPLACE'].join('\n');
+    answers.push(ans5('SANDBOX-TRIED'));
+    await store.analyze(id5, { by: 'Ben' });
+    const m5 = await store.sandbox(id5, { act: 'make', by: 'Ben' });
+    const sb5 = (m5.issue && m5.issue.sandbox) || {};
+    const sbDir5 = sb5.folder || '';
+    T.check('made: on fix/<KEY>, its own folder (the data folder\'s sandboxes), the fix written there, built; your checkout untouched; still Analyzed', m5.ok && sb5.branch === 'fix/' + c5.issue.key && sb5.exists && sb5.built.ok && !sb5.old
+      && sbDir5.indexOf(path.join(tmp, 'data', 'code-fixes', 'sandboxes')) === 0 && /SANDBOX-TRIED/.test(fs.readFileSync(path.join(sbDir5, PAGE + '.html'), 'utf8'))
+      && !/SANDBOX-TRIED/.test(fs.readFileSync(path.join(A, PAGE + '.html'), 'utf8')) && m5.issue.status === 'analyzed' && m5.issue.events.some((e) => e.what === 'sandbox made'), JSON.stringify(m5).slice(0, 400));
+    const pg5 = store.progress(id5, 'sandbox');
+    T.check('…its steps (latest code, the copy, fits, tests before, written, built) and its log, kept', pg5.done && pg5.okRun && pg5.steps.map((x) => x.key).join() === 'fetch,copy,check,before,write,build'
+      && pg5.steps.filter((x) => x.key === 'before')[0].state === 'done' && pg5.log.some((l) => /old-app-unchanged\.test\.js: ✓/.test(l.text)), JSON.stringify(pg5.steps.map((x) => x.key + ':' + x.state)));
+    T.check('…kept on this PC only: not in the issue saved (nor shared)', !/sandboxes/.test(fs.readFileSync(path.join(tmp, 'data', 'issues.json'), 'utf8')) && fs.existsSync(path.join(tmp, 'data', 'issue-sandboxes.json')));
+    const st5 = await store.sandbox(id5, { act: 'status', diff: true });
+    T.check('what it changed: the one file, as made; its diff', st5.ok && st5.status.exists && st5.status.changed.length === 1 && st5.status.asMade && /^\+\s*<!-- SANDBOX-TRIED/m.test(st5.status.diff || ''), JSON.stringify(st5.status || st5).slice(0, 300));
+    const r5 = await store.sandbox(id5, { act: 'run', by: 'Ben' });
+    T.check('run: its own server, on the page; opened in a window of its own (the desktop app)', r5.ok && r5.opened && sbServed.length === 1 && sbServed[0].webApp === 'vbredwoodapp' && r5.url.indexOf('http://localhost:1234') === 0
+      && opened[0][0] === r5.url && opened[0][1].indexOf('Sandbox ' + c5.issue.key + ' — ') === 0, JSON.stringify(r5).slice(0, 300));
+    const rc5 = await store.sandbox(id5, { act: 'run', which: 'current', by: 'Ben' });
+    T.check('…the app as it is now, beside it (same page)', rc5.ok && rc5.url.indexOf('http://localhost:4321') === 0 && rc5.url.slice('http://localhost:4321'.length) === r5.url.slice('http://localhost:1234'.length) && /^As it is now — /.test(opened[1][1]));
+    T.check('screenshots: need the desktop app (said so)', /Screenshots need the desktop app/.test((await store.sandbox(id5, { act: 'shots', by: 'Ben' })).error || ''));
+    const t5 = await store.sandbox(id5, { act: 'tests', by: 'Ben' });
+    T.check('its tests, in the sandbox: the guard passes (before and after), the page checks; kept, in the history', t5.ok && t5.issue.sandbox.tests.ok && t5.issue.sandbox.tests.unit.length === 1 && t5.issue.sandbox.tests.unit[0].before === 'passed'
+      && t5.issue.events.some((e) => e.what === 'sandbox tested' && /nothing broke/.test(e.detail)), JSON.stringify(t5.issue && t5.issue.sandbox && t5.issue.sandbox.tests).slice(0, 300));
+    answers.push(ans5('SANDBOX-TRIED-AGAIN'));
+    const re5 = await store.analyze(id5, { by: 'Ben', refine: 'say it again' });
+    T.check('analyzed again: the sandbox holds the earlier fix (said)', re5.ok && re5.issue.sandbox.old, JSON.stringify(re5.issue && re5.issue.sandbox));
+    await store.ask(id5, { by: 'Ben', email: false });
+    await store.approve(id5, { by: 'Asha' });
+    const ap5 = await store.apply(id5, { by: 'Asha' });
+    T.check('approved, applied: refused while the sandbox holds the earlier fix — make it again first', !ap5.ok && ap5.sandboxOld && /earlier version of the fix/.test(ap5.error) && store.get(id5).issue.status === 'approved', ap5.error);
+    const mm5 = await store.sandbox(id5, { act: 'make', by: 'Asha' });
+    T.check('…made again: the approved fix in it', mm5.ok && !mm5.issue.sandbox.old && /SANDBOX-TRIED-AGAIN/.test(fs.readFileSync(path.join(sbDir5, PAGE + '.html'), 'utf8')) && mm5.issue.events.some((e) => e.what === 'sandbox made again'));
+    const ok5 = await store.apply(id5, { by: 'Asha' });
+    const agl5 = (ok5.issue && ok5.issue.agentRun && ok5.issue.agentRun.log) || [];
+    T.check('applied from the sandbox: committed and pushed from it; the sandbox kept (to run again, to verify)', ok5.ok && ok5.issue.status === 'in-review' && ok5.issue.branch.fromSandbox && ok5.issue.sandbox.promoted && ok5.issue.sandbox.exists
+      && /SANDBOX-TRIED-AGAIN/.test(git(remote, 'show', ok5.issue.branch.name + ':' + PAGE + '.html')) && agl5.some((l) => /already in the sandbox/.test(l.text)), JSON.stringify([ok5.error, agl5.map((l) => l.key + ' ' + l.text)]).slice(0, 600));
+    T.check('…no sandbox to make once on its branch', ((await store.sandbox(id5, { act: 'make', by: 'Asha' })).error || '').indexOf('on fix/' + c5.issue.key + ' already') !== -1);
+    const cl5 = await store.close(id5, { by: 'Asha' });
+    T.check('closed: its sandbox gone (the folder deleted; the branch kept for its pull request)', cl5.ok && !cl5.issue.sandbox && !fs.existsSync(sbDir5) && cl5.issue.events.some((e) => e.what === 'sandbox removed')
+      && git(A, 'branch', '--list', 'fix/' + c5.issue.key) !== '', JSON.stringify(cl5.issue && cl5.issue.sandbox));
+    // thrown away by hand
+    const c6 = await store.create({ app: 'vbredwoodapp', page: ID, text: 'another marker', kind: 'change', by: 'Asha' });
+    await store.format(c6.issue.id, { by: 'Asha' });
+    answers.push(ans5('THROWN'));
+    await store.analyze(c6.issue.id, { by: 'Ben' });
+    const m6 = await store.sandbox(c6.issue.id, { act: 'make', by: 'Ben' });
+    const d6 = m6.issue.sandbox.folder;
+    const x6 = await store.sandbox(c6.issue.id, { act: 'remove', by: 'Ben' });
+    T.check('thrown away: its folder and its (unpushed) branch gone; said in the history', x6.ok && !x6.issue.sandbox && !fs.existsSync(d6) && git(A, 'branch', '--list', 'fix/' + c6.issue.key) === ''
+      && x6.issue.events.some((e) => e.what === 'sandbox thrown away') && /There is no sandbox/.test((await store.sandbox(c6.issue.id, { act: 'run' })).error || ''), JSON.stringify(x6).slice(0, 300));
   } catch (e) {
     T.check('no exception: ' + (e && e.stack), false);
   } finally {

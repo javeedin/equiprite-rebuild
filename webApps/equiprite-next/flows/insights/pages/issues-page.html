@@ -381,6 +381,79 @@
                   </div>
                 </oj-bind-if>
               </oj-bind-if>
+              <!-- the sandbox: the fix tried first, in a copy of the code on this PC, before anyone approves it -->
+              <oj-bind-if test="[[ $functions.sbShown($variables.issue) ]]">
+                <div class="nx-is-sandbox" id="isSandbox">
+                  <div class="nx-is-sbhead"><span class="nx-is-sbico" aria-hidden="true"><span class="oj-ux-ico-folder"></span></span><b>Try it in a sandbox</b>
+                    <oj-bind-if test="[[ $functions.sbHas($variables.issue) ]]"><span class="nx-is-sbstate" id="isSbState"><oj-bind-text value="[[ $functions.sbHead($variables.issue) ]]"></oj-bind-text></span></oj-bind-if></div>
+                  <!-- not made yet (or not on this PC) -->
+                  <oj-bind-if test="[[ $functions.sbNone($variables.issue, $variables.sbRun) ]]">
+                    <p class="nx-note nx-is-sbintro" id="isSbIntro"><oj-bind-text value="[[ $functions.sbIntro($variables.issue) ]]"></oj-bind-text></p>
+                    <oj-bind-if test="[[ !!$functions.sbGoneText($variables.issue) ]]"><p class="nx-note nx-is-sbgone" id="isSbGone"><oj-bind-text value="[[ $functions.sbGoneText($variables.issue) ]]"></oj-bind-text></p></oj-bind-if>
+                    <div class="nx-fx-row"><button type="button" class="nx-btn nx-btn--primary" id="isSbMake" data-act="sbMake" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]"><span class="oj-ux-ico-folder" aria-hidden="true"></span>Make the sandbox</button>
+                      <span class="nx-note">The code copied, the fix written, the app built: about 10 to 30 seconds.</span></div>
+                  </oj-bind-if>
+                  <!-- being made (its steps, live), or why it was not -->
+                  <oj-bind-if test="[[ $functions.sbRunShown($variables.sbRun) ]]">
+                    <div :class="[[ $functions.sbRunClass($variables.sbRun) ]]" id="isSbRun" aria-live="polite">
+                      <div class="nx-is-agenthead"><b>The sandbox</b><span class="nx-is-agentstate" id="isSbRunState"><oj-bind-text value="[[ $functions.sbRunHead($variables.sbRun) ]]"></oj-bind-text></span></div>
+                      <ol class="nx-is-agsteps" id="isSbSteps">
+                        <oj-bind-for-each data="[[ $functions.sbSteps($variables.sbRun) ]]">
+                          <template data-oj-as="s">
+                            <li :class="[[ $functions.agentStepClass(s.data) ]]" :data-step="[[ s.data.key ]]">
+                              <span class="nx-is-agmark" aria-hidden="true"><oj-bind-text value="[[ $functions.agentMark(s.data) ]]"></oj-bind-text></span>
+                              <span class="nx-is-agbody"><b><oj-bind-text value="[[ s.data.label ]]"></oj-bind-text></b><oj-bind-if test="[[ !!s.data.detail ]]"><span class="nx-is-agdetail"><oj-bind-text value="[[ s.data.detail ]]"></oj-bind-text></span></oj-bind-if></span>
+                              <span class="nx-is-agtime"><oj-bind-text value="[[ $functions.agentTime(s.data) ]]"></oj-bind-text></span>
+                            </li>
+                          </template>
+                        </oj-bind-for-each>
+                      </ol>
+                      <oj-bind-if test="[[ $functions.agentLogCount($variables.sbRun) > 0 ]]">
+                        <details class="nx-is-aglog" :open="[[ $functions.agentLogOpen($variables.sbRun) ]]"><summary><oj-bind-text value="[[ 'Its full log · ' + $functions.agentLogCount($variables.sbRun) + ' lines' ]]"></oj-bind-text></summary>
+                          <pre class="nx-is-aglogtext"><oj-bind-text value="[[ $functions.agentLogText($variables.sbRun) ]]"></oj-bind-text></pre></details>
+                      </oj-bind-if>
+                    </div>
+                  </oj-bind-if>
+                  <!-- made: run it and look, screenshots, its tests, what it changed -->
+                  <oj-bind-if test="[[ $functions.sbHas($variables.issue) ]]">
+                    <oj-bind-if test="[[ $functions.sbOld($variables.issue) ]]">
+                      <div class="nx-is-sbold" id="isSbOld"><span><b>It holds an earlier version of the fix.</b> The fix changed since the sandbox was made: update it to try this one.</span>
+                        <button type="button" class="nx-btn nx-btn--sm nx-btn--primary" id="isSbUpdate" data-act="sbMake" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]"><span class="oj-ux-ico-refresh" aria-hidden="true"></span>Update the sandbox</button></div>
+                    </oj-bind-if>
+                    <oj-bind-if test="[[ !!$functions.sbBehind($variables.issue, $variables.sbStatus) ]]"><div class="nx-note nx-is-sbbehind" id="isSbBehind"><oj-bind-text value="[[ $functions.sbBehind($variables.issue, $variables.sbStatus) ]]"></oj-bind-text></div></oj-bind-if>
+                    <div class="nx-is-sbmeta"><span class="nx-note" id="isSbBuilt"><oj-bind-text value="[[ $functions.sbBuildText($variables.issue) ]]"></oj-bind-text></span><code class="nx-is-sbfolder" id="isSbFolder" :title="[[ $functions.sbFolder($variables.issue) ]]"><oj-bind-text value="[[ $functions.sbFolder($variables.issue) ]]"></oj-bind-text></code></div>
+                    <div class="nx-fx-row nx-is-sbacts">
+                      <button type="button" class="nx-btn nx-btn--primary" id="isSbRunBtn" data-act="sbRun" data-key="sandbox" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]"><span class="oj-ux-ico-play" aria-hidden="true"></span>Run in sandbox</button>
+                      <button type="button" class="nx-btn" id="isSbRunCur" data-act="sbRun" data-key="current" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]"><span class="oj-ux-ico-open-new-tab" aria-hidden="true"></span>Run as it is now</button>
+                      <button type="button" class="nx-btn" id="isSbShotsBtn" data-act="sbShots" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]"><span class="oj-ux-ico-camera" aria-hidden="true"></span>Screenshots: before and after</button>
+                      <button type="button" class="nx-btn" id="isSbTestsBtn" data-act="sbTests" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]"><span class="oj-ux-ico-check-circle" aria-hidden="true"></span>Run its tests</button>
+                      <span class="nx-min-flex"></span>
+                      <button type="button" class="nx-btn nx-btn--plain" id="isSbAgain" data-act="sbMake" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]"><span class="oj-ux-ico-refresh" aria-hidden="true"></span>Make it again</button>
+                      <button type="button" class="nx-btn nx-btn--plain nx-pg-delete" id="isSbRemove" data-act="sbRemove" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]"><span class="oj-ux-ico-trash" aria-hidden="true"></span>Throw away</button>
+                    </div>
+                    <div :class="[[ $functions.sbProd($variables.sbStatus) ? 'nx-is-sbdata nx-is-sbdata--prod' : 'nx-is-sbdata' ]]" id="isSbData"><b>Real data.</b> <oj-bind-text value="[[ $functions.sbData($variables.sbStatus) ]]"></oj-bind-text>
+                      <oj-bind-if test="[[ $functions.sbProd($variables.sbStatus) ]]"><b class="nx-is-sbprod"> This looks like PRODUCTION: look, but do not save anything while testing.</b></oj-bind-if></div>
+                    <oj-bind-if test="[[ !!$functions.sbTestsText($variables.issue) ]]">
+                      <div :class="[[ $functions.sbTestsOk($variables.issue) ? 'nx-is-sbtests nx-is-sbtests--ok' : 'nx-is-sbtests nx-is-sbtests--bad' ]]" id="isSbTests"><oj-bind-text value="[[ $functions.sbTestsText($variables.issue) ]]"></oj-bind-text>
+                        <ul class="nx-is-brokelines"><oj-bind-for-each data="[[ $functions.sbTestsBad($variables.issue) ]]"><template data-oj-as="l"><li><oj-bind-text value="[[ l.data ]]"></oj-bind-text></li></template></oj-bind-for-each></ul></div>
+                    </oj-bind-if>
+                    <oj-bind-if test="[[ $functions.sbShots($variables.issue) ]]">
+                      <div class="nx-is-sbshots" id="isSbShots">
+                        <figure class="nx-is-sbfig" id="isSbBefore"><figcaption>Before · the app as it is now</figcaption>
+                          <oj-bind-if test="[[ !!$functions.sbShot($variables.issue, 'before') ]]"><button type="button" class="nx-is-shot" data-act="viewImg" :data-key="[[ $functions.sbShot($variables.issue, 'before') ]]" on-click="[[ $listeners.onAct ]]"><img :src="[[ $functions.sbShot($variables.issue, 'before') ]]" alt="Before"></button></oj-bind-if>
+                          <oj-bind-if test="[[ !$functions.sbShot($variables.issue, 'before') ]]"><div class="nx-note nx-is-sbnoshot">Not taken</div></oj-bind-if></figure>
+                        <figure class="nx-is-sbfig" id="isSbAfter"><figcaption>After · the sandbox, with the fix</figcaption>
+                          <oj-bind-if test="[[ !!$functions.sbShot($variables.issue, 'after') ]]"><button type="button" class="nx-is-shot" data-act="viewImg" :data-key="[[ $functions.sbShot($variables.issue, 'after') ]]" on-click="[[ $listeners.onAct ]]"><img :src="[[ $functions.sbShot($variables.issue, 'after') ]]" alt="After"></button></oj-bind-if></figure>
+                      </div>
+                      <div class="nx-note" id="isSbShotNote"><oj-bind-text value="[[ $functions.sbShotNote($variables.issue) ]]"></oj-bind-text></div>
+                    </oj-bind-if>
+                    <details class="nx-is-sbdiff" id="isSbDiff"><summary><oj-bind-text value="[[ 'What the sandbox changed · ' + $functions.sbFiles($variables.issue, $variables.sbStatus).length + ' file(s) — see its diff' ]]"></oj-bind-text></summary>
+                      <ul class="nx-is-sbfiles" id="isSbFiles"><oj-bind-for-each data="[[ $functions.sbFiles($variables.issue, $variables.sbStatus) ]]"><template data-oj-as="f"><li><code><oj-bind-text value="[[ f.data.file ]]"></oj-bind-text></code> <span class="nx-note"><oj-bind-text value="[[ f.data.state ]]"></oj-bind-text></span></li></template></oj-bind-for-each></ul>
+                      <div class="nx-is-sbdifftext" id="isSbDiffText"><oj-bind-for-each data="[[ $functions.sbDiffRows($variables.sbStatus) ]]"><template data-oj-as="r"><div :class="[[ r.data.c ]]"><oj-bind-text value="[[ r.data.s ]]"></oj-bind-text></div></template></oj-bind-for-each></div>
+                    </details>
+                  </oj-bind-if>
+                </div>
+              </oj-bind-if>
               <oj-bind-if test="[[ $functions.canAnalyze($variables.issue) ]]">
                 <div class="nx-fx-row">
                   <button type="button" class="nx-btn nx-btn--sm nx-aibtn" id="isAnalyze" data-act="analyze" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]"><span aria-hidden="true">✨</span><oj-bind-text value="[[ $variables.issue.fix ? 'Analyze again' : 'Analyze with AI (the page’s code and the FDD)' ]]"></oj-bind-text></button>
@@ -497,9 +570,20 @@
                 <label class="nx-flib-check nx-is-oldagree" id="isOldAgree"><input type="checkbox" id="isAllowOld" data-field="allowOld" :checked="[[ $variables.allowOld ]]" on-change="[[ $listeners.onField ]]">
                   <span><b>Agree this change to Old EquipRite.</b> Old EquipRite is kept unchanged by agreement: ticked, the agent names this change's files in its guard (tests/old-app-unchanged.test.js) with the issue and who approved it, in the same commit. Unticked, the guard stops it.</span></label>
               </oj-bind-if>
+              <!-- tried in its sandbox: run it again from here (and update it when the fix changed) -->
+              <oj-bind-if test="[[ $functions.sbHas($variables.issue) ]]">
+                <div class="nx-is-sbline" id="isSbLine"><span class="nx-is-sbico" aria-hidden="true"><span class="oj-ux-ico-folder"></span></span>
+                  <span class="nx-is-sblinetext"><b>Tried in its sandbox.</b> <oj-bind-text value="[[ $functions.sbHead($variables.issue) ]]"></oj-bind-text><oj-bind-if test="[[ !!$functions.sbTestsText($variables.issue) ]]"><span class="nx-note"><oj-bind-text value="[[ ' · ' + $functions.sbTestsText($variables.issue) ]]"></oj-bind-text></span></oj-bind-if>
+                    <oj-bind-if test="[[ $functions.sbOld($variables.issue) ]]"><b class="nx-is-sboldtxt"> It holds an earlier version of the fix: update it before applying.</b></oj-bind-if>
+                    <oj-bind-if test="[[ $functions.sbRunShown($variables.sbRun) ]]"><span class="nx-note"><oj-bind-text value="[[ ' · ' + $functions.sbRunHead($variables.sbRun) ]]"></oj-bind-text></span></oj-bind-if></span>
+                  <button type="button" class="nx-btn nx-btn--sm nx-btn--primary" data-act="sbRun" data-key="sandbox" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]"><span class="oj-ux-ico-play" aria-hidden="true"></span>Run in sandbox</button>
+                  <button type="button" class="nx-btn nx-btn--sm" data-act="sbRun" data-key="current" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]">Run as it is now</button>
+                  <oj-bind-if test="[[ $functions.sbOld($variables.issue) && $variables.issue.status !== 'in-review' ]]"><button type="button" class="nx-btn nx-btn--sm" id="isSbLineUpdate" data-act="sbMake" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]"><span class="oj-ux-ico-refresh" aria-hidden="true"></span>Update the sandbox</button></oj-bind-if>
+                </div>
+              </oj-bind-if>
               <oj-bind-if test="[[ $variables.issue.status === 'approved' ]]">
                 <div class="nx-is-applybox" id="isApplyBox">
-                  <div class="nx-fx-approvetext"><b>Apply change.</b> <oj-bind-text value="[[ 'The agent puts the approved change on a branch of its own (fix/' + $variables.issue.key + '), runs the related tests before and after, commits it with ' + $variables.issue.key + ' and pushes it, then makes the pull request. Your own code folder is not touched.' ]]"></oj-bind-text></div>
+                  <div class="nx-fx-approvetext"><b>Apply change.</b> <oj-bind-text value="[[ $functions.sbApplyText($variables.issue) ]]"></oj-bind-text></div>
                   <button type="button" class="nx-btn nx-btn--primary" id="isApply" data-act="apply" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]"><span class="oj-ux-ico-wrench" aria-hidden="true"></span>Apply change</button>
                 </div>
               </oj-bind-if>
@@ -509,6 +593,17 @@
           <!-- 4/5 · Applied, pull request -->
           <oj-bind-if test="[[ $functions.isPanel($variables.issue, $variables.stageView, 4) ]]">
             <div class="nx-is-sec nx-is-panel" id="isFixPanel">
+              <!-- tried in its sandbox: run it again from here (and update it when the fix changed) -->
+              <oj-bind-if test="[[ $functions.sbHas($variables.issue) ]]">
+                <div class="nx-is-sbline" id="isSbLine"><span class="nx-is-sbico" aria-hidden="true"><span class="oj-ux-ico-folder"></span></span>
+                  <span class="nx-is-sblinetext"><b>Tried in its sandbox.</b> <oj-bind-text value="[[ $functions.sbHead($variables.issue) ]]"></oj-bind-text><oj-bind-if test="[[ !!$functions.sbTestsText($variables.issue) ]]"><span class="nx-note"><oj-bind-text value="[[ ' · ' + $functions.sbTestsText($variables.issue) ]]"></oj-bind-text></span></oj-bind-if>
+                    <oj-bind-if test="[[ $functions.sbOld($variables.issue) ]]"><b class="nx-is-sboldtxt"> It holds an earlier version of the fix: update it before applying.</b></oj-bind-if>
+                    <oj-bind-if test="[[ $functions.sbRunShown($variables.sbRun) ]]"><span class="nx-note"><oj-bind-text value="[[ ' · ' + $functions.sbRunHead($variables.sbRun) ]]"></oj-bind-text></span></oj-bind-if></span>
+                  <button type="button" class="nx-btn nx-btn--sm nx-btn--primary" data-act="sbRun" data-key="sandbox" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]"><span class="oj-ux-ico-play" aria-hidden="true"></span>Run in sandbox</button>
+                  <button type="button" class="nx-btn nx-btn--sm" data-act="sbRun" data-key="current" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]">Run as it is now</button>
+                  <oj-bind-if test="[[ $functions.sbOld($variables.issue) && $variables.issue.status !== 'in-review' ]]"><button type="button" class="nx-btn nx-btn--sm" id="isSbLineUpdate" data-act="sbMake" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]"><span class="oj-ux-ico-refresh" aria-hidden="true"></span>Update the sandbox</button></oj-bind-if>
+                </div>
+              </oj-bind-if>
               <!-- how the agent's run went, step by step (while this app runs) -->
               <oj-bind-if test="[[ !!$variables.agent ]]">
                 <div :class="[[ $functions.agentClass($variables.agent) ]]" id="isAgentDone">

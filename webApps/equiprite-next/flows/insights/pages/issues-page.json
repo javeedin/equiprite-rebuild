@@ -51,7 +51,9 @@
     "allowOld": { "type": "boolean", "defaultValue": false, "description": "Apply: this change to Old EquipRite is agreed (its files named in its guard test, in the same commit)." },
     "anyReason": { "type": "string", "defaultValue": "", "description": "Apply anyway: why it may go in with the failing test." },
     "agent": { "type": "any", "defaultValue": null, "description": "The agent's steps while it applies the change, and after (desktop/lib/issues.js progress): { running, done, okRun, error, seconds, steps: [{ key, label, state, detail, seconds }] }." },
-    "dApp": { "type": "string", "defaultValue": "", "description": "The new issue's build (an app id): chosen first; then one of its pages." }
+    "dApp": { "type": "string", "defaultValue": "", "description": "The new issue's build (an app id): chosen first; then one of its pages." },
+    "sbRun": { "type": "any", "defaultValue": null, "description": "Making the issue's sandbox: its steps live, or how it ended (desktop/lib/issues.js progress(id, 'sandbox'))." },
+    "sbStatus": { "type": "any", "defaultValue": null, "description": "The sandbox on this PC (sandbox act 'status'): the files it changed, how far behind its base, its diff, where its data comes from." }
   },
   "events": {
     "issueImages": { "description": "The page module read screenshots pasted, dropped or attached in the new issue form (codeFixClient.queueImages).", "payloadType": "object" },

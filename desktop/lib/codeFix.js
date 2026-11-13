@@ -27,6 +27,11 @@
  *     info()  setFolder(p)  pick()  list(pageId)  get(id)  shot(id, which)
  *     analyze({ id, request, kind, refine, parent, by })  preview({ fix })  apply({ fix, skipPull, by })
  *     test({ fix })  e2e({ fix })  undo({ fix, force })  commit({ fix, push, message })  discard({ fix })
+ *     makeSandbox({ fix, branch, by, onStep })  sandboxStatus(sbx, { diff })  sandboxRun(sbx)  sandboxShots(sbx)
+ *     sandboxTests(sbx, { onStep })  removeSandbox(sbx, { by, keepBranch })  applyToBranch({ …, sandbox: sbx })
+ *   A sandbox (the issue's branch in a folder of its own, the fix written, the app built there and served on a port of
+ *   its own) needs o.serveSandbox({ dir, buildDir, webApp }) → { url, close } to run, o.appUrl(webApp) for the app as it
+ *   is now, and o.capture(webApp, url, base) for screenshots; o.buildTool: the folder whose node_modules builds it.
  */
 const fs = require('fs');
 const path = require('path');
@@ -821,42 +826,70 @@ function open(opts) {
     const f = fix.folder;
     const g = await gitState(f);
     if (!g.git) { say('fetch', 'failed', g.reason); return no(g.reason); }
-    const remote = (g.upstream.split('/')[0]) || 'origin';
-    const baseBranch = g.upstream ? g.upstream.slice(remote.length + 1) : g.branch;
-    say('fetch', 'running', 'git fetch ' + remote + ' ' + baseBranch);
-    const fetched = await git(f, ['fetch', '--quiet', remote, baseBranch]);
-    const start = fetched.code === 0 ? remote + '/' + baseBranch : (g.upstream || 'HEAD');
-    if ((fetched.stderr || '').trim()) say('fetch', 'log', 'git: ' + fetched.stderr.trim().slice(0, 400));
-    say('fetch', fetched.code === 0 ? 'done' : 'skipped', fetched.code === 0 ? 'from ' + start : 'could not fetch (' + (fetched.stderr || '').trim().slice(0, 200) + '): starting from ' + start);
-    say('branch', 'running', branch + ' from ' + start + ', in a folder apart');
-    const wtRoot = path.join(dir || require('os').tmpdir(), 'worktrees');
-    const wt = path.join(wtRoot, branch.replace(/[^A-Za-z0-9._-]/g, '-'));
-    fs.mkdirSync(wtRoot, { recursive: true });
-    if (isDir(wt)) await git(f, ['worktree', 'remove', '--force', wt]);
-    await git(f, ['worktree', 'prune']);
-    const add = await git(f, ['worktree', 'add', '-B', branch, wt, start]);
-    if (add.code !== 0) { say('branch', 'failed', (add.stderr || add.stdout).trim().slice(0, 300)); return no('Could not make the branch ' + branch + ': ' + (add.stderr || add.stdout).trim().slice(0, 300)); }
-    say('branch', 'done', branch + ' from ' + start);
-    const done = async () => { await git(f, ['worktree', 'remove', '--force', wt]); };
+    // tried in its sandbox already (makeSandbox): committed and pushed from there — the folder stays, to run it again
+    const sbx = b.sandbox && b.sandbox.dir && isDir(b.sandbox.dir) && inSbRoot(b.sandbox.dir) ? b.sandbox : null;
+    if (b.sandbox && !sbx) { say('branch', 'failed', 'the sandbox is not on this PC any more'); return no('The sandbox is not on this PC any more: make it again, or throw it away.'); }
+    if (sbx && sbx.branch !== branch) { say('branch', 'failed', 'the sandbox is on ' + sbx.branch); return no('The sandbox is on ' + sbx.branch + ', not ' + branch + '.'); }
+    const remote = sbx ? sbx.remote : ((g.upstream.split('/')[0]) || 'origin');
+    const baseBranch = sbx ? sbx.baseBranch : (g.upstream ? g.upstream.slice(remote.length + 1) : g.branch);
+    let fetched, start, wt, done;
+    if (sbx) {
+      fetched = { code: sbx.fetched ? 0 : 1 }; start = sbx.start; wt = sbx.dir; done = async () => {};
+      say('fetch', 'done', 'the sandbox has the code from ' + start + ' @ ' + str(sbx.baseCommit).slice(0, 7));
+      say('branch', 'done', branch + ' — the sandbox, where the fix was tried (' + wt + ')');
+    } else {
+      say('fetch', 'running', 'git fetch ' + remote + ' ' + baseBranch);
+      fetched = await git(f, ['fetch', '--quiet', remote, baseBranch]);
+      start = fetched.code === 0 ? remote + '/' + baseBranch : (g.upstream || 'HEAD');
+      if ((fetched.stderr || '').trim()) say('fetch', 'log', 'git: ' + fetched.stderr.trim().slice(0, 400));
+      say('fetch', fetched.code === 0 ? 'done' : 'skipped', fetched.code === 0 ? 'from ' + start : 'could not fetch (' + (fetched.stderr || '').trim().slice(0, 200) + '): starting from ' + start);
+      say('branch', 'running', branch + ' from ' + start + ', in a folder apart');
+      const wtRoot = path.join(dir || require('os').tmpdir(), 'worktrees');
+      wt = path.join(wtRoot, branch.replace(/[^A-Za-z0-9._-]/g, '-'));
+      fs.mkdirSync(wtRoot, { recursive: true });
+      if (isDir(wt)) await git(f, ['worktree', 'remove', '--force', wt]);
+      await git(f, ['worktree', 'prune']);
+      const add = await git(f, ['worktree', 'add', '-B', branch, wt, start]);
+      if (add.code !== 0) { say('branch', 'failed', (add.stderr || add.stdout).trim().slice(0, 300)); return no('Could not make the branch ' + branch + ': ' + (add.stderr || add.stdout).trim().slice(0, 300)); }
+      say('branch', 'done', branch + ' from ' + start);
+      done = async () => { await git(f, ['worktree', 'remove', '--force', wt]); };
+    }
     try {
       say('check', 'running', (fix.files || []).length + ' file(s): ' + (fix.files || []).join(', '));
-      const tried = tryEdits(wt, fix.edits, fix.app);
-      const moved = (fix.files || []).filter((k) => !tried.files[k] || sha(tried.files[k].old) !== fix.hashes[k]);
+      let tried;
+      if (sbx) {
+        // the sandbox holds exactly the change approved: its files as written then, and nothing else changed
+        const ch = (await sbChanged(wt)) || [];
+        const want = Object.keys(sbx.files || {});
+        const off = ch.filter((c) => !sbx.files[c.file] || shaFile(path.join(wt, c.file)) !== sbx.files[c.file]).map((c) => c.file).concat(want.filter((k) => !ch.some((c) => c.file === k)));
+        if (sbx.fixId !== fix.id || off.length) {
+          say('check', 'failed', 'the sandbox is not the approved change' + (off.length ? ': ' + off.join(', ') : ' (it holds another proposal)') + ' — make it again');
+          return no('The sandbox is not the approved change (' + (off.join(', ') || 'it holds another proposal') + '): make the sandbox again, then apply.', { sandboxDiffers: true });
+        }
+        tried = { errors: [], files: {} };
+        for (const rel of want) {
+          const was = await git(wt, ['show', 'HEAD:' + rel]);
+          const now0 = readText(path.join(wt, rel)) || '';
+          tried.files[rel] = { old: was.code === 0 ? was.stdout.replace(/\r\n/g, '\n') : '', neu: now0.replace(/\r\n/g, '\n'), crlf: /\r\n/.test(now0), inSandbox: true };
+        }
+      } else tried = tryEdits(wt, fix.edits, fix.app);
+      const moved = sbx ? [] : (fix.files || []).filter((k) => !tried.files[k] || sha(tried.files[k].old) !== fix.hashes[k]);
       if (tried.errors.length || moved.length) {
         say('check', 'failed', 'the code on ' + start + ' changed since it was proposed: ' + (moved.join(', ') || 'its files') + ' — analyze again');
         fix.status = 'stale'; ev(fix, 'out of date', b.by, 'the code on ' + start + ' is not what the change was made for: ' + (moved.concat(tried.errors.map((e) => e.file)).join(', ') || 'its files'));
         put(fix); await done();
         return no('The code on ' + start + ' changed since this was proposed (' + (moved.join(', ') || 'its files') + '): analyze again.', { fix: slim(fix), stale: true });
       }
-      say('check', 'done', 'it fits the code on ' + start);
-      say('before', 'running', 'finding the tests that name this page…');
+      say('check', 'done', sbx ? 'the sandbox holds exactly the approved change (' + Object.keys(tried.files).length + ' file(s))' : 'it fits the code on ' + start);
+      say('before', 'running', sbx ? 'what the tests did when the sandbox was made, before the fix' : 'finding the tests that name this page…');
       const told = (key) => (i, n, t) => say(key, 'log', t.file + ': ' + (t.timedOut ? 'stopped after ' + Math.round(t.ms / 1000) + ' s (too long)' : (t.ok ? '✓ ' : '✗ ') + t.passed + ' passed, ' + t.failed + ' failed')
         + ' (' + (t.ms / 1000).toFixed(1) + ' s)' + (t.failures.length ? ' — ' + t.failures.slice(0, 3).join(' | ') : ''));
-      const base = await runUnits(fix, wt, (i, n, file) => say('before', 'running', 'test ' + (i + 1) + ' of ' + n + ': ' + file), told('before'));
-      say('before', base.unit.length ? 'done' : 'skipped', base.unit.length ? base.unit.filter((u) => u.ok).length + ' of ' + base.unit.length + ' passing before the change' : 'no unit test names this page (the page checks run)');
-      say('write', 'running', Object.keys(tried.files).join(', '));
+      const base = sbx ? { unit: sbx.baseline || [] } : await runUnits(fix, wt, (i, n, file) => say('before', 'running', 'test ' + (i + 1) + ' of ' + n + ': ' + file), told('before'));
+      say('before', base.unit.length ? 'done' : 'skipped', base.unit.length ? base.unit.filter((u) => u.ok).length + ' of ' + base.unit.length + ' passing before the change' + (sbx ? ' (when the sandbox was made)' : '') : 'no unit test names this page (the page checks run)');
+      say('write', 'running', sbx ? 'already in the sandbox: ' + Object.keys(tried.files).join(', ') : Object.keys(tried.files).join(', '));
       Object.keys(tried.files).forEach((rel) => {
         const x = tried.files[rel];
+        if (x.inSandbox) return;
         fs.mkdirSync(path.dirname(path.join(wt, rel)), { recursive: true });
         fs.writeFileSync(path.join(wt, rel), x.crlf ? x.neu.replace(/\n/g, '\r\n') : x.neu);
       });
@@ -891,6 +924,7 @@ function open(opts) {
       say('after', bad ? (b.anyway ? 'skipped' : 'failed') : 'done', bad ? bad + ' new failure(s)' + (b.anyway ? ', applied anyway: ' + str(b.anywayWhy || 'accepted') : ': not committed') + ' — ' + broke.join(' · ').slice(0, 300)
         : 'nothing broke' + (unit.length ? ' (' + unit.length + ' test file(s), the page checks)' : ' (the page checks)'));
       if (bad && !b.anyway) {
+        if (sbx && tried.files[OLD_GUARD] && !tried.files[OLD_GUARD].inSandbox) { try { fs.writeFileSync(path.join(wt, OLD_GUARD), tried.files[OLD_GUARD].old); } catch (e) { /* kept */ } }
         say('end', 'failed', 'the change breaks ' + bad + ' check(s) or test(s): not committed');
         ev(fix, 'tested on ' + branch, b.by, 'something broke: ' + bad + ' new failure(s) — not committed');
         put(fix); await done();
@@ -922,7 +956,7 @@ function open(opts) {
       fix.applied = { at: now().toISOString(), by: str(b.by), branch: branch, upstream: pushed.code === 0 ? remote + '/' + branch : '', pull: { done: fetched.code === 0, text: 'From ' + start + ', on a branch of its own: ' + branch + '.' }, live: false };
       fix.commit = { sha: shaC, at: now().toISOString(), pushed: pushed.code === 0, branch: branch, by: str(b.by), upstream: pushed.code === 0 ? remote + '/' + branch : '', pushError: fix.branchApply.pushError };
       fix.status = 'committed';
-      ev(fix, 'approved and applied', b.by, 'on its own branch ' + branch + ' (from ' + start + ')');
+      ev(fix, 'approved and applied', b.by, 'on its own branch ' + branch + ' (from ' + start + ')' + (sbx ? ', from the sandbox it was tried in' : ''));
       ev(fix, 'tested', b.by, bad ? 'applied anyway with ' + bad + ' new failure(s)' + (b.anywayWhy ? ': ' + str(b.anywayWhy) : '') : 'nothing broke' + (unit.length ? ' (' + unit.length + ' related test file(s))' : ' (checks only)'));
       if (b.allowOld && tried.files[OLD_GUARD]) ev(fix, 'agreed for Old EquipRite', b.by, oldFiles.join(', ') + ' named in ' + OLD_GUARD);
       ev(fix, 'committed', b.by, shaC + ' on ' + branch);
@@ -936,6 +970,218 @@ function open(opts) {
       await done();
       return no('Applying on ' + branch + ' failed: ' + str(e && e.message));
     }
+  }
+
+  // ── Sandboxes: the change tried first, in a copy of the code, before anyone approves it ─────────────────────────────
+  // A sandbox is a folder of its own (this app's data folder, sandboxes/<branch>): a git worktree of the code folder on
+  // the issue's branch (fix/<KEY>), from what the code folder's branch has on its remote (fetched), at a known commit.
+  // The fix is written there — never in the person's checkout — the related tests run there before and after, the app is
+  // built there with this project's own build tool (--git-sources / --target: its own build/ folder), and served on a
+  // port of its own (o.serveSandbox), so the app can be run and the page checked. Approved, the change is committed and
+  // pushed from there (applyToBranch with the sandbox). Thrown away (or the issue closed), the folder goes.
+  const sbRoot = () => path.resolve(dir || require('os').tmpdir(), 'sandboxes');
+  const sbDirOf = (branch) => path.join(sbRoot(), branch.replace(/[^A-Za-z0-9._-]/g, '-'));
+  const inSbRoot = (p) => { const r = path.resolve(str(p)); return r.indexOf(sbRoot() + path.sep) === 0 && r.length > sbRoot().length + 1; };
+  const yes = (x) => Object.assign({ ok: true }, x);
+  const sbServers = {}; // `<dir>|<webApp>` → Promise<{ url, close }>
+  const okBranch = (branch) => /^[A-Za-z0-9][A-Za-z0-9._\/-]{1,90}$/.test(branch) && !/\.\.|\/\/|\.lock$|\/$/.test(branch);
+  const sayer = (b) => (key, state, detail) => { if (typeof b.onStep === 'function') { try { b.onStep({ key: key, state: state, detail: str(detail).slice(0, 400) }); } catch (e) { /* the screen is gone */ } } };
+  const toldOf = (say) => (key) => (i, n, t) => say(key, 'log', t.file + ': ' + (t.timedOut ? 'stopped after ' + Math.round(t.ms / 1000) + ' s (too long)' : (t.ok ? '✓ ' : '✗ ') + t.passed + ' passed, ' + t.failed + ' failed')
+    + ' (' + (t.ms / 1000).toFixed(1) + ' s)' + (t.failures.length ? ' — ' + t.failures.slice(0, 3).join(' | ') : ''));
+  const shaFile = (p) => { try { return sha(fs.readFileSync(p, 'utf8')); } catch (e) { return ''; } };
+  /** The files a sandbox changed from its base (git status, the build/ folder aside): [{ file, state: 'M'|'A'|'D'|… }]. */
+  async function sbChanged(sb) {
+    const st = await git(sb, ['status', '--porcelain', '--untracked-files=all', '--', '.', ':(exclude)build']);
+    if (st.code !== 0) return null;
+    return st.stdout.split('\n').filter((l) => l.trim()).map((l) => ({ state: l.slice(0, 2).trim() || 'M', file: l.slice(3).trim().replace(/^"|"$/g, '') }))
+      .filter((x) => x.file.indexOf('build/') !== 0 && x.file !== 'build');
+  }
+  /** Build the app in the sandbox with this project's build tool (its node_modules): build/processed in the sandbox. */
+  function buildSandbox(sb) {
+    if (typeof o.buildSandbox === 'function') return Promise.resolve(o.buildSandbox(sb)).catch((e) => ({ ok: false, error: str(e && e.message) }));
+    const tool = path.resolve(o.buildTool || path.join(__dirname, '..', '..'));
+    const grunt = path.join(tool, 'node_modules', 'grunt', 'bin', 'grunt');
+    if (!isFile(grunt)) return Promise.resolve({ ok: false, error: 'The build tool is not installed: run npm install in ' + tool + '.' });
+    if (!isFile(path.join(sb, 'visual-application.json'))) return Promise.resolve({ ok: false, error: 'The code has no visual-application.json, so the app cannot be built.' });
+    return new Promise((resolve) => {
+      const t0 = Date.now();
+      const env = Object.assign({}, process.env, process.versions.electron ? { ELECTRON_RUN_AS_NODE: '1' } : {});
+      require('child_process').execFile(process.execPath, [grunt, 'vb-clean', 'vb-process-local', '--git-sources=' + sb, '--target=' + path.join(sb, 'build')],
+        { cwd: tool, env: env, timeout: 600000, maxBuffer: 32 * 1024 * 1024, windowsHide: true }, (err, stdout, stderr) => {
+          const out = (str(stdout) + str(stderr)).replace(/\x1b\[[0-9;]*m/g, '');
+          resolve({ ok: !err, ms: Date.now() - t0, error: err ? (out.split('\n').filter((l) => /error|fatal|warning:/i.test(l)).slice(-6).join(' ').trim() || str(err.message)).slice(0, 600) : '', out: out.slice(-3000) });
+        });
+    });
+  }
+  /** Stop its local servers, and take the folder away (the worktree, and the local branch unless kept). */
+  async function dropSandbox(f, sb, branch, keepBranch) {
+    Object.keys(sbServers).filter((k) => k.indexOf(sb + '|') === 0).forEach((k) => { const p = sbServers[k]; delete sbServers[k]; Promise.resolve(p).then((s) => s && s.close && s.close()).catch(() => {}); });
+    if (isDir(sb)) {
+      const rm = await git(f, ['worktree', 'remove', '--force', sb]);
+      if (rm.code !== 0 && isDir(sb) && inSbRoot(sb)) { try { fs.rmSync(sb, { recursive: true, force: true }); } catch (e) { /* in use */ } }
+    }
+    await git(f, ['worktree', 'prune']);
+    if (branch && !keepBranch) await git(f, ['branch', '-D', branch]);
+    return !isDir(sb);
+  }
+
+  /**
+   * Make the sandbox for a proposed fix: { fix, branch, by, onStep } → { ok, sandbox }. Steps (onStep): fetch, copy, check,
+   * before, write, build, end. Made again (a newer fix, newer code), the old folder goes first.
+   */
+  async function makeSandbox(b) {
+    b = b || {};
+    const fix = byId(b.fix);
+    if (!fix) return no('No such fix.');
+    if (!(fix.files || []).length) return no('This proposal changes no file: there is nothing to try.');
+    const branch = str(b.branch).trim();
+    if (!okBranch(branch)) return no('Not a branch name: ' + branch);
+    const say = sayer(b), told = toldOf(say);
+    const f = fix.folder;
+    const g = await gitState(f);
+    if (!g.git) { say('fetch', 'failed', g.reason); say('end', 'failed', g.reason); return no(g.reason); }
+    const remote = (g.upstream.split('/')[0]) || 'origin';
+    const baseBranch = g.upstream ? g.upstream.slice(remote.length + 1) : g.branch;
+    say('fetch', 'running', 'git fetch ' + remote + ' ' + baseBranch);
+    const fetched = await git(f, ['fetch', '--quiet', remote, baseBranch]);
+    const start = fetched.code === 0 ? remote + '/' + baseBranch : (g.upstream || 'HEAD');
+    if ((fetched.stderr || '').trim()) say('fetch', 'log', 'git: ' + fetched.stderr.trim().slice(0, 400));
+    say('fetch', fetched.code === 0 ? 'done' : 'skipped', fetched.code === 0 ? 'from ' + start : 'could not fetch (' + (fetched.stderr || '').trim().slice(0, 200) + '): starting from ' + start);
+    const sb = sbDirOf(branch);
+    say('copy', 'running', 'a copy of the code from ' + start + ' into ' + sb);
+    fs.mkdirSync(sbRoot(), { recursive: true });
+    await dropSandbox(f, sb, '', true);
+    const add = await git(f, ['worktree', 'add', '-B', branch, sb, start]);
+    if (add.code !== 0) {
+      const why = (add.stderr || add.stdout).trim().slice(0, 300);
+      say('copy', 'failed', why); say('end', 'failed', 'could not make the sandbox');
+      return no('Could not make the sandbox (' + branch + '): ' + why);
+    }
+    const baseCommit = (await git(sb, ['rev-parse', 'HEAD'])).stdout.trim();
+    say('copy', 'done', branch + ' from ' + start + ' @ ' + baseCommit.slice(0, 7) + ' — ' + sb);
+    say('check', 'running', (fix.files || []).length + ' file(s): ' + (fix.files || []).join(', '));
+    const tried = tryEdits(sb, fix.edits, fix.app);
+    const moved = (fix.files || []).filter((k) => !tried.files[k] || sha(tried.files[k].old) !== fix.hashes[k]);
+    if (tried.errors.length || moved.length) {
+      const what = moved.concat(tried.errors.map((e) => e.file)).filter((x, i, a) => a.indexOf(x) === i).join(', ') || 'its files';
+      say('check', 'failed', 'the code on ' + start + ' changed since the fix was proposed: ' + what + ' — analyze again');
+      say('end', 'failed', 'the fix does not fit the latest code');
+      await dropSandbox(f, sb, branch, false);
+      return no('The code on ' + start + ' changed since this was proposed (' + what + '): analyze again.', { stale: true });
+    }
+    say('check', 'done', 'it fits the code on ' + start);
+    say('before', 'running', 'finding the tests that name this page…');
+    const base = await runUnits(fix, sb, (i, n, file) => say('before', 'running', 'test ' + (i + 1) + ' of ' + n + ': ' + file), told('before'));
+    say('before', base.unit.length ? 'done' : 'skipped', base.unit.length ? base.unit.filter((u) => u.ok).length + ' of ' + base.unit.length + ' passing before the fix' : 'no unit test names this page');
+    say('write', 'running', Object.keys(tried.files).join(', '));
+    const files = {};
+    Object.keys(tried.files).forEach((rel) => {
+      const x = tried.files[rel];
+      fs.mkdirSync(path.dirname(path.join(sb, rel)), { recursive: true });
+      fs.writeFileSync(path.join(sb, rel), x.crlf ? x.neu.replace(/\n/g, '\r\n') : x.neu);
+      files[rel] = shaFile(path.join(sb, rel));
+    });
+    say('write', 'done', Object.keys(files).length + ' file(s) changed in the sandbox — your own code folder is not touched');
+    say('build', 'running', 'building the app in the sandbox (its own build folder)…');
+    const built = await buildSandbox(sb);
+    say('build', built.ok ? 'done' : 'failed', built.ok ? 'built in ' + (built.ms / 1000).toFixed(1) + ' s' : str(built.error) || 'the build failed');
+    if (!built.ok && built.out) say('build', 'log', 'build: ' + str(built.out).slice(-600));
+    const sandbox = {
+      dir: sb, branch: branch, remote: remote, baseBranch: baseBranch, start: start, baseCommit: baseCommit, fetched: fetched.code === 0, fixId: fix.id, app: fix.app, page: fix.page,
+      files: files, at: now().toISOString(), by: str(b.by), pc: require('os').hostname(),
+      baseline: base.unit.map((t) => ({ file: t.file, ok: t.ok, passed: t.passed, failed: t.failed, failures: t.failures, ms: t.ms })), e2eFiles: base.e2eFiles || [],
+      built: { ok: !!built.ok, at: now().toISOString(), ms: built.ms || 0, error: built.ok ? '' : str(built.error) },
+    };
+    say('end', 'done', built.ok ? 'the sandbox is ready: run it' : 'made, but the app could not be built in it');
+    ev(fix, 'sandbox made', b.by, branch + ' from ' + start + ' @ ' + baseCommit.slice(0, 7) + (built.ok ? '' : ' (not built: ' + str(built.error).slice(0, 120) + ')'));
+    put(fix);
+    return yes({ sandbox: sandbox, warning: built.ok ? '' : 'The sandbox is made, but the app could not be built in it: ' + str(built.error) });
+  }
+
+  /** Is it there, on this PC; what it changed (git), how far behind its base branch it is; its diff. */
+  async function sandboxStatus(sbx, opts) {
+    if (!sbx || !sbx.dir) return { ok: true, exists: false };
+    const here = !sbx.pc || sbx.pc === require('os').hostname();
+    if (!here || !isDir(sbx.dir)) return { ok: true, exists: false, here: here };
+    const changed = await sbChanged(sbx.dir);
+    if (!changed) return { ok: true, exists: false, here: here };
+    const head = (await git(sbx.dir, ['rev-parse', 'HEAD'])).stdout.trim();
+    const behind = await git(sbx.dir, ['rev-list', '--count', 'HEAD..' + sbx.start]);
+    const same = changed.length === Object.keys(sbx.files || {}).length && changed.every((c) => sbx.files[c.file] && shaFile(path.join(sbx.dir, c.file)) === sbx.files[c.file]);
+    const out = { ok: true, exists: true, here: true, head: head.slice(0, 7), committed: head !== sbx.baseCommit, changed: changed, asMade: same || head !== sbx.baseCommit,
+      behind: behind.code === 0 ? Number(behind.stdout.trim()) || 0 : 0, built: isFile(path.join(sbx.dir, 'build', 'processed', 'webApps', sbx.app || '', 'index.html')) };
+    if (opts && opts.diff) out.diff = str((await git(sbx.dir, ['diff', '--no-color', head !== sbx.baseCommit ? sbx.baseCommit : 'HEAD', '--', '.', ':(exclude)build'])).stdout).slice(0, 120000);
+    // where its data comes from: the same services as the app (its Fusion, from the code's catalog) — real data
+    const fusion = (() => { try { const c = JSON.parse(fs.readFileSync(path.join(sbx.dir, 'services', 'catalog.json'), 'utf8')).backends || {}; const bk = c.fusion || c.bipService; return bk && bk.servers && bk.servers[0] ? String(bk.servers[0].url || '') : ''; } catch (e) { return ''; } })();
+    const host = (/^https?:\/\/([^/:]+)/.exec(fusion) || [])[1] || '';
+    out.data = { fusion: fusion, host: host, prod: !!host && !/(dev|test|tst|uat|sit|stag|stg|demo|qa|sandbox|train)/i.test(host) };
+    return out;
+  }
+  /** Its local server (one per sandbox and app, on a port of its own), started once: { ok, url }. */
+  async function sandboxServer(sbx) {
+    if (typeof o.serveSandbox !== 'function') return no('Running a sandbox needs the desktop app.');
+    if (!isFile(path.join(sbx.dir, 'build', 'processed', 'webApps', sbx.app, 'index.html'))) return no('The app is not built in the sandbox: make the sandbox again.');
+    const k = sbx.dir + '|' + sbx.app;
+    if (!sbServers[k]) sbServers[k] = Promise.resolve(o.serveSandbox({ dir: sbx.dir, buildDir: path.join(sbx.dir, 'build'), webApp: sbx.app })).catch((e) => { delete sbServers[k]; throw e; });
+    try { const s = await sbServers[k]; return yes({ url: String(s.url).replace(/\/$/, '') }); } catch (e) { return no('Could not start the sandbox\'s app: ' + str(e && e.message)); }
+  }
+  /** Where to run it: the sandbox's address of the issue's page (and the same page in the app as it is now). */
+  async function sandboxRun(sbx) {
+    const st = await sandboxStatus(sbx);
+    if (!st.exists) return no(st.here === false ? 'The sandbox is on another PC (' + sbx.pc + ').' : 'There is no sandbox on this PC: make it first.');
+    const srv = await sandboxServer(sbx);
+    if (!srv.ok) return srv;
+    const facts = scan.analyze(sbx.dir, sbx.page);
+    const route = (facts && facts.route && facts.route.url) || '';
+    const cur = typeof o.appUrl === 'function' ? str(o.appUrl(sbx.app)).replace(/\/$/, '') : '';
+    return yes({ url: srv.url + (route || '/'), base: srv.url, current: cur ? cur + (route || '/') : '', route: route, needs: route ? '' : str(facts && facts.route && facts.route.needs) || 'another screen' });
+  }
+  /** Screenshots of the issue's page: before (the app as it is now) and after (the sandbox). */
+  async function sandboxShots(sbx) {
+    if (typeof o.capture !== 'function') return no('Screenshots need the desktop app.');
+    const run = await sandboxRun(sbx);
+    if (!run.ok) return run;
+    if (!run.route) return no('This page is opened from ' + run.needs + ', so it cannot be opened alone for a screenshot: run it and look.');
+    const after = await o.capture(sbx.app, run.route, run.base);
+    const before = await o.capture(sbx.app, run.route);
+    if (!after || !after.ok) return no((after && after.error) || 'Could not take the sandbox\'s screenshot.');
+    return yes({ after: after, before: before && before.ok ? before : null, beforeError: before && before.ok ? '' : str(before && before.error) });
+  }
+  /** The related tests again, in the sandbox, against what they did before the fix (when it was made); the page checks. */
+  async function sandboxTests(sbx, b) {
+    b = b || {};
+    const fix = byId(sbx && sbx.fixId);
+    const st = await sandboxStatus(sbx);
+    if (!st.exists) return no('There is no sandbox on this PC: make it first.');
+    if (!fix) return no('No such fix.');
+    const say = sayer(b), told = toldOf(say);
+    const after = await runUnits(fix, sbx.dir, (i, n, file) => say('after', 'running', 'test ' + (i + 1) + ' of ' + n + ': ' + file), told('after'));
+    const changedFiles = st.changed.map((c) => c.file);
+    const pairs = {};
+    for (const rel of changedFiles) {
+      const was = await git(sbx.dir, ['show', sbx.baseCommit + ':' + rel]);
+      pairs[rel] = { old: was.code === 0 ? was.stdout.replace(/\r\n/g, '\n') : '', neu: readText(path.join(sbx.dir, rel)) == null ? '' : readText(path.join(sbx.dir, rel)).replace(/\r\n/g, '\n') };
+    }
+    const checks = checksFor(sbx.dir, pairs);
+    const unit = after.unit.map((t) => {
+      const was = (sbx.baseline || []).filter((x) => x.file === t.file)[0];
+      const newFailures = t.ok ? [] : (was && !was.ok ? t.failures.filter((x) => was.failures.indexOf(x) === -1) : (t.failures.length ? t.failures : ['it failed']));
+      return { file: t.file, ok: t.ok, passed: t.passed, failed: t.failed, failures: t.failures, newFailures: newFailures, before: was ? (was.ok ? 'passed' : was.failed + ' failing before the fix') : '', ms: t.ms,
+        out: newFailures.length ? str(t.out).slice(-8000) : '', guard: t.file === OLD_GUARD };
+    });
+    const bad = checks.filter((c) => !c.ok && !c.already && !c.warn).length + unit.filter((u) => u.newFailures.length).length;
+    return yes({ tests: { at: now().toISOString(), ok: bad === 0, bad: bad, checks: checks, unit: unit, none: !unit.length, where: 'the sandbox (' + sbx.branch + ')' } });
+  }
+  /** Throw it away: its servers stopped, its folder deleted (its local branch too, unless kept: pushed for review). */
+  async function removeSandbox(sbx, b) {
+    if (!sbx || !sbx.dir) return yes({ removed: false });
+    if (!inSbRoot(sbx.dir)) return no('Not a sandbox folder: ' + sbx.dir);
+    if (sbx.pc && sbx.pc !== require('os').hostname()) return no('The sandbox is on another PC (' + sbx.pc + ').');
+    const fix = byId(sbx.fixId);
+    const f = (fix && fix.folder) || folder();
+    const gone = await dropSandbox(f, path.resolve(sbx.dir), sbx.branch, !!(b && b.keepBranch));
+    if (fix) { ev(fix, 'sandbox thrown away', b && b.by, sbx.branch + (b && b.keepBranch ? ' (the branch kept)' : '')); put(fix); }
+    return gone ? yes({ removed: true }) : no('The sandbox folder could not be deleted (is a file in it open?): ' + sbx.dir);
   }
 
   function discard(b) {
@@ -952,6 +1198,7 @@ function open(opts) {
     get: (id) => { const x = local(id) || sharedOne(id); return x ? ok(x.shared ? x : slim(x)) : no('No such fix.'); },
     history: history, flush: () => pubChain,
     shot: shot, img: img, analyze: analyze, applyToBranch: applyToBranch,
+    makeSandbox: makeSandbox, sandboxStatus: sandboxStatus, sandboxRun: sandboxRun, sandboxShots: sandboxShots, sandboxTests: sandboxTests, removeSandbox: removeSandbox, sandboxDirOf: sbDirOf,
     pageOf: (id) => { const p = scan.analyze(folder(), str(id)); return p ? { id: p.id, label: p.label, app: p.app, flow: p.flow, page: p.page } : null; }, preview: preview, apply: apply, test: test, e2e: e2e, undo: undo, commit: commit, discard: discard,
     folder: folder,
   };

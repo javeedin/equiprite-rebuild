@@ -210,14 +210,85 @@ async function pagesStore() {
   if (!pagesStoreInst) pagesStoreInst = require('./lib/pages').open({ root: path.join(__dirname, '..'), data: await dataBranch(), gitPath: commandPath('git') || 'git', capture: capturePage });
   return pagesStoreInst;
 }
-async function capturePage(webApp, url) {
+/** What each app's local server is given (its login, the other versions' addresses, the stores it uses), for the
+ *  app itself and for a sandbox's copy of it (Issues → Try it in a sandbox). */
+async function appServerOptions(v) {
+  return {
+    getIdentity: () => identity,
+    getVersions: () => ({ old: urlOf('old'), new: servers.new ? urlOf('new') : '', next: servers.next ? urlOf('next') : '',
+      mobile: servers.mobile ? urlOf('mobile') : '', future: servers.future ? urlOf('future') : '', build: servers.build ? urlOf('build') : '' }),
+    product: VERSIONS[v].product,
+    getPhone: phoneLinks,
+    // EquipRite Future keeps its demo story in DuckDB in this app's data folder (survives restarts and rebuilds).
+    futureStore: v === 'future' ? await futureStore() : undefined,
+    // EquipRite Next's SQL worksheet: the desktop app connects to Oracle for it (node-oracledb, Thin mode).
+    sqlStore: nextLike(v) ? await sqlStore() : undefined,
+    aiStore: nextLike(v) ? await aiStore() : undefined,
+    // The Jira stories page (Old and Next): Connect Jira keeps the token on this PC; the proxy adds it.
+    jiraStore: nextLike(v) || v === 'old' ? jiraStore() : undefined,
+    // Record on a Jira story: its recordings and screenshots, kept on this PC.
+    recStore: nextLike(v) || v === 'old' ? evidenceStore() : undefined,
+    // Transcribe a recording's voice with Whisper (local on this PC, or OpenAI with the Ask AI key).
+    transcribe: nextLike(v) || v === 'old' ? await transcriber() : undefined,
+    // Standup minutes (EquipRite Next): the daily standup on the Jira backlog, kept on this PC.
+    minutesStore: nextLike(v) ? await minutesStore() : undefined,
+    // Saved follow-ups (EquipRite Next): follow-ups drafted on the Jira pages, kept on this PC.
+    followupsStore: nextLike(v) ? await followupsStore() : undefined,
+    // The FDD library: FDDs uploaded into the project and committed to git, so every user has them
+    fddStore: nextLike(v) ? await fddStore() : undefined,
+    // Saved AI analyses: each run kept on this PC, so an analysis opens without asking the AI again
+    analysisStore: nextLike(v) ? analysisStore() : undefined,
+    // The Application pages catalog: technical sheets of the VB pages and the Jira stories mapped to them, in git
+    pagesStore: nextLike(v) ? await pagesStore() : undefined,
+    // Code Fix: AI-proposed changes to a page, applied to the code only when approved
+    fixStore: nextLike(v) ? await fixStore() : undefined,
+    // Issues (Build.Rite): issue → AI write-up and analysis → approval → the agent's branch and pull request
+    issuesStore: nextLike(v) ? await issuesStore() : undefined,
+    // The API tester: a page's REST calls and reports, tried against the real backend
+    apiStore: nextLike(v) ? apiStore() : undefined,
+    backendOverrides: backendOverridesFromEnv(process.env),
+    onLog: pushLog,
+    onProblem: backendProblem,
+  };
+}
+// A sandbox's app: its own build of the code (the issue's fix in it), served like the app itself — same login, backends
+// and stores — on a free port of this PC, so the fix can be run and the page checked before anyone approves it.
+async function serveSandbox(s) {
+  const v = Object.keys(VERSIONS).filter((k) => VERSIONS[k].webApp === s.webApp && !VERSIONS[k].product)[0] || 'old';
+  const srv = await createDevServer(Object.assign(await appServerOptions(v), { buildDir: s.buildDir, repoRoot: s.dir, webApp: s.webApp, port: 0, product: undefined }));
+  pushLog(`${new Date().toTimeString().slice(0, 8)} sandbox ${path.basename(s.dir)}: ${VERSIONS[v].label} served at ${srv.url}`);
+  return srv;
+}
+// The app as it is now (this PC's own build), for comparing with a sandbox.
+const appUrlOf = (webApp) => { const v = Object.keys(VERSIONS).filter((k) => VERSIONS[k].webApp === webApp && !VERSIONS[k].product)[0]; return v && servers[v] ? servers[v].url : ''; };
+// A window of its own for a sandbox (or the app as it is now, beside it): links inside its own address stay in it.
+function openAppWindow(url, title) {
+  const origin = new URL(url).origin;
+  const [x, y] = win && !win.isDestroyed() ? win.getPosition() : [undefined, undefined];
+  const w = new BrowserWindow({ width: 1440, height: 900, minWidth: 1024, minHeight: 640, x: x != null ? x + 64 : undefined, y: y != null ? y + 64 : undefined, title: String(title || 'EquipRite'),
+    backgroundColor: '#f5f4f2', webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, sandbox: true, nodeIntegration: false, spellcheck: true } });
+  w.on('page-title-updated', (event) => event.preventDefault());
+  w.webContents.setWindowOpenHandler(({ url: next }) => {
+    if (String(next).indexOf(origin) === 0 || allowedNav(next)) return { action: 'allow' };
+    if (/^(https?|mailto|ms-outlook|ms-settings):/i.test(next)) shell.openExternal(next);
+    return { action: 'deny' };
+  });
+  w.webContents.on('will-navigate', (event, next) => {
+    if (String(next).indexOf(origin) === 0 || allowedNav(next)) return;
+    event.preventDefault();
+    if (/^https?:/i.test(next)) shell.openExternal(next);
+  });
+  w.loadURL(url).catch(() => {});
+  return true;
+}
+async function capturePage(webApp, url, base) {
   const v = Object.keys(VERSIONS).filter((k) => VERSIONS[k].webApp === webApp)[0];
   const srv = v ? servers[v] : null;
-  if (!srv || !srv.url) return { ok: false, error: ((v && VERSIONS[v].label) || webApp) + ' is not running in this app: build it (npm run build), then try again.' };
+  if (!base && (!srv || !srv.url)) return { ok: false, error: ((v && VERSIONS[v].label) || webApp) + ' is not running in this app: build it (npm run build), then try again.' };
   const shotWin = new BrowserWindow({ width: 1440, height: 900, show: false, paintWhenInitiallyHidden: true,
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, sandbox: true, nodeIntegration: false, backgroundThrottling: false } });
   try {
-    await shotWin.loadURL(String(srv.url).replace(/\/$/, '') + url);
+    await shotWin.loadURL(String(base || srv.url).replace(/\/$/, '') + url);
     // settled: nothing busy, and the text on the page the same for two seconds in a row (at most 30 s)
     const deadline = Date.now() + 30000;
     let last = '', same = 0;
@@ -258,7 +329,7 @@ async function issuesStore() {
     issuesStoreInst = require('./lib/issues').open({
       file: path.join(app.getPath('userData'), 'issues.json'), ai: await aiStore(), fix: await fixStore(), mail: graphStore(), data: await dataBranch(), pages: await pagesStore(),
       jira: { auth: () => jiraStore().auth(), fetch: (url, init) => { const { net } = require('electron'); return net.fetch(url, init); } },
-      fdd: require('./lib/issues').fddPicker(() => fddStoreInst, REPO_ROOT), gitPath: commandPath('git') || 'git',
+      fdd: require('./lib/issues').fddPicker(() => fddStoreInst, REPO_ROOT), gitPath: commandPath('git') || 'git', openWindow: openAppWindow,
       log: (l) => { try { pushLog(l); } catch (e) { console.log(l); } },
     });
   }
@@ -272,6 +343,8 @@ async function fixStore() {
   if (!fixStoreInst) {
     fixStoreInst = require('./lib/codeFix').open({
       root: REPO_ROOT, file: path.join(app.getPath('userData'), 'code-fixes.json'), ai: await aiStore(), capture: capturePage, buildDir: BUILD_DIR,
+      // sandboxes (Issues → Try it in a sandbox): built with this project's own build tool, served like the app itself
+      buildTool: REPO_ROOT, serveSandbox: serveSandbox, appUrl: appUrlOf,
       data: await dataBranch(), log: (l) => { try { pushLog(l); } catch (e) { console.log(l); } }, // the change history, shared on the data branch
       gitPath: commandPath('git') || 'git',
       pickFolder: async (current) => {
@@ -1212,46 +1285,7 @@ if (!app.requestSingleInstanceLock()) {
       // The old app must be there (it is today's app); New, Next, Mobile and Future are served when they have been built.
       for (const v of Object.keys(VERSIONS)) {
         if (v === 'old' || isBuilt(BUILD_DIR, VERSIONS[v].webApp)) {
-          servers[v] = await createDevServer({
-            buildDir: BUILD_DIR,
-            webApp: VERSIONS[v].webApp,
-            port: VERSIONS[v].port,
-            getIdentity: () => identity,
-            getVersions: () => ({ old: urlOf('old'), new: servers.new ? urlOf('new') : '', next: servers.next ? urlOf('next') : '',
-              mobile: servers.mobile ? urlOf('mobile') : '', future: servers.future ? urlOf('future') : '', build: servers.build ? urlOf('build') : '' }),
-            product: VERSIONS[v].product,
-            getPhone: phoneLinks,
-            // EquipRite Future keeps its demo story in DuckDB in this app's data folder (survives restarts and rebuilds).
-            futureStore: v === 'future' ? await futureStore() : undefined,
-            // EquipRite Next's SQL worksheet: the desktop app connects to Oracle for it (node-oracledb, Thin mode).
-            sqlStore: nextLike(v) ? await sqlStore() : undefined,
-            aiStore: nextLike(v) ? await aiStore() : undefined,
-            // The Jira stories page (Old and Next): Connect Jira keeps the token on this PC; the proxy adds it.
-            jiraStore: nextLike(v) || v === 'old' ? jiraStore() : undefined,
-            // Record on a Jira story: its recordings and screenshots, kept on this PC.
-            recStore: nextLike(v) || v === 'old' ? evidenceStore() : undefined,
-            // Transcribe a recording's voice with Whisper (local on this PC, or OpenAI with the Ask AI key).
-            transcribe: nextLike(v) || v === 'old' ? await transcriber() : undefined,
-            // Standup minutes (EquipRite Next): the daily standup on the Jira backlog, kept on this PC.
-            minutesStore: nextLike(v) ? await minutesStore() : undefined,
-            // Saved follow-ups (EquipRite Next): follow-ups drafted on the Jira pages, kept on this PC.
-            followupsStore: nextLike(v) ? await followupsStore() : undefined,
-            // The FDD library: FDDs uploaded into the project and committed to git, so every user has them
-            fddStore: nextLike(v) ? await fddStore() : undefined,
-            // Saved AI analyses: each run kept on this PC, so an analysis opens without asking the AI again
-            analysisStore: nextLike(v) ? analysisStore() : undefined,
-            // The Application pages catalog: technical sheets of the VB pages and the Jira stories mapped to them, in git
-            pagesStore: nextLike(v) ? await pagesStore() : undefined,
-            // Code Fix: AI-proposed changes to a page, applied to the code only when approved
-            fixStore: nextLike(v) ? await fixStore() : undefined,
-            // Issues (Build.Rite): issue → AI write-up and analysis → approval → the agent's branch and pull request
-            issuesStore: nextLike(v) ? await issuesStore() : undefined,
-            // The API tester: a page's REST calls and reports, tried against the real backend
-            apiStore: nextLike(v) ? apiStore() : undefined,
-            backendOverrides: backendOverridesFromEnv(process.env),
-            onLog: pushLog,
-            onProblem: backendProblem,
-          });
+          servers[v] = await createDevServer(Object.assign(await appServerOptions(v), { buildDir: BUILD_DIR, webApp: VERSIONS[v].webApp, port: VERSIONS[v].port }));
         }
       }
     } catch (e) {

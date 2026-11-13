@@ -27,6 +27,12 @@
  *     close(id, { by, note, resolution, rootCause, rootNotes, fixedIn })   reopen(id, { by })   img(id, n)
  *     details(id, fields, { by })   comment(id, { text, kind, email, to, by })   settings()   setSettings({ project })
  *     email(id, { to, cc, subject, body, by })   draft(id, { purpose, by })
+ *     sandbox(id, { act: make | status | run | shots | tests | remove, which, diff, by })   progress(id, kind)
+ *
+ * The sandbox: before approval, the proposed fix is tried in a copy of the code on this PC (codeFix.makeSandbox: a git
+ * worktree on fix/<KEY> in the data folder's sandboxes/, the fix written, the app built and served on a port of its
+ * own): run it beside the app as it is, screenshots before and after, its tests. Apply commits and pushes from it (only
+ * the change approved); closing the issue deletes it. Kept on this PC only (issue-sandboxes.json), never shared.
  *
  * Its Notify list (details.notify: the email of everyone to keep informed) gets an email each time its status changes
  * (not the AI's write-up straight after logging); a follow-up email (asking for more information, a status update…) can
@@ -52,6 +58,9 @@ const ROOT_CAUSE = { code: 'Code defect', config: 'Configuration', data: 'Data',
 // what the agent does when Apply change is pressed, in order (codeFix.applyToBranch says each as it goes)
 const AGENT_STEPS = [['fetch', 'Get the latest code'], ['branch', 'Make its own branch'], ['check', 'Check the change still fits the code'], ['before', 'Run the related tests, before the change'],
   ['write', 'Write the change'], ['after', 'Run the tests again, with the change'], ['commit', 'Commit it'], ['push', 'Push the branch'], ['pr', 'The pull request']];
+// what making the sandbox does (codeFix.makeSandbox says each as it goes): the fix tried first, in a copy of the code
+const SANDBOX_STEPS = [['fetch', 'Get the latest code'], ['copy', 'Make the sandbox: a copy of the code'], ['check', 'Check the fix fits the code'], ['before', 'Run the related tests, before the fix'],
+  ['write', 'Write the fix into the sandbox'], ['build', 'Build the app in the sandbox']];
 const COMMENT_KIND = { comment: 'Comment', response: 'Response to the customer', internal: 'Internal note', email: 'Email' };
 const STATUS_LABEL = { new: 'Logged', written: 'Written up', analyzed: 'Analyzed', triaged: 'Triaged', 'needs-info': 'Needs information', 'awaiting-approval': 'Waiting for approval',
   approved: 'Approved', rejected: 'Rejected', 'in-review': 'Pull request', verified: 'Verified', closed: 'Closed' };
@@ -241,6 +250,7 @@ function open(opts) {
     v.comments = (x.comments || []).map((c) => Object.assign({}, c, { kindLabel: COMMENT_KIND[c.kind] || 'Comment' }));
     v.resolutionLabel = x.resolution ? RESOLUTION[x.resolution.code] || '' : '';
     if (x.fixId && o.fix) { const g = o.fix.get(x.fixId); v.fix = g && g.ok ? g.fix : null; }
+    v.sandbox = sbView(x);
     return v;
   }
 
@@ -371,6 +381,11 @@ function open(opts) {
   const imagesOf = (x) => (x.images || []).map((im) => { try { return { name: im.name, mime: im.mime, base64: fs.readFileSync(path.join(dir, x.id, im.file)).toString('base64') }; } catch (e) { return null; } }).filter(Boolean);
   function img(id, n) {
     const x = byId(id);
+    if (x && /^sandbox-(before|after)$/.test(str(n))) {
+      const r = sbGet(x.id), sh = r && r.shots && r.shots[str(n).slice(8)];
+      const sp = sh && dir ? path.join(dir, x.id, sh.file) : '';
+      return sp && fs.existsSync(sp) ? { ok: true, file: sp, mime: sh.mime } : no('No such image.');
+    }
     const im = x && (x.images || []).filter((y) => String(y.n) === String(n))[0];
     const p = im && dir ? path.join(dir, x.id, im.file) : '';
     return p && fs.existsSync(p) ? { ok: true, file: p, mime: im.mime } : no('No such image.');
@@ -539,14 +554,20 @@ function open(opts) {
   // ── the agent: the approved change on a branch of its own, tested, pushed, a pull request ──
   // its steps, live: { id: { at, steps: { key: { state, detail, at, ms } }, done, ok, error } } (kept 15 minutes after)
   const agentRuns = {};
-  function agentView(run) {
+  function agentView(run, list) {
     const t = Date.now();
     return { ok: true, running: !!run && !run.done, done: !!run && run.done, okRun: !!run && !!run.ok, error: run ? run.error || '' : '', started: run ? new Date(run.at).toISOString() : '',
       seconds: run ? Math.round(((run.done ? run.end : t) - run.at) / 1000) : 0, log: run ? (run.log || []).slice(-300) : [],
-      steps: AGENT_STEPS.map((s) => { const x = (run && run.steps[s[0]]) || {}; return { key: s[0], label: s[1], state: x.state || 'pending', detail: x.detail || '', seconds: x.at ? Math.round(((x.end || (x.state === 'running' && !(run && run.done) ? t : x.at)) - x.at) / 1000) : 0 }; }) };
+      steps: (list || AGENT_STEPS).map((s) => { const x = (run && run.steps[s[0]]) || {}; return { key: s[0], label: s[1], state: x.state || 'pending', detail: x.detail || '', seconds: x.at ? Math.round(((x.end || (x.state === 'running' && !(run && run.done) ? t : x.at)) - x.at) / 1000) : 0 }; }) };
   }
   /** The agent's steps and log: live while it works (and a while after), else the last run kept with the issue. */
-  function progress(id) {
+  function progress(id, kind) {
+    if (kind === 'sandbox') {
+      const liveS = sbRuns[str(id)];
+      if (liveS) return agentView(liveS, SANDBOX_STEPS);
+      const rec = sbGet(id);
+      return rec && rec.run ? Object.assign({}, rec.run, { ok: true, running: false, done: true }) : agentView(null, SANDBOX_STEPS);
+    }
     const live = agentRuns[str(id)];
     if (live) return agentView(live);
     const x = byId(id);
@@ -578,7 +599,10 @@ function open(opts) {
     const why = str(b.reason).trim().slice(0, 300);
     if (b.anyway && !why) return no('Say why it may go in with the failing test (it is kept in its history and the pull request).');
     const agreedWhy = keyOf(x) + ': ' + (f.title || x.title) + ' — approved by ' + (x.approval.decision.by || 'someone') + (why ? ' (' + why + ')' : '');
-    const r = await o.fix.applyToBranch({ fix: fx.id, branch: 'fix/' + k, by: b.by, prBody: prBody + (b.anyway ? '\n\n**Applied with a failing test:** ' + why : '') + (b.allowOld ? '\n\n**Old EquipRite:** this change is agreed (named in tests/old-app-unchanged.test.js).' : ''),
+    // tried in its sandbox: committed and pushed from there — but only the change approved
+    const sbx = sbHere(x.id);
+    if (sbx && sbx.fingerprint !== x.approval.requested.fingerprint) { delete agentRuns[x.id]; return no('The sandbox holds an earlier version of the fix: make it again (Update the sandbox), then apply.', { sandboxOld: true }); }
+    const r = await o.fix.applyToBranch({ fix: fx.id, branch: 'fix/' + k, by: b.by, sandbox: sbx || undefined, prBody: prBody + (b.anyway ? '\n\n**Applied with a failing test:** ' + why : '') + (b.allowOld ? '\n\n**Old EquipRite:** this change is agreed (named in tests/old-app-unchanged.test.js).' : ''),
       message: message + (b.anyway ? '\nApplied with a failing test: ' + why : '') + (b.allowOld ? '\nAgreed for Old EquipRite (tests/old-app-unchanged.test.js).' : ''),
       onStep: onStep, anyway: !!b.anyway, anywayWhy: why, allowOld: !!b.allowOld, allowOldWhy: agreedWhy });
     if (!run.done) { run.done = true; run.end = Date.now(); run.ok = !!r.ok; }
@@ -596,7 +620,8 @@ function open(opts) {
       return no(r.error, { issue: view(x) });
     }
     const ba = r.fix.branchApply || {};
-    x.branch = { name: ba.branch, base: ba.base, sha: ba.sha, pushed: ba.pushed, pr: ba.pr, pushError: ba.pushError, at: ba.at };
+    x.branch = { name: ba.branch, base: ba.base, sha: ba.sha, pushed: ba.pushed, pr: ba.pr, pushError: ba.pushError, at: ba.at, fromSandbox: !!sbx };
+    if (sbx) sbPut(x.id, Object.assign(sbx, { promoted: { at: now().toISOString(), sha: ba.sha, by: str(b.by) } }));
     x.status = 'in-review';
     x.lastError = '';
     x.lastRun = null;
@@ -608,6 +633,129 @@ function open(opts) {
     put(x);
     return ok(x);
   }
+  // ── the sandbox: the fix tried first, in a copy of the code on this PC, before anyone approves it ──
+  // Kept on this PC only (issue-sandboxes.json beside issues.json: { issueId: sandbox }), never on the data branch: its
+  // folder is this PC's. The issue's history says it was made, tested, screenshotted — that is shared.
+  const sbFile = file ? path.join(path.dirname(file), 'issue-sandboxes.json') : '';
+  let sbMem = {};
+  const sbAll = () => { if (!sbFile) return sbMem; try { return JSON.parse(fs.readFileSync(sbFile, 'utf8')) || {}; } catch (e) { return {}; } };
+  const sbGet = (id) => sbAll()[str(id)] || null;
+  function sbPut(id, rec) {
+    const all = sbAll();
+    if (rec) all[str(id)] = rec; else delete all[str(id)];
+    sbMem = all;
+    if (sbFile) { fs.mkdirSync(path.dirname(sbFile), { recursive: true }); fs.writeFileSync(sbFile, JSON.stringify(all, null, 1)); }
+  }
+  const thisPc = () => require('os').hostname();
+  /** The issue's sandbox when it is on this PC and its folder is there. */
+  const sbHere = (id) => { const r = sbGet(id); return r && r.dir && (!r.pc || r.pc === thisPc()) && fs.existsSync(r.dir) ? r : null; };
+  /** What the screen shows of it (no git: quick); sandbox(id, { act: 'status' }) adds what changed, how far behind, the diff. */
+  function sbView(x) {
+    const r = sbGet(x.id);
+    if (!r) return null;
+    const fx = fixOf(x);
+    return { branch: r.branch, start: r.start, baseCommit: str(r.baseCommit).slice(0, 7), at: r.at, by: r.by, folder: r.dir, exists: !!sbHere(x.id), built: r.built || null,
+      files: Object.keys(r.files || {}), old: !!fx && r.fingerprint !== fingerprint(fx), approvedOld: !!(x.approval && x.approval.requested && r.fingerprint !== x.approval.requested.fingerprint),
+      tests: r.tests || null, shots: r.shots ? { at: r.shots.at, before: !!r.shots.before, after: !!r.shots.after, beforeError: r.shots.beforeError || '' } : null, promoted: r.promoted || null };
+  }
+  const sbRuns = {};
+  /**
+   * The sandbox's acts: make (the fix written into a copy of the code and built; its steps live in progress(id,
+   * 'sandbox')), status ({ diff }), run ({ which: sandbox|current } — opened in a window of the desktop app, else its
+   * address), shots (before / after), tests, remove.
+   */
+  async function sandbox(id, b) {
+    b = b || {};
+    const x = byId(id);
+    if (!x) return no('No such issue.');
+    if (!o.fix || typeof o.fix.makeSandbox !== 'function') return no('Sandboxes are not set up here.');
+    const act = str(b.act);
+    const k = keyOf(x);
+    if (act === 'make') {
+      const fx = fixOf(x);
+      if (!fx || !(fx.files || []).length) return no('There is no proposed change to try: analyze it first.');
+      if (['in-review', 'verified', 'closed'].indexOf(x.status) !== -1) return no('It is ' + (STATUS_LABEL[x.status] || x.status) + ': its change is on ' + ((x.branch && x.branch.name) || 'its branch') + ' already.');
+      if (agentRuns[x.id] && !agentRuns[x.id].done) return no('The agent is applying it: wait for it to finish.');
+      if (sbRuns[x.id] && !sbRuns[x.id].done) return no('The sandbox is being made already.');
+      const was = sbGet(x.id);
+      const run = sbRuns[x.id] = { at: Date.now(), steps: {}, done: false, ok: false, error: '', log: [], kind: 'sandbox' };
+      const onStep = (s) => {
+        run.log.push({ t: Date.now() - run.at, key: s.key, state: s.state, text: s.detail });
+        if (run.log.length > 400) run.log.splice(0, run.log.length - 400);
+        if (s.key === 'end') { run.done = true; run.end = Date.now(); run.ok = s.state === 'done'; if (!run.ok) run.error = s.detail; return; }
+        if (s.state === 'log') return;
+        const cur = run.steps[s.key] || {};
+        run.steps[s.key] = { state: s.state, detail: s.detail, at: cur.at || Date.now(), end: s.state === 'running' ? 0 : Date.now() };
+      };
+      const r = await o.fix.makeSandbox({ fix: fx.id, branch: 'fix/' + k, by: b.by, onStep: onStep });
+      if (!run.done) { run.done = true; run.end = Date.now(); run.ok = !!r.ok; }
+      run.error = r.ok ? '' : str(r.error);
+      const runView = Object.assign(agentView(run, SANDBOX_STEPS), { log: run.log.slice(-300) });
+      const gone = setTimeout(() => { if (sbRuns[x.id] === run) delete sbRuns[x.id]; }, 15 * 60000);
+      if (gone.unref) gone.unref();
+      if (!r.ok) {
+        sbPut(x.id, was && fs.existsSync(was.dir || '') ? Object.assign(was, { run: runView }) : (r.stale ? null : { run: runView, failed: true, at: now().toISOString(), by: str(b.by) }));
+        ev(x, 'sandbox not made', b.by, r.error);
+        put(x);
+        return no(r.error, { issue: view(x), stale: !!r.stale });
+      }
+      sbPut(x.id, Object.assign(r.sandbox, { fingerprint: fingerprint(fx), run: runView, shots: null, tests: null }));
+      ev(x, was ? 'sandbox made again' : 'sandbox made', b.by, r.sandbox.branch + ' from ' + r.sandbox.start + ' @ ' + str(r.sandbox.baseCommit).slice(0, 7) + (r.sandbox.built.ok ? ', built' : ', not built: ' + str(r.sandbox.built.error).slice(0, 160)));
+      put(x);
+      return ok(x, { warning: r.warning || '' });
+    }
+    const rec = sbGet(x.id);
+    if (!rec || !rec.dir) return no('There is no sandbox for ' + k + ' yet: make it first.');
+    if (act === 'status') {
+      const st = await o.fix.sandboxStatus(rec, { diff: !!b.diff });
+      return Object.assign({ ok: true, issue: view(x) }, { status: st });
+    }
+    if (act === 'run') {
+      const r = await o.fix.sandboxRun(rec);
+      if (!r.ok) return no(r.error);
+      const which = b.which === 'current' ? 'current' : 'sandbox';
+      const url = which === 'current' ? r.current : r.url;
+      if (!url) return no('EquipRite is not running here as it is now, so there is nothing to compare with.');
+      let opened = false;
+      if (typeof o.openWindow === 'function' && b.open !== false) {
+        try { opened = !!(await o.openWindow(url, (which === 'current' ? 'As it is now — ' : 'Sandbox ' + k + ' — ') + x.label)); } catch (e) { opened = false; }
+      }
+      return Object.assign({ ok: true, issue: view(x) }, { url: url, opened: opened, route: r.route, needs: r.needs, sandboxUrl: r.url, currentUrl: r.current });
+    }
+    if (act === 'shots') {
+      const r = await o.fix.sandboxShots(rec);
+      if (!r.ok) return no(r.error);
+      const folder = path.join(dir, x.id);
+      fs.mkdirSync(folder, { recursive: true });
+      const save = (im, name) => { if (!im || !im.base64) return null; const f = name + (im.mime === 'image/png' ? '.png' : '.jpg'); fs.writeFileSync(path.join(folder, f), Buffer.from(im.base64, 'base64')); return { mime: im.mime || 'image/jpeg', file: f }; };
+      rec.shots = { at: now().toISOString(), by: str(b.by), after: save(r.after, 'sandbox-after'), before: save(r.before, 'sandbox-before'), beforeError: r.beforeError || '' };
+      sbPut(x.id, rec);
+      ev(x, 'sandbox screenshots', b.by, 'before (the app as it is now)' + (rec.shots.before ? '' : ' — not taken: ' + rec.shots.beforeError) + ' and after (the sandbox)');
+      put(x);
+      return ok(x);
+    }
+    if (act === 'tests') {
+      const r = await o.fix.sandboxTests(rec);
+      if (!r.ok) return no(r.error);
+      rec.tests = r.tests;
+      sbPut(x.id, rec);
+      ev(x, 'sandbox tested', b.by, r.tests.ok ? 'nothing broke' + (r.tests.unit.length ? ' (' + r.tests.unit.length + ' test file(s), the page checks)' : ' (the page checks)') : r.tests.bad + ' new failure(s)');
+      put(x);
+      return ok(x);
+    }
+    if (act === 'remove') {
+      if (agentRuns[x.id] && !agentRuns[x.id].done) return no('The agent is applying it from the sandbox: wait for it to finish.');
+      const r = await o.fix.removeSandbox(rec, { by: b.by, keepBranch: !!(x.branch && x.branch.pushed) });
+      if (!r.ok) return no(r.error);
+      sbPut(x.id, null);
+      ['sandbox-after', 'sandbox-before'].forEach((n) => ['.jpg', '.png'].forEach((e) => { try { fs.unlinkSync(path.join(dir, x.id, n + e)); } catch (er) { /* none */ } }));
+      ev(x, 'sandbox thrown away', b.by, rec.branch + ': its folder deleted' + (x.branch && x.branch.pushed ? ' (the branch kept for its pull request)' : ''));
+      put(x);
+      return ok(x);
+    }
+    return no('Not a sandbox act: ' + act);
+  }
+
   /** QA: the fix tried in an environment (SIT, UAT…) on a build. Passed: verified, ready to close. Failed: back to be fixed. */
   async function verify(id, b) {
     b = b || {};
@@ -647,6 +795,11 @@ function open(opts) {
       note: str(b.note).trim().slice(0, 2000), by: str(b.by), at: now().toISOString() };
     x.status = 'closed';
     x.closed = { at: x.resolution.at, by: str(b.by), note: x.resolution.note };
+    const sbc = sbHere(x.id);
+    if (sbc) {
+      const gone = await o.fix.removeSandbox(sbc, { by: b.by, keepBranch: !!(x.branch && x.branch.pushed) });
+      if (gone.ok) { sbPut(x.id, null); ev(x, 'sandbox removed', b.by, 'closed: its folder deleted' + (x.branch && x.branch.pushed ? ' (the branch kept for its pull request)' : '')); }
+    }
     ev(x, 'closed', b.by, RESOLUTION[code] + (x.resolution.fixedIn ? ' · fixed in ' + x.resolution.fixedIn : '') + (cause ? ' · root cause: ' + ROOT_CAUSE[cause] : '') + (x.resolution.note ? ' · ' + x.resolution.note : ''));
     await jiraComment(x, 'Closed in Build.Rite as *' + RESOLUTION[code] + '*' + (x.resolution.fixedIn ? ' (fixed in ' + x.resolution.fixedIn + ')' : '') + '.'
       + (cause ? '\n*Root cause:* ' + ROOT_CAUSE[cause] + (x.resolution.rootNotes ? ' — ' + x.resolution.rootNotes : '') : '') + (x.resolution.note ? '\n' + x.resolution.note : ''));
@@ -783,7 +936,7 @@ function open(opts) {
   return {
     info: info, list: list, get: (id) => { const x = byId(id); return x ? ok(x) : no('No such issue.'); },
     create: create, format: format, update: update, toJira: toJira, analyze: analyze, ask: ask, approve: approve, reject: reject, apply: apply, verify: verify, close: close, reopen: reopen,
-    details: details, comment: comment, email: email, draft: draft, settings: settings, setSettings: setSettings, progress: progress, img: img, flush: () => Promise.all([pub, notes]).then(() => Promise.all([pub, notes])),
+    details: details, comment: comment, email: email, draft: draft, settings: settings, setSettings: setSettings, progress: progress, img: img, sandbox: sandbox, flush: () => Promise.all([pub, notes]).then(() => Promise.all([pub, notes])),
   };
 }
 
@@ -811,4 +964,4 @@ function fddPicker(fddStore, root) {
   };
 }
 
-module.exports = { open, issueText, jiraWiki, jsonOf, fddPicker, mergeIssue, cleanDetails, emailsOf, AGENT_STEPS, STEPS, VERDICT_LABEL, SEVERITY, PRIORITY, ENVS, RESOLUTION, ROOT_CAUSE, COMMENT_KIND };
+module.exports = { open, issueText, jiraWiki, jsonOf, fddPicker, mergeIssue, cleanDetails, emailsOf, AGENT_STEPS, SANDBOX_STEPS, STEPS, VERDICT_LABEL, SEVERITY, PRIORITY, ENVS, RESOLUTION, ROOT_CAUSE, COMMENT_KIND };
