@@ -187,9 +187,12 @@ define(['vb/action/actionChain', 'vb/action/actions', 'resources/js/issuesClient
         }
         if (act === 'apply' || act === 'applyAnyway' || act === 'applyAgreed') {
           const anyway = act === 'applyAnyway';
-          const allowOld = act === 'applyAgreed' || (!!v.allowOld && x.app === 'vbredwoodapp');
+          // Old EquipRite's guard broke too: applied anyway, the change is agreed for Old EquipRite as well (else its guard
+          // fails in the pull request on the same file)
+          const guardBroke = !!(x.lastRun && x.lastRun.tests && (x.lastRun.tests.unit || []).some((u) => u.guard && (u.newFailures || []).length));
+          const allowOld = act === 'applyAgreed' || (!!v.allowOld && x.app === 'vbredwoodapp') || (anyway && guardBroke);
           if (anyway && !String(v.anyReason || '').trim()) { v.result = { ok: false, text: 'Say why it may go in with the failing test.' }; return; }
-          if (!ask(anyway ? 'Apply it although a test fails?\n\n"' + v.anyReason + '" is kept in its history, the commit and the pull request.'
+          if (!ask(anyway ? 'Apply it although a test fails?\n\n"' + v.anyReason + '" is kept in its history, the commit and the pull request.' + (guardBroke ? '\n\nOld EquipRite\'s guard broke too: this change is agreed for Old EquipRite as well (its files named in tests/old-app-unchanged.test.js with ' + x.key + '), in the same commit.' : '')
             : allowOld ? 'Apply it, and agree this change to Old EquipRite?\n\nIts files are named in Old EquipRite\'s guard (tests/old-app-unchanged.test.js) with ' + x.key + ' and who approved it, in the same commit — so the decision shows in the review.'
             : 'Let the agent apply the approved change?\n\nIt puts it on a branch of its own (fix/' + x.key + '), runs the tests, commits it with ' + x.key + ' and pushes it, then makes the pull request. Your own code folder is not touched.')) return;
           v.progress = 'The agent is applying it on fix/' + x.key + (anyway ? ' (accepting the failing test)' : allowOld ? ' (agreed for Old EquipRite)' : '') + ': its steps are shown below, as it goes.';

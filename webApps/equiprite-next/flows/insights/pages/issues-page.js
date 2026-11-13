@@ -29,6 +29,11 @@ define(['resources/js/issuesClient', 'resources/js/codeFixClient', 'resources/js
   // what making the sandbox does (desktop/lib/issues.js SANDBOX_STEPS)
   const SBX = [['fetch', 'Get the latest code'], ['copy', 'Make the sandbox: a copy of the code'], ['check', 'Check the fix fits the code'], ['before', 'Run the related tests, before the fix'],
     ['write', 'Write the fix into the sandbox'], ['build', 'Build the app in the sandbox']];
+  // what broke besides Old EquipRite's guard (desktop/lib/codeFix.js applyToBranch: its tests' new failures, page checks)
+  const this_brokeOther = (x) => {
+    const t = x && x.lastRun && x.lastRun.tests;
+    return ((t && t.unit) || []).filter((u) => !u.guard && (u.newFailures || []).length).map((u) => u.file).concat(((t && t.checks) || []).filter((c) => !c.ok && !c.already).map((c) => 'the page check "' + c.name + '"'));
+  };
   const secs = (n) => (n < 60 ? n + ' s' : Math.floor(n / 60) + ' min ' + (n % 60) + ' s');
   const panelOf = (x, sv) => (Number(sv) >= 0 ? Number(sv) : (x ? x.stage || 0 : 0));
   let shownKept = { k: '', v: [] };
@@ -227,6 +232,16 @@ define(['resources/js/issuesClient', 'resources/js/codeFixClient', 'resources/js
     brokeUnits(x) { const t = x && x.lastRun && x.lastRun.tests; return ((t && t.unit) || []).filter((u) => (u.newFailures || []).length); }
     brokeChecks(x) { const t = x && x.lastRun && x.lastRun.tests; return ((t && t.checks) || []).filter((c) => !c.ok && !c.already); }
     brokeGuard(x) { const t = x && x.lastRun && x.lastRun.tests; return ((t && t.unit) || []).some((u) => u.guard && (u.newFailures || []).length); }
+    /** What broke besides Old EquipRite's guard (other tests, page checks): agreeing alone does not get it through then. */
+    brokeOther(x) {
+      const t = x && x.lastRun && x.lastRun.tests;
+      return ((t && t.unit) || []).filter((u) => !u.guard && (u.newFailures || []).length).map((u) => u.file).concat(((t && t.checks) || []).filter((c) => !c.ok && !c.already).map((c) => 'the page check "' + c.name + '"'));
+    }
+    guardMoreText(x) {
+      const l = this_brokeOther(x);
+      return !l.length ? '' : 'Agreeing is not enough on its own here: ' + l.join(', ') + (l.length === 1 ? ' fails' : ' fail') + ' too. If that test only expects the page as it was (its old title, say), '
+        + 'apply anyway with the reason below — that agrees this change for Old EquipRite too, in the same commit — and update the test in the pull request. Otherwise, analyze again with this failure.';
+    }
     isOld(x) { return !!x && (x.app === 'vbredwoodapp' || String(x.page || '').indexOf('vbredwoodapp/') === 0); }
     showBroke(x) { return !!x && x.status === 'approved' && !!x.lastRun && !!x.lastRun.broke; }
     showChange(x) { return !!x && !!x.fix && (x.fix.diff || []).length > 0 && ['awaiting-approval', 'approved'].indexOf(x.status) !== -1; }

@@ -553,8 +553,11 @@
                   </oj-bind-for-each>
                   <oj-bind-if test="[[ $functions.brokeGuard($variables.issue) ]]">
                     <div class="nx-is-guardnote" id="isGuardNote"><b>This is Old EquipRite's guard.</b> Old EquipRite is kept unchanged by agreement (tests/old-app-unchanged.test.js): any change to its files fails it, until the change is agreed. This issue asks to change an Old EquipRite page, so the guard stops it — as it should, until you decide.
+                      <oj-bind-if test="[[ $functions.brokeOther($variables.issue).length === 0 ]]">
                       <div class="nx-fx-row"><button type="button" class="nx-btn nx-btn--primary" id="isApplyAgreed" data-act="applyAgreed" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]">Agree this change to Old EquipRite, and apply</button>
-                        <span class="nx-note">Its files are named in the guard with this issue and who approved it, in the same commit: the decision shows in the pull request.</span></div></div>
+                        <span class="nx-note">Its files are named in the guard with this issue and who approved it, in the same commit: the decision shows in the pull request.</span></div>
+                      </oj-bind-if>
+                      <oj-bind-if test="[[ $functions.brokeOther($variables.issue).length > 0 ]]"><p class="nx-is-guardmore" id="isGuardMore"><oj-bind-text value="[[ $functions.guardMoreText($variables.issue) ]]"></oj-bind-text></p></oj-bind-if></div>
                   </oj-bind-if>
                   <div class="nx-is-brokeacts">
                     <button type="button" class="nx-btn nx-aibtn" id="isRefineFail" data-act="refineFail" on-click="[[ $listeners.onAct ]]" :disabled="[[ $variables.busy ]]"><span aria-hidden="true">✨</span>Analyze again with this failure</button>

@@ -355,6 +355,23 @@ const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwA
       && x6.issue.events.some((e) => e.what === 'sandbox thrown away') && /There is no sandbox/.test((await store.sandbox(c6.issue.id, { act: 'run' })).error || ''), JSON.stringify(x6).slice(0, 300));
 
     // a test failing before the change, with one more line after it (a guard listing one more file): a new failure
+    // the screen, when Old EquipRite's guard and another test both broke: agreeing alone is not offered (it would stop on the
+    // other test again); applying anyway, with a reason, agrees the change too
+    T.section('the screen: the guard and another test both broke — the way on said');
+    let PM = null;
+    require('vm').runInNewContext(fs.readFileSync(path.join(ROOT, 'webApps/equiprite-next/flows/insights/pages/issues-page.js'), 'utf8'),
+      { define: (deps, f) => { const Cls = f({ imgUrl: () => '' }, {}, {}, { onScope: () => {}, onFocus: () => {} }, {}); PM = new Cls(); }, console: console });
+    const both = { status: 'approved', app: 'vbredwoodapp', lastRun: { broke: true, tests: { checks: [], unit: [
+      { file: 'tests/old-app-unchanged.test.js', guard: true, newFailures: ['no tracked file differs from the baseline - M\tA | M\tB'] },
+      { file: 'tests/app-pages.test.js', guard: false, newFailures: ['an Old EquipRite page takes its page title'] }] } } };
+    const onlyGuard = { status: 'approved', app: 'vbredwoodapp', lastRun: { broke: true, tests: { checks: [], unit: [both.lastRun.tests.unit[0]] } } };
+    T.check('both broke: what else broke named; agree-and-apply not offered alone; apply anyway (it agrees too) or analyze again', PM.brokeGuard(both) && PM.brokeOther(both).join() === 'tests/app-pages.test.js'
+      && /^Agreeing is not enough on its own here: tests\/app-pages\.test\.js fails too\. .*apply anyway with the reason below — that agrees this change for Old EquipRite too/.test(PM.guardMoreText(both))
+      && PM.brokeOther(onlyGuard).length === 0 && PM.guardMoreText(onlyGuard) === '', PM.guardMoreText(both));
+    const chainSrc = fs.readFileSync(path.join(ROOT, 'webApps/equiprite-next/flows/insights/pages/issues-page-chains/actChain.js'), 'utf8');
+    T.check('…applied anyway with the guard broken: the change agreed for Old EquipRite too (said in the confirmation)', /const allowOld = act === 'applyAgreed' \|\| \(!!v\.allowOld && x\.app === 'vbredwoodapp'\) \|\| \(anyway && guardBroke\);/.test(chainSrc)
+      && /Old EquipRite\\'s guard broke too: this change is agreed for Old EquipRite as well/.test(chainSrc));
+
     T.section('a test failing before, and with one more file after: stopped (its whole message compared)');
     fs.writeFileSync(path.join(A, 'tests', 'billing-list.test.js'), [
       "const fs = require('fs'), path = require('path');",
