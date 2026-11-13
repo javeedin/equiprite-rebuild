@@ -1,0 +1,24 @@
+{
+ "id": "ismweigjpy4c46",
+ "key": "BR-IGJPZ",
+ "page": "equiprite-future/order/new-request",
+ "label": "New request",
+ "app": "equiprite-future",
+ "kind": "enhancement",
+ "text": "change page title to 26C1",
+ "title": "change page title to 26C1",
+ "by": "javeed.shaik",
+ "at": "2026-11-13T05:02:56.471Z",
+ "status": "new",
+ "images": [],
+ "jira": null,
+ "events": [
+  {
+   "at": "2026-11-13T05:02:56.471Z",
+   "what": "logged",
+   "by": "javeed.shaik",
+   "detail": "change page title to 26C1"
+  }
+ ],
+ "updatedAt": "2026-11-13T05:02:56.471Z"
+}
