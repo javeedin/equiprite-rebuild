@@ -1,0 +1,397 @@
+{
+ "id": "vbredwoodapp/customer-portal/customer-dashboard",
+ "facts": {
+  "id": "vbredwoodapp/customer-portal/customer-dashboard",
+  "app": "vbredwoodapp",
+  "appName": "Old EquipRite",
+  "flow": "customer-portal",
+  "page": "customer-dashboard",
+  "label": "Customer Dashboard",
+  "description": "",
+  "route": {
+   "url": "/vp/shell/customer-portal/customer-dashboard",
+   "menu": "",
+   "needs": ""
+  },
+  "files": [
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.json",
+    "lines": 136
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.html",
+    "lines": 276
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.js",
+    "lines": 28
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page-chains/CustomerDashboardInitChain.js",
+    "lines": 123
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page-chains/browseCatalogChain.js",
+    "lines": 16
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page-chains/customersModuleGuardChain.js",
+    "lines": 64
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page-chains/enforcePageAccessChain.js",
+    "lines": 72
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page-chains/navigateToCatalogChain.js",
+    "lines": 18
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page-chains/navigateToMyBillingChain.js",
+    "lines": 35
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page-chains/navigateToMyRequestsChain.js",
+    "lines": 16
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page-chains/navigateToRequestDetailChain.js",
+    "lines": 39
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page-chains/onSelectedKpiChangedChain.js",
+    "lines": 43
+   }
+  ],
+  "codeHash": "9817dc1243317488",
+  "features": {
+   "sections": [
+    "Customer Dashboard"
+   ],
+   "actions": [
+    {
+     "label": "View All",
+     "listener": "navigateToMyRequests",
+     "chains": [
+      "navigateToMyRequestsChain"
+     ]
+    },
+    {
+     "label": "Customer Dashboard: sp primary action",
+     "listener": "spPrimaryAction",
+     "chains": [
+      "navigateToCatalogChain"
+     ]
+    },
+    {
+     "label": "Customer Dashboard: sp secondary action",
+     "listener": "spSecondaryAction",
+     "chains": [
+      "browseCatalogChain"
+     ]
+    },
+    {
+     "label": "oj-c-action-card: oj action",
+     "listener": "navigateToMyBilling",
+     "chains": [
+      "navigateToMyBillingChain"
+     ]
+    },
+    {
+     "label": "Recent Activity: first selected row changed",
+     "listener": "onRowAction",
+     "chains": [
+      "navigateToRequestDetailChain"
+     ]
+    }
+   ],
+   "fields": [],
+   "columns": [
+    "Request #",
+    "Customer Name",
+    "Start Date",
+    "End Date",
+    "Customer Contact",
+    "Status",
+    "Lines"
+   ],
+   "components": [
+    "oj-c-action-card",
+    "oj-c-button",
+    "oj-sp-collection-container",
+    "oj-sp-general-overview-page",
+    "oj-table"
+   ],
+   "inputs": [],
+   "lifecycle": [
+    {
+     "when": "before the page opens",
+     "chains": [
+      "enforcePageAccessChain"
+     ]
+    },
+    {
+     "when": "when the page opens",
+     "chains": [
+      "customersModuleGuardChain",
+      "CustomerDashboardInitChain"
+     ]
+    }
+   ]
+  },
+  "logic": {
+   "chains": [
+    {
+     "name": "CustomerDashboardInitChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page-chains/CustomerDashboardInitChain.js",
+     "about": "── 1. Fire the two list endpoints in parallel ──────────────────────── Tile 1, table rows, and the seed list of IN_PROCESS request ids all come from customer-my-requests. Tile 3 (pending invoices) comes from customer-my-billing. Query params MUST go under uriParams here — `parameters` is silently dropped in this VB project (memory feedback_vb_callrest_uriparams.md). Without uriParams the view defaults to size=20 and the tile counts / Recent Activity table understate the actual data.",
+     "calls": [
+      "eqp-v1/getEquipriteV1ViewsCustomerMyRequests",
+      "eqp-v1/getEquipriteV1ViewsCustomerMyBilling",
+      "eqp-v1/getEquipriteV1EquipmentRequestsRequestIdLines2"
+     ],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "vbEnter"
+     ],
+     "lines": 123
+    },
+    {
+     "name": "browseCatalogChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page-chains/browseCatalogChain.js",
+     "about": "",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [
+      "page request-catalog"
+     ],
+     "modules": [],
+     "on": [
+      "spSecondaryAction",
+      "navigateToCatalog"
+     ],
+     "lines": 16
+    },
+    {
+     "name": "customersModuleGuardChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page-chains/customersModuleGuardChain.js",
+     "about": "Page guard for the CUSTOMERS_MODULE_ENABLED module licence. Mirror of projectsModuleGuardChain — see that file for the shared rationale. Runs FIRST on vbEnter (before the page's own init). If the Customers module is off, redirects home and returns so the page never renders. This catches deep-links, bookmarks and browser history that bypass the hidden nav — hiding a menu item removes the affordance, not the route. Destination is owned by getHomeTarget(), never re-derived here. Under the one-module-off invariant, Customers being off means Projects is on, so home is the project dashboard. FAILS…",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "vbEnter"
+     ],
+     "lines": 64
+    },
+    {
+     "name": "enforcePageAccessChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page-chains/enforcePageAccessChain.js",
+     "about": "Page-level RBAC deep-link guard. GENERATED - every copy is byte-identical; change the template and regenerate rather than editing one copy. Copies exist because a page's eventListeners resolve a bare chain id against that page's OWN <page>-chains folder, so an app-level chain referenced by name 404s. This file holds NO policy: the decision (canEnterPage), the page code (getPageCodeForPage), the redirect target (getRoleHomeTarget) and the same-flow test (isSameFlow) all live in $application.functions. Deriving the page code at runtime is what lets every copy be identical.",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "vbBeforeEnter"
+     ],
+     "lines": 72
+    },
+    {
+     "name": "navigateToCatalogChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page-chains/navigateToCatalogChain.js",
+     "about": "\"New Request\" primary action — opens the customer-create-req wizard, not the catalog (catalog is reached via the secondary action).",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [
+      "page customer-create-req"
+     ],
+     "modules": [],
+     "on": [
+      "spPrimaryAction"
+     ],
+     "lines": 18
+    },
+    {
+     "name": "navigateToMyBillingChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page-chains/navigateToMyBillingChain.js",
+     "about": "Belt-and-braces with the tile's own oj-bind-if: the card is not rendered when EXTERNAL_PROJECT_ASSIGN_ENABLED is on (external requests bill through the assigned internal project), but this chain is also reachable from a stale listener binding, so refuse rather than route to a page whose guard would immediately bounce the user back.",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [
+      "page customer-my-billing"
+     ],
+     "modules": [],
+     "on": [
+      "navigateToMyBilling"
+     ],
+     "lines": 35
+    },
+    {
+     "name": "navigateToMyRequestsChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page-chains/navigateToMyRequestsChain.js",
+     "about": "",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [
+      "page customer-my-requests"
+     ],
+     "modules": [],
+     "on": [
+      "navigateToMyRequests"
+     ],
+     "lines": 16
+    },
+    {
+     "name": "navigateToRequestDetailChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page-chains/navigateToRequestDetailChain.js",
+     "about": "oj-table fires firstSelectedRowChanged PART WAY THROUGH its own select-and-focus sequence. Navigating synchronously from here tore the page down mid-sequence, and the dying table then tried to resolve the key of a row whose data was already gone: TypeError: Cannot read properties of undefined (reading 'key') at GetKey / _fireBeforeSelectEvent / HandleSelectionOption reported by VB as \"Fatal exception delivering binding updates\", which aborts the rest of that binding-delivery cycle. Yield one macrotask so the table finishes selecting before the route changes. Navigation behaviour is unchanged.",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [
+      "page customer-request-detail"
+     ],
+     "modules": [],
+     "on": [
+      "onRowAction"
+     ],
+     "lines": 39
+    },
+    {
+     "name": "onSelectedKpiChangedChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page-chains/onSelectedKpiChangedChain.js",
+     "about": "The billing tile is hidden when EXTERNAL_PROJECT_ASSIGN_ENABLED is on (external requests bill through the assigned internal project), but a KPI id can still arrive from a stale binding or a re-fired event, so the route is checked here too rather than trusting the tile's absence. Same isFeatureFlagOff() accessor as the tile and the page guard.",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [],
+     "lines": 43
+    }
+   ],
+   "modules": [],
+   "variables": 7
+  },
+  "integrations": {
+   "rest": [
+    {
+     "endpoint": "eqp-v1/getEquipriteV1ViewsCustomerMyRequests",
+     "service": "eqp-v1",
+     "operation": "getEquipriteV1ViewsCustomerMyRequests",
+     "method": "GET",
+     "path": "/equiprite/v1/views/customer-my-requests",
+     "summary": "",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "CustomerDashboardInitChain"
+     ]
+    },
+    {
+     "endpoint": "eqp-v1/getEquipriteV1ViewsCustomerMyBilling",
+     "service": "eqp-v1",
+     "operation": "getEquipriteV1ViewsCustomerMyBilling",
+     "method": "GET",
+     "path": "/equiprite/v1/views/customer-my-billing",
+     "summary": "",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "CustomerDashboardInitChain"
+     ]
+    },
+    {
+     "endpoint": "eqp-v1/getEquipriteV1EquipmentRequestsRequestIdLines2",
+     "service": "eqp-v1",
+     "operation": "getEquipriteV1EquipmentRequestsRequestIdLines2",
+     "method": "GET",
+     "path": "/equiprite/v1/equipment-requests/{requestId}/lines",
+     "summary": "List all lines for a request",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "CustomerDashboardInitChain"
+     ]
+    }
+   ],
+   "reports": [],
+   "local": [],
+   "backends": [
+    "EquipRite REST (eqpt)"
+   ]
+  },
+  "links": [
+   "page request-catalog",
+   "page customer-create-req",
+   "page customer-my-billing",
+   "page customer-my-requests",
+   "page customer-request-detail"
+  ],
+  "next": [
+   {
+    "id": "vbredwoodapp/customer-portal/request-catalog",
+    "label": "Request Catalog",
+    "via": [
+     "browseCatalogChain"
+    ]
+   },
+   {
+    "id": "vbredwoodapp/customer-portal/customer-create-req",
+    "label": "Create Equipment Request",
+    "via": [
+     "navigateToCatalogChain"
+    ]
+   },
+   {
+    "id": "vbredwoodapp/customer-portal/customer-my-billing",
+    "label": "My Billing",
+    "via": [
+     "navigateToMyBillingChain"
+    ]
+   },
+   {
+    "id": "vbredwoodapp/customer-portal/customer-my-requests",
+    "label": "My Requests",
+    "via": [
+     "navigateToMyRequestsChain"
+    ]
+   },
+   {
+    "id": "vbredwoodapp/customer-portal/customer-request-detail",
+    "label": "Customer Request Detail",
+    "via": [
+     "navigateToRequestDetailChain"
+    ]
+   }
+  ],
+  "unresolvedLinks": []
+ },
+ "ai": null,
+ "screenshots": [
+  {
+   "id": "s1",
+   "file": "screens/vbredwoodapp.customer-portal.customer-dashboard.1.jpg",
+   "at": "2026-11-13T19:20:34.322Z",
+   "by": "javeed.shaik",
+   "source": "capture",
+   "caption": "",
+   "bytes": 111323
+  }
+ ],
+ "stories": [],
+ "at": "2026-11-13T19:20:34.225Z",
+ "by": "javeed.shaik",
+ "codeHash": "9817dc1243317488"
+}

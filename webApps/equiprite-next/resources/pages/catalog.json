@@ -1,5 +1,5 @@
 {
- "scannedAt": "2026-11-13T07:48:07.659Z",
+ "scannedAt": "2026-11-13T19:20:34.324Z",
  "pages": [
   {
    "id": "equiprite//shell",
@@ -1031,6 +1031,7 @@
    },
    "next": [
     "equiprite-next/order/new-request",
+    "equiprite-next/insights/jira-progress",
     "equiprite-next/fleet/equipment",
     "equiprite-next/availability/availability"
    ],
@@ -1661,9 +1662,25 @@
    "next": [
     "equiprite-next/insights/jira-analysis",
     "equiprite-next/insights/jira-analysis-set",
+    "equiprite-next/insights/jira-progress",
     "equiprite-next/insights/jira-sprint"
    ],
    "menu": "Insights › Jira stories",
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "equiprite-next/insights/jira-progress",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "insights",
+   "page": "jira-progress",
+   "label": "Daily progress",
+   "route": {
+    "url": "",
+    "menu": "",
+    "needs": "Opened from another screen (record \"jira-progress\"): capture it there, or upload a screenshot."
+   },
    "stories": [],
    "sheet": null
   },
@@ -1967,7 +1984,15 @@
    ],
    "menu": "Customer Dashboard",
    "stories": [],
-   "sheet": null
+   "sheet": {
+    "at": "2026-11-13T19:20:34.225Z",
+    "by": "javeed.shaik",
+    "codeHash": "9817dc1243317488",
+    "screenshots": 1,
+    "ai": false,
+    "rest": 3,
+    "chains": 9
+   }
   },
   {
    "id": "vbredwoodapp/customer-portal/customer-my-billing",
