@@ -9,7 +9,7 @@
  "title": "change the title of the application",
  "by": "javeed.shaik",
  "at": "2026-11-13T06:02:03.647Z",
- "status": "new",
+ "status": "written",
  "images": [],
  "jira": null,
  "events": [
@@ -18,10 +18,17 @@
    "what": "logged",
    "by": "javeed.shaik",
    "detail": "change the title of the application"
+  },
+  {
+   "at": "2026-11-13T06:02:12.418Z",
+   "what": "written up",
+   "by": "Claude (Anthropic)",
+   "detail": "Change the title of the application"
   }
  ],
  "comments": [],
  "details": {
+  "ai": [],
   "severity": "minor",
   "priority": "p4",
   "environment": "DEV",
@@ -34,8 +41,25 @@
   "raisedOn": "2026-11-13",
   "assignee": "",
   "dueDate": "",
-  "ai": [],
   "aiWhy": ""
  },
- "updatedAt": "2026-11-13T06:02:03.647Z"
+ "updatedAt": "2026-11-13T06:02:12.418Z",
+ "formatted": {
+  "title": "Change the title of the application",
+  "summary": "The reporter asks for the title of the application to be changed. The request was raised from the New request page (equiprite-future/order/new-request). The new title, and exactly which title is meant, were not given.",
+  "steps": [
+   "Open the New request page (equiprite-future/order/new-request)",
+   "Look at the application title"
+  ],
+  "expected": "The application shows the new title (new text not specified).",
+  "actual": "The application shows the current title (current text not specified).",
+  "impact": "Not stated. This appears to be a text-only change that does not affect any function.",
+  "questions": [
+   "What should the new title be?",
+   "What is the current title text?",
+   "Which title is meant: the application name in the header, the browser tab title, or the heading on the New request page?",
+   "Should the change apply to the whole application or only to the New request page?",
+   "Is there a deadline or release this is needed for?"
+  ]
+ }
 }
