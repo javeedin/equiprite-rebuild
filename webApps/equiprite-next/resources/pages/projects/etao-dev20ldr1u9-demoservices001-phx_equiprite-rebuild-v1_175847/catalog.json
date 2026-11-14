@@ -1,0 +1,897 @@
+{
+ "scannedAt": "2026-11-14T18:17:44.154Z",
+ "pages": [
+  {
+   "id": "vbredwoodapp//shell",
+   "app": "vbredwoodapp",
+   "appName": "vbredwoodapp",
+   "flow": "",
+   "page": "shell",
+   "label": "Shell",
+   "route": {
+    "url": "/",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/customer-portal/customer-billing-detail",
+   "app": "vbredwoodapp",
+   "appName": "vbredwoodapp",
+   "flow": "customer-portal",
+   "page": "customer-billing-detail",
+   "label": "Customer Billing Detail",
+   "route": {
+    "url": "/vp/shell/customer-portal/customer-billing-detail",
+    "menu": "",
+    "needs": ""
+   },
+   "next": [
+    "vbredwoodapp/customer-portal/customer-my-billing"
+   ],
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/customer-portal/customer-create-req",
+   "app": "vbredwoodapp",
+   "appName": "vbredwoodapp",
+   "flow": "customer-portal",
+   "page": "customer-create-req",
+   "label": "Create Equipment Request",
+   "route": {
+    "url": "/vp/shell/customer-portal/customer-create-req",
+    "menu": "",
+    "needs": ""
+   },
+   "next": [
+    "vbredwoodapp/customer-portal/customer-dashboard",
+    "vbredwoodapp/customer-portal/request-catalog"
+   ],
+   "menu": "Create Request",
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/customer-portal/customer-dashboard",
+   "app": "vbredwoodapp",
+   "appName": "vbredwoodapp",
+   "flow": "customer-portal",
+   "page": "customer-dashboard",
+   "label": "Customer Dashboard",
+   "route": {
+    "url": "/vp/shell/customer-portal/customer-dashboard",
+    "menu": "",
+    "needs": ""
+   },
+   "next": [
+    "vbredwoodapp/customer-portal/request-catalog",
+    "vbredwoodapp/customer-portal/customer-create-req",
+    "vbredwoodapp/customer-portal/customer-my-billing",
+    "vbredwoodapp/customer-portal/customer-my-requests",
+    "vbredwoodapp/customer-portal/customer-request-detail"
+   ],
+   "menu": "Customer Dashboard",
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/customer-portal/customer-my-billing",
+   "app": "vbredwoodapp",
+   "appName": "vbredwoodapp",
+   "flow": "customer-portal",
+   "page": "customer-my-billing",
+   "label": "My Billing",
+   "route": {
+    "url": "/vp/shell/customer-portal/customer-my-billing",
+    "menu": "",
+    "needs": ""
+   },
+   "next": [
+    "vbredwoodapp/customer-portal/customer-dashboard",
+    "vbredwoodapp/customer-portal/customer-billing-detail"
+   ],
+   "menu": "My Billing",
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/customer-portal/customer-my-requests",
+   "app": "vbredwoodapp",
+   "appName": "vbredwoodapp",
+   "flow": "customer-portal",
+   "page": "customer-my-requests",
+   "label": "My Requests",
+   "route": {
+    "url": "/vp/shell/customer-portal/customer-my-requests",
+    "menu": "",
+    "needs": ""
+   },
+   "next": [
+    "vbredwoodapp/customer-portal/customer-create-req",
+    "vbredwoodapp/customer-portal/customer-request-detail",
+    "vbredwoodapp/customer-portal/customer-quote"
+   ],
+   "menu": "My Requests",
+   "stories": [],
+   "sheet": {
+    "at": "2026-11-14T18:17:44.120Z",
+    "by": "javeed.shaik",
+    "codeHash": "f16864abe8901222",
+    "screenshots": 1,
+    "ai": false,
+    "rest": 1,
+    "chains": 8
+   }
+  },
+  {
+   "id": "vbredwoodapp/customer-portal/customer-quote",
+   "app": "vbredwoodapp",
+   "appName": "vbredwoodapp",
+   "flow": "customer-portal",
+   "page": "customer-quote",
+   "label": "Customer Quote",
+   "route": {
+    "url": "/vp/shell/customer-portal/customer-quote",
+    "menu": "",
+    "needs": ""
+   },
+   "next": [
+    "vbredwoodapp/customer-portal/customer-my-requests"
+   ],
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/customer-portal/customer-rental-contract",
+   "app": "vbredwoodapp",
+   "appName": "vbredwoodapp",
+   "flow": "customer-portal",
+   "page": "customer-rental-contract",
+   "label": "Rental Contract",
+   "route": {
+    "url": "/vp/shell/customer-portal/customer-rental-contract",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/customer-portal/customer-request-detail",
+   "app": "vbredwoodapp",
+   "appName": "vbredwoodapp",
+   "flow": "customer-portal",
+   "page": "customer-request-detail",
+   "label": "Customer Request Detail",
+   "route": {
+    "url": "/vp/shell/customer-portal/customer-request-detail",
+    "menu": "",
+    "needs": ""
+   },
+   "next": [
+    "vbredwoodapp/customer-portal/customer-my-requests",
+    "vbredwoodapp/customer-portal/customer-quote"
+   ],
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/customer-portal/project-create-request",
+   "app": "vbredwoodapp",
+   "appName": "vbredwoodapp",
+   "flow": "customer-portal",
+   "page": "project-create-request",
+   "label": "Create Equipment Request",
+   "route": {
+    "url": "/vp/shell/customer-portal/project-create-request",
+    "menu": "",
+    "needs": ""
+   },
+   "next": [
+    "vbredwoodapp/customer-portal/request-catalog"
+   ],
+   "menu": "Create Request",
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/customer-portal/request-cart",
+   "app": "vbredwoodapp",
+   "appName": "vbredwoodapp",
+   "flow": "customer-portal",
+   "page": "request-cart",
+   "label": "Cart",
+   "route": {
+    "url": "/vp/shell/customer-portal/request-cart",
+    "menu": "",
+    "needs": ""
+   },
+   "next": [
+    "vbredwoodapp/customer-portal/project-create-request",
+    "vbredwoodapp/customer-portal/request-catalog",
+    "vbredwoodapp/main/main-equiprite",
+    "vbredwoodapp/customer-portal/customer-dashboard",
+    "vbredwoodapp/customer-portal/customer-my-requests"
+   ],
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/customer-portal/request-catalog-detail",
+   "app": "vbredwoodapp",
+   "appName": "vbredwoodapp",
+   "flow": "customer-portal",
+   "page": "request-catalog-detail",
+   "label": "Request Catalog Detail",
+   "route": {
+    "url": "/vp/shell/customer-portal/request-catalog-detail",
+    "menu": "",
+    "needs": ""
+   },
+   "next": [
+    "vbredwoodapp/customer-portal/request-catalog"
+   ],
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/customer-portal/request-catalog",
+   "app": "vbredwoodapp",
+   "appName": "vbredwoodapp",
+   "flow": "customer-portal",
+   "page": "request-catalog",
+   "label": "Request Catalog",
+   "route": {
+    "url": "/vp/shell/customer-portal/request-catalog",
+    "menu": "",
+    "needs": ""
+   },
+   "next": [
+    "vbredwoodapp/customer-portal/request-catalog-detail",
+    "vbredwoodapp/customer-portal/request-cart"
+   ],
+   "menu": "Equipment Catalog",
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/equipment-analytics",
+   "app": "vbredwoodapp",
+   "appName": "vbredwoodapp",
+   "flow": "equipment-foundation",
+   "page": "equipment-analytics",
+   "label": "Equipment Analytics",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/equipment-analytics",
+    "menu": "",
+    "needs": ""
+   },
+   "menu": "Equipment Analytics",
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/equipment-create",
+   "app": "vbredwoodapp",
+   "appName": "vbredwoodapp",
+   "flow": "equipment-foundation",
+   "page": "equipment-create",
+   "label": "Equipment Master",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/equipment-create",
+    "menu": "",
+    "needs": ""
+   },
+   "next": [
+    "vbredwoodapp/equipment-foundation/equipment-master"
+   ],
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/equipment-detail",
+   "app": "vbredwoodapp",
+   "appName": "vbredwoodapp",
+   "flow": "equipment-foundation",
+   "page": "equipment-detail",
+   "label": "Equipment Detail",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/equipment-detail",
+    "menu": "",
+    "needs": ""
+   },
+   "next": [
+    "vbredwoodapp/equipment-foundation/equipment-master"
+   ],
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/equipment-master",
+   "app": "vbredwoodapp",
+   "appName": "vbredwoodapp",
+   "flow": "equipment-foundation",
+   "page": "equipment-master",
+   "label": "Equipment Master",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/equipment-master",
+    "menu": "",
+    "needs": ""
+   },
+   "next": [
+    "vbredwoodapp/equipment-foundation/equipment-create",
+    "vbredwoodapp/equipment-foundation/equipment-units"
+   ],
+   "menu": "Equipment Master",
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/equipment-record-cost",
+   "app": "vbredwoodapp",
+   "appName": "vbredwoodapp",
+   "flow": "equipment-foundation",
+   "page": "equipment-record-cost",
+   "label": "Record Cost",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/equipment-record-cost",
+    "menu": "",
+    "needs": ""
+   },
+   "next": [
+    "vbredwoodapp/equipment-foundation/equipment-master",
+    "vbredwoodapp/equipment-foundation/equipment-unit-detail"
+   ],
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/equipment-reports",
+   "app": "vbredwoodapp",
+   "appName": "vbredwoodapp",
+   "flow": "equipment-foundation",
+   "page": "equipment-reports",
+   "label": "Equipment Reports",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/equipment-reports",
+    "menu": "",
+    "needs": ""
+   },
+   "menu": "Equipment Reports",
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/equipment-returns",
+   "app": "vbredwoodapp",
+   "appName": "vbredwoodapp",
+   "flow": "equipment-foundation",
+   "page": "equipment-returns",
+   "label": "Equipment Returns",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/equipment-returns",
+    "menu": "",
+    "needs": ""
+   },
+   "menu": "Equipment Return",
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/equipment-timesheets",
+   "app": "vbredwoodapp",
+   "appName": "vbredwoodapp",
+   "flow": "equipment-foundation",
+   "page": "equipment-timesheets",
+   "label": "Equipment Timesheets",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/equipment-timesheets",
+    "menu": "",
+    "needs": ""
+   },
+   "next": [
+    "vbredwoodapp/equipment-foundation/timesheet-detail"
+   ],
+   "menu": "Equipment Timesheet",
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/equipment-unit-detail",
+   "app": "vbredwoodapp",
+   "appName": "vbredwoodapp",
+   "flow": "equipment-foundation",
+   "page": "equipment-unit-detail",
+   "label": "Equipment Unit Detail",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/equipment-unit-detail",
+    "menu": "",
+    "needs": ""
+   },
+   "next": [
+    "vbredwoodapp/equipment-foundation/equipment-master",
+    "vbredwoodapp/equipment-foundation/equipment-units",
+    "vbredwoodapp/equipment-foundation/equipment-record-cost"
+   ],
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/equipment-units",
+   "app": "vbredwoodapp",
+   "appName": "vbredwoodapp",
+   "flow": "equipment-foundation",
+   "page": "equipment-units",
+   "label": "Equipment Units",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/equipment-units",
+    "menu": "",
+    "needs": ""
+   },
+   "next": [
+    "vbredwoodapp/equipment-foundation/equipment-master",
+    "vbredwoodapp/equipment-foundation/equipment-unit-detail"
+   ],
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/equipment-workbench",
+   "app": "vbredwoodapp",
+   "appName": "vbredwoodapp",
+   "flow": "equipment-foundation",
+   "page": "equipment-workbench",
+   "label": "Equipment Manager Workbench",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/equipment-workbench",
+    "menu": "",
+    "needs": ""
+   },
+   "next": [
+    "vbredwoodapp/equipment-foundation/request-detail"
+   ],
+   "menu": "Equipment Manager Workbench",
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/initiate-picking",
+   "app": "vbredwoodapp",
+   "appName": "vbredwoodapp",
+   "flow": "equipment-foundation",
+   "page": "initiate-picking",
+   "label": "Initiate Picking",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/initiate-picking",
+    "menu": "",
+    "needs": ""
+   },
+   "menu": "Initiate Picking",
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/line-detail",
+   "app": "vbredwoodapp",
+   "appName": "vbredwoodapp",
+   "flow": "equipment-foundation",
+   "page": "line-detail",
+   "label": "Line Detail",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/line-detail",
+    "menu": "",
+    "needs": ""
+   },
+   "next": [
+    "vbredwoodapp/equipment-foundation/request-detail"
+   ],
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/post-cost-detail",
+   "app": "vbredwoodapp",
+   "appName": "vbredwoodapp",
+   "flow": "equipment-foundation",
+   "page": "post-cost-detail",
+   "label": "Post Cost Detail",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/post-cost-detail",
+    "menu": "",
+    "needs": ""
+   },
+   "next": [
+    "vbredwoodapp/equipment-foundation/post-cost"
+   ],
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/post-cost",
+   "app": "vbredwoodapp",
+   "appName": "vbredwoodapp",
+   "flow": "equipment-foundation",
+   "page": "post-cost",
+   "label": "Post Costs",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/post-cost",
+    "menu": "",
+    "needs": ""
+   },
+   "next": [
+    "vbredwoodapp/equipment-foundation/post-cost-detail"
+   ],
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/post-cost-test-detail",
+   "app": "vbredwoodapp",
+   "appName": "vbredwoodapp",
+   "flow": "equipment-foundation",
+   "page": "post-cost-test-detail",
+   "label": "Post Cost Test Detail",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/post-cost-test-detail",
+    "menu": "",
+    "needs": ""
+   },
+   "next": [
+    "vbredwoodapp/equipment-foundation/post-cost-test"
+   ],
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/post-cost-test",
+   "app": "vbredwoodapp",
+   "appName": "vbredwoodapp",
+   "flow": "equipment-foundation",
+   "page": "post-cost-test",
+   "label": "Post Cost",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/post-cost-test",
+    "menu": "",
+    "needs": ""
+   },
+   "next": [
+    "vbredwoodapp/equipment-foundation/post-cost-test-detail"
+   ],
+   "menu": "Post Cost",
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/rental-agreement-create",
+   "app": "vbredwoodapp",
+   "appName": "vbredwoodapp",
+   "flow": "equipment-foundation",
+   "page": "rental-agreement-create",
+   "label": "New Rental Agreement",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/rental-agreement-create",
+    "menu": "",
+    "needs": ""
+   },
+   "next": [
+    "vbredwoodapp/equipment-foundation/rental-agreements"
+   ],
+   "menu": "Create Rental Agreement",
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/rental-agreement-lines",
+   "app": "vbredwoodapp",
+   "appName": "vbredwoodapp",
+   "flow": "equipment-foundation",
+   "page": "rental-agreement-lines",
+   "label": "Rental Agreement Lines",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/rental-agreement-lines",
+    "menu": "",
+    "needs": ""
+   },
+   "next": [
+    "vbredwoodapp/equipment-foundation/rental-agreements",
+    "vbredwoodapp/customer-portal/project-create-request"
+   ],
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/rental-agreements",
+   "app": "vbredwoodapp",
+   "appName": "vbredwoodapp",
+   "flow": "equipment-foundation",
+   "page": "rental-agreements",
+   "label": "Rental Agreements",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/rental-agreements",
+    "menu": "",
+    "needs": ""
+   },
+   "next": [
+    "vbredwoodapp/equipment-foundation/rental-agreement-create",
+    "vbredwoodapp/equipment-foundation/rental-agreement-lines"
+   ],
+   "menu": "Rental Agreements",
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/request-detail",
+   "app": "vbredwoodapp",
+   "appName": "vbredwoodapp",
+   "flow": "equipment-foundation",
+   "page": "request-detail",
+   "label": "Request Detail",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/request-detail",
+    "menu": "",
+    "needs": ""
+   },
+   "next": [
+    "vbredwoodapp/equipment-foundation/request-quote",
+    "vbredwoodapp/equipment-foundation/equipment-workbench",
+    "vbredwoodapp/equipment-foundation/line-detail"
+   ],
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/request-quote",
+   "app": "vbredwoodapp",
+   "appName": "vbredwoodapp",
+   "flow": "equipment-foundation",
+   "page": "request-quote",
+   "label": "Request Quote",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/request-quote",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/timesheet-approval-detail",
+   "app": "vbredwoodapp",
+   "appName": "vbredwoodapp",
+   "flow": "equipment-foundation",
+   "page": "timesheet-approval-detail",
+   "label": "Timesheet Approval Detail",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/timesheet-approval-detail",
+    "menu": "",
+    "needs": ""
+   },
+   "next": [
+    "vbredwoodapp/equipment-foundation/timesheet-approvals",
+    "vbredwoodapp/equipment-foundation/equipment-timesheets"
+   ],
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/timesheet-approvals",
+   "app": "vbredwoodapp",
+   "appName": "vbredwoodapp",
+   "flow": "equipment-foundation",
+   "page": "timesheet-approvals",
+   "label": "Timesheet Approvals",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/timesheet-approvals",
+    "menu": "",
+    "needs": ""
+   },
+   "next": [
+    "vbredwoodapp/equipment-foundation/timesheet-approval-detail"
+   ],
+   "menu": "Timesheet Approvals",
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/equipment-foundation/timesheet-detail",
+   "app": "vbredwoodapp",
+   "appName": "vbredwoodapp",
+   "flow": "equipment-foundation",
+   "page": "timesheet-detail",
+   "label": "Timesheet Detail",
+   "route": {
+    "url": "/vp/shell/equipment-foundation/timesheet-detail",
+    "menu": "",
+    "needs": ""
+   },
+   "next": [
+    "vbredwoodapp/equipment-foundation/equipment-timesheets"
+   ],
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/main/create-rate-schedule",
+   "app": "vbredwoodapp",
+   "appName": "vbredwoodapp",
+   "flow": "main",
+   "page": "create-rate-schedule",
+   "label": "Create Rate Schedule",
+   "route": {
+    "url": "/vp/shell/main/create-rate-schedule",
+    "menu": "",
+    "needs": ""
+   },
+   "next": [
+    "vbredwoodapp/main/rate-schedule"
+   ],
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/main/equipment-request-detail",
+   "app": "vbredwoodapp",
+   "appName": "vbredwoodapp",
+   "flow": "main",
+   "page": "equipment-request-detail",
+   "label": "Equipment Request Detail",
+   "route": {
+    "url": "/vp/shell/main/equipment-request-detail",
+    "menu": "",
+    "needs": ""
+   },
+   "next": [
+    "vbredwoodapp/main/equipment-requests",
+    "vbredwoodapp/customer-portal/project-create-request",
+    "vbredwoodapp/main/project-quote"
+   ],
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/main/equipment-requests",
+   "app": "vbredwoodapp",
+   "appName": "vbredwoodapp",
+   "flow": "main",
+   "page": "equipment-requests",
+   "label": "My Requests",
+   "route": {
+    "url": "/vp/shell/main/equipment-requests",
+    "menu": "",
+    "needs": ""
+   },
+   "next": [
+    "vbredwoodapp/customer-portal/project-create-request",
+    "vbredwoodapp/main/equipment-request-detail",
+    "vbredwoodapp/main/project-quote"
+   ],
+   "menu": "Equipment Requests",
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/main/equipment-schedule",
+   "app": "vbredwoodapp",
+   "appName": "vbredwoodapp",
+   "flow": "main",
+   "page": "equipment-schedule",
+   "label": "Equipment Schedule",
+   "route": {
+    "url": "/vp/shell/main/equipment-schedule",
+    "menu": "",
+    "needs": ""
+   },
+   "menu": "Equipment Schedule",
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/main/main-equiprite",
+   "app": "vbredwoodapp",
+   "appName": "vbredwoodapp",
+   "flow": "main",
+   "page": "main-equiprite",
+   "label": "Main Equiprite",
+   "route": {
+    "url": "/vp/shell/main/main-equiprite",
+    "menu": "",
+    "needs": ""
+   },
+   "next": [
+    "vbredwoodapp/customer-portal/project-create-request",
+    "vbredwoodapp/equipment-foundation/equipment-master",
+    "vbredwoodapp/main/equipment-requests",
+    "vbredwoodapp/main/equipment-request-detail"
+   ],
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/main/no-access",
+   "app": "vbredwoodapp",
+   "appName": "vbredwoodapp",
+   "flow": "main",
+   "page": "no-access",
+   "label": "You don't have access to EquipRite",
+   "route": {
+    "url": "/vp/shell/main/no-access",
+    "menu": "",
+    "needs": ""
+   },
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/main/project-quote",
+   "app": "vbredwoodapp",
+   "appName": "vbredwoodapp",
+   "flow": "main",
+   "page": "project-quote",
+   "label": "Project Quote",
+   "route": {
+    "url": "/vp/shell/main/project-quote",
+    "menu": "",
+    "needs": ""
+   },
+   "next": [
+    "vbredwoodapp/main/equipment-requests"
+   ],
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/main/rate-schedule",
+   "app": "vbredwoodapp",
+   "appName": "vbredwoodapp",
+   "flow": "main",
+   "page": "rate-schedule",
+   "label": "Rate Management",
+   "route": {
+    "url": "/vp/shell/main/rate-schedule",
+    "menu": "",
+    "needs": ""
+   },
+   "next": [
+    "vbredwoodapp/main/create-rate-schedule"
+   ],
+   "menu": "Rate Management",
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/setup/configurations",
+   "app": "vbredwoodapp",
+   "appName": "vbredwoodapp",
+   "flow": "setup",
+   "page": "configurations",
+   "label": "Application Configurations",
+   "route": {
+    "url": "/vp/shell/setup/configurations",
+    "menu": "",
+    "needs": ""
+   },
+   "menu": "Configuration Settings",
+   "stories": [],
+   "sheet": null
+  },
+  {
+   "id": "vbredwoodapp/setup/rbac-admin",
+   "app": "vbredwoodapp",
+   "appName": "vbredwoodapp",
+   "flow": "setup",
+   "page": "rbac-admin",
+   "label": "Page Access",
+   "route": {
+    "url": "/vp/shell/setup/rbac-admin",
+    "menu": "",
+    "needs": ""
+   },
+   "menu": "Page Access",
+   "stories": [],
+   "sheet": null
+  }
+ ]
+}
