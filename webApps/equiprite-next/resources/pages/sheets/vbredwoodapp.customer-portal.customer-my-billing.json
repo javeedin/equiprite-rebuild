@@ -1,0 +1,274 @@
+{
+ "id": "vbredwoodapp/customer-portal/customer-my-billing",
+ "facts": {
+  "id": "vbredwoodapp/customer-portal/customer-my-billing",
+  "app": "vbredwoodapp",
+  "appName": "vbredwoodapp",
+  "flow": "customer-portal",
+  "page": "customer-my-billing",
+  "label": "My Billing",
+  "description": "Customer Billing — requests being billed (contract issued); drill into a request to see per-line invoice schedules",
+  "route": {
+   "url": "/vp/shell/customer-portal/customer-my-billing",
+   "menu": "",
+   "needs": ""
+  },
+  "files": [
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-billing-page.json",
+    "lines": 155
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-billing-page.html",
+    "lines": 169
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-billing-page.js",
+    "lines": 11
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-billing-page-chains/BilledRequestFilterChain.js",
+    "lines": 113
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-billing-page-chains/BilledRequestInitChain.js",
+    "lines": 53
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-billing-page-chains/NavigateToBillingDetailChain.js",
+    "lines": 31
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-billing-page-chains/customersModuleGuardChain.js",
+    "lines": 64
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-billing-page-chains/enforcePageAccessChain.js",
+    "lines": 72
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-billing-page-chains/externalProjectAssignGuardChain.js",
+    "lines": 77
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-billing-page-chains/goToParentChain.js",
+    "lines": 18
+   }
+  ],
+  "codeHash": "c322a86082e8ec1d",
+  "features": {
+   "sections": [
+    "My Billing"
+   ],
+   "actions": [
+    {
+     "label": "oj-sp-smart-search: filter criterion changed",
+     "listener": "filterCriterionChanged",
+     "chains": [
+      "BilledRequestFilterChain"
+     ]
+    },
+    {
+     "label": "My Billing — Requests: first selected row changed",
+     "listener": "onNavigateToDetail",
+     "chains": [
+      "NavigateToBillingDetailChain"
+     ]
+    }
+   ],
+   "fields": [
+    "Search by request #, customer, or contact..."
+   ],
+   "columns": [
+    "Request #",
+    "Customer Name",
+    "Start Date",
+    "End Date",
+    "Customer Contact",
+    "Status",
+    "Lines",
+    "Contract Number"
+   ],
+   "components": [
+    "oj-sp-collection-container",
+    "oj-sp-smart-search",
+    "oj-sp-smart-search-page",
+    "oj-table"
+   ],
+   "inputs": [],
+   "lifecycle": [
+    {
+     "when": "before the page opens",
+     "chains": [
+      "enforcePageAccessChain"
+     ]
+    },
+    {
+     "when": "when the page opens",
+     "chains": [
+      "customersModuleGuardChain",
+      "externalProjectAssignGuardChain",
+      "BilledRequestInitChain"
+     ]
+    }
+   ]
+  },
+  "logic": {
+   "chains": [
+    {
+     "name": "BilledRequestFilterChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-billing-page-chains/BilledRequestFilterChain.js",
+     "about": "Client-side smart-search filter over the billed-requests list. Ported from the My Requests page (EquipmentRequestFilterChain) — same criterion shapes (keyword / select-single / select-multiple / $and / $or).",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "filterCriterionChanged"
+     ],
+     "lines": 113
+    },
+    {
+     "name": "BilledRequestInitChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-billing-page-chains/BilledRequestInitChain.js",
+     "about": "Billing landing loader. Reuses the customer-my-requests view (same row shape as the My Requests page) but keeps ONLY requests that are actually being billed — i.e. a contract has been issued (contractNumber present). DRAFT / SUBMITTED / uncontracted requests have no invoices, so they are excluded here.",
+     "calls": [
+      "eqp-v1/getEquipriteV1ViewsCustomerMyRequests"
+     ],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "vbEnter"
+     ],
+     "lines": 53
+    },
+    {
+     "name": "NavigateToBillingDetailChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-billing-page-chains/NavigateToBillingDetailChain.js",
+     "about": "Whole-row click on the billed-requests list → open the billing detail (request header + per-line invoice schedules). Passes the same identifiers the request-detail page uses: requestId (=requestNumber) and the numeric id.",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [
+      "page customer-billing-detail"
+     ],
+     "modules": [],
+     "on": [
+      "onNavigateToDetail"
+     ],
+     "lines": 31
+    },
+    {
+     "name": "customersModuleGuardChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-billing-page-chains/customersModuleGuardChain.js",
+     "about": "Page guard for the CUSTOMERS_MODULE_ENABLED module licence. Mirror of projectsModuleGuardChain — see that file for the shared rationale. Runs FIRST on vbEnter (before the page's own init). If the Customers module is off, redirects home and returns so the page never renders. This catches deep-links, bookmarks and browser history that bypass the hidden nav — hiding a menu item removes the affordance, not the route. Destination is owned by getHomeTarget(), never re-derived here. Under the one-module-off invariant, Customers being off means Projects is on, so home is the project dashboard. FAILS…",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "vbEnter"
+     ],
+     "lines": 64
+    },
+    {
+     "name": "enforcePageAccessChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-billing-page-chains/enforcePageAccessChain.js",
+     "about": "Page-level RBAC deep-link guard. GENERATED - every copy is byte-identical; change the template and regenerate rather than editing one copy. Copies exist because a page's eventListeners resolve a bare chain id against that page's OWN <page>-chains folder, so an app-level chain referenced by name 404s. This file holds NO policy: the decision (canEnterPage), the page code (getPageCodeForPage), the redirect target (getRoleHomeTarget) and the same-flow test (isSameFlow) all live in $application.functions. Deriving the page code at runtime is what lets every copy be identical.",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "vbBeforeEnter"
+     ],
+     "lines": 72
+    },
+    {
+     "name": "externalProjectAssignGuardChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-billing-page-chains/externalProjectAssignGuardChain.js",
+     "about": "Withdraws the customer billing screen when EXTERNAL_PROJECT_ASSIGN_ENABLED is ON. WHY ON, not off: with that flag on, an external request is attributed to an internal project and costed through it (see the flag's rationale in configurations-page.html and request-detail-page's Assign Project drawer). Billing then belongs to the project, so the customer-facing \"My Billing\" screen no longer describes how the request is billed and is withdrawn rather than shown with figures that do not apply. This is an INVERSE gate, which is why it calls isFeatureFlagOff() and not !isFeatureEnabled().…",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "vbEnter"
+     ],
+     "lines": 77
+    },
+    {
+     "name": "goToParentChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-my-billing-page-chains/goToParentChain.js",
+     "about": "",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [
+      "page customer-dashboard"
+     ],
+     "modules": [],
+     "on": [],
+     "lines": 18
+    }
+   ],
+   "modules": [],
+   "variables": 8
+  },
+  "integrations": {
+   "rest": [
+    {
+     "endpoint": "eqp-v1/getEquipriteV1ViewsCustomerMyRequests",
+     "service": "eqp-v1",
+     "operation": "getEquipriteV1ViewsCustomerMyRequests",
+     "method": "GET",
+     "path": "/equiprite/v1/views/customer-my-requests",
+     "summary": "",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "BilledRequestInitChain"
+     ]
+    }
+   ],
+   "reports": [],
+   "local": [],
+   "backends": [
+    "EquipRite REST (eqpt)"
+   ]
+  },
+  "links": [
+   "page customer-billing-detail",
+   "page customer-dashboard"
+  ],
+  "next": [
+   {
+    "id": "vbredwoodapp/customer-portal/customer-dashboard",
+    "label": "Customer Dashboard",
+    "via": [
+     "goToParentChain"
+    ]
+   },
+   {
+    "id": "vbredwoodapp/customer-portal/customer-billing-detail",
+    "label": "Customer Billing Detail",
+    "via": [
+     "NavigateToBillingDetailChain"
+    ]
+   }
+  ],
+  "unresolvedLinks": []
+ },
+ "ai": null,
+ "screenshots": [],
+ "stories": [],
+ "at": "2026-11-14T14:50:31.422Z",
+ "by": "javeed.shaik",
+ "codeHash": "c322a86082e8ec1d"
+}
