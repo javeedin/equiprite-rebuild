@@ -1,0 +1,263 @@
+{
+ "id": "vbredwoodapp/customer-portal/customer-billing-detail",
+ "facts": {
+  "id": "vbredwoodapp/customer-portal/customer-billing-detail",
+  "app": "vbredwoodapp",
+  "appName": "Old EquipRite",
+  "flow": "customer-portal",
+  "page": "customer-billing-detail",
+  "label": "Customer Billing Detail",
+  "description": "",
+  "route": {
+   "url": "/vp/shell/customer-portal/customer-billing-detail",
+   "menu": "",
+   "needs": ""
+  },
+  "files": [
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-billing-detail-page.json",
+    "lines": 132
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-billing-detail-page.html",
+    "lines": 252
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-billing-detail-page.js",
+    "lines": 30
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-billing-detail-page-chains/BillingDetailInitChain.js",
+    "lines": 283
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-billing-detail-page-chains/customersModuleGuardChain.js",
+    "lines": 64
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-billing-detail-page-chains/externalProjectAssignGuardChain.js",
+    "lines": 77
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-billing-detail-page-chains/goToParentChain.js",
+    "lines": 18
+   },
+   {
+    "path": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-billing-detail-page-chains/toggleGroupChain.js",
+    "lines": 38
+   }
+  ],
+  "codeHash": "d7c5226784e464b2",
+  "features": {
+   "sections": [],
+   "actions": [
+    {
+     "label": "oj-sp-general-overview-page: sp in flow back",
+     "listener": "onSpInFlowBack",
+     "chains": [
+      "goToParentChain"
+     ]
+    },
+    {
+     "label": "click",
+     "listener": "onToggleGroup",
+     "chains": [
+      "toggleGroupChain"
+     ]
+    }
+   ],
+   "fields": [],
+   "columns": [
+    "Line / Invoice #",
+    "Period",
+    "Amount",
+    "When",
+    "Status"
+   ],
+   "components": [
+    "oj-button",
+    "oj-sp-general-overview-page",
+    "oj-table"
+   ],
+   "inputs": [
+    {
+     "name": "requestId",
+     "about": ""
+    },
+    {
+     "name": "requestNumericId",
+     "about": ""
+    }
+   ],
+   "lifecycle": [
+    {
+     "when": "when the page opens",
+     "chains": [
+      "customersModuleGuardChain",
+      "externalProjectAssignGuardChain",
+      "BillingDetailInitChain"
+     ]
+    }
+   ]
+  },
+  "logic": {
+   "chains": [
+    {
+     "name": "BillingDetailInitChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-billing-detail-page-chains/BillingDetailInitChain.js",
+     "about": "Billing detail loader (accordion layout). 1. Header banner from the customer-request-details view. 2. Request lines from the enriched request-detail-lines view. 3. ALL invoices for the request from customer-my-billing (materialized by EQR_BILLING_PKG), grouped per line and attached to each line so the accordion can expand instantly with no extra fetch.",
+     "calls": [
+      "eqp-v1/getEquipriteV1ViewsCustomerRequestDetails",
+      "eqp-v1/getEquipriteV1ViewsRequestDetailLines",
+      "eqp-v1/getEquipriteV1ViewsCustomerMyBilling"
+     ],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "vbEnter"
+     ],
+     "lines": 283
+    },
+    {
+     "name": "customersModuleGuardChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-billing-detail-page-chains/customersModuleGuardChain.js",
+     "about": "Page guard for the CUSTOMERS_MODULE_ENABLED module licence. Mirror of projectsModuleGuardChain — see that file for the shared rationale. Runs FIRST on vbEnter (before the page's own init). If the Customers module is off, redirects home and returns so the page never renders. This catches deep-links, bookmarks and browser history that bypass the hidden nav — hiding a menu item removes the affordance, not the route. Destination is owned by getHomeTarget(), never re-derived here. Under the one-module-off invariant, Customers being off means Projects is on, so home is the project dashboard. FAILS…",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "vbEnter"
+     ],
+     "lines": 64
+    },
+    {
+     "name": "externalProjectAssignGuardChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-billing-detail-page-chains/externalProjectAssignGuardChain.js",
+     "about": "Withdraws the customer billing screen when EXTERNAL_PROJECT_ASSIGN_ENABLED is ON. WHY ON, not off: with that flag on, an external request is attributed to an internal project and costed through it (see the flag's rationale in configurations-page.html and request-detail-page's Assign Project drawer). Billing then belongs to the project, so the customer-facing \"My Billing\" screen no longer describes how the request is billed and is withdrawn rather than shown with figures that do not apply. This is an INVERSE gate, which is why it calls isFeatureFlagOff() and not !isFeatureEnabled().…",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "vbEnter"
+     ],
+     "lines": 77
+    },
+    {
+     "name": "goToParentChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-billing-detail-page-chains/goToParentChain.js",
+     "about": "",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [
+      "page customer-my-billing"
+     ],
+     "modules": [],
+     "on": [
+      "onSpInFlowBack"
+     ],
+     "lines": 18
+    },
+    {
+     "name": "toggleGroupChain",
+     "file": "webApps/vbredwoodapp/flows/customer-portal/pages/customer-billing-detail-page-chains/toggleGroupChain.js",
+     "about": "Expand / collapse one billing line group (mirrors post-cost-test-detail's toggleGroupChain). The clicked group row carries its key in id=\"grp-<groupKey>\"; read it off event.target (walk up, since the click may land on an inner span).",
+     "calls": [],
+     "reports": [],
+     "local": [],
+     "opens": [],
+     "modules": [],
+     "on": [
+      "onToggleGroup"
+     ],
+     "lines": 38
+    }
+   ],
+   "modules": [],
+   "variables": 13
+  },
+  "integrations": {
+   "rest": [
+    {
+     "endpoint": "eqp-v1/getEquipriteV1ViewsCustomerRequestDetails",
+     "service": "eqp-v1",
+     "operation": "getEquipriteV1ViewsCustomerRequestDetails",
+     "method": "GET",
+     "path": "/equiprite/v1/views/customer-request-details",
+     "summary": "",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "BillingDetailInitChain"
+     ]
+    },
+    {
+     "endpoint": "eqp-v1/getEquipriteV1ViewsRequestDetailLines",
+     "service": "eqp-v1",
+     "operation": "getEquipriteV1ViewsRequestDetailLines",
+     "method": "GET",
+     "path": "/equiprite/v1/views/request-detail-lines",
+     "summary": "All lines for one request, with per-line availability",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "BillingDetailInitChain"
+     ]
+    },
+    {
+     "endpoint": "eqp-v1/getEquipriteV1ViewsCustomerMyBilling",
+     "service": "eqp-v1",
+     "operation": "getEquipriteV1ViewsCustomerMyBilling",
+     "method": "GET",
+     "path": "/equiprite/v1/views/customer-my-billing",
+     "summary": "",
+     "backend": "eqpt",
+     "backendLabel": "EquipRite REST (eqpt)",
+     "usedBy": [
+      "BillingDetailInitChain"
+     ]
+    }
+   ],
+   "reports": [],
+   "local": [],
+   "backends": [
+    "EquipRite REST (eqpt)"
+   ]
+  },
+  "links": [
+   "page customer-my-billing"
+  ],
+  "next": [
+   {
+    "id": "vbredwoodapp/customer-portal/customer-my-billing",
+    "label": "My Billing",
+    "via": [
+     "goToParentChain"
+    ]
+   }
+  ],
+  "unresolvedLinks": []
+ },
+ "ai": null,
+ "screenshots": [
+  {
+   "id": "s1",
+   "file": "screens/vbredwoodapp.customer-portal.customer-billing-detail.1.jpg",
+   "at": "2026-11-14T05:47:55.601Z",
+   "by": "javeed.shaik",
+   "source": "capture",
+   "caption": "",
+   "bytes": 111323
+  }
+ ],
+ "stories": [],
+ "at": "2026-11-14T05:47:55.533Z",
+ "by": "javeed.shaik",
+ "codeHash": "d7c5226784e464b2"
+}

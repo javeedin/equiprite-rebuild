@@ -1,5 +1,5 @@
 {
- "scannedAt": "2026-11-13T19:24:42.722Z",
+ "scannedAt": "2026-11-14T05:47:55.603Z",
  "pages": [
   {
    "id": "equiprite//shell",
@@ -1721,6 +1721,22 @@
    "sheet": null
   },
   {
+   "id": "equiprite-next/insights/projects",
+   "app": "equiprite-next",
+   "appName": "EquipRite Next",
+   "flow": "insights",
+   "page": "projects",
+   "label": "Organizations & projects",
+   "route": {
+    "url": "/?open=projects",
+    "menu": "Insights › Organizations & projects",
+    "needs": ""
+   },
+   "menu": "Insights › Organizations & projects",
+   "stories": [],
+   "sheet": null
+  },
+  {
    "id": "equiprite-next/order/new-request",
    "app": "equiprite-next",
    "appName": "EquipRite Next",
@@ -1933,7 +1949,15 @@
     "vbredwoodapp/customer-portal/customer-my-billing"
    ],
    "stories": [],
-   "sheet": null
+   "sheet": {
+    "at": "2026-11-14T05:47:55.533Z",
+    "by": "javeed.shaik",
+    "codeHash": "d7c5226784e464b2",
+    "screenshots": 1,
+    "ai": false,
+    "rest": 3,
+    "chains": 5
+   }
   },
   {
    "id": "vbredwoodapp/customer-portal/customer-create-req",
