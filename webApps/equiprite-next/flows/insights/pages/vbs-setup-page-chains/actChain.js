@@ -21,6 +21,11 @@ define(['vb/action/actionChain', 'resources/js/vbsClient', 'resources/js/vbsView
         if (c) bus.open({ record: 'vbs-project', params: { key: c.orgKey + '/' + c.project, name: c.projectName, ws: c.workspace } });
         return;
       }
+      if (act === 'cancel') {
+        const r = await VC.workCancel();
+        if (r.ok) v.prog = r.body;
+        return;
+      }
       if (v.busy) return;
       v.busy = true;
       try {
@@ -56,10 +61,14 @@ define(['vb/action/actionChain', 'resources/js/vbsClient', 'resources/js/vbsView
         if (act === 'set') {
           v.step = 4; v.done = null; v.result = null;
           v.busyText = v.plan && v.plan.reuse ? 'Using your copy already on this PC…' : 'Copying ' + (w ? w.branchName : 'the branch') + ' from VB Studio into main, then making working… (a big repository takes a minute)';
-          const r = await VC.workUse(plan());
+          // its progress, read every half second while git copies (git's own: phase, percentage, size, speed)
+          v.prog = null;
+          const poll = setInterval(async () => { const pr = await VC.workProgress(); if (pr.ok && v.busy) v.prog = pr.body; }, 500);
+          let r;
+          try { r = await VC.workUse(plan()); } finally { clearInterval(poll); }
           v.done = Object.assign({}, r.body, { ok: !!r.ok });
           v.result = r.ok ? { ok: true, text: r.body.reused ? 'Your workspace is set (its copy on this PC used again).' : 'Your workspace is set: main and working made.' } : { ok: false, text: r.body.error || 'It could not be set up.' };
-          if (r.ok) bus.emit('vbs-changed', { work: true });
+          if (r.ok) bus.emit('vbs-changed', { work: true, switched: true }); // a workspace set: screens reading its code read it again
           return;
         }
         if (act === 'openFolder') {

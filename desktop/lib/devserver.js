@@ -996,6 +996,7 @@ function createDevServer(o) {
           if (pathname === '/__vbs/discovered' && !post) return jsonV(200, vs.discovered ? vs.discovered() : { ok: false, error: 'Not here.' });
           if (pathname === '/__vbs/diagnostic' && !post) return jsonV(200, { ok: true, text: vs.diagnostic ? vs.diagnostic() : '' });
           if (pathname === '/__vbs/work' && !post) return jsonV(200, vs.work ? vs.work() : { ok: false, error: 'Needs the desktop app.' });
+          if (pathname === '/__vbs/work/progress' && !post) return jsonV(200, vs.workProgress ? vs.workProgress() : { ok: true, active: false });
           if (!post) return jsonV(404, { error: 'Not found' });
           let r;
           if (pathname === '/__vbs/org') { try { r = vs.saveOrg(b); } catch (e) { r = { ok: false, error: e.message }; } }
@@ -1013,6 +1014,7 @@ function createDevServer(o) {
           else if (pathname === '/__vbs/work/plan') r = vs.workPlan(b);
           else if (pathname === '/__vbs/work/use') r = await vs.workUse(b);
           else if (pathname === '/__vbs/work/apply') r = await vs.workApply(String(b.id || ''));
+          else if (pathname === '/__vbs/work/cancel') r = vs.workCancel();
           else if (pathname === '/__vbs/pick-folder') r = typeof o.vbsPickFolder === 'function' ? { ok: true, folder: (await o.vbsPickFolder(String(b.folder || ''))) || '' } : { ok: false, error: 'Choosing a folder needs the desktop app: type its path.' };
           else if (pathname === '/__vbs/work/status') r = await vs.workStatus(String(b.id || ''), { fetch: !!b.fetch });
           else if (pathname === '/__vbs/work/pull') r = await vs.workPull(String(b.id || ''), who());

@@ -18,7 +18,8 @@
     "loading": { "type": "boolean", "defaultValue": true },
     "busy": { "type": "boolean", "defaultValue": false },
     "busyText": { "type": "string", "defaultValue": "" },
-    "result": { "type": "any", "defaultValue": null }
+    "result": { "type": "any", "defaultValue": null },
+    "prog": { "type": "any", "defaultValue": null, "description": "The set-up's progress while it runs (git's own: phase, percentage, size, speed, each step)." }
   },
   "eventListeners": {
     "vbEnter": { "chains": [ { "chain": "loadChain" } ] },

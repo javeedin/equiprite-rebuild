@@ -207,7 +207,13 @@ async function fddStore() {
 // in a hidden window of this app — the same sign-in and the same live data as you see — and captured once it has settled.
 let pagesStoreInst = null;
 async function pagesStore() {
-  if (!pagesStoreInst) pagesStoreInst = require('./lib/pages').open({ root: path.join(__dirname, '..'), data: await dataBranch(), gitPath: commandPath('git') || 'git', capture: capturePage });
+  if (!pagesStoreInst) {
+    // the code: your workspace's working folder when one is set up (Build.Rite's top bar), else this project
+    const current = () => { try { const c = vbsStoreInst && vbsStoreInst.work().current; return c && c.exists ? c : null; } catch (e) { return null; } };
+    pagesStoreInst = require('./lib/pages').open({ root: path.join(__dirname, '..'), data: await dataBranch(), gitPath: commandPath('git') || 'git', capture: capturePage,
+      rootFn: () => { const c = current(); return c ? c.working : ''; },
+      rootLabel: () => { const c = current(); return c ? c.projectName + ' ▸ ' + c.workspace + ' (' + c.branch + ')' : ''; } });
+  }
   return pagesStoreInst;
 }
 /** What each app's local server is given (its login, the other versions' addresses, the stores it uses), for the

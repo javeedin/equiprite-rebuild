@@ -118,6 +118,23 @@ const inProject = (c) => str(c.path).indexOf('<org>_<project>') !== -1;
 /** The learned calls, and each built-in one for what none of them does. */
 const withBuiltIn = (known) => known.concat(BUILT_IN.filter((c) => !known.some((x) => x.path === c.path || (x.role === c.role && inProject(x) === inProject(c)))));
 
+/**
+ * One line of git's progress (clone --progress, on stderr) → { phase, label, pct, done, total, size, speed }, or null:
+ *   remote: Enumerating / Counting / Compressing objects   connect (VB Studio getting it ready)
+ *   Receiving objects: 62% (6200/10000), 48.30 MiB | 2.10 MiB/s   download
+ *   Resolving deltas: 30% (300/1000)                       check
+ *   Updating files: 60% (600/1000)                         unpack (into main)
+ */
+function parseProgress(line) {
+  const t = str(line).replace(/^remote:\s*/, '').trim();
+  const m = /^(Enumerating|Counting|Compressing|Receiving|Resolving|Updating|Checking out) (objects|deltas|files)(?::\s+(\d+)%(?: \((\d+)\/(\d+)\))?(?:, ([\d.]+ [KMGT]?i?B))?(?: \| ([\d.]+ [KMGT]?i?B\/s))?)?/i.exec(t);
+  if (!m) return null;
+  const verb = m[1].toLowerCase();
+  const phase = verb === 'receiving' ? 'download' : verb === 'resolving' ? 'check' : verb === 'updating' || verb === 'checking out' ? 'unpack' : 'connect';
+  const pct = m[3] !== undefined ? Number(m[3]) : (/, done\.?$/.test(t) ? 100 : 0);
+  return { phase: phase, label: m[1] + ' ' + m[2], pct: Math.max(0, Math.min(100, pct)), done: m[4] !== undefined ? Number(m[4]) : 0, total: m[5] !== undefined ? Number(m[5]) : 0, size: m[6] || '', speed: m[7] || '' };
+}
+
 function open(opts) {
   const o = opts || {};
   const file = o.file || '';
@@ -143,12 +160,31 @@ function open(opts) {
   const state = () => ({ ok: true, orgs: data.orgs.map(viewOrg), projects: data.projects.map((p) => Object.assign({}, p)) });
 
   /** git, its sign-in in its environment for that host only (a header): never in the address, the command line or a file. */
-  function git(args, org, ms) {
+  function git(args, org, ms, onLine, onSpawn) {
     return new Promise((resolve) => {
-      if (typeof o.git === 'function') { Promise.resolve(o.git(args, org ? { host: org.host, header: header(org) } : null)).then(resolve, (e) => resolve({ code: 1, stdout: '', stderr: str(e && e.message) })); return; }
+      if (typeof o.git === 'function') { Promise.resolve(o.git(args, org ? { host: org.host, header: header(org) } : null, onLine)).then(resolve, (e) => resolve({ code: 1, stdout: '', stderr: str(e && e.message) })); return; }
       const env = Object.assign({}, process.env, { GIT_TERMINAL_PROMPT: '0', GCM_INTERACTIVE: 'never' });
       const h = header(org);
       if (h) { env.GIT_CONFIG_COUNT = '1'; env.GIT_CONFIG_KEY_0 = 'http.https://' + org.host + '/.extraHeader'; env.GIT_CONFIG_VALUE_0 = 'Authorization: ' + h; }
+      if (typeof onLine === 'function') {
+        // its progress as git writes it (stderr: a line ends at \r while it counts, \n when a phase is done)
+        const cp = require('child_process').spawn(o.gitPath || 'git', ['-c', 'credential.helper=', '-c', 'core.askPass='].concat(args), { env: env, windowsHide: true });
+        if (typeof onSpawn === 'function') onSpawn(cp);
+        let out = '', err = '', buf = '', killed = false;
+        const timer = setTimeout(() => { killed = true; try { cp.kill(); } catch (e) { /* gone */ } }, ms || 60000);
+        cp.stdout.on('data', (d) => { out += d; });
+        cp.stderr.on('data', (d) => {
+          const t = d.toString();
+          err = (err + t).slice(-200000);
+          buf += t;
+          const parts = buf.split(/[\r\n]+/);
+          buf = parts.pop();
+          parts.forEach((l) => { if (l.trim()) { try { onLine(l); } catch (e) { /* only a display */ } } });
+        });
+        cp.on('error', (e) => { clearTimeout(timer); resolve({ code: 1, stdout: out, stderr: err + str(e && e.message) }); });
+        cp.on('close', (code) => { clearTimeout(timer); if (buf.trim()) { try { onLine(buf); } catch (e) { /* only a display */ } } resolve({ code: code === null ? 1 : code, stdout: out, stderr: err + (killed ? ' timed out' : '') }); });
+        return;
+      }
       require('child_process').execFile(o.gitPath || 'git', ['-c', 'credential.helper=', '-c', 'core.askPass='].concat(args), { env: env, windowsHide: true, timeout: ms || 60000, maxBuffer: 8 * 1024 * 1024 },
         (err, stdout, stderr) => resolve({ code: err ? (typeof err.code === 'number' ? err.code : 1) : 0, stdout: str(stdout), stderr: str(stderr) + (err && err.killed ? ' timed out' : '') }));
     });
@@ -556,6 +592,46 @@ function open(opts) {
     return who.code === 0 && str(who.stdout).trim() ? [] : ['-c', 'user.name=' + name, '-c', 'user.email=' + (/@/.test(name) ? name : slug(name) + '@buildrite.local')];
   };
   const count = async (dir, range) => { const r = await git(['-C', dir, 'rev-list', '--count', range], null, 30000); return r.code === 0 ? Number(str(r.stdout).trim()) || 0 : 0; };
+  // ── progress while a workspace is set up (Set workspace & working folder): git's own, read as it writes it ──
+  const PHASES = [
+    { id: 'connect', label: 'Connect to VB Studio', from: 0, to: 10 },
+    { id: 'download', label: 'Download the code', from: 10, to: 75 },
+    { id: 'check', label: 'Check what came', from: 75, to: 88 },
+    { id: 'unpack', label: 'Unpack the files into main', from: 88, to: 96 },
+    { id: 'working', label: 'Make the working folder', from: 96, to: 100 },
+  ];
+  let progress = null;
+  let setupChild = null;
+  /** The state of the set-up going on (or the last one): its phase, overall percentage, what git says, each step's state. */
+  function workProgress() {
+    if (!progress) return { ok: true, active: false };
+    const at = PHASES.findIndex((x) => x.id === progress.phase);
+    return Object.assign({ ok: true }, progress, { elapsedMs: (progress.endedAt ? Date.parse(progress.endedAt) : Date.now()) - Date.parse(progress.startedAt),
+      steps: PHASES.map((x, i) => ({ id: x.id, label: x.label, state: progress.done ? 'done' : i < at ? 'done' : i === at ? (progress.error ? 'failed' : 'active') : 'todo' })) });
+  }
+  /** Stop the set-up going on: git stopped, nothing kept. */
+  function workCancel() {
+    if (!progress || !progress.active) return { ok: false, error: 'Nothing is being set up.' };
+    progress.cancelled = true;
+    progress.text = 'Stopping…';
+    try { if (setupChild) setupChild.kill(); } catch (e) { /* gone */ }
+    return workProgress();
+  }
+  const onGitLine = (line) => {
+    if (!progress) return;
+    const r = parseProgress(line);
+    if (!r) return;
+    const ph = PHASES.filter((x) => x.id === r.phase)[0];
+    progress.phase = r.phase;
+    progress.label = r.label;
+    progress.pct = r.pct;
+    progress.count = r.total ? r.done + ' / ' + r.total : '';
+    progress.size = r.size || (r.phase === 'download' ? progress.size : '');
+    progress.speed = r.speed || '';
+    progress.overall = Math.max(progress.overall || 0, Math.round(ph.from + (ph.to - ph.from) * (r.pct / 100)));
+    progress.lines = (progress.lines || 0) + 1;
+  };
+
   /** Where a workspace would go: { orgKey, project, workspace, repo, branch, folder } → its folders, its address, and what is in the way. */
   function workPlan(b) {
     b = b || {};
@@ -611,6 +687,7 @@ function open(opts) {
    * VB Studio's branch, cloned — and working, a worktree of it on buildrite-working; made current. Already there: reused.
    */
   async function workUse(b) {
+    if (progress && progress.active) return { ok: false, error: 'A workspace is being set up already: wait for it, or cancel it.' };
     const plan = workPlan(b);
     if (plan.reuse) {
       const c0 = works().copies.filter((x) => x.base === plan.base)[0];
@@ -620,19 +697,27 @@ function open(opts) {
     if (!plan.ok) return { ok: false, error: plan.error, plan: plan };
     const org = orgFor(plan.orgKey);
     const steps = [];
+    progress = { active: true, done: false, cancelled: false, error: '', workspace: plan.workspace, branch: plan.branch, repo: plan.repo, main: plan.main, working: plan.working,
+      phase: 'connect', label: 'Connecting to VB Studio', pct: 0, overall: 1, count: '', size: '', speed: '', text: '', startedAt: now().toISOString(), endedAt: '' };
+    const fail = (error, extra) => {
+      try { fs.rmSync(plan.base, { recursive: true, force: true }); } catch (e) { /* left */ }
+      const cancelled = progress && progress.cancelled;
+      progress = Object.assign(progress || {}, { active: false, error: cancelled ? 'Cancelled: nothing was kept.' : error, endedAt: now().toISOString() });
+      setupChild = null;
+      return Object.assign({ ok: false, plan: plan, cancelled: !!cancelled, error: cancelled ? 'Cancelled: nothing was kept.' : error }, extra || {});
+    };
     fs.mkdirSync(plan.base, { recursive: true });
-    const cl = await git(['clone', '--no-tags', '--branch', plan.branch, plan.url, plan.main], org, 900000);
-    if (cl.code !== 0) {
-      try { fs.rmSync(plan.base, { recursive: true, force: true }); } catch (e) { /* left */ }
-      return { ok: false, plan: plan, error: /Remote branch .* not found/i.test(cl.stderr) ? 'The branch ' + plan.branch + ' is not in ' + plan.repo + '.git yet (the workspace has not pushed it).' : why(cl.stderr) };
-    }
+    const cl = await git(['clone', '--progress', '--no-tags', '--branch', plan.branch, plan.url, plan.main], org, 1800000, onGitLine, (cp) => { setupChild = cp; });
+    if (progress.cancelled) return fail('');
+    if (cl.code !== 0) return fail(/Remote branch .* not found/i.test(cl.stderr) ? 'The branch ' + plan.branch + ' is not in ' + plan.repo + '.git yet (the workspace has not pushed it).' : why(cl.stderr));
     steps.push('main: ' + plan.repo + '.git at ' + plan.branch + ', copied from VB Studio');
-    const wt = await git(['-C', plan.main, 'worktree', 'add', '-q', '-B', WORK_BRANCH, plan.working, plan.branch], null, 120000);
-    if (wt.code !== 0) {
-      try { fs.rmSync(plan.base, { recursive: true, force: true }); } catch (e) { /* left */ }
-      return { ok: false, plan: plan, error: 'The working folder could not be made: ' + why(wt.stderr) };
-    }
+    Object.assign(progress, { phase: 'working', label: 'Making the working folder', pct: 0, overall: Math.max(progress.overall, 96), count: '', speed: '' });
+    const wt = await git(['-C', plan.main, 'worktree', 'add', '-q', '-B', WORK_BRANCH, plan.working, plan.branch], null, 300000);
+    if (progress.cancelled) return fail('');
+    if (wt.code !== 0) return fail('The working folder could not be made: ' + why(wt.stderr));
     steps.push('working: made from main (where the changes go)');
+    Object.assign(progress, { active: false, done: true, pct: 100, overall: 100, label: 'Done', endedAt: now().toISOString() });
+    setupChild = null;
     const id = idOf(plan.project.replace(/_\d+$/, '') + '-' + plan.workspace);
     const c = { id: id, orgKey: plan.orgKey, project: plan.project, projectName: str(b.projectName) || plan.project, workspace: plan.workspace, repo: plan.repo, branch: plan.branch, url: plan.url,
       folder: plan.folder, base: plan.base, main: plan.main, working: plan.working, path: plan.working, made: true, setUpAt: now().toISOString() };
@@ -719,7 +804,7 @@ function open(opts) {
   return { state: state, saveOrg: saveOrg, removeOrg: removeOrg, addProject: addProject, checkProject: checkProject, removeProject: removeProject, auth: auth, git: git,
     learn: learn, discovered: discovered, clearDiscovered: clearDiscovered, diagnostic: diagnostic, setFinder: setFinder, finderLog: finderLog,
     sync: sync, findRepos: findRepos, workspaceGit: workspaceGit, windowSignIn: windowSignIn,
-    work: work, workPlan: workPlan, workUse: workUse, workStatus: workStatus, workPull: workPull, workCommit: workCommit, workApply: workApply, workPush: workPush, workForget: workForget };
+    work: work, workPlan: workPlan, workUse: workUse, workProgress: workProgress, workCancel: workCancel, workStatus: workStatus, workPull: workPull, workCommit: workCommit, workApply: workApply, workPush: workPush, workForget: workForget };
 }
 
-module.exports = { open, parseOrgUrl, parseRepoUrl, branchesOf, jobsOf, why, BUILT_IN };
+module.exports = { open, parseOrgUrl, parseRepoUrl, branchesOf, jobsOf, why, parseProgress, BUILT_IN };

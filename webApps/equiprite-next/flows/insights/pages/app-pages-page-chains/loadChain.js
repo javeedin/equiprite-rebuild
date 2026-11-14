@@ -13,6 +13,8 @@ define([
   class loadChain extends ActionChain {
     async run(context, { refresh }) {
       const v = context.$page.variables;
+      // your workspace set up or changed (the wizard, the top bar): its pages read again
+      bus.on('vbs-changed', 'app-pages', (d) => { if (d && d.switched && !v.busy) Actions.callChain(context, { chain: 'loadChain', params: { refresh: true } }).catch(() => {}); });
       // the build in scope (Build.Rite's top bar): its pages first; All builds: every app
       if (!refresh && bus.scope()) v.appF = bus.scope();
       v.busy = true;
@@ -22,6 +24,8 @@ define([
         const [info, cat] = await Promise.all([PC.info(), PC.catalog(context.$application.path)]);
         v.info = info;
         v.pages = cat.body.pages;
+        // whose code: your workspace's working folder (Build.Rite's top bar), or this project
+        v.codeFrom = cat.body && cat.body.source ? { source: cat.body.source, root: cat.body.root } : null;
         v.git = info.canWrite ? ((await PC.gitStatus()).body || null) : null;
         try { const a = await M.aiSettings(); v.aiReady = !!(a.ok && a.body && a.body.active); } catch (e) { v.aiReady = false; }
       } finally {

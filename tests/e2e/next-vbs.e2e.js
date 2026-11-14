@@ -32,7 +32,7 @@ const SECRET = 'Pa55-w0rd#e2e';
   const work = { changed: false, saved: 0, applied: 0 }; // your workspace on this PC, as the git stand-in sees it
   let branches = 'ref: refs/heads/main\tHEAD\n1111111\tHEAD\n1111111\trefs/heads/main\n2222222\trefs/heads/release-26c\n3333333\trefs/heads/ws-javeed\n';
   const vbs = V.open({ file: path.join(dir, 'vbs.json'), encrypt: enc, decrypt: dec, defaultWorkFolder: path.join(dir, 'BuildRite'),
-    git: (args, auth) => {
+    git: (args, auth, onLine) => {
       gitSeen.push({ args: args, auth: auth });
       const a = args.join(' ');
       if (/other\.git/.test(a)) return { code: 128, stdout: '', stderr: 'fatal: Authentication failed' };
@@ -41,7 +41,19 @@ const SECRET = 'Pa55-w0rd#e2e';
       if (args.indexOf('show') !== -1) return { code: 0, stdout: 'M\twebApps/vbredwoodapp/flows/customer-portal/pages/customer-dashboard-page.html\nA\tdocs/titles.md\n', stderr: '' };
       if (args[0] === 'init' || args.indexOf('fetch') !== -1) return { code: 0, stdout: '', stderr: '' };
       const inDir = args[0] === '-C' ? args[1] : '';
-      if (args[0] === 'clone') { fs.mkdirSync(path.join(args[args.length - 1], '.git'), { recursive: true }); work.cloned = args.slice(); return { code: 0, stdout: '', stderr: '' }; }
+      if (args[0] === 'clone') {
+        // git's own progress, as a real clone writes it — the download taking a moment
+        fs.mkdirSync(path.join(args[args.length - 1], '.git'), { recursive: true }); work.cloned = args.slice();
+        return (async () => {
+          const say = (l) => { if (typeof onLine === 'function') onLine(l); };
+          say('remote: Counting objects: 100% (1200/1200), done.');
+          say('Receiving objects:  40% (480/1200), 12.00 MiB | 1.50 MiB/s');
+          await new Promise((r) => setTimeout(r, 2500));
+          say('Receiving objects: 100% (1200/1200), 30.00 MiB | 2.00 MiB/s, done.');
+          say('Resolving deltas: 100% (600/600), done.');
+          return { code: 0, stdout: '', stderr: '' };
+        })();
+      }
       if (args.indexOf('worktree') !== -1) { const wd = args[args.indexOf('-B') + 2]; fs.mkdirSync(path.join(wd, '.git'), { recursive: true }); work.worktree = args.slice(); return { code: 0, stdout: '', stderr: '' }; }
       if (args.indexOf('status') !== -1) {
         const isMain = /[\\/]main$/.test(inDir);
@@ -318,8 +330,16 @@ const SECRET = 'Pa55-w0rd#e2e';
       && /Change in working\s*Save\s*Apply to main\s*Push to VB Studio ws-javeed\s*The workspace: Git → Pull/.test(await text(page, '#vbsuStep3')), await text(page, '#vbsuStep3'));
     await env.shot('buildrite-vbs-setup-preview.png');
     await page.click('#vbsuSet');
-    await page.waitForSelector('#vbsuDone', { state: 'visible', timeout: 8000 }).catch(() => {});
-    T.check('Set workspace & working folder: main cloned (VB Studio\'s branch), working made from it; said', !!work.cloned && work.cloned.join(' ') === 'clone --no-tags --branch ws-javeed ' + REPO + ' ' + path.join(wbase, 'main')
+    await page.waitForFunction(() => /Receiving objects/.test((document.getElementById('vbsuProgDetail') || {}).textContent || ''), null, { timeout: 5000 }).catch(() => {});
+    const pct = Number(((await text(page, '#vbsuProgPct')) || '0').replace('%', ''));
+    T.check('while it copies: the step (Download the code) and the whole set-up\'s percentage and bar; git\'s own words for it (Receiving objects, its counts), size, speed, how long so far', (await text(page, '#vbsuProgLabel')) === 'Download the code' && pct > 10 && pct < 75
+      && Number(await page.getAttribute('#vbsuBar', 'value')) === pct && /^Receiving objects 40% \(480 \/ 1200\) · 12\.00 MiB at 1\.50 MiB\/s · 0:0\d so far$/.test(await text(page, '#vbsuProgDetail')), (await text(page, '#vbsuProgLabel')) + ' ' + pct + ' / ' + (await text(page, '#vbsuProgDetail')));
+    const psteps = await page.$$eval('#vbsuProgSteps li', (l) => l.map((x) => x.className.replace(/.*--/, '') + ':' + x.textContent.replace(/\s*\(.*\)$/, '').replace(/^[✓●○✗]\s*/, '').trim()));
+    T.check('…each step: Connect done, Download active, the rest to come; Cancel offered', psteps.join(' | ') === 'done:Connect to VB Studio | active:Download the code | todo:Check what came | todo:Unpack the files into main | todo:Make the working folder' && !!(await page.$('#vbsuCancel')), psteps.join(' | '));
+    await page.waitForTimeout(600); // the bar's fill eases to its value
+    await env.shot('buildrite-vbs-setup-progress.png');
+    await page.waitForSelector('#vbsuDone', { state: 'visible', timeout: 10000 }).catch(() => {});
+    T.check('Set workspace & working folder: main cloned (VB Studio\'s branch), working made from it; said', !!work.cloned && work.cloned.join(' ') === 'clone --progress --no-tags --branch ws-javeed ' + REPO + ' ' + path.join(wbase, 'main')
       && !!work.worktree && work.worktree.join(' ') === '-C ' + path.join(wbase, 'main') + ' worktree add -q -B buildrite-working ' + path.join(wbase, 'working') + ' ws-javeed'
       && /^✓ Your workspace is set: javeed-26c-titles \(ws-javeed\)$/.test(await text(page, '#vbsuDone .nx-vbsu-doneh')) && (await text(page, '#vbsuDoneWorking')) === path.join(wbase, 'working') && (await text(page, '#vbsuDoneMain')) === path.join(wbase, 'main'), (work.worktree || []).join(' '));
     await page.waitForFunction(() => /EquipRite ▸ javeed-26c-titles/.test((document.getElementById('nxWork') || {}).textContent || ''), null, { timeout: 5000 }).catch(() => {});

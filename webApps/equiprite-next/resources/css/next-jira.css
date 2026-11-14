@@ -1671,3 +1671,25 @@ html[data-nx-product="buildrite"] .nx-pagehead .nx-vbs-fsearch::placeholder, htm
 .nx-vbsp-fold > .nx-note { margin: 6px 0; }
 .nx-vbsp-foldrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
 @media (max-width: 900px) { .nx-vbsu-two, .nx-vbsp-folds { grid-template-columns: minmax(0, 1fr); } }
+/* Set up your workspace: the progress while git copies (its phase, percentage, size, speed; each step) */
+.nx-vbsu-prog { max-width: 720px; padding: 6px 0 4px; }
+.nx-vbsu-progh { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: 14px; }
+.nx-vbsu-pct { font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; color: #1d5fae; }
+.nx-vbsu-bar { display: block; width: 100%; height: 10px; margin: 8px 0 6px; border: 0; border-radius: 999px; overflow: hidden; background: #e3e9ef; appearance: none; -webkit-appearance: none; }
+.nx-vbsu-bar::-webkit-progress-bar { background: #e3e9ef; border-radius: 999px; }
+.nx-vbsu-bar::-webkit-progress-value { background: #2a78d6; border-radius: 999px; transition: width .4s ease; }
+.nx-vbsu-bar::-moz-progress-bar { background: #2a78d6; border-radius: 999px; }
+#vbsuProgDetail { font-variant-numeric: tabular-nums; margin: 0 0 10px; }
+.nx-vbsu-psteps { list-style: none; margin: 0 0 10px; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; }
+.nx-vbsu-ps { display: flex; align-items: center; gap: 10px; color: var(--nx-muted); }
+.nx-vbsu-psi { width: 20px; height: 20px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; background: #e9eef3; color: #6b7886; }
+.nx-vbsu-ps--done { color: inherit; }
+.nx-vbsu-ps--done .nx-vbsu-psi { background: #1f8a4c; color: #fff; }
+.nx-vbsu-ps--active { color: inherit; font-weight: 700; }
+.nx-vbsu-ps--active .nx-vbsu-psi { background: #2a78d6; color: #fff; animation: nx-vbsu-pulse 1.2s ease-in-out infinite; }
+.nx-vbsu-ps--failed .nx-vbsu-psi { background: #c2410c; color: #fff; }
+@keyframes nx-vbsu-pulse { 50% { box-shadow: 0 0 0 5px rgba(42, 120, 214, .18); } }
+@media (prefers-reduced-motion: reduce) { .nx-vbsu-ps--active .nx-vbsu-psi { animation: none; } .nx-vbsu-bar::-webkit-progress-value { transition: none; } }
+/* Application pages: whose code is read (your workspace's working folder) */
+.nx-pg-codefrom { display: inline-flex; align-items: center; gap: 8px; margin-top: 10px; padding: 4px 12px; border-radius: 999px; background: rgba(255, 255, 255, .14); font-size: 13px; font-weight: 600; max-width: 100%; }
+.nx-pg-codefrom span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

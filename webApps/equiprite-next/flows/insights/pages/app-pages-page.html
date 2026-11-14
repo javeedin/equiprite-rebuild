@@ -7,6 +7,8 @@
       <div class="nx-kicker">Insights · Code</div>
       <h1 id="pgTitle">Application pages</h1>
       <div class="nx-sub" id="pgSub"><oj-bind-text value="[[ $functions.subText($variables.pages) ]]"></oj-bind-text></div>
+      <oj-bind-if test="[[ !!$variables.codeFrom ]]"><div class="nx-pg-codefrom" id="pgCodeFrom" :title="[[ $variables.codeFrom.root ]]"><span class="oj-ux-ico-folder" aria-hidden="true"></span>
+        <span><oj-bind-text value="[[ 'Your workspace: ' + $variables.codeFrom.source + ' — its working folder' ]]"></oj-bind-text></span></div></oj-bind-if>
     </div>
     <div class="nx-actions">
       <oj-bind-if test="[[ $variables.info.canWrite ]]">

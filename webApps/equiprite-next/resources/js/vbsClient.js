@@ -39,6 +39,9 @@ define([], function () {
     workPlan: function (b) { return post('work/plan', b); },
     workUse: function (b) { return post('work/use', b); },
     workApply: function (id) { return post('work/apply', { id: id || '' }); },
+    /** Setting a workspace up: its progress (git's own: phase, percentage, size, speed, each step), and Cancel. */
+    workProgress: function () { return call('work/progress'); },
+    workCancel: function () { return post('work/cancel', {}); },
     /** The desktop app's folder dialog: the folder chosen, or '' (cancelled). */
     pickFolder: function (folder) { return post('pick-folder', { folder: folder || '' }); },
     workStatus: function (id, fetch) { return post('work/status', { id: id || '', fetch: !!fetch }); },

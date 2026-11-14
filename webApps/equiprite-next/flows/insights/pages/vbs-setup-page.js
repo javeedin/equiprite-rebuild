@@ -36,6 +36,27 @@ define(['resources/js/vbsView'], (V) => {
     chosenText(found, sel, selWs) { const p = V.project(found, sel); const w = p && p.workspaces.filter((x) => x.key === selWs)[0]; return p && w ? p.name + ' ▸ ' + w.name : ''; }
     planWhere(plan, found, sel) { const p = V.project(found, sel); return !plan ? '' : 'in ' + (p ? p.name : plan.project) + ' · ' + String(plan.orgKey || '').split('/').pop(); }
     mainNote(plan) { return !plan ? '' : 'VB Studio\'s ' + plan.branch + ', exactly. What is applied here is pushed back to VB Studio — never forced.'; }
+    // ── the set-up's progress (git's own, read as it comes) ──
+    progPct(prog) { return prog && prog.overall ? Math.max(0, Math.min(100, prog.overall)) : 0; }
+    /** The step going on (Download the code…), beside the whole set-up's percentage. */
+    progLabel(prog, fallback) {
+      if (prog && prog.cancelled) return 'Stopping…';
+      const st = prog && (prog.steps || []).filter((x) => x.state === 'active')[0];
+      return st ? st.label : (fallback || 'Starting…');
+    }
+    /** What git says of that step (Receiving objects 40% (480 / 1200)), how much at what speed, how long so far. */
+    progDetail(prog) {
+      if (!prog || !prog.startedAt) return '';
+      const s = Math.round((prog.elapsedMs || 0) / 1000);
+      const time = Math.floor(s / 60) + ':' + (s % 60 < 10 ? '0' : '') + (s % 60) + ' so far';
+      const git = prog.phase !== 'working' && prog.label ? prog.label + (prog.pct ? ' ' + prog.pct + '%' : '') + (prog.count ? ' (' + prog.count + ')' : '') : '';
+      return [git, prog.size && prog.speed ? prog.size + ' at ' + prog.speed : prog.size, time].filter(Boolean).join(' · ');
+    }
+    progSteps(prog) {
+      const ICON = { done: '✓', active: '●', todo: '○', failed: '✗' };
+      const steps = (prog && prog.steps) || [{ label: 'Connect to VB Studio', state: 'active' }, { label: 'Download the code', state: 'todo' }, { label: 'Check what came', state: 'todo' }, { label: 'Unpack the files into main', state: 'todo' }, { label: 'Make the working folder', state: 'todo' }];
+      return steps.map((x) => ({ label: x.label, state: x.state, icon: ICON[x.state] || '○' }));
+    }
     noWs(found, sel) { const p = V.project(found, sel); return !p ? '' : p.workspaces.length ? '' : 'No workspace read for this project yet: Build.Rite reads them from VB Studio…'; }
   }
   return PageModule;

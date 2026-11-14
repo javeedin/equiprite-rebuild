@@ -91,6 +91,10 @@ function mergeCatalog(oursText, theirsText, sheetOf) {
 function open(opts) {
   const o = opts || {};
   const root = path.resolve(o.root || path.join(__dirname, '..', '..'));
+  // the code read: root — or, when the desktop app says so (o.rootFn: Build.Rite's workspace on this PC), that folder (its
+  // working folder); the data (sheets, screenshots, stories) stay where they are
+  const rootNow = () => { let r = ''; try { r = typeof o.rootFn === 'function' ? str(o.rootFn()) : ''; } catch (e) { r = ''; } return r ? path.resolve(r) : root; };
+  const sourceNow = () => { try { return typeof o.rootLabel === 'function' ? str(o.rootLabel()) : ''; } catch (e) { return ''; } };
   // the data (sheets, screenshots, stories, the catalog): on the app's data branch when there is one (lib/dataBranch.js),
   // else in the project folder itself; the code is always read from root
   const data = o.data && o.data.ok ? o.data : null;
@@ -151,7 +155,8 @@ function open(opts) {
   // saved sheet ask for it); Rescan reads them at once
   let listed = { at: 0, v: null };
   const livePages = (fresh) => {
-    if (fresh || !listed.v || Date.now() - listed.at > 15000) listed = { at: Date.now(), v: scan.list(root) };
+    const r = rootNow();
+    if (fresh || !listed.v || listed.root !== r || Date.now() - listed.at > 15000) listed = { at: Date.now(), root: r, v: scan.list(r) };
     return listed.v;
   };
   function catalog(fresh) {
@@ -161,7 +166,7 @@ function open(opts) {
     const pages = live.map((p) => Object.assign({}, p, { stories: (old[p.id] && old[p.id].stories) || [], sheet: (old[p.id] && old[p.id].sheet) || null,
       deleted: !!(old[p.id] && old[p.id].deleted) }));
     Object.keys(old).forEach((id) => { if (!pages.some((p) => p.id === id) && (old[id].stories || []).length) pages.push(Object.assign({}, old[id], { missing: true })); });
-    return { scannedAt: now().toISOString(), pages: pages };
+    return { scannedAt: now().toISOString(), pages: pages, root: rootNow(), source: rootNow() === root ? '' : sourceNow() };
   }
   function writeCatalog(cat) {
     const slim = { scannedAt: cat.scannedAt, pages: cat.pages.map((p) => ({ id: p.id, app: p.app, appName: p.appName, flow: p.flow, page: p.page, label: p.label,
@@ -179,18 +184,18 @@ function open(opts) {
   function sheet(id) {
     const sh = readSheet(id);
     if (sh) {
-      const facts = scan.analyze(root, id);
+      const facts = scan.analyze(rootNow(), id);
       shotsOf(sh);
       return { ok: true, sheet: sh, codeChanged: !!(facts && facts.codeHash !== sh.codeHash), saved: true };
     }
-    const facts = scan.analyze(root, id);
+    const facts = scan.analyze(rootNow(), id);
     if (!facts) return { ok: false, error: 'There is no page "' + id + '" in the project.' };
     const entry = (saved().pages || []).filter((p) => p.id === id)[0];
     return { ok: true, sheet: { id: id, facts: facts, ai: null, screenshots: [], stories: (entry && entry.stories) || [], at: '', by: '', codeHash: facts.codeHash }, codeChanged: false, saved: false, deleted: !!(entry && entry.deleted) };
   }
 
   function build(id, b) {
-    const facts = scan.analyze(root, id);
+    const facts = scan.analyze(rootNow(), id);
     if (!facts) return { ok: false, error: 'There is no page "' + id + '" in the project.' };
     const old = readSheet(id) || {};
     const entry = (saved().pages || []).filter((p) => p.id === id)[0];
@@ -263,7 +268,7 @@ function open(opts) {
    *  (the code still has it: restore brings it back, without a sheet). */
   function remove(id) {
     const entry = (saved().pages || []).filter((p) => p.id === id)[0];
-    const live = scan.list(root).some((p) => p.id === id);
+    const live = scan.list(rootNow()).some((p) => p.id === id);
     if (!entry && !live) return { ok: false, error: 'There is no page "' + id + '".' };
     const sh = readSheet(id);
     if (sh) { shotsOf(sh).forEach((x) => removeFile(x.file)); removeFile(sheetFile(id)); }
@@ -284,7 +289,7 @@ function open(opts) {
 
   async function capture(id, b) {
     if (typeof o.capture !== 'function') return { ok: false, error: 'Capturing works in the EquipRite desktop app. Upload a screenshot instead.' };
-    const facts = scan.analyze(root, id);
+    const facts = scan.analyze(rootNow(), id);
     if (!facts) return { ok: false, error: 'There is no page "' + id + '" in the project.' };
     if (!facts.route.url) return { ok: false, error: facts.route.needs || 'This page has no address of its own: upload a screenshot.' };
     const shot = await o.capture(facts.app, facts.route.url);
@@ -305,12 +310,12 @@ function open(opts) {
   /** The page's code, as it is in the project now (the Page code tab, read only): its files — the page, its action
    *  chains, the rules modules it uses — and one file's text (only a file of that page). */
   function code(id) {
-    const facts = scan.analyze(root, id);
+    const facts = scan.analyze(rootNow(), id);
     if (!facts) return { ok: false, error: 'This page is not in the code.' };
     const group = (p) => (/-page-chains\//.test(p) ? 'chain' : 'page');
     const files = facts.files.map((f) => ({ path: f.path, lines: f.lines, group: group(f.path), name: path.basename(f.path) }))
       .concat((facts.logic.modules || []).filter((m) => m.file).map((m) => ({ path: m.file, lines: m.lines || 0, group: 'module', name: path.basename(m.file), about: m.about || '' })));
-    return { ok: true, id: facts.id, label: facts.label, folder: root, codeHash: facts.codeHash, files: files.filter((f, i) => files.findIndex((x) => x.path === f.path) === i) };
+    return { ok: true, id: facts.id, label: facts.label, folder: rootNow(), codeHash: facts.codeHash, files: files.filter((f, i) => files.findIndex((x) => x.path === f.path) === i) };
   }
   function codeFile(id, rel) {
     const c = code(id);
@@ -318,8 +323,8 @@ function open(opts) {
     const f = c.files.filter((x) => x.path === str(rel))[0];
     if (!f) return { ok: false, error: 'Not a file of this page.' };
     let text;
-    try { text = fs.readFileSync(path.join(root, f.path), 'utf8'); } catch (e) { return { ok: false, error: 'Could not read ' + f.path + '.' }; }
-    return { ok: true, path: f.path, abs: path.join(root, f.path), text: text, lines: text.split('\n').length, size: Buffer.byteLength(text) };
+    try { text = fs.readFileSync(path.join(rootNow(), f.path), 'utf8'); } catch (e) { return { ok: false, error: 'Could not read ' + f.path + '.' }; }
+    return { ok: true, path: f.path, abs: path.join(rootNow(), f.path), text: text, lines: text.split('\n').length, size: Buffer.byteLength(text) };
   }
 
   /** A page's latest screenshots as images ({ name, mime, base64, caption, at }), newest first: Issues gives the latest to
@@ -344,7 +349,7 @@ function open(opts) {
     dataInfo: () => (o.data ? o.data.info() : { separate: false, branch: '', reason: '' }),
     setMirror: (dir) => { const was = mirrorDir(); mirror = dir || ''; if (mirrorDir() !== was) sync(); },
     synced: () => syncing || Promise.resolve(), // the build copy's refresh, done
-    RES: RES, root: root, dataRoot: dataRoot,
+    RES: RES, root: root, rootNow: rootNow, dataRoot: dataRoot,
   };
 }
 

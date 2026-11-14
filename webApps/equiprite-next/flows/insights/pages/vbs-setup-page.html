@@ -101,7 +101,19 @@
     <section class="nx-card nx-vbsu-card" id="vbsuStep4" aria-labelledby="vbsuS4" aria-live="polite">
       <div class="nx-card-head"><h2 id="vbsuS4">4 · Set</h2></div>
       <div class="nx-vbsu-body">
-        <oj-bind-if test="[[ $variables.busy ]]"><div class="nx-empty" id="vbsuWorking"><span class="nx-spin" aria-hidden="true"></span> <oj-bind-text value="[[ $variables.busyText ]]"></oj-bind-text></div></oj-bind-if>
+        <oj-bind-if test="[[ $variables.busy ]]">
+          <div class="nx-vbsu-prog" id="vbsuProgress">
+            <div class="nx-vbsu-progh"><b id="vbsuProgLabel"><oj-bind-text value="[[ $functions.progLabel($variables.prog, $variables.busyText) ]]"></oj-bind-text></b><span class="nx-vbsu-pct" id="vbsuProgPct"><oj-bind-text value="[[ $functions.progPct($variables.prog) + '%' ]]"></oj-bind-text></span></div>
+            <progress class="nx-vbsu-bar" id="vbsuBar" max="100" :value="[[ $functions.progPct($variables.prog) ]]" aria-label="Setting the workspace up"></progress>
+            <p class="nx-note" id="vbsuProgDetail"><oj-bind-text value="[[ $functions.progDetail($variables.prog) ]]"></oj-bind-text></p>
+            <ol class="nx-vbsu-psteps" id="vbsuProgSteps">
+              <oj-bind-for-each data="[[ $functions.progSteps($variables.prog) ]]">
+                <template data-oj-as="s"><li :class="[[ 'nx-vbsu-ps nx-vbsu-ps--' + s.data.state ]]"><span class="nx-vbsu-psi" aria-hidden="true"><oj-bind-text value="[[ s.data.icon ]]"></oj-bind-text></span><oj-bind-text value="[[ s.data.label ]]"></oj-bind-text><span class="nx-sr"><oj-bind-text value="[[ ' (' + s.data.state + ')' ]]"></oj-bind-text></span></li></template>
+              </oj-bind-for-each>
+            </ol>
+            <div class="nx-fx-row"><button type="button" class="nx-btn nx-btn--plain" id="vbsuCancel" data-act="cancel" on-click="[[ $listeners.onAct ]]">Cancel</button></div>
+          </div>
+        </oj-bind-if>
         <oj-bind-if test="[[ !$variables.busy && !!$variables.done && $variables.done.ok ]]">
           <div class="nx-vbsu-done" id="vbsuDone">
             <p class="nx-vbsu-doneh">✓ <oj-bind-text value="[[ 'Your workspace is set: ' + $variables.done.copy.workspace + ' (' + $variables.done.copy.branch + ')' ]]"></oj-bind-text></p>

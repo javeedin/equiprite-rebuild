@@ -3,6 +3,7 @@
   "navigation": { "embeddable": "enabled" },
   "variables": {
     "checked": { "type": "boolean", "defaultValue": false },
+    "codeFrom": { "type": "any", "defaultValue": null, "description": "Whose code is read: your workspace's working folder (Build.Rite's top bar: { source, root }), or this project (null)." },
     "info": { "type": "object", "defaultValue": { "available": false, "canWrite": false, "canCapture": false, "data": null }, "description": "The local server: answers, can write into the project, can capture screenshots (desktop app); data: the git branch the sheets are kept on ({ separate, branch, reason }, lib/dataBranch.js)." },
     "busy": { "type": "boolean", "defaultValue": false },
     "progress": { "type": "string", "defaultValue": "" },

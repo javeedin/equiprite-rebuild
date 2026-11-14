@@ -75,11 +75,12 @@ function headerComment(src, max) {
 /** Every page of every app: [{ id, app, appName, flow, page, json, html, js, chainsDir }]. */
 function pagesOf(root) {
   const web = path.join(root, 'webApps');
+  const own = isDir(path.join(web, 'equiprite-next')); // Build.Rite's own project: its apps' names (Old EquipRite…); else as they are
   const out = [];
   const add = (app, flow, dir, file) => {
     const page = file.replace(/-page\.json$/, '');
     const base = path.join(dir, page + '-page');
-    out.push({ id: app + '/' + flow + '/' + page, app: app, appName: APPS[app] || app, flow: flow, page: page,
+    out.push({ id: app + '/' + flow + '/' + page, app: app, appName: own ? (APPS[app] || app) : app, flow: flow, page: page,
       json: base + '.json', html: base + '.html', js: base + '.js', chainsDir: base + '-chains' });
   };
   (isDir(web) ? fs.readdirSync(web) : []).sort().forEach((app) => {
